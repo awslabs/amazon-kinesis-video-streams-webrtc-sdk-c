@@ -26,7 +26,7 @@ VOID dataChannelOnOpenCallback(UINT64 customData, PRtcDataChannel pDataChannel)
     // Sending first message to the master over the data channel
     retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) VIEWER_DATA_CHANNEL_MESSAGE, STRLEN(VIEWER_DATA_CHANNEL_MESSAGE));
     if (retStatus != STATUS_SUCCESS) {
-        DLOGI("[KVS Viewer] dataChannelSend(): operation returned status code: 0x%08x ", retStatus);
+        DLOGI("[KVS Gstreamer Viewer] dataChannelSend(): operation returned status code: 0x%08x ", retStatus);
     }
 }
 #endif
@@ -59,36 +59,45 @@ INT32 main(INT32 argc, CHAR* argv[])
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
 #endif
 
-    if (argc > 2) {
-        if (!STRCMP(argv[2], AUDIO_CODEC_NAME_AAC)) {
+    if (argc > 3) {
+        if (!STRCMP(argv[3], AUDIO_CODEC_NAME_AAC)) {
             audioCodec = RTC_CODEC_AAC;
-        } else if (!STRCMP(argv[2], AUDIO_CODEC_NAME_ALAW)) {
-            audioCodec = RTC_CODEC_ALAW;
-        } else if (!STRCMP(argv[2], AUDIO_CODEC_NAME_MULAW)) {
-            audioCodec = RTC_CODEC_MULAW;
         } else {
-            DLOGI("[KVS Viewer] Defaulting to Opus audio codec");
+            DLOGI("[KVS Gstreamer Viewer] Defaulting to Opus audio codec");
         }
     }
 
-    if (argc > 3) {
-        if (!STRCMP(argv[3], VIDEO_CODEC_NAME_H265)) {
+    if (argc > 4) {
+        if (!STRCMP(argv[4], VIDEO_CODEC_NAME_H265)) {
             videoCodec = RTC_CODEC_H265;
-        } else if (!STRCMP(argv[3], VIDEO_CODEC_NAME_VP8)) {
-            videoCodec = RTC_CODEC_VP8;
         } else {
-            DLOGI("[KVS Viewer] Defaulting to H264 video codec");
+            DLOGI("[KVS Gstreamer Viewer] Defaulting to H264 video codec");
         }
     }
 
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, TRUE, TRUE, logLevel, &pSampleConfiguration));
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
+    pSampleConfiguration->receiveAudioVideoSource = receiveGstreamerAudioVideo;
     pSampleConfiguration->audioCodec = audioCodec;
     pSampleConfiguration->videoCodec = videoCodec;
 
+    if (argc > 2) {
+        if (STRCMP(argv[2], "video-only") == 0) {
+            pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
+            DLOGI("[KVS Gstreamer Viewer] Streaming video only");
+        } else if (STRCMP(argv[2], "audio-video") == 0) {
+            pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
+            DLOGI("[KVS Gstreamer Viewer] Streaming audio and video");
+        } else {
+            DLOGI("[KVS Gstreamer Viewer] Unrecognized streaming type. Default to video-only");
+        }
+    } else {
+        DLOGI("[KVS Gstreamer Viewer] Streaming video only");
+    }
+
     // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
     CHK_STATUS(initKvsWebRtc());
-    DLOGI("[KVS Viewer] KVS WebRTC initialization completed successfully");
+    DLOGI("[KVS Gstreamer Viewer] KVS WebRTC initialization completed successfully");
 
 #ifdef ENABLE_DATA_CHANNEL
     pSampleConfiguration->onDataChannel = onDataChannel;
@@ -96,13 +105,13 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     SPRINTF(clientId, "%s_%u", SAMPLE_VIEWER_CLIENT_ID, RAND() % MAX_UINT32);
     CHK_STATUS(initSignaling(pSampleConfiguration, clientId));
-    DLOGI("[KVS Viewer] Signaling client connection established");
+    DLOGI("[KVS Gstreamer Viewer] Signaling client connection established");
 
     // Initialize streaming session
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     locked = TRUE;
     CHK_STATUS(createSampleStreamingSession(pSampleConfiguration, NULL, FALSE, &pSampleStreamingSession));
-    DLOGI("[KVS Viewer] Creating streaming session...completed");
+    DLOGI("[KVS Gstreamer Viewer] Creating streaming session...completed");
     pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
 
     MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
@@ -112,12 +121,10 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     offerSessionDescriptionInit.useTrickleIce = pSampleStreamingSession->remoteCanTrickleIce;
     CHK_STATUS(setLocalDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
-    DLOGI("[KVS Viewer] Completed setting local description");
-
-    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleAudioFrameHandler));
+    DLOGI("[KVS Gstreamer Viewer] Completed setting local description");
 
     if (!pSampleConfiguration->trickleIce) {
-        DLOGI("[KVS Viewer] Non trickle ice. Wait for Candidate collection to complete");
+        DLOGI("[KVS Gstreamer Viewer] Non trickle ice. Wait for Candidate collection to complete");
         MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
         locked = TRUE;
 
@@ -130,17 +137,17 @@ INT32 main(INT32 argc, CHAR* argv[])
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
         locked = FALSE;
 
-        DLOGI("[KVS Viewer] Candidate collection completed");
+        DLOGI("[KVS Gstreamer Viewer] Candidate collection completed");
     }
 
     CHK_STATUS(createOffer(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
-    DLOGI("[KVS Viewer] Offer creation successful");
+    DLOGI("[KVS Gstreamer Viewer] Offer creation successful");
 
-    DLOGI("[KVS Viewer] Generating JSON of session description....");
+    DLOGI("[KVS Gstreamer Viewer] Generating JSON of session description....");
     CHK_STATUS(serializeSessionDescriptionInit(&offerSessionDescriptionInit, NULL, &buffLen));
 
     if (buffLen >= SIZEOF(message.payload)) {
-        DLOGE("[KVS Viewer] serializeSessionDescriptionInit(): operation returned status code: 0x%08x ", STATUS_INVALID_OPERATION);
+        DLOGE("[KVS Gstreamer Viewer] serializeSessionDescriptionInit(): operation returned status code: 0x%08x ", STATUS_INVALID_OPERATION);
         retStatus = STATUS_INVALID_OPERATION;
         goto CleanUp;
     }
@@ -161,11 +168,11 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     // Creating a new datachannel on the peer connection of the existing sample streaming session
     CHK_STATUS(createDataChannel(pPeerConnection, pChannelName, NULL, &pDataChannel));
-    DLOGI("[KVS Viewer] Creating data channel...completed");
+    DLOGI("[KVS Gstreamer Viewer] Creating data channel...completed");
 
     // Setting a callback for when the data channel is open
     CHK_STATUS(dataChannelOnOpen(pDataChannel, (UINT64) &datachannelLocalOpenCount, dataChannelOnOpenCallback));
-    DLOGI("[KVS Viewer] Data Channel open now...");
+    DLOGI("[KVS Gstreamer Viewer] Data Channel open now...");
 #endif
 
     // Block until interrupted
@@ -176,10 +183,10 @@ INT32 main(INT32 argc, CHAR* argv[])
 CleanUp:
 
     if (retStatus != STATUS_SUCCESS) {
-        DLOGE("[KVS Viewer] Terminated with status code 0x%08x", retStatus);
+        DLOGE("[KVS Gstreamer Viewer] Terminated with status code 0x%08x", retStatus);
     }
 
-    DLOGI("[KVS Viewer] Cleaning up....");
+    DLOGI("[KVS Gstreamer Viewer] Cleaning up....");
 
     if (locked) {
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
@@ -191,15 +198,15 @@ CleanUp:
     if (pSampleConfiguration != NULL) {
         retStatus = freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
         if (retStatus != STATUS_SUCCESS) {
-            DLOGE("[KVS Viewer] freeSignalingClient(): operation returned status code: 0x%08x ", retStatus);
+            DLOGE("[KVS Gstreamer Viewer] freeSignalingClient(): operation returned status code: 0x%08x ", retStatus);
         }
 
         retStatus = freeSampleConfiguration(&pSampleConfiguration);
         if (retStatus != STATUS_SUCCESS) {
-            DLOGE("[KVS Viewer] freeSampleConfiguration(): operation returned status code: 0x%08x ", retStatus);
+            DLOGE("[KVS Gstreamer Viewer] freeSampleConfiguration(): operation returned status code: 0x%08x ", retStatus);
         }
     }
-    DLOGI("[KVS Viewer] Cleanup done");
+    DLOGI("[KVS Gstreamer Viewer] Cleanup done");
 
     RESET_INSTRUMENTED_ALLOCATORS();
 

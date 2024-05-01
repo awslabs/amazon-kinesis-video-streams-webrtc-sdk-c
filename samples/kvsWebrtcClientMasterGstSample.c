@@ -171,6 +171,18 @@ PVOID sendGstreamerAudioVideo(PVOID args)
      * vp8enc error-resilient=partitions keyframe-max-dist=10 auto-alt-ref=true cpu-used=5 deadline=1 !
      * appsink sync=TRUE emit-signals=TRUE name=appsink-video
      *
+     * For H265/AAC
+     * pipeline =
+     *          gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert !
+     *                                     "video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! " "queue ! "
+     *                                     "x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! "
+     *                                     "video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! appsink sync=TRUE "
+     *                                     "emit-signals=TRUE name=appsink-video audiotestsrc wave=triangle is-live=TRUE ! "
+     *                                     "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! faac ! "
+     *                                     "capsfilter caps=audio/mpeg,mpegversion=4,stream-format=adts,base-profile=lc,channels=2,rate=48000 ! "
+     *                                     "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+     *                                     &error);
+     *
      * Raspberry Pi Hardware Encode Example
      * "v4l2src device=\"/dev/video0\" ! queue ! v4l2convert ! "
      * "video/x-raw,format=I420,width=640,height=480,framerate=30/1 ! "
@@ -186,15 +198,24 @@ PVOID sendGstreamerAudioVideo(PVOID args)
         case SAMPLE_STREAMING_VIDEO_ONLY:
             switch (pSampleConfiguration->srcType) {
                 case TEST_SOURCE: {
-                    senderPipeline = gst_parse_launch(
-                        "videotestsrc pattern=ball is-live=TRUE ! "
-                        "queue ! videoconvert ! videoscale ! video/x-raw,width=1280,height=720 ! "
-                        "clockoverlay halignment=right valignment=top time-format=\"%Y-%m-%d %H:%M:%S\" ! "
-                        "videorate ! video/x-raw,framerate=25/1 ! "
-                        "x264enc name=sampleVideoEncoder bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                        "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! "
-                        "appsink sync=TRUE emit-signals=TRUE name=appsink-video",
-                        &error);
+                    if (pSampleConfiguration->videoCodec == RTC_CODEC_H265) {
+                        senderPipeline = gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert ! "
+                                                          "video/x-raw,width=1280,height=720,framerate=25/1 ! queue ! "
+                                                          "x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! "
+                                                          "video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! appsink sync=TRUE "
+                                                          "emit-signals=TRUE name=appsink-video",
+                                                          &error);
+                    } else {
+                        senderPipeline = gst_parse_launch(
+                            "videotestsrc pattern=ball is-live=TRUE ! "
+                            "queue ! videoconvert ! videoscale ! video/x-raw,width=1280,height=720 ! "
+                            "clockoverlay halignment=right valignment=top time-format=\"%Y-%m-%d %H:%M:%S\" ! "
+                            "videorate ! video/x-raw,framerate=25/1 ! "
+                            "x264enc name=sampleVideoEncoder bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                            "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! "
+                            "appsink sync=TRUE emit-signals=TRUE name=appsink-video",
+                            &error);
+                    }
                     break;
                 }
                 case DEVICE_SOURCE: {
@@ -231,16 +252,42 @@ PVOID sendGstreamerAudioVideo(PVOID args)
         case SAMPLE_STREAMING_AUDIO_VIDEO:
             switch (pSampleConfiguration->srcType) {
                 case TEST_SOURCE: {
-                    senderPipeline = gst_parse_launch(
-                        "videotestsrc pattern=ball is-live=TRUE ! "
-                        "queue ! videorate ! videoscale ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
-                        "clockoverlay halignment=right valignment=top time-format=\"%Y-%m-%d %H:%M:%S\" ! "
-                        "x264enc name=sampleVideoEncoder bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                        "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! "
-                        "appsink sync=TRUE emit-signals=TRUE name=appsink-video audiotestsrc wave=ticks is-live=TRUE ! "
-                        "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc name=sampleAudioEncoder ! "
-                        "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                        &error);
+                    if (pSampleConfiguration->videoCodec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE &&
+                        pSampleConfiguration->audioCodec == RTC_CODEC_OPUS) {
+                        senderPipeline = gst_parse_launch(
+                            "videotestsrc pattern=ball is-live=TRUE ! "
+                            "queue ! videorate ! videoscale ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
+                            "clockoverlay halignment=right valignment=top time-format=\"%Y-%m-%d %H:%M:%S\" ! "
+                            "x264enc name=sampleVideoEncoder bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
+                            "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! "
+                            "appsink sync=TRUE emit-signals=TRUE name=appsink-video audiotestsrc wave=ticks is-live=TRUE ! "
+                            "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc name=sampleAudioEncoder ! "
+                            "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+                            &error);
+                    } else if (pSampleConfiguration->videoCodec == RTC_CODEC_H265 && pSampleConfiguration->audioCodec == RTC_CODEC_OPUS) {
+                        senderPipeline =
+                            gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert ! "
+                                             "video/x-raw,width=1280,height=720,framerate=25/1 ! queue ! "
+                                             "x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! "
+                                             "video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! appsink sync=TRUE "
+                                             "emit-signals=TRUE name=appsink-video audiotestsrc is-live=TRUE ! "
+                                             "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
+                                             "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+                                             &error);
+
+                    } else if (pSampleConfiguration->videoCodec == RTC_CODEC_H265 && pSampleConfiguration->audioCodec == RTC_CODEC_AAC) {
+                        senderPipeline =
+                            gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert ! "
+                                             "video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! queue ! "
+                                             "x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! "
+                                             "video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! appsink sync=TRUE "
+                                             "emit-signals=TRUE name=appsink-video audiotestsrc wave=triangle is-live=TRUE ! "
+                                             "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! faac ! "
+                                             "capsfilter caps=audio/mpeg,mpegversion=4,stream-format=adts,base-profile=lc,channels=2,rate=48000 ! "
+                                             "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
+                                             &error);
+                    }
+                    // TODO: test and add more such combinations
                     break;
                 }
                 case DEVICE_SOURCE: {
@@ -429,6 +476,8 @@ INT32 main(INT32 argc, CHAR* argv[])
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = NULL;
     PCHAR pChannelName;
+    RTC_CODEC audioCodec = RTC_CODEC_OPUS;
+    RTC_CODEC videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
 
     SET_INSTRUMENTED_ALLOCATORS();
     UINT32 logLevel = setLogLevel();
@@ -444,10 +493,24 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
 
+    if (argc > 3 && STRCMP(argv[3], "testsrc") == 0) {
+        if (argc > 4) {
+            if (!STRCMP(argv[4], AUDIO_CODEC_NAME_AAC)) {
+                audioCodec = RTC_CODEC_AAC;
+            }
+        }
+
+        if (argc > 5) {
+            if (!STRCMP(argv[5], VIDEO_CODEC_NAME_H265)) {
+                videoCodec = RTC_CODEC_H265;
+            }
+        }
+    }
+
     pSampleConfiguration->videoSource = sendGstreamerAudioVideo;
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
-    pSampleConfiguration->receiveAudioVideoSource = receiveGstreamerAudioVideo;
-
+    pSampleConfiguration->audioCodec = audioCodec;
+    pSampleConfiguration->videoCodec = videoCodec;
 #ifdef ENABLE_DATA_CHANNEL
     pSampleConfiguration->onDataChannel = onDataChannel;
 #endif

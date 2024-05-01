@@ -268,14 +268,17 @@ After executing `make` you will have sample applications in your `build/samples`
 #### Sample: kvsWebrtcClientMaster
 This application sends sample H264/Opus frames (path: `/samples/h264SampleFrames` and `/samples/opusSampleFrames`) via WebRTC. It also accepts incoming audio, if enabled in the browser. When checked in the browser, it prints the metadata of the received audio packets in your terminal. To run:
 ```shell
-./samples/kvsWebrtcClientMaster <channelName>
+./samples/kvsWebrtcClientMaster <channelName> <storage-option> <audio-codec> <video-codec>
 ```
 
 To use the **Storage for WebRTC** feature, run the same command as above but with an additional command line arg to enable the feature.  
 
 ```shell
-./samples/kvsWebrtcClientMaster <channelName> 1
+./samples/kvsWebrtcClientMaster <channelName> 1 <audio-codec> <video-codec>
 ```
+
+Allowed audio-codec: opus (default codec if nothing is specified)
+Allowed video-codec: h264 (default codec if nothing is specified), h265
 
 #### Sample: kvsWebrtcClientMasterGstSample
 This application can send media from a GStreamer pipeline using test H264/Opus frames, device `autovideosrc` and `autoaudiosrc` input, or a received RTSP stream. It also will playback incoming audio via an `autoaudiosink`. To run:
@@ -288,11 +291,57 @@ Pass the desired media and source type when running the sample. The mediaType ca
 ./samples/kvsWebrtcClientMasterGstSample <channelName> <mediaType> rtspsrc rtsp://<rtspUri>
 ```
 
+Using the testsrc with audio and video-codec
+```shell
+./samples/kvsWebrtcClientMasterGstSample <channelName> <mediaType> <sourceType> <audio-codec> <video-codec>
+```
+
+Example:
+```shell
+./samples/kvsWebrtcClientMasterGstSample <channelName> audio-video testsrc opus h264
+```
+
+Allowed audio-codec: opus (default codec if nothing is specified)
+Allowed video-codec: h264 (default codec if nothing is specified), h265
 
 #### Sample: kvsWebrtcClientViewer
 This application accepts sample H264/Opus frames and prints them out. To run:
 ```shell
-./samples/kvsWebrtcClientViewer <channelName>
+./samples/kvsWebrtcClientViewer <channelName> <audio-codec> <video-codec>
+```
+
+Allowed audio-codec: opus (default codec if nothing is specified)
+Allowed video-codec: h264 (default codec if nothing is specified), h265
+
+#### Sample: kvsWebrtcClientViewerGstSample
+This application is similar to the kvsWebrtcClientViewer. However, instead of just logging the media it receives, it generates a file using filesink. Make sure that your device has enough space to write the media to a file. You can also customize the receiving logic by modifying the functions in _GstAudioVideoReceiver.c_
+
+To run:
+```shell
+./samples/kvsWebrtcClientViewerGstSample <channelName> <mediaType> <audio-codec> <video-codec>
+```
+
+Allowed audio-codec: opus (default codec if nothing is specified)
+Allowed video-codec: h264 (default codec if nothing is specified), h265
+
+##### Known issues:
+Our GStreamer samples leverage [MatroskaMux](https://gstreamer.freedesktop.org/documentation/matroska/matroskamux.html?gi-language=c) to receive media from its peer and save it to a file. However, MatroskaMux is designed for scenarios where the media's format remains constant throughout streaming. When the media's format changes mid-streaming (referred to as "caps changes"), MatroskaMux encounters limitations, its behavior cannot be predicted and it may be unable to handle these changes, resulting in an error message like:
+
+```shell
+matroskamux matroska-mux.c:1134:gst_matroska_mux_video_pad_setcaps:<mux> error: Caps changes are not supported by Matroska
+```
+To address this issue, users need to adapt the pipeline to utilize components capable of managing dynamic changes in media formats. This might involve integrating different muxers or customizing the pipeline to handle caps changes effectively.
+
+#### Sample: Generating sample frames
+
+##### H264
+```shell
+gst-launch-1.0 videotestsrc pattern=ball num-buffers=1500 ! timeoverlay ! videoconvert ! video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! queue ! x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! multifilesink location="frame-%04d.h264" index=1
+```
+
+##### H265
+```shell
+gst-launch-1.0 videotestsrc pattern=ball num-buffers=1500 ! timeoverlay ! videoconvert ! video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! queue ! x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! multifilesink location="frame-%04d.h265" index=1
 ```
 
 ### Viewing Master Samples
@@ -350,8 +399,6 @@ createLwsIotCredentialProvider(
 freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
 ```
 
-<<<<<<< HEAD
-=======
 ## TWCC support
 
 Transport Wide Congestion Control (TWCC) is a mechanism in WebRTC designed to enhance the performance and reliability of real-time communication over the internet. TWCC addresses the challenges of network congestion by providing detailed feedback on the transport of packets across the network, enabling adaptive bitrate control and optimization of media streams in real-time. This feedback mechanism is crucial for maintaining high-quality audio and video communication, as it allows senders to adjust their transmission strategies based on comprehensive information about packet losses, delays, and jitter experienced across the entire transport path.

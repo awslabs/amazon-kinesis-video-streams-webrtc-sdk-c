@@ -13,9 +13,18 @@ extern "C" {
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 
 #define NUMBER_OF_H264_FRAME_FILES               1500
+#define NUMBER_OF_H265_FRAME_FILES               1500
 #define NUMBER_OF_OPUS_FRAME_FILES               618
 #define DEFAULT_FPS_VALUE                        25
 #define DEFAULT_MAX_CONCURRENT_STREAMING_SESSION 10
+
+#define AUDIO_CODEC_NAME_ALAW  "alaw"
+#define AUDIO_CODEC_NAME_MULAW "mulaw"
+#define AUDIO_CODEC_NAME_OPUS  "opus"
+#define AUDIO_CODEC_NAME_AAC   "aac"
+#define VIDEO_CODEC_NAME_H264  "h264"
+#define VIDEO_CODEC_NAME_H265  "h265"
+#define VIDEO_CODEC_NAME_VP8   "vp8"
 
 #define SAMPLE_MASTER_CLIENT_ID "ProducerMaster"
 #define SAMPLE_VIEWER_CLIENT_ID "ConsumerViewer"
@@ -112,6 +121,8 @@ typedef struct {
     PCHAR pCaCertPath;
     PAwsCredentialProvider pCredentialProvider;
     SIGNALING_CLIENT_HANDLE signalingClientHandle;
+    RTC_CODEC audioCodec;
+    RTC_CODEC videoCodec;
     PBYTE pAudioFrameBuffer;
     UINT32 audioBufferSize;
     PBYTE pVideoFrameBuffer;
