@@ -301,9 +301,6 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
             (pKvsRtpTransceiver->transceiver.direction == RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV ||
              pKvsRtpTransceiver->transceiver.direction == RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY)) {
             CHK_STATUS(hashTableGet(codecTable, pKvsRtpTransceiver->sender.track.codec, &data));
-            if (pKvsRtpTransceiver->sender.track.codec == RTC_RTX_CODEC_H265) {
-                data = DEFAULT_PAYLOAD_H265;
-            }
             pKvsRtpTransceiver->sender.payloadType = (UINT8) data;
             pKvsRtpTransceiver->sender.rtxPayloadType = (UINT8) data;
 
@@ -757,7 +754,6 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         if (pKvsPeerConnection->isOffer) {
             currentFmtp = DEFAULT_H265_FMTP;
         }
-        payloadType = DEFAULT_PAYLOAD_H265;
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
         amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
                                  SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " H265/90000", payloadType);
