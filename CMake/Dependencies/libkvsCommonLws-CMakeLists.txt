@@ -19,6 +19,7 @@ ExternalProject_Add(libkvsCommonLws-download
       -DUSE_MBEDTLS=${USE_MBEDTLS}
       -DKVS_DEFAULT_STACK_SIZE=${KVS_DEFAULT_STACK_SIZE}
       -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
+      -DBUILD_STATIC=${BUILD_STATIC}
     BUILD_ALWAYS      TRUE
     TEST_COMMAND      ""
 )

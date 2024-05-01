@@ -338,7 +338,6 @@ jobs:
           sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
           sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty universe'
           sudo apt-get -q update
-          sudo apt-get -y install gcc-4.4
           sudo apt-get -y install gdb
           sudo apt-get -y install libcurl4-openssl-dev
       - name: Build repository
@@ -351,6 +350,39 @@ jobs:
         run:  |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+
+  mbedtls-ubuntu-gcc-static:
+    runs-on: ubuntu-20.04
+    env:
+      AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Install deps
+        run: |
+          sudo apt clean && sudo apt update
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
+          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty universe'
+          sudo apt-get -q update
+          sudo apt-get -y install gdb
+          sudo apt-get -y install libcurl4-openssl-dev
+      - name: Build repository
+        run: |
+          mkdir build && cd build
+          cmake .. -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DBUILD_STATIC_LIBS=ON
+          make
+          ulimit -c unlimited -S
+
   mbedtls-ubuntu-gcc-11:
     runs-on: ubuntu-latest
     env:
@@ -703,7 +735,7 @@ jobs:
           cmake .. -DBUILD_STATIC_LIBS=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
           make
       - name: Verify library is ARM64 type
-        run: |
+        run: | 
           cd scripts
           chmod +x verify_lib.sh
           ./verify_lib.sh ../build/libkvsWebrtcClient.a "ARM64"
