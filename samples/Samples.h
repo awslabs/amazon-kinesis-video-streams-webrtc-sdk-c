@@ -109,6 +109,20 @@ typedef enum {
     RTSP_SOURCE,
 } SampleSourceType;
 
+typedef enum {
+    ICE_CANDIDATE_PAIR_METRICS = 1 << 0,
+    ICE_SERVER_METRICS = 1 << 1,
+    DATA_CHANNEL_METRICS = 1 << 2,
+    INBOUND_RTP_METRICS = 1 << 4,
+    ICE_LOCAL_CANDIDATE_METRICS = 1 << 5,
+    OUTBOUND_RTP_METRICS = 1 << 6,
+    ICE_REMOTE_CANDIDATE_METRICS = 1 << 7,
+    REMOTE_INBOUND_RTP_METRICS = 1 << 8,
+    REMOTE_OUTBOUND_RTP_METRICS = 1 << 9,
+    TRANSPORT_METRICS = 1 << 10,
+    ALL_METRICS = 1 << 11
+} MetricsType;
+
 typedef struct __SampleStreamingSession SampleStreamingSession;
 typedef struct __SampleStreamingSession* PSampleStreamingSession;
 
