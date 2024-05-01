@@ -396,21 +396,32 @@ createLwsIotCredentialProvider(
 freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
 ```
 
-## Use of TWCC
-In order to listen in on TWCC reports, the application must set up a callback using the `peerConnectionOnSenderBandwidthEstimation` API. In our samples, it is set up like this:
+## TWCC support
 
+Transport Wide Congestion Control (TWCC) is a mechanism in WebRTC designed to enhance the performance and reliability of real-time communication over the internet. TWCC addresses the challenges of network congestion by providing detailed feedback on the transport of packets across the network, enabling adaptive bitrate control and optimization of media streams in real-time. This feedback mechanism is crucial for maintaining high-quality audio and video communication, as it allows senders to adjust their transmission strategies based on comprehensive information about packet losses, delays, and jitter experienced across the entire transport path.
+
+The importance of TWCC in WebRTC lies in its ability to ensure efficient use of available network bandwidth while minimizing the negative impacts of network congestion. By monitoring the delivery of packets across the network, TWCC helps identify bottlenecks and adjust the media transmission rates accordingly. This dynamic approach to congestion control is essential for preventing degradation in call quality, such as pixelation, stuttering, or drops in audio and video streams, especially in environments with fluctuating network conditions.
+
+To learn more about TWCC, check [TWCC spec](https://datatracker.ietf.org/doc/html/draft-holmer-rmcat-transport-wide-cc-extensions-01)
+
+### Enabling TWCC support
+
+TWCC is enabled by default in the SDK samples (via `pSampleConfiguration->enableTwcc`) flag. In order to disable it, set this flag to `FALSE`.
+
+```c
+pSampleConfiguration->enableTwcc = FALSE;
+```
+
+If not using the samples directly, 2 things need to be done to set up Twcc:
+1. Set the `disableSenderSideBandwidthEstimation` to `FALSE`:
+```c
+configuration.kvsRtcConfiguration.disableSenderSideBandwidthEstimation = FALSE;
+```
+2. Set the callback that will have the business logic to modify the bitrate based on packet loss information. The callback can be set using `peerConnectionOnSenderBandwidthEstimation()`:
 ```c
 CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
                                                      sampleSenderBandwidthEstimationHandler));
 ```
-
-Note that TWCC is disabled by default in the SDK samples. In order to enable it, set the `disableSenderSideBandwidthEstimation` flag to FALSE. For example,
-
-```c
-RtcConfiguration configuration;
-configuration.kvsRtcConfiguration.disableSenderSideBandwidthEstimation = FALSE;
-```
-
 
 ## Use Pre-generated Certificates
 The certificate generating function ([createCertificateAndKey](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/Dtls__openssl_8c.html#a451c48525b0c0a8919a880d6834c1f7f)) in createDtlsSession() can take between 5 - 15 seconds in low performance embedded devices, it is called for every peer connection creation when KVS WebRTC receives an offer. To avoid this extra start-up latency, certificate can be pre-generated and passed in when offer comes.
@@ -509,6 +520,32 @@ To disable threadpool, run `cmake .. -DENABLE_KVS_THREADPOOL=OFF`
 
 ### Thread stack sizes
 The default thread stack size for the KVS WebRTC SDK is 64 kb. Notable stack sizes that may need to be changed for your specific application will be the ConnectionListener Receiver thread and the media sender threads. Please modify the stack sizes for these media dependent threads to be suitable for the media your application is processing.
+
+### Set up TWCC
+TWCC is a mechanism in WebRTC designed to enhance the performance and reliability of real-time communication over the Internet. TWCC addresses the challenges of network congestion by providing detailed feedback on the transport of packets across the network, enabling adaptive bitrate control and optimization of 
+media streams in real-time. This feedback mechanism is crucial for maintaining high-quality audio and video communication, as it allows senders to adjust their transmission strategies based on comprehensive information about packet losses, delays, and jitter experienced across the entire transport path.
+The importance of TWCC in WebRTC lies in its ability to ensure efficient use of available network bandwidth while minimizing the negative impacts of network congestion. By monitoring the delivery of packets across the network, TWCC helps identify bottlenecks and adjust the media transmission rates accordingly. 
+This dynamic approach to congestion control is essential for preventing degradation in call quality, such as pixelation, stuttering, or drops in audio and video streams, especially in environments with fluctuating network conditions. To learn more about TWCC, you can refer to the [RFC draft](https://datatracker.ietf.org/doc/html/draft-holmer-rmcat-transport-wide-cc-extensions-01)
+
+In order to enable TWCC usage in the SDK, 2 things need to be set up:
+
+1. Set the `disableSenderSideBandwidthEstimation` to FALSE. In our samples, the value is set using `enableTwcc` flag in `pSampleConfiguration`
+
+```c
+pSampleConfiguration->enableTwcc = TRUE; // to enable TWCC
+pSampleConfiguration->enableTwcc = FALSE; // to disable TWCC
+configuration.kvsRtcConfiguration.disableSenderSideBandwidthEstimation = !pSampleConfiguration->enableTwcc;
+```
+
+2. Set the callback that will have the business logic to modify the bitrate based on packet loss information. The callback can be set using `peerConnectionOnSenderBandwidthEstimation()`.
+
+```c
+CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
+                                                     sampleSenderBandwidthEstimationHandler));
+```
+
+By default, our SDK enables TWCC listener. The SDK has a sample implementation to integrate TWCC into the Gstreamer pipeline via the `sampleSenderBandwidthEstimationHandler` callback. To get more details, look for this specific callback.
+
 
 ### Setting ICE related timeouts
 

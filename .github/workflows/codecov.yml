@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     permissions:
       id-token: write
       contents: read
