@@ -68,7 +68,7 @@ VOID onGstAudioFrameReady(UINT64 customData, PFrame pFrame)
         GST_BUFFER_DTS(buffer) = presentationTsIncrement;
         GST_BUFFER_PTS(buffer) = presentationTsIncrement;
         GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(pFrame->size, GST_SECOND, DEFAULT_AUDIO_OPUS_BYTE_RATE);
-        
+
         // TODO: check for other codecs once the pipelines are added
 
         if (gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size) != pFrame->size) {
