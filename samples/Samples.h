@@ -176,7 +176,6 @@ typedef struct {
 
     PCHAR rtspUri;
     UINT32 logLevel;
-    BOOL enableIceStats;
     BOOL enableTwcc;
 } SampleConfiguration, *PSampleConfiguration;
 

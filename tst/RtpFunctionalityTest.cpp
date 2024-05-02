@@ -289,7 +289,7 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH265Frame)
 
         // First call for payload size and sub payload length size
         EXPECT_EQ(STATUS_SUCCESS,
-                  createPayloadForH265(DEFAULT_MTU_SIZE_BYTES, (PBYTE) payload, payloadLen, NULL, &payloadArray.payloadLength, NULL,
+                  createPayloadForH265(DEFAULT_MTU_SIZE, (PBYTE) payload, payloadLen, NULL, &payloadArray.payloadLength, NULL,
                                        &payloadArray.payloadSubLenSize));
 
         if (payloadArray.payloadLength > payloadArray.maxPayloadLength) {
@@ -309,7 +309,7 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH265Frame)
 
         // Second call with actual buffer to fill in data
         EXPECT_EQ(STATUS_SUCCESS,
-                  createPayloadForH265(DEFAULT_MTU_SIZE_BYTES, (PBYTE) payload, payloadLen, payloadArray.payloadBuffer, &payloadArray.payloadLength,
+                  createPayloadForH265(DEFAULT_MTU_SIZE, (PBYTE) payload, payloadLen, payloadArray.payloadBuffer, &payloadArray.payloadLength,
                                        payloadArray.payloadSubLength, &payloadArray.payloadSubLenSize));
 
         EXPECT_LT(0, payloadArray.payloadSubLenSize);
