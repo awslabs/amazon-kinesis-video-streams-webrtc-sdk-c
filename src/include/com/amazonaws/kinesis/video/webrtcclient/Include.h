@@ -1174,7 +1174,7 @@ typedef struct {
     UINT16 maximumTransmissionUnit; //!< Controls the size of the largest packet the WebRTC SDK will send
                                     //!< Some networks may drop packets if they exceed a certain size, and is useful in those conditions.
                                     //!< A smaller MTU will incur higher bandwidth usage however since more packets will be generated with
-                                    //!< smaller payloads. If unset DEFAULT_MTU_SIZE will be used
+                                    //!< smaller payloads. If unset DEFAULT_MTU_SIZE_BYTES will be used
 
     UINT32 iceLocalCandidateGatheringTimeout; //!< Maximum time ice will wait for gathering STUN and RELAY candidates. Once
                                               //!< it's reached, ice will proceed with whatever candidate it current has. Use default value if 0.
