@@ -407,7 +407,6 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     // Set the ICE mode explicitly
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
 
-    configuration.kvsRtcConfiguration.enableIceStats = pSampleConfiguration->enableIceStats;
     // Set the  STUN server
     PCHAR pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX;
     // If region is in CN, add CN region uri postfix
@@ -937,9 +936,6 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
     pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
     pSampleConfiguration->signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
-
-    // Flag to enable SDK to calculate selected ice server, local, remote and candidate pair stats.
-    pSampleConfiguration->enableIceStats = FALSE;
 
     // Flag to enable/disable TWCC
     pSampleConfiguration->enableTwcc = TRUE;

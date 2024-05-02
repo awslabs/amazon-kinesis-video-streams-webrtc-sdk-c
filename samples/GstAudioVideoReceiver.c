@@ -5,7 +5,6 @@
 
 static UINT64 presentationTsIncrement = 0;
 static BOOL eos = FALSE;
-static RTC_CODEC audioCodec = RTC_CODEC_OPUS;
 
 // This function is a callback for the transceiver for every single video frame it receives
 // It writes these frames to a buffer and pushes it to the `appsrcVideo` element of the
@@ -69,11 +68,8 @@ VOID onGstAudioFrameReady(UINT64 customData, PFrame pFrame)
         GST_BUFFER_DTS(buffer) = presentationTsIncrement;
         GST_BUFFER_PTS(buffer) = presentationTsIncrement;
 
-        if (audioCodec == RTC_CODEC_AAC) {
-            GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(pFrame->size, GST_SECOND, DEFAULT_AUDIO_AAC_BYTE_RATE);
-        } else {
-            GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(pFrame->size, GST_SECOND, DEFAULT_AUDIO_OPUS_BYTE_RATE);
-        }
+        GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale(pFrame->size, GST_SECOND, DEFAULT_AUDIO_OPUS_BYTE_RATE);
+        
         // TODO: check for other codecs once the pipelines are added
 
         if (gst_buffer_fill(buffer, 0, pFrame->frameData, pFrame->size) != pFrame->size) {
@@ -118,8 +114,6 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
         roleType = "Master";
     }
 
-    audioCodec = pSampleConfiguration->audioCodec;
-
     CHK_ERR(gst_init_check(NULL, NULL, &error), STATUS_INTERNAL_ERROR, "[KVS GStreamer %s] GStreamer initialization failed");
 
     CHK_ERR(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "[KVS Gstreamer %s] Sample streaming session is NULL", roleType);
@@ -154,13 +148,6 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
                 audioDescription = "appsrc name=appsrc-audio ! queue ! opusparse ! queue ! mux.";
                 audiocaps = gst_caps_new_simple("audio/x-opus", "rate", G_TYPE_INT, DEFAULT_AUDIO_OPUS_SAMPLE_RATE_HZ, "channel-mapping-family",
                                                 G_TYPE_INT, 1, NULL);
-                break;
-
-            case RTC_CODEC_AAC:
-                audioDescription = "appsrc name=appsrc-audio ! queue ! aacparse ! mux.";
-                audiocaps = gst_caps_new_simple("audio/mpeg", "mpegversion", G_TYPE_INT, 4, "rate", G_TYPE_INT, DEFAULT_AUDIO_AAC_SAMPLE_RATE_HZ,
-                                                "channels", G_TYPE_INT, DEFAULT_AUDIO_AAC_CHANNELS, "stream-format", G_TYPE_STRING, "adts",
-                                                "base-profile", G_TYPE_STRING, "lc", NULL);
                 break;
 
             // TODO: make sure this pipeline works. Figure out the caps for this

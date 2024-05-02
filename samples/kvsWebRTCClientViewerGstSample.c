@@ -60,10 +60,8 @@ INT32 main(INT32 argc, CHAR* argv[])
 #endif
 
     if (argc > 3) {
-        if (!STRCMP(argv[3], AUDIO_CODEC_NAME_AAC)) {
-            audioCodec = RTC_CODEC_AAC;
-        } else {
-            DLOGI("[KVS Gstreamer Viewer] Defaulting to Opus audio codec");
+        if (!STRCMP(argv[3], AUDIO_CODEC_NAME_OPUS)) {
+            audioCodec = RTC_CODEC_OPUS;
         }
     }
 
