@@ -274,7 +274,6 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                                              "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
                                              "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
                                              &error);
-
                     }
                     // TODO: test and add more such combinations
                     break;

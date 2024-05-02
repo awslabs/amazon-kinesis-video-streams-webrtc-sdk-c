@@ -11,7 +11,7 @@ extern "C" {
 // https://groups.google.com/forum/#!topic/discuss-webrtc/gH5ysR3SoZI
 #define DEFAULT_MTU_SIZE_BYTES                     1200
 #define DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS 3
-#define HIGHEST_EXPECTED_BIT_RATE (10 * 1024 * 1024)
+#define HIGHEST_EXPECTED_BIT_RATE                  (10 * 1024 * 1024)
 #define DEFAULT_EXPECTED_VIDEO_BIT_RATE            (5 * 1024 * 1024)
 // Opus has highest based on the supported codecs which is 510Kibps. So setting this to twice
 #define DEFAULT_EXPECTED_AUDIO_BIT_RATE        (1000 * 1024)
