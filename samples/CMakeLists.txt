@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.6.3)
 
-project(KinesisVideoWebRTCClientSamples LANGUAGES C)
+project(KinesisVideoWebRTCClientSamples)
+
+set(CMAKE_CXX_STANDARD 11)  # Adjust the version according to your needs
+
 
 #set(OPEN_SRC_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/open-source" CACHE PATH "Libraries will be downloaded and build in this directory.")
 

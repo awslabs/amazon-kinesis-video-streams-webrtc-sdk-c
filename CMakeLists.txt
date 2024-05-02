@@ -21,6 +21,7 @@ option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
 option(ENABLE_KVS_THREADPOOL "Enable support for KVS thread pool in signaling" ON)
 option(INSTRUMENTED_ALLOCATORS "Enable memory instrumentation" OFF)
 option(ENABLE_AWS_SDK_IN_TESTS "Enable support for compiling AWS SDKs for tests" ON)
+option(AWS_SDK_INTEG "Enable integration samples with cloudwatch" ON)
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -233,9 +234,12 @@ if(BUILD_DEPENDENCIES)
 
   if(BUILD_TEST)
     build_dependency(gtest)
-
+    set(BUILD_ARGS
+            -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+            -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
+            -DBUILD_ONLY=kinesisvideo|kinesis-video-webrtc-storage)
     if(ENABLE_AWS_SDK_IN_TESTS)
-      build_dependency(awscpp)
+      build_dependency(awscpp ${BUILD_ARGS})
     endif()
 
   endif()
@@ -246,6 +250,15 @@ if(BUILD_DEPENDENCIES)
 
   if (LINK_PROFILER)
     build_dependency(gperftools)
+  endif()
+
+  if(AWS_SDK_INTEG)
+    message(STATUS "Building...")
+    set(BUILD_ARGS
+            -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+            -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
+            -DBUILD_ONLY=monitoring|logs)
+    build_dependency(awscpp ${BUILD_ARGS})
   endif()
   message(STATUS "Finished building dependencies.")
 endif()

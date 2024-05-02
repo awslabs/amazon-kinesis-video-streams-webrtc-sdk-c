@@ -7,8 +7,10 @@ ExternalProject_Add(libawscpp-download
     GIT_TAG           1.11.217
     LIST_SEPARATOR    "|"
     CMAKE_ARGS       -DBUILD_SHARED_LIBS=OFF
-                     -DBUILD_ONLY=kinesisvideo|kinesis-video-webrtc-storage
+                     -DENABLE_TESTING=OFF
+                     -DBUILD_ONLY=${BUILD_ONLY}
                      -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}
+                     -DTARGET_ARCH=APPLE
     BUILD_ALWAYS      TRUE
     TEST_COMMAND      ""
 )
