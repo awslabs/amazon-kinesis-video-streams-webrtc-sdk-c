@@ -30,10 +30,8 @@ INT32 main(INT32 argc, CHAR* argv[])
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
 
     if (argc > 3) {
-        if (!STRCMP(argv[3], AUDIO_CODEC_NAME_AAC)) {
-            audioCodec = RTC_CODEC_AAC;
-        } else {
-            DLOGI("[KVS Master] Defaulting to opus as the specified codec's sample frames may not be available");
+        if (!STRCMP(argv[3], AUDIO_CODEC_NAME_OPUS)) {
+            audioCodec = RTC_CODEC_OPUS;
         }
     }
 
@@ -75,9 +73,6 @@ INT32 main(INT32 argc, CHAR* argv[])
     if (audioCodec == RTC_CODEC_OPUS) {
         CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./opusSampleFrames/sample-001.opus"));
         DLOGI("[KVS Master] Checked Opus sample audio frame availability....available");
-    } else if (audioCodec == RTC_CODEC_AAC) {
-        CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./aacSampleFrames/sample-001.aac"));
-        DLOGI("[KVS Master] Checked AAC sample audio frame availability....available");
     }
 
     // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
@@ -253,9 +248,7 @@ PVOID sendAudioPackets(PVOID args)
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
         fileIndex = fileIndex % NUMBER_OF_OPUS_FRAME_FILES + 1;
 
-        if (pSampleConfiguration->audioCodec == RTC_CODEC_AAC) {
-            SNPRINTF(filePath, MAX_PATH_LEN, "./aacSampleFrames/sample-%03d.aac", fileIndex);
-        } else if (pSampleConfiguration->audioCodec == RTC_CODEC_OPUS) {
+        if (pSampleConfiguration->audioCodec == RTC_CODEC_OPUS) {
             SNPRINTF(filePath, MAX_PATH_LEN, "./opusSampleFrames/sample-%03d.opus", fileIndex);
         }
 

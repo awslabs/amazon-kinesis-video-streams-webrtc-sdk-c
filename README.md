@@ -277,7 +277,7 @@ To use the **Storage for WebRTC** feature, run the same command as above but wit
 ./samples/kvsWebrtcClientMaster <channelName> 1 <audio-codec> <video-codec>
 ```
 
-Allowed audio-codec: opus (default codec if nothing is specified), aac
+Allowed audio-codec: opus (default codec if nothing is specified)
 Allowed video-codec: h264 (default codec if nothing is specified), h265
 
 #### Sample: kvsWebrtcClientMasterGstSample
@@ -301,7 +301,7 @@ Example:
 ./samples/kvsWebrtcClientMasterGstSample <channelName> audio-video testsrc opus h264
 ```
 
-Allowed audio-codec: opus (default codec if nothing is specified), aac
+Allowed audio-codec: opus (default codec if nothing is specified)
 Allowed video-codec: h264 (default codec if nothing is specified), h265
 
 #### Sample: kvsWebrtcClientViewer
@@ -312,7 +312,7 @@ To run:
 ./samples/kvsWebrtcClientViewer <channelName> <audio-codec> <video-codec>
 ```
 
-Allowed audio-codec: opus (default codec if nothing is specified), aac
+Allowed audio-codec: opus (default codec if nothing is specified)
 Allowed video-codec: h264 (default codec if nothing is specified), h265
 
 #### Sample: kvsWebrtcClientViewerGstSample
@@ -323,7 +323,7 @@ To run:
 ./samples/kvsWebrtcClientViewerGstSample <channelName> <mediaType> <audio-codec> <video-codec>
 ```
 
-Allowed audio-codec: opus (default codec if nothing is specified), aac
+Allowed audio-codec: opus (default codec if nothing is specified)
 Allowed video-codec: h264 (default codec if nothing is specified), h265
 
 ##### Known issues:
@@ -344,18 +344,6 @@ gst-launch-1.0 videotestsrc pattern=ball num-buffers=1500 ! timeoverlay ! videoc
 ##### H265
 ```shell
 gst-launch-1.0 videotestsrc pattern=ball num-buffers=1500 ! timeoverlay ! videoconvert ! video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! queue ! x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! multifilesink location="frame-%04d.h265" index=1
-```
-
-##### AAC
-
-###### ADTS LC
-```shell
-gst-launch-1.0 audiotestsrc num-buffers=1500 ! audioconvert ! audioresample ! faac ! capsfilter caps=audio/mpeg,mpegversion=4,stream-format=adts,base-profile=lc,channels=2,rate=16000 ! multifilesink location="sample-%03d.aac" index=1
-```
-
-###### RAW LC
-```shell
-gst-launch-1.0 audiotestsrc num-buffers=1500 ! audioconvert ! audioresample ! faac ! capsfilter caps=audio/mpeg,mpegversion=4,stream-format=raw,base-profile=lc,channels=2,rate=16000 ! multifilesink location="sample-%03d.aac" index=1
 ```
 
 ### Viewing Master Samples

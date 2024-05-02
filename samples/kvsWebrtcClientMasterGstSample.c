@@ -171,17 +171,6 @@ PVOID sendGstreamerAudioVideo(PVOID args)
      * vp8enc error-resilient=partitions keyframe-max-dist=10 auto-alt-ref=true cpu-used=5 deadline=1 !
      * appsink sync=TRUE emit-signals=TRUE name=appsink-video
      *
-     * For H265/AAC
-     * pipeline =
-     *          gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert !
-     *                                     "video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! " "queue ! "
-     *                                     "x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! "
-     *                                     "video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! appsink sync=TRUE "
-     *                                     "emit-signals=TRUE name=appsink-video audiotestsrc wave=triangle is-live=TRUE ! "
-     *                                     "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! faac ! "
-     *                                     "capsfilter caps=audio/mpeg,mpegversion=4,stream-format=adts,base-profile=lc,channels=2,rate=48000 ! "
-     *                                     "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-     *                                     &error);
      *
      * Raspberry Pi Hardware Encode Example
      * "v4l2src device=\"/dev/video0\" ! queue ! v4l2convert ! "
@@ -275,17 +264,6 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                                              "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
                                              &error);
 
-                    } else if (pSampleConfiguration->videoCodec == RTC_CODEC_H265 && pSampleConfiguration->audioCodec == RTC_CODEC_AAC) {
-                        senderPipeline =
-                            gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert ! "
-                                             "video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! queue ! "
-                                             "x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! "
-                                             "video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! appsink sync=TRUE "
-                                             "emit-signals=TRUE name=appsink-video audiotestsrc wave=triangle is-live=TRUE ! "
-                                             "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! faac ! "
-                                             "capsfilter caps=audio/mpeg,mpegversion=4,stream-format=adts,base-profile=lc,channels=2,rate=48000 ! "
-                                             "appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                                             &error);
                     }
                     // TODO: test and add more such combinations
                     break;
@@ -399,8 +377,8 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     if (argc > 3 && STRCMP(argv[3], "testsrc") == 0) {
         if (argc > 4) {
-            if (!STRCMP(argv[4], AUDIO_CODEC_NAME_AAC)) {
-                audioCodec = RTC_CODEC_AAC;
+            if (!STRCMP(argv[4], AUDIO_CODEC_NAME_OPUS)) {
+                audioCodec = RTC_CODEC_OPUS;
             }
         }
 
