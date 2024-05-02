@@ -238,6 +238,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
         case RTC_CODEC_H265:
             rtpPayloadFunc = createPayloadForH265;
             rtpTimestamp = CONVERT_TIMESTAMP_TO_RTP(VIDEO_CLOCKRATE, pFrame->presentationTs);
+            DLOGV("Rtp payload function set to H265 packaging");
             break;
 
         case RTC_CODEC_OPUS:
