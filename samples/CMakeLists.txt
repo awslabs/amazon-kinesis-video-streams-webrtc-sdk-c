@@ -80,7 +80,7 @@ if(GST_FOUND)
     kvsWebrtcClientMasterGstSample
     Common.c
     GstAudioVideoReceiver.c
-    kvsWebRTCClientMasterGstSample.c
+    kvsWebrtcClientMasterGstSample.c
   )
   target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets)
 
