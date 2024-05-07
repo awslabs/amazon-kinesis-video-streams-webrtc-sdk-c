@@ -645,6 +645,24 @@ TEST_F(RtpFunctionalityTest, freeTransceiverApiTest)
     EXPECT_EQ(freeTransceiver(NULL), STATUS_NOT_IMPLEMENTED);
 }
 
+TEST_F(RtpFunctionalityTest, convertRtpErrorCodeTest)
+{
+    RtpResult_t rtpResult;
+
+    rtpResult = RTP_RESULT_OK;
+    EXPECT_EQ(convertRtpErrorCode(rtpResult), STATUS_SUCCESS);
+    rtpResult = RTP_RESULT_BAD_PARAM;
+    EXPECT_EQ(convertRtpErrorCode(rtpResult), STATUS_INVALID_ARG);
+    rtpResult = RTP_RESULT_OUT_OF_MEMORY;
+    EXPECT_EQ(convertRtpErrorCode(rtpResult), STATUS_NOT_ENOUGH_MEMORY);
+    rtpResult = RTP_RESULT_WRONG_VERSION;
+    EXPECT_EQ(convertRtpErrorCode(rtpResult), STATUS_RTP_INVALID_VERSION);
+    rtpResult = RTP_RESULT_MALFORMED_PACKET;
+    EXPECT_EQ(convertRtpErrorCode(rtpResult), STATUS_RTP_INPUT_PACKET_TOO_SMALL);
+    rtpResult = (RtpResult_t) (1000); // Some arbitrary value not defined in RtpResult_t;
+    EXPECT_EQ(convertRtpErrorCode(rtpResult), STATUS_RTP_UNKNOWN_ERROR);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
