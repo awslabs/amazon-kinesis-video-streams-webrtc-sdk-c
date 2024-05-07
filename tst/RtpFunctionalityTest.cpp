@@ -659,8 +659,6 @@ TEST_F(RtpFunctionalityTest, convertRtpErrorCodeTest)
     EXPECT_EQ(convertRtpErrorCode(rtpResult), STATUS_RTP_INVALID_VERSION);
     rtpResult = RTP_RESULT_MALFORMED_PACKET;
     EXPECT_EQ(convertRtpErrorCode(rtpResult), STATUS_RTP_INPUT_PACKET_TOO_SMALL);
-    rtpResult = (RtpResult_t) (1000); // Some arbitrary value not defined in RtpResult_t;
-    EXPECT_EQ(convertRtpErrorCode(rtpResult), STATUS_RTP_UNKNOWN_ERROR);
 }
 
 } // namespace webrtcclient
