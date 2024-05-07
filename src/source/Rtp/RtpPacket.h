@@ -36,7 +36,7 @@ extern "C" {
  */
 // https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
 #define TWCC_EXT_PROFILE                 0xBEDE
-#define TWCC_PAYLOAD(extId, sequenceNum) htonl((((extId) &0xfu) << 28u) | (1u << 24u) | ((UINT32) (sequenceNum) << 8u))
+#define TWCC_PAYLOAD(extId, sequenceNum) htonl((((extId) & 0xfu) << 28u) | (1u << 24u) | ((UINT32) (sequenceNum) << 8u))
 #define TWCC_SEQNUM(extPayload)          ((UINT16) getUnalignedInt16BigEndian(extPayload + 1))
 
 typedef STATUS (*DepayRtpPayloadFunc)(PBYTE, UINT32, PBYTE, PUINT32, PBOOL);

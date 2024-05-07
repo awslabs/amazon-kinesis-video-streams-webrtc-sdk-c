@@ -10,8 +10,8 @@ else()
 endif()
 
 ExternalProject_Add(libkvsrtp
-    GIT_REPOSITORY    git@github.com:moninom1/amazon-kinesis-video-streams-rtp.git
-    GIT_TAG           main
+    GIT_REPOSITORY    https://github.com/awslabs/amazon-kinesis-video-streams-rtp.git
+    GIT_TAG           0bba1eb7a3731aaa40f72ff872e24fbbf78e1583
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
     CMAKE_ARGS
         -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}

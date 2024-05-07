@@ -169,6 +169,7 @@ STATUS setRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket pR
     BOOL marker;
     UINT8 payloadType;
     UINT16 sequenceNumber;
+    UINT16 i;
     UINT32 timestamp;
     UINT32 ssrc;
     PUINT32 csrcArray = NULL;
@@ -186,10 +187,11 @@ STATUS setRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket pR
     CHK(packetLength >= MIN_HEADER_LENGTH, STATUS_RTP_INPUT_PACKET_TOO_SMALL);
 
     rtpResult = Rtp_Init(&(ctx));
-    CHK(rtpResult == RTP_RESULT_OK, convertStunErrorCode(rtpResult));
+    CHK(rtpResult == RTP_RESULT_OK, convertRtpErrorCode(rtpResult));
 
+    MEMSET(&deserializedPkt, 0, SIZEOF(RtpPacket_t));
     rtpResult = Rtp_DeSerialize(&(ctx), rawPacket, packetLength, &(deserializedPkt));
-    CHK(rtpResult == RTP_RESULT_OK, convertStunErrorCode(rtpResult));
+    CHK(rtpResult == RTP_RESULT_OK, convertRtpErrorCode(rtpResult));
 
     version = RTP_HEADER_VERSION;
     padding = (deserializedPkt.header.flags & RTP_HEADER_FLAG_PADDING) != 0;
@@ -209,7 +211,7 @@ STATUS setRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket pR
         extensionProfile = deserializedPkt.header.extension.extensionProfile;
         extensionLength = deserializedPkt.header.extension.extensionPayloadLength * 4;
         extensionPayloadWord = (deserializedPkt.header.extension.pExtensionPayload);
-        for (int i = 0; i < deserializedPkt.header.extension.extensionPayloadLength; i++) {
+        for (i = 0; i < deserializedPkt.header.extension.extensionPayloadLength; i++) {
             word = getInt32(*(PUINT32) (extensionPayloadWord + currentIndex));
             extensionPayloadWord[currentIndex] = word;
             currentIndex += 4;
@@ -259,8 +261,7 @@ STATUS setBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE pRawPacket, UINT32 pac
     STATUS retStatus = STATUS_SUCCESS;
     PRtpPacketHeader pHeader = &pRtpPacket->header;
     UINT32 packetLengthNeeded = 0;
-    PBYTE pCurPtr = pRawPacket;
-    UINT8 i;
+    UINT16 i;
     RtpResult_t rtpResult;
     RtpPacket_t pkt;
     RtpContext_t ctx;
@@ -287,7 +288,8 @@ STATUS setBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE pRawPacket, UINT32 pac
      */
 
     rtpResult = Rtp_Init(&(ctx));
-    CHK(rtpResult == RTP_RESULT_OK, convertStunErrorCode(rtpResult));
+    CHK(rtpResult == RTP_RESULT_OK, convertRtpErrorCode(rtpResult));
+    MEMSET(&pkt, 0, SIZEOF(RtpPacket_t));
 
     if (pHeader->padding) {
         pkt.header.flags |= RTP_HEADER_FLAG_PADDING;
@@ -324,8 +326,8 @@ STATUS setBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE pRawPacket, UINT32 pac
         pkt.payloadLength = pRtpPacket->payloadLength;
     }
 
-    rtpResult = Rtp_Serialize(&(ctx), &(pkt), pRawPacket, (SIZE_T*) &packetLengthNeeded);
-    CHK(rtpResult == RTP_RESULT_OK, convertStunErrorCode(rtpResult));
+    rtpResult = Rtp_Serialize(&(ctx), &(pkt), pRawPacket, &packetLengthNeeded);
+    CHK(rtpResult == RTP_RESULT_OK, convertRtpErrorCode(rtpResult));
 
 CleanUp:
     LEAVES();
