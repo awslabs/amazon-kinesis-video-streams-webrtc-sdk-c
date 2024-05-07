@@ -182,6 +182,7 @@ STATUS setRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket pR
     RtpResult_t rtpResult;
     RtpPacket_t deserializedPkt;
     RtpContext_t ctx;
+    size_t dataLength = packetLength;
 
     CHK(pRtpPacket != NULL, STATUS_NULL_ARG);
     CHK(packetLength >= MIN_HEADER_LENGTH, STATUS_RTP_INPUT_PACKET_TOO_SMALL);
@@ -190,7 +191,7 @@ STATUS setRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket pR
     CHK(rtpResult == RTP_RESULT_OK, convertRtpErrorCode(rtpResult));
 
     MEMSET(&deserializedPkt, 0, SIZEOF(RtpPacket_t));
-    rtpResult = Rtp_DeSerialize(&(ctx), rawPacket, packetLength, &(deserializedPkt));
+    rtpResult = Rtp_DeSerialize(&(ctx), rawPacket, dataLength, &(deserializedPkt));
     CHK(rtpResult == RTP_RESULT_OK, convertRtpErrorCode(rtpResult));
 
     version = RTP_HEADER_VERSION;
@@ -260,7 +261,7 @@ STATUS setBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE pRawPacket, UINT32 pac
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PRtpPacketHeader pHeader = &pRtpPacket->header;
-    UINT32 packetLengthNeeded = 0;
+    size_t packetLengthNeeded = 0;
     UINT16 i;
     RtpResult_t rtpResult;
     RtpPacket_t pkt;
