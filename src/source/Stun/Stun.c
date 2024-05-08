@@ -327,7 +327,7 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 
             stunResult = StunSerializer_GetFingerprintBuffer(&stunContext, &pFingerprintBuffer, &buffereLength);
             CHK(stunResult == STUN_RESULT_OK, convertStunErrorCode(stunResult));
-            crc32 = COMPUTE_CRC32(pFingerprintBuffer, (UINT32) buffereLength) ^ STUN_FINGERPRINT_ATTRIBUTE_XOR_VALUE;
+            crc32 = COMPUTE_CRC32(pFingerprintBuffer, (UINT32) buffereLength);
         }
 
         stunResult = StunSerializer_AddAttributeFingerprint(&stunContext, crc32);
@@ -840,7 +840,7 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
                 stunResult = StunDeserializer_GetFingerprintBuffer(&(stunContext), &pBuffer, &buffereLength);
                 CHK(stunResult == STUN_RESULT_OK, convertStunErrorCode(stunResult));
 
-                crc32 = COMPUTE_CRC32(pBuffer, (UINT32) buffereLength) ^ STUN_FINGERPRINT_ATTRIBUTE_XOR_VALUE;
+                crc32 = COMPUTE_CRC32(pBuffer, (UINT32) buffereLength);
 
                 // Validate the fingerprint
                 CHK(crc32 == crc32Fingerprint, STATUS_STUN_FINGERPRINT_MISMATCH);
