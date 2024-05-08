@@ -1,5 +1,6 @@
 #define LOG_CLASS "WebRtcSamples"
 #include "Samples.h"
+#include SAMPLE_CONFIG_HEADER
 
 #define KVS_DEFAULT_MEDIA_SENDER_THREAD_STACK_SIZE 64 * 1024
 #define KVS_MINIMUM_THREAD_STACK_SIZE              16 * 1024
@@ -13,18 +14,6 @@ VOID sigintHandler(INT32 sigNum)
         ATOMIC_STORE_BOOL(&gSampleConfiguration->interrupted, TRUE);
         CVAR_BROADCAST(gSampleConfiguration->cvar);
     }
-}
-
-UINT32 setLogLevel()
-{
-    PCHAR pLogLevel;
-    UINT32 logLevel = LOG_LEVEL_DEBUG;
-    if (NULL == (pLogLevel = GETENV(DEBUG_LOG_LEVEL_ENV_VAR)) || STATUS_SUCCESS != STRTOUI32(pLogLevel, NULL, 10, &logLevel) ||
-        logLevel < LOG_LEVEL_VERBOSE || logLevel > LOG_LEVEL_SILENT) {
-        logLevel = LOG_LEVEL_WARN;
-    }
-    SET_LOGGER_LOG_LEVEL(logLevel);
-    return logLevel;
 }
 
 STATUS signalingCallFailed(STATUS status)
@@ -106,35 +95,6 @@ STATUS signalingClientError(UINT64 customData, STATUS status, PCHAR msg, UINT32 
     }
 
     return STATUS_SUCCESS;
-}
-
-STATUS logSelectedIceCandidatesInformation(PSampleStreamingSession pSampleStreamingSession)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    RtcStats rtcMetrics;
-
-    CHK(pSampleStreamingSession != NULL, STATUS_NULL_ARG);
-    rtcMetrics.requestedTypeOfStats = RTC_STATS_TYPE_LOCAL_CANDIDATE;
-    CHK_STATUS(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, NULL, &rtcMetrics));
-    DLOGI("Local Candidate IP Address: %s", rtcMetrics.rtcStatsObject.localIceCandidateStats.address);
-    DLOGI("Local Candidate type: %s", rtcMetrics.rtcStatsObject.localIceCandidateStats.candidateType);
-    DLOGI("Local Candidate port: %d", rtcMetrics.rtcStatsObject.localIceCandidateStats.port);
-    DLOGI("Local Candidate priority: %d", rtcMetrics.rtcStatsObject.localIceCandidateStats.priority);
-    DLOGI("Local Candidate transport protocol: %s", rtcMetrics.rtcStatsObject.localIceCandidateStats.protocol);
-    DLOGI("Local Candidate relay protocol: %s", rtcMetrics.rtcStatsObject.localIceCandidateStats.relayProtocol);
-    DLOGI("Local Candidate Ice server source: %s", rtcMetrics.rtcStatsObject.localIceCandidateStats.url);
-
-    rtcMetrics.requestedTypeOfStats = RTC_STATS_TYPE_REMOTE_CANDIDATE;
-    CHK_STATUS(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, NULL, &rtcMetrics));
-    DLOGI("Remote Candidate IP Address: %s", rtcMetrics.rtcStatsObject.remoteIceCandidateStats.address);
-    DLOGI("Remote Candidate type: %s", rtcMetrics.rtcStatsObject.remoteIceCandidateStats.candidateType);
-    DLOGI("Remote Candidate port: %d", rtcMetrics.rtcStatsObject.remoteIceCandidateStats.port);
-    DLOGI("Remote Candidate priority: %d", rtcMetrics.rtcStatsObject.remoteIceCandidateStats.priority);
-    DLOGI("Remote Candidate transport protocol: %s", rtcMetrics.rtcStatsObject.remoteIceCandidateStats.protocol);
-CleanUp:
-    LEAVES();
-    return retStatus;
 }
 
 STATUS handleAnswer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSession pSampleStreamingSession, PSignalingMessage pSignalingMessage)
@@ -418,7 +378,12 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     DLOGI("TWCC is : %s", configuration.kvsRtcConfiguration.disableSenderSideBandwidthEstimation ? "Disabled" : "Enabled");
 
     // Set the ICE mode explicitly
-    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
+
+    if (FORCE_TURN_ONLY) {
+        configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
+    } else {
+        configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
+    }
 
     configuration.kvsRtcConfiguration.enableIceStats = pSampleConfiguration->enableIceStats;
     // Set the  STUN server
@@ -564,12 +529,13 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     CHK_STATUS(peerConnectionOnIceCandidate(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession, onIceCandidateHandler));
     CHK_STATUS(
         peerConnectionOnConnectionStateChange(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession, onConnectionStateChange));
-#ifdef ENABLE_DATA_CHANNEL
-    if (pSampleConfiguration->onDataChannel != NULL) {
-        CHK_STATUS(peerConnectionOnDataChannel(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
-                                               pSampleConfiguration->onDataChannel));
+
+    if (ENABLE_DATA_CHANNEL) {
+        if (pSampleConfiguration->onDataChannel != NULL) {
+            CHK_STATUS(peerConnectionOnDataChannel(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
+                                                   pSampleConfiguration->onDataChannel));
+        }
     }
-#endif
 
     CHK_STATUS(addSupportedCodec(pSampleStreamingSession->pPeerConnection, pSampleConfiguration->videoCodec));
     CHK_STATUS(addSupportedCodec(pSampleStreamingSession->pPeerConnection, pSampleConfiguration->audioCodec));
@@ -850,30 +816,27 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR pAccessKey, pSecretKey, pSessionToken;
     PSampleConfiguration pSampleConfiguration = NULL;
+    PCHAR pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pIotCoreRoleAlias, pIotCoreCertificateId, pIotCoreThingName;
 
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
 
     CHK(NULL != (pSampleConfiguration = (PSampleConfiguration) MEMCALLOC(1, SIZEOF(SampleConfiguration))), STATUS_NOT_ENOUGH_MEMORY);
-
-#ifdef IOT_CORE_ENABLE_CREDENTIALS
-    PCHAR pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pIotCoreRoleAlias, pIotCoreCertificateId, pIotCoreThingName;
-    CHK_ERR((pIotCoreCredentialEndPoint = GETENV(IOT_CORE_CREDENTIAL_ENDPOINT)) != NULL, STATUS_INVALID_OPERATION,
-            "AWS_IOT_CORE_CREDENTIAL_ENDPOINT must be set");
-    CHK_ERR((pIotCoreCert = GETENV(IOT_CORE_CERT)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_CERT must be set");
-    CHK_ERR((pIotCorePrivateKey = GETENV(IOT_CORE_PRIVATE_KEY)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_PRIVATE_KEY must be set");
-    CHK_ERR((pIotCoreRoleAlias = GETENV(IOT_CORE_ROLE_ALIAS)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_ROLE_ALIAS must be set");
-    CHK_ERR((pIotCoreThingName = GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
-#else
-    CHK_ERR((pAccessKey = GETENV(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
-    CHK_ERR((pSecretKey = GETENV(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
-#endif
-
+    if (IOT_CORE_ENABLE_CREDENTIALS) {
+        CHK_ERR((pIotCoreCredentialEndPoint = GETENV(IOT_CORE_CREDENTIAL_ENDPOINT)) != NULL, STATUS_INVALID_OPERATION,
+                "AWS_IOT_CORE_CREDENTIAL_ENDPOINT must be set");
+        CHK_ERR((pIotCoreCert = GETENV(IOT_CORE_CERT)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_CERT must be set");
+        CHK_ERR((pIotCorePrivateKey = GETENV(IOT_CORE_PRIVATE_KEY)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_PRIVATE_KEY must be set");
+        CHK_ERR((pIotCoreRoleAlias = GETENV(IOT_CORE_ROLE_ALIAS)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_ROLE_ALIAS must be set");
+        CHK_ERR((pIotCoreThingName = GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
+    } else {
+        CHK_ERR((pAccessKey = GETENV(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
+        CHK_ERR((pSecretKey = GETENV(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
+    }
     pSessionToken = GETENV(SESSION_TOKEN_ENV_VAR);
     if (pSessionToken != NULL && IS_EMPTY_STRING(pSessionToken)) {
         DLOGW("Session token is set but its value is empty. Ignoring.");
         pSessionToken = NULL;
     }
-
     // If the env is set, we generate normal log files apart from filtered profile log files
     // If not set, we generate only the filtered profile log files
     if (NULL != GETENV(ENABLE_FILE_LOGGING)) {
@@ -902,13 +865,13 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 
     CHK_STATUS(lookForSslCert(&pSampleConfiguration));
 
-#ifdef IOT_CORE_ENABLE_CREDENTIALS
-    CHK_STATUS(createLwsIotCredentialProvider(pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pSampleConfiguration->pCaCertPath,
-                                              pIotCoreRoleAlias, pIotCoreThingName, &pSampleConfiguration->pCredentialProvider));
-#else
-    CHK_STATUS(
-        createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pSampleConfiguration->pCredentialProvider));
-#endif
+    if (IOT_CORE_ENABLE_CREDENTIALS) {
+        CHK_STATUS(createLwsIotCredentialProvider(pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pSampleConfiguration->pCaCertPath,
+                                                  pIotCoreRoleAlias, pIotCoreThingName, &pSampleConfiguration->pCredentialProvider));
+    } else {
+        CHK_STATUS(
+            createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pSampleConfiguration->pCredentialProvider));
+    }
 
     pSampleConfiguration->mediaSenderTid = INVALID_TID_VALUE;
     pSampleConfiguration->audioSenderTid = INVALID_TID_VALUE;
@@ -918,20 +881,23 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->cvar = CVAR_CREATE();
     pSampleConfiguration->streamingSessionListReadLock = MUTEX_CREATE(FALSE);
     pSampleConfiguration->signalingSendMessageLock = MUTEX_CREATE(FALSE);
+
     /* This is ignored for master. Master can extract the info from offer. Viewer has to know if peer can trickle or
      * not ahead of time. */
-    pSampleConfiguration->trickleIce = trickleIce;
-    pSampleConfiguration->useTurn = useTurn;
-    pSampleConfiguration->enableSendingMetricsToViewerViaDc = FALSE;
+
+    pSampleConfiguration->trickleIce = USE_TRICKLE_ICE;
+    pSampleConfiguration->useTurn = USE_TURN;
+    pSampleConfiguration->enableSendingMetricsToViewerViaDc = ENABLE_TTFF_VIA_DC;
     pSampleConfiguration->receiveAudioVideoSource = NULL;
 
     pSampleConfiguration->channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
-    pSampleConfiguration->channelInfo.pChannelName = channelName;
-#ifdef IOT_CORE_ENABLE_CREDENTIALS
-    if ((pIotCoreCertificateId = GETENV(IOT_CORE_CERTIFICATE_ID)) != NULL) {
-        pSampleConfiguration->channelInfo.pChannelName = pIotCoreCertificateId;
+    pSampleConfiguration->channelInfo.pChannelName = CHANNEL_NAME;
+    if (IOT_CORE_ENABLE_CREDENTIALS) {
+        if ((pIotCoreCertificateId = GETENV(IOT_CORE_CERTIFICATE_ID)) != NULL) {
+            pSampleConfiguration->channelInfo.pChannelName = pIotCoreCertificateId;
+        }
     }
-#endif
+
     pSampleConfiguration->channelInfo.pKmsKeyId = NULL;
     pSampleConfiguration->channelInfo.tagCount = 0;
     pSampleConfiguration->channelInfo.pTags = NULL;
@@ -944,6 +910,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->channelInfo.reconnect = TRUE;
     pSampleConfiguration->channelInfo.pCertPath = pSampleConfiguration->pCaCertPath;
     pSampleConfiguration->channelInfo.messageTtl = 0; // Default is 60 seconds
+    pSampleConfiguration->channelInfo.useMediaStorage = ENABLE_STORAGE;
 
     pSampleConfiguration->signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     pSampleConfiguration->signalingClientCallbacks.errorReportFn = signalingClientError;
@@ -1013,9 +980,9 @@ STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
     // Enable the processing of the messages
     CHK_STATUS(signalingClientFetchSync(pSampleConfiguration->signalingClientHandle));
 
-#ifdef ENABLE_DATA_CHANNEL
-    pSampleConfiguration->onDataChannel = onDataChannel;
-#endif
+    if (ENABLE_DATA_CHANNEL) {
+        pSampleConfiguration->onDataChannel = onDataChannel;
+    }
 
     CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
 
@@ -1061,109 +1028,6 @@ STATUS logSignalingClientStats(PSignalingClientMetrics pSignalingClientMetrics)
     DLOGD("API call retry count: %d", pSignalingClientMetrics->signalingClientStats.apiCallRetryCount);
 CleanUp:
     LEAVES();
-    return retStatus;
-}
-
-STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
-{
-    UNUSED_PARAM(timerId);
-    UNUSED_PARAM(currentTime);
-    STATUS retStatus = STATUS_SUCCESS;
-    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
-    UINT32 i;
-    UINT64 currentMeasureDuration = 0;
-    DOUBLE averagePacketsDiscardedOnSend = 0.0;
-    DOUBLE averageNumberOfPacketsSentPerSecond = 0.0;
-    DOUBLE averageNumberOfPacketsReceivedPerSecond = 0.0;
-    DOUBLE outgoingBitrate = 0.0;
-    DOUBLE incomingBitrate = 0.0;
-    BOOL locked = FALSE;
-
-    CHK_WARN(pSampleConfiguration != NULL, STATUS_NULL_ARG, "[KVS Master] getPeriodicStats(): Passed argument is NULL");
-
-    pSampleConfiguration->rtcIceCandidatePairMetrics.requestedTypeOfStats = RTC_STATS_TYPE_CANDIDATE_PAIR;
-
-    // Use MUTEX_TRYLOCK to avoid possible dead lock when canceling timerQueue
-    if (!MUTEX_TRYLOCK(pSampleConfiguration->sampleConfigurationObjLock)) {
-        return retStatus;
-    } else {
-        locked = TRUE;
-    }
-
-    for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
-        if (STATUS_SUCCEEDED(rtcPeerConnectionGetMetrics(pSampleConfiguration->sampleStreamingSessionList[i]->pPeerConnection, NULL,
-                                                         &pSampleConfiguration->rtcIceCandidatePairMetrics))) {
-            currentMeasureDuration = (pSampleConfiguration->rtcIceCandidatePairMetrics.timestamp -
-                                      pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevTs) /
-                HUNDREDS_OF_NANOS_IN_A_SECOND;
-            DLOGD("Current duration: %" PRIu64 " seconds", currentMeasureDuration);
-            if (currentMeasureDuration > 0) {
-                DLOGD("Selected local candidate ID: %s",
-                      pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.localCandidateId);
-                DLOGD("Selected remote candidate ID: %s",
-                      pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.remoteCandidateId);
-                // TODO: Display state as a string for readability
-                DLOGD("Ice Candidate Pair state: %d", pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.state);
-                DLOGD("Nomination state: %s",
-                      pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.nominated ? "nominated"
-                                                                                                                      : "not nominated");
-                averageNumberOfPacketsSentPerSecond =
-                    (DOUBLE) (pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsSent -
-                              pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsSent) /
-                    (DOUBLE) currentMeasureDuration;
-                DLOGD("Packet send rate: %lf pkts/sec", averageNumberOfPacketsSentPerSecond);
-
-                averageNumberOfPacketsReceivedPerSecond =
-                    (DOUBLE) (pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsReceived -
-                              pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsReceived) /
-                    (DOUBLE) currentMeasureDuration;
-                DLOGD("Packet receive rate: %lf pkts/sec", averageNumberOfPacketsReceivedPerSecond);
-
-                outgoingBitrate = (DOUBLE) ((pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesSent -
-                                             pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesSent) *
-                                            8.0) /
-                    currentMeasureDuration;
-                DLOGD("Outgoing bit rate: %lf bps", outgoingBitrate);
-
-                incomingBitrate = (DOUBLE) ((pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesReceived -
-                                             pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesReceived) *
-                                            8.0) /
-                    currentMeasureDuration;
-                DLOGD("Incoming bit rate: %lf bps", incomingBitrate);
-
-                averagePacketsDiscardedOnSend =
-                    (DOUBLE) (pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsDiscardedOnSend -
-                              pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevPacketsDiscardedOnSend) /
-                    (DOUBLE) currentMeasureDuration;
-                DLOGD("Packet discard rate: %lf pkts/sec", averagePacketsDiscardedOnSend);
-
-                DLOGD("Current STUN request round trip time: %lf sec",
-                      pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.currentRoundTripTime);
-                DLOGD("Number of STUN responses received: %llu",
-                      pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.responsesReceived);
-
-                pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevTs =
-                    pSampleConfiguration->rtcIceCandidatePairMetrics.timestamp;
-                pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsSent =
-                    pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsSent;
-                pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsReceived =
-                    pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsReceived;
-                pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesSent =
-                    pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesSent;
-                pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesReceived =
-                    pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesReceived;
-                pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevPacketsDiscardedOnSend =
-                    pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsDiscardedOnSend;
-            }
-        }
-    }
-
-CleanUp:
-
-    if (locked) {
-        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    }
-
     return retStatus;
 }
 
@@ -1312,11 +1176,11 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         CVAR_FREE(pSampleConfiguration->cvar);
     }
 
-#ifdef IOT_CORE_ENABLE_CREDENTIALS
-    freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
-#else
-    freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);
-#endif
+    if (IOT_CORE_ENABLE_CREDENTIALS) {
+        freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
+    } else {
+        freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);
+    }
 
     if (pSampleConfiguration->pregeneratedCertificates != NULL) {
         stackQueueGetIterator(pSampleConfiguration->pregeneratedCertificates, &iterator);
@@ -1751,7 +1615,6 @@ CleanUp:
     return retStatus;
 }
 
-#ifdef ENABLE_DATA_CHANNEL
 VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -1927,4 +1790,3 @@ VOID onDataChannel(UINT64 customData, PRtcDataChannel pRtcDataChannel)
     DLOGI("New DataChannel has been opened %s \n", pRtcDataChannel->name);
     dataChannelOnMessage(pRtcDataChannel, customData, onDataChannelMessage);
 }
-#endif

@@ -1,11 +1,6 @@
 cmake_minimum_required(VERSION 3.6.3)
 
-project(KinesisVideoWebRTCClientSamples)
-
-set(CMAKE_CXX_STANDARD 11)  # Adjust the version according to your needs
-
-
-#set(OPEN_SRC_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/open-source" CACHE PATH "Libraries will be downloaded and build in this directory.")
+project(KinesisVideoWebRTCClientSamples LANGUAGES C)
 
 message("OPEN_SRC_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}")
 
@@ -52,6 +47,7 @@ endif()
 
 include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
 include_directories(${OPEN_SRC_INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
 
 # copy sample frames to this subproject build folder, in case developer runs sample program with command `kvsWebrtcClientMaster` from `build/samples` dir.
@@ -63,14 +59,18 @@ file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/h265SampleFrames" DESTINATION .)
 add_executable(
   kvsWebrtcClientMaster
   Common.c
+  Utility.c
+  MetricsHandling.c
   kvsWebRTCClientMaster.c)
-target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets)
+target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils)
 
 add_executable(
   kvsWebrtcClientViewer
   Common.c
+  Utility.c
+  MetricsHandling.c
   kvsWebRTCClientViewer.c)
-target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets)
+target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils)
 
 add_executable(
         discoverNatBehavior
@@ -81,6 +81,8 @@ if(GST_FOUND)
   add_executable(
     kvsWebrtcClientMasterGstSample
     Common.c
+    Utility.c
+    MetricsHandling.c
     GstAudioVideoReceiver.c
     kvsWebRTCClientMasterGstSample.c
   )
@@ -93,6 +95,8 @@ if(GST_FOUND)
   add_executable(
     kvsWebrtcClientViewerGstSample
     Common.c
+    Utility.c
+    MetricsHandling.c
     GstAudioVideoReceiver.c
     kvsWebRTCClientViewerGstSample.c
   )
