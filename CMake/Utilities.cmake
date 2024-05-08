@@ -43,6 +43,14 @@ function(build_dependency lib_name)
     return()
   endif()
 
+  message(STATUS "CFLAGS environment variable before setting to CMAKE_C_FLAGS: $ENV{CFLAGS}")
+  # save original cflags to reset after build is finished for this build dependency
+  set(ORIG_CFLAGS $ENV{CFLAGS})
+
+  # set CFLAGS env variable since this is the only way to pass CFLAGS into a build dependency if a cross compile sdk is used (eg. Yocto)
+  set(ENV{CFLAGS} ${CMAKE_C_FLAGS})
+  message(STATUS "CFLAGS after setting to CMAKE_C_FLAGS: $ENV{CFLAGS}")
+
   # anything after lib_name(${ARGN}) are assumed to be arguments passed over to
   # library building cmake.
   set(build_args ${ARGN})
@@ -78,6 +86,9 @@ function(build_dependency lib_name)
   endif()
 
   file(REMOVE_RECURSE ${OPEN_SRC_INSTALL_PREFIX}/lib${lib_name})
+
+  set(ENV{CFLAGS} ${ORIG_CFLAGS})
+  message(STATUS "CFLAGS after resetting to original CFLAGS: $ENV{CFLAGS}")
 endfunction()
 
 function(enableSanitizer SANITIZER)
