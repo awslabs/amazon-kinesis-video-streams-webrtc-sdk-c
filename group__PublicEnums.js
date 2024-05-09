@@ -25,7 +25,6 @@ var group__PublicEnums =
       [ "RTC_CODEC_ALAW", "group__PublicEnums.html#gga93240fd6a0e599dfb0c69ca76e406665a19f80c44053520d7f28f3077a60bdc70", null ],
       [ "RTC_CODEC_UNKNOWN", "group__PublicEnums.html#gga93240fd6a0e599dfb0c69ca76e406665a65041cc492cd9bbabb73a3ad9b649208", null ],
       [ "RTC_CODEC_H265", "group__PublicEnums.html#gga93240fd6a0e599dfb0c69ca76e406665a71567086f59ace762eb65e36ab7ff962", null ],
-      [ "RTC_CODEC_AAC", "group__PublicEnums.html#gga93240fd6a0e599dfb0c69ca76e406665a5ae02cf956d6bf65a5053749e9576714", null ],
       [ "RTC_CODEC_MAX", "group__PublicEnums.html#gga93240fd6a0e599dfb0c69ca76e406665ae60a7ad014a57e0187107ea6ef55267a", null ]
     ] ],
     [ "RTC_PEER_CONNECTION_STATE", "group__PublicEnums.html#ga1a8485527953d22957465fb016c44bec", [

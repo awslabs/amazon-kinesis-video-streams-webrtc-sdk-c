@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['dtlsstatuscodes_5536',['DTLSStatusCodes',['../group__DTLSStatusCodes.html',1,'']]]
+  ['dtlsstatuscodes_5595',['DTLSStatusCodes',['../group__DTLSStatusCodes.html',1,'']]]
 ];

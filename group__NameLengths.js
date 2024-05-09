@@ -7,6 +7,7 @@ var group__NameLengths =
     [ "MAX_ERROR_TYPE_STRING_LEN", "group__NameLengths.html#gac877df26e9a372bafd57ea0906af7457", null ],
     [ "MAX_ICE_CANDIDATE_INIT_CANDIDATE_LEN", "group__NameLengths.html#gaa8b470854da668bd131aca2102096a93", null ],
     [ "MAX_ICE_CONFIG_CREDENTIAL_LEN", "group__NameLengths.html#ga1ec791416eaa9a8766236679710dde4f", null ],
+    [ "MAX_ICE_CONFIG_URI_LEN", "group__NameLengths.html#ga160cda488c482290cca205dcd1d29abc", null ],
     [ "MAX_ICE_CONFIG_USER_NAME_LEN", "group__NameLengths.html#ga4c7a7503d9f24367262a592de310c1b1", null ],
     [ "MAX_MEDIA_STREAM_ID_LEN", "group__NameLengths.html#ga06633fc03ba73e2d6031ada7e2566bfb", null ],
     [ "MAX_MEDIA_STREAM_TRACK_ID_LEN", "group__NameLengths.html#ga0cc2610ad451a05183cc7957b882552d", null ],

@@ -1,6 +1,6 @@
 <map id="src/source/Sdp/Sdp.h" name="src/source/Sdp/Sdp.h">
-<area shape="rect" id="node1" title=" " alt="" coords="5005,5,5161,32"/>
-<area shape="rect" id="node2" href="$Include__i_8h.html" title=" " alt="" coords="5002,80,5165,107"/>
+<area shape="rect" id="node1" title=" " alt="" coords="4787,5,4943,32"/>
+<area shape="rect" id="node2" href="$Include__i_8h.html" title=" " alt="" coords="4783,80,4946,107"/>
 <area shape="rect" id="node3" href="$Crypto_8c.html" title=" " alt="" coords="5,162,199,189"/>
 <area shape="rect" id="node4" href="$Dtls_8c.html" title=" " alt="" coords="223,162,399,189"/>
 <area shape="rect" id="node5" href="$Dtls__mbedtls_8c.html" title=" " alt="" coords="423,155,589,196"/>
@@ -37,16 +37,14 @@
 <area shape="rect" id="node36" href="$RtpPacket_8c.html" title=" " alt="" coords="6952,162,7145,189"/>
 <area shape="rect" id="node37" href="$Sctp_8c.html" title=" " alt="" coords="7170,162,7333,189"/>
 <area shape="rect" id="node38" href="$Deserialize_8c.html" title=" " alt="" coords="7357,162,7561,189"/>
-<area shape="rect" id="node39" href="$SdpUtils_8c.html" title=" " alt="" coords="7585,162,7771,189"/>
-<area shape="rect" id="node40" href="$Serialize_8c.html" title=" " alt="" coords="7795,162,7982,189"/>
-<area shape="rect" id="node41" href="$ChannelInfo_8c.html" title=" " alt="" coords="8006,155,8158,196"/>
-<area shape="rect" id="node42" href="$Client_8c.html" title=" " alt="" coords="8182,155,8334,196"/>
-<area shape="rect" id="node43" href="$FileCache_8c.html" title=" " alt="" coords="8358,155,8510,196"/>
-<area shape="rect" id="node44" href="$LwsApiCalls_8c.html" title=" " alt="" coords="8534,155,8686,196"/>
-<area shape="rect" id="node45" href="$Signaling_8c.html" title=" " alt="" coords="8710,155,8862,196"/>
-<area shape="rect" id="node46" href="$StateMachine_8c.html" title=" " alt="" coords="8886,155,9038,196"/>
-<area shape="rect" id="node47" href="$SrtpSession_8c.html" title=" " alt="" coords="9063,162,9272,189"/>
-<area shape="rect" id="node48" href="$Stun_8c.html" title=" " alt="" coords="9297,162,9462,189"/>
-<area shape="rect" id="node49" href="$StunUtils_8c.html" title=" " alt="" coords="9486,162,9681,189"/>
-<area shape="rect" id="node50" href="$ThreadPoolContext_8c.html" title=" " alt="" coords="9705,155,9870,196"/>
+<area shape="rect" id="node39" href="$Serialize_8c.html" title=" " alt="" coords="7586,162,7773,189"/>
+<area shape="rect" id="node40" href="$ChannelInfo_8c.html" title=" " alt="" coords="7797,155,7949,196"/>
+<area shape="rect" id="node41" href="$Client_8c.html" title=" " alt="" coords="7973,155,8125,196"/>
+<area shape="rect" id="node42" href="$FileCache_8c.html" title=" " alt="" coords="8149,155,8301,196"/>
+<area shape="rect" id="node43" href="$LwsApiCalls_8c.html" title=" " alt="" coords="8325,155,8477,196"/>
+<area shape="rect" id="node44" href="$Signaling_8c.html" title=" " alt="" coords="8501,155,8653,196"/>
+<area shape="rect" id="node45" href="$StateMachine_8c.html" title=" " alt="" coords="8677,155,8829,196"/>
+<area shape="rect" id="node46" href="$SrtpSession_8c.html" title=" " alt="" coords="8853,162,9063,189"/>
+<area shape="rect" id="node47" href="$Stun_8c.html" title=" " alt="" coords="9087,162,9253,189"/>
+<area shape="rect" id="node48" href="$ThreadPoolContext_8c.html" title=" " alt="" coords="9277,155,9442,196"/>
 </map>
