@@ -454,30 +454,6 @@ CleanUp:
     return retStatus;
 }
 
-// Return ICE server stats for a specific streaming session
-STATUS gatherIceServerStats(PSampleStreamingSession pSampleStreamingSession)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    RtcStats rtcmetrics;
-    UINT32 j = 0;
-    rtcmetrics.requestedTypeOfStats = RTC_STATS_TYPE_ICE_SERVER;
-    for (; j < pSampleStreamingSession->pSampleConfiguration->iceUriCount; j++) {
-        rtcmetrics.rtcStatsObject.iceServerStats.iceServerIndex = j;
-        CHK_STATUS(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, NULL, &rtcmetrics));
-        DLOGD("ICE Server URL: %s", rtcmetrics.rtcStatsObject.iceServerStats.url);
-        DLOGD("ICE Server port: %d", rtcmetrics.rtcStatsObject.iceServerStats.port);
-        DLOGD("ICE Server protocol: %s", rtcmetrics.rtcStatsObject.iceServerStats.protocol);
-        DLOGD("Total requests sent:%" PRIu64, rtcmetrics.rtcStatsObject.iceServerStats.totalRequestsSent);
-        DLOGD("Total responses received: %" PRIu64, rtcmetrics.rtcStatsObject.iceServerStats.totalResponsesReceived);
-        DLOGD("Total round trip time: %" PRIu64 "ms",
-              rtcmetrics.rtcStatsObject.iceServerStats.totalRoundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-    }
-CleanUp:
-    LEAVES();
-    return retStatus;
-}
-
 STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, PCHAR peerId, BOOL isMaster,
                                     PSampleStreamingSession* ppSampleStreamingSession)
 {
@@ -509,7 +485,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     pSampleStreamingSession->pVideoRtcRtpTransceiver = NULL;
 
     pSampleStreamingSession->pSampleConfiguration = pSampleConfiguration;
-    pSampleStreamingSession->rtcMetricsHistory.prevTs = GETTIME();
+    pSampleStreamingSession->rtpMetricsHistory.prevTs = GETTIME();
 
     pSampleStreamingSession->peerConnectionMetrics.version = PEER_CONNECTION_METRICS_CURRENT_VERSION;
     pSampleStreamingSession->iceMetrics.version = ICE_AGENT_METRICS_CURRENT_VERSION;

@@ -493,7 +493,7 @@ if (BUILD_SAMPLE)
   add_subdirectory(samples)
 endif()
 
-add_subdirectory(aws-cpp-sdk-integ)
+add_subdirectory(cloudwatch-integ)
 
 if(BUILD_TEST)
   # adding ZLIB because aws sdk static link seems to be broken when zlib is needed

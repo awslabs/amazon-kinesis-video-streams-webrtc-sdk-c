@@ -11,9 +11,7 @@ extern "C" {
 #endif
 
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
-
-#define STRINGIZE(x)           #x
-#define INCLUDE_CONFIG(header) STRINGIZE(header)
+#include SAMPLE_CONFIG_HEADER
 
 #define NUMBER_OF_H264_FRAME_FILES               1500
 #define NUMBER_OF_H265_FRAME_FILES               1500
@@ -112,20 +110,6 @@ typedef enum {
     RTSP_SOURCE,
 } SampleSourceType;
 
-typedef enum {
-    ICE_CANDIDATE_PAIR_METRICS = 1 << 0,
-    ICE_SERVER_METRICS = 1 << 1,
-    DATA_CHANNEL_METRICS = 1 << 2,
-    INBOUND_RTP_METRICS = 1 << 4,
-    ICE_LOCAL_CANDIDATE_METRICS = 1 << 5,
-    OUTBOUND_RTP_METRICS = 1 << 6,
-    ICE_REMOTE_CANDIDATE_METRICS = 1 << 7,
-    REMOTE_INBOUND_RTP_METRICS = 1 << 8,
-    REMOTE_OUTBOUND_RTP_METRICS = 1 << 9,
-    TRANSPORT_METRICS = 1 << 10,
-    ALL_METRICS = 1 << 11
-} MetricsType;
-
 typedef struct __SampleStreamingSession SampleStreamingSession;
 typedef struct __SampleStreamingSession* PSampleStreamingSession;
 
@@ -136,7 +120,7 @@ typedef struct {
     UINT64 prevNumberOfBytesReceived;
     UINT64 prevPacketsDiscardedOnSend;
     UINT64 prevTs;
-} RtcMetricsHistory, *PRtcMetricsHistory;
+} RtpMetricsHistory, *PRtpMetricsHistory;
 
 typedef struct {
     volatile ATOMIC_BOOL appTerminateFlag;
@@ -272,7 +256,7 @@ struct __SampleStreamingSession {
     CHAR peerId[MAX_SIGNALING_CLIENT_ID_LEN + 1];
     TID receiveAudioVideoSenderTid;
     UINT64 startUpLatency;
-    RtcMetricsHistory rtcMetricsHistory;
+    RtpMetricsHistory rtpMetricsHistory;
     BOOL remoteCanTrickleIce;
     TwccMetadata twccMetadata;
 
@@ -350,6 +334,7 @@ UINT32 setLogLevel();
 
 STATUS populateOutgoingRtpMetricsContext(PSampleStreamingSession pSampleStreamingSession);
 STATUS populateIncomingRtpMetricsContext(PSampleStreamingSession pSampleStreamingSession);
+STATUS gatherIceServerStats(PSampleStreamingSession pSampleStreamingSession);
 
 #ifdef __cplusplus
 }

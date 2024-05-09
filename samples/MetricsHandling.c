@@ -29,6 +29,30 @@ CleanUp:
     return retStatus;
 }
 
+// Return ICE server stats for a specific streaming session
+STATUS gatherIceServerStats(PSampleStreamingSession pSampleStreamingSession)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    RtcStats rtcmetrics;
+    UINT32 j = 0;
+    rtcmetrics.requestedTypeOfStats = RTC_STATS_TYPE_ICE_SERVER;
+    for (; j < pSampleStreamingSession->pSampleConfiguration->iceUriCount; j++) {
+        rtcmetrics.rtcStatsObject.iceServerStats.iceServerIndex = j;
+        CHK_STATUS(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, NULL, &rtcmetrics));
+        DLOGD("ICE Server URL: %s", rtcmetrics.rtcStatsObject.iceServerStats.url);
+        DLOGD("ICE Server port: %d", rtcmetrics.rtcStatsObject.iceServerStats.port);
+        DLOGD("ICE Server protocol: %s", rtcmetrics.rtcStatsObject.iceServerStats.protocol);
+        DLOGD("Total requests sent:%" PRIu64, rtcmetrics.rtcStatsObject.iceServerStats.totalRequestsSent);
+        DLOGD("Total responses received: %" PRIu64, rtcmetrics.rtcStatsObject.iceServerStats.totalResponsesReceived);
+        DLOGD("Total round trip time: %" PRIu64 "ms",
+                rtcmetrics.rtcStatsObject.iceServerStats.totalRoundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    CleanUp:
+    LEAVES();
+    return retStatus;
+}
+
 STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     UNUSED_PARAM(timerId);
@@ -59,7 +83,7 @@ STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT
         if (STATUS_SUCCEEDED(rtcPeerConnectionGetMetrics(pSampleConfiguration->sampleStreamingSessionList[i]->pPeerConnection, NULL,
                                                          &pSampleConfiguration->rtcIceCandidatePairMetrics))) {
             currentMeasureDuration = (pSampleConfiguration->rtcIceCandidatePairMetrics.timestamp -
-                                      pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevTs) /
+                                      pSampleConfiguration->sampleStreamingSessionList[i]->rtpMetricsHistory.prevTs) /
                 HUNDREDS_OF_NANOS_IN_A_SECOND;
             DLOGD("Current duration: %" PRIu64 " seconds", currentMeasureDuration);
             if (currentMeasureDuration > 0) {
@@ -74,31 +98,31 @@ STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT
                                                                                                                       : "not nominated");
                 averageNumberOfPacketsSentPerSecond =
                     (DOUBLE) (pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsSent -
-                              pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsSent) /
+                              pSampleConfiguration->sampleStreamingSessionList[i]->rtpMetricsHistory.prevNumberOfPacketsSent) /
                     (DOUBLE) currentMeasureDuration;
                 DLOGD("Packet send rate: %lf pkts/sec", averageNumberOfPacketsSentPerSecond);
 
                 averageNumberOfPacketsReceivedPerSecond =
                     (DOUBLE) (pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsReceived -
-                              pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsReceived) /
+                              pSampleConfiguration->sampleStreamingSessionList[i]->rtpMetricsHistory.prevNumberOfPacketsReceived) /
                     (DOUBLE) currentMeasureDuration;
                 DLOGD("Packet receive rate: %lf pkts/sec", averageNumberOfPacketsReceivedPerSecond);
 
                 outgoingBitrate = (DOUBLE) ((pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesSent -
-                                             pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesSent) *
+                                             pSampleConfiguration->sampleStreamingSessionList[i]->rtpMetricsHistory.prevNumberOfBytesSent) *
                                             8.0) /
                     currentMeasureDuration;
                 DLOGD("Outgoing bit rate: %lf bps", outgoingBitrate);
 
                 incomingBitrate = (DOUBLE) ((pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesReceived -
-                                             pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesReceived) *
+                                             pSampleConfiguration->sampleStreamingSessionList[i]->rtpMetricsHistory.prevNumberOfBytesReceived) *
                                             8.0) /
                     currentMeasureDuration;
                 DLOGD("Incoming bit rate: %lf bps", incomingBitrate);
 
                 averagePacketsDiscardedOnSend =
                     (DOUBLE) (pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsDiscardedOnSend -
-                              pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevPacketsDiscardedOnSend) /
+                              pSampleConfiguration->sampleStreamingSessionList[i]->rtpMetricsHistory.prevPacketsDiscardedOnSend) /
                     (DOUBLE) currentMeasureDuration;
                 DLOGD("Packet discard rate: %lf pkts/sec", averagePacketsDiscardedOnSend);
 
@@ -107,17 +131,17 @@ STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT
                 DLOGD("Number of STUN responses received: %llu",
                       pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.responsesReceived);
 
-                pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevTs =
+                pSampleConfiguration->sampleStreamingSessionList[i]->rtpMetricsHistory.prevTs =
                     pSampleConfiguration->rtcIceCandidatePairMetrics.timestamp;
-                pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsSent =
+                pSampleConfiguration->sampleStreamingSessionList[i]->rtpMetricsHistory.prevNumberOfPacketsSent =
                     pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsSent;
-                pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsReceived =
+                pSampleConfiguration->sampleStreamingSessionList[i]->rtpMetricsHistory.prevNumberOfPacketsReceived =
                     pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsReceived;
-                pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesSent =
+                pSampleConfiguration->sampleStreamingSessionList[i]->rtpMetricsHistory.prevNumberOfBytesSent =
                     pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesSent;
-                pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesReceived =
+                pSampleConfiguration->sampleStreamingSessionList[i]->rtpMetricsHistory.prevNumberOfBytesReceived =
                     pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesReceived;
-                pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevPacketsDiscardedOnSend =
+                pSampleConfiguration->sampleStreamingSessionList[i]->rtpMetricsHistory.prevPacketsDiscardedOnSend =
                     pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsDiscardedOnSend;
             }
         }

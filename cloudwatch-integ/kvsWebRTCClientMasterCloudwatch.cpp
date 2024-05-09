@@ -1,7 +1,6 @@
 #include <aws/core/Aws.h>
 #include "../samples/Samples.h"
-#include "Config.h"
-#include "CloudwatchMetricsMonitoring.h"
+#include "Cloudwatch.h"
 
 STATUS publishStatsForCanary(RTC_STATS_TYPE statsType, PSampleStreamingSession pSampleStreamingSession)
 {
@@ -11,12 +10,12 @@ STATUS publishStatsForCanary(RTC_STATS_TYPE statsType, PSampleStreamingSession p
         case RTC_STATS_TYPE_OUTBOUND_RTP:
             CHK_LOG_ERR(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pVideoRtcRtpTransceiver, &pSampleStreamingSession->canaryMetrics));
             populateOutgoingRtpMetricsContext(pSampleStreamingSession);
-            CppInteg::CloudwatchMetricsMonitoring::getInstance().pushOutboundRtpStats(&pSampleStreamingSession->canaryOutgoingRTPMetricsContext);
+            CppInteg::Cloudwatch::getInstance().monitoring.pushOutboundRtpStats(&pSampleStreamingSession->canaryOutgoingRTPMetricsContext);
             break;
         case RTC_STATS_TYPE_INBOUND_RTP:
             CHK_LOG_ERR(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pVideoRtcRtpTransceiver, &pSampleStreamingSession->canaryMetrics));
             populateIncomingRtpMetricsContext(pSampleStreamingSession);
-            CppInteg::CloudwatchMetricsMonitoring::getInstance().pushInboundRtpStats(&pSampleStreamingSession->canaryIncomingRTPMetricsContext);
+            CppInteg::Cloudwatch::getInstance().monitoring.pushInboundRtpStats(&pSampleStreamingSession->canaryIncomingRTPMetricsContext);
             break;
         default:
             CHK(FALSE, STATUS_NOT_IMPLEMENTED);
@@ -186,18 +185,16 @@ INT32 main(INT32 argc, CHAR* argv[])
     UINT32 frameSize;
     PSampleConfiguration pSampleConfiguration = NULL;
     SignalingClientMetrics signalingClientMetrics;
-    auto config = CppInteg::Config();
-
+    PCHAR region;
     Aws::SDKOptions options;
     Aws::InitAPI(options);
     {
         SET_INSTRUMENTED_ALLOCATORS();
         // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
         initKvsWebRtc();
-        config.init(argc, argv);
 
         UINT32 logLevel = setLogLevel();
-        createSampleConfiguration((PCHAR) config.channelName.value.c_str(), SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration);
+        createSampleConfiguration(CHANNEL_NAME, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration);
 
         // Set the audio and video handlers
         pSampleConfiguration->audioSource = sendAudioPackets;
@@ -208,10 +205,10 @@ INT32 main(INT32 argc, CHAR* argv[])
             pSampleConfiguration->channelInfo.useMediaStorage = TRUE;
         }
 
-        ClientConfiguration clientConfig;
-        clientConfig.region = config.region.value;
-        CppInteg::CloudwatchMetricsMonitoring cwmonitoring(&config, &clientConfig);
-        cwmonitoring.init(&config);
+        if ((region = GETENV(DEFAULT_REGION_ENV_VAR)) == NULL) {
+            region = (PCHAR) DEFAULT_AWS_REGION;
+        }
+        CppInteg::Cloudwatch::init(CHANNEL_NAME, region, TRUE);
 
 #ifdef ENABLE_DATA_CHANNEL
         pSampleConfiguration->onDataChannel = onDataChannel;
@@ -234,7 +231,7 @@ INT32 main(INT32 argc, CHAR* argv[])
                 pSampleConfiguration->signalingClientMetrics.signalingEndTime, pSampleConfiguration->signalingClientMetrics.signalingCallTime,
                 "Initialize signaling client and connect to the signaling channel");
 
-        DLOGI("[KVS Master] Channel %s set up done ", (PCHAR) config.channelName.value.c_str());
+        DLOGI("[KVS Master] Channel %s set up done ", CHANNEL_NAME);
 
         // Checking for termination
         sessionCleanupWait(pSampleConfiguration);
@@ -244,6 +241,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         DLOGE("[KVS Master] Terminated with status code 0x%08x", retStatus);
     }
 
+CleanUp:
     DLOGI("[KVS Master] Cleaning up....");
     if (pSampleConfiguration != NULL) {
         // Kick of the termination sequence

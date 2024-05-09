@@ -9,7 +9,4 @@
 #define IOT_CORE_ENABLE_CREDENTIALS FALSE
 #define ENABLE_STORAGE              FALSE
 
-
-
-
 #endif // KVS_SDK_SAMPLE_CONFIG_H
