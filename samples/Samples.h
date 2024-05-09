@@ -13,13 +13,28 @@ extern "C" {
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 
 #define NUMBER_OF_H264_FRAME_FILES               1500
+#define NUMBER_OF_H265_FRAME_FILES               1500
 #define NUMBER_OF_OPUS_FRAME_FILES               618
 #define DEFAULT_FPS_VALUE                        25
+#define DEFAULT_VIDEO_HEIGHT_PIXELS              720
+#define DEFAULT_VIDEO_WIDTH_PIXELS               1280
+#define DEFAULT_AUDIO_OPUS_CHANNELS              2
+#define DEFAULT_AUDIO_OPUS_SAMPLE_RATE_HZ        48000
+#define DEFAULT_AUDIO_OPUS_BITS_PER_SAMPLE       16
 #define DEFAULT_MAX_CONCURRENT_STREAMING_SESSION 10
+
+#define AUDIO_CODEC_NAME_ALAW  "alaw"
+#define AUDIO_CODEC_NAME_MULAW "mulaw"
+#define AUDIO_CODEC_NAME_OPUS  "opus"
+#define VIDEO_CODEC_NAME_H264  "h264"
+#define VIDEO_CODEC_NAME_H265  "h265"
+#define VIDEO_CODEC_NAME_VP8   "vp8"
 
 #define SAMPLE_MASTER_CLIENT_ID "ProducerMaster"
 #define SAMPLE_VIEWER_CLIENT_ID "ConsumerViewer"
 #define SAMPLE_CHANNEL_NAME     (PCHAR) "ScaryTestChannel"
+
+#define DEFAULT_AUDIO_OPUS_BYTE_RATE (DEFAULT_AUDIO_OPUS_SAMPLE_RATE_HZ * DEFAULT_AUDIO_OPUS_CHANNELS * DEFAULT_AUDIO_OPUS_BITS_PER_SAMPLE) / 8
 
 #define SAMPLE_AUDIO_FRAME_DURATION (20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 #define SAMPLE_STATS_DURATION       (60 * HUNDREDS_OF_NANOS_IN_A_SECOND)
@@ -72,6 +87,12 @@ extern "C" {
 #define MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE 736 // strlen(SIGNALING_CLIENT_METRICS_JSON_TEMPLATE) + 20 * 10
 #define MAX_ICE_AGENT_METRICS_MESSAGE_SIZE        113 // strlen(ICE_AGENT_METRICS_JSON_TEMPLATE) + 20 * 2
 
+#define TWCC_BITRATE_ADJUSTMENT_INTERVAL_MS 1000 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
+#define MIN_VIDEO_BITRATE_KBPS              512     // Unit kilobits/sec. Value could change based on codec.
+#define MAX_VIDEO_BITRATE_KBPS              2048000 // Unit kilobits/sec. Value could change based on codec.
+#define MIN_AUDIO_BITRATE_BPS               4000    // Unit bits/sec. Value could change based on codec.
+#define MAX_AUDIO_BITRATE_BPS               650000  // Unit bits/sec. Value could change based on codec.
+
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
     SAMPLE_STREAMING_AUDIO_VIDEO,
@@ -106,6 +127,8 @@ typedef struct {
     PCHAR pCaCertPath;
     PAwsCredentialProvider pCredentialProvider;
     SIGNALING_CLIENT_HANDLE signalingClientHandle;
+    RTC_CODEC audioCodec;
+    RTC_CODEC videoCodec;
     PBYTE pAudioFrameBuffer;
     UINT32 audioBufferSize;
     PBYTE pVideoFrameBuffer;
@@ -148,6 +171,7 @@ typedef struct {
 
     PCHAR rtspUri;
     UINT32 logLevel;
+    BOOL enableTwcc;
 } SampleConfiguration, *PSampleConfiguration;
 
 typedef struct {
@@ -166,6 +190,16 @@ typedef struct {
 } PendingMessageQueue, *PPendingMessageQueue;
 
 typedef VOID (*StreamSessionShutdownCallback)(UINT64, PSampleStreamingSession);
+
+typedef struct {
+    MUTEX updateLock;
+    UINT64 lastAdjustmentTimeMs;
+    UINT64 currentVideoBitrate;
+    UINT64 currentAudioBitrate;
+    UINT64 newVideoBitrate;
+    UINT64 newAudioBitrate;
+    DOUBLE averagePacketLoss;
+} TwccMetadata, *PTwccMetadata;
 
 struct __SampleStreamingSession {
     volatile ATOMIC_BOOL terminateFlag;
@@ -186,6 +220,7 @@ struct __SampleStreamingSession {
     UINT64 startUpLatency;
     RtcMetricsHistory rtcMetricsHistory;
     BOOL remoteCanTrickleIce;
+    TwccMetadata twccMetadata;
 
     // this is called when the SampleStreamingSession is being freed
     StreamSessionShutdownCallback shutdownCallback;
@@ -209,6 +244,7 @@ typedef struct {
 
 VOID sigintHandler(INT32);
 STATUS readFrameFromDisk(PBYTE, PUINT32, PCHAR);
+PVOID receiveGstreamerAudioVideo(PVOID);
 PVOID sendVideoPackets(PVOID);
 PVOID sendAudioPackets(PVOID);
 PVOID sendGstreamerAudioVideo(PVOID);

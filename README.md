@@ -268,14 +268,17 @@ After executing `make` you will have sample applications in your `build/samples`
 #### Sample: kvsWebrtcClientMaster
 This application sends sample H264/Opus frames (path: `/samples/h264SampleFrames` and `/samples/opusSampleFrames`) via WebRTC. It also accepts incoming audio, if enabled in the browser. When checked in the browser, it prints the metadata of the received audio packets in your terminal. To run:
 ```shell
-./samples/kvsWebrtcClientMaster <channelName>
+./samples/kvsWebrtcClientMaster <channelName> <storage-option> <audio-codec> <video-codec>
 ```
 
 To use the **Storage for WebRTC** feature, run the same command as above but with an additional command line arg to enable the feature.  
 
 ```shell
-./samples/kvsWebrtcClientMaster <channelName> 1
+./samples/kvsWebrtcClientMaster <channelName> 1 <audio-codec> <video-codec>
 ```
+
+Allowed audio-codec: opus (default codec if nothing is specified)
+Allowed video-codec: h264 (default codec if nothing is specified), h265
 
 #### Sample: kvsWebrtcClientMasterGstSample
 This application can send media from a GStreamer pipeline using test H264/Opus frames, device `autovideosrc` and `autoaudiosrc` input, or a received RTSP stream. It also will playback incoming audio via an `autoaudiosink`. To run:
@@ -288,11 +291,59 @@ Pass the desired media and source type when running the sample. The mediaType ca
 ./samples/kvsWebrtcClientMasterGstSample <channelName> <mediaType> rtspsrc rtsp://<rtspUri>
 ```
 
+Using the testsrc with audio and video-codec
+```shell
+./samples/kvsWebrtcClientMasterGstSample <channelName> <mediaType> <sourceType> <audio-codec> <video-codec>
+```
+
+Example:
+```shell
+./samples/kvsWebrtcClientMasterGstSample <channelName> audio-video testsrc opus h264
+```
+
+Allowed audio-codec: opus (default codec if nothing is specified)
+Allowed video-codec: h264 (default codec if nothing is specified), h265
 
 #### Sample: kvsWebrtcClientViewer
-This application accepts sample H264/Opus frames and prints them out. To run:
+This application accepts sample H264/Opus frames by default. You can use other supported codecs by changing the value for `videoTrack.codec` and `audioTrack.codec` in _Common.c_. By default, this sample only logs the size of the audio and video buffer it receives. To write these frames to a file using GStreamer, use the _kvsWebrtcClientViewerGstSample_ instead.
+
+To run:
 ```shell
-./samples/kvsWebrtcClientViewer <channelName>
+./samples/kvsWebrtcClientViewer <channelName> <audio-codec> <video-codec>
+```
+
+Allowed audio-codec: opus (default codec if nothing is specified)
+Allowed video-codec: h264 (default codec if nothing is specified), h265
+
+#### Sample: kvsWebrtcClientViewerGstSample
+This application is similar to the kvsWebrtcClientViewer. However, instead of just logging the media it receives, it generates a file using filesink. Make sure that your device has enough space to write the media to a file. You can also customize the receiving logic by modifying the functions in _GstAudioVideoReceiver.c_
+
+To run:
+```shell
+./samples/kvsWebrtcClientViewerGstSample <channelName> <mediaType> <audio-codec> <video-codec>
+```
+
+Allowed audio-codec: opus (default codec if nothing is specified)
+Allowed video-codec: h264 (default codec if nothing is specified), h265
+
+##### Known issues:
+Our GStreamer samples leverage [MatroskaMux](https://gstreamer.freedesktop.org/documentation/matroska/matroskamux.html?gi-language=c) to receive media from its peer and save it to a file. However, MatroskaMux is designed for scenarios where the media's format remains constant throughout streaming. When the media's format changes mid-streaming (referred to as "caps changes"), MatroskaMux encounters limitations, its behavior cannot be predicted and it may be unable to handle these changes, resulting in an error message like:
+
+```shell
+matroskamux matroska-mux.c:1134:gst_matroska_mux_video_pad_setcaps:<mux> error: Caps changes are not supported by Matroska
+```
+To address this issue, users need to adapt the pipeline to utilize components capable of managing dynamic changes in media formats. This might involve integrating different muxers or customizing the pipeline to handle caps changes effectively.
+
+#### Sample: Generating sample frames
+
+##### H264
+```shell
+gst-launch-1.0 videotestsrc pattern=ball num-buffers=1500 ! timeoverlay ! videoconvert ! video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! queue ! x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! multifilesink location="frame-%04d.h264" index=1
+```
+
+##### H265
+```shell
+gst-launch-1.0 videotestsrc pattern=ball num-buffers=1500 ! timeoverlay ! videoconvert ! video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! queue ! x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! multifilesink location="frame-%04d.h265" index=1
 ```
 
 ### Viewing Master Samples
@@ -348,6 +399,33 @@ createLwsIotCredentialProvider(
             &pSampleConfiguration->pCredentialProvider));
 
 freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
+```
+
+## TWCC support
+
+Transport Wide Congestion Control (TWCC) is a mechanism in WebRTC designed to enhance the performance and reliability of real-time communication over the internet. TWCC addresses the challenges of network congestion by providing detailed feedback on the transport of packets across the network, enabling adaptive bitrate control and optimization of media streams in real-time. This feedback mechanism is crucial for maintaining high-quality audio and video communication, as it allows senders to adjust their transmission strategies based on comprehensive information about packet losses, delays, and jitter experienced across the entire transport path.
+
+The importance of TWCC in WebRTC lies in its ability to ensure efficient use of available network bandwidth while minimizing the negative impacts of network congestion. By monitoring the delivery of packets across the network, TWCC helps identify bottlenecks and adjust the media transmission rates accordingly. This dynamic approach to congestion control is essential for preventing degradation in call quality, such as pixelation, stuttering, or drops in audio and video streams, especially in environments with fluctuating network conditions.
+
+To learn more about TWCC, check [TWCC spec](https://datatracker.ietf.org/doc/html/draft-holmer-rmcat-transport-wide-cc-extensions-01)
+
+### Enabling TWCC support
+
+TWCC is enabled by default in the SDK samples (via `pSampleConfiguration->enableTwcc`) flag. In order to disable it, set this flag to `FALSE`.
+
+```c
+pSampleConfiguration->enableTwcc = FALSE;
+```
+
+If not using the samples directly, 2 things need to be done to set up Twcc:
+1. Set the `disableSenderSideBandwidthEstimation` to `FALSE`:
+```c
+configuration.kvsRtcConfiguration.disableSenderSideBandwidthEstimation = FALSE;
+```
+2. Set the callback that will have the business logic to modify the bitrate based on packet loss information. The callback can be set using `peerConnectionOnSenderBandwidthEstimation()`:
+```c
+CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
+                                                     sampleSenderBandwidthEstimationHandler));
 ```
 
 ## Use Pre-generated Certificates
@@ -433,6 +511,32 @@ The threadpool is enabled by default, and starts with 3 threads that it can incr
 To disable threadpool, run `cmake .. -DENABLE_KVS_THREADPOOL=OFF`
 
 Starting version 1.10.0, threadpool usage provides latency improvements in connection establishment. Note, that increasing the number of minimum threads can increase stack memory usage. So, ensure to increase with caution.
+
+### Set up TWCC
+TWCC is a mechanism in WebRTC designed to enhance the performance and reliability of real-time communication over the Internet. TWCC addresses the challenges of network congestion by providing detailed feedback on the transport of packets across the network, enabling adaptive bitrate control and optimization of 
+media streams in real-time. This feedback mechanism is crucial for maintaining high-quality audio and video communication, as it allows senders to adjust their transmission strategies based on comprehensive information about packet losses, delays, and jitter experienced across the entire transport path.
+The importance of TWCC in WebRTC lies in its ability to ensure efficient use of available network bandwidth while minimizing the negative impacts of network congestion. By monitoring the delivery of packets across the network, TWCC helps identify bottlenecks and adjust the media transmission rates accordingly. 
+This dynamic approach to congestion control is essential for preventing degradation in call quality, such as pixelation, stuttering, or drops in audio and video streams, especially in environments with fluctuating network conditions. To learn more about TWCC, you can refer to the [RFC draft](https://datatracker.ietf.org/doc/html/draft-holmer-rmcat-transport-wide-cc-extensions-01)
+
+In order to enable TWCC usage in the SDK, 2 things need to be set up:
+
+1. Set the `disableSenderSideBandwidthEstimation` to FALSE. In our samples, the value is set using `enableTwcc` flag in `pSampleConfiguration`
+
+```c
+pSampleConfiguration->enableTwcc = TRUE; // to enable TWCC
+pSampleConfiguration->enableTwcc = FALSE; // to disable TWCC
+configuration.kvsRtcConfiguration.disableSenderSideBandwidthEstimation = !pSampleConfiguration->enableTwcc;
+```
+
+2. Set the callback that will have the business logic to modify the bitrate based on packet loss information. The callback can be set using `peerConnectionOnSenderBandwidthEstimation()`.
+
+```c
+CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
+                                                     sampleSenderBandwidthEstimationHandler));
+```
+
+By default, our SDK enables TWCC listener. The SDK has a sample implementation to integrate TWCC into the Gstreamer pipeline via the `sampleSenderBandwidthEstimationHandler` callback. To get more details, look for this specific callback.
+
 
 ### Setting ICE related timeouts
 
