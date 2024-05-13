@@ -10,6 +10,8 @@ AAC RTP Payloader include file
 extern "C" {
 #endif
 
+// https://www.rfc-editor.org/rfc/rfc6416
+
 STATUS createPayloadForAac(UINT32, PBYTE, UINT32, PBYTE, PUINT32, PUINT32, PUINT32);
 STATUS depayAacFromRtpPayload(PBYTE, UINT32, PBYTE, PUINT32, PBOOL);
 
