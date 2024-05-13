@@ -18,6 +18,8 @@ add_executable(
         ../samples/lib/Utility.c
         ../samples/lib/MetricsHandling.c
         ../samples/lib/DataChannelHandling.c
+        ../samples/lib/SignalingMsgHandler.c
+        ../samples/lib/Media.c
         Cloudwatch.cpp
         CloudwatchLogs.cpp
         CloudwatchMonitoring.cpp

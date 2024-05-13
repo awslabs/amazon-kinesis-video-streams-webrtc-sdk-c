@@ -62,6 +62,8 @@ add_executable(
         lib/Utility.c
         lib/MetricsHandling.c
         lib/DataChannelHandling.c
+        lib/SignalingMsgHandler.c
+        lib/Media.c
         kvsWebRTCClientMaster.c)
 
 target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils)
@@ -72,6 +74,8 @@ add_executable(
         lib/Utility.c
         lib/MetricsHandling.c
         lib/DataChannelHandling.c
+        lib/SignalingMsgHandler.c
+        lib/Media.c
         kvsWebRTCClientViewer.c)
 target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils)
 
@@ -88,6 +92,8 @@ if(GST_FOUND)
         lib/MetricsHandling.c
         GstAudioVideoReceiver.c
         lib/DataChannelHandling.c
+        lib/SignalingMsgHandler.c
+        lib/Media.c
         kvsWebRTCClientMasterGstSample.c
   )
   target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils)
@@ -103,6 +109,8 @@ if(GST_FOUND)
       lib/MetricsHandling.c
       lib/DataChannelHandling.c
       GstAudioVideoReceiver.c
+      lib/SignalingMsgHandler.c
+      lib/Media.c
       kvsWebRTCClientViewerGstSample.c
   )
   target_link_libraries(kvsWebrtcClientViewerGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils)

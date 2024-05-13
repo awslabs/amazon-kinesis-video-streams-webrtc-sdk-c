@@ -28,3 +28,166 @@ UINT32 setLogLevel()
     SET_LOGGER_LOG_LEVEL(logLevel);
     return logLevel;
 }
+
+STATUS createMessageQueue(UINT64 hashValue, PPendingMessageQueue* ppPendingMessageQueue)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PPendingMessageQueue pPendingMessageQueue = NULL;
+
+    CHK(ppPendingMessageQueue != NULL, STATUS_NULL_ARG);
+
+    CHK(NULL != (pPendingMessageQueue = (PPendingMessageQueue) MEMCALLOC(1, SIZEOF(PendingMessageQueue))), STATUS_NOT_ENOUGH_MEMORY);
+    pPendingMessageQueue->hashValue = hashValue;
+    pPendingMessageQueue->createTime = GETTIME();
+    CHK_STATUS(stackQueueCreate(&pPendingMessageQueue->messageQueue));
+
+CleanUp:
+
+    if (STATUS_FAILED(retStatus) && pPendingMessageQueue != NULL) {
+        freeMessageQueue(pPendingMessageQueue);
+        pPendingMessageQueue = NULL;
+    }
+
+    if (ppPendingMessageQueue != NULL) {
+        *ppPendingMessageQueue = pPendingMessageQueue;
+    }
+
+    return retStatus;
+}
+
+STATUS freeMessageQueue(PPendingMessageQueue pPendingMessageQueue)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    // free is idempotent
+    CHK(pPendingMessageQueue != NULL, retStatus);
+
+    if (pPendingMessageQueue->messageQueue != NULL) {
+        stackQueueClear(pPendingMessageQueue->messageQueue, TRUE);
+        stackQueueFree(pPendingMessageQueue->messageQueue);
+    }
+
+    MEMFREE(pPendingMessageQueue);
+
+CleanUp:
+    return retStatus;
+}
+
+STATUS getPendingMessageQueueForHash(PStackQueue pPendingQueue, UINT64 clientHash, BOOL remove, PPendingMessageQueue* ppPendingMessageQueue)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PPendingMessageQueue pPendingMessageQueue = NULL;
+    StackQueueIterator iterator;
+    BOOL iterate = TRUE;
+    UINT64 data;
+
+    CHK(pPendingQueue != NULL && ppPendingMessageQueue != NULL, STATUS_NULL_ARG);
+
+    CHK_STATUS(stackQueueGetIterator(pPendingQueue, &iterator));
+    while (iterate && IS_VALID_ITERATOR(iterator)) {
+        CHK_STATUS(stackQueueIteratorGetItem(iterator, &data));
+        CHK_STATUS(stackQueueIteratorNext(&iterator));
+
+        pPendingMessageQueue = (PPendingMessageQueue) data;
+
+        if (clientHash == pPendingMessageQueue->hashValue) {
+            *ppPendingMessageQueue = pPendingMessageQueue;
+            iterate = FALSE;
+
+            // Check if the item needs to be removed
+            if (remove) {
+                // This is OK to do as we are terminating the iterator anyway
+                CHK_STATUS(stackQueueRemoveItem(pPendingQueue, data));
+            }
+        }
+    }
+CleanUp:
+    return retStatus;
+}
+
+STATUS removeExpiredMessageQueues(PStackQueue pPendingQueue)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PPendingMessageQueue pPendingMessageQueue = NULL;
+    UINT32 i, count;
+    UINT64 data, curTime;
+
+    CHK(pPendingQueue != NULL, STATUS_NULL_ARG);
+
+    curTime = GETTIME();
+    CHK_STATUS(stackQueueGetCount(pPendingQueue, &count));
+
+    // Dequeue and enqueue in order to not break the iterator while removing an item
+    for (i = 0; i < count; i++) {
+        CHK_STATUS(stackQueueDequeue(pPendingQueue, &data));
+
+        // Check for expiry
+        pPendingMessageQueue = (PPendingMessageQueue) data;
+        if (pPendingMessageQueue->createTime + SAMPLE_PENDING_MESSAGE_CLEANUP_DURATION < curTime) {
+            // Message queue has expired and needs to be freed
+            CHK_STATUS(freeMessageQueue(pPendingMessageQueue));
+        } else {
+            // Enqueue back again as it's still valued
+            CHK_STATUS(stackQueueEnqueue(pPendingQueue, data));
+        }
+    }
+CleanUp:
+    return retStatus;
+}
+
+STATUS traverseDirectoryPEMFileScan(UINT64 customData, DIR_ENTRY_TYPES entryType, PCHAR fullPath, PCHAR fileName)
+{
+    UNUSED_PARAM(entryType);
+    UNUSED_PARAM(fullPath);
+
+    PCHAR certName = (PCHAR) customData;
+    UINT32 fileNameLen = STRLEN(fileName);
+
+    if (fileNameLen > ARRAY_SIZE(CA_CERT_PEM_FILE_EXTENSION) + 1 &&
+        (STRCMPI(CA_CERT_PEM_FILE_EXTENSION, &fileName[fileNameLen - ARRAY_SIZE(CA_CERT_PEM_FILE_EXTENSION) + 1]) == 0)) {
+        certName[0] = FPATHSEPARATOR;
+        certName++;
+        STRCPY(certName, fileName);
+    }
+
+    return STATUS_SUCCESS;
+}
+
+STATUS lookForSslCert(PSampleConfiguration* ppSampleConfiguration)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    struct stat pathStat;
+    CHAR certName[MAX_PATH_LEN];
+    PSampleConfiguration pSampleConfiguration = *ppSampleConfiguration;
+
+    MEMSET(certName, 0x0, ARRAY_SIZE(certName));
+    pSampleConfiguration->pCaCertPath = GETENV(CACERT_PATH_ENV_VAR);
+
+    // if ca cert path is not set from the environment, try to use the one that cmake detected
+    if (pSampleConfiguration->pCaCertPath == NULL) {
+        CHK_ERR(STRNLEN(DEFAULT_KVS_CACERT_PATH, MAX_PATH_LEN) > 0, STATUS_INVALID_OPERATION, "No ca cert path given (error:%s)", strerror(errno));
+        pSampleConfiguration->pCaCertPath = DEFAULT_KVS_CACERT_PATH;
+    } else {
+        // Check if the environment variable is a path
+        CHK(0 == FSTAT(pSampleConfiguration->pCaCertPath, &pathStat), STATUS_DIRECTORY_ENTRY_STAT_ERROR);
+
+        if (S_ISDIR(pathStat.st_mode)) {
+            CHK_STATUS(traverseDirectory(pSampleConfiguration->pCaCertPath, (UINT64) &certName, /* iterate */ FALSE, traverseDirectoryPEMFileScan));
+
+            if (certName[0] != 0x0) {
+                STRCAT(pSampleConfiguration->pCaCertPath, certName);
+            } else {
+                DLOGW("Cert not found in path set...checking if CMake detected a path\n");
+                CHK_ERR(STRNLEN(DEFAULT_KVS_CACERT_PATH, MAX_PATH_LEN) > 0, STATUS_INVALID_OPERATION, "No ca cert path given (error:%s)",
+                        strerror(errno));
+                DLOGI("CMake detected cert path\n");
+                pSampleConfiguration->pCaCertPath = DEFAULT_KVS_CACERT_PATH;
+            }
+        }
+    }
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
+    return retStatus;
+}
