@@ -15,7 +15,8 @@ function(build_dependency lib_name)
       kvspic
       kvsCommonLws
       kvssdp
-      kvsstun)
+      kvsstun
+      kvsrtp)
   list(FIND supported_libs ${lib_name} index)
   if(${index} EQUAL -1)
     message(WARNING "${lib_name} is not supported to build from source")
