@@ -30,3 +30,22 @@ target_link_libraries(kvsWebrtcClientMasterCW
                       ${EXTRA_DEPS}
                       kvsCommonLws kvspicUtils websockets kvssdp kvsstun
                       ${AWSSDK_LINK_LIBRARIES})
+
+add_executable(
+        kvsWebrtcClientViewerCW
+        ../samples/lib/Common.c
+        ../samples/lib/Utility.c
+        ../samples/lib/MetricsHandling.c
+        ../samples/lib/DataChannelHandling.c
+        ../samples/lib/SignalingMsgHandler.c
+        ../samples/lib/Media.c
+        Cloudwatch.cpp
+        CloudwatchLogs.cpp
+        CloudwatchMonitoring.cpp
+        kvsWebRTCClientViewerCloudwatch.cpp)
+target_link_libraries(kvsWebrtcClientViewerCW
+        kvsWebrtcClient
+        kvsWebrtcSignalingClient
+        ${EXTRA_DEPS}
+        kvsCommonLws kvspicUtils websockets kvssdp kvsstun
+        ${AWSSDK_LINK_LIBRARIES})

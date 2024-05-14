@@ -210,9 +210,10 @@ INT32 main(INT32 argc, CHAR* argv[])
         }
         CppInteg::Cloudwatch::init(CHANNEL_NAME, region, TRUE);
 
-#ifdef ENABLE_DATA_CHANNEL
-        pSampleConfiguration->onDataChannel = onDataChannel;
-#endif
+        if(ENABLE_DATA_CHANNEL) {
+            pSampleConfiguration->onDataChannel = onDataChannel;
+        }
+
         pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
         DLOGI("[KVS CW Master] Finished setting handlers");
 
@@ -234,11 +235,11 @@ INT32 main(INT32 argc, CHAR* argv[])
         DLOGI("[KVS Master] Channel %s set up done ", CHANNEL_NAME);
 
         // Checking for termination
-        sessionCleanupWait(pSampleConfiguration);
+        CHK_STATUS(sessionCleanupWait(pSampleConfiguration));
         DLOGI("[KVS Master] Streaming session terminated");
-    }
-    if (retStatus != STATUS_SUCCESS) {
-        DLOGE("[KVS Master] Terminated with status code 0x%08x", retStatus);
+        if (retStatus != STATUS_SUCCESS) {
+            DLOGE("[KVS Master] Terminated with status code 0x%08x", retStatus);
+        }
     }
 
 CleanUp:
