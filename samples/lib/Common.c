@@ -13,6 +13,16 @@ VOID sigintHandler(INT32 sigNum)
     }
 }
 
+STATUS terminate(UINT32 timerId, UINT64 currentTime, UINT64 customData)
+{
+    DLOGI("Terminate");
+    if (gSampleConfiguration != NULL) {
+        ATOMIC_STORE_BOOL(&gSampleConfiguration->interrupted, TRUE);
+        CVAR_BROADCAST(gSampleConfiguration->cvar);
+    }
+    return STATUS_SUCCESS;
+}
+
 STATUS signalingCallFailed(STATUS status)
 {
     return (STATUS_SIGNALING_GET_TOKEN_CALL_FAILED == status || STATUS_SIGNALING_DESCRIBE_CALL_FAILED == status ||
@@ -339,6 +349,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
                                                              sampleSenderBandwidthEstimationHandler));
     }
     pSampleStreamingSession->startUpLatency = 0;
+    CHK_STATUS(setupMetricsCtx(pSampleStreamingSession));
 CleanUp:
 
     if (STATUS_FAILED(retStatus) && pSampleStreamingSession != NULL) {
@@ -645,6 +656,8 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     CHK_STATUS(hashTableCreateWithParams(SAMPLE_HASH_TABLE_BUCKET_COUNT, SAMPLE_HASH_TABLE_BUCKET_LENGTH,
                                          &pSampleConfiguration->pRtcPeerConnectionForRemoteClient));
 
+    CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, SAMPLE_RUN_TIME, TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, terminate,
+                                  (UINT64) pSampleConfiguration, &pSampleConfiguration->terminateId));
 CleanUp:
 
     if (STATUS_FAILED(retStatus)) {

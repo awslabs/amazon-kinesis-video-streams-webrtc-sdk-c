@@ -194,7 +194,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         initKvsWebRtc();
 
         UINT32 logLevel = setLogLevel();
-        createSampleConfiguration(CHANNEL_NAME, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration);
+        CHK_STATUS(createSampleConfiguration(CHANNEL_NAME, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
 
         // Set the audio and video handlers
         pSampleConfiguration->audioSource = sendAudioPackets;
