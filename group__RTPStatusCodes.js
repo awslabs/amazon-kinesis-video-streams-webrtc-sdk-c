@@ -4,5 +4,7 @@ var group__RTPStatusCodes =
     [ "STATUS_RTP_INPUT_MTU_TOO_SMALL", "group__RTPStatusCodes.html#ga68c9504647fe35df3fb6fbdb0c5d8a34", null ],
     [ "STATUS_RTP_INPUT_PACKET_TOO_SMALL", "group__RTPStatusCodes.html#gac12c6d7c8a5278dfe054d0285ff7beba", null ],
     [ "STATUS_RTP_INVALID_EXTENSION_LEN", "group__RTPStatusCodes.html#ga9b6cbbae9371eb4ed3ed84c142057344", null ],
-    [ "STATUS_RTP_INVALID_NALU", "group__RTPStatusCodes.html#gafa705bc4edae651ddbb00a59d2dce1b0", null ]
+    [ "STATUS_RTP_INVALID_NALU", "group__RTPStatusCodes.html#gafa705bc4edae651ddbb00a59d2dce1b0", null ],
+    [ "STATUS_RTP_INVALID_VERSION", "group__RTPStatusCodes.html#gab916b1b4e9f2a3da20cf97b86480a061", null ],
+    [ "STATUS_RTP_UNKNOWN_ERROR", "group__RTPStatusCodes.html#ga507ea5caa76a2053de407128fb5c1454", null ]
 ];
