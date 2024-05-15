@@ -9,6 +9,19 @@ namespace webrtcclient {
 class IceApiTest : public WebRtcClientTestBase {
 };
 
+TEST_F(IceApiTest, failCreateSocketConnection)
+{
+    PSocketConnection pDummySocketConnection = NULL;
+    KvsIpAddress localhost;
+
+    MEMSET(&localhost, 0x00, SIZEOF(KvsIpAddress));
+
+    EXPECT_EQ(createSocketConnection(KVS_IP_FAMILY_TYPE_IPV4, KVS_SOCKET_PROTOCOL_NONE, &localhost, NULL, 0, NULL, 0, &pDummySocketConnection), STATUS_INVALID_ARG);
+
+    EXPECT_EQ(createSocketConnection(KVS_IP_FAMILY_TYPE_IPV4, KVS_SOCKET_PROTOCOL_TCP, NULL, NULL, 0, NULL, 0, &pDummySocketConnection), STATUS_INVALID_ARG);
+
+}
+
 TEST_F(IceApiTest, ConnectionListenerApiTest)
 {
     PConnectionListener pConnectionListener = NULL;

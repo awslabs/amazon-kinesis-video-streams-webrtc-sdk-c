@@ -7,6 +7,7 @@ namespace video {
 namespace webrtcclient {
 
 #define NUMBER_OF_FRAME_FILES 403
+#define NUMBER_OF_H265_FRAME_FILES 1500
 #define DEFAULT_FPS_VALUE     25
 BYTE start4ByteCode[] = {0x00, 0x00, 0x00, 0x01};
 
@@ -108,7 +109,7 @@ TEST_F(RtpFunctionalityTest, marshallUnmarshallH264Data)
         }
 
         fileIndex = fileIndex % NUMBER_OF_FRAME_FILES + 1;
-        EXPECT_EQ(STATUS_SUCCESS, readFrameData((PBYTE) payload, (PUINT32) &payloadLen, fileIndex, (PCHAR) "../samples/h264SampleFrames"));
+        EXPECT_EQ(STATUS_SUCCESS, readFrameData((PBYTE) payload, (PUINT32) &payloadLen, fileIndex, (PCHAR) "../samples/h264SampleFrames", RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
 
         // First call for payload size and sub payload length size
         EXPECT_EQ(STATUS_SUCCESS,
@@ -187,7 +188,7 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH264Frame)
     payloadArray.payloadSubLength = NULL;
 
     for (fileIndex = 1; fileIndex <= NUMBER_OF_FRAME_FILES; fileIndex++) {
-        EXPECT_EQ(STATUS_SUCCESS, readFrameData((PBYTE) payload, (PUINT32) &payloadLen, fileIndex, (PCHAR) "../samples/h264SampleFrames"));
+        EXPECT_EQ(STATUS_SUCCESS, readFrameData((PBYTE) payload, (PUINT32) &payloadLen, fileIndex, (PCHAR) "../samples/h264SampleFrames", RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
 
         // First call for payload size and sub payload length size
         EXPECT_EQ(STATUS_SUCCESS,
@@ -243,6 +244,103 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH264Frame)
                                               &isStartPacket));
             if (isStartPacket) {
                 EXPECT_EQ(STATUS_SUCCESS, getNextNaluLength(pCurPtrInPayload, remainPayloadLen, &startIndex, &naluLength));
+                pCurPtrInPayload += startIndex;
+                startLen = SIZEOF(start4ByteCode);
+            } else {
+                startLen = 0;
+            }
+            EXPECT_TRUE(MEMCMP(pCurPtrInPayload, depayload + startLen, newPayloadSubLen - startLen) == 0);
+            pCurPtrInPayload += newPayloadSubLen - startLen;
+            remainPayloadLen -= newPayloadSubLen;
+            offset += payloadArray.payloadSubLength[i];
+        }
+    }
+
+    MEMFREE(payloadArray.payloadBuffer);
+    MEMFREE(payloadArray.payloadSubLength);
+    MEMFREE(payload);
+    MEMFREE(depayload);
+}
+
+TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH265Frame)
+{
+    PBYTE payload = (PBYTE) MEMCALLOC(1, 200000); // Assuming this is enough
+    PBYTE depayload = (PBYTE) MEMCALLOC(1, 1500); // This is more than max mtu
+    UINT32 depayloadSize = 1500;
+    UINT32 payloadLen = 0;
+    UINT32 fileIndex = 0;
+    PayloadArray payloadArray;
+    UINT32 i = 0;
+    UINT32 offset = 0;
+    UINT32 newPayloadLen = 0, newPayloadSubLen = 0;
+    BOOL isStartPacket = FALSE;
+    PBYTE pCurPtrInPayload = NULL;
+    UINT32 remainPayloadLen = 0;
+    UINT32 startIndex = 0, naluLength = 0;
+    UINT32 startLen = 0;
+
+    payloadArray.maxPayloadLength = 0;
+    payloadArray.maxPayloadSubLenSize = 0;
+    payloadArray.payloadBuffer = NULL;
+    payloadArray.payloadSubLength = NULL;
+
+    for (fileIndex = 1; fileIndex <= NUMBER_OF_H265_FRAME_FILES; fileIndex++) {
+        EXPECT_EQ(STATUS_SUCCESS, readFrameData((PBYTE) payload, (PUINT32) &payloadLen, fileIndex, (PCHAR) "../samples/h265SampleFrames", RTC_CODEC_H265));
+
+        // First call for payload size and sub payload length size
+        EXPECT_EQ(STATUS_SUCCESS,
+                  createPayloadForH265(DEFAULT_MTU_SIZE_BYTES, (PBYTE) payload, payloadLen, NULL, &payloadArray.payloadLength, NULL,
+                                       &payloadArray.payloadSubLenSize));
+
+        if (payloadArray.payloadLength > payloadArray.maxPayloadLength) {
+            if (payloadArray.payloadBuffer != NULL) {
+                MEMFREE(payloadArray.payloadBuffer);
+            }
+            payloadArray.payloadBuffer = (PBYTE) MEMALLOC(payloadArray.payloadLength);
+            payloadArray.maxPayloadLength = payloadArray.payloadLength;
+        }
+        if (payloadArray.payloadSubLenSize > payloadArray.maxPayloadSubLenSize) {
+            if (payloadArray.payloadSubLength != NULL) {
+                MEMFREE(payloadArray.payloadSubLength);
+            }
+            payloadArray.payloadSubLength = (PUINT32) MEMALLOC(payloadArray.payloadSubLenSize * SIZEOF(UINT32));
+            payloadArray.maxPayloadSubLenSize = payloadArray.payloadSubLenSize;
+        }
+
+        // Second call with actual buffer to fill in data
+        EXPECT_EQ(STATUS_SUCCESS,
+                  createPayloadForH265(DEFAULT_MTU_SIZE_BYTES, (PBYTE) payload, payloadLen, payloadArray.payloadBuffer, &payloadArray.payloadLength,
+                                       payloadArray.payloadSubLength, &payloadArray.payloadSubLenSize));
+
+        EXPECT_LT(0, payloadArray.payloadSubLenSize);
+
+        offset = 0;
+
+        for (i = 0; i < payloadArray.payloadSubLenSize; i++) {
+            EXPECT_EQ(STATUS_SUCCESS,
+                      depayH265FromRtpPayload(payloadArray.payloadBuffer + offset, payloadArray.payloadSubLength[i], NULL, &newPayloadSubLen,
+                                              &isStartPacket));
+            newPayloadLen += newPayloadSubLen;
+            if (isStartPacket) {
+                newPayloadLen -= SIZEOF(start4ByteCode);
+            }
+            EXPECT_LT(0, newPayloadSubLen);
+            offset += payloadArray.payloadSubLength[i];
+        }
+        EXPECT_LE(newPayloadLen, payloadLen);
+
+        offset = 0;
+        newPayloadLen = 0;
+        isStartPacket = FALSE;
+        pCurPtrInPayload = payload;
+        remainPayloadLen = payloadLen;
+        for (i = 0; i < payloadArray.payloadSubLenSize; i++) {
+            newPayloadSubLen = depayloadSize;
+            EXPECT_EQ(STATUS_SUCCESS,
+                      depayH265FromRtpPayload(payloadArray.payloadBuffer + offset, payloadArray.payloadSubLength[i], depayload, &newPayloadSubLen,
+                                              &isStartPacket));
+            if (isStartPacket) {
+                EXPECT_EQ(STATUS_SUCCESS, getNextNaluLengthH265(pCurPtrInPayload, remainPayloadLen, &startIndex, &naluLength));
                 pCurPtrInPayload += startIndex;
                 startLen = SIZEOF(start4ByteCode);
             } else {
@@ -452,13 +550,24 @@ TEST_F(RtpFunctionalityTest, invalidNaluParse)
     UINT32 startIndex = 0, naluLength = 0;
     EXPECT_EQ(STATUS_RTP_INVALID_NALU, getNextNaluLength(data, 3, &startIndex, &naluLength));
     EXPECT_EQ(STATUS_RTP_INVALID_NALU, getNextNaluLength(data1, 7, &startIndex, &naluLength));
+
+    EXPECT_EQ(STATUS_RTP_INVALID_NALU, getNextNaluLengthH265(data, 3, &startIndex, &naluLength));
+    EXPECT_EQ(STATUS_RTP_INVALID_NALU, getNextNaluLengthH265(data1, 7, &startIndex, &naluLength));
 }
 
 TEST_F(RtpFunctionalityTest, validNaluParse)
 {
     BYTE data[] = {0x00, 0x00, 0x00, 0x01, 0x00, 0x02};
     UINT32 startIndex = 0, naluLength = 0;
+    
     EXPECT_EQ(STATUS_SUCCESS, getNextNaluLength(data, 6, &startIndex, &naluLength));
+    EXPECT_EQ(4, startIndex);
+    EXPECT_EQ(2, naluLength);
+
+    startIndex = 0;
+    naluLength = 0;
+
+    EXPECT_EQ(STATUS_SUCCESS, getNextNaluLengthH265(data, 6, &startIndex, &naluLength));
     EXPECT_EQ(4, startIndex);
     EXPECT_EQ(2, naluLength);
 }
@@ -520,6 +629,36 @@ TEST_F(RtpFunctionalityTest, twccPayload)
     EXPECT_EQ(1, (ptr[0] & 0xfu));
     EXPECT_EQ(420, seqNum);
     EXPECT_EQ(0, ptr[3]);
+}
+
+TEST_F(RtpFunctionalityTest, createKvsRtpTransceiverInvalidArg)
+{
+    RtcMediaStreamTrack mediaTrack{};
+    KvsPeerConnection kvsPeerConnection;
+    EXPECT_EQ(createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS, MIN_EXPECTED_BIT_RATE, NULL, 0, 0, &mediaTrack, NULL, RTC_CODEC_OPUS, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS, MIN_EXPECTED_BIT_RATE, &kvsPeerConnection, 0, 0, &mediaTrack, NULL, RTC_CODEC_OPUS, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS, MIN_EXPECTED_BIT_RATE, &kvsPeerConnection, 0, 0, NULL, NULL, RTC_CODEC_OPUS, NULL), STATUS_NULL_ARG);
+}
+
+TEST_F(RtpFunctionalityTest, freeTransceiverApiTest)
+{
+    EXPECT_EQ(freeTransceiver(NULL), STATUS_NOT_IMPLEMENTED);
+}
+
+TEST_F(RtpFunctionalityTest, convertRtpErrorCodeTest)
+{
+    RtpResult_t rtpResult;
+
+    rtpResult = RTP_RESULT_OK;
+    EXPECT_EQ(convertRtpErrorCode(rtpResult), STATUS_SUCCESS);
+    rtpResult = RTP_RESULT_BAD_PARAM;
+    EXPECT_EQ(convertRtpErrorCode(rtpResult), STATUS_INVALID_ARG);
+    rtpResult = RTP_RESULT_OUT_OF_MEMORY;
+    EXPECT_EQ(convertRtpErrorCode(rtpResult), STATUS_NOT_ENOUGH_MEMORY);
+    rtpResult = RTP_RESULT_WRONG_VERSION;
+    EXPECT_EQ(convertRtpErrorCode(rtpResult), STATUS_RTP_INVALID_VERSION);
+    rtpResult = RTP_RESULT_MALFORMED_PACKET;
+    EXPECT_EQ(convertRtpErrorCode(rtpResult), STATUS_RTP_INPUT_PACKET_TOO_SMALL);
 }
 
 } // namespace webrtcclient

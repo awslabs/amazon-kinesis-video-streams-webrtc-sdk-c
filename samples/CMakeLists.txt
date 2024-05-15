@@ -6,7 +6,11 @@ project(KinesisVideoWebRTCClientSamples LANGUAGES C)
 
 message("OPEN_SRC_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}")
 
-if (WIN32)
+find_package(PkgConfig REQUIRED)
+
+pkg_check_modules(GST gstreamer-1.0)
+if(GST_FOUND)
+  if (WIN32)
     if(NOT DEFINED PKG_CONFIG_EXECUTABLE)
       if(EXISTS "C:\\gstreamer\\1.0\\x86_64\\bin\\pkg-config.exe")
         set(PKG_CONFIG_EXECUTABLE "C:\\gstreamer\\1.0\\x86_64\\bin\\pkg-config.exe")
@@ -16,13 +20,7 @@ if (WIN32)
     else()
       message(FATAL_ERROR "Gstreamer not found in default path. Set the appropriate path with -DPKG_CONFIG_EXECUTABLE=<path>")
     endif()
-endif()
-  
-find_package(PkgConfig REQUIRED)
-
-pkg_check_modules(GST gstreamer-1.0)
-if(GST_FOUND)
-
+  endif()
   if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:/usr/local/opt/libffi/lib/pkgconfig")
     find_library(Intl "intl" REQUIRED PATHS "/usr/local/opt/gettext/lib")
@@ -56,33 +54,48 @@ link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
 # copy sample frames to this subproject build folder, in case developer runs sample program with command `kvsWebrtcClientMaster` from `build/samples` dir.
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/opusSampleFrames" DESTINATION .)
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/h264SampleFrames" DESTINATION .)
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/aacSampleFrames" DESTINATION .)
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/h265SampleFrames" DESTINATION .)
 
 add_executable(
   kvsWebrtcClientMaster
   Common.c
   kvsWebRTCClientMaster.c)
-target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets kvssdp kvssignaling corejson)
+target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets kvssdp kvsstun kvsrtp kvssignaling corejson)
 
 add_executable(
   kvsWebrtcClientViewer
   Common.c
   kvsWebRTCClientViewer.c)
-target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets kvssdp kvssignaling corejson)
+target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets kvssdp kvsstun kvsrtp kvssignaling corejson)
 
 add_executable(
         discoverNatBehavior
         discoverNatBehavior.c)
-target_link_libraries(discoverNatBehavior kvsWebrtcClient ${EXTRA_DEPS} kvssdp)
+target_link_libraries(discoverNatBehavior kvsWebrtcClient ${EXTRA_DEPS} kvssdp kvsstun kvsrtp)
 
 if(GST_FOUND)
   add_executable(
     kvsWebrtcClientMasterGstSample
     Common.c
+    GstAudioVideoReceiver.c
     kvsWebRTCClientMasterGstSample.c
   )
-  target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets kvssdp kvssignaling corejson)
+  target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets kvssdp kvsstun kvsrtp kvssignaling corejson)
 
   install(TARGETS kvsWebrtcClientMasterGstSample
+    RUNTIME DESTINATION bin
+  )
+
+  add_executable(
+    kvsWebrtcClientViewerGstSample
+    Common.c
+    GstAudioVideoReceiver.c
+    kvsWebRTCClientViewerGstSample.c
+  )
+  target_link_libraries(kvsWebrtcClientViewerGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets kvssdp kvsrtp)
+
+  install(TARGETS kvsWebrtcClientViewerGstSample
     RUNTIME DESTINATION bin
   )
 endif()

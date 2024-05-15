@@ -15,6 +15,8 @@ function(build_dependency lib_name)
       kvspic
       kvsCommonLws
       kvssdp
+      kvsstun
+      kvsrtp
       corejson
       kvssignaling)
   list(FIND supported_libs ${lib_name} index)

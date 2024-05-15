@@ -176,6 +176,11 @@ extern "C" {
 #define STATUS_STUN_INVALID_ICE_CONTROL_ATTRIBUTE_LENGTH           STATUS_STUN_BASE + 0x00000017
 #define STATUS_STUN_INVALID_CHANNEL_NUMBER_ATTRIBUTE_LENGTH        STATUS_STUN_BASE + 0x00000018
 #define STATUS_STUN_INVALID_CHANGE_REQUEST_ATTRIBUTE_LENGTH        STATUS_STUN_BASE + 0x00000019
+#define STATUS_STUN_INVALID_MESSAGE_LENGTH                         STATUS_STUN_BASE + 0x0000001A
+#define STATUS_STUN_INVALID_ATTRIBUTE_LENGTH                       STATUS_STUN_BASE + 0x0000001B
+#define STATUS_STUN_ATTRIBUTE_NOT_FOUND                            STATUS_STUN_BASE + 0x0000001C
+#define STATUS_STUN_NO_MORE_ATTRIBUTE_FOUND                        STATUS_STUN_BASE + 0x0000001D
+#define STATUS_STUN_UNKNOWN_ERROR                                  STATUS_STUN_BASE + 0x0000001E
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -306,6 +311,8 @@ extern "C" {
 #define STATUS_RTP_INPUT_MTU_TOO_SMALL    STATUS_RTP_BASE + 0x00000002
 #define STATUS_RTP_INVALID_NALU           STATUS_RTP_BASE + 0x00000003
 #define STATUS_RTP_INVALID_EXTENSION_LEN  STATUS_RTP_BASE + 0x00000004
+#define STATUS_RTP_INVALID_VERSION        STATUS_RTP_BASE + 0x00000005
+#define STATUS_RTP_UNKNOWN_ERROR          STATUS_RTP_BASE + 0x00000006
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -476,11 +483,6 @@ extern "C" {
  * Maximum allowed signaling URI length
  */
 #define MAX_SIGNALING_ENDPOINT_URI_LEN 512
-
-/**
- * Maximum allowed ICE URI length
- */
-#define MAX_ICE_CONFIG_URI_LEN 256
 
 /**
  * Maximum allowed correlation ID length
@@ -680,7 +682,7 @@ extern "C" {
 /**
  * Default minimum number of threads in the threadpool for the SDK
  */
-#define THREADPOOL_MIN_THREADS 3
+#define THREADPOOL_MIN_THREADS 1
 
 /**
  * Default maximum number of threads in the threadpool for the SDK
@@ -852,6 +854,9 @@ typedef enum {
     RTC_CODEC_MULAW = 4,                                                          //!< MULAW audio codec
     RTC_CODEC_ALAW = 5,                                                           //!< ALAW audio codec
     RTC_CODEC_UNKNOWN = 6,
+    RTC_CODEC_H265 = 7, //!< H265 video codec
+    RTC_CODEC_AAC = 8,  //!< AAC audio codec
+
     // RTC_CODEC_MAX **MUST** be the last enum in the list **ALWAYS** and not assigned a value
     RTC_CODEC_MAX //!< Placeholder for max number of supported codecs
 } RTC_CODEC;
@@ -1218,8 +1223,8 @@ typedef struct {
                                                          //!< would like to whitelist/blacklist specific network interfaces
 
     BOOL disableSenderSideBandwidthEstimation; //!< Disable TWCC feedback based sender bandwidth estimation, enabled by default.
-                                               //!< You want to set this to TRUE if you are on a very stable connection and want to save 1.2MB of
-                                               //!< memory
+                                               //!< You want to set this to TRUE if you are on a very stable connection
+    BOOL enableIceStats;                       //!< Enable ICE stats to be calculated
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
 
 /**

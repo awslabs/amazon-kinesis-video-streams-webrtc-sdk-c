@@ -2,9 +2,6 @@
 #include "../Include_i.h"
 #include "kvssdp/sdp_serializer.h"
 
-// Convert error code from SDP library to STATUS.
-extern STATUS convertSdpErrorCode(SdpResult_t sdpResult);
-
 static STATUS serializeVersion(SdpSerializerContext_t* pCtx, UINT64 version)
 {
     ENTERS();
@@ -156,7 +153,6 @@ static STATUS serializeMediaConnectionInformation(SdpSerializerContext_t* pCtx, 
     SdpConnectionInfo_t connInfo;
 
     CHK(pSdpConnectionInformation != NULL, STATUS_NULL_ARG);
-
     if (pSdpConnectionInformation->networkType[0] != '\0') {
         /* Append connection info */
         CHK(STRCMP(pSdpConnectionInformation->networkType, "IN") == 0, STATUS_INVALID_ARG);

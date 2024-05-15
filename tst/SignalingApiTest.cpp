@@ -9,11 +9,57 @@ namespace webrtcclient {
 class SignalingApiTest : public WebRtcClientTestBase {
 };
 
+TEST_F(SignalingApiTest, invalidRoleType_deserializeSignalingCacheEntries)
+{
+    FREMOVE(DEFAULT_CACHE_FILE_PATH);
+    srand(GETTIME());
+
+    BOOL cacheFound = FALSE;
+    SignalingFileCacheEntry testEntry;
+    MEMSET(&testEntry, 0x00, SIZEOF(testEntry));
+    UINT32 serializedCacheEntryLen;
+    CHAR testWssEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1] = {0};
+    CHAR testHttpsEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1] = {0};
+    CHAR testWebrtcEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1] = {0};
+    CHAR testRegion[MAX_REGION_NAME_LEN + 1] = {0};
+    CHAR testChannelArn[MAX_ARN_LEN + 1] = {0};
+    CHAR testChannel[MAX_CHANNEL_NAME_LEN + 1] = {0};
+    UINT64 time = GETTIME() / HUNDREDS_OF_NANOS_IN_A_SECOND;
+    int append = 0;
+    CHAR serializedCacheEntry[MAX_SERIALIZED_SIGNALING_CACHE_ENTRY_LEN];
+
+
+    const int TEST_CHANNEL_COUNT = 5;
+
+    MEMSET(testWssEndpoint, 0, MAX_SIGNALING_ENDPOINT_URI_LEN+1);
+    MEMSET(testHttpsEndpoint, 0, MAX_SIGNALING_ENDPOINT_URI_LEN+1);
+    MEMSET(testRegion, 0, MAX_REGION_NAME_LEN + 1);
+    MEMSET(testChannelArn, 0, MAX_ARN_LEN+1);
+    MEMSET(testChannel, 0, MAX_CHANNEL_NAME_LEN+1);
+
+    append = rand() % TEST_CHANNEL_COUNT;
+    SNPRINTF(testWssEndpoint, SIZEOF(testWssEndpoint), "%s%d", "testWssEndpoint", append);
+    SNPRINTF(testHttpsEndpoint, SIZEOF(testHttpsEndpoint),"%s%d", "testHttpsEndpoint", append);
+    SNPRINTF(testRegion, SIZEOF(testRegion),"%s%d", "testRegion", append);
+    SNPRINTF(testChannelArn, SIZEOF(testChannelArn),"%s%d", "testChannelArn", append);
+    SNPRINTF(testChannel, SIZEOF(testChannel),"%s%d", "testChannel", append);
+
+    EXPECT_EQ(STATUS_SUCCESS, createFileIfNotExist(DEFAULT_CACHE_FILE_PATH));
+
+    serializedCacheEntryLen = SNPRINTF(serializedCacheEntry, ARRAY_SIZE(serializedCacheEntry), "%s,%s,%s,%s,%s,%s,%s,%s,%s,%.10" PRIu64 "\n", testChannelArn, SIGNALING_CHANNEL_ROLE_TYPE_UNKNOWN_STR,
+    testRegion, testChannelArn, testHttpsEndpoint, testWssEndpoint, "0", testChannelArn, testWebrtcEndpoint, time);
+    EXPECT_EQ(writeFile(DEFAULT_CACHE_FILE_PATH, FALSE, TRUE, (PBYTE) serializedCacheEntry, serializedCacheEntryLen), STATUS_SUCCESS);
+
+    EXPECT_EQ(signalingCacheLoadFromFile(testChannel, testRegion, SIGNALING_CHANNEL_ROLE_TYPE_UNKNOWN, &testEntry, &cacheFound, DEFAULT_CACHE_FILE_PATH), STATUS_INVALID_ARG);
+    FREMOVE(DEFAULT_CACHE_FILE_PATH);
+}
+
 TEST_F(SignalingApiTest, createValidateChannelInfo)
 {
     initializeSignalingClientStructs();
     PChannelInfo rChannelInfo;
     CHAR agentString[MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN + 1];
+    CHAR region[20] = {'\0'};
     UINT32 postfixLen = STRLEN(SIGNALING_USER_AGENT_POSTFIX_NAME) + STRLEN(SIGNALING_USER_AGENT_POSTFIX_VERSION) + 1;
     SNPRINTF(agentString, postfixLen + 1, (PCHAR) "%s/%s", SIGNALING_USER_AGENT_POSTFIX_NAME, SIGNALING_USER_AGENT_POSTFIX_VERSION);
     STRCPY(mChannelArn, TEST_CHANNEL_ARN);
@@ -41,8 +87,12 @@ TEST_F(SignalingApiTest, createValidateChannelInfo)
     // Test default agent postfix
     EXPECT_PRED_FORMAT2(testing::IsSubstring, agentString, rChannelInfo->pUserAgent);
     freeChannelInfo(&rChannelInfo);
-    //wait for threads of threadpool to close
-    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    STRCPY(region, (PCHAR) "cn-north-1");
+    mChannelInfo.pRegion = region;
+    EXPECT_EQ(STATUS_SUCCESS, createValidateChannelInfo(&mChannelInfo, &rChannelInfo));
+    EXPECT_PRED_FORMAT2(testing::IsSubstring, ".cn", rChannelInfo->pControlPlaneUrl);
+
+    freeChannelInfo(&rChannelInfo);
 }
 
 TEST_F(SignalingApiTest, testChannelArnsValid)
@@ -693,6 +743,88 @@ TEST_F(SignalingApiTest, signalingClientCreateWithClientInfoVariations)
     mClientInfo.cacheFilePath = NULL;
     //wait for threads of threadpool to close
     THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+}
+
+TEST_F(SignalingApiTest, getChannelRoleTypeFromStringApi)
+{
+    EXPECT_EQ(getChannelRoleTypeFromString(SIGNALING_CHANNEL_ROLE_TYPE_MASTER_STR, STRLEN(SIGNALING_CHANNEL_ROLE_TYPE_MASTER_STR)), SIGNALING_CHANNEL_ROLE_TYPE_MASTER);
+    EXPECT_EQ(getChannelRoleTypeFromString(SIGNALING_CHANNEL_ROLE_TYPE_VIEWER_STR, STRLEN(SIGNALING_CHANNEL_ROLE_TYPE_VIEWER_STR)), SIGNALING_CHANNEL_ROLE_TYPE_VIEWER);
+    EXPECT_EQ(getChannelRoleTypeFromString(SIGNALING_CHANNEL_ROLE_TYPE_UNKNOWN_STR, STRLEN(SIGNALING_CHANNEL_ROLE_TYPE_UNKNOWN_STR)), SIGNALING_CHANNEL_ROLE_TYPE_UNKNOWN);
+    EXPECT_EQ(getChannelRoleTypeFromString((PCHAR) "test", STRLEN("test")), SIGNALING_CHANNEL_ROLE_TYPE_UNKNOWN);
+}
+
+TEST_F(SignalingApiTest, getStringFromChannelRoleTypeApi)
+{
+    EXPECT_STREQ(getStringFromChannelRoleType(SIGNALING_CHANNEL_ROLE_TYPE_MASTER), SIGNALING_CHANNEL_ROLE_TYPE_MASTER_STR);
+    EXPECT_STREQ(getStringFromChannelRoleType(SIGNALING_CHANNEL_ROLE_TYPE_VIEWER), SIGNALING_CHANNEL_ROLE_TYPE_VIEWER_STR);
+    EXPECT_STREQ(getStringFromChannelRoleType(SIGNALING_CHANNEL_ROLE_TYPE_UNKNOWN), SIGNALING_CHANNEL_ROLE_TYPE_UNKNOWN_STR);
+}
+
+TEST_F(SignalingApiTest, getChannelStatusFromStringApi)
+{
+    EXPECT_EQ(getChannelStatusFromString((PCHAR) "ACTIVE", STRLEN("ACTIVE")), SIGNALING_CHANNEL_STATUS_ACTIVE);
+    EXPECT_EQ(getChannelStatusFromString((PCHAR) "CREATING", STRLEN("CREATING")), SIGNALING_CHANNEL_STATUS_CREATING);
+    EXPECT_EQ(getChannelStatusFromString((PCHAR) "UPDATING", STRLEN("UPDATING")), SIGNALING_CHANNEL_STATUS_UPDATING);
+    EXPECT_EQ(getChannelStatusFromString((PCHAR) "DELETING", STRLEN("DELETING")), SIGNALING_CHANNEL_STATUS_DELETING);
+    EXPECT_EQ(getChannelStatusFromString((PCHAR) "test", STRLEN("test")), SIGNALING_CHANNEL_STATUS_DELETING);
+}
+
+TEST_F(SignalingApiTest, getSignalingStateFromStateMachineStateApi)
+{
+    EXPECT_EQ(getSignalingStateFromStateMachineState(SIGNALING_STATE_NONE), SIGNALING_CLIENT_STATE_UNKNOWN);
+    EXPECT_EQ(getSignalingStateFromStateMachineState(SIGNALING_STATE_NEW), SIGNALING_CLIENT_STATE_NEW);
+    EXPECT_EQ(getSignalingStateFromStateMachineState(SIGNALING_STATE_GET_TOKEN), SIGNALING_CLIENT_STATE_GET_CREDENTIALS);
+    EXPECT_EQ(getSignalingStateFromStateMachineState(SIGNALING_STATE_DESCRIBE), SIGNALING_CLIENT_STATE_DESCRIBE);
+    EXPECT_EQ(getSignalingStateFromStateMachineState(SIGNALING_STATE_CREATE), SIGNALING_CLIENT_STATE_CREATE);
+    EXPECT_EQ(getSignalingStateFromStateMachineState(SIGNALING_STATE_GET_ENDPOINT), SIGNALING_CLIENT_STATE_GET_ENDPOINT);
+    EXPECT_EQ(getSignalingStateFromStateMachineState(SIGNALING_STATE_GET_ICE_CONFIG), SIGNALING_CLIENT_STATE_GET_ICE_CONFIG);
+    EXPECT_EQ(getSignalingStateFromStateMachineState(SIGNALING_STATE_READY), SIGNALING_CLIENT_STATE_READY);
+    EXPECT_EQ(getSignalingStateFromStateMachineState(SIGNALING_STATE_CONNECT), SIGNALING_CLIENT_STATE_CONNECTING);
+    EXPECT_EQ(getSignalingStateFromStateMachineState(SIGNALING_STATE_CONNECTED), SIGNALING_CLIENT_STATE_CONNECTED);
+    EXPECT_EQ(getSignalingStateFromStateMachineState(SIGNALING_STATE_DISCONNECTED), SIGNALING_CLIENT_STATE_DISCONNECTED);
+    EXPECT_EQ(getSignalingStateFromStateMachineState(SIGNALING_STATE_DELETE), SIGNALING_CLIENT_STATE_DELETE);
+    EXPECT_EQ(getSignalingStateFromStateMachineState(SIGNALING_STATE_DELETED), SIGNALING_CLIENT_STATE_DELETED);
+    EXPECT_EQ(getSignalingStateFromStateMachineState(SIGNALING_STATE_DESCRIBE_MEDIA), SIGNALING_CLIENT_STATE_DESCRIBE_MEDIA);
+    EXPECT_EQ(getSignalingStateFromStateMachineState(SIGNALING_STATE_JOIN_SESSION), SIGNALING_CLIENT_STATE_JOIN_SESSION);
+    EXPECT_EQ(getSignalingStateFromStateMachineState(SIGNALING_STATE_JOIN_SESSION_WAITING), SIGNALING_CLIENT_STATE_JOIN_SESSION_WAITING);
+    EXPECT_EQ(getSignalingStateFromStateMachineState(SIGNALING_STATE_JOIN_SESSION_CONNECTED), SIGNALING_CLIENT_STATE_JOIN_SESSION_CONNECTED);
+}
+
+TEST_F(SignalingApiTest, getMessageTypeInStringApiTest)
+{
+    EXPECT_STREQ(getMessageTypeInString(SIGNALING_MESSAGE_TYPE_OFFER), SIGNALING_SDP_TYPE_OFFER);
+    EXPECT_STREQ(getMessageTypeInString(SIGNALING_MESSAGE_TYPE_ANSWER), SIGNALING_SDP_TYPE_ANSWER);
+    EXPECT_STREQ(getMessageTypeInString(SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE), SIGNALING_ICE_CANDIDATE);
+    EXPECT_STREQ(getMessageTypeInString(SIGNALING_MESSAGE_TYPE_GO_AWAY), SIGNALING_GO_AWAY);
+    EXPECT_STREQ(getMessageTypeInString(SIGNALING_MESSAGE_TYPE_RECONNECT_ICE_SERVER), SIGNALING_RECONNECT_ICE_SERVER);
+    EXPECT_STREQ(getMessageTypeInString(SIGNALING_MESSAGE_TYPE_STATUS_RESPONSE), SIGNALING_STATUS_RESPONSE);
+    EXPECT_STREQ(getMessageTypeInString(SIGNALING_MESSAGE_TYPE_UNKNOWN), SIGNALING_MESSAGE_UNKNOWN);
+    EXPECT_STREQ(getMessageTypeInString((SIGNALING_MESSAGE_TYPE) 10), SIGNALING_MESSAGE_UNKNOWN);
+}
+
+TEST_F(SignalingApiTest, getMessageTypeFromStringApiTest)
+{
+    SIGNALING_MESSAGE_TYPE messageType;
+    EXPECT_EQ(getMessageTypeFromString((PCHAR) SIGNALING_SDP_TYPE_OFFER, 0, &messageType), STATUS_SUCCESS);
+    EXPECT_EQ(messageType, SIGNALING_MESSAGE_TYPE_OFFER);
+    EXPECT_EQ(getMessageTypeFromString((PCHAR) SIGNALING_SDP_TYPE_ANSWER, STRLEN(SIGNALING_SDP_TYPE_ANSWER), &messageType), STATUS_SUCCESS);
+    EXPECT_EQ(messageType, SIGNALING_MESSAGE_TYPE_ANSWER);
+    EXPECT_EQ(getMessageTypeFromString((PCHAR) SIGNALING_ICE_CANDIDATE, 0, &messageType), STATUS_SUCCESS);
+    EXPECT_EQ(messageType, SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE);
+    EXPECT_EQ(getMessageTypeFromString((PCHAR) SIGNALING_GO_AWAY, 0, &messageType), STATUS_SUCCESS);
+    EXPECT_EQ(messageType, SIGNALING_MESSAGE_TYPE_GO_AWAY);
+    EXPECT_EQ(getMessageTypeFromString((PCHAR) SIGNALING_RECONNECT_ICE_SERVER, 0, &messageType), STATUS_SUCCESS);
+    EXPECT_EQ(messageType, SIGNALING_MESSAGE_TYPE_RECONNECT_ICE_SERVER);
+    EXPECT_EQ(getMessageTypeFromString((PCHAR) SIGNALING_STATUS_RESPONSE, 0, &messageType), STATUS_SUCCESS);
+    EXPECT_EQ(messageType, SIGNALING_MESSAGE_TYPE_STATUS_RESPONSE);
+    EXPECT_EQ(getMessageTypeFromString((PCHAR) "test", 0, &messageType), STATUS_SUCCESS);
+    EXPECT_EQ(messageType, SIGNALING_MESSAGE_TYPE_UNKNOWN);
+}
+
+TEST_F(SignalingApiTest, getStringFromChannelTypeApiTest)
+{
+    EXPECT_STREQ(getStringFromChannelType(SIGNALING_CHANNEL_TYPE_SINGLE_MASTER), SIGNALING_CHANNEL_TYPE_SINGLE_MASTER_STR);
+    EXPECT_STREQ(getStringFromChannelType((SIGNALING_CHANNEL_TYPE)0xffff), SIGNALING_CHANNEL_TYPE_UNKNOWN_STR);
 }
 
 } // namespace webrtcclient

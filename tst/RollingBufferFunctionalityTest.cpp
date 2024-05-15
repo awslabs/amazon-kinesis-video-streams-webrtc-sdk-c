@@ -13,6 +13,19 @@ STATUS RollingBufferFunctionalityTestFreeBufferFunc(PUINT64 data) {
     return STATUS_SUCCESS;
 }
 
+TEST_F(RollingBufferFunctionalityTest, rollingBufferIsEmptyInvalidArgs)
+{
+    PRollingBuffer pRollingBuffer = NULL;
+    BOOL isEmpty;
+    EXPECT_EQ(rollingBufferIsEmpty(NULL, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(rollingBufferIsEmpty(NULL, &isEmpty), STATUS_NULL_ARG);
+    EXPECT_EQ(createRollingBuffer(2, RollingBufferFunctionalityTestFreeBufferFunc, &pRollingBuffer), STATUS_SUCCESS);
+    EXPECT_EQ(rollingBufferIsEmpty(pRollingBuffer, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(rollingBufferIsEmpty(pRollingBuffer, &isEmpty), STATUS_SUCCESS);
+    EXPECT_EQ(isEmpty, TRUE);
+    EXPECT_EQ(freeRollingBuffer(&pRollingBuffer), STATUS_SUCCESS);
+}
+
 TEST_F(RollingBufferFunctionalityTest, appendDataToBufferAndVerify)
 {
     PRollingBuffer pRollingBuffer;

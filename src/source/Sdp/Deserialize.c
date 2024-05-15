@@ -3,7 +3,6 @@
 #include "kvssdp/sdp_deserializer.h"
 
 // Convert error code from SDP library to STATUS.
-extern STATUS convertSdpErrorCode(SdpResult_t sdpResult);
 
 STATUS parseMediaName(PSessionDescription pSessionDescription, PCHAR mediaValue, SIZE_T mediaValueLength)
 {
