@@ -24,6 +24,34 @@ STATUS publishStatsForCanary(RTC_STATS_TYPE statsType, PSampleStreamingSession p
     return retStatus;
 }
 
+VOID sendProfilingMetrics(PSampleConfiguration pSampleConfiguration)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleStreamingSession pSampleStreamingSession = NULL;
+
+    if(pSampleConfiguration == NULL) {
+        return;
+    }
+
+    while((pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[0]) == NULL) {
+        DLOGI("NULL");
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND * 100);
+    }
+    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
+        retStatus = getSdkTimeProfile(pSampleConfiguration->sampleStreamingSessionList[0]);
+
+        if(STATUS_SUCCEEDED(retStatus)) {
+            CppInteg::Cloudwatch::getInstance().monitoring.pushSignalingClientMetrics(&pSampleConfiguration->signalingClientMetrics);
+            CppInteg::Cloudwatch::getInstance().monitoring.pushPeerConnectionMetrics(&pSampleStreamingSession->pStatsCtx->peerConnectionMetrics);
+            CppInteg::Cloudwatch::getInstance().monitoring.pushKvsIceAgentMetrics(&pSampleStreamingSession->pStatsCtx->iceMetrics);
+            return;
+        } else {
+            DLOGI("Waiting on streaming to start 0x%08x", retStatus);
+        }
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND * 100);
+    }
+}
+
 PVOID sendVideoPackets(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -201,7 +229,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         pSampleConfiguration->videoSource = sendVideoPackets;
         pSampleConfiguration->receiveAudioVideoSource = sampleReceiveAudioVideoFrame;
 
-        if (argc > 2 && STRNCMP(argv[2], "1", 2) == 0) {
+        if (USE_STORAGE) {
             pSampleConfiguration->channelInfo.useMediaStorage = TRUE;
         }
 
@@ -234,6 +262,8 @@ INT32 main(INT32 argc, CHAR* argv[])
 
         DLOGI("[KVS Master] Channel %s set up done ", CHANNEL_NAME);
 
+        std::thread pushProfilingThread(sendProfilingMetrics, pSampleConfiguration);
+        pushProfilingThread.join();
         // Checking for termination
         CHK_STATUS(sessionCleanupWait(pSampleConfiguration));
         DLOGI("[KVS Master] Streaming session terminated");

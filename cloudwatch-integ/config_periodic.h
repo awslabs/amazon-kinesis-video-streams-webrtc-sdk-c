@@ -11,5 +11,6 @@
 #define ENABLE_METRICS              TRUE
 #define SAMPLE_PRE_GENERATE_CERT    TRUE
 #define SAMPLE_RUN_TIME             (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define USE_STORAGE                 FALSE
 
 #endif // KVS_SDK_SAMPLE_CONFIG_H

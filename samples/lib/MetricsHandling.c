@@ -247,3 +247,18 @@ STATUS populateIncomingRtpMetricsContext(PSampleStreamingSession pSampleStreamin
 CleanUp:
     return retStatus;
 }
+
+STATUS getSdkTimeProfile(PSampleStreamingSession pSampleStreamingSession)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    CHK_WARN(pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG, "Stats object not set up. Nothing to report");
+    CHK(!pSampleStreamingSession->firstFrame, STATUS_WAITING_ON_FIRST_FRAME);
+
+    pSampleStreamingSession->pSampleConfiguration->signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
+    CHK_STATUS(signalingClientGetMetrics(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle,
+                                         &pSampleStreamingSession->pSampleConfiguration->signalingClientMetrics));
+    CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->pStatsCtx->peerConnectionMetrics));
+    CHK_STATUS(iceAgentGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->pStatsCtx->iceMetrics));
+CleanUp:
+    return retStatus;
+}
