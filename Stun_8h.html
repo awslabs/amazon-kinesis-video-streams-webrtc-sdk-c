@@ -266,8 +266,6 @@ Macros</h2></td></tr>
 <tr class="separator:a5bacd8babcc890673a6ff577bf9def7c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3342dc463f497b90e812a5a0300e922a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#a3342dc463f497b90e812a5a0300e922a">STUN_SEND_INDICATION_XOR_PEER_ADDRESS_PORT_OFFSET</a>&#160;&#160;&#160;26</td></tr>
 <tr class="separator:a3342dc463f497b90e812a5a0300e922a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8c5649753b7e4cc0a664c1bb9a0b02d4"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#a8c5649753b7e4cc0a664c1bb9a0b02d4">STUN_FINGERPRINT_ATTRIBUTE_XOR_VALUE</a>&#160;&#160;&#160;(UINT32) 0x5354554e</td></tr>
-<tr class="separator:a8c5649753b7e4cc0a664c1bb9a0b02d4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a754e5eecf2ee251b30ac9eb41a617218"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#a754e5eecf2ee251b30ac9eb41a617218">STUN_ERROR_CODE_PACKET_ERROR_CLASS_OFFSET</a>&#160;&#160;&#160;2</td></tr>
 <tr class="separator:a754e5eecf2ee251b30ac9eb41a617218"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad7442c82e6fd85e096fa1570ecdbe4ac"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#ad7442c82e6fd85e096fa1570ecdbe4ac">STUN_ERROR_CODE_PACKET_ERROR_CODE_OFFSET</a>&#160;&#160;&#160;3</td></tr>
@@ -792,21 +790,6 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a8c5649753b7e4cc0a664c1bb9a0b02d4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8c5649753b7e4cc0a664c1bb9a0b02d4">&#9670;&nbsp;</a></span>STUN_FINGERPRINT_ATTRIBUTE_XOR_VALUE</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define STUN_FINGERPRINT_ATTRIBUTE_XOR_VALUE&#160;&#160;&#160;(UINT32) 0x5354554e</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Need to XOR the calculate fingerprint value with this per <a href="https://tools.ietf.org/html/rfc5389#section-15.5">https://tools.ietf.org/html/rfc5389#section-15.5</a> </p>
-
-</div>
-</div>
 <a id="aff39f71fcf28156c4552dc567ee54791"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aff39f71fcf28156c4552dc567ee54791">&#9670;&nbsp;</a></span>STUN_HEADER_DATA_LEN</h2>
 
@@ -921,12 +904,12 @@ Functions</h2></td></tr>
 <div class="line">     (getInt16(*(PINT16) pPacketBuffer) == <a class="code" href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3ae916e7f1891547eab9160e08f53a8c56">STUN_PACKET_TYPE_REFRESH_ERROR_RESPONSE</a>) ||                                                               \</div>
 <div class="line">     (getInt16(*(PINT16) pPacketBuffer) == <a class="code" href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a3aa7ce41dfbd1f45ba2758d32230c9cd">STUN_PACKET_TYPE_CREATE_PERMISSION_ERROR_RESPONSE</a>) ||                                                     \</div>
 <div class="line">     (getInt16(*(PINT16) pPacketBuffer) == <a class="code" href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a96fc6b42cb2486a2f1cda05c0d389e68">STUN_PACKET_TYPE_CHANNEL_BIND_ERROR_RESPONSE</a>))</div>
-<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3a0b31fe87be0ac4b95bb38930628f5036"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a0b31fe87be0ac4b95bb38930628f5036">STUN_PACKET_TYPE_ALLOCATE_ERROR_RESPONSE</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_ALLOCATE_ERROR_RESPONSE</div><div class="ttdef"><b>Definition:</b> Stun.h:159</div></div>
-<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3a2921ad08775d02db9b85062e56b9f06d"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a2921ad08775d02db9b85062e56b9f06d">STUN_PACKET_TYPE_BINDING_RESPONSE_ERROR</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_BINDING_RESPONSE_ERROR</div><div class="ttdef"><b>Definition:</b> Stun.h:157</div></div>
-<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3a3aa7ce41dfbd1f45ba2758d32230c9cd"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a3aa7ce41dfbd1f45ba2758d32230c9cd">STUN_PACKET_TYPE_CREATE_PERMISSION_ERROR_RESPONSE</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_CREATE_PERMISSION_ERROR_RESPONSE</div><div class="ttdef"><b>Definition:</b> Stun.h:161</div></div>
-<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3a86ced821d928eecffe3ed730823d2303"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a86ced821d928eecffe3ed730823d2303">STUN_PACKET_TYPE_SHARED_SECRET_ERROR_RESPONSE</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_SHARED_SECRET_ERROR_RESPONSE</div><div class="ttdef"><b>Definition:</b> Stun.h:158</div></div>
-<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3a96fc6b42cb2486a2f1cda05c0d389e68"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a96fc6b42cb2486a2f1cda05c0d389e68">STUN_PACKET_TYPE_CHANNEL_BIND_ERROR_RESPONSE</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_CHANNEL_BIND_ERROR_RESPONSE</div><div class="ttdef"><b>Definition:</b> Stun.h:162</div></div>
-<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3ae916e7f1891547eab9160e08f53a8c56"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3ae916e7f1891547eab9160e08f53a8c56">STUN_PACKET_TYPE_REFRESH_ERROR_RESPONSE</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_REFRESH_ERROR_RESPONSE</div><div class="ttdef"><b>Definition:</b> Stun.h:160</div></div>
+<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3a0b31fe87be0ac4b95bb38930628f5036"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a0b31fe87be0ac4b95bb38930628f5036">STUN_PACKET_TYPE_ALLOCATE_ERROR_RESPONSE</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_ALLOCATE_ERROR_RESPONSE</div><div class="ttdef"><b>Definition:</b> Stun.h:153</div></div>
+<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3a2921ad08775d02db9b85062e56b9f06d"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a2921ad08775d02db9b85062e56b9f06d">STUN_PACKET_TYPE_BINDING_RESPONSE_ERROR</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_BINDING_RESPONSE_ERROR</div><div class="ttdef"><b>Definition:</b> Stun.h:151</div></div>
+<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3a3aa7ce41dfbd1f45ba2758d32230c9cd"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a3aa7ce41dfbd1f45ba2758d32230c9cd">STUN_PACKET_TYPE_CREATE_PERMISSION_ERROR_RESPONSE</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_CREATE_PERMISSION_ERROR_RESPONSE</div><div class="ttdef"><b>Definition:</b> Stun.h:155</div></div>
+<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3a86ced821d928eecffe3ed730823d2303"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a86ced821d928eecffe3ed730823d2303">STUN_PACKET_TYPE_SHARED_SECRET_ERROR_RESPONSE</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_SHARED_SECRET_ERROR_RESPONSE</div><div class="ttdef"><b>Definition:</b> Stun.h:152</div></div>
+<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3a96fc6b42cb2486a2f1cda05c0d389e68"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a96fc6b42cb2486a2f1cda05c0d389e68">STUN_PACKET_TYPE_CHANNEL_BIND_ERROR_RESPONSE</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_CHANNEL_BIND_ERROR_RESPONSE</div><div class="ttdef"><b>Definition:</b> Stun.h:156</div></div>
+<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3ae916e7f1891547eab9160e08f53a8c56"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3ae916e7f1891547eab9160e08f53a8c56">STUN_PACKET_TYPE_REFRESH_ERROR_RESPONSE</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_REFRESH_ERROR_RESPONSE</div><div class="ttdef"><b>Definition:</b> Stun.h:154</div></div>
 </div><!-- fragment -->
 </div>
 </div>
@@ -2769,7 +2752,7 @@ Here is the caller graph for this function:</div>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_360e81f4c611da735a194b8cc9951d44.html">Stun</a></li><li class="navelem"><a class="el" href="Stun_8h.html">Stun.h</a></li>
-    <li class="footer">Generated on Tue May 14 2024 06:29:13 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Wed May 15 2024 03:51:00 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>
