@@ -101,7 +101,7 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
 
         DLOGV("Attempting to back off for [%lf] milliseconds before creating signaling client again. "
               "Signaling client creation retry count [%u]",
-              retStatus, signalingClientCreationWaitTime / 1000.0f, signalingClientCreationMaxRetryCount);
+              signalingClientCreationWaitTime / 1000.0f, signalingClientCreationMaxRetryCount);
         THREAD_SLEEP(signalingClientCreationWaitTime);
         signalingClientCreationMaxRetryCount--;
     }
@@ -228,7 +228,7 @@ STATUS signalingClientFetchSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 
         DLOGV("Attempting to back off for [%lf] milliseconds before creating signaling client again. "
               "Signaling client creation retry count [%u]",
-              retStatus, signalingClientCreationWaitTime / 1000.0f, signalingClientCreationMaxRetryCount);
+              signalingClientCreationWaitTime / 1000.0f, signalingClientCreationMaxRetryCount);
         THREAD_SLEEP(signalingClientCreationWaitTime);
         signalingClientCreationMaxRetryCount--;
     }
