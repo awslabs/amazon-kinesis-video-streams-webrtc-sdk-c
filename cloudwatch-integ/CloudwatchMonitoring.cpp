@@ -235,7 +235,7 @@ VOID CloudwatchMonitoring::pushICEHolePunchingDelay(UINT64 delay, Aws::CloudWatc
     this->push(datum);
 }
 
-VOID CloudwatchMonitoring::pushOutboundRtpStats(POutgoingRTPMetricsContext pOutboundRtpStats)
+VOID CloudwatchMonitoring::pushOutboundRtpStats(POutgoingRTPStatsCtx pOutboundRtpStats)
 {
     MetricDatum bytesDiscardedPercentageDatum, averageFramesRateDatum, nackRateDatum, retransmissionPercentDatum;
     
@@ -400,7 +400,7 @@ VOID CloudwatchMonitoring::pushSignalingClientMetrics(PSignalingClientMetrics pS
     }
 }
 
-VOID CloudwatchMonitoring::pushInboundRtpStats(PIncomingRTPMetricsContext pIncomingRtpStats)
+VOID CloudwatchMonitoring::pushInboundRtpStats(PIncomingRTPStatsCtx pIncomingRtpStats)
 {
     MetricDatum incomingBitrateDatum, incomingPacketRate, incomingFrameDropRateDatum;
 

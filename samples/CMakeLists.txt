@@ -58,18 +58,21 @@ file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/h265SampleFrames" DESTINATION .)
 
 add_executable(
   kvsWebrtcClientMaster
-  Common.c
-  Utility.c
-  MetricsHandling.c
-  kvsWebRTCClientMaster.c)
+        lib/Common.c
+        lib/Utility.c
+        lib/MetricsHandling.c
+        lib/DataChannelHandling.c
+        kvsWebRTCClientMaster.c)
+
 target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils)
 
 add_executable(
   kvsWebrtcClientViewer
-  Common.c
-  Utility.c
-  MetricsHandling.c
-  kvsWebRTCClientViewer.c)
+        lib/Common.c
+        lib/Utility.c
+        lib/MetricsHandling.c
+        lib/DataChannelHandling.c
+        kvsWebRTCClientViewer.c)
 target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils)
 
 add_executable(
@@ -80,11 +83,12 @@ target_link_libraries(discoverNatBehavior kvsWebrtcClient ${EXTRA_DEPS})
 if(GST_FOUND)
   add_executable(
     kvsWebrtcClientMasterGstSample
-    Common.c
-    Utility.c
-    MetricsHandling.c
-    GstAudioVideoReceiver.c
-    kvsWebRTCClientMasterGstSample.c
+        lib/Common.c
+        lib/Utility.c
+        lib/MetricsHandling.c
+        GstAudioVideoReceiver.c
+        lib/DataChannelHandling.c
+        kvsWebRTCClientMasterGstSample.c
   )
   target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils)
 
@@ -94,11 +98,12 @@ if(GST_FOUND)
 
   add_executable(
     kvsWebrtcClientViewerGstSample
-    Common.c
-    Utility.c
-    MetricsHandling.c
-    GstAudioVideoReceiver.c
-    kvsWebRTCClientViewerGstSample.c
+      lib/Common.c
+      lib/Utility.c
+      lib/MetricsHandling.c
+      lib/DataChannelHandling.c
+      GstAudioVideoReceiver.c
+      kvsWebRTCClientViewerGstSample.c
   )
   target_link_libraries(kvsWebrtcClientViewerGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils)
 

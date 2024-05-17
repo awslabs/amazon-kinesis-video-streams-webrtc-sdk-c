@@ -5,17 +5,17 @@
 STATUS publishStatsForCanary(RTC_STATS_TYPE statsType, PSampleStreamingSession pSampleStreamingSession)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    pSampleStreamingSession->canaryMetrics.requestedTypeOfStats = statsType;
+    pSampleStreamingSession->pStatsCtx->kvsRtcStats.requestedTypeOfStats = statsType;
     switch (statsType) {
         case RTC_STATS_TYPE_OUTBOUND_RTP:
-            CHK_LOG_ERR(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pVideoRtcRtpTransceiver, &pSampleStreamingSession->canaryMetrics));
+            CHK_LOG_ERR(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pVideoRtcRtpTransceiver, &pSampleStreamingSession->pStatsCtx->kvsRtcStats));
             populateOutgoingRtpMetricsContext(pSampleStreamingSession);
-            CppInteg::Cloudwatch::getInstance().monitoring.pushOutboundRtpStats(&pSampleStreamingSession->canaryOutgoingRTPMetricsContext);
+            CppInteg::Cloudwatch::getInstance().monitoring.pushOutboundRtpStats(&pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx);
             break;
         case RTC_STATS_TYPE_INBOUND_RTP:
-            CHK_LOG_ERR(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pVideoRtcRtpTransceiver, &pSampleStreamingSession->canaryMetrics));
+            CHK_LOG_ERR(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pVideoRtcRtpTransceiver, &pSampleStreamingSession->pStatsCtx->kvsRtcStats));
             populateIncomingRtpMetricsContext(pSampleStreamingSession);
-            CppInteg::Cloudwatch::getInstance().monitoring.pushInboundRtpStats(&pSampleStreamingSession->canaryIncomingRTPMetricsContext);
+            CppInteg::Cloudwatch::getInstance().monitoring.pushInboundRtpStats(&pSampleStreamingSession->pStatsCtx->incomingRTPStatsCtx);
             break;
         default:
             CHK(FALSE, STATUS_NOT_IMPLEMENTED);
@@ -68,8 +68,8 @@ PVOID sendVideoPackets(PVOID args)
         MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
         for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
             status = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &frame);
-            pSampleConfiguration->sampleStreamingSessionList[i]->canaryOutgoingRTPMetricsContext.videoFramesGenerated++;
-            pSampleConfiguration->sampleStreamingSessionList[i]->canaryOutgoingRTPMetricsContext.videoBytesGenerated += frame.size;
+            pSampleConfiguration->sampleStreamingSessionList[i]->pStatsCtx->outgoingRTPStatsCtx.videoFramesGenerated++;
+            pSampleConfiguration->sampleStreamingSessionList[i]->pStatsCtx->outgoingRTPStatsCtx.videoBytesGenerated += frame.size;
             if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame && status == STATUS_SUCCESS) {
                 PROFILE_WITH_START_TIME(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, "Time to first frame");
                 pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame = FALSE;

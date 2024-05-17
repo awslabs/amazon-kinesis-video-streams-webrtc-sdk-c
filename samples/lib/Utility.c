@@ -1,4 +1,4 @@
-#include "Samples.h"
+#include "../Samples.h"
 
 STATUS readFrameFromDisk(PBYTE pFrame, PUINT32 pSize, PCHAR frameFilePath)
 {

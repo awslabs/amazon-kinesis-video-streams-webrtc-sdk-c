@@ -8,5 +8,6 @@
 #define ENABLE_TTFF_VIA_DC          FALSE
 #define IOT_CORE_ENABLE_CREDENTIALS FALSE
 #define ENABLE_STORAGE              FALSE
+#define ENABLE_METRICS              TRUE
 
 #endif // KVS_SDK_SAMPLE_CONFIG_H

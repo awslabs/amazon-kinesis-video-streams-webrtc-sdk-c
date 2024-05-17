@@ -14,9 +14,10 @@ find_package(AWSSDK REQUIRED COMPONENTS monitoring logs)
 
 add_executable(
         kvsWebrtcClientMasterCW
-        ../samples/Common.c
-        ../samples/Utility.c
-        ../samples/MetricsHandling.c
+        ../samples/lib/Common.c
+        ../samples/lib/Utility.c
+        ../samples/lib/MetricsHandling.c
+        ../samples/lib/DataChannelHandling.c
         Cloudwatch.cpp
         CloudwatchLogs.cpp
         CloudwatchMonitoring.cpp

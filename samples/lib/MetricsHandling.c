@@ -1,4 +1,14 @@
-#include "Samples.h"
+#include "../Samples.h"
+
+STATUS setupMetricsCtx(PSampleStreamingSession pSampleStreamingSession)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    if (ENABLE_METRICS) {
+        CHK(NULL != (pSampleStreamingSession->pStatsCtx = (PStatsCtx) MEMCALLOC(1, SIZEOF(StatsCtx))), STATUS_NOT_ENOUGH_MEMORY);
+    }
+CleanUp:
+    return retStatus;
+}
 
 STATUS logSelectedIceCandidatesInformation(PSampleStreamingSession pSampleStreamingSession)
 {
@@ -34,21 +44,28 @@ STATUS gatherIceServerStats(PSampleStreamingSession pSampleStreamingSession)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    RtcStats rtcmetrics;
     UINT32 j = 0;
-    rtcmetrics.requestedTypeOfStats = RTC_STATS_TYPE_ICE_SERVER;
+    BOOL locked = TRUE;
+    CHK_WARN(pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG, "Stats object not set up. Nothing to report");
+    MUTEX_LOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
+    locked = TRUE;
+    pSampleStreamingSession->pStatsCtx->kvsRtcStats.requestedTypeOfStats = RTC_STATS_TYPE_ICE_SERVER;
     for (; j < pSampleStreamingSession->pSampleConfiguration->iceUriCount; j++) {
-        rtcmetrics.rtcStatsObject.iceServerStats.iceServerIndex = j;
-        CHK_STATUS(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, NULL, &rtcmetrics));
-        DLOGD("ICE Server URL: %s", rtcmetrics.rtcStatsObject.iceServerStats.url);
-        DLOGD("ICE Server port: %d", rtcmetrics.rtcStatsObject.iceServerStats.port);
-        DLOGD("ICE Server protocol: %s", rtcmetrics.rtcStatsObject.iceServerStats.protocol);
-        DLOGD("Total requests sent:%" PRIu64, rtcmetrics.rtcStatsObject.iceServerStats.totalRequestsSent);
-        DLOGD("Total responses received: %" PRIu64, rtcmetrics.rtcStatsObject.iceServerStats.totalResponsesReceived);
+        pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.iceServerStats.iceServerIndex = j;
+        CHK_STATUS(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, NULL, &pSampleStreamingSession->pStatsCtx->kvsRtcStats));
+        DLOGD("ICE Server URL: %s", pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.iceServerStats.url);
+        DLOGD("ICE Server port: %d", pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.iceServerStats.port);
+        DLOGD("ICE Server protocol: %s", pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.iceServerStats.protocol);
+        DLOGD("Total requests sent:%" PRIu64, pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.iceServerStats.totalRequestsSent);
+        DLOGD("Total responses received: %" PRIu64,
+              pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.iceServerStats.totalResponsesReceived);
         DLOGD("Total round trip time: %" PRIu64 "ms",
-                rtcmetrics.rtcStatsObject.iceServerStats.totalRoundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+              pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.iceServerStats.totalRoundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     }
-    CleanUp:
+CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
+    }
     LEAVES();
     return retStatus;
 }
@@ -160,38 +177,39 @@ STATUS populateOutgoingRtpMetricsContext(PSampleStreamingSession pSampleStreamin
 {
     DOUBLE currentDuration = 0;
 
-    currentDuration = (DOUBLE) (pSampleStreamingSession->canaryMetrics.timestamp - pSampleStreamingSession->canaryOutgoingRTPMetricsContext.prevTs) /
+    currentDuration =
+        (DOUBLE) (pSampleStreamingSession->pStatsCtx->kvsRtcStats.timestamp - pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx.prevTs) /
         HUNDREDS_OF_NANOS_IN_A_SECOND;
-    pSampleStreamingSession->canaryOutgoingRTPMetricsContext.framesPercentageDiscarded =
-        ((DOUBLE) (pSampleStreamingSession->canaryMetrics.rtcStatsObject.outboundRtpStreamStats.framesDiscardedOnSend -
-                   pSampleStreamingSession->canaryOutgoingRTPMetricsContext.prevFramesDiscardedOnSend) /
-         (DOUBLE) pSampleStreamingSession->canaryOutgoingRTPMetricsContext.videoFramesGenerated) *
+    pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx.framesPercentageDiscarded =
+        ((DOUBLE) (pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.outboundRtpStreamStats.framesDiscardedOnSend -
+                   pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx.prevFramesDiscardedOnSend) /
+         (DOUBLE) pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx.videoFramesGenerated) *
         100.0;
-    pSampleStreamingSession->canaryOutgoingRTPMetricsContext.retxBytesPercentage =
-        (((DOUBLE) pSampleStreamingSession->canaryMetrics.rtcStatsObject.outboundRtpStreamStats.retransmittedBytesSent -
-          (DOUBLE) (pSampleStreamingSession->canaryOutgoingRTPMetricsContext.prevRetxBytesSent)) /
-         (DOUBLE) pSampleStreamingSession->canaryOutgoingRTPMetricsContext.videoBytesGenerated) *
+    pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx.retxBytesPercentage =
+        (((DOUBLE) pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.outboundRtpStreamStats.retransmittedBytesSent -
+          (DOUBLE) (pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx.prevRetxBytesSent)) /
+         (DOUBLE) pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx.videoBytesGenerated) *
         100.0;
 
     // This flag ensures the reset of video bytes count is done only when this flag is set
-    pSampleStreamingSession->recorded = TRUE;
-    pSampleStreamingSession->canaryOutgoingRTPMetricsContext.averageFramesSentPerSecond =
-        ((DOUBLE) (pSampleStreamingSession->canaryMetrics.rtcStatsObject.outboundRtpStreamStats.framesSent -
-                   (DOUBLE) pSampleStreamingSession->canaryOutgoingRTPMetricsContext.prevFramesSent)) /
+    pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx.recorded = TRUE;
+    pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx.averageFramesSentPerSecond =
+        ((DOUBLE) (pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.outboundRtpStreamStats.framesSent -
+                   (DOUBLE) pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx.prevFramesSent)) /
         currentDuration;
-    pSampleStreamingSession->canaryOutgoingRTPMetricsContext.nacksPerSecond =
-        ((DOUBLE) pSampleStreamingSession->canaryMetrics.rtcStatsObject.outboundRtpStreamStats.nackCount -
-         pSampleStreamingSession->canaryOutgoingRTPMetricsContext.prevNackCount) /
+    pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx.nacksPerSecond =
+        ((DOUBLE) pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.outboundRtpStreamStats.nackCount -
+         pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx.prevNackCount) /
         currentDuration;
-    pSampleStreamingSession->canaryOutgoingRTPMetricsContext.prevFramesSent =
-        pSampleStreamingSession->canaryMetrics.rtcStatsObject.outboundRtpStreamStats.framesSent;
-    pSampleStreamingSession->canaryOutgoingRTPMetricsContext.prevTs = pSampleStreamingSession->canaryMetrics.timestamp;
-    pSampleStreamingSession->canaryOutgoingRTPMetricsContext.prevFramesDiscardedOnSend =
-        pSampleStreamingSession->canaryMetrics.rtcStatsObject.outboundRtpStreamStats.framesDiscardedOnSend;
-    pSampleStreamingSession->canaryOutgoingRTPMetricsContext.prevNackCount =
-        pSampleStreamingSession->canaryMetrics.rtcStatsObject.outboundRtpStreamStats.nackCount;
-    pSampleStreamingSession->canaryOutgoingRTPMetricsContext.prevRetxBytesSent =
-        pSampleStreamingSession->canaryMetrics.rtcStatsObject.outboundRtpStreamStats.retransmittedBytesSent;
+    pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx.prevFramesSent =
+        pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.outboundRtpStreamStats.framesSent;
+    pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx.prevTs = pSampleStreamingSession->pStatsCtx->kvsRtcStats.timestamp;
+    pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx.prevFramesDiscardedOnSend =
+        pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.outboundRtpStreamStats.framesDiscardedOnSend;
+    pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx.prevNackCount =
+        pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.outboundRtpStreamStats.nackCount;
+    pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx.prevRetxBytesSent =
+        pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.outboundRtpStreamStats.retransmittedBytesSent;
 
     return STATUS_SUCCESS;
 }
@@ -199,29 +217,33 @@ STATUS populateOutgoingRtpMetricsContext(PSampleStreamingSession pSampleStreamin
 STATUS populateIncomingRtpMetricsContext(PSampleStreamingSession pSampleStreamingSession)
 {
     DOUBLE currentDuration = 0;
-    currentDuration = (DOUBLE) (pSampleStreamingSession->canaryMetrics.timestamp - pSampleStreamingSession->canaryIncomingRTPMetricsContext.prevTs) /
+    STATUS retStatus = STATUS_SUCCESS;
+    CHK_WARN(pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG, "Stats object not set up. Nothing to report");
+    currentDuration =
+        (DOUBLE) (pSampleStreamingSession->pStatsCtx->kvsRtcStats.timestamp - pSampleStreamingSession->pStatsCtx->incomingRTPStatsCtx.prevTs) /
         HUNDREDS_OF_NANOS_IN_A_SECOND;
-    pSampleStreamingSession->canaryIncomingRTPMetricsContext.packetReceiveRate =
-        (DOUBLE) (pSampleStreamingSession->canaryMetrics.rtcStatsObject.inboundRtpStreamStats.received.packetsReceived -
-                  pSampleStreamingSession->canaryIncomingRTPMetricsContext.prevPacketsReceived) /
+    pSampleStreamingSession->pStatsCtx->incomingRTPStatsCtx.packetReceiveRate =
+        (DOUBLE) (pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.inboundRtpStreamStats.received.packetsReceived -
+                  pSampleStreamingSession->pStatsCtx->incomingRTPStatsCtx.prevPacketsReceived) /
         currentDuration;
-    pSampleStreamingSession->canaryIncomingRTPMetricsContext.incomingBitRate =
-        ((DOUBLE) (pSampleStreamingSession->canaryMetrics.rtcStatsObject.inboundRtpStreamStats.bytesReceived -
-                   pSampleStreamingSession->canaryIncomingRTPMetricsContext.prevBytesReceived) /
+    pSampleStreamingSession->pStatsCtx->incomingRTPStatsCtx.incomingBitRate =
+        ((DOUBLE) (pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.inboundRtpStreamStats.bytesReceived -
+                   pSampleStreamingSession->pStatsCtx->incomingRTPStatsCtx.prevBytesReceived) /
          currentDuration) /
         0.008;
-    pSampleStreamingSession->canaryIncomingRTPMetricsContext.framesDroppedPerSecond =
-        ((DOUBLE) pSampleStreamingSession->canaryMetrics.rtcStatsObject.inboundRtpStreamStats.received.framesDropped -
-         pSampleStreamingSession->canaryIncomingRTPMetricsContext.prevFramesDropped) /
+    pSampleStreamingSession->pStatsCtx->incomingRTPStatsCtx.framesDroppedPerSecond =
+        ((DOUBLE) pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.inboundRtpStreamStats.received.framesDropped -
+         pSampleStreamingSession->pStatsCtx->incomingRTPStatsCtx.prevFramesDropped) /
         currentDuration;
 
-    pSampleStreamingSession->canaryIncomingRTPMetricsContext.prevPacketsReceived =
-        pSampleStreamingSession->canaryMetrics.rtcStatsObject.inboundRtpStreamStats.received.packetsReceived;
-    pSampleStreamingSession->canaryIncomingRTPMetricsContext.prevBytesReceived =
-        pSampleStreamingSession->canaryMetrics.rtcStatsObject.inboundRtpStreamStats.bytesReceived;
-    pSampleStreamingSession->canaryIncomingRTPMetricsContext.prevFramesDropped =
-        pSampleStreamingSession->canaryMetrics.rtcStatsObject.inboundRtpStreamStats.received.framesDropped;
-    pSampleStreamingSession->canaryIncomingRTPMetricsContext.prevTs = pSampleStreamingSession->canaryMetrics.timestamp;
+    pSampleStreamingSession->pStatsCtx->incomingRTPStatsCtx.prevPacketsReceived =
+        pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.inboundRtpStreamStats.received.packetsReceived;
+    pSampleStreamingSession->pStatsCtx->incomingRTPStatsCtx.prevBytesReceived =
+        pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.inboundRtpStreamStats.bytesReceived;
+    pSampleStreamingSession->pStatsCtx->incomingRTPStatsCtx.prevFramesDropped =
+        pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.inboundRtpStreamStats.received.framesDropped;
+    pSampleStreamingSession->pStatsCtx->incomingRTPStatsCtx.prevTs = pSampleStreamingSession->pStatsCtx->kvsRtcStats.timestamp;
 
-    return STATUS_SUCCESS;
+CleanUp:
+    return retStatus;
 }
