@@ -33,6 +33,67 @@ VOID dataChannelOnOpenCallback(UINT64 customData, PRtcDataChannel pDataChannel)
 }
 #endif
 
+STATUS publishEndToEndMetrics(PSampleStreamingSession pSampleStreamingSession)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    CHK(pSampleStreamingSession != NULL, STATUS_NULL_ARG);
+    CppInteg::Cloudwatch::getInstance().monitoring.pushEndToEndMetrics(&pSampleStreamingSession->pStatsCtx->endToEndMetricsCtx);
+CleanUp:
+    return STATUS_SUCCESS;
+}
+
+STATUS endToendStatsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
+{
+    UNUSED_PARAM(timerId);
+    UNUSED_PARAM(currentTime);
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
+    if (!(ATOMIC_LOAD_BOOL(&pSampleStreamingSession->pSampleConfiguration->appTerminateFlag))) {
+        CHK_STATUS(publishEndToEndMetrics(pSampleStreamingSession));
+    } else {
+        retStatus = STATUS_TIMER_QUEUE_STOP_SCHEDULING;
+    }
+CleanUp:
+    return retStatus;
+}
+
+
+VOID videoFrameHandler(UINT64 customData, PFrame pFrame)
+{
+    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
+    // Parse packet and ad e2e metrics
+    PBYTE frameDataPtr = pFrame->frameData + ANNEX_B_NALU_SIZE;
+    UINT32 rawPacketSize = 0;
+    // Get size of hex encoded data
+    hexDecode((PCHAR) frameDataPtr, pFrame->size - ANNEX_B_NALU_SIZE, NULL, &rawPacketSize);
+    PBYTE rawPacket = (PBYTE) MEMCALLOC(1, (rawPacketSize * SIZEOF(BYTE)));
+    hexDecode((PCHAR) frameDataPtr, pFrame->size - ANNEX_B_NALU_SIZE, rawPacket, &rawPacketSize);
+
+    // Extract the timestamp field from raw packet
+    frameDataPtr = rawPacket;
+    UINT64 receivedTs = getUnalignedInt64BigEndian((PINT64)(frameDataPtr));
+    frameDataPtr += SIZEOF(UINT64);
+    UINT32 receivedSize = getUnalignedInt32BigEndian((PINT32)(frameDataPtr));
+
+    pSampleStreamingSession->pStatsCtx->endToEndMetricsCtx.frameLatencyAvg =
+            EMA_ACCUMULATOR_GET_NEXT(pSampleStreamingSession->pStatsCtx->endToEndMetricsCtx.frameLatencyAvg, GETTIME() - receivedTs);
+
+    // Do a size match of the raw packet. Since raw packet does not contain the NALu, the
+    // comparison would be rawPacketSize + ANNEX_B_NALU_SIZE and the received size
+    if (rawPacketSize + ANNEX_B_NALU_SIZE == receivedSize) {
+        pSampleStreamingSession->pStatsCtx->endToEndMetricsCtx.sizeMatchAvg = EMA_ACCUMULATOR_GET_NEXT(pSampleStreamingSession->pStatsCtx->endToEndMetricsCtx.sizeMatchAvg, 1);
+    } else {
+        pSampleStreamingSession->pStatsCtx->endToEndMetricsCtx.sizeMatchAvg = EMA_ACCUMULATOR_GET_NEXT(pSampleStreamingSession->pStatsCtx->endToEndMetricsCtx.sizeMatchAvg, 0);
+    }
+    SAFE_MEMFREE(rawPacket);
+}
+
+VOID audioFrameHandler(UINT64 customData, PFrame pFrame)
+{
+    UNUSED_PARAM(customData);
+    DLOGD("Audio Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
+}
+
 INT32 main(INT32 argc, CHAR* argv[])
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -44,6 +105,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     BOOL locked = FALSE;
     CHAR clientId[256];
     PCHAR region;
+    UINT32 e2eTimerId = MAX_UINT32;
     Aws::SDKOptions options;
     Aws::InitAPI(options);
     {
@@ -56,6 +118,8 @@ INT32 main(INT32 argc, CHAR* argv[])
 
         CHK_STATUS(createSampleConfiguration(CHANNEL_NAME, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, TRUE, TRUE, logLevel, &pSampleConfiguration));
         pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
+        pSampleConfiguration->audioCodec = AUDIO_CODEC;
+        pSampleConfiguration->videoCodec = VIDEO_CODEC;
 
         // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
         CHK_STATUS(initKvsWebRtc());
@@ -90,8 +154,8 @@ INT32 main(INT32 argc, CHAR* argv[])
         CHK_STATUS(setLocalDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
         DLOGI("[KVS Viewer] Completed setting local description");
 
-        CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleAudioFrameHandler));
-        CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleVideoFrameHandler));
+        CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession, audioFrameHandler));
+        CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession, videoFrameHandler));
 
         if (!pSampleConfiguration->trickleIce) {
             DLOGI("[KVS Viewer] Non trickle ice. Wait for Candidate collection to complete");
@@ -144,6 +208,9 @@ INT32 main(INT32 argc, CHAR* argv[])
             CHK_STATUS(dataChannelOnOpen(pDataChannel, (UINT64) &datachannelLocalOpenCount, dataChannelOnOpenCallback));
             DLOGI("[KVS Viewer] Data Channel open now...");
         }
+
+        CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, END_TO_END_METRICS_INVOCATION_PERIOD, END_TO_END_METRICS_INVOCATION_PERIOD,
+                                      endToendStatsCallback, (UINT64) pSampleStreamingSession, &e2eTimerId));
 
         // Block until interrupted
         while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted) && !ATOMIC_LOAD_BOOL(&pSampleStreamingSession->terminateFlag)) {

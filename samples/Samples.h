@@ -236,6 +236,12 @@ typedef struct {
 } OutgoingRTPStatsCtx, *POutgoingRTPStatsCtx;
 
 typedef struct {
+    DOUBLE frameLatencyAvg;
+    DOUBLE dataMatchAvg;
+    DOUBLE sizeMatchAvg;
+} EndToEndMetricsCtx, *PEndToEndMetricsCtx;
+
+typedef struct {
     UINT64 prevPacketsReceived;
     UINT64 prevTs;
     UINT64 prevBytesReceived;
@@ -249,6 +255,7 @@ typedef struct {
 typedef struct {
     OutgoingRTPStatsCtx outgoingRTPStatsCtx;
     IncomingRTPStatsCtx incomingRTPStatsCtx;
+    EndToEndMetricsCtx endToEndMetricsCtx;
     PeerConnectionMetrics peerConnectionMetrics;
     KvsIceAgentMetrics iceMetrics;
     RtcStats kvsRtcStats;

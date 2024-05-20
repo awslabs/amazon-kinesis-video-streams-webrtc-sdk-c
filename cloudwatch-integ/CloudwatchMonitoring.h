@@ -21,6 +21,7 @@ class CloudwatchMonitoring {
     VOID pushPeerConnectionMetrics(PPeerConnectionMetrics);
     VOID pushKvsIceAgentMetrics(PKvsIceAgentMetrics);
     VOID pushSignalingClientMetrics(PSignalingClientMetrics);
+    VOID pushEndToEndMetrics(PEndToEndMetricsCtx);
     VOID pushRetryCount(UINT32);
 
     VOID pushStorageDisconnectToFrameSentTime(UINT64, Aws::CloudWatch::Model::StandardUnit);

@@ -18,6 +18,7 @@ STATUS terminate(UINT32 timerId, UINT64 currentTime, UINT64 customData)
     DLOGI("Terminate");
     if (gSampleConfiguration != NULL) {
         ATOMIC_STORE_BOOL(&gSampleConfiguration->interrupted, TRUE);
+        ATOMIC_STORE_BOOL(&gSampleConfiguration->appTerminateFlag, TRUE);
         CVAR_BROADCAST(gSampleConfiguration->cvar);
     }
     return STATUS_SUCCESS;
@@ -288,7 +289,6 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     if (pSampleConfiguration->enableTwcc) {
         pSampleStreamingSession->twccMetadata.updateLock = MUTEX_CREATE(TRUE);
     }
-
 
     pSampleStreamingSession->pStatsCtx->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime =
         GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
