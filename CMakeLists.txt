@@ -34,12 +34,6 @@ option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
 option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
 option(LINK_PROFILER "Link gperftools profiler" OFF)
 
-
-set(SAMPLE_CONFIG_HEADER "" CACHE FILEPATH "Config header")
-
-add_definitions(-DSAMPLE_CONFIG_HEADER="${SAMPLE_CONFIG_HEADER}")
-message(STATUS ${SAMPLE_CONFIG_HEADER})
-
 if(WIN32)
   set(EXT_PTHREAD_INCLUDE_DIR "" CACHE PATH "Path to the PThread dir")
   set(EXT_PTHREAD_LIBRARIES "" CACHE FILEPATH "Path to PThread libraries")

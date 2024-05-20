@@ -66,7 +66,7 @@ VOID createMockFrames(PBYTE buffer, PFrame pFrame)
     UINT32 i;
     // For decoding purposes, the first 4 bytes need to be a NALu
     putUnalignedInt32BigEndian((PINT32) buffer, 0x00000001);
-    for (i = ANNEX_B_NALU_SIZE + CANARY_METADATA_SIZE; i < pFrame->size; i++) {
+    for (i = ANNEX_B_NALU_SIZE + FRAME_METADATA_SIZE; i < pFrame->size; i++) {
         buffer[i] = RAND();
     }
     addMetadataToFrameData(buffer, pFrame);
@@ -81,8 +81,8 @@ PVOID sendVideoPackets(PVOID args)
     UINT32 hexStrLen = 0;
     UINT32 actualFrameSize = 0;
     UINT32 frameSizeWithoutNalu = 0;
-    UINT32 minFrameSize = CANARY_METADATA_SIZE + ((DEFAULT_BITRATE / 8) / DEFAULT_FRAMERATE);
-    UINT32 maxFrameSize = (CANARY_METADATA_SIZE + ((DEFAULT_BITRATE / 8) / DEFAULT_FRAMERATE)) * 2;
+    UINT32 minFrameSize = FRAME_METADATA_SIZE + ((DEFAULT_BITRATE / 8) / DEFAULT_FRAMERATE);
+    UINT32 maxFrameSize = (FRAME_METADATA_SIZE + ((DEFAULT_BITRATE / 8) / DEFAULT_FRAMERATE)) * 2;
     PBYTE frameData = NULL;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
 
@@ -218,6 +218,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     PSampleConfiguration pSampleConfiguration = NULL;
     SignalingClientMetrics signalingClientMetrics;
     PCHAR region;
+    UINT32 terminateId = MAX_UINT32;
     Aws::SDKOptions options;
     Aws::InitAPI(options);
     {
@@ -226,7 +227,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         initKvsWebRtc();
 
         UINT32 logLevel = setLogLevel();
-        CHK_STATUS(createSampleConfiguration(CHANNEL_NAME, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
+        CHK_STATUS(createSampleConfiguration(CHANNEL_NAME, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, USE_TRICKLE_ICE, USE_TURN, logLevel, &pSampleConfiguration));
 
         // Set the audio and video handlers
         pSampleConfiguration->audioSource = sendAudioPackets;
@@ -234,10 +235,9 @@ INT32 main(INT32 argc, CHAR* argv[])
         pSampleConfiguration->receiveAudioVideoSource = NULL;
         pSampleConfiguration->audioCodec = AUDIO_CODEC;
         pSampleConfiguration->videoCodec = VIDEO_CODEC;
-
-        if (USE_STORAGE) {
-            pSampleConfiguration->channelInfo.useMediaStorage = TRUE;
-        }
+        pSampleConfiguration->forceTurn = FORCE_TURN_ONLY;
+        pSampleConfiguration->enableMetrics = ENABLE_METRICS;
+        pSampleConfiguration->channelInfo.useMediaStorage = USE_STORAGE;
 
         if ((region = GETENV(DEFAULT_REGION_ENV_VAR)) == NULL) {
             region = (PCHAR) DEFAULT_AWS_REGION;
@@ -271,6 +271,10 @@ INT32 main(INT32 argc, CHAR* argv[])
         std::thread pushProfilingThread(sendProfilingMetrics, pSampleConfiguration);
         pushProfilingThread.join();
         // Checking for termination
+
+        CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, SAMPLE_RUN_TIME, TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, terminate,
+                                      (UINT64) pSampleConfiguration, &terminateId));
+
         CHK_STATUS(sessionCleanupWait(pSampleConfiguration));
         DLOGI("[KVS Master] Streaming session terminated");
         if (retStatus != STATUS_SUCCESS) {

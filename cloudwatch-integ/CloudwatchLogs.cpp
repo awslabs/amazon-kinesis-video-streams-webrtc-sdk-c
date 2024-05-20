@@ -18,7 +18,7 @@ STATUS CloudwatchLogs::init(PCHAR channelName, PCHAR region, BOOL isMaster)
                          << GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
 
     this->logStreamName = defaultLogStreamName.str();
-    this->logGroupName = CANARY_DEFAULT_LOG_GROUP_NAME;
+    this->logGroupName = CLOUDWATCH_DEFAULT_LOG_GROUP_NAME;
 
     DLOGI("Log stream name: %s", this->logStreamName.c_str());
 

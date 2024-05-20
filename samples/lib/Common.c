@@ -1,6 +1,5 @@
 #define LOG_CLASS "WebRtcSamples"
 #include "../Samples.h"
-#include SAMPLE_CONFIG_HEADER
 
 PSampleConfiguration gSampleConfiguration = NULL;
 
@@ -13,23 +12,23 @@ VOID sigintHandler(INT32 sigNum)
     }
 }
 
-STATUS terminate(UINT32 timerId, UINT64 currentTime, UINT64 customData)
-{
-    DLOGI("Terminate");
-    if (gSampleConfiguration != NULL) {
-        ATOMIC_STORE_BOOL(&gSampleConfiguration->interrupted, TRUE);
-        ATOMIC_STORE_BOOL(&gSampleConfiguration->appTerminateFlag, TRUE);
-        CVAR_BROADCAST(gSampleConfiguration->cvar);
-    }
-    return STATUS_SUCCESS;
-}
-
 STATUS signalingCallFailed(STATUS status)
 {
     return (STATUS_SIGNALING_GET_TOKEN_CALL_FAILED == status || STATUS_SIGNALING_DESCRIBE_CALL_FAILED == status ||
             STATUS_SIGNALING_CREATE_CALL_FAILED == status || STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED == status ||
             STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED == status || STATUS_SIGNALING_CONNECT_CALL_FAILED == status ||
             STATUS_SIGNALING_DESCRIBE_MEDIA_CALL_FAILED == status);
+}
+
+STATUS terminate(UINT32 timerId, UINT64 currentTime, UINT64 customData)
+{
+    DLOGI("Terminating the app");
+    if (gSampleConfiguration != NULL) {
+        ATOMIC_STORE_BOOL(&gSampleConfiguration->interrupted, TRUE);
+        ATOMIC_STORE_BOOL(&gSampleConfiguration->appTerminateFlag, TRUE);
+        CVAR_BROADCAST(gSampleConfiguration->cvar);
+    }
+    return STATUS_SUCCESS;
 }
 
 VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newState)
@@ -171,7 +170,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
 
     // Set the ICE mode explicitly
 
-    if (FORCE_TURN_ONLY) {
+    if (pSampleConfiguration->forceTurn) {
         configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
     } else {
         configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
@@ -266,8 +265,6 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     pSampleStreamingSession->offerReceiveTime = GETTIME();
     CHK(pSampleStreamingSession != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
-    CHK_STATUS(setupMetricsCtx(pSampleStreamingSession));
-
     if (isMaster) {
         STRCPY(pSampleStreamingSession->peerId, peerId);
     } else {
@@ -290,8 +287,12 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
         pSampleStreamingSession->twccMetadata.updateLock = MUTEX_CREATE(TRUE);
     }
 
-    pSampleStreamingSession->pStatsCtx->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime =
-        GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    if(pSampleConfiguration->enableMetrics) {
+        CHK_STATUS(setupMetricsCtx(pSampleStreamingSession));
+        pSampleStreamingSession->pStatsCtx->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime =
+                GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    }
+
     // Flag to enable SDK to calculate selected ice server, local, remote and candidate pair stats.
     pSampleConfiguration->enableIceStats = FALSE;
 
@@ -346,6 +347,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
                                                              sampleSenderBandwidthEstimationHandler));
     }
     pSampleStreamingSession->startUpLatency = 0;
+
 CleanUp:
 
     if (STATUS_FAILED(retStatus) && pSampleStreamingSession != NULL) {
@@ -519,17 +521,17 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
 
     CHK(NULL != (pSampleConfiguration = (PSampleConfiguration) MEMCALLOC(1, SIZEOF(SampleConfiguration))), STATUS_NOT_ENOUGH_MEMORY);
-    if (IOT_CORE_ENABLE_CREDENTIALS) {
-        CHK_ERR((pIotCoreCredentialEndPoint = GETENV(IOT_CORE_CREDENTIAL_ENDPOINT)) != NULL, STATUS_INVALID_OPERATION,
-                "AWS_IOT_CORE_CREDENTIAL_ENDPOINT must be set");
-        CHK_ERR((pIotCoreCert = GETENV(IOT_CORE_CERT)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_CERT must be set");
-        CHK_ERR((pIotCorePrivateKey = GETENV(IOT_CORE_PRIVATE_KEY)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_PRIVATE_KEY must be set");
-        CHK_ERR((pIotCoreRoleAlias = GETENV(IOT_CORE_ROLE_ALIAS)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_ROLE_ALIAS must be set");
-        CHK_ERR((pIotCoreThingName = GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
-    } else {
-        CHK_ERR((pAccessKey = GETENV(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
-        CHK_ERR((pSecretKey = GETENV(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
-    }
+#ifdef IOT_CORE_ENABLE_CREDENTIALS
+    CHK_ERR((pIotCoreCredentialEndPoint = GETENV(IOT_CORE_CREDENTIAL_ENDPOINT)) != NULL, STATUS_INVALID_OPERATION,
+            "AWS_IOT_CORE_CREDENTIAL_ENDPOINT must be set");
+    CHK_ERR((pIotCoreCert = GETENV(IOT_CORE_CERT)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_CERT must be set");
+    CHK_ERR((pIotCorePrivateKey = GETENV(IOT_CORE_PRIVATE_KEY)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_PRIVATE_KEY must be set");
+    CHK_ERR((pIotCoreRoleAlias = GETENV(IOT_CORE_ROLE_ALIAS)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_ROLE_ALIAS must be set");
+    CHK_ERR((pIotCoreThingName = GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
+#else
+    CHK_ERR((pAccessKey = GETENV(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
+    CHK_ERR((pSecretKey = GETENV(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
+#endif
     pSessionToken = GETENV(SESSION_TOKEN_ENV_VAR);
     if (pSessionToken != NULL && IS_EMPTY_STRING(pSessionToken)) {
         DLOGW("Session token is set but its value is empty. Ignoring.");
@@ -563,13 +565,13 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 
     CHK_STATUS(lookForSslCert(&pSampleConfiguration));
 
-    if (IOT_CORE_ENABLE_CREDENTIALS) {
-        CHK_STATUS(createLwsIotCredentialProvider(pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pSampleConfiguration->pCaCertPath,
-                                                  pIotCoreRoleAlias, pIotCoreThingName, &pSampleConfiguration->pCredentialProvider));
-    } else {
-        CHK_STATUS(
-            createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pSampleConfiguration->pCredentialProvider));
-    }
+#ifdef IOT_CORE_ENABLE_CREDENTIALS
+    CHK_STATUS(createLwsIotCredentialProvider(pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pSampleConfiguration->pCaCertPath,
+                                              pIotCoreRoleAlias, pIotCoreThingName, &pSampleConfiguration->pCredentialProvider));
+#else
+    CHK_STATUS(
+        createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pSampleConfiguration->pCredentialProvider));
+#endif
 
     pSampleConfiguration->mediaSenderTid = INVALID_TID_VALUE;
     pSampleConfiguration->audioSenderTid = INVALID_TID_VALUE;
@@ -579,22 +581,23 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->cvar = CVAR_CREATE();
     pSampleConfiguration->streamingSessionListReadLock = MUTEX_CREATE(FALSE);
     pSampleConfiguration->signalingSendMessageLock = MUTEX_CREATE(FALSE);
+    pSampleConfiguration->forceTurn = FALSE;
 
     /* This is ignored for master. Master can extract the info from offer. Viewer has to know if peer can trickle or
      * not ahead of time. */
 
-    pSampleConfiguration->trickleIce = USE_TRICKLE_ICE;
-    pSampleConfiguration->useTurn = USE_TURN;
-    pSampleConfiguration->enableSendingMetricsToViewerViaDc = ENABLE_TTFF_VIA_DC;
+    pSampleConfiguration->trickleIce = trickleIce;
+    pSampleConfiguration->useTurn = useTurn;
+    pSampleConfiguration->enableSendingMetricsToViewerViaDc = FALSE;
     pSampleConfiguration->receiveAudioVideoSource = NULL;
 
     pSampleConfiguration->channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
-    pSampleConfiguration->channelInfo.pChannelName = CHANNEL_NAME;
-    if (IOT_CORE_ENABLE_CREDENTIALS) {
-        if ((pIotCoreCertificateId = GETENV(IOT_CORE_CERTIFICATE_ID)) != NULL) {
-            pSampleConfiguration->channelInfo.pChannelName = pIotCoreCertificateId;
-        }
+    pSampleConfiguration->channelInfo.pChannelName = channelName;
+#ifdef IOT_CORE_ENABLE_CREDENTIALS
+    if ((pIotCoreCertificateId = GETENV(IOT_CORE_CERTIFICATE_ID)) != NULL) {
+        pSampleConfiguration->channelInfo.pChannelName = pIotCoreCertificateId;
     }
+#endif
 
     pSampleConfiguration->channelInfo.pKmsKeyId = NULL;
     pSampleConfiguration->channelInfo.tagCount = 0;
@@ -608,7 +611,6 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->channelInfo.reconnect = TRUE;
     pSampleConfiguration->channelInfo.pCertPath = pSampleConfiguration->pCaCertPath;
     pSampleConfiguration->channelInfo.messageTtl = 0; // Default is 60 seconds
-    pSampleConfiguration->channelInfo.useMediaStorage = ENABLE_STORAGE;
 
     pSampleConfiguration->signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     pSampleConfiguration->signalingClientCallbacks.errorReportFn = signalingClientError;
@@ -640,20 +642,17 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     CHK_STATUS(stackQueueCreate(&pSampleConfiguration->pregeneratedCertificates));
 
     // Start the cert pre-gen timer callback
-    if (SAMPLE_PRE_GENERATE_CERT) {
-        CHK_LOG_ERR(retStatus =
-                        timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, 0, SAMPLE_PRE_GENERATE_CERT_PERIOD, pregenerateCertTimerCallback,
-                                           (UINT64) pSampleConfiguration, &pSampleConfiguration->pregenerateCertTimerId));
-    }
+#ifdef SAMPLE_PRE_GENERATE_CERT
+    CHK_LOG_ERR(retStatus =
+                    timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, 0, SAMPLE_PRE_GENERATE_CERT_PERIOD, pregenerateCertTimerCallback,
+                                       (UINT64) pSampleConfiguration, &pSampleConfiguration->pregenerateCertTimerId));
+#endif
 
     pSampleConfiguration->iceUriCount = 0;
 
     CHK_STATUS(stackQueueCreate(&pSampleConfiguration->pPendingSignalingMessageForRemoteClient));
     CHK_STATUS(hashTableCreateWithParams(SAMPLE_HASH_TABLE_BUCKET_COUNT, SAMPLE_HASH_TABLE_BUCKET_LENGTH,
                                          &pSampleConfiguration->pRtcPeerConnectionForRemoteClient));
-
-    CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, SAMPLE_RUN_TIME, TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, terminate,
-                                  (UINT64) pSampleConfiguration, &pSampleConfiguration->terminateId));
 CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
@@ -876,11 +875,13 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         CVAR_FREE(pSampleConfiguration->cvar);
     }
 
-    if (IOT_CORE_ENABLE_CREDENTIALS) {
-        freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
-    } else {
-        freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);
-    }
+#ifdef IOT_CORE_ENABLE_CREDENTIALS
+    freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
+}
+else
+{
+    freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);
+#endif
 
     if (pSampleConfiguration->pregeneratedCertificates != NULL) {
         stackQueueGetIterator(pSampleConfiguration->pregeneratedCertificates, &iterator);

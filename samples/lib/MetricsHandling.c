@@ -3,7 +3,14 @@
 STATUS setupMetricsCtx(PSampleStreamingSession pSampleStreamingSession)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    if (ENABLE_METRICS) {
+    if(pSampleStreamingSession == NULL) {
+        DLOGI("NUll");
+    }
+    if(pSampleStreamingSession->pSampleConfiguration == NULL) {
+        DLOGI("bykkbedk");
+    }
+    CHK(pSampleStreamingSession != NULL && pSampleStreamingSession->pSampleConfiguration != NULL, STATUS_NULL_ARG);
+    if (pSampleStreamingSession->pSampleConfiguration->enableMetrics) {
         CHK(NULL != (pSampleStreamingSession->pStatsCtx = (PStatsCtx) MEMCALLOC(1, SIZEOF(StatsCtx))), STATUS_NOT_ENOUGH_MEMORY);
     }
 CleanUp:

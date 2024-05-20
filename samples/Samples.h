@@ -11,11 +11,9 @@ extern "C" {
 #endif
 
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
-#include SAMPLE_CONFIG_HEADER
 
 #define KVS_DEFAULT_MEDIA_SENDER_THREAD_STACK_SIZE 64 * 1024
 #define KVS_MINIMUM_THREAD_STACK_SIZE              16 * 1024
-
 #define NUMBER_OF_H264_FRAME_FILES               1500
 #define NUMBER_OF_H265_FRAME_FILES               1500
 #define NUMBER_OF_OPUS_FRAME_FILES               618
@@ -49,6 +47,7 @@ extern "C" {
 #define SAMPLE_STATS_DURATION       (60 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define SAMPLE_VIDEO_FRAME_DURATION (HUNDREDS_OF_NANOS_IN_A_SECOND / DEFAULT_FPS_VALUE)
 
+#define SAMPLE_PRE_GENERATE_CERT        TRUE
 #define SAMPLE_PRE_GENERATE_CERT_PERIOD (1000 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
 #define SAMPLE_SESSION_CLEANUP_WAIT_PERIOD (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
@@ -177,13 +176,14 @@ typedef struct {
     MUTEX signalingSendMessageLock;
 
     UINT32 pregenerateCertTimerId;
-    UINT32 terminateId;
     PStackQueue pregeneratedCertificates; // Max MAX_RTCCONFIGURATION_CERTIFICATES certificates
 
     PCHAR rtspUri;
     UINT32 logLevel;
     BOOL enableIceStats;
     BOOL enableTwcc;
+    BOOL forceTurn;
+    BOOL enableMetrics;
     SignalingClientMetrics signalingClientMetrics;
 } SampleConfiguration, *PSampleConfiguration;
 
@@ -355,6 +355,7 @@ VOID onIceCandidateHandler(UINT64, PCHAR);
 PVOID mediaSenderRoutine(PVOID);
 STATUS setupMetricsCtx(PSampleStreamingSession);
 STATUS getSdkTimeProfile(PSampleStreamingSession);
+STATUS terminate(UINT32 timerId, UINT64 currentTime, UINT64 customData);
 #ifdef __cplusplus
 }
 #endif

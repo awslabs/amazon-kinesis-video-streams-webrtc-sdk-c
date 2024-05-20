@@ -91,7 +91,6 @@ VOID videoFrameHandler(UINT64 customData, PFrame pFrame)
 VOID audioFrameHandler(UINT64 customData, PFrame pFrame)
 {
     UNUSED_PARAM(customData);
-    DLOGD("Audio Frame received. TrackId: %" PRIu64 ", Size: %u, Flags %u", pFrame->trackId, pFrame->size, pFrame->flags);
 }
 
 INT32 main(INT32 argc, CHAR* argv[])
@@ -116,10 +115,13 @@ INT32 main(INT32 argc, CHAR* argv[])
         signal(SIGINT, sigintHandler);
 #endif
 
-        CHK_STATUS(createSampleConfiguration(CHANNEL_NAME, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, TRUE, TRUE, logLevel, &pSampleConfiguration));
+        CHK_STATUS(createSampleConfiguration(CHANNEL_NAME, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, USE_TRICKLE_ICE, USE_TURN, logLevel, &pSampleConfiguration));
         pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
         pSampleConfiguration->audioCodec = AUDIO_CODEC;
         pSampleConfiguration->videoCodec = VIDEO_CODEC;
+        pSampleConfiguration->forceTurn = FORCE_TURN_ONLY;
+        pSampleConfiguration->enableMetrics = ENABLE_METRICS;
+        pSampleConfiguration->channelInfo.useMediaStorage = USE_STORAGE;
 
         // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
         CHK_STATUS(initKvsWebRtc());

@@ -12,6 +12,11 @@ link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
 find_package(ZLIB REQUIRED)
 find_package(AWSSDK REQUIRED COMPONENTS monitoring logs)
 
+set(SAMPLE_CONFIG_HEADER "config_periodic.h" CACHE FILEPATH "Config header")
+
+add_definitions(-DSAMPLE_CONFIG_HEADER="${SAMPLE_CONFIG_HEADER}")
+message(STATUS ${SAMPLE_CONFIG_HEADER})
+
 add_executable(
         kvsWebrtcClientMasterCW
         ../samples/lib/Common.c
