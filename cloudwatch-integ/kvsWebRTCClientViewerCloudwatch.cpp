@@ -107,6 +107,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     CHAR channelName[MAX_CHANNEL_NAME_LEN];
     PCHAR channelNamePrefix;
     UINT32 e2eTimerId = MAX_UINT32;
+    UINT32 terminateId = MAX_UINT32;
     Aws::SDKOptions options;
     Aws::InitAPI(options);
     {
@@ -218,7 +219,8 @@ INT32 main(INT32 argc, CHAR* argv[])
 
         CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, END_TO_END_METRICS_INVOCATION_PERIOD, END_TO_END_METRICS_INVOCATION_PERIOD,
                                       endToendStatsCallback, (UINT64) pSampleStreamingSession, &e2eTimerId));
-
+        CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, RUN_TIME, TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, terminate,
+                                      (UINT64) pSampleConfiguration, &terminateId));
         // Block until interrupted
         while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted) && !ATOMIC_LOAD_BOOL(&pSampleStreamingSession->terminateFlag)) {
             THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
