@@ -84,6 +84,7 @@ PVOID sendVideoPackets(PVOID args)
     UINT32 minFrameSize = FRAME_METADATA_SIZE + ((DEFAULT_BITRATE / 8) / DEFAULT_FRAMERATE);
     UINT32 maxFrameSize = (FRAME_METADATA_SIZE + ((DEFAULT_BITRATE / 8) / DEFAULT_FRAMERATE)) * 2;
     PBYTE frameData = NULL;
+    UINT64 firstFrameTime = 0;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
 
     frameData = (PBYTE) MEMALLOC(maxFrameSize);
@@ -127,7 +128,8 @@ PVOID sendVideoPackets(PVOID args)
             pSampleConfiguration->sampleStreamingSessionList[i]->pStatsCtx->outgoingRTPStatsCtx.videoFramesGenerated++;
             pSampleConfiguration->sampleStreamingSessionList[i]->pStatsCtx->outgoingRTPStatsCtx.videoBytesGenerated += frame.size;
             if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame && status == STATUS_SUCCESS) {
-                PROFILE_WITH_START_TIME(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, "Time to first frame");
+                PROFILE_WITH_START_TIME_OBJ(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, firstFrameTime, "Time to first frame");
+                CppInteg::Cloudwatch::getInstance().monitoring.pushTimeToFirstFrame(firstFrameTime, Aws::CloudWatch::Model::StandardUnit::Milliseconds);
                 pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame = FALSE;
             }
             if (status != STATUS_SRTP_NOT_READY_YET) {
