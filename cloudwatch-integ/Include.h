@@ -15,6 +15,7 @@
 #define NUMBER_OF_H264_FRAME_FILES  1500
 #define NUMBER_OF_OPUS_FRAME_FILES  618
 
+#define CHANNEL_NAME_TEMPLATE   (PCHAR) "%s-%s"
 #define FRAME_METADATA_SIZE (SIZEOF(UINT64) + SIZEOF(UINT32) + SIZEOF(UINT32))
 #define ANNEX_B_NALU_SIZE    4
 
@@ -22,10 +23,6 @@
 
 #define STORAGE_CANARY_FIRST_FRAME_TS_FILE_ENV_VAR       "STORAGE_CANARY_FIRST_FRAME_TS_FILE"
 
-#define CLOUDWATCH_DEFAULT_LABEL                   "ScaryTestLabel"
-#define CLOUDWATCH_DEFAULT_CHANNEL_NAME            "ScaryTestStream"
-#define CLOUDWATCH_DEFAULT_CLIENT_ID               "DefaultClientId"
-#define CLOUDWATCH_DEFAULT_LOG_GROUP_NAME          "DefaultLogGroupName"
 #define FIRST_FRAME_TS_FILE_PATH                   "../"
 #define STORAGE_CANARY_DEFAULT_FIRST_FRAME_TS_FILE "DefaultFirstFrameSentTSFileName.txt"
 

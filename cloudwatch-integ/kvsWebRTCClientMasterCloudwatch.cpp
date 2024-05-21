@@ -219,6 +219,8 @@ INT32 main(INT32 argc, CHAR* argv[])
     SignalingClientMetrics signalingClientMetrics;
     PCHAR region;
     UINT32 terminateId = MAX_UINT32;
+    CHAR channelName[MAX_CHANNEL_NAME_LEN];
+    PCHAR channelNamePrefix;
     Aws::SDKOptions options;
     Aws::InitAPI(options);
     {
@@ -227,7 +229,11 @@ INT32 main(INT32 argc, CHAR* argv[])
         initKvsWebRtc();
 
         UINT32 logLevel = setLogLevel();
-        CHK_STATUS(createSampleConfiguration(CHANNEL_NAME, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, USE_TRICKLE_ICE, USE_TURN, logLevel, &pSampleConfiguration));
+
+        channelNamePrefix = argc > 1 ? argv[1] : CHANNEL_NAME_PREFIX;
+        SNPRINTF(channelName, SIZEOF(channelName), CHANNEL_NAME_TEMPLATE, channelNamePrefix, RUNNER_LABEL);
+
+        CHK_STATUS(createSampleConfiguration(channelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, USE_TRICKLE_ICE, USE_TURN, logLevel, &pSampleConfiguration));
 
         // Set the audio and video handlers
         pSampleConfiguration->audioSource = sendAudioPackets;
@@ -242,7 +248,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         if ((region = GETENV(DEFAULT_REGION_ENV_VAR)) == NULL) {
             region = (PCHAR) DEFAULT_AWS_REGION;
         }
-        CppInteg::Cloudwatch::init(CHANNEL_NAME, region, TRUE);
+        CppInteg::Cloudwatch::init(channelName, region, TRUE);
 
         if(ENABLE_DATA_CHANNEL) {
             pSampleConfiguration->onDataChannel = onDataChannel;
@@ -266,7 +272,7 @@ INT32 main(INT32 argc, CHAR* argv[])
                 pSampleConfiguration->signalingClientMetrics.signalingEndTime, pSampleConfiguration->signalingClientMetrics.signalingCallTime,
                 "Initialize signaling client and connect to the signaling channel");
 
-        DLOGI("[KVS Master] Channel %s set up done ", CHANNEL_NAME);
+        DLOGI("[KVS Master] Channel %s set up done ", channelName);
 
         std::thread pushProfilingThread(sendProfilingMetrics, pSampleConfiguration);
         pushProfilingThread.join();

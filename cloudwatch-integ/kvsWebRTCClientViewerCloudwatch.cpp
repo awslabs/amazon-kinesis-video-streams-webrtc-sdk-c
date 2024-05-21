@@ -104,6 +104,8 @@ INT32 main(INT32 argc, CHAR* argv[])
     BOOL locked = FALSE;
     CHAR clientId[256];
     PCHAR region;
+    CHAR channelName[MAX_CHANNEL_NAME_LEN];
+    PCHAR channelNamePrefix;
     UINT32 e2eTimerId = MAX_UINT32;
     Aws::SDKOptions options;
     Aws::InitAPI(options);
@@ -115,7 +117,10 @@ INT32 main(INT32 argc, CHAR* argv[])
         signal(SIGINT, sigintHandler);
 #endif
 
-        CHK_STATUS(createSampleConfiguration(CHANNEL_NAME, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, USE_TRICKLE_ICE, USE_TURN, logLevel, &pSampleConfiguration));
+        channelNamePrefix = argc > 1 ? argv[1] : CHANNEL_NAME_PREFIX;
+        SNPRINTF(channelName, SIZEOF(channelName), CHANNEL_NAME_TEMPLATE, channelNamePrefix, RUNNER_LABEL);
+
+        CHK_STATUS(createSampleConfiguration(channelName, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, USE_TRICKLE_ICE, USE_TURN, logLevel, &pSampleConfiguration));
         pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
         pSampleConfiguration->audioCodec = AUDIO_CODEC;
         pSampleConfiguration->videoCodec = VIDEO_CODEC;
@@ -134,7 +139,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         if ((region = GETENV(DEFAULT_REGION_ENV_VAR)) == NULL) {
             region = (PCHAR) DEFAULT_AWS_REGION;
         }
-        CppInteg::Cloudwatch::init(CHANNEL_NAME, region, FALSE);
+        CppInteg::Cloudwatch::init(channelName, region, FALSE);
 
         SNPRINTF(clientId, SIZEOF(clientId), "%s_%u", SAMPLE_VIEWER_CLIENT_ID, RAND() % MAX_UINT32);
         CHK_STATUS(initSignaling(pSampleConfiguration, clientId));
@@ -203,7 +208,7 @@ INT32 main(INT32 argc, CHAR* argv[])
             SIZE_T datachannelLocalOpenCount = 0;
 
             // Creating a new datachannel on the peer connection of the existing sample streaming session
-            CHK_STATUS(createDataChannel(pPeerConnection, CHANNEL_NAME, NULL, &pDataChannel));
+            CHK_STATUS(createDataChannel(pPeerConnection, channelName, NULL, &pDataChannel));
             DLOGI("[KVS Viewer] Creating data channel...completed");
 
             // Setting a callback for when the data channel is open
