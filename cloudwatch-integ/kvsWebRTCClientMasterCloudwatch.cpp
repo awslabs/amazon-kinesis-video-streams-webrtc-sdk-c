@@ -278,7 +278,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         pushProfilingThread.join();
         // Checking for termination
 
-        CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, SAMPLE_RUN_TIME, TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, terminate,
+        CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, RUN_TIME, TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, terminate,
                                       (UINT64) pSampleConfiguration, &terminateId));
 
         CHK_STATUS(sessionCleanupWait(pSampleConfiguration));

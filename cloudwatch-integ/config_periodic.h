@@ -11,7 +11,7 @@
 #define ENABLE_STORAGE              FALSE
 #define ENABLE_METRICS              TRUE
 #define SAMPLE_PRE_GENERATE_CERT    TRUE
-#define SAMPLE_RUN_TIME             (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define RUN_TIME                    (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define LOG_GROUP_NAME              (PCHAR) "WebrtcSDK"
 #define CHANNEL_NAME_PREFIX         (PCHAR) "DEFAULT"
 #define USE_STORAGE                 FALSE
