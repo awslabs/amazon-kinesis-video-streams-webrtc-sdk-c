@@ -215,10 +215,10 @@ VOID sampleVideoFrameHandlerCW(UINT64 customData, PFrame pFrame)
 
 INT32 main(INT32 argc, CHAR* argv[])
 {
+    printf("Starting....");
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 frameSize;
     PSampleConfiguration pSampleConfiguration = NULL;
-    SignalingClientMetrics signalingClientMetrics;
     PCHAR region;
     UINT32 terminateId = MAX_UINT32;
     CHAR channelName[MAX_CHANNEL_NAME_LEN];
@@ -300,13 +300,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         if (pSampleConfiguration->mediaSenderTid != INVALID_TID_VALUE) {
             THREAD_JOIN(pSampleConfiguration->mediaSenderTid, NULL);
         }
-
-        retStatus = signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &signalingClientMetrics);
-        if (retStatus == STATUS_SUCCESS) {
-            logSignalingClientStats(&signalingClientMetrics);
-        } else {
-            DLOGE("[KVS Master] signalingClientGetMetrics() operation returned status code: 0x%08x", retStatus);
-        }
+        
         retStatus = freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
         if (retStatus != STATUS_SUCCESS) {
             DLOGE("[KVS Master] freeSignalingClient(): operation returned status code: 0x%08x", retStatus);
