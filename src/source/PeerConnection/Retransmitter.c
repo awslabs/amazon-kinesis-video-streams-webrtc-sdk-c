@@ -1,6 +1,21 @@
 #define LOG_CLASS "Retransmitter"
 
 #include "../Include_i.h"
+/**
+    Layout of Retransmitter
+     0                                                            [ PSequenceNumberList ]
+     8                                                            [ seqNumberListLen ]
+    12                                                            [ validIndexList ]
+    16                                                            [ PValidIndexList ]
+    24 (PSequenceNumberList)                                      [ seq_num_0 ]
+    26 (PSequenceNumberList + 1)                                  [ seq_num_1 ]
+    ...
+    (PSequenceNumberList + seqNumListLen - 1)                     [ seq_num_{seqNumListLen - 1} ]
+    PValidIndexList = (PSequenceNumberList + seqNumListLen)       [ valid_index_0 ]
+    (PValidIndexList + 1)                                         [ valid_index_1 ]
+    ...
+    (PValidIndexList + validIndexLen - 1)                         [ valid_index_{seqNumListLen - 1} ]
+**/
 
 STATUS createRetransmitter(UINT32 seqNumListLen, UINT32 validIndexListLen, PRetransmitter* ppRetransmitter)
 {
@@ -105,7 +120,7 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
             }
             // putBackPacketToRollingBuffer
             retStatus =
-                rollingBufferInsertData(pSenderTranceiver->sender.packetBuffer->pRollingBuffer, pRetransmitter->sequenceNumberList[index], item);
+                rollingBufferInsertData(pSenderTranceiver->sender.packetBuffer->pRollingBuffer, pRetransmitter->validIndexList[index], item);
             CHK(retStatus == STATUS_SUCCESS || retStatus == STATUS_ROLLING_BUFFER_NOT_IN_RANGE, retStatus);
 
             // free the packet if it is not in the valid range any more

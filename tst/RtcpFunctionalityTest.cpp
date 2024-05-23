@@ -168,6 +168,40 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketCompoundNack)
     freeRtpPacket(&pRtpPacket);
 }
 
+TEST_F(RtcpFunctionalityTest, createRetransmitterTest)
+{
+    PRtpPacket pRtpPacket = nullptr;
+    RtcOutboundRtpStreamStats stats{};
+    BYTE validRtcpPacket[] = {0x81, 0xcd, 0x00, 0x03, 0x2c, 0xd1, 0xa0, 0xde, 0x00, 0x00, 0xab, 0xe0, 0x00, 0x00, 0x00, 0x00};
+    initTransceiver(44000);
+    EXPECT_EQ(createRtpRollingBuffer(DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS * DEFAULT_EXPECTED_VIDEO_BIT_RATE / 8 / DEFAULT_MTU_SIZE_BYTES,
+                                     &pKvsRtpTransceiver->sender.packetBuffer), STATUS_SUCCESS);
+    EXPECT_EQ(createRetransmitter(1, 1, &pKvsRtpTransceiver->sender.retransmitter), STATUS_SUCCESS);
+
+    UINT16 x = 65000;
+    UINT64 y = 829482422;
+
+    pKvsRtpTransceiver->sender.retransmitter->sequenceNumberList[0] = x;
+    pKvsRtpTransceiver->sender.retransmitter->validIndexList[0] = y;
+
+    EXPECT_EQ(pKvsRtpTransceiver->sender.retransmitter->seqNumListLen, 1);
+    EXPECT_EQ(pKvsRtpTransceiver->sender.retransmitter->validIndexListLen, 1);
+
+    DLOGD("ReTransmitter:  \n%p\n%p\n%p\n%p\n%p\n", (void*)pKvsRtpTransceiver->sender.retransmitter, (void*)pKvsRtpTransceiver->sender.retransmitter->sequenceNumberList,
+          (void*)(&pKvsRtpTransceiver->sender.retransmitter->seqNumListLen),(void*)(&pKvsRtpTransceiver->sender.retransmitter->validIndexListLen),
+          (void*)pKvsRtpTransceiver->sender.retransmitter->validIndexList);
+
+    //EXPECT_EQ(createRtpPacketWithSeqNum(0, &pRtpPacket), STATUS_SUCCESS);
+    //EXPECT_EQ(rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket), STATUS_SUCCESS);
+    //EXPECT_EQ(onRtcpPacket(pKvsPeerConnection, validRtcpPacket, SIZEOF(validRtcpPacket)), STATUS_SUCCESS);
+    //getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats);
+    //EXPECT_EQ(stats.nackCount, 1);
+    //EXPECT_EQ(stats.retransmittedPacketsSent, 1);
+    //EXPECT_EQ(stats.retransmittedBytesSent, 10);
+    EXPECT_EQ(freePeerConnection(&pRtcPeerConnection), STATUS_SUCCESS);
+    //freeRtpPacket(&pRtpPacket);
+}
+
 TEST_F(RtcpFunctionalityTest, onRtcpPacketCompound)
 {
     KvsPeerConnection peerConnection{};
