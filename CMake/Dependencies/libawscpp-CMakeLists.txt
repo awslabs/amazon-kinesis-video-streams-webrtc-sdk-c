@@ -17,10 +17,11 @@ ExternalProject_Add(libawscpp-download
     GIT_REPOSITORY    https://github.com/aws/aws-sdk-cpp.git
     GIT_TAG           1.11.143
     LIST_SEPARATOR    "|"
-    CMAKE_ARGS       -DBUILD_SHARED_LIBS=OFF
+    CMAKE_ARGS       -DBUILD_SHARED_LIBS=ON
                      -DENABLE_TESTING=OFF
                      -DBUILD_ONLY=${BUILD_ONLY}
                      -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}
+                     -DCMAKE_PREFIX_PATH=${OPEN_SRC_INSTALL_PREFIX}
                      -DTARGET_ARCH=${TARGET_ARCH}
                      -DCUSTOM_MEMORY_MANAGEMENT=OFF
     BUILD_ALWAYS      TRUE

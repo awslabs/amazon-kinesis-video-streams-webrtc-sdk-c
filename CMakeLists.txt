@@ -252,15 +252,17 @@ if(BUILD_DEPENDENCIES)
     build_dependency(gperftools)
   endif()
 
-  if(AWS_SDK_INTEG)
-    message(STATUS "Building...")
-    set(BUILD_ARGS
-            -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-            -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
-            -DBUILD_ONLY=monitoring|logs)
-    build_dependency(awscpp ${BUILD_ARGS})
-  endif()
   message(STATUS "Finished building dependencies.")
+endif()
+
+
+if(AWS_SDK_INTEG)
+  message(STATUS "Building...")
+  set(BUILD_ARGS
+          -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+          -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
+          -DBUILD_ONLY=monitoring|logs)
+  build_dependency(awscpp ${BUILD_ARGS})
 endif()
 
 # building kvsCommonLws also builds kvspic

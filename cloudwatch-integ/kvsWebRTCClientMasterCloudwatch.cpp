@@ -224,6 +224,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     CHAR channelName[MAX_CHANNEL_NAME_LEN];
     PCHAR channelNamePrefix;
     Aws::SDKOptions options;
+    options.httpOptions.installSigPipeHandler = true;
     Aws::InitAPI(options);
     {
         SET_INSTRUMENTED_ALLOCATORS();
@@ -260,14 +261,6 @@ INT32 main(INT32 argc, CHAR* argv[])
         pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
         DLOGI("[KVS CW Master] Finished setting handlers");
 
-        // Check if the samples are present
-
-        readFrameFromDisk(NULL, &frameSize, (PCHAR) "./h264SampleFrames/frame-0001.h264");
-        DLOGI("[KVS Master] Checked sample video frame availability....available");
-
-        readFrameFromDisk(NULL, &frameSize, (PCHAR) "./opusSampleFrames/sample-001.opus");
-        DLOGI("[KVS Master] Checked sample audio frame availability....available");
-
         DLOGI("[KVS Master] KVS WebRTC initialization completed successfully");
 
         PROFILE_CALL_WITH_START_END_T_OBJ(
@@ -291,7 +284,8 @@ INT32 main(INT32 argc, CHAR* argv[])
         }
     }
 
-    CleanUp:
+CleanUp:
+    Aws::ShutdownAPI(options);
     DLOGI("[KVS Master] Cleaning up....");
     if (pSampleConfiguration != NULL) {
         // Kick of the termination sequence
@@ -300,7 +294,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         if (pSampleConfiguration->mediaSenderTid != INVALID_TID_VALUE) {
             THREAD_JOIN(pSampleConfiguration->mediaSenderTid, NULL);
         }
-        
+
         retStatus = freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
         if (retStatus != STATUS_SUCCESS) {
             DLOGE("[KVS Master] freeSignalingClient(): operation returned status code: 0x%08x", retStatus);
