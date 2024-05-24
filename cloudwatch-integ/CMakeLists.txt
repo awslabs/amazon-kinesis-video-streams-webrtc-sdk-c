@@ -12,22 +12,22 @@ link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
 find_package(ZLIB REQUIRED)
 find_package(AWSSDK REQUIRED COMPONENTS monitoring logs)
 
-set(SAMPLE_CONFIG_HEADER "config_periodic.h" CACHE FILEPATH "Config header")
+set(SAMPLE_CONFIG_HEADER "configs/lr_iot_h264_openssl.h" CACHE FILEPATH "Config header")
 
 add_definitions(-DSAMPLE_CONFIG_HEADER="${SAMPLE_CONFIG_HEADER}")
 message(STATUS ${SAMPLE_CONFIG_HEADER})
 
 add_executable(
         kvsWebrtcClientMasterCW
+        Cloudwatch.cpp
+        CloudwatchLogs.cpp
+        CloudwatchMonitoring.cpp
         ../samples/lib/Common.c
         ../samples/lib/Utility.c
         ../samples/lib/MetricsHandling.c
         ../samples/lib/DataChannelHandling.c
         ../samples/lib/SignalingMsgHandler.c
         ../samples/lib/Media.c
-        Cloudwatch.cpp
-        CloudwatchLogs.cpp
-        CloudwatchMonitoring.cpp
         kvsWebRTCClientMasterCloudwatch.cpp)
 target_link_libraries(kvsWebrtcClientMasterCW
                       kvsWebrtcClient

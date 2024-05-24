@@ -3,10 +3,10 @@
 STATUS setupMetricsCtx(PSampleStreamingSession pSampleStreamingSession)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    if(pSampleStreamingSession == NULL) {
+    if (pSampleStreamingSession == NULL) {
         DLOGI("NUll");
     }
-    if(pSampleStreamingSession->pSampleConfiguration == NULL) {
+    if (pSampleStreamingSession->pSampleConfiguration == NULL) {
         DLOGI("bykkbedk");
     }
     CHK(pSampleStreamingSession != NULL && pSampleStreamingSession->pSampleConfiguration != NULL, STATUS_NULL_ARG);

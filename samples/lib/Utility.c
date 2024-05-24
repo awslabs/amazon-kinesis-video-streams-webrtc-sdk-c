@@ -191,3 +191,44 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
     return retStatus;
 }
+
+STATUS setUpCredentialProvider(PSampleConfiguration pSampleConfiguration, BOOL useIot)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PCHAR pAccessKey, pSecretKey, pSessionToken;
+    PCHAR pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pIotCoreRoleAlias, pIotCoreCertificateId, pIotCoreThingName;
+    CHK_ERR(pSampleConfiguration != NULL, STATUS_NULL_ARG, "Set up pSampleConfiguration first by invoking createSampleConfiguration");
+
+    pSampleConfiguration->useIot = useIot;
+    CHK_WARN(pSampleConfiguration->pCredentialProvider == NULL, STATUS_SUCCESS, "Credential provider already set, nothing to do");
+
+    CHK_STATUS(lookForSslCert(&pSampleConfiguration));
+    pSampleConfiguration->channelInfo.pCertPath = pSampleConfiguration->pCaCertPath;
+    if (useIot) {
+        DLOGI("USE IOT");
+        CHK_ERR((pIotCoreCredentialEndPoint = GETENV(IOT_CORE_CREDENTIAL_ENDPOINT)) != NULL, STATUS_INVALID_OPERATION,
+                "AWS_IOT_CORE_CREDENTIAL_ENDPOINT must be set");
+        CHK_ERR((pIotCoreCert = GETENV(IOT_CORE_CERT)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_CERT must be set");
+        CHK_ERR((pIotCorePrivateKey = GETENV(IOT_CORE_PRIVATE_KEY)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_PRIVATE_KEY must be set");
+        CHK_ERR((pIotCoreRoleAlias = GETENV(IOT_CORE_ROLE_ALIAS)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_ROLE_ALIAS must be set");
+        CHK_ERR((pIotCoreThingName = GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
+        CHK_STATUS(createLwsIotCredentialProvider(pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pSampleConfiguration->pCaCertPath,
+                                                  pIotCoreRoleAlias, pIotCoreThingName, &pSampleConfiguration->pCredentialProvider));
+        if ((pIotCoreCertificateId = GETENV(IOT_CORE_CERTIFICATE_ID)) != NULL) {
+            pSampleConfiguration->channelInfo.pChannelName = pIotCoreCertificateId;
+        }
+    } else {
+        DLOGI("USE no");
+        CHK_ERR((pAccessKey = GETENV(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
+        CHK_ERR((pSecretKey = GETENV(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
+        pSessionToken = GETENV(SESSION_TOKEN_ENV_VAR);
+        if (pSessionToken != NULL && IS_EMPTY_STRING(pSessionToken)) {
+            DLOGW("Session token is set but its value is empty. Ignoring.");
+            pSessionToken = NULL;
+        }
+        CHK_STATUS(
+            createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pSampleConfiguration->pCredentialProvider));
+    }
+CleanUp:
+    return retStatus;
+}

@@ -215,7 +215,6 @@ VOID sampleVideoFrameHandlerCW(UINT64 customData, PFrame pFrame)
 
 INT32 main(INT32 argc, CHAR* argv[])
 {
-    printf("Starting....");
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 frameSize;
     PSampleConfiguration pSampleConfiguration = NULL;
@@ -228,17 +227,13 @@ INT32 main(INT32 argc, CHAR* argv[])
     Aws::InitAPI(options);
     {
         SET_INSTRUMENTED_ALLOCATORS();
-        printf("Initializing....");
         UINT32 logLevel = setLogLevel();
         // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
         initKvsWebRtc();
-        DLOGI("Here1");
         channelNamePrefix = argc > 1 ? argv[1] : CHANNEL_NAME_PREFIX;
-        DLOGI("Here2");
         SNPRINTF(channelName, SIZEOF(channelName), CHANNEL_NAME_TEMPLATE, channelNamePrefix, RUNNER_LABEL);
-        DLOGI("Here3");
         CHK_STATUS(createSampleConfiguration(channelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, USE_TRICKLE_ICE, USE_TURN, logLevel, &pSampleConfiguration));
-
+        CHK_STATUS(setUpCredentialProvider(pSampleConfiguration, USE_IOT));
         // Set the audio and video handlers
         pSampleConfiguration->audioSource = sendAudioPackets;
         pSampleConfiguration->videoSource = sendVideoPackets;

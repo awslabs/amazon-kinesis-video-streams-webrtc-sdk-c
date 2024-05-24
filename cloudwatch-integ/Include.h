@@ -33,6 +33,8 @@
 
 #define MAX_CALL_RETRY_COUNT                 10
 
+#define DEFAULT_BITRATE                 (250 * 8)
+#define DEFAULT_FRAMERATE               30
 #include <numeric>
 
 #include <aws/core/Aws.h>

@@ -20,7 +20,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     signal(SIGINT, sigintHandler);
 #endif
 
-    if(IOT_CORE_ENABLE_CREDENTIALS) {
+    if (IOT_CORE_ENABLE_CREDENTIALS) {
         CHK_ERR((pChannelName = argc > 1 ? argv[1] : GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION,
                 "AWS_IOT_CORE_THING_NAME must be set");
     } else {
@@ -28,7 +28,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     }
 
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
-
+    CHK_STATUS(setUpCredentialProvider(pSampleConfiguration, IOT_CORE_ENABLE_CREDENTIALS));
     if (argc > 3) {
         if (!STRCMP(argv[3], AUDIO_CODEC_NAME_AAC)) {
             audioCodec = RTC_CODEC_AAC;

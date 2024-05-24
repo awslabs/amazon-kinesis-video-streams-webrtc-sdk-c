@@ -287,10 +287,10 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
         pSampleStreamingSession->twccMetadata.updateLock = MUTEX_CREATE(TRUE);
     }
 
-    if(pSampleConfiguration->enableMetrics) {
+    if (pSampleConfiguration->enableMetrics) {
         CHK_STATUS(setupMetricsCtx(pSampleStreamingSession));
         pSampleStreamingSession->pStatsCtx->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime =
-                GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+            GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
     }
 
     // Flag to enable SDK to calculate selected ice server, local, remote and candidate pair stats.
@@ -302,10 +302,10 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
         peerConnectionOnConnectionStateChange(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession, onConnectionStateChange));
 
 #ifdef ENABLE_DATA_CHANNEL
-        if (pSampleConfiguration->onDataChannel != NULL) {
-            CHK_STATUS(peerConnectionOnDataChannel(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
-                                                   pSampleConfiguration->onDataChannel));
-        }
+    if (pSampleConfiguration->onDataChannel != NULL) {
+        CHK_STATUS(peerConnectionOnDataChannel(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
+                                               pSampleConfiguration->onDataChannel));
+    }
 #endif
 
     CHK_STATUS(addSupportedCodec(pSampleStreamingSession->pPeerConnection, pSampleConfiguration->videoCodec));
@@ -521,23 +521,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
 
     CHK(NULL != (pSampleConfiguration = (PSampleConfiguration) MEMCALLOC(1, SIZEOF(SampleConfiguration))), STATUS_NOT_ENOUGH_MEMORY);
-    if(IOT_CORE_ENABLE_CREDENTIALS) {
-        CHK_ERR((pIotCoreCredentialEndPoint = GETENV(IOT_CORE_CREDENTIAL_ENDPOINT)) != NULL, STATUS_INVALID_OPERATION,
-                "AWS_IOT_CORE_CREDENTIAL_ENDPOINT must be set");
-        CHK_ERR((pIotCoreCert = GETENV(IOT_CORE_CERT)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_CERT must be set");
-        CHK_ERR((pIotCorePrivateKey = GETENV(IOT_CORE_PRIVATE_KEY)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_PRIVATE_KEY must be set");
-        CHK_ERR((pIotCoreRoleAlias = GETENV(IOT_CORE_ROLE_ALIAS)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_ROLE_ALIAS must be set");
-        CHK_ERR((pIotCoreThingName = GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
-    } else {
-        CHK_ERR((pAccessKey = GETENV(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
-        CHK_ERR((pSecretKey = GETENV(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
-    }
 
-    pSessionToken = GETENV(SESSION_TOKEN_ENV_VAR);
-    if (pSessionToken != NULL && IS_EMPTY_STRING(pSessionToken)) {
-        DLOGW("Session token is set but its value is empty. Ignoring.");
-        pSessionToken = NULL;
-    }
     // If the env is set, we generate normal log files apart from filtered profile log files
     // If not set, we generate only the filtered profile log files
     if (NULL != GETENV(ENABLE_FILE_LOGGING)) {
@@ -564,16 +548,6 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
         pSampleConfiguration->channelInfo.pRegion = DEFAULT_AWS_REGION;
     }
 
-    CHK_STATUS(lookForSslCert(&pSampleConfiguration));
-
-    if(IOT_CORE_ENABLE_CREDENTIALS) {
-        CHK_STATUS(createLwsIotCredentialProvider(pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pSampleConfiguration->pCaCertPath,
-                                                  pIotCoreRoleAlias, pIotCoreThingName, &pSampleConfiguration->pCredentialProvider));
-    } else {
-        CHK_STATUS(
-                createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pSampleConfiguration->pCredentialProvider));
-    }
-
     pSampleConfiguration->mediaSenderTid = INVALID_TID_VALUE;
     pSampleConfiguration->audioSenderTid = INVALID_TID_VALUE;
     pSampleConfiguration->videoSenderTid = INVALID_TID_VALUE;
@@ -595,12 +569,6 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
     pSampleConfiguration->channelInfo.pChannelName = channelName;
 
-    if(IOT_CORE_ENABLE_CREDENTIALS) {
-        if ((pIotCoreCertificateId = GETENV(IOT_CORE_CERTIFICATE_ID)) != NULL) {
-            pSampleConfiguration->channelInfo.pChannelName = pIotCoreCertificateId;
-        }
-    }
-
     pSampleConfiguration->channelInfo.pKmsKeyId = NULL;
     pSampleConfiguration->channelInfo.tagCount = 0;
     pSampleConfiguration->channelInfo.pTags = NULL;
@@ -611,7 +579,6 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->channelInfo.asyncIceServerConfig = TRUE; // has no effect
     pSampleConfiguration->channelInfo.retry = TRUE;
     pSampleConfiguration->channelInfo.reconnect = TRUE;
-    pSampleConfiguration->channelInfo.pCertPath = pSampleConfiguration->pCaCertPath;
     pSampleConfiguration->channelInfo.messageTtl = 0; // Default is 60 seconds
 
     pSampleConfiguration->signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
@@ -682,7 +649,7 @@ STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
     CHK_STATUS(signalingClientFetchSync(pSampleConfiguration->signalingClientHandle));
 
 #ifdef ENABLE_DATA_CHANNEL
-        pSampleConfiguration->onDataChannel = onDataChannel;
+    pSampleConfiguration->onDataChannel = onDataChannel;
 #endif
 
     CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
@@ -877,10 +844,9 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         CVAR_FREE(pSampleConfiguration->cvar);
     }
 
-    if(IOT_CORE_ENABLE_CREDENTIALS) {
+    if (IOT_CORE_ENABLE_CREDENTIALS) {
         freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
-    } else
-    {
+    } else {
         freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);
     }
 

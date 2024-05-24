@@ -14,19 +14,19 @@ extern "C" {
 
 #define KVS_DEFAULT_MEDIA_SENDER_THREAD_STACK_SIZE 64 * 1024
 #define KVS_MINIMUM_THREAD_STACK_SIZE              16 * 1024
-#define NUMBER_OF_H264_FRAME_FILES               1500
-#define NUMBER_OF_H265_FRAME_FILES               1500
-#define NUMBER_OF_OPUS_FRAME_FILES               618
-#define DEFAULT_FPS_VALUE                        25
-#define DEFAULT_VIDEO_HEIGHT_PIXELS              720
-#define DEFAULT_VIDEO_WIDTH_PIXELS               1280
-#define DEFAULT_AUDIO_OPUS_CHANNELS              2
-#define DEFAULT_AUDIO_AAC_CHANNELS               2
-#define DEFAULT_AUDIO_OPUS_SAMPLE_RATE_HZ        48000
-#define DEFAULT_AUDIO_AAC_SAMPLE_RATE_HZ         16000
-#define DEFAULT_AUDIO_OPUS_BITS_PER_SAMPLE       16
-#define DEFAULT_AUDIO_AAC_BITS_PER_SAMPLE        16
-#define DEFAULT_MAX_CONCURRENT_STREAMING_SESSION 10
+#define NUMBER_OF_H264_FRAME_FILES                 1500
+#define NUMBER_OF_H265_FRAME_FILES                 1500
+#define NUMBER_OF_OPUS_FRAME_FILES                 618
+#define DEFAULT_FPS_VALUE                          25
+#define DEFAULT_VIDEO_HEIGHT_PIXELS                720
+#define DEFAULT_VIDEO_WIDTH_PIXELS                 1280
+#define DEFAULT_AUDIO_OPUS_CHANNELS                2
+#define DEFAULT_AUDIO_AAC_CHANNELS                 2
+#define DEFAULT_AUDIO_OPUS_SAMPLE_RATE_HZ          48000
+#define DEFAULT_AUDIO_AAC_SAMPLE_RATE_HZ           16000
+#define DEFAULT_AUDIO_OPUS_BITS_PER_SAMPLE         16
+#define DEFAULT_AUDIO_AAC_BITS_PER_SAMPLE          16
+#define DEFAULT_MAX_CONCURRENT_STREAMING_SESSION   10
 
 #define AUDIO_CODEC_NAME_ALAW  "alaw"
 #define AUDIO_CODEC_NAME_MULAW "mulaw"
@@ -71,8 +71,7 @@ extern "C" {
 #define IOT_CORE_THING_NAME          ((PCHAR) "AWS_IOT_CORE_THING_NAME")
 #define IOT_CORE_CERTIFICATE_ID      ((PCHAR) "AWS_IOT_CORE_CERTIFICATE_ID")
 
-/* Set to TRUE to enable credentials */
-#define IOT_CORE_ENABLE_CREDENTIALS  FALSE
+#define IOT_CORE_ENABLE_CREDENTIALS FALSE
 
 #define MASTER_DATA_CHANNEL_MESSAGE "This message is from the KVS Master"
 #define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"
@@ -184,6 +183,7 @@ typedef struct {
     BOOL enableTwcc;
     BOOL forceTurn;
     BOOL enableMetrics;
+    BOOL useIot;
     SignalingClientMetrics signalingClientMetrics;
 } SampleConfiguration, *PSampleConfiguration;
 
@@ -356,6 +356,7 @@ PVOID mediaSenderRoutine(PVOID);
 STATUS setupMetricsCtx(PSampleStreamingSession);
 STATUS getSdkTimeProfile(PSampleStreamingSession);
 STATUS terminate(UINT32 timerId, UINT64 currentTime, UINT64 customData);
+STATUS setUpCredentialProvider(PSampleConfiguration pSampleConfiguration, BOOL useIot);
 #ifdef __cplusplus
 }
 #endif

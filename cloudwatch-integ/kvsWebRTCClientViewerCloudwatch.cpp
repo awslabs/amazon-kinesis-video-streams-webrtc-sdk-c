@@ -122,6 +122,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         SNPRINTF(channelName, SIZEOF(channelName), CHANNEL_NAME_TEMPLATE, channelNamePrefix, RUNNER_LABEL);
 
         CHK_STATUS(createSampleConfiguration(channelName, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, USE_TRICKLE_ICE, USE_TURN, logLevel, &pSampleConfiguration));
+        CHK_STATUS(setUpCredentialProvider(pSampleConfiguration, USE_IOT));
         pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
         pSampleConfiguration->audioCodec = AUDIO_CODEC;
         pSampleConfiguration->videoCodec = VIDEO_CODEC;
