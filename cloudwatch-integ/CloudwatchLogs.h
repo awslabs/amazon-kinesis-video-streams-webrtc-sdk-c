@@ -5,7 +5,7 @@ namespace CppInteg {
 class CloudwatchLogs {
   public:
     CloudwatchLogs(ClientConfiguration*);
-    STATUS init(PCHAR channelName, PCHAR region, BOOL isMaster);
+    STATUS init(PCHAR channelName, PCHAR region, BOOL isMaster, BOOL isStorage);
     VOID deinit();
     VOID push(string log);
     VOID flush(BOOL sync = FALSE);

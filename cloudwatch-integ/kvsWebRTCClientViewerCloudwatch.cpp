@@ -33,6 +33,29 @@ VOID dataChannelOnOpenCallback(UINT64 customData, PRtcDataChannel pDataChannel)
 }
 #endif
 
+STATUS publishStatsForCanary(RTC_STATS_TYPE statsType, PSampleStreamingSession pSampleStreamingSession)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    pSampleStreamingSession->pStatsCtx->kvsRtcStats.requestedTypeOfStats = statsType;
+    switch (statsType) {
+        case RTC_STATS_TYPE_OUTBOUND_RTP:
+            CHK_LOG_ERR(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pVideoRtcRtpTransceiver, &pSampleStreamingSession->pStatsCtx->kvsRtcStats));
+            populateOutgoingRtpMetricsContext(pSampleStreamingSession);
+            CppInteg::Cloudwatch::getInstance().monitoring.pushOutboundRtpStats(&pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx);
+            break;
+        case RTC_STATS_TYPE_INBOUND_RTP:
+            DLOGI("Inbound");
+            CHK_LOG_ERR(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pVideoRtcRtpTransceiver, &pSampleStreamingSession->pStatsCtx->kvsRtcStats));
+            populateIncomingRtpMetricsContext(pSampleStreamingSession);
+            CppInteg::Cloudwatch::getInstance().monitoring.pushInboundRtpStats(&pSampleStreamingSession->pStatsCtx->incomingRTPStatsCtx);
+            break;
+        default:
+            CHK(FALSE, STATUS_NOT_IMPLEMENTED);
+    }
+    CleanUp:
+    return retStatus;
+}
+
 STATUS publishEndToEndMetrics(PSampleStreamingSession pSampleStreamingSession)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -50,6 +73,20 @@ STATUS endToendStatsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customDa
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
     if (!(ATOMIC_LOAD_BOOL(&pSampleStreamingSession->pSampleConfiguration->appTerminateFlag))) {
         CHK_STATUS(publishEndToEndMetrics(pSampleStreamingSession));
+    } else {
+        retStatus = STATUS_TIMER_QUEUE_STOP_SCHEDULING;
+    }
+CleanUp:
+    return retStatus;
+}
+
+STATUS inboundStatsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData) {
+    UNUSED_PARAM(timerId);
+    UNUSED_PARAM(currentTime);
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
+    if (!(ATOMIC_LOAD_BOOL(&pSampleStreamingSession->pSampleConfiguration->appTerminateFlag))) {
+        publishStatsForCanary(RTC_STATS_TYPE_INBOUND_RTP, pSampleStreamingSession);
     } else {
         retStatus = STATUS_TIMER_QUEUE_STOP_SCHEDULING;
     }
@@ -108,6 +145,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     PCHAR channelNamePrefix;
     UINT32 e2eTimerId = MAX_UINT32;
     UINT32 terminateId = MAX_UINT32;
+    UINT32 inboundTimerId = MAX_UINT32;
     Aws::SDKOptions options;
     Aws::InitAPI(options);
     {
@@ -128,7 +166,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         pSampleConfiguration->videoCodec = VIDEO_CODEC;
         pSampleConfiguration->forceTurn = FORCE_TURN_ONLY;
         pSampleConfiguration->enableMetrics = ENABLE_METRICS;
-        pSampleConfiguration->channelInfo.useMediaStorage = USE_STORAGE;
+        pSampleConfiguration->receiveAudioVideoSource = NULL;
 
         // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
         CHK_STATUS(initKvsWebRtc());
@@ -141,7 +179,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         if ((region = GETENV(DEFAULT_REGION_ENV_VAR)) == NULL) {
             region = (PCHAR) DEFAULT_AWS_REGION;
         }
-        CppInteg::Cloudwatch::init(channelName, region, FALSE);
+        CppInteg::Cloudwatch::init(channelName, region, FALSE, FALSE);
 
         SNPRINTF(clientId, SIZEOF(clientId), "%s_%u", SAMPLE_VIEWER_CLIENT_ID, RAND() % MAX_UINT32);
         CHK_STATUS(initSignaling(pSampleConfiguration, clientId));
@@ -222,6 +260,8 @@ INT32 main(INT32 argc, CHAR* argv[])
                                       endToendStatsCallback, (UINT64) pSampleStreamingSession, &e2eTimerId));
         CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, RUN_TIME, TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, terminate,
                                       (UINT64) pSampleConfiguration, &terminateId));
+        CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, END_TO_END_METRICS_INVOCATION_PERIOD, END_TO_END_METRICS_INVOCATION_PERIOD,
+                                      inboundStatsCallback, (UINT64) pSampleStreamingSession, &inboundTimerId));
         // Block until interrupted
         while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted) && !ATOMIC_LOAD_BOOL(&pSampleStreamingSession->terminateFlag)) {
             THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);

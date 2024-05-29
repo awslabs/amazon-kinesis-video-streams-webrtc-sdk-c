@@ -6,7 +6,7 @@ namespace CppInteg {
 class CloudwatchMonitoring {
   public:
     CloudwatchMonitoring(ClientConfiguration*);
-    STATUS init(PCHAR channelName, PCHAR region, BOOL isMaster);
+    STATUS init(PCHAR channelName, PCHAR region, BOOL isMaster, BOOL isStorage);
     VOID deinit();
     VOID push(const MetricDatum&);
     VOID pushExitStatus(STATUS);

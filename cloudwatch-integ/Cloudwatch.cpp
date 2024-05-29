@@ -8,7 +8,7 @@ Cloudwatch::Cloudwatch(ClientConfiguration* pClientConfig)
 {
 }
 
-STATUS Cloudwatch::init(PCHAR channelName, PCHAR region, BOOL isMaster)
+STATUS Cloudwatch::init(PCHAR channelName, PCHAR region, BOOL isMaster, BOOL isStorage)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -20,13 +20,13 @@ STATUS Cloudwatch::init(PCHAR channelName, PCHAR region, BOOL isMaster)
     clientConfig.region = region;
     auto& instance = getInstanceImpl(&clientConfig);
 
-    if (STATUS_FAILED(instance.logs.init(channelName, region, isMaster))) {
+    if (STATUS_FAILED(instance.logs.init(channelName, region, isMaster, isStorage))) {
         DLOGW("Failed to create Cloudwatch logger, fallback to file logger");
     } else {
         globalCustomLogPrintFn = logger;
     }
 
-    CHK_STATUS(instance.monitoring.init(channelName, region, isMaster));
+    CHK_STATUS(instance.monitoring.init(channelName, region, isMaster, isStorage));
 
 CleanUp:
 

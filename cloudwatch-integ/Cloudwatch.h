@@ -16,7 +16,7 @@ class Cloudwatch {
     CloudwatchMonitoring monitoring;
 
     static Cloudwatch& getInstance();
-    static STATUS init(PCHAR channelName, PCHAR region, BOOL isMaster);
+    static STATUS init(PCHAR channelName, PCHAR region, BOOL isMaster, BOOL isStorage);
     static VOID deinit();
     static VOID logger(UINT32, PCHAR, PCHAR, ...);
 

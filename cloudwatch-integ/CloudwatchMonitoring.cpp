@@ -7,15 +7,15 @@ CloudwatchMonitoring::CloudwatchMonitoring(ClientConfiguration* pClientConfig) :
 {
 }
 
-STATUS CloudwatchMonitoring::init(PCHAR channelName, PCHAR region, BOOL isMaster)
+STATUS CloudwatchMonitoring::init(PCHAR channelName, PCHAR region, BOOL isMaster, BOOL isStorage)
 {
     STATUS retStatus = STATUS_SUCCESS;
 
-    this->isStorage ? this->channelDimension.SetName(INDIVIDUAL_STORAGE_CW_DIMENSION) : this->channelDimension.SetName(INDIVIDUAL_CW_DIMENSION);
+    isStorage ? this->channelDimension.SetName(INDIVIDUAL_STORAGE_CW_DIMENSION) : this->channelDimension.SetName(INDIVIDUAL_CW_DIMENSION);
     this->channelDimension.SetValue(channelName);
 
-    this->isStorage ? this->labelDimension.SetName(AGGREGATE_STORAGE_CW_DIMENSION) : this->labelDimension.SetName(AGGREGATE_CW_DIMENSION);
-    this->labelDimension.SetValue("label");
+    isStorage ? this->labelDimension.SetName(AGGREGATE_STORAGE_CW_DIMENSION) : this->labelDimension.SetName(AGGREGATE_CW_DIMENSION);
+    this->labelDimension.SetValue(SCENARIO_LABEL);
 
     return retStatus;
 }

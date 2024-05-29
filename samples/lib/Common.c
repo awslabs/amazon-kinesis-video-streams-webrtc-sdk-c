@@ -56,6 +56,7 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
             DLOGD("p2p connection disconnected");
             ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, TRUE);
             CVAR_BROADCAST(pSampleConfiguration->cvar);
+            pSampleConfiguration->storageDisconnectedTime = GETTIME();
             // explicit fallthrough
         default:
             ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, FALSE);

@@ -184,6 +184,7 @@ typedef struct {
     BOOL forceTurn;
     BOOL enableMetrics;
     BOOL useIot;
+    UINT64 storageDisconnectedTime;
     SignalingClientMetrics signalingClientMetrics;
 } SampleConfiguration, *PSampleConfiguration;
 

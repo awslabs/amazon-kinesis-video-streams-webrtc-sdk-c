@@ -7,15 +7,22 @@ CloudwatchLogs::CloudwatchLogs(ClientConfiguration* pClientConfig) : client(*pCl
 {
 }
 
-STATUS CloudwatchLogs::init(PCHAR channelName, PCHAR region, BOOL isMaster)
+STATUS CloudwatchLogs::init(PCHAR channelName, PCHAR region, BOOL isMaster, BOOL isStorage)
 {
     STATUS retStatus = STATUS_SUCCESS;
     CreateLogGroupRequest createLogGroupRequest;
     Aws::CloudWatchLogs::Model::CreateLogStreamOutcome createLogStreamOutcome;
     CreateLogStreamRequest createLogStreamRequest;
     std::stringstream defaultLogStreamName;
-    defaultLogStreamName << channelName << '-' << (isMaster ? "master" : "viewer") << '-'
-                         << GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    if(isStorage) {
+        defaultLogStreamName << channelName << '-' << "StorageMaster" << '-'
+                             << GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+
+    } else {
+        defaultLogStreamName << channelName << '-' << (isMaster ? "master" : "viewer") << '-'
+                             << GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+
+    }
 
     this->logStreamName = defaultLogStreamName.str();
     this->logGroupName = LOG_GROUP_NAME;
