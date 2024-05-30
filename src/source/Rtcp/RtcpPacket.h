@@ -93,7 +93,7 @@ UINT64 convertTimestampToNTP(UINT64 time100ns);
 // In some fields where a more compact representation is
 //   appropriate, only the middle 32 bits are used; that is, the low 16
 //   bits of the integer part and the high 16 bits of the fractional part.
-#define MID_NTP(ntp_time) (UINT32)((currentTimeNTP >> 16U) & 0xffffffffULL)
+#define MID_NTP(ntp_time) (UINT32)((ntp_time >> 16U) & 0xffffffffULL)
 
 #ifdef __cplusplus
 }
