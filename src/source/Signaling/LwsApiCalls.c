@@ -1247,7 +1247,7 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
         STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Parse the response
-    retSignal = Signaling_ParseGetIceServerConfigResponse(pResponseStr, resultLen, iceServers, &numIceServers);
+    retSignal = Signaling_ParseGetIceServerConfigResponse(pResponseStr, resultLen, iceServers, (size_t*) &numIceServers);
     CHK(retSignal == SIGNALING_RESULT_OK, retSignal);
 
     // Parse and validate the response
@@ -1896,7 +1896,7 @@ STATUS sendLwsMessage(PSignalingClient pSignalingClient, SIGNALING_MESSAGE_TYPE 
     // Prepare json message
     bufferSize = SIZEOF(pSignalingClient->pOngoingCallInfo->sendBuffer) - LWS_PRE - 1; /* -1 for null terminator. */
     retSignal =
-        Signaling_ConstructWssMessage(&wssSendMessage, (PCHAR) (pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE), (SIZE_T*) &bufferSize);
+        Signaling_ConstructWssMessage(&wssSendMessage, (PCHAR) (pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE), (size_t*) &bufferSize);
     CHK(retSignal == SIGNALING_RESULT_OK, retSignal);
 
     // Validate against max
