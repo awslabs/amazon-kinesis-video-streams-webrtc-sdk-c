@@ -3,8 +3,8 @@
 
 #define USE_TRICKLE_ICE             TRUE
 #define FORCE_TURN_ONLY             FALSE
-#define RUNNER_LABEL                (PCHAR) "StoragePeriodic"
-#define SCENARIO_LABEL              (PCHAR) "StoragePeriodic"
+#define RUNNER_LABEL                (PCHAR) "StorageExtended"
+#define SCENARIO_LABEL              (PCHAR) "StorageExtended"
 #define USE_TURN                    TRUE
 #define ENABLE_TTFF_VIA_DC          FALSE
 #define USE_IOT                     FALSE

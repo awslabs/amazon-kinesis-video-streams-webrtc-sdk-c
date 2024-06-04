@@ -3,8 +3,8 @@
 
 #define USE_TRICKLE_ICE             TRUE
 #define FORCE_TURN_ONLY             FALSE
-#define RUNNER_LABEL                (PCHAR) "StoragePeriodic"
-#define SCENARIO_LABEL              (PCHAR) "StoragePeriodic"
+#define RUNNER_LABEL                (PCHAR) "StorageSingleReconnect"
+#define SCENARIO_LABEL              (PCHAR) "StorageSingleReconnect"
 #define USE_TURN                    TRUE
 #define ENABLE_TTFF_VIA_DC          FALSE
 #define USE_IOT                     FALSE

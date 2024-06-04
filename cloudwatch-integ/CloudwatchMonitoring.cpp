@@ -10,7 +10,7 @@ CloudwatchMonitoring::CloudwatchMonitoring(ClientConfiguration* pClientConfig) :
 STATUS CloudwatchMonitoring::init(PCHAR channelName, PCHAR region, BOOL isMaster, BOOL isStorage)
 {
     STATUS retStatus = STATUS_SUCCESS;
-
+    this->isStorage = isStorage;
     isStorage ? this->channelDimension.SetName(INDIVIDUAL_STORAGE_CW_DIMENSION) : this->channelDimension.SetName(INDIVIDUAL_CW_DIMENSION);
     this->channelDimension.SetValue(channelName);
 
