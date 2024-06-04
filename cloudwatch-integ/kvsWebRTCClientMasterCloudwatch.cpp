@@ -223,7 +223,7 @@ PVOID sendRealVideoPackets(PVOID args)
         for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
             status = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &frame);
             if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame && status == STATUS_SUCCESS) {
-                SNPRINTF(tsFileName, SIZEOF(tsFileName), "%s%s", FIRST_FRAME_TS_FILE_PATH, STORAGE_CANARY_DEFAULT_FIRST_FRAME_TS_FILE);
+                SNPRINTF(tsFileName, SIZEOF(tsFileName), "%s%s", FIRST_FRAME_TS_FILE_PATH, STORAGE_DEFAULT_FIRST_FRAME_TS_FILE);
                 CHK_STATUS(writeFirstFrameSentTimeToFile(tsFileName));
                 PROFILE_WITH_START_TIME_OBJ(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, firstFrameTime, "Time to first frame");
                 CppInteg::Cloudwatch::getInstance().monitoring.pushTimeToFirstFrame(firstFrameTime,
@@ -305,7 +305,7 @@ PVOID sendRealAudioPackets(PVOID args)
                 if (status != STATUS_SUCCESS) {
                     DLOGV("writeFrame() failed with 0x%08x", status);
                 } else if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame && status == STATUS_SUCCESS) {
-                    SNPRINTF(tsFileName, SIZEOF(tsFileName), "%s%s", FIRST_FRAME_TS_FILE_PATH, STORAGE_CANARY_DEFAULT_FIRST_FRAME_TS_FILE);
+                    SNPRINTF(tsFileName, SIZEOF(tsFileName), "%s%s", FIRST_FRAME_TS_FILE_PATH, STORAGE_DEFAULT_FIRST_FRAME_TS_FILE);
                     CHK_STATUS(writeFirstFrameSentTimeToFile(tsFileName));
                     PROFILE_WITH_START_TIME_OBJ(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, firstFrameTime, "Time to first frame");
                     CppInteg::Cloudwatch::getInstance().monitoring.pushTimeToFirstFrame(firstFrameTime,
@@ -338,7 +338,8 @@ INT32 main(INT32 argc, CHAR* argv[])
     CHAR channelName[MAX_CHANNEL_NAME_LEN];
     PCHAR channelNamePrefix;
     Aws::SDKOptions options;
-    options.httpOptions.installSigPipeHandler = true;
+    options.httpOptions.installSigPipeHandler = TRUE;
+    CHAR tsFileName[MAX_PATH_LEN + 1];
     Aws::InitAPI(options);
     {
         SET_INSTRUMENTED_ALLOCATORS();
@@ -428,7 +429,7 @@ CleanUp:
 
     retStatus = RESET_INSTRUMENTED_ALLOCATORS();
     DLOGI("All SDK allocations freed? %s..0x%08x", retStatus == STATUS_SUCCESS ? "Yes" : "No", retStatus);
-
+    SNPRINTF(tsFileName, SIZEOF(tsFileName), "%s%s", FIRST_FRAME_TS_FILE_PATH, STORAGE_DEFAULT_FIRST_FRAME_TS_FILE);
     CppInteg::Cloudwatch::getInstance().monitoring.pushExitStatus(retStatus);
     CppInteg::Cloudwatch::deinit();
     Aws::ShutdownAPI(options);
