@@ -21,8 +21,6 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     PStateMachineState pStateMachineState;
     BOOL cacheFound = FALSE;
     PSignalingFileCacheEntry pFileCacheEntry = NULL;
-    SignalingResult_t retSignal;
-    SignalingAwsControlPlaneInfo_t awsControlPlaneInfo;
 
     CHK(pClientInfo != NULL && pChannelInfo != NULL && pCallbacks != NULL && pCredentialProvider != NULL && ppSignalingClient != NULL,
         STATUS_NULL_ARG);
@@ -165,18 +163,6 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
 
     // Create the ongoing message list
     CHK_STATUS(stackQueueCreate(&pSignalingClient->pMessageQueue));
-
-    MEMSET(&awsControlPlaneInfo, 0x00, sizeof(SignalingAwsControlPlaneInfo_t));
-    if (pSignalingClient->pChannelInfo->pControlPlaneUrl != NULL) {
-        awsControlPlaneInfo.controlPlaneUrlLength = strlen(pSignalingClient->pChannelInfo->pControlPlaneUrl);
-        awsControlPlaneInfo.pControlPlaneUrl = pSignalingClient->pChannelInfo->pControlPlaneUrl;
-    }
-    if (pSignalingClient->pChannelInfo->pRegion != NULL) {
-        awsControlPlaneInfo.regionLength = strlen(pSignalingClient->pChannelInfo->pRegion);
-        awsControlPlaneInfo.pRegion = pSignalingClient->pChannelInfo->pRegion;
-    }
-    retSignal = Signaling_Init(&pSignalingClient->signalContext, &awsControlPlaneInfo);
-    CHK(retSignal == SIGNALING_RESULT_OK, STATUS_INVALID_OPERATION);
 
     pSignalingClient->pLwsContext = lws_create_context(&creationInfo);
     CHK(pSignalingClient->pLwsContext != NULL, STATUS_SIGNALING_LWS_CREATE_CONTEXT_FAILED);

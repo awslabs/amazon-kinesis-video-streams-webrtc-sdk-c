@@ -386,9 +386,6 @@ typedef struct {
 
     // Conditional variable for join storage session wait state
     CVAR jssWaitCvar;
-
-    // The context of signaling component
-    SignalingContext_t signalContext;
 } SignalingClient, *PSignalingClient;
 
 // Public handle to and from object converters
