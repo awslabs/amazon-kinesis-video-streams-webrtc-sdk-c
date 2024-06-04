@@ -114,7 +114,7 @@ CleanUp:
     return retStatus;
 }
 
-INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, PVOID user, PVOID pDataIn, SIZE_T dataSize)
+INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, PVOID user, PVOID pDataIn, size_t dataSize)
 {
     UNUSED_PARAM(user);
     STATUS retStatus = STATUS_SUCCESS;
@@ -388,7 +388,7 @@ CleanUp:
     return retValue;
 }
 
-INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, PVOID user, PVOID pDataIn, SIZE_T dataSize)
+INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, PVOID user, PVOID pDataIn, size_t dataSize)
 {
     UNUSED_PARAM(user);
     STATUS retStatus = STATUS_SUCCESS;
@@ -1194,7 +1194,7 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     SignalingChannelEndpoint_t httpsEndpoint;
     GetIceServerConfigRequestInfo_t getIceServerConfigRequestInfo;
     SignalingIceServer_t iceServers[MAX_ICE_CONFIG_COUNT];
-    SIZE_T numIceServers = MAX_ICE_CONFIG_COUNT;
+    UINT64 numIceServers = MAX_ICE_CONFIG_COUNT;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->channelDescription.channelArn[0] != '\0', STATUS_INVALID_OPERATION);
