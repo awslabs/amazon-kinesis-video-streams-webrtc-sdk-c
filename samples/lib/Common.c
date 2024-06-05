@@ -568,6 +568,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->receiveAudioVideoSource = NULL;
 
     pSampleConfiguration->channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    DLOGI("Channel name: %s", channelName);
     pSampleConfiguration->channelInfo.pChannelName = channelName;
 
     pSampleConfiguration->channelInfo.pKmsKeyId = NULL;

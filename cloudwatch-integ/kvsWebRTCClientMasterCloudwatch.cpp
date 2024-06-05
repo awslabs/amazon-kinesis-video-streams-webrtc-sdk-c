@@ -346,10 +346,19 @@ INT32 main(INT32 argc, CHAR* argv[])
         UINT32 logLevel = setLogLevel();
         // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
         CHK_STATUS(initKvsWebRtc());
-        channelNamePrefix = argc > 1 ? argv[1] : CHANNEL_NAME_PREFIX;
-        SNPRINTF(channelName, SIZEOF(channelName), CHANNEL_NAME_TEMPLATE, channelNamePrefix, RUNNER_LABEL);
+
+        if (USE_IOT) {
+            DLOGI("Here");
+            PCHAR pChannelName;
+            CHK_ERR((pChannelName = GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set since USE_IOT is enabled");
+            STRNCPY(channelName, pChannelName, SIZEOF(channelName));
+        } else {
+            channelNamePrefix = argc > 1 ? argv[1] : CHANNEL_NAME_PREFIX;
+            SNPRINTF(channelName, SIZEOF(channelName), CHANNEL_NAME_TEMPLATE, channelNamePrefix, RUNNER_LABEL);
+        }
+        DLOGI("Here: %s", channelName);
         CHK_STATUS(createSampleConfiguration(channelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
-        CHK_STATUS(setUpCredentialProvider(pSampleConfiguration, IOT_CORE_ENABLE_CREDENTIALS));
+        CHK_STATUS(setUpCredentialProvider(pSampleConfiguration, USE_IOT));
 
         pSampleConfiguration->forceTurn = FORCE_TURN_ONLY;
         pSampleConfiguration->enableMetrics = ENABLE_METRICS;
