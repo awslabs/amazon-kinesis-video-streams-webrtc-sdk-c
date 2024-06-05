@@ -155,10 +155,15 @@ INT32 main(INT32 argc, CHAR* argv[])
 #ifndef _WIN32
         signal(SIGINT, sigintHandler);
 #endif
-
-        channelNamePrefix = argc > 1 ? argv[1] : CHANNEL_NAME_PREFIX;
-        SNPRINTF(channelName, SIZEOF(channelName), CHANNEL_NAME_TEMPLATE, channelNamePrefix, RUNNER_LABEL);
-
+        if (USE_IOT) {
+            DLOGI("Here");
+            PCHAR pChannelName;
+            CHK_ERR((pChannelName = GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set since USE_IOT is enabled");
+            STRNCPY(channelName, pChannelName, SIZEOF(channelName));
+        } else {
+            channelNamePrefix = argc > 1 ? argv[1] : CHANNEL_NAME_PREFIX;
+            SNPRINTF(channelName, SIZEOF(channelName), CHANNEL_NAME_TEMPLATE, channelNamePrefix, RUNNER_LABEL);
+        }
         CHK_STATUS(createSampleConfiguration(channelName, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, USE_TRICKLE_ICE, USE_TURN, logLevel, &pSampleConfiguration));
         CHK_STATUS(setUpCredentialProvider(pSampleConfiguration, USE_IOT));
         pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
