@@ -7,7 +7,7 @@
 #define SCENARIO_LABEL              (PCHAR) "OpenSSLPeriodic"
 #define USE_TURN                    TRUE
 #define ENABLE_TTFF_VIA_DC          FALSE
-#define USE_IOT                     FALSE
+#define USE_IOT                     TRUE
 #define ENABLE_STORAGE              FALSE
 #define ENABLE_METRICS              TRUE
 #define SAMPLE_PRE_GENERATE_CERT    TRUE
