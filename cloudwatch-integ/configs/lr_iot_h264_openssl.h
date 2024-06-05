@@ -3,8 +3,8 @@
 
 #define USE_TRICKLE_ICE             TRUE
 #define FORCE_TURN_ONLY             FALSE
-#define RUNNER_LABEL                (PCHAR) "WebrtcPeriodicOpenSSL"
-#define SCENARIO_LABEL              (PCHAR) "OpenSSLPeriodic"
+#define RUNNER_LABEL                (PCHAR) "WebrtcLongRunningOpenSSL"
+#define SCENARIO_LABEL              (PCHAR) "WebrtcLongRunning"
 #define USE_TURN                    TRUE
 #define ENABLE_TTFF_VIA_DC          FALSE
 #define USE_IOT                     TRUE
