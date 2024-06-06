@@ -17,4 +17,6 @@
 #define USE_STORAGE                 FALSE
 #define AUDIO_CODEC                 RTC_CODEC_OPUS
 #define VIDEO_CODEC                 RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE
+#define DEFAULT_BITRATE             (250 * 1024)
+#define DEFAULT_FRAMERATE           30
 #endif // KVS_SDK_SAMPLE_CONFIG_H

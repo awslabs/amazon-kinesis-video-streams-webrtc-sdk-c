@@ -17,4 +17,6 @@
 #define USE_STORAGE                 FALSE
 #define AUDIO_CODEC                 RTC_CODEC_OPUS
 #define VIDEO_CODEC                 RTC_CODEC_H265
+#define DEFAULT_BITRATE             (250 * 1024)
+#define DEFAULT_FRAMERATE           30
 #endif // KVS_SDK_SAMPLE_CONFIG_H
