@@ -564,6 +564,7 @@ STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
         if (pDuplicatedIceCandidate == NULL &&
             STATUS_SUCCEEDED(createSocketConnection(pIpAddress->family, KVS_SOCKET_PROTOCOL_UDP, pIpAddress, NULL, (UINT64) pIceAgent,
                                                     incomingDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize, &pSocketConnection))) {
+            DLOGI("Created socket number: %d for host candidate", pSocketConnection->localSocket);
             pTmpIceCandidate = MEMCALLOC(1, SIZEOF(IceCandidate));
             generateJSONSafeString(pTmpIceCandidate->id, ARRAY_SIZE(pTmpIceCandidate->id));
             pTmpIceCandidate->isRemote = FALSE;
@@ -1818,6 +1819,7 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
             // with the correct ip address once the STUN response is received.
             CHK_STATUS(createSocketConnection(pCandidate->ipAddress.family, KVS_SOCKET_PROTOCOL_UDP, &pCandidate->ipAddress, NULL, (UINT64) pIceAgent,
                                               incomingDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize, &pCandidate->pSocketConnection));
+            DLOGI("Created socket number: %d for srflx candidate", pCandidate->pSocketConnection->localSocket);
             ATOMIC_STORE_BOOL(&pCandidate->pSocketConnection->receiveData, TRUE);
             // connectionListener will free the pSocketConnection at the end.
             CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener, pCandidate->pSocketConnection));
@@ -1920,6 +1922,7 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
     CHK_STATUS(createSocketConnection(KVS_IP_FAMILY_TYPE_IPV4, protocol, NULL, &pIceAgent->iceServers[iceServerIndex].ipAddress,
                                       (UINT64) pNewCandidate, incomingRelayedDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize,
                                       &pNewCandidate->pSocketConnection));
+    DLOGI("Created socket number: %d for relay candidate", pNewCandidate->pSocketConnection->localSocket);
     // connectionListener will free the pSocketConnection at the end.
     CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener, pNewCandidate->pSocketConnection));
 

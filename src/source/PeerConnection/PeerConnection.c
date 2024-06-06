@@ -650,6 +650,7 @@ VOID onDtlsOutboundPacket(UINT64 customData, PBYTE pBuffer, UINT32 bufferLen)
     }
 
     pKvsPeerConnection = (PKvsPeerConnection) customData;
+    DLOGI("Sending an outbound Dtls packet");
     iceAgentSendPacket(pKvsPeerConnection->pIceAgent, pBuffer, bufferLen);
 }
 
@@ -665,9 +666,11 @@ VOID onDtlsStateChange(UINT64 customData, RTC_DTLS_TRANSPORT_STATE newDtlsState)
     switch (newDtlsState) {
         case RTC_DTLS_TRANSPORT_STATE_CONNECTED:
             pKvsPeerConnection->peerConnectionDiagnostics.dtlsSessionSetupTime = pKvsPeerConnection->pDtlsSession->dtlsSessionSetupTime;
+            DLOGI("Dtls transport state is connected now!");
             break;
         case RTC_DTLS_TRANSPORT_STATE_CLOSED:
             changePeerConnectionState(pKvsPeerConnection, RTC_PEER_CONNECTION_STATE_CLOSED);
+            DLOGI("Dtls transport state is closed now!");
             break;
         default:
             /* explicit ignore */

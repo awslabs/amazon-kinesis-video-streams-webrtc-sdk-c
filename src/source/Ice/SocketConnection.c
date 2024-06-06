@@ -47,7 +47,7 @@ CleanUp:
 
     if (pBindAddr) {
         getIpAddrStr(pBindAddr, ipAddr, ARRAY_SIZE(ipAddr));
-        DLOGD("create socket with ip: %s:%u. family:%d", ipAddr, (UINT16) getInt16(pBindAddr->port), pBindAddr->family);
+        DLOGD("create socket with number: %d, ip: %s:%u. family:%d", pSocketConnection->localSocket, ipAddr, (UINT16) getInt16(pBindAddr->port), pBindAddr->family);
     } else {
         DLOGD("create socket without the bind address(%d:%d)", familyType, protocol);
     }
@@ -106,11 +106,11 @@ STATUS freeSocketConnection(PSocketConnection* ppSocketConnection)
     }
 
     getIpAddrStr(&pSocketConnection->hostIpAddr, ipAddr, ARRAY_SIZE(ipAddr));
-    DLOGD("close socket with ip: %s:%u. family:%d", ipAddr, (UINT16) getInt16(pSocketConnection->hostIpAddr.port),
+    DLOGD("close socket with number: %d, ip: %s:%u. family:%d", pSocketConnection->localSocket, ipAddr, (UINT16) getInt16(pSocketConnection->hostIpAddr.port),
           pSocketConnection->hostIpAddr.family);
 
     getIpAddrStr(&pSocketConnection->peerIpAddr, ipAddr, ARRAY_SIZE(ipAddr));
-    DLOGD("close socket connected with ip: %s:%u. family:%d", ipAddr, (UINT16) getInt16(pSocketConnection->peerIpAddr.port),
+    DLOGD("close socket connected with number:%d, ip: %s:%u. family:%d", pSocketConnection->localSocket, ipAddr, (UINT16) getInt16(pSocketConnection->peerIpAddr.port),
           pSocketConnection->peerIpAddr.family);
 
     if (STATUS_FAILED(retStatus = closeSocket(pSocketConnection->localSocket))) {
@@ -212,7 +212,7 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
 
     // Using a single CHK_WARN might output too much spew in bad network conditions
     if (ATOMIC_LOAD_BOOL(&pSocketConnection->connectionClosed)) {
-        DLOGW("Warning: Failed to send data. Socket closed already");
+        DLOGW("Warning: Failed to send data. Socket closed already %d", pSocketConnection->localSocket);
         CHK(FALSE, STATUS_SOCKET_CONNECTION_CLOSED_ALREADY);
     }
 
