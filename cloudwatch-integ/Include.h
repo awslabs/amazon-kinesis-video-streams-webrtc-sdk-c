@@ -2,7 +2,7 @@
 
 #include SAMPLE_CONFIG_HEADER
 
-#define DEFAULT_CLOUDWATCH_NAMESPACE "KinesisVideoSDKWebRTC"
+#define DEFAULT_CLOUDWATCH_NAMESPACE "KinesisVideoSDKCanary"
 #define DEFAULT_FPS_VALUE            25
 // TODO: This value shouldn't matter. But, since we don't allow NULL value, we have to set to a value
 #define DEFAULT_VIEWER_PEER_ID           "ConsumerViewer"
