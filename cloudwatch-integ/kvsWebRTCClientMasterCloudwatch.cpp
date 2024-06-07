@@ -53,21 +53,21 @@ STATUS publishStatsForCanary(RTC_STATS_TYPE statsType, PSampleStreamingSession p
 PVOID sendProfilingMetrics(PVOID customData)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    PSampleStreamingSession pSampleStreamingSession = NULL;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
     if(pSampleConfiguration == NULL) {
         return NULL;
     }
 
-    while((pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[0]) == NULL) {
+    while((pSampleConfiguration->sampleStreamingSessionList[0]) == NULL) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND * 100);
     }
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
-        retStatus = getSdkTimeProfile(pSampleConfiguration->sampleStreamingSessionList[0]);
+        PSampleStreamingSession pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[0];
+        retStatus = getSdkTimeProfile(&pSampleStreamingSession);
 
         if(STATUS_SUCCEEDED(retStatus)) {
             CppInteg::Cloudwatch::getInstance().monitoring.pushSignalingClientMetrics(&pSampleConfiguration->signalingClientMetrics);
-            if(pSampleStreamingSession->pStatsCtx != NULL) {
+            if(pSampleConfiguration->sampleStreamingSessionList[0]->pStatsCtx != NULL) {
                 CppInteg::Cloudwatch::getInstance().monitoring.pushPeerConnectionMetrics(&pSampleStreamingSession->pStatsCtx->peerConnectionMetrics);
                 CppInteg::Cloudwatch::getInstance().monitoring.pushKvsIceAgentMetrics(&pSampleStreamingSession->pStatsCtx->iceMetrics);
             } else {

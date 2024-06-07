@@ -255,9 +255,10 @@ CleanUp:
     return retStatus;
 }
 
-STATUS getSdkTimeProfile(PSampleStreamingSession pSampleStreamingSession)
+STATUS getSdkTimeProfile(PSampleStreamingSession* ppSampleStreamingSession)
 {
     STATUS retStatus = STATUS_SUCCESS;
+    PSampleStreamingSession pSampleStreamingSession = *ppSampleStreamingSession;
     CHK_WARN(pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG, "Stats object not set up. Nothing to report");
     CHK(!pSampleStreamingSession->firstFrame, STATUS_WAITING_ON_FIRST_FRAME);
 

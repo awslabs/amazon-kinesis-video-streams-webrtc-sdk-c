@@ -355,7 +355,7 @@ STATUS gatherIceServerStats(PSampleStreamingSession pSampleStreamingSession);
 VOID onIceCandidateHandler(UINT64, PCHAR);
 PVOID mediaSenderRoutine(PVOID);
 STATUS setupMetricsCtx(PSampleStreamingSession);
-STATUS getSdkTimeProfile(PSampleStreamingSession);
+STATUS getSdkTimeProfile(PSampleStreamingSession*);
 STATUS terminate(UINT32 timerId, UINT64 currentTime, UINT64 customData);
 STATUS setUpCredentialProvider(PSampleConfiguration pSampleConfiguration, BOOL useIot);
 #ifdef __cplusplus
