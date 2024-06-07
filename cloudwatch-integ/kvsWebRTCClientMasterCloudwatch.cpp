@@ -50,13 +50,13 @@ STATUS publishStatsForCanary(RTC_STATS_TYPE statsType, PSampleStreamingSession p
     return retStatus;
 }
 
-VOID sendProfilingMetrics(PSampleConfiguration pSampleConfiguration)
+PVOID sendProfilingMetrics(PVOID customData)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleStreamingSession pSampleStreamingSession = NULL;
-
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
     if(pSampleConfiguration == NULL) {
-        return;
+        return NULL;
     }
 
     while((pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[0]) == NULL) {
@@ -69,12 +69,15 @@ VOID sendProfilingMetrics(PSampleConfiguration pSampleConfiguration)
             CppInteg::Cloudwatch::getInstance().monitoring.pushSignalingClientMetrics(&pSampleConfiguration->signalingClientMetrics);
             CppInteg::Cloudwatch::getInstance().monitoring.pushPeerConnectionMetrics(&pSampleStreamingSession->pStatsCtx->peerConnectionMetrics);
             CppInteg::Cloudwatch::getInstance().monitoring.pushKvsIceAgentMetrics(&pSampleStreamingSession->pStatsCtx->iceMetrics);
-            return;
-        } else {
+            return NULL;
+        } else if(retStatus == STATUS_WAITING_ON_FIRST_FRAME) {
             DLOGI("Waiting on streaming to start 0x%08x", retStatus);
+        } else {
+            DLOGE("Failed to get profiling stats. (0x%08x)", retStatus);
         }
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND * 100);
     }
+    return NULL;
 }
 
 VOID addMetadataToFrameData(PBYTE buffer, PFrame pFrame)
@@ -340,6 +343,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     Aws::SDKOptions options;
     options.httpOptions.installSigPipeHandler = TRUE;
     CHAR tsFileName[MAX_PATH_LEN + 1];
+    TID profilingThread;
     Aws::InitAPI(options);
     {
         SET_INSTRUMENTED_ALLOCATORS();
@@ -397,7 +401,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 
         DLOGI("[KVS Master] Channel %s set up done ", channelName);
 
-        std::thread pushProfilingThread(sendProfilingMetrics, pSampleConfiguration);
+        THREAD_CREATE(&profilingThread, sendProfilingMetrics, (PVOID) pSampleConfiguration);
 
         CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, RUN_TIME, TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, terminate,
                                       (UINT64) pSampleConfiguration, &terminateId));
@@ -405,7 +409,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         // Checking for termination
         CHK_STATUS(sessionCleanupWait(pSampleConfiguration));
         DLOGI("[KVS Master] Streaming session terminated");
-        pushProfilingThread.join();
+        THREAD_JOIN(profilingThread, NULL);
     }
 
 CleanUp:

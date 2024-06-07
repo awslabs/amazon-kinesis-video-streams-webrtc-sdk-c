@@ -253,6 +253,10 @@ VOID CloudwatchMonitoring::pushPeerConnectionMetrics(PPeerConnectionMetrics pPee
 {
     MetricDatum pcCreationDatum, dtlsSetupDatum, iceHolePunchingDatum;
 
+    if(pPeerConnectionMetrics == NULL) {
+        DLOGE("Peer connection metrics object is NULL. Cannot go further");
+        return;
+    }
     pcCreationDatum.SetMetricName("PcCreationTime");
     pcCreationDatum.SetValue(pPeerConnectionMetrics->peerConnectionStats.peerConnectionCreationTime);
     pcCreationDatum.SetUnit(Aws::CloudWatch::Model::StandardUnit::Milliseconds);
@@ -274,6 +278,11 @@ VOID CloudwatchMonitoring::pushKvsIceAgentMetrics(PKvsIceAgentMetrics pKvsIceAge
     MetricDatum localCandidateGatheringDatum, hostCandidateSetupDatum, srflxCandidateSetUpDatum,
                 iceAgentSetupDatum, relayCandidateSetUpDatum, iceServerParseDatum,
                 iceCandidatePairNominationDatum, iceCandidateGatheringDatum;
+
+    if(pKvsIceAgentMetrics == NULL) {
+        DLOGE("ICE agent metrics object is NULL. Cannot go further");
+        return;
+    }
 
     localCandidateGatheringDatum.SetMetricName("LocalCandidateGatheringTime");
     localCandidateGatheringDatum.SetValue(pKvsIceAgentMetrics->kvsIceAgentStats.localCandidateGatheringTime);
@@ -322,6 +331,11 @@ VOID CloudwatchMonitoring::pushSignalingClientMetrics(PSignalingClientMetrics pS
                 iceConfigDatum, connectDatum, createClientDatum, fetchDatum, connectClientDatum, joinSessionToOfferDatum;
 
     UINT64 joinSessionToOffer, joinSessionCallTime;
+
+    if(pSignalingClientMetrics == NULL) {
+        DLOGE("Signaling metrics object is NULL. Cannot go further");
+        return;
+    }
 
     offerToAnswerDatum.SetMetricName("OfferToAnswerTime");
     offerToAnswerDatum.SetValue(pSignalingClientMetrics->signalingClientStats.offerToAnswerTime);
