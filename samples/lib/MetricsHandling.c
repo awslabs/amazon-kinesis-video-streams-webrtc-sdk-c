@@ -7,7 +7,7 @@ STATUS setupMetricsCtx(PSampleStreamingSession pSampleStreamingSession)
         DLOGI("NUll");
     }
     if (pSampleStreamingSession->pSampleConfiguration == NULL) {
-        DLOGI("bykkbedk");
+        DLOGI("Null config");
     }
     CHK(pSampleStreamingSession != NULL && pSampleStreamingSession->pSampleConfiguration != NULL, STATUS_NULL_ARG);
     if (pSampleStreamingSession->pSampleConfiguration->enableMetrics) {
@@ -265,6 +265,7 @@ STATUS getSdkTimeProfile(PSampleStreamingSession pSampleStreamingSession)
     CHK_STATUS(signalingClientGetMetrics(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle,
                                          &pSampleStreamingSession->pSampleConfiguration->signalingClientMetrics));
     CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->pStatsCtx->peerConnectionMetrics));
+    DLOGI("Stats here: %d, %d, %d, %d", pSampleStreamingSession->pStatsCtx->peerConnectionMetrics.peerConnectionStats.dtlsSessionSetupTime, pSampleStreamingSession->pStatsCtx->peerConnectionMetrics.peerConnectionStats.peerConnectionCreationTime, pSampleStreamingSession->pStatsCtx->peerConnectionMetrics.peerConnectionStats.stunDnsResolutionTime, pSampleStreamingSession->pStatsCtx->peerConnectionMetrics.peerConnectionStats.iceHolePunchingTime);
     CHK_STATUS(iceAgentGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->pStatsCtx->iceMetrics));
 CleanUp:
     return retStatus;

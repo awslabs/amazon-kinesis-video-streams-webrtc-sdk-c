@@ -67,8 +67,12 @@ PVOID sendProfilingMetrics(PVOID customData)
 
         if(STATUS_SUCCEEDED(retStatus)) {
             CppInteg::Cloudwatch::getInstance().monitoring.pushSignalingClientMetrics(&pSampleConfiguration->signalingClientMetrics);
-            CppInteg::Cloudwatch::getInstance().monitoring.pushPeerConnectionMetrics(&pSampleStreamingSession->pStatsCtx->peerConnectionMetrics);
-            CppInteg::Cloudwatch::getInstance().monitoring.pushKvsIceAgentMetrics(&pSampleStreamingSession->pStatsCtx->iceMetrics);
+            if(pSampleStreamingSession->pStatsCtx != NULL) {
+                CppInteg::Cloudwatch::getInstance().monitoring.pushPeerConnectionMetrics(&pSampleStreamingSession->pStatsCtx->peerConnectionMetrics);
+                CppInteg::Cloudwatch::getInstance().monitoring.pushKvsIceAgentMetrics(&pSampleStreamingSession->pStatsCtx->iceMetrics);
+            } else {
+                DLOGE("StatsCtx uninitialized. If metrics is enabled, this should not happen");
+            }
             return NULL;
         } else if(retStatus == STATUS_WAITING_ON_FIRST_FRAME) {
             DLOGI("Waiting on streaming to start 0x%08x", retStatus);
