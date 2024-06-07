@@ -846,7 +846,7 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         CVAR_FREE(pSampleConfiguration->cvar);
     }
 
-    if (IOT_CORE_ENABLE_CREDENTIALS) {
+    if (pSampleConfiguration->useIot) {
         freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
     } else {
         freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);

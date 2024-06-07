@@ -224,17 +224,6 @@ VOID CloudwatchMonitoring::pushSignalingInitDelay(UINT64 delay, Aws::CloudWatch:
     this->push(datum);
 }
 
-VOID CloudwatchMonitoring::pushICEHolePunchingDelay(UINT64 delay, Aws::CloudWatch::Model::StandardUnit unit)
-{
-    MetricDatum datum;
-
-    datum.SetMetricName("ICEHolePunchingDelay");
-    datum.SetValue(delay);
-    datum.SetUnit(unit);
-
-    this->push(datum);
-}
-
 VOID CloudwatchMonitoring::pushOutboundRtpStats(POutgoingRTPStatsCtx pOutboundRtpStats)
 {
     MetricDatum bytesDiscardedPercentageDatum, averageFramesRateDatum, nackRateDatum, retransmissionPercentDatum;
