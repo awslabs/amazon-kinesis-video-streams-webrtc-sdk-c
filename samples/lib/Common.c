@@ -290,12 +290,13 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
 
     if (pSampleConfiguration->enableMetrics) {
         CHK_STATUS(setupMetricsCtx(pSampleStreamingSession));
-        pSampleStreamingSession->pStatsCtx->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime =
-            GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
     }
 
     // Flag to enable SDK to calculate selected ice server, local, remote and candidate pair stats.
     pSampleConfiguration->enableIceStats = FALSE;
+
+    pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime =
+            GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
 
     CHK_STATUS(initializePeerConnection(pSampleConfiguration, &pSampleStreamingSession->pPeerConnection));
     CHK_STATUS(peerConnectionOnIceCandidate(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession, onIceCandidateHandler));

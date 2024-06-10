@@ -257,8 +257,6 @@ typedef struct {
     OutgoingRTPStatsCtx outgoingRTPStatsCtx;
     IncomingRTPStatsCtx incomingRTPStatsCtx;
     EndToEndMetricsCtx endToEndMetricsCtx;
-    PeerConnectionMetrics peerConnectionMetrics;
-    KvsIceAgentMetrics iceMetrics;
     RtcStats kvsRtcStats;
     MUTEX statsUpdateLock;
 } StatsCtx, *PStatsCtx;
@@ -291,6 +289,8 @@ struct __SampleStreamingSession {
     CHAR pPeerConnectionMetricsMessage[MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE];
     CHAR pSignalingClientMetricsMessage[MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE];
     CHAR pIceAgentMetricsMessage[MAX_ICE_AGENT_METRICS_MESSAGE_SIZE];
+    PeerConnectionMetrics peerConnectionMetrics;
+    KvsIceAgentMetrics iceMetrics;
     PStatsCtx pStatsCtx;
 };
 

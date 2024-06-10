@@ -265,9 +265,8 @@ STATUS getSdkTimeProfile(PSampleStreamingSession* ppSampleStreamingSession)
     pSampleStreamingSession->pSampleConfiguration->signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
     CHK_STATUS(signalingClientGetMetrics(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle,
                                          &pSampleStreamingSession->pSampleConfiguration->signalingClientMetrics));
-    CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->pStatsCtx->peerConnectionMetrics));
-    DLOGI("Stats here: %d, %d, %d, %d", pSampleStreamingSession->pStatsCtx->peerConnectionMetrics.peerConnectionStats.dtlsSessionSetupTime, pSampleStreamingSession->pStatsCtx->peerConnectionMetrics.peerConnectionStats.peerConnectionCreationTime, pSampleStreamingSession->pStatsCtx->peerConnectionMetrics.peerConnectionStats.stunDnsResolutionTime, pSampleStreamingSession->pStatsCtx->peerConnectionMetrics.peerConnectionStats.iceHolePunchingTime);
-    CHK_STATUS(iceAgentGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->pStatsCtx->iceMetrics));
+    CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->peerConnectionMetrics));
+    CHK_STATUS(iceAgentGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->iceMetrics));
 CleanUp:
     return retStatus;
 }

@@ -28,26 +28,19 @@ VOID calculateDisconnectToFrameSentTime(PSampleConfiguration pSampleConfiguratio
     }
 }
 
-STATUS publishStatsForCanary(RTC_STATS_TYPE statsType, PSampleStreamingSession pSampleStreamingSession)
-{
+STATUS publishStatsForCanary(UINT32 timerId, UINT64 currentTime, UINT64 customData) {
     STATUS retStatus = STATUS_SUCCESS;
-    pSampleStreamingSession->pStatsCtx->kvsRtcStats.requestedTypeOfStats = statsType;
-    switch (statsType) {
-        case RTC_STATS_TYPE_OUTBOUND_RTP:
-            CHK_LOG_ERR(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pVideoRtcRtpTransceiver, &pSampleStreamingSession->pStatsCtx->kvsRtcStats));
-            populateOutgoingRtpMetricsContext(pSampleStreamingSession);
-            CppInteg::Cloudwatch::getInstance().monitoring.pushOutboundRtpStats(&pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx);
-            break;
-        case RTC_STATS_TYPE_INBOUND_RTP:
-            CHK_LOG_ERR(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pVideoRtcRtpTransceiver, &pSampleStreamingSession->pStatsCtx->kvsRtcStats));
-            populateIncomingRtpMetricsContext(pSampleStreamingSession);
-            CppInteg::Cloudwatch::getInstance().monitoring.pushInboundRtpStats(&pSampleStreamingSession->pStatsCtx->incomingRTPStatsCtx);
-            break;
-        default:
-            CHK(FALSE, STATUS_NOT_IMPLEMENTED);
+    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
+
+    CHK_WARN(pSampleStreamingSession != NULL && pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG, "Stats ctx object not set up");
+    pSampleStreamingSession->pStatsCtx->kvsRtcStats.requestedTypeOfStats = RTC_STATS_TYPE_OUTBOUND_RTP;
+    if (!ATOMIC_LOAD_BOOL(&pSampleStreamingSession->pSampleConfiguration->appTerminateFlag)) {
+        CHK_LOG_ERR(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pVideoRtcRtpTransceiver, &pSampleStreamingSession->pStatsCtx->kvsRtcStats));
+        CHK_STATUS(populateOutgoingRtpMetricsContext(pSampleStreamingSession));
+        CppInteg::Cloudwatch::getInstance().monitoring.pushOutboundRtpStats(&pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx);
     }
-    CleanUp:
-    return retStatus;
+CleanUp:
+    return STATUS_SUCCESS;
 }
 
 PVOID sendProfilingMetrics(PVOID customData)
@@ -68,8 +61,8 @@ PVOID sendProfilingMetrics(PVOID customData)
         if(STATUS_SUCCEEDED(retStatus)) {
             CppInteg::Cloudwatch::getInstance().monitoring.pushSignalingClientMetrics(&pSampleConfiguration->signalingClientMetrics);
             if(pSampleConfiguration->sampleStreamingSessionList[0]->pStatsCtx != NULL) {
-                CppInteg::Cloudwatch::getInstance().monitoring.pushPeerConnectionMetrics(&pSampleStreamingSession->pStatsCtx->peerConnectionMetrics);
-                CppInteg::Cloudwatch::getInstance().monitoring.pushKvsIceAgentMetrics(&pSampleStreamingSession->pStatsCtx->iceMetrics);
+                CppInteg::Cloudwatch::getInstance().monitoring.pushPeerConnectionMetrics(&pSampleStreamingSession->peerConnectionMetrics);
+                CppInteg::Cloudwatch::getInstance().monitoring.pushKvsIceAgentMetrics(&pSampleStreamingSession->iceMetrics);
             } else {
                 DLOGE("StatsCtx uninitialized. If metrics is enabled, this should not happen");
             }
@@ -119,7 +112,7 @@ PVOID sendMockVideoPackets(PVOID args)
     PBYTE frameData = NULL;
     UINT64 firstFrameTime = 0;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
-
+    UINT32 outboundStatsTimerId = MAX_UINT32;
     frameData = (PBYTE) MEMALLOC(maxFrameSize);
 
     // We allocate a bigger buffer to accomodate the hex encoded string
@@ -127,6 +120,13 @@ PVOID sendMockVideoPackets(PVOID args)
     frame.version = FRAME_CURRENT_VERSION;
     frame.presentationTs = GETTIME();
 
+    if(pSampleConfiguration->enableMetrics) {
+        CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, OUTBOUND_RTP_STATS_TIMER_INTERVAL,
+                                      OUTBOUND_RTP_STATS_TIMER_INTERVAL,
+                                      publishStatsForCanary,
+                                      (UINT64) pSampleConfiguration->sampleStreamingSessionList[0],
+                                      &outboundStatsTimerId));
+    }
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
 
         // This is the actual frame size that includes the metadata and the actual frame data
@@ -158,8 +158,11 @@ PVOID sendMockVideoPackets(PVOID args)
         MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
         for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
             status = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &frame);
-            pSampleConfiguration->sampleStreamingSessionList[i]->pStatsCtx->outgoingRTPStatsCtx.videoFramesGenerated++;
-            pSampleConfiguration->sampleStreamingSessionList[i]->pStatsCtx->outgoingRTPStatsCtx.videoBytesGenerated += frame.size;
+            if(pSampleConfiguration->enableMetrics) {
+                pSampleConfiguration->sampleStreamingSessionList[i]->pStatsCtx->outgoingRTPStatsCtx.videoFramesGenerated++;
+                pSampleConfiguration->sampleStreamingSessionList[i]->pStatsCtx->outgoingRTPStatsCtx.videoBytesGenerated += frame.size;
+            }
+
             if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame && status == STATUS_SUCCESS) {
                 PROFILE_WITH_START_TIME_OBJ(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, firstFrameTime, "Time to first frame");
                 CppInteg::Cloudwatch::getInstance().monitoring.pushTimeToFirstFrame(firstFrameTime, Aws::CloudWatch::Model::StandardUnit::Milliseconds);
@@ -171,7 +174,6 @@ PVOID sendMockVideoPackets(PVOID args)
                     DLOGV("writeFrame() failed with 0x%08x", status);
                 }
             }
-            CHK_STATUS(publishStatsForCanary(RTC_STATS_TYPE_OUTBOUND_RTP, pSampleConfiguration->sampleStreamingSessionList[i]));
         }
         MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND / DEFAULT_FRAME_RATE);
@@ -196,12 +198,18 @@ PVOID sendRealVideoPackets(PVOID args)
     UINT64 startTime, lastFrameTime, elapsed;
     CHAR tsFileName[MAX_PATH_LEN + 1];
     UINT64 firstFrameTime = 0;
+    UINT32 outboundStatsTimerId = MAX_UINT32;
     CHK_ERR(pSampleConfiguration != NULL, STATUS_NULL_ARG, "[KVS Master] Streaming session is NULL");
 
     frame.presentationTs = 0;
     startTime = GETTIME();
     lastFrameTime = startTime;
 
+    if(pSampleConfiguration->enableMetrics) {
+        CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, OUTBOUND_RTP_STATS_TIMER_INTERVAL, OUTBOUND_RTP_STATS_TIMER_INTERVAL,
+                                      publishStatsForCanary, (UINT64) pSampleConfiguration->sampleStreamingSessionList[0], &outboundStatsTimerId));
+
+    }
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
         fileIndex = fileIndex % NUMBER_OF_H264_FRAME_FILES + 1;
         if (pSampleConfiguration->videoCodec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
@@ -229,6 +237,10 @@ PVOID sendRealVideoPackets(PVOID args)
         MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
         for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
             status = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &frame);
+            if(pSampleConfiguration->enableMetrics) {
+                pSampleConfiguration->sampleStreamingSessionList[i]->pStatsCtx->outgoingRTPStatsCtx.videoFramesGenerated++;
+                pSampleConfiguration->sampleStreamingSessionList[i]->pStatsCtx->outgoingRTPStatsCtx.videoBytesGenerated += frame.size;
+            }
             if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame && status == STATUS_SUCCESS) {
                 SNPRINTF(tsFileName, SIZEOF(tsFileName), "%s%s", FIRST_FRAME_TS_FILE_PATH, STORAGE_DEFAULT_FIRST_FRAME_TS_FILE);
                 CHK_STATUS(writeFirstFrameSentTimeToFile(tsFileName));
@@ -341,7 +353,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     UINT32 frameSize;
     PSampleConfiguration pSampleConfiguration = NULL;
     PCHAR region;
-    UINT32 terminateId = MAX_UINT32;
+    UINT32 terminateTimerId = MAX_UINT32;
     CHAR channelName[MAX_CHANNEL_NAME_LEN];
     PCHAR channelNamePrefix;
     Aws::SDKOptions options;
@@ -408,8 +420,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         THREAD_CREATE(&profilingThread, sendProfilingMetrics, (PVOID) pSampleConfiguration);
 
         CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, RUN_TIME, TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, terminate,
-                                      (UINT64) pSampleConfiguration, &terminateId));
-
+                                      (UINT64) pSampleConfiguration, &terminateTimerId));
         // Checking for termination
         CHK_STATUS(sessionCleanupWait(pSampleConfiguration));
         DLOGI("[KVS Master] Streaming session terminated");
@@ -457,17 +468,4 @@ CleanUp:
     // Some platforms also treat 1 or 0 differently, so it's better to use
     // EXIT_FAILURE and EXIT_SUCCESS macros for portability.
     return STATUS_FAILED(retStatus) ? EXIT_FAILURE : EXIT_SUCCESS;
-}
-
-PVOID sampleReceiveAudioVideoFrame(PVOID args)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) args;
-    CHK_ERR(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "[KVS Master] Streaming session is NULL");
-    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleVideoFrameHandler));
-    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleAudioFrameHandler));
-
-    CleanUp:
-
-    return (PVOID) (ULONG_PTR) retStatus;
 }
