@@ -81,7 +81,7 @@ if(GST_FOUND)
     GstAudioVideoReceiver.c
     kvsWebRTCClientMasterGstSample.c
   )
-  target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets kvssdp kvsstun kvsrtp)
+  target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils)
 
   install(TARGETS kvsWebrtcClientMasterGstSample
     RUNTIME DESTINATION bin
@@ -93,7 +93,7 @@ if(GST_FOUND)
     GstAudioVideoReceiver.c
     kvsWebRTCClientViewerGstSample.c
   )
-  target_link_libraries(kvsWebrtcClientViewerGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets kvssdp kvsrtp)
+  target_link_libraries(kvsWebrtcClientViewerGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils)
 
   install(TARGETS kvsWebrtcClientViewerGstSample
     RUNTIME DESTINATION bin
