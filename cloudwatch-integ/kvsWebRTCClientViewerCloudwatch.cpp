@@ -36,23 +36,11 @@ VOID dataChannelOnOpenCallback(UINT64 customData, PRtcDataChannel pDataChannel)
 STATUS publishStatsForCanary(RTC_STATS_TYPE statsType, PSampleStreamingSession pSampleStreamingSession)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    pSampleStreamingSession->pStatsCtx->kvsRtcStats.requestedTypeOfStats = statsType;
-    switch (statsType) {
-        case RTC_STATS_TYPE_OUTBOUND_RTP:
-            CHK_LOG_ERR(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pVideoRtcRtpTransceiver, &pSampleStreamingSession->pStatsCtx->kvsRtcStats));
-            populateOutgoingRtpMetricsContext(pSampleStreamingSession);
-            CppInteg::Cloudwatch::getInstance().monitoring.pushOutboundRtpStats(&pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx);
-            break;
-        case RTC_STATS_TYPE_INBOUND_RTP:
-            DLOGI("Inbound");
-            CHK_LOG_ERR(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pVideoRtcRtpTransceiver, &pSampleStreamingSession->pStatsCtx->kvsRtcStats));
-            populateIncomingRtpMetricsContext(pSampleStreamingSession);
-            CppInteg::Cloudwatch::getInstance().monitoring.pushInboundRtpStats(&pSampleStreamingSession->pStatsCtx->incomingRTPStatsCtx);
-            break;
-        default:
-            CHK(FALSE, STATUS_NOT_IMPLEMENTED);
-    }
-    CleanUp:
+    pSampleStreamingSession->pStatsCtx->kvsRtcStats.requestedTypeOfStats = RTC_STATS_TYPE_INBOUND_RTP;
+    CHK_LOG_ERR(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pVideoRtcRtpTransceiver, &pSampleStreamingSession->pStatsCtx->kvsRtcStats));
+    populateIncomingRtpMetricsContext(pSampleStreamingSession);
+    CppInteg::Cloudwatch::getInstance().monitoring.pushInboundRtpStats(&pSampleStreamingSession->pStatsCtx->incomingRTPStatsCtx);
+CleanUp:
     return retStatus;
 }
 
