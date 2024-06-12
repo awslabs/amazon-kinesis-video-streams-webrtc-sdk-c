@@ -155,6 +155,59 @@ TEST_F(RtpRollingBufferFunctionalityTest, getIndexForSeqListReturnCorrectIndexsW
     EXPECT_EQ(STATUS_SUCCESS, freeRtpPacket(&pRtpPacket));
 }
 
+TEST_F(RtpRollingBufferFunctionalityTest, testRollingBufferParams)
+{
+    RtcConfiguration config{};
+    PKvsRtpTransceiver pKvsRtpTransceiver = nullptr;
+    PKvsPeerConnection pKvsPeerConnection = nullptr;
+    PRtcPeerConnection pRtcPeerConnection = nullptr;
+    PRtcRtpTransceiver pRtcRtpTransceiver = nullptr;
+    RtcMediaStreamTrack videoTrack{};
+
+    videoTrack.codec = RTC_CODEC_VP8;
+    videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+
+    // Testing with 0,0
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &videoTrack, nullptr, &pRtcRtpTransceiver));
+    pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(pRtcRtpTransceiver);
+    EXPECT_TRUE(pKvsRtpTransceiver->pRollingBufferConfig == nullptr);
+    EXPECT_EQ(createRollingBufferConfig(pRtcRtpTransceiver, &videoTrack, 0, 0), STATUS_SUCCESS);
+    EXPECT_EQ(pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferDurationSec, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS);
+    EXPECT_EQ(pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps, DEFAULT_EXPECTED_VIDEO_BIT_RATE);
+    EXPECT_EQ(freePeerConnection(&pRtcPeerConnection), STATUS_SUCCESS);
+
+    // Testing with invalid value for rolling buffer duration and valid rolling buffer bitrate
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &videoTrack, nullptr, &pRtcRtpTransceiver));
+    pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(pRtcRtpTransceiver);
+    EXPECT_TRUE(pKvsRtpTransceiver->pRollingBufferConfig == nullptr);
+    EXPECT_EQ(createRollingBufferConfig(pRtcRtpTransceiver, &videoTrack, 0.001, 4 * 1024 * 1024), STATUS_SUCCESS);
+    EXPECT_EQ(pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferDurationSec, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS);
+    EXPECT_EQ(pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps, 4 * 1024 * 1024);
+    EXPECT_EQ(freePeerConnection(&pRtcPeerConnection), STATUS_SUCCESS);
+
+    // Testing with valid value for rolling buffer duration and invalid rolling buffer bitrate
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &videoTrack, nullptr, &pRtcRtpTransceiver));
+    pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(pRtcRtpTransceiver);
+    EXPECT_TRUE(pKvsRtpTransceiver->pRollingBufferConfig == nullptr);
+    EXPECT_EQ(createRollingBufferConfig(pRtcRtpTransceiver, &videoTrack, 0.2, 102.39 * 1024), STATUS_SUCCESS);
+    EXPECT_EQ(pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferDurationSec, 0.2);
+    EXPECT_EQ(pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps, DEFAULT_EXPECTED_VIDEO_BIT_RATE);
+    EXPECT_EQ(freePeerConnection(&pRtcPeerConnection), STATUS_SUCCESS);
+
+    // Testing with valid value for rolling buffer duration and valid rolling buffer bitrate
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &videoTrack, nullptr, &pRtcRtpTransceiver));
+    pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(pRtcRtpTransceiver);
+    EXPECT_TRUE(pKvsRtpTransceiver->pRollingBufferConfig == nullptr);
+    EXPECT_EQ(createRollingBufferConfig(pRtcRtpTransceiver, &videoTrack, 0.2, 9.2 * 1024 * 1024), STATUS_SUCCESS);
+    EXPECT_EQ(pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferDurationSec, 0.2);
+    EXPECT_EQ(pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps, 9.2 * 1024 * 1024);
+    EXPECT_EQ(freePeerConnection(&pRtcPeerConnection), STATUS_SUCCESS);
+
+}
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

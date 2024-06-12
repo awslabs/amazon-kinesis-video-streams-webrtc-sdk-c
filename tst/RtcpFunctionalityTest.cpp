@@ -366,71 +366,89 @@ TEST_F(RtcpFunctionalityTest, twcc3)
     parseTwcc("4487A9E754B3E6FD040200E4147C9F81202700B7E6649000000000000000000004000000000008000018000000001", 43, 185);
 }
 
-
-TEST_F(RtcpFunctionalityTest, testRollingBufferParams)
+TEST_F(RtcpFunctionalityTest, onRtcpPacketTwccReport)
 {
+    PRtcPeerConnection pRtcPeerConnection = nullptr;
+    PKvsPeerConnection pKvsPeerConnection;
+    RtcpPacket rtcpPacket;
     RtcConfiguration config{};
-    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    auto hexpacket = (PCHAR) "8FCD00054487A9E754B3E6FD01810001147A75A62001C801";
+    BYTE rawpacket[256] = {0};
+    UINT32 rawpacketSize = 256;
+    EXPECT_EQ(hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize), STATUS_SUCCESS);
+
+    EXPECT_EQ(onRtcpTwccPacket(NULL, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(createPeerConnection(&config, &pRtcPeerConnection), STATUS_SUCCESS);
     pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
-    PRtcRtpTransceiver out = nullptr;
-    RtcMediaStreamTrack trackEmptyRtcRtpTransceiverInitTrack{};
-    RtcMediaStreamTrack trackInvalidRbTimeTrack{};
-    RtcRtpTransceiverInit trackInvalidRbTimeInit{};
-    RtcMediaStreamTrack trackInvalidRbBitrateTrack{};
-    RtcRtpTransceiverInit trackInvalidRbBitrateInit{};
-    RtcMediaStreamTrack trackInvalidRbBitrateRbTimeTrack{};
-    RtcRtpTransceiverInit trackInvalidRbBitrateRbTimeInit{};
-    RtcMediaStreamTrack trackValidRbTrack{};
-    RtcRtpTransceiverInit trackValidRbInit{};
+    EXPECT_EQ(onRtcpTwccPacket(NULL, pKvsPeerConnection), STATUS_NULL_ARG);
+    EXPECT_EQ(onRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection), STATUS_SUCCESS); // Testing before setting callback
+    EXPECT_EQ(peerConnectionOnSenderBandwidthEstimation(pRtcPeerConnection, 0, testBwHandler), STATUS_SUCCESS);
+    EXPECT_EQ(onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize), STATUS_SUCCESS);
+    EXPECT_EQ(freePeerConnection(&pRtcPeerConnection), STATUS_SUCCESS);
+}
 
-    trackEmptyRtcRtpTransceiverInitTrack.codec = RTC_CODEC_VP8;
-    trackEmptyRtcRtpTransceiverInitTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
-    EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &trackEmptyRtcRtpTransceiverInitTrack, nullptr, &out));
-    pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(out);
-    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferDurationSec, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS);
-    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferBitratebps, DEFAULT_EXPECTED_VIDEO_BIT_RATE);
+TEST_F(RtcpFunctionalityTest, onRtcpPacketFirReport)
+{
+    RtcOutboundRtpStreamStats stats{};
+    auto hexpacket = (PCHAR) "80C000014487A9E7";
+    BYTE rawpacket[256] = {0};
+    UINT32 rawpacketSize = 256;
+    BOOL onPictureLossCalled = FALSE;
 
-    trackInvalidRbTimeTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
-    trackInvalidRbTimeTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
-    trackInvalidRbTimeInit.rollingBufferDurationSec = 0.01;
-    trackInvalidRbTimeInit.rollingBufferBitratebps = 2 * 1024 * 1024;
 
-    EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &trackInvalidRbTimeTrack, &trackInvalidRbTimeInit, &out));
-    pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(out);
-    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferDurationSec, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS);
-    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferBitratebps, trackInvalidRbTimeInit.rollingBufferBitratebps);
+    EXPECT_EQ(hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize), STATUS_SUCCESS);
+    initTransceiver(0x4487A9E7);
+    pKvsRtpTransceiver->onPictureLossCustomData = (UINT64) &onPictureLossCalled;
+    pKvsRtpTransceiver->onPictureLoss = [](UINT64 customData) -> void { *(PBOOL) customData = TRUE; };
 
-    trackInvalidRbBitrateTrack.codec = RTC_CODEC_OPUS;
-    trackInvalidRbBitrateTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
-    trackInvalidRbBitrateInit.rollingBufferDurationSec = 0.1;
-    trackInvalidRbBitrateInit.rollingBufferBitratebps = 0.01 * 1024 * 1024;
+    EXPECT_EQ(onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize), STATUS_SUCCESS);
+    EXPECT_EQ(getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats), STATUS_SUCCESS);
+    EXPECT_EQ(stats.firCount, 1);
+    EXPECT_TRUE(onPictureLossCalled);
+    EXPECT_EQ(freePeerConnection(&pRtcPeerConnection), STATUS_SUCCESS);
+}
 
-    EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &trackInvalidRbBitrateTrack, &trackInvalidRbBitrateInit, &out));
-    pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(out);
-    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferDurationSec, trackInvalidRbBitrateInit.rollingBufferDurationSec);
-    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferBitratebps, DEFAULT_EXPECTED_AUDIO_BIT_RATE);
+TEST_F(RtcpFunctionalityTest, onRtcpPacketSliReport)
+{
+    RtcOutboundRtpStreamStats stats{};
+    auto hexpacket = (PCHAR) "82CE00014487A9E7";
+    BYTE rawpacket[256] = {0};
+    UINT32 rawpacketSize = 256;
 
-    trackInvalidRbBitrateRbTimeTrack.codec = RTC_CODEC_OPUS;
-    trackInvalidRbBitrateRbTimeTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
-    trackInvalidRbBitrateRbTimeInit.rollingBufferDurationSec = 0.001;
-    trackInvalidRbBitrateRbTimeInit.rollingBufferBitratebps = 0.01 * 1024 * 1024;
+    EXPECT_EQ(hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize), STATUS_SUCCESS);
+    initTransceiver(0x4487A9E7);
 
-    EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &trackInvalidRbBitrateRbTimeTrack, &trackInvalidRbBitrateRbTimeInit, &out));
-    pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(out);
-    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferDurationSec, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS);
-    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferBitratebps, DEFAULT_EXPECTED_AUDIO_BIT_RATE);
+    EXPECT_EQ(onRtcpSLIPacket(NULL, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(onRtcpSLIPacket(NULL, pKvsPeerConnection), STATUS_NULL_ARG);
+    EXPECT_EQ(onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize), STATUS_SUCCESS);
+    EXPECT_EQ(getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats), STATUS_SUCCESS);
+    EXPECT_EQ(stats.sliCount, 1);
+    EXPECT_EQ(freePeerConnection(&pRtcPeerConnection), STATUS_SUCCESS);
+}
 
-    trackValidRbTrack.codec = RTC_CODEC_OPUS;
-    trackValidRbTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
-    trackValidRbInit.rollingBufferDurationSec = 10;
-    trackValidRbInit.rollingBufferBitratebps = 10 * 1024 * 1024;
+TEST_F(RtcpFunctionalityTest, onRtcpPacketPliReport)
+{
+    RtcOutboundRtpStreamStats stats{};
+    auto hexpacket = (PCHAR) "81CE00014487A9E7";
+    BYTE rawpacket[256] = {0};
+    UINT32 rawpacketSize = 256;
+    BOOL onPictureLossCalled = FALSE;
 
-    EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &trackValidRbTrack, &trackValidRbInit, &out));
-    pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(out);
-    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferDurationSec, trackValidRbInit.rollingBufferDurationSec);
-    EXPECT_EQ(pKvsRtpTransceiver->rollingBufferBitratebps, trackValidRbInit.rollingBufferBitratebps);
+    EXPECT_EQ(hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize), STATUS_SUCCESS);
+    initTransceiver(0x4487A9E7);
 
-    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    EXPECT_EQ(transceiverOnPictureLoss(NULL, (UINT64) &onPictureLossCalled, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(transceiverOnPictureLoss(pRtcRtpTransceiver, (UINT64) &onPictureLossCalled, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(transceiverOnPictureLoss(NULL, (UINT64) &onPictureLossCalled, testPictureLossCb), STATUS_NULL_ARG);
+    EXPECT_EQ(transceiverOnPictureLoss(pRtcRtpTransceiver, (UINT64) &onPictureLossCalled, testPictureLossCb), STATUS_SUCCESS);
+
+    EXPECT_EQ(onRtcpPLIPacket(NULL, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(onRtcpPLIPacket(NULL, pKvsPeerConnection), STATUS_NULL_ARG);
+    EXPECT_EQ(onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize), STATUS_SUCCESS);
+    EXPECT_EQ(getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats), STATUS_SUCCESS);
+    EXPECT_EQ(stats.pliCount, 1);
+    EXPECT_TRUE(onPictureLossCalled);
+    EXPECT_EQ(freePeerConnection(&pRtcPeerConnection), STATUS_SUCCESS);
 }
 
 } // namespace webrtcclient

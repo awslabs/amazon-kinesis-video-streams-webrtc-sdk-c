@@ -249,23 +249,26 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_NoRtxType)
     PHashTable pRtxTable;
     PDoubleList pTransceivers;
     KvsRtpTransceiver transceiver;
+    MEMSET(&transceiver, 0x00, SIZEOF(KvsRtpTransceiver));
     transceiver.sender.track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
     transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     transceiver.sender.packetBuffer = NULL;
     transceiver.sender.retransmitter = NULL;
-    transceiver.rollingBufferDurationSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
-    transceiver.rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pCodecTable));
     EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pCodecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, 1));
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pRtxTable));
     EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&pTransceivers));
     EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(pTransceivers, (UINT64)(&transceiver)));
     EXPECT_EQ(STATUS_SUCCESS, setTransceiverPayloadTypes(pCodecTable, pRtxTable, pTransceivers));
+    EXPECT_EQ(transceiver.pRollingBufferConfig->rollingBufferDurationSec, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS);
+    EXPECT_EQ(transceiver.pRollingBufferConfig->rollingBufferBitratebps, DEFAULT_EXPECTED_VIDEO_BIT_RATE);
     EXPECT_EQ(1, transceiver.sender.payloadType);
     EXPECT_NE((PRtpRollingBuffer) NULL, transceiver.sender.packetBuffer);
     EXPECT_NE((PRetransmitter) NULL, transceiver.sender.retransmitter);
     hashTableFree(pCodecTable);
     hashTableFree(pRtxTable);
+
+    freeRollingBufferConfig(transceiver.pRollingBufferConfig);
     freeRtpRollingBuffer(&transceiver.sender.packetBuffer);
     freeRetransmitter(&transceiver.sender.retransmitter);
     doubleListFree(pTransceivers);
@@ -277,12 +280,11 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType)
     PHashTable pRtxTable;
     PDoubleList pTransceivers;
     KvsRtpTransceiver transceiver;
+    MEMSET(&transceiver, 0x00, SIZEOF(KvsRtpTransceiver));
     transceiver.sender.track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
     transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     transceiver.sender.packetBuffer = NULL;
     transceiver.sender.retransmitter = NULL;
-    transceiver.rollingBufferDurationSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
-    transceiver.rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pCodecTable));
     EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pCodecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, 1));
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pRtxTable));
@@ -296,6 +298,7 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType)
     EXPECT_NE((PRetransmitter) NULL, transceiver.sender.retransmitter);
     hashTableFree(pCodecTable);
     hashTableFree(pRtxTable);
+    freeRollingBufferConfig(transceiver.pRollingBufferConfig);
     freeRtpRollingBuffer(&transceiver.sender.packetBuffer);
     freeRetransmitter(&transceiver.sender.retransmitter);
     doubleListFree(pTransceivers);
@@ -307,6 +310,7 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType_H265)
     PHashTable pRtxTable;
     PDoubleList pTransceivers;
     KvsRtpTransceiver transceiver;
+    MEMSET(&transceiver, 0x00, SIZEOF(KvsRtpTransceiver));
     transceiver.sender.track.codec = RTC_CODEC_H265;
     transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     transceiver.sender.packetBuffer = NULL;
@@ -324,6 +328,7 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType_H265)
     EXPECT_NE((PRetransmitter) NULL, transceiver.sender.retransmitter);
     hashTableFree(pCodecTable);
     hashTableFree(pRtxTable);
+    freeRollingBufferConfig(transceiver.pRollingBufferConfig);
     freeRtpRollingBuffer(&transceiver.sender.packetBuffer);
     freeRetransmitter(&transceiver.sender.retransmitter);
     doubleListFree(pTransceivers);

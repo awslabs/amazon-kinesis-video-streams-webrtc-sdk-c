@@ -631,6 +631,36 @@ TEST_F(RtpFunctionalityTest, twccPayload)
     EXPECT_EQ(0, ptr[3]);
 }
 
+TEST_F(RtpFunctionalityTest, createKvsRtpTransceiverInvalidArg)
+{
+    RtcMediaStreamTrack mediaTrack{};
+    KvsPeerConnection kvsPeerConnection;
+    EXPECT_EQ(createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV, NULL, 0, 0, &mediaTrack, NULL, RTC_CODEC_OPUS, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV, &kvsPeerConnection, 0, 0, &mediaTrack, NULL, RTC_CODEC_OPUS, NULL), STATUS_NULL_ARG);
+    EXPECT_EQ(createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV, &kvsPeerConnection, 0, 0, NULL, NULL, RTC_CODEC_OPUS, NULL), STATUS_NULL_ARG);
+}
+
+TEST_F(RtpFunctionalityTest, freeTransceiverApiTest)
+{
+    EXPECT_EQ(freeTransceiver(NULL), STATUS_NOT_IMPLEMENTED);
+}
+
+TEST_F(RtpFunctionalityTest, convertRtpErrorCodeTest)
+{
+    RtpResult_t rtpResult;
+
+    rtpResult = RTP_RESULT_OK;
+    EXPECT_EQ(convertRtpErrorCode(rtpResult), STATUS_SUCCESS);
+    rtpResult = RTP_RESULT_BAD_PARAM;
+    EXPECT_EQ(convertRtpErrorCode(rtpResult), STATUS_INVALID_ARG);
+    rtpResult = RTP_RESULT_OUT_OF_MEMORY;
+    EXPECT_EQ(convertRtpErrorCode(rtpResult), STATUS_NOT_ENOUGH_MEMORY);
+    rtpResult = RTP_RESULT_WRONG_VERSION;
+    EXPECT_EQ(convertRtpErrorCode(rtpResult), STATUS_RTP_INVALID_VERSION);
+    rtpResult = RTP_RESULT_MALFORMED_PACKET;
+    EXPECT_EQ(convertRtpErrorCode(rtpResult), STATUS_RTP_INPUT_PACKET_TOO_SMALL);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

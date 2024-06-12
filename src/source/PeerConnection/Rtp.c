@@ -96,6 +96,11 @@ STATUS freeTransceiver(PRtcRtpTransceiver* pRtcRtpTransceiver)
     return STATUS_NOT_IMPLEMENTED;
 }
 
+STATUS freeRollingBufferConfig(PRollingBufferConfig pRollingBufferConfig)
+{
+    SAFE_MEMFREE(pRollingBufferConfig);
+}
+
 STATUS freeKvsRtpTransceiver(PKvsRtpTransceiver* ppKvsRtpTransceiver)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -119,7 +124,7 @@ STATUS freeKvsRtpTransceiver(PKvsRtpTransceiver* ppKvsRtpTransceiver)
     }
 
     if (pKvsRtpTransceiver->pRollingBufferConfig != NULL) {
-        SAFE_MEMFREE(pKvsRtpTransceiver->pRollingBufferConfig);
+        freeRollingBufferConfig(pKvsRtpTransceiver->pRollingBufferConfig);
     }
 
     MUTEX_FREE(pKvsRtpTransceiver->statsLock);
