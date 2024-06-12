@@ -1510,7 +1510,7 @@ typedef struct {
  *
  * Reference: https://www.w3.org/TR/webrtc/#dom-rtcrtptransceiverinit
  */
-typedef struct {                             //!< Structure version
+typedef struct {
     RTC_RTP_TRANSCEIVER_DIRECTION direction; //!< Transceiver direction - SENDONLY, RECVONLY, SENDRECV
 } RtcRtpTransceiverInit, *PRtcRtpTransceiverInit;
 
