@@ -180,7 +180,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
 
-CleanUp:
+    CleanUp:
 
     if (retStatus != STATUS_SUCCESS) {
         DLOGE("[KVS Gstreamer Viewer] Terminated with status code 0x%08x", retStatus);

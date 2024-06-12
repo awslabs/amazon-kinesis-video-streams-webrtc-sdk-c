@@ -15,6 +15,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     SET_INSTRUMENTED_ALLOCATORS();
     UINT32 logLevel = setLogLevel();
+    
 
 #ifndef _WIN32
     signal(SIGINT, sigintHandler);
@@ -80,9 +81,9 @@ INT32 main(INT32 argc, CHAR* argv[])
     DLOGI("[KVS Master] KVS WebRTC initialization completed successfully");
 
     PROFILE_CALL_WITH_START_END_T_OBJ(
-        retStatus = initSignaling(pSampleConfiguration, SAMPLE_MASTER_CLIENT_ID), pSampleConfiguration->signalingClientMetrics.signalingStartTime,
-        pSampleConfiguration->signalingClientMetrics.signalingEndTime, pSampleConfiguration->signalingClientMetrics.signalingCallTime,
-        "Initialize signaling client and connect to the signaling channel");
+            retStatus = initSignaling(pSampleConfiguration, SAMPLE_MASTER_CLIENT_ID), pSampleConfiguration->signalingClientMetrics.signalingStartTime,
+            pSampleConfiguration->signalingClientMetrics.signalingEndTime, pSampleConfiguration->signalingClientMetrics.signalingCallTime,
+            "Initialize signaling client and connect to the signaling channel");
 
     DLOGI("[KVS Master] Channel %s set up done ", pChannelName);
 
@@ -90,7 +91,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     CHK_STATUS(sessionCleanupWait(pSampleConfiguration));
     DLOGI("[KVS Master] Streaming session terminated");
 
-CleanUp:
+    CleanUp:
 
     if (retStatus != STATUS_SUCCESS) {
         DLOGE("[KVS Master] Terminated with status code 0x%08x", retStatus);
@@ -124,8 +125,8 @@ CleanUp:
     DLOGI("[KVS Master] Cleanup done");
     CHK_LOG_ERR(retStatus);
 
-    retStatus = RESET_INSTRUMENTED_ALLOCATORS();
-    DLOGI("All SDK allocations freed? %s..0x%08x", retStatus == STATUS_SUCCESS ? "Yes" : "No", retStatus);
+    RESET_INSTRUMENTED_ALLOCATORS();
+
     // https://www.gnu.org/software/libc/manual/html_node/Exit-Status.html
     // We can only return with 0 - 127. Some platforms treat exit code >= 128
     // to be a success code, which might give an unintended behaviour.
@@ -142,7 +143,7 @@ STATUS readFrameFromDisk(PBYTE pFrame, PUINT32 pSize, PCHAR frameFilePath)
     size = *pSize;
     // Get the size and read into frame
     CHK_STATUS(readFile(frameFilePath, TRUE, pFrame, &size));
-CleanUp:
+    CleanUp:
 
     if (pSize != NULL) {
         *pSize = (UINT32) size;
@@ -225,7 +226,7 @@ PVOID sendVideoPackets(PVOID args)
         lastFrameTime = GETTIME();
     }
 
-CleanUp:
+    CleanUp:
     DLOGI("[KVS Master] Closing video thread");
     CHK_LOG_ERR(retStatus);
 
@@ -287,7 +288,7 @@ PVOID sendAudioPackets(PVOID args)
         THREAD_SLEEP(SAMPLE_AUDIO_FRAME_DURATION);
     }
 
-CleanUp:
+    CleanUp:
     DLOGI("[KVS Master] closing audio thread");
     return (PVOID) (ULONG_PTR) retStatus;
 }
@@ -300,7 +301,7 @@ PVOID sampleReceiveAudioVideoFrame(PVOID args)
     CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleVideoFrameHandler));
     CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleAudioFrameHandler));
 
-CleanUp:
+    CleanUp:
 
     return (PVOID) (ULONG_PTR) retStatus;
 }
