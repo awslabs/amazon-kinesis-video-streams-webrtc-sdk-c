@@ -374,6 +374,55 @@ If using the WebRTC SDK Test Page, set the following values using the same AWS c
   
 Then choose Start Viewer to start live video streaming of the sample H264/Opus frames.
 
+## Memory optimization switches
+
+Starting with v1.11.0, the SDK provides some knobs to optimize memory usage to tailor to platform needs and resources
+
+### Controlling RTP rolling buffer capacity
+
+The SDK maintains an RTP rolling buffer to hold the RTP packets. This is useful to respond to NACKs and even in case of JitterBuffer. The rolling buffer size is controlled by 3 parameters:
+1. MTU: This is set to a default of 1200 bytes
+2. Buffer duration: This is the amount of time of media that you would like the rolling buffer to accommodate before it is overwritten due to buffer overflow. By default, the SDK sets this to 1 second
+3. Highest expected bitrate: This is the expected bitrate of the media in question. The typical bitrates could vary based on resolution and codec. By default, the SDK sets this to 5 mibps for video and 1 mibps for audio
+
+The rolling buffer capacity is calculated as follows:
+```
+Capacity = Buffer duration * highest expected bitrate (in bips) / 8 / MTU
+
+With buffer duration = 1 second,  Highest expected bitrate = 5 mibps and MTU 1200 bytes, capacity = 546 RTP packets
+```
+
+The rolling buffer size can be configured per transceiver using the `createRollingBufferConfig` API. Make sure to use the API after the addTransceiver call to ensure the `RtcMediaStreamTrack` and `KvsRtpTransceiver` objects are created. By default, the rolling buffer duration is set to 3 sec and bitrate is set to 5mibps for video an 1mibps for audio.
+
+The rolling buffer config parameters are as follows:
+```
+rollingBufferDurationSec = <duration in seconds, must be more than 100ms and less than 10 seconds (translates to 0.1 seconds)
+rollingBufferBitratebps = <bitrate in bits/sec, must be more than 100kibits/sec and less than 240 mibps
+```
+
+For example, if we want to set duration to 200ms and birtate to 150kibps,
+```c
+PRtcRtpTransceiver pVideoRtcRtpTransceiver;
+RtcMediaStreamTrack videoTrack;
+videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+CHK_STATUS(createRollingBufferConfig(pVideoRtcRtpTransceiver, &videoTrack, 0.2, 150 * 1024));
+```
+By setting these up, applications can have better control over the amount of memory that the application consumes. However, note, if the allocation is too small and the network bad leading to multiple nacks, it can lead to choppy media / dropped frames. Hence, care must be taken while deciding on the values to ensure the parameters satisfy necessary performance requirements.
+For more information, check the sample to see how these values are set up.
+
+### Thread stack sizes
+The default thread stack size for the KVS WebRTC SDK is platform specific. The SDK provides 2 avenues to modify the stack sizes:
+1. `THREAD_CREATE_WITH_PARAMS`: Use this API to control the thread stack size for individual threads. Starting v1.11.0, the samples set these up for the sample media threads.
+2. `-DKVS_STACK_SIZE`: Default stack size for threads created using THREAD_CREATE(). The parameter is set to 0 by default, which means the SDK will use platform specific defaults. To set a particular value, build the SDK with this option and provide the size in bytes. For example, to set stack size for threads to 64KiB,
+```
+cmake .. -DKVS_STACK_SIZE=65536`
+```
+
+The samples provided with this SDK have been tested with a lowest stack size of 64KiB.
+
+If your SOC/platform has a high default stack size, it is recommended to tweak these values to ensure reducing your application's memory footprint. 
+
 ## Setup IoT
 * To use IoT certificate to authenticate with KVS signaling, please refer to [Controlling Access to Kinesis Video Streams Resources Using AWS IoT](https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/how-iot.html) for provisioning details.
 * A sample IAM policy for the IoT role looks like below, policy can be modified based on your permission requirement.
@@ -539,9 +588,6 @@ The threadpool is enabled by default, and starts with 1 threads that it can incr
 
 To disable threadpool, run `cmake .. -DENABLE_KVS_THREADPOOL=OFF`
 
-### Thread stack sizes
-The default thread stack size for the KVS WebRTC SDK is 64 kb. Notable stack sizes that may need to be changed for your specific application will be the ConnectionListener Receiver thread and the media sender threads. Please modify the stack sizes for these media dependent threads to be suitable for the media your application is processing.
-
 ### Set up TWCC
 TWCC is a mechanism in WebRTC designed to enhance the performance and reliability of real-time communication over the Internet. TWCC addresses the challenges of network congestion by providing detailed feedback on the transport of packets across the network, enabling adaptive bitrate control and optimization of 
 media streams in real-time. This feedback mechanism is crucial for maintaining high-quality audio and video communication, as it allows senders to adjust their transmission strategies based on comprehensive information about packet losses, delays, and jitter experienced across the entire transport path.
@@ -598,34 +644,6 @@ For more information on these stats, refer to [AWS Docs](https://docs.aws.amazon
 
 The SDK disables generating these stats by default. In order to be enable the SDK to calculate these stats, the application needs to set the following field:
 `configuration.kvsRtcConfiguration.enableIceStats = TRUE`.
-
-### Controlling RTP rolling buffer capacity
-
-The SDK maintains an RTP rolling buffer to hold the RTP packets. This is useful to respond to NACKs and even in case of JitterBuffer. The rolling buffer size is controlled by 3 parameters:
-1. MTU: This is set to a default of 1200 bytes
-2. Buffer duration: This is the amount of time of media that you would like the rolling buffer to accommodate before it is overwritten due to buffer overflow. By default, the SDK sets this to 1 second
-3. Highest expected bitrate: This is the expected bitrate of the media in question. The typical bitrates could vary based on resolution and codec. By default, the SDK sets this to 5 mibps for video and 1 mibps for audio
-
-The rolling buffer capacity is calculated as follows:
-```
-Capacity = Buffer duration * highest expected bitrate (in bps) / 8 / MTU
-
-With buffer duration = 1 second,  Highest expected bitrate = 5 mibps and MTU 1200 bytes, capacity = 546 RTP packets
-```
-
-The rolling buffer size can be configured per transceiver through the following fields:
-```
-RtcRtpTransceiverInit.rollingBufferDurationSec = <duration in seconds, must be more than 100ms (translates to 0.1 seconds)
-RtcRtpTransceiverInit.rollingBufferBitratebps = <bitrate in bits/sec, must be more than 100kibits/sec
-```
-
-For example, if we want to set duration to 200ms and birtate to 150kibps,
-```
-RtcRtpTransceiverInit.rollingBufferDurationSec = 0.2;
-RtcRtpTransceiverInit.rollingBufferBitratebps = 150 * 1024;
-```
-By setting these up, applications can have better control over the amount of memory that the application consumes. However, note, if the allocation is too small and the network bad leading to multiple nacks, it can lead to choppy media / dropped frames. Hence, care must be taken while deciding on the values to ensure the parameters satisfy necessary performance requirements.
-For more information, check the sample to see how these values are set up.
 
 ## Documentation
 All Public APIs are documented in our [Include.h](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/master/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h), we also generate a [Doxygen](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/) each commit for easier navigation.

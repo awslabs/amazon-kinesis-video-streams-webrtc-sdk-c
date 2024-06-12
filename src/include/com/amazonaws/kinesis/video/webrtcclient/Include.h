@@ -1510,11 +1510,8 @@ typedef struct {
  *
  * Reference: https://www.w3.org/TR/webrtc/#dom-rtcrtptransceiverinit
  */
-typedef struct {
+typedef struct {                             //!< Structure version
     RTC_RTP_TRANSCEIVER_DIRECTION direction; //!< Transceiver direction - SENDONLY, RECVONLY, SENDRECV
-    DOUBLE rollingBufferDurationSec; //!< Maximum duration of media that needs to be buffered (in seconds). The lowest allowed is 0.1 seconds (100ms)
-    DOUBLE rollingBufferBitratebps;  //!< Maximum expected bitrate of media (In bits/second). It is used to determine the buffer capacity. The lowest
-                                     //!< allowed is 100 Kbps
 } RtcRtpTransceiverInit, *PRtcRtpTransceiverInit;
 
 /**
@@ -1632,6 +1629,8 @@ typedef struct {
 /*! \addtogroup PublicMemberFunctions
  * @{
  */
+
+STATUS createRollingBufferConfig(PRtcRtpTransceiver, PRtcMediaStreamTrack, DOUBLE, DOUBLE);
 
 /**
  * @brief Initialize a RtcPeerConnection with the provided Configuration
