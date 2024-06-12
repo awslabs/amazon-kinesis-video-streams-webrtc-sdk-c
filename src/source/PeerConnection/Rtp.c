@@ -99,6 +99,7 @@ STATUS freeTransceiver(PRtcRtpTransceiver* pRtcRtpTransceiver)
 STATUS freeRollingBufferConfig(PRollingBufferConfig pRollingBufferConfig)
 {
     SAFE_MEMFREE(pRollingBufferConfig);
+    return STATUS_SUCCESS;
 }
 
 STATUS freeKvsRtpTransceiver(PKvsRtpTransceiver* ppKvsRtpTransceiver)
