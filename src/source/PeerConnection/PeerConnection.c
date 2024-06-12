@@ -1508,8 +1508,8 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     UINT32 clockRate = 0;
     UINT32 ssrc = (UINT32) RAND(), rtxSsrc = (UINT32) RAND();
     RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
-    DOUBLE rollingBufferDurationSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
-    DOUBLE rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
+    DOUBLE rollingBufferDurationSec = (DOUBLE) DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
+    DOUBLE rollingBufferBitratebps = (DOUBELE) DEFAULT_EXPECTED_VIDEO_BIT_RATE;
     RtcMediaStreamTrack videoTrack;
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
