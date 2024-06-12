@@ -1630,6 +1630,17 @@ typedef struct {
  * @{
  */
 
+/**
+ * @brief Set up rolling buffer configuration - max duration of media to store (sec) and expected max bitrate (bips) of the encoded media
+ *
+ *
+ * @param[in] PRtcRtpTransceiver IN/Initialized and configured RtcRtpTransceiver
+ * @param[in] PRtcMediaStreamTrack IN/Initialized media stream track information
+ * @param[in] DOUBLE IN/Rolling buffer duration in seconds
+ * @param[in] DOUBLE IN/Rolling buffer bitrate in bits/second
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS createRollingBufferConfig(PRtcRtpTransceiver, PRtcMediaStreamTrack, DOUBLE, DOUBLE);
 
 /**
