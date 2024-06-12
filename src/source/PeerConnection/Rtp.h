@@ -99,6 +99,8 @@ STATUS hasTransceiverWithSsrc(PKvsPeerConnection pKvsPeerConnection, UINT32 ssrc
 STATUS findTransceiverBySsrc(PKvsPeerConnection pKvsPeerConnection, PKvsRtpTransceiver* ppTransceiver, UINT32 ssrc);
 
 STATUS setUpRollingBufferConfigInternal(PKvsRtpTransceiver, PRtcMediaStreamTrack, DOUBLE, DOUBLE);
+STATUS freeRollingBufferConfig(PRollingBufferConfig);
+
 #ifdef __cplusplus
 }
 #endif
