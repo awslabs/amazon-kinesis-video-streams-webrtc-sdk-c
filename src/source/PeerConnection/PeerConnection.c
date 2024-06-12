@@ -1572,6 +1572,25 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
             CHK(FALSE, STATUS_NOT_IMPLEMENTED);
     }
 
+    pthread_attr_t attr;
+    size_t stacksize;
+    int ret;
+
+    // Initialize the thread attributes object
+    ret = pthread_attr_init(&attr);
+    if (ret != 0) {
+        perror("pthread_attr_init");
+    }
+
+    // Get the default stack size
+    ret = pthread_attr_getstacksize(&attr, &stacksize);
+    if (ret != 0) {
+        perror("pthread_attr_getstacksize");
+    }
+
+    DLOGI("Default stack size: %zu bytes (%zu KB, %zu MB)\n", stacksize, stacksize / 1024, stacksize / (1024 * 1024));
+
+
     // TODO: Add ssrc duplicate detection here not only relying on RAND()
     DLOGI("(addTransceiver): rolling buffer params: %lf, %lf", rollingBufferDurationSec, rollingBufferBitratebps);
     CHK_STATUS(createKvsRtpTransceiver(direction, rollingBufferDurationSec, rollingBufferBitratebps, pKvsPeerConnection, ssrc, rtxSsrc,
