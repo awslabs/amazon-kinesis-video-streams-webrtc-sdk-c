@@ -75,6 +75,18 @@ extern "C" {
 #define MASTER_DATA_CHANNEL_MESSAGE "This message is from the KVS Master"
 #define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"
 
+#define H264_ROLLING_BUFFER_DURATION_SECONDS        (DOUBLE) 3
+#define H264_ROLLING_BUFFER_BITRATE_BITS_PER_SECOND (DOUBLE) 4 * 1024 * 1024 // Based on 1080p resolution
+#define H265_ROLLING_BUFFER_DURATION_SECONDS        (DOUBLE) 3
+#define H265_ROLLING_BUFFER_BITRATE_BITS_PER_SECOND (DOUBLE) 4 * 1024 * 1024 // Based on 1080p resolution
+#define VP8_ROLLING_BUFFER_DURATION_SECONDS         (DOUBLE) 3
+#define VP8_ROLLING_BUFFER_BITRATE_BITS_PER_SECOND  (DOUBLE) 6 * 1024 * 1024 // Based on 1080p resolution
+#define OPUS_ROLLING_BUFFER_DURATION_SECONDS        (DOUBLE) 3
+#define OPUS_ROLLING_BUFFER_BITRATE_BITS_PER_SECOND                                                                                                  \
+    (DOUBLE) 510 * 1024 // Opus supports bitrates from 6 kbps to 510 kbps for typical stereo audio sources
+#define G711_ROLLING_BUFFER_DURATION_SECONDS        (DOUBLE) 3
+#define G711_ROLLING_BUFFER_BITRATE_BITS_PER_SECOND (DOUBLE) 16 * 1024 // G.711 codecs use a sampling rate of 8 kHz and 8 bits per sample
+
 #define DATA_CHANNEL_MESSAGE_TEMPLATE                                                                                                                \
     "{\"content\":\"%s\",\"firstMessageFromViewerTs\":\"%s\",\"firstMessageFromMasterTs\":\"%s\",\"secondMessageFromViewerTs\":\"%s\","              \
     "\"secondMessageFromMasterTs\":\"%s\",\"lastMessageFromViewerTs\":\"%s\" }"
