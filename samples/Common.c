@@ -594,8 +594,6 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
                                              VP8_ROLLING_BUFFER_BITRATE_BITS_PER_SECOND));
     }
 
-    // Considering 4 Mbps for 720p (which is what our samples use). This is for H.264.
-    // The value could be different for other codecs.
     CHK_STATUS(transceiverOnBandwidthEstimation(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession,
                                                 sampleBandwidthEstimationHandler));
 
@@ -607,7 +605,6 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     STRCPY(audioTrack.trackId, "myAudioTrack");
     CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &audioTrack, &audioRtpTransceiverInit,
                               &pSampleStreamingSession->pAudioRtcRtpTransceiver));
-    // For opus, the bitrate could be between 6 Kbps to 510 Kbps
 
     if (audioTrack.codec == RTC_CODEC_OPUS) {
         CHK_STATUS(createRollingBufferConfig(pSampleStreamingSession->pAudioRtcRtpTransceiver, &audioTrack, OPUS_ROLLING_BUFFER_DURATION_SECONDS,
