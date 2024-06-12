@@ -524,6 +524,8 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
 
     MEMSET(&videoTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
     MEMSET(&audioTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+    MEMSET(&audioRtpTransceiverInit, 0x00, SIZEOF(RtcRtpTransceiverInit));
+    MEMSET(&videoRtpTransceiverInit, 0x00, SIZEOF(RtcRtpTransceiverInit));
 
     CHK(pSampleConfiguration != NULL && ppSampleStreamingSession != NULL, STATUS_NULL_ARG);
     CHK((isMaster && peerId != NULL) || !isMaster, STATUS_INVALID_ARG);
