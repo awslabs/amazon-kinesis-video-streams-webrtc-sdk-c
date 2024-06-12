@@ -60,8 +60,8 @@ INT32 main(INT32 argc, CHAR* argv[])
 #endif
 
     if (argc > 2) {
-        if (!STRCMP(argv[2], AUDIO_CODEC_NAME_AAC)) {
-            audioCodec = RTC_CODEC_AAC;
+        if (!STRCMP(argv[2], AUDIO_CODEC_NAME_OPUS)) {
+            audioCodec = RTC_CODEC_OPUS;
         } else if (!STRCMP(argv[2], AUDIO_CODEC_NAME_ALAW)) {
             audioCodec = RTC_CODEC_ALAW;
         } else if (!STRCMP(argv[2], AUDIO_CODEC_NAME_MULAW)) {
@@ -174,7 +174,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
 
-CleanUp:
+    CleanUp:
 
     if (retStatus != STATUS_SUCCESS) {
         DLOGE("[KVS Viewer] Terminated with status code 0x%08x", retStatus);

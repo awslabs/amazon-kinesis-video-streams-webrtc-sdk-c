@@ -31,6 +31,7 @@ STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, DOUBLE r
     pKvsRtpTransceiver->transceiver.receiver.track.kind = pRtcMediaStreamTrack->kind;
     pKvsRtpTransceiver->transceiver.direction = direction;
 
+    DLOGI("(createKvsRtpTransceiver): rolling buffer params: %lf, %lf", rollingBufferDurationSec, rollingBufferBitratebps);
     if (rollingBufferDurationSec < MIN_ROLLING_BUFFER_DURATION_IN_SECONDS) {
         DLOGW("Rolling buffer duration set to less than 100 ms. Setting to default %d sec", DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS);
         pKvsRtpTransceiver->rollingBufferDurationSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
@@ -39,13 +40,13 @@ STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, DOUBLE r
     }
     if (rollingBufferBitratebps < MIN_EXPECTED_BIT_RATE) {
         if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_VIDEO) {
-            DLOGW("Rolling buffer duration set to less than 100 Kibps for video. Setting to default %d bps", DEFAULT_EXPECTED_VIDEO_BIT_RATE);
+            DLOGW("Rolling buffer rate set to less than 100 Kibps for video. Setting to default %d bps", DEFAULT_EXPECTED_VIDEO_BIT_RATE);
             pKvsRtpTransceiver->rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
         } else if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_AUDIO) {
-            DLOGW("Rolling buffer duration set to less than 100 Kibps for audio. Setting to default %d bps", DEFAULT_EXPECTED_AUDIO_BIT_RATE);
+            DLOGW("Rolling buffer duration rate is set to less than 100 Kibps for audio. Setting to default %d bps", DEFAULT_EXPECTED_AUDIO_BIT_RATE);
             pKvsRtpTransceiver->rollingBufferBitratebps = DEFAULT_EXPECTED_AUDIO_BIT_RATE;
         } else {
-            DLOGW("Rolling buffer duration set to less than 100 Kibps for unknown codec. Setting to default %d bps", DEFAULT_EXPECTED_AUDIO_BIT_RATE);
+            DLOGW("Rolling buffer duration rate is set to less than 100 Kibps for unknown codec. Setting to default %d bps", DEFAULT_EXPECTED_AUDIO_BIT_RATE);
             pKvsRtpTransceiver->rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
         }
 
