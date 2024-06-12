@@ -1573,6 +1573,7 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     }
 
     // TODO: Add ssrc duplicate detection here not only relying on RAND()
+    DLOGI("(addTransceiver): rolling buffer params: %lf, %lf", rollingBufferDurationSec, rollingBufferBitratebps);
     CHK_STATUS(createKvsRtpTransceiver(direction, rollingBufferDurationSec, rollingBufferBitratebps, pKvsPeerConnection, ssrc, rtxSsrc,
                                        pRtcMediaStreamTrack, NULL, pRtcMediaStreamTrack->codec, &pKvsRtpTransceiver));
     CHK_STATUS(createJitterBuffer(onFrameReadyFunc, onFrameDroppedFunc, depayFunc, DEFAULT_JITTER_BUFFER_MAX_LATENCY, clockRate,
