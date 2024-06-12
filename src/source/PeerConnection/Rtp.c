@@ -31,29 +31,30 @@ STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, DOUBLE r
     pKvsRtpTransceiver->transceiver.receiver.track.kind = pRtcMediaStreamTrack->kind;
     pKvsRtpTransceiver->transceiver.direction = direction;
 
-    DLOGI("(createKvsRtpTransceiver): rolling buffer params: %lf, %lf", rollingBufferDurationSec, rollingBufferBitratebps);
-    if (rollingBufferDurationSec < MIN_ROLLING_BUFFER_DURATION_IN_SECONDS) {
-        DLOGW("Rolling buffer duration set to less than 100 ms. Setting to default %d sec", DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS);
+    DLOGI("(createKvsRtpTransceiver): rolling buffer params: %lf sec, %lf sec", rollingBufferDurationSec, rollingBufferBitratebps);
+    if (rollingBufferDurationSec < MIN_ROLLING_BUFFER_DURATION_IN_SECONDS || rollingBufferDurationSec > MAX_ROLLING_BUFFER_DURATION_IN_SECONDS) {
+        DLOGW("Rolling buffer duration does not fit range (%lf sec - %lf sec). Setting to default %d sec", MIN_ROLLING_BUFFER_DURATION_IN_SECONDS, MAX_ROLLING_BUFFER_DURATION_IN_SECONDS, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS);
         pKvsRtpTransceiver->rollingBufferDurationSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
     } else {
         pKvsRtpTransceiver->rollingBufferDurationSec = rollingBufferDurationSec;
     }
-    if (rollingBufferBitratebps < MIN_EXPECTED_BIT_RATE) {
+    if (rollingBufferBitratebps < MIN_EXPECTED_BIT_RATE || rollingBufferBitratebps > MAX_EXPECTED_BIT_RATE) {
         if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_VIDEO) {
-            DLOGW("Rolling buffer rate set to less than 100 Kibps for video. Setting to default %d bps", DEFAULT_EXPECTED_VIDEO_BIT_RATE);
+            DLOGW("Rolling buffer bitrate does not fit range (%lf sec - %lf sec) for video. Setting to default %d bps", MIN_EXPECTED_BIT_RATE, MAX_EXPECTED_BIT_RATE, DEFAULT_EXPECTED_VIDEO_BIT_RATE);
             pKvsRtpTransceiver->rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
         } else if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_AUDIO) {
-            DLOGW("Rolling buffer duration rate is set to less than 100 Kibps for audio. Setting to default %d bps", DEFAULT_EXPECTED_AUDIO_BIT_RATE);
+            DLOGW("Rolling buffer bitrate does not fit range (%lf sec - %lf sec)  for audio. Setting to default %d bps", MIN_EXPECTED_BIT_RATE, MAX_EXPECTED_BIT_RATE, DEFAULT_EXPECTED_AUDIO_BIT_RATE);
             pKvsRtpTransceiver->rollingBufferBitratebps = DEFAULT_EXPECTED_AUDIO_BIT_RATE;
         } else {
-            DLOGW("Rolling buffer duration rate is set to less than 100 Kibps for unknown codec. Setting to default %d bps", DEFAULT_EXPECTED_AUDIO_BIT_RATE);
+            DLOGW("Rolling buffer bitrate does not fit range (%lf sec - %lf sec)  for unknown codec. Setting to default %d bps", MIN_EXPECTED_BIT_RATE, MAX_EXPECTED_BIT_RATE, DEFAULT_EXPECTED_AUDIO_BIT_RATE);
             pKvsRtpTransceiver->rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
         }
 
     } else {
         pKvsRtpTransceiver->rollingBufferBitratebps = rollingBufferBitratebps;
     }
-
+    
+    DLOGI("(createKvsRtpTransceiver): rolling buffer params set to: %lf, %lf", rollingBufferDurationSec, rollingBufferBitratebps);
     pKvsRtpTransceiver->outboundStats.sent.rtpStream.ssrc = ssrc;
     STRNCPY(pKvsRtpTransceiver->outboundStats.sent.rtpStream.kind, pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_AUDIO ? "audio" : "video",
             MAX_STATS_STRING_LENGTH);
