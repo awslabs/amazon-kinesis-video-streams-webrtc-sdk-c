@@ -2396,7 +2396,6 @@ PVOID receiveLwsMessageWrapper(PVOID args)
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.messageReceivedFn(pSignalingClient->signalingClientCallbacks.customData,
                                                                                 &pSignalingMessageWrapper->receivedSignalingMessage));
     }
-
 CleanUp:
     CHK_LOG_ERR(retStatus);
 
