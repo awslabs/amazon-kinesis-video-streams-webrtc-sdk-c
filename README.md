@@ -382,7 +382,7 @@ Starting with v1.11.0, the SDK provides some knobs to optimize memory usage to t
 
 The SDK maintains an RTP rolling buffer to hold the RTP packets. This is useful to respond to NACKs and even in case of JitterBuffer. The rolling buffer size is controlled by 3 parameters:
 1. MTU: This is set to a default of 1200 bytes
-2. Buffer duration: This is the amount of time of media that you would like the rolling buffer to accommodate before it is overwritten due to buffer overflow. By default, the SDK sets this to 1 second
+2. Buffer duration: This is the amount of time of media that you would like the rolling buffer to accommodate before it is overwritten due to buffer overflow. By default, the SDK sets this to 3 seconds
 3. Highest expected bitrate: This is the expected bitrate of the media in question. The typical bitrates could vary based on resolution and codec. By default, the SDK sets this to 5 mibps for video and 1 mibps for audio
 
 The rolling buffer capacity is calculated as follows:
@@ -433,7 +433,7 @@ The SDK calculates 4 different stats:
 
 For more information on these stats, refer to [AWS Docs](https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-reference.html)
 
-The SDK disables generating these stats by default. In order to be enable the SDK to calculate these stats, the application needs to set the following field:
+The SDK **disables** generating these stats by default. In order to be enable the SDK to calculate these stats, the application needs to set the following field:
 `configuration.kvsRtcConfiguration.enableIceStats = TRUE`. Note that this increases the memory usage by about 200KB per peer connection.
 
 ## Setup IoT
