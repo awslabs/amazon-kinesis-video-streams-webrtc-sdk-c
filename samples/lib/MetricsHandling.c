@@ -7,6 +7,7 @@ STATUS setupMetricsCtx(PSampleStreamingSession pSampleStreamingSession)
     if (pSampleStreamingSession->pSampleConfiguration->enableMetrics) {
         CHK(NULL != (pSampleStreamingSession->pStatsCtx = (PStatsCtx) MEMCALLOC(1, SIZEOF(StatsCtx))), STATUS_NOT_ENOUGH_MEMORY);
     }
+    pSampleStreamingSession->pStatsCtx->statsUpdateLock = MUTEX_CREATE(TRUE);
 CleanUp:
     return retStatus;
 }
@@ -268,6 +269,7 @@ STATUS freeMetricsCtx(PSampleStreamingSession* ppSampleStreamingSession) {
 
     pSampleStreamingSession = *ppSampleStreamingSession;
     if (pSampleStreamingSession->pSampleConfiguration->enableMetrics) {
+        MUTEX_FREE(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
         SAFE_MEMFREE(pSampleStreamingSession->pStatsCtx);
     }
 CleanUp:

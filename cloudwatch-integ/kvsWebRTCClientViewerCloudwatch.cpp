@@ -83,6 +83,7 @@ CleanUp:
 VOID videoFrameHandler(UINT64 customData, PFrame pFrame)
 {
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
+    PStatsCtx pStatsCtx = pSampleStreamingSession->pStatsCtx;
     // Parse packet and ad e2e metrics
     PBYTE frameDataPtr = pFrame->frameData + ANNEX_B_NALU_SIZE;
     UINT32 rawPacketSize = 0;
@@ -97,17 +98,23 @@ VOID videoFrameHandler(UINT64 customData, PFrame pFrame)
     frameDataPtr += SIZEOF(UINT64);
     UINT32 receivedSize = getUnalignedInt32BigEndian((PINT32)(frameDataPtr));
 
-    pSampleStreamingSession->pStatsCtx->endToEndMetricsCtx.frameLatencyAvg =
-            EMA_ACCUMULATOR_GET_NEXT(pSampleStreamingSession->pStatsCtx->endToEndMetricsCtx.frameLatencyAvg, GETTIME() - receivedTs);
+    if(pSampleStreamingSession == NULL || pStatsCtx == NULL) {
+        DLOGW("Streaming session freed. Doing nothing");
+        return;
+    }
+    MUTEX_LOCK(pStatsCtx->statsUpdateLock);
+    pStatsCtx->endToEndMetricsCtx.frameLatencyAvg =
+            EMA_ACCUMULATOR_GET_NEXT(pStatsCtx->endToEndMetricsCtx.frameLatencyAvg, GETTIME() - receivedTs);
 
     // Do a size match of the raw packet. Since raw packet does not contain the NALu, the
     // comparison would be rawPacketSize + ANNEX_B_NALU_SIZE and the received size
     if (rawPacketSize + ANNEX_B_NALU_SIZE == receivedSize) {
-        pSampleStreamingSession->pStatsCtx->endToEndMetricsCtx.sizeMatchAvg = EMA_ACCUMULATOR_GET_NEXT(pSampleStreamingSession->pStatsCtx->endToEndMetricsCtx.sizeMatchAvg, 1);
+        pStatsCtx->endToEndMetricsCtx.sizeMatchAvg = EMA_ACCUMULATOR_GET_NEXT(pSampleStreamingSession->pStatsCtx->endToEndMetricsCtx.sizeMatchAvg, 1);
     } else {
-        pSampleStreamingSession->pStatsCtx->endToEndMetricsCtx.sizeMatchAvg = EMA_ACCUMULATOR_GET_NEXT(pSampleStreamingSession->pStatsCtx->endToEndMetricsCtx.sizeMatchAvg, 0);
+        pStatsCtx->endToEndMetricsCtx.sizeMatchAvg = EMA_ACCUMULATOR_GET_NEXT(pSampleStreamingSession->pStatsCtx->endToEndMetricsCtx.sizeMatchAvg, 0);
     }
     SAFE_MEMFREE(rawPacket);
+    MUTEX_UNLOCK(pStatsCtx->statsUpdateLock);
 }
 
 VOID audioFrameHandler(UINT64 customData, PFrame pFrame)
