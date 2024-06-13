@@ -18,7 +18,7 @@ extern "C" {
 #define DEFAULT_VALID_INDEX_BUFFER_SIZE        1000
 #define DEFAULT_PEER_FRAME_BUFFER_SIZE         (5 * 1024)
 #define SRTP_AUTH_TAG_OVERHEAD                 10
-#define MIN_ROLLING_BUFFER_DURATION_IN_SECONDS 0.1
+#define MIN_ROLLING_BUFFER_DURATION_IN_SECONDS (DOUBLE) 0.1
 #define MIN_EXPECTED_BIT_RATE                  (DOUBLE)(102.4 * 1024) // Considering 1Kib = 1024 bits
 #define MAX_ROLLING_BUFFER_DURATION_IN_SECONDS (DOUBLE) 10
 #define MAX_EXPECTED_BIT_RATE                  (DOUBLE)(240 * 1024 * 1024) // Considering 1Kib = 1024 bits
