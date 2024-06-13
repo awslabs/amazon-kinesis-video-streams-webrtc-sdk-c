@@ -159,7 +159,6 @@ TEST_F(RtpRollingBufferFunctionalityTest, testRollingBufferParams)
 {
     RtcConfiguration config{};
     PKvsRtpTransceiver pKvsRtpTransceiver = nullptr;
-    PKvsPeerConnection pKvsPeerConnection = nullptr;
     PRtcPeerConnection pRtcPeerConnection = nullptr;
     PRtcRtpTransceiver pRtcRtpTransceiver = nullptr;
     RtcMediaStreamTrack videoTrack{};
