@@ -455,7 +455,7 @@ if(COMPILER_WARNINGS)
   target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wall -Werror -pedantic -Wextra -Wno-unknown-warning-option)
 endif()
 
-install(TARGETS kvsWebrtcClient kvsWebrtcSignalingClient
+install(TARGETS kvsWebrtcClient kvsWebrtcSignalingClient kvsWebRtcThreadpool
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
