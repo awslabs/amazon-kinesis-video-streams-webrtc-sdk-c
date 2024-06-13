@@ -255,7 +255,6 @@ if(BUILD_DEPENDENCIES)
   message(STATUS "Finished building dependencies.")
 endif()
 
-
 if(AWS_SDK_INTEG)
   message(STATUS "Building...")
   set(BUILD_ARGS

@@ -22,7 +22,7 @@
 
 #define STORAGE_CANARY_FIRST_FRAME_TS_FILE_ENV_VAR       "STORAGE_CANARY_FIRST_FRAME_TS_FILE"
 
-#define FIRST_FRAME_TS_FILE_PATH                   (PCHAR) "/tmp/"
+#define FIRST_FRAME_TS_FILE_PATH                   (PCHAR) "../../"
 #define STORAGE_DEFAULT_FIRST_FRAME_TS_FILE (PCHAR) "DefaultFirstFrameSentTSFileName.txt"
 
 #define INDIVIDUAL_STORAGE_CW_DIMENSION "StorageWebRTCSDKCanaryChannelName"
