@@ -3,12 +3,6 @@
 STATUS setupMetricsCtx(PSampleStreamingSession pSampleStreamingSession)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    if (pSampleStreamingSession == NULL) {
-        DLOGI("NUll");
-    }
-    if (pSampleStreamingSession->pSampleConfiguration == NULL) {
-        DLOGI("Null config");
-    }
     CHK(pSampleStreamingSession != NULL && pSampleStreamingSession->pSampleConfiguration != NULL, STATUS_NULL_ARG);
     if (pSampleStreamingSession->pSampleConfiguration->enableMetrics) {
         CHK(NULL != (pSampleStreamingSession->pStatsCtx = (PStatsCtx) MEMCALLOC(1, SIZEOF(StatsCtx))), STATUS_NOT_ENOUGH_MEMORY);
@@ -52,10 +46,8 @@ STATUS gatherIceServerStats(PSampleStreamingSession pSampleStreamingSession)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 j = 0;
-    BOOL locked = TRUE;
     CHK_WARN(pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG, "Stats object not set up. Nothing to report");
-    MUTEX_LOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
-    locked = TRUE;
+
     pSampleStreamingSession->pStatsCtx->kvsRtcStats.requestedTypeOfStats = RTC_STATS_TYPE_ICE_SERVER;
     for (; j < pSampleStreamingSession->pSampleConfiguration->iceUriCount; j++) {
         pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.iceServerStats.iceServerIndex = j;
@@ -70,9 +62,6 @@ STATUS gatherIceServerStats(PSampleStreamingSession pSampleStreamingSession)
               pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.iceServerStats.totalRoundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     }
 CleanUp:
-    if (locked) {
-        MUTEX_UNLOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
-    }
     LEAVES();
     return retStatus;
 }
@@ -267,6 +256,20 @@ STATUS getSdkTimeProfile(PSampleStreamingSession* ppSampleStreamingSession)
                                          &pSampleStreamingSession->pSampleConfiguration->signalingClientMetrics));
     CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->peerConnectionMetrics));
     CHK_STATUS(iceAgentGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->iceMetrics));
+CleanUp:
+    return retStatus;
+}
+
+STATUS freeMetricsCtx(PSampleStreamingSession* ppSampleStreamingSession) {
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleStreamingSession pSampleStreamingSession = NULL;
+
+    CHK(ppSampleStreamingSession != NULL, STATUS_NULL_ARG);
+
+    pSampleStreamingSession = *ppSampleStreamingSession;
+    if (pSampleStreamingSession->pSampleConfiguration->enableMetrics) {
+        SAFE_MEMFREE(pSampleStreamingSession->pStatsCtx);
+    }
 CleanUp:
     return retStatus;
 }

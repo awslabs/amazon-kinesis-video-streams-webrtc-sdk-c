@@ -209,7 +209,8 @@ CleanUp:
     }
     DLOGI("[KVS Gstreamer Viewer] Cleanup done");
 
-    RESET_INSTRUMENTED_ALLOCATORS();
+    retStatus = RESET_INSTRUMENTED_ALLOCATORS();
+    DLOGI("All SDK allocations freed? %s..0x%08x", retStatus == STATUS_SUCCESS ? "Yes" : "No", retStatus);
 
     // https://www.gnu.org/software/libc/manual/html_node/Exit-Status.html
     // We can only return with 0 - 127. Some platforms treat exit code >= 128

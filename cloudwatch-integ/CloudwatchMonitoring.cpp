@@ -137,47 +137,6 @@ VOID CloudwatchMonitoring::pushExitStatus(STATUS retStatus)
     this->push(datum);
 }
 
-VOID CloudwatchMonitoring::pushSignalingRoundtripStatus(STATUS retStatus)
-{
-    MetricDatum datum;
-    Dimension statusDimension;
-    CHAR status[MAX_STATUS_CODE_LENGTH];
-
-    statusDimension.SetName("Code");
-    SPRINTF(status, "0x%08x", retStatus);
-    statusDimension.SetValue(status);
-
-    datum.SetMetricName("SignalingRoundtripStatus");
-    datum.SetValue(1.0);
-    datum.SetUnit(Aws::CloudWatch::Model::StandardUnit::Count);
-
-    datum.AddDimensions(statusDimension);
-
-    this->push(datum);
-}
-
-VOID CloudwatchMonitoring::pushSignalingRoundtripLatency(UINT64 delay, Aws::CloudWatch::Model::StandardUnit unit)
-{
-    MetricDatum datum;
-
-    datum.SetMetricName("SignalingRoundtripLatency");
-    datum.SetValue(delay);
-    datum.SetUnit(unit);
-
-    this->push(datum);
-}
-
-VOID CloudwatchMonitoring::pushSignalingConnectionDuration(UINT64 duration, Aws::CloudWatch::Model::StandardUnit unit)
-{
-    MetricDatum datum;
-
-    datum.SetMetricName("SignalingConnectionDuration");
-    datum.SetValue(duration);
-    datum.SetUnit(unit);
-
-    this->push(datum);
-}
-
 VOID CloudwatchMonitoring::pushTimeToFirstFrame(UINT64 timeToFirstFrame, Aws::CloudWatch::Model::StandardUnit unit)
 {
     MetricDatum datum;
@@ -208,17 +167,6 @@ VOID CloudwatchMonitoring::pushJoinSessionTime(UINT64 joinSessionTime, Aws::Clou
 
     datum.SetMetricName("JoinSessionTime");
     datum.SetValue(joinSessionTime);
-    datum.SetUnit(unit);
-
-    this->push(datum);
-}
-
-VOID CloudwatchMonitoring::pushSignalingInitDelay(UINT64 delay, Aws::CloudWatch::Model::StandardUnit unit)
-{
-    MetricDatum datum;
-
-    datum.SetMetricName("SignalingInitDelay");
-    datum.SetValue(delay);
     datum.SetUnit(unit);
 
     this->push(datum);

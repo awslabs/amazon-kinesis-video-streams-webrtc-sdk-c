@@ -4,8 +4,6 @@
 
 extern PSampleConfiguration gSampleConfiguration;
 
-#ifdef ENABLE_DATA_CHANNEL
-
 // onMessage callback for a message received by the viewer on a data channel
 VOID dataChannelOnMessageCallback(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
 {
@@ -31,7 +29,6 @@ VOID dataChannelOnOpenCallback(UINT64 customData, PRtcDataChannel pDataChannel)
         DLOGI("[KVS Viewer] dataChannelSend(): operation returned status code: 0x%08x ", retStatus);
     }
 }
-#endif
 
 STATUS publishStatsForCanary(RTC_STATS_TYPE statsType, PSampleStreamingSession pSampleStreamingSession)
 {
@@ -144,7 +141,6 @@ INT32 main(INT32 argc, CHAR* argv[])
         signal(SIGINT, sigintHandler);
 #endif
         if (USE_IOT) {
-            DLOGI("Here");
             PCHAR pChannelName;
             CHK_ERR((pChannelName = GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set since USE_IOT is enabled");
             STRNCPY(channelName, pChannelName, SIZEOF(channelName));
@@ -289,7 +285,8 @@ CleanUp:
     }
     DLOGI("[KVS Viewer] Cleanup done");
 
-    RESET_INSTRUMENTED_ALLOCATORS();
+    retStatus = RESET_INSTRUMENTED_ALLOCATORS();
+    DLOGI("All SDK allocations freed? %s..0x%08x", retStatus == STATUS_SUCCESS ? "Yes" : "No", retStatus);
 
     CppInteg::Cloudwatch::getInstance().monitoring.pushExitStatus(retStatus);
     CppInteg::Cloudwatch::deinit();

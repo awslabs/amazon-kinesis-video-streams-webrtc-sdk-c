@@ -6,10 +6,11 @@
 STATUS writeFirstFrameSentTimeToFile(PCHAR fileName) {
     STATUS retStatus = STATUS_SUCCESS;
     DLOGI("Writing to %s file", fileName);
-    UINT64 currentTimeMilliS =  GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
-    CHAR cuurrentTimeChars[MAX_UINT64_DIGIT_COUNT + 1]; // +1 accounts for null terminator
-    UINT64 writeSize = SPRINTF(cuurrentTimeChars, "%llu", currentTimeMilliS);
-    CHK_STATUS(writeFile((PCHAR) fileName, false, false, static_cast<PBYTE>(static_cast<PVOID>(cuurrentTimeChars)), writeSize));
+    UINT64 currentTimeMillis =  GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    CHAR currentTimeChars[MAX_UINT64_DIGIT_COUNT + 1]; // +1 accounts for null terminator
+    UINT64 writeSize = SNPRINTF(currentTimeChars, SIZEOF(currentTimeChars), "%llu", currentTimeMillis);
+    DLOGI("Timestamp written to file: %s", currentTimeChars);
+    CHK_STATUS(writeFile((PCHAR) fileName, false, false, static_cast<PBYTE>(static_cast<PVOID>(currentTimeChars)), writeSize));
     CleanUp:
     return retStatus;
 }
@@ -111,9 +112,11 @@ PVOID sendMockVideoPackets(PVOID args)
     UINT32 maxFrameSize = (FRAME_METADATA_SIZE + ((DEFAULT_BITRATE / 8) / DEFAULT_FRAMERATE)) * 2;
     PBYTE frameData = NULL;
     UINT64 firstFrameTime = 0;
-    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
     UINT32 outboundStatsTimerId = MAX_UINT32;
     frameData = (PBYTE) MEMALLOC(maxFrameSize);
+
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
+    CHK_ERR(pSampleConfiguration != NULL, STATUS_NULL_ARG, "[KVS Master] Streaming session not set up");
 
     // We allocate a bigger buffer to accomodate the hex encoded string
     frame.frameData = (PBYTE) MEMALLOC(maxFrameSize * 3 + 1 + ANNEX_B_NALU_SIZE);
@@ -176,14 +179,15 @@ PVOID sendMockVideoPackets(PVOID args)
             }
         }
         MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
-        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND / DEFAULT_FRAME_RATE);
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND / DEFAULT_FRAMERATE);
         frame.presentationTs = GETTIME();
     }
-    CleanUp:
-
+CleanUp:
+    DLOGI("[KVS Master] Closing video thread");
+    CHK_LOG_ERR(retStatus);
     SAFE_MEMFREE(frame.frameData);
     SAFE_MEMFREE(frameData);
-    return NULL;
+    return (PVOID) (ULONG_PTR) retStatus;;
 }
 
 PVOID sendRealVideoPackets(PVOID args)
@@ -199,11 +203,14 @@ PVOID sendRealVideoPackets(PVOID args)
     CHAR tsFileName[MAX_PATH_LEN + 1];
     UINT64 firstFrameTime = 0;
     UINT32 outboundStatsTimerId = MAX_UINT32;
-    CHK_ERR(pSampleConfiguration != NULL, STATUS_NULL_ARG, "[KVS Master] Streaming session is NULL");
+    CHK_ERR(pSampleConfiguration != NULL, STATUS_NULL_ARG, "[KVS Master] Streaming session not set up");
 
     frame.presentationTs = 0;
     startTime = GETTIME();
     lastFrameTime = startTime;
+    SNPRINTF(tsFileName, SIZEOF(tsFileName), "%s%s", FIRST_FRAME_TS_FILE_PATH, STORAGE_DEFAULT_FIRST_FRAME_TS_FILE);
+    // Delete file if it exists
+    FREMOVE(tsFileName);
 
     if(pSampleConfiguration->enableMetrics) {
         CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, OUTBOUND_RTP_STATS_TIMER_INTERVAL, OUTBOUND_RTP_STATS_TIMER_INTERVAL,
@@ -242,7 +249,6 @@ PVOID sendRealVideoPackets(PVOID args)
                 pSampleConfiguration->sampleStreamingSessionList[i]->pStatsCtx->outgoingRTPStatsCtx.videoBytesGenerated += frame.size;
             }
             if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame && status == STATUS_SUCCESS) {
-                SNPRINTF(tsFileName, SIZEOF(tsFileName), "%s%s", FIRST_FRAME_TS_FILE_PATH, STORAGE_DEFAULT_FIRST_FRAME_TS_FILE);
                 CHK_STATUS(writeFirstFrameSentTimeToFile(tsFileName));
                 PROFILE_WITH_START_TIME_OBJ(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, firstFrameTime, "Time to first frame");
                 CppInteg::Cloudwatch::getInstance().monitoring.pushTimeToFirstFrame(firstFrameTime,
@@ -270,7 +276,7 @@ PVOID sendRealVideoPackets(PVOID args)
         lastFrameTime = GETTIME();
     }
 
-    CleanUp:
+CleanUp:
     DLOGI("[KVS Master] Closing video thread");
     CHK_LOG_ERR(retStatus);
 
@@ -291,6 +297,10 @@ PVOID sendRealAudioPackets(PVOID args)
 
     CHK_ERR(pSampleConfiguration != NULL, STATUS_NULL_ARG, "[KVS Master] Streaming session is NULL");
     frame.presentationTs = 0;
+
+    SNPRINTF(tsFileName, SIZEOF(tsFileName), "%s%s", FIRST_FRAME_TS_FILE_PATH, STORAGE_DEFAULT_FIRST_FRAME_TS_FILE);
+    // Delete file if it exists
+    FREMOVE(tsFileName);
 
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
         fileIndex = fileIndex % NUMBER_OF_OPUS_FRAME_FILES + 1;
@@ -324,7 +334,6 @@ PVOID sendRealAudioPackets(PVOID args)
                 if (status != STATUS_SUCCESS) {
                     DLOGV("writeFrame() failed with 0x%08x", status);
                 } else if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame && status == STATUS_SUCCESS) {
-                    SNPRINTF(tsFileName, SIZEOF(tsFileName), "%s%s", FIRST_FRAME_TS_FILE_PATH, STORAGE_DEFAULT_FIRST_FRAME_TS_FILE);
                     CHK_STATUS(writeFirstFrameSentTimeToFile(tsFileName));
                     PROFILE_WITH_START_TIME_OBJ(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, firstFrameTime, "Time to first frame");
                     CppInteg::Cloudwatch::getInstance().monitoring.pushTimeToFirstFrame(firstFrameTime,

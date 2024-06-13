@@ -3,7 +3,6 @@
 #include SAMPLE_CONFIG_HEADER
 
 #define DEFAULT_CLOUDWATCH_NAMESPACE "KinesisVideoSDKCanary"
-#define DEFAULT_FPS_VALUE            25
 // TODO: This value shouldn't matter. But, since we don't allow NULL value, we have to set to a value
 #define DEFAULT_VIEWER_PEER_ID           "ConsumerViewer"
 #define DEFAULT_FILE_LOGGING_BUFFER_SIZE (200 * 1024)
@@ -20,19 +19,16 @@
 #define FRAME_METADATA_SIZE (SIZEOF(UINT64) + SIZEOF(UINT32) + SIZEOF(UINT32))
 #define ANNEX_B_NALU_SIZE    4
 
-#define STORAGE_CANARY_FIRST_FRAME_TS_FILE_ENV_VAR       "STORAGE_CANARY_FIRST_FRAME_TS_FILE"
-
-#define FIRST_FRAME_TS_FILE_PATH                   (PCHAR) "../../"
-#define STORAGE_DEFAULT_FIRST_FRAME_TS_FILE (PCHAR) "DefaultFirstFrameSentTSFileName.txt"
+#define FIRST_FRAME_TS_FILE_PATH                    (PCHAR) "../../"
+#define STORAGE_DEFAULT_FIRST_FRAME_TS_FILE         (PCHAR) "DefaultFirstFrameSentTSFileName.txt"
 
 #define INDIVIDUAL_STORAGE_CW_DIMENSION "StorageWebRTCSDKCanaryChannelName"
 #define INDIVIDUAL_CW_DIMENSION         "WebRTCSDKCanaryChannelName"
 #define AGGREGATE_STORAGE_CW_DIMENSION  "StorageWebRTCSDKCanaryLabel"
 #define AGGREGATE_CW_DIMENSION          "WebRTCSDKCanaryLabel"
 
-#define MAX_CALL_RETRY_COUNT                 10
 #define OUTBOUND_RTP_STATS_TIMER_INTERVAL    (60 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define END_TO_END_METRICS_INVOCATION_PERIOD    (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define END_TO_END_METRICS_INVOCATION_PERIOD (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 #include <numeric>
 

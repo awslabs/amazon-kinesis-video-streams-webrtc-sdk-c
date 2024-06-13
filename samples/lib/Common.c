@@ -3,6 +3,18 @@
 
 PSampleConfiguration gSampleConfiguration = NULL;
 
+
+STATUS terminate(UINT32 timerId, UINT64 currentTime, UINT64 customData)
+{
+    DLOGI("Terminating the app");
+    if (gSampleConfiguration != NULL) {
+        ATOMIC_STORE_BOOL(&gSampleConfiguration->interrupted, TRUE);
+        ATOMIC_STORE_BOOL(&gSampleConfiguration->appTerminateFlag, TRUE);
+        CVAR_BROADCAST(gSampleConfiguration->cvar);
+    }
+    return STATUS_SUCCESS;
+}
+
 VOID sigintHandler(INT32 sigNum)
 {
     UNUSED_PARAM(sigNum);
@@ -18,17 +30,6 @@ STATUS signalingCallFailed(STATUS status)
             STATUS_SIGNALING_CREATE_CALL_FAILED == status || STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED == status ||
             STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED == status || STATUS_SIGNALING_CONNECT_CALL_FAILED == status ||
             STATUS_SIGNALING_DESCRIBE_MEDIA_CALL_FAILED == status);
-}
-
-STATUS terminate(UINT32 timerId, UINT64 currentTime, UINT64 customData)
-{
-    DLOGI("Terminating the app");
-    if (gSampleConfiguration != NULL) {
-        ATOMIC_STORE_BOOL(&gSampleConfiguration->interrupted, TRUE);
-        ATOMIC_STORE_BOOL(&gSampleConfiguration->appTerminateFlag, TRUE);
-        CVAR_BROADCAST(gSampleConfiguration->cvar);
-    }
-    return STATUS_SUCCESS;
 }
 
 VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newState)
@@ -405,6 +406,9 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
         }
     }
 
+    if(pSampleConfiguration->enableMetrics) {
+        CHK_LOG_ERR(freeMetricsCtx(&pSampleStreamingSession));
+    }
     CHK_LOG_ERR(closePeerConnection(pSampleStreamingSession->pPeerConnection));
     CHK_LOG_ERR(freePeerConnection(&pSampleStreamingSession->pPeerConnection));
     SAFE_MEMFREE(pSampleStreamingSession);

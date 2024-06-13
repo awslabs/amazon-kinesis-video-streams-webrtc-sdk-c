@@ -21,7 +21,7 @@ STATUS Cloudwatch::init(PCHAR channelName, PCHAR region, BOOL isMaster, BOOL isS
     auto& instance = getInstanceImpl(&clientConfig);
 
     if (STATUS_FAILED(instance.logs.init(channelName, region, isMaster, isStorage))) {
-        DLOGW("Failed to create Cloudwatch logger, fallback to file logger");
+        DLOGW("Failed to create Cloudwatch logger");
     } else {
         globalCustomLogPrintFn = logger;
     }
