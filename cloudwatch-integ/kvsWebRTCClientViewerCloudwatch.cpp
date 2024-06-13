@@ -291,6 +291,10 @@ CleanUp:
 
     RESET_INSTRUMENTED_ALLOCATORS();
 
+    CppInteg::Cloudwatch::getInstance().monitoring.pushExitStatus(retStatus);
+    CppInteg::Cloudwatch::deinit();
+    Aws::ShutdownAPI(options);
+
     // https://www.gnu.org/software/libc/manual/html_node/Exit-Status.html
     // We can only return with 0 - 127. Some platforms treat exit code >= 128
     // to be a success code, which might give an unintended behaviour.

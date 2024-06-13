@@ -368,7 +368,6 @@ INT32 main(INT32 argc, CHAR* argv[])
         CHK_STATUS(initKvsWebRtc());
 
         if (USE_IOT) {
-            DLOGI("Here");
             PCHAR pChannelName;
             CHK_ERR((pChannelName = GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set since USE_IOT is enabled");
             STRNCPY(channelName, pChannelName, SIZEOF(channelName));
@@ -376,7 +375,6 @@ INT32 main(INT32 argc, CHAR* argv[])
             channelNamePrefix = argc > 1 ? argv[1] : CHANNEL_NAME_PREFIX;
             SNPRINTF(channelName, SIZEOF(channelName), CHANNEL_NAME_TEMPLATE, channelNamePrefix, RUNNER_LABEL);
         }
-        DLOGI("Here: %s", channelName);
         CHK_STATUS(createSampleConfiguration(channelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
         CHK_STATUS(setUpCredentialProvider(pSampleConfiguration, USE_IOT));
 
@@ -458,6 +456,7 @@ CleanUp:
     retStatus = RESET_INSTRUMENTED_ALLOCATORS();
     DLOGI("All SDK allocations freed? %s..0x%08x", retStatus == STATUS_SUCCESS ? "Yes" : "No", retStatus);
     SNPRINTF(tsFileName, SIZEOF(tsFileName), "%s%s", FIRST_FRAME_TS_FILE_PATH, STORAGE_DEFAULT_FIRST_FRAME_TS_FILE);
+    FREMOVE(tsFileName);
     CppInteg::Cloudwatch::getInstance().monitoring.pushExitStatus(retStatus);
     CppInteg::Cloudwatch::deinit();
     Aws::ShutdownAPI(options);
