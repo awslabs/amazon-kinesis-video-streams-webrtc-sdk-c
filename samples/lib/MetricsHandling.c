@@ -55,41 +55,27 @@ CleanUp:
     return retStatus;
 }
 
-// Return ICE server stats for a specific streaming session
 STATUS gatherIceServerStats(PSampleStreamingSession pSampleStreamingSession)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    RtcStats rtcmetrics;
     UINT32 j = 0;
-    BOOL locked = FALSE;
+    rtcmetrics.requestedTypeOfStats = RTC_STATS_TYPE_ICE_SERVER;
 
-    CHK_WARN(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "Sample streaming session object NULL");
-
-    acquireMetricsCtx(pSampleStreamingSession);
-
-    CHK_WARN(pSampleStreamingSession != NULL && pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG,
-             "Stats object not set up (if interested set enableMetrics flag too). Nothing to report");
-
-    MUTEX_LOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
-    locked = TRUE;
-    pSampleStreamingSession->pStatsCtx->kvsRtcStats.requestedTypeOfStats = RTC_STATS_TYPE_ICE_SERVER;
+    CHK_WARN(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "gatherIceServerStats(): Passed argument is NULL");
     for (; j < pSampleStreamingSession->pSampleConfiguration->iceUriCount; j++) {
-        pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.iceServerStats.iceServerIndex = j;
-        CHK_STATUS(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, NULL, &pSampleStreamingSession->pStatsCtx->kvsRtcStats));
-        DLOGD("ICE Server URL: %s", pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.iceServerStats.url);
-        DLOGD("ICE Server port: %d", pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.iceServerStats.port);
-        DLOGD("ICE Server protocol: %s", pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.iceServerStats.protocol);
-        DLOGD("Total requests sent:%" PRIu64, pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.iceServerStats.totalRequestsSent);
-        DLOGD("Total responses received: %" PRIu64,
-              pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.iceServerStats.totalResponsesReceived);
+        rtcmetrics.rtcStatsObject.iceServerStats.iceServerIndex = j;
+        CHK_STATUS(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, NULL, &rtcmetrics));
+        DLOGD("ICE Server URL: %s", rtcmetrics.rtcStatsObject.iceServerStats.url);
+        DLOGD("ICE Server port: %d", rtcmetrics.rtcStatsObject.iceServerStats.port);
+        DLOGD("ICE Server protocol: %s", rtcmetrics.rtcStatsObject.iceServerStats.protocol);
+        DLOGD("Total requests sent:%" PRIu64, rtcmetrics.rtcStatsObject.iceServerStats.totalRequestsSent);
+        DLOGD("Total responses received: %" PRIu64, rtcmetrics.rtcStatsObject.iceServerStats.totalResponsesReceived);
         DLOGD("Total round trip time: %" PRIu64 "ms",
-              pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.iceServerStats.totalRoundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+              rtcmetrics.rtcStatsObject.iceServerStats.totalRoundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     }
 CleanUp:
-    if (locked) {
-        MUTEX_UNLOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
-    }
-    releaseMetricsCtx(pSampleStreamingSession);
     LEAVES();
     return retStatus;
 }
@@ -319,9 +305,8 @@ STATUS freeMetricsCtx(PStatsCtx* ppStatsCtx)
     STATUS retStatus = STATUS_SUCCESS;
     PStatsCtx pStatsCtx = NULL;
 
-    CHK(pStatsCtx != NULL, STATUS_NULL_ARG);
-
     pStatsCtx = *ppStatsCtx;
+    CHK(pStatsCtx != NULL, STATUS_NULL_ARG);
 
     while (ATOMIC_LOAD(&pStatsCtx->statsContextRefCnt) > 0) {
         THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);

@@ -293,9 +293,6 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
         CHK_STATUS(setupMetricsCtx(pSampleStreamingSession));
     }
 
-    // Flag to enable SDK to calculate selected ice server, local, remote and candidate pair stats.
-    pSampleConfiguration->enableIceStats = FALSE;
-
     pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
 
     CHK_STATUS(initializePeerConnection(pSampleConfiguration, &pSampleStreamingSession->pPeerConnection));
@@ -404,7 +401,10 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
             MUTEX_FREE(pSampleStreamingSession->twccMetadata.updateLock);
         }
     }
-
+    DLOGI("Here....%s", pSampleConfiguration->enableIceStats ? "Enabled" : "Disabled");
+    if (pSampleConfiguration->enableIceStats) {
+        CHK_LOG_ERR(gatherIceServerStats(pSampleStreamingSession));
+    }
     if (pSampleConfiguration->enableMetrics) {
         CHK_LOG_ERR(freeMetricsCtx(&pSampleStreamingSession->pStatsCtx));
     }
@@ -769,7 +769,6 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     pSampleConfiguration = *ppSampleConfiguration;
 
     CHK(pSampleConfiguration != NULL, retStatus);
-
     if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
         if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
             retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, pSampleConfiguration->iceCandidatePairStatsTimerId,
@@ -815,9 +814,6 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     }
 
     for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
-        if (pSampleConfiguration->enableIceStats) {
-            CHK_LOG_ERR(gatherIceServerStats(pSampleConfiguration->sampleStreamingSessionList[i]));
-        }
         freeSampleStreamingSession(&pSampleConfiguration->sampleStreamingSessionList[i]);
     }
     if (locked) {
