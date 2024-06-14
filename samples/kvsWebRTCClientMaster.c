@@ -29,7 +29,6 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
     CHK_STATUS(setUpCredentialProvider(pSampleConfiguration, IOT_CORE_ENABLE_CREDENTIALS));
-    pSampleConfiguration->forceTurn = TRUE;
     if (argc > 3) {
         if (!STRCMP(argv[3], AUDIO_CODEC_NAME_AAC)) {
             audioCodec = RTC_CODEC_AAC;
