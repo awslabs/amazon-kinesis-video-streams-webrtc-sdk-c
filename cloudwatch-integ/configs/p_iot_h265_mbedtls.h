@@ -3,7 +3,7 @@
 
 #define USE_TRICKLE_ICE             TRUE
 #define FORCE_TURN_ONLY             FALSE
-#define RUNNER_LABEL                (PCHAR) "WebrtcPeriodicMbedTLS"
+#define RUNNER_LABEL                (PCHAR) "WebrtcPeriodicMBedTLS-H265"
 #define SCENARIO_LABEL              (PCHAR) "MBedTLSPeriodic"
 #define USE_TURN                    TRUE
 #define ENABLE_TTFF_VIA_DC          FALSE
