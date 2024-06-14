@@ -30,55 +30,95 @@ VOID dataChannelOnOpenCallback(UINT64 customData, PRtcDataChannel pDataChannel)
     }
 }
 
-STATUS publishStatsForCanary(RTC_STATS_TYPE statsType, PSampleStreamingSession pSampleStreamingSession)
+STATUS publishStatsForCanary(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     STATUS retStatus = STATUS_SUCCESS;
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
+    PSampleStreamingSession pSampleStreamingSession = NULL;
+    BOOL sampleConfigurationObjLocked = FALSE;
+    BOOL statsLocked = FALSE;
+
+    CHK_WARN(pSampleConfiguration != NULL, STATUS_NULL_ARG, "Sample config object not set up");
+
+    // Use MUTEX_TRYLOCK to avoid possible dead lock when canceling timerQueue
+    if (!MUTEX_TRYLOCK(pSampleConfiguration->sampleConfigurationObjLock)) {
+        return retStatus;
+    } else {
+        sampleConfigurationObjLocked = TRUE;
+    }
+
+    pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[0];
+    CHK_WARN(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "Streaming session object not set up");
+    acquireMetricsCtx(pSampleStreamingSession->pStatsCtx);
+    CHK_WARN(pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG, "Stats ctx object not set up");
+    MUTEX_LOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
+    statsLocked = TRUE;
     pSampleStreamingSession->pStatsCtx->kvsRtcStats.requestedTypeOfStats = RTC_STATS_TYPE_INBOUND_RTP;
-    CHK_LOG_ERR(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pVideoRtcRtpTransceiver, &pSampleStreamingSession->pStatsCtx->kvsRtcStats));
-    populateIncomingRtpMetricsContext(pSampleStreamingSession);
-    CppInteg::Cloudwatch::getInstance().monitoring.pushInboundRtpStats(&pSampleStreamingSession->pStatsCtx->incomingRTPStatsCtx);
+    if (!ATOMIC_LOAD_BOOL(&pSampleStreamingSession->pSampleConfiguration->appTerminateFlag)) {
+        CHK_LOG_ERR(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection,
+                                                pSampleStreamingSession->pVideoRtcRtpTransceiver,
+                                                &pSampleStreamingSession->pStatsCtx->kvsRtcStats));
+        populateIncomingRtpMetricsContext(pSampleStreamingSession);
+        CppInteg::Cloudwatch::getInstance().monitoring.pushInboundRtpStats(
+                &pSampleStreamingSession->pStatsCtx->incomingRTPStatsCtx);
+    } else {
+        retStatus = STATUS_TIMER_QUEUE_STOP_SCHEDULING;
+    }
 CleanUp:
+    if(statsLocked) {
+        MUTEX_UNLOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
+    }
+    if(pSampleStreamingSession != NULL) {
+        releaseMetricsCtx(pSampleStreamingSession->pStatsCtx);
+    }
+    if (sampleConfigurationObjLocked) {
+        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    }
     return retStatus;
 }
 
-STATUS publishEndToEndMetrics(PSampleStreamingSession pSampleStreamingSession)
+STATUS publishEndToEndMetrics(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    CHK(pSampleStreamingSession != NULL, STATUS_NULL_ARG);
-    CppInteg::Cloudwatch::getInstance().monitoring.pushEndToEndMetrics(&pSampleStreamingSession->pStatsCtx->endToEndMetricsCtx);
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
+    PSampleStreamingSession pSampleStreamingSession = NULL;
+    BOOL sampleConfigurationObjLocked = FALSE;
+    BOOL statsLocked = FALSE;
+
+    CHK_WARN(pSampleConfiguration != NULL, STATUS_NULL_ARG, "Sample config object not set up");
+
+    // Use MUTEX_TRYLOCK to avoid possible dead lock when canceling timerQueue
+    if (!MUTEX_TRYLOCK(pSampleConfiguration->sampleConfigurationObjLock)) {
+        return retStatus;
+    } else {
+        sampleConfigurationObjLocked = TRUE;
+    }
+
+    pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[0];
+    CHK_WARN(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "Streaming session object not set up");
+    acquireMetricsCtx(pSampleStreamingSession->pStatsCtx);
+    CHK_WARN(pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG, "Stats ctx object not set up");
+    MUTEX_LOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
+    statsLocked = TRUE;
+
+    if (!ATOMIC_LOAD_BOOL(&pSampleStreamingSession->pSampleConfiguration->appTerminateFlag)) {
+        CppInteg::Cloudwatch::getInstance().monitoring.pushEndToEndMetrics(
+                &pSampleStreamingSession->pStatsCtx->endToEndMetricsCtx);
+    } else {
+            retStatus = STATUS_TIMER_QUEUE_STOP_SCHEDULING;
+    }
 CleanUp:
+    if(statsLocked) {
+        MUTEX_UNLOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
+    }
+    if(pSampleStreamingSession != NULL) {
+        releaseMetricsCtx(pSampleStreamingSession->pStatsCtx);
+    }
+    if (sampleConfigurationObjLocked) {
+        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    }
     return STATUS_SUCCESS;
 }
-
-STATUS endToendStatsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
-{
-    UNUSED_PARAM(timerId);
-    UNUSED_PARAM(currentTime);
-    STATUS retStatus = STATUS_SUCCESS;
-    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
-    if (!(ATOMIC_LOAD_BOOL(&pSampleStreamingSession->pSampleConfiguration->appTerminateFlag))) {
-        CHK_STATUS(publishEndToEndMetrics(pSampleStreamingSession));
-    } else {
-        retStatus = STATUS_TIMER_QUEUE_STOP_SCHEDULING;
-    }
-CleanUp:
-    return retStatus;
-}
-
-STATUS inboundStatsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData) {
-    UNUSED_PARAM(timerId);
-    UNUSED_PARAM(currentTime);
-    STATUS retStatus = STATUS_SUCCESS;
-    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
-    if (!(ATOMIC_LOAD_BOOL(&pSampleStreamingSession->pSampleConfiguration->appTerminateFlag))) {
-        publishStatsForCanary(RTC_STATS_TYPE_INBOUND_RTP, pSampleStreamingSession);
-    } else {
-        retStatus = STATUS_TIMER_QUEUE_STOP_SCHEDULING;
-    }
-CleanUp:
-    return retStatus;
-}
-
 
 VOID videoFrameHandler(UINT64 customData, PFrame pFrame)
 {
@@ -119,11 +159,6 @@ VOID videoFrameHandler(UINT64 customData, PFrame pFrame)
     }
     SAFE_MEMFREE(rawPacket);
     MUTEX_UNLOCK(pStatsCtx->statsUpdateLock);
-}
-
-VOID audioFrameHandler(UINT64 customData, PFrame pFrame)
-{
-    UNUSED_PARAM(customData);
 }
 
 INT32 main(INT32 argc, CHAR* argv[])
@@ -201,7 +236,6 @@ INT32 main(INT32 argc, CHAR* argv[])
         CHK_STATUS(setLocalDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
         DLOGI("[KVS Viewer] Completed setting local description");
 
-        CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession, audioFrameHandler));
         CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession, videoFrameHandler));
 
         if (!pSampleConfiguration->trickleIce) {
@@ -257,11 +291,11 @@ INT32 main(INT32 argc, CHAR* argv[])
         }
 
         CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, END_TO_END_METRICS_INVOCATION_PERIOD, END_TO_END_METRICS_INVOCATION_PERIOD,
-                                      endToendStatsCallback, (UINT64) pSampleStreamingSession, &e2eTimerId));
+                                      publishEndToEndMetrics, (UINT64) pSampleConfiguration, &e2eTimerId));
         CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, RUN_TIME, TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, terminate,
                                       (UINT64) pSampleConfiguration, &terminateId));
         CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, END_TO_END_METRICS_INVOCATION_PERIOD, END_TO_END_METRICS_INVOCATION_PERIOD,
-                                      inboundStatsCallback, (UINT64) pSampleStreamingSession, &inboundTimerId));
+                                      publishStatsForCanary, (UINT64) pSampleConfiguration, &inboundTimerId));
         // Block until interrupted
         while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted) && !ATOMIC_LOAD_BOOL(&pSampleStreamingSession->terminateFlag)) {
             THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);

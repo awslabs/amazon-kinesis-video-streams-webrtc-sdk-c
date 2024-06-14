@@ -34,9 +34,25 @@ VOID calculateDisconnectToFrameSentTime(PSampleConfiguration pSampleConfiguratio
 STATUS publishStatsForCanary(UINT32 timerId, UINT64 currentTime, UINT64 customData) {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
-    PSampleStreamingSession pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[0];
+    PSampleStreamingSession pSampleStreamingSession = NULL;
+    BOOL sampleConfigurationObjLocked = FALSE;
+    BOOL statsLocked = FALSE;
 
-    CHK_WARN(pSampleStreamingSession != NULL && pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG, "Stats ctx object not set up");
+    CHK_WARN(pSampleConfiguration != NULL, STATUS_NULL_ARG, "Sample config object not set up");
+
+    // Use MUTEX_TRYLOCK to avoid possible dead lock when canceling timerQueue
+    if (!MUTEX_TRYLOCK(pSampleConfiguration->sampleConfigurationObjLock)) {
+        return retStatus;
+    } else {
+        sampleConfigurationObjLocked = TRUE;
+    }
+
+    pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[0];
+    CHK_WARN(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "Streaming session object not set up");
+    acquireMetricsCtx(pSampleStreamingSession->pStatsCtx);
+    CHK_WARN(pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG, "Stats ctx object not set up");
+    MUTEX_LOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
+    statsLocked = TRUE;
     pSampleStreamingSession->pStatsCtx->kvsRtcStats.requestedTypeOfStats = RTC_STATS_TYPE_OUTBOUND_RTP;
     if (!ATOMIC_LOAD_BOOL(&pSampleStreamingSession->pSampleConfiguration->appTerminateFlag)) {
         CHK_LOG_ERR(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pVideoRtcRtpTransceiver, &pSampleStreamingSession->pStatsCtx->kvsRtcStats));
@@ -46,6 +62,16 @@ STATUS publishStatsForCanary(UINT32 timerId, UINT64 currentTime, UINT64 customDa
         retStatus = STATUS_TIMER_QUEUE_STOP_SCHEDULING;
     }
 CleanUp:
+    if(statsLocked) {
+        MUTEX_UNLOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
+    }
+    if(pSampleStreamingSession != NULL) {
+        releaseMetricsCtx(pSampleStreamingSession->pStatsCtx);
+    }
+    if (sampleConfigurationObjLocked) {
+        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    }
+
     return STATUS_SUCCESS;
 }
 

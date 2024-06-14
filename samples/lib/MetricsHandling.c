@@ -63,6 +63,8 @@ STATUS gatherIceServerStats(PSampleStreamingSession pSampleStreamingSession)
     UINT32 j = 0;
     BOOL locked = FALSE;
 
+    CHK_WARN(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "Sample streaming session object NULL");
+
     acquireMetricsCtx(pSampleStreamingSession->pStatsCtx);
 
     CHK_WARN(pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG, "Stats object not set up (if interested set enableMetrics flag too). Nothing to report");
@@ -86,7 +88,9 @@ CleanUp:
     if(locked) {
         MUTEX_UNLOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
     }
-    releaseMetricsCtx(pSampleStreamingSession->pStatsCtx);
+    if(pSampleStreamingSession != NULL) {
+        releaseMetricsCtx(pSampleStreamingSession->pStatsCtx);
+    }
     LEAVES();
     return retStatus;
 }
@@ -106,9 +110,7 @@ STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT
     DOUBLE incomingBitrate = 0.0;
     BOOL locked = FALSE;
 
-    CHK_WARN(pSampleConfiguration != NULL, STATUS_NULL_ARG, "[KVS Master] getPeriodicStats(): Passed argument is NULL");
-
-    pSampleConfiguration->rtcIceCandidatePairMetrics.requestedTypeOfStats = RTC_STATS_TYPE_CANDIDATE_PAIR;
+    CHK_WARN(pSampleConfiguration != NULL, STATUS_NULL_ARG, "getPeriodicStats(): Passed argument is NULL");
 
     // Use MUTEX_TRYLOCK to avoid possible dead lock when canceling timerQueue
     if (!MUTEX_TRYLOCK(pSampleConfiguration->sampleConfigurationObjLock)) {
@@ -116,6 +118,8 @@ STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT
     } else {
         locked = TRUE;
     }
+
+    pSampleConfiguration->rtcIceCandidatePairMetrics.requestedTypeOfStats = RTC_STATS_TYPE_CANDIDATE_PAIR;
 
     for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
         if (STATUS_SUCCEEDED(rtcPeerConnectionGetMetrics(pSampleConfiguration->sampleStreamingSessionList[i]->pPeerConnection, NULL,
@@ -244,7 +248,9 @@ CleanUp:
     if(locked) {
         MUTEX_UNLOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
     }
-    releaseMetricsCtx(pSampleStreamingSession->pStatsCtx);
+    if(pSampleStreamingSession != NULL) {
+        releaseMetricsCtx(pSampleStreamingSession->pStatsCtx);
+    }
     return STATUS_SUCCESS;
 }
 
@@ -289,7 +295,9 @@ CleanUp:
     if(locked) {
         MUTEX_UNLOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
     }
-    releaseMetricsCtx(pSampleStreamingSession->pStatsCtx);
+    if(pSampleStreamingSession != NULL) {
+        releaseMetricsCtx(pSampleStreamingSession->pStatsCtx);
+    }
     return retStatus;
 }
 
@@ -316,7 +324,9 @@ CleanUp:
     if(locked) {
         MUTEX_UNLOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
     }
-    releaseMetricsCtx(pSampleStreamingSession->pStatsCtx);
+    if(pSampleStreamingSession != NULL) {
+        releaseMetricsCtx(pSampleStreamingSession->pStatsCtx);
+    }
     return retStatus;
 }
 
