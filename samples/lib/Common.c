@@ -249,7 +249,7 @@ CleanUp:
 
 STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, PCHAR peerId, BOOL isMaster,
                                     PSampleStreamingSession* ppSampleStreamingSession)
-{
+{   DLOGI("Create sample streaming session call");
     STATUS retStatus = STATUS_SUCCESS;
     RtcMediaStreamTrack videoTrack, audioTrack;
     PSampleStreamingSession pSampleStreamingSession = NULL;
@@ -290,6 +290,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     }
 
     if (pSampleConfiguration->enableMetrics) {
+        DLOGI("Setting up metrics context");
         CHK_STATUS(setupMetricsCtx(pSampleStreamingSession));
     }
 

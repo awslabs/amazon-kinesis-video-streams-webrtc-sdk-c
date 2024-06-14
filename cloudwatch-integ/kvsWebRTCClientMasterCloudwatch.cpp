@@ -33,7 +33,8 @@ VOID calculateDisconnectToFrameSentTime(PSampleConfiguration pSampleConfiguratio
 
 STATUS publishStatsForCanary(UINT32 timerId, UINT64 currentTime, UINT64 customData) {
     STATUS retStatus = STATUS_SUCCESS;
-    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
+    PSampleStreamingSession pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[0];
 
     CHK_WARN(pSampleStreamingSession != NULL && pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG, "Stats ctx object not set up");
     pSampleStreamingSession->pStatsCtx->kvsRtcStats.requestedTypeOfStats = RTC_STATS_TYPE_OUTBOUND_RTP;
@@ -130,7 +131,7 @@ PVOID sendMockVideoPackets(PVOID args)
         CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, OUTBOUND_RTP_STATS_TIMER_INTERVAL,
                                       OUTBOUND_RTP_STATS_TIMER_INTERVAL,
                                       publishStatsForCanary,
-                                      (UINT64) pSampleConfiguration->sampleStreamingSessionList[0],
+                                      (UINT64) pSampleConfiguration,
                                       &outboundStatsTimerId));
     }
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
@@ -216,8 +217,7 @@ PVOID sendRealVideoPackets(PVOID args)
 
     if(pSampleConfiguration->enableMetrics) {
         CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, OUTBOUND_RTP_STATS_TIMER_INTERVAL, OUTBOUND_RTP_STATS_TIMER_INTERVAL,
-                                      publishStatsForCanary, (UINT64) pSampleConfiguration->sampleStreamingSessionList[0], &outboundStatsTimerId));
-
+                                      publishStatsForCanary, (UINT64) pSampleConfiguration, &outboundStatsTimerId));
     }
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
         fileIndex = fileIndex % NUMBER_OF_H264_FRAME_FILES + 1;

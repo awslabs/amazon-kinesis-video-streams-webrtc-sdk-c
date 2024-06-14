@@ -360,6 +360,8 @@ STATUS getSdkTimeProfile(PSampleStreamingSession*);
 STATUS terminate(UINT32, UINT64, UINT64);
 STATUS setUpCredentialProvider(PSampleConfiguration, BOOL);
 STATUS freeMetricsCtx(PStatsCtx*);
+VOID acquireMetricsCtx(PStatsCtx);
+VOID releaseMetricsCtx(PStatsCtx);
 #ifdef __cplusplus
 }
 #endif
