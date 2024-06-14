@@ -128,8 +128,7 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
                          pSampleConfiguration->signalingClientMetrics.signalingClientStats.connectEndTime);
                 DLOGI("Sending signaling metrics to the viewer: %s", pSampleStreamingSession->pSignalingClientMetricsMessage);
 
-                CHK_STATUS(
-                    peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->peerConnectionMetrics));
+                CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->peerConnectionMetrics));
                 SNPRINTF(pSampleStreamingSession->pPeerConnectionMetricsMessage, MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE,
                          PEER_CONNECTION_METRICS_JSON_TEMPLATE,
                          pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime,

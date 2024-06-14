@@ -12,17 +12,17 @@ CleanUp:
     return retStatus;
 }
 
-VOID acquireMetricsCtx(PStatsCtx pStatsCtx)
+VOID acquireMetricsCtx(PSampleStreamingSession pSampleStreamingSession)
 {
-    if (pStatsCtx != NULL) {
-        ATOMIC_INCREMENT(&pStatsCtx->statsContextRefCnt);
+    if (pSampleStreamingSession != NULL && pSampleStreamingSession->pStatsCtx != NULL) {
+        ATOMIC_INCREMENT(&pSampleStreamingSession->pStatsCtx->statsContextRefCnt);
     }
 }
 
-VOID releaseMetricsCtx(PStatsCtx pStatsCtx)
+VOID releaseMetricsCtx(PSampleStreamingSession pSampleStreamingSession)
 {
-    if (pStatsCtx != NULL) {
-        ATOMIC_DECREMENT(&pStatsCtx->statsContextRefCnt);
+    if (pSampleStreamingSession != NULL && pSampleStreamingSession->pStatsCtx != NULL) {
+        ATOMIC_DECREMENT(&pSampleStreamingSession->pStatsCtx->statsContextRefCnt);
     }
 }
 
@@ -65,9 +65,10 @@ STATUS gatherIceServerStats(PSampleStreamingSession pSampleStreamingSession)
 
     CHK_WARN(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "Sample streaming session object NULL");
 
-    acquireMetricsCtx(pSampleStreamingSession->pStatsCtx);
+    acquireMetricsCtx(pSampleStreamingSession);
 
-    CHK_WARN(pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG, "Stats object not set up (if interested set enableMetrics flag too). Nothing to report");
+    CHK_WARN(pSampleStreamingSession != NULL && pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG,
+             "Stats object not set up (if interested set enableMetrics flag too). Nothing to report");
 
     MUTEX_LOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
     locked = TRUE;
@@ -85,12 +86,10 @@ STATUS gatherIceServerStats(PSampleStreamingSession pSampleStreamingSession)
               pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.iceServerStats.totalRoundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     }
 CleanUp:
-    if(locked) {
+    if (locked) {
         MUTEX_UNLOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
     }
-    if(pSampleStreamingSession != NULL) {
-        releaseMetricsCtx(pSampleStreamingSession->pStatsCtx);
-    }
+    releaseMetricsCtx(pSampleStreamingSession);
     LEAVES();
     return retStatus;
 }
@@ -204,7 +203,7 @@ STATUS populateOutgoingRtpMetricsContext(PSampleStreamingSession pSampleStreamin
     BOOL locked = FALSE;
     STATUS retStatus = STATUS_SUCCESS;
 
-    acquireMetricsCtx(pSampleStreamingSession->pStatsCtx);
+    acquireMetricsCtx(pSampleStreamingSession);
 
     CHK_WARN(pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG, "Stats object not set up. Nothing to report");
 
@@ -245,12 +244,10 @@ STATUS populateOutgoingRtpMetricsContext(PSampleStreamingSession pSampleStreamin
     pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx.prevRetxBytesSent =
         pSampleStreamingSession->pStatsCtx->kvsRtcStats.rtcStatsObject.outboundRtpStreamStats.retransmittedBytesSent;
 CleanUp:
-    if(locked) {
+    if (locked) {
         MUTEX_UNLOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
     }
-    if(pSampleStreamingSession != NULL) {
-        releaseMetricsCtx(pSampleStreamingSession->pStatsCtx);
-    }
+    releaseMetricsCtx(pSampleStreamingSession);
     return STATUS_SUCCESS;
 }
 
@@ -260,9 +257,10 @@ STATUS populateIncomingRtpMetricsContext(PSampleStreamingSession pSampleStreamin
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
 
-    acquireMetricsCtx(pSampleStreamingSession->pStatsCtx);
+    acquireMetricsCtx(pSampleStreamingSession);
 
-    CHK_WARN(pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG, "Stats object not set up. Nothing to report");
+    CHK_WARN(pSampleStreamingSession != NULL && pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG,
+             "Stats object not set up. Nothing to report");
 
     MUTEX_LOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
     locked = TRUE;
@@ -292,12 +290,10 @@ STATUS populateIncomingRtpMetricsContext(PSampleStreamingSession pSampleStreamin
     pSampleStreamingSession->pStatsCtx->incomingRTPStatsCtx.prevTs = pSampleStreamingSession->pStatsCtx->kvsRtcStats.timestamp;
 
 CleanUp:
-    if(locked) {
+    if (locked) {
         MUTEX_UNLOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
     }
-    if(pSampleStreamingSession != NULL) {
-        releaseMetricsCtx(pSampleStreamingSession->pStatsCtx);
-    }
+    releaseMetricsCtx(pSampleStreamingSession);
     return retStatus;
 }
 
@@ -305,14 +301,8 @@ STATUS getSdkTimeProfile(PSampleStreamingSession* ppSampleStreamingSession)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleStreamingSession pSampleStreamingSession = *ppSampleStreamingSession;
-    BOOL locked = FALSE;
 
-    acquireMetricsCtx(pSampleStreamingSession->pStatsCtx);
-    CHK_WARN(pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG, "Stats object not set up. Nothing to report");
-
-    MUTEX_LOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
-    locked = TRUE;
-
+    CHK_WARN(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "Streaming session object not set up. Nothing to report");
     CHK(!pSampleStreamingSession->firstFrame, STATUS_WAITING_ON_FIRST_FRAME);
 
     pSampleStreamingSession->pSampleConfiguration->signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
@@ -321,16 +311,11 @@ STATUS getSdkTimeProfile(PSampleStreamingSession* ppSampleStreamingSession)
     CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->peerConnectionMetrics));
     CHK_STATUS(iceAgentGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->iceMetrics));
 CleanUp:
-    if(locked) {
-        MUTEX_UNLOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
-    }
-    if(pSampleStreamingSession != NULL) {
-        releaseMetricsCtx(pSampleStreamingSession->pStatsCtx);
-    }
     return retStatus;
 }
 
-STATUS freeMetricsCtx(PStatsCtx* ppStatsCtx) {
+STATUS freeMetricsCtx(PStatsCtx* ppStatsCtx)
+{
     STATUS retStatus = STATUS_SUCCESS;
     PStatsCtx pStatsCtx = NULL;
 

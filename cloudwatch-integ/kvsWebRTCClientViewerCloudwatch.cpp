@@ -48,9 +48,8 @@ STATUS publishStatsForCanary(UINT32 timerId, UINT64 currentTime, UINT64 customDa
     }
 
     pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[0];
-    CHK_WARN(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "Streaming session object not set up");
-    acquireMetricsCtx(pSampleStreamingSession->pStatsCtx);
-    CHK_WARN(pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG, "Stats ctx object not set up");
+    acquireMetricsCtx(pSampleStreamingSession);
+    CHK_WARN(pSampleStreamingSession != NULL || pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG, "Stats ctx object not set up");
     MUTEX_LOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
     statsLocked = TRUE;
     pSampleStreamingSession->pStatsCtx->kvsRtcStats.requestedTypeOfStats = RTC_STATS_TYPE_INBOUND_RTP;
@@ -68,9 +67,7 @@ CleanUp:
     if(statsLocked) {
         MUTEX_UNLOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
     }
-    if(pSampleStreamingSession != NULL) {
-        releaseMetricsCtx(pSampleStreamingSession->pStatsCtx);
-    }
+    releaseMetricsCtx(pSampleStreamingSession);
     if (sampleConfigurationObjLocked) {
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
     }
@@ -95,9 +92,8 @@ STATUS publishEndToEndMetrics(UINT32 timerId, UINT64 currentTime, UINT64 customD
     }
 
     pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[0];
-    CHK_WARN(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "Streaming session object not set up");
-    acquireMetricsCtx(pSampleStreamingSession->pStatsCtx);
-    CHK_WARN(pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG, "Stats ctx object not set up");
+    acquireMetricsCtx(pSampleStreamingSession);
+    CHK_WARN(pSampleStreamingSession != NULL || pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG, "Stats ctx object not set up");
     MUTEX_LOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
     statsLocked = TRUE;
 
@@ -111,9 +107,7 @@ CleanUp:
     if(statsLocked) {
         MUTEX_UNLOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
     }
-    if(pSampleStreamingSession != NULL) {
-        releaseMetricsCtx(pSampleStreamingSession->pStatsCtx);
-    }
+    releaseMetricsCtx(pSampleStreamingSession);
     if (sampleConfigurationObjLocked) {
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
     }

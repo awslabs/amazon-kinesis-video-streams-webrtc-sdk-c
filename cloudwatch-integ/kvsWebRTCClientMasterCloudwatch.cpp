@@ -40,7 +40,7 @@ STATUS publishStatsForCanary(UINT32 timerId, UINT64 currentTime, UINT64 customDa
 
     CHK_WARN(pSampleConfiguration != NULL, STATUS_NULL_ARG, "Sample config object not set up");
 
-    // Use MUTEX_TRYLOCK to avoid possible dead lock when canceling timerQueue
+    // Use MUTEX_TRYLOCK to avoid possible deadlock when canceling timerQueue
     if (!MUTEX_TRYLOCK(pSampleConfiguration->sampleConfigurationObjLock)) {
         return retStatus;
     } else {
@@ -48,9 +48,8 @@ STATUS publishStatsForCanary(UINT32 timerId, UINT64 currentTime, UINT64 customDa
     }
 
     pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[0];
-    CHK_WARN(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "Streaming session object not set up");
-    acquireMetricsCtx(pSampleStreamingSession->pStatsCtx);
-    CHK_WARN(pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG, "Stats ctx object not set up");
+    acquireMetricsCtx(pSampleStreamingSession);
+    CHK_WARN(pSampleStreamingSession != NULL || pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG, "Stats ctx object not set up");
     MUTEX_LOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
     statsLocked = TRUE;
     pSampleStreamingSession->pStatsCtx->kvsRtcStats.requestedTypeOfStats = RTC_STATS_TYPE_OUTBOUND_RTP;
@@ -65,9 +64,7 @@ CleanUp:
     if(statsLocked) {
         MUTEX_UNLOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
     }
-    if(pSampleStreamingSession != NULL) {
-        releaseMetricsCtx(pSampleStreamingSession->pStatsCtx);
-    }
+    releaseMetricsCtx(pSampleStreamingSession);
     if (sampleConfigurationObjLocked) {
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
     }
