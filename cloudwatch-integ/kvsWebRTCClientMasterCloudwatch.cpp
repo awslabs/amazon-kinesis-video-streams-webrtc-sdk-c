@@ -92,12 +92,8 @@ PVOID sendProfilingMetrics(PVOID customData)
 
         if(STATUS_SUCCEEDED(retStatus)) {
             CppInteg::Cloudwatch::getInstance().monitoring.pushSignalingClientMetrics(&pSampleConfiguration->signalingClientMetrics);
-            if(pSampleConfiguration->sampleStreamingSessionList[0]->pStatsCtx != NULL) {
-                CppInteg::Cloudwatch::getInstance().monitoring.pushPeerConnectionMetrics(&pSampleStreamingSession->peerConnectionMetrics);
-                CppInteg::Cloudwatch::getInstance().monitoring.pushKvsIceAgentMetrics(&pSampleStreamingSession->iceMetrics);
-            } else {
-                DLOGE("StatsCtx uninitialized. If metrics is enabled, this should not happen");
-            }
+            CppInteg::Cloudwatch::getInstance().monitoring.pushPeerConnectionMetrics(&pSampleStreamingSession->peerConnectionMetrics);
+            CppInteg::Cloudwatch::getInstance().monitoring.pushKvsIceAgentMetrics(&pSampleStreamingSession->iceMetrics);
             return NULL;
         } else if(retStatus == STATUS_WAITING_ON_FIRST_FRAME) {
             DLOGI("Waiting on streaming to start 0x%08x", retStatus);
@@ -195,7 +191,6 @@ PVOID sendMockVideoPackets(PVOID args)
                 pSampleConfiguration->sampleStreamingSessionList[i]->pStatsCtx->outgoingRTPStatsCtx.videoFramesGenerated++;
                 pSampleConfiguration->sampleStreamingSessionList[i]->pStatsCtx->outgoingRTPStatsCtx.videoBytesGenerated += frame.size;
             }
-
             if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame && status == STATUS_SUCCESS) {
                 PROFILE_WITH_START_TIME_OBJ(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, firstFrameTime, "Time to first frame");
                 CppInteg::Cloudwatch::getInstance().monitoring.pushTimeToFirstFrame(firstFrameTime, Aws::CloudWatch::Model::StandardUnit::Milliseconds);
