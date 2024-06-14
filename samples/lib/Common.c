@@ -407,7 +407,7 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
     }
 
     if(pSampleConfiguration->enableMetrics) {
-        CHK_LOG_ERR(freeMetricsCtx(&pSampleStreamingSession));
+        CHK_LOG_ERR(freeMetricsCtx(&pSampleStreamingSession->pStatsCtx));
     }
     CHK_LOG_ERR(closePeerConnection(pSampleStreamingSession->pPeerConnection));
     CHK_LOG_ERR(freePeerConnection(&pSampleStreamingSession->pPeerConnection));

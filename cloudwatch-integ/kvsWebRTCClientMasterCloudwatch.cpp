@@ -2,6 +2,8 @@
 #include "../samples/Samples.h"
 #include "Cloudwatch.h"
 
+UINT32 outboundStatsTimerId = MAX_UINT32;
+
 // Save first-frame-sent time to file for consumer-end access.
 STATUS writeFirstFrameSentTimeToFile(PCHAR fileName) {
     STATUS retStatus = STATUS_SUCCESS;
@@ -39,6 +41,8 @@ STATUS publishStatsForCanary(UINT32 timerId, UINT64 currentTime, UINT64 customDa
         CHK_LOG_ERR(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pVideoRtcRtpTransceiver, &pSampleStreamingSession->pStatsCtx->kvsRtcStats));
         CHK_STATUS(populateOutgoingRtpMetricsContext(pSampleStreamingSession));
         CppInteg::Cloudwatch::getInstance().monitoring.pushOutboundRtpStats(&pSampleStreamingSession->pStatsCtx->outgoingRTPStatsCtx);
+    }  else {
+        retStatus = STATUS_TIMER_QUEUE_STOP_SCHEDULING;
     }
 CleanUp:
     return STATUS_SUCCESS;
@@ -112,7 +116,6 @@ PVOID sendMockVideoPackets(PVOID args)
     UINT32 maxFrameSize = (FRAME_METADATA_SIZE + ((DEFAULT_BITRATE / 8) / DEFAULT_FRAMERATE)) * 2;
     PBYTE frameData = NULL;
     UINT64 firstFrameTime = 0;
-    UINT32 outboundStatsTimerId = MAX_UINT32;
     frameData = (PBYTE) MEMALLOC(maxFrameSize);
 
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
@@ -202,7 +205,6 @@ PVOID sendRealVideoPackets(PVOID args)
     UINT64 startTime, lastFrameTime, elapsed;
     CHAR tsFileName[MAX_PATH_LEN + 1];
     UINT64 firstFrameTime = 0;
-    UINT32 outboundStatsTimerId = MAX_UINT32;
     CHK_ERR(pSampleConfiguration != NULL, STATUS_NULL_ARG, "[KVS Master] Streaming session not set up");
 
     frame.presentationTs = 0;
@@ -454,6 +456,26 @@ CleanUp:
             DLOGE("[KVS Master] freeSignalingClient(): operation returned status code: 0x%08x", retStatus);
         }
 
+        // Free all timer created here that belong to SampleConfiguration timer handle before invoking freeSampleConfiguration
+        if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
+            if (outboundStatsTimerId != MAX_UINT32) {
+                retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, outboundStatsTimerId,
+                                                  (UINT64) pSampleConfiguration);
+                if (STATUS_FAILED(retStatus)) {
+                    DLOGE("Failed to cancel outbound stats timer with: 0x%08x", retStatus);
+                }
+                outboundStatsTimerId = MAX_UINT32;
+            }
+
+            if (terminateTimerId != MAX_UINT32) {
+                retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, terminateTimerId,
+                                                  (UINT64) pSampleConfiguration);
+                if (STATUS_FAILED(retStatus)) {
+                    DLOGE("Failed to cancel terminate timer with: 0x%08x", retStatus);
+                }
+                terminateTimerId = MAX_UINT32;
+            }
+        }
         retStatus = freeSampleConfiguration(&pSampleConfiguration);
         if (retStatus != STATUS_SUCCESS) {
             DLOGE("[KVS Master] freeSampleConfiguration(): operation returned status code: 0x%08x", retStatus);

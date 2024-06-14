@@ -259,6 +259,7 @@ typedef struct {
     EndToEndMetricsCtx endToEndMetricsCtx;
     RtcStats kvsRtcStats;
     MUTEX statsUpdateLock;
+    volatile SIZE_T statsContextRefCnt;
 } StatsCtx, *PStatsCtx;
 
 struct __SampleStreamingSession {
@@ -358,7 +359,7 @@ STATUS setupMetricsCtx(PSampleStreamingSession);
 STATUS getSdkTimeProfile(PSampleStreamingSession*);
 STATUS terminate(UINT32, UINT64, UINT64);
 STATUS setUpCredentialProvider(PSampleConfiguration, BOOL);
-STATUS freeMetricsCtx(PSampleStreamingSession* ppSampleStreamingSession);
+STATUS freeMetricsCtx(PStatsCtx*);
 #ifdef __cplusplus
 }
 #endif

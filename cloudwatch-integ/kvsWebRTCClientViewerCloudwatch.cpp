@@ -103,6 +103,10 @@ VOID videoFrameHandler(UINT64 customData, PFrame pFrame)
         return;
     }
     MUTEX_LOCK(pStatsCtx->statsUpdateLock);
+    if(pStatsCtx == NULL) {
+        DLOGW("pStatsCtx freed");
+        return;
+    }
     pStatsCtx->endToEndMetricsCtx.frameLatencyAvg =
             EMA_ACCUMULATOR_GET_NEXT(pStatsCtx->endToEndMetricsCtx.frameLatencyAvg, GETTIME() - receivedTs);
 
@@ -283,6 +287,36 @@ CleanUp:
         retStatus = freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
         if (retStatus != STATUS_SUCCESS) {
             DLOGE("[KVS Viewer] freeSignalingClient(): operation returned status code: 0x%08x ", retStatus);
+        }
+
+        // Free all timer created here that belong to SampleConfiguration timer handle before invoking freeSampleConfiguration
+        if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
+            if (inboundTimerId != MAX_UINT32) {
+                retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, inboundTimerId,
+                                                  (UINT64) pSampleConfiguration);
+                if (STATUS_FAILED(retStatus)) {
+                    DLOGE("Failed to cancel inbound stats timer with: 0x%08x", retStatus);
+                }
+                inboundTimerId = MAX_UINT32;
+            }
+
+            if (e2eTimerId != MAX_UINT32) {
+                retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, e2eTimerId,
+                                                  (UINT64) pSampleConfiguration);
+                if (STATUS_FAILED(retStatus)) {
+                    DLOGE("Failed to cancel e2e timer with: 0x%08x", retStatus);
+                }
+                e2eTimerId = MAX_UINT32;
+            }
+
+            if (terminateId != MAX_UINT32) {
+                retStatus = timerQueueCancelTimer(pSampleConfiguration->timerQueueHandle, terminateId,
+                                                  (UINT64) pSampleConfiguration);
+                if (STATUS_FAILED(retStatus)) {
+                    DLOGE("Failed to cancel terminate timer with: 0x%08x", retStatus);
+                }
+                terminateId = MAX_UINT32;
+            }
         }
 
         retStatus = freeSampleConfiguration(&pSampleConfiguration);
