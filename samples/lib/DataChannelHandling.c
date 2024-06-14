@@ -1,5 +1,6 @@
 #include "../Samples.h"
 
+#ifdef ENABLE_DATA_CHANNEL
 VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -175,3 +176,5 @@ VOID onDataChannel(UINT64 customData, PRtcDataChannel pRtcDataChannel)
     DLOGI("New DataChannel has been opened %s \n", pRtcDataChannel->name);
     dataChannelOnMessage(pRtcDataChannel, customData, onDataChannelMessage);
 }
+
+#endif

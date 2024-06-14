@@ -428,9 +428,9 @@ INT32 main(INT32 argc, CHAR* argv[])
         }
         CppInteg::Cloudwatch::init(channelName, region, TRUE, pSampleConfiguration->channelInfo.useMediaStorage);
 
-        if(ENABLE_DATA_CHANNEL) {
+#ifdef ENABLE_DATA_CHANNEL
             pSampleConfiguration->onDataChannel = onDataChannel;
-        }
+#endif
 
         pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
         DLOGI("[KVS Master] Finished setting handlers");

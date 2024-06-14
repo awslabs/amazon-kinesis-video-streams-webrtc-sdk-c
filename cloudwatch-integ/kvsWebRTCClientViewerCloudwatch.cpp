@@ -4,6 +4,7 @@
 
 extern PSampleConfiguration gSampleConfiguration;
 
+#ifdef ENABLE_DATA_CHANNEL
 // onMessage callback for a message received by the viewer on a data channel
 VOID dataChannelOnMessageCallback(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
 {
@@ -29,6 +30,7 @@ VOID dataChannelOnOpenCallback(UINT64 customData, PRtcDataChannel pDataChannel)
         DLOGI("[KVS Viewer] dataChannelSend(): operation returned status code: 0x%08x ", retStatus);
     }
 }
+#endif
 
 STATUS publishStatsForCanary(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
@@ -201,10 +203,9 @@ INT32 main(INT32 argc, CHAR* argv[])
         CHK_STATUS(initKvsWebRtc());
         DLOGI("[KVS Viewer] KVS WebRTC initialization completed successfully");
 
-        if(ENABLE_DATA_CHANNEL) {
+#ifdef ENABLE_DATA_CHANNEL
             pSampleConfiguration->onDataChannel = onDataChannel;
-        }
-
+#endif
         if ((region = GETENV(DEFAULT_REGION_ENV_VAR)) == NULL) {
             region = (PCHAR) DEFAULT_AWS_REGION;
         }
@@ -270,7 +271,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         message.correlationId[0] = '\0';
 
         CHK_STATUS(signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, &message));
-        if(ENABLE_DATA_CHANNEL) {
+#ifdef ENABLE_DATA_CHANNEL
             PRtcDataChannel pDataChannel = NULL;
             PRtcPeerConnection pPeerConnection = pSampleStreamingSession->pPeerConnection;
             SIZE_T datachannelLocalOpenCount = 0;
@@ -283,7 +284,7 @@ INT32 main(INT32 argc, CHAR* argv[])
             CHK_STATUS(dataChannelOnOpen(pDataChannel, (UINT64) &datachannelLocalOpenCount, dataChannelOnOpenCallback));
             DLOGI("[KVS Viewer] Data Channel open now...");
         }
-
+#endif
         CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, END_TO_END_METRICS_INVOCATION_PERIOD, END_TO_END_METRICS_INVOCATION_PERIOD,
                                       publishEndToEndMetrics, (UINT64) pSampleConfiguration, &e2eTimerId));
         CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, RUN_TIME, TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, terminate,
