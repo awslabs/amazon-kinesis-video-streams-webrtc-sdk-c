@@ -1306,6 +1306,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR remoteIceUfrag = NULL, remoteIcePwd = NULL;
+    BOOL controlling = FALSE;
     UINT32 i, j;
     PSessionDescription pSessionDescription;
 
@@ -1321,6 +1322,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, FALSE);
 
     CHK_STATUS(deserializeSessionDescription(pSessionDescription, pSessionDescriptionInit->sdp));
+    controlling = pKvsPeerConnection->isOffer;
 
     for (i = 0; i < pSessionDescription->sessionAttributesCount; i++) {
         if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "fingerprint") == 0) {
@@ -1334,6 +1336,9 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
         } else if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "ice-options") == 0 &&
                    STRSTR(pSessionDescription->sdpAttributes[i].attributeValue, "trickle") != NULL) {
             NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, TRUE);
+        } else if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "ice-lite") == 0) {
+            // if remote description says "ice-lite" we are always the ice controlling side
+            controlling = TRUE;
         }
     }
 
@@ -1389,8 +1394,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     STRNCPY(pKvsPeerConnection->remoteIcePwd, remoteIcePwd, MAX_ICE_PWD_LEN);
 
     // This starts the state machine timer callback that transitions states periodically
-    CHK_STATUS(iceAgentStartAgent(pKvsPeerConnection->pIceAgent, pKvsPeerConnection->remoteIceUfrag, pKvsPeerConnection->remoteIcePwd,
-                                  pKvsPeerConnection->isOffer));
+    CHK_STATUS(iceAgentStartAgent(pKvsPeerConnection->pIceAgent, pKvsPeerConnection->remoteIceUfrag, pKvsPeerConnection->remoteIcePwd, controlling));
 
     if (!pKvsPeerConnection->isOffer) {
         CHK_STATUS(setPayloadTypesFromOffer(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pSessionDescription));
