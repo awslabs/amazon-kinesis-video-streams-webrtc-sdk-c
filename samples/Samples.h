@@ -232,7 +232,6 @@ typedef struct {
     DOUBLE nacksPerSecond;
     DOUBLE averageFramesSentPerSecond;
     DOUBLE retxBytesPercentage;
-    MUTEX outgoingRtpStatsLock;
     BOOL recorded;
 } OutgoingRTPStatsCtx, *POutgoingRTPStatsCtx;
 
@@ -250,7 +249,6 @@ typedef struct {
     DOUBLE packetReceiveRate;
     DOUBLE incomingBitRate;
     DOUBLE framesDroppedPerSecond;
-    MUTEX incomingRtpStatsLock;
 } IncomingRTPStatsCtx, *PIncomingRTPStatsCtx;
 
 typedef struct {

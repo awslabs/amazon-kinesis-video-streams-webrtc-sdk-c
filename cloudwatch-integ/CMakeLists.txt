@@ -12,10 +12,10 @@ link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
 find_package(ZLIB REQUIRED)
 find_package(AWSSDK REQUIRED COMPONENTS monitoring logs)
 
-set(SAMPLE_CONFIG_HEADER "configs/lr_iot_h264_openssl.h" CACHE FILEPATH "Config header")
+set(CW_CONFIG_HEADER "configs/lr_static_h265_openssl.h" CACHE FILEPATH "Config header for the cloudwatch integrated demo")
 
-add_definitions(-DSAMPLE_CONFIG_HEADER="${SAMPLE_CONFIG_HEADER}")
-message(STATUS ${SAMPLE_CONFIG_HEADER})
+add_definitions(-DCW_CONFIG_HEADER="${CW_CONFIG_HEADER}")
+message(STATUS "Config header set to ${CW_CONFIG_HEADER}")
 
 add_executable(
         kvsWebrtcClientMasterCW

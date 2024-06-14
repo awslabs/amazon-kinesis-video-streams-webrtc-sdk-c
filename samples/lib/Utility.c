@@ -196,7 +196,7 @@ STATUS setUpCredentialProvider(PSampleConfiguration pSampleConfiguration, BOOL u
 {
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR pAccessKey, pSecretKey, pSessionToken;
-    PCHAR pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pIotCoreRoleAlias, pIotCoreCertificateId, pIotCoreThingName;
+    PCHAR pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pIotCoreRoleAlias, pIotCoreThingName;
     CHK_ERR(pSampleConfiguration != NULL, STATUS_NULL_ARG, "Set up pSampleConfiguration first by invoking createSampleConfiguration");
 
     pSampleConfiguration->useIot = useIot;
@@ -205,7 +205,7 @@ STATUS setUpCredentialProvider(PSampleConfiguration pSampleConfiguration, BOOL u
     CHK_STATUS(lookForSslCert(&pSampleConfiguration));
     pSampleConfiguration->channelInfo.pCertPath = pSampleConfiguration->pCaCertPath;
     if (useIot) {
-        DLOGI("USE IOT");
+        DLOGI("USE IOT Credential provider");
         CHK_ERR((pIotCoreCredentialEndPoint = GETENV(IOT_CORE_CREDENTIAL_ENDPOINT)) != NULL, STATUS_INVALID_OPERATION,
                 "AWS_IOT_CORE_CREDENTIAL_ENDPOINT must be set");
         CHK_ERR((pIotCoreCert = GETENV(IOT_CORE_CERT)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_CERT must be set");
@@ -214,11 +214,7 @@ STATUS setUpCredentialProvider(PSampleConfiguration pSampleConfiguration, BOOL u
         CHK_ERR((pIotCoreThingName = GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
         CHK_STATUS(createLwsIotCredentialProvider(pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pSampleConfiguration->pCaCertPath,
                                                   pIotCoreRoleAlias, pIotCoreThingName, &pSampleConfiguration->pCredentialProvider));
-        if ((pIotCoreCertificateId = GETENV(IOT_CORE_CERTIFICATE_ID)) != NULL) {
-            pSampleConfiguration->channelInfo.pChannelName = pIotCoreCertificateId;
-        }
     } else {
-        DLOGI("USE no");
         CHK_ERR((pAccessKey = GETENV(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
         CHK_ERR((pSecretKey = GETENV(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
         pSessionToken = GETENV(SESSION_TOKEN_ENV_VAR);

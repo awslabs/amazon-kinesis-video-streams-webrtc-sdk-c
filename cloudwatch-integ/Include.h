@@ -1,6 +1,6 @@
 #pragma once
 
-#include SAMPLE_CONFIG_HEADER
+#include CW_CONFIG_HEADER
 
 #define DEFAULT_CLOUDWATCH_NAMESPACE "KinesisVideoSDKCanary"
 // TODO: This value shouldn't matter. But, since we don't allow NULL value, we have to set to a value

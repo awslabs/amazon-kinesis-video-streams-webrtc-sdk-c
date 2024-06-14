@@ -3,7 +3,6 @@
 
 PSampleConfiguration gSampleConfiguration = NULL;
 
-
 STATUS terminate(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     DLOGI("Terminating the app");
@@ -249,7 +248,7 @@ CleanUp:
 
 STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, PCHAR peerId, BOOL isMaster,
                                     PSampleStreamingSession* ppSampleStreamingSession)
-{   DLOGI("Create sample streaming session call");
+{
     STATUS retStatus = STATUS_SUCCESS;
     RtcMediaStreamTrack videoTrack, audioTrack;
     PSampleStreamingSession pSampleStreamingSession = NULL;
@@ -297,8 +296,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     // Flag to enable SDK to calculate selected ice server, local, remote and candidate pair stats.
     pSampleConfiguration->enableIceStats = FALSE;
 
-    pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime =
-            GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
 
     CHK_STATUS(initializePeerConnection(pSampleConfiguration, &pSampleStreamingSession->pPeerConnection));
     CHK_STATUS(peerConnectionOnIceCandidate(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession, onIceCandidateHandler));
@@ -407,7 +405,7 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
         }
     }
 
-    if(pSampleConfiguration->enableMetrics) {
+    if (pSampleConfiguration->enableMetrics) {
         CHK_LOG_ERR(freeMetricsCtx(&pSampleStreamingSession->pStatsCtx));
     }
     CHK_LOG_ERR(closePeerConnection(pSampleStreamingSession->pPeerConnection));
