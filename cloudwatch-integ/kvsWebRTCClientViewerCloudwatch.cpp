@@ -287,7 +287,6 @@ INT32 main(INT32 argc, CHAR* argv[])
             // Setting a callback for when the data channel is open
             CHK_STATUS(dataChannelOnOpen(pDataChannel, (UINT64) &datachannelLocalOpenCount, dataChannelOnOpenCallback));
             DLOGI("[KVS Viewer] Data Channel open now...");
-        }
 #endif
         CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, END_TO_END_METRICS_INVOCATION_PERIOD, END_TO_END_METRICS_INVOCATION_PERIOD,
                                       publishEndToEndMetrics, (UINT64) pSampleConfiguration, &e2eTimerId));
