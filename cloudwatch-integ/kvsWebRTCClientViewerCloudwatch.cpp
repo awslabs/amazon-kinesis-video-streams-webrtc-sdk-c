@@ -34,6 +34,8 @@ VOID dataChannelOnOpenCallback(UINT64 customData, PRtcDataChannel pDataChannel)
 
 STATUS publishStatsForCanary(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
+    UNUSED_PARAM(timerId);
+    UNUSED_PARAM(currentTime);
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
     PSampleStreamingSession pSampleStreamingSession = NULL;
@@ -78,6 +80,8 @@ CleanUp:
 
 STATUS publishEndToEndMetrics(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
+    UNUSED_PARAM(timerId);
+    UNUSED_PARAM(currentTime);
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
     PSampleStreamingSession pSampleStreamingSession = NULL;

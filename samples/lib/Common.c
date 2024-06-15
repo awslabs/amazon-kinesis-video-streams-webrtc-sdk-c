@@ -5,6 +5,9 @@ PSampleConfiguration gSampleConfiguration = NULL;
 
 STATUS terminate(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
+    UNUSED_PARAM(timerId);
+    UNUSED_PARAM(currentTime);
+    UNUSED_PARAM(customData);
     DLOGI("Terminating the app");
     if (gSampleConfiguration != NULL) {
         ATOMIC_STORE_BOOL(&gSampleConfiguration->interrupted, TRUE);
@@ -519,7 +522,6 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
                                  PSampleConfiguration* ppSampleConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    PCHAR pAccessKey, pSecretKey, pSessionToken;
     PSampleConfiguration pSampleConfiguration = NULL;
 
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);

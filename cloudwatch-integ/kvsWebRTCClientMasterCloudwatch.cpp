@@ -32,6 +32,8 @@ VOID calculateDisconnectToFrameSentTime(PSampleConfiguration pSampleConfiguratio
 }
 
 STATUS publishStatsForCanary(UINT32 timerId, UINT64 currentTime, UINT64 customData) {
+    UNUSED_PARAM(timerId);
+    UNUSED_PARAM(currentTime);
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
     PSampleStreamingSession pSampleStreamingSession = NULL;
