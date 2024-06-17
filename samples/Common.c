@@ -589,8 +589,8 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
         CHK_STATUS(createRollingBufferConfig(pSampleStreamingSession->pVideoRtcRtpTransceiver, &videoTrack, H264_ROLLING_BUFFER_DURATION_SECONDS,
                                              H264_ROLLING_BUFFER_BITRATE_BITS_PER_SECOND));
     } else if (videoTrack.codec == RTC_CODEC_H265) {
-        CHK_STATUS(createRollingBufferConfig(pSampleStreamingSession->pVideoRtcRtpTransceiver, &videoTrack, H264_ROLLING_BUFFER_DURATION_SECONDS,
-                                             H264_ROLLING_BUFFER_BITRATE_BITS_PER_SECOND));
+        CHK_STATUS(createRollingBufferConfig(pSampleStreamingSession->pVideoRtcRtpTransceiver, &videoTrack, H265_ROLLING_BUFFER_DURATION_SECONDS,
+                                             H265_ROLLING_BUFFER_BITRATE_BITS_PER_SECOND));
     } else if (videoTrack.codec == RTC_CODEC_VP8) {
         CHK_STATUS(createRollingBufferConfig(pSampleStreamingSession->pVideoRtcRtpTransceiver, &videoTrack, VP8_ROLLING_BUFFER_DURATION_SECONDS,
                                              VP8_ROLLING_BUFFER_BITRATE_BITS_PER_SECOND));
