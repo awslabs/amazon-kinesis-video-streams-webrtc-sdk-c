@@ -169,21 +169,84 @@ extern "C" {
  * WEBRTC SDP packet related codes. Values are derived from STATUS_SDP_BASE
  *  @{
  */
-#define STATUS_SDP_BASE                                   STATUS_WEBRTC_BASE + 0x01000000
-#define STATUS_SDP_MISSING_ITEMS                          STATUS_SDP_BASE + 0x00000001
-#define STATUS_SDP_ATTRIBUTES_ERROR                       STATUS_SDP_BASE + 0x00000002
-#define STATUS_SDP_BANDWIDTH_ERROR                        STATUS_SDP_BASE + 0x00000003
-#define STATUS_SDP_CONNECTION_INFORMATION_ERROR           STATUS_SDP_BASE + 0x00000004
-#define STATUS_SDP_EMAIL_ADDRESS_ERROR                    STATUS_SDP_BASE + 0x00000005
-#define STATUS_SDP_ENCYRPTION_KEY_ERROR                   STATUS_SDP_BASE + 0x00000006
-#define STATUS_SDP_INFORMATION_ERROR                      STATUS_SDP_BASE + 0x00000007
-#define STATUS_SDP_MEDIA_NAME_ERROR                       STATUS_SDP_BASE + 0x00000008
-#define STATUS_SDP_ORIGIN_ERROR                           STATUS_SDP_BASE + 0x00000009
-#define STATUS_SDP_PHONE_NUMBER_ERROR                     STATUS_SDP_BASE + 0x0000000A
-#define STATUS_SDP_TIME_DECRYPTION_ERROR                  STATUS_SDP_BASE + 0x0000000B
-#define STATUS_SDP_TIMEZONE_ERROR                         STATUS_SDP_BASE + 0x0000000C
-#define STATUS_SDP_URI_ERROR                              STATUS_SDP_BASE + 0x0000000D
-#define STATUS_SDP_VERSION_ERROR                          STATUS_SDP_BASE + 0x0000000E
+#define STATUS_SDP_BASE STATUS_WEBRTC_BASE + 0x01000000
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_SDP_MISSING_ITEMS STATUS_SDP_BASE + 0x00000001
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_SDP_ATTRIBUTES_ERROR STATUS_SDP_BASE + 0x00000002
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_SDP_BANDWIDTH_ERROR STATUS_SDP_BASE + 0x00000003
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_SDP_CONNECTION_INFORMATION_ERROR STATUS_SDP_BASE + 0x00000004
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_SDP_EMAIL_ADDRESS_ERROR STATUS_SDP_BASE + 0x00000005
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_SDP_ENCYRPTION_KEY_ERROR STATUS_SDP_BASE + 0x00000006
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_SDP_INFORMATION_ERROR STATUS_SDP_BASE + 0x00000007
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_SDP_MEDIA_NAME_ERROR STATUS_SDP_BASE + 0x00000008
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_SDP_ORIGIN_ERROR STATUS_SDP_BASE + 0x00000009
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_SDP_PHONE_NUMBER_ERROR STATUS_SDP_BASE + 0x0000000A
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_SDP_TIME_DECRYPTION_ERROR STATUS_SDP_BASE + 0x0000000B
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_SDP_TIMEZONE_ERROR STATUS_SDP_BASE + 0x0000000C
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_SDP_URI_ERROR STATUS_SDP_BASE + 0x0000000D
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_SDP_VERSION_ERROR STATUS_SDP_BASE + 0x0000000E
+
+/**
+ * @brief The incoming SDP exceeds 256 attributes which is likely to happen if the SDP contains multiple media attributes and ICE candidates
+ * @par Recommended action:
+ * Trickle ICE can help in not sending all the ICE candidates with the SDP. If this is already enabled, reach out to the service team with logs. To
+ * get the SDP in the logs, export DEBUG_LOG_SDP=TRUE and set log level to DEBUG. is invoked
+ */
 #define STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED                 STATUS_SDP_BASE + 0x0000000F
 #define STATUS_SDP_MESSAGE_MALFORMED                      STATUS_SDP_BASE + 0x00000010
 #define STATUS_SDP_MESSAGE_MALFORMED_NOT_ENOUGH_INFO      STATUS_SDP_BASE + 0x00000011
