@@ -527,10 +527,24 @@ extern "C" {
 #define STATUS_CERTIFICATE_GENERATION_FAILED              STATUS_DTLS_BASE + 0x00000001
 #define STATUS_SSL_CTX_CREATION_FAILED                    STATUS_DTLS_BASE + 0x00000002
 #define STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED STATUS_DTLS_BASE + 0x00000003
-#define STATUS_SSL_PACKET_BEFORE_DTLS_READY               STATUS_DTLS_BASE + 0x00000004
-#define STATUS_SSL_UNKNOWN_SRTP_PROFILE                   STATUS_DTLS_BASE + 0x00000005
-#define STATUS_SSL_INVALID_CERTIFICATE_BITS               STATUS_DTLS_BASE + 0x00000006
-#define STATUS_DTLS_SESSION_ALREADY_FREED                 STATUS_DTLS_BASE + 0x00000007
+
+/**
+ * @brief The status code is encountered if the SDK receives a DTLS packet before DTLS handshake begins
+ * @par Recommended action:
+ * This is safe to ignore unless a session could not be established. It could happen in situations the viewer is started before master. However, if \n
+ * this is not the case, reach out with VERBOSE logs.
+ */
+#define STATUS_SSL_PACKET_BEFORE_DTLS_READY STATUS_DTLS_BASE + 0x00000004
+
+/**
+ * @brief The SDK supports SHA1_32 and SHA1_80. If the crypto libraries do not return either of these, this status code is set
+ * @par Recommended action:
+ * This is verified on the values returned by the dependencies (openssl/mbedtls). Check the version of the crypto the SDK is linked to and reach out
+ * \n to the service team if the version differs from the one SDK supports
+ */
+#define STATUS_SSL_UNKNOWN_SRTP_PROFILE     STATUS_DTLS_BASE + 0x00000005
+#define STATUS_SSL_INVALID_CERTIFICATE_BITS STATUS_DTLS_BASE + 0x00000006
+#define STATUS_DTLS_SESSION_ALREADY_FREED   STATUS_DTLS_BASE + 0x00000007
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -541,43 +555,221 @@ extern "C" {
  * WEBRTC ICE related codes. Values are derived from STATUS_ICE_BASE
  *  @{
  */
-#define STATUS_ICE_BASE                                                    STATUS_DTLS_BASE + 0x01000000
-#define STATUS_ICE_AGENT_NO_SELECTED_CANDIDATE_AVAILABLE                   STATUS_ICE_BASE + 0x00000001
-#define STATUS_ICE_CANDIDATE_STRING_MISSING_PORT                           STATUS_ICE_BASE + 0x00000002
-#define STATUS_ICE_CANDIDATE_STRING_MISSING_IP                             STATUS_ICE_BASE + 0x00000003
-#define STATUS_ICE_CANDIDATE_STRING_INVALID_IP                             STATUS_ICE_BASE + 0x00000004
-#define STATUS_ICE_CANDIDATE_STRING_IS_TCP                                 STATUS_ICE_BASE + 0x00000005
-#define STATUS_ICE_FAILED_TO_COMPUTE_MD5_FOR_LONG_TERM_CREDENTIAL          STATUS_ICE_BASE + 0x00000006
-#define STATUS_ICE_URL_INVALID_PREFIX                                      STATUS_ICE_BASE + 0x00000007
-#define STATUS_ICE_URL_TURN_MISSING_USERNAME                               STATUS_ICE_BASE + 0x00000008
-#define STATUS_ICE_URL_TURN_MISSING_CREDENTIAL                             STATUS_ICE_BASE + 0x00000009
-#define STATUS_ICE_AGENT_STATE_CHANGE_FAILED                               STATUS_ICE_BASE + 0x0000000a
-#define STATUS_ICE_NO_LOCAL_CANDIDATE_AVAILABLE_AFTER_GATHERING_TIMEOUT    STATUS_ICE_BASE + 0x0000000b
-#define STATUS_ICE_AGENT_TERMINATED_ALREADY                                STATUS_ICE_BASE + 0x0000000c
-#define STATUS_ICE_NO_CONNECTED_CANDIDATE_PAIR                             STATUS_ICE_BASE + 0x0000000d
-#define STATUS_ICE_CANDIDATE_PAIR_LIST_EMPTY                               STATUS_ICE_BASE + 0x0000000e
-#define STATUS_ICE_NOMINATED_CANDIDATE_NOT_CONNECTED                       STATUS_ICE_BASE + 0x00000010
-#define STATUS_ICE_CANDIDATE_INIT_MALFORMED                                STATUS_ICE_BASE + 0x00000011
-#define STATUS_ICE_CANDIDATE_MISSING_CANDIDATE                             STATUS_ICE_BASE + 0x00000012
-#define STATUS_ICE_FAILED_TO_NOMINATE_CANDIDATE_PAIR                       STATUS_ICE_BASE + 0x00000013
-#define STATUS_ICE_MAX_REMOTE_CANDIDATE_COUNT_EXCEEDED                     STATUS_ICE_BASE + 0x00000014
-#define STATUS_ICE_INVALID_STATE                                           STATUS_ICE_BASE + 0x0000001c
-#define STATUS_ICE_NO_LOCAL_HOST_CANDIDATE_AVAILABLE                       STATUS_ICE_BASE + 0x0000001d
-#define STATUS_ICE_NO_NOMINATED_VALID_CANDIDATE_PAIR_AVAILABLE             STATUS_ICE_BASE + 0x0000001e
-#define STATUS_TURN_CONNECTION_NO_HOST_INTERFACE_FOUND                     STATUS_ICE_BASE + 0x0000001f
-#define STATUS_TURN_CONNECTION_STATE_TRANSITION_TIMEOUT                    STATUS_ICE_BASE + 0x00000020
-#define STATUS_TURN_CONNECTION_FAILED_TO_CREATE_PERMISSION                 STATUS_ICE_BASE + 0x00000021
-#define STATUS_TURN_CONNECTION_FAILED_TO_BIND_CHANNEL                      STATUS_ICE_BASE + 0x00000022
+#define STATUS_ICE_BASE STATUS_DTLS_BASE + 0x01000000
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_ICE_AGENT_NO_SELECTED_CANDIDATE_AVAILABLE STATUS_ICE_BASE + 0x00000001
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_ICE_CANDIDATE_STRING_MISSING_PORT STATUS_ICE_BASE + 0x00000002
+
+/**
+ * @brief Incoming SDP does not contain the IP
+ * @par Recommended action:
+ * It is not critical as long as a connection can be established. However, reach out with the remote SDP details. To get the SDP in the logs, \n
+ * export DEBUG_LOG_SDP=TRUE and set log level to DEBUG
+ */
+#define STATUS_ICE_CANDIDATE_STRING_MISSING_IP STATUS_ICE_BASE + 0x00000003
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_ICE_CANDIDATE_STRING_INVALID_IP STATUS_ICE_BASE + 0x00000004
+
+/**
+ * @brief The received candidate is a TCP candidate
+ * @par Recommended action:
+ * The SDK does not support TCP candidates at the moment. This status code is safe to ignore
+ */
+#define STATUS_ICE_CANDIDATE_STRING_IS_TCP STATUS_ICE_BASE + 0x00000005
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_ICE_FAILED_TO_COMPUTE_MD5_FOR_LONG_TERM_CREDENTIAL STATUS_ICE_BASE + 0x00000006
+
+/**
+ * @brief Received ICE server config does not contain stun:, turn: or turns: prefix
+ * @par Recommended action:
+ * Customer action cannot fix this. Reach out to service team with VERBOSE logs
+ */
+#define STATUS_ICE_URL_INVALID_PREFIX STATUS_ICE_BASE + 0x00000007
+
+/**
+ * @brief The TURN server URL does not contain username field
+ * @par Recommended action:
+ * Customer action cannot fix this. Reach out to service team with VERBOSE logs
+ */
+#define STATUS_ICE_URL_TURN_MISSING_USERNAME STATUS_ICE_BASE + 0x00000008
+
+/**
+ * @brief The TURN server URL does not contain credential field
+ * @par Recommended action:
+ * Customer action cannot fix this. Reach out to service team with VERBOSE logs
+ */
+#define STATUS_ICE_URL_TURN_MISSING_CREDENTIAL STATUS_ICE_BASE + 0x00000009
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_ICE_AGENT_STATE_CHANGE_FAILED STATUS_ICE_BASE + 0x0000000a
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_ICE_NO_LOCAL_CANDIDATE_AVAILABLE_AFTER_GATHERING_TIMEOUT STATUS_ICE_BASE + 0x0000000b
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_ICE_AGENT_TERMINATED_ALREADY STATUS_ICE_BASE + 0x0000000c
+
+/**
+ * @brief The status code indicates that no valid candidate pair passed the connectivity check within the 10 second timeout
+ * @par Recommended action:
+ * Consider checking the network set up on the device. Also verify if there are any firewall or iptable rules to understand that could lead to \n
+ * connectivity checks failing on all potential candidate pairs
+ */
+#define STATUS_ICE_NO_CONNECTED_CANDIDATE_PAIR STATUS_ICE_BASE + 0x0000000d
+
+/**
+ * @brief No candidate pairs succeeded connectivity check for nomination to occur
+ * @par Recommended action:
+ * Consider checking the network set up on the device. Also verify if there are any firewall or iptable rules to understand that could lead to \n
+ * connectivity checks failing on all potential candidate pairs
+ */
+#define STATUS_ICE_CANDIDATE_PAIR_LIST_EMPTY STATUS_ICE_BASE + 0x0000000e
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_ICE_NOMINATED_CANDIDATE_NOT_CONNECTED STATUS_ICE_BASE + 0x00000010
+
+/**
+ * @brief Incoming ICE candidate entry in SDP is not of expected format
+ * @par Recommended action:
+ * Customer action cannot fix this. Reach out to service team with VERBOSE logs and remote SDP
+ */
+#define STATUS_ICE_CANDIDATE_INIT_MALFORMED STATUS_ICE_BASE + 0x00000011
+
+/**
+ * @brief The SDK received an ICE candidate SDP, but this SDP does not contain the `candidate` key
+ * @par Recommended action:
+ * Customer action cannot fix this. Reach out to service team with VERBOSE logs and remote SDP
+ */
+#define STATUS_ICE_CANDIDATE_MISSING_CANDIDATE STATUS_ICE_BASE + 0x00000012
+
+/**
+ * @brief ICE candidate pair could not be nominated within the SDK default of 10 seconds
+ * @par Recommended action:
+ * Analyze the number of local and remote candidates and candidate pairs formed. Look for any error codes in the logs. Provide VERBOSE logs to the \n
+ * service team, highlight the network set up details, the devices involved in peer to peer set up. Another option is to increase the nomination \n
+ * timeout. It can be set up in kvsRtcConfiguration.iceCandidateNominationTimeout in the application
+ */
+#define STATUS_ICE_FAILED_TO_NOMINATE_CANDIDATE_PAIR STATUS_ICE_BASE + 0x00000013
+
+/**
+ * @brief The number of remote candidates received by the SDK exceeds 100.
+ * @par Recommended action:
+ * Consider reducing the number of network interfaces on the remote end. This will help reduce the number of candidates.
+ */
+#define STATUS_ICE_MAX_REMOTE_CANDIDATE_COUNT_EXCEEDED STATUS_ICE_BASE + 0x00000014
+
+/**
+ * @brief Occurs when any of the states in the ICE agent state machine fails after retries
+ * @par Recommended action:
+ * Customer action cannot fix this. Reach out to service team with VERBOSE logs
+ */
+#define STATUS_ICE_INVALID_STATE STATUS_ICE_BASE + 0x0000001c
+
+/**
+ * @brief No host candidates have been found in the ICE gathering process
+ * @par Recommended action:
+ * Check the network interfaces. If network filtering is being done by the application, ensure there is atleast one operational network interface to \n
+ * gather host candidates
+ */
+#define STATUS_ICE_NO_LOCAL_HOST_CANDIDATE_AVAILABLE STATUS_ICE_BASE + 0x0000001d
+
+/**
+ * @brief The number of remote candidates received by the SDK exceeds 100.
+ * @par Recommended action:
+ * Consider reducing the number of network interfaces on the remote end. This will help reduce the number of candidates.
+ */
+#define STATUS_ICE_NO_NOMINATED_VALID_CANDIDATE_PAIR_AVAILABLE STATUS_ICE_BASE + 0x0000001e
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_TURN_CONNECTION_NO_HOST_INTERFACE_FOUND     STATUS_ICE_BASE + 0x0000001f
+#define STATUS_TURN_CONNECTION_STATE_TRANSITION_TIMEOUT    STATUS_ICE_BASE + 0x00000020
+#define STATUS_TURN_CONNECTION_FAILED_TO_CREATE_PERMISSION STATUS_ICE_BASE + 0x00000021
+#define STATUS_TURN_CONNECTION_FAILED_TO_BIND_CHANNEL      STATUS_ICE_BASE + 0x00000022
+
+/**
+ * @brief This status code is unused
+ */
 #define STATUS_TURN_NEW_DATA_CHANNEL_MSG_HEADER_BEFORE_PREVIOUS_MSG_FINISH STATUS_ICE_BASE + 0x00000023
-#define STATUS_TURN_MISSING_CHANNEL_DATA_HEADER                            STATUS_ICE_BASE + 0x00000024
-#define STATUS_ICE_FAILED_TO_RECOVER_FROM_DISCONNECTION                    STATUS_ICE_BASE + 0x00000025
-#define STATUS_ICE_NO_AVAILABLE_ICE_CANDIDATE_PAIR                         STATUS_ICE_BASE + 0x00000026
-#define STATUS_TURN_CONNECTION_PEER_NOT_USABLE                             STATUS_ICE_BASE + 0x00000027
-#define STATUS_ICE_SERVER_INDEX_INVALID                                    STATUS_ICE_BASE + 0x00000028
-#define STATUS_ICE_CANDIDATE_STRING_MISSING_TYPE                           STATUS_ICE_BASE + 0x00000029
-#define STATUS_TURN_CONNECTION_ALLOCATION_FAILED                           STATUS_ICE_BASE + 0x0000002a
-#define STATUS_TURN_INVALID_STATE                                          STATUS_ICE_BASE + 0x0000002b
-#define STATUS_TURN_CONNECTION_GET_CREDENTIALS_FAILED                      STATUS_ICE_BASE + 0x0000002c
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_TURN_MISSING_CHANNEL_DATA_HEADER         STATUS_ICE_BASE + 0x00000024
+#define STATUS_ICE_FAILED_TO_RECOVER_FROM_DISCONNECTION STATUS_ICE_BASE + 0x00000025
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_ICE_NO_AVAILABLE_ICE_CANDIDATE_PAIR STATUS_ICE_BASE + 0x00000026
+
+/**
+ * @brief Occurs if the TURN connection could not be established for a relay candidate
+ * @par Recommended action:
+ * As long as a viable candidate pair is found, this is safe to ignore. The SDK tries to establish a TURN connection for every relay candidate \n
+ * discovered. If connection is not established, reach out to service team with VERBOSE logs.
+ */
+#define STATUS_TURN_CONNECTION_PEER_NOT_USABLE STATUS_ICE_BASE + 0x00000027
+
+/**
+ * @brief Occurs when ICE server stats are being queried for a non existent index
+ * @par Recommended action:
+ * Customer action cannot fix this. Reach out to service team with VERBOSE logs
+ */
+#define STATUS_ICE_SERVER_INDEX_INVALID STATUS_ICE_BASE + 0x00000028
+
+/**
+ * @brief The remote candidate does not contain candidate type string.
+ * @par Recommended action:
+ * It is ok to receive this status code. However, if no viable remote candidate is retrieved due to this, check the SDP sent by the other peer.
+ */
+#define STATUS_ICE_CANDIDATE_STRING_MISSING_TYPE STATUS_ICE_BASE + 0x00000029
+
+/**
+ * @brief The TURN allocation process timed out - the SDK did not receive the allocation response within 100 ms (< v1.10.0) and within 5 seconds
+ * (>=1.10.0)
+ * @par Recommended action:
+ * This could be due to a slow network or the region used is very far from the device running the SDK. If Wireshark is an option, check how long the
+ * \n allocation response takes to reach the device.
+ */
+#define STATUS_TURN_CONNECTION_ALLOCATION_FAILED STATUS_ICE_BASE + 0x0000002a
+
+/**
+ * @brief The internal state machine transition is invalid
+ * @par Recommended action:
+ * Customer action will be unable to resolve it. Reach out to service team with VERBOSE logs
+ */
+#define STATUS_TURN_INVALID_STATE STATUS_ICE_BASE + 0x0000002b
+
+/**
+ * @brief The TURN get credentials call timed out - the SDK did not receive the credentials response within 5 seconds (>=1.10.0). This status code is
+ * unused in < 1.10.0 version of the SDK
+ * @par Recommended action:
+ * This could be due to a slow network. If Wireshark is an option, check how long the allocation response takes to reach the device.
+ */
+#define STATUS_TURN_CONNECTION_GET_CREDENTIALS_FAILED STATUS_ICE_BASE + 0x0000002c
 
 /*!@} */
 
