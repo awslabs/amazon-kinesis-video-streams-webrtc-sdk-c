@@ -405,6 +405,10 @@ endif()
 
 target_link_libraries(
   kvsWebrtcClient
+  PUBLIC
+        kvssdp
+        kvsstun
+        kvsrtp
   PRIVATE kvspicUtils
           kvspicState
           ${CMAKE_THREAD_LIBS_INIT}
