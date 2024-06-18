@@ -54,11 +54,11 @@ add_definitions(-DVERSION_STRING=\"${PROJECT_VERSION}\")
 add_definitions(-DDETECTED_GIT_HASH)
 
 if(NOT KVS_STACK_SIZE OR KVS_STACK_SIZE STREQUAL "")
-  message(STATUS "Setting default stack size to platform specific stack size")
-  set(KVS_DEFAULT_STACK_SIZE 0)
-  add_definitions(-DKVS_DEFAULT_STACK_SIZE=0)
+  message(STATUS "Setting default stack size to 64*1024")
+  set(KVS_DEFAULT_STACK_SIZE 65536)
+  add_definitions(-DKVS_DEFAULT_STACK_SIZE=65536)
 else()
-  message(STATUS "Setting default stack size to provided value of ${KVS_STACK_SIZE}")
+  message(STATUS "Setting default stack size to provided value")
   set(KVS_DEFAULT_STACK_SIZE ${KVS_STACK_SIZE})
   add_definitions(-DKVS_DEFAULT_STACK_SIZE=${KVS_STACK_SIZE})
 endif()
@@ -407,20 +407,25 @@ endif()
 
 target_link_libraries(
   kvsWebrtcClient
-  PRIVATE kvspicUtils
-          kvspicState
-          kvssdp
-          kvsstun
-          kvsrtp
-          ${CMAKE_THREAD_LIBS_INIT}
-          ${OPENSSL_SSL_LIBRARY}
-          ${OPENSSL_CRYPTO_LIBRARY}
-          ${SRTP_LIBRARIES}
-          ${Usrsctp}
-          ${MBEDTLS_LIBRARIES}
-          ${GPERFTOOLS_MALLOC_LIBRARIES}
-          ${GPERFTOOLS_PROFILER_LIBRARIES}
-          ${EXTRA_DEPS})
+  PUBLIC
+        kvssdp
+        kvsstun
+        kvsrtp
+  PRIVATE
+        kvspicUtils
+        kvspicState
+        kvssdp
+        kvsstun
+        kvsrtp
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${OPENSSL_SSL_LIBRARY}
+        ${OPENSSL_CRYPTO_LIBRARY}
+        ${SRTP_LIBRARIES}
+        ${Usrsctp}
+        ${MBEDTLS_LIBRARIES}
+        ${GPERFTOOLS_MALLOC_LIBRARIES}
+        ${GPERFTOOLS_PROFILER_LIBRARIES}
+        ${EXTRA_DEPS})
 
 add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
 
