@@ -689,8 +689,8 @@ extern "C" {
 /**
  * @brief No host candidates have been found in the ICE gathering process
  * @par Recommended action:
- * Check the network interfaces. If network filtering is being done by the application, ensure there is atleast one operational network interface to \n
- * gather host candidates
+ * Check the network interfaces. If network filtering is being done by the application, ensure there is atleast one operational network interface to
+ * \n gather host candidates
  */
 #define STATUS_ICE_NO_LOCAL_HOST_CANDIDATE_AVAILABLE STATUS_ICE_BASE + 0x0000001d
 
@@ -704,10 +704,33 @@ extern "C" {
 /**
  * @brief This status code is unused
  */
-#define STATUS_TURN_CONNECTION_NO_HOST_INTERFACE_FOUND     STATUS_ICE_BASE + 0x0000001f
-#define STATUS_TURN_CONNECTION_STATE_TRANSITION_TIMEOUT    STATUS_ICE_BASE + 0x00000020
+#define STATUS_TURN_CONNECTION_NO_HOST_INTERFACE_FOUND STATUS_ICE_BASE + 0x0000001f
+
+/**
+ * @brief Unused status code (last usage v1.9.1). Generice status code indicating the TURN state that timed out
+ * @par Recommended action:
+ * If using <=v1.9.1, check the DEBUG logs for the state transition that failed. For example, a log line "turnConnectionStepState(): TurnConnection
+ * state changed from TURN_STATE_CREATE_PERMISSION to TURN_STATE_FAILED` indicates a timeout with creating permission. Attach VERBOSE logs and the
+ * Wireshark STUN packet capture file to review by the team. Additionally, provide details on region the SDK is being run in and the region it is \n
+ * attempting to use.
+ */
+#define STATUS_TURN_CONNECTION_STATE_TRANSITION_TIMEOUT STATUS_ICE_BASE + 0x00000020
+
+/**
+ * @brief SDK failed to create permission within the 2 second timeout
+ * @par Recommended action:
+ * Reach out to service team with VERBOSE logs. Also provide STUN specific wireshark output if possible. Provide details on the region the device \n
+ * application is using and the region the device exists in
+ */
 #define STATUS_TURN_CONNECTION_FAILED_TO_CREATE_PERMISSION STATUS_ICE_BASE + 0x00000021
-#define STATUS_TURN_CONNECTION_FAILED_TO_BIND_CHANNEL      STATUS_ICE_BASE + 0x00000022
+
+/**
+ * @brief SDK failed to bind channel to the relay candidate within the 3 second timeout
+ * @par Recommended action:
+ * Reach out to service team with VERBOSE logs. Also provide STUN specific wireshark output if possible. Provide details on the region the device \n
+ * application is using and the region the device exists in
+ */
+#define STATUS_TURN_CONNECTION_FAILED_TO_BIND_CHANNEL STATUS_ICE_BASE + 0x00000022
 
 /**
  * @brief This status code is unused
@@ -717,7 +740,14 @@ extern "C" {
 /**
  * @brief This status code is unused
  */
-#define STATUS_TURN_MISSING_CHANNEL_DATA_HEADER         STATUS_ICE_BASE + 0x00000024
+#define STATUS_TURN_MISSING_CHANNEL_DATA_HEADER STATUS_ICE_BASE + 0x00000024
+
+/**
+ * @brief SDK detected disconnection because of no keep alives for 30 seconds
+ * @par Recommended action:
+ * This would propogate with RTC_PEER_CONNECTION_STATE_DISCONNECTED via the callback set with peerConnectionOnConnectionStateChange(). The application \n
+ * can choose to take appropriate action such as restart the peer connection
+ */
 #define STATUS_ICE_FAILED_TO_RECOVER_FROM_DISCONNECTION STATUS_ICE_BASE + 0x00000025
 
 /**
