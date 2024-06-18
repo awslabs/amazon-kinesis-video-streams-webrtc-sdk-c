@@ -407,11 +407,12 @@ endif()
 
 target_link_libraries(
   kvsWebrtcClient
+  PUBLIC
+        kvssdp
+        kvsstun
+        kvsrtp
   PRIVATE kvspicUtils
           kvspicState
-          kvssdp
-          kvsstun
-          kvsrtp
           ${CMAKE_THREAD_LIBS_INIT}
           ${OPENSSL_SSL_LIBRARY}
           ${OPENSSL_CRYPTO_LIBRARY}
