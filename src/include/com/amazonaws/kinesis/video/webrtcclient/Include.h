@@ -140,7 +140,7 @@ extern "C" {
  * @brief The status code is displayed if the SDP does not contain the `ice-ufrag` or `ice-pwd` parameter
  * @par Recommended action:
  * Verify the SDP from the peer contains these 2 SDP attributes. In case of using the C SDK, the 2 values are set when the `createPeerConnection` API.
- * To get the SDP in the logs, export DEBUG_LOG_SDP=TRUE and set log level to DEBUG. is invoked
+ * To get the SDP in the logs, export DEBUG_LOG_SDP=TRUE and set log level to DEBUG
  */
 #define STATUS_SESSION_DESCRIPTION_MISSING_ICE_VALUES STATUS_WEBRTC_BASE + 0x00000008
 
@@ -149,7 +149,7 @@ extern "C" {
  * the other peer is missing.
  * @par Recommended action:
  * Check the SDP from the peer to verify if the fingerprint is missing. To get the SDP in the logs, export DEBUG_LOG_SDP=TRUE and set log level to
- * DEBUG. is invoked
+ * DEBUG
  */
 #define STATUS_SESSION_DESCRIPTION_MISSING_CERTIFICATE_FINGERPRINT STATUS_WEBRTC_BASE + 0x00000009
 
@@ -275,37 +275,212 @@ extern "C" {
  * WEBRTC STUN related codes. Values are derived from STATUS_STUN_BASE
  *  @{
  */
-#define STATUS_STUN_BASE                                           STATUS_SDP_BASE + 0x01000000
-#define STATUS_STUN_MESSAGE_INTEGRITY_NOT_LAST                     STATUS_STUN_BASE + 0x00000001
-#define STATUS_STUN_MESSAGE_INTEGRITY_SIZE_ALIGNMENT               STATUS_STUN_BASE + 0x00000002
-#define STATUS_STUN_FINGERPRINT_NOT_LAST                           STATUS_STUN_BASE + 0x00000003
-#define STATUS_STUN_MAGIC_COOKIE_MISMATCH                          STATUS_STUN_BASE + 0x00000004
-#define STATUS_STUN_INVALID_ADDRESS_ATTRIBUTE_LENGTH               STATUS_STUN_BASE + 0x00000005
-#define STATUS_STUN_INVALID_USERNAME_ATTRIBUTE_LENGTH              STATUS_STUN_BASE + 0x00000006
-#define STATUS_STUN_INVALID_MESSAGE_INTEGRITY_ATTRIBUTE_LENGTH     STATUS_STUN_BASE + 0x00000007
-#define STATUS_STUN_INVALID_FINGERPRINT_ATTRIBUTE_LENGTH           STATUS_STUN_BASE + 0x00000008
-#define STATUS_STUN_MULTIPLE_MESSAGE_INTEGRITY_ATTRIBUTES          STATUS_STUN_BASE + 0x00000009
-#define STATUS_STUN_MULTIPLE_FINGERPRINT_ATTRIBUTES                STATUS_STUN_BASE + 0x0000000A
+#define STATUS_STUN_BASE STATUS_SDP_BASE + 0x01000000
+
+/**
+ * @brief The status code indicates that the STUN packet has more attributes following message integrity. The only attribute that can follow message
+ * integrity is fingerprint.
+ * @par Recommended action:
+ * MESSAGE-INTEGRITY attribute is used to validate the integrity and authenticity of the STUN message. Since this is in a \n
+ * STUN server response, customer action cannot fix this. Reach out to service team with VERBOSE logs and Channel ARN \n
+ */
+#define STATUS_STUN_MESSAGE_INTEGRITY_NOT_LAST STATUS_STUN_BASE + 0x00000001
+
+/**
+ * @brief This status code is unused
+ */
+#define STATUS_STUN_MESSAGE_INTEGRITY_SIZE_ALIGNMENT STATUS_STUN_BASE + 0x00000002
+
+/**
+ * @brief The status code indicates that the STUN packet has more attributes following fingerprint
+ * @par Recommended action:
+ * The FINGERPRINT attribute is used for additional message validation and to facilitate demultiplexing STUN messages from
+ * other types of traffic. It contains a CRC-32 checksum of the entire STUN message up to (but not including) the FINGERPRINT attribute itself, XOR'd
+ * with a fixed magic number. Since this is in a STUN server response, customer action cannot fix this. Reach out to service team with VERBOSE logs \n
+ * and Channel ARN
+ */
+#define STATUS_STUN_FINGERPRINT_NOT_LAST STATUS_STUN_BASE + 0x00000003
+
+/**
+ * @brief The magic cookie received in the STUN packet does not match the RFC default 0x2112A442 (defined in RFC 5389).
+ * @par Recommended action:
+ * Since this is in a STUN server response, customer action cannot fix this. Reach out to service team with VERBOSE logs and \n
+ * Channel ARN
+ */
+#define STATUS_STUN_MAGIC_COOKIE_MISMATCH STATUS_STUN_BASE + 0x00000004
+
+/**
+ * @brief The length of the address received from the STUN server does not match requird size (8 bytes for IPv4 and 20 bytes for IPv6)
+ * @par Recommended action:
+ * Since this is in a STUN server response, customer action cannot fix this. Reach out to service team with VERBOSE logs and \n
+ * Channel ARN
+ */
+#define STATUS_STUN_INVALID_ADDRESS_ATTRIBUTE_LENGTH STATUS_STUN_BASE + 0x00000005
+
+/**
+ * @brief The magic cookie received in the STUN packet does not match the RFC default 0x2112A442 (defined in RFC 5389).
+ * @par Recommended action:
+ * Since this is in a STUN server response, customer action cannot fix this. Reach out to service team with VERBOSE logs and \n
+ * Channel ARN
+ */
+#define STATUS_STUN_INVALID_USERNAME_ATTRIBUTE_LENGTH STATUS_STUN_BASE + 0x00000006
+
+/**
+ * @brief The length of the message integrity exceeds 20 characters.
+ * @par Recommended action:
+ * Since this is in a STUN server response, customer action cannot fix this. Reach out to service team with VERBOSE logs and \n
+ * Channel ARN
+ */
+#define STATUS_STUN_INVALID_MESSAGE_INTEGRITY_ATTRIBUTE_LENGTH STATUS_STUN_BASE + 0x00000007
+
+/**
+ * @brief The length of the fingerprint exceeds 4 characters.
+ * @par Recommended action:
+ * Since this is in a STUN server response, customer action cannot fix this. Reach out to service team with VERBOSE logs and
+ * Channel ARN
+ */
+#define STATUS_STUN_INVALID_FINGERPRINT_ATTRIBUTE_LENGTH STATUS_STUN_BASE + 0x00000008
+
+/**
+ * @brief The received STUN packet contains more than one message integrity.
+ * @par Recommended action:
+ * Since this is in a STUN server response, customer action cannot fix this. Reach out to service team with VERBOSE logs and
+ * Channel ARN
+ */
+#define STATUS_STUN_MULTIPLE_MESSAGE_INTEGRITY_ATTRIBUTES STATUS_STUN_BASE + 0x00000009
+
+/**
+ * @brief The magic cookie received in the STUN packet does not match the RFC default 0x2112A442 (defined in RFC 5389).
+ * @par Recommended action:
+ * Since this is in a STUN server response, customer action cannot fix this. Reach out to service team with VERBOSE logs and
+ * Channel ARN
+ */
+#define STATUS_STUN_MULTIPLE_FINGERPRINT_ATTRIBUTES STATUS_STUN_BASE + 0x0000000A
+
+/**
+ * @brief The received STUN packet contains more than one fingerprint attribute
+ * @par Recommended action:
+ * Since this is in a STUN server response, customer action cannot fix this. Reach out to service team with VERBOSE logs and
+ * Channel ARN
+ */
 #define STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY STATUS_STUN_BASE + 0x0000000B
-#define STATUS_STUN_MESSAGE_INTEGRITY_AFTER_FINGERPRINT            STATUS_STUN_BASE + 0x0000000C
-#define STATUS_STUN_MAX_ATTRIBUTE_COUNT                            STATUS_STUN_BASE + 0x0000000D
-#define STATUS_STUN_MESSAGE_INTEGRITY_MISMATCH                     STATUS_STUN_BASE + 0x0000000E
-#define STATUS_STUN_FINGERPRINT_MISMATCH                           STATUS_STUN_BASE + 0x0000000F
-#define STATUS_STUN_INVALID_PRIORITY_ATTRIBUTE_LENGTH              STATUS_STUN_BASE + 0x00000010
-#define STATUS_STUN_INVALID_USE_CANDIDATE_ATTRIBUTE_LENGTH         STATUS_STUN_BASE + 0x00000011
-#define STATUS_STUN_INVALID_LIFETIME_ATTRIBUTE_LENGTH              STATUS_STUN_BASE + 0x00000012
-#define STATUS_STUN_INVALID_REQUESTED_TRANSPORT_ATTRIBUTE_LENGTH   STATUS_STUN_BASE + 0x00000013
-#define STATUS_STUN_INVALID_REALM_ATTRIBUTE_LENGTH                 STATUS_STUN_BASE + 0x00000014
-#define STATUS_STUN_INVALID_NONCE_ATTRIBUTE_LENGTH                 STATUS_STUN_BASE + 0x00000015
-#define STATUS_STUN_INVALID_ERROR_CODE_ATTRIBUTE_LENGTH            STATUS_STUN_BASE + 0x00000016
-#define STATUS_STUN_INVALID_ICE_CONTROL_ATTRIBUTE_LENGTH           STATUS_STUN_BASE + 0x00000017
-#define STATUS_STUN_INVALID_CHANNEL_NUMBER_ATTRIBUTE_LENGTH        STATUS_STUN_BASE + 0x00000018
-#define STATUS_STUN_INVALID_CHANGE_REQUEST_ATTRIBUTE_LENGTH        STATUS_STUN_BASE + 0x00000019
-#define STATUS_STUN_INVALID_MESSAGE_LENGTH                         STATUS_STUN_BASE + 0x0000001A
-#define STATUS_STUN_INVALID_ATTRIBUTE_LENGTH                       STATUS_STUN_BASE + 0x0000001B
-#define STATUS_STUN_ATTRIBUTE_NOT_FOUND                            STATUS_STUN_BASE + 0x0000001C
-#define STATUS_STUN_NO_MORE_ATTRIBUTE_FOUND                        STATUS_STUN_BASE + 0x0000001D
-#define STATUS_STUN_UNKNOWN_ERROR                                  STATUS_STUN_BASE + 0x0000001E
+
+/**
+ * @brief The STUN packet contains attributes after message integrity and fingerprint
+ * @par Recommended action:
+ * Since this is in a STUN server response, customer action cannot fix this. Reach out to service team with VERBOSE logs and
+ * Channel ARN
+ */
+#define STATUS_STUN_MESSAGE_INTEGRITY_AFTER_FINGERPRINT STATUS_STUN_BASE + 0x0000000C
+
+/**
+ * @brief The STUN packet contains more than 20 attributes
+ * @par Recommended action:
+ * Since the validation is for STUN server response packet, customer action cannot fix this. Reach out to service team with
+ * VERBOSE logs and Channel ARN
+ */
+#define STATUS_STUN_MAX_ATTRIBUTE_COUNT STATUS_STUN_BASE + 0x0000000D
+
+/**
+ * @brief The hmac calculated locally for the received STUN packet differs from the hmac value attached in the message integrity attribute
+ * @par Recommended action:
+ * Since this is in a STUN server response, customer action cannot fix this. Reach out to service team with VERBOSE logs and
+ * Channel ARN
+ */
+#define STATUS_STUN_MESSAGE_INTEGRITY_MISMATCH STATUS_STUN_BASE + 0x0000000E
+
+/**
+ * @brief The crc32 calculated locally for the received STUN packet differs from the crc32 value attached in the fingerprint attribute
+ * @par Recommended action:
+ * Since the fingerprint is a field populated in the STUN server response and the crc32 verification happens within the SDK, \n
+ * customer action cannot fix this. Reach out to service team with VERBOSE logs and Channel ARN
+ */
+#define STATUS_STUN_FINGERPRINT_MISMATCH STATUS_STUN_BASE + 0x0000000F
+
+/**
+ * @brief The length of the priority attribute exceeds 4 bytes
+ * @par Recommended action:
+ * Since this is in a STUN server response, customer action cannot fix this. Reach out to service team with VERBOSE logs and \n
+ * Channel ARN
+ */
+#define STATUS_STUN_INVALID_PRIORITY_ATTRIBUTE_LENGTH STATUS_STUN_BASE + 0x00000010
+
+/**
+ * @brief The USE_CANDIDATE attribute is fragmented (non-zero length)
+ * @par Recommended action:
+ * Since this is in a STUN server response, customer action cannot fix this. Reach out to service team with VERBOSE logs and \n
+ * Channel ARN
+ */
+#define STATUS_STUN_INVALID_USE_CANDIDATE_ATTRIBUTE_LENGTH STATUS_STUN_BASE + 0x00000011
+
+/**
+ * @brief The length of the lifetime attribute exceeds 4 bytes
+ * @par Recommended action:
+ * Since this is in a STUN server response, customer action cannot fix this. Reach out to service team with VERBOSE logs and
+ * Channel ARN
+ */
+#define STATUS_STUN_INVALID_LIFETIME_ATTRIBUTE_LENGTH STATUS_STUN_BASE + 0x00000012
+
+/**
+ * @brief The length of the transport attribute exceeds 4 bytes
+ * @par Recommended action:
+ * Since this is in a STUN server response, customer action cannot fix this. Reach out to service team with VERBOSE logs and \n
+ * Channel ARN
+ */
+#define STATUS_STUN_INVALID_REQUESTED_TRANSPORT_ATTRIBUTE_LENGTH STATUS_STUN_BASE + 0x00000013
+
+/**
+ * @brief The length of the realm attribute exceeds 128 bytes
+ * @par Recommended action:
+ * Since this is in a STUN server response, customer action cannot fix this. Reach out to service team with VERBOSE logs and \n
+ * Channel ARN
+ */
+#define STATUS_STUN_INVALID_REALM_ATTRIBUTE_LENGTH STATUS_STUN_BASE + 0x00000014
+
+/**
+ * @brief The length of the nonce attribute exceeds 128 bytes
+ * @par Recommended action:
+ * Since this is in a STUN server response, customer action cannot fix this. Reach out to service team with VERBOSE logs and \n
+ * Channel ARN
+ */
+#define STATUS_STUN_INVALID_NONCE_ATTRIBUTE_LENGTH STATUS_STUN_BASE + 0x00000015
+
+/**
+ * @brief The length of the error code attribute exceeds 128 bytes
+ * @par Recommended action:
+ * Since this is in a STUN server response, customer action cannot fix this. Reach out to service team with VERBOSE logs and \n
+ * Channel ARN
+ */
+#define STATUS_STUN_INVALID_ERROR_CODE_ATTRIBUTE_LENGTH STATUS_STUN_BASE + 0x00000016
+
+/**
+ * @brief The length of the ICE control attribute exceeds 8 bytes
+ * @par Recommended action:
+ * Since this is in a STUN server response, customer action cannot fix this. Reach out to service team with VERBOSE logs and \n
+ * Channel ARN
+ */
+#define STATUS_STUN_INVALID_ICE_CONTROL_ATTRIBUTE_LENGTH STATUS_STUN_BASE + 0x00000017
+
+/**
+ * @brief The length of the channel number attribute exceeds 4 bytes
+ * @par Recommended action:
+ * Since this is in a STUN server response, customer action cannot fix this. Reach out to service team with VERBOSE logs and \n
+ * Channel ARN
+ */
+#define STATUS_STUN_INVALID_CHANNEL_NUMBER_ATTRIBUTE_LENGTH STATUS_STUN_BASE + 0x00000018
+
+/**
+ * @brief The length of the change request attribute exceeds 4 bytes
+ * @par Recommended action:
+ * Since this is in a STUN server response, customer action cannot fix this. Reach out to service team with VERBOSE logs and \n
+ * Channel ARN
+ */
+#define STATUS_STUN_INVALID_CHANGE_REQUEST_ATTRIBUTE_LENGTH STATUS_STUN_BASE + 0x00000019
+#define STATUS_STUN_INVALID_MESSAGE_LENGTH                  STATUS_STUN_BASE + 0x0000001A
+#define STATUS_STUN_INVALID_ATTRIBUTE_LENGTH                STATUS_STUN_BASE + 0x0000001B
+#define STATUS_STUN_ATTRIBUTE_NOT_FOUND                     STATUS_STUN_BASE + 0x0000001C
+#define STATUS_STUN_NO_MORE_ATTRIBUTE_FOUND                 STATUS_STUN_BASE + 0x0000001D
+#define STATUS_STUN_UNKNOWN_ERROR                           STATUS_STUN_BASE + 0x0000001E
 /*!@} */
 
 /////////////////////////////////////////////////////
