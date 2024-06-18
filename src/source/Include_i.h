@@ -28,6 +28,7 @@ extern "C" {
 #include "kvssdp/sdp_data_types.h"
 #include "kvsstun/stun_data_types.h"
 #include "kvsrtp/rtp_data_types.h"
+#include "kvsrtcp/rtcp_data_types.h"
 
 #ifdef KVS_USE_OPENSSL
 #include <openssl/bio.h>
@@ -178,6 +179,7 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 STATUS convertSdpErrorCode(SdpResult_t sdpResult);
 STATUS convertStunErrorCode(StunResult_t stunResult);
 STATUS convertRtpErrorCode(RtpResult_t rtpResult);
+STATUS convertRtcpErrorCode(RtcpResult_t rtcpResult);
 
 #ifdef __cplusplus
 }

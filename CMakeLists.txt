@@ -223,6 +223,7 @@ if(BUILD_DEPENDENCIES)
   build_dependency(kvssdp ${BUILD_ARGS})
   build_dependency(kvsstun ${BUILD_ARGS})
   build_dependency(kvsrtp ${BUILD_ARGS})
+  build_dependency(kvsrtcp ${BUILD_ARGS})
 
   set(BUILD_ARGS
       -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
@@ -412,6 +413,7 @@ target_link_libraries(
           kvssdp
           kvsstun
           kvsrtp
+          kvsrtcp
           ${CMAKE_THREAD_LIBS_INIT}
           ${OPENSSL_SSL_LIBRARY}
           ${OPENSSL_CRYPTO_LIBRARY}
@@ -436,6 +438,7 @@ target_link_libraries(
         kvssdp
         kvsstun
         kvsrtp
+        kvsrtcp
   PRIVATE kvspicUtils
          kvspicState
          ${CMAKE_THREAD_LIBS_INIT}
