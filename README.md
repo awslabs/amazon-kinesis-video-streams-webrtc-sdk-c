@@ -396,11 +396,11 @@ The rolling buffer size can be configured per transceiver using the `createRolli
 
 The rolling buffer config parameters are as follows:
 ```
-rollingBufferDurationSec = <duration in seconds, must be more than 100ms and less than 10 seconds (translates to 0.1 seconds)
-rollingBufferBitratebps = <bitrate in bits/sec, must be more than 100kibits/sec and less than 240 mibps
+rollingBufferDurationSec = <duration in seconds>, must be more than 100ms and less than 10 seconds (translates to 0.1 seconds)
+rollingBufferBitratebps = <bitrate in bits/sec>, must be more than 100kibits/sec and less than 240 mibps
 ```
 
-For example, if we want to set duration to 200ms and birtate to 150kibps,
+For example, if we want to set duration to 200ms and bitrate to 150kibps,
 ```c
 PRtcRtpTransceiver pVideoRtcRtpTransceiver;
 RtcMediaStreamTrack videoTrack;

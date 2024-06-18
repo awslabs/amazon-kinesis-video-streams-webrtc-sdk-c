@@ -1,4 +1,3 @@
-
 #include "Samples.h"
 
 extern PSampleConfiguration gSampleConfiguration;
