@@ -1,31 +1,31 @@
 #define LOG_CLASS "RtcpPacket"
 
 #include "../Include_i.h"
+#include "kvsrtcp/rtcp_api.h"
 
 STATUS setRtcpPacketFromBytes(PBYTE pRawPacket, UINT32 pRawPacketsLen, PRtcpPacket pRtcpPacket)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT16 packetLen = 0;
+    RtcpContext_t ctx;
+    RtcpResult_t rtcpResult;
+    RtcpPacket_t rtcpPacket;
 
-    CHK(pRtcpPacket != NULL, STATUS_NULL_ARG);
-    CHK(pRawPacketsLen >= RTCP_PACKET_HEADER_LEN, STATUS_RTCP_INPUT_PACKET_TOO_SMALL);
+    rtcpResult = Rtcp_Init( &ctx );
+    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
-    // RTCP packet len is length of packet in 32 bit words - 1
-    // We don't assert exact length since this may be a compound packet, it
-    // is the callers responsibility to parse subsequent entries
-    packetLen = getInt16(*(PUINT16) (pRawPacket + RTCP_PACKET_LEN_OFFSET));
-    CHK((packetLen + 1) * RTCP_PACKET_LEN_WORD_SIZE <= pRawPacketsLen, STATUS_RTCP_INPUT_PARTIAL_PACKET);
-
-    pRtcpPacket->header.version = (pRawPacket[0] >> VERSION_SHIFT) & VERSION_MASK;
-    CHK(pRtcpPacket->header.version == RTCP_PACKET_VERSION_VAL, STATUS_RTCP_INPUT_PACKET_INVALID_VERSION);
-
-    pRtcpPacket->header.receptionReportCount = pRawPacket[0] & RTCP_PACKET_RRC_BITMASK;
-    pRtcpPacket->header.packetType = pRawPacket[RTCP_PACKET_TYPE_OFFSET];
-    pRtcpPacket->header.packetLength = packetLen;
-
-    pRtcpPacket->payloadLength = packetLen * RTCP_PACKET_LEN_WORD_SIZE;
-    pRtcpPacket->payload = pRawPacket + RTCP_PACKET_LEN_WORD_SIZE;
+    rtcpResult = Rtcp_DeSerialize( &ctx,
+                               pRawPacket,
+                               pRawPacketsLen,
+                               &rtcpPacket );
+    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
+    pRtcpPacket->header.version = RTCP_HEADER_VERSION;
+    pRtcpPacket->header.receptionReportCount = rtcpPacket.header.receptionReportCount;
+    pRtcpPacket->header.packetType = rtcpPacket.header.packetType;
+    pRtcpPacket->header.packetLength = rtcpPacket.header.packetLength;
+    pRtcpPacket->payloadLength = rtcpPacket.payloadLength;
+    pRtcpPacket->payload = rtcpPacket.pPayload;
 
 CleanUp:
     LEAVES();
