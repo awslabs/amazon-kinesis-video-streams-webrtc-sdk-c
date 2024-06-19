@@ -465,7 +465,8 @@ install(TARGETS kvsWebrtcClient kvsWebrtcSignalingClient kvsWebRtcThreadpool
 )
 
 install(DIRECTORY ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include/
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
 
 if (BUILD_SAMPLE)
   # copy sample frames to build folder, in case developer runs sample program with command `samples/kvsWebrtcClientMaster` from `build` dir.
