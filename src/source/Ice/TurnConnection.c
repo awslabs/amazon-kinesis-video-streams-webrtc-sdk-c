@@ -1027,7 +1027,7 @@ BOOL turnConnectionGetRelayAddress(PTurnConnection pTurnConnection, PKvsIpAddres
 
 STATUS checkTurnPeerConnections(PTurnConnection pTurnConnection)
 {
-    STATUS retStatus = STATUS_SUCCESS;
+    STATUS retStatus = STATUS_SUCCESS, sendStatus = STATUS_SUCCESS;
     PTurnPeer pTurnPeer = NULL;
     PStunAttributeAddress pStunAttributeAddress = NULL;
     PStunAttributeChannelNumber pStunAttributeChannelNumber = NULL;
