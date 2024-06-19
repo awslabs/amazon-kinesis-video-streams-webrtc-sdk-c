@@ -83,21 +83,9 @@ STATUS publishEndToEndMetrics(UINT32 timerId, UINT64 currentTime, UINT64 customD
     UNUSED_PARAM(timerId);
     UNUSED_PARAM(currentTime);
     STATUS retStatus = STATUS_SUCCESS;
-    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
-    PSampleStreamingSession pSampleStreamingSession = NULL;
-    BOOL sampleConfigurationObjLocked = FALSE;
+    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
     BOOL statsLocked = FALSE;
 
-    CHK_WARN(pSampleConfiguration != NULL, STATUS_NULL_ARG, "Sample config object not set up");
-
-    // Use MUTEX_TRYLOCK to avoid possible dead lock when canceling timerQueue
-    if (!MUTEX_TRYLOCK(pSampleConfiguration->sampleConfigurationObjLock)) {
-        return retStatus;
-    } else {
-        sampleConfigurationObjLocked = TRUE;
-    }
-
-    pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[0];
     acquireMetricsCtx(pSampleStreamingSession);
     CHK_WARN(pSampleStreamingSession != NULL || pSampleStreamingSession->pStatsCtx != NULL, STATUS_NULL_ARG, "Stats ctx object not set up");
     MUTEX_LOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
@@ -114,9 +102,6 @@ CleanUp:
         MUTEX_UNLOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
     }
     releaseMetricsCtx(pSampleStreamingSession);
-    if (sampleConfigurationObjLocked) {
-        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    }
     return STATUS_SUCCESS;
 }
 
@@ -289,7 +274,7 @@ INT32 main(INT32 argc, CHAR* argv[])
             DLOGI("[KVS Viewer] Data Channel open now...");
 #endif
         CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, END_TO_END_METRICS_INVOCATION_PERIOD, END_TO_END_METRICS_INVOCATION_PERIOD,
-                                      publishEndToEndMetrics, (UINT64) pSampleConfiguration, &e2eTimerId));
+                                      publishEndToEndMetrics, (UINT64) pSampleStreamingSession, &e2eTimerId));
         CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, RUN_TIME, TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, terminate,
                                       (UINT64) pSampleConfiguration, &terminateId));
         CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, END_TO_END_METRICS_INVOCATION_PERIOD, END_TO_END_METRICS_INVOCATION_PERIOD,
