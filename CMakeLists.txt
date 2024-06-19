@@ -412,6 +412,7 @@ target_link_libraries(
         kvssdp
         kvsstun
         kvsrtp
+        ${EXTRA_DEPS}
   PRIVATE kvspicUtils
           kvspicState
           ${CMAKE_THREAD_LIBS_INIT}
@@ -421,8 +422,7 @@ target_link_libraries(
           ${Usrsctp}
           ${MBEDTLS_LIBRARIES}
           ${GPERFTOOLS_MALLOC_LIBRARIES}
-          ${GPERFTOOLS_PROFILER_LIBRARIES}
-          ${EXTRA_DEPS})
+          ${GPERFTOOLS_PROFILER_LIBRARIES})
 
 add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
 
