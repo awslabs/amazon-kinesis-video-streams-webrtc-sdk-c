@@ -14,7 +14,7 @@ get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTO
 add_library(${PROJECT_NAME} SHARED ${HEADERS} ${SOURCE})
 target_compile_definitions(${PROJECT_NAME} PRIVATE KVS_BUILD_WITH_LWS=1)
 target_link_libraries(${PROJECT_NAME} ${BP_BUILD_LIB_DIRS}
-  client heap trace view mkvgen utils state jsmn crypto ssl)
+  client heap trace view mkvgen utils state jsmn crypto ssl kvssdp kvsstun kvsrtp)
 
 install(TARGETS ${PROJECT_NAME} DESTINATION lib)
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
