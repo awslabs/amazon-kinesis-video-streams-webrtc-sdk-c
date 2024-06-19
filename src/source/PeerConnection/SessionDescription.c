@@ -323,7 +323,7 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
             UINT64 rollingBufferCapacity = (UINT64) (pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferDurationSec *
                                                      pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps / 8 / DEFAULT_MTU_SIZE_BYTES);
 
-            DLOGI("The rolling buffer is configured to store %" PRIu64 "  packets", rollingBufferCapacity);
+            DLOGI("The rolling buffer is configured to store %" PRIu64 " packets", rollingBufferCapacity);
             CHK_STATUS(createRtpRollingBuffer(rollingBufferCapacity, &pKvsRtpTransceiver->sender.packetBuffer));
             CHK_STATUS(createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
         }
