@@ -427,6 +427,7 @@ target_link_libraries(
         ${GPERFTOOLS_PROFILER_LIBRARIES}
         ${EXTRA_DEPS})
 
+target_include_directories(kvsWebrtcClient PUBLIC ${OPEN_SRC_INSTALL_PREFIX}/include)
 add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
 
 if(USE_MBEDTLS)
@@ -451,6 +452,7 @@ target_link_libraries(
          ${GPERFTOOLS_PROFILER_LIBRARIES}
          ${MBEDTLS_LIBRARIES})
 
+target_include_directories(kvsWebrtcSignalingClient PUBLIC ${OPEN_SRC_INSTALL_PREFIX}/include)
 if (WIN32)
   target_link_libraries(kvsWebrtcClient PRIVATE "Ws2_32" "iphlpapi")
 endif()
