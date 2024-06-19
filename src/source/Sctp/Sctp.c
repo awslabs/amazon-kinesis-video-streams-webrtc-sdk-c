@@ -366,5 +366,8 @@ CleanUp:
         free(data);
     }
 
+    if(STATUS_FAILED(retStatus)) {
+        return -1;
+    }
     return 1;
 }
