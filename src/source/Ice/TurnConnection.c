@@ -1085,7 +1085,7 @@ STATUS checkTurnPeerConnections(PTurnConnection pTurnConnection)
                                                 pTurnConnection->pControlChannel, NULL, FALSE);
         }
     }
-
+    DLOGI("Send Status set to : 0x%08x", sendStatus);
     CHK_STATUS(turnConnectionRefreshAllocation(pTurnConnection));
 
 CleanUp:
