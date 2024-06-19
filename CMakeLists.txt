@@ -409,20 +409,20 @@ endif()
 target_link_libraries(
   kvsWebrtcClient
   PUBLIC
-        ${EXTRA_DEPS}
         kvssdp
         kvsstun
         kvsrtp
-  PRIVATE kvspicUtils
-          kvspicState
-          ${CMAKE_THREAD_LIBS_INIT}
-          ${OPENSSL_SSL_LIBRARY}
-          ${OPENSSL_CRYPTO_LIBRARY}
-          ${SRTP_LIBRARIES}
-          ${Usrsctp}
-          ${MBEDTLS_LIBRARIES}
-          ${GPERFTOOLS_MALLOC_LIBRARIES}
-          ${GPERFTOOLS_PROFILER_LIBRARIES})
+        kvspicUtils
+        kvspicState
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${OPENSSL_SSL_LIBRARY}
+        ${OPENSSL_CRYPTO_LIBRARY}
+        ${SRTP_LIBRARIES}
+        ${Usrsctp}
+        ${MBEDTLS_LIBRARIES}
+        ${GPERFTOOLS_MALLOC_LIBRARIES}
+        ${GPERFTOOLS_PROFILER_LIBRARIES}
+        ${EXTRA_DEPS})
 
 add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
 
@@ -433,20 +433,20 @@ endif()
 target_link_libraries(
   kvsWebrtcSignalingClient
   PUBLIC
-        ${EXTRA_DEPS}
         kvsCommonLws
         ${LIBWEBSOCKETS_LIBRARIES}
         kvssdp
         kvsstun
         kvsrtp
-  PRIVATE kvspicUtils
-         kvspicState
-         ${CMAKE_THREAD_LIBS_INIT}
-         ${OPENSSL_SSL_LIBRARY}
-         ${OPENSSL_CRYPTO_LIBRARY}
-         ${GPERFTOOLS_MALLOC_LIBRARIES}
-         ${GPERFTOOLS_PROFILER_LIBRARIES}
-         ${MBEDTLS_LIBRARIES})
+        kvspicUtils
+        kvspicState
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${EXTRA_DEPS}
+        ${OPENSSL_SSL_LIBRARY}
+        ${OPENSSL_CRYPTO_LIBRARY}
+        ${GPERFTOOLS_MALLOC_LIBRARIES}
+        ${GPERFTOOLS_PROFILER_LIBRARIES}
+        ${MBEDTLS_LIBRARIES})
 
 if (WIN32)
   target_link_libraries(kvsWebrtcClient PRIVATE "Ws2_32" "iphlpapi")
