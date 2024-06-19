@@ -411,6 +411,7 @@ target_link_libraries(
         kvssdp
         kvsstun
         kvsrtp
+        ${EXTRA_DEPS}
   PRIVATE
         kvspicUtils
         kvspicState
@@ -424,8 +425,7 @@ target_link_libraries(
         ${Usrsctp}
         ${MBEDTLS_LIBRARIES}
         ${GPERFTOOLS_MALLOC_LIBRARIES}
-        ${GPERFTOOLS_PROFILER_LIBRARIES}
-        ${EXTRA_DEPS})
+        ${GPERFTOOLS_PROFILER_LIBRARIES})
 
 target_include_directories(kvsWebrtcClient PUBLIC ${OPEN_SRC_INSTALL_PREFIX}/include)
 add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
@@ -439,13 +439,13 @@ target_link_libraries(
   PUBLIC
         kvsCommonLws
         ${LIBWEBSOCKETS_LIBRARIES}
+        ${EXTRA_DEPS}
         kvssdp
         kvsstun
         kvsrtp
   PRIVATE kvspicUtils
          kvspicState
          ${CMAKE_THREAD_LIBS_INIT}
-         ${EXTRA_DEPS}
          ${OPENSSL_SSL_LIBRARY}
          ${OPENSSL_CRYPTO_LIBRARY}
          ${GPERFTOOLS_MALLOC_LIBRARIES}
