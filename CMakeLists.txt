@@ -389,21 +389,23 @@ endif()
 file(GLOB WEBRTC_SIGNALING_CLIENT_SOURCE_FILES "src/source/Signaling/*.c")
 
 message(STATUS "OPEN_SRC_INSTALL_PREFIX: ${OPEN_SRC_INSTALL_PREFIX}")
+
 include_directories(${OPEN_SRC_INCLUDE_DIRS})
 include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
+
+if(ENABLE_KVS_THREADPOOL)
+  file(GLOB THREADPOOL_SOURCE_FILES "src/source/Threadpool/*.c")
+  add_library(kvsWebRtcThreadpool ${LINKAGE} ${THREADPOOL_SOURCE_FILES})
+  target_include_directories()
+  target_link_libraries(kvsWebRtcThreadpool PRIVATE kvspicUtils)
+  set(EXTRA_DEPS ${EXTRA_DEPS} kvsWebRtcThreadpool)
+endif()
 
 add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES} ${DATACHANNEL_SRC})
 
 if(USE_MBEDTLS)
   target_compile_definitions(kvsWebrtcClient PRIVATE LWS_WITH_MBEDTLS)
-endif()
-
-if(ENABLE_KVS_THREADPOOL)
-  file(GLOB THREADPOOL_SOURCE_FILES "src/source/Threadpool/*.c")
-  add_library(kvsWebRtcThreadpool ${LINKAGE} ${THREADPOOL_SOURCE_FILES})
-  target_link_libraries(kvsWebRtcThreadpool PRIVATE kvspicUtils)
-  set(EXTRA_DEPS ${EXTRA_DEPS} kvsWebRtcThreadpool)
 endif()
 
 target_link_libraries(
@@ -458,13 +460,14 @@ if(COMPILER_WARNINGS)
 endif()
 
 install(TARGETS kvsWebrtcClient kvsWebrtcSignalingClient kvsWebRtcThreadpool
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
 install(DIRECTORY ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include/
-  DESTINATION include
-)
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        FILES_MATCHING PATTERN "*.h")
 
 if (BUILD_SAMPLE)
   # copy sample frames to build folder, in case developer runs sample program with command `samples/kvsWebrtcClientMaster` from `build` dir.
