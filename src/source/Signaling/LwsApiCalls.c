@@ -1369,11 +1369,17 @@ STATUS freeLwsCallInfo(PLwsCallInfo* ppLwsCallInfo)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PLwsCallInfo pLwsCallInfo;
+    PSignalingClient pSignalingClient = NULL;
 
     CHK(ppLwsCallInfo != NULL, STATUS_NULL_ARG);
     pLwsCallInfo = *ppLwsCallInfo;
 
     CHK(pLwsCallInfo != NULL, retStatus);
+
+    pSignalingClient = pLwsCallInfo->pSignalingClient;
+    if(pSignalingClient != NULL) {
+        MUTEX_LOCK(pSignalingClient->sendLock);
+    }
 
     freeRequestInfo(&pLwsCallInfo->callInfo.pRequestInfo);
     SAFE_MEMFREE(pLwsCallInfo->callInfo.responseData);
@@ -1381,7 +1387,9 @@ STATUS freeLwsCallInfo(PLwsCallInfo* ppLwsCallInfo)
     MEMFREE(pLwsCallInfo);
 
     *ppLwsCallInfo = NULL;
-
+    if(pSignalingClient != NULL) {
+        MUTEX_UNLOCK(pSignalingClient->sendLock);
+    }
 CleanUp:
 
     LEAVES();
