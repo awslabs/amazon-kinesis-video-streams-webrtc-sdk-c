@@ -206,6 +206,48 @@ TEST_F(RtpRollingBufferFunctionalityTest, testRollingBufferParams)
     EXPECT_EQ(pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps, DEFAULT_EXPECTED_VIDEO_BIT_RATE);
     EXPECT_EQ(freePeerConnection(&pRtcPeerConnection), STATUS_SUCCESS);
 
+
+    // Testing with max value for rolling buffer duration and max rolling buffer bitrate
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &videoTrack, nullptr, &pRtcRtpTransceiver));
+    pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(pRtcRtpTransceiver);
+    EXPECT_TRUE(pKvsRtpTransceiver->pRollingBufferConfig == nullptr);
+    EXPECT_EQ(createRollingBufferConfig(pRtcRtpTransceiver, &videoTrack, MAX_ROLLING_BUFFER_DURATION_IN_SECONDS, MAX_EXPECTED_BIT_RATE), STATUS_SUCCESS);
+    EXPECT_EQ(pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferDurationSec, MAX_ROLLING_BUFFER_DURATION_IN_SECONDS);
+    EXPECT_EQ(pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps, MAX_EXPECTED_BIT_RATE);
+    EXPECT_EQ(freePeerConnection(&pRtcPeerConnection), STATUS_SUCCESS);
+
+    // Testing with max value for rolling buffer duration and min rolling buffer bitrate
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &videoTrack, nullptr, &pRtcRtpTransceiver));
+    pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(pRtcRtpTransceiver);
+    EXPECT_TRUE(pKvsRtpTransceiver->pRollingBufferConfig == nullptr);
+    EXPECT_EQ(createRollingBufferConfig(pRtcRtpTransceiver, &videoTrack, MAX_ROLLING_BUFFER_DURATION_IN_SECONDS, MIN_EXPECTED_BIT_RATE), STATUS_SUCCESS);
+    EXPECT_EQ(pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferDurationSec, MAX_ROLLING_BUFFER_DURATION_IN_SECONDS);
+    EXPECT_EQ(pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps, MIN_EXPECTED_BIT_RATE);
+    EXPECT_EQ(freePeerConnection(&pRtcPeerConnection), STATUS_SUCCESS);
+
+
+    // Testing with min value for rolling buffer duration and max rolling buffer bitrate
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &videoTrack, nullptr, &pRtcRtpTransceiver));
+    pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(pRtcRtpTransceiver);
+    EXPECT_TRUE(pKvsRtpTransceiver->pRollingBufferConfig == nullptr);
+    EXPECT_EQ(createRollingBufferConfig(pRtcRtpTransceiver, &videoTrack, MIN_ROLLING_BUFFER_DURATION_IN_SECONDS, MAX_EXPECTED_BIT_RATE), STATUS_SUCCESS);
+    EXPECT_EQ(pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferDurationSec, MIN_ROLLING_BUFFER_DURATION_IN_SECONDS);
+    EXPECT_EQ(pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps, MAX_EXPECTED_BIT_RATE);
+    EXPECT_EQ(freePeerConnection(&pRtcPeerConnection), STATUS_SUCCESS);
+
+    // Testing with min value for rolling buffer duration and min rolling buffer bitrate
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &videoTrack, nullptr, &pRtcRtpTransceiver));
+    pKvsRtpTransceiver = reinterpret_cast<PKvsRtpTransceiver>(pRtcRtpTransceiver);
+    EXPECT_TRUE(pKvsRtpTransceiver->pRollingBufferConfig == nullptr);
+    EXPECT_EQ(createRollingBufferConfig(pRtcRtpTransceiver, &videoTrack, MIN_ROLLING_BUFFER_DURATION_IN_SECONDS, MIN_EXPECTED_BIT_RATE), STATUS_SUCCESS);
+    EXPECT_EQ(pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferDurationSec, MIN_ROLLING_BUFFER_DURATION_IN_SECONDS);
+    EXPECT_EQ(pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps, MIN_EXPECTED_BIT_RATE);
+    EXPECT_EQ(freePeerConnection(&pRtcPeerConnection), STATUS_SUCCESS);
+
     // Testing with valid value for rolling buffer duration and valid rolling buffer bitrate
     EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
     EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &videoTrack, nullptr, &pRtcRtpTransceiver));
