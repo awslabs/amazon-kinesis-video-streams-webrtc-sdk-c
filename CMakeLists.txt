@@ -394,10 +394,6 @@ include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
 
 #add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES} ${DATACHANNEL_SRC})
 
-if(USE_MBEDTLS)
-  target_compile_definitions(kvsWebrtcClient PRIVATE LWS_WITH_MBEDTLS)
-endif()
-
 if(ENABLE_KVS_THREADPOOL)
   file(GLOB THREADPOOL_SOURCE_FILES "src/source/Threadpool/*.c")
   add_library(kvsWebRtcThreadpool_objects OBJECT ${THREADPOOL_SOURCE_FILES})
@@ -406,8 +402,13 @@ if(ENABLE_KVS_THREADPOOL)
   set(EXTRA_DEPS ${EXTRA_DEPS} kvsWebRtcThreadpool)
 endif()
 
+
 add_library(kvsWebrtcClient_objects OBJECT ${WEBRTC_CLIENT_SOURCE_FILES} ${DATACHANNEL_SRC})
 add_library(kvsWebrtcClient ${LINKAGE} $<TARGET_OBJECTS:kvsWebrtcClient_objects> $<TARGET_OBJECTS:kvsWebRtcThreadpool_objects>)
+
+if(USE_MBEDTLS)
+  target_compile_definitions(kvsWebrtcClient PRIVATE LWS_WITH_MBEDTLS)
+endif()
 
 target_link_libraries(
   kvsWebrtcClient
