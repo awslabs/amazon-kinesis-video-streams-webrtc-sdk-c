@@ -72,6 +72,9 @@ static STATUS onRtcpSenderReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKv
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 senderSSRC;
     PKvsRtpTransceiver pTransceiver = NULL;
+    RtcpContext_t ctx;
+    RtcpResult_t rtcpResult;
+    RtcpSenderReport_t senderReport;
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
 
@@ -80,12 +83,18 @@ static STATUS onRtcpSenderReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKv
         return STATUS_SUCCESS;
     }
 
-    senderSSRC = getUnalignedInt32BigEndian(pRtcpPacket->payload);
+    rtcpResult = Rtcp_Init(&ctx);
+    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
+
+    rtcpResult = Rtcp_ParseSenderReport(&ctx, pRtcpPacket->payload, pRtcpPacket->payloadLength, &senderReport);
+    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
+
+    senderSSRC = senderReport.ssrc;
     if (STATUS_SUCCEEDED(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, senderSSRC))) {
-        UINT64 ntpTime = getUnalignedInt64BigEndian(pRtcpPacket->payload + 4);
-        UINT32 rtpTs = getUnalignedInt32BigEndian(pRtcpPacket->payload + 12);
-        UINT32 packetCnt = getUnalignedInt32BigEndian(pRtcpPacket->payload + 16);
-        UINT32 octetCnt = getUnalignedInt32BigEndian(pRtcpPacket->payload + 20);
+        UINT64 ntpTime = senderReport.ntpTime;
+        UINT32 rtpTs = senderReport.rtpTime;
+        UINT32 packetCnt = senderReport.packetCount;
+        UINT32 octetCnt = senderReport.octetCount;
         DLOGV("RTCP_PACKET_TYPE_SENDER_REPORT %d %" PRIu64 " rtpTs: %u %u pkts %u bytes", senderSSRC, ntpTime, rtpTs, packetCnt, octetCnt);
     } else {
         DLOGW("Received sender report for non existing ssrc: %u", senderSSRC);
