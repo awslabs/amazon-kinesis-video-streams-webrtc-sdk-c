@@ -466,8 +466,8 @@ if(COMPILER_WARNINGS)
 endif()
 
 configure_file(
-        "${CMAKE_CURRENT_SOURCE_DIR}/libkvsWebRtcThreadpool.pc.cmake"
-        "${CMAKE_CURRENT_BINARY_DIR}/libkvsWebRtcThreadpool.pc" @ONLY)
+        "${CMAKE_CURRENT_SOURCE_DIR}/libkvsWebrtcThreadpool.pc.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/libkvsWebrtcThreadpool.pc" @ONLY)
 
 configure_file(
         "${CMAKE_CURRENT_SOURCE_DIR}/libkvsWebrtcClient.pc.cmake"
