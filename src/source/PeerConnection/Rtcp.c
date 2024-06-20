@@ -112,6 +112,9 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
     DOUBLE fractionLost;
     UINT32 rttPropDelayMsec = 0, rttPropDelay, delaySinceLastSR, lastSR, interarrivalJitter, extHiSeqNumReceived, cumulativeLost, senderSSRC, ssrc1;
     UINT64 currentTimeNTP = convertTimestampToNTP(GETTIME());
+    RtcpContext_t ctx;
+    RtcpResult_t rtcpResult;
+    RtcpReceiverReport_t receiverReport;
 
     UNUSED_PARAM(rttPropDelayMsec);
     UNUSED_PARAM(rttPropDelay);
@@ -129,19 +132,25 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
         return STATUS_SUCCESS;
     }
 
-    senderSSRC = getUnalignedInt32BigEndian(pRtcpPacket->payload);
-    ssrc1 = getUnalignedInt32BigEndian(pRtcpPacket->payload + 4);
+    rtcpResult = Rtcp_Init(&ctx);
+    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
+
+    rtcpResult = Rtcp_ParseReceiverReport(&ctx, pRtcpPacket->payload, pRtcpPacket->payloadLength, &receiverReport);
+    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
+
+    senderSSRC = receiverReport.ssrcSender;
+    ssrc1 = receiverReport.ssrcSource;
 
     if (STATUS_FAILED(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, ssrc1))) {
         DLOGW("Received receiver report for non existing ssrc: %u", ssrc1);
         return STATUS_SUCCESS; // not really an error ?
     }
-    fractionLost = pRtcpPacket->payload[8] / 255.0;
-    cumulativeLost = ((UINT32) getUnalignedInt32BigEndian(pRtcpPacket->payload + 8)) & 0x00ffffffu;
-    extHiSeqNumReceived = getUnalignedInt32BigEndian(pRtcpPacket->payload + 12);
-    interarrivalJitter = getUnalignedInt32BigEndian(pRtcpPacket->payload + 16);
-    lastSR = getUnalignedInt32BigEndian(pRtcpPacket->payload + 20);
-    delaySinceLastSR = getUnalignedInt32BigEndian(pRtcpPacket->payload + 24);
+    fractionLost = receiverReport.fractionLost / 255.0;
+    cumulativeLost = receiverReport.cumulativePacketsLost;
+    extHiSeqNumReceived = receiverReport.extHiSeqNumReceived;
+    interarrivalJitter = receiverReport.interArrivalJitter;
+    lastSR = receiverReport.lastSR;
+    delaySinceLastSR = receiverReport.delaySinceLastSR;
 
     DLOGS("RTCP_PACKET_TYPE_RECEIVER_REPORT %u %u loss: %u %u seq: %u jit: %u lsr: %u dlsr: %u", senderSSRC, ssrc1, fractionLost, cumulativeLost,
           extHiSeqNumReceived, interarrivalJitter, lastSR, delaySinceLastSR);
