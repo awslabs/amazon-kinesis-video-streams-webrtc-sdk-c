@@ -733,15 +733,9 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
         // SRTP_MAX_TRAILER_LEN + 4 following the actual rtcp Packet payload
         allocSize = packetLen + SRTP_AUTH_TAG_OVERHEAD + SRTP_MAX_TRAILER_LEN + 4;
         CHK(NULL != (rawPacket = (PBYTE) MEMALLOC(allocSize)), STATUS_NOT_ENOUGH_MEMORY);
-        rawPacket[0] = RTCP_PACKET_VERSION_VAL << 6;
-        rawPacket[RTCP_PACKET_TYPE_OFFSET] = RTCP_PACKET_TYPE_SENDER_REPORT;
-        putUnalignedInt16BigEndian(rawPacket + RTCP_PACKET_LEN_OFFSET,
-                                   (packetLen / RTCP_PACKET_LEN_WORD_SIZE) - 1); // The length of this RTCP packet in 32-bit words minus one
-        putUnalignedInt32BigEndian(rawPacket + 4, ssrc);
-        putUnalignedInt64BigEndian(rawPacket + 8, ntpTime);
-        putUnalignedInt32BigEndian(rawPacket + 16, rtpTime);
-        putUnalignedInt32BigEndian(rawPacket + 20, packetCount);
-        putUnalignedInt32BigEndian(rawPacket + 24, octetCount);
+
+        CHK_STATUS(setBytesFromRtcpValues(rawPacket, allocSize, packetLen, ssrc, ntpTime, rtpTime, packetCount, octetCount));
+
         CHK_STATUS(encryptRtcpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, (PINT32) &packetLen));
         CHK_STATUS(iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, packetLen));
     }

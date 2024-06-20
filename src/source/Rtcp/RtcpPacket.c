@@ -12,13 +12,10 @@ STATUS setRtcpPacketFromBytes(PBYTE pRawPacket, UINT32 pRawPacketsLen, PRtcpPack
     RtcpResult_t rtcpResult;
     RtcpPacket_t rtcpPacket;
 
-    rtcpResult = Rtcp_Init( &ctx );
+    rtcpResult = Rtcp_Init(&ctx);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
-    rtcpResult = Rtcp_DeSerialize( &ctx,
-                               pRawPacket,
-                               pRawPacketsLen,
-                               &rtcpPacket );
+    rtcpResult = Rtcp_DeSerialize(&ctx, pRawPacket, pRawPacketsLen, &rtcpPacket);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
     pRtcpPacket->header.version = RTCP_HEADER_VERSION;
     pRtcpPacket->header.receptionReportCount = rtcpPacket.header.receptionReportCount;
@@ -26,6 +23,42 @@ STATUS setRtcpPacketFromBytes(PBYTE pRawPacket, UINT32 pRawPacketsLen, PRtcpPack
     pRtcpPacket->header.packetLength = rtcpPacket.header.packetLength;
     pRtcpPacket->payloadLength = rtcpPacket.payloadLength;
     pRtcpPacket->payload = rtcpPacket.pPayload;
+
+CleanUp:
+    LEAVES();
+    return retStatus;
+}
+
+STATUS setBytesFromRtcpValues(PBYTE pRawPacket, UINT32 rawPacketsLen, UINT32 packetLen, UINT32 ssrc, UINT64 ntpTime, UINT64 rtpTime, UINT32 packetCount, UINT32 octetCount)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    RtcpContext_t ctx;
+    RtcpResult_t rtcpResult;
+    RtcpPacket_t rtcpPacket;
+    RtcpSenderReport_t senderReport;
+
+    rtcpResult = Rtcp_Init(&ctx);
+    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
+
+    MEMSET(&rtcpPacket, 0, SIZEOF(RtcpPacket_t));
+    MEMSET(&senderReport, 0, SIZEOF(RtcpSenderReport_t));
+
+    rtcpPacket.header.packetLength = (packetLen / RTCP_PACKET_LEN_WORD_SIZE) - 1; // The length of this RTCP packet in 32-bit words minus one
+    rtcpPacket.header.packetType = RTCP_PACKET_TYPE_SENDER_REPORT;
+    rtcpPacket.pPayload = &(pRawPacket[RTCP_HEADER_LENGTH]);
+
+    senderReport.ssrc = ssrc;
+    senderReport.ntpTime = ntpTime;
+    senderReport.rtpTime = (UINT32) rtpTime;
+    senderReport.octetCount = octetCount;
+    senderReport.packetCount = packetCount;
+
+    rtcpResult = Rtcp_CreatePayloadSenderReport(&ctx, &rtcpPacket, rawPacketsLen - RTCP_HEADER_LENGTH, &senderReport);
+    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
+
+    rtcpResult = Rtcp_Serialize(&ctx, &rtcpPacket, pRawPacket, (size_t *) &rawPacketsLen);
+    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
 CleanUp:
     LEAVES();
