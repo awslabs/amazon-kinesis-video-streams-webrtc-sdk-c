@@ -24,8 +24,7 @@ set(WEBRTC_SDK_LIBS_STATIC
         m)
 
 add_executable(KvsWebrtcMaster ${WEBRTC_SAMPLE_SRCS})
-add_dependencies(KvsWebrtcMaster kvs-webrtc)
-target_include_directories(KvsWebrtcMaster PRIVATE ${AWS_DEPENDENCIES_DIR}/webrtc/include/ )
+target_include_directories(KvsWebrtcMaster PRIVATE ${AWS_DEPENDENCIES_DIR}/webrtc/include/)
 target_link_directories(KvsWebrtcMaster PUBLIC ${AWS_DEPENDENCIES_DIR}/webrtc/lib/)
 target_link_libraries(KvsWebrtcMaster PUBLIC ${WEBRTC_SDK_LIBS_STATIC})
 

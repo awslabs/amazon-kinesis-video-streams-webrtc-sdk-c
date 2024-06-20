@@ -43,6 +43,10 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
 endif()
 
+set(AWS_DEPENDENCIES_DIR ${CMAKE_BINARY_DIR}/aws-dependencies)
+set(CMAKE_INSTALL_PREFIX "${AWS_DEPENDENCIES_DIR}/webrtc")
+set(OPEN_SRC_INSTALL_PREFIX "${AWS_DEPENDENCIES_DIR}/webrtc")
+
 execute_process(
         COMMAND git rev-parse HEAD
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -470,7 +474,7 @@ install(DIRECTORY ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include/
 
 if (BUILD_SAMPLE)
 
-  add_subdirectory(samples)
+  add_subdirectory(samples/webrtc)
 endif()
 
 if(BUILD_TEST)
