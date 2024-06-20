@@ -392,7 +392,7 @@ include_directories(${OPEN_SRC_INCLUDE_DIRS})
 include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
 
-add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES} ${DATACHANNEL_SRC})
+#add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES} ${DATACHANNEL_SRC})
 
 if(USE_MBEDTLS)
   target_compile_definitions(kvsWebrtcClient PRIVATE LWS_WITH_MBEDTLS)
@@ -400,10 +400,14 @@ endif()
 
 if(ENABLE_KVS_THREADPOOL)
   file(GLOB THREADPOOL_SOURCE_FILES "src/source/Threadpool/*.c")
+  add_library(kvsWebRtcThreadpool_objects OBJECT ${THREADPOOL_SOURCE_FILES})
   add_library(kvsWebRtcThreadpool ${LINKAGE} ${THREADPOOL_SOURCE_FILES})
   target_link_libraries(kvsWebRtcThreadpool PRIVATE kvspicUtils)
   set(EXTRA_DEPS ${EXTRA_DEPS} kvsWebRtcThreadpool)
 endif()
+
+add_library(kvsWebrtcClient_objects OBJECT ${WEBRTC_CLIENT_SOURCE_FILES} ${DATACHANNEL_SRC})
+add_library(kvsWebrtcClient ${LINKAGE} $<TARGET_OBJECTS:kvsWebrtcClient_objects> $<TARGET_OBJECTS:kvsWebRtcThreadpool_objects>)
 
 target_link_libraries(
   kvsWebrtcClient
@@ -428,7 +432,11 @@ target_link_libraries(
         ${GPERFTOOLS_PROFILER_LIBRARIES})
 
 target_include_directories(kvsWebrtcClient PUBLIC ${OPEN_SRC_INSTALL_PREFIX}/include)
-add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
+
+add_library(kvsWebrtcSignalingClient_objects OBJECT ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
+add_library(kvsWebrtcSignalingClient ${LINKAGE} $<TARGET_OBJECTS:kvsWebrtcSignalingClient_objects> $<TARGET_OBJECTS:kvsWebRtcThreadpool_objects>)
+
+#add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
 
 if(USE_MBEDTLS)
   target_compile_definitions(kvsWebrtcSignalingClient PRIVATE LWS_WITH_MBEDTLS)
