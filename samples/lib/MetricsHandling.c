@@ -234,7 +234,7 @@ CleanUp:
         MUTEX_UNLOCK(pSampleStreamingSession->pStatsCtx->statsUpdateLock);
     }
     releaseMetricsCtx(pSampleStreamingSession);
-    return STATUS_SUCCESS;
+    return retStatus;
 }
 
 STATUS populateIncomingRtpMetricsContext(PSampleStreamingSession pSampleStreamingSession)
