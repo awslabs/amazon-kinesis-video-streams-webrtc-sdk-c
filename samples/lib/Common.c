@@ -404,8 +404,9 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
             MUTEX_FREE(pSampleStreamingSession->twccMetadata.updateLock);
         }
     }
-    DLOGI("Here....%s", pSampleConfiguration->enableIceStats ? "Enabled" : "Disabled");
+
     if (pSampleConfiguration->enableIceStats) {
+        DLOGI("ICE Stats enabled");
         CHK_LOG_ERR(gatherIceServerStats(pSampleStreamingSession));
     }
     if (pSampleConfiguration->enableMetrics) {

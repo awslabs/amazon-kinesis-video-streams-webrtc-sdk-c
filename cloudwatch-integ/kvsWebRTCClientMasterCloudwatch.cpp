@@ -82,20 +82,19 @@ PVOID sendProfilingMetrics(PVOID customData)
         return NULL;
     }
 
-    while((pSampleConfiguration->sampleStreamingSessionList[0]) == NULL || !ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted) || !(ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag))) {
+    while((pSampleConfiguration->sampleStreamingSessionList[0]) == NULL && (!(ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) || (!(ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag))))) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND * 100);
     }
-    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
-        if (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted) ||
-            !(ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag))) {
-            DLOGW("Terminated before we could profile");
-        }
+    if(ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted) || (ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag))) {
+        DLOGW("Terminated before we could profile");
+        return NULL;
     }
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted) || !(ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag))) {
         PSampleStreamingSession pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[0];
         retStatus = getSdkTimeProfile(&pSampleStreamingSession);
 
         if(STATUS_SUCCEEDED(retStatus)) {
+            DLOGI("Gathered time profile");
             CppInteg::Cloudwatch::getInstance().monitoring.pushSignalingClientMetrics(&pSampleConfiguration->signalingClientMetrics);
             CppInteg::Cloudwatch::getInstance().monitoring.pushPeerConnectionMetrics(&pSampleStreamingSession->peerConnectionMetrics);
             CppInteg::Cloudwatch::getInstance().monitoring.pushKvsIceAgentMetrics(&pSampleStreamingSession->iceMetrics);
