@@ -4,8 +4,13 @@ include(Utilities)
 include(CheckIncludeFiles)
 include(CheckFunctionExists)
 
+set(KINESIS_VIDEO_WEBRTC_C_MAJOR_VERSION 1)
+set(KINESIS_VIDEO_WEBRTC_C_MINOR_VERSION 10)
+set(KINESIS_VIDEO_WEBRTC_C_PATCH_VERSION 1)
+set(KINESIS_VIDEO_WEBRTC_C_VERSION ${KINESIS_VIDEO_WEBRTC_C_MAJOR_VERSION}.${KINESIS_VIDEO_WEBRTC_C_MINOR_VERSION}.${KINESIS_VIDEO_WEBRTC_C_PATCH_VERSION})
+
 # The version MUST be updated before every release
-project(KinesisVideoWebRTCClient VERSION 1.10.1 LANGUAGES C)
+project(KinesisVideoWebRTCClient VERSION KINESIS_VIDEO_WEBRTC_C_VERSION LANGUAGES C)
 
 # User Flags
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
@@ -392,22 +397,17 @@ include_directories(${OPEN_SRC_INCLUDE_DIRS})
 include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
 
-#add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES} ${DATACHANNEL_SRC})
-
-if(ENABLE_KVS_THREADPOOL)
-  file(GLOB THREADPOOL_SOURCE_FILES "src/source/Threadpool/*.c")
-  add_library(kvsWebRtcThreadpool_objects OBJECT ${THREADPOOL_SOURCE_FILES})
-  add_library(kvsWebRtcThreadpool ${LINKAGE} ${THREADPOOL_SOURCE_FILES})
-  target_link_libraries(kvsWebRtcThreadpool PRIVATE kvspicUtils)
-  set(EXTRA_DEPS ${EXTRA_DEPS} kvsWebRtcThreadpool)
-endif()
-
-
-add_library(kvsWebrtcClient_objects OBJECT ${WEBRTC_CLIENT_SOURCE_FILES} ${DATACHANNEL_SRC})
-add_library(kvsWebrtcClient ${LINKAGE} $<TARGET_OBJECTS:kvsWebrtcClient_objects> $<TARGET_OBJECTS:kvsWebRtcThreadpool_objects>)
+add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES} ${DATACHANNEL_SRC})
 
 if(USE_MBEDTLS)
   target_compile_definitions(kvsWebrtcClient PRIVATE LWS_WITH_MBEDTLS)
+endif()
+
+if(ENABLE_KVS_THREADPOOL)
+  file(GLOB THREADPOOL_SOURCE_FILES "src/source/Threadpool/*.c")
+  add_library(kvsWebRtcThreadpool ${LINKAGE} ${THREADPOOL_SOURCE_FILES})
+  target_link_libraries(kvsWebRtcThreadpool PRIVATE kvspicUtils)
+  set(EXTRA_DEPS ${EXTRA_DEPS} kvsWebRtcThreadpool)
 endif()
 
 target_link_libraries(
@@ -416,7 +416,6 @@ target_link_libraries(
         kvssdp
         kvsstun
         kvsrtp
-        ${EXTRA_DEPS}
   PRIVATE
         kvspicUtils
         kvspicState
@@ -430,14 +429,10 @@ target_link_libraries(
         ${Usrsctp}
         ${MBEDTLS_LIBRARIES}
         ${GPERFTOOLS_MALLOC_LIBRARIES}
-        ${GPERFTOOLS_PROFILER_LIBRARIES})
+        ${GPERFTOOLS_PROFILER_LIBRARIES}
+        ${EXTRA_DEPS})
 
-target_include_directories(kvsWebrtcClient PUBLIC ${OPEN_SRC_INSTALL_PREFIX}/include)
-
-add_library(kvsWebrtcSignalingClient_objects OBJECT ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
-add_library(kvsWebrtcSignalingClient ${LINKAGE} $<TARGET_OBJECTS:kvsWebrtcSignalingClient_objects> $<TARGET_OBJECTS:kvsWebRtcThreadpool_objects>)
-
-#add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
+add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
 
 if(USE_MBEDTLS)
   target_compile_definitions(kvsWebrtcSignalingClient PRIVATE LWS_WITH_MBEDTLS)
@@ -448,20 +443,19 @@ target_link_libraries(
   PUBLIC
         kvsCommonLws
         ${LIBWEBSOCKETS_LIBRARIES}
-        ${EXTRA_DEPS}
         kvssdp
         kvsstun
         kvsrtp
   PRIVATE kvspicUtils
          kvspicState
          ${CMAKE_THREAD_LIBS_INIT}
+         ${EXTRA_DEPS}
          ${OPENSSL_SSL_LIBRARY}
          ${OPENSSL_CRYPTO_LIBRARY}
          ${GPERFTOOLS_MALLOC_LIBRARIES}
          ${GPERFTOOLS_PROFILER_LIBRARIES}
          ${MBEDTLS_LIBRARIES})
 
-target_include_directories(kvsWebrtcSignalingClient PUBLIC ${OPEN_SRC_INSTALL_PREFIX}/include)
 if (WIN32)
   target_link_libraries(kvsWebrtcClient PRIVATE "Ws2_32" "iphlpapi")
 endif()
@@ -470,6 +464,18 @@ if(COMPILER_WARNINGS)
   target_compile_options(kvsWebrtcClient PUBLIC -Wall -Werror -pedantic -Wextra -Wno-unknown-warning-option)
   target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wall -Werror -pedantic -Wextra -Wno-unknown-warning-option)
 endif()
+
+configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/libkvsWebRtcThreadpool.pc.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/libkvsWebRtcThreadpool.pc" @ONLY)
+
+configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/libkvsWebrtcClient.pc.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/libkvsWebrtcClient.pc" @ONLY)
+
+configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/libkvsWebrtcSignalingClient.pc.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/libkvsWebrtcSignalingClient.pc" @ONLY)
 
 install(TARGETS kvsWebrtcClient kvsWebrtcSignalingClient kvsWebRtcThreadpool
   LIBRARY DESTINATION lib
