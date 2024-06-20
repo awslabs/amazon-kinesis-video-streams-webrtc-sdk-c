@@ -482,6 +482,16 @@ install(TARGETS kvsWebrtcClient kvsWebrtcSignalingClient kvsWebRtcThreadpool
   ARCHIVE DESTINATION lib
 )
 
+install(
+        FILES ${CMAKE_CURRENT_BINARY_DIR}/libkvsWebrtcClient.pc
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+install(
+        FILES ${CMAKE_CURRENT_BINARY_DIR}/libkvsWebrtcSignalingClient.pc
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+install(
+        FILES ${CMAKE_CURRENT_BINARY_DIR}/libkvsWebrtcThreadpool.pc
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+
 install(DIRECTORY ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include/
   DESTINATION include
 )
