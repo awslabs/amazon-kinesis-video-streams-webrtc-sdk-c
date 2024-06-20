@@ -82,10 +82,13 @@ PVOID sendProfilingMetrics(PVOID customData)
         return NULL;
     }
 
-    while((pSampleConfiguration->sampleStreamingSessionList[0]) == NULL) {
+    while((pSampleConfiguration->sampleStreamingSessionList[0]) == NULL || !ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted) || !(ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag))) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND * 100);
     }
-    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
+    if(!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted) || !(ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag))) {
+        DLOGW("Terminated before we could profile");
+    }
+    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted) || !(ATOMIC_LOAD)) {
         PSampleStreamingSession pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[0];
         retStatus = getSdkTimeProfile(&pSampleStreamingSession);
 

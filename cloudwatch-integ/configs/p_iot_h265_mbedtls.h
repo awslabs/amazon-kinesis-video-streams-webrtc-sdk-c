@@ -1,6 +1,12 @@
 #ifndef KVS_SDK_SAMPLE_CONFIG_H
 #define KVS_SDK_SAMPLE_CONFIG_H
 
+#pragma once
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define USE_TRICKLE_ICE             TRUE
 #define FORCE_TURN_ONLY             FALSE
 #define RUNNER_LABEL                (PCHAR) "WebrtcPeriodicMBedTLS-H265"
@@ -19,4 +25,9 @@
 #define VIDEO_CODEC                 RTC_CODEC_H265
 #define DEFAULT_BITRATE             (250 * 1024)
 #define DEFAULT_FRAMERATE           30
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif // KVS_SDK_SAMPLE_CONFIG_H
