@@ -25,15 +25,6 @@ extern "C" {
 #define PROTOCOL_INDEX_HTTPS 0
 #define PROTOCOL_INDEX_WSS   1
 
-// API postfix definitions
-#define UPDATE_MEDIA_STORAGE_CONF_API_POSTFIX "/updateMediaStorageConfiguration"
-
-#define SIGNALING_UPDATE_STORAGE_CONFIG_PARAM_JSON_TEMPLATE                                                                                          \
-    "{\n\t\"StreamARN\": \"%s\","                                                                                                                    \
-    "\n\t\"ChannelARN\": \"%s\","                                                                                                                    \
-    "\n\t\"StorageStatus\": \"%s\""                                                                                                                  \
-    "\n}"
-
 #define SIGNALING_SDP_TYPE_OFFER       "SDP_OFFER"
 #define SIGNALING_SDP_TYPE_ANSWER      "SDP_ANSWER"
 #define SIGNALING_ICE_CANDIDATE        "ICE_CANDIDATE"

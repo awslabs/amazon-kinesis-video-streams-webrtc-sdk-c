@@ -10,8 +10,6 @@ Signaling internal include file
 extern "C" {
 #endif
 
-#include "kvssignaling/signaling_data_types.h"
-
 // Request id header name
 #define SIGNALING_REQUEST_ID_HEADER_NAME KVS_REQUEST_ID_HEADER_NAME ":"
 
