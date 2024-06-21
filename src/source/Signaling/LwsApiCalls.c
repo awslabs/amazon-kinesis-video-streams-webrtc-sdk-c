@@ -1817,7 +1817,6 @@ STATUS sendLwsMessage(PSignalingClient pSignalingClient, SIGNALING_MESSAGE_TYPE 
     SignalingResult_t retSignal;
     WssSendMessage_t wssSendMessage;
     SIZE_T bufferSize;
-    SignalingIceServer_t iceServers[MAX_ICE_CONFIG_COUNT];
 
     // Ensure we are in a connected state
     CHK_STATUS(acceptSignalingStateMachineState(pSignalingClient, SIGNALING_STATE_CONNECTED | SIGNALING_STATE_JOIN_SESSION_CONNECTED));
@@ -1869,29 +1868,6 @@ STATUS sendLwsMessage(PSignalingClient pSignalingClient, SIGNALING_MESSAGE_TYPE 
     wssSendMessage.pCorrelationId = pCorrelationId;
     wssSendMessage.recipientClientIdLength = STRLEN(peerClientId);
     wssSendMessage.pRecipientClientId = peerClientId;
-
-    // In case of an Offer, package the ICE candidates only if we have a set of non-expired ICE configs
-    if (messageType == SIGNALING_MESSAGE_TYPE_OFFER && pSignalingClient->iceConfigCount != 0 &&
-        (curTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient)) <= pSignalingClient->iceConfigExpiration &&
-        STATUS_SUCCEEDED(validateIceConfiguration(pSignalingClient))) {
-        // Start the ice infos by copying the preamble, then the main body and then the ending
-        wssSendMessage.numIceServers = pSignalingClient->iceConfigCount;
-        wssSendMessage.pIceServers = iceServers;
-
-        for (iceCount = 0; iceCount < pSignalingClient->iceConfigCount; iceCount++) {
-            iceServers[iceCount].pUserName = pSignalingClient->iceConfigs[iceCount].userName;
-            iceServers[iceCount].userNameLength = STRLEN(pSignalingClient->iceConfigs[iceCount].userName);
-            iceServers[iceCount].pPassword = pSignalingClient->iceConfigs[iceCount].password;
-            iceServers[iceCount].passwordLength = STRLEN(pSignalingClient->iceConfigs[iceCount].password);
-            iceServers[iceCount].messageTtlSeconds =
-                (pSignalingClient->iceConfigs[iceCount].ttl - (curTime - pSignalingClient->iceConfigTime)) / HUNDREDS_OF_NANOS_IN_A_SECOND;
-            iceServers[iceCount].urisNum = pSignalingClient->iceConfigs[iceCount].uriCount;
-            for (uriCount = 0; uriCount < pSignalingClient->iceConfigs[iceCount].uriCount; uriCount++) {
-                iceServers[iceCount].urisLength[uriCount] = STRLEN(pSignalingClient->iceConfigs[iceCount].uris[uriCount]);
-                iceServers[iceCount].pUris[uriCount] = pSignalingClient->iceConfigs[iceCount].uris[uriCount];
-            }
-        }
-    }
 
     // Prepare json message
     bufferSize = SIZEOF(pSignalingClient->pOngoingCallInfo->sendBuffer) - LWS_PRE - 1; /* -1 for null terminator. */
@@ -2010,12 +1986,11 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     UINT32 outLen = MAX_SIGNALING_MESSAGE_LEN;
     PSignalingMessageWrapper pSignalingMessageWrapper = NULL;
     TID receivedTid = INVALID_TID_VALUE;
-    BOOL parsedMessageType = FALSE, jsonInIceServerList = FALSE;
+    BOOL parsedMessageType = FALSE;
     PSignalingMessage pOngoingMessage;
     SignalingResult_t retSignal;
     WssRecvMessage_t wssRecvMessage;
     UINT64 messageLength = messageLen;
-    SignalingIceServer_t iceServers[MAX_ICE_CONFIG_COUNT];
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -2038,9 +2013,6 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
 
     // DLOGV("receive LWS Message:\n%s", pMessage);
     MEMSET(&wssRecvMessage, 0, SIZEOF(WssRecvMessage_t));
-    // Prepare buffer to store ice server configs.
-    wssRecvMessage.numIceServers = MAX_ICE_CONFIG_COUNT;
-    wssRecvMessage.pIceServers = iceServers;
     // Parse the response
     retSignal = Signaling_ParseWssRecvMessage(pMessage, (SIZE_T) messageLength, &wssRecvMessage);
     CHK(retSignal == SIGNALING_RESULT_OK, retSignal);
@@ -2099,11 +2071,6 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
         STRNCPY(pSignalingMessageWrapper->receivedSignalingMessage.description, wssRecvMessage.statusResponse.pDescription,
                 wssRecvMessage.statusResponse.descriptionLength);
         pSignalingMessageWrapper->receivedSignalingMessage.description[wssRecvMessage.statusResponse.descriptionLength] = '\0';
-    }
-
-    if (wssRecvMessage.numIceServers > 0U &&
-        pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
-        CHK_STATUS(updateIceServerList(pSignalingClient, wssRecvMessage.pIceServers, wssRecvMessage.numIceServers));
     }
 
     // Message type is a mandatory field.
@@ -2183,11 +2150,6 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
 
     DLOGD("Client received message of type: %s",
           getMessageTypeInString(pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType));
-
-    // Validate and process the ice config
-    if (jsonInIceServerList && STATUS_FAILED(validateIceConfiguration(pSignalingClient))) {
-        DLOGW("Failed to validate the ICE server configuration received with an Offer");
-    }
 
 #ifdef ENABLE_KVS_THREADPOOL
     // This would fail if threadpool was not created
