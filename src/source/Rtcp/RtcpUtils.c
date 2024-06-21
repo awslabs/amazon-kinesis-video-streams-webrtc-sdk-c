@@ -22,6 +22,9 @@ STATUS convertRtcpErrorCode(RtcpResult_t rtcpResult)
         case RTCP_RESULT_MALFORMED_PACKET:
             retStatus = STATUS_RTCP_INPUT_PACKET_TOO_SMALL;
             break;
+        case RTCP_RESULT_INPUT_REMB_INVALID:
+            retStatus = STATUS_RTCP_INPUT_REMB_INVALID;
+            break;
         default:
             break;
     }

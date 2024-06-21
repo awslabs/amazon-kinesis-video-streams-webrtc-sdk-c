@@ -29,7 +29,8 @@ CleanUp:
     return retStatus;
 }
 
-STATUS setBytesFromRtcpValues(PBYTE pRawPacket, UINT32 rawPacketsLen, UINT32 packetLen, UINT32 ssrc, UINT64 ntpTime, UINT64 rtpTime, UINT32 packetCount, UINT32 octetCount)
+STATUS setBytesFromRtcpValues(PBYTE pRawPacket, UINT32 rawPacketsLen, UINT32 packetLen, UINT32 ssrc, UINT64 ntpTime, UINT64 rtpTime,
+                              UINT32 packetCount, UINT32 octetCount)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -57,7 +58,7 @@ STATUS setBytesFromRtcpValues(PBYTE pRawPacket, UINT32 rawPacketsLen, UINT32 pac
     rtcpResult = Rtcp_CreatePayloadSenderReport(&ctx, &rtcpPacket, rawPacketsLen - RTCP_HEADER_LENGTH, &senderReport);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
-    rtcpResult = Rtcp_Serialize(&ctx, &rtcpPacket, pRawPacket, (size_t *) &rawPacketsLen);
+    rtcpResult = Rtcp_Serialize(&ctx, &rtcpPacket, pRawPacket, (size_t*) &rawPacketsLen);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
 CleanUp:
@@ -146,23 +147,22 @@ STATUS rembValueGet(PBYTE pPayload, UINT32 payloadLen, PDOUBLE pMaximumBitRate, 
     UINT8 ssrcListLen = 0, exponent = 0;
     UINT32 mantissa = 0, i;
     DOUBLE maximumBitRate = 0;
+    PUINT32 pSsrcListRead;
+    RtcpContext_t ctx;
+    RtcpResult_t rtcpResult;
 
     CHK(pPayload != NULL && pMaximumBitRate != NULL && pSsrcListLen != NULL, STATUS_NULL_ARG);
     CHK(payloadLen >= RTCP_PACKET_REMB_MIN_SIZE, STATUS_RTCP_INPUT_REMB_TOO_SMALL);
 
-    MEMCPY(&mantissa, pPayload + RTCP_PACKET_REMB_IDENTIFIER_OFFSET + SIZEOF(UINT32), SIZEOF(UINT32));
-    mantissa = htonl(mantissa);
-    mantissa &= RTCP_PACKET_REMB_MANTISSA_BITMASK;
+    rtcpResult = Rtcp_Init(&ctx);
+    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
-    exponent = pPayload[RTCP_PACKET_REMB_IDENTIFIER_OFFSET + SIZEOF(UINT32) + SIZEOF(BYTE)] >> 2;
+    rtcpResult = Rtcp_ParseRembPacket(&ctx, pPayload, payloadLen, (size_t*) &ssrcListLen, &pSsrcListRead, &mantissa, &exponent);
+    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
     maximumBitRate = mantissa << exponent;
 
-    // Only populate SSRC list if caller requests
-    ssrcListLen = pPayload[RTCP_PACKET_REMB_IDENTIFIER_OFFSET + SIZEOF(UINT32)];
-    CHK(payloadLen >= RTCP_PACKET_REMB_MIN_SIZE + (ssrcListLen * SIZEOF(UINT32)), STATUS_RTCP_INPUT_REMB_INVALID);
-
     for (i = 0; i < ssrcListLen; i++) {
-        pSsrcList[i] = getInt32(*(PUINT32) (pPayload + RTCP_PACKET_REMB_IDENTIFIER_OFFSET + 8 + (i * SIZEOF(UINT32))));
+        pSsrcList[i] = getInt32(*(PUINT32) & (pSsrcListRead[i]));
     }
 
 CleanUp:
