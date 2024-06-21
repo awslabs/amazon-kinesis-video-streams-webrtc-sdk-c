@@ -51,5 +51,5 @@ target_link_libraries(webrtc_client_test
     ${GTEST_LIBNAME}
     ${AWS_SDK_TEST_LIBS}
     kvssdp
-    corejson
-    kvssignaling)
+    kvssignaling
+    corejson)

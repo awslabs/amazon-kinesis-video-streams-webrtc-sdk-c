@@ -425,8 +425,8 @@ target_link_libraries(
           kvssdp
           kvsstun
           kvsrtp
-          corejson
           kvssignaling
+          corejson
           ${CMAKE_THREAD_LIBS_INIT}
           ${OPENSSL_SSL_LIBRARY}
           ${OPENSSL_CRYPTO_LIBRARY}
@@ -451,8 +451,8 @@ target_link_libraries(
         kvssdp
         kvsstun
         kvsrtp
-        corejson
         kvssignaling
+        corejson
   PRIVATE kvspicUtils
          kvspicState
          ${CMAKE_THREAD_LIBS_INIT}
