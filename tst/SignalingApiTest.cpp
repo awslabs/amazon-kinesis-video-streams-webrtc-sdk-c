@@ -465,22 +465,6 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     initializeSignalingClient();
-    // Valid call
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, &metrics));
-
-    EXPECT_EQ(0, metrics.signalingClientStats.numberOfReconnects);
-    EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesSent);
-    EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesReceived);
-    EXPECT_EQ(0, metrics.signalingClientStats.numberOfErrors);
-    EXPECT_EQ(0, metrics.signalingClientStats.numberOfRuntimeErrors);
-    EXPECT_EQ(0, metrics.signalingClientStats.iceRefreshCount);
-    EXPECT_NE(0, metrics.signalingClientStats.signalingClientUptime);
-    EXPECT_EQ(0, metrics.signalingClientStats.connectionDuration);
-    EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);
-    EXPECT_EQ(0, metrics.signalingClientStats.dpApiCallLatency);
-
-    // Connect and get metrics
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
 
     // Await for a little to ensure we get some metrics for the connection duration
     THREAD_SLEEP(200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
@@ -491,7 +475,7 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesReceived);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfErrors);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfRuntimeErrors);
-    EXPECT_EQ(0, metrics.signalingClientStats.iceRefreshCount);
+    EXPECT_EQ(1, metrics.signalingClientStats.iceRefreshCount);
     EXPECT_NE(0, metrics.signalingClientStats.signalingClientUptime);
     EXPECT_NE(0, metrics.signalingClientStats.connectionDuration);
     EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);
@@ -513,7 +497,7 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesReceived);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfErrors);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfRuntimeErrors);
-    EXPECT_EQ(0, metrics.signalingClientStats.iceRefreshCount);
+    EXPECT_EQ(1, metrics.signalingClientStats.iceRefreshCount);
     EXPECT_NE(0, metrics.signalingClientStats.signalingClientUptime);
     EXPECT_NE(0, metrics.signalingClientStats.connectionDuration);
     EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);
@@ -532,7 +516,7 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfMessagesReceived);
     EXPECT_EQ(5, metrics.signalingClientStats.numberOfErrors);
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfRuntimeErrors);
-    EXPECT_EQ(0, metrics.signalingClientStats.iceRefreshCount);
+    EXPECT_EQ(1, metrics.signalingClientStats.iceRefreshCount);
     EXPECT_NE(0, metrics.signalingClientStats.signalingClientUptime);
     EXPECT_NE(0, metrics.signalingClientStats.connectionDuration);
     EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);

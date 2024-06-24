@@ -345,51 +345,13 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 }
 
-PVOID asyncGetIceConfigInfo(PVOID args)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    AsyncGetIceStruct* data = (AsyncGetIceStruct*) args;
-    PIceConfigInfo pIceConfigInfo = NULL;
-    UINT32 uriCount = 0;
-    UINT32 i = 0, maxTurnServer = 1;
-
-    if (data != NULL) {
-        /* signalingClientGetIceConfigInfoCount can return more than one turn server. Use only one to optimize
-         * candidate gathering latency. But user can also choose to use more than 1 turn server. */
-        for (uriCount = 0, i = 0; i < maxTurnServer; i++) {
-            /*
-             * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=udp" then ICE will try TURN over UDP
-             * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
-             * if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=udp", it's currently ignored because sdk dont do TURN
-             * over DTLS yet. if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
-             * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port" then ICE will try both TURN over UDP and TCP/TLS
-             *
-             * It's recommended to not pass too many TURN iceServers to configuration because it will slow down ice gathering in non-trickle mode.
-             */
-            CHK_STATUS(signalingClientGetIceConfigInfo(data->signalingClientHandle, i, &pIceConfigInfo));
-            CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
-            uriCount += pIceConfigInfo->uriCount;
-            CHK_STATUS(addConfigToServerList(&(data->pRtcPeerConnection), pIceConfigInfo));
-        }
-    }
-    *(data->pUriCount) += uriCount;
-
-CleanUp:
-    SAFE_MEMFREE(data);
-    CHK_LOG_ERR(retStatus);
-    return NULL;
-}
-
 STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcPeerConnection* ppRtcPeerConnection)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     RtcConfiguration configuration;
-#ifndef ENABLE_KVS_THREADPOOL
-    UINT32 i, j, maxTurnServer = 1;
+    UINT32 i, j, iceConfigCount, uriCount = 0, maxTurnServer = 1;
     PIceConfigInfo pIceConfigInfo;
-    UINT32 uriCount = 0;
-#endif
     UINT64 data;
     PRtcCertificate pRtcCertificate = NULL;
 
@@ -399,10 +361,6 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
 
     // Set this to custom callback to enable filtering of interfaces
     configuration.kvsRtcConfiguration.iceSetInterfaceFilterFunc = NULL;
-
-    // disable TWCC
-    configuration.kvsRtcConfiguration.disableSenderSideBandwidthEstimation = !(pSampleConfiguration->enableTwcc);
-    DLOGI("TWCC is : %s", configuration.kvsRtcConfiguration.disableSenderSideBandwidthEstimation ? "Disabled" : "Enabled");
 
     // Set the ICE mode explicitly
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
@@ -415,6 +373,37 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     }
     SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->channelInfo.pRegion,
              pKinesisVideoStunUrlPostFix);
+
+    if (pSampleConfiguration->useTurn) {
+        // Set the URIs from the configuration
+        CHK_STATUS(signalingClientGetIceConfigInfoCount(pSampleConfiguration->signalingClientHandle, &iceConfigCount));
+
+        /* signalingClientGetIceConfigInfoCount can return more than one turn server. Use only one to optimize
+         * candidate gathering latency. But user can also choose to use more than 1 turn server. */
+        for (uriCount = 0, i = 0; i < maxTurnServer; i++) {
+            CHK_STATUS(signalingClientGetIceConfigInfo(pSampleConfiguration->signalingClientHandle, i, &pIceConfigInfo));
+            for (j = 0; j < pIceConfigInfo->uriCount; j++) {
+                CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
+                /*
+                 * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=udp" then ICE will try TURN over UDP
+                 * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
+                 * if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=udp", it's currently ignored because sdk dont do TURN
+                 * over DTLS yet. if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
+                 * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port" then ICE will try both TURN over UDP and TCP/TLS
+                 *
+                 * It's recommended to not pass too many TURN iceServers to configuration because it will slow down ice gathering in non-trickle mode.
+                 */
+
+                STRNCPY(configuration.iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
+                STRNCPY(configuration.iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
+                STRNCPY(configuration.iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
+
+                uriCount++;
+            }
+        }
+    }
+
+    pSampleConfiguration->iceUriCount = uriCount + 1;
 
     // Check if we have any pregenerated certs and use them
     // NOTE: We are running under the config lock
@@ -430,41 +419,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     }
 
     CHK_STATUS(createPeerConnection(&configuration, ppRtcPeerConnection));
-
-    if (pSampleConfiguration->useTurn) {
-#ifdef ENABLE_KVS_THREADPOOL
-        pSampleConfiguration->iceUriCount = 1;
-        AsyncGetIceStruct* pAsyncData = NULL;
-
-        pAsyncData = (AsyncGetIceStruct*) MEMCALLOC(1, SIZEOF(AsyncGetIceStruct));
-        pAsyncData->signalingClientHandle = pSampleConfiguration->signalingClientHandle;
-        pAsyncData->pRtcPeerConnection = *ppRtcPeerConnection;
-        pAsyncData->pUriCount = &(pSampleConfiguration->iceUriCount);
-        CHK_STATUS(peerConnectionAsync(asyncGetIceConfigInfo, (PVOID) pAsyncData));
-#else
-
-        /* signalingClientGetIceConfigInfoCount can return more than one turn server. Use only one to optimize
-         * candidate gathering latency. But user can also choose to use more than 1 turn server. */
-        for (uriCount = 0, i = 0; i < maxTurnServer; i++) {
-            /*
-             * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=udp" then ICE will try TURN over UDP
-             * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
-             * if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=udp", it's currently ignored because sdk dont do TURN
-             * over DTLS yet. if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
-             * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port" then ICE will try both TURN over UDP and TCP/TLS
-             *
-             * It's recommended to not pass too many TURN iceServers to configuration because it will slow down ice gathering in non-trickle mode.
-             */
-            CHK_STATUS(signalingClientGetIceConfigInfo(pSampleConfiguration->signalingClientHandle, i, &pIceConfigInfo));
-            CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
-            uriCount += pIceConfigInfo->uriCount;
-            CHK_STATUS(addConfigToServerList(ppRtcPeerConnection, pIceConfigInfo));
-        }
-        pSampleConfiguration->iceUriCount = uriCount + 1;
-#endif
-    }
-
-CleanUp:
+    CleanUp:
 
     CHK_LOG_ERR(retStatus);
 

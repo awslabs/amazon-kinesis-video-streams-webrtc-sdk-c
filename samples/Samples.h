@@ -233,15 +233,6 @@ struct __SampleStreamingSession {
     CHAR pIceAgentMetricsMessage[MAX_ICE_AGENT_METRICS_MESSAGE_SIZE];
 };
 
-// TODO this should all be in a higher webrtccontext layer above PeerConnection
-// Placing it here now since this is where all the current webrtccontext functions are placed
-typedef struct {
-    SIGNALING_CLIENT_HANDLE signalingClientHandle;
-    PRtcPeerConnection pRtcPeerConnection;
-    PUINT32 pUriCount;
-
-} AsyncGetIceStruct;
-
 VOID sigintHandler(INT32);
 STATUS readFrameFromDisk(PBYTE, PUINT32, PCHAR);
 PVOID receiveGstreamerAudioVideo(PVOID);

@@ -24,12 +24,6 @@
 #define MAX_TEST_AWAIT_DURATION         (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define TEST_CACHE_FILE_PATH            (PCHAR) "./.TestSignalingCache_v0"
 
-typedef struct {
-    SIGNALING_CLIENT_HANDLE signalingClientHandle;
-    PRtcPeerConnection pOffer;
-    PRtcPeerConnection pAnswer;
-    PUINT32 pUriCount;
-} AsyncGetIceStruct;
 
 namespace com {
 namespace amazonaws {
@@ -46,8 +40,6 @@ typedef struct {
 
 STATUS createRtpPacketWithSeqNum(UINT16 seqNum, PRtpPacket* ppRtpPacket);
 
-PVOID asyncGetIceConfigInfo(PVOID args);
-
 class WebRtcClientTestBase : public ::testing::Test {
   public:
     PUINT32 mExpectedFrameSizeArr;
@@ -57,7 +49,6 @@ class WebRtcClientTestBase : public ::testing::Test {
     UINT32 mExpectedDroppedFrameCount;
     PRtpPacket* mPRtpPackets;
     UINT32 mRtpPacketCount;
-    UINT32 mUriCount = 0;
     SIGNALING_CLIENT_HANDLE mSignalingClientHandle;
     std::vector<std::thread> threads;
     std::mutex lock;
@@ -160,18 +151,6 @@ class WebRtcClientTestBase : public ::testing::Test {
 
         EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&mSignalingClientHandle));
 
-        return STATUS_SUCCESS;
-    }
-
-    STATUS asyncGetIceConfig(PRtcPeerConnection pOffer, PRtcPeerConnection pAnswer)
-    {
-        AsyncGetIceStruct* pAsyncData = NULL;
-        pAsyncData = (AsyncGetIceStruct*) MEMCALLOC(1, SIZEOF(AsyncGetIceStruct));
-        pAsyncData->signalingClientHandle = mSignalingClientHandle;
-        pAsyncData->pAnswer = pAnswer;
-        pAsyncData->pOffer = pOffer;
-        pAsyncData->pUriCount = &(this->mUriCount);
-        EXPECT_EQ(STATUS_SUCCESS, peerConnectionAsync(asyncGetIceConfigInfo, (PVOID) pAsyncData));
         return STATUS_SUCCESS;
     }
 
@@ -305,13 +284,9 @@ class WebRtcClientTestBase : public ::testing::Test {
 
     bool connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc, PCHAR pOfferCertFingerprint = NULL,
                          PCHAR pAnswerCertFingerprint = NULL);
-    bool connectTwoPeersAsyncIce(PRtcPeerConnection offerPc, PRtcPeerConnection answerPc, PCHAR pOfferCertFingerprint = NULL,
-                                 PCHAR pAnswerCertFingerprint = NULL);
     void addTrackToPeerConnection(PRtcPeerConnection pRtcPeerConnection, PRtcMediaStreamTrack track, PRtcRtpTransceiver* transceiver, RTC_CODEC codec,
                                   MEDIA_STREAM_TRACK_KIND kind);
-    void getIceServers(PRtcConfiguration pRtcConfiguration, PRtcPeerConnection pRtcPeerConnection);
-
-    void getIceServers(PRtcConfiguration pRtcConfiguration, PIceAgent pIceAgent);
+    void getIceServers(PRtcConfiguration pRtcConfiguration);
 
   protected:
     virtual void SetUp();

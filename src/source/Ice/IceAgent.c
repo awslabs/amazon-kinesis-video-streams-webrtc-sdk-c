@@ -264,82 +264,6 @@ CleanUp:
     return retStatus;
 }
 
-STATUS iceAgentAddConfig(PIceAgent pIceAgent, PIceConfigInfo pIceConfigInfo)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    UINT32 i = 0;
-    // used in PROFILE macro
-    UINT64 startTimeInMacro = 0;
-    BOOL locked = FALSE;
-
-    CHK(pIceAgent != NULL && pIceConfigInfo != NULL, STATUS_NULL_ARG);
-
-    for (i = 0; i < pIceConfigInfo->uriCount; i++) {
-        MUTEX_LOCK(pIceAgent->lock);
-        locked = TRUE;
-        PROFILE_CALL_WITH_T_OBJ(retStatus = parseIceServer(&pIceAgent->iceServers[pIceAgent->iceServersCount], (PCHAR) pIceConfigInfo->uris[i],
-                                                           (PCHAR) pIceConfigInfo->userName, (PCHAR) pIceConfigInfo->password),
-                                pIceAgent->iceAgentProfileDiagnostics.iceServerParsingTime[i], "ICE server parsing");
-        MUTEX_UNLOCK(pIceAgent->lock);
-        locked = FALSE;
-
-        if (STATUS_SUCCEEDED(retStatus)) {
-            MUTEX_LOCK(pIceAgent->lock);
-            locked = TRUE;
-            pIceAgent->rtcIceServerDiagnostics[i].port = (INT32) getInt16(pIceAgent->iceServers[i].ipAddress.port);
-            switch (pIceAgent->iceServers[pIceAgent->iceServersCount].transport) {
-                case KVS_SOCKET_PROTOCOL_UDP:
-                    STRCPY(pIceAgent->rtcIceServerDiagnostics[i].protocol, ICE_TRANSPORT_TYPE_UDP);
-                    break;
-                case KVS_SOCKET_PROTOCOL_TCP:
-                    STRCPY(pIceAgent->rtcIceServerDiagnostics[i].protocol, ICE_TRANSPORT_TYPE_TCP);
-                    break;
-                default:
-                    MEMSET(pIceAgent->rtcIceServerDiagnostics[i].protocol, 0, SIZEOF(pIceAgent->rtcIceServerDiagnostics[i].protocol));
-            }
-            STRCPY(pIceAgent->rtcIceServerDiagnostics[i].url, pIceConfigInfo->uris[i]);
-
-            MUTEX_UNLOCK(pIceAgent->lock);
-            locked = FALSE;
-
-            // important to unlock iceAgent lock before calling init relay candidate, since iceAgent APIs are thread safe
-            // if you don't unlock this can lead to a deadlock with the timerqueue.
-            //  init candidate && pairs
-            if (pIceAgent->iceServers[pIceAgent->iceServersCount].isTurn) {
-                if (pIceAgent->iceServers[pIceAgent->iceServersCount].transport == KVS_SOCKET_PROTOCOL_UDP ||
-                    pIceAgent->iceServers[pIceAgent->iceServersCount].transport == KVS_SOCKET_PROTOCOL_NONE) {
-                    CHK_STATUS(iceAgentInitRelayCandidate(pIceAgent, pIceAgent->iceServersCount, KVS_SOCKET_PROTOCOL_UDP));
-                }
-
-                if (pIceAgent->iceServers[pIceAgent->iceServersCount].transport == KVS_SOCKET_PROTOCOL_TCP ||
-                    pIceAgent->iceServers[pIceAgent->iceServersCount].transport == KVS_SOCKET_PROTOCOL_NONE) {
-                    CHK_STATUS(iceAgentInitRelayCandidate(pIceAgent, pIceAgent->iceServersCount, KVS_SOCKET_PROTOCOL_TCP));
-                }
-            }
-
-            MUTEX_LOCK(pIceAgent->lock);
-            locked = TRUE;
-
-            pIceAgent->iceServersCount++;
-
-            MUTEX_UNLOCK(pIceAgent->lock);
-            locked = FALSE;
-
-        } else {
-            DLOGE("Failed to parse ICE servers");
-        }
-    }
-    ATOMIC_STORE_BOOL(&pIceAgent->addedRelayCandidate, TRUE);
-CleanUp:
-    CHK_LOG_ERR(retStatus);
-
-    if (locked) {
-        MUTEX_UNLOCK(pIceAgent->lock);
-    }
-
-    return retStatus;
-}
-
 STATUS iceAgentValidateKvsRtcConfig(PKvsRtcConfiguration pKvsRtcConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -387,6 +311,8 @@ STATUS iceAgentReportNewLocalCandidate(PIceAgent pIceAgent, PIceCandidate pIceCa
     iceAgentLogNewCandidate(pIceCandidate);
 
     CHK_WARN(pIceAgent->iceAgentCallbacks.newLocalCandidateFn != NULL, retStatus, "newLocalCandidateFn callback not implemented");
+    CHK_WARN(!ATOMIC_LOAD_BOOL(&pIceAgent->candidateGatheringFinished), retStatus,
+             "Cannot report new ice candidate because candidate gathering is already finished");
     CHK_STATUS(iceCandidateSerialize(pIceCandidate, serializedIceCandidateBuf, &serializedIceCandidateBufLen));
     pIceAgent->iceAgentCallbacks.newLocalCandidateFn(pIceAgent->iceAgentCallbacks.customData, serializedIceCandidateBuf);
 
@@ -687,6 +613,9 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
         PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(iceAgentInitSrflxCandidate(pIceAgent)), pIceAgent->iceAgentProfileDiagnostics.srflxCandidateSetUpTime,
                                 "Srflx candidates setup time");
     }
+
+    PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(iceAgentInitRelayCandidates(pIceAgent)), pIceAgent->iceAgentProfileDiagnostics.relayCandidateSetUpTime,
+                            "Relay candidates setup time");
 
     // start listening for incoming data
     CHK_STATUS(connectionListenerStart(pIceAgent->pConnectionListener));
@@ -1029,8 +958,6 @@ STATUS iceAgentRestart(PIceAgent pIceAgent, PCHAR localIceUfrag, PCHAR localIceP
     CHK_STATUS(setStateMachineCurrentState(pIceAgent->pStateMachine, ICE_AGENT_STATE_NEW));
 
     ATOMIC_STORE_BOOL(&pIceAgent->processStun, TRUE);
-    // this API does not reset servers, so re-initialize relay candidates now.
-    CHK_STATUS(iceAgentInitRelayCandidates(pIceAgent));
 
 CleanUp:
 
@@ -1934,8 +1861,6 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
     callback.relayAddressAvailableFn = NULL;
     callback.turnStateFailedFn = turnStateFailedFn;
 
-    MUTEX_LOCK(pIceAgent->lock);
-    locked = TRUE;
 
     CHK_STATUS(createTurnConnection(&pIceAgent->iceServers[iceServerIndex], pIceAgent->timerQueueHandle,
                                     TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDIDATION, protocol, &callback, pNewCandidate->pSocketConnection,
@@ -1943,8 +1868,10 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
     pNewCandidate->pIceAgent = pIceAgent;
     pNewCandidate->pTurnConnection = pTurnConnection;
 
+    MUTEX_LOCK(pIceAgent->lock);
+    locked = TRUE;
+
     CHK_STATUS(doubleListInsertItemHead(pIceAgent->localCandidates, (UINT64) pNewCandidate));
-    CHK_STATUS(iceAgentReportNewLocalCandidate(pIceAgent, pNewCandidate));
     pNewCandidate = NULL;
 
     /* add existing remote candidates to turn. Need to acquire lock because remoteCandidates can be mutated by
