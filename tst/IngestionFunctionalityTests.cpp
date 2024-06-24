@@ -383,7 +383,7 @@ TEST_F(IngestionFunctionalityTest, basicCreateConnectJoinSession)
     EXPECT_EQ(1, describeCount);
     EXPECT_EQ(1, describeMediaCount);
     EXPECT_EQ(1, getEndpointCount);
-    EXPECT_EQ(0, getIceConfigCount);
+    EXPECT_EQ(1, getIceConfigCount);
 
     EXPECT_EQ(1, connectCount);
 
@@ -466,7 +466,7 @@ TEST_F(IngestionFunctionalityTest, iceReconnectEmulationWithJoinSession)
     EXPECT_EQ(1, describeCount);
     EXPECT_EQ(1, describeMediaCount);
     EXPECT_EQ(1, getEndpointCount);
-    EXPECT_EQ(0, getIceConfigCount);
+    EXPECT_EQ(1, getIceConfigCount);
     EXPECT_EQ(1, connectCount);
 
     // This channel has ENABLED status so we should be calling join session
@@ -508,7 +508,7 @@ TEST_F(IngestionFunctionalityTest, iceReconnectEmulationWithJoinSession)
     EXPECT_EQ(1, describeCount);
     EXPECT_EQ(1, describeMediaCount);
     EXPECT_EQ(1, getEndpointCount);
-    EXPECT_EQ(1, getIceConfigCount);
+    EXPECT_EQ(2, getIceConfigCount);
     EXPECT_EQ(2, connectCount);
 
     // This channel has ENABLED status so we should be calling join session
@@ -583,7 +583,7 @@ TEST_F(IngestionFunctionalityTest, iceServerConfigRefreshNotConnectedJoinSession
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_JOIN_SESSION]);
@@ -612,7 +612,7 @@ TEST_F(IngestionFunctionalityTest, iceServerConfigRefreshNotConnectedJoinSession
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_LT(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_JOIN_SESSION]);
@@ -634,8 +634,8 @@ TEST_F(IngestionFunctionalityTest, iceServerConfigRefreshNotConnectedJoinSession
 
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_LT(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_LT(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_JOIN_SESSION]);
@@ -726,7 +726,7 @@ TEST_F(IngestionFunctionalityTest, iceServerConfigRefreshConnectedJoinSessionWit
     // We should not be calling create because it's pre-created at the start of the test
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);

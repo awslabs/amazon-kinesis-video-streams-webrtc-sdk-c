@@ -419,7 +419,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     }
 
     CHK_STATUS(createPeerConnection(&configuration, ppRtcPeerConnection));
-    CleanUp:
+CleanUp:
 
     CHK_LOG_ERR(retStatus);
 

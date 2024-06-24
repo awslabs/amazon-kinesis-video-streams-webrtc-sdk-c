@@ -969,7 +969,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariatio
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -993,7 +993,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariatio
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -1031,7 +1031,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariatio
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -1233,7 +1233,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -1258,7 +1258,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -1296,7 +1296,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -1484,7 +1484,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedAuthExpi
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -1533,7 +1533,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedAuthExpi
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -1608,7 +1608,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedAuthExpirat
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -1658,7 +1658,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedAuthExpirat
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -1734,7 +1734,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -1754,7 +1754,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -1767,7 +1767,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -1849,7 +1849,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -1864,7 +1864,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -1882,10 +1882,10 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Check that we are connected and can send a message
@@ -1965,7 +1965,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -2081,7 +2081,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -2188,7 +2188,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithBadA
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -2355,7 +2355,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithBadAuth
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_LT(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -3162,7 +3162,7 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
 
     // Account for 1 time failure
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -3573,7 +3573,7 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer)
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
     EXPECT_NE(0, iceCount);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
 
     // Trigger the ICE refresh immediately on any of the ICE accessor calls
     pSignalingClient->iceConfigCount = 0;

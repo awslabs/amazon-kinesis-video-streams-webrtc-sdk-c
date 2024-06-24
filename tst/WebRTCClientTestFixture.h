@@ -24,7 +24,6 @@
 #define MAX_TEST_AWAIT_DURATION         (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define TEST_CACHE_FILE_PATH            (PCHAR) "./.TestSignalingCache_v0"
 
-
 namespace com {
 namespace amazonaws {
 namespace kinesis {
