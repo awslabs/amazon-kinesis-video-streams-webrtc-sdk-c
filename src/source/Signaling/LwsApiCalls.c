@@ -147,6 +147,7 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
     PStateMachineState pStateMachineState;
     BOOL skewMapContains = FALSE;
 
+    UNUSED_PARAM(logLevel);
     DLOGV("HTTPS callback with reason %d", reason);
 
     // Early check before accessing the custom data field to see if we are interested in processing the message
@@ -1535,6 +1536,9 @@ STATUS joinStorageSessionLws(PSignalingClient pSignalingClient, UINT64 time)
     SignalingRequest_t signalRequest;
     SignalingChannelEndpoint_t webrtcEndpoint;
     JoinStorageSessionRequestInfo_t joinStorageSessionRequestInfo;
+
+    UNUSED_PARAM(pResponseStr);
+    UNUSED_PARAM(resultLen);
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->channelEndpointWebrtc[0] != '\0', STATUS_INTERNAL_ERROR);

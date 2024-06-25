@@ -1146,11 +1146,9 @@ TEST_F(JitterBufferFunctionalityTest, timestampOverflowTest)
     UINT32 pktCount = 7;
     UINT32 startingSequenceNumber = 0;
     UINT32 missingSequenceNumber = 0;
-    UINT32 firstSequenceNumber = 0;
     initializeJitterBuffer(4, 0, pktCount);
     srand(time(0));
     startingSequenceNumber = rand()%UINT16_MAX;
-    firstSequenceNumber = startingSequenceNumber - 1;
 
     // First frame "1"
     mPRtpPackets[0]->payloadLength = 1;
