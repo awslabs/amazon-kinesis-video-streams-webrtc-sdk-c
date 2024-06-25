@@ -456,7 +456,7 @@ if(COMPILER_WARNINGS)
 endif()
 
 if(ENABLE_KVS_THREADPOOL)
-  install(TARGETS kvsWebrtcClient kvsWebrtcSignalingClient kvsWebRtcThreadpool
+  install(TARGETS kvsWebRtcThreadpool
           LIBRARY DESTINATION lib
           ARCHIVE DESTINATION lib
   )
