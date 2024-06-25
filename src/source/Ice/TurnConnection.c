@@ -1033,6 +1033,7 @@ STATUS checkTurnPeerConnections(PTurnConnection pTurnConnection)
     PStunAttributeChannelNumber pStunAttributeChannelNumber = NULL;
     UINT32 i = 0;
 
+    UNUSED_PARAM(sendStatus);
     // turn mutex is assumed to be locked.
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
     for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
