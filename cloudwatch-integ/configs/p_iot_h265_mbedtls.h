@@ -9,7 +9,7 @@ extern "C" {
 #define USE_TRICKLE_ICE             TRUE
 #define FORCE_TURN_ONLY             FALSE
 #define RUNNER_LABEL                (PCHAR) "WebrtcPeriodicMBedTLS-H265"
-#define SCENARIO_LABEL              (PCHAR) "MBedTLSPeriodic"
+#define SCENARIO_LABEL              (PCHAR) "MbedTLSPeriodic"
 #define USE_TURN                    TRUE
 #define ENABLE_TTFF_VIA_DC          FALSE
 #define USE_IOT                     TRUE
