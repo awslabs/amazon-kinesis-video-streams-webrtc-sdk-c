@@ -5,6 +5,7 @@ on:
     branches:
       - develop
       - master
+      - 1.10.3-async
   pull_request:
     branches:
       - develop
@@ -23,7 +24,7 @@ jobs:
         run: |
           bash scripts/check-clang.sh
   mac-os-build-clang:
-    runs-on: macos-11
+    runs-on: macos-12
     env:
       CC: /usr/bin/clang
       CXX: /usr/bin/clang++
@@ -49,7 +50,7 @@ jobs:
           cd build
           ./tst/webrtc_client_test
   mac-os-build-gcc:
-    runs-on: macos-11
+    runs-on: macos-12
     env:
       CC: gcc
       CXX: g++
@@ -104,7 +105,7 @@ jobs:
           cd build
           ./tst/webrtc_client_test
   static-build-mac:
-    runs-on: macos-11
+    runs-on: macos-12
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:

@@ -429,10 +429,10 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
         configuration.certificates[0] = *pRtcCertificate;
     }
 
-    CHK_STATUS(createPeerConnection(&configuration, ppRtcPeerConnection));
-
     if (pSampleConfiguration->useTurn) {
 #ifdef ENABLE_KVS_THREADPOOL
+        DLOGI("Invoking getIceServerConfig asynchronously");
+        CHK_STATUS(createPeerConnection(&configuration, ppRtcPeerConnection));
         pSampleConfiguration->iceUriCount = 1;
         AsyncGetIceStruct* pAsyncData = NULL;
 
@@ -457,10 +457,13 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
              */
             CHK_STATUS(signalingClientGetIceConfigInfo(pSampleConfiguration->signalingClientHandle, i, &pIceConfigInfo));
             CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
+            STRNCPY(configuration.iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
+            STRNCPY(configuration.iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
+            STRNCPY(configuration.iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
             uriCount += pIceConfigInfo->uriCount;
-            CHK_STATUS(addConfigToServerList(ppRtcPeerConnection, pIceConfigInfo));
         }
         pSampleConfiguration->iceUriCount = uriCount + 1;
+        CHK_STATUS(createPeerConnection(&configuration, ppRtcPeerConnection));
 #endif
     }
 

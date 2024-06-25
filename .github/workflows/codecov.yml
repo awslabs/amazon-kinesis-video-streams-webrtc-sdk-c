@@ -4,6 +4,7 @@ on:
     branches:
       - develop
       - master
+      - 1.10.3-async
   pull_request:
     branches:
       - develop
