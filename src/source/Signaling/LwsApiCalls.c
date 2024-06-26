@@ -1821,9 +1821,8 @@ STATUS sendLwsMessage(PSignalingClient pSignalingClient, SIGNALING_MESSAGE_TYPE 
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     CHAR encodedMessage[MAX_SESSION_DESCRIPTION_INIT_SDP_LEN + 1];
-    UINT32 size, writtenSize, correlationLen, iceCount, uriCount;
+    UINT32 size, writtenSize, correlationLen;
     BOOL awaitForResponse;
-    UINT64 curTime;
     SignalingResult_t retSignal;
     WssSendMessage_t wssSendMessage;
     SIZE_T bufferSize;

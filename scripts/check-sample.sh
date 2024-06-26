@@ -12,7 +12,6 @@ set -xv
 
 pwd
 ls -l
-ls -l open-source/lib
 
 pids=""
 cd build/samples
