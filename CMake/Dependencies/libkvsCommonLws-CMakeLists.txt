@@ -9,7 +9,7 @@ ExternalProject_Add(libkvsCommonLws-download
     GIT_TAG           develop
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
     CMAKE_ARGS        
-      -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}
+      -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
       -DBUILD_COMMON_LWS=ON
       -DBUILD_COMMON_CURL=OFF
       -DBUILD_DEPENDENCIES=FALSE
