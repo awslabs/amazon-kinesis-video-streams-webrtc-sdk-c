@@ -1,4 +1,5 @@
 #define LOG_CLASS "Signaling"
+#include "Signaling.h"
 
 extern StateMachineState SIGNALING_STATE_MACHINE_STATES[];
 extern UINT32 SIGNALING_STATE_MACHINE_STATE_COUNT;
