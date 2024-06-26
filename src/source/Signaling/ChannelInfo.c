@@ -317,39 +317,6 @@ PCHAR getStringFromChannelType(SIGNALING_CHANNEL_TYPE type)
     return typeStr;
 }
 
-SIGNALING_CHANNEL_ROLE_TYPE getChannelRoleTypeFromString(PCHAR type, UINT32 length)
-{
-    // Assume the channel Deleting status first
-    SIGNALING_CHANNEL_ROLE_TYPE channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_UNKNOWN;
-
-    if (0 == STRNCMP(SIGNALING_CHANNEL_ROLE_TYPE_MASTER_STR, type, length)) {
-        channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-    } else if (0 == STRNCMP(SIGNALING_CHANNEL_ROLE_TYPE_VIEWER_STR, type, length)) {
-        channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
-    }
-
-    return channelRoleType;
-}
-
-PCHAR getStringFromChannelRoleType(SIGNALING_CHANNEL_ROLE_TYPE type)
-{
-    PCHAR typeStr;
-
-    switch (type) {
-        case SIGNALING_CHANNEL_ROLE_TYPE_MASTER:
-            typeStr = SIGNALING_CHANNEL_ROLE_TYPE_MASTER_STR;
-            break;
-        case SIGNALING_CHANNEL_ROLE_TYPE_VIEWER:
-            typeStr = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER_STR;
-            break;
-        default:
-            typeStr = SIGNALING_CHANNEL_ROLE_TYPE_UNKNOWN_STR;
-            break;
-    }
-
-    return typeStr;
-}
-
 // https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-how-iam.html#kinesis-using-iam-arn-format
 // Example: arn:aws:kinesisvideo:region:account-id:channel/channel-name/code
 STATUS validateKvsSignalingChannelArnAndExtractChannelName(PChannelInfo pChannelInfo, PUINT16 pStart, PUINT16 pNumChars)
