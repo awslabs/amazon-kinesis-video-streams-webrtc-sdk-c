@@ -402,7 +402,7 @@ endif()
 if(ENABLE_KVS_THREADPOOL)
   file(GLOB THREADPOOL_SOURCE_FILES "src/source/Threadpool/*.c")
   add_library(kvsWebRtcThreadpool ${LINKAGE} ${THREADPOOL_SOURCE_FILES})
-  target_link_libraries(kvsWebRtcThreadpool PRIVATE kvspicUtils)
+  target_link_libraries(kvsWebRtcThreadpool PUBLIC kvspicUtils)
   set(EXTRA_DEPS ${EXTRA_DEPS} kvsWebRtcThreadpool)
 endif()
 
