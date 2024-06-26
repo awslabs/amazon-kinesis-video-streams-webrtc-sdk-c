@@ -1086,7 +1086,6 @@ STATUS checkTurnPeerConnections(PTurnConnection pTurnConnection)
                                                 pTurnConnection->pControlChannel, NULL, FALSE);
         }
     }
-
     CHK_STATUS(turnConnectionRefreshAllocation(pTurnConnection));
 
 CleanUp:

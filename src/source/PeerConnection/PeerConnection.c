@@ -522,6 +522,7 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 }
 
+#ifdef ENABLE_KVS_THREADPOOL
 STATUS peerConnectionAsync(startRoutine fn, PVOID data)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -530,6 +531,7 @@ CleanUp:
 
     return retStatus;
 }
+#endif
 
 VOID onNewIceLocalCandidate(UINT64 customData, PCHAR candidateSdpStr)
 {
@@ -1495,6 +1497,19 @@ CleanUp:
     return retStatus;
 }
 
+STATUS createRollingBufferConfig(PRtcRtpTransceiver pRtcRtpTransceiver, PRtcMediaStreamTrack pRtcMediaStreamTrack, DOUBLE rollingBufferDurationSec,
+                                 DOUBLE rollingBufferBitratebps)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;
+    CHK_WARN(pKvsRtpTransceiver != NULL || pRtcMediaStreamTrack != NULL, STATUS_NULL_ARG,
+             "Transceiver is not created. This needs to be invoked after addTransceiver is invoked");
+
+    CHK_STATUS(setUpRollingBufferConfigInternal(pKvsRtpTransceiver, pRtcMediaStreamTrack, rollingBufferDurationSec, rollingBufferBitratebps));
+CleanUp:
+    return retStatus;
+}
+
 STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack pRtcMediaStreamTrack, PRtcRtpTransceiverInit pRtcRtpTransceiverInit,
                       PRtcRtpTransceiver* ppRtcRtpTransceiver)
 {
@@ -1508,27 +1523,12 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     UINT32 clockRate = 0;
     UINT32 ssrc = (UINT32) RAND(), rtxSsrc = (UINT32) RAND();
     RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
-    DOUBLE rollingBufferDurationSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
-    DOUBLE rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
     RtcMediaStreamTrack videoTrack;
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
 
-    // Set defaults for audio and video track. This can be modified to values set up with pRtcRtpTransceiverInit
-    if (pRtcMediaStreamTrack != NULL) {
-        if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_VIDEO) {
-            rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
-        } else if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_AUDIO) {
-            rollingBufferBitratebps = DEFAULT_EXPECTED_AUDIO_BIT_RATE;
-        } else {
-            rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
-        }
-    }
-
     if (pRtcRtpTransceiverInit != NULL) {
         direction = pRtcRtpTransceiverInit->direction;
-        rollingBufferDurationSec = pRtcRtpTransceiverInit->rollingBufferDurationSec;
-        rollingBufferBitratebps = pRtcRtpTransceiverInit->rollingBufferBitratebps;
     }
 
     if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY && pRtcMediaStreamTrack == NULL) {
@@ -1573,8 +1573,8 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     }
 
     // TODO: Add ssrc duplicate detection here not only relying on RAND()
-    CHK_STATUS(createKvsRtpTransceiver(direction, rollingBufferDurationSec, rollingBufferBitratebps, pKvsPeerConnection, ssrc, rtxSsrc,
-                                       pRtcMediaStreamTrack, NULL, pRtcMediaStreamTrack->codec, &pKvsRtpTransceiver));
+    CHK_STATUS(createKvsRtpTransceiver(direction, pKvsPeerConnection, ssrc, rtxSsrc, pRtcMediaStreamTrack, NULL, pRtcMediaStreamTrack->codec,
+                                       &pKvsRtpTransceiver));
     CHK_STATUS(createJitterBuffer(onFrameReadyFunc, onFrameDroppedFunc, depayFunc, DEFAULT_JITTER_BUFFER_MAX_LATENCY, clockRate,
                                   (UINT64) pKvsRtpTransceiver, &pJitterBuffer));
     CHK_STATUS(kvsRtpTransceiverSetJitterBuffer(pKvsRtpTransceiver, pJitterBuffer));
@@ -1910,6 +1910,7 @@ STATUS peerConnectionGetMetrics(PRtcPeerConnection pPeerConnection, PPeerConnect
         pPeerConnectionMetrics->version = PEER_CONNECTION_METRICS_CURRENT_VERSION;
     }
 
+#ifdef ENABLE_KVS_THREADPOOL
     MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
     if (pWebRtcClientContext->isContextInitialized) {
         if (pWebRtcClientContext->pStunIpAddrCtx->isIpInitialized) {
@@ -1917,7 +1918,7 @@ STATUS peerConnectionGetMetrics(PRtcPeerConnection pPeerConnection, PPeerConnect
         }
     }
     MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
-
+#endif
     pPeerConnectionMetrics->peerConnectionStats.peerConnectionCreationTime = pKvsPeerConnection->peerConnectionDiagnostics.peerConnectionCreationTime;
     pPeerConnectionMetrics->peerConnectionStats.dtlsSessionSetupTime = pKvsPeerConnection->peerConnectionDiagnostics.dtlsSessionSetupTime;
     pPeerConnectionMetrics->peerConnectionStats.iceHolePunchingTime = pKvsPeerConnection->peerConnectionDiagnostics.iceHolePunchingTime;
