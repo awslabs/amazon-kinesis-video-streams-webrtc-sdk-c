@@ -9,6 +9,7 @@ Signaling internal include file
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include "../Include_i.h"
 
 // Request id header name
 #define SIGNALING_REQUEST_ID_HEADER_NAME KVS_REQUEST_ID_HEADER_NAME ":"
