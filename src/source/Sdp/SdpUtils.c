@@ -1,6 +1,5 @@
 #define LOG_CLASS "SDPUtils"
 #include "../Include_i.h"
-#include "kvssdp/sdp_data_types.h"
 
 STATUS convertSdpErrorCode(SdpResult_t sdpResult)
 {

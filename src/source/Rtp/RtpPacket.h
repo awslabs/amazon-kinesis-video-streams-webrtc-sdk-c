@@ -9,7 +9,7 @@ RTP Packet include file
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+#include "kvsrtp/rtp_data_types.h"
 #define MIN_HEADER_LENGTH  12
 #define VERSION_SHIFT      6
 #define VERSION_MASK       0x3
@@ -108,7 +108,7 @@ STATUS setRtpPacketFromBytes(PBYTE, UINT32, PRtpPacket);
 STATUS createBytesFromRtpPacket(PRtpPacket, PBYTE, PUINT32);
 STATUS setBytesFromRtpPacket(PRtpPacket, PBYTE, UINT32);
 STATUS constructRtpPackets(PPayloadArray, UINT8, UINT16, UINT32, UINT32, PRtpPacket, UINT32);
-
+STATUS convertRtpErrorCode(RtpResult_t rtpResult);
 #ifdef __cplusplus
 }
 #endif

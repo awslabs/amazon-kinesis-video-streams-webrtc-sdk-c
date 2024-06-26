@@ -10,7 +10,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+#include "kvssdp/sdp_data_types.h"
 #define SDP_CANDIDATE_TYPE_HOST    "host"
 #define SDP_CANDIDATE_TYPE_SERFLX  "srflx"
 #define SDP_CANDIDATE_TYPE_PRFLX   "prflx"
@@ -209,6 +209,8 @@ STATUS deserializeSessionDescription(PSessionDescription, PCHAR);
 
 // Return code maps to a code if we are trying to serialize an invalid session_description
 STATUS serializeSessionDescription(PSessionDescription, PCHAR, PUINT32);
+
+STATUS convertSdpErrorCode(SdpResult_t sdpResult);
 
 #ifdef __cplusplus
 }

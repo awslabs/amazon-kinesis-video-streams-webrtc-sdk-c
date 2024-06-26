@@ -363,7 +363,7 @@ STATUS xorIpAddress(PKvsIpAddress, PBYTE);
 STATUS stunPackageIpAddr(PStunHeader, STUN_ATTRIBUTE_TYPE, PKvsIpAddress, PBYTE, PUINT32);
 UINT16 getPackagedStunAttributeSize(PStunAttributeHeader);
 STATUS getFirstAvailableStunAttribute(PStunPacket, PStunAttributeHeader*);
-
+STATUS convertStunErrorCode(StunResult_t stunResult);
 #ifdef __cplusplus
 }
 #endif
