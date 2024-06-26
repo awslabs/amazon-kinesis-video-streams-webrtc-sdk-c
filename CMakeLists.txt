@@ -473,9 +473,6 @@ install(DIRECTORY ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include/
   DESTINATION include
 )
 
-list(APPEND ALL_LIBS kvspicState kvspicUtils kvsWebRtcThreadpool ${EXTRA_DEPS} kvsCommonLws ${LIBWEBSOCKETS_LIBRARIES} kvssdp kvsstun kvsrtp ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY} ${GPERFTOOLS_MALLOC_LIBRARIES} ${GPERFTOOLS_PROFILER_LIBRARIES} ${MBEDTLS_LIBRARIES})
-set(ALL_LIBS @ALL_LIBS@ CACHE EXTERNAL "List of all libraries")
-
 if (BUILD_SAMPLE)
   # copy sample frames to build folder, in case developer runs sample program with command `samples/kvsWebrtcClientMaster` from `build` dir.
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/opusSampleFrames" DESTINATION .)
