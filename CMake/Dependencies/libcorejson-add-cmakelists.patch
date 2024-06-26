@@ -1,9 +1,9 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
 new file mode 100644
-index 0000000..9a5f850
+index 0000000..e48e611
 --- /dev/null
 +++ b/CMakeLists.txt
-@@ -0,0 +1,25 @@
+@@ -0,0 +1,24 @@
 +cmake_minimum_required(VERSION 3.6.3)
 +project(corejson C)
 +
@@ -28,4 +28,3 @@ index 0000000..9a5f850
 +    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 +    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 +    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
-+
