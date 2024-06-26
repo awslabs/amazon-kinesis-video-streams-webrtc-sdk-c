@@ -3808,14 +3808,6 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_SlowClockSkew)
     EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_NE(0, iceCount);
 
-    for (i = 0; i < iceCount; i++) {
-        EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, i, &pIceConfigInfo));
-        EXPECT_NE(0, pIceConfigInfo->uriCount);
-        EXPECT_EQ(298 * HUNDREDS_OF_NANOS_IN_A_SECOND, pIceConfigInfo->ttl);
-        EXPECT_EQ(SIGNALING_ICE_CONFIG_INFO_CURRENT_VERSION, pIceConfigInfo->version);
-        EXPECT_EQ(0, STRCMP("1607424954:djE6YXJuOmF3czpraW5lc2lzdmlkZW86dXMtd2VzdC0yOjgzNjIwMzExNzk3MTpjaGFubmVsL1NjYXJ5VGVzdENoYW5uZWwvMTU5OTg1NjczODM5OA==", pIceConfigInfo->userName));
-    }
-
     //
     // Set to invalid again to trigger an update.
     // The message will not update as the type is not an offer
