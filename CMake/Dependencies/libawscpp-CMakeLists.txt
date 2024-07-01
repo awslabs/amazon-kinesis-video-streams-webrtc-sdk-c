@@ -2,13 +2,28 @@ cmake_minimum_required(VERSION 3.6.3)
 project(libawscpp-download NONE)
 include(ExternalProject)
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    message(STATUS "Configuring for Linux")
+    set(TARGET_ARCH LINUX)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    message(STATUS "Configuring for macOS")
+    set(TARGET_ARCH APPLE)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    message(STATUS "Configuring for Windows")
+    set(TARGET_ARCH WINDOWS)
+endif()
+
 ExternalProject_Add(libawscpp-download
     GIT_REPOSITORY    https://github.com/aws/aws-sdk-cpp.git
     GIT_TAG           1.11.217
     LIST_SEPARATOR    "|"
-    CMAKE_ARGS       -DBUILD_SHARED_LIBS=OFF
-                     -DBUILD_ONLY=kinesisvideo|kinesis-video-webrtc-storage
+    CMAKE_ARGS       -DBUILD_SHARED_LIBS=ON
+                     -DENABLE_TESTING=OFF
+                     -DBUILD_ONLY=${BUILD_ONLY}
                      -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}
+                     -DCMAKE_PREFIX_PATH=${OPEN_SRC_INSTALL_PREFIX}
+                     -DTARGET_ARCH=${TARGET_ARCH}
+                     -DCUSTOM_MEMORY_MANAGEMENT=OFF
     BUILD_ALWAYS      TRUE
     TEST_COMMAND      ""
 )

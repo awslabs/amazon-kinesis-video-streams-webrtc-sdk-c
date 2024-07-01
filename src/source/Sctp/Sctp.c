@@ -365,7 +365,6 @@ CleanUp:
     if (data != NULL) {
         free(data);
     }
-
     if (STATUS_FAILED(retStatus)) {
         return -1;
     }
