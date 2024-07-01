@@ -19,7 +19,6 @@ extern "C" {
 #define RUN_TIME                    (2700 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define LOG_GROUP_NAME              (PCHAR) "WebrtcSDK"
 #define CHANNEL_NAME_PREFIX         (PCHAR) "DEFAULT"
-#define USE_STORAGE                 TRUE
 #define AUDIO_CODEC                 RTC_CODEC_OPUS
 #define VIDEO_CODEC                 RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE
 #define DEFAULT_BITRATE             (250 * 1024)

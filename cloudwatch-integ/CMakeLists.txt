@@ -12,7 +12,7 @@ link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
 find_package(ZLIB REQUIRED)
 find_package(AWSSDK REQUIRED COMPONENTS monitoring logs)
 
-set(CW_CONFIG_HEADER "configs/lr_static_h265_openssl.h" CACHE FILEPATH "Config header for the cloudwatch integrated demo")
+set(CW_CONFIG_HEADER "configs/default_config.h" CACHE FILEPATH "Config header for the cloudwatch integrated demo")
 
 add_definitions(-DCW_CONFIG_HEADER="${CW_CONFIG_HEADER}")
 message(STATUS "Config header set to ${CW_CONFIG_HEADER}")

@@ -275,8 +275,12 @@ INT32 main(INT32 argc, CHAR* argv[])
 #endif
         CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, END_TO_END_METRICS_INVOCATION_PERIOD, END_TO_END_METRICS_INVOCATION_PERIOD,
                                       publishEndToEndMetrics, (UINT64) pSampleStreamingSession, &e2eTimerId));
-        CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, RUN_TIME, TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, terminate,
-                                      (UINT64) pSampleConfiguration, &terminateId));
+
+        if(RUN_TIME != 0) {
+            CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, RUN_TIME,
+                                          TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, terminate,
+                                          (UINT64) pSampleConfiguration, &terminateId));
+        }
         CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, END_TO_END_METRICS_INVOCATION_PERIOD, END_TO_END_METRICS_INVOCATION_PERIOD,
                                       publishStatsForCanary, (UINT64) pSampleConfiguration, &inboundTimerId));
         // Block until interrupted

@@ -453,8 +453,10 @@ INT32 main(INT32 argc, CHAR* argv[])
 
         THREAD_CREATE(&profilingThread, sendProfilingMetrics, (PVOID) pSampleConfiguration);
 
-        CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, RUN_TIME, TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, terminate,
-                                      (UINT64) pSampleConfiguration, &terminateTimerId));
+        if(RUN_TIME != 0) {
+            CHK_STATUS(timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, RUN_TIME, TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, terminate,
+                                          (UINT64) pSampleConfiguration, &terminateTimerId));
+        }
         // Checking for termination
         CHK_STATUS(sessionCleanupWait(pSampleConfiguration));
         DLOGI("[KVS Master] Streaming session terminated");
