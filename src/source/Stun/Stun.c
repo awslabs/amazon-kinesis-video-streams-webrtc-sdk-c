@@ -380,7 +380,6 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
     UINT16 errorPhraseLength, channelNumber, buffereLength, errorCode;
 
     UNUSED_PARAM(pStunAttributeFingerprint);
-
     CHK(pStunBuffer != NULL && ppStunPacket != NULL, STATUS_NULL_ARG);
     CHK(bufferSize >= STUN_HEADER_LEN, STATUS_INVALID_ARG);
 

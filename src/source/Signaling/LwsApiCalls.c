@@ -1495,7 +1495,6 @@ STATUS joinStorageSessionLws(PSignalingClient pSignalingClient, UINT64 time)
     UINT32 resultLen;
 
     UNUSED_PARAM(pResponseStr);
-    UNUSED_PARAM(pLwsCallInfo);
     UNUSED_PARAM(resultLen);
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
