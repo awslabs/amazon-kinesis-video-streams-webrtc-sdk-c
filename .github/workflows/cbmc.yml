@@ -1,4 +1,4 @@
-name: Codecov for WebRTC C SDK
+name: CBMC WebRTC C SDK
 on:
   push:
     branches:
@@ -37,7 +37,7 @@ jobs:
       - name: Run CBMC checker
         run:  |
           FAILED=0
-          INCLUDE_DIRS=("-Isrc/include/") 
+          INCLUDE_DIRS=("-Isrc/include/" -Iopen-source/include/) 
           DIRECTORIES=("src/source/" "samples/")  # Replace with your directories
           for dir in "${DIRECTORIES[@]}"; do
             for file in $(find "$dir" -name '*.c'); do
