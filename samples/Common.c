@@ -6,6 +6,126 @@
 
 PSampleConfiguration gSampleConfiguration = NULL;
 
+VOID printHelp()
+{
+    printf("Usage: program [OPTIONS]\n");
+    printf("Options:\n");
+    printf("  -h, --help                            Show this help message\n");
+    printf("  -c, --channel-name                    Set channel name\n");
+    printf("  -s, --enable-storage                  Enable/Disable storage (0 to disable, 1 to enable). Default value: 0\n");
+    printf("  -a, --audio-codec                     Select audio codec (opus/alaw/mulaw/aac). Default value: opus\n");
+    printf("  -v, --video-codec                     Select video codec (h264/h265). Default value: h264\n");
+    printf("  -g, --source-type                     Select gstreamer source type (testsrc/devicesrc/rtspsrc). Default value: devicesrc\n");
+    printf("  -r, --rtsp-uri                        If using rtsp src, provide URI. If URI is not provided, source type will default to devicesrc\n");
+    printf("  -m, --media-type                      Set media type (video-only/audio-video). Default value: video-only\n");
+}
+
+INT32 parseArguments(INT32 argc, CHAR* argv[], BOOL gstApp, PCommandLineOptions pCommandLineOptions)
+{
+    PCHAR audioCodec = AUDIO_CODEC_NAME_OPUS, videoCodec = VIDEO_CODEC_NAME_H264, srcType = GSTREAMER_SRC_NAME_DEVICESRC,
+          mediaType = GSTREAMER_MEDIA_TYPE_NAME_VIDEO_ONLY;
+
+    MEMSET(pCommandLineOptions, 0x00, SIZEOF(CommandLineOptions));
+    pCommandLineOptions->audioCodec = RTC_CODEC_OPUS;
+    pCommandLineOptions->videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    pCommandLineOptions->srcType = DEVICE_SOURCE;
+    pCommandLineOptions->enableStorage = FALSE;
+    pCommandLineOptions->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
+
+    for (INT32 i = 1; i < argc; ++i) {
+        if (STRCMP(argv[i], "--help") == 0 || STRCMP(argv[i], "-h") == 0) {
+            printHelp();
+            return -1;
+        } else if (STRCMP(argv[i], "--channel-name") == 0 || STRCMP(argv[i], "-c") == 0) {
+            STRNCPY(pCommandLineOptions->channelName, argv[++i], SIZEOF(pCommandLineOptions->channelName));
+        } else if (STRCMP(argv[i], "--enable-storage") == 0 || STRCMP(argv[i], "-s") == 0) {
+            PCHAR val = argv[++i];
+            if (STRCMP(val, "0")) {
+                pCommandLineOptions->enableStorage = FALSE;
+            } else if (STRCMP(val, "1")) {
+                pCommandLineOptions->enableStorage = TRUE;
+            } else {
+                DLOGI("Incorrect option value.");
+                printHelp();
+                return -1;
+            }
+        } else if (STRCMP(argv[i], "--audio-codec") == 0 || STRCMP(argv[i], "-a") == 0) {
+            audioCodec = argv[++i];
+            if (!STRCMP(audioCodec, AUDIO_CODEC_NAME_AAC)) {
+                pCommandLineOptions->audioCodec = RTC_CODEC_AAC;
+            }
+            if (!STRCMP(audioCodec, AUDIO_CODEC_NAME_OPUS)) {
+                pCommandLineOptions->audioCodec = RTC_CODEC_OPUS;
+            } else if (!STRCMP(audioCodec, AUDIO_CODEC_NAME_ALAW)) {
+                pCommandLineOptions->audioCodec = RTC_CODEC_ALAW;
+            } else if (!STRCMP(audioCodec, AUDIO_CODEC_NAME_MULAW)) {
+                pCommandLineOptions->audioCodec = RTC_CODEC_MULAW;
+            } else {
+                DLOGI("[KVS Master] Defaulting to opus as the specified codec's sample frames may not be available");
+                pCommandLineOptions->audioCodec = RTC_CODEC_OPUS;
+            }
+        } else if (STRCMP(argv[i], "--video-codec") == 0 || STRCMP(argv[i], "-v") == 0) {
+            videoCodec = argv[++i];
+            if (!STRCMP(videoCodec, VIDEO_CODEC_NAME_H264)) {
+                pCommandLineOptions->videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+            } else if (!STRCMP(videoCodec, VIDEO_CODEC_NAME_H265)) {
+                pCommandLineOptions->videoCodec = RTC_CODEC_H265;
+            } else {
+                DLOGI("[KVS Master] Defaulting to h264 as the specified codec's sample frames may not be available");
+                pCommandLineOptions->audioCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+            }
+        } else if (STRCMP(argv[i], "--source-type") == 0 || STRCMP(argv[i], "-g") == 0) {
+            srcType = argv[++i];
+            if (STRCMP(srcType, GSTREAMER_SRC_NAME_TESTSRC) == 0) {
+                DLOGI("Using test source in GStreamer");
+                pCommandLineOptions->srcType = TEST_SOURCE;
+            } else if (STRCMP(srcType, GSTREAMER_SRC_NAME_DEVICESRC) == 0) {
+                DLOGI("Using device source in GStreamer");
+                pCommandLineOptions->srcType = DEVICE_SOURCE;
+            } else if (STRCMP(srcType, GSTREAMER_SRC_NAME_RTSPSRC) == 0) {
+                pCommandLineOptions->srcType = RTSP_SOURCE;
+            } else {
+                DLOGI("Unrecognized source type. Defaulting to device source in GStreamer");
+                pCommandLineOptions->srcType = DEVICE_SOURCE;
+            }
+        } else if (STRCMP(argv[i], "--rtsp-uri") == 0 || STRCMP(argv[i], "-r") == 0) {
+            STRNCPY(pCommandLineOptions->rtspUri, argv[++i], SIZEOF(pCommandLineOptions->rtspUri));
+        } else if (STRCMP(argv[i], "--media-type") == 0 || STRCMP(argv[i], "-m") == 0) {
+            mediaType = argv[++i];
+            if (STRCMP(mediaType, GSTREAMER_MEDIA_TYPE_NAME_VIDEO_ONLY) == 0) {
+                pCommandLineOptions->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
+            } else if (STRCMP(mediaType, GSTREAMER_MEDIA_TYPE_NAME_AV) == 0) {
+                pCommandLineOptions->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
+            } else {
+                DLOGI("Unrecognized streaming type. Default to video-only");
+            }
+        } else {
+            DLOGI("Unknown option: %s\n", argv[i]);
+            printHelp();
+            return -1;
+        }
+    }
+
+    if (gstApp) {
+        DLOGI("Channel name: %s\n"
+              "Storage enabled? %s\n"
+              "Audio codec type: %s\n"
+              "Video codec type: %s\n"
+              "GStreamer source type: %s\n"
+              "GStreamer media type: %s\n",
+              pCommandLineOptions->channelName, pCommandLineOptions->enableStorage ? "Enabled" : "Disabled", audioCodec, videoCodec, srcType,
+              mediaType);
+    } else {
+        DLOGI("Channel name: %s\n"
+              "Storage enabled? %s\n"
+              "Audio codec type: %s\n"
+              "Video codec type: %s\n",
+              pCommandLineOptions->channelName, pCommandLineOptions->enableStorage ? "Enabled" : "Disabled", audioCodec, videoCodec);
+    }
+
+    return 0;
+}
+
 VOID sigintHandler(INT32 sigNum)
 {
     UNUSED_PARAM(sigNum);

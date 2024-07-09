@@ -10,51 +10,43 @@ INT32 main(INT32 argc, CHAR* argv[])
     PCHAR pChannelName;
     SignalingClientMetrics signalingClientMetrics;
     signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
-    RTC_CODEC audioCodec = RTC_CODEC_OPUS;
-    RTC_CODEC videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
 
+    CommandLineOptions commandLineOptions;
     SET_INSTRUMENTED_ALLOCATORS();
     UINT32 logLevel = setLogLevel();
 
 #ifndef _WIN32
     signal(SIGINT, sigintHandler);
 #endif
+    if (parseArguments(argc, argv, FALSE, &commandLineOptions) < 0) {
+        goto CleanUp;
+    }
 
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
-    CHK_ERR((pChannelName = argc > 1 ? argv[1] : GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION,
+    if (IS_NULL_OR_EMPTY_STRING(commandLineOptions.channelName)) {
+        pChannelName = GETENV(IOT_CORE_THING_NAME);
+    } else {
+        pChannelName = commandLineOptions.channelName;
+    }
+    CHK_ERR((pChannelName != NULL, STATUS_INVALID_OPERATION,
             "AWS_IOT_CORE_THING_NAME must be set");
 #else
-    pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
+    if (IS_NULL_OR_EMPTY_STRING(commandLineOptions.channelName)) {
+        pChannelName = SAMPLE_CHANNEL_NAME;
+    } else {
+        pChannelName = commandLineOptions.channelName;
+    }
 #endif
 
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
-
-    if (argc > 3) {
-        if (!STRCMP(argv[3], AUDIO_CODEC_NAME_AAC)) {
-            audioCodec = RTC_CODEC_AAC;
-        } else {
-            DLOGI("[KVS Master] Defaulting to opus as the specified codec's sample frames may not be available");
-        }
-    }
-
-    if (argc > 4) {
-        if (!STRCMP(argv[4], VIDEO_CODEC_NAME_H265)) {
-            videoCodec = RTC_CODEC_H265;
-        } else {
-            DLOGI("[KVS Master] Defaulting to H264 as the specified codec's sample frames may not be available");
-        }
-    }
 
     // Set the audio and video handlers
     pSampleConfiguration->audioSource = sendAudioPackets;
     pSampleConfiguration->videoSource = sendVideoPackets;
     pSampleConfiguration->receiveAudioVideoSource = sampleReceiveAudioVideoFrame;
-    pSampleConfiguration->audioCodec = audioCodec;
-    pSampleConfiguration->videoCodec = videoCodec;
-
-    if (argc > 2 && STRNCMP(argv[2], "1", 2) == 0) {
-        pSampleConfiguration->channelInfo.useMediaStorage = TRUE;
-    }
+    pSampleConfiguration->audioCodec = commandLineOptions.audioCodec;
+    pSampleConfiguration->videoCodec = commandLineOptions.videoCodec;
+    pSampleConfiguration->channelInfo.useMediaStorage = commandLineOptions.enableStorage;
 
 #ifdef ENABLE_DATA_CHANNEL
     pSampleConfiguration->onDataChannel = onDataChannel;
@@ -64,18 +56,18 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     // Check if the samples are present
 
-    if (videoCodec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
+    if (commandLineOptions.videoCodec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
         CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./h264SampleFrames/frame-0001.h264"));
         DLOGI("[KVS Master] Checked H264 sample video frame availability....available");
-    } else if (videoCodec == RTC_CODEC_H265) {
+    } else if (commandLineOptions.videoCodec == RTC_CODEC_H265) {
         CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./h265SampleFrames/frame-0001.h265"));
         DLOGI("[KVS Master] Checked H265 sample video frame availability....available");
     }
 
-    if (audioCodec == RTC_CODEC_OPUS) {
+    if (commandLineOptions.audioCodec == RTC_CODEC_OPUS) {
         CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./opusSampleFrames/sample-001.opus"));
         DLOGI("[KVS Master] Checked Opus sample audio frame availability....available");
-    } else if (audioCodec == RTC_CODEC_AAC) {
+    } else if (commandLineOptions.audioCodec == RTC_CODEC_AAC) {
         CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./aacSampleFrames/sample-001.aac"));
         DLOGI("[KVS Master] Checked AAC sample audio frame availability....available");
     }

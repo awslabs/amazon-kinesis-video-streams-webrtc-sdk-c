@@ -34,6 +34,13 @@ extern "C" {
 #define VIDEO_CODEC_NAME_H265  "h265"
 #define VIDEO_CODEC_NAME_VP8   "vp8"
 
+#define GSTREAMER_SRC_NAME_TESTSRC   "testsrc"
+#define GSTREAMER_SRC_NAME_DEVICESRC "devicesrc"
+#define GSTREAMER_SRC_NAME_RTSPSRC   "rtspsrc"
+
+#define GSTREAMER_MEDIA_TYPE_NAME_VIDEO_ONLY "video-only"
+#define GSTREAMER_MEDIA_TYPE_NAME_AV         "audio-video"
+
 #define SAMPLE_MASTER_CLIENT_ID "ProducerMaster"
 #define SAMPLE_VIEWER_CLIENT_ID "ConsumerViewer"
 #define SAMPLE_CHANNEL_NAME     (PCHAR) "ScaryTestChannel"
@@ -111,6 +118,16 @@ typedef enum {
 
 typedef struct __SampleStreamingSession SampleStreamingSession;
 typedef struct __SampleStreamingSession* PSampleStreamingSession;
+
+typedef struct {
+    CHAR channelName[MAX_CHANNEL_NAME_LEN + 1];
+    BOOL enableStorage;
+    RTC_CODEC audioCodec;
+    RTC_CODEC videoCodec;
+    SampleSourceType srcType;
+    SampleStreamingMediaType mediaType;
+    CHAR rtspUri[MAX_URI_CHAR_LEN + 1];
+} CommandLineOptions, *PCommandLineOptions;
 
 typedef struct {
     UINT64 prevNumberOfPacketsSent;
@@ -292,6 +309,8 @@ STATUS getPendingMessageQueueForHash(PStackQueue, UINT64, BOOL, PPendingMessageQ
 STATUS initSignaling(PSampleConfiguration, PCHAR);
 BOOL sampleFilterNetworkInterfaces(UINT64, PCHAR);
 UINT32 setLogLevel();
+VOID printHelp();
+INT32 parseArguments(INT32 argc, CHAR* argv[], BOOL gstApp, PCommandLineOptions pCommandLineOptions);
 
 #ifdef __cplusplus
 }

@@ -39,10 +39,9 @@ INT32 main(INT32 argc, CHAR* argv[])
     SignalingMessage message;
     PSampleConfiguration pSampleConfiguration = NULL;
     PSampleStreamingSession pSampleStreamingSession = NULL;
-    RTC_CODEC audioCodec = RTC_CODEC_OPUS;
-    RTC_CODEC videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
     BOOL locked = FALSE;
     PCHAR pChannelName;
+    CommandLineOptions commandLineOptions;
     CHAR clientId[256];
 
     SET_INSTRUMENTED_ALLOCATORS();
@@ -52,39 +51,30 @@ INT32 main(INT32 argc, CHAR* argv[])
     signal(SIGINT, sigintHandler);
 #endif
 
+    if (parseArguments(argc, argv, FALSE, &commandLineOptions) < 0) {
+        goto CleanUp;
+    }
+
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
-    CHK_ERR((pChannelName = argc > 1 ? argv[1] : GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION,
+    if (IS_NULL_OR_EMPTY_STRING(commandLineOptions.channelName)) {
+        pChannelName = GETENV(IOT_CORE_THING_NAME);
+    } else {
+        pChannelName = commandLineOptions.channelName;
+    }
+    CHK_ERR((pChannelName != NULL, STATUS_INVALID_OPERATION,
             "AWS_IOT_CORE_THING_NAME must be set");
 #else
-    pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
+    if (IS_NULL_OR_EMPTY_STRING(commandLineOptions.channelName)) {
+        pChannelName = SAMPLE_CHANNEL_NAME;
+    } else {
+        pChannelName = commandLineOptions.channelName;
+    }
 #endif
-
-    if (argc > 2) {
-        if (!STRCMP(argv[2], AUDIO_CODEC_NAME_AAC)) {
-            audioCodec = RTC_CODEC_AAC;
-        } else if (!STRCMP(argv[2], AUDIO_CODEC_NAME_ALAW)) {
-            audioCodec = RTC_CODEC_ALAW;
-        } else if (!STRCMP(argv[2], AUDIO_CODEC_NAME_MULAW)) {
-            audioCodec = RTC_CODEC_MULAW;
-        } else {
-            DLOGI("[KVS Viewer] Defaulting to Opus audio codec");
-        }
-    }
-
-    if (argc > 3) {
-        if (!STRCMP(argv[3], VIDEO_CODEC_NAME_H265)) {
-            videoCodec = RTC_CODEC_H265;
-        } else if (!STRCMP(argv[3], VIDEO_CODEC_NAME_VP8)) {
-            videoCodec = RTC_CODEC_VP8;
-        } else {
-            DLOGI("[KVS Viewer] Defaulting to H264 video codec");
-        }
-    }
 
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, TRUE, TRUE, logLevel, &pSampleConfiguration));
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
-    pSampleConfiguration->audioCodec = audioCodec;
-    pSampleConfiguration->videoCodec = videoCodec;
+    pSampleConfiguration->audioCodec = commandLineOptions.audioCodec;
+    pSampleConfiguration->videoCodec = commandLineOptions.videoCodec;
 
     // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
     CHK_STATUS(initKvsWebRtc());

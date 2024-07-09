@@ -380,102 +380,65 @@ INT32 main(INT32 argc, CHAR* argv[])
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = NULL;
     PCHAR pChannelName;
-    RTC_CODEC audioCodec = RTC_CODEC_OPUS;
-    RTC_CODEC videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
-
+    CommandLineOptions commandLineOptions;
     SET_INSTRUMENTED_ALLOCATORS();
     UINT32 logLevel = setLogLevel();
 
     signal(SIGINT, sigintHandler);
 
+    if (parseArguments(argc, argv, TRUE, &commandLineOptions) < 0) {
+        goto CleanUp;
+    }
+
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
-    CHK_ERR((pChannelName = argc > 1 ? argv[1] : GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION,
+    if (IS_NULL_OR_EMPTY_STRING(commandLineOptions.channelName)) {
+        pChannelName = GETENV(IOT_CORE_THING_NAME);
+    } else {
+        pChannelName = commandLineOptions.channelName;
+    }
+    CHK_ERR((pChannelName != NULL, STATUS_INVALID_OPERATION,
             "AWS_IOT_CORE_THING_NAME must be set");
 #else
-    pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
+    if (IS_NULL_OR_EMPTY_STRING(commandLineOptions.channelName)) {
+        pChannelName = SAMPLE_CHANNEL_NAME;
+    } else {
+        pChannelName = commandLineOptions.channelName;
+    }
 #endif
 
-    CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
-
-    if (argc > 3 && STRCMP(argv[3], "testsrc") == 0) {
-        if (argc > 4) {
-            if (!STRCMP(argv[4], AUDIO_CODEC_NAME_AAC)) {
-                audioCodec = RTC_CODEC_AAC;
-            }
-        }
-
-        if (argc > 5) {
-            if (!STRCMP(argv[5], VIDEO_CODEC_NAME_H265)) {
-                videoCodec = RTC_CODEC_H265;
-            }
-        }
-    }
+    CHK_STATUS(createSampleConfiguration(commandLineOptions.channelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
 
     pSampleConfiguration->videoSource = sendGstreamerAudioVideo;
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
-    pSampleConfiguration->audioCodec = audioCodec;
-    pSampleConfiguration->videoCodec = videoCodec;
+    pSampleConfiguration->audioCodec = commandLineOptions.audioCodec;
+    pSampleConfiguration->videoCodec = commandLineOptions.videoCodec;
 
 #ifdef ENABLE_DATA_CHANNEL
     pSampleConfiguration->onDataChannel = onDataChannel;
 #endif
     pSampleConfiguration->customData = (UINT64) pSampleConfiguration;
-    pSampleConfiguration->srcType = DEVICE_SOURCE; // Default to device source (autovideosrc and autoaudiosrc)
+    pSampleConfiguration->srcType = commandLineOptions.srcType; // Default to device source (autovideosrc and autoaudiosrc)
     /* Initialize GStreamer */
     gst_init(&argc, &argv);
     DLOGI("[KVS Gstreamer Master] Finished initializing GStreamer and handlers");
 
-    if (argc > 2) {
-        if (STRCMP(argv[2], "video-only") == 0) {
-            pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
-            DLOGI("[KVS Gstreamer Master] Streaming video only");
-        } else if (STRCMP(argv[2], "audio-video-storage") == 0) {
-            pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
-            pSampleConfiguration->channelInfo.useMediaStorage = TRUE;
-            DLOGI("[KVS Gstreamer Master] Streaming audio and video");
-        } else if (STRCMP(argv[2], "audio-video") == 0) {
-            pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
-            DLOGI("[KVS Gstreamer Master] Streaming audio and video");
-        } else {
-            DLOGI("[KVS Gstreamer Master] Unrecognized streaming type. Default to video-only");
-        }
-    } else {
-        DLOGI("[KVS Gstreamer Master] Streaming video only");
+    pSampleConfiguration->mediaType = commandLineOptions.mediaType;
+
+    if(IS_NULL_OR_EMPTY_STRING(commandLineOptions.rtspUri) && commandLineOptions.srcType == RTSP_SOURCE) {
+        DLOGI("[KVS GStreamer Master] No RTSP source URI included. Defaulting to device source");
+        DLOGI("[KVS GStreamer Master] Usage: ./kvsWebrtcClientMasterGstSample -g rtspsrc -r rtsp://<rtsp uri>"
+              "or ./kvsWebrtcClientMasterGstSample --source-type rtspsrc --rtsp-uri <rtsp://<rtsp uri>");
+        commandLineOptions.srcType = DEVICE_SOURCE;
     }
 
-    if (argc > 3) {
-        if (STRCMP(argv[3], "testsrc") == 0) {
-            DLOGI("[KVS GStreamer Master] Using test source in GStreamer");
-            pSampleConfiguration->srcType = TEST_SOURCE;
-        } else if (STRCMP(argv[3], "devicesrc") == 0) {
-            DLOGI("[KVS GStreamer Master] Using device source in GStreamer");
-            pSampleConfiguration->srcType = DEVICE_SOURCE;
-        } else if (STRCMP(argv[3], "rtspsrc") == 0) {
-            DLOGI("[KVS GStreamer Master] Using RTSP source in GStreamer");
-            if (argc < 5) {
-                DLOGI("[KVS GStreamer Master] No RTSP source URI included. Defaulting to device source");
-                DLOGI("[KVS GStreamer Master] Usage: ./kvsWebrtcClientMasterGstSample <channel name> audio-video rtspsrc rtsp://<rtsp uri>"
-                      "or ./kvsWebrtcClientMasterGstSample <channel name> video-only rtspsrc <rtsp://<rtsp uri>");
-                pSampleConfiguration->srcType = DEVICE_SOURCE;
-            } else {
-                pSampleConfiguration->srcType = RTSP_SOURCE;
-                pSampleConfiguration->rtspUri = argv[4];
-            }
-        } else {
-            DLOGI("[KVS Gstreamer Master] Unrecognized source type. Defaulting to device source in GStreamer");
-        }
-    } else {
-        DLOGI("[KVS GStreamer Master] Using device source in GStreamer");
+    pSampleConfiguration->srcType = commandLineOptions.srcType;
+    pSampleConfiguration->rtspUri = commandLineOptions.rtspUri;
+
+    if(pSampleConfiguration->mediaType != SAMPLE_STREAMING_AUDIO_VIDEO && commandLineOptions.enableStorage) {
+        DLOGE("Storage not enabled for video-only use cases");
+        goto CleanUp;
     }
 
-    switch (pSampleConfiguration->mediaType) {
-        case SAMPLE_STREAMING_VIDEO_ONLY:
-            DLOGI("[KVS GStreamer Master] streaming type video-only");
-            break;
-        case SAMPLE_STREAMING_AUDIO_VIDEO:
-            DLOGI("[KVS GStreamer Master] streaming type audio-video");
-            break;
-    }
 
     // Initalize KVS WebRTC. This must be done before anything else, and must only be done once.
     CHK_STATUS(initKvsWebRtc());
