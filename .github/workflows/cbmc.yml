@@ -37,10 +37,11 @@ jobs:
       - name: Run CBMC checker
         run:  |
           FAILED=0
+          INCLUDE_DIRS=("-Isrc/include/") 
           DIRECTORIES=("src/source/" "samples/")  # Replace with your directories
           for dir in "${DIRECTORIES[@]}"; do
             for file in $(find "$dir" -name '*.c'); do
-              cbmc "$file" --unwind 10 --unwinding-assertions --no-unwinding-assertions || FAILED=1
+              cbmc "${INCLUDE_DIRS[@]}" "$file" --unwind 10 --unwinding-assertions --no-unwinding-assertions || FAILED=1
             done
           done
           exit $FAILED
