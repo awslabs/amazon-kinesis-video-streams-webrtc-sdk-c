@@ -8,7 +8,7 @@ on:
       - develop
       - master
 jobs:
-  linux-gcc-codecov:
+  cbmc:
     runs-on: ubuntu-20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
@@ -31,7 +31,9 @@ jobs:
         run:  |
           FAILED=0
           DIRECTORIES=("src/source/" "samples/")  # Replace with your directories
-          for file in $(find path/to/your/directory -name '*.c'); do
-            cbmc "$file" --unwind 10 --unwinding-assertions --no-unwinding-assertions || FAILED=1
+          for dir in "${DIRECTORIES[@]}"; do
+            for file in $(find "$dir" -name '*.c'); do
+              cbmc "$file" --unwind 10 --unwinding-assertions --no-unwinding-assertions || FAILED=1
+            done
           done
           exit $FAILED
