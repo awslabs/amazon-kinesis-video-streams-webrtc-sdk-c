@@ -1,0 +1,37 @@
+name: Codecov for WebRTC C SDK
+on:
+  push:
+    branches:
+      - cbmc
+  pull_request:
+    branches:
+      - develop
+      - master
+jobs:
+  linux-gcc-codecov:
+    runs-on: ubuntu-20.04
+    env:
+      AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Install dependencies
+        run: |
+          sudo apt clean && sudo apt update
+          sudo apt-get -y install libcurl4-openssl-dev
+      - name: Run CBMC checker
+        run:  |
+          FAILED=0
+          DIRECTORIES=("src/source/" "samples/")  # Replace with your directories
+          for file in $(find path/to/your/directory -name '*.c'); do
+            cbmc "$file" --unwind 10 --unwinding-assertions --no-unwinding-assertions || FAILED=1
+          done
+          exit $FAILED
