@@ -231,6 +231,7 @@ endif()
 
 # building kvsCommonLws also builds kvspic
 set(BUILD_ARGS
+        -DBUILD_STATIC=${BUILD_STATIC_LIBS}
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
         -DUSE_OPENSSL=${USE_OPENSSL}
         -DUSE_MBEDTLS=${USE_MBEDTLS}
@@ -379,7 +380,7 @@ endif()
 if(ENABLE_KVS_THREADPOOL)
   file(GLOB THREADPOOL_SOURCE_FILES "src/source/Threadpool/*.c")
   add_library(kvsWebRtcThreadpool ${LINKAGE} ${THREADPOOL_SOURCE_FILES})
-  target_link_libraries(kvsWebRtcThreadpool PRIVATE kvspicUtils)
+  target_link_libraries(kvsWebRtcThreadpool PUBLIC kvspicUtils)
   set(EXTRA_DEPS ${EXTRA_DEPS} kvsWebRtcThreadpool)
 endif()
 
@@ -407,7 +408,7 @@ target_link_libraries(
   kvsWebrtcSignalingClient
   PUBLIC
         kvsCommonLws
-        ${LIBWEBSOCKETS_LIBRARIES} 
+        ${LIBWEBSOCKETS_LIBRARIES}
   PRIVATE kvspicUtils
          kvspicState
          ${CMAKE_THREAD_LIBS_INIT}
@@ -427,9 +428,16 @@ if(COMPILER_WARNINGS)
   target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wall -Werror -pedantic -Wextra -Wno-unknown-warning-option)
 endif()
 
+if(ENABLE_KVS_THREADPOOL)
+  install(TARGETS kvsWebRtcThreadpool
+          LIBRARY DESTINATION lib
+          ARCHIVE DESTINATION lib
+  )
+endif()
+
 install(TARGETS kvsWebrtcClient kvsWebrtcSignalingClient
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
 )
 
 install(DIRECTORY ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include/
