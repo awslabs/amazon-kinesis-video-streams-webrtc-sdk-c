@@ -37,6 +37,15 @@ extern "C" {
 #define RTCP_FIRST_REPORT_DELAY (3 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 typedef enum {
+    RTCP_PACKET_TYPE_FIR = 192, // https://tools.ietf.org/html/rfc2032#section-5.2.1
+    RTCP_PACKET_TYPE_SENDER_REPORT = 200,
+    RTCP_PACKET_TYPE_RECEIVER_REPORT = 201, // https://tools.ietf.org/html/rfc3550#section-6.4.2
+    RTCP_PACKET_TYPE_SOURCE_DESCRIPTION = 202,
+    RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK = 205,
+    RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK = 206,
+} RTCP_PACKET_TYPE;
+
+typedef enum {
     RTCP_FEEDBACK_MESSAGE_TYPE_NACK = 1,
     RTCP_PSFB_PLI = 1, // https://tools.ietf.org/html/rfc4585#section-6.3
     RTCP_PSFB_SLI = 2, // https://tools.ietf.org/html/rfc4585#section-6.3.2
@@ -68,7 +77,7 @@ typedef struct {
 } RtcpPacket, *PRtcpPacket;
 
 STATUS setRtcpPacketFromBytes(PBYTE, UINT32, PRtcpPacket);
-STATUS setBytesFromRtcpValues(PBYTE, UINT32, UINT32, UINT32, UINT64, UINT64, UINT32, UINT32);
+STATUS setBytesFromRtcpValues_SenderReport(PBYTE, UINT32, UINT32, UINT32, UINT64, UINT64, UINT32, UINT32);
 STATUS rtcpNackListGet(PBYTE, UINT32, PUINT32, PUINT32, PUINT16, PUINT32);
 STATUS rembValueGet(PBYTE, UINT32, PDOUBLE, PUINT32, PUINT8);
 STATUS isRembPacket(PBYTE, UINT32);

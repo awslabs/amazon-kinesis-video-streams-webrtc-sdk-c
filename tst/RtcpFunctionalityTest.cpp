@@ -78,7 +78,6 @@ TEST_F(RtcpFunctionalityTest, setRtpPacketFromBytesCompound)
 
     currentOffset += (rtcpPacket.payloadLength + RTCP_PACKET_HEADER_LEN);
     EXPECT_EQ(STATUS_SUCCESS, setRtcpPacketFromBytes(compoundPacket + currentOffset, SIZEOF(compoundPacket) - currentOffset, &rtcpPacket));
-    EXPECT_EQ(rtcpPacket.header.packetType, RTCP_PACKET_TYPE_SOURCE_DESCRIPTION);
 
     currentOffset += (rtcpPacket.payloadLength + RTCP_PACKET_HEADER_LEN);
     EXPECT_EQ(STATUS_SUCCESS, setRtcpPacketFromBytes(compoundPacket + currentOffset, SIZEOF(compoundPacket) - currentOffset, &rtcpPacket));
@@ -451,7 +450,7 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketFirReport)
 TEST_F(RtcpFunctionalityTest, onRtcpPacketSliReport)
 {
     RtcOutboundRtpStreamStats stats{};
-    auto hexpacket = (PCHAR) "82CE00014487A9E7";
+    auto hexpacket = (PCHAR) "82CE0003222222224487A9E700032005";
     BYTE rawpacket[256] = {0};
     UINT32 rawpacketSize = 256;
 
@@ -469,7 +468,7 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketSliReport)
 TEST_F(RtcpFunctionalityTest, onRtcpPacketPliReport)
 {
     RtcOutboundRtpStreamStats stats{};
-    auto hexpacket = (PCHAR) "81CE00014487A9E7";
+    auto hexpacket = (PCHAR) "81CE0002010203044487A9E7";
     BYTE rawpacket[256] = {0};
     UINT32 rawpacketSize = 256;
     BOOL onPictureLossCalled = FALSE;

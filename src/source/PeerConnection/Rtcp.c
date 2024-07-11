@@ -7,20 +7,26 @@
 static STATUS onRtcpFIRPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 mediaSSRC;
     PKvsRtpTransceiver pTransceiver = NULL;
     RtcpContext_t ctx;
     RtcpResult_t rtcpResult;
+    RtcpPacket_t rtcpPacket;
+    RtcpFirPacket_t firPacket;
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
 
     rtcpResult = Rtcp_Init(&ctx);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
-    rtcpResult = Rtcp_ParseFIRPacket(&ctx, pRtcpPacket->payload, pRtcpPacket->payloadLength, &mediaSSRC);
+    rtcpPacket.header.packetType = GetRtcpPacketType(pRtcpPacket->header.packetType, pRtcpPacket->header.receptionReportCount);
+    rtcpPacket.header.receptionReportCount = pRtcpPacket->header.receptionReportCount;
+    rtcpPacket.pPayload = (const PBYTE) pRtcpPacket->payload;
+    rtcpPacket.payloadLength = (size_t) pRtcpPacket->payloadLength;
+
+    rtcpResult = Rtcp_ParseFirPacket(&ctx, &rtcpPacket, &firPacket);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
-    if (STATUS_SUCCEEDED(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, mediaSSRC))) {
+    if (STATUS_SUCCEEDED(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, firPacket.senderSsrc))) {
         MUTEX_LOCK(pTransceiver->statsLock);
         pTransceiver->outboundStats.firCount++;
         MUTEX_UNLOCK(pTransceiver->statsLock);
@@ -28,7 +34,7 @@ static STATUS onRtcpFIRPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPe
             pTransceiver->onPictureLoss(pTransceiver->onPictureLossCustomData);
         }
     } else {
-        DLOGW("Received FIR for non existing ssrc: %u", mediaSSRC);
+        DLOGW("Received FIR for non existing ssrc: %u", firPacket.senderSsrc);
     }
 
 CleanUp:
@@ -40,29 +46,46 @@ CleanUp:
 STATUS onRtcpSLIPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 mediaSSRC;
+    UINT32 mediaSSRC, noSliInfo;
     PKvsRtpTransceiver pTransceiver = NULL;
     RtcpContext_t ctx;
     RtcpResult_t rtcpResult;
+    RtcpPacket_t rtcpPacket;
+    RtcpSliPacket_t sliPacket = {0};
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
 
     rtcpResult = Rtcp_Init(&ctx);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
-    rtcpResult = Rtcp_ParseSLIPacket(&ctx, pRtcpPacket->payload, pRtcpPacket->payloadLength, &mediaSSRC);
+    rtcpPacket.header.packetType = GetRtcpPacketType(pRtcpPacket->header.packetType, pRtcpPacket->header.receptionReportCount);
+    rtcpPacket.header.receptionReportCount = pRtcpPacket->header.receptionReportCount;
+    rtcpPacket.pPayload = (const PBYTE) pRtcpPacket->payload;
+    rtcpPacket.payloadLength = (size_t) pRtcpPacket->payloadLength;
+
+    noSliInfo = (UINT32) ((rtcpPacket.payloadLength - SIZEOF(sliPacket.senderSsrc - SIZEOF(sliPacket.mediaSourceSsrc))) / 4);
+    if (noSliInfo > 0) {
+        sliPacket.numSliInfos = noSliInfo;
+        sliPacket.pSliInfos = MEMALLOC(noSliInfo * SIZEOF(UINT32));
+    }
+
+    rtcpResult = Rtcp_ParseSliPacket(&ctx, &rtcpPacket, &sliPacket);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
-    if (STATUS_SUCCEEDED(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, mediaSSRC))) {
+    if (STATUS_SUCCEEDED(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, sliPacket.mediaSourceSsrc))) {
         MUTEX_LOCK(pTransceiver->statsLock);
         pTransceiver->outboundStats.sliCount++;
         MUTEX_UNLOCK(pTransceiver->statsLock);
     } else {
-        DLOGW("Received SLI for non existing ssrc: %u", mediaSSRC);
+        DLOGW("Received SLI for non existing ssrc: %u", sliPacket.mediaSourceSsrc);
     }
 
 CleanUp:
 
+    if (sliPacket.pSliInfos != NULL) {
+        MEMFREE(sliPacket.pSliInfos);
+        sliPacket.pSliInfos = NULL;
+    }
     return retStatus;
 }
 
@@ -74,6 +97,7 @@ static STATUS onRtcpSenderReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKv
     PKvsRtpTransceiver pTransceiver = NULL;
     RtcpContext_t ctx;
     RtcpResult_t rtcpResult;
+    RtcpPacket_t rtcpPacket;
     RtcpSenderReport_t senderReport;
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
@@ -86,15 +110,20 @@ static STATUS onRtcpSenderReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKv
     rtcpResult = Rtcp_Init(&ctx);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
-    rtcpResult = Rtcp_ParseSenderReport(&ctx, pRtcpPacket->payload, pRtcpPacket->payloadLength, &senderReport);
+    rtcpPacket.pPayload = (const PBYTE) pRtcpPacket->payload;
+    rtcpPacket.payloadLength = (size_t) pRtcpPacket->payloadLength;
+    rtcpPacket.header.packetType = GetRtcpPacketType(pRtcpPacket->header.packetType, pRtcpPacket->header.receptionReportCount);
+    rtcpPacket.header.receptionReportCount = pRtcpPacket->header.receptionReportCount;
+
+    rtcpResult = Rtcp_ParseSenderReport(&ctx, &rtcpPacket, &senderReport);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
-    senderSSRC = senderReport.ssrc;
+    senderSSRC = senderReport.senderSsrc;
     if (STATUS_SUCCEEDED(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, senderSSRC))) {
-        UINT64 ntpTime = senderReport.ntpTime;
-        UINT32 rtpTs = senderReport.rtpTime;
-        UINT32 packetCnt = senderReport.packetCount;
-        UINT32 octetCnt = senderReport.octetCount;
+        UINT64 ntpTime = senderReport.senderInfo.ntpTime;
+        UINT32 rtpTs = senderReport.senderInfo.rtpTime;
+        UINT32 packetCnt = senderReport.senderInfo.packetCount;
+        UINT32 octetCnt = senderReport.senderInfo.octetCount;
         DLOGV("RTCP_PACKET_TYPE_SENDER_REPORT %d %" PRIu64 " rtpTs: %u %u pkts %u bytes", senderSSRC, ntpTime, rtpTs, packetCnt, octetCnt);
     } else {
         DLOGW("Received sender report for non existing ssrc: %u", senderSSRC);
@@ -114,7 +143,8 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
     UINT64 currentTimeNTP = convertTimestampToNTP(GETTIME());
     RtcpContext_t ctx;
     RtcpResult_t rtcpResult;
-    RtcpReceiverReport_t receiverReport;
+    RtcpPacket_t rtcpPacket;
+    RtcpReceiverReport_t receiverReport = {0};
 
     UNUSED_PARAM(rttPropDelayMsec);
     UNUSED_PARAM(rttPropDelay);
@@ -135,22 +165,31 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
     rtcpResult = Rtcp_Init(&ctx);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
-    rtcpResult = Rtcp_ParseReceiverReport(&ctx, pRtcpPacket->payload, pRtcpPacket->payloadLength, &receiverReport);
+    rtcpPacket.pPayload = (const PBYTE) pRtcpPacket->payload;
+    rtcpPacket.payloadLength = (size_t) pRtcpPacket->payloadLength;
+    rtcpPacket.header.packetType = GetRtcpPacketType(pRtcpPacket->header.packetType, pRtcpPacket->header.receptionReportCount);
+    rtcpPacket.header.receptionReportCount = pRtcpPacket->header.receptionReportCount;
+    receiverReport.numReceptionReports = (size_t) pRtcpPacket->header.receptionReportCount;
+    if (receiverReport.numReceptionReports > 0) {
+        receiverReport.pReceptionReports = (RtcpReceptionReport_t*) MEMALLOC(rtcpPacket.header.receptionReportCount * sizeof(RtcpReceptionReport_t));
+    }
+
+    rtcpResult = Rtcp_ParseReceiverReport(&ctx, &rtcpPacket, &receiverReport);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
-    senderSSRC = receiverReport.ssrcSender;
-    ssrc1 = receiverReport.ssrcSource;
+    senderSSRC = receiverReport.senderSsrc;
+    ssrc1 = receiverReport.pReceptionReports->sourceSsrc;
 
     if (STATUS_FAILED(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, ssrc1))) {
         DLOGW("Received receiver report for non existing ssrc: %u", ssrc1);
         return STATUS_SUCCESS; // not really an error ?
     }
-    fractionLost = receiverReport.fractionLost / 255.0;
-    cumulativeLost = receiverReport.cumulativePacketsLost;
-    extHiSeqNumReceived = receiverReport.extHiSeqNumReceived;
-    interarrivalJitter = receiverReport.interArrivalJitter;
-    lastSR = receiverReport.lastSR;
-    delaySinceLastSR = receiverReport.delaySinceLastSR;
+    fractionLost = receiverReport.pReceptionReports->fractionLost / 255.0;
+    cumulativeLost = receiverReport.pReceptionReports->cumulativePacketsLost;
+    extHiSeqNumReceived = receiverReport.pReceptionReports->extendedHighestSeqNumReceived;
+    interarrivalJitter = receiverReport.pReceptionReports->interArrivalJitter;
+    lastSR = receiverReport.pReceptionReports->lastSR;
+    delaySinceLastSR = receiverReport.pReceptionReports->delaySinceLastSR;
 
     DLOGS("RTCP_PACKET_TYPE_RECEIVER_REPORT %u %u loss: %u %u seq: %u jit: %u lsr: %u dlsr: %u", senderSSRC, ssrc1, fractionLost, cumulativeLost,
           extHiSeqNumReceived, interarrivalJitter, lastSR, delaySinceLastSR);
@@ -178,6 +217,10 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
 
 CleanUp:
 
+    if (receiverReport.pReceptionReports != NULL) {
+        MEMFREE(receiverReport.pReceptionReports);
+        receiverReport.pReceptionReports = NULL;
+    }
     return retStatus;
 }
 
@@ -531,21 +574,27 @@ CleanUp:
 STATUS onRtcpPLIPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 mediaSSRC;
     PKvsRtpTransceiver pTransceiver = NULL;
     RtcpContext_t ctx;
     RtcpResult_t rtcpResult;
+    RtcpPacket_t rtcpPacket;
+    RtcpPliPacket_t pliPacket;
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
 
     rtcpResult = Rtcp_Init(&ctx);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
-    rtcpResult = Rtcp_ParsePLIPacket(&ctx, pRtcpPacket->payload, pRtcpPacket->payloadLength, &mediaSSRC);
+    rtcpPacket.header.packetType = GetRtcpPacketType(pRtcpPacket->header.packetType, pRtcpPacket->header.receptionReportCount);
+    rtcpPacket.header.receptionReportCount = pRtcpPacket->header.receptionReportCount;
+    rtcpPacket.pPayload = (const PBYTE) pRtcpPacket->payload;
+    rtcpPacket.payloadLength = (size_t) pRtcpPacket->payloadLength;
+
+    rtcpResult = Rtcp_ParsePliPacket(&ctx, &rtcpPacket, &pliPacket);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
-    CHK_STATUS_ERR(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, mediaSSRC), STATUS_RTCP_INPUT_SSRC_INVALID,
-                   "Received PLI for non existing ssrc: %u", mediaSSRC);
+    CHK_STATUS_ERR(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, pliPacket.mediaSourceSsrc), STATUS_RTCP_INPUT_SSRC_INVALID,
+                   "Received PLI for non existing ssrc: %u", pliPacket.mediaSourceSsrc);
 
     MUTEX_LOCK(pTransceiver->statsLock);
     pTransceiver->outboundStats.pliCount++;

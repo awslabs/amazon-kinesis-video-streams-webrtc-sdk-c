@@ -3,6 +3,39 @@
 #include "../Include_i.h"
 #include "kvsrtcp/rtcp_api.h"
 
+static RTCP_PACKET_TYPE getPacketType( RtcpPacketType_t packetType )
+{
+    RTCP_PACKET_TYPE ret = 0;
+
+    switch( packetType )
+    {
+        case RTCP_PACKET_FIR:
+            ret =  RTCP_PACKET_TYPE_FIR;
+            break;
+
+        case RTCP_PACKET_SENDER_REPORT:
+            ret = RTCP_PACKET_TYPE_SENDER_REPORT;
+            break;
+
+        case RTCP_PACKET_RECEIVER_REPORT:
+            ret = RTCP_PACKET_TYPE_RECEIVER_REPORT;
+            break;
+
+        case RTCP_PACKET_TRANSPORT_FEEDBACK_NACK:
+        case RTCP_PACKET_TRANSPORT_FEEDBACK_TWCC:
+            ret = RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK;
+            break;
+
+        case RTCP_PACKET_PAYLOAD_FEEDBACK_PLI:
+        case RTCP_PACKET_PAYLOAD_FEEDBACK_SLI:
+        case RTCP_PACKET_PAYLOAD_FEEDBACK_REMB:
+            ret = RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK;
+            break;
+   }
+
+   return ret;
+}
+
 STATUS setRtcpPacketFromBytes(PBYTE pRawPacket, UINT32 pRawPacketsLen, PRtcpPacket pRtcpPacket)
 {
     ENTERS();
@@ -15,50 +48,43 @@ STATUS setRtcpPacketFromBytes(PBYTE pRawPacket, UINT32 pRawPacketsLen, PRtcpPack
     rtcpResult = Rtcp_Init(&ctx);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
-    rtcpResult = Rtcp_DeSerialize(&ctx, pRawPacket, pRawPacketsLen, &rtcpPacket);
+    rtcpResult = Rtcp_DeSerializePacket(&ctx, pRawPacket, pRawPacketsLen, &rtcpPacket);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
-    pRtcpPacket->header.version = RTCP_HEADER_VERSION;
+    pRtcpPacket->header.version = RTCP_PACKET_VERSION_VAL;
     pRtcpPacket->header.receptionReportCount = rtcpPacket.header.receptionReportCount;
-    pRtcpPacket->header.packetType = rtcpPacket.header.packetType;
-    pRtcpPacket->header.packetLength = rtcpPacket.header.packetLength;
-    pRtcpPacket->payloadLength = rtcpPacket.payloadLength;
-    pRtcpPacket->payload = rtcpPacket.pPayload;
+    pRtcpPacket->header.packetType = getPacketType(rtcpPacket.header.packetType);
+    pRtcpPacket->header.packetLength = (UINT32) (rtcpPacket.payloadLength / 4);
+    pRtcpPacket->payloadLength = (UINT32)(rtcpPacket.payloadLength);
+    pRtcpPacket->payload = (PBYTE) rtcpPacket.pPayload;
 
 CleanUp:
     LEAVES();
     return retStatus;
 }
 
-STATUS setBytesFromRtcpValues(PBYTE pRawPacket, UINT32 rawPacketsLen, UINT32 packetLen, UINT32 ssrc, UINT64 ntpTime, UINT64 rtpTime,
-                              UINT32 packetCount, UINT32 octetCount)
+STATUS setBytesFromRtcpValues_SenderReport(PBYTE pRawPacket, UINT32 rawPacketsLen, UINT32 packetLen, UINT32 ssrc, UINT64 ntpTime, UINT64 rtpTime,
+                                           UINT32 packetCount, UINT32 octetCount)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     RtcpContext_t ctx;
     RtcpResult_t rtcpResult;
-    RtcpPacket_t rtcpPacket;
-    RtcpSenderReport_t senderReport;
+    RtcpPacket_t rtcpPacket = {0};
+    RtcpSenderReport_t senderReport = {0};
 
     rtcpResult = Rtcp_Init(&ctx);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
-    MEMSET(&rtcpPacket, 0, SIZEOF(RtcpPacket_t));
-    MEMSET(&senderReport, 0, SIZEOF(RtcpSenderReport_t));
+    rtcpPacket.header.packetType = RTCP_PACKET_SENDER_REPORT;
+    rtcpPacket.pPayload = &(pRawPacket[RTCP_PACKET_HEADER_LEN]);
 
-    rtcpPacket.header.packetLength = (packetLen / RTCP_PACKET_LEN_WORD_SIZE) - 1; // The length of this RTCP packet in 32-bit words minus one
-    rtcpPacket.header.packetType = RTCP_PACKET_TYPE_SENDER_REPORT;
-    rtcpPacket.pPayload = &(pRawPacket[RTCP_HEADER_LENGTH]);
+    senderReport.senderSsrc = ssrc;
+    senderReport.senderInfo.ntpTime = ntpTime;
+    senderReport.senderInfo.rtpTime = (UINT32) rtpTime;
+    senderReport.senderInfo.octetCount = octetCount;
+    senderReport.senderInfo.packetCount = packetCount;
 
-    senderReport.ssrc = ssrc;
-    senderReport.ntpTime = ntpTime;
-    senderReport.rtpTime = (UINT32) rtpTime;
-    senderReport.octetCount = octetCount;
-    senderReport.packetCount = packetCount;
-
-    rtcpResult = Rtcp_CreatePayloadSenderReport(&ctx, &rtcpPacket, rawPacketsLen - RTCP_HEADER_LENGTH, &senderReport);
-    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
-
-    rtcpResult = Rtcp_Serialize(&ctx, &rtcpPacket, pRawPacket, (size_t*) &rawPacketsLen);
+    rtcpResult = Rtcp_SerializeSenderReport(&ctx, &senderReport, pRawPacket, (size_t*) &rawPacketsLen);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
 CleanUp:
@@ -144,12 +170,14 @@ STATUS rembValueGet(PBYTE pPayload, UINT32 payloadLen, PDOUBLE pMaximumBitRate, 
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT8 ssrcListLen = 0, exponent = 0;
+    UINT8 exponent = 0;
     UINT32 mantissa = 0, i;
     DOUBLE maximumBitRate = 0;
     PUINT32 pSsrcListRead;
     RtcpContext_t ctx;
     RtcpResult_t rtcpResult;
+    RtcpPacket_t rtcpPacket;
+    RtcpRembPacket_t rembPacket;
 
     CHK(pPayload != NULL && pMaximumBitRate != NULL && pSsrcListLen != NULL, STATUS_NULL_ARG);
     CHK(payloadLen >= RTCP_PACKET_REMB_MIN_SIZE, STATUS_RTCP_INPUT_REMB_TOO_SMALL);
@@ -157,17 +185,20 @@ STATUS rembValueGet(PBYTE pPayload, UINT32 payloadLen, PDOUBLE pMaximumBitRate, 
     rtcpResult = Rtcp_Init(&ctx);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
-    rtcpResult = Rtcp_ParseRembPacket(&ctx, pPayload, payloadLen, (size_t*) &ssrcListLen, &pSsrcListRead, &mantissa, &exponent);
-    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
-    maximumBitRate = mantissa << exponent;
+    rtcpPacket.header.packetType = RTCP_PACKET_PAYLOAD_FEEDBACK_REMB;
+    rtcpPacket.pPayload = (const PBYTE)pPayload;
+    rtcpPacket.payloadLength = (size_t)payloadLen;
+    rembPacket.pSsrcList = pSsrcList;
+    rembPacket.ssrcListLength = SIZEOF(pSsrcList) / SIZEOF(UINT32);
 
-    for (i = 0; i < ssrcListLen; i++) {
-        pSsrcList[i] = getInt32(*(PUINT32) & (pSsrcListRead[i]));
-    }
+    rtcpResult = Rtcp_ParseRembPacket(&ctx, &rtcpPacket, &rembPacket);
+    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
+
+    maximumBitRate = rembPacket.bitRateMantissa << rembPacket.bitRateExponent;
 
 CleanUp:
     if (STATUS_SUCCEEDED(retStatus)) {
-        *pSsrcListLen = ssrcListLen;
+        *pSsrcListLen = rembPacket.ssrcListLength;
         *pMaximumBitRate = maximumBitRate;
     }
 

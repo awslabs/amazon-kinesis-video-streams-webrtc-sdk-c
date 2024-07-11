@@ -734,7 +734,7 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
         allocSize = packetLen + SRTP_AUTH_TAG_OVERHEAD + SRTP_MAX_TRAILER_LEN + 4;
         CHK(NULL != (rawPacket = (PBYTE) MEMALLOC(allocSize)), STATUS_NOT_ENOUGH_MEMORY);
 
-        CHK_STATUS(setBytesFromRtcpValues(rawPacket, allocSize, packetLen, ssrc, ntpTime, rtpTime, packetCount, octetCount));
+        CHK_STATUS(setBytesFromRtcpValues_SenderReport(rawPacket, allocSize, packetLen, ssrc, ntpTime, rtpTime, packetCount, octetCount));
 
         CHK_STATUS(encryptRtcpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, (PINT32) &packetLen));
         CHK_STATUS(iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, packetLen));
