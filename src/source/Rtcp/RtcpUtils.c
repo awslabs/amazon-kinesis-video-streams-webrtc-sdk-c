@@ -22,7 +22,7 @@ STATUS convertRtcpErrorCode(RtcpResult_t rtcpResult)
         case RTCP_RESULT_INPUT_PACKET_TOO_SMALL:
             retStatus = STATUS_RTCP_INPUT_PACKET_TOO_SMALL;
             break;
-        case RTCP_RESULT_INPUT_REMB_INVALID:
+        case RTCP_RESULT_INPUT_REMB_PACKET_INVALID:
             retStatus = STATUS_RTCP_INPUT_REMB_INVALID;
             break;
         default:

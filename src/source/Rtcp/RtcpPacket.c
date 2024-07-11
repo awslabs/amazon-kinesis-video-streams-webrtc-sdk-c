@@ -3,14 +3,13 @@
 #include "../Include_i.h"
 #include "kvsrtcp/rtcp_api.h"
 
-static RTCP_PACKET_TYPE getPacketType( RtcpPacketType_t packetType )
+static RTCP_PACKET_TYPE getStandardRtcpPacketType(RtcpPacketType_t packetType)
 {
     RTCP_PACKET_TYPE ret = 0;
 
-    switch( packetType )
-    {
+    switch (packetType) {
         case RTCP_PACKET_FIR:
-            ret =  RTCP_PACKET_TYPE_FIR;
+            ret = RTCP_PACKET_TYPE_FIR;
             break;
 
         case RTCP_PACKET_SENDER_REPORT:
@@ -31,9 +30,9 @@ static RTCP_PACKET_TYPE getPacketType( RtcpPacketType_t packetType )
         case RTCP_PACKET_PAYLOAD_FEEDBACK_REMB:
             ret = RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK;
             break;
-   }
+    }
 
-   return ret;
+    return ret;
 }
 
 STATUS setRtcpPacketFromBytes(PBYTE pRawPacket, UINT32 pRawPacketsLen, PRtcpPacket pRtcpPacket)
@@ -52,9 +51,9 @@ STATUS setRtcpPacketFromBytes(PBYTE pRawPacket, UINT32 pRawPacketsLen, PRtcpPack
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
     pRtcpPacket->header.version = RTCP_PACKET_VERSION_VAL;
     pRtcpPacket->header.receptionReportCount = rtcpPacket.header.receptionReportCount;
-    pRtcpPacket->header.packetType = getPacketType(rtcpPacket.header.packetType);
+    pRtcpPacket->header.packetType = getStandardRtcpPacketType(rtcpPacket.header.packetType);
     pRtcpPacket->header.packetLength = (UINT32) (rtcpPacket.payloadLength / 4);
-    pRtcpPacket->payloadLength = (UINT32)(rtcpPacket.payloadLength);
+    pRtcpPacket->payloadLength = (UINT32) (rtcpPacket.payloadLength);
     pRtcpPacket->payload = (PBYTE) rtcpPacket.pPayload;
 
 CleanUp:
@@ -186,8 +185,8 @@ STATUS rembValueGet(PBYTE pPayload, UINT32 payloadLen, PDOUBLE pMaximumBitRate, 
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
     rtcpPacket.header.packetType = RTCP_PACKET_PAYLOAD_FEEDBACK_REMB;
-    rtcpPacket.pPayload = (const PBYTE)pPayload;
-    rtcpPacket.payloadLength = (size_t)payloadLen;
+    rtcpPacket.pPayload = (const PBYTE) pPayload;
+    rtcpPacket.payloadLength = (size_t) payloadLen;
     rembPacket.pSsrcList = pSsrcList;
     rembPacket.ssrcListLength = SIZEOF(pSsrcList) / SIZEOF(UINT32);
 

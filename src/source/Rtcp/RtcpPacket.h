@@ -36,6 +36,14 @@ extern "C" {
 // is set to 5 seconds.
 #define RTCP_FIRST_REPORT_DELAY (3 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
+#define RTCP_FMT_PAYLOAD_SPECIFIC_FEEDBACK_PLI    1  // https://datatracker.ietf.org/doc/html/rfc4585#section-6.3
+#define RTCP_FMT_PAYLOAD_SPECIFIC_FEEDBACK_SLI    2  // https://datatracker.ietf.org/doc/html/rfc4585#section-6.3
+#define RTCP_FMT_PAYLOAD_SPECIFIC_FEEDBACK_RPSI   3  // https://datatracker.ietf.org/doc/html/rfc4585#section-6.3
+#define RTCP_FMT_PAYLOAD_SPECIFIC_FEEDBACK_REMB   15 // https://datatracker.ietf.org/doc/html/draft-alvestrand-rmcat-remb-03#section-2.2
+#define RTCP_FMT_TRANSPORT_SPECIFIC_FEEDBACK_NACK 1  // https://datatracker.ietf.org/doc/html/rfc4585#section-6.2.1
+#define RTCP_FMT_TRANSPORT_SPECIFIC_FEEDBACK_TWCC                                                                                                    \
+    15 // https://datatracker.ietf.org/doc/html/draft-holmer-rmcat-transport-wide-cc-extensions-01#section-3.1
+
 typedef enum {
     RTCP_PACKET_TYPE_FIR = 192, // https://tools.ietf.org/html/rfc2032#section-5.2.1
     RTCP_PACKET_TYPE_SENDER_REPORT = 200,

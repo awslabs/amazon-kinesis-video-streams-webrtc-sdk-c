@@ -3,6 +3,47 @@
 #include "../Include_i.h"
 #include "kvsrtcp/rtcp_api.h"
 
+static RtcpPacketType_t getDetailedRtcpPacketType(uint8_t packetType, uint8_t receptionReportCount)
+{
+    RtcpPacketType_t result = RTCP_PACKET_UNKNOWN;
+
+    switch (packetType) {
+        case RTCP_PACKET_TYPE_FIR: {
+            if (receptionReportCount == 0) {
+                result = RTCP_PACKET_FIR;
+            }
+        } break;
+
+        case RTCP_PACKET_TYPE_SENDER_REPORT: {
+            result = RTCP_PACKET_SENDER_REPORT;
+        } break;
+
+        case RTCP_PACKET_TYPE_RECEIVER_REPORT: {
+            result = RTCP_PACKET_RECEIVER_REPORT;
+        } break;
+
+        case RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK: {
+            if (receptionReportCount == RTCP_FMT_TRANSPORT_SPECIFIC_FEEDBACK_NACK) {
+                result = RTCP_PACKET_TRANSPORT_FEEDBACK_NACK;
+            } else if (receptionReportCount == RTCP_FMT_TRANSPORT_SPECIFIC_FEEDBACK_TWCC) {
+                result = RTCP_PACKET_TRANSPORT_FEEDBACK_TWCC;
+            }
+        } break;
+
+        case RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK: {
+            if (receptionReportCount == RTCP_FMT_PAYLOAD_SPECIFIC_FEEDBACK_PLI) {
+                result = RTCP_PACKET_PAYLOAD_FEEDBACK_PLI;
+            } else if (receptionReportCount == RTCP_FMT_PAYLOAD_SPECIFIC_FEEDBACK_SLI) {
+                result = RTCP_PACKET_PAYLOAD_FEEDBACK_SLI;
+            } else if (receptionReportCount == RTCP_FMT_PAYLOAD_SPECIFIC_FEEDBACK_REMB) {
+                result = RTCP_PACKET_PAYLOAD_FEEDBACK_REMB;
+            }
+        } break;
+    }
+
+    return result;
+}
+
 // TODO handle FIR packet https://tools.ietf.org/html/rfc2032#section-5.2.1
 static STATUS onRtcpFIRPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
 {
@@ -18,7 +59,7 @@ static STATUS onRtcpFIRPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPe
     rtcpResult = Rtcp_Init(&ctx);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
-    rtcpPacket.header.packetType = GetRtcpPacketType(pRtcpPacket->header.packetType, pRtcpPacket->header.receptionReportCount);
+    rtcpPacket.header.packetType = getDetailedRtcpPacketType(pRtcpPacket->header.packetType, pRtcpPacket->header.receptionReportCount);
     rtcpPacket.header.receptionReportCount = pRtcpPacket->header.receptionReportCount;
     rtcpPacket.pPayload = (const PBYTE) pRtcpPacket->payload;
     rtcpPacket.payloadLength = (size_t) pRtcpPacket->payloadLength;
@@ -58,7 +99,7 @@ STATUS onRtcpSLIPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConne
     rtcpResult = Rtcp_Init(&ctx);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
-    rtcpPacket.header.packetType = GetRtcpPacketType(pRtcpPacket->header.packetType, pRtcpPacket->header.receptionReportCount);
+    rtcpPacket.header.packetType = getDetailedRtcpPacketType(pRtcpPacket->header.packetType, pRtcpPacket->header.receptionReportCount);
     rtcpPacket.header.receptionReportCount = pRtcpPacket->header.receptionReportCount;
     rtcpPacket.pPayload = (const PBYTE) pRtcpPacket->payload;
     rtcpPacket.payloadLength = (size_t) pRtcpPacket->payloadLength;
@@ -112,7 +153,7 @@ static STATUS onRtcpSenderReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKv
 
     rtcpPacket.pPayload = (const PBYTE) pRtcpPacket->payload;
     rtcpPacket.payloadLength = (size_t) pRtcpPacket->payloadLength;
-    rtcpPacket.header.packetType = GetRtcpPacketType(pRtcpPacket->header.packetType, pRtcpPacket->header.receptionReportCount);
+    rtcpPacket.header.packetType = getDetailedRtcpPacketType(pRtcpPacket->header.packetType, pRtcpPacket->header.receptionReportCount);
     rtcpPacket.header.receptionReportCount = pRtcpPacket->header.receptionReportCount;
 
     rtcpResult = Rtcp_ParseSenderReport(&ctx, &rtcpPacket, &senderReport);
@@ -167,7 +208,7 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
 
     rtcpPacket.pPayload = (const PBYTE) pRtcpPacket->payload;
     rtcpPacket.payloadLength = (size_t) pRtcpPacket->payloadLength;
-    rtcpPacket.header.packetType = GetRtcpPacketType(pRtcpPacket->header.packetType, pRtcpPacket->header.receptionReportCount);
+    rtcpPacket.header.packetType = getDetailedRtcpPacketType(pRtcpPacket->header.packetType, pRtcpPacket->header.receptionReportCount);
     rtcpPacket.header.receptionReportCount = pRtcpPacket->header.receptionReportCount;
     receiverReport.numReceptionReports = (size_t) pRtcpPacket->header.receptionReportCount;
     if (receiverReport.numReceptionReports > 0) {
@@ -585,7 +626,7 @@ STATUS onRtcpPLIPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConne
     rtcpResult = Rtcp_Init(&ctx);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
-    rtcpPacket.header.packetType = GetRtcpPacketType(pRtcpPacket->header.packetType, pRtcpPacket->header.receptionReportCount);
+    rtcpPacket.header.packetType = getDetailedRtcpPacketType(pRtcpPacket->header.packetType, pRtcpPacket->header.receptionReportCount);
     rtcpPacket.header.receptionReportCount = pRtcpPacket->header.receptionReportCount;
     rtcpPacket.pPayload = (const PBYTE) pRtcpPacket->payload;
     rtcpPacket.payloadLength = (size_t) pRtcpPacket->payloadLength;
