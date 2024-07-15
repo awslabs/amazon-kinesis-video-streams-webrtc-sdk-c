@@ -565,6 +565,24 @@ TEST_F(RtcpFunctionalityTest, testRollingBufferParams)
     EXPECT_EQ(freePeerConnection(&pRtcPeerConnection), STATUS_SUCCESS);
 }
 
+TEST_F(RtcpFunctionalityTest, convertRtcpErrorCodeTest)
+{
+    RtcpResult_t rtcpResult;
+
+    rtcpResult = RTCP_RESULT_OK;
+    EXPECT_EQ(convertRtcpErrorCode(rtcpResult), STATUS_SUCCESS);
+    rtcpResult = RTCP_RESULT_BAD_PARAM;
+    EXPECT_EQ(convertRtcpErrorCode(rtcpResult), STATUS_INVALID_ARG);
+    rtcpResult = RTCP_RESULT_OUT_OF_MEMORY;
+    EXPECT_EQ(convertRtcpErrorCode(rtcpResult), STATUS_NOT_ENOUGH_MEMORY);
+    rtcpResult = RTCP_RESULT_WRONG_VERSION;
+    EXPECT_EQ(convertRtcpErrorCode(rtcpResult), STATUS_RTCP_INPUT_PACKET_INVALID_VERSION);
+    rtcpResult = RTCP_RESULT_INPUT_PACKET_TOO_SMALL;
+    EXPECT_EQ(convertRtcpErrorCode(rtcpResult), STATUS_RTCP_INPUT_PACKET_TOO_SMALL);
+    rtcpResult = RTCP_RESULT_INPUT_REMB_PACKET_INVALID;
+    EXPECT_EQ(convertRtcpErrorCode(rtcpResult), STATUS_RTCP_INPUT_REMB_INVALID);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
