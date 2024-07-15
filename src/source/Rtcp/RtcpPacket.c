@@ -5,34 +5,32 @@
 
 static RTCP_PACKET_TYPE getStandardRtcpPacketType(RtcpPacketType_t packetType)
 {
-    RTCP_PACKET_TYPE ret = 0;
+    RTCP_PACKET_TYPE result = RTCP_PACKET_TYPE_UNKNOWN;
 
     switch (packetType) {
         case RTCP_PACKET_FIR:
-            ret = RTCP_PACKET_TYPE_FIR;
+            result = RTCP_PACKET_TYPE_FIR;
             break;
-
         case RTCP_PACKET_SENDER_REPORT:
-            ret = RTCP_PACKET_TYPE_SENDER_REPORT;
+            result = RTCP_PACKET_TYPE_SENDER_REPORT;
             break;
-
         case RTCP_PACKET_RECEIVER_REPORT:
-            ret = RTCP_PACKET_TYPE_RECEIVER_REPORT;
+            result = RTCP_PACKET_TYPE_RECEIVER_REPORT;
             break;
-
         case RTCP_PACKET_TRANSPORT_FEEDBACK_NACK:
         case RTCP_PACKET_TRANSPORT_FEEDBACK_TWCC:
-            ret = RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK;
+            result = RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK;
             break;
-
         case RTCP_PACKET_PAYLOAD_FEEDBACK_PLI:
         case RTCP_PACKET_PAYLOAD_FEEDBACK_SLI:
         case RTCP_PACKET_PAYLOAD_FEEDBACK_REMB:
-            ret = RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK;
+            result = RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK;
+            break;
+        default:
             break;
     }
 
-    return ret;
+    return result;
 }
 
 STATUS setRtcpPacketFromBytes(PBYTE pRawPacket, UINT32 pRawPacketsLen, PRtcpPacket pRtcpPacket)

@@ -4,7 +4,7 @@
 
 STATUS convertRtcpErrorCode(RtcpResult_t rtcpResult)
 {
-    STATUS retStatus;
+    STATUS retStatus = STATUS_RTCP_UNKNOWN_ERROR;
 
     switch (rtcpResult) {
         case RTCP_RESULT_OK:

@@ -8,29 +8,25 @@ static RtcpPacketType_t getDetailedRtcpPacketType(uint8_t packetType, uint8_t re
     RtcpPacketType_t result = RTCP_PACKET_UNKNOWN;
 
     switch (packetType) {
-        case RTCP_PACKET_TYPE_FIR: {
+        case RTCP_PACKET_TYPE_FIR:
             if (receptionReportCount == 0) {
                 result = RTCP_PACKET_FIR;
             }
-        } break;
-
-        case RTCP_PACKET_TYPE_SENDER_REPORT: {
+            break;
+        case RTCP_PACKET_TYPE_SENDER_REPORT:
             result = RTCP_PACKET_SENDER_REPORT;
-        } break;
-
-        case RTCP_PACKET_TYPE_RECEIVER_REPORT: {
+            break;
+        case RTCP_PACKET_TYPE_RECEIVER_REPORT:
             result = RTCP_PACKET_RECEIVER_REPORT;
-        } break;
-
-        case RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK: {
+            break;
+        case RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK:
             if (receptionReportCount == RTCP_FMT_TRANSPORT_SPECIFIC_FEEDBACK_NACK) {
                 result = RTCP_PACKET_TRANSPORT_FEEDBACK_NACK;
             } else if (receptionReportCount == RTCP_FMT_TRANSPORT_SPECIFIC_FEEDBACK_TWCC) {
                 result = RTCP_PACKET_TRANSPORT_FEEDBACK_TWCC;
             }
-        } break;
-
-        case RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK: {
+            break;
+        case RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK:
             if (receptionReportCount == RTCP_FMT_PAYLOAD_SPECIFIC_FEEDBACK_PLI) {
                 result = RTCP_PACKET_PAYLOAD_FEEDBACK_PLI;
             } else if (receptionReportCount == RTCP_FMT_PAYLOAD_SPECIFIC_FEEDBACK_SLI) {
@@ -38,7 +34,9 @@ static RtcpPacketType_t getDetailedRtcpPacketType(uint8_t packetType, uint8_t re
             } else if (receptionReportCount == RTCP_FMT_PAYLOAD_SPECIFIC_FEEDBACK_REMB) {
                 result = RTCP_PACKET_PAYLOAD_FEEDBACK_REMB;
             }
-        } break;
+            break;
+        default:
+            break;
     }
 
     return result;

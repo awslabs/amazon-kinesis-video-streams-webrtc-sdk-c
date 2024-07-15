@@ -433,6 +433,8 @@ extern "C" {
 #define STATUS_RTCP_INPUT_PARTIAL_PACKET         STATUS_RTCP_BASE + 0x00000006
 #define STATUS_RTCP_INPUT_REMB_TOO_SMALL         STATUS_RTCP_BASE + 0x00000007
 #define STATUS_RTCP_INPUT_REMB_INVALID           STATUS_RTCP_BASE + 0x00000008
+#define STATUS_RTCP_UNKNOWN_ERROR                STATUS_RTCP_BASE + 0x00000009
+
 /*!@} */
 
 /////////////////////////////////////////////////////
