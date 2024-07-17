@@ -1,11 +1,29 @@
 #define LOG_CLASS "ThreadPoolContext"
 #include "../Include_i.h"
+#include <pthread.h>
+
 
 // Function to get access to the Singleton instance
 PThreadPoolContext getThreadContextInstance()
 {
     static ThreadPoolContext t = {.pThreadpool = NULL, .isInitialized = FALSE, .threadpoolContextLock = INVALID_MUTEX_VALUE};
     return &t;
+}
+
+void* threadCountListener(void* pThreadpool)
+{
+    PThreadpool loggerThreadpool = (PThreadpool)pThreadpool;
+    UINT32 threadCount = 0;
+    UINT32 prevThreadCount = 0;
+    while(loggerThreadpool != NULL){
+        threadpoolTotalThreadCount(loggerThreadpool, &threadCount);
+        if(threadCount != prevThreadCount){
+            DLOGE("[TURN DEBUGGING] (ThreadCountListener) Current thread count: %d\n", threadCount);
+            prevThreadCount = threadCount;
+        }
+        usleep(100);
+    }
+    return NULL;
 }
 
 STATUS createThreadPoolContext()
@@ -35,6 +53,10 @@ STATUS createThreadPoolContext()
     CHK_WARN(pThreadPoolContext->pThreadpool == NULL, STATUS_INVALID_OPERATION, "Threadpool object already allocated");
     CHK_STATUS(threadpoolCreate(&pThreadPoolContext->pThreadpool, minThreads, maxThreads));
     pThreadPoolContext->isInitialized = TRUE;
+
+    pthread_t threadCountListenerThread;
+    pthread_create(&threadCountListenerThread, NULL, threadCountListener, pThreadPoolContext->pThreadpool);
+
 CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pThreadPoolContext->threadpoolContextLock);

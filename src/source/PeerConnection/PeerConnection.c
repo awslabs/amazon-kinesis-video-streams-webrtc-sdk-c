@@ -508,6 +508,7 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
             //
             // Reference: https://w3c.github.io/webrtc-pc/#rtcpeerconnectionstate-enum
 #if defined(ENABLE_KVS_THREADPOOL) && defined(KVS_USE_OPENSSL)
+            DLOGE("[TURN Debugging] Calling threadpoolContextPush for dtlsSessionStartThread");
             CHK_STATUS(threadpoolContextPush(dtlsSessionStartThread, (PVOID) pKvsPeerConnection));
 #else
             CHK_STATUS(dtlsSessionStart(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->dtlsIsServer));
@@ -526,6 +527,7 @@ CleanUp:
 STATUS peerConnectionAsync(startRoutine fn, PVOID data)
 {
     STATUS retStatus = STATUS_SUCCESS;
+    DLOGE("[TURN Debugging] Calling threadpoolContextPush for peerConnectionAsync startRoutine fn");
     CHK_STATUS(threadpoolContextPush(fn, data));
 CleanUp:
 
@@ -1660,6 +1662,7 @@ STATUS initKvsWebRtc(VOID)
     CHK_STATUS(initSctpSession());
 #endif
 #ifdef ENABLE_KVS_THREADPOOL
+    DLOGE("[TURN Debugging] Creating ThreadPoolContext and calling threadpoolContextPush for resolveStunIceServerIp");
     DLOGI("KVS WebRtc library using thread pool");
     CHK_STATUS(createWebRtcClientInstance());
     CHK_STATUS(createThreadPoolContext());

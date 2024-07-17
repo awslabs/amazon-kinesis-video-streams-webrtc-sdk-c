@@ -2211,6 +2211,7 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
 
 #ifdef ENABLE_KVS_THREADPOOL
     // This would fail if threadpool was not created
+    DLOGE("[TURN Debugging] Calling threadpoolContextPush for receiveLwsMessageWrapper");
     CHK_STATUS(threadpoolContextPush(receiveLwsMessageWrapper, pSignalingMessageWrapper));
 #else
     // Issue the callback on a separate thread
