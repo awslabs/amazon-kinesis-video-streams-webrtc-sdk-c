@@ -59,7 +59,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS setBytesFromRtcpValues_SenderReport(PBYTE pRawPacket, UINT32 rawPacketsLen, UINT32 packetLen, UINT32 ssrc, UINT64 ntpTime, UINT64 rtpTime,
+STATUS setBytesFromRtcpValues_SenderReport(PBYTE pRawPacket, UINT32 rawPacketsLen, UINT32 ssrc, UINT64 ntpTime, UINT64 rtpTime,
                                            UINT32 packetCount, UINT32 octetCount)
 {
     ENTERS();

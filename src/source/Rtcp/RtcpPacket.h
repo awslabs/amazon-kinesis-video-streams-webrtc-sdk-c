@@ -86,7 +86,7 @@ typedef struct {
 } RtcpPacket, *PRtcpPacket;
 
 STATUS setRtcpPacketFromBytes(PBYTE, UINT32, PRtcpPacket);
-STATUS setBytesFromRtcpValues_SenderReport(PBYTE, UINT32, UINT32, UINT32, UINT64, UINT64, UINT32, UINT32);
+STATUS setBytesFromRtcpValues_SenderReport(PBYTE, UINT32, UINT32, UINT64, UINT64, UINT32, UINT32);
 STATUS rtcpNackListGet(PBYTE, UINT32, PUINT32, PUINT32, PUINT16, PUINT32);
 STATUS rembValueGet(PBYTE, UINT32, PDOUBLE, PUINT32, PUINT8);
 STATUS isRembPacket(PBYTE, UINT32);
