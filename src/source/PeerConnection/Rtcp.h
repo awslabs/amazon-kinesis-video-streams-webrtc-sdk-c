@@ -39,9 +39,9 @@ typedef enum {
 #define TWCC_RUNLEN_ISRECEIVED(packetChunk)    TWCC_ISRECEIVED(TWCC_RUNLEN_STATUS_SYMBOL(packetChunk))
 #define TWCC_STATUSVECTOR_IS_2BIT(packetChunk) (((packetChunk) >> 14u) & 1u)
 #define TWCC_STATUSVECTOR_SSIZE(packetChunk)   (TWCC_STATUSVECTOR_IS_2BIT(packetChunk) ? 2u : 1u)
-#define TWCC_STATUSVECTOR_SMASK(packetChunk)   (TWCC_STATUSVECTOR_IS_2BIT(packetChunk) ? 3u : 1u)
+#define TWCC_STATUSVECTOR_SMASK(packetChunk)   (TWCC_STATUSVECTOR_IS_2BIT(packetChunk) ? 2u : 1u)
 #define TWCC_STATUSVECTOR_STATUS(packetChunk, i)                                                                                                     \
-    (((packetChunk) >> (14u - (i + 1) * TWCC_STATUSVECTOR_SSIZE(packetChunk))) & TWCC_STATUSVECTOR_SMASK(packetChunk))
+    (((packetChunk) >> (14u - (i) * TWCC_STATUSVECTOR_SSIZE(packetChunk))) & TWCC_STATUSVECTOR_SMASK(packetChunk))
 #define TWCC_STATUSVECTOR_COUNT(packetChunk) (TWCC_STATUSVECTOR_IS_2BIT(packetChunk) ? 7 : 14)
 #define TWCC_PACKET_STATUS_COUNT(payload)    (getUnalignedInt16BigEndian((payload) + 10))
 

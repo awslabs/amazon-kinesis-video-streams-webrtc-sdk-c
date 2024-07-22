@@ -167,10 +167,7 @@ STATUS rembValueGet(PBYTE pPayload, UINT32 payloadLen, PDOUBLE pMaximumBitRate, 
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT8 exponent = 0;
-    UINT32 mantissa = 0, i;
     DOUBLE maximumBitRate = 0;
-    PUINT32 pSsrcListRead;
     RtcpContext_t ctx;
     RtcpResult_t rtcpResult;
     RtcpPacket_t rtcpPacket;

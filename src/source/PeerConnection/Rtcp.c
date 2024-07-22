@@ -85,7 +85,7 @@ CleanUp:
 STATUS onRtcpSLIPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 mediaSSRC, noSliInfo;
+    UINT32 noSliInfo;
     PKvsRtpTransceiver pTransceiver = NULL;
     RtcpContext_t ctx;
     RtcpResult_t rtcpResult;
