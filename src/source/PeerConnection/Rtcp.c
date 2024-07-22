@@ -208,7 +208,7 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
     rtcpPacket.payloadLength = (size_t) pRtcpPacket->payloadLength;
     rtcpPacket.header.packetType = getDetailedRtcpPacketType(pRtcpPacket->header.packetType, pRtcpPacket->header.receptionReportCount);
     rtcpPacket.header.receptionReportCount = pRtcpPacket->header.receptionReportCount;
-    receiverReport.numReceptionReports = (size_t) pRtcpPacket->header.receptionReportCount;
+    receiverReport.numReceptionReports = pRtcpPacket->header.receptionReportCount;
     if (receiverReport.numReceptionReports > 0) {
         receiverReport.pReceptionReports = (RtcpReceptionReport_t*) MEMALLOC(rtcpPacket.header.receptionReportCount * sizeof(RtcpReceptionReport_t));
     }

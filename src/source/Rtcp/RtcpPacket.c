@@ -45,7 +45,7 @@ STATUS setRtcpPacketFromBytes(PBYTE pRawPacket, UINT32 pRawPacketsLen, PRtcpPack
     rtcpResult = Rtcp_Init(&ctx);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
 
-    rtcpResult = Rtcp_DeSerializePacket(&ctx, pRawPacket, pRawPacketsLen, &rtcpPacket);
+    rtcpResult = Rtcp_DeserializePacket(&ctx, pRawPacket, pRawPacketsLen, &rtcpPacket);
     CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
     pRtcpPacket->header.version = RTCP_PACKET_VERSION_VAL;
     pRtcpPacket->header.receptionReportCount = rtcpPacket.header.receptionReportCount;
