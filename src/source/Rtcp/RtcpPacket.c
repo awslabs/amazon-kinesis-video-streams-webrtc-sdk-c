@@ -37,7 +37,6 @@ STATUS setRtcpPacketFromBytes(PBYTE pRawPacket, UINT32 pRawPacketsLen, PRtcpPack
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT16 packetLen = 0;
     RtcpContext_t ctx;
     RtcpResult_t rtcpResult;
     RtcpPacket_t rtcpPacket;
@@ -59,8 +58,8 @@ CleanUp:
     return retStatus;
 }
 
-STATUS setBytesFromRtcpValues_SenderReport(PBYTE pRawPacket, UINT32 rawPacketsLen, UINT32 ssrc, UINT64 ntpTime, UINT64 rtpTime,
-                                           UINT32 packetCount, UINT32 octetCount)
+STATUS setBytesFromRtcpValues_SenderReport(PBYTE pRawPacket, UINT32 rawPacketsLen, UINT32 ssrc, UINT64 ntpTime, UINT64 rtpTime, UINT32 packetCount,
+                                           UINT32 octetCount)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
