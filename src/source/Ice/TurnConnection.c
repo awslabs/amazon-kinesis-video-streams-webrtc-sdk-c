@@ -674,6 +674,8 @@ STATUS turnConnectionAddPeer(PTurnConnection pTurnConnection, PKvsIpAddress pPee
     PTurnPeer pTurnPeer = NULL;
     BOOL locked = FALSE;
 
+    DLOGE("[TURN Debugging] Entered turnConnectionAddPeer, for thread ID: %llu", GETTID());
+
     CHK(pTurnConnection != NULL && pPeerAddress != NULL, STATUS_NULL_ARG);
     CHK(pTurnConnection->turnServer.ipAddress.family == pPeerAddress->family, STATUS_INVALID_ARG);
     CHK_WARN(IS_IPV4_ADDR(pPeerAddress), retStatus, "Drop IPv6 turn peer because only IPv4 turn peer is supported right now");
@@ -681,8 +683,13 @@ STATUS turnConnectionAddPeer(PTurnConnection pTurnConnection, PKvsIpAddress pPee
     MUTEX_LOCK(pTurnConnection->lock);
     locked = TRUE;
 
+    DLOGE("[TURN Debugging] Locked turnConnection lock, for thread ID: %llu", GETTID());
+
     /* check for duplicate */
     CHK(turnConnectionGetPeerWithIp(pTurnConnection, pPeerAddress) == NULL, retStatus);
+    
+    DLOGE("[TURN Debugging] Checked for duplicate peer, for thread ID: %llu", GETTID());
+
     CHK_WARN(pTurnConnection->turnPeerCount < DEFAULT_TURN_MAX_PEER_COUNT, STATUS_INVALID_OPERATION, "Add peer failed. Max peer count reached");
 
     pTurnPeer = &pTurnConnection->turnPeerList[pTurnConnection->turnPeerCount++];
@@ -704,8 +711,15 @@ STATUS turnConnectionAddPeer(PTurnConnection pTurnConnection, PKvsIpAddress pPee
     pTurnPeer = NULL;
 
 CleanUp:
+    if (STATUS_FAILED(retStatus)) {
+        freeTransactionIdStore(&pTurnPeer->pTransactionIdStore);
+        DLOGE("[TURN Debugging] Failed in turnConnectionAddPeer, for thread ID: %llu", GETTID());
+    } else {
+        DLOGE("[TURN Debugging] No failure in turnConnectionAddPeer, for thread ID: %llu", GETTID());
+    }
 
     if (STATUS_FAILED(retStatus) && pTurnPeer != NULL) {
+        
         freeTransactionIdStore(&pTurnPeer->pTransactionIdStore);
         pTurnConnection->turnPeerCount--;
     }

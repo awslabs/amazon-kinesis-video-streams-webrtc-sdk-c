@@ -699,11 +699,13 @@ VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, U
 
 STATUS handleRemoteCandidate(PSampleStreamingSession pSampleStreamingSession, PSignalingMessage pSignalingMessage)
 {
+    DLOGE("[TURN Debugging] Entered handleRemoteCandidate, for thread ID: %llu", GETTID());
     STATUS retStatus = STATUS_SUCCESS;
     RtcIceCandidateInit iceCandidate;
     CHK(pSampleStreamingSession != NULL && pSignalingMessage != NULL, STATUS_NULL_ARG);
 
     CHK_STATUS(deserializeRtcIceCandidateInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, &iceCandidate));
+    DLOGE("[TURN Debugging] Calling addIceCandidate, for thread ID: %llu", GETTID());
     CHK_STATUS(addIceCandidate(pSampleStreamingSession->pPeerConnection, iceCandidate.candidate));
 
 CleanUp:
@@ -1397,6 +1399,9 @@ CleanUp:
 
 STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage)
 {
+        
+    DLOGE("[TURN Debugging] Entered messageReceivedFn, for thread ID: %llu", GETTID());
+
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
     BOOL peerConnectionFound = FALSE, locked = FALSE, startStats = FALSE, freeStreamingSession = FALSE;
@@ -1495,11 +1500,13 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
             break;
 
         case SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE:
+            DLOGE("[TURN Debugging] The LWS message is of type: SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE, for thread ID: %llu", GETTID());
             /*
              * if peer connection hasn't been created, create an queue to store the ice candidate message. Otherwise
              * submit the signaling message into the corresponding streaming session.
              */
             if (!peerConnectionFound) {
+                DLOGE("[TURN Debugging] Peer connection has not yet been created, for thread ID: %llu", GETTID());
                 CHK_STATUS(getPendingMessageQueueForHash(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, clientIdHash, FALSE,
                                                          &pPendingMessageQueue));
                 if (pPendingMessageQueue == NULL) {
@@ -1517,12 +1524,13 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
                 pPendingMessageQueue = NULL;
                 pReceivedSignalingMessageCopy = NULL;
             } else {
+                DLOGE("[TURN Debugging] Peer connection has been created, calling handleRemoteCandidate, for thread ID: %llu", GETTID());
                 CHK_STATUS(handleRemoteCandidate(pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
             }
             break;
 
         default:
-            DLOGD("Unhandled signaling message type %u", pReceivedSignalingMessage->signalingMessage.messageType);
+            DLOGE("[TURN Debugging] Unhandled signaling message type %u", pReceivedSignalingMessage->signalingMessage.messageType);
             break;
     }
 

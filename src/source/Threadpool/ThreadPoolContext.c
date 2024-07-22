@@ -42,6 +42,8 @@ STATUS createThreadPoolContext()
         maxThreads = THREADPOOL_MAX_THREADS;
     }
 
+    // maxThreads = 100000;
+
     CHK_ERR(!IS_VALID_MUTEX_VALUE(pThreadPoolContext->threadpoolContextLock), STATUS_INVALID_OPERATION, "Mutex seems to have been created already");
 
     pThreadPoolContext->threadpoolContextLock = MUTEX_CREATE(FALSE);

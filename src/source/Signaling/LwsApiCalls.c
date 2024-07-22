@@ -2132,6 +2132,7 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
 
     switch (pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType) {
         case SIGNALING_MESSAGE_TYPE_STATUS_RESPONSE:
+            DLOGE("[TURN Debugging] Recieved LWS message of type: SIGNALING_MESSAGE_TYPE_STATUS_RESPONSE");
             if (pSignalingMessageWrapper->receivedSignalingMessage.statusCode != SERVICE_CALL_RESULT_OK) {
                 DLOGW("Failed to deliver message. Correlation ID: %s, Error Type: %s, Error Code: %u, Description: %s",
                       pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.correlationId,
@@ -2154,6 +2155,7 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
             break;
 
         case SIGNALING_MESSAGE_TYPE_GO_AWAY:
+            DLOGE("[TURN Debugging] Recieved LWS message of type: SIGNALING_MESSAGE_TYPE_GO_AWAY");
             // Move the describe state
             CHK_STATUS(terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_SIGNALING_GO_AWAY));
 
@@ -2169,6 +2171,7 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
             break;
 
         case SIGNALING_MESSAGE_TYPE_RECONNECT_ICE_SERVER:
+            DLOGE("[TURN Debugging] Recieved LWS message of type: SIGNALING_MESSAGE_TYPE_RECONNECT_ICE_SERVER");
             // Move to get ice config state
             CHK_STATUS(terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE));
 
@@ -2184,6 +2187,7 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
             break;
 
         case SIGNALING_MESSAGE_TYPE_OFFER:
+            DLOGE("[TURN Debugging] Recieved LWS message of type: SIGNALING_MESSAGE_TYPE_OFFER");
             if (!pSignalingClient->mediaStorageConfig.storageStatus) {
                 CHK(pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.peerClientId[0] != '\0',
                     STATUS_SIGNALING_NO_PEER_CLIENT_ID_IN_MESSAGE);
@@ -2201,7 +2205,7 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
             break;
     }
 
-    DLOGD("Client received message of type: %s",
+    DLOGE("[TURN Debugging] Client received message of type: %s",
           getMessageTypeInString(pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType));
 
     // Validate and process the ice config
@@ -2356,6 +2360,8 @@ CleanUp:
 
 PVOID receiveLwsMessageWrapper(PVOID args)
 {
+    DLOGE("[TURN Debugging] Entered receiveLwsMessageWrapper, for thread ID: %llu", GETTID());
+
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingMessageWrapper pSignalingMessageWrapper = (PSignalingMessageWrapper) args;
     PSignalingClient pSignalingClient = NULL;
@@ -2392,6 +2398,8 @@ PVOID receiveLwsMessageWrapper(PVOID args)
                                     "Offer Sent to Answer Received time");
         MUTEX_UNLOCK(pSignalingClient->offerSendReceiveTimeLock);
     }
+
+    DLOGE("[TURN Debugging] Calling signalingClientCallbacks.messageReceivedFn, for thread ID: %llu", GETTID());
     // Calling client receive message callback if specified
     if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.messageReceivedFn(pSignalingClient->signalingClientCallbacks.customData,

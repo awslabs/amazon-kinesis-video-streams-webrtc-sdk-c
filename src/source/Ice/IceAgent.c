@@ -415,6 +415,8 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     ICE_CANDIDATE_TYPE iceCandidateType = ICE_CANDIDATE_TYPE_HOST;
     KVS_SOCKET_PROTOCOL remoteProtocol = KVS_SOCKET_PROTOCOL_NONE;
 
+    DLOGE("[TURN Debugging] Entered iceAgentAddRemoteCandidate, for thread ID: %llu", GETTID());
+
     CHK(pIceAgent != NULL && pIceCandidateString != NULL, STATUS_NULL_ARG);
     CHK(!IS_EMPTY_STRING(pIceCandidateString), STATUS_INVALID_ARG);
 
@@ -429,6 +431,8 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     curr = pIceCandidateString;
     tail = pIceCandidateString + STRLEN(pIceCandidateString);
     state = SDP_ICE_CANDIDATE_PARSER_STATE_FOUNDATION;
+
+    DLOGE("[TURN Debugging] Begining to parse ICE candidate, for thread ID: %llu", GETTID());
 
     while ((next = STRNCHR(curr, tail - curr, ' ')) != NULL && !foundType) {
         tokenLen = (UINT32) (next - curr);
@@ -491,6 +495,8 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
         curr = next + 1;
     }
 
+    DLOGE("[TURN Debugging] Finished parsing ICE candidate, for thread ID: %llu", GETTID());
+
     CHK(foundIp, STATUS_ICE_CANDIDATE_STRING_MISSING_IP);
 
     CHK_STATUS(findCandidateWithIp(&candidateIpAddr, pIceAgent->remoteCandidates, &pDuplicatedIceCandidate));
@@ -518,11 +524,18 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
         pCurNode = pCurNode->pNext;
 
         if (pLocalIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
+            DLOGE("[TURN Debugging] Calling turnConnectionAddPeer, for thread ID: %llu", GETTID());
             CHK_STATUS(turnConnectionAddPeer(pLocalIceCandidate->pTurnConnection, &pIceCandidate->ipAddress));
         }
     }
 
 CleanUp:
+    if (STATUS_FAILED(retStatus)) {
+        DLOGE("[TURN Debugging] Failed in iceAgentAddRemoteCandidate, for thread ID: %llu", GETTID());
+    } else {
+        DLOGE("[TURN Debugging] Succeeded in iceAgentAddRemoteCandidate, for thread ID: %llu", GETTID());
+    }
+
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
     }
