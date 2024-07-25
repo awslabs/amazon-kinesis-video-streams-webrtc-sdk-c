@@ -121,6 +121,27 @@ CleanUp:
     return retStatus;
 }
 
+
+STATUS createSignalingClientWithPresignedUrlSync(PSignalingClientInfo pClientInfo, PChannelInfo pChannelInfo, PSignalingClientCallbacks pCallbacks,
+                                 PCHAR pPresignedUrl, PSIGNALING_CLIENT_HANDLE pSignalingHandle)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PSignalingClient pSignalingClient = NULL;
+
+    CHK_STATUS(createSignalingClientSync(pClientInfo, pChannelInfo, pCallbacks, NULL, pSignalingHandle));
+    pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(*pSignalingHandle);
+    STRNCPY(pSignalingClient->clientInfo.signalingClientInfo.presignedUrl, pPresignedUrl, MAX_URI_CHAR_LEN);
+    pSignalingClient->clientInfo.signalingClientInfo.presignedUrl[MAX_URI_CHAR_LEN] = '\0';
+    pSignalingClient->clientInfo.signalingClientInfo.usePresignedUrl = TRUE;
+
+CleanUp:
+    LEAVES();
+    return retStatus;
+
+}
+
+
 STATUS freeSignalingClient(PSIGNALING_CLIENT_HANDLE pSignalingHandle)
 {
     ENTERS();

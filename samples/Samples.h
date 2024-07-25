@@ -183,6 +183,7 @@ typedef struct {
     UINT32 logLevel;
     BOOL enableTwcc;
     BOOL enableIceStats;
+    BOOL usePresignedUrl;
 } SampleConfiguration, *PSampleConfiguration;
 
 typedef struct {
@@ -251,10 +252,9 @@ PVOID sendVideoPackets(PVOID);
 PVOID sendAudioPackets(PVOID);
 PVOID sendGstreamerAudioVideo(PVOID);
 PVOID sampleReceiveAudioVideoFrame(PVOID);
-PVOID getPeriodicIceCandidatePairStats(PVOID);
 STATUS getIceCandidatePairStatsCallback(UINT32, UINT64, UINT64);
 STATUS pregenerateCertTimerCallback(UINT32, UINT64, UINT64);
-STATUS createSampleConfiguration(PCHAR, SIGNALING_CHANNEL_ROLE_TYPE, BOOL, BOOL, UINT32, PSampleConfiguration*);
+STATUS createSampleConfiguration(PCHAR, SIGNALING_CHANNEL_ROLE_TYPE, BOOL, BOOL, UINT32, BOOL, PSampleConfiguration*);
 STATUS freeSampleConfiguration(PSampleConfiguration*);
 STATUS signalingClientStateChanged(UINT64, SIGNALING_CLIENT_STATE);
 STATUS signalingMessageReceived(UINT64, PReceivedSignalingMessage);
@@ -268,7 +268,6 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession*);
 STATUS streamingSessionOnShutdown(PSampleStreamingSession, UINT64, StreamSessionShutdownCallback);
 STATUS sendSignalingMessage(PSampleStreamingSession, PSignalingMessage);
 STATUS respondWithAnswer(PSampleStreamingSession);
-STATUS resetSampleConfigurationState(PSampleConfiguration);
 VOID sampleVideoFrameHandler(UINT64, PFrame);
 VOID sampleAudioFrameHandler(UINT64, PFrame);
 VOID sampleFrameHandler(UINT64, PFrame);
@@ -279,7 +278,6 @@ VOID onConnectionStateChange(UINT64, RTC_PEER_CONNECTION_STATE);
 STATUS sessionCleanupWait(PSampleConfiguration);
 STATUS logSignalingClientStats(PSignalingClientMetrics);
 STATUS logSelectedIceCandidatesInformation(PSampleStreamingSession);
-STATUS logStartUpLatency(PSampleConfiguration);
 STATUS createMessageQueue(UINT64, PPendingMessageQueue*);
 STATUS freeMessageQueue(PPendingMessageQueue);
 STATUS submitPendingIceCandidate(PPendingMessageQueue, PSampleStreamingSession);

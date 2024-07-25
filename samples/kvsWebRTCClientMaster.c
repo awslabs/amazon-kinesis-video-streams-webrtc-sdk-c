@@ -12,6 +12,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
     RTC_CODEC audioCodec = RTC_CODEC_OPUS;
     RTC_CODEC videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    BOOL usePresignedURL = TRUE;
 
     SET_INSTRUMENTED_ALLOCATORS();
     UINT32 logLevel = setLogLevel();
@@ -27,7 +28,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
 #endif
 
-    CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
+    CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, usePresignedURL, &pSampleConfiguration));
 
     if (argc > 3) {
         if (!STRCMP(argv[3], AUDIO_CODEC_NAME_OPUS)) {

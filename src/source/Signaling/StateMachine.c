@@ -8,7 +8,7 @@
  * Static definitions of the states
  */
 StateMachineState SIGNALING_STATE_MACHINE_STATES[] = {
-    {SIGNALING_STATE_NEW, SIGNALING_STATE_NONE | SIGNALING_STATE_NEW, fromNewSignalingState, executeNewSignalingState,
+    {SIGNALING_STATE_NEW, SIGNALING_STATE_NONE | SIGNALING_STATE_NEW | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED, fromNewSignalingState, executeNewSignalingState,
      defaultSignalingStateTransitionHook, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_INVALID_READY_STATE},
     {SIGNALING_STATE_GET_TOKEN,
      SIGNALING_STATE_NEW | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_DESCRIBE_MEDIA | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT |
@@ -41,7 +41,8 @@ StateMachineState SIGNALING_STATE_MACHINE_STATES[] = {
     {SIGNALING_STATE_READY, SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_READY, fromReadySignalingState,
      executeReadySignalingState, defaultSignalingStateTransitionHook, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_READY_CALLBACK_FAILED},
     {SIGNALING_STATE_CONNECT,
-     SIGNALING_STATE_READY | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_JOIN_SESSION | SIGNALING_STATE_CONNECT,
+     SIGNALING_STATE_READY | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_JOIN_SESSION | SIGNALING_STATE_CONNECT |
+         SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_NEW,
      fromConnectSignalingState, executeConnectSignalingState, defaultSignalingStateTransitionHook, INFINITE_RETRY_COUNT_SENTINEL,
      STATUS_SIGNALING_CONNECT_CALL_FAILED},
     {SIGNALING_STATE_CONNECTED, SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_JOIN_SESSION, fromConnectedSignalingState,
@@ -274,7 +275,11 @@ STATUS fromNewSignalingState(UINT64 customData, PUINT64 pState)
     CHK(pSignalingClient != NULL && pState != NULL, STATUS_NULL_ARG);
 
     // Transition to auth state
-    state = SIGNALING_STATE_GET_TOKEN;
+    if (pSignalingClient->clientInfo.signalingClientInfo.usePresignedUrl) {
+        state = SIGNALING_STATE_CONNECT;
+    } else {
+        state = SIGNALING_STATE_GET_TOKEN;
+    }
     *pState = state;
 
 CleanUp:
@@ -319,6 +324,8 @@ STATUS fromGetTokenSignalingState(UINT64 customData, PUINT64 pState)
         // Check if we are trying to delete a channel
         if (ATOMIC_LOAD_BOOL(&pSignalingClient->deleting)) {
             state = SIGNALING_STATE_DELETE;
+        } else if (pSignalingClient->clientInfo.signalingClientInfo.usePresignedUrl) {
+            state = SIGNALING_STATE_CONNECT;
         } else if (pSignalingClient->pChannelInfo->pChannelArn != NULL && pSignalingClient->pChannelInfo->pChannelArn[0] != '\0') {
             // If the client application has specified the Channel ARN then we will skip describe and create states
             // Store the ARN in the stream description object first
@@ -830,6 +837,14 @@ STATUS fromConnectSignalingState(UINT64 customData, PUINT64 pState)
         default:
             state = SIGNALING_STATE_GET_TOKEN;
             break;
+    }
+
+    if (pSignalingClient->clientInfo.signalingClientInfo.usePresignedUrl) {
+        // We do not want to call any APIs.
+        // TODO: Handle disconnect
+        if (state != SIGNALING_STATE_CONNECTED) {
+           state = SIGNALING_STATE_NEW;
+        }
     }
 
     // Overwrite the state if we are force refreshing
