@@ -21,8 +21,9 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     BOOL cacheFound = FALSE;
     PSignalingFileCacheEntry pFileCacheEntry = NULL;
 
-    CHK(pClientInfo != NULL && pChannelInfo != NULL && pCallbacks != NULL && pCredentialProvider != NULL && ppSignalingClient != NULL,
+    CHK(pClientInfo != NULL && pChannelInfo != NULL && pCallbacks != NULL && ppSignalingClient != NULL,
         STATUS_NULL_ARG);
+    CHK(pCredentialProvider != NULL || pClientInfo->signalingClientInfo.usePresignedUrl == TRUE, STATUS_NULL_ARG);
     CHK(pChannelInfo->version <= CHANNEL_INFO_CURRENT_VERSION, STATUS_SIGNALING_INVALID_CHANNEL_INFO_VERSION);
     CHK(NULL != (pFileCacheEntry = (PSignalingFileCacheEntry) MEMCALLOC(1, SIZEOF(SignalingFileCacheEntry))), STATUS_NOT_ENOUGH_MEMORY);
 
@@ -184,9 +185,11 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     // Do not force ice config state
     ATOMIC_STORE_BOOL(&pSignalingClient->refreshIceConfig, FALSE);
 
-    // We do not cache token in file system, so we will always have to retrieve one after creating the client.
-    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, pSignalingClient->diagnostics.createTime + SIGNALING_CONNECT_STATE_TIMEOUT,
-                                             SIGNALING_STATE_GET_TOKEN));
+    if (!pClientInfo->signalingClientInfo.usePresignedUrl) {
+        // We do not cache token in file system, so we will always have to retrieve one after creating the client.
+        CHK_STATUS(signalingStateMachineIterator(pSignalingClient, pSignalingClient->diagnostics.createTime + SIGNALING_CONNECT_STATE_TIMEOUT,
+                                                 SIGNALING_STATE_GET_TOKEN));
+    }
 
 CleanUp:
     if (pClientInfo != NULL && pSignalingClient != NULL) {
@@ -482,6 +485,11 @@ STATUS signalingFetchSync(PSignalingClient pSignalingClient)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
+    setStateMachineCurrentState(pSignalingClient->pStateMachine, SIGNALING_STATE_NEW);
+
+    // If presigned URL this is a no-op
+    CHK(pSignalingClient->clientInfo.signalingClientInfo.usePresignedUrl != TRUE, STATUS_SUCCESS);
+
     // Check if we are already not connected
     if (ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
         CHK_STATUS(terminateOngoingOperations(pSignalingClient));
@@ -490,6 +498,7 @@ STATUS signalingFetchSync(PSignalingClient pSignalingClient)
     // move to the fromGetToken() so we can move to the necessary step
     // We start from get token to keep the design consistent with how it was when the constructor (create)
     // would bring you to the READY state, but this is a two-way door and can be redone later.
+
     setStateMachineCurrentState(pSignalingClient->pStateMachine, SIGNALING_STATE_GET_TOKEN);
 
     // if we're not failing from a bad token, set the result to OK to that fromGetToken will move
@@ -519,11 +528,18 @@ STATUS signalingConnectSync(PSignalingClient pSignalingClient)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
-    // Validate the state
-    CHK_STATUS(acceptSignalingStateMachineState(pSignalingClient,
-                                                SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_DISCONNECTED |
-                                                    SIGNALING_STATE_CONNECTED | SIGNALING_STATE_JOIN_SESSION | SIGNALING_STATE_JOIN_SESSION_WAITING |
-                                                    SIGNALING_STATE_JOIN_SESSION_CONNECTED));
+    if (pSignalingClient->clientInfo.signalingClientInfo.usePresignedUrl) {
+        CHK_STATUS(acceptSignalingStateMachineState(pSignalingClient,
+                                                    SIGNALING_STATE_NEW | SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_DISCONNECTED |
+                                                        SIGNALING_STATE_CONNECTED | SIGNALING_STATE_JOIN_SESSION | SIGNALING_STATE_JOIN_SESSION_WAITING |
+                                                        SIGNALING_STATE_JOIN_SESSION_CONNECTED));
+    } else {
+        // Validate the state
+        CHK_STATUS(acceptSignalingStateMachineState(pSignalingClient,
+                                                    SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_DISCONNECTED |
+                                                        SIGNALING_STATE_CONNECTED | SIGNALING_STATE_JOIN_SESSION |
+                                                        SIGNALING_STATE_JOIN_SESSION_WAITING | SIGNALING_STATE_JOIN_SESSION_CONNECTED));
+    }
 
     // Check if we are already connected
     CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->connected) || pSignalingClient->mediaStorageConfig.storageStatus, retStatus);
@@ -714,6 +730,7 @@ STATUS refreshIceConfiguration(PSignalingClient pSignalingClient)
     BOOL locked = FALSE;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+    CHK(!pSignalingClient->clientInfo.signalingClientInfo.usePresignedUrl, STATUS_SUCCESS);
 
     DLOGD("Refreshing the ICE Server Configuration");
 
@@ -1235,10 +1252,13 @@ STATUS connectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time)
 
     THREAD_SLEEP_UNTIL(time);
 
-    // Check for the stale credentials
-    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
+    // Check for the stale credentials if not using pre-signed URL
+    if (!pSignalingClient->clientInfo.signalingClientInfo.usePresignedUrl) {
+        CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
+    }
 
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+
 
     // We are not caching connect calls
 

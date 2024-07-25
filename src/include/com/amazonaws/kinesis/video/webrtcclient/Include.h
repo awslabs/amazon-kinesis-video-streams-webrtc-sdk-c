@@ -1301,6 +1301,7 @@ typedef struct {
 typedef struct {
     UINT32 version;                                            //!< Version of the structure
     CHAR clientId[MAX_SIGNALING_CLIENT_ID_LEN + 1];            //!< Client id to use. Defines if the client is a producer/consumer
+    CHAR presignedUrl[MAX_URI_CHAR_LEN + 1];
     UINT32 loggingLevel;                                       //!< Verbosity level for the logging. One of LOG_LEVEL_XXX
                                                                //!< values or the default verbosity will be assumed. Currently,
                                                                //!< default value is LOG_LEVEL_WARNING
@@ -1315,6 +1316,7 @@ typedef struct {
                                             //!< field
     UINT32 signalingMessagesMinimumThreads; //!< Unused field post v1.8.1
     UINT32 signalingMessagesMaximumThreads; //!< Unused field post v1.8.1
+    BOOL usePresignedUrl;
 } SignalingClientInfo, *PSignalingClientInfo;
 
 /**
@@ -2030,6 +2032,20 @@ PUBLIC_API PCHAR getNatBehaviorStr(NAT_BEHAVIOR natBehavior);
  */
 PUBLIC_API STATUS createSignalingClientSync(PSignalingClientInfo, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider,
                                             PSIGNALING_CLIENT_HANDLE);
+
+/**
+ * @brief Creates a Signaling client that will use a pre-signed URL for connect and returns a handle to it
+ *
+ * @param[in] PSignalingClientInfo Signaling client info
+ * @param[in] PChannelInfo Signaling channel info to use/create a channel
+ * @param[in] PSignalingClientCallbacks Signaling callbacks for event notifications
+ * @param[in] PCHAR Pre Signed URL to be used for signaling connect
+ * @param[out] PSIGNALING_CLIENT_HANDLE Returned signaling client handle
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+*/
+PUBLIC_API STATUS createSignalingClientWithPresignedUrlSync(PSignalingClientInfo, PChannelInfo, PSignalingClientCallbacks,
+                                                                PCHAR, PSIGNALING_CLIENT_HANDLE);
 
 /**
  * @brief Frees the Signaling client object

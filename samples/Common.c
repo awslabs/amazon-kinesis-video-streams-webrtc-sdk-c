@@ -376,29 +376,71 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
 
     if (pSampleConfiguration->useTurn) {
         // Set the URIs from the configuration
-        CHK_STATUS(signalingClientGetIceConfigInfoCount(pSampleConfiguration->signalingClientHandle, &iceConfigCount));
+        if(pSampleConfiguration->usePresignedUrl) {
+            // TODO:  For each turn server populate this, example below:
+            uriCount = 0;
+            STRNCPY(configuration.iceServers[uriCount + 1].urls, "",
+                    MAX_ICE_CONFIG_URI_LEN);
+            STRNCPY(configuration.iceServers[uriCount + 1].credential, "", MAX_ICE_CONFIG_CREDENTIAL_LEN);
+            STRNCPY(
+                configuration.iceServers[uriCount + 1].username,
+                "",
+                MAX_ICE_CONFIG_USER_NAME_LEN);
+            uriCount++;
+            STRNCPY(configuration.iceServers[uriCount + 1].urls,
+                    "", MAX_ICE_CONFIG_URI_LEN);
+            STRNCPY(configuration.iceServers[uriCount + 1].credential, "", MAX_ICE_CONFIG_CREDENTIAL_LEN);
+            STRNCPY(
+                configuration.iceServers[uriCount + 1].username,
+                "",
+                MAX_ICE_CONFIG_USER_NAME_LEN);
+            uriCount++;
+            STRNCPY(configuration.iceServers[uriCount + 1].urls,
+                    "", MAX_ICE_CONFIG_URI_LEN);
+            STRNCPY(configuration.iceServers[uriCount + 1].credential, "", MAX_ICE_CONFIG_CREDENTIAL_LEN);
+            STRNCPY(
+                configuration.iceServers[uriCount + 1].username,
+                "",
+                MAX_ICE_CONFIG_USER_NAME_LEN);
+            uriCount++;
+        } else {
+            CHK_STATUS(signalingClientGetIceConfigInfoCount(pSampleConfiguration->signalingClientHandle, &iceConfigCount));
 
-        /* signalingClientGetIceConfigInfoCount can return more than one turn server. Use only one to optimize
+            /* signalingClientGetIceConfigInfoCount can return more than one turn server. Use only one to optimize
          * candidate gathering latency. But user can also choose to use more than 1 turn server. */
-        for (uriCount = 0, i = 0; i < maxTurnServer; i++) {
-            CHK_STATUS(signalingClientGetIceConfigInfo(pSampleConfiguration->signalingClientHandle, i, &pIceConfigInfo));
-            for (j = 0; j < pIceConfigInfo->uriCount; j++) {
-                CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
-                /*
+            for (uriCount = 0, i = 0; i < maxTurnServer; i++) {
+                CHK_STATUS(signalingClientGetIceConfigInfo(pSampleConfiguration->signalingClientHandle, i, &pIceConfigInfo));
+                DLOGD("Printinf IceConfigInfo As Parsed From Get Ice Server Config Response");
+                typedef struct {
+                    UINT32 version;                                                  //!< Version of the struct
+                    UINT64 ttl;                                                      //!< TTL of the configuration is 100ns
+                    UINT32 uriCount;                                                 //!<  Number of Ice URI objects
+                    CHAR uris[MAX_ICE_CONFIG_URI_COUNT][MAX_ICE_CONFIG_URI_LEN + 1]; //!< List of Ice server URIs
+                    CHAR userName[MAX_ICE_CONFIG_USER_NAME_LEN + 1];                 //!< Username for the server
+                    CHAR password[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];                //!< Password for the server
+                } IceConfigInfo, *PIceConfigInfo;
+                DLOGD("version:%u\nttl:%llu\nuriCount:%u\n", pIceConfigInfo->version, pIceConfigInfo->ttl, pIceConfigInfo->uriCount);
+
+                DLOGD("uris:");
+
+                for (j = 0; j < pIceConfigInfo->uriCount; j++) {
+                    DLOGD("%s", pIceConfigInfo->uris[j]);
+
+                    CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
+                    /*
                  * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=udp" then ICE will try TURN over UDP
                  * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
-                 * if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=udp", it's currently ignored because sdk dont do TURN
-                 * over DTLS yet. if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
-                 * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port" then ICE will try both TURN over UDP and TCP/TLS
+                 * if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=udp", it's currently ignored because sdk dont do TURN over DTLS yet. if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS if configuration.iceServers[uriCount + 1].urls is "turn:ip:port" then ICE will try both TURN over UDP and TCP/TLS
                  *
                  * It's recommended to not pass too many TURN iceServers to configuration because it will slow down ice gathering in non-trickle mode.
-                 */
+                     */
 
-                STRNCPY(configuration.iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
-                STRNCPY(configuration.iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
-                STRNCPY(configuration.iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
+                    STRNCPY(configuration.iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
+                    STRNCPY(configuration.iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
+                    STRNCPY(configuration.iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
 
-                uriCount++;
+                    uriCount++;
+                }
             }
         }
     }
@@ -779,6 +821,7 @@ CleanUp:
 }
 
 STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE roleType, BOOL trickleIce, BOOL useTurn, UINT32 logLevel,
+                                 BOOL usePresignedURL,
                                  PSampleConfiguration* ppSampleConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -788,6 +831,8 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
 
     CHK(NULL != (pSampleConfiguration = (PSampleConfiguration) MEMCALLOC(1, SIZEOF(SampleConfiguration))), STATUS_NOT_ENOUGH_MEMORY);
+
+    if(!usePresignedURL) {
 
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
     PCHAR pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pIotCoreRoleAlias, pIotCoreCertificateId, pIotCoreThingName;
@@ -802,10 +847,11 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     CHK_ERR((pSecretKey = GETENV(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
 #endif
 
-    pSessionToken = GETENV(SESSION_TOKEN_ENV_VAR);
-    if (pSessionToken != NULL && IS_EMPTY_STRING(pSessionToken)) {
-        DLOGW("Session token is set but its value is empty. Ignoring.");
-        pSessionToken = NULL;
+        pSessionToken = GETENV(SESSION_TOKEN_ENV_VAR);
+        if (pSessionToken != NULL && IS_EMPTY_STRING(pSessionToken)) {
+            DLOGW("Session token is set but its value is empty. Ignoring.");
+            pSessionToken = NULL;
+        }
     }
 
     // If the env is set, we generate normal log files apart from filtered profile log files
@@ -836,13 +882,16 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 
     CHK_STATUS(lookForSslCert(&pSampleConfiguration));
 
+    // If using pre-signed url and turn credentials then no credentials provider is needed to be setup
+    if(!usePresignedURL) {
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
-    CHK_STATUS(createLwsIotCredentialProvider(pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pSampleConfiguration->pCaCertPath,
-                                              pIotCoreRoleAlias, pIotCoreThingName, &pSampleConfiguration->pCredentialProvider));
+        CHK_STATUS(createLwsIotCredentialProvider(pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pSampleConfiguration->pCaCertPath,
+                                                  pIotCoreRoleAlias, pIotCoreThingName, &pSampleConfiguration->pCredentialProvider));
 #else
-    CHK_STATUS(
-        createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pSampleConfiguration->pCredentialProvider));
+        CHK_STATUS(
+            createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pSampleConfiguration->pCredentialProvider));
 #endif
+    }
 
     pSampleConfiguration->mediaSenderTid = INVALID_TID_VALUE;
     pSampleConfiguration->audioSenderTid = INVALID_TID_VALUE;
@@ -887,6 +936,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     pSampleConfiguration->clientInfo.loggingLevel = logLevel;
     pSampleConfiguration->clientInfo.cacheFilePath = NULL; // Use the default path
+    pSampleConfiguration->clientInfo.usePresignedUrl = usePresignedURL;
     pSampleConfiguration->clientInfo.signalingClientCreationMaxRetryAttempts = CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE;
     pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
     pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
@@ -894,6 +944,9 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 
     // Flag to enable/disable TWCC
     pSampleConfiguration->enableTwcc = TRUE;
+
+    // Flag to enable/disable require application to specify pre-signed url and turn credentials
+    pSampleConfiguration->usePresignedUrl = usePresignedURL;
 
     ATOMIC_STORE_BOOL(&pSampleConfiguration->interrupted, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, FALSE);
@@ -931,16 +984,73 @@ CleanUp:
     return retStatus;
 }
 
+STATUS createPresignedUrl(PCHAR signalingChannelEndpoint, PCHAR channelArn, PCHAR region,
+                          PCHAR accessKeyId, PCHAR secretKey, PCHAR sessionToken, UINT64 expiry,
+                          PCHAR presignedURL) {
+    STATUS retStatus = STATUS_SUCCESS;
+    CHAR url[MAX_URI_CHAR_LEN + 1];
+    PRequestInfo pRequestInfo = NULL;
+    PAwsCredentials pAwsCredentials = NULL;
+
+    UINT16 urlLen;
+
+    if (sessionToken == NULL) {
+        CHK_STATUS(createAwsCredentials(accessKeyId, STRLEN(accessKeyId), secretKey, STRLEN(secretKey), NULL, 0, expiry,
+                                        &pAwsCredentials));
+    } else {
+        CHK_STATUS(createAwsCredentials(accessKeyId, 0, secretKey, 0, sessionToken, 0, expiry,
+                                        &pAwsCredentials));
+    }
+
+    SNPRINTF(url, MAX_URI_CHAR_LEN + 1, "%s?%s=%s", signalingChannelEndpoint, "X-Amz-ChannelARN", channelArn);
+    CHK_STATUS(createRequestInfo(url, NULL, region, NULL, NULL, NULL, SSL_CERTIFICATE_TYPE_NOT_SPECIFIED,
+                                 "AWS-WEBRTC-KVS-AGENT/1.10.3", 2 * HUNDREDS_OF_NANOS_IN_A_SECOND, 5 * HUNDREDS_OF_NANOS_IN_A_SECOND,
+                                 DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pAwsCredentials, &pRequestInfo));
+    pRequestInfo->verb = HTTP_REQUEST_VERB_GET;
+
+    CHK_STATUS(removeRequestHeader(pRequestInfo, (PCHAR) "user-agent"));
+
+    // Sign the request
+    CHK_STATUS(signAwsRequestInfoQueryParam(pRequestInfo));
+    // Remove the headers
+    CHK_STATUS(removeRequestHeaders(pRequestInfo));
+
+    urlLen = STRLEN(pRequestInfo->url);
+    STRNCPY(presignedURL, pRequestInfo->url, urlLen);
+    presignedURL[urlLen] = '\0';
+
+CleanUp:
+    return retStatus;
+}
+
+
 STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
 {
     STATUS retStatus = STATUS_SUCCESS;
     SignalingClientMetrics signalingClientMetrics = pSampleConfiguration->signalingClientMetrics;
     pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = signalingMessageReceived;
     STRCPY(pSampleConfiguration->clientInfo.clientId, clientId);
-    CHK_STATUS(createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
-                                         &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
-                                         &pSampleConfiguration->signalingClientHandle));
 
+    if(pSampleConfiguration->usePresignedUrl) {
+        CHAR presignedURL[MAX_URI_CHAR_LEN + 1];
+        PCHAR signalingChannelEndpoint = "";
+        PCHAR channelArn = "";
+        PCHAR region = "";
+        PCHAR accessKeyId = "";
+        PCHAR secretKey = "";
+        PCHAR sessionToken = NULL;
+
+        CHK_STATUS(createPresignedUrl(signalingChannelEndpoint, channelArn, region, accessKeyId, secretKey, sessionToken,
+                                      5 * HUNDREDS_OF_NANOS_IN_A_MINUTE, presignedURL));
+
+        CHK_STATUS(createSignalingClientWithPresignedUrlSync(
+            &pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo, &pSampleConfiguration->signalingClientCallbacks,
+            presignedURL, &pSampleConfiguration->signalingClientHandle));
+    } else {
+        CHK_STATUS(createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
+                                             &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
+                                             &pSampleConfiguration->signalingClientHandle));
+    }
     // Enable the processing of the messages
     CHK_STATUS(signalingClientFetchSync(pSampleConfiguration->signalingClientHandle));
 
@@ -969,6 +1079,7 @@ STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
     pSampleConfiguration->signalingClientMetrics = signalingClientMetrics;
     gSampleConfiguration = pSampleConfiguration;
 CleanUp:
+    CHK_LOG_ERR(retStatus);
     return retStatus;
 }
 

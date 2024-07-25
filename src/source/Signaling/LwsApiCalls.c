@@ -543,21 +543,27 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     CHAR path[MAX_URI_CHAR_LEN + 1];
 
     CHK(pCallInfo != NULL && pCallInfo->callInfo.pRequestInfo != NULL && pCallInfo->pSignalingClient != NULL, STATUS_NULL_ARG);
-
+    if (pCallInfo->pSignalingClient->clientInfo.signalingClientInfo.usePresignedUrl) {
+        STRNCPY(pCallInfo->callInfo.pRequestInfo->url, pCallInfo->pSignalingClient->clientInfo.signalingClientInfo.presignedUrl,
+                MAX_URI_CHAR_LEN);
+        pCallInfo->callInfo.pRequestInfo->url[MAX_URI_CHAR_LEN] = '\0';
+    }
     CHK_STATUS(requestRequiresSecureConnection(pCallInfo->callInfo.pRequestInfo->url, &secureConnection));
     DLOGV("Perform %s synchronous call for URL: %s", secureConnection ? "secure" : EMPTY_STRING, pCallInfo->callInfo.pRequestInfo->url);
 
     if (pCallInfo->protocolIndex == PROTOCOL_INDEX_WSS) {
         pVerb = NULL;
 
-        // Remove the header as it will be added back by LWS
-        CHK_STATUS(removeRequestHeader(pCallInfo->callInfo.pRequestInfo, (PCHAR) "user-agent"));
+        if(!pCallInfo->pSignalingClient->clientInfo.signalingClientInfo.usePresignedUrl) {
+            // Remove the header as it will be added back by LWS
+            CHK_STATUS(removeRequestHeader(pCallInfo->callInfo.pRequestInfo, (PCHAR) "user-agent"));
 
-        // Sign the request
-        CHK_STATUS(signAwsRequestInfoQueryParam(pCallInfo->callInfo.pRequestInfo));
+            // Sign the request
+            CHK_STATUS(signAwsRequestInfoQueryParam(pCallInfo->callInfo.pRequestInfo));
 
-        // Remove the headers
-        CHK_STATUS(removeRequestHeaders(pCallInfo->callInfo.pRequestInfo));
+            // Remove the headers
+            CHK_STATUS(removeRequestHeaders(pCallInfo->callInfo.pRequestInfo));
+        }
     } else {
         pVerb = HTTP_REQUEST_VERB_POST_STRING;
 
@@ -1403,8 +1409,10 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
     UINT64 timeout;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-    CHK(pSignalingClient->channelEndpointWss[0] != '\0', STATUS_INTERNAL_ERROR);
 
+    if (!pSignalingClient->clientInfo.signalingClientInfo.usePresignedUrl) {
+        CHK(pSignalingClient->channelEndpointWss[0] != '\0', STATUS_INTERNAL_ERROR);
+    }
     // Prepare the json params for the call
     if (pSignalingClient->pChannelInfo->channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER) {
         SNPRINTF(url, ARRAY_SIZE(url), SIGNALING_ENDPOINT_VIEWER_URL_WSS_TEMPLATE, pSignalingClient->channelEndpointWss,
@@ -1420,6 +1428,7 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
                                  SSL_CERTIFICATE_TYPE_NOT_SPECIFIED, pSignalingClient->pChannelInfo->pUserAgent,
                                  SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
+
     // Override the POST with GET
     pRequestInfo->verb = HTTP_REQUEST_VERB_GET;
 

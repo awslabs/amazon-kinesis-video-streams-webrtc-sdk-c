@@ -428,6 +428,105 @@ CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(pSampleStreamingSession->pP
                                                      sampleSenderBandwidthEstimationHandler));
 ```
 
+## Use Pre-signed URL / TURN credentials (alpha)
+This SDK supports a barebones version of supplying a pre-signed URL as well as TURN credential to the application.  In this mode, the application does not require any aws credentials explicitly.
+To *enable* this feature, in the main client master application `kvsWebRTCClientMaster.c` inside the `main` method the following line needs to be set:
+```c
+    BOOL usePresignedURL = TRUE;
+```
+It is enabled by default in this branch.
+
+Next the Pre-signed needs to be specified, inside `Common.c` in the `initSignaling` method we see the following:
+
+```c
+    if(pSampleConfiguration->usePresignedUrl) {
+        CHAR presignedURL[MAX_URI_CHAR_LEN + 1];
+        PCHAR signalingChannelEndpoint = "";
+        PCHAR channelArn = "";
+        PCHAR region = "";
+        PCHAR accessKeyId = "";
+        PCHAR secretKey = "";
+        PCHAR sessionToken = NULL;
+
+        CHK_STATUS(createPresignedUrl(signalingChannelEndpoint, channelArn, region, accessKeyId, secretKey, sessionToken,
+                                      5 * HUNDREDS_OF_NANOS_IN_A_MINUTE, presignedURL));
+
+        CHK_STATUS(createSignalingClientWithPresignedUrlSync(
+            &pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo, &pSampleConfiguration->signalingClientCallbacks,
+            presignedURL, &pSampleConfiguration->signalingClientHandle));
+    } else {
+        CHK_STATUS(createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
+                                             &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
+                                             &pSampleConfiguration->signalingClientHandle));
+    }
+```
+
+A helpful utility method has been provided that will generate the URL if you can supply the following information which is needed:
+* channelArn
+* signalingChannelEndpoint
+```shell
+aws kinesisvideo get-signaling-channel-endpoint --channel-arn "<channel-arn>" --single-master-channel-endpoint-configuration "Protocols=WSS,Role=MASTER"
+```
+* region
+* accessKeyId
+* secretKey
+* sessionToken [leave as null if there is no session token]
+
+Once you have all of those, fill them in the section of code above and at runtime the pre-signed url will be generated.  If you already have
+the presigned url on your own, then you can remove the call to `createPresignedUrl` and simply pass your pre-signed url to `createSignalingClientWithPresignedUrlSync`
+
+Finally, the TURN url / credentials need to be specified.  This also happens in `Common.c` inside the `initializePeerConnection` function in this section:
+
+```c
+if(pSampleConfiguration->usePresignedUrl) {
+            // TODO:  For each turn server populate this, example below:
+            uriCount = 0;
+            STRNCPY(configuration.iceServers[uriCount + 1].urls, "",
+                    MAX_ICE_CONFIG_URI_LEN);
+            STRNCPY(configuration.iceServers[uriCount + 1].credential, "", MAX_ICE_CONFIG_CREDENTIAL_LEN);
+            STRNCPY(
+                configuration.iceServers[uriCount + 1].username,
+                "",
+                MAX_ICE_CONFIG_USER_NAME_LEN);
+            uriCount++;
+            STRNCPY(configuration.iceServers[uriCount + 1].urls,
+                    "", MAX_ICE_CONFIG_URI_LEN);
+            STRNCPY(configuration.iceServers[uriCount + 1].credential, "", MAX_ICE_CONFIG_CREDENTIAL_LEN);
+            STRNCPY(
+                configuration.iceServers[uriCount + 1].username,
+                "",
+                MAX_ICE_CONFIG_USER_NAME_LEN);
+            uriCount++;
+            STRNCPY(configuration.iceServers[uriCount + 1].urls,
+                    "", MAX_ICE_CONFIG_URI_LEN);
+            STRNCPY(configuration.iceServers[uriCount + 1].credential, "", MAX_ICE_CONFIG_CREDENTIAL_LEN);
+            STRNCPY(
+                configuration.iceServers[uriCount + 1].username,
+                "",
+                MAX_ICE_CONFIG_USER_NAME_LEN);
+            uriCount++;
+        } else {
+```
+
+The TURN servers can be obtained by calling the get ice server config API: [https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_signaling_GetIceServerConfig.html]
+
+In order to obtain the TURN server list we must first make a call to get signaling channel endpoint.  Below is the sequence of commands using the AWS CLI that can be used to obtain these TURN servers:
+
+```shell
+aws kinesisvideo get-signaling-channel-endpoint --channel-arn "<channel-arn>" --single-master-channel-endpoint-configuration "Protocols=HTTPS,Role=MASTER"
+```
+This will output a `ResourceEndpoint`.  That needs to be provided as the `--endpoint-url` parameter to the next command:
+```shell
+aws kinesis-video-signaling get-ice-server-config --channel-arn "<channel-arn>" --endpoint-url "<ResourceEndpointFromCommandAbove>"
+```
+
+Each one of the Uris along with the username and password (password from the API response goes into the credential field in the `C` code above).
+
+That should do it now you can build and run the application like so:
+```shell
+./kvsWebRTCClientMaster "channel-name"
+```
+
 ## Use Pre-generated Certificates
 The certificate generating function ([createCertificateAndKey](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/Dtls__openssl_8c.html#a451c48525b0c0a8919a880d6834c1f7f)) in createDtlsSession() can take between 5 - 15 seconds in low performance embedded devices, it is called for every peer connection creation when KVS WebRTC receives an offer. To avoid this extra start-up latency, certificate can be pre-generated and passed in when offer comes.
 
