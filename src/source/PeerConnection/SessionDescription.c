@@ -444,7 +444,6 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
             retStatus = hashTableGet(pKvsPeerConnection->pRtxTable, RTC_RTX_CODEC_VP8, &rtxPayloadType);
         } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_H265) {
             retStatus = hashTableGet(pKvsPeerConnection->pRtxTable, RTC_RTX_CODEC_H265, &rtxPayloadType);
-            payloadType = DEFAULT_PAYLOAD_H265;
         } else {
             retStatus = STATUS_HASH_KEY_NOT_PRESENT;
         }
