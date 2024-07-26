@@ -81,27 +81,42 @@ By default we download all the libraries from GitHub and build them locally, so 
 
 ### Configuring on Windows
 
+#### Installing the dependencies / environment
 Install [MS Visual Studio Community / Enterprise](https://visualstudio.microsoft.com/vs/community/), [Strawberry perl](https://strawberryperl.com/), and [Chocolatey](https://chocolatey.org/install) if not installed already
 
-Get the libraries by running the following in powershell
+Get the libraries by running the following in `powershell`
 ```shell
+choco install pkgconfiglite
 choco install gstreamer
 choco install gstreamer-devel
 curl.exe -o C:\tools\pthreads-w32-2-9-1-release.zip ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
 mkdir C:\tools\pthreads-w32-2-9-1-release\
 Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\pthreads-w32-2-9-1-release
 ```
-
-Modify the path to the downloaded and unzipped PThreads in cmake in `build_windows_openssl.bat` if needed / unzipped at a path other than the one mentioned above
+#### Customizing the `.github\build_windows_openssl.bat` file
+If you unzipped at a path other than the one mentioned above / your pkg-config is in a different location, modify the path to the downloaded and unzipped PThreads in cmake in `.github\build_windows_openssl.bat`
 ```shell
-cmake -G "NMake Makefiles" -DBUILD_TEST=TRUE -DEXT_PTHREAD_INCLUDE_DIR="C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/include/" -DEXT_PTHREAD_LIBRARIES="C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/lib/x64/libpthreadGC2.a" ..
+cmake -G "NMake Makefiles" -DBUILD_TEST=TRUE -DENABLE_AWS_SDK_IN_TESTS=OFF -DPKG_CONFIG_EXECUTABLE="D:\\gstreamer\\1.0\\x86_64\\bin\\pkg-config.exe" -DEXT_PTHREAD_INCLUDE_DIR="C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/include/" -DEXT_PTHREAD_LIBRARIES="C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/lib/x64/libpthreadGC2.a" ..
 ```
-Modify the path to MSVC as well in the `build_windows_openssl.bat` if needed / installed a different version / location
 
+If not using MSVC Enterprise 2022 or have MSVC in a different location modify the path to MSVC as well in the `.github\build_windows_openssl.bat`
+
+##### Enterprise
 ```shell
 call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
 ```
 
+##### Community
+```shell
+call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
+```
+
+##### Custom version
+```shell
+call "C:\Program Files\Microsoft Visual Studio\<your-version>\Community\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
+```
+
+#### Allowing long paths
 Allow long paths before we start the build
 ```shell
 git config --system core.longpaths true
@@ -109,13 +124,18 @@ git config --system core.longpaths true
 
 Note that if the paths are still too long (which can cause the build to fail unfortunately), we recommend renaming the folders to use shorter names and moving them to `C:/`
 
-Build the SDK
+#### Building the SDK
+
+Run the script customized above
 
 ```shell
 .github\build_windows_openssl.bat
 ```
 
-To run the sample application, make sure that you've exported the following paths and appended them to env:Path for powershell
+#### Customizing and setting PATH to run the samples
+To run the sample application, make sure that you've exported the following paths and appended them to env:Path for `powershell`.
+
+Modify the `<path-to-webrtc-root>\open-source\bin`,`<path-to-webrtc-root>\build`, `<path-to-pthreads-unzip-location>\pthreads-w32-2-9-1-release\Pre-built.2\dll\x64`
 ```shell
 $env:Path += ';C:\webrtc\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\dll\x64;C:\webrtc\build'
 ```
