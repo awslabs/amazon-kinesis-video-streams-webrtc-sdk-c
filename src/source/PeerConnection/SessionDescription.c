@@ -415,13 +415,13 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT64 payloadType, rtxPayloadType;
+    UINT64 payloadType, rtxPayloadType, rtpMapValue;
     BOOL containRtx = FALSE;
     BOOL directionFound = FALSE;
     UINT32 i, remoteAttributeCount, attributeCount = 0;
     PRtcMediaStreamTrack pRtcMediaStreamTrack = &(pKvsRtpTransceiver->sender.track);
     PSdpMediaDescription pSdpMediaDescriptionRemote;
-    PCHAR currentFmtp = NULL, rtpMapValue = NULL;
+    PCHAR currentFmtp = NULL, rtpMapValueChar = NULL;
     CHAR remoteSdpAttributeValue[MAX_SDP_ATTRIBUTE_VALUE_LENGTH];
     INT32 amountWritten = 0;
 
@@ -795,11 +795,12 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
             attributeCount++;
         }
     } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_UNKNOWN) {
-        CHK_STATUS(hashTableGet(pUnknownCodecRtpmapTable, unknownCodecHashTableKey, (PUINT64) &rtpMapValue));
+        CHK_STATUS(hashTableGet(pUnknownCodecRtpmapTable, unknownCodecHashTableKey, &rtpMapValue));
+        rtpMapValueChar = (PCHAR) rtpMapValue;
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
         amountWritten =
             SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                     SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " %s", payloadType, rtpMapValue);
+                     SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " %s", payloadType, rtpMapValueChar);
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full Unknown rtpmap could not be written");
         attributeCount++;
     }
