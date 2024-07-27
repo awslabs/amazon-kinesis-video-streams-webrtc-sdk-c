@@ -12,6 +12,11 @@ namespace video {
 namespace webrtcclient {
 
 class SdpApiTest : public WebRtcClientTestBase {
+  public:
+    const std::string m_rtcp_h264_nack_line = "a=rtcp-fb:" + std::to_string(DEFAULT_PAYLOAD_H264) + " nack";
+    const std::string m_rtcp_h264_nack_pli_line = "a=rtcp-fb:" + std::to_string(DEFAULT_PAYLOAD_H264) + " nack pli";
+    const std::string m_rtcp_h265_nack_line = "a=rtcp-fb:" + std::to_string(DEFAULT_PAYLOAD_H265) + " nack";
+    const std::string m_rtcp_h265_nack_pli_line = "a=rtcp-fb:" + std::to_string(DEFAULT_PAYLOAD_H265) + " nack pli";
 };
 
 /*
@@ -411,8 +416,8 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendRecv)
 
     // check nack and nack pli lines
     // We assume here DEFAULT_PAYLOAD_H264 is 125 so we know what our offer will generate.
-    std::string::size_type posPliOnly = offerSdp.find("a=rtcp-fb:125 nack");
-    std::string::size_type posPliNack = offerSdp.find("a=rtcp-fb:125 nack pli");
+    std::string::size_type posPliOnly = offerSdp.find(m_rtcp_h264_nack_line);
+    std::string::size_type posPliNack = offerSdp.find(m_rtcp_h264_nack_pli_line);
     EXPECT_NE(posPliOnly, posPliNack);
 
     closePeerConnection(offerPc);
@@ -489,8 +494,8 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendOnly)
 
     // check nack and nack pli lines
     // We assume here DEFAULT_PAYLOAD_H264 is 125 so we know what our offer will generate.
-    std::string::size_type posPliOnly = offerSdp.find("a=rtcp-fb:125 nack");
-    std::string::size_type posPliNack = offerSdp.find("a=rtcp-fb:125 nack pli");
+    std::string::size_type posPliOnly = offerSdp.find(m_rtcp_h264_nack_line);
+    std::string::size_type posPliNack = offerSdp.find(m_rtcp_h264_nack_pli_line);
     EXPECT_NE(posPliOnly, posPliNack);
 
     closePeerConnection(offerPc);
@@ -528,8 +533,8 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendOnly_H265)
 
     // check nack and nack pli lines
     // We assume here DEFAULT_PAYLOAD_H265 is 127 so we know what our offer will generate.
-    std::string::size_type posPliOnly = offerSdp.find("a=rtcp-fb:127 nack");
-    std::string::size_type posPliNack = offerSdp.find("a=rtcp-fb:127 nack pli");
+    std::string::size_type posPliOnly = offerSdp.find(m_rtcp_h265_nack_line);
+    std::string::size_type posPliNack = offerSdp.find(m_rtcp_h265_nack_pli_line);
     EXPECT_NE(posPliOnly, posPliNack);
 
     closePeerConnection(offerPc);
