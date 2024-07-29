@@ -21,6 +21,8 @@
   <a href="#license">License</a>
 </p>
 
+>[!NOTE]
+>We have switched from using the 'master' branch to the 'main' branch. Please update your references accordingly.
 ## New feature announcements
 Please refer to the release notes in [Releases](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/releases) page
 
