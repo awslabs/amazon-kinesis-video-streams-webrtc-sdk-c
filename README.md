@@ -96,7 +96,7 @@ Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:
 #### Customizing the `.github\build_windows_openssl.bat` file
 If you unzipped at a path other than the one mentioned above / your pkg-config is in a different location, modify the path to the downloaded and unzipped PThreads in cmake in `.github\build_windows_openssl.bat`
 ```shell
-cmake -G "NMake Makefiles" -DBUILD_TEST=TRUE -DENABLE_AWS_SDK_IN_TESTS=OFF -DPKG_CONFIG_EXECUTABLE="D:\\gstreamer\\1.0\\x86_64\\bin\\pkg-config.exe" -DEXT_PTHREAD_INCLUDE_DIR="C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/include/" -DEXT_PTHREAD_LIBRARIES="C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/lib/x64/libpthreadGC2.a" ..
+cmake -G "NMake Makefiles" -DENABLE_AWS_SDK_IN_TESTS=OFF -DPKG_CONFIG_EXECUTABLE="D:\\gstreamer\\1.0\\x86_64\\bin\\pkg-config.exe" -DEXT_PTHREAD_INCLUDE_DIR="C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/include/" -DEXT_PTHREAD_LIBRARIES="C:/tools/pthreads-w32-2-9-1-release/Pre-built.2/lib/x64/libpthreadGC2.a" ..
 ```
 
 If not using MSVC Enterprise 2022 or have MSVC in a different location modify the path to MSVC as well in the `.github\build_windows_openssl.bat`
@@ -135,7 +135,7 @@ Run the script customized above
 #### Customizing and setting PATH to run the samples
 To run the sample application, make sure that you've exported the following paths and appended them to env:Path for `powershell`.
 
-Modify the `<path-to-webrtc-root>\open-source\bin`,`<path-to-webrtc-root>\build`, `<path-to-pthreads-unzip-location>\pthreads-w32-2-9-1-release\Pre-built.2\dll\x64`
+Modify the `<path-to-webrtc-root>\open-source\bin`, `<path-to-webrtc-root>\build`, `<path-to-pthreads-unzip-location>\pthreads-w32-2-9-1-release\Pre-built.2\dll\x64`
 ```shell
 $env:Path += ';C:\webrtc\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\dll\x64;C:\webrtc\build'
 ```
