@@ -82,9 +82,9 @@ By default we download all the libraries from GitHub and build them locally, so 
 ### Configuring on Windows
 
 #### Installing the dependencies / environment
-Install [MS Visual Studio Community / Enterprise](https://visualstudio.microsoft.com/vs/community/), [Strawberry perl](https://strawberryperl.com/), and [Chocolatey](https://chocolatey.org/install) if not installed already
+Install [MS Visual Studio Community / Enterprise](https://visualstudio.microsoft.com/vs/community/), [Strawberry perl](https://strawberryperl.com/), and [Chocolatey](https://chocolatey.org/install) if not installed already.
 
-Get the libraries by running the following in `powershell`
+Install the libraries by running the following in `powershell`
 ```shell
 choco install pkgconfiglite
 choco install gstreamer
@@ -126,7 +126,7 @@ Note that if the paths are still too long (which can cause the build to fail unf
 
 #### Building the SDK
 
-Run the script customized above
+Run the script that we customized above
 
 ```shell
 .github\build_windows_openssl.bat
