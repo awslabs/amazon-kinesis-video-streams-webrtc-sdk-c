@@ -137,7 +137,7 @@ To run the sample application, make sure that you've exported the following path
 
 Modify the `<path-to-webrtc-root>\open-source\bin`, `<path-to-webrtc-root>\build`, `<path-to-pthreads-unzip-location>\pthreads-w32-2-9-1-release\Pre-built.2\dll\x64`
 ```shell
-$env:Path += ';C:\webrtc\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\dll\x64;C:\webrtc\build'
+$env:Path += ';<path-to-webrtc-root>\open-source\bin;<path-to-pthreads-unzip-location>\pthreads-w32-2-9-1-release\Pre-built.2\dll\x64;<path-to-webrtc-root>\build'
 ```
 
 ### Dependency requirements
