@@ -415,7 +415,6 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendRecv)
     std::string offerSdp(sessionDescriptionInit.sdp);
 
     // check nack and nack pli lines
-    // We assume here DEFAULT_PAYLOAD_H264 is 125 so we know what our offer will generate.
     std::string::size_type posPliOnly = offerSdp.find(m_rtcp_h264_nack_line);
     std::string::size_type posPliNack = offerSdp.find(m_rtcp_h264_nack_pli_line);
     EXPECT_NE(posPliOnly, posPliNack);
@@ -493,7 +492,6 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendOnly)
     std::string offerSdp(sessionDescriptionInit.sdp);
 
     // check nack and nack pli lines
-    // We assume here DEFAULT_PAYLOAD_H264 is 125 so we know what our offer will generate.
     std::string::size_type posPliOnly = offerSdp.find(m_rtcp_h264_nack_line);
     std::string::size_type posPliNack = offerSdp.find(m_rtcp_h264_nack_pli_line);
     EXPECT_NE(posPliOnly, posPliNack);
@@ -532,7 +530,6 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendOnly_H265)
     std::string offerSdp(sessionDescriptionInit.sdp);
 
     // check nack and nack pli lines
-    // We assume here DEFAULT_PAYLOAD_H265 is 127 so we know what our offer will generate.
     std::string::size_type posPliOnly = offerSdp.find(m_rtcp_h265_nack_line);
     std::string::size_type posPliNack = offerSdp.find(m_rtcp_h265_nack_pli_line);
     EXPECT_NE(posPliOnly, posPliNack);
