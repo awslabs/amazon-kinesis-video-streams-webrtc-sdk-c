@@ -1,5 +1,5 @@
 >[!WARNING]
->This branch is deprecated and no longer receives updates. Please use the [latest release](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/releases/latest) or the [main branch](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/tree/main).
+>This branch is deprecated and no longer receives updates. This branch is known to be affected by an issue with TURN connections as reported in Issue [#2038](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/issues/2038). Please use the [latest release](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/releases/latest) or the [main branch](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/tree/main).
 <h1 align="center">
   Amazon Kinesis Video Streams C WebRTC SDK
   <br>
