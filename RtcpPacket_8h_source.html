@@ -190,7 +190,7 @@ $(document).ready(function(){initNavTree('RtcpPacket_8h_source.html',''); initRe
 <div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;<span class="comment">// In some fields where a more compact representation is</span></div>
 <div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;<span class="comment">//   appropriate, only the middle 32 bits are used; that is, the low 16</span></div>
 <div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;<span class="comment">//   bits of the integer part and the high 16 bits of the fractional part.</span></div>
-<div class="line"><a name="l00096"></a><span class="lineno"><a class="line" href="RtcpPacket_8h.html#aed870c6456eb7498731c672341070924">   96</a></span>&#160;<span class="preprocessor">#define MID_NTP(ntp_time) (UINT32)((ntp_time &gt;&gt; 16U) &amp; 0xffffffffULL)</span></div>
+<div class="line"><a name="l00096"></a><span class="lineno"><a class="line" href="RtcpPacket_8h.html#aed870c6456eb7498731c672341070924">   96</a></span>&#160;<span class="preprocessor">#define MID_NTP(ntp_time) (UINT32)((currentTimeNTP &gt;&gt; 16U) &amp; 0xffffffffULL)</span></div>
 <div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160; </div>
 <div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;<span class="preprocessor">#ifdef __cplusplus</span></div>
 <div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;}</div>
@@ -231,7 +231,7 @@ $(document).ready(function(){initNavTree('RtcpPacket_8h_source.html',''); initRe
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_c36c36fdccc33e203a048326c72267a6.html">Rtcp</a></li><li class="navelem"><a class="el" href="RtcpPacket_8h.html">RtcpPacket.h</a></li>
-    <li class="footer">Generated on Mon Jul 29 2024 21:05:01 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Tue Jul 30 2024 18:12:54 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

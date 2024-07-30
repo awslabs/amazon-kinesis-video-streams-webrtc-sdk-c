@@ -3,11 +3,10 @@
 <area shape="rect" id="node2" href="$ThreadPoolContext_8c.html#a92d437785ef0ef55afb88dd4d4c554d2" title=" " alt="" coords="939,5,1125,32"/>
 <area shape="rect" id="node3" href="$ThreadPoolContext_8c.html#a937a64b071777eee0f6ce20f1cdc2160" title=" " alt="" coords="935,56,1129,83"/>
 <area shape="rect" id="node4" href="$ThreadPoolContext_8c.html#a699e80c90be085434e9270138225e5de" title=" " alt="" coords="945,107,1119,133"/>
-<area shape="rect" id="node5" href="$PeerConnection_8c.html#a0a0385b5afef472a439ff5d8d8d7c1a0" title=" " alt="" coords="673,56,887,83"/>
-<area shape="rect" id="node7" href="$group__PublicMemberFunctions.html#ga7d678994f9d17baa3dd9dd72b38be4df" title=" " alt="" coords="699,107,861,133"/>
-<area shape="rect" id="node8" href="$LwsApiCalls_8c.html#a4c9dcb58ab89a46831b232ea6f1b9903" title=" " alt="" coords="703,157,857,184"/>
-<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="454,56,619,83"/>
-<area shape="rect" id="node9" href="$LwsApiCalls_8c.html#ada0698d028687c46481e076ce1be4359" title=" " alt="" coords="448,157,625,184"/>
-<area shape="rect" id="node10" href="$Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="245,157,400,184"/>
-<area shape="rect" id="node11" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,157,197,184"/>
+<area shape="rect" id="node5" href="$PeerConnection_8c.html#a0a0385b5afef472a439ff5d8d8d7c1a0" title=" " alt="" coords="673,81,887,108"/>
+<area shape="rect" id="node7" href="$LwsApiCalls_8c.html#a4c9dcb58ab89a46831b232ea6f1b9903" title=" " alt="" coords="703,132,857,159"/>
+<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="454,81,619,108"/>
+<area shape="rect" id="node8" href="$LwsApiCalls_8c.html#ada0698d028687c46481e076ce1be4359" title=" " alt="" coords="448,132,625,159"/>
+<area shape="rect" id="node9" href="$Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="245,132,400,159"/>
+<area shape="rect" id="node10" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,132,197,159"/>
 </map>

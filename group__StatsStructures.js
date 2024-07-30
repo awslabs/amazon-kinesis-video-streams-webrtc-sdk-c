@@ -79,11 +79,11 @@ var group__StatsStructures =
     [ "RtcIceServerStats", "structRtcIceServerStats.html", [
       [ "iceServerIndex", "structRtcIceServerStats.html#a3c3c3a06e3748ab080eb70c71f5274fb", null ],
       [ "port", "structRtcIceServerStats.html#a27c5b9c1c86d202813b4a055d44bb6a3", null ],
-      [ "protocol", "structRtcIceServerStats.html#a7c3215413fd6dea54be19864fa623328", null ],
+      [ "protocol", "structRtcIceServerStats.html#aef856e57d4b2927f8656c1f9ac100c0c", null ],
       [ "totalRequestsSent", "structRtcIceServerStats.html#a1e111b9c8ca8d7b60b6e1150fdc02edf", null ],
       [ "totalResponsesReceived", "structRtcIceServerStats.html#a51be9f1f837bc9ed9faa73248d1f4583", null ],
       [ "totalRoundTripTime", "structRtcIceServerStats.html#a9f655978fbf2923c730610386acc80e8", null ],
-      [ "url", "structRtcIceServerStats.html#a2013ba473f6b5d4e9f652100c9036bfc", null ]
+      [ "url", "structRtcIceServerStats.html#ac2bc499602273f0d2c6071405daa6cf6", null ]
     ] ],
     [ "KvsIceAgentStats", "structKvsIceAgentStats.html", [
       [ "candidateGatheringEndTime", "structKvsIceAgentStats.html#a6a864359e5f9d4d0fbf23a4d2f2e5c15", null ],
@@ -99,11 +99,12 @@ var group__StatsStructures =
     ] ],
     [ "RtcIceCandidateStats", "structRtcIceCandidateStats.html", [
       [ "address", "structRtcIceCandidateStats.html#a0f2fd29d6b8ef55e599acfaaefbe8345", null ],
-      [ "candidateType", "structRtcIceCandidateStats.html#a3c6b63ace94e9f4ad21e8ebcdcae7dfc", null ],
+      [ "candidateType", "structRtcIceCandidateStats.html#a8b79dc090a0de993fc02dff03b278f86", null ],
       [ "port", "structRtcIceCandidateStats.html#a4c1382b97babc852f0e8391ce28c6eab", null ],
       [ "priority", "structRtcIceCandidateStats.html#a05b9b8904ae8c77bdba111689138897e", null ],
-      [ "protocol", "structRtcIceCandidateStats.html#a8d43ca6b561ddabc967c4436e6cd9964", null ],
-      [ "relayProtocol", "structRtcIceCandidateStats.html#af6070395125588a93f9fd6b5e2eebcc4", null ],
+      [ "protocol", "structRtcIceCandidateStats.html#a8e41a69790639ef18a119295bb636e65", null ],
+      [ "relayProtocol", "structRtcIceCandidateStats.html#a6302862a6ed25df98edcc7057313f71d", null ],
+      [ "transportId", "structRtcIceCandidateStats.html#a8656c25a5c35a02e85f2a8fc24548144", null ],
       [ "url", "structRtcIceCandidateStats.html#a0070154c6ed62908cb2b5a9b882687ab", null ]
     ] ],
     [ "RtcTransportStats", "structRtcTransportStats.html", [
