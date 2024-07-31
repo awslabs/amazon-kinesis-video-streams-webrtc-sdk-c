@@ -1512,9 +1512,6 @@ typedef struct {
  */
 typedef struct {
     RTC_RTP_TRANSCEIVER_DIRECTION direction; //!< Transceiver direction - SENDONLY, RECVONLY, SENDRECV
-    DOUBLE rollingBufferDurationSec; //!< Maximum duration of media that needs to be buffered (in seconds). The lowest allowed is 0.1 seconds (100ms)
-    DOUBLE rollingBufferBitratebps;  //!< Maximum expected bitrate of media (In bits/second). It is used to determine the buffer capacity. The lowest
-                                     //!< allowed is 100 Kbps
 } RtcRtpTransceiverInit, *PRtcRtpTransceiverInit;
 
 /**
@@ -1632,6 +1629,19 @@ typedef struct {
 /*! \addtogroup PublicMemberFunctions
  * @{
  */
+
+/**
+ * @brief Set up rolling buffer configuration - max duration of media to store (sec) and expected max bitrate (bips) of the encoded media
+ *
+ *
+ * @param[in] PRtcRtpTransceiver IN/Initialized and configured RtcRtpTransceiver
+ * @param[in] PRtcMediaStreamTrack IN/Initialized media stream track information
+ * @param[in] DOUBLE IN/Rolling buffer duration in seconds
+ * @param[in] DOUBLE IN/Rolling buffer bitrate in bits/second
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+STATUS createRollingBufferConfig(PRtcRtpTransceiver, PRtcMediaStreamTrack, DOUBLE, DOUBLE);
 
 /**
  * @brief Initialize a RtcPeerConnection with the provided Configuration

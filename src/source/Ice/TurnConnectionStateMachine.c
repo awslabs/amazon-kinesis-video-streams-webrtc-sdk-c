@@ -73,7 +73,7 @@ STATUS checkTurnConnectionStateMachine(PTurnConnection pTurnConnection)
 
     if (transitionReady) {
         // dangerous to have any mutexes locked by timerqueue when entering this function
-        CHK_STATUS(timerQueueKick(pTurnConnection->timerQueueHandle, pTurnConnection->timerCallbackId));
+       //  CHK_STATUS(timerQueueKick(pTurnConnection->timerQueueHandle, pTurnConnection->timerCallbackId));
     }
 
 CleanUp:

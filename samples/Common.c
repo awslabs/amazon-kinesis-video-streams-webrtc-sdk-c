@@ -524,6 +524,8 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
 
     MEMSET(&videoTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
     MEMSET(&audioTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+    MEMSET(&audioRtpTransceiverInit, 0x00, SIZEOF(RtcRtpTransceiverInit));
+    MEMSET(&videoRtpTransceiverInit, 0x00, SIZEOF(RtcRtpTransceiverInit));
 
     CHK(pSampleConfiguration != NULL && ppSampleStreamingSession != NULL, STATUS_NULL_ARG);
     CHK((isMaster && peerId != NULL) || !isMaster, STATUS_INVALID_ARG);
@@ -578,14 +580,21 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
     videoTrack.codec = pSampleConfiguration->videoCodec;
     videoRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
-    videoRtpTransceiverInit.rollingBufferDurationSec = 3;
-    // Considering 4 Mbps for 720p (which is what our samples use). This is for H.264.
-    // The value could be different for other codecs.
-    videoRtpTransceiverInit.rollingBufferBitratebps = 4 * 1024 * 1024;
     STRCPY(videoTrack.streamId, "myKvsVideoStream");
     STRCPY(videoTrack.trackId, "myVideoTrack");
     CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &videoTrack, &videoRtpTransceiverInit,
                               &pSampleStreamingSession->pVideoRtcRtpTransceiver));
+
+    if (videoTrack.codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
+        CHK_STATUS(createRollingBufferConfig(pSampleStreamingSession->pVideoRtcRtpTransceiver, &videoTrack, H264_ROLLING_BUFFER_DURATION_SECONDS,
+                                             H264_ROLLING_BUFFER_BITRATE_BITS_PER_SECOND));
+    } else if (videoTrack.codec == RTC_CODEC_H265) {
+        CHK_STATUS(createRollingBufferConfig(pSampleStreamingSession->pVideoRtcRtpTransceiver, &videoTrack, H265_ROLLING_BUFFER_DURATION_SECONDS,
+                                             H265_ROLLING_BUFFER_BITRATE_BITS_PER_SECOND));
+    } else if (videoTrack.codec == RTC_CODEC_VP8) {
+        CHK_STATUS(createRollingBufferConfig(pSampleStreamingSession->pVideoRtcRtpTransceiver, &videoTrack, VP8_ROLLING_BUFFER_DURATION_SECONDS,
+                                             VP8_ROLLING_BUFFER_BITRATE_BITS_PER_SECOND));
+    }
 
     CHK_STATUS(transceiverOnBandwidthEstimation(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession,
                                                 sampleBandwidthEstimationHandler));
@@ -594,13 +603,18 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
     audioTrack.codec = pSampleConfiguration->audioCodec;
     audioRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
-    audioRtpTransceiverInit.rollingBufferDurationSec = 3;
-    // For opus, the bitrate could be between 6 Kbps to 510 Kbps
-    audioRtpTransceiverInit.rollingBufferBitratebps = 510 * 1024;
     STRCPY(audioTrack.streamId, "myKvsVideoStream");
     STRCPY(audioTrack.trackId, "myAudioTrack");
     CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &audioTrack, &audioRtpTransceiverInit,
                               &pSampleStreamingSession->pAudioRtcRtpTransceiver));
+
+    if (audioTrack.codec == RTC_CODEC_OPUS) {
+        CHK_STATUS(createRollingBufferConfig(pSampleStreamingSession->pAudioRtcRtpTransceiver, &audioTrack, OPUS_ROLLING_BUFFER_DURATION_SECONDS,
+                                             OPUS_ROLLING_BUFFER_BITRATE_BITS_PER_SECOND));
+    } else if (audioTrack.codec == RTC_CODEC_ALAW || audioTrack.codec == RTC_CODEC_MULAW) {
+        CHK_STATUS(createRollingBufferConfig(pSampleStreamingSession->pAudioRtcRtpTransceiver, &audioTrack, G711_ROLLING_BUFFER_DURATION_SECONDS,
+                                             G711_ROLLING_BUFFER_BITRATE_BITS_PER_SECOND));
+    }
 
     CHK_STATUS(transceiverOnBandwidthEstimation(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession,
                                                 sampleBandwidthEstimationHandler));

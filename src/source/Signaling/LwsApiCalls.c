@@ -1495,8 +1495,8 @@ STATUS joinStorageSessionLws(PSignalingClient pSignalingClient, UINT64 time)
     UINT32 resultLen;
 
     UNUSED_PARAM(pResponseStr);
+    UNUSED_PARAM(pLwsCallInfo);
     UNUSED_PARAM(resultLen);
-
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->channelEndpointWebrtc[0] != '\0', STATUS_INTERNAL_ERROR);
 
@@ -2400,7 +2400,6 @@ PVOID receiveLwsMessageWrapper(PVOID args)
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.messageReceivedFn(pSignalingClient->signalingClientCallbacks.customData,
                                                                                 &pSignalingMessageWrapper->receivedSignalingMessage));
     }
-
 CleanUp:
     CHK_LOG_ERR(retStatus);
 

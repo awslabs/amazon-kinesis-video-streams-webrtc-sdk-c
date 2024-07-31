@@ -41,7 +41,7 @@ STATUS checkIceAgentStateMachine(PIceAgent pIceAgent)
     CHK_STATUS(checkForStateTransition(pIceAgent->pStateMachine, &transitionReady));
     if (transitionReady) {
         // dangerous to have any mutexes locked by timerqueue when entering this function
-        CHK_STATUS(timerQueueKick(pIceAgent->timerQueueHandle, pIceAgent->iceAgentStateTimerTask));
+       // CHK_STATUS(timerQueueKick(pIceAgent->timerQueueHandle, pIceAgent->iceAgentStateTimerTask));
     }
 
 CleanUp:
