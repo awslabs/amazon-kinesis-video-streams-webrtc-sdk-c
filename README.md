@@ -22,7 +22,7 @@
 </p>
 
 >[!NOTE]
->We have switched from using the 'master' branch to the 'main' branch. Please update your references accordingly.
+>We have switched from using the 'master' branch to the 'main' branch. The 'master' branch is known to be affected by an issue with TURN connections as reported in Issue [#2038](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/issues/2038). The [latest release](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/releases/latest), not affected by Issue [#2038](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/issues/2038), was merged into this 'main' branch. Please update your references accordingly.
 ## New feature announcements
 Please refer to the release notes in [Releases](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/releases) page
 
