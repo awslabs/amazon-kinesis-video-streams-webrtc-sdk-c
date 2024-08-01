@@ -6,6 +6,18 @@ project(KinesisVideoWebRTCClientSamples LANGUAGES C)
 
 message("OPEN_SRC_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}")
 
+if (WIN32)
+  if(NOT DEFINED PKG_CONFIG_EXECUTABLE)
+    if(EXISTS "C:\\gstreamer\\1.0\\x86_64\\bin\\pkg-config.exe")
+      set(PKG_CONFIG_EXECUTABLE "C:\\gstreamer\\1.0\\x86_64\\bin\\pkg-config.exe")
+    endif()
+  elseif(DEFINED PKG_CONFIG_EXECUTABLE)
+    message(STATUS "Gstreamer pkg-config path set to ${PKG_CONFIG_EXECUTABLE}")
+  else()
+    message(FATAL_ERROR "Gstreamer not found in default path. Set the appropriate path with -DPKG_CONFIG_EXECUTABLE=<path>")
+  endif()
+endif()
+
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(GST gstreamer-1.0)
