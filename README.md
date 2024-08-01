@@ -109,6 +109,7 @@ You can pass the following options to `cmake ..`.
 * `-DTHREAD_SANITIZER` -- Build with ThreadSanitizer
 * `-DUNDEFINED_BEHAVIOR_SANITIZER` -- Build with UndefinedBehaviorSanitizer
 * `-DLINK_PROFILER` -- Link with gperftools (available profiler options are listed [here](https://github.com/gperftools/gperftools))
+* `-DPKG_CONFIG_EXECUTABLE` -- Set pkg config path. This might be required to find GStreamer's pkg config specifically on Windows.
 
 To clean up the `open-source` and `build` folders from previous build, use `cmake --build . --target clean` from the `build` folder
 
