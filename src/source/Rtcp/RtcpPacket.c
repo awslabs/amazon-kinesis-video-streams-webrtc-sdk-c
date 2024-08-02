@@ -32,7 +32,7 @@ CleanUp:
     return retStatus;
 }
 
-// Given a RTCP Packet list extract the list of SSRCes, since the list of SSRCes may not be know ahead of time (because of BLP)
+// Given a RTCP Packet list extract the list of SSRCes, since the list of SSRCes may not be known ahead of time (because of BLP)
 // we need to allocate the list dynamically
 STATUS rtcpNackListGet(PBYTE pPayload, UINT32 payloadLen, PUINT32 pSenderSsrc, PUINT32 pReceiverSsrc, PUINT16 pSequenceNumberList,
                        PUINT32 pSequenceNumberListLen)
@@ -55,14 +55,14 @@ STATUS rtcpNackListGet(PBYTE pPayload, UINT32 payloadLen, PUINT32 pSenderSsrc, P
         BLP = getInt16(*(PUINT16) (pPayload + i + 2));
 
         // If pSsrcList is not NULL and we have space push and increment
-        if (pSequenceNumberList != NULL && sequenceNumberCount <= *pSequenceNumberListLen) {
+        if (pSequenceNumberList != NULL && sequenceNumberCount < *pSequenceNumberListLen) {
             pSequenceNumberList[sequenceNumberCount] = currentSequenceNumber;
         }
         sequenceNumberCount++;
 
         for (j = 0; j < 16; j++) {
             if ((BLP & (1 << j)) >> j) {
-                if (pSequenceNumberList != NULL && sequenceNumberCount <= *pSequenceNumberListLen) {
+                if (pSequenceNumberList != NULL && sequenceNumberCount < *pSequenceNumberListLen) {
                     pSequenceNumberList[sequenceNumberCount] = (currentSequenceNumber + j + 1);
                 }
                 sequenceNumberCount++;
