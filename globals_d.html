@@ -150,6 +150,12 @@ $(document).ready(function(){initNavTree('globals_d.html',''); initResizable(); 
 <li>DEFAULT_CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS
 : <a class="el" href="Signaling_8h.html#a7f261a4a48d60e84a1858c5d6cbdb7df">Signaling.h</a>
 </li>
+<li>DEFAULT_EXPECTED_AUDIO_BIT_RATE
+: <a class="el" href="Rtp_8h.html#a6a56d72374fc3359a1b8751aa0933fcd">Rtp.h</a>
+</li>
+<li>DEFAULT_EXPECTED_VIDEO_BIT_RATE
+: <a class="el" href="Rtp_8h.html#af88c4b83fa17ed806ccb9d8d2447e686">Rtp.h</a>
+</li>
 <li>DEFAULT_H264_FMTP
 : <a class="el" href="SessionDescription_8h.html#a32bb083279e6043b75c6cd2b49dfce7f">SessionDescription.h</a>
 </li>
@@ -162,8 +168,8 @@ $(document).ready(function(){initNavTree('globals_d.html',''); initResizable(); 
 <li>DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT
 : <a class="el" href="IceUtils_8h.html#a46069ecb8c1f3484349fa0f14de20581">IceUtils.h</a>
 </li>
-<li>DEFAULT_MTU_SIZE
-: <a class="el" href="Rtp_8h.html#ab463e7cce50e0fa472b4b08ac0fe258c">Rtp.h</a>
+<li>DEFAULT_MTU_SIZE_BYTES
+: <a class="el" href="Rtp_8h.html#a6d63843d01692139cae9a72c515dde5c">Rtp.h</a>
 </li>
 <li>DEFAULT_NAT_TEST_MAX_BINDING_REQUEST_COUNT
 : <a class="el" href="NatBehaviorDiscovery_8h.html#a9ab048e7c35895d98b00122e596faa3c">NatBehaviorDiscovery.h</a>
@@ -273,12 +279,6 @@ $(document).ready(function(){initNavTree('globals_d.html',''); initResizable(); 
 : <a class="el" href="Sctp_8c.html#a5944157f6ac02b21d2524826b5df1ef7">Sctp.c</a>
 , <a class="el" href="Sctp_8h.html#a5944157f6ac02b21d2524826b5df1ef7">Sctp.h</a>
 </li>
-<li>DELETE_CHANNEL_PARAM_JSON_TEMPLATE
-: <a class="el" href="LwsApiCalls_8h.html#abfaa33082d645f8411464fa7b838a65b">LwsApiCalls.h</a>
-</li>
-<li>DELETE_SIGNALING_CHANNEL_API_POSTFIX
-: <a class="el" href="LwsApiCalls_8h.html#aa93617a325d7350e17465c4afc9f43b4">LwsApiCalls.h</a>
-</li>
 <li>deleteChannel()
 : <a class="el" href="Signaling_8c.html#a885de8ca00d580f413591422d35c52a5">Signaling.c</a>
 , <a class="el" href="Signaling_8h.html#a8e737f9e23a9d0be4a2280e6114bd6fc">Signaling.h</a>
@@ -300,8 +300,8 @@ $(document).ready(function(){initNavTree('globals_d.html',''); initResizable(); 
 , <a class="el" href="RtpH265Payloader_8h.html#aaac402441a16fdc484312abd5fb25c37">RtpH265Payloader.h</a>
 </li>
 <li>depayOpusFromRtpPayload()
-: <a class="el" href="RtpOpusPayloader_8c.html#a6c4cd2c97d694c20f515b405d635917c">RtpOpusPayloader.c</a>
-, <a class="el" href="RtpOpusPayloader_8h.html#acdb33e6b32dbfbaeee768ac5a27700cc">RtpOpusPayloader.h</a>
+: <a class="el" href="RtpOpusPayloader_8h.html#acdb33e6b32dbfbaeee768ac5a27700cc">RtpOpusPayloader.h</a>
+, <a class="el" href="RtpOpusPayloader_8c.html#a6c4cd2c97d694c20f515b405d635917c">RtpOpusPayloader.c</a>
 </li>
 <li>DepayRtpPayloadFunc
 : <a class="el" href="RtpPacket_8h.html#a6918ad0323871199fbe1e7c0653bde3a">RtpPacket.h</a>
@@ -309,18 +309,6 @@ $(document).ready(function(){initNavTree('globals_d.html',''); initResizable(); 
 <li>depayVP8FromRtpPayload()
 : <a class="el" href="RtpVP8Payloader_8c.html#a47e50b99d09199f07495345d70d8b88e">RtpVP8Payloader.c</a>
 , <a class="el" href="RtpVP8Payloader_8h.html#a7c692a5ba95347a7d3bffe90b249c208">RtpVP8Payloader.h</a>
-</li>
-<li>DESCRIBE_CHANNEL_PARAM_JSON_TEMPLATE
-: <a class="el" href="LwsApiCalls_8h.html#ac7f153eb6b62f9f23948d1cda7549c33">LwsApiCalls.h</a>
-</li>
-<li>DESCRIBE_MEDIA_STORAGE_CONF_API_POSTFIX
-: <a class="el" href="LwsApiCalls_8h.html#ac6282cadc7dc9aca1c170e86e9391996">LwsApiCalls.h</a>
-</li>
-<li>DESCRIBE_MEDIA_STORAGE_CONF_PARAM_JSON_TEMPLATE
-: <a class="el" href="LwsApiCalls_8h.html#a9e33203854e710047071dcce0ea34034">LwsApiCalls.h</a>
-</li>
-<li>DESCRIBE_SIGNALING_CHANNEL_API_POSTFIX
-: <a class="el" href="LwsApiCalls_8h.html#aec618e6f54a67ae849d476a302cd3ca0">LwsApiCalls.h</a>
 </li>
 <li>describeChannel()
 : <a class="el" href="Signaling_8c.html#a7721cf7d3a8e27791693c1d7d0b06486">Signaling.c</a>
@@ -359,8 +347,8 @@ $(document).ready(function(){initNavTree('globals_d.html',''); initResizable(); 
 , <a class="el" href="Stun_8h.html#adaad912b9ec6d16f9ed59fa82e79e8ac">Stun.h</a>
 </li>
 <li>destroyThreadPoolContext()
-: <a class="el" href="ThreadpoolContext_8h.html#ad8cd6b898c7568cc52b18062816a30a0">ThreadpoolContext.h</a>
-, <a class="el" href="ThreadPoolContext_8c.html#a937a64b071777eee0f6ce20f1cdc2160">ThreadPoolContext.c</a>
+: <a class="el" href="ThreadPoolContext_8c.html#a937a64b071777eee0f6ce20f1cdc2160">ThreadPoolContext.c</a>
+, <a class="el" href="ThreadpoolContext_8h.html#ad8cd6b898c7568cc52b18062816a30a0">ThreadpoolContext.h</a>
 </li>
 <li>discoverNatBehavior()
 : <a class="el" href="group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce">Include.h</a>
@@ -440,8 +428,8 @@ $(document).ready(function(){initNavTree('globals_d.html',''); initResizable(); 
 : <a class="el" href="Dtls_8h.html#adc09b0be4b5523e162a62e8d59e5e2e9">Dtls.h</a>
 </li>
 <li>dtlsSessionChangeState()
-: <a class="el" href="Dtls_8c.html#ac7d96e418743c4a3c14e2e766340734c">Dtls.c</a>
-, <a class="el" href="Dtls_8h.html#a836f1f4561fc2126486f46e3858cd0f2">Dtls.h</a>
+: <a class="el" href="Dtls_8h.html#a836f1f4561fc2126486f46e3858cd0f2">Dtls.h</a>
+, <a class="el" href="Dtls_8c.html#ac7d96e418743c4a3c14e2e766340734c">Dtls.c</a>
 </li>
 <li>dtlsSessionGetLocalCertificateFingerprint()
 : <a class="el" href="Dtls_8h.html#a6496e3bbe9fbc063a59c1d19a1732e92">Dtls.h</a>
@@ -468,12 +456,12 @@ $(document).ready(function(){initNavTree('globals_d.html',''); initResizable(); 
 : <a class="el" href="Dtls_8h.html#acf73231476e62e59c420acbea5ef5da5">Dtls.h</a>
 , <a class="el" href="Dtls_8c.html#a8b1d124e37f661b01ee5924e188a3f0b">Dtls.c</a>
 </li>
-<li>DtlsSessionOnStateChange
-: <a class="el" href="Dtls_8h.html#a25177524d00388228c47f9708c3568f8">Dtls.h</a>
-</li>
 <li>dtlsSessionOnStateChange()
 : <a class="el" href="Dtls_8c.html#a61b25e14613d4c213fb135aa61d470c7">Dtls.c</a>
 , <a class="el" href="Dtls_8h.html#aef9e585b4cd05c87e563c16ad155f87b">Dtls.h</a>
+</li>
+<li>DtlsSessionOnStateChange
+: <a class="el" href="Dtls_8h.html#a25177524d00388228c47f9708c3568f8">Dtls.h</a>
 </li>
 <li>DtlsSessionOutboundPacketFunc
 : <a class="el" href="Dtls_8h.html#ad77d8c9319ed23de6e47280312ae6cb3">Dtls.h</a>
@@ -534,7 +522,7 @@ $(document).ready(function(){initNavTree('globals_d.html',''); initResizable(); 
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Tue Jul 30 2024 18:12:55 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Fri Aug 2 2024 01:48:30 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

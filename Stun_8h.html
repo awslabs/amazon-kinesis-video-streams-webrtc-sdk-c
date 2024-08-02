@@ -101,13 +101,23 @@ $(document).ready(function(){initNavTree('Stun_8h.html',''); initResizable(); })
 <div class="title">Stun.h File Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><div class="dynheader">
+<div class="textblock"><code>#include &quot;kvsstun/stun_data_types.h&quot;</code><br />
+</div><div class="textblock"><div class="dynheader">
+Include dependency graph for Stun.h:</div>
+<div class="dyncontent">
+<div class="center"><img src="Stun_8h__incl.png" border="0" usemap="#asrc_2source_2Stun_2Stun_8h" alt=""/></div>
+<map name="asrc_2source_2Stun_2Stun_8h" id="asrc_2source_2Stun_2Stun_8h">
+<area shape="rect" title=" " alt="" coords="20,5,187,32"/>
+<area shape="rect" title=" " alt="" coords="5,80,201,107"/>
+</map>
+</div>
+</div><div class="textblock"><div class="dynheader">
 This graph shows which files directly or indirectly include this file:</div>
 <div class="dyncontent">
 <div class="center"><img src="Stun_8h__dep__incl.png" border="0" usemap="#asrc_2source_2Stun_2Stun_8hdep" alt=""/></div>
 <map name="asrc_2source_2Stun_2Stun_8hdep" id="asrc_2source_2Stun_2Stun_8hdep">
-<area shape="rect" title=" " alt="" coords="4781,5,4948,32"/>
-<area shape="rect" href="Include__i_8h.html" title=" " alt="" coords="4783,80,4946,107"/>
+<area shape="rect" title=" " alt="" coords="5000,5,5167,32"/>
+<area shape="rect" href="Include__i_8h.html" title=" " alt="" coords="5002,80,5165,107"/>
 <area shape="rect" href="Crypto_8c.html" title=" " alt="" coords="5,162,199,189"/>
 <area shape="rect" href="Dtls_8c.html" title=" " alt="" coords="223,162,399,189"/>
 <area shape="rect" href="Dtls__mbedtls_8c.html" title=" " alt="" coords="423,155,589,196"/>
@@ -142,18 +152,20 @@ This graph shows which files directly or indirectly include this file:</div>
 <area shape="rect" href="RtpOpusPayloader_8c.html" title=" " alt="" coords="6573,155,6738,196"/>
 <area shape="rect" href="RtpVP8Payloader_8c.html" title=" " alt="" coords="6762,155,6927,196"/>
 <area shape="rect" href="RtpPacket_8c.html" title=" " alt="" coords="6952,162,7145,189"/>
-<area shape="rect" href="Sctp_8c.html" title=" " alt="" coords="7170,162,7333,189"/>
-<area shape="rect" href="Deserialize_8c.html" title=" " alt="" coords="7357,162,7561,189"/>
-<area shape="rect" href="Serialize_8c.html" title=" " alt="" coords="7586,162,7773,189"/>
-<area shape="rect" href="ChannelInfo_8c.html" title=" " alt="" coords="7797,155,7949,196"/>
-<area shape="rect" href="Client_8c.html" title=" " alt="" coords="7973,155,8125,196"/>
-<area shape="rect" href="FileCache_8c.html" title=" " alt="" coords="8149,155,8301,196"/>
-<area shape="rect" href="LwsApiCalls_8c.html" title=" " alt="" coords="8325,155,8477,196"/>
-<area shape="rect" href="Signaling_8c.html" title=" " alt="" coords="8501,155,8653,196"/>
-<area shape="rect" href="StateMachine_8c.html" title=" " alt="" coords="8677,155,8829,196"/>
-<area shape="rect" href="SrtpSession_8c.html" title=" " alt="" coords="8853,162,9063,189"/>
-<area shape="rect" href="Stun_8c.html" title=" " alt="" coords="9087,162,9253,189"/>
-<area shape="rect" href="ThreadPoolContext_8c.html" title=" " alt="" coords="9277,155,9442,196"/>
+<area shape="rect" href="RtpUtils_8c.html" title=" " alt="" coords="7170,162,7351,189"/>
+<area shape="rect" href="Sctp_8c.html" title=" " alt="" coords="7375,162,7538,189"/>
+<area shape="rect" href="Deserialize_8c.html" title=" " alt="" coords="7563,162,7767,189"/>
+<area shape="rect" href="SdpUtils_8c.html" title=" " alt="" coords="7791,162,7976,189"/>
+<area shape="rect" href="Serialize_8c.html" title=" " alt="" coords="8001,162,8187,189"/>
+<area shape="rect" href="ChannelInfo_8c.html" title=" " alt="" coords="8211,155,8363,196"/>
+<area shape="rect" href="Client_8c.html" title=" " alt="" coords="8387,155,8539,196"/>
+<area shape="rect" href="FileCache_8c.html" title=" " alt="" coords="8563,155,8715,196"/>
+<area shape="rect" href="LwsApiCalls_8c.html" title=" " alt="" coords="8739,155,8891,196"/>
+<area shape="rect" href="Signaling_8c.html" title=" " alt="" coords="8915,155,9067,196"/>
+<area shape="rect" href="StateMachine_8c.html" title=" " alt="" coords="9091,155,9243,196"/>
+<area shape="rect" href="SrtpSession_8c.html" title=" " alt="" coords="9268,162,9477,189"/>
+<area shape="rect" href="Stun_8c.html" title=" " alt="" coords="9502,162,9667,189"/>
+<area shape="rect" href="StunUtils_8c.html" title=" " alt="" coords="9691,162,9886,189"/>
 </map>
 </div>
 </div>
@@ -206,12 +218,6 @@ Macros</h2></td></tr>
 <tr class="separator:a95811ea8eacff67da392c13f2ffe0dfa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aff39f71fcf28156c4552dc567ee54791"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#aff39f71fcf28156c4552dc567ee54791">STUN_HEADER_DATA_LEN</a>&#160;&#160;&#160;(UINT16) 2</td></tr>
 <tr class="separator:aff39f71fcf28156c4552dc567ee54791"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acf1cb90d47357434ac2c52edcb67d1d3"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#acf1cb90d47357434ac2c52edcb67d1d3">STUN_HEADER_MAGIC_COOKIE</a>&#160;&#160;&#160;(UINT32) 0x2112A442</td></tr>
-<tr class="separator:acf1cb90d47357434ac2c52edcb67d1d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aec508804fc7c8f155c1f01fdc34cb21a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#aec508804fc7c8f155c1f01fdc34cb21a">STUN_HEADER_MAGIC_COOKIE_LE</a>&#160;&#160;&#160;(UINT32) 0x42A41221</td></tr>
-<tr class="separator:aec508804fc7c8f155c1f01fdc34cb21a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae2a82fdd7659a4ae26924c3377db4106"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#ae2a82fdd7659a4ae26924c3377db4106">STUN_HEADER_MAGIC_COOKIE_LEN</a>&#160;&#160;&#160;SIZEOF(<a class="el" href="Stun_8h.html#acf1cb90d47357434ac2c52edcb67d1d3">STUN_HEADER_MAGIC_COOKIE</a>)</td></tr>
-<tr class="separator:ae2a82fdd7659a4ae26924c3377db4106"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac26e40873da90ee307d5361c7f189dfc"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#ac26e40873da90ee307d5361c7f189dfc">STUN_HEADER_TRANSACTION_ID_LEN</a>&#160;&#160;&#160;(UINT16) 12</td></tr>
 <tr class="separator:ac26e40873da90ee307d5361c7f189dfc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af76ca4e0b67db6426baa1ac77f743a6d"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#af76ca4e0b67db6426baa1ac77f743a6d">STUN_ATTRIBUTE_HEADER_TYPE_LEN</a>&#160;&#160;&#160;(UINT16) 2</td></tr>
@@ -260,8 +266,6 @@ Macros</h2></td></tr>
 <tr class="separator:a5bacd8babcc890673a6ff577bf9def7c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3342dc463f497b90e812a5a0300e922a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#a3342dc463f497b90e812a5a0300e922a">STUN_SEND_INDICATION_XOR_PEER_ADDRESS_PORT_OFFSET</a>&#160;&#160;&#160;26</td></tr>
 <tr class="separator:a3342dc463f497b90e812a5a0300e922a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8c5649753b7e4cc0a664c1bb9a0b02d4"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#a8c5649753b7e4cc0a664c1bb9a0b02d4">STUN_FINGERPRINT_ATTRIBUTE_XOR_VALUE</a>&#160;&#160;&#160;(UINT32) 0x5354554e</td></tr>
-<tr class="separator:a8c5649753b7e4cc0a664c1bb9a0b02d4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a754e5eecf2ee251b30ac9eb41a617218"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#a754e5eecf2ee251b30ac9eb41a617218">STUN_ERROR_CODE_PACKET_ERROR_CLASS_OFFSET</a>&#160;&#160;&#160;2</td></tr>
 <tr class="separator:a754e5eecf2ee251b30ac9eb41a617218"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad7442c82e6fd85e096fa1570ecdbe4ac"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#ad7442c82e6fd85e096fa1570ecdbe4ac">STUN_ERROR_CODE_PACKET_ERROR_CODE_OFFSET</a>&#160;&#160;&#160;3</td></tr>
@@ -278,6 +282,8 @@ Macros</h2></td></tr>
 <tr class="separator:a0e3adb9387cdeaedb12bd84815dc7985"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a47b377c34d7fee8aad08a2d9a9084515"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#a47b377c34d7fee8aad08a2d9a9084515">PACKAGE_STUN_ATTR_HEADER</a>(pBuf,  type,  dataLen)</td></tr>
 <tr class="separator:a47b377c34d7fee8aad08a2d9a9084515"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae6b353ba2be410398e2be32a42876399"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#ae6b353ba2be410398e2be32a42876399">STUN_ATTRIBUTE_TYPE</a>&#160;&#160;&#160;StunAttributeType_t</td></tr>
+<tr class="separator:ae6b353ba2be410398e2be32a42876399"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2e2ec23f963f3fd7e299badd51a89737"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#a2e2ec23f963f3fd7e299badd51a89737">STUN_PACKET_IS_TYPE_ERROR</a>(pPacketBuffer)</td></tr>
 <tr class="separator:a2e2ec23f963f3fd7e299badd51a89737"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -358,44 +364,6 @@ Enumerations</h2></td></tr>
 , <a class="el" href="Stun_8h.html#a0ecbedf9bcd214f007f5a811ac46572da835af6f12a9160890132f9b3f55336c4">STUN_ERROR_STALE_NONCE</a> = (UINT16) 438
  }</td></tr>
 <tr class="separator:a0ecbedf9bcd214f007f5a811ac46572d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a14bf75c5c035e54ce7c490b4ac662e0c"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0c">STUN_ATTRIBUTE_TYPE</a> { <br />
-&#160;&#160;<a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0cab526e44ef0398e209ad1ca21dd9d437c">STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS</a> = (UINT16) 0x0001
-, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0ca53c63aacb48ba3da1bd2106e2540e814">STUN_ATTRIBUTE_TYPE_RESPONSE_ADDRESS</a> = (UINT16) 0x0002
-, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0cae2047239452a6c2cfef76334c586dd4d">STUN_ATTRIBUTE_TYPE_CHANGE_REQUEST</a> = (UINT16) 0x0003
-, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0cac69e982d4366d3b23d8ed45090c3fee2">STUN_ATTRIBUTE_TYPE_SOURCE_ADDRESS</a> = (UINT16) 0x0004
-, <br />
-&#160;&#160;<a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0ca736a65b4dd7fb6fbf46afc9d53fa3dd9">STUN_ATTRIBUTE_TYPE_CHANGED_ADDRESS</a> = (UINT16) 0x0005
-, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0cab439350d88ea0a689354b3af868abe33">STUN_ATTRIBUTE_TYPE_USERNAME</a> = (UINT16) 0x0006
-, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0ca51888b5632e8cae3d5cf805bdaf04e44">STUN_ATTRIBUTE_TYPE_PASSWORD</a> = (UINT16) 0x0007
-, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0cad958679f7fad1fde67fe12011fc4a2a6">STUN_ATTRIBUTE_TYPE_MESSAGE_INTEGRITY</a> = (UINT16) 0x0008
-, <br />
-&#160;&#160;<a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0ca3d4f67f2d41fef9420791eb99238552c">STUN_ATTRIBUTE_TYPE_ERROR_CODE</a> = (UINT16) 0x0009
-, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0ca775243c415868e472949799b5295a9a1">STUN_ATTRIBUTE_TYPE_UNKNOWN_ATTRIBUTES</a> = (UINT16) 0x000A
-, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0ca57cb818f1dee45f09375fc3ab3dcda7c">STUN_ATTRIBUTE_TYPE_REFLECTED_FROM</a> = (UINT16) 0x000B
-, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0ca15aa3731d734c1c3a052742b93378e2f">STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS</a> = (UINT16) 0x0020
-, <br />
-&#160;&#160;<a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0cac88683f1ff96ad7343f1430a29548bcb">STUN_ATTRIBUTE_TYPE_PRIORITY</a> = (UINT16) 0x0024
-, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0ca2201bef7a35124007770c8bc50f57592">STUN_ATTRIBUTE_TYPE_USE_CANDIDATE</a> = (UINT16) 0x0025
-, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0cadc0c7158a8263b33c51d350901ff8d7d">STUN_ATTRIBUTE_TYPE_FINGERPRINT</a> = (UINT16) 0x8028
-, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0cae4d03db46b0513f65c85e87e14630db3">STUN_ATTRIBUTE_TYPE_ICE_CONTROLLED</a> = (UINT16) 0x8029
-, <br />
-&#160;&#160;<a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0ca12e2497f31924b064f2cf150dea16709">STUN_ATTRIBUTE_TYPE_ICE_CONTROLLING</a> = (UINT16) 0x802A
-, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0caae0ba9b12963f2766e4a08592a67f41a">STUN_ATTRIBUTE_TYPE_CHANNEL_NUMBER</a> = (UINT16) 0x000C
-, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0ca7a7cbbbb8c797e588bfef4a977eb0f1d">STUN_ATTRIBUTE_TYPE_LIFETIME</a> = (UINT16) 0x000D
-, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0caae4e15e7c99e2cd4de638905147996ef">STUN_ATTRIBUTE_TYPE_XOR_PEER_ADDRESS</a> = (UINT16) 0x0012
-, <br />
-&#160;&#160;<a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0ca9fa3b059f4b54996a7e196e351cc9f92">STUN_ATTRIBUTE_TYPE_DATA</a> = (UINT16) 0x0013
-, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0ca5891ef9db0cd4b8b1b224081431a20dd">STUN_ATTRIBUTE_TYPE_REALM</a> = (UINT16) 0x0014
-, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0ca4ab7c92d0a9c5ee2390c06f6f3df4199">STUN_ATTRIBUTE_TYPE_NONCE</a> = (UINT16) 0x0015
-, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0ca818c8f969ad642b5191978d1af1c29b2">STUN_ATTRIBUTE_TYPE_XOR_RELAYED_ADDRESS</a> = (UINT16) 0x0016
-, <br />
-&#160;&#160;<a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0ca37614ba531c5a855bc6e5eb0a8f6a5cc">STUN_ATTRIBUTE_TYPE_EVEN_PORT</a> = (UINT16) 0x0018
-, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0ca7c91890a73b288fe6811c05517faa0ac">STUN_ATTRIBUTE_TYPE_REQUESTED_TRANSPORT</a> = (UINT16) 0x0019
-, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0ca2ab7c96932bf1d7b5ca4b5e36bf368db">STUN_ATTRIBUTE_TYPE_DONT_FRAGMENT</a> = (UINT16) 0x001A
-, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0cad3ab5802a75af04b580d96b8cc6e87d0">STUN_ATTRIBUTE_TYPE_RESERVATION_TOKEN</a> = (UINT16) 0x0022
-<br />
- }</td></tr>
-<tr class="separator:a14bf75c5c035e54ce7c490b4ac662e0c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
@@ -407,12 +375,12 @@ Functions</h2></td></tr>
 <tr class="separator:a4a72f9a15980d1e8c8cf7b4f4d7663d0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acf0f4bf537aad576dad489a7b5222069"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#acf0f4bf537aad576dad489a7b5222069">createStunPacket</a> (<a class="el" href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3">STUN_PACKET_TYPE</a>, PBYTE, <a class="el" href="Stun_8h.html#a9596f8962fc3dcd84c9926b095711797">PStunPacket</a> *)</td></tr>
 <tr class="separator:acf0f4bf537aad576dad489a7b5222069"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab61a6a3a394228c480ba5556f20e3c90"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#ab61a6a3a394228c480ba5556f20e3c90">appendStunAddressAttribute</a> (<a class="el" href="Stun_8h.html#a9596f8962fc3dcd84c9926b095711797">PStunPacket</a>, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0c">STUN_ATTRIBUTE_TYPE</a>, <a class="el" href="Include__i_8h.html#af659a54bb59cc1dc4e918e22864f4db4">PKvsIpAddress</a>)</td></tr>
-<tr class="separator:ab61a6a3a394228c480ba5556f20e3c90"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab82e1b3d2f06c1d8e3fc6177e6ba4338"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#ab82e1b3d2f06c1d8e3fc6177e6ba4338">appendStunAddressAttribute</a> (<a class="el" href="Stun_8h.html#a9596f8962fc3dcd84c9926b095711797">PStunPacket</a>, StunAttributeType_t, <a class="el" href="Include__i_8h.html#af659a54bb59cc1dc4e918e22864f4db4">PKvsIpAddress</a>)</td></tr>
+<tr class="separator:ab82e1b3d2f06c1d8e3fc6177e6ba4338"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0f9e53f6383b1e7cf18187f15067f600"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#a0f9e53f6383b1e7cf18187f15067f600">appendStunUsernameAttribute</a> (<a class="el" href="Stun_8h.html#a9596f8962fc3dcd84c9926b095711797">PStunPacket</a>, PCHAR)</td></tr>
 <tr class="separator:a0f9e53f6383b1e7cf18187f15067f600"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a77b2595347e2131552ad0adbeea679ce"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#a77b2595347e2131552ad0adbeea679ce">appendStunFlagAttribute</a> (<a class="el" href="Stun_8h.html#a9596f8962fc3dcd84c9926b095711797">PStunPacket</a>, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0c">STUN_ATTRIBUTE_TYPE</a>)</td></tr>
-<tr class="separator:a77b2595347e2131552ad0adbeea679ce"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afefef0fbcdee822cff9d9311e2c15a53"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#afefef0fbcdee822cff9d9311e2c15a53">appendStunFlagAttribute</a> (<a class="el" href="Stun_8h.html#a9596f8962fc3dcd84c9926b095711797">PStunPacket</a>, StunAttributeType_t)</td></tr>
+<tr class="separator:afefef0fbcdee822cff9d9311e2c15a53"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abd1646c5d98f59fe89e443d3ea606274"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#abd1646c5d98f59fe89e443d3ea606274">appendStunPriorityAttribute</a> (<a class="el" href="Stun_8h.html#a9596f8962fc3dcd84c9926b095711797">PStunPacket</a>, UINT32)</td></tr>
 <tr class="separator:abd1646c5d98f59fe89e443d3ea606274"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af3e067a2878e2cb28f19e7589c336113"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#af3e067a2878e2cb28f19e7589c336113">appendStunLifetimeAttribute</a> (<a class="el" href="Stun_8h.html#a9596f8962fc3dcd84c9926b095711797">PStunPacket</a>, UINT32)</td></tr>
@@ -427,20 +395,20 @@ Functions</h2></td></tr>
 <tr class="separator:a879888367ce4646c1ab214816887a72d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9d015aeb1df411246c5b2d9b2fcfecb2"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#a9d015aeb1df411246c5b2d9b2fcfecb2">appendStunErrorCodeAttribute</a> (<a class="el" href="Stun_8h.html#a9596f8962fc3dcd84c9926b095711797">PStunPacket</a>, PCHAR, UINT16)</td></tr>
 <tr class="separator:a9d015aeb1df411246c5b2d9b2fcfecb2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4fd226b0edad48fed13303cf4ac726c0"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#a4fd226b0edad48fed13303cf4ac726c0">appendStunIceControllAttribute</a> (<a class="el" href="Stun_8h.html#a9596f8962fc3dcd84c9926b095711797">PStunPacket</a>, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0c">STUN_ATTRIBUTE_TYPE</a>, UINT64)</td></tr>
-<tr class="separator:a4fd226b0edad48fed13303cf4ac726c0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afc88e40d8906b4eb7dc0215e6dd9ce87"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#afc88e40d8906b4eb7dc0215e6dd9ce87">appendStunIceControllAttribute</a> (<a class="el" href="Stun_8h.html#a9596f8962fc3dcd84c9926b095711797">PStunPacket</a>, StunAttributeType_t, UINT64)</td></tr>
+<tr class="separator:afc88e40d8906b4eb7dc0215e6dd9ce87"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acc862c9d501f3553314d95ed66314f8d"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#acc862c9d501f3553314d95ed66314f8d">appendStunDataAttribute</a> (<a class="el" href="Stun_8h.html#a9596f8962fc3dcd84c9926b095711797">PStunPacket</a>, PBYTE, UINT16)</td></tr>
 <tr class="separator:acc862c9d501f3553314d95ed66314f8d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a11c2135bbbf2d86aa1e82663d40f07ec"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#a11c2135bbbf2d86aa1e82663d40f07ec">appendStunChannelNumberAttribute</a> (<a class="el" href="Stun_8h.html#a9596f8962fc3dcd84c9926b095711797">PStunPacket</a>, UINT16)</td></tr>
 <tr class="separator:a11c2135bbbf2d86aa1e82663d40f07ec"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab690c99ab4be29c74238080b08f76db9"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#ab690c99ab4be29c74238080b08f76db9">appendStunChangeRequestAttribute</a> (<a class="el" href="Stun_8h.html#a9596f8962fc3dcd84c9926b095711797">PStunPacket</a>, UINT32)</td></tr>
 <tr class="separator:ab690c99ab4be29c74238080b08f76db9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa575aa4f812ff3090dc16a4fa917f95f"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#aa575aa4f812ff3090dc16a4fa917f95f">getStunAttribute</a> (<a class="el" href="Stun_8h.html#a9596f8962fc3dcd84c9926b095711797">PStunPacket</a>, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0c">STUN_ATTRIBUTE_TYPE</a>, <a class="el" href="Stun_8h.html#a6593dd9c227dae713c5183f77ac4db5f">PStunAttributeHeader</a> *)</td></tr>
-<tr class="separator:aa575aa4f812ff3090dc16a4fa917f95f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afaaa1bf8983c0302db0d3a84abc12489"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#afaaa1bf8983c0302db0d3a84abc12489">getStunAttribute</a> (<a class="el" href="Stun_8h.html#a9596f8962fc3dcd84c9926b095711797">PStunPacket</a>, StunAttributeType_t, <a class="el" href="Stun_8h.html#a6593dd9c227dae713c5183f77ac4db5f">PStunAttributeHeader</a> *)</td></tr>
+<tr class="separator:afaaa1bf8983c0302db0d3a84abc12489"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a37bb38628d81a01c444167a25e791e46"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#a37bb38628d81a01c444167a25e791e46">xorIpAddress</a> (<a class="el" href="Include__i_8h.html#af659a54bb59cc1dc4e918e22864f4db4">PKvsIpAddress</a>, PBYTE)</td></tr>
 <tr class="separator:a37bb38628d81a01c444167a25e791e46"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acb060f428bdff51ad97f42af2911fa3e"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#acb060f428bdff51ad97f42af2911fa3e">stunPackageIpAddr</a> (<a class="el" href="Stun_8h.html#a9b069afda4dcda86f88839500d69aa21">PStunHeader</a>, <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0c">STUN_ATTRIBUTE_TYPE</a>, <a class="el" href="Include__i_8h.html#af659a54bb59cc1dc4e918e22864f4db4">PKvsIpAddress</a>, PBYTE, PUINT32)</td></tr>
-<tr class="separator:acb060f428bdff51ad97f42af2911fa3e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a45ec643c0151b8bd095051f70817d9b2"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#a45ec643c0151b8bd095051f70817d9b2">stunPackageIpAddr</a> (<a class="el" href="Stun_8h.html#a9b069afda4dcda86f88839500d69aa21">PStunHeader</a>, StunAttributeType_t, <a class="el" href="Include__i_8h.html#af659a54bb59cc1dc4e918e22864f4db4">PKvsIpAddress</a>, PBYTE, PUINT32)</td></tr>
+<tr class="separator:a45ec643c0151b8bd095051f70817d9b2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9c578496c33cefca6c793325a26f66a0"><td class="memItemLeft" align="right" valign="top">UINT16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#a9c578496c33cefca6c793325a26f66a0">getPackagedStunAttributeSize</a> (<a class="el" href="Stun_8h.html#a6593dd9c227dae713c5183f77ac4db5f">PStunAttributeHeader</a>)</td></tr>
 <tr class="separator:a9c578496c33cefca6c793325a26f66a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a87aeb6a0fcdfc55add9911c96268226d"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Stun_8h.html#a87aeb6a0fcdfc55add9911c96268226d">getFirstAvailableStunAttribute</a> (<a class="el" href="Stun_8h.html#a9596f8962fc3dcd84c9926b095711797">PStunPacket</a>, <a class="el" href="Stun_8h.html#a6593dd9c227dae713c5183f77ac4db5f">PStunAttributeHeader</a> *)</td></tr>
@@ -509,7 +477,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 <b>Value:</b><div class="fragment"><div class="line">    putInt16((PINT16) (pBuf), (UINT16) (type));                                                                                                      \</div>
 <div class="line">    putInt16((PINT16) ((pBuf) + <a class="code" href="Stun_8h.html#af76ca4e0b67db6426baa1ac77f743a6d">STUN_ATTRIBUTE_HEADER_TYPE_LEN</a>), (UINT16) (dataLen));</div>
-<div class="ttc" id="aStun_8h_html_af76ca4e0b67db6426baa1ac77f743a6d"><div class="ttname"><a href="Stun_8h.html#af76ca4e0b67db6426baa1ac77f743a6d">STUN_ATTRIBUTE_HEADER_TYPE_LEN</a></div><div class="ttdeci">#define STUN_ATTRIBUTE_HEADER_TYPE_LEN</div><div class="ttdef"><b>Definition:</b> Stun.h:35</div></div>
+<div class="ttc" id="aStun_8h_html_af76ca4e0b67db6426baa1ac77f743a6d"><div class="ttname"><a href="Stun_8h.html#af76ca4e0b67db6426baa1ac77f743a6d">STUN_ATTRIBUTE_HEADER_TYPE_LEN</a></div><div class="ttdeci">#define STUN_ATTRIBUTE_HEADER_TYPE_LEN</div><div class="ttdef"><b>Definition:</b> Stun.h:34</div></div>
 </div><!-- fragment --><p>Packages the attribute header into a specified buffer </p>
 
 </div>
@@ -766,6 +734,20 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="ae6b353ba2be410398e2be32a42876399"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae6b353ba2be410398e2be32a42876399">&#9670;&nbsp;</a></span>STUN_ATTRIBUTE_TYPE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define STUN_ATTRIBUTE_TYPE&#160;&#160;&#160;StunAttributeType_t</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="a754e5eecf2ee251b30ac9eb41a617218"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a754e5eecf2ee251b30ac9eb41a617218">&#9670;&nbsp;</a></span>STUN_ERROR_CODE_PACKET_ERROR_CLASS_OFFSET</h2>
 
@@ -808,21 +790,6 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a8c5649753b7e4cc0a664c1bb9a0b02d4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8c5649753b7e4cc0a664c1bb9a0b02d4">&#9670;&nbsp;</a></span>STUN_FINGERPRINT_ATTRIBUTE_XOR_VALUE</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define STUN_FINGERPRINT_ATTRIBUTE_XOR_VALUE&#160;&#160;&#160;(UINT32) 0x5354554e</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Need to XOR the calculate fingerprint value with this per <a href="https://tools.ietf.org/html/rfc5389#section-15.5">https://tools.ietf.org/html/rfc5389#section-15.5</a> </p>
-
-</div>
-</div>
 <a id="aff39f71fcf28156c4552dc567ee54791"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aff39f71fcf28156c4552dc567ee54791">&#9670;&nbsp;</a></span>STUN_HEADER_DATA_LEN</h2>
 
@@ -855,48 +822,6 @@ Functions</h2></td></tr>
 <li>12 UINT16 transaction id</li>
 <li>data </li>
 </ul>
-
-</div>
-</div>
-<a id="acf1cb90d47357434ac2c52edcb67d1d3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#acf1cb90d47357434ac2c52edcb67d1d3">&#9670;&nbsp;</a></span>STUN_HEADER_MAGIC_COOKIE</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define STUN_HEADER_MAGIC_COOKIE&#160;&#160;&#160;(UINT32) 0x2112A442</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="aec508804fc7c8f155c1f01fdc34cb21a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aec508804fc7c8f155c1f01fdc34cb21a">&#9670;&nbsp;</a></span>STUN_HEADER_MAGIC_COOKIE_LE</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define STUN_HEADER_MAGIC_COOKIE_LE&#160;&#160;&#160;(UINT32) 0x42A41221</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="ae2a82fdd7659a4ae26924c3377db4106"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae2a82fdd7659a4ae26924c3377db4106">&#9670;&nbsp;</a></span>STUN_HEADER_MAGIC_COOKIE_LEN</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define STUN_HEADER_MAGIC_COOKIE_LEN&#160;&#160;&#160;SIZEOF(<a class="el" href="Stun_8h.html#acf1cb90d47357434ac2c52edcb67d1d3">STUN_HEADER_MAGIC_COOKIE</a>)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
 
 </div>
 </div>
@@ -979,12 +904,12 @@ Functions</h2></td></tr>
 <div class="line">     (getInt16(*(PINT16) pPacketBuffer) == <a class="code" href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3ae916e7f1891547eab9160e08f53a8c56">STUN_PACKET_TYPE_REFRESH_ERROR_RESPONSE</a>) ||                                                               \</div>
 <div class="line">     (getInt16(*(PINT16) pPacketBuffer) == <a class="code" href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a3aa7ce41dfbd1f45ba2758d32230c9cd">STUN_PACKET_TYPE_CREATE_PERMISSION_ERROR_RESPONSE</a>) ||                                                     \</div>
 <div class="line">     (getInt16(*(PINT16) pPacketBuffer) == <a class="code" href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a96fc6b42cb2486a2f1cda05c0d389e68">STUN_PACKET_TYPE_CHANNEL_BIND_ERROR_RESPONSE</a>))</div>
-<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3a0b31fe87be0ac4b95bb38930628f5036"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a0b31fe87be0ac4b95bb38930628f5036">STUN_PACKET_TYPE_ALLOCATE_ERROR_RESPONSE</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_ALLOCATE_ERROR_RESPONSE</div><div class="ttdef"><b>Definition:</b> Stun.h:159</div></div>
-<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3a2921ad08775d02db9b85062e56b9f06d"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a2921ad08775d02db9b85062e56b9f06d">STUN_PACKET_TYPE_BINDING_RESPONSE_ERROR</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_BINDING_RESPONSE_ERROR</div><div class="ttdef"><b>Definition:</b> Stun.h:157</div></div>
-<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3a3aa7ce41dfbd1f45ba2758d32230c9cd"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a3aa7ce41dfbd1f45ba2758d32230c9cd">STUN_PACKET_TYPE_CREATE_PERMISSION_ERROR_RESPONSE</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_CREATE_PERMISSION_ERROR_RESPONSE</div><div class="ttdef"><b>Definition:</b> Stun.h:161</div></div>
-<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3a86ced821d928eecffe3ed730823d2303"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a86ced821d928eecffe3ed730823d2303">STUN_PACKET_TYPE_SHARED_SECRET_ERROR_RESPONSE</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_SHARED_SECRET_ERROR_RESPONSE</div><div class="ttdef"><b>Definition:</b> Stun.h:158</div></div>
-<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3a96fc6b42cb2486a2f1cda05c0d389e68"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a96fc6b42cb2486a2f1cda05c0d389e68">STUN_PACKET_TYPE_CHANNEL_BIND_ERROR_RESPONSE</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_CHANNEL_BIND_ERROR_RESPONSE</div><div class="ttdef"><b>Definition:</b> Stun.h:162</div></div>
-<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3ae916e7f1891547eab9160e08f53a8c56"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3ae916e7f1891547eab9160e08f53a8c56">STUN_PACKET_TYPE_REFRESH_ERROR_RESPONSE</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_REFRESH_ERROR_RESPONSE</div><div class="ttdef"><b>Definition:</b> Stun.h:160</div></div>
+<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3a0b31fe87be0ac4b95bb38930628f5036"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a0b31fe87be0ac4b95bb38930628f5036">STUN_PACKET_TYPE_ALLOCATE_ERROR_RESPONSE</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_ALLOCATE_ERROR_RESPONSE</div><div class="ttdef"><b>Definition:</b> Stun.h:153</div></div>
+<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3a2921ad08775d02db9b85062e56b9f06d"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a2921ad08775d02db9b85062e56b9f06d">STUN_PACKET_TYPE_BINDING_RESPONSE_ERROR</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_BINDING_RESPONSE_ERROR</div><div class="ttdef"><b>Definition:</b> Stun.h:151</div></div>
+<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3a3aa7ce41dfbd1f45ba2758d32230c9cd"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a3aa7ce41dfbd1f45ba2758d32230c9cd">STUN_PACKET_TYPE_CREATE_PERMISSION_ERROR_RESPONSE</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_CREATE_PERMISSION_ERROR_RESPONSE</div><div class="ttdef"><b>Definition:</b> Stun.h:155</div></div>
+<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3a86ced821d928eecffe3ed730823d2303"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a86ced821d928eecffe3ed730823d2303">STUN_PACKET_TYPE_SHARED_SECRET_ERROR_RESPONSE</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_SHARED_SECRET_ERROR_RESPONSE</div><div class="ttdef"><b>Definition:</b> Stun.h:152</div></div>
+<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3a96fc6b42cb2486a2f1cda05c0d389e68"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3a96fc6b42cb2486a2f1cda05c0d389e68">STUN_PACKET_TYPE_CHANNEL_BIND_ERROR_RESPONSE</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_CHANNEL_BIND_ERROR_RESPONSE</div><div class="ttdef"><b>Definition:</b> Stun.h:156</div></div>
+<div class="ttc" id="aStun_8h_html_aca17791e2d14034a385c93ad764a7ac3ae916e7f1891547eab9160e08f53a8c56"><div class="ttname"><a href="Stun_8h.html#aca17791e2d14034a385c93ad764a7ac3ae916e7f1891547eab9160e08f53a8c56">STUN_PACKET_TYPE_REFRESH_ERROR_RESPONSE</a></div><div class="ttdeci">@ STUN_PACKET_TYPE_REFRESH_ERROR_RESPONSE</div><div class="ttdef"><b>Definition:</b> Stun.h:154</div></div>
 </div><!-- fragment -->
 </div>
 </div>
@@ -1341,51 +1266,6 @@ Functions</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Enumeration Type Documentation</h2>
-<a id="a14bf75c5c035e54ce7c490b4ac662e0c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a14bf75c5c035e54ce7c490b4ac662e0c">&#9670;&nbsp;</a></span>STUN_ATTRIBUTE_TYPE</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">enum <a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0c">STUN_ATTRIBUTE_TYPE</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>STUN attribute types </p>
-<table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0cab526e44ef0398e209ad1ca21dd9d437c"></a>STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0ca53c63aacb48ba3da1bd2106e2540e814"></a>STUN_ATTRIBUTE_TYPE_RESPONSE_ADDRESS&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0cae2047239452a6c2cfef76334c586dd4d"></a>STUN_ATTRIBUTE_TYPE_CHANGE_REQUEST&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0cac69e982d4366d3b23d8ed45090c3fee2"></a>STUN_ATTRIBUTE_TYPE_SOURCE_ADDRESS&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0ca736a65b4dd7fb6fbf46afc9d53fa3dd9"></a>STUN_ATTRIBUTE_TYPE_CHANGED_ADDRESS&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0cab439350d88ea0a689354b3af868abe33"></a>STUN_ATTRIBUTE_TYPE_USERNAME&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0ca51888b5632e8cae3d5cf805bdaf04e44"></a>STUN_ATTRIBUTE_TYPE_PASSWORD&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0cad958679f7fad1fde67fe12011fc4a2a6"></a>STUN_ATTRIBUTE_TYPE_MESSAGE_INTEGRITY&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0ca3d4f67f2d41fef9420791eb99238552c"></a>STUN_ATTRIBUTE_TYPE_ERROR_CODE&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0ca775243c415868e472949799b5295a9a1"></a>STUN_ATTRIBUTE_TYPE_UNKNOWN_ATTRIBUTES&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0ca57cb818f1dee45f09375fc3ab3dcda7c"></a>STUN_ATTRIBUTE_TYPE_REFLECTED_FROM&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0ca15aa3731d734c1c3a052742b93378e2f"></a>STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0cac88683f1ff96ad7343f1430a29548bcb"></a>STUN_ATTRIBUTE_TYPE_PRIORITY&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0ca2201bef7a35124007770c8bc50f57592"></a>STUN_ATTRIBUTE_TYPE_USE_CANDIDATE&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0cadc0c7158a8263b33c51d350901ff8d7d"></a>STUN_ATTRIBUTE_TYPE_FINGERPRINT&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0cae4d03db46b0513f65c85e87e14630db3"></a>STUN_ATTRIBUTE_TYPE_ICE_CONTROLLED&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0ca12e2497f31924b064f2cf150dea16709"></a>STUN_ATTRIBUTE_TYPE_ICE_CONTROLLING&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0caae0ba9b12963f2766e4a08592a67f41a"></a>STUN_ATTRIBUTE_TYPE_CHANNEL_NUMBER&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0ca7a7cbbbb8c797e588bfef4a977eb0f1d"></a>STUN_ATTRIBUTE_TYPE_LIFETIME&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0caae4e15e7c99e2cd4de638905147996ef"></a>STUN_ATTRIBUTE_TYPE_XOR_PEER_ADDRESS&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0ca9fa3b059f4b54996a7e196e351cc9f92"></a>STUN_ATTRIBUTE_TYPE_DATA&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0ca5891ef9db0cd4b8b1b224081431a20dd"></a>STUN_ATTRIBUTE_TYPE_REALM&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0ca4ab7c92d0a9c5ee2390c06f6f3df4199"></a>STUN_ATTRIBUTE_TYPE_NONCE&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0ca818c8f969ad642b5191978d1af1c29b2"></a>STUN_ATTRIBUTE_TYPE_XOR_RELAYED_ADDRESS&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0ca37614ba531c5a855bc6e5eb0a8f6a5cc"></a>STUN_ATTRIBUTE_TYPE_EVEN_PORT&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0ca7c91890a73b288fe6811c05517faa0ac"></a>STUN_ATTRIBUTE_TYPE_REQUESTED_TRANSPORT&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0ca2ab7c96932bf1d7b5ca4b5e36bf368db"></a>STUN_ATTRIBUTE_TYPE_DONT_FRAGMENT&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a14bf75c5c035e54ce7c490b4ac662e0cad3ab5802a75af04b580d96b8cc6e87d0"></a>STUN_ATTRIBUTE_TYPE_RESERVATION_TOKEN&#160;</td><td class="fielddoc"></td></tr>
-</table>
-
-</div>
-</div>
 <a id="a0ecbedf9bcd214f007f5a811ac46572d"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a0ecbedf9bcd214f007f5a811ac46572d">&#9670;&nbsp;</a></span>STUN_ERROR_CODE</h2>
 
@@ -1446,8 +1326,8 @@ Functions</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
-<a id="ab61a6a3a394228c480ba5556f20e3c90"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab61a6a3a394228c480ba5556f20e3c90">&#9670;&nbsp;</a></span>appendStunAddressAttribute()</h2>
+<a id="ab82e1b3d2f06c1d8e3fc6177e6ba4338"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab82e1b3d2f06c1d8e3fc6177e6ba4338">&#9670;&nbsp;</a></span>appendStunAddressAttribute()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1461,7 +1341,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0c">STUN_ATTRIBUTE_TYPE</a>&#160;</td>
+          <td class="paramtype">StunAttributeType_t&#160;</td>
           <td class="paramname"><em>addressAttributeType</em>, </td>
         </tr>
         <tr>
@@ -1480,8 +1360,8 @@ Functions</h2></td></tr>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="Stun_8h_ab61a6a3a394228c480ba5556f20e3c90_cgraph.png" border="0" usemap="#aStun_8h_ab61a6a3a394228c480ba5556f20e3c90_cgraph" alt=""/></div>
-<map name="aStun_8h_ab61a6a3a394228c480ba5556f20e3c90_cgraph" id="aStun_8h_ab61a6a3a394228c480ba5556f20e3c90_cgraph">
+<div class="center"><img src="Stun_8h_ab82e1b3d2f06c1d8e3fc6177e6ba4338_cgraph.png" border="0" usemap="#aStun_8h_ab82e1b3d2f06c1d8e3fc6177e6ba4338_cgraph" alt=""/></div>
+<map name="aStun_8h_ab82e1b3d2f06c1d8e3fc6177e6ba4338_cgraph" id="aStun_8h_ab82e1b3d2f06c1d8e3fc6177e6ba4338_cgraph">
 <area shape="rect" title=" " alt="" coords="5,5,213,32"/>
 <area shape="rect" href="Stun_8c.html#afbb87626b5ffeae605b82cbdc3a9dced" title=" " alt="" coords="261,5,479,32"/>
 <area shape="rect" href="Stun_8c.html#a7eb2163f10655ff99f6523ffedb30769" title=" " alt="" coords="527,5,744,32"/>
@@ -1490,8 +1370,8 @@ Here is the call graph for this function:</div>
 <div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="Stun_8h_ab61a6a3a394228c480ba5556f20e3c90_icgraph.png" border="0" usemap="#aStun_8h_ab61a6a3a394228c480ba5556f20e3c90_icgraph" alt=""/></div>
-<map name="aStun_8h_ab61a6a3a394228c480ba5556f20e3c90_icgraph" id="aStun_8h_ab61a6a3a394228c480ba5556f20e3c90_icgraph">
+<div class="center"><img src="Stun_8h_ab82e1b3d2f06c1d8e3fc6177e6ba4338_icgraph.png" border="0" usemap="#aStun_8h_ab82e1b3d2f06c1d8e3fc6177e6ba4338_icgraph" alt=""/></div>
+<map name="aStun_8h_ab82e1b3d2f06c1d8e3fc6177e6ba4338_icgraph" id="aStun_8h_ab82e1b3d2f06c1d8e3fc6177e6ba4338_icgraph">
 <area shape="rect" title=" " alt="" coords="1684,52,1892,79"/>
 <area shape="rect" href="TurnConnectionStateMachine_8c.html#adf4fe21ee4ee8268ea52bb33720b1a9d" title=" " alt="" coords="1421,15,1636,57"/>
 <area shape="rect" href="IceAgent_8c.html#a15dca4483895fee272df46d7e4a955d7" title=" " alt="" coords="1460,81,1597,108"/>
@@ -1696,8 +1576,8 @@ Here is the call graph for this function:</div>
 
 </div>
 </div>
-<a id="a77b2595347e2131552ad0adbeea679ce"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a77b2595347e2131552ad0adbeea679ce">&#9670;&nbsp;</a></span>appendStunFlagAttribute()</h2>
+<a id="afefef0fbcdee822cff9d9311e2c15a53"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afefef0fbcdee822cff9d9311e2c15a53">&#9670;&nbsp;</a></span>appendStunFlagAttribute()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1711,7 +1591,7 @@ Here is the call graph for this function:</div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0c">STUN_ATTRIBUTE_TYPE</a>&#160;</td>
+          <td class="paramtype">StunAttributeType_t&#160;</td>
           <td class="paramname"><em>attrType</em>&#160;</td>
         </tr>
         <tr>
@@ -1724,8 +1604,8 @@ Here is the call graph for this function:</div>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="Stun_8h_a77b2595347e2131552ad0adbeea679ce_cgraph.png" border="0" usemap="#aStun_8h_a77b2595347e2131552ad0adbeea679ce_cgraph" alt=""/></div>
-<map name="aStun_8h_a77b2595347e2131552ad0adbeea679ce_cgraph" id="aStun_8h_a77b2595347e2131552ad0adbeea679ce_cgraph">
+<div class="center"><img src="Stun_8h_afefef0fbcdee822cff9d9311e2c15a53_cgraph.png" border="0" usemap="#aStun_8h_afefef0fbcdee822cff9d9311e2c15a53_cgraph" alt=""/></div>
+<map name="aStun_8h_afefef0fbcdee822cff9d9311e2c15a53_cgraph" id="aStun_8h_afefef0fbcdee822cff9d9311e2c15a53_cgraph">
 <area shape="rect" title=" " alt="" coords="5,5,189,32"/>
 <area shape="rect" href="Stun_8c.html#afbb87626b5ffeae605b82cbdc3a9dced" title=" " alt="" coords="237,5,455,32"/>
 <area shape="rect" href="Stun_8c.html#a7eb2163f10655ff99f6523ffedb30769" title=" " alt="" coords="503,5,720,32"/>
@@ -1734,8 +1614,8 @@ Here is the call graph for this function:</div>
 <div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="Stun_8h_a77b2595347e2131552ad0adbeea679ce_icgraph.png" border="0" usemap="#aStun_8h_a77b2595347e2131552ad0adbeea679ce_icgraph" alt=""/></div>
-<map name="aStun_8h_a77b2595347e2131552ad0adbeea679ce_icgraph" id="aStun_8h_a77b2595347e2131552ad0adbeea679ce_icgraph">
+<div class="center"><img src="Stun_8h_afefef0fbcdee822cff9d9311e2c15a53_icgraph.png" border="0" usemap="#aStun_8h_afefef0fbcdee822cff9d9311e2c15a53_icgraph" alt=""/></div>
+<map name="aStun_8h_afefef0fbcdee822cff9d9311e2c15a53_icgraph" id="aStun_8h_afefef0fbcdee822cff9d9311e2c15a53_icgraph">
 <area shape="rect" title=" " alt="" coords="535,13,719,39"/>
 <area shape="rect" href="IceAgent_8c.html#a8d811662404803fa38a7d691516c9de8" title=" " alt="" coords="260,13,487,39"/>
 <area shape="rect" href="IceAgentStateMachine_8c.html#a5431027d18e1397eb1dfc8953099dbf6" title=" " alt="" coords="5,5,212,47"/>
@@ -1744,8 +1624,8 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
-<a id="a4fd226b0edad48fed13303cf4ac726c0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4fd226b0edad48fed13303cf4ac726c0">&#9670;&nbsp;</a></span>appendStunIceControllAttribute()</h2>
+<a id="afc88e40d8906b4eb7dc0215e6dd9ce87"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afc88e40d8906b4eb7dc0215e6dd9ce87">&#9670;&nbsp;</a></span>appendStunIceControllAttribute()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1759,7 +1639,7 @@ Here is the caller graph for this function:</div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0c">STUN_ATTRIBUTE_TYPE</a>&#160;</td>
+          <td class="paramtype">StunAttributeType_t&#160;</td>
           <td class="paramname"><em>attributeType</em>, </td>
         </tr>
         <tr>
@@ -1778,8 +1658,8 @@ Here is the caller graph for this function:</div>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="Stun_8h_a4fd226b0edad48fed13303cf4ac726c0_cgraph.png" border="0" usemap="#aStun_8h_a4fd226b0edad48fed13303cf4ac726c0_cgraph" alt=""/></div>
-<map name="aStun_8h_a4fd226b0edad48fed13303cf4ac726c0_cgraph" id="aStun_8h_a4fd226b0edad48fed13303cf4ac726c0_cgraph">
+<div class="center"><img src="Stun_8h_afc88e40d8906b4eb7dc0215e6dd9ce87_cgraph.png" border="0" usemap="#aStun_8h_afc88e40d8906b4eb7dc0215e6dd9ce87_cgraph" alt=""/></div>
+<map name="aStun_8h_afc88e40d8906b4eb7dc0215e6dd9ce87_cgraph" id="aStun_8h_afc88e40d8906b4eb7dc0215e6dd9ce87_cgraph">
 <area shape="rect" title=" " alt="" coords="5,5,232,32"/>
 <area shape="rect" href="Stun_8c.html#afbb87626b5ffeae605b82cbdc3a9dced" title=" " alt="" coords="280,5,497,32"/>
 <area shape="rect" href="Stun_8c.html#a7eb2163f10655ff99f6523ffedb30769" title=" " alt="" coords="545,5,763,32"/>
@@ -1788,8 +1668,8 @@ Here is the call graph for this function:</div>
 <div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="Stun_8h_a4fd226b0edad48fed13303cf4ac726c0_icgraph.png" border="0" usemap="#aStun_8h_a4fd226b0edad48fed13303cf4ac726c0_icgraph" alt=""/></div>
-<map name="aStun_8h_a4fd226b0edad48fed13303cf4ac726c0_icgraph" id="aStun_8h_a4fd226b0edad48fed13303cf4ac726c0_icgraph">
+<div class="center"><img src="Stun_8h_afc88e40d8906b4eb7dc0215e6dd9ce87_icgraph.png" border="0" usemap="#aStun_8h_afc88e40d8906b4eb7dc0215e6dd9ce87_icgraph" alt=""/></div>
+<map name="aStun_8h_afc88e40d8906b4eb7dc0215e6dd9ce87_icgraph" id="aStun_8h_afc88e40d8906b4eb7dc0215e6dd9ce87_icgraph">
 <area shape="rect" title=" " alt="" coords="1739,140,1965,167"/>
 <area shape="rect" href="IceAgent_8c.html#a15dca4483895fee272df46d7e4a955d7" title=" " alt="" coords="1509,81,1646,108"/>
 <area shape="rect" href="IceAgent_8c.html#a4b90ebcbe4910ff3837076c8b8a8c253" title=" " alt="" coords="1464,133,1691,174"/>
@@ -2251,8 +2131,9 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="Stun_8h_adaad912b9ec6d16f9ed59fa82e79e8ac_cgraph.png" border="0" usemap="#aStun_8h_adaad912b9ec6d16f9ed59fa82e79e8ac_cgraph" alt=""/></div>
 <map name="aStun_8h_adaad912b9ec6d16f9ed59fa82e79e8ac_cgraph" id="aStun_8h_adaad912b9ec6d16f9ed59fa82e79e8ac_cgraph">
-<area shape="rect" title=" " alt="" coords="5,5,169,32"/>
-<area shape="rect" href="Stun_8c.html#a2ac5f96729bf2bfce45f59c72db4ff43" title=" " alt="" coords="217,5,336,32"/>
+<area shape="rect" title=" " alt="" coords="5,31,169,57"/>
+<area shape="rect" href="Include__i_8h.html#a0f59bf09f8beeaeed3be931b1788d2ad" title=" " alt="" coords="217,5,381,32"/>
+<area shape="rect" href="Stun_8c.html#a2ac5f96729bf2bfce45f59c72db4ff43" title=" " alt="" coords="240,56,359,83"/>
 </map>
 </div>
 <div class="dynheader">
@@ -2320,7 +2201,7 @@ Here is the caller graph for this function:</div>
 <area shape="rect" href="Stun_8c.html#aea002b19e4dcaad8468f85eefbcf310d" title=" " alt="" coords="1804,320,1968,347"/>
 <area shape="rect" href="TurnConnection_8c.html#ac7590c1bfdb16e75113b2d4f6bebd2a6" title=" " alt="" coords="1511,208,1707,235"/>
 <area shape="rect" href="TurnConnection_8c.html#aaec43f30cc20102b0d073b4fff07d8b6" title=" " alt="" coords="1511,259,1707,301"/>
-<area shape="rect" href="NatBehaviorDiscovery_8c.html#a89054697a9e46dac0a358733b9da16d6" title=" " alt="" coords="1825,523,1947,549"/>
+<area shape="rect" href="NatBehaviorDiscovery_8c.html#a994088900fc4f227a20194a0d1ccbdc1" title=" " alt="" coords="1825,523,1947,549"/>
 <area shape="rect" href="IceAgent_8c.html#a767c2a29e3bfba0aa45872d26b41a6f4" title=" " alt="" coords="1281,208,1386,235"/>
 <area shape="rect" href="TurnConnection_8c.html#aad130b1edfa1b039733e0595c43ffd39" title=" " alt="" coords="1771,91,2001,133"/>
 <area shape="rect" href="IceAgent_8c.html#af2fe29241b2d4ab4997fe04c41534578" title=" " alt="" coords="997,316,1117,343"/>
@@ -2396,13 +2277,13 @@ Here is the caller graph for this function:</div>
 <div class="center"><img src="Stun_8h_a87aeb6a0fcdfc55add9911c96268226d_icgraph.png" border="0" usemap="#aStun_8h_a87aeb6a0fcdfc55add9911c96268226d_icgraph" alt=""/></div>
 <map name="aStun_8h_a87aeb6a0fcdfc55add9911c96268226d_icgraph" id="aStun_8h_a87aeb6a0fcdfc55add9911c96268226d_icgraph">
 <area shape="rect" title=" " alt="" coords="2071,309,2288,336"/>
-<area shape="rect" href="Stun_8c.html#ac341869341895d4bc3e767118bd27806" title=" " alt="" coords="1788,360,1996,387"/>
+<area shape="rect" href="Stun_8c.html#ae58b6ddd5522d1a40fe920c543b74529" title=" " alt="" coords="1788,360,1996,387"/>
 <area shape="rect" href="Stun_8c.html#a1d9ce3d31ffafcc0e97afe7301a573de" title=" " alt="" coords="1763,5,2021,32"/>
 <area shape="rect" href="Stun_8c.html#a5852b6e07e38ec4c7301be13bc6bf9e3" title=" " alt="" coords="1761,411,2023,437"/>
 <area shape="rect" href="Stun_8c.html#a99a926646099a6a84f57adab70e07136" title=" " alt="" coords="1799,157,1985,184"/>
 <area shape="rect" href="Stun_8c.html#a49443ae48455950fdfa2285c16646d25" title=" " alt="" coords="1782,208,2002,235"/>
-<area shape="rect" href="Stun_8c.html#a1104c49d91dedad4500a73d9ac37cb63" title=" " alt="" coords="1800,56,1984,83"/>
-<area shape="rect" href="Stun_8c.html#a732cf4db5674e2e1e5305eb4972ee92f" title=" " alt="" coords="1779,259,2005,285"/>
+<area shape="rect" href="Stun_8c.html#a34fc9185e42d3729506fefac4b2342e3" title=" " alt="" coords="1800,56,1984,83"/>
+<area shape="rect" href="Stun_8c.html#aae6871ed64e3c111fa3b821d7ce56373" title=" " alt="" coords="1779,259,2005,285"/>
 <area shape="rect" href="Stun_8c.html#a2116190fb63abb09d5f672808425bd87" title=" " alt="" coords="1787,512,1997,539"/>
 <area shape="rect" href="Stun_8c.html#ac82c9a5d3112633ed3c450c5ccf66e39" title=" " alt="" coords="1793,563,1991,589"/>
 <area shape="rect" href="Stun_8c.html#a89bc73671740d89be124bb741202032b" title=" " alt="" coords="1791,107,1993,133"/>
@@ -2460,13 +2341,13 @@ Here is the caller graph for this function:</div>
 <map name="aStun_8h_a9c578496c33cefca6c793325a26f66a0_icgraph" id="aStun_8h_a9c578496c33cefca6c793325a26f66a0_icgraph">
 <area shape="rect" title=" " alt="" coords="2336,309,2553,336"/>
 <area shape="rect" href="Stun_8c.html#afbb87626b5ffeae605b82cbdc3a9dced" title=" " alt="" coords="2071,309,2288,336"/>
-<area shape="rect" href="Stun_8c.html#ac341869341895d4bc3e767118bd27806" title=" " alt="" coords="1788,360,1996,387"/>
+<area shape="rect" href="Stun_8c.html#ae58b6ddd5522d1a40fe920c543b74529" title=" " alt="" coords="1788,360,1996,387"/>
 <area shape="rect" href="Stun_8c.html#a1d9ce3d31ffafcc0e97afe7301a573de" title=" " alt="" coords="1763,5,2021,32"/>
 <area shape="rect" href="Stun_8c.html#a5852b6e07e38ec4c7301be13bc6bf9e3" title=" " alt="" coords="1761,411,2023,437"/>
 <area shape="rect" href="Stun_8c.html#a99a926646099a6a84f57adab70e07136" title=" " alt="" coords="1799,157,1985,184"/>
 <area shape="rect" href="Stun_8c.html#a49443ae48455950fdfa2285c16646d25" title=" " alt="" coords="1782,208,2002,235"/>
-<area shape="rect" href="Stun_8c.html#a1104c49d91dedad4500a73d9ac37cb63" title=" " alt="" coords="1800,56,1984,83"/>
-<area shape="rect" href="Stun_8c.html#a732cf4db5674e2e1e5305eb4972ee92f" title=" " alt="" coords="1779,259,2005,285"/>
+<area shape="rect" href="Stun_8c.html#a34fc9185e42d3729506fefac4b2342e3" title=" " alt="" coords="1800,56,1984,83"/>
+<area shape="rect" href="Stun_8c.html#aae6871ed64e3c111fa3b821d7ce56373" title=" " alt="" coords="1779,259,2005,285"/>
 <area shape="rect" href="Stun_8c.html#a2116190fb63abb09d5f672808425bd87" title=" " alt="" coords="1787,512,1997,539"/>
 <area shape="rect" href="Stun_8c.html#ac82c9a5d3112633ed3c450c5ccf66e39" title=" " alt="" coords="1793,563,1991,589"/>
 <area shape="rect" href="Stun_8c.html#a89bc73671740d89be124bb741202032b" title=" " alt="" coords="1791,107,1993,133"/>
@@ -2502,8 +2383,8 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
-<a id="aa575aa4f812ff3090dc16a4fa917f95f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa575aa4f812ff3090dc16a4fa917f95f">&#9670;&nbsp;</a></span>getStunAttribute()</h2>
+<a id="afaaa1bf8983c0302db0d3a84abc12489"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afaaa1bf8983c0302db0d3a84abc12489">&#9670;&nbsp;</a></span>getStunAttribute()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -2517,7 +2398,7 @@ Here is the caller graph for this function:</div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0c">STUN_ATTRIBUTE_TYPE</a>&#160;</td>
+          <td class="paramtype">StunAttributeType_t&#160;</td>
           <td class="paramname"><em>attributeType</em>, </td>
         </tr>
         <tr>
@@ -2537,8 +2418,8 @@ Here is the caller graph for this function:</div>
 <div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="Stun_8h_aa575aa4f812ff3090dc16a4fa917f95f_icgraph.png" border="0" usemap="#aStun_8h_aa575aa4f812ff3090dc16a4fa917f95f_icgraph" alt=""/></div>
-<map name="aStun_8h_aa575aa4f812ff3090dc16a4fa917f95f_icgraph" id="aStun_8h_aa575aa4f812ff3090dc16a4fa917f95f_icgraph">
+<div class="center"><img src="Stun_8h_afaaa1bf8983c0302db0d3a84abc12489_icgraph.png" border="0" usemap="#aStun_8h_afaaa1bf8983c0302db0d3a84abc12489_icgraph" alt=""/></div>
+<map name="aStun_8h_afaaa1bf8983c0302db0d3a84abc12489_icgraph" id="aStun_8h_afaaa1bf8983c0302db0d3a84abc12489_icgraph">
 <area shape="rect" title=" " alt="" coords="2327,259,2456,285"/>
 <area shape="rect" href="TurnConnection_8c.html#ad50e5f6b533c62c8b5297a6bf3615f29" title=" " alt="" coords="1762,208,1958,235"/>
 <area shape="rect" href="NatBehaviorDiscovery_8c.html#aad9e4ff5cbbeb8434e964c1c2261ba29" title=" " alt="" coords="1755,103,1965,129"/>
@@ -2640,8 +2521,7 @@ Here is the call graph for this function:</div>
 <div class="center"><img src="Stun_8h_a6e25ad3bd597512064c04178f38717db_cgraph.png" border="0" usemap="#aStun_8h_a6e25ad3bd597512064c04178f38717db_cgraph" alt=""/></div>
 <map name="aStun_8h_a6e25ad3bd597512064c04178f38717db_cgraph" id="aStun_8h_a6e25ad3bd597512064c04178f38717db_cgraph">
 <area shape="rect" title=" " alt="" coords="5,5,153,32"/>
-<area shape="rect" href="Stun_8c.html#a0ff5d54538a4e80eca46314552a3e993" title=" " alt="" coords="201,5,347,32"/>
-<area shape="rect" href="Stun_8c.html#a086d658c6275e5a5161934025b070c24" title=" " alt="" coords="395,5,501,32"/>
+<area shape="rect" href="Include__i_8h.html#a0f59bf09f8beeaeed3be931b1788d2ad" title=" " alt="" coords="201,5,365,32"/>
 </map>
 </div>
 <div class="dynheader">
@@ -2656,7 +2536,7 @@ Here is the caller graph for this function:</div>
 <area shape="rect" href="TurnConnectionStateMachine_8c.html#a5b2eedee33db4144771d00b2dd6a9731" title=" " alt="" coords="1831,48,2029,75"/>
 <area shape="rect" href="TurnConnectionStateMachine_8c.html#aaf58bb70347bbbac288dc7ef68e2b06a" title=" " alt="" coords="1835,99,2025,125"/>
 <area shape="rect" href="TurnConnectionStateMachine_8c.html#a76754fb751b1533ba3789bc800d679ea" title=" " alt="" coords="1831,150,2029,191"/>
-<area shape="rect" href="NatBehaviorDiscovery_8c.html#a89054697a9e46dac0a358733b9da16d6" title=" " alt="" coords="1869,267,1991,293"/>
+<area shape="rect" href="NatBehaviorDiscovery_8c.html#a994088900fc4f227a20194a0d1ccbdc1" title=" " alt="" coords="1869,267,1991,293"/>
 <area shape="rect" href="IceAgent_8c.html#aff64bc1649d0c5e3390f6ad14eb9aa1e" title=" " alt="" coords="1839,391,2021,417"/>
 <area shape="rect" href="TurnConnection_8c.html#a46459e6ac66501521c9160b1fcdf6d84" title=" " alt="" coords="1812,216,2048,243"/>
 <area shape="rect" href="TurnConnectionStateMachine_8c.html#a3a4bf18f3e297368e56db4694cd845bc" title=" " alt="" coords="1237,5,1453,32"/>
@@ -2694,8 +2574,8 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
-<a id="acb060f428bdff51ad97f42af2911fa3e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#acb060f428bdff51ad97f42af2911fa3e">&#9670;&nbsp;</a></span>stunPackageIpAddr()</h2>
+<a id="a45ec643c0151b8bd095051f70817d9b2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a45ec643c0151b8bd095051f70817d9b2">&#9670;&nbsp;</a></span>stunPackageIpAddr()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -2709,7 +2589,7 @@ Here is the caller graph for this function:</div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="Stun_8h.html#a14bf75c5c035e54ce7c490b4ac662e0c">STUN_ATTRIBUTE_TYPE</a>&#160;</td>
+          <td class="paramtype">StunAttributeType_t&#160;</td>
           <td class="paramname"><em>type</em>, </td>
         </tr>
         <tr>
@@ -2747,58 +2627,10 @@ Here is the caller graph for this function:</div>
 <div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="Stun_8h_acb060f428bdff51ad97f42af2911fa3e_cgraph.png" border="0" usemap="#aStun_8h_acb060f428bdff51ad97f42af2911fa3e_cgraph" alt=""/></div>
-<map name="aStun_8h_acb060f428bdff51ad97f42af2911fa3e_cgraph" id="aStun_8h_acb060f428bdff51ad97f42af2911fa3e_cgraph">
+<div class="center"><img src="Stun_8h_a45ec643c0151b8bd095051f70817d9b2_cgraph.png" border="0" usemap="#aStun_8h_a45ec643c0151b8bd095051f70817d9b2_cgraph" alt=""/></div>
+<map name="aStun_8h_a45ec643c0151b8bd095051f70817d9b2_cgraph" id="aStun_8h_a45ec643c0151b8bd095051f70817d9b2_cgraph">
 <area shape="rect" title=" " alt="" coords="5,5,151,32"/>
 <area shape="rect" href="Stun_8c.html#a086d658c6275e5a5161934025b070c24" title=" " alt="" coords="199,5,305,32"/>
-</map>
-</div>
-<div class="dynheader">
-Here is the caller graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="Stun_8h_acb060f428bdff51ad97f42af2911fa3e_icgraph.png" border="0" usemap="#aStun_8h_acb060f428bdff51ad97f42af2911fa3e_icgraph" alt=""/></div>
-<map name="aStun_8h_acb060f428bdff51ad97f42af2911fa3e_icgraph" id="aStun_8h_acb060f428bdff51ad97f42af2911fa3e_icgraph">
-<area shape="rect" title=" " alt="" coords="2757,157,2903,184"/>
-<area shape="rect" href="Stun_8c.html#a343599eb21e2e725f465200f72c476d8" title=" " alt="" coords="2561,157,2709,184"/>
-<area shape="rect" href="IceUtils_8c.html#a05a5f1ea3d3d4e73bdb4298e75f56d15" title=" " alt="" coords="2319,157,2513,184"/>
-<area shape="rect" href="IceUtils_8c.html#a163008ed55dd5e46e25737a89d5beabb" title=" " alt="" coords="2096,157,2271,184"/>
-<area shape="rect" href="TurnConnection_8c.html#ad50e5f6b533c62c8b5297a6bf3615f29" title=" " alt="" coords="1544,64,1740,91"/>
-<area shape="rect" href="TurnConnectionStateMachine_8c.html#a5b2eedee33db4144771d00b2dd6a9731" title=" " alt="" coords="1831,48,2029,75"/>
-<area shape="rect" href="TurnConnectionStateMachine_8c.html#aaf58bb70347bbbac288dc7ef68e2b06a" title=" " alt="" coords="1835,99,2025,125"/>
-<area shape="rect" href="TurnConnectionStateMachine_8c.html#a76754fb751b1533ba3789bc800d679ea" title=" " alt="" coords="1831,150,2029,191"/>
-<area shape="rect" href="NatBehaviorDiscovery_8c.html#a89054697a9e46dac0a358733b9da16d6" title=" " alt="" coords="1869,267,1991,293"/>
-<area shape="rect" href="IceAgent_8c.html#aff64bc1649d0c5e3390f6ad14eb9aa1e" title=" " alt="" coords="1839,391,2021,417"/>
-<area shape="rect" href="TurnConnection_8c.html#a46459e6ac66501521c9160b1fcdf6d84" title=" " alt="" coords="1812,216,2048,243"/>
-<area shape="rect" href="TurnConnectionStateMachine_8c.html#a3a4bf18f3e297368e56db4694cd845bc" title=" " alt="" coords="1237,5,1453,32"/>
-<area shape="rect" href="TurnConnectionStateMachine_8c.html#adf4fe21ee4ee8268ea52bb33720b1a9d" title=" " alt="" coords="1238,57,1453,98"/>
-<area shape="rect" href="TurnConnectionStateMachine_8c.html#ae44804165fc638565b909acf855d4c0d" title=" " alt="" coords="1258,123,1433,149"/>
-<area shape="rect" href="NatBehaviorDiscovery_8c.html#aad9e4ff5cbbeb8434e964c1c2261ba29" title=" " alt="" coords="1537,267,1747,293"/>
-<area shape="rect" href="NatBehaviorDiscovery_8c.html#ae0660c04b221fc0309bb4771f7f0a322" title=" " alt="" coords="1535,216,1749,243"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="1266,241,1425,268"/>
-<area shape="rect" href="IceAgent_8c.html#a15dca4483895fee272df46d7e4a955d7" title=" " alt="" coords="1573,539,1711,565"/>
-<area shape="rect" href="IceAgent_8c.html#ac48af5043d440642380951b2523240ed" title=" " alt="" coords="1535,318,1749,359"/>
-<area shape="rect" href="IceAgent_8c.html#a583c41d4f3e61dc23128f306f586d089" title=" " alt="" coords="1539,383,1745,425"/>
-<area shape="rect" href="IceAgent_8c.html#a228ea3ea73e56869cb9aa236668d209b" title=" " alt="" coords="1520,452,1764,479"/>
-<area shape="rect" href="IceAgent_8c.html#a97079f5f6e61ff478f94f9934af5eec0" title=" " alt="" coords="1263,603,1427,629"/>
-<area shape="rect" href="IceAgent_8c.html#a404897a5797a45ca76444ee244c5b760" title=" " alt="" coords="959,577,1155,604"/>
-<area shape="rect" href="IceAgent_8c.html#a0a39b316e5aff662b257648e97e53146" title=" " alt="" coords="960,628,1155,655"/>
-<area shape="rect" href="IceAgent_8c.html#ac6d7992fc8ddf1009332e5f72ec42cff" title=" " alt="" coords="949,679,1166,705"/>
-<area shape="rect" href="IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="707,577,882,604"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="465,552,615,579"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,628,172,655"/>
-<area shape="rect" href="IceAgent_8c.html#aa82059f636933c877ef87e25f4a62669" title=" " alt="" coords="693,679,896,705"/>
-<area shape="rect" href="IceAgent_8c.html#a13816c51f4959ce3f3efa41341662d8c" title=" " alt="" coords="467,653,613,680"/>
-<area shape="rect" href="IceAgent_8c.html#a888fc1a2a5c2fe190f30db87c85c6759" title=" " alt="" coords="435,704,645,731"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#ga577207b68c0fe53137a2b32f975abb09" title="Give peer connection an ice config to add to its server list." alt="" coords="220,653,387,680"/>
-<area shape="rect" href="IceAgent_8c.html#a311a951cf965e83e76372560f2ce1c0f" title=" " alt="" coords="240,704,367,731"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#gade9fcbb056cb321f33890c1cf1222e64" title="Instructs the RtcPeerConnection that ICE should be restarted. Subsequent calls to createOffer will cr..." alt="" coords="47,704,131,731"/>
-<area shape="rect" href="IceAgent_8c.html#aad8b693b79de0b9b57770fb4efe64ee4" title=" " alt="" coords="1236,324,1455,351"/>
-<area shape="rect" href="IceAgentStateMachine_8c.html#ae73bb89e7e9f087dd2ccfa8cf1f1833a" title=" " alt="" coords="958,315,1157,357"/>
-<area shape="rect" href="IceAgent_8c.html#a29472fae79b73dc335a310925493391c" title=" " alt="" coords="944,381,1171,422"/>
-<area shape="rect" href="IceAgent_8c.html#abd88ad7fca15a1a8d90ea9d3a0f2fc58" title=" " alt="" coords="1241,503,1450,545"/>
-<area shape="rect" href="IceAgent_8c.html#a38eadbaca4b318947eb9d9397107493d" title=" " alt="" coords="1219,452,1472,479"/>
-<area shape="rect" href="IceAgentStateMachine_8c.html#a6d1c63854bb87950e837be2cdb6793d3" title=" " alt="" coords="955,511,1160,553"/>
-<area shape="rect" href="IceAgentStateMachine_8c.html#a5431027d18e1397eb1dfc8953099dbf6" title=" " alt="" coords="954,446,1161,487"/>
 </map>
 </div>
 
@@ -2841,7 +2673,7 @@ Here is the call graph for this function:</div>
 <div class="center"><img src="Stun_8h_a879888367ce4646c1ab214816887a72d_cgraph.png" border="0" usemap="#aStun_8h_a879888367ce4646c1ab214816887a72d_cgraph" alt=""/></div>
 <map name="aStun_8h_a879888367ce4646c1ab214816887a72d_cgraph" id="aStun_8h_a879888367ce4646c1ab214816887a72d_cgraph">
 <area shape="rect" title=" " alt="" coords="5,5,200,32"/>
-<area shape="rect" href="Stun_8c.html#a248e137a0c4fac05726e2182c0c1f383" title=" " alt="" coords="248,5,377,32"/>
+<area shape="rect" href="Stun_8c.html#abdb9d0b7b8c546401a68d1569c186a6b" title=" " alt="" coords="248,5,377,32"/>
 </map>
 </div>
 <div class="dynheader">
@@ -2897,51 +2729,18 @@ Here is the caller graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="Stun_8h_a37bb38628d81a01c444167a25e791e46_icgraph.png" border="0" usemap="#aStun_8h_a37bb38628d81a01c444167a25e791e46_icgraph" alt=""/></div>
 <map name="aStun_8h_a37bb38628d81a01c444167a25e791e46_icgraph" id="aStun_8h_a37bb38628d81a01c444167a25e791e46_icgraph">
-<area shape="rect" title=" " alt="" coords="2969,17,3076,44"/>
-<area shape="rect" href="Stun_8c.html#a0ff5d54538a4e80eca46314552a3e993" title=" " alt="" coords="2776,43,2921,69"/>
-<area shape="rect" href="TurnConnection_8c.html#a4f67b773202384cba95d1390981aa127" title=" " alt="" coords="989,20,1163,47"/>
-<area shape="rect" href="Stun_8c.html#a343599eb21e2e725f465200f72c476d8" title=" " alt="" coords="2580,43,2728,69"/>
-<area shape="rect" href="IceUtils_8c.html#a05a5f1ea3d3d4e73bdb4298e75f56d15" title=" " alt="" coords="2337,127,2532,153"/>
-<area shape="rect" href="IceUtils_8c.html#a163008ed55dd5e46e25737a89d5beabb" title=" " alt="" coords="2115,284,2289,311"/>
-<area shape="rect" href="TurnConnection_8c.html#ad50e5f6b533c62c8b5297a6bf3615f29" title=" " alt="" coords="1563,452,1759,479"/>
-<area shape="rect" href="TurnConnectionStateMachine_8c.html#a5b2eedee33db4144771d00b2dd6a9731" title=" " alt="" coords="1849,309,2048,336"/>
-<area shape="rect" href="TurnConnectionStateMachine_8c.html#aaf58bb70347bbbac288dc7ef68e2b06a" title=" " alt="" coords="1854,360,2043,387"/>
-<area shape="rect" href="TurnConnectionStateMachine_8c.html#a76754fb751b1533ba3789bc800d679ea" title=" " alt="" coords="1850,411,2047,453"/>
-<area shape="rect" href="NatBehaviorDiscovery_8c.html#a89054697a9e46dac0a358733b9da16d6" title=" " alt="" coords="1887,93,2010,120"/>
-<area shape="rect" href="IceAgent_8c.html#aff64bc1649d0c5e3390f6ad14eb9aa1e" title=" " alt="" coords="1857,208,2040,235"/>
-<area shape="rect" href="TurnConnection_8c.html#a46459e6ac66501521c9160b1fcdf6d84" title=" " alt="" coords="1831,477,2067,504"/>
-<area shape="rect" href="TurnConnectionStateMachine_8c.html#a3a4bf18f3e297368e56db4694cd845bc" title=" " alt="" coords="1256,393,1472,420"/>
-<area shape="rect" href="TurnConnectionStateMachine_8c.html#adf4fe21ee4ee8268ea52bb33720b1a9d" title=" " alt="" coords="1257,445,1471,486"/>
-<area shape="rect" href="TurnConnectionStateMachine_8c.html#ae44804165fc638565b909acf855d4c0d" title=" " alt="" coords="1277,511,1451,537"/>
-<area shape="rect" href="NatBehaviorDiscovery_8c.html#aad9e4ff5cbbeb8434e964c1c2261ba29" title=" " alt="" coords="1555,43,1766,69"/>
-<area shape="rect" href="NatBehaviorDiscovery_8c.html#ae0660c04b221fc0309bb4771f7f0a322" title=" " alt="" coords="1553,93,1768,120"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="1285,44,1443,71"/>
-<area shape="rect" href="IceAgent_8c.html#a15dca4483895fee272df46d7e4a955d7" title=" " alt="" coords="1592,264,1729,291"/>
-<area shape="rect" href="IceAgent_8c.html#ac48af5043d440642380951b2523240ed" title=" " alt="" coords="1553,145,1768,186"/>
-<area shape="rect" href="IceAgent_8c.html#a583c41d4f3e61dc23128f306f586d089" title=" " alt="" coords="1557,322,1764,363"/>
-<area shape="rect" href="IceAgent_8c.html#a228ea3ea73e56869cb9aa236668d209b" title=" " alt="" coords="1539,211,1783,237"/>
-<area shape="rect" href="IceAgent_8c.html#a97079f5f6e61ff478f94f9934af5eec0" title=" " alt="" coords="1282,268,1446,295"/>
-<area shape="rect" href="IceAgent_8c.html#a404897a5797a45ca76444ee244c5b760" title=" " alt="" coords="978,369,1174,396"/>
-<area shape="rect" href="IceAgent_8c.html#a0a39b316e5aff662b257648e97e53146" title=" " alt="" coords="979,319,1173,345"/>
-<area shape="rect" href="IceAgent_8c.html#ac6d7992fc8ddf1009332e5f72ec42cff" title=" " alt="" coords="967,268,1185,295"/>
-<area shape="rect" href="IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="717,344,891,371"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="465,344,615,371"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,233,172,260"/>
-<area shape="rect" href="IceAgent_8c.html#aa82059f636933c877ef87e25f4a62669" title=" " alt="" coords="703,183,905,209"/>
-<area shape="rect" href="IceAgent_8c.html#a13816c51f4959ce3f3efa41341662d8c" title=" " alt="" coords="467,157,613,184"/>
-<area shape="rect" href="IceAgent_8c.html#a888fc1a2a5c2fe190f30db87c85c6759" title=" " alt="" coords="435,208,645,235"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#ga577207b68c0fe53137a2b32f975abb09" title="Give peer connection an ice config to add to its server list." alt="" coords="220,157,387,184"/>
-<area shape="rect" href="IceAgent_8c.html#a311a951cf965e83e76372560f2ce1c0f" title=" " alt="" coords="240,208,367,235"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#gade9fcbb056cb321f33890c1cf1222e64" title="Instructs the RtcPeerConnection that ICE should be restarted. Subsequent calls to createOffer will cr..." alt="" coords="47,183,131,209"/>
-<area shape="rect" href="IceAgent_8c.html#aad8b693b79de0b9b57770fb4efe64ee4" title=" " alt="" coords="1255,95,1473,121"/>
-<area shape="rect" href="IceAgentStateMachine_8c.html#ae73bb89e7e9f087dd2ccfa8cf1f1833a" title=" " alt="" coords="977,71,1175,113"/>
-<area shape="rect" href="IceAgent_8c.html#a29472fae79b73dc335a310925493391c" title=" " alt="" coords="963,421,1189,462"/>
-<area shape="rect" href="IceAgent_8c.html#abd88ad7fca15a1a8d90ea9d3a0f2fc58" title=" " alt="" coords="1259,202,1469,243"/>
-<area shape="rect" href="IceAgent_8c.html#a38eadbaca4b318947eb9d9397107493d" title=" " alt="" coords="1237,145,1491,172"/>
-<area shape="rect" href="IceAgentStateMachine_8c.html#a6d1c63854bb87950e837be2cdb6793d3" title=" " alt="" coords="973,202,1179,243"/>
-<area shape="rect" href="IceAgentStateMachine_8c.html#a5431027d18e1397eb1dfc8953099dbf6" title=" " alt="" coords="973,137,1179,178"/>
-<area shape="rect" href="IceAgent_8c.html#a171a9136edc2fce61acff9476e6046a9" title=" " alt="" coords="693,29,915,56"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#ga1722e3794e91a87ba8d73d36b62d8727" title="Provides a remote candidate to the ICE Agent." alt="" coords="475,29,605,56"/>
+<area shape="rect" title=" " alt="" coords="1185,56,1292,83"/>
+<area shape="rect" href="Stun_8c.html#a37af7eedd6d5de5b0ad80f7c26a87645" title=" " alt="" coords="977,31,1123,57"/>
+<area shape="rect" href="TurnConnection_8c.html#a4f67b773202384cba95d1390981aa127" title=" " alt="" coords="963,81,1137,108"/>
+<area shape="rect" href="IceAgent_8c.html#a171a9136edc2fce61acff9476e6046a9" title=" " alt="" coords="693,56,915,83"/>
+<area shape="rect" href="IceAgent_8c.html#aa82059f636933c877ef87e25f4a62669" title=" " alt="" coords="703,107,905,133"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga1722e3794e91a87ba8d73d36b62d8727" title="Provides a remote candidate to the ICE Agent." alt="" coords="475,5,605,32"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,81,172,108"/>
+<area shape="rect" href="IceAgent_8c.html#a13816c51f4959ce3f3efa41341662d8c" title=" " alt="" coords="467,107,613,133"/>
+<area shape="rect" href="IceAgent_8c.html#a888fc1a2a5c2fe190f30db87c85c6759" title=" " alt="" coords="435,157,645,184"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga577207b68c0fe53137a2b32f975abb09" title="Give peer connection an ice config to add to its server list." alt="" coords="220,107,387,133"/>
+<area shape="rect" href="IceAgent_8c.html#a311a951cf965e83e76372560f2ce1c0f" title=" " alt="" coords="240,157,367,184"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#gade9fcbb056cb321f33890c1cf1222e64" title="Instructs the RtcPeerConnection that ICE should be restarted. Subsequent calls to createOffer will cr..." alt="" coords="47,157,131,184"/>
 </map>
 </div>
 
@@ -2953,7 +2752,7 @@ Here is the caller graph for this function:</div>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_360e81f4c611da735a194b8cc9951d44.html">Stun</a></li><li class="navelem"><a class="el" href="Stun_8h.html">Stun.h</a></li>
-    <li class="footer">Generated on Tue Jul 30 2024 18:12:55 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Fri Aug 2 2024 01:48:30 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>
