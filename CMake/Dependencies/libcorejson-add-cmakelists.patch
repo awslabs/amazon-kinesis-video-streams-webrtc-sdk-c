@@ -1,0 +1,30 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+new file mode 100644
+index 0000000..e48e611
+--- /dev/null
++++ b/CMakeLists.txt
+@@ -0,0 +1,24 @@
++cmake_minimum_required(VERSION 3.6.3)
++project(corejson C)
++
++include(jsonFilePaths.cmake)
++
++if(BUILD_SHARED_LIBS)
++    add_library(corejson SHARED ${JSON_SOURCES})
++else()
++    add_library(corejson STATIC ${JSON_SOURCES})
++endif()
++
++target_include_directories(corejson PUBLIC
++                           ${JSON_INCLUDE_PUBLIC_DIRS})
++
++# install header files
++install(
++    FILES ${JSON_INCLUDE_PUBLIC_DIRS}/core_json.h
++    DESTINATION include/corejson)
++
++install(
++    TARGETS corejson
++    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
++    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
++    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
