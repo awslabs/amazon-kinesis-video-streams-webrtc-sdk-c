@@ -2233,7 +2233,6 @@ STATUS iceAgentNominatingStateSetup(PIceAgent pIceAgent)
 
     MUTEX_UNLOCK(pIceAgent->lock);
     locked = FALSE;
-    checkIceAgentStateMachine(pIceAgent);
 
 CleanUp:
 
@@ -2501,7 +2500,6 @@ STATUS incomingDataHandler(UINT64 customData, PSocketConnection pSocketConnectio
             CHK_STATUS(handleStunPacket(pIceAgent, pBuffer, bufferLen, pSocketConnection, pSrc, pDest));
             MUTEX_UNLOCK(pIceAgent->lock);
             locked = FALSE;
-            checkIceAgentStateMachine(pIceAgent);
         }
     }
 
