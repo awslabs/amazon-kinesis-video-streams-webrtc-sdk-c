@@ -415,13 +415,13 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT64 payloadType, rtxPayloadType;
+    UINT64 payloadType, rtxPayloadType, rtpMapValue;
     BOOL containRtx = FALSE;
     BOOL directionFound = FALSE;
     UINT32 i, remoteAttributeCount, attributeCount = 0;
     PRtcMediaStreamTrack pRtcMediaStreamTrack = &(pKvsRtpTransceiver->sender.track);
     PSdpMediaDescription pSdpMediaDescriptionRemote;
-    PCHAR currentFmtp = NULL, rtpMapValue = NULL;
+    PCHAR currentFmtp = NULL, rtpMapValueChar = NULL;
     CHAR remoteSdpAttributeValue[MAX_SDP_ATTRIBUTE_VALUE_LENGTH];
     INT32 amountWritten = 0;
 
@@ -444,7 +444,6 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
             retStatus = hashTableGet(pKvsPeerConnection->pRtxTable, RTC_RTX_CODEC_VP8, &rtxPayloadType);
         } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_H265) {
             retStatus = hashTableGet(pKvsPeerConnection->pRtxTable, RTC_RTX_CODEC_H265, &rtxPayloadType);
-            payloadType = DEFAULT_PAYLOAD_H265;
         } else {
             retStatus = STATUS_HASH_KEY_NOT_PRESENT;
         }
@@ -666,6 +665,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
                                  SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " nack", payloadType);
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full H264 rtcp-fb nack value could not be written");
+        attributeCount++;
         amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
                                  SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " nack pli", payloadType);
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full H264 rtcp-fb nack-pli value could not be written");
@@ -764,6 +764,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
                                  SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " nack", payloadType);
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full H265 rtcp-fb nack value could not be written");
+        attributeCount++;
         amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
                                  SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " nack pli", payloadType);
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full H265 rtcp-fb nack-pli value could not be written");
@@ -795,11 +796,12 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
             attributeCount++;
         }
     } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_UNKNOWN) {
-        CHK_STATUS(hashTableGet(pUnknownCodecRtpmapTable, unknownCodecHashTableKey, (PUINT64) &rtpMapValue));
+        CHK_STATUS(hashTableGet(pUnknownCodecRtpmapTable, unknownCodecHashTableKey, &rtpMapValue));
+        rtpMapValueChar = (PCHAR) rtpMapValue;
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
         amountWritten =
             SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                     SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " %s", payloadType, rtpMapValue);
+                     SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " %s", payloadType, rtpMapValueChar);
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full Unknown rtpmap could not be written");
         attributeCount++;
     }

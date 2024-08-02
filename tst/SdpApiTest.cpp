@@ -12,6 +12,11 @@ namespace video {
 namespace webrtcclient {
 
 class SdpApiTest : public WebRtcClientTestBase {
+  public:
+    const std::string m_rtcp_h264_nack_line = "a=rtcp-fb:" + std::to_string(DEFAULT_PAYLOAD_H264) + " nack";
+    const std::string m_rtcp_h264_nack_pli_line = "a=rtcp-fb:" + std::to_string(DEFAULT_PAYLOAD_H264) + " nack pli";
+    const std::string m_rtcp_h265_nack_line = "a=rtcp-fb:" + std::to_string(DEFAULT_PAYLOAD_H265) + " nack";
+    const std::string m_rtcp_h265_nack_pli_line = "a=rtcp-fb:" + std::to_string(DEFAULT_PAYLOAD_H265) + " nack pli";
 };
 
 /*
@@ -407,6 +412,13 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendRecv)
     EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sessionDescriptionInit));
     EXPECT_PRED_FORMAT2(testing::IsSubstring, "sendrecv", sessionDescriptionInit.sdp);
 
+    std::string offerSdp(sessionDescriptionInit.sdp);
+
+    // check nack and nack pli lines
+    std::string::size_type posPliOnly = offerSdp.find(m_rtcp_h264_nack_line);
+    std::string::size_type posPliNack = offerSdp.find(m_rtcp_h264_nack_pli_line);
+    EXPECT_NE(posPliOnly, posPliNack);
+
     closePeerConnection(offerPc);
     freePeerConnection(&offerPc);
 }
@@ -477,6 +489,13 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendOnly)
     EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sessionDescriptionInit));
     EXPECT_PRED_FORMAT2(testing::IsSubstring, "sendonly", sessionDescriptionInit.sdp);
 
+    std::string offerSdp(sessionDescriptionInit.sdp);
+
+    // check nack and nack pli lines
+    std::string::size_type posPliOnly = offerSdp.find(m_rtcp_h264_nack_line);
+    std::string::size_type posPliNack = offerSdp.find(m_rtcp_h264_nack_pli_line);
+    EXPECT_NE(posPliOnly, posPliNack);
+
     closePeerConnection(offerPc);
     freePeerConnection(&offerPc);
 }
@@ -507,6 +526,13 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendOnly_H265)
     EXPECT_EQ(STATUS_SUCCESS, addTransceiver(offerPc, &track, &rtcRtpTransceiverInit, &pTransceiver));
     EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sessionDescriptionInit));
     EXPECT_PRED_FORMAT2(testing::IsSubstring, "sendonly", sessionDescriptionInit.sdp);
+
+    std::string offerSdp(sessionDescriptionInit.sdp);
+
+    // check nack and nack pli lines
+    std::string::size_type posPliOnly = offerSdp.find(m_rtcp_h265_nack_line);
+    std::string::size_type posPliNack = offerSdp.find(m_rtcp_h265_nack_pli_line);
+    EXPECT_NE(posPliOnly, posPliNack);
 
     closePeerConnection(offerPc);
     freePeerConnection(&offerPc);
