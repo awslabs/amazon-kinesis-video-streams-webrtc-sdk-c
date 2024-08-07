@@ -414,6 +414,61 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameOpusFrame)
     MEMFREE(depayload);
 }
 
+TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameAacFrame)
+{
+    BYTE payload[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05};
+    PBYTE depayload = (PBYTE) MEMALLOC(1500); // This is more than max mtu
+    UINT32 depayloadSize = 1500;
+    UINT32 payloadLen = 6;
+    PayloadArray payloadArray;
+    UINT32 newPayloadSubLen = 0;
+
+    payloadArray.maxPayloadLength = 0;
+    payloadArray.maxPayloadSubLenSize = 0;
+    payloadArray.payloadBuffer = NULL;
+    payloadArray.payloadSubLength = NULL;
+
+    // First call for payload size and sub payload length size
+    EXPECT_EQ(STATUS_SUCCESS,
+              createPayloadForAac(DEFAULT_MTU_SIZE_BYTES, (PBYTE) &payload, payloadLen, NULL, &payloadArray.payloadLength, NULL,
+                                   &payloadArray.payloadSubLenSize));
+
+    if (payloadArray.payloadLength > payloadArray.maxPayloadLength) {
+        if (payloadArray.payloadBuffer != NULL) {
+            MEMFREE(payloadArray.payloadBuffer);
+        }
+        payloadArray.payloadBuffer = (PBYTE) MEMALLOC(payloadArray.payloadLength);
+        payloadArray.maxPayloadLength = payloadArray.payloadLength;
+    }
+    if (payloadArray.payloadSubLenSize > payloadArray.maxPayloadSubLenSize) {
+        if (payloadArray.payloadSubLength != NULL) {
+            MEMFREE(payloadArray.payloadSubLength);
+        }
+        payloadArray.payloadSubLength = (PUINT32) MEMALLOC(payloadArray.payloadSubLenSize * SIZEOF(UINT32));
+        payloadArray.maxPayloadSubLenSize = payloadArray.payloadSubLenSize;
+    }
+
+    // Second call with actual buffer to fill in data
+    EXPECT_EQ(STATUS_SUCCESS,
+              createPayloadForAac(DEFAULT_MTU_SIZE_BYTES, (PBYTE) &payload, payloadLen, payloadArray.payloadBuffer, &payloadArray.payloadLength,
+                                   payloadArray.payloadSubLength, &payloadArray.payloadSubLenSize));
+
+    EXPECT_EQ(1, payloadArray.payloadSubLenSize);
+    EXPECT_EQ(6, payloadArray.payloadSubLength[0]);
+
+    EXPECT_EQ(STATUS_SUCCESS, depayAacFromRtpPayload(payloadArray.payloadBuffer, payloadArray.payloadSubLength[0], NULL, &newPayloadSubLen, NULL));
+    EXPECT_EQ(6, newPayloadSubLen);
+
+    newPayloadSubLen = depayloadSize;
+    EXPECT_EQ(STATUS_SUCCESS,
+              depayAacFromRtpPayload(payloadArray.payloadBuffer, payloadArray.payloadSubLength[0], depayload, &newPayloadSubLen, NULL));
+    EXPECT_TRUE(MEMCMP(payload, depayload, newPayloadSubLen) == 0);
+
+    MEMFREE(payloadArray.payloadBuffer);
+    MEMFREE(payloadArray.payloadSubLength);
+    MEMFREE(depayload);
+}
+
 TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameShortG711Frame)
 {
     BYTE payload[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05};
