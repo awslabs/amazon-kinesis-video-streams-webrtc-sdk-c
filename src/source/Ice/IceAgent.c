@@ -278,7 +278,7 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
         freeTransactionIdStore(&pIceAgent->pStunBindingRequestTransactionIdStore);
     }
 
-    LOGE("[JG SS] Cleanup 13");
+    DLOGE("[JG SS] Cleanup 13");
 
     MEMFREE(pIceAgent);
 
@@ -2397,7 +2397,7 @@ CleanUp:
 STATUS iceAgentInvalidateCandidatePair(PIceAgent pIceAgent)
 {
     ENTERS();
-    DLOGE("[SS JG] enter iceAgentInvalidateCandidatePair ICE candidate pair !!")
+    DLOGE("[SS JG] enter iceAgentInvalidateCandidatePair ICE candidate pair !!");
 
     STATUS retStatus = STATUS_SUCCESS;
     PIceCandidatePair pIceCandidatePair = NULL;
