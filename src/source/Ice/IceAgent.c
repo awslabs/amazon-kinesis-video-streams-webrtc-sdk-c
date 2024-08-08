@@ -168,7 +168,7 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
     DLOGE("[JG SS] Cleanup 1");
 
     if (pIceAgent->localCandidates != NULL) {
-        CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
+        CHK_LOG_ERR(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
         while (pCurNode != NULL) {
             pIceCandidate = (PIceCandidate) pCurNode->data;
             pCurNode = pCurNode->pNext;
@@ -188,9 +188,9 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
     DLOGE("[JG SS] Cleanup 3");
 
     if (pIceAgent->iceCandidatePairs != NULL) {
-        CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
+        CHK_LOG_ERR(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
         while (pCurNode != NULL) {
-            CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
+            CHK_LOG_ERR(doubleListGetNodeData(pCurNode, &data));
             pCurNode = pCurNode->pNext;
             pIceCandidatePair = (PIceCandidatePair) data;
 
@@ -204,9 +204,9 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
     DLOGE("[JG SS] Cleanup 4");
 
     if (pIceAgent->localCandidates != NULL) {
-        CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
+        CHK_LOG_ERR(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
         while (pCurNode != NULL) {
-            CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
+            CHK_LOG_ERR(doubleListGetNodeData(pCurNode, &data));
             pCurNode = pCurNode->pNext;
             pIceCandidate = (PIceCandidate) data;
 
