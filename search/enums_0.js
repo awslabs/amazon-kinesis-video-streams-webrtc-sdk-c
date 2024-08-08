@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['data_5fchannel_5ftype_4689',['DATA_CHANNEL_TYPE',['../Sctp_8h.html#ac30615997d46d1cefff7c8755cd38792',1,'Sctp.h']]],
-  ['dtls_5fhandshake_5fstate_4690',['DTLS_HANDSHAKE_STATE',['../Dtls_8h.html#a24a0a539af96854f8039db1b633a5fb8',1,'Dtls.h']]]
+  ['data_5fchannel_5ftype_4703',['DATA_CHANNEL_TYPE',['../Sctp_8h.html#ac30615997d46d1cefff7c8755cd38792',1,'Sctp.h']]],
+  ['dtls_5fhandshake_5fstate_4704',['DTLS_HANDSHAKE_STATE',['../Dtls_8h.html#a24a0a539af96854f8039db1b633a5fb8',1,'Dtls.h']]]
 ];

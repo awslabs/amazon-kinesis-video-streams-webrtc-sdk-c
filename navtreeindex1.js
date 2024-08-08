@@ -100,6 +100,7 @@ var NAVTREEINDEX1 =
 "group__PublicStructures.html#gae012798e59bf247342e5d433604d415a":[1,0,19,36],
 "group__PublicStructures.html#gafb53cec62851ea389537d44f8b0abcb9":[1,0,19,21],
 "group__RTCPStatusCodes.html":[1,0,11],
+"group__RTCPStatusCodes.html#ga0194e520b6f967095538692256f09909":[1,0,11,9],
 "group__RTCPStatusCodes.html#ga23a5cec983dc7edebe7c7430e766e86d":[1,0,11,4],
 "group__RTCPStatusCodes.html#ga2720ecf95092b8fc6de2ef3498a8fadc":[1,0,11,0],
 "group__RTCPStatusCodes.html#ga35b4bd58529811890c8aba190ebab679":[1,0,11,8],
@@ -248,6 +249,5 @@ var NAVTREEINDEX1 =
 "group__SignalingStatusCodes.html#ga8d152276e9aa95350a15e74d4cfa6763":[1,0,8,31],
 "group__SignalingStatusCodes.html#ga8d225a905811a7962a0ff80438a3bc8d":[1,0,8,59],
 "group__SignalingStatusCodes.html#ga916975b02b4b3c261717f22c5b6b336a":[1,0,8,36],
-"group__SignalingStatusCodes.html#ga932238047852bb2ab0b665cef952be79":[1,0,8,47],
-"group__SignalingStatusCodes.html#ga975c7b8d4c16c3856fe263f4c759903e":[1,0,8,46]
+"group__SignalingStatusCodes.html#ga932238047852bb2ab0b665cef952be79":[1,0,8,47]
 };

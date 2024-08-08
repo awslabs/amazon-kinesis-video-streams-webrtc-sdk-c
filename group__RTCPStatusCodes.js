@@ -8,5 +8,6 @@ var group__RTCPStatusCodes =
     [ "STATUS_RTCP_INPUT_PARTIAL_PACKET", "group__RTCPStatusCodes.html#gadeaee59d0fc4639703e346223d9bd677", null ],
     [ "STATUS_RTCP_INPUT_REMB_INVALID", "group__RTCPStatusCodes.html#gac97932fcf843e5113c284c1669908ded", null ],
     [ "STATUS_RTCP_INPUT_REMB_TOO_SMALL", "group__RTCPStatusCodes.html#ga5ebc92d87d3175ce8a10e1487af97837", null ],
-    [ "STATUS_RTCP_INPUT_SSRC_INVALID", "group__RTCPStatusCodes.html#ga35b4bd58529811890c8aba190ebab679", null ]
+    [ "STATUS_RTCP_INPUT_SSRC_INVALID", "group__RTCPStatusCodes.html#ga35b4bd58529811890c8aba190ebab679", null ],
+    [ "STATUS_RTCP_UNKNOWN_ERROR", "group__RTCPStatusCodes.html#ga0194e520b6f967095538692256f09909", null ]
 ];
