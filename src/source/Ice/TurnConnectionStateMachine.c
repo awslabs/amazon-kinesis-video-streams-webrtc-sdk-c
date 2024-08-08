@@ -139,7 +139,7 @@ STATUS stepTurnConnectionStateMachine(PTurnConnection pTurnConnection)
     } while (oldState != pTurnConnection->state);
 
 CleanUp:
-
+    printf("[SS JG SK] CLEANUP!! State: %ld", pTurnConnection->state);
     CHK_LOG_ERR(retStatus);
 
     LEAVES();
@@ -296,7 +296,9 @@ STATUS executeGetCredentialsTurnState(UINT64 customData, UINT64 time)
         /* We dont support DTLS and TCP, so only options are TCP/TLS and UDP. */
         /* TODO: add plain TCP once it becomes available. */
         if (pTurnConnection->protocol == KVS_SOCKET_PROTOCOL_TCP && pTurnConnection->pControlChannel->pTlsSession == NULL) {
+            DLOGE("OOOOOOOOOO [SS JG SK]");
             CHK_STATUS(socketConnectionInitSecureConnection(pTurnConnection->pControlChannel, FALSE));
+            DLOGE("OOOOOOOOOO22 [SS JG SK]");
         }
         pTurnConnection->state = TURN_STATE_GET_CREDENTIALS;
     } else {
@@ -306,7 +308,6 @@ STATUS executeGetCredentialsTurnState(UINT64 customData, UINT64 time)
                                       NULL, FALSE));
 
 CleanUp:
-
     LEAVES();
     return retStatus;
 }

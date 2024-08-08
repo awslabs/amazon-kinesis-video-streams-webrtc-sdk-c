@@ -26,7 +26,8 @@ STATUS createTlsSession(PTlsSessionCallbacks pCallbacks, PTlsSession* ppTlsSessi
     mbedtls_ssl_config_init(&pTlsSession->sslCtxConfig);
     mbedtls_ssl_init(&pTlsSession->sslCtx);
     CHK(mbedtls_ctr_drbg_seed(&pTlsSession->ctrDrbg, mbedtls_entropy_func, &pTlsSession->entropy, NULL, 0) == 0, STATUS_CREATE_SSL_FAILED);
-    CHK(mbedtls_x509_crt_parse_file(&pTlsSession->cacert, KVS_CA_CERT_PATH) == 0, STATUS_INVALID_CA_CERT_PATH);
+    // DLOGE(mbedtls_x509_crt_parse_file(&pTlsSession->cacert, KVS_CA_CERT_PATH);
+    DLOGE("[JG SS SK] mbedtls_x509_crt_parse_file: %d", mbedtls_x509_crt_parse_file(&pTlsSession->cacert, "/usr/bin/cert.pem"));
 
 CleanUp:
     if (STATUS_FAILED(retStatus) && pTlsSession != NULL) {

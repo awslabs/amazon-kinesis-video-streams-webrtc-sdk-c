@@ -240,6 +240,7 @@ CleanUp:
 STATUS fromCheckConnectionIceAgentState(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
+    DLOGE("[JG SS] enter fromCheckConnectionIceAgentState!");
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     UINT64 state = ICE_AGENT_STATE_CHECK_CONNECTION; // original state
@@ -261,10 +262,14 @@ STATUS fromCheckConnectionIceAgentState(UINT64 customData, PUINT64 pState)
     CHK(state != ICE_AGENT_STATE_DISCONNECTED, retStatus);
 
     // connected pair found ? go to ICE_AGENT_STATE_CONNECTED : timeout ? go to error : remain in ICE_AGENT_STATE_CHECK_CONNECTION
+    DLOGE("[JG SS] fromCheckConnectionIceAgentState here !");
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
     while (pCurNode != NULL && !connectedCandidatePairFound) {
         pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
         DLOGD("Checking pair: %s %s, state: %d", pIceCandidatePair->local->id, pIceCandidatePair->remote->id, pIceCandidatePair->state);
+        
+        DLOGE("[JG SS] check pair: %s %s - pair state: %d, local state: %d, remote state: %d", pIceCandidatePair->local->id, pIceCandidatePair->remote->id, pIceCandidatePair->state, pIceCandidatePair->local->state, pIceCandidatePair->remote->state);
+
         pCurNode = pCurNode->pNext;
 
         if (pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
@@ -279,14 +284,17 @@ STATUS fromCheckConnectionIceAgentState(UINT64 customData, PUINT64 pState)
     }
 
 CleanUp:
+    DLOGE("[JG SS] exit fromCheckConnectionIceAgentState!");
+
     CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         state = ICE_AGENT_STATE_FAILED;
         pIceAgent->iceAgentStatus = retStatus;
-        // fix up retStatus so we can successfully transition to failed state.
-        retStatus = STATUS_SUCCESS;
     }
+
+     // fix up retStatus so we can successfully transition to failed state.
+    retStatus = STATUS_SUCCESS;
 
     if (pState != NULL) {
         *pState = state;

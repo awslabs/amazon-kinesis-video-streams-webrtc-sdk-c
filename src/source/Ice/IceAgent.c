@@ -165,6 +165,8 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
 
     hashTableFree(pIceAgent->requestTimestampDiagnostics);
 
+    DLOGE("[JG SS] Cleanup 1");
+
     if (pIceAgent->localCandidates != NULL) {
         CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
         while (pCurNode != NULL) {
@@ -177,9 +179,13 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
         }
     }
 
+    DLOGE("[JG SS] Cleanup 2");
+
     if (pIceAgent->pConnectionListener != NULL) {
         CHK_LOG_ERR(freeConnectionListener(&pIceAgent->pConnectionListener));
     }
+
+    DLOGE("[JG SS] Cleanup 3");
 
     if (pIceAgent->iceCandidatePairs != NULL) {
         CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
@@ -194,6 +200,8 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
         CHK_LOG_ERR(doubleListClear(pIceAgent->iceCandidatePairs, FALSE));
         CHK_LOG_ERR(doubleListFree(pIceAgent->iceCandidatePairs));
     }
+
+    DLOGE("[JG SS] Cleanup 4");
 
     if (pIceAgent->localCandidates != NULL) {
         CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
@@ -212,6 +220,8 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
         CHK_LOG_ERR(doubleListFree(pIceAgent->localCandidates));
     }
 
+    DLOGE("[JG SS] Cleanup 5");
+
     /* In case we fail in the middle of a ICE restart */
     if (ATOMIC_LOAD_BOOL(&pIceAgent->restart) && pIceAgent->pDataSendingIceCandidatePair != NULL) {
         if (IS_CANN_PAIR_SENDING_FROM_RELAYED(pIceAgent->pDataSendingIceCandidatePair)) {
@@ -226,33 +236,49 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
         pIceAgent->pDataSendingIceCandidatePair = NULL;
     }
 
+    DLOGE("[JG SS] Cleanup 6");
+
     if (pIceAgent->remoteCandidates != NULL) {
         // remote candidates dont have socketConnection
         CHK_LOG_ERR(doubleListClear(pIceAgent->remoteCandidates, TRUE));
         CHK_LOG_ERR(doubleListFree(pIceAgent->remoteCandidates));
     }
 
+    DLOGE("[JG SS] Cleanup 7");
+
     if (pIceAgent->triggeredCheckQueue != NULL) {
         CHK_LOG_ERR(stackQueueFree(pIceAgent->triggeredCheckQueue));
     }
+
+    DLOGE("[JG SS] Cleanup 8");
 
     if (IS_VALID_MUTEX_VALUE(pIceAgent->lock)) {
         MUTEX_FREE(pIceAgent->lock);
     }
 
+    DLOGE("[JG SS] Cleanup 9");
+
     freeStateMachine(pIceAgent->pStateMachine);
+
+    DLOGE("[JG SS] Cleanup 10");
 
     if (pIceAgent->pBindingIndication != NULL) {
         freeStunPacket(&pIceAgent->pBindingIndication);
     }
 
+    DLOGE("[JG SS] Cleanup 11");
+
     if (pIceAgent->pBindingRequest != NULL) {
         freeStunPacket(&pIceAgent->pBindingRequest);
     }
 
+    DLOGE("[JG SS] Cleanup 12");
+
     if (pIceAgent->pStunBindingRequestTransactionIdStore != NULL) {
         freeTransactionIdStore(&pIceAgent->pStunBindingRequestTransactionIdStore);
     }
+
+    LOGE("[JG SS] Cleanup 13");
 
     MEMFREE(pIceAgent);
 
@@ -261,6 +287,10 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
 CleanUp:
 
     LEAVES();
+    CHK_LOG_ERR(retStatus);
+
++    iceAgentInvalidateCandidatePair(pIceAgent);
+
     return retStatus;
 }
 
@@ -2367,6 +2397,7 @@ CleanUp:
 STATUS iceAgentInvalidateCandidatePair(PIceAgent pIceAgent)
 {
     ENTERS();
+    DLOGE("[SS JG] enter iceAgentInvalidateCandidatePair ICE candidate pair !!")
 
     STATUS retStatus = STATUS_SUCCESS;
     PIceCandidatePair pIceCandidatePair = NULL;
@@ -2381,11 +2412,13 @@ STATUS iceAgentInvalidateCandidatePair(PIceAgent pIceAgent)
         pCurNode = pCurNode->pNext;
 
         if (pIceCandidatePair->local->state != ICE_CANDIDATE_STATE_VALID) {
+            DLOGE("[JG SS] Invalidating pair: %s %s - state local: %d remote state: %d, iceCandidatePairState: %d", pIceCandidatePair->local->id, pIceCandidatePair->remote->id, pIceCandidatePair->local->state, pIceCandidatePair->remote->state, pIceCandidatePair->state);
             pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_FAILED;
         }
     }
 
 CleanUp:
+    DLOGE("[SS JG] exit iceAgentInvalidateCandidatePair ICE candidate pair !!");
 
     CHK_LOG_ERR(retStatus);
 

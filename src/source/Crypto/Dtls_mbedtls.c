@@ -8,6 +8,21 @@ mbedtls_ssl_srtp_profile DTLS_SRTP_SUPPORTED_PROFILES[] = {
     MBEDTLS_TLS_SRTP_UNSET,
 };
 
+static void my_debug(void *ctx, int level, const char *file, int line,
+                         const char *str) {
+    const char *p, *basename;
+    (void) ctx;
+
+    /* Extract basename from file */
+    for(p = basename = file; *p != '\0'; p++) {
+        if(*p == '/' || *p == '\\') {
+            basename = p + 1;
+        }
+    }
+
+//    DLOGE("%s:%04d: |%d| %s", basename, line, level, str);
+}
+
 STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, INT32 certificateBits,
                          BOOL generateRSACertificate, PRtcCertificate pRtcCertificates, PDtlsSession* ppDtlsSession)
 {
@@ -26,7 +41,8 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
     // initialize mbedtls stuff with sane values
     mbedtls_entropy_init(&pDtlsSession->entropy);
     mbedtls_ctr_drbg_init(&pDtlsSession->ctrDrbg);
-    mbedtls_ssl_config_init(&pDtlsSession->sslCtxConfig);
+    //mbedtls_debug_set_threshold(5);
+    //mbedtls_ssl_conf_dbg(&pDtlsSession->sslCtxConfig, my_debug, NULL);
     mbedtls_ssl_init(&pDtlsSession->sslCtx);
     mbedtls_ctr_drbg_set_prediction_resistance(&pDtlsSession->ctrDrbg, MBEDTLS_CTR_DRBG_PR_ON);
     CHK(mbedtls_ctr_drbg_seed(&pDtlsSession->ctrDrbg, mbedtls_entropy_func, &pDtlsSession->entropy, NULL, 0) == 0, STATUS_CREATE_SSL_FAILED);
@@ -41,10 +57,12 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
     }
 
     if (certCount == 0) {
+        DLOGE("CACERTPATH BEFORE createCertificateAndKey [ JG SS SK ]");
         CHK_STATUS(createCertificateAndKey(certificateBits, generateRSACertificate, &pDtlsSession->certificates[0].cert,
                                            &pDtlsSession->certificates[0].privateKey));
         pDtlsSession->certificateCount = 1;
     } else {
+        DLOGE("CACERTPATH AFTER createCertificateAndKey [ JG SS SK ]");
         for (i = 0; i < certCount; i++) {
             CHK_STATUS(copyCertificateAndKey((mbedtls_x509_crt*) pRtcCertificates[i].pCertificate,
                                              (mbedtls_pk_context*) pRtcCertificates[i].pPrivateKey, &pDtlsSession->certificates[i]));
