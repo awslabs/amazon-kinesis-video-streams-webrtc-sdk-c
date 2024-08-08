@@ -223,6 +223,7 @@ if(BUILD_DEPENDENCIES)
   build_dependency(kvssdp ${BUILD_ARGS})
   build_dependency(kvsstun ${BUILD_ARGS})
   build_dependency(kvsrtp ${BUILD_ARGS})
+  build_dependency(kvsrtcp ${BUILD_ARGS})
 
   set(BUILD_ARGS
       -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
@@ -426,6 +427,7 @@ target_link_libraries(
           kvssdp
           kvsstun
           kvsrtp
+          kvsrtcp
           kvssignaling
           corejson
           ${CMAKE_THREAD_LIBS_INIT}
@@ -452,6 +454,7 @@ target_link_libraries(
         kvssdp
         kvsstun
         kvsrtp
+        kvsrtcp
         kvssignaling
         corejson
   PRIVATE kvspicUtils
