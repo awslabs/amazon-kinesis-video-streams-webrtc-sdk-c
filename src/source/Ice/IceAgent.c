@@ -289,8 +289,6 @@ CleanUp:
     LEAVES();
     CHK_LOG_ERR(retStatus);
 
-+    iceAgentInvalidateCandidatePair(pIceAgent);
-
     return retStatus;
 }
 
