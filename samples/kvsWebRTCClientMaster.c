@@ -1,4 +1,4 @@
-#include "Samples.h"
+#include "../samples/Samples.h"
 
 extern PSampleConfiguration gSampleConfiguration;
 
@@ -20,15 +20,15 @@ INT32 main(INT32 argc, CHAR* argv[])
     signal(SIGINT, sigintHandler);
 #endif
 
-#ifdef IOT_CORE_ENABLE_CREDENTIALS
-    CHK_ERR((pChannelName = argc > 1 ? argv[1] : GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION,
-            "AWS_IOT_CORE_THING_NAME must be set");
-#else
-    pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
-#endif
+    if (IOT_CORE_ENABLE_CREDENTIALS) {
+        CHK_ERR((pChannelName = argc > 1 ? argv[1] : GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION,
+                "AWS_IOT_CORE_THING_NAME must be set");
+    } else {
+        pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
+    }
 
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
-
+    CHK_STATUS(setUpCredentialProvider(pSampleConfiguration, IOT_CORE_ENABLE_CREDENTIALS));
     if (argc > 3) {
         if (!STRCMP(argv[3], AUDIO_CODEC_NAME_AAC)) {
             audioCodec = RTC_CODEC_AAC;
@@ -137,23 +137,6 @@ CleanUp:
     // Some platforms also treat 1 or 0 differently, so it's better to use
     // EXIT_FAILURE and EXIT_SUCCESS macros for portability.
     return STATUS_FAILED(retStatus) ? EXIT_FAILURE : EXIT_SUCCESS;
-}
-
-STATUS readFrameFromDisk(PBYTE pFrame, PUINT32 pSize, PCHAR frameFilePath)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    UINT64 size = 0;
-    CHK_ERR(pSize != NULL, STATUS_NULL_ARG, "[KVS Master] Invalid file size");
-    size = *pSize;
-    // Get the size and read into frame
-    CHK_STATUS(readFile(frameFilePath, TRUE, pFrame, &size));
-CleanUp:
-
-    if (pSize != NULL) {
-        *pSize = (UINT32) size;
-    }
-
-    return retStatus;
 }
 
 PVOID sendVideoPackets(PVOID args)
