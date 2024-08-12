@@ -171,10 +171,12 @@ STATUS turnConnectionIncomingDataHandler(PTurnConnection pTurnConnection, PBYTE 
     channelDataListSize = *pChannelDataCount;
     remainingDataSize = bufferLen;
     pCurrent = pBuffer;
+    DLOGE("[SK] Iterating over data.");
     while (remainingDataSize > 0 && totalChannelDataCount < channelDataListSize) {
         processedDataLen = 0;
         channelDataCount = 0;
         if (IS_STUN_PACKET(pCurrent)) {
+            DLOGE("[SK] Received data is a stun packet.");
             processedDataLen = GET_STUN_PACKET_SIZE(pCurrent) + STUN_HEADER_LEN; /* size of entire STUN packet */
             if (STUN_PACKET_IS_TYPE_ERROR(pCurrent)) {
                 CHK_STATUS(turnConnectionHandleStunError(pTurnConnection, pCurrent, processedDataLen));
@@ -183,6 +185,7 @@ STATUS turnConnectionIncomingDataHandler(PTurnConnection pTurnConnection, PBYTE 
             }
             checkTurnConnectionStateMachine(pTurnConnection);
         } else {
+            DLOGE("[SK] Received data is a channel data.");
             /* must be channel data if not stun */
             CHK_STATUS(turnConnectionHandleChannelData(pTurnConnection, pCurrent, remainingDataSize, &channelDataList[totalChannelDataCount],
                                                        &channelDataCount, &processedDataLen));
@@ -192,6 +195,7 @@ STATUS turnConnectionIncomingDataHandler(PTurnConnection pTurnConnection, PBYTE 
         pCurrent += processedDataLen;
         remainingDataSize -= processedDataLen;
         /* channelDataCount will be either 1 or 0 */
+        DLOGE("[SK] Incrementing totalChannelDataCount by %u.", channelDataCount);
         totalChannelDataCount += channelDataCount;
     }
 
@@ -222,12 +226,18 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
     UINT64 currentTime;
     UINT32 i;
 
+    DLOGE("[SK] Entered turnConnectionHandleStun.");
+
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
     CHK(pBuffer != NULL && bufferLen > 0, STATUS_INVALID_ARG);
     CHK(IS_STUN_PACKET(pBuffer) && !STUN_PACKET_IS_TYPE_ERROR(pBuffer), retStatus);
 
+    DLOGE("[SK] turnConnectionHandleStun waiting on pTurnConnection->lock.");
+
     MUTEX_LOCK(pTurnConnection->lock);
     locked = TRUE;
+
+    DLOGE("[SK] turnConnectionHandleStun acquired pTurnConnection->lock.");
 
     currentTime = GETTIME();
     // only handling STUN response
@@ -291,14 +301,19 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
             break;
 
         case STUN_PACKET_TYPE_CREATE_PERMISSION_SUCCESS_RESPONSE:
+
+            DLOGE("[SK] Entered STUN_PACKET_TYPE_CREATE_PERMISSION_SUCCESS_RESPONSE. Stun packet received.");
+            
             for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
                 pTurnPeer = &pTurnConnection->turnPeerList[i];
                 if (transactionIdStoreHasId(pTurnPeer->pTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET)) {
+                    DLOGE("[SK] Found found a transaction ID matching that of received STUN_PACKET_TYPE_CREATE_PERMISSION_SUCCESS_RESPONSE.");
                     if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_CREATE_PERMISSION) {
                         pTurnPeer->connectionState = TURN_PEER_CONN_STATE_BIND_CHANNEL;
                         CHK_STATUS(getIpAddrStr(&pTurnPeer->address, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
                         DLOGD("[%p] Create permission succeeded for peer %s:%d", pTurnConnection, ipAddrStr, pTurnPeer->address.port);
                         if (pTurnPeer->firstTimeCreatePermResponse) {
+                            // Note: This firstTimeCreatePermResponse bool indicates that it is non unexpected to receive a STUN_PACKET_TYPE_CREATE_PERMISSION_SUCCESS_RESPONSE multiple times for the same peer.
                             pTurnPeer->firstTimeCreatePermResponse = FALSE;
                             SNPRINTF(profileDebugStr, MAX_TURN_PROFILE_LOG_DESC_LEN, "%p - %s:%d - %s", (PVOID) pTurnConnection, ipAddrStr,
                                      pTurnPeer->address.port, "TURN create permission");
@@ -312,14 +327,21 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
 
             break;
 
-        case STUN_PACKET_TYPE_CHANNEL_BIND_SUCCESS_RESPONSE:
+        case STUN_PACKET_TYPE_CHANNEL_BIND_SUCCESS_RESPONSE: // What do we need to do in order for TURN server to send this?
+
+            DLOGE("[SK] Entered STUN_PACKET_TYPE_CHANNEL_BIND_SUCCESS_RESPONSE");
+
+            DLOGE("[SK] Checking for peers in bind channel state and with matching ID to packet.");
             for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
+                DLOGE("[SK] Checking peer #%u.", i);
                 pTurnPeer = &pTurnConnection->turnPeerList[i];
                 if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_BIND_CHANNEL &&
                     transactionIdStoreHasId(pTurnPeer->pTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET)) {
+                    DLOGE("[SK] Found turn peer in bind channel state and with matching ID to packet for peer #%u.", i);
                     // pTurnPeer->ready means this peer is ready to receive data. pTurnPeer->connectionState could
                     // change after reaching TURN_PEER_CONN_STATE_READY due to refreshing permission and channel.
                     if (!pTurnPeer->ready) {
+                        DLOGE("[SK] Setting pTurnPeer->ready for peer #%u", i);
                         pTurnPeer->ready = TRUE;
                     }
                     pTurnPeer->connectionState = TURN_PEER_CONN_STATE_READY;
@@ -1033,12 +1055,18 @@ STATUS checkTurnPeerConnections(PTurnConnection pTurnConnection)
     PStunAttributeChannelNumber pStunAttributeChannelNumber = NULL;
     UINT32 i = 0;
 
+    DLOGE("[SK] Entered checkTurnPeerConnections.");
+
     // turn mutex is assumed to be locked.
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
+
+    DLOGE("[SK] pTurnConnection->turnPeerCount: %u", pTurnConnection->turnPeerCount);
+
     for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
         pTurnPeer = &pTurnConnection->turnPeerList[i];
 
         if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_CREATE_PERMISSION) {
+            DLOGE("[SK] Turn peer #%u is in TURN_PEER_CONN_STATE_CREATE_PERMISSION.", i);
             if (pTurnPeer->firstTimeCreatePermReq) {
                 pTurnPeer->createPermissionStartTime = GETTIME();
                 pTurnPeer->firstTimeCreatePermReq = FALSE;
@@ -1059,6 +1087,7 @@ STATUS checkTurnPeerConnections(PTurnConnection pTurnConnection)
                                                 pTurnConnection->pControlChannel, NULL, FALSE);
 
         } else if (pTurnPeer->connectionState == TURN_PEER_CONN_STATE_BIND_CHANNEL) {
+            DLOGE("[SK] Turn peer #%u is in TURN_PEER_CONN_STATE_BIND_CHANNEL.", i);
             if (pTurnPeer->firstTimeBindChannelReq) {
                 pTurnPeer->bindChannelStartTime = GETTIME();
                 pTurnPeer->firstTimeBindChannelReq = FALSE;
@@ -1080,9 +1109,12 @@ STATUS checkTurnPeerConnections(PTurnConnection pTurnConnection)
 
             CHK(pTurnPeer->pTransactionIdStore != NULL, STATUS_INVALID_OPERATION);
             transactionIdStoreInsert(pTurnPeer->pTransactionIdStore, pTurnConnection->pTurnChannelBindPacket->header.transactionId);
+            DLOGE("[SK] Calling iceUtilsSendStunPacket with pTurnChannelBindPacket for peer #%u.", i);
             sendStatus = iceUtilsSendStunPacket(pTurnConnection->pTurnChannelBindPacket, pTurnConnection->longTermKey,
                                                 ARRAY_SIZE(pTurnConnection->longTermKey), &pTurnConnection->turnServer.ipAddress,
                                                 pTurnConnection->pControlChannel, NULL, FALSE);
+        } else {
+            DLOGE("[SK] Turn peer #%u is neither in TURN_PEER_CONN_STATE_CREATE_PERMISSION nor TURN_PEER_CONN_STATE_BIND_CHANNEL.", i);
         }
     }
 

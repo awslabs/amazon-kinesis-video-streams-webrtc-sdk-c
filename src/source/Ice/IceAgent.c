@@ -1342,6 +1342,8 @@ STATUS iceCandidatePairCheckConnection(PStunPacket pStunBindingRequest, PIceAgen
               pIceCandidatePair->local->ipAddress.address[0], pIceCandidatePair->local->ipAddress.address[1],
               pIceCandidatePair->local->ipAddress.address[2], pIceCandidatePair->local->ipAddress.address[3],
               (UINT16) getInt16(pIceCandidatePair->local->ipAddress.port));
+    } else {
+        DLOGE("[SK] Candidate pair failed `pIceCandidatePair->local->ipAddress.family == KVS_IP_FAMILY_TYPE_IPV4` check.");
     }
 
     // update priority and transaction id
@@ -1530,12 +1532,15 @@ STATUS iceAgentCheckCandidatePairConnection(PIceAgent pIceAgent)
 
     CHK_STATUS(stackQueueIsEmpty(pIceAgent->triggeredCheckQueue, &triggeredCheckQueueEmpty));
     if (!triggeredCheckQueueEmpty) {
+        DLOGE("[SK] Found a triggered candidate pair in triggeredCheckQueue.");
+
         // if triggeredCheckQueue is not empty, check its candidate pair first
         stackQueueDequeue(pIceAgent->triggeredCheckQueue, &data);
         pIceCandidatePair = (PIceCandidatePair) data;
 
         CHK_STATUS(iceCandidatePairCheckConnection(pIceAgent->pBindingRequest, pIceAgent, pIceCandidatePair));
     } else {
+        DLOGE("[SK] No triggered candidate pair in triggeredCheckQueue, iterating through iceCandidatePairs");
         CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
         while (pCurNode != NULL) {
             pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
@@ -1543,12 +1548,15 @@ STATUS iceAgentCheckCandidatePairConnection(PIceAgent pIceAgent)
 
             switch (pIceCandidatePair->state) {
                 case ICE_CANDIDATE_PAIR_STATE_WAITING:
+                    DLOGE("[SK] Candidate pair in ICE_CANDIDATE_PAIR_STATE_WAITING");
                     pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS;
                     // NOTE: Explicit fall-through
                 case ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS:
+                    DLOGE("[SK] Candidate pair in ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS");
                     CHK_STATUS(iceCandidatePairCheckConnection(pIceAgent->pBindingRequest, pIceAgent, pIceCandidatePair));
                     break;
                 default:
+                    DLOGE("[SK] Candidate pair in unhandled state: %u", pIceCandidatePair->state);
                     break;
             }
         }
@@ -2402,10 +2410,16 @@ STATUS incomingRelayedDataHandler(UINT64 customData, PSocketConnection pSocketCo
     TurnChannelData turnChannelData[DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE] = {0};
     UINT32 turnChannelDataCount = ARRAY_SIZE(turnChannelData), i = 0;
 
+    DLOGE("[SK] Entered incomingRelayedDataHandler.");
+
     CHK(pRelayedCandidate != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
+
+    DLOGE("[SK] Calling turnConnectionIncomingDataHandler.");
 
     CHK_STATUS(turnConnectionIncomingDataHandler(pRelayedCandidate->pTurnConnection, pBuffer, bufferLen, pSrc, pDest, turnChannelData,
                                                  &turnChannelDataCount));
+
+    DLOGE("[SK] Calling incomingDataHandler for turnChannelDataCount of: %u.", turnChannelDataCount);
     for (i = 0; i < turnChannelDataCount; ++i) {
         incomingDataHandler((UINT64) pRelayedCandidate->pIceAgent, pSocketConnection, turnChannelData[i].data, turnChannelData[i].size,
                             &turnChannelData[i].senderAddr, NULL);
@@ -2539,6 +2553,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
 
     switch (stunPacketType) {
         case STUN_PACKET_TYPE_BINDING_REQUEST:
+            DLOGE("[SK] Received STUN_PACKET_TYPE_BINDING_REQUEST.");
             connectivityCheckRequestsReceived++;
             CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, (PBYTE) pIceAgent->localPassword,
                                              (UINT32) STRLEN(pIceAgent->localPassword) * SIZEOF(CHAR), &pStunPacket));
@@ -2574,10 +2589,15 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 }
             }
 
+            // TODO: Try connecting many times with JS Test Page Viewer!
+
             // schedule a connectivity check for the pair
             if (pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_FROZEN || pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_WAITING ||
                 pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS) {
+                DLOGE("[SK] Scheduling a connectivityCheck for the binding request pair.");
                 CHK_STATUS(stackQueueEnqueue(pIceAgent->triggeredCheckQueue, (UINT64) pIceCandidatePair));
+            } else {
+                DLOGE("[SK] Not scheduling a connectivityCheck for the binding request pair becuase pair state is: %u", pIceCandidatePair->state);
             }
 
             if (pIceCandidatePair == pIceAgent->pDataSendingIceCandidatePair) {
@@ -2590,10 +2610,13 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             break;
 
         case STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS:
+            DLOGE("[SK] Received STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS.");
+
             connectivityCheckResponsesReceived++;
             checkSum = COMPUTE_CRC32(pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET, STUN_TRANSACTION_ID_LEN);
             // check if Binding Response is for finding srflx candidate
             if (transactionIdStoreHasId(pIceAgent->pStunBindingRequestTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET)) {
+                DLOGE("[SK] Entered transactionIdStoreHasId conditional - stun binding is for finding srflx candidate.");
                 CHK_STATUS(findCandidateWithSocketConnection(pSocketConnection, pIceAgent->localCandidates, &pIceCandidate));
                 CHK_WARN(pIceCandidate != NULL, retStatus, "Local candidate with socket %d not found. Dropping STUN binding success response",
                          pSocketConnection->localSocket);
@@ -2620,6 +2643,8 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 // Remove from the transaction id store as we no longer are awaiting for the bind response
                 transactionIdStoreRemove(pIceAgent->pStunBindingRequestTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET);
                 CHK(FALSE, retStatus);
+            } else {
+                DLOGE("[SK] Stund binding is NOT for finding srflx candidate, continueing handling of received stun packet...");
             }
 
             CHK_STATUS(findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(pIceAgent, pSocketConnection, pSrcAddr, TRUE, &pIceCandidatePair));
@@ -2697,6 +2722,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             break;
 
         default:
+            DLOGE("[SK] Received stun packet of type neither STUN_PACKET_TYPE_BINDING_REQUEST nor STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS (default switch case).");
             if (!IS_STUN_PACKET(pBuffer)) {
                 CHK_STATUS(hexEncode(pBuffer, bufferLen, NULL, &hexStrLen));
                 hexStr = MEMCALLOC(1, hexStrLen * SIZEOF(CHAR));
