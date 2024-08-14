@@ -706,7 +706,7 @@ extern "C" {
 /**
  * Default jitter buffer tolerated latency, frame will be dropped if it is out of window
  */
-#define DEFAULT_JITTER_BUFFER_MAX_LATENCY (2000L * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define DEFAULT_JITTER_BUFFER_MAX_LATENCY (1000L * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 /*!@} */
 
 /**

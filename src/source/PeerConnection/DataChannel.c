@@ -30,7 +30,7 @@ STATUS createDataChannel(PRtcPeerConnection pPeerConnection, PCHAR pDataChannelN
         pKvsDataChannel->rtcDataChannelInit = *pRtcDataChannelInit;
     } else {
         // If nothing is set, set default to ordered mode
-        pKvsDataChannel->rtcDataChannelInit.ordered = TRUE;
+        pKvsDataChannel->rtcDataChannelInit.ordered = FALSE;
         NULLABLE_SET_EMPTY(pKvsDataChannel->rtcDataChannelInit.maxPacketLifeTime);
         NULLABLE_SET_EMPTY(pKvsDataChannel->rtcDataChannelInit.maxRetransmits);
     }

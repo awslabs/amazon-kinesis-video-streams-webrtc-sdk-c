@@ -728,7 +728,7 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
     BOOL sendLocked = FALSE;
 
     CHK(pTurnConnection != NULL && pDestIp != NULL, STATUS_NULL_ARG);
-    CHK(pBuf != NULL && bufLen > 0, STATUS_INVALID_ARG);
+    CHK(!ATOMIC_LOAD_BOOL(&pTurnConnection->stopTurnConnection), STATUS_SUCCESS);
 
     MUTEX_LOCK(pTurnConnection->lock);
     locked = TRUE;

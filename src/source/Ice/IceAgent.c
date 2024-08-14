@@ -166,7 +166,7 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
     hashTableFree(pIceAgent->requestTimestampDiagnostics);
 
     if (pIceAgent->localCandidates != NULL) {
-        CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
+        CHK_LOG_ERR(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
         while (pCurNode != NULL) {
             pIceCandidate = (PIceCandidate) pCurNode->data;
             pCurNode = pCurNode->pNext;
@@ -182,9 +182,9 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
     }
 
     if (pIceAgent->iceCandidatePairs != NULL) {
-        CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
+        CHK_LOG_ERR(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
         while (pCurNode != NULL) {
-            CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
+            CHK_LOG_ERR(doubleListGetNodeData(pCurNode, &data));
             pCurNode = pCurNode->pNext;
             pIceCandidatePair = (PIceCandidatePair) data;
 
@@ -196,9 +196,9 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
     }
 
     if (pIceAgent->localCandidates != NULL) {
-        CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
+        CHK_LOG_ERR(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
         while (pCurNode != NULL) {
-            CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
+            CHK_LOG_ERR(doubleListGetNodeData(pCurNode, &data));
             pCurNode = pCurNode->pNext;
             pIceCandidate = (PIceCandidate) data;
 
@@ -838,33 +838,31 @@ STATUS iceAgentShutdown(PIceAgent pIceAgent)
     CHK(!ATOMIC_EXCHANGE_BOOL(&pIceAgent->shutdown, TRUE), retStatus);
 
     if (pIceAgent->iceAgentStateTimerTask != MAX_UINT32) {
-        CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceAgentStateTimerTask, (UINT64) pIceAgent));
+        CHK_LOG_ERR(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceAgentStateTimerTask, (UINT64) pIceAgent));
         pIceAgent->iceAgentStateTimerTask = MAX_UINT32;
     }
 
     if (pIceAgent->keepAliveTimerTask != MAX_UINT32) {
-        CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->keepAliveTimerTask, (UINT64) pIceAgent));
+        CHK_LOG_ERR(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->keepAliveTimerTask, (UINT64) pIceAgent));
         pIceAgent->keepAliveTimerTask = MAX_UINT32;
     }
 
     if (pIceAgent->iceCandidateGatheringTimerTask != MAX_UINT32) {
-        CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceCandidateGatheringTimerTask, (UINT64) pIceAgent));
+        CHK_LOG_ERR(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceCandidateGatheringTimerTask, (UINT64) pIceAgent));
         pIceAgent->iceCandidateGatheringTimerTask = MAX_UINT32;
     }
 
-    MUTEX_LOCK(pIceAgent->lock);
-    locked = TRUE;
-
-    CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
+    
+    CHK_LOG_ERR(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
     while (pCurNode != NULL) {
         pLocalCandidate = (PIceCandidate) pCurNode->data;
         pCurNode = pCurNode->pNext;
 
         if (pLocalCandidate->iceCandidateType != ICE_CANDIDATE_TYPE_RELAYED) {
             /* close socket so ice doesnt receive any more data */
-            CHK_STATUS(socketConnectionClosed(pLocalCandidate->pSocketConnection));
+            CHK_LOG_ERR(socketConnectionClosed(pLocalCandidate->pSocketConnection));
         } else {
-            CHK_STATUS(turnConnectionShutdown(pLocalCandidate->pTurnConnection, 0));
+            CHK_LOG_ERR(turnConnectionShutdown(pLocalCandidate->pTurnConnection, 0));
             turnConnections[turnConnectionCount++] = pLocalCandidate->pTurnConnection;
         }
     }
@@ -889,7 +887,7 @@ STATUS iceAgentShutdown(PIceAgent pIceAgent)
 
     /* remove connections last because still need to send data to deallocate turn */
     if (pIceAgent->pConnectionListener != NULL) {
-        CHK_STATUS(connectionListenerRemoveAllConnection(pIceAgent->pConnectionListener));
+        CHK_LOG_ERR(connectionListenerRemoveAllConnection(pIceAgent->pConnectionListener));
     }
 
 CleanUp:

@@ -1,0 +1,296 @@
+diff --git a/CMake/Dependencies/libkvsCommonLws-CMakeLists.txt b/CMake/Dependencies/libkvsCommonLws-CMakeLists.txt
+index c8cfa179a8..093e12207c 100644
+--- a/CMake/Dependencies/libkvsCommonLws-CMakeLists.txt
++++ b/CMake/Dependencies/libkvsCommonLws-CMakeLists.txt
+@@ -8,7 +8,7 @@ ExternalProject_Add(libkvsCommonLws-download
+     GIT_REPOSITORY    https://github.com/awslabs/amazon-kinesis-video-streams-producer-c.git
+     GIT_TAG           v1.5.2
+     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
+-    CMAKE_ARGS        
++    CMAKE_ARGS
+       -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}
+       -DBUILD_COMMON_LWS=ON
+       -DBUILD_COMMON_CURL=OFF
+@@ -18,6 +18,7 @@ ExternalProject_Add(libkvsCommonLws-download
+       -DUSE_OPENSSL=${USE_OPENSSL}
+       -DUSE_MBEDTLS=${USE_MBEDTLS}
+       -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
++      -DBUILD_STATIC=${BUILD_STATIC}
+     BUILD_ALWAYS      TRUE
+     TEST_COMMAND      ""
+ )
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index bf6660454f..61aa451e03 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -231,6 +231,7 @@ endif()
+ 
+ # building kvsCommonLws also builds kvspic
+ set(BUILD_ARGS
++        -DBUILD_STATIC=${BUILD_STATIC_LIBS}
+         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+         -DUSE_OPENSSL=${USE_OPENSSL}
+         -DUSE_MBEDTLS=${USE_MBEDTLS}
+@@ -379,7 +380,7 @@ endif()
+ if(ENABLE_KVS_THREADPOOL)
+   file(GLOB THREADPOOL_SOURCE_FILES "src/source/Threadpool/*.c")
+   add_library(kvsWebRtcThreadpool ${LINKAGE} ${THREADPOOL_SOURCE_FILES})
+-  target_link_libraries(kvsWebRtcThreadpool PRIVATE kvspicUtils)
++  target_link_libraries(kvsWebRtcThreadpool PUBLIC kvspicUtils)
+   set(EXTRA_DEPS ${EXTRA_DEPS} kvsWebRtcThreadpool)
+ endif()
+ 
+@@ -407,7 +408,7 @@ target_link_libraries(
+   kvsWebrtcSignalingClient
+   PUBLIC
+         kvsCommonLws
+-        ${LIBWEBSOCKETS_LIBRARIES} 
++        ${LIBWEBSOCKETS_LIBRARIES}
+   PRIVATE kvspicUtils
+          kvspicState
+          ${CMAKE_THREAD_LIBS_INIT}
+@@ -427,9 +428,16 @@ if(COMPILER_WARNINGS)
+   target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wall -Werror -pedantic -Wextra -Wno-unknown-warning-option)
+ endif()
+ 
++if(ENABLE_KVS_THREADPOOL)
++  install(TARGETS kvsWebRtcThreadpool
++          LIBRARY DESTINATION lib
++          ARCHIVE DESTINATION lib
++  )
++endif()
++
+ install(TARGETS kvsWebrtcClient kvsWebrtcSignalingClient
+-  LIBRARY DESTINATION lib
+-  ARCHIVE DESTINATION lib
++        LIBRARY DESTINATION lib
++        ARCHIVE DESTINATION lib
+ )
+ 
+ install(DIRECTORY ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include/
+@@ -461,4 +469,3 @@ get_directory_property(clean_files ADDITIONAL_CLEAN_FILES)
+ list(APPEND clean_files "${OPEN_SRC_INSTALL_PREFIX}")
+ list(APPEND clean_files "${CMAKE_CURRENT_SOURCE_DIR}/build")
+ set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES "${clean_files}")
+-
+diff --git a/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h b/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h
+index d7ae2ec97f..4242c0b8b2 100644
+--- a/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h
++++ b/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h
+@@ -706,7 +706,7 @@ extern "C" {
+ /**
+  * Default jitter buffer tolerated latency, frame will be dropped if it is out of window
+  */
+-#define DEFAULT_JITTER_BUFFER_MAX_LATENCY (2000L * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
++#define DEFAULT_JITTER_BUFFER_MAX_LATENCY (1000L * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+ /*!@} */
+ 
+ /**
+diff --git a/src/source/Ice/IceAgent.c b/src/source/Ice/IceAgent.c
+index 225957fb56..abe9929fa9 100644
+--- a/src/source/Ice/IceAgent.c
++++ b/src/source/Ice/IceAgent.c
+@@ -166,7 +166,7 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
+     hashTableFree(pIceAgent->requestTimestampDiagnostics);
+ 
+     if (pIceAgent->localCandidates != NULL) {
+-        CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
++        CHK_LOG_ERR(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
+         while (pCurNode != NULL) {
+             pIceCandidate = (PIceCandidate) pCurNode->data;
+             pCurNode = pCurNode->pNext;
+@@ -182,9 +182,9 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
+     }
+ 
+     if (pIceAgent->iceCandidatePairs != NULL) {
+-        CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
++        CHK_LOG_ERR(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
+         while (pCurNode != NULL) {
+-            CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
++            CHK_LOG_ERR(doubleListGetNodeData(pCurNode, &data));
+             pCurNode = pCurNode->pNext;
+             pIceCandidatePair = (PIceCandidatePair) data;
+ 
+@@ -196,9 +196,9 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
+     }
+ 
+     if (pIceAgent->localCandidates != NULL) {
+-        CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
++        CHK_LOG_ERR(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
+         while (pCurNode != NULL) {
+-            CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
++            CHK_LOG_ERR(doubleListGetNodeData(pCurNode, &data));
+             pCurNode = pCurNode->pNext;
+             pIceCandidate = (PIceCandidate) data;
+
+@@ -836,42 +839,56 @@ STATUS iceAgentShutdown(PIceAgent pIceAgent)
+ 
+     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
+     CHK(!ATOMIC_EXCHANGE_BOOL(&pIceAgent->shutdown, TRUE), retStatus);
++    
+
+     if (pIceAgent->iceAgentStateTimerTask != MAX_UINT32) {
+-        CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceAgentStateTimerTask, (UINT64) pIceAgent));
++        CHK_LOG_ERR(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceAgentStateTimerTask, (UINT64) pIceAgent));
+         pIceAgent->iceAgentStateTimerTask = MAX_UINT32;
+     }
+ 
+     if (pIceAgent->keepAliveTimerTask != MAX_UINT32) {
+-        CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->keepAliveTimerTask, (UINT64) pIceAgent));
++        CHK_LOG_ERR(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->keepAliveTimerTask, (UINT64) pIceAgent));
+         pIceAgent->keepAliveTimerTask = MAX_UINT32;
+     }
+ 
+     if (pIceAgent->iceCandidateGatheringTimerTask != MAX_UINT32) {
+-        CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceCandidateGatheringTimerTask, (UINT64) pIceAgent));
++        CHK_LOG_ERR(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceCandidateGatheringTimerTask, (UINT64) pIceAgent));
+         pIceAgent->iceCandidateGatheringTimerTask = MAX_UINT32;
+     }
+ 
+-    MUTEX_LOCK(pIceAgent->lock);
+-    locked = TRUE;
+-
+-    CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
++    CHK_LOG_ERR(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
+     while (pCurNode != NULL) {
+         pLocalCandidate = (PIceCandidate) pCurNode->data;
+         pCurNode = pCurNode->pNext;
+ 
+         if (pLocalCandidate->iceCandidateType != ICE_CANDIDATE_TYPE_RELAYED) {
+             /* close socket so ice doesnt receive any more data */
+-            CHK_STATUS(socketConnectionClosed(pLocalCandidate->pSocketConnection));
++            CHK_LOG_ERR(socketConnectionClosed(pLocalCandidate->pSocketConnection));
+         } else {
+-            CHK_STATUS(turnConnectionShutdown(pLocalCandidate->pTurnConnection, 0));
++            CHK_LOG_ERR(turnConnectionShutdown(pLocalCandidate->pTurnConnection, 0));
+             turnConnections[turnConnectionCount++] = pLocalCandidate->pTurnConnection;
+         }
+     }
+
+     MUTEX_UNLOCK(pIceAgent->lock);
+     locked = FALSE;
+ 
+     turnShutdownTimeout = GETTIME() + KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT;
+     while (!turnShutdownCompleted && GETTIME() < turnShutdownTimeout) {
+         for (i = 0, turnShutdownCompleted = TRUE; turnShutdownCompleted && i < turnConnectionCount; ++i) {
+@@ -883,15 +900,19 @@ STATUS iceAgentShutdown(PIceAgent pIceAgent)
+         THREAD_SLEEP(KVS_ICE_SHORT_CHECK_DELAY);
+     }
+ 
+     if (!turnShutdownCompleted) {
+         DLOGW("TurnConnection shutdown did not complete within %u seconds", KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT / HUNDREDS_OF_NANOS_IN_A_SECOND);
+     }
+
+     /* remove connections last because still need to send data to deallocate turn */
+     if (pIceAgent->pConnectionListener != NULL) {
+-        CHK_STATUS(connectionListenerRemoveAllConnection(pIceAgent->pConnectionListener));
++        CHK_LOG_ERR(connectionListenerRemoveAllConnection(pIceAgent->pConnectionListener));
+     }
+ 
+ CleanUp:
+ 
+     CHK_LOG_ERR(retStatus);
+diff --git a/src/source/Ice/IceAgent.h b/src/source/Ice/IceAgent.h
+index 53632aab88..7ec9984b9f 100644
+--- a/src/source/Ice/IceAgent.h
++++ b/src/source/Ice/IceAgent.h
+@@ -26,7 +26,7 @@ extern "C" {
+ #define KVS_ICE_SHORT_CHECK_DELAY                (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+ 
+ // Ta in https://tools.ietf.org/html/rfc8445
+-#define KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL  (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
++#define KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL  (150 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+ #define KVS_ICE_STATE_READY_TIMER_POLLING_INTERVAL (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+ /* Control the calling rate of iceCandidateGatheringTimerTask. Can affect STUN TURN candidate gathering time */
+ #define KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+diff --git a/src/source/Ice/TurnConnection.c b/src/source/Ice/TurnConnection.c
+index 7761b757a9..aacc22f4ee 100644
+--- a/src/source/Ice/TurnConnection.c
++++ b/src/source/Ice/TurnConnection.c
+@@ -729,10 +737,15 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
+ 
+     CHK(pTurnConnection != NULL && pDestIp != NULL, STATUS_NULL_ARG);
+     CHK(pBuf != NULL && bufLen > 0, STATUS_INVALID_ARG);
++    CHK(!ATOMIC_LOAD_BOOL(&pTurnConnection->stopTurnConnection), STATUS_SUCCESS);
+ 
+     MUTEX_LOCK(pTurnConnection->lock);
++//    MUTEX_LOCK(pTurnConnection->sendLock);
++//    sendLocked = TRUE;
+     locked = TRUE;
+
+     if (!(pTurnConnection->state == TURN_STATE_CREATE_PERMISSION || pTurnConnection->state == TURN_STATE_BIND_CHANNEL ||
+           pTurnConnection->state == TURN_STATE_READY)) {
+         DLOGV("TurnConnection not ready to send data");
+@@ -740,20 +753,26 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
+         // If turn is not ready yet. Drop the send since ice will retry.
+         CHK(FALSE, retStatus);
+     }
+
+     pSendPeer = turnConnectionGetPeerWithIp(pTurnConnection, pDestIp);
+ 
+     CHK_STATUS(getIpAddrStr(pDestIp, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
+     if (pSendPeer == NULL) {
+         DLOGV("Unable to send data through turn because peer with address %s:%u is not found", ipAddrStr, KVS_GET_IP_ADDRESS_PORT(pDestIp));
+         CHK(FALSE, retStatus);
+     } else if (pSendPeer->connectionState == TURN_PEER_CONN_STATE_FAILED) {
+         CHK(FALSE, STATUS_TURN_CONNECTION_PEER_NOT_USABLE);
+     } else if (!pSendPeer->ready) {
+         DLOGV("Unable to send data through turn because turn channel is not established with peer with address %s:%u", ipAddrStr,
+               KVS_GET_IP_ADDRESS_PORT(pDestIp));
+         CHK(FALSE, retStatus);
+     }
+
+     MUTEX_UNLOCK(pTurnConnection->lock);
+     locked = FALSE;
+diff --git a/src/source/PeerConnection/DataChannel.c b/src/source/PeerConnection/DataChannel.c
+index e8aee9a14a..bb66253b19 100644
+--- a/src/source/PeerConnection/DataChannel.c
++++ b/src/source/PeerConnection/DataChannel.c
+@@ -30,7 +30,7 @@ STATUS createDataChannel(PRtcPeerConnection pPeerConnection, PCHAR pDataChannelN
+         pKvsDataChannel->rtcDataChannelInit = *pRtcDataChannelInit;
+     } else {
+         // If nothing is set, set default to ordered mode
+-        pKvsDataChannel->rtcDataChannelInit.ordered = TRUE;
++        pKvsDataChannel->rtcDataChannelInit.ordered = FALSE;
+         NULLABLE_SET_EMPTY(pKvsDataChannel->rtcDataChannelInit.maxPacketLifeTime);
+         NULLABLE_SET_EMPTY(pKvsDataChannel->rtcDataChannelInit.maxRetransmits);
+     }
+diff --git a/src/source/PeerConnection/PeerConnection.c b/src/source/PeerConnection/PeerConnection.c
+index ccebf589ec..1106405d40 100644
+--- a/src/source/PeerConnection/PeerConnection.c
++++ b/src/source/PeerConnection/PeerConnection.c
+@@ -1006,9 +1007,13 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
+     CHK_LOG_ERR(iceAgentShutdown(pKvsPeerConnection->pIceAgent));
+ 
+     // free timer queue first to remove liveness provided by timer
+     if (IS_VALID_TIMER_QUEUE_HANDLE(pKvsPeerConnection->timerQueueHandle)) {
+-        timerQueueShutdown(pKvsPeerConnection->timerQueueHandle);
++        CHK_LOG_ERR(timerQueueShutdown(pKvsPeerConnection->timerQueueHandle));
+     }
+
+     /* Free structs that have their own thread. SCTP has threads created by SCTP library. IceAgent has the
+      * connectionListener thread. Free SCTP first so it wont try to send anything through ICE. */
+@@ -1057,7 +1062,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
+     }
+ 
+     if (IS_VALID_TIMER_QUEUE_HANDLE(pKvsPeerConnection->timerQueueHandle)) {
+-        timerQueueFree(&pKvsPeerConnection->timerQueueHandle);
++        CHK_LOG_ERR(timerQueueFree(&pKvsPeerConnection->timerQueueHandle));
+     }
+ 
+     if (pKvsPeerConnection->pTwccManager != NULL) {
+diff --git a/src/source/PeerConnection/Rtp.h b/src/source/PeerConnection/Rtp.h
+index d9104d73eb..d0260c63c4 100644
+--- a/src/source/PeerConnection/Rtp.h
++++ b/src/source/PeerConnection/Rtp.h
+@@ -10,8 +10,8 @@ extern "C" {
+ // Default MTU comes from libwebrtc
+ // https://groups.google.com/forum/#!topic/discuss-webrtc/gH5ysR3SoZI
+ #define DEFAULT_MTU_SIZE                           1200
+-#define DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS 3
+-#define HIGHEST_EXPECTED_BIT_RATE                  (10 * 1024 * 1024)
++#define DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS 0.5
++#define HIGHEST_EXPECTED_BIT_RATE                  (5 * 1024 * 1024)
+ #define DEFAULT_SEQ_NUM_BUFFER_SIZE                1000
+ #define DEFAULT_VALID_INDEX_BUFFER_SIZE            1000
+ #define DEFAULT_PEER_FRAME_BUFFER_SIZE             (5 * 1024)
