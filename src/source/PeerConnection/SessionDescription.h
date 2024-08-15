@@ -32,6 +32,7 @@ extern "C" {
 #define H264_VALUE      "H264/90000"
 #define H265_VALUE      "H265/90000"
 #define OPUS_VALUE      "opus/48000"
+#define AAC_VALUE       "AAC/16000"
 #define VP8_VALUE       "VP8/90000"
 #define MULAW_VALUE     "PCMU/8000"
 #define ALAW_VALUE      "PCMA/8000"
@@ -44,6 +45,7 @@ extern "C" {
 #define DEFAULT_PAYLOAD_MULAW   (UINT64) 0
 #define DEFAULT_PAYLOAD_ALAW    (UINT64) 8
 #define DEFAULT_PAYLOAD_OPUS    (UINT64) 111
+#define DEFAULT_PAYLOAD_AAC     (UINT64) 96
 #define DEFAULT_PAYLOAD_VP8     (UINT64) 96
 #define DEFAULT_PAYLOAD_H264    (UINT64) 125
 #define DEFAULT_PAYLOAD_H265    (UINT64) 127
@@ -77,6 +79,7 @@ extern "C" {
 
 #define VIDEO_CLOCKRATE (UINT64) 90000
 #define OPUS_CLOCKRATE  (UINT64) 48000
+#define AAC_CLOCKRATE   (UINT64) 16000
 #define PCM_CLOCKRATE   (UINT64) 8000
 
 // https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
