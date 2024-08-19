@@ -18,6 +18,7 @@ ExternalProject_Add(libkvsCommonLws-download
       -DUSE_OPENSSL=${USE_OPENSSL}
       -DUSE_MBEDTLS=${USE_MBEDTLS}
       -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
+      -DBUILD_STATIC=${BUILD_STATIC}
     BUILD_ALWAYS      TRUE
     TEST_COMMAND      ""
 )
