@@ -211,6 +211,7 @@ endif()
 
 # building kvsCommonLws also builds kvspic
 set(BUILD_ARGS
+        -DBUILD_STATIC=${BUILD_STATIC_LIBS}
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
         -DUSE_OPENSSL=${USE_OPENSSL}
         -DUSE_MBEDTLS=${USE_MBEDTLS}
