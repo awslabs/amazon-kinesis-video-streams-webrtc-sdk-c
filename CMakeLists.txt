@@ -380,7 +380,7 @@ endif()
 if(ENABLE_KVS_THREADPOOL)
   file(GLOB THREADPOOL_SOURCE_FILES "src/source/Threadpool/*.c")
   add_library(kvsWebRtcThreadpool ${LINKAGE} ${THREADPOOL_SOURCE_FILES})
-  target_link_libraries(kvsWebRtcThreadpool PRIVATE kvspicUtils)
+  target_link_libraries(kvsWebRtcThreadpool PUBLIC kvspicUtils)
   set(EXTRA_DEPS ${EXTRA_DEPS} kvsWebRtcThreadpool)
 endif()
 
@@ -426,6 +426,13 @@ endif()
 if(COMPILER_WARNINGS)
   target_compile_options(kvsWebrtcClient PUBLIC -Wall -Werror -pedantic -Wextra -Wno-unknown-warning-option)
   target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wall -Werror -pedantic -Wextra -Wno-unknown-warning-option)
+endif()
+
+if(ENABLE_KVS_THREADPOOL)
+  install(TARGETS kvsWebRtcThreadpool
+          LIBRARY DESTINATION lib
+          ARCHIVE DESTINATION lib
+  )
 endif()
 
 install(TARGETS kvsWebrtcClient kvsWebrtcSignalingClient

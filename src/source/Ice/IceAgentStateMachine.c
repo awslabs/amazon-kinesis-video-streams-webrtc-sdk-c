@@ -29,28 +29,6 @@ StateMachineState ICE_AGENT_STATE_MACHINE_STATES[] = {
 
 UINT32 ICE_AGENT_STATE_MACHINE_STATE_COUNT = ARRAY_SIZE(ICE_AGENT_STATE_MACHINE_STATES);
 
-STATUS checkIceAgentStateMachine(PIceAgent pIceAgent)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    BOOL transitionReady = FALSE;
-    CHK(pIceAgent != NULL && pIceAgent->pStateMachine != NULL, STATUS_NULL_ARG);
-
-    // if a state transition is ready, tell the timer to kick the timer
-    CHK_STATUS(checkForStateTransition(pIceAgent->pStateMachine, &transitionReady));
-    if (transitionReady) {
-        // dangerous to have any mutexes locked by timerqueue when entering this function
-        CHK_STATUS(timerQueueKick(pIceAgent->timerQueueHandle, pIceAgent->iceAgentStateTimerTask));
-    }
-
-CleanUp:
-
-    CHK_LOG_ERR(retStatus);
-
-    LEAVES();
-    return retStatus;
-}
-
 STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
 {
     ENTERS();

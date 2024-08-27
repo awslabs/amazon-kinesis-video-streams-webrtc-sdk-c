@@ -181,7 +181,6 @@ STATUS turnConnectionIncomingDataHandler(PTurnConnection pTurnConnection, PBYTE 
             } else {
                 CHK_STATUS(turnConnectionHandleStun(pTurnConnection, pCurrent, processedDataLen));
             }
-            checkTurnConnectionStateMachine(pTurnConnection);
         } else {
             /* must be channel data if not stun */
             CHK_STATUS(turnConnectionHandleChannelData(pTurnConnection, pCurrent, remainingDataSize, &channelDataList[totalChannelDataCount],

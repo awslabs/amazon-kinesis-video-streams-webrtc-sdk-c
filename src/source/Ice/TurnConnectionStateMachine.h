@@ -51,7 +51,6 @@ extern "C" {
 // Whether to step the state machine
 STATUS stepTurnConnectionStateMachine(PTurnConnection);
 STATUS acceptTurnMachineState(PTurnConnection, UINT64);
-STATUS checkTurnConnectionStateMachine(PTurnConnection);
 PCHAR turnStateGetStateStr(UINT64 state);
 
 /**

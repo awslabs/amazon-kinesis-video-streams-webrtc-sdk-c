@@ -41,7 +41,6 @@ extern "C" {
 #define ICE_AGENT_STATE_FAILED_STR           (PCHAR) "ICE_AGENT_STATE_FAILED"
 
 // Whether to step the state machine
-STATUS checkIceAgentStateMachine(PIceAgent);
 STATUS stepIceAgentStateMachine(PIceAgent);
 STATUS acceptIceAgentMachineState(PIceAgent, UINT64);
 STATUS iceAgentStateMachineCheckDisconnection(PIceAgent, PUINT64);
