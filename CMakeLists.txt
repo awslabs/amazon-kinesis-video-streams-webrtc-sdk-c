@@ -105,6 +105,8 @@ message(STATUS "dependencies install path is ${OPEN_SRC_INSTALL_PREFIX}")
 
 if(NOT DEFINED KVS_CA_CERT_PATH)
   add_definitions(-DKVS_CA_CERT_PATH="${CMAKE_SOURCE_DIR}/certs/cert.pem")
+else()
+  add_definitions(-DKVS_CA_CERT_PATH="${KVS_CA_CERT_PATH}")
 endif()
 
 add_definitions(-DCMAKE_DETECTED_CACERT_PATH)
