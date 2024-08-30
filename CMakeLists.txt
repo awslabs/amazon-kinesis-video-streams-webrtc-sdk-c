@@ -102,7 +102,11 @@ message(STATUS "Kinesis Video WebRTC Client path is ${KINESIS_VIDEO_WEBRTC_CLIEN
 message(STATUS "dependencies install path is ${OPEN_SRC_INSTALL_PREFIX}")
 
 # pass ca cert location to sdk
-add_definitions(-DKVS_CA_CERT_PATH="${CMAKE_SOURCE_DIR}/certs/cert.pem")
+
+if(NOT DEFINED KVS_CA_CERT_PATH)
+  add_definitions(-DKVS_CA_CERT_PATH="${CMAKE_SOURCE_DIR}/certs/cert.pem")
+endif()
+
 add_definitions(-DCMAKE_DETECTED_CACERT_PATH)
 
 if (ENABLE_KVS_THREADPOOL)
@@ -163,6 +167,17 @@ if(BUILD_DEPENDENCIES)
       build_dependency(mbedtls ${BUILD_ARGS})
   endif()
 
+  # This step is necessary because the next set of dependencies have a dependency on
+  # mbedtls/openssl and the find_package command  populates certain cmake variables which
+  # are needed to pass to the cmake commands for the next set of dependencies
+  if (USE_OPENSSL)
+    find_package(OpenSSL REQUIRED)
+    set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
+  else()
+    find_package(MbedTLS REQUIRED)
+    set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${MBEDTLS_INCLUDE_DIRS})
+    string(REPLACE ";" "|" MBEDTLS_LIBRARIES_ALT_SEP "${MBEDTLS_LIBRARIES}")
+  endif()
 
   if(WIN32)
     set(OPENSSL_INCLUDE_DIRS "${OPEN_SRC_INSTALL_PREFIX}/include/")
@@ -188,6 +203,8 @@ if(BUILD_DEPENDENCIES)
                   -DLWS_OPENSSL_CRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}
                   -DLWS_OPENSSL_SSL_LIBRARY=${OPENSSL_SSL_LIBRARY}
                   -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIR}
+                  -DLWS_MBEDTLS_INCLUDE_DIRS=${MBEDTLS_INCLUDE_DIRS}
+                  -DLWS_MBEDTLS_LIBRARIES=${MBEDTLS_LIBRARIES_ALT_SEP}
                   -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
   endif()
   build_dependency(websockets ${BUILD_ARGS})
