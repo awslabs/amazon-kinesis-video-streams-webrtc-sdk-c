@@ -728,7 +728,7 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
 
     CHK(pTurnConnection != NULL && pDestIp != NULL, STATUS_NULL_ARG);
     CHK(pBuf != NULL && bufLen > 0, STATUS_INVALID_ARG);
-    CHK(!ATOMIC_EXCHANGE_BOOL(&pIceAgent->shutdown, TRUE), retStatus);
+    CHK(!ATOMIC_LOAD_BOOL(&pTurnConnection->stopTurnConnection), STATUS_SUCCESS); // Do not send data after stop
 
     MUTEX_LOCK(pTurnConnection->lock);
     locked = TRUE;
