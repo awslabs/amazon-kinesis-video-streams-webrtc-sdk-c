@@ -96,6 +96,9 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
     for (i = 0; i < MAX_ICE_SERVERS_COUNT; i++) {
         if (pRtcConfiguration->iceServers[i].urls[0] != '\0') {
             PROFILE_CALL_WITH_T_OBJ(
+                if (STRNCMP(pRtcConfiguration->iceServers[i].urls, "stun", 4) == 0) {
+                    continue;
+                }
                 retStatus = parseIceServer(&pIceAgent->iceServers[pIceAgent->iceServersCount], (PCHAR) pRtcConfiguration->iceServers[i].urls,
                                            (PCHAR) pRtcConfiguration->iceServers[i].username, (PCHAR) pRtcConfiguration->iceServers[i].credential),
                 pIceAgent->iceAgentProfileDiagnostics.iceServerParsingTime[i], "ICE server parsing");
