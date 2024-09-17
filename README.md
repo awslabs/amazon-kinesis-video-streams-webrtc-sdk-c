@@ -152,6 +152,7 @@ You can pass the following options to `cmake ..`.
 * `-DCMAKE_BUILD_TYPE` -- Build Release/Debug libraries. By default, the SDK generates Release build. The standard options are listed [here](https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#default-and-custom-configurations)
 * `-DLINK_PROFILER` -- Link with gperftools (available profiler options are listed [here](https://github.com/gperftools/gperftools))
 * `-DPKG_CONFIG_EXECUTABLE` -- Set pkg config path. This might be required to find gstreamer's pkg config specifically on Windows.
+* `DENABLE_KVS_THREADPOOL` -- Enable the KVS threadpool which is off by default.
 
 To clean up the `open-source` and `build` folders from previous build, use `cmake --build . --target clean` from the `build` folder
 
@@ -503,14 +504,15 @@ When building on MacOS M1, if the build fails while trying to build OpenSSL or W
 To build on a 32-bit Raspbian GNU/Linux 11 on 64-bit hardware, the OpenSSL library must be manually configured. This is due to the OpenSSL autoconfiguration script detecting 64-bit hardware and emitting 64-bit ARM assembly instructions which are not allowed in 32-bit executables. A 32-bit ARM version of OpenSSL can be configured by setting 32-bit ARM platform:
 `cmake .. -DBUILD_OPENSSL_PLATFORM=linux-armv4`
 
-### Threadpool for the SDK
-The threadpool is enabled by default, and starts with 3 threads that it can increase up to 10 if all are actively in use. To change these values to better match the resources of your use case you can set the environment variables to do so:
+### KVS Threadpool
+Starting version 1.10.0, threadpool usage provides latency improvements in connection establishment. Note that increasing the number of minimum threads can increase stack memory usage. So, ensure to increase with caution.
+
+The threadpool is disabled by default. To enable it, set the following CMake argument when building the SDK:
+`cmake .. -DENABLE_KVS_THREADPOOL=ON`
+
+By default, the threadpool starts with 3 threads that it will increase up to the maximum of 10 and decrease back down to the minimum of 3 as needed. To change these values to better match the resources of your use-case, you can set the following environment variables:
 1. `export AWS_KVS_WEBRTC_THREADPOOL_MIN_THREADS=<value>`
 2. `export AWS_KVS_WEBRTC_THREADPOOL_MAX_THREADS=<value>`
-
-To disable threadpool, run `cmake .. -DENABLE_KVS_THREADPOOL=OFF`
-
-Starting version 1.10.0, threadpool usage provides latency improvements in connection establishment. Note, that increasing the number of minimum threads can increase stack memory usage. So, ensure to increase with caution.
 
 ### Set up TWCC
 TWCC is a mechanism in WebRTC designed to enhance the performance and reliability of real-time communication over the Internet. TWCC addresses the challenges of network congestion by providing detailed feedback on the transport of packets across the network, enabling adaptive bitrate control and optimization of 
