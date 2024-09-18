@@ -14,7 +14,7 @@ STATUS createRetransmitter(UINT32 seqNumListLen, UINT32 validIndexListLen, PRetr
     pRetransmitter->validIndexListLen = validIndexListLen;
 
 CleanUp:
-    if (STATUS_FAILED(retStatus) && pRetransmitter != NULL) {
+    if (STATUS_FAILED(retStatus) ) {
         freeRetransmitter(&pRetransmitter);
         pRetransmitter = NULL;
     }

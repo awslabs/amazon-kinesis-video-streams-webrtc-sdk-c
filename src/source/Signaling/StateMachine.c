@@ -982,9 +982,6 @@ STATUS fromJoinStorageSessionState(UINT64 customData, PUINT64 pState)
             state = SIGNALING_STATE_GET_ENDPOINT;
             break;
 
-            state = SIGNALING_STATE_GET_ENDPOINT;
-            break;
-
         case SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE:
             state = SIGNALING_STATE_GET_ICE_CONFIG;
             break;

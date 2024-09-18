@@ -1223,7 +1223,7 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
                 strLen = (UINT32) (pToken[1].end - pToken[1].start);
                 CHK(strLen <= MAX_ICE_CONFIG_CREDENTIAL_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
                 STRNCPY(pSignalingClient->iceConfigs[configCount - 1].password, pResponseStr + pToken[1].start, strLen);
-                pSignalingClient->iceConfigs[configCount - 1].userName[MAX_ICE_CONFIG_CREDENTIAL_LEN] = '\0';
+                pSignalingClient->iceConfigs[configCount - 1].password[MAX_ICE_CONFIG_CREDENTIAL_LEN] = '\0';
                 i++;
             } else if (compareJsonString(pResponseStr, pToken, JSMN_STRING, (PCHAR) "Ttl")) {
                 CHK_STATUS(STRTOUI64(pResponseStr + pToken[1].start, pResponseStr + pToken[1].end, 10, &ttl));
@@ -2101,7 +2101,7 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
                 strLen = (UINT32) (pToken[1].end - pToken[1].start);
                 CHK(strLen <= MAX_ICE_CONFIG_CREDENTIAL_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
                 STRNCPY(pSignalingClient->iceConfigs[pSignalingClient->iceConfigCount - 1].password, pMessage + pToken[1].start, strLen);
-                pSignalingClient->iceConfigs[pSignalingClient->iceConfigCount - 1].userName[MAX_ICE_CONFIG_CREDENTIAL_LEN] = '\0';
+                pSignalingClient->iceConfigs[pSignalingClient->iceConfigCount - 1].password[MAX_ICE_CONFIG_CREDENTIAL_LEN] = '\0';
                 i++;
             } else if (compareJsonString(pMessage, pToken, JSMN_STRING, (PCHAR) "Ttl")) {
                 CHK_STATUS(STRTOUI64(pMessage + pToken[1].start, pMessage + pToken[1].end, 10, &ttl));

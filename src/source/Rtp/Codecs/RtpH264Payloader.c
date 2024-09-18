@@ -14,7 +14,7 @@ STATUS createPayloadForH264(UINT32 mtu, PBYTE nalus, UINT32 nalusLength, PBYTE p
     UINT32 singlePayloadLength = 0;
     UINT32 singlePayloadSubLenSize = 0;
     BOOL sizeCalculationOnly = (payloadBuffer == NULL);
-    PayloadArray payloadArray;
+    PayloadArray payloadArray = {0};
 
     CHK(nalus != NULL && pPayloadSubLenSize != NULL && pPayloadLength != NULL && (sizeCalculationOnly || pPayloadSubLength != NULL), STATUS_NULL_ARG);
     CHK(mtu > FU_A_HEADER_SIZE, STATUS_RTP_INPUT_MTU_TOO_SMALL);
