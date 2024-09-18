@@ -6,6 +6,11 @@ project(KinesisVideoWebRTCClientSamples LANGUAGES C)
 
 message("OPEN_SRC_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}")
 
+if(IOT_CORE_ENABLE_CREDENTIALS)
+  add_definitions(-DIOT_CORE_ENABLE_CREDENTIALS)
+  message("Use IoT credentials in the samples")
+endif()
+
 if (WIN32)
     if(NOT DEFINED PKG_CONFIG_EXECUTABLE)
       if(EXISTS "C:\\gstreamer\\1.0\\x86_64\\bin\\pkg-config.exe")
@@ -17,7 +22,7 @@ if (WIN32)
       message(FATAL_ERROR "Gstreamer not found in default path. Set the appropriate path with -DPKG_CONFIG_EXECUTABLE=<path>")
     endif()
 endif()
-  
+
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(GST gstreamer-1.0)
