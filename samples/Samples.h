@@ -57,15 +57,14 @@ extern "C" {
 
 #define RTSP_PIPELINE_MAX_CHAR_COUNT 1000
 
+/* To enable IoT credentials checks in the provided samples, specify
+   this through the CMake flag: cmake .. -DIOT_CORE_ENABLE_CREDENTIALS=ON */
 #define IOT_CORE_CREDENTIAL_ENDPOINT ((PCHAR) "AWS_IOT_CORE_CREDENTIAL_ENDPOINT")
 #define IOT_CORE_CERT                ((PCHAR) "AWS_IOT_CORE_CERT")
 #define IOT_CORE_PRIVATE_KEY         ((PCHAR) "AWS_IOT_CORE_PRIVATE_KEY")
 #define IOT_CORE_ROLE_ALIAS          ((PCHAR) "AWS_IOT_CORE_ROLE_ALIAS")
 #define IOT_CORE_THING_NAME          ((PCHAR) "AWS_IOT_CORE_THING_NAME")
 #define IOT_CORE_CERTIFICATE_ID      ((PCHAR) "AWS_IOT_CORE_CERTIFICATE_ID")
-
-/* Uncomment the following line in order to enable IoT credentials checks in the provided samples */
-// #define IOT_CORE_ENABLE_CREDENTIALS  1
 
 #define MASTER_DATA_CHANNEL_MESSAGE "This message is from the KVS Master"
 #define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"
