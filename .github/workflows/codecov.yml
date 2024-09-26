@@ -4,7 +4,6 @@ on:
     branches:
       - develop
       - master
-      - 1.10.3
   pull_request:
     branches:
       - develop

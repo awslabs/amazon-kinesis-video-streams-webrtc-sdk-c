@@ -5,7 +5,7 @@ include(CheckIncludeFiles)
 include(CheckFunctionExists)
 
 # The version MUST be updated before every release
-project(KinesisVideoWebRTCClient VERSION 1.10.3 LANGUAGES C)
+project(KinesisVideoWebRTCClient VERSION 1.11.0 LANGUAGES C)
 
 # User Flags
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
