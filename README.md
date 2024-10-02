@@ -410,16 +410,16 @@ createLwsIotCredentialProvider(
 freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
 ```
 
-### Running samples with IoT
+### Running samples with IoT Core credentials
 
-Build the samples using IoT credentials mode:
+Build the samples using IoT Core credentials mode:
 
 ```shell
 cmake .. -DIOT_CORE_ENABLE_CREDENTIALS=ON
 make
 ```
 
-Set the environment variables for IoT:
+Set the environment variables for IoT Core credentials:
 
 ```shell
 export AWS_IOT_CORE_CREDENTIAL_ENDPOINT=xxxxx.credentials.iot.xxxxx.amazonaws.com
@@ -429,7 +429,7 @@ export AWS_IOT_CORE_THING_NAME=xxxxxx
 export AWS_IOT_CORE_CERT=xxxxx-certificate.pem.crt
 ```
 
-AWS access keys are ignored if the sample was built in IoT credentials mode.
+AWS access keys are ignored from environment variables if the sample was built in IoT Core credentials mode.
 
 ## TWCC support
 
