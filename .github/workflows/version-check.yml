@@ -1,4 +1,4 @@
-name: Check Version Mismatch between PR branch and master.
+name: Check Version Mismatch between PR branch and main.
 
 on:
   pull_request:
@@ -19,17 +19,17 @@ jobs:
           echo "PR_VERSION=$PR_VERSION" >> "$GITHUB_ENV"
           echo "PR Version: $PR_VERSION"
 
-      - name: Checkout master branch
+      - name: Checkout main branch
         uses: actions/checkout@v4
         with:
-          ref: master
+          ref: main
 
-      - name: Get version from master
+      - name: Get version from main
         id: master_version
         run: |
           MASTER_VERSION=$(grep -Po 'KinesisVideoWebRTCClient VERSION \K[0-9]+\.[0-9]+\.[0-9]+' CMakeLists.txt)
           echo "MASTER_VERSION=$MASTER_VERSION" >> "$GITHUB_ENV"
-          echo "Master version: $MASTER_VERSION"
+          echo "Main version: $MASTER_VERSION"
 
       - name: Compare versions
         run: |
