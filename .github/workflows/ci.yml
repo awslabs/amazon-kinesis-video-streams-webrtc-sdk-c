@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - develop
-      - master
+      - main
   pull_request:
     branches:
       - develop
-      - master
+      - main
 jobs:
   clang-format-check:
     runs-on: macos-12
@@ -385,7 +385,7 @@ jobs:
         run:  |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  
+
   mbedtls-ubuntu-gcc-4_4-build:
     runs-on: ubuntu-20.04
     env:
@@ -417,7 +417,7 @@ jobs:
           mkdir build && cd build
           cmake .. -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
           make
-          
+
   mbedtls-ubuntu-clang:
     runs-on: ubuntu-20.04
     env:
