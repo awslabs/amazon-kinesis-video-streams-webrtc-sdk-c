@@ -136,7 +136,9 @@ If `-DBUILD_STATIC_LIBS=TRUE` then all dependencies and KVS WebRTC libraries wil
 #### CMake Arguments
 You can pass the following options to `cmake ..`.
 
-* `-DBUILD_STATIC_LIBS` -- Build all KVS WebRTC and third-party libraries as static libraries.
+* `-DBUILD_SAMPLE` -- Build the sample executables. ON by default.
+* `-DIOT_CORE_ENABLE_CREDENTIALS` -- Build the sample applications using IoT credentials. OFF by default.
+* `-DBUILD_STATIC_LIBS` -- Build all KVS WebRTC and third-party libraries as static libraries. Default: OFF (shared build).
 * `-DADD_MUCLIBC`  -- Add -muclibc c flag
 * `-DBUILD_DEPENDENCIES` -- Whether or not to build depending libraries from source
 * `-DBUILD_OPENSSL_PLATFORM` -- If building OpenSSL what is the target platform
@@ -152,7 +154,7 @@ You can pass the following options to `cmake ..`.
 * `-DCMAKE_BUILD_TYPE` -- Build Release/Debug libraries. By default, the SDK generates Release build. The standard options are listed [here](https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#default-and-custom-configurations)
 * `-DLINK_PROFILER` -- Link with gperftools (available profiler options are listed [here](https://github.com/gperftools/gperftools))
 * `-DPKG_CONFIG_EXECUTABLE` -- Set pkg config path. This might be required to find gstreamer's pkg config specifically on Windows.
-* `DENABLE_KVS_THREADPOOL` -- Enable the KVS threadpool which is off by default.
+* `-DENABLE_KVS_THREADPOOL` -- Enable the KVS threadpool which is off by default.
 
 To clean up the `open-source` and `build` folders from previous build, use `cmake --build . --target clean` from the `build` folder
 
@@ -261,7 +263,13 @@ If you have a custom CA certificate path to set, you can set it using:
 export AWS_KVS_CACERT_PATH=../certs/cert.pem
 ```
 
-By defaut, the SSL CA certificate is set to `../certs/cert.pem` which points to the file in this repository:
+Or, you can pass it in through the CMake flag:
+
+```shell
+cmake .. -DKVS_CA_CERT_PATH=/path/to/cert.pem
+```
+
+By default, the SSL CA certificate is set to [`../certs/cert.pem`](./certs/cert.pem) which points to the file in this repository.
 
 ### Running the Samples
 After executing `make` you will have sample applications in your `build/samples` directory. From the `build/` directory, run any of the sample applications by passing to it the name of your signaling channel. If a signaling channel does not exist with the name you provide, the application creates one.
@@ -401,6 +409,27 @@ createLwsIotCredentialProvider(
 
 freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
 ```
+
+### Running samples with IoT Core credentials
+
+Build the samples using IoT Core credentials mode:
+
+```shell
+cmake .. -DIOT_CORE_ENABLE_CREDENTIALS=ON
+make
+```
+
+Set the environment variables for IoT Core credentials:
+
+```shell
+export AWS_IOT_CORE_CREDENTIAL_ENDPOINT=xxxxx.credentials.iot.xxxxx.amazonaws.com
+export AWS_IOT_CORE_PRIVATE_KEY=xxxxxxxx-private.pem.key 
+export AWS_IOT_CORE_ROLE_ALIAS=xxxxxx
+export AWS_IOT_CORE_THING_NAME=xxxxxx
+export AWS_IOT_CORE_CERT=xxxxx-certificate.pem.crt
+```
+
+AWS access keys are ignored from environment variables if the sample was built in IoT Core credentials mode.
 
 ## TWCC support
 
