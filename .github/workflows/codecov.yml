@@ -3,11 +3,11 @@ on:
   push:
     branches:
       - develop
-      - master
+      - main
   pull_request:
     branches:
       - develop
-      - master
+      - main
 jobs:
   linux-gcc-codecov:
     runs-on: ubuntu-20.04
