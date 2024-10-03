@@ -260,6 +260,8 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
 
 CleanUp:
 
+    CHK_LOG_ERR(retStatus);
+
     LEAVES();
     return retStatus;
 }
@@ -766,18 +768,19 @@ STATUS iceAgentShutdown(PIceAgent pIceAgent)
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     CHK(!ATOMIC_EXCHANGE_BOOL(&pIceAgent->shutdown, TRUE), retStatus);
 
+    // Shutdown all the timers during iceAgentShutdown; do not partially shut down timers.
     if (pIceAgent->iceAgentStateTimerTask != MAX_UINT32) {
-        CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceAgentStateTimerTask, (UINT64) pIceAgent));
+        CHK_LOG_ERR(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceAgentStateTimerTask, (UINT64) pIceAgent));
         pIceAgent->iceAgentStateTimerTask = MAX_UINT32;
     }
 
     if (pIceAgent->keepAliveTimerTask != MAX_UINT32) {
-        CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->keepAliveTimerTask, (UINT64) pIceAgent));
+        CHK_LOG_ERR(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->keepAliveTimerTask, (UINT64) pIceAgent));
         pIceAgent->keepAliveTimerTask = MAX_UINT32;
     }
 
     if (pIceAgent->iceCandidateGatheringTimerTask != MAX_UINT32) {
-        CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceCandidateGatheringTimerTask, (UINT64) pIceAgent));
+        CHK_LOG_ERR(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceCandidateGatheringTimerTask, (UINT64) pIceAgent));
         pIceAgent->iceCandidateGatheringTimerTask = MAX_UINT32;
     }
 
@@ -793,7 +796,9 @@ STATUS iceAgentShutdown(PIceAgent pIceAgent)
             /* close socket so ice doesnt receive any more data */
             CHK_STATUS(socketConnectionClosed(pLocalCandidate->pSocketConnection));
         } else {
-            CHK_STATUS(turnConnectionShutdown(pLocalCandidate->pTurnConnection, 0));
+            // Call shutdown on all the TURN connections, even if the
+            // ones near the beginning take more than 1 second to stop.
+            CHK_LOG_ERR(turnConnectionShutdown(pLocalCandidate->pTurnConnection, 0));
             turnConnections[turnConnectionCount++] = pLocalCandidate->pTurnConnection;
         }
     }
