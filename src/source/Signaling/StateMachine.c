@@ -346,7 +346,6 @@ STATUS executeGetTokenSignalingState(UINT64 customData, UINT64 time)
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     SERVICE_CALL_RESULT serviceCallResult;
-    UINT64 startTimeInMacro = 0;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -362,9 +361,10 @@ STATUS executeGetTokenSignalingState(UINT64 customData, UINT64 time)
     THREAD_SLEEP_UNTIL(time);
 
     // Use the credential provider to get the token
-    PROFILE_CALL_WITH_T_OBJ(retStatus = pSignalingClient->pCredentialProvider->getCredentialsFn(pSignalingClient->pCredentialProvider,
-                                                                                                &pSignalingClient->pAwsCredentials),
-                            pSignalingClient->diagnostics.getTokenCallTime, "Get token call");
+    PROFILE_CALL_WITH_START_END_T_OBJ(retStatus = pSignalingClient->pCredentialProvider->getCredentialsFn(pSignalingClient->pCredentialProvider,
+                                                                                                          &pSignalingClient->pAwsCredentials),
+                                      pSignalingClient->diagnostics.getTokenStartTime, pSignalingClient->diagnostics.getTokenEndTime,
+                                      pSignalingClient->diagnostics.getTokenCallTime, "Get token call");
 
     // Check the expiration
     if (NULL == pSignalingClient->pAwsCredentials || SIGNALING_GET_CURRENT_TIME(pSignalingClient) >= pSignalingClient->pAwsCredentials->expiration) {
@@ -433,7 +433,6 @@ STATUS executeDescribeSignalingState(UINT64 customData, UINT64 time)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
-    UINT64 startTimeInMacro = 0;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
@@ -446,8 +445,9 @@ STATUS executeDescribeSignalingState(UINT64 customData, UINT64 time)
     }
 
     // Call the aggregate function
-    PROFILE_CALL_WITH_T_OBJ(retStatus = describeChannel(pSignalingClient, time), pSignalingClient->diagnostics.describeCallTime,
-                            "Describe signaling call");
+    PROFILE_CALL_WITH_START_END_T_OBJ(retStatus = describeChannel(pSignalingClient, time), pSignalingClient->diagnostics.describeChannelStartTime,
+                                      pSignalingClient->diagnostics.describeChannelEndTime, pSignalingClient->diagnostics.describeCallTime,
+                                      "Describe signaling call");
 
 CleanUp:
 
@@ -561,7 +561,6 @@ STATUS executeCreateSignalingState(UINT64 customData, UINT64 time)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
-    UINT64 startTimeInMacro = 0;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
@@ -574,7 +573,9 @@ STATUS executeCreateSignalingState(UINT64 customData, UINT64 time)
     }
 
     // Call the aggregate function
-    PROFILE_CALL_WITH_T_OBJ(retStatus = createChannel(pSignalingClient, time), pSignalingClient->diagnostics.createCallTime, "Create signaling call");
+    PROFILE_CALL_WITH_START_END_T_OBJ(retStatus = createChannel(pSignalingClient, time), pSignalingClient->diagnostics.createChannelStartTime,
+                                      pSignalingClient->diagnostics.createChannelEndTime, pSignalingClient->diagnostics.createCallTime,
+                                      "Create signaling call");
 
 CleanUp:
 
@@ -619,7 +620,6 @@ STATUS executeGetEndpointSignalingState(UINT64 customData, UINT64 time)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
-    UINT64 startTimeInMacro = 0;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
@@ -632,8 +632,10 @@ STATUS executeGetEndpointSignalingState(UINT64 customData, UINT64 time)
     }
 
     // Call the aggregate function
-    PROFILE_CALL_WITH_T_OBJ(retStatus = getChannelEndpoint(pSignalingClient, time), pSignalingClient->diagnostics.getEndpointCallTime,
-                            "Get endpoint signaling call");
+    PROFILE_CALL_WITH_START_END_T_OBJ(retStatus = getChannelEndpoint(pSignalingClient, time),
+                                      pSignalingClient->diagnostics.getSignalingChannelEndpointStartTime,
+                                      pSignalingClient->diagnostics.getSignalingChannelEndpointEndTime,
+                                      pSignalingClient->diagnostics.getEndpointCallTime, "Get endpoint signaling call");
 
 CleanUp:
 
@@ -687,7 +689,6 @@ STATUS executeGetIceConfigSignalingState(UINT64 customData, UINT64 time)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
-    UINT64 startTimeInMacro = 0;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
@@ -700,8 +701,10 @@ STATUS executeGetIceConfigSignalingState(UINT64 customData, UINT64 time)
     }
 
     // Call the aggregate function
-    PROFILE_CALL_WITH_T_OBJ(retStatus = getIceConfig(pSignalingClient, time), pSignalingClient->diagnostics.getIceConfigCallTime,
-                            "Get ICE config signaling call");
+    PROFILE_CALL_WITH_START_END_T_OBJ(retStatus = getIceConfig(pSignalingClient, time), pSignalingClient->diagnostics.getIceServerConfigStartTime,
+                                      pSignalingClient->diagnostics.getIceServerConfigEndTime, pSignalingClient->diagnostics.getIceConfigCallTime,
+                                      "Get ICE config signaling call");
+
 CleanUp:
 
     LEAVES();
@@ -845,7 +848,6 @@ STATUS executeConnectSignalingState(UINT64 customData, UINT64 time)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
-    UINT64 startTimeInMacro = 0;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -855,8 +857,9 @@ STATUS executeConnectSignalingState(UINT64 customData, UINT64 time)
                                                                             SIGNALING_CLIENT_STATE_CONNECTING));
     }
 
-    PROFILE_CALL_WITH_T_OBJ(retStatus = connectSignalingChannel(pSignalingClient, time), pSignalingClient->diagnostics.connectCallTime,
-                            "Connect signaling call");
+    PROFILE_CALL_WITH_START_END_T_OBJ(retStatus = connectSignalingChannel(pSignalingClient, time), pSignalingClient->diagnostics.connectStartTime,
+                                      pSignalingClient->diagnostics.connectEndTime, pSignalingClient->diagnostics.connectCallTime,
+                                      "Connect signaling call");
 
 CleanUp:
 

@@ -543,6 +543,8 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
     BOOL fingerprintFound = FALSE, messaageIntegrityFound = FALSE;
     PBYTE pData, pTransaction;
 
+    UNUSED_PARAM(pStunAttributeFingerprint);
+
     CHK(pStunBuffer != NULL && ppStunPacket != NULL, STATUS_NULL_ARG);
     CHK(bufferSize >= STUN_HEADER_LEN, STATUS_INVALID_ARG);
 
@@ -1214,6 +1216,8 @@ STATUS getStunAttribute(PStunPacket pStunPacket, STUN_ATTRIBUTE_TYPE attributeTy
     }
 
 CleanUp:
+
+    CHK_LOG_ERR(retStatus);
 
     if (ppStunAttribute != NULL) {
         *ppStunAttribute = pTargetAttribute;

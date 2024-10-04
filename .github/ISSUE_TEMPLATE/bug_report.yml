@@ -6,6 +6,7 @@ labels: ["bug", "needs-triage"]
 assignees: []
 body:
   - type: checkboxes
+    id: confirm
     attributes:
       label: Please confirm you have already done the following
       options:
@@ -13,6 +14,14 @@ body:
         - label: I have all the details the issue requires
     validations:
       required: true
+  - type: checkboxes
+    id: prompt
+    attributes:
+      label: Please answer the following prompt
+      options:
+        - label: This issue is replicable using the unmodified sample application
+    validations:
+      required: false
   - type: textarea
     id: description
     attributes:
@@ -37,6 +46,9 @@ body:
         
         Please include full errors, uncaught exceptions, stack traces, and relevant VERBOSE logs.
         To get relevant VERBOSE logs from the SDK, you can retrieve by running `export AWS_KVS_LOG_LEVEL=1`
+
+        If you are reporting a memory leak, please provide sufficient evidence such as a `valgrind` output.
+        Note that the CI for this repository uses [Google Sanitizers](https://github.com/google/sanitizers) to minimize software issues and vulnerabilities.
     validations:
       required: true
   - type: textarea
@@ -44,7 +56,10 @@ body:
     attributes:
       label: Reproduction Steps
       description: |
-        Provide a self-contained, concise snippet of code that can be used to reproduce the issue.
+        Provide a self-contained, concise snippet of code that can be used to
+        reproduce the issue, or the command used to run the unmodified sample application. Please share
+        which SDK you are using as master and as viewer, and also any timing-related information, if
+        applicable.
         For more complex issues provide a repo with the smallest sample that reproduces the bug.
         Avoid including business logic or unrelated code, it makes diagnosis more difficult.
     validations:
@@ -55,6 +70,12 @@ body:
       label: WebRTC C SDK version being used
     validations:
       required: true
+  - type: input
+    id: sdk-previous-version
+    attributes:
+      label: If it was working in a previous version, which one?
+    validations:
+      required: false
   - type: input
     id: compiler-version
     attributes:

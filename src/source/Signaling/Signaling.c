@@ -37,10 +37,6 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK_STATUS(createValidateChannelInfo(pChannelInfo, &pSignalingClient->pChannelInfo));
     CHK_STATUS(validateSignalingCallbacks(pSignalingClient, pCallbacks));
     CHK_STATUS(validateSignalingClientInfo(pSignalingClient, pClientInfo));
-#ifdef KVS_USE_SIGNALING_CHANNEL_THREADPOOL
-    CHK_STATUS(threadpoolCreate(&pSignalingClient->pThreadpool, pClientInfo->signalingClientInfo.signalingMessagesMinimumThreads,
-                                pClientInfo->signalingClientInfo.signalingMessagesMaximumThreads));
-#endif
     pSignalingClient->version = SIGNALING_CLIENT_CURRENT_VERSION;
     // Set invalid call times
     pSignalingClient->describeTime = INVALID_TIMESTAMP_VALUE;
@@ -91,9 +87,10 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK_STATUS(configureRetryStrategyForSignalingStateMachine(pSignalingClient));
 
     // Create the state machine
-    CHK_STATUS(createStateMachine(SIGNALING_STATE_MACHINE_STATES, SIGNALING_STATE_MACHINE_STATE_COUNT,
-                                  CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient), signalingGetCurrentTime,
-                                  CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient), &pSignalingClient->pStateMachine));
+    CHK_STATUS(createStateMachineWithName(SIGNALING_STATE_MACHINE_STATES, SIGNALING_STATE_MACHINE_STATE_COUNT,
+                                          CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient), signalingGetCurrentTime,
+                                          CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient), SIGNALING_STATE_MACHINE_NAME,
+                                          &pSignalingClient->pStateMachine));
 
     // Prepare the signaling channel protocols array
     pSignalingClient->signalingProtocols[PROTOCOL_INDEX_HTTPS].name = HTTPS_SCHEME_NAME;
@@ -240,10 +237,6 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
     stackQueueFree(pSignalingClient->pMessageQueue);
 
     hashTableFree(pSignalingClient->diagnostics.pEndpointToClockSkewHashMap);
-
-#ifdef KVS_USE_SIGNALING_CHANNEL_THREADPOOL
-    threadpoolFree(pSignalingClient->pThreadpool);
-#endif
 
     if (IS_VALID_MUTEX_VALUE(pSignalingClient->connectedLock)) {
         MUTEX_FREE(pSignalingClient->connectedLock);
@@ -420,8 +413,8 @@ STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMes
     if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
         pSignalingClient->offerSentTime = GETTIME();
     } else if (pSignalingMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
-        PROFILE_WITH_START_TIME_OBJ(pSignalingClient->offerReceivedTime, pSignalingClient->diagnostics.offerToAnswerTime,
-                                    "Offer Received to Answer Sent time");
+        PROFILE_WITH_START_END_TIME_OBJ(pSignalingClient->offerReceivedTime, pSignalingClient->answerTime,
+                                        pSignalingClient->diagnostics.offerToAnswerTime, "Offer Received to Answer Sent time");
     }
     MUTEX_UNLOCK(pSignalingClient->offerSendReceiveTimeLock);
     // Update the internal diagnostics only after successfully sending
@@ -1426,6 +1419,22 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
             pSignalingClientMetrics->signalingClientStats.connectClientTime = pSignalingClient->diagnostics.connectClientTime;
             pSignalingClientMetrics->signalingClientStats.joinSessionCallTime = pSignalingClient->diagnostics.joinSessionCallTime;
             pSignalingClientMetrics->signalingClientStats.offerToAnswerTime = pSignalingClient->diagnostics.offerToAnswerTime;
+            pSignalingClientMetrics->signalingClientStats.answerTime = pSignalingClient->answerTime;
+            pSignalingClientMetrics->signalingClientStats.offerReceivedTime = pSignalingClient->offerReceivedTime;
+            pSignalingClientMetrics->signalingClientStats.describeChannelStartTime = pSignalingClient->diagnostics.describeChannelStartTime;
+            pSignalingClientMetrics->signalingClientStats.describeChannelEndTime = pSignalingClient->diagnostics.describeChannelEndTime;
+            pSignalingClientMetrics->signalingClientStats.getSignalingChannelEndpointStartTime =
+                pSignalingClient->diagnostics.getSignalingChannelEndpointStartTime;
+            pSignalingClientMetrics->signalingClientStats.getSignalingChannelEndpointEndTime =
+                pSignalingClient->diagnostics.getSignalingChannelEndpointEndTime;
+            pSignalingClientMetrics->signalingClientStats.getIceServerConfigStartTime = pSignalingClient->diagnostics.getIceServerConfigStartTime;
+            pSignalingClientMetrics->signalingClientStats.getIceServerConfigEndTime = pSignalingClient->diagnostics.getIceServerConfigEndTime;
+            pSignalingClientMetrics->signalingClientStats.getTokenStartTime = pSignalingClient->diagnostics.getTokenStartTime;
+            pSignalingClientMetrics->signalingClientStats.getTokenEndTime = pSignalingClient->diagnostics.getTokenEndTime;
+            pSignalingClientMetrics->signalingClientStats.createChannelStartTime = pSignalingClient->diagnostics.createChannelStartTime;
+            pSignalingClientMetrics->signalingClientStats.createChannelEndTime = pSignalingClient->diagnostics.createChannelEndTime;
+            pSignalingClientMetrics->signalingClientStats.connectStartTime = pSignalingClient->diagnostics.connectStartTime;
+            pSignalingClientMetrics->signalingClientStats.connectEndTime = pSignalingClient->diagnostics.connectEndTime;
             pSignalingClientMetrics->signalingClientStats.joinSessionToOfferRecvTime = pSignalingClient->diagnostics.joinSessionToOfferRecvTime;
         case 0:
             // Fill in the data structures according to the version of the requested structure

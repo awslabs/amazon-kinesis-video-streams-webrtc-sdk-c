@@ -59,7 +59,7 @@ STATUS initSctpSession()
 {
     STATUS retStatus = STATUS_SUCCESS;
 
-    usrsctp_init(0, &onSctpOutboundPacket, NULL);
+    usrsctp_init_nothreads(0, &onSctpOutboundPacket, NULL);
 
     // Disable Explicit Congestion Notification
     usrsctp_sysctl_set_sctp_ecn_enable(0);
@@ -86,7 +86,7 @@ STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, PSctpSessi
 
     CHK(ppSctpSession != NULL && pSctpSessionCallbacks != NULL, STATUS_NULL_ARG);
 
-    pSctpSession = (PSctpSession) MEMALLOC(SIZEOF(SctpSession));
+    pSctpSession = (PSctpSession) MEMCALLOC(1, SIZEOF(SctpSession));
     CHK(pSctpSession != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
     MEMSET(&params, 0x00, SIZEOF(struct sctp_paddrparams));
@@ -317,6 +317,8 @@ STATUS handleDcepPacket(PSctpSession pSctpSession, UINT32 streamId, PBYTE data, 
 
     CHK((labelLength + protocolLength + SCTP_DCEP_HEADER_LENGTH) >= length, STATUS_SCTP_INVALID_DCEP_PACKET);
 
+    CHK(SCTP_MAX_ALLOWABLE_PACKET_LENGTH >= length, STATUS_SCTP_INVALID_DCEP_PACKET);
+
     pSctpSession->sctpSessionCallbacks.dataChannelOpenFunc(pSctpSession->sctpSessionCallbacks.customData, streamId, data + SCTP_DCEP_HEADER_LENGTH,
                                                            labelLength);
 
@@ -363,6 +365,8 @@ CleanUp:
     if (data != NULL) {
         free(data);
     }
-
+    if (STATUS_FAILED(retStatus)) {
+        return -1;
+    }
     return 1;
 }

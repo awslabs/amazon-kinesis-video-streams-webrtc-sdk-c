@@ -10,6 +10,8 @@ INT32 main(INT32 argc, CHAR* argv[])
     PCHAR pChannelName;
     SignalingClientMetrics signalingClientMetrics;
     signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
+    RTC_CODEC audioCodec = RTC_CODEC_OPUS;
+    RTC_CODEC videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
 
     SET_INSTRUMENTED_ALLOCATORS();
     UINT32 logLevel = setLogLevel();
@@ -19,17 +21,34 @@ INT32 main(INT32 argc, CHAR* argv[])
 #endif
 
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
-    CHK_ERR((pChannelName = getenv(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
+    CHK_ERR((pChannelName = argc > 1 ? argv[1] : GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION,
+            "AWS_IOT_CORE_THING_NAME must be set");
 #else
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
 #endif
 
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
 
+    if (argc > 3) {
+        if (!STRCMP(argv[3], AUDIO_CODEC_NAME_OPUS)) {
+            audioCodec = RTC_CODEC_OPUS;
+        }
+    }
+
+    if (argc > 4) {
+        if (!STRCMP(argv[4], VIDEO_CODEC_NAME_H265)) {
+            videoCodec = RTC_CODEC_H265;
+        } else {
+            DLOGI("[KVS Master] Defaulting to H264 as the specified codec's sample frames may not be available");
+        }
+    }
+
     // Set the audio and video handlers
     pSampleConfiguration->audioSource = sendAudioPackets;
     pSampleConfiguration->videoSource = sendVideoPackets;
     pSampleConfiguration->receiveAudioVideoSource = sampleReceiveAudioVideoFrame;
+    pSampleConfiguration->audioCodec = audioCodec;
+    pSampleConfiguration->videoCodec = videoCodec;
 
     if (argc > 2 && STRNCMP(argv[2], "1", 2) == 0) {
         pSampleConfiguration->channelInfo.useMediaStorage = TRUE;
@@ -43,17 +62,28 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     // Check if the samples are present
 
-    CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./h264SampleFrames/frame-0001.h264"));
-    DLOGI("[KVS Master] Checked sample video frame availability....available");
+    if (videoCodec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
+        CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./h264SampleFrames/frame-0001.h264"));
+        DLOGI("[KVS Master] Checked H264 sample video frame availability....available");
+    } else if (videoCodec == RTC_CODEC_H265) {
+        CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./h265SampleFrames/frame-0001.h265"));
+        DLOGI("[KVS Master] Checked H265 sample video frame availability....available");
+    }
 
-    CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./opusSampleFrames/sample-001.opus"));
-    DLOGI("[KVS Master] Checked sample audio frame availability....available");
+    if (audioCodec == RTC_CODEC_OPUS) {
+        CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./opusSampleFrames/sample-001.opus"));
+        DLOGI("[KVS Master] Checked Opus sample audio frame availability....available");
+    }
 
     // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
     CHK_STATUS(initKvsWebRtc());
     DLOGI("[KVS Master] KVS WebRTC initialization completed successfully");
 
-    CHK_STATUS(initSignaling(pSampleConfiguration, SAMPLE_MASTER_CLIENT_ID));
+    PROFILE_CALL_WITH_START_END_T_OBJ(
+        retStatus = initSignaling(pSampleConfiguration, SAMPLE_MASTER_CLIENT_ID), pSampleConfiguration->signalingClientMetrics.signalingStartTime,
+        pSampleConfiguration->signalingClientMetrics.signalingEndTime, pSampleConfiguration->signalingClientMetrics.signalingCallTime,
+        "Initialize signaling client and connect to the signaling channel");
+
     DLOGI("[KVS Master] Channel %s set up done ", pChannelName);
 
     // Checking for termination
@@ -141,7 +171,11 @@ PVOID sendVideoPackets(PVOID args)
 
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
         fileIndex = fileIndex % NUMBER_OF_H264_FRAME_FILES + 1;
-        SNPRINTF(filePath, MAX_PATH_LEN, "./h264SampleFrames/frame-%04d.h264", fileIndex);
+        if (pSampleConfiguration->videoCodec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
+            SNPRINTF(filePath, MAX_PATH_LEN, "./h264SampleFrames/frame-%04d.h264", fileIndex);
+        } else if (pSampleConfiguration->videoCodec == RTC_CODEC_H265) {
+            SNPRINTF(filePath, MAX_PATH_LEN, "./h265SampleFrames/frame-%04d.h265", fileIndex);
+        }
 
         CHK_STATUS(readFrameFromDisk(NULL, &frameSize, filePath));
 
@@ -175,6 +209,9 @@ PVOID sendVideoPackets(PVOID args)
                 if (status != STATUS_SUCCESS) {
                     DLOGV("writeFrame() failed with 0x%08x", status);
                 }
+            } else {
+                // Reset file index to ensure first frame sent upon SRTP ready is a key frame.
+                fileIndex = 0;
             }
         }
         MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
@@ -210,7 +247,10 @@ PVOID sendAudioPackets(PVOID args)
 
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
         fileIndex = fileIndex % NUMBER_OF_OPUS_FRAME_FILES + 1;
-        SNPRINTF(filePath, MAX_PATH_LEN, "./opusSampleFrames/sample-%03d.opus", fileIndex);
+
+        if (pSampleConfiguration->audioCodec == RTC_CODEC_OPUS) {
+            SNPRINTF(filePath, MAX_PATH_LEN, "./opusSampleFrames/sample-%03d.opus", fileIndex);
+        }
 
         CHK_STATUS(readFrameFromDisk(NULL, &frameSize, filePath));
 
@@ -238,6 +278,9 @@ PVOID sendAudioPackets(PVOID args)
                     PROFILE_WITH_START_TIME(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, "Time to first frame");
                     pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame = FALSE;
                 }
+            } else {
+                // Reset file index to stay in sync with video frames.
+                fileIndex = 0;
             }
         }
         MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);

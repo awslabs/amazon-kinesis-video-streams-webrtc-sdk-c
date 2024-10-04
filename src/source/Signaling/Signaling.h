@@ -89,6 +89,8 @@ extern "C" {
 
 #define DEFAULT_CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS 7
 
+#define SIGNALING_STATE_MACHINE_NAME (PCHAR) "SIGNALING"
+
 static const ExponentialBackoffRetryStrategyConfig DEFAULT_SIGNALING_STATE_MACHINE_EXPONENTIAL_BACKOFF_RETRY_CONFIGURATION = {
     /* Exponential wait times with this config will look like following -
         ************************************
@@ -184,6 +186,18 @@ typedef struct {
     volatile SIZE_T numberOfErrors;
     volatile SIZE_T numberOfRuntimeErrors;
     volatile SIZE_T numberOfReconnects;
+    UINT64 describeChannelStartTime;
+    UINT64 describeChannelEndTime;
+    UINT64 getSignalingChannelEndpointStartTime;
+    UINT64 getSignalingChannelEndpointEndTime;
+    UINT64 getIceServerConfigStartTime;
+    UINT64 getIceServerConfigEndTime;
+    UINT64 getTokenStartTime;
+    UINT64 getTokenEndTime;
+    UINT64 createChannelStartTime;
+    UINT64 createChannelEndTime;
+    UINT64 connectStartTime;
+    UINT64 connectEndTime;
     UINT64 createTime;
     UINT64 connectTime;
     UINT64 cpApiLatency;
@@ -358,10 +372,7 @@ typedef struct {
     UINT64 deleteTime;
     UINT64 connectTime;
     UINT64 describeMediaTime;
-
-#ifdef KVS_USE_SIGNALING_CHANNEL_THREADPOOL
-    PThreadpool pThreadpool;
-#endif
+    UINT64 answerTime;
     UINT64 offerReceivedTime;
     UINT64 offerSentTime;
 
@@ -373,7 +384,6 @@ typedef struct {
 
     // Conditional variable for join storage session wait state
     CVAR jssWaitCvar;
-
 } SignalingClient, *PSignalingClient;
 
 // Public handle to and from object converters

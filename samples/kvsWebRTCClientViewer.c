@@ -39,6 +39,8 @@ INT32 main(INT32 argc, CHAR* argv[])
     SignalingMessage message;
     PSampleConfiguration pSampleConfiguration = NULL;
     PSampleStreamingSession pSampleStreamingSession = NULL;
+    RTC_CODEC audioCodec = RTC_CODEC_OPUS;
+    RTC_CODEC videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
     BOOL locked = FALSE;
     PCHAR pChannelName;
     CHAR clientId[256];
@@ -51,12 +53,38 @@ INT32 main(INT32 argc, CHAR* argv[])
 #endif
 
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
-    CHK_ERR((pChannelName = getenv(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
+    CHK_ERR((pChannelName = argc > 1 ? argv[1] : GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION,
+            "AWS_IOT_CORE_THING_NAME must be set");
 #else
     pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
 #endif
 
+    if (argc > 2) {
+        if (!STRCMP(argv[2], AUDIO_CODEC_NAME_OPUS)) {
+            audioCodec = RTC_CODEC_OPUS;
+        } else if (!STRCMP(argv[2], AUDIO_CODEC_NAME_ALAW)) {
+            audioCodec = RTC_CODEC_ALAW;
+        } else if (!STRCMP(argv[2], AUDIO_CODEC_NAME_MULAW)) {
+            audioCodec = RTC_CODEC_MULAW;
+        } else {
+            DLOGI("[KVS Viewer] Defaulting to Opus audio codec");
+        }
+    }
+
+    if (argc > 3) {
+        if (!STRCMP(argv[3], VIDEO_CODEC_NAME_H265)) {
+            videoCodec = RTC_CODEC_H265;
+        } else if (!STRCMP(argv[3], VIDEO_CODEC_NAME_VP8)) {
+            videoCodec = RTC_CODEC_VP8;
+        } else {
+            DLOGI("[KVS Viewer] Defaulting to H264 video codec");
+        }
+    }
+
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, TRUE, TRUE, logLevel, &pSampleConfiguration));
+    pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
+    pSampleConfiguration->audioCodec = audioCodec;
+    pSampleConfiguration->videoCodec = videoCodec;
 
     // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
     CHK_STATUS(initKvsWebRtc());
@@ -82,10 +110,12 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     MEMSET(&offerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
 
+    offerSessionDescriptionInit.useTrickleIce = pSampleStreamingSession->remoteCanTrickleIce;
     CHK_STATUS(setLocalDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
     DLOGI("[KVS Viewer] Completed setting local description");
 
     CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleAudioFrameHandler));
+    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleVideoFrameHandler));
 
     if (!pSampleConfiguration->trickleIce) {
         DLOGI("[KVS Viewer] Non trickle ice. Wait for Candidate collection to complete");
@@ -162,12 +192,12 @@ CleanUp:
     if (pSampleConfiguration != NULL) {
         retStatus = freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
         if (retStatus != STATUS_SUCCESS) {
-            DLOGE("[KVS Master] freeSignalingClient(): operation returned status code: 0x%08x ", retStatus);
+            DLOGE("[KVS Viewer] freeSignalingClient(): operation returned status code: 0x%08x ", retStatus);
         }
 
         retStatus = freeSampleConfiguration(&pSampleConfiguration);
         if (retStatus != STATUS_SUCCESS) {
-            DLOGE("[KVS Master] freeSampleConfiguration(): operation returned status code: 0x%08x ", retStatus);
+            DLOGE("[KVS Viewer] freeSampleConfiguration(): operation returned status code: 0x%08x ", retStatus);
         }
     }
     DLOGI("[KVS Viewer] Cleanup done");

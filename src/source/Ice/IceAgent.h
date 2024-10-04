@@ -14,12 +14,16 @@ extern "C" {
 #define KVS_ICE_MAX_REMOTE_CANDIDATE_COUNT                     100
 #define KVS_ICE_MAX_LOCAL_CANDIDATE_COUNT                      100
 #define KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define KVS_ICE_CONNECTIVITY_CHECK_TIMEOUT                     (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define KVS_ICE_CANDIDATE_NOMINATION_TIMEOUT                   (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define KVS_ICE_SEND_KEEP_ALIVE_INTERVAL                       (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT               (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define KVS_ICE_DEFAULT_TIMER_START_DELAY                      (3 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
-#define KVS_ICE_SHORT_CHECK_DELAY                              (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define KVS_ICE_CONNECTIVITY_CHECK_TIMEOUT                                                                                                           \
+    (12 * HUNDREDS_OF_NANOS_IN_A_SECOND) // This should be greater than KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT to ensure there is
+                                         // buffer wait time for connectivity checks with the pairs formed with near timeout created pairs
+#define KVS_ICE_CANDIDATE_NOMINATION_TIMEOUT                                                                                                         \
+    (12 * HUNDREDS_OF_NANOS_IN_A_SECOND) // This should be greater than KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT to ensure there is some
+                                         // buffer for nomination with near timeout generated candidates
+#define KVS_ICE_SEND_KEEP_ALIVE_INTERVAL         (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define KVS_ICE_DEFAULT_TIMER_START_DELAY        (3 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define KVS_ICE_SHORT_CHECK_DELAY                (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
 // Ta in https://tools.ietf.org/html/rfc8445
 #define KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL  (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
@@ -56,6 +60,9 @@ extern "C" {
 #define ICE_CANDIDATE_ID_LEN 8
 
 #define STATS_NOT_APPLICABLE_STR (PCHAR) "N/A"
+
+#define ICE_STATE_MACHINE_NAME (PCHAR) "ICE"
+
 typedef enum {
     ICE_CANDIDATE_STATE_NEW,
     ICE_CANDIDATE_STATE_VALID,
@@ -136,6 +143,7 @@ typedef struct {
     IceInboundPacketFunc inboundPacketFn;
     IceConnectionStateChangedFunc connectionStateChangedFn;
     IceNewLocalCandidateFunc newLocalCandidateFn;
+    IceServerSetIpFunc setStunServerIpFn;
 } IceAgentCallbacks, *PIceAgentCallbacks;
 
 typedef struct {
@@ -196,6 +204,8 @@ struct __IceAgent {
     volatile ATOMIC_BOOL shutdown;
     volatile ATOMIC_BOOL restart;
     volatile ATOMIC_BOOL processStun;
+    volatile ATOMIC_BOOL addedRelayCandidate;
+    volatile ATOMIC_BOOL stopGathering;
 
     CHAR localUsername[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
     CHAR localPassword[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
@@ -264,6 +274,7 @@ struct __IceAgent {
     PTransactionIdStore pStunBindingRequestTransactionIdStore;
 
     UINT64 candidateGatheringStartTime;
+    UINT64 candidateGatheringProcessEndTime;
     UINT64 iceAgentStartTime;
 };
 

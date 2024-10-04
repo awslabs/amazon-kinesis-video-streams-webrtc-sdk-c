@@ -87,6 +87,15 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
     UINT32 rttPropDelayMsec = 0, rttPropDelay, delaySinceLastSR, lastSR, interarrivalJitter, extHiSeqNumReceived, cumulativeLost, senderSSRC, ssrc1;
     UINT64 currentTimeNTP = convertTimestampToNTP(GETTIME());
 
+    UNUSED_PARAM(rttPropDelayMsec);
+    UNUSED_PARAM(rttPropDelay);
+    UNUSED_PARAM(delaySinceLastSR);
+    UNUSED_PARAM(lastSR);
+    UNUSED_PARAM(interarrivalJitter);
+    UNUSED_PARAM(extHiSeqNumReceived);
+    UNUSED_PARAM(cumulativeLost);
+    UNUSED_PARAM(senderSSRC);
+
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
     // https://tools.ietf.org/html/rfc3550#section-6.4.2
     if (pRtcpPacket->payloadLength != RTCP_PACKET_RECEIVER_REPORT_MINLEN) {
@@ -340,7 +349,6 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
     UINT32 currentOffset = 0;
 
     CHK(pKvsPeerConnection != NULL && pBuff != NULL, STATUS_NULL_ARG);
-    DLOGD("**rtcp**");
     while (currentOffset < buffLen) {
         CHK_STATUS(setRtcpPacketFromBytes(pBuff + currentOffset, buffLen - currentOffset, &rtcpPacket));
 

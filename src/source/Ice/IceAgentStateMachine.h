@@ -47,7 +47,7 @@ STATUS iceAgentStateMachineCheckDisconnection(PIceAgent, PUINT64);
 PCHAR iceAgentStateToString(UINT64);
 
 /**
- * Signaling state machine callbacks
+ * Ice agent state machine callbacks
  */
 STATUS fromNewIceAgentState(UINT64, PUINT64);
 STATUS executeNewIceAgentState(UINT64, UINT64);

@@ -16,31 +16,26 @@ UINT64 gTotalWebRtcClientMemoryUsage = 0;
 //
 MUTEX gTotalWebRtcClientMemoryMutex;
 
-STATUS createRtpPacketWithSeqNum(UINT16 seqNum, PRtpPacket *ppRtpPacket) {
+STATUS createRtpPacketWithSeqNum(UINT16 seqNum, PRtpPacket* ppRtpPacket)
+{
     STATUS retStatus = STATUS_SUCCESS;
     BYTE payload[10];
     PRtpPacket pRtpPacket = NULL;
 
-    CHK_STATUS(createRtpPacket(2, FALSE, FALSE, 0, FALSE,
-                               96, seqNum, 100, 0x1234ABCD, NULL, 0, 0, NULL, payload, 10, &pRtpPacket));
+    CHK_STATUS(createRtpPacket(2, FALSE, FALSE, 0, FALSE, 96, seqNum, 100, 0x1234ABCD, NULL, 0, 0, NULL, payload, 10, &pRtpPacket));
     *ppRtpPacket = pRtpPacket;
 
     CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, NULL, &pRtpPacket->rawPacketLength));
     CHK(NULL != (pRtpPacket->pRawPacket = (PBYTE) MEMALLOC(pRtpPacket->rawPacketLength)), STATUS_NOT_ENOUGH_MEMORY);
     CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, pRtpPacket->pRawPacket, &pRtpPacket->rawPacketLength));
 
-    CleanUp:
+CleanUp:
     return retStatus;
 }
 
-WebRtcClientTestBase::WebRtcClientTestBase() :
-        mSignalingClientHandle(INVALID_SIGNALING_CLIENT_HANDLE_VALUE),
-        mAccessKey(NULL),
-        mSecretKey(NULL),
-        mSessionToken(NULL),
-        mRegion(NULL),
-        mCaCertPath(NULL),
-        mAccessKeyIdSet(FALSE)
+WebRtcClientTestBase::WebRtcClientTestBase()
+    : mSignalingClientHandle(INVALID_SIGNALING_CLIENT_HANDLE_VALUE), mAccessKey(NULL), mSecretKey(NULL), mSessionToken(NULL), mRegion(NULL),
+      mCaCertPath(NULL), mAccessKeyIdSet(FALSE)
 {
     // Initialize the endianness of the library
     initializeEndianness();
@@ -57,6 +52,7 @@ void WebRtcClientTestBase::SetUp()
     mDroppedFrameIndex = 0;
     mExpectedFrameCount = 0;
     mExpectedDroppedFrameCount = 0;
+    noNewThreads = FALSE;
 
     SET_INSTRUMENTED_ALLOCATORS();
 
@@ -69,7 +65,9 @@ void WebRtcClientTestBase::SetUp()
 
     SET_LOGGER_LOG_LEVEL(mLogLevel);
 
-    initKvsWebRtc();
+    if (STATUS_SUCCESS != initKvsWebRtc()) {
+        DLOGE("Test initKvsWebRtc FAILED!!!!");
+    }
 
     if (NULL != (mAccessKey = getenv(ACCESS_KEY_ENV_VAR))) {
         mAccessKeyIdSet = TRUE;
@@ -113,6 +111,8 @@ void WebRtcClientTestBase::TearDown()
     DLOGI("\nTearing down test: %s\n", GetTestName());
 
     deinitKvsWebRtc();
+    // Need this sleep for threads in threadpool to close
+    THREAD_SLEEP(400 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 
     freeStaticCredentialProvider(&mTestCredentialProvider);
 
@@ -183,22 +183,40 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
                                            PCHAR pAnswerCertFingerprint)
 {
     RtcSessionDescriptionInit sdp;
+    PeerContainer offer;
+    PeerContainer answer;
+    this->noNewThreads = FALSE;
 
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
+        PPeerContainer container = (PPeerContainer)customData;
         if (candidateStr != NULL) {
-            std::thread(
-                [customData](std::string candidate) {
-                    RtcIceCandidateInit iceCandidate;
-                    EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
-                    EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) customData, iceCandidate.candidate));
-                },
-                std::string(candidateStr))
-                .detach();
+            container->client->lock.lock();
+            if(!container->client->noNewThreads) {
+                container->client->threads.push_back(std::thread(
+                    [container](std::string candidate) {
+                        RtcIceCandidateInit iceCandidate;
+                        EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
+                        EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) container->pc, iceCandidate.candidate));
+                    },
+                    std::string(candidateStr)));
+            }
+            container->client->lock.unlock();
         }
+
     };
 
-    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) answerPc, onICECandidateHdlr));
-    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) offerPc, onICECandidateHdlr));
+    auto onICECandidateHdlrDone = [](UINT64 customData, PCHAR candidateStr) -> void {
+        UNUSED_PARAM(customData);
+        UNUSED_PARAM(candidateStr);
+    };
+
+    offer.pc = offerPc;
+    offer.client = this;
+    answer.pc = answerPc;
+    answer.client = this;
+
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) &answer, onICECandidateHdlr));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) &offer, onICECandidateHdlr));
 
     auto onICEConnectionStateChangeHdlr = [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) -> void {
         ATOMIC_INCREMENT((PSIZE_T) customData + newState);
@@ -227,6 +245,18 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
     for (auto i = 0; i <= 100 && ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) != 2; i++) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
+
+    this->lock.lock();
+    //join all threads before leaving
+    for (auto& th : this->threads) th.join();
+
+    this->threads.clear();
+    this->noNewThreads = TRUE;
+    this->lock.unlock();
+
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(offerPc, (UINT64) 0, onICECandidateHdlrDone));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(answerPc, (UINT64) 0, onICECandidateHdlrDone));
+
 
     return ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) == 2;
 }

@@ -570,6 +570,9 @@ TEST_F(IngestionFunctionalityTest, iceServerConfigRefreshNotConnectedJoinSession
     EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
     EXPECT_EQ(STATUS_SUCCESS,signalingClientFetchSync(signalingHandle));
 
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
+
     pActiveClient = pSignalingClient;
 
     // Check the states first, we did not connect yet
@@ -631,7 +634,7 @@ TEST_F(IngestionFunctionalityTest, iceServerConfigRefreshNotConnectedJoinSession
 
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_LT(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_LT(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -752,7 +755,7 @@ TEST_F(IngestionFunctionalityTest, iceServerConfigRefreshConnectedJoinSessionWit
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE_MEDIA]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_LT(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_LT(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -853,7 +856,7 @@ TEST_F(IngestionFunctionalityTest, fileCachingTestWithDescribeMedia)
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
 
     for (i = 0; i < totalChannelCount; ++i) {
-        SPRINTF(signalingChannelName, "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
+        SNPRINTF(signalingChannelName, SIZEOF(signalingChannelName), "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
         channelInfo.pChannelName = signalingChannelName;
         EXPECT_EQ(STATUS_SUCCESS,
                   createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
@@ -869,7 +872,7 @@ TEST_F(IngestionFunctionalityTest, fileCachingTestWithDescribeMedia)
     getEndpointCountNoCache = getEndpointCount;
 
     for (i = 0; i < totalChannelCount; ++i) {
-        SPRINTF(signalingChannelName, "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
+        SNPRINTF(signalingChannelName, SIZEOF(signalingChannelName), "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
         channelInfo.pChannelName = signalingChannelName;
         channelInfo.pChannelArn = NULL;
         EXPECT_EQ(STATUS_SUCCESS,

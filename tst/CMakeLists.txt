@@ -42,6 +42,8 @@ add_executable(webrtc_client_test ${WEBRTC_CLIENT_TEST_SOURCE_FILES} SignalingAp
 target_link_libraries(webrtc_client_test
     kvsWebrtcClient
     kvsWebrtcSignalingClient
+    ${EXTRA_DEPS}
+    kvsCommonLws
     ${OPENSSL_CRYPTO_LIBRARY}
     kvspicUtils
     ${GTEST_LIBNAME}

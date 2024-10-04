@@ -248,6 +248,12 @@ INT32 dtlsSessionKeyDerivationCallback(PVOID customData, const unsigned char* pM
     return 0;
 }
 
+STATUS dtlsSessionHandshakeInThread(PDtlsSession pDtlsSession, BOOL isServer)
+{
+    DLOGI("Threadpool based DTLS handshake not supported for mbedtls");
+    return STATUS_SUCCESS;
+}
+
 STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
 {
     ENTERS();
@@ -327,7 +333,7 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
 
     CHK(pDtlsSession != NULL && pData != NULL && pDataLen != NULL, STATUS_NULL_ARG);
     CHK(ATOMIC_LOAD_BOOL(&pDtlsSession->isStarted), STATUS_SSL_PACKET_BEFORE_DTLS_READY);
-    CHK(!ATOMIC_LOAD_BOOL(&pDtlsSession->shutdown), retStatus);
+    CHK(!ATOMIC_LOAD_BOOL(&pDtlsSession->isShutdown), retStatus);
 
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
@@ -384,7 +390,7 @@ STATUS dtlsSessionPutApplicationData(PDtlsSession pDtlsSession, PBYTE pData, INT
     BOOL iterate = TRUE;
 
     CHK(pData != NULL, STATUS_NULL_ARG);
-    CHK(!ATOMIC_LOAD_BOOL(&pDtlsSession->shutdown), retStatus);
+    CHK(!ATOMIC_LOAD_BOOL(&pDtlsSession->isShutdown), retStatus);
 
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
@@ -530,13 +536,13 @@ STATUS dtlsSessionShutdown(PDtlsSession pDtlsSession)
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
 
-    CHK(!ATOMIC_LOAD_BOOL(&pDtlsSession->shutdown), retStatus);
+    CHK(!ATOMIC_LOAD_BOOL(&pDtlsSession->isShutdown), retStatus);
 
     while (mbedtls_ssl_close_notify(&pDtlsSession->sslCtx) == MBEDTLS_ERR_SSL_WANT_WRITE) {
         // keep flushing outgoing buffer until nothing left
     }
 
-    ATOMIC_STORE_BOOL(&pDtlsSession->shutdown, TRUE);
+    ATOMIC_STORE_BOOL(&pDtlsSession->isShutdown, TRUE);
     CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CLOSED));
 
 CleanUp:

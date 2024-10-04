@@ -33,38 +33,46 @@ STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    STATUS iceAgentStatus = STATUS_SUCCESS;
     UINT64 oldState;
+    BOOL locked = FALSE;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
-    oldState = pIceAgent->iceAgentState;
+    do {
+        oldState = pIceAgent->iceAgentState;
+        MUTEX_LOCK(pIceAgent->lock);
+        locked = TRUE;
 
-    CHK_STATUS(stepStateMachine(pIceAgent->pStateMachine));
-
-    MUTEX_LOCK(pIceAgent->lock);
-    iceAgentStatus = pIceAgent->iceAgentStatus;
-    MUTEX_UNLOCK(pIceAgent->lock);
-
-    // if any failure happened and state machine is not in failed state, stepStateMachine again into failed state.
-    if (pIceAgent->iceAgentState != ICE_AGENT_STATE_FAILED && STATUS_FAILED(iceAgentStatus)) {
         CHK_STATUS(stepStateMachine(pIceAgent->pStateMachine));
-    }
 
-    if (oldState != pIceAgent->iceAgentState) {
-        if (pIceAgent->iceAgentCallbacks.connectionStateChangedFn != NULL) {
-            DLOGI("Ice agent state changed from %s to %s.", iceAgentStateToString(oldState), iceAgentStateToString(pIceAgent->iceAgentState));
-            pIceAgent->iceAgentCallbacks.connectionStateChangedFn(pIceAgent->iceAgentCallbacks.customData, pIceAgent->iceAgentState);
+        // if any failure happened and state machine is not in failed state, stepStateMachine again into failed state.
+        if (pIceAgent->iceAgentState != ICE_AGENT_STATE_FAILED && STATUS_FAILED(pIceAgent->iceAgentStatus)) {
+            DLOGD("Ice agent state %s operation encountered error 0x%08x", iceAgentStateToString(pIceAgent->iceAgentState),
+                  pIceAgent->iceAgentStatus);
+            CHK_STATUS(stepStateMachine(pIceAgent->pStateMachine));
         }
-    } else {
-        // state machine retry is not used. resetStateMachineRetryCount just to avoid
-        // state machine retry grace period overflow warning.
-        CHK_STATUS(resetStateMachineRetryCount(pIceAgent->pStateMachine));
-    }
+
+        MUTEX_UNLOCK(pIceAgent->lock);
+        locked = FALSE;
+
+        if (oldState != pIceAgent->iceAgentState) {
+            if (pIceAgent->iceAgentCallbacks.connectionStateChangedFn != NULL) {
+                DLOGI("Ice agent state changed from %s to %s.", iceAgentStateToString(oldState), iceAgentStateToString(pIceAgent->iceAgentState));
+                pIceAgent->iceAgentCallbacks.connectionStateChangedFn(pIceAgent->iceAgentCallbacks.customData, pIceAgent->iceAgentState);
+            }
+        } else {
+            // state machine retry is not used. resetStateMachineRetryCount just to avoid
+            // state machine retry grace period overflow warning.
+            CHK_STATUS(resetStateMachineRetryCount(pIceAgent->pStateMachine));
+        }
+    } while (oldState != pIceAgent->iceAgentState);
 
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
+    if (locked) {
+        MUTEX_UNLOCK(pIceAgent->lock);
+    }
 
     LEAVES();
     return retStatus;
@@ -85,6 +93,7 @@ STATUS acceptIceAgentMachineState(PIceAgent pIceAgent, UINT64 state)
     CHK_STATUS(acceptStateMachineState(pIceAgent->pStateMachine, state));
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
@@ -200,6 +209,7 @@ STATUS executeNewIceAgentState(UINT64 customData, UINT64 time)
     pIceAgent->iceAgentState = ICE_AGENT_STATE_NEW;
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -247,6 +257,7 @@ STATUS fromCheckConnectionIceAgentState(UINT64 customData, PUINT64 pState)
     }
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         state = ICE_AGENT_STATE_FAILED;
@@ -284,6 +295,7 @@ STATUS executeCheckConnectionIceAgentState(UINT64 customData, UINT64 time)
     CHK_STATUS(iceAgentCheckCandidatePairConnection(pIceAgent));
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         MUTEX_LOCK(pIceAgent->lock);
@@ -325,6 +337,7 @@ STATUS fromConnectedIceAgentState(UINT64 customData, PUINT64 pState)
     state = ICE_AGENT_STATE_NOMINATING;
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         state = ICE_AGENT_STATE_FAILED;
@@ -359,6 +372,7 @@ STATUS executeConnectedIceAgentState(UINT64 customData, UINT64 time)
     pIceAgent->iceAgentState = ICE_AGENT_STATE_CONNECTED;
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         MUTEX_LOCK(pIceAgent->lock);
@@ -415,6 +429,7 @@ STATUS fromNominatingIceAgentState(UINT64 customData, PUINT64 pState)
     }
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         state = ICE_AGENT_STATE_FAILED;
@@ -460,6 +475,7 @@ STATUS executeNominatingIceAgentState(UINT64 customData, UINT64 time)
     }
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         MUTEX_LOCK(pIceAgent->lock);
@@ -481,8 +497,6 @@ STATUS fromReadyIceAgentState(UINT64 customData, PUINT64 pState)
     PIceAgent pIceAgent = (PIceAgent) customData;
     UINT64 state = ICE_AGENT_STATE_READY; // original state
     BOOL locked = FALSE;
-    PDoubleListNode pCurNode = NULL, pNodeToDelete = NULL;
-    PIceCandidate pIceCandidate = NULL;
 
     CHK(pIceAgent != NULL && pState != NULL, STATUS_NULL_ARG);
 
@@ -494,26 +508,11 @@ STATUS fromReadyIceAgentState(UINT64 customData, PUINT64 pState)
 
     CHK_STATUS(iceAgentStateMachineCheckDisconnection(pIceAgent, &state));
 
-    // Free TurnConnections that are shutdown
-    CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
-    while (pCurNode != NULL) {
-        pIceCandidate = (PIceCandidate) pCurNode->data;
-        pNodeToDelete = pCurNode;
-        pCurNode = pCurNode->pNext;
-
-        if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED && turnConnectionIsShutdownComplete(pIceCandidate->pTurnConnection)) {
-            MUTEX_UNLOCK(pIceAgent->lock);
-            CHK_LOG_ERR(freeTurnConnection(&pIceCandidate->pTurnConnection));
-            MUTEX_LOCK(pIceAgent->lock);
-            MEMFREE(pIceCandidate);
-            CHK_STATUS(doubleListDeleteNode(pIceAgent->localCandidates, pNodeToDelete));
-        }
-    }
-
     // return early if changing to disconnected state
     CHK(state != ICE_AGENT_STATE_DISCONNECTED, retStatus);
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         state = ICE_AGENT_STATE_FAILED;
@@ -539,7 +538,10 @@ STATUS executeReadyIceAgentState(UINT64 customData, UINT64 time)
     ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
     PIceAgent pIceAgent = (PIceAgent) customData;
+    PDoubleListNode pCurNode = NULL, pNodeToDelete = NULL;
+    PIceCandidate pIceCandidate = NULL;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     if (pIceAgent->iceAgentState != ICE_AGENT_STATE_READY) {
@@ -547,7 +549,27 @@ STATUS executeReadyIceAgentState(UINT64 customData, UINT64 time)
         pIceAgent->iceAgentState = ICE_AGENT_STATE_READY;
     }
 
+    MUTEX_LOCK(pIceAgent->lock);
+    locked = TRUE;
+
+    // Free TurnConnections that are shutdown
+    CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
+    while (pCurNode != NULL) {
+        pIceCandidate = (PIceCandidate) pCurNode->data;
+        pNodeToDelete = pCurNode;
+        pCurNode = pCurNode->pNext;
+
+        if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED && turnConnectionIsShutdownComplete(pIceCandidate->pTurnConnection)) {
+            MUTEX_UNLOCK(pIceAgent->lock);
+            CHK_LOG_ERR(freeTurnConnection(&pIceCandidate->pTurnConnection));
+            MUTEX_LOCK(pIceAgent->lock);
+            MEMFREE(pIceCandidate);
+            CHK_STATUS(doubleListDeleteNode(pIceAgent->localCandidates, pNodeToDelete));
+        }
+    }
+
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         MUTEX_LOCK(pIceAgent->lock);
@@ -560,8 +582,12 @@ CleanUp:
 
     if (pIceAgent->iceAgentStartTime != 0) {
         PROFILE_WITH_START_TIME_OBJ(pIceAgent->iceAgentStartTime, pIceAgent->iceAgentProfileDiagnostics.iceAgentSetUpTime,
-                                    "Time taken to get ICE Agent ready for media exchange");
+                                    "ICE Agent ready for media exchange from check connection start");
         pIceAgent->iceAgentStartTime = 0;
+    }
+
+    if (locked) {
+        MUTEX_UNLOCK(pIceAgent->lock);
     }
 
     LEAVES();
@@ -585,6 +611,7 @@ STATUS fromDisconnectedIceAgentState(UINT64 customData, PUINT64 pState)
     CHK_STATUS(pIceAgent->iceAgentStatus);
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         state = ICE_AGENT_STATE_FAILED;
@@ -633,6 +660,7 @@ STATUS executeDisconnectedIceAgentState(UINT64 customData, UINT64 time)
     CHK_STATUS(stepStateMachine(pIceAgent->pStateMachine));
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         MUTEX_LOCK(pIceAgent->lock);
@@ -659,6 +687,7 @@ STATUS fromFailedIceAgentState(UINT64 customData, PUINT64 pState)
     *pState = ICE_AGENT_STATE_FAILED;
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -693,6 +722,7 @@ STATUS executeFailedIceAgentState(UINT64 customData, UINT64 time)
     }
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;

@@ -37,6 +37,7 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
     PStateMachineState pStateMachineState;
     BOOL skewMapContains = FALSE;
 
+    UNUSED_PARAM(logLevel);
     DLOGV("HTTPS callback with reason %d", reason);
 
     // Early check before accessing the custom data field to see if we are interested in processing the message
@@ -1493,6 +1494,9 @@ STATUS joinStorageSessionLws(PSignalingClient pSignalingClient, UINT64 time)
     PCHAR pResponseStr;
     UINT32 resultLen;
 
+    UNUSED_PARAM(pResponseStr);
+    UNUSED_PARAM(pLwsCallInfo);
+    UNUSED_PARAM(resultLen);
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->channelEndpointWebrtc[0] != '\0', STATUS_INTERNAL_ERROR);
 
@@ -2209,8 +2213,9 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
         DLOGW("Failed to validate the ICE server configuration received with an Offer");
     }
 
-#ifdef KVS_USE_SIGNALING_CHANNEL_THREADPOOL
-    CHK_STATUS(threadpoolPush(pSignalingClient->pThreadpool, receiveLwsMessageWrapper, (PVOID) pSignalingMessageWrapper));
+#ifdef ENABLE_KVS_THREADPOOL
+    // This would fail if threadpool was not created
+    CHK_STATUS(threadpoolContextPush(receiveLwsMessageWrapper, pSignalingMessageWrapper));
 #else
     // Issue the callback on a separate thread
     CHK_STATUS(THREAD_CREATE(&receivedTid, receiveLwsMessageWrapper, (PVOID) pSignalingMessageWrapper));

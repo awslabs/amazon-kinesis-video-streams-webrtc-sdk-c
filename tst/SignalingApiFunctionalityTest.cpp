@@ -975,7 +975,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariatio
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
-    // The ICE api should have been called
+    // The ICE api shouldn't have been called
     EXPECT_EQ(1, getIceConfigCount);
 
     // Ensure we can get the ICE configurations
@@ -984,7 +984,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariatio
     for (i = 0; i < iceCount; i++) {
         EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, i, &pIceConfigInfo));
     }
-    // Make sure no APIs have been called
+    // Make sure APIs have been called
     EXPECT_EQ(1, getIceConfigCount);
 
     // Other state transacted
@@ -1614,6 +1614,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedAuthExpirat
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
+
     // Make sure the credentials expire
     THREAD_SLEEP(7 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
@@ -1870,7 +1871,6 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Trigger the ICE refresh on the next call
-    pSignalingClient->iceConfigCount = 0;
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
     EXPECT_NE(0, iceCount);
@@ -1882,10 +1882,10 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Check that we are connected and can send a message
@@ -2178,6 +2178,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithBadA
     signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
     EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
     EXPECT_EQ(STATUS_SUCCESS,signalingClientFetchSync(signalingHandle));
+
 
     pActiveClient = pSignalingClient;
 
@@ -3273,7 +3274,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
 
     for (i = 0; i < totalChannelCount; ++i) {
-        SPRINTF(signalingChannelName, "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
+        SNPRINTF(signalingChannelName, SIZEOF(signalingChannelName), "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
         channelInfo.pChannelName = signalingChannelName;
         EXPECT_EQ(STATUS_SUCCESS,
                   createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
@@ -3289,7 +3290,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     getEndpointCountNoCache = getEndpointCount;
 
     for (i = 0; i < totalChannelCount; ++i) {
-        SPRINTF(signalingChannelName, "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
+        SNPRINTF(signalingChannelName, SIZEOF(signalingChannelName), "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
         channelInfo.pChannelName = signalingChannelName;
         channelInfo.pChannelArn = NULL;
         EXPECT_EQ(STATUS_SUCCESS,
@@ -3405,11 +3406,11 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
         MEMSET(testChannel, 0, MAX_CHANNEL_NAME_LEN+1);
 
         append = rand()%TEST_CHANNEL_COUNT;
-        SPRINTF(testWssEndpoint, "%s%d", "testWssEndpoint", append);
-        SPRINTF(testHttpsEndpoint, "%s%d", "testHttpsEndpoint", append);
-        SPRINTF(testRegion, "%s%d", "testRegion", append);
-        SPRINTF(testChannelArn, "%s%d", "testChannelArn", append);
-        SPRINTF(testChannel, "%s%d", "testChannel", append);
+        SNPRINTF(testWssEndpoint, SIZEOF(testWssEndpoint), "%s%d", "testWssEndpoint", append);
+        SNPRINTF(testHttpsEndpoint, SIZEOF(testHttpsEndpoint),"%s%d", "testHttpsEndpoint", append);
+        SNPRINTF(testRegion, SIZEOF(testRegion),"%s%d", "testRegion", append);
+        SNPRINTF(testChannelArn, SIZEOF(testChannelArn),"%s%d", "testChannelArn", append);
+        SNPRINTF(testChannel, SIZEOF(testChannel),"%s%d", "testChannel", append);
 
         STRCPY(testEntry.wssEndpoint, testWssEndpoint);
         STRCPY(testEntry.httpsEndpoint, testHttpsEndpoint);
@@ -3472,11 +3473,11 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateFullMultiChannelCache)
         MEMSET(testChannel, 0, MAX_CHANNEL_NAME_LEN+1);
 
         append = i;
-        SPRINTF(testWssEndpoint, "%s%d", "testWssEndpoint", append);
-        SPRINTF(testHttpsEndpoint, "%s%d", "testHttpsEndpoint", append);
-        SPRINTF(testRegion, "%s%d", "testRegion", append);
-        SPRINTF(testChannelArn, "%s%d", "testChannelArn", append);
-        SPRINTF(testChannel, "%s%d", "testChannel", append);
+        SNPRINTF(testWssEndpoint, SIZEOF(testWssEndpoint), "%s%d", "testWssEndpoint", append);
+        SNPRINTF(testHttpsEndpoint, SIZEOF(testHttpsEndpoint), "%s%d", "testHttpsEndpoint", append);
+        SNPRINTF(testRegion, SIZEOF(testRegion), "%s%d", "testRegion", append);
+        SNPRINTF(testChannelArn, SIZEOF(testChannelArn), "%s%d", "testChannelArn", append);
+        SNPRINTF(testChannel, SIZEOF(testChannel), "%s%d", "testChannel", append);
 
         STRCPY(testEntry.wssEndpoint, testWssEndpoint);
         STRCPY(testEntry.httpsEndpoint, testHttpsEndpoint);
@@ -3566,6 +3567,7 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer)
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
 
     // Ensure the ICE is not refreshed as we already have a current non-expired set
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
@@ -3755,6 +3757,7 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_SlowClockSkew)
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
 
     // Ensure the ICE is not refreshed as we already have a current non-expired set
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
@@ -3946,7 +3949,6 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew)
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
-    // Ensure the ICE is not refreshed as we already have a current non-expired set
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
     EXPECT_NE(0, iceCount);
