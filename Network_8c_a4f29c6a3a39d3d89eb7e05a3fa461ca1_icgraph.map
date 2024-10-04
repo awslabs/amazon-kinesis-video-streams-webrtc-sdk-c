@@ -1,16 +1,12 @@
 <map id="socketBind" name="socketBind">
-<area shape="rect" id="node1" title=" " alt="" coords="1171,81,1264,108"/>
-<area shape="rect" id="node2" href="$SocketConnection_8c.html#a5dd11b0d4a90925f1f6019984576125a" title=" " alt="" coords="944,81,1123,108"/>
-<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="715,5,874,32"/>
-<area shape="rect" id="node4" href="$IceAgent_8c.html#a404897a5797a45ca76444ee244c5b760" title=" " alt="" coords="697,56,893,83"/>
-<area shape="rect" id="node8" href="$IceAgent_8c.html#aa82059f636933c877ef87e25f4a62669" title=" " alt="" coords="693,157,896,184"/>
-<area shape="rect" id="node14" href="$IceAgent_8c.html#a0a39b316e5aff662b257648e97e53146" title=" " alt="" coords="697,107,892,133"/>
-<area shape="rect" id="node5" href="$IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="453,68,627,95"/>
-<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="228,43,379,69"/>
-<area shape="rect" id="node7" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,119,172,145"/>
-<area shape="rect" id="node9" href="$IceAgent_8c.html#a13816c51f4959ce3f3efa41341662d8c" title=" " alt="" coords="467,144,613,171"/>
-<area shape="rect" id="node11" href="$IceAgent_8c.html#a888fc1a2a5c2fe190f30db87c85c6759" title=" " alt="" coords="435,195,645,221"/>
-<area shape="rect" id="node10" href="$group__PublicMemberFunctions.html#ga577207b68c0fe53137a2b32f975abb09" title="Give peer connection an ice config to add to its server list." alt="" coords="220,144,387,171"/>
-<area shape="rect" id="node12" href="$IceAgent_8c.html#a311a951cf965e83e76372560f2ce1c0f" title=" " alt="" coords="240,195,367,221"/>
-<area shape="rect" id="node13" href="$group__PublicMemberFunctions.html#gade9fcbb056cb321f33890c1cf1222e64" title="Instructs the RtcPeerConnection that ICE should be restarted. Subsequent calls to createOffer will cr..." alt="" coords="47,195,131,221"/>
+<area shape="rect" id="node1" title=" " alt="" coords="1179,81,1272,108"/>
+<area shape="rect" id="node2" href="$SocketConnection_8c.html#a5dd11b0d4a90925f1f6019984576125a" title=" " alt="" coords="952,81,1131,108"/>
+<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="723,5,882,32"/>
+<area shape="rect" id="node4" href="$IceAgent_8c.html#a404897a5797a45ca76444ee244c5b760" title=" " alt="" coords="450,56,646,83"/>
+<area shape="rect" id="node8" href="$IceAgent_8c.html#aa82059f636933c877ef87e25f4a62669" title=" " alt="" coords="701,107,904,133"/>
+<area shape="rect" id="node10" href="$IceAgent_8c.html#a0a39b316e5aff662b257648e97e53146" title=" " alt="" coords="451,157,645,184"/>
+<area shape="rect" id="node5" href="$IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="220,107,395,133"/>
+<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="13,81,164,108"/>
+<area shape="rect" id="node7" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,132,172,159"/>
+<area shape="rect" id="node9" href="$IceAgent_8c.html#a888fc1a2a5c2fe190f30db87c85c6759" title=" " alt="" coords="443,107,653,133"/>
 </map>

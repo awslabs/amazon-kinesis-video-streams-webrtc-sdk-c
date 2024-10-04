@@ -1,6 +1,5 @@
 var group__PublicMemberFunctions =
 [
-    [ "addConfigToServerList", "group__PublicMemberFunctions.html#ga577207b68c0fe53137a2b32f975abb09", null ],
     [ "addIceCandidate", "group__PublicMemberFunctions.html#ga1722e3794e91a87ba8d73d36b62d8727", null ],
     [ "addSupportedCodec", "group__PublicMemberFunctions.html#gaf401e47dc585171339bf0fd6751ff66f", null ],
     [ "addTransceiver", "group__PublicMemberFunctions.html#ga5b89dc2e301e35f30330c57bc1361dcb", null ],
@@ -26,7 +25,6 @@ var group__PublicMemberFunctions =
     [ "getNatBehaviorStr", "group__PublicMemberFunctions.html#ga4f424e3e5d36f5a83c108d50d8599292", null ],
     [ "iceAgentGetMetrics", "group__PublicMemberFunctions.html#gac3b970afd5791eb5d8e3e01334e17022", null ],
     [ "initKvsWebRtc", "group__PublicMemberFunctions.html#ga0091e2920ba137e0e80d40402a675abb", null ],
-    [ "peerConnectionAsync", "group__PublicMemberFunctions.html#ga7d678994f9d17baa3dd9dd72b38be4df", null ],
     [ "peerConnectionGetCurrentLocalDescription", "group__PublicMemberFunctions.html#ga19dfcbdcf4d136b56ce366fe2fb9bfb3", null ],
     [ "peerConnectionGetLocalDescription", "group__PublicMemberFunctions.html#gaa1940a0ddabf41c445b55f1317476e96", null ],
     [ "peerConnectionGetMetrics", "group__PublicMemberFunctions.html#ga84a68cd53825426050af16006b381a94", null ],

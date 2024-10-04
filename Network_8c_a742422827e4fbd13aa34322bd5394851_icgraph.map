@@ -1,10 +1,8 @@
 <map id="isIpAddr" name="isIpAddr">
-<area shape="rect" id="node1" title=" " alt="" coords="796,56,871,83"/>
-<area shape="rect" id="node2" href="$Network_8c.html#a4031af9c6558dc586d54ab01752530a0" title=" " alt="" coords="593,56,748,83"/>
-<area shape="rect" id="node3" href="$IceUtils_8c.html#a833304d5c66c3dfef87036727631628f" title=" " alt="" coords="427,56,545,83"/>
-<area shape="rect" id="node4" href="$IceAgent_8c.html#af2fe29241b2d4ab4997fe04c41534578" title=" " alt="" coords="239,5,359,32"/>
-<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="220,56,379,83"/>
-<area shape="rect" id="node7" href="$IceAgent_8c.html#a13816c51f4959ce3f3efa41341662d8c" title=" " alt="" coords="227,107,372,133"/>
-<area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="6,5,171,32"/>
-<area shape="rect" id="node8" href="$group__PublicMemberFunctions.html#ga577207b68c0fe53137a2b32f975abb09" title="Give peer connection an ice config to add to its server list." alt="" coords="5,107,172,133"/>
+<area shape="rect" id="node1" title=" " alt="" coords="795,31,869,57"/>
+<area shape="rect" id="node2" href="$Network_8c.html#a4031af9c6558dc586d54ab01752530a0" title=" " alt="" coords="592,31,747,57"/>
+<area shape="rect" id="node3" href="$IceUtils_8c.html#a833304d5c66c3dfef87036727631628f" title=" " alt="" coords="425,31,544,57"/>
+<area shape="rect" id="node4" href="$IceAgent_8c.html#af2fe29241b2d4ab4997fe04c41534578" title=" " alt="" coords="238,5,358,32"/>
+<area shape="rect" id="node6" href="$group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="219,56,377,83"/>
+<area shape="rect" id="node5" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,5,171,32"/>
 </map>

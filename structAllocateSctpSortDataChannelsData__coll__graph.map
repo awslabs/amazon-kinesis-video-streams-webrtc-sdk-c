@@ -1,46 +1,47 @@
 <map id="AllocateSctpSortDataChannelsData" name="AllocateSctpSortDataChannelsData">
-<area shape="rect" id="node1" title=" " alt="" coords="1606,1773,1857,1865"/>
-<area shape="rect" id="node2" href="$structKvsPeerConnection.html" title=" " alt="" coords="1609,1428,1853,1652"/>
-<area shape="rect" id="node3" href="$structKvsPeerConnectionDiagnostics.html" title=" " alt="" coords="2306,1185,2533,1321"/>
-<area shape="rect" id="node4" href="$structSessionDescription.html" title=" " alt="" coords="660,1141,848,1365"/>
-<area shape="rect" id="node5" href="$structSdpEncryptionKey.html" title=" " alt="" coords="805,439,959,531"/>
-<area shape="rect" id="node11" href="$structSdpMediaDescription.html" title=" " alt="" coords="773,833,959,954"/>
-<area shape="rect" id="node6" href="$structSdpAttributes.html" title=" " alt="" coords="575,439,707,531"/>
-<area shape="rect" id="node7" href="$structSdpTimeZone.html" title=" " alt="" coords="605,847,749,939"/>
-<area shape="rect" id="node8" href="$structSdpOrigin.html" title=" " alt="" coords="5,840,140,947"/>
-<area shape="rect" id="node9" href="$structSdpConnectionInformation.html" title=" " alt="" coords="137,432,331,539"/>
-<area shape="rect" id="node10" href="$structSdpTimeDescription.html" title=" " alt="" coords="1164,847,1317,939"/>
-<area shape="rect" id="node12" href="$struct____SrtpSession.html" title=" " alt="" coords="1016,1207,1196,1299"/>
-<area shape="rect" id="node13" href="$structNullableBool.html" title=" " alt="" coords="1220,1207,1325,1299"/>
-<area shape="rect" id="node14" href="$structSctpSession.html" title=" " alt="" coords="1349,1185,1490,1321"/>
-<area shape="rect" id="node15" href="$structSctpSessionCallbacks.html" title=" " alt="" coords="1341,833,1548,954"/>
-<area shape="rect" id="node16" href="$structTwccManager.html" title=" " alt="" coords="1514,1193,1741,1314"/>
-<area shape="rect" id="node17" href="$struct____RtcDataChannel.html" title="RtcDataChannel represents a bi&#45;directional data channel between two peers." alt="" coords="1765,1207,1906,1299"/>
-<area shape="rect" id="node18" href="$struct____DtlsSession.html" title=" " alt="" coords="1930,1141,2111,1365"/>
-<area shape="rect" id="node19" href="$structDtlsSessionCallbacks.html" title=" " alt="" coords="1736,833,1975,954"/>
-<area shape="rect" id="node20" href="$struct____IceAgent.html" title=" " alt="" coords="2953,1141,3171,1365"/>
-<area shape="rect" id="node28" href="$structIceCandidate.html" title=" " alt="" coords="4215,1443,4367,1637"/>
-<area shape="rect" id="node21" href="$structIceServer.html" title=" " alt="" coords="3811,818,3913,969"/>
-<area shape="rect" id="node29" href="$struct____TurnConnection.html" title=" " alt="" coords="4201,1141,4382,1365"/>
-<area shape="rect" id="node22" href="$structKvsIpAddress.html" title=" " alt="" coords="4105,189,4233,311"/>
-<area shape="rect" id="node23" href="$structIceAgentCallbacks.html" title=" " alt="" coords="2373,607,2588,728"/>
-<area shape="rect" id="node31" href="$struct____SocketConnection.html" title=" " alt="" coords="4557,388,4820,583"/>
-<area shape="rect" id="node37" href="$structTurnPeer.html" title=" " alt="" coords="3951,774,4191,1013"/>
-<area shape="rect" id="node39" href="$structTurnConnectionCallbacks.html" title=" " alt="" coords="4457,855,4643,932"/>
-<area shape="rect" id="node24" href="$structTransactionIdStore.html" title=" " alt="" coords="3667,417,3875,553"/>
-<area shape="rect" id="node27" href="$structIceCandidatePair.html" title=" " alt="" coords="3795,1729,3958,1909"/>
-<area shape="rect" id="node25" href="$structKvsRtcConfiguration.html" title=" " alt="" coords="2759,752,3011,1035"/>
-<area shape="rect" id="node26" href="$structRtcIceServerDiagnostics.html" title=" " alt="" coords="3475,818,3673,969"/>
-<area shape="rect" id="node30" href="$structConnectionListener.html" title=" " alt="" coords="4267,811,4433,976"/>
-<area shape="rect" id="node32" href="$struct____TlsSession.html" title=" " alt="" coords="5236,211,5341,289"/>
-<area shape="rect" id="node33" href="$structTlsSessionCallbacks.html" title=" " alt="" coords="5169,5,5408,127"/>
-<area shape="rect" id="node34" href="$structStunPacket.html" title=" " alt="" coords="3035,847,3174,939"/>
-<area shape="rect" id="node35" href="$structStunHeader.html" title=" " alt="" coords="2851,425,3004,546"/>
-<area shape="rect" id="node36" href="$structStunAttributeHeader.html" title=" " alt="" coords="3029,439,3183,531"/>
-<area shape="rect" id="node38" href="$structTurnProfileDiagnostics.html" title=" " alt="" coords="4840,833,5047,954"/>
-<area shape="rect" id="node40" href="$structRtcIceCandidatePairDiagnostics.html" title=" " alt="" coords="3895,1428,4123,1652"/>
-<area shape="rect" id="node41" href="$structNullableUint32.html" title="Custom data type to allow setting UINT32 data type to NULL since C does not support setting basic dat..." alt="" coords="3987,1207,4105,1299"/>
-<area shape="rect" id="node42" href="$structIceAgentProfileDiagnostics.html" title=" " alt="" coords="2067,803,2321,983"/>
-<area shape="rect" id="node43" href="$structRtcIceCandidateDiagnostics.html" title=" " alt="" coords="2531,811,2735,976"/>
-<area shape="rect" id="node44" href="$structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer&#45;to&#45;peer communications with ano..." alt="" coords="2136,1215,2281,1292"/>
+<area shape="rect" id="node1" title=" " alt="" coords="1202,1759,1453,1851"/>
+<area shape="rect" id="node2" href="$structKvsPeerConnection.html" title=" " alt="" coords="1205,1413,1449,1637"/>
+<area shape="rect" id="node3" href="$structKvsPeerConnectionDiagnostics.html" title=" " alt="" coords="686,1171,913,1307"/>
+<area shape="rect" id="node4" href="$structSessionDescription.html" title=" " alt="" coords="937,1127,1125,1351"/>
+<area shape="rect" id="node5" href="$structSdpEncryptionKey.html" title=" " alt="" coords="1075,439,1228,531"/>
+<area shape="rect" id="node11" href="$structSdpMediaDescription.html" title=" " alt="" coords="993,825,1179,947"/>
+<area shape="rect" id="node6" href="$structSdpAttributes.html" title=" " alt="" coords="829,439,961,531"/>
+<area shape="rect" id="node7" href="$structSdpTimeZone.html" title=" " alt="" coords="1383,840,1527,932"/>
+<area shape="rect" id="node8" href="$structSdpOrigin.html" title=" " alt="" coords="268,833,403,939"/>
+<area shape="rect" id="node9" href="$structSdpConnectionInformation.html" title=" " alt="" coords="354,432,549,539"/>
+<area shape="rect" id="node10" href="$structSdpTimeDescription.html" title=" " alt="" coords="664,840,817,932"/>
+<area shape="rect" id="node12" href="$struct____SrtpSession.html" title=" " alt="" coords="1149,1193,1329,1285"/>
+<area shape="rect" id="node13" href="$structNullableBool.html" title=" " alt="" coords="1353,1193,1459,1285"/>
+<area shape="rect" id="node14" href="$structSctpSession.html" title=" " alt="" coords="1482,1171,1623,1307"/>
+<area shape="rect" id="node15" href="$structSctpSessionCallbacks.html" title=" " alt="" coords="1552,825,1759,947"/>
+<area shape="rect" id="node16" href="$structTwccManager.html" title=" " alt="" coords="1648,1185,1823,1292"/>
+<area shape="rect" id="node17" href="$structTwccPacket.html" title=" " alt="" coords="1783,825,1925,947"/>
+<area shape="rect" id="node18" href="$struct____RtcDataChannel.html" title="RtcDataChannel represents a bi&#45;directional data channel between two peers." alt="" coords="1847,1193,1989,1285"/>
+<area shape="rect" id="node19" href="$struct____DtlsSession.html" title=" " alt="" coords="169,1127,350,1351"/>
+<area shape="rect" id="node20" href="$structDtlsSessionCallbacks.html" title=" " alt="" coords="5,825,244,947"/>
+<area shape="rect" id="node21" href="$struct____IceAgent.html" title=" " alt="" coords="2775,1127,2994,1351"/>
+<area shape="rect" id="node29" href="$structIceCandidate.html" title=" " alt="" coords="3791,1428,3943,1623"/>
+<area shape="rect" id="node22" href="$structIceServer.html" title=" " alt="" coords="3716,811,3819,961"/>
+<area shape="rect" id="node30" href="$struct____TurnConnection.html" title=" " alt="" coords="4229,1127,4410,1351"/>
+<area shape="rect" id="node23" href="$structKvsIpAddress.html" title=" " alt="" coords="3873,189,4001,311"/>
+<area shape="rect" id="node24" href="$structIceAgentCallbacks.html" title=" " alt="" coords="2171,607,2385,728"/>
+<area shape="rect" id="node32" href="$struct____SocketConnection.html" title=" " alt="" coords="4568,388,4831,583"/>
+<area shape="rect" id="node38" href="$structTurnPeer.html" title=" " alt="" coords="3971,767,4211,1005"/>
+<area shape="rect" id="node40" href="$structTurnConnectionCallbacks.html" title=" " alt="" coords="4287,847,4472,925"/>
+<area shape="rect" id="node25" href="$structTransactionIdStore.html" title=" " alt="" coords="2687,417,2895,553"/>
+<area shape="rect" id="node28" href="$structIceCandidatePair.html" title=" " alt="" coords="3209,1715,3371,1895"/>
+<area shape="rect" id="node26" href="$structKvsRtcConfiguration.html" title=" " alt="" coords="2269,752,2521,1020"/>
+<area shape="rect" id="node27" href="$structRtcIceServerDiagnostics.html" title=" " alt="" coords="2546,811,2743,961"/>
+<area shape="rect" id="node31" href="$structConnectionListener.html" title=" " alt="" coords="4496,803,4663,969"/>
+<area shape="rect" id="node33" href="$struct____TlsSession.html" title=" " alt="" coords="4647,211,4752,289"/>
+<area shape="rect" id="node34" href="$structTlsSessionCallbacks.html" title=" " alt="" coords="4580,5,4819,127"/>
+<area shape="rect" id="node35" href="$structStunPacket.html" title=" " alt="" coords="3553,840,3691,932"/>
+<area shape="rect" id="node36" href="$structStunHeader.html" title=" " alt="" coords="3223,425,3376,546"/>
+<area shape="rect" id="node37" href="$structStunAttributeHeader.html" title=" " alt="" coords="3401,439,3555,531"/>
+<area shape="rect" id="node39" href="$structTurnProfileDiagnostics.html" title=" " alt="" coords="4860,825,5067,947"/>
+<area shape="rect" id="node41" href="$structRtcIceCandidatePairDiagnostics.html" title=" " alt="" coords="4528,1413,4756,1637"/>
+<area shape="rect" id="node42" href="$structNullableUint32.html" title="Custom data type to allow setting UINT32 data type to NULL since C does not support setting basic dat..." alt="" coords="5143,1193,5261,1285"/>
+<area shape="rect" id="node43" href="$structIceAgentProfileDiagnostics.html" title=" " alt="" coords="3045,796,3300,976"/>
+<area shape="rect" id="node44" href="$structRtcIceCandidateDiagnostics.html" title=" " alt="" coords="3324,796,3528,976"/>
+<area shape="rect" id="node45" href="$structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer&#45;to&#45;peer communications with ano..." alt="" coords="516,1200,661,1277"/>
 </map>

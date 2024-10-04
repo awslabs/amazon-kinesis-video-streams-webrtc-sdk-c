@@ -1,0 +1,13 @@
+<map id="validateIceConfiguration" name="validateIceConfiguration">
+<area shape="rect" id="node1" title=" " alt="" coords="985,71,1167,98"/>
+<area shape="rect" id="node2" href="$LwsApiCalls_8c.html#a43eb41d369f6ab2469d738d1c1be5ce8" title=" " alt="" coords="797,19,925,46"/>
+<area shape="rect" id="node5" href="$LwsApiCalls_8c.html#a4c9dcb58ab89a46831b232ea6f1b9903" title=" " alt="" coords="784,71,937,98"/>
+<area shape="rect" id="node9" href="$LwsApiCalls_8c.html#acb3be4e7def869ccd5a7b34e1d951fa5" title=" " alt="" coords="793,122,929,149"/>
+<area shape="rect" id="node3" href="$Signaling_8c.html#a9b714b42ff43192104ca0cc946f4b346" title=" " alt="" coords="583,15,686,42"/>
+<area shape="rect" id="node4" href="$StateMachine_8c.html#a7dea9acac2fcb8038597198c50c42976" title=" " alt="" coords="257,5,473,47"/>
+<area shape="rect" id="node6" href="$LwsApiCalls_8c.html#ada0698d028687c46481e076ce1be4359" title=" " alt="" coords="546,71,723,98"/>
+<area shape="rect" id="node7" href="$Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="288,71,443,98"/>
+<area shape="rect" id="node8" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,71,197,98"/>
+<area shape="rect" id="node10" href="$Signaling_8c.html#a85fbc5fc8623d113581b2bce92642c93" title=" " alt="" coords="533,122,736,149"/>
+<area shape="rect" id="node11" href="$group__PublicMemberFunctions.html#gae6d8d80d47699c5494de1dc3d455b1f4" title="Send a message through a Signaling client." alt="" coords="245,122,485,149"/>
+</map>

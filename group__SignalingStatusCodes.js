@@ -31,8 +31,6 @@ var group__SignalingStatusCodes =
     [ "STATUS_SIGNALING_INVALID_MESSAGE_TTL_VALUE", "group__SignalingStatusCodes.html#ga69341c098acc7c06345c68862cb06f44", null ],
     [ "STATUS_SIGNALING_INVALID_MESSAGE_TYPE", "group__SignalingStatusCodes.html#ga16c2a0ed78836e02e33f388e1adbfdbf", null ],
     [ "STATUS_SIGNALING_INVALID_METRICS_VERSION", "group__SignalingStatusCodes.html#gaea916cd391b638a9549a7335a9df5c3c", null ],
-    [ "STATUS_SIGNALING_INVALID_OUTPUT_MESSAGE_TYPE", "group__SignalingStatusCodes.html#ga8d152276e9aa95350a15e74d4cfa6763", null ],
-    [ "STATUS_SIGNALING_INVALID_OUTPUT_ROLE", "group__SignalingStatusCodes.html#gab90f7b1563f0690e026b1ea48bb1cce2", null ],
     [ "STATUS_SIGNALING_INVALID_PAYLOAD_LEN_IN_MESSAGE", "group__SignalingStatusCodes.html#ga6668b5a4e9351440b321afde4eb4b1cd", null ],
     [ "STATUS_SIGNALING_INVALID_READY_STATE", "group__SignalingStatusCodes.html#ga5f3b0bc37893253d457ce9555bd4fcd5", null ],
     [ "STATUS_SIGNALING_INVALID_REGION_LENGTH", "group__SignalingStatusCodes.html#ga434d1a99d37ff342fd3b2e50a18b6c88", null ],

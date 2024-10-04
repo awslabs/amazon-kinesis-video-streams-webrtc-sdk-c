@@ -1,12 +1,10 @@
 var group__STUNStatusCodes =
 [
-    [ "STATUS_STUN_ATTRIBUTE_NOT_FOUND", "group__STUNStatusCodes.html#ga9ce214baca2d5d744bf4954a9b7762eb", null ],
     [ "STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY", "group__STUNStatusCodes.html#ga112ce4d2e1c8ad9caecb3c1bb500d9b6", null ],
     [ "STATUS_STUN_BASE", "group__STUNStatusCodes.html#gaf218806a8b7baa71cbf8d5c9891ba395", null ],
     [ "STATUS_STUN_FINGERPRINT_MISMATCH", "group__STUNStatusCodes.html#ga9b572c71a9a4789ec8948b2524aa5b99", null ],
     [ "STATUS_STUN_FINGERPRINT_NOT_LAST", "group__STUNStatusCodes.html#gaea69368a6cbcb63098f27eb644ceb136", null ],
     [ "STATUS_STUN_INVALID_ADDRESS_ATTRIBUTE_LENGTH", "group__STUNStatusCodes.html#ga121f7acb71afcc3e74c44191b7c2171c", null ],
-    [ "STATUS_STUN_INVALID_ATTRIBUTE_LENGTH", "group__STUNStatusCodes.html#ga24d5d4eefc791b33d56de3be5c23650c", null ],
     [ "STATUS_STUN_INVALID_CHANGE_REQUEST_ATTRIBUTE_LENGTH", "group__STUNStatusCodes.html#ga766a9b56a5c1c1431ee267b1958de58b", null ],
     [ "STATUS_STUN_INVALID_CHANNEL_NUMBER_ATTRIBUTE_LENGTH", "group__STUNStatusCodes.html#gacd8fd40e6304484ab9abc8488c9d39d3", null ],
     [ "STATUS_STUN_INVALID_ERROR_CODE_ATTRIBUTE_LENGTH", "group__STUNStatusCodes.html#ga0688737645f194a3110dee22c42b04e9", null ],
@@ -14,7 +12,6 @@ var group__STUNStatusCodes =
     [ "STATUS_STUN_INVALID_ICE_CONTROL_ATTRIBUTE_LENGTH", "group__STUNStatusCodes.html#ga6330712fd6050441928503126dccdb5b", null ],
     [ "STATUS_STUN_INVALID_LIFETIME_ATTRIBUTE_LENGTH", "group__STUNStatusCodes.html#ga752822eff3d2578e8b59c0aca33bb3ef", null ],
     [ "STATUS_STUN_INVALID_MESSAGE_INTEGRITY_ATTRIBUTE_LENGTH", "group__STUNStatusCodes.html#ga7489372fb7a6b974edaa101b2bb120e3", null ],
-    [ "STATUS_STUN_INVALID_MESSAGE_LENGTH", "group__STUNStatusCodes.html#ga3dc2698a92e60a514794f01783a79ac7", null ],
     [ "STATUS_STUN_INVALID_NONCE_ATTRIBUTE_LENGTH", "group__STUNStatusCodes.html#ga11e9e4f698b1f54e97458727624d8b32", null ],
     [ "STATUS_STUN_INVALID_PRIORITY_ATTRIBUTE_LENGTH", "group__STUNStatusCodes.html#ga33b668cf1874e0de2688c583fa885797", null ],
     [ "STATUS_STUN_INVALID_REALM_ATTRIBUTE_LENGTH", "group__STUNStatusCodes.html#ga4f5b7dd4a290f43bc4387ebf1167f013", null ],
@@ -28,7 +25,5 @@ var group__STUNStatusCodes =
     [ "STATUS_STUN_MESSAGE_INTEGRITY_NOT_LAST", "group__STUNStatusCodes.html#gac6a0242c62eb66b07a4930611e9bba3e", null ],
     [ "STATUS_STUN_MESSAGE_INTEGRITY_SIZE_ALIGNMENT", "group__STUNStatusCodes.html#ga5a258420f514b8dcb907a458761560f9", null ],
     [ "STATUS_STUN_MULTIPLE_FINGERPRINT_ATTRIBUTES", "group__STUNStatusCodes.html#gafa36a669c2f5708f4db45db804802b1c", null ],
-    [ "STATUS_STUN_MULTIPLE_MESSAGE_INTEGRITY_ATTRIBUTES", "group__STUNStatusCodes.html#gaf2bf7204fac8b1708cd3a71748f6dbb7", null ],
-    [ "STATUS_STUN_NO_MORE_ATTRIBUTE_FOUND", "group__STUNStatusCodes.html#gacdc3ced5d43e3389a2992c9cf65284e6", null ],
-    [ "STATUS_STUN_UNKNOWN_ERROR", "group__STUNStatusCodes.html#ga54a1db57122b5dae5f6c6b6e4422352d", null ]
+    [ "STATUS_STUN_MULTIPLE_MESSAGE_INTEGRITY_ATTRIBUTES", "group__STUNStatusCodes.html#gaf2bf7204fac8b1708cd3a71748f6dbb7", null ]
 ];

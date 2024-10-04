@@ -1,40 +1,36 @@
 <map id="getFirstAvailableStunAttribute" name="getFirstAvailableStunAttribute">
-<area shape="rect" id="node1" title=" " alt="" coords="2071,309,2288,336"/>
-<area shape="rect" id="node2" href="$Stun_8c.html#ae58b6ddd5522d1a40fe920c543b74529" title=" " alt="" coords="1788,360,1996,387"/>
-<area shape="rect" id="node18" href="$Stun_8c.html#a1d9ce3d31ffafcc0e97afe7301a573de" title=" " alt="" coords="1763,5,2021,32"/>
-<area shape="rect" id="node21" href="$Stun_8c.html#a5852b6e07e38ec4c7301be13bc6bf9e3" title=" " alt="" coords="1761,411,2023,437"/>
-<area shape="rect" id="node22" href="$Stun_8c.html#a99a926646099a6a84f57adab70e07136" title=" " alt="" coords="1799,157,1985,184"/>
-<area shape="rect" id="node23" href="$Stun_8c.html#a49443ae48455950fdfa2285c16646d25" title=" " alt="" coords="1782,208,2002,235"/>
-<area shape="rect" id="node24" href="$Stun_8c.html#a34fc9185e42d3729506fefac4b2342e3" title=" " alt="" coords="1800,56,1984,83"/>
-<area shape="rect" id="node27" href="$Stun_8c.html#aae6871ed64e3c111fa3b821d7ce56373" title=" " alt="" coords="1779,259,2005,285"/>
-<area shape="rect" id="node30" href="$Stun_8c.html#a2116190fb63abb09d5f672808425bd87" title=" " alt="" coords="1787,512,1997,539"/>
-<area shape="rect" id="node34" href="$Stun_8c.html#ac82c9a5d3112633ed3c450c5ccf66e39" title=" " alt="" coords="1793,563,1991,589"/>
-<area shape="rect" id="node35" href="$Stun_8c.html#a89bc73671740d89be124bb741202032b" title=" " alt="" coords="1791,107,1993,133"/>
-<area shape="rect" id="node36" href="$Stun_8c.html#a91257d50ef47eba1f7e9d1aa5a3132f5" title=" " alt="" coords="1793,461,1991,488"/>
-<area shape="rect" id="node37" href="$Stun_8c.html#a66414b6fb7b70d15467fc1ce7543ec8d" title=" " alt="" coords="1778,614,2006,655"/>
-<area shape="rect" id="node38" href="$Stun_8c.html#a2a621853bf20ca509f3846e179cd08df" title=" " alt="" coords="1781,309,2003,336"/>
-<area shape="rect" id="node3" href="$TurnConnectionStateMachine_8c.html#adf4fe21ee4ee8268ea52bb33720b1a9d" title=" " alt="" coords="1493,414,1707,455"/>
-<area shape="rect" id="node4" href="$IceAgent_8c.html#a15dca4483895fee272df46d7e4a955d7" title=" " alt="" coords="1531,349,1669,376"/>
-<area shape="rect" id="node5" href="$IceAgent_8c.html#a97079f5f6e61ff478f94f9934af5eec0" title=" " alt="" coords="1242,349,1406,376"/>
-<area shape="rect" id="node6" href="$IceAgent_8c.html#a404897a5797a45ca76444ee244c5b760" title=" " alt="" coords="955,299,1151,325"/>
-<area shape="rect" id="node10" href="$IceAgent_8c.html#a0a39b316e5aff662b257648e97e53146" title=" " alt="" coords="955,349,1150,376"/>
-<area shape="rect" id="node11" href="$IceAgent_8c.html#ac6d7992fc8ddf1009332e5f72ec42cff" title=" " alt="" coords="944,400,1161,427"/>
-<area shape="rect" id="node7" href="$IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="707,312,882,339"/>
-<area shape="rect" id="node8" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="465,273,615,300"/>
-<area shape="rect" id="node9" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,349,172,376"/>
-<area shape="rect" id="node12" href="$IceAgent_8c.html#aa82059f636933c877ef87e25f4a62669" title=" " alt="" coords="693,400,896,427"/>
-<area shape="rect" id="node13" href="$IceAgent_8c.html#a13816c51f4959ce3f3efa41341662d8c" title=" " alt="" coords="467,375,613,401"/>
-<area shape="rect" id="node15" href="$IceAgent_8c.html#a888fc1a2a5c2fe190f30db87c85c6759" title=" " alt="" coords="435,425,645,452"/>
-<area shape="rect" id="node14" href="$group__PublicMemberFunctions.html#ga577207b68c0fe53137a2b32f975abb09" title="Give peer connection an ice config to add to its server list." alt="" coords="220,375,387,401"/>
-<area shape="rect" id="node16" href="$IceAgent_8c.html#a311a951cf965e83e76372560f2ce1c0f" title=" " alt="" coords="240,425,367,452"/>
-<area shape="rect" id="node17" href="$group__PublicMemberFunctions.html#gade9fcbb056cb321f33890c1cf1222e64" title="Instructs the RtcPeerConnection that ICE should be restarted. Subsequent calls to createOffer will cr..." alt="" coords="47,425,131,452"/>
-<area shape="rect" id="node19" href="$NatBehaviorDiscovery_8c.html#aad9e4ff5cbbeb8434e964c1c2261ba29" title=" " alt="" coords="1495,5,1705,32"/>
-<area shape="rect" id="node20" href="$group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="1245,5,1403,32"/>
-<area shape="rect" id="node25" href="$IceAgent_8c.html#a8d811662404803fa38a7d691516c9de8" title=" " alt="" coords="1487,149,1713,176"/>
-<area shape="rect" id="node26" href="$IceAgentStateMachine_8c.html#a5431027d18e1397eb1dfc8953099dbf6" title=" " alt="" coords="1221,142,1427,183"/>
-<area shape="rect" id="node28" href="$IceAgent_8c.html#a4b90ebcbe4910ff3837076c8b8a8c253" title=" " alt="" coords="1487,251,1713,293"/>
-<area shape="rect" id="node29" href="$IceAgentStateMachine_8c.html#a6d1c63854bb87950e837be2cdb6793d3" title=" " alt="" coords="1221,251,1427,293"/>
-<area shape="rect" id="node31" href="$TurnConnection_8c.html#a06a0f12aa630dbc36d8343e120c8f216" title=" " alt="" coords="1499,505,1701,546"/>
-<area shape="rect" id="node32" href="$TurnConnectionStateMachine_8c.html#a5b2eedee33db4144771d00b2dd6a9731" title=" " alt="" coords="1225,483,1423,509"/>
-<area shape="rect" id="node33" href="$TurnConnectionStateMachine_8c.html#a34197cadf5046da541bd048bb56ddd4d" title=" " alt="" coords="1209,534,1439,575"/>
+<area shape="rect" id="node1" title=" " alt="" coords="2079,309,2296,336"/>
+<area shape="rect" id="node2" href="$Stun_8c.html#ac341869341895d4bc3e767118bd27806" title=" " alt="" coords="1796,360,2004,387"/>
+<area shape="rect" id="node14" href="$Stun_8c.html#a1d9ce3d31ffafcc0e97afe7301a573de" title=" " alt="" coords="1771,5,2029,32"/>
+<area shape="rect" id="node17" href="$Stun_8c.html#a5852b6e07e38ec4c7301be13bc6bf9e3" title=" " alt="" coords="1769,411,2031,437"/>
+<area shape="rect" id="node18" href="$Stun_8c.html#a99a926646099a6a84f57adab70e07136" title=" " alt="" coords="1807,157,1993,184"/>
+<area shape="rect" id="node19" href="$Stun_8c.html#a49443ae48455950fdfa2285c16646d25" title=" " alt="" coords="1790,208,2010,235"/>
+<area shape="rect" id="node20" href="$Stun_8c.html#a1104c49d91dedad4500a73d9ac37cb63" title=" " alt="" coords="1808,56,1992,83"/>
+<area shape="rect" id="node23" href="$Stun_8c.html#a732cf4db5674e2e1e5305eb4972ee92f" title=" " alt="" coords="1787,259,2013,285"/>
+<area shape="rect" id="node26" href="$Stun_8c.html#a2116190fb63abb09d5f672808425bd87" title=" " alt="" coords="1795,512,2005,539"/>
+<area shape="rect" id="node30" href="$Stun_8c.html#ac82c9a5d3112633ed3c450c5ccf66e39" title=" " alt="" coords="1801,563,1999,589"/>
+<area shape="rect" id="node31" href="$Stun_8c.html#a89bc73671740d89be124bb741202032b" title=" " alt="" coords="1799,107,2001,133"/>
+<area shape="rect" id="node32" href="$Stun_8c.html#a91257d50ef47eba1f7e9d1aa5a3132f5" title=" " alt="" coords="1801,461,1999,488"/>
+<area shape="rect" id="node33" href="$Stun_8c.html#a66414b6fb7b70d15467fc1ce7543ec8d" title=" " alt="" coords="1786,614,2014,655"/>
+<area shape="rect" id="node34" href="$Stun_8c.html#a2a621853bf20ca509f3846e179cd08df" title=" " alt="" coords="1789,309,2011,336"/>
+<area shape="rect" id="node3" href="$TurnConnectionStateMachine_8c.html#adf4fe21ee4ee8268ea52bb33720b1a9d" title=" " alt="" coords="1501,414,1715,455"/>
+<area shape="rect" id="node4" href="$IceAgent_8c.html#a15dca4483895fee272df46d7e4a955d7" title=" " alt="" coords="1539,349,1677,376"/>
+<area shape="rect" id="node5" href="$IceAgent_8c.html#a97079f5f6e61ff478f94f9934af5eec0" title=" " alt="" coords="1250,349,1414,376"/>
+<area shape="rect" id="node6" href="$IceAgent_8c.html#a404897a5797a45ca76444ee244c5b760" title=" " alt="" coords="705,299,901,325"/>
+<area shape="rect" id="node10" href="$IceAgent_8c.html#a0a39b316e5aff662b257648e97e53146" title=" " alt="" coords="451,349,645,376"/>
+<area shape="rect" id="node11" href="$IceAgent_8c.html#ac6d7992fc8ddf1009332e5f72ec42cff" title=" " alt="" coords="952,400,1169,427"/>
+<area shape="rect" id="node7" href="$IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="220,349,395,376"/>
+<area shape="rect" id="node8" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="13,324,164,351"/>
+<area shape="rect" id="node9" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,375,172,401"/>
+<area shape="rect" id="node12" href="$IceAgent_8c.html#aa82059f636933c877ef87e25f4a62669" title=" " alt="" coords="701,400,904,427"/>
+<area shape="rect" id="node13" href="$IceAgent_8c.html#a888fc1a2a5c2fe190f30db87c85c6759" title=" " alt="" coords="443,400,653,427"/>
+<area shape="rect" id="node15" href="$NatBehaviorDiscovery_8c.html#aad9e4ff5cbbeb8434e964c1c2261ba29" title=" " alt="" coords="1503,5,1713,32"/>
+<area shape="rect" id="node16" href="$group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="1253,5,1411,32"/>
+<area shape="rect" id="node21" href="$IceAgent_8c.html#a8d811662404803fa38a7d691516c9de8" title=" " alt="" coords="1495,149,1721,176"/>
+<area shape="rect" id="node22" href="$IceAgentStateMachine_8c.html#a5431027d18e1397eb1dfc8953099dbf6" title=" " alt="" coords="1229,142,1435,183"/>
+<area shape="rect" id="node24" href="$IceAgent_8c.html#a4b90ebcbe4910ff3837076c8b8a8c253" title=" " alt="" coords="1495,251,1721,293"/>
+<area shape="rect" id="node25" href="$IceAgentStateMachine_8c.html#a6d1c63854bb87950e837be2cdb6793d3" title=" " alt="" coords="1229,251,1435,293"/>
+<area shape="rect" id="node27" href="$TurnConnection_8c.html#a06a0f12aa630dbc36d8343e120c8f216" title=" " alt="" coords="1507,505,1709,546"/>
+<area shape="rect" id="node28" href="$TurnConnectionStateMachine_8c.html#a5b2eedee33db4144771d00b2dd6a9731" title=" " alt="" coords="1233,483,1431,509"/>
+<area shape="rect" id="node29" href="$TurnConnectionStateMachine_8c.html#a34197cadf5046da541bd048bb56ddd4d" title=" " alt="" coords="1217,534,1447,575"/>
 </map>
