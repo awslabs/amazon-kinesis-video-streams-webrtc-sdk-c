@@ -165,8 +165,7 @@ CleanUp:
 STATUS createSocket(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol, UINT32 sendBufSize, PINT32 pOutSockFd)
 {
     STATUS retStatus = STATUS_SUCCESS;
-
-    INT32 sockfd, sockType, flags;
+    INT32 sockfd = -1, sockType, flags;
     INT32 optionValue;
 
     CHK(pOutSockFd != NULL, STATUS_NULL_ARG);
@@ -179,12 +178,14 @@ STATUS createSocket(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol,
         DLOGW("socket() failed to create socket with errno %s", getErrorString(getErrorCode()));
         CHK(FALSE, STATUS_CREATE_UDP_SOCKET_FAILED);
     }
+
 #ifdef NO_SIGNAL_SOCK_OPT
     optionValue = 1;
     if (setsockopt(sockfd, SOL_SOCKET, NO_SIGNAL_SOCK_OPT, &optionValue, SIZEOF(optionValue)) < 0) {
         DLOGD("setsockopt() NO_SIGNAL_SOCK_OPT failed with errno %s", getErrorString(getErrorCode()));
     }
 #endif /* NO_SIGNAL_SOCK_OPT */
+
     if (sendBufSize > 0 && setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &sendBufSize, SIZEOF(sendBufSize)) < 0) {
         DLOGW("setsockopt() SO_SNDBUF failed with errno %s", getErrorString(getErrorCode()));
         CHK(FALSE, STATUS_SOCKET_SET_SEND_BUFFER_SIZE_FAILED);
@@ -196,23 +197,24 @@ STATUS createSocket(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol,
     UINT32 nonblock = 1;
     ioctlsocket(sockfd, FIONBIO, &nonblock);
 #else
-    // Set the non-blocking mode for the socket
     flags = fcntl(sockfd, F_GETFL, 0);
     CHK_ERR(flags >= 0, STATUS_GET_SOCKET_FLAG_FAILED, "Failed to get the socket flags with system error %s", strerror(errno));
     CHK_ERR(0 <= fcntl(sockfd, F_SETFL, flags | O_NONBLOCK), STATUS_SET_SOCKET_FLAG_FAILED, "Failed to Set the socket flags with system error %s",
             strerror(errno));
 #endif
 
-    // done at this point for UDP
     CHK(protocol == KVS_SOCKET_PROTOCOL_TCP, retStatus);
 
-    /* disable Nagle algorithm to not delay sending packets. We should have enough density to justify using it. */
     optionValue = 1;
     if (setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &optionValue, SIZEOF(optionValue)) < 0) {
         DLOGW("setsockopt() TCP_NODELAY failed with errno %s", getErrorString(getErrorCode()));
     }
 
 CleanUp:
+    if (STATUS_FAILED(retStatus) && sockfd != -1) {
+        close(sockfd); // Ensure the socket is closed in case of failure
+        sockfd = -1;
+    }
 
     return retStatus;
 }
