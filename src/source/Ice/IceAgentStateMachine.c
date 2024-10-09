@@ -357,6 +357,7 @@ STATUS executeConnectedIceAgentState(UINT64 customData, UINT64 time)
     CHK_STATUS(iceAgentConnectedStateSetup(pIceAgent));
 
     pIceAgent->iceAgentState = ICE_AGENT_STATE_CONNECTED;
+    CHK_STATUS(pruneUnconnectedIceCandidatePair(pIceAgent));
 
 CleanUp:
 

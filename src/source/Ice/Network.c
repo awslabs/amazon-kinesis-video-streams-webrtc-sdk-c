@@ -165,8 +165,7 @@ CleanUp:
 STATUS createSocket(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol, UINT32 sendBufSize, PINT32 pOutSockFd)
 {
     STATUS retStatus = STATUS_SUCCESS;
-
-    INT32 sockfd, sockType, flags;
+    INT32 sockfd = -1, sockType, flags;
     INT32 optionValue;
 
     CHK(pOutSockFd != NULL, STATUS_NULL_ARG);
@@ -179,12 +178,14 @@ STATUS createSocket(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol,
         DLOGW("socket() failed to create socket with errno %s", getErrorString(getErrorCode()));
         CHK(FALSE, STATUS_CREATE_UDP_SOCKET_FAILED);
     }
+
 #ifdef NO_SIGNAL_SOCK_OPT
     optionValue = 1;
     if (setsockopt(sockfd, SOL_SOCKET, NO_SIGNAL_SOCK_OPT, &optionValue, SIZEOF(optionValue)) < 0) {
         DLOGD("setsockopt() NO_SIGNAL_SOCK_OPT failed with errno %s", getErrorString(getErrorCode()));
     }
 #endif /* NO_SIGNAL_SOCK_OPT */
+
     if (sendBufSize > 0 && setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &sendBufSize, SIZEOF(sendBufSize)) < 0) {
         DLOGW("setsockopt() SO_SNDBUF failed with errno %s", getErrorString(getErrorCode()));
         CHK(FALSE, STATUS_SOCKET_SET_SEND_BUFFER_SIZE_FAILED);
@@ -213,6 +214,10 @@ STATUS createSocket(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol,
     }
 
 CleanUp:
+    if (STATUS_FAILED(retStatus) && sockfd != -1) {
+        close(sockfd); // Ensure the socket is closed in case of failure
+        sockfd = -1;
+    }
 
     return retStatus;
 }

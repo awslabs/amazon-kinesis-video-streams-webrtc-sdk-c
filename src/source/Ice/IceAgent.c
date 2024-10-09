@@ -1215,6 +1215,7 @@ STATUS pruneUnconnectedIceCandidatePair(PIceAgent pIceAgent)
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL, pNextNode = NULL;
     PIceCandidatePair pIceCandidatePair = NULL;
+    PIceCandidate pLocalCandidate = NULL;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
@@ -1223,12 +1224,25 @@ STATUS pruneUnconnectedIceCandidatePair(PIceAgent pIceAgent)
         pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
 
         if (pIceCandidatePair->state != ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
-            // backup next node as we will lose that after deleting pCurNode.
+            // Backup next node as we will lose that after deleting pCurNode.
             pNextNode = pCurNode->pNext;
+
+            // Retrieve the local candidate for this pair
+            pLocalCandidate = pIceCandidatePair->local;
+            if (pLocalCandidate != NULL && pLocalCandidate->pSocketConnection != NULL) {
+                // Remove the connection from the listener and free the socket connection
+                CHK_STATUS(connectionListenerRemoveConnection(pIceAgent->pConnectionListener, pLocalCandidate->pSocketConnection));
+                CHK_STATUS(freeSocketConnection(&pLocalCandidate->pSocketConnection));
+            }
+
+            // Free the ICE candidate pair itself
             CHK_STATUS(freeIceCandidatePair(&pIceCandidatePair));
             CHK_STATUS(doubleListDeleteNode(pIceAgent->iceCandidatePairs, pCurNode));
+
+            // Move to the next node
             pCurNode = pNextNode;
         } else {
+            // Move to the next node if the current pair is successful
             pCurNode = pCurNode->pNext;
         }
     }
