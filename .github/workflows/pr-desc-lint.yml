@@ -34,20 +34,14 @@ jobs:
             exit 1
           fi
           
-          echo "Description is: $pr_description"
-          
           # Define minimum character count for each section
           MIN_CHARS=10
 
           # Extract contents
-          what_changed=$(echo "$pr_description" | sed -n -e '/\*What was changed?\*/,/\*/p' | sed '$d' | sed '1d')
-          why_changed=$(echo "$pr_description" | sed -n -e '/\*Why was it changed?\*/,/\*/p' | sed '$d' | sed '1d')
-          how_changed=$(echo "$pr_description" | sed -n -e '/\*How was it changed?\*/,/\*/p' | sed '$d' | sed '1d')
-          testing_done=$(echo "$pr_description" | sed -n -e '/\*What testing was done for the changes?\*/,/\*/p' | sed '$d' | sed '1d')
-          
-          echo "Step 1: $(echo "$pr_description" | sed -n -e '/\*What was changed?\*/,/\*/p')"
-          echo "Step 2: $(echo "$pr_description" | sed -n -e '/\*What was changed?\*/,/\*/p' | sed '$d')"
-          echo "Step 3: $(echo "$pr_description" | sed -n -e '/\*What was changed?\*/,/\*/p' | sed '$d' | sed '1d')"
+          what_changed=$(echo "$pr_description" | sed -n -e '/\*What was changed?\*/,/\*Why was it changed?\*/p' | sed '$d' | sed '1d')
+          why_changed=$(echo "$pr_description" | sed -n -e '/\*Why was it changed?\*/,/\*How was it changed?\*/p' | sed '$d' | sed '1d')
+          how_changed=$(echo "$pr_description" | sed -n -e '/\*How was it changed?\*/,/\*What testing was done for the changes?\*/p' | sed '$d' | sed '1d')
+          testing_done=$(echo "$pr_description" | sed -n -e '/\*What testing was done for the changes?\*/,/By submitting this pull request/p' | sed '$d' | sed '1d')
   
           error_occurred=0
           if [[ ${#what_changed} -lt $MIN_CHARS ]]; then
