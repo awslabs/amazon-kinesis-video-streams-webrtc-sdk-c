@@ -23,18 +23,23 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          pr_description=$(gh pr view https://github.com/${GITHUB_REPOSITORY}/pull/${{ github.event.pull_request.number }} --json body -q ".body")
-          error_occurred=0
+          pr_description=$(gh pr view ${{ github.event.pull_request.number }} --json body -q ".body")
+          
+          if [ -z "$pr_description" ]; then
+            echo "Failed to fetch the PR description"
+            exit 1
+          fi
+          
           # Define minimum character count for each section
           MIN_CHARS=10
 
-          # Extract contents
           # Extract contents
           what_changed=$(echo "$pr_description" | sed -n -e '/\*What was changed?\*/,/\*/p' | sed '$d' | sed '1d')
           why_changed=$(echo "$pr_description" | sed -n -e '/\*Why was it changed?\*/,/\*/p' | sed '$d' | sed '1d')
           how_changed=$(echo "$pr_description" | sed -n -e '/\*How was it changed?\*/,/\*/p' | sed '$d' | sed '1d')
           testing_done=$(echo "$pr_description" | sed -n -e '/\*What testing was done for the changes?\*/,/\*/p' | sed '$d' | sed '1d')
 
+          error_occurred=0
           if [[ ${#what_changed} -lt $MIN_CHARS ]]; then
             echo "PR description for what changed section is either missing or too short. Required: ${MIN_CHARS}, Current: ${what_changed}"
             error_occurred=1
@@ -52,5 +57,5 @@ jobs:
             error_occurred=1
           fi
           if [[ $error_occurred -eq 1 ]]; then
-          exit 1
+            exit 1
           fi
