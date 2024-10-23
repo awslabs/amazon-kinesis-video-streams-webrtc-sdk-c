@@ -23,7 +23,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          pr_description=$(gh pr view ${{ github.event.pull_request.number }} --json body -q ".body")
+          pr_link="https://github.com/${GITHUB_REPOSITORY}/pull/${{ github.event.pull_request.number }}"
+          
+          echo "$pr_link"
+          
+          pr_description=$(gh pr view $pr_link --json body -q ".body")
           
           if [ -z "$pr_description" ]; then
             echo "Failed to fetch the PR description"
