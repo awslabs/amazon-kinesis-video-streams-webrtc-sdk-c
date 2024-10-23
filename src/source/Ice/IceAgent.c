@@ -90,7 +90,7 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
 
     // Pre-allocate stun packets
 
-    // no other attribtues needed: https://tools.ietf.org/html/rfc8445#section-11
+    // no other attributes needed: https://tools.ietf.org/html/rfc8445#section-11
     CHK_STATUS(createStunPacket(STUN_PACKET_TYPE_BINDING_INDICATION, NULL, &pIceAgent->pBindingIndication));
     CHK_STATUS(hashTableCreateWithParams(ICE_HASH_TABLE_BUCKET_COUNT, ICE_HASH_TABLE_BUCKET_LENGTH, &pIceAgent->requestTimestampDiagnostics));
 
