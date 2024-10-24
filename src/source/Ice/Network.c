@@ -85,7 +85,7 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
     for (ifa = ifaddr; ifa != NULL && ipCount < destIpListLen; ifa = ifa->ifa_next) {
         if (ifa->ifa_addr != NULL && (ifa->ifa_flags & IFF_LOOPBACK) == 0 && // ignore loopback interface
             (ifa->ifa_flags & IFF_RUNNING) > 0 &&                            // interface has to be allocated
-            (ifa->ifa_addr->sa_family == AF_INET || ifa->ifa_addr->sa_family == AF_INET6)) {
+            (ifa->ifa_addr->sa_family == AF_INET /*|| ifa->ifa_addr->sa_family == AF_INET6 */)) {
             // mark vpn interface
             destIpList[ipCount].isPointToPoint = ((ifa->ifa_flags & IFF_POINTOPOINT) != 0);
 
