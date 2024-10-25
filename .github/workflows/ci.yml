@@ -45,7 +45,7 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
           make
       - name: Run tests
-        run:  |
+        run: |
           cd build
           ./tst/webrtc_client_test
   mac-os-build-gcc:
@@ -71,7 +71,7 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
           make
       - name: Run tests
-        run:  |
+        run: |
           cd build
           ./tst/webrtc_client_test
   mac-os-m1-build-clang:
@@ -100,7 +100,7 @@ jobs:
           sh -c 'cmake .. -DBUILD_TEST=TRUE -DCMAKE_C_COMPILER=$(brew --prefix llvm@15)/bin/clang -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang++'
           make
       - name: Run tests
-        run:  |
+        run: |
           cd build
           ./tst/webrtc_client_test
   static-build-mac:
@@ -124,7 +124,7 @@ jobs:
           cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
           make
       - name: Run tests
-        run:  |
+        run: |
           cd build
           ./tst/webrtc_client_test
   address-sanitizer:
@@ -160,7 +160,7 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run:  |
+        run: |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   undefined-behavior-sanitizer:
@@ -195,7 +195,7 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run:  |
+        run: |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   # memory-sanitizer:
@@ -250,7 +250,7 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run:  |
+        run: |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   linux-gcc-4_4:
@@ -288,7 +288,7 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run:  |
+        run: |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   static-build-linux:
@@ -348,7 +348,7 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run:  |
+        run: |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   mbedtls-ubuntu-gcc-11:
@@ -382,7 +382,7 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run:  |
+        run: |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
 
@@ -448,7 +448,7 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run:  |
+        run: |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   sample-check:
@@ -530,7 +530,7 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE
           make
       - name: Run tests
-        run:  |
+        run: |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   windows-msvc-openssl:
@@ -668,3 +668,78 @@ jobs:
           mkdir build && cd build
           cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
           make
+
+  valgrind-check:
+    runs-on: ubuntu-latest
+    env:
+      AWS_KVS_LOG_LEVEL: 7
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Install deps
+        run: |
+          sudo apt clean && sudo apt update
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy main'
+          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy universe'
+          sudo apt-get -q update
+          sudo apt-get -y install libcurl4-openssl-dev valgrind
+      - name: Build repository
+        run: |
+          mkdir build && cd build
+          cmake .. -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+          make
+          ulimit -c unlimited -S
+      - name: Run tests
+        run: |
+          cd build
+          valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file=valgrind-master.txt ./samples/kvsWebrtcClientMaster demo-channel-gh-actions &
+          PID_MASTER=$!
+          valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file=valgrind-viewer.txt ./samples/kvsWebrtcClientViewer demo-channel-gh-actions &
+          PID_VIEWER=$!
+          
+          # Wait for processes to run initially
+          sleep 30 # Wait 30s
+          
+          # Send SIGINT (2) to both processes
+          kill -2 $PID_VIEWER
+          sleep 30
+          
+          kill -2 $PID_MASTER
+          
+          # Start a background task to enforce a timeout for graceful shutdown
+          (
+            sleep 10
+            kill -9 $PID_MASTER 2>/dev/null
+            kill -9 $PID_VIEWER 2>/dev/null
+          ) &
+          
+          wait $PID_MASTER
+          EXIT_STATUS_MASTER=$?
+          wait $PID_VIEWER
+          EXIT_STATUS_VIEWER=$?
+          
+          # Check exit statuses to determine if the interrupt was successful
+          if [ $EXIT_STATUS_MASTER -ne 0 ] || [ $EXIT_STATUS_VIEWER -ne 0 ]; then
+            echo "Process did not exit gracefully."
+            exit 1
+          else
+            echo "Processes exited successfully."
+          fi
+          
+          # Check for memory leaks in Valgrind output files
+          if grep "All heap blocks were freed -- no leaks are possible" valgrind-master.txt && grep "All heap blocks were freed -- no leaks are possible" valgrind-viewer.txt; then
+            echo "No memory leaks detected."
+          else
+            echo "Memory leaks detected."
+            exit 1
+          fi
