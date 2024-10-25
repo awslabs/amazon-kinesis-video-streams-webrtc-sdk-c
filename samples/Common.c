@@ -138,13 +138,12 @@ STATUS handleAnswer(PSampleConfiguration pSampleConfiguration, PSampleStreamingS
 {
     UNUSED_PARAM(pSampleConfiguration);
     STATUS retStatus = STATUS_SUCCESS;
-    PRtcSessionDescriptionInit pAnswerSessionDescriptionInit = NULL;
+    RtcSessionDescriptionInit answerSessionDescriptionInit;
 
-    pAnswerSessionDescriptionInit = (PRtcSessionDescriptionInit) MEMCALLOC(1, SIZEOF(RtcSessionDescriptionInit));
-    CHK(pAnswerSessionDescriptionInit != NULL, STATUS_NOT_ENOUGH_MEMORY);
+    MEMSET(&answerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
 
-    CHK_STATUS(deserializeSessionDescriptionInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, pAnswerSessionDescriptionInit));
-    CHK_STATUS(setRemoteDescription(pSampleStreamingSession->pPeerConnection, pAnswerSessionDescriptionInit));
+    CHK_STATUS(deserializeSessionDescriptionInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, &answerSessionDescriptionInit));
+    CHK_STATUS(setRemoteDescription(pSampleStreamingSession->pPeerConnection, &answerSessionDescriptionInit));
 
     // The audio video receive routine should be per streaming session
     if (pSampleConfiguration->receiveAudioVideoSource != NULL) {
@@ -152,10 +151,6 @@ STATUS handleAnswer(PSampleConfiguration pSampleConfiguration, PSampleStreamingS
                       (PVOID) pSampleStreamingSession);
     }
 CleanUp:
-
-    if (pAnswerSessionDescriptionInit != NULL) {
-        SAFE_MEMFREE(pAnswerSessionDescriptionInit);
-    }
 
     CHK_LOG_ERR(retStatus);
 
@@ -204,17 +199,17 @@ CleanUp:
 STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSession pSampleStreamingSession, PSignalingMessage pSignalingMessage)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    PRtcSessionDescriptionInit pOfferSessionDescriptionInit = NULL;
+    RtcSessionDescriptionInit offerSessionDescriptionInit;
     NullableBool canTrickle;
     BOOL mediaThreadStarted;
 
     CHK(pSampleConfiguration != NULL && pSignalingMessage != NULL, STATUS_NULL_ARG);
 
-    pOfferSessionDescriptionInit = (PRtcSessionDescriptionInit) MEMCALLOC(1, SIZEOF(RtcSessionDescriptionInit));
+    MEMSET(&offerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
     MEMSET(&pSampleStreamingSession->answerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
     DLOGD("**offer:%s", pSignalingMessage->payload);
-    CHK_STATUS(deserializeSessionDescriptionInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, pOfferSessionDescriptionInit));
-    CHK_STATUS(setRemoteDescription(pSampleStreamingSession->pPeerConnection, pOfferSessionDescriptionInit));
+    CHK_STATUS(deserializeSessionDescriptionInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, &offerSessionDescriptionInit));
+    CHK_STATUS(setRemoteDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
     canTrickle = canTrickleIceCandidates(pSampleStreamingSession->pPeerConnection);
     /* cannot be null after setRemoteDescription */
     CHECK(!NULLABLE_CHECK_EMPTY(canTrickle));
@@ -240,9 +235,6 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
                       (PVOID) pSampleStreamingSession);
     }
 CleanUp:
-    if (pOfferSessionDescriptionInit != NULL) {
-        SAFE_MEMFREE(pOfferSessionDescriptionInit);
-    }
 
     CHK_LOG_ERR(retStatus);
 
