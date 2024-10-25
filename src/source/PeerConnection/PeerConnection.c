@@ -1004,6 +1004,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     if (!pConfiguration->kvsRtcConfiguration.disableSenderSideBandwidthEstimation) {
         pKvsPeerConnection->twccLock = MUTEX_CREATE(TRUE);
         pKvsPeerConnection->pTwccManager = (PTwccManager) MEMCALLOC(1, SIZEOF(TwccManager));
+        CHK(pKvsPeerConnection->pTwccManager != NULL, STATUS_NOT_ENOUGH_MEMORY);
     }
 
     *ppPeerConnection = (PRtcPeerConnection) pKvsPeerConnection;
@@ -1333,6 +1334,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
 
     pKvsPeerConnection->pRemoteSessionDescription = (PSessionDescription) MEMCALLOC(1, SIZEOF(SessionDescription));
     pSessionDescription = pKvsPeerConnection->pRemoteSessionDescription;
+    CHK(pSessionDescription != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
     pKvsPeerConnection->dtlsIsServer = FALSE;
     /* Assume cant trickle at first */
