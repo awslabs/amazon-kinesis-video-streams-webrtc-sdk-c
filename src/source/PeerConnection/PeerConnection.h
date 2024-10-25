@@ -105,6 +105,8 @@ typedef struct {
 
     MUTEX peerConnectionObjLock;
 
+    // If the local description is an SDP offer.
+    // (TRUE = viewer mode, FALSE = master mode)
     BOOL isOffer;
 
     TIMER_QUEUE_HANDLE timerQueueHandle;
