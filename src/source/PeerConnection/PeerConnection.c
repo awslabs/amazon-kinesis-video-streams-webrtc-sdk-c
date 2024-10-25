@@ -1600,8 +1600,13 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     pKvsRtpTransceiver = NULL;
 
 CleanUp:
-    SAFE_MEMFREE(pJitterBuffer);
-    SAFE_MEMFREE(pKvsRtpTransceiver);
+    if (pJitterBuffer != NULL) {
+        CHK_LOG_ERR(freeJitterBuffer(&pJitterBuffer));
+    }
+
+    if (pKvsRtpTransceiver != NULL) {
+        CHK_LOG_ERR(freeKvsRtpTransceiver(&pKvsRtpTransceiver));
+    }
 
     CHK_LOG_ERR(retStatus);
 
