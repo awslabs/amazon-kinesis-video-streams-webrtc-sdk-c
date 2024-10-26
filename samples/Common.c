@@ -781,7 +781,7 @@ CleanUp:
 STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE roleType, BOOL trickleIce, BOOL useTurn, UINT32 logLevel,
                                  PSampleConfiguration* ppSampleConfiguration)
 {
-    PVOID test = MALLOC(10000);  // Test memory leak
+    PVOID test = MEMALLOC(10000);  // Test memory leak
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR pAccessKey, pSecretKey, pSessionToken;
     PSampleConfiguration pSampleConfiguration = NULL;
