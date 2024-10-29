@@ -573,7 +573,7 @@ By default, our SDK enables TWCC listener. The SDK has a sample implementation t
 
 
 ### Thread stack sizes
-The default thread stack size for the KVS WebRTC SDK is 64 kb. Notable stack sizes that may need to be changed for your specific application will be the ConnectionListener Receiver thread and the media sender threads. Please modify the stack sizes for these media dependent threads to be suitable for the media your application is processing.
+The default thread stack size for the KVS WebRTC SDK is the system's default. You can change it for all the threads using `-DKVS_STACK_SIZE` CMake flag, and adjust stack sizes for individual threads with `THREAD_CREATE_WITH_PARAMS`. Notable stack sizes that may need to be changed for your specific application will be the ConnectionListener Receiver thread and the media sender threads. Please modify the stack sizes for these media dependent threads to be suitable for the media your application is processing.
 
 ### Setting ICE related timeouts
 

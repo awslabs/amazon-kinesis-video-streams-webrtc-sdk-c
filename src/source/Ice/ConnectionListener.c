@@ -214,8 +214,7 @@ STATUS connectionListenerStart(PConnectionListener pConnectionListener)
     locked = TRUE;
 
     CHK(!IS_VALID_TID_VALUE(pConnectionListener->receiveDataRoutine), retStatus);
-    CHK_STATUS(THREAD_CREATE_WITH_PARAMS(&pConnectionListener->receiveDataRoutine, connectionListenerReceiveDataRoutine,
-                                         CONNECTION_LISTENER_STACK_SIZE_BYTES, (PVOID) pConnectionListener));
+    CHK_STATUS(THREAD_CREATE(&pConnectionListener->receiveDataRoutine, connectionListenerReceiveDataRoutine, (PVOID) pConnectionListener));
 
 CleanUp:
 
