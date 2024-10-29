@@ -1,14 +1,14 @@
 var searchData=
 [
-  ['jitter_4050',['jitter',['../structRtcReceivedRtpStreamStats.html#a8b98319cbbc6a815c6200d96a28bdaf8',1,'RtcReceivedRtpStreamStats::jitter()'],['../structJitterBuffer.html#a8b100a62e9352e0215b7029cbc7f4165',1,'JitterBuffer::jitter()']]],
-  ['jitterbufferdelay_4051',['jitterBufferDelay',['../structRtcInboundRtpStreamStats.html#a15fa29cf993662071f832f002f1d936f',1,'RtcInboundRtpStreamStats']]],
-  ['jitterbufferemittedcount_4052',['jitterBufferEmittedCount',['../structRtcInboundRtpStreamStats.html#a39c7330fd9bcb39cd68754d42ce0aac5',1,'RtcInboundRtpStreamStats']]],
-  ['jitterbufferssrc_4053',['jitterBufferSsrc',['../structKvsRtpTransceiver.html#a911ca254c9d0b57e50b5dc411050c45d',1,'KvsRtpTransceiver']]],
-  ['joinsessioncalltime_4054',['joinSessionCallTime',['../structSignalingClientStats.html#a70c1f8cb58cae9dcb5f9ecba1601be3d',1,'SignalingClientStats::joinSessionCallTime()'],['../structSignalingDiagnostics.html#aad2724d2148ec107209bb93734917923',1,'SignalingDiagnostics::joinSessionCallTime()']]],
-  ['joinsessionposthookfn_4055',['joinSessionPostHookFn',['../structSignalingClientInfoInternal.html#aff57ed9161d615096731fdaba388b442',1,'SignalingClientInfoInternal']]],
-  ['joinsessionprehookfn_4056',['joinSessionPreHookFn',['../structSignalingClientInfoInternal.html#a958e5459fe5231c6b52df6f8c064d6b9',1,'SignalingClientInfoInternal']]],
-  ['joinsessiontime_4057',['joinSessionTime',['../structSignalingClient.html#a88e90a6f31c30a14e64d281b580a66c6',1,'SignalingClient']]],
-  ['joinsessiontoofferrecvtime_4058',['joinSessionToOfferRecvTime',['../structSignalingClientStats.html#a965175141e7d0b12ba46450469e3bfa7',1,'SignalingClientStats::joinSessionToOfferRecvTime()'],['../structSignalingDiagnostics.html#a33486725d0646bb56ac834c71ec2db9a',1,'SignalingDiagnostics::joinSessionToOfferRecvTime()']]],
-  ['jsswaitcvar_4059',['jssWaitCvar',['../structSignalingClient.html#a462dcca31d3def43720ba7408f550dbd',1,'SignalingClient']]],
-  ['jsswaitlock_4060',['jssWaitLock',['../structSignalingClient.html#aa8b71c6a2182b999441f410bf6cb15eb',1,'SignalingClient']]]
+  ['jitter_4051',['jitter',['../structRtcReceivedRtpStreamStats.html#a8b98319cbbc6a815c6200d96a28bdaf8',1,'RtcReceivedRtpStreamStats::jitter()'],['../structJitterBuffer.html#a8b100a62e9352e0215b7029cbc7f4165',1,'JitterBuffer::jitter()']]],
+  ['jitterbufferdelay_4052',['jitterBufferDelay',['../structRtcInboundRtpStreamStats.html#a15fa29cf993662071f832f002f1d936f',1,'RtcInboundRtpStreamStats']]],
+  ['jitterbufferemittedcount_4053',['jitterBufferEmittedCount',['../structRtcInboundRtpStreamStats.html#a39c7330fd9bcb39cd68754d42ce0aac5',1,'RtcInboundRtpStreamStats']]],
+  ['jitterbufferssrc_4054',['jitterBufferSsrc',['../structKvsRtpTransceiver.html#a911ca254c9d0b57e50b5dc411050c45d',1,'KvsRtpTransceiver']]],
+  ['joinsessioncalltime_4055',['joinSessionCallTime',['../structSignalingClientStats.html#a70c1f8cb58cae9dcb5f9ecba1601be3d',1,'SignalingClientStats::joinSessionCallTime()'],['../structSignalingDiagnostics.html#aad2724d2148ec107209bb93734917923',1,'SignalingDiagnostics::joinSessionCallTime()']]],
+  ['joinsessionposthookfn_4056',['joinSessionPostHookFn',['../structSignalingClientInfoInternal.html#aff57ed9161d615096731fdaba388b442',1,'SignalingClientInfoInternal']]],
+  ['joinsessionprehookfn_4057',['joinSessionPreHookFn',['../structSignalingClientInfoInternal.html#a958e5459fe5231c6b52df6f8c064d6b9',1,'SignalingClientInfoInternal']]],
+  ['joinsessiontime_4058',['joinSessionTime',['../structSignalingClient.html#a88e90a6f31c30a14e64d281b580a66c6',1,'SignalingClient']]],
+  ['joinsessiontoofferrecvtime_4059',['joinSessionToOfferRecvTime',['../structSignalingClientStats.html#a965175141e7d0b12ba46450469e3bfa7',1,'SignalingClientStats::joinSessionToOfferRecvTime()'],['../structSignalingDiagnostics.html#a33486725d0646bb56ac834c71ec2db9a',1,'SignalingDiagnostics::joinSessionToOfferRecvTime()']]],
+  ['jsswaitcvar_4060',['jssWaitCvar',['../structSignalingClient.html#a462dcca31d3def43720ba7408f550dbd',1,'SignalingClient']]],
+  ['jsswaitlock_4061',['jssWaitLock',['../structSignalingClient.html#aa8b71c6a2182b999441f410bf6cb15eb',1,'SignalingClient']]]
 ];
