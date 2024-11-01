@@ -599,7 +599,7 @@ The SDK calculates 4 different stats:
 
 For more information on these stats, refer to [AWS Docs](https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-reference.html)
 
-The SDK disables generating these stats by default. In order to be enable the SDK to calculate these stats, the application needs to set the following field:
+The SDK disables generating these stats by default. In order to enable the SDK to calculate these stats, the application needs to set the following field:
 `configuration.kvsRtcConfiguration.enableIceStats = TRUE`.
 
 ### Controlling RTP rolling buffer capacity
@@ -622,12 +622,12 @@ RtcRtpTransceiverInit.rollingBufferDurationSec = <duration in seconds, must be m
 RtcRtpTransceiverInit.rollingBufferBitratebps = <bitrate in bits/sec, must be more than 100kibits/sec
 ```
 
-For example, if we want to set duration to 200ms and birtate to 150kibps,
+For example, if we want to set duration to 200ms and bitrate to 150kibps,
 ```
 RtcRtpTransceiverInit.rollingBufferDurationSec = 0.2;
 RtcRtpTransceiverInit.rollingBufferBitratebps = 150 * 1024;
 ```
-By setting these up, applications can have better control over the amount of memory that the application consumes. However, note, if the allocation is too small and the network bad leading to multiple nacks, it can lead to choppy media / dropped frames. Hence, care must be taken while deciding on the values to ensure the parameters satisfy necessary performance requirements.
+By setting these up, applications can have better control over the amount of memory that the application consumes. However, note, if the allocation is too small and the network is poor, leading to multiple nacks, it can lead to choppy media / dropped frames. Hence, care must be taken while deciding on the values to ensure the parameters satisfy necessary performance requirements.
 For more information, check the sample to see how these values are set up.
 
 ## Documentation
