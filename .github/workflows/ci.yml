@@ -731,6 +731,8 @@ jobs:
           # Check exit statuses to determine if the interrupt was successful
           if [ $EXIT_STATUS_MASTER -ne 0 ] || [ $EXIT_STATUS_VIEWER -ne 0 ]; then
             echo "Process did not exit gracefully."
+            echo "Master exit code: $EXIT_STATUS_MASTER"
+            echo "Viewer exit code: $EXIT_STATUS_VIEWER"
             exit 1
           else
             echo "Processes exited successfully."
