@@ -349,7 +349,7 @@ PCHAR fmtpForPayloadType(UINT64 payloadType, PSessionDescription pSessionDescrip
             if (STRCMP(pMediaDescription->sdpAttributes[currentAttribute].attributeName, "fmtp") == 0 &&
                 STRNCMP(pMediaDescription->sdpAttributes[currentAttribute].attributeValue, payloadStr, STRLEN(payloadStr)) == 0) {
                 retVal = pMediaDescription->sdpAttributes[currentAttribute].attributeValue + STRLEN(payloadStr) + 1;
-                CHK(FALSE, STATUS_SUCCESS);  // Break loop and go to CleanUp label
+                CHK(FALSE, STATUS_SUCCESS); // Break loop and go to CleanUp label
             }
         }
     }
