@@ -1122,8 +1122,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
         SAFE_MEMFREE(pKvsPeerConnection->pTwccManager);
     }
 
-    // Master mode: this should be freed once answer is created, user might not invoke `createAnswer`
-    // Viewer mode: this should be freed when `setRemoteDescription`, but user might not call it
+    // Incase the `RemoteSessionDescription` has not already been freed.
     SAFE_MEMFREE(pKvsPeerConnection->pRemoteSessionDescription);
 
     PROFILE_WITH_START_TIME_OBJ(startTime, pKvsPeerConnection->peerConnectionDiagnostics.freePeerConnectionTime, "Free peer connection");
@@ -1332,6 +1331,8 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
 
     CHK(pPeerConnection != NULL && pSessionDescriptionInit != NULL, STATUS_NULL_ARG);
 
+    // In master mode, this should be freed once `createAnswer` is invoked for the session.
+    // In viewer mode, this should be freed once `setRemoteDescription` is completed for the session.
     pKvsPeerConnection->pRemoteSessionDescription = (PSessionDescription) MEMCALLOC(1, SIZEOF(SessionDescription));
     pSessionDescription = pKvsPeerConnection->pRemoteSessionDescription;
     CHK(pSessionDescription != NULL, STATUS_NOT_ENOUGH_MEMORY);
@@ -1423,8 +1424,6 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     }
 
 CleanUp:
-    // Master mode: `setRemoteDescription` then `createAnswer`, so `createAnswer` will do the free.
-    // Viewer mode: `createOffer` then `setRemoteDescription`, so this will do the free.
     if (pKvsPeerConnection != NULL && pKvsPeerConnection->isOffer) {
         SAFE_MEMFREE(pKvsPeerConnection->pRemoteSessionDescription);
     }

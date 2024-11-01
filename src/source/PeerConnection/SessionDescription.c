@@ -146,6 +146,8 @@ CleanUp:
 
 /*
  * Populate map with PayloadTypes for codecs a KvsPeerConnection has enabled.
+ *
+ * Precondition: !pKvsPeerConnection->isOffer
  */
 STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSessionDescription pSessionDescription)
 {
@@ -162,6 +164,8 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
     UINT32 tokenLen, i, aptFmtpValCount;
     PCHAR fmtp;
     UINT64 fmtpScore, bestFmtpScore;
+
+    CHK(codecTable != NULL && rtxTable != NULL && pSessionDescription != NULL, STATUS_NULL_ARG);
 
     for (currentMedia = 0; currentMedia < pSessionDescription->mediaCount; currentMedia++) {
         pMediaDescription = &(pSessionDescription->mediaDescriptions[currentMedia]);
@@ -276,6 +280,7 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
     }
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -323,29 +328,37 @@ CleanUp:
 
 PCHAR fmtpForPayloadType(UINT64 payloadType, PSessionDescription pSessionDescription)
 {
+    ENTERS();
     UINT32 currentMedia, currentAttribute;
     PSdpMediaDescription pMediaDescription = NULL;
     CHAR payloadStr[MAX_SDP_ATTRIBUTE_VALUE_LENGTH];
     INT32 amountWritten = 0;
+    STATUS retStatus = STATUS_SUCCESS;
+    PCHAR retVal = NULL;
+
+    CHK(pSessionDescription != NULL, STATUS_NULL_ARG);
 
     MEMSET(payloadStr, 0x00, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
     amountWritten = SNPRINTF(payloadStr, SIZEOF(payloadStr), "%" PRId64, payloadType);
 
-    if (amountWritten < 0) {
-        DLOGE("Internal error: Full payload type for fmtp could not be written");
-    } else {
-        for (currentMedia = 0; currentMedia < pSessionDescription->mediaCount; currentMedia++) {
-            pMediaDescription = &(pSessionDescription->mediaDescriptions[currentMedia]);
-            for (currentAttribute = 0; currentAttribute < pMediaDescription->mediaAttributesCount; currentAttribute++) {
-                if (STRCMP(pMediaDescription->sdpAttributes[currentAttribute].attributeName, "fmtp") == 0 &&
-                    STRNCMP(pMediaDescription->sdpAttributes[currentAttribute].attributeValue, payloadStr, STRLEN(payloadStr)) == 0) {
-                    return pMediaDescription->sdpAttributes[currentAttribute].attributeValue + STRLEN(payloadStr) + 1;
-                }
+    CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full payload type for fmtp could not be written");
+
+    for (currentMedia = 0; currentMedia < pSessionDescription->mediaCount; currentMedia++) {
+        pMediaDescription = &(pSessionDescription->mediaDescriptions[currentMedia]);
+        for (currentAttribute = 0; currentAttribute < pMediaDescription->mediaAttributesCount; currentAttribute++) {
+            if (STRCMP(pMediaDescription->sdpAttributes[currentAttribute].attributeName, "fmtp") == 0 &&
+                STRNCMP(pMediaDescription->sdpAttributes[currentAttribute].attributeValue, payloadStr, STRLEN(payloadStr)) == 0) {
+                retVal = pMediaDescription->sdpAttributes[currentAttribute].attributeValue + STRLEN(payloadStr) + 1;
+                CHK(FALSE, STATUS_SUCCESS);  // Break loop and go to CleanUp label
             }
         }
     }
 
-    return NULL;
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retVal;
 }
 
 /*
@@ -416,11 +429,15 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     BOOL containRtx = FALSE;
     BOOL directionFound = FALSE;
     UINT32 i, remoteAttributeCount, attributeCount = 0;
-    PRtcMediaStreamTrack pRtcMediaStreamTrack = &(pKvsRtpTransceiver->sender.track);
     PSdpMediaDescription pSdpMediaDescriptionRemote;
     PCHAR currentFmtp = NULL, rtpMapValue = NULL;
     CHAR remoteSdpAttributeValue[MAX_SDP_ATTRIBUTE_VALUE_LENGTH];
     INT32 amountWritten = 0;
+
+    CHK(pKvsRtpTransceiver != NULL, STATUS_NULL_ARG);
+    CHK(pKvsPeerConnection->isOffer || pRemoteSessionDescription != NULL, STATUS_NULL_ARG);
+
+    PRtcMediaStreamTrack pRtcMediaStreamTrack = &(pKvsRtpTransceiver->sender.track);
 
     MEMSET(remoteSdpAttributeValue, 0, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
 
@@ -1056,9 +1073,8 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessio
     INT32 charsCopied;
 
     CHK(pKvsPeerConnection != NULL && pLocalSessionDescription != NULL, STATUS_NULL_ARG);
-    if (!pKvsPeerConnection->isOffer) {
-        CHK(pRemoteSessionDescription != NULL, STATUS_NULL_ARG);
-    }
+    CHK(pKvsPeerConnection->isOffer || pRemoteSessionDescription != NULL, STATUS_NULL_ARG);
+
     CHK_STATUS(populateSessionDescriptionMedia(pKvsPeerConnection, pRemoteSessionDescription, pLocalSessionDescription));
     MEMSET(bundleValue, 0, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
     MEMSET(wmsValue, 0, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
