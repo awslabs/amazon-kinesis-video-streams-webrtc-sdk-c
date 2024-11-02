@@ -86,7 +86,7 @@ typedef struct {
 
     PSctpSession pSctpSession;
 
-    SessionDescription remoteSessionDescription;
+    PSessionDescription pRemoteSessionDescription;
     PDoubleList pTransceivers;
     PDoubleList pFakeTransceivers;
     PDoubleList pAnswerTransceivers;
@@ -105,6 +105,8 @@ typedef struct {
 
     MUTEX peerConnectionObjLock;
 
+    // If the local session description is an SDP offer.
+    // (TRUE = viewer mode, FALSE = master mode)
     BOOL isOffer;
 
     TIMER_QUEUE_HANDLE timerQueueHandle;
