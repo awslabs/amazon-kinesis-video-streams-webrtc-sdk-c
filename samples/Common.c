@@ -505,7 +505,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
 
     // Flag to enable SDK to calculate selected ice server, local, remote and candidate pair stats.
     pSampleConfiguration->enableIceStats = FALSE;
-    
+
     CHK_STATUS(initializePeerConnection(pSampleConfiguration, &pSampleStreamingSession->pPeerConnection));
     CHK_STATUS(peerConnectionOnIceCandidate(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession, onIceCandidateHandler));
     CHK_STATUS(
