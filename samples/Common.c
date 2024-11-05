@@ -365,7 +365,6 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     // Set the ICE mode explicitly
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
 
-    configuration.kvsRtcConfiguration.enableIceStats = pSampleConfiguration->enableIceStats;
     configuration.kvsRtcConfiguration.disableSenderSideBandwidthEstimation = TRUE;
     // Set the  STUN server
     PCHAR pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX;
