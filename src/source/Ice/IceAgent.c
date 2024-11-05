@@ -31,12 +31,12 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
     UINT32 i;
     UINT64 startTimeInMacro = 0;
     BOOL statsControlEnabled = FALSE;
-    
-    // Ice agent stats calculations are on by default.
-    // Runtime control for turning stats calculations on/off can be activated with this compiler flag.
-    #ifdef ENABLE_STATS_CALCULATION_CONTROL
-        statsControlEnabled = TRUE;
-    #endif
+
+// Ice agent stats calculations are on by default.
+// Runtime control for turning stats calculations on/off can be activated with this compiler flag.
+#ifdef ENABLE_STATS_CALCULATION_CONTROL
+    statsControlEnabled = TRUE;
+#endif
 
     CHK(ppIceAgent != NULL && username != NULL && password != NULL && pConnectionListener != NULL, STATUS_NULL_ARG);
     CHK(STRNLEN(username, MAX_ICE_CONFIG_USER_NAME_LEN + 1) <= MAX_ICE_CONFIG_USER_NAME_LEN &&
@@ -1162,12 +1162,12 @@ STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate,
     BOOL freeObjOnFailure = TRUE;
     PIceCandidate pCurrentIceCandidate = NULL;
     BOOL statsControlEnabled = FALSE;
-    
-    // Ice agent stats calculations are on by default.
-    // Runtime control for turning stats calculations on/off can be activated with this compiler flag.
-    #ifdef ENABLE_STATS_CALCULATION_CONTROL
-        statsControlEnabled = TRUE;
-    #endif
+
+// Ice agent stats calculations are on by default.
+// Runtime control for turning stats calculations on/off can be activated with this compiler flag.
+#ifdef ENABLE_STATS_CALCULATION_CONTROL
+    statsControlEnabled = TRUE;
+#endif
 
     CHK(pIceAgent != NULL && pIceCandidate != NULL, STATUS_NULL_ARG);
     CHK_WARN(pIceCandidate->state == ICE_CANDIDATE_STATE_VALID, retStatus, "New ice candidate need to be valid to form pairs");

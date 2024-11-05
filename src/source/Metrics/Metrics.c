@@ -10,10 +10,10 @@ STATUS getIceCandidatePairStats(PRtcPeerConnection pRtcPeerConnection, PRtcIceCa
     BOOL locked = FALSE;
     PIceAgent pIceAgent = NULL;
     BOOL statsControlEnabled = FALSE;
-    
-    #ifdef ENABLE_STATS_CALCULATION_CONTROL
-        statsControlEnabled = TRUE;
-    #endif
+
+#ifdef ENABLE_STATS_CALCULATION_CONTROL
+    statsControlEnabled = TRUE;
+#endif
 
     CHK((pRtcPeerConnection != NULL || pRtcIceCandidatePairStats != NULL), STATUS_NULL_ARG);
     pIceAgent = ((PKvsPeerConnection) pRtcPeerConnection)->pIceAgent;
@@ -66,10 +66,10 @@ STATUS getIceCandidateStats(PRtcPeerConnection pRtcPeerConnection, BOOL isRemote
     BOOL locked = FALSE;
     PIceAgent pIceAgent = ((PKvsPeerConnection) pRtcPeerConnection)->pIceAgent;
     BOOL statsControlEnabled = FALSE;
-    
-    #ifdef ENABLE_STATS_CALCULATION_CONTROL
-        statsControlEnabled = TRUE;
-    #endif
+
+#ifdef ENABLE_STATS_CALCULATION_CONTROL
+    statsControlEnabled = TRUE;
+#endif
 
     CHK((pRtcPeerConnection != NULL || pRtcIceCandidateStats != NULL), STATUS_NULL_ARG);
     MUTEX_LOCK(pIceAgent->lock);
@@ -101,10 +101,10 @@ STATUS getIceServerStats(PRtcPeerConnection pRtcPeerConnection, PRtcIceServerSta
     BOOL locked = FALSE;
     PIceAgent pIceAgent = ((PKvsPeerConnection) pRtcPeerConnection)->pIceAgent;
     BOOL statsControlEnabled = FALSE;
-    
-    #ifdef ENABLE_STATS_CALCULATION_CONTROL
-        statsControlEnabled = TRUE;
-    #endif
+
+#ifdef ENABLE_STATS_CALCULATION_CONTROL
+    statsControlEnabled = TRUE;
+#endif
 
     CHK((pRtcPeerConnection != NULL && pRtcIceServerStats != NULL), STATUS_NULL_ARG);
 

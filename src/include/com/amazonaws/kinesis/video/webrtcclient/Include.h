@@ -1199,8 +1199,8 @@ typedef struct {
     BOOL disableSenderSideBandwidthEstimation; //!< Disable TWCC feedback based sender bandwidth estimation, enabled by default.
                                                //!< You want to set this to TRUE if you are on a very stable connection and want to save 1.2MB of
                                                //!< memory
-    BOOL enableIceStats;                       //!< Control whether ICE agent stats are to be calculated. ENABLE_STATS_CALCULATION_CONTROL compiler flag must be defined
-                                               //!< to use this member, else stats are enabled by default.
+    BOOL enableIceStats; //!< Control whether ICE agent stats are to be calculated. ENABLE_STATS_CALCULATION_CONTROL compiler flag must be defined
+                         //!< to use this member, else stats are enabled by default.
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
 
 /**
