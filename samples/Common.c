@@ -503,8 +503,11 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
         pSampleStreamingSession->twccMetadata.updateLock = MUTEX_CREATE(TRUE);
     }
 
-    // Flag to enable SDK to calculate selected ice server, local, remote and candidate pair stats.
+    // Flag to enable/disable SDK calculations of selected ice server, local, remote and candidate pair stats.
+    // Note: enableIceStats only has an effect if compiler flag ENABLE_STATS_CALCULATION_CONTROL is defined.
+#ifdef ENABLE_STATS_CALCULATION_CONTROL
     pSampleConfiguration->enableIceStats = FALSE;
+#endif
 
     CHK_STATUS(initializePeerConnection(pSampleConfiguration, &pSampleStreamingSession->pPeerConnection));
     CHK_STATUS(peerConnectionOnIceCandidate(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession, onIceCandidateHandler));

@@ -157,6 +157,7 @@ You can pass the following options to `cmake ..`.
 * `-DLINK_PROFILER` -- Link with gperftools (available profiler options are listed [here](https://github.com/gperftools/gperftools))
 * `-DPKG_CONFIG_EXECUTABLE` -- Set pkg config path. This might be required to find gstreamer's pkg config specifically on Windows.
 * `-DENABLE_KVS_THREADPOOL` -- Enable the KVS threadpool which is off by default.
+* `-DENABLE_STATS_CALCULATION_CONTROL` -- Enable the runtime control of ICE agent stats calculations.
 
 To clean up the `open-source` and `build` folders from previous build, use `cmake --build . --target clean` from the `build` folder
 
@@ -599,8 +600,9 @@ The SDK calculates 4 different stats:
 
 For more information on these stats, refer to [AWS Docs](https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-reference.html)
 
-The SDK disables generating these stats by default. In order to enable the SDK to calculate these stats, the application needs to set the following field:
-`configuration.kvsRtcConfiguration.enableIceStats = TRUE`.
+The SDK enables generating these stats by default. To control whether the SDK calculates these stats, the ENABLE_STATS_CALCULATION_CONTROL CMake option must be set, enabling the use of the following field:
+`configuration.kvsRtcConfiguration.enableIceStats = FALSE`.
+Disabling these stats may lead to reductions in memory use.
 
 ### Controlling RTP rolling buffer capacity
 

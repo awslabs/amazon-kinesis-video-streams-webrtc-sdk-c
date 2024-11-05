@@ -9,11 +9,17 @@ STATUS getIceCandidatePairStats(PRtcPeerConnection pRtcPeerConnection, PRtcIceCa
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
     PIceAgent pIceAgent = NULL;
+    BOOL statsControlEnabled = FALSE;
+    
+    #ifdef ENABLE_STATS_CALCULATION_CONTROL
+        statsControlEnabled = TRUE;
+    #endif
+
     CHK((pRtcPeerConnection != NULL || pRtcIceCandidatePairStats != NULL), STATUS_NULL_ARG);
     pIceAgent = ((PKvsPeerConnection) pRtcPeerConnection)->pIceAgent;
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
-    CHK_WARN(pIceAgent->kvsRtcConfiguration.enableIceStats, STATUS_SUCCESS, "ICE stats not enabled");
+    CHK_WARN(!statsControlEnabled || pIceAgent->kvsRtcConfiguration.enableIceStats, STATUS_SUCCESS, "ICE stats are not enabled.");
     CHK(pIceAgent->pDataSendingIceCandidatePair != NULL, STATUS_SUCCESS);
     PRtcIceCandidatePairDiagnostics pRtcIceCandidatePairDiagnostics = pIceAgent->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics;
     if (pRtcIceCandidatePairDiagnostics != NULL) {
@@ -59,10 +65,16 @@ STATUS getIceCandidateStats(PRtcPeerConnection pRtcPeerConnection, BOOL isRemote
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
     PIceAgent pIceAgent = ((PKvsPeerConnection) pRtcPeerConnection)->pIceAgent;
+    BOOL statsControlEnabled = FALSE;
+    
+    #ifdef ENABLE_STATS_CALCULATION_CONTROL
+        statsControlEnabled = TRUE;
+    #endif
+
     CHK((pRtcPeerConnection != NULL || pRtcIceCandidateStats != NULL), STATUS_NULL_ARG);
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
-    CHK_WARN(pIceAgent->kvsRtcConfiguration.enableIceStats, STATUS_SUCCESS, "ICE stats not enabled");
+    CHK_WARN(!statsControlEnabled || pIceAgent->kvsRtcConfiguration.enableIceStats, STATUS_SUCCESS, "ICE stats not enabled");
     PRtcIceCandidateDiagnostics pRtcIceCandidateDiagnostics = pIceAgent->pRtcSelectedRemoteIceCandidateDiagnostics;
     if (pRtcIceCandidateDiagnostics != NULL) {
         if (!isRemote) {
@@ -88,11 +100,17 @@ STATUS getIceServerStats(PRtcPeerConnection pRtcPeerConnection, PRtcIceServerSta
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
     PIceAgent pIceAgent = ((PKvsPeerConnection) pRtcPeerConnection)->pIceAgent;
+    BOOL statsControlEnabled = FALSE;
+    
+    #ifdef ENABLE_STATS_CALCULATION_CONTROL
+        statsControlEnabled = TRUE;
+    #endif
+
     CHK((pRtcPeerConnection != NULL && pRtcIceServerStats != NULL), STATUS_NULL_ARG);
 
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
-    CHK_WARN(pIceAgent->kvsRtcConfiguration.enableIceStats, STATUS_SUCCESS, "ICE stats not enabled");
+    CHK_WARN(!statsControlEnabled || pIceAgent->kvsRtcConfiguration.enableIceStats, STATUS_SUCCESS, "ICE stats not enabled");
     CHK(pRtcIceServerStats->iceServerIndex < pIceAgent->iceServersCount, STATUS_ICE_SERVER_INDEX_INVALID);
 
     if (pIceAgent->pRtcIceServerDiagnostics[pRtcIceServerStats->iceServerIndex] != NULL) {
