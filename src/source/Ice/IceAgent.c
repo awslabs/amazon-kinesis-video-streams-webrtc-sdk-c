@@ -30,12 +30,12 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
     PIceAgent pIceAgent = NULL;
     UINT32 i;
     UINT64 startTimeInMacro = 0;
-    BOOL disableStats = FALSE;
+    BOOL doStatCalcs = TRUE;
 
 // Ice agent stats calculations are on by default.
 // Runtime control for turning stats calculations on/off can be activated with this compiler flag.
 #ifdef ENABLE_STATS_CALCULATION_CONTROL
-    disableStats = !pIceAgent->kvsRtcConfiguration.enableIceStats;
+    doStatCalcs = pIceAgent->kvsRtcConfiguration.enableIceStats;
 #endif
 
     CHK(ppIceAgent != NULL && username != NULL && password != NULL && pConnectionListener != NULL, STATUS_NULL_ARG);
@@ -113,7 +113,7 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
                                            (PCHAR) pRtcConfiguration->iceServers[i].username, (PCHAR) pRtcConfiguration->iceServers[i].credential),
                 pIceAgent->iceAgentProfileDiagnostics.iceServerParsingTime[i], "ICE server parsing");
             if (STATUS_SUCCEEDED(retStatus)) {
-                if (!disableStats) {
+                if (doStatCalcs) {
                     CHK(NULL != (pIceAgent->pRtcIceServerDiagnostics[i] = (PRtcIceServerDiagnostics) MEMCALLOC(1, SIZEOF(RtcIceServerDiagnostics))),
                         STATUS_NOT_ENOUGH_MEMORY);
                     pIceAgent->pRtcIceServerDiagnostics[i]->port = (INT32) getInt16(pIceAgent->iceServers[i].ipAddress.port);
@@ -136,7 +136,7 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
         }
     }
 
-    if (!disableStats) {
+    if (doStatCalcs) {
         CHK(NULL !=
                 (pIceAgent->pRtcSelectedRemoteIceCandidateDiagnostics =
                      (PRtcIceCandidateDiagnostics) MEMCALLOC(1, SIZEOF(RtcIceCandidateDiagnostics))),
@@ -1083,12 +1083,12 @@ STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate,
     PIceCandidatePair pIceCandidatePair = NULL;
     BOOL freeObjOnFailure = TRUE;
     PIceCandidate pCurrentIceCandidate = NULL;
-    BOOL disableStats = FALSE;
+    BOOL doStatCalcs = TRUE;
 
 // Ice agent stats calculations are on by default.
 // Runtime control for turning stats calculations on/off can be activated with this compiler flag.
 #ifdef ENABLE_STATS_CALCULATION_CONTROL
-    disableStats = !pIceAgent->kvsRtcConfiguration.enableIceStats;
+    doStatCalcs = pIceAgent->kvsRtcConfiguration.enableIceStats;
 #endif
 
     CHK(pIceAgent != NULL && pIceCandidate != NULL, STATUS_NULL_ARG);
@@ -1109,7 +1109,7 @@ STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate,
         if (pCurrentIceCandidate->state == ICE_CANDIDATE_STATE_VALID && pCurrentIceCandidate->ipAddress.family == pIceCandidate->ipAddress.family) {
             pIceCandidatePair = (PIceCandidatePair) MEMCALLOC(1, SIZEOF(IceCandidatePair));
             CHK(pIceCandidatePair != NULL, STATUS_NOT_ENOUGH_MEMORY);
-            if (!disableStats) {
+            if (doStatCalcs) {
                 CHK(NULL !=
                         (pIceCandidatePair->pRtcIceCandidatePairDiagnostics =
                              (PRtcIceCandidatePairDiagnostics) MEMCALLOC(1, SIZEOF(RtcIceCandidatePairDiagnostics))),
