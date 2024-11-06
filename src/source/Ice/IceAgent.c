@@ -30,12 +30,12 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
     PIceAgent pIceAgent = NULL;
     UINT32 i;
     UINT64 startTimeInMacro = 0;
-    BOOL statsControlEnabled = FALSE;
+    BOOL disableStats = FALSE;
 
 // Ice agent stats calculations are on by default.
 // Runtime control for turning stats calculations on/off can be activated with this compiler flag.
 #ifdef ENABLE_STATS_CALCULATION_CONTROL
-    statsControlEnabled = TRUE;
+    disableStats = !pIceAgent->kvsRtcConfiguration.enableIceStats;
 #endif
 
     CHK(ppIceAgent != NULL && username != NULL && password != NULL && pConnectionListener != NULL, STATUS_NULL_ARG);
@@ -113,7 +113,7 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
                                            (PCHAR) pRtcConfiguration->iceServers[i].username, (PCHAR) pRtcConfiguration->iceServers[i].credential),
                 pIceAgent->iceAgentProfileDiagnostics.iceServerParsingTime[i], "ICE server parsing");
             if (STATUS_SUCCEEDED(retStatus)) {
-                if (!statsControlEnabled || (statsControlEnabled && pIceAgent->kvsRtcConfiguration.enableIceStats)) {
+                if (!disableStats) {
                     CHK(NULL != (pIceAgent->pRtcIceServerDiagnostics[i] = (PRtcIceServerDiagnostics) MEMCALLOC(1, SIZEOF(RtcIceServerDiagnostics))),
                         STATUS_NOT_ENOUGH_MEMORY);
                     pIceAgent->pRtcIceServerDiagnostics[i]->port = (INT32) getInt16(pIceAgent->iceServers[i].ipAddress.port);
@@ -136,8 +136,7 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
         }
     }
 
-    // Note: The conditional is emphasizing that statsControlEnabled must be TRUE in order to use kvsRtcConfiguration.enableIceStats.
-    if (!statsControlEnabled || (statsControlEnabled && pIceAgent->kvsRtcConfiguration.enableIceStats)) {
+    if (!disableStats) {
         CHK(NULL !=
                 (pIceAgent->pRtcSelectedRemoteIceCandidateDiagnostics =
                      (PRtcIceCandidateDiagnostics) MEMCALLOC(1, SIZEOF(RtcIceCandidateDiagnostics))),
@@ -1084,12 +1083,12 @@ STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate,
     PIceCandidatePair pIceCandidatePair = NULL;
     BOOL freeObjOnFailure = TRUE;
     PIceCandidate pCurrentIceCandidate = NULL;
-    BOOL statsControlEnabled = FALSE;
+    BOOL disableStats = FALSE;
 
 // Ice agent stats calculations are on by default.
 // Runtime control for turning stats calculations on/off can be activated with this compiler flag.
 #ifdef ENABLE_STATS_CALCULATION_CONTROL
-    statsControlEnabled = TRUE;
+    disableStats = !pIceAgent->kvsRtcConfiguration.enableIceStats;
 #endif
 
     CHK(pIceAgent != NULL && pIceCandidate != NULL, STATUS_NULL_ARG);
@@ -1110,7 +1109,7 @@ STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate,
         if (pCurrentIceCandidate->state == ICE_CANDIDATE_STATE_VALID && pCurrentIceCandidate->ipAddress.family == pIceCandidate->ipAddress.family) {
             pIceCandidatePair = (PIceCandidatePair) MEMCALLOC(1, SIZEOF(IceCandidatePair));
             CHK(pIceCandidatePair != NULL, STATUS_NOT_ENOUGH_MEMORY);
-            if (!statsControlEnabled || (statsControlEnabled && pIceAgent->kvsRtcConfiguration.enableIceStats)) {
+            if (!disableStats) {
                 CHK(NULL !=
                         (pIceCandidatePair->pRtcIceCandidatePairDiagnostics =
                              (PRtcIceCandidatePairDiagnostics) MEMCALLOC(1, SIZEOF(RtcIceCandidatePairDiagnostics))),
@@ -2587,10 +2586,10 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                     pIceAgent->pRtcIceServerDiagnostics[pIceCandidate->iceServerIndex]->totalResponsesReceived++;
                     // Transaction ID count be same for candidates coming from same interface, which means there would only
                     // be one entry. It is not necessary to update a return sttaus since it is not indicative of a failure
-                    if ((hashTableGet(pIceAgent->requestTimestampDiagnostics, checkSum, &requestSentTime)) == STATUS_SUCCESS) {
+                    if (STATUS_SUCCEEDED(hashTableGet(pIceAgent->requestTimestampDiagnostics, checkSum, &requestSentTime))) {
                         pIceAgent->pRtcIceServerDiagnostics[pIceCandidate->iceServerIndex]->totalRoundTripTime += GETTIME() - requestSentTime;
                         CHK_STATUS(hashTableRemove(pIceAgent->requestTimestampDiagnostics, checkSum));
-                        hashTableGetCount(pIceAgent->requestTimestampDiagnostics, &count);
+                        CHK_STATUS(hashTableGetCount(pIceAgent->requestTimestampDiagnostics, &count));
                     }
                 }
 

@@ -365,7 +365,9 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     // Set the ICE mode explicitly
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
 
+#ifdef ENABLE_STATS_CALCULATION_CONTROL
     configuration.kvsRtcConfiguration.enableIceStats = pSampleConfiguration->enableIceStats;
+#endif
 
     // Set the  STUN server
     PCHAR pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX;
@@ -505,9 +507,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
 
     // Flag to enable/disable SDK calculations of selected ice server, local, remote and candidate pair stats.
     // Note: enableIceStats only has an effect if compiler flag ENABLE_STATS_CALCULATION_CONTROL is defined.
-#ifdef ENABLE_STATS_CALCULATION_CONTROL
     pSampleConfiguration->enableIceStats = FALSE;
-#endif
 
     CHK_STATUS(initializePeerConnection(pSampleConfiguration, &pSampleStreamingSession->pPeerConnection));
     CHK_STATUS(peerConnectionOnIceCandidate(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession, onIceCandidateHandler));
