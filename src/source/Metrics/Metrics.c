@@ -9,11 +9,6 @@ STATUS getIceCandidatePairStats(PRtcPeerConnection pRtcPeerConnection, PRtcIceCa
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
     PIceAgent pIceAgent = NULL;
-    BOOL statsControlEnabled = FALSE;
-
-#ifdef ENABLE_STATS_CALCULATION_CONTROL
-    statsControlEnabled = TRUE;
-#endif
 
     CHK((pRtcPeerConnection != NULL || pRtcIceCandidatePairStats != NULL), STATUS_NULL_ARG);
     pIceAgent = ((PKvsPeerConnection) pRtcPeerConnection)->pIceAgent;
