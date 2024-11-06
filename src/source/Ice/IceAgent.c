@@ -1229,7 +1229,7 @@ STATUS pruneUnconnectedIceCandidatePair(PIceAgent pIceAgent)
 
             // Retrieve the local candidate for this pair
             pLocalCandidate = pIceCandidatePair->local;
-            if (pLocalCandidate != NULL && pLocalCandidate->pSocketConnection != NULL) {
+            if (pLocalCandidate != NULL && pLocalCandidate->pSocketConnection != NULL && pLocalCandidate->state == ICE_CANDIDATE_STATE_INVALID) {
                 // Remove the connection from the listener and free the socket connection
                 CHK_STATUS(connectionListenerRemoveConnection(pIceAgent->pConnectionListener, pLocalCandidate->pSocketConnection));
                 CHK_STATUS(freeSocketConnection(&pLocalCandidate->pSocketConnection));
