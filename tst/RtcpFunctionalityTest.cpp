@@ -347,7 +347,7 @@ static void parseTwcc(const std::string& hex, const uint32_t expectedReceived, c
     EXPECT_EQ(STATUS_SUCCESS, parseRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection->pTwccManager));
 
     for(i = 0; i < MAX_UINT16; i++) {
-        if(hashTableGet(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, i, &value) == STATUS_SUCCESS) {
+        if(STATUS_SUCCEEDED(hashTableGet(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, i, &value) == STATUS_SUCCESS)) {
             PTwccRtpPacketInfo tempTwccRtpPktInfo = (PTwccRtpPacketInfo) value;
             if(tempTwccRtpPktInfo->remoteTimeKvs == TWCC_PACKET_LOST_TIME) {
                 lost++;
