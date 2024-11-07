@@ -83,11 +83,11 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
 
     pIceAgent->relayCandidateCount = 0;
 
-    // Ice agent stats calculations are on by default.
-    // Runtime control for turning stats calculations on/off can be activated with this compiler flag.
-    #ifdef ENABLE_STATS_CALCULATION_CONTROL
-        doStatCalcs = pIceAgent->kvsRtcConfiguration.enableIceStats;
-    #endif
+// Ice agent stats calculations are on by default.
+// Runtime control for turning stats calculations on/off can be activated with this compiler flag.
+#ifdef ENABLE_STATS_CALCULATION_CONTROL
+    doStatCalcs = pIceAgent->kvsRtcConfiguration.enableIceStats;
+#endif
 
     CHK_STATUS(doubleListCreate(&pIceAgent->localCandidates));
     CHK_STATUS(doubleListCreate(&pIceAgent->remoteCandidates));
@@ -1085,14 +1085,15 @@ STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate,
     PIceCandidate pCurrentIceCandidate = NULL;
     BOOL doStatCalcs = TRUE;
 
+    CHK(pIceAgent != NULL && pIceCandidate != NULL, STATUS_NULL_ARG);
+    CHK_WARN(pIceCandidate->state == ICE_CANDIDATE_STATE_VALID, retStatus,
+             "New ice candidate need to be valid to form pairs"); // Ice agent stats calculations are on by default.
+
 // Ice agent stats calculations are on by default.
 // Runtime control for turning stats calculations on/off can be activated with this compiler flag.
 #ifdef ENABLE_STATS_CALCULATION_CONTROL
     doStatCalcs = pIceAgent->kvsRtcConfiguration.enableIceStats;
 #endif
-
-    CHK(pIceAgent != NULL && pIceCandidate != NULL, STATUS_NULL_ARG);
-    CHK_WARN(pIceCandidate->state == ICE_CANDIDATE_STATE_VALID, retStatus, "New ice candidate need to be valid to form pairs");
 
     // if pIceCandidate is a remote candidate, then form pairs with every single valid local candidate. Otherwise,
     // form pairs with every single valid remote candidate
@@ -1109,6 +1110,7 @@ STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate,
         if (pCurrentIceCandidate->state == ICE_CANDIDATE_STATE_VALID && pCurrentIceCandidate->ipAddress.family == pIceCandidate->ipAddress.family) {
             pIceCandidatePair = (PIceCandidatePair) MEMCALLOC(1, SIZEOF(IceCandidatePair));
             CHK(pIceCandidatePair != NULL, STATUS_NOT_ENOUGH_MEMORY);
+
             if (doStatCalcs) {
                 CHK(NULL !=
                         (pIceCandidatePair->pRtcIceCandidatePairDiagnostics =
