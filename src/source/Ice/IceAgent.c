@@ -32,12 +32,6 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
     UINT64 startTimeInMacro = 0;
     BOOL doStatCalcs = TRUE;
 
-// Ice agent stats calculations are on by default.
-// Runtime control for turning stats calculations on/off can be activated with this compiler flag.
-#ifdef ENABLE_STATS_CALCULATION_CONTROL
-    doStatCalcs = pIceAgent->kvsRtcConfiguration.enableIceStats;
-#endif
-
     CHK(ppIceAgent != NULL && username != NULL && password != NULL && pConnectionListener != NULL, STATUS_NULL_ARG);
     CHK(STRNLEN(username, MAX_ICE_CONFIG_USER_NAME_LEN + 1) <= MAX_ICE_CONFIG_USER_NAME_LEN &&
             STRNLEN(password, MAX_ICE_CONFIG_CREDENTIAL_LEN + 1) <= MAX_ICE_CONFIG_CREDENTIAL_LEN,
@@ -88,6 +82,12 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
     CHK_STATUS(createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT, &pIceAgent->pStunBindingRequestTransactionIdStore));
 
     pIceAgent->relayCandidateCount = 0;
+
+    // Ice agent stats calculations are on by default.
+    // Runtime control for turning stats calculations on/off can be activated with this compiler flag.
+    #ifdef ENABLE_STATS_CALCULATION_CONTROL
+        doStatCalcs = pIceAgent->kvsRtcConfiguration.enableIceStats;
+    #endif
 
     CHK_STATUS(doubleListCreate(&pIceAgent->localCandidates));
     CHK_STATUS(doubleListCreate(&pIceAgent->remoteCandidates));
