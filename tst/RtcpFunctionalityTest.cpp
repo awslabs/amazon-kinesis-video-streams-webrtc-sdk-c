@@ -431,7 +431,7 @@ TEST_F(RtcpFunctionalityTest, updateTwccHashTableTest)
     pKvsPeerConnection->pTwccManager->lastReportedSeqNum = upperBound + 10;
 
     // Breakup the packet indexes to be across the max int overflow.
-    for (i = lowerBound; i < UINT16_MAX; i++)
+    for (i = lowerBound; i <= UINT16_MAX; i++)
     {
         pTwccRtpPacketInfo = (PTwccRtpPacketInfo) MEMCALLOC(1, SIZEOF(TwccRtpPacketInfo));
         EXPECT_EQ(STATUS_SUCCESS, hashTableUpsert(pTwccRtpPktInfosHashTable, i, (UINT64) pTwccRtpPacketInfo));
