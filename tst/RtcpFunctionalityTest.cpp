@@ -417,7 +417,6 @@ TEST_F(RtcpFunctionalityTest, updateTwccHashTableTest)
     UINT16 hashTableInsertionCount = 0;
     UINT16 lowerBound = UINT16_MAX - 3;
     UINT16 upperBound = 3;
-    UINT32 hashTableItemCount = 0;
     UINT16 i = 0;
 
     // Initialize structs and members.
