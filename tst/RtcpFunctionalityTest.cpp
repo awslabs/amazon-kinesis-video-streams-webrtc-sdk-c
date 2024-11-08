@@ -405,12 +405,12 @@ TEST_F(RtcpFunctionalityTest, twccParsePacketTest)
     parseTwcc("4487A9E754B3E6FD040200E4147C9F81202700B7E6649000000000000000000004000000000008000018000000001", 43, 185);
 }
 
-TEST_F(RtcpFunctionalityTest, twccHandleTwccPacketTest)
+TEST_F(RtcpFunctionalityTest, updateTwccHashTableTest)
 {
     PRtcPeerConnection pRtcPeerConnection = NULL;
     PKvsPeerConnection pKvsPeerConnection = NULL;
     RtcConfiguration config{};
-    UINT64 receivedBytes, receivedPackets, sentBytes, sentPackets = 0;
+    UINT64 receivedBytes = 0, receivedPackets = 0, sentBytes = 0, sentPackets = 0;
     INT64 duration = 0;
     PTwccRtpPacketInfo pTwccRtpPacketInfo = NULL;
     PHashTable pTwccRtpPktInfosHashTable = NULL;

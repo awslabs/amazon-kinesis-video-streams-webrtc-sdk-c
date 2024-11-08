@@ -328,14 +328,14 @@ STATUS updateTwccHashTable(PTwccManager pTwccManager, PINT64 duration, PUINT64 r
     PTwccRtpPacketInfo pTwccPacket = NULL;
     UINT16 seqNum = 0;
 
-    duration = 0;
-    *sentBytes = 0;
-    *receivedBytes = 0;
-    *receivedPackets = 0;
-    *sentPackets = 0;
-
     CHK(pTwccManager != NULL && duration != NULL && receivedBytes != NULL && receivedPackets != NULL && sentBytes != NULL && sentPackets != NULL,
         STATUS_NULL_ARG);
+
+    *duration = 0;
+    *receivedBytes = 0;
+    *receivedPackets = 0;
+    *sentBytes = 0;
+    *sentPackets = 0;
 
     baseSeqNum = pTwccManager->prevReportedBaseSeqNum;
 
@@ -389,6 +389,9 @@ STATUS updateTwccHashTable(PTwccManager pTwccManager, PINT64 duration, PUINT64 r
             }
         }
     }
+
+    UNUSED_PARAM(sentPackets);
+    UNUSED_PARAM(receivedPackets);
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
