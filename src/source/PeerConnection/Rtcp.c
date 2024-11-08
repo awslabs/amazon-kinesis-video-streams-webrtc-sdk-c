@@ -378,10 +378,10 @@ STATUS updateTwccHashTable(PTwccManager pTwccManager, PINT64 duration, PUINT64 r
                 localEndTimeKvs = pTwccPacket->localTimeKvs;
                 *duration = localEndTimeKvs - localStartTimeKvs;
                 *sentBytes += pTwccPacket->packetSize;
-                *sentPackets++;
+                (*sentPackets)++;
                 if (pTwccPacket->remoteTimeKvs != TWCC_PACKET_LOST_TIME) {
                     *receivedBytes += pTwccPacket->packetSize;
-                    *receivedPackets++;
+                    (*receivedPackets)++;
                     if (STATUS_SUCCEEDED(hashTableRemove(pTwccManager->pTwccRtpPktInfosHashTable, seqNum))) {
                         SAFE_MEMFREE(pTwccPacket);
                     }
@@ -389,9 +389,6 @@ STATUS updateTwccHashTable(PTwccManager pTwccManager, PINT64 duration, PUINT64 r
             }
         }
     }
-
-    UNUSED_PARAM(sentPackets);
-    UNUSED_PARAM(receivedPackets);
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
