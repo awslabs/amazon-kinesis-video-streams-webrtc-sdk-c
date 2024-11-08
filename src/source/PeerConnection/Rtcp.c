@@ -317,7 +317,8 @@ CleanUp:
     return retStatus;
 }
 
-STATUS updateTwccHashTable(PTwccManager pTwccManager, PINT64 duration, PUINT64 receivedBytes, PUINT64 receivedPackets, PUINT64 sentBytes, PUINT64 sentPackets)
+STATUS updateTwccHashTable(PTwccManager pTwccManager, PINT64 duration, PUINT64 receivedBytes, PUINT64 receivedPackets, PUINT64 sentBytes,
+                           PUINT64 sentPackets)
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 localStartTimeKvs, localEndTimeKvs = 0;
@@ -327,9 +328,14 @@ STATUS updateTwccHashTable(PTwccManager pTwccManager, PINT64 duration, PUINT64 r
     PTwccRtpPacketInfo pTwccPacket = NULL;
     UINT16 seqNum = 0;
 
-    duration, *sentBytes, *receivedBytes, *receivedPackets, *sentBytes, *sentPackets = 0;
+    duration = 0;
+    *sentBytes = 0;
+    *receivedBytes = 0;
+    *receivedPackets = 0;
+    *sentPackets = 0;
 
-    CHK(pTwccManager != NULL && duration != NULL && receivedBytes != NULL && receivedPackets != NULL && sentBytes != NULL && sentPackets != NULL, STATUS_NULL_ARG);
+    CHK(pTwccManager != NULL && duration != NULL && receivedBytes != NULL && receivedPackets != NULL && sentBytes != NULL && sentPackets != NULL,
+        STATUS_NULL_ARG);
 
     baseSeqNum = pTwccManager->prevReportedBaseSeqNum;
 
@@ -385,10 +391,9 @@ STATUS updateTwccHashTable(PTwccManager pTwccManager, PINT64 duration, PUINT64 r
     }
 
 CleanUp:
-        CHK_LOG_ERR(retStatus);
-        return retStatus;
+    CHK_LOG_ERR(retStatus);
+    return retStatus;
 }
-
 
 STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
 {
@@ -398,7 +403,7 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     UINT64 sentBytes = 0, receivedBytes = 0;
     UINT64 sentPackets = 0, receivedPackets = 0;
     INT64 duration = 0;
-    
+
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
     CHK(pKvsPeerConnection->pTwccManager != NULL && pKvsPeerConnection->onSenderBandwidthEstimation != NULL, STATUS_SUCCESS);
 

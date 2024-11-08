@@ -1142,7 +1142,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     SAFE_MEMFREE(*ppPeerConnection);
     ppPeerConnection = NULL;
 CleanUp:
-    if (ppPeerConnection != NULL && *ppPeerConnection != NULL ) {
+    if (ppPeerConnection != NULL && *ppPeerConnection != NULL) {
         if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->twccLock)) {
             if (twccLocked) {
                 MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
