@@ -404,6 +404,60 @@ TEST_F(RtcpFunctionalityTest, twccParsePacketTest)
     parseTwcc("4487A9E754B3E6FD04B60036147CAA852024C002D999D6407800000000000000000000000000040000000000000000", 43, 11);
     parseTwcc("4487A9E754B3E6FD040200E4147C9F81202700B7E6649000000000000000000004000000000008000018000000001", 43, 185);
 }
+
+TEST_F(RtcpFunctionalityTest, twccHandleTwccPacketTest)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    RtcConfiguration config{};
+    UINT64 receivedBytes, receivedPackets, sentBytes, sentPackets = 0;
+    INT64 duration = 0;
+    PTwccRtpPacketInfo pTwccRtpPacketInfo = NULL;
+    PHashTable pTwccRtpPktInfosHashTable = NULL;
+    UINT16 hashTableInsertionCount = 0;
+    UINT16 lowerBound = UINT16_MAX - 3;
+    UINT16 upperBound = 3;
+    UINT32 hashTableItemCount = 0;
+    UINT16 i = 0;
+
+    // Initialize structs and members.
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnSenderBandwidthEstimation(pRtcPeerConnection, 0, testBwHandler));
+
+    // Grab the hash table.
+    pTwccRtpPktInfosHashTable = pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable;
+ 
+    pKvsPeerConnection->pTwccManager->prevReportedBaseSeqNum = lowerBound;
+    pKvsPeerConnection->pTwccManager->lastReportedSeqNum = upperBound + 10;
+
+    // Breakup the packet indexes to be across the max int overflow.
+    for (i = lowerBound; i < UINT16_MAX; i++)
+    {
+        pTwccRtpPacketInfo = (PTwccRtpPacketInfo) MEMCALLOC(1, SIZEOF(TwccRtpPacketInfo));
+        EXPECT_EQ(STATUS_SUCCESS, hashTableUpsert(pTwccRtpPktInfosHashTable, i, (UINT64) pTwccRtpPacketInfo));
+        hashTableInsertionCount++;
+    }
+    for (i = 0; i < upperBound; i++)
+    {
+        pTwccRtpPacketInfo = (PTwccRtpPacketInfo) MEMCALLOC(1, SIZEOF(TwccRtpPacketInfo));
+        EXPECT_EQ(STATUS_SUCCESS, hashTableUpsert(pTwccRtpPktInfosHashTable, i, (UINT64) pTwccRtpPacketInfo));
+        hashTableInsertionCount++;
+    }
+
+    // Add at a non-monotonically-increased index.
+    pTwccRtpPacketInfo = (PTwccRtpPacketInfo) MEMCALLOC(1, SIZEOF(TwccRtpPacketInfo));
+    EXPECT_EQ(STATUS_SUCCESS, hashTableUpsert(pTwccRtpPktInfosHashTable, upperBound + 10, (UINT64) pTwccRtpPacketInfo));
+    hashTableInsertionCount++;
+
+    // Validate hash table size after and before updating (onRtcpTwccPacket case).
+    EXPECT_EQ(hashTableInsertionCount, pTwccRtpPktInfosHashTable->itemCount);
+    EXPECT_EQ(STATUS_SUCCESS, updateTwccHashTable(pKvsPeerConnection->pTwccManager, &duration, &receivedBytes, &receivedPackets, &sentBytes, &sentPackets));
+    EXPECT_EQ(0, pTwccRtpPktInfosHashTable->itemCount);
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

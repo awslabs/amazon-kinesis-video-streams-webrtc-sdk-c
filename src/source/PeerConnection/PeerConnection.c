@@ -1140,7 +1140,6 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
 
     PROFILE_WITH_START_TIME_OBJ(startTime, pKvsPeerConnection->peerConnectionDiagnostics.freePeerConnectionTime, "Free peer connection");
     SAFE_MEMFREE(*ppPeerConnection);
-    *ppPeerConnection = NULL;
     ppPeerConnection = NULL;
 CleanUp:
     if (ppPeerConnection != NULL && *ppPeerConnection != NULL ) {

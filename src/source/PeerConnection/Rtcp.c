@@ -317,28 +317,20 @@ CleanUp:
     return retStatus;
 }
 
-STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
+STATUS updateTwccHashTable(PTwccManager pTwccManager, PINT64 duration, PUINT64 receivedBytes, PUINT64 receivedPackets, PUINT64 sentBytes, PUINT64 sentPackets)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    PTwccManager pTwccManager = NULL;
-    BOOL locked = FALSE;
+    UINT64 localStartTimeKvs, localEndTimeKvs = 0;
     UINT16 baseSeqNum = 0;
-    UINT64 localStartTimeKvs, localEndTimeKvs;
-    UINT64 sentBytes = 0, receivedBytes = 0;
-    UINT64 sentPackets = 0, receivedPackets = 0;
-    INT64 duration = 0;
-    UINT16 seqNum = 0;
-    PTwccRtpPacketInfo pTwccPacket = NULL;
-    UINT64 twccPktValue = 0;
     BOOL localStartTimeRecorded = FALSE;
+    UINT64 twccPktValue = 0;
+    PTwccRtpPacketInfo pTwccPacket = NULL;
+    UINT16 seqNum = 0;
 
-    CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
-    CHK(pKvsPeerConnection->onSenderBandwidthEstimation != NULL && pKvsPeerConnection->pTwccManager != NULL, STATUS_SUCCESS);
+    duration, *sentBytes, *receivedBytes, *receivedPackets, *sentBytes, *sentPackets = 0;
 
-    MUTEX_LOCK(pKvsPeerConnection->twccLock);
-    locked = TRUE;
-    pTwccManager = pKvsPeerConnection->pTwccManager;
-    CHK_STATUS(parseRtcpTwccPacket(pRtcpPacket, pTwccManager));
+    CHK(pTwccManager != NULL && duration != NULL && receivedBytes != NULL && receivedPackets != NULL && sentBytes != NULL && sentPackets != NULL, STATUS_NULL_ARG);
+
     baseSeqNum = pTwccManager->prevReportedBaseSeqNum;
 
     // Use != instead to cover the case where the group of sequence numbers being checked
@@ -378,12 +370,12 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
             pTwccPacket = (PTwccRtpPacketInfo) twccPktValue;
             if (pTwccPacket != NULL) {
                 localEndTimeKvs = pTwccPacket->localTimeKvs;
-                duration = localEndTimeKvs - localStartTimeKvs;
-                sentBytes += pTwccPacket->packetSize;
-                sentPackets++;
+                *duration = localEndTimeKvs - localStartTimeKvs;
+                *sentBytes += pTwccPacket->packetSize;
+                *sentPackets++;
                 if (pTwccPacket->remoteTimeKvs != TWCC_PACKET_LOST_TIME) {
-                    receivedBytes += pTwccPacket->packetSize;
-                    receivedPackets++;
+                    *receivedBytes += pTwccPacket->packetSize;
+                    *receivedPackets++;
                     if (STATUS_SUCCEEDED(hashTableRemove(pTwccManager->pTwccRtpPktInfosHashTable, seqNum))) {
                         SAFE_MEMFREE(pTwccPacket);
                     }
@@ -391,6 +383,31 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
             }
         }
     }
+
+CleanUp:
+        CHK_LOG_ERR(retStatus);
+        return retStatus;
+}
+
+
+STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PTwccManager pTwccManager = NULL;
+    BOOL locked = FALSE;
+    UINT64 sentBytes = 0, receivedBytes = 0;
+    UINT64 sentPackets = 0, receivedPackets = 0;
+    INT64 duration = 0;
+    
+    CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
+    CHK(pKvsPeerConnection->pTwccManager != NULL && pKvsPeerConnection->onSenderBandwidthEstimation != NULL, STATUS_SUCCESS);
+
+    MUTEX_LOCK(pKvsPeerConnection->twccLock);
+    locked = TRUE;
+    pTwccManager = pKvsPeerConnection->pTwccManager;
+    CHK_STATUS(parseRtcpTwccPacket(pRtcpPacket, pTwccManager));
+
+    updateTwccHashTable(pTwccManager, &duration, &receivedBytes, &receivedPackets, &sentBytes, &sentPackets);
 
     if (duration > 0) {
         MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
