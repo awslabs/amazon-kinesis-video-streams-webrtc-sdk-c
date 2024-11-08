@@ -273,7 +273,7 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
         freeTransactionIdStore(&pIceAgent->pStunBindingRequestTransactionIdStore);
     }
 
-    hashTableFree(pIceAgent->requestTimestampDiagnostics);
+    CHK_LOG_ERR(hashTableFree(pIceAgent->requestTimestampDiagnostics));
     SAFE_MEMFREE(pIceAgent->pRtcSelectedLocalIceCandidateDiagnostics);
     SAFE_MEMFREE(pIceAgent->pRtcSelectedRemoteIceCandidateDiagnostics);
     for (i = 0; i < MAX_ICE_SERVERS_COUNT; i++) {
