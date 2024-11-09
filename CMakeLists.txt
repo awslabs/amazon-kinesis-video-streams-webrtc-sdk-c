@@ -257,16 +257,6 @@ set(BUILD_ARGS
         -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
 build_dependency(kvsCommonLws ${BUILD_ARGS})
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I${CMAKE_CURRENT_SOURCE_DIR}/configs")
-set(BUILD_ARGS
-        -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-        -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
-
-# Custom dependencies that need to be built
-build_dependency(kvssdp ${BUILD_ARGS})
-build_dependency(kvsstun ${BUILD_ARGS})
-build_dependency(kvsrtp ${BUILD_ARGS})
 ############# find dependent libraries ############
 
 find_package(Threads)
@@ -416,10 +406,6 @@ endif()
 
 target_link_libraries(
   kvsWebrtcClient
-  PUBLIC
-        kvssdp
-        kvsstun
-        kvsrtp
   PRIVATE kvspicUtils
           kvspicState
           ${CMAKE_THREAD_LIBS_INIT}
