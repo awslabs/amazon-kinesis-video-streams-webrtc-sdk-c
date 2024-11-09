@@ -406,18 +406,6 @@ CHK_STATUS(createRollingBufferConfig(pVideoRtcRtpTransceiver, &videoTrack, 0.2, 
 By setting these up, applications can have better control over the amount of memory that the application consumes. However, note, if the allocation is too small and the network bad leading to multiple nacks, it can lead to choppy media / dropped frames. Hence, care must be taken while deciding on the values to ensure the parameters satisfy necessary performance requirements.
 For more information, check the sample to see how these values are set up.
 
-### Thread stack sizes
-The default thread stack size for the KVS WebRTC SDK is platform specific. The SDK provides 2 avenues to modify the stack sizes:
-1. `THREAD_CREATE_WITH_PARAMS`: Use this API to control the thread stack size for individual threads. Starting v1.11.0, the samples set these up for the sample media threads.
-2. `-DKVS_STACK_SIZE`: Default stack size for threads created using THREAD_CREATE(). The parameter is set to 0 by default, which means the SDK will use platform specific defaults. To set a particular value, build the SDK with this option and provide the size in bytes. For example, to set stack size for threads to 64KiB,
-```
-cmake .. -DKVS_STACK_SIZE=65536`
-```
-
-The samples provided with this SDK have been tested with a lowest stack size of 64KiB.
-
-If your SOC/platform has a high default stack size, it is recommended to tweak these values to ensure reducing your application's memory footprint. 
-
 ## Setup IoT
 * To use IoT certificate to authenticate with KVS signaling, please refer to [Controlling Access to Kinesis Video Streams Resources Using AWS IoT](https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/how-iot.html) for provisioning details.
 * A sample IAM policy for the IoT role looks like below, policy can be modified based on your permission requirement.
