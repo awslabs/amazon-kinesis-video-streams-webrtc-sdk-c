@@ -183,7 +183,7 @@ typedef struct {
     PHashTable requestSentTime;
     UINT64 roundTripTime;
     UINT64 responsesReceived;
-    RtcIceCandidatePairDiagnostics rtcIceCandidatePairDiagnostics;
+    PRtcIceCandidatePairDiagnostics pRtcIceCandidatePairDiagnostics;
 } IceCandidatePair, *PIceCandidatePair;
 
 typedef struct {
@@ -213,9 +213,9 @@ struct __IceAgent {
     CHAR remotePassword[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
     CHAR combinedUserName[(MAX_ICE_CONFIG_USER_NAME_LEN + 1) << 1]; //!< the combination of remote user name and local user name.
 
-    RtcIceServerDiagnostics rtcIceServerDiagnostics[MAX_ICE_SERVERS_COUNT];
-    RtcIceCandidateDiagnostics rtcSelectedLocalIceCandidateDiagnostics;
-    RtcIceCandidateDiagnostics rtcSelectedRemoteIceCandidateDiagnostics;
+    PRtcIceServerDiagnostics pRtcIceServerDiagnostics[MAX_ICE_SERVERS_COUNT];
+    PRtcIceCandidateDiagnostics pRtcSelectedLocalIceCandidateDiagnostics;
+    PRtcIceCandidateDiagnostics pRtcSelectedRemoteIceCandidateDiagnostics;
     IceAgentProfileDiagnostics iceAgentProfileDiagnostics;
 
     PHashTable requestTimestampDiagnostics;
