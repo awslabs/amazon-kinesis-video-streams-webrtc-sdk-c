@@ -1884,7 +1884,7 @@ static STATUS twccRollingWindowDeletion(PKvsPeerConnection pKvsPeerConnection, P
                 }
             } else {
                 // Move to the next seqNum to check if we can remove the next one atleast
-                DLOGV("Detected timestamp not increasing monotonically for RTP packet %d [ts: %" PRIu64 ". Current RTP packets' ts: %" PRIu64,
+                DLOGV("Non-monotonic timestamp detected for RTP packet seqNum %d [ts: %" PRIu64 ". Current RTP packets' ts: %" PRIu64,
                       updatedSeqNum, firstRtpTime, pRtpPacket->sentTime);
                 updatedSeqNum++;
             }
