@@ -19,7 +19,7 @@
 <area shape="rect" id="node18" href="$struct____RtcDataChannel.html" title="RtcDataChannel represents a bi&#45;directional data channel between two peers." alt="" coords="1847,1193,1989,1285"/>
 <area shape="rect" id="node19" href="$struct____DtlsSession.html" title=" " alt="" coords="169,1127,350,1351"/>
 <area shape="rect" id="node20" href="$structDtlsSessionCallbacks.html" title=" " alt="" coords="5,825,244,947"/>
-<area shape="rect" id="node21" href="$struct____IceAgent.html" title=" " alt="" coords="2775,1127,2994,1351"/>
+<area shape="rect" id="node21" href="$struct____IceAgent.html" title=" " alt="" coords="2763,1127,2982,1351"/>
 <area shape="rect" id="node29" href="$structIceCandidate.html" title=" " alt="" coords="3791,1428,3943,1623"/>
 <area shape="rect" id="node22" href="$structIceServer.html" title=" " alt="" coords="3716,811,3819,961"/>
 <area shape="rect" id="node30" href="$struct____TurnConnection.html" title=" " alt="" coords="4229,1127,4410,1351"/>
@@ -29,7 +29,7 @@
 <area shape="rect" id="node38" href="$structTurnPeer.html" title=" " alt="" coords="3971,767,4211,1005"/>
 <area shape="rect" id="node40" href="$structTurnConnectionCallbacks.html" title=" " alt="" coords="4287,847,4472,925"/>
 <area shape="rect" id="node25" href="$structTransactionIdStore.html" title=" " alt="" coords="2687,417,2895,553"/>
-<area shape="rect" id="node28" href="$structIceCandidatePair.html" title=" " alt="" coords="3209,1715,3371,1895"/>
+<area shape="rect" id="node28" href="$structIceCandidatePair.html" title=" " alt="" coords="3203,1715,3366,1895"/>
 <area shape="rect" id="node26" href="$structKvsRtcConfiguration.html" title=" " alt="" coords="2269,752,2521,1020"/>
 <area shape="rect" id="node27" href="$structRtcIceServerDiagnostics.html" title=" " alt="" coords="2546,811,2743,961"/>
 <area shape="rect" id="node31" href="$structConnectionListener.html" title=" " alt="" coords="4496,803,4663,969"/>
