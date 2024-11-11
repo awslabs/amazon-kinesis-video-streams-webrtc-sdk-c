@@ -1866,26 +1866,29 @@ static STATUS twccRollingWindowDeletion(PKvsPeerConnection pKvsPeerConnection, P
         // If the seqNum is not present in the hash table, it is ok. We move on to the next
         if (STATUS_SUCCEEDED(hashTableGet(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, updatedSeqNum, &twccPacketValue))) {
             tempTwccRtpPktInfo = (PTwccRtpPacketInfo) twccPacketValue;
-        }
-        if (tempTwccRtpPktInfo != NULL) {
-            firstRtpTime = tempTwccRtpPktInfo->localTimeKvs;
-            // Would be the case if the timestamps are not monotonically increasing.
-            if (pRtpPacket->sentTime >= firstRtpTime) {
-                ageOfOldest = pRtpPacket->sentTime - firstRtpTime;
-                if (ageOfOldest > TWCC_ESTIMATOR_TIME_WINDOW) {
-                    // If the seqNum is not present in the hash table, move on. However, this case should not happen
-                    // given this function is holding the lock and tempTwccRtpPktInfo is populated because it exists
-                    if (STATUS_SUCCEEDED(hashTableRemove(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, updatedSeqNum))) {
-                        SAFE_MEMFREE(tempTwccRtpPktInfo);
+            if (tempTwccRtpPktInfo != NULL) {
+                firstRtpTime = tempTwccRtpPktInfo->localTimeKvs;
+                // Would be the case if the timestamps are not monotonically increasing.
+                if (pRtpPacket->sentTime >= firstRtpTime) {
+                    ageOfOldest = pRtpPacket->sentTime - firstRtpTime;
+                    if (ageOfOldest > TWCC_ESTIMATOR_TIME_WINDOW) {
+                        // If the seqNum is not present in the hash table, move on. However, this case should not happen
+                        // given this function is holding the lock and tempTwccRtpPktInfo is populated because it exists
+                        if (STATUS_SUCCEEDED(hashTableRemove(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, updatedSeqNum))) {
+                            SAFE_MEMFREE(tempTwccRtpPktInfo);
+                        }
+                        updatedSeqNum++;
+                    } else {
+                        isCheckComplete = TRUE;
                     }
-                    updatedSeqNum++;
                 } else {
-                    isCheckComplete = TRUE;
+                    // Move to the next seqNum to check if we can remove the next one atleast
+                    DLOGV("Non-monotonic timestamp detected for RTP packet seqNum %d [ts: %" PRIu64 ". Current RTP packets' ts: %" PRIu64,
+                          updatedSeqNum, firstRtpTime, pRtpPacket->sentTime);
+                    updatedSeqNum++;
                 }
             } else {
-                // Move to the next seqNum to check if we can remove the next one atleast
-                DLOGV("Non-monotonic timestamp detected for RTP packet seqNum %d [ts: %" PRIu64 ". Current RTP packets' ts: %" PRIu64,
-                      updatedSeqNum, firstRtpTime, pRtpPacket->sentTime);
+                CHK_STATUS(hashTableRemove(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, updatedSeqNum));
                 updatedSeqNum++;
             }
         } else {

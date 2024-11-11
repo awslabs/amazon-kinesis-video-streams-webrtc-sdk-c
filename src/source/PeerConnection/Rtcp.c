@@ -386,6 +386,8 @@ STATUS updateTwccHashTable(PTwccManager pTwccManager, PINT64 duration, PUINT64 r
                         SAFE_MEMFREE(pTwccPacket);
                     }
                 }
+            } else {
+                CHK_STATUS(hashTableRemove(pTwccManager->pTwccRtpPktInfosHashTable, seqNum));
             }
         }
     }

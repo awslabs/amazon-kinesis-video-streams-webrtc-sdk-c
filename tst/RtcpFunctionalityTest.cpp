@@ -454,6 +454,20 @@ TEST_F(RtcpFunctionalityTest, updateTwccHashTableTest)
     EXPECT_EQ(STATUS_SUCCESS, updateTwccHashTable(pKvsPeerConnection->pTwccManager, &duration, &receivedBytes, &receivedPackets, &sentBytes, &sentPackets));
     EXPECT_EQ(0, pTwccRtpPktInfosHashTable->itemCount);
 
+    hashTableInsertionCount = 0;
+    pTwccRtpPacketInfo = NULL;
+    for (i = 0; i <= upperBound; i++)
+    {
+        EXPECT_EQ(STATUS_SUCCESS, hashTableUpsert(pTwccRtpPktInfosHashTable, i, (UINT64) pTwccRtpPacketInfo));
+        hashTableInsertionCount++;
+    }
+    EXPECT_EQ(hashTableInsertionCount, pTwccRtpPktInfosHashTable->itemCount);
+    EXPECT_EQ(STATUS_SUCCESS, updateTwccHashTable(pKvsPeerConnection->pTwccManager, &duration, &receivedBytes, &receivedPackets, &sentBytes, &sentPackets));
+    EXPECT_EQ(0, pTwccRtpPktInfosHashTable->itemCount);
+    
+    MUTEX_LOCK(pKvsPeerConnection->twccLock);
+    MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
+
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
