@@ -2417,10 +2417,12 @@ STATUS wakeLwsServiceEventLoop(PSignalingClient pSignalingClient, UINT32 protoco
     // Early exit in case we don't need to do anything
     CHK(pSignalingClient != NULL && pSignalingClient->pLwsContext != NULL, retStatus);
 
+    // currentWsi should be used under lwsSerializerLock.
+    MUTEX_LOCK(pSignalingClient->lwsSerializerLock);
     if (pSignalingClient->currentWsi[protocolIndex] != NULL) {
         lws_callback_on_writable(pSignalingClient->currentWsi[protocolIndex]);
     }
-
+    MUTEX_UNLOCK(pSignalingClient->lwsSerializerLock);
 CleanUp:
 
     LEAVES();

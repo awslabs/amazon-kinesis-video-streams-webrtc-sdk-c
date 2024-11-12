@@ -62,9 +62,6 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
     ATOMIC_STORE_BOOL(&pConnectionListener->terminate, TRUE);
 
     if (IS_VALID_MUTEX_VALUE(pConnectionListener->lock)) {
-        MUTEX_LOCK(pConnectionListener->lock);
-        threadId = pConnectionListener->receiveDataRoutine;
-        MUTEX_UNLOCK(pConnectionListener->lock);
 
         // TODO add support for windows socketpair
         // This writes to the socketpair, kicking the POLL() out early,
@@ -72,12 +69,16 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
 #ifndef _WIN32
         socketWrite(pConnectionListener->kickSocket[CONNECTION_LISTENER_KICK_SOCKET_WRITE], msg, STRLEN(msg));
 #endif
-
+        // receiveDataRoutine TID should be used under pConnectionListener->lock lock.
+        MUTEX_LOCK(pConnectionListener->lock);
+        threadId = pConnectionListener->receiveDataRoutine;
         // wait for thread to finish.
         if (IS_VALID_TID_VALUE(threadId)) {
-            THREAD_JOIN(pConnectionListener->receiveDataRoutine, NULL);
+            THREAD_JOIN(threadId, NULL);
+            pConnectionListener->receiveDataRoutine = INVALID_MUTEX_VALUE;
         }
-
+        
+        MUTEX_UNLOCK(pConnectionListener->lock);
         MUTEX_FREE(pConnectionListener->lock);
     }
 
