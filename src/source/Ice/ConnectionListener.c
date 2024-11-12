@@ -68,6 +68,8 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
 #ifndef _WIN32
         socketWrite(pConnectionListener->kickSocket[CONNECTION_LISTENER_KICK_SOCKET_WRITE], msg, STRLEN(msg));
 #endif
+
+        DLOGW("[TESTING] LOCKING pConnectionListener->lock for pConnectionListener->receiveDataRoutine.");
         // receiveDataRoutine TID should be used under pConnectionListener->lock lock.
         MUTEX_LOCK(pConnectionListener->lock);
         threadId = pConnectionListener->receiveDataRoutine;
@@ -78,8 +80,10 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
         }
 
         MUTEX_UNLOCK(pConnectionListener->lock);
+        DLOGW("[TESTING] UNLOCKING pConnectionListener->lock for pConnectionListener->receiveDataRoutine.");
     }
 
+    DLOGW("[TESTING] LOCKING pConnectionListener->lock for closeSocket.");
     MUTEX_LOCK(pConnectionListener->lock);
 
     // TODO add support for windows socketpair
@@ -93,6 +97,8 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
 #endif
 
     MUTEX_UNLOCK(pConnectionListener->lock);
+    DLOGW("[TESTING] UNLOCKING pConnectionListener->lock for closeSocket.");
+
     MUTEX_FREE(pConnectionListener->lock);
 
     MEMFREE(pConnectionListener);
@@ -336,10 +342,12 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                     if (canReadFd(localSocket, rfds, nfds)) {
                         iterate = TRUE;
                         while (iterate) {
+                            DLOGW("[TESTING] LOCKING pConnectionListener->lock for recvfrom.");
                             MUTEX_LOCK(pConnectionListener->lock);
                             readLen = recvfrom(localSocket, pConnectionListener->pBuffer, pConnectionListener->bufferLen, 0,
                                                (struct sockaddr*) &srcAddrBuff, &srcAddrBuffLen);
                             MUTEX_UNLOCK(pConnectionListener->lock);
+                            DLOGW("[TESTING] UNLOCKING pConnectionListener->lock for recvfrom.");
 
                             if (readLen < 0) {
                                 switch (getErrorCode()) {

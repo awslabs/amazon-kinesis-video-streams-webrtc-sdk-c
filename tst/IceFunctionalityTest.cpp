@@ -199,6 +199,7 @@ TEST_F(IceFunctionalityTest, connectionListenerFunctionalityTest)
     EXPECT_EQ(connectionCount, newConnectionCount);
 
     // receiveDataRoutine TID should be used under pConnectionListener->lock lock.
+    DLOGW("[TESTING] LOCKING pConnectionListener->lock for pConnectionListener->receiveDataRoutine.");
     MUTEX_LOCK(pConnectionListener->lock);
     threadId = pConnectionListener->receiveDataRoutine;
     EXPECT_TRUE(IS_VALID_TID_VALUE(threadId));
@@ -207,6 +208,7 @@ TEST_F(IceFunctionalityTest, connectionListenerFunctionalityTest)
     THREAD_JOIN(threadId, NULL);
     pConnectionListener->receiveDataRoutine = INVALID_MUTEX_VALUE;
     MUTEX_UNLOCK(pConnectionListener->lock);
+    DLOGW("[TESTING] UNLOCKING pConnectionListener->lock for pConnectionListener->receiveDataRoutine.");
 
     EXPECT_EQ(STATUS_SUCCESS, freeConnectionListener(&pConnectionListener));
 
