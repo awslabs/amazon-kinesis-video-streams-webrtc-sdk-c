@@ -1235,6 +1235,7 @@ typedef struct {
                                                          //!< connection to avoid a compromised client weakening the security of the new connections.
                                                          //!<
                                                          //!< NOTE: The certificates, if specified, can be freed after the peer connection create call
+                                                         //!<
 } RtcConfiguration, *PRtcConfiguration;
 
 /**

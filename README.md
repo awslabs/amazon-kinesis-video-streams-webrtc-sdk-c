@@ -636,9 +636,9 @@ The SDK maintains an RTP rolling buffer to hold the RTP packets. This is useful 
 
 The rolling buffer capacity is calculated as follows:
 ```
-Capacity = Buffer duration * highest expected bitrate (in bps) / 8 / MTU
+Capacity = buffer duration * highest expected bitrate (in bps) / 8 / MTU
 
-With buffer duration = 1 second,  Highest expected bitrate = 5 mibps and MTU 1200 bytes, capacity = 546 RTP packets
+With buffer duration = 1 second, highest expected bitrate = 5 mibps and MTU 1200 bytes, capacity = 546 RTP packets
 ```
 
 The rolling buffer size can be configured per transceiver through the following fields:

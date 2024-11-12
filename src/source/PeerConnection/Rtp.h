@@ -13,7 +13,7 @@ extern "C" {
 #define DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS (DOUBLE) 3
 #define DEFAULT_EXPECTED_VIDEO_BIT_RATE            (DOUBLE)(5 * 1024 * 1024)
 // Opus has highest based on the supported codecs which is 510Kibps. So setting this to twice
-#define DEFAULT_EXPECTED_AUDIO_BIT_RATE        (DOUBLE)(1000 * 1024)
+#define DEFAULT_EXPECTED_AUDIO_BIT_RATE        (DOUBLE)(1 * 1024 * 1024)
 #define DEFAULT_SEQ_NUM_BUFFER_SIZE            1000
 #define DEFAULT_VALID_INDEX_BUFFER_SIZE        1000
 #define DEFAULT_PEER_FRAME_BUFFER_SIZE         (5 * 1024)
