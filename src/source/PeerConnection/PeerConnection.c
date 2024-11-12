@@ -1119,38 +1119,34 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     if (pKvsPeerConnection->pTwccManager != NULL) {
         MUTEX_LOCK(pKvsPeerConnection->twccLock);
         twccLocked = TRUE;
+
         if (STATUS_SUCCEEDED(hashTableGetCount(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, &twccHashTableCount))) {
             DLOGI("Number of TWCC info packets in memory: %d", twccHashTableCount);
         }
+        
         CHK_LOG_ERR(hashTableIterateEntries(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, 0, freeHashEntry));
         CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable));
-        if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->twccLock)) {
-            if (twccLocked) {
-                MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
-                twccLocked = FALSE;
-            }
-            MUTEX_FREE(pKvsPeerConnection->twccLock);
-            pKvsPeerConnection->twccLock = INVALID_MUTEX_VALUE;
-        }
+        
         SAFE_MEMFREE(pKvsPeerConnection->pTwccManager);
     }
 
     // Incase the `RemoteSessionDescription` has not already been freed.
     SAFE_MEMFREE(pKvsPeerConnection->pRemoteSessionDescription);
 
-    PROFILE_WITH_START_TIME_OBJ(startTime, pKvsPeerConnection->peerConnectionDiagnostics.freePeerConnectionTime, "Free peer connection");
-    SAFE_MEMFREE(*ppPeerConnection);
-    pKvsPeerConnection = NULL;
-CleanUp:
-    if (pKvsPeerConnection != NULL) {
-        if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->twccLock)) {
+    if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->twccLock)) {
             if (twccLocked) {
                 MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
                 twccLocked = FALSE;
             }
             MUTEX_FREE(pKvsPeerConnection->twccLock);
-        }
+            pKvsPeerConnection->twccLock = INVALID_MUTEX_VALUE;
     }
+
+    PROFILE_WITH_START_TIME_OBJ(startTime, pKvsPeerConnection->peerConnectionDiagnostics.freePeerConnectionTime, "Free peer connection");
+    SAFE_MEMFREE(*ppPeerConnection);
+
+CleanUp:
+
     LEAVES();
     return retStatus;
 }
