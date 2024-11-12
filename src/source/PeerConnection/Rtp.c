@@ -55,7 +55,7 @@ STATUS setUpRollingBufferConfigInternal(PKvsRtpTransceiver pKvsRtpTransceiver, P
     STATUS retStatus = STATUS_SUCCESS;
     CHK_ERR(pKvsRtpTransceiver != NULL || pRtcMediaStreamTrack != NULL, STATUS_NULL_ARG,
             "Media track and transceiver not set. Make sure to set up transceiver with addTransceiver()");
-    
+
     //  Do not attempt to alloc for a new RollingBufferConfig if one is still not freed.
     if (pKvsRtpTransceiver->pRollingBufferConfig == NULL) {
         pKvsRtpTransceiver->pRollingBufferConfig = (PRollingBufferConfig) MEMCALLOC(1, SIZEOF(RollingBufferConfig));
