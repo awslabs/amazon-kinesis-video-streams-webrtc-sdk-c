@@ -78,7 +78,6 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
         }
 
         MUTEX_UNLOCK(pConnectionListener->lock);
-        MUTEX_FREE(pConnectionListener->lock);
     }
 
     MUTEX_LOCK(pConnectionListener->lock);
@@ -94,6 +93,7 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
 #endif
 
     MUTEX_UNLOCK(pConnectionListener->lock);
+    MUTEX_FREE(pConnectionListener->lock);
 
     MEMFREE(pConnectionListener);
 
