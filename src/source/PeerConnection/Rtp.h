@@ -12,7 +12,7 @@ extern "C" {
 #define DEFAULT_MTU_SIZE_BYTES                     1200
 #define DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS (DOUBLE) 3
 #define DEFAULT_EXPECTED_VIDEO_BIT_RATE            (DOUBLE)(5 * 1024 * 1024)
-// Opus has highest based on the supported codecs which is 510Kibps. So setting this to twice
+// Opus has highest based on the supported codecs which is 510Kibps, so setting this to twice that.
 #define DEFAULT_EXPECTED_AUDIO_BIT_RATE        (DOUBLE)(1 * 1024 * 1024)
 #define DEFAULT_SEQ_NUM_BUFFER_SIZE            1000
 #define DEFAULT_VALID_INDEX_BUFFER_SIZE        1000
@@ -52,7 +52,7 @@ typedef struct {
 typedef struct {
     DOUBLE rollingBufferDurationSec; //!< Maximum duration of media that needs to be buffered (in seconds). The lowest allowed is 0.1 seconds (100ms)
     DOUBLE rollingBufferBitratebps;  //!< Maximum expected bitrate of media (In bits/second). It is used to determine the buffer capacity. The lowest
-    //!< allowed is 100 Kbps
+                                     //!< allowed is 100 Kbps
 } RollingBufferConfig, *PRollingBufferConfig;
 
 typedef struct {
