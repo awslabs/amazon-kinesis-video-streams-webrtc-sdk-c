@@ -1123,10 +1123,10 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
         if (STATUS_SUCCEEDED(hashTableGetCount(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, &twccHashTableCount))) {
             DLOGI("Number of TWCC info packets in memory: %d", twccHashTableCount);
         }
-        
+
         CHK_LOG_ERR(hashTableIterateEntries(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, 0, freeHashEntry));
         CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable));
-        
+
         SAFE_MEMFREE(pKvsPeerConnection->pTwccManager);
     }
 
@@ -1134,12 +1134,12 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     SAFE_MEMFREE(pKvsPeerConnection->pRemoteSessionDescription);
 
     if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->twccLock)) {
-            if (twccLocked) {
-                MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
-                twccLocked = FALSE;
-            }
-            MUTEX_FREE(pKvsPeerConnection->twccLock);
-            pKvsPeerConnection->twccLock = INVALID_MUTEX_VALUE;
+        if (twccLocked) {
+            MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
+            twccLocked = FALSE;
+        }
+        MUTEX_FREE(pKvsPeerConnection->twccLock);
+        pKvsPeerConnection->twccLock = INVALID_MUTEX_VALUE;
     }
 
     PROFILE_WITH_START_TIME_OBJ(startTime, pKvsPeerConnection->peerConnectionDiagnostics.freePeerConnectionTime, "Free peer connection");
