@@ -206,7 +206,7 @@ TEST_F(IceFunctionalityTest, connectionListenerFunctionalityTest)
     ATOMIC_STORE_BOOL(&pConnectionListener->terminate, TRUE);
 
     THREAD_JOIN(threadId, NULL);
-    pConnectionListener->receiveDataRoutine = INVALID_MUTEX_VALUE;
+    pConnectionListener->receiveDataRoutine = INVALID_TID_VALUE;
     MUTEX_UNLOCK(pConnectionListener->lock);
     DLOGW("[TESTING] UNLOCKING pConnectionListener->lock for pConnectionListener->receiveDataRoutine.");
 
