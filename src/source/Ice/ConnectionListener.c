@@ -81,6 +81,8 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
         MUTEX_FREE(pConnectionListener->lock);
     }
 
+    MUTEX_LOCK(pConnectionListener->lock);
+
     // TODO add support for windows socketpair
 #ifndef _WIN32
     if (pConnectionListener->kickSocket[CONNECTION_LISTENER_KICK_SOCKET_LISTEN] != -1) {
@@ -90,6 +92,8 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
         closeSocket(pConnectionListener->kickSocket[CONNECTION_LISTENER_KICK_SOCKET_WRITE]);
     }
 #endif
+
+    MUTEX_UNLOCK(pConnectionListener->lock);
 
     MEMFREE(pConnectionListener);
 
@@ -332,8 +336,11 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                     if (canReadFd(localSocket, rfds, nfds)) {
                         iterate = TRUE;
                         while (iterate) {
+                            MUTEX_LOCK(pConnectionListener->lock);
                             readLen = recvfrom(localSocket, pConnectionListener->pBuffer, pConnectionListener->bufferLen, 0,
                                                (struct sockaddr*) &srcAddrBuff, &srcAddrBuffLen);
+                            MUTEX_UNLOCK(pConnectionListener->lock);
+
                             if (readLen < 0) {
                                 switch (getErrorCode()) {
                                     case EWOULDBLOCK:
