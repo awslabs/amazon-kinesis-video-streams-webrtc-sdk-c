@@ -1140,9 +1140,9 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
 
     PROFILE_WITH_START_TIME_OBJ(startTime, pKvsPeerConnection->peerConnectionDiagnostics.freePeerConnectionTime, "Free peer connection");
     SAFE_MEMFREE(*ppPeerConnection);
-    ppPeerConnection = NULL;
+    pKvsPeerConnection = NULL;
 CleanUp:
-    if (ppPeerConnection != NULL && *ppPeerConnection != NULL) {
+    if (pKvsPeerConnection != NULL) {
         if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->twccLock)) {
             if (twccLocked) {
                 MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
@@ -1901,6 +1901,8 @@ static STATUS twccRollingWindowDeletion(PKvsPeerConnection pKvsPeerConnection, P
     // Update regardless. The loop checks until current RTP packets seq number irrespective of the failure
     pKvsPeerConnection->pTwccManager->firstSeqNumInRollingWindow = updatedSeqNum;
 CleanUp:
+    CHK_LOG_ERR(retStatus);
+
     LEAVES();
     return retStatus;
 }
