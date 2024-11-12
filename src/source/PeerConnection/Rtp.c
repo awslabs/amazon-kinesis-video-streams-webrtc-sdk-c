@@ -55,11 +55,14 @@ STATUS setUpRollingBufferConfigInternal(PKvsRtpTransceiver pKvsRtpTransceiver, P
     STATUS retStatus = STATUS_SUCCESS;
     CHK_ERR(pKvsRtpTransceiver != NULL || pRtcMediaStreamTrack != NULL, STATUS_NULL_ARG,
             "Media track and transceiver not set. Make sure to set up transceiver with addTransceiver()");
+    
+    //  Do not attempt to alloc for a new RollingBufferConfig if one is still not freed.
     if (pKvsRtpTransceiver->pRollingBufferConfig == NULL) {
         pKvsRtpTransceiver->pRollingBufferConfig = (PRollingBufferConfig) MEMCALLOC(1, SIZEOF(RollingBufferConfig));
         CHK(pKvsRtpTransceiver->pRollingBufferConfig != NULL, STATUS_NOT_ENOUGH_MEMORY);
     }
 
+    // Validate configured buffer duration is within acceptable range, else set to default duration.
     if (rollingBufferDurationSec >= MIN_ROLLING_BUFFER_DURATION_IN_SECONDS && rollingBufferDurationSec <= MAX_ROLLING_BUFFER_DURATION_IN_SECONDS) {
         pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferDurationSec = rollingBufferDurationSec;
     } else {
@@ -68,6 +71,7 @@ STATUS setUpRollingBufferConfigInternal(PKvsRtpTransceiver pKvsRtpTransceiver, P
         pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferDurationSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
     }
 
+    // Validate configured expected bitrate is within acceptable range, else set to default bitrate.
     if (rollingBufferBitratebps >= MIN_EXPECTED_BIT_RATE && rollingBufferBitratebps <= MAX_EXPECTED_BIT_RATE) {
         pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps = rollingBufferBitratebps;
     } else {
@@ -81,7 +85,7 @@ STATUS setUpRollingBufferConfigInternal(PKvsRtpTransceiver pKvsRtpTransceiver, P
             pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps = DEFAULT_EXPECTED_AUDIO_BIT_RATE;
         } else {
             DLOGW("Rolling buffer bitrate does not fit range (%lf bps - %lf bps) for unknown codec. Setting to default %lf bps",
-                  MIN_EXPECTED_BIT_RATE, MAX_EXPECTED_BIT_RATE, DEFAULT_EXPECTED_AUDIO_BIT_RATE);
+                  MIN_EXPECTED_BIT_RATE, MAX_EXPECTED_BIT_RATE, DEFAULT_EXPECTED_VIDEO_BIT_RATE);
             pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
         }
     }
