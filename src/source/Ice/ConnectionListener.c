@@ -62,7 +62,6 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
     ATOMIC_STORE_BOOL(&pConnectionListener->terminate, TRUE);
 
     if (IS_VALID_MUTEX_VALUE(pConnectionListener->lock)) {
-
         // TODO add support for windows socketpair
         // This writes to the socketpair, kicking the POLL() out early,
         // otherwise wait for the POLL to timeout
@@ -77,7 +76,7 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
             THREAD_JOIN(threadId, NULL);
             pConnectionListener->receiveDataRoutine = INVALID_MUTEX_VALUE;
         }
-        
+
         MUTEX_UNLOCK(pConnectionListener->lock);
         MUTEX_FREE(pConnectionListener->lock);
     }
