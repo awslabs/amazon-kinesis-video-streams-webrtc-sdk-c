@@ -71,11 +71,11 @@ STATUS rtpRollingBufferAddRtpPacket(PRtpRollingBuffer pRollingBuffer, PRtpPacket
 
     CHK(pRollingBuffer->pRollingBuffer != NULL, STATUS_NULL_ARG);
 
-    DLOGW("[TESTING] LOCKING pRollingBuffer->lock for pRollingBuffer->lastIndex.");
+    // DLOGW("[TESTING] LOCKING pRollingBuffer->lock for pRollingBuffer->lastIndex.");
     MUTEX_LOCK(pRollingBuffer->pRollingBuffer->lock);
     pRollingBuffer->lastIndex = index;
     MUTEX_UNLOCK(pRollingBuffer->pRollingBuffer->lock);
-    DLOGW("[TESTING] UNLOCKING pRollingBuffer->lock for pRollingBuffer->lastIndex.");
+    // DLOGW("[TESTING] UNLOCKING pRollingBuffer->lock for pRollingBuffer->lastIndex.");
 
 CleanUp:
     SAFE_MEMFREE(pRawPacketCopy);
