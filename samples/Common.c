@@ -524,17 +524,6 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &videoTrack, &videoRtpTransceiverInit,
                               &pSampleStreamingSession->pVideoRtcRtpTransceiver));
 
-    if (videoTrack.codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
-        CHK_STATUS(createRollingBufferConfig(pSampleStreamingSession->pVideoRtcRtpTransceiver, &videoTrack, H264_ROLLING_BUFFER_DURATION_SECONDS,
-                                             H264_ROLLING_BUFFER_BITRATE_BITS_PER_SECOND));
-    } else if (videoTrack.codec == RTC_CODEC_H265) {
-        CHK_STATUS(createRollingBufferConfig(pSampleStreamingSession->pVideoRtcRtpTransceiver, &videoTrack, H265_ROLLING_BUFFER_DURATION_SECONDS,
-                                             H265_ROLLING_BUFFER_BITRATE_BITS_PER_SECOND));
-    } else if (videoTrack.codec == RTC_CODEC_VP8) {
-        CHK_STATUS(createRollingBufferConfig(pSampleStreamingSession->pVideoRtcRtpTransceiver, &videoTrack, VP8_ROLLING_BUFFER_DURATION_SECONDS,
-                                             VP8_ROLLING_BUFFER_BITRATE_BITS_PER_SECOND));
-    }
-
     CHK_STATUS(transceiverOnBandwidthEstimation(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession,
                                                 sampleBandwidthEstimationHandler));
 
@@ -546,14 +535,6 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     STRCPY(audioTrack.trackId, "myAudioTrack");
     CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &audioTrack, &audioRtpTransceiverInit,
                               &pSampleStreamingSession->pAudioRtcRtpTransceiver));
-
-    if (audioTrack.codec == RTC_CODEC_OPUS) {
-        CHK_STATUS(createRollingBufferConfig(pSampleStreamingSession->pAudioRtcRtpTransceiver, &audioTrack, OPUS_ROLLING_BUFFER_DURATION_SECONDS,
-                                             OPUS_ROLLING_BUFFER_BITRATE_BITS_PER_SECOND));
-    } else if (audioTrack.codec == RTC_CODEC_ALAW || audioTrack.codec == RTC_CODEC_MULAW) {
-        CHK_STATUS(createRollingBufferConfig(pSampleStreamingSession->pAudioRtcRtpTransceiver, &audioTrack, G711_ROLLING_BUFFER_DURATION_SECONDS,
-                                             G711_ROLLING_BUFFER_BITRATE_BITS_PER_SECOND));
-    }
 
     CHK_STATUS(transceiverOnBandwidthEstimation(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession,
                                                 sampleBandwidthEstimationHandler));
