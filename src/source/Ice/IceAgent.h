@@ -96,7 +96,7 @@ typedef struct {
                                                         //!< Valid values: UDP, TCP, TLS
     INT32 priority;                                     //!< Computed using the formula in https://tools.ietf.org/html/rfc5245#section-15.1
     INT32 port;                                         //!< Port number of the candidate
-    CHAR candidateType[MAX_CANDIDATE_TYPE_LENGTH + 1]                            //!< Type of local/remote ICE candidate
+    CHAR candidateType[MAX_CANDIDATE_TYPE_LENGTH + 1];                            //!< Type of local/remote ICE candidate
 } RtcIceCandidateDiagnostics, *PRtcIceCandidateDiagnostics;
 
 typedef struct {
