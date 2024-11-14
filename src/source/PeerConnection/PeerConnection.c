@@ -1522,8 +1522,8 @@ CleanUp:
     return retStatus;
 }
 
-STATUS createRollingBufferConfig(PRtcRtpTransceiver pRtcRtpTransceiver, PRtcMediaStreamTrack pRtcMediaStreamTrack, DOUBLE rollingBufferDurationSec,
-                                 DOUBLE rollingBufferBitratebps)
+STATUS configureTransceiverRollingBuffer(PRtcRtpTransceiver pRtcRtpTransceiver, PRtcMediaStreamTrack pRtcMediaStreamTrack,
+                                         DOUBLE rollingBufferDurationSec, DOUBLE rollingBufferBitratebps)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;

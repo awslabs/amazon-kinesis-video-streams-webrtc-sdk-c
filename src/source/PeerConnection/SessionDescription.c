@@ -318,7 +318,7 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
         if (pKvsRtpTransceiver != NULL) {
             if (pKvsRtpTransceiver->pRollingBufferConfig == NULL) {
                 // Passing in 0,0. The default values will be set up since application has not set up rolling buffer config with the
-                // createRollingBufferConfig() call
+                // configureTransceiverRollingBuffer() call
                 DLOGI("Rolling buffer config not set up for tranceiver. Setting defaults.");
                 CHK_STATUS(setUpRollingBufferConfigInternal(pKvsRtpTransceiver, &pKvsRtpTransceiver->sender.track, 0, 0));
             }

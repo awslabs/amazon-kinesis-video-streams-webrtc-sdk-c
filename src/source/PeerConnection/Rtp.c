@@ -64,6 +64,7 @@ STATUS setUpRollingBufferConfigInternal(PKvsRtpTransceiver pKvsRtpTransceiver, P
 
     // Validate configured buffer duration is within acceptable range, else set to default duration.
     if (rollingBufferDurationSec >= MIN_ROLLING_BUFFER_DURATION_IN_SECONDS && rollingBufferDurationSec <= MAX_ROLLING_BUFFER_DURATION_IN_SECONDS) {
+        DLOGI("Rolling buffer duration set to %lf seconds.", rollingBufferDurationSec);
         pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferDurationSec = rollingBufferDurationSec;
     } else {
         DLOGW("Rolling buffer duration does not fit range (%lf sec - %lf sec). Setting to default %lf sec", MIN_ROLLING_BUFFER_DURATION_IN_SECONDS,
@@ -73,24 +74,32 @@ STATUS setUpRollingBufferConfigInternal(PKvsRtpTransceiver pKvsRtpTransceiver, P
 
     // Validate configured expected bitrate is within acceptable range, else set to default bitrate.
     if (rollingBufferBitratebps >= MIN_EXPECTED_BIT_RATE && rollingBufferBitratebps <= MAX_EXPECTED_BIT_RATE) {
-        pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps = rollingBufferBitratebps;
+        if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_VIDEO) {
+            DLOGI("Rolling buffer expected bitrate set to %lf bps for video.", rollingBufferBitratebps);
+        } else if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_AUDIO) {
+            DLOGI("Rolling buffer expected bitrate set to %lf bps for audio.", rollingBufferBitratebps);
+        } else {
+            DLOGI("Rolling buffer expected bitrate set to %lf bps for unkown codec", rollingBufferBitratebps);
+        }
     } else {
         if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_VIDEO) {
-            DLOGW("Rolling buffer bitrate does not fit range (%lf bps - %lf bps) for video. Setting to default %lf bps", MIN_EXPECTED_BIT_RATE,
+            DLOGI("Rolling buffer bitrate does not fit range (%lf bps - %lf bps) for video. Setting to default %lf bps", MIN_EXPECTED_BIT_RATE,
                   MAX_EXPECTED_BIT_RATE, DEFAULT_EXPECTED_VIDEO_BIT_RATE);
             pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
         } else if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_AUDIO) {
-            DLOGW("Rolling buffer bitrate does not fit range (%lf bps - %lf bps) for audio. Setting to default %lf bps", MIN_EXPECTED_BIT_RATE,
+            DLOGI("Rolling buffer bitrate does not fit range (%lf bps - %lf bps) for audio. Setting to default %lf bps", MIN_EXPECTED_BIT_RATE,
                   MAX_EXPECTED_BIT_RATE, DEFAULT_EXPECTED_AUDIO_BIT_RATE);
             pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps = DEFAULT_EXPECTED_AUDIO_BIT_RATE;
         } else {
-            DLOGW("Rolling buffer bitrate does not fit range (%lf bps - %lf bps) for unknown codec. Setting to default %lf bps",
+            DLOGI("Rolling buffer bitrate does not fit range (%lf bps - %lf bps) for unknown codec. Setting to default %lf bps",
                   MIN_EXPECTED_BIT_RATE, MAX_EXPECTED_BIT_RATE, DEFAULT_EXPECTED_VIDEO_BIT_RATE);
             pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
         }
     }
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
+
     return retStatus;
 }
 
@@ -128,9 +137,7 @@ STATUS freeKvsRtpTransceiver(PKvsRtpTransceiver* ppKvsRtpTransceiver)
         freeRetransmitter(&pKvsRtpTransceiver->sender.retransmitter);
     }
 
-    if (pKvsRtpTransceiver->pRollingBufferConfig != NULL) {
-        freeRollingBufferConfig(pKvsRtpTransceiver->pRollingBufferConfig);
-    }
+    freeRollingBufferConfig(pKvsRtpTransceiver->pRollingBufferConfig);
 
     MUTEX_FREE(pKvsRtpTransceiver->statsLock);
 

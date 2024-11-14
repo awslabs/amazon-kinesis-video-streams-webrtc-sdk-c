@@ -1621,7 +1621,7 @@ typedef struct {
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
-STATUS createRollingBufferConfig(PRtcRtpTransceiver, PRtcMediaStreamTrack, DOUBLE, DOUBLE);
+STATUS configureTransceiverRollingBuffer(PRtcRtpTransceiver, PRtcMediaStreamTrack, DOUBLE, DOUBLE);
 
 /**
  * @brief Initialize a RtcPeerConnection with the provided Configuration

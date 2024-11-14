@@ -387,7 +387,7 @@ Capacity = Buffer duration * highest expected bitrate (in bips) / 8 / MTU
 With buffer duration = 1 second,  Highest expected bitrate = 5 mibps and MTU 1200 bytes, capacity = 546 RTP packets
 ```
 
-The rolling buffer size can be configured per transceiver using the `createRollingBufferConfig` API. Make sure to use the API after the addTransceiver call to ensure the `RtcMediaStreamTrack` and `KvsRtpTransceiver` objects are created. By default, the rolling buffer duration is set to 3 sec and bitrate is set to 5mibps for video and 1mibps for audio.
+The rolling buffer size can be configured per transceiver using the `configureTransceiverRollingBuffer` API. Make sure to use the API after the addTransceiver call to ensure the `RtcMediaStreamTrack` and `KvsRtpTransceiver` objects are created. By default, the rolling buffer duration is set to 3 sec and bitrate is set to 5mibps for video and 1mibps for audio.
 
 The rolling buffer config parameters are as follows:
 ```
@@ -401,7 +401,7 @@ PRtcRtpTransceiver pVideoRtcRtpTransceiver;
 RtcMediaStreamTrack videoTrack;
 videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
 videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
-CHK_STATUS(createRollingBufferConfig(pVideoRtcRtpTransceiver, &videoTrack, 0.2, 150 * 1024));
+CHK_STATUS(configureTransceiverRollingBuffer(pVideoRtcRtpTransceiver, &videoTrack, 0.2, 150 * 1024));
 ```
 By setting these up, applications can have better control over the amount of memory that the application consumes. However, note, if the allocation is too small and the network bad leading to multiple nacks, it can lead to choppy media / dropped frames. Hence, care must be taken while deciding on the values to ensure the parameters satisfy necessary performance requirements.
 For more information, check the sample to see how these values are set up.
