@@ -12,11 +12,14 @@ STATUS createRollingBuffer(UINT32 capacity, FreeDataFunc freeDataFunc, PRollingB
     CHK(ppRollingBuffer != NULL, STATUS_NULL_ARG);
     pRollingBuffer = (PRollingBuffer) MEMALLOC(SIZEOF(RollingBuffer) + SIZEOF(UINT64) * capacity);
     CHK(pRollingBuffer != NULL, STATUS_NOT_ENOUGH_MEMORY);
+
+    // Set initial capacity, indices, and size to 0 as buffer starts empty
     pRollingBuffer->capacity = capacity;
     pRollingBuffer->headIndex = 0;
     pRollingBuffer->tailIndex = 0;
+    pRollingBuffer->size = 0;
     pRollingBuffer->freeDataFn = freeDataFunc;
-    pRollingBuffer->lock = MUTEX_CREATE(FALSE);
+    pRollingBuffer->lock = MUTEX_CREATE(TRUE);
     pRollingBuffer->dataBuffer = (PUINT64) (pRollingBuffer + 1);
     MEMSET(pRollingBuffer->dataBuffer, 0, SIZEOF(UINT64) * pRollingBuffer->capacity);
 
@@ -78,16 +81,19 @@ STATUS rollingBufferAppendData(PRollingBuffer pRollingBuffer, UINT64 data, PUINT
     isLocked = TRUE;
 
     if (pRollingBuffer->headIndex == pRollingBuffer->tailIndex) {
-        // Empty buffer
+        // Empty buffer - add first element
         pRollingBuffer->dataBuffer[ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, pRollingBuffer->tailIndex)] = data;
         pRollingBuffer->headIndex = pRollingBuffer->tailIndex + 1;
+        pRollingBuffer->size++;
     } else {
         if (pRollingBuffer->headIndex == pRollingBuffer->tailIndex + pRollingBuffer->capacity) {
             if (pRollingBuffer->freeDataFn != NULL) {
                 CHK_STATUS(
                     pRollingBuffer->freeDataFn(pRollingBuffer->dataBuffer + ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, pRollingBuffer->tailIndex)));
             }
-            pRollingBuffer->tailIndex++;
+            pRollingBuffer->tailIndex++; // Overwrite the oldest element, do not increment size
+        } else {
+            pRollingBuffer->size++; // Increment size only when new data is added without overwriting
         }
         pRollingBuffer->dataBuffer[ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, pRollingBuffer->headIndex)] = data;
         pRollingBuffer->headIndex++;
@@ -110,18 +116,23 @@ STATUS rollingBufferInsertData(PRollingBuffer pRollingBuffer, UINT64 index, UINT
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL isLocked = FALSE;
+    BOOL isLocked = FALSE, isValidIndex;
     PUINT64 pData;
     CHK(pRollingBuffer != NULL, STATUS_NULL_ARG);
 
     MUTEX_LOCK(pRollingBuffer->lock);
     isLocked = TRUE;
 
-    CHK(pRollingBuffer->headIndex > index && pRollingBuffer->tailIndex <= index, STATUS_ROLLING_BUFFER_NOT_IN_RANGE);
+    CHK_STATUS(rollingBufferIsIndexInRange(pRollingBuffer, index, &isValidIndex));
+    CHK(isValidIndex, STATUS_ROLLING_BUFFER_NOT_IN_RANGE);
 
     pData = pRollingBuffer->dataBuffer + ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, index);
     if (*pData != (UINT64) NULL && pRollingBuffer->freeDataFn != NULL) {
+        // Replace element in the buffer, freeing existing data but keeping size the same
         pRollingBuffer->freeDataFn(pData);
+    } else {
+        // Insert new element, increase size to reflect added item
+        pRollingBuffer->size++;
     }
     *pData = data;
 
@@ -138,17 +149,23 @@ STATUS rollingBufferExtractData(PRollingBuffer pRollingBuffer, UINT64 index, PUI
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL isLocked = FALSE;
+    BOOL isLocked = FALSE, isIndexInRange;
     CHK(pRollingBuffer != NULL && pData != NULL, STATUS_NULL_ARG);
 
     MUTEX_LOCK(pRollingBuffer->lock);
     isLocked = TRUE;
-    if (pRollingBuffer->headIndex > index && pRollingBuffer->tailIndex <= index) {
+
+    CHK_STATUS(rollingBufferIsIndexInRange(pRollingBuffer, index, &isIndexInRange));
+
+    if (isIndexInRange) {
         *pData = pRollingBuffer->dataBuffer[ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, index)];
         if (*pData != (UINT64) NULL) {
+            // Nullify extracted data to indicate it's no longer in use
             pRollingBuffer->dataBuffer[ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, index)] = (UINT64) NULL;
+            pRollingBuffer->size--; // Decrement size to reflect item extraction
         }
     } else {
+        DLOGW("Requested index: %u out of bounds [%u - %u)", index, pRollingBuffer->tailIndex, pRollingBuffer->headIndex);
         *pData = (UINT64) NULL;
     }
 CleanUp:
@@ -167,7 +184,10 @@ STATUS rollingBufferGetSize(PRollingBuffer pRollingBuffer, PUINT32 pSize)
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pRollingBuffer != NULL && pSize != NULL, STATUS_NULL_ARG);
-    *pSize = pRollingBuffer->headIndex - pRollingBuffer->tailIndex;
+
+    MUTEX_LOCK(pRollingBuffer->lock);
+    *pSize = pRollingBuffer->size;
+    MUTEX_UNLOCK(pRollingBuffer->lock);
 CleanUp:
     CHK_LOG_ERR(retStatus);
 
@@ -179,9 +199,37 @@ STATUS rollingBufferIsEmpty(PRollingBuffer pRollingBuffer, PBOOL pIsEmpty)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    CHK(pRollingBuffer != NULL && pIsEmpty != NULL, STATUS_NULL_ARG);
-    *pIsEmpty = (pRollingBuffer->headIndex == pRollingBuffer->tailIndex);
 
+    CHK(pRollingBuffer != NULL && pIsEmpty != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pRollingBuffer->lock);
+    *pIsEmpty = (pRollingBuffer->size == 0);
+    MUTEX_UNLOCK(pRollingBuffer->lock);
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS rollingBufferIsIndexInRange(PRollingBuffer pRollingBuffer, UINT64 index, PBOOL pIsValidIndex)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pRollingBuffer != NULL && pIsValidIndex != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pRollingBuffer->lock);
+    if (pRollingBuffer->headIndex >= pRollingBuffer->tailIndex) {
+        // No overflow: normal range check
+        // Sample: tail = 1, head = 20
+        *pIsValidIndex = (pRollingBuffer->tailIndex <= index && index < pRollingBuffer->headIndex);
+    } else {
+        // Overflow case: two possible valid sub-ranges
+        // Sample: tail = 4294967288, head = 2
+        *pIsValidIndex = (pRollingBuffer->tailIndex <= index || index < pRollingBuffer->headIndex);
+    }
+    MUTEX_UNLOCK(pRollingBuffer->lock);
 CleanUp:
     CHK_LOG_ERR(retStatus);
 
