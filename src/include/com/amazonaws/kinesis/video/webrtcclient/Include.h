@@ -1505,7 +1505,7 @@ typedef struct {
                                             //!< data if not acknowledged. This value may be clamped if it exceeds the maximum
                                             //!< value supported by the user agent.
     NullableUint16 maxRetransmits;          //!< Control number of times a channel retransmits data if not delivered successfully
-    CHAR protocol[MAX_PROTOCOL_LENGTH + 1]; //!< Sub protocol name for the channel
+    CHAR protocol[MAX_DATA_CHANNEL_PROTOCOL_LEN + 1]; //!< Sub protocol name for the channel
     BOOL negotiated;                        //!< If set to true, it is up to the application to negotiate the channel and create an
                                             //!< RTCDataChannel object with the same id as the other peer.
 } RtcDataChannelInit, *PRtcDataChannelInit;

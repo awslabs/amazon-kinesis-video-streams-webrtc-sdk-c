@@ -73,7 +73,7 @@ extern "C" {
 /**
  * Maximum length of candidate type (host, srflx, relay, prflx, unknown)
  */
-#define MAX_CANDIDATE_TYPE_LENGTH 10U
+#define MAX_CANDIDATE_TYPE_LENGTH 7U
 /*!@} */
 
 /**
