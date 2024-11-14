@@ -81,6 +81,7 @@ STATUS setUpRollingBufferConfigInternal(PKvsRtpTransceiver pKvsRtpTransceiver, P
         } else {
             DLOGI("Rolling buffer expected bitrate set to %lf bps for unkown codec", rollingBufferBitratebps);
         }
+        pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps = rollingBufferBitratebps;
     } else {
         if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_VIDEO) {
             DLOGI("Rolling buffer bitrate does not fit range (%lf bps - %lf bps) for video. Setting to default %lf bps", MIN_EXPECTED_BIT_RATE,
