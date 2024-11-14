@@ -257,7 +257,7 @@ TEST_F(RollingBufferFunctionalityTest, RangesAreCorrectInOverflowCase)
     PRollingBuffer pRollingBuffer;
     UINT32 capacity = 10, startingOffset = 3, i;
     BOOL isInRange;
-    UINT64 data, index;
+    UINT64 index;
 
     // Rolling buffer of size 10
     EXPECT_EQ(STATUS_SUCCESS, createRollingBuffer(capacity, RollingBufferFunctionalityTestFreeBufferFunc, &pRollingBuffer));
@@ -292,7 +292,6 @@ TEST_F(RollingBufferFunctionalityTest, IndexesAreCorrectInOverflowCase)
 {
     PRollingBuffer pRollingBuffer;
     UINT32 capacity = 10, startingOffset = 3;
-    BOOL isEmpty;
     UINT64 data, index;
 
     // Rolling buffer of size 10
@@ -350,7 +349,6 @@ TEST_F(RollingBufferFunctionalityTest, AddHeapElementNoMemoryLeak)
 TEST_F(RollingBufferFunctionalityTest, AddElementsIsNoLongerEmpty)
 {
     PRollingBuffer pRollingBuffer;
-    UINT32 size = 0;
     BOOL isEmpty;
 
     // Rolling buffer of size 10
