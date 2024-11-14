@@ -150,7 +150,6 @@ TEST_F(RollingBufferFunctionalityTest, RollingBufferFreeIsIdempotentTest)
 
 TEST_F(RollingBufferFunctionalityTest, CreateRollingBufferNegativeTest)
 {
-    PRollingBuffer pRollingBuffer;
     EXPECT_EQ(STATUS_INVALID_ARG, createRollingBuffer(0, RollingBufferFunctionalityTestFreeBufferFunc, NULL));
     EXPECT_EQ(STATUS_NULL_ARG, createRollingBuffer(10, RollingBufferFunctionalityTestFreeBufferFunc, NULL));
 }
@@ -232,9 +231,7 @@ TEST_F(RollingBufferFunctionalityTest, RollingBufferIsIndexInRangeNegativeTest)
 TEST_F(RollingBufferFunctionalityTest, RangesAreCorrectInEmptyCase)
 {
     PRollingBuffer pRollingBuffer;
-    UINT32 size = 0;
-    BOOL isEmpty, isInRange;
-    UINT64 data, index;
+    BOOL isInRange;
 
     // Rolling buffer of size 10
     EXPECT_EQ(STATUS_SUCCESS, createRollingBuffer(10, RollingBufferFunctionalityTestFreeBufferFunc, &pRollingBuffer));
@@ -258,8 +255,8 @@ TEST_F(RollingBufferFunctionalityTest, RangesAreCorrectInEmptyCase)
 TEST_F(RollingBufferFunctionalityTest, RangesAreCorrectInOverflowCase)
 {
     PRollingBuffer pRollingBuffer;
-    UINT32 size = 0, capacity = 10, startingOffset = 3, i;
-    BOOL isEmpty, isInRange;
+    UINT32 capacity = 10, startingOffset = 3, i;
+    BOOL isInRange;
     UINT64 data, index;
 
     // Rolling buffer of size 10
@@ -294,8 +291,8 @@ TEST_F(RollingBufferFunctionalityTest, RangesAreCorrectInOverflowCase)
 TEST_F(RollingBufferFunctionalityTest, IndexesAreCorrectInOverflowCase)
 {
     PRollingBuffer pRollingBuffer;
-    UINT32 size = 0, capacity = 10, startingOffset = 3;
-    BOOL isEmpty, isInRange;
+    UINT32 capacity = 10, startingOffset = 3;
+    BOOL isEmpty;
     UINT64 data, index;
 
     // Rolling buffer of size 10
@@ -370,7 +367,6 @@ TEST_F(RollingBufferFunctionalityTest, AddElementsIsNoLongerEmpty)
 TEST_F(RollingBufferFunctionalityTest, AddThenRemoveElementIsEmpty)
 {
     PRollingBuffer pRollingBuffer;
-    UINT32 size = 0;
     UINT64 index, data;
     BOOL isEmpty;
 
