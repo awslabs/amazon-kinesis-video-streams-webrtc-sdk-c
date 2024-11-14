@@ -419,6 +419,63 @@ TEST_F(RollingBufferFunctionalityTest, SizeIsCorrect)
 
     EXPECT_EQ(STATUS_SUCCESS, freeRollingBuffer(&pRollingBuffer));
 }
+
+TEST_F(RollingBufferFunctionalityTest, RemoveItemTwiceSizeIsOk)
+{
+    PRollingBuffer pRollingBuffer;
+    UINT64 data = 0;
+    UINT32 size = 0;
+
+    // Rolling buffer of size 5
+    EXPECT_EQ(STATUS_SUCCESS, createRollingBuffer(5, RollingBufferFunctionalityTestFreeBufferFunc, &pRollingBuffer));
+
+    // Add the item
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, (UINT64) 1, NULL));
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferGetSize(pRollingBuffer, &size));
+    EXPECT_EQ(1, size);
+
+    // Remove the item
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferExtractData(pRollingBuffer, 0, &data));
+    EXPECT_EQ(1, data);
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferGetSize(pRollingBuffer, &size));
+    EXPECT_EQ(0, size);
+
+    // Request an item that no longer exists. The size should not be changed and go negative
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferExtractData(pRollingBuffer, 0, &data));
+    EXPECT_EQ(0, data);
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferGetSize(pRollingBuffer, &size));
+    EXPECT_EQ(0, size);
+
+    EXPECT_EQ(STATUS_SUCCESS, freeRollingBuffer(&pRollingBuffer));
+}
+
+TEST_F(RollingBufferFunctionalityTest, RemoveItemOutOfRangeDoesntChangeSize)
+{
+    PRollingBuffer pRollingBuffer;
+    UINT64 data = 0;
+    UINT32 size = 0;
+
+    // Rolling buffer of size 2
+    EXPECT_EQ(STATUS_SUCCESS, createRollingBuffer(2, RollingBufferFunctionalityTestFreeBufferFunc, &pRollingBuffer));
+
+    // Add the item
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, (UINT64) 1, NULL));
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, (UINT64) 2, NULL));
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, (UINT64) 3, NULL));
+
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferGetSize(pRollingBuffer, &size));
+    EXPECT_EQ(2, size);
+
+    // Remove the item at index 0, which should be gone already
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferExtractData(pRollingBuffer, 0, &data));
+    EXPECT_EQ(0, data);
+
+    // Size should not change
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferGetSize(pRollingBuffer, &size));
+    EXPECT_EQ(2, size);
+
+    EXPECT_EQ(STATUS_SUCCESS, freeRollingBuffer(&pRollingBuffer));
+}
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
