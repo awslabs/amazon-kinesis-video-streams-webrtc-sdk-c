@@ -34,7 +34,7 @@
 <area shape="rect" id="node32" href="$structStunPacket.html" title=" " alt="" coords="5006,321,5145,413"/>
 <area shape="rect" id="node33" href="$structConnectionListener.html" title=" " alt="" coords="3230,285,3396,450"/>
 <area shape="rect" id="node34" href="$structIceAgentProfileDiagnostics.html" title=" " alt="" coords="3420,277,3675,457"/>
-<area shape="rect" id="node35" href="$structRtcIceCandidateDiagnostics.html" title=" " alt="" coords="3699,277,3903,457"/>
+<area shape="rect" id="node35" href="$structRtcIceCandidateDiagnostics.html" title=" " alt="" coords="3699,285,3903,450"/>
 <area shape="rect" id="node36" href="$structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer&#45;to&#45;peer communications with ano..." alt="" coords="1934,681,2079,759"/>
 <area shape="rect" id="node37" href="$structRtcRtpSender.html" title=" " alt="" coords="2704,615,2922,825"/>
 <area shape="rect" id="node38" href="$structRetransmitter.html" title=" " alt="" coords="2628,307,2803,428"/>

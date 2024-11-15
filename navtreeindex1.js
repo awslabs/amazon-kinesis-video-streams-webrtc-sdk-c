@@ -1,6 +1,5 @@
 var NAVTREEINDEX1 =
 {
-"group__PublicEnums.html#ggac3fea669f2ac4c7db6d7e9528955a4c1a9ac35384c83c5ca9a1ec198f28f7008e":[1,0,17,8,2],
 "group__PublicEnums.html#ggac3fea669f2ac4c7db6d7e9528955a4c1a9ac35384c83c5ca9a1ec198f28f7008e":[1,0,74],
 "group__PublicEnums.html#ggac57cd2738a817d8ed6fb3ff8943ccceca6e0a11cf658318d12fea430342f88967":[1,0,17,10,0],
 "group__PublicEnums.html#ggac57cd2738a817d8ed6fb3ff8943ccceca6e0a11cf658318d12fea430342f88967":[1,0,80],
@@ -246,8 +245,9 @@ var NAVTREEINDEX1 =
 "group__SignalingStatusCodes.html#gafcbf214f429749e1ea065b2c4321e535":[1,0,8,52],
 "group__StatsNameLengths.html":[1,3],
 "group__StatsNameLengths.html#ga12dc5a15dec202406ad4abfa594520ff":[1,3,2],
-"group__StatsNameLengths.html#ga4afa41bce022b8bec8581c021e8d8c81":[1,3,6],
+"group__StatsNameLengths.html#ga160cda488c482290cca205dcd1d29abc":[1,3,3],
+"group__StatsNameLengths.html#ga4afa41bce022b8bec8581c021e8d8c81":[1,3,7],
 "group__StatsNameLengths.html#ga8eb68b1e05b3ae2de5775202931617de":[1,3,0],
-"group__StatsNameLengths.html#gab3b05eb23c726d76352f92e7722f1877":[1,3,3],
-"group__StatsNameLengths.html#gac55f060221aeba8a69391c39ed31de2e":[1,3,4]
+"group__StatsNameLengths.html#gab3b05eb23c726d76352f92e7722f1877":[1,3,4],
+"group__StatsNameLengths.html#gac55f060221aeba8a69391c39ed31de2e":[1,3,5]
 };
