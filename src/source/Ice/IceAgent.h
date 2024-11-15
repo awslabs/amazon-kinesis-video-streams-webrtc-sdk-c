@@ -80,7 +80,7 @@ typedef struct __IceAgent* PIceAgent;
  * Internal structure tracking ICE server parameters for diagnostics and metrics/stats
  */
 typedef struct {
-    CHAR url[MAX_STATS_STRING_LENGTH + 1];  //!< STUN/TURN server URL
+    CHAR url[MAX_ICE_CONFIG_URI_LEN + 1];   //!< STUN/TURN server URL
     CHAR protocol[MAX_PROTOCOL_LENGTH + 1]; //!< Valid values: UDP, TCP
     INT32 port;                             //!< Port number used by client
     UINT64 totalRequestsSent;               //!< Total amount of requests that have been sent to the server
@@ -89,7 +89,7 @@ typedef struct {
 } RtcIceServerDiagnostics, *PRtcIceServerDiagnostics;
 
 typedef struct {
-    DOMString url;                                  //!< For local candidates this is the URL of the ICE server from which the candidate was obtained
+    CHAR url[MAX_ICE_CONFIG_URI_LEN + 1];           //!< For local candidates this is the URL of the ICE server from which the candidate was obtained
     CHAR address[KVS_IP_ADDRESS_STRING_BUFFER_LEN]; //!< IPv4 or IPv6 address of the candidate
     CHAR protocol[MAX_PROTOCOL_LENGTH + 1];         //!< Valid values: UDP, TCP
     CHAR relayProtocol[MAX_PROTOCOL_LENGTH + 1];    //!< Protocol used by endpoint to communicate with TURN server.
