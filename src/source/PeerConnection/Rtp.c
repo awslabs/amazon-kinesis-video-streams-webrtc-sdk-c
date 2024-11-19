@@ -66,9 +66,12 @@ STATUS setUpRollingBufferConfigInternal(PKvsRtpTransceiver pKvsRtpTransceiver, P
     if (rollingBufferDurationSec >= MIN_ROLLING_BUFFER_DURATION_IN_SECONDS && rollingBufferDurationSec <= MAX_ROLLING_BUFFER_DURATION_IN_SECONDS) {
         DLOGI("Rolling buffer duration set to %lf seconds.", rollingBufferDurationSec);
         pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferDurationSec = rollingBufferDurationSec;
-    } else {
+    } else if (rollingBufferDurationSec != 0) {
         DLOGW("Rolling buffer duration does not fit range (%lf sec - %lf sec). Setting to default %lf sec", MIN_ROLLING_BUFFER_DURATION_IN_SECONDS,
               MAX_ROLLING_BUFFER_DURATION_IN_SECONDS, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS);
+        pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferDurationSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
+    } else if (rollingBufferDurationSec == 0) {
+        DLOGI("Setting to default buffer duration of %lf sec", DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS);
         pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferDurationSec = DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS;
     }
 
@@ -79,21 +82,32 @@ STATUS setUpRollingBufferConfigInternal(PKvsRtpTransceiver pKvsRtpTransceiver, P
         } else if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_AUDIO) {
             DLOGI("Rolling buffer expected bitrate set to %lf bps for audio.", rollingBufferBitratebps);
         } else {
-            DLOGI("Rolling buffer expected bitrate set to %lf bps for unkown codec", rollingBufferBitratebps);
+            DLOGI("Rolling buffer expected bitrate set to %lf bps for unkown codec.", rollingBufferBitratebps);
         }
         pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps = rollingBufferBitratebps;
-    } else {
+    } else if (rollingBufferBitratebps != 0) {
         if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_VIDEO) {
-            DLOGI("Rolling buffer bitrate does not fit range (%lf bps - %lf bps) for video. Setting to default %lf bps", MIN_EXPECTED_BIT_RATE,
+            DLOGW("Rolling buffer bitrate does not fit range (%lf bps - %lf bps) for video. Setting to default %lf bps.", MIN_EXPECTED_BIT_RATE,
                   MAX_EXPECTED_BIT_RATE, DEFAULT_EXPECTED_VIDEO_BIT_RATE);
             pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
         } else if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_AUDIO) {
-            DLOGI("Rolling buffer bitrate does not fit range (%lf bps - %lf bps) for audio. Setting to default %lf bps", MIN_EXPECTED_BIT_RATE,
+            DLOGW("Rolling buffer bitrate does not fit range (%lf bps - %lf bps) for audio. Setting to default %lf bps.", MIN_EXPECTED_BIT_RATE,
                   MAX_EXPECTED_BIT_RATE, DEFAULT_EXPECTED_AUDIO_BIT_RATE);
             pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps = DEFAULT_EXPECTED_AUDIO_BIT_RATE;
         } else {
-            DLOGI("Rolling buffer bitrate does not fit range (%lf bps - %lf bps) for unknown codec. Setting to default %lf bps",
+            DLOGW("Rolling buffer bitrate does not fit range (%lf bps - %lf bps) for unknown codec. Setting to default %lf bps.",
                   MIN_EXPECTED_BIT_RATE, MAX_EXPECTED_BIT_RATE, DEFAULT_EXPECTED_VIDEO_BIT_RATE);
+            pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
+        }
+    } else if (rollingBufferBitratebps == 0) {
+        if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_VIDEO) {
+            DLOGI("Setting to default rolling buffer bitrate of %lf bps for video.", DEFAULT_EXPECTED_VIDEO_BIT_RATE);
+            pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
+        } else if (pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_AUDIO) {
+            DLOGI("Setting to default rolling buffer bitrate of %lf bps for audio.", DEFAULT_EXPECTED_AUDIO_BIT_RATE);
+            pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps = DEFAULT_EXPECTED_AUDIO_BIT_RATE;
+        } else {
+            DLOGI("Setting to default rolling buffer bitrate of %lf bps for unknown codec.", DEFAULT_EXPECTED_VIDEO_BIT_RATE);
             pKvsRtpTransceiver->pRollingBufferConfig->rollingBufferBitratebps = DEFAULT_EXPECTED_VIDEO_BIT_RATE;
         }
     }
