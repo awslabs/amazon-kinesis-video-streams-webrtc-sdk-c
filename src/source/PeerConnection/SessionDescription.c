@@ -680,7 +680,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
                                  SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " nack", payloadType);
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full H264 rtcp-fb nack value could not be written");
         attributeCount++;
-        
+
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp-fb");
         amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
                                  SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " nack pli", payloadType);
