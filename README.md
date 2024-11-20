@@ -155,9 +155,12 @@ You can pass the following options to `cmake ..`.
 * `-DUNDEFINED_BEHAVIOR_SANITIZER` -- Build with UndefinedBehaviorSanitizer
 * `-DCMAKE_BUILD_TYPE` -- Build Release/Debug libraries. By default, the SDK generates Release build. The standard options are listed [here](https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#default-and-custom-configurations)
 * `-DLINK_PROFILER` -- Link with gperftools (available profiler options are listed [here](https://github.com/gperftools/gperftools))
-* `-DKVS_STACK_SIZE` -- Default stack size for threads created using THREAD_CREATE()
 * `-DPKG_CONFIG_EXECUTABLE` -- Set pkg config path. This might be required to find gstreamer's pkg config specifically on Windows.
 * `-DENABLE_KVS_THREADPOOL` -- Enable the KVS threadpool which is off by default.
+
+You can pass the following options to `cmake ..`. These options get propagated to PIC.
+* `-DKVS_STACK_SIZE` -- Default stack size for threads created using THREAD_CREATE(), in bytes.
+* `-DCONSTRAINED_DEVICE` -- Sets the stack size to 512 KiB (0.5 MiB). Not available for windows. Not compatible with `-DKVS_STACK_SIZE`.
 
 To clean up the `open-source` and `build` folders from previous build, use `cmake --build . --target clean` from the `build` folder
 
@@ -573,7 +576,7 @@ By default, our SDK enables TWCC listener. The SDK has a sample implementation t
 
 
 ### Thread stack sizes
-The default thread stack size for the KVS WebRTC SDK is the system's default. You can change it for all the threads using `-DKVS_STACK_SIZE` CMake flag, and adjust stack sizes for individual threads with `THREAD_CREATE_WITH_PARAMS`. Notable stack sizes that may need to be changed for your specific application will be the ConnectionListener Receiver thread and the media sender threads. Please modify the stack sizes for these media dependent threads to be suitable for the media your application is processing.
+The default thread stack size in the KVS WebRTC SDK is determined by the system's default configuration. Developers can modify the stack size for all threads created using the `THREAD_CREATE()` macro by specifying the desired value through the `-DKVS_STACK_SIZE` CMake flag. Additionally, stack sizes for individual threads can be customized using the `THREAD_CREATE_WITH_PARAMS()` macro. Notable stack sizes that may need to be changed for your specific application will be the ConnectionListener Receiver thread and the media sender threads.
 
 ### Setting ICE related timeouts
 
