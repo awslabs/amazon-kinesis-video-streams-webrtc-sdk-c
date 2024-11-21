@@ -718,7 +718,7 @@ jobs:
       - name: Check Stack Size is Set
         run: |
           cd build
-          CMAKE_LOGS=$(cmake .. -DKVS_STACK_SIZE=65536 2>&1)
+          CMAKE_LOGS=$(cmake .. -DKVS_STACK_SIZE=65536 -DBUILD_SAMPLE=OFF 2>&1)
           if ! echo "$CMAKE_LOGS" | grep -q "Building with default stack size: 65536 bytes"; then
             echo "Stack size was not sent to PIC properly. See the logs below:"
             echo "$CMAKE_LOGS"
