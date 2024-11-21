@@ -800,3 +800,4 @@ jobs:
             echo "No memory leaks detected."
           else
             echo "Memory leaks detected."
+          fi
