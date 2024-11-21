@@ -461,11 +461,6 @@ extern "C" {
 #define MAX_SIGNALING_ENDPOINT_URI_LEN 512
 
 /**
- * Maximum allowed ICE URI length
- */
-#define MAX_ICE_CONFIG_URI_LEN 256
-
-/**
  * Maximum allowed correlation ID length
  */
 #define MAX_CORRELATION_ID_LEN 256
@@ -836,7 +831,6 @@ typedef enum {
     RTC_CODEC_ALAW = 5,                                                           //!< ALAW audio codec
     RTC_CODEC_UNKNOWN = 6,
     RTC_CODEC_H265 = 7, //!< H265 video codec
-
     // RTC_CODEC_MAX **MUST** be the last enum in the list **ALWAYS** and not assigned a value
     RTC_CODEC_MAX //!< Placeholder for max number of supported codecs
 } RTC_CODEC;
@@ -1205,6 +1199,10 @@ typedef struct {
     BOOL disableSenderSideBandwidthEstimation; //!< Disable TWCC feedback based sender bandwidth estimation, enabled by default.
                                                //!< You want to set this to TRUE if you are on a very stable connection and want to save 1.2MB of
                                                //!< memory
+#ifdef ENABLE_STATS_CALCULATION_CONTROL
+    BOOL enableIceStats; //!< Control whether ICE agent stats are to be calculated. ENABLE_STATS_CALCULATION_CONTROL compiler flag must be defined
+                         //!< to use this member, else stats are enabled by default.
+#endif
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
 
 /**

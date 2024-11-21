@@ -21,6 +21,7 @@ option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
 option(ENABLE_KVS_THREADPOOL "Enable support for KVS thread pool in signaling" OFF)
 option(INSTRUMENTED_ALLOCATORS "Enable memory instrumentation" OFF)
 option(ENABLE_AWS_SDK_IN_TESTS "Enable support for compiling AWS SDKs for tests" ON)
+option(ENABLE_STATS_CALCULATION_CONTROL "Enable support for runtime control of ice agent stat calculations." OFF)
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -125,6 +126,10 @@ add_definitions(-DCMAKE_DETECTED_CACERT_PATH)
 
 if (ENABLE_KVS_THREADPOOL)
   add_definitions(-DENABLE_KVS_THREADPOOL)
+endif()
+
+if (ENABLE_STATS_CALCULATION_CONTROL)
+  add_definitions(-DENABLE_STATS_CALCULATION_CONTROL)
 endif()
 
 if(USE_OPENSSL)
