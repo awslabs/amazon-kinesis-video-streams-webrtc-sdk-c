@@ -707,8 +707,11 @@ jobs:
       - name: Check StackSize with Invalid Value
         run: |
           mkdir build && cd build
+          set +e  # Allow the script to continue even if cmake fails (expected)
           cmake .. -DKVS_STACK_SIZE=65536asdfsadf
-          if [ $? -eq 0 ]; then
+          cmake_exit_code=$?
+          set -e
+          if [ $cmake_exit_code -eq 0 ]; then
             echo "CMake unexpectedly succeeded with invalid KVS_STACK_SIZE"
             exit 1
           fi
