@@ -161,7 +161,6 @@ You can pass the following options to `cmake ..`.
 
 You can pass the following options to `cmake ..`. These options get propagated to PIC.
 * `-DKVS_STACK_SIZE` -- Default stack size for threads created using THREAD_CREATE(), in bytes.
-* `-DCONSTRAINED_DEVICE` -- Sets the stack size to 512 KiB (0.5 MiB). Not available for windows. Not compatible with `-DKVS_STACK_SIZE`.
 
 To clean up the `open-source` and `build` folders from previous build, use `cmake --build . --target clean` from the `build` folder
 
