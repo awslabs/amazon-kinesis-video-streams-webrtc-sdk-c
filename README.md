@@ -58,7 +58,7 @@ Please refer to the release notes in [Releases](https://github.com/awslabs/amazo
 To download run the following command:
 
 ```shell
-git clone --recursive https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c.git
+git clone https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c.git --single-branch -b main kvs-webrtc-sdk
 ```
 
 You will also need to install `pkg-config` and `CMake` and a build environment
