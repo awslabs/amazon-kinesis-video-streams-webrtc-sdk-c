@@ -395,7 +395,7 @@ rollingBufferDurationSec = <duration in seconds>, must be more than 100ms and le
 rollingBufferBitratebps = <bitrate in bits/sec>, must be more than 100kibits/sec and less than 240 mibps
 ```
 
-For example, if we want to set duration to 200ms and bitrate to 150kibps,
+For example, if we want to set duration to 200ms and bitrate to 150kibps:
 ```c
 PRtcRtpTransceiver pVideoRtcRtpTransceiver;
 RtcMediaStreamTrack videoTrack;
