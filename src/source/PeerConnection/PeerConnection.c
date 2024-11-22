@@ -961,6 +961,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     CHK_STATUS(timerQueueCreate(&pKvsPeerConnection->timerQueueHandle));
 
     pKvsPeerConnection->peerConnection.version = PEER_CONNECTION_CURRENT_VERSION;
+
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIceUfrag, LOCAL_ICE_UFRAG_LEN));
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIcePwd, LOCAL_ICE_PWD_LEN));
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localCNAME, LOCAL_CNAME_LEN));
@@ -983,7 +984,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     pKvsPeerConnection->peerConnectionObjLock = MUTEX_CREATE(FALSE);
     pKvsPeerConnection->connectionState = RTC_PEER_CONNECTION_STATE_NONE;
     pKvsPeerConnection->MTU = pConfiguration->kvsRtcConfiguration.maximumTransmissionUnit == 0
-        ? DEFAULT_MTU_SIZE
+        ? DEFAULT_MTU_SIZE_BYTES
         : pConfiguration->kvsRtcConfiguration.maximumTransmissionUnit;
     ATOMIC_STORE_BOOL(&pKvsPeerConnection->sctpIsEnabled, FALSE);
 
@@ -1539,6 +1540,19 @@ CleanUp:
     return retStatus;
 }
 
+STATUS configureTransceiverRollingBuffer(PRtcRtpTransceiver pRtcRtpTransceiver, PRtcMediaStreamTrack pRtcMediaStreamTrack,
+                                         DOUBLE rollingBufferDurationSec, DOUBLE rollingBufferBitratebps)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;
+    CHK_WARN(pKvsRtpTransceiver != NULL || pRtcMediaStreamTrack != NULL, STATUS_NULL_ARG,
+             "Transceiver is not created. This needs to be invoked after addTransceiver is invoked");
+
+    CHK_STATUS(setUpRollingBufferConfigInternal(pKvsRtpTransceiver, pRtcMediaStreamTrack, rollingBufferDurationSec, rollingBufferBitratebps));
+CleanUp:
+    return retStatus;
+}
+
 STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack pRtcMediaStreamTrack, PRtcRtpTransceiverInit pRtcRtpTransceiverInit,
                       PRtcRtpTransceiver* ppRtcRtpTransceiver)
 {
@@ -1553,11 +1567,12 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     UINT32 ssrc = (UINT32) RAND(), rtxSsrc = (UINT32) RAND();
     RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     RtcMediaStreamTrack videoTrack;
+
+    CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+
     if (pRtcRtpTransceiverInit != NULL) {
         direction = pRtcRtpTransceiverInit->direction;
     }
-
-    CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
 
     if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY && pRtcMediaStreamTrack == NULL) {
         MEMSET(&videoTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
@@ -1566,6 +1581,8 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
         STRCPY(videoTrack.streamId, "myKvsVideoStream");
         STRCPY(videoTrack.trackId, "myVideoTrack");
         pRtcMediaStreamTrack = &videoTrack;
+        // rollingBufferDurationSec will be DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS
+        // rollingBufferBitratebps will be DEFAULT_EXPECTED_VIDEO_BIT_RATE
     }
 
     switch (pRtcMediaStreamTrack->codec) {

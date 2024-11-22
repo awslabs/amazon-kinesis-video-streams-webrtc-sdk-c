@@ -9,13 +9,18 @@ extern "C" {
 
 // Default MTU comes from libwebrtc
 // https://groups.google.com/forum/#!topic/discuss-webrtc/gH5ysR3SoZI
-#define DEFAULT_MTU_SIZE                           1200
-#define DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS 3
-#define HIGHEST_EXPECTED_BIT_RATE                  (10 * 1024 * 1024)
+#define DEFAULT_MTU_SIZE_BYTES                     1200
+#define DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS (DOUBLE) 3
+#define DEFAULT_EXPECTED_VIDEO_BIT_RATE            (DOUBLE)(10 * 1024 * 1024)
+#define DEFAULT_EXPECTED_AUDIO_BIT_RATE            (DOUBLE)(10 * 1024 * 1024)
 #define DEFAULT_SEQ_NUM_BUFFER_SIZE                1000
 #define DEFAULT_VALID_INDEX_BUFFER_SIZE            1000
 #define DEFAULT_PEER_FRAME_BUFFER_SIZE             (5 * 1024)
 #define SRTP_AUTH_TAG_OVERHEAD                     10
+#define MIN_ROLLING_BUFFER_DURATION_IN_SECONDS     (DOUBLE) 0.1
+#define MIN_EXPECTED_BIT_RATE                      (DOUBLE)(102.4 * 1024) // Considering 1Kib = 1024 bits
+#define MAX_ROLLING_BUFFER_DURATION_IN_SECONDS     (DOUBLE) 10
+#define MAX_EXPECTED_BIT_RATE                      (DOUBLE)(240 * 1024 * 1024) // Considering 1Kib = 1024 bits
 
 // https://www.w3.org/TR/webrtc-stats/#dom-rtcoutboundrtpstreamstats-huge
 // Huge frames, by definition, are frames that have an encoded size at least 2.5 times the average size of the frames.
@@ -44,6 +49,12 @@ typedef struct {
 } RtcRtpSender, *PRtcRtpSender;
 
 typedef struct {
+    DOUBLE rollingBufferDurationSec; //!< Maximum duration of media that needs to be buffered (in seconds). The lowest allowed is 0.1 seconds (100ms)
+    DOUBLE rollingBufferBitratebps;  //!< Maximum expected bitrate of media (In bits/second). It is used to determine the buffer capacity. The lowest
+                                     //!< allowed is 100 Kbps
+} RollingBufferConfig, *PRollingBufferConfig;
+
+typedef struct {
     RtcRtpTransceiver transceiver;
     RtcRtpSender sender;
 
@@ -51,6 +62,8 @@ typedef struct {
 
     UINT32 jitterBufferSsrc;
     PJitterBuffer pJitterBuffer;
+
+    PRollingBufferConfig pRollingBufferConfig;
 
     UINT64 onFrameCustomData;
     RtcOnFrame onFrame;
@@ -83,6 +96,9 @@ STATUS writeRtpPacket(PKvsPeerConnection pKvsPeerConnection, PRtpPacket pRtpPack
 
 STATUS hasTransceiverWithSsrc(PKvsPeerConnection pKvsPeerConnection, UINT32 ssrc);
 STATUS findTransceiverBySsrc(PKvsPeerConnection pKvsPeerConnection, PKvsRtpTransceiver* ppTransceiver, UINT32 ssrc);
+
+STATUS setUpRollingBufferConfigInternal(PKvsRtpTransceiver, PRtcMediaStreamTrack, DOUBLE, DOUBLE);
+STATUS freeRollingBufferConfig(PRollingBufferConfig);
 
 #ifdef __cplusplus
 }

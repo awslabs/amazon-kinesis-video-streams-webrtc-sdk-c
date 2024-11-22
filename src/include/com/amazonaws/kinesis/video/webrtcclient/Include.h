@@ -1167,7 +1167,7 @@ typedef struct {
     UINT16 maximumTransmissionUnit; //!< Controls the size of the largest packet the WebRTC SDK will send
                                     //!< Some networks may drop packets if they exceed a certain size, and is useful in those conditions.
                                     //!< A smaller MTU will incur higher bandwidth usage however since more packets will be generated with
-                                    //!< smaller payloads. If unset DEFAULT_MTU_SIZE will be used
+                                    //!< smaller payloads. If unset DEFAULT_MTU_SIZE_BYTES will be used
 
     UINT32 iceLocalCandidateGatheringTimeout; //!< Maximum time ice will wait for gathering STUN and RELAY candidates. Once
                                               //!< it's reached, ice will proceed with whatever candidate it current has. Use default value if 0.
@@ -1608,6 +1608,19 @@ typedef struct {
 /*! \addtogroup PublicMemberFunctions
  * @{
  */
+
+/**
+ * @brief Set up rolling buffer configuration - max duration of media to store (sec) and expected max bitrate (bips) of the encoded media
+ *
+ *
+ * @param[in] PRtcRtpTransceiver IN/Initialized and configured RtcRtpTransceiver
+ * @param[in] PRtcMediaStreamTrack IN/Initialized media stream track information
+ * @param[in] DOUBLE IN/Rolling buffer duration in seconds
+ * @param[in] DOUBLE IN/Rolling buffer bitrate in bits/second
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+STATUS configureTransceiverRollingBuffer(PRtcRtpTransceiver, PRtcMediaStreamTrack, DOUBLE, DOUBLE);
 
 /**
  * @brief Initialize a RtcPeerConnection with the provided Configuration

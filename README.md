@@ -370,6 +370,43 @@ If using the WebRTC SDK Test Page, set the following values using the same AWS c
   
 Then choose Start Viewer to start live video streaming of the sample H264/Opus frames.
 
+## Memory optimization switches
+
+Starting with v1.11.0, the SDK provides some knobs to optimize memory usage to tailor to platform needs and resources
+
+### Controlling RTP rolling buffer capacity
+
+The SDK maintains an RTP rolling buffer to hold the RTP packets. This is useful to respond to NACKs and even in case of JitterBuffer. The rolling buffer size is controlled by 3 parameters:
+1. MTU: This is set to a default of 1200 bytes
+2. Buffer duration: This is the amount of time of media that you would like the rolling buffer to accommodate before it is overwritten due to buffer overflow. By default, the SDK sets this to 3 seconds
+3. Highest expected bitrate: This is the expected bitrate of the media in question. The typical bitrates could vary based on resolution and codec. By default, the SDK sets this to 5 mibps for video and 1 mibps for audio
+
+The rolling buffer capacity is calculated as follows:
+```
+Capacity = Buffer duration * highest expected bitrate (in bips) / 8 / MTU
+
+With buffer duration = 1 second,  Highest expected bitrate = 5 mibps and MTU 1200 bytes, capacity = 546 RTP packets
+```
+
+The rolling buffer size can be configured per transceiver using the `configureTransceiverRollingBuffer` API. Make sure to use the API after the addTransceiver call to ensure the `RtcMediaStreamTrack` and `KvsRtpTransceiver` objects are created. By default, the rolling buffer duration is set to 3 sec and bitrate is set to 5mibps for video and 1mibps for audio.
+
+The rolling buffer config parameters are as follows:
+```
+rollingBufferDurationSec = <duration in seconds>, must be more than 100ms and less than 10 seconds
+rollingBufferBitratebps = <bitrate in bits/sec>, must be more than 100kibits/sec and less than 240 mibps
+```
+
+For example, if we want to set duration to 200ms and bitrate to 150kibps:
+```c
+PRtcRtpTransceiver pVideoRtcRtpTransceiver;
+RtcMediaStreamTrack videoTrack;
+videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+CHK_STATUS(configureTransceiverRollingBuffer(pVideoRtcRtpTransceiver, &videoTrack, 0.2, 150 * 1024));
+```
+By setting these up, applications can have better control over the amount of memory that the application consumes. However, note, if the allocation is too small and the network bad leading to multiple nacks, it can lead to choppy media / dropped frames. Hence, care must be taken while deciding on the values to ensure the parameters satisfy necessary performance requirements.
+For more information, check the sample to see how these values are set up.
+
 ## Setup IoT
 * To use IoT certificate to authenticate with KVS signaling, please refer to [Controlling Access to Kinesis Video Streams Resources Using AWS IoT](https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/how-iot.html) for provisioning details.
 * A sample IAM policy for the IoT role looks like below, policy can be modified based on your permission requirement.
