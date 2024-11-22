@@ -136,7 +136,7 @@ If you wish to cross-compile `CC` and `CXX` are respected when building the libr
 If `-DBUILD_STATIC_LIBS=TRUE` then all dependencies and KVS WebRTC libraries will be built as static libraries.
 
 #### CMake Arguments
-You can pass the following options to `cmake ..`.
+You can pass the following options to `cmake ..`:
 
 * `-DBUILD_SAMPLE` -- Build the sample executables. ON by default.
 * `-DIOT_CORE_ENABLE_CREDENTIALS` -- Build the sample applications using IoT credentials. OFF by default.
@@ -159,7 +159,7 @@ You can pass the following options to `cmake ..`.
 * `-DENABLE_KVS_THREADPOOL` -- Enable the KVS threadpool which is off by default.
 * `-DENABLE_STATS_CALCULATION_CONTROL` -- Enable the runtime control of ICE agent stats calculations.
 
-You can pass the following options to `cmake ..`. These options get propagated to PIC.
+These options get propagated to [PIC](https://github.com/awslabs/amazon-kinesis-video-streams-pic):
 * `-DKVS_STACK_SIZE` -- Default stack size for threads created using THREAD_CREATE(), in bytes.
 
 To clean up the `open-source` and `build` folders from previous build, use `cmake --build . --target clean` from the `build` folder
