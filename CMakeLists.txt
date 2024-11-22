@@ -54,6 +54,18 @@ add_definitions(-DSDK_VERSION=\"${GIT_COMMIT_HASH}\")
 add_definitions(-DVERSION_STRING=\"${PROJECT_VERSION}\")
 add_definitions(-DDETECTED_GIT_HASH)
 
+if(NOT KVS_STACK_SIZE OR KVS_STACK_SIZE STREQUAL "")
+  message(STATUS "Stack size is system default stack size")
+else()
+  string(REGEX MATCH "^[0-9]+$" IS_KVS_STACK_SIZE_A_NUMBER "${KVS_STACK_SIZE}")
+  if(IS_KVS_STACK_SIZE_A_NUMBER)
+    message(STATUS "Setting default stack size to provided value: ${KVS_STACK_SIZE} bytes")
+    set(KVS_DEFAULT_STACK_SIZE ${KVS_STACK_SIZE})
+  else()
+    message(FATAL_ERROR "KVS_STACK_SIZE must be a numeric value, but got: ${KVS_STACK_SIZE}")
+  endif()
+endif()
+
 if(NOT OPEN_SRC_INSTALL_PREFIX OR OPEN_SRC_INSTALL_PREFIX STREQUAL "")
   set(OPEN_SRC_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/open-source" CACHE PATH "Libraries will be downloaded and built in this directory.")
 else()
@@ -259,6 +271,7 @@ set(BUILD_ARGS
         -DBUILD_STATIC=${BUILD_STATIC_LIBS}
         -DUSE_OPENSSL=${USE_OPENSSL}
         -DUSE_MBEDTLS=${USE_MBEDTLS}
+        -DKVS_DEFAULT_STACK_SIZE=${KVS_DEFAULT_STACK_SIZE}
         -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
 build_dependency(kvsCommonLws ${BUILD_ARGS})
 

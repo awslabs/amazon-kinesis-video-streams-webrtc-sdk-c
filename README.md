@@ -136,7 +136,7 @@ If you wish to cross-compile `CC` and `CXX` are respected when building the libr
 If `-DBUILD_STATIC_LIBS=TRUE` then all dependencies and KVS WebRTC libraries will be built as static libraries.
 
 #### CMake Arguments
-You can pass the following options to `cmake ..`.
+You can pass the following options to `cmake ..`:
 
 * `-DBUILD_SAMPLE` -- Build the sample executables. ON by default.
 * `-DIOT_CORE_ENABLE_CREDENTIALS` -- Build the sample applications using IoT credentials. OFF by default.
@@ -158,6 +158,9 @@ You can pass the following options to `cmake ..`.
 * `-DPKG_CONFIG_EXECUTABLE` -- Set pkg config path. This might be required to find gstreamer's pkg config specifically on Windows.
 * `-DENABLE_KVS_THREADPOOL` -- Enable the KVS threadpool which is off by default.
 * `-DENABLE_STATS_CALCULATION_CONTROL` -- Enable the runtime control of ICE agent stats calculations.
+
+These options get propagated to [PIC](https://github.com/awslabs/amazon-kinesis-video-streams-pic):
+* `-DKVS_STACK_SIZE` -- Default stack size for threads created using THREAD_CREATE(), in bytes.
 
 To clean up the `open-source` and `build` folders from previous build, use `cmake --build . --target clean` from the `build` folder
 
@@ -608,6 +611,9 @@ CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(pSampleStreamingSession->pP
 
 By default, our SDK enables TWCC listener. The SDK has a sample implementation to integrate TWCC into the Gstreamer pipeline via the `sampleSenderBandwidthEstimationHandler` callback. To get more details, look for this specific callback.
 
+
+### Thread stack sizes
+The default thread stack size in the KVS WebRTC SDK is determined by the system's default configuration. Developers can modify the stack size for all threads created using the `THREAD_CREATE()` macro by specifying the desired value through the `-DKVS_STACK_SIZE` CMake flag. Additionally, stack sizes for individual threads can be customized using the `THREAD_CREATE_WITH_PARAMS()` macro. Notable stack sizes that may need to be changed for your specific application will be the ConnectionListener Receiver thread and the media sender threads.
 
 ### Setting ICE related timeouts
 

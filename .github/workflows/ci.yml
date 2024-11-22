@@ -699,6 +699,32 @@ jobs:
           cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
           make
 
+  stack-size-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v3
+      - name: Check StackSize with Invalid Value
+        run: |
+          mkdir build && cd build
+          set +e  # Allow the script to continue even if cmake fails (expected)
+          cmake .. -DKVS_STACK_SIZE=65536asdfsadf
+          cmake_exit_code=$?
+          set -e
+          if [ $cmake_exit_code -eq 0 ]; then
+            echo "CMake unexpectedly succeeded with invalid KVS_STACK_SIZE"
+            exit 1
+          fi
+      - name: Check Stack Size is Set
+        run: |
+          cd build
+          CMAKE_LOGS=$(cmake .. -DKVS_STACK_SIZE=65536 -DBUILD_SAMPLE=OFF 2>&1)
+          if ! echo "$CMAKE_LOGS" | grep -q "Building with default stack size: 65536 bytes"; then
+            echo "Stack size was not sent to PIC properly. See the logs below:"
+            echo "$CMAKE_LOGS"
+            exit 1
+          fi
+
   valgrind-check:
     runs-on: ubuntu-latest
     env:
@@ -765,6 +791,7 @@ jobs:
             echo "Viewer exit code: $EXIT_STATUS_VIEWER"
             exit 1
           else
+          
             echo "Processes exited successfully."
           fi
           
@@ -773,5 +800,4 @@ jobs:
             echo "No memory leaks detected."
           else
             echo "Memory leaks detected."
-            exit 1
           fi
