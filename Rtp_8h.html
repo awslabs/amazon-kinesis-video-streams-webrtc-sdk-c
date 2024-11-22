@@ -162,17 +162,21 @@ This graph shows which files directly or indirectly include this file:</div>
 Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRtcRtpSender.html">RtcRtpSender</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structRollingBufferConfig.html">RollingBufferConfig</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structKvsRtpTransceiver.html">KvsRtpTransceiver</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:ab463e7cce50e0fa472b4b08ac0fe258c"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#ab463e7cce50e0fa472b4b08ac0fe258c">DEFAULT_MTU_SIZE</a>&#160;&#160;&#160;1200</td></tr>
-<tr class="separator:ab463e7cce50e0fa472b4b08ac0fe258c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a57c20fd76ed37ea46f0282ed949a49df"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#a57c20fd76ed37ea46f0282ed949a49df">DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS</a>&#160;&#160;&#160;3</td></tr>
+<tr class="memitem:a6d63843d01692139cae9a72c515dde5c"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#a6d63843d01692139cae9a72c515dde5c">DEFAULT_MTU_SIZE_BYTES</a>&#160;&#160;&#160;1200</td></tr>
+<tr class="separator:a6d63843d01692139cae9a72c515dde5c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a57c20fd76ed37ea46f0282ed949a49df"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#a57c20fd76ed37ea46f0282ed949a49df">DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS</a>&#160;&#160;&#160;(DOUBLE) 3</td></tr>
 <tr class="separator:a57c20fd76ed37ea46f0282ed949a49df"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7c325f1f1cf6db1ec59d74cbf65508bb"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#a7c325f1f1cf6db1ec59d74cbf65508bb">HIGHEST_EXPECTED_BIT_RATE</a>&#160;&#160;&#160;(10 * 1024 * 1024)</td></tr>
-<tr class="separator:a7c325f1f1cf6db1ec59d74cbf65508bb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af88c4b83fa17ed806ccb9d8d2447e686"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#af88c4b83fa17ed806ccb9d8d2447e686">DEFAULT_EXPECTED_VIDEO_BIT_RATE</a>&#160;&#160;&#160;(DOUBLE)(10 * 1024 * 1024)</td></tr>
+<tr class="separator:af88c4b83fa17ed806ccb9d8d2447e686"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6a56d72374fc3359a1b8751aa0933fcd"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#a6a56d72374fc3359a1b8751aa0933fcd">DEFAULT_EXPECTED_AUDIO_BIT_RATE</a>&#160;&#160;&#160;(DOUBLE)(10 * 1024 * 1024)</td></tr>
+<tr class="separator:a6a56d72374fc3359a1b8751aa0933fcd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abeeab0a6532323473e34b336b186fdb0"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#abeeab0a6532323473e34b336b186fdb0">DEFAULT_SEQ_NUM_BUFFER_SIZE</a>&#160;&#160;&#160;1000</td></tr>
 <tr class="separator:abeeab0a6532323473e34b336b186fdb0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a92d76a03d2d54cff45073f36e3f54b72"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#a92d76a03d2d54cff45073f36e3f54b72">DEFAULT_VALID_INDEX_BUFFER_SIZE</a>&#160;&#160;&#160;1000</td></tr>
@@ -181,6 +185,14 @@ Macros</h2></td></tr>
 <tr class="separator:abfa359be260998ab37a5c32c2f3142e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa6c849e71254274167ccdc73059814cb"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#aa6c849e71254274167ccdc73059814cb">SRTP_AUTH_TAG_OVERHEAD</a>&#160;&#160;&#160;10</td></tr>
 <tr class="separator:aa6c849e71254274167ccdc73059814cb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a538ae7bf84365bedcdb4db03cbda2036"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#a538ae7bf84365bedcdb4db03cbda2036">MIN_ROLLING_BUFFER_DURATION_IN_SECONDS</a>&#160;&#160;&#160;(DOUBLE) 0.1</td></tr>
+<tr class="separator:a538ae7bf84365bedcdb4db03cbda2036"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a88ce3ffb1378e0c9c93a125fe1b657df"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#a88ce3ffb1378e0c9c93a125fe1b657df">MIN_EXPECTED_BIT_RATE</a>&#160;&#160;&#160;(DOUBLE)(102.4 * 1024)</td></tr>
+<tr class="separator:a88ce3ffb1378e0c9c93a125fe1b657df"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a196f0f80fc4156e9188e99eeba154d31"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#a196f0f80fc4156e9188e99eeba154d31">MAX_ROLLING_BUFFER_DURATION_IN_SECONDS</a>&#160;&#160;&#160;(DOUBLE) 10</td></tr>
+<tr class="separator:a196f0f80fc4156e9188e99eeba154d31"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3fa322ec8e75f133693338ba85ee26aa"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#a3fa322ec8e75f133693338ba85ee26aa">MAX_EXPECTED_BIT_RATE</a>&#160;&#160;&#160;(DOUBLE)(240 * 1024 * 1024)</td></tr>
+<tr class="separator:a3fa322ec8e75f133693338ba85ee26aa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aec69a3a06a63c045afc82fe8642a5346"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#aec69a3a06a63c045afc82fe8642a5346">HUGE_FRAME_MULTIPLIER</a>&#160;&#160;&#160;2.5</td></tr>
 <tr class="separator:aec69a3a06a63c045afc82fe8642a5346"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0d105a0689d40474f586dedbd85eaff0"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#a0d105a0689d40474f586dedbd85eaff0">CONVERT_TIMESTAMP_TO_RTP</a>(clockRate,  pts)&#160;&#160;&#160;((UINT64) ((DOUBLE) (pts) * ((DOUBLE) (clockRate) / HUNDREDS_OF_NANOS_IN_A_SECOND)))</td></tr>
@@ -190,6 +202,8 @@ Macros</h2></td></tr>
 Typedefs</h2></td></tr>
 <tr class="memitem:ac0599be0dd1adede13b8003ebadcfa4a"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcRtpSender.html">RtcRtpSender</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#ac0599be0dd1adede13b8003ebadcfa4a">PRtcRtpSender</a></td></tr>
 <tr class="separator:ac0599be0dd1adede13b8003ebadcfa4a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad87067ec7580aac3609fd6ffba7c9d01"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRollingBufferConfig.html">RollingBufferConfig</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#ad87067ec7580aac3609fd6ffba7c9d01">PRollingBufferConfig</a></td></tr>
+<tr class="separator:ad87067ec7580aac3609fd6ffba7c9d01"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aebdbf7c19ec1290a5a9c30a5cf878c55"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structKvsRtpTransceiver.html">KvsRtpTransceiver</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#aebdbf7c19ec1290a5a9c30a5cf878c55">PKvsRtpTransceiver</a></td></tr>
 <tr class="separator:aebdbf7c19ec1290a5a9c30a5cf878c55"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -207,6 +221,10 @@ Functions</h2></td></tr>
 <tr class="separator:a3f98236c016e0072d6ef135477ffa895"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a353c7c84b9f9a6ab29730620fa04c87d"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#a353c7c84b9f9a6ab29730620fa04c87d">findTransceiverBySsrc</a> (<a class="el" href="PeerConnection_8h.html#a545e0bebf606e9070020c98b3f9c2864">PKvsPeerConnection</a> pKvsPeerConnection, <a class="el" href="Rtp_8h.html#aebdbf7c19ec1290a5a9c30a5cf878c55">PKvsRtpTransceiver</a> *ppTransceiver, UINT32 ssrc)</td></tr>
 <tr class="separator:a353c7c84b9f9a6ab29730620fa04c87d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1b96f7236c6a5f770ec5af75151d0de0"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#a1b96f7236c6a5f770ec5af75151d0de0">setUpRollingBufferConfigInternal</a> (<a class="el" href="Rtp_8h.html#aebdbf7c19ec1290a5a9c30a5cf878c55">PKvsRtpTransceiver</a>, <a class="el" href="group__PublicStructures.html#ga7b5ee097cf66780a017592c4cf712773">PRtcMediaStreamTrack</a>, DOUBLE, DOUBLE)</td></tr>
+<tr class="separator:a1b96f7236c6a5f770ec5af75151d0de0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a59c4199d58c0aeb9f68df78a83df5dba"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="Rtp_8h.html#a59c4199d58c0aeb9f68df78a83df5dba">freeRollingBufferConfig</a> (<a class="el" href="Rtp_8h.html#ad87067ec7580aac3609fd6ffba7c9d01">PRollingBufferConfig</a>)</td></tr>
+<tr class="separator:a59c4199d58c0aeb9f68df78a83df5dba"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="a0d105a0689d40474f586dedbd85eaff0"></a>
@@ -237,14 +255,42 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="ab463e7cce50e0fa472b4b08ac0fe258c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab463e7cce50e0fa472b4b08ac0fe258c">&#9670;&nbsp;</a></span>DEFAULT_MTU_SIZE</h2>
+<a id="a6a56d72374fc3359a1b8751aa0933fcd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6a56d72374fc3359a1b8751aa0933fcd">&#9670;&nbsp;</a></span>DEFAULT_EXPECTED_AUDIO_BIT_RATE</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define DEFAULT_MTU_SIZE&#160;&#160;&#160;1200</td>
+          <td class="memname">#define DEFAULT_EXPECTED_AUDIO_BIT_RATE&#160;&#160;&#160;(DOUBLE)(10 * 1024 * 1024)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="af88c4b83fa17ed806ccb9d8d2447e686"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af88c4b83fa17ed806ccb9d8d2447e686">&#9670;&nbsp;</a></span>DEFAULT_EXPECTED_VIDEO_BIT_RATE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define DEFAULT_EXPECTED_VIDEO_BIT_RATE&#160;&#160;&#160;(DOUBLE)(10 * 1024 * 1024)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a6d63843d01692139cae9a72c515dde5c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6d63843d01692139cae9a72c515dde5c">&#9670;&nbsp;</a></span>DEFAULT_MTU_SIZE_BYTES</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define DEFAULT_MTU_SIZE_BYTES&#160;&#160;&#160;1200</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -272,7 +318,7 @@ Functions</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS&#160;&#160;&#160;3</td>
+          <td class="memname">#define DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS&#160;&#160;&#160;(DOUBLE) 3</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -307,20 +353,6 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a7c325f1f1cf6db1ec59d74cbf65508bb"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7c325f1f1cf6db1ec59d74cbf65508bb">&#9670;&nbsp;</a></span>HIGHEST_EXPECTED_BIT_RATE</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define HIGHEST_EXPECTED_BIT_RATE&#160;&#160;&#160;(10 * 1024 * 1024)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
 <a id="aec69a3a06a63c045afc82fe8642a5346"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aec69a3a06a63c045afc82fe8642a5346">&#9670;&nbsp;</a></span>HUGE_FRAME_MULTIPLIER</h2>
 
@@ -329,6 +361,62 @@ Functions</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">#define HUGE_FRAME_MULTIPLIER&#160;&#160;&#160;2.5</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a3fa322ec8e75f133693338ba85ee26aa"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3fa322ec8e75f133693338ba85ee26aa">&#9670;&nbsp;</a></span>MAX_EXPECTED_BIT_RATE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define MAX_EXPECTED_BIT_RATE&#160;&#160;&#160;(DOUBLE)(240 * 1024 * 1024)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a196f0f80fc4156e9188e99eeba154d31"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a196f0f80fc4156e9188e99eeba154d31">&#9670;&nbsp;</a></span>MAX_ROLLING_BUFFER_DURATION_IN_SECONDS</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define MAX_ROLLING_BUFFER_DURATION_IN_SECONDS&#160;&#160;&#160;(DOUBLE) 10</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a88ce3ffb1378e0c9c93a125fe1b657df"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a88ce3ffb1378e0c9c93a125fe1b657df">&#9670;&nbsp;</a></span>MIN_EXPECTED_BIT_RATE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define MIN_EXPECTED_BIT_RATE&#160;&#160;&#160;(DOUBLE)(102.4 * 1024)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a538ae7bf84365bedcdb4db03cbda2036"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a538ae7bf84365bedcdb4db03cbda2036">&#9670;&nbsp;</a></span>MIN_ROLLING_BUFFER_DURATION_IN_SECONDS</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define MIN_ROLLING_BUFFER_DURATION_IN_SECONDS&#160;&#160;&#160;(DOUBLE) 0.1</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -358,6 +446,20 @@ Functions</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">typedef  struct <a class="el" href="structKvsRtpTransceiver.html">KvsRtpTransceiver</a> * <a class="el" href="Rtp_8h.html#aebdbf7c19ec1290a5a9c30a5cf878c55">PKvsRtpTransceiver</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ad87067ec7580aac3609fd6ffba7c9d01"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad87067ec7580aac3609fd6ffba7c9d01">&#9670;&nbsp;</a></span>PRollingBufferConfig</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef  struct <a class="el" href="structRollingBufferConfig.html">RollingBufferConfig</a> * <a class="el" href="Rtp_8h.html#ad87067ec7580aac3609fd6ffba7c9d01">PRollingBufferConfig</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -445,17 +547,18 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="Rtp_8h_afbd4b909747cdf574518ad6df03a2e76_cgraph.png" border="0" usemap="#aRtp_8h_afbd4b909747cdf574518ad6df03a2e76_cgraph" alt=""/></div>
 <map name="aRtp_8h_afbd4b909747cdf574518ad6df03a2e76_cgraph" id="aRtp_8h_afbd4b909747cdf574518ad6df03a2e76_cgraph">
-<area shape="rect" title=" " alt="" coords="5,122,188,149"/>
-<area shape="rect" href="Rtp_8c.html#ac43cec8875bbd05633d9a31bff472efc" title=" " alt="" coords="236,122,404,149"/>
-<area shape="rect" href="JitterBuffer_8c.html#ab3cc6b54249b9d82ce116edccc2d1cbf" title=" " alt="" coords="470,71,589,98"/>
-<area shape="rect" href="Retransmitter_8c.html#abc4d6da97d6a3171960d7cb4d803d198" title=" " alt="" coords="460,122,599,149"/>
-<area shape="rect" href="RtpRollingBuffer_8c.html#a46569ac6a39e657658840b1054175116" title=" " alt="" coords="452,173,607,199"/>
-<area shape="rect" href="JitterBuffer_8c.html#a825c3656f8f6466c66eccb89f9745814" title=" " alt="" coords="880,71,1073,98"/>
-<area shape="rect" href="JitterBuffer_8c.html#ac781719ff47dc4932f88c48fbda7fbd6" title=" " alt="" coords="655,97,832,123"/>
-<area shape="rect" href="JitterBuffer_8c.html#a7d7320146187bfc7b6ca7ea61d68445d" title=" " alt="" coords="1121,5,1341,47"/>
-<area shape="rect" href="JitterBuffer_8c.html#ab4a1d7e5e56187bcbb451cde70680a89" title=" " alt="" coords="1122,71,1341,98"/>
-<area shape="rect" href="RtpPacket_8c.html#af5c0526f452ce354c0f92497668f5ad9" title=" " alt="" coords="1175,122,1287,149"/>
-<area shape="rect" href="RollingBuffer_8c.html#a81cebbe1d2964e9aadcf235f82d3c098" title=" " alt="" coords="677,173,809,199"/>
+<area shape="rect" title=" " alt="" coords="5,147,188,174"/>
+<area shape="rect" href="Rtp_8c.html#ac43cec8875bbd05633d9a31bff472efc" title=" " alt="" coords="236,147,404,174"/>
+<area shape="rect" href="JitterBuffer_8c.html#ab3cc6b54249b9d82ce116edccc2d1cbf" title=" " alt="" coords="479,71,598,98"/>
+<area shape="rect" href="Retransmitter_8c.html#abc4d6da97d6a3171960d7cb4d803d198" title=" " alt="" coords="469,122,608,149"/>
+<area shape="rect" href="Rtp_8c.html#a51c2d5b41938e4249ba845bc04dd396f" title=" " alt="" coords="452,173,625,199"/>
+<area shape="rect" href="RtpRollingBuffer_8c.html#a46569ac6a39e657658840b1054175116" title=" " alt="" coords="461,223,616,250"/>
+<area shape="rect" href="JitterBuffer_8c.html#a825c3656f8f6466c66eccb89f9745814" title=" " alt="" coords="899,71,1092,98"/>
+<area shape="rect" href="JitterBuffer_8c.html#ac781719ff47dc4932f88c48fbda7fbd6" title=" " alt="" coords="673,97,851,123"/>
+<area shape="rect" href="JitterBuffer_8c.html#a7d7320146187bfc7b6ca7ea61d68445d" title=" " alt="" coords="1140,5,1360,47"/>
+<area shape="rect" href="JitterBuffer_8c.html#ab4a1d7e5e56187bcbb451cde70680a89" title=" " alt="" coords="1141,71,1359,98"/>
+<area shape="rect" href="RtpPacket_8c.html#af5c0526f452ce354c0f92497668f5ad9" title=" " alt="" coords="1194,122,1306,149"/>
+<area shape="rect" href="RollingBuffer_8c.html#a81cebbe1d2964e9aadcf235f82d3c098" title=" " alt="" coords="696,223,828,250"/>
 </map>
 </div>
 <div class="dynheader">
@@ -547,16 +650,17 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="Rtp_8h_ae8c85797caf52813ba0b8ca9859b77c5_cgraph.png" border="0" usemap="#aRtp_8h_ae8c85797caf52813ba0b8ca9859b77c5_cgraph" alt=""/></div>
 <map name="aRtp_8h_ae8c85797caf52813ba0b8ca9859b77c5_cgraph" id="aRtp_8h_ae8c85797caf52813ba0b8ca9859b77c5_cgraph">
-<area shape="rect" title=" " alt="" coords="5,122,173,149"/>
-<area shape="rect" href="JitterBuffer_8c.html#ab3cc6b54249b9d82ce116edccc2d1cbf" title=" " alt="" coords="239,71,358,98"/>
-<area shape="rect" href="Retransmitter_8c.html#abc4d6da97d6a3171960d7cb4d803d198" title=" " alt="" coords="229,122,368,149"/>
-<area shape="rect" href="RtpRollingBuffer_8c.html#a46569ac6a39e657658840b1054175116" title=" " alt="" coords="221,173,376,199"/>
-<area shape="rect" href="JitterBuffer_8c.html#a825c3656f8f6466c66eccb89f9745814" title=" " alt="" coords="649,71,843,98"/>
-<area shape="rect" href="JitterBuffer_8c.html#ac781719ff47dc4932f88c48fbda7fbd6" title=" " alt="" coords="424,97,601,123"/>
-<area shape="rect" href="JitterBuffer_8c.html#a7d7320146187bfc7b6ca7ea61d68445d" title=" " alt="" coords="891,5,1111,47"/>
-<area shape="rect" href="JitterBuffer_8c.html#ab4a1d7e5e56187bcbb451cde70680a89" title=" " alt="" coords="891,71,1110,98"/>
-<area shape="rect" href="RtpPacket_8c.html#af5c0526f452ce354c0f92497668f5ad9" title=" " alt="" coords="945,122,1057,149"/>
-<area shape="rect" href="RollingBuffer_8c.html#a81cebbe1d2964e9aadcf235f82d3c098" title=" " alt="" coords="447,173,579,199"/>
+<area shape="rect" title=" " alt="" coords="5,147,173,174"/>
+<area shape="rect" href="JitterBuffer_8c.html#ab3cc6b54249b9d82ce116edccc2d1cbf" title=" " alt="" coords="249,71,367,98"/>
+<area shape="rect" href="Retransmitter_8c.html#abc4d6da97d6a3171960d7cb4d803d198" title=" " alt="" coords="239,122,377,149"/>
+<area shape="rect" href="Rtp_8c.html#a51c2d5b41938e4249ba845bc04dd396f" title=" " alt="" coords="221,173,395,199"/>
+<area shape="rect" href="RtpRollingBuffer_8c.html#a46569ac6a39e657658840b1054175116" title=" " alt="" coords="231,223,385,250"/>
+<area shape="rect" href="JitterBuffer_8c.html#a825c3656f8f6466c66eccb89f9745814" title=" " alt="" coords="668,71,861,98"/>
+<area shape="rect" href="JitterBuffer_8c.html#ac781719ff47dc4932f88c48fbda7fbd6" title=" " alt="" coords="443,97,620,123"/>
+<area shape="rect" href="JitterBuffer_8c.html#a7d7320146187bfc7b6ca7ea61d68445d" title=" " alt="" coords="909,5,1129,47"/>
+<area shape="rect" href="JitterBuffer_8c.html#ab4a1d7e5e56187bcbb451cde70680a89" title=" " alt="" coords="910,71,1129,98"/>
+<area shape="rect" href="RtpPacket_8c.html#af5c0526f452ce354c0f92497668f5ad9" title=" " alt="" coords="963,122,1075,149"/>
+<area shape="rect" href="RollingBuffer_8c.html#a81cebbe1d2964e9aadcf235f82d3c098" title=" " alt="" coords="465,223,597,250"/>
 </map>
 </div>
 <div class="dynheader">
@@ -565,6 +669,44 @@ Here is the caller graph for this function:</div>
 <div class="center"><img src="Rtp_8h_ae8c85797caf52813ba0b8ca9859b77c5_icgraph.png" border="0" usemap="#aRtp_8h_ae8c85797caf52813ba0b8ca9859b77c5_icgraph" alt=""/></div>
 <map name="aRtp_8h_ae8c85797caf52813ba0b8ca9859b77c5_icgraph" id="aRtp_8h_ae8c85797caf52813ba0b8ca9859b77c5_icgraph">
 <area shape="rect" title=" " alt="" coords="1441,63,1609,89"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga5b89dc2e301e35f30330c57bc1361dcb" title="Create a new RtcRtpTransceiver and add it to the set of transceivers." alt="" coords="1005,5,1125,32"/>
+<area shape="rect" href="Rtp_8c.html#a546a0453948ee8060791e725b0194ca5" title=" " alt="" coords="1211,63,1393,89"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="1227,117,1377,144"/>
+<area shape="rect" href="SessionDescription_8c.html#a0cd24200ec6c1dd7be231b915dac66b2" title=" " alt="" coords="968,57,1163,98"/>
+<area shape="rect" href="SessionDescription_8c.html#a1f9d1d11409965815589bc2fdccb5168" title=" " alt="" coords="717,57,920,98"/>
+<area shape="rect" href="SessionDescription_8c.html#a61cd534b376d8c202cc37711aebd3640" title=" " alt="" coords="467,64,669,91"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga1779d268b0993835d80f0948281e2274" title="Populate the provided answer that contains an RFC 3264 offer with the supported configurations for th..." alt="" coords="244,5,339,32"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga19dfcbdcf4d136b56ce366fe2fb9bfb3" title=" " alt="" coords="194,57,389,98"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#gaa1940a0ddabf41c445b55f1317476e96" title=" " alt="" coords="164,123,419,149"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga7dc5ad4eb5cc7e000396547279108d9b" title="Populate the provided answer that contains an RFC 3264 answer with the supported configurations for t..." alt="" coords="5,64,116,91"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="983,123,1148,149"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a59c4199d58c0aeb9f68df78a83df5dba"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a59c4199d58c0aeb9f68df78a83df5dba">&#9670;&nbsp;</a></span>freeRollingBufferConfig()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">STATUS freeRollingBufferConfig </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="Rtp_8h.html#ad87067ec7580aac3609fd6ffba7c9d01">PRollingBufferConfig</a>&#160;</td>
+          <td class="paramname"><em>pRollingBufferConfig</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="Rtp_8h_a59c4199d58c0aeb9f68df78a83df5dba_icgraph.png" border="0" usemap="#aRtp_8h_a59c4199d58c0aeb9f68df78a83df5dba_icgraph" alt=""/></div>
+<map name="aRtp_8h_a59c4199d58c0aeb9f68df78a83df5dba_icgraph" id="aRtp_8h_a59c4199d58c0aeb9f68df78a83df5dba_icgraph">
+<area shape="rect" title=" " alt="" coords="1657,63,1831,89"/>
+<area shape="rect" href="Rtp_8c.html#ac43cec8875bbd05633d9a31bff472efc" title=" " alt="" coords="1441,63,1609,89"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#ga5b89dc2e301e35f30330c57bc1361dcb" title="Create a new RtcRtpTransceiver and add it to the set of transceivers." alt="" coords="1005,5,1125,32"/>
 <area shape="rect" href="Rtp_8c.html#a546a0453948ee8060791e725b0194ca5" title=" " alt="" coords="1211,63,1393,89"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="1227,117,1377,144"/>
@@ -667,6 +809,57 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
+<a id="a1b96f7236c6a5f770ec5af75151d0de0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1b96f7236c6a5f770ec5af75151d0de0">&#9670;&nbsp;</a></span>setUpRollingBufferConfigInternal()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">STATUS setUpRollingBufferConfigInternal </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="Rtp_8h.html#aebdbf7c19ec1290a5a9c30a5cf878c55">PKvsRtpTransceiver</a>&#160;</td>
+          <td class="paramname"><em>pKvsRtpTransceiver</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__PublicStructures.html#ga7b5ee097cf66780a017592c4cf712773">PRtcMediaStreamTrack</a>&#160;</td>
+          <td class="paramname"><em>pRtcMediaStreamTrack</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">DOUBLE&#160;</td>
+          <td class="paramname"><em>rollingBufferDurationSec</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">DOUBLE&#160;</td>
+          <td class="paramname"><em>rollingBufferBitratebps</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="Rtp_8h_a1b96f7236c6a5f770ec5af75151d0de0_icgraph.png" border="0" usemap="#aRtp_8h_a1b96f7236c6a5f770ec5af75151d0de0_icgraph" alt=""/></div>
+<map name="aRtp_8h_a1b96f7236c6a5f770ec5af75151d0de0_icgraph" id="aRtp_8h_a1b96f7236c6a5f770ec5af75151d0de0_icgraph">
+<area shape="rect" title=" " alt="" coords="472,35,657,76"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga29f912f0923b66458eadf6c67413b80c" title="Set up rolling buffer configuration &#45; max duration of media to store (sec) and expected max bitrate (..." alt="" coords="221,5,423,47"/>
+<area shape="rect" href="SessionDescription_8c.html#ade806b0787e4279fa50c746632aeb57b" title=" " alt="" coords="220,71,424,98"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,71,172,98"/>
+</map>
+</div>
+
+</div>
+</div>
 <a id="a6f38cb81e122dec46ea50feb5edb652a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a6f38cb81e122dec46ea50feb5edb652a">&#9670;&nbsp;</a></span>writeRtpPacket()</h2>
 
@@ -731,7 +924,7 @@ Here is the caller graph for this function:</div>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_94e7a0fbe7f8eaf7f05ee7b02c647e9f.html">source</a></li><li class="navelem"><a class="el" href="dir_3f63ab91aeb49885abb85dedd791923c.html">PeerConnection</a></li><li class="navelem"><a class="el" href="Rtp_8h.html">Rtp.h</a></li>
-    <li class="footer">Generated on Fri Nov 15 2024 21:54:17 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+    <li class="footer">Generated on Fri Nov 22 2024 18:54:19 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
   </ul>
 </div>
 </body>

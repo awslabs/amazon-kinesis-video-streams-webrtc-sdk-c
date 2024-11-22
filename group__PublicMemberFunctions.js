@@ -5,6 +5,7 @@ var group__PublicMemberFunctions =
     [ "addTransceiver", "group__PublicMemberFunctions.html#ga5b89dc2e301e35f30330c57bc1361dcb", null ],
     [ "canTrickleIceCandidates", "group__PublicMemberFunctions.html#gadee138e84132fe3adb2a8c7d144c7188", null ],
     [ "closePeerConnection", "group__PublicMemberFunctions.html#ga9babad6ea2bc9bb97279c7034697375a", null ],
+    [ "configureTransceiverRollingBuffer", "group__PublicMemberFunctions.html#ga29f912f0923b66458eadf6c67413b80c", null ],
     [ "createAnswer", "group__PublicMemberFunctions.html#ga7dc5ad4eb5cc7e000396547279108d9b", null ],
     [ "createDataChannel", "group__PublicMemberFunctions.html#ga70b9d70f77fae56f1a2f223cb3054416", null ],
     [ "createOffer", "group__PublicMemberFunctions.html#ga1779d268b0993835d80f0948281e2274", null ],
