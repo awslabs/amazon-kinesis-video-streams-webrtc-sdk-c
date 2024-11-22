@@ -590,32 +590,6 @@ By default, the threadpool starts with 3 threads that it will increase up to the
 1. `export AWS_KVS_WEBRTC_THREADPOOL_MIN_THREADS=<value>`
 2. `export AWS_KVS_WEBRTC_THREADPOOL_MAX_THREADS=<value>`
 
-### Set up TWCC
-TWCC is a mechanism in WebRTC designed to enhance the performance and reliability of real-time communication over the Internet. TWCC addresses the challenges of network congestion by providing detailed feedback on the transport of packets across the network, enabling adaptive bitrate control and optimization of 
-media streams in real-time. This feedback mechanism is crucial for maintaining high-quality audio and video communication, as it allows senders to adjust their transmission strategies based on comprehensive information about packet losses, delays, and jitter experienced across the entire transport path.
-The importance of TWCC in WebRTC lies in its ability to ensure efficient use of available network bandwidth while minimizing the negative impacts of network congestion. By monitoring the delivery of packets across the network, TWCC helps identify bottlenecks and adjust the media transmission rates accordingly. 
-This dynamic approach to congestion control is essential for preventing degradation in call quality, such as pixelation, stuttering, or drops in audio and video streams, especially in environments with fluctuating network conditions. To learn more about TWCC, you can refer to the [RFC draft](https://datatracker.ietf.org/doc/html/draft-holmer-rmcat-transport-wide-cc-extensions-01)
-
-In order to enable TWCC usage in the SDK, 2 things need to be set up:
-
-1. Set the `disableSenderSideBandwidthEstimation` to FALSE. In our samples, the value is set using `enableTwcc` flag in `pSampleConfiguration`
-
-```c
-pSampleConfiguration->enableTwcc = TRUE; // to enable TWCC
-pSampleConfiguration->enableTwcc = FALSE; // to disable TWCC
-configuration.kvsRtcConfiguration.disableSenderSideBandwidthEstimation = !pSampleConfiguration->enableTwcc;
-```
-
-2. Set the callback that will have the business logic to modify the bitrate based on packet loss information. The callback can be set using `peerConnectionOnSenderBandwidthEstimation()`.
-
-```c
-CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
-                                                     sampleSenderBandwidthEstimationHandler));
-```
-
-By default, our SDK enables TWCC listener. The SDK has a sample implementation to integrate TWCC into the Gstreamer pipeline via the `sampleSenderBandwidthEstimationHandler` callback. To get more details, look for this specific callback.
-
-
 ### Thread stack sizes
 The default thread stack size in the KVS WebRTC SDK is determined by the system's default configuration. Developers can modify the stack size for all threads created using the `THREAD_CREATE()` macro by specifying the desired value through the `-DKVS_STACK_SIZE` CMake flag. Additionally, stack sizes for individual threads can be customized using the `THREAD_CREATE_WITH_PARAMS()` macro. Notable stack sizes that may need to be changed for your specific application will be the ConnectionListener Receiver thread and the media sender threads.
 
