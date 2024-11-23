@@ -68,7 +68,7 @@ You will also need to install `pkg-config` and `CMake` and a build environment
 Create a build directory in the newly checked out repository, and execute CMake from it.
 
 ```shell
-mkdir -p amazon-kinesis-video-streams-webrtc-sdk-c/build; cd amazon-kinesis-video-streams-webrtc-sdk-c/build; cmake ..
+mkdir -p kvs-webrtc-sdk/build; cd kvs-webrtc-sdk/build; cmake ..
 ```
 
 We have provided an example of using GStreamer to capture/encode video, and then send via this library. This is only built if `pkg-config` finds
