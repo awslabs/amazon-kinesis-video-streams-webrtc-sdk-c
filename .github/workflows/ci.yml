@@ -11,7 +11,7 @@ on:
       - main
 jobs:
   clang-format-check:
-    runs-on: macos-12
+    runs-on: macos-13
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
@@ -22,113 +22,85 @@ jobs:
       - name: Run clang format check
         run: |
           bash scripts/check-clang.sh
-  mac-os-build-clang:
-    runs-on: macos-12
-    env:
-      CC: /usr/bin/clang
-      CXX: /usr/bin/clang++
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Build repository
-        run: |
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
-          make
-      - name: Run tests
-        run: |
-          cd build
-          ./tst/webrtc_client_test
-  mac-os-build-gcc:
-    runs-on: macos-12
-    env:
-      CC: gcc
-      CXX: g++
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Build repository
-        run: |
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
-          make
-      - name: Run tests
-        run: |
-          cd build
-          ./tst/webrtc_client_test
-  mac-os-m1-build-clang:
-    runs-on: macos-13-xlarge
-    env:
-      AWS_KVS_LOG_LEVEL: 2
-      PKG_CONFIG_PATH: /usr/local/opt/pkgconfig
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Install dependencies
-        run: |
-          brew install gstreamer glib
-      - name: Build repository
-        run: |
-          brew unlink openssl
-          mkdir build && cd build
-          sh -c 'cmake .. -DBUILD_TEST=TRUE -DCMAKE_C_COMPILER=$(brew --prefix llvm@15)/bin/clang -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang++'
-          make
-      - name: Run tests
-        run: |
-          cd build
-          ./tst/webrtc_client_test
-  static-build-mac:
-    runs-on: macos-12
+  mac-tests:
+    strategy:
+      matrix:
+        os:
+          - name: Mac Intel
+            runner: macos-13
+          - name: Mac Apple Silicon
+            runner: macos-15
+        compiler: [ gcc, clang ]
+        config:
+          - name: Shared OpenSSL
+            cmake_flags: ""
+          - name: Static OpenSSL
+            cmake_flags: "-DBUILD_STATIC_LIBS=TRUE"
+          - name: Shared MbedTLS
+            cmake_flags: "-DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
+          - name: Static MbedTLS
+            cmake_flags: "-DBUILD_STATIC_LIBS=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
+      fail-fast: false
+
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
       id-token: write
       contents: read
+
+    runs-on: ${{ matrix.os.runner }}
+    name: ${{ matrix.os.name }}, ${{ matrix.compiler }}, ${{ matrix.config.name }}
+
     steps:
-      - name: Clone repository
+      - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
-      - name: Build repository
+
+      - name: Configure and build ${{ matrix.config.name }}
         run: |
-          mkdir build && cd build
-          cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
-          make
+          if [[ "${{ matrix.compiler }}" == "gcc" ]]; then
+            export CC="gcc-14"
+            export CXX="g++-14"
+          else
+            export CC="clang"
+            export CXX="clang++"
+          fi
+          echo "Using $CC and $CXX"
+          
+          mkdir -p build
+          cd build
+          
+          if [[ "${{ matrix.os.name }}" == "Mac Apple Silicon" && "${{ matrix.compiler }}" == "gcc" ]]; then
+            # Skip building the tests for Apple Silicon Mac with GCC
+            # https://github.com/awslabs/aws-crt-cpp/issues/605
+            cmake .. ${{ matrix.config.cmake_flags }}
+          else
+            cmake .. ${{ matrix.config.cmake_flags }} -DBUILD_TEST=TRUE
+          fi
+          make -j$(sysctl -n hw.ncpu)
+        shell: bash
+
       - name: Run tests
         run: |
+          if [[ "${{ matrix.os.name }}" == "Mac Apple Silicon" && "${{ matrix.compiler }}" == "gcc" ]]; then
+            # Skip running the tests for Apple Silicon Mac with GCC
+            # https://github.com/awslabs/aws-crt-cpp/issues/605
+            exit 0
+          fi
+          
           cd build
           ./tst/webrtc_client_test
+        shell: bash
+
   address-sanitizer:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:20.04
     env:
       ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=1
       LSAN_OPTIONS: suppressions=../tst/suppressions/LSAN.supp
@@ -164,7 +136,9 @@ jobs:
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   undefined-behavior-sanitizer:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:20.04
     env:
       UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
       CC: clang
@@ -220,7 +194,9 @@ jobs:
   #         ulimit -c unlimited -S
   #         timeout --signal=SIGABRT 60m build/tst/webrtc_client_test
   thread-sanitizer:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:20.04
     env:
       TSAN_OPTIONS: second_deadlock_stack=1:halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
       CC: clang
@@ -254,7 +230,9 @@ jobs:
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   linux-gcc-4_4:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
       CC: gcc-4.4
@@ -292,7 +270,7 @@ jobs:
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   static-build-linux:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     container:
       image: alpine:3.15.4
     env:
@@ -316,7 +294,9 @@ jobs:
           cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
           make
   mbedtls-ubuntu-gcc:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
@@ -387,7 +367,9 @@ jobs:
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
 
   mbedtls-ubuntu-gcc-4_4-build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
       CC: gcc-4.4
@@ -419,7 +401,9 @@ jobs:
           make
 
   mbedtls-ubuntu-clang:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:20.04
     env:
       CC: clang
       CXX: clang++
@@ -504,7 +488,9 @@ jobs:
         run: |
           ./scripts/check-sample.sh
   ubuntu-os-build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
@@ -534,7 +520,9 @@ jobs:
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   ubuntu-os-build-stats-calc-control:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:20.04
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
@@ -645,7 +633,9 @@ jobs:
   #         git config --system core.longpaths true
   #         .github\build_windows_mbedtls.bat
   arm64-cross-compilation:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:20.04
     env:
       CC: aarch64-linux-gnu-gcc
       CXX: aarch64-linux-gnu-g++
@@ -663,7 +653,9 @@ jobs:
           cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic64 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
           make
   linux-aarch64-cross-compilation:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:20.04
     env:
       CC: aarch64-linux-gnu-gcc
       CXX: aarch64-linux-gnu-g++
@@ -681,7 +673,9 @@ jobs:
           cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-aarch64 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
           make
   arm32-cross-compilation:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:20.04
     env:
       CC: arm-linux-gnueabi-gcc
       CXX: arm-linux-gnueabi-g++
