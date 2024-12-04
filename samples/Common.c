@@ -533,7 +533,8 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
                               &pSampleStreamingSession->pVideoRtcRtpTransceiver));
 
     CHK_STATUS(configureTransceiverRollingBuffer(pSampleStreamingSession->pVideoRtcRtpTransceiver, &videoTrack,
-                                      pSampleConfiguration->videoRollingBufferDurationSec, pSampleConfiguration->videoRollingBufferBitratebps));
+                                                 pSampleConfiguration->videoRollingBufferDurationSec,
+                                                 pSampleConfiguration->videoRollingBufferBitratebps));
 
     CHK_STATUS(transceiverOnBandwidthEstimation(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession,
                                                 sampleBandwidthEstimationHandler));
@@ -548,7 +549,8 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
                               &pSampleStreamingSession->pAudioRtcRtpTransceiver));
 
     CHK_STATUS(configureTransceiverRollingBuffer(pSampleStreamingSession->pAudioRtcRtpTransceiver, &audioTrack,
-                                      pSampleConfiguration->audioRollingBufferDurationSec, pSampleConfiguration->audioRollingBufferBitratebps));
+                                                 pSampleConfiguration->audioRollingBufferDurationSec,
+                                                 pSampleConfiguration->audioRollingBufferBitratebps));
 
     CHK_STATUS(transceiverOnBandwidthEstimation(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession,
                                                 sampleBandwidthEstimationHandler));
