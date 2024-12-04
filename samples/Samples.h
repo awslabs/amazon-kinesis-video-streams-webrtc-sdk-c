@@ -128,6 +128,10 @@ typedef struct {
     SIGNALING_CLIENT_HANDLE signalingClientHandle;
     RTC_CODEC audioCodec;
     RTC_CODEC videoCodec;
+    DOUBLE videoRollingBufferDurationSec;
+    DOUBLE videoRollingBufferBitratebps;
+    DOUBLE audioRollingBufferDurationSec;
+    DOUBLE audioRollingBufferBitratebps;
     PBYTE pAudioFrameBuffer;
     UINT32 audioBufferSize;
     PBYTE pVideoFrameBuffer;

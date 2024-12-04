@@ -50,6 +50,20 @@ INT32 main(INT32 argc, CHAR* argv[])
     pSampleConfiguration->audioCodec = audioCodec;
     pSampleConfiguration->videoCodec = videoCodec;
 
+    // Configure the RTP rolling buffer sizes for the set of pre-canned sample frames (add a bit extra for padding)
+    if (pSampleConfiguration->videoCodec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
+        pSampleConfiguration->videoRollingBufferDurationSec = 3;
+        pSampleConfiguration->videoRollingBufferBitratebps = 1.4 * 1024 * 1024;
+    } else if (pSampleConfiguration->videoCodec == RTC_CODEC_H265) {
+        pSampleConfiguration->videoRollingBufferDurationSec = 3;
+        pSampleConfiguration->videoRollingBufferBitratebps = 462 * 1024;
+    }
+
+    if (pSampleConfiguration->audioCodec == RTC_CODEC_OPUS) {
+        pSampleConfiguration->audioRollingBufferDurationSec = 3;
+        pSampleConfiguration->audioRollingBufferBitratebps = 512 * 1024;
+    }
+
     if (argc > 2 && STRNCMP(argv[2], "1", 2) == 0) {
         pSampleConfiguration->channelInfo.useMediaStorage = TRUE;
     }
