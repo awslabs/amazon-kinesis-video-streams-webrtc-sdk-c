@@ -75,8 +75,8 @@ jobs:
           mkdir -p build
           cd build
           
-          if [[ "${{ matrix.os.name }}" == "Mac Apple Silicon" && "${{ matrix.compiler }}" == "gcc" ]]; then
-            # Skip building the tests for Apple Silicon Mac with GCC
+          if [[ "${{ matrix.compiler }}" == "gcc" ]]; then
+            # Skip building the tests for Mac with GCC
             # https://github.com/awslabs/aws-crt-cpp/issues/605
             cmake .. ${{ matrix.config.cmake_flags }}
           else
@@ -87,8 +87,8 @@ jobs:
 
       - name: Run tests
         run: |
-          if [[ "${{ matrix.os.name }}" == "Mac Apple Silicon" && "${{ matrix.compiler }}" == "gcc" ]]; then
-            # Skip running the tests for Apple Silicon Mac with GCC
+          if [[ "${{ matrix.compiler }}" == "gcc" ]]; then
+            # Skip running the tests for Mac with GCC
             # https://github.com/awslabs/aws-crt-cpp/issues/605
             exit 0
           fi
