@@ -50,7 +50,8 @@ INT32 main(INT32 argc, CHAR* argv[])
     pSampleConfiguration->audioCodec = audioCodec;
     pSampleConfiguration->videoCodec = videoCodec;
 
-    // Configure the RTP rolling buffer sizes for the set of pre-canned sample frames (add a bit extra for padding)
+    // Configure the RTP rolling buffer sizes for the set of sample frames
+    // to be smaller than the default settings (plus some extra for padding).
     if (pSampleConfiguration->videoCodec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
         pSampleConfiguration->videoRollingBufferDurationSec = 3;
         pSampleConfiguration->videoRollingBufferBitratebps = 1.4 * 1024 * 1024;
