@@ -61,6 +61,10 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: Install GStreamer
+        run: |
+          brew install gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly gst-libav
+
       - name: Configure and build ${{ matrix.config.name }}
         run: |
           if [[ "${{ matrix.compiler }}" == "gcc" ]]; then
