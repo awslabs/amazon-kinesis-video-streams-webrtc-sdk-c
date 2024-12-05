@@ -33,13 +33,13 @@ jobs:
         compiler: [ gcc, clang ]
         config:
           - name: Shared OpenSSL
-            cmake_flags: ""
+            cmake_flags: "-DBUILD_TEST=ON"
           - name: Static OpenSSL
-            cmake_flags: "-DBUILD_STATIC_LIBS=TRUE"
+            cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=TRUE"
           - name: Shared MbedTLS
-            cmake_flags: "-DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
+            cmake_flags: "-DBUILD_TEST=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
           - name: Static MbedTLS
-            cmake_flags: "-DBUILD_STATIC_LIBS=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
+            cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
       fail-fast: false
 
     env:
@@ -82,21 +82,15 @@ jobs:
           if [[ "${{ matrix.compiler }}" == "gcc" ]]; then
             # Skip building the tests for Mac with GCC
             # https://github.com/awslabs/aws-crt-cpp/issues/605
-            cmake .. ${{ matrix.config.cmake_flags }}
+            cmake .. ${{ matrix.config.cmake_flags }} -ENABLE_AWS_SDK_IN_TESTS=OFF
           else
-            cmake .. ${{ matrix.config.cmake_flags }} -DBUILD_TEST=TRUE
+            cmake .. ${{ matrix.config.cmake_flags }}
           fi
           make -j$(sysctl -n hw.ncpu)
         shell: bash
 
       - name: Run tests
         run: |
-          if [[ "${{ matrix.compiler }}" == "gcc" ]]; then
-            # Skip running the tests for Mac with GCC
-            # https://github.com/awslabs/aws-crt-cpp/issues/605
-            exit 0
-          fi
-          
           cd build
           ./tst/webrtc_client_test
         shell: bash
