@@ -82,7 +82,7 @@ jobs:
           if [[ "${{ matrix.compiler }}" == "gcc" ]]; then
             # Skip building the tests for Mac with GCC
             # https://github.com/awslabs/aws-crt-cpp/issues/605
-            cmake .. ${{ matrix.config.cmake_flags }} -ENABLE_AWS_SDK_IN_TESTS=OFF
+            cmake .. ${{ matrix.config.cmake_flags }} -DENABLE_AWS_SDK_IN_TESTS=OFF
           else
             cmake .. ${{ matrix.config.cmake_flags }}
           fi
