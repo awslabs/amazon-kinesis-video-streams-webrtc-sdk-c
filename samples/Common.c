@@ -532,6 +532,10 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &videoTrack, &videoRtpTransceiverInit,
                               &pSampleStreamingSession->pVideoRtcRtpTransceiver));
 
+    CHK_STATUS(configureTransceiverRollingBuffer(pSampleStreamingSession->pVideoRtcRtpTransceiver, &videoTrack,
+                                                 pSampleConfiguration->videoRollingBufferDurationSec,
+                                                 pSampleConfiguration->videoRollingBufferBitratebps));
+
     CHK_STATUS(transceiverOnBandwidthEstimation(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession,
                                                 sampleBandwidthEstimationHandler));
 
@@ -543,6 +547,10 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     STRCPY(audioTrack.trackId, "myAudioTrack");
     CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &audioTrack, &audioRtpTransceiverInit,
                               &pSampleStreamingSession->pAudioRtcRtpTransceiver));
+
+    CHK_STATUS(configureTransceiverRollingBuffer(pSampleStreamingSession->pAudioRtcRtpTransceiver, &audioTrack,
+                                                 pSampleConfiguration->audioRollingBufferDurationSec,
+                                                 pSampleConfiguration->audioRollingBufferBitratebps));
 
     CHK_STATUS(transceiverOnBandwidthEstimation(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession,
                                                 sampleBandwidthEstimationHandler));
