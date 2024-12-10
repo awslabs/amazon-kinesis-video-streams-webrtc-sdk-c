@@ -203,6 +203,7 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
 #ifdef ENABLE_DATA_CHANNEL
             if (ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpIsEnabled)) {
                 if (pKvsPeerConnection->pSctpSession == NULL) {
+                    DLOGI("Allocating SCTP session");
                     CHK_STATUS(allocateSctp(pKvsPeerConnection));
                 }
 
@@ -958,7 +959,12 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     pKvsPeerConnection = (PKvsPeerConnection) MEMCALLOC(1, SIZEOF(KvsPeerConnection));
     CHK(pKvsPeerConnection != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
+#if CONFIG_IDF_CMAKE
+#define TIMER_QUEUE_THREAD_SIZE (60 * 1024)
+    CHK_STATUS(timerQueueCreateEx(&pKvsPeerConnection->timerQueueHandle, "peerConnTmr", TIMER_QUEUE_THREAD_SIZE));
+#else
     CHK_STATUS(timerQueueCreate(&pKvsPeerConnection->timerQueueHandle));
+#endif
 
     pKvsPeerConnection->peerConnection.version = PEER_CONNECTION_CURRENT_VERSION;
 
@@ -1382,6 +1388,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
         if (STRNCMP(pSessionDescription->mediaDescriptions[i].mediaName, "application", SIZEOF("application") - 1) == 0) {
             if (!pKvsPeerConnection->isOffer && !ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpIsEnabled)) {
                 ATOMIC_STORE_BOOL(&pKvsPeerConnection->sctpIsEnabled, TRUE);
+                DLOGI("Enabling SCTP");
             }
         }
 #endif
@@ -1772,6 +1779,7 @@ STATUS initKvsWebRtc(VOID)
 
     SET_INSTRUMENTED_ALLOCATORS();
 #ifdef ENABLE_DATA_CHANNEL
+    DLOGI("Initializing SCTP session");
     CHK_STATUS(initSctpSession());
 #endif
 #ifdef ENABLE_KVS_THREADPOOL
