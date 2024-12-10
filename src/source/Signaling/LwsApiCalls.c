@@ -364,7 +364,11 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
                 // Handle re-connection in a reconnect handler thread. Set the terminated indicator before the thread
                 // creation and the thread itself will reset it. NOTE: Need to check for a failure and reset.
                 ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, FALSE);
+#if CONFIG_IDF_CMAKE
+                retStatus = THREAD_CREATE_EX_EXT(&pSignalingClient->reconnecterTracker.threadId, "reconnecter", 48 * 1024, TRUE, reconnectHandler, (PVOID) pSignalingClient);
+#else
                 retStatus = THREAD_CREATE(&pSignalingClient->reconnecterTracker.threadId, reconnectHandler, (PVOID) pSignalingClient);
+#endif
                 if (STATUS_FAILED(retStatus)) {
                     ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, TRUE);
                     CHK(FALSE, retStatus);
@@ -417,7 +421,11 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
                 // Handle re-connection in a reconnect handler thread. Set the terminated indicator before the thread
                 // creation and the thread itself will reset it. NOTE: Need to check for a failure and reset.
                 ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, FALSE);
+#if CONFIG_IDF_CMAKE
+                retStatus = THREAD_CREATE_EX_EXT(&pSignalingClient->reconnecterTracker.threadId, "reconnecter", 48 * 1024, TRUE, reconnectHandler, (PVOID) pSignalingClient);
+#else
                 retStatus = THREAD_CREATE(&pSignalingClient->reconnecterTracker.threadId, reconnectHandler, (PVOID) pSignalingClient);
+#endif
                 if (STATUS_FAILED(retStatus)) {
                     ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, TRUE);
                     CHK(FALSE, retStatus);
@@ -1647,7 +1655,11 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
 
     // The actual connection will be handled in a separate thread
     // Start the request/response thread
+#if CONFIG_IDF_CMAKE
+    CHK_STATUS(THREAD_CREATE_EX_EXT(&pSignalingClient->listenerTracker.threadId, "listener", 32 * 1024, TRUE, lwsListenerHandler, (PVOID) pLwsCallInfo));
+#else
     CHK_STATUS(THREAD_CREATE(&pSignalingClient->listenerTracker.threadId, lwsListenerHandler, (PVOID) pLwsCallInfo));
+#endif
     CHK_STATUS(THREAD_DETACH(pSignalingClient->listenerTracker.threadId));
 
     timeout = (pSignalingClient->clientInfo.connectTimeout != 0) ? pSignalingClient->clientInfo.connectTimeout : SIGNALING_CONNECT_TIMEOUT;
@@ -2074,7 +2086,7 @@ STATUS sendLwsMessage(PSignalingClient pSignalingClient, SIGNALING_MESSAGE_TYPE 
             CHK(FALSE, STATUS_INVALID_ARG);
     }
     DLOGD("%s", pMessageType);
-    DLOGD("%s", pMessage);
+    DLOGD("%.*s", (int) messageLen, pMessage);
     // Calculate the lengths if not specified
     if (messageLen == 0) {
         size = (UINT32) STRLEN(pMessage);
@@ -2487,7 +2499,11 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     CHK_STATUS(threadpoolContextPush(receiveLwsMessageWrapper, pSignalingMessageWrapper));
 #else
     // Issue the callback on a separate thread
+#if CONFIG_IDF_CMAKE
+    CHK_STATUS(THREAD_CREATE_EX_EXT(&receivedTid, "receiveLwsMsg", 48 * 1024, TRUE, receiveLwsMessageWrapper, (PVOID) pSignalingMessageWrapper));
+#else
     CHK_STATUS(THREAD_CREATE(&receivedTid, receiveLwsMessageWrapper, (PVOID) pSignalingMessageWrapper));
+#endif
     CHK_STATUS(THREAD_DETACH(receivedTid));
 #endif
 
