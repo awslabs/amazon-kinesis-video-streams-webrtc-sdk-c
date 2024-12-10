@@ -415,8 +415,9 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
                     DLOGE("poll() failed with errno %s", getErrorString(getErrorCode()));
                     break;
                 }
-            } else if (errorNum == EINTR) {
+            } else if (errorNum == EINTR || errorNum == ENOMEM || errno == ENOBUFS) {
                 /* nothing need to be done, just retry */
+                THREAD_SLEEP(50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND * (socketWriteAttempt + 1));
             } else {
                 /* fatal error from send() */
                 DLOGE("sendto() socket %d failed with errno %s(%d)", pSocketConnection->localSocket, getErrorString(errorNum), errorNum);
