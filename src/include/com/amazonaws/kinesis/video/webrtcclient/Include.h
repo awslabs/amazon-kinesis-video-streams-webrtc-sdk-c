@@ -498,7 +498,7 @@ extern "C" {
 /**
  * Maximum length of SDP member in RtcSessionDescriptionInit
  */
-#define MAX_SESSION_DESCRIPTION_INIT_SDP_LEN 25000
+#define MAX_SESSION_DESCRIPTION_INIT_SDP_LEN 12000
 
 /**
  * Maximum length of a MediaStream's ID
@@ -673,12 +673,12 @@ extern "C" {
 /**
  * Default minimum number of threads in the threadpool for the SDK
  */
-#define THREADPOOL_MIN_THREADS 3
+#define THREADPOOL_MIN_THREADS 1
 
 /**
  * Default maximum number of threads in the threadpool for the SDK
  */
-#define THREADPOOL_MAX_THREADS 10
+#define THREADPOOL_MAX_THREADS 2
 
 /**
  * Env to set minimum number of threads in the threadpool for the KVS SDK
