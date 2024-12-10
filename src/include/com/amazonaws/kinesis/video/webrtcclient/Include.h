@@ -678,7 +678,7 @@ extern "C" {
 /**
  * Default maximum number of threads in the threadpool for the SDK
  */
-#define THREADPOOL_MAX_THREADS 2
+#define THREADPOOL_MAX_THREADS 1
 
 /**
  * Env to set minimum number of threads in the threadpool for the KVS SDK
