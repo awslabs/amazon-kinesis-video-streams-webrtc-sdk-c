@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "Tls.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -197,7 +199,7 @@ STATUS dtlsValidateRtcCertificates(PRtcCertificate, PUINT32);
 STATUS createSslCtx(PDtlsSessionCertificateInfo, UINT32, SSL_CTX**);
 #elif KVS_USE_MBEDTLS
 STATUS dtlsCertificateFingerprint(mbedtls_x509_crt*, PCHAR);
-STATUS copyCertificateAndKey(mbedtls_x509_crt*, mbedtls_pk_context*, PDtlsSessionCertificateInfo);
+STATUS copyCertificateAndKey(mbedtls_x509_crt*, mbedtls_pk_context*, PDtlsSessionCertificateInfo, mbedtls_ctr_drbg_context*);
 STATUS createCertificateAndKey(INT32, BOOL, mbedtls_x509_crt*, mbedtls_pk_context*);
 STATUS freeCertificateAndKey(mbedtls_x509_crt*, mbedtls_pk_context*);
 
@@ -208,9 +210,17 @@ INT32 dtlsSessionSendCallback(PVOID, const unsigned char*, ULONG);
 INT32 dtlsSessionReceiveCallback(PVOID, unsigned char*, ULONG);
 VOID dtlsSessionSetTimerCallback(PVOID, UINT32, UINT32);
 INT32 dtlsSessionGetTimerCallback(PVOID);
+
+#if MBEDTLS_BEFORE_V3
 INT32 dtlsSessionKeyDerivationCallback(PVOID, const unsigned char*, const unsigned char*, ULONG, ULONG, ULONG,
                                        const unsigned char[MAX_DTLS_RANDOM_BYTES_LEN], const unsigned char[MAX_DTLS_RANDOM_BYTES_LEN],
                                        mbedtls_tls_prf_types);
+#else
+VOID dtlsSessionKeyDerivationCallback(PVOID customData, mbedtls_ssl_key_export_type secret_type, const unsigned char* pMasterSecret,
+                                      size_t pMasterSecretLen, const unsigned char clientRandom[MAX_DTLS_RANDOM_BYTES_LEN],
+                                      const unsigned char serverRandom[MAX_DTLS_RANDOM_BYTES_LEN], mbedtls_tls_prf_types tlsProfile);
+#endif
+
 #else
 #error "A Crypto implementation is required."
 #endif

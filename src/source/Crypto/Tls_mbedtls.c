@@ -204,8 +204,11 @@ STATUS tlsSessionProcessPacket(PTlsSession pTlsSession, PBYTE pData, UINT32 buff
             iterate = FALSE;
         }
     }
-
+#if MBEDTLS_BEFORE_V3
     if (pTlsSession->sslCtx.state == MBEDTLS_SSL_HANDSHAKE_OVER) {
+#else
+    if (pTlsSession->sslCtx.MBEDTLS_PRIVATE(state) == MBEDTLS_SSL_HANDSHAKE_OVER) {
+#endif
         tlsSessionChangeState(pTlsSession, TLS_SESSION_STATE_CONNECTED);
     }
 
