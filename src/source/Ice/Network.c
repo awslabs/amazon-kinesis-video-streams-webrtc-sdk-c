@@ -4,6 +4,112 @@
 #define LOG_CLASS "Network"
 #include "../Include_i.h"
 
+#if defined(CONFIG_IDF_CMAKE)
+#include <esp_netif.h>
+#include <esp_wifi.h>
+
+/**
+ * Helper function to get local IP addresses from ESP-IDF network interfaces
+ *
+ * @param destIpList - List to store IP addresses
+ * @param destIpListLen - Maximum number of IP addresses to retrieve
+ * @param filter - Optional filter function
+ * @param customData - Custom data for filter function
+ * @return Number of IP addresses found
+ */
+static UINT32 getEspIdfLocalIpAddresses(PKvsIpAddress destIpList, UINT32 destIpListLen, IceSetInterfaceFilterFunc filter, UINT64 customData)
+{
+    UINT32 ipCount = 0;
+
+    // Define potential network interfaces to check
+    const char* netif_keys[] = {
+        "WIFI_STA_DEF",  // WiFi station mode
+        "WIFI_AP_DEF",   // WiFi access point mode
+        "ETH_DEF"        // Ethernet
+    };
+    const UINT32 netif_count = SIZEOF(netif_keys) / SIZEOF(netif_keys[0]);
+
+    // Loop through potential interfaces
+    for (UINT32 i = 0; i < netif_count && ipCount < destIpListLen; i++) {
+        esp_netif_t *esp_netif = esp_netif_get_handle_from_ifkey(netif_keys[i]);
+        if (esp_netif == NULL) {
+            DLOGD("Interface %s not available", netif_keys[i]);
+            continue;
+        }
+
+        // Check if interface should be filtered
+        BOOL shouldInclude = TRUE;
+        if (filter != NULL) {
+            // Use the interface key as the name for filtering
+            shouldInclude = filter(customData, (PCHAR)netif_keys[i]);
+        }
+
+        if (!shouldInclude) {
+            DLOGD("Interface %s excluded by filter", netif_keys[i]);
+            continue;
+        }
+
+        esp_netif_ip_info_t ip_info;
+        esp_err_t err = esp_netif_get_ip_info(esp_netif, &ip_info);
+        if (err != ESP_OK) {
+            DLOGW("Failed to get IP info for %s, error: %d", netif_keys[i], err);
+            continue;
+        }
+
+        // Only add the IP if it's non-zero
+        if (ip_info.ip.addr != 0) {
+            destIpList[ipCount].isPointToPoint = 0;
+            destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV4;
+            destIpList[ipCount].port = 0;
+            MEMCPY(destIpList[ipCount].address, (BYTE *)&ip_info.ip.addr, IPV4_ADDRESS_LENGTH);
+            DLOGD("Acquired IP for %s: %d.%d.%d.%d",
+                  netif_keys[i],
+                  destIpList[ipCount].address[0],
+                  destIpList[ipCount].address[1],
+                  destIpList[ipCount].address[2],
+                  destIpList[ipCount].address[3]);
+            ipCount++;
+        }
+
+        // TODO: Add IPv6 support
+    }
+
+    // If no IPs were found, log a warning
+    if (ipCount == 0) {
+        DLOGW("No valid IP addresses found on ESP-IDF device");
+    }
+
+    return ipCount;
+}
+
+/**
+ * Helper function to set socket buffer size for ESP-IDF platforms
+ *
+ * @param sockfd - Socket file descriptor
+ * @param sendBufSize - Desired buffer size
+ * @return STATUS_SUCCESS always (doesn't fail on ESP-IDF)
+ */
+static STATUS setEspSocketBufferSize(INT32 sockfd, UINT32 sendBufSize)
+{
+    if (sendBufSize == 0) {
+        return STATUS_SUCCESS;
+    }
+
+#if defined(CONFIG_IDF_TARGET_ESP32) || defined(CONFIG_IDF_TARGET_ESP32S3)
+    // ESP32 and ESP32S3 might support buffer sizing
+    if (setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &sendBufSize, SIZEOF(sendBufSize)) < 0) {
+        DLOGW("setsockopt() SO_SNDBUF failed with errno %s", getErrorString(getErrorCode()));
+        // Don't fail, just log the warning
+    }
+#else
+    // Other ESP targets don't support buffer sizing
+    DLOGD("Socket buffer sizing not supported on this ESP-IDF target");
+#endif
+
+    return STATUS_SUCCESS;
+}
+#endif
+
 STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen, IceSetInterfaceFilterFunc filter, UINT64 customData)
 {
     ENTERS();
@@ -15,11 +121,14 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
     DWORD retWinStatus, sizeAAPointer;
     PIP_ADAPTER_ADDRESSES adapterAddresses, aa = NULL;
     PIP_ADAPTER_UNICAST_ADDRESS ua;
-#else
+#elif !defined(CONFIG_IDF_CMAKE)
     struct ifaddrs *ifaddr = NULL, *ifa = NULL;
 #endif
+
+#if !defined(CONFIG_IDF_CMAKE)
     struct sockaddr_in* pIpv4Addr = NULL;
     struct sockaddr_in6* pIpv6Addr = NULL;
+#endif
 
     CHK(destIpList != NULL && pDestIpListLen != NULL, STATUS_NULL_ARG);
     CHK(*pDestIpListLen != 0, STATUS_INVALID_ARG);
@@ -83,6 +192,8 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
             }
         }
     }
+#elif defined(CONFIG_IDF_CMAKE)
+    ipCount = getEspIdfLocalIpAddresses(destIpList, destIpListLen, filter, customData);
 #else
     CHK(getifaddrs(&ifaddr) != -1, STATUS_GET_LOCAL_IP_ADDRESSES_FAILED);
     for (ifa = ifaddr; ifa != NULL && ipCount < destIpListLen; ifa = ifa->ifa_next) {
@@ -137,9 +248,11 @@ CleanUp:
         SAFE_MEMFREE(adapterAddresses);
     }
 #else
+#if !defined(CONFIG_IDF_CMAKE)
     if (ifaddr != NULL) {
         freeifaddrs(ifaddr);
     }
+#endif
 #endif
 
     if (pDestIpListLen != NULL) {
@@ -187,10 +300,17 @@ STATUS createSocket(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol,
         DLOGD("setsockopt() NO_SIGNAL_SOCK_OPT failed with errno %s", getErrorString(getErrorCode()));
     }
 #endif /* NO_SIGNAL_SOCK_OPT */
+
+#if defined(CONFIG_IDF_CMAKE)
+    // Handle socket buffer sizing for ESP-IDF platforms
+    CHK_STATUS(setEspSocketBufferSize(sockfd, sendBufSize));
+#else
+    // Non-ESP platforms - set send buffer size as normal
     if (sendBufSize > 0 && setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &sendBufSize, SIZEOF(sendBufSize)) < 0) {
         DLOGW("setsockopt() SO_SNDBUF failed with errno %s", getErrorString(getErrorCode()));
         CHK(FALSE, STATUS_SOCKET_SET_SEND_BUFFER_SIZE_FAILED);
     }
+#endif
 
     *pOutSockFd = (INT32) sockfd;
 
