@@ -11,10 +11,10 @@ on:
       - main
 jobs:
   clang-format-check:
-    runs-on: macos-12
+    runs-on: macos-13
     steps:
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install clang-format
         run: |
           brew install clang-format
@@ -22,111 +22,79 @@ jobs:
       - name: Run clang format check
         run: |
           bash scripts/check-clang.sh
-  mac-os-build-clang:
-    runs-on: macos-12
-    env:
-      CC: /usr/bin/clang
-      CXX: /usr/bin/clang++
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Build repository
-        run: |
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
-          make
-      - name: Run tests
-        run:  |
-          cd build
-          ./tst/webrtc_client_test
-  mac-os-build-gcc:
-    runs-on: macos-12
-    env:
-      CC: gcc
-      CXX: g++
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Build repository
-        run: |
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DCOMPILER_WARNINGS=TRUE
-          make
-      - name: Run tests
-        run:  |
-          cd build
-          ./tst/webrtc_client_test
-  mac-os-m1-build-clang:
-    runs-on: macos-13-xlarge
-    env:
-      AWS_KVS_LOG_LEVEL: 2
-      PKG_CONFIG_PATH: /usr/local/opt/pkgconfig
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Install dependencies
-        run: |
-          brew install gstreamer glib
-      - name: Build repository
-        run: |
-          brew unlink openssl
-          mkdir build && cd build
-          sh -c 'cmake .. -DBUILD_TEST=TRUE -DCMAKE_C_COMPILER=$(brew --prefix llvm@15)/bin/clang -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang++'
-          make
-      - name: Run tests
-        run:  |
-          cd build
-          ./tst/webrtc_client_test
-  static-build-mac:
-    runs-on: macos-12
+  mac-tests:
+    strategy:
+      matrix:
+        os:
+          - name: Mac Intel
+            runner: macos-13
+          - name: Mac Apple Silicon
+            runner: macos-15
+        compiler: [ gcc, clang ]
+        config:
+          - name: Shared OpenSSL
+            cmake_flags: "-DBUILD_TEST=ON"
+          - name: Static OpenSSL
+            cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=TRUE"
+          - name: Shared MbedTLS
+            cmake_flags: "-DBUILD_TEST=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
+          - name: Static MbedTLS
+            cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
+      fail-fast: false
+
     env:
       AWS_KVS_LOG_LEVEL: 2
     permissions:
       id-token: write
       contents: read
+
+    runs-on: ${{ matrix.os.runner }}
+    name: ${{ matrix.os.name }}, ${{ matrix.compiler }}, ${{ matrix.config.name }}
+
     steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
-      - name: Build repository
+
+      - name: Install GStreamer
         run: |
-          mkdir build && cd build
-          cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
-          make
+          brew install gstreamer
+
+      - name: Configure and build ${{ matrix.config.name }}
+        run: |
+          if [[ "${{ matrix.compiler }}" == "gcc" ]]; then
+            export CC="gcc-14"
+            export CXX="g++-14"
+          else
+            export CC="clang"
+            export CXX="clang++"
+          fi
+          echo "Using $CC and $CXX"
+          
+          mkdir -p build
+          cd build
+          
+          if [[ "${{ matrix.compiler }}" == "gcc" ]]; then
+            # Skip building the tests for Mac with GCC
+            # https://github.com/awslabs/aws-crt-cpp/issues/605
+            cmake .. ${{ matrix.config.cmake_flags }} -DENABLE_AWS_SDK_IN_TESTS=OFF
+          else
+            cmake .. ${{ matrix.config.cmake_flags }}
+          fi
+          make -j$(sysctl -n hw.ncpu)
+        shell: bash
+
       - name: Run tests
-        run:  |
+        run: |
           cd build
           ./tst/webrtc_client_test
+        shell: bash
+
   address-sanitizer:
     runs-on: ubuntu-20.04
     env:
@@ -140,9 +108,9 @@ jobs:
       contents: read
     steps:
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
@@ -160,7 +128,7 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run:  |
+        run: |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   undefined-behavior-sanitizer:
@@ -175,9 +143,9 @@ jobs:
       contents: read
     steps:
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
@@ -195,7 +163,7 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run:  |
+        run: |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   # memory-sanitizer:
@@ -206,7 +174,7 @@ jobs:
   #     AWS_KVS_LOG_LEVEL: 2
   #   steps:
   #     - name: Clone repository
-  #       uses: actions/checkout@v3
+  #       uses: actions/checkout@v4
   #     - name: Install dependencies
   #       run: |
   #         sudo apt clean && sudo apt update
@@ -231,9 +199,9 @@ jobs:
       contents: read
     steps:
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
@@ -250,7 +218,7 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run:  |
+        run: |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   linux-gcc-4_4:
@@ -263,9 +231,9 @@ jobs:
       contents: read
     steps:
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
@@ -288,7 +256,7 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run:  |
+        run: |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   static-build-linux:
@@ -304,7 +272,7 @@ jobs:
       contents: read
     steps:
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install dependencies
         run: |
           apk update
@@ -324,9 +292,9 @@ jobs:
       contents: read
     steps:
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
@@ -348,7 +316,7 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run:  |
+        run: |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   mbedtls-ubuntu-gcc-11:
@@ -360,9 +328,9 @@ jobs:
       contents: read
     steps:
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
@@ -382,7 +350,7 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run:  |
+        run: |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
 
@@ -396,9 +364,9 @@ jobs:
       contents: read
     steps:
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
@@ -429,9 +397,9 @@ jobs:
       contents: read
     steps:
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
@@ -448,7 +416,7 @@ jobs:
           make
           ulimit -c unlimited -S
       - name: Run tests
-        run:  |
+        run: |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   sample-check:
@@ -512,9 +480,9 @@ jobs:
       contents: read
     steps:
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
@@ -530,7 +498,37 @@ jobs:
           cmake .. -DBUILD_TEST=TRUE
           make
       - name: Run tests
-        run:  |
+        run: |
+          cd build
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  ubuntu-os-build-stats-calc-control:
+    runs-on: ubuntu-20.04
+    env:
+      AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Install dependencies
+        run: |
+          sudo apt clean && sudo apt update
+          sudo apt-get -y install libcurl4-openssl-dev
+      - name: Build repository
+        run: |
+          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build && cd build
+          cmake .. -DBUILD_TEST=TRUE -DENABLE_STATS_CALCULATION_CONTROL=TRUE
+          make
+      - name: Run tests
+        run: |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
   windows-msvc-openssl:
@@ -542,9 +540,9 @@ jobs:
       contents: read
     steps:
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
@@ -592,7 +590,7 @@ jobs:
   #     AWS_KVS_LOG_LEVEL: 7
   #   steps:
   #     - name: Clone repository
-  #       uses: actions/checkout@v3
+  #       uses: actions/checkout@v4
   #     - name: Move cloned repo
   #       shell: powershell
   #       run: |
@@ -625,7 +623,7 @@ jobs:
           sudo apt clean && sudo apt update
           sudo apt-get -y install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Build Repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
@@ -643,7 +641,7 @@ jobs:
           sudo apt clean && sudo apt update
           sudo apt-get -y install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Build Repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
@@ -661,10 +659,113 @@ jobs:
           sudo apt clean && sudo apt update
           sudo apt-get -y install gcc-arm-linux-gnueabi g++-arm-linux-gnueabi binutils-arm-linux-gnueabi
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Build Repository
         run: |
           sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
           mkdir build && cd build
           cmake .. -DBUILD_OPENSSL=TRUE -DBUILD_OPENSSL_PLATFORM=linux-generic32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
           make
+
+  stack-size-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v3
+      - name: Check StackSize with Invalid Value
+        run: |
+          mkdir build && cd build
+          set +e  # Allow the script to continue even if cmake fails (expected)
+          cmake .. -DKVS_STACK_SIZE=65536asdfsadf
+          cmake_exit_code=$?
+          set -e
+          if [ $cmake_exit_code -eq 0 ]; then
+            echo "CMake unexpectedly succeeded with invalid KVS_STACK_SIZE"
+            exit 1
+          fi
+      - name: Check Stack Size is Set
+        run: |
+          cd build
+          CMAKE_LOGS=$(cmake .. -DKVS_STACK_SIZE=65536 -DBUILD_SAMPLE=OFF 2>&1)
+          if ! echo "$CMAKE_LOGS" | grep -q "Building with default stack size: 65536 bytes"; then
+            echo "Stack size was not sent to PIC properly. See the logs below:"
+            echo "$CMAKE_LOGS"
+            exit 1
+          fi
+
+  valgrind-check:
+    runs-on: ubuntu-latest
+    env:
+      AWS_KVS_LOG_LEVEL: 7
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Install deps
+        run: |
+          sudo apt clean && sudo apt update
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy main'
+          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy universe'
+          sudo apt-get -q update
+          sudo apt-get -y install libcurl4-openssl-dev valgrind
+      - name: Build repository
+        run: |
+          mkdir build && cd build
+          cmake .. -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+          make
+          ulimit -c unlimited -S
+      - name: Run tests
+        run: |
+          cd build
+          valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file=valgrind-master.txt ./samples/kvsWebrtcClientMaster demo-channel-gh-actions &
+          PID_MASTER=$!
+          valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file=valgrind-viewer.txt ./samples/kvsWebrtcClientViewer demo-channel-gh-actions &
+          PID_VIEWER=$!
+          
+          # Wait for processes to run initially
+          sleep 30 # Wait 30s
+          
+          # Send SIGINT (2) to both processes
+          kill -2 $PID_VIEWER
+          sleep 30
+          
+          kill -2 $PID_MASTER
+          
+          # Start a background task to enforce a timeout for graceful shutdown
+          (
+            sleep 10
+            kill -9 $PID_MASTER 2>/dev/null
+            kill -9 $PID_VIEWER 2>/dev/null
+          ) &
+          
+          wait $PID_MASTER
+          EXIT_STATUS_MASTER=$?
+          wait $PID_VIEWER
+          EXIT_STATUS_VIEWER=$?
+          
+          # Check exit statuses to determine if the interrupt was successful
+          if [ $EXIT_STATUS_MASTER -ne 0 ] || [ $EXIT_STATUS_VIEWER -ne 0 ]; then
+            echo "Process did not exit gracefully."
+            echo "Master exit code: $EXIT_STATUS_MASTER"
+            echo "Viewer exit code: $EXIT_STATUS_VIEWER"
+            exit 1
+          else
+          
+            echo "Processes exited successfully."
+          fi
+          
+          # Check for memory leaks in Valgrind output files
+          if grep "All heap blocks were freed -- no leaks are possible" valgrind-master.txt && grep "All heap blocks were freed -- no leaks are possible" valgrind-viewer.txt; then
+            echo "No memory leaks detected."
+          else
+            echo "Memory leaks detected."
+          fi

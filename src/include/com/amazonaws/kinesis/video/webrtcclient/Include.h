@@ -461,11 +461,6 @@ extern "C" {
 #define MAX_SIGNALING_ENDPOINT_URI_LEN 512
 
 /**
- * Maximum allowed ICE URI length
- */
-#define MAX_ICE_CONFIG_URI_LEN 256
-
-/**
  * Maximum allowed correlation ID length
  */
 #define MAX_CORRELATION_ID_LEN 256
@@ -836,7 +831,6 @@ typedef enum {
     RTC_CODEC_ALAW = 5,                                                           //!< ALAW audio codec
     RTC_CODEC_UNKNOWN = 6,
     RTC_CODEC_H265 = 7, //!< H265 video codec
-
     // RTC_CODEC_MAX **MUST** be the last enum in the list **ALWAYS** and not assigned a value
     RTC_CODEC_MAX //!< Placeholder for max number of supported codecs
 } RTC_CODEC;
@@ -1173,7 +1167,7 @@ typedef struct {
     UINT16 maximumTransmissionUnit; //!< Controls the size of the largest packet the WebRTC SDK will send
                                     //!< Some networks may drop packets if they exceed a certain size, and is useful in those conditions.
                                     //!< A smaller MTU will incur higher bandwidth usage however since more packets will be generated with
-                                    //!< smaller payloads. If unset DEFAULT_MTU_SIZE will be used
+                                    //!< smaller payloads. If unset DEFAULT_MTU_SIZE_BYTES will be used
 
     UINT32 iceLocalCandidateGatheringTimeout; //!< Maximum time ice will wait for gathering STUN and RELAY candidates. Once
                                               //!< it's reached, ice will proceed with whatever candidate it current has. Use default value if 0.
@@ -1205,6 +1199,10 @@ typedef struct {
     BOOL disableSenderSideBandwidthEstimation; //!< Disable TWCC feedback based sender bandwidth estimation, enabled by default.
                                                //!< You want to set this to TRUE if you are on a very stable connection and want to save 1.2MB of
                                                //!< memory
+#ifdef ENABLE_STATS_CALCULATION_CONTROL
+    BOOL enableIceStats; //!< Control whether ICE agent stats are to be calculated. ENABLE_STATS_CALCULATION_CONTROL compiler flag must be defined
+                         //!< to use this member, else stats are enabled by default.
+#endif
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
 
 /**
@@ -1610,6 +1608,19 @@ typedef struct {
 /*! \addtogroup PublicMemberFunctions
  * @{
  */
+
+/**
+ * @brief Set up rolling buffer configuration - max duration of media to store (sec) and expected max bitrate (bips) of the encoded media
+ *
+ *
+ * @param[in] PRtcRtpTransceiver IN/Initialized and configured RtcRtpTransceiver
+ * @param[in] PRtcMediaStreamTrack IN/Initialized media stream track information
+ * @param[in] DOUBLE IN/Rolling buffer duration in seconds
+ * @param[in] DOUBLE IN/Rolling buffer bitrate in bits/second
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS configureTransceiverRollingBuffer(PRtcRtpTransceiver, PRtcMediaStreamTrack, DOUBLE, DOUBLE);
 
 /**
  * @brief Initialize a RtcPeerConnection with the provided Configuration

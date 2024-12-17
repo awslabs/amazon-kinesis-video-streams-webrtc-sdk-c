@@ -1,6 +1,7 @@
 #include <fstream>
 #include <sstream>
 #include <tuple>
+#include <regex>
 
 #include "WebRTCClientTestFixture.h"
 
@@ -11,6 +12,11 @@ namespace video {
 namespace webrtcclient {
 
 class SdpApiTest : public WebRtcClientTestBase {
+  public:
+    const std::string m_rtcp_h264_nack_line = "a=rtcp-fb:" + std::to_string(DEFAULT_PAYLOAD_H264) + " nack" + SDP_LINE_SEPARATOR;
+    const std::string m_rtcp_h264_nack_pli_line = "a=rtcp-fb:" + std::to_string(DEFAULT_PAYLOAD_H264) + " nack pli" + SDP_LINE_SEPARATOR;
+    const std::string m_rtcp_h265_nack_line = "a=rtcp-fb:" + std::to_string(DEFAULT_PAYLOAD_H265) + " nack" + SDP_LINE_SEPARATOR;
+    const std::string m_rtcp_h265_nack_pli_line = "a=rtcp-fb:" + std::to_string(DEFAULT_PAYLOAD_H265) + " nack pli" + SDP_LINE_SEPARATOR;
 };
 
 /*
@@ -248,6 +254,7 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_NoRtxType)
     PHashTable pRtxTable;
     PDoubleList pTransceivers;
     KvsRtpTransceiver transceiver;
+    MEMSET(&transceiver, 0x00, SIZEOF(KvsRtpTransceiver));
     transceiver.sender.track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
     transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     transceiver.sender.packetBuffer = NULL;
@@ -258,11 +265,15 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_NoRtxType)
     EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&pTransceivers));
     EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(pTransceivers, (UINT64)(&transceiver)));
     EXPECT_EQ(STATUS_SUCCESS, setTransceiverPayloadTypes(pCodecTable, pRtxTable, pTransceivers));
+    EXPECT_EQ(transceiver.pRollingBufferConfig->rollingBufferDurationSec, DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS);
+    EXPECT_EQ(transceiver.pRollingBufferConfig->rollingBufferBitratebps, DEFAULT_EXPECTED_VIDEO_BIT_RATE);
     EXPECT_EQ(1, transceiver.sender.payloadType);
     EXPECT_NE((PRtpRollingBuffer) NULL, transceiver.sender.packetBuffer);
     EXPECT_NE((PRetransmitter) NULL, transceiver.sender.retransmitter);
     hashTableFree(pCodecTable);
     hashTableFree(pRtxTable);
+
+    freeRollingBufferConfig(transceiver.pRollingBufferConfig);
     freeRtpRollingBuffer(&transceiver.sender.packetBuffer);
     freeRetransmitter(&transceiver.sender.retransmitter);
     doubleListFree(pTransceivers);
@@ -274,6 +285,7 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType)
     PHashTable pRtxTable;
     PDoubleList pTransceivers;
     KvsRtpTransceiver transceiver;
+    MEMSET(&transceiver, 0x00, SIZEOF(KvsRtpTransceiver));
     transceiver.sender.track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
     transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     transceiver.sender.packetBuffer = NULL;
@@ -291,6 +303,7 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType)
     EXPECT_NE((PRetransmitter) NULL, transceiver.sender.retransmitter);
     hashTableFree(pCodecTable);
     hashTableFree(pRtxTable);
+    freeRollingBufferConfig(transceiver.pRollingBufferConfig);
     freeRtpRollingBuffer(&transceiver.sender.packetBuffer);
     freeRetransmitter(&transceiver.sender.retransmitter);
     doubleListFree(pTransceivers);
@@ -302,6 +315,7 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType_H265)
     PHashTable pRtxTable;
     PDoubleList pTransceivers;
     KvsRtpTransceiver transceiver;
+    MEMSET(&transceiver, 0x00, SIZEOF(KvsRtpTransceiver));
     transceiver.sender.track.codec = RTC_CODEC_H265;
     transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     transceiver.sender.packetBuffer = NULL;
@@ -319,6 +333,7 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType_H265)
     EXPECT_NE((PRetransmitter) NULL, transceiver.sender.retransmitter);
     hashTableFree(pCodecTable);
     hashTableFree(pRtxTable);
+    freeRollingBufferConfig(transceiver.pRollingBufferConfig);
     freeRtpRollingBuffer(&transceiver.sender.packetBuffer);
     freeRetransmitter(&transceiver.sender.retransmitter);
     doubleListFree(pTransceivers);
@@ -350,6 +365,15 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendRecv)
     EXPECT_EQ(STATUS_SUCCESS, addTransceiver(offerPc, &track, &rtcRtpTransceiverInit, &pTransceiver));
     EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sessionDescriptionInit));
     EXPECT_PRED_FORMAT2(testing::IsSubstring, "sendrecv", sessionDescriptionInit.sdp);
+
+    std::string offerSdp(sessionDescriptionInit.sdp);
+
+    // check nack and nack pli lines
+    std::string::size_type posPliOnly = offerSdp.find(m_rtcp_h264_nack_line);
+    std::string::size_type posPliNack = offerSdp.find(m_rtcp_h264_nack_pli_line);
+    EXPECT_NE(posPliOnly, posPliNack);
+    EXPECT_NE(posPliOnly, std::string::npos);
+    EXPECT_NE(posPliNack, std::string::npos);
 
     closePeerConnection(offerPc);
     freePeerConnection(&offerPc);
@@ -421,6 +445,15 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendOnly)
     EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sessionDescriptionInit));
     EXPECT_PRED_FORMAT2(testing::IsSubstring, "sendonly", sessionDescriptionInit.sdp);
 
+    std::string offerSdp(sessionDescriptionInit.sdp);
+
+    // check nack and nack pli lines
+    std::string::size_type posPliOnly = offerSdp.find(m_rtcp_h264_nack_line);
+    std::string::size_type posPliNack = offerSdp.find(m_rtcp_h264_nack_pli_line);
+    EXPECT_NE(posPliOnly, posPliNack);
+    EXPECT_NE(posPliOnly, std::string::npos);
+    EXPECT_NE(posPliNack, std::string::npos);
+
     closePeerConnection(offerPc);
     freePeerConnection(&offerPc);
 }
@@ -451,6 +484,15 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendOnly_H265)
     EXPECT_EQ(STATUS_SUCCESS, addTransceiver(offerPc, &track, &rtcRtpTransceiverInit, &pTransceiver));
     EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sessionDescriptionInit));
     EXPECT_PRED_FORMAT2(testing::IsSubstring, "sendonly", sessionDescriptionInit.sdp);
+
+    std::string offerSdp(sessionDescriptionInit.sdp);
+
+    // check nack and nack pli lines
+    std::string::size_type posPliOnly = offerSdp.find(m_rtcp_h265_nack_line);
+    std::string::size_type posPliNack = offerSdp.find(m_rtcp_h265_nack_pli_line);
+    EXPECT_NE(posPliOnly, posPliNack);
+    EXPECT_NE(posPliOnly, std::string::npos);
+    EXPECT_NE(posPliNack, std::string::npos);
 
     closePeerConnection(offerPc);
     freePeerConnection(&offerPc);
@@ -497,7 +539,6 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxRecvOnlyStreamNull)
 
     // Create peer connection
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
-
     PRtcRtpTransceiver pTransceiver;
     RtcRtpTransceiverInit rtcRtpTransceiverInit;
     rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
@@ -545,6 +586,7 @@ a=rtpmap:102 H264/90000
         MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
         MEMSET(&rtcMediaStreamTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
         MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+        MEMSET(&rtcRtpTransceiverInit, 0x00, SIZEOF(RtcRtpTransceiverInit));
 
         EXPECT_EQ(createPeerConnection(&rtcConfiguration, &pRtcPeerConnection), STATUS_SUCCESS);
         EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE), STATUS_SUCCESS);
@@ -647,7 +689,7 @@ a=group:BUNDLE 0 1 2 3
         SessionDescription sessionDescription;
         MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
         // as log as Sdp.h  MAX_SDP_SESSION_MEDIA_COUNT 5 this should fail instead of overwriting memory
-        EXPECT_EQ(STATUS_BUFFER_TOO_SMALL, deserializeSessionDescription(&sessionDescription, (PCHAR) sdp));
+        EXPECT_EQ(STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT, deserializeSessionDescription(&sessionDescription, (PCHAR) sdp));
     });
 }
 
@@ -759,6 +801,196 @@ a=group:BUNDLE audio video data
         EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
     });
 }
+
+// Test out unknown codec, unknown rtpmap and seen tranceiver hash map for correct sizing
+TEST_F(SdpApiTest, fakeTransceiverTest)
+{
+    auto offerBase = std::string(R"(v=0
+o=- 2414510623331460048 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0 1
+a=extmap-allow-mixed
+a=msid-semantic: WMS 2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84)");
+
+    auto audioSdp = std::string(R"(m=audio 9 UDP/TLS/RTP/SAVPF 111
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+a=setup:actpass
+a=mid:0
+a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
+a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+a=sendrecv
+a=msid:2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84 757d07a0-892a-46e7-a13d-b43fc3ef68c7
+a=rtcp-mux
+a=rtpmap:111 opus/48000/2
+a=rtcp-fb:111 transport-cc
+a=fmtp:111 minptime=10;useinbandfec=1
+a=ssrc:331864867 cname:jyxeGEm09Qe6m8dq
+a=ssrc:331864867 msid:2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84 757d07a0-892a-46e7-a13d-b43fc3ef68c7
+    )");
+
+    auto videoSdp = std::string(R"(m=video 9 UDP/TLS/RTP/SAVPF 96 97 102 103 104 105
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 37:C4:5C:9C:C9:DA:56:22:47:1F:8C:93:E1:A1:51:A8:15:94:78:1D:89:26:69:44:65:6C:C3:83:96:10:32:43
+a=setup:actpass
+a=mid:1
+a=sendrecv
+a=msid:2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84 8c1b020b-e6ab-4002-8450-b816ebff0219
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:96 VP8/90000
+a=rtpmap:97 rtx/90000
+a=fmtp:97 apt=96
+a=rtpmap:102 H264/90000
+a=fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f
+a=rtpmap:103 rtx/90000
+a=fmtp:103 apt=102
+a=rtpmap:104 H264/90000
+a=fmtp:104 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42001f
+a=rtpmap:105 rtx/90000
+a=fmtp:105 apt=104
+a=ssrc-group:FID 2039979579 916070044
+a=ssrc:2039979579 cname:jyxeGEm09Qe6m8dq
+a=ssrc:2039979579 msid:2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84 8c1b020b-e6ab-4002-8450-b816ebff0219
+a=ssrc:916070044 cname:jyxeGEm09Qe6m8dq
+a=ssrc:916070044 msid:2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84 8c1b020b-e6ab-4002-8450-b816ebff0219
+    )");
+
+    auto unsupportedVideoSdp = std::string(R"(m=video 9 UDP/TLS/RTP/SAVPF 200 230 250 270
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 37:C4:5C:9C:C9:DA:56:22:47:1F:8C:93:E1:A1:51:A8:15:94:78:1D:89:26:69:44:65:6C:C3:83:96:10:32:43
+a=setup:actpass
+a=mid:1
+a=sendrecv
+a=msid:2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84 8c1b020b-e6ab-4002-8450-b816ebff0219
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:200 abc/90000
+a=rtpmap:230 abc/90000
+a=fmtp:230 apt=0
+a=rtpmap:250 xyz/90000
+a=rtpmap:270 xyz/90000
+a=fmtp:270 apt=100
+a=ssrc:916070099 msid:2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84 8c1b020b-e6ab-4002-8450-b816ebff0219
+    )");
+
+    auto unsupportedAudioSdp = std::string(R"(m=audio 9 UDP/TLS/RTP/SAVPF 500
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+a=setup:actpass
+a=mid:0
+a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
+a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+a=sendrecv
+a=msid:2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84 757d07a0-892a-46e7-a13d-b43fc3ef68c7
+a=rtcp-mux
+a=rtpmap:111 opus/48000/2
+a=rtcp-fb:111 transport-cc
+a=fmtp:111 minptime=10;useinbandfec=1
+a=ssrc:331864867 cname:jyxeGEm09Qe6m8dq
+a=ssrc:331864867 msid:2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84 757d07a0-892a-46e7-a13d-b43fc3ef68c7
+    )");
+
+    offerBase += "\n";
+    offerBase += audioSdp;
+    offerBase += "\n";
+    offerBase += videoSdp;
+    offerBase += "\n";
+    offerBase += unsupportedVideoSdp;
+    offerBase += "\n";
+    offerBase += unsupportedVideoSdp;
+    offerBase += "\n";
+    offerBase += unsupportedAudioSdp;
+    offerBase += "\n";
+
+    assertLFAndCRLF((PCHAR) offerBase.c_str(), offerBase.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcMediaStreamTrack track1{};
+        RtcMediaStreamTrack track2{};
+        PRtcRtpTransceiver transceiver1 = nullptr;
+        PRtcRtpTransceiver transceiver2 = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+        RtcSessionDescriptionInit answerSdp{};
+
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+
+        track1.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+        track1.codec = RTC_CODEC_OPUS;
+        STRNCPY(track1.streamId, "audioStream1", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track1.trackId, "audioTrack1", MAX_MEDIA_STREAM_TRACK_ID_LEN);
+
+        track2.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+        track2.codec = RTC_CODEC_OPUS;
+        STRNCPY(track2.streamId, "videoStream1", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track2.trackId, "videoTrack1", MAX_MEDIA_STREAM_TRACK_ID_LEN);
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, (PCHAR) sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_OPUS));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
+
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track1, nullptr, &transceiver1));
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track2, nullptr, &transceiver2));
+
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+        std::regex pattern("m=[^\\s]*");
+        std::string answerSdpString = std::string(answerSdp.sdp);
+        auto words_begin = std::sregex_iterator(answerSdpString.begin(), answerSdpString.end(), pattern);
+        auto words_end = std::sregex_iterator();
+
+        int count = std::distance(words_begin, words_end);
+        EXPECT_EQ(count, 5);
+        EXPECT_PRED_FORMAT2(testing::IsSubstring, "fakeStream", answerSdp.sdp);
+        EXPECT_PRED_FORMAT2(testing::IsSubstring, "fakeTrack", answerSdp.sdp);
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    });
+
+    offerBase += unsupportedAudioSdp;
+    offerBase += "\n";
+
+    assertLFAndCRLF((PCHAR) offerBase.c_str(), offerBase.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, (PCHAR) sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+
+        EXPECT_EQ(STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    });
+}
+
 
 // if offer (remote) contains video m-line only then answer (local) should contain video m-line only
 // even if local side has other transceivers, i.e. audio
@@ -1036,6 +1268,7 @@ a=fmtp:125 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01
         MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
         MEMSET(&rtcMediaStreamTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
         MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+        MEMSET(&rtcRtpTransceiverInit, 0x00, SIZEOF(RtcRtpTransceiverInit));
 
         EXPECT_EQ(createPeerConnection(&rtcConfiguration, &pRtcPeerConnection), STATUS_SUCCESS);
         EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE), STATUS_SUCCESS);
@@ -1511,6 +1744,7 @@ TEST_P(SdpApiTest_SdpMatch, populateSingleMediaSection_TestH264Fmtp)
     MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
     MEMSET(&track1, 0x00, SIZEOF(RtcMediaStreamTrack));
     MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+    MEMSET(&rtcRtpTransceiverInit, 0x00, SIZEOF(RtcRtpTransceiverInit));
 
     EXPECT_EQ(createPeerConnection(&rtcConfiguration, &pRtcPeerConnection), STATUS_SUCCESS);
     EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE), STATUS_SUCCESS);

@@ -5,7 +5,7 @@ include(CheckIncludeFiles)
 include(CheckFunctionExists)
 
 # The version MUST be updated before every release
-project(KinesisVideoWebRTCClient VERSION 1.11.0 LANGUAGES C)
+project(KinesisVideoWebRTCClient VERSION 1.12.0 LANGUAGES C)
 
 # User Flags
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
@@ -21,6 +21,7 @@ option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
 option(ENABLE_KVS_THREADPOOL "Enable support for KVS thread pool in signaling" OFF)
 option(INSTRUMENTED_ALLOCATORS "Enable memory instrumentation" OFF)
 option(ENABLE_AWS_SDK_IN_TESTS "Enable support for compiling AWS SDKs for tests" ON)
+option(ENABLE_STATS_CALCULATION_CONTROL "Enable support for runtime control of ice agent stat calculations." OFF)
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -52,6 +53,18 @@ execute_process(
 add_definitions(-DSDK_VERSION=\"${GIT_COMMIT_HASH}\")
 add_definitions(-DVERSION_STRING=\"${PROJECT_VERSION}\")
 add_definitions(-DDETECTED_GIT_HASH)
+
+if(NOT KVS_STACK_SIZE OR KVS_STACK_SIZE STREQUAL "")
+  message(STATUS "Stack size is system default stack size")
+else()
+  string(REGEX MATCH "^[0-9]+$" IS_KVS_STACK_SIZE_A_NUMBER "${KVS_STACK_SIZE}")
+  if(IS_KVS_STACK_SIZE_A_NUMBER)
+    message(STATUS "Setting default stack size to provided value: ${KVS_STACK_SIZE} bytes")
+    set(KVS_DEFAULT_STACK_SIZE ${KVS_STACK_SIZE})
+  else()
+    message(FATAL_ERROR "KVS_STACK_SIZE must be a numeric value, but got: ${KVS_STACK_SIZE}")
+  endif()
+endif()
 
 if(NOT OPEN_SRC_INSTALL_PREFIX OR OPEN_SRC_INSTALL_PREFIX STREQUAL "")
   set(OPEN_SRC_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/open-source" CACHE PATH "Libraries will be downloaded and built in this directory.")
@@ -113,6 +126,10 @@ add_definitions(-DCMAKE_DETECTED_CACERT_PATH)
 
 if (ENABLE_KVS_THREADPOOL)
   add_definitions(-DENABLE_KVS_THREADPOOL)
+endif()
+
+if (ENABLE_STATS_CALCULATION_CONTROL)
+  add_definitions(-DENABLE_STATS_CALCULATION_CONTROL)
 endif()
 
 if(USE_OPENSSL)
@@ -254,6 +271,7 @@ set(BUILD_ARGS
         -DBUILD_STATIC=${BUILD_STATIC_LIBS}
         -DUSE_OPENSSL=${USE_OPENSSL}
         -DUSE_MBEDTLS=${USE_MBEDTLS}
+        -DKVS_DEFAULT_STACK_SIZE=${KVS_DEFAULT_STACK_SIZE}
         -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
 build_dependency(kvsCommonLws ${BUILD_ARGS})
 
@@ -386,6 +404,7 @@ endif()
 file(GLOB WEBRTC_SIGNALING_CLIENT_SOURCE_FILES "src/source/Signaling/*.c")
 
 
+message(STATUS "OPEN_SRC_INSTALL_PREFIX: ${OPEN_SRC_INSTALL_PREFIX}")
 include_directories(${OPEN_SRC_INCLUDE_DIRS})
 include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)

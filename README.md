@@ -57,7 +57,9 @@ Please refer to the release notes in [Releases](https://github.com/awslabs/amazo
 ### Download
 To download run the following command:
 
-`git clone --recursive https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c.git`
+```shell
+git clone https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c.git --single-branch -b main kvs-webrtc-sdk
+```
 
 You will also need to install `pkg-config` and `CMake` and a build environment
 
@@ -65,9 +67,11 @@ You will also need to install `pkg-config` and `CMake` and a build environment
 
 Create a build directory in the newly checked out repository, and execute CMake from it.
 
-`mkdir -p amazon-kinesis-video-streams-webrtc-sdk-c/build; cd amazon-kinesis-video-streams-webrtc-sdk-c/build; cmake .. `
+```shell
+mkdir -p kvs-webrtc-sdk/build; cd kvs-webrtc-sdk/build; cmake ..
+```
 
-We have provided an example of using GStreamer to capture/encode video, and then send via this library. This is only build if `pkg-config` finds
+We have provided an example of using GStreamer to capture/encode video, and then send via this library. This is only built if `pkg-config` finds
 GStreamer is installed on your system.
 
 On Ubuntu and Raspberry Pi OS you can get the libraries by running
@@ -136,7 +140,7 @@ If you wish to cross-compile `CC` and `CXX` are respected when building the libr
 If `-DBUILD_STATIC_LIBS=TRUE` then all dependencies and KVS WebRTC libraries will be built as static libraries.
 
 #### CMake Arguments
-You can pass the following options to `cmake ..`.
+You can pass the following options to `cmake ..`:
 
 * `-DBUILD_SAMPLE` -- Build the sample executables. ON by default.
 * `-DIOT_CORE_ENABLE_CREDENTIALS` -- Build the sample applications using IoT credentials. OFF by default.
@@ -157,6 +161,10 @@ You can pass the following options to `cmake ..`.
 * `-DLINK_PROFILER` -- Link with gperftools (available profiler options are listed [here](https://github.com/gperftools/gperftools))
 * `-DPKG_CONFIG_EXECUTABLE` -- Set pkg config path. This might be required to find gstreamer's pkg config specifically on Windows.
 * `-DENABLE_KVS_THREADPOOL` -- Enable the KVS threadpool which is off by default.
+* `-DENABLE_STATS_CALCULATION_CONTROL` -- Enable the runtime control of ICE agent stats calculations.
+
+These options get propagated to [PIC](https://github.com/awslabs/amazon-kinesis-video-streams-pic):
+* `-DKVS_STACK_SIZE` -- Default stack size for threads created using THREAD_CREATE(), in bytes.
 
 To clean up the `open-source` and `build` folders from previous build, use `cmake --build . --target clean` from the `build` folder
 
@@ -369,6 +377,43 @@ If using the WebRTC SDK Test Page, set the following values using the same AWS c
   
 Then choose Start Viewer to start live video streaming of the sample H264/Opus frames.
 
+## Memory optimization switches
+
+Starting with v1.11.0, the SDK provides some knobs to optimize memory usage to tailor to platform needs and resources
+
+### Controlling RTP rolling buffer capacity
+
+The SDK maintains an RTP rolling buffer to hold the RTP packets. This is useful to respond to NACKs and even in case of JitterBuffer. The rolling buffer size is controlled by 3 parameters:
+1. MTU: This is set to a default of 1200 bytes
+2. Buffer duration: This is the amount of time of media that you would like the rolling buffer to accommodate before it is overwritten due to buffer overflow. By default, the SDK sets this to 3 seconds
+3. Highest expected bitrate: This is the expected bitrate of the media in question. The typical bitrates could vary based on resolution and codec. By default, the SDK sets this to 5 mibps for video and 1 mibps for audio
+
+The rolling buffer capacity is calculated as follows:
+```
+Capacity = Buffer duration * highest expected bitrate (in bips) / 8 / MTU
+
+With buffer duration = 1 second,  Highest expected bitrate = 5 mibps and MTU 1200 bytes, capacity = 546 RTP packets
+```
+
+The rolling buffer size can be configured per transceiver using the `configureTransceiverRollingBuffer` API. Make sure to use the API after the addTransceiver call to ensure the `RtcMediaStreamTrack` and `KvsRtpTransceiver` objects are created. By default, the rolling buffer duration is set to 3 sec and bitrate is set to 5mibps for video and 1mibps for audio.
+
+The rolling buffer config parameters are as follows:
+```
+rollingBufferDurationSec = <duration in seconds>, must be more than 100ms and less than 10 seconds
+rollingBufferBitratebps = <bitrate in bits/sec>, must be more than 100kibits/sec and less than 240 mibps
+```
+
+For example, if we want to set duration to 200ms and bitrate to 150kibps:
+```c
+PRtcRtpTransceiver pVideoRtcRtpTransceiver;
+RtcMediaStreamTrack videoTrack;
+videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+CHK_STATUS(configureTransceiverRollingBuffer(pVideoRtcRtpTransceiver, &videoTrack, 0.2, 150 * 1024));
+```
+By setting these up, applications can have better control over the amount of memory that the application consumes. However, note, if the allocation is too small and the network bad leading to multiple nacks, it can lead to choppy media / dropped frames. Hence, care must be taken while deciding on the values to ensure the parameters satisfy necessary performance requirements.
+For more information, check the sample to see how these values are set up.
+
 ## Setup IoT
 * To use IoT certificate to authenticate with KVS signaling, please refer to [Controlling Access to Kinesis Video Streams Resources Using AWS IoT](https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/how-iot.html) for provisioning details.
 * A sample IAM policy for the IoT role looks like below, policy can be modified based on your permission requirement.
@@ -545,31 +590,8 @@ By default, the threadpool starts with 3 threads that it will increase up to the
 1. `export AWS_KVS_WEBRTC_THREADPOOL_MIN_THREADS=<value>`
 2. `export AWS_KVS_WEBRTC_THREADPOOL_MAX_THREADS=<value>`
 
-### Set up TWCC
-TWCC is a mechanism in WebRTC designed to enhance the performance and reliability of real-time communication over the Internet. TWCC addresses the challenges of network congestion by providing detailed feedback on the transport of packets across the network, enabling adaptive bitrate control and optimization of 
-media streams in real-time. This feedback mechanism is crucial for maintaining high-quality audio and video communication, as it allows senders to adjust their transmission strategies based on comprehensive information about packet losses, delays, and jitter experienced across the entire transport path.
-The importance of TWCC in WebRTC lies in its ability to ensure efficient use of available network bandwidth while minimizing the negative impacts of network congestion. By monitoring the delivery of packets across the network, TWCC helps identify bottlenecks and adjust the media transmission rates accordingly. 
-This dynamic approach to congestion control is essential for preventing degradation in call quality, such as pixelation, stuttering, or drops in audio and video streams, especially in environments with fluctuating network conditions. To learn more about TWCC, you can refer to the [RFC draft](https://datatracker.ietf.org/doc/html/draft-holmer-rmcat-transport-wide-cc-extensions-01)
-
-In order to enable TWCC usage in the SDK, 2 things need to be set up:
-
-1. Set the `disableSenderSideBandwidthEstimation` to FALSE. In our samples, the value is set using `enableTwcc` flag in `pSampleConfiguration`
-
-```c
-pSampleConfiguration->enableTwcc = TRUE; // to enable TWCC
-pSampleConfiguration->enableTwcc = FALSE; // to disable TWCC
-configuration.kvsRtcConfiguration.disableSenderSideBandwidthEstimation = !pSampleConfiguration->enableTwcc;
-```
-
-2. Set the callback that will have the business logic to modify the bitrate based on packet loss information. The callback can be set using `peerConnectionOnSenderBandwidthEstimation()`.
-
-```c
-CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
-                                                     sampleSenderBandwidthEstimationHandler));
-```
-
-By default, our SDK enables TWCC listener. The SDK has a sample implementation to integrate TWCC into the Gstreamer pipeline via the `sampleSenderBandwidthEstimationHandler` callback. To get more details, look for this specific callback.
-
+### Thread stack sizes
+The default thread stack size in the KVS WebRTC SDK is determined by the system's default configuration. Developers can modify the stack size for all threads created using the `THREAD_CREATE()` macro by specifying the desired value through the `-DKVS_STACK_SIZE` CMake flag. Additionally, stack sizes for individual threads can be customized using the `THREAD_CREATE_WITH_PARAMS()` macro. Notable stack sizes that may need to be changed for your specific application will be the ConnectionListener Receiver thread and the media sender threads.
 
 ### Setting ICE related timeouts
 
@@ -588,6 +610,20 @@ Let us look into when each of these could be changed:
 2. `iceLocalCandidateGatheringTimeout`: Say the host candidates would not work and srflx/relay candidates need to be tried. Due to poor network, it is anticipated the candidates are gathered slowly and the application does not want to spend more than 20 seconds on this step. The goal is to try all possible candidate pairs. Increasing the timeout helps in giving some more time to gather more potential candidates to try for connection. Also note, this parameter increase would not make a difference in the situation unless `iceCandidateNominationTimeout` > `iceLocalCandidateGatheringTimeout` since nomination step should also be given time to work with the new candidates
 3. `iceConnectionCheckTimeout`: It is useful to increase this timeout in unstable/slow network where the packet exchange takes time and hence the binding request/response. Essentially, increasing it will allow atleast one candidate pair to be tried for nomination by the other peer. 
 4. `iceConnectionCheckPollingInterval`: This value is set to a default of 50 ms per [spec](https://datatracker.ietf.org/doc/html/rfc8445#section-14.2). Changing this would change the frequency of connectivity checks and essentially, the ICE state machine transitions. Decreasing the value could help in faster connection establishment in a reliable high performant network setting with good system resources. Increasing the value could help in reducing the network load, however, the connection establishment could slow down. Unless there is a strong reasoning, it is **NOT** recommended to deviate from spec/default.
+
+### Enable ICE agent stats
+
+The SDK calculates 4 different stats:
+1. ICE server stats - stats for ICE servers the SDK is using
+2. [Local candidate stats](https://www.w3.org/TR/webrtc-stats/#dom-rtcstatstype-local-candidate) - stats for the selected local candidate
+3. [Remote candidate stats](https://www.w3.org/TR/webrtc-stats/#dom-rtcstatstype-remote-candidate) - stats for the selected remote candidate 
+4. [Candidate pair stats](https://www.w3.org/TR/webrtc-stats/#dom-rtcstatstype-candidate-pair) - stats for the selected candidate pair
+
+For more information on these stats, refer to [AWS Docs](https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-reference.html)
+
+The SDK enables generating these stats by default. To control whether the SDK calculates these stats, the ENABLE_STATS_CALCULATION_CONTROL CMake option must be set, enabling the use of the following field:
+`configuration.kvsRtcConfiguration.enableIceStats = FALSE`.
+Disabling these stats may lead to reductions in memory use.
 
 ## Documentation
 All Public APIs are documented in our [Include.h](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/main/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h), we also generate a [Doxygen](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/) each commit for easier navigation.
