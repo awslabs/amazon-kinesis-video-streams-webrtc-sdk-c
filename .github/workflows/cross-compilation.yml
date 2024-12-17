@@ -1,0 +1,104 @@
+name: WebRTC C SDK Cross Compilation
+on:
+  push:
+    branches:
+      - develop
+      - main
+  pull_request:
+    branches:
+      - develop
+      - main
+jobs:
+  linux-cross-compilation:
+    strategy:
+      matrix:
+        compiler:
+          - name: mips-32
+            runner: public.ecr.aws/ubuntu/ubuntu:22.04_stable
+            install: gcc-mips-linux-gnu g++-mips-linux-gnu
+            cc: mips-linux-gnu-gcc
+            cxx: mips-linux-gnu-g++
+            cmake_flags: -DBUILD_OPENSSL_PLATFORM=linux-mips32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=mips-unknown-linux-gnu
+            file-expected-output: "ELF 32-bit MSB executable, MIPS, MIPS32"
+          - name: arm-32
+            runner: public.ecr.aws/ubuntu/ubuntu:22.04_stable
+            install: gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+            cc: arm-linux-gnueabihf-gcc
+            cxx: arm-linux-gnueabihf-g++
+            cmake_flags: -DBUILD_OPENSSL_PLATFORM=linux-generic32 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
+            file-expected-output: "ELF 32-bit LSB pie executable, ARM"
+          - name: arm-64
+            runner: public.ecr.aws/ubuntu/ubuntu:22.04_stable
+            install: gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+            cc: aarch64-linux-gnu-gcc
+            cxx: aarch64-linux-gnu-g++
+            cmake_flags: -DBUILD_OPENSSL_PLATFORM=linux-generic64 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
+            file-expected-output: "ELF 64-bit LSB pie executable, ARM"
+          - name: aarch-64
+            runner: public.ecr.aws/ubuntu/ubuntu:22.04_stable
+            install: gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+            cc: aarch64-linux-gnu-gcc
+            cxx: aarch64-linux-gnu-g++
+            cmake_flags: -DBUILD_OPENSSL_PLATFORM=linux-aarch64 -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi
+            file-expected-output: "ELF 64-bit LSB pie executable, ARM"
+
+        build-type:
+          - name: Shared
+            cmake_flags: -DBUILD_STATIC_LIBS=OFF
+          - name: Static
+            cmake_flags: -DBUILD_STATIC_LIBS=ON
+
+        crypto:
+          - name: OpenSSL
+            cmake_flags: -DUSE_OPENSSL=ON -DUSE_MBEDTLS=OFF
+          - name: MbedTLS
+            cmake_flags: -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+
+        threadpool:
+          - name: Threadpool On
+            cmake_flags: -DENABLE_KVS_THREADPOOL=ON
+          - name: Threadpool Off
+            cmake_flags: -DENABLE_KVS_THREADPOOL=OFF
+
+      fail-fast: false
+    runs-on: ubuntu-latest
+    container:
+      image:  ${{ matrix.compiler.runner }}
+    name: ${{ matrix.compiler.name }}, ${{ matrix.build-type.name }}, ${{ matrix.crypto.name }}, ${{ matrix.threadpool.name }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y build-essential cmake git pkg-config file ${{ matrix.compiler.install }}
+      - name: Configure and build ${{ matrix.compiler.name }}, ${{ matrix.build-type.name }}, ${{ matrix.crypto.name }}, ${{ matrix.threadpool.name }}
+        run: |
+          export CC=${{ matrix.compiler.cc }}
+          export CXX=${{ matrix.compiler.cxx }}
+          echo "Using $CC and $CXX"
+          
+          mkdir -p build
+          cd build
+          
+          cmake .. -DBUILD_TEST=ON \
+            -DENABLE_AWS_SDK_IN_TESTS=OFF \
+            ${{ matrix.build-type.cmake_flags }} \
+            ${{ matrix.crypto.cmake_flags }} \
+            ${{ matrix.compiler.cmake_flags }} \
+            ${{ matrix.threadpool.cmake_flags }}
+          make -j$(sysctl -n hw.ncpu)
+        shell: bash
+      - name: Check test file is compiled correctly
+        run: |
+          cd build
+          
+          file ./tst/webrtc_client_test
+          file ./samples/kvsWebrtcClientMaster
+          
+          readelf -a ./tst/webrtc_client_test
+          readelf -a ./samples/kvsWebrtcClientMaster
+          
+          file ./tst/webrtc_client_test | grep "${{ matrix.compiler.file-expected-output }}"
+          file ./samples/kvsWebrtcClientMaster | grep "${{ matrix.compiler.file-expected-output }}"
+        shell: bash
