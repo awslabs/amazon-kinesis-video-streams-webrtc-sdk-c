@@ -493,7 +493,7 @@ endif()
 
 if(BUILD_TEST)
   # adding ZLIB because aws sdk static link seems to be broken when zlib is needed
-  if(NOT WIN32)
+  if(NOT WIN32 AND ENABLE_AWS_SDK_IN_TESTS)
     find_package(ZLIB REQUIRED)
   endif()
   add_subdirectory(tst)
