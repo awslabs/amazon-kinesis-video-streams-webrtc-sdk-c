@@ -74,7 +74,7 @@ jobs:
             export CC="clang"
             export CXX="clang++"
           fi
-          echo "Using $CC and $CXX"
+          echo "Using CC: $CC and CXX: $CXX"
           
           mkdir -p build
           cd build
