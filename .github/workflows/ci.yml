@@ -123,7 +123,6 @@ jobs:
             export CXX="clang++"
           fi
           echo "Using CC: $CC and CXX: $CXX"
-
           mkdir -p build
           cd build
 
