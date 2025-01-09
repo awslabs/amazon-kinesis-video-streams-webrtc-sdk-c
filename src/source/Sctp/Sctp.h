@@ -76,7 +76,7 @@ STATUS sctpSessionWriteMessage(PSctpSession, UINT32, BOOL, PBYTE, UINT32);
 STATUS sctpSessionWriteDcep(PSctpSession, UINT32, PCHAR, UINT32, PRtcDataChannelInit);
 
 // Callbacks used by usrsctp
-INT32 onSctpOutboundPacket(PVOID, PVOID, ULONG, UINT8, UINT8);
+INT32 onSctpOutboundPacket(PVOID, PVOID, SIZE_T, UINT8, UINT8);
 INT32 onSctpInboundPacket(struct socket*, union sctp_sockstore, PVOID, ULONG, struct sctp_rcvinfo, INT32, PVOID);
 
 #ifdef __cplusplus
