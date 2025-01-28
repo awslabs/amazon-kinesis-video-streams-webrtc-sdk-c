@@ -17,7 +17,7 @@ option(BUILD_OPENSSL_PLATFORM "If buildng OpenSSL what is the target platform" O
 option(BUILD_LIBSRTP_HOST_PLATFORM "If buildng LibSRTP what is the current platform" OFF)
 option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destination platform" OFF)
 option(BUILD_SAMPLE "Build available samples" ON)
-option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
+option(ENABLE_DATA_CHANNEL "Enable support for data channel" OFF)
 option(ENABLE_KVS_THREADPOOL "Enable support for KVS thread pool in signaling" OFF)
 option(INSTRUMENTED_ALLOCATORS "Enable memory instrumentation" OFF)
 option(ENABLE_AWS_SDK_IN_TESTS "Enable support for compiling AWS SDKs for tests" ON)
@@ -33,6 +33,11 @@ option(MEMORY_SANITIZER "Build with MemorySanitizer." OFF)
 option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
 option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
 option(LINK_PROFILER "Link gperftools profiler" OFF)
+
+set(CMAKE_BUILD_TYPE MinSizeRel)  # Optimize for minimum size
+add_compile_options(-Os)          # Optimize for size
+add_compile_options(-ffunction-sections -fdata-sections)
+add_link_options(-Wl,--gc-sections)
 
 if(WIN32)
   set(EXT_PTHREAD_INCLUDE_DIR "" CACHE PATH "Path to the PThread dir")
@@ -244,7 +249,7 @@ if(BUILD_DEPENDENCIES)
       -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
       -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
 
-  build_dependency(usrsctp ${BUILD_ARGS})
+  # build_dependency(usrsctp ${BUILD_ARGS})
 
   if(BUILD_TEST)
     build_dependency(gtest)
@@ -309,10 +314,10 @@ else()
 endif()
 
 # usrsctp dont support pkgconfig yet
-find_library(
-  Usrsctp
-  NAMES ${USRSCTP_LIBNAME} usrsctp REQUIRED
-  PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib ${OPEN_SRC_INSTALL_PREFIX}/lib64)
+# find_library(
+#   Usrsctp
+#   NAMES ${USRSCTP_LIBNAME} usrsctp REQUIRED
+#   PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib ${OPEN_SRC_INSTALL_PREFIX}/lib64)
 
 set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${LIBSRTP_INCLUDE_DIRS}
                           ${CURL_INCLUDE_DIRS} ${LIBWEBSOCKETS_INCLUDE_DIRS})
@@ -430,7 +435,7 @@ target_link_libraries(
           ${OPENSSL_SSL_LIBRARY}
           ${OPENSSL_CRYPTO_LIBRARY}
           ${SRTP_LIBRARIES}
-          ${Usrsctp}
+          # ${Usrsctp}
           ${MBEDTLS_LIBRARIES}
           ${GPERFTOOLS_MALLOC_LIBRARIES}
           ${GPERFTOOLS_PROFILER_LIBRARIES}

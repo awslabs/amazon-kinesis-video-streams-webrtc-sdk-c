@@ -19,7 +19,7 @@ STATUS createDataChannel(PRtcPeerConnection pPeerConnection, PCHAR pDataChannelN
     CHK(pKvsPeerConnection != NULL && pDataChannelName != NULL && ppRtcDataChannel != NULL, STATUS_NULL_ARG);
 
     // Only support creating DataChannels before signaling for now
-    CHK(pKvsPeerConnection->pSctpSession == NULL, STATUS_INTERNAL_ERROR);
+    // CHK(pKvsPeerConnection->pSctpSession == NULL, STATUS_INTERNAL_ERROR);
 
     CHK((pKvsDataChannel = (PKvsDataChannel) MEMCALLOC(1, SIZEOF(KvsDataChannel))) != NULL, STATUS_NOT_ENOUGH_MEMORY);
     STRNCPY(pKvsDataChannel->dataChannel.name, pDataChannelName, MAX_DATA_CHANNEL_NAME_LEN);
@@ -57,14 +57,14 @@ CleanUp:
 STATUS dataChannelSend(PRtcDataChannel pRtcDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    PSctpSession pSctpSession = NULL;
+    // PSctpSession pSctpSession = NULL;
     PKvsDataChannel pKvsDataChannel = (PKvsDataChannel) pRtcDataChannel;
 
     CHK(pKvsDataChannel != NULL && pMessage != NULL, STATUS_NULL_ARG);
 
-    pSctpSession = ((PKvsPeerConnection) pKvsDataChannel->pRtcPeerConnection)->pSctpSession;
+    // pSctpSession = ((PKvsPeerConnection) pKvsDataChannel->pRtcPeerConnection)->pSctpSession;
 
-    CHK_STATUS(sctpSessionWriteMessage(pSctpSession, pKvsDataChannel->channelId, isBinary, pMessage, pMessageLen));
+    // CHK_STATUS(sctpSessionWriteMessage(pSctpSession, pKvsDataChannel->channelId, isBinary, pMessage, pMessageLen));
     pKvsDataChannel->rtcDataChannelDiagnostics.messagesSent++;
     pKvsDataChannel->rtcDataChannelDiagnostics.bytesSent += pMessageLen;
 CleanUp:

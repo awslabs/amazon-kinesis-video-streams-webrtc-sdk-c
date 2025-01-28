@@ -133,7 +133,7 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     sctpSessionCallbacks.dataChannelMessageFunc = onSctpSessionDataChannelMessage;
     sctpSessionCallbacks.dataChannelOpenFunc = onSctpSessionDataChannelOpen;
     sctpSessionCallbacks.customData = (UINT64) pKvsPeerConnection;
-    CHK_STATUS(createSctpSession(&sctpSessionCallbacks, &(pKvsPeerConnection->pSctpSession)));
+    // CHK_STATUS(createSctpSession(&sctpSessionCallbacks, &(pKvsPeerConnection->pSctpSession)));
 
     for (; currentDataChannelId < data.currentDataChannelId; currentDataChannelId += 2) {
         pKvsDataChannel = NULL;
@@ -145,8 +145,8 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
             CHK(FALSE, retStatus);
         }
         CHK(pKvsDataChannel != NULL, STATUS_INTERNAL_ERROR);
-        CHK_STATUS(sctpSessionWriteDcep(pKvsPeerConnection->pSctpSession, currentDataChannelId, pKvsDataChannel->dataChannel.name,
-                                        STRLEN(pKvsDataChannel->dataChannel.name), &pKvsDataChannel->rtcDataChannelInit));
+        // CHK_STATUS(sctpSessionWriteDcep(pKvsPeerConnection->pSctpSession, currentDataChannelId, pKvsDataChannel->dataChannel.name,
+        //                                 STRLEN(pKvsDataChannel->dataChannel.name), &pKvsDataChannel->rtcDataChannelInit));
         pKvsDataChannel->rtcDataChannelDiagnostics.state = RTC_DATA_CHANNEL_STATE_OPEN;
         if (STATUS_FAILED(hashTableUpsert(pKvsPeerConnection->pDataChannels, currentDataChannelId, (UINT64) pKvsDataChannel))) {
             DLOGW("Failed to update entry in hash table with recent changes to data channel");
@@ -190,7 +190,7 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
 
 #ifdef ENABLE_DATA_CHANNEL
         if (ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpIsEnabled) && signedBuffLen > 0) {
-            CHK_STATUS(putSctpPacket(pKvsPeerConnection->pSctpSession, buff, signedBuffLen));
+            // CHK_STATUS(putSctpPacket(pKvsPeerConnection->pSctpSession, buff, signedBuffLen));
         }
 #endif
 
@@ -202,12 +202,12 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
 
 #ifdef ENABLE_DATA_CHANNEL
             if (ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpIsEnabled)) {
-                if (pKvsPeerConnection->pSctpSession == NULL) {
-                    CHK_STATUS(allocateSctp(pKvsPeerConnection));
-                }
+                // if (pKvsPeerConnection->pSctpSession == NULL) {
+                //     CHK_STATUS(allocateSctp(pKvsPeerConnection));
+                // }
 
                 if (signedBuffLen > 0) {
-                    CHK_STATUS(putSctpPacket(pKvsPeerConnection->pSctpSession, buff, signedBuffLen));
+                    // CHK_STATUS(putSctpPacket(pKvsPeerConnection->pSctpSession, buff, signedBuffLen));
                 }
             }
 #endif
@@ -1070,7 +1070,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     /* Free structs that have their own thread. SCTP has threads created by SCTP library. IceAgent has the
      * connectionListener thread. Free SCTP first so it wont try to send anything through ICE. */
 #ifdef ENABLE_DATA_CHANNEL
-    CHK_LOG_ERR(freeSctpSession(&pKvsPeerConnection->pSctpSession));
+    // CHK_LOG_ERR(freeSctpSession(&pKvsPeerConnection->pSctpSession));
 #endif
 
     // free transceivers

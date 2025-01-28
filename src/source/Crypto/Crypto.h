@@ -48,6 +48,7 @@ typedef enum {
         if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {                                                                 \
             mbedtls_strerror(ret, __mbedtlsErr, SIZEOF(__mbedtlsErr));                                                                               \
             DLOGW("%s failed with %s", (s), __mbedtlsErr);                                                                                           \
+            /* DLOGW("MbedTLS error. Do [...] to enable MbedTLS error logging through mbedtls_strerror."); */                                        \
         }                                                                                                                                            \
     } while (0)
 

@@ -25,7 +25,8 @@ endif()
 
 find_package(PkgConfig REQUIRED)
 
-pkg_check_modules(GST gstreamer-1.0)
+# (removed to speed up build for testing)
+# pkg_check_modules(GST gstreamer-1.0)
 if(GST_FOUND)
 
   if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")

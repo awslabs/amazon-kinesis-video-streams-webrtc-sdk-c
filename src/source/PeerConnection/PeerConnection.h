@@ -85,7 +85,7 @@ typedef struct {
     MUTEX pSrtpSessionLock;
     PSrtpSession pSrtpSession;
 
-    PSctpSession pSctpSession;
+    // PSctpSession pSctpSession;
 
     PSessionDescription pRemoteSessionDescription;
     PDoubleList pTransceivers;

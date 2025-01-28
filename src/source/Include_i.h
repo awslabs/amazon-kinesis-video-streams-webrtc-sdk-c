@@ -50,7 +50,7 @@ extern "C" {
 // If removed will cause corruption that is hard to determine at runtime
 #define INET  1
 #define INET6 1
-#include <usrsctp.h>
+// #include <usrsctp.h>
 
 #include <libwebsockets.h>
 
