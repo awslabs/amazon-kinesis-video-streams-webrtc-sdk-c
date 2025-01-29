@@ -365,6 +365,12 @@ gst-launch-1.0 videotestsrc pattern=ball num-buffers=1500 ! timeoverlay ! videoc
 gst-launch-1.0 videotestsrc pattern=ball num-buffers=1500 ! timeoverlay ! videoconvert ! video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! queue ! x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! multifilesink location="frame-%04d.h265" index=1
 ```
 
+##### Opus
+```shell
+gst-launch-1.0 audiotestsrc num-buffers=618 wave=sine volume=0.4 ! audioconvert ! audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! multifilesink location="sample-%03d.opus" index=1
+```
+
+
 ### Viewing Master Samples
 
 After running one of the master samples, when the command line application prints "Signaling client connection to socket established", indicating that your signaling channel is created and the connected master is streaming media to it, you can view the stream. To do so, check the media playback viewer on the KVS Signaling Channels console or open the [WebRTC SDK Test Page](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-js/examples/index.html).
