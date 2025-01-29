@@ -1,8 +1,13 @@
 <map id="KvsDataChannel" name="KvsDataChannel">
-<area shape="rect" id="node1" title=" " alt="" coords="234,461,426,568"/>
-<area shape="rect" id="node2" href="$structRtcDataChannelInit.html" title="RtcDataChannelInit dictionary used to configure properties of the underlying channel such as data rel..." alt="" coords="5,219,153,325"/>
-<area shape="rect" id="node3" href="$structNullableUint16.html" title="Custom data type to allow setting UINT16 data type to NULL since C does not support setting basic dat..." alt="" coords="20,5,139,97"/>
-<area shape="rect" id="node4" href="$struct____RtcDataChannel.html" title="RtcDataChannel represents a bi&#45;directional data channel between two peers." alt="" coords="178,226,319,318"/>
-<area shape="rect" id="node5" href="$structRtcDataChannelStats.html" title=" " alt="" coords="344,175,521,369"/>
-<area shape="rect" id="node6" href="$structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer&#45;to&#45;peer communications with ano..." alt="" coords="564,233,709,311"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="228,485,412,591"/>
+<area shape="rect" id="Node000002" href="$struct____RtcDataChannel.html" title="RtcDataChannel represents a bi&#45;directional data channel between two peers." alt="" coords="5,238,139,323"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="73,324,75,356,82,393,94,428,114,460,135,479,159,495,213,517,211,522,157,500,132,483,110,463,89,431,76,394,70,357,68,324"/>
+<area shape="rect" id="Node000003" href="$structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer&#45;to&#45;peer communications with ano..." alt="" coords="163,248,301,313"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="226,314,220,346,217,384,219,423,230,460,236,471,232,474,226,462,214,424,211,384,214,345,221,313"/>
+<area shape="rect" id="Node000004" href="$structRtcDataChannelInit.html" title="RtcDataChannelInit dictionary used to configure properties of the underlying channel such as data rel..." alt="" coords="334,228,474,333"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="407,334,401,396,393,430,382,462,378,472,373,470,378,460,388,429,395,396,402,333"/>
+<area shape="rect" id="Node000005" href="$structNullableUint16.html" title="Custom data type to allow setting UINT16 data type to NULL since C does not support setting basic dat..." alt="" coords="349,5,459,91"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="407,91,407,212,401,212,401,91"/>
+<area shape="rect" id="Node000006" href="$structRtcDataChannelStats.html" title=" " alt="" coords="498,168,667,393"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="574,394,560,431,538,463,514,484,487,501,429,523,427,518,485,496,511,480,534,460,555,428,569,392"/>
 </map>

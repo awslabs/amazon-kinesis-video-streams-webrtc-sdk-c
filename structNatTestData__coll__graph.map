@@ -1,6 +1,9 @@
 <map id="NatTestData" name="NatTestData">
-<area shape="rect" id="node1" title=" " alt="" coords="78,344,265,451"/>
-<area shape="rect" id="node2" href="$structStunPacket.html" title=" " alt="" coords="102,189,241,281"/>
-<area shape="rect" id="node3" href="$structStunHeader.html" title=" " alt="" coords="5,5,159,127"/>
-<area shape="rect" id="node4" href="$structStunAttributeHeader.html" title=" " alt="" coords="183,20,338,112"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="75,341,252,447"/>
+<area shape="rect" id="Node000002" href="$structStunPacket.html" title=" " alt="" coords="99,193,228,279"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="166,279,166,324,161,324,161,279"/>
+<area shape="rect" id="Node000003" href="$structStunHeader.html" title=" " alt="" coords="5,5,151,131"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="112,130,137,178,132,180,107,132"/>
+<area shape="rect" id="Node000004" href="$structStunAttributeHeader.html" title=" " alt="" coords="175,25,322,111"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="230,112,195,179,190,177,225,110"/>
 </map>

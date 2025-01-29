@@ -1,10 +1,18 @@
 <map id="signalingClientDeleteSync" name="signalingClientDeleteSync">
-<area shape="rect" id="node1" title="Deletes the signaling channel referenced by SIGNALING_CLIENT_HANDLE." alt="" coords="5,31,199,57"/>
-<area shape="rect" id="node2" href="$Signaling_8c.html#a220ed8ee8114be8bfd0ae9c3ccfabc24" title=" " alt="" coords="247,31,401,57"/>
-<area shape="rect" id="node3" href="$StateMachine_8c.html#aadc0cffe12b55f3d81cd3b74244bdc3c" title=" " alt="" coords="449,5,668,32"/>
-<area shape="rect" id="node4" href="$Signaling_8c.html#af63aa814d51002790ba8da3bf07a2285" title=" " alt="" coords="453,56,664,83"/>
-<area shape="rect" id="node5" href="$Signaling_8c.html#a653edfffd5d129d08f5971d91f16fc5e" title=" " alt="" coords="1237,31,1437,57"/>
-<area shape="rect" id="node6" href="$LwsApiCalls_8c.html#ac8ef143a573f3b4ae83bd3ad0eb9fd6f" title=" " alt="" coords="716,81,911,108"/>
-<area shape="rect" id="node7" href="$LwsApiCalls_8c.html#ae7928b7a5bf47cbdf2ccf753f1c1e8df" title=" " alt="" coords="959,81,1189,108"/>
-<area shape="rect" id="node8" href="$LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="1239,81,1436,108"/>
+<area shape="rect" id="Node000001" title="Deletes the signaling channel referenced by SIGNALING_CLIENT_HANDLE." alt="" coords="5,31,199,56"/>
+<area shape="rect" id="Node000002" href="$Signaling_8c.html#a220ed8ee8114be8bfd0ae9c3ccfabc24" title=" " alt="" coords="247,31,401,56"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="199,41,233,41,233,46,199,46"/>
+<area shape="rect" id="Node000003" href="$StateMachine_8c.html#aadc0cffe12b55f3d81cd3b74244bdc3c" title=" " alt="" coords="449,5,668,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="402,32,436,29,436,34,402,38"/>
+<area shape="rect" id="Node000004" href="$Signaling_8c.html#af63aa814d51002790ba8da3bf07a2285" title=" " alt="" coords="453,55,664,80"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="402,49,440,53,439,58,402,54"/>
+<area shape="rect" id="Node000005" href="$Signaling_8c.html#a653edfffd5d129d08f5971d91f16fc5e" title=" " alt="" coords="1237,31,1437,56"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="664,61,1223,44,1224,49,664,67"/>
+<area shape="rect" id="Node000006" href="$LwsApiCalls_8c.html#ac8ef143a573f3b4ae83bd3ad0eb9fd6f" title=" " alt="" coords="716,80,911,105"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="665,75,703,79,702,84,664,80"/>
+<area shape="rect" id="Node000007" href="$LwsApiCalls_8c.html#ae7928b7a5bf47cbdf2ccf753f1c1e8df" title=" " alt="" coords="959,80,1189,105"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="911,90,945,90,945,95,911,95"/>
+<area shape="poly" id="edge7_Node000007_Node000005" title=" " alt="" coords="1142,77,1255,56,1256,61,1143,83"/>
+<area shape="rect" id="Node000008" href="$LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="1239,80,1436,105"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="1190,90,1225,90,1225,95,1190,95"/>
 </map>

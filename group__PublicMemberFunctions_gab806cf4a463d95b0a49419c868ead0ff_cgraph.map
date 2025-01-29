@@ -1,5 +1,7 @@
 <map id="deserializeSessionDescriptionInit" name="deserializeSessionDescriptionInit">
-<area shape="rect" id="node1" title="Parses a JSON string and returns an allocated PSessionDescriptionInit." alt="" coords="5,31,244,57"/>
-<area shape="rect" id="node2" href="$jsmn_8h.html#a8d4a8b3ce5c3d600feea38615b5f9aa6" title=" " alt="" coords="299,5,382,32"/>
-<area shape="rect" id="node3" href="$jsmn_8h.html#acf28c8ae404fb0ad2823270d2a4c322a" title=" " alt="" coords="292,56,389,83"/>
+<area shape="rect" id="Node000001" title="Parses a JSON string and returns an allocated PSessionDescriptionInit." alt="" coords="5,31,244,56"/>
+<area shape="rect" id="Node000002" href="$jsmn_8h.html#a8d4a8b3ce5c3d600feea38615b5f9aa6" title=" " alt="" coords="299,5,382,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="233,28,285,22,286,27,234,33"/>
+<area shape="rect" id="Node000003" href="$jsmn_8h.html#acf28c8ae404fb0ad2823270d2a4c322a" title=" " alt="" coords="292,55,389,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="239,53,278,58,278,63,239,59"/>
 </map>

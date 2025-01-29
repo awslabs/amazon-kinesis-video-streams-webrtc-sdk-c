@@ -1,35 +1,70 @@
 <map id="writeFrame" name="writeFrame">
-<area shape="rect" id="node1" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver." alt="" coords="5,309,101,336"/>
-<area shape="rect" id="node2" href="$RtpPacket_8c.html#a781c9fdecd3fdb22697960449adb3412" title=" " alt="" coords="693,107,846,133"/>
-<area shape="rect" id="node4" href="$RtpPacket_8c.html#a7eedc4b79bda85bf810d70bb84cd920e" title=" " alt="" coords="157,157,355,184"/>
-<area shape="rect" id="node6" href="$RtpG711Payloader_8c.html#a780563e6f0f19b4de917fad031c7b982" title=" " alt="" coords="172,208,340,235"/>
-<area shape="rect" id="node7" href="$RtpH264Payloader_8c.html#a2e2a5fd1437d44a603302b83adae52b4" title=" " alt="" coords="172,259,340,285"/>
-<area shape="rect" id="node10" href="$RtpH265Payloader_8c.html#a910239de87c38dd06b28be37cde973ec" title=" " alt="" coords="172,309,340,336"/>
-<area shape="rect" id="node13" href="$RtpOpusPayloader_8c.html#a0e3f6d4d676e6ce8854a23ca315ad55b" title=" " alt="" coords="173,360,339,387"/>
-<area shape="rect" id="node14" href="$RtpVP8Payloader_8c.html#a7e222fc0e8c054c54e6e8607bac57331" title=" " alt="" coords="177,411,335,437"/>
-<area shape="rect" id="node15" href="$SrtpSession_8c.html#a34f38afe20eee6ebc05aeb21ae2c33ec" title=" " alt="" coords="189,461,323,488"/>
-<area shape="rect" id="node16" href="$IceAgent_8c.html#a23515725a875e5a1b44e90f2b36f2dd2" title=" " alt="" coords="179,512,333,539"/>
-<area shape="rect" id="node28" href="$RtpRollingBuffer_8c.html#abf2b32f9fe0ec57657ba0f916dc8406f" title=" " alt="" coords="149,56,363,83"/>
-<area shape="rect" id="node33" href="$PeerConnection_8c.html#a85a4c43929ed0110de614bd658ec98e8" title=" " alt="" coords="157,563,355,589"/>
-<area shape="rect" id="node3" href="$RtpPacket_8c.html#a37d0e3e5a7de3f4b175d172c4673ab0a" title=" " alt="" coords="971,56,1078,83"/>
-<area shape="rect" id="node5" href="$RtpPacket_8c.html#aa714b7747817942cff4b2aaac3ff62fd" title=" " alt="" coords="428,157,604,184"/>
-<area shape="rect" id="node8" href="$RtpH264Payloader_8c.html#ae95e9194dafde123c71c861280ec2dfa" title=" " alt="" coords="427,259,605,285"/>
-<area shape="rect" id="node9" href="$RtpH264Payloader_8c.html#a250af3bb605e890c813cc115ac520969" title=" " alt="" coords="442,208,590,235"/>
-<area shape="rect" id="node11" href="$RtpH265Payloader_8c.html#a1ceb427dad9476058d0ade251a9af68f" title=" " alt="" coords="411,360,621,387"/>
-<area shape="rect" id="node12" href="$RtpH265Payloader_8c.html#abfde10e8783708b8bf978f9f28d56e47" title=" " alt="" coords="425,309,607,336"/>
-<area shape="rect" id="node17" href="$IceUtils_8c.html#abffd2f385a91e5840b12912df46777d4" title=" " alt="" coords="449,512,583,539"/>
-<area shape="rect" id="node18" href="$SocketConnection_8c.html#abbba4e0cf8c625191e47489fca04d9b7" title=" " alt="" coords="669,563,869,589"/>
-<area shape="rect" id="node25" href="$TurnConnection_8c.html#a0d996d98abef81b2f6c54be480ef7ea1" title=" " alt="" coords="677,512,861,539"/>
-<area shape="rect" id="node19" href="$SocketConnection_8c.html#a731488b5d3008cdfe4ba64b9ab1ec891" title=" " alt="" coords="929,613,1121,640"/>
-<area shape="rect" id="node23" href="$Tls_8h.html#ad7b4cabf02bfbbc2d36e3abe4163fff2" title=" " alt="" coords="918,563,1131,589"/>
-<area shape="rect" id="node20" href="$Network_8c.html#a4946ffd5e8761a38b4fc7bb253c1491a" title=" " alt="" coords="1212,664,1319,691"/>
-<area shape="rect" id="node21" href="$Network_8c.html#a3179b58589909af6767082bb0a81aa62" title=" " alt="" coords="1209,613,1321,640"/>
-<area shape="rect" id="node22" href="$Network_8c.html#afaa547109e09c5a34437553b7258e818" title=" " alt="" coords="1214,512,1317,539"/>
-<area shape="rect" id="node24" href="$Tls_8c.html#a7dbb041b5b15c6784e9f57a09a08d467" title=" " alt="" coords="1180,563,1351,589"/>
-<area shape="rect" id="node26" href="$TurnConnection_8c.html#a9554f30fbafbccca935277837ee1b2dc" title=" " alt="" coords="917,461,1132,488"/>
-<area shape="rect" id="node27" href="$Network_8c.html#a05d12502235a4a9313ba49cdfc4487a4" title=" " alt="" coords="1198,461,1333,488"/>
-<area shape="rect" id="node29" href="$RtpPacket_8c.html#a14ddfcfb8e5d665343585881c1aeac65" title=" " alt="" coords="417,5,615,32"/>
-<area shape="rect" id="node32" href="$RollingBuffer_8c.html#a04213cc969ed0dfb5cde85ebbfeb6912" title=" " alt="" coords="425,56,607,83"/>
-<area shape="rect" id="node30" href="$RtpPacket_8c.html#af5c0526f452ce354c0f92497668f5ad9" title=" " alt="" coords="713,56,825,83"/>
-<area shape="rect" id="node31" href="$RtpPacket_8c.html#ada25ad6c790ab2cea8b42ee2e9cbac87" title=" " alt="" coords="681,5,857,32"/>
+<area shape="rect" id="Node000001" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver." alt="" coords="5,304,101,329"/>
+<area shape="rect" id="Node000002" href="$RtpPacket_8c.html#a781c9fdecd3fdb22697960449adb3412" title=" " alt="" coords="693,105,846,131"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="55,303,64,269,81,224,109,178,127,158,148,141,190,124,247,112,315,104,390,101,545,102,679,108,679,114,545,107,390,106,315,110,248,117,191,129,151,146,130,162,113,181,86,226,69,271,60,304"/>
+<area shape="rect" id="Node000004" href="$RtpPacket_8c.html#a7eedc4b79bda85bf810d70bb84cd920e" title=" " alt="" coords="157,156,355,181"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="58,302,91,248,117,217,148,190,159,184,161,189,151,195,120,220,95,251,63,305"/>
+<area shape="rect" id="Node000006" href="$RtpG711Payloader_8c.html#a780563e6f0f19b4de917fad031c7b982" title=" " alt="" coords="172,205,340,231"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="66,301,101,270,148,240,165,232,168,237,151,244,104,274,69,305"/>
+<area shape="rect" id="Node000007" href="$RtpH264Payloader_8c.html#a2e2a5fd1437d44a603302b83adae52b4" title=" " alt="" coords="172,255,340,280"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="100,301,149,289,183,281,184,286,150,294,101,307"/>
+<area shape="rect" id="Node000010" href="$RtpH265Payloader_8c.html#a910239de87c38dd06b28be37cde973ec" title=" " alt="" coords="172,304,340,329"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="102,314,158,314,158,319,102,319"/>
+<area shape="rect" id="Node000013" href="$RtpOpusPayloader_8c.html#a0e3f6d4d676e6ce8854a23ca315ad55b" title=" " alt="" coords="173,353,339,379"/>
+<area shape="poly" id="edge12_Node000001_Node000013" title=" " alt="" coords="102,326,150,338,189,347,187,353,149,343,101,331"/>
+<area shape="rect" id="Node000014" href="$RtpVP8Payloader_8c.html#a7e222fc0e8c054c54e6e8607bac57331" title=" " alt="" coords="177,403,335,428"/>
+<area shape="poly" id="edge13_Node000001_Node000014" title=" " alt="" coords="69,328,104,358,151,388,171,396,169,401,148,392,101,362,66,332"/>
+<area shape="rect" id="Node000015" href="$SrtpSession_8c.html#a34f38afe20eee6ebc05aeb21ae2c33ec" title=" " alt="" coords="189,452,323,477"/>
+<area shape="poly" id="edge14_Node000001_Node000015" title=" " alt="" coords="63,328,95,382,121,412,151,437,177,450,174,454,148,442,117,416,91,385,58,331"/>
+<area shape="rect" id="Node000016" href="$IceAgent_8c.html#a23515725a875e5a1b44e90f2b36f2dd2" title=" " alt="" coords="179,501,333,527"/>
+<area shape="poly" id="edge15_Node000001_Node000016" title=" " alt="" coords="60,329,70,361,88,405,115,450,132,470,151,488,168,498,165,502,148,492,128,474,110,453,83,407,65,363,55,330"/>
+<area shape="rect" id="Node000028" href="$RtpRollingBuffer_8c.html#abf2b32f9fe0ec57657ba0f916dc8406f" title=" " alt="" coords="149,55,363,80"/>
+<area shape="poly" id="edge29_Node000001_Node000028" title=" " alt="" coords="54,303,62,263,78,208,106,149,125,121,148,97,168,84,171,88,151,101,129,125,111,152,83,210,67,265,59,304"/>
+<area shape="rect" id="Node000033" href="$PeerConnection_8c.html#a85a4c43929ed0110de614bd658ec98e8" title=" " alt="" coords="157,551,355,576"/>
+<area shape="poly" id="edge35_Node000001_Node000033" title=" " alt="" coords="59,329,66,370,82,427,109,487,128,514,151,537,157,542,153,546,148,541,124,517,104,489,77,428,61,371,53,330"/>
+<area shape="rect" id="Node000003" href="$RtpPacket_8c.html#a37d0e3e5a7de3f4b175d172c4673ab0a" title=" " alt="" coords="971,55,1078,80"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="834,103,957,78,958,83,835,108"/>
+<area shape="rect" id="Node000005" href="$RtpPacket_8c.html#aa714b7747817942cff4b2aaac3ff62fd" title=" " alt="" coords="428,156,604,181"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="355,166,414,166,414,171,355,171"/>
+<area shape="rect" id="Node000008" href="$RtpH264Payloader_8c.html#ae95e9194dafde123c71c861280ec2dfa" title=" " alt="" coords="427,255,605,280"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="340,265,414,265,414,270,340,270"/>
+<area shape="rect" id="Node000009" href="$RtpH264Payloader_8c.html#a250af3bb605e890c813cc115ac520969" title=" " alt="" coords="442,205,590,231"/>
+<area shape="poly" id="edge8_Node000007_Node000009" title=" " alt="" coords="323,252,434,231,435,236,324,257"/>
+<area shape="rect" id="Node000011" href="$RtpH265Payloader_8c.html#a1ceb427dad9476058d0ade251a9af68f" title=" " alt="" coords="411,353,621,379"/>
+<area shape="poly" id="edge10_Node000010_Node000011" title=" " alt="" coords="324,327,435,348,434,353,323,332"/>
+<area shape="rect" id="Node000012" href="$RtpH265Payloader_8c.html#abfde10e8783708b8bf978f9f28d56e47" title=" " alt="" coords="425,304,607,329"/>
+<area shape="poly" id="edge11_Node000010_Node000012" title=" " alt="" coords="340,314,411,314,411,319,340,319"/>
+<area shape="rect" id="Node000017" href="$IceUtils_8c.html#abffd2f385a91e5840b12912df46777d4" title=" " alt="" coords="449,501,583,527"/>
+<area shape="poly" id="edge16_Node000016_Node000017" title=" " alt="" coords="333,511,435,511,435,517,333,517"/>
+<area shape="rect" id="Node000018" href="$SocketConnection_8c.html#abbba4e0cf8c625191e47489fca04d9b7" title=" " alt="" coords="669,552,869,577"/>
+<area shape="poly" id="edge17_Node000017_Node000018" title=" " alt="" coords="581,524,692,547,691,552,580,529"/>
+<area shape="rect" id="Node000025" href="$TurnConnection_8c.html#a0d996d98abef81b2f6c54be480ef7ea1" title=" " alt="" coords="677,501,861,527"/>
+<area shape="poly" id="edge24_Node000017_Node000025" title=" " alt="" coords="584,519,664,520,664,526,584,525"/>
+<area shape="rect" id="Node000019" href="$SocketConnection_8c.html#a731488b5d3008cdfe4ba64b9ab1ec891" title=" " alt="" coords="929,601,1121,627"/>
+<area shape="poly" id="edge18_Node000018_Node000019" title=" " alt="" coords="836,575,945,596,944,601,835,580"/>
+<area shape="rect" id="Node000023" href="$Tls__openssl_8c.html#a64cd202de66bae27a7d0edd8d5a05446" title=" " alt="" coords="918,552,1131,577"/>
+<area shape="poly" id="edge22_Node000018_Node000023" title=" " alt="" coords="869,562,904,562,904,567,869,567"/>
+<area shape="rect" id="Node000020" href="$Network_8c.html#a4946ffd5e8761a38b4fc7bb253c1491a" title=" " alt="" coords="1212,651,1319,676"/>
+<area shape="poly" id="edge19_Node000019_Node000020" title=" " alt="" coords="1088,624,1199,647,1198,652,1087,629"/>
+<area shape="rect" id="Node000021" href="$Network_8c.html#a3179b58589909af6767082bb0a81aa62" title=" " alt="" coords="1209,601,1321,627"/>
+<area shape="poly" id="edge20_Node000019_Node000021" title=" " alt="" coords="1121,611,1196,611,1196,617,1121,617"/>
+<area shape="rect" id="Node000022" href="$Network_8c.html#afaa547109e09c5a34437553b7258e818" title=" " alt="" coords="1214,501,1317,527"/>
+<area shape="poly" id="edge21_Node000019_Node000022" title=" " alt="" coords="1105,599,1131,588,1145,576,1154,564,1163,551,1179,538,1200,528,1202,532,1181,543,1167,555,1158,567,1149,580,1133,592,1107,604"/>
+<area shape="rect" id="Node000024" href="$Tls_8c.html#a7dbb041b5b15c6784e9f57a09a08d467" title=" " alt="" coords="1180,552,1351,577"/>
+<area shape="poly" id="edge23_Node000023_Node000024" title=" " alt="" coords="1131,562,1166,562,1166,567,1131,567"/>
+<area shape="poly" id="edge26_Node000025_Node000017" title=" " alt="" coords="677,508,597,508,597,503,677,503"/>
+<area shape="poly" id="edge25_Node000025_Node000022" title=" " alt="" coords="862,511,1200,511,1200,517,862,517"/>
+<area shape="rect" id="Node000026" href="$TurnConnection_8c.html#a9554f30fbafbccca935277837ee1b2dc" title=" " alt="" coords="917,451,1132,476"/>
+<area shape="poly" id="edge27_Node000025_Node000026" title=" " alt="" coords="834,499,946,476,947,481,835,504"/>
+<area shape="rect" id="Node000027" href="$Network_8c.html#a05d12502235a4a9313ba49cdfc4487a4" title=" " alt="" coords="1198,451,1333,476"/>
+<area shape="poly" id="edge28_Node000026_Node000027" title=" " alt="" coords="1132,461,1184,461,1184,466,1132,466"/>
+<area shape="rect" id="Node000029" href="$RtpPacket_8c.html#a14ddfcfb8e5d665343585881c1aeac65" title=" " alt="" coords="417,5,615,31"/>
+<area shape="poly" id="edge30_Node000028_Node000029" title=" " alt="" coords="323,52,434,31,435,36,324,57"/>
+<area shape="rect" id="Node000032" href="$RollingBuffer_8c.html#a04213cc969ed0dfb5cde85ebbfeb6912" title=" " alt="" coords="425,55,607,80"/>
+<area shape="poly" id="edge34_Node000028_Node000032" title=" " alt="" coords="363,65,411,65,411,70,363,70"/>
+<area shape="rect" id="Node000030" href="$RtpPacket_8c.html#af5c0526f452ce354c0f92497668f5ad9" title=" " alt="" coords="713,55,825,80"/>
+<area shape="poly" id="edge31_Node000029_Node000030" title=" " alt="" coords="582,28,700,51,699,57,581,33"/>
+<area shape="rect" id="Node000031" href="$RtpPacket_8c.html#ada25ad6c790ab2cea8b42ee2e9cbac87" title=" " alt="" coords="681,5,857,31"/>
+<area shape="poly" id="edge32_Node000029_Node000031" title=" " alt="" coords="615,15,668,15,668,21,615,21"/>
+<area shape="poly" id="edge33_Node000031_Node000003" title=" " alt="" coords="836,28,958,52,957,57,835,33"/>
 </map>

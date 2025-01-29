@@ -1,5 +1,7 @@
 <map id="RtcInboundRtpStreamStats" name="RtcInboundRtpStreamStats">
-<area shape="rect" id="node1" title="The RTCInboundRtpStreamStats dictionary represents the measurement metrics for the incoming RTP media..." alt="" coords="9,476,207,700"/>
-<area shape="rect" id="node2" href="$structRtcReceivedRtpStreamStats.html" title=" " alt="" coords="5,189,211,413"/>
-<area shape="rect" id="node3" href="$structRTCRtpStreamStats.html" title="RTCRtpStreamStats captures stream stats that will be used as part of RTCSentRtpStreamStats report Ref..." alt="" coords="34,5,182,127"/>
+<area shape="rect" id="Node000001" title="The RTCInboundRtpStreamStats dictionary represents the measurement metrics for the incoming RTP media..." alt="" coords="9,521,199,787"/>
+<area shape="rect" id="Node000002" href="$structRtcReceivedRtpStreamStats.html" title=" " alt="" coords="5,193,203,459"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="107,459,107,505,101,505,101,459"/>
+<area shape="rect" id="Node000003" href="$structRTCRtpStreamStats.html" title="RTCRtpStreamStats captures stream stats that will be used as part of RTCSentRtpStreamStats report Ref..." alt="" coords="34,5,174,131"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="107,131,107,177,101,177,101,131"/>
 </map>

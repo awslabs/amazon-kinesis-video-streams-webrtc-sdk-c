@@ -1,4 +1,5 @@
 <map id="PeerConnectionMetrics" name="PeerConnectionMetrics">
-<area shape="rect" id="node1" title="SignalingStats Collection of signaling related stats. Can be expanded in the future." alt="" coords="40,248,212,325"/>
-<area shape="rect" id="node2" href="$structPeerConnectionStats.html" title=" " alt="" coords="5,5,247,185"/>
+<area shape="rect" id="Node000001" title="SignalingStats Collection of signaling related stats. Can be expanded in the future." alt="" coords="40,273,204,339"/>
+<area shape="rect" id="Node000002" href="$structPeerConnectionStats.html" title=" " alt="" coords="5,5,239,211"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="125,211,125,257,119,257,119,211"/>
 </map>

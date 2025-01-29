@@ -1,4 +1,5 @@
 <map id="__RtpPacket" name="__RtpPacket">
-<area shape="rect" id="node1" title=" " alt="" coords="8,321,155,472"/>
-<area shape="rect" id="node2" href="$struct____RtpPacketHeader.html" title=" " alt="" coords="5,5,157,259"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="8,373,147,539"/>
+<area shape="rect" id="Node000002" href="$struct____RtpPacketHeader.html" title=" " alt="" coords="5,5,149,311"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="80,311,80,357,75,357,75,311"/>
 </map>

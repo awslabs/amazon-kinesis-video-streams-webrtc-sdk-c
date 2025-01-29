@@ -1,38 +1,75 @@
 <map id="createAnswer" name="createAnswer">
-<area shape="rect" id="node1" title="Populate the provided answer that contains an RFC 3264 answer with the supported configurations for t..." alt="" coords="5,402,116,429"/>
-<area shape="rect" id="node2" href="$group__PublicMemberFunctions.html#ga19dfcbdcf4d136b56ce366fe2fb9bfb3" title=" " alt="" coords="164,395,359,436"/>
-<area shape="rect" id="node3" href="$SessionDescription_8c.html#a61cd534b376d8c202cc37711aebd3640" title=" " alt="" coords="407,302,609,329"/>
-<area shape="rect" id="node29" href="$Sdp_8h.html#a1e5c0750dbf14d9f67ad7ee68c417ac4" title=" " alt="" coords="407,427,609,454"/>
-<area shape="rect" id="node4" href="$SessionDescription_8c.html#a1f9d1d11409965815589bc2fdccb5168" title=" " alt="" coords="657,219,860,260"/>
-<area shape="rect" id="node5" href="$Dtls_8h.html#a6496e3bbe9fbc063a59c1d19a1732e92" title=" " alt="" coords="908,95,1128,136"/>
-<area shape="rect" id="node8" href="$SessionDescription_8c.html#a0cd24200ec6c1dd7be231b915dac66b2" title=" " alt="" coords="921,160,1115,201"/>
-<area shape="rect" id="node22" href="$SessionDescription_8c.html#a898075fcd147ac2e41ea84a3bdba0df6" title=" " alt="" coords="945,226,1091,253"/>
-<area shape="rect" id="node23" href="$SessionDescription_8c.html#a6d4a7bcbc9ce3f26093010f4b249d2f0" title=" " alt="" coords="917,277,1119,319"/>
-<area shape="rect" id="node27" href="$SessionDescription_8c.html#a9fecd42e1442a5af05d3aa5cdb100c75" title=" " alt="" coords="915,343,1121,370"/>
-<area shape="rect" id="node6" href="$Dtls__openssl_8c.html#af3bfcfebc77d873de4356b748060a048" title=" " alt="" coords="1203,55,1349,82"/>
-<area shape="rect" id="node7" href="$Dtls__openssl_8c.html#a7098126d6dad351545fc6aea9afc2668" title=" " alt="" coords="1203,106,1349,133"/>
-<area shape="rect" id="node9" href="$Rtp_8c.html#a546a0453948ee8060791e725b0194ca5" title=" " alt="" coords="1185,163,1367,190"/>
-<area shape="rect" id="node21" href="$SessionDescription_8c.html#ab42579e2cea76035f4dd5a8bf5ab0cb2" title=" " alt="" coords="1187,214,1365,241"/>
-<area shape="rect" id="node10" href="$Rtp_8c.html#ac43cec8875bbd05633d9a31bff472efc" title=" " alt="" coords="1424,163,1592,190"/>
-<area shape="rect" id="node11" href="$JitterBuffer_8c.html#ab3cc6b54249b9d82ce116edccc2d1cbf" title=" " alt="" coords="1689,71,1807,98"/>
-<area shape="rect" id="node17" href="$Retransmitter_8c.html#abc4d6da97d6a3171960d7cb4d803d198" title=" " alt="" coords="1679,122,1817,149"/>
-<area shape="rect" id="node18" href="$Rtp_8c.html#a51c2d5b41938e4249ba845bc04dd396f" title=" " alt="" coords="1661,173,1835,199"/>
-<area shape="rect" id="node19" href="$RtpRollingBuffer_8c.html#a46569ac6a39e657658840b1054175116" title=" " alt="" coords="1671,223,1825,250"/>
-<area shape="rect" id="node12" href="$JitterBuffer_8c.html#a825c3656f8f6466c66eccb89f9745814" title=" " alt="" coords="2129,71,2323,98"/>
-<area shape="rect" id="node16" href="$JitterBuffer_8c.html#ac781719ff47dc4932f88c48fbda7fbd6" title=" " alt="" coords="1904,97,2081,123"/>
-<area shape="rect" id="node13" href="$JitterBuffer_8c.html#a7d7320146187bfc7b6ca7ea61d68445d" title=" " alt="" coords="2371,5,2591,47"/>
-<area shape="rect" id="node14" href="$JitterBuffer_8c.html#ab4a1d7e5e56187bcbb451cde70680a89" title=" " alt="" coords="2371,71,2590,98"/>
-<area shape="rect" id="node15" href="$RtpPacket_8c.html#af5c0526f452ce354c0f92497668f5ad9" title=" " alt="" coords="2425,122,2537,149"/>
-<area shape="rect" id="node20" href="$RollingBuffer_8c.html#a81cebbe1d2964e9aadcf235f82d3c098" title=" " alt="" coords="1927,223,2059,250"/>
-<area shape="rect" id="node24" href="$IceAgent_8c.html#a6288421972b3666ba5a64fd91441dadb" title=" " alt="" coords="1176,277,1376,319"/>
-<area shape="rect" id="node25" href="$IceAgent_8c.html#a8c504c09cfea8efaf7869b8de9ec558c" title=" " alt="" coords="1427,285,1589,311"/>
-<area shape="rect" id="node26" href="$IceAgent_8c.html#a58c93902e850d579024bde109e85ab8b" title=" " alt="" coords="1640,285,1856,311"/>
-<area shape="rect" id="node28" href="$SessionDescription_8c.html#ae0d3753b41afc5f9a6f4c2aa4af3b4d8" title=" " alt="" coords="1199,343,1353,370"/>
-<area shape="rect" id="node30" href="$Serialize_8c.html#afa5128b447f8dfb2d9bf224d9d720db4" title=" " alt="" coords="691,285,826,311"/>
-<area shape="rect" id="node31" href="$Serialize_8c.html#a96dd428f998a5119c4c210ddf6e06810" title=" " alt="" coords="663,336,854,377"/>
-<area shape="rect" id="node32" href="$Serialize_8c.html#ac0699e6126a01fe054413d26b9348343" title=" " alt="" coords="681,402,837,429"/>
-<area shape="rect" id="node33" href="$Serialize_8c.html#acd10030eccbfc928aa360fc45f69c47c" title=" " alt="" coords="701,453,817,479"/>
-<area shape="rect" id="node34" href="$Serialize_8c.html#a5ba4149920c4aa1834e1eb78987b4320" title=" " alt="" coords="675,503,842,530"/>
-<area shape="rect" id="node35" href="$Serialize_8c.html#a16b10a96a9a84967e5aa8133c65ec33e" title=" " alt="" coords="667,554,851,581"/>
-<area shape="rect" id="node36" href="$Serialize_8c.html#a864e3e307a205326f3cd134c7492f35f" title=" " alt="" coords="696,605,821,631"/>
+<area shape="rect" id="Node000001" title="Populate the provided answer that contains an RFC 3264 answer with the supported configurations for t..." alt="" coords="5,394,116,419"/>
+<area shape="rect" id="Node000002" href="$group__PublicMemberFunctions.html#ga19dfcbdcf4d136b56ce366fe2fb9bfb3" title=" " alt="" coords="164,387,359,427"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="116,404,150,404,150,409,116,409"/>
+<area shape="rect" id="Node000003" href="$SessionDescription_8c.html#a61cd534b376d8c202cc37711aebd3640" title=" " alt="" coords="407,295,609,321"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="312,384,462,323,464,328,314,389"/>
+<area shape="rect" id="Node000029" href="$Serialize_8c.html#a9c41cb60fca74b4572e2fe2bc816b919" title=" " alt="" coords="407,418,609,443"/>
+<area shape="poly" id="edge30_Node000002_Node000029" title=" " alt="" coords="359,413,394,417,393,422,358,419"/>
+<area shape="rect" id="Node000004" href="$SessionDescription_8c.html#a1f9d1d11409965815589bc2fdccb5168" title=" " alt="" coords="657,213,860,253"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="551,293,677,255,678,260,553,298"/>
+<area shape="rect" id="Node000005" href="$Dtls__openssl_8c.html#a4c2dce34c8d293f6f909ff103da3a0e0" title=" " alt="" coords="908,92,1128,132"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="787,211,841,176,907,142,925,134,927,139,909,146,844,181,790,215"/>
+<area shape="rect" id="Node000008" href="$SessionDescription_8c.html#a0cd24200ec6c1dd7be231b915dac66b2" title=" " alt="" coords="921,156,1115,196"/>
+<area shape="poly" id="edge7_Node000004_Node000008" title=" " alt="" coords="849,211,913,196,914,202,850,216"/>
+<area shape="rect" id="Node000022" href="$SessionDescription_8c.html#a898075fcd147ac2e41ea84a3bdba0df6" title=" " alt="" coords="945,221,1091,246"/>
+<area shape="poly" id="edge22_Node000004_Node000022" title=" " alt="" coords="860,231,931,231,931,236,860,236"/>
+<area shape="rect" id="Node000023" href="$SessionDescription_8c.html#a6d4a7bcbc9ce3f26093010f4b249d2f0" title=" " alt="" coords="917,271,1119,311"/>
+<area shape="poly" id="edge23_Node000004_Node000023" title=" " alt="" coords="850,251,914,265,913,270,849,256"/>
+<area shape="rect" id="Node000027" href="$SessionDescription_8c.html#a9fecd42e1442a5af05d3aa5cdb100c75" title=" " alt="" coords="915,335,1121,361"/>
+<area shape="poly" id="edge27_Node000004_Node000027" title=" " alt="" coords="839,251,862,263,877,278,886,293,894,307,910,320,924,328,921,333,906,325,890,311,881,296,873,281,858,267,837,256"/>
+<area shape="rect" id="Node000006" href="$Dtls__openssl_8c.html#af3bfcfebc77d873de4356b748060a048" title=" " alt="" coords="1203,54,1349,79"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="1128,90,1189,79,1190,84,1129,95"/>
+<area shape="rect" id="Node000007" href="$Dtls__openssl_8c.html#a7098126d6dad351545fc6aea9afc2668" title=" " alt="" coords="1203,103,1349,129"/>
+<area shape="poly" id="edge6_Node000005_Node000007" title=" " alt="" coords="1128,111,1189,112,1189,117,1128,116"/>
+<area shape="rect" id="Node000009" href="$Rtp_8c.html#a546a0453948ee8060791e725b0194ca5" title=" " alt="" coords="1185,159,1367,185"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="1115,172,1171,171,1171,176,1116,177"/>
+<area shape="rect" id="Node000021" href="$SessionDescription_8c.html#ab42579e2cea76035f4dd5a8bf5ab0cb2" title=" " alt="" coords="1187,209,1365,234"/>
+<area shape="poly" id="edge21_Node000008_Node000021" title=" " alt="" coords="1116,190,1190,204,1189,209,1115,196"/>
+<area shape="rect" id="Node000010" href="$Rtp_8c.html#ac43cec8875bbd05633d9a31bff472efc" title=" " alt="" coords="1424,159,1592,185"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="1368,169,1410,169,1410,175,1368,175"/>
+<area shape="rect" id="Node000011" href="$JitterBuffer_8c.html#ab3cc6b54249b9d82ce116edccc2d1cbf" title=" " alt="" coords="1689,70,1807,95"/>
+<area shape="poly" id="edge10_Node000010_Node000011" title=" " alt="" coords="1530,157,1579,130,1639,104,1674,94,1676,99,1641,109,1581,135,1532,162"/>
+<area shape="rect" id="Node000017" href="$Retransmitter_8c.html#abc4d6da97d6a3171960d7cb4d803d198" title=" " alt="" coords="1679,119,1817,145"/>
+<area shape="poly" id="edge17_Node000010_Node000017" title=" " alt="" coords="1585,157,1665,143,1666,148,1586,162"/>
+<area shape="rect" id="Node000018" href="$Rtp_8c.html#a51c2d5b41938e4249ba845bc04dd396f" title=" " alt="" coords="1661,169,1835,194"/>
+<area shape="poly" id="edge18_Node000010_Node000018" title=" " alt="" coords="1592,173,1648,175,1648,180,1592,178"/>
+<area shape="rect" id="Node000019" href="$RtpRollingBuffer_8c.html#a46569ac6a39e657658840b1054175116" title=" " alt="" coords="1671,218,1825,243"/>
+<area shape="poly" id="edge19_Node000010_Node000019" title=" " alt="" coords="1559,182,1641,203,1680,212,1678,217,1639,208,1558,187"/>
+<area shape="rect" id="Node000012" href="$JitterBuffer_8c.html#a825c3656f8f6466c66eccb89f9745814" title=" " alt="" coords="2129,70,2323,95"/>
+<area shape="poly" id="edge11_Node000011_Node000012" title=" " alt="" coords="1808,80,2115,80,2115,85,1808,85"/>
+<area shape="rect" id="Node000016" href="$JitterBuffer_8c.html#ac781719ff47dc4932f88c48fbda7fbd6" title=" " alt="" coords="1904,95,2081,121"/>
+<area shape="poly" id="edge15_Node000011_Node000016" title=" " alt="" coords="1808,86,1891,95,1890,100,1808,91"/>
+<area shape="rect" id="Node000013" href="$JitterBuffer_8c.html#a7d7320146187bfc7b6ca7ea61d68445d" title=" " alt="" coords="2371,5,2591,45"/>
+<area shape="poly" id="edge12_Node000012_Node000013" title=" " alt="" coords="2283,67,2378,46,2379,51,2284,73"/>
+<area shape="rect" id="Node000014" href="$JitterBuffer_8c.html#ab4a1d7e5e56187bcbb451cde70680a89" title=" " alt="" coords="2371,70,2590,95"/>
+<area shape="poly" id="edge13_Node000012_Node000014" title=" " alt="" coords="2323,80,2358,80,2358,85,2323,85"/>
+<area shape="rect" id="Node000015" href="$RtpPacket_8c.html#af5c0526f452ce354c0f92497668f5ad9" title=" " alt="" coords="2425,119,2537,145"/>
+<area shape="poly" id="edge14_Node000012_Node000015" title=" " alt="" coords="2293,93,2412,116,2411,121,2292,98"/>
+<area shape="poly" id="edge16_Node000016_Node000012" title=" " alt="" coords="2082,96,2115,92,2116,97,2082,101"/>
+<area shape="rect" id="Node000020" href="$RollingBuffer_8c.html#a81cebbe1d2964e9aadcf235f82d3c098" title=" " alt="" coords="1927,218,2059,243"/>
+<area shape="poly" id="edge20_Node000019_Node000020" title=" " alt="" coords="1826,228,1913,228,1913,233,1826,233"/>
+<area shape="rect" id="Node000024" href="$IceAgent_8c.html#a6288421972b3666ba5a64fd91441dadb" title=" " alt="" coords="1176,271,1376,311"/>
+<area shape="poly" id="edge24_Node000023_Node000024" title=" " alt="" coords="1120,288,1162,288,1162,293,1120,293"/>
+<area shape="rect" id="Node000025" href="$IceAgent_8c.html#a8c504c09cfea8efaf7869b8de9ec558c" title=" " alt="" coords="1427,278,1589,303"/>
+<area shape="poly" id="edge25_Node000024_Node000025" title=" " alt="" coords="1376,288,1413,288,1413,293,1376,293"/>
+<area shape="rect" id="Node000026" href="$IceAgent_8c.html#a58c93902e850d579024bde109e85ab8b" title=" " alt="" coords="1640,278,1856,303"/>
+<area shape="poly" id="edge26_Node000025_Node000026" title=" " alt="" coords="1590,288,1626,288,1626,293,1590,293"/>
+<area shape="poly" id="edge29_Node000027_Node000024" title=" " alt="" coords="1075,333,1172,311,1173,316,1077,338"/>
+<area shape="rect" id="Node000028" href="$SessionDescription_8c.html#ae0d3753b41afc5f9a6f4c2aa4af3b4d8" title=" " alt="" coords="1199,335,1353,361"/>
+<area shape="poly" id="edge28_Node000027_Node000028" title=" " alt="" coords="1121,345,1184,345,1184,351,1121,351"/>
+<area shape="rect" id="Node000030" href="$Serialize_8c.html#afa5128b447f8dfb2d9bf224d9d720db4" title=" " alt="" coords="691,278,826,303"/>
+<area shape="poly" id="edge31_Node000029_Node000030" title=" " alt="" coords="520,416,576,366,614,338,656,314,677,305,679,310,659,318,617,342,579,370,524,420"/>
+<area shape="rect" id="Node000031" href="$Serialize_8c.html#a96dd428f998a5119c4c210ddf6e06810" title=" " alt="" coords="663,328,854,368"/>
+<area shape="poly" id="edge32_Node000029_Node000031" title=" " alt="" coords="545,415,656,377,680,370,681,375,658,383,547,420"/>
+<area shape="rect" id="Node000032" href="$Serialize_8c.html#ac0699e6126a01fe054413d26b9348343" title=" " alt="" coords="681,393,837,418"/>
+<area shape="poly" id="edge33_Node000029_Node000032" title=" " alt="" coords="609,418,667,412,667,417,609,423"/>
+<area shape="rect" id="Node000033" href="$Serialize_8c.html#acd10030eccbfc928aa360fc45f69c47c" title=" " alt="" coords="701,442,817,467"/>
+<area shape="poly" id="edge34_Node000029_Node000033" title=" " alt="" coords="609,438,687,445,687,451,609,443"/>
+<area shape="rect" id="Node000034" href="$Serialize_8c.html#a5ba4149920c4aa1834e1eb78987b4320" title=" " alt="" coords="675,491,842,517"/>
+<area shape="poly" id="edge35_Node000029_Node000034" title=" " alt="" coords="546,441,658,477,688,485,687,491,657,483,544,446"/>
+<area shape="rect" id="Node000035" href="$Serialize_8c.html#a16b10a96a9a84967e5aa8133c65ec33e" title=" " alt="" coords="667,541,851,566"/>
+<area shape="poly" id="edge36_Node000029_Node000035" title=" " alt="" coords="526,441,582,484,619,507,658,527,678,534,676,539,656,532,617,512,579,488,523,446"/>
+<area shape="rect" id="Node000036" href="$Serialize_8c.html#a864e3e307a205326f3cd134c7492f35f" title=" " alt="" coords="696,590,821,615"/>
+<area shape="poly" id="edge37_Node000029_Node000036" title=" " alt="" coords="520,442,574,507,613,545,659,576,684,587,682,592,656,581,610,549,570,511,516,445"/>
 </map>

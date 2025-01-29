@@ -1,7 +1,11 @@
 <map id="RtcIceMetrics" name="RtcIceMetrics">
-<area shape="rect" id="node1" title="Statistics relted to ICE candidates." alt="" coords="261,461,372,539"/>
-<area shape="rect" id="node2" href="$structRtcIceCandidatePairStats.html" title="RtcIceCandidatePairStats Stats related to the local&#45;remote ICE candidate pair." alt="" coords="5,160,212,384"/>
-<area shape="rect" id="node3" href="$structNullableUint32.html" title="Custom data type to allow setting UINT32 data type to NULL since C does not support setting basic dat..." alt="" coords="49,5,168,97"/>
-<area shape="rect" id="node4" href="$structRtcIceCandidateStats.html" title=": RtcIceCandidateStats Stats related to a specific candidate in a pair" alt="" coords="236,189,397,355"/>
-<area shape="rect" id="node5" href="$structRtcIceServerStats.html" title=": RtcIceServerStats Stats related to the ICE Server" alt="" coords="446,189,643,355"/>
+<area shape="rect" id="Node000001" title="Statistics relted to ICE candidates." alt="" coords="245,496,347,561"/>
+<area shape="rect" id="Node000002" href="$structRtcIceServerStats.html" title=": RtcIceServerStats Stats related to the ICE Server" alt="" coords="5,193,195,379"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="118,378,137,427,150,450,166,470,196,493,230,509,228,514,193,498,162,474,145,453,132,429,113,380"/>
+<area shape="rect" id="Node000003" href="$structRtcIceCandidateStats.html" title=": RtcIceCandidateStats Stats related to a specific candidate in a pair" alt="" coords="219,193,373,379"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="299,379,299,480,293,480,293,379"/>
+<area shape="rect" id="Node000004" href="$structRtcIceCandidatePairStats.html" title="RtcIceCandidatePairStats Stats related to the local&#45;remote ICE candidate pair." alt="" coords="425,153,623,419"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="525,420,514,448,497,474,468,498,434,514,399,524,364,529,363,524,397,518,432,509,465,493,493,470,509,446,520,418"/>
+<area shape="rect" id="Node000005" href="$structNullableUint32.html" title="Custom data type to allow setting UINT32 data type to NULL since C does not support setting basic dat..." alt="" coords="469,5,579,91"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="527,91,527,137,521,137,521,91"/>
 </map>

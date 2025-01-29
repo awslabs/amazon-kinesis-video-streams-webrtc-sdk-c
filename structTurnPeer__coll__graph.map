@@ -1,5 +1,7 @@
 <map id="TurnPeer" name="TurnPeer">
-<area shape="rect" id="node1" title=" " alt="" coords="45,219,285,457"/>
-<area shape="rect" id="node2" href="$structKvsIpAddress.html" title=" " alt="" coords="5,13,133,134"/>
-<area shape="rect" id="node3" href="$structTransactionIdStore.html" title=" " alt="" coords="157,5,365,141"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="41,228,273,513"/>
+<area shape="rect" id="Node000002" href="$structKvsIpAddress.html" title=" " alt="" coords="5,15,125,141"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="87,140,110,212,105,213,82,142"/>
+<area shape="rect" id="Node000003" href="$structTransactionIdStore.html" title=" " alt="" coords="149,5,349,151"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="229,152,210,213,205,211,224,150"/>
 </map>

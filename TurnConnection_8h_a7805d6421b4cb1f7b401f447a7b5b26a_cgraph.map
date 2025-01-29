@@ -1,6 +1,0 @@
-<map id="turnConnectionStart" name="turnConnectionStart">
-<area shape="rect" id="node1" title=" " alt="" coords="5,5,157,32"/>
-<area shape="rect" id="node2" href="$TurnConnection_8c.html#af01ecc35132ec796882b5cfca6c25e0c" title=" " alt="" coords="205,5,420,32"/>
-<area shape="rect" id="node3" href="$TurnConnectionStateMachine_8c.html#aaecdea4c04ee23b7aac3f5b63578d3e0" title=" " alt="" coords="468,5,707,32"/>
-<area shape="rect" id="node4" href="$TurnConnectionStateMachine_8c.html#ab2cdaa389cda6f8b710789078a12b04e" title=" " alt="" coords="755,5,951,32"/>
-</map>

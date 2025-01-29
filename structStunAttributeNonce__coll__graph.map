@@ -1,4 +1,5 @@
 <map id="StunAttributeNonce" name="StunAttributeNonce">
-<area shape="rect" id="node1" title=" " alt="" coords="8,160,157,252"/>
-<area shape="rect" id="node2" href="$structStunAttributeHeader.html" title=" " alt="" coords="5,5,160,97"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="8,153,149,239"/>
+<area shape="rect" id="Node000002" href="$structStunAttributeHeader.html" title=" " alt="" coords="5,5,152,91"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="81,91,81,137,76,137,76,91"/>
 </map>

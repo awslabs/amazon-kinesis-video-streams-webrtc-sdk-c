@@ -1,10 +1,17 @@
 <map id="RtcStreamMetrics" name="RtcStreamMetrics">
-<area shape="rect" id="node1" title="Collection of RTP stream related stats Reference: https://www.w3.org/TR/webrtc&#45;stats/#remoteinboundrt..." alt="" coords="491,704,630,781"/>
-<area shape="rect" id="node2" href="$structRtcOutboundRtpStreamStats.html" title="RtcOutboundRtpStreamStats Gathers stats for media stream from the embedded device Note: RTCOutboundRt..." alt="" coords="209,388,417,612"/>
-<area shape="rect" id="node3" href="$structRTCSentRtpStreamStats.html" title="RTCSentRtpStreamStats will be used as part of outbound Rtp stats Reference: https://www...." alt="" coords="5,197,183,289"/>
-<area shape="rect" id="node4" href="$structRTCRtpStreamStats.html" title="RTCRtpStreamStats captures stream stats that will be used as part of RTCSentRtpStreamStats report Ref..." alt="" coords="20,5,168,127"/>
-<area shape="rect" id="node5" href="$structDscpPacketsSentRecord.html" title="Record of total number of packets sent per DSCP. Used by RTCOutboundRtpStreamStats object." alt="" coords="207,197,419,289"/>
-<area shape="rect" id="node6" href="$structQualityLimitationDurationsRecord.html" title=" " alt="" coords="443,189,641,296"/>
-<area shape="rect" id="node7" href="$structRtcTransportStats.html" title="RtcTransportStats Represents the stats corresponding to an RTCDtlsTransport and its underlying RTCIce..." alt="" coords="441,359,680,641"/>
-<area shape="rect" id="node8" href="$structRtcRemoteInboundRtpStreamStats.html" title="RTCRemoteInboundRtpStreamStats Represents the remote endpoint&#39;s measurement metrics for a particular ..." alt="" coords="705,417,931,583"/>
+<area shape="rect" id="Node000001" title="Collection of RTP stream related stats Reference: https://www.w3.org/TR/webrtc&#45;stats/#remoteinboundrt..." alt="" coords="283,764,413,829"/>
+<area shape="rect" id="Node000002" href="$structRtcRemoteInboundRtpStreamStats.html" title="RTCRemoteInboundRtpStreamStats Represents the remote endpoint&#39;s measurement metrics for a particular ..." alt="" coords="5,439,224,619"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="148,618,181,681,203,711,227,738,247,754,269,766,267,771,244,758,224,742,198,715,177,684,143,620"/>
+<area shape="rect" id="Node000003" href="$structRtcOutboundRtpStreamStats.html" title="RtcOutboundRtpStreamStats Gathers stats for media stream from the embedded device Note: RTCOutboundRt..." alt="" coords="248,396,448,661"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="351,662,351,747,345,747,345,662"/>
+<area shape="rect" id="Node000004" href="$structRTCSentRtpStreamStats.html" title="RTCSentRtpStreamStats will be used as part of outbound Rtp stats Reference: https://www...." alt="" coords="59,201,229,286"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="182,284,238,354,257,381,253,384,234,358,178,288"/>
+<area shape="rect" id="Node000005" href="$structRTCRtpStreamStats.html" title="RTCRtpStreamStats captures stream stats that will be used as part of RTCSentRtpStreamStats report Ref..." alt="" coords="74,5,214,131"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="147,131,147,184,141,184,141,131"/>
+<area shape="rect" id="Node000006" href="$structQualityLimitationDurationsRecord.html" title=" " alt="" coords="253,193,443,293"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="351,294,351,379,345,379,345,294"/>
+<area shape="rect" id="Node000007" href="$structDscpPacketsSentRecord.html" title="Record of total number of packets sent per DSCP. Used by RTCOutboundRtpStreamStats object." alt="" coords="467,201,671,286"/>
+<area shape="poly" id="edge6_Node000003_Node000007" title=" " alt="" coords="566,287,557,312,542,334,521,346,501,348,482,349,461,358,432,386,428,382,459,354,481,344,501,343,520,341,538,330,553,310,561,286"/>
+<area shape="rect" id="Node000008" href="$structRtcTransportStats.html" title="RtcTransportStats Represents the stats corresponding to an RTCDtlsTransport and its underlying RTCIce..." alt="" coords="472,356,701,701"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="518,703,484,742,459,761,430,776,428,771,456,757,481,738,514,700"/>
 </map>

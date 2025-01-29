@@ -1,18 +1,34 @@
 <map id="RtcStats" name="RtcStats">
-<area shape="rect" id="node1" title="The stats object is populated based on RTCStatsType request." alt="" coords="1041,976,1221,1068"/>
-<area shape="rect" id="node2" href="$structRtcStatsObject.html" title="RTCStatsObject Represents an object passed in by the application developer which will be populated in..." alt="" coords="1071,836,1190,913"/>
-<area shape="rect" id="node3" href="$structRtcInboundRtpStreamStats.html" title="The RTCInboundRtpStreamStats dictionary represents the measurement metrics for the incoming RTP media..." alt="" coords="141,505,339,729"/>
-<area shape="rect" id="node4" href="$structRtcReceivedRtpStreamStats.html" title=" " alt="" coords="5,189,211,413"/>
-<area shape="rect" id="node5" href="$structRTCRtpStreamStats.html" title="RTCRtpStreamStats captures stream stats that will be used as part of RTCSentRtpStreamStats report Ref..." alt="" coords="142,5,290,127"/>
-<area shape="rect" id="node7" href="$structRTCSentRtpStreamStats.html" title="RTCSentRtpStreamStats will be used as part of outbound Rtp stats Reference: https://www...." alt="" coords="235,255,413,347"/>
-<area shape="rect" id="node6" href="$structRtcOutboundRtpStreamStats.html" title="RtcOutboundRtpStreamStats Gathers stats for media stream from the embedded device Note: RTCOutboundRt..." alt="" coords="439,505,647,729"/>
-<area shape="rect" id="node8" href="$structDscpPacketsSentRecord.html" title="Record of total number of packets sent per DSCP. Used by RTCOutboundRtpStreamStats object." alt="" coords="437,255,649,347"/>
-<area shape="rect" id="node9" href="$structQualityLimitationDurationsRecord.html" title=" " alt="" coords="673,248,871,355"/>
-<area shape="rect" id="node10" href="$structRtcIceCandidatePairStats.html" title="RtcIceCandidatePairStats Stats related to the local&#45;remote ICE candidate pair." alt="" coords="671,505,878,729"/>
-<area shape="rect" id="node11" href="$structNullableUint32.html" title="Custom data type to allow setting UINT32 data type to NULL since C does not support setting basic dat..." alt="" coords="914,255,1033,347"/>
-<area shape="rect" id="node12" href="$structRtcTransportStats.html" title="RtcTransportStats Represents the stats corresponding to an RTCDtlsTransport and its underlying RTCIce..." alt="" coords="902,476,1141,759"/>
-<area shape="rect" id="node13" href="$structRtcRemoteInboundRtpStreamStats.html" title="RTCRemoteInboundRtpStreamStats Represents the remote endpoint&#39;s measurement metrics for a particular ..." alt="" coords="1165,535,1392,700"/>
-<area shape="rect" id="node14" href="$structRtcIceCandidateStats.html" title=": RtcIceCandidateStats Stats related to a specific candidate in a pair" alt="" coords="1417,535,1578,700"/>
-<area shape="rect" id="node15" href="$structRtcDataChannelStats.html" title=" " alt="" coords="1609,520,1786,715"/>
-<area shape="rect" id="node16" href="$structRtcIceServerStats.html" title=": RtcIceServerStats Stats related to the ICE Server" alt="" coords="1811,535,2008,700"/>
+<area shape="rect" id="Node000001" title="The stats object is populated based on RTCStatsType request." alt="" coords="741,1072,913,1157"/>
+<area shape="rect" id="Node000002" href="$structRtcStatsObject.html" title="RTCStatsObject Represents an object passed in by the application developer which will be populated in..." alt="" coords="771,944,882,1009"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="829,1009,829,1056,824,1056,824,1009"/>
+<area shape="rect" id="Node000003" href="$structRtcIceCandidatePairStats.html" title="RtcIceCandidatePairStats Stats related to the local&#45;remote ICE candidate pair." alt="" coords="5,561,203,827"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="159,825,195,877,217,899,241,918,281,935,337,949,404,959,478,966,628,973,755,974,755,979,628,978,477,971,403,964,336,954,280,940,239,922,213,903,191,880,154,828"/>
+<area shape="rect" id="Node000004" href="$structNullableUint32.html" title="Custom data type to allow setting UINT32 data type to NULL since C does not support setting basic dat..." alt="" coords="49,283,159,369"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="107,369,107,545,101,545,101,369"/>
+<area shape="rect" id="Node000005" href="$structRtcIceCandidateStats.html" title=": RtcIceCandidateStats Stats related to a specific candidate in a pair" alt="" coords="227,601,381,787"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="335,786,353,823,376,860,404,892,439,918,463,928,496,937,580,952,755,969,755,974,579,957,495,942,461,933,436,922,401,896,372,863,349,826,331,788"/>
+<area shape="rect" id="Node000006" href="$structRtcIceServerStats.html" title=": RtcIceServerStats Stats related to the ICE Server" alt="" coords="405,601,595,787"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="544,786,565,822,591,857,622,890,656,918,705,942,756,959,754,964,703,947,653,922,618,894,587,861,561,825,539,788"/>
+<area shape="rect" id="Node000007" href="$structRtcTransportStats.html" title="RtcTransportStats Represents the stats corresponding to an RTCDtlsTransport and its underlying RTCIce..." alt="" coords="619,521,848,867"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="765,866,785,919,791,929,786,932,780,921,760,868"/>
+<area shape="rect" id="Node000008" href="$structRtcOutboundRtpStreamStats.html" title="RtcOutboundRtpStreamStats Gathers stats for media stream from the embedded device Note: RTCOutboundRt..." alt="" coords="1085,561,1285,827"/>
+<area shape="poly" id="edge7_Node000002_Node000008" title=" " alt="" coords="1151,828,1122,879,1104,902,1083,922,1051,938,1004,951,899,970,898,964,1003,946,1049,933,1080,918,1100,898,1118,876,1146,826"/>
+<area shape="rect" id="Node000009" href="$structRTCSentRtpStreamStats.html" title="RTCSentRtpStreamStats will be used as part of outbound Rtp stats Reference: https://www...." alt="" coords="1186,283,1355,369"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="1264,369,1222,546,1217,545,1258,368"/>
+<area shape="rect" id="Node000010" href="$structRTCRtpStreamStats.html" title="RTCRtpStreamStats captures stream stats that will be used as part of RTCSentRtpStreamStats report Ref..." alt="" coords="982,5,1122,131"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="1118,129,1177,192,1236,268,1231,272,1173,195,1114,133"/>
+<area shape="rect" id="Node000015" href="$structRtcReceivedRtpStreamStats.html" title=" " alt="" coords="736,193,933,459"/>
+<area shape="poly" id="edge15_Node000015_Node000010" title=" " alt="" coords="1001,133,946,198,942,194,997,129"/>
+<area shape="rect" id="Node000011" href="$structQualityLimitationDurationsRecord.html" title=" " alt="" coords="1379,276,1570,376"/>
+<area shape="poly" id="edge10_Node000008_Node000011" title=" " alt="" coords="1440,378,1370,461,1334,491,1299,523,1278,549,1274,546,1295,520,1330,487,1366,457,1436,375"/>
+<area shape="rect" id="Node000012" href="$structDscpPacketsSentRecord.html" title="Record of total number of packets sent per DSCP. Used by RTCOutboundRtpStreamStats object." alt="" coords="958,283,1162,369"/>
+<area shape="poly" id="edge11_Node000008_Node000012" title=" " alt="" coords="1063,369,1068,430,1083,497,1101,545,1096,547,1077,498,1063,431,1058,369"/>
+<area shape="rect" id="Node000013" href="$structRtcRemoteInboundRtpStreamStats.html" title="RTCRemoteInboundRtpStreamStats Represents the remote endpoint&#39;s measurement metrics for a particular ..." alt="" coords="1309,604,1528,784"/>
+<area shape="poly" id="edge12_Node000002_Node000013" title=" " alt="" coords="1394,785,1377,823,1355,860,1328,894,1295,922,1264,937,1222,949,1115,965,1000,974,898,977,898,972,999,968,1115,960,1221,943,1262,932,1292,918,1324,890,1351,857,1372,820,1389,783"/>
+<area shape="rect" id="Node000014" href="$structRtcInboundRtpStreamStats.html" title="The RTCInboundRtpStreamStats dictionary represents the measurement metrics for the incoming RTP media..." alt="" coords="872,561,1061,827"/>
+<area shape="poly" id="edge13_Node000002_Node000014" title=" " alt="" coords="938,828,918,876,893,921,883,934,879,930,888,919,913,874,933,826"/>
+<area shape="poly" id="edge14_Node000014_Node000015" title=" " alt="" coords="885,458,916,545,911,547,880,460"/>
+<area shape="rect" id="Node000016" href="$structRtcDataChannelStats.html" title=" " alt="" coords="1555,581,1725,807"/>
+<area shape="poly" id="edge16_Node000002_Node000016" title=" " alt="" coords="1622,808,1610,840,1594,871,1574,899,1548,922,1512,935,1448,946,1268,962,1065,972,899,977,899,971,1065,967,1268,957,1447,941,1510,930,1545,918,1570,895,1590,868,1605,838,1617,806"/>
 </map>

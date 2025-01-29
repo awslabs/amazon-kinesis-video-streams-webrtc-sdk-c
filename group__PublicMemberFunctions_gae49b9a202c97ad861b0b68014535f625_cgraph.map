@@ -1,0 +1,15 @@
+<map id="deinitKvsWebRtc" name="deinitKvsWebRtc">
+<area shape="rect" id="Node000001" title="Deinitializes global state needed for all RtcPeerConnections. It must only be called once." alt="" coords="5,79,137,104"/>
+<area shape="rect" id="Node000002" href="$PeerConnection_8c.html#abbb3bf23f9e3d392a0bfef3e44dd8b14" title=" " alt="" coords="185,29,400,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="128,76,221,55,222,60,130,81"/>
+<area shape="rect" id="Node000005" href="$Sctp_8c.html#a5944157f6ac02b21d2524826b5df1ef7" title=" " alt="" coords="224,79,361,104"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="138,89,210,89,210,94,138,94"/>
+<area shape="rect" id="Node000006" href="$ThreadPoolContext_8c.html#a937a64b071777eee0f6ce20f1cdc2160" title=" " alt="" coords="195,128,390,153"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="130,101,222,122,221,128,128,107"/>
+<area shape="rect" id="Node000003" href="$PeerConnection_8c.html#a28a02578e79fc2032fe9ff8a036d57a5" title=" " alt="" coords="453,5,638,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="400,29,439,25,439,31,400,34"/>
+<area shape="rect" id="Node000004" href="$PeerConnection_8c.html#a74a1c0c3f6d5146d04b8d133ac9369cb" title=" " alt="" coords="459,55,632,80"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="400,50,445,55,445,60,400,55"/>
+<area shape="rect" id="Node000007" href="$ThreadPoolContext_8c.html#acc558c7b88d01ab471649d16ae72028f" title=" " alt="" coords="448,128,643,153"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="390,138,434,138,434,143,390,143"/>
+</map>

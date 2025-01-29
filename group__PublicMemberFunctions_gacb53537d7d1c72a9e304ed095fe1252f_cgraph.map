@@ -1,6 +1,9 @@
 <map id="signalingClientConnectSync" name="signalingClientConnectSync">
-<area shape="rect" id="node1" title="Connects the signaling client to the web socket in order to send/receive messages." alt="" coords="5,42,208,69"/>
-<area shape="rect" id="node2" href="$Signaling_8c.html#a3c2197526080fd2995dddcdb883068de" title=" " alt="" coords="256,42,421,69"/>
-<area shape="rect" id="node3" href="$StateMachine_8c.html#a0e4075886bfd0e7be0b6173ee41adace" title=" " alt="" coords="471,5,686,47"/>
-<area shape="rect" id="node4" href="$StateMachine_8c.html#aadc0cffe12b55f3d81cd3b74244bdc3c" title=" " alt="" coords="469,71,688,98"/>
+<area shape="rect" id="Node000001" title="Connects the signaling client to the web socket in order to send/receive messages." alt="" coords="5,42,208,67"/>
+<area shape="rect" id="Node000002" href="$Signaling_8c.html#a3c2197526080fd2995dddcdb883068de" title=" " alt="" coords="256,42,421,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="208,52,242,52,242,57,208,57"/>
+<area shape="rect" id="Node000003" href="$StateMachine_8c.html#a0e4075886bfd0e7be0b6173ee41adace" title=" " alt="" coords="471,5,686,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="421,42,458,37,458,43,422,47"/>
+<area shape="rect" id="Node000004" href="$StateMachine_8c.html#aadc0cffe12b55f3d81cd3b74244bdc3c" title=" " alt="" coords="469,70,688,95"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="422,62,457,66,456,71,421,67"/>
 </map>

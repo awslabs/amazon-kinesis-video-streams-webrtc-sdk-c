@@ -1,4 +1,5 @@
 <map id="StunAttributeErrorCode" name="StunAttributeErrorCode">
-<area shape="rect" id="node1" title=" " alt="" coords="5,160,177,267"/>
-<area shape="rect" id="node2" href="$structStunAttributeHeader.html" title=" " alt="" coords="14,5,169,97"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,153,169,259"/>
+<area shape="rect" id="Node000002" href="$structStunAttributeHeader.html" title=" " alt="" coords="14,5,161,91"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="90,91,90,136,85,136,85,91"/>
 </map>

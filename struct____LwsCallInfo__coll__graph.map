@@ -1,15 +1,28 @@
 <map id="__LwsCallInfo" name="__LwsCallInfo">
-<area shape="rect" id="node1" title=" " alt="" coords="5,549,156,744"/>
-<area shape="rect" id="node2" href="$structSignalingClient.html" title=" " alt="" coords="728,851,913,1075"/>
-<area shape="rect" id="node3" href="$structSignalingDiagnostics.html" title=" " alt="" coords="180,520,408,773"/>
-<area shape="rect" id="node4" href="$structSignalingClientInfoInternal.html" title=" " alt="" coords="433,535,627,759"/>
-<area shape="rect" id="node5" href="$structSignalingClientInfo.html" title="Populate Signaling client with client ID and application log level." alt="" coords="399,219,661,457"/>
-<area shape="rect" id="node6" href="$structMediaStorageConfig.html" title=" " alt="" coords="651,601,806,693"/>
-<area shape="rect" id="node7" href="$structChannelInfo.html" title="Contains all signaling channel related information." alt="" coords="831,535,995,759"/>
-<area shape="rect" id="node8" href="$structThreadTracker.html" title=" " alt="" coords="1019,586,1132,707"/>
-<area shape="rect" id="node9" href="$structIceConfigInfo.html" title="ICE configuration information struct." alt="" coords="1157,571,1263,722"/>
-<area shape="rect" id="node10" href="$structSignalingClientCallbacks.html" title="Register Signaling client callbacks." alt="" coords="1288,579,1471,715"/>
-<area shape="rect" id="node11" href="$structReceivedSignalingMessage.html" title="Structure defining the signaling message to be received." alt="" coords="1279,285,1479,391"/>
-<area shape="rect" id="node12" href="$structSignalingMessage.html" title="Structure defining the basic signaling message." alt="" coords="1309,5,1449,156"/>
-<area shape="rect" id="node13" href="$structSignalingChannelDescription.html" title="Signaling channel description returned from the service." alt="" coords="1495,557,1704,737"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,600,148,825"/>
+<area shape="rect" id="Node000002" href="$structSignalingClient.html" title=" " alt="" coords="691,937,868,1203"/>
+<area shape="poly" id="edge11_Node000002_Node000001" title=" " alt="" coords="52,825,56,871,63,893,75,912,91,928,114,943,174,971,249,994,335,1014,516,1042,675,1059,674,1064,515,1048,334,1019,248,999,172,976,111,948,88,932,71,915,58,895,50,873,47,826"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="690,1051,490,997,373,959,258,916,231,902,205,886,181,876,159,862,139,840,143,837,162,858,183,872,207,882,234,897,260,911,375,954,491,992,691,1046"/>
+<area shape="rect" id="Node000003" href="$structSignalingClientInfoInternal.html" title=" " alt="" coords="173,580,359,845"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="351,844,384,880,420,911,482,951,549,985,615,1014,676,1036,674,1041,613,1019,546,990,479,956,416,915,380,884,347,847"/>
+<area shape="rect" id="Node000004" href="$structSignalingClientInfo.html" title="Populate Signaling client with client ID and application log level." alt="" coords="129,233,382,503"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="262,503,264,564,259,564,257,503"/>
+<area shape="rect" id="Node000005" href="$structSignalingClientCallbacks.html" title="Register Signaling client callbacks." alt="" coords="384,640,559,785"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="477,785,491,850,503,882,520,912,553,949,592,980,635,1007,677,1028,674,1033,632,1011,589,985,550,953,516,915,498,885,485,852,472,786"/>
+<area shape="rect" id="Node000006" href="$structReceivedSignalingMessage.html" title="Structure defining the signaling message to be received." alt="" coords="406,315,598,421"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="500,421,482,624,477,623,495,421"/>
+<area shape="rect" id="Node000007" href="$structSignalingMessage.html" title="Structure defining the basic signaling message." alt="" coords="436,5,568,171"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="505,171,505,299,499,299,499,171"/>
+<area shape="rect" id="Node000008" href="$structChannelInfo.html" title="Contains all signaling channel related information." alt="" coords="583,580,739,845"/>
+<area shape="poly" id="edge7_Node000002_Node000008" title=" " alt="" coords="691,845,711,913,714,921,709,923,706,914,686,847"/>
+<area shape="rect" id="Node000009" href="$structSignalingChannelDescription.html" title="Signaling channel description returned from the service." alt="" coords="763,610,964,815"/>
+<area shape="poly" id="edge8_Node000002_Node000009" title=" " alt="" coords="842,816,817,922,812,921,837,815"/>
+<area shape="rect" id="Node000010" href="$structMediaStorageConfig.html" title=" " alt="" coords="989,670,1135,755"/>
+<area shape="poly" id="edge9_Node000002_Node000010" title=" " alt="" coords="1051,757,1019,833,996,875,969,915,928,960,883,1000,880,996,925,956,965,912,992,873,1014,831,1046,754"/>
+<area shape="rect" id="Node000011" href="$structIceConfigInfo.html" title="ICE configuration information struct." alt="" coords="1159,630,1258,795"/>
+<area shape="poly" id="edge10_Node000002_Node000011" title=" " alt="" coords="1197,797,1176,858,1159,888,1139,915,1111,941,1081,964,1016,1001,948,1030,885,1049,883,1044,946,1025,1014,997,1078,959,1108,937,1135,912,1155,885,1171,856,1192,795"/>
+<area shape="rect" id="Node000012" href="$structThreadTracker.html" title=" " alt="" coords="1283,650,1388,775"/>
+<area shape="poly" id="edge12_Node000002_Node000012" title=" " alt="" coords="1324,776,1312,812,1296,849,1274,884,1246,915,1206,947,1161,974,1114,997,1066,1016,970,1044,885,1060,884,1055,969,1038,1064,1011,1112,992,1159,969,1203,943,1243,911,1270,881,1291,846,1307,810,1319,775"/>
+<area shape="rect" id="Node000013" href="$structSignalingDiagnostics.html" title=" " alt="" coords="1412,565,1632,860"/>
+<area shape="poly" id="edge13_Node000002_Node000013" title=" " alt="" coords="1459,862,1436,891,1409,915,1347,956,1280,988,1210,1014,1138,1034,1068,1049,1001,1059,885,1070,884,1065,1000,1054,1067,1044,1137,1029,1208,1009,1278,983,1344,951,1406,911,1432,887,1455,859"/>
 </map>

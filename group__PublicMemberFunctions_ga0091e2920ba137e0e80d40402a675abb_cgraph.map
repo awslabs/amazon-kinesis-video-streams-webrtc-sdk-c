@@ -1,0 +1,28 @@
+<map id="initKvsWebRtc" name="initKvsWebRtc">
+<area shape="rect" id="Node000001" title="Initializes global state needed for all RtcPeerConnections. It must only be called once." alt="" coords="5,104,121,129"/>
+<area shape="rect" id="Node000002" href="$ThreadPoolContext_8c.html#a92d437785ef0ef55afb88dd4d4c554d2" title=" " alt="" coords="179,55,365,80"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="116,101,169,89,203,81,204,86,170,94,117,107"/>
+<area shape="rect" id="Node000004" href="$PeerConnection_8c.html#a7e9316f29961fb166a64cd87b7959f30" title=" " alt="" coords="169,104,375,129"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="122,114,156,114,156,119,122,119"/>
+<area shape="rect" id="Node000007" href="$Sctp_8c.html#ad85436a428a275a11746838ca0a7229e" title=" " alt="" coords="211,227,333,252"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="83,127,171,188,230,218,228,223,168,192,80,132"/>
+<area shape="rect" id="Node000009" href="$PeerConnection_8c.html#a17f6eac8bf12bafca3e138f62450754e" title=" " alt="" coords="186,153,358,179"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="118,127,205,148,204,153,117,132"/>
+<area shape="rect" id="Node000012" href="$ThreadPoolContext_8c.html#a699e80c90be085434e9270138225e5de" title=" " alt="" coords="185,5,359,31"/>
+<area shape="poly" id="edge13_Node000001_Node000012" title=" " alt="" coords="77,102,116,71,168,40,187,32,189,37,171,44,119,75,80,106"/>
+<area shape="rect" id="Node000003" href="$ThreadPoolContext_8c.html#acc558c7b88d01ab471649d16ae72028f" title=" " alt="" coords="423,5,617,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="336,52,442,31,443,36,337,57"/>
+<area shape="rect" id="Node000005" href="$PeerConnection_8c.html#a28a02578e79fc2032fe9ff8a036d57a5" title=" " alt="" coords="427,55,613,80"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="336,101,442,80,443,85,337,107"/>
+<area shape="rect" id="Node000006" href="$PeerConnection_8c.html#a74a1c0c3f6d5146d04b8d133ac9369cb" title=" " alt="" coords="433,104,607,129"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="375,114,420,114,420,119,375,119"/>
+<area shape="rect" id="Node000008" href="$Sctp_8c.html#a34b376f7c6cca95ab3d86b7b58296058" title=" " alt="" coords="435,252,605,277"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="333,243,421,252,421,257,332,248"/>
+<area shape="poly" id="edge11_Node000009_Node000005" title=" " alt="" coords="345,151,373,138,388,127,396,114,406,102,421,89,434,83,437,87,424,94,410,105,401,118,392,130,376,143,347,156"/>
+<area shape="poly" id="edge12_Node000009_Node000006" title=" " alt="" coords="336,151,442,129,443,135,337,156"/>
+<area shape="rect" id="Node000010" href="$Network_8c.html#afaa547109e09c5a34437553b7258e818" title=" " alt="" coords="469,153,571,179"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="358,163,455,163,455,169,358,169"/>
+<area shape="rect" id="Node000011" href="$PeerConnection_8c.html#a238f88868aca090e6df3157964aff17c" title=" " alt="" coords="469,203,571,228"/>
+<area shape="poly" id="edge10_Node000009_Node000011" title=" " alt="" coords="337,176,455,200,454,205,336,181"/>
+<area shape="poly" id="edge14_Node000012_Node000003" title=" " alt="" coords="359,15,409,15,409,21,359,21"/>
+</map>

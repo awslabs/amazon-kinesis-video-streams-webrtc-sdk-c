@@ -1,4 +1,5 @@
 <map id="StunAttributeChangeRequest" name="StunAttributeChangeRequest">
-<area shape="rect" id="node1" title=" " alt="" coords="5,160,216,237"/>
-<area shape="rect" id="node2" href="$structStunAttributeHeader.html" title=" " alt="" coords="33,5,188,97"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,153,208,219"/>
+<area shape="rect" id="Node000002" href="$structStunAttributeHeader.html" title=" " alt="" coords="33,5,180,91"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="109,91,109,137,104,137,104,91"/>
 </map>

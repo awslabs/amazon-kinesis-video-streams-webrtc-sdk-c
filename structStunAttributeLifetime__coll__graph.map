@@ -1,4 +1,5 @@
 <map id="StunAttributeLifetime" name="StunAttributeLifetime">
-<area shape="rect" id="node1" title=" " alt="" coords="5,160,168,237"/>
-<area shape="rect" id="node2" href="$structStunAttributeHeader.html" title=" " alt="" coords="9,5,164,97"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,153,160,219"/>
+<area shape="rect" id="Node000002" href="$structStunAttributeHeader.html" title=" " alt="" coords="9,5,156,91"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="85,91,85,137,80,137,80,91"/>
 </map>

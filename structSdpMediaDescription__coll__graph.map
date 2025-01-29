@@ -1,6 +1,9 @@
 <map id="SdpMediaDescription" name="SdpMediaDescription">
-<area shape="rect" id="node1" title=" " alt="" coords="156,175,341,296"/>
-<area shape="rect" id="node2" href="$structSdpEncryptionKey.html" title=" " alt="" coords="5,13,159,105"/>
-<area shape="rect" id="node3" href="$structSdpAttributes.html" title=" " alt="" coords="183,13,315,105"/>
-<area shape="rect" id="node4" href="$structSdpConnectionInformation.html" title=" " alt="" coords="339,5,534,112"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="229,173,406,299"/>
+<area shape="rect" id="Node000002" href="$structSdpConnectionInformation.html" title=" " alt="" coords="5,5,192,111"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="107,110,115,130,126,148,145,166,166,181,214,205,212,210,164,186,141,170,122,151,110,132,102,112"/>
+<area shape="rect" id="Node000003" href="$structSdpEncryptionKey.html" title=" " alt="" coords="245,15,390,101"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="320,101,320,157,315,157,315,101"/>
+<area shape="rect" id="Node000004" href="$structSdpAttributes.html" title=" " alt="" coords="418,15,542,101"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="475,102,467,127,453,151,421,182,417,179,449,148,462,125,470,100"/>
 </map>

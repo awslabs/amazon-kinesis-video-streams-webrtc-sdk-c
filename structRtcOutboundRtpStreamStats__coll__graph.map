@@ -1,7 +1,11 @@
 <map id="RtcOutboundRtpStreamStats" name="RtcOutboundRtpStreamStats">
-<area shape="rect" id="node1" title="RtcOutboundRtpStreamStats Gathers stats for media stream from the embedded device Note: RTCOutboundRt..." alt="" coords="209,359,417,583"/>
-<area shape="rect" id="node2" href="$structRTCSentRtpStreamStats.html" title="RTCSentRtpStreamStats will be used as part of outbound Rtp stats Reference: https://www...." alt="" coords="5,197,183,289"/>
-<area shape="rect" id="node3" href="$structRTCRtpStreamStats.html" title="RTCRtpStreamStats captures stream stats that will be used as part of RTCSentRtpStreamStats report Ref..." alt="" coords="20,5,168,127"/>
-<area shape="rect" id="node4" href="$structDscpPacketsSentRecord.html" title="Record of total number of packets sent per DSCP. Used by RTCOutboundRtpStreamStats object." alt="" coords="207,197,419,289"/>
-<area shape="rect" id="node5" href="$structQualityLimitationDurationsRecord.html" title=" " alt="" coords="443,189,641,296"/>
+<area shape="rect" id="Node000001" title="RtcOutboundRtpStreamStats Gathers stats for media stream from the embedded device Note: RTCOutboundRt..." alt="" coords="194,356,394,621"/>
+<area shape="rect" id="Node000002" href="$structRTCSentRtpStreamStats.html" title="RTCSentRtpStreamStats will be used as part of outbound Rtp stats Reference: https://www...." alt="" coords="5,201,175,286"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="127,285,185,354,181,357,123,288"/>
+<area shape="rect" id="Node000003" href="$structRTCRtpStreamStats.html" title="RTCRtpStreamStats captures stream stats that will be used as part of RTCSentRtpStreamStats report Ref..." alt="" coords="20,5,160,131"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="93,131,93,184,87,184,87,131"/>
+<area shape="rect" id="Node000004" href="$structQualityLimitationDurationsRecord.html" title=" " alt="" coords="199,193,389,293"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="297,294,297,339,291,339,291,294"/>
+<area shape="rect" id="Node000005" href="$structDscpPacketsSentRecord.html" title="Record of total number of packets sent per DSCP. Used by RTCOutboundRtpStreamStats object." alt="" coords="413,201,617,286"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="509,287,501,311,488,334,451,377,409,415,405,411,447,374,484,330,496,309,504,285"/>
 </map>

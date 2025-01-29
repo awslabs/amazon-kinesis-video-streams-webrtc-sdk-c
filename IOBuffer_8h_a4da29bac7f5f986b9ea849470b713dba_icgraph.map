@@ -1,8 +1,0 @@
-<map id="createIOBuffer" name="createIOBuffer">
-<area shape="rect" id="node1" title=" " alt="" coords="688,35,804,61"/>
-<area shape="rect" id="node2" href="$Dtls_8h.html#ac281e5a858d8c8ef0df8b26768d0663b" title=" " alt="" coords="501,8,640,35"/>
-<area shape="rect" id="node4" href="$Tls_8h.html#a2adef1296769de182eb886ea34a968c4" title=" " alt="" coords="505,60,637,87"/>
-<area shape="rect" id="node3" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="269,5,435,32"/>
-<area shape="rect" id="node5" href="$SocketConnection_8c.html#a0842946fe56ca18ca71603a5521ea36f" title=" " alt="" coords="251,57,453,98"/>
-<area shape="rect" id="node6" href="$TurnConnectionStateMachine_8c.html#a76754fb751b1533ba3789bc800d679ea" title=" " alt="" coords="5,57,203,98"/>
-</map>

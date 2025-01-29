@@ -1,7 +1,11 @@
 <map id="signalingClientGetIceConfigInfo" name="signalingClientGetIceConfigInfo">
-<area shape="rect" id="node1" title="Gets the ICE configuration information object given its index." alt="" coords="5,42,232,69"/>
-<area shape="rect" id="node2" href="$Signaling_8c.html#ab9b7621274b4242cf08805da561654be" title=" " alt="" coords="280,42,469,69"/>
-<area shape="rect" id="node3" href="$Signaling_8c.html#aae4b8c10c0051d05e7aaef586326afea" title=" " alt="" coords="517,42,692,69"/>
-<area shape="rect" id="node4" href="$StateMachine_8c.html#a0e4075886bfd0e7be0b6173ee41adace" title=" " alt="" coords="742,5,957,47"/>
-<area shape="rect" id="node5" href="$StateMachine_8c.html#aadc0cffe12b55f3d81cd3b74244bdc3c" title=" " alt="" coords="740,71,959,98"/>
+<area shape="rect" id="Node000001" title="Gets the ICE configuration information object given its index." alt="" coords="5,42,232,67"/>
+<area shape="rect" id="Node000002" href="$Signaling_8c.html#ab9b7621274b4242cf08805da561654be" title=" " alt="" coords="280,42,469,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="232,52,266,52,266,57,232,57"/>
+<area shape="rect" id="Node000003" href="$Signaling_8c.html#aae4b8c10c0051d05e7aaef586326afea" title=" " alt="" coords="517,42,692,67"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="470,52,504,52,504,57,470,57"/>
+<area shape="rect" id="Node000004" href="$StateMachine_8c.html#a0e4075886bfd0e7be0b6173ee41adace" title=" " alt="" coords="742,5,957,45"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="692,42,728,37,729,42,692,47"/>
+<area shape="rect" id="Node000005" href="$StateMachine_8c.html#aadc0cffe12b55f3d81cd3b74244bdc3c" title=" " alt="" coords="740,70,959,95"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="692,62,727,66,726,71,692,67"/>
 </map>
