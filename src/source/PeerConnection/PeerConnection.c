@@ -1909,7 +1909,7 @@ static STATUS twccRollingWindowDeletion(PKvsPeerConnection pKvsPeerConnection, P
         }
         // reset before next iteration
         tempTwccRtpPktInfo = NULL;
-    } while (!isCheckComplete && updatedSeqNum != (endingSeqNum + 1));
+    } while (!isCheckComplete && updatedSeqNum != (UINT16) (endingSeqNum + 1));
 
     // Update regardless. The loop checks until current RTP packets seq number irrespective of the failure
     pKvsPeerConnection->pTwccManager->firstSeqNumInRollingWindow = updatedSeqNum;

@@ -344,7 +344,7 @@ STATUS updateTwccHashTable(PTwccManager pTwccManager, PINT64 duration, PUINT64 r
     // We also check for twcc->lastReportedSeqNum + 1 to include the last seq number in the
     // report. Without this, we do not check for the seqNum that could cause it to not be cleared
     // from memory
-    for (seqNum = baseSeqNum; seqNum != (pTwccManager->lastReportedSeqNum + 1); seqNum++) {
+    for (seqNum = baseSeqNum; seqNum != (UINT16) (pTwccManager->lastReportedSeqNum + 1); seqNum++) {
         if (!localStartTimeRecorded) {
             // This could happen if the prev packet was deleted as part of rolling window or if there
             // is an overlap of RTP packet statuses between TWCC packets. This could also fail if it is

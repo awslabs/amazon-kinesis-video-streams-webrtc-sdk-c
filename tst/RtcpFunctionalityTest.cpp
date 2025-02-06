@@ -471,6 +471,44 @@ TEST_F(RtcpFunctionalityTest, updateTwccHashTableTest)
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
+TEST_F(RtcpFunctionalityTest, updateTwccHashTableIntPromotionCase) {
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    RtcConfiguration config{};
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+    PTwccRtpPacketInfo pTwccRtpPacketInfo = NULL;
+    INT64 duration = 0;
+    UINT64 receivedBytes = 0, receivedPackets = 0, sentBytes = 0, sentPackets = 0;
+    UINT16 i;
+
+    // Grab the hash table
+    PHashTable pTwccRtpPktInfosHashTable = pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable;
+    UINT16 hashTableInsertionCount = 0;
+
+    // Set up the hash table
+    pKvsPeerConnection->pTwccManager->prevReportedBaseSeqNum = UINT16_MAX;
+    pKvsPeerConnection->pTwccManager->lastReportedSeqNum = UINT16_MAX;
+
+    // Add packet at UINT16_MAX
+    pTwccRtpPacketInfo = (PTwccRtpPacketInfo) MEMCALLOC(1, SIZEOF(TwccRtpPacketInfo));
+    EXPECT_EQ(STATUS_SUCCESS, hashTableUpsert(pTwccRtpPktInfosHashTable, UINT16_MAX, (UINT64) pTwccRtpPacketInfo));
+    hashTableInsertionCount++;
+
+    // Even though pTwccManager->lastReportedSeqNum is a UINT16, (pTwccManager->lastReportedSeqNum + 1) can get
+    // promoted to an int (32) when pTwccManager->lastReportedSeqNum == UINT16_MAX
+    EXPECT_EQ(STATUS_SUCCESS, updateTwccHashTable(pKvsPeerConnection->pTwccManager, &duration,
+                                                  &receivedBytes, &receivedPackets,
+                                                  &sentBytes, &sentPackets));
+
+    EXPECT_EQ(0, pTwccRtpPktInfosHashTable->itemCount);  // Ensure the table is cleared again
+
+    MUTEX_LOCK(pKvsPeerConnection->twccLock);
+    MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
