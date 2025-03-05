@@ -1916,7 +1916,7 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
     callback.turnStateFailedFn = turnStateFailedFn;
 
     CHK_STATUS(createTurnConnection(&pIceAgent->iceServers[iceServerIndex], pIceAgent->timerQueueHandle,
-                                    TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDIDATION, protocol, &callback, pNewCandidate->pSocketConnection,
+                                    NULL, protocol, &callback, pNewCandidate->pSocketConnection,
                                     pIceAgent->pConnectionListener, &pTurnConnection));
     pNewCandidate->pIceAgent = pIceAgent;
     pNewCandidate->pTurnConnection = pTurnConnection;
