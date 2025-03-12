@@ -794,14 +794,13 @@ CleanUp:
     return retStatus;
 }
 
-STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE roleType, BOOL trickleIce, BOOL useTurn, UINT32 logLevel,
-                                 PSampleConfiguration* ppSampleConfiguration)
+STATUS createSampleConfiguration(PCreateSampleConfigurationParams pCreateSampleConfigurationParams, PSampleConfiguration* ppSampleConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR pAccessKey, pSecretKey, pSessionToken;
     PSampleConfiguration pSampleConfiguration = NULL;
 
-    CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
+    CHK(ppSampleConfiguration != NULL && pCreateSampleConfigurationParams != NULL, STATUS_NULL_ARG);
 
     CHK(NULL != (pSampleConfiguration = (PSampleConfiguration) MEMCALLOC(1, SIZEOF(SampleConfiguration))), STATUS_NOT_ENOUGH_MEMORY);
 
@@ -870,23 +869,39 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->signalingSendMessageLock = MUTEX_CREATE(FALSE);
     /* This is ignored for master. Master can extract the info from offer. Viewer has to know if peer can trickle or
      * not ahead of time. */
-    pSampleConfiguration->trickleIce = trickleIce;
-    pSampleConfiguration->useTurn = useTurn;
+    pSampleConfiguration->trickleIce = pCreateSampleConfigurationParams->trickleIce;
+    pSampleConfiguration->useTurn = pCreateSampleConfigurationParams->useTurn;
     pSampleConfiguration->enableSendingMetricsToViewerViaDc = FALSE;
     pSampleConfiguration->receiveAudioVideoSource = NULL;
 
     pSampleConfiguration->channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
-    pSampleConfiguration->channelInfo.pChannelName = channelName;
+    pSampleConfiguration->channelInfo.pChannelName = pCreateSampleConfigurationParams->channelName;
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
     if ((pIotCoreCertificateId = GETENV(IOT_CORE_CERTIFICATE_ID)) != NULL) {
         pSampleConfiguration->channelInfo.pChannelName = pIotCoreCertificateId;
     }
 #endif
+
+    if(pCreateSampleConfigurationParams->useDualStackEndpoints) {
+        // Create the custom fully qualified control plane endpoint, sans the legacy/dual-stack postfix.
+        SNPRINTF(pSampleConfiguration->customControlPlaneEndpoint, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME, pSampleConfiguration->channelInfo.pRegion);
+
+        if (STRSTR(pSampleConfiguration->channelInfo.pRegion, "cn-")) {
+            STRCAT(pSampleConfiguration->customControlPlaneEndpoint, CONTROL_PLANE_URI_POSTFIX_CN_DUAL_STACK); // Will use CN region dual-stack endpoint.
+        } else {
+            STRCAT(pSampleConfiguration->customControlPlaneEndpoint, CONTROL_PLANE_URI_POSTFIX_DUAL_STACK); // Will use Dual-stack endpoint.
+        }
+
+        pSampleConfiguration->channelInfo.pControlPlaneUrl = pSampleConfiguration->customControlPlaneEndpoint;
+    } else {
+        pSampleConfiguration->channelInfo.pControlPlaneUrl = NULL; // Will use default legacy endpoints.
+    }
+
     pSampleConfiguration->channelInfo.pKmsKeyId = NULL;
     pSampleConfiguration->channelInfo.tagCount = 0;
     pSampleConfiguration->channelInfo.pTags = NULL;
     pSampleConfiguration->channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
-    pSampleConfiguration->channelInfo.channelRoleType = roleType;
+    pSampleConfiguration->channelInfo.channelRoleType = pCreateSampleConfigurationParams->roleType;
     pSampleConfiguration->channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_FILE;
     pSampleConfiguration->channelInfo.cachingPeriod = SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE;
     pSampleConfiguration->channelInfo.asyncIceServerConfig = TRUE; // has no effect
@@ -901,7 +916,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->signalingClientCallbacks.customData = (UINT64) pSampleConfiguration;
 
     pSampleConfiguration->clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    pSampleConfiguration->clientInfo.loggingLevel = logLevel;
+    pSampleConfiguration->clientInfo.loggingLevel = pCreateSampleConfigurationParams->logLevel;
     pSampleConfiguration->clientInfo.cacheFilePath = NULL; // Use the default path
     pSampleConfiguration->clientInfo.signalingClientCreationMaxRetryAttempts = CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE;
     pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
