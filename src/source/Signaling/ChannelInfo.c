@@ -64,7 +64,7 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
         pRegionPtr = DEFAULT_AWS_REGION;
     }
 
-    if (pOrigChannelInfo->pControlPlaneUrl != NULL) {
+    if (pOrigChannelInfo->pControlPlaneUrl != NULL && *pOrigChannelInfo->pControlPlaneUrl != '\0') {
         CHK((cpUrlLen = (UINT32) STRNLEN(pOrigChannelInfo->pControlPlaneUrl, MAX_URI_CHAR_LEN + 1)) <= MAX_URI_CHAR_LEN,
             STATUS_SIGNALING_INVALID_CPL_LENGTH);
     } else {
