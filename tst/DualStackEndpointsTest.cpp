@@ -18,7 +18,7 @@ TEST_F(DualStackEndpointsTest, customControlPlaneEndpointBasicCase)
     CHAR originalCustomControlPlaneUrl[MAX_CONTROL_PLANE_URI_CHAR_LEN] = "https://kinesisvideo.us-west-2.api.aws";
     CHAR validatedCustomControlPlaneUrl[MAX_CONTROL_PLANE_URI_CHAR_LEN]  =  {0};
 
-    // Make a deep copy of customControlPlaneUrl into validatedCustomControlPlaneUrl to save the value for later comparison.
+    // Make a deep copy of originalCustomControlPlaneUrl into validatedCustomControlPlaneUrl to save the value for later comparison.
     strncpy(validatedCustomControlPlaneUrl, originalCustomControlPlaneUrl, MAX_CONTROL_PLANE_URI_CHAR_LEN);
     validatedCustomControlPlaneUrl[MAX_CONTROL_PLANE_URI_CHAR_LEN - 1] = '\0';
     
