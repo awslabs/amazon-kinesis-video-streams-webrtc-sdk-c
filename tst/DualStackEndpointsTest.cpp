@@ -12,122 +12,122 @@ class DualStackEndpointsTest : public WebRtcClientTestBase {
 TEST_F(DualStackEndpointsTest, customControlPlaneEndpointBasicCase)
 {
     STATUS retStatus;
-    ChannelInfo originalChannelInfo;
-    memset(&originalChannelInfo, 0, sizeof(originalChannelInfo));
+    ChannelInfo channelInfo;
+    memset(&channelInfo, 0, sizeof(channelInfo));
+    PChannelInfo pChannelInfo;
+    CHAR originalCustomControlPlaneUrl[MAX_CONTROL_PLANE_URI_CHAR_LEN] = "https://kinesisvideo.us-west-2.api.aws";
+    CHAR validatedCustomControlPlaneUrl[MAX_CONTROL_PLANE_URI_CHAR_LEN]  =  {0};
 
-    ChannelInfo validatedChannelInfo;
-    memset(&validatedChannelInfo, 0, sizeof(validatedChannelInfo));
-    PChannelInfo pValidatedChannelInfo = &validatedChannelInfo;
-
-    CHAR originalControlPlaneUrl[MAX_CONTROL_PLANE_URI_CHAR_LEN] = "https://kinesisvideo.us-west-2.api.aws";
-    CHAR validatedControlPlaneUrl[MAX_CONTROL_PLANE_URI_CHAR_LEN]  =  {0};
+    // Make a deep copy of customControlPlaneUrl into validatedCustomControlPlaneUrl to save the value for later comparison.
+    strncpy(validatedCustomControlPlaneUrl, originalCustomControlPlaneUrl, MAX_CONTROL_PLANE_URI_CHAR_LEN);
+    validatedCustomControlPlaneUrl[MAX_CONTROL_PLANE_URI_CHAR_LEN - 1] = '\0';
+    
+    channelInfo.pControlPlaneUrl = (PCHAR) validatedCustomControlPlaneUrl;
 
     // pChannelName must be set to make the createValidateChannelInfo call.
-    originalChannelInfo.pChannelName = "TestChannelName";
+    channelInfo.pChannelName = "TestChannelName";
 
-    // Make a deep copy of originalControlPlaneUrl into validatedControlPlaneUrl.
-    strncpy(validatedControlPlaneUrl, originalControlPlaneUrl, MAX_CONTROL_PLANE_URI_CHAR_LEN);
-    validatedControlPlaneUrl[MAX_CONTROL_PLANE_URI_CHAR_LEN - 1] = '\0';
+    EXPECT_EQ(STATUS_SUCCESS, createValidateChannelInfo(&channelInfo, &pChannelInfo));
 
-    originalChannelInfo.pControlPlaneUrl = (PCHAR) validatedControlPlaneUrl;
+    // Validate the ChanelInfo's Control Plane URL against the originalCustomControlPlaneUrl.
+    EXPECT_STREQ(pChannelInfo->pControlPlaneUrl, (PCHAR) originalCustomControlPlaneUrl);
 
-    EXPECT_EQ(STATUS_SUCCESS, createValidateChannelInfo(&originalChannelInfo, &pValidatedChannelInfo));
-
-    // Validate the ChanelInfo's Control Plane URL against originalControlPlaneUrl in case createValidateChannelInfo
-    //      modified validatedControlPlaneUrl.
-    EXPECT_STREQ(pValidatedChannelInfo->pControlPlaneUrl, (PCHAR) originalControlPlaneUrl);
+    freeChannelInfo(&pChannelInfo);
 }
 
 TEST_F(DualStackEndpointsTest, customControlPlaneEndpointEdgeCases)
 {
     STATUS retStatus;
-    ChannelInfo originalChannelInfo;
-    memset(&originalChannelInfo, 0, sizeof(originalChannelInfo));
-
-    ChannelInfo validatedChannelInfo;
-    memset(&validatedChannelInfo, 0, sizeof(validatedChannelInfo));
-    PChannelInfo pValidatedChannelInfo = &validatedChannelInfo;
-
+    ChannelInfo channelInfo;
+    memset(&channelInfo, 0, sizeof(channelInfo));
+    PChannelInfo pChannelInfo;
+    
     // TODO: Verify why we use MAX_URI_CHAR_LEN instead of MAX_CONTROL_PLANE_URI_CHAR_LEN for the custom URL.
     // MAX_URI_CHAR_LEN does not include the null terminator, so add 1.
-    CHAR originalControlPlaneUrl[MAX_URI_CHAR_LEN + 1] =  {0};
-    CHAR validatedControlPlaneUrl[MAX_URI_CHAR_LEN + 1] =  {0};
-
+    CHAR originalCustomControlPlaneUrl[MAX_URI_CHAR_LEN + 1] =  {0};
+    CHAR validatedCustomControlPlaneUrl[MAX_URI_CHAR_LEN + 1] =  {0};
     CHAR expectedSdkGeneratedUri[MAX_CONTROL_PLANE_URI_CHAR_LEN] = {0};
 
-    // createValidateChannelInfo will use DEFAULT_AWS_REGION to generate a URL if needed
-    // since we are not setting a region on originalChannelInfo.
+    // If createValidateChannelInfo needs to generate the URL, it will use DEFAULT_AWS_REGION since
+    // we are not setting a region on ChannelInfo.
     SNPRINTF(expectedSdkGeneratedUri, sizeof(expectedSdkGeneratedUri), "%s%s.%s%s",
              CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME, DEFAULT_AWS_REGION, CONTROL_PLANE_URI_POSTFIX);
     
+    channelInfo.pControlPlaneUrl = (PCHAR) validatedCustomControlPlaneUrl;
+
     // pChannelName must be set to make the createValidateChannelInfo call.
-    originalChannelInfo.pChannelName = "TestChannelName";
+    channelInfo.pChannelName = "TestChannelName";
 
 
     /* MAX URL ARRAY LENGTH (expect the custom URL be used) */
 
     // Fill array full of non-null values, accounting for null terminator.
-    memset(originalControlPlaneUrl, 'X', sizeof(originalControlPlaneUrl));
-    originalControlPlaneUrl[sizeof(originalControlPlaneUrl) - 1] = '\0';
+    memset(originalCustomControlPlaneUrl, 'X', sizeof(originalCustomControlPlaneUrl));
+    originalCustomControlPlaneUrl[sizeof(originalCustomControlPlaneUrl) - 1] = '\0';
 
-    // Make a deep copy of originalControlPlaneUrl into validatedControlPlaneUrl.
-    strncpy(validatedControlPlaneUrl, originalControlPlaneUrl, sizeof(validatedControlPlaneUrl));
-    validatedControlPlaneUrl[sizeof(validatedControlPlaneUrl) - 1] = '\0';
+    // Make a deep copy of originalCustomControlPlaneUrl into validatedCustomControlPlaneUrl to save the value for
+    //      later comparison in case createValidateChannelInfo modified validatedCustomControlPlaneUrl.
+    strncpy(validatedCustomControlPlaneUrl, originalCustomControlPlaneUrl, sizeof(validatedCustomControlPlaneUrl));
+    validatedCustomControlPlaneUrl[sizeof(validatedCustomControlPlaneUrl) - 1] = '\0';
 
-    originalChannelInfo.pControlPlaneUrl = (PCHAR) validatedControlPlaneUrl;
+    channelInfo.pControlPlaneUrl = (PCHAR) validatedCustomControlPlaneUrl;
 
-    EXPECT_EQ(STATUS_SUCCESS, createValidateChannelInfo(&originalChannelInfo, &pValidatedChannelInfo));
+    EXPECT_EQ(STATUS_SUCCESS, createValidateChannelInfo(&channelInfo, &pChannelInfo));
 
-    // Validate the ChanelInfo's Control Plane URL against originalControlPlaneUrl in case createValidateChannelInfo
-    //      modified validatedControlPlaneUrl.
-    EXPECT_STREQ(pValidatedChannelInfo->pControlPlaneUrl, (PCHAR) originalControlPlaneUrl);
+    // Validate the ChanelInfo's Control Plane URL against originalCustomControlPlaneUrl in case createValidateChannelInfo
+    //      modified validatedCustomControlPlaneUrl.
+    EXPECT_STREQ(pChannelInfo->pControlPlaneUrl, (PCHAR) originalCustomControlPlaneUrl);
+    freeChannelInfo(&pChannelInfo);
 
 
     /* EMPTY URL ARRAY (expect SDK to construct a proper URL) */
 
     // Fill array with null values.
-    memset(validatedControlPlaneUrl, 0, sizeof(validatedControlPlaneUrl));
+    memset(validatedCustomControlPlaneUrl, 0, sizeof(validatedCustomControlPlaneUrl));
 
-    originalChannelInfo.pControlPlaneUrl = (PCHAR) validatedControlPlaneUrl;
+    channelInfo.pControlPlaneUrl = (PCHAR) validatedCustomControlPlaneUrl;
 
-    EXPECT_EQ(STATUS_SUCCESS, createValidateChannelInfo(&originalChannelInfo, &pValidatedChannelInfo));
-    EXPECT_STREQ(pValidatedChannelInfo->pControlPlaneUrl, (PCHAR) expectedSdkGeneratedUri);
+    EXPECT_EQ(STATUS_SUCCESS, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+
+    // Validate the ChanelInfo's Control Plane URL should be the default one the SDK generated.
+    EXPECT_STREQ(pChannelInfo->pControlPlaneUrl, (PCHAR) expectedSdkGeneratedUri);
+    freeChannelInfo(&pChannelInfo);
 
 
     /* NULL URL ARRAY (expect SDK to construct a proper URL) */
 
-    originalChannelInfo.pControlPlaneUrl = (PCHAR) NULL;
+    channelInfo.pControlPlaneUrl = (PCHAR) NULL;
 
-    EXPECT_EQ(STATUS_SUCCESS, createValidateChannelInfo(&originalChannelInfo, &pValidatedChannelInfo));
-    EXPECT_STREQ(pValidatedChannelInfo->pControlPlaneUrl, (PCHAR) expectedSdkGeneratedUri);
+    EXPECT_EQ(STATUS_SUCCESS, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+    EXPECT_STREQ(pChannelInfo->pControlPlaneUrl, (PCHAR) expectedSdkGeneratedUri);
+    freeChannelInfo(&pChannelInfo);
 }
 
 
 TEST_F(DualStackEndpointsTest, customControlPlaneMaxEndpointLengthFailingCase)
 {
     STATUS retStatus;
-    ChannelInfo originalChannelInfo;
-    memset(&originalChannelInfo, 0, sizeof(originalChannelInfo));
+    ChannelInfo channelInfo;
+    memset(&channelInfo, 0, sizeof(channelInfo));
+    PChannelInfo pChannelInfo;
 
-    ChannelInfo validatedChannelInfo;
-    memset(&validatedChannelInfo, 0, sizeof(validatedChannelInfo));
-    PChannelInfo pValidatedChannelInfo = &validatedChannelInfo;
-
+    
     /* Exceed MAX URL ARRAY LENGTH (expect SDK to error out) */
 
     // MAX_URI_CHAR_LEN does not include the null terminator, so add 2.
-    CHAR originalControlPlaneUrl[MAX_URI_CHAR_LEN + 2] =  {0};
+    CHAR customControlPlaneUrl[MAX_URI_CHAR_LEN + 2] =  {0};
 
     // pChannelName must be set to make the createValidateChannelInfo call.
-    originalChannelInfo.pChannelName = "TestChannelName";
+    channelInfo.pChannelName = "TestChannelName";
 
     // Fill array full of non-null values, accounting for null terminator.
-    memset(originalControlPlaneUrl, 'X', sizeof(originalControlPlaneUrl));
-    originalControlPlaneUrl[sizeof(originalControlPlaneUrl) - 1] = '\0';
+    memset(customControlPlaneUrl, 'X', sizeof(customControlPlaneUrl));
+    customControlPlaneUrl[sizeof(customControlPlaneUrl) - 1] = '\0';
 
-    originalChannelInfo.pControlPlaneUrl = (PCHAR) originalControlPlaneUrl;
+    channelInfo.pControlPlaneUrl = (PCHAR) customControlPlaneUrl;
 
-    EXPECT_EQ(STATUS_SIGNALING_INVALID_CPL_LENGTH, createValidateChannelInfo(&originalChannelInfo, &pValidatedChannelInfo));
+    EXPECT_EQ(STATUS_SIGNALING_INVALID_CPL_LENGTH, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+    freeChannelInfo(&pChannelInfo);
 }
 
 
