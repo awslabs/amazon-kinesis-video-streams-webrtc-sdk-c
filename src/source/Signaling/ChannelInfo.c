@@ -173,7 +173,7 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     pChannelInfo->pRegion = pCurPtr;
     pCurPtr += ALIGN_UP_TO_MACHINE_WORD(regionLen + 1);
 
-    if (IS_NULL_OR_EMPTY_STRING(pOrigChannelInfo->pControlPlaneUrl)) {
+    if (!IS_NULL_OR_EMPTY_STRING(pOrigChannelInfo->pControlPlaneUrl)) {
         STRCPY(pCurPtr, pOrigChannelInfo->pControlPlaneUrl);
     } else {
         // Create a fully qualified URI
