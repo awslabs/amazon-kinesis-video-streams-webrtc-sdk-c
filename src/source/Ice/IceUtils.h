@@ -54,7 +54,7 @@ typedef struct {
     BOOL isTurn;
     BOOL isSecure;
     CHAR url[MAX_ICE_CONFIG_URI_LEN + 1];
-    KvsIpAddress ipAddress;
+    DualKvsIpAddresses ipAddresses;
     CHAR username[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
     CHAR credential[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
     KVS_SOCKET_PROTOCOL transport;

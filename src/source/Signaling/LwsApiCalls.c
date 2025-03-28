@@ -299,13 +299,19 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
     PSignalingClient pSignalingClient = NULL;
     SIZE_T offset, bufferSize;
     BOOL connected, locked = FALSE;
+    // char name[128], ip[128];
+
 
     DLOGV("WSS callback with reason %d", reason);
 
     // Early check before accessing custom field to see if we are interested in the message
     switch (reason) {
         case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
+            break;
         case LWS_CALLBACK_CLIENT_ESTABLISHED:
+            // lws_get_peer_addresses(wsi, lws_get_socket_fd(wsi), name, sizeof(name), ip, sizeof(ip));
+        
+            // lwsl_notice("Connected to %s (%s)\n", name, ip);
         case LWS_CALLBACK_CLIENT_CLOSED:
         case LWS_CALLBACK_WS_PEER_INITIATED_CLOSE:
         case LWS_CALLBACK_CLIENT_RECEIVE:
@@ -530,6 +536,31 @@ CleanUp:
     return retValue;
 }
 
+// Just using this for testing.
+// void resolve_host(const char* hostname, char* ipstr) {
+//     struct addrinfo hints, *res;
+
+//     memset(&hints, 0, sizeof(hints));
+//     hints.ai_family = AF_UNSPEC;
+//     hints.ai_socktype = SOCK_STREAM;
+
+//     if (getaddrinfo(hostname, NULL, &hints, &res) != 0) {
+//         printf("DNS resolution failed for %s\n", hostname);
+//         return;
+//     }
+
+//     void *addr;
+//     if (res->ai_family == AF_INET) {
+//         addr = &((struct sockaddr_in *)res->ai_addr)->sin_addr;
+//     } else {
+//         addr = &((struct sockaddr_in6 *)res->ai_addr)->sin6_addr;
+//     }
+//     inet_ntop(res->ai_family, addr, ipstr, INET6_ADDRSTRLEN);
+
+//     printf("Resolved %s to %s\n", hostname, ipstr);
+//     freeaddrinfo(res);
+// }
+
 STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
 {
     ENTERS();
@@ -645,6 +676,24 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
         }
     }
     ATOMIC_STORE_BOOL(&pCallInfo->pSignalingClient->serviceLockContention, FALSE);
+
+    // char ipstr[INET6_ADDRSTRLEN];  // Holds the resolved IP (IPv4 or IPv6)
+    // char formatted_ip[INET6_ADDRSTRLEN + 2];  // Extra space for brackets
+    
+    // resolve_host(connectInfo.address, ipstr);
+    
+    // if (strchr(ipstr, ':') != NULL) {
+    //     // snprintf(formatted_ip, sizeof(formatted_ip), "[%s]", ipstr);  // Wrap in brackets
+    //     connectInfo.address = ipstr;
+    // } else {
+    //     connectInfo.address = ipstr;
+    // }
+    
+    // DLOGD("Setting connectInfo.address to: %s", connectInfo.address);
+    
+
+    // connectInfo.iface = "::"; 
+
 
     // Now we should be running with a lock
     CHK(NULL != (pCallInfo->pSignalingClient->currentWsi[pCallInfo->protocolIndex] = lws_client_connect_via_info(&connectInfo)),

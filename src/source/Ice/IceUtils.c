@@ -223,6 +223,8 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
     UINT32 port = ICE_STUN_DEFAULT_PORT;
     CHAR addressResolved[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
 
+    DLOGD("Parsing ICE server...");
+
     // username and credential is only mandatory for turn server
     CHK(url != NULL && pIceServer != NULL, STATUS_NULL_ARG);
 
@@ -263,8 +265,10 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
         STRNCPY(pIceServer->url, urlNoPrefix, MAX_ICE_CONFIG_URI_LEN);
     }
 
+
     if (pIceServer->setIpFn != NULL) {
-        retStatus = pIceServer->setIpFn(0, pIceServer->url, &pIceServer->ipAddress);
+        DLOGD("Calling setIpFn...");
+        retStatus = pIceServer->setIpFn(0, pIceServer->url, &pIceServer->ipAddresses);
     }
 
     // Adding a NULL_ARG check specifically to cover for the case where early STUN
@@ -274,11 +278,14 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
         // Reset the retStatus to ensure the appropriate status code is returned from
         // getIpWithHostName
         retStatus = STATUS_SUCCESS;
-        CHK_STATUS(getIpWithHostName(pIceServer->url, &pIceServer->ipAddress));
+        CHK_STATUS(getIpWithHostName(pIceServer->url, &pIceServer->ipAddresses));
+            // TODO: Need to handle IPv6 here too.
     }
 
-    pIceServer->ipAddress.port = (UINT16) getInt16((INT16) port);
-    getIpAddrStr(&pIceServer->ipAddress, addressResolved, ARRAY_SIZE(addressResolved));
+    // TODO: Need to handle IPv6 here too.
+    pIceServer->ipAddresses.ipv4Address.port = (UINT16) getInt16((INT16) port);
+    
+    getIpAddrStr(&pIceServer->ipAddresses.ipv4Address, addressResolved, ARRAY_SIZE(addressResolved));
     DLOGP("ICE Server address for %s: %s", pIceServer->url, addressResolved);
 
 CleanUp:

@@ -806,25 +806,39 @@ STATUS getStunAddr(PStunIpAddrContext pStunIpAddrCtx)
     STATUS retStatus = STATUS_SUCCESS;
     struct addrinfo *rp, *res;
     struct sockaddr_in* ipv4Addr;
-    BOOL resolved = FALSE;
+    struct sockaddr_in6* ipv6Addr;
+    BOOL ipv4Resolved = FALSE;
+    BOOL ipv6Resolved = FALSE;
+
+    DLOGD("Resolving STUN address...");
 
     errCode = getaddrinfo(pStunIpAddrCtx->hostname, NULL, NULL, &res);
     if (errCode != 0) {
         DLOGI("Failed to resolve hostname with errcode: %d", errCode);
         retStatus = STATUS_RESOLVE_HOSTNAME_FAILED;
     } else {
-        for (rp = res; rp != NULL && !resolved; rp = rp->ai_next) {
-            if (rp->ai_family == AF_INET) {
+        for (rp = res; rp != NULL && !(ipv4Resolved && ipv6Resolved); rp = rp->ai_next) {
+            if (!ipv4Resolved && rp->ai_family == AF_INET) {
+                DLOGD("Found an IPv4 STUN addresss");
                 ipv4Addr = (struct sockaddr_in*) rp->ai_addr;
-                pStunIpAddrCtx->kvsIpAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
-                pStunIpAddrCtx->kvsIpAddr.port = 0;
-                MEMCPY(pStunIpAddrCtx->kvsIpAddr.address, &ipv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
-                resolved = TRUE;
+                pStunIpAddrCtx->kvsIpAddresses.ipv4Address.family = KVS_IP_FAMILY_TYPE_IPV4;
+                pStunIpAddrCtx->kvsIpAddresses.ipv4Address.port = 0;
+                MEMCPY(pStunIpAddrCtx->kvsIpAddresses.ipv4Address.address, &ipv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
+                ipv4Resolved = TRUE;
+            } else if (!ipv6Resolved && rp->ai_family == AF_INET6) {
+                DLOGD("Found an IPv6 STUN addresss");
+                ipv6Addr = (struct sockaddr_in6*) rp->ai_addr;
+                pStunIpAddrCtx->kvsIpAddresses.ipv6Address.family = KVS_IP_FAMILY_TYPE_IPV6;
+                pStunIpAddrCtx->kvsIpAddresses.ipv6Address.port = 0;
+                MEMCPY(pStunIpAddrCtx->kvsIpAddresses.ipv6Address.address, &ipv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
+                ipv6Resolved = TRUE;
+            } else {
+                DLOGD("Invalid family STUN addresss");
             }
         }
         freeaddrinfo(res);
     }
-    if (!resolved) {
+    if (!(ipv4Resolved || ipv6Resolved)) {
         retStatus = STATUS_RESOLVE_HOSTNAME_FAILED;
     }
 
@@ -833,7 +847,7 @@ STATUS getStunAddr(PStunIpAddrContext pStunIpAddrCtx)
     return retStatus;
 }
 
-STATUS onSetStunServerIp(UINT64 customData, PCHAR url, PKvsIpAddress pIpAddr)
+STATUS onSetStunServerIp(UINT64 customData, PCHAR url, PDualKvsIpAddresses pIpAddresses)
 {
     ENTERS();
     UNUSED_PARAM(customData);
@@ -841,6 +855,8 @@ STATUS onSetStunServerIp(UINT64 customData, PCHAR url, PKvsIpAddress pIpAddr)
     BOOL locked = FALSE;
     PWebRtcClientContext pWebRtcClientContext = getWebRtcClientInstance();
     CHK_WARN(ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized), STATUS_NULL_ARG, "WebRTC Client object Object not initialized");
+
+    DLOGD("Calling onSetStunServerIp...");
 
     UINT64 currentTime = GETTIME();
 
@@ -861,9 +877,12 @@ STATUS onSetStunServerIp(UINT64 customData, PCHAR url, PKvsIpAddress pIpAddr)
                 DLOGI("Expired...need to refresh STUN address");
                 // Reset start time
                 pWebRtcClientContext->pStunIpAddrCtx->startTime = 0;
+                DLOGD("Calling getStunAddr...");
                 CHK_ERR(getStunAddr(pWebRtcClientContext->pStunIpAddrCtx) == STATUS_SUCCESS, retStatus, "Failed to resolve after cache expiry");
             }
-            MEMCPY(pIpAddr, &pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddr, SIZEOF(pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddr));
+            MEMCPY(&pIpAddresses->ipv4Address, &pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv4Address, SIZEOF(pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv4Address));
+            MEMCPY(&pIpAddresses->ipv6Address, &pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv6Address, SIZEOF(pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv6Address));
+
         } else {
             DLOGE("Initialization failed");
         }
@@ -912,7 +931,7 @@ PVOID resolveStunIceServerIp(PVOID args)
                          KINESIS_VIDEO_STUN_URL_WITHOUT_PORT, pRegion, pHostnamePostfix);
                 stunDnsResolutionStartTime = GETTIME();
                 if (getStunAddr(pWebRtcClientContext->pStunIpAddrCtx) == STATUS_SUCCESS) {
-                    getIpAddrStr(&pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddr, addressResolved, ARRAY_SIZE(addressResolved));
+                    getIpAddrStr(&pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv4Address, addressResolved, ARRAY_SIZE(addressResolved));
                     DLOGI("ICE Server address for %s with getaddrinfo: %s", pWebRtcClientContext->pStunIpAddrCtx->hostname, addressResolved);
                     pWebRtcClientContext->pStunIpAddrCtx->isIpInitialized = TRUE;
                 } else {
