@@ -4,6 +4,37 @@
 #define LOG_CLASS "TLS_mbedtls"
 #include "../Include_i.h"
 
+// Read and parse CA certificate
+PRIVATE_API STATUS readAndParseCACertificate(PTlsSession pTlsSession)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT64 cert_len = 0;
+    PBYTE cert_buf = NULL;
+    CHAR errBuf[128];
+
+    CHK(pTlsSession != NULL, STATUS_NULL_ARG);
+
+    CHK_STATUS(readFile(KVS_CA_CERT_PATH, FALSE, NULL, &cert_len));
+    CHK(cert_len > 0, STATUS_INVALID_CERT_PATH_LENGTH);
+    cert_buf = (PBYTE) MEMCALLOC(1, cert_len + 1);
+    CHK(cert_buf != NULL, STATUS_NOT_ENOUGH_MEMORY);
+    CHK_STATUS(readFile(KVS_CA_CERT_PATH, FALSE, cert_buf, &cert_len));
+    int ret = mbedtls_x509_crt_parse(&pTlsSession->cacert, cert_buf, (SIZE_T) (cert_len + 1));
+    if (ret != 0) {
+        mbedtls_strerror(ret, errBuf, SIZEOF(errBuf));
+        DLOGE("mbedtls_x509_crt_parse failed: %s", errBuf);
+    }
+    CHK(ret == 0, STATUS_INVALID_CA_CERT_PATH);
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+    SAFE_MEMFREE(cert_buf);
+
+    LEAVES();
+    return retStatus;
+}
+
 STATUS createTlsSession(PTlsSessionCallbacks pCallbacks, PTlsSession* ppTlsSession)
 {
     ENTERS();
@@ -26,9 +57,11 @@ STATUS createTlsSession(PTlsSessionCallbacks pCallbacks, PTlsSession* ppTlsSessi
     mbedtls_ssl_config_init(&pTlsSession->sslCtxConfig);
     mbedtls_ssl_init(&pTlsSession->sslCtx);
     CHK(mbedtls_ctr_drbg_seed(&pTlsSession->ctrDrbg, mbedtls_entropy_func, &pTlsSession->entropy, NULL, 0) == 0, STATUS_CREATE_SSL_FAILED);
-    CHK(mbedtls_x509_crt_parse_file(&pTlsSession->cacert, KVS_CA_CERT_PATH) == 0, STATUS_INVALID_CA_CERT_PATH);
+
+    CHK_STATUS(readAndParseCACertificate(pTlsSession));
 
 CleanUp:
+
     if (STATUS_FAILED(retStatus) && pTlsSession != NULL) {
         freeTlsSession(&pTlsSession);
     }
