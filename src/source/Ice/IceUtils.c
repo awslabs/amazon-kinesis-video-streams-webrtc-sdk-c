@@ -168,16 +168,25 @@ STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 pa
     UINT32 stunPacketSize = STUN_PACKET_ALLOCATION_SIZE;
     BYTE stunPacketBuffer[STUN_PACKET_ALLOCATION_SIZE];
 
+    CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+
+    getIpAddrStr(pDest, ipAddrStr, ARRAY_SIZE(ipAddrStr));
+
     CHK_STATUS(iceUtilsPackageStunPacket(pStunPacket, password, passwordLen, stunPacketBuffer, &stunPacketSize));
     CHK(pDest != NULL, STATUS_NULL_ARG);
     switch (pStunPacket->header.stunMessageType) {
         case STUN_PACKET_TYPE_BINDING_REQUEST:
-            DLOGD("Sending BINDING_REQUEST to ip:%u.%u.%u.%u, port:%u", pDest->address[0], pDest->address[1], pDest->address[2], pDest->address[3],
-                  (UINT16) getInt16(pDest->port));
+            // Need to format properly for IPv6.
+            // DLOGD("Sending BINDING_REQUEST to ip:%u.%u.%u.%u, port:%u", pDest->address[0], pDest->address[1], pDest->address[2], pDest->address[3],
+            //       (UINT16) getInt16(pDest->port));
+            DLOGD("Sending BINDING_REQUEST to ip:%s, port:%u",ipAddrStr,(UINT16) getInt16(pDest->port));
+
             break;
         case STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS:
-            DLOGD("Sending BINDING_RESPONSE_SUCCESS to ip:%u.%u.%u.%u, port:%u", pDest->address[0], pDest->address[1], pDest->address[2],
-                  pDest->address[3], (UINT16) getInt16(pDest->port));
+            // DLOGD("Sending BINDING_RESPONSE_SUCCESS to ip:%u.%u.%u.%u, port:%u", pDest->address[0], pDest->address[1], pDest->address[2],
+            //       pDest->address[3], (UINT16) getInt16(pDest->port));
+            DLOGD("Sending BINDING_RESPONSE_SUCCESS to ip:%s, port:%u",ipAddrStr,(UINT16) getInt16(pDest->port));
+
             break;
         default:
             break;
@@ -222,6 +231,7 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
     PCHAR separator = NULL, urlNoPrefix = NULL, paramStart = NULL;
     UINT32 port = ICE_STUN_DEFAULT_PORT;
     CHAR addressResolved[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
+    CHAR addressResolved2[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
 
     // username and credential is only mandatory for turn server
     CHK(url != NULL && pIceServer != NULL, STATUS_NULL_ARG);
@@ -264,7 +274,7 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
     }
 
     if (pIceServer->setIpFn != NULL) {
-        retStatus = pIceServer->setIpFn(0, pIceServer->url, &pIceServer->ipAddress);
+        retStatus = pIceServer->setIpFn(0, pIceServer->url, &pIceServer->ipAddresses);
     }
 
     // Adding a NULL_ARG check specifically to cover for the case where early STUN
@@ -274,12 +284,18 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
         // Reset the retStatus to ensure the appropriate status code is returned from
         // getIpWithHostName
         retStatus = STATUS_SUCCESS;
-        CHK_STATUS(getIpWithHostName(pIceServer->url, &pIceServer->ipAddress));
+        CHK_STATUS(getIpWithHostName(pIceServer->url, &pIceServer->ipAddresses));
     }
 
-    pIceServer->ipAddress.port = (UINT16) getInt16((INT16) port);
-    getIpAddrStr(&pIceServer->ipAddress, addressResolved, ARRAY_SIZE(addressResolved));
-    DLOGP("ICE Server address for %s: %s", pIceServer->url, addressResolved);
+    DLOGD("Setting port to %u", port);
+    pIceServer->ipAddresses.ipv4Address.port = (UINT16) getInt16((INT16) port);
+    getIpAddrStr(&pIceServer->ipAddresses.ipv4Address, addressResolved, ARRAY_SIZE(addressResolved));
+    DLOGP("ICE Server IPv4 address for %s: %s", pIceServer->url, addressResolved);
+
+    pIceServer->ipAddresses.ipv6Address.port = (UINT16) getInt16((INT16) port);
+    getIpAddrStr(&pIceServer->ipAddresses.ipv6Address, addressResolved2, ARRAY_SIZE(addressResolved));
+    DLOGP("ICE Server IPv6 address for %s: %s", pIceServer->url, addressResolved2);
+
 
 CleanUp:
 

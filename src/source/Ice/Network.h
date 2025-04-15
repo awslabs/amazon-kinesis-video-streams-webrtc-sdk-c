@@ -122,7 +122,7 @@ STATUS socketWrite(INT32, const void*, SIZE_T);
  *
  * @return - STATUS status of execution
  */
-STATUS getIpWithHostName(PCHAR, PKvsIpAddress);
+STATUS getIpWithHostName(PCHAR, PDualKvsIpAddresses);
 
 /**
  * @param - PCHAR - IN - IP address string to verify if it is IPv4 or IPv6 format

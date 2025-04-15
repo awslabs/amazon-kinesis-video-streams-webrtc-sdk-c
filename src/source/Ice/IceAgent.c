@@ -116,7 +116,7 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
                 if (doStatCalcs) {
                     CHK(NULL != (pIceAgent->pRtcIceServerDiagnostics[i] = (PRtcIceServerDiagnostics) MEMCALLOC(1, SIZEOF(RtcIceServerDiagnostics))),
                         STATUS_NOT_ENOUGH_MEMORY);
-                    pIceAgent->pRtcIceServerDiagnostics[i]->port = (INT32) getInt16(pIceAgent->iceServers[i].ipAddress.port);
+                    pIceAgent->pRtcIceServerDiagnostics[i]->port = (INT32) getInt16(pIceAgent->iceServers[i].ipAddresses.ipv4Address.port);
                     switch (pIceAgent->iceServers[pIceAgent->iceServersCount].transport) {
                         case KVS_SOCKET_PROTOCOL_UDP:
                             STRCPY(pIceAgent->pRtcIceServerDiagnostics[i]->protocol, ICE_TRANSPORT_TYPE_UDP);
@@ -639,8 +639,9 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
                                 "Srflx candidates setup time");
     }
 
-    PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(iceAgentInitRelayCandidates(pIceAgent)), pIceAgent->iceAgentProfileDiagnostics.relayCandidateSetUpTime,
-                            "Relay candidates setup time");
+    // Disable relay candidate gathering for STUN testing.
+    // PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(iceAgentInitRelayCandidates(pIceAgent)), pIceAgent->iceAgentProfileDiagnostics.relayCandidateSetUpTime,
+    //                         "Relay candidates setup time");
 
     // start listening for incoming data
     CHK_STATUS(connectionListenerStart(pIceAgent->pConnectionListener));
@@ -1105,6 +1106,11 @@ STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate,
         pCurrentIceCandidate = (PIceCandidate) data;
         pCurNode = pCurNode->pNext;
 
+        // Skip forming pairs with local host candidates for STUN testing.
+        if (isRemoteCandidate && pCurrentIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_HOST) {
+            continue;
+        }
+
         // https://tools.ietf.org/html/rfc8445#section-6.1.2.2
         // pair local and remote candidates with the same family
         if (pCurrentIceCandidate->state == ICE_CANDIDATE_STATE_VALID && pCurrentIceCandidate->ipAddress.family == pIceCandidate->ipAddress.family) {
@@ -1458,14 +1464,32 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
             switch (pCandidate->iceCandidateType) {
                 case ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE:
                     pIceServer = &(pIceAgent->iceServers[pCandidate->iceServerIndex]);
-                    if (pIceServer->ipAddress.family == pCandidate->ipAddress.family) {
+                    if (pIceServer->ipAddresses.ipv4Address.family == pCandidate->ipAddress.family) {
                         // update transactionId
                         CHK_STATUS(
                             iceUtilsGenerateTransactionId(pBindingRequest->header.transactionId, ARRAY_SIZE(pBindingRequest->header.transactionId)));
 
                         transactionIdStoreInsert(pIceAgent->pStunBindingRequestTransactionIdStore, pBindingRequest->header.transactionId);
                         checkSum = COMPUTE_CRC32(pBindingRequest->header.transactionId, ARRAY_SIZE(pBindingRequest->header.transactionId));
-                        CHK_STATUS(iceAgentSendStunPacket(pBindingRequest, NULL, 0, pIceAgent, pCandidate, &pIceServer->ipAddress));
+
+                        DLOGD("[TEST] Sending STUN binding request to IPv4 STUN server: %u:%u", pIceServer->ipAddresses.ipv4Address.address, pIceServer->ipAddresses.ipv4Address.port);
+
+                        CHK_STATUS(iceAgentSendStunPacket(pBindingRequest, NULL, 0, pIceAgent, pCandidate, &pIceServer->ipAddresses.ipv4Address));
+                        if (pIceAgent->pRtcIceServerDiagnostics[pCandidate->iceServerIndex] != NULL) {
+                            pIceAgent->pRtcIceServerDiagnostics[pCandidate->iceServerIndex]->totalRequestsSent++;
+                            CHK_STATUS(hashTableUpsert(pIceAgent->requestTimestampDiagnostics, checkSum, GETTIME()));
+                        }
+                    } else if (pIceServer->ipAddresses.ipv6Address.family == pCandidate->ipAddress.family) {
+                        // update transactionId
+                        CHK_STATUS(
+                            iceUtilsGenerateTransactionId(pBindingRequest->header.transactionId, ARRAY_SIZE(pBindingRequest->header.transactionId)));
+
+                        transactionIdStoreInsert(pIceAgent->pStunBindingRequestTransactionIdStore, pBindingRequest->header.transactionId);
+                        checkSum = COMPUTE_CRC32(pBindingRequest->header.transactionId, ARRAY_SIZE(pBindingRequest->header.transactionId));
+
+                        DLOGD("[TEST] Sending STUN binding request to IPv6 STUN server: %u:%u", pIceServer->ipAddresses.ipv6Address.address, pIceServer->ipAddresses.ipv6Address.port);
+
+                        CHK_STATUS(iceAgentSendStunPacket(pBindingRequest, NULL, 0, pIceAgent, pCandidate, &pIceServer->ipAddresses.ipv6Address));
                         if (pIceAgent->pRtcIceServerDiagnostics[pCandidate->iceServerIndex] != NULL) {
                             pIceAgent->pRtcIceServerDiagnostics[pCandidate->iceServerIndex]->totalRequestsSent++;
                             CHK_STATUS(hashTableUpsert(pIceAgent->requestTimestampDiagnostics, checkSum, GETTIME()));
@@ -1762,7 +1786,7 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
         if (pCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_HOST) {
             for (j = 0; j < pIceAgent->iceServersCount; j++) {
                 pIceServer = &pIceAgent->iceServers[j];
-                if (!pIceServer->isTurn && pIceServer->ipAddress.family == pCandidate->ipAddress.family) {
+                if (!pIceServer->isTurn && (pIceServer->ipAddresses.ipv4Address.family == pCandidate->ipAddress.family || pIceServer->ipAddresses.ipv6Address.family == pCandidate->ipAddress.family)) {
                     CHK((pNewCandidate = (PIceCandidate) MEMCALLOC(1, SIZEOF(IceCandidate))) != NULL, STATUS_NOT_ENOUGH_MEMORY);
                     generateJSONSafeString(pNewCandidate->id, ARRAY_SIZE(pNewCandidate->id));
                     pNewCandidate->isRemote = FALSE;
@@ -1794,18 +1818,19 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
         pCandidate = srflxCandidates[j];
         // TODO: IPv6 STUN is not supported at the moment. Remove this check if the support is added in the future
         if (IS_IPV4_ADDR(&(pCandidate->ipAddress))) {
-            // open up a new socket at host candidate's ip address for server reflex candidate.
-            // the new port will be stored in pNewCandidate->ipAddress.port. And the Ip address will later be updated
-            // with the correct ip address once the STUN response is received.
-            CHK_STATUS(createSocketConnection(pCandidate->ipAddress.family, KVS_SOCKET_PROTOCOL_UDP, &pCandidate->ipAddress, NULL, (UINT64) pIceAgent,
-                                              incomingDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize, &pCandidate->pSocketConnection));
-            ATOMIC_STORE_BOOL(&pCandidate->pSocketConnection->receiveData, TRUE);
-            // connectionListener will free the pSocketConnection at the end.
-            CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener, pCandidate->pSocketConnection));
-
+            DLOGW("[TEST] IPv4 STUN candidate detected ....");
         } else {
-            DLOGW("IPv6 candidate detected, ignoring....");
+            DLOGW("[TEST] IPv6 STUN candidate detected ....");
         }
+
+        // open up a new socket at host candidate's ip address for server reflex candidate.
+        // the new port will be stored in pNewCandidate->ipAddress.port. And the Ip address will later be updated
+        // with the correct ip address once the STUN response is received.
+        CHK_STATUS(createSocketConnection(pCandidate->ipAddress.family, KVS_SOCKET_PROTOCOL_UDP, &pCandidate->ipAddress, NULL, (UINT64) pIceAgent,
+                                            incomingDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize, &pCandidate->pSocketConnection));
+        ATOMIC_STORE_BOOL(&pCandidate->pSocketConnection->receiveData, TRUE);
+        // connectionListener will free the pSocketConnection at the end.
+        CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener, pCandidate->pSocketConnection));
     }
 
 CleanUp:
@@ -1898,7 +1923,7 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
     // open up a new socket without binding to any host address. The candidate Ip address will later be updated
     // with the correct relay ip address once the Allocation success response is received. Relay candidate's socket is managed
     // by TurnConnection struct.
-    CHK_STATUS(createSocketConnection(KVS_IP_FAMILY_TYPE_IPV4, protocol, NULL, &pIceAgent->iceServers[iceServerIndex].ipAddress,
+    CHK_STATUS(createSocketConnection(KVS_IP_FAMILY_TYPE_IPV4, protocol, NULL, &pIceAgent->iceServers[iceServerIndex].ipAddresses.ipv4Address,
                                       (UINT64) pNewCandidate, incomingRelayedDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize,
                                       &pNewCandidate->pSocketConnection));
     // connectionListener will free the pSocketConnection at the end.
