@@ -158,7 +158,7 @@ typedef struct {
 
 typedef struct {
     CHAR hostname[MAX_ICE_CONFIG_URI_LEN + 1];
-    KvsIpAddress kvsIpAddr;
+    DualKvsIpAddresses kvsIpAddresses;
     BOOL isIpInitialized;
     UINT64 startTime;
     UINT64 stunDnsResolutionTime;

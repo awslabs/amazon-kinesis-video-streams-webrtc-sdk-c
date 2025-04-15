@@ -393,14 +393,15 @@ CleanUp:
     return retStatus;
 }
 
-STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
+STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
 {
     STATUS retStatus = STATUS_SUCCESS;
     INT32 errCode;
     UINT16 hostnameLen, addrLen;
     PCHAR errStr;
     struct addrinfo *res, *rp;
-    BOOL resolved = FALSE;
+    BOOL ipv4Resolved = FALSE;
+    BOOL ipv6Resolved = FALSE;
     struct sockaddr_in* ipv4Addr;
     struct sockaddr_in6* ipv6Addr;
     struct in_addr inaddr;
@@ -430,27 +431,33 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
             errStr = errCode == EAI_SYSTEM ? (strerror(errno)) : ((PCHAR) gai_strerror(errCode));
             CHK_ERR(FALSE, STATUS_RESOLVE_HOSTNAME_FAILED, "getaddrinfo() with errno %s", errStr);
         }
-        for (rp = res; rp != NULL && !resolved; rp = rp->ai_next) {
+        for (rp = res; rp != NULL && !(ipv4Resolved && ipv6Resolved); rp = rp->ai_next) {
             if (rp->ai_family == AF_INET) {
+                DLOGD("Found an IPv4 ICE server addresss");
                 ipv4Addr = (struct sockaddr_in*) rp->ai_addr;
-                destIp->family = KVS_IP_FAMILY_TYPE_IPV4;
-                MEMCPY(destIp->address, &ipv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
-                resolved = TRUE;
+                destIps->ipv4Address.family = KVS_IP_FAMILY_TYPE_IPV4;
+                // TODO: Should also init port to 0, or no (we do in the threadpool-enabled version of this call for STUN)?
+                MEMCPY(destIps->ipv4Address.address, &ipv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
+                ipv4Resolved = TRUE;
+                // ipv6Resolved = TRUE;
             } else if (rp->ai_family == AF_INET6) {
+                DLOGD("Found an IPv6 ICE server addresss");
                 ipv6Addr = (struct sockaddr_in6*) rp->ai_addr;
-                destIp->family = KVS_IP_FAMILY_TYPE_IPV6;
-                MEMCPY(destIp->address, &ipv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
-                resolved = TRUE;
+                destIps->ipv6Address.family = KVS_IP_FAMILY_TYPE_IPV6;
+                MEMCPY(destIps->ipv6Address.address, &ipv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
+                ipv6Resolved = TRUE;
+                // ipv4Resolved = TRUE;
+            } else {
+                DLOGD("Found an invalid ICE server addresss family type - must be IPv4 or IPv6.");
             }
         }
         freeaddrinfo(res);
-        CHK_ERR(resolved, STATUS_HOSTNAME_NOT_FOUND, "Could not find network address of %s", hostname);
-    }
-
-    else {
+        CHK_ERR(ipv4Resolved || ipv6Resolved, STATUS_HOSTNAME_NOT_FOUND, "Could not find network address of %s", hostname);
+    } else {
+        // TODO: The below is for TURN case, will need to do this based on IP family too...
         inet_pton(AF_INET, addr, &inaddr);
-        destIp->family = KVS_IP_FAMILY_TYPE_IPV4;
-        MEMCPY(destIp->address, &inaddr, IPV4_ADDRESS_LENGTH);
+        destIps->ipv4Address.family = KVS_IP_FAMILY_TYPE_IPV4;
+        MEMCPY(destIps->ipv4Address.address, &inaddr, IPV4_ADDRESS_LENGTH);
     }
 
 CleanUp:
