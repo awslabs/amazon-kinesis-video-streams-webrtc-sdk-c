@@ -13,8 +13,8 @@ TEST_F(DualStackEndpointsTest, customControlPlaneEndpointBasicCase)
 {
     STATUS retStatus;
     ChannelInfo channelInfo;
-    memset(&channelInfo, 0, sizeof(channelInfo));
-    PChannelInfo pChannelInfo;
+    MEMSET(&channelInfo, 0, SIZEOF(channelInfo));
+    PChannelInfo pChannelInfo = NULL;
     CHAR originalCustomControlPlaneUrl[MAX_CONTROL_PLANE_URI_CHAR_LEN] = "https://kinesisvideo.us-west-2.api.aws";
     CHAR validatedCustomControlPlaneUrl[MAX_CONTROL_PLANE_URI_CHAR_LEN]  =  {0};
 
@@ -28,8 +28,9 @@ TEST_F(DualStackEndpointsTest, customControlPlaneEndpointBasicCase)
     channelInfo.pChannelName = "TestChannelName";
 
     EXPECT_EQ(STATUS_SUCCESS, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+    EXPECT_NE(NULL, pChannelInfo);
 
-    // Validate the ChanelInfo's Control Plane URL against the originalCustomControlPlaneUrl.
+    // Validate the ChannelInfo's Control Plane URL against the originalCustomControlPlaneUrl.
     EXPECT_STREQ(pChannelInfo->pControlPlaneUrl, (PCHAR) originalCustomControlPlaneUrl);
 
     freeChannelInfo(&pChannelInfo);
@@ -39,8 +40,8 @@ TEST_F(DualStackEndpointsTest, customControlPlaneEndpointEdgeCases)
 {
     STATUS retStatus;
     ChannelInfo channelInfo;
-    memset(&channelInfo, 0, sizeof(channelInfo));
-    PChannelInfo pChannelInfo;
+    MEMSET(&channelInfo, 0, SIZEOF(channelInfo));
+    PChannelInfo pChannelInfo = NULL;
     
     // TODO: Verify why we use MAX_URI_CHAR_LEN instead of MAX_CONTROL_PLANE_URI_CHAR_LEN for the custom URL.
     // MAX_URI_CHAR_LEN does not include the null terminator, so add 1.
@@ -50,7 +51,7 @@ TEST_F(DualStackEndpointsTest, customControlPlaneEndpointEdgeCases)
 
     // If createValidateChannelInfo needs to generate the URL, it will use DEFAULT_AWS_REGION since
     // we are not setting a region on ChannelInfo.
-    SNPRINTF(expectedSdkGeneratedUri, sizeof(expectedSdkGeneratedUri), "%s%s.%s%s",
+    SNPRINTF(expectedSdkGeneratedUri, SIZEOF(expectedSdkGeneratedUri), "%s%s.%s%s",
              CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME, DEFAULT_AWS_REGION, CONTROL_PLANE_URI_POSTFIX);
     
     channelInfo.pControlPlaneUrl = (PCHAR) validatedCustomControlPlaneUrl;
@@ -62,19 +63,20 @@ TEST_F(DualStackEndpointsTest, customControlPlaneEndpointEdgeCases)
     /* MAX URL ARRAY LENGTH (expect the custom URL be used) */
 
     // Fill array full of non-null values, accounting for null terminator.
-    memset(originalCustomControlPlaneUrl, 'X', sizeof(originalCustomControlPlaneUrl));
-    originalCustomControlPlaneUrl[sizeof(originalCustomControlPlaneUrl) - 1] = '\0';
+    MEMSET(originalCustomControlPlaneUrl, 'X', SIZEOF(originalCustomControlPlaneUrl));
+    originalCustomControlPlaneUrl[SIZEOF(originalCustomControlPlaneUrl) - 1] = '\0';
 
     // Make a deep copy of originalCustomControlPlaneUrl into validatedCustomControlPlaneUrl to save the value for
     //      later comparison in case createValidateChannelInfo modified validatedCustomControlPlaneUrl.
-    strncpy(validatedCustomControlPlaneUrl, originalCustomControlPlaneUrl, sizeof(validatedCustomControlPlaneUrl));
-    validatedCustomControlPlaneUrl[sizeof(validatedCustomControlPlaneUrl) - 1] = '\0';
+    strncpy(validatedCustomControlPlaneUrl, originalCustomControlPlaneUrl, SIZEOF(validatedCustomControlPlaneUrl));
+    validatedCustomControlPlaneUrl[SIZEOF(validatedCustomControlPlaneUrl) - 1] = '\0';
 
     channelInfo.pControlPlaneUrl = (PCHAR) validatedCustomControlPlaneUrl;
 
     EXPECT_EQ(STATUS_SUCCESS, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+    EXPECT_NE(NULL, pChannelInfo);
 
-    // Validate the ChanelInfo's Control Plane URL against originalCustomControlPlaneUrl in case createValidateChannelInfo
+    // Validate the ChannelInfo's Control Plane URL against originalCustomControlPlaneUrl in case createValidateChannelInfo
     //      modified validatedCustomControlPlaneUrl.
     EXPECT_STREQ(pChannelInfo->pControlPlaneUrl, (PCHAR) originalCustomControlPlaneUrl);
     freeChannelInfo(&pChannelInfo);
@@ -83,13 +85,14 @@ TEST_F(DualStackEndpointsTest, customControlPlaneEndpointEdgeCases)
     /* EMPTY URL ARRAY (expect SDK to construct a proper URL) */
 
     // Fill array with null values.
-    memset(validatedCustomControlPlaneUrl, 0, sizeof(validatedCustomControlPlaneUrl));
+    MEMSET(validatedCustomControlPlaneUrl, 0, SIZEOF(validatedCustomControlPlaneUrl));
 
     channelInfo.pControlPlaneUrl = (PCHAR) validatedCustomControlPlaneUrl;
 
     EXPECT_EQ(STATUS_SUCCESS, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+    EXPECT_NE(NULL, pChannelInfo);
 
-    // Validate the ChanelInfo's Control Plane URL should be the default one the SDK generated.
+    // Validate the ChannelInfo's Control Plane URL should be the default one the SDK generated.
     EXPECT_STREQ(pChannelInfo->pControlPlaneUrl, (PCHAR) expectedSdkGeneratedUri);
     freeChannelInfo(&pChannelInfo);
 
@@ -99,17 +102,19 @@ TEST_F(DualStackEndpointsTest, customControlPlaneEndpointEdgeCases)
     channelInfo.pControlPlaneUrl = (PCHAR) NULL;
 
     EXPECT_EQ(STATUS_SUCCESS, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+    EXPECT_NE(NULL, pChannelInfo);
+
     EXPECT_STREQ(pChannelInfo->pControlPlaneUrl, (PCHAR) expectedSdkGeneratedUri);
     freeChannelInfo(&pChannelInfo);
 }
 
 
-TEST_F(DualStackEndpointsTest, customControlPlaneMaxEndpointLengthFailingCase)
+TEST_F(DualStackEndpointsTest, customControlPlaneEndpointTooLong)
 {
     STATUS retStatus;
     ChannelInfo channelInfo;
-    memset(&channelInfo, 0, sizeof(channelInfo));
-    PChannelInfo pChannelInfo;
+    MEMSET(&channelInfo, 0, SIZEOF(channelInfo));
+    PChannelInfo pChannelInfo = NULL;
 
     
     /* Exceed MAX URL ARRAY LENGTH (expect SDK to error out) */
@@ -121,8 +126,8 @@ TEST_F(DualStackEndpointsTest, customControlPlaneMaxEndpointLengthFailingCase)
     channelInfo.pChannelName = "TestChannelName";
 
     // Fill array full of non-null values, accounting for null terminator.
-    memset(customControlPlaneUrl, 'X', sizeof(customControlPlaneUrl));
-    customControlPlaneUrl[sizeof(customControlPlaneUrl) - 1] = '\0';
+    MEMSET(customControlPlaneUrl, 'X', SIZEOF(customControlPlaneUrl));
+    customControlPlaneUrl[SIZEOF(customControlPlaneUrl) - 1] = '\0';
 
     channelInfo.pControlPlaneUrl = (PCHAR) customControlPlaneUrl;
 
