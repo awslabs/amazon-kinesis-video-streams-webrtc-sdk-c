@@ -75,7 +75,7 @@ INT32 main(INT32 argc, CHAR* argv[])
             DLOGI("[KVS Gstreamer Viewer] Defaulting to H264 video codec");
         }
     }
-    
+
     createSampleConfigurationParams.channelName = pChannelName;
     createSampleConfigurationParams.roleType = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
     createSampleConfigurationParams.trickleIce = TRUE;

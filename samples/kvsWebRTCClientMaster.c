@@ -36,7 +36,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     createSampleConfigurationParams.logLevel = logLevel;
 
     CHK_STATUS(createSampleConfiguration(&createSampleConfigurationParams, &pSampleConfiguration));
-    
+
     if (argc > 3) {
         if (!STRCMP(argv[3], AUDIO_CODEC_NAME_OPUS)) {
             audioCodec = RTC_CODEC_OPUS;

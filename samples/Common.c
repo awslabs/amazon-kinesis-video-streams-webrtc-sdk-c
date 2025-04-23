@@ -882,12 +882,14 @@ STATUS createSampleConfiguration(PCreateSampleConfigurationParams pCreateSampleC
     }
 #endif
 
-    if(pCreateSampleConfigurationParams->useDualStackEndpoints) {
+    if (pCreateSampleConfigurationParams->useDualStackEndpoints) {
         // Create the custom fully qualified control plane endpoint, sans the legacy/dual-stack postfix.
-        SNPRINTF(pSampleConfiguration->customControlPlaneEndpoint, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME, pSampleConfiguration->channelInfo.pRegion);
+        SNPRINTF(pSampleConfiguration->customControlPlaneEndpoint, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s", CONTROL_PLANE_URI_PREFIX,
+                 KINESIS_VIDEO_SERVICE_NAME, pSampleConfiguration->channelInfo.pRegion);
 
         if (STRSTR(pSampleConfiguration->channelInfo.pRegion, "cn-")) {
-            STRCAT(pSampleConfiguration->customControlPlaneEndpoint, CONTROL_PLANE_URI_POSTFIX_CN_DUAL_STACK); // Will use CN region dual-stack endpoint.
+            STRCAT(pSampleConfiguration->customControlPlaneEndpoint,
+                   CONTROL_PLANE_URI_POSTFIX_CN_DUAL_STACK); // Will use CN region dual-stack endpoint.
         } else {
             STRCAT(pSampleConfiguration->customControlPlaneEndpoint, CONTROL_PLANE_URI_POSTFIX_DUAL_STACK); // Will use Dual-stack endpoint.
         }
