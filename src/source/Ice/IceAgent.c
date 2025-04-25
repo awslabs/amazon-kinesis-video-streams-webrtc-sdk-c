@@ -639,9 +639,8 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
                                 "Srflx candidates setup time");
     }
 
-    // Disable relay candidate gathering for STUN testing.
-    // PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(iceAgentInitRelayCandidates(pIceAgent)), pIceAgent->iceAgentProfileDiagnostics.relayCandidateSetUpTime,
-    //                         "Relay candidates setup time");
+    PROFILE_CALL_WITH_T_OBJ(CHK_STATUS(iceAgentInitRelayCandidates(pIceAgent)), pIceAgent->iceAgentProfileDiagnostics.relayCandidateSetUpTime,
+                            "Relay candidates setup time");
 
     // start listening for incoming data
     CHK_STATUS(connectionListenerStart(pIceAgent->pConnectionListener));
@@ -1105,11 +1104,6 @@ STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate,
         CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
         pCurrentIceCandidate = (PIceCandidate) data;
         pCurNode = pCurNode->pNext;
-
-        // Skip forming pairs with local host candidates for STUN testing.
-        if (isRemoteCandidate && pCurrentIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_HOST) {
-            continue;
-        }
 
         // https://tools.ietf.org/html/rfc8445#section-6.1.2.2
         // pair local and remote candidates with the same family
@@ -1816,11 +1810,10 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
     // Create and start the connection listener outside of the locks
     for (j = 0; j < srflxCount; j++) {
         pCandidate = srflxCandidates[j];
-        // TODO: IPv6 STUN is not supported at the moment. Remove this check if the support is added in the future
         if (IS_IPV4_ADDR(&(pCandidate->ipAddress))) {
-            DLOGW("[TEST] IPv4 STUN candidate detected ....");
+            DLOGI("Initializing an IPv4 STUN candidate...");
         } else {
-            DLOGW("[TEST] IPv6 STUN candidate detected ....");
+            DLOGI("Initializing an IPv6 STUN candidate...");
         }
 
         // open up a new socket at host candidate's ip address for server reflex candidate.
