@@ -8,38 +8,48 @@ on:
     branches:
       - develop
       - main
+
+env:
+  AWS_KVS_LOG_LEVEL: 7
+
 jobs:
   linux-gcc-codecov:
-    runs-on: ubuntu-20.04
+    if: ${{ github.repo == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c' }}
+    runs-on: ubuntu-latest
     env:
-      AWS_KVS_LOG_LEVEL: 2
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
     permissions:
       id-token: write
       contents: read
+
     steps:
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
+
       - name: Install dependencies
         run: |
-          sudo apt clean && sudo apt update
+          sudo apt-get update
           sudo apt-get -y install libcurl4-openssl-dev
+
       - name: Build repository
         run: |
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake .. -DCODE_COVERAGE=TRUE -DBUILD_TEST=TRUE
-          make
-          ulimit -c unlimited -S
-      - name: Run tests
-        run:  |
+          mkdir build 
           cd build
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+          cmake .. -DCODE_COVERAGE=TRUE -DBUILD_TEST=TRUE
+          make -j
+
+      - name: Run tests
+        working-directory: ./build
+        run: |
+          timeout --signal=SIGKILL 60m ./tst/webrtc_client_test
+
       - name: Code coverage
         run: |
           for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done

@@ -8,6 +8,7 @@ on:
     branches:
       - develop
       - main
+
 jobs:
   linux-cross-compilation:
     strategy:

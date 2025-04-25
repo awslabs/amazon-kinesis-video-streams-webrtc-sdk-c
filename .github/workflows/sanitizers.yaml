@@ -1,0 +1,160 @@
+name: WebRTC C Sanitizers
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  pull_request:
+    branches:
+      - develop
+      - main
+
+env:
+  AWS_KVS_LOG_LEVEL: 7
+  DEBIAN_FRONTEND: noninteractive
+
+jobs:
+  address-sanitizer:
+    runs-on: ubuntu-22.04
+    env:
+      ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=1
+      LSAN_OPTIONS: suppressions=../tst/suppressions/LSAN.supp
+      CC: clang
+      CXX: clang++
+      AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Install dependencies
+        run: |
+          sudo apt clean && sudo apt update
+          sudo apt-get -y install clang
+          sudo apt-get -y install libcurl4-openssl-dev
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
+      - name: Build repository
+        run: |
+          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build && cd build
+          cmake .. -DBUILD_TEST=TRUE -DADDRESS_SANITIZER=TRUE
+          make
+          ulimit -c unlimited -S
+      - name: Run tests
+        run: |
+          cd build
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  undefined-behavior-sanitizer:
+    runs-on: ubuntu-22.04
+    env:
+      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+      CC: clang
+      CXX: clang++
+      AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Install dependencies
+        run: |
+          sudo apt clean && sudo apt update
+          sudo apt-get -y install clang
+          sudo apt-get -y install libcurl4-openssl-dev
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
+      - name: Build repository
+        run: |
+          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build && cd build
+          cmake .. -DBUILD_TEST=TRUE -DUNDEFINED_BEHAVIOR_SANITIZER=TRUE
+          make
+          ulimit -c unlimited -S
+      - name: Run tests
+        run: |
+          cd build
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+  # memory-sanitizer:
+  #   runs-on: ubuntu-18.04
+  #   env:
+  #     CC: clang-7
+  #     CXX: clang++-7
+  #     AWS_KVS_LOG_LEVEL: 2
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v4
+  #     - name: Install dependencies
+  #       run: |
+  #         sudo apt clean && sudo apt update
+  #         sudo apt-get -y install clang-7
+  #     - name: Build repository
+  #       run: |
+  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+  #         mkdir build && cd build
+  #         cmake .. -DMEMORY_SANITIZER=TRUE -DBUILD_TEST=TRUE
+  #         make
+  #         ulimit -c unlimited -S
+  #         timeout --signal=SIGABRT 60m build/tst/webrtc_client_test
+  thread-sanitizer:
+    runs-on: ubuntu-latest
+    container: public.ecr.aws/ubuntu/ubuntu:20.04_stable
+    env:
+      TSAN_OPTIONS: second_deadlock_stack=1:halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
+      CC: clang
+      CXX: clang++
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get -y install clang cmake build-essential git pkg-config zlib1g-dev
+          apt-get -y install libcurl4-openssl-dev
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
+
+      - name: Build repository
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DBUILD_TEST=ON -DTHREAD_SANITIZER=ON
+          make -j
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Run tests
+        run: |
+          cd build
+          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
