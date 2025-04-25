@@ -176,17 +176,10 @@ STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 pa
     CHK(pDest != NULL, STATUS_NULL_ARG);
     switch (pStunPacket->header.stunMessageType) {
         case STUN_PACKET_TYPE_BINDING_REQUEST:
-            // Need to format properly for IPv6.
-            // DLOGD("Sending BINDING_REQUEST to ip:%u.%u.%u.%u, port:%u", pDest->address[0], pDest->address[1], pDest->address[2], pDest->address[3],
-            //       (UINT16) getInt16(pDest->port));
             DLOGD("Sending BINDING_REQUEST to ip:%s, port:%u",ipAddrStr,(UINT16) getInt16(pDest->port));
-
             break;
         case STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS:
-            // DLOGD("Sending BINDING_RESPONSE_SUCCESS to ip:%u.%u.%u.%u, port:%u", pDest->address[0], pDest->address[1], pDest->address[2],
-            //       pDest->address[3], (UINT16) getInt16(pDest->port));
             DLOGD("Sending BINDING_RESPONSE_SUCCESS to ip:%s, port:%u",ipAddrStr,(UINT16) getInt16(pDest->port));
-
             break;
         default:
             break;
@@ -230,8 +223,8 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR separator = NULL, urlNoPrefix = NULL, paramStart = NULL;
     UINT32 port = ICE_STUN_DEFAULT_PORT;
-    CHAR addressResolved[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
-    CHAR addressResolved2[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
+    CHAR addressResolvedIPv4[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
+    CHAR addressResolvedIPv6[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
 
     // username and credential is only mandatory for turn server
     CHK(url != NULL && pIceServer != NULL, STATUS_NULL_ARG);
@@ -289,12 +282,12 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
 
     DLOGD("Setting port to %u", port);
     pIceServer->ipAddresses.ipv4Address.port = (UINT16) getInt16((INT16) port);
-    getIpAddrStr(&pIceServer->ipAddresses.ipv4Address, addressResolved, ARRAY_SIZE(addressResolved));
-    DLOGP("ICE Server IPv4 address for %s: %s", pIceServer->url, addressResolved);
+    getIpAddrStr(&pIceServer->ipAddresses.ipv4Address, addressResolvedIPv4, ARRAY_SIZE(addressResolvedIPv4));
+    DLOGP("ICE Server IPv4 address for %s: %s", pIceServer->url, addressResolvedIPv4);
 
     pIceServer->ipAddresses.ipv6Address.port = (UINT16) getInt16((INT16) port);
-    getIpAddrStr(&pIceServer->ipAddresses.ipv6Address, addressResolved2, ARRAY_SIZE(addressResolved));
-    DLOGP("ICE Server IPv6 address for %s: %s", pIceServer->url, addressResolved2);
+    getIpAddrStr(&pIceServer->ipAddresses.ipv6Address, addressResolvedIPv6, ARRAY_SIZE(addressResolvedIPv6));
+    DLOGP("ICE Server IPv6 address for %s: %s", pIceServer->url, addressResolvedIPv6);
 
 
 CleanUp:

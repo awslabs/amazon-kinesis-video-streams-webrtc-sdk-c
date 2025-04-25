@@ -103,7 +103,7 @@ typedef struct {
     BOOL isPointToPoint;
 } KvsIpAddress, *PKvsIpAddress;
 
-// This structure stores both an IPv4 and IPv6 address (if applicable) for a peer/server.
+// This structure stores both an IPv4 and IPv6 address (if applicable).
 typedef struct {
     KvsIpAddress ipv4Address;
     KvsIpAddress ipv6Address;
