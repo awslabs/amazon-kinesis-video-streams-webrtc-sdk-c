@@ -1,0 +1,179 @@
+name: WebRTC C Sanitizers
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  pull_request:
+    branches:
+      - develop
+      - main
+
+env:
+  AWS_KVS_LOG_LEVEL: 7
+  DEBIAN_FRONTEND: noninteractive
+  CC: clang
+  CXX: clang++
+
+jobs:
+  address-sanitizer:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+
+    env:
+      ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=1
+      LSAN_OPTIONS: suppressions=../tst/suppressions/LSAN.supp
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install clang
+
+          # AWS SDK CPP dependencies (for tests)
+          sudo apt-get -y install zlib1g-dev libcurl4-openssl-dev
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
+
+      - name: Build repository
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DBUILD_TEST=ON -DADDRESS_SANITIZER=ON
+          make -j
+
+      - name: Run tests
+        working-directory: ./build
+        run: |
+          ./tst/webrtc_client_test
+
+  undefined-behavior-sanitizer:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+
+    env:
+      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install clang
+
+          # AWS SDK CPP dependencies (for tests)
+          sudo apt-get -y install zlib1g-dev libcurl4-openssl-dev
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
+
+      - name: Build repository
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DBUILD_TEST=ON -DUNDEFINED_BEHAVIOR_SANITIZER=ON
+          make -j
+
+      - name: Run tests
+        working-directory: ./build
+        run: |
+          ./tst/webrtc_client_test
+
+  # memory-sanitizer:
+  #   runs-on: ubuntu-18.04
+  #   env:
+  #     CC: clang-7
+  #     CXX: clang++-7
+  #     AWS_KVS_LOG_LEVEL: 2
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v4
+  #     - name: Install dependencies
+  #       run: |
+  #         sudo apt clean && sudo apt update
+  #         sudo apt-get -y install clang-7
+  #     - name: Build repository
+  #       run: |
+  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+  #         mkdir build && cd build
+  #         cmake .. -DMEMORY_SANITIZER=TRUE -DBUILD_TEST=TRUE
+  #         make
+  #         ulimit -c unlimited -S
+  #         timeout --signal=SIGABRT 60m build/tst/webrtc_client_test
+
+  thread-sanitizer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    container: public.ecr.aws/ubuntu/ubuntu:20.04_stable
+
+    env:
+      TSAN_OPTIONS: second_deadlock_stack=1:halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get -y install clang cmake build-essential git pkg-config
+          
+          # AWS SDK CPP dependencies (for tests)
+          apt-get -y install zlib1g-dev libcurl4-openssl-dev
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
+
+      - name: Build repository
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DBUILD_TEST=ON -DTHREAD_SANITIZER=ON
+          make -j
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Run tests
+        working-directory: ./build
+        run: |
+          ./tst/webrtc_client_test

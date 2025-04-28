@@ -1,0 +1,158 @@
+name: WebRTC C Samples
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  pull_request:
+    branches:
+      - develop
+      - main
+
+jobs:
+  sample-check:
+    runs-on: ubuntu-latest
+    env:
+      AWS_KVS_LOG_LEVEL: 2
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Build repository
+        run: |
+          mkdir build && cd build
+          cmake ..
+          make -j
+
+      - name: Sample check
+        run: |
+          ./scripts/check-sample.sh
+
+  sample-check-no-data-channel:
+    runs-on: ubuntu-latest
+    env:
+      AWS_KVS_LOG_LEVEL: 2
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Build repository
+        run: |
+          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+          mkdir build && cd build
+          cmake .. -DENABLE_DATA_CHANNEL=OFF
+          make
+      - name: Sample check without data channel
+        run: |
+          ./scripts/check-sample.sh
+
+  valgrind-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      AWS_KVS_LOG_LEVEL: 7
+
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Install deps
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install valgrind
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
+
+      - name: Build repository
+        run: |
+          mkdir build && cd build
+          cmake .. -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+          make -j
+
+      - name: Run tests
+        run: |
+          cd build
+          valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file=valgrind-master.txt ./samples/kvsWebrtcClientMaster demo-channel-gh-actions &
+          PID_MASTER=$!
+          valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file=valgrind-viewer.txt ./samples/kvsWebrtcClientViewer demo-channel-gh-actions &
+          PID_VIEWER=$!
+
+          # Wait for processes to run initially
+          sleep 30 # Wait 30s
+
+          # Send SIGINT (2) to both processes
+          kill -2 $PID_VIEWER
+          sleep 30
+
+          kill -2 $PID_MASTER
+
+          # Start a background task to enforce a timeout for graceful shutdown
+          (
+            sleep 10
+            kill -9 $PID_MASTER 2>/dev/null
+            kill -9 $PID_VIEWER 2>/dev/null
+          ) &
+
+          wait $PID_MASTER
+          EXIT_STATUS_MASTER=$?
+          wait $PID_VIEWER
+          EXIT_STATUS_VIEWER=$?
+
+          # Check exit statuses to determine if the interrupt was successful
+          if [ $EXIT_STATUS_MASTER -ne 0 ] || [ $EXIT_STATUS_VIEWER -ne 0 ]; then
+            echo "Process did not exit gracefully."
+            echo "Master exit code: $EXIT_STATUS_MASTER"
+            echo "Viewer exit code: $EXIT_STATUS_VIEWER"
+            exit 1
+          else
+
+            echo "Processes exited successfully."
+          fi
+
+          # Check for memory leaks in Valgrind output files
+          if grep "All heap blocks were freed -- no leaks are possible" valgrind-master.txt && grep "All heap blocks were freed -- no leaks are possible" valgrind-viewer.txt; then
+            echo "No memory leaks detected."
+          else
+            echo "Memory leaks detected."
+          fi

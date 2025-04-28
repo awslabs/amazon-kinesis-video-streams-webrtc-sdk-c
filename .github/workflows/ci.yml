@@ -9,19 +9,12 @@ on:
     branches:
       - develop
       - main
+
+env:
+  AWS_KVS_LOG_LEVEL: 7
+  DEBIAN_FRONTEND: noninteractive
+
 jobs:
-  clang-format-check:
-    runs-on: macos-13
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
-      - name: Install clang-format
-        run: |
-          brew install clang-format
-          clang-format --version
-      - name: Run clang format check
-        run: |
-          bash scripts/check-clang.sh
   mac-tests:
     strategy:
       matrix:
@@ -35,25 +28,29 @@ jobs:
           - name: Shared OpenSSL
             cmake_flags: "-DBUILD_TEST=ON"
           - name: Static OpenSSL
-            cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=TRUE"
+            cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=ON"
           - name: Shared MbedTLS
             cmake_flags: "-DBUILD_TEST=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
           - name: Static MbedTLS
-            cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
+            cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
       fail-fast: false
 
-    env:
-      AWS_KVS_LOG_LEVEL: 2
     permissions:
       id-token: write
       contents: read
 
     runs-on: ${{ matrix.os.runner }}
     name: ${{ matrix.os.name }}, ${{ matrix.compiler }}, ${{ matrix.config.name }}
+    timeout-minutes: 60
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -90,177 +87,56 @@ jobs:
         shell: bash
 
       - name: Run tests
+        working-directory: ./build
         run: |
-          cd build
           ./tst/webrtc_client_test
         shell: bash
 
-  address-sanitizer:
-    runs-on: ubuntu-20.04
-    env:
-      ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=1
-      LSAN_OPTIONS: suppressions=../tst/suppressions/LSAN.supp
-      CC: clang
-      CXX: clang++
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Install dependencies
-        run: |
-          sudo apt clean && sudo apt update
-          sudo apt-get -y install clang
-          sudo apt-get -y install libcurl4-openssl-dev
-      - name: Build repository
-        run: |
-          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DADDRESS_SANITIZER=TRUE
-          make
-          ulimit -c unlimited -S
-      - name: Run tests
-        run: |
-          cd build
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  undefined-behavior-sanitizer:
-    runs-on: ubuntu-20.04
-    env:
-      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
-      CC: clang
-      CXX: clang++
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Install dependencies
-        run: |
-          sudo apt clean && sudo apt update
-          sudo apt-get -y install clang
-          sudo apt-get -y install libcurl4-openssl-dev
-      - name: Build repository
-        run: |
-          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DUNDEFINED_BEHAVIOR_SANITIZER=TRUE
-          make
-          ulimit -c unlimited -S
-      - name: Run tests
-        run: |
-          cd build
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  # memory-sanitizer:
-  #   runs-on: ubuntu-18.04
-  #   env:
-  #     CC: clang-7
-  #     CXX: clang++-7
-  #     AWS_KVS_LOG_LEVEL: 2
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v4
-  #     - name: Install dependencies
-  #       run: |
-  #         sudo apt clean && sudo apt update
-  #         sudo apt-get -y install clang-7
-  #     - name: Build repository
-  #       run: |
-  #         sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-  #         mkdir build && cd build
-  #         cmake .. -DMEMORY_SANITIZER=TRUE -DBUILD_TEST=TRUE
-  #         make
-  #         ulimit -c unlimited -S
-  #         timeout --signal=SIGABRT 60m build/tst/webrtc_client_test
-  thread-sanitizer:
-    runs-on: ubuntu-20.04
-    env:
-      TSAN_OPTIONS: second_deadlock_stack=1:halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
-      CC: clang
-      CXX: clang++
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Install dependencies
-        run: |
-          sudo apt clean && sudo apt update
-          sudo apt-get -y install clang
-          sudo apt-get -y install libcurl4-openssl-dev
-      - name: Build repository
-        run: |
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DTHREAD_SANITIZER=TRUE
-          make
-          ulimit -c unlimited -S
-      - name: Run tests
-        run: |
-          cd build
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  linux-gcc-4_4:
-    runs-on: ubuntu-20.04
-    env:
-      AWS_KVS_LOG_LEVEL: 2
-      CC: gcc-4.4
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Install deps
-        run: |
-          sudo apt clean && sudo apt update
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
-          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty universe'
-          sudo apt-get -q update
-          sudo apt-get -y install gcc-4.4
-          sudo apt-get -y install gdb
-          sudo apt-get -y install libcurl4-openssl-dev
-      - name: Build repository
-        run: |
-          mkdir build && cd build
-          # As per REAMDE here: https://github.com/aws/aws-sdk-cpp minimum supported GCC is 4.9 so we do not run those tests here
-          cmake .. -DBUILD_TEST=TRUE -DENABLE_AWS_SDK_IN_TESTS=OFF
-          make
-          ulimit -c unlimited -S
-      - name: Run tests
-        run: |
-          cd build
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  static-build-linux:
-    runs-on: ubuntu-20.04
+#  linux-gcc-4_4:
+#    runs-on: ubuntu-20.04
+#    env:
+#      AWS_KVS_LOG_LEVEL: 2
+#      CC: gcc-4.4
+#    permissions:
+#      id-token: write
+#      contents: read
+#    steps:
+#      - name: Clone repository
+#        uses: actions/checkout@v4
+#      - name: Configure AWS Credentials
+#        uses: aws-actions/configure-aws-credentials@v4
+#        with:
+#          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+#          aws-region: ${{ secrets.AWS_REGION }}
+#      - name: Install deps
+#        run: |
+#          sudo apt clean && sudo apt update
+#          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+#          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+#          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
+#          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty universe'
+#          sudo apt-get -q update
+#          sudo apt-get -y install gcc-4.4
+#          sudo apt-get -y install gdb
+#          sudo apt-get -y install libcurl4-openssl-dev
+#      - name: Setup cmake
+#        uses: jwlawson/actions-setup-cmake@v2
+#        with:
+#          cmake-version: '3.x'
+#      - name: Build repository
+#        run: |
+#          mkdir build && cd build
+#          # As per REAMDE here: https://github.com/aws/aws-sdk-cpp minimum supported GCC is 4.9 so we do not run those tests here
+#          cmake .. -DBUILD_TEST=TRUE -DENABLE_AWS_SDK_IN_TESTS=OFF
+#          make
+#          ulimit -c unlimited -S
+#      - name: Run tests
+#        run: |
+#          cd build
+#          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+
+  static-build-alpine-linux:
+    runs-on: ubuntu-22.04
     container:
       image: alpine:3.15.4
     env:
@@ -282,255 +158,137 @@ jobs:
         run: |
           mkdir build && cd build
           cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
-          make
-  mbedtls-ubuntu-gcc:
-    runs-on: ubuntu-20.04
-    env:
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Install deps
-        run: |
-          sudo apt clean && sudo apt update
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
-          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty universe'
-          sudo apt-get -q update
-          sudo apt-get -y install gcc-4.4
-          sudo apt-get -y install gdb
-          sudo apt-get -y install libcurl4-openssl-dev
-      - name: Build repository
-        run: |
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
-          make
-          ulimit -c unlimited -S
-      - name: Run tests
-        run: |
-          cd build
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  mbedtls-ubuntu-gcc-11:
-    runs-on: ubuntu-latest
-    env:
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Install deps
-        run: |
-          sudo apt clean && sudo apt update
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy main'
-          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy universe'
-          sudo apt-get -q update
-          sudo apt-get -y install libcurl4-openssl-dev
-      - name: Build repository
-        run: |
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
-          make
-          ulimit -c unlimited -S
-      - name: Run tests
-        run: |
-          cd build
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+          make -j
 
-  mbedtls-ubuntu-gcc-4_4-build:
-    runs-on: ubuntu-20.04
+  mbedtls-ubuntu-gcc-4-4:
+    permissions:
+      id-token: write
+      contents: read
+
+    runs-on: ubuntu-latest
+    container: public.ecr.aws/ubuntu/ubuntu:20.04_stable
+    timeout-minutes: 60
+
     env:
-      AWS_KVS_LOG_LEVEL: 2
       CC: gcc-4.4
-    permissions:
-      id-token: write
-      contents: read
+
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
       - name: Install deps
         run: |
-          sudo apt clean && sudo apt update
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
-          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty universe'
-          sudo apt-get -q update
-          sudo apt-get -y install gcc-4.4
-          sudo apt-get -y install gdb
-      - name: Build repository
-        run: |
-          mkdir build && cd build
-          cmake .. -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
-          make
+          apt-get update
+          apt-get install -y software-properties-common cmake git pkg-config build-essential
 
-  mbedtls-ubuntu-clang:
-    runs-on: ubuntu-20.04
-    env:
-      CC: clang
-      CXX: clang++
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
+          add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty main'
+          add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ trusty universe'
+          apt-get -q update
+          apt-get -y install gcc-4.4
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
+
+      - name: Build repository
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DBUILD_TEST=ON -DENABLE_AWS_SDK_IN_TESTS=OFF -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+          make -j
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
-      - name: Install dependencies
-        run: |
-          sudo apt clean && sudo apt update
-          sudo apt-get -y install clang
-          sudo apt-get -y install libcurl4-openssl-dev
-      - name: Build repository
-        run: |
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
-          make
-          ulimit -c unlimited -S
+
       - name: Run tests
         run: |
           cd build
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  sample-check:
-    if: github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c'
+
+  ubuntu:
+    strategy:
+      matrix:
+        container:
+          - name: Ubuntu 20.04
+            image: public.ecr.aws/ubuntu/ubuntu:20.04_stable
+          - name: Ubuntu 22.04
+            image: public.ecr.aws/ubuntu/ubuntu:22.04_stable
+            test: ON
+        compiler:
+          - gcc
+          - clang
+        build-configuration:
+          - name: curl
+            cmake-args: "-DUSE_OPENSSL=ON -DUSE_MBEDTLS=OFF"
+          - name: lws
+            cmake-args: "-DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
+      fail-fast: false
+
     runs-on: ubuntu-latest
-    env:
-      AWS_KVS_LOG_LEVEL: 2
+    container:
+      image: ${{ matrix.container.image }}
+
     permissions:
       id-token: write
       contents: read
+
+    name: ${{ matrix.container.name }}-${{ matrix.compiler }}-${{ matrix.build-configuration.name }}
+    timeout-minutes: 60
+
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-          role-duration-seconds: 10800
-      - name: Build repository
-        run: |
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake ..
-          make
-      - name: Sample check
-        run: |
-          ./scripts/check-sample.sh
-  sample-check-no-data-channel:
-    if: github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c'
-    runs-on: ubuntu-latest
-    env:
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-          role-duration-seconds: 10800
-      - name: Build repository
-        run: |
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake .. -DENABLE_DATA_CHANNEL=OFF
-          make
-      - name: Sample check without data channel
-        run: |
-          ./scripts/check-sample.sh
-  ubuntu-os-build:
-    runs-on: ubuntu-20.04
-    env:
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
+
       - name: Install dependencies
         run: |
-          sudo apt clean && sudo apt update
-          sudo apt-get -y install libcurl4-openssl-dev
+          apt-get update
+          apt-get install -y git cmake build-essential pkg-config file
+
+      - name: Setup GCC
+        if: ${{ matrix.compiler == 'gcc' }}
+        run: |
+          gcc --version
+          echo "CC=gcc" >> $GITHUB_ENV
+          echo "CXX=g++" >> $GITHUB_ENV
+
+      - name: Setup Clang
+        if: ${{ matrix.compiler == 'clang' }}
+        run: |
+          apt-get -y install clang
+          clang --version
+          echo "CC=clang" >> $GITHUB_ENV
+          echo "CXX=clang++" >> $GITHUB_ENV
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
+
       - name: Build repository
         run: |
-          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
           mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE
-          make
-      - name: Run tests
-        run: |
-          cd build
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
-  ubuntu-os-build-stats-calc-control:
-    runs-on: ubuntu-20.04
-    env:
-      AWS_KVS_LOG_LEVEL: 2
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
+          cmake .. -DBUILD_TEST=ON -DENABLE_AWS_SDK_IN_TESTS=OFF ${{ matrix.build-configuration.cmake-args }}
+          make -j
+          file ./tst/webrtc_client_test
+
       - name: Configure AWS Credentials
+        if: ${{ matrix.container.test == 'ON' }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
-      - name: Install dependencies
-        run: |
-          sudo apt clean && sudo apt update
-          sudo apt-get -y install libcurl4-openssl-dev
-      - name: Build repository
-        run: |
-          # TODO: Remove the following line. This is only a workaround for enabling IPv6, https://github.com/travis-ci/travis-ci/issues/8891.
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          mkdir build && cd build
-          cmake .. -DBUILD_TEST=TRUE -DENABLE_STATS_CALCULATION_CONTROL=TRUE
-          make
+
       - name: Run tests
+        # Don't run all the tests multiple times for each configuration (duplicate)
+        if: ${{ matrix.container.test == 'ON' }}
+        working-directory: ./build
         run: |
-          cd build
-          timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
+          ./tst/webrtc_client_test
+
   windows-msvc-openssl:
     runs-on: windows-2022
     env:
@@ -573,6 +331,10 @@ jobs:
       #     cd build
       #     cmake .. -DLWS_HAVE_PTHREAD_H=1 -DLWS_EXT_PTHREAD_INCLUDE_DIR="C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\include" -DLWS_EXT_PTHREAD_LIBRARIES="C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\lib\\x64\\libpthreadGC2.a" -DLWS_WITH_MINIMAL_EXAMPLES=1 -DLWS_OPENSSL_INCLUDE_DIRS="C:\\Program Files\\OpenSSL\\include" -DLWS_OPENSSL_LIBRARIES="C:\\Program Files\\OpenSSL\\lib\\libssl.lib;C:\\Program Files\\OpenSSL\\lib\\libcrypto.lib"
       #     cmake --build . --config DEBUG
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
       - name: Build repository
         shell: powershell
         run: |
@@ -613,14 +375,54 @@ jobs:
   #         git config --system core.longpaths true
   #         .github\build_windows_mbedtls.bat
 
-  stack-size-check:
+  # ----------------------------------------------------
+
+  stats-calc-control-check:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
+
+      - name: Build repository
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DBUILD_TEST=ON -DENABLE_STATS_CALCULATION_CONTROL=ON -DENABLE_AWS_SDK_IN_TESTS=OFF
+          make -j
+
+      - name: Run tests
+        working-directory: ./build
+        run: |
+          ./tst/webrtc_client_test --gtest_filter="*MetricsApiTest*"
+
+  stack-size-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
+
       - name: Check StackSize with Invalid Value
         run: |
-          mkdir build && cd build
+          mkdir build
+          cd build
           set +e  # Allow the script to continue even if cmake fails (expected)
           cmake .. -DKVS_STACK_SIZE=65536asdfsadf
           cmake_exit_code=$?
@@ -629,89 +431,13 @@ jobs:
             echo "CMake unexpectedly succeeded with invalid KVS_STACK_SIZE"
             exit 1
           fi
+
       - name: Check Stack Size is Set
+        working-directory: ./build
         run: |
-          cd build
           CMAKE_LOGS=$(cmake .. -DKVS_STACK_SIZE=65536 -DBUILD_SAMPLE=OFF 2>&1)
           if ! echo "$CMAKE_LOGS" | grep -q "Building with default stack size: 65536 bytes"; then
             echo "Stack size was not sent to PIC properly. See the logs below:"
             echo "$CMAKE_LOGS"
             exit 1
-          fi
-
-  valgrind-check:
-    runs-on: ubuntu-latest
-    env:
-      AWS_KVS_LOG_LEVEL: 7
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: Install deps
-        run: |
-          sudo apt clean && sudo apt update
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
-          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy main'
-          sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu/ jammy universe'
-          sudo apt-get -q update
-          sudo apt-get -y install libcurl4-openssl-dev valgrind
-      - name: Build repository
-        run: |
-          mkdir build && cd build
-          cmake .. -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
-          make
-          ulimit -c unlimited -S
-      - name: Run tests
-        run: |
-          cd build
-          valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file=valgrind-master.txt ./samples/kvsWebrtcClientMaster demo-channel-gh-actions &
-          PID_MASTER=$!
-          valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file=valgrind-viewer.txt ./samples/kvsWebrtcClientViewer demo-channel-gh-actions &
-          PID_VIEWER=$!
-          
-          # Wait for processes to run initially
-          sleep 30 # Wait 30s
-          
-          # Send SIGINT (2) to both processes
-          kill -2 $PID_VIEWER
-          sleep 30
-          
-          kill -2 $PID_MASTER
-          
-          # Start a background task to enforce a timeout for graceful shutdown
-          (
-            sleep 10
-            kill -9 $PID_MASTER 2>/dev/null
-            kill -9 $PID_VIEWER 2>/dev/null
-          ) &
-          
-          wait $PID_MASTER
-          EXIT_STATUS_MASTER=$?
-          wait $PID_VIEWER
-          EXIT_STATUS_VIEWER=$?
-          
-          # Check exit statuses to determine if the interrupt was successful
-          if [ $EXIT_STATUS_MASTER -ne 0 ] || [ $EXIT_STATUS_VIEWER -ne 0 ]; then
-            echo "Process did not exit gracefully."
-            echo "Master exit code: $EXIT_STATUS_MASTER"
-            echo "Viewer exit code: $EXIT_STATUS_VIEWER"
-            exit 1
-          else
-          
-            echo "Processes exited successfully."
-          fi
-          
-          # Check for memory leaks in Valgrind output files
-          if grep "All heap blocks were freed -- no leaks are possible" valgrind-master.txt && grep "All heap blocks were freed -- no leaks are possible" valgrind-viewer.txt; then
-            echo "No memory leaks detected."
-          else
-            echo "Memory leaks detected."
           fi

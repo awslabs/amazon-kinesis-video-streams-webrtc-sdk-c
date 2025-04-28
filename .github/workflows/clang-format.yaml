@@ -1,0 +1,27 @@
+name: WebRTC C Clang Format
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  pull_request:
+    branches:
+      - develop
+      - main
+
+jobs:
+  clang-format-check:
+    runs-on: macos-13
+    timeout-minutes: 15
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Install clang-format
+        run: |
+          brew install clang-format
+          clang-format --version
+      - name: Run clang format check
+        run: |
+          bash scripts/check-clang.sh
