@@ -15,27 +15,32 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AWS_KVS_LOG_LEVEL: 2
+
     permissions:
       id-token: write
       contents: read
+
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
+
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '3.x'
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
+
       - name: Build repository
         run: |
-          sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
           mkdir build && cd build
           cmake ..
-          make
+          make -j
+
       - name: Sample check
         run: |
           ./scripts/check-sample.sh
@@ -71,33 +76,40 @@ jobs:
 
   valgrind-check:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
     env:
       AWS_KVS_LOG_LEVEL: 7
+
     permissions:
       id-token: write
       contents: read
     steps:
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
+
       - name: Install deps
         run: |
           sudo apt-get update
           sudo apt-get -y install valgrind
+
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '3.x'
+
       - name: Build repository
         run: |
           mkdir build && cd build
           cmake .. -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
-          make
-          ulimit -c unlimited -S
+          make -j
+
       - name: Run tests
         run: |
           cd build

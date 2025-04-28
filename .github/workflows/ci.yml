@@ -28,11 +28,11 @@ jobs:
           - name: Shared OpenSSL
             cmake_flags: "-DBUILD_TEST=ON"
           - name: Static OpenSSL
-            cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=TRUE"
+            cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=ON"
           - name: Shared MbedTLS
             cmake_flags: "-DBUILD_TEST=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
           - name: Static MbedTLS
-            cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=TRUE -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
+            cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
       fail-fast: false
 
     permissions:
@@ -167,6 +167,7 @@ jobs:
 
     runs-on: ubuntu-latest
     container: public.ecr.aws/ubuntu/ubuntu:20.04_stable
+    timeout-minutes: 60
 
     env:
       CC: gcc-4.4
@@ -378,6 +379,7 @@ jobs:
 
   stats-calc-control-check:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     permissions:
       id-token: write
@@ -386,11 +388,6 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get -y install libcurl4-openssl-dev
 
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2
@@ -401,7 +398,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DBUILD_TEST=ON -DENABLE_STATS_CALCULATION_CONTROL=ON
+          cmake .. -DBUILD_TEST=ON -DENABLE_STATS_CALCULATION_CONTROL=ON -DENABLE_AWS_SDK_IN_TESTS=OFF
           make -j
 
       - name: Run tests
@@ -411,16 +408,21 @@ jobs:
 
   stack-size-check:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
     steps:
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '3.x'
+
       - name: Check StackSize with Invalid Value
         run: |
-          mkdir build && cd build
+          mkdir build
+          cd build
           set +e  # Allow the script to continue even if cmake fails (expected)
           cmake .. -DKVS_STACK_SIZE=65536asdfsadf
           cmake_exit_code=$?
@@ -429,9 +431,10 @@ jobs:
             echo "CMake unexpectedly succeeded with invalid KVS_STACK_SIZE"
             exit 1
           fi
+
       - name: Check Stack Size is Set
+        working-directory: ./build
         run: |
-          cd build
           CMAKE_LOGS=$(cmake .. -DKVS_STACK_SIZE=65536 -DBUILD_SAMPLE=OFF 2>&1)
           if ! echo "$CMAKE_LOGS" | grep -q "Building with default stack size: 65536 bytes"; then
             echo "Stack size was not sent to PIC properly. See the logs below:"
