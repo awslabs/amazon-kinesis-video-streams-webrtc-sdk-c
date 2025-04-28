@@ -1,0 +1,9 @@
+description: esp_utils
+version: "0.8.0"
+
+dependencies:
+  espressif/esp_hosted:
+    override_path: ../esp_hosted
+    version: "*"
+    rules:
+      - if: "target in [esp32p4]"

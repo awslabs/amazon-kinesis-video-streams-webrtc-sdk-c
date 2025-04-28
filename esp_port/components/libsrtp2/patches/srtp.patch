@@ -1,0 +1,23 @@
+ /**
+  * @brief a debugging module for srtp
+diff --git a/crypto/kernel/crypto_kernel.c b/crypto/kernel/crypto_kernel.c
+index abcdef1..2345678 100644
+--- a/crypto/kernel/crypto_kernel.c
++++ b/crypto/kernel/crypto_kernel.c
+@@ -127,11 +127,13 @@ srtp_err_status_t srtp_crypto_kernel_init(void)
+         return status;
+     }
+ #ifdef GCM
++#if 0
+     status = srtp_crypto_kernel_load_cipher_type(&srtp_aes_icm_192,
+                                                  SRTP_AES_ICM_192);
+     if (status) {
+         return status;
+     }
++#endif
+     status = srtp_crypto_kernel_load_cipher_type(&srtp_aes_gcm_128,
+                                                  SRTP_AES_GCM_128);
+     if (status) {
+         return status;
+     }
+ #endif

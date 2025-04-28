@@ -1,0 +1,152 @@
+menu "App Common Configs (Wi-Fi, SD-Card, Camera)"
+    config APP_COMMON_USE_SPIFFS
+        bool "Read certs from SPIFFS"
+        default y
+        help
+            If enabled, default SPIFFS will be considered and flashed
+            Disable this option to plug your own file_system partition
+
+    config ESP_WIFI_SSID
+        string "WiFi SSID"
+        default "myssid"
+        help
+            SSID (network name) for the example to connect to.
+
+    config ESP_WIFI_PASSWORD
+        string "WiFi Password"
+        default "mypassword"
+        help
+            WiFi password (WPA or WPA2) for the example to use.
+
+    config ESP_MAXIMUM_RETRY
+        int "Maximum retry"
+        default 5
+        help
+            Set the Maximum retry to avoid station reconnecting to the AP unlimited when the AP is really inexistent.
+
+    config EXAMPLE_FORMAT_IF_MOUNT_FAILED
+        bool "Format the card if mount failed"
+        default n
+        help
+            If this config item is set, format_if_mount_failed will be set to true and the card will be formatted if
+            the mount has failed.
+
+    choice EXAMPLE_SDMMC_BUS_WIDTH
+        prompt "SD/MMC bus width"
+        default EXAMPLE_SDMMC_BUS_WIDTH_1
+        help
+            Select the bus width of SD or MMC interface.
+            Note that even if 1 line mode is used, D3 pin of the SD card must have a pull-up resistor connected.
+            Otherwise the card may enter SPI mode, the only way to recover from which is to cycle power to the card.
+
+        config EXAMPLE_SDMMC_BUS_WIDTH_4
+            bool "4 lines (D0 - D3)"
+
+        config EXAMPLE_SDMMC_BUS_WIDTH_1
+            bool "1 line (D0)"
+    endchoice
+
+    if IDF_TARGET_ESP32S3
+
+        config EXAMPLE_PIN_CMD
+            int "CMD GPIO number"
+            default 35 if IDF_TARGET_ESP32S3
+
+        config EXAMPLE_PIN_CLK
+            int "CLK GPIO number"
+            default 36 if IDF_TARGET_ESP32S3
+
+        config EXAMPLE_PIN_D0
+            int "D0 GPIO number"
+            default 37 if IDF_TARGET_ESP32S3
+
+        if EXAMPLE_SDMMC_BUS_WIDTH_4
+
+            config EXAMPLE_PIN_D1
+                int "D1 GPIO number"
+                default 38 if IDF_TARGET_ESP32S3
+
+            config EXAMPLE_PIN_D2
+                int "D2 GPIO number"
+                default 33 if IDF_TARGET_ESP32S3
+
+            config EXAMPLE_PIN_D3
+                int "D3 GPIO number"
+                default 34 if IDF_TARGET_ESP32S3
+
+        endif  # EXAMPLE_SDMMC_BUS_WIDTH_4
+
+    endif  # IDF_TARGET_ESP32S3
+endmenu
+
+menu "AWS IoT Core Credentials"
+    config IOT_CORE_ENABLE_CREDENTIALS
+        bool "Enable AWS IoT Core credentials for authentication"
+        default y
+        help
+            Enable this option to use AWS IoT Core credentials for authentication.
+            When enabled, the application will use the AWS IoT Core credentials provider
+            to obtain temporary credentials for accessing AWS services.
+            If disabled, application should set access key instead
+
+    config AWS_IOT_CORE_CREDENTIAL_ENDPOINT
+        string "AWS IoT Core Credential Endpoint"
+        default "credential-endpoint.credentials.iot.us-east-1.amazonaws.com"
+        depends on IOT_CORE_ENABLE_CREDENTIALS
+        help
+            AWS IoT Core credential endpoint to use for credential provider. This is the endpoint used for the AWS IoT credential provider.
+
+    config AWS_IOT_CORE_CERT
+        string "AWS IoT Core Certificate"
+        default "/spiffs/certs/iot-certificate.pem.crt"
+        depends on IOT_CORE_ENABLE_CREDENTIALS
+        help
+            Path to the AWS IoT Core certificate file. This certificate is used for authenticating with AWS IoT Core.
+
+    config AWS_IOT_CORE_PRIVATE_KEY
+        string "AWS IoT Core Private Key"
+        default "/spiffs/certs/iot-private.pem.key"
+        depends on IOT_CORE_ENABLE_CREDENTIALS
+        help
+            Path to the AWS IoT Core private key file. This key is used for authenticating with AWS IoT Core.
+
+    config AWS_IOT_CORE_ROLE_ALIAS
+        string "AWS IoT Core Role Alias"
+        default "KVS-WebRTC-Role-Alias"
+        depends on IOT_CORE_ENABLE_CREDENTIALS
+        help
+            AWS IoT Core role alias to use for credential provider. This role alias is used to assume a role with the necessary permissions.
+
+    config AWS_IOT_CORE_THING_NAME
+        string "AWS IoT Core Thing Name"
+        default "ESP32-WebRTC-Camera"
+        depends on IOT_CORE_ENABLE_CREDENTIALS
+        help
+            AWS IoT Core thing name. This identifies your device in AWS IoT Core.
+
+    config AWS_KVS_CHANNEL_NAME
+        string "KVS Channel Name"
+        default "ESP32Channel"
+        help
+            The name of the signaling channel to use for WebRTC communication.
+
+    config AWS_ACCESS_KEY_ID
+        string "AWS Access Key ID"
+        default ""
+        depends on !IOT_CORE_ENABLE_CREDENTIALS
+        help
+            AWS Access Key ID for KVS access. Used when not using IoT Core credentials.
+
+    config AWS_SECRET_ACCESS_KEY
+        string "AWS Secret Access Key"
+        default ""
+        depends on !IOT_CORE_ENABLE_CREDENTIALS
+        help
+            AWS Secret Access Key for KVS access. Used when not using IoT Core credentials.
+
+    config AWS_DEFAULT_REGION
+        string "AWS Region"
+        default "us-east-1"
+        help
+            AWS Region for KVS service.
+endmenu
