@@ -8,8 +8,11 @@ on:
     branches:
       - develop
       - main
+
 jobs:
   linux-cross-compilation:
+    timeout-minutes: 15
+
     strategy:
       matrix:
         compiler:
@@ -61,17 +64,22 @@ jobs:
             cmake_flags: -DENABLE_KVS_THREADPOOL=OFF
 
       fail-fast: false
+
     runs-on: ubuntu-latest
     container:
       image:  ${{ matrix.compiler.runner }}
+
     name: ${{ matrix.compiler.name }}, ${{ matrix.build-type.name }}, ${{ matrix.crypto.name }}, ${{ matrix.threadpool.name }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Install dependencies
         run: |
           apt-get update
           apt-get install -y build-essential cmake git pkg-config file ${{ matrix.compiler.install }}
+
       - name: Configure and build ${{ matrix.compiler.name }}, ${{ matrix.build-type.name }}, ${{ matrix.crypto.name }}, ${{ matrix.threadpool.name }}
         run: |
           export CC=${{ matrix.compiler.cc }}
@@ -89,6 +97,7 @@ jobs:
             ${{ matrix.threadpool.cmake_flags }}
           make -j$(sysctl -n hw.ncpu)
         shell: bash
+
       - name: Check test file is compiled correctly
         run: |
           cd build
