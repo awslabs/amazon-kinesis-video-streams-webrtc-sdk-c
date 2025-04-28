@@ -1,0 +1,28 @@
+menu "KVS WebRTC Configuration"
+    config ENABLE_DATA_CHANNEL
+        bool "Enable Data channel support using usrsctp"
+        default y
+        help
+            Enables WebRTC Data channel support
+
+    config PREFER_DYNAMIC_ALLOCS
+        bool "Prefer dynamic memory allocations"
+        default y
+        help
+            When enabled, use dynamic memory allocation for signaling payloads and URLs.
+            This can reduce static memory usage but may increase heap fragmentation.
+            Enable this option on platforms with limited memory to avoid large static allocations.
+
+    config KVS_WEBRTC_MEMORY_POOL_SIZE
+        int "Memory pool size for KVS WebRTC (KB)"
+        default 512
+        help
+            Size of the memory pool allocated for KVS WebRTC operations.
+
+    config KVS_MAX_CONCURRENT_STREAMS
+        int "Maximum concurrent streams"
+        default 1
+        range 1 10
+        help
+            Maximum number of concurrent WebRTC streams.
+endmenu

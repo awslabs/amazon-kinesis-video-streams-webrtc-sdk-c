@@ -1,0 +1,21 @@
+description: app_common
+version: "0.0.1"
+
+dependencies:
+  esp_webrtc_utils:
+    path: ../../components/esp_webrtc_utils
+    version: "*"
+
+  kvs_webrtc:
+    path: ../../components/kvs_webrtc
+    version: "*"
+    public: true
+
+  # espressif/esp_hosted:
+  #   override_path: ../../components/esp_hosted
+  #   version: "*"
+
+  media_stream:
+    path: ../../components/media_stream
+    version: "*"
+    public: true

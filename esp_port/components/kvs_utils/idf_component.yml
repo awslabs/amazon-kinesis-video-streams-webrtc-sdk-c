@@ -1,0 +1,4 @@
+dependencies:
+  esp_webrtc_utils:
+    path: ../esp_webrtc_utils
+    version: "*"

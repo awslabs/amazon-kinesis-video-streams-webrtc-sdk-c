@@ -1,0 +1,2 @@
+description: "libwebsockets component for ESP-IDF"
+version: "4.4.0" # matches with the version of the libwebsockets library

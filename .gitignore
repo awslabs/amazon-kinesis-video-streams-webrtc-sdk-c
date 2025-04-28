@@ -12,3 +12,7 @@ tags
 CMakeLists.txt.user
 *.vscode
 *.swp
+
+sdkconfig
+sdkconfig.old
+dependencies.lock

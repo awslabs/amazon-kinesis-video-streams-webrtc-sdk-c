@@ -1,0 +1,31 @@
+dependencies:
+  esp_webrtc_utils:
+    path: ../esp_webrtc_utils
+    version: "*"
+
+  libsrtp2:
+    path: ../libsrtp2
+    version: "*"
+
+  esp_usrsctp:
+    path: ../esp_usrsctp
+    version: "*"
+
+  kvs_utils:
+    path: ../kvs_utils
+    version: "*"
+    public: true
+
+  credential:
+    path: ../credential
+    version: "*"
+    public: true
+
+  state_machine:
+    path: ../state_machine
+    version: "*"
+    public: true
+
+  libwebsockets:
+    path: ../libwebsockets
+    version: "*"
