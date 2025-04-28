@@ -1,6 +1,6 @@
-# Port for Espressif Chipsets
+# ESP-IDF Port of Amazon Kinesis Video Streams WebRTC SDK
 
-This directory maintains Espressif Chipsets support via ESP-IDF framework.
+This directory contains the ESP-IDF port of the Amazon Kinesis Video Streams WebRTC SDK. The port is organized as a collection of ESP-IDF components that can be used in ESP-IDF projects.
 
 ## Directory Structure
 

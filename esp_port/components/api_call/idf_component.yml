@@ -1,0 +1,8 @@
+dependencies:
+  libllhttp:
+    path: ../libllhttp
+    version: "*"
+
+  # credential:
+  #   path: ../credential
+  #   version: "*"
