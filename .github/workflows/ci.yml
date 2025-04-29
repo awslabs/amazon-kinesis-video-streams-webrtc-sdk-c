@@ -11,7 +11,7 @@ on:
       - main
 
 env:
-  AWS_KVS_LOG_LEVEL: 7
+  AWS_KVS_LOG_LEVEL: 2
   DEBIAN_FRONTEND: noninteractive
 
 jobs:
@@ -142,7 +142,6 @@ jobs:
     env:
       CC: gcc
       CXX: g++
-      AWS_KVS_LOG_LEVEL: 2
     permissions:
       id-token: write
       contents: read
@@ -291,8 +290,6 @@ jobs:
 
   windows-msvc-openssl:
     runs-on: windows-2022
-    env:
-      AWS_KVS_LOG_LEVEL: 1
     permissions:
       id-token: write
       contents: read
