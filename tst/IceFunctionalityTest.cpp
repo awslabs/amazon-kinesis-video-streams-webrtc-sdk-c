@@ -305,7 +305,7 @@ TEST_F(IceFunctionalityTest, IceAgentIceAgentAddIceServerUnitTest)
     EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "turn:54.202.170.151:443?transport=udp", (PCHAR) "username", (PCHAR) "password"));
     EXPECT_TRUE(!iceServer.isSecure);
     EXPECT_EQ(iceServer.transport, KVS_SOCKET_PROTOCOL_UDP);
-    EXPECT_EQ(443, (UINT16) getInt16(iceServer.ipAddress.port));
+    EXPECT_EQ(443, (UINT16) getInt16(iceServer.ipAddresses.ipv4Address.port));
 
     /* we are not doing full validation. Only parsing out what we know */
     EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "turn:54.202.170.151:443?randomstuff", (PCHAR) "username", (PCHAR) "password"));
