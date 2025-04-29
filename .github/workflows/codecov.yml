@@ -14,7 +14,7 @@ env:
 
 jobs:
   linux-gcc-codecov:
-    if: ${{ github.repo == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c' }}
+    if: ${{ github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
 

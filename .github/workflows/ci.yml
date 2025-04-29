@@ -11,11 +11,61 @@ on:
       - main
 
 env:
-  AWS_KVS_LOG_LEVEL: 2
+  AWS_KVS_LOG_LEVEL: 7
   DEBIAN_FRONTEND: noninteractive
 
 jobs:
+  check-aws-credentials:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-west-2
+
+  cleanup-old-resources:
+    needs: check-aws-credentials
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          repository: 'aws-samples/amazon-kinesis-video-streams-demos'
+          path: demos-repo
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        working-directory: ./demos-repo/python/cleanup
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Setup credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-west-2
+
+      - name: Run cleanup script
+        working-directory: ./demos-repo/python/cleanup
+        run: |
+          python kvs_cleanup.py
+
   mac-tests:
+    needs: cleanup-old-resources
     strategy:
       matrix:
         os:
@@ -160,6 +210,7 @@ jobs:
           make -j
 
   mbedtls-ubuntu-gcc-4-4:
+    needs: cleanup-old-resources
     permissions:
       id-token: write
       contents: read
@@ -209,6 +260,7 @@ jobs:
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
 
   ubuntu:
+    needs: cleanup-old-resources
     strategy:
       matrix:
         container:
@@ -289,6 +341,7 @@ jobs:
           ./tst/webrtc_client_test
 
   windows-msvc-openssl:
+    needs: cleanup-old-resources
     runs-on: windows-2022
     permissions:
       id-token: write
@@ -296,11 +349,6 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
       - name: Move cloned repo
         shell: powershell
         run: |
@@ -338,6 +386,11 @@ jobs:
           cd C:\webrtc
           git config --system core.longpaths true
           .github\build_windows_openssl.bat
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Run tests
         shell: powershell
         run: |
