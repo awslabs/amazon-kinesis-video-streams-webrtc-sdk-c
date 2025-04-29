@@ -1466,7 +1466,7 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
                         transactionIdStoreInsert(pIceAgent->pStunBindingRequestTransactionIdStore, pBindingRequest->header.transactionId);
                         checkSum = COMPUTE_CRC32(pBindingRequest->header.transactionId, ARRAY_SIZE(pBindingRequest->header.transactionId));
 
-                        DLOGD("[TEST] Sending STUN binding request to IPv4 STUN server: %u:%u", pIceServer->ipAddresses.ipv4Address.address, pIceServer->ipAddresses.ipv4Address.port);
+                        DLOGD("Sending STUN binding request to IPv4 STUN server: %u:%u", pIceServer->ipAddresses.ipv4Address.address, pIceServer->ipAddresses.ipv4Address.port);
 
                         CHK_STATUS(iceAgentSendStunPacket(pBindingRequest, NULL, 0, pIceAgent, pCandidate, &pIceServer->ipAddresses.ipv4Address));
                         if (pIceAgent->pRtcIceServerDiagnostics[pCandidate->iceServerIndex] != NULL) {
@@ -1481,7 +1481,7 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
                         transactionIdStoreInsert(pIceAgent->pStunBindingRequestTransactionIdStore, pBindingRequest->header.transactionId);
                         checkSum = COMPUTE_CRC32(pBindingRequest->header.transactionId, ARRAY_SIZE(pBindingRequest->header.transactionId));
 
-                        DLOGD("[TEST] Sending STUN binding request to IPv6 STUN server: %u:%u", pIceServer->ipAddresses.ipv6Address.address, pIceServer->ipAddresses.ipv6Address.port);
+                        DLOGD("Sending STUN binding request to IPv6 STUN server: %u:%u", pIceServer->ipAddresses.ipv6Address.address, pIceServer->ipAddresses.ipv6Address.port);
 
                         CHK_STATUS(iceAgentSendStunPacket(pBindingRequest, NULL, 0, pIceAgent, pCandidate, &pIceServer->ipAddresses.ipv6Address));
                         if (pIceAgent->pRtcIceServerDiagnostics[pCandidate->iceServerIndex] != NULL) {
