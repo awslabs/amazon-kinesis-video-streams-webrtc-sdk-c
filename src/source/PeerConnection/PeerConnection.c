@@ -816,8 +816,8 @@ STATUS getStunAddr(PStunIpAddrContext pStunIpAddrCtx)
 
     // Initialize IP address families to a sentinel value
     // to indicate that they are not set.
-    pStunIpAddrCtx->kvsIpAddresses.ipv4Address.family = KVS_IP_FAMILY_TYPE_UNKNOWN;
-    pStunIpAddrCtx->kvsIpAddresses.ipv6Address.family = KVS_IP_FAMILY_TYPE_UNKNOWN;
+    pStunIpAddrCtx->kvsIpAddresses.ipv4Address.family = KVS_IP_FAMILY_TYPE_NOT_SET;
+    pStunIpAddrCtx->kvsIpAddresses.ipv6Address.family = KVS_IP_FAMILY_TYPE_NOT_SET;
     pStunIpAddrCtx->kvsIpAddresses.ipv4Address.port = 0;
     pStunIpAddrCtx->kvsIpAddresses.ipv6Address.port = 0;
 
@@ -938,13 +938,13 @@ PVOID resolveStunIceServerIp(PVOID args)
                          KINESIS_VIDEO_STUN_URL_WITHOUT_PORT, pRegion, pHostnamePostfix);
                 stunDnsResolutionStartTime = GETTIME();
                 if (getStunAddr(pWebRtcClientContext->pStunIpAddrCtx) == STATUS_SUCCESS) {
-                    if(pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv4Address.family != KVS_IP_FAMILY_TYPE_UNKNOWN) {
+                    if(pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv4Address.family != KVS_IP_FAMILY_TYPE_NOT_SET) {
                         // If the IPv4 family is set, then there must have been an IPv4 address resolved.
                         getIpAddrStr(&pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv4Address, addressResolvedIPv4, ARRAY_SIZE(addressResolvedIPv4));
                         DLOGI("ICE Server address for %s with getaddrinfo: %s", pWebRtcClientContext->pStunIpAddrCtx->hostname, addressResolvedIPv4);
                         pWebRtcClientContext->pStunIpAddrCtx->isIpInitialized = TRUE;
                     }
-                    if(pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv6Address.family != KVS_IP_FAMILY_TYPE_UNKNOWN) {
+                    if(pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv6Address.family != KVS_IP_FAMILY_TYPE_NOT_SET) {
                         // If the IPv6 family is set, then there must have been an IPv6 address resolved.
                         getIpAddrStr(&pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv6Address, addressResolvedIPv6, ARRAY_SIZE(addressResolvedIPv6));
                         DLOGI("ICE Server address for %s with getaddrinfo: %s", pWebRtcClientContext->pStunIpAddrCtx->hostname, addressResolvedIPv6);
