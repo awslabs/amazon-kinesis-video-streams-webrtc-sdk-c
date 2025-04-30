@@ -16,6 +16,7 @@ jobs:
   linux-gcc-codecov:
     if: ${{ github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c' }}
     runs-on: ubuntu-latest
+    container: public.ecr.aws/ubuntu/ubuntu:22.04_stable
     timeout-minutes: 60
 
     env:
@@ -29,16 +30,16 @@ jobs:
       - name: Clone repository
         uses: actions/checkout@v4
 
-      - name: Install dependencies for AWS SDK CPP
+      - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get -y install zlib1g-dev libcurl4-openssl-dev
+          apt-get update
+          apt-get -y install git cmake build-essential pkg-config
+          apt-get -y install zlib1g-dev libcurl4-openssl-dev
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Check versions
+        run: |
+          gcc --version
+          gcov --version
 
       - name: Build repository
         run: |
@@ -46,6 +47,12 @@ jobs:
           cd build
           cmake .. -DCODE_COVERAGE=ON -DBUILD_TEST=ON
           make -j
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Run tests
         working-directory: ./build
