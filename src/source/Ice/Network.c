@@ -405,6 +405,8 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
     struct sockaddr_in* ipv4Addr;
     struct sockaddr_in6* ipv6Addr;
     struct in_addr inaddr;
+    CHAR ipv4AddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+    CHAR ipv6AddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
 
     CHAR addr[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
 
@@ -433,18 +435,26 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
         }
         for (rp = res; rp != NULL && !(ipv4Resolved && ipv6Resolved); rp = rp->ai_next) {
             if (rp->ai_family == AF_INET) {
-                DLOGD("Found an IPv4 ICE server addresss");
                 ipv4Addr = (struct sockaddr_in*) rp->ai_addr;
                 destIps->ipv4Address.family = KVS_IP_FAMILY_TYPE_IPV4;
                 // TODO: Should also init port to 0, or no (we do in the threadpool-enabled version of this call for STUN)?
                 MEMCPY(destIps->ipv4Address.address, &ipv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
+
+                CHK_STATUS(getIpAddrStr(&(destIps->ipv4Address), ipv4AddrStr, ARRAY_SIZE(ipv4AddrStr)));
+                DLOGD("Found an IPv4 ICE server addresss: %s", ipv4AddrStr);
+                
                 ipv4Resolved = TRUE;
+
             } else if (rp->ai_family == AF_INET6) {
-                DLOGD("Found an IPv6 ICE server addresss");
                 ipv6Addr = (struct sockaddr_in6*) rp->ai_addr;
                 destIps->ipv6Address.family = KVS_IP_FAMILY_TYPE_IPV6;
                 MEMCPY(destIps->ipv6Address.address, &ipv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
+
+                CHK_STATUS(getIpAddrStr(&(destIps->ipv6Address), ipv6AddrStr, ARRAY_SIZE(ipv6AddrStr)));
+                DLOGD("Found an IPv6 ICE server addresss: %s", ipv6AddrStr);
+
                 ipv6Resolved = TRUE;
+                
             } else {
                 DLOGD("Found an invalid ICE server addresss family type - must be IPv4 or IPv6.");
             }
