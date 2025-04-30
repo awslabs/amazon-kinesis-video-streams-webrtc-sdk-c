@@ -170,7 +170,7 @@ STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 pa
 
     CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
 
-    getIpAddrStr(pDest, ipAddrStr, ARRAY_SIZE(ipAddrStr));
+    CHK_STATUS(getIpAddrStr(pDest, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
 
     CHK_STATUS(iceUtilsPackageStunPacket(pStunPacket, password, passwordLen, stunPacketBuffer, &stunPacketSize));
     CHK(pDest != NULL, STATUS_NULL_ARG);
