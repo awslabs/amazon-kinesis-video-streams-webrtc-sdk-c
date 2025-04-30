@@ -75,6 +75,16 @@ int main(int argc, char** argv)
         if (trial >= MAX_TRIALS) {
             ::testing::GTEST_FLAG(break_on_failure) = breakOnFailure;
         }
+
+        // Increase logging verbosity on retry
+        if (trial >= 1) {
+#ifdef _WIN32
+            _putenv_s("AWS_KVS_LOG_LEVEL", "1");
+#else
+            setenv("AWS_KVS_LOG_LEVEL", "1", 1);
+#endif
+        }
+
         rc = RUN_ALL_TESTS();
 
         // If there were some tests failed, set googletest filter flag to those failed tests.

@@ -11,11 +11,13 @@ on:
 
 env:
   AWS_KVS_LOG_LEVEL: 7
+  DEBIAN_FRONTEND: noninteractive
 
 jobs:
   linux-gcc-codecov:
-    if: ${{ github.repo == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c' }}
+    if: ${{ github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c' }}
     runs-on: ubuntu-latest
+    container: public.ecr.aws/ubuntu/ubuntu:20.04_stable
     timeout-minutes: 60
 
     env:
@@ -28,12 +30,20 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          fetch-depth: 0  # fetch all history, for Codecov
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get -y install git cmake build-essential pkg-config
+          apt-get -y install zlib1g-dev libcurl4-openssl-dev
+          apt-get -y install curl
+
+      - name: Check versions
+        run: |
+          gcc --version
+          gcov --version
 
       - name: Build repository
         run: |
@@ -42,12 +52,24 @@ jobs:
           cmake .. -DCODE_COVERAGE=ON -DBUILD_TEST=ON
           make -j
 
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
       - name: Run tests
         working-directory: ./build
         run: |
           ./tst/webrtc_client_test
 
-      - name: Code coverage
+      - name: Generate report
+        working-directory: ./build
+        shell: bash
         run: |
           for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
+
+      - name: Upload report
+        shell: bash
+        run: |
           bash <(curl -s https://codecov.io/bash)
