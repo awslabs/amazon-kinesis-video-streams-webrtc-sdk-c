@@ -11,12 +11,13 @@ on:
 
 env:
   AWS_KVS_LOG_LEVEL: 7
+  DEBIAN_FRONTEND: noninteractive
 
 jobs:
   linux-gcc-codecov:
     if: ${{ github.repository == 'awslabs/amazon-kinesis-video-streams-webrtc-sdk-c' }}
     runs-on: ubuntu-latest
-    container: public.ecr.aws/ubuntu/ubuntu:22.04_stable
+    container: public.ecr.aws/ubuntu/ubuntu:20.04_stable
     timeout-minutes: 60
 
     env:
