@@ -63,9 +63,13 @@ jobs:
         run: |
           ./tst/webrtc_client_test
 
-      - name: Code coverage
+      - name: Generate report
         working-directory: ./build
         shell: bash
         run: |
           for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
+
+      - name: Upload report
+        shell: bash
+        run: |
           bash <(curl -s https://codecov.io/bash)
