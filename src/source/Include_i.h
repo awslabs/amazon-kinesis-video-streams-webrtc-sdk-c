@@ -92,9 +92,9 @@ extern "C" {
 #define MAX_UDP_PACKET_SIZE 65507
 
 typedef enum {
-    KVS_IP_FAMILY_TYPE_UNKNOWN = (UINT16) 0x0000,
-    KVS_IP_FAMILY_TYPE_IPV4 = (UINT16) 0x0001,
-    KVS_IP_FAMILY_TYPE_IPV6 = (UINT16) 0x0002,
+    KVS_IP_FAMILY_TYPE_NOT_SET = (UINT16) 0x0000, // Sentinel value for not yet set IP address.
+    KVS_IP_FAMILY_TYPE_IPV4    = (UINT16) 0x0001,
+    KVS_IP_FAMILY_TYPE_IPV6    = (UINT16) 0x0002,
 } KVS_IP_FAMILY_TYPE;
 
 typedef struct {
