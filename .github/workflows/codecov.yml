@@ -30,6 +30,8 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # fetch all history, for Codecov
 
       - name: Install dependencies
         run: |
