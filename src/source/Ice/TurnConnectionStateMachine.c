@@ -278,8 +278,8 @@ STATUS executeGetCredentialsTurnState(UINT64 customData, UINT64 time)
     } else {
         CHK(currentTime <= pTurnConnection->stateTimeoutTime, STATUS_TURN_CONNECTION_GET_CREDENTIALS_FAILED);
     }
-    CHK_STATUS(iceUtilsSendStunPacket(pTurnConnection->pTurnPacket, NULL, 0, &pTurnConnection->turnServer.ipAddresses.ipv4Address, pTurnConnection->pControlChannel,
-                                      NULL, FALSE));
+    CHK_STATUS(iceUtilsSendStunPacket(pTurnConnection->pTurnPacket, NULL, 0, &pTurnConnection->turnServer.ipAddresses.ipv4Address,
+                                      pTurnConnection->pControlChannel, NULL, FALSE));
 
 CleanUp:
 

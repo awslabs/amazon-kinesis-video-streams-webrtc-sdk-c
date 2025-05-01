@@ -437,12 +437,11 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
             if (rp->ai_family == AF_INET) {
                 ipv4Addr = (struct sockaddr_in*) rp->ai_addr;
                 destIps->ipv4Address.family = KVS_IP_FAMILY_TYPE_IPV4;
-                // TODO: Should also init port to 0, or no (we do in the threadpool-enabled version of this call for STUN)?
                 MEMCPY(destIps->ipv4Address.address, &ipv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
 
                 CHK_STATUS(getIpAddrStr(&(destIps->ipv4Address), ipv4AddrStr, ARRAY_SIZE(ipv4AddrStr)));
                 DLOGD("Found an IPv4 ICE server addresss: %s", ipv4AddrStr);
-                
+
                 ipv4Resolved = TRUE;
 
             } else if (rp->ai_family == AF_INET6) {
@@ -454,7 +453,7 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
                 DLOGD("Found an IPv6 ICE server addresss: %s", ipv6AddrStr);
 
                 ipv6Resolved = TRUE;
-                
+
             } else {
                 DLOGD("Found an invalid ICE server addresss family type - must be IPv4 or IPv6.");
             }
