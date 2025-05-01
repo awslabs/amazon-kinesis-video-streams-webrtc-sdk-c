@@ -176,10 +176,10 @@ STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 pa
     CHK(pDest != NULL, STATUS_NULL_ARG);
     switch (pStunPacket->header.stunMessageType) {
         case STUN_PACKET_TYPE_BINDING_REQUEST:
-            DLOGD("Sending BINDING_REQUEST to ip:%s, port:%u",ipAddrStr,(UINT16) getInt16(pDest->port));
+            DLOGD("Sending BINDING_REQUEST to ip:%s, port:%u", ipAddrStr, (UINT16) getInt16(pDest->port));
             break;
         case STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS:
-            DLOGD("Sending BINDING_RESPONSE_SUCCESS to ip:%s, port:%u",ipAddrStr,(UINT16) getInt16(pDest->port));
+            DLOGD("Sending BINDING_RESPONSE_SUCCESS to ip:%s, port:%u", ipAddrStr, (UINT16) getInt16(pDest->port));
             break;
         default:
             break;
@@ -280,12 +280,12 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
         CHK_STATUS(getIpWithHostName(pIceServer->url, &pIceServer->ipAddresses));
     }
 
-    if(pIceServer->ipAddresses.ipv4Address.family != KVS_IP_FAMILY_TYPE_NOT_SET) {
+    if (pIceServer->ipAddresses.ipv4Address.family != KVS_IP_FAMILY_TYPE_NOT_SET) {
         pIceServer->ipAddresses.ipv4Address.port = (UINT16) getInt16((INT16) port);
         getIpAddrStr(&pIceServer->ipAddresses.ipv4Address, addressResolvedIPv4, ARRAY_SIZE(addressResolvedIPv4));
         DLOGP("Resolved ICE Server IPv4 address for %s: %s", pIceServer->url, addressResolvedIPv4);
         DLOGP("...with port: %u", pIceServer->ipAddresses.ipv4Address.port);
-    } 
+    }
 
     if (pIceServer->ipAddresses.ipv6Address.family != KVS_IP_FAMILY_TYPE_NOT_SET) {
         pIceServer->ipAddresses.ipv6Address.port = (UINT16) getInt16((INT16) port);
