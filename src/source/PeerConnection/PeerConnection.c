@@ -810,10 +810,6 @@ STATUS getStunAddr(PStunIpAddrContext pStunIpAddrCtx)
     BOOL ipv4Resolved = FALSE;
     BOOL ipv6Resolved = FALSE;
 
-    // To speed up connection for non-dual stack candidates,ignore IPv6.
-    // # if not defined (USE_DUAL_STACK_CANDIDATES)
-    //     ipv6Resolved = TRUE;
-
     // Initialize IP address families to a sentinel value
     // to indicate that they are not set.
     pStunIpAddrCtx->kvsIpAddresses.ipv4Address.family = KVS_IP_FAMILY_TYPE_NOT_SET;
