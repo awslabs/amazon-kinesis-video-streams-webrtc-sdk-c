@@ -163,6 +163,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     // Create the ongoing message list
     CHK_STATUS(stackQueueCreate(&pSignalingClient->pMessageQueue));
 
+    CHK_STATUS(configureLwsLogging(loggerGetLogLevel()));
+
     pSignalingClient->pLwsContext = lws_create_context(&creationInfo);
     CHK(pSignalingClient->pLwsContext != NULL, STATUS_SIGNALING_LWS_CREATE_CONTEXT_FAILED);
 
