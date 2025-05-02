@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - develop
+      - 'test-pr-*'
 
 jobs:
   generate-and-deploy-doxygen:
