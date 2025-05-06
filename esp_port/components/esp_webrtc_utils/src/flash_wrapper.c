@@ -230,7 +230,7 @@ esp_err_t flash_wrapper_init(void)
     BaseType_t res = xTaskCreate(
         flash_op_task,
         "flash_op_task",
-        8192,
+        4096,
         NULL,
         5,
         &flash_task_handle

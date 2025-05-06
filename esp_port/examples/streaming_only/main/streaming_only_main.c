@@ -1,12 +1,6 @@
-/*
- * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO LTD
- *
- * SPDX-License-Identifier: Apache-2.0
- */
-
 #include <string.h>
-#include <pthread.h>
 #include <inttypes.h>
+#include <stdint.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
@@ -20,13 +14,17 @@
 #include "esp_cli.h"
 #include "app_storage.h"
 
-#include "app_webrtc.h"
-#include "esp_webrtc_time.h"
-#include "esp_work_queue.h"
 #include "app_media.h"
+#include "signaling_serializer.h"
+#include "webrtc_bridge.h"
 #include "esp_work_queue.h"
+#include "app_webrtc.h"
+#include "signalling_remote.h"
 
-static const char *TAG = "webrtc_main";
+// External function declarations
+extern STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage);
+
+static const char *TAG = "streaming_only";
 
 // WiFi event group
 static EventGroupHandle_t s_wifi_event_group;
@@ -35,6 +33,99 @@ static char wifi_ip[72];
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT      BIT1
 
+/**
+ * @brief Handle bridged signaling received  via webrtc_bridge
+ *
+ * Signaling messages received via webrtc_bridge need to be converted to
+ * ReceivedSignalingMessage and passed to signalingMessageReceived function
+ *
+ * @note The messages to be sent via bridge (to signaling_only component) are serialized and
+ * sent by app_webrtc
+ *
+ * @param data The data to handle
+ * @param len The length of the data
+ */
+static void handle_bridged_message(const void* data, int len)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    signaling_msg_t signalingMsg = {0};
+    ReceivedSignalingMessage receivedSignalingMessage = {0};
+    // WebRTC configuration and session
+    PSampleConfiguration pSampleConfiguration = NULL;
+    CHK_STATUS(webrtcAppGetSampleConfiguration(&pSampleConfiguration));
+    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
+
+    // Deserialize the incoming message
+    esp_err_t ret = deserialize_signaling_message(data, len, &signalingMsg);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to deserialize signaling message");
+        return;
+    }
+
+    ESP_LOGI(TAG, "Received signaling message type: %d", signalingMsg.messageType);
+
+    // Convert from SignalingMsg to ReceivedSignalingMessage
+    receivedSignalingMessage.signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
+
+    // Convert message type
+    switch (signalingMsg.messageType) {
+        case SIGNALING_MSG_TYPE_OFFER:
+            receivedSignalingMessage.signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
+            break;
+        case SIGNALING_MSG_TYPE_ICE_CANDIDATE:
+            receivedSignalingMessage.signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
+            break;
+        case SIGNALING_MSG_TYPE_ANSWER:
+            receivedSignalingMessage.signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
+            break;
+        default:
+            ESP_LOGW(TAG, "Unknown message type: %d", signalingMsg.messageType);
+            goto CleanUp;
+    }
+
+    // Copy the rest of the fields
+    STRNCPY(receivedSignalingMessage.signalingMessage.peerClientId, signalingMsg.peerClientId, MAX_SIGNALING_CLIENT_ID_LEN);
+    STRNCPY(receivedSignalingMessage.signalingMessage.correlationId, signalingMsg.correlationId, MAX_CORRELATION_ID_LEN);
+
+    if (signalingMsg.payload != NULL && signalingMsg.payloadLen > 0) {
+#if DYNAMIC_SIGNALING_PAYLOAD
+        receivedSignalingMessage.signalingMessage.payload = signalingMsg.payload;
+#else
+        MEMCPY(receivedSignalingMessage.signalingMessage.payload, signalingMsg.payload, signalingMsg.payloadLen);
+        receivedSignalingMessage.signalingMessage.payload[signalingMsg.payloadLen] = '\0';
+        SAFE_MEMFREE(signalingMsg.payload);
+#endif
+        receivedSignalingMessage.signalingMessage.payloadLen = signalingMsg.payloadLen;
+    } else {
+        // Handle empty payload
+#if DYNAMIC_SIGNALING_PAYLOAD
+        receivedSignalingMessage.signalingMessage.payload = NULL;
+#else
+        receivedSignalingMessage.signalingMessage.payload[0] = '\0';
+#endif
+        receivedSignalingMessage.signalingMessage.payloadLen = 0;
+    }
+
+    // Call the signaling message handler from sample_config.c
+    // This will handle all aspects of signaling, including:
+    // - Creating the streaming session when needed
+    // - Managing session lifecycle
+    // - Processing offers, answers, and ICE candidates
+    retStatus = signalingMessageReceived((UINT64)pSampleConfiguration, &receivedSignalingMessage);
+    if (retStatus != STATUS_SUCCESS) {
+        // Check if it's the ESP-IDF specific error (non-fatal)
+        if (retStatus == 0x40100002) {
+            ESP_LOGW(TAG, "signalingMessageReceived returned ESP-IDF event handler error (0x40100002) - continuing anyway");
+        } else {
+            ESP_LOGE(TAG, "signalingMessageReceived failed with status: 0x%08" PRIx32, retStatus);
+        }
+    }
+
+CleanUp:
+    // Nothing!!
+}
+
+// WiFi event handler
 static void event_handler(void* arg, esp_event_base_t event_base,
                          int32_t event_id, void* event_data)
 {
@@ -44,11 +135,9 @@ static void event_handler(void* arg, esp_event_base_t event_base,
         esp_wifi_connect();
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
-
         memset(wifi_ip, 0, sizeof(wifi_ip)/sizeof(wifi_ip[0]));
         ESP_LOGI(TAG, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
         memcpy(wifi_ip, &event->ip_info.ip, 4);
-        // s_retry_num = 0;
         xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
     }
 }
@@ -146,24 +235,6 @@ static void app_webrtc_event_handler(app_webrtc_event_data_t *event_data, void *
         case APP_WEBRTC_EVENT_DEINITIALIZING:
             ESP_LOGI(TAG, "[KVS Event] WebRTC Deinitialized.");
             break;
-        case APP_WEBRTC_EVENT_SIGNALING_CONNECTING:
-            ESP_LOGI(TAG, "[KVS Event] Signaling Connecting.");
-            break;
-        case APP_WEBRTC_EVENT_SIGNALING_CONNECTED:
-            ESP_LOGI(TAG, "[KVS Event] Signaling Connected.");
-            break;
-        case APP_WEBRTC_EVENT_SIGNALING_DISCONNECTED:
-            ESP_LOGI(TAG, "[KVS Event] Signaling Disconnected.");
-            break;
-        case APP_WEBRTC_EVENT_SIGNALING_DESCRIBE:
-            ESP_LOGI(TAG, "[KVS Event] Signaling Describe.");
-            break;
-        case APP_WEBRTC_EVENT_SIGNALING_GET_ENDPOINT:
-            ESP_LOGI(TAG, "[KVS Event] Signaling Get Endpoint.");
-            break;
-        case APP_WEBRTC_EVENT_SIGNALING_GET_ICE:
-            ESP_LOGI(TAG, "[KVS Event] Signaling Get ICE.");
-            break;
         case APP_WEBRTC_EVENT_PEER_CONNECTION_REQUESTED:
             ESP_LOGI(TAG, "[KVS Event] Peer Connection Requested.");
             break;
@@ -187,13 +258,10 @@ static void app_webrtc_event_handler(app_webrtc_event_data_t *event_data, void *
             break;
         case APP_WEBRTC_EVENT_ERROR:
             /* fall-through */
-        case APP_WEBRTC_EVENT_SIGNALING_ERROR:
-            /* fall-through */
         case APP_WEBRTC_EVENT_PEER_CONNECTION_FAILED:
             ESP_LOGE(TAG, "[KVS Event] Error Event %d: Code %d, Message: %s",
                      (int) event_data->event_id, (int) event_data->status_code, event_data->message);
             break;
-        // Add cases for other events if needed
         default:
             ESP_LOGI(TAG, "[KVS Event] Unhandled Event ID: %d", (int) event_data->event_id);
             break;
@@ -213,7 +281,7 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
-    ESP_LOGI(TAG, "ESP32 WebRTC Example");
+    ESP_LOGI(TAG, "ESP32 WebRTC Streaming Example");
 
     esp_cli_start();
 
@@ -222,9 +290,10 @@ void app_main(void)
 
     app_storage_init();
 
-    // Perform the time sync
-    esp_webrtc_time_sntp_time_sync_and_wait();
+    // Initialize signaling serializer
+    signaling_serializer_init();
 
+    // Initialize work queue
     if (esp_work_queue_init() != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize work queue");
         return;
@@ -240,35 +309,16 @@ void app_main(void)
         ESP_LOGE(TAG, "Failed to register KVS event callback.");
     }
 
-    WebRtcAppConfig webrtcConfig = {0};
-    // Configure WebRTC app
-    webrtcConfig.pChannelName = "ScaryTestChannel";
-    webrtcConfig.roleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-
-#ifdef CONFIG_IOT_CORE_ENABLE_CREDENTIALS
-    // Configure IoT Core credentials
-    webrtcConfig.useIotCredentials = TRUE;
-    webrtcConfig.iotCoreCredentialEndpoint = CONFIG_AWS_IOT_CORE_CREDENTIAL_ENDPOINT;
-    webrtcConfig.iotCoreCert = CONFIG_AWS_IOT_CORE_CERT;
-    webrtcConfig.iotCorePrivateKey = CONFIG_AWS_IOT_CORE_PRIVATE_KEY;
-    webrtcConfig.iotCoreRoleAlias = CONFIG_AWS_IOT_CORE_ROLE_ALIAS;
-    webrtcConfig.iotCoreThingName = CONFIG_AWS_IOT_CORE_THING_NAME;
-#else
-    // Configure direct AWS credentials
-    webrtcConfig.useIotCredentials = FALSE;
-    webrtcConfig.awsAccessKey = CONFIG_AWS_ACCESS_KEY_ID;
-    webrtcConfig.awsSecretKey = CONFIG_AWS_SECRET_ACCESS_KEY;
-    webrtcConfig.awsSessionToken = CONFIG_AWS_SESSION_TOKEN;
-#endif
-
-    // Set common AWS options
-    webrtcConfig.awsRegion = CONFIG_AWS_DEFAULT_REGION;
-    webrtcConfig.caCertPath = "/spiffs/certs/cacert.pem";
-    webrtcConfig.logLevel = 1;
-
     // Configure WebRTC
+    WebRtcAppConfig webrtcConfig = {0};
+    webrtcConfig.roleType = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
+    webrtcConfig.mode = APP_WEBRTC_STREAMING_ONLY_MODE;
+    webrtcConfig.pChannelName = NULL; // NULL for streaming-only mode
+
+    // Set common options
     webrtcConfig.trickleIce = TRUE;
     webrtcConfig.useTurn = TRUE;
+    webrtcConfig.logLevel = LOG_LEVEL_DEBUG;
 
     // Configure media
     webrtcConfig.audioCodec = RTC_CODEC_OPUS;
@@ -294,7 +344,13 @@ void app_main(void)
         goto CleanUp;
     }
 
-    ESP_LOGI(TAG, "Running WebRTC application");
+    // Register the bridge message handler
+    webrtc_bridge_register_handler(handle_bridged_message);
+
+    // Start webrtc bridge
+    webrtc_bridge_start();
+
+    ESP_LOGI(TAG, "Streaming example initialized, waiting for signaling messages");
 
     // Run WebRTC application
     status = webrtcAppRun();
@@ -303,12 +359,11 @@ void app_main(void)
         goto CleanUp;
     }
 
-    ESP_LOGI(TAG, "WebRTC session terminated");
-
 CleanUp:
+    // Do not terminate the WebRTC application in streaming-only mode
+    // Only streaming sessions are created and destroyed internally
     // Terminate WebRTC application
-    webrtcAppTerminate();
-    ESP_LOGI(TAG, "Cleanup done");
+    // webrtcAppTerminate();
 }
 
 PVOID sampleReceiveAudioVideoFrame(PVOID args)

@@ -129,19 +129,13 @@ esp_err_t esp_work_queue_start(void)
     }
 
     StaticTask_t *task_buffer = heap_caps_calloc(1, sizeof(StaticTask_t), MALLOC_CAP_INTERNAL);
-    // void *task_stack = heap_caps_calloc_prefer(1, ESP_WORKQ_TASK_STACK, MALLOC_CAP_SPIRAM, MALLOC_CAP_INTERNAL);
-    void *task_stack = heap_caps_malloc(ESP_WORKQ_TASK_STACK, MALLOC_CAP_INTERNAL);
+    void *task_stack = heap_caps_malloc_prefer(ESP_WORKQ_TASK_STACK, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT, MALLOC_CAP_INTERNAL);
     assert(task_buffer && task_stack);
 
     /* the task never exits, so do not bother to free the buffers */
     xTaskCreateStatic(&esp_work_queue_task, "esp_workq_task", ESP_WORKQ_TASK_STACK,
                       NULL, ESP_WORKQ_TASK_PRIO, task_stack, task_buffer);
 
-    // if (xTaskCreate(&esp_work_queue_task, "rmaker_queue_task", ESP_WORKQ_TASK_STACK,
-    //             NULL, ESP_WORKQ_TASK_PRIO, NULL) != pdPASS) {
-    //     ESP_LOGE(TAG, "Couldn't create RainMaker work queue task");
-    //     return ESP_FAIL;
-    // }
     queue_state = WORK_QUEUE_STATE_RUNNING;
     return ESP_OK;
 }

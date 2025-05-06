@@ -11,9 +11,9 @@ dependencies:
     version: "*"
     public: true
 
-  # espressif/esp_hosted:
-  #   override_path: ../../components/esp_hosted
-  #   version: "*"
+  credential:
+    path: ../../components/credential
+    version: "*"
 
   media_stream:
     path: ../../components/media_stream
@@ -22,4 +22,8 @@ dependencies:
 
   webrtc_bridge:
     path: ../../components/webrtc_bridge
+    version: "*"
+
+  signaling_serializer:
+    path: ../../components/signaling_serializer
     version: "*"
