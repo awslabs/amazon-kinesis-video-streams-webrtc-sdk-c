@@ -51,6 +51,7 @@ STATUS iceUtilsSendStunPacket(PStunPacket, PBYTE, UINT32, PKvsIpAddress, PSocket
 STATUS iceUtilsSendData(PBYTE, UINT32, PKvsIpAddress, PSocketConnection, struct __TurnConnection*, BOOL);
 
 typedef struct {
+    // isTurn ? TURN server : STUN server
     BOOL isTurn;
     BOOL isSecure;
     CHAR url[MAX_ICE_CONFIG_URI_LEN + 1];
