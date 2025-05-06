@@ -425,7 +425,6 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
 
     // Verify the generated address has the format x.x.x.x
     if (!isIpAddr(addr, hostnameLen) || retStatus != STATUS_SUCCESS) {
-
         // Only print the message for TURN servers since STUN addresses don't have the IP in the URL
         if (!isStunServer) {
             DLOGW("Parsing for address failed for %s, fallback to getaddrinfo", hostname);
