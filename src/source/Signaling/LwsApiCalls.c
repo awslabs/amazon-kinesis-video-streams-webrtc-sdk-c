@@ -1188,65 +1188,10 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL,
         STATUS_SIGNALING_LWS_CALL_FAILED);
 
-    // Parse the response
-    jsmn_init(&parser);
-    tokenCount = jsmn_parse(&parser, pResponseStr, resultLen, tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
-    CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
-    CHK(tokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
-
-    MEMSET(&pSignalingClient->iceConfigs, 0x00, MAX_ICE_CONFIG_COUNT * SIZEOF(IceConfigInfo));
-    pSignalingClient->iceConfigCount = 0;
-
-    // Loop through the tokens and extract the ice configuration
-    for (i = 0; i < tokenCount; i++) {
-        if (!jsonInIceServerList) {
-            if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "IceServerList")) {
-                jsonInIceServerList = TRUE;
-
-                CHK(tokens[i + 1].type == JSMN_ARRAY, STATUS_INVALID_API_CALL_RETURN_JSON);
-                CHK(tokens[i + 1].size <= MAX_ICE_CONFIG_COUNT, STATUS_SIGNALING_MAX_ICE_CONFIG_COUNT);
-            }
-        } else {
-            pToken = &tokens[i];
-            if (pToken->type == JSMN_OBJECT) {
-                configCount++;
-            } else if (compareJsonString(pResponseStr, pToken, JSMN_STRING, (PCHAR) "Username")) {
-                strLen = (UINT32) (pToken[1].end - pToken[1].start);
-                CHK(strLen <= MAX_ICE_CONFIG_USER_NAME_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
-                STRNCPY(pSignalingClient->iceConfigs[configCount - 1].userName, pResponseStr + pToken[1].start, strLen);
-                pSignalingClient->iceConfigs[configCount - 1].userName[MAX_ICE_CONFIG_USER_NAME_LEN] = '\0';
-                i++;
-            } else if (compareJsonString(pResponseStr, pToken, JSMN_STRING, (PCHAR) "Password")) {
-                strLen = (UINT32) (pToken[1].end - pToken[1].start);
-                CHK(strLen <= MAX_ICE_CONFIG_CREDENTIAL_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
-                STRNCPY(pSignalingClient->iceConfigs[configCount - 1].password, pResponseStr + pToken[1].start, strLen);
-                pSignalingClient->iceConfigs[configCount - 1].userName[MAX_ICE_CONFIG_CREDENTIAL_LEN] = '\0';
-                i++;
-            } else if (compareJsonString(pResponseStr, pToken, JSMN_STRING, (PCHAR) "Ttl")) {
-                CHK_STATUS(STRTOUI64(pResponseStr + pToken[1].start, pResponseStr + pToken[1].end, 10, &ttl));
-
-                // NOTE: Ttl value is in seconds
-                pSignalingClient->iceConfigs[configCount - 1].ttl = ttl * HUNDREDS_OF_NANOS_IN_A_SECOND;
-                i++;
-            } else if (compareJsonString(pResponseStr, pToken, JSMN_STRING, (PCHAR) "Uris")) {
-                // Expect an array of elements
-                CHK(pToken[1].type == JSMN_ARRAY, STATUS_INVALID_API_CALL_RETURN_JSON);
-                CHK(pToken[1].size <= MAX_ICE_CONFIG_URI_COUNT, STATUS_SIGNALING_MAX_ICE_URI_COUNT);
-                for (j = 0; j < pToken[1].size; j++) {
-                    strLen = (UINT32) (pToken[j + 2].end - pToken[j + 2].start);
-                    CHK(strLen <= MAX_ICE_CONFIG_URI_LEN, STATUS_SIGNALING_MAX_ICE_URI_LEN);
-                    STRNCPY(pSignalingClient->iceConfigs[configCount - 1].uris[j], pResponseStr + pToken[j + 2].start, strLen);
-                    pSignalingClient->iceConfigs[configCount - 1].uris[j][MAX_ICE_CONFIG_URI_LEN] = '\0';
-                    pSignalingClient->iceConfigs[configCount - 1].uriCount++;
-                }
-
-                i += pToken[1].size + 1;
-            }
-        }
-    }
+    CHK_STATUS(
+        parseIceConfigResponse(pResponseStr, resultLen, MAX_ICE_CONFIG_COUNT, pSignalingClient->iceConfigs, &pSignalingClient->iceConfigCount));
 
     // Perform some validation on the ice configuration
-    pSignalingClient->iceConfigCount = configCount;
     CHK_STATUS(validateIceConfiguration(pSignalingClient));
 
 CleanUp:
@@ -1256,6 +1201,80 @@ CleanUp:
     }
 
     freeLwsCallInfo(&pLwsCallInfo);
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS parseIceConfigResponse(const char* pResponseStr, UINT32 responseLen, UINT8 maxIceConfigs, PIceConfigInfo pIceConfigs, PUINT32 pIceConfigCount)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    jsmn_parser parser;
+    jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
+    jsmntok_t* pToken;
+    UINT32 i, configCount = 0, tokenCount, strLen; // Note: strLen excludes the NULL terminator
+    INT32 j;
+    UINT64 ttl;
+    BOOL jsonInIceServerList = FALSE;
+
+    CHK(pIceConfigs != NULL && pIceConfigCount != NULL && pResponseStr != NULL, STATUS_NULL_ARG);
+    CHK(maxIceConfigs > 0, STATUS_INVALID_ARG);
+    CHK(!IS_EMPTY_STRING(pResponseStr), STATUS_INVALID_API_CALL_RETURN_JSON);
+
+    jsmn_init(&parser);
+    tokenCount = jsmn_parse(&parser, pResponseStr, responseLen, tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
+    CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
+    CHK(tokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
+
+    MEMSET(pIceConfigs, 0x00, maxIceConfigs * SIZEOF(IceConfigInfo));
+    *pIceConfigCount = 0;
+
+    // Loop through the tokens and extract the ice configuration
+    for (i = 0; i < tokenCount; i++) {
+        if (!jsonInIceServerList) {
+            if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "IceServerList")) {
+                jsonInIceServerList = TRUE;
+
+                CHK(tokens[i + 1].type == JSMN_ARRAY, STATUS_INVALID_API_CALL_RETURN_JSON);
+                CHK(tokens[i + 1].size <= maxIceConfigs, STATUS_SIGNALING_MAX_ICE_CONFIG_COUNT);
+            }
+        } else {
+            pToken = &tokens[i];
+            if (pToken->type == JSMN_OBJECT) {
+                configCount++;
+            } else if (compareJsonString(pResponseStr, pToken, JSMN_STRING, (PCHAR) "Username")) {
+                strLen = (UINT32) (pToken[1].end - pToken[1].start);
+                CHK(strLen <= MAX_ICE_CONFIG_USER_NAME_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+                SNPRINTF(pIceConfigs[configCount - 1].userName, MAX_ICE_CONFIG_USER_NAME_BUFFER_LEN, "%.*s", strLen, pResponseStr + pToken[1].start);
+                i++;
+            } else if (compareJsonString(pResponseStr, pToken, JSMN_STRING, (PCHAR) "Password")) {
+                strLen = (UINT32) (pToken[1].end - pToken[1].start);
+                CHK(strLen <= MAX_ICE_CONFIG_CREDENTIAL_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+                SNPRINTF(pIceConfigs[configCount - 1].password, MAX_ICE_CONFIG_CREDENTIAL_BUFFER_LEN, "%.*s", strLen, pResponseStr + pToken[1].start);
+                i++;
+            } else if (compareJsonString(pResponseStr, pToken, JSMN_STRING, (PCHAR) "Ttl")) {
+                CHK_STATUS(STRTOUI64((PCHAR) pResponseStr + pToken[1].start, (PCHAR) pResponseStr + pToken[1].end, 10, &ttl));
+                pIceConfigs[configCount - 1].ttl = ttl * HUNDREDS_OF_NANOS_IN_A_SECOND;
+                i++;
+            } else if (compareJsonString(pResponseStr, pToken, JSMN_STRING, (PCHAR) "Uris")) {
+                CHK(pToken[1].type == JSMN_ARRAY, STATUS_INVALID_API_CALL_RETURN_JSON);
+                CHK(pToken[1].size <= MAX_ICE_CONFIG_URI_COUNT, STATUS_SIGNALING_MAX_ICE_URI_COUNT);
+                for (j = 0; j < pToken[1].size; j++) {
+                    strLen = (UINT32) (pToken[j + 2].end - pToken[j + 2].start);
+                    CHK(strLen <= MAX_ICE_CONFIG_URI_LEN, STATUS_SIGNALING_MAX_ICE_URI_LEN);
+                    SNPRINTF(pIceConfigs[configCount - 1].uris[j], MAX_ICE_CONFIG_URI_BUFFER_LEN, "%.*s", strLen, pResponseStr + pToken[j + 2].start);
+                    pIceConfigs[configCount - 1].uriCount++;
+                }
+                i += pToken[1].size + 1;
+            }
+        }
+    }
+
+    *pIceConfigCount = configCount;
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;

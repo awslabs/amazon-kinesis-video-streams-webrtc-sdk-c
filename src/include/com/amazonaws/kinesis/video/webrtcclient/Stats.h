@@ -30,6 +30,13 @@ extern "C" {
 #define MAX_ICE_CONFIG_URI_LEN 127
 
 /**
+ * Maximum allowed ICE URI buffer length, including the null terminator.
+ *
+ * \sa MAX_ICE_CONFIG_URI_LEN
+ */
+#define MAX_ICE_CONFIG_URI_BUFFER_LEN (MAX_ICE_CONFIG_URI_LEN + 1)
+
+/**
  * Maximum allowed relay protocol length
  */
 #define MAX_RELAY_PROTOCOL_LENGTH 8U
@@ -244,14 +251,14 @@ typedef struct {
  * Reference: https://www.w3.org/TR/webrtc-stats/#ice-server-dict*
  */
 typedef struct {
-    CHAR url[MAX_ICE_CONFIG_URI_LEN + 1];   //!< STUN/TURN server URL
-    CHAR protocol[MAX_PROTOCOL_LENGTH + 1]; //!< Valid values: UDP, TCP
-    UINT32 iceServerIndex;                  //!< Ice server index to get stats from. Not available in spec! Needs to be
-                                            //!< populated by the application to get specific server stats
-    INT32 port;                             //!< Port number used by client
-    UINT64 totalRequestsSent;               //!< Total amount of requests that have been sent to the server
-    UINT64 totalResponsesReceived;          //!< Total number of responses received from the server
-    UINT64 totalRoundTripTime;              //!< Sum of RTTs of all the requests for which response has been received
+    CHAR url[MAX_ICE_CONFIG_URI_BUFFER_LEN]; //!< STUN/TURN server URL
+    CHAR protocol[MAX_PROTOCOL_LENGTH + 1];  //!< Valid values: UDP, TCP
+    UINT32 iceServerIndex;                   //!< Ice server index to get stats from. Not available in spec! Needs to be
+                                             //!< populated by the application to get specific server stats
+    INT32 port;                              //!< Port number used by client
+    UINT64 totalRequestsSent;                //!< Total amount of requests that have been sent to the server
+    UINT64 totalResponsesReceived;           //!< Total number of responses received from the server
+    UINT64 totalRoundTripTime;               //!< Sum of RTTs of all the requests for which response has been received
 } RtcIceServerStats, *PRtcIceServerStats;
 
 /**

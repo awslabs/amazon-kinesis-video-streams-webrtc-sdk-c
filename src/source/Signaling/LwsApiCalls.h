@@ -281,6 +281,24 @@ STATUS wakeLwsServiceEventLoop(PSignalingClient, UINT32);
 STATUS terminateConnectionWithStatus(PSignalingClient, SERVICE_CALL_RESULT);
 STATUS configureLwsLogging(UINT32 kvsLogLevel);
 
+/**
+ * Parses ICE configuration from a JSON response string.
+ *
+ * @param[in] pResponseStr JSON string containing ICE server configuration.
+ * @param[in] responseLen Length of the JSON string (excluding null-terminator).
+ * @param[in] maxIceConfigs Maximum number of ICE configurations the array can hold.
+ * @param[out] pIceConfigs Pointer to array of IceConfigInfo structures to be populated.
+ * @param[out] pIceConfigCount Pointer to receive the number of ICE configurations parsed.
+ *
+ * @return STATUS code of the execution:
+ * - STATUS_SUCCESS: Successfully parsed ICE configuration.
+ * - STATUS_NULL_ARG: Invalid NULL argument provided.
+ * - STATUS_INVALID_API_CALL_RETURN_JSON: Malformed JSON or missing required fields.
+ * - STATUS_SIGNALING_MAX_ICE_CONFIG_COUNT: Too many ICE configurations in the string (more than maxIceConfigs).
+ * - STATUS_SIGNALING_MAX_ICE_URI_COUNT: Too many URIs in configuration (more than MAX_ICE_CONFIG_URI_COUNT).
+ */
+STATUS parseIceConfigResponse(const char*, UINT32, UINT8, PIceConfigInfo, PUINT32);
+
 #ifdef __cplusplus
 }
 #endif
