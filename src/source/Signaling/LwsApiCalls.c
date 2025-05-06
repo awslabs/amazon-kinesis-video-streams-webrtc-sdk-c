@@ -1897,6 +1897,7 @@ STATUS sendLwsMessage(PSignalingClient pSignalingClient, SIGNALING_MESSAGE_TYPE 
     ATOMIC_STORE(&pSignalingClient->pOngoingCallInfo->sendOffset, 0);
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -1963,6 +1964,7 @@ STATUS writeLwsData(PSignalingClient pSignalingClient, BOOL awaitForResponse)
     CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->messageResult) == SERVICE_CALL_RESULT_OK, STATUS_SIGNALING_MESSAGE_DELIVERY_FAILED);
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (sendLocked) {
         MUTEX_UNLOCK(pSignalingClient->sendLock);
