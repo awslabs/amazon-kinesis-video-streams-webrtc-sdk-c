@@ -313,7 +313,6 @@ STATUS createSampleConfiguration(PCHAR, SIGNALING_CHANNEL_ROLE_TYPE, BOOL, BOOL,
 STATUS freeSampleConfiguration(PSampleConfiguration*);
 STATUS signalingClientStateChanged(UINT64, SIGNALING_CLIENT_STATE);
 STATUS signalingMessageReceived(UINT64, PReceivedSignalingMessage);
-STATUS handleAnswer(PSampleConfiguration, PSampleStreamingSession, PSignalingMessage);
 STATUS handleOffer(PSampleConfiguration, PSampleStreamingSession, PSignalingMessage);
 STATUS handleRemoteCandidate(PSampleStreamingSession, PSignalingMessage);
 STATUS initializePeerConnection(PSampleConfiguration, PRtcPeerConnection*);
@@ -324,6 +323,28 @@ STATUS streamingSessionOnShutdown(PSampleStreamingSession, UINT64, StreamSession
 STATUS sendSignalingMessage(PSampleStreamingSession, PSignalingMessage);
 STATUS respondWithAnswer(PSampleStreamingSession);
 STATUS resetSampleConfigurationState(PSampleConfiguration);
+
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+/**
+ * @brief Allocate memory for the payload of a SignalingMessage
+ *
+ * @param[in,out] pSignalingMessage The signaling message for which to allocate payload
+ * @param[in] size Size in bytes to allocate
+ *
+ * @return STATUS code of the execution
+ */
+STATUS allocateSignalingMessagePayload(PSignalingMessage pSignalingMessage, UINT32 size);
+
+/**
+ * @brief Free the dynamically allocated payload of a SignalingMessage
+ *
+ * @param[in,out] pSignalingMessage The signaling message whose payload should be freed
+ *
+ * @return STATUS code of the execution
+ */
+STATUS freeSignalingMessagePayload(PSignalingMessage pSignalingMessage);
+#endif
+
 VOID sampleVideoFrameHandler(UINT64, PFrame);
 VOID sampleAudioFrameHandler(UINT64, PFrame);
 VOID sampleFrameHandler(UINT64, PFrame);
@@ -498,4 +519,4 @@ STATUS webrtcAppSendAudioFrame(PBYTE frame_data, UINT32 frame_size, UINT64 times
 #ifdef __cplusplus
 }
 #endif
-#endif /* __KINESIS_VIDEO_SAMPLE_INCLUDE__ */
+#endif  /* __KINESIS_VIDEO_SAMPLE_INCLUDE__ */

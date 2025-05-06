@@ -275,23 +275,15 @@ void webrtc_bridge_send_message(const char *data, int len)
 #ifndef CONFIG_ESP_WEBRTC_BRIDGE_HOSTED
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
-    ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%" PRIi32 "", base, event_id);
     esp_mqtt_event_handle_t event = event_data;
     esp_mqtt_client_handle_t client = event->client;
     int msg_id;
-
-    switch ((esp_mqtt_event_id_t)event_id) {
+    // your_context_t *context = event->context;
+    switch (event->event_id) {
     case MQTT_EVENT_CONNECTED:
+        ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
         msg_id = esp_mqtt_client_subscribe(client, FROM_TOPIC, 0);
         ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
-
-
-        ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
-        // msg_id = esp_mqtt_client_publish(client, "/topic/qos1", "data_3", 0, 1, 0);
-        // ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
-
-        // msg_id = esp_mqtt_client_subscribe(client, "/topic/qos0", 0);
-        // ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
 
         // msg_id = esp_mqtt_client_subscribe(client, "/topic/qos1", 1);
         // ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
@@ -318,7 +310,11 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
         printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
         printf("DATA=%.*s\r\n", event->data_len, event->data);
-        on_webrtc_bridge_msg_received(event->data, event->data_len);
+        if (message_handler) {
+            message_handler(event->data, event->data_len);
+        } else {
+            on_webrtc_bridge_msg_received((void *) event->data, event->data_len);
+        }
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");

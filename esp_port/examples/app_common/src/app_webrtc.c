@@ -1,9 +1,10 @@
-
 #include "app_webrtc.h"
 #include "webrtc_mem_utils.h"
 #include "flash_wrapper.h"
 
 #include "media_stream.h"
+#include "signaling_serializer.h"
+#include "webrtc_bridge.h"
 
 #include "sdkconfig.h"
 
@@ -115,6 +116,63 @@ INT32 app_webrtc_register_event_callback(app_webrtc_event_callback_t callback, v
 #endif
 
 static const char *TAG = "app_webrtc";
+
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+/**
+ * @brief Allocate memory for the payload of a SignalingMessage
+ *
+ * @param[in,out] pSignalingMessage The signaling message for which to allocate payload
+ * @param[in] size Size in bytes to allocate
+ *
+ * @return STATUS code of the execution
+ */
+STATUS allocateSignalingMessagePayload(PSignalingMessage pSignalingMessage, UINT32 size)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pSignalingMessage != NULL, STATUS_NULL_ARG);
+    CHK(size > 0, STATUS_INVALID_ARG);
+
+    // Free any existing payload
+    if (pSignalingMessage->payload != NULL) {
+        freeSignalingMessagePayload(pSignalingMessage);
+    }
+
+    // Allocate new payload
+    pSignalingMessage->payload = (PCHAR) MEMALLOC(size);
+    CHK(pSignalingMessage->payload != NULL, STATUS_NOT_ENOUGH_MEMORY);
+
+    // Clear the memory
+    MEMSET(pSignalingMessage->payload, 0, size);
+
+CleanUp:
+    return retStatus;
+}
+
+/**
+ * @brief Free the dynamically allocated payload of a SignalingMessage
+ *
+ * @param[in,out] pSignalingMessage The signaling message whose payload should be freed
+ *
+ * @return STATUS code of the execution
+ */
+STATUS freeSignalingMessagePayload(PSignalingMessage pSignalingMessage)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pSignalingMessage != NULL, STATUS_NULL_ARG);
+
+    if (pSignalingMessage->payload != NULL) {
+        MEMFREE(pSignalingMessage->payload);
+        pSignalingMessage->payload = NULL;
+        pSignalingMessage->payloadLen = 0;
+    }
+
+CleanUp:
+    return retStatus;
+}
+#endif
+
 
 PSampleConfiguration gSampleConfiguration = NULL;
 
@@ -446,23 +504,37 @@ STATUS sendSignalingMessage(PSampleStreamingSession pSampleStreamingSession, PSi
 {
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
-    PSampleConfiguration pSampleConfiguration;
-    // Validate the input params
-    CHK(pSampleStreamingSession != NULL && pSampleStreamingSession->pSampleConfiguration != NULL && pMessage != NULL, STATUS_NULL_ARG);
+    PSampleConfiguration pSampleConfiguration = NULL;
 
+    CHK(pSampleStreamingSession != NULL && pSampleStreamingSession->pSampleConfiguration != NULL && pMessage != NULL, STATUS_NULL_ARG);
     pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
 
-    CHK(IS_VALID_MUTEX_VALUE(pSampleConfiguration->signalingSendMessageLock) &&
-            IS_VALID_SIGNALING_CLIENT_HANDLE(pSampleConfiguration->signalingClientHandle),
-        STATUS_INVALID_OPERATION);
+    if (gWebRtcAppConfig.mode == APP_WEBRTC_STREAMING_ONLY_MODE) {
+        // Serialize and forward message to host
+        size_t serialized_len = 0;
+        char *serialized_msg = serialize_signaling_message(
+            (signaling_msg_t *) pMessage,
+            &serialized_len);
 
-    MUTEX_LOCK(pSampleConfiguration->signalingSendMessageLock);
-    locked = TRUE;
-    CHK_STATUS(signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, pMessage));
-    if (pMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
-        CHK_STATUS(signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &pSampleConfiguration->signalingClientMetrics));
-        DLOGP("[Signaling offer received to answer sent time] %" PRIu64 " ms",
-              pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerToAnswerTime);
+        if (serialized_msg) {
+            webrtc_bridge_send_message(serialized_msg, serialized_len);
+        } else {
+            DLOGW("Failed to serialize signaling message");
+            retStatus = STATUS_INTERNAL_ERROR;
+        }
+    } else {
+        CHK(IS_VALID_MUTEX_VALUE(pSampleConfiguration->signalingSendMessageLock) &&
+                IS_VALID_SIGNALING_CLIENT_HANDLE(pSampleConfiguration->signalingClientHandle),
+            STATUS_INVALID_OPERATION);
+
+        MUTEX_LOCK(pSampleConfiguration->signalingSendMessageLock);
+        locked = TRUE;
+        CHK_STATUS(signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, pMessage));
+        if (pMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
+            CHK_STATUS(signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &pSampleConfiguration->signalingClientMetrics));
+            DLOGP("[Signaling offer received to answer sent time] %" PRIu64 " ms",
+                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerToAnswerTime);
+        }
     }
 
 CleanUp:
@@ -587,7 +659,13 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
 CleanUp:
 
 #ifdef DYNAMIC_SIGNALING_PAYLOAD
-    SAFE_MEMFREE(message.payload);
+    if (candidateJson != NULL &&
+        pSampleStreamingSession->remoteCanTrickleIce &&
+        ATOMIC_LOAD_BOOL(&pSampleStreamingSession->peerIdReceived) &&
+        message.payload != NULL) {
+        // freeSignalingMessagePayload(&message);
+        SAFE_MEMFREE(message.payload);
+    }
 #endif
 
     CHK_LOG_ERR(retStatus);
@@ -602,8 +680,12 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     PIceConfigInfo pIceConfigInfo;
     UINT64 data;
     PRtcCertificate pRtcCertificate = NULL;
+    BOOL isStreamingOnly = FALSE;
 
     CHK(pSampleConfiguration != NULL && ppRtcPeerConnection != NULL, STATUS_NULL_ARG);
+
+    // Check if we're in streaming-only mode (no signaling)
+    isStreamingOnly = (pSampleConfiguration->channelInfo.pChannelName == NULL);
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
@@ -629,7 +711,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->channelInfo.pRegion,
              pKinesisVideoStunUrlPostFix);
 
-    if (pSampleConfiguration->useTurn) {
+    if (pSampleConfiguration->useTurn && !isStreamingOnly) {
         // Set the URIs from the configuration
         CHK_STATUS(signalingClientGetIceConfigInfoCount(pSampleConfiguration->signalingClientHandle, &iceConfigCount));
 
@@ -714,6 +796,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
                                     PSampleStreamingSession* ppSampleStreamingSession)
 {
     STATUS retStatus = STATUS_SUCCESS;
+
     RtcMediaStreamTrack videoTrack, audioTrack;
     PSampleStreamingSession pSampleStreamingSession = NULL;
     RtcRtpTransceiverInit audioRtpTransceiverInit;
@@ -1054,6 +1137,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = NULL;
+    BOOL isStreamingOnly = (channelName == NULL); // Check if streaming-only mode
     PCHAR pAccessKey = NULL, pSecretKey = NULL, pSessionToken = NULL;
     PCHAR pIotCoreCredentialEndPoint = NULL, pIotCoreCert = NULL, pIotCorePrivateKey = NULL;
     PCHAR pIotCoreRoleAlias = NULL, pIotCoreCertificateId = NULL, pIotCoreThingName = NULL;
@@ -1068,7 +1152,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 
     SET_LOGGER_LOG_LEVEL(logLevel);
 
-    if (pAwsCredentialOptions != NULL) {
+    if (!isStreamingOnly && pAwsCredentialOptions != NULL) {
         if (pAwsCredentialOptions->enableIotCredentials) {
             // Use IoT Core credentials from the options
             pIotCoreCredentialEndPoint = pAwsCredentialOptions->iotCoreCredentialEndpoint;
@@ -1102,7 +1186,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
         DLOGI("Streaming only mode, skipping credentials");
     }
 
-
+#if 0
     // If the env is set, we generate normal log files apart from filtered profile log files
     // If not set, we generate only the filtered profile log files
     if (NULL != GETENV(ENABLE_FILE_LOGGING)) {
@@ -1124,15 +1208,16 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
             pSampleConfiguration->enableFileLogging = TRUE;
         }
     }
+#endif
 
     pSampleConfiguration->channelInfo.pRegion = pAwsCredentialOptions->region;
     pSampleConfiguration->pCaCertPath = pAwsCredentialOptions->caCertPath;
 
-    if (pAwsCredentialOptions != NULL &&
+    if (!isStreamingOnly && pAwsCredentialOptions != NULL &&
             pAwsCredentialOptions->enableIotCredentials) {
         CHK_STATUS(createIotCredentialProvider(pIotCoreCredentialEndPoint, pAwsCredentialOptions->region, pIotCoreCert, pIotCorePrivateKey, pSampleConfiguration->pCaCertPath,
                                             pIotCoreRoleAlias, pIotCoreThingName, &pSampleConfiguration->pCredentialProvider));
-    } else {
+    } else if (!isStreamingOnly) {
         CHK_STATUS(
             createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pSampleConfiguration->pCredentialProvider));
     }
@@ -1197,17 +1282,24 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, FALSE);
 
-    // CHK_STATUS(timerQueueCreate(&pSampleConfiguration->timerQueueHandle));
+    // Set default media type to audio-video
+    pSampleConfiguration->mediaType = APP_WEBRTC_MEDIA_AUDIO_VIDEO;
+
+    if (gWebRtcAppConfig.mode == APP_WEBRTC_SIGNALING_ONLY_MODE) {
+        // Optimization: We don't need to create a timer queue in signaling-only mode
+        DLOGI("Skipping timer queue creation in signaling-only mode");
+    } else {
 #define TIMER_QUEUE_THREAD_SIZE (8 * 1024) // I think even this is too much
-    timerQueueCreateEx(&pSampleConfiguration->timerQueueHandle, "pregenCertTmr", TIMER_QUEUE_THREAD_SIZE);
+        timerQueueCreateEx(&pSampleConfiguration->timerQueueHandle, "pregenCertTmr", TIMER_QUEUE_THREAD_SIZE);
 
-    CHK_STATUS(stackQueueCreate(&pSampleConfiguration->pregeneratedCertificates));
+        CHK_STATUS(stackQueueCreate(&pSampleConfiguration->pregeneratedCertificates));
 
-    // Start the cert pre-gen timer callback
-    if (SAMPLE_PRE_GENERATE_CERT) {
-        CHK_LOG_ERR(retStatus =
-                        timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, 0, SAMPLE_PRE_GENERATE_CERT_PERIOD, pregenerateCertTimerCallback,
-                                        (UINT64) pSampleConfiguration, &pSampleConfiguration->pregenerateCertTimerId));
+        // Start the cert pre-gen timer callback
+        if (SAMPLE_PRE_GENERATE_CERT) {
+            CHK_LOG_ERR(retStatus =
+                            timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, 0, SAMPLE_PRE_GENERATE_CERT_PERIOD, pregenerateCertTimerCallback,
+                                            (UINT64) pSampleConfiguration, &pSampleConfiguration->pregenerateCertTimerId));
+        }
     }
 
     pSampleConfiguration->iceUriCount = 0;
@@ -1217,6 +1309,8 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
                                          &pSampleConfiguration->pRtcPeerConnectionForRemoteClient));
 
 CleanUp:
+
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus)) {
         freeSampleConfiguration(&pSampleConfiguration);
@@ -1232,6 +1326,13 @@ CleanUp:
 STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
 {
     STATUS retStatus = STATUS_SUCCESS;
+
+    // For streaming-only mode, don't initialize signaling
+    if (pSampleConfiguration->channelInfo.pChannelName == NULL) {
+        ESP_LOGI(TAG, "Skipping signaling initialization for streaming-only mode");
+        return STATUS_SUCCESS;
+    }
+
     SignalingClientMetrics signalingClientMetrics = pSampleConfiguration->signalingClientMetrics;
     pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = signalingMessageReceived;
     STRCPY(pSampleConfiguration->clientInfo.clientId, clientId);
@@ -1461,6 +1562,7 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     UINT64 data;
     StackQueueIterator iterator;
     BOOL locked = FALSE;
+    BOOL isStreamingOnly = FALSE;
 
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
     pSampleConfiguration = *ppSampleConfiguration;
@@ -1489,6 +1591,8 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     if (IS_VALID_MUTEX_VALUE(pSampleConfiguration->playerLock)) {
         MUTEX_FREE(pSampleConfiguration->playerLock);
     }
+    // Check if we're in streaming-only mode
+    isStreamingOnly = (pSampleConfiguration->channelInfo.pChannelName == NULL);
 
     if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
         if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
@@ -1572,9 +1676,13 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     }
 
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
-    freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
+    if (!isStreamingOnly && pSampleConfiguration->pCredentialProvider != NULL) {
+        freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
+    }
 #else
-    freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);
+    if (!isStreamingOnly && pSampleConfiguration->pCredentialProvider != NULL) {
+        freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);
+    }
 #endif
 
     SAFE_MEMFREE(pSampleConfiguration->pAwsCredentialOptions);
@@ -1610,8 +1718,12 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
     UINT32 i, clientIdHash;
     BOOL sampleConfigurationObjLockLocked = FALSE, streamingSessionListReadLockLocked = FALSE, peerConnectionFound = FALSE, sessionFreed = FALSE;
     SIGNALING_CLIENT_STATE signalingClientState;
+    BOOL isStreamingOnly = FALSE;
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
+
+    // Check if we're in streaming-only mode
+    isStreamingOnly = (pSampleConfiguration->channelInfo.pChannelName == NULL);
 
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
         // Keep the main set of operations interlocked until cvar wait which would atomically unlock
@@ -1646,7 +1758,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
             }
         }
 
-        if (sessionFreed && pSampleConfiguration->channelInfo.useMediaStorage && !ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
+        if (!isStreamingOnly && sessionFreed && pSampleConfiguration->channelInfo.useMediaStorage && !ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
             // In the WebRTC Media Storage Ingestion Case the backend will terminate the session after
             // 1 hour.  The SDK needs to make a new JoinSession Call in order to receive a new
             // offer from the backend.  We will create a new sample streaming session upon receipt of the
@@ -1658,7 +1770,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
         }
 
         // Check if we need to re-create the signaling client on-the-fly
-        if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
+        if (!isStreamingOnly && ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
             retStatus = signalingClientFetchSync(pSampleConfiguration->signalingClientHandle);
             if (STATUS_SUCCEEDED(retStatus)) {
                 // Re-set the variable again
@@ -1673,7 +1785,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
         }
 
         // Check the signaling client state and connect if needed
-        if (IS_VALID_SIGNALING_CLIENT_HANDLE(pSampleConfiguration->signalingClientHandle)) {
+        if (!isStreamingOnly && IS_VALID_SIGNALING_CLIENT_HANDLE(pSampleConfiguration->signalingClientHandle)) {
             CHK_STATUS(signalingClientGetCurrentState(pSampleConfiguration->signalingClientHandle, &signalingClientState));
             if (signalingClientState == SIGNALING_CLIENT_STATE_READY) {
                 UNUSED_PARAM(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
@@ -1750,6 +1862,44 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
+    // Check if we're in signaling-only mode by configuration
+    if (gWebRtcAppConfig.mode == APP_WEBRTC_SIGNALING_ONLY_MODE) {
+        DLOGD("Signaling only mode: received message type %d", pReceivedSignalingMessage->signalingMessage.messageType);
+
+        // Forward message directly to host without creating a streaming session
+        switch (pReceivedSignalingMessage->signalingMessage.messageType) {
+            case SIGNALING_MESSAGE_TYPE_OFFER:
+                DLOGI("Received OFFER in signaling-only mode");
+                raiseEvent(APP_WEBRTC_EVENT_RECEIVED_OFFER, 0,
+                           pReceivedSignalingMessage->signalingMessage.peerClientId,
+                           "Received offer in signaling-only mode");
+                /* fall-through */
+            case SIGNALING_MESSAGE_TYPE_ANSWER:
+                /* fall-through */
+            case SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE: {
+                // Serialize and forward message to host
+                size_t serialized_len = 0;
+                char *serialized_msg = serialize_signaling_message(
+                    (signaling_msg_t *) &pReceivedSignalingMessage->signalingMessage,
+                    &serialized_len);
+
+                if (serialized_msg) {
+                    webrtc_bridge_send_message(serialized_msg, serialized_len);
+                } else {
+                    DLOGW("Failed to serialize signaling message");
+                }
+                return retStatus;
+            }
+            default:
+                DLOGW("Unhandled signaling message type %u in signaling-only mode",
+                      pReceivedSignalingMessage->signalingMessage.messageType);
+                break;
+        }
+
+        // For signaling-only mode, we don't process further
+        return retStatus;
+    }
+
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     locked = TRUE;
 
@@ -1785,8 +1935,16 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 
                 CHK(FALSE, retStatus);
             }
-            CHK_STATUS(createSampleStreamingSession(pSampleConfiguration, pReceivedSignalingMessage->signalingMessage.peerClientId, TRUE,
-                                                    &pSampleStreamingSession));
+
+            if (gWebRtcAppConfig.mode == APP_WEBRTC_SIGNALING_ONLY_MODE) {
+                // In signaling-only mode, we don't create streaming sessions
+                DLOGI("Skipping streaming session creation in signaling-only mode");
+                CHK(FALSE, retStatus);
+            } else {
+                CHK_STATUS(createSampleStreamingSession(pSampleConfiguration, pReceivedSignalingMessage->signalingMessage.peerClientId, TRUE,
+                                                        &pSampleStreamingSession));
+            }
+
             freeStreamingSession = TRUE;
             CHK_STATUS(handleOffer(pSampleConfiguration, pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
 
@@ -1851,9 +2009,37 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
                 }
 
                 pReceivedSignalingMessageCopy = (PReceivedSignalingMessage) MEMCALLOC(1, SIZEOF(ReceivedSignalingMessage));
+                CHK(pReceivedSignalingMessageCopy != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
-                // *pReceivedSignalingMessageCopy = *pReceivedSignalingMessage;
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+                // Copy all fields except for the payload via direct memory copy
+                // This avoids having to manually copy each field
+                UINT32 payloadPtr = (UINT32)pReceivedSignalingMessage->signalingMessage.payload;
+                UINT32 payloadLen = pReceivedSignalingMessage->signalingMessage.payloadLen;
+
+                // Use memcpy for the structure but preserve the payload pointer to avoid copying it
+                memcpy(pReceivedSignalingMessageCopy, pReceivedSignalingMessage, SIZEOF(ReceivedSignalingMessage));
+
+                // Set payload pointer to NULL before allocation to avoid freeing random memory
+                pReceivedSignalingMessageCopy->signalingMessage.payload = NULL;
+
+                // Allocate memory for the payload
+                CHK_STATUS(allocateSignalingMessagePayload(&pReceivedSignalingMessageCopy->signalingMessage,
+                                                         payloadLen + 1));
+
+                // Copy the payload
+                if (payloadLen > 0 && payloadPtr != 0) {
+                    MEMCPY(pReceivedSignalingMessageCopy->signalingMessage.payload,
+                           (PCHAR)payloadPtr,
+                           payloadLen);
+
+                    // Ensure null termination
+                    pReceivedSignalingMessageCopy->signalingMessage.payload[payloadLen] = '\0';
+                }
+#else
+                // Simple memcpy for fixed-size payload
                 memcpy(pReceivedSignalingMessageCopy, pReceivedSignalingMessage, sizeof(ReceivedSignalingMessage));
+#endif
 
                 CHK_STATUS(stackQueueEnqueue(pPendingMessageQueue->messageQueue, (UINT64) pReceivedSignalingMessageCopy));
 
@@ -1887,7 +2073,16 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 
 CleanUp:
 
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    if (pReceivedSignalingMessageCopy != NULL) {
+        // Free the allocated payload before freeing the message itself
+        freeSignalingMessagePayload(&pReceivedSignalingMessageCopy->signalingMessage);
+        SAFE_MEMFREE(pReceivedSignalingMessageCopy);
+    }
+#else
     SAFE_MEMFREE(pReceivedSignalingMessageCopy);
+#endif
+
     if (pPendingMessageQueue != NULL) {
         freeMessageQueue(pPendingMessageQueue);
     }
