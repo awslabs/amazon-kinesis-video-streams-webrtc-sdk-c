@@ -106,12 +106,12 @@ if(CONFIG_USE_ESP_WEBSOCKET_CLIENT)
     target_compile_definitions(${COMPONENT_LIB} PUBLIC -DUSE_ESP_WEBSOCKET -DESP_PLATFORM)
 endif()
 
-option(ENABLE_KVS_THREADPOOL "Enable support for KVS thread pool in signaling" ON)
+# option(ENABLE_KVS_THREADPOOL "Enable support for KVS thread pool in signaling" OFF)
 set(KVS_PLAT_ESP_FREERTOS ON CACHE BOOL "Build for ESP FreeRTOS")
 add_definitions(-DKVS_PLAT_ESP_FREERTOS)
-if (ENABLE_KVS_THREADPOOL)
-  add_definitions(-DENABLE_KVS_THREADPOOL)
-endif()
+# if (ENABLE_KVS_THREADPOOL)
+#   add_definitions(-DENABLE_KVS_THREADPOOL)
+# endif()
 
 # Check for ifaddrs.h and poll.h
 include(CheckIncludeFiles)

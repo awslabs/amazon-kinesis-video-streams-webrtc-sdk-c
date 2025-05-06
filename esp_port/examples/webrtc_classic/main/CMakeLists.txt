@@ -8,6 +8,7 @@ idf_component_register(
              "esp_event"
              "mbedtls"
              "lwip"
+             "app_common"
     )
 
 target_compile_definitions(${COMPONENT_LIB} PRIVATE

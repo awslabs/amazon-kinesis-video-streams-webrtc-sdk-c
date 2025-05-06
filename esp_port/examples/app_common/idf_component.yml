@@ -19,3 +19,7 @@ dependencies:
   webrtc_bridge:
     path: ../../components/webrtc_bridge
     version: "*"
+
+  signaling_serializer:
+    path: ../../components/signaling_serializer
+    version: "*"
