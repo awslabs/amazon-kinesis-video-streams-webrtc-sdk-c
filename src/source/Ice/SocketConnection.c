@@ -47,7 +47,8 @@ CleanUp:
 
     if (pBindAddr) {
         getIpAddrStr(pBindAddr, ipAddr, ARRAY_SIZE(ipAddr));
-        DLOGD("create socket id: %d, with ip: %s:%u. family:%d", pSocketConnection->localSocket, ipAddr, (UINT16) getInt16(pBindAddr->port), pBindAddr->family);
+        DLOGD("create socket id: %d, with ip: %s:%u. family:%d", pSocketConnection->localSocket, ipAddr, (UINT16) getInt16(pBindAddr->port),
+              pBindAddr->family);
     } else {
         DLOGD("create socket id %d, without the bind address(%d:%d)", pSocketConnection->localSocket, familyType, protocol);
     }
