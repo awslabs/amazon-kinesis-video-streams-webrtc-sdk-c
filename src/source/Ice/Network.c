@@ -406,13 +406,14 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
     struct in_addr inaddr;
 
     CHAR addr[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
-    BOOL isStunServer = STRNCMP(hostname, KINESIS_VIDEO_STUN_URL_PREFIX, ARRAY_SIZE(KINESIS_VIDEO_STUN_URL_PREFIX)) == 0;
+    BOOL isStunServer;
 
     CHK(hostname != NULL, STATUS_NULL_ARG);
     DLOGI("ICE SERVER Hostname received: %s", hostname);
 
     hostnameLen = STRLEN(hostname);
     addrLen = SIZEOF(addr);
+    isStunServer = STRNCMP(hostname, KINESIS_VIDEO_STUN_URL_PREFIX, KINESIS_VIDEO_STUN_URL_PREFIX_LENGTH) == 0;
 
     // Adding this check in case we directly get an IP address. With the current usage pattern,
     // there is no way this function would receive an address directly, but having this check

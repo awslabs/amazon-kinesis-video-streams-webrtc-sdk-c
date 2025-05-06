@@ -722,11 +722,12 @@ extern "C" {
 /**
  * Parameterized string for KVS STUN Server
  */
-#define KINESIS_VIDEO_STUN_URL_POSTFIX      "amazonaws.com"
-#define KINESIS_VIDEO_STUN_URL_POSTFIX_CN   "amazonaws.com.cn"
-#define KINESIS_VIDEO_STUN_URL_PREFIX       "stun."
-#define KINESIS_VIDEO_STUN_URL              "stun:stun.kinesisvideo.%s.%s:443"
-#define KINESIS_VIDEO_STUN_URL_WITHOUT_PORT "stun.kinesisvideo.%s.%s"
+#define KINESIS_VIDEO_STUN_URL_POSTFIX       "amazonaws.com"
+#define KINESIS_VIDEO_STUN_URL_POSTFIX_CN    "amazonaws.com.cn"
+#define KINESIS_VIDEO_STUN_URL_PREFIX        "stun."
+#define KINESIS_VIDEO_STUN_URL_PREFIX_LENGTH 5
+#define KINESIS_VIDEO_STUN_URL               "stun:stun.kinesisvideo.%s.%s:443"
+#define KINESIS_VIDEO_STUN_URL_WITHOUT_PORT  "stun.kinesisvideo.%s.%s"
 
 /**
  * Default signaling SSL port
