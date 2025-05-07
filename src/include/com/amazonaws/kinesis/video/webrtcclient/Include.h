@@ -518,7 +518,7 @@ extern "C" {
 /**
  * Maximum length of signaling message
  */
-#define MAX_SIGNALING_MESSAGE_LEN (10 * 1024)
+#define MAX_SIGNALING_MESSAGE_LEN 18750
 /*!@} */
 
 /////////////////////////////////////////////////////
