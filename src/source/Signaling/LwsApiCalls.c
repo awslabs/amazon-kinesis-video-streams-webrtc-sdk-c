@@ -27,7 +27,6 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
     PSingleListNode pCurNode;
     UINT64 item, serverTime;
     UINT32 headerCount;
-    UINT32 logLevel;
     PRequestHeader pRequestHeader;
     PSignalingClient pSignalingClient = NULL;
     BOOL locked = FALSE;
@@ -37,7 +36,6 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
     PStateMachineState pStateMachineState;
     BOOL skewMapContains = FALSE;
 
-    UNUSED_PARAM(logLevel);
     DLOGV("HTTPS callback with reason %d", reason);
 
     // Early check before accessing the custom data field to see if we are interested in processing the message
@@ -58,7 +56,7 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
     customData = lws_get_opaque_user_data(wsi);
     pLwsCallInfo = (PLwsCallInfo) customData;
 
-    lws_set_log_level(LLL_NOTICE | LLL_WARN | LLL_ERR, NULL);
+    CHK_STATUS(configureLwsLogging(loggerGetLogLevel()));
 
     CHK(pLwsCallInfo != NULL && pLwsCallInfo->pSignalingClient != NULL && pLwsCallInfo->pSignalingClient->pLwsContext != NULL &&
             pLwsCallInfo->callInfo.pRequestInfo != NULL && pLwsCallInfo->protocolIndex == PROTOCOL_INDEX_HTTPS,
@@ -76,8 +74,6 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
 
     pRequestInfo = pLwsCallInfo->callInfo.pRequestInfo;
     pBuffer = pLwsCallInfo->buffer + LWS_PRE;
-
-    logLevel = loggerGetLogLevel();
 
     MUTEX_LOCK(pSignalingClient->lwsServiceLock);
     locked = TRUE;
@@ -319,7 +315,7 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
     customData = lws_get_opaque_user_data(wsi);
     pLwsCallInfo = (PLwsCallInfo) customData;
 
-    lws_set_log_level(LLL_NOTICE | LLL_WARN | LLL_ERR, NULL);
+    CHK_STATUS(configureLwsLogging(loggerGetLogLevel()));
 
     CHK(pLwsCallInfo != NULL && pLwsCallInfo->pSignalingClient != NULL && pLwsCallInfo->pSignalingClient->pOngoingCallInfo != NULL &&
             pLwsCallInfo->pSignalingClient->pLwsContext != NULL && pLwsCallInfo->pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL &&
@@ -1897,6 +1893,7 @@ STATUS sendLwsMessage(PSignalingClient pSignalingClient, SIGNALING_MESSAGE_TYPE 
     ATOMIC_STORE(&pSignalingClient->pOngoingCallInfo->sendOffset, 0);
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -1963,6 +1960,7 @@ STATUS writeLwsData(PSignalingClient pSignalingClient, BOOL awaitForResponse)
     CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->messageResult) == SERVICE_CALL_RESULT_OK, STATUS_SIGNALING_MESSAGE_DELIVERY_FAILED);
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if (sendLocked) {
         MUTEX_UNLOCK(pSignalingClient->sendLock);
@@ -2422,6 +2420,35 @@ STATUS wakeLwsServiceEventLoop(PSignalingClient pSignalingClient, UINT32 protoco
     }
 
 CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS configureLwsLogging(UINT32 kvsLogLevel)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    INT32 lws_levels = 0;
+
+    if (kvsLogLevel <= LOG_LEVEL_ERROR) {
+        lws_levels |= LLL_ERR;
+    }
+    if (kvsLogLevel <= LOG_LEVEL_WARN) {
+        lws_levels |= LLL_WARN;
+    }
+    if (kvsLogLevel <= LOG_LEVEL_INFO || kvsLogLevel == LOG_LEVEL_PROFILE) {
+        lws_levels |= LLL_NOTICE;
+    }
+    if (kvsLogLevel <= LOG_LEVEL_DEBUG) {
+        lws_levels |= LLL_INFO;
+    }
+
+    lws_set_log_level(lws_levels, NULL);
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;

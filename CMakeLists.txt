@@ -5,7 +5,7 @@ include(CheckIncludeFiles)
 include(CheckFunctionExists)
 
 # The version MUST be updated before every release
-project(KinesisVideoWebRTCClient VERSION 1.12.0 LANGUAGES C)
+project(KinesisVideoWebRTCClient VERSION 1.12.1 LANGUAGES C)
 
 # User Flags
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
@@ -493,7 +493,7 @@ endif()
 
 if(BUILD_TEST)
   # adding ZLIB because aws sdk static link seems to be broken when zlib is needed
-  if(NOT WIN32)
+  if(NOT WIN32 AND ENABLE_AWS_SDK_IN_TESTS)
     find_package(ZLIB REQUIRED)
   endif()
   add_subdirectory(tst)

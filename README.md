@@ -144,6 +144,7 @@ You can pass the following options to `cmake ..`:
 
 * `-DBUILD_SAMPLE` -- Build the sample executables. ON by default.
 * `-DIOT_CORE_ENABLE_CREDENTIALS` -- Build the sample applications using IoT credentials. OFF by default.
+* `-DENABLE_DATA_CHANNEL` -- Build SDK & samples with data channel. ON by default.
 * `-DBUILD_STATIC_LIBS` -- Build all KVS WebRTC and third-party libraries as static libraries. Default: OFF (shared build).
 * `-DADD_MUCLIBC`  -- Add -muclibc c flag
 * `-DBUILD_DEPENDENCIES` -- Whether or not to build depending libraries from source
@@ -364,6 +365,12 @@ gst-launch-1.0 videotestsrc pattern=ball num-buffers=1500 ! timeoverlay ! videoc
 ```shell
 gst-launch-1.0 videotestsrc pattern=ball num-buffers=1500 ! timeoverlay ! videoconvert ! video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! queue ! x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! multifilesink location="frame-%04d.h265" index=1
 ```
+
+##### Opus
+```shell
+gst-launch-1.0 audiotestsrc num-buffers=618 wave=sine volume=0.4 ! audioconvert ! audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! multifilesink location="sample-%03d.opus" index=1
+```
+
 
 ### Viewing Master Samples
 

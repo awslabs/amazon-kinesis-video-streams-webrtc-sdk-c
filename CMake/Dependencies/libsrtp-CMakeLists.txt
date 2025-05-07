@@ -59,6 +59,7 @@ ExternalProject_Add(project_libsrtp
     GIT_REPOSITORY    https://github.com/cisco/libsrtp.git
     GIT_TAG           bd0f27ec0e299ad101a396dde3f7c90d48efc8fc
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
+    GIT_PROGRESS      TRUE
     CMAKE_ARGS        -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
                       -DCMAKE_INSTALL_PREFIX:STRING=${OPEN_SRC_INSTALL_PREFIX}
                       -DENABLE_OPENSSL=${LIBSRTP_ENABLE_OPENSSL}

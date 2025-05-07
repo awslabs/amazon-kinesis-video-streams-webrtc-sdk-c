@@ -279,6 +279,7 @@ STATUS getMessageTypeFromString(PCHAR, UINT32, SIGNALING_MESSAGE_TYPE*);
 PCHAR getMessageTypeInString(SIGNALING_MESSAGE_TYPE);
 STATUS wakeLwsServiceEventLoop(PSignalingClient, UINT32);
 STATUS terminateConnectionWithStatus(PSignalingClient, SERVICE_CALL_RESULT);
+STATUS configureLwsLogging(UINT32 kvsLogLevel);
 
 #ifdef __cplusplus
 }
