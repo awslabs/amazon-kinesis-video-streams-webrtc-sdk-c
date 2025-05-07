@@ -297,7 +297,7 @@ STATUS configureLwsLogging(UINT32 kvsLogLevel);
  * - STATUS_SIGNALING_MAX_ICE_CONFIG_COUNT: Too many ICE configurations in the string (more than maxIceConfigs).
  * - STATUS_SIGNALING_MAX_ICE_URI_COUNT: Too many URIs in configuration (more than MAX_ICE_CONFIG_URI_COUNT).
  */
-STATUS parseIceConfigResponse(const char*, UINT32, UINT8, PIceConfigInfo, PUINT32);
+STATUS parseIceConfigResponse(PCHAR, UINT32, UINT8, PIceConfigInfo, PUINT32);
 
 #ifdef __cplusplus
 }

@@ -1206,15 +1206,15 @@ CleanUp:
     return retStatus;
 }
 
-STATUS parseIceConfigResponse(const char* pResponseStr, UINT32 responseLen, UINT8 maxIceConfigs, PIceConfigInfo pIceConfigs, PUINT32 pIceConfigCount)
+STATUS parseIceConfigResponse(PCHAR pResponseStr, UINT32 responseLen, UINT8 maxIceConfigs, PIceConfigInfo pIceConfigs, PUINT32 pIceConfigCount)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     jsmn_parser parser;
     jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
     jsmntok_t* pToken;
-    UINT32 i, configCount = 0, tokenCount, strLen; // Note: strLen excludes the NULL terminator
-    INT32 j;
+    UINT32 i, configCount = 0, strLen; // Note: strLen excludes the NULL terminator
+    INT32 j, tokenCount;
     UINT64 ttl;
     BOOL jsonInIceServerList = FALSE;
 
@@ -1241,7 +1241,15 @@ STATUS parseIceConfigResponse(const char* pResponseStr, UINT32 responseLen, UINT
             }
         } else {
             pToken = &tokens[i];
-            if (pToken->type == JSMN_OBJECT) {
+            if (pToken->type == JSMN_UNDEFINED) {
+                DLOGW("Encountered unexpected item in the JSON! %*.s", pResponseStr, responseLen);
+                // Skip this token and continue parsing
+                // Don't return error, just move to next token
+                if (i + 1 < tokenCount && tokens[i + 1].type != JSMN_OBJECT) {
+                    i++; // Skip the value associated with this field
+                }
+                continue;
+            } else if (pToken->type == JSMN_OBJECT) {
                 configCount++;
             } else if (compareJsonString(pResponseStr, pToken, JSMN_STRING, (PCHAR) "Username")) {
                 strLen = (UINT32) (pToken[1].end - pToken[1].start);
@@ -1254,7 +1262,13 @@ STATUS parseIceConfigResponse(const char* pResponseStr, UINT32 responseLen, UINT
                 SNPRINTF(pIceConfigs[configCount - 1].password, MAX_ICE_CONFIG_CREDENTIAL_BUFFER_LEN, "%.*s", strLen, pResponseStr + pToken[1].start);
                 i++;
             } else if (compareJsonString(pResponseStr, pToken, JSMN_STRING, (PCHAR) "Ttl")) {
-                CHK_STATUS(STRTOUI64((PCHAR) pResponseStr + pToken[1].start, (PCHAR) pResponseStr + pToken[1].end, 10, &ttl));
+                retStatus = STRTOUI64((PCHAR) pResponseStr + pToken[1].start, (PCHAR) pResponseStr + pToken[1].end, 10, &ttl);
+                if (STATUS_FAILED(retStatus)) {
+                    strLen = (UINT32) (pToken[1].end - pToken[1].start);
+                    DLOGE("Unable to convert TTL: %.*s to a number", strLen, (PCHAR) pResponseStr + pToken[1].start);
+                    retStatus = STATUS_INVALID_API_CALL_RETURN_JSON;
+                    CHK(FALSE, retStatus);
+                }
                 pIceConfigs[configCount - 1].ttl = ttl * HUNDREDS_OF_NANOS_IN_A_SECOND;
                 i++;
             } else if (compareJsonString(pResponseStr, pToken, JSMN_STRING, (PCHAR) "Uris")) {
