@@ -345,6 +345,26 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 }
 
+
+// Using for testing purposes to filter out tcp and turns cases. 
+bool isTurnUdp(const char* url) {
+    size_t len = STRLEN(url);
+    if (len < 7) return false;
+
+    // Check start: "turn:"
+    if (STRNCMP(url, "turn:", 5) != 0) {
+        return false;
+    }
+
+    // Check end: "udp"
+    if (STRCMP(url + len - 3, "udp") != 0) {
+        return false;
+    }
+
+    return true;
+}
+
+
 STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcPeerConnection* ppRtcPeerConnection)
 {
     ENTERS();
@@ -363,7 +383,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     configuration.kvsRtcConfiguration.iceSetInterfaceFilterFunc = NULL;
 
     // Set the ICE mode explicitly
-    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
+    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
 
 #ifdef ENABLE_STATS_CALCULATION_CONTROL
     configuration.kvsRtcConfiguration.enableIceStats = pSampleConfiguration->enableIceStats;
@@ -379,32 +399,45 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
              pKinesisVideoStunUrlPostFix);
 
     if (pSampleConfiguration->useTurn) {
-        // Set the URIs from the configuration
-        CHK_STATUS(signalingClientGetIceConfigInfoCount(pSampleConfiguration->signalingClientHandle, &iceConfigCount));
+        // // Set the URIs from the configuration
+        // CHK_STATUS(signalingClientGetIceConfigInfoCount(pSampleConfiguration->signalingClientHandle, &iceConfigCount));
 
-        /* signalingClientGetIceConfigInfoCount can return more than one turn server. Use only one to optimize
-         * candidate gathering latency. But user can also choose to use more than 1 turn server. */
-        for (uriCount = 0, i = 0; i < maxTurnServer; i++) {
-            CHK_STATUS(signalingClientGetIceConfigInfo(pSampleConfiguration->signalingClientHandle, i, &pIceConfigInfo));
-            for (j = 0; j < pIceConfigInfo->uriCount; j++) {
-                CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
-                /*
-                 * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=udp" then ICE will try TURN over UDP
-                 * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
-                 * if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=udp", it's currently ignored because sdk dont do TURN
-                 * over DTLS yet. if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
-                 * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port" then ICE will try both TURN over UDP and TCP/TLS
-                 *
-                 * It's recommended to not pass too many TURN iceServers to configuration because it will slow down ice gathering in non-trickle mode.
-                 */
+        // /* signalingClientGetIceConfigInfoCount can return more than one turn server. Use only one to optimize
+        //  * candidate gathering latency. But user can also choose to use more than 1 turn server. */
+        // for (uriCount = 0, i = 0; i < maxTurnServer; i++) {
+        //     CHK_STATUS(signalingClientGetIceConfigInfo(pSampleConfiguration->signalingClientHandle, i, &pIceConfigInfo));
+        //     for (j = 0; j < pIceConfigInfo->uriCount; j++) {
+        //         CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
+        //         /*
+        //          * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=udp" then ICE will try TURN over UDP
+        //          * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
+        //          * if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=udp", it's currently ignored because sdk dont do TURN
+        //          * over DTLS yet. if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
+        //          * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port" then ICE will try both TURN over UDP and TCP/TLS
+        //          *
+        //          * It's recommended to not pass too many TURN iceServers to configuration because it will slow down ice gathering in non-trickle mode.
+        //          */
 
-                STRNCPY(configuration.iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
-                STRNCPY(configuration.iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
-                STRNCPY(configuration.iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
+        //          DLOGD("Ice server %d urls: %s", j + 1, pIceConfigInfo->uris[j]);
+        //          DLOGD("Ice server %d username: %s", j + 1, pIceConfigInfo->password);
+        //          DLOGD("Ice server %d credential: %s", j + 1, pIceConfigInfo->userName);
 
-                uriCount++;
-            }
-        }
+        //         if (isTurnUdp(pIceConfigInfo->uris[j])) {
+        //             DLOGD("Adding ICE server");
+        //             STRNCPY(configuration.iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
+        //             STRNCPY(configuration.iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
+        //             STRNCPY(configuration.iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
+                    
+        //             uriCount++;
+        //         }
+
+
+        //     }
+        // }
+
+        STRNCPY(configuration.iceServers[1].urls, "turn:XX.XXX.XXX.XXX:XXXX?transport=udp", MAX_ICE_CONFIG_URI_LEN);
+        STRNCPY(configuration.iceServers[1].credential, "XXXX", MAX_ICE_CONFIG_CREDENTIAL_LEN);
+        STRNCPY(configuration.iceServers[1].username, "XXXX", MAX_ICE_CONFIG_USER_NAME_LEN);
     }
 
     pSampleConfiguration->iceUriCount = uriCount + 1;
