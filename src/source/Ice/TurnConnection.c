@@ -674,8 +674,8 @@ STATUS turnConnectionAddPeer(PTurnConnection pTurnConnection, PKvsIpAddress pPee
     BOOL locked = FALSE;
 
     CHK(pTurnConnection != NULL && pPeerAddress != NULL, STATUS_NULL_ARG);
-    CHK(pTurnConnection->turnServer.ipAddresses.ipv4Address.family == pPeerAddress->family, STATUS_INVALID_ARG);
-    CHK_WARN(IS_IPV4_ADDR(pPeerAddress), retStatus, "Drop IPv6 turn peer because only IPv4 turn peer is supported right now");
+    // CHK(pTurnConnection->turnServer.ipAddresses.ipv4Address.family == pPeerAddress->family, STATUS_INVALID_ARG);
+    // CHK_WARN(IS_IPV4_ADDR(pPeerAddress), retStatus, "Drop IPv6 turn peer because only IPv4 turn peer is supported right now");
 
     MUTEX_LOCK(pTurnConnection->lock);
     locked = TRUE;
@@ -698,7 +698,7 @@ STATUS turnConnectionAddPeer(PTurnConnection pTurnConnection, PKvsIpAddress pPee
     pTurnPeer->firstTimeCreatePermResponse = TRUE;
     pTurnPeer->firstTimeBindChannelResponse = TRUE;
 
-    CHK_STATUS(xorIpAddress(&pTurnPeer->xorAddress, NULL)); /* only work for IPv4 for now */
+    // CHK_STATUS(xorIpAddress(&pTurnPeer->xorAddress, NULL)); /* only work for IPv4 for now */
     CHK_STATUS(createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT, &pTurnPeer->pTransactionIdStore));
     pTurnPeer = NULL;
 
