@@ -280,6 +280,10 @@ STATUS respondWithAnswer(PSampleStreamingSession pSampleStreamingSession)
     SignalingMessage message;
     UINT32 buffLen = MAX_SIGNALING_MESSAGE_LEN;
 
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    message.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    CHK(message.payload != NULL, STATUS_NOT_ENOUGH_MEMORY);
+#endif
     CHK_STATUS(serializeSessionDescriptionInit(&pSampleStreamingSession->answerSessionDescriptionInit, message.payload, &buffLen));
 
     message.version = SIGNALING_MESSAGE_CURRENT_VERSION;
@@ -292,6 +296,10 @@ STATUS respondWithAnswer(PSampleStreamingSession pSampleStreamingSession)
     CHK_STATUS(sendSignalingMessage(pSampleStreamingSession, &message));
 
 CleanUp:
+
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(message.payload);
+#endif
 
     CHK_LOG_ERR(retStatus);
     return retStatus;
@@ -312,7 +320,7 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
-    SignalingMessage message;
+    SignalingMessage message = {0};
 
     CHK(pSampleStreamingSession != NULL, STATUS_NULL_ARG);
 
@@ -335,12 +343,20 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
         message.messageType = SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
         STRNCPY(message.peerClientId, pSampleStreamingSession->peerId, MAX_SIGNALING_CLIENT_ID_LEN);
         message.payloadLen = (UINT32) STRNLEN(candidateJson, MAX_SIGNALING_MESSAGE_LEN);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+        message.payload = (PCHAR) MEMALLOC(message.payloadLen + 1);
+        CHK(message.payload != NULL, STATUS_NOT_ENOUGH_MEMORY);
+#endif
         STRNCPY(message.payload, candidateJson, message.payloadLen);
         message.correlationId[0] = '\0';
         CHK_STATUS(sendSignalingMessage(pSampleStreamingSession, &message));
     }
 
 CleanUp:
+
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(message.payload);
+#endif
 
     CHK_LOG_ERR(retStatus);
 }
@@ -1410,6 +1426,9 @@ STATUS submitPendingIceCandidate(PPendingMessageQueue pPendingMessageQueue, PSam
             if (pReceivedSignalingMessage->signalingMessage.messageType == SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE) {
                 CHK_STATUS(handleRemoteCandidate(pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
             }
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+            SAFE_MEMFREE(pReceivedSignalingMessage->signalingMessage.payload);
+#endif
             SAFE_MEMFREE(pReceivedSignalingMessage);
         }
     } while (!noPendingSignalingMessageForClient);
@@ -1418,6 +1437,11 @@ STATUS submitPendingIceCandidate(PPendingMessageQueue pPendingMessageQueue, PSam
 
 CleanUp:
 
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    if (pReceivedSignalingMessage != NULL) {
+        SAFE_MEMFREE(pReceivedSignalingMessage->signalingMessage.payload);
+    }
+#endif
     SAFE_MEMFREE(pReceivedSignalingMessage);
     CHK_LOG_ERR(retStatus);
     return retStatus;
@@ -1538,6 +1562,11 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
                 pReceivedSignalingMessageCopy = (PReceivedSignalingMessage) MEMCALLOC(1, SIZEOF(ReceivedSignalingMessage));
 
                 *pReceivedSignalingMessageCopy = *pReceivedSignalingMessage;
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+                pReceivedSignalingMessageCopy->signalingMessage.payload = (PCHAR) MEMALLOC(pReceivedSignalingMessage->signalingMessage.payloadLen + 1);
+                CHK(pReceivedSignalingMessageCopy->signalingMessage.payload != NULL, STATUS_NOT_ENOUGH_MEMORY);
+                STRNCPY(pReceivedSignalingMessageCopy->signalingMessage.payload, pReceivedSignalingMessage->signalingMessage.payload, pReceivedSignalingMessage->signalingMessage.payloadLen + 1);
+#endif
 
                 CHK_STATUS(stackQueueEnqueue(pPendingMessageQueue->messageQueue, (UINT64) pReceivedSignalingMessageCopy));
 
@@ -1571,6 +1600,11 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 
 CleanUp:
 
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    if (pReceivedSignalingMessage != NULL) {
+        SAFE_MEMFREE(pReceivedSignalingMessage->signalingMessage.payload);
+    }
+#endif
     SAFE_MEMFREE(pReceivedSignalingMessageCopy);
     if (pPendingMessageQueue != NULL) {
         freeMessageQueue(pPendingMessageQueue);

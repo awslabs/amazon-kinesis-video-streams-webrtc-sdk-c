@@ -1280,6 +1280,21 @@ typedef struct {
 } RtcIceCandidateInit, *PRtcIceCandidateInit;
 
 /**
+ * @brief Define this macro to use dynamically allocated payload in SignalingMessage
+ * This can be useful for platforms with limited memory as it avoids allocating
+ * MAX_SIGNALING_MESSAGE_LEN for each message when only a small payload is needed
+ */
+
+/**
+ * @brief If PREFER_DYNAMIC_ALLOCS is set to 1, use dynamic allocation for signaling payload
+ * Otherwise, use the existing DYNAMIC_SIGNALING_PAYLOAD setting
+ */
+#if PREFER_DYNAMIC_ALLOCS
+#define DYNAMIC_SIGNALING_PAYLOAD 1
+#define USE_DYNAMIC_URL 1
+#endif
+
+/**
  * @brief Structure defining the basic signaling message
  */
 typedef struct {
@@ -1293,7 +1308,11 @@ typedef struct {
 
     UINT32 payloadLen; //!< Optional payload length. If 0, the length will be calculated
 
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    PCHAR payload; //!< Actual signaling message payload - dynamically allocated
+#else
     CHAR payload[MAX_SIGNALING_MESSAGE_LEN + 1]; //!< Actual signaling message payload
+#endif
 } SignalingMessage, *PSignalingMessage;
 
 /**

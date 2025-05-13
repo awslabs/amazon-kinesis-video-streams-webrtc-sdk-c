@@ -59,6 +59,10 @@ STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
     message.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     message.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
     STRCPY(message.peerClientId, TEST_SIGNALING_VIEWER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    message.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(message.payload != NULL);
+#endif
     MEMSET(message.payload, 'B', 200);
     message.payload[200] = '\0';
     message.payloadLen = 0;
@@ -66,6 +70,9 @@ STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
     status = signalingSendMessageSync(pTest->pActiveClient, &message);
     CHK_LOG_ERR(status);
 
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(message.payload);
+#endif
     // Return success to continue
     return STATUS_SUCCESS;
 }
@@ -383,6 +390,10 @@ TEST_F(SignalingApiFunctionalityTest, mockMaster)
     message.payloadLen = 0;
     message.correlationId[0] = '\0';
     message.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    message.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(message.payload != NULL);
+#endif
     MEMSET(message.payload, 'B', MAX_SIGNALING_MESSAGE_LEN);
     message.payload[MAX_SIGNALING_MESSAGE_LEN] = '\0';
 
@@ -432,6 +443,9 @@ TEST_F(SignalingApiFunctionalityTest, mockMaster)
     // Free again
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
     EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(message.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, mockViewer)
@@ -519,6 +533,10 @@ TEST_F(SignalingApiFunctionalityTest, mockViewer)
     message.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     message.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(message.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    message.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(message.payload != NULL);
+#endif
     MEMSET(message.payload, 'A', 100);
     message.payload[100] = '\0';
     message.payloadLen = 0;
@@ -546,6 +564,9 @@ TEST_F(SignalingApiFunctionalityTest, mockViewer)
     // Free again
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
     EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(message.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
@@ -888,6 +909,10 @@ TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(signalingMessage.payload != NULL);
+#endif
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -898,6 +923,9 @@ TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariations)
@@ -1151,6 +1179,10 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariatio
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(signalingMessage.payload != NULL);
+#endif
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -1161,6 +1193,9 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariatio
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
@@ -1416,6 +1451,10 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(signalingMessage.payload != NULL);
+#endif
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -1426,6 +1465,9 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedAuthExpiration)
@@ -1777,6 +1819,10 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(signalingMessage.payload != NULL);
+#endif
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -1787,6 +1833,9 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultInjectionRecovered)
@@ -1893,6 +1942,10 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(signalingMessage.payload != NULL);
+#endif
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -1903,6 +1956,9 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaultInjectionNotRecovered)
@@ -2006,6 +2062,10 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(signalingMessage.payload != NULL);
+#endif
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -2016,6 +2076,9 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultInjectionNot1669)
@@ -2122,6 +2185,10 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(signalingMessage.payload != NULL);
+#endif
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -2132,6 +2199,9 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithBadAuth)
@@ -2242,6 +2312,10 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithBadA
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(signalingMessage.payload != NULL);
+#endif
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -2252,6 +2326,9 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithBadA
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithBadAuth)
@@ -2365,6 +2442,10 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithBadAuth
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(signalingMessage.payload != NULL);
+#endif
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -2375,6 +2456,9 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithBadAuth
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
@@ -2449,6 +2533,10 @@ TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(signalingMessage.payload != NULL);
+#endif
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -2459,6 +2547,9 @@ TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
@@ -2537,6 +2628,10 @@ TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(signalingMessage.payload != NULL);
+#endif
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -2547,6 +2642,9 @@ TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
@@ -2658,6 +2756,10 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(signalingMessage.payload != NULL);
+#endif
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -2668,6 +2770,9 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
@@ -2741,6 +2846,10 @@ TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(signalingMessage.payload != NULL);
+#endif
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -2800,6 +2909,9 @@ TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
@@ -2873,6 +2985,10 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(signalingMessage.payload != NULL);
+#endif
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -2932,6 +3048,9 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
     EXPECT_EQ(STATUS_SUCCESS, signalingClientDeleteSync(signalingHandle));
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
@@ -3066,6 +3185,10 @@ TEST_F(SignalingApiFunctionalityTest, signalingClientDisconnectSyncVariations)
     message.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     message.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
     STRCPY(message.peerClientId, TEST_SIGNALING_VIEWER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    message.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(message.payload != NULL);
+#endif
     MEMSET(message.payload, 'A', 200);
     message.payload[200] = '\0';
     message.payloadLen = 0;
@@ -3085,6 +3208,10 @@ TEST_F(SignalingApiFunctionalityTest, signalingClientDisconnectSyncVariations)
     // Reconnect and send a message successfully
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, &message));
+
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(message.payload);
+#endif
 
     deinitializeSignalingClient();
 }
@@ -3519,6 +3646,9 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_ParseOfferSuccess)
     EXPECT_STREQ("Hello", receivedMessage.signalingMessage.payload);
     EXPECT_EQ(5, receivedMessage.signalingMessage.payloadLen);
     EXPECT_EQ(SIGNALING_MESSAGE_TYPE_OFFER, receivedMessage.signalingMessage.messageType);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_ParseStatusResponseSuccess) {
@@ -3546,6 +3676,9 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_ParseStatusRespons
     EXPECT_STREQ("", receivedMessage.signalingMessage.peerClientId);
     EXPECT_STREQ("", receivedMessage.signalingMessage.payload);
     EXPECT_EQ(0, receivedMessage.signalingMessage.payloadLen);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_InvalidArgs) {
@@ -3561,6 +3694,9 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_InvalidArgs) {
     // Validate that the jsonMessage is OK
     STATUS status = parseSignalingMessage((PCHAR) jsonMessage.c_str(), jsonMessage.length(), &receivedMessage);
     EXPECT_EQ(STATUS_SUCCESS, status);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+#endif
 
     // NULL parameter
     EXPECT_EQ(STATUS_NULL_ARG, parseSignalingMessage(NULL, jsonMessage.length(), &receivedMessage));
@@ -3575,6 +3711,9 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_messageTooLong) {
     STATUS status = parseSignalingMessage((PCHAR) jsonMessage.c_str(), jsonMessage.length(), &receivedMessage);
 
     EXPECT_EQ(STATUS_INVALID_API_CALL_RETURN_JSON, status);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_senderClientIdIsTooLong) {
@@ -3592,6 +3731,9 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_senderClientIdIsTo
     STATUS status = parseSignalingMessage((PCHAR) jsonMessage.c_str(), jsonMessage.length(), &receivedMessage);
 
     EXPECT_EQ(STATUS_INVALID_API_CALL_RETURN_JSON, status);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_messageTypeIsTooLong) {
@@ -3609,6 +3751,9 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_messageTypeIsTooLo
     STATUS status = parseSignalingMessage((PCHAR) jsonMessage.c_str(), jsonMessage.length(), &receivedMessage);
 
     EXPECT_EQ(STATUS_INVALID_API_CALL_RETURN_JSON, status);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_messagePayloadIsTooLong) {
@@ -3626,6 +3771,9 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_messagePayloadIsTo
     STATUS status = parseSignalingMessage((PCHAR) jsonMessage.c_str(), jsonMessage.length(), &receivedMessage);
 
     EXPECT_EQ(STATUS_INVALID_API_CALL_RETURN_JSON, status);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_correlationIdIsTooLong) {
@@ -3647,6 +3795,9 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_correlationIdIsToo
     STATUS status = parseSignalingMessage((PCHAR) jsonMessage.c_str(), jsonMessage.length(), &receivedMessage);
 
     EXPECT_EQ(STATUS_INVALID_API_CALL_RETURN_JSON, status);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_errorTypeIsTooLong) {
@@ -3668,6 +3819,9 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_errorTypeIsTooLong
     STATUS status = parseSignalingMessage((PCHAR) jsonMessage.c_str(), jsonMessage.length(), &receivedMessage);
 
     EXPECT_EQ(STATUS_INVALID_API_CALL_RETURN_JSON, status);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_statusCodeIsTooLong) {
@@ -3689,6 +3843,9 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_statusCodeIsTooLon
     STATUS status = parseSignalingMessage((PCHAR) jsonMessage.c_str(), jsonMessage.length(), &receivedMessage);
 
     EXPECT_EQ(STATUS_INVALID_API_CALL_RETURN_JSON, status);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_descriptionIsTooLong) {
@@ -3710,6 +3867,9 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_descriptionIsTooLo
     STATUS status = parseSignalingMessage((PCHAR) jsonMessage.c_str(), jsonMessage.length(), &receivedMessage);
 
     EXPECT_EQ(STATUS_INVALID_API_CALL_RETURN_JSON, status);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+#endif
 }
 
 
@@ -3719,6 +3879,9 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_emptyJson) {
 
     STATUS status = parseSignalingMessage((PCHAR) emptyJsonMessage.c_str(), emptyJsonMessage.length(), &receivedMessage);
     EXPECT_EQ(STATUS_INVALID_API_CALL_RETURN_JSON, status);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_ignoreExtraFields) {
@@ -3742,6 +3905,9 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_ignoreExtraFields)
     EXPECT_STREQ("Hello", receivedMessage.signalingMessage.payload);
     EXPECT_EQ(5, receivedMessage.signalingMessage.payloadLen);
     EXPECT_EQ(SIGNALING_MESSAGE_TYPE_OFFER, receivedMessage.signalingMessage.messageType);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+#endif
 }
 
 TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_InvalidJson) {
@@ -3761,6 +3927,9 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_InvalidJson) {
     EXPECT_STREQ("", receivedMessage.signalingMessage.payload);
     EXPECT_EQ(0, receivedMessage.signalingMessage.payloadLen);
     EXPECT_EQ(SIGNALING_MESSAGE_TYPE_UNKNOWN, receivedMessage.signalingMessage.messageType);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+#endif
 }
 
 } // namespace webrtcclient
