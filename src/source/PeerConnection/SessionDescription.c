@@ -206,7 +206,7 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
                 // When there's no match, the last fmtp will be chosen. This will allow us to not break existing customers who might be using
                 // flexible decoders which can infer the video profile from the SPS header.
                 if (fmtpScore >= bestFmtpScore) {
-                    DLOGV("Found H264 payload type %" PRId64 " with score %lu: %s", parsedPayloadType, fmtpScore, fmtp);
+                    DLOGV("Found H264 payload type %" PRId64 " with score %lu: %s", parsedPayloadType, fmtpScore, fmtp ? fmtp : "NULL");
                     CHK_STATUS(
                         hashTableUpsert(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, parsedPayloadType));
                     bestFmtpScore = fmtpScore;
