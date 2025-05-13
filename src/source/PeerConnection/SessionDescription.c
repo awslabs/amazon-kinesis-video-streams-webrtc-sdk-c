@@ -35,9 +35,8 @@ STATUS serializeSessionDescriptionInit(PRtcSessionDescriptionInit pSessionDescri
         if (sessionDescriptionJSON == NULL) {
             amountWritten = SNPRINTF(NULL, 0, "%*.*s%s", lineLen, lineLen, curr, SESSION_DESCRIPTION_INIT_LINE_ENDING);
         } else {
-            amountWritten = SNPRINTF(sessionDescriptionJSON + *sessionDescriptionJSONLen,
-                                     inputSize - *sessionDescriptionJSONLen, "%*.*s%s", lineLen, lineLen, curr,
-                                     SESSION_DESCRIPTION_INIT_LINE_ENDING);
+            amountWritten = SNPRINTF(sessionDescriptionJSON + *sessionDescriptionJSONLen, inputSize - *sessionDescriptionJSONLen, "%*.*s%s", lineLen,
+                                     lineLen, curr, SESSION_DESCRIPTION_INIT_LINE_ENDING);
         }
         CHK(sessionDescriptionJSON == NULL || ((inputSize - *sessionDescriptionJSONLen) >= amountWritten), STATUS_BUFFER_TOO_SMALL);
 
@@ -48,8 +47,8 @@ STATUS serializeSessionDescriptionInit(PRtcSessionDescriptionInit pSessionDescri
     if (sessionDescriptionJSON == NULL) {
         amountWritten = SNPRINTF(NULL, 0, SESSION_DESCRIPTION_INIT_TEMPLATE_TAIL);
     } else {
-        amountWritten = SNPRINTF(sessionDescriptionJSON + *sessionDescriptionJSONLen,
-                                 inputSize - *sessionDescriptionJSONLen, SESSION_DESCRIPTION_INIT_TEMPLATE_TAIL);
+        amountWritten = SNPRINTF(sessionDescriptionJSON + *sessionDescriptionJSONLen, inputSize - *sessionDescriptionJSONLen,
+                                 SESSION_DESCRIPTION_INIT_TEMPLATE_TAIL);
     }
     CHK(sessionDescriptionJSON == NULL || ((inputSize - *sessionDescriptionJSONLen) >= amountWritten), STATUS_BUFFER_TOO_SMALL);
     *sessionDescriptionJSONLen += (amountWritten + 1); // NULL terminator
