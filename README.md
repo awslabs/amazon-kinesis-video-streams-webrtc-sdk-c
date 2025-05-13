@@ -76,7 +76,7 @@ GStreamer is installed on your system.
 
 On Ubuntu and Raspberry Pi OS you can get the libraries by running
 ```shell
-sudo apt-get install cmake m4 pkg-config libssl-dev libcurl4-openssl-dev liblog4cplus-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools 
+sudo apt-get install cmake m4 pkg-config libssl-dev libcurl4-openssl-dev liblog4cplus-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools
 ```
 
 By default we download all the libraries from GitHub and build them locally, so should require nothing to be installed ahead of time. If you do wish to link to existing libraries you can use the following flags to customize your build.
@@ -163,6 +163,7 @@ You can pass the following options to `cmake ..`:
 * `-DPKG_CONFIG_EXECUTABLE` -- Set pkg config path. This might be required to find gstreamer's pkg config specifically on Windows.
 * `-DENABLE_KVS_THREADPOOL` -- Enable the KVS threadpool which is off by default.
 * `-DENABLE_STATS_CALCULATION_CONTROL` -- Enable the runtime control of ICE agent stats calculations.
+* `-DPREFER_DYNAMIC_ALLOCS` -- Prefer dynamic memory allocations over static ones to reduce memory pressure. Currently enables DYNAMIC_SIGNALING_PAYLOAD which allocates signaling message payloads dynamically based on actual size rather than using a fixed MAX_SIGNALING_MESSAGE_LEN buffer. This is useful for platforms with limited memory. More dynamic allocation optimizations will be added in future.
 
 These options get propagated to [PIC](https://github.com/awslabs/amazon-kinesis-video-streams-pic):
 * `-DKVS_STACK_SIZE` -- Default stack size for threads created using THREAD_CREATE(), in bytes.
@@ -184,7 +185,7 @@ To build the library and the provided samples run make in the build directory yo
 
 ### Building with dependencies off
 
-In addition to the dependencies already installed, install the dependencies using the appropriate package manager. 
+In addition to the dependencies already installed, install the dependencies using the appropriate package manager.
 
 On Ubuntu:
 `sudo apt-get install libsrtp2-dev libusrsctp-dev libwebsockets-dev`
@@ -244,7 +245,7 @@ export AWS_KVS_LOG_LEVEL=<LOG_LEVEL>
 
 For example, the following command switches on `DEBUG` level logs while runnning the samples.
 ```shell
-export AWS_KVS_LOG_LEVEL=2 
+export AWS_KVS_LOG_LEVEL=2
 ```
 
 Note: The default log level is `LOG_LEVEL_WARN`.
@@ -262,7 +263,7 @@ Note: This log level is extremely VERBOSE and could flood the files if using fil
 
 <details>
   <summary>Time-to-first-frame breakdown metrics</summary>
-  
+
 There is a flag in the sample application which (pSampleConfiguration->enableSendingMetricsToViewerViaDc) can be set to TRUE to send metrics from the master to the [JS viewer](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-js/examples/index.html). This helps get a detailed breakdown of time-to-first-frame and all the processes and API calls on master and the viewer both. This is intended to be used with the KVS WebRTC C SDK running as the master and the JS SDK as the viewer. The master sends peer, ice-agent, signaling and data-channel metrics to the viewer which are plotted ~ 20 seconds after the viewer is started. Since the timeline plot is intended to understand the time-to-first-frame, the sample web page needs to be refreshed and the master needs to be restarted if a new / updated plot is needed. While using the SDK in this mode, it is expected that all datachannel messages are JSON messages. This feature is only meant to be used for a single viewer at a time.
 </details>
 
@@ -403,7 +404,7 @@ If using the WebRTC SDK Test Page, set the following values using the same AWS c
 * Secret access key
 * Signaling channel name
 * Client ID (optional)
-  
+
 Then choose Start Viewer to start live video streaming of the sample H264/Opus frames.
 
 ## Memory optimization switches
@@ -499,7 +500,7 @@ Set the environment variables for IoT Core credentials:
 
 ```shell
 export AWS_IOT_CORE_CREDENTIAL_ENDPOINT=xxxxx.credentials.iot.xxxxx.amazonaws.com
-export AWS_IOT_CORE_PRIVATE_KEY=xxxxxxxx-private.pem.key 
+export AWS_IOT_CORE_PRIVATE_KEY=xxxxxxxx-private.pem.key
 export AWS_IOT_CORE_ROLE_ALIAS=xxxxxx
 export AWS_IOT_CORE_THING_NAME=xxxxxx
 export AWS_IOT_CORE_CERT=xxxxx-certificate.pem.crt
@@ -630,7 +631,7 @@ More information about what environment variables you can configure can be found
 
 ### Filtering network interfaces
 
-This is useful to reduce candidate gathering time when it is known for certain network interfaces to not work well. A sample callback is available in `Common.c`. The `iceSetInterfaceFilterFunc` in `KvsRtcConfiguration` must be set to the required callback. In the sample, it can be done this way in `initializePeerConnection()`: 
+This is useful to reduce candidate gathering time when it is known for certain network interfaces to not work well. A sample callback is available in `Common.c`. The `iceSetInterfaceFilterFunc` in `KvsRtcConfiguration` must be set to the required callback. In the sample, it can be done this way in `initializePeerConnection()`:
 `configuration.kvsRtcConfiguration.iceSetInterfaceFilterFunc = sampleFilterNetworkInterfaces`
 
 ### Building on MacOS M1
@@ -657,7 +658,7 @@ The default thread stack size in the KVS WebRTC SDK is determined by the system'
 
 ### Setting ICE related timeouts
 
-There are some default timeout values set for different steps in ICE in the [KvsRtcConfiguration](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/structKvsRtcConfiguration.html). These are configurable in the application. While the defaults are generous, there could be applications that might need more flexibility to improve chances of connection establishment because of poor network. 
+There are some default timeout values set for different steps in ICE in the [KvsRtcConfiguration](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/structKvsRtcConfiguration.html). These are configurable in the application. While the defaults are generous, there could be applications that might need more flexibility to improve chances of connection establishment because of poor network.
 
 You can find the default setting in the logs:
 ```
@@ -670,7 +671,7 @@ You can find the default setting in the logs:
 Let us look into when each of these could be changed:
 1. `iceCandidateNominationTimeout`: Say the connection with host/srflx could not be established and TURN seems to be the only resort. Let us assume it takes about 15 seconds to gather the first local relay candidate, the application could set the timeout to a value more than 15 seconds to ensure candidate pairs with the local relay candidate are tried for success. If the value is set to less than 15 seconds in this case, the SDK would lose out on trying a potential candidate pair leading to connection establishment failure
 2. `iceLocalCandidateGatheringTimeout`: Say the host candidates would not work and srflx/relay candidates need to be tried. Due to poor network, it is anticipated the candidates are gathered slowly and the application does not want to spend more than 20 seconds on this step. The goal is to try all possible candidate pairs. Increasing the timeout helps in giving some more time to gather more potential candidates to try for connection. Also note, this parameter increase would not make a difference in the situation unless `iceCandidateNominationTimeout` > `iceLocalCandidateGatheringTimeout` since nomination step should also be given time to work with the new candidates
-3. `iceConnectionCheckTimeout`: It is useful to increase this timeout in unstable/slow network where the packet exchange takes time and hence the binding request/response. Essentially, increasing it will allow atleast one candidate pair to be tried for nomination by the other peer. 
+3. `iceConnectionCheckTimeout`: It is useful to increase this timeout in unstable/slow network where the packet exchange takes time and hence the binding request/response. Essentially, increasing it will allow atleast one candidate pair to be tried for nomination by the other peer.
 4. `iceConnectionCheckPollingInterval`: This value is set to a default of 50 ms per [spec](https://datatracker.ietf.org/doc/html/rfc8445#section-14.2). Changing this would change the frequency of connectivity checks and essentially, the ICE state machine transitions. Decreasing the value could help in faster connection establishment in a reliable high performant network setting with good system resources. Increasing the value could help in reducing the network load, however, the connection establishment could slow down. Unless there is a strong reasoning, it is **NOT** recommended to deviate from spec/default.
 
 ### Enable ICE agent stats
@@ -678,7 +679,7 @@ Let us look into when each of these could be changed:
 The SDK calculates 4 different stats:
 1. ICE server stats - stats for ICE servers the SDK is using
 2. [Local candidate stats](https://www.w3.org/TR/webrtc-stats/#dom-rtcstatstype-local-candidate) - stats for the selected local candidate
-3. [Remote candidate stats](https://www.w3.org/TR/webrtc-stats/#dom-rtcstatstype-remote-candidate) - stats for the selected remote candidate 
+3. [Remote candidate stats](https://www.w3.org/TR/webrtc-stats/#dom-rtcstatstype-remote-candidate) - stats for the selected remote candidate
 4. [Candidate pair stats](https://www.w3.org/TR/webrtc-stats/#dom-rtcstatstype-candidate-pair) - stats for the selected candidate pair
 
 For more information on these stats, refer to [AWS Docs](https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-reference.html)

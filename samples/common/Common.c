@@ -1427,6 +1427,9 @@ STATUS submitPendingIceCandidate(PPendingMessageQueue pPendingMessageQueue, PSam
             if (pReceivedSignalingMessage->signalingMessage.messageType == SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE) {
                 CHK_STATUS(handleRemoteCandidate(pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
             }
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+            SAFE_MEMFREE(pReceivedSignalingMessage->signalingMessage.payload);
+#endif
             SAFE_MEMFREE(pReceivedSignalingMessage);
         }
     } while (!noPendingSignalingMessageForClient);
@@ -1435,6 +1438,11 @@ STATUS submitPendingIceCandidate(PPendingMessageQueue pPendingMessageQueue, PSam
 
 CleanUp:
 
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    if (pReceivedSignalingMessage) {
+        SAFE_MEMFREE(pReceivedSignalingMessage->signalingMessage.payload);
+    }
+#endif
     SAFE_MEMFREE(pReceivedSignalingMessage);
     CHK_LOG_ERR(retStatus);
     return retStatus;
@@ -1556,6 +1564,12 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 
                 *pReceivedSignalingMessageCopy = *pReceivedSignalingMessage;
 
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+                pReceivedSignalingMessageCopy->signalingMessage.payload = (PCHAR) MEMALLOC(pReceivedSignalingMessage->signalingMessage.payloadLen);
+                CHK(pReceivedSignalingMessageCopy->signalingMessage.payload != NULL, STATUS_NOT_ENOUGH_MEMORY);
+                MEMCPY(pReceivedSignalingMessageCopy->signalingMessage.payload, pReceivedSignalingMessage->signalingMessage.payload, pReceivedSignalingMessage->signalingMessage.payloadLen);
+#endif
+
                 CHK_STATUS(stackQueueEnqueue(pPendingMessageQueue->messageQueue, (UINT64) pReceivedSignalingMessageCopy));
 
                 // NULL the pointers to not free any longer
@@ -1588,6 +1602,11 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 
 CleanUp:
 
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    if (pReceivedSignalingMessageCopy) {
+        SAFE_MEMFREE(pReceivedSignalingMessageCopy->signalingMessage.payload);
+    }
+#endif
     SAFE_MEMFREE(pReceivedSignalingMessageCopy);
     if (pPendingMessageQueue != NULL) {
         freeMessageQueue(pPendingMessageQueue);
