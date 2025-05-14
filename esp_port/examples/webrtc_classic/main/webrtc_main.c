@@ -23,7 +23,6 @@
 #include "esp_webrtc_time.h"
 #include "esp_work_queue.h"
 #include "media_stream.h"
-#include "esp_work_queue.h"
 
 #include "esp_heap_caps.h"
 
