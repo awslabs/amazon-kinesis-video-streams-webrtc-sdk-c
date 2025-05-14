@@ -211,6 +211,9 @@ struct __LwsCallInfo {
     // Service exit indicator;
     volatile ATOMIC_BOOL cancelService;
 
+    // Message receiving indicator
+    volatile ATOMIC_BOOL receiveMessage;
+
     // Protocol index
     UINT32 protocolIndex;
 
