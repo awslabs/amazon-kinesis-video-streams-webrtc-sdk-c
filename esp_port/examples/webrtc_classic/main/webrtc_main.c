@@ -23,8 +23,7 @@
 #include "esp_webrtc_time.h"
 #include "esp_work_queue.h"
 #include "app_media.h"
-
-#include "esp_heap_caps.h"
+#include "esp_work_queue.h"
 
 static const char *TAG = "webrtc_example";
 

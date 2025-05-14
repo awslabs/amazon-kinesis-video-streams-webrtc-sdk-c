@@ -29,3 +29,6 @@ dependencies:
   libwebsockets:
     path: ../libwebsockets
     version: "*"
+
+  espressif/esp_websocket_client:
+    version: "*"

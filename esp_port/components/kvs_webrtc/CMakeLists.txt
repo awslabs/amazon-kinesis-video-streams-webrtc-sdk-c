@@ -1,5 +1,6 @@
 set(KVS_WEBRTC_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../")
 
+# Define source files
 set(kvs_webrtc_srcs
       "${KVS_WEBRTC_ROOT}/src/source/Crypto/Crypto.c"
       "${KVS_WEBRTC_ROOT}/src/source/Crypto/Dtls_mbedtls.c"
@@ -34,15 +35,13 @@ set(kvs_webrtc_srcs
       "${KVS_WEBRTC_ROOT}/src/source/Rtp/Codecs/RtpOpusPayloader.c"
       "${KVS_WEBRTC_ROOT}/src/source/Rtp/Codecs/RtpVP8Payloader.c"
       "${KVS_WEBRTC_ROOT}/src/source/Rtp/RtpPacket.c"
+      "${KVS_WEBRTC_ROOT}/src/source/Signaling/ChannelInfo.c"
+      "${KVS_WEBRTC_ROOT}/src/source/Signaling/FileCache.c"
+      "${KVS_WEBRTC_ROOT}/src/source/Signaling/Client.c"
+      "${KVS_WEBRTC_ROOT}/src/source/Signaling/StateMachine.c"
       "${KVS_WEBRTC_ROOT}/src/source/Sctp/Sctp.c"
       "${KVS_WEBRTC_ROOT}/src/source/Sdp/Deserialize.c"
       "${KVS_WEBRTC_ROOT}/src/source/Sdp/Serialize.c"
-      "${KVS_WEBRTC_ROOT}/src/source/Signaling/ChannelInfo.c"
-      "${KVS_WEBRTC_ROOT}/src/source/Signaling/Client.c"
-      "${KVS_WEBRTC_ROOT}/src/source/Signaling/FileCache.c"
-      "${KVS_WEBRTC_ROOT}/src/source/Signaling/LwsApiCalls.c"
-      "${KVS_WEBRTC_ROOT}/src/source/Signaling/Signaling.c"
-      "${KVS_WEBRTC_ROOT}/src/source/Signaling/StateMachine.c"
       "${KVS_WEBRTC_ROOT}/src/source/Srtp/SrtpSession.c"
       "${KVS_WEBRTC_ROOT}/src/source/Stun/Stun.c"
       "${KVS_WEBRTC_ROOT}/src/source/Threadpool/ThreadPoolContext.c"
@@ -64,11 +63,28 @@ set(kvs_webrtc_include_dirs
       "${KVS_WEBRTC_ROOT}/src/source/Threadpool"
 )
 
+# Conditionally add Signaling sources
+if(CONFIG_USE_ESP_WEBSOCKET_CLIENT)
+    set(kvs_webrtc_srcs
+        ${kvs_webrtc_srcs}
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/SignalingESP.c"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/LwsApiCallsESP.c"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/DataBuffer.c"
+    )
+    message(STATUS "Using ESP WebSocket client for signaling")
+else()
+    set(kvs_webrtc_srcs
+        ${kvs_webrtc_srcs}
+        "${KVS_WEBRTC_ROOT}/src/source/Signaling/Signaling.c"
+        "${KVS_WEBRTC_ROOT}/src/source/Signaling/LwsApiCalls.c"
+    )
+    message(STATUS "Using libwebsockets for signaling")
+endif()
+
 idf_component_register(
     SRCS "${kvs_webrtc_srcs}"
 
-    INCLUDE_DIRS
-        "${kvs_webrtc_include_dirs}"
+    INCLUDE_DIRS "${kvs_webrtc_include_dirs}"
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
 
     PRIV_INCLUDE_DIRS "${KVS_WEBRTC_ROOT}/src/source"
@@ -81,9 +97,14 @@ idf_component_register(
              "freertos"
              "esp_system"
              "heap"
-             "driver" # libwebsockets.h has this include
-             "spi_flash" # libwebsockets.h has this include
+             "driver"
+             "spi_flash"
+             "esp_http_client"
 )
+
+if(CONFIG_USE_ESP_WEBSOCKET_CLIENT)
+    target_compile_definitions(${COMPONENT_LIB} PUBLIC -DUSE_ESP_WEBSOCKET -DESP_PLATFORM)
+endif()
 
 option(ENABLE_KVS_THREADPOOL "Enable support for KVS thread pool in signaling" ON)
 set(KVS_PLAT_ESP_FREERTOS ON CACHE BOOL "Build for ESP FreeRTOS")
