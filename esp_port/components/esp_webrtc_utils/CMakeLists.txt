@@ -1,5 +1,6 @@
 set(srcs "src/esp_cli.c" "src/wifi_cli.c" "src/webrtc_mem_utils.c"
-         "src/esp_work_queue.c" "src/esp_webrtc_time.c" "src/flash_wrapper.c")
+         "src/esp_work_queue.c" "src/esp_webrtc_time.c" "src/flash_wrapper.c"
+         "src/message_utils.c")
 
 set(requires esp_wifi console mqtt esp_timer esp_common freertos nvs_flash)
 
