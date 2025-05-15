@@ -1204,11 +1204,17 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
                 jsonInIceServerList = TRUE;
 
                 CHK(tokens[i + 1].type == JSMN_ARRAY, STATUS_INVALID_API_CALL_RETURN_JSON);
-                CHK(tokens[i + 1].size <= MAX_ICE_CONFIG_COUNT, STATUS_SIGNALING_MAX_ICE_CONFIG_COUNT);
+                if (tokens[i + 1].size > MAX_ICE_CONFIG_COUNT) {
+                    DLOGW("Received more ice configs (%d) than supported (%d). Will ignore the rest", tokens[i + 1].size, MAX_ICE_CONFIG_COUNT);
+                }
             }
         } else {
             pToken = &tokens[i];
             if (pToken->type == JSMN_OBJECT) {
+                if (configCount + 1 > MAX_ICE_CONFIG_COUNT) {
+                    DLOGW("Max ice config count reached. Ignoring the rest");
+                    break; // skip the remaining list we can't fit
+                }
                 configCount++;
             } else if (compareJsonString(pResponseStr, pToken, JSMN_STRING, (PCHAR) "Username")) {
                 strLen = (UINT32) (pToken[1].end - pToken[1].start);
@@ -2084,7 +2090,11 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
             jsonInIceServerList = TRUE;
 
             CHK(tokens[i + 1].type == JSMN_ARRAY, STATUS_INVALID_API_CALL_RETURN_JSON);
-            CHK(tokens[i + 1].size <= MAX_ICE_CONFIG_COUNT, STATUS_SIGNALING_MAX_ICE_CONFIG_COUNT);
+
+            // We may not fit all the configs, but that's fine
+            if (tokens[i + 1].size > MAX_ICE_CONFIG_COUNT) {
+                DLOGW("Received more ice configs (%d) than supported (%d)", tokens[i + 1].size, MAX_ICE_CONFIG_COUNT);
+            }
 
             // Zero the ice configs
             MEMSET(&pSignalingClient->iceConfigs, 0x00, MAX_ICE_CONFIG_COUNT * SIZEOF(IceConfigInfo));
@@ -2092,6 +2102,10 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
         } else if (jsonInIceServerList) {
             pToken = &tokens[i];
             if (pToken->type == JSMN_OBJECT) {
+                if (pSignalingClient->iceConfigCount + 1 > MAX_ICE_CONFIG_COUNT) {
+                    DLOGW("Max ice config count reached. Ignoring the rest");
+                    continue; // skip the remaining list we can't fit
+                }
                 pSignalingClient->iceConfigCount++;
             } else if (compareJsonString(pMessage, pToken, JSMN_STRING, (PCHAR) "Username")) {
                 strLen = (UINT32) (pToken[1].end - pToken[1].start);
