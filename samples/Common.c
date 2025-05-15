@@ -347,21 +347,21 @@ CleanUp:
 
 
 // Using for testing purposes to filter out tcp and turns cases. 
-bool isTurnUdp(const char* url) {
+BOOL isTurnUdp(const char* url) {
     size_t len = STRLEN(url);
-    if (len < 7) return false;
+    if (len < 7) return FALSE;
 
     // Check start: "turn:"
     if (STRNCMP(url, "turn:", 5) != 0) {
-        return false;
+        return FALSE;
     }
 
     // Check end: "udp"
     if (STRCMP(url + len - 3, "udp") != 0) {
-        return false;
+        return FALSE;
     }
 
-    return true;
+    return TRUE;
 }
 
 
