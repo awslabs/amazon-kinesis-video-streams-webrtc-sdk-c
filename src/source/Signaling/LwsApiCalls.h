@@ -283,6 +283,8 @@ STATUS configureLwsLogging(UINT32 kvsLogLevel);
 
 /**
  * Parses ICE configuration from a JSON response string.
+ * If there are more ICE configurations in the string than maxIceConfigs, we will only
+ * parse up until maxIceConfigs.
  *
  * @param[in] pResponseStr JSON string containing ICE server configuration.
  * @param[in] responseLen Length of the JSON string (excluding null-terminator).
@@ -294,7 +296,6 @@ STATUS configureLwsLogging(UINT32 kvsLogLevel);
  * - STATUS_SUCCESS: Successfully parsed ICE configuration.
  * - STATUS_NULL_ARG: Invalid NULL argument provided.
  * - STATUS_INVALID_API_CALL_RETURN_JSON: Malformed JSON or missing required fields.
- * - STATUS_SIGNALING_MAX_ICE_CONFIG_COUNT: Too many ICE configurations in the string (more than maxIceConfigs).
  * - STATUS_SIGNALING_MAX_ICE_URI_COUNT: Too many URIs in configuration (more than MAX_ICE_CONFIG_URI_COUNT).
  */
 STATUS parseIceConfigResponse(PCHAR, UINT32, UINT8, PIceConfigInfo, PUINT32);

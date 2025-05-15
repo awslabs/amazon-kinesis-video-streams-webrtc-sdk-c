@@ -138,8 +138,17 @@ TEST_F(IceConfigParsingTest, TooManyIceConfigsReturned)
     })";
     UINT32 mockResponseLen = mockResponse.length();
 
-    EXPECT_EQ(STATUS_SIGNALING_MAX_ICE_CONFIG_COUNT,
+    EXPECT_EQ(STATUS_SUCCESS,
               parseIceConfigResponse((PCHAR) mockResponse.c_str(), mockResponseLen, ARRAY_SIZE(iceConfigs), iceConfigs, &iceConfigCount));
+
+    EXPECT_EQ(1, iceConfigCount);
+    EXPECT_STREQ("testUser1", iceConfigs[0].userName);
+    EXPECT_STREQ("testPass1", iceConfigs[0].password);
+    EXPECT_EQ(300 * HUNDREDS_OF_NANOS_IN_A_SECOND, iceConfigs[0].ttl);
+    EXPECT_EQ(2, iceConfigs[0].uriCount);
+    EXPECT_STREQ("turn:example1.com:443?transport=udp", iceConfigs[0].uris[0]);
+    EXPECT_STREQ("turn:example1.com:443?transport=tcp", iceConfigs[0].uris[1]);
+
 }
 
 TEST_F(IceConfigParsingTest, UsernameIsTooLong)

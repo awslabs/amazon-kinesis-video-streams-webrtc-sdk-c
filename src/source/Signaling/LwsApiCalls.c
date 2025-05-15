@@ -1237,7 +1237,9 @@ STATUS parseIceConfigResponse(PCHAR pResponseStr, UINT32 responseLen, UINT8 maxI
                 jsonInIceServerList = TRUE;
 
                 CHK(tokens[i + 1].type == JSMN_ARRAY, STATUS_INVALID_API_CALL_RETURN_JSON);
-                CHK(tokens[i + 1].size <= maxIceConfigs, STATUS_SIGNALING_MAX_ICE_CONFIG_COUNT);
+                if (tokens[i + 1].size > maxIceConfigs) {
+                    DLOGW("Received more ice configs (%d) than supported (%d). Will ignore the rest.", tokens[i + 1].size, maxIceConfigs);
+                }
             }
         } else {
             pToken = &tokens[i];
@@ -1250,6 +1252,10 @@ STATUS parseIceConfigResponse(PCHAR pResponseStr, UINT32 responseLen, UINT8 maxI
                 }
                 continue;
             } else if (pToken->type == JSMN_OBJECT) {
+                if (configCount + 1 > maxIceConfigs) {
+                    // That's all we have room to parse
+                    break;
+                }
                 configCount++;
             } else if (compareJsonString(pResponseStr, pToken, JSMN_STRING, (PCHAR) "Username")) {
                 strLen = (UINT32) (pToken[1].end - pToken[1].start);
