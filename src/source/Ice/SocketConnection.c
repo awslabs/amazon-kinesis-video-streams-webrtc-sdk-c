@@ -30,6 +30,7 @@ STATUS createSocketConnection(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL
 
     pSocketConnection->secureConnection = FALSE;
     pSocketConnection->protocol = protocol;
+    pSocketConnection->hostname = NULL;
     if (protocol == KVS_SOCKET_PROTOCOL_TCP) {
         pSocketConnection->peerIpAddr = *pPeerIpAddr;
         CHK_STATUS(socketConnect(pPeerIpAddr, pSocketConnection->localSocket));
@@ -105,6 +106,8 @@ STATUS freeSocketConnection(PSocketConnection* ppSocketConnection)
     if (pSocketConnection->pTlsSession != NULL) {
         freeTlsSession(&pSocketConnection->pTlsSession);
     }
+
+    SAFE_MEMFREE(pSocketConnection->hostname);
 
     getIpAddrStr(&pSocketConnection->hostIpAddr, ipAddr, ARRAY_SIZE(ipAddr));
     DLOGD("close socket with ip: %s:%u. family:%d", ipAddr, (UINT16) getInt16(pSocketConnection->hostIpAddr.port),
@@ -187,7 +190,14 @@ STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection,
     callbacks.stateChangeFn = socketConnectionTlsSessionOnStateChange;
 
     CHK_STATUS(createTlsSession(&callbacks, &pSocketConnection->pTlsSession));
+
+#if KVS_USE_MBEDTLS
+    // Setting the hostname is recommended by mbedTLS and is default in mbedTLS 3.0 and above
+    // https://mbed-tls.readthedocs.io/en/latest/security-advisories/mbedtls-security-advisory-2025-03-1/
+    CHK_STATUS(tlsSessionStartWithHostname(pSocketConnection->pTlsSession, isServer, pSocketConnection->hostname));
+#else
     CHK_STATUS(tlsSessionStart(pSocketConnection->pTlsSession, isServer));
+#endif
     pSocketConnection->secureConnection = TRUE;
 
 CleanUp:

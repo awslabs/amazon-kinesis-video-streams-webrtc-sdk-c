@@ -133,7 +133,7 @@ CleanUp:
     return STATUS_FAILED(retStatus) ? -retStatus : readBytes;
 }
 
-STATUS tlsSessionStart(PTlsSession pTlsSession, BOOL isServer)
+STATUS tlsSessionStartWithHostname(PTlsSession pTlsSession, BOOL isServer, PCHAR hostname)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -147,9 +147,25 @@ STATUS tlsSessionStart(PTlsSession pTlsSession, BOOL isServer)
         STATUS_CREATE_SSL_FAILED);
 
     mbedtls_ssl_conf_ca_chain(&pTlsSession->sslCtxConfig, &pTlsSession->cacert, NULL);
-    mbedtls_ssl_conf_authmode(&pTlsSession->sslCtxConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
+
+    // For mbedTLS 3.x, use appropriate verification mode
+    if (hostname != NULL) {
+        // If a hostname is provided, use strict verification
+        mbedtls_ssl_conf_authmode(&pTlsSession->sslCtxConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
+    } else {
+        // Otherwise, use optional verification for IP-based connections
+        mbedtls_ssl_conf_authmode(&pTlsSession->sslCtxConfig, MBEDTLS_SSL_VERIFY_OPTIONAL);
+    }
+
     mbedtls_ssl_conf_rng(&pTlsSession->sslCtxConfig, mbedtls_ctr_drbg_random, &pTlsSession->ctrDrbg);
     CHK(mbedtls_ssl_setup(&pTlsSession->sslCtx, &pTlsSession->sslCtxConfig) == 0, STATUS_SSL_CTX_CREATION_FAILED);
+
+    // Set the hostname for certificate verification (for mbedTLS 3.x compatibility)
+    if (!isServer && hostname != NULL) {
+        // Use the provided hostname for certificate verification
+        CHK(mbedtls_ssl_set_hostname(&pTlsSession->sslCtx, hostname) == 0, STATUS_SSL_CTX_CREATION_FAILED);
+    }
+
     mbedtls_ssl_set_mtu(&pTlsSession->sslCtx, DEFAULT_MTU_SIZE_BYTES);
     mbedtls_ssl_set_bio(&pTlsSession->sslCtx, pTlsSession, tlsSessionSendCallback, tlsSessionReceiveCallback, NULL);
 
@@ -165,6 +181,11 @@ CleanUp:
 
     LEAVES();
     return retStatus;
+}
+
+STATUS tlsSessionStart(PTlsSession pTlsSession, BOOL isServer)
+{
+    return tlsSessionStartWithHostname(pTlsSession, isServer, NULL);
 }
 
 STATUS tlsSessionProcessPacket(PTlsSession pTlsSession, PBYTE pData, UINT32 bufferLen, PUINT32 pDataLen)

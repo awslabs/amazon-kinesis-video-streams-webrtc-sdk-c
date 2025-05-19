@@ -44,6 +44,9 @@ struct __SocketConnection {
     ConnectionDataAvailableFunc dataAvailableCallbackFn;
     UINT64 dataAvailableCallbackCustomData;
     UINT64 tlsHandshakeStartTime;
+
+    /* Hostname for TLS verification */
+    PCHAR hostname;
 };
 typedef struct __SocketConnection* PSocketConnection;
 

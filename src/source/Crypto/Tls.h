@@ -119,6 +119,9 @@ INT32 tlsSessionCertificateVerifyCallback(INT32, X509_STORE_CTX*);
 //       a callback signature.
 INT32 tlsSessionSendCallback(PVOID, const unsigned char*, ULONG);
 INT32 tlsSessionReceiveCallback(PVOID, unsigned char*, ULONG);
+
+// Add hostname parameter for mbedTLS 3.x compatibility
+STATUS tlsSessionStartWithHostname(PTlsSession, BOOL, PCHAR);
 #else
 #error "A Crypto implementation is required."
 #endif

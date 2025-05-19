@@ -7,6 +7,52 @@
 extern StateMachineState TURN_CONNECTION_STATE_MACHINE_STATES[];
 extern UINT32 TURN_CONNECTION_STATE_MACHINE_STATE_COUNT;
 
+// On success, ppHostname is allocated and must be freed by the caller
+STATUS getHostnameFromUrl(PCHAR url, PCHAR* ppHostname)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PCHAR urlStart = NULL;
+    PCHAR urlEnd = NULL;
+    UINT32 hostnameLen = 0;
+
+    CHK(url != NULL && ppHostname != NULL, STATUS_NULL_ARG);
+
+    // Skip protocol prefix (turn: or turns:) if present
+    urlStart = STRSTR(url, "://");
+    if (urlStart != NULL) {
+        urlStart += 3; // Skip "://"
+    } else {
+        // If no protocol prefix, use the entire URL
+        urlStart = url;
+    }
+
+    // Find port separator or query parameter if they exist
+    urlEnd = STRCHR(urlStart, ':');
+    if (urlEnd == NULL) {
+        urlEnd = STRCHR(urlStart, '?');
+    }
+
+    if (urlEnd != NULL) {
+        hostnameLen = urlEnd - urlStart;
+    } else {
+        // If no port or query parameter is specified, use the entire remaining string
+        hostnameLen = STRLEN(urlStart);
+    }
+
+    CHK(hostnameLen > 0 && hostnameLen <= MAX_ICE_CONFIG_URI_LEN, STATUS_INVALID_ARG);
+    *ppHostname = MEMCALLOC(1, hostnameLen + 1);
+    CHK(*ppHostname != NULL, STATUS_NOT_ENOUGH_MEMORY);
+    STRNCPY(*ppHostname, urlStart, hostnameLen);
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
+    LEAVES();
+
+    return retStatus;
+}
+
 STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueueHandle, TURN_CONNECTION_DATA_TRANSFER_MODE dataTransferMode,
                             KVS_SOCKET_PROTOCOL protocol, PTurnConnectionCallbacks pTurnConnectionCallbacks, PSocketConnection pTurnSocket,
                             PConnectionListener pConnectionListener, PTurnConnection* ppTurnConnection)
@@ -22,6 +68,11 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     CHK(pTurnServer->isTurn && !IS_EMPTY_STRING(pTurnServer->url) && !IS_EMPTY_STRING(pTurnServer->credential) &&
             !IS_EMPTY_STRING(pTurnServer->username),
         STATUS_INVALID_ARG);
+
+    // Set the TURN server hostname in the socket connection for TLS hostname verification
+    PCHAR hostname = NULL;
+    CHK_STATUS(getHostnameFromUrl(pTurnServer->url, &hostname));
+    pTurnSocket->hostname = hostname;
 
     pTurnConnection = (PTurnConnection) MEMCALLOC(
         1, SIZEOF(TurnConnection) + DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN * 2 + DEFAULT_TURN_MESSAGE_SEND_CHANNEL_DATA_BUFFER_LEN);
@@ -70,8 +121,13 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    if (STATUS_FAILED(retStatus) && pTurnConnection != NULL) {
-        freeTurnConnection(&pTurnConnection);
+    if (STATUS_FAILED(retStatus)) {
+        if (pTurnConnection != NULL) {
+            freeTurnConnection(&pTurnConnection);
+        }
+        if (pTurnSocket != NULL) {
+            SAFE_MEMFREE(pTurnSocket->hostname);
+        }
     }
 
     if (ppTurnConnection != NULL) {
