@@ -123,10 +123,10 @@ jobs:
             export CXX="clang++"
           fi
           echo "Using CC: $CC and CXX: $CXX"
-          
+
           mkdir -p build
           cd build
-          
+
           if [[ "${{ matrix.compiler }}" == "gcc" ]]; then
             # Skip building the tests for Mac with GCC
             # https://github.com/awslabs/aws-crt-cpp/issues/605
@@ -246,7 +246,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DBUILD_TEST=ON -DENABLE_AWS_SDK_IN_TESTS=OFF -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+          cmake .. -DBUILD_TEST=ON -DENABLE_AWS_SDK_IN_TESTS=OFF -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DBUILD_OLD_MBEDTLS_VERSION=ON
           make -j
 
       - name: Configure AWS Credentials
