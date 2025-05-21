@@ -185,10 +185,11 @@ PVOID sendVideoPackets(PVOID args)
     lastFrameTime = startTime;
 
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
-        fileIndex = fileIndex % NUMBER_OF_H264_FRAME_FILES + 1;
         if (pSampleConfiguration->videoCodec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
+            fileIndex = fileIndex % NUMBER_OF_H264_FRAME_FILES + 1;
             SNPRINTF(filePath, MAX_PATH_LEN, "./h264SampleFrames/frame-%04d.h264", fileIndex);
         } else if (pSampleConfiguration->videoCodec == RTC_CODEC_H265) {
+            fileIndex = fileIndex % NUMBER_OF_H265_FRAME_FILES + 1;
             SNPRINTF(filePath, MAX_PATH_LEN, "./h265SampleFrames/frame-%04d.h265", fileIndex);
         }
 
