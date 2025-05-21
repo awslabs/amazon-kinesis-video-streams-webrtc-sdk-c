@@ -172,12 +172,12 @@ STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 pa
     CHK(pDest != NULL, STATUS_NULL_ARG);
     switch (pStunPacket->header.stunMessageType) {
         case STUN_PACKET_TYPE_BINDING_REQUEST:
-            DLOGD("Sending BINDING_REQUEST to ip:%u.%u.%u.%u, port:%u", pDest->address[0], pDest->address[1], pDest->address[2], pDest->address[3],
-                  (UINT16) getInt16(pDest->port));
+            DLOGD("Sending BINDING_REQUEST on socket id: %d, to ip:%u.%u.%u.%u, port:%u", pSocketConnection->localSocket, pDest->address[0],
+                  pDest->address[1], pDest->address[2], pDest->address[3], (UINT16) getInt16(pDest->port));
             break;
         case STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS:
-            DLOGD("Sending BINDING_RESPONSE_SUCCESS to ip:%u.%u.%u.%u, port:%u", pDest->address[0], pDest->address[1], pDest->address[2],
-                  pDest->address[3], (UINT16) getInt16(pDest->port));
+            DLOGD("Sending BINDING_RESPONSE_SUCCESS on socket id: %d to ip:%u.%u.%u.%u, port:%u", pSocketConnection->localSocket, pDest->address[0],
+                  pDest->address[1], pDest->address[2], pDest->address[3], (UINT16) getInt16(pDest->port));
             break;
         default:
             break;

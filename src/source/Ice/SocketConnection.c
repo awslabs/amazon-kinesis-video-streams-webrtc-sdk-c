@@ -47,9 +47,10 @@ CleanUp:
 
     if (pBindAddr) {
         getIpAddrStr(pBindAddr, ipAddr, ARRAY_SIZE(ipAddr));
-        DLOGD("create socket with ip: %s:%u. family:%d", ipAddr, (UINT16) getInt16(pBindAddr->port), pBindAddr->family);
+        DLOGD("create socket id: %d, with ip: %s:%u. family:%d", pSocketConnection->localSocket, ipAddr, (UINT16) getInt16(pBindAddr->port),
+              pBindAddr->family);
     } else {
-        DLOGD("create socket without the bind address(%d:%d)", familyType, protocol);
+        DLOGD("create socket id %d, without the bind address(%d:%d)", pSocketConnection->localSocket, familyType, protocol);
     }
     if (protocol == KVS_SOCKET_PROTOCOL_TCP) {
         getIpAddrStr(pPeerIpAddr, ipAddr, ARRAY_SIZE(ipAddr));
@@ -408,7 +409,7 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
                 /* nothing need to be done, just retry */
             } else {
                 /* fatal error from send() */
-                DLOGE("sendto() failed with errno %s(%d)", getErrorString(errorNum), errorNum);
+                DLOGE("sendto() socket %d failed with errno %s(%d)", pSocketConnection->localSocket, getErrorString(errorNum), errorNum);
                 CHAR ipAddr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
 
                 if (pDestIp != NULL) {
