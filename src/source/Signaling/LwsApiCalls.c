@@ -3,6 +3,11 @@
  */
 #define LOG_CLASS "LwsApiCalls"
 #include "../Include_i.h"
+
+#include <libwebsockets.h>
+#include "Signaling.h"
+#include "LwsApiCalls.h"
+
 #define WEBRTC_SCHEME_NAME "webrtc"
 
 static BOOL gInterruptedFlagBySignalHandler;
@@ -12,7 +17,7 @@ VOID lwsSignalHandler(INT32 signal)
     gInterruptedFlagBySignalHandler = TRUE;
 }
 
-INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, PVOID user, PVOID pDataIn, size_t dataSize)
+INT32 lwsHttpCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, size_t dataSize)
 {
     UNUSED_PARAM(user);
     STATUS retStatus = STATUS_SUCCESS;
@@ -53,12 +58,12 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
             CHK(FALSE, retStatus);
     }
 
-    customData = lws_get_opaque_user_data(wsi);
+    customData = lws_get_opaque_user_data((struct lws*) wsi);
     pLwsCallInfo = (PLwsCallInfo) customData;
 
     CHK_STATUS(configureLwsLogging(loggerGetLogLevel()));
 
-    CHK(pLwsCallInfo != NULL && pLwsCallInfo->pSignalingClient != NULL && pLwsCallInfo->pSignalingClient->pLwsContext != NULL &&
+    CHK(pLwsCallInfo != NULL && pLwsCallInfo->pSignalingClient != NULL && pLwsCallInfo->pSignalingClient->pWebsocketContext != NULL &&
             pLwsCallInfo->callInfo.pRequestInfo != NULL && pLwsCallInfo->protocolIndex == PROTOCOL_INDEX_HTTPS,
         retStatus);
 
@@ -98,13 +103,13 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
             break;
 
         case LWS_CALLBACK_ESTABLISHED_CLIENT_HTTP:
-            status = lws_http_client_http_response(wsi);
+            status = lws_http_client_http_response((struct lws*) wsi);
             getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState);
 
             DLOGD("Connected with server response: %d", status);
             pLwsCallInfo->callInfo.callResult = getServiceCallResultFromHttpStatus((UINT32) status);
 
-            len = (SIZE_T) lws_hdr_copy(wsi, &dateHdrBuffer[0], MAX_DATE_HEADER_BUFFER_LENGTH, WSI_TOKEN_HTTP_DATE);
+            len = (SIZE_T) lws_hdr_copy((struct lws*) wsi, &dateHdrBuffer[0], MAX_DATE_HEADER_BUFFER_LENGTH, WSI_TOKEN_HTTP_DATE);
 
             time(&td);
 
@@ -141,7 +146,7 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
             }
 
             // Store the Request ID header
-            if ((size = lws_hdr_custom_copy(wsi, pBuffer, LWS_SCRATCH_BUFFER_SIZE, SIGNALING_REQUEST_ID_HEADER_NAME,
+            if ((size = lws_hdr_custom_copy((struct lws*) wsi, pBuffer, LWS_SCRATCH_BUFFER_SIZE, SIGNALING_REQUEST_ID_HEADER_NAME,
                                             (SIZEOF(SIGNALING_REQUEST_ID_HEADER_NAME) - 1) * SIZEOF(CHAR))) > 0) {
                 pBuffer[size] = '\0';
                 DLOGI("Request ID: %s", pBuffer);
@@ -182,7 +187,7 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
             DLOGD("Received client http");
             size = LWS_SCRATCH_BUFFER_SIZE;
 
-            if (lws_http_client_read(wsi, &pBuffer, &size) < 0) {
+            if (lws_http_client_read((struct lws*) wsi, &pBuffer, &size) < 0) {
                 retValue = -1;
             }
 
@@ -217,8 +222,8 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
 
                 DLOGV("Appending header - %s %s", pRequestHeader->pName, pRequestHeader->pValue);
 
-                status = lws_add_http_header_by_name(wsi, (PBYTE) pRequestHeader->pName, (PBYTE) pRequestHeader->pValue, pRequestHeader->valueLen,
-                                                     ppStartPtr, pEndPtr);
+                status = lws_add_http_header_by_name((struct lws*) wsi, (PBYTE) pRequestHeader->pName, (PBYTE) pRequestHeader->pValue,
+                                                     pRequestHeader->valueLen, ppStartPtr, pEndPtr);
                 if (status != 0) {
                     retValue = 1;
                     CHK(FALSE, retStatus);
@@ -232,8 +237,8 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
                 headerCount--;
             }
 
-            lws_client_http_body_pending(wsi, 1);
-            lws_callback_on_writable(wsi);
+            lws_client_http_body_pending((struct lws*) wsi, 1);
+            lws_callback_on_writable((struct lws*) wsi);
 
             break;
 
@@ -241,20 +246,20 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
             DLOGD("Sending the body %.*s, size %d", pRequestInfo->bodySize, pRequestInfo->body, pRequestInfo->bodySize);
             MEMCPY(pBuffer, pRequestInfo->body, pRequestInfo->bodySize);
 
-            size = lws_write(wsi, (PBYTE) pBuffer, (SIZE_T) pRequestInfo->bodySize, LWS_WRITE_TEXT);
+            size = lws_write((struct lws*) wsi, (PBYTE) pBuffer, (SIZE_T) pRequestInfo->bodySize, LWS_WRITE_TEXT);
 
             if (size != (INT32) pRequestInfo->bodySize) {
                 DLOGW("Failed to write out the body of POST request entirely. Expected to write %d, wrote %d", pRequestInfo->bodySize, size);
                 if (size > 0) {
                     // Schedule again
-                    lws_client_http_body_pending(wsi, 1);
-                    lws_callback_on_writable(wsi);
+                    lws_client_http_body_pending((struct lws*) wsi, 1);
+                    lws_callback_on_writable((struct lws*) wsi);
                 } else {
                     // Quit
                     retValue = 1;
                 }
             } else {
-                lws_client_http_body_pending(wsi, 0);
+                lws_client_http_body_pending((struct lws*) wsi, 0);
             }
 
             break;
@@ -271,7 +276,7 @@ CleanUp:
             ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
         }
 
-        lws_cancel_service(lws_get_context(wsi));
+        lws_cancel_service(lws_get_context((struct lws*) wsi));
 
         retValue = -1;
     }
@@ -283,7 +288,7 @@ CleanUp:
     return retValue;
 }
 
-INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, PVOID user, PVOID pDataIn, size_t dataSize)
+INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, size_t dataSize)
 {
     UNUSED_PARAM(user);
     STATUS retStatus = STATUS_SUCCESS;
@@ -312,14 +317,14 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
             CHK(FALSE, retStatus);
     }
 
-    customData = lws_get_opaque_user_data(wsi);
+    customData = lws_get_opaque_user_data((struct lws*) wsi);
     pLwsCallInfo = (PLwsCallInfo) customData;
 
     CHK_STATUS(configureLwsLogging(loggerGetLogLevel()));
 
     CHK(pLwsCallInfo != NULL && pLwsCallInfo->pSignalingClient != NULL && pLwsCallInfo->pSignalingClient->pOngoingCallInfo != NULL &&
-            pLwsCallInfo->pSignalingClient->pLwsContext != NULL && pLwsCallInfo->pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL &&
-            pLwsCallInfo->protocolIndex == PROTOCOL_INDEX_WSS,
+            pLwsCallInfo->pSignalingClient->pWebsocketContext != NULL &&
+            pLwsCallInfo->pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL && pLwsCallInfo->protocolIndex == PROTOCOL_INDEX_WSS,
         retStatus);
     pSignalingClient = pLwsCallInfo->pSignalingClient;
     pLwsCallInfo = pSignalingClient->pOngoingCallInfo;
@@ -564,7 +569,7 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
         CHK_STATUS(removeRequestHeader(pCallInfo->callInfo.pRequestInfo, AWS_SIG_V4_HEADER_HOST));
     }
 
-    pContext = pCallInfo->pSignalingClient->pLwsContext;
+    pContext = (struct lws_context*) pCallInfo->pSignalingClient->pWebsocketContext;
 
     // Execute the LWS REST call
     MEMSET(&connectInfo, 0x00, SIZEOF(struct lws_client_connect_info));
@@ -596,7 +601,7 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     connectInfo.path = path;
     connectInfo.host = connectInfo.address;
     connectInfo.method = pVerb;
-    connectInfo.protocol = pCallInfo->pSignalingClient->signalingProtocols[pCallInfo->protocolIndex].name;
+    connectInfo.protocol = ((struct lws_protocols*) pCallInfo->pSignalingClient->signalingProtocols[pCallInfo->protocolIndex])->name;
     connectInfo.pwsi = &clientLws;
 
     connectInfo.opaque_user_data = pCallInfo;
@@ -2452,7 +2457,7 @@ STATUS wakeLwsServiceEventLoop(PSignalingClient pSignalingClient, UINT32 protoco
     STATUS retStatus = STATUS_SUCCESS;
 
     // Early exit in case we don't need to do anything
-    CHK(pSignalingClient != NULL && pSignalingClient->pLwsContext != NULL, retStatus);
+    CHK(pSignalingClient != NULL && pSignalingClient->pWebsocketContext != NULL, retStatus);
 
     if (pSignalingClient->currentWsi[protocolIndex] != NULL) {
         lws_callback_on_writable(pSignalingClient->currentWsi[protocolIndex]);

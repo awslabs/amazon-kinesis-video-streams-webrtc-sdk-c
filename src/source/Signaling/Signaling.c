@@ -1,5 +1,7 @@
 #define LOG_CLASS "Signaling"
 #include "../Include_i.h"
+#include <libwebsockets.h>
+#include "LwsApiCalls.h"
 
 extern StateMachineState SIGNALING_STATE_MACHINE_STATES[];
 extern UINT32 SIGNALING_STATE_MACHINE_STATE_COUNT;
@@ -21,6 +23,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     BOOL cacheFound = FALSE;
     PSignalingFileCacheEntry pFileCacheEntry = NULL;
 
+    struct lws_protocols* pProtocols = NULL;
+
     CHK(pClientInfo != NULL && pChannelInfo != NULL && pCallbacks != NULL && pCredentialProvider != NULL && ppSignalingClient != NULL,
         STATUS_NULL_ARG);
     CHK(pChannelInfo->version <= CHANNEL_INFO_CURRENT_VERSION, STATUS_SIGNALING_INVALID_CHANNEL_INFO_VERSION);
@@ -32,6 +36,14 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     // Initialize the listener and restart thread trackers
     CHK_STATUS(initializeThreadTracker(&pSignalingClient->listenerTracker));
     CHK_STATUS(initializeThreadTracker(&pSignalingClient->reconnecterTracker));
+
+    // Allocate memory for the protocols array (+ 1 for the null terminator protocol)
+    pProtocols = (struct lws_protocols*) MEMCALLOC(LWS_PROTOCOL_COUNT + 1, SIZEOF(struct lws_protocols));
+    CHK(pProtocols != NULL, STATUS_NOT_ENOUGH_MEMORY);
+
+    // Store the protocols pointer in the signalingProtocols array
+    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_HTTPS] = pProtocols;
+    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_WSS] = &pProtocols[PROTOCOL_INDEX_WSS];
 
     // Validate and store the input
     CHK_STATUS(createValidateChannelInfo(pChannelInfo, &pSignalingClient->pChannelInfo));
@@ -93,10 +105,11 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
                                           &pSignalingClient->pStateMachine));
 
     // Prepare the signaling channel protocols array
-    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_HTTPS].name = HTTPS_SCHEME_NAME;
-    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_HTTPS].callback = lwsHttpCallbackRoutine;
-    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_WSS].name = WSS_SCHEME_NAME;
-    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_WSS].callback = lwsWssCallbackRoutine;
+    pProtocols = (struct lws_protocols*) pSignalingClient->signalingProtocols[PROTOCOL_INDEX_HTTPS];
+    pProtocols[PROTOCOL_INDEX_HTTPS].name = HTTPS_SCHEME_NAME;
+    pProtocols[PROTOCOL_INDEX_HTTPS].callback = (lws_callback_function*) lwsHttpCallbackRoutine;
+    pProtocols[PROTOCOL_INDEX_WSS].name = WSS_SCHEME_NAME;
+    pProtocols[PROTOCOL_INDEX_WSS].callback = (lws_callback_function*) lwsWssCallbackRoutine;
 
     pSignalingClient->currentWsi[PROTOCOL_INDEX_HTTPS] = NULL;
     pSignalingClient->currentWsi[PROTOCOL_INDEX_WSS] = NULL;
@@ -104,7 +117,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     MEMSET(&creationInfo, 0x00, SIZEOF(struct lws_context_creation_info));
     creationInfo.options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
     creationInfo.port = CONTEXT_PORT_NO_LISTEN;
-    creationInfo.protocols = pSignalingClient->signalingProtocols;
+    creationInfo.protocols = pProtocols;
     creationInfo.timeout_secs = SIGNALING_SERVICE_API_CALL_TIMEOUT_IN_SECONDS;
     creationInfo.gid = -1;
     creationInfo.uid = -1;
@@ -165,8 +178,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
 
     CHK_STATUS(configureLwsLogging(loggerGetLogLevel()));
 
-    pSignalingClient->pLwsContext = lws_create_context(&creationInfo);
-    CHK(pSignalingClient->pLwsContext != NULL, STATUS_SIGNALING_LWS_CREATE_CONTEXT_FAILED);
+    pSignalingClient->pWebsocketContext = lws_create_context(&creationInfo);
+    CHK(pSignalingClient->pWebsocketContext != NULL, STATUS_SIGNALING_LWS_CREATE_CONTEXT_FAILED);
 
     // Initializing the diagnostics mostly is taken care of by zero-mem in MEMCALLOC
     pSignalingClient->diagnostics.createTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
@@ -223,12 +236,15 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
 
     terminateOngoingOperations(pSignalingClient);
 
-    if (pSignalingClient->pLwsContext != NULL) {
+    if (pSignalingClient->pWebsocketContext != NULL) {
         MUTEX_LOCK(pSignalingClient->lwsServiceLock);
-        lws_context_destroy(pSignalingClient->pLwsContext);
-        pSignalingClient->pLwsContext = NULL;
+        lws_context_destroy((struct lws_context*) pSignalingClient->pWebsocketContext);
+        pSignalingClient->pWebsocketContext = NULL;
         MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
     }
+
+    // Frees up the entire structure., both HTTPS and WSS protocols (it was allocated as single block)
+    SAFE_MEMFREE(pSignalingClient->signalingProtocols[PROTOCOL_INDEX_HTTPS]);
 
     freeStateMachine(pSignalingClient->pStateMachine);
 

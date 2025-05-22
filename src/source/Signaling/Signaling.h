@@ -337,14 +337,15 @@ typedef struct {
     // Restarted thread handler
     ThreadTracker reconnecterTracker;
 
-    // LWS context to use for Restful API
-    struct lws_context* pLwsContext;
+    // Generic websocket context - can be used by any implementation
+    PVOID pWebsocketContext;
 
-    // Signaling protocols - one more for the NULL terminator protocol
-    struct lws_protocols signalingProtocols[LWS_PROTOCOL_COUNT + 1];
+    // Generic websocket protocols array - can be used by any implementation
+    // + 1 for the null terminator protocol
+    PVOID signalingProtocols[LWS_PROTOCOL_COUNT + 1];
 
-    // Stored wsi objects
-    struct lws* currentWsi[LWS_PROTOCOL_COUNT];
+    // Generic websocket connection objects - can be used by any implementation
+    PVOID currentWsi[LWS_PROTOCOL_COUNT];
 
     // List of the ongoing messages
     PStackQueue pMessageQueue;

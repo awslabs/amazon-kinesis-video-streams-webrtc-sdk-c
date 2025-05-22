@@ -54,8 +54,6 @@ extern "C" {
 #define INET6 1
 #include <usrsctp.h>
 
-#include <libwebsockets.h>
-
 #if !defined __WINDOWS_BUILD__
 #include <signal.h>
 #include <sys/types.h>
@@ -67,6 +65,7 @@ extern "C" {
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/tcp.h>
+#include <poll.h>
 #endif
 
 // Max uFrag and uPwd length as documented in https://tools.ietf.org/html/rfc5245#section-15.4
