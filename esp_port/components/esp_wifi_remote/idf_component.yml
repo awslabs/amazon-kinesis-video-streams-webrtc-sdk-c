@@ -1,0 +1,10 @@
+dependencies:
+  idf:
+    version: '>=5.3'
+description: Utility wrapper for esp_wifi functionality on remote targets
+repository: git://github.com/espressif/esp-protocols.git
+repository_info:
+  commit_sha: 39d59032a290235ffe02a971a9a4664d7724e4c5
+  path: components/esp_wifi_remote
+url: https://github.com/espressif/esp-protocols/tree/master/components/esp_wifi_remote
+version: 0.2.3
