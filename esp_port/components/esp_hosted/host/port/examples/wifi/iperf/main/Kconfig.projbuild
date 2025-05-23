@@ -1,0 +1,427 @@
+menu "Example Configuration"
+
+	menu "ESP-Hosted config"
+
+		choice ESP_HOST_INTERFACE
+			bool "Hosted Transport layer"
+			default ESP_SPI_HOST_INTERFACE if IDF_TARGET_ESP32
+			default ESP_SPI_HOST_INTERFACE
+			help
+				Bus interface to be used for communication with the host
+
+			config ESP_SPI_HOST_INTERFACE
+				bool "SPI Transport"
+				help
+					Enable/Disable SPI host interface
+
+			config ESP_SDIO_HOST_INTERFACE
+				bool "SDIO interface"
+				depends on IDF_TARGET_ESP32 || IDF_TARGET_ESP32S3
+				help
+					Enable/Disable SDIO host interface
+		endchoice
+
+
+		choice ESP_HOSTED_SLAVE_CHIPSET_USED
+			bool "Slave chipset to be used"
+
+			config SLAVE_CHIPSET_ESP32
+				depends on ESP_SPI_HOST_INTERFACE || ESP_SDIO_HOST_INTERFACE
+				bool "Slave as ESP32"
+
+			config SLAVE_CHIPSET_ESP32S2
+				depends on ESP_SPI_HOST_INTERFACE
+				bool "Slave as ESP32S2"
+
+			config SLAVE_CHIPSET_ESP32S3
+				depends on ESP_SPI_HOST_INTERFACE
+				bool "Slave as ESP32S3"
+
+			config SLAVE_CHIPSET_ESP32C2
+				depends on ESP_SPI_HOST_INTERFACE
+				bool "Slave as ESP32C2"
+
+			config SLAVE_CHIPSET_ESP32C3
+				depends on ESP_SPI_HOST_INTERFACE
+				bool "Slave as ESP32C3"
+
+			config SLAVE_CHIPSET_ESP32C6
+				depends on ESP_SPI_HOST_INTERFACE || ESP_SDIO_HOST_INTERFACE
+				bool "Slave as ESP32C6"
+		endchoice
+
+		menu "Hosted Task config"
+			config ESP_RPC_TASK_STACK
+				int "RPC task stack size"
+				default 4096
+
+			config ESP_DFLT_TASK_STACK
+				int "Hosted default task size"
+				default 3072
+		endmenu
+
+		menu "Hosted SPI Configuration"
+			depends on ESP_SPI_HOST_INTERFACE
+
+			choice ESP_SPI_PRIV_MODE
+				bool "Host SPI mode"
+				default ESP_SPI_PRIV_MODE_2
+
+				config ESP_SPI_PRIV_MODE_0
+					bool "Host  SPI mode 0"
+
+				config ESP_SPI_PRIV_MODE_1
+					bool "Host  SPI mode 1"
+
+				config ESP_SPI_PRIV_MODE_2
+					bool "Host  SPI mode 2"
+
+				config ESP_SPI_PRIV_MODE_3
+					bool "Host  SPI mode 3"
+			endchoice
+
+			config ESP_SPI_MODE
+				int
+				default 0 if ESP_SPI_PRIV_MODE_0
+				default 1 if ESP_SPI_PRIV_MODE_1
+				default 2 if ESP_SPI_PRIV_MODE_2
+				default 3 if ESP_SPI_PRIV_MODE_3
+				default 2
+
+			choice SPI_CONTROLLER
+				bool "Host SPI controller to use"
+				default SPI_HSPI
+
+				config SPI_HSPI
+					bool "HSPI/FSPI"
+					help
+						"HSPI/FSPI: SPI_controller_1"
+
+				config SPI_VSPI
+					depends on IDF_TARGET_ESP32
+					bool "VSPI"
+					help
+						"VSPI: SPI_controller_2"
+
+			endchoice
+
+			config ESP_SPI_CONTROLLER
+				int
+				default 2 if SPI_VSPI
+				default 1
+
+			menu "Hosted SPI GPIOs Config"
+
+				config ESP_SPI_HSPI_GPIO_MOSI
+					depends on SPI_HSPI
+					int "GPIO pin for Host MOSI"
+					default 13 if IDF_TARGET_ESP32
+					default 11 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+					default 7
+					help
+						SPI controller Host MOSI
+
+				config ESP_SPI_HSPI_GPIO_MISO
+					depends on SPI_HSPI
+					int "GPIO pin for Host MISO"
+					default 12 if IDF_TARGET_ESP32
+					default 13 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+					default 2
+					help
+						SPI controller Host MISO
+
+				config ESP_SPI_HSPI_GPIO_CLK
+					depends on SPI_HSPI
+					int "GPIO pin for Host CLK"
+					default 14 if IDF_TARGET_ESP32
+					default 12 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+					default 6
+					help
+						SPI controller Host CLK
+
+				config ESP_SPI_HSPI_GPIO_CS
+					depends on SPI_HSPI
+					int "GPIO pin for Host  CS"
+					default 15 if IDF_TARGET_ESP32
+					default 10 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+					default 10
+					help
+						SPI controller Host CS
+
+				config ESP_SPI_VSPI_GPIO_MOSI
+					depends on SPI_VSPI
+					int "GPIO pin for Host MOSI"
+					default 23
+					help
+						SPI controller Host MOSI
+
+				config ESP_SPI_VSPI_GPIO_MISO
+					depends on SPI_VSPI
+					int "GPIO pin for Host MISO"
+					default 19
+					help
+						SPI controller Host MISO
+
+				config ESP_SPI_VSPI_GPIO_CLK
+					depends on SPI_VSPI
+					int "GPIO pin for Host CLK"
+					default 18
+					help
+						SPI controller Host CLK
+
+				config ESP_SPI_VSPI_GPIO_CS
+					depends on SPI_VSPI
+					int "GPIO pin for Host CS"
+					default 5
+					help
+						SPI controller Host CS
+
+				config ESP_SPI_GPIO_MOSI
+					int
+					default ESP_SPI_VSPI_GPIO_MOSI if SPI_VSPI
+					default ESP_SPI_HSPI_GPIO_MOSI
+
+				config ESP_SPI_GPIO_MISO
+					int
+					default ESP_SPI_VSPI_GPIO_MISO if SPI_VSPI
+					default ESP_SPI_HSPI_GPIO_MISO
+
+				config ESP_SPI_GPIO_CLK
+					int
+					default ESP_SPI_VSPI_GPIO_CLK if SPI_VSPI
+					default ESP_SPI_HSPI_GPIO_CLK
+
+				config ESP_SPI_GPIO_CS
+					int
+					default ESP_SPI_VSPI_GPIO_CS if SPI_VSPI
+					default ESP_SPI_HSPI_GPIO_CS
+
+				config ESP_SPI_GPIO_HANDSHAKE
+					int "GPIO pin for handshake"
+					default 3 if IDF_TARGET_ESP32C2 || IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32C6
+					default 17 if IDF_TARGET_ESP32S3
+					default 26
+					help
+						GPIO pin to use for handshake with other spi controller
+
+				config ESP_SPI_GPIO_DATA_READY
+					int "GPIO pin for data ready interrupt"
+					default 4
+					help
+						GPIO pin for indicating host that SPI slave has data to be read by host
+
+				config ESP_SPI_GPIO_RESET_SLAVE
+					int "GPIO pin for Reseting slave ESP"
+					default 5
+					help
+						GPIO pin for Resetting ESP SPI slave device. Should be connected to RST/EN of ESP SPI slave device.
+			endmenu
+
+ESP32XX_SPI_CLK_FREQ_RANGE_MIN := 1
+ESP32_SPI_CLK_FREQ_RANGE_MAX := 10
+ESP32C6_SPI_CLK_FREQ_RANGE_MAX := 26
+ESP32XX_SPI_CLK_FREQ_RANGE_MAX := 40
+
+		config ESP_SPI_FREQ_ESP32
+			depends on SLAVE_CHIPSET_ESP32
+			int "SPI Clock Freq"
+			default 10
+			range $(ESP32XX_SPI_CLK_FREQ_RANGE_MIN) $(ESP32_SPI_CLK_FREQ_RANGE_MAX)
+			help
+				"Optimize SPI CLK by increasing till host practically can support"
+
+		config ESP_SPI_FREQ_ESP32C6
+			depends on SLAVE_CHIPSET_ESP32C6
+			int "SPI Clock Freq"
+			default 26
+			range $(ESP32XX_SPI_CLK_FREQ_RANGE_MIN) $(ESP32C6_SPI_CLK_FREQ_RANGE_MAX)
+			help
+				"Optimize SPI CLK by increasing till host practically can support"
+
+		config ESP_SPI_FREQ_ESP32XX
+			depends on SLAVE_CHIPSET_ESP32C2 || SLAVE_CHIPSET_ESP32C3 || SLAVE_CHIPSET_ESP32S2 || SLAVE_CHIPSET_ESP32S3
+			int "SPI Clock Freq"
+			default 30 if SLAVE_CHIPSET_ESP32C2 || SLAVE_CHIPSET_ESP32C3 || SLAVE_CHIPSET_ESP32S2 || SLAVE_CHIPSET_ESP32S3
+			range $(ESP32XX_SPI_CLK_FREQ_RANGE_MIN) $(ESP32XX_SPI_CLK_FREQ_RANGE_MAX)
+			help
+				"Optimize SPI CLK by increasing till host practically can support"
+
+		config ESP_SPI_CLK_FREQ
+			int
+			default ESP_SPI_FREQ_ESP32 if SLAVE_CHIPSET_ESP32
+			default ESP_SPI_FREQ_ESP32C6 if SLAVE_CHIPSET_ESP32C6
+			default ESP_SPI_FREQ_ESP32XX if SLAVE_CHIPSET_ESP32C2 || SLAVE_CHIPSET_ESP32C3 || SLAVE_CHIPSET_ESP32S2 || SLAVE_CHIPSET_ESP32S3
+			help
+				"Optimize SPI CLK by increasing till host practically can support"
+
+			config ESP_SPI_TX_Q_SIZE
+				int "ESP to Host SPI queue size"
+				default 20
+				help
+					Very small tx queue will lower ESP -- SPI --> Host data rate
+
+			config ESP_SPI_RX_Q_SIZE
+				int "Host to ESP SPI queue size"
+				default 20
+				help
+					Very small RX queue will lower ESP <-- SPI -- Host data rate
+
+		endmenu
+
+		menu "Hosted SDIO Configuration"
+			depends on ESP_SDIO_HOST_INTERFACE
+
+			config ESP_SDIO_GPIO_RESET_SLAVE
+				int "GPIO pin for Reseting slave ESP"
+				default 5
+				help
+					GPIO pin for Resetting ESP SDIO slave device. Should be connected to RST/EN of ESP SDIO slave device.
+
+			choice
+				prompt "SDIO Bus Width"
+				default ESP_SDIO_4_BIT_BUS
+				help
+					Select the SDIO Bus Width to use
+
+				config ESP_SDIO_1_BIT_BUS
+					bool "1 Bit"
+
+				config ESP_SDIO_4_BIT_BUS
+					bool "4 Bits"
+			endchoice
+
+			config ESP_SDIO_BUS_WIDTH
+				int
+				default 1 if ESP_SDIO_1_BIT_BUS
+				default 4
+
+ESP32XX_SDIO_CLK_FREQ_KHZ_RANGE_MIN := 400
+ESP32XX_SDIO_CLK_FREQ_KHZ_RANGE_MAX := 40000
+ESP32S3_SDIO_CLK_FREQ_KHZ_RANGE_MIN := 400
+ESP32S3_SDIO_CLK_FREQ_KHZ_RANGE_MAX := 80000
+
+			config ESP_SDIO_FREQ_ESP32
+				depends on IDF_TARGET_ESP32
+				int "SDIO Clock Freq (in kHz)"
+				default 40000
+				range $(ESP32XX_SDIO_CLK_FREQ_KHZ_RANGE_MIN) $(ESP32XX_SDIO_CLK_FREQ_KHZ_RANGE_MAX)
+				help
+					"Optimize SDIO CLK by increasing till host practically can support"
+
+			config ESP_SDIO_FREQ_ESP32S3
+				depends on IDF_TARGET_ESP32S3
+				int "SDIO Clock Freq (in kHz)"
+				default 40000
+				range $(ESP32S3_SDIO_CLK_FREQ_KHZ_RANGE_MIN) $(ESP32S3_SDIO_CLK_FREQ_KHZ_RANGE_MAX)
+				help
+					"Optimize SDIO CLK by increasing till host practically can support"
+
+		config ESP_SDIO_CLOCK_FREQ
+			int
+			default ESP_SDIO_FREQ_ESP32 if IDF_TARGET_ESP32
+			default ESP_SDIO_FREQ_ESP32S3 if IDF_TARGET_ESP32S3
+			help
+				"Optimize SDIO CLK by increasing till host practically can support"
+
+			config ESP_SDIO_PIN_CMD
+				int "CMD GPIO number"
+				default 35 if IDF_TARGET_ESP32S3
+				range 15 15 if IDF_TARGET_ESP32
+				help
+					"Value can only be configured for some targets. Displayed always for reference."
+
+			config ESP_SDIO_PIN_CLK
+				int "CLK GPIO number"
+				default 36 if IDF_TARGET_ESP32S3
+				range 14 14 if IDF_TARGET_ESP32
+				help
+					"Value can only be configured for some targets. Displayed always for reference."
+
+			config ESP_SDIO_PIN_D0
+				int "D0 GPIO number"
+				default 37 if IDF_TARGET_ESP32S3
+				range 2 2 if IDF_TARGET_ESP32
+				help
+					"Value can only be configured for some targets. Displayed always for reference."
+
+			config ESP_SDIO_PIN_D1
+				int "D1 GPIO number"
+				default 38 if IDF_TARGET_ESP32S3
+				range 4 4 if IDF_TARGET_ESP32
+				help
+					"Value can only be configured for some targets. Displayed always for reference."
+
+			if ESP_SDIO_4_BIT_BUS
+				config ESP_SDIO_PIN_D2
+					int "D2 GPIO number"
+					default 33 if IDF_TARGET_ESP32S3
+					range 12 12 if IDF_TARGET_ESP32
+					help
+						"Value can only be configured for some targets. Displayed always for reference."
+
+				config ESP_SDIO_PIN_D3
+					int "D3 GPIO number"
+					default 34 if IDF_TARGET_ESP32S3
+					range 13 13 if IDF_TARGET_ESP32
+					help
+						"Value can only be configured for some targets. Displayed always for reference."
+
+			endif
+
+			config ESP_SDIO_TX_Q_SIZE
+				int "Host SDIO Tx queue size"
+				default 20
+				help
+					Very small tx queue will lower data rate
+
+			config ESP_SDIO_RX_Q_SIZE
+				int "Host SDIO Rx queue size"
+				default 20
+				help
+					Very small RX queue will lower data rate
+
+			config ESP_SDIO_CHECKSUM
+				bool "SDIO checksum ENABLE/DISABLE"
+				help
+					ENABLE/DISABLE software SDIO checksum
+		endmenu
+
+		config ESP_GPIO_SLAVE_RESET_SLAVE
+			int
+			default ESP_SPI_GPIO_RESET_SLAVE if ESP_SPI_HOST_INTERFACE
+			default ESP_SDIO_GPIO_RESET_SLAVE if ESP_SDIO_HOST_INTERFACE
+
+		config ESP_USE_MEMPOOL
+			bool "Cache allocated memory like mempool - helps to reduce malloc calls"
+			default y
+			help
+				Cache allocated memory - reduces number of malloc calls
+
+		menu "Hosted Debugging"
+			config ESP_RAW_THROUGHPUT_TRANSPORT
+				bool "RawTP: Transport level throughput debug test"
+				default n
+					help
+						Find max transport performance which helps to assess stability of porting done
+
+			config ESP_RAW_TP_HOST_TO_ESP_PKT_LEN
+				depends on ESP_RAW_THROUGHPUT_TRANSPORT
+				int "RawTP: Host to ESP packet size"
+				range 1 1500
+				default 1460
+
+			config ESP_RAW_TP_REPORT_INTERVAL
+				depends on ESP_RAW_THROUGHPUT_TRANSPORT
+				int "RawTP: periodic duration to report stats accumulated"
+				default 30
+
+			config ESP_PKT_STATS
+				bool "Transport level packet stats"
+				default n
+				help
+					On comparing with slave packet stats helps to understand any packet loss at hosted
+
+		endmenu
+	endmenu
+
+endmenu

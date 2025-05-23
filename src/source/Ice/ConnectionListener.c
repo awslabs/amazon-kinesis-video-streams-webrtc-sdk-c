@@ -215,8 +215,10 @@ STATUS connectionListenerStart(PConnectionListener pConnectionListener)
 
     CHK(!IS_VALID_TID_VALUE(pConnectionListener->receiveDataRoutine), retStatus);
 #if CONFIG_IDF_CMAKE
-    // CHK_STATUS(THREAD_CREATE_EX(&pConnectionListener->receiveDataRoutine, "connListener", 24 * 1024, TRUE, connectionListenerReceiveDataRoutine, (PVOID) pConnectionListener));
-    CHK_STATUS(THREAD_CREATE_EX_EXT(&pConnectionListener->receiveDataRoutine, "connListener", 68 * 1024, TRUE, connectionListenerReceiveDataRoutine, (PVOID) pConnectionListener));
+#define CONN_LISTENER_THREAD_STACK_SIZE (32 * 1024)
+    CHK_STATUS(THREAD_CREATE_EX_EXT(&pConnectionListener->receiveDataRoutine, "connListener",
+               CONN_LISTENER_THREAD_STACK_SIZE, TRUE, connectionListenerReceiveDataRoutine,
+               (PVOID) pConnectionListener));
 #else
     CHK_STATUS(THREAD_CREATE(&pConnectionListener->receiveDataRoutine, connectionListenerReceiveDataRoutine, (PVOID) pConnectionListener));
 #endif

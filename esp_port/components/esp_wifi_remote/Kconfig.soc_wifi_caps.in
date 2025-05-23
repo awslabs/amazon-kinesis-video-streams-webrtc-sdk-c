@@ -1,0 +1,237 @@
+# This file is auto-generated
+
+if SLAVE_IDF_TARGET_ESP32
+
+    config SLAVE_SOC_WIFI_SUPPORTED
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_WAPI_SUPPORT
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_CSI_SUPPORT
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_MESH_SUPPORT
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_SUPPORT_VARIABLE_BEACON_WINDOW
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_NAN_SUPPORT
+        bool
+        default y
+
+endif # ESP32
+
+if SLAVE_IDF_TARGET_ESP32S2
+
+    config SLAVE_SOC_WIFI_SUPPORTED
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_LIGHT_SLEEP_CLK_WIDTH
+        int
+        default 12
+
+    config SLAVE_SOC_WIFI_HW_TSF
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_FTM_SUPPORT
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_WAPI_SUPPORT
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_CSI_SUPPORT
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_MESH_SUPPORT
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_SUPPORT_VARIABLE_BEACON_WINDOW
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_NAN_SUPPORT
+        bool
+        default y
+
+endif # ESP32S2
+
+if SLAVE_IDF_TARGET_ESP32C3
+
+    config SLAVE_SOC_WIFI_SUPPORTED
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_LIGHT_SLEEP_CLK_WIDTH
+        int
+        default 12
+
+    config SLAVE_SOC_WIFI_HW_TSF
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_FTM_SUPPORT
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_GCMP_SUPPORT
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_WAPI_SUPPORT
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_CSI_SUPPORT
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_MESH_SUPPORT
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_SUPPORT_VARIABLE_BEACON_WINDOW
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_PHY_NEEDS_USB_WORKAROUND
+        bool
+        default y
+
+endif # ESP32C3
+
+if SLAVE_IDF_TARGET_ESP32S3
+
+    config SLAVE_SOC_WIFI_SUPPORTED
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_LIGHT_SLEEP_CLK_WIDTH
+        int
+        default 12
+
+    config SLAVE_SOC_WIFI_HW_TSF
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_FTM_SUPPORT
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_GCMP_SUPPORT
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_WAPI_SUPPORT
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_CSI_SUPPORT
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_MESH_SUPPORT
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_SUPPORT_VARIABLE_BEACON_WINDOW
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_PHY_NEEDS_USB_WORKAROUND
+        bool
+        default y
+
+endif # ESP32S3
+
+if SLAVE_IDF_TARGET_ESP32C2
+
+    config SLAVE_SOC_WIFI_SUPPORTED
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_LIGHT_SLEEP_CLK_WIDTH
+        int
+        default 12
+
+    config SLAVE_SOC_WIFI_HW_TSF
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_FTM_SUPPORT
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_SUPPORT_VARIABLE_BEACON_WINDOW
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_PHY_NEEDS_USB_WORKAROUND
+        bool
+        default y
+
+endif # ESP32C2
+
+if SLAVE_IDF_TARGET_ESP32C6
+
+    config SLAVE_SOC_WIFI_SUPPORTED
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_LIGHT_SLEEP_CLK_WIDTH
+        int
+        default 12
+
+    config SLAVE_SOC_WIFI_HW_TSF
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_FTM_SUPPORT
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_GCMP_SUPPORT
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_WAPI_SUPPORT
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_CSI_SUPPORT
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_MESH_SUPPORT
+        bool
+        default y
+
+    config SLAVE_SOC_WIFI_HE_SUPPORT
+        bool
+        default y
+
+endif # ESP32C6
+
+if SLAVE_IDF_TARGET_ESP32H2
+
+endif # ESP32H2
+
+if SLAVE_IDF_TARGET_ESP32P4
+
+    config SLAVE_SOC_WIFI_LIGHT_SLEEP_CLK_WIDTH
+        int
+        default 12
+
+endif # ESP32P4

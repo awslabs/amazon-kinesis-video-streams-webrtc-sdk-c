@@ -960,7 +960,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     CHK(pKvsPeerConnection != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
 #if CONFIG_IDF_CMAKE
-#define TIMER_QUEUE_THREAD_SIZE (60 * 1024)
+#define TIMER_QUEUE_THREAD_SIZE (24 * 1024)
     CHK_STATUS(timerQueueCreateEx(&pKvsPeerConnection->timerQueueHandle, "peerConnTmr", TIMER_QUEUE_THREAD_SIZE));
 #else
     CHK_STATUS(timerQueueCreate(&pKvsPeerConnection->timerQueueHandle));

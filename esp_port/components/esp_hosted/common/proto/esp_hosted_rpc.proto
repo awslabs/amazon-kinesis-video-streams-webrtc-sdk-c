@@ -1,0 +1,1704 @@
+/* Copyright (C) 2015-2023 Espressif Systems (Shanghai) PTE LTD */
+/* SPDX-License-Identifier: GPL-2.0-only OR Apache-2.0 */
+
+syntax = "proto3";
+
+/* Enums similar to ESP IDF */
+//enum Rpc_VendorIEType {
+//    Beacon = 0;
+//    Probe_req = 1;
+//    Probe_resp = 2;
+//    Assoc_req = 3;
+//    Assoc_resp = 4;
+//}
+//
+//enum Rpc_VendorIEID {
+//    ID_0 = 0;
+//    ID_1 = 1;
+//}
+
+
+enum Rpc_WifiBw {
+    BW_Invalid = 0;
+    HT20 = 1;
+    HT40 = 2;
+}
+
+enum Rpc_WifiPowerSave {
+    PS_Invalid = 0;
+    MIN_MODEM = 1;
+    MAX_MODEM = 2;
+}
+
+enum Rpc_WifiSecProt {
+    Open = 0;
+    WEP = 1;
+    WPA_PSK = 2;
+    WPA2_PSK = 3;
+    WPA_WPA2_PSK = 4;
+    WPA2_ENTERPRISE = 5;
+    WPA3_PSK = 6;
+    WPA2_WPA3_PSK = 7;
+}
+
+/* enums for Control path */
+enum Rpc_Status {
+    Connected = 0;
+    Not_Connected = 1;
+    No_AP_Found = 2;
+    Connection_Fail = 3;
+    Invalid_Argument = 4;
+    Out_Of_Range = 5;
+}
+
+
+enum RpcType {
+MsgType_Invalid = 0;
+	Req = 1;
+	Resp = 2;
+	Event = 3;
+	MsgType_Max = 4;
+}
+//
+//enum Rpc {
+//    ESP_ERR_WIFI_BASE = 0x3000;
+//    ESP_ERR_WIFI_NOT_INIT     = 0x3001;
+//    ESP_ERR_WIFI_NOT_STARTED  = 0x3002;
+//    ESP_ERR_WIFI_NOT_STOPPED  = 0x3003;
+//    ESP_ERR_WIFI_IF           = 0x3004;
+//    ESP_ERR_WIFI_MODE         = 0x3005;
+//    ESP_ERR_WIFI_STATE        = 0x3006;
+//    ESP_ERR_WIFI_CONN         = 0x3007;
+//    ESP_ERR_WIFI_NVS          = 0x3008;
+//    ESP_ERR_WIFI_MAC          = 0x3009;
+//    ESP_ERR_WIFI_SSID         = 0x300a;
+//    ESP_ERR_WIFI_PASSWORD     = 0x300b;
+//    ESP_ERR_WIFI_TIMEOUT      = 0x300c;
+//    ESP_ERR_WIFI_WAKE_FAIL    = 0x300d;
+//    ESP_ERR_WIFI_WOULD_BLOCK  = 0x300e;
+//    ESP_ERR_WIFI_NOT_CONNECT  = 0x300f;
+//    /* 0x3010 0x3011 not present intentionally */
+//    ESP_ERR_WIFI_POST         = 0x3012;
+//    ESP_ERR_WIFI_INIT_STATE   = 0x3013;
+//    ESP_ERR_WIFI_STOP_STATE   = 0x3014;
+//    ESP_ERR_WIFI_NOT_ASSOC    = 0x3015;
+//    ESP_ERR_WIFI_TX_DISALLOW  = 0x3016;
+//}
+
+
+//enum ctrl_msg_type {
+//    invalid = 0;
+//    req = 1;
+//    resp = 2;
+//    event = 3;
+//    max = 4;
+//}
+//
+//enum ctrl_msg_id {
+//  invalid = 0;
+//  req_base = 400;
+//  req_w_init = 401;
+//  req_w_deinit = 402;
+//  req_w_set_mode = 403;
+//  req_w_get_mode = 404;
+//  req_w_start = 405;
+//  req_w_stop = 406;
+//  req_w_restore = 407;
+//  req_w_connect = 408;
+//  req_w_disconnect = 409;
+//  req_w_clear_fast_connect = 410;
+//  req_w_deauth_sta = 411;
+//  req_w_scan_start = 412;
+//  req_w_scan_stop = 413;
+//  req_w_scan_get_ap_name = 414;
+//  req_w_scan_get_ap_records = 415;
+//  req_w_clear_ap_list = 416;
+//  req_w_sta_get_ap_info = 417;
+//  req_w_set_ps = 418;
+//  req_w_get_ps = 419;
+//  req_w_set_protocol = 420;
+//  req_w_get_protocol = 421;
+//  req_w_set_bandwidth = 422;
+//  req_w_get_bandwidth = 423;
+//  req_w_set_channel = 424;
+//  req_w_get_channel = 425;
+//  req_w_set_country = 426;
+//  req_w_get_country = 427;
+//  req_w_set_mac = 428;
+//  req_w_get_mac = 429;
+//  req_w_set_promiscuous_cb = 430;
+//  req_w_set_promiscuous = 431;
+//  req_w_get_promiscuous = 432;
+//  req_w_set_promiscuous_filter = 433;
+//  req_w_get_promiscuous_filter = 434;
+//  req_w_set_promiscuous_ctrl_filter = 435;
+//  req_w_get_promiscuous_ctrl_filter = 436;
+//  req_w_set_config = 437;
+//  req_w_get_config = 438;
+//  req_w_ap_get_sta_list = 439;
+//  req_w_ap_get_sta_aid = 440;
+//  req_w_set_storage = 441;
+//  req_w_set_vendor_ie = 442;
+//  req_w_set_vendor_ie_cb = 443;
+//  req_w_set_max_tx_power = 444;
+//  req_w_get_max_tx_power = 445;
+//  req_w_set_event_mask = 446;
+//  req_w_get_event_mask = 447;
+//  req_w_80211_tx = 448;
+//  req_w_set_csi_rx_cb = 449;
+//  req_w_set_csi_config = 450;
+//  req_w_set_csi = 451;
+//  req_w_set_ant_gpio = 452;
+//  req_w_get_ant_gpio = 453;
+//  req_w_set_ant = 454;
+//  req_w_get_ant = 455;
+//  req_w_get_tsf_time = 456;
+//  req_w_set_inactive_time = 457;
+//  req_w_get_inactive_time = 458;
+//  req_w_statis_dump = 459;
+//  req_w_set_rssi_threshold = 460;
+//  req_w_ftm_initiate_session = 461;
+//  req_w_ftm_end_session = 462;
+//  req_w_ftm_resp_set_offset = 463;
+//  req_w_config_11b_rate = 464;
+//  req_w_connectionless_module_set_wake_interval = 465;
+//  req_w_set_country_code = 466;
+//  req_w_get_country_code = 467;
+//  req_w_config_80211_tx_rate = 468;
+//  req_w_disable_pmf_config = 469;
+//
+//  req_max = 470;
+//
+//
+//  rsp_base = 600;
+//  rsp_w_init = 601;
+//  rsp_w_deinit = 602;
+//  rsp_w_set_mode = 603;
+//  rsp_w_get_mode = 604;
+//  rsp_w_start = 605;
+//  rsp_w_stop = 606;
+//  rsp_w_restore = 607;
+//  rsp_w_connect = 608;
+//  rsp_w_disconnect = 609;
+//  rsp_w_clear_fast_connect = 610;
+//  rsp_w_deauth_sta = 611;
+//  rsp_w_scan_start = 612;
+//  rsp_w_scan_stop = 613;
+//  rsp_w_scan_get_ap_name = 614;
+//  rsp_w_scan_get_ap_records = 615;
+//  rsp_w_clear_ap_list = 616;
+//  rsp_w_sta_get_ap_info = 617;
+//  rsp_w_set_ps = 618;
+//  rsp_w_get_ps = 619;
+//  rsp_w_set_protocol = 620;
+//  rsp_w_get_protocol = 621;
+//  rsp_w_set_bandwidth = 622;
+//  rsp_w_get_bandwidth = 623;
+//  rsp_w_set_channel = 624;
+//  rsp_w_get_channel = 625;
+//  rsp_w_set_country = 626;
+//  rsp_w_get_country = 627;
+//  rsp_w_set_mac = 628;
+//  rsp_w_get_mac = 629;
+//  rsp_w_set_promiscuous_cb = 630;
+//  rsp_w_set_promiscuous = 631;
+//  rsp_w_get_promiscuous = 632;
+//  rsp_w_set_promiscuous_filter = 633;
+//  rsp_w_get_promiscuous_filter = 634;
+//  rsp_w_set_promiscuous_ctrl_filter = 635;
+//  rsp_w_get_promiscuous_ctrl_filter = 636;
+//  rsp_w_set_config = 637;
+//  rsp_w_get_config = 638;
+//  rsp_w_ap_get_sta_list = 639;
+//  rsp_w_ap_get_sta_aid = 640;
+//  rsp_w_set_storage = 641;
+//  rsp_w_set_vendor_ie = 642;
+//  rsp_w_set_vendor_ie_cb = 643;
+//  rsp_w_set_max_tx_power = 644;
+//  rsp_w_get_max_tx_power = 645;
+//  rsp_w_set_event_mask = 646;
+//  rsp_w_get_event_mask = 647;
+//  rsp_w_80211_tx = 648;
+//  rsp_w_set_csi_rx_cb = 649;
+//  rsp_w_set_csi_config = 650;
+//  rsp_w_set_csi = 651;
+//  rsp_w_set_ant_gpio = 652;
+//  rsp_w_get_ant_gpio = 653;
+//  rsp_w_set_ant = 654;
+//  rsp_w_get_ant = 655;
+//  rsp_w_get_tsf_time = 656;
+//  rsp_w_set_inactive_time = 657;
+//  rsp_w_get_inactive_time = 658;
+//  rsp_w_statis_dump = 659;
+//  rsp_w_set_rssi_threshold = 660;
+//  rsp_w_ftm_initiate_session = 661;
+//  rsp_w_ftm_end_session = 662;
+//  rsp_w_ftm_resp_set_offset = 663;
+//  rsp_w_config_11b_rate = 664;
+//  rsp_w_connectionless_module_set_wake_interval = 665;
+//  rsp_w_set_country_code = 666;
+//  rsp_w_get_country_code = 667;
+//  rsp_w_config_80211_tx_rate = 668;
+//  rsp_w_disable_pmf_config = 669;
+//
+//  rsp_max = 670;
+//
+//
+//  evt_base = 800;
+//  evt_esp_started = 801;
+//  evt_heartbeat = 802;
+//  evt_w_ready = 803;                    /**< ESP32 WiFi ready */
+//  evt_w_scan_done = 804;                /**< ESP32 finish scanning AP */
+//  evt_w_sta_start = 805;                /**< ESP32 station start */
+//  evt_w_sta_stop = 806;                 /**< ESP32 station stop */
+//  evt_w_sta_connected = 807;            /**< ESP32 station connected to AP */
+//  evt_w_sta_disconnected = 808;         /**< ESP32 station disconnected from AP */
+//  evt_w_sta_authmode_change = 809;      /**< the auth mode of AP connected by ESP32 station changed */
+//
+//  evt_w_sta_wps_er_success = 810;       /**< ESP32 station wps succeeds in enrollee mode */
+//  evt_w_sta_wps_er_failed = 811;        /**< ESP32 station wps fails in enrollee mode */
+//  evt_w_sta_wps_er_timeout = 812;       /**< ESP32 station wps timeout in enrollee mode */
+//  evt_w_sta_wps_er_pin = 813;           /**< ESP32 station wps pin code in enrollee mode */
+//  evt_w_sta_wps_er_pbc_overlap = 814;   /**< ESP32 station wps overlap in enrollee mode */
+//
+//  evt_w_ap_start = 815;                 /**< ESP32 soft-AP start */
+//  evt_w_ap_stop = 816;                  /**< ESP32 soft-AP stop */
+//  evt_w_ap_staconnected = 817;          /**< a station connected to ESP32 soft-AP */
+//  evt_w_ap_stadisconnected = 818;       /**< a station disconnected from ESP32 soft-AP */
+//  evt_w_ap_probereqrecved = 819;        /**< Receive probe request packet in soft-AP interface */
+//
+//  evt_w_ftm_report = 820;               /**< Receive report of FTM procedure */
+//
+//  /* Add next events after this only */
+//  evt_w_sta_bss_rssi_low = 821;         /**< AP's RSSI crossed configured threshold */
+//  evt_w_action_tx_status = 822;         /**< Status indication of Action Tx operation */
+//  evt_w_roc_done = 823;                 /**< Remain-on-Channel operation complete */
+//
+//  evt_w_sta_beacon_timeout = 824;       /**< ESP32 station beacon timeout */
+//
+//  evt_w_connectionless_module_wake_interval_start = 825;  /**< ESP32 connectionless module wake interval start */
+//
+//  evt_w_ap_wps_rg_success = 826;        /**< Soft-AP wps succeeds in registrar mode */
+//  evt_w_ap_wps_rg_failed = 827;         /**< Soft-AP wps fails in registrar mode */
+//  evt_w_ap_wps_rg_timeout = 828;        /**< Soft-AP wps timeout in registrar mode */
+//  evt_w_ap_wps_rg_pin = 829;            /**< Soft-AP wps pin code in registrar mode */
+//  evt_w_ap_wps_rg_pbc_overlap = 830;    /**< Soft-AP wps overlap in registrar mode */
+//
+//  evt_max = 831;                        /**< Invalid WiFi event ID */
+//
+//}
+
+
+enum RpcId {
+	MsgId_Invalid = 0;
+
+	/** Request Msgs **/
+	Req_Base                          = 256; //0x100
+
+	Req_GetMACAddress                 = 257; //0x101
+	Req_SetMacAddress                 = 258; //0x102
+	Req_GetWifiMode                   = 259; //0x103
+	Req_SetWifiMode                   = 260; //0x104
+
+	Req_USR1                          = 261; //0x105
+	Req_USR2                          = 262; //0x106
+	Req_USR3                          = 263; //0x107
+	Req_USR4                          = 264; //0x108
+	Req_USR5                          = 265; //0x109
+
+	Req_WifiSetPs                     = 270; //0x10e
+	Req_WifiGetPs                     = 271; //0x10f
+
+	Req_OTABegin                      = 272; //0x110
+	Req_OTAWrite                      = 273; //0x111
+	Req_OTAEnd                        = 274; //0x112
+
+	Req_WifiSetMaxTxPower             = 275;  //0x113
+	Req_WifiGetMaxTxPower             = 276; //0x114
+
+	Req_ConfigHeartbeat               = 277; //0x115
+
+	Req_WifiInit                      = 278; //0x116
+	Req_WifiDeinit                    = 279; //0x117
+	Req_WifiStart                     = 280; //0x118
+	Req_WifiStop                      = 281; //0x119
+	Req_WifiConnect                   = 282; //0x11a
+	Req_WifiDisconnect                = 283; //0x11b
+	Req_WifiSetConfig                 = 284; //0x11c
+	Req_WifiGetConfig                 = 285; //0x11d
+
+	Req_WifiScanStart                 = 286; //0x11e
+	Req_WifiScanStop                  = 287; //0x11f
+	Req_WifiScanGetApNum              = 288; //0x120
+	Req_WifiScanGetApRecords          = 289; //0x121
+	Req_WifiClearApList               = 290; //0x122
+
+	Req_WifiRestore                   = 291; //0x123
+	Req_WifiClearFastConnect          = 292; //0x124
+	Req_WifiDeauthSta                 = 293; //0x125
+	Req_WifiStaGetApInfo              = 294; //0x126
+	//Req_WifiSetPs                     = 295; //0x127
+	//Req_WifiGetPs                     = 296; //0x128
+	Req_WifiSetProtocol               = 297; //0x129
+	Req_WifiGetProtocol               = 298; //0x12a
+	Req_WifiSetBandwidth              = 299; //0x12b
+	Req_WifiGetBandwidth              = 300; //0x12c
+	Req_WifiSetChannel                = 301; //0x12d
+	Req_WifiGetChannel                = 302; //0x12e
+	Req_WifiSetCountry                = 303; //0x12f
+	Req_WifiGetCountry                = 304; //0x130
+
+//  Req_WifiSetPromiscuousRxCb        = 305; //0x131
+	Req_WifiSetPromiscuous            = 305; //0x131
+	Req_WifiGetPromiscuous            = 306; //0x132
+	Req_WifiSetPromiscuousFilter      = 307; //0x133
+	Req_WifiGetPromiscuousFilter      = 308; //0x134
+	Req_WifiSetPromiscuousCtrlFilter  = 309; //0x135
+	Req_WifiGetPromiscuousCtrlFilter  = 310; //0x136
+
+	Req_WifiApGetStaList              = 311; //0x137
+	Req_WifiApGetStaAid               = 312; //0x138
+	Req_WifiSetStorage                = 313; //0x139
+	Req_WifiSetVendorIe               = 314; //0x13a
+//  Req_WifiSetVendorIeCb             = 315; //0x13b
+	Req_WifiSetEventMask              = 315; //0x13b
+	Req_WifiGetEventMask              = 316; //0x13c
+	Req_Wifi80211Tx                   = 317; //0x13d
+
+//	Req_WifiSetCsiRxCb                = 318; //0x13e
+	Req_WifiSetCsiConfig              = 318; //0x13e
+	Req_WifiSetCsi                    = 319; //0x13f
+
+	Req_WifiSetAntGpio                = 320; //0x140
+	Req_WifiGetAntGpio                = 321; //0x141
+	Req_WifiSetAnt                    = 322; //0x142
+	Req_WifiGetAnt                    = 323; //0x143
+
+	Req_WifiGetTsfTime                = 324; //0x144
+	Req_WifiSetInactiveTime           = 325; //0x145
+	Req_WifiGetInactiveTime           = 326; //0x146
+	Req_WifiStatisDump                = 327; //0x147
+	Req_WifiSetRssiThreshold          = 328; //0x148
+
+	Req_WifiFtmInitiateSession        = 329; //0x149
+	Req_WifiFtmEndSession             = 330; //0x14a
+	Req_WifiFtmRespSetOffset          = 331; //0x14b
+
+	Req_WifiConfig11bRate             = 332; //0x14c
+	Req_WifiConnectionlessModuleSetWakeInterval = 333; //0x14d
+	Req_WifiSetCountryCode            = 334; //0x14e
+	Req_WifiGetCountryCode            = 335; //0x14f
+	Req_WifiConfig80211TxRate         = 336; //0x150
+	Req_WifiDisablePmfConfig          = 337; //0x151
+	Req_WifiStaGetAid                 = 338; //0x152
+	Req_WifiStaGetNegotiatedPhymode   = 339; //0x153
+	Req_WifiSetDynamicCs              = 340; //0x154
+	Req_WifiStaGetRssi                = 341; //0x155
+	Req_SetDhcpDnsStatus              = 342; //0x156
+
+	/* Add new control path command response before Req_Max
+	 * and update Req_Max */
+	Req_Max = 343; //0x156
+
+	/** Response Msgs **/
+	Resp_Base                         = 512;
+
+	Resp_GetMACAddress                = 513;
+	Resp_SetMacAddress                = 514;
+	Resp_GetWifiMode                  = 515;
+	Resp_SetWifiMode                  = 516;
+
+	Resp_USR1                         = 517;
+	Resp_USR2                         = 518;
+	Resp_USR3                         = 519;
+	Resp_USR4                         = 520;
+	Resp_USR5                         = 521;
+
+	Resp_WifiSetPs                    = 526;
+	Resp_WifiGetPs                    = 527;
+
+	Resp_OTABegin                     = 528;
+	Resp_OTAWrite                     = 529;
+	Resp_OTAEnd                       = 530;
+
+	Resp_WifiSetMaxTxPower            = 531;
+	Resp_WifiGetMaxTxPower            = 532;
+
+	Resp_ConfigHeartbeat              = 533;
+
+	Resp_WifiInit                     = 534;
+	Resp_WifiDeinit                   = 535;
+	Resp_WifiStart                    = 536;
+	Resp_WifiStop                     = 537;
+	Resp_WifiConnect                  = 538;
+	Resp_WifiDisconnect               = 539;
+	Resp_WifiSetConfig                = 540;
+	Resp_WifiGetConfig                = 541;
+
+	Resp_WifiScanStart                = 542;
+	Resp_WifiScanStop                 = 543;
+	Resp_WifiScanGetApNum             = 544;
+	Resp_WifiScanGetApRecords         = 545;
+	Resp_WifiClearApList              = 546;
+
+	Resp_WifiRestore                  = 547;
+	Resp_WifiClearFastConnect         = 548;
+	Resp_WifiDeauthSta                = 549;
+	Resp_WifiStaGetApInfo             = 550;
+	//Resp_WifiSetPs                    = 551;
+	//Resp_WifiGetPs                    = 552;
+	Resp_WifiSetProtocol              = 553;
+	Resp_WifiGetProtocol              = 554;
+	Resp_WifiSetBandwidth             = 555;
+	Resp_WifiGetBandwidth             = 556;
+	Resp_WifiSetChannel               = 557;
+	Resp_WifiGetChannel               = 558;
+	Resp_WifiSetCountry               = 559;
+	Resp_WifiGetCountry               = 560;
+
+//  Resp_WifiSetPromiscuousRxCb       = 561;
+	Resp_WifiSetPromiscuous           = 561;
+	Resp_WifiGetPromiscuous           = 562;
+	Resp_WifiSetPromiscuousFilter     = 563;
+	Resp_WifiGetPromiscuousFilter     = 564;
+	Resp_WifiSetPromiscuousCtrlFilter = 565;
+	Resp_WifiGetPromiscuousCtrlFilter = 566;
+
+	Resp_WifiApGetStaList             = 567;
+	Resp_WifiApGetStaAid              = 568;
+	Resp_WifiSetStorage               = 569;
+	Resp_WifiSetVendorIe              = 570;
+//  Resp_WifiSetVendorIeCb            = 571;
+	Resp_WifiSetEventMask             = 571;
+	Resp_WifiGetEventMask             = 572;
+	Resp_Wifi80211Tx                  = 573;
+
+//	Resp_WifiSetCsiRxCb               = 573;
+	Resp_WifiSetCsiConfig             = 574;
+	Resp_WifiSetCsi                   = 575;
+
+	Resp_WifiSetAntGpio               = 576;
+	Resp_WifiGetAntGpio               = 577;
+	Resp_WifiSetAnt                   = 578;
+	Resp_WifiGetAnt                   = 579;
+
+	Resp_WifiGetTsfTime               = 580;
+	Resp_WifiSetInactiveTime          = 581;
+	Resp_WifiGetInactiveTime          = 582;
+	Resp_WifiStatisDump               = 583;
+	Resp_WifiSetRssiThreshold         = 584;
+
+	Resp_WifiFtmInitiateSession       = 585;
+	Resp_WifiFtmEndSession            = 586;
+	Resp_WifiFtmRespSetOffset         = 587;
+
+	Resp_WifiConfig11bRate            = 588;
+	Resp_WifiConnectionlessModuleSetWakeInterval = 589;
+	Resp_WifiSetCountryCode           = 590;
+	Resp_WifiGetCountryCode           = 591;
+	Resp_WifiConfig80211TxRate        = 592;
+	Resp_WifiDisablePmfConfig         = 593;
+	Resp_WifiStaGetAid                = 594;
+	Resp_WifiStaGetNegotiatedPhymode  = 595;
+	Resp_WifiSetDynamicCs             = 596;
+	Resp_WifiStaGetRssi               = 597;
+	Resp_SetDhcpDnsStatus             = 598;
+
+	/* Add new control path command response before Resp_Max
+	 * and update Resp_Max */
+	Resp_Max = 599;
+
+	/** Event Msgs **/
+	Event_Base = 768;
+	Event_ESPInit = 769;
+	Event_Heartbeat = 770;
+	Event_AP_StaConnected = 771;
+	Event_AP_StaDisconnected = 772;
+	Event_WifiEventNoArgs = 773;
+	Event_StaScanDone = 774;
+	Event_StaConnected = 775;
+	Event_StaDisconnected = 776;
+	Event_SetDhcpDnsStatus = 777;
+	Event_USR1             = 778;
+	Event_USR2             = 779;
+	Event_USR3             = 780;
+	Event_USR4             = 781;
+	Event_USR5             = 782;
+
+	/* Add new control path command notification before Event_Max
+	 * and update Event_Max */
+	Event_Max = 783;
+}
+
+message wifi_init_config {
+	int32          static_rx_buf_num = 1;       /**< WiFi static RX buffer number */
+	int32          dynamic_rx_buf_num = 2;      /**< WiFi dynamic RX buffer number */
+	int32          tx_buf_type = 3;             /**< WiFi TX buffer type */
+	int32          static_tx_buf_num = 4;       /**< WiFi static TX buffer number */
+	int32          dynamic_tx_buf_num = 5;      /**< WiFi dynamic TX buffer number */
+	int32          cache_tx_buf_num = 6;        /**< WiFi TX cache buffer number */
+	int32          csi_enable = 7;              /**< WiFi channel state information enable flag */
+	int32          ampdu_rx_enable = 8;         /**< WiFi AMPDU RX feature enable flag */
+	int32          ampdu_tx_enable = 9;         /**< WiFi AMPDU TX feature enable flag */
+	int32          amsdu_tx_enable = 10;        /**< WiFi AMSDU TX feature enable flag */
+	int32          nvs_enable = 11;             /**< WiFi NVS flash enable flag */
+	int32          nano_enable = 12;            /**< Nano option for printf/scan family enable flag */
+	int32          rx_ba_win = 13;              /**< WiFi Block Ack RX window size */
+	int32          wifi_task_core_id = 14;      /**< WiFi Task Core ID */
+	int32          beacon_max_len = 15;         /**< WiFi softAP maximum length of the beacon */
+	int32          mgmt_sbuf_num = 16;          /**< WiFi management short buffer number, the minimum value is 6, the maximum value is 32 */
+	uint64         feature_caps = 17;           /**< Enables additional WiFi features and capabilities */
+	bool           sta_disconnected_pm = 18;    /**< WiFi Power Management for station at disconnected status */
+	int32          espnow_max_encrypt_num = 19; /**< Maximum encrypt number of peers supported by espnow */
+	int32          magic = 20;                  /**< WiFi init magic number, it should be the last field */
+}
+
+message wifi_country {
+	bytes          cc = 1;                      /**< country code string of 3 chars*/
+	uint32         schan = 2;                   /**< start channel */
+	uint32         nchan = 3;                   /**< total channel number */
+	int32          max_tx_power = 4;            /**< This field is used for getting WiFi maximum transmitting power,
+												  call esp_wifi_set_max_tx_power to set the maximum transmitting power. */
+	int32          policy = 5;                  /**< country policy */
+}
+
+
+message wifi_active_scan_time {
+	uint32         min = 1;                     /**< minimum active scan time per channel, units: millisecond */
+	uint32         max = 2;                     /**< maximum active scan time per channel, units: millisecond, values above 1500ms may
+												  cause station to disconnect from AP and are not recommended.  */
+} ;
+
+message wifi_scan_time {
+	wifi_active_scan_time active = 1;           /**< active scan time per channel, units: millisecond. */
+	uint32         passive = 2;                 /**< passive scan time per channel, units: millisecond, values above 1500ms may
+												  cause station to disconnect from AP and are not recommended. */
+}
+
+message wifi_scan_config {
+	bytes          ssid = 1;                    /**< SSID of AP 33char*/
+	bytes          bssid = 2;                   /**< MAC address of AP 6char */
+	uint32         channel = 3;                 /**< channel, scan the specific channel */
+	bool           show_hidden = 4;             /**< enable to scan AP whose SSID is hidden */
+	int32          scan_type = 5;               /**< scan type, active or passive */
+	wifi_scan_time scan_time = 6;               /**< scan time per channel */
+	uint32         home_chan_dwell_time = 7;    /**< time spent at home channel between scanning consecutive channels.*/
+}
+
+message wifi_he_ap_info {
+    //uint8_t bss_color:6;                  /**< an unsigned integer whose value is the BSS Color of the BSS corresponding to the AP */
+    //uint8_t partial_bss_color:1;          /**< indicate if an AID assignment rule based on the BSS color */
+    //uint8_t bss_color_disabled:1;         /**< indicate if the use of BSS color is disabled */
+    uint32         bitmask = 1;                 /* Manually have to parse for above bits */
+    uint32         bssid_index = 2;             /**< in M-BSSID set, identifies the nontransmitted BSSID */
+}
+
+message wifi_ap_record {
+	bytes          bssid = 1;                   /**< MAC address of AP 6char */
+	bytes          ssid = 2;                    /**< SSID of AP 33char */
+	uint32         primary = 3;                 /**< channel of AP */
+	int32          second = 4;                  /**< secondary channel of AP */
+	int32          rssi = 5;                    /**< signal strength of AP */
+	int32          authmode = 6;                /**< authmode of AP */
+	int32          pairwise_cipher = 7;         /**< pairwise cipher of AP */
+	int32          group_cipher = 8;            /**< group cipher of AP */
+	int32          ant = 9;                     /**< antenna used to receive beacon from AP */
+	//uint32_t phy_11b:1;                       /**< bit: 0 flag to identify if 11b mode is enabled or not */
+	//uint32_t phy_11g:1;                       /**< bit: 1 flag to identify if 11g mode is enabled or not */
+	//uint32_t phy_11n:1;                       /**< bit: 2 flag to identify if 11n mode is enabled or not */
+	//uint32_t phy_lr:1;                        /**< bit: 3 flag to identify if low rate is enabled or not */
+	//uint32_t wps:1;                           /**< bit: 4 flag to identify if WPS is supported or not */
+	//uint32_t ftm_responder:1;                 /**< bit: 5 flag to identify if FTM is supported in responder mode */
+	//uint32_t ftm_initiator:1;                 /**< bit: 6 flag to identify if FTM is supported in initiator mode */
+	//uint32_t reserved:25;                     /**< bit: 7..31 reserved */
+	uint32         bitmask = 10;                /* Manually have to parse for above bits */
+
+	wifi_country   country = 11;                /**< country information of AP */
+	wifi_he_ap_info he_ap = 12;
+}
+
+message wifi_scan_threshold {
+	int32          rssi = 1;                    /**< The minimum rssi to accept in the fast scan mode */
+	int32          authmode = 2;                /**< The weakest authmode to accept in the fast scan mode
+Note: Incase this value is not set and password is set as per WPA2 standards(password len >= 8),
+it will be defaulted to WPA2 and device won't connect to deprecated WEP/WPA networks.
+Please set authmode threshold as WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK to connect to WEP/WPA networks */
+}
+
+message wifi_pmf_config {
+	bool           capable = 1;                 /**< Deprecated variable. Device will always connect in PMF mode if other device also advertizes PMF capability. */
+	bool           required = 2;                /**< Advertizes that Protected Management Frame is required. Device will not associate to non-PMF capable devices. */
+}
+
+message wifi_ap_config {
+	bytes          ssid = 1;                    /**< SSID of ESP32 soft-AP. If ssid_len field is 0, this must be a Null terminated string. Otherwise, length is set according to ssid_len. 32 char*/
+	bytes          password = 2;                /**< Password of ESP32 soft-AP. 64 char*/
+	uint32         ssid_len = 3;                /**< Optional length of SSID field. */
+	uint32         channel = 4;                 /**< Channel of ESP32 soft-AP */
+	int32          authmode = 5;                /**< Auth mode of ESP32 soft-AP. Do not support AUTH_WEP in soft-AP mode */
+	uint32         ssid_hidden = 6;             /**< Broadcast SSID or not, default 0, broadcast the SSID */
+	uint32         max_connection = 7;          /**< Max number of stations allowed to connect in */
+	uint32         beacon_interval = 8;         /**< Beacon interval which should be multiples of 100. Unit: TU(time unit, 1 TU = 1024 us). Range: 100 ~ 60000. Default value: 100 */
+	int32          pairwise_cipher = 9;         /**< pairwise cipher of SoftAP, group cipher will be derived using this.
+												  cipher values are valid starting from WIFI_CIPHER_TYPE_TKIP, enum values before that will be considered as invalid and default cipher suites(TKIP+CCMP) will be used.
+												  Valid cipher suites in softAP mode are WIFI_CIPHER_TYPE_TKIP, WIFI_CIPHER_TYPE_CCMP and WIFI_CIPHER_TYPE_TKIP_CCMP. */
+	bool           ftm_responder = 10;          /**< Enable FTM Responder mode */
+	wifi_pmf_config pmf_cfg = 11;               /**< Configuration for Protected Management Frame */
+	int32         sae_pwe_h2e = 12;             /**< Configuration for SAE PWE derivation method */
+}
+
+message  wifi_sta_config {
+	bytes               ssid = 1;               /**< SSID of target AP. 32char */
+	bytes               password = 2;           /**< Password of target AP. 64char */
+	int32               scan_method = 3;        /**< do all channel scan or fast scan */
+	bool                bssid_set = 4;          /**< whether set MAC address of target AP or not. Generally, station_config.bssid_set needs to be 0,
+												  and it needs to be 1 only when users need to check the MAC address of the AP.*/
+	bytes               bssid = 5;              /**< MAC address of target AP 6char */
+	uint32              channel = 6;            /**< channel of target AP. Set to 1~13 to scan starting from the specified channel
+												  before connecting to AP. If the channel of AP is unknown, set it to 0.*/
+	uint32              listen_interval = 7;    /**< Listen interval for ESP32 station to receive beacon when WIFI_PS_MAX_MODEM is set.
+Units: AP beacon intervals. Defaults to 3 if set to 0. */
+	int32               sort_method = 8;        /**< sort the connect AP in the list by rssi or security mode */
+	wifi_scan_threshold threshold = 9;          /**< When sort_method is set, only APs which have an auth mode that is more secure
+												  than the selected auth mode and a signal stronger than the minimum RSSI will be used. */
+	wifi_pmf_config     pmf_cfg = 10;           /**< Configuration for Protected Management Frame. Will be advertized in RSN Capabilities in RSN IE. */
+	//uint32_t rm_enabled:1;                    /**< Whether Radio Measurements are enabled for the connection */
+	//uint32_t btm_enabled:1;                   /**< Whether BSS Transition Management is enabled for the connection */
+	//uint32_t mbo_enabled:1;                   /**< Whether MBO is enabled for the connection */
+	//uint32_t ft_enabled:1;                    /**< Whether FT is enabled for the connection */
+	//uint32_t owe_enabled:1;                   /**< Whether OWE is enabled for the connection */
+	//uint32_t transition_disable:1;            /**< Whether to enable transition disable feature */
+	//uint32_t reserved:26;                     /**< Reserved for future feature set */
+	uint32              bitmask = 11;
+	int32               sae_pwe_h2e = 12;       /**< Whether SAE hash to element is enabled */
+	uint32              failure_retry_cnt = 13; /**< Number of connection retries station will do before moving to next AP.
+												  scan_method should be set as WIFI_ALL_CHANNEL_SCAN to use this config.
+												  Note: Enabling this may cause connection time to increase incase best AP doesn't behave properly. */
+    //uint32_t he_dcm_set:1;                                        /**< Whether DCM max.constellation for transmission and reception is set. */
+    //uint32_t he_dcm_max_constellation_tx:2;                       /**< Indicate the max.constellation for DCM in TB PPDU the STA supported. 0: not supported. 1: BPSK, 2: QPSK, 3: 16-QAM. The default value is 3. */
+    //uint32_t he_dcm_max_constellation_rx:2;                       /**< Indicate the max.constellation for DCM in both Data field and HE-SIG-B field the STA supported. 0: not supported. 1: BPSK, 2: QPSK, 3: 16-QAM. The default value is 3. */
+    //uint32_t he_mcs9_enabled:1;                                   /**< Whether to support HE-MCS 0 to 9. The default value is 0. */
+    //uint32_t he_su_beamformee_disabled:1;                         /**< Whether to disable support for operation as an SU beamformee. */
+    //uint32_t he_trig_su_bmforming_feedback_disabled:1;            /**< Whether to disable support the transmission of SU feedback in an HE TB sounding sequence. */
+    //uint32_t he_trig_mu_bmforming_partial_feedback_disabled:1;    /**< Whether to disable support the transmission of partial-bandwidth MU feedback in an HE TB sounding sequence. */
+    // uint32_t he_trig_cqi_feedback_disabled:1;                     /**< Whether to disable support the transmission of CQI feedback in an HE TB sounding sequence. */
+    // uint32_t he_reserved:22;                                      /**< Reserved for future feature set */
+    uint32              he_bitmask = 14;
+    bytes               sae_h2e_identifier = 15;                     /**< Password identifier for H2E. this needs to be null terminated string. SAE_H2E_IDENTIFIER_LEN chars */
+}
+
+message wifi_config {
+	oneof u {
+		wifi_ap_config    ap = 1;                 /**< configuration of AP */
+		wifi_sta_config   sta = 2;                /**< configuration of STA */
+	}
+}
+
+message wifi_sta_info {
+	bytes               mac = 1;                /**< mac address 6 char */
+	int32               rssi = 2;               /**< current average rssi of sta connected */
+	//uint32_t phy_11b:1;                       /**< bit: 0 flag to identify if 11b mode is enabled or not */
+	//uint32_t phy_11g:1;                       /**< bit: 1 flag to identify if 11g mode is enabled or not */
+	//uint32_t phy_11n:1;                       /**< bit: 2 flag to identify if 11n mode is enabled or not */
+	//uint32_t phy_lr:1;                        /**< bit: 3 flag to identify if low rate is enabled or not */
+	//uint32_t phy_11x:1;                       /**< bit: 4 flag to identify identify if 11ax mode is enabled or not */
+	//uint32_t is_mesh_child:1;                 /**< bit: 5 flag to identify mesh child */
+	//uint32_t reserved:26;                     /**< bit: 6..31 reserved */
+	uint32              bitmask = 3;
+}
+
+message wifi_sta_list {
+	repeated            wifi_sta_info sta = 1;  /**< station list */
+	int32               num = 2;                /**< number of stations in the list (other entries are invalid) */
+}
+
+//message vendor_ie_data {
+//	uint32              element_id = 1;         /**< Should be set to WIFI_VENDOR_IE_ELEMENT_ID (0xDD) */
+//	uint32              length = 2;             /**< Length of all bytes in the element data following this field. Minimum 4. */
+//	bytes               vendor_oui = 3;         /**< Vendor identifier (OUI). 3 chars */
+//	uint32              vendor_oui_type = 4;    /**< Vendor-specific OUI type. */
+//	bytes               payload = 5;            /**< Payload. Length is equal to value in 'length' field, minus 4. Note: Variable size */
+//}
+
+message wifi_pkt_rx_ctrl {
+	int32               rssi = 1;               /**< 8bits Received Signal Strength Indicator(RSSI) of packet. unit: dBm */
+	uint32              rate = 2;               /**< 5bits PHY rate encoding of the packet. Only valid for non HT(11bg) packet */
+	//uint32 :1;                                /**< reserved */
+	uint32              sig_mode = 3;           /**< 2bits 0: non HT(11bg) packet; 1: HT(11n) packet; 3: VHT(11ac) packet */
+	//uint32 :16;                               /**< reserved */
+	uint32              mcs = 4;                /**< 7bits Modulation Coding Scheme. If is HT(11n) packet, shows the modulation, range from 0 to 76(MSC0 ~ MCS76) */
+	uint32              cwb = 5;                /**< 1bit Channel Bandwidth of the packet. 0: 20MHz; 1: 40MHz */
+	//uint32 :16;                               /**< reserved */
+	uint32              smoothing = 6;          /**< 1bit reserved */
+	uint32              not_sounding = 7;       /**< 1bit reserved */
+	//uint32 :1;                                /**< reserved */
+	uint32              aggregation = 8;        /**< 1bit Aggregation. 0: MPDU packet; 1: AMPDU packet */
+	uint32              stbc = 9;               /**< 2bits Space Time Block Code(STBC). 0: non STBC packet; 1: STBC packet */
+	uint32              fec_coding = 10;        /**< 1bit Flag is set for 11n packets which are LDPC */
+	uint32              sgi = 11;               /**< 1bit Short Guide Interval(SGI). 0: Long GI; 1: Short GI */
+	int32               noise_floor = 12;       /**< 8bits noise floor of Radio Frequency Module(RF). unit: dBm*/
+	uint32              ampdu_cnt = 13;         /**< 8bits ampdu cnt */
+	uint32              channel = 14;           /**< 4bits primary channel on which this packet is received */
+	uint32              secondary_channel = 15; /**< 4bits secondary channel on which this packet is received. 0: none; 1: above; 2: below */
+	//uint32 :8;                                /**< reserved */
+	uint32              timestamp = 16;         /**< 32bit timestamp. The local time when this packet is received. It is precise only if modem sleep or light sleep is not enabled. unit: microsecond */
+	//uint32 :32;                               /**< reserved */
+	//unsigned :32;                             /**< reserved */
+	//unsigned :31;                             /**< reserved */
+	uint32              ant = 17;               /**< 1bit antenna number from which this packet is received. 0: WiFi antenna 0; 1: WiFi antenna 1 */
+	uint32              sig_len = 18;           /**<  12bits length of packet including Frame Check Sequence(FCS) */
+	//unsigned :12;                             /**< reserved */
+	uint32              rx_state = 19;          /**< 8bits state of the packet. 0: no error; others: error numbers which are not public */
+}
+
+message wifi_promiscuous_pkt {
+	wifi_pkt_rx_ctrl    rx_ctrl = 1;            /**< metadata header */
+	bytes               payload = 2;            /**< Note: variable length. Data or management payload. Length of payload is described by rx_ctrl.sig_len. Type of content determined by packet type argument of callback. */
+}
+
+message wifi_promiscuous_filter {
+	uint32              filter_mask = 1;        /**< OR of one or more filter values WIFI_PROMIS_FILTER_* */
+}
+
+message wifi_csi_config {
+	bool                lltf_en = 1;            /**< enable to receive legacy long training field(lltf) data. Default enabled */
+	bool                htltf_en = 2;           /**< enable to receive HT long training field(htltf) data. Default enabled */
+	bool                stbc_htltf2_en = 3;     /**< enable to receive space time block code HT long training field(stbc-htltf2) data. Default enabled */
+	bool                ltf_merge_en = 4;       /**< enable to generate htlft data by averaging lltf and ht_ltf data when receiving HT packet. Otherwise, use ht_ltf data directly. Default enabled */
+	bool                channel_filter_en = 5;  /**< enable to turn on channel filter to smooth adjacent sub-carrier. Disable it to keep independence of adjacent sub-carrier. Default enabled */
+	bool                manu_scale = 6;         /**< manually scale the CSI data by left shifting or automatically scale the CSI data.
+												  If set true, please set the shift bits. false: automatically. true: manually. Default false */
+	uint32              shift = 7;              /**< manually left shift bits of the scale of the CSI data. The range of the left shift bits is 0~15 */
+}
+
+message wifi_csi_info {
+	wifi_pkt_rx_ctrl    rx_ctrl = 1;            /**< received packet radio metadata header of the CSI data */
+	bytes               mac = 2;                /**< 6bits source MAC address of the CSI data */
+	bytes               dmac = 3;               /**< 6bits destination MAC address of the CSI data */
+	bool                first_word_invalid = 4; /**< first four bytes of the CSI data is invalid or not */
+	bytes               buf = 5;                /**< Note: variable length. buffer of CSI data */
+	uint32              len = 6;                /**< length of CSI data */
+}
+
+message wifi_ant_gpio {
+	uint32              gpio_select = 1;        /**< 1bit Whether this GPIO is connected to external antenna switch */
+	uint32              gpio_num = 2;           /**< 7bits The GPIO number that connects to external antenna switch */
+}
+
+message wifi_ant_gpio_config {
+	repeated wifi_ant_gpio gpio_cfgs = 1;       /**< The configurations of GPIOs that connect to external antenna switch */
+}
+
+message wifi_ant_config {
+	int32           rx_ant_mode = 1;            /**< WiFi antenna mode for receiving */
+	int32           rx_ant_default = 2;         /**< Default antenna mode for receiving, it's ignored if rx_ant_mode is not WIFI_ANT_MODE_AUTO */
+	int32           tx_ant_mode = 3;            /**< WiFi antenna mode for transmission, it can be set to WIFI_ANT_MODE_AUTO only if rx_ant_mode is set to WIFI_ANT_MODE_AUTO */
+	uint32          enabled_ant0 = 4;           /**< 4bits Index (in antenna GPIO configuration) of enabled WIFI_ANT_MODE_ANT0 */
+	uint32          enabled_ant1 = 5;           /**< 4bits Index (in antenna GPIO configuration) of enabled WIFI_ANT_MODE_ANT1 */
+}
+
+message wifi_action_tx_req {
+	int32           ifx = 1;                    /**< WiFi interface to send request to */
+	bytes           dest_mac = 2;               /**< 6bits Destination MAC address */
+	bool            no_ack = 3;                 /**< Indicates no ack required */
+	//TODO
+	//wifi_action_rx_cb_t rx_cb;                /**< Rx Callback to receive any response */
+	uint32          data_len = 4;               /**< Length of the appended Data */
+	bytes           data = 5;                   /**< note: variable length. Appended Data payload */
+}
+
+message wifi_ftm_initiator_cfg {
+	bytes           resp_mac = 1;               /**< 6bits MAC address of the FTM Responder */
+	uint32          channel = 2;                /**< Primary channel of the FTM Responder */
+	uint32          frm_count = 3;              /**< No. of FTM frames requested in terms of 4 or 8 bursts (allowed values - 0(No pref), 16, 24, 32, 64) */
+	uint32          burst_period = 4;           /**< Requested time period between consecutive FTM bursts in 100's of milliseconds (0 - No pref) */
+}
+
+message wifi_event_sta_scan_done {
+	uint32          status = 1;                 /**< status of scanning APs: 0 — success, 1 - failure */
+	uint32          number = 2;                 /**< number of scan results */
+	uint32          scan_id = 3;                /**< scan sequence number, used for block scan */
+}
+
+message wifi_event_sta_connected {
+	bytes           ssid = 1;                   /**< 32bytes SSID of connected AP */
+	uint32          ssid_len = 2;               /**< SSID length of connected AP */
+	bytes           bssid = 3;                  /**< 6bytes BSSID of connected AP*/
+	uint32          channel = 4;                /**< channel of connected AP*/
+	int32           authmode = 5;               /**< authentication mode used by AP*/
+	int32           aid = 6;                    /**< authentication id assigned by the connected AP*/
+}
+
+message wifi_event_sta_disconnected {
+	bytes           ssid = 1;                   /**< SSID of disconnected AP */
+	uint32          ssid_len = 2;               /**< SSID length of disconnected AP */
+	bytes           bssid = 3;                  /**< BSSID of disconnected AP */
+	uint32          reason = 4;                 /**< reason of disconnection */
+	int32           rssi = 5;                   /**< rssi of disconnection */
+}
+
+message wifi_event_sta_authmode_change {
+	int32           old_mode = 1;               /**< the old auth mode of AP */
+	int32           new_mode = 2;               /**< the new auth mode of AP */
+}
+
+message wifi_event_sta_wps_er_pin {
+	bytes           pin_code = 1;               /**< 8bytes PIN code of station in enrollee mode */
+}
+
+message        ap_cred {
+	bytes      ssid = 1;                        /**< 32bytes SSID of AP */
+	bytes      passphrase = 2;                  /**< 64bytes Passphrase for the AP */
+}
+
+message        wifi_event_sta_wps_er_success {
+	uint32     ap_cred_cnt = 1;                 /**< Number of AP credentials received */
+	repeated   ap_cred ap_creds = 2;            /**< All AP credentials received from WPS handshake */
+}
+
+/** Argument structure for WIFI_EVENT_AP_PROBEREQRECVED event */
+message        wifi_event_ap_probe_req_rx {
+	int32      rssi = 1;                        /**< Received probe request signal strength */
+	uint32     mac = 2;                         /**< MAC address of the station which send probe request */
+}
+
+/** Argument structure for WIFI_EVENT_STA_BSS_RSSI_LOW event */
+message wifi_event_bss_rssi_low {
+	int32      rssi = 1;                        /**< RSSI value of bss */
+}
+
+message wifi_ftm_report_entry {
+	uint32   dlog_token = 1;                  /* *< Dialog Token of the FTM frame */
+	int32    rssi = 2;                        /* *< RSSI of the FTM frame received */
+	uint32   rtt = 3;                         /* *< Round Trip Time in pSec with a peer */
+	/* TODO: uint32 is supported by proto? */
+	uint64   t1 = 4;                          /* *< Time of departure of FTM frame from FTM Responder in pSec */
+	uint64   t2 = 5;                          /* *< Time of arrival of FTM frame at FTM Initiator in pSec */
+	uint64   t3 = 6;                          /* *< Time of departure of ACK from FTM Initiator in pSec */
+	uint64   t4 = 7;                          /* *< Time of arrival of ACK at FTM Responder in pSec */
+}
+
+message wifi_event_ftm_report {
+	bytes    peer_mac = 1;                               /* *< 6bytes MAC address of the FTM Peer */
+	int32    status = 2;                                 /* *< Status of the FTM operation */
+	uint32   rtt_raw = 3;                                /* *< Raw average Round-Trip-Time with peer in Nano-Seconds */
+	uint32   rtt_est = 4;                                /* *< Estimated Round-Trip-Time with peer in Nano-Seconds */
+	uint32   dist_est = 5;                               /* *< Estimated one-way distance in Centi-Meters */
+	repeated wifi_ftm_report_entry ftm_report_data = 6;  /* *< Note var len Pointer to FTM Report with multiple entries, should be freed after use */
+	uint32   ftm_report_num_entries = 7;                 /* *< Number of entries in the FTM Report data */
+}
+
+message wifi_event_action_tx_status {
+	int32      ifx = 1;                         /**< WiFi interface to send request to */
+	uint32     context = 2;                     /**< Context to identify the request */
+	bytes      da = 3;                          /**< 6bytes Destination MAC address */
+	uint32     status = 4;                      /**< Status of the operation */
+}
+
+message wifi_event_roc_done {
+	uint32     context = 1;                     /**< Context to identify the request */
+}
+
+message wifi_event_ap_wps_rg_pin {
+	bytes      pin_code = 1;                    /**< 8bytes PIN code of station in enrollee mode */
+}
+
+message wifi_event_ap_wps_rg_fail_reason {
+	int32      reason = 1;                      /**< WPS failure reason wps_fail_reason_t */
+	bytes      peer_macaddr = 2;                /**< 6bytes Enrollee mac address */
+}
+
+message wifi_event_ap_wps_rg_success {
+	bytes      peer_macaddr = 1;                /**< 6bytes Enrollee mac address */
+}
+
+
+/* internal supporting structures for Rpc */
+//message ScanResult {
+//	bytes bssid = 1;
+//	bytes ssid = 2;
+//	uint32 chnl = 3;
+//	int32 rssi = 4;
+//	int32 sec_prot = 5;
+//}
+
+message ConnectedSTAList {
+	bytes mac = 1;
+	int32 rssi = 2;
+}
+
+
+/* Control path structures */
+/** Req/Resp structure **/
+message Rpc_Req_GetMacAddress {
+	int32 mode = 1;
+}
+
+message Rpc_Resp_GetMacAddress {
+	bytes mac = 1;
+	int32 resp = 2;
+}
+
+message Rpc_Req_GetMode {
+}
+
+message Rpc_Resp_GetMode {
+	int32 mode = 1;
+	int32 resp = 2;
+}
+
+message Rpc_Req_SetMode {
+	int32 mode = 1;
+}
+
+message Rpc_Req_USR {
+	int32 int_1  = 1;
+	int32 int_2  = 2;
+	uint32 uint_1  = 3;
+	uint32 uint_2  = 4;
+	bytes data = 5;
+}
+
+message Rpc_Resp_SetMode {
+	int32 resp = 1;
+	int32 num  = 2;
+	bytes data = 3;
+}
+
+message Rpc_Resp_USR {
+	int32 resp = 1;
+	int32 int_1  = 2;
+	int32 int_2  = 3;
+	uint32 uint_1  = 4;
+	uint32 uint_2  = 5;
+	bytes data = 6;
+}
+
+message Rpc_Req_GetPs {
+}
+
+message Rpc_Resp_GetPs {
+	int32 resp = 1;
+	int32 type = 2;
+}
+
+message Rpc_Req_SetPs {
+	int32 type = 1;
+}
+
+message Rpc_Resp_SetPs {
+	int32 resp = 1;
+}
+
+message Rpc_Req_SetMacAddress {
+	bytes mac = 1;
+	int32 mode = 2;
+}
+
+message Rpc_Resp_SetMacAddress {
+	int32 resp = 1;
+}
+
+
+//message Rpc_Req_GetAPConfig {
+//}
+//
+///* To be deprecated */
+//message Rpc_Resp_GetAPConfig {
+//	bytes ssid = 1;
+//	bytes bssid = 2;
+//	int32 rssi = 3;
+//	int32 chnl = 4;
+//	int32 sec_prot = 5;
+//	int32 resp = 6;
+//}
+
+/* To be deprecated */
+//message Rpc_Req_ConnectAP {
+//	string ssid = 1;
+//	string pwd = 2;
+//	string bssid = 3;
+//	bool is_wpa3_supported = 4;
+//	int32 listen_interval = 5;
+//}
+//
+//message  Rpc_Resp_ConnectAP {
+//	int32 resp = 1;
+//	bytes mac = 2;
+//}
+
+//message Rpc_Req_GetSoftAPConfig {
+//}
+//
+//message Rpc_Resp_GetSoftAPConfig {
+//	bytes ssid = 1;
+//	bytes pwd = 2;
+//	int32 chnl = 3;
+//	int32 sec_prot = 4;
+//	int32 max_conn = 5;
+//	bool ssid_hidden = 6;
+//	int32 bw = 7;
+//	int32 resp = 8;
+//}
+
+//message Rpc_Req_StartSoftAP {
+//	string ssid = 1;
+//	string pwd = 2;
+//	int32 chnl = 3;
+//	int32 sec_prot = 4;
+//	int32 max_conn = 5;
+//	bool ssid_hidden = 6;
+//	int32 bw = 7;
+//}
+//
+//message Rpc_Resp_StartSoftAP {
+//	int32 resp = 1;
+//	bytes mac = 2;
+//}
+
+//message Rpc_Req_ScanResult {
+//}
+//
+//message Rpc_Resp_ScanResult {
+//	uint32 count = 1;
+//	repeated ScanResult entries = 2;
+//	int32 resp = 3;
+//}
+
+//message Rpc_Req_SoftAPConnectedSTA {
+//}
+//
+//message Rpc_Resp_SoftAPConnectedSTA {
+//	uint32 num = 1;
+//	repeated ConnectedSTAList stations = 2;
+//	int32 resp = 3;
+//}
+
+message Rpc_Req_OTABegin {
+}
+
+message Rpc_Resp_OTABegin {
+	int32 resp = 1;
+}
+
+message Rpc_Req_OTAWrite {
+	bytes ota_data = 1;
+}
+
+message Rpc_Resp_OTAWrite {
+	int32 resp = 1;
+}
+
+message Rpc_Req_OTAEnd {
+}
+
+message Rpc_Resp_OTAEnd {
+	int32 resp = 1;
+}
+
+//message Rpc_Req_VendorIEData {
+//	int32 element_id = 1;
+//	int32 length = 2;
+//	bytes vendor_oui = 3;
+//	int32 vendor_oui_type = 4;
+//	bytes payload = 5;
+//}
+//
+//message Rpc_Req_SetSoftAPVendorSpecificIE {
+//	bool enable = 1;
+//	int32 type = 2;
+//	int32 idx = 3;
+//	Rpc_Req_VendorIEData vendor_ie_data = 4;
+//}
+//
+//message Rpc_Resp_SetSoftAPVendorSpecificIE {
+//	int32 resp = 1;
+//}
+
+message Rpc_Req_WifiSetMaxTxPower {
+	int32 power = 1;
+}
+
+message Rpc_Resp_WifiSetMaxTxPower {
+	int32 resp = 1;
+}
+
+message Rpc_Req_WifiGetMaxTxPower {
+}
+
+message Rpc_Resp_WifiGetMaxTxPower {
+	int32 power = 1;
+	int32 resp = 2;
+}
+
+message Rpc_Req_ConfigHeartbeat {
+	bool enable = 1;
+	int32 duration = 2;
+}
+
+message Rpc_Resp_ConfigHeartbeat {
+	int32 resp = 1;
+}
+
+message Rpc_Req_WifiInit {
+	wifi_init_config cfg = 1;
+}
+
+message Rpc_Resp_WifiInit {
+	int32 resp = 1;
+}
+
+message Rpc_Req_WifiDeinit {
+}
+
+message Rpc_Resp_WifiDeinit {
+	int32 resp = 1;
+}
+
+message Rpc_Req_WifiSetConfig {
+	int32 iface = 1;
+	wifi_config cfg = 2;
+}
+
+message Rpc_Resp_WifiSetConfig {
+	int32 resp = 1;
+}
+
+message Rpc_Req_WifiGetConfig {
+	int32 iface = 1;
+}
+
+message Rpc_Resp_WifiGetConfig {
+	int32 resp = 1;
+	int32 iface = 2;
+	wifi_config cfg = 3;
+}
+
+message Rpc_Req_WifiConnect {
+}
+
+message Rpc_Resp_WifiConnect {
+	int32 resp = 1;
+}
+
+message Rpc_Req_WifiDisconnect {
+}
+
+message Rpc_Resp_WifiDisconnect {
+	int32 resp = 1;
+}
+
+message Rpc_Req_WifiStart {
+}
+
+message Rpc_Resp_WifiStart {
+	int32 resp = 1;
+}
+
+message Rpc_Req_WifiStop {
+}
+
+message Rpc_Resp_WifiStop {
+	int32 resp = 1;
+}
+
+message Rpc_Req_WifiScanStart {
+	wifi_scan_config config = 1;
+	bool block = 2;
+	int32 config_set = 3;
+}
+
+message Rpc_Resp_WifiScanStart {
+	int32 resp = 1;
+}
+
+message Rpc_Req_WifiScanStop {
+}
+
+message Rpc_Resp_WifiScanStop {
+	int32 resp = 1;
+}
+
+message Rpc_Req_WifiScanGetApNum {
+}
+
+message Rpc_Resp_WifiScanGetApNum {
+	int32 resp = 1;
+	int32 number = 2;
+}
+
+message Rpc_Req_WifiScanGetApRecords {
+	int32 number = 1;
+}
+
+message Rpc_Resp_WifiScanGetApRecords {
+	int32 resp = 1;
+	int32 number = 2;
+	repeated wifi_ap_record ap_records = 3;
+}
+
+message Rpc_Req_WifiClearApList {
+}
+
+message Rpc_Resp_WifiClearApList {
+	int32 resp = 1;
+}
+
+message Rpc_Req_WifiRestore {
+}
+
+message Rpc_Resp_WifiRestore {
+	int32 resp = 1;
+}
+
+message Rpc_Req_WifiClearFastConnect{
+}
+
+message Rpc_Resp_WifiClearFastConnect {
+	int32 resp = 1;
+}
+
+message Rpc_Req_WifiDeauthSta {
+	int32 aid = 1;
+}
+
+message Rpc_Resp_WifiDeauthSta {
+	int32 resp = 1;
+	int32 aid = 2;
+}
+
+message Rpc_Req_WifiStaGetApInfo {
+}
+
+message Rpc_Resp_WifiStaGetApInfo {
+	int32 resp = 1;
+	wifi_ap_record ap_records = 2;
+}
+
+message Rpc_Req_WifiSetProtocol {
+	int32 ifx = 1;
+	int32 protocol_bitmap = 2;
+}
+
+message Rpc_Resp_WifiSetProtocol {
+	int32 resp = 1;
+}
+
+message Rpc_Req_WifiGetProtocol {
+	int32 ifx = 1;
+}
+
+message Rpc_Resp_WifiGetProtocol {
+	int32 resp = 1;
+	int32 protocol_bitmap = 2;
+}
+
+message Rpc_Req_WifiSetBandwidth {
+	int32 ifx = 1;
+	int32 bw = 2;
+}
+
+message Rpc_Resp_WifiSetBandwidth {
+	int32 resp = 1;
+}
+
+message Rpc_Req_WifiGetBandwidth {
+	int32 ifx = 1;
+}
+
+message Rpc_Resp_WifiGetBandwidth {
+	int32 resp = 1;
+	int32 bw = 2;
+}
+
+message Rpc_Req_WifiSetChannel {
+	int32 primary = 1;
+	int32 second = 2;
+}
+
+message Rpc_Resp_WifiSetChannel {
+	int32 resp = 1;
+}
+
+message Rpc_Req_WifiGetChannel {
+}
+
+message Rpc_Resp_WifiGetChannel {
+	int32 resp = 1;
+	int32 primary = 2;
+	int32 second = 3;
+}
+
+message Rpc_Req_WifiSetStorage {
+	int32 storage = 1;
+}
+
+message Rpc_Resp_WifiSetStorage {
+	int32 resp = 1;
+}
+
+message Rpc_Req_WifiSetCountryCode {
+	bytes country = 1;
+	bool ieee80211d_enabled = 2;
+}
+
+message Rpc_Resp_WifiSetCountryCode {
+	int32 resp = 1;
+}
+
+message Rpc_Req_WifiGetCountryCode {
+}
+
+message Rpc_Resp_WifiGetCountryCode {
+	int32 resp = 1;
+	bytes country = 2;
+}
+
+message Rpc_Req_WifiSetCountry {
+	wifi_country country = 1;
+}
+
+message Rpc_Resp_WifiSetCountry {
+	int32 resp = 1;
+}
+
+message Rpc_Req_WifiGetCountry {
+}
+
+message Rpc_Resp_WifiGetCountry {
+	int32 resp = 1;
+	wifi_country country = 2;
+}
+
+message Rpc_Req_WifiApGetStaList {
+}
+
+message Rpc_Resp_WifiApGetStaList {
+	int32 resp = 1;
+	wifi_sta_list sta_list = 2;
+}
+
+message Rpc_Req_WifiApGetStaAid {
+	bytes mac = 1;
+}
+
+message Rpc_Resp_WifiApGetStaAid {
+	int32 resp = 1;
+	uint32 aid = 2;
+}
+
+message Rpc_Req_WifiStaGetRssi {
+}
+
+message Rpc_Resp_WifiStaGetRssi {
+	int32 resp = 1;
+	int32 rssi = 2;
+}
+
+message Rpc_Req_SetDhcpDnsStatus {
+	int32 iface = 1;
+	int32 net_link_up = 2;
+
+	int32 dhcp_up = 3;
+	bytes dhcp_ip = 4;
+	bytes dhcp_nm = 5;
+	bytes dhcp_gw = 6;
+
+	int32 dns_up = 7;
+	bytes dns_ip = 8;
+	int32 dns_type = 9;
+}
+
+message Rpc_Resp_SetDhcpDnsStatus {
+	int32 resp = 1;
+}
+
+/** Event structure **/
+
+message Rpc_Event_WifiEventNoArgs {
+	int32 resp = 1;
+	int32 event_id = 2;
+}
+
+message Rpc_Event_ESPInit {
+	bytes init_data = 1;
+}
+
+message Rpc_Event_Heartbeat {
+	int32 hb_num = 1;
+}
+
+message Rpc_Event_AP_StaDisconnected {
+	int32 resp = 1;
+	bytes mac = 2;
+	uint32 aid = 3;
+	bool is_mesh_child = 4;
+	uint32 reason = 5;
+}
+
+message Rpc_Event_AP_StaConnected {
+	int32 resp = 1;
+	bytes mac = 2;
+	uint32 aid = 3;
+	bool is_mesh_child = 4;
+}
+
+message Rpc_Event_StaScanDone {
+	int32 resp = 1;
+	wifi_event_sta_scan_done scan_done = 2;
+}
+
+message Rpc_Event_StaConnected {
+	int32 resp = 1;
+	wifi_event_sta_connected sta_connected = 2;
+}
+
+message Rpc_Event_StaDisconnected {
+	int32 resp = 1;
+	wifi_event_sta_disconnected sta_disconnected = 2;
+}
+
+message Rpc_Event_SetDhcpDnsStatus {
+	int32 iface = 1;
+	int32 net_link_up = 2;
+
+	int32 dhcp_up = 3;
+	bytes dhcp_ip = 4;
+	bytes dhcp_nm = 5;
+	bytes dhcp_gw = 6;
+
+	int32 dns_up = 7;
+	bytes dns_ip = 8;
+	int32 dns_type = 9;
+	int32 resp = 10;
+}
+
+message Rpc_Event_USR {
+	int32 resp = 1;
+	int32 int_1  = 2;
+	int32 int_2  = 3;
+	uint32 uint_1  = 4;
+	uint32 uint_2  = 5;
+	bytes data = 6;
+}
+
+message Rpc {
+	/* msg_type could be req, resp or Event */
+	RpcType msg_type = 1;
+
+	/* msg id */
+	RpcId msg_id = 2;
+
+	/* UID of message */
+	uint32 uid = 3;
+
+	/* union of all msg ids */
+	oneof payload {
+		/** Requests **/
+		Rpc_Req_GetMacAddress               req_get_mac_address               = 257;
+		Rpc_Req_SetMacAddress               req_set_mac_address               = 258;
+		Rpc_Req_GetMode                     req_get_wifi_mode                 = 259;
+		Rpc_Req_SetMode                     req_set_wifi_mode                 = 260;
+
+		Rpc_Req_USR                         req_usr1                          = 261;
+		Rpc_Req_USR                         req_usr2                          = 262;
+		Rpc_Req_USR                         req_usr3                          = 263;
+		Rpc_Req_USR                         req_usr4                          = 264;
+		Rpc_Req_USR                         req_usr5                          = 265;
+
+		Rpc_Req_SetPs                       req_wifi_set_ps                   = 270;
+		Rpc_Req_GetPs                       req_wifi_get_ps                   = 271;
+
+		Rpc_Req_OTABegin                    req_ota_begin                     = 272;
+		Rpc_Req_OTAWrite                    req_ota_write                     = 273;
+		Rpc_Req_OTAEnd                      req_ota_end                       = 274;
+
+		Rpc_Req_WifiSetMaxTxPower           req_set_wifi_max_tx_power         = 275;
+		Rpc_Req_WifiGetMaxTxPower           req_get_wifi_max_tx_power         = 276;
+		Rpc_Req_ConfigHeartbeat             req_config_heartbeat              = 277;
+
+		Rpc_Req_WifiInit                    req_wifi_init                     = 278;
+		Rpc_Req_WifiDeinit                  req_wifi_deinit                   = 279;
+		Rpc_Req_WifiStart                   req_wifi_start                    = 280;
+		Rpc_Req_WifiStop                    req_wifi_stop                     = 281;
+		Rpc_Req_WifiConnect                 req_wifi_connect                  = 282;
+		Rpc_Req_WifiDisconnect              req_wifi_disconnect               = 283;
+		Rpc_Req_WifiSetConfig               req_wifi_set_config               = 284;
+		Rpc_Req_WifiGetConfig               req_wifi_get_config               = 285;
+
+		Rpc_Req_WifiScanStart               req_wifi_scan_start               = 286;
+		Rpc_Req_WifiScanStop                req_wifi_scan_stop                = 287;
+		Rpc_Req_WifiScanGetApNum            req_wifi_scan_get_ap_num          = 288;
+		Rpc_Req_WifiScanGetApRecords        req_wifi_scan_get_ap_records      = 289;
+		Rpc_Req_WifiClearApList             req_wifi_clear_ap_list            = 290;
+
+		Rpc_Req_WifiRestore                 req_wifi_restore                  = 291;
+		Rpc_Req_WifiClearFastConnect        req_wifi_clear_fast_connect       = 292;
+		Rpc_Req_WifiDeauthSta               req_wifi_deauth_sta               = 293;
+		Rpc_Req_WifiStaGetApInfo            req_wifi_sta_get_ap_info          = 294;
+
+		Rpc_Req_WifiSetProtocol             req_wifi_set_protocol             = 297;
+		Rpc_Req_WifiGetProtocol             req_wifi_get_protocol             = 298;
+		Rpc_Req_WifiSetBandwidth            req_wifi_set_bandwidth            = 299;
+		Rpc_Req_WifiGetBandwidth            req_wifi_get_bandwidth            = 300;
+		Rpc_Req_WifiSetChannel              req_wifi_set_channel              = 301;
+		Rpc_Req_WifiGetChannel              req_wifi_get_channel              = 302;
+		Rpc_Req_WifiSetCountry              req_wifi_set_country              = 303;
+		Rpc_Req_WifiGetCountry              req_wifi_get_country              = 304;
+
+		Rpc_Req_WifiApGetStaList            req_wifi_ap_get_sta_list          = 311;
+		Rpc_Req_WifiApGetStaAid             req_wifi_ap_get_sta_aid           = 312;
+		Rpc_Req_WifiSetStorage              req_wifi_set_storage              = 313;
+
+		Rpc_Req_WifiSetCountryCode          req_wifi_set_country_code         = 334;
+		Rpc_Req_WifiGetCountryCode          req_wifi_get_country_code         = 335;
+
+		Rpc_Req_WifiStaGetRssi              req_wifi_sta_get_rssi             = 341;
+		Rpc_Req_SetDhcpDnsStatus            req_set_dhcp_dns                  = 342;
+
+		/** Responses **/
+		Rpc_Resp_GetMacAddress              resp_get_mac_address               = 513;
+		Rpc_Resp_SetMacAddress              resp_set_mac_address               = 514;
+		Rpc_Resp_GetMode                    resp_get_wifi_mode                 = 515;
+		Rpc_Resp_SetMode                    resp_set_wifi_mode                 = 516;
+
+		Rpc_Resp_USR                        resp_usr1                          = 517;
+		Rpc_Resp_USR                        resp_usr2                          = 518;
+		Rpc_Resp_USR                        resp_usr3                          = 519;
+		Rpc_Resp_USR                        resp_usr4                          = 520;
+		Rpc_Resp_USR                        resp_usr5                          = 521;
+
+		Rpc_Resp_SetPs                      resp_wifi_set_ps                   = 526;
+		Rpc_Resp_GetPs                      resp_wifi_get_ps                   = 527;
+
+		Rpc_Resp_OTABegin                   resp_ota_begin                     = 528;
+		Rpc_Resp_OTAWrite                   resp_ota_write                     = 529;
+		Rpc_Resp_OTAEnd                     resp_ota_end                       = 530;
+		Rpc_Resp_WifiSetMaxTxPower          resp_set_wifi_max_tx_power         = 531;
+		Rpc_Resp_WifiGetMaxTxPower          resp_get_wifi_max_tx_power         = 532;
+		Rpc_Resp_ConfigHeartbeat            resp_config_heartbeat              = 533;
+
+		Rpc_Resp_WifiInit                   resp_wifi_init                     = 534;
+		Rpc_Resp_WifiDeinit                 resp_wifi_deinit                   = 535;
+		Rpc_Resp_WifiStart                  resp_wifi_start                    = 536;
+		Rpc_Resp_WifiStop                   resp_wifi_stop                     = 537;
+		Rpc_Resp_WifiConnect                resp_wifi_connect                  = 538;
+		Rpc_Resp_WifiDisconnect             resp_wifi_disconnect               = 539;
+		Rpc_Resp_WifiSetConfig              resp_wifi_set_config               = 540;
+		Rpc_Resp_WifiGetConfig              resp_wifi_get_config               = 541;
+
+		Rpc_Resp_WifiScanStart              resp_wifi_scan_start               = 542;
+		Rpc_Resp_WifiScanStop               resp_wifi_scan_stop                = 543;
+		Rpc_Resp_WifiScanGetApNum           resp_wifi_scan_get_ap_num          = 544;
+		Rpc_Resp_WifiScanGetApRecords       resp_wifi_scan_get_ap_records      = 545;
+		Rpc_Resp_WifiClearApList            resp_wifi_clear_ap_list            = 546;
+
+		Rpc_Resp_WifiRestore                resp_wifi_restore                  = 547;
+		Rpc_Resp_WifiClearFastConnect       resp_wifi_clear_fast_connect       = 548;
+		Rpc_Resp_WifiDeauthSta              resp_wifi_deauth_sta               = 549;
+		Rpc_Resp_WifiStaGetApInfo           resp_wifi_sta_get_ap_info          = 550;
+
+		Rpc_Resp_WifiSetProtocol            resp_wifi_set_protocol             = 553;
+		Rpc_Resp_WifiGetProtocol            resp_wifi_get_protocol             = 554;
+		Rpc_Resp_WifiSetBandwidth           resp_wifi_set_bandwidth            = 555;
+		Rpc_Resp_WifiGetBandwidth           resp_wifi_get_bandwidth            = 556;
+		Rpc_Resp_WifiSetChannel             resp_wifi_set_channel              = 557;
+		Rpc_Resp_WifiGetChannel             resp_wifi_get_channel              = 558;
+		Rpc_Resp_WifiSetCountry             resp_wifi_set_country              = 559;
+		Rpc_Resp_WifiGetCountry             resp_wifi_get_country              = 560;
+
+		Rpc_Resp_WifiApGetStaList           resp_wifi_ap_get_sta_list          = 567;
+		Rpc_Resp_WifiApGetStaAid            resp_wifi_ap_get_sta_aid           = 568;
+		Rpc_Resp_WifiSetStorage             resp_wifi_set_storage              = 569;
+
+		Rpc_Resp_WifiSetCountryCode         resp_wifi_set_country_code         = 590;
+		Rpc_Resp_WifiGetCountryCode         resp_wifi_get_country_code         = 591;
+
+		Rpc_Resp_WifiStaGetRssi             resp_wifi_sta_get_rssi             = 597;
+		Rpc_Resp_SetDhcpDnsStatus           resp_set_dhcp_dns                  = 598;
+
+		/** Notifications **/
+		Rpc_Event_ESPInit                   event_esp_init                     = 769;
+		Rpc_Event_Heartbeat                 event_heartbeat                    = 770;
+		Rpc_Event_AP_StaConnected           event_ap_sta_connected             = 771;
+		Rpc_Event_AP_StaDisconnected        event_ap_sta_disconnected          = 772;
+		Rpc_Event_WifiEventNoArgs           event_wifi_event_no_args           = 773;
+		Rpc_Event_StaScanDone               event_sta_scan_done                = 774;
+		Rpc_Event_StaConnected              event_sta_connected                = 775;
+		Rpc_Event_StaDisconnected           event_sta_disconnected             = 776;
+		Rpc_Event_SetDhcpDnsStatus          event_set_dhcp_dns                 = 777;
+		Rpc_Event_USR                       event_usr1                         = 778;
+		Rpc_Event_USR                       event_usr2                         = 779;
+		Rpc_Event_USR                       event_usr3                         = 780;
+		Rpc_Event_USR                       event_usr4                         = 781;
+		Rpc_Event_USR                       event_usr5                         = 782;
+	}
+}
+
+
+//message req_w_set_config {
+//    int32 iface = 1;
+//    wifi_config cfg = 2;
+//}
+//
+//message rsp_w_set_config {
+//    int32 resp = 1;
+//}
+//
+//message req_w_get_config {
+//    int32 iface = 1;
+//}
+//
+//message rsp_w_get_config {
+//    int32 resp = 1;
+//    wifi_config cfg = 2;
+//}
+//
+//message req_w_start {
+//}
+//
+//message rsp_w_start {
+//    int32 resp = 1;
+//}
+//
+//message evt_w_sta_connected {
+//    int32 resp = 1;
+//}
+//
+//message evt_w_sta_disconnected {
+//    int32 resp = 1;
+//}
+//
+//message evt_w_sta_start {
+//    int32 resp = 1;
+//}
+//
+//message evt_w_sta_stop  {
+//    int32 resp = 1;
+//}
+//
+//message evt_w_ready {
+//    int32 resp = 1;
+//}
+
+//message  {
+//    int32 resp = 1;
+//}
+
+
+
+
+
+
+
+//message Rpc_Resp_GetMode {
+//    int32 mode = 1;
+//    int32 resp = 2;
+//}
+//
+//message Rpc_Req_SetMode {
+//}
+//
+//message Rpc_Resp_SetMode {
+//    int32 resp = 1;
+//}
