@@ -1,0 +1,558 @@
+menu "Network Co-processor Configuration"
+
+    config ADAPTER_ONLY_MODE
+        bool "Turn on adapter only mode"
+		default n
+        help
+            Turn the adapter only mode: In this mode, the code will only provide the network connctivity,
+            meaning the lwip stack will not run on the co-processor, neither the custom messages are implemented
+
+	config NW_COPROC_BT_ENABLED
+		bool "Enable BT from network coprocessor"
+		default n
+		help
+			If this option is enabled, the BT capabilities are initialized and can be shared by the host
+
+    config C6_SPI_WITH_P4
+		depends on IDF_TARGET_ESP32C6
+        bool "Warn_SC: Use SPI for onboard P4 to C6 communication over P4 evaluation board"
+        help
+            "SC Static Conf: change sdkconfig.default.<esp> for using this conf, then fullclean and menuconfig again"
+
+	config HOSTED_ON_LOW_MEM
+		bool "Enable to lower memory requirements at slave"
+		default n
+		help
+			"When enabled, some features are disabled"
+
+	choice ESP_HOST_INTERFACE
+		bool "Transport layer"
+		default ESP_SPI_HOST_INTERFACE if IDF_TARGET_ESP32
+		default ESP_SPI_HOST_INTERFACE if IDF_TARGET_ESP32S2
+		default ESP_SPI_HOST_INTERFACE if IDF_TARGET_ESP32S3
+		default ESP_SPI_HOST_INTERFACE if IDF_TARGET_ESP32C2
+		default ESP_SPI_HOST_INTERFACE if IDF_TARGET_ESP32C3
+		default ESP_SPI_HOST_INTERFACE if C6_SPI_WITH_P4
+		default ESP_SDIO_HOST_INTERFACE if IDF_TARGET_ESP32C6
+		help
+			Bus interface to be used for communication with the host
+
+		config ESP_SPI_HOST_INTERFACE
+			bool "SPI interface"
+			help
+				Enable/Disable SPI host interface
+
+		config ESP_SDIO_HOST_INTERFACE
+			bool "SDIO interface"
+			depends on IDF_TARGET_ESP32 || IDF_TARGET_ESP32C6
+			help
+				Enable/Disable SDIO host interface
+	endchoice
+
+	menu "SPI Configuration"
+		depends on ESP_SPI_HOST_INTERFACE
+
+		choice ESP_SPI_PRIV_MODE
+			bool "Slave SPI mode"
+			default ESP_SPI_PRIV_MODE_2 if IDF_TARGET_ESP32
+			default ESP_SPI_PRIV_MODE_3
+
+			config ESP_SPI_PRIV_MODE_0
+				bool "Slave SPI mode 0"
+
+			config ESP_SPI_PRIV_MODE_1
+				bool "Slave SPI mode 1"
+
+			config ESP_SPI_PRIV_MODE_2
+				bool "Slave SPI mode 2"
+
+			config ESP_SPI_PRIV_MODE_3
+				bool "Slave SPI mode 3"
+		endchoice
+
+		config ESP_SPI_MODE
+			int
+			default 0 if ESP_SPI_PRIV_MODE_0
+			default 1 if ESP_SPI_PRIV_MODE_1
+			default 2 if ESP_SPI_PRIV_MODE_2
+			default 3 if ESP_SPI_PRIV_MODE_3
+			default 3
+
+
+		choice SPI_CONTROLLER
+			bool "SPI controller to use"
+			default SPI_HSPI
+
+			config SPI_HSPI
+				bool "FSPI/HSPI"
+				help
+					"HSPI/FSPI: SPI_controller_1"
+
+			config SPI_VSPI
+				depends on IDF_TARGET_ESP32
+				bool "VSPI"
+				help
+					"VSPI: SPI_controller_2"
+
+		endchoice
+
+		config ESP_SPI_CONTROLLER
+			int
+			default 2 if SPI_VSPI
+			default 1
+
+		menu "Hosted SPI GPIOs"
+			config ESP_SPI_HSPI_GPIO_MOSI
+				depends on SPI_HSPI
+				int "Slave GPIO pin for Host MOSI"
+				default 13 if IDF_TARGET_ESP32
+				default 11 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+				default 20 if C6_SPI_WITH_P4
+				default 7
+				help
+					SPI controller Host MOSI
+
+			config ESP_SPI_HSPI_GPIO_MISO
+				depends on SPI_HSPI
+				int "Slave GPIO pin for Host MISO"
+				default 12 if IDF_TARGET_ESP32
+				default 13 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+				default 21 if C6_SPI_WITH_P4
+				default 2
+				help
+					SPI controller Host MISO
+
+			config ESP_SPI_HSPI_GPIO_CLK
+				depends on SPI_HSPI
+				int "Slave GPIO pin for Host CLK"
+				default 14 if IDF_TARGET_ESP32
+				default 12 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+				default 19 if C6_SPI_WITH_P4
+				default 6
+				help
+					SPI controller Host CLK
+
+			config ESP_SPI_HSPI_GPIO_CS
+				depends on SPI_HSPI
+				int "Slave GPIO pin for Host  CS"
+				default 15 if IDF_TARGET_ESP32
+				default 10 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+				default 18 if C6_SPI_WITH_P4
+				default 10
+				help
+					SPI controller Host CS
+
+			config ESP_SPI_VSPI_GPIO_MOSI
+				depends on SPI_VSPI
+				int "Slave GPIO pin for Host MOSI"
+				default 23
+				help
+					SPI controller Host MOSI
+
+			config ESP_SPI_VSPI_GPIO_MISO
+				depends on SPI_VSPI
+				int "Slave GPIO pin for Host MISO"
+				default 19
+				help
+					SPI controller Host MISO
+
+			config ESP_SPI_VSPI_GPIO_CLK
+				depends on SPI_VSPI
+				int "Slave GPIO pin for Host CLK"
+				default 18
+				help
+					SPI controller Host CLK
+
+			config ESP_SPI_VSPI_GPIO_CS
+				depends on SPI_VSPI
+				int "Slave GPIO pin for Host CS"
+				default 5
+				help
+					SPI controller Host CS
+
+			config ESP_SPI_GPIO_MOSI
+				int
+				default ESP_SPI_VSPI_GPIO_MOSI if SPI_VSPI
+				default ESP_SPI_HSPI_GPIO_MOSI
+
+			config ESP_SPI_GPIO_MISO
+				int
+				default ESP_SPI_VSPI_GPIO_MISO if SPI_VSPI
+				default ESP_SPI_HSPI_GPIO_MISO
+
+			config ESP_SPI_GPIO_CLK
+				int
+				default ESP_SPI_VSPI_GPIO_CLK if SPI_VSPI
+				default ESP_SPI_HSPI_GPIO_CLK
+
+			config ESP_SPI_GPIO_CS
+				int
+				default ESP_SPI_VSPI_GPIO_CS if SPI_VSPI
+				default ESP_SPI_HSPI_GPIO_CS
+
+			config ESP_SPI_GPIO_HANDSHAKE
+				int "Slave GPIO pin for handshake"
+				default 22 if C6_SPI_WITH_P4
+				default 3 if IDF_TARGET_ESP32C2 || IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32C6
+				default 17 if IDF_TARGET_ESP32S3
+				default 26
+				help
+					Slave GPIO pin to use for handshake with other spi controller
+
+			config ESP_SPI_GPIO_DATA_READY
+				int "Slave GPIO pin for data ready interrupt"
+				default 23 if C6_SPI_WITH_P4
+				default 4
+				help
+					Slave GPIO pin for indicating host that SPI slave has data to be read by host
+
+			config ESP_SPI_GPIO_RESET
+				int "Slave GPIO pin to reset itself"
+				default -1
+				help
+					Host uses this pin to reset the slave ESP. To re-use ESP 'RST' or 'EN' GPIO, set value to -1
+		endmenu
+
+		config ESP_SPI_TX_Q_SIZE
+			int "ESP to Host SPI queue size"
+			default 10 if IDF_TARGET_ESP32
+			default 6 if IDF_TARGET_ESP32C2 && BT_ENABLED
+			default 10 if IDF_TARGET_ESP32C2
+			default 20
+			help
+				Very small tx queue will lower ESP -- SPI --> Host data rate
+
+		config ESP_SPI_RX_Q_SIZE
+			int "Host to ESP SPI queue size"
+			default 10 if IDF_TARGET_ESP32
+			default 6 if IDF_TARGET_ESP32C2 && BT_ENABLED
+			default 7 if IDF_TARGET_ESP32C2
+			default 20
+			help
+				Very small RX queue will lower ESP <-- SPI -- Host data rate
+
+		config ESP_SPI_CHECKSUM
+			bool "SPI checksum ENABLE/DISABLE"
+			default y
+			help
+				ENABLE/DISABLE software SPI checksum
+	endmenu
+
+	menu "SDIO Configuration"
+		depends on ESP_SDIO_HOST_INTERFACE
+
+		config ESP_SDIO_STREAMING_MODE
+			bool "Enable SDIO Streaming Mode"
+			default n
+			help
+				Enable Streaming Mode. Host to receive queued data from slave
+				as one stream instead of individual packets. This can improve
+				host SDIO read performance by doing one large read transaction
+				instead of many smaller read transactions.
+
+		config ESP_SDIO_GPIO_RESET
+			int "Slave GPIO pin to reset itself"
+			default -1
+			help
+				Host uses this pin to reset the slave ESP. To re-use ESP 'RST' or 'EN' GPIO, set value to -1
+
+		choice
+			prompt "SDIO Bus Speed"
+			default ESP_SDIO_HIGH_SPEED
+			help
+				Select the SDIO Slave Bus Speed. Actual speed in use depends on SDIO bus speed the SDIO Master can support
+
+			config ESP_SDIO_DEFAULT_SPEED
+				bool "Default Speed (20 MHz)"
+
+			config ESP_SDIO_HIGH_SPEED
+				bool "High Speed (40 MHz)"
+		endchoice
+
+
+		menu "Hosted SDIO GPIOs"
+			config ESP_SDIO_PIN_CMD
+				int "CMD GPIO number"
+				range 15 15 if IDF_TARGET_ESP32
+				range 18 18 if IDF_TARGET_ESP32C6
+				help
+					"Value cannot be configured. Displayed for reference."
+
+			config ESP_SDIO_PIN_CLK
+				int "CLK GPIO number"
+				range 14 14 if IDF_TARGET_ESP32
+				range 19 19 if IDF_TARGET_ESP32C6
+				help
+					"Value cannot be configured. Displayed for reference."
+
+			config ESP_SDIO_PIN_D0
+				int "D0 GPIO number"
+				range 2 2 if IDF_TARGET_ESP32
+				range 20 20 if IDF_TARGET_ESP32C6
+				help
+					"Value cannot be configured. Displayed for reference."
+
+			config ESP_SDIO_PIN_D1
+				int "D1 GPIO number"
+				range 4 4 if IDF_TARGET_ESP32
+				range 21 21 if IDF_TARGET_ESP32C6
+				help
+					"Value cannot be configured. Displayed for reference."
+
+			config ESP_SDIO_PIN_D2
+				int "D2 GPIO number"
+				range 12 12 if IDF_TARGET_ESP32
+				range 22 22 if IDF_TARGET_ESP32C6
+				help
+					"Value cannot be configured. Displayed for reference."
+
+			config ESP_SDIO_PIN_D3
+				int "D3 GPIO number"
+				range 13 13 if IDF_TARGET_ESP32
+				range 23 23 if IDF_TARGET_ESP32C6
+				help
+					"Value cannot be configured. Displayed for reference."
+		endmenu
+
+		choice
+			prompt "SDIO Slave Timing"
+			default ESP_SDIO_PSEND_PSAMPLE
+			help
+				Select the SDIO timing used by slave. Default value works with most
+				SDMMC controllers but if transfer errors are encountered, selecting a
+				different timing may help resolve the errors.
+				See https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/sdio_slave.html#_CPPv419sdio_slave_timing_t
+				for more information
+
+			config ESP_SDIO_PSEND_PSAMPLE
+				bool "Send at positive edge, sample at positive edge"
+
+			config ESP_SDIO_NSEND_PSAMPLE
+				bool "Send at negative edge, sample at positive edge"
+
+			config ESP_SDIO_PSEND_NSAMPLE
+				bool "Send at positive edge, sample at negative edge"
+
+			config ESP_SDIO_NSEND_NSAMPLE
+				bool "Send at negative edge, sample at negative edge"
+		endchoice
+
+		config ESP_SDIO_TX_Q_SIZE
+			int "Slave SDIO Tx queue size"
+			default 5
+			help
+				Very small tx queue will lower data rate
+
+		config ESP_SDIO_RX_Q_SIZE
+			int "Slave SDIO RX queue size"
+			default 20
+			help
+				Very small RX queue will lower ESP <-- SDIO -- Host data rate
+
+		config ESP_SDIO_CHECKSUM
+			bool "SDIO checksum ENABLE/DISABLE"
+			help
+				ENABLE/DISABLE software SDIO checksum
+
+	endmenu
+
+	config ESP_RX_Q_SIZE
+		int
+		default ESP_SDIO_RX_Q_SIZE if ESP_SDIO_HOST_INTERFACE
+		default ESP_SPI_RX_Q_SIZE if ESP_SPI_HOST_INTERFACE
+
+	config ESP_GPIO_SLAVE_RESET
+		int
+		default ESP_SPI_GPIO_RESET if ESP_SPI_HOST_INTERFACE
+		default ESP_SDIO_GPIO_RESET if ESP_SDIO_HOST_INTERFACE
+
+	config EXAMPLE_HCI_UART_BAUDRATE
+		int "UART Baudrate for HCI: Only applicable for ESP32-C3/ESP32-S3"
+		range 115200 921600
+		depends on IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32S3
+		depends on BT_CTRL_HCI_MODE_UART_H4
+		default 921600
+		help
+			UART Baudrate for HCI over ESP32C3/ESP32S3. Please use standard baudrate.
+
+	config ESP_DEFAULT_TASK_STACK_SIZE
+		int "ESP-Hosted task stack size"
+		default 4096
+		help
+			Default task size of ESP-Hosted tasks
+
+	config ESP_DEFAULT_TASK_PRIO
+		int "ESP-Hosted task priority"
+		default 22
+		help
+			Default task priority of ESP-Hosted tasks
+
+	config ESP_CACHE_MALLOC
+		bool "Enable Mempool"
+		default n if HOSTED_ON_LOW_MEM
+		default y
+		help
+			Mempool will help to alloc buffer without going to heap for every memory allocation or free
+
+	config ESP_OTA_WORKAROUND
+		bool "OTA workaround - Add sleeps while OTA write"
+		default y
+		help
+			Enable/disable sleeps while OTA operations
+
+	menu "Hosted Debugging"
+		config ESP_RAW_THROUGHPUT_TRANSPORT
+			bool "RawTP: Transport level throughput debug test"
+			default n
+				help
+					Find max transport performance which helps to assess stability of porting done
+
+		config ESP_RAW_TP_ESP_TO_HOST_PKT_LEN
+			depends on ESP_RAW_THROUGHPUT_TRANSPORT
+			int "RawTP: ESP to Host packet size"
+			range 1 1500
+			default 1460
+
+		config ESP_RAW_TP_REPORT_INTERVAL
+			depends on ESP_RAW_THROUGHPUT_TRANSPORT
+			int "RawTP: periodic duration to report stats accumulated"
+			default 1
+
+		config ESP_PKT_STATS
+			bool "Transport level packet stats"
+			default n if HOSTED_ON_LOW_MEM
+			default y
+			help
+				On comparing with slave packet stats helps to understand any packet loss at hosted
+	endmenu
+
+	config SLAVE_LWIP_ENABLED
+		bool "Enable the LWIP at slave"
+		default y
+		help
+			Enable the LWIP at slave, additionally to host LWIP
+
+	menu "Slave side (local) LWIP port config"
+		depends on SLAVE_LWIP_ENABLED
+		config LWIP_TCP_LOCAL_PORT_RANGE_START
+			int "Slave TCP start port"
+			default 61440
+			help
+				Slave side TCP start port. Host defaults to 49152
+				Slave range: 61440-65535
+				Host range: 49152-61439
+
+		config LWIP_TCP_LOCAL_PORT_RANGE_END
+			int "Slave TCP end port"
+			default 65535
+			help
+				Slave side TCP end port. Host defaults to 61439
+				Slave range: 61440-65535
+				Host range: 49152-61439
+
+		config LWIP_UDP_LOCAL_PORT_RANGE_START
+			int "Slave UDP start port"
+			default 61440
+			help
+				Slave side UDP start port. Host defaults to 49152
+				Slave range: 61440-65535
+				Host range: 49152-61439
+
+		config LWIP_UDP_LOCAL_PORT_RANGE_END
+			int "Slave UDP end port"
+			default 65535
+			help
+				Slave side UDP end port. Host defaults to 61439
+				Slave range: 61440-65535
+				Host range: 49152-61439
+	endmenu
+
+	menu "Host side (remote) LWIP port config"
+		depends on SLAVE_LWIP_ENABLED
+		config LWIP_TCP_REMOTE_PORT_RANGE_START
+			depends on SLAVE_LWIP_ENABLED
+			int "Host TCP start port"
+			default 49152
+			help
+				Host side TCP start port. Slave defaults to 61440
+				Slave range: 61440-65535
+				Host range: 49152-61439
+
+		config LWIP_TCP_REMOTE_PORT_RANGE_END
+			depends on SLAVE_LWIP_ENABLED
+			int "Host TCP end port"
+			default 61439
+			help
+				Host side TCP end port. Slave defaults to 65535
+				Slave range: 61440-65535
+				Host range: 49152-61439
+
+		config LWIP_UDP_REMOTE_PORT_RANGE_START
+			depends on SLAVE_LWIP_ENABLED
+			int "Host UDP start port"
+			default 49152
+			help
+				Host side UDP start port. Slave defaults to 61440
+				Slave range: 61440-65535
+				Host range: 49152-61439
+
+		config LWIP_UDP_REMOTE_PORT_RANGE_END
+			depends on SLAVE_LWIP_ENABLED
+			int "Host UDP end port"
+			default 61439
+			help
+				Host side UDP end port. Slave defaults to 65535
+				Slave range: 61440-65535
+				Host range: 49152-61439
+	endmenu
+
+	choice
+		prompt "Destination LWIP for unfiltered packet"
+		default ESP_DEFAULT_LWIP_SLAVE
+		help
+			Packets having destination port within 'remote' port range are forwarded to host. Rest unfiltered packets, are to be sent to this LWIP. Please note:
+			(1) These settings are only for IP packets, yet.
+			(2) Extra filtering may be in effect to respond some packets locally by slave LWIP.
+
+		config ESP_DEFAULT_LWIP_SLAVE
+			bool "Send packet to slave LWIP"
+
+		config ESP_DEFAULT_LWIP_HOST
+			bool "Send packet to host LWIP"
+
+		config ESP_DEFAULT_LWIP_BOTH
+			bool "Send packet to both LWIPs"
+	endchoice
+
+	config SLAVE_CONTROLS_HOST
+		bool "Slave controls host startup"
+		default y
+
+	config HOST_DEEP_SLEEP_ALLOWED
+		depends on SLAVE_CONTROLS_HOST
+		bool "Host deep sleep allowed"
+		default y
+
+	menu "Host deep sleep config"
+		depends on HOST_DEEP_SLEEP_ALLOWED
+
+		config HOST_WAKEUP_GPIO
+			int "Host wakeup GPIO"
+			default 2 if IDF_TARGET_ESP32C6
+			default -1
+	endmenu
+
+	menu "MQTT client config"
+
+	    config BROKER_URL
+	        string "Broker URL"
+	        default "mqtt://mqtt.eclipseprojects.io"
+	        help
+	            URL of the broker to connect to
+
+	    config BROKER_URL_FROM_STDIN
+	        bool
+	        default y if BROKER_URL = "FROM_STDIN"
+
+	endmenu
+endmenu

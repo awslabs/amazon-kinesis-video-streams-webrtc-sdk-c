@@ -1,0 +1,8 @@
+---
+commitizen:
+  bump_message: 'bump(wifi_remote): $current_version -> $new_version'
+  pre_bump_hooks: python ../../ci/changelog.py esp_wifi_remote
+  tag_format: wifi_remote-v$version
+  version: 0.2.3
+  version_files:
+  - idf_component.yml

@@ -1,0 +1,8 @@
+## IDF Component Manager Manifest File
+dependencies:
+  ## Required IDF version
+  idf:
+    version: '>=5.3'
+  espressif/esp_wifi_remote:
+    version: "*"
+    override_path: ../../..

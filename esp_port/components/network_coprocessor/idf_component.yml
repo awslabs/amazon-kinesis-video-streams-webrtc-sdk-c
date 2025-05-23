@@ -1,0 +1,7 @@
+description: Network Coprocessor
+version: "0.8.0"
+
+dependencies:
+  esp_webrtc_utils:
+    path: ../esp_webrtc_utils
+    version: "*"

@@ -1,0 +1,74 @@
+choice ESP_WIFI_REMOTE_LIBRARY
+    prompt "Choose WiFi-remote implementation"
+    default ESP_WIFI_REMOTE_LIBRARY_EPPP
+    help
+        Select type of WiFi Remote implementation
+
+        ESP-HOSTED is the default and most versatile option.
+        It's also possible to use EPPP, which uses PPPoS link between micros and NAPT, so it's slower
+        and less universal.
+
+    config ESP_WIFI_REMOTE_LIBRARY_HOSTED
+        bool "ESP-HOSTED"
+    config ESP_WIFI_REMOTE_LIBRARY_EPPP
+        bool "EPPP"
+endchoice
+
+    if ESP_WIFI_REMOTE_LIBRARY_EPPP
+
+        config ESP_WIFI_REMOTE_EPPP_UART_TX_PIN
+            int "TXD Pin Number"
+            default 10
+            range 0 31
+            help
+                Pin number of UART TX.
+
+        config ESP_WIFI_REMOTE_EPPP_UART_RX_PIN
+            int "RXD Pin Number"
+            default 11
+            range 0 31
+            help
+                Pin number of UART RX.
+
+        config ESP_WIFI_REMOTE_EPPP_NETIF_PRIORITY
+            int "Routing priority of eppp netif"
+            default 100
+            range 0 256
+            help
+                Set the priority of the wifi-remote netif.
+                The bigger the number the higher the priority.
+                The interface which is up and with the highest priority will act as a default GW.
+
+        config ESP_WIFI_REMOTE_EPPP_NETIF_DESCRIPTION
+            string "eppp network interface description"
+            default "example_netif_sta"
+            help
+                Textual description of the wifi remote network interface.
+                By default it is set to "example_netif_sta" to be used in IDF protocol example
+                as default wifi station substitution.
+
+        config ESP_WIFI_REMOTE_EPPP_SERVER_CA
+            string "Servers CA certificate"
+            default "--- Please copy content of the CA certificate ---"
+
+        config ESP_WIFI_REMOTE_EPPP_CLIENT_CRT
+            string "Client certificate"
+            default "--- Please copy content of the Client certificate ---"
+
+        config ESP_WIFI_REMOTE_EPPP_CLIENT_KEY
+            string "Client key"
+            default "--- Please copy content of the Client key ---"
+
+        config ESP_WIFI_REMOTE_EPPP_CLIENT_CA
+            string "Clients CA certificate"
+            default "--- Please copy content of the CA certificate ---"
+
+        config ESP_WIFI_REMOTE_EPPP_SERVER_CRT
+            string "Server certificate"
+            default "--- Please copy content of the Client certificate ---"
+
+        config ESP_WIFI_REMOTE_EPPP_SERVER_KEY
+            string "Server key"
+            default "--- Please copy content of the Client key ---"
+
+    endif
