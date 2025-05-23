@@ -1,0 +1,36 @@
+dependencies:
+  espressif/esp32-camera:
+    version: ^2.0.2
+    rules:
+      - if: "target not in [esp32p4]"
+
+  espressif/esp_video:
+    version: "*"
+    rules:
+      - if: "target in [esp32p4]"
+
+  espressif/esp_h264:
+    public: true
+    version: "*"
+    rules:
+      - if: "target in [esp32p4, esp32s3]"
+
+  espressif/esp_audio_codec:
+    version: "*"
+
+  espressif/esp_codec_dev:
+    version: "*"
+
+  # local components
+  esp32_p4_function_ev_board:
+    path: ../esp32_p4_function_ev_board
+    version: "*"
+    rules:
+      - if: "target in [esp32p4]"
+
+  esp_webrtc_utils:
+    path: ../esp_webrtc_utils
+    version: "*"
+
+description: Media stream component
+version: "0.1.0"
