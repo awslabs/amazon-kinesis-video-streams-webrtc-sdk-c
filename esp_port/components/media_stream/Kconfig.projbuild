@@ -1,0 +1,269 @@
+menu "Media Stream Configuration"
+    menu "Video Interface"
+        config USE_ESP_VIDEO_IF
+            bool "Use ESP Video Interface"
+            default y if IDF_TARGET_ESP32P4
+            help
+                Use ESP Video Interface for video capture.
+
+        config ESP_VIDEO_IF_HOR_FLIP
+            bool "Horizontal Flip"
+            default y
+            depends on USE_ESP_VIDEO_IF
+            help
+                Flip the image horizontally.
+    endmenu
+
+    menu "Camera Configuration"
+        choice CAMERA_MODULE
+            bool "Select Camera Pinout"
+            default CAMERA_MODULE_ESP_S3_EYE if IDF_TARGET_ESP32S3
+            default CAMERA_MODULE_WROVER_KIT if IDF_TARGET_ESP32
+            help
+                Select Camera Pinout.
+
+            config CAMERA_MODULE_WROVER_KIT
+                bool "WROVER-KIT With OV2640 Module"
+            config CAMERA_MODULE_ESP_EYE
+                bool "ESP-EYE DevKit"
+            config CAMERA_MODULE_ESP_S2_KALUGA
+                bool "ESP32-S2-Kaluga-1 V1.3"
+            config CAMERA_MODULE_ESP_S3_EYE
+                bool "ESP-S3-EYE DevKit"
+            config CAMERA_MODULE_ESP32_CAM_BOARD
+                bool "ESP32 Camera Development Board"
+            config CAMERA_MODULE_M5STACK_PSRAM
+                bool "M5Stack Camera With PSRAM"
+            config CAMERA_MODULE_M5STACK_WIDE
+                bool "M5Stack Camera F (Wide)"
+            config CAMERA_MODULE_AI_THINKER
+                bool "ESP32-CAM by AI-Thinker"
+            config CAMERA_MODULE_CUSTOM
+                bool "Custom Camera Pinout"
+        endchoice
+
+        config CAMERA_PIN_PWDN
+            depends on CAMERA_MODULE_CUSTOM
+            int "Power Down pin"
+            range -1 33
+            default -1
+            help
+                Select Power Down pin or -1 for unmanaged.
+
+        config CAMERA_PIN_RESET
+            depends on CAMERA_MODULE_CUSTOM
+            int "Reset pin"
+            range -1 33
+            default -1
+            help
+                Select Camera Reset pin or -1 for software reset.
+
+        config CAMERA_PIN_XCLK
+            depends on CAMERA_MODULE_CUSTOM
+            int "XCLK pin"
+            range 0 33
+            default 21
+            help
+                Select Camera XCLK pin.
+
+        config CAMERA_PIN_SIOD
+            depends on CAMERA_MODULE_CUSTOM
+            int "SIOD pin"
+            range 0 33
+            default 26
+            help
+                Select Camera SIOD pin.
+
+        config CAMERA_PIN_SIOC
+            depends on CAMERA_MODULE_CUSTOM
+            int "SIOC pin"
+            range 0 33
+            default 27
+            help
+                Select Camera SIOC pin.
+
+        config CAMERA_PIN_VSYNC
+            depends on CAMERA_MODULE_CUSTOM
+            int "VSYNC pin"
+            range 0 39
+            default 25
+            help
+                Select Camera VSYNC pin.
+
+        config CAMERA_PIN_HREF
+            depends on CAMERA_MODULE_CUSTOM
+            int "HREF pin"
+            range 0 39
+            default 23
+            help
+                Select Camera HREF pin.
+
+        config CAMERA_PIN_PCLK
+            depends on CAMERA_MODULE_CUSTOM
+            int "PCLK pin"
+            range 0 39
+            default 25
+            help
+                Select Camera PCLK pin.
+
+        config CAMERA_PIN_Y2
+            depends on CAMERA_MODULE_CUSTOM
+            int "Y2 pin"
+            range 0 39
+            default 4
+            help
+                Select Camera Y2 pin.
+
+        config CAMERA_PIN_Y3
+            depends on CAMERA_MODULE_CUSTOM
+            int "Y3 pin"
+            range 0 39
+            default 5
+            help
+                Select Camera Y3 pin.
+
+        config CAMERA_PIN_Y4
+            depends on CAMERA_MODULE_CUSTOM
+            int "Y4 pin"
+            range 0 39
+            default 18
+            help
+                Select Camera Y4 pin.
+
+        config CAMERA_PIN_Y5
+            depends on CAMERA_MODULE_CUSTOM
+            int "Y5 pin"
+            range 0 39
+            default 19
+            help
+                Select Camera Y5 pin.
+
+        config CAMERA_PIN_Y6
+            depends on CAMERA_MODULE_CUSTOM
+            int "Y6 pin"
+            range 0 39
+            default 36
+            help
+                Select Camera Y6 pin.
+
+        config CAMERA_PIN_Y7
+            depends on CAMERA_MODULE_CUSTOM
+            int "Y7 pin"
+            range 0 39
+            default 39
+            help
+                Select Camera Y7 pin.
+
+        config CAMERA_PIN_Y8
+            depends on CAMERA_MODULE_CUSTOM
+            int "Y8 pin"
+            range 0 39
+            default 34
+            help
+                Select Camera Y8 pin.
+
+        config CAMERA_PIN_Y9
+            depends on CAMERA_MODULE_CUSTOM
+            int "Y9 pin"
+            range 0 39
+            default 35
+            help
+                Select Camera Y9 pin.
+    endmenu
+
+    menu "Audio Configuration"
+        config AUDIO_SAMPLE_RATE
+            int "Audio Sample Rate"
+            range 8000 48000
+            default 48000
+            help
+                Audio sample rate in Hz.
+
+        config AUDIO_CHANNELS
+            int "Number of Audio Channels"
+            range 1 2
+            default 1
+            help
+                Number of audio channels (1=mono, 2=stereo).
+
+        config AUDIO_BIT_DEPTH
+            int "Audio Bit Depth"
+            range 8 32
+            default 16
+            help
+                Audio bit depth in bits.
+
+        config AUDIO_BITRATE
+            int "Audio Bitrate"
+            range 8000 128000
+            default 64000
+            help
+                Audio bitrate in bits per second.
+    endmenu
+
+    menu "Buffer and Tasks Configuration"
+        config VIDEO_FRAME_QUEUE_SIZE
+            int "Video Frame Queue Size"
+            range 1 10
+            default 3
+            help
+                Maximum number of video frames that can be queued for processing.
+
+        config AUDIO_FRAME_QUEUE_SIZE
+            int "Audio Frame Queue Size"
+            range 1 20
+            default 10
+            help
+                Maximum number of audio frames that can be queued for processing.
+
+        config VIDEO_QUEUE_RECEIVE_WAIT_MS
+            int "Video Queue Receive Wait Time (ms)"
+            range 10 100
+            default 20
+            help
+                Maximum time to wait when receiving a frame from the video queue.
+
+        config VIDEO_QUEUE_SEND_WAIT_MS
+            int "Video Queue Send Wait Time (ms)"
+            range 50 500
+            default 100
+            help
+                Maximum time to wait when sending a frame to the video queue.
+
+        config AUDIO_QUEUE_WAIT_MS
+            int "Audio Queue Wait Time (ms)"
+            range 10 100
+            default 20
+            help
+                Maximum time to wait for audio queue operations.
+
+        config VIDEO_ENCODER_TASK_STACK_SIZE
+            int "Video Encoder Task Stack Size (bytes)"
+            range 4096 32768
+            default 12288 if IDF_TARGET_ESP32S3
+            default 8192
+            help
+                Stack size for the video encoder task.
+
+        config AUDIO_ENCODER_TASK_STACK_SIZE
+            int "Audio Encoder Task Stack Size (bytes)"
+            range 4096 32768
+            default 24576
+            help
+                Stack size for the audio encoder task.
+
+        config VIDEO_ENCODER_TASK_PRIORITY
+            int "Video Encoder Task Priority"
+            range 1 10
+            default 4
+            help
+                Priority of the video encoder task (higher number = higher priority).
+
+        config AUDIO_ENCODER_TASK_PRIORITY
+            int "Audio Encoder Task Priority"
+            range 1 10
+            default 4
+            help
+                Priority of the audio encoder task (higher number = higher priority).
+    endmenu
+endmenu
