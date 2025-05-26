@@ -1,0 +1,6 @@
+description: signaling_serializer
+version: "0.0.1"
+
+dependencies:
+  espressif/jsmn:
+    version: "*"
