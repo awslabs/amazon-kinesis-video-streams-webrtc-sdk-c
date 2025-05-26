@@ -19,3 +19,7 @@ dependencies:
     path: ../../components/media_stream
     version: "*"
     public: true
+
+  webrtc_bridge:
+    path: ../../components/webrtc_bridge
+    version: "*"
