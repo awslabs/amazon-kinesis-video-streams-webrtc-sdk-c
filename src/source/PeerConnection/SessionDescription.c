@@ -9,6 +9,8 @@ STATUS serializeSessionDescriptionInit(PRtcSessionDescriptionInit pSessionDescri
     PCHAR curr, tail, next;
     UINT32 lineLen, inputSize = 0, amountWritten;
 
+    // NOTE: sessionDescriptionJSON can be NULL. In this case, no writing is actually done,
+    // but the size that it would have written is returned.
     CHK(pSessionDescriptionInit != NULL && sessionDescriptionJSONLen != NULL, STATUS_NULL_ARG);
 
     inputSize = *sessionDescriptionJSONLen;
@@ -30,21 +32,29 @@ STATUS serializeSessionDescriptionInit(PRtcSessionDescriptionInit pSessionDescri
             lineLen--;
         }
 
-        amountWritten =
-            SNPRINTF(sessionDescriptionJSON + *sessionDescriptionJSONLen, sessionDescriptionJSON == NULL ? 0 : inputSize - *sessionDescriptionJSONLen,
-                     "%*.*s%s", lineLen, lineLen, curr, SESSION_DESCRIPTION_INIT_LINE_ENDING);
+        if (sessionDescriptionJSON == NULL) {
+            amountWritten = SNPRINTF(NULL, 0, "%*.*s%s", lineLen, lineLen, curr, SESSION_DESCRIPTION_INIT_LINE_ENDING);
+        } else {
+            amountWritten = SNPRINTF(sessionDescriptionJSON + *sessionDescriptionJSONLen, inputSize - *sessionDescriptionJSONLen, "%*.*s%s", lineLen,
+                                     lineLen, curr, SESSION_DESCRIPTION_INIT_LINE_ENDING);
+        }
         CHK(sessionDescriptionJSON == NULL || ((inputSize - *sessionDescriptionJSONLen) >= amountWritten), STATUS_BUFFER_TOO_SMALL);
 
         *sessionDescriptionJSONLen += amountWritten;
         curr = next + 1;
     }
 
-    amountWritten = SNPRINTF(sessionDescriptionJSON + *sessionDescriptionJSONLen,
-                             sessionDescriptionJSON == NULL ? 0 : inputSize - *sessionDescriptionJSONLen, SESSION_DESCRIPTION_INIT_TEMPLATE_TAIL);
+    if (sessionDescriptionJSON == NULL) {
+        amountWritten = SNPRINTF(NULL, 0, SESSION_DESCRIPTION_INIT_TEMPLATE_TAIL);
+    } else {
+        amountWritten = SNPRINTF(sessionDescriptionJSON + *sessionDescriptionJSONLen, inputSize - *sessionDescriptionJSONLen,
+                                 SESSION_DESCRIPTION_INIT_TEMPLATE_TAIL);
+    }
     CHK(sessionDescriptionJSON == NULL || ((inputSize - *sessionDescriptionJSONLen) >= amountWritten), STATUS_BUFFER_TOO_SMALL);
     *sessionDescriptionJSONLen += (amountWritten + 1); // NULL terminator
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
