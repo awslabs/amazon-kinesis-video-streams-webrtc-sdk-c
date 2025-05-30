@@ -1,0 +1,77 @@
+@startuml
+skinparam roundCorner 20
+skinparam BoxPadding 50
+
+actor Client #Green
+
+participant SignallingServer [
+    = Signalling
+    = Server
+]
+
+participant StunTurn [
+   = STUN/TURN
+   = Server
+]
+
+box "<font size = 20><b><i>Camera Device</i>" #LightBlue
+
+participant Streamer [
+    = Main
+    = Processor
+]
+
+participant Communicator [
+    = Network
+    = Coprocessor
+]
+end box
+
+== 1. Call Initialisation ==
+
+note over Client
+   Client Initiates the call
+end note
+
+Client -> SignallingServer: SDP Offer (Streaming Request)
+SignallingServer -> Streamer: SDP Offer (Streaming Request)
+
+note over Streamer
+   Handles Signalling
+      and Streaming
+end note
+Activate Streamer #LightGreen
+
+Streamer -> Streamer: Initialization
+Streamer -> SignallingServer: SDP Answer (Accept the connection)
+SignallingServer -> Client: SDP Answer (Accept the connection)
+
+== 2. STUN/TURN and CandidateGeneration ==
+Client -> Client: LocalCandidate
+Client -> StunTurn: RequestCandidates
+StunTurn -> Client: Reflex/Relay candidates
+
+Streamer -> Streamer: LocalCandidate
+Streamer -> StunTurn: RequestCandidates
+StunTurn -> Streamer: Reflex/Relay candidates
+
+== 3. ICE Negotiation ==
+
+Client -> SignallingServer : ICE candidates
+SignallingServer -> Streamer : ICE candidates
+Streamer -> SignallingServer: ICE candidates
+SignallingServer -> Client: ICE candidates
+
+Client -> Client: Candidate selection
+Streamer -> Streamer: Candidate selection
+
+|||
+
+== 4. RTP Stream ==
+Client <--> Streamer: Video/Audio/Data over DTLS
+
+Client -> Streamer: Call End
+
+Deactivate Streamer
+
+@enduml

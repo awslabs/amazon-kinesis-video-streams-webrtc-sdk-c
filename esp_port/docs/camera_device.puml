@@ -1,0 +1,92 @@
+@startuml
+skinparam roundCorner 20
+skinparam BoxPadding 50
+
+actor Client #Green
+
+participant KVS [
+    = Kinesis Video
+    = Streams Service
+]
+
+participant StunTurn [
+   = STUN/TURN
+   = Server
+]
+
+box "<font size = 20><b><i>Camera Device</i>" #LightBlue
+
+participant Streamer [
+    = WebRTC Engine
+    = (Network & Media)
+]
+
+participant Camera [
+    = Camera
+    = Hardware
+]
+end box
+
+== 1. Initialization ==
+Client -> KVS: Create signaling channel
+note over Streamer
+  Device boots up and
+  initializes WebRTC engine
+end note
+Streamer -> Camera: Initialize camera hardware
+Streamer -> Streamer: Initialize network stack
+Streamer -> Streamer: Initialize WebRTC components
+
+== 2. KVS Signaling Connection ==
+Streamer -> KVS: Get IoT credentials
+KVS --> Streamer: Return access token
+Streamer -> KVS: Describe channel
+KVS --> Streamer: Channel info (Ingestion/Viewer)
+Streamer -> KVS: Get channel endpoint
+KVS --> Streamer: WSS and HTTPS endpoints
+Streamer -> KVS: Get ICE server configuration
+KVS --> Streamer: TURN server credentials
+Streamer -> KVS: Connect to signaling channel (WSS)
+KVS --> Streamer: Connection established
+note over Streamer: WSS ping-pong heartbeat starts
+
+== 3. Call Initiation ==
+Client -> KVS: Initiate call (SDP Offer)
+KVS -> Streamer: Forward SDP Offer
+Streamer -> Streamer: Process SDP Offer
+Streamer -> Camera: Configure media settings
+Streamer -> KVS: Send SDP Answer
+KVS -> Client: Forward SDP Answer
+
+== 4. ICE Connection Setup ==
+Streamer -> Streamer: Generate local ICE candidates
+Client -> Client: Generate local ICE candidates
+Streamer <--> StunTurn: Gather reflexive/relay candidates
+Client <--> StunTurn: Gather reflexive/relay candidates
+Streamer -> KVS: Send ICE candidates
+KVS -> Client: Forward ICE candidates
+Client -> KVS: Send ICE candidates
+KVS -> Streamer: Forward ICE candidates
+Streamer -> Streamer: ICE connectivity checks
+Client -> Client: ICE connectivity checks
+note over Streamer, Client: ICE connection established
+
+== 5. Media Streaming ==
+activate Camera
+Streamer -> Camera: Start capture
+Camera --> Streamer: Video frames
+Streamer -> Streamer: Encode media
+Streamer -> Client: RTP/SRTP packets over DTLS
+note over Client: Media playback starts
+Client -> Streamer: RTCP feedback
+
+== 6. Termination ==
+Client -> KVS: End call signal
+KVS -> Streamer: Forward end call
+Streamer -> Camera: Stop capture
+deactivate Camera
+Streamer -> Client: Close media connections
+Streamer -> KVS: Close signaling connection
+note over Streamer: Return to idle state
+
+@enduml
