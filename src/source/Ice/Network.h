@@ -26,12 +26,13 @@ extern "C" {
 #define IPV6_TEMPLATE "%04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x"
 
 #if defined(__MACH__)
-#define NO_SIGNAL SO_NOSIGPIPE
+#define NO_SIGNAL_SOCK_OPT SO_NOSIGPIPE
+#define NO_SIGNAL_SEND     0
 #else
-#define NO_SIGNAL MSG_NOSIGNAL
+#define NO_SIGNAL_SEND MSG_NOSIGNAL
 #endif
 
-// Some systems such as Windows doesn't have this value
+// Some systems, such as Windows, do not have this value
 #ifndef EAI_SYSTEM
 #define EAI_SYSTEM -11
 #endif

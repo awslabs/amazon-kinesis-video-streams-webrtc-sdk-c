@@ -35,48 +35,51 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
     CHK(retWinStatus == ERROR_SUCCESS, STATUS_GET_LOCAL_IP_ADDRESSES_FAILED);
 
     for (aa = adapterAddresses; aa != NULL && ipCount < destIpListLen; aa = aa->Next) {
-        char ifa_name[BUFSIZ];
-        memset(ifa_name, 0, BUFSIZ);
-        WideCharToMultiByte(CP_ACP, 0, aa->FriendlyName, wcslen(aa->FriendlyName), ifa_name, BUFSIZ, NULL, NULL);
+        // Skip inactive interfaces and loop back interfaces
+        if (aa->OperStatus == IfOperStatusUp && aa->IfType != IF_TYPE_SOFTWARE_LOOPBACK) {
+            char ifa_name[BUFSIZ];
+            memset(ifa_name, 0, BUFSIZ);
+            WideCharToMultiByte(CP_ACP, 0, aa->FriendlyName, wcslen(aa->FriendlyName), ifa_name, BUFSIZ, NULL, NULL);
 
-        for (ua = aa->FirstUnicastAddress; ua != NULL; ua = ua->Next) {
-            if (filter != NULL) {
-                DLOGI("Callback set to allow network interface filtering");
-                // The callback evaluates to a FALSE if the application is interested in black listing an interface
-                if (filter(customData, ifa_name) == FALSE) {
-                    filterSet = FALSE;
-                } else {
-                    filterSet = TRUE;
-                }
-            }
-
-            // If filter is set, ensure the details are collected for the interface
-            if (filterSet == TRUE) {
-                int family = ua->Address.lpSockaddr->sa_family;
-
-                if (family == AF_INET) {
-                    destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV4;
-                    destIpList[ipCount].port = 0;
-
-                    pIpv4Addr = (struct sockaddr_in*) (ua->Address.lpSockaddr);
-                    MEMCPY(destIpList[ipCount].address, &pIpv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
-                } else {
-                    destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV6;
-                    destIpList[ipCount].port = 0;
-
-                    pIpv6Addr = (struct sockaddr_in6*) (ua->Address.lpSockaddr);
-                    // Ignore unspecified addres: the other peer can't use this address
-                    // Ignore link local: not very useful and will add work unnecessarily
-                    // Ignore site local: https://tools.ietf.org/html/rfc8445#section-5.1.1.1
-                    if (IN6_IS_ADDR_UNSPECIFIED(&pIpv6Addr->sin6_addr) || IN6_IS_ADDR_LINKLOCAL(&pIpv6Addr->sin6_addr) ||
-                        IN6_IS_ADDR_SITELOCAL(&pIpv6Addr->sin6_addr)) {
-                        continue;
+            for (ua = aa->FirstUnicastAddress; ua != NULL; ua = ua->Next) {
+                if (filter != NULL) {
+                    DLOGI("Callback set to allow network interface filtering");
+                    // The callback evaluates to a FALSE if the application is interested in black listing an interface
+                    if (filter(customData, ifa_name) == FALSE) {
+                        filterSet = FALSE;
+                    } else {
+                        filterSet = TRUE;
                     }
-                    MEMCPY(destIpList[ipCount].address, &pIpv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
                 }
 
-                // in case of overfilling destIpList
-                ipCount++;
+                // If filter is set, ensure the details are collected for the interface
+                if (filterSet == TRUE) {
+                    int family = ua->Address.lpSockaddr->sa_family;
+
+                    if (family == AF_INET) {
+                        destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV4;
+                        destIpList[ipCount].port = 0;
+
+                        pIpv4Addr = (struct sockaddr_in*) (ua->Address.lpSockaddr);
+                        MEMCPY(destIpList[ipCount].address, &pIpv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
+                    } else {
+                        destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV6;
+                        destIpList[ipCount].port = 0;
+
+                        pIpv6Addr = (struct sockaddr_in6*) (ua->Address.lpSockaddr);
+                        // Ignore unspecified addres: the other peer can't use this address
+                        // Ignore link local: not very useful and will add work unnecessarily
+                        // Ignore site local: https://tools.ietf.org/html/rfc8445#section-5.1.1.1
+                        if (IN6_IS_ADDR_UNSPECIFIED(&pIpv6Addr->sin6_addr) || IN6_IS_ADDR_LINKLOCAL(&pIpv6Addr->sin6_addr) ||
+                            IN6_IS_ADDR_SITELOCAL(&pIpv6Addr->sin6_addr)) {
+                            continue;
+                        }
+                        MEMCPY(destIpList[ipCount].address, &pIpv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
+                    }
+
+                    // in case of overfilling destIpList
+                    ipCount++;
+                }
             }
         }
     }
@@ -174,16 +177,17 @@ STATUS createSocket(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol,
     sockType = protocol == KVS_SOCKET_PROTOCOL_UDP ? SOCK_DGRAM : SOCK_STREAM;
 
     sockfd = socket(familyType == KVS_IP_FAMILY_TYPE_IPV4 ? AF_INET : AF_INET6, sockType, 0);
+
     if (sockfd == -1) {
         DLOGW("socket() failed to create socket with errno %s", getErrorString(getErrorCode()));
         CHK(FALSE, STATUS_CREATE_UDP_SOCKET_FAILED);
     }
-
+#ifdef NO_SIGNAL_SOCK_OPT
     optionValue = 1;
-    if (setsockopt(sockfd, SOL_SOCKET, NO_SIGNAL, &optionValue, SIZEOF(optionValue)) < 0) {
-        DLOGD("setsockopt() NO_SIGNAL failed with errno %s", getErrorString(getErrorCode()));
+    if (setsockopt(sockfd, SOL_SOCKET, NO_SIGNAL_SOCK_OPT, &optionValue, SIZEOF(optionValue)) < 0) {
+        DLOGD("setsockopt() NO_SIGNAL_SOCK_OPT failed with errno %s", getErrorString(getErrorCode()));
     }
-
+#endif /* NO_SIGNAL_SOCK_OPT */
     if (sendBufSize > 0 && setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &sendBufSize, SIZEOF(sendBufSize)) < 0) {
         DLOGW("setsockopt() SO_SNDBUF failed with errno %s", getErrorString(getErrorCode()));
         CHK(FALSE, STATUS_SOCKET_SET_SEND_BUFFER_SIZE_FAILED);
@@ -402,7 +406,6 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
     struct in_addr inaddr;
 
     CHAR addr[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
-    CHAR addressResolved[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
 
     CHK(hostname != NULL, STATUS_NULL_ARG);
     DLOGI("ICE SERVER Hostname received: %s", hostname);
@@ -442,12 +445,9 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
         }
         freeaddrinfo(res);
         CHK_ERR(resolved, STATUS_HOSTNAME_NOT_FOUND, "Could not find network address of %s", hostname);
-        getIpAddrStr(destIp, addressResolved, ARRAY_SIZE(addressResolved));
-        DLOGP("ICE Server address for %s with getaddrinfo: %s", hostname, addressResolved);
     }
 
     else {
-        DLOGP("ICE Server address for %s: %s", hostname, addr);
         inet_pton(AF_INET, addr, &inaddr);
         destIp->family = KVS_IP_FAMILY_TYPE_IPV4;
         MEMCPY(destIp->address, &inaddr, IPV4_ADDRESS_LENGTH);

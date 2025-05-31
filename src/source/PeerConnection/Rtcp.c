@@ -1,17 +1,71 @@
 #define LOG_CLASS "RtcRtcp"
 
 #include "../Include_i.h"
+#include "kvsrtcp/rtcp_api.h"
+
+static RtcpPacketType_t getDetailedRtcpPacketType(uint8_t packetType, uint8_t receptionReportCount)
+{
+    RtcpPacketType_t result = RTCP_PACKET_UNKNOWN;
+
+    switch (packetType) {
+        case RTCP_PACKET_TYPE_FIR:
+            if (receptionReportCount == 0) {
+                result = RTCP_PACKET_FIR;
+            }
+            break;
+        case RTCP_PACKET_TYPE_SENDER_REPORT:
+            result = RTCP_PACKET_SENDER_REPORT;
+            break;
+        case RTCP_PACKET_TYPE_RECEIVER_REPORT:
+            result = RTCP_PACKET_RECEIVER_REPORT;
+            break;
+        case RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK:
+            if (receptionReportCount == RTCP_FMT_TRANSPORT_SPECIFIC_FEEDBACK_NACK) {
+                result = RTCP_PACKET_TRANSPORT_FEEDBACK_NACK;
+            } else if (receptionReportCount == RTCP_FMT_TRANSPORT_SPECIFIC_FEEDBACK_TWCC) {
+                result = RTCP_PACKET_TRANSPORT_FEEDBACK_TWCC;
+            }
+            break;
+        case RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK:
+            if (receptionReportCount == RTCP_FMT_PAYLOAD_SPECIFIC_FEEDBACK_PLI) {
+                result = RTCP_PACKET_PAYLOAD_FEEDBACK_PLI;
+            } else if (receptionReportCount == RTCP_FMT_PAYLOAD_SPECIFIC_FEEDBACK_SLI) {
+                result = RTCP_PACKET_PAYLOAD_FEEDBACK_SLI;
+            } else if (receptionReportCount == RTCP_FMT_PAYLOAD_SPECIFIC_FEEDBACK_REMB) {
+                result = RTCP_PACKET_PAYLOAD_FEEDBACK_REMB;
+            }
+            break;
+        default:
+            break;
+    }
+
+    return result;
+}
 
 // TODO handle FIR packet https://tools.ietf.org/html/rfc2032#section-5.2.1
 static STATUS onRtcpFIRPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 mediaSSRC;
     PKvsRtpTransceiver pTransceiver = NULL;
+    RtcpContext_t ctx;
+    RtcpResult_t rtcpResult;
+    RtcpPacket_t rtcpPacket;
+    RtcpFirPacket_t firPacket;
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
-    mediaSSRC = getUnalignedInt32BigEndian((pRtcpPacket->payload + (SIZEOF(UINT32))));
-    if (STATUS_SUCCEEDED(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, mediaSSRC))) {
+
+    rtcpResult = Rtcp_Init(&ctx);
+    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
+
+    rtcpPacket.header.packetType = getDetailedRtcpPacketType(pRtcpPacket->header.packetType, pRtcpPacket->header.receptionReportCount);
+    rtcpPacket.header.receptionReportCount = pRtcpPacket->header.receptionReportCount;
+    rtcpPacket.pPayload = (const PBYTE) pRtcpPacket->payload;
+    rtcpPacket.payloadLength = (size_t) pRtcpPacket->payloadLength;
+
+    rtcpResult = Rtcp_ParseFirPacket(&ctx, &rtcpPacket, &firPacket);
+    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
+
+    if (STATUS_SUCCEEDED(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, firPacket.senderSsrc))) {
         MUTEX_LOCK(pTransceiver->statsLock);
         pTransceiver->outboundStats.firCount++;
         MUTEX_UNLOCK(pTransceiver->statsLock);
@@ -19,7 +73,7 @@ static STATUS onRtcpFIRPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPe
             pTransceiver->onPictureLoss(pTransceiver->onPictureLossCustomData);
         }
     } else {
-        DLOGW("Received FIR for non existing ssrc: %u", mediaSSRC);
+        DLOGW("Received FIR for non existing ssrc: %u", firPacket.senderSsrc);
     }
 
 CleanUp:
@@ -28,24 +82,49 @@ CleanUp:
 }
 
 // TODO handle SLI packet https://tools.ietf.org/html/rfc4585#section-6.3.2
-static STATUS onRtcpSLIPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
+STATUS onRtcpSLIPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 mediaSSRC;
+    UINT32 noSliInfo;
     PKvsRtpTransceiver pTransceiver = NULL;
+    RtcpContext_t ctx;
+    RtcpResult_t rtcpResult;
+    RtcpPacket_t rtcpPacket;
+    RtcpSliPacket_t sliPacket = {0};
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
-    mediaSSRC = getUnalignedInt32BigEndian((pRtcpPacket->payload + (SIZEOF(UINT32))));
-    if (STATUS_SUCCEEDED(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, mediaSSRC))) {
+
+    rtcpResult = Rtcp_Init(&ctx);
+    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
+
+    rtcpPacket.header.packetType = getDetailedRtcpPacketType(pRtcpPacket->header.packetType, pRtcpPacket->header.receptionReportCount);
+    rtcpPacket.header.receptionReportCount = pRtcpPacket->header.receptionReportCount;
+    rtcpPacket.pPayload = (const PBYTE) pRtcpPacket->payload;
+    rtcpPacket.payloadLength = (size_t) pRtcpPacket->payloadLength;
+
+    noSliInfo = (UINT32) ((rtcpPacket.payloadLength - SIZEOF(sliPacket.senderSsrc - SIZEOF(sliPacket.mediaSourceSsrc))) / 4);
+    if (noSliInfo > 0) {
+        sliPacket.numSliInfos = noSliInfo;
+        sliPacket.pSliInfos = MEMALLOC(noSliInfo * SIZEOF(UINT32));
+    }
+
+    rtcpResult = Rtcp_ParseSliPacket(&ctx, &rtcpPacket, &sliPacket);
+    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
+
+    if (STATUS_SUCCEEDED(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, sliPacket.mediaSourceSsrc))) {
         MUTEX_LOCK(pTransceiver->statsLock);
         pTransceiver->outboundStats.sliCount++;
         MUTEX_UNLOCK(pTransceiver->statsLock);
     } else {
-        DLOGW("Received SLI for non existing ssrc: %u", mediaSSRC);
+        DLOGW("Received SLI for non existing ssrc: %u", sliPacket.mediaSourceSsrc);
     }
 
 CleanUp:
 
+    if (sliPacket.pSliInfos != NULL) {
+        MEMFREE(sliPacket.pSliInfos);
+        sliPacket.pSliInfos = NULL;
+    }
     return retStatus;
 }
 
@@ -55,6 +134,10 @@ static STATUS onRtcpSenderReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKv
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 senderSSRC;
     PKvsRtpTransceiver pTransceiver = NULL;
+    RtcpContext_t ctx;
+    RtcpResult_t rtcpResult;
+    RtcpPacket_t rtcpPacket;
+    RtcpSenderReport_t senderReport;
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
 
@@ -63,12 +146,23 @@ static STATUS onRtcpSenderReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKv
         return STATUS_SUCCESS;
     }
 
-    senderSSRC = getUnalignedInt32BigEndian(pRtcpPacket->payload);
+    rtcpResult = Rtcp_Init(&ctx);
+    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
+
+    rtcpPacket.pPayload = (const PBYTE) pRtcpPacket->payload;
+    rtcpPacket.payloadLength = (size_t) pRtcpPacket->payloadLength;
+    rtcpPacket.header.packetType = getDetailedRtcpPacketType(pRtcpPacket->header.packetType, pRtcpPacket->header.receptionReportCount);
+    rtcpPacket.header.receptionReportCount = pRtcpPacket->header.receptionReportCount;
+
+    rtcpResult = Rtcp_ParseSenderReport(&ctx, &rtcpPacket, &senderReport);
+    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
+
+    senderSSRC = senderReport.senderSsrc;
     if (STATUS_SUCCEEDED(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, senderSSRC))) {
-        UINT64 ntpTime = getUnalignedInt64BigEndian(pRtcpPacket->payload + 4);
-        UINT32 rtpTs = getUnalignedInt32BigEndian(pRtcpPacket->payload + 12);
-        UINT32 packetCnt = getUnalignedInt32BigEndian(pRtcpPacket->payload + 16);
-        UINT32 octetCnt = getUnalignedInt32BigEndian(pRtcpPacket->payload + 20);
+        UINT64 ntpTime = senderReport.senderInfo.ntpTime;
+        UINT32 rtpTs = senderReport.senderInfo.rtpTime;
+        UINT32 packetCnt = senderReport.senderInfo.packetCount;
+        UINT32 octetCnt = senderReport.senderInfo.octetCount;
         DLOGV("RTCP_PACKET_TYPE_SENDER_REPORT %d %" PRIu64 " rtpTs: %u %u pkts %u bytes", senderSSRC, ntpTime, rtpTs, packetCnt, octetCnt);
     } else {
         DLOGW("Received sender report for non existing ssrc: %u", senderSSRC);
@@ -86,6 +180,19 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
     DOUBLE fractionLost;
     UINT32 rttPropDelayMsec = 0, rttPropDelay, delaySinceLastSR, lastSR, interarrivalJitter, extHiSeqNumReceived, cumulativeLost, senderSSRC, ssrc1;
     UINT64 currentTimeNTP = convertTimestampToNTP(GETTIME());
+    RtcpContext_t ctx;
+    RtcpResult_t rtcpResult;
+    RtcpPacket_t rtcpPacket;
+    RtcpReceiverReport_t receiverReport = {0};
+
+    UNUSED_PARAM(rttPropDelayMsec);
+    UNUSED_PARAM(rttPropDelay);
+    UNUSED_PARAM(delaySinceLastSR);
+    UNUSED_PARAM(lastSR);
+    UNUSED_PARAM(interarrivalJitter);
+    UNUSED_PARAM(extHiSeqNumReceived);
+    UNUSED_PARAM(cumulativeLost);
+    UNUSED_PARAM(senderSSRC);
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
     // https://tools.ietf.org/html/rfc3550#section-6.4.2
@@ -94,19 +201,34 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
         return STATUS_SUCCESS;
     }
 
-    senderSSRC = getUnalignedInt32BigEndian(pRtcpPacket->payload);
-    ssrc1 = getUnalignedInt32BigEndian(pRtcpPacket->payload + 4);
+    rtcpResult = Rtcp_Init(&ctx);
+    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
+
+    rtcpPacket.pPayload = (const PBYTE) pRtcpPacket->payload;
+    rtcpPacket.payloadLength = (size_t) pRtcpPacket->payloadLength;
+    rtcpPacket.header.packetType = getDetailedRtcpPacketType(pRtcpPacket->header.packetType, pRtcpPacket->header.receptionReportCount);
+    rtcpPacket.header.receptionReportCount = pRtcpPacket->header.receptionReportCount;
+    receiverReport.numReceptionReports = pRtcpPacket->header.receptionReportCount;
+    if (receiverReport.numReceptionReports > 0) {
+        receiverReport.pReceptionReports = (RtcpReceptionReport_t*) MEMALLOC(rtcpPacket.header.receptionReportCount * sizeof(RtcpReceptionReport_t));
+    }
+
+    rtcpResult = Rtcp_ParseReceiverReport(&ctx, &rtcpPacket, &receiverReport);
+    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
+
+    senderSSRC = receiverReport.senderSsrc;
+    ssrc1 = receiverReport.pReceptionReports->sourceSsrc;
 
     if (STATUS_FAILED(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, ssrc1))) {
         DLOGW("Received receiver report for non existing ssrc: %u", ssrc1);
         return STATUS_SUCCESS; // not really an error ?
     }
-    fractionLost = pRtcpPacket->payload[8] / 255.0;
-    cumulativeLost = ((UINT32) getUnalignedInt32BigEndian(pRtcpPacket->payload + 8)) & 0x00ffffffu;
-    extHiSeqNumReceived = getUnalignedInt32BigEndian(pRtcpPacket->payload + 12);
-    interarrivalJitter = getUnalignedInt32BigEndian(pRtcpPacket->payload + 16);
-    lastSR = getUnalignedInt32BigEndian(pRtcpPacket->payload + 20);
-    delaySinceLastSR = getUnalignedInt32BigEndian(pRtcpPacket->payload + 24);
+    fractionLost = receiverReport.pReceptionReports->fractionLost / 255.0;
+    cumulativeLost = receiverReport.pReceptionReports->cumulativePacketsLost;
+    extHiSeqNumReceived = receiverReport.pReceptionReports->extendedHighestSeqNumReceived;
+    interarrivalJitter = receiverReport.pReceptionReports->interArrivalJitter;
+    lastSR = receiverReport.pReceptionReports->lastSR;
+    delaySinceLastSR = receiverReport.pReceptionReports->delaySinceLastSR;
 
     DLOGS("RTCP_PACKET_TYPE_RECEIVER_REPORT %u %u loss: %u %u seq: %u jit: %u lsr: %u dlsr: %u", senderSSRC, ssrc1, fractionLost, cumulativeLost,
           extHiSeqNumReceived, interarrivalJitter, lastSR, delaySinceLastSR);
@@ -134,6 +256,10 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
 
 CleanUp:
 
+    if (receiverReport.pReceptionReports != NULL) {
+        MEMFREE(receiverReport.pReceptionReports);
+        receiverReport.pReceptionReports = NULL;
+    }
     return retStatus;
 }
 
@@ -176,11 +302,13 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
     UINT32 statuses;
     UINT32 i;
     UINT64 referenceTime;
+    PTwccRtpPacketInfo pTwccPacket = NULL;
+    UINT64 twccPktValue = 0;
     CHK(pTwccManager != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
 
     baseSeqNum = getUnalignedInt16BigEndian(pRtcpPacket->payload + 8);
+    pTwccManager->prevReportedBaseSeqNum = baseSeqNum;
     packetStatusCount = TWCC_PACKET_STATUS_COUNT(pRtcpPacket->payload);
-
     referenceTime = (pRtcpPacket->payload[12] << 16) | (pRtcpPacket->payload[13] << 8) | (pRtcpPacket->payload[14] & 0xff);
     referenceTime = KVS_CONVERT_TIMESCALE(referenceTime * 64, MILLISECONDS_PER_SECOND, HUNDREDS_OF_NANOS_IN_A_SECOND);
     // TODO: handle lost twcc report packets
@@ -196,7 +324,6 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
         }
         chunkOffset += TWCC_FB_PACKETCHUNK_SIZE;
     }
-
     recvOffset = chunkOffset;
     chunkOffset = 16;
     packetSeqNum = baseSeqNum;
@@ -218,7 +345,14 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
                         break;
                     case TWCC_STATUS_SYMBOL_NOTRECEIVED:
                         DLOGS("runLength packetSeqNum %u not received %lu", packetSeqNum, referenceTime);
-                        pTwccManager->twccPacketBySeqNum[packetSeqNum].remoteTimeKvs = TWCC_PACKET_LOST_TIME;
+                        // If it does not exist it means the packet was already visited
+                        if (STATUS_SUCCEEDED(hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, packetSeqNum, &twccPktValue))) {
+                            pTwccPacket = (PTwccRtpPacketInfo) twccPktValue;
+                            if (pTwccPacket != NULL) {
+                                pTwccPacket->remoteTimeKvs = TWCC_PACKET_LOST_TIME;
+                                CHK_STATUS(hashTableUpsert(pTwccManager->pTwccRtpPktInfosHashTable, packetSeqNum, (UINT64) pTwccPacket));
+                            }
+                        }
                         pTwccManager->lastReportedSeqNum = packetSeqNum;
                         break;
                     default:
@@ -227,11 +361,21 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
                 if (recvDelta != MIN_INT16) {
                     referenceTime += KVS_CONVERT_TIMESCALE(recvDelta, TWCC_TICKS_PER_SECOND, HUNDREDS_OF_NANOS_IN_A_SECOND);
                     DLOGS("runLength packetSeqNum %u received %lu", packetSeqNum, referenceTime);
-                    pTwccManager->twccPacketBySeqNum[packetSeqNum].remoteTimeKvs = referenceTime;
+
+                    // If it does not exist it means the packet was already visited
+                    if (STATUS_SUCCEEDED(hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, packetSeqNum, &twccPktValue))) {
+                        pTwccPacket = (PTwccRtpPacketInfo) twccPktValue;
+                        if (pTwccPacket != NULL) {
+                            pTwccPacket->remoteTimeKvs = referenceTime;
+                            CHK_STATUS(hashTableUpsert(pTwccManager->pTwccRtpPktInfosHashTable, packetSeqNum, (UINT64) pTwccPacket));
+                        }
+                    }
                     pTwccManager->lastReportedSeqNum = packetSeqNum;
                 }
                 packetSeqNum++;
                 packetsRemaining--;
+                // Reset to NULL before next iteration
+                pTwccPacket = NULL;
             }
         } else {
             statuses = MIN(TWCC_STATUSVECTOR_COUNT(packetChunk), packetsRemaining);
@@ -250,7 +394,14 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
                         break;
                     case TWCC_STATUS_SYMBOL_NOTRECEIVED:
                         DLOGS("statusVector packetSeqNum %u not received %lu", packetSeqNum, referenceTime);
-                        pTwccManager->twccPacketBySeqNum[packetSeqNum].remoteTimeKvs = TWCC_PACKET_LOST_TIME;
+                        // If it does not exist it means the packet was already visited
+                        if (STATUS_SUCCEEDED(hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, packetSeqNum, &twccPktValue))) {
+                            pTwccPacket = (PTwccRtpPacketInfo) twccPktValue;
+                            if (pTwccPacket != NULL) {
+                                pTwccPacket->remoteTimeKvs = TWCC_PACKET_LOST_TIME;
+                                CHK_STATUS(hashTableUpsert(pTwccManager->pTwccRtpPktInfosHashTable, packetSeqNum, (UINT64) pTwccPacket));
+                            }
+                        }
                         pTwccManager->lastReportedSeqNum = packetSeqNum;
                         break;
                     default:
@@ -259,16 +410,25 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
                 if (recvDelta != MIN_INT16) {
                     referenceTime += KVS_CONVERT_TIMESCALE(recvDelta, TWCC_TICKS_PER_SECOND, HUNDREDS_OF_NANOS_IN_A_SECOND);
                     DLOGS("statusVector packetSeqNum %u received %lu", packetSeqNum, referenceTime);
-                    pTwccManager->twccPacketBySeqNum[packetSeqNum].remoteTimeKvs = referenceTime;
+                    // If it does not exist it means the packet was already visited
+                    if (STATUS_SUCCEEDED(hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, packetSeqNum, &twccPktValue))) {
+                        pTwccPacket = (PTwccRtpPacketInfo) twccPktValue;
+                        if (pTwccPacket != NULL) {
+                            pTwccPacket->remoteTimeKvs = referenceTime;
+                            CHK_STATUS(hashTableUpsert(pTwccManager->pTwccRtpPktInfosHashTable, packetSeqNum, (UINT64) pTwccPacket));
+                        }
+                    }
                     pTwccManager->lastReportedSeqNum = packetSeqNum;
                 }
                 packetSeqNum++;
                 packetsRemaining--;
+                // Reset to NULL before next iteration
+                pTwccPacket = NULL;
             }
         }
         chunkOffset += TWCC_FB_PACKETCHUNK_SIZE;
     }
-
+    DLOGV("Checking seqNum %d to %d of TWCC reports", baseSeqNum, pTwccManager->lastReportedSeqNum);
 CleanUp:
     CHK_LOG_ERR(retStatus);
     return retStatus;
@@ -277,44 +437,75 @@ CleanUp:
 STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    PTwccManager twcc;
+    PTwccManager pTwccManager = NULL;
     BOOL locked = FALSE;
-    BOOL empty = TRUE;
-    UINT64 sn = 0;
-    INT64 ageOfOldestPacket;
+    UINT16 baseSeqNum = 0;
     UINT64 localStartTimeKvs, localEndTimeKvs;
     UINT64 sentBytes = 0, receivedBytes = 0;
     UINT64 sentPackets = 0, receivedPackets = 0;
     INT64 duration = 0;
-    UINT16 seqNum;
-    PTwccPacket twccPacket;
+    UINT16 seqNum = 0;
+    PTwccRtpPacketInfo pTwccPacket = NULL;
+    UINT64 twccPktValue = 0;
+    BOOL localStartTimeRecorded = FALSE;
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
     CHK(pKvsPeerConnection->onSenderBandwidthEstimation != NULL && pKvsPeerConnection->pTwccManager != NULL, STATUS_SUCCESS);
 
     MUTEX_LOCK(pKvsPeerConnection->twccLock);
     locked = TRUE;
-    twcc = pKvsPeerConnection->pTwccManager;
-    CHK_STATUS(parseRtcpTwccPacket(pRtcpPacket, twcc));
-    CHK_STATUS(stackQueueIsEmpty(&twcc->twccPackets, &empty));
-    CHK(!empty, STATUS_SUCCESS);
-    CHK_STATUS(stackQueuePeek(&twcc->twccPackets, &sn));
-    ageOfOldestPacket = twcc->lastLocalTimeKvs - twcc->twccPacketBySeqNum[(UINT16) sn].localTimeKvs;
-    CHK(ageOfOldestPacket > TWCC_ESTIMATOR_TIME_WINDOW / 2, STATUS_SUCCESS);
-    localStartTimeKvs = twcc->twccPacketBySeqNum[(UINT16) (sn - 1)].localTimeKvs;
-    if (localStartTimeKvs == TWCC_PACKET_UNITIALIZED_TIME) {
-        // time not yet set (only happens for first rtp packet)
-        localStartTimeKvs = twcc->twccPacketBySeqNum[(UINT16) sn].localTimeKvs;
-    }
-    for (seqNum = sn; seqNum != twcc->lastReportedSeqNum; seqNum++) {
-        twccPacket = &twcc->twccPacketBySeqNum[seqNum];
-        localEndTimeKvs = twccPacket->localTimeKvs;
-        duration = localEndTimeKvs - localStartTimeKvs;
-        sentBytes += twccPacket->packetSize;
-        sentPackets++;
-        if (twccPacket->remoteTimeKvs != TWCC_PACKET_LOST_TIME) {
-            receivedBytes += twccPacket->packetSize;
-            receivedPackets++;
+    pTwccManager = pKvsPeerConnection->pTwccManager;
+    CHK_STATUS(parseRtcpTwccPacket(pRtcpPacket, pTwccManager));
+    baseSeqNum = pTwccManager->prevReportedBaseSeqNum;
+
+    // Use != instead to cover the case where the group of sequence numbers being checked
+    // are trending towards MAX_UINT16 and rolling over to 0+, example range [65534, 10]
+    // We also check for twcc->lastReportedSeqNum + 1 to include the last seq number in the
+    // report. Without this, we do not check for the seqNum that could cause it to not be cleared
+    // from memory
+    for (seqNum = baseSeqNum; seqNum != (pTwccManager->lastReportedSeqNum + 1); seqNum++) {
+        if (!localStartTimeRecorded) {
+            // This could happen if the prev packet was deleted as part of rolling window or if there
+            // is an overlap of RTP packet statuses between TWCC packets. This could also fail if it is
+            // the first ever packet (seqNum 0)
+            if (hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, seqNum - 1, &twccPktValue) == STATUS_HASH_KEY_NOT_PRESENT) {
+                localStartTimeKvs = TWCC_PACKET_UNITIALIZED_TIME;
+            } else {
+                pTwccPacket = (PTwccRtpPacketInfo) twccPktValue;
+                if (pTwccPacket != NULL) {
+                    localStartTimeKvs = pTwccPacket->localTimeKvs;
+                    localStartTimeRecorded = TRUE;
+                }
+            }
+            if (localStartTimeKvs == TWCC_PACKET_UNITIALIZED_TIME) {
+                // time not yet set. If prev seqNum was deleted
+                if (STATUS_SUCCEEDED(hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, seqNum, &twccPktValue))) {
+                    pTwccPacket = (PTwccRtpPacketInfo) twccPktValue;
+                    if (pTwccPacket != NULL) {
+                        localStartTimeKvs = pTwccPacket->localTimeKvs;
+                        localStartTimeRecorded = TRUE;
+                    }
+                }
+            }
+        }
+
+        // The time it would not succeed is if there is an overlap in the RTP packet status between the TWCC
+        // packets
+        if (STATUS_SUCCEEDED(hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, seqNum, &twccPktValue))) {
+            pTwccPacket = (PTwccRtpPacketInfo) twccPktValue;
+            if (pTwccPacket != NULL) {
+                localEndTimeKvs = pTwccPacket->localTimeKvs;
+                duration = localEndTimeKvs - localStartTimeKvs;
+                sentBytes += pTwccPacket->packetSize;
+                sentPackets++;
+                if (pTwccPacket->remoteTimeKvs != TWCC_PACKET_LOST_TIME) {
+                    receivedBytes += pTwccPacket->packetSize;
+                    receivedPackets++;
+                    if (STATUS_SUCCEEDED(hashTableRemove(pTwccManager->pTwccRtpPktInfosHashTable, seqNum))) {
+                        SAFE_MEMFREE(pTwccPacket);
+                    }
+                }
+            }
         }
     }
 
@@ -340,7 +531,6 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
     UINT32 currentOffset = 0;
 
     CHK(pKvsPeerConnection != NULL && pBuff != NULL, STATUS_NULL_ARG);
-
     while (currentOffset < buffLen) {
         CHK_STATUS(setRtcpPacketFromBytes(pBuff + currentOffset, buffLen - currentOffset, &rtcpPacket));
 
@@ -423,14 +613,27 @@ CleanUp:
 STATUS onRtcpPLIPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 mediaSSRC;
     PKvsRtpTransceiver pTransceiver = NULL;
+    RtcpContext_t ctx;
+    RtcpResult_t rtcpResult;
+    RtcpPacket_t rtcpPacket;
+    RtcpPliPacket_t pliPacket;
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
-    mediaSSRC = getUnalignedInt32BigEndian((pRtcpPacket->payload + (SIZEOF(UINT32))));
 
-    CHK_STATUS_ERR(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, mediaSSRC), STATUS_RTCP_INPUT_SSRC_INVALID,
-                   "Received PLI for non existing ssrc: %u", mediaSSRC);
+    rtcpResult = Rtcp_Init(&ctx);
+    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
+
+    rtcpPacket.header.packetType = getDetailedRtcpPacketType(pRtcpPacket->header.packetType, pRtcpPacket->header.receptionReportCount);
+    rtcpPacket.header.receptionReportCount = pRtcpPacket->header.receptionReportCount;
+    rtcpPacket.pPayload = (const PBYTE) pRtcpPacket->payload;
+    rtcpPacket.payloadLength = (size_t) pRtcpPacket->payloadLength;
+
+    rtcpResult = Rtcp_ParsePliPacket(&ctx, &rtcpPacket, &pliPacket);
+    CHK(rtcpResult == RTP_RESULT_OK, convertRtcpErrorCode(rtcpResult));
+
+    CHK_STATUS_ERR(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, pliPacket.mediaSourceSsrc), STATUS_RTCP_INPUT_SSRC_INVALID,
+                   "Received PLI for non existing ssrc: %u", pliPacket.mediaSourceSsrc);
 
     MUTEX_LOCK(pTransceiver->statsLock);
     pTransceiver->outboundStats.pliCount++;

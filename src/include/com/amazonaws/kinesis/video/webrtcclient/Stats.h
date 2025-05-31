@@ -25,6 +25,11 @@ extern "C" {
 #define MAX_CANDIDATE_ID_LENGTH 9U
 
 /**
+ * Maximum allowed ICE URI length
+ */
+#define MAX_ICE_CONFIG_URI_LEN 256
+
+/**
  * Maximum allowed relay protocol length
  */
 #define MAX_RELAY_PROTOCOL_LENGTH 8U
@@ -63,6 +68,11 @@ extern "C" {
  * Maximum allowed generic length used in DOMString
  */
 #define MAX_STATS_STRING_LENGTH 255U
+
+/**
+ * Maximum length of candidate type (host, srflx, relay, prflx, unknown)
+ */
+#define MAX_CANDIDATE_TYPE_LENGTH 10U
 /*!@} */
 
 /**
@@ -233,14 +243,14 @@ typedef struct {
  * Reference: https://www.w3.org/TR/webrtc-stats/#ice-server-dict*
  */
 typedef struct {
-    DOMString url;                 //!< STUN/TURN server URL
-    DOMString protocol;            //!< Valid values: UDP, TCP
-    UINT32 iceServerIndex;         //!< Ice server index to get stats from. Not available in spec! Needs to be
-                                   //!< populated by the application to get specific server stats
-    INT32 port;                    //!< Port number used by client
-    UINT64 totalRequestsSent;      //!< Total amount of requests that have been sent to the server
-    UINT64 totalResponsesReceived; //!< Total number of responses received from the server
-    UINT64 totalRoundTripTime;     //!< Sum of RTTs of all the requests for which response has been received
+    CHAR url[MAX_ICE_CONFIG_URI_LEN + 1];   //!< STUN/TURN server URL
+    CHAR protocol[MAX_PROTOCOL_LENGTH + 1]; //!< Valid values: UDP, TCP
+    UINT32 iceServerIndex;                  //!< Ice server index to get stats from. Not available in spec! Needs to be
+                                            //!< populated by the application to get specific server stats
+    INT32 port;                             //!< Port number used by client
+    UINT64 totalRequestsSent;               //!< Total amount of requests that have been sent to the server
+    UINT64 totalResponsesReceived;          //!< Total number of responses received from the server
+    UINT64 totalRoundTripTime;              //!< Sum of RTTs of all the requests for which response has been received
 } RtcIceServerStats, *PRtcIceServerStats;
 
 /**
@@ -256,6 +266,8 @@ typedef struct {
     UINT64 iceCandidatePairNominationTime;
     UINT64 candidateGatheringTime;
     UINT64 iceAgentSetUpTime;
+    UINT64 candidateGatheringStartTime;
+    UINT64 candidateGatheringEndTime;
 } KvsIceAgentStats, *PKvsIceAgentStats;
 
 /**
@@ -265,15 +277,14 @@ typedef struct {
  */
 
 typedef struct {
-    DOMString url;                        //!< For local candidates this is the URL of the ICE server from which the candidate was obtained
-    DOMString transportId;                //!< Not used currently. ID of object that was inspected for RTCTransportStats
-    CHAR address[IP_ADDR_STR_LENGTH + 1]; //!< IPv4 or IPv6 address of the candidate
-    DOMString protocol;                   //!< Valid values: UDP, TCP
-    DOMString relayProtocol;              //!< Protocol used by endpoint to communicate with TURN server. (Only for local candidate)
-                                          //!< Valid values: UDP, TCP, TLS
-    INT32 priority;                       //!< Computed using the formula in https://tools.ietf.org/html/rfc5245#section-15.1
-    INT32 port;                           //!< Port number of the candidate
-    DOMString candidateType;              //!< Type of local/remote ICE candidate
+    DOMString url;                               //!< For local candidates this is the URL of the ICE server from which the candidate was obtained
+    CHAR address[IP_ADDR_STR_LENGTH + 1];        //!< IPv4 or IPv6 address of the candidate
+    CHAR protocol[MAX_PROTOCOL_LENGTH + 1];      //!< Valid values: UDP, TCP
+    CHAR relayProtocol[MAX_PROTOCOL_LENGTH + 1]; //!< Protocol used by endpoint to communicate with TURN server. (Only for local candidate)
+                                                 //!< Valid values: UDP, TCP, TLS
+    INT32 priority;                              //!< Computed using the formula in https://tools.ietf.org/html/rfc5245#section-15.1
+    INT32 port;                                  //!< Port number of the candidate
+    CHAR candidateType[MAX_CANDIDATE_TYPE_LENGTH + 1]; //!< Type of local/remote ICE candidate
 } RtcIceCandidateStats, *PRtcIceCandidateStats;
 
 /**
@@ -571,6 +582,18 @@ typedef struct {
  * @brief SignalingClientMetrics Represent the stats related to the KVS WebRTC SDK signaling client
  */
 typedef struct {
+    UINT64 describeChannelStartTime;
+    UINT64 describeChannelEndTime;
+    UINT64 getSignalingChannelEndpointStartTime;
+    UINT64 getSignalingChannelEndpointEndTime;
+    UINT64 getIceServerConfigStartTime;
+    UINT64 getIceServerConfigEndTime;
+    UINT64 getTokenStartTime;
+    UINT64 getTokenEndTime;
+    UINT64 createChannelStartTime;
+    UINT64 createChannelEndTime;
+    UINT64 connectStartTime;
+    UINT64 connectEndTime;
     UINT64 cpApiCallLatency;         //!< Latency (in 100 ns) incurred per backend API call for the control plane APIs
     UINT64 dpApiCallLatency;         //!< Latency (in 100 ns) incurred per backend API call for the data plane APIs
     UINT64 signalingClientUptime;    //!< Client uptime (in 100 ns). Timestamp will be recorded at every SIGNALING_CLIENT_STATE_CONNECTED
@@ -595,23 +618,31 @@ typedef struct {
     UINT32 apiCallRetryCount;        //!< Number of retries due to API call failures in the state machine
     UINT64 getTokenCallTime;         //!< Time (ms) taken to get credentials for signaling
     UINT64 describeCallTime;         //!< Time (ms) taken to execute describeChannel call
+    UINT64 describeMediaCallTime;    //!< Time (ms) taken to execute describeChannel call
     UINT64 createCallTime;           //!< Time (ms) taken to execute createChannel call
     UINT64 getEndpointCallTime;      //!< Time (ms) taken to execute getEndpoint call
     UINT64 getIceConfigCallTime;     //!< Time (ms) taken to execute getIceServerConfig call
     UINT64 connectCallTime;          //!< Time (ms) taken to execute connectChannel call
+    UINT64 joinSessionCallTime;      //!< Time (ms) taken to execute joinSession call
     UINT64 createClientTime;         //!< Total time (ms) taken to create signaling client which includes getting credentials
     UINT64
     fetchClientTime; //!< Total time (ms) taken to fetch signaling client which includes describe, create, get endpoint and get ICE server config
     UINT64 connectClientTime; //!< Total time (ms) taken to  connect the signaling client which includes connecting to the signaling channel
     UINT64 offerToAnswerTime;
+    UINT64 offerReceivedTime;
+    UINT64 answerTime;
+    UINT64 joinSessionToOfferRecvTime; //!< Total time (ms) taken from joinSession call until offer is received
 } SignalingClientStats, *PSignalingClientStats;
 
 typedef struct {
+    UINT64 peerConnectionStartTime;
+    UINT64 peerConnectionConnectedTime;
     UINT64 peerConnectionCreationTime; //!< Time taken (ms) for peer connection object creation time
     UINT64 dtlsSessionSetupTime;       //!< Time taken (ms) for DTLS handshake to complete
     UINT64 iceHolePunchingTime;        //!< Time taken (ms) for ICE agent set up to complete
     UINT64 closePeerConnectionTime;    //!< Time taken (ms) to close the peer connection
     UINT64 freePeerConnectionTime;     //!< Time taken (ms) to free the peer connection object
+    UINT64 stunDnsResolutionTime;      //!< Time taken (ms) to complete STUN DNS resolution on the thread
 } PeerConnectionStats, *PPeerConnectionStats;
 
 /**

@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 3.6.3)
+
+project(libkvssdp NONE)
+
+include(ExternalProject)
+if (BUILD_STATIC_LIBS OR WIN32)
+  set(LIBKVSSDP_SHARED_LIBS OFF)
+else()
+  set(LIBKVSSDP_SHARED_LIBS ON)
+endif()
+
+ExternalProject_Add(libkvssdp
+    GIT_REPOSITORY    https://github.com/awslabs/amazon-kinesis-video-streams-sdp.git
+    GIT_TAG           eca4928122c5cc0191d72cf1e87f54ffaddd017b
+    PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
+    CMAKE_ARGS        
+        -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}
+        -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
+        -DBUILD_SHARED_LIBS=${LIBKVSSDP_SHARED_LIBS}
+        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+    BUILD_ALWAYS      TRUE
+    TEST_COMMAND      ""
+)

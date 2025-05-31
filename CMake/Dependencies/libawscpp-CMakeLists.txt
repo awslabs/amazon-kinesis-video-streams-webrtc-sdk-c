@@ -1,0 +1,14 @@
+cmake_minimum_required(VERSION 3.6.3)
+project(libawscpp-download NONE)
+include(ExternalProject)
+
+ExternalProject_Add(libawscpp-download
+    GIT_REPOSITORY    https://github.com/aws/aws-sdk-cpp.git
+    GIT_TAG           1.11.217
+    LIST_SEPARATOR    "|"
+    CMAKE_ARGS       -DBUILD_SHARED_LIBS=OFF
+                     -DBUILD_ONLY=kinesisvideo|kinesis-video-webrtc-storage
+                     -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}
+    BUILD_ALWAYS      TRUE
+    TEST_COMMAND      ""
+)

@@ -13,13 +13,33 @@ extern "C" {
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 
 #define NUMBER_OF_H264_FRAME_FILES               1500
+#define NUMBER_OF_H265_FRAME_FILES               1500
 #define NUMBER_OF_OPUS_FRAME_FILES               618
 #define DEFAULT_FPS_VALUE                        25
+#define DEFAULT_VIDEO_HEIGHT_PIXELS              720
+#define DEFAULT_VIDEO_WIDTH_PIXELS               1280
+#define DEFAULT_AUDIO_OPUS_CHANNELS              2
+#define DEFAULT_AUDIO_AAC_CHANNELS               2
+#define DEFAULT_AUDIO_OPUS_SAMPLE_RATE_HZ        48000
+#define DEFAULT_AUDIO_AAC_SAMPLE_RATE_HZ         16000
+#define DEFAULT_AUDIO_OPUS_BITS_PER_SAMPLE       16
+#define DEFAULT_AUDIO_AAC_BITS_PER_SAMPLE        16
 #define DEFAULT_MAX_CONCURRENT_STREAMING_SESSION 10
+
+#define AUDIO_CODEC_NAME_ALAW  "alaw"
+#define AUDIO_CODEC_NAME_MULAW "mulaw"
+#define AUDIO_CODEC_NAME_OPUS  "opus"
+#define AUDIO_CODEC_NAME_AAC   "aac"
+#define VIDEO_CODEC_NAME_H264  "h264"
+#define VIDEO_CODEC_NAME_H265  "h265"
+#define VIDEO_CODEC_NAME_VP8   "vp8"
 
 #define SAMPLE_MASTER_CLIENT_ID "ProducerMaster"
 #define SAMPLE_VIEWER_CLIENT_ID "ConsumerViewer"
 #define SAMPLE_CHANNEL_NAME     (PCHAR) "ScaryTestChannel"
+
+#define DEFAULT_AUDIO_OPUS_BYTE_RATE (DEFAULT_AUDIO_OPUS_SAMPLE_RATE_HZ * DEFAULT_AUDIO_OPUS_CHANNELS * DEFAULT_AUDIO_OPUS_BITS_PER_SAMPLE) / 8
+#define DEFAULT_AUDIO_AAC_BYTE_RATE  (DEFAULT_AUDIO_AAC_SAMPLE_RATE_HZ * DEFAULT_AUDIO_AAC_CHANNELS * DEFAULT_AUDIO_AAC_BITS_PER_SAMPLE) / 8
 
 #define SAMPLE_AUDIO_FRAME_DURATION (20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 #define SAMPLE_STATS_DURATION       (60 * HUNDREDS_OF_NANOS_IN_A_SECOND)
@@ -49,18 +69,34 @@ extern "C" {
 #define IOT_CORE_THING_NAME          ((PCHAR) "AWS_IOT_CORE_THING_NAME")
 #define IOT_CORE_CERTIFICATE_ID      ((PCHAR) "AWS_IOT_CORE_CERTIFICATE_ID")
 
+/* Uncomment the following line in order to enable IoT credentials checks in the provided samples */
+// #define IOT_CORE_ENABLE_CREDENTIALS  1
+
 #define MASTER_DATA_CHANNEL_MESSAGE "This message is from the KVS Master"
 #define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"
 
-// Signaling client threadpool for handling messages
-#define KVS_SIGNALING_THREADPOOL_MIN 3
-#define KVS_SIGNALING_THREADPOOL_MAX 5
+#define DATA_CHANNEL_MESSAGE_TEMPLATE                                                                                                                \
+    "{\"content\":\"%s\",\"firstMessageFromViewerTs\":\"%s\",\"firstMessageFromMasterTs\":\"%s\",\"secondMessageFromViewerTs\":\"%s\","              \
+    "\"secondMessageFromMasterTs\":\"%s\",\"lastMessageFromViewerTs\":\"%s\" }"
+#define PEER_CONNECTION_METRICS_JSON_TEMPLATE "{\"peerConnectionStartTime\": %llu, \"peerConnectionEndTime\": %llu }"
+#define SIGNALING_CLIENT_METRICS_JSON_TEMPLATE                                                                                                       \
+    "{\"signalingStartTime\": %llu, \"signalingEndTime\": %llu, \"offerReceiptTime\": %llu, \"sendAnswerTime\": %llu, "                              \
+    "\"describeChannelStartTime\": %llu, \"describeChannelEndTime\": %llu, \"getSignalingChannelEndpointStartTime\": %llu, "                         \
+    "\"getSignalingChannelEndpointEndTime\": %llu, \"getIceServerConfigStartTime\": %llu, \"getIceServerConfigEndTime\": %llu, "                     \
+    "\"getTokenStartTime\": %llu, \"getTokenEndTime\": %llu, \"createChannelStartTime\": %llu, \"createChannelEndTime\": %llu, "                     \
+    "\"connectStartTime\": %llu, \"connectEndTime\": %llu }"
+#define ICE_AGENT_METRICS_JSON_TEMPLATE "{\"candidateGatheringStartTime\": %llu, \"candidateGatheringEndTime\": %llu }"
 
-// comment out this line to disable the feature
-#define KVS_USE_SIGNALING_CHANNEL_THREADPOOL 1
+#define MAX_DATA_CHANNEL_METRICS_MESSAGE_SIZE     260 // strlen(DATA_CHANNEL_MESSAGE_TEMPLATE) + 20 * 5
+#define MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE  105 // strlen(PEER_CONNECTION_METRICS_JSON_TEMPLATE) + 20 * 2
+#define MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE 736 // strlen(SIGNALING_CLIENT_METRICS_JSON_TEMPLATE) + 20 * 10
+#define MAX_ICE_AGENT_METRICS_MESSAGE_SIZE        113 // strlen(ICE_AGENT_METRICS_JSON_TEMPLATE) + 20 * 2
 
-/* Uncomment the following line in order to enable IoT credentials checks in the provided samples */
-// #define IOT_CORE_ENABLE_CREDENTIALS  1
+#define TWCC_BITRATE_ADJUSTMENT_INTERVAL_MS 1000 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
+#define MIN_VIDEO_BITRATE_KBPS              512     // Unit kilobits/sec. Value could change based on codec.
+#define MAX_VIDEO_BITRATE_KBPS              2048000 // Unit kilobits/sec. Value could change based on codec.
+#define MIN_AUDIO_BITRATE_BPS               4000    // Unit bits/sec. Value could change based on codec.
+#define MAX_AUDIO_BITRATE_BPS               650000  // Unit bits/sec. Value could change based on codec.
 
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
@@ -96,6 +132,8 @@ typedef struct {
     PCHAR pCaCertPath;
     PAwsCredentialProvider pCredentialProvider;
     SIGNALING_CLIENT_HANDLE signalingClientHandle;
+    RTC_CODEC audioCodec;
+    RTC_CODEC videoCodec;
     PBYTE pAudioFrameBuffer;
     UINT32 audioBufferSize;
     PBYTE pVideoFrameBuffer;
@@ -119,6 +157,7 @@ typedef struct {
     CVAR cvar;
     BOOL trickleIce;
     BOOL useTurn;
+    BOOL enableSendingMetricsToViewerViaDc;
     BOOL enableFileLogging;
     UINT64 customData;
     PSampleStreamingSession sampleStreamingSessionList[DEFAULT_MAX_CONCURRENT_STREAMING_SESSION];
@@ -127,6 +166,7 @@ typedef struct {
     UINT32 iceUriCount;
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfo clientInfo;
+
     RtcStats rtcIceCandidatePairMetrics;
 
     MUTEX signalingSendMessageLock;
@@ -136,7 +176,18 @@ typedef struct {
 
     PCHAR rtspUri;
     UINT32 logLevel;
+    BOOL enableIceStats;
+    BOOL enableTwcc;
 } SampleConfiguration, *PSampleConfiguration;
+
+typedef struct {
+    CHAR content[100];
+    CHAR firstMessageFromViewerTs[20];
+    CHAR firstMessageFromMasterTs[20];
+    CHAR secondMessageFromViewerTs[20];
+    CHAR secondMessageFromMasterTs[20];
+    CHAR lastMessageFromViewerTs[20];
+} DataChannelMessage;
 
 typedef struct {
     UINT64 hashValue;
@@ -146,12 +197,23 @@ typedef struct {
 
 typedef VOID (*StreamSessionShutdownCallback)(UINT64, PSampleStreamingSession);
 
+typedef struct {
+    MUTEX updateLock;
+    UINT64 lastAdjustmentTimeMs;
+    UINT64 currentVideoBitrate;
+    UINT64 currentAudioBitrate;
+    UINT64 newVideoBitrate;
+    UINT64 newAudioBitrate;
+    DOUBLE averagePacketLoss;
+} TwccMetadata, *PTwccMetadata;
+
 struct __SampleStreamingSession {
     volatile ATOMIC_BOOL terminateFlag;
     volatile ATOMIC_BOOL candidateGatheringDone;
     volatile ATOMIC_BOOL peerIdReceived;
     volatile ATOMIC_BOOL firstFrame;
     volatile SIZE_T frameIndex;
+    volatile SIZE_T correlationIdPostFix;
     PRtcPeerConnection pPeerConnection;
     PRtcRtpTransceiver pVideoRtcRtpTransceiver;
     PRtcRtpTransceiver pAudioRtcRtpTransceiver;
@@ -164,6 +226,7 @@ struct __SampleStreamingSession {
     UINT64 startUpLatency;
     RtcMetricsHistory rtcMetricsHistory;
     BOOL remoteCanTrickleIce;
+    TwccMetadata twccMetadata;
 
     // this is called when the SampleStreamingSession is being freed
     StreamSessionShutdownCallback shutdownCallback;
@@ -171,10 +234,23 @@ struct __SampleStreamingSession {
     UINT64 offerReceiveTime;
     PeerConnectionMetrics peerConnectionMetrics;
     KvsIceAgentMetrics iceMetrics;
+    CHAR pPeerConnectionMetricsMessage[MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE];
+    CHAR pSignalingClientMetricsMessage[MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE];
+    CHAR pIceAgentMetricsMessage[MAX_ICE_AGENT_METRICS_MESSAGE_SIZE];
 };
+
+// TODO this should all be in a higher webrtccontext layer above PeerConnection
+// Placing it here now since this is where all the current webrtccontext functions are placed
+typedef struct {
+    SIGNALING_CLIENT_HANDLE signalingClientHandle;
+    PRtcPeerConnection pRtcPeerConnection;
+    PUINT32 pUriCount;
+
+} AsyncGetIceStruct;
 
 VOID sigintHandler(INT32);
 STATUS readFrameFromDisk(PBYTE, PUINT32, PCHAR);
+PVOID receiveGstreamerAudioVideo(PVOID);
 PVOID sendVideoPackets(PVOID);
 PVOID sendAudioPackets(PVOID);
 PVOID sendGstreamerAudioVideo(PVOID);
@@ -199,6 +275,7 @@ STATUS respondWithAnswer(PSampleStreamingSession);
 STATUS resetSampleConfigurationState(PSampleConfiguration);
 VOID sampleVideoFrameHandler(UINT64, PFrame);
 VOID sampleAudioFrameHandler(UINT64, PFrame);
+VOID sampleFrameHandler(UINT64, PFrame);
 VOID sampleBandwidthEstimationHandler(UINT64, DOUBLE);
 VOID sampleSenderBandwidthEstimationHandler(UINT64, UINT32, UINT32, UINT32, UINT32, UINT64);
 VOID onDataChannel(UINT64, PRtcDataChannel);

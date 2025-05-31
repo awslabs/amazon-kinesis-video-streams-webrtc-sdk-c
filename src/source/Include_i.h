@@ -25,6 +25,10 @@ extern "C" {
 // Project include files
 ////////////////////////////////////////////////////
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
+#include "kvssdp/sdp_data_types.h"
+#include "kvsstun/stun_data_types.h"
+#include "kvsrtp/rtp_data_types.h"
+#include "kvsrtcp/rtcp_data_types.h"
 
 #ifdef KVS_USE_OPENSSL
 #include <openssl/bio.h>
@@ -108,6 +112,9 @@ typedef struct {
 // Used for ensuring alignment
 #define ALIGN_UP_TO_MACHINE_WORD(x) ROUND_UP((x), SIZEOF(SIZE_T))
 
+typedef STATUS (*IceServerSetIpFunc)(UINT64, PCHAR, PKvsIpAddress);
+STATUS getIpAddrStr(PKvsIpAddress pKvsIpAddress, PCHAR pBuffer, UINT32 bufferLen);
+
 ////////////////////////////////////////////////////
 // Project forward declarations
 ////////////////////////////////////////////////////
@@ -118,6 +125,7 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 ////////////////////////////////////////////////////
 // Project internal includes
 ////////////////////////////////////////////////////
+#include "Threadpool/ThreadpoolContext.h"
 #include "Crypto/IOBuffer.h"
 #include "Crypto/Crypto.h"
 #include "Crypto/Dtls.h"
@@ -131,9 +139,15 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #include "Ice/IceAgent.h"
 #include "Ice/TurnConnection.h"
 #include "Ice/IceAgentStateMachine.h"
+#include "Ice/TurnConnectionStateMachine.h"
 #include "Ice/NatBehaviorDiscovery.h"
 #include "Srtp/SrtpSession.h"
 #include "Sctp/Sctp.h"
+#include "Signaling/FileCache.h"
+#include "Signaling/Signaling.h"
+#include "Signaling/ChannelInfo.h"
+#include "Signaling/StateMachine.h"
+#include "Signaling/LwsApiCalls.h"
 #include "Rtp/RtpPacket.h"
 #include "Rtcp/RtcpPacket.h"
 #include "Rtcp/RollingBuffer.h"
@@ -147,13 +161,9 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #include "PeerConnection/DataChannel.h"
 #include "Rtp/Codecs/RtpVP8Payloader.h"
 #include "Rtp/Codecs/RtpH264Payloader.h"
+#include "Rtp/Codecs/RtpH265Payloader.h"
 #include "Rtp/Codecs/RtpOpusPayloader.h"
 #include "Rtp/Codecs/RtpG711Payloader.h"
-#include "Signaling/FileCache.h"
-#include "Signaling/Signaling.h"
-#include "Signaling/ChannelInfo.h"
-#include "Signaling/StateMachine.h"
-#include "Signaling/LwsApiCalls.h"
 #include "Metrics/Metrics.h"
 
 ////////////////////////////////////////////////////
@@ -165,6 +175,11 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 ////////////////////////////////////////////////////
 
 #define KVS_CONVERT_TIMESCALE(pts, from_timescale, to_timescale) (pts * to_timescale / from_timescale)
+
+STATUS convertSdpErrorCode(SdpResult_t sdpResult);
+STATUS convertStunErrorCode(StunResult_t stunResult);
+STATUS convertRtpErrorCode(RtpResult_t rtpResult);
+STATUS convertRtcpErrorCode(RtcpResult_t rtcpResult);
 
 #ifdef __cplusplus
 }

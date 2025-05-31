@@ -29,7 +29,7 @@ TEST_F(StunFunctionalityTest, basicValidParseTest)
                                                            0x2a, 0x82, 0xc8, 0xd8, 0xfe, 0x43, 0x4d, 0x98, 0x55, 0x00, 0x20,
                                                            0x00, 0x08, 0x00, 0x01, 0x1b, 0xa9, 0x17, 0xe2, 0x60, 0xed};
 
-    BYTE bindingSuccessResponseXorMappedAddressBytes4[] = {0x01, 0x01, 0x00, 0x0c, 0x21, 0x12, 0xa4, 0x42, 0xc4, 0xe2, 0xab, 0xd8, 0xdd, 0x26, 0x1b,
+    BYTE bindingSuccessResponseXorMappedAddressBytes4[] = {0x01, 0x01, 0x00, 0x18, 0x21, 0x12, 0xa4, 0x42, 0xc4, 0xe2, 0xab, 0xd8, 0xdd, 0x26, 0x1b,
                                                            0xa4, 0x67, 0xb7, 0x4b, 0x2d, 0x00, 0x20, 0x00, 0x14, 0x00, 0x02, 0xc1, 0x6a, 0x07, 0x12,
                                                            0xb3, 0x42, 0xa2, 0x62, 0x96, 0x98, 0xec, 0xc2, 0x7e, 0xb0, 0x93, 0x24, 0x28, 0x14};
 
@@ -163,7 +163,7 @@ TEST_F(StunFunctionalityTest, basicValidParseTest)
               deserializeStunPacket(bindingSuccessResponseXorMappedAddressBytes4, SIZEOF(bindingSuccessResponseXorMappedAddressBytes4), NULL, 0,
                                     &pStunPacket));
     EXPECT_EQ(pStunPacket->header.magicCookie, STUN_HEADER_MAGIC_COOKIE);
-    EXPECT_EQ(pStunPacket->header.messageLength, 12);
+    EXPECT_EQ(pStunPacket->header.messageLength, 24);
     EXPECT_EQ(pStunPacket->header.stunMessageType, STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS);
     EXPECT_EQ(pStunPacket->attributesCount, 1);
     EXPECT_EQ(pStunPacket->attributeList[0]->type, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS);

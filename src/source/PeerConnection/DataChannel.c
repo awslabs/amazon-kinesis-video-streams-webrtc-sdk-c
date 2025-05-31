@@ -2,11 +2,6 @@
 
 #include "../Include_i.h"
 
-STATUS connectLocalDataChannel()
-{
-    return STATUS_SUCCESS;
-}
-
 STATUS createDataChannel(PRtcPeerConnection pPeerConnection, PCHAR pDataChannelName, PRtcDataChannelInit pRtcDataChannelInit,
                          PRtcDataChannel* ppRtcDataChannel)
 {

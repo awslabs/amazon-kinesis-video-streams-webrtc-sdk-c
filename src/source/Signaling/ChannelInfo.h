@@ -23,11 +23,6 @@ extern "C" {
 #define SIGNALING_CHANNEL_TYPE_UNKNOWN_STR       (PCHAR) "UNKOWN"
 #define SIGNALING_CHANNEL_TYPE_SINGLE_MASTER_STR (PCHAR) "SINGLE_MASTER"
 
-// Signaling channel role type string
-#define SIGNALING_CHANNEL_ROLE_TYPE_UNKNOWN_STR (PCHAR) "UNKOWN"
-#define SIGNALING_CHANNEL_ROLE_TYPE_MASTER_STR  (PCHAR) "MASTER"
-#define SIGNALING_CHANNEL_ROLE_TYPE_VIEWER_STR  (PCHAR) "VIEWER"
-
 // Min and max for the message TTL value
 #define MIN_SIGNALING_MESSAGE_TTL_VALUE (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define MAX_SIGNALING_MESSAGE_TTL_VALUE (120 * HUNDREDS_OF_NANOS_IN_A_SECOND)
@@ -87,23 +82,17 @@ SIGNALING_CHANNEL_TYPE getChannelTypeFromString(PCHAR, UINT32);
 PCHAR getStringFromChannelType(SIGNALING_CHANNEL_TYPE);
 
 /**
- * Returns the signaling channel Role from a string
+ * Determines whether or not the channel arn is valid
+ * If VALID it extracts the channel name
+ * And Sets the pChannelName field in PChannelInfo
  *
- * @param - PCHAR - IN - String representation of the channel role
- * @param - UINT32 - IN - String length
+ * @param - PChannelInfo - IN - channel info object
+ * @param - PUINT16 - OUT - start index of the arn (if valid) where the channel name is
+ * @param - PUINT16 - OUT - number of characters for the arn (if valid)
  *
- * @return - Signaling channel type
+ *@return - success if arn was valid otherwise failure
  */
-SIGNALING_CHANNEL_ROLE_TYPE getChannelRoleTypeFromString(PCHAR, UINT32);
-
-/**
- * Returns the signaling channel role type string
- *
- * @param - SIGNALING_CHANNEL_TYPE - IN - Signaling channel type
- *
- * @return - Signaling channel type string
- */
-PCHAR getStringFromChannelRoleType(SIGNALING_CHANNEL_ROLE_TYPE);
+STATUS validateKvsSignalingChannelArnAndExtractChannelName(PChannelInfo, PUINT16, PUINT16);
 
 #ifdef __cplusplus
 }

@@ -1,4 +1,4 @@
-#include "WebRTCClientTestFixture.h"
+#include "SignalingApiFunctionalityTest.h"
 
 namespace com {
 namespace amazonaws {
@@ -6,60 +6,41 @@ namespace kinesis {
 namespace video {
 namespace webrtcclient {
 
-class SignalingApiFunctionalityTest : public WebRtcClientTestBase {
-  public:
-    SignalingApiFunctionalityTest() : pActiveClient(NULL)
-    {
-        MEMSET(signalingStatesCounts, 0x00, SIZEOF(signalingStatesCounts));
 
-        getIceConfigCount = 0;
-        getIceConfigFail = MAX_UINT32;
-        getIceConfigRecover = 0;
-        getIceConfigResult = STATUS_SUCCESS;
 
-        connectCount = 0;
-        connectFail = MAX_UINT32;
-        connectRecover = 0;
-        connectResult = STATUS_SUCCESS;
 
-        describeCount = 0;
-        describeFail = MAX_UINT32;
-        describeRecover = 0;
-        describeResult = STATUS_SUCCESS;
+SignalingApiFunctionalityTest::SignalingApiFunctionalityTest() : pActiveClient(NULL)
+{
+    MEMSET(signalingStatesCounts, 0x00, SIZEOF(signalingStatesCounts));
 
-        getEndpointCount = 0;
-        getEndpointFail = MAX_UINT32;
-        getEndpointRecover = 0;
-        getEndpointResult = STATUS_SUCCESS;
+    getIceConfigCount = 0;
+    getIceConfigFail = MAX_UINT32;
+    getIceConfigRecover = 0;
+    getIceConfigResult = STATUS_SUCCESS;
 
-        errStatus = STATUS_SUCCESS;
-        errMsg[0] = '\0';
-    };
+    connectCount = 0;
+    connectFail = MAX_UINT32;
+    connectRecover = 0;
+    connectResult = STATUS_SUCCESS;
 
-    PSignalingClient pActiveClient;
-    UINT32 getIceConfigFail;
-    UINT32 getIceConfigRecover;
-    UINT32 getIceConfigCount;
-    STATUS getIceConfigResult;
-    UINT32 signalingStatesCounts[SIGNALING_CLIENT_STATE_MAX_VALUE];
-    STATUS errStatus;
-    CHAR errMsg[1024];
+    describeCount = 0;
+    describeFail = MAX_UINT32;
+    describeRecover = 0;
+    describeResult = STATUS_SUCCESS;
 
-    STATUS connectResult;
-    UINT32 connectFail;
-    UINT32 connectRecover;
-    UINT32 connectCount;
+    describeMediaCount = 0;
+    describeMediaFail = MAX_UINT32;
+    describeMediaRecover = 0;
+    describeMediaResult = STATUS_SUCCESS;
 
-    STATUS describeResult;
-    UINT32 describeFail;
-    UINT32 describeRecover;
-    UINT32 describeCount;
+    getEndpointCount = 0;
+    getEndpointFail = MAX_UINT32;
+    getEndpointRecover = 0;
+    getEndpointResult = STATUS_SUCCESS;
 
-    STATUS getEndpointResult;
-    UINT32 getEndpointFail;
-    UINT32 getEndpointRecover;
-    UINT32 getEndpointCount;
-};
+    errStatus = STATUS_SUCCESS;
+    errMsg[0] = '\0';
+}
 
 STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage)
 {
@@ -180,6 +161,21 @@ STATUS describePreHook(UINT64 hookCustomData)
     }
 
     pTest->describeCount++;
+    DLOGD("Signaling client describe hook returning 0x%08x", retStatus);
+    return retStatus;
+};
+
+STATUS describeMediaPreHook(UINT64 hookCustomData)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    SignalingApiFunctionalityTest* pTest = (SignalingApiFunctionalityTest*) hookCustomData;
+    CHECK(pTest != NULL);
+
+    if (pTest->describeMediaCount >= pTest->describeFail && pTest->describeMediaCount < pTest->describeMediaRecover) {
+        retStatus = pTest->describeResult;
+    }
+
+    pTest->describeMediaCount++;
     DLOGD("Signaling client describe hook returning 0x%08x", retStatus);
     return retStatus;
 };
@@ -821,9 +817,7 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
 
 TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -908,9 +902,7 @@ TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariations)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -977,14 +969,14 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariatio
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
-    // The ICE api should have been called
-    EXPECT_EQ(1, getIceConfigCount);
+    // The ICE api shouldn't have been called
+    EXPECT_EQ(0, getIceConfigCount);
 
     // Ensure we can get the ICE configurations
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
@@ -992,7 +984,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariatio
     for (i = 0; i < iceCount; i++) {
         EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, i, &pIceConfigInfo));
     }
-    // Make sure no APIs have been called
+    // Make sure APIs have been called
     EXPECT_EQ(1, getIceConfigCount);
 
     // Other state transacted
@@ -1002,7 +994,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariatio
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -1039,7 +1031,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariatio
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -1075,7 +1067,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariatio
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -1112,7 +1104,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariatio
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -1147,7 +1139,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariatio
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(6, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -1173,10 +1165,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedVariatio
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
-
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfoInternal clientInfoInternal;
@@ -1244,14 +1233,14 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
-    // The ICE api should have been called
-    EXPECT_EQ(1, getIceConfigCount);
+    // The ICE api shouldn't have been called
+    EXPECT_EQ(0, getIceConfigCount);
 
     // Ensure we can get the ICE configurations
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
@@ -1270,9 +1259,9 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
 
@@ -1307,9 +1296,9 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
 
@@ -1343,9 +1332,9 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
-    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
-    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
 
@@ -1380,9 +1369,9 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
-    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
-    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     //
@@ -1415,9 +1404,9 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
-    EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
-    EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(6, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(6, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(6, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     //
@@ -1441,9 +1430,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedVariations)
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedAuthExpiration)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -1497,8 +1484,26 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedAuthExpi
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    //get config
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
+    EXPECT_NE(0, iceCount);
+    EXPECT_NE((UINT64) NULL, (UINT64) pIceConfigInfo);
+
+    // Check the states first
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -1529,7 +1534,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedAuthExpi
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -1546,7 +1551,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedAuthExpi
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -1564,9 +1569,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedAuthExpi
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedAuthExpiration)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -1623,11 +1626,30 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedAuthExpirat
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    //get config before credentials expire
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
+    EXPECT_NE(0, iceCount);
+    EXPECT_NE((UINT64) NULL, (UINT64) pIceConfigInfo);
+
+    // Check the states first
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
 
     // Make sure the credentials expire
     THREAD_SLEEP(7 * HUNDREDS_OF_NANOS_IN_A_SECOND);
@@ -1655,9 +1677,9 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedAuthExpirat
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Attempt to retrieve the ice configuration should succeed
@@ -1672,9 +1694,9 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedAuthExpirat
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // We should have already been connected. This should be a No-op
@@ -1690,9 +1712,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedAuthExpirat
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaultInjectionRecovered)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -1750,7 +1770,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -1769,7 +1789,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -1782,7 +1802,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -1807,9 +1827,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultInjectionRecovered)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -1867,7 +1885,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -1882,14 +1900,13 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Trigger the ICE refresh on the next call
-    pSignalingClient->iceConfigCount = 0;
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
     EXPECT_NE(0, iceCount);
@@ -1901,7 +1918,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -1926,9 +1943,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaultInjectionNotRecovered)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -1978,6 +1993,8 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
     EXPECT_EQ(STATUS_SUCCESS,signalingClientFetchSync(signalingHandle));
 
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
     pActiveClient = pSignalingClient;
 
     // Check the states first
@@ -1987,7 +2004,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -2004,7 +2021,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_LT(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -2017,7 +2034,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_LT(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -2041,9 +2058,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithFaul
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultInjectionNot1669)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -2094,6 +2109,8 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     EXPECT_EQ(STATUS_SUCCESS,signalingClientFetchSync(signalingHandle));
 
     pActiveClient = pSignalingClient;
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
 
     // Connect first
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
@@ -2105,7 +2122,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -2122,7 +2139,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_LT(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -2135,7 +2152,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_LT(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -2159,9 +2176,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithFaultIn
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithBadAuth)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -2204,6 +2219,10 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithBadA
     EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
     EXPECT_EQ(STATUS_SUCCESS,signalingClientFetchSync(signalingHandle));
 
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
+
+
     pActiveClient = pSignalingClient;
 
     // Check the states first
@@ -2213,7 +2232,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithBadA
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -2238,7 +2257,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithBadA
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_LT(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -2256,7 +2275,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithBadA
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
     EXPECT_LT(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
+    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
@@ -2280,9 +2299,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshNotConnectedWithBadA
 
 TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithBadAuth)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -2337,7 +2354,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithBadAuth
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -2362,7 +2379,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithBadAuth
     EXPECT_LT(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_LT(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_LT(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -2405,9 +2422,7 @@ TEST_F(SignalingApiFunctionalityTest, iceServerConfigRefreshConnectedWithBadAuth
 
 TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -2491,9 +2506,7 @@ TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
 
 TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -2581,9 +2594,7 @@ TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
 
 TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -2606,7 +2617,7 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
     STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
-    clientInfoInternal.connectTimeout = 100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    clientInfoInternal.connectTimeout = 1 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
     pKvsRetryStrategyCallbacks = &(clientInfoInternal.signalingStateMachineRetryStrategyCallbacks);
 
@@ -2639,7 +2650,7 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -2661,7 +2672,7 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_LE(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -2704,9 +2715,7 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
 
 TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -2759,7 +2768,7 @@ TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -2812,7 +2821,7 @@ TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -2838,9 +2847,7 @@ TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
 
 TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -2893,7 +2900,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -2946,7 +2953,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -2972,9 +2979,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
 
 TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -3029,7 +3034,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -3047,7 +3052,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -3067,7 +3072,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -3085,9 +3090,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
 
 TEST_F(SignalingApiFunctionalityTest, signalingClientDisconnectSyncVariations)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     initializeSignalingClient();
 
@@ -3131,9 +3134,7 @@ TEST_F(SignalingApiFunctionalityTest, signalingClientDisconnectSyncVariations)
 
 TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -3204,7 +3205,7 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
 
     // Account for 1 time failure
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -3226,7 +3227,7 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
     EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_LE(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -3248,7 +3249,7 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
     EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_LE(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_LE(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -3267,9 +3268,7 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
 
 TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
@@ -3278,7 +3277,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     SIGNALING_CLIENT_HANDLE signalingHandle;
     CHAR signalingChannelName[64];
     const UINT32 totalChannelCount = MAX_SIGNALING_CACHE_ENTRY_COUNT + 1;
-    UINT32 i, describeCountNoCache, getEndpointCountNoCache;
+    UINT32 i, describeCountNoCache, describeMediaCountNoCache, getEndpointCountNoCache;
     CHAR channelArn[MAX_ARN_LEN + 1];
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
@@ -3296,6 +3295,7 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     clientInfoInternal.hookCustomData = (UINT64) this;
     clientInfoInternal.connectPreHookFn = connectPreHook;
     clientInfoInternal.describePreHookFn = describePreHook;
+    clientInfoInternal.describeMediaStorageConfPreHookFn = describeMediaPreHook;
     clientInfoInternal.getEndpointPreHookFn = getEndpointPreHook;
     setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
 
@@ -3313,10 +3313,11 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_FILE;
     channelInfo.pRegion = TEST_DEFAULT_REGION;
 
+
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
 
     for (i = 0; i < totalChannelCount; ++i) {
-        SPRINTF(signalingChannelName, "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
+        SNPRINTF(signalingChannelName, SIZEOF(signalingChannelName), "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
         channelInfo.pChannelName = signalingChannelName;
         EXPECT_EQ(STATUS_SUCCESS,
                   createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
@@ -3328,10 +3329,11 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
     }
 
     describeCountNoCache = describeCount;
+    describeMediaCountNoCache = describeMediaCount;
     getEndpointCountNoCache = getEndpointCount;
 
     for (i = 0; i < totalChannelCount; ++i) {
-        SPRINTF(signalingChannelName, "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
+        SNPRINTF(signalingChannelName, SIZEOF(signalingChannelName), "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
         channelInfo.pChannelName = signalingChannelName;
         channelInfo.pChannelArn = NULL;
         EXPECT_EQ(STATUS_SUCCESS,
@@ -3358,14 +3360,21 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingTest)
 
         signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
         EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
-        EXPECT_EQ(STATUS_SUCCESS,signalingClientFetchSync(signalingHandle));
+        EXPECT_EQ(STATUS_SUCCESS, signalingClientFetchSync(signalingHandle));
         EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
     }
 
-    /* describeCount and getEndpointCount should only increase by 1 because they are cached for all channels except one */
-    EXPECT_TRUE(describeCount > describeCountNoCache && (describeCount - describeCountNoCache) == 1);
-    EXPECT_TRUE(getEndpointCount > getEndpointCountNoCache && (getEndpointCount - 2 * getEndpointCountNoCache) == 1);
+    DLOGD("describeCount: %d, describeCountNoCache: %d", describeCount, describeCountNoCache);
+    DLOGD("describeMediaCount: %d, describeMediaCountNoCache: %d", describeMediaCount, describeMediaCountNoCache);
+    DLOGD("getEndpointCount: %d, getEndpointCountNoCache: %d", getEndpointCount, getEndpointCountNoCache);
+
+    /* describeCount and getEndpointCount should only increase by 2 because they are cached for all channels except one and we iterate twice*/
+    EXPECT_TRUE(describeCount > describeCountNoCache && (describeCount - describeCountNoCache) == 2);
+    EXPECT_TRUE(describeMediaCount == 0);
+    EXPECT_TRUE(getEndpointCount > getEndpointCountNoCache && (getEndpointCount - getEndpointCountNoCache) == 2);
 }
+
+
 
 TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
 {
@@ -3373,6 +3382,13 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
 
     SignalingFileCacheEntry testEntry;
     SignalingFileCacheEntry testEntry2;
+
+    // It is very important to MEMSET these to 0.
+    // Otherwise SignalingFileCacheEntry will have uninitialized values for
+    // the items that were not initialized and this results in garbage values
+    // being written to the cache file
+    MEMSET(&testEntry, 0x00, SIZEOF(testEntry));
+    MEMSET(&testEntry2, 0x00, SIZEOF(testEntry2));
 
     testEntry.role = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
     STRCPY(testEntry.wssEndpoint, "testWssEnpoint");
@@ -3403,6 +3419,8 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
     srand(GETTIME());
 
     SignalingFileCacheEntry testEntry;
+    MEMSET(&testEntry, 0x00, SIZEOF(testEntry));
+
     BOOL cacheFound = FALSE;
     int additionalEntries = rand()%15 + 2;
     char testWssEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1] = {0};
@@ -3417,6 +3435,9 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
     UINT64 fileSize;
     UINT32 entryCount;
     SignalingFileCacheEntry entries[MAX_SIGNALING_CACHE_ENTRY_COUNT];
+    MEMSET(entries, 0x00, SIZEOF(entries));
+
+
     const int TEST_CHANNEL_COUNT = 5;
 
     for(i = 0; i < MAX_SIGNALING_CACHE_ENTRY_COUNT + additionalEntries; i++) {
@@ -3428,11 +3449,11 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
         MEMSET(testChannel, 0, MAX_CHANNEL_NAME_LEN+1);
 
         append = rand()%TEST_CHANNEL_COUNT;
-        SPRINTF(testWssEndpoint, "%s%d", "testWssEndpoint", append);
-        SPRINTF(testHttpsEndpoint, "%s%d", "testHttpsEndpoint", append);
-        SPRINTF(testRegion, "%s%d", "testRegion", append);
-        SPRINTF(testChannelArn, "%s%d", "testChannelArn", append);
-        SPRINTF(testChannel, "%s%d", "testChannel", append);
+        SNPRINTF(testWssEndpoint, SIZEOF(testWssEndpoint), "%s%d", "testWssEndpoint", append);
+        SNPRINTF(testHttpsEndpoint, SIZEOF(testHttpsEndpoint),"%s%d", "testHttpsEndpoint", append);
+        SNPRINTF(testRegion, SIZEOF(testRegion),"%s%d", "testRegion", append);
+        SNPRINTF(testChannelArn, SIZEOF(testChannelArn),"%s%d", "testChannelArn", append);
+        SNPRINTF(testChannel, SIZEOF(testChannel),"%s%d", "testChannel", append);
 
         STRCPY(testEntry.wssEndpoint, testWssEndpoint);
         STRCPY(testEntry.httpsEndpoint, testHttpsEndpoint);
@@ -3464,7 +3485,6 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
     EXPECT_LT(entryCount, TEST_CHANNEL_COUNT+1);
 
     MEMFREE(fileBuffer);
-
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
 }
 
@@ -3474,6 +3494,8 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateFullMultiChannelCache)
     srand(GETTIME());
 
     SignalingFileCacheEntry testEntry;
+    MEMSET(&testEntry, 0x00, SIZEOF(testEntry));
+
     BOOL cacheFound = FALSE;
     int additionalEntries = rand()%15 + 2;
     char testWssEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1] = {0};
@@ -3494,11 +3516,11 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateFullMultiChannelCache)
         MEMSET(testChannel, 0, MAX_CHANNEL_NAME_LEN+1);
 
         append = i;
-        SPRINTF(testWssEndpoint, "%s%d", "testWssEndpoint", append);
-        SPRINTF(testHttpsEndpoint, "%s%d", "testHttpsEndpoint", append);
-        SPRINTF(testRegion, "%s%d", "testRegion", append);
-        SPRINTF(testChannelArn, "%s%d", "testChannelArn", append);
-        SPRINTF(testChannel, "%s%d", "testChannel", append);
+        SNPRINTF(testWssEndpoint, SIZEOF(testWssEndpoint), "%s%d", "testWssEndpoint", append);
+        SNPRINTF(testHttpsEndpoint, SIZEOF(testHttpsEndpoint), "%s%d", "testHttpsEndpoint", append);
+        SNPRINTF(testRegion, SIZEOF(testRegion), "%s%d", "testRegion", append);
+        SNPRINTF(testChannelArn, SIZEOF(testChannelArn), "%s%d", "testChannelArn", append);
+        SNPRINTF(testChannel, SIZEOF(testChannel), "%s%d", "testChannel", append);
 
         STRCPY(testEntry.wssEndpoint, testWssEndpoint);
         STRCPY(testEntry.httpsEndpoint, testHttpsEndpoint);
@@ -3521,18 +3543,17 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateFullMultiChannelCache)
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
 }
 
+
 TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfoInternal clientInfoInternal;
     PSignalingClient pSignalingClient;
     SIGNALING_CLIENT_HANDLE signalingHandle;
-    UINT32 i, iceCount;
+    UINT32 iceCount;
     PIceConfigInfo pIceConfigInfo;
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
@@ -3584,11 +3605,16 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer)
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
+    EXPECT_NE(0, iceCount);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
 
     // Ensure the ICE is not refreshed as we already have a current non-expired set
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
@@ -3612,19 +3638,6 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer)
                      "    \"messageType\": \"SDP_OFFER\",\n"
                      "    \"senderClientId\": \"ProducerMaster\",\n"
                      "    \"messagePayload\": \"eyJ0eXBlIjogIm9mZmVyIiwgInNkcCI6ICJ2PTBcclxubz0tIDIwNTE4OTcyNDggMiBJTiBJUDQgMTI3LjAuMC4xXHJcbnM9LVxyXG50PTAgMFxyXG5hPWdyb3VwOkJVTkRMRSAwIDEgMlxyXG5hPW1zaWQtc2VtYW50aWM6IFdNUyBteUt2c1ZpZGVvU3RyZWFtXHJcbm09YXVkaW8gOSBVRFAvVExTL1JUUC9TQVZQRiAxMTFcclxuYz1JTiBJUDQgMTI3LjAuMC4xXHJcbmE9Y2FuZGlkYXRlOjUgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTo0IDEgdWRwIDE2Nzc3MjE1IDAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMCAwIHR5cCByZWxheSByYWRkciA6Oi8wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MyAxIHVkcCAxNjk0NDk4ODE1IDE5Mi4xNjguMC4yMyA1MTIwNSB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjIgMSB1ZHAgMTY3NzcyMTg1NSAxMC45NS4yMDQuNjEgNTI2NDYgdHlwIHNyZmx4IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZToxIDEgdWRwIDIxMTM5Mjk0NzEgMTAuOTUuMjA0LjYxIDUzNDI4IHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTowIDEgdWRwIDIxMzA3MDY0MzEgMTkyLjE2OC4wLjIzIDUwMTIzIHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPW1zaWQ6bXlLdnNWaWRlb1N0cmVhbSBteUF1ZGlvVHJhY2tcclxuYT1zc3JjOjE4OTEzODY4OTYgY25hbWU6QlA0bEVqdTBHK0VBQk0yS1xyXG5hPXNzcmM6MTg5MTM4Njg5NiBtc2lkOm15S3ZzVmlkZW9TdHJlYW0gbXlBdWRpb1RyYWNrXHJcbmE9c3NyYzoxODkxMzg2ODk2IG1zbGFiZWw6bXlLdnNWaWRlb1N0cmVhbVxyXG5hPXNzcmM6MTg5MTM4Njg5NiBsYWJlbDpteUF1ZGlvVHJhY2tcclxuYT1ydGNwOjkgSU4gSVA0IDAuMC4wLjBcclxuYT1pY2UtdWZyYWc6VVhwM1xyXG5hPWljZS1wd2Q6NGZZbTlEa1FQazl1YmRRQ2RyaFBhVFpnXHJcbmE9aWNlLW9wdGlvbnM6dHJpY2tsZVxyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjBcclxuYT1zZW5kcmVjdlxyXG5hPXJ0Y3AtbXV4XHJcbmE9cnRjcC1yc2l6ZVxyXG5hPXJ0cG1hcDoxMTEgb3B1cy80ODAwMC8yXHJcbmE9Zm10cDoxMTEgbWlucHRpbWU9MTA7dXNlaW5iYW5kZmVjPTFcclxuYT1ydGNwLWZiOjExMSBuYWNrXHJcbm09dmlkZW8gOSBVRFAvVExTL1JUUC9TQVZQRiAxMjVcclxuYz1JTiBJUDQgMTI3LjAuMC4xXHJcbmE9Y2FuZGlkYXRlOjUgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTo0IDEgdWRwIDE2Nzc3MjE1IDAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMCAwIHR5cCByZWxheSByYWRkciA6Oi8wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MyAxIHVkcCAxNjk0NDk4ODE1IDE5Mi4xNjguMC4yMyA1MTIwNSB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjIgMSB1ZHAgMTY3NzcyMTg1NSAxMC45NS4yMDQuNjEgNTI2NDYgdHlwIHNyZmx4IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZToxIDEgdWRwIDIxMTM5Mjk0NzEgMTAuOTUuMjA0LjYxIDUzNDI4IHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTowIDEgdWRwIDIxMzA3MDY0MzEgMTkyLjE2OC4wLjIzIDUwMTIzIHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPW1zaWQ6bXlLdnNWaWRlb1N0cmVhbSBteVZpZGVvVHJhY2tcclxuYT1zc3JjOjIxNDEwMjk1OTIgY25hbWU6QlA0bEVqdTBHK0VBQk0yS1xyXG5hPXNzcmM6MjE0MTAyOTU5MiBtc2lkOm15S3ZzVmlkZW9TdHJlYW0gbXlWaWRlb1RyYWNrXHJcbmE9c3NyYzoyMTQxMDI5NTkyIG1zbGFiZWw6bXlLdnNWaWRlb1N0cmVhbVxyXG5hPXNzcmM6MjE0MTAyOTU5MiBsYWJlbDpteVZpZGVvVHJhY2tcclxuYT1ydGNwOjkgSU4gSVA0IDAuMC4wLjBcclxuYT1pY2UtdWZyYWc6VVhwM1xyXG5hPWljZS1wd2Q6NGZZbTlEa1FQazl1YmRRQ2RyaFBhVFpnXHJcbmE9aWNlLW9wdGlvbnM6dHJpY2tsZVxyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjFcclxuYT1zZW5kcmVjdlxyXG5hPXJ0Y3AtbXV4XHJcbmE9cnRjcC1yc2l6ZVxyXG5hPXJ0cG1hcDoxMjUgSDI2NC85MDAwMFxyXG5hPWZtdHA6MTI1IGxldmVsLWFzeW1tZXRyeS1hbGxvd2VkPTE7cGFja2V0aXphdGlvbi1tb2RlPTE7cHJvZmlsZS1sZXZlbC1pZD00MmUwMWZcclxuYT1ydGNwLWZiOjEyNSBuYWNrXHJcbm09YXBwbGljYXRpb24gOSBVRFAvRFRMUy9TQ1RQIHdlYnJ0Yy1kYXRhY2hhbm5lbFxyXG5jPUlOIElQNCAxMjcuMC4wLjFcclxuYT1jYW5kaWRhdGU6NSAxIHVkcCAxNjc3NzIxNSAwMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDAgMCB0eXAgcmVsYXkgcmFkZHIgOjovMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjQgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTozIDEgdWRwIDE2OTQ0OTg4MTUgMTkyLjE2OC4wLjIzIDUxMjA1IHR5cCBzcmZseCByYWRkciAwLjAuMC4wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MiAxIHVkcCAxNjc3NzIxODU1IDEwLjk1LjIwNC42MSA1MjY0NiB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjEgMSB1ZHAgMjExMzkyOTQ3MSAxMC45NS4yMDQuNjEgNTM0MjggdHlwIGhvc3QgcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjAgMSB1ZHAgMjEzMDcwNjQzMSAxOTIuMTY4LjAuMjMgNTAxMjMgdHlwIGhvc3QgcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9cnRjcDo5IElOIElQNCAwLjAuMC4wXHJcbmE9aWNlLXVmcmFnOlVYcDNcclxuYT1pY2UtcHdkOjRmWW05RGtRUGs5dWJkUUNkcmhQYVRaZ1xyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjJcclxuYT1zY3RwLXBvcnQ6NTAwMFxyXG4ifQ==\",\n"
-                     "    \"IceServerList\": [{\n"
-                     "            \"Password\": \"ZEXx/a0G7reNO4SrDoK0zYoXZCamD+k/mIn6PEiuDTk=\",\n"
-                     "            \"Ttl\": 298,\n"
-                     "            \"Uris\": [\"turn:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=tcp\"],\n"
-                     "            \"Username\": \"1607424954:djE6YXJuOmF3czpraW5lc2lzdmlkZW86dXMtd2VzdC0yOjgzNjIwMzExNzk3MTpjaGFubmVsL1NjYXJ5VGVzdENoYW5uZWwvMTU5OTg1NjczODM5OA==\"\n"
-                     "        },\n"
-                     "        {\n"
-                     "            \"Password\": \"k5PFpnyKu+oLa3Y3QUIhi+NA3BONdSUevw7NAAy/Nms=\",\n"
-                     "            \"Ttl\": 298,\n"
-                     "            \"Uris\": [\"turn:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=tcp\"],\n"
-                     "            \"Username\": \"1607424954:djE6YXJuOmF3czpraW5lc2lzdmlkZW86dXMtd2VzdC0yOjgzNjIwMzExNzk3MTpjaGFubmVsL1NjYXJ5VGVzdENoYW5uZWwvMTU5OTg1NjczODM5OA==\"\n"
-                     "        }\n"
-                     "    ],\n"
                      "    \"statusResponse\": {\n"
                      "        \"correlationId\": \"CorrelationID\",\n"
                      "        \"errorType\": \"Unknown message\",\n"
@@ -3637,20 +3650,8 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer)
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
-
-    // ICE should not have been called again as we updated it via a message
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-
-    // Validate the retrieved info
-    EXPECT_EQ(2, iceCount);
-
-    for (i = 0; i < iceCount; i++) {
-        EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, i, &pIceConfigInfo));
-        EXPECT_NE(0, pIceConfigInfo->uriCount);
-        EXPECT_EQ(298 * HUNDREDS_OF_NANOS_IN_A_SECOND, pIceConfigInfo->ttl);
-        EXPECT_EQ(SIGNALING_ICE_CONFIG_INFO_CURRENT_VERSION, pIceConfigInfo->version);
-        EXPECT_EQ(0, STRCMP("1607424954:djE6YXJuOmF3czpraW5lc2lzdmlkZW86dXMtd2VzdC0yOjgzNjIwMzExNzk3MTpjaGFubmVsL1NjYXJ5VGVzdENoYW5uZWwvMTU5OTg1NjczODM5OA==", pIceConfigInfo->userName));
-    }
+    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_NE(0, iceCount);
 
     //
     // Set to invalid again to trigger an update.
@@ -3663,19 +3664,6 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer)
                      "    \"messageType\": \"SDP_ANSWER\",\n"
                      "    \"senderClientId\": \"ProducerMaster\",\n"
                      "    \"messagePayload\": \"eyJ0eXBlIjogIm9mZmVyIiwgInNkcCI6ICJ2PTBcclxubz0tIDIwNTE4OTcyNDggMiBJTiBJUDQgMTI3LjAuMC4xXHJcbnM9LVxyXG50PTAgMFxyXG5hPWdyb3VwOkJVTkRMRSAwIDEgMlxyXG5hPW1zaWQtc2VtYW50aWM6IFdNUyBteUt2c1ZpZGVvU3RyZWFtXHJcbm09YXVkaW8gOSBVRFAvVExTL1JUUC9TQVZQRiAxMTFcclxuYz1JTiBJUDQgMTI3LjAuMC4xXHJcbmE9Y2FuZGlkYXRlOjUgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTo0IDEgdWRwIDE2Nzc3MjE1IDAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMCAwIHR5cCByZWxheSByYWRkciA6Oi8wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MyAxIHVkcCAxNjk0NDk4ODE1IDE5Mi4xNjguMC4yMyA1MTIwNSB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjIgMSB1ZHAgMTY3NzcyMTg1NSAxMC45NS4yMDQuNjEgNTI2NDYgdHlwIHNyZmx4IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZToxIDEgdWRwIDIxMTM5Mjk0NzEgMTAuOTUuMjA0LjYxIDUzNDI4IHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTowIDEgdWRwIDIxMzA3MDY0MzEgMTkyLjE2OC4wLjIzIDUwMTIzIHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPW1zaWQ6bXlLdnNWaWRlb1N0cmVhbSBteUF1ZGlvVHJhY2tcclxuYT1zc3JjOjE4OTEzODY4OTYgY25hbWU6QlA0bEVqdTBHK0VBQk0yS1xyXG5hPXNzcmM6MTg5MTM4Njg5NiBtc2lkOm15S3ZzVmlkZW9TdHJlYW0gbXlBdWRpb1RyYWNrXHJcbmE9c3NyYzoxODkxMzg2ODk2IG1zbGFiZWw6bXlLdnNWaWRlb1N0cmVhbVxyXG5hPXNzcmM6MTg5MTM4Njg5NiBsYWJlbDpteUF1ZGlvVHJhY2tcclxuYT1ydGNwOjkgSU4gSVA0IDAuMC4wLjBcclxuYT1pY2UtdWZyYWc6VVhwM1xyXG5hPWljZS1wd2Q6NGZZbTlEa1FQazl1YmRRQ2RyaFBhVFpnXHJcbmE9aWNlLW9wdGlvbnM6dHJpY2tsZVxyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjBcclxuYT1zZW5kcmVjdlxyXG5hPXJ0Y3AtbXV4XHJcbmE9cnRjcC1yc2l6ZVxyXG5hPXJ0cG1hcDoxMTEgb3B1cy80ODAwMC8yXHJcbmE9Zm10cDoxMTEgbWlucHRpbWU9MTA7dXNlaW5iYW5kZmVjPTFcclxuYT1ydGNwLWZiOjExMSBuYWNrXHJcbm09dmlkZW8gOSBVRFAvVExTL1JUUC9TQVZQRiAxMjVcclxuYz1JTiBJUDQgMTI3LjAuMC4xXHJcbmE9Y2FuZGlkYXRlOjUgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTo0IDEgdWRwIDE2Nzc3MjE1IDAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMCAwIHR5cCByZWxheSByYWRkciA6Oi8wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MyAxIHVkcCAxNjk0NDk4ODE1IDE5Mi4xNjguMC4yMyA1MTIwNSB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjIgMSB1ZHAgMTY3NzcyMTg1NSAxMC45NS4yMDQuNjEgNTI2NDYgdHlwIHNyZmx4IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZToxIDEgdWRwIDIxMTM5Mjk0NzEgMTAuOTUuMjA0LjYxIDUzNDI4IHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTowIDEgdWRwIDIxMzA3MDY0MzEgMTkyLjE2OC4wLjIzIDUwMTIzIHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPW1zaWQ6bXlLdnNWaWRlb1N0cmVhbSBteVZpZGVvVHJhY2tcclxuYT1zc3JjOjIxNDEwMjk1OTIgY25hbWU6QlA0bEVqdTBHK0VBQk0yS1xyXG5hPXNzcmM6MjE0MTAyOTU5MiBtc2lkOm15S3ZzVmlkZW9TdHJlYW0gbXlWaWRlb1RyYWNrXHJcbmE9c3NyYzoyMTQxMDI5NTkyIG1zbGFiZWw6bXlLdnNWaWRlb1N0cmVhbVxyXG5hPXNzcmM6MjE0MTAyOTU5MiBsYWJlbDpteVZpZGVvVHJhY2tcclxuYT1ydGNwOjkgSU4gSVA0IDAuMC4wLjBcclxuYT1pY2UtdWZyYWc6VVhwM1xyXG5hPWljZS1wd2Q6NGZZbTlEa1FQazl1YmRRQ2RyaFBhVFpnXHJcbmE9aWNlLW9wdGlvbnM6dHJpY2tsZVxyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjFcclxuYT1zZW5kcmVjdlxyXG5hPXJ0Y3AtbXV4XHJcbmE9cnRjcC1yc2l6ZVxyXG5hPXJ0cG1hcDoxMjUgSDI2NC85MDAwMFxyXG5hPWZtdHA6MTI1IGxldmVsLWFzeW1tZXRyeS1hbGxvd2VkPTE7cGFja2V0aXphdGlvbi1tb2RlPTE7cHJvZmlsZS1sZXZlbC1pZD00MmUwMWZcclxuYT1ydGNwLWZiOjEyNSBuYWNrXHJcbm09YXBwbGljYXRpb24gOSBVRFAvRFRMUy9TQ1RQIHdlYnJ0Yy1kYXRhY2hhbm5lbFxyXG5jPUlOIElQNCAxMjcuMC4wLjFcclxuYT1jYW5kaWRhdGU6NSAxIHVkcCAxNjc3NzIxNSAwMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDAgMCB0eXAgcmVsYXkgcmFkZHIgOjovMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjQgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTozIDEgdWRwIDE2OTQ0OTg4MTUgMTkyLjE2OC4wLjIzIDUxMjA1IHR5cCBzcmZseCByYWRkciAwLjAuMC4wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MiAxIHVkcCAxNjc3NzIxODU1IDEwLjk1LjIwNC42MSA1MjY0NiB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjEgMSB1ZHAgMjExMzkyOTQ3MSAxMC45NS4yMDQuNjEgNTM0MjggdHlwIGhvc3QgcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjAgMSB1ZHAgMjEzMDcwNjQzMSAxOTIuMTY4LjAuMjMgNTAxMjMgdHlwIGhvc3QgcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9cnRjcDo5IElOIElQNCAwLjAuMC4wXHJcbmE9aWNlLXVmcmFnOlVYcDNcclxuYT1pY2UtcHdkOjRmWW05RGtRUGs5dWJkUUNkcmhQYVRaZ1xyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjJcclxuYT1zY3RwLXBvcnQ6NTAwMFxyXG4ifQ==\",\n"
-                     "    \"IceServerList\": [{\n"
-                     "            \"Password\": \"ZEXx/a0G7reNO4SrDoK0zYoXZCamD+k/mIn6PEiuDTk=\",\n"
-                     "            \"Ttl\": 298,\n"
-                     "            \"Uris\": [\"turn:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=tcp\"],\n"
-                     "            \"Username\": \"1607424954:djE6YXJuOmF3czpraW5lc2lzdmlkZW86dXMtd2VzdC0yOjgzNjIwMzExNzk3MTpjaGFubmVsL1NjYXJ5VGVzdENoYW5uZWwvMTU5OTg1NjczODM5OA==\"\n"
-                     "        },\n"
-                     "        {\n"
-                     "            \"Password\": \"k5PFpnyKu+oLa3Y3QUIhi+NA3BONdSUevw7NAAy/Nms=\",\n"
-                     "            \"Ttl\": 298,\n"
-                     "            \"Uris\": [\"turn:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=tcp\"],\n"
-                     "            \"Username\": \"1607424954:djE6YXJuOmF3czpraW5lc2lzdmlkZW86dXMtd2VzdC0yOjgzNjIwMzExNzk3MTpjaGFubmVsL1NjYXJ5VGVzdENoYW5uZWwvMTU5OTg1NjczODM5OA==\"\n"
-                     "        }\n"
-                     "    ],\n"
                      "    \"statusResponse\": {\n"
                      "        \"correlationId\": \"CorrelationID\",\n"
                      "        \"errorType\": \"Unknown message\",\n"
@@ -3688,9 +3676,8 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer)
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
-
-    // ICE should have been called again as we couldn't have updated via the message
-    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_NE(0, iceCount);
 
     // Check that we are connected and can send a message
     SignalingMessage signalingMessage;
@@ -3711,16 +3698,14 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer)
 
 TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_SlowClockSkew)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfoInternal clientInfoInternal;
     PSignalingClient pSignalingClient;
     SIGNALING_CLIENT_HANDLE signalingHandle;
-    UINT32 i, iceCount;
+    UINT32 iceCount;
     PIceConfigInfo pIceConfigInfo;
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
@@ -3775,11 +3760,16 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_SlowClockSkew)
     EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
+
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
+    EXPECT_NE(0, iceCount);
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
 
     // Ensure the ICE is not refreshed as we already have a current non-expired set
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
@@ -3803,19 +3793,6 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_SlowClockSkew)
                      "    \"messageType\": \"SDP_OFFER\",\n"
                      "    \"senderClientId\": \"ProducerMaster\",\n"
                      "    \"messagePayload\": \"eyJ0eXBlIjogIm9mZmVyIiwgInNkcCI6ICJ2PTBcclxubz0tIDIwNTE4OTcyNDggMiBJTiBJUDQgMTI3LjAuMC4xXHJcbnM9LVxyXG50PTAgMFxyXG5hPWdyb3VwOkJVTkRMRSAwIDEgMlxyXG5hPW1zaWQtc2VtYW50aWM6IFdNUyBteUt2c1ZpZGVvU3RyZWFtXHJcbm09YXVkaW8gOSBVRFAvVExTL1JUUC9TQVZQRiAxMTFcclxuYz1JTiBJUDQgMTI3LjAuMC4xXHJcbmE9Y2FuZGlkYXRlOjUgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTo0IDEgdWRwIDE2Nzc3MjE1IDAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMCAwIHR5cCByZWxheSByYWRkciA6Oi8wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MyAxIHVkcCAxNjk0NDk4ODE1IDE5Mi4xNjguMC4yMyA1MTIwNSB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjIgMSB1ZHAgMTY3NzcyMTg1NSAxMC45NS4yMDQuNjEgNTI2NDYgdHlwIHNyZmx4IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZToxIDEgdWRwIDIxMTM5Mjk0NzEgMTAuOTUuMjA0LjYxIDUzNDI4IHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTowIDEgdWRwIDIxMzA3MDY0MzEgMTkyLjE2OC4wLjIzIDUwMTIzIHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPW1zaWQ6bXlLdnNWaWRlb1N0cmVhbSBteUF1ZGlvVHJhY2tcclxuYT1zc3JjOjE4OTEzODY4OTYgY25hbWU6QlA0bEVqdTBHK0VBQk0yS1xyXG5hPXNzcmM6MTg5MTM4Njg5NiBtc2lkOm15S3ZzVmlkZW9TdHJlYW0gbXlBdWRpb1RyYWNrXHJcbmE9c3NyYzoxODkxMzg2ODk2IG1zbGFiZWw6bXlLdnNWaWRlb1N0cmVhbVxyXG5hPXNzcmM6MTg5MTM4Njg5NiBsYWJlbDpteUF1ZGlvVHJhY2tcclxuYT1ydGNwOjkgSU4gSVA0IDAuMC4wLjBcclxuYT1pY2UtdWZyYWc6VVhwM1xyXG5hPWljZS1wd2Q6NGZZbTlEa1FQazl1YmRRQ2RyaFBhVFpnXHJcbmE9aWNlLW9wdGlvbnM6dHJpY2tsZVxyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjBcclxuYT1zZW5kcmVjdlxyXG5hPXJ0Y3AtbXV4XHJcbmE9cnRjcC1yc2l6ZVxyXG5hPXJ0cG1hcDoxMTEgb3B1cy80ODAwMC8yXHJcbmE9Zm10cDoxMTEgbWlucHRpbWU9MTA7dXNlaW5iYW5kZmVjPTFcclxuYT1ydGNwLWZiOjExMSBuYWNrXHJcbm09dmlkZW8gOSBVRFAvVExTL1JUUC9TQVZQRiAxMjVcclxuYz1JTiBJUDQgMTI3LjAuMC4xXHJcbmE9Y2FuZGlkYXRlOjUgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTo0IDEgdWRwIDE2Nzc3MjE1IDAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMCAwIHR5cCByZWxheSByYWRkciA6Oi8wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MyAxIHVkcCAxNjk0NDk4ODE1IDE5Mi4xNjguMC4yMyA1MTIwNSB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjIgMSB1ZHAgMTY3NzcyMTg1NSAxMC45NS4yMDQuNjEgNTI2NDYgdHlwIHNyZmx4IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZToxIDEgdWRwIDIxMTM5Mjk0NzEgMTAuOTUuMjA0LjYxIDUzNDI4IHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTowIDEgdWRwIDIxMzA3MDY0MzEgMTkyLjE2OC4wLjIzIDUwMTIzIHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPW1zaWQ6bXlLdnNWaWRlb1N0cmVhbSBteVZpZGVvVHJhY2tcclxuYT1zc3JjOjIxNDEwMjk1OTIgY25hbWU6QlA0bEVqdTBHK0VBQk0yS1xyXG5hPXNzcmM6MjE0MTAyOTU5MiBtc2lkOm15S3ZzVmlkZW9TdHJlYW0gbXlWaWRlb1RyYWNrXHJcbmE9c3NyYzoyMTQxMDI5NTkyIG1zbGFiZWw6bXlLdnNWaWRlb1N0cmVhbVxyXG5hPXNzcmM6MjE0MTAyOTU5MiBsYWJlbDpteVZpZGVvVHJhY2tcclxuYT1ydGNwOjkgSU4gSVA0IDAuMC4wLjBcclxuYT1pY2UtdWZyYWc6VVhwM1xyXG5hPWljZS1wd2Q6NGZZbTlEa1FQazl1YmRRQ2RyaFBhVFpnXHJcbmE9aWNlLW9wdGlvbnM6dHJpY2tsZVxyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjFcclxuYT1zZW5kcmVjdlxyXG5hPXJ0Y3AtbXV4XHJcbmE9cnRjcC1yc2l6ZVxyXG5hPXJ0cG1hcDoxMjUgSDI2NC85MDAwMFxyXG5hPWZtdHA6MTI1IGxldmVsLWFzeW1tZXRyeS1hbGxvd2VkPTE7cGFja2V0aXphdGlvbi1tb2RlPTE7cHJvZmlsZS1sZXZlbC1pZD00MmUwMWZcclxuYT1ydGNwLWZiOjEyNSBuYWNrXHJcbm09YXBwbGljYXRpb24gOSBVRFAvRFRMUy9TQ1RQIHdlYnJ0Yy1kYXRhY2hhbm5lbFxyXG5jPUlOIElQNCAxMjcuMC4wLjFcclxuYT1jYW5kaWRhdGU6NSAxIHVkcCAxNjc3NzIxNSAwMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDAgMCB0eXAgcmVsYXkgcmFkZHIgOjovMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjQgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTozIDEgdWRwIDE2OTQ0OTg4MTUgMTkyLjE2OC4wLjIzIDUxMjA1IHR5cCBzcmZseCByYWRkciAwLjAuMC4wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MiAxIHVkcCAxNjc3NzIxODU1IDEwLjk1LjIwNC42MSA1MjY0NiB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjEgMSB1ZHAgMjExMzkyOTQ3MSAxMC45NS4yMDQuNjEgNTM0MjggdHlwIGhvc3QgcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjAgMSB1ZHAgMjEzMDcwNjQzMSAxOTIuMTY4LjAuMjMgNTAxMjMgdHlwIGhvc3QgcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9cnRjcDo5IElOIElQNCAwLjAuMC4wXHJcbmE9aWNlLXVmcmFnOlVYcDNcclxuYT1pY2UtcHdkOjRmWW05RGtRUGs5dWJkUUNkcmhQYVRaZ1xyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjJcclxuYT1zY3RwLXBvcnQ6NTAwMFxyXG4ifQ==\",\n"
-                     "    \"IceServerList\": [{\n"
-                     "            \"Password\": \"ZEXx/a0G7reNO4SrDoK0zYoXZCamD+k/mIn6PEiuDTk=\",\n"
-                     "            \"Ttl\": 298,\n"
-                     "            \"Uris\": [\"turn:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=tcp\"],\n"
-                     "            \"Username\": \"1607424954:djE6YXJuOmF3czpraW5lc2lzdmlkZW86dXMtd2VzdC0yOjgzNjIwMzExNzk3MTpjaGFubmVsL1NjYXJ5VGVzdENoYW5uZWwvMTU5OTg1NjczODM5OA==\"\n"
-                     "        },\n"
-                     "        {\n"
-                     "            \"Password\": \"k5PFpnyKu+oLa3Y3QUIhi+NA3BONdSUevw7NAAy/Nms=\",\n"
-                     "            \"Ttl\": 298,\n"
-                     "            \"Uris\": [\"turn:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=tcp\"],\n"
-                     "            \"Username\": \"1607424954:djE6YXJuOmF3czpraW5lc2lzdmlkZW86dXMtd2VzdC0yOjgzNjIwMzExNzk3MTpjaGFubmVsL1NjYXJ5VGVzdENoYW5uZWwvMTU5OTg1NjczODM5OA==\"\n"
-                     "        }\n"
-                     "    ],\n"
                      "    \"statusResponse\": {\n"
                      "        \"correlationId\": \"CorrelationID\",\n"
                      "        \"errorType\": \"Unknown message\",\n"
@@ -3828,20 +3805,8 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_SlowClockSkew)
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
-
-    // ICE should not have been called again as we updated it via a message
-    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-
-    // Validate the retrieved info
-    EXPECT_EQ(2, iceCount);
-
-    for (i = 0; i < iceCount; i++) {
-        EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, i, &pIceConfigInfo));
-        EXPECT_NE(0, pIceConfigInfo->uriCount);
-        EXPECT_EQ(298 * HUNDREDS_OF_NANOS_IN_A_SECOND, pIceConfigInfo->ttl);
-        EXPECT_EQ(SIGNALING_ICE_CONFIG_INFO_CURRENT_VERSION, pIceConfigInfo->version);
-        EXPECT_EQ(0, STRCMP("1607424954:djE6YXJuOmF3czpraW5lc2lzdmlkZW86dXMtd2VzdC0yOjgzNjIwMzExNzk3MTpjaGFubmVsL1NjYXJ5VGVzdENoYW5uZWwvMTU5OTg1NjczODM5OA==", pIceConfigInfo->userName));
-    }
+    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_NE(0, iceCount);
 
     //
     // Set to invalid again to trigger an update.
@@ -3854,19 +3819,6 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_SlowClockSkew)
                       "    \"messageType\": \"SDP_ANSWER\",\n"
                       "    \"senderClientId\": \"ProducerMaster\",\n"
                       "    \"messagePayload\": \"eyJ0eXBlIjogIm9mZmVyIiwgInNkcCI6ICJ2PTBcclxubz0tIDIwNTE4OTcyNDggMiBJTiBJUDQgMTI3LjAuMC4xXHJcbnM9LVxyXG50PTAgMFxyXG5hPWdyb3VwOkJVTkRMRSAwIDEgMlxyXG5hPW1zaWQtc2VtYW50aWM6IFdNUyBteUt2c1ZpZGVvU3RyZWFtXHJcbm09YXVkaW8gOSBVRFAvVExTL1JUUC9TQVZQRiAxMTFcclxuYz1JTiBJUDQgMTI3LjAuMC4xXHJcbmE9Y2FuZGlkYXRlOjUgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTo0IDEgdWRwIDE2Nzc3MjE1IDAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMCAwIHR5cCByZWxheSByYWRkciA6Oi8wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MyAxIHVkcCAxNjk0NDk4ODE1IDE5Mi4xNjguMC4yMyA1MTIwNSB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjIgMSB1ZHAgMTY3NzcyMTg1NSAxMC45NS4yMDQuNjEgNTI2NDYgdHlwIHNyZmx4IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZToxIDEgdWRwIDIxMTM5Mjk0NzEgMTAuOTUuMjA0LjYxIDUzNDI4IHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTowIDEgdWRwIDIxMzA3MDY0MzEgMTkyLjE2OC4wLjIzIDUwMTIzIHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPW1zaWQ6bXlLdnNWaWRlb1N0cmVhbSBteUF1ZGlvVHJhY2tcclxuYT1zc3JjOjE4OTEzODY4OTYgY25hbWU6QlA0bEVqdTBHK0VBQk0yS1xyXG5hPXNzcmM6MTg5MTM4Njg5NiBtc2lkOm15S3ZzVmlkZW9TdHJlYW0gbXlBdWRpb1RyYWNrXHJcbmE9c3NyYzoxODkxMzg2ODk2IG1zbGFiZWw6bXlLdnNWaWRlb1N0cmVhbVxyXG5hPXNzcmM6MTg5MTM4Njg5NiBsYWJlbDpteUF1ZGlvVHJhY2tcclxuYT1ydGNwOjkgSU4gSVA0IDAuMC4wLjBcclxuYT1pY2UtdWZyYWc6VVhwM1xyXG5hPWljZS1wd2Q6NGZZbTlEa1FQazl1YmRRQ2RyaFBhVFpnXHJcbmE9aWNlLW9wdGlvbnM6dHJpY2tsZVxyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjBcclxuYT1zZW5kcmVjdlxyXG5hPXJ0Y3AtbXV4XHJcbmE9cnRjcC1yc2l6ZVxyXG5hPXJ0cG1hcDoxMTEgb3B1cy80ODAwMC8yXHJcbmE9Zm10cDoxMTEgbWlucHRpbWU9MTA7dXNlaW5iYW5kZmVjPTFcclxuYT1ydGNwLWZiOjExMSBuYWNrXHJcbm09dmlkZW8gOSBVRFAvVExTL1JUUC9TQVZQRiAxMjVcclxuYz1JTiBJUDQgMTI3LjAuMC4xXHJcbmE9Y2FuZGlkYXRlOjUgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTo0IDEgdWRwIDE2Nzc3MjE1IDAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMCAwIHR5cCByZWxheSByYWRkciA6Oi8wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MyAxIHVkcCAxNjk0NDk4ODE1IDE5Mi4xNjguMC4yMyA1MTIwNSB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjIgMSB1ZHAgMTY3NzcyMTg1NSAxMC45NS4yMDQuNjEgNTI2NDYgdHlwIHNyZmx4IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZToxIDEgdWRwIDIxMTM5Mjk0NzEgMTAuOTUuMjA0LjYxIDUzNDI4IHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTowIDEgdWRwIDIxMzA3MDY0MzEgMTkyLjE2OC4wLjIzIDUwMTIzIHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPW1zaWQ6bXlLdnNWaWRlb1N0cmVhbSBteVZpZGVvVHJhY2tcclxuYT1zc3JjOjIxNDEwMjk1OTIgY25hbWU6QlA0bEVqdTBHK0VBQk0yS1xyXG5hPXNzcmM6MjE0MTAyOTU5MiBtc2lkOm15S3ZzVmlkZW9TdHJlYW0gbXlWaWRlb1RyYWNrXHJcbmE9c3NyYzoyMTQxMDI5NTkyIG1zbGFiZWw6bXlLdnNWaWRlb1N0cmVhbVxyXG5hPXNzcmM6MjE0MTAyOTU5MiBsYWJlbDpteVZpZGVvVHJhY2tcclxuYT1ydGNwOjkgSU4gSVA0IDAuMC4wLjBcclxuYT1pY2UtdWZyYWc6VVhwM1xyXG5hPWljZS1wd2Q6NGZZbTlEa1FQazl1YmRRQ2RyaFBhVFpnXHJcbmE9aWNlLW9wdGlvbnM6dHJpY2tsZVxyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjFcclxuYT1zZW5kcmVjdlxyXG5hPXJ0Y3AtbXV4XHJcbmE9cnRjcC1yc2l6ZVxyXG5hPXJ0cG1hcDoxMjUgSDI2NC85MDAwMFxyXG5hPWZtdHA6MTI1IGxldmVsLWFzeW1tZXRyeS1hbGxvd2VkPTE7cGFja2V0aXphdGlvbi1tb2RlPTE7cHJvZmlsZS1sZXZlbC1pZD00MmUwMWZcclxuYT1ydGNwLWZiOjEyNSBuYWNrXHJcbm09YXBwbGljYXRpb24gOSBVRFAvRFRMUy9TQ1RQIHdlYnJ0Yy1kYXRhY2hhbm5lbFxyXG5jPUlOIElQNCAxMjcuMC4wLjFcclxuYT1jYW5kaWRhdGU6NSAxIHVkcCAxNjc3NzIxNSAwMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDAgMCB0eXAgcmVsYXkgcmFkZHIgOjovMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjQgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTozIDEgdWRwIDE2OTQ0OTg4MTUgMTkyLjE2OC4wLjIzIDUxMjA1IHR5cCBzcmZseCByYWRkciAwLjAuMC4wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MiAxIHVkcCAxNjc3NzIxODU1IDEwLjk1LjIwNC42MSA1MjY0NiB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjEgMSB1ZHAgMjExMzkyOTQ3MSAxMC45NS4yMDQuNjEgNTM0MjggdHlwIGhvc3QgcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjAgMSB1ZHAgMjEzMDcwNjQzMSAxOTIuMTY4LjAuMjMgNTAxMjMgdHlwIGhvc3QgcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9cnRjcDo5IElOIElQNCAwLjAuMC4wXHJcbmE9aWNlLXVmcmFnOlVYcDNcclxuYT1pY2UtcHdkOjRmWW05RGtRUGs5dWJkUUNkcmhQYVRaZ1xyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjJcclxuYT1zY3RwLXBvcnQ6NTAwMFxyXG4ifQ==\",\n"
-                      "    \"IceServerList\": [{\n"
-                      "            \"Password\": \"ZEXx/a0G7reNO4SrDoK0zYoXZCamD+k/mIn6PEiuDTk=\",\n"
-                      "            \"Ttl\": 298,\n"
-                      "            \"Uris\": [\"turn:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=tcp\"],\n"
-                      "            \"Username\": \"1607424954:djE6YXJuOmF3czpraW5lc2lzdmlkZW86dXMtd2VzdC0yOjgzNjIwMzExNzk3MTpjaGFubmVsL1NjYXJ5VGVzdENoYW5uZWwvMTU5OTg1NjczODM5OA==\"\n"
-                      "        },\n"
-                      "        {\n"
-                      "            \"Password\": \"k5PFpnyKu+oLa3Y3QUIhi+NA3BONdSUevw7NAAy/Nms=\",\n"
-                      "            \"Ttl\": 298,\n"
-                      "            \"Uris\": [\"turn:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=tcp\"],\n"
-                      "            \"Username\": \"1607424954:djE6YXJuOmF3czpraW5lc2lzdmlkZW86dXMtd2VzdC0yOjgzNjIwMzExNzk3MTpjaGFubmVsL1NjYXJ5VGVzdENoYW5uZWwvMTU5OTg1NjczODM5OA==\"\n"
-                      "        }\n"
-                      "    ],\n"
                       "    \"statusResponse\": {\n"
                       "        \"correlationId\": \"CorrelationID\",\n"
                       "        \"errorType\": \"Unknown message\",\n"
@@ -3879,9 +3831,8 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_SlowClockSkew)
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
-
-    // ICE should have been called again as we couldn't have updated via the message
-    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_NE(0, iceCount);
 
     // Check that we are connected and can send a message
     SignalingMessage signalingMessage;
@@ -3903,16 +3854,14 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_SlowClockSkew)
 
 TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew)
 {
-    if (!mAccessKeyIdSet) {
-        return;
-    }
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     ChannelInfo channelInfo;
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfoInternal clientInfoInternal;
     PSignalingClient pSignalingClient;
     SIGNALING_CLIENT_HANDLE signalingHandle;
-    UINT32 i, iceCount;
+    UINT32 iceCount;
     PIceConfigInfo pIceConfigInfo;
 
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
@@ -3967,13 +3916,12 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew)
     EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
-    // Ensure the ICE is not refreshed as we already have a current non-expired set
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
     EXPECT_NE(0, iceCount);
@@ -3995,19 +3943,6 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew)
                      "    \"messageType\": \"SDP_OFFER\",\n"
                      "    \"senderClientId\": \"ProducerMaster\",\n"
                      "    \"messagePayload\": \"eyJ0eXBlIjogIm9mZmVyIiwgInNkcCI6ICJ2PTBcclxubz0tIDIwNTE4OTcyNDggMiBJTiBJUDQgMTI3LjAuMC4xXHJcbnM9LVxyXG50PTAgMFxyXG5hPWdyb3VwOkJVTkRMRSAwIDEgMlxyXG5hPW1zaWQtc2VtYW50aWM6IFdNUyBteUt2c1ZpZGVvU3RyZWFtXHJcbm09YXVkaW8gOSBVRFAvVExTL1JUUC9TQVZQRiAxMTFcclxuYz1JTiBJUDQgMTI3LjAuMC4xXHJcbmE9Y2FuZGlkYXRlOjUgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTo0IDEgdWRwIDE2Nzc3MjE1IDAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMCAwIHR5cCByZWxheSByYWRkciA6Oi8wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MyAxIHVkcCAxNjk0NDk4ODE1IDE5Mi4xNjguMC4yMyA1MTIwNSB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjIgMSB1ZHAgMTY3NzcyMTg1NSAxMC45NS4yMDQuNjEgNTI2NDYgdHlwIHNyZmx4IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZToxIDEgdWRwIDIxMTM5Mjk0NzEgMTAuOTUuMjA0LjYxIDUzNDI4IHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTowIDEgdWRwIDIxMzA3MDY0MzEgMTkyLjE2OC4wLjIzIDUwMTIzIHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPW1zaWQ6bXlLdnNWaWRlb1N0cmVhbSBteUF1ZGlvVHJhY2tcclxuYT1zc3JjOjE4OTEzODY4OTYgY25hbWU6QlA0bEVqdTBHK0VBQk0yS1xyXG5hPXNzcmM6MTg5MTM4Njg5NiBtc2lkOm15S3ZzVmlkZW9TdHJlYW0gbXlBdWRpb1RyYWNrXHJcbmE9c3NyYzoxODkxMzg2ODk2IG1zbGFiZWw6bXlLdnNWaWRlb1N0cmVhbVxyXG5hPXNzcmM6MTg5MTM4Njg5NiBsYWJlbDpteUF1ZGlvVHJhY2tcclxuYT1ydGNwOjkgSU4gSVA0IDAuMC4wLjBcclxuYT1pY2UtdWZyYWc6VVhwM1xyXG5hPWljZS1wd2Q6NGZZbTlEa1FQazl1YmRRQ2RyaFBhVFpnXHJcbmE9aWNlLW9wdGlvbnM6dHJpY2tsZVxyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjBcclxuYT1zZW5kcmVjdlxyXG5hPXJ0Y3AtbXV4XHJcbmE9cnRjcC1yc2l6ZVxyXG5hPXJ0cG1hcDoxMTEgb3B1cy80ODAwMC8yXHJcbmE9Zm10cDoxMTEgbWlucHRpbWU9MTA7dXNlaW5iYW5kZmVjPTFcclxuYT1ydGNwLWZiOjExMSBuYWNrXHJcbm09dmlkZW8gOSBVRFAvVExTL1JUUC9TQVZQRiAxMjVcclxuYz1JTiBJUDQgMTI3LjAuMC4xXHJcbmE9Y2FuZGlkYXRlOjUgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTo0IDEgdWRwIDE2Nzc3MjE1IDAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMCAwIHR5cCByZWxheSByYWRkciA6Oi8wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MyAxIHVkcCAxNjk0NDk4ODE1IDE5Mi4xNjguMC4yMyA1MTIwNSB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjIgMSB1ZHAgMTY3NzcyMTg1NSAxMC45NS4yMDQuNjEgNTI2NDYgdHlwIHNyZmx4IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZToxIDEgdWRwIDIxMTM5Mjk0NzEgMTAuOTUuMjA0LjYxIDUzNDI4IHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTowIDEgdWRwIDIxMzA3MDY0MzEgMTkyLjE2OC4wLjIzIDUwMTIzIHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPW1zaWQ6bXlLdnNWaWRlb1N0cmVhbSBteVZpZGVvVHJhY2tcclxuYT1zc3JjOjIxNDEwMjk1OTIgY25hbWU6QlA0bEVqdTBHK0VBQk0yS1xyXG5hPXNzcmM6MjE0MTAyOTU5MiBtc2lkOm15S3ZzVmlkZW9TdHJlYW0gbXlWaWRlb1RyYWNrXHJcbmE9c3NyYzoyMTQxMDI5NTkyIG1zbGFiZWw6bXlLdnNWaWRlb1N0cmVhbVxyXG5hPXNzcmM6MjE0MTAyOTU5MiBsYWJlbDpteVZpZGVvVHJhY2tcclxuYT1ydGNwOjkgSU4gSVA0IDAuMC4wLjBcclxuYT1pY2UtdWZyYWc6VVhwM1xyXG5hPWljZS1wd2Q6NGZZbTlEa1FQazl1YmRRQ2RyaFBhVFpnXHJcbmE9aWNlLW9wdGlvbnM6dHJpY2tsZVxyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjFcclxuYT1zZW5kcmVjdlxyXG5hPXJ0Y3AtbXV4XHJcbmE9cnRjcC1yc2l6ZVxyXG5hPXJ0cG1hcDoxMjUgSDI2NC85MDAwMFxyXG5hPWZtdHA6MTI1IGxldmVsLWFzeW1tZXRyeS1hbGxvd2VkPTE7cGFja2V0aXphdGlvbi1tb2RlPTE7cHJvZmlsZS1sZXZlbC1pZD00MmUwMWZcclxuYT1ydGNwLWZiOjEyNSBuYWNrXHJcbm09YXBwbGljYXRpb24gOSBVRFAvRFRMUy9TQ1RQIHdlYnJ0Yy1kYXRhY2hhbm5lbFxyXG5jPUlOIElQNCAxMjcuMC4wLjFcclxuYT1jYW5kaWRhdGU6NSAxIHVkcCAxNjc3NzIxNSAwMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDAgMCB0eXAgcmVsYXkgcmFkZHIgOjovMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjQgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTozIDEgdWRwIDE2OTQ0OTg4MTUgMTkyLjE2OC4wLjIzIDUxMjA1IHR5cCBzcmZseCByYWRkciAwLjAuMC4wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MiAxIHVkcCAxNjc3NzIxODU1IDEwLjk1LjIwNC42MSA1MjY0NiB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjEgMSB1ZHAgMjExMzkyOTQ3MSAxMC45NS4yMDQuNjEgNTM0MjggdHlwIGhvc3QgcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjAgMSB1ZHAgMjEzMDcwNjQzMSAxOTIuMTY4LjAuMjMgNTAxMjMgdHlwIGhvc3QgcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9cnRjcDo5IElOIElQNCAwLjAuMC4wXHJcbmE9aWNlLXVmcmFnOlVYcDNcclxuYT1pY2UtcHdkOjRmWW05RGtRUGs5dWJkUUNkcmhQYVRaZ1xyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjJcclxuYT1zY3RwLXBvcnQ6NTAwMFxyXG4ifQ==\",\n"
-                     "    \"IceServerList\": [{\n"
-                     "            \"Password\": \"ZEXx/a0G7reNO4SrDoK0zYoXZCamD+k/mIn6PEiuDTk=\",\n"
-                     "            \"Ttl\": 298,\n"
-                     "            \"Uris\": [\"turn:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=tcp\"],\n"
-                     "            \"Username\": \"1607424954:djE6YXJuOmF3czpraW5lc2lzdmlkZW86dXMtd2VzdC0yOjgzNjIwMzExNzk3MTpjaGFubmVsL1NjYXJ5VGVzdENoYW5uZWwvMTU5OTg1NjczODM5OA==\"\n"
-                     "        },\n"
-                     "        {\n"
-                     "            \"Password\": \"k5PFpnyKu+oLa3Y3QUIhi+NA3BONdSUevw7NAAy/Nms=\",\n"
-                     "            \"Ttl\": 298,\n"
-                     "            \"Uris\": [\"turn:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=tcp\"],\n"
-                     "            \"Username\": \"1607424954:djE6YXJuOmF3czpraW5lc2lzdmlkZW86dXMtd2VzdC0yOjgzNjIwMzExNzk3MTpjaGFubmVsL1NjYXJ5VGVzdENoYW5uZWwvMTU5OTg1NjczODM5OA==\"\n"
-                     "        }\n"
-                     "    ],\n"
                      "    \"statusResponse\": {\n"
                      "        \"correlationId\": \"CorrelationID\",\n"
                      "        \"errorType\": \"Unknown message\",\n"
@@ -4020,20 +3955,8 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew)
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
-
-    // ICE should not have been called again as we updated it via a message
-    EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-
-    // Validate the retrieved info
-    EXPECT_EQ(2, iceCount);
-
-    for (i = 0; i < iceCount; i++) {
-        EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, i, &pIceConfigInfo));
-        EXPECT_NE(0, pIceConfigInfo->uriCount);
-        EXPECT_EQ(298 * HUNDREDS_OF_NANOS_IN_A_SECOND, pIceConfigInfo->ttl);
-        EXPECT_EQ(SIGNALING_ICE_CONFIG_INFO_CURRENT_VERSION, pIceConfigInfo->version);
-        EXPECT_EQ(0, STRCMP("1607424954:djE6YXJuOmF3czpraW5lc2lzdmlkZW86dXMtd2VzdC0yOjgzNjIwMzExNzk3MTpjaGFubmVsL1NjYXJ5VGVzdENoYW5uZWwvMTU5OTg1NjczODM5OA==", pIceConfigInfo->userName));
-    }
+    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_NE(0, iceCount);
 
     //
     // Set to invalid again to trigger an update.
@@ -4046,19 +3969,6 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew)
                       "    \"messageType\": \"SDP_ANSWER\",\n"
                       "    \"senderClientId\": \"ProducerMaster\",\n"
                       "    \"messagePayload\": \"eyJ0eXBlIjogIm9mZmVyIiwgInNkcCI6ICJ2PTBcclxubz0tIDIwNTE4OTcyNDggMiBJTiBJUDQgMTI3LjAuMC4xXHJcbnM9LVxyXG50PTAgMFxyXG5hPWdyb3VwOkJVTkRMRSAwIDEgMlxyXG5hPW1zaWQtc2VtYW50aWM6IFdNUyBteUt2c1ZpZGVvU3RyZWFtXHJcbm09YXVkaW8gOSBVRFAvVExTL1JUUC9TQVZQRiAxMTFcclxuYz1JTiBJUDQgMTI3LjAuMC4xXHJcbmE9Y2FuZGlkYXRlOjUgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTo0IDEgdWRwIDE2Nzc3MjE1IDAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMCAwIHR5cCByZWxheSByYWRkciA6Oi8wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MyAxIHVkcCAxNjk0NDk4ODE1IDE5Mi4xNjguMC4yMyA1MTIwNSB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjIgMSB1ZHAgMTY3NzcyMTg1NSAxMC45NS4yMDQuNjEgNTI2NDYgdHlwIHNyZmx4IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZToxIDEgdWRwIDIxMTM5Mjk0NzEgMTAuOTUuMjA0LjYxIDUzNDI4IHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTowIDEgdWRwIDIxMzA3MDY0MzEgMTkyLjE2OC4wLjIzIDUwMTIzIHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPW1zaWQ6bXlLdnNWaWRlb1N0cmVhbSBteUF1ZGlvVHJhY2tcclxuYT1zc3JjOjE4OTEzODY4OTYgY25hbWU6QlA0bEVqdTBHK0VBQk0yS1xyXG5hPXNzcmM6MTg5MTM4Njg5NiBtc2lkOm15S3ZzVmlkZW9TdHJlYW0gbXlBdWRpb1RyYWNrXHJcbmE9c3NyYzoxODkxMzg2ODk2IG1zbGFiZWw6bXlLdnNWaWRlb1N0cmVhbVxyXG5hPXNzcmM6MTg5MTM4Njg5NiBsYWJlbDpteUF1ZGlvVHJhY2tcclxuYT1ydGNwOjkgSU4gSVA0IDAuMC4wLjBcclxuYT1pY2UtdWZyYWc6VVhwM1xyXG5hPWljZS1wd2Q6NGZZbTlEa1FQazl1YmRRQ2RyaFBhVFpnXHJcbmE9aWNlLW9wdGlvbnM6dHJpY2tsZVxyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjBcclxuYT1zZW5kcmVjdlxyXG5hPXJ0Y3AtbXV4XHJcbmE9cnRjcC1yc2l6ZVxyXG5hPXJ0cG1hcDoxMTEgb3B1cy80ODAwMC8yXHJcbmE9Zm10cDoxMTEgbWlucHRpbWU9MTA7dXNlaW5iYW5kZmVjPTFcclxuYT1ydGNwLWZiOjExMSBuYWNrXHJcbm09dmlkZW8gOSBVRFAvVExTL1JUUC9TQVZQRiAxMjVcclxuYz1JTiBJUDQgMTI3LjAuMC4xXHJcbmE9Y2FuZGlkYXRlOjUgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTo0IDEgdWRwIDE2Nzc3MjE1IDAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMCAwIHR5cCByZWxheSByYWRkciA6Oi8wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MyAxIHVkcCAxNjk0NDk4ODE1IDE5Mi4xNjguMC4yMyA1MTIwNSB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjIgMSB1ZHAgMTY3NzcyMTg1NSAxMC45NS4yMDQuNjEgNTI2NDYgdHlwIHNyZmx4IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZToxIDEgdWRwIDIxMTM5Mjk0NzEgMTAuOTUuMjA0LjYxIDUzNDI4IHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTowIDEgdWRwIDIxMzA3MDY0MzEgMTkyLjE2OC4wLjIzIDUwMTIzIHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPW1zaWQ6bXlLdnNWaWRlb1N0cmVhbSBteVZpZGVvVHJhY2tcclxuYT1zc3JjOjIxNDEwMjk1OTIgY25hbWU6QlA0bEVqdTBHK0VBQk0yS1xyXG5hPXNzcmM6MjE0MTAyOTU5MiBtc2lkOm15S3ZzVmlkZW9TdHJlYW0gbXlWaWRlb1RyYWNrXHJcbmE9c3NyYzoyMTQxMDI5NTkyIG1zbGFiZWw6bXlLdnNWaWRlb1N0cmVhbVxyXG5hPXNzcmM6MjE0MTAyOTU5MiBsYWJlbDpteVZpZGVvVHJhY2tcclxuYT1ydGNwOjkgSU4gSVA0IDAuMC4wLjBcclxuYT1pY2UtdWZyYWc6VVhwM1xyXG5hPWljZS1wd2Q6NGZZbTlEa1FQazl1YmRRQ2RyaFBhVFpnXHJcbmE9aWNlLW9wdGlvbnM6dHJpY2tsZVxyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjFcclxuYT1zZW5kcmVjdlxyXG5hPXJ0Y3AtbXV4XHJcbmE9cnRjcC1yc2l6ZVxyXG5hPXJ0cG1hcDoxMjUgSDI2NC85MDAwMFxyXG5hPWZtdHA6MTI1IGxldmVsLWFzeW1tZXRyeS1hbGxvd2VkPTE7cGFja2V0aXphdGlvbi1tb2RlPTE7cHJvZmlsZS1sZXZlbC1pZD00MmUwMWZcclxuYT1ydGNwLWZiOjEyNSBuYWNrXHJcbm09YXBwbGljYXRpb24gOSBVRFAvRFRMUy9TQ1RQIHdlYnJ0Yy1kYXRhY2hhbm5lbFxyXG5jPUlOIElQNCAxMjcuMC4wLjFcclxuYT1jYW5kaWRhdGU6NSAxIHVkcCAxNjc3NzIxNSAwMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDAgMCB0eXAgcmVsYXkgcmFkZHIgOjovMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjQgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTozIDEgdWRwIDE2OTQ0OTg4MTUgMTkyLjE2OC4wLjIzIDUxMjA1IHR5cCBzcmZseCByYWRkciAwLjAuMC4wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MiAxIHVkcCAxNjc3NzIxODU1IDEwLjk1LjIwNC42MSA1MjY0NiB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjEgMSB1ZHAgMjExMzkyOTQ3MSAxMC45NS4yMDQuNjEgNTM0MjggdHlwIGhvc3QgcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjAgMSB1ZHAgMjEzMDcwNjQzMSAxOTIuMTY4LjAuMjMgNTAxMjMgdHlwIGhvc3QgcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9cnRjcDo5IElOIElQNCAwLjAuMC4wXHJcbmE9aWNlLXVmcmFnOlVYcDNcclxuYT1pY2UtcHdkOjRmWW05RGtRUGs5dWJkUUNkcmhQYVRaZ1xyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjJcclxuYT1zY3RwLXBvcnQ6NTAwMFxyXG4ifQ==\",\n"
-                      "    \"IceServerList\": [{\n"
-                      "            \"Password\": \"ZEXx/a0G7reNO4SrDoK0zYoXZCamD+k/mIn6PEiuDTk=\",\n"
-                      "            \"Ttl\": 298,\n"
-                      "            \"Uris\": [\"turn:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=tcp\"],\n"
-                      "            \"Username\": \"1607424954:djE6YXJuOmF3czpraW5lc2lzdmlkZW86dXMtd2VzdC0yOjgzNjIwMzExNzk3MTpjaGFubmVsL1NjYXJ5VGVzdENoYW5uZWwvMTU5OTg1NjczODM5OA==\"\n"
-                      "        },\n"
-                      "        {\n"
-                      "            \"Password\": \"k5PFpnyKu+oLa3Y3QUIhi+NA3BONdSUevw7NAAy/Nms=\",\n"
-                      "            \"Ttl\": 298,\n"
-                      "            \"Uris\": [\"turn:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=tcp\"],\n"
-                      "            \"Username\": \"1607424954:djE6YXJuOmF3czpraW5lc2lzdmlkZW86dXMtd2VzdC0yOjgzNjIwMzExNzk3MTpjaGFubmVsL1NjYXJ5VGVzdENoYW5uZWwvMTU5OTg1NjczODM5OA==\"\n"
-                      "        }\n"
-                      "    ],\n"
                       "    \"statusResponse\": {\n"
                       "        \"correlationId\": \"CorrelationID\",\n"
                       "        \"errorType\": \"Unknown message\",\n"
@@ -4071,9 +3981,8 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew)
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
-
-    // ICE should have been called again as we couldn't have updated via the message
-    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_NE(0, iceCount);
 
     // Check that we are connected and can send a message
     SignalingMessage signalingMessage;
@@ -4103,7 +4012,7 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_Veri
     SignalingClientInfoInternal clientInfoInternal;
     PSignalingClient pSignalingClient;
     SIGNALING_CLIENT_HANDLE signalingHandle;
-    UINT32 i, iceCount;
+    UINT32 iceCount;
     PIceConfigInfo pIceConfigInfo;
     STATUS retStatus = STATUS_SUCCESS;
 
@@ -4159,7 +4068,7 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_Veri
     EXPECT_EQ(3, signalingStatesCounts[SIGNALING_CLIENT_STATE_DESCRIBE]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CREATE]);
     EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ENDPOINT]);
-    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_READY]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
@@ -4204,19 +4113,6 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_Veri
                      "    \"messageType\": \"SDP_OFFER\",\n"
                      "    \"senderClientId\": \"ProducerMaster\",\n"
                      "    \"messagePayload\": \"eyJ0eXBlIjogIm9mZmVyIiwgInNkcCI6ICJ2PTBcclxubz0tIDIwNTE4OTcyNDggMiBJTiBJUDQgMTI3LjAuMC4xXHJcbnM9LVxyXG50PTAgMFxyXG5hPWdyb3VwOkJVTkRMRSAwIDEgMlxyXG5hPW1zaWQtc2VtYW50aWM6IFdNUyBteUt2c1ZpZGVvU3RyZWFtXHJcbm09YXVkaW8gOSBVRFAvVExTL1JUUC9TQVZQRiAxMTFcclxuYz1JTiBJUDQgMTI3LjAuMC4xXHJcbmE9Y2FuZGlkYXRlOjUgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTo0IDEgdWRwIDE2Nzc3MjE1IDAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMCAwIHR5cCByZWxheSByYWRkciA6Oi8wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MyAxIHVkcCAxNjk0NDk4ODE1IDE5Mi4xNjguMC4yMyA1MTIwNSB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjIgMSB1ZHAgMTY3NzcyMTg1NSAxMC45NS4yMDQuNjEgNTI2NDYgdHlwIHNyZmx4IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZToxIDEgdWRwIDIxMTM5Mjk0NzEgMTAuOTUuMjA0LjYxIDUzNDI4IHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTowIDEgdWRwIDIxMzA3MDY0MzEgMTkyLjE2OC4wLjIzIDUwMTIzIHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPW1zaWQ6bXlLdnNWaWRlb1N0cmVhbSBteUF1ZGlvVHJhY2tcclxuYT1zc3JjOjE4OTEzODY4OTYgY25hbWU6QlA0bEVqdTBHK0VBQk0yS1xyXG5hPXNzcmM6MTg5MTM4Njg5NiBtc2lkOm15S3ZzVmlkZW9TdHJlYW0gbXlBdWRpb1RyYWNrXHJcbmE9c3NyYzoxODkxMzg2ODk2IG1zbGFiZWw6bXlLdnNWaWRlb1N0cmVhbVxyXG5hPXNzcmM6MTg5MTM4Njg5NiBsYWJlbDpteUF1ZGlvVHJhY2tcclxuYT1ydGNwOjkgSU4gSVA0IDAuMC4wLjBcclxuYT1pY2UtdWZyYWc6VVhwM1xyXG5hPWljZS1wd2Q6NGZZbTlEa1FQazl1YmRRQ2RyaFBhVFpnXHJcbmE9aWNlLW9wdGlvbnM6dHJpY2tsZVxyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjBcclxuYT1zZW5kcmVjdlxyXG5hPXJ0Y3AtbXV4XHJcbmE9cnRjcC1yc2l6ZVxyXG5hPXJ0cG1hcDoxMTEgb3B1cy80ODAwMC8yXHJcbmE9Zm10cDoxMTEgbWlucHRpbWU9MTA7dXNlaW5iYW5kZmVjPTFcclxuYT1ydGNwLWZiOjExMSBuYWNrXHJcbm09dmlkZW8gOSBVRFAvVExTL1JUUC9TQVZQRiAxMjVcclxuYz1JTiBJUDQgMTI3LjAuMC4xXHJcbmE9Y2FuZGlkYXRlOjUgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTo0IDEgdWRwIDE2Nzc3MjE1IDAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMCAwIHR5cCByZWxheSByYWRkciA6Oi8wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MyAxIHVkcCAxNjk0NDk4ODE1IDE5Mi4xNjguMC4yMyA1MTIwNSB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjIgMSB1ZHAgMTY3NzcyMTg1NSAxMC45NS4yMDQuNjEgNTI2NDYgdHlwIHNyZmx4IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZToxIDEgdWRwIDIxMTM5Mjk0NzEgMTAuOTUuMjA0LjYxIDUzNDI4IHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTowIDEgdWRwIDIxMzA3MDY0MzEgMTkyLjE2OC4wLjIzIDUwMTIzIHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPW1zaWQ6bXlLdnNWaWRlb1N0cmVhbSBteVZpZGVvVHJhY2tcclxuYT1zc3JjOjIxNDEwMjk1OTIgY25hbWU6QlA0bEVqdTBHK0VBQk0yS1xyXG5hPXNzcmM6MjE0MTAyOTU5MiBtc2lkOm15S3ZzVmlkZW9TdHJlYW0gbXlWaWRlb1RyYWNrXHJcbmE9c3NyYzoyMTQxMDI5NTkyIG1zbGFiZWw6bXlLdnNWaWRlb1N0cmVhbVxyXG5hPXNzcmM6MjE0MTAyOTU5MiBsYWJlbDpteVZpZGVvVHJhY2tcclxuYT1ydGNwOjkgSU4gSVA0IDAuMC4wLjBcclxuYT1pY2UtdWZyYWc6VVhwM1xyXG5hPWljZS1wd2Q6NGZZbTlEa1FQazl1YmRRQ2RyaFBhVFpnXHJcbmE9aWNlLW9wdGlvbnM6dHJpY2tsZVxyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjFcclxuYT1zZW5kcmVjdlxyXG5hPXJ0Y3AtbXV4XHJcbmE9cnRjcC1yc2l6ZVxyXG5hPXJ0cG1hcDoxMjUgSDI2NC85MDAwMFxyXG5hPWZtdHA6MTI1IGxldmVsLWFzeW1tZXRyeS1hbGxvd2VkPTE7cGFja2V0aXphdGlvbi1tb2RlPTE7cHJvZmlsZS1sZXZlbC1pZD00MmUwMWZcclxuYT1ydGNwLWZiOjEyNSBuYWNrXHJcbm09YXBwbGljYXRpb24gOSBVRFAvRFRMUy9TQ1RQIHdlYnJ0Yy1kYXRhY2hhbm5lbFxyXG5jPUlOIElQNCAxMjcuMC4wLjFcclxuYT1jYW5kaWRhdGU6NSAxIHVkcCAxNjc3NzIxNSAwMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDAgMCB0eXAgcmVsYXkgcmFkZHIgOjovMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjQgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTozIDEgdWRwIDE2OTQ0OTg4MTUgMTkyLjE2OC4wLjIzIDUxMjA1IHR5cCBzcmZseCByYWRkciAwLjAuMC4wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MiAxIHVkcCAxNjc3NzIxODU1IDEwLjk1LjIwNC42MSA1MjY0NiB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjEgMSB1ZHAgMjExMzkyOTQ3MSAxMC45NS4yMDQuNjEgNTM0MjggdHlwIGhvc3QgcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjAgMSB1ZHAgMjEzMDcwNjQzMSAxOTIuMTY4LjAuMjMgNTAxMjMgdHlwIGhvc3QgcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9cnRjcDo5IElOIElQNCAwLjAuMC4wXHJcbmE9aWNlLXVmcmFnOlVYcDNcclxuYT1pY2UtcHdkOjRmWW05RGtRUGs5dWJkUUNkcmhQYVRaZ1xyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjJcclxuYT1zY3RwLXBvcnQ6NTAwMFxyXG4ifQ==\",\n"
-                     "    \"IceServerList\": [{\n"
-                     "            \"Password\": \"ZEXx/a0G7reNO4SrDoK0zYoXZCamD+k/mIn6PEiuDTk=\",\n"
-                     "            \"Ttl\": 298,\n"
-                     "            \"Uris\": [\"turn:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=tcp\"],\n"
-                     "            \"Username\": \"1607424954:djE6YXJuOmF3czpraW5lc2lzdmlkZW86dXMtd2VzdC0yOjgzNjIwMzExNzk3MTpjaGFubmVsL1NjYXJ5VGVzdENoYW5uZWwvMTU5OTg1NjczODM5OA==\"\n"
-                     "        },\n"
-                     "        {\n"
-                     "            \"Password\": \"k5PFpnyKu+oLa3Y3QUIhi+NA3BONdSUevw7NAAy/Nms=\",\n"
-                     "            \"Ttl\": 298,\n"
-                     "            \"Uris\": [\"turn:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=tcp\"],\n"
-                     "            \"Username\": \"1607424954:djE6YXJuOmF3czpraW5lc2lzdmlkZW86dXMtd2VzdC0yOjgzNjIwMzExNzk3MTpjaGFubmVsL1NjYXJ5VGVzdENoYW5uZWwvMTU5OTg1NjczODM5OA==\"\n"
-                     "        }\n"
-                     "    ],\n"
                      "    \"statusResponse\": {\n"
                      "        \"correlationId\": \"CorrelationID\",\n"
                      "        \"errorType\": \"Unknown message\",\n"
@@ -4237,20 +4133,8 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_Veri
     }
     EXPECT_EQ(STATUS_SUCCESS, retStatus);
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
-
-    // ICE should not have been called again as we updated it via a message
-    EXPECT_EQ(4, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
-
-    // Validate the retrieved info
-    EXPECT_EQ(2, iceCount);
-
-    for (i = 0; i < iceCount; i++) {
-        EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, i, &pIceConfigInfo));
-        EXPECT_NE(0, pIceConfigInfo->uriCount);
-        EXPECT_EQ(298 * HUNDREDS_OF_NANOS_IN_A_SECOND, pIceConfigInfo->ttl);
-        EXPECT_EQ(SIGNALING_ICE_CONFIG_INFO_CURRENT_VERSION, pIceConfigInfo->version);
-        EXPECT_EQ(0, STRCMP("1607424954:djE6YXJuOmF3czpraW5lc2lzdmlkZW86dXMtd2VzdC0yOjgzNjIwMzExNzk3MTpjaGFubmVsL1NjYXJ5VGVzdENoYW5uZWwvMTU5OTg1NjczODM5OA==", pIceConfigInfo->userName));
-    }
+    EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_NE(0, iceCount);
 
     //
     // Set to invalid again to trigger an update.
@@ -4263,19 +4147,6 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_Veri
                       "    \"messageType\": \"SDP_ANSWER\",\n"
                       "    \"senderClientId\": \"ProducerMaster\",\n"
                       "    \"messagePayload\": \"eyJ0eXBlIjogIm9mZmVyIiwgInNkcCI6ICJ2PTBcclxubz0tIDIwNTE4OTcyNDggMiBJTiBJUDQgMTI3LjAuMC4xXHJcbnM9LVxyXG50PTAgMFxyXG5hPWdyb3VwOkJVTkRMRSAwIDEgMlxyXG5hPW1zaWQtc2VtYW50aWM6IFdNUyBteUt2c1ZpZGVvU3RyZWFtXHJcbm09YXVkaW8gOSBVRFAvVExTL1JUUC9TQVZQRiAxMTFcclxuYz1JTiBJUDQgMTI3LjAuMC4xXHJcbmE9Y2FuZGlkYXRlOjUgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTo0IDEgdWRwIDE2Nzc3MjE1IDAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMCAwIHR5cCByZWxheSByYWRkciA6Oi8wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MyAxIHVkcCAxNjk0NDk4ODE1IDE5Mi4xNjguMC4yMyA1MTIwNSB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjIgMSB1ZHAgMTY3NzcyMTg1NSAxMC45NS4yMDQuNjEgNTI2NDYgdHlwIHNyZmx4IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZToxIDEgdWRwIDIxMTM5Mjk0NzEgMTAuOTUuMjA0LjYxIDUzNDI4IHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTowIDEgdWRwIDIxMzA3MDY0MzEgMTkyLjE2OC4wLjIzIDUwMTIzIHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPW1zaWQ6bXlLdnNWaWRlb1N0cmVhbSBteUF1ZGlvVHJhY2tcclxuYT1zc3JjOjE4OTEzODY4OTYgY25hbWU6QlA0bEVqdTBHK0VBQk0yS1xyXG5hPXNzcmM6MTg5MTM4Njg5NiBtc2lkOm15S3ZzVmlkZW9TdHJlYW0gbXlBdWRpb1RyYWNrXHJcbmE9c3NyYzoxODkxMzg2ODk2IG1zbGFiZWw6bXlLdnNWaWRlb1N0cmVhbVxyXG5hPXNzcmM6MTg5MTM4Njg5NiBsYWJlbDpteUF1ZGlvVHJhY2tcclxuYT1ydGNwOjkgSU4gSVA0IDAuMC4wLjBcclxuYT1pY2UtdWZyYWc6VVhwM1xyXG5hPWljZS1wd2Q6NGZZbTlEa1FQazl1YmRRQ2RyaFBhVFpnXHJcbmE9aWNlLW9wdGlvbnM6dHJpY2tsZVxyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjBcclxuYT1zZW5kcmVjdlxyXG5hPXJ0Y3AtbXV4XHJcbmE9cnRjcC1yc2l6ZVxyXG5hPXJ0cG1hcDoxMTEgb3B1cy80ODAwMC8yXHJcbmE9Zm10cDoxMTEgbWlucHRpbWU9MTA7dXNlaW5iYW5kZmVjPTFcclxuYT1ydGNwLWZiOjExMSBuYWNrXHJcbm09dmlkZW8gOSBVRFAvVExTL1JUUC9TQVZQRiAxMjVcclxuYz1JTiBJUDQgMTI3LjAuMC4xXHJcbmE9Y2FuZGlkYXRlOjUgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTo0IDEgdWRwIDE2Nzc3MjE1IDAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMCAwIHR5cCByZWxheSByYWRkciA6Oi8wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MyAxIHVkcCAxNjk0NDk4ODE1IDE5Mi4xNjguMC4yMyA1MTIwNSB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjIgMSB1ZHAgMTY3NzcyMTg1NSAxMC45NS4yMDQuNjEgNTI2NDYgdHlwIHNyZmx4IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZToxIDEgdWRwIDIxMTM5Mjk0NzEgMTAuOTUuMjA0LjYxIDUzNDI4IHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTowIDEgdWRwIDIxMzA3MDY0MzEgMTkyLjE2OC4wLjIzIDUwMTIzIHR5cCBob3N0IHJhZGRyIDAuMC4wLjAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPW1zaWQ6bXlLdnNWaWRlb1N0cmVhbSBteVZpZGVvVHJhY2tcclxuYT1zc3JjOjIxNDEwMjk1OTIgY25hbWU6QlA0bEVqdTBHK0VBQk0yS1xyXG5hPXNzcmM6MjE0MTAyOTU5MiBtc2lkOm15S3ZzVmlkZW9TdHJlYW0gbXlWaWRlb1RyYWNrXHJcbmE9c3NyYzoyMTQxMDI5NTkyIG1zbGFiZWw6bXlLdnNWaWRlb1N0cmVhbVxyXG5hPXNzcmM6MjE0MTAyOTU5MiBsYWJlbDpteVZpZGVvVHJhY2tcclxuYT1ydGNwOjkgSU4gSVA0IDAuMC4wLjBcclxuYT1pY2UtdWZyYWc6VVhwM1xyXG5hPWljZS1wd2Q6NGZZbTlEa1FQazl1YmRRQ2RyaFBhVFpnXHJcbmE9aWNlLW9wdGlvbnM6dHJpY2tsZVxyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjFcclxuYT1zZW5kcmVjdlxyXG5hPXJ0Y3AtbXV4XHJcbmE9cnRjcC1yc2l6ZVxyXG5hPXJ0cG1hcDoxMjUgSDI2NC85MDAwMFxyXG5hPWZtdHA6MTI1IGxldmVsLWFzeW1tZXRyeS1hbGxvd2VkPTE7cGFja2V0aXphdGlvbi1tb2RlPTE7cHJvZmlsZS1sZXZlbC1pZD00MmUwMWZcclxuYT1ydGNwLWZiOjEyNSBuYWNrXHJcbm09YXBwbGljYXRpb24gOSBVRFAvRFRMUy9TQ1RQIHdlYnJ0Yy1kYXRhY2hhbm5lbFxyXG5jPUlOIElQNCAxMjcuMC4wLjFcclxuYT1jYW5kaWRhdGU6NSAxIHVkcCAxNjc3NzIxNSAwMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDAgMCB0eXAgcmVsYXkgcmFkZHIgOjovMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjQgMSB1ZHAgMTY3NzcyMTUgMDAwMDowMDAwOjAwMDA6MDAwMDowMDAwOjAwMDA6MDAwMDowMDAwIDAgdHlwIHJlbGF5IHJhZGRyIDo6LzAgcnBvcnQgMCBnZW5lcmF0aW9uIDAgbmV0d29yay1jb3N0IDk5OVxyXG5hPWNhbmRpZGF0ZTozIDEgdWRwIDE2OTQ0OTg4MTUgMTkyLjE2OC4wLjIzIDUxMjA1IHR5cCBzcmZseCByYWRkciAwLjAuMC4wIHJwb3J0IDAgZ2VuZXJhdGlvbiAwIG5ldHdvcmstY29zdCA5OTlcclxuYT1jYW5kaWRhdGU6MiAxIHVkcCAxNjc3NzIxODU1IDEwLjk1LjIwNC42MSA1MjY0NiB0eXAgc3JmbHggcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjEgMSB1ZHAgMjExMzkyOTQ3MSAxMC45NS4yMDQuNjEgNTM0MjggdHlwIGhvc3QgcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9Y2FuZGlkYXRlOjAgMSB1ZHAgMjEzMDcwNjQzMSAxOTIuMTY4LjAuMjMgNTAxMjMgdHlwIGhvc3QgcmFkZHIgMC4wLjAuMCBycG9ydCAwIGdlbmVyYXRpb24gMCBuZXR3b3JrLWNvc3QgOTk5XHJcbmE9cnRjcDo5IElOIElQNCAwLjAuMC4wXHJcbmE9aWNlLXVmcmFnOlVYcDNcclxuYT1pY2UtcHdkOjRmWW05RGtRUGs5dWJkUUNkcmhQYVRaZ1xyXG5hPWZpbmdlcnByaW50OnNoYS0yNTYgQkQ6RTk6QkI6RTE6ODE6NzQ6MDU6RkQ6Mzc6QUI6MzU6MTU6OTE6NTQ6ODc6RDU6NDI6QkU6RjQ6RjE6MUQ6NjA6OEI6REQ6NEQ6RUM6QzM6NDQ6RkU6OTc6ODg6MjBcclxuYT1zZXR1cDphY3RwYXNzXHJcbmE9bWlkOjJcclxuYT1zY3RwLXBvcnQ6NTAwMFxyXG4ifQ==\",\n"
-                      "    \"IceServerList\": [{\n"
-                      "            \"Password\": \"ZEXx/a0G7reNO4SrDoK0zYoXZCamD+k/mIn6PEiuDTk=\",\n"
-                      "            \"Ttl\": 298,\n"
-                      "            \"Uris\": [\"turn:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:18-236-143-60.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=tcp\"],\n"
-                      "            \"Username\": \"1607424954:djE6YXJuOmF3czpraW5lc2lzdmlkZW86dXMtd2VzdC0yOjgzNjIwMzExNzk3MTpjaGFubmVsL1NjYXJ5VGVzdENoYW5uZWwvMTU5OTg1NjczODM5OA==\"\n"
-                      "        },\n"
-                      "        {\n"
-                      "            \"Password\": \"k5PFpnyKu+oLa3Y3QUIhi+NA3BONdSUevw7NAAy/Nms=\",\n"
-                      "            \"Ttl\": 298,\n"
-                      "            \"Uris\": [\"turn:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=udp\", \"turns:52-25-38-73.t-4f692171.kinesisvideo.us-west-2.amazonaws.com:443?transport=tcp\"],\n"
-                      "            \"Username\": \"1607424954:djE6YXJuOmF3czpraW5lc2lzdmlkZW86dXMtd2VzdC0yOjgzNjIwMzExNzk3MTpjaGFubmVsL1NjYXJ5VGVzdENoYW5uZWwvMTU5OTg1NjczODM5OA==\"\n"
-                      "        }\n"
-                      "    ],\n"
                       "    \"statusResponse\": {\n"
                       "        \"correlationId\": \"CorrelationID\",\n"
                       "        \"errorType\": \"Unknown message\",\n"
@@ -4288,9 +4159,8 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_Veri
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceCount));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(signalingHandle, 0, &pIceConfigInfo));
-
-    // ICE should have been called again as we couldn't have updated via the message
-    EXPECT_EQ(5, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_EQ(6, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_ICE_CONFIG]);
+    EXPECT_NE(0, iceCount);
 
     // Check that we are connected and can send a message
     SignalingMessage signalingMessage;
@@ -4308,7 +4178,6 @@ TEST_F(SignalingApiFunctionalityTest, receivingIceConfigOffer_FastClockSkew_Veri
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
-
 
 } // namespace webrtcclient
 } // namespace video

@@ -5,7 +5,7 @@ include(CheckIncludeFiles)
 include(CheckFunctionExists)
 
 # The version MUST be updated before every release
-project(KinesisVideoWebRTCClient VERSION 1.7.3 LANGUAGES C)
+project(KinesisVideoWebRTCClient VERSION 1.10.1 LANGUAGES C)
 
 # User Flags
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
@@ -18,7 +18,9 @@ option(BUILD_LIBSRTP_HOST_PLATFORM "If buildng LibSRTP what is the current platf
 option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destination platform" OFF)
 option(BUILD_SAMPLE "Build available samples" ON)
 option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
+option(ENABLE_KVS_THREADPOOL "Enable support for KVS thread pool in signaling" ON)
 option(INSTRUMENTED_ALLOCATORS "Enable memory instrumentation" OFF)
+option(ENABLE_AWS_SDK_IN_TESTS "Enable support for compiling AWS SDKs for tests" ON)
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -36,6 +38,11 @@ if(WIN32)
   set(EXT_PTHREAD_LIBRARIES "" CACHE FILEPATH "Path to PThread libraries")
 endif()
 
+if(NOT CMAKE_BUILD_TYPE)
+  message(STATUS "Setting CMAKE_BUILD_TYPE to Release by default")
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
+endif()
+
 execute_process(
         COMMAND git rev-parse HEAD
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -45,6 +52,16 @@ execute_process(
 add_definitions(-DSDK_VERSION=\"${GIT_COMMIT_HASH}\")
 add_definitions(-DVERSION_STRING=\"${PROJECT_VERSION}\")
 add_definitions(-DDETECTED_GIT_HASH)
+
+if(NOT KVS_STACK_SIZE OR KVS_STACK_SIZE STREQUAL "")
+  message(STATUS "Setting default stack size to 64*1024")
+  set(KVS_DEFAULT_STACK_SIZE 65536)
+  add_definitions(-DKVS_DEFAULT_STACK_SIZE=65536)
+else()
+  message(STATUS "Setting default stack size to provided value")
+  set(KVS_DEFAULT_STACK_SIZE ${KVS_STACK_SIZE})
+  add_definitions(-DKVS_DEFAULT_STACK_SIZE=${KVS_STACK_SIZE})
+endif()
 
 if(NOT OPEN_SRC_INSTALL_PREFIX OR OPEN_SRC_INSTALL_PREFIX STREQUAL "")
   set(OPEN_SRC_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/open-source" CACHE PATH "Libraries will be downloaded and built in this directory.")
@@ -98,14 +115,32 @@ message(STATUS "dependencies install path is ${OPEN_SRC_INSTALL_PREFIX}")
 add_definitions(-DKVS_CA_CERT_PATH="${CMAKE_SOURCE_DIR}/certs/cert.pem")
 add_definitions(-DCMAKE_DETECTED_CACERT_PATH)
 
+if (ENABLE_KVS_THREADPOOL)
+  add_definitions(-DENABLE_KVS_THREADPOOL)
+endif()
+
 if(USE_OPENSSL)
   add_definitions(-DKVS_USE_OPENSSL)
 elseif(USE_MBEDTLS)
   add_definitions(-DKVS_USE_MBEDTLS)
   # FIXME: there's probably a better way to inject MBEDTLS_USER_CONFIG_FILE flag without mutating the global CMAKE_C_FLAGS and CMAKE_CXX_FLAGS
-  set(CMAKE_C_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_C_FLAGS}")
-  set(CMAKE_CXX_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_CXX_FLAGS}")
+  if("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
+    message(STATUS "Detected clang")
+    set(CMAKE_C_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_CXX_FLAGS}")
+  elseif("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
+    message(STATUS "Detected gcc")
+    set(CMAKE_C_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/configs -DMBEDTLS_USER_CONFIG_FILE=\"<config_mbedtls.h>\" ${CMAKE_CXX_FLAGS}")
+    if(CMAKE_C_COMPILER_VERSION VERSION_GREATER "7.0")
+      set(CMAKE_C_FLAGS "-Wno-error=stringop-overflow ${CMAKE_C_FLAGS}")
+      set(CMAKE_CXX_FLAGS "-Wno-error=stringop-overflow ${CMAKE_CXX_FLAGS}")
+    endif()
+  else()
+    message(FATAL_ERROR "Detected unsupported compiler: ${CMAKE_C_COMPILER_ID}")
+  endif()
 endif()
+
 
 if(BUILD_DEPENDENCIES)
   if(NOT EXISTS ${OPEN_SRC_INSTALL_PREFIX})
@@ -126,14 +161,16 @@ if(BUILD_DEPENDENCIES)
 
   if (USE_OPENSSL)
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+                   -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                    -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM}
                    -DOPENSSL_EXTRA=${OPENSSL_EXTRA})
     build_dependency(openssl ${BUILD_ARGS})
     set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
   elseif(USE_MBEDTLS)
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-                   "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
-    build_dependency(mbedtls ${BUILD_ARGS})
+                   -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                    "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
+      build_dependency(mbedtls ${BUILD_ARGS})
   endif()
 
 
@@ -144,8 +181,9 @@ if(BUILD_DEPENDENCIES)
     set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
     string(REPLACE ";" "|" OPENSSL_LIBRARIES_ALT_SEP "${OPENSSL_LIBRARIES}")
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+                  -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                   -DUSE_OPENSSL=${USE_OPENSSL}
-                  -DUSE_MBEDTLS=${USE_MBEDTLS} 
+                  -DUSE_MBEDTLS=${USE_MBEDTLS}
                   -DLWS_EXT_PTHREAD_INCLUDE_DIR=${EXT_PTHREAD_INCLUDE_DIR}
                   -DLWS_EXT_PTHREAD_LIBRARIES=${EXT_PTHREAD_LIBRARIES}
                   -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIRS}
@@ -153,6 +191,7 @@ if(BUILD_DEPENDENCIES)
                   -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
   else()
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+                  -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                   -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
                   -DUSE_OPENSSL=${USE_OPENSSL}
                   -DUSE_MBEDTLS=${USE_MBEDTLS}
@@ -165,21 +204,55 @@ if(BUILD_DEPENDENCIES)
 
   set(BUILD_ARGS
       -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
       -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
       -DBUILD_LIBSRTP_HOST_PLATFORM=${BUILD_LIBSRTP_HOST_PLATFORM}
       -DBUILD_LIBSRTP_DESTINATION_PLATFORM=${BUILD_LIBSRTP_DESTINATION_PLATFORM}
       -DUSE_OPENSSL=${USE_OPENSSL}
       -DUSE_MBEDTLS=${USE_MBEDTLS}
       -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
-  
+
   build_dependency(srtp ${BUILD_ARGS})
 
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I${CMAKE_CURRENT_SOURCE_DIR}/configs")
   set(BUILD_ARGS
+      -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+      -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+
+  build_dependency(kvssdp ${BUILD_ARGS})
+  build_dependency(kvsstun ${BUILD_ARGS})
+  build_dependency(kvsrtp ${BUILD_ARGS})
+  build_dependency(kvsrtcp ${BUILD_ARGS})
+
+  set(BUILD_ARGS
+      -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+      -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+  
+  build_dependency(corejson ${BUILD_ARGS})
+
+  set(BUILD_ARGS
+      -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+      "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -I${OPEN_SRC_INSTALL_PREFIX}/include/corejson")
+
+  build_dependency(kvssignaling ${BUILD_ARGS})
+
+  set(BUILD_ARGS
+      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
       -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
 
   build_dependency(usrsctp ${BUILD_ARGS})
+
+
   if(BUILD_TEST)
     build_dependency(gtest)
+
+    if(ENABLE_AWS_SDK_IN_TESTS)
+      build_dependency(awscpp)
+    endif()
+
   endif()
 
   if(BUILD_BENCHMARK)
@@ -195,8 +268,10 @@ endif()
 # building kvsCommonLws also builds kvspic
 set(BUILD_ARGS
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        -DBUILD_STATIC=${BUILD_STATIC_LIBS}
         -DUSE_OPENSSL=${USE_OPENSSL}
         -DUSE_MBEDTLS=${USE_MBEDTLS}
+        -DKVS_DEFAULT_STACK_SIZE=${KVS_DEFAULT_STACK_SIZE}
         -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
 build_dependency(kvsCommonLws ${BUILD_ARGS})
 
@@ -245,13 +320,14 @@ set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${LIBSRTP_INCLUDE_DIRS}
 link_directories(${LIBSRTP_LIBRARY_DIRS})
 link_directories(${LIBWEBSOCKETS_LIBRARY_DIRS})
 link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
-link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib64)
 
+if(EXISTS ${OPEN_SRC_INSTALL_PREFIX}/lib64)
+  link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib64)
+endif()
 ############# find dependent libraries end ############
 
 if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU|Clang")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-
 
   if(CODE_COVERAGE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g -fprofile-arcs -ftest-coverage")
@@ -295,6 +371,10 @@ if (INSTRUMENTED_ALLOCATORS)
   add_definitions(-DINSTRUMENTED_ALLOCATORS)
 endif()
 
+if(ENABLE_AWS_SDK_IN_TESTS)
+  add_definitions(-DENABLE_AWS_SDK_IN_TESTS)
+endif()
+
 file(
   GLOB
   WEBRTC_CLIENT_SOURCE_FILES
@@ -323,11 +403,9 @@ endif()
 
 file(GLOB WEBRTC_SIGNALING_CLIENT_SOURCE_FILES "src/source/Signaling/*.c")
 
-
 include_directories(${OPEN_SRC_INCLUDE_DIRS})
 include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
-include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/ice)
 
 add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES} ${DATACHANNEL_SRC})
 
@@ -335,10 +413,23 @@ if(USE_MBEDTLS)
   target_compile_definitions(kvsWebrtcClient PRIVATE LWS_WITH_MBEDTLS)
 endif()
 
+if(ENABLE_KVS_THREADPOOL)
+  file(GLOB THREADPOOL_SOURCE_FILES "src/source/Threadpool/*.c")
+  add_library(kvsWebRtcThreadpool ${LINKAGE} ${THREADPOOL_SOURCE_FILES})
+  target_link_libraries(kvsWebRtcThreadpool PRIVATE kvspicUtils)
+  set(EXTRA_DEPS ${EXTRA_DEPS} kvsWebRtcThreadpool)
+endif()
+
 target_link_libraries(
   kvsWebrtcClient
   PRIVATE kvspicUtils
           kvspicState
+          kvssdp
+          kvsstun
+          kvsrtp
+          kvsrtcp
+          kvssignaling
+          corejson
           ${CMAKE_THREAD_LIBS_INIT}
           ${OPENSSL_SSL_LIBRARY}
           ${OPENSSL_CRYPTO_LIBRARY}
@@ -359,7 +450,13 @@ target_link_libraries(
   kvsWebrtcSignalingClient
   PUBLIC
         kvsCommonLws
-        ${LIBWEBSOCKETS_LIBRARIES} 
+        ${LIBWEBSOCKETS_LIBRARIES}
+        kvssdp
+        kvsstun
+        kvsrtp
+        kvsrtcp
+        kvssignaling
+        corejson
   PRIVATE kvspicUtils
          kvspicState
          ${CMAKE_THREAD_LIBS_INIT}
@@ -379,6 +476,13 @@ if(COMPILER_WARNINGS)
   target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wall -Werror -pedantic -Wextra -Wno-unknown-warning-option)
 endif()
 
+if(ENABLE_KVS_THREADPOOL)
+  install(TARGETS kvsWebRtcThreadpool
+          LIBRARY DESTINATION lib
+          ARCHIVE DESTINATION lib
+  )
+endif()
+
 install(TARGETS kvsWebrtcClient kvsWebrtcSignalingClient
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
@@ -392,11 +496,17 @@ if (BUILD_SAMPLE)
   # copy sample frames to build folder, in case developer runs sample program with command `samples/kvsWebrtcClientMaster` from `build` dir.
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/opusSampleFrames" DESTINATION .)
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/h264SampleFrames" DESTINATION .)
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/aacSampleFrames" DESTINATION .)
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/h265SampleFrames" DESTINATION .)
 
   add_subdirectory(samples)
 endif()
 
 if(BUILD_TEST)
+  # adding ZLIB because aws sdk static link seems to be broken when zlib is needed
+  if(NOT WIN32)
+    find_package(ZLIB REQUIRED)
+  endif()
   add_subdirectory(tst)
 endif()
 

@@ -3,6 +3,7 @@ function(build_dependency lib_name)
   set(supported_libs
       gperftools
       gtest
+      awscpp
       benchmark
       jsmn
       openssl
@@ -12,7 +13,13 @@ function(build_dependency lib_name)
       curl
       mbedtls
       kvspic
-      kvsCommonLws)
+      kvsCommonLws
+      kvssdp
+      kvsstun
+      kvsrtp
+      kvsrtcp
+      kvssignaling
+      corejson)
   list(FIND supported_libs ${lib_name} index)
   if(${index} EQUAL -1)
     message(WARNING "${lib_name} is not supported to build from source")
@@ -26,6 +33,8 @@ function(build_dependency lib_name)
     set(lib_file_name srtp2)
   elseif(${lib_name} STREQUAL "gperftools")
     set(lib_file_name profiler)
+  elseif(${lib_name} STREQUAL "awscpp")
+    set(lib_file_name aws-cpp-sdk-core)
   endif()
   set(library_found NOTFOUND)
   find_library(

@@ -21,11 +21,10 @@ extern "C" {
 #define DEFAULT_TURN_SEND_REFRESH_INVERVAL       (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 // turn state timeouts
-#define DEFAULT_TURN_SOCKET_CONNECT_TIMEOUT    (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define DEFAULT_TURN_GET_CREDENTIAL_TIMEOUT    (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define DEFAULT_TURN_ALLOCATION_TIMEOUT        (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define DEFAULT_TURN_BIND_CHANNEL_TIMEOUT      (3 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define DEFAULT_TURN_BIND_CHANNEL_TIMEOUT      (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define DEFAULT_TURN_CLEAN_UP_TIMEOUT          (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 #define DEFAULT_TURN_ALLOCATION_REFRESH_GRACE_PERIOD (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
@@ -36,8 +35,7 @@ extern "C" {
 #define DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN MAX_TURN_CHANNEL_DATA_MESSAGE_SIZE
 #define DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE             512
 #define DEFAULT_TURN_MAX_PEER_COUNT                       32
-
-#define DEFAULT_TURN_ALLOCATION_MAX_TRY_COUNT 3
+#define MAX_TURN_PROFILE_LOG_DESC_LEN                     256
 
 // all turn channel numbers must be greater than 0x4000 and less than 0x7FFF
 #define TURN_CHANNEL_BIND_CHANNEL_NUMBER_BASE (UINT16) 0x4000
@@ -45,6 +43,8 @@ extern "C" {
 // 2 byte channel number 2 data byte size
 #define TURN_DATA_CHANNEL_SEND_OVERHEAD  4
 #define TURN_DATA_CHANNEL_MSG_FIRST_BYTE 0x40
+
+#define TURN_STATE_MACHINE_NAME (PCHAR) "TURN"
 
 #define TURN_STATE_NEW_STR                     (PCHAR) "TURN_STATE_NEW"
 #define TURN_STATE_CHECK_SOCKET_CONNECTION_STR (PCHAR) "TURN_STATE_CHECK_SOCKET_CONNECTION"
@@ -59,18 +59,6 @@ extern "C" {
 
 typedef STATUS (*RelayAddressAvailableFunc)(UINT64, PKvsIpAddress, PSocketConnection);
 typedef STATUS (*TurnStateFailedFunc)(PSocketConnection, UINT64);
-
-typedef enum {
-    TURN_STATE_NEW,
-    TURN_STATE_CHECK_SOCKET_CONNECTION,
-    TURN_STATE_GET_CREDENTIALS,
-    TURN_STATE_ALLOCATION,
-    TURN_STATE_CREATE_PERMISSION,
-    TURN_STATE_BIND_CHANNEL,
-    TURN_STATE_READY,
-    TURN_STATE_CLEAN_UP,
-    TURN_STATE_FAILED,
-} TURN_CONNECTION_STATE;
 
 typedef enum {
     TURN_PEER_CONN_STATE_CREATE_PERMISSION,
@@ -110,7 +98,22 @@ typedef struct {
     UINT16 channelNumber;
     UINT64 permissionExpirationTime;
     BOOL ready;
+    BOOL firstTimeCreatePermReq;
+    BOOL firstTimeCreatePermResponse;
+    UINT64 createPermissionStartTime;
+    UINT64 createPermissionTime;
+    BOOL firstTimeBindChannelReq;
+    BOOL firstTimeBindChannelResponse;
+    UINT64 bindChannelStartTime;
+    UINT64 bindChannelTime;
 } TurnPeer, *PTurnPeer;
+
+typedef struct {
+    UINT64 getCredentialsStartTime;
+    UINT64 getCredentialsTime;
+    UINT64 createAllocationStartTime;
+    UINT64 createAllocationTime;
+} TurnProfileDiagnostics, *PTurnProfileDiagnostics;
 
 typedef struct __TurnConnection TurnConnection;
 struct __TurnConnection {
@@ -141,11 +144,9 @@ struct __TurnConnection {
     MUTEX sendLock;
     CVAR freeAllocationCvar;
 
-    TURN_CONNECTION_STATE state;
+    UINT64 state;
 
     UINT64 stateTimeoutTime;
-    UINT32 stateTryCount;
-    UINT32 stateTryCountMax;
 
     STATUS errorStatus;
 
@@ -180,6 +181,8 @@ struct __TurnConnection {
 
     UINT64 currentTimerCallingPeriod;
     BOOL deallocatePacketSent;
+    TurnProfileDiagnostics turnProfileDiagnostics;
+    PStateMachine pStateMachine;
 };
 typedef struct __TurnConnection* PTurnConnection;
 
@@ -196,12 +199,13 @@ STATUS turnConnectionRefreshAllocation(PTurnConnection);
 STATUS turnConnectionRefreshPermission(PTurnConnection, PBOOL);
 STATUS turnConnectionFreePreAllocatedPackets(PTurnConnection);
 
-STATUS turnConnectionStepState(PTurnConnection);
+// used for state machine
+UINT64 turnConnectionGetTime(UINT64);
+
 STATUS turnConnectionUpdateNonce(PTurnConnection);
 STATUS turnConnectionTimerCallback(UINT32, UINT64, UINT64);
 STATUS turnConnectionGetLongTermKey(PCHAR, PCHAR, PCHAR, PBYTE, UINT32);
 STATUS turnConnectionPackageTurnAllocationRequest(PCHAR, PCHAR, PBYTE, UINT16, UINT32, PStunPacket*);
-PCHAR turnConnectionGetStateStr(TURN_CONNECTION_STATE);
 
 STATUS turnConnectionIncomingDataHandler(PTurnConnection, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress, PTurnChannelData, PUINT32);
 
@@ -213,6 +217,8 @@ VOID turnConnectionFatalError(PTurnConnection, STATUS);
 
 PTurnPeer turnConnectionGetPeerWithChannelNumber(PTurnConnection, UINT16);
 PTurnPeer turnConnectionGetPeerWithIp(PTurnConnection, PKvsIpAddress);
+
+STATUS checkTurnPeerConnections(PTurnConnection);
 
 #ifdef __cplusplus
 }

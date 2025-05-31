@@ -14,12 +14,16 @@ extern "C" {
 #define KVS_ICE_MAX_REMOTE_CANDIDATE_COUNT                     100
 #define KVS_ICE_MAX_LOCAL_CANDIDATE_COUNT                      100
 #define KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define KVS_ICE_CONNECTIVITY_CHECK_TIMEOUT                     (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define KVS_ICE_CANDIDATE_NOMINATION_TIMEOUT                   (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define KVS_ICE_SEND_KEEP_ALIVE_INTERVAL                       (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT               (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define KVS_ICE_DEFAULT_TIMER_START_DELAY                      (3 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
-#define KVS_ICE_SHORT_CHECK_DELAY                              (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define KVS_ICE_CONNECTIVITY_CHECK_TIMEOUT                                                                                                           \
+    (12 * HUNDREDS_OF_NANOS_IN_A_SECOND) // This should be greater than KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT to ensure there is
+                                         // buffer wait time for connectivity checks with the pairs formed with near timeout created pairs
+#define KVS_ICE_CANDIDATE_NOMINATION_TIMEOUT                                                                                                         \
+    (12 * HUNDREDS_OF_NANOS_IN_A_SECOND) // This should be greater than KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT to ensure there is some
+                                         // buffer for nomination with near timeout generated candidates
+#define KVS_ICE_SEND_KEEP_ALIVE_INTERVAL         (15 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define KVS_ICE_DEFAULT_TIMER_START_DELAY        (3 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define KVS_ICE_SHORT_CHECK_DELAY                (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
 // Ta in https://tools.ietf.org/html/rfc8445
 #define KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL  (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
@@ -56,6 +60,9 @@ extern "C" {
 #define ICE_CANDIDATE_ID_LEN 8
 
 #define STATS_NOT_APPLICABLE_STR (PCHAR) "N/A"
+
+#define ICE_STATE_MACHINE_NAME (PCHAR) "ICE"
+
 typedef enum {
     ICE_CANDIDATE_STATE_NEW,
     ICE_CANDIDATE_STATE_VALID,
@@ -73,24 +80,23 @@ typedef struct __IceAgent* PIceAgent;
  * Internal structure tracking ICE server parameters for diagnostics and metrics/stats
  */
 typedef struct {
-    CHAR url[MAX_STATS_STRING_LENGTH + 1];      //!< STUN/TURN server URL
-    CHAR protocol[MAX_STATS_STRING_LENGTH + 1]; //!< Valid values: UDP, TCP
-    INT32 port;                                 //!< Port number used by client
-    UINT64 totalRequestsSent;                   //!< Total amount of requests that have been sent to the server
-    UINT64 totalResponsesReceived;              //!< Total number of responses received from the server
-    UINT64 totalRoundTripTime;                  //!< Sum of RTTs of all the requests for which response has been received
+    CHAR url[MAX_ICE_CONFIG_URI_LEN + 1];   //!< STUN/TURN server URL
+    CHAR protocol[MAX_PROTOCOL_LENGTH + 1]; //!< Valid values: UDP, TCP
+    INT32 port;                             //!< Port number used by client
+    UINT64 totalRequestsSent;               //!< Total amount of requests that have been sent to the server
+    UINT64 totalResponsesReceived;          //!< Total number of responses received from the server
+    UINT64 totalRoundTripTime;              //!< Sum of RTTs of all the requests for which response has been received
 } RtcIceServerDiagnostics, *PRtcIceServerDiagnostics;
 
 typedef struct {
-    DOMString url; //!< For local candidates this is the URL of the ICE server from which the candidate was obtained
-    DOMString transportId[MAX_STATS_STRING_LENGTH + 1]; //!< ID of object that was inspected for RTCTransportStats
-    CHAR address[KVS_IP_ADDRESS_STRING_BUFFER_LEN];     //!< IPv4 or IPv6 address of the candidate
-    DOMString protocol;                                 //!< Valid values: UDP, TCP
-    DOMString relayProtocol;                            //!< Protocol used by endpoint to communicate with TURN server.
-                                                        //!< Valid values: UDP, TCP, TLS
-    INT32 priority;                                     //!< Computed using the formula in https://tools.ietf.org/html/rfc5245#section-15.1
-    INT32 port;                                         //!< Port number of the candidate
-    DOMString candidateType;                            //!< Type of local/remote ICE candidate
+    DOMString url;                                  //!< For local candidates this is the URL of the ICE server from which the candidate was obtained
+    CHAR address[KVS_IP_ADDRESS_STRING_BUFFER_LEN]; //!< IPv4 or IPv6 address of the candidate
+    CHAR protocol[MAX_PROTOCOL_LENGTH + 1];         //!< Valid values: UDP, TCP
+    CHAR relayProtocol[MAX_PROTOCOL_LENGTH + 1];    //!< Protocol used by endpoint to communicate with TURN server.
+                                                    //!< Valid values: UDP, TCP, TLS
+    CHAR candidateType[MAX_CANDIDATE_TYPE_LENGTH + 1]; //!< Type of local/remote ICE candidate
+    INT32 priority;                                    //!< Computed using the formula in https://tools.ietf.org/html/rfc5245#section-15.1
+    INT32 port;                                        //!< Port number of the candidate
 } RtcIceCandidateDiagnostics, *PRtcIceCandidateDiagnostics;
 
 typedef struct {
@@ -136,6 +142,7 @@ typedef struct {
     IceInboundPacketFunc inboundPacketFn;
     IceConnectionStateChangedFunc connectionStateChangedFn;
     IceNewLocalCandidateFunc newLocalCandidateFn;
+    IceServerSetIpFunc setStunServerIpFn;
 } IceAgentCallbacks, *PIceAgentCallbacks;
 
 typedef struct {
@@ -175,7 +182,7 @@ typedef struct {
     PHashTable requestSentTime;
     UINT64 roundTripTime;
     UINT64 responsesReceived;
-    RtcIceCandidatePairDiagnostics rtcIceCandidatePairDiagnostics;
+    PRtcIceCandidatePairDiagnostics pRtcIceCandidatePairDiagnostics;
 } IceCandidatePair, *PIceCandidatePair;
 
 typedef struct {
@@ -196,6 +203,8 @@ struct __IceAgent {
     volatile ATOMIC_BOOL shutdown;
     volatile ATOMIC_BOOL restart;
     volatile ATOMIC_BOOL processStun;
+    volatile ATOMIC_BOOL addedRelayCandidate;
+    volatile ATOMIC_BOOL stopGathering;
 
     CHAR localUsername[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
     CHAR localPassword[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
@@ -203,9 +212,9 @@ struct __IceAgent {
     CHAR remotePassword[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
     CHAR combinedUserName[(MAX_ICE_CONFIG_USER_NAME_LEN + 1) << 1]; //!< the combination of remote user name and local user name.
 
-    RtcIceServerDiagnostics rtcIceServerDiagnostics[MAX_ICE_SERVERS_COUNT];
-    RtcIceCandidateDiagnostics rtcSelectedLocalIceCandidateDiagnostics;
-    RtcIceCandidateDiagnostics rtcSelectedRemoteIceCandidateDiagnostics;
+    PRtcIceServerDiagnostics pRtcIceServerDiagnostics[MAX_ICE_SERVERS_COUNT];
+    PRtcIceCandidateDiagnostics pRtcSelectedLocalIceCandidateDiagnostics;
+    PRtcIceCandidateDiagnostics pRtcSelectedRemoteIceCandidateDiagnostics;
     IceAgentProfileDiagnostics iceAgentProfileDiagnostics;
 
     PHashTable requestTimestampDiagnostics;
@@ -264,6 +273,7 @@ struct __IceAgent {
     PTransactionIdStore pStunBindingRequestTransactionIdStore;
 
     UINT64 candidateGatheringStartTime;
+    UINT64 candidateGatheringProcessEndTime;
     UINT64 iceAgentStartTime;
 };
 
@@ -446,6 +456,8 @@ PCHAR iceAgentGetCandidateTypeStr(ICE_CANDIDATE_TYPE);
 STATUS updateSelectedLocalRemoteCandidateStats(PIceAgent);
 
 STATUS getIceAgentStats(PIceAgent, PKvsIceAgentMetrics);
+
+STATUS iceAgentAddConfig(PIceAgent, PIceConfigInfo);
 
 #ifdef __cplusplus
 }

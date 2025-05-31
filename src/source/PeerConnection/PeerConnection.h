@@ -31,6 +31,8 @@ extern "C" {
 #define CODEC_HASH_TABLE_BUCKET_LENGTH 2
 #define RTX_HASH_TABLE_BUCKET_COUNT    50
 #define RTX_HASH_TABLE_BUCKET_LENGTH   2
+#define TWCC_HASH_TABLE_BUCKET_COUNT   100
+#define TWCC_HASH_TABLE_BUCKET_LENGTH  2
 
 #define DATA_CHANNEL_HASH_TABLE_BUCKET_COUNT  200
 #define DATA_CHANNEL_HASH_TABLE_BUCKET_LENGTH 2
@@ -38,23 +40,25 @@ extern "C" {
 // Environment variable to display SDPs
 #define DEBUG_LOG_SDP ((PCHAR) "DEBUG_LOG_SDP")
 
+#define MAX_ACCESS_THREADS_WEBRTC_CLIENT_CONTEXT 50
+
 typedef enum {
     RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE = 1,
     RTC_RTX_CODEC_VP8 = 2,
+    RTC_RTX_CODEC_H265 = 3,
 } RTX_CODEC;
 
 typedef struct {
-    UINT16 seqNum;
-    UINT16 packetSize;
     UINT64 localTimeKvs;
     UINT64 remoteTimeKvs;
-} TwccPacket, *PTwccPacket;
+    UINT32 packetSize;
+} TwccRtpPacketInfo, *PTwccRtpPacketInfo;
 
 typedef struct {
-    StackQueue twccPackets;
-    TwccPacket twccPacketBySeqNum[65536]; // twccPacketBySeqNum takes about 1.2MB of RAM but provides great cache locality
-    UINT64 lastLocalTimeKvs;
-    UINT16 lastReportedSeqNum;
+    PHashTable pTwccRtpPktInfosHashTable; // Hash table of [seqNum, PTwccPacket]
+    UINT16 firstSeqNumInRollingWindow;    // To monitor the last deleted packet in the rolling window
+    UINT16 lastReportedSeqNum;            // To monitor the last packet's seqNum in the TWCC response
+    UINT16 prevReportedBaseSeqNum;        // To monitor the base seqNum in the TWCC response
 } TwccManager, *PTwccManager;
 
 typedef struct {
@@ -67,7 +71,7 @@ typedef struct {
 
 typedef struct {
     RtcPeerConnection peerConnection;
-    // UINT32 padding padding makes transportWideSequenceNumber 64bit aligned
+    // UINT32 padding makes transportWideSequenceNumber 64bit aligned
     // we put atomics at the top of structs because customers application could set the packing to 0
     // in which case any atomic operations would result in bus errors if there is a misalignment
     // for more see https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/pull/987#discussion_r534432907
@@ -83,12 +87,12 @@ typedef struct {
 
     PSctpSession pSctpSession;
 
-    SessionDescription remoteSessionDescription;
+    PSessionDescription pRemoteSessionDescription;
     PDoubleList pTransceivers;
     PDoubleList pFakeTransceivers;
     PDoubleList pAnswerTransceivers;
 
-    BOOL sctpIsEnabled;
+    volatile ATOMIC_BOOL sctpIsEnabled;
 
     CHAR localIceUfrag[LOCAL_ICE_UFRAG_LEN + 1];
     CHAR localIcePwd[LOCAL_ICE_PWD_LEN + 1];
@@ -142,6 +146,7 @@ typedef struct {
 
     UINT64 iceConnectingStartTime;
     KvsPeerConnectionDiagnostics peerConnectionDiagnostics;
+
 } KvsPeerConnection, *PKvsPeerConnection;
 
 typedef struct {
@@ -149,6 +154,25 @@ typedef struct {
     PKvsPeerConnection pKvsPeerConnection;
     PHashTable unkeyedDataChannels;
 } AllocateSctpSortDataChannelsData, *PAllocateSctpSortDataChannelsData;
+
+typedef struct {
+    CHAR hostname[MAX_ICE_CONFIG_URI_LEN + 1];
+    KvsIpAddress kvsIpAddr;
+    BOOL isIpInitialized;
+    UINT64 startTime;
+    UINT64 stunDnsResolutionTime;
+    UINT64 expirationDuration;
+    STATUS status;
+} StunIpAddrContext, *PStunIpAddrContext;
+
+// Declare the structure of the Singleton
+// Members of the singleton are responsible for their own sync mechanisms.
+typedef struct {
+    PStunIpAddrContext pStunIpAddrCtx;
+    volatile ATOMIC_BOOL isContextInitialized;
+    volatile SIZE_T contextRefCnt;
+    MUTEX stunCtxlock;
+} WebRtcClientContext, *PWebRtcClientContext;
 
 STATUS onFrameReadyFunc(UINT64, UINT16, UINT16, UINT32);
 STATUS onFrameDroppedFunc(UINT64, UINT16, UINT16, UINT32);
@@ -159,6 +183,7 @@ VOID onSctpSessionDataChannelOpen(UINT64, UINT32, PBYTE, UINT32);
 STATUS sendPacketToRtpReceiver(PKvsPeerConnection, PBYTE, UINT32);
 STATUS changePeerConnectionState(PKvsPeerConnection, RTC_PEER_CONNECTION_STATE);
 STATUS twccManagerOnPacketSent(PKvsPeerConnection, PRtpPacket);
+UINT32 parseExtId(PCHAR);
 
 // visible for testing only
 VOID onIceConnectionStateChange(UINT64, UINT64);

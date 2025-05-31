@@ -58,6 +58,7 @@ typedef struct {
     CHAR username[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
     CHAR credential[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
     KVS_SOCKET_PROTOCOL transport;
+    IceServerSetIpFunc setIpFn;
 } IceServer, *PIceServer;
 
 STATUS parseIceServer(PIceServer, PCHAR, PCHAR, PCHAR);
