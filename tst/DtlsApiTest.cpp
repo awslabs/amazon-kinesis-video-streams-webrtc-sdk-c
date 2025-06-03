@@ -6,8 +6,7 @@ namespace kinesis {
 namespace video {
 namespace webrtcclient {
 
-class DtlsApiTest : public WebRtcClientTestBase {
-};
+class DtlsApiTest : public WebRtcClientTestBase {};
 
 #ifdef KVS_USE_OPENSSL
 TEST_F(DtlsApiTest, createCertificateAndKey_Returns_Success)
@@ -38,7 +37,6 @@ TEST_F(DtlsApiTest, dtlsSessionIsInitFinished_Null_Check)
     freeDtlsSession(&pClient);
     EXPECT_EQ(NULL, pClient);
     timerQueueFree(&timerQueueHandle);
-
 }
 
 TEST_F(DtlsApiTest, dtlsSessionCreated_RefCount)
@@ -78,14 +76,24 @@ TEST_F(DtlsApiTest, createCertificateAndKey_Returns_Success)
     EXPECT_EQ(createCertificateAndKey(GENERATED_CERTIFICATE_BITS, FALSE, &cert, &key), STATUS_SUCCESS);
     EXPECT_NE(cert.raw.p, nullptr);
     EXPECT_NE(cert.raw.len, 0);
+#if MBEDTLS_BEFORE_V3
     EXPECT_NE(key.pk_ctx, nullptr);
     EXPECT_NE(key.pk_info, nullptr);
+#else
+    EXPECT_NE(key.MBEDTLS_PRIVATE(pk_ctx), nullptr);
+    EXPECT_NE(key.MBEDTLS_PRIVATE(pk_info), nullptr);
+#endif
 
     EXPECT_EQ(freeCertificateAndKey(&cert, &key), STATUS_SUCCESS);
     EXPECT_EQ(cert.raw.p, nullptr);
     EXPECT_EQ(cert.raw.len, 0);
+#if MBEDTLS_BEFORE_V3
     EXPECT_EQ(key.pk_ctx, nullptr);
     EXPECT_EQ(key.pk_info, nullptr);
+#else
+    EXPECT_EQ(key.MBEDTLS_PRIVATE(pk_ctx), nullptr);
+    EXPECT_EQ(key.MBEDTLS_PRIVATE(pk_info), nullptr);
+#endif
 }
 #endif
 

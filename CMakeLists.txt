@@ -22,6 +22,7 @@ option(ENABLE_KVS_THREADPOOL "Enable support for KVS thread pool in signaling" O
 option(INSTRUMENTED_ALLOCATORS "Enable memory instrumentation" OFF)
 option(ENABLE_AWS_SDK_IN_TESTS "Enable support for compiling AWS SDKs for tests" ON)
 option(ENABLE_STATS_CALCULATION_CONTROL "Enable support for runtime control of ice agent stat calculations." OFF)
+option(BUILD_OLD_MBEDTLS_VERSION "Use MbedTLS version 2.28.8." OFF)
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -182,6 +183,7 @@ if(BUILD_DEPENDENCIES)
   elseif(USE_MBEDTLS)
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
                    -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                   -DBUILD_OLD_MBEDTLS_VERSION=${BUILD_OLD_MBEDTLS_VERSION}
                     "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
       build_dependency(mbedtls ${BUILD_ARGS})
   endif()
@@ -446,7 +448,7 @@ target_link_libraries(
   kvsWebrtcSignalingClient
   PUBLIC
         kvsCommonLws
-        ${LIBWEBSOCKETS_LIBRARIES} 
+        ${LIBWEBSOCKETS_LIBRARIES}
   PRIVATE kvspicUtils
          kvspicState
          ${CMAKE_THREAD_LIBS_INIT}

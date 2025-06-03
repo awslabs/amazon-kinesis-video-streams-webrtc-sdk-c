@@ -39,7 +39,9 @@ extern "C" {
 #include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/error.h>
+#if MBEDTLS_VERSION_NUMBER < 0x03000000
 #include <mbedtls/certs.h>
+#endif
 #include <mbedtls/sha256.h>
 #include <mbedtls/md5.h>
 #endif
