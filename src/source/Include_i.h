@@ -57,7 +57,9 @@ extern "C" {
 #if !defined __WINDOWS_BUILD__
 #include <signal.h>
 #include <sys/types.h>
+#ifdef HAVE_IFADDRS_H
 #include <ifaddrs.h>
+#endif
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -65,7 +67,9 @@ extern "C" {
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/tcp.h>
+#ifdef HAVE_POLL_H
 #include <poll.h>
+#endif
 #endif
 
 // Max uFrag and uPwd length as documented in https://tools.ietf.org/html/rfc5245#section-15.4
