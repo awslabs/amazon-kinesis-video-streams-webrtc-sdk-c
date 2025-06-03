@@ -1,0 +1,96 @@
+From e4ba07908d2b2b7e5ae4222c3ee973e8e35e1b11 Mon Sep 17 00:00:00 2001
+From: Vikram Dattu <vikram.dattu@espressif.com>
+Date: Wed, 8 May 2024 11:45:43 +0530
+Subject: [PATCH 1/2] ets_sys: Fix for STATUS define
+
+---
+ components/esp_rom/esp32/include/esp32/rom/ets_sys.h     | 2 ++
+ components/esp_rom/esp32c6/include/esp32c6/rom/ets_sys.h | 2 ++
+ components/esp_rom/esp32p4/include/esp32p4/rom/ets_sys.h | 3 ++-
+ components/esp_rom/esp32s3/include/esp32s3/rom/ets_sys.h | 2 ++
+ 4 files changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/components/esp_rom/esp32/include/esp32/rom/ets_sys.h b/components/esp_rom/esp32/include/esp32/rom/ets_sys.h
+index eb73b89795..d04e9f80c3 100644
+--- a/components/esp_rom/esp32/include/esp32/rom/ets_sys.h
++++ b/components/esp_rom/esp32/include/esp32/rom/ets_sys.h
+@@ -626,6 +626,7 @@ void intr_matrix_set(int cpu_no, uint32_t model_num, uint32_t intr_num);
+ 
+ #ifdef ESP_PLATFORM
+ // Remove in IDF v6.0 (IDF-7044)
++#ifndef STATUS
+ typedef enum {
+     OK = 0,
+     FAIL,
+@@ -634,6 +635,7 @@ typedef enum {
+     CANCEL,
+ } STATUS __attribute__((deprecated("Use ETS_STATUS instead")));
+ #endif
++#endif
+ 
+ /**
+   * @}
+diff --git a/components/esp_rom/esp32c6/include/esp32c6/rom/ets_sys.h b/components/esp_rom/esp32c6/include/esp32c6/rom/ets_sys.h
+index d4b0989650..69174e7167 100644
+--- a/components/esp_rom/esp32c6/include/esp32c6/rom/ets_sys.h
++++ b/components/esp_rom/esp32c6/include/esp32c6/rom/ets_sys.h
+@@ -412,6 +412,7 @@ void intr_matrix_set(int cpu_no, uint32_t model_num, uint32_t intr_num);
+ 
+ #ifdef ESP_PLATFORM
+ // Remove in IDF v6.0 (IDF-7044)
++#ifndef STATUS
+ typedef enum {
+     OK = 0,
+     FAIL,
+@@ -420,6 +421,7 @@ typedef enum {
+     CANCEL,
+ } STATUS __attribute__((deprecated("Use ETS_STATUS instead")));
+ #endif
++#endif
+ 
+ /**
+   * @}
+diff --git a/components/esp_rom/esp32p4/include/esp32p4/rom/ets_sys.h b/components/esp_rom/esp32p4/include/esp32p4/rom/ets_sys.h
+index 95d8b092fc..6fef7cf851 100644
+--- a/components/esp_rom/esp32p4/include/esp32p4/rom/ets_sys.h
++++ b/components/esp_rom/esp32p4/include/esp32p4/rom/ets_sys.h
+@@ -508,6 +508,7 @@ void intr_matrix_set(int cpu_no, uint32_t model_num, uint32_t intr_num);
+ 
+ #define ETS_MEM_BAR() asm volatile ( "" : : : "memory" )
+ 
++#ifndef STATUS
+ typedef enum {
+     OK = 0,
+     FAIL,
+@@ -515,7 +516,7 @@ typedef enum {
+     BUSY,
+     CANCEL,
+ } STATUS;
+-
++#endif
+ /**
+   * @}
+   */
+diff --git a/components/esp_rom/esp32s3/include/esp32s3/rom/ets_sys.h b/components/esp_rom/esp32s3/include/esp32s3/rom/ets_sys.h
+index 7bc91572f2..98876eaa28 100644
+--- a/components/esp_rom/esp32s3/include/esp32s3/rom/ets_sys.h
++++ b/components/esp_rom/esp32s3/include/esp32s3/rom/ets_sys.h
+@@ -548,6 +548,7 @@ void intr_matrix_set(int cpu_no, uint32_t model_num, uint32_t intr_num);
+ 
+ #ifdef ESP_PLATFORM
+ // Remove in IDF v6.0 (IDF-7044)
++#ifndef STATUS
+ typedef enum {
+     OK = 0,
+     FAIL,
+@@ -556,6 +557,7 @@ typedef enum {
+     CANCEL,
+ } STATUS __attribute__((deprecated("Use ETS_STATUS instead")));
+ #endif
++#endif
+ 
+ /**
+   * @}
+-- 
+2.39.3 (Apple Git-146)
+
