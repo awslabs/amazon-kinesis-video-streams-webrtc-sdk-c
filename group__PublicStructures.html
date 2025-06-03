@@ -97,6 +97,7 @@ $(document).ready(function(){initNavTree('group__PublicStructures.html',''); ini
 <div class="header">
   <div class="summary">
 <a href="#nested-classes">Classes</a> &#124;
+<a href="#define-members">Macros</a> &#124;
 <a href="#typedef-members">Typedefs</a>  </div>
   <div class="headertitle"><div class="title">PublicStructures<div class="ingroups"><a class="el" href="group__StatusCodes.html">StatusCodes</a></div></div></div>
 </div><!--header-->
@@ -175,6 +176,12 @@ Classes</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="structRtcDataChannelInit.html" title="RtcDataChannelInit dictionary used to configure properties of the underlying channel such as data rel...">RtcDataChannelInit</a> dictionary used to configure properties of the underlying channel such as data reliability.  <a href="structRtcDataChannelInit.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="define-members" name="define-members"></a>
+Macros</h2></td></tr>
+<tr class="memitem:gacf869cd811cafe21efdee7c94cf9844f" id="r_gacf869cd811cafe21efdee7c94cf9844f"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicStructures.html#gacf869cd811cafe21efdee7c94cf9844f">DYNAMIC_SIGNALING_PAYLOAD</a>&#160;&#160;&#160;1</td></tr>
+<tr class="memdesc:gacf869cd811cafe21efdee7c94cf9844f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Define this macro to use dynamically allocated payload in <a class="el" href="structSignalingMessage.html" title="Structure defining the basic signaling message.">SignalingMessage</a> This can be useful for platforms with limited memory as it avoids allocating MAX_SIGNALING_MESSAGE_LEN for each message when only a small payload is needed.  <br /></td></tr>
+<tr class="separator:gacf869cd811cafe21efdee7c94cf9844f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="typedef-members" name="typedef-members"></a>
 Typedefs</h2></td></tr>
 <tr class="memitem:ga70b3d75a41ee6e4999be2934451c956a" id="r_ga70b3d75a41ee6e4999be2934451c956a"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structRtcPeerConnection.html">RtcPeerConnection</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a></td></tr>
@@ -220,6 +227,23 @@ Typedefs</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>Structures available for use by applications. </p>
+<h2 class="groupheader">Macro Definition Documentation</h2>
+<a id="gacf869cd811cafe21efdee7c94cf9844f" name="gacf869cd811cafe21efdee7c94cf9844f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gacf869cd811cafe21efdee7c94cf9844f">&#9670;&#160;</a></span>DYNAMIC_SIGNALING_PAYLOAD</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define DYNAMIC_SIGNALING_PAYLOAD&#160;&#160;&#160;1</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Define this macro to use dynamically allocated payload in <a class="el" href="structSignalingMessage.html" title="Structure defining the basic signaling message.">SignalingMessage</a> This can be useful for platforms with limited memory as it avoids allocating MAX_SIGNALING_MESSAGE_LEN for each message when only a small payload is needed. </p>
+
+</div>
+</div>
 <h2 class="groupheader">Typedef Documentation</h2>
 <a id="gab1a88feab2cf5a556a90170eb434910a" name="gab1a88feab2cf5a556a90170eb434910a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#gab1a88feab2cf5a556a90170eb434910a">&#9670;&#160;</a></span>PChannelInfo</h2>
@@ -506,7 +530,7 @@ Typedefs</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Tue Jun 3 2025 16:23:16 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Tue Jun 3 2025 17:42:17 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>
