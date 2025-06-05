@@ -6,7 +6,7 @@ var searchData=
   ['bindingresponsecount_3',['bindingResponseCount',['../structNatTestData.html#ad4ceebcc86a429672ccf33fceab72624',1,'NatTestData']]],
   ['bindingresponselist_4',['bindingResponseList',['../structNatTestData.html#a849e22486171da2be1da2382dcec2e6f',1,'NatTestData']]],
   ['bitdepth_5',['bitDepth',['../group__StatusCodes.html#ga859b192a816c50a947d41d300965a748',1,'RtcEncoderStats']]],
-  ['buffer_6',['buffer',['../struct____LwsCallInfo.html#a9fcc937e01d73ab22ee62344d7b394dc',1,'__LwsCallInfo']]],
+  ['buffer_6',['buffer',['../struct____LwsCallInfo.html#a2bb5cbdd0185a1d0a234f56d1ec702ff',1,'__LwsCallInfo']]],
   ['bufferlen_7',['bufferLen',['../structConnectionListener.html#acc771ccc564dcbdd0fcd410dce77d68a',1,'ConnectionListener']]],
   ['burstdiscardcount_8',['burstDiscardCount',['../structRtcReceivedRtpStreamStats.html#a4a6237551abbf519c49a511a8738b195',1,'RtcReceivedRtpStreamStats']]],
   ['burstdiscardrate_9',['burstDiscardRate',['../structRtcReceivedRtpStreamStats.html#aaaa7db7b5df60941f38fdc7c51242f67',1,'RtcReceivedRtpStreamStats']]],
