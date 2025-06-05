@@ -78,7 +78,7 @@ var searchData=
   ['createtime_75',['createtime',['../structSignalingDiagnostics.html#a632ca4a1ab762e9842cc794078b63393',1,'SignalingDiagnostics::createTime'],['../structSignalingClient.html#ae2b78001cf365e27313c6acce924b05d',1,'SignalingClient::createTime']]],
   ['creationtime_76',['creationTime',['../group__StatusCodes.html#gaa3642b61b95cdb0a9ab999ca28f997f3',1,'SignalingChannelDescription']]],
   ['creationtsepochseconds_77',['creationTsEpochSeconds',['../structSignalingFileCacheEntry.html#a1bb2957428aa838f4da40a62690ab747',1,'SignalingFileCacheEntry']]],
-  ['credential_78',['credential',['../group__StatusCodes.html#ga9285f0e90d1949fd98822d234f59ed6a',1,'RtcIceServer::credential'],['../structIceServer.html#ae60110bd7939d5bbbab3d81f7bfaea1c',1,'IceServer::credential']]],
+  ['credential_78',['credential',['../group__StatusCodes.html#gaf68d82afd91a1454d0e3549e7ae76847',1,'RtcIceServer::credential'],['../structIceServer.html#a301165c1e19c0d8a34447d5ab5930af6',1,'IceServer::credential']]],
   ['credentialobtained_79',['credentialObtained',['../struct____TurnConnection.html#ae2dc73843c18c0c6d6a01006332259b2',1,'__TurnConnection']]],
   ['csrcarray_80',['csrcArray',['../struct____RtpPacketHeader.html#a09d15618ca45e25f83b9bdeca6a87fc3',1,'__RtpPacketHeader']]],
   ['csrccount_81',['csrcCount',['../struct____RtpPacketHeader.html#a0ef23dfd3eba598aa9053cfb710417c5',1,'__RtpPacketHeader']]],
