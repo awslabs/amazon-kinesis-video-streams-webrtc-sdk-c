@@ -167,11 +167,14 @@ extern "C" {
 // Encoded max ice server infos string len
 #define MAX_ENCODED_ICE_SERVER_INFOS_STR_LEN (MAX_ICE_SERVER_INFOS_STR_LEN + ICE_SERVER_INFO_TEMPLATE_BLOAT_SIZE)
 
+// Alignment bytes for libwebsockets (Internally, it might end up using lesser than 16)
+#define LWS_ALIGN_BYTES 16
+
 // Scratch buffer size
-#define LWS_SCRATCH_BUFFER_SIZE (MAX_JSON_PARAMETER_STRING_LEN + LWS_PRE)
+#define LWS_SCRATCH_BUFFER_SIZE (MAX_JSON_PARAMETER_STRING_LEN + LWS_ALIGN_BYTES)
 
 // Send and receive buffer size
-#define LWS_MESSAGE_BUFFER_SIZE (SIZEOF(CHAR) * (MAX_SIGNALING_MESSAGE_LEN + LWS_PRE))
+#define LWS_MESSAGE_BUFFER_SIZE (SIZEOF(CHAR) * (MAX_SIGNALING_MESSAGE_LEN + LWS_ALIGN_BYTES))
 
 #define AWS_SIG_V4_HEADER_HOST (PCHAR) "host"
 
@@ -251,8 +254,8 @@ PVOID lwsListenerHandler(PVOID);
 PVOID reconnectHandler(PVOID);
 
 // LWS callback routine
-INT32 lwsHttpCallbackRoutine(struct lws*, enum lws_callback_reasons, PVOID, PVOID, size_t);
-INT32 lwsWssCallbackRoutine(struct lws*, enum lws_callback_reasons, PVOID, PVOID, size_t);
+INT32 lwsHttpCallbackRoutine(PVOID, INT32, PVOID, PVOID, size_t);
+INT32 lwsWssCallbackRoutine(PVOID, INT32, PVOID, PVOID, size_t);
 
 BOOL isCallResultSignatureExpired(PCallInfo);
 BOOL isCallResultSignatureNotYetCurrent(PCallInfo);
