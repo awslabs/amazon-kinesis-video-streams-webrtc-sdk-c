@@ -6,6 +6,37 @@
 extern StateMachineState SIGNALING_STATE_MACHINE_STATES[];
 extern UINT32 SIGNALING_STATE_MACHINE_STATE_COUNT;
 
+// Allocate memory and read the CA certificate from the path
+PRIVATE_API STATUS readCACertificate(PCHAR pCaCertPath, PBYTE* ppCaCertBuf, PUINT32 pCaCertBufLen)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT64 cert_len = 0;
+    PBYTE cert_buf = NULL;
+
+    CHK(pCaCertPath != NULL && ppCaCertBuf != NULL && pCaCertBufLen != NULL, STATUS_NULL_ARG);
+
+    *ppCaCertBuf = NULL;
+    *pCaCertBufLen = 0;
+
+    CHK_STATUS(readFile(pCaCertPath, FALSE, NULL, &cert_len));
+    CHK(cert_len > 0, STATUS_INVALID_CERT_PATH_LENGTH);
+    cert_buf = (PBYTE) MEMCALLOC(1, cert_len + 1); // +1 for the null terminator
+    CHK(cert_buf != NULL, STATUS_NOT_ENOUGH_MEMORY);
+    CHK_STATUS(readFile(pCaCertPath, FALSE, cert_buf, &cert_len));
+
+    *ppCaCertBuf = cert_buf;
+    *pCaCertBufLen = (UINT32) cert_len;
+    cert_buf = NULL; // So that it is not freed by SAFE_MEMFREE
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+    SAFE_MEMFREE(cert_buf);
+
+    LEAVES();
+    return retStatus;
+}
+
 STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInfo pChannelInfo, PSignalingClientCallbacks pCallbacks,
                            PAwsCredentialProvider pCredentialProvider, PSignalingClient* ppSignalingClient)
 {
@@ -14,6 +45,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     PSignalingClient pSignalingClient = NULL;
     PCHAR userLogLevelStr = NULL;
     UINT32 userLogLevel;
+    PBYTE caCertBuf = NULL;
+    UINT32 caCertBufLen = 0;
     struct lws_context_creation_info creationInfo;
     const lws_retry_bo_t retryPolicy = {
         .secs_since_valid_ping = SIGNALING_SERVICE_WSS_PING_PONG_INTERVAL_IN_SECONDS,
@@ -121,7 +154,9 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     creationInfo.timeout_secs = SIGNALING_SERVICE_API_CALL_TIMEOUT_IN_SECONDS;
     creationInfo.gid = -1;
     creationInfo.uid = -1;
-    creationInfo.client_ssl_ca_filepath = pChannelInfo->pCertPath;
+    CHK_STATUS(readCACertificate(pChannelInfo->pCertPath, &caCertBuf, &caCertBufLen));
+    creationInfo.client_ssl_ca_mem = caCertBuf;
+    creationInfo.client_ssl_ca_mem_len = caCertBufLen;
     creationInfo.client_ssl_cipher_list = "HIGH:!PSK:!RSP:!eNULL:!aNULL:!RC4:!MD5:!DES:!3DES:!aDH:!kDH:!DSS";
     creationInfo.ka_time = SIGNALING_SERVICE_TCP_KEEPALIVE_IN_SECONDS;
     creationInfo.ka_probes = SIGNALING_SERVICE_TCP_KEEPALIVE_PROBE_COUNT;
@@ -204,6 +239,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
                                              SIGNALING_STATE_GET_TOKEN));
 
 CleanUp:
+    SAFE_MEMFREE(caCertBuf);
     if (pClientInfo != NULL && pSignalingClient != NULL) {
         pClientInfo->signalingClientInfo.stateMachineRetryCountReadOnly = pSignalingClient->diagnostics.stateMachineRetryCount;
     }
