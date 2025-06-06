@@ -90,6 +90,12 @@ CHECK_INCLUDE_FILES(poll.h HAVE_POLL_H)
 if (HAVE_POLL_H)
   add_definitions(-DHAVE_POLL_H=1)
 endif()
+
+# Check for socketpair availability
+CHECK_FUNCTION_EXISTS(socketpair HAVE_SOCKETPAIR)
+if (HAVE_SOCKETPAIR)
+  add_definitions(-DHAVE_SOCKETPAIR=1)
+endif()
 endif()
 
 set(CMAKE_MACOSX_RPATH TRUE)
