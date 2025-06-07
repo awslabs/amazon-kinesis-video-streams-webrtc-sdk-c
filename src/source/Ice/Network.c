@@ -150,8 +150,7 @@ CleanUp:
     return retStatus;
 }
 
-// TODO add support for windows socketpair
-#ifndef _WIN32
+#if defined(HAVE_SOCKETPAIR)
 STATUS createSocketPair(INT32 (*pSocketPair)[2])
 {
     STATUS retStatus = STATUS_SUCCESS;

@@ -63,8 +63,7 @@ typedef enum {
  */
 STATUS getLocalhostIpAddresses(PKvsIpAddress, PUINT32, IceSetInterfaceFilterFunc, UINT64);
 
-// TODO add support for windows socketpair
-#ifndef _WIN32
+#if defined(HAVE_SOCKETPAIR)
 /**
  * @param - INT32 (*)[2] - OUT - Array for the socket pair fds
  *

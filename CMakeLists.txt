@@ -77,10 +77,24 @@ if(NOT WIN32)
 CHECK_INCLUDE_FILES(ifaddrs.h       KVSWEBRTC_HAVE_IFADDRS_H)
 if(NOT KVSWEBRTC_HAVE_IFADDRS_H)
   message(FATAL_ERROR "Platform should support the ifaddrs interface.")
+else()
+  add_definitions(-DHAVE_IFADDRS_H=1)
 endif()
 CHECK_FUNCTION_EXISTS(getifaddrs    KVSWEBRTC_HAVE_GETIFADDRS)
 if(NOT KVSWEBRTC_HAVE_GETIFADDRS)
   message(FATAL_ERROR "Platform should support getifaddrs API.")
+endif()
+
+# Check for poll.h
+CHECK_INCLUDE_FILES(poll.h HAVE_POLL_H)
+if (HAVE_POLL_H)
+  add_definitions(-DHAVE_POLL_H=1)
+endif()
+
+# Check for socketpair availability
+CHECK_FUNCTION_EXISTS(socketpair HAVE_SOCKETPAIR)
+if (HAVE_SOCKETPAIR)
+  add_definitions(-DHAVE_SOCKETPAIR=1)
 endif()
 endif()
 
