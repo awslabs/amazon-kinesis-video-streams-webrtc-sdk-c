@@ -350,11 +350,13 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
-      - name: Move cloned repo
+      - name: Move cloned repo to shorter path
         shell: powershell
         run: |
-          mkdir C:\webrtc
-          Move-Item -Path "D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\*" -Destination "C:\webrtc"
+          $src = "${env:GITHUB_WORKSPACE}\*"
+          $dest = "C:\webrtc"
+          mkdir "$dest"
+          Move-Item -Path $src -Destination $dest
       - name: Install dependencies
         shell: powershell
         run: |
