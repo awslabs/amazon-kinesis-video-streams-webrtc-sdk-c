@@ -2061,6 +2061,10 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
 
     CHK(NULL != (pSignalingMessageWrapper = (PSignalingMessageWrapper) MEMCALLOC(1, SIZEOF(SignalingMessageWrapper))), STATUS_NOT_ENOUGH_MEMORY);
 
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    CHK(NULL != (pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.payload = (PBYTE) MEMCALLOC(1, MAX_SIGNALING_MESSAGE_LEN + 1)), STATUS_NOT_ENOUGH_MEMORY);
+#endif
+
     pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
 
     // Loop through the tokens and extract the stream description
@@ -2279,7 +2283,11 @@ CleanUp:
         if (IS_VALID_TID_VALUE(receivedTid)) {
             THREAD_CANCEL(receivedTid);
         }
-
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+        if (pSignalingMessageWrapper) {
+            SAFE_MEMFREE(pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.payload);
+        }
+#endif
         SAFE_MEMFREE(pSignalingMessageWrapper);
     }
 
@@ -2446,6 +2454,9 @@ PVOID receiveLwsMessageWrapper(PVOID args)
 CleanUp:
     CHK_LOG_ERR(retStatus);
 
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.payload);
+#endif
     SAFE_MEMFREE(pSignalingMessageWrapper);
 
     return (PVOID) (ULONG_PTR) retStatus;
