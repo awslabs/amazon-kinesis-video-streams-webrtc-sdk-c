@@ -303,6 +303,24 @@ STATUS configureLwsLogging(UINT32 kvsLogLevel);
  */
 STATUS parseIceConfigResponse(PCHAR, UINT32, UINT8, PIceConfigInfo, PUINT32);
 
+/**
+ * Parses the signaling message from a JSON response string.
+ * The payload is base64-decoded in the output.
+ * See <a href="https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/async-message-reception-api.html">Asynchronous message
+ * reception</a>.
+ *
+ * @param[in] pMessage JSON of the signaling message.
+ * @param[in] messageLen Length of the JSON string (excluding null-terminator).
+ * @param[out] pReceivedSignalingMessage Pointer to receive the parsed signaling message.
+ *
+ * @return STATUS code of the execution:
+ * - STATUS_SUCCESS: Successfully parsed ICE configuration.
+ * - STATUS_NULL_ARG: Invalid NULL argument provided.
+ * - STATUS_SIGNALING_INVALID_MESSAGE_TYPE: If the required field 'messageType' is missing for non error response messages.
+ * - STATUS_INVALID_API_CALL_RETURN_JSON: Malformed JSON or missing other required fields.
+ */
+STATUS parseSignalingMessage(PCHAR, UINT32, PReceivedSignalingMessage);
+
 #ifdef __cplusplus
 }
 #endif

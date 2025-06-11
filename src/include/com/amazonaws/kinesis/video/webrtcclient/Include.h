@@ -488,7 +488,7 @@ extern "C" {
 /**
  * Maximum allowed code string length
  */
-#define MAX_STATUS_CODE_STRING_LEN 256
+#define MAX_STATUS_CODE_STRING_LEN 8
 
 /**
  * Maximum allowed message description length
