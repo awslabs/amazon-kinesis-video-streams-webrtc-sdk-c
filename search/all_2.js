@@ -8,7 +8,7 @@ var searchData=
   ['bindingresponselist_5',['bindingResponseList',['../structNatTestData.html#a849e22486171da2be1da2382dcec2e6f',1,'NatTestData']]],
   ['bitdepth_6',['bitDepth',['../group__StatusCodes.html#ga859b192a816c50a947d41d300965a748',1,'RtcEncoderStats']]],
   ['block_5fon_5fcorrelation_5fid_7',['BLOCK_ON_CORRELATION_ID',['../LwsApiCalls_8h.html#afc77872a6ed95c9c6e3e9305f5938933',1,'LwsApiCalls.h']]],
-  ['buffer_8',['buffer',['../struct____LwsCallInfo.html#a2bb5cbdd0185a1d0a234f56d1ec702ff',1,'__LwsCallInfo']]],
+  ['buffer_8',['buffer',['../struct____LwsCallInfo.html#a9fcc937e01d73ab22ee62344d7b394dc',1,'__LwsCallInfo']]],
   ['bufferlen_9',['bufferLen',['../structConnectionListener.html#acc771ccc564dcbdd0fcd410dce77d68a',1,'ConnectionListener']]],
   ['bundle_5fkey_10',['BUNDLE_KEY',['../SessionDescription_8h.html#ae80c6c5b1e7a04479737f43f2f65a3fc',1,'SessionDescription.h']]],
   ['burstdiscardcount_11',['burstDiscardCount',['../structRtcReceivedRtpStreamStats.html#a4a6237551abbf519c49a511a8738b195',1,'RtcReceivedRtpStreamStats']]],
