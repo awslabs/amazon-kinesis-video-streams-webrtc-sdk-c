@@ -3540,9 +3540,9 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_ParseStatusRespons
     EXPECT_EQ(SIGNALING_MESSAGE_TYPE_STATUS_RESPONSE, receivedMessage.signalingMessage.messageType);
     EXPECT_EQ(400, receivedMessage.statusCode);
     EXPECT_STREQ("InvalidArgumentException", receivedMessage.errorType);
-    EXPECT_STREQ("", receivedMessage.description);
 
     // Check not-present fields are correctly zeroed
+    EXPECT_STREQ("", receivedMessage.description);
     EXPECT_STREQ("", receivedMessage.signalingMessage.peerClientId);
     EXPECT_STREQ("", receivedMessage.signalingMessage.payload);
     EXPECT_EQ(0, receivedMessage.signalingMessage.payloadLen);
@@ -3558,7 +3558,9 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_InvalidArgs) {
         "messagePayload": "SGVsbG8="
     })";
 
+    // Validate that the jsonMessage is OK
     STATUS status = parseSignalingMessage((PCHAR) jsonMessage.c_str(), jsonMessage.length(), &receivedMessage);
+    EXPECT_EQ(STATUS_SUCCESS, status);
 
     // NULL parameter
     EXPECT_EQ(STATUS_NULL_ARG, parseSignalingMessage(NULL, jsonMessage.length(), &receivedMessage));
