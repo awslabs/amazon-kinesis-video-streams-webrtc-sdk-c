@@ -2491,7 +2491,6 @@ STATUS configureLwsLogging(UINT32 kvsLogLevel)
 
     lws_set_log_level(lws_levels, NULL);
 
-CleanUp:
     CHK_LOG_ERR(retStatus);
 
     LEAVES();
