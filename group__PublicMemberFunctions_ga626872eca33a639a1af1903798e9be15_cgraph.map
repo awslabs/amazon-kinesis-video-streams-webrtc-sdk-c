@@ -1,11 +1,13 @@
 <map id="createRtcCertificate" name="createRtcCertificate">
-<area shape="rect" id="Node000001" title="Creates an RtcCertificate object." alt="" coords="5,55,156,80"/>
-<area shape="rect" id="Node000002" href="$Dtls__mbedtls_8c.html#aeb739e880d3edc3d95e7135805114f13" title=" " alt="" coords="204,29,383,55"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="156,56,190,52,191,57,156,61"/>
-<area shape="rect" id="Node000005" href="$group__PublicMemberFunctions.html#gac847bd3f95ca79c90788f0948c4ee093" title="Frees previously generated RtcCertificate object." alt="" coords="225,79,361,104"/>
-<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="156,73,212,79,211,85,156,78"/>
+<area shape="rect" id="Node000001" title="Creates an RtcCertificate object." alt="" coords="5,80,156,105"/>
+<area shape="rect" id="Node000002" href="$Dtls__mbedtls_8c.html#aeb739e880d3edc3d95e7135805114f13" title=" " alt="" coords="204,55,383,80"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="156,81,190,77,191,82,156,86"/>
+<area shape="rect" id="Node000006" href="$group__PublicMemberFunctions.html#gac847bd3f95ca79c90788f0948c4ee093" title="Frees previously generated RtcCertificate object." alt="" coords="225,104,361,129"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="156,98,212,105,211,110,156,104"/>
 <area shape="rect" id="Node000003" href="$Dtls_8c.html#a8a3ff1abce99340169948c609dc4259a" title=" " alt="" coords="431,5,621,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="383,30,417,27,417,32,383,35"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="353,52,451,31,453,36,354,57"/>
 <area shape="rect" id="Node000004" href="$Dtls__mbedtls_8c.html#aa6d608da9c875fbfccf37bd3e716e836" title=" " alt="" coords="444,55,608,80"/>
-<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="383,49,431,54,430,60,383,54"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="383,65,430,65,430,70,383,70"/>
+<area shape="rect" id="Node000005" href="$Dtls__mbedtls_8c.html#a32c8ac687c84d8066213297e6813c2f0" title=" " alt="" coords="441,105,611,145"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="346,77,432,99,431,104,345,83"/>
 </map>

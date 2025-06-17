@@ -1,10 +1,10 @@
 <map id="__SocketConnection" name="__SocketConnection">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,396,260,621"/>
-<area shape="poly" id="edge4_Node000001_Node000001" title=" " alt="" coords="261,483,279,492,287,508,284,519,277,527,273,523,279,517,281,509,276,496,259,487"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,396,260,641"/>
+<area shape="poly" id="edge4_Node000001_Node000001" title=" " alt="" coords="262,491,280,501,287,518,284,530,277,539,273,535,279,528,281,519,276,505,259,496"/>
 <area shape="rect" id="Node000002" href="$structKvsIpAddress.html" title=" " alt="" coords="15,193,135,319"/>
 <area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="80,319,87,372,89,380,84,381,82,372,75,319"/>
 <area shape="rect" id="Node000003" href="$struct____TlsSession.html" title=" " alt="" coords="160,223,257,289"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="202,290,174,381,169,379,196,288"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="202,289,175,381,170,379,197,288"/>
 <area shape="rect" id="Node000004" href="$structTlsSessionCallbacks.html" title=" " alt="" coords="94,5,323,131"/>
 <area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="211,131,211,207,206,207,206,131"/>
 </map>

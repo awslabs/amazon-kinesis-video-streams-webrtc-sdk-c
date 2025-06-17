@@ -121,8 +121,12 @@ Macros</h2></td></tr>
 <tr class="separator:gade413e3f8787475ddd252a25b4cd03fe"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga4c7a7503d9f24367262a592de310c1b1" id="r_ga4c7a7503d9f24367262a592de310c1b1"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__NameLengths.html#ga4c7a7503d9f24367262a592de310c1b1">MAX_ICE_CONFIG_USER_NAME_LEN</a>&#160;&#160;&#160;256</td></tr>
 <tr class="separator:ga4c7a7503d9f24367262a592de310c1b1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf8369b955f42c9481a5ef83e346bdabc" id="r_gaf8369b955f42c9481a5ef83e346bdabc"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__NameLengths.html#gaf8369b955f42c9481a5ef83e346bdabc">MAX_ICE_CONFIG_USER_NAME_BUFFER_LEN</a>&#160;&#160;&#160;(<a class="el" href="group__NameLengths.html#ga4c7a7503d9f24367262a592de310c1b1">MAX_ICE_CONFIG_USER_NAME_LEN</a> + 1)</td></tr>
+<tr class="separator:gaf8369b955f42c9481a5ef83e346bdabc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga1ec791416eaa9a8766236679710dde4f" id="r_ga1ec791416eaa9a8766236679710dde4f"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__NameLengths.html#ga1ec791416eaa9a8766236679710dde4f">MAX_ICE_CONFIG_CREDENTIAL_LEN</a>&#160;&#160;&#160;256</td></tr>
 <tr class="separator:ga1ec791416eaa9a8766236679710dde4f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga1b529d2e70b49720e8d542797a272b62" id="r_ga1b529d2e70b49720e8d542797a272b62"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__NameLengths.html#ga1b529d2e70b49720e8d542797a272b62">MAX_ICE_CONFIG_CREDENTIAL_BUFFER_LEN</a>&#160;&#160;&#160;(<a class="el" href="group__NameLengths.html#ga1ec791416eaa9a8766236679710dde4f">MAX_ICE_CONFIG_CREDENTIAL_LEN</a> + 1)</td></tr>
+<tr class="separator:ga1b529d2e70b49720e8d542797a272b62"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga857b8aa1fcbcb9509aa0042e95a4e3b9" id="r_ga857b8aa1fcbcb9509aa0042e95a4e3b9"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__NameLengths.html#ga857b8aa1fcbcb9509aa0042e95a4e3b9">MAX_SIGNALING_ENDPOINT_URI_LEN</a>&#160;&#160;&#160;512</td></tr>
 <tr class="separator:ga857b8aa1fcbcb9509aa0042e95a4e3b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gadc7946d36507e0ef87459229ac246d62" id="r_gadc7946d36507e0ef87459229ac246d62"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__NameLengths.html#gadc7946d36507e0ef87459229ac246d62">MAX_CORRELATION_ID_LEN</a>&#160;&#160;&#160;256</td></tr>
@@ -244,6 +248,22 @@ Macros</h2></td></tr>
 
 </div>
 </div>
+<a id="ga1b529d2e70b49720e8d542797a272b62" name="ga1b529d2e70b49720e8d542797a272b62"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga1b529d2e70b49720e8d542797a272b62">&#9670;&#160;</a></span>MAX_ICE_CONFIG_CREDENTIAL_BUFFER_LEN</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define MAX_ICE_CONFIG_CREDENTIAL_BUFFER_LEN&#160;&#160;&#160;(<a class="el" href="group__NameLengths.html#ga1ec791416eaa9a8766236679710dde4f">MAX_ICE_CONFIG_CREDENTIAL_LEN</a> + 1)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Buffer length for ICE configuration password, including null terminator.</p>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__NameLengths.html#ga4c7a7503d9f24367262a592de310c1b1">MAX_ICE_CONFIG_USER_NAME_LEN</a> </dd></dl>
+
+</div>
+</div>
 <a id="ga1ec791416eaa9a8766236679710dde4f" name="ga1ec791416eaa9a8766236679710dde4f"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga1ec791416eaa9a8766236679710dde4f">&#9670;&#160;</a></span>MAX_ICE_CONFIG_CREDENTIAL_LEN</h2>
 
@@ -255,7 +275,24 @@ Macros</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Maximum allowed ICE configuration password length <a href="https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_AWSAcuitySignalingService_IceServer.html#KinesisVideo-Type-AWSAcuitySignalingService_IceServer-Password">https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_AWSAcuitySignalingService_IceServer.html#KinesisVideo-Type-AWSAcuitySignalingService_IceServer-Password</a> </p>
+<p>Maximum allowed ICE configuration password length</p>
+<dl class="section see"><dt>See also</dt><dd><a href="https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_signaling_IceServer.html#KinesisVideo-Type-signaling_IceServer-Password">https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_signaling_IceServer.html#KinesisVideo-Type-signaling_IceServer-Password</a> </dd></dl>
+
+</div>
+</div>
+<a id="gaf8369b955f42c9481a5ef83e346bdabc" name="gaf8369b955f42c9481a5ef83e346bdabc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaf8369b955f42c9481a5ef83e346bdabc">&#9670;&#160;</a></span>MAX_ICE_CONFIG_USER_NAME_BUFFER_LEN</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define MAX_ICE_CONFIG_USER_NAME_BUFFER_LEN&#160;&#160;&#160;(<a class="el" href="group__NameLengths.html#ga4c7a7503d9f24367262a592de310c1b1">MAX_ICE_CONFIG_USER_NAME_LEN</a> + 1)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Buffer length for ICE configuration user name, including null terminator.</p>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__NameLengths.html#ga4c7a7503d9f24367262a592de310c1b1">MAX_ICE_CONFIG_USER_NAME_LEN</a> </dd></dl>
 
 </div>
 </div>
@@ -414,7 +451,7 @@ Macros</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Mon Jun 16 2025 03:48:37 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Tue Jun 17 2025 16:23:53 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>
