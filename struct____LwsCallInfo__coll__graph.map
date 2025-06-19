@@ -1,8 +1,8 @@
 <map id="__LwsCallInfo" name="__LwsCallInfo">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,600,148,825"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,590,148,835"/>
 <area shape="rect" id="Node000002" href="$structSignalingClient.html" title=" " alt="" coords="691,937,868,1203"/>
-<area shape="poly" id="edge11_Node000002_Node000001" title=" " alt="" coords="52,825,56,871,63,893,75,912,91,928,114,943,174,971,249,994,335,1014,516,1042,675,1059,674,1064,515,1048,334,1019,248,999,172,976,111,948,88,932,71,915,58,895,50,873,47,826"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="690,1051,490,997,373,959,258,916,231,902,205,886,181,876,159,862,139,840,143,837,162,858,183,872,207,882,234,897,260,911,375,954,491,992,691,1046"/>
+<area shape="poly" id="edge11_Node000002_Node000001" title=" " alt="" coords="52,835,57,876,64,895,75,912,91,928,114,943,174,971,249,994,335,1014,516,1042,675,1059,674,1064,515,1048,334,1019,248,999,172,976,111,948,88,932,71,915,59,897,52,877,46,836"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="690,1051,490,997,373,959,258,916,231,902,205,886,181,876,159,862,148,850,151,846,162,858,183,872,207,882,234,897,260,911,375,954,491,992,691,1046"/>
 <area shape="rect" id="Node000003" href="$structSignalingClientInfoInternal.html" title=" " alt="" coords="173,580,359,845"/>
 <area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="351,844,384,880,420,911,482,951,549,985,615,1014,676,1036,674,1041,613,1019,546,990,479,956,416,915,380,884,347,847"/>
 <area shape="rect" id="Node000004" href="$structSignalingClientInfo.html" title="Populate Signaling client with client ID and application log level." alt="" coords="129,233,382,503"/>
