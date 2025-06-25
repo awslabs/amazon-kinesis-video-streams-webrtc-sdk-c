@@ -29,7 +29,7 @@ menu "KVS WebRTC Configuration"
 
     config KVS_MAX_CONCURRENT_STREAMS
         int "Maximum concurrent streams"
-        default 1
+        default 2
         range 1 10
         help
             Maximum number of concurrent WebRTC streams.

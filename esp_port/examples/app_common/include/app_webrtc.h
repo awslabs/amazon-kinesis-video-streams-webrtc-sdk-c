@@ -200,7 +200,7 @@ typedef struct {
     BOOL enableSendingMetricsToViewerViaDc;
     BOOL enableFileLogging;
     UINT64 customData;
-    PSampleStreamingSession sampleStreamingSessionList[DEFAULT_MAX_CONCURRENT_STREAMING_SESSION];
+    PSampleStreamingSession sampleStreamingSessionList[CONFIG_KVS_MAX_CONCURRENT_STREAMS];
     UINT32 streamingSessionCount;
     MUTEX streamingSessionListReadLock;
     UINT32 iceUriCount;
