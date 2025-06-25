@@ -1,8 +1,6 @@
 idf_component_register(
     SRCS "webrtc_main.c"
     INCLUDE_DIRS "."
-    EMBED_FILES "embedded_files/h264_samples/frame-0001.h264"
-                "embedded_files/opus_samples/sample-001.opus"
     REQUIRES "nvs_flash"
              "esp_wifi"
              "esp_timer"
