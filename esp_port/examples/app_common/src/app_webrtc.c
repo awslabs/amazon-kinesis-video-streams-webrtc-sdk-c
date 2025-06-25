@@ -46,6 +46,9 @@ PVOID sampleReceiveAudioVideoFrame(PVOID);
 VOID sampleVideoFrameHandler(UINT64 customData, PFrame pFrame);
 VOID sampleAudioFrameHandler(UINT64 customData, PFrame pFrame);
 
+// Task handle for the WebRTC run task
+static TaskHandle_t gWebRtcRunTaskHandle = NULL;
+
 // Helper function to raise WebRTC events
 static void raiseEvent(app_webrtc_event_t event_id, UINT32 status_code, PCHAR peer_id, PCHAR message)
 {
@@ -2509,17 +2512,15 @@ CleanUp:
 }
 
 /**
- * @brief Run the WebRTC application and wait for termination
+ * @brief Task function to run the WebRTC application
+ * This task handles the WebRTC application main loop
  */
-STATUS webrtcAppRun(VOID)
+static void webrtcAppRunTask(void *pvParameters)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
-    CHK(gWebRtcAppInitialized, STATUS_INVALID_OPERATION);
-    CHK(gSampleConfiguration != NULL, STATUS_INTERNAL_ERROR);
-
-    DLOGI("WebRTC app running");
+    DLOGI("Running WebRTC application in task");
 
     // Create credential provider if not in streaming-only mode
     if (gWebRtcAppConfig.mode != APP_WEBRTC_STREAMING_ONLY_MODE) {
@@ -2553,6 +2554,63 @@ STATUS webrtcAppRun(VOID)
     // Wait for termination
     sessionCleanupWait(gSampleConfiguration);
     DLOGI("WebRTC app terminated");
+
+CleanUp:
+    if (STATUS_FAILED(retStatus)) {
+        DLOGE("WebRTC app run failed with status 0x%08x", retStatus);
+        raiseEvent(APP_WEBRTC_EVENT_ERROR, retStatus, NULL, "WebRTC application run failed");
+    }
+
+    // Terminate WebRTC application
+    webrtcAppTerminate();
+    DLOGI("WebRTC task cleanup done");
+
+    // Clear the task handle since we're about to delete the task
+    gWebRtcRunTaskHandle = NULL;
+
+    // Delete the task
+    vTaskDelete(NULL);
+
+    LEAVES();
+}
+
+/**
+ * @brief Run the WebRTC application and wait for termination
+ */
+STATUS webrtcAppRun(VOID)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(gWebRtcAppInitialized, STATUS_INVALID_OPERATION);
+    CHK(gSampleConfiguration != NULL, STATUS_INTERNAL_ERROR);
+
+    DLOGI("WebRTC app running");
+
+    // Check if task is already running
+    if (gWebRtcRunTaskHandle != NULL) {
+        DLOGI("WebRTC task is already running");
+        CHK(FALSE, STATUS_INVALID_OPERATION);
+    }
+
+    // Create a task to run the WebRTC application
+    // Use a higher stack size for the WebRTC task as signaling requires substantial stack
+    DLOGI("Creating WebRTC run task");
+    int result = xTaskCreate(
+        webrtcAppRunTask,
+        "webrtc_run",
+        (16 * 1024),  // 16KB stack size for credential provider and signaling
+        NULL,
+        5,
+        &gWebRtcRunTaskHandle
+    );
+
+    if (result != pdPASS) {
+        DLOGE("Failed to create WebRTC run task");
+        CHK(FALSE, STATUS_OPERATION_TIMED_OUT);
+    } else {
+        DLOGI("WebRTC run task created successfully");
+    }
 
 CleanUp:
     if (STATUS_FAILED(retStatus)) {
