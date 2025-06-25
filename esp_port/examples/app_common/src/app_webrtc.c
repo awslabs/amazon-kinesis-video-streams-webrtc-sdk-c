@@ -7,6 +7,9 @@
 #include "webrtc_bridge.h"
 
 #include "sdkconfig.h"
+#include "iot_credential_provider.h"
+
+static const char *TAG = "app_webrtc";
 
 // Event handling
 static app_webrtc_event_callback_t gEventCallback = NULL;
@@ -85,12 +88,6 @@ INT32 app_webrtc_register_event_callback(app_webrtc_event_callback_t callback, v
     }
     return STATUS_SUCCESS;
 }
-
-#ifdef CONFIG_IOT_CORE_ENABLE_CREDENTIALS
-#include "iot_credential_provider.h"
-#endif
-
-static const char *TAG = "app_webrtc";
 
 #ifdef DYNAMIC_SIGNALING_PAYLOAD
 /**
@@ -986,15 +983,155 @@ STATUS traverseDirectoryPEMFileScan(UINT64 customData, DIR_ENTRY_TYPES entryType
     return STATUS_SUCCESS;
 }
 
+STATUS createCredentialProvider(PSampleConfiguration pSampleConfiguration, PAwsCredentialOptions pAwsCredentialOptions)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL isStreamingOnly = FALSE;
+    PCHAR pAccessKey = NULL, pSecretKey = NULL, pSessionToken = NULL;
+    PCHAR pIotCoreCredentialEndPoint = NULL, pIotCoreCert = NULL, pIotCorePrivateKey = NULL;
+    PCHAR pIotCoreRoleAlias = NULL, pIotCoreThingName = NULL;
+
+    CHK(pSampleConfiguration != NULL && pAwsCredentialOptions != NULL, STATUS_NULL_ARG);
+
+    // Check if we're in streaming-only mode (no signaling)
+    isStreamingOnly = (pSampleConfiguration->channelInfo.pChannelName == NULL);
+
+    // If in streaming-only mode, we don't need credentials
+    CHK(!isStreamingOnly, STATUS_SUCCESS);
+
+    // Make sure we don't already have a credential provider
+    if (pSampleConfiguration->pCredentialProvider != NULL) {
+        DLOGI("Credential provider already exists, skipping creation");
+        CHK(FALSE, STATUS_SUCCESS);
+    }
+
+    DLOGI("Creating credential provider with region: %s", pAwsCredentialOptions->region);
+    DLOGI("Channel name: %s", pSampleConfiguration->channelInfo.pChannelName);
+    DLOGI("Credential type: %s", pAwsCredentialOptions->enableIotCredentials ? "IoT Core" : "Static");
+
+    if (pAwsCredentialOptions->enableIotCredentials) {
+        // Use IoT Core credentials from the options
+        pIotCoreCredentialEndPoint = pAwsCredentialOptions->iotCoreCredentialEndpoint;
+        pIotCoreCert = pAwsCredentialOptions->iotCoreCert;
+        pIotCorePrivateKey = pAwsCredentialOptions->iotCorePrivateKey;
+        pIotCoreRoleAlias = pAwsCredentialOptions->iotCoreRoleAlias;
+        pIotCoreThingName = pAwsCredentialOptions->iotCoreThingName;
+
+        // Validate required fields
+        CHK_ERR(pIotCoreCredentialEndPoint != NULL && pIotCoreCredentialEndPoint[0] != '\0', STATUS_INVALID_OPERATION,
+                "IoT Core credential endpoint must be set");
+        CHK_ERR(pIotCoreCert != NULL && pIotCoreCert[0] != '\0', STATUS_INVALID_OPERATION,
+                "IoT Core certificate must be set");
+        CHK_ERR(pIotCorePrivateKey != NULL && pIotCorePrivateKey[0] != '\0', STATUS_INVALID_OPERATION,
+                "IoT Core private key must be set");
+        CHK_ERR(pIotCoreRoleAlias != NULL && pIotCoreRoleAlias[0] != '\0', STATUS_INVALID_OPERATION,
+                "IoT Core role alias must be set");
+        CHK_ERR(pIotCoreThingName != NULL && pIotCoreThingName[0] != '\0', STATUS_INVALID_OPERATION,
+                "IoT Core thing name must be set");
+
+        DLOGI("Creating IoT credential provider with endpoint: %s", pIotCoreCredentialEndPoint);
+        DLOGI("IoT Core thing name: %s, role alias: %s", pIotCoreThingName, pIotCoreRoleAlias);
+        DLOGI("Certificate path: %s", pIotCoreCert);
+        DLOGI("Private key path: %s", pIotCorePrivateKey);
+        DLOGI("CA cert path: %s", pSampleConfiguration->pCaCertPath);
+
+        // Try to read the certificate file to verify it exists and is accessible
+        FILE* certFile = fopen(pIotCoreCert, "r");
+        if (certFile == NULL) {
+            DLOGE("Failed to open certificate file: %s", pIotCoreCert);
+            CHK(FALSE, STATUS_INVALID_OPERATION);
+        } else {
+            fclose(certFile);
+            DLOGI("Successfully verified certificate file exists and is readable");
+        }
+
+        // Try to read the private key file to verify it exists and is accessible
+        FILE* keyFile = fopen(pIotCorePrivateKey, "r");
+        if (keyFile == NULL) {
+            DLOGE("Failed to open private key file: %s", pIotCorePrivateKey);
+            CHK(FALSE, STATUS_INVALID_OPERATION);
+        } else {
+            fclose(keyFile);
+            DLOGI("Successfully verified private key file exists and is readable");
+        }
+
+        // Try to read the CA cert file to verify it exists and is accessible
+        if (pSampleConfiguration->pCaCertPath != NULL) {
+            FILE* caFile = fopen(pSampleConfiguration->pCaCertPath, "r");
+            if (caFile == NULL) {
+                DLOGE("Failed to open CA cert file: %s", pSampleConfiguration->pCaCertPath);
+                CHK(FALSE, STATUS_INVALID_OPERATION);
+            } else {
+                fclose(caFile);
+                DLOGI("Successfully verified CA cert file exists and is readable");
+            }
+        }
+
+        retStatus = createIotCredentialProvider(
+            pIotCoreCredentialEndPoint,
+            pAwsCredentialOptions->region,
+            pIotCoreCert,
+            pIotCorePrivateKey,
+            pSampleConfiguration->pCaCertPath,
+            pIotCoreRoleAlias,
+            pIotCoreThingName,
+            &pSampleConfiguration->pCredentialProvider);
+
+        if (STATUS_FAILED(retStatus)) {
+            DLOGE("Failed to create IoT credential provider: 0x%08x", retStatus);
+            if ((retStatus >> 24) == 0x52) {
+                DLOGE("This appears to be a networking error. Check network connectivity.");
+            } else if ((retStatus >> 24) == 0x50) {
+                DLOGE("This appears to be a platform error. Check certificate and key files.");
+            } else if ((retStatus >> 24) == 0x58) {
+                DLOGE("This appears to be a client error. Check IoT Core configuration.");
+            }
+            CHK(FALSE, retStatus);
+        }
+
+        DLOGI("IoT credential provider created successfully");
+    } else {
+        // Use direct AWS credentials from the options
+        pAccessKey = pAwsCredentialOptions->accessKey;
+        pSecretKey = pAwsCredentialOptions->secretKey;
+        pSessionToken = pAwsCredentialOptions->sessionToken;
+
+        // Validate required fields
+        CHK_ERR(pAccessKey != NULL && pAccessKey[0] != '\0', STATUS_INVALID_OPERATION,
+                "AWS access key must be set");
+        CHK_ERR(pSecretKey != NULL && pSecretKey[0] != '\0', STATUS_INVALID_OPERATION,
+                "AWS secret key must be set");
+
+        DLOGI("Creating static credential provider with access key ID: %.*s...", 4, pAccessKey);
+        retStatus = createStaticCredentialProvider(
+            pAccessKey,
+            0,
+            pSecretKey,
+            0,
+            pSessionToken,
+            0,
+            MAX_UINT64,
+            &pSampleConfiguration->pCredentialProvider);
+
+        if (STATUS_FAILED(retStatus)) {
+            DLOGE("Failed to create static credential provider: 0x%08x", retStatus);
+            CHK(FALSE, retStatus);
+        }
+
+        DLOGI("Static credential provider created successfully");
+    }
+
+CleanUp:
+    return retStatus;
+}
+
+// Now update the createSampleConfiguration function to remove credential provider creation
 STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE roleType, BOOL trickleIce, BOOL useTurn, UINT32 logLevel,
                                 PAwsCredentialOptions pAwsCredentialOptions, PSampleConfiguration* ppSampleConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = NULL;
     BOOL isStreamingOnly = (channelName == NULL); // Check if streaming-only mode
-    PCHAR pAccessKey = NULL, pSecretKey = NULL, pSessionToken = NULL;
-    PCHAR pIotCoreCredentialEndPoint = NULL, pIotCoreCert = NULL, pIotCorePrivateKey = NULL;
-    PCHAR pIotCoreRoleAlias = NULL, pIotCoreCertificateId = NULL, pIotCoreThingName = NULL;
 
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
 
@@ -1005,40 +1142,6 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     MEMCPY(pSampleConfiguration->pAwsCredentialOptions, pAwsCredentialOptions, SIZEOF(AwsCredentialOptions));
 
     SET_LOGGER_LOG_LEVEL(logLevel);
-
-    if (!isStreamingOnly && pAwsCredentialOptions != NULL) {
-        if (pAwsCredentialOptions->enableIotCredentials) {
-            // Use IoT Core credentials from the options
-            pIotCoreCredentialEndPoint = pAwsCredentialOptions->iotCoreCredentialEndpoint;
-            pIotCoreCert = pAwsCredentialOptions->iotCoreCert;
-            pIotCorePrivateKey = pAwsCredentialOptions->iotCorePrivateKey;
-            pIotCoreRoleAlias = pAwsCredentialOptions->iotCoreRoleAlias;
-            pIotCoreThingName = pAwsCredentialOptions->iotCoreThingName;
-            // Validate required fields
-            CHK_ERR(pIotCoreCredentialEndPoint != NULL && pIotCoreCredentialEndPoint[0] != '\0', STATUS_INVALID_OPERATION,
-                    "IoT Core credential endpoint must be set");
-            CHK_ERR(pIotCoreCert != NULL && pIotCoreCert[0] != '\0', STATUS_INVALID_OPERATION,
-                    "IoT Core certificate must be set");
-            CHK_ERR(pIotCorePrivateKey != NULL && pIotCorePrivateKey[0] != '\0', STATUS_INVALID_OPERATION,
-                    "IoT Core private key must be set");
-            CHK_ERR(pIotCoreRoleAlias != NULL && pIotCoreRoleAlias[0] != '\0', STATUS_INVALID_OPERATION,
-                    "IoT Core role alias must be set");
-            CHK_ERR(pIotCoreThingName != NULL && pIotCoreThingName[0] != '\0', STATUS_INVALID_OPERATION,
-                    "IoT Core thing name must be set");
-        } else {
-            // Use direct AWS credentials from the options
-            pAccessKey = pAwsCredentialOptions->accessKey;
-            pSecretKey = pAwsCredentialOptions->secretKey;
-            pSessionToken = pAwsCredentialOptions->sessionToken;
-            // Validate required fields
-            CHK_ERR(pAccessKey != NULL && pAccessKey[0] != '\0', STATUS_INVALID_OPERATION,
-                    "AWS access key must be set");
-            CHK_ERR(pSecretKey != NULL && pSecretKey[0] != '\0', STATUS_INVALID_OPERATION,
-                    "AWS secret key must be set");
-        }
-    } else {
-        DLOGI("Streaming only mode, skipping credentials");
-    }
 
 #if 0
     // If the env is set, we generate normal log files apart from filtered profile log files
@@ -1067,14 +1170,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->channelInfo.pRegion = pAwsCredentialOptions->region;
     pSampleConfiguration->pCaCertPath = pAwsCredentialOptions->caCertPath;
 
-    if (!isStreamingOnly && pAwsCredentialOptions != NULL &&
-            pAwsCredentialOptions->enableIotCredentials) {
-        CHK_STATUS(createIotCredentialProvider(pIotCoreCredentialEndPoint, pAwsCredentialOptions->region, pIotCoreCert, pIotCorePrivateKey, pSampleConfiguration->pCaCertPath,
-                                            pIotCoreRoleAlias, pIotCoreThingName, &pSampleConfiguration->pCredentialProvider));
-    } else if (!isStreamingOnly) {
-        CHK_STATUS(
-            createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pSampleConfiguration->pCredentialProvider));
-    }
+    // Note: Credential provider creation moved to createCredentialProvider function
 
     pSampleConfiguration->mediaSenderTid = INVALID_TID_VALUE;
     pSampleConfiguration->audioSenderTid = INVALID_TID_VALUE;
@@ -1175,6 +1271,12 @@ STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
     if (pSampleConfiguration->channelInfo.pChannelName == NULL) {
         ESP_LOGI(TAG, "Skipping signaling initialization for streaming-only mode");
         return STATUS_SUCCESS;
+    }
+
+    // Ensure credential provider is created before initializing signaling
+    if (pSampleConfiguration->pCredentialProvider == NULL) {
+        DLOGE("Credential provider is NULL, cannot initialize signaling");
+        return STATUS_INVALID_OPERATION;
     }
 
     SignalingClientMetrics signalingClientMetrics = pSampleConfiguration->signalingClientMetrics;
@@ -1417,15 +1519,14 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         CVAR_FREE(pSampleConfiguration->cvar);
     }
 
-#ifdef IOT_CORE_ENABLE_CREDENTIALS
+    // Since, we use config to decide if we are using iot credentials, we need to free checking the flag
     if (!isStreamingOnly && pSampleConfiguration->pCredentialProvider != NULL) {
-        freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
+        if (pSampleConfiguration->pAwsCredentialOptions != NULL && pSampleConfiguration->pAwsCredentialOptions->enableIotCredentials) {
+            freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
+        } else {
+            freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);
+        }
     }
-#else
-    if (!isStreamingOnly && pSampleConfiguration->pCredentialProvider != NULL) {
-        freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);
-    }
-#endif
 
     SAFE_MEMFREE(pSampleConfiguration->pAwsCredentialOptions);
 
@@ -2174,12 +2275,48 @@ STATUS webrtcAppInit(PWebRtcAppConfig pConfig)
         awsCredentialOptions.iotCorePrivateKey = pConfig->iotCorePrivateKey;
         awsCredentialOptions.iotCoreRoleAlias = pConfig->iotCoreRoleAlias;
         awsCredentialOptions.iotCoreThingName = pConfig->iotCoreThingName;
+
+        // Validate IoT Core credentials are provided
+        if (pConfig->iotCoreCredentialEndpoint == NULL || pConfig->iotCoreCredentialEndpoint[0] == '\0' ||
+            pConfig->iotCoreCert == NULL || pConfig->iotCoreCert[0] == '\0' ||
+            pConfig->iotCorePrivateKey == NULL || pConfig->iotCorePrivateKey[0] == '\0' ||
+            pConfig->iotCoreRoleAlias == NULL || pConfig->iotCoreRoleAlias[0] == '\0' ||
+            pConfig->iotCoreThingName == NULL || pConfig->iotCoreThingName[0] == '\0') {
+
+            DLOGE("IoT Core credentials are not properly configured but useIotCredentials is TRUE");
+            DLOGE("Will fall back to static credentials if available");
+            awsCredentialOptions.enableIotCredentials = FALSE;
+        }
     } else {
         // Configure direct AWS credentials
         awsCredentialOptions.enableIotCredentials = FALSE;
         awsCredentialOptions.accessKey = pConfig->awsAccessKey;
         awsCredentialOptions.secretKey = pConfig->awsSecretKey;
         awsCredentialOptions.sessionToken = pConfig->awsSessionToken;
+
+        // Validate static credentials are provided
+        if (pConfig->awsAccessKey == NULL || pConfig->awsAccessKey[0] == '\0' ||
+            pConfig->awsSecretKey == NULL || pConfig->awsSecretKey[0] == '\0') {
+
+            DLOGE("Static AWS credentials are not properly configured but useIotCredentials is FALSE");
+            DLOGE("Will attempt to use IoT Core credentials if available");
+
+            // Only switch to IoT credentials if they seem to be configured
+            if (pConfig->iotCoreCredentialEndpoint != NULL && pConfig->iotCoreCredentialEndpoint[0] != '\0' &&
+                pConfig->iotCoreCert != NULL && pConfig->iotCoreCert[0] != '\0' &&
+                pConfig->iotCorePrivateKey != NULL && pConfig->iotCorePrivateKey[0] != '\0' &&
+                pConfig->iotCoreRoleAlias != NULL && pConfig->iotCoreRoleAlias[0] != '\0' &&
+                pConfig->iotCoreThingName != NULL && pConfig->iotCoreThingName[0] != '\0') {
+
+                DLOGI("Switching to IoT Core credentials");
+                awsCredentialOptions.enableIotCredentials = TRUE;
+                awsCredentialOptions.iotCoreCredentialEndpoint = pConfig->iotCoreCredentialEndpoint;
+                awsCredentialOptions.iotCoreCert = pConfig->iotCoreCert;
+                awsCredentialOptions.iotCorePrivateKey = pConfig->iotCorePrivateKey;
+                awsCredentialOptions.iotCoreRoleAlias = pConfig->iotCoreRoleAlias;
+                awsCredentialOptions.iotCoreThingName = pConfig->iotCoreThingName;
+            }
+        }
     }
 
     // Set common AWS options
@@ -2235,20 +2372,20 @@ STATUS webrtcAppInit(PWebRtcAppConfig pConfig)
     pSampleConfiguration->onDataChannel = onDataChannel;
 #endif
 
-    if (pConfig->mode == APP_WEBRTC_STREAMING_ONLY_MODE) {
-        DLOGI("Skipping signaling client initialization in streaming-only mode");
-        gSampleConfiguration = pSampleConfiguration;
-    } else {
-        DLOGI("Initializing signaling client");
-        // Initialize signaling client with a client ID based on role type
-        CHK_STATUS(initSignaling(
-            pSampleConfiguration,
-            pConfig->roleType == SIGNALING_CHANNEL_ROLE_TYPE_MASTER ? SAMPLE_MASTER_CLIENT_ID : SAMPLE_VIEWER_CLIENT_ID
-        ));
-    }
+    // Store the sample configuration globally
+    gSampleConfiguration = pSampleConfiguration;
 
-    DLOGI("WebRTC stack initialized successfully");
+    // // // Create credential provider here instead of in webrtcAppRun
+    // if (pConfig->mode != APP_WEBRTC_STREAMING_ONLY_MODE) {
+    //     DLOGI("Creating credential provider during initialization");
+    //     retStatus = createCredentialProvider(gSampleConfiguration, gSampleConfiguration->pAwsCredentialOptions);
+    //     if (STATUS_FAILED(retStatus)) {
+    //         DLOGE("Failed to create credential provider: 0x%08x", retStatus);
+    //         CHK(FALSE, retStatus);
+    //     }
+    // }
 
+    // Set as initialized but not yet running
     gWebRtcAppInitialized = TRUE;
 
 CleanUp:
@@ -2276,8 +2413,32 @@ STATUS webrtcAppRun(VOID)
 
     DLOGI("WebRTC app running");
 
+    // Create credential provider if not in streaming-only mode
+    if (gWebRtcAppConfig.mode != APP_WEBRTC_STREAMING_ONLY_MODE) {
+        // Credential provider creation moved to webrtcAppInit
+        // DLOGI("Creating credential provider");
+        retStatus = createCredentialProvider(gSampleConfiguration, gSampleConfiguration->pAwsCredentialOptions);
+        if (STATUS_FAILED(retStatus)) {
+            DLOGE("Failed to create credential provider: 0x%08x", retStatus);
+            CHK(FALSE, retStatus);
+        }
+
+        DLOGI("Initializing signaling client");
+        // Initialize signaling client with a client ID based on role type
+        retStatus = initSignaling(
+            gSampleConfiguration,
+            gWebRtcAppConfig.roleType == SIGNALING_CHANNEL_ROLE_TYPE_MASTER ? SAMPLE_MASTER_CLIENT_ID : SAMPLE_VIEWER_CLIENT_ID
+        );
+        if (STATUS_FAILED(retStatus)) {
+            DLOGE("Failed to initialize signaling: 0x%08x", retStatus);
+            CHK(FALSE, retStatus);
+        }
+    } else {
+        DLOGI("Streaming only mode, skipping credential provider and signaling initialization");
+    }
+
     if (gWebRtcAppConfig.mode == APP_WEBRTC_STREAMING_ONLY_MODE) {
-        DLOGI("Streaming only mode, skipping termination");
+        DLOGI("Streaming only mode, skipping termination wait");
         goto CleanUp;
     }
 
