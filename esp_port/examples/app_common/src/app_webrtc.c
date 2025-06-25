@@ -185,18 +185,6 @@ VOID sigintHandler(INT32 sigNum)
     }
 }
 
-UINT32 setLogLevel()
-{
-    PCHAR pLogLevel;
-    UINT32 logLevel = LOG_LEVEL_DEBUG;
-    if (NULL == (pLogLevel = GETENV(DEBUG_LOG_LEVEL_ENV_VAR)) || STATUS_SUCCESS != STRTOUI32(pLogLevel, NULL, 10, &logLevel) ||
-        logLevel < LOG_LEVEL_VERBOSE || logLevel > LOG_LEVEL_SILENT) {
-        logLevel = LOG_LEVEL_WARN;
-    }
-    SET_LOGGER_LOG_LEVEL(logLevel);
-    return logLevel;
-}
-
 STATUS signalingCallFailed(STATUS status)
 {
     return (STATUS_SIGNALING_GET_TOKEN_CALL_FAILED == status || STATUS_SIGNALING_DESCRIBE_CALL_FAILED == status ||
@@ -257,7 +245,7 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
             CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->peerConnectionMetrics));
             CHK_STATUS(iceAgentGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->iceMetrics));
 
-            if (STATUS_FAILED(retStatus = logSelectedIceCandidatesInformation(pSampleStreamingSession))) {
+            if (STATUS_FAILED(retStatus = logSelectedIceCandidatesInformation(pSampleStreamingSession->pPeerConnection))) {
                 DLOGW("Failed to get information about selected Ice candidates: 0x%08x", retStatus);
             }
             break;
@@ -335,35 +323,6 @@ STATUS signalingClientError(UINT64 customData, STATUS status, PCHAR msg, UINT32 
     }
 
     return STATUS_SUCCESS;
-}
-
-STATUS logSelectedIceCandidatesInformation(PSampleStreamingSession pSampleStreamingSession)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    RtcStats rtcMetrics;
-
-    CHK(pSampleStreamingSession != NULL, STATUS_NULL_ARG);
-    rtcMetrics.requestedTypeOfStats = RTC_STATS_TYPE_LOCAL_CANDIDATE;
-    CHK_STATUS(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, NULL, &rtcMetrics));
-    DLOGD("Local Candidate IP Address: %s", rtcMetrics.rtcStatsObject.localIceCandidateStats.address);
-    DLOGD("Local Candidate type: %s", rtcMetrics.rtcStatsObject.localIceCandidateStats.candidateType);
-    DLOGD("Local Candidate port: %d", rtcMetrics.rtcStatsObject.localIceCandidateStats.port);
-    DLOGD("Local Candidate priority: %d", rtcMetrics.rtcStatsObject.localIceCandidateStats.priority);
-    DLOGD("Local Candidate transport protocol: %s", rtcMetrics.rtcStatsObject.localIceCandidateStats.protocol);
-    DLOGD("Local Candidate relay protocol: %s", rtcMetrics.rtcStatsObject.localIceCandidateStats.relayProtocol);
-    DLOGD("Local Candidate Ice server source: %s", rtcMetrics.rtcStatsObject.localIceCandidateStats.url);
-
-    rtcMetrics.requestedTypeOfStats = RTC_STATS_TYPE_REMOTE_CANDIDATE;
-    CHK_STATUS(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, NULL, &rtcMetrics));
-    DLOGD("Remote Candidate IP Address: %s", rtcMetrics.rtcStatsObject.remoteIceCandidateStats.address);
-    DLOGD("Remote Candidate type: %s", rtcMetrics.rtcStatsObject.remoteIceCandidateStats.candidateType);
-    DLOGD("Remote Candidate port: %d", rtcMetrics.rtcStatsObject.remoteIceCandidateStats.port);
-    DLOGD("Remote Candidate priority: %d", rtcMetrics.rtcStatsObject.remoteIceCandidateStats.priority);
-    DLOGD("Remote Candidate transport protocol: %s", rtcMetrics.rtcStatsObject.remoteIceCandidateStats.protocol);
-CleanUp:
-    LEAVES();
-    return retStatus;
 }
 
 STATUS handleAnswer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSession pSampleStreamingSession, PSignalingMessage pSignalingMessage)
@@ -764,30 +723,6 @@ CleanUp:
     // Free the certificate which can be NULL as we no longer need it and won't reuse
     freeRtcCertificate(pRtcCertificate);
 
-    LEAVES();
-    return retStatus;
-}
-
-// Return ICE server stats for a specific streaming session
-STATUS gatherIceServerStats(PSampleStreamingSession pSampleStreamingSession)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    RtcStats rtcmetrics;
-    UINT32 j = 0;
-    rtcmetrics.requestedTypeOfStats = RTC_STATS_TYPE_ICE_SERVER;
-    for (; j < pSampleStreamingSession->pSampleConfiguration->iceUriCount; j++) {
-        rtcmetrics.rtcStatsObject.iceServerStats.iceServerIndex = j;
-        CHK_STATUS(rtcPeerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, NULL, &rtcmetrics));
-        DLOGD("ICE Server URL: %s", rtcmetrics.rtcStatsObject.iceServerStats.url);
-        DLOGD("ICE Server port: %d", rtcmetrics.rtcStatsObject.iceServerStats.port);
-        DLOGD("ICE Server protocol: %s", rtcmetrics.rtcStatsObject.iceServerStats.protocol);
-        DLOGD("Total requests sent:%" PRIu64, rtcmetrics.rtcStatsObject.iceServerStats.totalRequestsSent);
-        DLOGD("Total responses received: %" PRIu64, rtcmetrics.rtcStatsObject.iceServerStats.totalResponsesReceived);
-        DLOGD("Total round trip time: %" PRIu64 "ms",
-              rtcmetrics.rtcStatsObject.iceServerStats.totalRoundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-    }
-CleanUp:
     LEAVES();
     return retStatus;
 }
@@ -1378,29 +1313,6 @@ CleanUp:
     return retStatus;
 }
 
-STATUS logSignalingClientStats(PSignalingClientMetrics pSignalingClientMetrics)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    CHK(pSignalingClientMetrics != NULL, STATUS_NULL_ARG);
-    DLOGD("Signaling client connection duration: %" PRIu64 " ms",
-          (pSignalingClientMetrics->signalingClientStats.connectionDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND));
-    DLOGD("Number of signaling client API errors: %d", pSignalingClientMetrics->signalingClientStats.numberOfErrors);
-    DLOGD("Number of runtime errors in the session: %d", pSignalingClientMetrics->signalingClientStats.numberOfRuntimeErrors);
-    DLOGD("Signaling client uptime: %" PRIu64 " ms",
-          (pSignalingClientMetrics->signalingClientStats.connectionDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND));
-    // This gives the EMA of the createChannel, describeChannel, getChannelEndpoint and deleteChannel calls
-    DLOGD("Control Plane API call latency: %" PRIu64 " ms",
-          (pSignalingClientMetrics->signalingClientStats.cpApiCallLatency / HUNDREDS_OF_NANOS_IN_A_MILLISECOND));
-    // This gives the EMA of the getIceConfig() call.
-    DLOGD("Data Plane API call latency: %" PRIu64 " ms",
-          (pSignalingClientMetrics->signalingClientStats.dpApiCallLatency / HUNDREDS_OF_NANOS_IN_A_MILLISECOND));
-    DLOGD("API call retry count: %d", pSignalingClientMetrics->signalingClientStats.apiCallRetryCount);
-CleanUp:
-    LEAVES();
-    return retStatus;
-}
-
 STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     UNUSED_PARAM(timerId);
@@ -1408,12 +1320,6 @@ STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
     UINT32 i;
-    UINT64 currentMeasureDuration = 0;
-    DOUBLE averagePacketsDiscardedOnSend = 0.0;
-    DOUBLE averageNumberOfPacketsSentPerSecond = 0.0;
-    DOUBLE averageNumberOfPacketsReceivedPerSecond = 0.0;
-    DOUBLE outgoingBitrate = 0.0;
-    DOUBLE incomingBitrate = 0.0;
     BOOL locked = FALSE;
 
     CHK_WARN(pSampleConfiguration != NULL, STATUS_NULL_ARG, "[KVS Master] getPeriodicStats(): Passed argument is NULL");
@@ -1428,69 +1334,17 @@ STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT
     }
 
     for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
-        if (STATUS_SUCCEEDED(rtcPeerConnectionGetMetrics(pSampleConfiguration->sampleStreamingSessionList[i]->pPeerConnection, NULL,
-                                                         &pSampleConfiguration->rtcIceCandidatePairMetrics))) {
-            currentMeasureDuration = (pSampleConfiguration->rtcIceCandidatePairMetrics.timestamp -
-                                      pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevTs) /
-                HUNDREDS_OF_NANOS_IN_A_SECOND;
-            DLOGD("Current duration: %" PRIu64 " seconds", currentMeasureDuration);
-            if (currentMeasureDuration > 0) {
-                DLOGD("Selected local candidate ID: %s",
-                      pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.localCandidateId);
-                DLOGD("Selected remote candidate ID: %s",
-                      pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.remoteCandidateId);
-                // TODO: Display state as a string for readability
-                DLOGD("Ice Candidate Pair state: %d", pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.state);
-                DLOGD("Nomination state: %s",
-                      pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.nominated ? "nominated"
-                                                                                                                      : "not nominated");
-                averageNumberOfPacketsSentPerSecond =
-                    (DOUBLE) (pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsSent -
-                              pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsSent) /
-                    (DOUBLE) currentMeasureDuration;
-                DLOGD("Packet send rate: %lf pkts/sec", averageNumberOfPacketsSentPerSecond);
+        // Delegate to WebRtcLogging.c function to handle the actual logging
+        retStatus = logIceCandidatePairStats(
+            pSampleConfiguration->sampleStreamingSessionList[i]->pPeerConnection,
+            &pSampleConfiguration->rtcIceCandidatePairMetrics,
+            &pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory
+        );
 
-                averageNumberOfPacketsReceivedPerSecond =
-                    (DOUBLE) (pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsReceived -
-                              pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsReceived) /
-                    (DOUBLE) currentMeasureDuration;
-                DLOGD("Packet receive rate: %lf pkts/sec", averageNumberOfPacketsReceivedPerSecond);
-
-                outgoingBitrate = (DOUBLE) ((pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesSent -
-                                             pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesSent) *
-                                            8.0) /
-                    currentMeasureDuration;
-                DLOGD("Outgoing bit rate: %lf bps", outgoingBitrate);
-
-                incomingBitrate = (DOUBLE) ((pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesReceived -
-                                             pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesReceived) *
-                                            8.0) /
-                    currentMeasureDuration;
-                DLOGD("Incoming bit rate: %lf bps", incomingBitrate);
-
-                averagePacketsDiscardedOnSend =
-                    (DOUBLE) (pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsDiscardedOnSend -
-                              pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevPacketsDiscardedOnSend) /
-                    (DOUBLE) currentMeasureDuration;
-                DLOGD("Packet discard rate: %lf pkts/sec", averagePacketsDiscardedOnSend);
-                DLOGD("Current STUN request round trip time: %lf sec",
-                      pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.currentRoundTripTime);
-                DLOGD("Number of STUN responses received: %llu",
-                      pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.responsesReceived);
-
-                pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevTs =
-                    pSampleConfiguration->rtcIceCandidatePairMetrics.timestamp;
-                pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsSent =
-                    pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsSent;
-                pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfPacketsReceived =
-                    pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsReceived;
-                pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesSent =
-                    pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesSent;
-                pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevNumberOfBytesReceived =
-                    pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.bytesReceived;
-                pSampleConfiguration->sampleStreamingSessionList[i]->rtcMetricsHistory.prevPacketsDiscardedOnSend =
-                    pSampleConfiguration->rtcIceCandidatePairMetrics.rtcStatsObject.iceCandidatePairStats.packetsDiscardedOnSend;
-            }
+        if (STATUS_FAILED(retStatus)) {
+            DLOGW("Failed to log ICE candidate pair stats: 0x%08x", retStatus);
+            // Continue with other sessions even if one fails
+            retStatus = STATUS_SUCCESS;
         }
     }
 
@@ -1639,7 +1493,8 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     }
 
     for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
-        retStatus = gatherIceServerStats(pSampleConfiguration->sampleStreamingSessionList[i]);
+        retStatus = gatherIceServerStats(pSampleConfiguration->sampleStreamingSessionList[i]->pPeerConnection,
+                                 pSampleConfiguration->iceUriCount);
         if (STATUS_FAILED(retStatus)) {
             DLOGW("Failed to ICE Server Stats for streaming session %d: %08x", i, retStatus);
         }

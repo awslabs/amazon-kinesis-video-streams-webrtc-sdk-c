@@ -83,6 +83,7 @@ endif()
 
 idf_component_register(
     SRCS "${kvs_webrtc_srcs}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/WebRtcLogging.c"
 
     INCLUDE_DIRS "${kvs_webrtc_include_dirs}"
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
