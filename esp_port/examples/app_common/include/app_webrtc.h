@@ -11,8 +11,7 @@ extern "C" {
 #endif
 
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
-
-#define DEFAULT_MAX_CONCURRENT_STREAMING_SESSION 2
+#include "WebRtcLogging.h"
 
 #define AUDIO_CODEC_NAME_ALAW  "alaw"
 #define AUDIO_CODEC_NAME_MULAW "mulaw"
@@ -147,15 +146,6 @@ typedef enum {
 
 typedef struct __SampleStreamingSession SampleStreamingSession;
 typedef struct __SampleStreamingSession* PSampleStreamingSession;
-
-typedef struct {
-    UINT64 prevNumberOfPacketsSent;
-    UINT64 prevNumberOfPacketsReceived;
-    UINT64 prevNumberOfBytesSent;
-    UINT64 prevNumberOfBytesReceived;
-    UINT64 prevPacketsDiscardedOnSend;
-    UINT64 prevTs;
-} RtcMetricsHistory, *PRtcMetricsHistory;
 
 typedef struct {
     volatile ATOMIC_BOOL appTerminateFlag;
@@ -335,8 +325,6 @@ VOID sampleSenderBandwidthEstimationHandler(UINT64, UINT32, UINT32, UINT32, UINT
 VOID onDataChannel(UINT64, PRtcDataChannel);
 VOID onConnectionStateChange(UINT64, RTC_PEER_CONNECTION_STATE);
 STATUS sessionCleanupWait(PSampleConfiguration);
-STATUS logSignalingClientStats(PSignalingClientMetrics);
-STATUS logSelectedIceCandidatesInformation(PSampleStreamingSession);
 STATUS logStartUpLatency(PSampleConfiguration);
 STATUS createMessageQueue(UINT64, PPendingMessageQueue*);
 STATUS freeMessageQueue(PPendingMessageQueue);
@@ -345,7 +333,6 @@ STATUS removeExpiredMessageQueues(PStackQueue);
 STATUS getPendingMessageQueueForHash(PStackQueue, UINT64, BOOL, PPendingMessageQueue*);
 STATUS initSignaling(PSampleConfiguration, PCHAR);
 BOOL sampleFilterNetworkInterfaces(UINT64, PCHAR);
-UINT32 setLogLevel();
 
 // Event data structure to pass to callbacks
 typedef struct {
