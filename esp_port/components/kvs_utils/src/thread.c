@@ -211,7 +211,6 @@ STATUS defaultCreateThreadPriWithCaps(PTID pThreadId, PCHAR threadName, UINT32 t
     // UINT32 spiSize = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
     // UINT32 internalSize = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
 
-    DLOGI("line %d", __LINE__);
     esp_pthread_cfg_t pthread_cfg = esp_pthread_get_default_config();
     esp_err_t esp_err = ESP_OK;
     // esp_err_t esp_err = esp_pthread_get_cfg(&pthread_cfg);
@@ -219,14 +218,12 @@ STATUS defaultCreateThreadPriWithCaps(PTID pThreadId, PCHAR threadName, UINT32 t
     //     DLOGW("get the esp pthread cfg failed.");
     // }
 
-    DLOGI("line %d", __LINE__);
     if (threadSize == 0) {
         pthread_cfg.stack_size = 64000;
     } else {
         pthread_cfg.stack_size = threadSize;
     }
 
-    DLOGI("line %d", __LINE__);
     if (threadName == NULL) {
         pthread_cfg.thread_name = "pthread";
     } else {
@@ -242,20 +239,16 @@ STATUS defaultCreateThreadPriWithCaps(PTID pThreadId, PCHAR threadName, UINT32 t
     ESP_LOGI("Thread", "pthread_cfg.stack_alloc_caps: %d", (int) pthread_cfg.stack_alloc_caps);
 
     // pthread_cfg.stack_alloc_caps = MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT;
-    DLOGI("line %d", __LINE__);
     esp_err = esp_pthread_set_cfg(&pthread_cfg);
-    DLOGI("line %d", __LINE__);
     if (esp_err != ESP_OK) {
         DLOGW("set the esp pthread cfg failed.");
     }
-    DLOGI("line %d", __LINE__);
     if (joinable == TRUE) {
         pthread_attr_setdetachstate(pAttr, PTHREAD_CREATE_JOINABLE);
     } else {
         pthread_attr_setdetachstate(pAttr, PTHREAD_CREATE_DETACHED);
     }
     ESP_LOGI("Thread", "pthread_attr_setdetachstate finished");
-    DLOGI("line %d", __LINE__);
     if (threadSize == 0) {
         pthread_attr_setstacksize(pAttr, 68000);
     } else {
@@ -263,10 +256,8 @@ STATUS defaultCreateThreadPriWithCaps(PTID pThreadId, PCHAR threadName, UINT32 t
     }
 
     ESP_LOGI("Thread", "pthread_attr_setstacksize finished");
-    DLOGI("line %d", __LINE__);
 
     esp_err = esp_pthread_set_cfg(&pthread_cfg);
-    DLOGI("line %d", __LINE__);
     if (esp_err != ESP_OK) {
         DLOGW("set the esp pthread cfg failed.");
     }
@@ -274,7 +265,6 @@ STATUS defaultCreateThreadPriWithCaps(PTID pThreadId, PCHAR threadName, UINT32 t
 
     result = pthread_create(&threadId, pAttr, start, args);
     ESP_LOGI("Thread", "pthread_create finished, result: %d", (int) result);
-    DLOGI("line %d", __LINE__);
 
 #if defined(KVS_PLAT_ESP_FREERTOS)
     UINT32 curTotalSize = esp_get_free_heap_size();
