@@ -23,6 +23,93 @@
 
 >[!NOTE]
 >We have switched from using the 'master' branch to the 'main' branch. Please update your references accordingly.
+
+## Systemd Service
+
+You can run the WebRTC sample as a managed systemd service, which will auto-start it on boot and restart it on failure.
+
+1. **Create the unit file**\
+   Save the following as `/etc/systemd/system/camera-streaming.service` (root-owned). Fill in with your credentials and user specific variables:
+
+```
+# /etc/systemd/system/camera-streaming.service
+[Unit]
+Description=KVS WebRTC Master Client (video-only, devicesrc)
+Wants=network-online.target
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=user
+Group=ssl-cert
+SupplementaryGroups=video
+WorkingDirectory=/home/user/amazon-kinesis-video-streams-webrtc-sdk-c/build
+
+# all AWS/IOT/KVS env inlined
+Environment=AWS_IOT_CORE_CREDENTIAL_ENDPOINT=xxxxxx.credentials.iot.eu-west-1.amazonaws.com
+Environment=AWS_IOT_CORE_ROLE_ALIAS=xxxxx
+Environment=AWS_IOT_CORE_THING_NAME=xxxxx
+Environment=AWS_IOT_CORE_PRIVATE_KEY=/etc/ssl/certs/xxxxxx-private.pem.key
+Environment=AWS_IOT_CORE_CERT=/etc/ssl/certs/xxxxxxx-certificate.pem.crt
+Environment=AWS_KVS_CACERT_PATH=/etc/ssl/certs/cacert.pem
+Environment=GST_DEBUG=*:3
+Environment=HOME=/home/xxxxx
+Environment=AWS_DEFAULT_REGION=eu-west-1
+
+StandardInput=null
+
+# 1) DNS lookup
+ExecStartPre=/bin/sh -c 'echo "[preflight] DNS lookup for ${AWS_IOT_CORE_CREDENTIAL_ENDPOINT}"; host ${AWS_IOT_CORE_CREDENTIAL_ENDPOINT} || echo "[preflight] DNS FAILED"'
+
+# 2) give time for network-online.target to settle
+ExecStartPre=/bin/sh -c 'echo "[preflight] sleeping 5s for network"; sleep 5'
+
+# 3) curl creds
+ExecStartPre=-/usr/bin/curl -sf "https://${AWS_IOT_CORE_CREDENTIAL_ENDPOINT}/role-aliases/${AWS_IOT_CORE_ROLE_ALIAS}/credentials" \
+    && echo "[preflight] creds OK" || echo "[preflight] creds FAILED"
+
+ExecStart=/usr/bin/stdbuf -oL -eL \
+  /home/xxxxx/amazon-kinesis-video-streams-webrtc-sdk-c/build/samples/kvsWebrtcClientMasterGstSample \
+  ${AWS_IOT_CORE_THING_NAME} video-only devicesrc
+
+Restart=always
+RestartSec=5
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target
+
+```
+
+2. **Enable and start the service**
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable camera-streaming.service
+sudo systemctl start camera-streaming.service
+```
+
+3. **Check status**
+
+```bash
+sudo systemctl status camera-streaming.service
+```
+4. **Follow logs in real time**
+
+```bash
+sudo journalctl -u camera-streaming.service -f
+```
+
+5. **Restart after changes**\
+   Whenever you update the unit or its environment, run:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart camera-streaming.service
+```
+
+
 ## New feature announcements
 Please refer to the release notes in [Releases](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/releases) page
 
