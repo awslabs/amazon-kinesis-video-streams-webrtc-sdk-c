@@ -5,12 +5,27 @@
 // Add include for SignalingSerializer.h for signaling-only mode
 #include "signaling_serializer.h"
 #include "webrtc_bridge.h"
+#include "media_stream.h"  // Add this include for media functions
 
 #include "sdkconfig.h"
 #include "iot_credential_provider.h"
 
 static const char *TAG = "app_webrtc";
 
+// Frame size limits
+#define MAX_VIDEO_FRAME_SIZE (1024 * 1024)  // 1MB should be enough for most video frames
+#define MAX_AUDIO_FRAME_SIZE (32 * 1024)    // 32KB should be enough for audio frames
+
+// Frame durations
+#define DEFAULT_FPS_VALUE                        25
+#define SAMPLE_VIDEO_FRAME_DURATION (HUNDREDS_OF_NANOS_IN_A_SECOND / DEFAULT_FPS_VALUE)
+#define SAMPLE_AUDIO_FRAME_DURATION (20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+
+// Track IDs
+#define DEFAULT_VIDEO_TRACK_ID 1
+#define DEFAULT_AUDIO_TRACK_ID 2
+
+#define NUMBER_OF_H264_FRAME_FILES               60 //1500
 // Event handling
 static app_webrtc_event_callback_t gEventCallback = NULL;
 static void* gEventUserCtx = NULL;
@@ -19,6 +34,17 @@ static MUTEX gEventCallbackLock = INVALID_MUTEX_VALUE;
 // Global variables to track app state
 static WebRtcAppConfig gWebRtcAppConfig = {0};
 static BOOL gWebRtcAppInitialized = FALSE;
+
+// Forward declarations for media sender functions
+PVOID sendVideoFramesFromCamera(PVOID args);
+PVOID sendAudioFramesFromMic(PVOID args);
+PVOID sendVideoFramesFromSamples(PVOID args);
+PVOID sendAudioFramesFromSamples(PVOID args);
+PVOID sampleReceiveAudioVideoFrame(PVOID);
+
+// Forward declarations for media handlers
+VOID sampleVideoFrameHandler(UINT64 customData, PFrame pFrame);
+VOID sampleAudioFrameHandler(UINT64 customData, PFrame pFrame);
 
 // Helper function to raise WebRTC events
 static void raiseEvent(app_webrtc_event_t event_id, UINT32 status_code, PCHAR peer_id, PCHAR message)
@@ -339,14 +365,33 @@ PVOID mediaSenderRoutine(PVOID customData)
     // We are now connected and about to start streaming
     raiseEvent(APP_WEBRTC_EVENT_STREAMING_STARTED, 0, NULL, "Media streaming started");
 
-    if (pSampleConfiguration->videoSource != NULL) {
-        THREAD_CREATE_EX_EXT(&pSampleConfiguration->videoSenderTid, "videoSender", 8 * 1024, TRUE, pSampleConfiguration->videoSource,
-                      (PVOID) pSampleConfiguration);
+    // Start video and audio threads based on configuration
+    if (pSampleConfiguration->mediaType == APP_WEBRTC_MEDIA_VIDEO ||
+        pSampleConfiguration->mediaType == APP_WEBRTC_MEDIA_AUDIO_VIDEO) {
+
+        // Determine which video source to use
+        if (pSampleConfiguration->videoSource != NULL) {
+            // Use the configured video source callback
+            THREAD_CREATE_EX_EXT(&pSampleConfiguration->videoSenderTid, "videoSender", 8 * 1024, TRUE,
+                          pSampleConfiguration->videoSource, (PVOID) pSampleConfiguration);
+        } else {
+            // Use our built-in video sender functions
+            THREAD_CREATE_EX_EXT(&pSampleConfiguration->videoSenderTid, "videoSender", 8 * 1024, TRUE,
+                          sendVideoFramesFromCamera, (PVOID) pSampleConfiguration);
+        }
     }
 
-    if (pSampleConfiguration->audioSource != NULL) {
-        THREAD_CREATE_EX_EXT(&pSampleConfiguration->audioSenderTid, "audioSender", 8 * 1024, TRUE, pSampleConfiguration->audioSource,
-                      (PVOID) pSampleConfiguration);
+    if (pSampleConfiguration->mediaType == APP_WEBRTC_MEDIA_AUDIO_VIDEO) {
+        // Determine which audio source to use
+        if (pSampleConfiguration->audioSource != NULL) {
+            // Use the configured audio source callback
+            THREAD_CREATE_EX_EXT(&pSampleConfiguration->audioSenderTid, "audioSender", 8 * 1024, TRUE,
+                          pSampleConfiguration->audioSource, (PVOID) pSampleConfiguration);
+        } else {
+            // Use our built-in audio sender functions
+            THREAD_CREATE_EX_EXT(&pSampleConfiguration->audioSenderTid, "audioSender", 8 * 1024, TRUE,
+                          sendAudioFramesFromMic, (PVOID) pSampleConfiguration);
+        }
     }
 
     if (pSampleConfiguration->videoSenderTid != INVALID_TID_VALUE) {
@@ -753,8 +798,11 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     // Add a SendRecv Transceiver of type video
     videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
     videoTrack.codec = pSampleConfiguration->videoCodec;
-    // videoRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
-    videoRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+    if (pSampleConfiguration->receiveMedia) {
+        videoRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    } else {
+        videoRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+    }
     STRCPY(videoTrack.streamId, "myKvsVideoStream");
     STRCPY(videoTrack.trackId, "myVideoTrack");
     CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &videoTrack, &videoRtpTransceiverInit,
@@ -766,8 +814,11 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     // Add a SendRecv Transceiver of type audio
     audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
     audioTrack.codec = pSampleConfiguration->audioCodec;
-    // audioRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
-    audioRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+    if (pSampleConfiguration->receiveMedia) {
+        audioRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    } else {
+        audioRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+    }
     STRCPY(audioTrack.streamId, "myKvsVideoStream");
     STRCPY(audioTrack.trackId, "myAudioTrack");
     CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &audioTrack, &audioRtpTransceiverInit,
@@ -818,6 +869,37 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
 
     if (IS_VALID_TID_VALUE(pSampleStreamingSession->receiveAudioVideoSenderTid)) {
         THREAD_JOIN(pSampleStreamingSession->receiveAudioVideoSenderTid, NULL);
+    }
+
+    // Update player session count and potentially stop players
+    if (IS_VALID_MUTEX_VALUE(pSampleConfiguration->playerLock)) {
+        MUTEX_LOCK(pSampleConfiguration->playerLock);
+
+        // Decrement active session count
+        if (pSampleConfiguration->activePlayerSessionCount > 0) {
+            pSampleConfiguration->activePlayerSessionCount--;
+
+            // If this was the last active session, clean up the players
+            if (pSampleConfiguration->activePlayerSessionCount == 0) {
+                // Clean up video player if initialized
+                if (pSampleConfiguration->video_player_handle != NULL && pSampleConfiguration->videoPlayer != NULL) {
+                    media_stream_video_player_t *video_player = (media_stream_video_player_t*)pSampleConfiguration->videoPlayer;
+                    ESP_LOGI(TAG, "Stopping video player (last session)");
+                    video_player->stop(pSampleConfiguration->video_player_handle);
+                    // Note: We don't deinit here, as we might reuse the player for future sessions
+                }
+
+                // Clean up audio player if initialized
+                if (pSampleConfiguration->audio_player_handle != NULL && pSampleConfiguration->audioPlayer != NULL) {
+                    media_stream_audio_player_t *audio_player = (media_stream_audio_player_t*)pSampleConfiguration->audioPlayer;
+                    ESP_LOGI(TAG, "Stopping audio player (last session)");
+                    audio_player->stop(pSampleConfiguration->audio_player_handle);
+                    // Note: We don't deinit here, as we might reuse the player for future sessions
+                }
+            }
+        }
+
+        MUTEX_UNLOCK(pSampleConfiguration->playerLock);
     }
 
     // De-initialize the session stats timer if there are no active sessions
@@ -1131,7 +1213,6 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = NULL;
-    BOOL isStreamingOnly = (channelName == NULL); // Check if streaming-only mode
 
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
 
@@ -1180,6 +1261,13 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->cvar = CVAR_CREATE();
     pSampleConfiguration->streamingSessionListReadLock = MUTEX_CREATE(FALSE);
     pSampleConfiguration->signalingSendMessageLock = MUTEX_CREATE(FALSE);
+
+    // Initialize player-related fields
+    pSampleConfiguration->video_player_handle = NULL;
+    pSampleConfiguration->audio_player_handle = NULL;
+    pSampleConfiguration->activePlayerSessionCount = 0;
+    pSampleConfiguration->playerLock = MUTEX_CREATE(TRUE);
+
     /* This is ignored for master. Master can extract the info from offer. Viewer has to know if peer can trickle or
      * not ahead of time. */
     pSampleConfiguration->trickleIce = trickleIce;
@@ -1224,6 +1312,9 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, FALSE);
+
+    // Set default media type to audio-video
+    pSampleConfiguration->mediaType = APP_WEBRTC_MEDIA_AUDIO_VIDEO;
 
     if (gWebRtcAppConfig.mode == APP_WEBRTC_SIGNALING_ONLY_MODE) {
         // Optimization: We don't need to create a timer queue in signaling-only mode
@@ -1436,6 +1527,29 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
 
     // Check if we're in streaming-only mode
     isStreamingOnly = (pSampleConfiguration->channelInfo.pChannelName == NULL);
+
+    // Clean up video player if initialized
+    if (pSampleConfiguration->video_player_handle != NULL && pSampleConfiguration->videoPlayer != NULL) {
+        media_stream_video_player_t *video_player = (media_stream_video_player_t*)pSampleConfiguration->videoPlayer;
+        ESP_LOGI(TAG, "Cleaning up video player");
+        video_player->stop(pSampleConfiguration->video_player_handle);
+        video_player->deinit(pSampleConfiguration->video_player_handle);
+        pSampleConfiguration->video_player_handle = NULL;
+    }
+
+    // Clean up audio player if initialized
+    if (pSampleConfiguration->audio_player_handle != NULL && pSampleConfiguration->audioPlayer != NULL) {
+        media_stream_audio_player_t *audio_player = (media_stream_audio_player_t*)pSampleConfiguration->audioPlayer;
+        ESP_LOGI(TAG, "Cleaning up audio player");
+        audio_player->stop(pSampleConfiguration->audio_player_handle);
+        audio_player->deinit(pSampleConfiguration->audio_player_handle);
+        pSampleConfiguration->audio_player_handle = NULL;
+    }
+
+    // Free the player lock
+    if (IS_VALID_MUTEX_VALUE(pSampleConfiguration->playerLock)) {
+        MUTEX_FREE(pSampleConfiguration->playerLock);
+    }
 
     if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
         if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
@@ -2267,9 +2381,10 @@ STATUS webrtcAppInit(PWebRtcAppConfig pConfig)
     MEMCPY(&gWebRtcAppConfig, pConfig, SIZEOF(WebRtcAppConfig));
 
     // Set up AWS credential options
-    if (pConfig->useIotCredentials) {
+    awsCredentialOptions.enableIotCredentials = pConfig->useIotCredentials;
+
+    if (pConfig->mode != APP_WEBRTC_STREAMING_ONLY_MODE && pConfig->useIotCredentials) {
         // Configure IoT Core credentials
-        awsCredentialOptions.enableIotCredentials = TRUE;
         awsCredentialOptions.iotCoreCredentialEndpoint = pConfig->iotCoreCredentialEndpoint;
         awsCredentialOptions.iotCoreCert = pConfig->iotCoreCert;
         awsCredentialOptions.iotCorePrivateKey = pConfig->iotCorePrivateKey;
@@ -2282,14 +2397,11 @@ STATUS webrtcAppInit(PWebRtcAppConfig pConfig)
             pConfig->iotCorePrivateKey == NULL || pConfig->iotCorePrivateKey[0] == '\0' ||
             pConfig->iotCoreRoleAlias == NULL || pConfig->iotCoreRoleAlias[0] == '\0' ||
             pConfig->iotCoreThingName == NULL || pConfig->iotCoreThingName[0] == '\0') {
-
-            DLOGE("IoT Core credentials are not properly configured but useIotCredentials is TRUE");
-            DLOGE("Will fall back to static credentials if available");
-            awsCredentialOptions.enableIotCredentials = FALSE;
+            DLOGE("IoT Core credentials are not properly configured");
+            goto CleanUp;
         }
-    } else {
+    } else if (pConfig->mode != APP_WEBRTC_STREAMING_ONLY_MODE) {
         // Configure direct AWS credentials
-        awsCredentialOptions.enableIotCredentials = FALSE;
         awsCredentialOptions.accessKey = pConfig->awsAccessKey;
         awsCredentialOptions.secretKey = pConfig->awsSecretKey;
         awsCredentialOptions.sessionToken = pConfig->awsSessionToken;
@@ -2299,23 +2411,7 @@ STATUS webrtcAppInit(PWebRtcAppConfig pConfig)
             pConfig->awsSecretKey == NULL || pConfig->awsSecretKey[0] == '\0') {
 
             DLOGE("Static AWS credentials are not properly configured but useIotCredentials is FALSE");
-            DLOGE("Will attempt to use IoT Core credentials if available");
-
-            // Only switch to IoT credentials if they seem to be configured
-            if (pConfig->iotCoreCredentialEndpoint != NULL && pConfig->iotCoreCredentialEndpoint[0] != '\0' &&
-                pConfig->iotCoreCert != NULL && pConfig->iotCoreCert[0] != '\0' &&
-                pConfig->iotCorePrivateKey != NULL && pConfig->iotCorePrivateKey[0] != '\0' &&
-                pConfig->iotCoreRoleAlias != NULL && pConfig->iotCoreRoleAlias[0] != '\0' &&
-                pConfig->iotCoreThingName != NULL && pConfig->iotCoreThingName[0] != '\0') {
-
-                DLOGI("Switching to IoT Core credentials");
-                awsCredentialOptions.enableIotCredentials = TRUE;
-                awsCredentialOptions.iotCoreCredentialEndpoint = pConfig->iotCoreCredentialEndpoint;
-                awsCredentialOptions.iotCoreCert = pConfig->iotCoreCert;
-                awsCredentialOptions.iotCorePrivateKey = pConfig->iotCorePrivateKey;
-                awsCredentialOptions.iotCoreRoleAlias = pConfig->iotCoreRoleAlias;
-                awsCredentialOptions.iotCoreThingName = pConfig->iotCoreThingName;
-            }
+            goto CleanUp;
         }
     }
 
@@ -2329,20 +2425,30 @@ STATUS webrtcAppInit(PWebRtcAppConfig pConfig)
     CHK_STATUS(createSampleConfiguration(
         pConfig->pChannelName,
         pConfig->roleType,
-        pConfig->trickleIce,
+        TRUE, // trickleIce
         pConfig->useTurn,
         pConfig->logLevel,
         &awsCredentialOptions,
         &pSampleConfiguration
     ));
 
-    // Set audio and video source callbacks based on configuration
-    pSampleConfiguration->audioSource = pConfig->audioSourceCallback;
-    pSampleConfiguration->videoSource = pConfig->videoSourceCallback;
-    pSampleConfiguration->receiveAudioVideoSource = pConfig->receiveAudioVideoCallback;
-    pSampleConfiguration->audioCodec = pConfig->audioCodec;
-    pSampleConfiguration->videoCodec = pConfig->videoCodec;
+    // Map the media type from WebRtcAppConfig to SampleConfiguration
     pSampleConfiguration->mediaType = pConfig->mediaType;
+
+    // Set the codecs explicitly
+    pSampleConfiguration->videoCodec = pConfig->videoCodec;
+    pSampleConfiguration->audioCodec = pConfig->audioCodec;
+
+    // Store media capture interfaces
+    pSampleConfiguration->videoCapture = pConfig->videoCapture;
+    pSampleConfiguration->audioCapture = pConfig->audioCapture;
+
+    // Store media player interfaces
+    pSampleConfiguration->videoPlayer = pConfig->videoPlayer;
+    pSampleConfiguration->audioPlayer = pConfig->audioPlayer;
+
+    // Store media reception flag
+    pSampleConfiguration->receiveMedia = pConfig->receiveMedia;
 
     // Disable media storage for simplicity
     pSampleConfiguration->channelInfo.useMediaStorage = FALSE;
@@ -2353,15 +2459,27 @@ STATUS webrtcAppInit(PWebRtcAppConfig pConfig)
         // In signaling-only mode, we don't initialize media sources
         pSampleConfiguration->audioSource = NULL;
         pSampleConfiguration->videoSource = NULL;
-        // We still allow receiving, just to maintain the API contract
     } else {
         DLOGI("Initializing KVS WebRTC stack");
+
+        // Initialize media sources based on media type
+        if (pSampleConfiguration->mediaType == APP_WEBRTC_MEDIA_VIDEO ||
+            pSampleConfiguration->mediaType == APP_WEBRTC_MEDIA_AUDIO_VIDEO) {
+            pSampleConfiguration->videoSource = sendVideoFramesFromCamera;
+        }
+
+        if (pSampleConfiguration->mediaType == APP_WEBRTC_MEDIA_AUDIO_VIDEO) {
+            pSampleConfiguration->audioSource = sendAudioFramesFromMic;
+        }
+
+        if (pSampleConfiguration->receiveMedia) {
+            // Set the receive callback
+            pSampleConfiguration->receiveAudioVideoSource = sampleReceiveAudioVideoFrame;
+        }
 
         // Initialize KVS WebRTC
         CHK_STATUS(initKvsWebRtc());
     }
-
-
 
 #ifndef CONFIG_USE_ESP_WEBSOCKET_CLIENT
     // Custom allocator for libwebsockets
@@ -2374,16 +2492,6 @@ STATUS webrtcAppInit(PWebRtcAppConfig pConfig)
 
     // Store the sample configuration globally
     gSampleConfiguration = pSampleConfiguration;
-
-    // // // Create credential provider here instead of in webrtcAppRun
-    // if (pConfig->mode != APP_WEBRTC_STREAMING_ONLY_MODE) {
-    //     DLOGI("Creating credential provider during initialization");
-    //     retStatus = createCredentialProvider(gSampleConfiguration, gSampleConfiguration->pAwsCredentialOptions);
-    //     if (STATUS_FAILED(retStatus)) {
-    //         DLOGE("Failed to create credential provider: 0x%08x", retStatus);
-    //         CHK(FALSE, retStatus);
-    //     }
-    // }
 
     // Set as initialized but not yet running
     gWebRtcAppInitialized = TRUE;
@@ -2427,7 +2535,7 @@ STATUS webrtcAppRun(VOID)
         // Initialize signaling client with a client ID based on role type
         retStatus = initSignaling(
             gSampleConfiguration,
-            gWebRtcAppConfig.roleType == SIGNALING_CHANNEL_ROLE_TYPE_MASTER ? SAMPLE_MASTER_CLIENT_ID : SAMPLE_VIEWER_CLIENT_ID
+            gWebRtcAppConfig.roleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER ? SAMPLE_VIEWER_CLIENT_ID : SAMPLE_MASTER_CLIENT_ID
         );
         if (STATUS_FAILED(retStatus)) {
             DLOGE("Failed to initialize signaling: 0x%08x", retStatus);
@@ -2510,4 +2618,609 @@ CleanUp:
 
     LEAVES();
     return retStatus;
+}
+
+// Add these new functions after webrtcAppGetSampleConfiguration
+
+/**
+ * @brief Send a video frame to all connected peers
+ *
+ * @param frame_data Pointer to frame data
+ * @param frame_size Size of the frame in bytes
+ * @param timestamp Presentation timestamp
+ * @param is_key_frame Whether this is a key frame
+ * @return STATUS code of the execution
+ */
+STATUS webrtcAppSendVideoFrame(PBYTE frame_data, UINT32 frame_size, UINT64 timestamp, BOOL is_key_frame)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleConfiguration pSampleConfiguration = NULL;
+    Frame frame = {0};
+    UINT32 i;
+
+    CHK(frame_data != NULL, STATUS_NULL_ARG);
+    CHK(gSampleConfiguration != NULL, STATUS_INVALID_OPERATION);
+
+    pSampleConfiguration = gSampleConfiguration;
+
+    frame.version = FRAME_CURRENT_VERSION;
+    frame.frameData = frame_data;
+    frame.size = frame_size;
+    frame.trackId = DEFAULT_VIDEO_TRACK_ID;
+    frame.duration = 0;
+    frame.index = 0;
+    frame.presentationTs = timestamp;
+    frame.decodingTs = timestamp;
+
+    // Set key frame flag if needed
+    if (is_key_frame) {
+        frame.flags = FRAME_FLAG_KEY_FRAME;
+    }
+
+    MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
+    for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+        // Check if the peer connection is connected by checking if it's not NULL
+        if (pSampleConfiguration->sampleStreamingSessionList[i]->pPeerConnection != NULL) {
+            retStatus = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &frame);
+            if (STATUS_FAILED(retStatus)) {
+                ESP_LOGW(TAG, "writeFrame for video failed with 0x%08" PRIx32 , retStatus);
+                retStatus = STATUS_SUCCESS;
+            }
+        }
+    }
+    MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
+
+CleanUp:
+    return retStatus;
+}
+
+/**
+ * @brief Send an audio frame to all connected peers
+ *
+ * @param frame_data Pointer to frame data
+ * @param frame_size Size of the frame in bytes
+ * @param timestamp Presentation timestamp
+ * @return STATUS code of the execution
+ */
+STATUS webrtcAppSendAudioFrame(PBYTE frame_data, UINT32 frame_size, UINT64 timestamp)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleConfiguration pSampleConfiguration = NULL;
+    Frame frame = {0};
+    UINT32 i;
+
+    CHK(frame_data != NULL, STATUS_NULL_ARG);
+    CHK(gSampleConfiguration != NULL, STATUS_INVALID_OPERATION);
+
+    pSampleConfiguration = gSampleConfiguration;
+
+    frame.version = FRAME_CURRENT_VERSION;
+    frame.frameData = frame_data;
+    frame.size = frame_size;
+    frame.trackId = DEFAULT_AUDIO_TRACK_ID;
+    frame.duration = 0;
+    frame.index = 0;
+    frame.presentationTs = timestamp;
+    frame.decodingTs = timestamp;
+
+    MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
+    for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+        // Check if the peer connection is connected by checking if it's not NULL
+        if (pSampleConfiguration->sampleStreamingSessionList[i]->pPeerConnection != NULL) {
+            retStatus = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pAudioRtcRtpTransceiver, &frame);
+            if (STATUS_FAILED(retStatus)) {
+                ESP_LOGW(TAG, "writeFrame for audio failed with 0x%08" PRIx32 , retStatus);
+                retStatus = STATUS_SUCCESS;
+            }
+        }
+    }
+    MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
+
+CleanUp:
+    return retStatus;
+}
+
+// Add these new media thread functions
+
+/**
+ * @brief Thread function to send video frames from camera
+ */
+PVOID sendVideoFramesFromCamera(PVOID args)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
+    UINT64 lastFrameTime = GETTIME();
+    media_stream_video_capture_t *video_capture = NULL;
+    video_capture_handle_t video_handle = NULL;
+    video_frame_t *video_frame = NULL;
+    const uint32_t fps = 30;
+    const uint32_t frame_duration_ms = 1000 / fps;
+
+    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
+
+    // Get the video capture interface from the sample configuration
+    video_capture = (media_stream_video_capture_t*) pSampleConfiguration->videoCapture;
+    CHK(video_capture != NULL, STATUS_INVALID_ARG);
+
+    // Initialize video capture with H264 configuration
+    video_capture_config_t video_config = {
+        .codec = VIDEO_CODEC_H264,
+        .resolution = {
+            .width = 640,
+            .height = 480,
+            .fps = fps
+        },
+        .quality = 80,
+        .bitrate = 500, // 500 kbps
+        .codec_specific = NULL
+    };
+
+    // Initialize video capture
+    ESP_LOGI(TAG, "Initializing video capture");
+    CHK(video_capture->init(&video_config, &video_handle) == ESP_OK, STATUS_INTERNAL_ERROR);
+
+    // Start video capture
+    CHK(video_capture->start(video_handle) == ESP_OK, STATUS_INTERNAL_ERROR);
+
+    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
+        UINT64 currentTime = GETTIME();
+
+        // Get video frame from camera
+        if (video_capture->get_frame(video_handle, &video_frame, 0) == ESP_OK) {
+            if (video_frame != NULL && video_frame->len > 0) {
+                // Send the frame
+                retStatus = webrtcAppSendVideoFrame(
+                    video_frame->buffer,
+                    video_frame->len,
+                    currentTime - lastFrameTime,
+                    video_frame->type == VIDEO_FRAME_TYPE_I
+                );
+
+                if (STATUS_FAILED(retStatus)) {
+                    ESP_LOGE(TAG, "Failed to send video frame: 0x%08" PRIx32, retStatus);
+                }
+
+                // Release the frame when done
+                video_capture->release_frame(video_handle, video_frame);
+                video_frame = NULL;
+            }
+        }
+
+        // Adjust sleep for proper timing
+        UINT64 elapsed = currentTime - lastFrameTime;
+        UINT64 frame_duration_ns = frame_duration_ms * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+        if (elapsed < frame_duration_ns) {
+            THREAD_SLEEP(frame_duration_ns - elapsed);
+        } else {
+            THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND); // Small delay
+        }
+        lastFrameTime = currentTime;
+    }
+
+CleanUp:
+    if (video_handle != NULL && video_capture != NULL) {
+        video_capture->stop(video_handle);
+        video_capture->deinit(video_handle);
+    }
+
+    ESP_LOGI(TAG, "Video frame sending thread exiting");
+    return (PVOID) ((uintptr_t) retStatus);
+}
+
+/**
+ * @brief Thread function to send audio frames from microphone
+ */
+PVOID sendAudioFramesFromMic(PVOID args)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
+    UINT64 lastFrameTime = GETTIME();
+    media_stream_audio_capture_t *audio_capture = NULL;
+    audio_capture_handle_t audio_handle = NULL;
+    audio_frame_t *audio_frame = NULL;
+    const uint32_t frame_duration_ms = 20;
+
+    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
+
+    // Get the audio capture interface from the sample configuration
+    audio_capture = (media_stream_audio_capture_t*) pSampleConfiguration->audioCapture;
+    CHK(audio_capture != NULL, STATUS_INVALID_ARG);
+
+    // Initialize audio capture with Opus configuration
+    audio_capture_config_t audio_config = {
+        .codec = AUDIO_CODEC_OPUS,
+        .format = {
+            .sample_rate = 48000,
+            .channels = 1,
+            .bits_per_sample = 16
+        },
+        .bitrate = 64,  // 64 kbps
+        .frame_duration_ms = frame_duration_ms,
+        .codec_specific = NULL
+    };
+
+    // Initialize audio capture
+    ESP_LOGI(TAG, "Initializing audio capture");
+    CHK(audio_capture->init(&audio_config, &audio_handle) == ESP_OK, STATUS_INTERNAL_ERROR);
+
+    // Start audio capture
+    CHK(audio_capture->start(audio_handle) == ESP_OK, STATUS_INTERNAL_ERROR);
+
+    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
+        UINT64 currentTime = GETTIME();
+
+        // Get audio frame from microphone
+        if (audio_capture->get_frame(audio_handle, &audio_frame, 0) == ESP_OK) {
+            if (audio_frame != NULL && audio_frame->len > 0) {
+                // Send the frame
+                retStatus = webrtcAppSendAudioFrame(
+                    audio_frame->buffer,
+                    audio_frame->len,
+                    currentTime - lastFrameTime
+                );
+
+                if (STATUS_FAILED(retStatus)) {
+                    ESP_LOGE(TAG, "Failed to send audio frame: 0x%08" PRIx32, retStatus);
+                }
+
+                // Release the frame when done
+                audio_capture->release_frame(audio_handle, audio_frame);
+                audio_frame = NULL;
+            }
+        }
+
+        // Adjust sleep for proper timing
+        UINT64 elapsed = currentTime - lastFrameTime;
+        UINT64 frame_duration_ns = frame_duration_ms * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+        if (elapsed < frame_duration_ns) {
+            THREAD_SLEEP(frame_duration_ns - elapsed);
+        } else {
+            THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND); // Small delay
+        }
+        lastFrameTime = currentTime;
+    }
+
+CleanUp:
+    if (audio_handle != NULL && audio_capture != NULL) {
+        audio_capture->stop(audio_handle);
+        audio_capture->deinit(audio_handle);
+    }
+
+    ESP_LOGI(TAG, "Audio frame sending thread exiting");
+    return (PVOID) ((uintptr_t) retStatus);
+}
+
+/**
+ * @brief Thread function to send video frames from sample files
+ */
+PVOID sendVideoFramesFromSamples(PVOID args)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
+    UINT64 lastFrameTime = GETTIME();
+    media_stream_video_capture_t *video_capture = NULL;
+    video_capture_handle_t video_handle = NULL;
+    video_frame_t *video_frame = NULL;
+
+    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
+
+    // Get the video capture interface from the sample configuration
+    video_capture = (media_stream_video_capture_t*) pSampleConfiguration->videoCapture;
+    CHK(video_capture != NULL, STATUS_INVALID_ARG);
+
+    // Initialize with sample video configuration
+    video_capture_config_t video_config = {
+        .codec = VIDEO_CODEC_H264,
+        .resolution = {
+            .width = 640,
+            .height = 480,
+            .fps = 30
+        },
+        .quality = 80,
+        .bitrate = 500, // 500 kbps
+        .codec_specific = NULL
+    };
+
+    // Initialize video capture for samples
+    ESP_LOGI(TAG, "Initializing sample video capture");
+    CHK(video_capture->init(&video_config, &video_handle) == ESP_OK, STATUS_INTERNAL_ERROR);
+
+    // Start video capture
+    CHK(video_capture->start(video_handle) == ESP_OK, STATUS_INTERNAL_ERROR);
+
+    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
+        UINT64 currentTime = GETTIME();
+
+        // Get video frame from capture interface
+        if (video_capture->get_frame(video_handle, &video_frame, 0) == ESP_OK) {
+            if (video_frame != NULL && video_frame->len > 0) {
+                // Send the frame
+                retStatus = webrtcAppSendVideoFrame(
+                    video_frame->buffer,
+                    video_frame->len,
+                    currentTime - lastFrameTime,
+                    video_frame->type == VIDEO_FRAME_TYPE_I
+                );
+
+                if (STATUS_FAILED(retStatus)) {
+                    ESP_LOGE(TAG, "Failed to send video frame: 0x%08" PRIx32, retStatus);
+                }
+
+                // Release the frame when done
+                video_capture->release_frame(video_handle, video_frame);
+                video_frame = NULL;
+            }
+        } else {
+            ESP_LOGW(TAG, "Failed to get sample video frame");
+        }
+
+        // Adjust sleep for proper timing
+        UINT64 elapsed = currentTime - lastFrameTime;
+        if (elapsed < SAMPLE_VIDEO_FRAME_DURATION) {
+            THREAD_SLEEP(SAMPLE_VIDEO_FRAME_DURATION - elapsed);
+        } else {
+            THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND); // Small delay
+        }
+        lastFrameTime = currentTime;
+    }
+
+CleanUp:
+    if (video_handle != NULL && video_capture != NULL) {
+        video_capture->stop(video_handle);
+        video_capture->deinit(video_handle);
+    }
+
+    ESP_LOGI(TAG, "Sample video frame sending thread exiting");
+    return (PVOID) ((uintptr_t) retStatus);
+}
+
+/**
+ * @brief Thread function to send audio frames from sample files
+ */
+PVOID sendAudioFramesFromSamples(PVOID args)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
+    UINT64 lastFrameTime = GETTIME();
+    media_stream_audio_capture_t *audio_capture = NULL;
+    audio_capture_handle_t audio_handle = NULL;
+    audio_frame_t *audio_frame = NULL;
+
+    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
+
+    // Get the audio capture interface from the sample configuration
+    audio_capture = (media_stream_audio_capture_t*) pSampleConfiguration->audioCapture;
+    CHK(audio_capture != NULL, STATUS_INVALID_ARG);
+
+    // Initialize with sample audio configuration
+    audio_capture_config_t audio_config = {
+        .codec = AUDIO_CODEC_OPUS,
+        .format = {
+            .sample_rate = 48000,
+            .channels = 1,
+            .bits_per_sample = 16
+        },
+        .bitrate = 64,  // 64 kbps
+        .frame_duration_ms = 20,
+        .codec_specific = NULL
+    };
+
+    // Initialize audio capture for samples
+    ESP_LOGI(TAG, "Initializing sample audio capture");
+    CHK(audio_capture->init(&audio_config, &audio_handle) == ESP_OK, STATUS_INTERNAL_ERROR);
+
+    // Start audio capture
+    CHK(audio_capture->start(audio_handle) == ESP_OK, STATUS_INTERNAL_ERROR);
+
+    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
+        UINT64 currentTime = GETTIME();
+
+        // Get audio frame from capture interface
+        if (audio_capture->get_frame(audio_handle, &audio_frame, 0) == ESP_OK) {
+            if (audio_frame != NULL && audio_frame->len > 0) {
+                // Send the frame
+                retStatus = webrtcAppSendAudioFrame(
+                    audio_frame->buffer,
+                    audio_frame->len,
+                    currentTime - lastFrameTime
+                );
+
+                if (STATUS_FAILED(retStatus)) {
+                    ESP_LOGE(TAG, "Failed to send audio frame: 0x%08" PRIx32, retStatus);
+                }
+
+                // Release the frame when done
+                audio_capture->release_frame(audio_handle, audio_frame);
+                audio_frame = NULL;
+            }
+        } else {
+            ESP_LOGW(TAG, "Failed to get sample audio frame");
+        }
+
+        // Adjust sleep for proper timing
+        UINT64 elapsed = currentTime - lastFrameTime;
+        if (elapsed < SAMPLE_AUDIO_FRAME_DURATION) {
+            THREAD_SLEEP(SAMPLE_AUDIO_FRAME_DURATION - elapsed);
+        } else {
+            THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND); // Small delay
+        }
+        lastFrameTime = currentTime;
+    }
+
+CleanUp:
+    if (audio_handle != NULL && audio_capture != NULL) {
+        audio_capture->stop(audio_handle);
+        audio_capture->deinit(audio_handle);
+    }
+
+    ESP_LOGI(TAG, "Sample audio frame sending thread exiting");
+    return (PVOID) ((uintptr_t) retStatus);
+}
+
+/**
+ * @brief Receiver for audio/video frames
+ */
+PVOID sampleReceiveAudioVideoFrame(PVOID args)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) args;
+
+    CHK(pSampleStreamingSession != NULL, STATUS_NULL_ARG);
+
+    ESP_LOGI(TAG, "Setting up media reception callbacks");
+
+    // Get the sample configuration
+    PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
+    CHK(pSampleConfiguration != NULL, STATUS_INTERNAL_ERROR);
+
+    // Lock for player initialization
+    MUTEX_LOCK(pSampleConfiguration->playerLock);
+
+    // Initialize video player if available and not already initialized
+    if (pSampleConfiguration->videoPlayer != NULL && pSampleConfiguration->video_player_handle == NULL) {
+        media_stream_video_player_t *video_player = (media_stream_video_player_t*)pSampleConfiguration->videoPlayer;
+
+        // Initialize with default configuration
+        video_player_config_t video_config = {
+            .codec = VIDEO_PLAYER_CODEC_H264,
+            .format = {
+                .width = 640,
+                .height = 480,
+                .framerate = 30
+            },
+            .buffer_frames = 5,
+            .codec_specific = NULL,
+            .display_handle = NULL
+        };
+
+        ESP_LOGI(TAG, "Initializing video player");
+        if (video_player->init(&video_config, &pSampleConfiguration->video_player_handle) != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to initialize video player");
+        } else if (video_player->start(pSampleConfiguration->video_player_handle) != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to start video player");
+        } else {
+            ESP_LOGI(TAG, "Video player initialized successfully");
+        }
+    }
+
+    // Initialize audio player if available and not already initialized
+    if (pSampleConfiguration->audioPlayer != NULL && pSampleConfiguration->audio_player_handle == NULL) {
+        media_stream_audio_player_t *audio_player = (media_stream_audio_player_t*)pSampleConfiguration->audioPlayer;
+
+        // Initialize with default configuration
+        audio_player_config_t audio_config = {
+            .codec = AUDIO_PLAYER_CODEC_OPUS,
+            .format = {
+                .sample_rate = 48000,
+                .channels = 1,
+                .bits_per_sample = 16
+            },
+            .buffer_ms = 500,
+            .codec_specific = NULL
+        };
+
+        ESP_LOGI(TAG, "Initializing audio player");
+        if (audio_player->init(&audio_config, &pSampleConfiguration->audio_player_handle) != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to initialize audio player");
+        } else if (audio_player->start(pSampleConfiguration->audio_player_handle) != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to start audio player");
+        } else {
+            ESP_LOGI(TAG, "Audio player initialized successfully");
+        }
+    }
+
+    // Increment the active session count
+    pSampleConfiguration->activePlayerSessionCount++;
+
+    MUTEX_UNLOCK(pSampleConfiguration->playerLock);
+
+    // Set up callback for video frames
+    if (pSampleConfiguration->videoPlayer != NULL && pSampleConfiguration->video_player_handle != NULL) {
+        CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver,
+                                      (UINT64)(uintptr_t) pSampleStreamingSession,
+                                      sampleVideoFrameHandler));
+    }
+
+    // Set up callback for audio frames
+    if (pSampleConfiguration->audioPlayer != NULL && pSampleConfiguration->audio_player_handle != NULL) {
+    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver,
+                                  (UINT64)(uintptr_t) pSampleStreamingSession,
+                                  sampleAudioFrameHandler));
+    }
+
+CleanUp:
+    return (PVOID) (ULONG_PTR) retStatus;
+}
+
+/**
+ * @brief Handler for received video frames
+ */
+VOID sampleVideoFrameHandler(UINT64 customData, PFrame pFrame)
+{
+    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession)(uintptr_t) customData;
+
+    if (pFrame == NULL || pFrame->frameData == NULL || pSampleStreamingSession == NULL) {
+        ESP_LOGW(TAG, "Invalid video frame or session data");
+        return;
+    }
+
+    // Get the sample configuration and video player interface
+    PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
+    if (pSampleConfiguration == NULL || pSampleConfiguration->videoPlayer == NULL) {
+        ESP_LOGW(TAG, "Video player interface not available");
+        return;
+    }
+
+    // Use the video player interface from config
+    media_stream_video_player_t *video_player = (media_stream_video_player_t*)pSampleConfiguration->videoPlayer;
+
+    // Check if we have a valid handle from initialization
+    if (pSampleConfiguration->video_player_handle == NULL) {
+        ESP_LOGW(TAG, "Video player handle not initialized");
+        return;
+    }
+
+    // Play the frame with the correct parameters
+    video_player->play_frame(
+        pSampleConfiguration->video_player_handle,
+        pFrame->frameData,
+        pFrame->size,
+        (pFrame->flags & FRAME_FLAG_KEY_FRAME) != 0
+    );
+}
+
+/**
+ * @brief Handler for received audio frames
+ */
+VOID sampleAudioFrameHandler(UINT64 customData, PFrame pFrame)
+{
+    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession)(uintptr_t) customData;
+
+    if (pFrame == NULL || pFrame->frameData == NULL || pSampleStreamingSession == NULL) {
+        ESP_LOGW(TAG, "Invalid audio frame or session data");
+        return;
+    }
+
+    // Get the sample configuration and audio player interface
+    PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
+    if (pSampleConfiguration == NULL || pSampleConfiguration->audioPlayer == NULL) {
+        ESP_LOGW(TAG, "Audio player interface not available");
+        return;
+    }
+
+    // Use the audio player interface from config
+    media_stream_audio_player_t *audio_player = (media_stream_audio_player_t*)pSampleConfiguration->audioPlayer;
+
+    // Check if we have a valid handle from initialization
+    if (pSampleConfiguration->audio_player_handle == NULL) {
+        ESP_LOGW(TAG, "Audio player handle not initialized");
+        return;
+    }
+
+    // Play the frame with the correct parameters
+    audio_player->play_frame(
+        pSampleConfiguration->audio_player_handle,
+        pFrame->frameData,
+        pFrame->size
+    );
 }

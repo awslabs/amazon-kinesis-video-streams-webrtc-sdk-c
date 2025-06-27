@@ -23,7 +23,7 @@
 #include "app_webrtc.h"
 #include "esp_webrtc_time.h"
 #include "esp_work_queue.h"
-#include "app_media.h"
+#include "media_stream.h"
 #include "esp_work_queue.h"
 
 static const char *TAG = "webrtc_main";
@@ -241,6 +241,19 @@ void app_main(void)
     }
 
     WebRtcAppConfig webrtcConfig = WEBRTC_APP_CONFIG_DEFAULT();
+    // Get the media capture interfaces directly
+    media_stream_video_capture_t *video_capture = media_stream_get_video_capture_if();
+    media_stream_audio_capture_t *audio_capture = media_stream_get_audio_capture_if();
+    media_stream_video_player_t *video_player = media_stream_get_video_player_if();
+    media_stream_audio_player_t *audio_player = media_stream_get_audio_player_if();
+
+    if (video_capture == NULL || audio_capture == NULL ||
+        video_player == NULL || audio_player == NULL) {
+        ESP_LOGE(TAG, "Failed to get media interfaces");
+        return;
+    }
+
+    // Configure WebRTC app
     webrtcConfig.pChannelName = "ScaryTestChannel";
 
 #ifdef CONFIG_IOT_CORE_ENABLE_CREDENTIALS
@@ -262,15 +275,12 @@ void app_main(void)
     // Set common AWS options
     webrtcConfig.caCertPath = "/spiffs/certs/cacert.pem";
 
-    // Set media source callbacks
-#ifdef USE_FILE_SOURCE
-    webrtcConfig.audioSourceCallback = sendFileAudioPackets;
-    webrtcConfig.videoSourceCallback = sendFileVideoPackets;
-#else
-    webrtcConfig.audioSourceCallback = sendMediaStreamAudioPackets;
-    webrtcConfig.videoSourceCallback = sendMediaStreamVideoPackets;
-#endif
-    webrtcConfig.receiveAudioVideoCallback = sampleReceiveAudioVideoFrame;
+    // Pass the media capture interfaces directly
+    webrtcConfig.videoCapture = video_capture;
+    webrtcConfig.audioCapture = audio_capture;
+    webrtcConfig.videoPlayer = video_player;
+    webrtcConfig.audioPlayer = audio_player;
+    webrtcConfig.receiveMedia = TRUE;  // Enable media reception
 
     ESP_LOGI(TAG, "Initializing WebRTC application");
 
@@ -290,23 +300,9 @@ void app_main(void)
         goto CleanUp;
     }
 
-    ESP_LOGI(TAG, "WebRTC session terminated");
-
 CleanUp:
-    // Terminate WebRTC application
-    webrtcAppTerminate();
-    ESP_LOGI(TAG, "Cleanup done");
-}
-
-PVOID sampleReceiveAudioVideoFrame(PVOID args)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) args;
-    CHK_ERR(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "[KVS Master] Streaming session is NULL");
-    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession, appMediaVideoFrameHandler));
-    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession, appMediaAudioFrameHandler));
-
-CleanUp:
-
-    return (PVOID) (ULONG_PTR) retStatus;
+    // The application will continue running until terminated
+    if (status != STATUS_SUCCESS) {
+        ESP_LOGE(TAG, "WebRTC application failed: 0x%08" PRIx32, status);
+    }
 }

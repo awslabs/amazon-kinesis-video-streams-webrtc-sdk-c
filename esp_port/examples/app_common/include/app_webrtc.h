@@ -12,6 +12,7 @@ extern "C" {
 
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 #include "WebRtcLogging.h"
+#include "media_stream.h"
 
 #define AUDIO_CODEC_NAME_ALAW  "alaw"
 #define AUDIO_CODEC_NAME_MULAW "mulaw"
@@ -134,9 +135,9 @@ typedef struct {
 #define MAX_AUDIO_BITRATE_BPS               650000  // Unit bits/sec. Value could change based on codec.
 
 typedef enum {
-    SAMPLE_STREAMING_VIDEO_ONLY,
-    SAMPLE_STREAMING_AUDIO_VIDEO,
-} SampleStreamingMediaType;
+    APP_WEBRTC_MEDIA_VIDEO,
+    APP_WEBRTC_MEDIA_AUDIO_VIDEO,
+} AppWebrtcStreamingMediaType;
 
 typedef enum {
     TEST_SOURCE,
@@ -169,12 +170,31 @@ typedef struct {
     TID videoSenderTid;
     TIMER_QUEUE_HANDLE timerQueueHandle;
     UINT32 iceCandidatePairStatsTimerId;
-    SampleStreamingMediaType mediaType;
+    AppWebrtcStreamingMediaType mediaType;
     startRoutine audioSource;
     startRoutine videoSource;
     startRoutine receiveAudioVideoSource;
     RtcOnDataChannel onDataChannel;
     SignalingClientMetrics signalingClientMetrics;
+
+    // Media capture interfaces
+    void* videoCapture;
+    void* audioCapture;
+
+    // Media player interfaces
+    void* videoPlayer;
+    void* audioPlayer;
+
+    // Media player handles
+    video_player_handle_t video_player_handle;
+    audio_player_handle_t audio_player_handle;
+
+    // Count of active sessions using media players
+    UINT32 activePlayerSessionCount;
+    MUTEX playerLock;
+
+    // Media reception
+    BOOL receiveMedia;
 
     // Callbacks for signaling messages
     VOID (*onAnswer)(UINT64, PSignalingMessage);
@@ -394,13 +414,19 @@ typedef struct {
     // Media configuration
     RTC_CODEC audioCodec;                    // Audio codec to use
     RTC_CODEC videoCodec;                    // Video codec to use
-    SampleStreamingMediaType mediaType;      // Media type (audio-only, video-only, or both)
+    AppWebrtcStreamingMediaType mediaType;   // Media type (audio-only, video-only, or both)
     app_webrtc_mode_t mode;                  // Mode of the application
 
-    // Callbacks
-    startRoutine audioSourceCallback;        // Callback for audio source
-    startRoutine videoSourceCallback;        // Callback for video source
-    startRoutine receiveAudioVideoCallback;  // Callback for receiving audio/video
+    // Media capture interfaces
+    media_stream_video_capture_t* videoCapture;   // Video capture interface
+    media_stream_audio_capture_t* audioCapture;   // Audio capture interface
+
+    // Media player interfaces
+    media_stream_video_player_t* videoPlayer;     // Video player interface
+    media_stream_audio_player_t* audioPlayer;     // Audio player interface
+
+    // Media reception
+    BOOL receiveMedia;                       // Whether to receive media
 } WebRtcAppConfig, *PWebRtcAppConfig;
 
 #define WEBRTC_APP_CONFIG_DEFAULT() \
@@ -413,12 +439,15 @@ typedef struct {
     .logLevel = 3, \
     .audioCodec = RTC_CODEC_OPUS, \
     .videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, \
-    .mediaType = SAMPLE_STREAMING_AUDIO_VIDEO, \
+    .mediaType = APP_WEBRTC_MEDIA_AUDIO_VIDEO, \
     .mode = APP_WEBRTC_CLASSIC_MODE, \
-    .audioSourceCallback = NULL, \
-    .videoSourceCallback = NULL, \
-    .receiveAudioVideoCallback = NULL, \
+    .receiveMedia = FALSE, \
 }
+
+/**
+ * @brief Opaque handle to the WebRTC sample configuration
+ */
+typedef struct __SampleConfiguration* WebRtcConfigHandle;
 
 /**
  * @brief Initialize WebRTC application with the given configuration
@@ -451,11 +480,35 @@ STATUS webrtcAppRun(VOID);
 STATUS webrtcAppTerminate(VOID);
 
 /**
- * @brief Get the sample configuration
+ * @brief Get the sample configuration object
  *
+ * This function returns a pointer to the current sample configuration.
+ *
+ * @param[out] ppSampleConfiguration Pointer to store the sample configuration
  * @return STATUS code of the execution
  */
 STATUS webrtcAppGetSampleConfiguration(PSampleConfiguration *ppSampleConfiguration);
+
+/**
+ * @brief Send a video frame to all connected peers
+ *
+ * @param frame_data Pointer to frame data
+ * @param frame_size Size of the frame in bytes
+ * @param timestamp Presentation timestamp
+ * @param is_key_frame Whether this is a key frame
+ * @return STATUS code of the execution
+ */
+STATUS webrtcAppSendVideoFrame(PBYTE frame_data, UINT32 frame_size, UINT64 timestamp, BOOL is_key_frame);
+
+/**
+ * @brief Send an audio frame to all connected peers
+ *
+ * @param frame_data Pointer to frame data
+ * @param frame_size Size of the frame in bytes
+ * @param timestamp Presentation timestamp
+ * @return STATUS code of the execution
+ */
+STATUS webrtcAppSendAudioFrame(PBYTE frame_data, UINT32 frame_size, UINT64 timestamp);
 
 #ifdef __cplusplus
 }

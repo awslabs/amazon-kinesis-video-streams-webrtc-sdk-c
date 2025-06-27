@@ -14,7 +14,7 @@
 #include "esp_cli.h"
 #include "app_storage.h"
 
-#include "app_media.h"
+#include "media_stream.h"
 #include "signaling_serializer.h"
 #include "webrtc_bridge.h"
 #include "esp_work_queue.h"
@@ -311,20 +311,29 @@ void app_main(void)
         ESP_LOGE(TAG, "Failed to register KVS event callback.");
     }
 
+    // Get the media capture interfaces directly
+    media_stream_video_capture_t *video_capture = media_stream_get_video_capture_if();
+    media_stream_audio_capture_t *audio_capture = media_stream_get_audio_capture_if();
+    media_stream_video_player_t *video_player = media_stream_get_video_player_if();
+    media_stream_audio_player_t *audio_player = media_stream_get_audio_player_if();
+
+    if (video_capture == NULL || audio_capture == NULL ||
+        video_player == NULL || audio_player == NULL) {
+        ESP_LOGE(TAG, "Failed to get media interfaces");
+        return;
+    }
+
     // Configure WebRTC
     WebRtcAppConfig webrtcConfig = WEBRTC_APP_CONFIG_DEFAULT();
     webrtcConfig.mode = APP_WEBRTC_STREAMING_ONLY_MODE;
     webrtcConfig.pChannelName = NULL; // NULL for streaming-only mode
 
-    // Set media source callbacks
-#ifdef USE_FILE_SOURCE
-    webrtcConfig.audioSourceCallback = sendFileAudioPackets;
-    webrtcConfig.videoSourceCallback = sendFileVideoPackets;
-#else
-    webrtcConfig.audioSourceCallback = sendMediaStreamAudioPackets;
-    webrtcConfig.videoSourceCallback = sendMediaStreamVideoPackets;
-#endif
-    webrtcConfig.receiveAudioVideoCallback = sampleReceiveAudioVideoFrame;
+    // Pass the media capture interfaces directly
+    webrtcConfig.videoCapture = video_capture;
+    webrtcConfig.audioCapture = audio_capture;
+    webrtcConfig.videoPlayer = video_player;
+    webrtcConfig.audioPlayer = audio_player;
+    webrtcConfig.receiveMedia = TRUE; // Enable media reception
 
     ESP_LOGI(TAG, "Initializing WebRTC application");
 
@@ -353,19 +362,5 @@ void app_main(void)
 CleanUp:
     // Do not terminate the WebRTC application in streaming-only mode
     // Only streaming sessions are created and destroyed internally
-    // Terminate WebRTC application
     // webrtcAppTerminate();
-}
-
-PVOID sampleReceiveAudioVideoFrame(PVOID args)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) args;
-    CHK_ERR(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "[KVS Master] Streaming session is NULL");
-    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession, appMediaVideoFrameHandler));
-    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession, appMediaAudioFrameHandler));
-
-CleanUp:
-
-    return (PVOID) (ULONG_PTR) retStatus;
 }

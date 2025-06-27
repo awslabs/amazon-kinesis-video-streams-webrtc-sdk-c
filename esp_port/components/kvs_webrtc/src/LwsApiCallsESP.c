@@ -2118,6 +2118,10 @@ STATUS appendToWebSocketBuffer(PCHAR pData, UINT32 dataLen, BOOL isFinal)
     if (gWebSocketDataBuffer == NULL) {
         // Initialize with a size that can hold at least this message
         UINT32 initialSize = MAX(DATA_BUFFER_DEFAULT_SIZE, dataLen * 2);
+        if (isFinal) {
+            // If this is the final message, we can use the exact size of the message
+            initialSize = dataLen;
+        }
         CHK_STATUS(initWebSocketBuffer(initialSize));
     }
 

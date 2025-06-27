@@ -12,8 +12,8 @@
 
 #include <esp_work_queue.h>
 
-#define ESP_WORKQ_SIZE           32
-#define ESP_WORKQ_TASK_STACK     (24 * 1024)
+#define ESP_WORKQ_SIZE           48
+#define ESP_WORKQ_TASK_STACK     (40 * 1024)
 #define ESP_WORKQ_TASK_PRIO      (8)
 
 static const char *TAG = "esp_work_queue";

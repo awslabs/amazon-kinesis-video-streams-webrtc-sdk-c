@@ -16,6 +16,7 @@ else()
         "src/audio_capture_adapter.c"
         "src/audio_player_adapter.c"
         "src/video_player_adapter.c"
+        "src/media_stream.c"
     )
 endif()
 
