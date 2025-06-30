@@ -192,7 +192,81 @@ typedef struct {
     PUINT32 pResponseLen;
     UINT32 currentLen;
     UINT32 maxLen;
+    PSignalingClient pSignalingClient;
 } HttpResponseContext;
+
+// Function to check for clock skew from the given time, updates the clock skew in the hash table if detected
+STATUS checkAndStoreClockSkew(PSignalingClient pSignalingClient, PCHAR dateHeaderValue)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT64 serverTime = 0;
+    UINT64 clockSkew = 0;
+    PHashTable pClockSkewMap = NULL;
+    PStateMachineState pStateMachineState = NULL;
+
+    CHK(dateHeaderValue != NULL && pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    // Get the current time
+    UINT64 nowTime = GETTIME();
+
+    // Parse the date header to get server time using strptime
+    // Format: "Fri, 27 Jun 2025 12:27:54 GMT"
+    struct tm tm = {0};
+    if (strptime(dateHeaderValue, "%a, %d %b %Y %H:%M:%S GMT", &tm) != NULL) {
+        time_t serverEpochTime = mktime(&tm);
+        if (serverEpochTime != -1) {
+            // Convert to 100ns units (UINT64)
+            serverTime = ((UINT64)serverEpochTime) * HUNDREDS_OF_NANOS_IN_A_SECOND;
+
+            // Define time skew threshold (3 minutes in 100ns units)
+            #define TIME_SKEW_THRESHOLD (3 * 60 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+
+            // Calculate absolute difference
+            UINT64 timeDiff;
+            if (serverTime > nowTime) {
+                timeDiff = serverTime - nowTime;
+
+                // Check if beyond threshold
+                if (timeDiff > TIME_SKEW_THRESHOLD) {
+                    // Server time is ahead
+                    clockSkew = timeDiff;
+                    ESP_LOGW(TAG, "Detected Clock Skew! Server time is AHEAD of Device time by %" PRIu64 " seconds",
+                            timeDiff / HUNDREDS_OF_NANOS_IN_A_SECOND);
+                }
+            } else {
+                timeDiff = nowTime - serverTime;
+
+                // Check if beyond threshold
+                if (timeDiff > TIME_SKEW_THRESHOLD) {
+                    // Device time is ahead - set high bit to indicate this
+                    clockSkew = timeDiff;
+                    clockSkew |= ((UINT64) (1ULL << 63));
+                    ESP_LOGW(TAG, "Detected Clock Skew! Device time is AHEAD of Server time by %" PRIu64 " seconds",
+                            timeDiff / HUNDREDS_OF_NANOS_IN_A_SECOND);
+                }
+            }
+
+            // Store the clockSkew in the hash table if we detected skew
+            if (clockSkew != 0 && pSignalingClient->pStateMachine != NULL &&
+                pSignalingClient->diagnostics.pEndpointToClockSkewHashMap != NULL) {
+
+                CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
+                pClockSkewMap = pSignalingClient->diagnostics.pEndpointToClockSkewHashMap;
+
+                // Store the skew in the hash table
+                CHK_STATUS(hashTablePut(pClockSkewMap, pStateMachineState->state, clockSkew));
+                ESP_LOGI(TAG, "Stored clock skew in hash table for state 0x%" PRIx64, pStateMachineState->state);
+            } else {
+                ESP_LOGD(TAG, "Time skew is within threshold, not fixing");
+            }
+        }
+    } else {
+        ESP_LOGW(TAG, "Failed to parse date header: %s", dateHeaderValue ? dateHeaderValue : "NULL");
+    }
+
+CleanUp:
+    return retStatus;
+}
 
 // ESP WebSocket event handler
 static void esp_websocket_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
@@ -343,6 +417,7 @@ static void esp_websocket_event_handler(void *handler_args, esp_event_base_t bas
             break;
     }
 }
+
 STATUS getMessageTypeFromString(PCHAR typeStr, UINT32 typeLen, SIGNALING_MESSAGE_TYPE* pMessageType)
 {
     ENTERS();
@@ -1183,7 +1258,7 @@ STATUS createChannelEsp(PSignalingClient pSignalingClient, UINT64 time)
     PCHAR paramsJson = NULL;
     PCHAR tagsJson = NULL;
     PCHAR tagsContent = NULL;
-    PCHAR pCurPtr, pResponseStr;
+    PCHAR pCurPtr = NULL, pResponseStr = NULL;
     UINT32 i, strLen, resultLen, tagsJsonLen = 0, tagsContentLen = 0;
     INT32 charsCopied;
     jsmn_parser parser;
@@ -1313,7 +1388,7 @@ STATUS getChannelEndpointEsp(PSignalingClient pSignalingClient, UINT64 time)
     PCHAR url = NULL;
     PCHAR paramsJson = NULL;
     UINT32 i, resultLen, strLen, protocolLen = 0, endpointLen = 0;
-    PCHAR pResponseStr, pProtocol = NULL, pEndpoint = NULL;
+    PCHAR pResponseStr = NULL, pProtocol = NULL, pEndpoint = NULL;
     jsmn_parser parser;
     jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
     UINT32 tokenCount;
@@ -1458,7 +1533,7 @@ STATUS getIceConfigEsp(PSignalingClient pSignalingClient, UINT64 time)
 
     PCHAR url = NULL;
     PCHAR paramsJson = NULL;
-    PCHAR pResponseStr;
+    PCHAR pResponseStr = NULL;
     jsmn_parser parser;
     jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
     jsmntok_t* pToken;
@@ -1830,6 +1905,15 @@ static esp_err_t httpEventHandler(esp_http_client_event_t *evt)
     HttpResponseContext* ctx = (HttpResponseContext*)evt->user_data;
 
     switch(evt->event_id) {
+        case HTTP_EVENT_ON_HEADER:
+            // Check if the header is Date
+            if (strcasecmp(evt->header_key, "Date") == 0) {
+                ESP_LOGI(TAG, "Date Header from server: %s", evt->header_value);
+                if (STATUS_FAILED(checkAndStoreClockSkew(ctx->pSignalingClient, evt->header_value))) {
+                    ESP_LOGE(TAG, "Failed to check and store clock skew");
+                }
+            }
+            break;
         case HTTP_EVENT_ON_DATA:
             if (ctx != NULL && ctx->responseData != NULL && ctx->pResponseLen != NULL) {
                 // Check if we have enough space
@@ -1882,6 +1966,7 @@ STATUS performEspHttpRequest(PSignalingClient pSignalingClient, PCHAR url,
     context.pResponseLen = &responseLen;
     context.currentLen = 0;
     context.maxLen = HTTP_RESPONSE_BUFFER_SIZE - 1; // Leave space for null terminator
+    context.pSignalingClient = pSignalingClient; // Set the signaling client pointer
 
     // Create a RequestInfo structure for SigV4 signing
     if (pSignalingClient->pAwsCredentials != NULL) {
@@ -1922,6 +2007,9 @@ STATUS performEspHttpRequest(PSignalingClient pSignalingClient, PCHAR url,
                 pRequestInfo->verb = HTTP_REQUEST_VERB_POST;
                 break;
         }
+
+        // Check and correct for clock skew before signing
+        checkAndCorrectForClockSkew(pSignalingClient, pRequestInfo);
 
         // Sign the request using AWS SigV4
         CHK_STATUS(signAwsRequestInfo(pRequestInfo));
