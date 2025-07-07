@@ -310,20 +310,9 @@ void app_main(void)
     }
 
     // Configure WebRTC
-    WebRtcAppConfig webrtcConfig = {0};
-    webrtcConfig.roleType = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
+    WebRtcAppConfig webrtcConfig = WEBRTC_APP_CONFIG_DEFAULT();
     webrtcConfig.mode = APP_WEBRTC_STREAMING_ONLY_MODE;
     webrtcConfig.pChannelName = NULL; // NULL for streaming-only mode
-
-    // Set common options
-    webrtcConfig.trickleIce = TRUE;
-    webrtcConfig.useTurn = TRUE;
-    webrtcConfig.logLevel = LOG_LEVEL_DEBUG;
-
-    // Configure media
-    webrtcConfig.audioCodec = RTC_CODEC_OPUS;
-    webrtcConfig.videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
-    webrtcConfig.mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
 
     // Set media source callbacks
 #ifdef USE_FILE_SOURCE

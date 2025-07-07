@@ -240,10 +240,8 @@ void app_main(void)
         ESP_LOGE(TAG, "Failed to register KVS event callback.");
     }
 
-    WebRtcAppConfig webrtcConfig = {0};
-    // Configure WebRTC app
+    WebRtcAppConfig webrtcConfig = WEBRTC_APP_CONFIG_DEFAULT();
     webrtcConfig.pChannelName = "ScaryTestChannel";
-    webrtcConfig.roleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
 
 #ifdef CONFIG_IOT_CORE_ENABLE_CREDENTIALS
     // Configure IoT Core credentials
@@ -262,18 +260,7 @@ void app_main(void)
 #endif
 
     // Set common AWS options
-    webrtcConfig.awsRegion = CONFIG_AWS_DEFAULT_REGION;
     webrtcConfig.caCertPath = "/spiffs/certs/cacert.pem";
-    webrtcConfig.logLevel = 1;
-
-    // Configure WebRTC
-    webrtcConfig.trickleIce = TRUE;
-    webrtcConfig.useTurn = TRUE;
-
-    // Configure media
-    webrtcConfig.audioCodec = RTC_CODEC_OPUS;
-    webrtcConfig.videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
-    webrtcConfig.mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
 
     // Set media source callbacks
 #ifdef USE_FILE_SOURCE

@@ -1065,8 +1065,9 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 
     CHK(NULL != (pSampleConfiguration = (PSampleConfiguration) MEMCALLOC(1, SIZEOF(SampleConfiguration))), STATUS_NOT_ENOUGH_MEMORY);
 
-    // Store the AWS credential options in the sample configuration
-    pSampleConfiguration->pAwsCredentialOptions = pAwsCredentialOptions;
+    pSampleConfiguration->pAwsCredentialOptions = (PAwsCredentialOptions) MEMCALLOC(1, SIZEOF(AwsCredentialOptions));
+    CHK(pSampleConfiguration->pAwsCredentialOptions != NULL, STATUS_NOT_ENOUGH_MEMORY);
+    MEMCPY(pSampleConfiguration->pAwsCredentialOptions, pAwsCredentialOptions, SIZEOF(AwsCredentialOptions));
 
     SET_LOGGER_LOG_LEVEL(logLevel);
 
@@ -1570,6 +1571,8 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);
     }
 #endif
+
+    SAFE_MEMFREE(pSampleConfiguration->pAwsCredentialOptions);
 
     if (pSampleConfiguration->pregeneratedCertificates != NULL) {
         stackQueueGetIterator(pSampleConfiguration->pregeneratedCertificates, &iterator);

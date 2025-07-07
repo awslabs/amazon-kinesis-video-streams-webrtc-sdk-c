@@ -416,6 +416,23 @@ typedef struct {
     startRoutine receiveAudioVideoCallback;  // Callback for receiving audio/video
 } WebRtcAppConfig, *PWebRtcAppConfig;
 
+#define WEBRTC_APP_CONFIG_DEFAULT() \
+{ \
+    .roleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER, \
+    .useIotCredentials = TRUE, \
+    .trickleIce = TRUE, \
+    .awsRegion = CONFIG_AWS_DEFAULT_REGION, \
+    .useTurn = TRUE, \
+    .logLevel = 3, \
+    .audioCodec = RTC_CODEC_OPUS, \
+    .videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, \
+    .mediaType = SAMPLE_STREAMING_AUDIO_VIDEO, \
+    .mode = APP_WEBRTC_CLASSIC_MODE, \
+    .audioSourceCallback = NULL, \
+    .videoSourceCallback = NULL, \
+    .receiveAudioVideoCallback = NULL, \
+}
+
 /**
  * @brief Initialize WebRTC application with the given configuration
  *
