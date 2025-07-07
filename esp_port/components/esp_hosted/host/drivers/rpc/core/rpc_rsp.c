@@ -193,7 +193,12 @@ int rpc_parse_rsp(Rpc *rpc_msg, ctrl_cmd_t *app_resp)
 			p_a_sta->ft_enabled = H_GET_BIT(STA_FT_ENABLED_BIT, p_c_sta->bitmask);
 			p_a_sta->owe_enabled = H_GET_BIT(STA_OWE_ENABLED_BIT, p_c_sta->bitmask);
 			p_a_sta->transition_disable = H_GET_BIT(STA_TRASITION_DISABLED_BIT, p_c_sta->bitmask);
+
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 5, 0)
 			p_a_sta->reserved = WIFI_CONFIG_STA_GET_RESERVED_VAL(p_c_sta->bitmask);
+#else
+			p_a_sta->reserved1 = WIFI_CONFIG_STA_GET_RESERVED_VAL(p_c_sta->bitmask);
+#endif
 
 			p_a_sta->sae_pwe_h2e = p_c_sta->sae_pwe_h2e;
 			p_a_sta->failure_retry_cnt = p_c_sta->failure_retry_cnt;

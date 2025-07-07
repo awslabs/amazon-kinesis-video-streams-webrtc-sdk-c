@@ -897,7 +897,12 @@ static esp_err_t req_wifi_set_config(Rpc *req, Rpc *resp, void *priv_data)
 		p_a_sta->ft_enabled = H_GET_BIT(STA_FT_ENABLED_BIT, p_c_sta->bitmask);
 		p_a_sta->owe_enabled = H_GET_BIT(STA_OWE_ENABLED_BIT, p_c_sta->bitmask);
 		p_a_sta->transition_disable = H_GET_BIT(STA_TRASITION_DISABLED_BIT, p_c_sta->bitmask);
+
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 5, 0)
 		p_a_sta->reserved = WIFI_CONFIG_STA_GET_RESERVED_VAL(p_c_sta->bitmask);
+#else
+		p_a_sta->reserved1 = WIFI_CONFIG_STA_GET_RESERVED_VAL(p_c_sta->bitmask);
+#endif
 
 		p_a_sta->sae_pwe_h2e = p_c_sta->sae_pwe_h2e;
 		p_a_sta->failure_retry_cnt = p_c_sta->failure_retry_cnt;
@@ -912,7 +917,10 @@ static esp_err_t req_wifi_set_config(Rpc *req, Rpc *resp, void *priv_data)
 		p_a_sta->he_trig_su_bmforming_feedback_disabled = H_GET_BIT(WIFI_HE_STA_CONFIG_he_trig_su_bmforming_feedback_disabled_BIT, p_c_sta->bitmask);
 		p_a_sta->he_trig_mu_bmforming_partial_feedback_disabled = H_GET_BIT(WIFI_HE_STA_CONFIG_he_trig_mu_bmforming_partial_feedback_disabled_BIT, p_c_sta->bitmask);
 		p_a_sta->he_trig_cqi_feedback_disabled = H_GET_BIT(WIFI_HE_STA_CONFIG_he_trig_cqi_feedback_disabled_BIT, p_c_sta->bitmask);
+
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 5, 0)
 		p_a_sta->he_reserved = WIFI_HE_STA_GET_RESERVED_VAL(p_c_sta->bitmask);
+#endif
 
 		/* Avoid using fast scan, which leads to faster SSID selection,
 		 * but faces data throughput issues when same SSID broadcasted by weaker AP
@@ -1013,7 +1021,11 @@ static esp_err_t req_wifi_get_config(Rpc *req, Rpc *resp, void *priv_data)
 		if (p_a_sta->transition_disable)
 			H_SET_BIT(STA_TRASITION_DISABLED_BIT, p_c_sta->bitmask);
 
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 5, 0)
 		WIFI_CONFIG_STA_SET_RESERVED_VAL(p_a_sta->reserved, p_c_sta->bitmask);
+#else
+		WIFI_CONFIG_STA_SET_RESERVED_VAL(p_a_sta->reserved1, p_c_sta->bitmask);
+#endif
 
 		p_c_sta->sae_pwe_h2e = p_a_sta->sae_pwe_h2e;
 		p_c_sta->failure_retry_cnt = p_a_sta->failure_retry_cnt;

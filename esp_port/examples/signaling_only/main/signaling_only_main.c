@@ -54,69 +54,32 @@ int app_common_queryServer_get_by_idx(int index, uint8_t **data, int *len, bool 
  */
 static void handle_bridged_message(const void* data, int len)
 {
-    STATUS retStatus = STATUS_SUCCESS;
-    signaling_msg_t signalingMessage = {0};
-    esp_err_t ret = deserialize_signaling_message(data, len, &signalingMessage);
+    signaling_msg_t signalingMsg = {0};
+    esp_err_t ret = deserialize_signaling_message(data, len, &signalingMsg);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to deserialize signaling message from bridge");
         return;
     }
 
-    ESP_LOGI(TAG, "Received message from bridge of type: %d", signalingMessage.messageType);
+    ESP_LOGI(TAG, "Received signaling message type: %d", signalingMsg.messageType);
 
-    // Get the sample configuration
-    PSampleConfiguration pSampleConfiguration = NULL;
-    CHK_STATUS(webrtcAppGetSampleConfiguration(&pSampleConfiguration));
-    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
+    webrtcAppSignalingMessageReceived(&signalingMsg);
 
-    // Validate that we have a valid signaling client
-    if (pSampleConfiguration == NULL || pSampleConfiguration->signalingClientHandle == INVALID_SIGNALING_CLIENT_HANDLE_VALUE) {
-        ESP_LOGE(TAG, "Signaling client not initialized");
-        goto CleanUp;
+    if (signalingMsg.payload != NULL) {
+        // If the payload is not NULL, means ownership is with caller
+        free(signalingMsg.payload);
     }
+}
 
-    // Prepare the message for KVS
-    SignalingMessage signalingAwsMessage;
-    signalingAwsMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
+// function type: app_webrtc_send_msg_cb_t is defined in app_webrtc.h
+static int send_message_callback(signaling_msg_t *signalingMessage)
+{
+    size_t serializedMsgLen = 0;
+    char *serializedMsg = serialize_signaling_message(signalingMessage, &serializedMsgLen);
+    webrtc_bridge_send_message(serializedMsg, serializedMsgLen);
 
-    // Map the message types
-    switch (signalingMessage.messageType) {
-        case SIGNALING_MSG_TYPE_ANSWER:
-            signalingAwsMessage.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
-            break;
-        case SIGNALING_MSG_TYPE_ICE_CANDIDATE:
-            signalingAwsMessage.messageType = SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
-            break;
-        default:
-            ESP_LOGW(TAG, "Unknown message type from bridge: %d", signalingMessage.messageType);
-            goto CleanUp;
-    }
-
-    STRNCPY(signalingAwsMessage.peerClientId, signalingMessage.peerClientId, MAX_SIGNALING_CLIENT_ID_LEN);
-    STRNCPY(signalingAwsMessage.correlationId, signalingMessage.correlationId, MAX_CORRELATION_ID_LEN);
-    // memcpy(signalingAwsMessage.payload, signalingMessage.payload, signalingMessage.payloadLen);
-#ifdef DYNAMIC_SIGNALING_PAYLOAD
-    signalingAwsMessage.payload = signalingMessage.payload;
-#else
-    MEMCPY(signalingAwsMessage.payload, signalingMessage.payload, signalingMessage.payloadLen);
-#endif
-    signalingAwsMessage.payloadLen = signalingMessage.payloadLen;
-
-    // Send the message to KVS via the signaling client
-    retStatus = signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, &signalingAwsMessage);
-    if (retStatus != STATUS_SUCCESS) {
-        ESP_LOGE(TAG, "signalingClientSendMessageSync failed: 0x%08" PRIx32, retStatus);
-    } else {
-        ESP_LOGI(TAG, "Successfully sent message to KVS: %s message",
-            signalingMessage.messageType == SIGNALING_MSG_TYPE_ANSWER ? "ANSWER" :
-            signalingMessage.messageType == SIGNALING_MSG_TYPE_ICE_CANDIDATE ? "ICE_CANDIDATE" : "OTHER");
-    }
-
-CleanUp:
-    // Free the payload if it was allocated
-    // if (signalingMessage.payload != NULL) {
-    //     SAFE_MEMFREE(signalingMessage.payload);
-    // }
+    // Do not free the serialized message, it is freed by the webrtc bridge
+    return 0;
 }
 
 volatile static bool ip_event_got_ip = false;
@@ -205,8 +168,13 @@ void app_main(void)
     // Initialize signaling serializer
     signaling_serializer_init();
 
-    // Register the bridge message handler
+    // Register the bridge message handler!
+    // We get the messages from the bridge here, deserialize and send them to the KVS SDK
     webrtc_bridge_register_handler(handle_bridged_message);
+
+    // Register the message sending callback!
+    // Messages from the KVS SDK are received in this callback, serialized and sent to the bridge
+    webrtcAppRegisterSendMessageCallback(send_message_callback);
 
     // Start webrtc bridge
     webrtc_bridge_start();
