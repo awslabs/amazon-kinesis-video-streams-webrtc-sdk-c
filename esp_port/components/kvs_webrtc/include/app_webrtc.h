@@ -485,48 +485,6 @@ STATUS webrtcAppRun(VOID);
 STATUS webrtcAppTerminate(VOID);
 
 /**
- * @brief Get the sample configuration object
- *
- * This function returns a pointer to the current sample configuration.
- *
- * @param[out] ppSampleConfiguration Pointer to store the sample configuration
- * @return STATUS code of the execution
- */
-STATUS webrtcAppGetSampleConfiguration(PSampleConfiguration *ppSampleConfiguration);
-
-/**
- * @brief Send a video frame to all connected peers
- *
- * @param frame_data Pointer to frame data
- * @param frame_size Size of the frame in bytes
- * @param timestamp Presentation timestamp
- * @param is_key_frame Whether this is a key frame
- * @return STATUS code of the execution
- */
-STATUS webrtcAppSendVideoFrame(PBYTE frame_data, UINT32 frame_size, UINT64 timestamp, BOOL is_key_frame);
-
-/**
- * @brief Send an audio frame to all connected peers
- *
- * @param frame_data Pointer to frame data
- * @param frame_size Size of the frame in bytes
- * @param timestamp Presentation timestamp
- * @return STATUS code of the execution
- */
-STATUS webrtcAppSendAudioFrame(PBYTE frame_data, UINT32 frame_size, UINT64 timestamp);
-
-/**
- * @brief Create and send an offer as the initiator
- *
- * This function creates a WebRTC offer and sends it via the registered signaling callback.
- * It's used when the local peer is the initiator in the session.
- *
- * @param pPeerId Peer ID to send the offer to
- * @return STATUS code of the execution
- */
-int webrtcAppCreateAndSendOffer(char *pPeerId);
-
-/**
  * @brief Process a received signaling message from a custom signaling implementation
  *
  * This function is used to handle a signaling message received from the signaling client.
