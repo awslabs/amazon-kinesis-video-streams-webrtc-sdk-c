@@ -13,6 +13,7 @@ extern "C" {
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 #include "WebRtcLogging.h"
 #include "media_stream.h"
+#include "signaling_serializer.h"
 
 #define AUDIO_CODEC_NAME_ALAW  "alaw"
 #define AUDIO_CODEC_NAME_MULAW "mulaw"
@@ -365,6 +366,9 @@ typedef struct {
 // Event callback type
 typedef void (*app_webrtc_event_callback_t) (app_webrtc_event_data_t *event_data, void *user_ctx);
 
+// Define message sending callback type
+typedef int (*app_webrtc_send_msg_cb_t) (signaling_msg_t *signalingMessage);
+
 /**
  * @brief Register a callback for WebRTC events
  *
@@ -509,6 +513,26 @@ STATUS webrtcAppSendVideoFrame(PBYTE frame_data, UINT32 frame_size, UINT64 times
  * @return STATUS code of the execution
  */
 STATUS webrtcAppSendAudioFrame(PBYTE frame_data, UINT32 frame_size, UINT64 timestamp);
+
+/**
+ * @brief Handle a signaling message received from the signaling client
+ *
+ * This function is used to handle a signaling message received from the signaling client.
+ * The message format expected is defined in the signaling_msg_t struct from signaling_serializer.h
+ * This is to make this API independent of the signaling message format of the KVS SDK.
+ *
+ * @param signalingMessage Pointer to the signaling message of format defined in signaling_serializer.h
+ * @return 0 on success, non-zero on failure
+ */
+int webrtcAppSignalingMessageReceived(signaling_msg_t *signalingMessage);
+
+/**
+ * @brief Register a callback for sending messages
+ *
+ * @param callback Function to call when messages need to be sent
+ * @return 0 on success, non-zero on failure
+ */
+int webrtcAppRegisterSendMessageCallback(app_webrtc_send_msg_cb_t callback);
 
 #ifdef __cplusplus
 }
