@@ -19,10 +19,7 @@
 #include "webrtc_bridge.h"
 #include "esp_work_queue.h"
 #include "app_webrtc.h"
-#include "signalling_remote.h"
-
-// External function declarations
-extern STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage);
+#include "signalling_remote.h" // FIXME: Need to have a standard way...
 
 static const char *TAG = "streaming_only";
 
@@ -47,13 +44,8 @@ static char wifi_ip[72];
  */
 static void handle_bridged_message(const void* data, int len)
 {
-    STATUS retStatus = STATUS_SUCCESS;
+    // STATUS retStatus = STATUS_SUCCESS;
     signaling_msg_t signalingMsg = {0};
-    ReceivedSignalingMessage receivedSignalingMessage = {0};
-    // WebRTC configuration and session
-    PSampleConfiguration pSampleConfiguration = NULL;
-    CHK_STATUS(webrtcAppGetSampleConfiguration(&pSampleConfiguration));
-    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
     // Deserialize the incoming message
     esp_err_t ret = deserialize_signaling_message(data, len, &signalingMsg);
@@ -64,65 +56,23 @@ static void handle_bridged_message(const void* data, int len)
 
     ESP_LOGI(TAG, "Received signaling message type: %d", signalingMsg.messageType);
 
-    // Convert from SignalingMsg to ReceivedSignalingMessage
-    receivedSignalingMessage.signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
+    webrtcAppSignalingMessageReceived(&signalingMsg);
 
-    // Convert message type
-    switch (signalingMsg.messageType) {
-        case SIGNALING_MSG_TYPE_OFFER:
-            receivedSignalingMessage.signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
-            break;
-        case SIGNALING_MSG_TYPE_ICE_CANDIDATE:
-            receivedSignalingMessage.signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
-            break;
-        case SIGNALING_MSG_TYPE_ANSWER:
-            receivedSignalingMessage.signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
-            break;
-        default:
-            ESP_LOGW(TAG, "Unknown message type: %d", signalingMsg.messageType);
-            goto CleanUp;
+    if (signalingMsg.payload != NULL) {
+        // If the payload is not NULL, means ownership is with caller
+        free(signalingMsg.payload);
     }
+}
 
-    // Copy the rest of the fields
-    STRNCPY(receivedSignalingMessage.signalingMessage.peerClientId, signalingMsg.peerClientId, MAX_SIGNALING_CLIENT_ID_LEN);
-    STRNCPY(receivedSignalingMessage.signalingMessage.correlationId, signalingMsg.correlationId, MAX_CORRELATION_ID_LEN);
+// function type: app_webrtc_send_msg_cb_t is defined in app_webrtc.h
+static int send_message_callback(signaling_msg_t *signalingMessage)
+{
+    size_t serializedMsgLen = 0;
+    char *serializedMsg = serialize_signaling_message(signalingMessage, &serializedMsgLen);
+    webrtc_bridge_send_message(serializedMsg, serializedMsgLen);
 
-    if (signalingMsg.payload != NULL && signalingMsg.payloadLen > 0) {
-#if DYNAMIC_SIGNALING_PAYLOAD
-        receivedSignalingMessage.signalingMessage.payload = signalingMsg.payload;
-#else
-        MEMCPY(receivedSignalingMessage.signalingMessage.payload, signalingMsg.payload, signalingMsg.payloadLen);
-        receivedSignalingMessage.signalingMessage.payload[signalingMsg.payloadLen] = '\0';
-        SAFE_MEMFREE(signalingMsg.payload);
-#endif
-        receivedSignalingMessage.signalingMessage.payloadLen = signalingMsg.payloadLen;
-    } else {
-        // Handle empty payload
-#if DYNAMIC_SIGNALING_PAYLOAD
-        receivedSignalingMessage.signalingMessage.payload = NULL;
-#else
-        receivedSignalingMessage.signalingMessage.payload[0] = '\0';
-#endif
-        receivedSignalingMessage.signalingMessage.payloadLen = 0;
-    }
-
-    // Call the signaling message handler from sample_config.c
-    // This will handle all aspects of signaling, including:
-    // - Creating the streaming session when needed
-    // - Managing session lifecycle
-    // - Processing offers, answers, and ICE candidates
-    retStatus = signalingMessageReceived((UINT64)pSampleConfiguration, &receivedSignalingMessage);
-    if (retStatus != STATUS_SUCCESS) {
-        // Check if it's the ESP-IDF specific error (non-fatal)
-        if (retStatus == 0x40100002) {
-            ESP_LOGW(TAG, "signalingMessageReceived returned ESP-IDF event handler error (0x40100002) - continuing anyway");
-        } else {
-            ESP_LOGE(TAG, "signalingMessageReceived failed with status: 0x%08" PRIx32, retStatus);
-        }
-    }
-
-CleanUp:
-    // Nothing!!
+    // Do not free the serialized message, it is freed by the webrtc bridge
+    return 0;
 }
 
 // WiFi event handler
@@ -344,8 +294,13 @@ void app_main(void)
         goto CleanUp;
     }
 
-    // Register the bridge message handler
+    // Register the bridge message handler!
+    // We get the messages from the bridge here, deserializeand send them to the KVS SDK
     webrtc_bridge_register_handler(handle_bridged_message);
+
+    // Register the message sending callback!
+    // Messages from the KVS SDK are received in this callback, serialized and sent to the bridge
+    webrtcAppRegisterSendMessageCallback(send_message_callback);
 
     // Start webrtc bridge
     webrtc_bridge_start();

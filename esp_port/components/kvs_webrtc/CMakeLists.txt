@@ -45,6 +45,7 @@ set(kvs_webrtc_srcs
       "${KVS_WEBRTC_ROOT}/src/source/Srtp/SrtpSession.c"
       "${KVS_WEBRTC_ROOT}/src/source/Stun/Stun.c"
       "${KVS_WEBRTC_ROOT}/src/source/Threadpool/ThreadPoolContext.c"
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/app_webrtc.c"
 )
 
 set(kvs_webrtc_include_dirs

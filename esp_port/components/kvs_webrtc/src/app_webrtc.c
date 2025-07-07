@@ -30,9 +30,15 @@ static app_webrtc_event_callback_t gEventCallback = NULL;
 static void* gEventUserCtx = NULL;
 static MUTEX gEventCallbackLock = INVALID_MUTEX_VALUE;
 
+// Message sending callback for streaming-only mode
+static app_webrtc_send_msg_cb_t g_send_message_callback = NULL;
+
 // Global variables to track app state
 static WebRtcAppConfig gWebRtcAppConfig = {0};
 static BOOL gWebRtcAppInitialized = FALSE;
+
+// Task handle for the WebRTC run task
+static TaskHandle_t gWebRtcRunTaskHandle = NULL;
 
 // Forward declarations for media sender functions
 PVOID sendVideoFramesFromCamera(PVOID args);
@@ -45,8 +51,7 @@ PVOID sampleReceiveAudioVideoFrame(PVOID);
 VOID sampleVideoFrameHandler(UINT64 customData, PFrame pFrame);
 VOID sampleAudioFrameHandler(UINT64 customData, PFrame pFrame);
 
-// Task handle for the WebRTC run task
-static TaskHandle_t gWebRtcRunTaskHandle = NULL;
+static STATUS sendMessageToAppCallback(PSignalingMessage pMessage);
 
 // Helper function to raise WebRTC events
 static void raiseEvent(app_webrtc_event_t event_id, UINT32 status_code, PCHAR peer_id, PCHAR message)
@@ -459,6 +464,54 @@ CleanUp:
     return retStatus;
 }
 
+/**
+ * Helper function to serialize a signaling message and send it via the registered callback
+ */
+static STATUS sendMessageToAppCallback(PSignalingMessage pMessage)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    signaling_msg_t signalingMsg;
+
+    CHK(pMessage != NULL && g_send_message_callback != NULL, STATUS_NULL_ARG);
+
+    // Convert from SignalingMessage to signaling_msg_t
+    signalingMsg.version = pMessage->version;
+
+    // Convert message type
+    switch (pMessage->messageType) {
+        case SIGNALING_MESSAGE_TYPE_OFFER:
+            signalingMsg.messageType = SIGNALING_MSG_TYPE_OFFER;
+            break;
+        case SIGNALING_MESSAGE_TYPE_ANSWER:
+            signalingMsg.messageType = SIGNALING_MSG_TYPE_ANSWER;
+            break;
+        case SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE:
+            signalingMsg.messageType = SIGNALING_MSG_TYPE_ICE_CANDIDATE;
+            break;
+        default:
+            DLOGW("Unknown message type: %d", pMessage->messageType);
+            CHK(FALSE, STATUS_INVALID_ARG);
+    }
+
+    // Copy correlation ID
+    STRNCPY(signalingMsg.correlationId, pMessage->correlationId, SS_MAX_CORRELATION_ID_LEN);
+    signalingMsg.correlationId[SS_MAX_CORRELATION_ID_LEN] = '\0';
+
+    // Copy peer client ID
+    STRNCPY(signalingMsg.peerClientId, pMessage->peerClientId, SS_MAX_SIGNALING_CLIENT_ID_LEN);
+    signalingMsg.peerClientId[SS_MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
+
+    // Copy payload
+    signalingMsg.payload = pMessage->payload;
+    signalingMsg.payloadLen = pMessage->payloadLen;
+
+    // Send the serialized message using the callback
+    retStatus = g_send_message_callback(&signalingMsg);
+
+CleanUp:
+    return retStatus;
+}
+
 STATUS sendSignalingMessage(PSampleStreamingSession pSampleStreamingSession, PSignalingMessage pMessage)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -468,19 +521,8 @@ STATUS sendSignalingMessage(PSampleStreamingSession pSampleStreamingSession, PSi
     CHK(pSampleStreamingSession != NULL && pSampleStreamingSession->pSampleConfiguration != NULL && pMessage != NULL, STATUS_NULL_ARG);
     pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
 
-    if (gWebRtcAppConfig.mode == APP_WEBRTC_STREAMING_ONLY_MODE) {
-        // Serialize and forward message to host
-        size_t serialized_len = 0;
-        char *serialized_msg = serialize_signaling_message(
-            (signaling_msg_t *) pMessage,
-            &serialized_len);
-
-        if (serialized_msg) {
-            webrtc_bridge_send_message(serialized_msg, serialized_len);
-        } else {
-            DLOGW("Failed to serialize signaling message");
-            retStatus = STATUS_INTERNAL_ERROR;
-        }
+    if (gWebRtcAppConfig.mode == APP_WEBRTC_STREAMING_ONLY_MODE && g_send_message_callback != NULL) {
+        CHK_STATUS(sendMessageToAppCallback(pMessage));
     } else {
         CHK(IS_VALID_MUTEX_VALUE(pSampleConfiguration->signalingSendMessageLock) &&
                 IS_VALID_SIGNALING_CLIENT_HANDLE(pSampleConfiguration->signalingClientHandle),
@@ -1681,7 +1723,8 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
     // Check if we're in streaming-only mode
-    isStreamingOnly = (pSampleConfiguration->channelInfo.pChannelName == NULL);
+    // isStreamingOnly = (pSampleConfiguration->channelInfo.pChannelName == NULL);
+    isStreamingOnly = (gWebRtcAppConfig.mode == APP_WEBRTC_STREAMING_ONLY_MODE);
 
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
         // Keep the main set of operations interlocked until cvar wait which would atomically unlock
@@ -1821,7 +1864,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
     // Check if we're in signaling-only mode by configuration
-    if (gWebRtcAppConfig.mode == APP_WEBRTC_SIGNALING_ONLY_MODE) {
+    if (gWebRtcAppConfig.mode == APP_WEBRTC_SIGNALING_ONLY_MODE && g_send_message_callback != NULL) {
         DLOGD("Signaling only mode: received message type %d", pReceivedSignalingMessage->signalingMessage.messageType);
 
         // Forward message directly to host without creating a streaming session
@@ -1835,17 +1878,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
             case SIGNALING_MESSAGE_TYPE_ANSWER:
                 /* fall-through */
             case SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE: {
-                // Serialize and forward message to host
-                size_t serialized_len = 0;
-                char *serialized_msg = serialize_signaling_message(
-                    (signaling_msg_t *) &pReceivedSignalingMessage->signalingMessage,
-                    &serialized_len);
-
-                if (serialized_msg) {
-                    webrtc_bridge_send_message(serialized_msg, serialized_len);
-                } else {
-                    DLOGW("Failed to serialize signaling message");
-                }
+                CHK_STATUS(sendMessageToAppCallback(&pReceivedSignalingMessage->signalingMessage));
                 return retStatus;
             }
             default:
@@ -2035,11 +2068,9 @@ CleanUp:
     if (pReceivedSignalingMessageCopy != NULL) {
         // Free the allocated payload before freeing the message itself
         freeSignalingMessagePayload(&pReceivedSignalingMessageCopy->signalingMessage);
-        SAFE_MEMFREE(pReceivedSignalingMessageCopy);
     }
-#else
-    SAFE_MEMFREE(pReceivedSignalingMessageCopy);
 #endif
+    SAFE_MEMFREE(pReceivedSignalingMessageCopy);
 
     if (pPendingMessageQueue != NULL) {
         freeMessageQueue(pPendingMessageQueue);
@@ -2054,6 +2085,95 @@ CleanUp:
     }
 
     CHK_LOG_ERR(retStatus);
+    return retStatus;
+}
+
+int webrtcAppRegisterSendMessageCallback(app_webrtc_send_msg_cb_t callback)
+{
+    g_send_message_callback = callback;
+    return 0;
+}
+
+int webrtcAppSignalingMessageReceived(signaling_msg_t *signalingMessage)
+{
+    int retStatus = 0;
+    PSampleConfiguration pSampleConfiguration = gSampleConfiguration;
+    PReceivedSignalingMessage pReceivedSignalingMessage = NULL;
+
+    CHK(signalingMessage != NULL, -1);
+
+    pReceivedSignalingMessage = (PReceivedSignalingMessage) MEMCALLOC(1, SIZEOF(ReceivedSignalingMessage));
+    CHK(pReceivedSignalingMessage != NULL, -1);
+
+    /* Convert from signaling_msg_t to ReceivedSignalingMessage */
+    pReceivedSignalingMessage->signalingMessage.version = signalingMessage->version;
+
+    /* Convert message type */
+    switch (signalingMessage->messageType) {
+        case SIGNALING_MSG_TYPE_OFFER:
+            pReceivedSignalingMessage->signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
+            break;
+        case SIGNALING_MSG_TYPE_ANSWER:
+            pReceivedSignalingMessage->signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
+            break;
+        case SIGNALING_MSG_TYPE_ICE_CANDIDATE:
+            pReceivedSignalingMessage->signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
+            break;
+        default:
+            printf("Unknown message type: %d\n", signalingMessage->messageType);
+            goto CleanUp;
+    }
+
+    /* Copy correlation ID */
+    STRNCPY(pReceivedSignalingMessage->signalingMessage.correlationId, signalingMessage->correlationId, MAX_CORRELATION_ID_LEN);
+
+    /* Copy peer client ID */
+    STRNCPY(pReceivedSignalingMessage->signalingMessage.peerClientId, signalingMessage->peerClientId, MAX_SIGNALING_CLIENT_ID_LEN);
+
+    /* Copy payload if available */
+    if (signalingMessage->payload != NULL && signalingMessage->payloadLen > 0) {
+#if DYNAMIC_SIGNALING_PAYLOAD
+        pReceivedSignalingMessage->signalingMessage.payload = signalingMessage->payload;
+        signalingMessage->payload = NULL; // Take the ownership of the payload
+#else
+        STRNCPY(pReceivedSignalingMessage->signalingMessage.payload, signalingMessage->payload, signalingMessage->payloadLen);
+        pReceivedSignalingMessage->signalingMessage.payload[signalingMessage->payloadLen] = '\0';
+#endif
+        pReceivedSignalingMessage->signalingMessage.payloadLen = signalingMessage->payloadLen;
+
+    } else {
+#if DYNAMIC_SIGNALING_PAYLOAD
+        pReceivedSignalingMessage->signalingMessage.payload = NULL;
+#else
+        pReceivedSignalingMessage->signalingMessage.payload[0] = '\0';
+#endif
+        pReceivedSignalingMessage->signalingMessage.payloadLen = 0;
+    }
+
+    if (gWebRtcAppConfig.mode == APP_WEBRTC_STREAMING_ONLY_MODE) {
+        // Pass this message to the SDK
+        retStatus = signalingMessageReceived((UINT64) pSampleConfiguration, pReceivedSignalingMessage);
+    } else {
+        // Send this message to the signaling server
+        PSignalingMessage pMessage = (PSignalingMessage) &pReceivedSignalingMessage->signalingMessage;
+        CHK_STATUS(signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, pMessage));
+        if (pMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
+            CHK_STATUS(signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &pSampleConfiguration->signalingClientMetrics));
+            DLOGP("[Signaling offer received to answer sent time] %" PRIu64 " ms",
+                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerToAnswerTime);
+        }
+    }
+
+CleanUp:
+
+    if (pReceivedSignalingMessage) {
+#if DYNAMIC_SIGNALING_PAYLOAD
+        // Free the payload if it is not NULL
+        SAFE_MEMFREE(pReceivedSignalingMessage->signalingMessage.payload);
+#endif
+        SAFE_MEMFREE(pReceivedSignalingMessage);
+    }
+
     return retStatus;
 }
 
@@ -2545,8 +2665,8 @@ static void webrtcAppRunTask(void *pvParameters)
     }
 
     if (gWebRtcAppConfig.mode == APP_WEBRTC_STREAMING_ONLY_MODE) {
-        DLOGI("Streaming only mode, skipping termination wait");
-        goto CleanUp;
+        // DLOGI("Streaming only mode, skipping termination wait");
+        // goto CleanUp;
     }
 
     // Wait for termination
