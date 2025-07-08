@@ -1,4 +1,4 @@
-set(srcs "src/app_wifi.c" "src/app_storage.c" "src/app_webrtc.c")
+set(srcs "src/app_wifi.c" "src/app_storage.c")
 
 set(requires esp_wifi fatfs spiffs)
 
