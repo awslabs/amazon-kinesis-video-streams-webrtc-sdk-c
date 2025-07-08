@@ -30,5 +30,17 @@ dependencies:
     path: ../libwebsockets
     version: "*"
 
+  media_stream:
+    path: ../media_stream
+    version: "*"
+
+  signaling_serializer:
+    path: ../signaling_serializer
+    version: "*"
+
+  webrtc_bridge:
+    path: ../webrtc_bridge
+    version: "*"
+
   espressif/esp_websocket_client:
     version: "*"
