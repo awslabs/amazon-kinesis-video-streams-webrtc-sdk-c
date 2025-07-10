@@ -1,6 +1,13 @@
+/*
+ * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO LTD
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include "app_webrtc.h"
 #include "webrtc_mem_utils.h"
 #include "flash_wrapper.h"
+#include "fileio.h"
 
 // Add include for SignalingSerializer.h for signaling-only mode
 #include "signaling_serializer.h"
@@ -1162,33 +1169,30 @@ STATUS createCredentialProvider(PSampleConfiguration pSampleConfiguration, PAwsC
         DLOGI("CA cert path: %s", pSampleConfiguration->pCaCertPath);
 
         // Try to read the certificate file to verify it exists and is accessible
-        FILE* certFile = fopen(pIotCoreCert, "r");
-        if (certFile == NULL) {
+        BOOL cert_exists = FALSE;
+        if (fileExists(pIotCoreCert, &cert_exists) != STATUS_SUCCESS || !cert_exists) {
             DLOGE("Failed to open certificate file: %s", pIotCoreCert);
             CHK(FALSE, STATUS_INVALID_OPERATION);
         } else {
-            fclose(certFile);
             DLOGI("Successfully verified certificate file exists and is readable");
         }
 
         // Try to read the private key file to verify it exists and is accessible
-        FILE* keyFile = fopen(pIotCorePrivateKey, "r");
-        if (keyFile == NULL) {
+        BOOL key_exists = FALSE;
+        if (fileExists(pIotCorePrivateKey, &key_exists) != STATUS_SUCCESS || !key_exists) {
             DLOGE("Failed to open private key file: %s", pIotCorePrivateKey);
             CHK(FALSE, STATUS_INVALID_OPERATION);
         } else {
-            fclose(keyFile);
             DLOGI("Successfully verified private key file exists and is readable");
         }
 
         // Try to read the CA cert file to verify it exists and is accessible
         if (pSampleConfiguration->pCaCertPath != NULL) {
-            FILE* caFile = fopen(pSampleConfiguration->pCaCertPath, "r");
-            if (caFile == NULL) {
+            BOOL ca_exists = FALSE;
+            if (fileExists(pSampleConfiguration->pCaCertPath, &ca_exists) != STATUS_SUCCESS || !ca_exists) {
                 DLOGE("Failed to open CA cert file: %s", pSampleConfiguration->pCaCertPath);
                 CHK(FALSE, STATUS_INVALID_OPERATION);
             } else {
-                fclose(caFile);
                 DLOGI("Successfully verified CA cert file exists and is readable");
             }
         }
