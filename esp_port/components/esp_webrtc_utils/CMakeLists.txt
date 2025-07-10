@@ -1,4 +1,4 @@
-set(srcs "src/message_utils.c")
+set(srcs "src/message_utils.c" "src/esp_work_queue.c")
 
 set(requires )
 
