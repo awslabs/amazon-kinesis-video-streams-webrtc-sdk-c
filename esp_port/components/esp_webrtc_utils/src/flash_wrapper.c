@@ -24,6 +24,9 @@ static QueueHandle_t flash_op_queue = NULL;
 // Task handle for flash operation task
 static TaskHandle_t flash_task_handle = NULL;
 
+// NVS path prefix
+#define NVS_PATH_PREFIX "/nvs/"
+
 // Flash operation types
 typedef enum {
     FLASH_OP_READ,
@@ -53,6 +56,7 @@ typedef struct {
             struct stat stat_info;
         } file;
         struct {
+            char nvs_partition[32];
             char nvs_namespace[32];
             char nvs_key[32];
             nvs_type_t nvs_type;
@@ -63,152 +67,353 @@ typedef struct {
     } op;
 } flash_op_t;
 
+// Parse NVS path in format /nvs/<partition>/<namespace>/<key>
+static bool parse_nvs_path(const char* path, char* partition, char* namespace, char* key)
+{
+    if (strncmp(path, NVS_PATH_PREFIX, strlen(NVS_PATH_PREFIX)) != 0) {
+        return false;
+    }
+
+    // Skip the prefix
+    const char* p = path + strlen(NVS_PATH_PREFIX);
+
+    // Parse partition
+    const char* partition_end = strchr(p, '/');
+    if (!partition_end) {
+        return false;
+    }
+    size_t partition_len = partition_end - p;
+    if (partition_len >= 32) {
+        return false;
+    }
+    memcpy(partition, p, partition_len);
+    partition[partition_len] = '\0';
+
+    // Parse namespace
+    p = partition_end + 1;
+    const char* namespace_end = strchr(p, '/');
+    if (!namespace_end) {
+        return false;
+    }
+    size_t namespace_len = namespace_end - p;
+    if (namespace_len >= 32) {
+        return false;
+    }
+    memcpy(namespace, p, namespace_len);
+    namespace[namespace_len] = '\0';
+
+    // Parse key
+    p = namespace_end + 1;
+    size_t key_len = strlen(p);
+    if (key_len == 0 || key_len >= 32) {
+        return false;
+    }
+    strcpy(key, p);
+
+    return true;
+}
+
+
+// --- NVS operation API ---
+
+static esp_err_t do_nvs_op(flash_op_t *op)
+{
+    nvs_handle_t nvs_handle;
+    esp_err_t nvs_ret = ESP_OK;
+
+    switch (op->op_type) {
+        case FLASH_OP_NVS_READ:
+            nvs_ret = nvs_open(op->op.nvs.nvs_namespace, NVS_READONLY, &nvs_handle);
+            if (nvs_ret == ESP_OK) {
+                switch (op->op.nvs.nvs_type) {
+                    case NVS_TYPE_I32:
+                        nvs_ret = nvs_get_i32(nvs_handle, op->op.nvs.nvs_key, (int32_t*)op->op.nvs.nvs_value);
+                        break;
+                    case NVS_TYPE_U32:
+                        nvs_ret = nvs_get_u32(nvs_handle, op->op.nvs.nvs_key, (uint32_t*)op->op.nvs.nvs_value);
+                        break;
+                    case NVS_TYPE_STR:
+                        nvs_ret = nvs_get_str(nvs_handle, op->op.nvs.nvs_key, (char*)op->op.nvs.nvs_value, &op->op.nvs.nvs_value_size);
+                        break;
+                    case NVS_TYPE_BLOB:
+                        nvs_ret = nvs_get_blob(nvs_handle, op->op.nvs.nvs_key, op->op.nvs.nvs_value, &op->op.nvs.nvs_value_size);
+                        break;
+                    default:
+                        nvs_ret = ESP_ERR_INVALID_ARG;
+                }
+                nvs_close(nvs_handle);
+            }
+            break;
+
+        case FLASH_OP_NVS_WRITE:
+            nvs_ret = nvs_open(op->op.nvs.nvs_namespace, NVS_READWRITE, &nvs_handle);
+            if (nvs_ret == ESP_OK) {
+                switch (op->op.nvs.nvs_type) {
+                    case NVS_TYPE_I32:
+                        nvs_ret = nvs_set_i32(nvs_handle, op->op.nvs.nvs_key, *(int32_t*)op->op.nvs.nvs_value);
+                        break;
+                    case NVS_TYPE_U32:
+                        nvs_ret = nvs_set_u32(nvs_handle, op->op.nvs.nvs_key, *(uint32_t*)op->op.nvs.nvs_value);
+                        break;
+                    case NVS_TYPE_STR:
+                        nvs_ret = nvs_set_str(nvs_handle, op->op.nvs.nvs_key, (const char*)op->op.nvs.nvs_value);
+                        break;
+                    case NVS_TYPE_BLOB:
+                        nvs_ret = nvs_set_blob(nvs_handle, op->op.nvs.nvs_key, op->op.nvs.nvs_value, op->op.nvs.nvs_value_size);
+                        break;
+                    default:
+                        nvs_ret = ESP_ERR_INVALID_ARG;
+                }
+                if (nvs_ret == ESP_OK) {
+                    nvs_ret = nvs_commit(nvs_handle);
+                }
+                nvs_close(nvs_handle);
+            }
+            break;
+
+        case FLASH_OP_NVS_ERASE:
+            nvs_ret = nvs_open(op->op.nvs.nvs_namespace, NVS_READWRITE, &nvs_handle);
+            if (nvs_ret == ESP_OK) {
+                nvs_ret = nvs_erase_key(nvs_handle, op->op.nvs.nvs_key);
+                if (nvs_ret == ESP_OK) {
+                    nvs_ret = nvs_commit(nvs_handle);
+                }
+                nvs_close(nvs_handle);
+            }
+            break;
+
+        case FLASH_OP_NVS_EXISTS:
+            nvs_ret = nvs_open(op->op.nvs.nvs_namespace, NVS_READONLY, &nvs_handle);
+            if (nvs_ret == ESP_OK) {
+                size_t required_size = 0;
+                nvs_ret = nvs_get_blob(nvs_handle, op->op.nvs.nvs_key, NULL, &required_size);
+                if (nvs_ret == ESP_OK || nvs_ret == ESP_ERR_NVS_NOT_ENOUGH_SPACE || nvs_ret == ESP_ERR_NVS_INVALID_LENGTH) {
+                    if (op->op.nvs.nvs_exists_result) *op->op.nvs.nvs_exists_result = true;
+                    nvs_ret = ESP_OK;
+                } else {
+                    if (op->op.nvs.nvs_exists_result) *op->op.nvs.nvs_exists_result = false;
+                }
+                nvs_close(nvs_handle);
+            }
+            break;
+
+        default:
+            nvs_ret = ESP_ERR_INVALID_ARG;
+            break;
+    }
+
+    return nvs_ret;
+}
+
+// --- NVS file-path operation API ---
+
+static esp_err_t do_nvs_file_path_op(flash_op_t *op, const char *partition, const char *namespace, const char *key)
+{
+    nvs_handle_t nvs_handle;
+    esp_err_t nvs_ret = ESP_OK;
+
+    // Open the NVS partition
+    if (strcmp(partition, "nvs") == 0) {
+        nvs_ret = nvs_open(namespace,
+                           (op->op_type == FLASH_OP_WRITE) ? NVS_READWRITE : NVS_READONLY,
+                           &nvs_handle);
+    } else {
+        nvs_ret = nvs_flash_init_partition(partition);
+        if (nvs_ret == ESP_OK || nvs_ret == ESP_ERR_NVS_NO_FREE_PAGES) {
+            nvs_ret = nvs_open_from_partition(partition, namespace,
+                                              (op->op_type == FLASH_OP_WRITE) ? NVS_READWRITE : NVS_READONLY,
+                                              &nvs_handle);
+        }
+    }
+
+    if (nvs_ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to open NVS partition: %s", partition);
+        return nvs_ret;
+    }
+
+    switch (op->op_type) {
+        case FLASH_OP_READ: {
+            size_t required_size = op->op.file.size;
+            nvs_ret = nvs_get_blob(nvs_handle, key, op->op.file.buf, &required_size);
+            if (nvs_ret == ESP_OK && required_size <= op->op.file.size) {
+                op->result = ESP_OK;
+            } else {
+                op->result = ESP_FAIL;
+            }
+            break;
+        }
+        case FLASH_OP_WRITE:
+            nvs_ret = nvs_set_blob(nvs_handle, key, op->op.file.buf, op->op.file.size);
+            if (nvs_ret == ESP_OK) {
+                nvs_ret = nvs_commit(nvs_handle);
+            }
+            op->result = nvs_ret;
+            break;
+        case FLASH_OP_EXISTS: {
+            size_t required_size = 0;
+            nvs_ret = nvs_get_blob(nvs_handle, key, NULL, &required_size);
+            if (nvs_ret == ESP_OK || nvs_ret == ESP_ERR_NVS_NOT_ENOUGH_SPACE) {
+                if (op->op.file.exists_result != NULL) {
+                    *op->op.file.exists_result = true;
+                }
+                op->result = ESP_OK;
+            } else {
+                if (op->op.file.exists_result != NULL) {
+                    *op->op.file.exists_result = false;
+                }
+                op->result = ESP_ERR_NOT_FOUND;
+            }
+            break;
+        }
+        case FLASH_OP_STAT: {
+            size_t required_size = 0;
+            nvs_ret = nvs_get_blob(nvs_handle, key, NULL, &required_size);
+            if (nvs_ret == ESP_OK || nvs_ret == ESP_ERR_NVS_NOT_ENOUGH_SPACE) {
+                memset(&op->op.file.stat_info, 0, sizeof(struct stat));
+                op->op.file.stat_info.st_size = required_size;
+                op->op.file.stat_info.st_mode = S_IFREG | 0644;
+                op->result = ESP_OK;
+            } else {
+                op->result = ESP_ERR_NOT_FOUND;
+            }
+            break;
+        }
+        case FLASH_OP_GET_SIZE: {
+            size_t required_size = 0;
+            nvs_ret = nvs_get_blob(nvs_handle, key, NULL, &required_size);
+            if (nvs_ret == ESP_OK || nvs_ret == ESP_ERR_NVS_NOT_ENOUGH_SPACE) {
+                if (op->op.file.size_result != NULL) {
+                    *(op->op.file.size_result) = required_size;
+                }
+                op->result = ESP_OK;
+            } else {
+                if (op->op.file.size_result != NULL) {
+                    *(op->op.file.size_result) = 0;
+                }
+                op->result = ESP_ERR_NOT_FOUND;
+            }
+            break;
+        }
+        default:
+            op->result = ESP_ERR_INVALID_ARG;
+            break;
+    }
+
+    nvs_close(nvs_handle);
+    return op->result;
+}
+
+
+// Separated file operation handler
+static esp_err_t do_file_op(flash_op_t *op)
+{
+    FILE* f;
+    switch (op->op_type) {
+        case FLASH_OP_GET_SIZE:
+            f = fopen(op->op.file.path, "rb");
+            if (f) {
+                fseek(f, 0, SEEK_END);
+                size_t size = ftell(f);
+                if (op->op.file.size_result != NULL) {
+                    *(op->op.file.size_result) = size;
+                }
+                op->result = ESP_OK;
+                fclose(f);
+            } else {
+                op->result = ESP_ERR_NOT_FOUND;
+                if (op->op.file.size_result != NULL) {
+                    *(op->op.file.size_result) = 0;
+                }
+            }
+            break;
+
+        case FLASH_OP_READ:
+            f = fopen(op->op.file.path, "rb");
+            if (f) {
+                fseek(f, op->op.file.offset, SEEK_SET);
+                op->result = (fread(op->op.file.buf, 1, op->op.file.size, f) == op->op.file.size) ? ESP_OK : ESP_FAIL;
+                fclose(f);
+            } else {
+                op->result = ESP_ERR_NOT_FOUND;
+            }
+            break;
+
+        case FLASH_OP_WRITE:
+            f = fopen(op->op.file.path, "wb");
+            if (f) {
+                op->result = (fwrite(op->op.file.buf, 1, op->op.file.size, f) == op->op.file.size) ? ESP_OK : ESP_FAIL;
+                fclose(f);
+            } else {
+                op->result = ESP_ERR_NOT_FOUND;
+            }
+            break;
+
+        case FLASH_OP_EXISTS:
+            f = fopen(op->op.file.path, "rb");
+            if (f) {
+                fclose(f);
+                op->result = ESP_OK;
+            } else {
+                op->result = ESP_ERR_NOT_FOUND;
+            }
+            break;
+
+        case FLASH_OP_STAT:
+            if (stat(op->op.file.path, &op->op.file.stat_info) == 0) {
+                op->result = ESP_OK;
+            } else {
+                op->result = ESP_ERR_NOT_FOUND;
+            }
+            break;
+
+        default:
+            op->result = ESP_ERR_INVALID_ARG;
+            break;
+    }
+    return op->result;
+}
+
 // Flash operation task
 static void IRAM_ATTR flash_op_task(void* arg)
 {
     flash_op_t op;
-    FILE* f;
-    nvs_handle_t nvs_handle;
-    esp_err_t nvs_ret;
+    char partition[32], namespace[32], key[32];
 
     while (1) {
         if (xQueueReceive(flash_op_queue, &op, portMAX_DELAY) == pdTRUE) {
-            switch (op.op_type) {
-                case FLASH_OP_GET_SIZE:
-                    f = fopen(op.op.file.path, "rb");
-                    if (f) {
-                        fseek(f, 0, SEEK_END);
-                        size_t size = ftell(f);
-                        if (op.op.file.size_result != NULL) {
-                            *(op.op.file.size_result) = size;
-                        }
-                        op.result = ESP_OK;
-                        fclose(f);
-                    } else {
-                        op.result = ESP_ERR_NOT_FOUND;
-                        if (op.op.file.size_result != NULL) {
-                            *(op.op.file.size_result) = 0;
-                        }
-                    }
-                    break;
+            // Handle NVS file-path operations
+            if ((op.op_type == FLASH_OP_READ || op.op_type == FLASH_OP_WRITE ||
+                 op.op_type == FLASH_OP_EXISTS || op.op_type == FLASH_OP_STAT ||
+                 op.op_type == FLASH_OP_GET_SIZE) &&
+                 parse_nvs_path(op.op.file.path, partition, namespace, key)) {
 
-                case FLASH_OP_READ:
-                    f = fopen(op.op.file.path, "rb");
-                    if (f) {
-                        fseek(f, op.op.file.offset, SEEK_SET);
-                        op.result = (fread(op.op.file.buf, 1, op.op.file.size, f) == op.op.file.size) ? ESP_OK : ESP_FAIL;
-                        fclose(f);
-                    } else {
-                        op.result = ESP_ERR_NOT_FOUND;
-                    }
-                    break;
+                ESP_LOGI(TAG, "Converting file operation to NVS operation: partition=%s, namespace=%s, key=%s",
+                         partition, namespace, key);
 
-                case FLASH_OP_WRITE:
-                    f = fopen(op.op.file.path, "wb");
-                    if (f) {
-                        op.result = (fwrite(op.op.file.buf, 1, op.op.file.size, f) == op.op.file.size) ? ESP_OK : ESP_FAIL;
-                        fclose(f);
-                    } else {
-                        op.result = ESP_ERR_NOT_FOUND;
-                    }
-                    break;
+                do_nvs_file_path_op(&op, partition, namespace, key);
 
-                case FLASH_OP_EXISTS:
-                    f = fopen(op.op.file.path, "rb");
-                    if (f) {
-                        fclose(f);
-                        op.result = ESP_OK;
-                    } else {
-                        op.result = ESP_ERR_NOT_FOUND;
-                    }
-                    break;
+            } else {
+                // Regular file operations and direct NVS ops
+                switch (op.op_type) {
+                    case FLASH_OP_GET_SIZE:
+                    case FLASH_OP_READ:
+                    case FLASH_OP_WRITE:
+                    case FLASH_OP_EXISTS:
+                    case FLASH_OP_STAT:
+                        do_file_op(&op);
+                        break;
 
-                case FLASH_OP_STAT:
-                    if (stat(op.op.file.path, &op.op.file.stat_info) == 0) {
-                        op.result = ESP_OK;
-                    } else {
-                        op.result = ESP_ERR_NOT_FOUND;
-                    }
-                    break;
+                    case FLASH_OP_NVS_READ:
+                    case FLASH_OP_NVS_WRITE:
+                    case FLASH_OP_NVS_ERASE:
+                    case FLASH_OP_NVS_EXISTS:
+                        op.result = do_nvs_op(&op);
+                        break;
 
-                case FLASH_OP_NVS_READ:
-                    nvs_ret = nvs_open(op.op.nvs.nvs_namespace, NVS_READONLY, &nvs_handle);
-                    if (nvs_ret == ESP_OK) {
-                        switch (op.op.nvs.nvs_type) {
-                            case NVS_TYPE_I32:
-                                nvs_ret = nvs_get_i32(nvs_handle, op.op.nvs.nvs_key, (int32_t*)op.op.nvs.nvs_value);
-                                break;
-                            case NVS_TYPE_U32:
-                                nvs_ret = nvs_get_u32(nvs_handle, op.op.nvs.nvs_key, (uint32_t*)op.op.nvs.nvs_value);
-                                break;
-                            case NVS_TYPE_STR:
-                                nvs_ret = nvs_get_str(nvs_handle, op.op.nvs.nvs_key, (char*)op.op.nvs.nvs_value, &op.op.nvs.nvs_value_size);
-                                break;
-                            case NVS_TYPE_BLOB:
-                                nvs_ret = nvs_get_blob(nvs_handle, op.op.nvs.nvs_key, op.op.nvs.nvs_value, &op.op.nvs.nvs_value_size);
-                                break;
-                            default:
-                                nvs_ret = ESP_ERR_INVALID_ARG;
-                        }
-                        nvs_close(nvs_handle);
-                    }
-                    op.result = nvs_ret;
-                    break;
-
-                case FLASH_OP_NVS_WRITE:
-                    nvs_ret = nvs_open(op.op.nvs.nvs_namespace, NVS_READWRITE, &nvs_handle);
-                    if (nvs_ret == ESP_OK) {
-                        switch (op.op.nvs.nvs_type) {
-                            case NVS_TYPE_I32:
-                                nvs_ret = nvs_set_i32(nvs_handle, op.op.nvs.nvs_key, *(int32_t*)op.op.nvs.nvs_value);
-                                break;
-                            case NVS_TYPE_U32:
-                                nvs_ret = nvs_set_u32(nvs_handle, op.op.nvs.nvs_key, *(uint32_t*)op.op.nvs.nvs_value);
-                                break;
-                            case NVS_TYPE_STR:
-                                nvs_ret = nvs_set_str(nvs_handle, op.op.nvs.nvs_key, (const char*)op.op.nvs.nvs_value);
-                                break;
-                            case NVS_TYPE_BLOB:
-                                nvs_ret = nvs_set_blob(nvs_handle, op.op.nvs.nvs_key, op.op.nvs.nvs_value, op.op.nvs.nvs_value_size);
-                                break;
-                            default:
-                                nvs_ret = ESP_ERR_INVALID_ARG;
-                        }
-                        if (nvs_ret == ESP_OK) {
-                            nvs_ret = nvs_commit(nvs_handle);
-                        }
-                        nvs_close(nvs_handle);
-                    }
-                    op.result = nvs_ret;
-                    break;
-
-                case FLASH_OP_NVS_ERASE:
-                    nvs_ret = nvs_open(op.op.nvs.nvs_namespace, NVS_READWRITE, &nvs_handle);
-                    if (nvs_ret == ESP_OK) {
-                        nvs_ret = nvs_erase_key(nvs_handle, op.op.nvs.nvs_key);
-                        if (nvs_ret == ESP_OK) {
-                            nvs_ret = nvs_commit(nvs_handle);
-                        }
-                        nvs_close(nvs_handle);
-                    }
-                    op.result = nvs_ret;
-                    break;
-
-                case FLASH_OP_NVS_EXISTS:
-                    nvs_ret = nvs_open(op.op.nvs.nvs_namespace, NVS_READONLY, &nvs_handle);
-                    if (nvs_ret == ESP_OK) {
-                        size_t required_size = 0;
-                        nvs_ret = nvs_get_blob(nvs_handle, op.op.nvs.nvs_key, NULL, &required_size);
-                        if (nvs_ret == ESP_OK || nvs_ret == ESP_ERR_NVS_NOT_ENOUGH_SPACE || nvs_ret == ESP_ERR_NVS_INVALID_LENGTH) {
-                            if (op.op.nvs.nvs_exists_result) *op.op.nvs.nvs_exists_result = true;
-                            nvs_ret = ESP_OK;
-                        } else {
-                            if (op.op.nvs.nvs_exists_result) *op.op.nvs.nvs_exists_result = false;
-                        }
-                        nvs_close(nvs_handle);
-                    }
-                    op.result = nvs_ret;
-                    break;
+                    default:
+                        op.result = ESP_ERR_INVALID_ARG;
+                        break;
+                }
             }
             xSemaphoreGive(op.done_sem);
         }
