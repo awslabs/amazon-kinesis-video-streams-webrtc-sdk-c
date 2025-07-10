@@ -12,10 +12,6 @@
 
 #include <esp_work_queue.h>
 
-#define ESP_WORKQ_SIZE           48
-#define ESP_WORKQ_TASK_STACK     (32 * 1024)
-#define ESP_WORKQ_TASK_PRIO      (8)
-
 static const char *TAG = "esp_work_queue";
 
 typedef enum {
@@ -32,6 +28,7 @@ typedef struct {
 
 static QueueHandle_t work_queue;
 static esp_work_queue_state_t queue_state;
+static esp_work_queue_config_t queue_config;
 
 static void esp_webrtc_handle_work_queue(void)
 {
@@ -78,11 +75,19 @@ esp_err_t esp_work_queue_add_task(esp_work_fn_t work_fn, void *priv_data)
 
 esp_err_t esp_work_queue_init(void)
 {
+    esp_work_queue_config_t config = ESP_WORK_QUEUE_CONFIG_DEFAULT();
+    return esp_work_queue_init_with_config(&config);
+}
+
+esp_err_t esp_work_queue_init_with_config(esp_work_queue_config_t *config)
+{
+    queue_config = *config; // Copy the config
+
     if (queue_state != WORK_QUEUE_STATE_DEINIT) {
         ESP_LOGW(TAG, "Work Queue already initialiased/started.");
         return ESP_OK;
     }
-    work_queue = xQueueCreate(ESP_WORKQ_SIZE, sizeof(esp_work_queue_entry_t));
+    work_queue = xQueueCreate(queue_config.size, sizeof(esp_work_queue_entry_t));
     if (!work_queue) {
         ESP_LOGE(TAG, "Failed to create Work Queue.");
         return ESP_FAIL;
@@ -119,6 +124,9 @@ esp_err_t esp_work_queue_deinit(void)
 
 esp_err_t esp_work_queue_start(void)
 {
+    StaticTask_t *task_buffer = NULL;
+    void *task_stack = NULL;
+
     if (queue_state == WORK_QUEUE_STATE_RUNNING) {
         ESP_LOGW(TAG, "Work Queue already started.");
         return ESP_OK;
@@ -128,16 +136,38 @@ esp_err_t esp_work_queue_start(void)
         return ESP_ERR_INVALID_STATE;
     }
 
-    StaticTask_t *task_buffer = heap_caps_calloc(1, sizeof(StaticTask_t), MALLOC_CAP_INTERNAL);
-    void *task_stack = heap_caps_malloc_prefer(ESP_WORKQ_TASK_STACK, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT, MALLOC_CAP_INTERNAL);
-    assert(task_buffer && task_stack);
+    /* Create the task with the appropriate stack and buffer */
+    esp_err_t ret = ESP_OK;
+    if (queue_config.prefer_ext_ram) {
+        task_buffer = heap_caps_calloc(1, sizeof(StaticTask_t), MALLOC_CAP_INTERNAL);
+        task_stack = heap_caps_malloc_prefer(queue_config.stack_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT, MALLOC_CAP_INTERNAL);
+        assert(task_buffer && task_stack);
 
-    /* the task never exits, so do not bother to free the buffers */
-    xTaskCreateStatic(&esp_work_queue_task, "esp_workq_task", ESP_WORKQ_TASK_STACK,
-                      NULL, ESP_WORKQ_TASK_PRIO, task_stack, task_buffer);
+        /* the task never exits, so do not bother to free the buffers */
+        ret = xTaskCreateStatic(&esp_work_queue_task, "esp_workq_task", queue_config.stack_size,
+                                NULL, queue_config.priority, task_stack, task_buffer) == NULL ? ESP_FAIL : ESP_OK;
+    } else {
+        ret = xTaskCreate(&esp_work_queue_task, "esp_workq_task", queue_config.stack_size,
+                          NULL, queue_config.priority, NULL) == NULL ? ESP_FAIL : ESP_OK;
+    }
+
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to create Work Queue task.");
+        goto cleanup;
+    }
 
     queue_state = WORK_QUEUE_STATE_RUNNING;
     return ESP_OK;
+
+cleanup:
+
+    if (task_stack) {
+        heap_caps_free(task_stack);
+    }
+    if (task_buffer) {
+        heap_caps_free(task_buffer);
+    }
+    return ret;
 }
 
 esp_err_t esp_work_queue_stop(void)
