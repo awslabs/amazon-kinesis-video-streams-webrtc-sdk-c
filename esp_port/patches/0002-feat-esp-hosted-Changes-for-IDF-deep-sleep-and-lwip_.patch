@@ -1,26 +1,45 @@
-From 710c104882cd151c7f461d1cf4dfa01f793fde54 Mon Sep 17 00:00:00 2001
+From e5ef9050e4328f05705898a451c45816f4aaaca8 Mon Sep 17 00:00:00 2001
 From: Vikram Dattu <vikram.dattu@espressif.com>
 Date: Tue, 6 Aug 2024 11:55:22 +0530
-Subject: [PATCH 1/2] Fixes for IDF deep sleep and lwip_split_for_esp_hosted
+Subject: [PATCH] feat(esp-hosted): Changes for IDF deep sleep and lwip_split
 
 ---
- components/lwip/port/include/lwipopts.h       | 46 +++++++++++++++++++
+ components/lwip/port/include/lwipopts.h       | 58 ++++++++++++++++++-
  .../components/cmd_system/cmd_system.c        |  1 +
- .../components/cmd_system/cmd_system_sleep.c  |  6 ++-
- 3 files changed, 51 insertions(+), 2 deletions(-)
+ .../components/cmd_system/cmd_system_sleep.c  |  6 +-
+ 3 files changed, 62 insertions(+), 3 deletions(-)
 
 diff --git a/components/lwip/port/include/lwipopts.h b/components/lwip/port/include/lwipopts.h
-index d150106f81..0ec2f3883e 100644
+index 3a7671472dc..805326e5243 100644
 --- a/components/lwip/port/include/lwipopts.h
 +++ b/components/lwip/port/include/lwipopts.h
-@@ -1673,6 +1673,52 @@ static inline uint32_t timeout_from_offered(uint32_t lease, uint32_t min)
+@@ -3,7 +3,7 @@
+  *
+  * SPDX-License-Identifier: BSD-3-Clause
+  *
+- * SPDX-FileContributor: 2015-2024 Espressif Systems (Shanghai) CO LTD
++ * SPDX-FileContributor: 2015-2025 Espressif Systems (Shanghai) CO LTD
+  */
+ #ifndef LWIP_HDR_ESP_LWIPOPTS_H
+ #define LWIP_HDR_ESP_LWIPOPTS_H
+@@ -1705,6 +1705,62 @@ static inline uint32_t timeout_from_offered(uint32_t lease, uint32_t min)
  #define mem_clib_calloc calloc
  #endif /* CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP */
  
++/* ----------------------------------Slave (local) Port Config---------------------------------------- */
++/* If configured, Any new UDP socket would automatically bind as local port within this specified UDP port range.
++ * Please note, Reserved ports (generally <1024) like DHCP, etc would still work as they generally are hardcoded
++ */
++
++ #define ENSURE_PORT_RANGE(port, START, END) \
++ (((port) >= (START) && (port) <= (END)) ? \
++     (port) : \
++     (((port) % ((END) - (START) + 1)) + (START)))
++
 +#ifdef CONFIG_LWIP_TCP_LOCAL_PORT_RANGE_START
 +#define TCP_LOCAL_PORT_RANGE_START CONFIG_LWIP_TCP_LOCAL_PORT_RANGE_START
 +#define TCP_LOCAL_PORT_RANGE_END   CONFIG_LWIP_TCP_LOCAL_PORT_RANGE_END
-+#define TCP_ENSURE_LOCAL_PORT_RANGE(port) ((port)%(TCP_LOCAL_PORT_RANGE_END+1-TCP_LOCAL_PORT_RANGE_START)+TCP_LOCAL_PORT_RANGE_START)
++#define TCP_ENSURE_LOCAL_PORT_RANGE(port) ENSURE_PORT_RANGE(port, TCP_LOCAL_PORT_RANGE_START, TCP_LOCAL_PORT_RANGE_END)
 +#if CONFIG_LWIP_TCP_LOCAL_PORT_RANGE_END == 0xffff
 +  #define IS_LOCAL_TCP_PORT(port) (port>=TCP_LOCAL_PORT_RANGE_START)
 +#else
@@ -31,7 +50,7 @@ index d150106f81..0ec2f3883e 100644
 +#ifdef CONFIG_LWIP_TCP_REMOTE_PORT_RANGE_START
 +#define TCP_REMOTE_PORT_RANGE_START CONFIG_LWIP_TCP_REMOTE_PORT_RANGE_START
 +#define TCP_REMOTE_PORT_RANGE_END   CONFIG_LWIP_TCP_REMOTE_PORT_RANGE_END
-+#define TCP_ENSURE_REMOTE_PORT_RANGE(port) ((port)%(TCP_REMOTE_PORT_RANGE_END+1-TCP_REMOTE_PORT_RANGE_START)+TCP_REMOTE_PORT_RANGE_START)
++#define TCP_ENSURE_REMOTE_PORT_RANGE(port) ENSURE_PORT_RANGE(port, TCP_REMOTE_PORT_RANGE_START, TCP_REMOTE_PORT_RANGE_END)
 +#if CONFIG_LWIP_TCP_REMOTE_PORT_RANGE_END == 0xffff
 +  #define IS_REMOTE_TCP_PORT(port) (port>=TCP_REMOTE_PORT_RANGE_START)
 +#else
@@ -42,7 +61,7 @@ index d150106f81..0ec2f3883e 100644
 +#ifdef CONFIG_LWIP_UDP_LOCAL_PORT_RANGE_START
 +#define UDP_LOCAL_PORT_RANGE_START CONFIG_LWIP_UDP_LOCAL_PORT_RANGE_START
 +#define UDP_LOCAL_PORT_RANGE_END   CONFIG_LWIP_UDP_LOCAL_PORT_RANGE_END
-+#define UDP_ENSURE_LOCAL_PORT_RANGE(port) ((u16_t)(((port) & (u16_t)~UDP_LOCAL_PORT_RANGE_START) + UDP_LOCAL_PORT_RANGE_START))
++#define UDP_ENSURE_LOCAL_PORT_RANGE(port) ENSURE_PORT_RANGE(port, UDP_LOCAL_PORT_RANGE_START, UDP_LOCAL_PORT_RANGE_END)
 +
 +#if CONFIG_LWIP_UDP_LOCAL_PORT_RANGE_END == 0xffff
 +  #define IS_LOCAL_UDP_PORT(port) (port>=UDP_LOCAL_PORT_RANGE_START)
@@ -55,7 +74,7 @@ index d150106f81..0ec2f3883e 100644
 +#ifdef CONFIG_LWIP_UDP_REMOTE_PORT_RANGE_START
 +#define UDP_REMOTE_PORT_RANGE_START CONFIG_LWIP_UDP_REMOTE_PORT_RANGE_START
 +#define UDP_REMOTE_PORT_RANGE_END   CONFIG_LWIP_UDP_REMOTE_PORT_RANGE_END
-+#define UDP_ENSURE_REMOTE_PORT_RANGE(port) ((u16_t)(((port) & (u16_t)~UDP_REMOTE_PORT_RANGE_START) + UDP_REMOTE_PORT_RANGE_START))
++#define UDP_ENSURE_REMOTE_PORT_RANGE(port) ENSURE_PORT_RANGE(port, UDP_REMOTE_PORT_RANGE_START, UDP_REMOTE_PORT_RANGE_END)
 +
 +#if CONFIG_LWIP_UDP_REMOTE_PORT_RANGE_END == 0xffff
 +  #define IS_REMOTE_UDP_PORT(port) (port>=UDP_REMOTE_PORT_RANGE_START)
@@ -67,7 +86,7 @@ index d150106f81..0ec2f3883e 100644
  /*
   * Check if the lwIP configuration is sane
 diff --git a/examples/system/console/advanced/components/cmd_system/cmd_system.c b/examples/system/console/advanced/components/cmd_system/cmd_system.c
-index 761053ff98..f1867e5f96 100644
+index 761053ff984..f1867e5f96a 100644
 --- a/examples/system/console/advanced/components/cmd_system/cmd_system.c
 +++ b/examples/system/console/advanced/components/cmd_system/cmd_system.c
 @@ -10,6 +10,7 @@
@@ -79,7 +98,7 @@ index 761053ff98..f1867e5f96 100644
  void register_system(void)
  {
 diff --git a/examples/system/console/advanced/components/cmd_system/cmd_system_sleep.c b/examples/system/console/advanced/components/cmd_system/cmd_system_sleep.c
-index 4aad14d6f3..f8bd5c6b7e 100644
+index 4aad14d6f39..f8bd5c6b7e7 100644
 --- a/examples/system/console/advanced/components/cmd_system/cmd_system_sleep.c
 +++ b/examples/system/console/advanced/components/cmd_system/cmd_system_sleep.c
 @@ -29,7 +29,7 @@
@@ -117,5 +136,5 @@ index 4aad14d6f3..f8bd5c6b7e 100644
  static struct {
      struct arg_int *wakeup_time;
 -- 
-2.39.3 (Apple Git-146)
+2.39.5 (Apple Git-154)
 
