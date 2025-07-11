@@ -411,6 +411,7 @@ void init_uart(void)
 
 #if BLUETOOTH_HCI
 #if SOC_ESP_NIMBLE_CONTROLLER
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 3, 0)
 #include "nimble/ble_hci_trans.h"
 
 typedef enum {
@@ -480,6 +481,7 @@ ble_hs_rx_data(struct os_mbuf *om, void *arg)
     os_mbuf_free_chain(om);
     return 0;
 }
+#endif // ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 3, 0)
 
 #endif
 #endif
@@ -487,8 +489,8 @@ ble_hs_rx_data(struct os_mbuf *om, void *arg)
 
 esp_err_t initialise_bluetooth(void)
 {
-	uint8_t mac[BSSID_BYTES_SIZE] = {0};
 #ifdef CONFIG_BT_ENABLED
+	uint8_t mac[BSSID_BYTES_SIZE] = {0};
 	esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
 
 	ESP_ERROR_CHECK(esp_read_mac(mac, ESP_MAC_BT));
@@ -514,7 +516,7 @@ esp_err_t initialise_bluetooth(void)
 #if BLUETOOTH_HCI
 	esp_err_t ret = ESP_OK;
 
-#if SOC_ESP_NIMBLE_CONTROLLER
+#if SOC_ESP_NIMBLE_CONTROLLER && (ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 3, 0))
     ble_hci_trans_cfg_hs((ble_hci_trans_rx_cmd_fn *)ble_hs_hci_rx_evt,NULL,
                          (ble_hci_trans_rx_acl_fn *)ble_hs_rx_data,NULL);
 #else
