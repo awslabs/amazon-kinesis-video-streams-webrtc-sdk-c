@@ -111,6 +111,9 @@ static PDataBuffer gWebSocketDataBuffer = NULL;
 // Global flag to track if we've initialized the CA store
 static BOOL gCaStoreInitialized = FALSE;
 
+// Global time variable
+static UINT64 gServerTime = 0;
+
 // Initialize the global CA store for secure connections
 STATUS initializeGlobalCaStore()
 {
@@ -256,6 +259,9 @@ STATUS checkAndStoreClockSkew(PSignalingClient pSignalingClient, PCHAR dateHeade
                 // Store the skew in the hash table
                 CHK_STATUS(hashTablePut(pClockSkewMap, pStateMachineState->state, clockSkew));
                 ESP_LOGI(TAG, "Stored clock skew in hash table for state 0x%" PRIx64, pStateMachineState->state);
+
+                // Update the global time
+                gServerTime = serverTime;
             } else {
                 ESP_LOGD(TAG, "Time skew is within threshold, not fixing");
             }
@@ -871,6 +877,14 @@ STATUS connectEspSignalingClient(PSignalingClient pSignalingClient)
 
     // Check and correct for clock skew before signing
     checkAndCorrectForClockSkew(pSignalingClient, pRequestInfo);
+
+    if (gServerTime != 0) {
+        // Force the timestamp to the server time
+        pRequestInfo->currentTime = gServerTime;
+
+        // Reset the global time
+        gServerTime = 0;
+    }
 
     // Set the HTTP method for WebSocket - GET
     pRequestInfo->verb = HTTP_REQUEST_VERB_GET;
