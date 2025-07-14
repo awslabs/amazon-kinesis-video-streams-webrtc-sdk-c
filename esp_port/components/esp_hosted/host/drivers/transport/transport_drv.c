@@ -165,7 +165,7 @@ esp_err_t transport_drv_reconfigure(void)
 
 	/* Start init timeout timer if not already started */
 	if (!init_timeout_timer) {
-		init_timeout_timer = g_h.funcs->_h_timer_start(1, RPC__TIMER_ONESHOT, init_timeout_cb, NULL);
+		init_timeout_timer = g_h.funcs->_h_timer_start(10, RPC__TIMER_ONESHOT, init_timeout_cb, NULL);
 		if (!init_timeout_timer) {
 			ESP_LOGE(TAG, "Failed to create init timeout timer");
 			return ESP_FAIL;
