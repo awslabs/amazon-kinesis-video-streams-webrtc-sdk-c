@@ -504,6 +504,17 @@ int webrtcAppSignalingMessageReceived(signaling_msg_t *signalingMessage);
  */
 int webrtcAppRegisterSendMessageCallback(app_webrtc_send_msg_cb_t callback);
 
+/**
+ * @brief Create and send an offer as the initiator
+ *
+ * This function creates a WebRTC offer and sends it via the registered signaling callback.
+ * It's used when the local peer is the initiator in the session.
+ *
+ * @param pPeerId Peer ID to send the offer to
+ * @return STATUS code of the execution
+ */
+int webrtcAppCreateAndSendOffer(char *pPeerId);
+
 #ifdef __cplusplus
 }
 #endif
