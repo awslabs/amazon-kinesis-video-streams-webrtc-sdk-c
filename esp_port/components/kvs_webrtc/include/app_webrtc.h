@@ -76,6 +76,7 @@ typedef enum {
     APP_WEBRTC_EVENT_STREAMING_STOPPED,        // When media threads stop for a peer
     APP_WEBRTC_EVENT_RECEIVED_OFFER,
     APP_WEBRTC_EVENT_SENT_ANSWER,
+    APP_WEBRTC_EVENT_SENT_OFFER,
     APP_WEBRTC_EVENT_RECEIVED_ICE_CANDIDATE,
     APP_WEBRTC_EVENT_SENT_ICE_CANDIDATE,
     APP_WEBRTC_EVENT_ICE_GATHERING_COMPLETE,
@@ -510,7 +511,18 @@ STATUS webrtcAppSendVideoFrame(PBYTE frame_data, UINT32 frame_size, UINT64 times
 STATUS webrtcAppSendAudioFrame(PBYTE frame_data, UINT32 frame_size, UINT64 timestamp);
 
 /**
- * @brief Handle a signaling message received from the signaling client
+ * @brief Create and send an offer as the initiator
+ *
+ * This function creates a WebRTC offer and sends it via the registered signaling callback.
+ * It's used when the local peer is the initiator in the session.
+ *
+ * @param pPeerId Peer ID to send the offer to
+ * @return STATUS code of the execution
+ */
+int webrtcAppCreateAndSendOffer(char *pPeerId);
+
+/**
+ * @brief Process a received signaling message from a custom signaling implementation
  *
  * This function is used to handle a signaling message received from the signaling client.
  * The message format expected is defined in the signaling_msg_t struct from signaling_serializer.h
@@ -528,6 +540,17 @@ int webrtcAppSignalingMessageReceived(signaling_msg_t *signalingMessage);
  * @return 0 on success, non-zero on failure
  */
 int webrtcAppRegisterSendMessageCallback(app_webrtc_send_msg_cb_t callback);
+
+/**
+ * @brief Create and send an offer as the initiator
+ *
+ * This function creates a WebRTC offer and sends it via the registered signaling callback.
+ * It's used when the local peer is the initiator in the session.
+ *
+ * @param pPeerId Peer ID to send the offer to
+ * @return STATUS code of the execution
+ */
+int webrtcAppCreateAndSendOffer(char *pPeerId);
 
 #ifdef __cplusplus
 }

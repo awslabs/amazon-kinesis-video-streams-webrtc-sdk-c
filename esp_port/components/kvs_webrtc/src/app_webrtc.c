@@ -337,16 +337,27 @@ STATUS signalingClientError(UINT64 customData, STATUS status, PCHAR msg, UINT32 
     return STATUS_SUCCESS;
 }
 
+PVOID mediaSenderRoutine(PVOID customData);
+
 STATUS handleAnswer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSession pSampleStreamingSession, PSignalingMessage pSignalingMessage)
 {
     UNUSED_PARAM(pSampleConfiguration);
     STATUS retStatus = STATUS_SUCCESS;
     RtcSessionDescriptionInit answerSessionDescriptionInit;
+    BOOL mediaThreadStarted;
 
     MEMSET(&answerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
 
     CHK_STATUS(deserializeSessionDescriptionInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, &answerSessionDescriptionInit));
     CHK_STATUS(setRemoteDescription(pSampleStreamingSession->pPeerConnection, &answerSessionDescriptionInit));
+
+    // Start the media sender thread if not already started
+    // This is needed for viewer mode where we send the offer and receive an answer
+    mediaThreadStarted = ATOMIC_EXCHANGE_BOOL(&pSampleConfiguration->mediaThreadStarted, TRUE);
+    if (!mediaThreadStarted) {
+        DLOGI("Starting media sender thread after receiving answer");
+        THREAD_CREATE_EX_EXT(&pSampleConfiguration->mediaSenderTid, "mediaSender", 8 * 1024, TRUE, mediaSenderRoutine, (PVOID) pSampleConfiguration);
+    }
 
     // The audio video receive routine should be per streaming session
     if (pSampleConfiguration->receiveAudioVideoSource != NULL) {
@@ -693,7 +704,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     CHK(pSampleConfiguration != NULL && ppRtcPeerConnection != NULL, STATUS_NULL_ARG);
 
     // Check if we're in streaming-only mode (no signaling)
-    isStreamingOnly = (pSampleConfiguration->channelInfo.pChannelName == NULL);
+    isStreamingOnly = (gWebRtcAppConfig.mode == APP_WEBRTC_STREAMING_ONLY_MODE);
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
@@ -1727,7 +1738,6 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
     // Check if we're in streaming-only mode
-    // isStreamingOnly = (pSampleConfiguration->channelInfo.pChannelName == NULL);
     isStreamingOnly = (gWebRtcAppConfig.mode == APP_WEBRTC_STREAMING_ONLY_MODE);
 
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
@@ -3403,4 +3413,119 @@ VOID sampleAudioFrameHandler(UINT64 customData, PFrame pFrame)
         pFrame->frameData,
         pFrame->size
     );
+}
+
+/**
+ * @brief Create and send an offer as the initiator
+ *
+ * This function creates a WebRTC offer and sends it via the registered signaling callback.
+ * It's used when the local peer is the initiator in the session.
+ *
+ * @param pPeerId Peer ID to send the offer to
+ * @return STATUS code of the execution
+ */
+int webrtcAppCreateAndSendOffer(char *pPeerId)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleConfiguration pSampleConfiguration = NULL;
+    PSampleStreamingSession pSampleStreamingSession = NULL;
+    RtcSessionDescriptionInit offerSessionDescriptionInit;
+    SignalingMessage message;
+    UINT32 buffLen = MAX_SIGNALING_MESSAGE_LEN;
+    BOOL locked = FALSE;
+
+    CHK(pPeerId != NULL, STATUS_NULL_ARG);
+    CHK(gSampleConfiguration != NULL, STATUS_INVALID_OPERATION);
+
+    pSampleConfiguration = gSampleConfiguration;
+
+    ESP_LOGI(TAG, "Creating and sending WebRTC offer to peer: %s", pPeerId);
+
+    // Create a streaming session as the initiator
+    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    locked = TRUE;
+
+    // Check if we already have a session for this peer
+    UINT32 clientIdHash = COMPUTE_CRC32((PBYTE) pPeerId, (UINT32) STRLEN(pPeerId));
+    BOOL peerConnectionFound = FALSE;
+
+    CHK_STATUS(hashTableContains(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, &peerConnectionFound));
+
+    if (peerConnectionFound) {
+        ESP_LOGW(TAG, "Peer connection already exists for %s, reusing it", pPeerId);
+        UINT64 hashValue = 0;
+        CHK_STATUS(hashTableGet(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, &hashValue));
+        pSampleStreamingSession = (PSampleStreamingSession) hashValue;
+    } else {
+        // Create new streaming session
+        if (pSampleConfiguration->streamingSessionCount >= ARRAY_SIZE(pSampleConfiguration->sampleStreamingSessionList)) {
+            ESP_LOGE(TAG, "Max streaming sessions reached");
+            CHK(FALSE, STATUS_INVALID_OPERATION);
+        }
+
+        CHK_STATUS(createSampleStreamingSession(pSampleConfiguration, pPeerId, TRUE, &pSampleStreamingSession));
+
+        // Add to the list and hash table
+        pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
+        CHK_STATUS(hashTablePut(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, (UINT64) pSampleStreamingSession));
+    }
+
+    MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    locked = FALSE;
+
+    // Create an offer
+    MEMSET(&offerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+    offerSessionDescriptionInit.useTrickleIce = TRUE;
+
+    ESP_LOGI(TAG, "Setting local description");
+    // Set local description
+    CHK_STATUS(setLocalDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
+
+    ESP_LOGI(TAG, "Creating offer");
+    // Create the offer
+    CHK_STATUS(createOffer(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
+
+    // Serialize the offer to JSON
+    MEMSET(&message, 0x00, SIZEOF(SignalingMessage));
+
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    message.payload = (PCHAR) MEMCALLOC(1, MAX_SIGNALING_MESSAGE_LEN + 1);
+    CHK(message.payload != NULL, STATUS_NOT_ENOUGH_MEMORY);
+#endif
+
+    ESP_LOGI(TAG, "Serializing offer");
+    CHK_STATUS(serializeSessionDescriptionInit(&offerSessionDescriptionInit, message.payload, &buffLen));
+
+    ESP_LOGI(TAG, "Creating signaling message");
+    // Create signaling message
+    message.version = SIGNALING_MESSAGE_CURRENT_VERSION;
+    message.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
+    STRNCPY(message.peerClientId, pPeerId, MAX_SIGNALING_CLIENT_ID_LEN);
+    message.payloadLen = (UINT32) STRLEN(message.payload);
+    SNPRINTF(message.correlationId, MAX_CORRELATION_ID_LEN, "%llu_%zu", GETTIME(), ATOMIC_INCREMENT(&pSampleStreamingSession->correlationIdPostFix));
+
+    ESP_LOGI(TAG, "Sending offer");
+    // Emit event for sent offer
+    raiseEvent(APP_WEBRTC_EVENT_SENT_OFFER, 0, pPeerId, "Sent offer to peer");
+
+    ESP_LOGI(TAG, "Serializing and sending offer");
+    CHK_STATUS(sendMessageToAppCallback(&message));
+
+    ESP_LOGI(TAG, "Offer sent successfully to peer: %s", pPeerId);
+
+CleanUp:
+
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(message.payload);
+#endif
+
+    if (locked) {
+        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    }
+
+    if (STATUS_FAILED(retStatus)) {
+        ESP_LOGE(TAG, "Failed to create and send offer: 0x%08x", retStatus);
+    }
+
+    return (int) retStatus;
 }
