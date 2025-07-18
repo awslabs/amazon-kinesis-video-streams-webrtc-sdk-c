@@ -732,12 +732,22 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
 
     if (pSampleConfiguration->useTurn && !isStreamingOnly) {
         // Set the URIs from the configuration
-        CHK_STATUS(signalingClientGetIceConfigInfoCount(pSampleConfiguration->signalingClientHandle, &iceConfigCount));
+        retStatus = signalingClientGetIceConfigInfoCount(pSampleConfiguration->signalingClientHandle, &iceConfigCount);
+        if (STATUS_FAILED(retStatus)) {
+            ESP_LOGW(TAG, "Failed to get ice config count, proceeding anyway...");
+            retStatus = STATUS_SUCCESS;
+            iceConfigCount = 0;
+        }
 
         /* signalingClientGetIceConfigInfoCount can return more than one turn server. Use only one to optimize
          * candidate gathering latency. But user can also choose to use more than 1 turn server. */
-        for (uriCount = 0, i = 0; i < maxTurnServer; i++) {
-            CHK_STATUS(signalingClientGetIceConfigInfo(pSampleConfiguration->signalingClientHandle, i, &pIceConfigInfo));
+        for (uriCount = 0, i = 0; i < maxTurnServer && i < iceConfigCount; i++) {
+            retStatus = signalingClientGetIceConfigInfo(pSampleConfiguration->signalingClientHandle, i, &pIceConfigInfo);
+            if (STATUS_FAILED(retStatus)) {
+                ESP_LOGW(TAG, "Failed to get ice config, proceeding anyway...");
+                retStatus = STATUS_SUCCESS;
+                break;
+            }
             for (j = 0; j < pIceConfigInfo->uriCount; j++) {
                 CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
                 /*
