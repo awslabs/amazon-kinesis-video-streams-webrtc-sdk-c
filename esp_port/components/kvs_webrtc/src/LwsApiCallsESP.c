@@ -1539,6 +1539,16 @@ STATUS getIceConfigEsp(PSignalingClient pSignalingClient, UINT64 time)
     retStatus = performEspHttpRequest(pSignalingClient, url, HTTP_METHOD_POST,
                                      paramsJson, &pResponseStr, &resultLen);
 
+
+    // It should be okay if this failed
+    if (STATUS_FAILED(retStatus)) {
+        ESP_LOGW(TAG, "Failed to get ice config, proceeding anyway...");
+        // Store successful result
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
+        retStatus = STATUS_SUCCESS;
+        goto CleanUp;
+    }
+
     // Set the service call result
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) retStatus);
 
@@ -2060,6 +2070,9 @@ STATUS performEspHttpRequest(PSignalingClient pSignalingClient, PCHAR url,
     int statusCode = esp_http_client_get_status_code(client);
     if (statusCode < 200 || statusCode >= 300) {
         ESP_LOGE(TAG, "HTTP request failed with status code %d", statusCode);
+        if (response != NULL && responseLen > 0) {
+            ESP_LOGE(TAG, "Response data: %.*s", (int) responseLen, response);
+        }
         CHK(FALSE, STATUS_INTERNAL_ERROR);
     }
 
