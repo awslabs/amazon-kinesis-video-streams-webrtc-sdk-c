@@ -70,6 +70,12 @@ esp_err_t message_queue_add(message_queue_t *queue, const void *data, int len)
         return ESP_ERR_INVALID_ARG;
     }
 
+    // Check if the queue is properly initialized
+    if (queue->mutex == NULL) {
+        ESP_LOGE(TAG, "Message queue not initialized - mutex is NULL (queue: %p)", queue);
+        return ESP_ERR_INVALID_STATE;
+    }
+
     xSemaphoreTake(queue->mutex, portMAX_DELAY);
 
     // Check if queue is full
@@ -91,7 +97,7 @@ esp_err_t message_queue_add(message_queue_t *queue, const void *data, int len)
     }
 
     // Allocate memory for the message data
-    void *message_data = malloc(len);
+    void *message_data = heap_caps_malloc(len, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
     if (!message_data) {
         ESP_LOGE(TAG, "Failed to allocate memory for queued message");
         ret = ESP_ERR_NO_MEM;
@@ -160,27 +166,41 @@ cleanup:
 
 bool message_queue_is_empty(message_queue_t *queue)
 {
+    bool empty = true;
+
     if (queue == NULL) {
         ESP_LOGE(TAG, "Queue pointer is NULL");
-        return true;
+        return true; // Consider NULL queue as empty
     }
 
-    bool is_empty;
+    // Check if the queue is properly initialized
+    if (queue->mutex == NULL) {
+        ESP_LOGE(TAG, "Message queue not initialized - mutex is NULL");
+        return true; // Consider uninitialized queue as empty
+    }
+
     xSemaphoreTake(queue->mutex, portMAX_DELAY);
-    is_empty = (queue->count == 0);
+    empty = (queue->count == 0);
     xSemaphoreGive(queue->mutex);
 
-    return is_empty;
+    return empty;
 }
 
 int message_queue_get_count(message_queue_t *queue)
 {
+    int count = 0;
+
     if (queue == NULL) {
         ESP_LOGE(TAG, "Queue pointer is NULL");
         return 0;
     }
 
-    int count;
+    // Check if the queue is properly initialized
+    if (queue->mutex == NULL) {
+        ESP_LOGE(TAG, "Message queue not initialized - mutex is NULL");
+        return 0; // Consider uninitialized queue as empty
+    }
+
     xSemaphoreTake(queue->mutex, portMAX_DELAY);
     count = queue->count;
     xSemaphoreGive(queue->mutex);

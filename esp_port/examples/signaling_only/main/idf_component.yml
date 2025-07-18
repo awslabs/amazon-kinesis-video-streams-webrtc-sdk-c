@@ -15,10 +15,6 @@ dependencies:
     path: ${KVS_SDK_PATH}/esp_port/components/kvs_webrtc
     version: "*"
 
-  signaling_serializer:
-    path: ${KVS_SDK_PATH}/esp_port/components/signaling_serializer
-    version: "*"
-
   webrtc_bridge:
     path: ${KVS_SDK_PATH}/esp_port/components/webrtc_bridge
     version: "*"

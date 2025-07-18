@@ -803,7 +803,10 @@ static esp_err_t req_wifi_start(Rpc *req, Rpc *resp, void *priv_data)
 		int event_id = WIFI_EVENT_STA_START;
 		send_event_data_to_host(RPC_ID__Event_WifiEventNoArgs,
 				&event_id, sizeof(event_id));
-
+#ifdef CONFIG_SLAVE_LWIP_ENABLED
+		// Send DHCP DNS info to host
+		send_dhcp_dns_info_to_host(1);
+#endif
 		return ESP_OK;
 	}
     RPC_RET_FAIL_IF(esp_wifi_start());
