@@ -45,5 +45,5 @@ idf_component_register(
     INCLUDE_DIRS
         "./include"
         "./src"
-    REQUIRES esp_system heap pthread esp_webrtc_utils
+    REQUIRES esp_system heap pthread
 )

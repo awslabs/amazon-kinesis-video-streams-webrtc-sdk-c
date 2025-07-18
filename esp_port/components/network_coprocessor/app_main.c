@@ -300,9 +300,11 @@ static hosted_l2_bridge find_destination_bridge(void *frame_data, uint16_t frame
 			struct tcp_hdr *tcphdr = (struct tcp_hdr *)((u8_t *)iphdr + IPH_HL(iphdr) * 4);
 			u16_t dst_port = lwip_ntohs(tcphdr->dest);
 
-			if (IS_REMOTE_TCP_PORT(dst_port))
+			if (IS_REMOTE_TCP_PORT(dst_port)) {
 				return HOST_LWIP_BRIDGE;
-
+			} else if (IS_LOCAL_TCP_PORT(dst_port)) {
+				return SLAVE_LWIP_BRIDGE;
+			}
 		} else if (proto == IP_PROTO_UDP) {
 			struct udp_hdr *udphdr = (struct udp_hdr *)((u8_t *)iphdr + IPH_HL(iphdr) * 4);
 			u16_t dst_port = lwip_ntohs(udphdr->dest);
@@ -310,8 +312,9 @@ static hosted_l2_bridge find_destination_bridge(void *frame_data, uint16_t frame
 			if (dst_port == LWIP_IANA_PORT_DHCP_CLIENT)
 				return DHCP_LWIP_BRIDGE;
 
-			if (IS_REMOTE_UDP_PORT(dst_port))
+			if (IS_REMOTE_UDP_PORT(dst_port)) {
 				return HOST_LWIP_BRIDGE;
+			}
 
 		} else if (proto == IP_PROTO_ICMP) {
 #ifndef ICMP_ECHOREPLY

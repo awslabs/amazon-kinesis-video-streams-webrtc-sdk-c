@@ -10,10 +10,10 @@ Shared include file for the samples
 extern "C" {
 #endif
 
-#include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 #include "WebRtcLogging.h"
 #include "media_stream.h"
 #include "signaling_serializer.h"
+#include "webrtc_signaling_if.h"
 
 #define AUDIO_CODEC_NAME_ALAW  "alaw"
 #define AUDIO_CODEC_NAME_MULAW "mulaw"
@@ -90,29 +90,6 @@ typedef enum {
     APP_WEBRTC_EVENT_SIGNALING_ERROR,
 } app_webrtc_event_t;
 
-/**
- * @brief Structure to hold AWS credentials and related options
- */
-typedef struct {
-    // IoT Core credentials
-    BOOL enableIotCredentials;
-    PCHAR iotCoreCredentialEndpoint;
-    PCHAR iotCoreCert;
-    PCHAR iotCorePrivateKey;
-    PCHAR iotCoreRoleAlias;
-    PCHAR iotCoreThingName;
-
-    // Direct AWS credentials
-    PCHAR accessKey;
-    PCHAR secretKey;
-    PCHAR sessionToken;
-
-    // Common AWS options
-    PCHAR region;
-    PCHAR caCertPath;
-    UINT32 logLevel;
-} AwsCredentialOptions, *PAwsCredentialOptions;
-
 #define DATA_CHANNEL_MESSAGE_TEMPLATE                                                                                                                \
     "{\"content\":\"%s\",\"firstMessageFromViewerTs\":\"%s\",\"firstMessageFromMasterTs\":\"%s\",\"secondMessageFromViewerTs\":\"%s\","              \
     "\"secondMessageFromMasterTs\":\"%s\",\"lastMessageFromViewerTs\":\"%s\" }"
@@ -141,99 +118,6 @@ typedef enum {
     APP_WEBRTC_MEDIA_AUDIO_VIDEO,
 } AppWebrtcStreamingMediaType;
 
-typedef enum {
-    TEST_SOURCE,
-    DEVICE_SOURCE,
-    RTSP_SOURCE,
-} SampleSourceType;
-
-typedef struct __SampleStreamingSession SampleStreamingSession;
-typedef struct __SampleStreamingSession* PSampleStreamingSession;
-
-typedef struct {
-    volatile ATOMIC_BOOL appTerminateFlag;
-    volatile ATOMIC_BOOL interrupted;
-    volatile ATOMIC_BOOL mediaThreadStarted;
-    volatile ATOMIC_BOOL recreateSignalingClient;
-    volatile ATOMIC_BOOL connected;
-    SampleSourceType srcType;
-    ChannelInfo channelInfo;
-    PCHAR pCaCertPath;
-    PAwsCredentialProvider pCredentialProvider;
-    SIGNALING_CLIENT_HANDLE signalingClientHandle;
-    RTC_CODEC audioCodec;
-    RTC_CODEC videoCodec;
-    PBYTE pAudioFrameBuffer;
-    UINT32 audioBufferSize;
-    PBYTE pVideoFrameBuffer;
-    UINT32 videoBufferSize;
-    TID mediaSenderTid;
-    TID audioSenderTid;
-    TID videoSenderTid;
-    TIMER_QUEUE_HANDLE timerQueueHandle;
-    UINT32 iceCandidatePairStatsTimerId;
-    AppWebrtcStreamingMediaType mediaType;
-    startRoutine audioSource;
-    startRoutine videoSource;
-    startRoutine receiveAudioVideoSource;
-    RtcOnDataChannel onDataChannel;
-    SignalingClientMetrics signalingClientMetrics;
-
-    // Media capture interfaces
-    void* videoCapture;
-    void* audioCapture;
-
-    // Media player interfaces
-    void* videoPlayer;
-    void* audioPlayer;
-
-    // Media player handles
-    video_player_handle_t video_player_handle;
-    audio_player_handle_t audio_player_handle;
-
-    // Count of active sessions using media players
-    UINT32 activePlayerSessionCount;
-    MUTEX playerLock;
-
-    // Media reception
-    BOOL receiveMedia;
-
-    // Callbacks for signaling messages
-    VOID (*onAnswer)(UINT64, PSignalingMessage);
-    VOID (*onIceCandidate)(UINT64, PSignalingMessage);
-
-    PStackQueue pPendingSignalingMessageForRemoteClient;
-    PHashTable pRtcPeerConnectionForRemoteClient;
-
-    MUTEX sampleConfigurationObjLock;
-    CVAR cvar;
-    BOOL trickleIce;
-    BOOL useTurn;
-    BOOL enableSendingMetricsToViewerViaDc;
-    BOOL enableFileLogging;
-    UINT64 customData;
-    PSampleStreamingSession sampleStreamingSessionList[CONFIG_KVS_MAX_CONCURRENT_STREAMS];
-    UINT32 streamingSessionCount;
-    MUTEX streamingSessionListReadLock;
-    UINT32 iceUriCount;
-    SignalingClientCallbacks signalingClientCallbacks;
-    SignalingClientInfo clientInfo;
-
-    RtcStats rtcIceCandidatePairMetrics;
-
-    MUTEX signalingSendMessageLock;
-
-    UINT32 pregenerateCertTimerId;
-    PStackQueue pregeneratedCertificates; // Max MAX_RTCCONFIGURATION_CERTIFICATES certificates
-
-    PCHAR rtspUri;
-    UINT32 logLevel;
-    BOOL enableTwcc;
-
-    // AWS credential options
-    PAwsCredentialOptions pAwsCredentialOptions;
-} SampleConfiguration, *PSampleConfiguration;
-
 typedef struct {
     CHAR content[100];
     CHAR firstMessageFromViewerTs[20];
@@ -244,14 +128,6 @@ typedef struct {
 } DataChannelMessage;
 
 typedef struct {
-    UINT64 hashValue;
-    UINT64 createTime;
-    PStackQueue messageQueue;
-} PendingMessageQueue, *PPendingMessageQueue;
-
-typedef VOID (*StreamSessionShutdownCallback)(UINT64, PSampleStreamingSession);
-
-typedef struct {
     MUTEX updateLock;
     UINT64 lastAdjustmentTimeMs;
     UINT64 currentVideoBitrate;
@@ -260,63 +136,6 @@ typedef struct {
     UINT64 newAudioBitrate;
     DOUBLE averagePacketLoss;
 } TwccMetadata, *PTwccMetadata;
-
-struct __SampleStreamingSession {
-    volatile ATOMIC_BOOL terminateFlag;
-    volatile ATOMIC_BOOL candidateGatheringDone;
-    volatile ATOMIC_BOOL peerIdReceived;
-    volatile ATOMIC_BOOL firstFrame;
-    volatile SIZE_T frameIndex;
-    volatile SIZE_T correlationIdPostFix;
-    PRtcPeerConnection pPeerConnection;
-    PRtcRtpTransceiver pVideoRtcRtpTransceiver;
-    PRtcRtpTransceiver pAudioRtcRtpTransceiver;
-    RtcSessionDescriptionInit answerSessionDescriptionInit;
-    PSampleConfiguration pSampleConfiguration;
-    UINT64 audioTimestamp;
-    UINT64 videoTimestamp;
-    CHAR peerId[MAX_SIGNALING_CLIENT_ID_LEN + 1];
-    TID receiveAudioVideoSenderTid;
-    UINT64 startUpLatency;
-    RtcMetricsHistory rtcMetricsHistory;
-    BOOL remoteCanTrickleIce;
-    TwccMetadata twccMetadata;
-
-    // this is called when the SampleStreamingSession is being freed
-    StreamSessionShutdownCallback shutdownCallback;
-    UINT64 shutdownCallbackCustomData;
-    UINT64 offerReceiveTime;
-    PeerConnectionMetrics peerConnectionMetrics;
-    KvsIceAgentMetrics iceMetrics;
-    CHAR pPeerConnectionMetricsMessage[MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE];
-    CHAR pSignalingClientMetricsMessage[MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE];
-    CHAR pIceAgentMetricsMessage[MAX_ICE_AGENT_METRICS_MESSAGE_SIZE];
-};
-
-VOID sigintHandler(INT32);
-STATUS readFrameFromDisk(PBYTE, PUINT32, PCHAR);
-PVOID receiveGstreamerAudioVideo(PVOID);
-PVOID sendVideoPackets(PVOID);
-PVOID sendAudioPackets(PVOID);
-PVOID sendGstreamerAudioVideo(PVOID);
-PVOID sampleReceiveAudioVideoFrame(PVOID);
-PVOID getPeriodicIceCandidatePairStats(PVOID);
-STATUS getIceCandidatePairStatsCallback(UINT32, UINT64, UINT64);
-STATUS pregenerateCertTimerCallback(UINT32, UINT64, UINT64);
-STATUS createSampleConfiguration(PCHAR, SIGNALING_CHANNEL_ROLE_TYPE, BOOL, BOOL, UINT32, PAwsCredentialOptions, PSampleConfiguration*);
-STATUS freeSampleConfiguration(PSampleConfiguration*);
-STATUS signalingClientStateChanged(UINT64, SIGNALING_CLIENT_STATE);
-STATUS signalingMessageReceived(UINT64, PReceivedSignalingMessage);
-STATUS handleOffer(PSampleConfiguration, PSampleStreamingSession, PSignalingMessage);
-STATUS handleRemoteCandidate(PSampleStreamingSession, PSignalingMessage);
-STATUS initializePeerConnection(PSampleConfiguration, PRtcPeerConnection*);
-STATUS lookForSslCert(PSampleConfiguration*);
-STATUS createSampleStreamingSession(PSampleConfiguration, PCHAR, BOOL, PSampleStreamingSession*);
-STATUS freeSampleStreamingSession(PSampleStreamingSession*);
-STATUS streamingSessionOnShutdown(PSampleStreamingSession, UINT64, StreamSessionShutdownCallback);
-STATUS sendSignalingMessage(PSampleStreamingSession, PSignalingMessage);
-STATUS respondWithAnswer(PSampleStreamingSession);
-STATUS resetSampleConfigurationState(PSampleConfiguration);
 
 #ifdef DYNAMIC_SIGNALING_PAYLOAD
 /**
@@ -338,23 +157,6 @@ STATUS allocateSignalingMessagePayload(PSignalingMessage pSignalingMessage, UINT
  */
 STATUS freeSignalingMessagePayload(PSignalingMessage pSignalingMessage);
 #endif
-
-VOID sampleVideoFrameHandler(UINT64, PFrame);
-VOID sampleAudioFrameHandler(UINT64, PFrame);
-VOID sampleFrameHandler(UINT64, PFrame);
-VOID sampleBandwidthEstimationHandler(UINT64, DOUBLE);
-VOID sampleSenderBandwidthEstimationHandler(UINT64, UINT32, UINT32, UINT32, UINT32, UINT64);
-VOID onDataChannel(UINT64, PRtcDataChannel);
-VOID onConnectionStateChange(UINT64, RTC_PEER_CONNECTION_STATE);
-STATUS sessionCleanupWait(PSampleConfiguration);
-STATUS logStartUpLatency(PSampleConfiguration);
-STATUS createMessageQueue(UINT64, PPendingMessageQueue*);
-STATUS freeMessageQueue(PPendingMessageQueue);
-STATUS submitPendingIceCandidate(PPendingMessageQueue, PSampleStreamingSession);
-STATUS removeExpiredMessageQueues(PStackQueue);
-STATUS getPendingMessageQueueForHash(PStackQueue, UINT64, BOOL, PPendingMessageQueue*);
-STATUS initSignaling(PSampleConfiguration, PCHAR);
-BOOL sampleFilterNetworkInterfaces(UINT64, PCHAR);
 
 // Event data structure to pass to callbacks
 typedef struct {
@@ -380,55 +182,33 @@ typedef int (*app_webrtc_send_msg_cb_t) (signaling_msg_t *signalingMessage);
  */
 INT32 app_webrtc_register_event_callback(app_webrtc_event_callback_t callback, void *user_ctx);
 
-typedef enum {
-    APP_WEBRTC_CLASSIC_MODE, // Default: both signaling and streaming
-    APP_WEBRTC_SIGNALING_ONLY_MODE,
-    APP_WEBRTC_STREAMING_ONLY_MODE,
-} app_webrtc_mode_t;
-
 /**
  * @brief WebRTC application configuration structure
  */
 typedef struct {
-    // Channel configuration
-    PCHAR pChannelName;                      // Name of the signaling channel
-    SIGNALING_CHANNEL_ROLE_TYPE roleType;    // Role type (master or viewer)
-
-    // AWS credentials configuration
-    BOOL useIotCredentials;                  // Whether to use IoT Core credentials
-    PCHAR iotCoreCredentialEndpoint;         // IoT Core credential endpoint
-    PCHAR iotCoreCert;                       // Path to IoT Core certificate
-    PCHAR iotCorePrivateKey;                 // Path to IoT Core private key
-    PCHAR iotCoreRoleAlias;                  // IoT Core role alias
-    PCHAR iotCoreThingName;                  // IoT Core thing name
-
-    // Direct AWS credentials (if not using IoT credentials)
-    PCHAR awsAccessKey;                      // AWS access key
-    PCHAR awsSecretKey;                      // AWS secret key
-    PCHAR awsSessionToken;                   // AWS session token
-
-    // Common AWS options
-    PCHAR awsRegion;                         // AWS region
-    PCHAR caCertPath;                        // Path to CA certificates
+    // Signaling configuration
+    WebRtcSignalingClientInterface *pSignalingClientInterface;  // Signaling client interface
+    PVOID pSignalingConfig;                  // Signaling-specific configuration (opaque pointer)
 
     // WebRTC configuration
+    SIGNALING_CHANNEL_ROLE_TYPE roleType;    // Role type (master initiates, viewer receives)
     BOOL trickleIce;                         // Whether to use trickle ICE
     BOOL useTurn;                            // Whether to use TURN servers
     UINT32 logLevel;                         // Log level
+    BOOL signalingOnly;                      // If TRUE, disable media streaming components to save memory
 
     // Media configuration
     RTC_CODEC audioCodec;                    // Audio codec to use
     RTC_CODEC videoCodec;                    // Video codec to use
     AppWebrtcStreamingMediaType mediaType;   // Media type (audio-only, video-only, or both)
-    app_webrtc_mode_t mode;                  // Mode of the application
 
     // Media capture interfaces
-    media_stream_video_capture_t* videoCapture;   // Video capture interface
-    media_stream_audio_capture_t* audioCapture;   // Audio capture interface
+    void* videoCapture;                      // Video capture interface
+    void* audioCapture;                      // Audio capture interface
 
     // Media player interfaces
-    media_stream_video_player_t* videoPlayer;     // Video player interface
-    media_stream_audio_player_t* audioPlayer;     // Audio player interface
+    void* videoPlayer;                       // Video player interface
+    void* audioPlayer;                       // Audio player interface
 
     // Media reception
     BOOL receiveMedia;                       // Whether to receive media
@@ -436,16 +216,16 @@ typedef struct {
 
 #define WEBRTC_APP_CONFIG_DEFAULT() \
 { \
-    .roleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER, \
-    .useIotCredentials = TRUE, \
+    .pSignalingClientInterface = NULL, \
+    .pSignalingConfig = NULL, \
+    .roleType = WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_MASTER, \
     .trickleIce = TRUE, \
-    .awsRegion = CONFIG_AWS_DEFAULT_REGION, \
     .useTurn = TRUE, \
     .logLevel = 3, \
+    .signalingOnly = FALSE, \
     .audioCodec = RTC_CODEC_OPUS, \
     .videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, \
     .mediaType = APP_WEBRTC_MEDIA_AUDIO_VIDEO, \
-    .mode = APP_WEBRTC_CLASSIC_MODE, \
     .receiveMedia = FALSE, \
 }
 
@@ -464,7 +244,7 @@ typedef struct __SampleConfiguration* WebRtcConfigHandle;
  *
  * @return STATUS code of the execution
  */
-STATUS webrtcAppInit(PWebRtcAppConfig pConfig);
+WEBRTC_STATUS webrtcAppInit(PWebRtcAppConfig pConfig);
 
 /**
  * @brief Run the WebRTC application and wait for termination
@@ -473,7 +253,7 @@ STATUS webrtcAppInit(PWebRtcAppConfig pConfig);
  *
  * @return STATUS code of the execution
  */
-STATUS webrtcAppRun(VOID);
+WEBRTC_STATUS webrtcAppRun(VOID);
 
 /**
  * @brief Terminate the WebRTC application
@@ -482,37 +262,25 @@ STATUS webrtcAppRun(VOID);
  *
  * @return STATUS code of the execution
  */
-STATUS webrtcAppTerminate(VOID);
+WEBRTC_STATUS webrtcAppTerminate(VOID);
 
 /**
- * @brief Process a received signaling message from a custom signaling implementation
+ * @brief Register a callback for sending signaling messages to bridge (used in split mode)
  *
- * This function is used to handle a signaling message received from the signaling client.
- * The message format expected is defined in the signaling_msg_t struct from signaling_serializer.h
- * This is to make this API independent of the signaling message format of the KVS SDK.
- *
- * @param signalingMessage Pointer to the signaling message of format defined in signaling_serializer.h
+ * @param callback Function to call when messages need to be sent to bridge
  * @return 0 on success, non-zero on failure
  */
-int webrtcAppSignalingMessageReceived(signaling_msg_t *signalingMessage);
+int webrtcAppRegisterSendToBridgeCallback(app_webrtc_send_msg_cb_t callback);
 
 /**
- * @brief Register a callback for sending messages
- *
- * @param callback Function to call when messages need to be sent
+ * @brief Send a message from bridge to signaling server (used in split mode)
+ * This function sends signaling messages received from the streaming device
+ * to the signaling server.
+ * @param signalingMessage The signaling message to send to signaling server
  * @return 0 on success, non-zero on failure
  */
-int webrtcAppRegisterSendMessageCallback(app_webrtc_send_msg_cb_t callback);
+int webrtcAppSendMessageToSignalingServer(signaling_msg_t *signalingMessage);
 
-/**
- * @brief Create and send an offer as the initiator
- *
- * This function creates a WebRTC offer and sends it via the registered signaling callback.
- * It's used when the local peer is the initiator in the session.
- *
- * @param pPeerId Peer ID to send the offer to
- * @return STATUS code of the execution
- */
 int webrtcAppCreateAndSendOffer(char *pPeerId);
 
 #ifdef __cplusplus

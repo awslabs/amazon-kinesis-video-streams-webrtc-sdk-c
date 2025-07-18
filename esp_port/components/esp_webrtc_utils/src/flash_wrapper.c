@@ -53,6 +53,7 @@ typedef struct {
             size_t size;
             size_t offset;
             size_t* size_result;  // Pointer to store size result for GET_SIZE operation
+            bool* exists_result;  // Pointer to store exists result for EXISTS operation
             struct stat stat_info;
         } file;
         struct {
@@ -353,8 +354,14 @@ static esp_err_t do_file_op(flash_op_t *op)
             if (f) {
                 fclose(f);
                 op->result = ESP_OK;
+                if (op->op.file.exists_result != NULL) {
+                    *op->op.file.exists_result = true;
+                }
             } else {
                 op->result = ESP_ERR_NOT_FOUND;
+                if (op->op.file.exists_result != NULL) {
+                    *op->op.file.exists_result = false;
+                }
             }
             break;
 
@@ -527,12 +534,11 @@ esp_err_t flash_wrapper_write(const char* path, const void* buf, size_t size)
 esp_err_t flash_wrapper_exists(const char* path, bool* exists)
 {
     flash_op_t op = {
-        .op_type = FLASH_OP_EXISTS
+        .op_type = FLASH_OP_EXISTS,
+        .op.file.exists_result = exists
     };
     strncpy(op.op.file.path, path, sizeof(op.op.file.path) - 1);
-    esp_err_t ret = submit_flash_op(&op);
-    *exists = (ret == ESP_OK);
-    return ESP_OK;
+    return submit_flash_op(&op);
 }
 
 esp_err_t flash_wrapper_stat(const char* path, struct stat* st)

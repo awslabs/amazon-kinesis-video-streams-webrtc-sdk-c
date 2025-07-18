@@ -21,10 +21,11 @@
 #include "app_storage.h"
 
 #include "app_webrtc.h"
+#include "kvs_signaling.h"
 #include "esp_webrtc_time.h"
 #include "esp_work_queue.h"
 #include "media_stream.h"
-#include "esp_work_queue.h"
+#include "flash_wrapper.h"
 
 static const char *TAG = "webrtc_main";
 
@@ -203,7 +204,7 @@ static void app_webrtc_event_handler(app_webrtc_event_data_t *event_data, void *
 void app_main(void)
 {
     esp_err_t ret;
-    STATUS status;
+    WEBRTC_STATUS status = WEBRTC_STATUS_SUCCESS;
 
     // Initialize NVS
     ret = nvs_flash_init();
@@ -240,7 +241,6 @@ void app_main(void)
         ESP_LOGE(TAG, "Failed to register KVS event callback.");
     }
 
-    WebRtcAppConfig webrtcConfig = WEBRTC_APP_CONFIG_DEFAULT();
     // Get the media capture interfaces directly
     media_stream_video_capture_t *video_capture = media_stream_get_video_capture_if();
     media_stream_audio_capture_t *audio_capture = media_stream_get_audio_capture_if();
@@ -253,40 +253,55 @@ void app_main(void)
         return;
     }
 
-    // Configure WebRTC app
-    webrtcConfig.pChannelName = "ScaryTestChannel";
+    // Set up KVS signaling configuration (as opaque config)
+    static KvsSignalingConfig kvsSignalingConfig = {0};
+
+    // Channel configuration
+    kvsSignalingConfig.pChannelName = CONFIG_AWS_KVS_CHANNEL_NAME;
 
 #ifdef CONFIG_IOT_CORE_ENABLE_CREDENTIALS
     // Configure IoT Core credentials
-    webrtcConfig.useIotCredentials = TRUE;
-    webrtcConfig.iotCoreCredentialEndpoint = CONFIG_AWS_IOT_CORE_CREDENTIAL_ENDPOINT;
-    webrtcConfig.iotCoreCert = CONFIG_AWS_IOT_CORE_CERT;
-    webrtcConfig.iotCorePrivateKey = CONFIG_AWS_IOT_CORE_PRIVATE_KEY;
-    webrtcConfig.iotCoreRoleAlias = CONFIG_AWS_IOT_CORE_ROLE_ALIAS;
-    webrtcConfig.iotCoreThingName = CONFIG_AWS_IOT_CORE_THING_NAME;
+    kvsSignalingConfig.useIotCredentials = true;
+    kvsSignalingConfig.iotCoreCredentialEndpoint = CONFIG_AWS_IOT_CORE_CREDENTIAL_ENDPOINT;
+    kvsSignalingConfig.iotCoreCert = CONFIG_AWS_IOT_CORE_CERT;
+    kvsSignalingConfig.iotCorePrivateKey = CONFIG_AWS_IOT_CORE_PRIVATE_KEY;
+    kvsSignalingConfig.iotCoreRoleAlias = CONFIG_AWS_IOT_CORE_ROLE_ALIAS;
+    kvsSignalingConfig.iotCoreThingName = CONFIG_AWS_IOT_CORE_THING_NAME;
 #else
     // Configure direct AWS credentials
-    webrtcConfig.useIotCredentials = FALSE;
-    webrtcConfig.awsAccessKey = CONFIG_AWS_ACCESS_KEY_ID;
-    webrtcConfig.awsSecretKey = CONFIG_AWS_SECRET_ACCESS_KEY;
-    webrtcConfig.awsSessionToken = CONFIG_AWS_SESSION_TOKEN;
+    kvsSignalingConfig.useIotCredentials = false;
+    kvsSignalingConfig.awsAccessKey = CONFIG_AWS_ACCESS_KEY_ID;
+    kvsSignalingConfig.awsSecretKey = CONFIG_AWS_SECRET_ACCESS_KEY;
+    kvsSignalingConfig.awsSessionToken = CONFIG_AWS_SESSION_TOKEN;
 #endif
 
     // Set common AWS options
-    webrtcConfig.caCertPath = "/spiffs/certs/cacert.pem";
+    kvsSignalingConfig.awsRegion = "us-east-1";
+    kvsSignalingConfig.caCertPath = "/spiffs/certs/cacert.pem";
 
-    // Pass the media capture interfaces directly
+    // Configure WebRTC app with signaling interface and config as opaque pointers
+    WebRtcAppConfig webrtcConfig = WEBRTC_APP_CONFIG_DEFAULT();
+
+    // WebRTC configuration
+    webrtcConfig.logLevel = 2;
+    webrtcConfig.roleType = WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_MASTER;  // Set WebRTC role type
+
+    // Signaling configuration (passed as opaque pointers)
+    webrtcConfig.pSignalingClientInterface = getKvsSignalingClientInterface();
+    webrtcConfig.pSignalingConfig = &kvsSignalingConfig;
+
+    // Media interfaces
     webrtcConfig.videoCapture = video_capture;
     webrtcConfig.audioCapture = audio_capture;
-    webrtcConfig.videoPlayer = video_player;
-    webrtcConfig.audioPlayer = audio_player;
-    webrtcConfig.receiveMedia = TRUE;  // Enable media reception
+    webrtcConfig.videoPlayer = NULL;
+    webrtcConfig.audioPlayer = NULL;
+    webrtcConfig.receiveMedia = false;  // Enable media reception
 
     ESP_LOGI(TAG, "Initializing WebRTC application");
 
     // Initialize WebRTC application
     status = webrtcAppInit(&webrtcConfig);
-    if (status != STATUS_SUCCESS) {
+    if (status != WEBRTC_STATUS_SUCCESS) {
         ESP_LOGE(TAG, "Failed to initialize WebRTC application: 0x%08" PRIx32, status);
         return;
     }
@@ -295,7 +310,7 @@ void app_main(void)
 
     // Run WebRTC application
     status = webrtcAppRun();
-    if (status != STATUS_SUCCESS) {
+    if (status != WEBRTC_STATUS_SUCCESS) {
         ESP_LOGE(TAG, "WebRTC application failed: 0x%08" PRIx32, status);
         webrtcAppTerminate();
     } else {

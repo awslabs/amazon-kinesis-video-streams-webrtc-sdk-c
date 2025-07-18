@@ -24,6 +24,7 @@
 #include "esp_work_queue.h"
 #include "media_stream.h"
 #include "apprtc_signaling.h"
+#include "apprtc_signaling_interface.h"
 #include "wifi_cli.h"
 #include "webrtc_cli.h"
 #include "signaling_serializer.h"
@@ -95,52 +96,6 @@ static void wifi_init_sta(void)
 }
 
 /**
- * @brief Handle signaling messages from AppRTC and forward them to WebRTC SDK
- *
- * This callback is registered with apprtc_signaling and receives messages
- * from the AppRTC signaling server. It converts them to the format expected
- * by the WebRTC SDK and forwards them.
- */
-static void handle_signaling_message(const char *message, size_t message_len, void *user_data)
-{
-    ESP_LOGI(TAG, "Received signaling message from AppRTC");
-
-    // Forward the message to the signaling conversion module
-    // The conversion module will parse the message and convert it to the format
-    // expected by the WebRTC SDK, then forward it to webrtcAppSignalingMessageReceived
-    apprtc_signaling_process_message(message, message_len);
-}
-
-/**
- * @brief Handle state changes in the AppRTC signaling connection
- *
- * This callback is registered with apprtc_signaling and receives state
- * change notifications from the AppRTC signaling connection.
- */
-static void handle_signaling_state_change(int state, void *user_data)
-{
-    ESP_LOGI(TAG, "AppRTC signaling state changed to: %d", state);
-
-    switch (state) {
-        case APPRTC_SIGNALING_STATE_CONNECTED:
-            ESP_LOGI(TAG, "Connected to AppRTC signaling server");
-            ESP_LOGI(TAG, "Room ID: %s", apprtc_signaling_get_room_id());
-            break;
-
-        case APPRTC_SIGNALING_STATE_DISCONNECTED:
-            ESP_LOGW(TAG, "Disconnected from AppRTC signaling server");
-            break;
-
-        case APPRTC_SIGNALING_STATE_ERROR:
-            ESP_LOGE(TAG, "Error in AppRTC signaling");
-            break;
-
-        default:
-            break;
-    }
-}
-
-/**
  * @brief Handle WebRTC events from the WebRTC SDK
  *
  * This callback is registered with the WebRTC SDK and receives events
@@ -207,7 +162,7 @@ static void app_webrtc_event_handler(app_webrtc_event_data_t *event_data, void *
 void app_main(void)
 {
     esp_err_t ret;
-    STATUS status = STATUS_SUCCESS;
+    WEBRTC_STATUS status = WEBRTC_STATUS_SUCCESS;
 
     // Initialize NVS
     ret = nvs_flash_init();
@@ -245,22 +200,9 @@ void app_main(void)
     // Initialize signaling serializer for message format conversion
     signaling_serializer_init();
 
-    // Initialize AppRTC signaling
-    ret = apprtc_signaling_init(handle_signaling_message, handle_signaling_state_change, NULL);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize AppRTC signaling");
-        return;
-    }
-
     // Register the WebRTC event callback to receive events from the WebRTC SDK
     if (app_webrtc_register_event_callback(app_webrtc_event_handler, NULL) != 0) {
         ESP_LOGE(TAG, "Failed to register WebRTC event callback");
-    }
-
-    // Register the custom signaling message sender with the WebRTC SDK
-    if (apprtc_signaling_register_with_webrtc() != 0) {
-        ESP_LOGE(TAG, "Failed to register signaling message sender");
-        return;
     }
 
     // Get the media capture interfaces
@@ -275,20 +217,31 @@ void app_main(void)
         return;
     }
 
+    // Configure AppRTC signaling
+    AppRtcSignalingConfig apprtcConfig = {
+        .serverUrl = NULL,  // Use default AppRTC server
+        .roomId = NULL,     // Will be set based on role type
+        .autoConnect = false,
+        .connectionTimeout = 30000,
+        .logLevel = 3
+    };
+
     // Configure WebRTC app
     WebRtcAppConfig webrtcConfig = WEBRTC_APP_CONFIG_DEFAULT();
-    webrtcConfig.pChannelName = "AppRTCChannel";
-    webrtcConfig.mode = APP_WEBRTC_STREAMING_ONLY_MODE;  // Use streaming-only mode with custom signaling
+
+    // Set signaling interface to AppRTC
+    webrtcConfig.pSignalingClientInterface = getAppRtcSignalingClientInterface();
+    webrtcConfig.pSignalingConfig = &apprtcConfig;
 
     // Set role type based on configuration
 #if CONFIG_APPRTC_ROLE_TYPE == 0
     // This mode can be used when you want to connect to the existing room.
     // Will then receive the offer from the other peer and send the answer.
-    webrtcConfig.roleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+    webrtcConfig.roleType = WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
     ESP_LOGI(TAG, "Configured as MASTER role");
 #else
     // In this mode, the application will send the offer and wait for the answer.
-    webrtcConfig.roleType = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
+    webrtcConfig.roleType = WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
     ESP_LOGI(TAG, "Configured as VIEWER role");
 #endif
 
@@ -298,66 +251,38 @@ void app_main(void)
     webrtcConfig.videoPlayer = video_player;
     webrtcConfig.audioPlayer = audio_player;
     webrtcConfig.mediaType = APP_WEBRTC_MEDIA_AUDIO_VIDEO;
-    webrtcConfig.receiveMedia = TRUE;  // Enable media reception
+    webrtcConfig.receiveMedia = true;  // Enable media reception
 
     ESP_LOGI(TAG, "Initializing WebRTC application");
 
     // Initialize WebRTC application
     status = webrtcAppInit(&webrtcConfig);
-    if (status != STATUS_SUCCESS) {
+    if (status != WEBRTC_STATUS_SUCCESS) {
         ESP_LOGE(TAG, "Failed to initialize WebRTC application: 0x%08" PRIx32, status);
+        return;
+    }
+
+    // Start the WebRTC application (this will handle signaling connection)
+    status = webrtcAppRun();
+    if (status != WEBRTC_STATUS_SUCCESS) {
+        ESP_LOGE(TAG, "Failed to start WebRTC application: 0x%08" PRIx32, status);
+        webrtcAppTerminate();
         return;
     }
 
 #if CONFIG_APPRTC_AUTO_CONNECT
 #if CONFIG_APPRTC_ROLE_TYPE == 0
-    // MASTER always creates a new room
-    ret = apprtc_signaling_connect(NULL);  // NULL to create a new room
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to connect to AppRTC signaling server: %s", esp_err_to_name(ret));
-        webrtcAppTerminate();
-        return;
-    }
-
-    // Show QR code or web URL for connecting to the room
-    const char* room_id = apprtc_signaling_get_room_id();
-    if (room_id) {
-        ESP_LOGI(TAG, "------------------------------------------------------------");
-        ESP_LOGI(TAG, "| WebRTC Room URL: https://webrtc.espressif.com/r/%s", room_id);
-        ESP_LOGI(TAG, "| Scan the QR code or visit the URL to connect to this device");
-        ESP_LOGI(TAG, "------------------------------------------------------------");
-    } else {
-        ESP_LOGW(TAG, "Room ID not available yet. Wait for signaling connection to complete.");
-    }
+    // For MASTER role, the WebRTC app will automatically create and connect to a new room
+    ESP_LOGI(TAG, "MASTER role - will create a new room automatically");
 #else
-    // For VIEWER role, if fixed room ID is configured, join that room
+    // For VIEWER role, configure room ID if specified
 #if CONFIG_APPRTC_USE_FIXED_ROOM
-    ret = apprtc_signaling_connect(CONFIG_APPRTC_ROOM_ID);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to connect to room %s: %s", CONFIG_APPRTC_ROOM_ID, esp_err_to_name(ret));
-        webrtcAppTerminate();
-        return;
-    }
-    ESP_LOGI(TAG, "Joining fixed room: %s", CONFIG_APPRTC_ROOM_ID);
+    // Set the room ID to join in the AppRTC configuration
+    apprtcConfig.roomId = CONFIG_APPRTC_ROOM_ID;
+    ESP_LOGI(TAG, "VIEWER role - will join fixed room: %s", CONFIG_APPRTC_ROOM_ID);
 #else
-    // For VIEWER role without fixed room, create a new room
-    ret = apprtc_signaling_connect(NULL);  // NULL to create a new room
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to create a new room: %s", esp_err_to_name(ret));
-        webrtcAppTerminate();
-        return;
-    }
-
-    // Show QR code or web URL for connecting to the room
-    const char* room_id = apprtc_signaling_get_room_id();
-    if (room_id) {
-        ESP_LOGI(TAG, "------------------------------------------------------------");
-        ESP_LOGI(TAG, "| WebRTC Room URL: https://webrtc.espressif.com/r/%s", room_id);
-        ESP_LOGI(TAG, "| Scan the QR code or visit the URL to connect to this device");
-        ESP_LOGI(TAG, "------------------------------------------------------------");
-    } else {
-        ESP_LOGW(TAG, "Room ID not available yet. Wait for signaling connection to complete.");
-    }
+    // For VIEWER role without fixed room, will create a new room
+    ESP_LOGI(TAG, "VIEWER role - will create a new room");
 #endif
 #endif
 #else
@@ -371,15 +296,9 @@ void app_main(void)
     ESP_LOGI(TAG, "------------------------------------------------------------");
 #endif
 
-    ESP_LOGI(TAG, "Running WebRTC application");
-
-    // Run WebRTC application
-    status = webrtcAppRun();
-    if (status != STATUS_SUCCESS) {
-        ESP_LOGE(TAG, "WebRTC application failed: 0x%08" PRIx32, status);
-        apprtc_signaling_disconnect();
-        webrtcAppTerminate();
-    } else {
-        ESP_LOGI(TAG, "WebRTC application started successfully");
-    }
+    ESP_LOGI(TAG, "------------------------------------------------------------");
+    ESP_LOGI(TAG, "| WebRTC application initialized and ready!                |");
+    ESP_LOGI(TAG, "| The signaling will connect automatically                 |");
+    ESP_LOGI(TAG, "| Room URL will be displayed once connection is established|");
+    ESP_LOGI(TAG, "------------------------------------------------------------");
 }

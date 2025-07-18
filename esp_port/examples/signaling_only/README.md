@@ -9,6 +9,31 @@ This example demonstrates the signaling-only part of the WebRTC implementation f
 - ICE candidate handling
 - Bridge-based communication with `streaming_only` component
 
+## Architecture
+
+                    ┌─────────────────┐
+                    │   AWS KVS       │
+                    │   WebRTC        │
+                    │   Signaling     │
+                    └─────────────────┘
+                            ↕
+              ┌─────────────────────────────┐
+              │     signaling_only          │
+              │  ┌─────────────────────┐    │
+              │  │ KVS Signaling IF    │    │
+              │  │   (Clean Interface) │    │
+              │  └─────────────────────┘    │
+              └─────────────────────────────┘
+                            ↕ webrtc_bridge
+              ┌─────────────────────────────┐
+              │     streaming_only          │
+              │  ┌─────────────────────┐    │
+              │  │    WebRTC App       │    │
+              │  │       +             │    │
+              │  │ Bridge Signaling IF │    │
+              │  └─────────────────────┘    │
+              └─────────────────────────────┘
+
 ## Hardware Required
 
 - ESP32-C6 board
