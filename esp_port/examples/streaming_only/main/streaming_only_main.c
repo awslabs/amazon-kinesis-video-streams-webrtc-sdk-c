@@ -17,9 +17,9 @@
 #include "media_stream.h"
 #include "signaling_serializer.h"
 #include "webrtc_bridge.h"
+#include "webrtc_bridge_signaling.h"
 #include "esp_work_queue.h"
 #include "app_webrtc.h"
-#include "signalling_remote.h" // FIXME: Need to have a standard way...
 
 static const char *TAG = "streaming_only";
 
@@ -29,51 +29,6 @@ static char wifi_ip[72];
 
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT      BIT1
-
-/**
- * @brief Handle bridged signaling received  via webrtc_bridge
- *
- * Signaling messages received via webrtc_bridge need to be converted to
- * ReceivedSignalingMessage and passed to signalingMessageReceived function
- *
- * @note The messages to be sent via bridge (to signaling_only component) are serialized and
- * sent by app_webrtc
- *
- * @param data The data to handle
- * @param len The length of the data
- */
-static void handle_bridged_message(const void* data, int len)
-{
-    // STATUS retStatus = STATUS_SUCCESS;
-    signaling_msg_t signalingMsg = {0};
-
-    // Deserialize the incoming message
-    esp_err_t ret = deserialize_signaling_message(data, len, &signalingMsg);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to deserialize signaling message");
-        return;
-    }
-
-    ESP_LOGI(TAG, "Received signaling message type: %d", signalingMsg.messageType);
-
-    webrtcAppSignalingMessageReceived(&signalingMsg);
-
-    if (signalingMsg.payload != NULL) {
-        // If the payload is not NULL, means ownership is with caller
-        free(signalingMsg.payload);
-    }
-}
-
-// function type: app_webrtc_send_msg_cb_t is defined in app_webrtc.h
-static int send_message_callback(signaling_msg_t *signalingMessage)
-{
-    size_t serializedMsgLen = 0;
-    char *serializedMsg = serialize_signaling_message(signalingMessage, &serializedMsgLen);
-    webrtc_bridge_send_message(serializedMsg, serializedMsgLen);
-
-    // Do not free the serialized message, it is freed by the webrtc bridge
-    return 0;
-}
 
 // WiFi event handler
 static void event_handler(void* arg, esp_event_base_t event_base,
@@ -223,7 +178,7 @@ static void app_webrtc_event_handler(app_webrtc_event_data_t *event_data, void *
 void app_main(void)
 {
     esp_err_t ret;
-    STATUS status;
+    WEBRTC_STATUS status;
 
     // Initialize NVS
     ret = nvs_flash_init();
@@ -275,32 +230,32 @@ void app_main(void)
 
     // Configure WebRTC
     WebRtcAppConfig webrtcConfig = WEBRTC_APP_CONFIG_DEFAULT();
-    webrtcConfig.mode = APP_WEBRTC_STREAMING_ONLY_MODE;
-    webrtcConfig.pChannelName = NULL; // NULL for streaming-only mode
+
+    // Set up bridge signaling interface and config
+    bridge_signaling_config_t bridge_config = {
+        .client_id = "streaming_client",
+        .log_level = 2
+    };
+
+    // Configure WebRTC with bridge signaling
+    webrtcConfig.pSignalingClientInterface = getBridgeSignalingClientInterface();
+    webrtcConfig.pSignalingConfig = &bridge_config;
 
     // Pass the media capture interfaces directly
     webrtcConfig.videoCapture = video_capture;
     webrtcConfig.audioCapture = audio_capture;
     webrtcConfig.videoPlayer = video_player;
     webrtcConfig.audioPlayer = audio_player;
-    webrtcConfig.receiveMedia = TRUE; // Enable media reception
+    webrtcConfig.receiveMedia = true; // Enable media reception
 
-    ESP_LOGI(TAG, "Initializing WebRTC application");
+    ESP_LOGI(TAG, "Initializing WebRTC application with bridge signaling");
 
     // Initialize WebRTC application
     status = webrtcAppInit(&webrtcConfig);
-    if (status != STATUS_SUCCESS) {
+    if (status != WEBRTC_STATUS_SUCCESS) {
         ESP_LOGE(TAG, "Failed to initialize WebRTC application: 0x%08" PRIx32, status);
         goto CleanUp;
     }
-
-    // Register the bridge message handler!
-    // We get the messages from the bridge here, deserializeand send them to the KVS SDK
-    webrtc_bridge_register_handler(handle_bridged_message);
-
-    // Register the message sending callback!
-    // Messages from the KVS SDK are received in this callback, serialized and sent to the bridge
-    webrtcAppRegisterSendMessageCallback(send_message_callback);
 
     // Start webrtc bridge
     webrtc_bridge_start();
@@ -309,7 +264,7 @@ void app_main(void)
 
     // Run WebRTC application
     status = webrtcAppRun();
-    if (status != STATUS_SUCCESS) {
+    if (status != WEBRTC_STATUS_SUCCESS) {
         ESP_LOGE(TAG, "WebRTC application failed: 0x%08" PRIx32, status);
         goto CleanUp;
     }

@@ -39,5 +39,10 @@ dependencies:
     version: "*"
     public: true
 
+  webrtc_bridge:
+    path: ../webrtc_bridge
+    version: "*"
+    public: true
+
   espressif/esp_websocket_client:
     version: "*"

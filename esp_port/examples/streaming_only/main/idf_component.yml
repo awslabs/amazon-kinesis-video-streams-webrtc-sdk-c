@@ -25,12 +25,8 @@ dependencies:
     path: ${KVS_SDK_PATH}/esp_port/components/media_stream
     version: '*'
 
-  signaling_serializer:
-    path: ${KVS_SDK_PATH}/esp_port/components/signaling_serializer
-    version: '*'
-
-  webrtc_bridge:
-    path: ${KVS_SDK_PATH}/esp_port/components/webrtc_bridge
+  bridge_signaling:
+    path: ../components/bridge_signaling
     version: '*'
 
   app_common:

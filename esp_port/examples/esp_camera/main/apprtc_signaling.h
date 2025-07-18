@@ -140,4 +140,15 @@ esp_err_t apprtc_signaling_queue_message(const void *data, int len);
  */
 esp_err_t apprtc_signaling_process_queued_messages(void);
 
+/**
+ * @brief AppRTC signaling send callback function
+ *
+ * This function is used to send signaling messages via AppRTC.
+ * Return values: 0 = success (sent immediately), 1 = success (queued), -1 = error
+ *
+ * @param pSignalingMsg The signaling message to send
+ * @return int Status code: 0/1 for success, negative for error
+ */
+int apprtc_signaling_send_callback(signaling_msg_t *pSignalingMsg);
+
 #endif /* APPRTC_SIGNALING_H */

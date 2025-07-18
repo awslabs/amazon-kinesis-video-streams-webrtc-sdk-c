@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 #include "app_webrtc.h"
 #include "webrtc_mem_utils.h"
 #include "flash_wrapper.h"
@@ -11,41 +12,192 @@
 
 #include "media_stream.h"
 #include "signaling_serializer.h"
-#include "webrtc_bridge.h"
+#include "webrtc_signaling_if.h"
 
 #include "sdkconfig.h"
 #include "iot_credential_provider.h"
 
 static const char *TAG = "app_webrtc";
 
-// Frame size limits
-#define MAX_VIDEO_FRAME_SIZE (1024 * 1024)  // 1MB should be enough for most video frames
-#define MAX_AUDIO_FRAME_SIZE (32 * 1024)    // 32KB should be enough for audio frames
-
-// Frame durations
-#define DEFAULT_FPS_VALUE                        25
-#define SAMPLE_VIDEO_FRAME_DURATION (HUNDREDS_OF_NANOS_IN_A_SECOND / DEFAULT_FPS_VALUE)
-#define SAMPLE_AUDIO_FRAME_DURATION (20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
-
-// Track IDs
-#define DEFAULT_VIDEO_TRACK_ID 1
-#define DEFAULT_AUDIO_TRACK_ID 2
-
-#define NUMBER_OF_H264_FRAME_FILES               60 //1500
 // Event handling
 static app_webrtc_event_callback_t gEventCallback = NULL;
 static void* gEventUserCtx = NULL;
 static MUTEX gEventCallbackLock = INVALID_MUTEX_VALUE;
 
-// Message sending callback for streaming-only mode
-static app_webrtc_send_msg_cb_t g_send_message_callback = NULL;
-
 // Global variables to track app state
 static WebRtcAppConfig gWebRtcAppConfig = {0};
+static PVOID gSignalingClientData = NULL;  // Store the initialized signaling client
 static BOOL gWebRtcAppInitialized = FALSE;
+
+// Global callback for sending signaling messages in split mode
+static app_webrtc_send_msg_cb_t g_sendMessageCallback = NULL;
 
 // Task handle for the WebRTC run task
 static TaskHandle_t gWebRtcRunTaskHandle = NULL;
+
+// Forward declaration for wrapper function
+static WEBRTC_STATUS signalingMessageReceivedWrapper(uint64_t customData, esp_webrtc_signaling_message_t* pWebRtcMessage);
+
+typedef struct __SampleStreamingSession SampleStreamingSession;
+typedef struct __SampleStreamingSession* PSampleStreamingSession;
+
+typedef struct {
+    UINT64 hashValue;
+    UINT64 createTime;
+    PStackQueue messageQueue;
+} PendingMessageQueue, *PPendingMessageQueue;
+
+typedef enum {
+    TEST_SOURCE,
+    DEVICE_SOURCE,
+    RTSP_SOURCE,
+} SampleSourceType;
+
+typedef struct {
+    volatile ATOMIC_BOOL appTerminateFlag;
+    volatile ATOMIC_BOOL interrupted;
+    volatile ATOMIC_BOOL mediaThreadStarted;
+    volatile ATOMIC_BOOL recreateSignalingClient;
+    volatile ATOMIC_BOOL connected;
+    SampleSourceType srcType;
+    ChannelInfo channelInfo;
+    PCHAR pCaCertPath;
+    PAwsCredentialProvider pCredentialProvider;
+    SIGNALING_CLIENT_HANDLE signalingClientHandle;
+    RTC_CODEC audioCodec;
+    RTC_CODEC videoCodec;
+    PBYTE pAudioFrameBuffer;
+    UINT32 audioBufferSize;
+    PBYTE pVideoFrameBuffer;
+    UINT32 videoBufferSize;
+    TID mediaSenderTid;
+    TID audioSenderTid;
+    TID videoSenderTid;
+    TIMER_QUEUE_HANDLE timerQueueHandle;
+    UINT32 iceCandidatePairStatsTimerId;
+    AppWebrtcStreamingMediaType mediaType;
+    startRoutine audioSource;
+    startRoutine videoSource;
+    startRoutine receiveAudioVideoSource;
+    RtcOnDataChannel onDataChannel;
+    SignalingClientMetrics signalingClientMetrics;
+
+    // Media capture interfaces
+    void* videoCapture;
+    void* audioCapture;
+
+    // Media player interfaces
+    void* videoPlayer;
+    void* audioPlayer;
+
+    // Media player handles
+    video_player_handle_t video_player_handle;
+    audio_player_handle_t audio_player_handle;
+
+    // Count of active sessions using media players
+    UINT32 activePlayerSessionCount;
+    MUTEX playerLock;
+
+    // Media reception
+    BOOL receiveMedia;
+
+    // Callbacks for signaling messages
+    VOID (*onAnswer)(UINT64, PSignalingMessage);
+    VOID (*onIceCandidate)(UINT64, PSignalingMessage);
+
+    PStackQueue pPendingSignalingMessageForRemoteClient;
+    PHashTable pRtcPeerConnectionForRemoteClient;
+
+    MUTEX sampleConfigurationObjLock;
+    CVAR cvar;
+    BOOL trickleIce;
+    BOOL useTurn;
+    BOOL enableSendingMetricsToViewerViaDc;
+    BOOL enableFileLogging;
+    UINT64 customData;
+    PSampleStreamingSession sampleStreamingSessionList[CONFIG_KVS_MAX_CONCURRENT_STREAMS];
+    UINT32 streamingSessionCount;
+    MUTEX streamingSessionListReadLock;
+    UINT32 iceUriCount;
+    SignalingClientCallbacks signalingClientCallbacks;
+    SignalingClientInfo clientInfo;
+
+    RtcStats rtcIceCandidatePairMetrics;
+
+    MUTEX signalingSendMessageLock;
+
+    UINT32 pregenerateCertTimerId;
+    PStackQueue pregeneratedCertificates; // Max MAX_RTCCONFIGURATION_CERTIFICATES certificates
+
+    PCHAR rtspUri;
+    UINT32 logLevel;
+    BOOL enableTwcc;
+} SampleConfiguration, *PSampleConfiguration;
+
+typedef VOID (*StreamSessionShutdownCallback)(UINT64, PSampleStreamingSession);
+
+struct __SampleStreamingSession {
+    volatile ATOMIC_BOOL terminateFlag;
+    volatile ATOMIC_BOOL candidateGatheringDone;
+    volatile ATOMIC_BOOL peerIdReceived;
+    volatile ATOMIC_BOOL firstFrame;
+    volatile SIZE_T frameIndex;
+    volatile SIZE_T correlationIdPostFix;
+    PRtcPeerConnection pPeerConnection;
+    PRtcRtpTransceiver pVideoRtcRtpTransceiver;
+    PRtcRtpTransceiver pAudioRtcRtpTransceiver;
+    RtcSessionDescriptionInit answerSessionDescriptionInit;
+    PSampleConfiguration pSampleConfiguration;
+    UINT64 audioTimestamp;
+    UINT64 videoTimestamp;
+    CHAR peerId[MAX_SIGNALING_CLIENT_ID_LEN + 1];
+    TID receiveAudioVideoSenderTid;
+    UINT64 startUpLatency;
+    RtcMetricsHistory rtcMetricsHistory;
+    BOOL remoteCanTrickleIce;
+    TwccMetadata twccMetadata;
+
+    // this is called when the SampleStreamingSession is being freed
+    StreamSessionShutdownCallback shutdownCallback;
+    UINT64 shutdownCallbackCustomData;
+    UINT64 offerReceiveTime;
+    PeerConnectionMetrics peerConnectionMetrics;
+    KvsIceAgentMetrics iceMetrics;
+    CHAR pPeerConnectionMetricsMessage[MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE];
+    CHAR pSignalingClientMetricsMessage[MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE];
+    CHAR pIceAgentMetricsMessage[MAX_ICE_AGENT_METRICS_MESSAGE_SIZE];
+};
+
+PVOID sampleReceiveAudioVideoFrame(PVOID);
+STATUS getIceCandidatePairStatsCallback(UINT32, UINT64, UINT64);
+STATUS pregenerateCertTimerCallback(UINT32, UINT64, UINT64);
+STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE roleType, BOOL trickleIce, BOOL useTurn, UINT32 logLevel,
+                                 BOOL signalingOnly, PSampleConfiguration* ppSampleConfiguration);
+STATUS freeSampleConfiguration(PSampleConfiguration*);
+STATUS signalingClientStateChanged(UINT64, SIGNALING_CLIENT_STATE);
+STATUS signalingMessageReceived(UINT64, PReceivedSignalingMessage);
+STATUS handleOffer(PSampleConfiguration, PSampleStreamingSession, PSignalingMessage);
+STATUS handleRemoteCandidate(PSampleStreamingSession, PSignalingMessage);
+STATUS initializePeerConnection(PSampleConfiguration, PRtcPeerConnection*);
+STATUS createSampleStreamingSession(PSampleConfiguration, PCHAR, BOOL, PSampleStreamingSession*);
+STATUS freeSampleStreamingSession(PSampleStreamingSession*);
+STATUS streamingSessionOnShutdown(PSampleStreamingSession, UINT64, StreamSessionShutdownCallback);
+STATUS sendSignalingMessage(PSampleStreamingSession, PSignalingMessage);
+STATUS respondWithAnswer(PSampleStreamingSession);
+
+VOID sampleBandwidthEstimationHandler(UINT64, DOUBLE);
+VOID sampleSenderBandwidthEstimationHandler(UINT64, UINT32, UINT32, UINT32, UINT32, UINT64);
+VOID onDataChannel(UINT64, PRtcDataChannel);
+VOID onConnectionStateChange(UINT64, RTC_PEER_CONNECTION_STATE);
+STATUS sessionCleanupWait(PSampleConfiguration, BOOL);
+// STATUS logStartUpLatency(PSampleConfiguration);
+STATUS createMessageQueue(UINT64, PPendingMessageQueue*);
+STATUS freeMessageQueue(PPendingMessageQueue);
+STATUS submitPendingIceCandidate(PPendingMessageQueue, PSampleStreamingSession);
+STATUS removeExpiredMessageQueues(PStackQueue);
+STATUS getPendingMessageQueueForHash(PStackQueue, UINT64, BOOL, PPendingMessageQueue*);
+STATUS initSignaling(PSampleConfiguration, PCHAR);
+BOOL sampleFilterNetworkInterfaces(UINT64, PCHAR);
 
 // Forward declarations for media sender functions
 PVOID sendVideoFramesFromCamera(PVOID args);
@@ -57,8 +209,6 @@ PVOID sampleReceiveAudioVideoFrame(PVOID);
 // Forward declarations for media handlers
 VOID sampleVideoFrameHandler(UINT64 customData, PFrame pFrame);
 VOID sampleAudioFrameHandler(UINT64 customData, PFrame pFrame);
-
-static STATUS sendMessageToAppCallback(PSignalingMessage pMessage);
 
 // Helper function to raise WebRTC events
 static void raiseEvent(app_webrtc_event_t event_id, UINT32 status_code, PCHAR peer_id, PCHAR message)
@@ -450,7 +600,7 @@ STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSe
     MEMSET(&offerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
     MEMSET(&pSampleStreamingSession->answerSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
 
-    DLOGD("**offer:%s", pSignalingMessage->payload);
+    DLOGI("**offer:%s", pSignalingMessage->payload);
     CHK_STATUS(deserializeSessionDescriptionInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, &offerSessionDescriptionInit));
     CHK_STATUS(setRemoteDescription(pSampleStreamingSession->pPeerConnection, &offerSessionDescriptionInit));
     canTrickle = canTrickleIceCandidates(pSampleStreamingSession->pPeerConnection);
@@ -482,86 +632,38 @@ CleanUp:
     return retStatus;
 }
 
-/**
- * Helper function to serialize a signaling message and send it via the registered callback
- */
-static STATUS sendMessageToAppCallback(PSignalingMessage pMessage)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    signaling_msg_t signalingMsg;
-
-    CHK(pMessage != NULL && g_send_message_callback != NULL, STATUS_NULL_ARG);
-
-    // Convert from SignalingMessage to signaling_msg_t
-    signalingMsg.version = pMessage->version;
-
-    // Convert message type
-    switch (pMessage->messageType) {
-        case SIGNALING_MESSAGE_TYPE_OFFER:
-            signalingMsg.messageType = SIGNALING_MSG_TYPE_OFFER;
-            break;
-        case SIGNALING_MESSAGE_TYPE_ANSWER:
-            signalingMsg.messageType = SIGNALING_MSG_TYPE_ANSWER;
-            break;
-        case SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE:
-            signalingMsg.messageType = SIGNALING_MSG_TYPE_ICE_CANDIDATE;
-            break;
-        default:
-            DLOGW("Unknown message type: %d", pMessage->messageType);
-            CHK(FALSE, STATUS_INVALID_ARG);
-    }
-
-    // Copy correlation ID
-    STRNCPY(signalingMsg.correlationId, pMessage->correlationId, SS_MAX_CORRELATION_ID_LEN);
-    signalingMsg.correlationId[SS_MAX_CORRELATION_ID_LEN] = '\0';
-
-    // Copy peer client ID
-    STRNCPY(signalingMsg.peerClientId, pMessage->peerClientId, SS_MAX_SIGNALING_CLIENT_ID_LEN);
-    signalingMsg.peerClientId[SS_MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
-
-    // Copy payload
-    signalingMsg.payload = pMessage->payload;
-    signalingMsg.payloadLen = pMessage->payloadLen;
-
-    // Send the serialized message using the callback
-    retStatus = g_send_message_callback(&signalingMsg);
-
-CleanUp:
-    return retStatus;
-}
-
 STATUS sendSignalingMessage(PSampleStreamingSession pSampleStreamingSession, PSignalingMessage pMessage)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE;
     PSampleConfiguration pSampleConfiguration = NULL;
+    esp_webrtc_signaling_message_t message;
 
     CHK(pSampleStreamingSession != NULL && pSampleStreamingSession->pSampleConfiguration != NULL && pMessage != NULL, STATUS_NULL_ARG);
     pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
 
-    if (gWebRtcAppConfig.mode == APP_WEBRTC_STREAMING_ONLY_MODE && g_send_message_callback != NULL) {
-        CHK_STATUS(sendMessageToAppCallback(pMessage));
-    } else {
-        CHK(IS_VALID_MUTEX_VALUE(pSampleConfiguration->signalingSendMessageLock) &&
-                IS_VALID_SIGNALING_CLIENT_HANDLE(pSampleConfiguration->signalingClientHandle),
-            STATUS_INVALID_OPERATION);
+    if (gWebRtcAppConfig.pSignalingClientInterface != NULL && gSignalingClientData != NULL) {
+        // Convert the message to the generic format
+        message.version = pMessage->version;
+        message.message_type = (esp_webrtc_signaling_message_type_t)pMessage->messageType;
+        STRNCPY(message.correlation_id, pMessage->correlationId, MAX_CORRELATION_ID_LEN);
+        message.correlation_id[MAX_CORRELATION_ID_LEN] = '\0';
+        STRNCPY(message.peer_client_id, pMessage->peerClientId, MAX_SIGNALING_CLIENT_ID_LEN);
+        message.peer_client_id[MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
+        message.payload = pMessage->payload;
+        message.payload_len = pMessage->payloadLen;
 
-        MUTEX_LOCK(pSampleConfiguration->signalingSendMessageLock);
-        locked = TRUE;
-        CHK_STATUS(signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, pMessage));
+        // Use the signaling interface to send the message
+        CHK_STATUS(gWebRtcAppConfig.pSignalingClientInterface->sendMessage(gSignalingClientData, &message));
+
         if (pMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
-            CHK_STATUS(signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &pSampleConfiguration->signalingClientMetrics));
-            DLOGP("[Signaling offer received to answer sent time] %" PRIu64 " ms",
-                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerToAnswerTime);
+            DLOGD("Sent answer to peer %s", pMessage->peerClientId);
         }
+    } else {
+        DLOGE("No signaling client interface available");
+        CHK(FALSE, STATUS_INVALID_OPERATION);
     }
 
 CleanUp:
-
-    if (locked) {
-        MUTEX_UNLOCK(pSampleStreamingSession->pSampleConfiguration->signalingSendMessageLock);
-    }
-
     CHK_LOG_ERR(retStatus);
     return retStatus;
 }
@@ -630,26 +732,15 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
     SignalingMessage message;
 
-    if (candidateJson == NULL && pSampleStreamingSession != NULL) {
-        // ICE gathering is complete
-        raiseEvent(APP_WEBRTC_EVENT_ICE_GATHERING_COMPLETE, 0,
-                   pSampleStreamingSession->peerId, "ICE candidate gathering completed");
-    } else if (candidateJson != NULL && pSampleStreamingSession != NULL) {
-        // ICE candidate gathered - we don't need to do anything special
-        // as the original handler already processes this
-        raiseEvent(APP_WEBRTC_EVENT_SENT_ICE_CANDIDATE, 0,
-                   pSampleStreamingSession->peerId, "Sent ICE candidate");
-    }
-
     CHK(pSampleStreamingSession != NULL, STATUS_NULL_ARG);
-
-    if (candidateJson != NULL) {
-        DLOGI("New local ICE candidate gathered: %s", candidateJson);
-    }
 
     if (candidateJson == NULL) {
         DLOGD("ice candidate gathering finished");
         ATOMIC_STORE_BOOL(&pSampleStreamingSession->candidateGatheringDone, TRUE);
+
+        // ICE gathering is complete
+        raiseEvent(APP_WEBRTC_EVENT_ICE_GATHERING_COMPLETE, 0,
+                   pSampleStreamingSession->peerId, "ICE candidate gathering completed");
 
         // if application is master and non-trickle ice, send answer now.
         if (pSampleStreamingSession->pSampleConfiguration->channelInfo.channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_MASTER &&
@@ -662,31 +753,40 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
         }
 
     } else if (pSampleStreamingSession->remoteCanTrickleIce && ATOMIC_LOAD_BOOL(&pSampleStreamingSession->peerIdReceived)) {
+        DLOGI("New local ICE candidate gathered: %s", candidateJson);
+
+        // Send the ICE candidate to the peer through signaling
         message.version = SIGNALING_MESSAGE_CURRENT_VERSION;
         message.messageType = SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
         STRNCPY(message.peerClientId, pSampleStreamingSession->peerId, MAX_SIGNALING_CLIENT_ID_LEN);
-        message.payloadLen = (UINT32) STRLEN(candidateJson);
+        message.payloadLen = (UINT32) STRNLEN(candidateJson, MAX_SIGNALING_MESSAGE_LEN);
+
 #ifdef DYNAMIC_SIGNALING_PAYLOAD
-        message.payload = MEMCALLOC(1, message.payloadLen + 1);
+        message.payload = (PCHAR) MEMCALLOC(1, MAX_SIGNALING_MESSAGE_LEN + 1);
         CHK(message.payload != NULL, STATUS_NOT_ENOUGH_MEMORY);
-#endif
         STRNCPY(message.payload, candidateJson, message.payloadLen);
+#else
+        STRNCPY(message.payload, candidateJson, message.payloadLen);
+#endif
         message.correlationId[0] = '\0';
+
         CHK_STATUS(sendSignalingMessage(pSampleStreamingSession, &message));
+
+        // ICE candidate sent successfully
+        raiseEvent(APP_WEBRTC_EVENT_SENT_ICE_CANDIDATE, 0,
+                   pSampleStreamingSession->peerId, "Sent ICE candidate");
+
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+        SAFE_MEMFREE(message.payload);
+#endif
+    } else {
+        DLOGI("New local ICE candidate gathered but not sending: candidateJson=%s, remoteCanTrickleIce=%d, peerIdReceived=%d",
+              candidateJson ? candidateJson : "NULL",
+              pSampleStreamingSession->remoteCanTrickleIce,
+              ATOMIC_LOAD_BOOL(&pSampleStreamingSession->peerIdReceived));
     }
 
 CleanUp:
-
-#ifdef DYNAMIC_SIGNALING_PAYLOAD
-    if (candidateJson != NULL &&
-        pSampleStreamingSession->remoteCanTrickleIce &&
-        ATOMIC_LOAD_BOOL(&pSampleStreamingSession->peerIdReceived) &&
-        message.payload != NULL) {
-        // freeSignalingMessagePayload(&message);
-        SAFE_MEMFREE(message.payload);
-    }
-#endif
-
     CHK_LOG_ERR(retStatus);
 }
 
@@ -695,82 +795,63 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     RtcConfiguration configuration;
-    UINT32 i, j, iceConfigCount, uriCount = 0, maxTurnServer = 1;
-    PIceConfigInfo pIceConfigInfo;
     UINT64 data;
     PRtcCertificate pRtcCertificate = NULL;
-    BOOL isStreamingOnly = FALSE;
+    // BOOL isStreamingOnly = FALSE;
 
     CHK(pSampleConfiguration != NULL && ppRtcPeerConnection != NULL, STATUS_NULL_ARG);
 
     // Check if we're in streaming-only mode (no signaling)
-    isStreamingOnly = (gWebRtcAppConfig.mode == APP_WEBRTC_STREAMING_ONLY_MODE);
+    // isStreamingOnly = (pSampleConfiguration->signalingClientHandle == NULL);
 
+    // Initialize the configuration structure to zeros
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
     // Set more aggressive ICE timeouts
-    configuration.kvsRtcConfiguration.iceConnectionCheckTimeout = 12 * HUNDREDS_OF_NANOS_IN_A_SECOND; // 2 seconds
-    configuration.kvsRtcConfiguration.iceLocalCandidateGatheringTimeout = 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;
-    configuration.kvsRtcConfiguration.iceCandidateNominationTimeout = 15 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    configuration.kvsRtcConfiguration.iceConnectionCheckTimeout = 12 * HUNDREDS_OF_NANOS_IN_A_SECOND; // 12 seconds
+    configuration.kvsRtcConfiguration.iceLocalCandidateGatheringTimeout = 10 * HUNDREDS_OF_NANOS_IN_A_SECOND; // 10 seconds
+    configuration.kvsRtcConfiguration.iceCandidateNominationTimeout = 15 * HUNDREDS_OF_NANOS_IN_A_SECOND; // 15 seconds
     // More frequent checks for faster connection
     configuration.kvsRtcConfiguration.iceConnectionCheckPollingInterval = 100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND; // 100ms
 
     // Enable interface filtering to handle IPv6 properly
     configuration.kvsRtcConfiguration.iceSetInterfaceFilterFunc = sampleFilterNetworkInterfaces;
 
-    // Set the ICE mode explicitly to allow TURN
+    // Set the ICE mode - use both STUN and TURN (if available)
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
 
-    // Set the STUN server
-    PCHAR pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX;
-    // If region is in CN, add CN region uri postfix
-    if (STRSTR(pSampleConfiguration->channelInfo.pRegion, "cn-")) {
-        pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX_CN;
-    }
-    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->channelInfo.pRegion,
-             pKinesisVideoStunUrlPostFix);
+    // Configure ICE servers
+    if (gWebRtcAppConfig.pSignalingClientInterface != NULL &&
+        gSignalingClientData != NULL &&
+        gWebRtcAppConfig.pSignalingClientInterface->getIceServers != NULL) {
 
-    if (pSampleConfiguration->useTurn && !isStreamingOnly) {
-        // Set the URIs from the configuration
-        retStatus = signalingClientGetIceConfigInfoCount(pSampleConfiguration->signalingClientHandle, &iceConfigCount);
-        if (STATUS_FAILED(retStatus)) {
-            ESP_LOGW(TAG, "Failed to get ice config count, proceeding anyway...");
-            retStatus = STATUS_SUCCESS;
-            iceConfigCount = 0;
-        }
+        // Use the signaling interface to get ICE servers
+        CHK_STATUS(gWebRtcAppConfig.pSignalingClientInterface->getIceServers(
+            gSignalingClientData,
+            &pSampleConfiguration->iceUriCount,
+            &configuration));
+        DLOGD("Got %d ICE servers from signaling interface", pSampleConfiguration->iceUriCount);
+    } else {
+        // Fallback to hardcoded STUN servers
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN,
+                 "stun:stun.l.google.com:19302");
 
-        /* signalingClientGetIceConfigInfoCount can return more than one turn server. Use only one to optimize
-         * candidate gathering latency. But user can also choose to use more than 1 turn server. */
-        for (uriCount = 0, i = 0; i < maxTurnServer && i < iceConfigCount; i++) {
-            retStatus = signalingClientGetIceConfigInfo(pSampleConfiguration->signalingClientHandle, i, &pIceConfigInfo);
-            if (STATUS_FAILED(retStatus)) {
-                ESP_LOGW(TAG, "Failed to get ice config, proceeding anyway...");
-                retStatus = STATUS_SUCCESS;
-                break;
-            }
-            for (j = 0; j < pIceConfigInfo->uriCount; j++) {
-                CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
-                /*
-                 * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=udp" then ICE will try TURN over UDP
-                 * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
-                 * if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=udp", it's currently ignored because sdk dont do TURN
-                 * over DTLS yet. if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
-                 * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port" then ICE will try both TURN over UDP and TCP/TLS
-                 *
-                 * It's recommended to not pass too many TURN iceServers to configuration because it will slow down ice gathering in non-trickle mode.
-                 */
 
-                STRNCPY(configuration.iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
-                STRNCPY(configuration.iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
-                STRNCPY(configuration.iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
+        // Set the count of ICE servers
+        pSampleConfiguration->iceUriCount = 1;
 
-                uriCount++;
-            }
-        }
+        // Make sure credentials are empty for STUN
+        configuration.iceServers[0].username[0] = '\0';
+        configuration.iceServers[0].credential[0] = '\0';
+
+        DLOGD("Using hardcoded STUN servers");
     }
 
-    pSampleConfiguration->iceUriCount = uriCount + 1;
-    DLOGD("Total ICE servers configured: %d", pSampleConfiguration->iceUriCount);
+    // Log the ICE servers
+    for (int i = 0; i < pSampleConfiguration->iceUriCount; i++) {
+        DLOGD("ICE server %d: %s", i, configuration.iceServers[i].urls);
+    }
+    // ICE server count is now set by the getIceServers function or fallback
 
     // Check if we have any pregenerated certs and use them
     // NOTE: We are running under the config lock
@@ -848,6 +929,8 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     CHK_STATUS(initializePeerConnection(pSampleConfiguration, &pSampleStreamingSession->pPeerConnection));
 
     CHK_STATUS(peerConnectionOnIceCandidate(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession, onIceCandidateHandler));
+
+    DLOGD("Added onIceCandidateHandler handler to peerConnectionOnIceCandidate done");
 
     CHK_STATUS(
         peerConnectionOnConnectionStateChange(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession, onConnectionStateChange));
@@ -1023,6 +1106,11 @@ VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
 {
     UNUSED_PARAM(customData);
     DLOGV("received bitrate suggestion: %f", maximumBitrate);
+#if CONFIG_IDF_TARGET_ESP32P4
+    // FIXME: Do this via media_stream API
+    extern esp_err_t esp_h264_hw_enc_set_bitrate(uint32_t bitrate);
+    esp_h264_hw_enc_set_bitrate((uint32_t) maximumBitrate);
+#endif
 }
 
 // Sample callback for TWCC. Average packet is calculated with exponential moving average (EMA). If average packet lost is <= 5%,
@@ -1137,148 +1225,10 @@ STATUS traverseDirectoryPEMFileScan(UINT64 customData, DIR_ENTRY_TYPES entryType
     return STATUS_SUCCESS;
 }
 
-STATUS createCredentialProvider(PSampleConfiguration pSampleConfiguration, PAwsCredentialOptions pAwsCredentialOptions)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    BOOL isStreamingOnly = FALSE;
-    PCHAR pAccessKey = NULL, pSecretKey = NULL, pSessionToken = NULL;
-    PCHAR pIotCoreCredentialEndPoint = NULL, pIotCoreCert = NULL, pIotCorePrivateKey = NULL;
-    PCHAR pIotCoreRoleAlias = NULL, pIotCoreThingName = NULL;
 
-    CHK(pSampleConfiguration != NULL && pAwsCredentialOptions != NULL, STATUS_NULL_ARG);
-
-    // Check if we're in streaming-only mode (no signaling)
-    isStreamingOnly = (pSampleConfiguration->channelInfo.pChannelName == NULL);
-
-    // If in streaming-only mode, we don't need credentials
-    CHK(!isStreamingOnly, STATUS_SUCCESS);
-
-    // Make sure we don't already have a credential provider
-    if (pSampleConfiguration->pCredentialProvider != NULL) {
-        DLOGI("Credential provider already exists, skipping creation");
-        CHK(FALSE, STATUS_SUCCESS);
-    }
-
-    DLOGI("Creating credential provider with region: %s", pAwsCredentialOptions->region);
-    DLOGI("Channel name: %s", pSampleConfiguration->channelInfo.pChannelName);
-    DLOGI("Credential type: %s", pAwsCredentialOptions->enableIotCredentials ? "IoT Core" : "Static");
-
-    if (pAwsCredentialOptions->enableIotCredentials) {
-        // Use IoT Core credentials from the options
-        pIotCoreCredentialEndPoint = pAwsCredentialOptions->iotCoreCredentialEndpoint;
-        pIotCoreCert = pAwsCredentialOptions->iotCoreCert;
-        pIotCorePrivateKey = pAwsCredentialOptions->iotCorePrivateKey;
-        pIotCoreRoleAlias = pAwsCredentialOptions->iotCoreRoleAlias;
-        pIotCoreThingName = pAwsCredentialOptions->iotCoreThingName;
-
-        // Validate required fields
-        CHK_ERR(pIotCoreCredentialEndPoint != NULL && pIotCoreCredentialEndPoint[0] != '\0', STATUS_INVALID_OPERATION,
-                "IoT Core credential endpoint must be set");
-        CHK_ERR(pIotCoreCert != NULL && pIotCoreCert[0] != '\0', STATUS_INVALID_OPERATION,
-                "IoT Core certificate must be set");
-        CHK_ERR(pIotCorePrivateKey != NULL && pIotCorePrivateKey[0] != '\0', STATUS_INVALID_OPERATION,
-                "IoT Core private key must be set");
-        CHK_ERR(pIotCoreRoleAlias != NULL && pIotCoreRoleAlias[0] != '\0', STATUS_INVALID_OPERATION,
-                "IoT Core role alias must be set");
-        CHK_ERR(pIotCoreThingName != NULL && pIotCoreThingName[0] != '\0', STATUS_INVALID_OPERATION,
-                "IoT Core thing name must be set");
-
-        DLOGI("Creating IoT credential provider with endpoint: %s", pIotCoreCredentialEndPoint);
-        DLOGI("IoT Core thing name: %s, role alias: %s", pIotCoreThingName, pIotCoreRoleAlias);
-        DLOGI("Certificate path: %s", pIotCoreCert);
-        DLOGI("Private key path: %s", pIotCorePrivateKey);
-        DLOGI("CA cert path: %s", pSampleConfiguration->pCaCertPath);
-
-        // Try to read the certificate file to verify it exists and is accessible
-        BOOL cert_exists = FALSE;
-        if (fileExists(pIotCoreCert, &cert_exists) != STATUS_SUCCESS || !cert_exists) {
-            DLOGE("Failed to open certificate file: %s", pIotCoreCert);
-            CHK(FALSE, STATUS_INVALID_OPERATION);
-        } else {
-            DLOGI("Successfully verified certificate file exists and is readable");
-        }
-
-        // Try to read the private key file to verify it exists and is accessible
-        BOOL key_exists = FALSE;
-        if (fileExists(pIotCorePrivateKey, &key_exists) != STATUS_SUCCESS || !key_exists) {
-            DLOGE("Failed to open private key file: %s", pIotCorePrivateKey);
-            CHK(FALSE, STATUS_INVALID_OPERATION);
-        } else {
-            DLOGI("Successfully verified private key file exists and is readable");
-        }
-
-        // Try to read the CA cert file to verify it exists and is accessible
-        if (pSampleConfiguration->pCaCertPath != NULL) {
-            BOOL ca_exists = FALSE;
-            if (fileExists(pSampleConfiguration->pCaCertPath, &ca_exists) != STATUS_SUCCESS || !ca_exists) {
-                DLOGE("Failed to open CA cert file: %s", pSampleConfiguration->pCaCertPath);
-                CHK(FALSE, STATUS_INVALID_OPERATION);
-            } else {
-                DLOGI("Successfully verified CA cert file exists and is readable");
-            }
-        }
-
-        retStatus = createIotCredentialProvider(
-            pIotCoreCredentialEndPoint,
-            pAwsCredentialOptions->region,
-            pIotCoreCert,
-            pIotCorePrivateKey,
-            pSampleConfiguration->pCaCertPath,
-            pIotCoreRoleAlias,
-            pIotCoreThingName,
-            &pSampleConfiguration->pCredentialProvider);
-
-        if (STATUS_FAILED(retStatus)) {
-            DLOGE("Failed to create IoT credential provider: 0x%08x", retStatus);
-            if ((retStatus >> 24) == 0x52) {
-                DLOGE("This appears to be a networking error. Check network connectivity.");
-            } else if ((retStatus >> 24) == 0x50) {
-                DLOGE("This appears to be a platform error. Check certificate and key files.");
-            } else if ((retStatus >> 24) == 0x58) {
-                DLOGE("This appears to be a client error. Check IoT Core configuration.");
-            }
-            CHK(FALSE, retStatus);
-        }
-
-        DLOGI("IoT credential provider created successfully");
-    } else {
-        // Use direct AWS credentials from the options
-        pAccessKey = pAwsCredentialOptions->accessKey;
-        pSecretKey = pAwsCredentialOptions->secretKey;
-        pSessionToken = pAwsCredentialOptions->sessionToken;
-
-        // Validate required fields
-        CHK_ERR(pAccessKey != NULL && pAccessKey[0] != '\0', STATUS_INVALID_OPERATION,
-                "AWS access key must be set");
-        CHK_ERR(pSecretKey != NULL && pSecretKey[0] != '\0', STATUS_INVALID_OPERATION,
-                "AWS secret key must be set");
-
-        DLOGI("Creating static credential provider with access key ID: %.*s...", 4, pAccessKey);
-        retStatus = createStaticCredentialProvider(
-            pAccessKey,
-            0,
-            pSecretKey,
-            0,
-            pSessionToken,
-            0,
-            MAX_UINT64,
-            &pSampleConfiguration->pCredentialProvider);
-
-        if (STATUS_FAILED(retStatus)) {
-            DLOGE("Failed to create static credential provider: 0x%08x", retStatus);
-            CHK(FALSE, retStatus);
-        }
-
-        DLOGI("Static credential provider created successfully");
-    }
-
-CleanUp:
-    return retStatus;
-}
-
-// Now update the createSampleConfiguration function to remove credential provider creation
+// Configuration function without AWS credential options
 STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE roleType, BOOL trickleIce, BOOL useTurn, UINT32 logLevel,
-                                PAwsCredentialOptions pAwsCredentialOptions, PSampleConfiguration* ppSampleConfiguration)
+                                 BOOL signalingOnly, PSampleConfiguration* ppSampleConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = NULL;
@@ -1287,63 +1237,40 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 
     CHK(NULL != (pSampleConfiguration = (PSampleConfiguration) MEMCALLOC(1, SIZEOF(SampleConfiguration))), STATUS_NOT_ENOUGH_MEMORY);
 
-    pSampleConfiguration->pAwsCredentialOptions = (PAwsCredentialOptions) MEMCALLOC(1, SIZEOF(AwsCredentialOptions));
-    CHK(pSampleConfiguration->pAwsCredentialOptions != NULL, STATUS_NOT_ENOUGH_MEMORY);
-    MEMCPY(pSampleConfiguration->pAwsCredentialOptions, pAwsCredentialOptions, SIZEOF(AwsCredentialOptions));
-
+    // Store the log level
     SET_LOGGER_LOG_LEVEL(logLevel);
+    pSampleConfiguration->logLevel = logLevel;
 
-#if 0
-    // If the env is set, we generate normal log files apart from filtered profile log files
-    // If not set, we generate only the filtered profile log files
-    if (NULL != GETENV(ENABLE_FILE_LOGGING)) {
-        retStatus = createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH,
-                                                       TRUE, TRUE, TRUE, LOG_LEVEL_PROFILE, NULL);
-
-        if (retStatus != STATUS_SUCCESS) {
-            DLOGW("[KVS Master] createFileLogger(): operation returned status code: 0x%08x", retStatus);
-        } else {
-            pSampleConfiguration->enableFileLogging = TRUE;
-        }
-    } else {
-        retStatus = createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH,
-                                                       TRUE, TRUE, FALSE, LOG_LEVEL_PROFILE, NULL);
-
-        if (retStatus != STATUS_SUCCESS) {
-            DLOGW("[KVS Master] createFileLogger(): operation returned status code: 0x%08x", retStatus);
-        } else {
-            pSampleConfiguration->enableFileLogging = TRUE;
-        }
-    }
-#endif
-
-    pSampleConfiguration->channelInfo.pRegion = pAwsCredentialOptions->region;
-    pSampleConfiguration->pCaCertPath = pAwsCredentialOptions->caCertPath;
-
-    // Note: Credential provider creation moved to createCredentialProvider function
-
-    pSampleConfiguration->mediaSenderTid = INVALID_TID_VALUE;
-    pSampleConfiguration->audioSenderTid = INVALID_TID_VALUE;
-    pSampleConfiguration->videoSenderTid = INVALID_TID_VALUE;
-    pSampleConfiguration->signalingClientHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
+    // Initialize mutexes and condition variables
     pSampleConfiguration->sampleConfigurationObjLock = MUTEX_CREATE(TRUE);
     pSampleConfiguration->cvar = CVAR_CREATE();
     pSampleConfiguration->streamingSessionListReadLock = MUTEX_CREATE(FALSE);
     pSampleConfiguration->signalingSendMessageLock = MUTEX_CREATE(FALSE);
 
-    // Initialize player-related fields
-    pSampleConfiguration->video_player_handle = NULL;
-    pSampleConfiguration->audio_player_handle = NULL;
-    pSampleConfiguration->activePlayerSessionCount = 0;
-    pSampleConfiguration->playerLock = MUTEX_CREATE(TRUE);
+    // Only initialize player lock for streaming mode
+    if (!signalingOnly) {
+        pSampleConfiguration->playerLock = MUTEX_CREATE(TRUE);
+    } else {
+        pSampleConfiguration->playerLock = INVALID_MUTEX_VALUE;
+    }
 
-    /* This is ignored for master. Master can extract the info from offer. Viewer has to know if peer can trickle or
-     * not ahead of time. */
+    // Initialize thread IDs to invalid values
+    pSampleConfiguration->mediaSenderTid = INVALID_TID_VALUE;
+    pSampleConfiguration->audioSenderTid = INVALID_TID_VALUE;
+    pSampleConfiguration->videoSenderTid = INVALID_TID_VALUE;
+
+    // Only initialize player-related fields for streaming mode
+    if (!signalingOnly) {
+        pSampleConfiguration->video_player_handle = NULL;
+        pSampleConfiguration->audio_player_handle = NULL;
+        pSampleConfiguration->activePlayerSessionCount = 0;
+    }
+
+    // Set ICE configuration
     pSampleConfiguration->trickleIce = trickleIce;
     pSampleConfiguration->useTurn = useTurn;
-    pSampleConfiguration->enableSendingMetricsToViewerViaDc = FALSE;
-    pSampleConfiguration->receiveAudioVideoSource = NULL;
 
+    // Initialize channel info
     pSampleConfiguration->channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
     pSampleConfiguration->channelInfo.pChannelName = channelName;
     pSampleConfiguration->channelInfo.pKmsKeyId = NULL;
@@ -1351,31 +1278,24 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->channelInfo.pTags = NULL;
     pSampleConfiguration->channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     pSampleConfiguration->channelInfo.channelRoleType = roleType;
-    // pSampleConfiguration->channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_FILE;
     pSampleConfiguration->channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
     pSampleConfiguration->channelInfo.cachingPeriod = SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE;
-    pSampleConfiguration->channelInfo.asyncIceServerConfig = TRUE; // has no effect
+    pSampleConfiguration->channelInfo.asyncIceServerConfig = TRUE;
     pSampleConfiguration->channelInfo.retry = TRUE;
     pSampleConfiguration->channelInfo.reconnect = TRUE;
-    pSampleConfiguration->channelInfo.pCertPath = pSampleConfiguration->pCaCertPath;
-    pSampleConfiguration->channelInfo.messageTtl = 0; // Default is 60 seconds
 
-    pSampleConfiguration->signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
-    pSampleConfiguration->signalingClientCallbacks.errorReportFn = signalingClientError;
-    pSampleConfiguration->signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
-    pSampleConfiguration->signalingClientCallbacks.customData = (UINT64) pSampleConfiguration;
-
+    // Initialize client info
     pSampleConfiguration->clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
     pSampleConfiguration->clientInfo.loggingLevel = logLevel;
     pSampleConfiguration->clientInfo.cacheFilePath = NULL; // Use the default path
     pSampleConfiguration->clientInfo.signalingClientCreationMaxRetryAttempts = CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE;
+
+    // Initialize timers and metrics
     pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
     pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
     pSampleConfiguration->signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
 
-    // Flag to enable/disable TWCC
-    // pSampleConfiguration->enableTwcc = TRUE;
-
+    // Initialize atomic flags
     ATOMIC_STORE_BOOL(&pSampleConfiguration->interrupted, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, FALSE);
@@ -1385,13 +1305,11 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     // Set default media type to audio-video
     pSampleConfiguration->mediaType = APP_WEBRTC_MEDIA_AUDIO_VIDEO;
 
-    if (gWebRtcAppConfig.mode == APP_WEBRTC_SIGNALING_ONLY_MODE) {
-        // Optimization: We don't need to create a timer queue in signaling-only mode
-        DLOGI("Skipping timer queue creation in signaling-only mode");
-    } else {
-#define TIMER_QUEUE_THREAD_SIZE (8 * 1024) // I think even this is too much
+    // Only create timer queue and certificate pre-generation for streaming mode
+    if (!signalingOnly) {
+#define TIMER_QUEUE_THREAD_SIZE (8 * 1024)
+        // Create timer queue for ICE stats and certificate pre-generation
         timerQueueCreateEx(&pSampleConfiguration->timerQueueHandle, "pregenCertTmr", TIMER_QUEUE_THREAD_SIZE);
-
         CHK_STATUS(stackQueueCreate(&pSampleConfiguration->pregeneratedCertificates));
 
         // Start the cert pre-gen timer callback
@@ -1400,10 +1318,13 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
                             timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, 0, SAMPLE_PRE_GENERATE_CERT_PERIOD, pregenerateCertTimerCallback,
                                             (UINT64) pSampleConfiguration, &pSampleConfiguration->pregenerateCertTimerId));
         }
+    } else {
+        ESP_LOGI(TAG, "Signaling-only mode: Skipping timer queue and certificate pre-generation to save memory");
+        pSampleConfiguration->timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+        pSampleConfiguration->pregeneratedCertificates = NULL;
     }
 
-    pSampleConfiguration->iceUriCount = 0;
-
+    // Initialize queues and hash tables for signaling
     CHK_STATUS(stackQueueCreate(&pSampleConfiguration->pPendingSignalingMessageForRemoteClient));
     CHK_STATUS(hashTableCreateWithParams(SAMPLE_HASH_TABLE_BUCKET_COUNT, SAMPLE_HASH_TABLE_BUCKET_LENGTH,
                                          &pSampleConfiguration->pRtcPeerConnectionForRemoteClient));
@@ -1427,56 +1348,32 @@ STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
 {
     STATUS retStatus = STATUS_SUCCESS;
 
-    // For streaming-only mode, don't initialize signaling
-    if (pSampleConfiguration->channelInfo.pChannelName == NULL) {
-        ESP_LOGI(TAG, "Skipping signaling initialization for streaming-only mode");
-        return STATUS_SUCCESS;
+    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
+
+    // Check if we have a signaling client interface and data
+    if (gWebRtcAppConfig.pSignalingClientInterface != NULL && gSignalingClientData != NULL) {
+        ESP_LOGI(TAG, "Using provided signaling client interface");
+
+        // Set up callbacks for the signaling client
+        retStatus = gWebRtcAppConfig.pSignalingClientInterface->setCallbacks(
+            gSignalingClientData,
+            (uint64_t) pSampleConfiguration,
+            signalingMessageReceivedWrapper,
+            signalingClientStateChanged,
+            signalingClientError);
+
+        CHK_STATUS(retStatus);
+
+        // Store the client ID
+        STRCPY(pSampleConfiguration->clientInfo.clientId, clientId);
+
+        // Raise event that we're connecting
+        raiseEvent(APP_WEBRTC_EVENT_SIGNALING_CONNECTING, 0, NULL, "Using provided signaling client");
+    } else {
+        DLOGE("No signaling client interface provided");
+        CHK(FALSE, STATUS_INVALID_OPERATION);
     }
 
-    // Ensure credential provider is created before initializing signaling
-    if (pSampleConfiguration->pCredentialProvider == NULL) {
-        DLOGE("Credential provider is NULL, cannot initialize signaling");
-        return STATUS_INVALID_OPERATION;
-    }
-
-    SignalingClientMetrics signalingClientMetrics = pSampleConfiguration->signalingClientMetrics;
-    pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = signalingMessageReceived;
-    STRCPY(pSampleConfiguration->clientInfo.clientId, clientId);
-
-    ESP_LOGI(TAG, "Creating signaling client");
-    raiseEvent(APP_WEBRTC_EVENT_SIGNALING_CONNECTING, 0, NULL, "Creating signaling client");
-    CHK_STATUS(createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
-                                         &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
-                                         &pSampleConfiguration->signalingClientHandle));
-
-    ESP_LOGI(TAG, "Fetching signaling client");
-    raiseEvent(APP_WEBRTC_EVENT_SIGNALING_DESCRIBE, 0, NULL, "Fetching signaling client");
-    // Enable the processing of the messages
-    CHK_STATUS(signalingClientFetchSync(pSampleConfiguration->signalingClientHandle));
-
-    ESP_LOGI(TAG, "Connecting signaling client");
-    raiseEvent(APP_WEBRTC_EVENT_SIGNALING_CONNECTING, 0, NULL, "Connecting signaling client");
-    CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
-
-    ESP_LOGI(TAG, "Getting signaling client metrics");
-    signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &signalingClientMetrics);
-
-    // Logging this here since the logs in signaling library do not get routed to file
-    DLOGP("[Signaling Get token] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.getTokenCallTime);
-    DLOGP("[Signaling Describe] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.describeCallTime);
-    DLOGP("[Signaling Describe Media] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.describeMediaCallTime);
-    DLOGP("[Signaling Create Channel] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.createCallTime);
-    DLOGP("[Signaling Get endpoint] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.getEndpointCallTime);
-    DLOGP("[Signaling Get ICE config] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.getIceConfigCallTime);
-    DLOGP("[Signaling Connect] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.connectCallTime);
-    if (signalingClientMetrics.signalingClientStats.joinSessionCallTime != 0) {
-        DLOGP("[Signaling Join Session] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.joinSessionCallTime);
-    }
-    DLOGP("[Signaling create client] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.createClientTime);
-    DLOGP("[Signaling fetch client] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.fetchClientTime);
-    DLOGP("[Signaling connect client] %" PRIu64 " ms", signalingClientMetrics.signalingClientStats.connectClientTime);
-    pSampleConfiguration->signalingClientMetrics = signalingClientMetrics;
-    gSampleConfiguration = pSampleConfiguration;
 CleanUp:
     if (STATUS_FAILED(retStatus)) {
         raiseEvent(APP_WEBRTC_EVENT_SIGNALING_ERROR, retStatus, NULL, "Failed to initialize signaling");
@@ -1587,7 +1484,7 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     UINT64 data;
     StackQueueIterator iterator;
     BOOL locked = FALSE;
-    BOOL isStreamingOnly = FALSE;
+    // BOOL isStreamingOnly = FALSE;
 
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
     pSampleConfiguration = *ppSampleConfiguration;
@@ -1617,7 +1514,7 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         MUTEX_FREE(pSampleConfiguration->playerLock);
     }
     // Check if we're in streaming-only mode
-    isStreamingOnly = (pSampleConfiguration->channelInfo.pChannelName == NULL);
+    // isStreamingOnly = (pSampleConfiguration->channelInfo.pChannelName == NULL);
 
     if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
         if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
@@ -1701,16 +1598,7 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         CVAR_FREE(pSampleConfiguration->cvar);
     }
 
-    // Since, we use config to decide if we are using iot credentials, we need to free checking the flag
-    if (!isStreamingOnly && pSampleConfiguration->pCredentialProvider != NULL) {
-        if (pSampleConfiguration->pAwsCredentialOptions != NULL && pSampleConfiguration->pAwsCredentialOptions->enableIotCredentials) {
-            freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
-        } else {
-            freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);
-        }
-    }
-
-    SAFE_MEMFREE(pSampleConfiguration->pAwsCredentialOptions);
+    // AWS credential options are now handled by the signaling client
 
     if (pSampleConfiguration->pregeneratedCertificates != NULL) {
         stackQueueGetIterator(pSampleConfiguration->pregeneratedCertificates, &iterator);
@@ -1735,91 +1623,89 @@ CleanUp:
     return retStatus;
 }
 
-STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
+STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration, BOOL isSignalingOnly)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    BOOL sampleConfigurationObjLockLocked = FALSE, streamingSessionListReadLockLocked = FALSE;
     PSampleStreamingSession pSampleStreamingSession = NULL;
     UINT32 i, clientIdHash;
-    BOOL sampleConfigurationObjLockLocked = FALSE, streamingSessionListReadLockLocked = FALSE, peerConnectionFound = FALSE, sessionFreed = FALSE;
-    SIGNALING_CLIENT_STATE signalingClientState;
-    BOOL isStreamingOnly = FALSE;
+    BOOL sessionFreed = FALSE;
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
-    // Check if we're in streaming-only mode
-    isStreamingOnly = (gWebRtcAppConfig.mode == APP_WEBRTC_STREAMING_ONLY_MODE);
-
-    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted)) {
-        // Keep the main set of operations interlocked until cvar wait which would atomically unlock
+    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
+        // Get the signaling client state
         MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
         sampleConfigurationObjLockLocked = TRUE;
 
-        // scan and cleanup terminated streaming session
+        // Check for terminated streaming session
         for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
             if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->sampleStreamingSessionList[i]->terminateFlag)) {
                 pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[i];
 
+                // Remove from the hash table
+                clientIdHash = COMPUTE_CRC32((PBYTE) pSampleStreamingSession->peerId, (UINT32) STRLEN(pSampleStreamingSession->peerId));
+                CHK_STATUS(hashTableRemove(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash));
+
                 MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
                 streamingSessionListReadLockLocked = TRUE;
 
-                // swap with last element and decrement count
-                pSampleConfiguration->streamingSessionCount--;
-                pSampleConfiguration->sampleStreamingSessionList[i] =
-                    pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount];
-
-                // Remove from the hash table
-                clientIdHash = COMPUTE_CRC32((PBYTE) pSampleStreamingSession->peerId, (UINT32) STRLEN(pSampleStreamingSession->peerId));
-                CHK_STATUS(hashTableContains(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, &peerConnectionFound));
-                if (peerConnectionFound) {
-                    CHK_STATUS(hashTableRemove(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash));
+                // Remove from the array
+                for (UINT32 j = i; j < pSampleConfiguration->streamingSessionCount - 1; ++j) {
+                    pSampleConfiguration->sampleStreamingSessionList[j] = pSampleConfiguration->sampleStreamingSessionList[j + 1];
                 }
 
+                pSampleConfiguration->streamingSessionCount--;
                 MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
                 streamingSessionListReadLockLocked = FALSE;
 
-                CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
+                CHK_LOG_ERR(freeSampleStreamingSession(&pSampleStreamingSession));
                 sessionFreed = TRUE;
+
+                // Quit the for loop as we have modified the collection and the for loop iterator
+                break;
             }
         }
 
-        if (!isStreamingOnly && sessionFreed && pSampleConfiguration->channelInfo.useMediaStorage && !ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
+        // Check if we need to reconnect the signaling client for media storage
+        if (sessionFreed &&
+            pSampleConfiguration->channelInfo.useMediaStorage &&
+            gWebRtcAppConfig.pSignalingClientInterface != NULL &&
+            gSignalingClientData != NULL &&
+            !ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
             // In the WebRTC Media Storage Ingestion Case the backend will terminate the session after
-            // 1 hour.  The SDK needs to make a new JoinSession Call in order to receive a new
-            // offer from the backend.  We will create a new sample streaming session upon receipt of the
-            // offer.  The signalingClientConnectSync call will result in a JoinSession API call being made.
-            CHK_STATUS(signalingClientDisconnectSync(pSampleConfiguration->signalingClientHandle));
-            CHK_STATUS(signalingClientFetchSync(pSampleConfiguration->signalingClientHandle));
-            CHK_STATUS(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
+            // 1 hour. The SDK needs to reconnect to receive a new offer from the backend.
+            CHK_STATUS(gWebRtcAppConfig.pSignalingClientInterface->disconnect(gSignalingClientData));
+            CHK_STATUS(gWebRtcAppConfig.pSignalingClientInterface->connect(gSignalingClientData));
             sessionFreed = FALSE;
         }
 
         // Check if we need to re-create the signaling client on-the-fly
-        if (!isStreamingOnly && ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
-            retStatus = signalingClientFetchSync(pSampleConfiguration->signalingClientHandle);
+        if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient) &&
+            gWebRtcAppConfig.pSignalingClientInterface != NULL &&
+            gSignalingClientData != NULL) {
+
+            DLOGI("Reconnecting signaling client");
+
+            // Disconnect and reconnect
+            CHK_STATUS(gWebRtcAppConfig.pSignalingClientInterface->disconnect(gSignalingClientData));
+            retStatus = gWebRtcAppConfig.pSignalingClientInterface->connect(gSignalingClientData);
+
             if (STATUS_SUCCEEDED(retStatus)) {
                 // Re-set the variable again
                 ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
-            } else if (signalingCallFailed(retStatus)) {
-                printf("[KVS Common] recreating Signaling Client\n");
-                freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
-                createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
-                                          &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
-                                          &pSampleConfiguration->signalingClientHandle);
+            } else {
+                DLOGE("Failed to reconnect signaling client: 0x%08x", retStatus);
+                // Reset status to avoid breaking the loop
+                retStatus = STATUS_SUCCESS;
             }
         }
 
-        // Check the signaling client state and connect if needed
-        if (!isStreamingOnly && IS_VALID_SIGNALING_CLIENT_HANDLE(pSampleConfiguration->signalingClientHandle)) {
-            CHK_STATUS(signalingClientGetCurrentState(pSampleConfiguration->signalingClientHandle, &signalingClientState));
-            if (signalingClientState == SIGNALING_CLIENT_STATE_READY) {
-                UNUSED_PARAM(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
-            }
+        if (!isSignalingOnly) {
+            // Check if any lingering pending message queues
+            CHK_STATUS(removeExpiredMessageQueues(pSampleConfiguration->pPendingSignalingMessageForRemoteClient));
         }
-
-        // Check if any lingering pending message queues
-        CHK_STATUS(removeExpiredMessageQueues(pSampleConfiguration->pPendingSignalingMessageForRemoteClient));
-
         // periodically wake up and clean up terminated streaming session
         CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, SAMPLE_SESSION_CLEANUP_WAIT_PERIOD);
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
@@ -1874,46 +1760,137 @@ CleanUp:
     return retStatus;
 }
 
+/**
+ * @brief Wrapper function to adapt portable signaling interface to KVS SDK format
+ *
+ * This function converts esp_webrtc_signaling_message_t to PReceivedSignalingMessage
+ * and calls the actual signalingMessageReceived function.
+ */
+static WEBRTC_STATUS signalingMessageReceivedWrapper(uint64_t customData, esp_webrtc_signaling_message_t* pWebRtcMessage)
+{
+    STATUS kvsStatus = STATUS_SUCCESS;
+
+    if (pWebRtcMessage == NULL) {
+        return WEBRTC_STATUS_NULL_ARG;
+    }
+
+    // In split mode, forward messages from signaling server to bridge via callback
+    // Convert directly from esp_webrtc_signaling_message_t to signaling_msg_t (no extra conversions)
+    if (g_sendMessageCallback != NULL) {
+        signaling_msg_t splitModeMessage = {0};
+
+        ESP_LOGI(TAG, "Split mode: Forwarding message from signaling server to bridge");
+
+        // Convert esp_webrtc_signaling_message_t to signaling_msg_t format for bridge
+        splitModeMessage.version = pWebRtcMessage->version;
+
+        switch (pWebRtcMessage->message_type) {
+            case ESP_SIGNALING_MESSAGE_TYPE_OFFER:
+                splitModeMessage.messageType = SIGNALING_MSG_TYPE_OFFER;
+                break;
+            case ESP_SIGNALING_MESSAGE_TYPE_ANSWER:
+                splitModeMessage.messageType = SIGNALING_MSG_TYPE_ANSWER;
+                break;
+            case ESP_SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE:
+                splitModeMessage.messageType = SIGNALING_MSG_TYPE_ICE_CANDIDATE;
+                break;
+            default:
+                ESP_LOGW(TAG, "Unknown signaling message type: %d", pWebRtcMessage->message_type);
+                return WEBRTC_STATUS_INVALID_ARG;
+        }
+
+        STRNCPY(splitModeMessage.correlationId, pWebRtcMessage->correlation_id, SS_MAX_CORRELATION_ID_LEN);
+        splitModeMessage.correlationId[SS_MAX_CORRELATION_ID_LEN] = '\0';
+        STRNCPY(splitModeMessage.peerClientId, pWebRtcMessage->peer_client_id, SS_MAX_SIGNALING_CLIENT_ID_LEN);
+        splitModeMessage.peerClientId[SS_MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
+        splitModeMessage.payload = pWebRtcMessage->payload;
+        splitModeMessage.payloadLen = pWebRtcMessage->payload_len;
+
+        ESP_LOGI(TAG, "Forwarding message type %d from peer %s to bridge",
+                 splitModeMessage.messageType, splitModeMessage.peerClientId);
+
+        // Call the split mode callback to send to bridge
+        int callbackResult = g_sendMessageCallback(&splitModeMessage);
+        if (callbackResult != 0) {
+            ESP_LOGE(TAG, "Split mode callback failed: %d", callbackResult);
+            return WEBRTC_STATUS_INTERNAL_ERROR;
+        }
+
+        ESP_LOGI(TAG, "Successfully forwarded message to bridge");
+        return WEBRTC_STATUS_SUCCESS; // Exit early in split mode - message forwarded to bridge
+    }
+
+    // Normal processing when not in split mode - convert to ReceivedSignalingMessage
+    ReceivedSignalingMessage receivedMessage;
+
+    // Initialize the received message structure
+    memset(&receivedMessage, 0, sizeof(ReceivedSignalingMessage));
+
+    // Convert message type
+    switch (pWebRtcMessage->message_type) {
+        case ESP_SIGNALING_MESSAGE_TYPE_OFFER:
+            receivedMessage.signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
+            break;
+        case ESP_SIGNALING_MESSAGE_TYPE_ANSWER:
+            receivedMessage.signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
+            break;
+        case ESP_SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE:
+            receivedMessage.signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
+            break;
+        default:
+            DLOGE("Unknown message type: %d", pWebRtcMessage->message_type);
+            return WEBRTC_STATUS_INVALID_ARG;
+    }
+
+    // Copy message data
+    receivedMessage.signalingMessage.version = pWebRtcMessage->version;
+    strncpy(receivedMessage.signalingMessage.correlationId, pWebRtcMessage->correlation_id, MAX_CORRELATION_ID_LEN);
+    receivedMessage.signalingMessage.correlationId[MAX_CORRELATION_ID_LEN] = '\0';
+    strncpy(receivedMessage.signalingMessage.peerClientId, pWebRtcMessage->peer_client_id, MAX_SIGNALING_CLIENT_ID_LEN);
+    receivedMessage.signalingMessage.peerClientId[MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
+
+    // Copy payload
+    receivedMessage.signalingMessage.payloadLen = pWebRtcMessage->payload_len;
+    if (pWebRtcMessage->payload != NULL && pWebRtcMessage->payload_len > 0) {
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+        receivedMessage.signalingMessage.payload = pWebRtcMessage->payload;
+#else
+        if (pWebRtcMessage->payload_len <= MAX_SIGNALING_MESSAGE_LEN) {
+            memcpy(receivedMessage.signalingMessage.payload, pWebRtcMessage->payload, pWebRtcMessage->payload_len);
+            receivedMessage.signalingMessage.payload[pWebRtcMessage->payload_len] = '\0';
+        } else {
+            DLOGE("Payload too large: %d > %d", pWebRtcMessage->payload_len, MAX_SIGNALING_MESSAGE_LEN);
+            return WEBRTC_STATUS_INVALID_ARG;
+        }
+#endif
+    }
+
+    // Set successful status
+    receivedMessage.statusCode = SERVICE_CALL_RESULT_OK;
+    receivedMessage.errorType[0] = '\0';
+    receivedMessage.description[0] = '\0';
+
+    // Call the actual KVS signaling function
+    kvsStatus = signalingMessageReceived((UINT64)customData, &receivedMessage);
+
+    // Convert STATUS to WEBRTC_STATUS
+    return (kvsStatus == STATUS_SUCCESS) ? WEBRTC_STATUS_SUCCESS : WEBRTC_STATUS_INTERNAL_ERROR;
+}
+
 STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
+
+    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
+
+    // Normal processing (split mode is handled in wrapper)
     BOOL peerConnectionFound = FALSE, locked = FALSE, startStats = FALSE, freeStreamingSession = FALSE;
     UINT32 clientIdHash;
     UINT64 hashValue = 0;
     PPendingMessageQueue pPendingMessageQueue = NULL;
     PSampleStreamingSession pSampleStreamingSession = NULL;
     PReceivedSignalingMessage pReceivedSignalingMessageCopy = NULL;
-
-    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
-
-    // Check if we're in signaling-only mode by configuration
-    if (gWebRtcAppConfig.mode == APP_WEBRTC_SIGNALING_ONLY_MODE && g_send_message_callback != NULL) {
-        DLOGD("Signaling only mode: received message type %d", pReceivedSignalingMessage->signalingMessage.messageType);
-
-        // Forward message directly to host without creating a streaming session
-        switch (pReceivedSignalingMessage->signalingMessage.messageType) {
-            case SIGNALING_MESSAGE_TYPE_OFFER:
-                DLOGI("Received OFFER in signaling-only mode");
-                raiseEvent(APP_WEBRTC_EVENT_RECEIVED_OFFER, 0,
-                           pReceivedSignalingMessage->signalingMessage.peerClientId,
-                           "Received offer in signaling-only mode");
-                /* fall-through */
-            case SIGNALING_MESSAGE_TYPE_ANSWER:
-                /* fall-through */
-            case SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE: {
-                CHK_STATUS(sendMessageToAppCallback(&pReceivedSignalingMessage->signalingMessage));
-                return retStatus;
-            }
-            default:
-                DLOGW("Unhandled signaling message type %u in signaling-only mode",
-                      pReceivedSignalingMessage->signalingMessage.messageType);
-                break;
-        }
-
-        // For signaling-only mode, we don't process further
-        return retStatus;
-    }
 
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     locked = TRUE;
@@ -1951,14 +1928,8 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
                 CHK(FALSE, retStatus);
             }
 
-            if (gWebRtcAppConfig.mode == APP_WEBRTC_SIGNALING_ONLY_MODE) {
-                // In signaling-only mode, we don't create streaming sessions
-                DLOGI("Skipping streaming session creation in signaling-only mode");
-                CHK(FALSE, retStatus);
-            } else {
-                CHK_STATUS(createSampleStreamingSession(pSampleConfiguration, pReceivedSignalingMessage->signalingMessage.peerClientId, TRUE,
-                                                        &pSampleStreamingSession));
-            }
+            CHK_STATUS(createSampleStreamingSession(pSampleConfiguration, pReceivedSignalingMessage->signalingMessage.peerClientId, TRUE,
+                                                    &pSampleStreamingSession));
 
             freeStreamingSession = TRUE;
             CHK_STATUS(handleOffer(pSampleConfiguration, pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
@@ -2109,95 +2080,6 @@ CleanUp:
     }
 
     CHK_LOG_ERR(retStatus);
-    return retStatus;
-}
-
-int webrtcAppRegisterSendMessageCallback(app_webrtc_send_msg_cb_t callback)
-{
-    g_send_message_callback = callback;
-    return 0;
-}
-
-int webrtcAppSignalingMessageReceived(signaling_msg_t *signalingMessage)
-{
-    int retStatus = 0;
-    PSampleConfiguration pSampleConfiguration = gSampleConfiguration;
-    PReceivedSignalingMessage pReceivedSignalingMessage = NULL;
-
-    CHK(signalingMessage != NULL, -1);
-
-    pReceivedSignalingMessage = (PReceivedSignalingMessage) MEMCALLOC(1, SIZEOF(ReceivedSignalingMessage));
-    CHK(pReceivedSignalingMessage != NULL, -1);
-
-    /* Convert from signaling_msg_t to ReceivedSignalingMessage */
-    pReceivedSignalingMessage->signalingMessage.version = signalingMessage->version;
-
-    /* Convert message type */
-    switch (signalingMessage->messageType) {
-        case SIGNALING_MSG_TYPE_OFFER:
-            pReceivedSignalingMessage->signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
-            break;
-        case SIGNALING_MSG_TYPE_ANSWER:
-            pReceivedSignalingMessage->signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
-            break;
-        case SIGNALING_MSG_TYPE_ICE_CANDIDATE:
-            pReceivedSignalingMessage->signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
-            break;
-        default:
-            printf("Unknown message type: %d\n", signalingMessage->messageType);
-            goto CleanUp;
-    }
-
-    /* Copy correlation ID */
-    STRNCPY(pReceivedSignalingMessage->signalingMessage.correlationId, signalingMessage->correlationId, MAX_CORRELATION_ID_LEN);
-
-    /* Copy peer client ID */
-    STRNCPY(pReceivedSignalingMessage->signalingMessage.peerClientId, signalingMessage->peerClientId, MAX_SIGNALING_CLIENT_ID_LEN);
-
-    /* Copy payload if available */
-    if (signalingMessage->payload != NULL && signalingMessage->payloadLen > 0) {
-#if DYNAMIC_SIGNALING_PAYLOAD
-        pReceivedSignalingMessage->signalingMessage.payload = signalingMessage->payload;
-        signalingMessage->payload = NULL; // Take the ownership of the payload
-#else
-        STRNCPY(pReceivedSignalingMessage->signalingMessage.payload, signalingMessage->payload, signalingMessage->payloadLen);
-        pReceivedSignalingMessage->signalingMessage.payload[signalingMessage->payloadLen] = '\0';
-#endif
-        pReceivedSignalingMessage->signalingMessage.payloadLen = signalingMessage->payloadLen;
-
-    } else {
-#if DYNAMIC_SIGNALING_PAYLOAD
-        pReceivedSignalingMessage->signalingMessage.payload = NULL;
-#else
-        pReceivedSignalingMessage->signalingMessage.payload[0] = '\0';
-#endif
-        pReceivedSignalingMessage->signalingMessage.payloadLen = 0;
-    }
-
-    if (gWebRtcAppConfig.mode == APP_WEBRTC_STREAMING_ONLY_MODE) {
-        // Pass this message to the SDK
-        retStatus = signalingMessageReceived((UINT64) pSampleConfiguration, pReceivedSignalingMessage);
-    } else {
-        // Send this message to the signaling server
-        PSignalingMessage pMessage = (PSignalingMessage) &pReceivedSignalingMessage->signalingMessage;
-        CHK_STATUS(signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, pMessage));
-        if (pMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
-            CHK_STATUS(signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &pSampleConfiguration->signalingClientMetrics));
-            DLOGP("[Signaling offer received to answer sent time] %" PRIu64 " ms",
-                    pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerToAnswerTime);
-        }
-    }
-
-CleanUp:
-
-    if (pReceivedSignalingMessage) {
-#if DYNAMIC_SIGNALING_PAYLOAD
-        // Free the payload if it is not NULL
-        SAFE_MEMFREE(pReceivedSignalingMessage->signalingMessage.payload);
-#endif
-        SAFE_MEMFREE(pReceivedSignalingMessage);
-    }
-
     return retStatus;
 }
 
@@ -2510,7 +2392,6 @@ STATUS webrtcAppInit(PWebRtcAppConfig pConfig)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = NULL;
-    AwsCredentialOptions awsCredentialOptions = {0};
 
     CHK(pConfig != NULL, STATUS_NULL_ARG);
     CHK(!gWebRtcAppInitialized, STATUS_INVALID_OPERATION);
@@ -2525,121 +2406,61 @@ STATUS webrtcAppInit(PWebRtcAppConfig pConfig)
     // Store the config in our global structure
     MEMCPY(&gWebRtcAppConfig, pConfig, SIZEOF(WebRtcAppConfig));
 
-    // Set up AWS credential options
-    awsCredentialOptions.enableIotCredentials = pConfig->useIotCredentials;
-
-    if (pConfig->mode != APP_WEBRTC_STREAMING_ONLY_MODE && pConfig->useIotCredentials) {
-        // Configure IoT Core credentials
-        awsCredentialOptions.iotCoreCredentialEndpoint = pConfig->iotCoreCredentialEndpoint;
-        awsCredentialOptions.iotCoreCert = pConfig->iotCoreCert;
-        awsCredentialOptions.iotCorePrivateKey = pConfig->iotCorePrivateKey;
-        awsCredentialOptions.iotCoreRoleAlias = pConfig->iotCoreRoleAlias;
-        awsCredentialOptions.iotCoreThingName = pConfig->iotCoreThingName;
-
-        // Validate IoT Core credentials are provided
-        if (pConfig->iotCoreCredentialEndpoint == NULL || pConfig->iotCoreCredentialEndpoint[0] == '\0' ||
-            pConfig->iotCoreCert == NULL || pConfig->iotCoreCert[0] == '\0' ||
-            pConfig->iotCorePrivateKey == NULL || pConfig->iotCorePrivateKey[0] == '\0' ||
-            pConfig->iotCoreRoleAlias == NULL || pConfig->iotCoreRoleAlias[0] == '\0' ||
-            pConfig->iotCoreThingName == NULL || pConfig->iotCoreThingName[0] == '\0') {
-            DLOGE("IoT Core credentials are not properly configured");
-            goto CleanUp;
-        }
-    } else if (pConfig->mode != APP_WEBRTC_STREAMING_ONLY_MODE) {
-        // Configure direct AWS credentials
-        awsCredentialOptions.accessKey = pConfig->awsAccessKey;
-        awsCredentialOptions.secretKey = pConfig->awsSecretKey;
-        awsCredentialOptions.sessionToken = pConfig->awsSessionToken;
-
-        // Validate static credentials are provided
-        if (pConfig->awsAccessKey == NULL || pConfig->awsAccessKey[0] == '\0' ||
-            pConfig->awsSecretKey == NULL || pConfig->awsSecretKey[0] == '\0') {
-
-            DLOGE("Static AWS credentials are not properly configured but useIotCredentials is FALSE");
-            goto CleanUp;
-        }
-    }
-
-    // Set common AWS options
-    awsCredentialOptions.region = pConfig->awsRegion;
-    awsCredentialOptions.caCertPath = pConfig->caCertPath;
-    awsCredentialOptions.logLevel = pConfig->logLevel;
-
-    // Initialize KVS WebRTC
-    DLOGI("Creating WebRTC sample configuration");
-    CHK_STATUS(createSampleConfiguration(
-        pConfig->pChannelName,
-        pConfig->roleType,
-        TRUE, // trickleIce
-        pConfig->useTurn,
-        pConfig->logLevel,
-        &awsCredentialOptions,
-        &pSampleConfiguration
-    ));
-
-    // Map the media type from WebRtcAppConfig to SampleConfiguration
-    pSampleConfiguration->mediaType = pConfig->mediaType;
-
-    // Set the codecs explicitly
-    pSampleConfiguration->videoCodec = pConfig->videoCodec;
-    pSampleConfiguration->audioCodec = pConfig->audioCodec;
-
-    // Store media capture interfaces
-    pSampleConfiguration->videoCapture = pConfig->videoCapture;
-    pSampleConfiguration->audioCapture = pConfig->audioCapture;
-
-    // Store media player interfaces
-    pSampleConfiguration->videoPlayer = pConfig->videoPlayer;
-    pSampleConfiguration->audioPlayer = pConfig->audioPlayer;
-
-    // Store media reception flag
-    pSampleConfiguration->receiveMedia = pConfig->receiveMedia;
-
-    // Disable media storage for simplicity
-    pSampleConfiguration->channelInfo.useMediaStorage = FALSE;
-
-    // Handle signaling-only mode
-    if (pConfig->mode == APP_WEBRTC_SIGNALING_ONLY_MODE) {
-        DLOGI("Initializing in signaling-only mode");
-        // In signaling-only mode, we don't initialize media sources
-        pSampleConfiguration->audioSource = NULL;
-        pSampleConfiguration->videoSource = NULL;
-    } else {
-        DLOGI("Initializing KVS WebRTC stack");
-
-        // Initialize media sources based on media type
-        if (pSampleConfiguration->mediaType == APP_WEBRTC_MEDIA_VIDEO ||
-            pSampleConfiguration->mediaType == APP_WEBRTC_MEDIA_AUDIO_VIDEO) {
-            pSampleConfiguration->videoSource = sendVideoFramesFromCamera;
-        }
-
-        if (pSampleConfiguration->mediaType == APP_WEBRTC_MEDIA_AUDIO_VIDEO) {
-            pSampleConfiguration->audioSource = sendAudioFramesFromMic;
-        }
-
-        if (pSampleConfiguration->receiveMedia) {
-            // Set the receive callback
-            pSampleConfiguration->receiveAudioVideoSource = sampleReceiveAudioVideoFrame;
-        }
-
-        // Initialize KVS WebRTC
+    // Initialize KVS WebRTC library - this must be done before any other WebRTC operations
+    if (!pConfig->signalingOnly) {
         CHK_STATUS(initKvsWebRtc());
+        DLOGI("KVS WebRTC library initialized successfully");
+    } else {
+        DLOGI("Skipping KVS WebRTC library initialization for signaling-only mode");
     }
 
-#ifndef CONFIG_USE_ESP_WEBSOCKET_CLIENT
-    // Custom allocator for libwebsockets
-    lws_set_allocator(realloc_wrapper);
-#endif
+    // Initialize the event callback mutex if not already done
+    if (!IS_VALID_MUTEX_VALUE(gEventCallbackLock)) {
+        gEventCallbackLock = MUTEX_CREATE(FALSE);
+    }
 
-#ifdef ENABLE_DATA_CHANNEL
-    pSampleConfiguration->onDataChannel = onDataChannel;
-#endif
+    // Create the sample configuration
+    CHK_STATUS(createSampleConfiguration(NULL, pConfig->roleType,
+                                         pConfig->trickleIce, pConfig->useTurn,
+                                         pConfig->logLevel, pConfig->signalingOnly, &pSampleConfiguration));
 
-    // Store the sample configuration globally
+    // Store the sample configuration for later use
     gSampleConfiguration = pSampleConfiguration;
 
-    // Set as initialized but not yet running
+    pSampleConfiguration->mediaType = pConfig->mediaType;
+
+    // Set the audio and video codecs
+    pSampleConfiguration->audioCodec = pConfig->audioCodec;
+    pSampleConfiguration->videoCodec = pConfig->videoCodec;
+
+    // Configure media capture interfaces if provided
+    if (pConfig->videoCapture != NULL) {
+        pSampleConfiguration->videoCapture = pConfig->videoCapture;
+    }
+
+    if (pConfig->audioCapture != NULL) {
+        pSampleConfiguration->audioCapture = pConfig->audioCapture;
+    }
+
+    // Configure media player interfaces if provided
+    if (pConfig->videoPlayer != NULL) {
+        pSampleConfiguration->videoPlayer = pConfig->videoPlayer;
+    }
+
+    if (pConfig->audioPlayer != NULL) {
+        pSampleConfiguration->audioPlayer = pConfig->audioPlayer;
+    }
+
+    // Configure media reception
+    pSampleConfiguration->receiveMedia = pConfig->receiveMedia;
+
+    // Set the WebRTC app as initialized
     gWebRtcAppInitialized = TRUE;
+
+    // Raise the initialized event
+    raiseEvent(APP_WEBRTC_EVENT_INITIALIZED, STATUS_SUCCESS, NULL, "WebRTC app initialized successfully");
+
+    DLOGI("WebRTC app initialized successfully");
 
 CleanUp:
     if (STATUS_FAILED(retStatus)) {
@@ -2664,37 +2485,69 @@ static void webrtcAppRunTask(void *pvParameters)
 
     DLOGI("Running WebRTC application in task");
 
-    // Create credential provider if not in streaming-only mode
-    if (gWebRtcAppConfig.mode != APP_WEBRTC_STREAMING_ONLY_MODE) {
-        // Credential provider creation moved to webrtcAppInit
-        // DLOGI("Creating credential provider");
-        retStatus = createCredentialProvider(gSampleConfiguration, gSampleConfiguration->pAwsCredentialOptions);
+    // Initialize signaling client using the provided interface and config
+    if (gWebRtcAppConfig.pSignalingClientInterface != NULL && gWebRtcAppConfig.pSignalingConfig != NULL) {
+        DLOGI("Initializing signaling client using interface");
+
+        // Initialize the signaling client using the interface and opaque config
+        retStatus = gWebRtcAppConfig.pSignalingClientInterface->init(
+            gWebRtcAppConfig.pSignalingConfig,
+            &gSignalingClientData);
+
         if (STATUS_FAILED(retStatus)) {
-            DLOGE("Failed to create credential provider: 0x%08x", retStatus);
+            DLOGE("Failed to initialize signaling client: 0x%08x", retStatus);
             CHK(FALSE, retStatus);
         }
 
-        DLOGI("Initializing signaling client");
-        // Initialize signaling client with a client ID based on role type
-        retStatus = initSignaling(
-            gSampleConfiguration,
-            gWebRtcAppConfig.roleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER ? SAMPLE_VIEWER_CLIENT_ID : SAMPLE_MASTER_CLIENT_ID
-        );
-        if (STATUS_FAILED(retStatus)) {
-            DLOGE("Failed to initialize signaling: 0x%08x", retStatus);
-            CHK(FALSE, retStatus);
+        DLOGI("Signaling client initialized successfully");
+
+        // Set the role type for the signaling client
+        if (gWebRtcAppConfig.pSignalingClientInterface->setRoleType != NULL) {
+            DLOGI("Setting signaling client role type: %d", gWebRtcAppConfig.roleType);
+            retStatus = gWebRtcAppConfig.pSignalingClientInterface->setRoleType(
+                gSignalingClientData,
+                gWebRtcAppConfig.roleType);
+
+            if (STATUS_FAILED(retStatus)) {
+                DLOGE("Failed to set signaling client role type: 0x%08x", retStatus);
+                CHK(FALSE, retStatus);
+            }
+        }
+
+        // Set up callbacks
+        if (gWebRtcAppConfig.pSignalingClientInterface->setCallbacks != NULL) {
+            DLOGI("Setting up signaling callbacks");
+            retStatus = gWebRtcAppConfig.pSignalingClientInterface->setCallbacks(
+                gSignalingClientData,
+                (uint64_t) gSampleConfiguration,
+                signalingMessageReceivedWrapper,
+                signalingClientStateChanged,
+                signalingClientError);
+
+            if (STATUS_FAILED(retStatus)) {
+                DLOGE("Failed to set signaling callbacks: 0x%08x", retStatus);
+                CHK(FALSE, retStatus);
+            }
+        }
+
+        // Connect the signaling client
+        if (gWebRtcAppConfig.pSignalingClientInterface->connect != NULL) {
+            DLOGI("Connecting signaling client");
+            retStatus = gWebRtcAppConfig.pSignalingClientInterface->connect(gSignalingClientData);
+
+            if (STATUS_FAILED(retStatus)) {
+                DLOGE("Failed to connect signaling client: 0x%08x", retStatus);
+                CHK(FALSE, retStatus);
+            }
+
+            DLOGI("Signaling client connected successfully");
         }
     } else {
-        DLOGI("Streaming only mode, skipping credential provider and signaling initialization");
-    }
-
-    if (gWebRtcAppConfig.mode == APP_WEBRTC_STREAMING_ONLY_MODE) {
-        // DLOGI("Streaming only mode, skipping termination wait");
-        // goto CleanUp;
+        DLOGI("No signaling client interface or config provided, running in streaming-only mode");
     }
 
     // Wait for termination
-    sessionCleanupWait(gSampleConfiguration);
+    sessionCleanupWait(gSampleConfiguration, gWebRtcAppConfig.signalingOnly);
     DLOGI("WebRTC app terminated");
 
 CleanUp:
@@ -2800,13 +2653,47 @@ STATUS webrtcAppTerminate(VOID)
             THREAD_JOIN(gSampleConfiguration->mediaSenderTid, NULL);
         }
 
-        // Free resources
-        freeSignalingClient(&gSampleConfiguration->signalingClientHandle);
+        // Disconnect signaling client if available
+        if (gWebRtcAppConfig.pSignalingClientInterface != NULL &&
+            gSignalingClientData != NULL &&
+            gWebRtcAppConfig.pSignalingClientInterface->disconnect != NULL) {
+
+            DLOGI("Disconnecting signaling client");
+            retStatus = gWebRtcAppConfig.pSignalingClientInterface->disconnect(gSignalingClientData);
+
+            if (STATUS_FAILED(retStatus)) {
+                DLOGW("Failed to disconnect signaling client: 0x%08x", retStatus);
+                // Continue with termination even if disconnect fails
+                retStatus = STATUS_SUCCESS;
+            } else {
+                DLOGI("Signaling client disconnected successfully");
+            }
+        }
+
+        // Free signaling client if available
+        if (gWebRtcAppConfig.pSignalingClientInterface != NULL &&
+            gSignalingClientData != NULL &&
+            gWebRtcAppConfig.pSignalingClientInterface->free != NULL) {
+
+            DLOGI("Freeing signaling client");
+            retStatus = gWebRtcAppConfig.pSignalingClientInterface->free(gSignalingClientData);
+
+            if (STATUS_FAILED(retStatus)) {
+                DLOGW("Failed to free signaling client: 0x%08x", retStatus);
+                // Continue with termination even if free fails
+                retStatus = STATUS_SUCCESS;
+            } else {
+                DLOGI("Signaling client freed successfully");
+            }
+        }
+
+        // Free sample configuration
         freeSampleConfiguration(&gSampleConfiguration);
     }
 
     // Reset state
     gWebRtcAppInitialized = FALSE;
+    gSignalingClientData = NULL;
     MEMSET(&gWebRtcAppConfig, 0, SIZEOF(WebRtcAppConfig));
 
     DLOGI("WebRTC app terminated successfully");
@@ -2864,6 +2751,9 @@ STATUS webrtcAppSendVideoFrame(PBYTE frame_data, UINT32 frame_size, UINT64 times
             retStatus = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &frame);
             if (STATUS_FAILED(retStatus)) {
                 ESP_LOGW(TAG, "writeFrame for video failed with 0x%08" PRIx32 , retStatus);
+            }
+            if (retStatus == STATUS_SRTP_NOT_READY_YET) {
+                vTaskDelay(pdMS_TO_TICKS(100));
                 retStatus = STATUS_SUCCESS;
             }
         }
@@ -2910,6 +2800,9 @@ STATUS webrtcAppSendAudioFrame(PBYTE frame_data, UINT32 frame_size, UINT64 times
             retStatus = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pAudioRtcRtpTransceiver, &frame);
             if (STATUS_FAILED(retStatus)) {
                 ESP_LOGW(TAG, "writeFrame for audio failed with 0x%08" PRIx32 , retStatus);
+            }
+            if (retStatus == STATUS_SRTP_NOT_READY_YET) {
+                vTaskDelay(pdMS_TO_TICKS(100));
                 retStatus = STATUS_SUCCESS;
             }
         }
@@ -2929,12 +2822,14 @@ PVOID sendVideoFramesFromCamera(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
-    UINT64 lastFrameTime = GETTIME();
+    UINT64 refTime = GETTIME();
+    UINT64 nextFrameTime = refTime;
     media_stream_video_capture_t *video_capture = NULL;
     video_capture_handle_t video_handle = NULL;
     video_frame_t *video_frame = NULL;
     const uint32_t fps = 30;
-    const uint32_t frame_duration_ms = 1000 / fps;
+    // Use precise frame duration to avoid timing drift
+    const UINT64 frame_duration_100ns = HUNDREDS_OF_NANOS_IN_A_SECOND / fps; // Precise: 333,333.33 * 100ns units
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
@@ -2965,14 +2860,20 @@ PVOID sendVideoFramesFromCamera(PVOID args)
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
         UINT64 currentTime = GETTIME();
 
+        // Sleep until next frame time for consistent pacing
+        if (currentTime < nextFrameTime) {
+            THREAD_SLEEP(nextFrameTime - currentTime);
+            currentTime = nextFrameTime; // Use scheduled time for timestamp consistency
+        }
+
         // Get video frame from camera
         if (video_capture->get_frame(video_handle, &video_frame, 0) == ESP_OK) {
             if (video_frame != NULL && video_frame->len > 0) {
-                // Send the frame
+                // Send the frame with precise timestamp
                 retStatus = webrtcAppSendVideoFrame(
                     video_frame->buffer,
                     video_frame->len,
-                    currentTime - lastFrameTime,
+                    currentTime - refTime,  // Precise relative timestamp
                     video_frame->type == VIDEO_FRAME_TYPE_I
                 );
 
@@ -2986,15 +2887,14 @@ PVOID sendVideoFramesFromCamera(PVOID args)
             }
         }
 
-        // Adjust sleep for proper timing
-        UINT64 elapsed = currentTime - lastFrameTime;
-        UINT64 frame_duration_ns = frame_duration_ms * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
-        if (elapsed < frame_duration_ns) {
-            THREAD_SLEEP(frame_duration_ns - elapsed);
-        } else {
-            THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND); // Small delay
+        // Schedule next frame with precise timing
+        nextFrameTime += frame_duration_100ns;
+
+        // Handle case where we've fallen behind schedule
+        if (nextFrameTime <= GETTIME()) {
+            // ESP_LOGW(TAG, "Frame pacing falling behind, resetting to current time");
+            nextFrameTime = GETTIME() + frame_duration_100ns / 2;
         }
-        lastFrameTime = currentTime;
     }
 
 CleanUp:
@@ -3014,11 +2914,15 @@ PVOID sendAudioFramesFromMic(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
-    UINT64 lastFrameTime = GETTIME();
+    UINT64 refTime = GETTIME();
+    UINT64 nextFrameTime = refTime;
     media_stream_audio_capture_t *audio_capture = NULL;
     audio_capture_handle_t audio_handle = NULL;
     audio_frame_t *audio_frame = NULL;
-    const uint32_t frame_duration_ms = 20;
+    const uint32_t sample_rate = 48000; // 48kHz sample rate
+    const uint32_t frame_size_ms = 20;   // 20ms audio frames
+    // Precise frame duration for 20ms audio frames
+    const UINT64 frame_duration_100ns = frame_size_ms * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
@@ -3026,16 +2930,16 @@ PVOID sendAudioFramesFromMic(PVOID args)
     audio_capture = (media_stream_audio_capture_t*) pSampleConfiguration->audioCapture;
     CHK(audio_capture != NULL, STATUS_INVALID_ARG);
 
-    // Initialize audio capture with Opus configuration
+    // Initialize audio capture configuration
     audio_capture_config_t audio_config = {
         .codec = AUDIO_CODEC_OPUS,
         .format = {
-            .sample_rate = 48000,
-            .channels = 1,
+            .sample_rate = sample_rate,
+            .channels = 1, // Mono
             .bits_per_sample = 16
         },
-        .bitrate = 64,  // 64 kbps
-        .frame_duration_ms = frame_duration_ms,
+        .bitrate = 64, // 64 kbps
+        .frame_duration_ms = frame_size_ms,
         .codec_specific = NULL
     };
 
@@ -3049,14 +2953,20 @@ PVOID sendAudioFramesFromMic(PVOID args)
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
         UINT64 currentTime = GETTIME();
 
+        // Sleep until next frame time for consistent pacing
+        if (currentTime < nextFrameTime) {
+            THREAD_SLEEP(nextFrameTime - currentTime);
+            currentTime = nextFrameTime; // Use scheduled time for timestamp consistency
+        }
+
         // Get audio frame from microphone
         if (audio_capture->get_frame(audio_handle, &audio_frame, 0) == ESP_OK) {
             if (audio_frame != NULL && audio_frame->len > 0) {
-                // Send the frame
+                // Send the frame with precise timestamp
                 retStatus = webrtcAppSendAudioFrame(
                     audio_frame->buffer,
                     audio_frame->len,
-                    currentTime - lastFrameTime
+                    currentTime - refTime  // Precise relative timestamp
                 );
 
                 if (STATUS_FAILED(retStatus)) {
@@ -3069,15 +2979,14 @@ PVOID sendAudioFramesFromMic(PVOID args)
             }
         }
 
-        // Adjust sleep for proper timing
-        UINT64 elapsed = currentTime - lastFrameTime;
-        UINT64 frame_duration_ns = frame_duration_ms * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
-        if (elapsed < frame_duration_ns) {
-            THREAD_SLEEP(frame_duration_ns - elapsed);
-        } else {
-            THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND); // Small delay
+        // Schedule next frame with precise timing
+        nextFrameTime += frame_duration_100ns;
+
+        // Handle case where we've fallen behind schedule
+        if (nextFrameTime <= GETTIME()) {
+            // ESP_LOGW(TAG, "Audio frame pacing falling behind, resetting to current time");
+            nextFrameTime = GETTIME() + frame_duration_100ns / 2;
         }
-        lastFrameTime = currentTime;
     }
 
 CleanUp:
@@ -3097,10 +3006,14 @@ PVOID sendVideoFramesFromSamples(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
-    UINT64 lastFrameTime = GETTIME();
+    UINT64 refTime = GETTIME();
+    UINT64 nextFrameTime = refTime;
     media_stream_video_capture_t *video_capture = NULL;
     video_capture_handle_t video_handle = NULL;
     video_frame_t *video_frame = NULL;
+    const uint32_t fps = 30;
+    // Use precise frame duration to avoid timing drift
+    const UINT64 frame_duration_100ns = HUNDREDS_OF_NANOS_IN_A_SECOND / fps; // Precise: 333,333.33 * 100ns units
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
@@ -3114,7 +3027,7 @@ PVOID sendVideoFramesFromSamples(PVOID args)
         .resolution = {
             .width = 640,
             .height = 480,
-            .fps = 30
+            .fps = fps
         },
         .quality = 80,
         .bitrate = 500, // 500 kbps
@@ -3131,14 +3044,20 @@ PVOID sendVideoFramesFromSamples(PVOID args)
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
         UINT64 currentTime = GETTIME();
 
+        // Sleep until next frame time for consistent pacing
+        if (currentTime < nextFrameTime) {
+            THREAD_SLEEP(nextFrameTime - currentTime);
+            currentTime = nextFrameTime; // Use scheduled time for timestamp consistency
+        }
+
         // Get video frame from capture interface
         if (video_capture->get_frame(video_handle, &video_frame, 0) == ESP_OK) {
             if (video_frame != NULL && video_frame->len > 0) {
-                // Send the frame
+                // Send the frame with precise timestamp
                 retStatus = webrtcAppSendVideoFrame(
                     video_frame->buffer,
                     video_frame->len,
-                    currentTime - lastFrameTime,
+                    currentTime - refTime,  // Precise relative timestamp
                     video_frame->type == VIDEO_FRAME_TYPE_I
                 );
 
@@ -3154,14 +3073,14 @@ PVOID sendVideoFramesFromSamples(PVOID args)
             ESP_LOGW(TAG, "Failed to get sample video frame");
         }
 
-        // Adjust sleep for proper timing
-        UINT64 elapsed = currentTime - lastFrameTime;
-        if (elapsed < SAMPLE_VIDEO_FRAME_DURATION) {
-            THREAD_SLEEP(SAMPLE_VIDEO_FRAME_DURATION - elapsed);
-        } else {
-            THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND); // Small delay
+        // Schedule next frame with precise timing
+        nextFrameTime += frame_duration_100ns;
+
+        // Handle case where we've fallen behind schedule
+        if (nextFrameTime <= GETTIME()) {
+            // ESP_LOGW(TAG, "Sample video frame pacing falling behind, resetting to current time");
+            nextFrameTime = GETTIME() + frame_duration_100ns / 2;
         }
-        lastFrameTime = currentTime;
     }
 
 CleanUp:
@@ -3181,10 +3100,15 @@ PVOID sendAudioFramesFromSamples(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
-    UINT64 lastFrameTime = GETTIME();
+    UINT64 refTime = GETTIME();
+    UINT64 nextFrameTime = refTime;
     media_stream_audio_capture_t *audio_capture = NULL;
     audio_capture_handle_t audio_handle = NULL;
     audio_frame_t *audio_frame = NULL;
+    const uint32_t sample_rate = 48000; // 48kHz sample rate
+    const uint32_t frame_size_ms = 20;   // 20ms audio frames
+    // Precise frame duration for 20ms audio frames
+    const UINT64 frame_duration_100ns = frame_size_ms * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
@@ -3196,12 +3120,12 @@ PVOID sendAudioFramesFromSamples(PVOID args)
     audio_capture_config_t audio_config = {
         .codec = AUDIO_CODEC_OPUS,
         .format = {
-            .sample_rate = 48000,
-            .channels = 1,
+            .sample_rate = sample_rate,
+            .channels = 1, // Mono
             .bits_per_sample = 16
         },
-        .bitrate = 64,  // 64 kbps
-        .frame_duration_ms = 20,
+        .bitrate = 64, // 64 kbps
+        .frame_duration_ms = frame_size_ms,
         .codec_specific = NULL
     };
 
@@ -3215,14 +3139,20 @@ PVOID sendAudioFramesFromSamples(PVOID args)
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
         UINT64 currentTime = GETTIME();
 
+        // Sleep until next frame time for consistent pacing
+        if (currentTime < nextFrameTime) {
+            THREAD_SLEEP(nextFrameTime - currentTime);
+            currentTime = nextFrameTime; // Use scheduled time for timestamp consistency
+        }
+
         // Get audio frame from capture interface
         if (audio_capture->get_frame(audio_handle, &audio_frame, 0) == ESP_OK) {
             if (audio_frame != NULL && audio_frame->len > 0) {
-                // Send the frame
+                // Send the frame with precise timestamp
                 retStatus = webrtcAppSendAudioFrame(
                     audio_frame->buffer,
                     audio_frame->len,
-                    currentTime - lastFrameTime
+                    currentTime - refTime  // Precise relative timestamp
                 );
 
                 if (STATUS_FAILED(retStatus)) {
@@ -3237,14 +3167,14 @@ PVOID sendAudioFramesFromSamples(PVOID args)
             ESP_LOGW(TAG, "Failed to get sample audio frame");
         }
 
-        // Adjust sleep for proper timing
-        UINT64 elapsed = currentTime - lastFrameTime;
-        if (elapsed < SAMPLE_AUDIO_FRAME_DURATION) {
-            THREAD_SLEEP(SAMPLE_AUDIO_FRAME_DURATION - elapsed);
-        } else {
-            THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND); // Small delay
+        // Schedule next frame with precise timing
+        nextFrameTime += frame_duration_100ns;
+
+        // Handle case where we've fallen behind schedule
+        if (nextFrameTime <= GETTIME()) {
+            // ESP_LOGW(TAG, "Sample audio frame pacing falling behind, resetting to current time");
+            nextFrameTime = GETTIME() + frame_duration_100ns / 2;
         }
-        lastFrameTime = currentTime;
     }
 
 CleanUp:
@@ -3519,7 +3449,9 @@ int webrtcAppCreateAndSendOffer(char *pPeerId)
     raiseEvent(APP_WEBRTC_EVENT_SENT_OFFER, 0, pPeerId, "Sent offer to peer");
 
     ESP_LOGI(TAG, "Serializing and sending offer");
-    CHK_STATUS(sendMessageToAppCallback(&message));
+
+    // Use sendSignalingMessage to centralize all message sending logic
+    CHK_STATUS(sendSignalingMessage(pSampleStreamingSession, &message));
 
     ESP_LOGI(TAG, "Offer sent successfully to peer: %s", pPeerId);
 
@@ -3534,7 +3466,89 @@ CleanUp:
     }
 
     if (STATUS_FAILED(retStatus)) {
-        ESP_LOGE(TAG, "Failed to create and send offer: 0x%08x", retStatus);
+        ESP_LOGE(TAG, "Failed to create and send offer: 0x%08" PRIx32, (UINT32) retStatus);
+    }
+
+    return (int) retStatus;
+}
+
+// =============================================================================
+// Split Mode API Implementation
+// =============================================================================
+
+/**
+ * @brief Register a callback for sending signaling messages to bridge (used in split mode)
+ *
+ * This function registers a callback that will be called when the WebRTC state machine
+ * needs to send signaling messages. In split mode, this callback forwards the messages
+ * to the streaming device via webrtc_bridge.
+ *
+ * @param callback Function to call when messages need to be sent to bridge
+ * @return 0 on success, non-zero on failure
+ */
+int webrtcAppRegisterSendToBridgeCallback(app_webrtc_send_msg_cb_t callback)
+{
+    ESP_LOGI(TAG, "Registering send to bridge callback for split mode");
+    g_sendMessageCallback = callback;
+    return 0;
+}
+
+/**
+ * @brief Send a message from bridge to signaling server (used in split mode)
+ *
+ * This function sends signaling messages received from the streaming device
+ * to the signaling server via the signaling interface.
+ *
+ * @param signalingMessage The signaling message to send to signaling server
+ * @return 0 on success, non-zero on failure
+ */
+int webrtcAppSendMessageToSignalingServer(signaling_msg_t *signalingMessage)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    esp_webrtc_signaling_message_t message;
+
+    ESP_LOGI(TAG, "Sending message from bridge to signaling server");
+
+    CHK(signalingMessage != NULL, STATUS_NULL_ARG);
+    CHK(gWebRtcAppConfig.pSignalingClientInterface != NULL && gSignalingClientData != NULL, STATUS_INVALID_OPERATION);
+
+    // Convert signaling_msg_t to esp_webrtc_signaling_message_t format for signaling interface
+    message.version = signalingMessage->version;
+
+    switch (signalingMessage->messageType) {
+        case SIGNALING_MSG_TYPE_OFFER:
+            message.message_type = ESP_SIGNALING_MESSAGE_TYPE_OFFER;
+            break;
+        case SIGNALING_MSG_TYPE_ANSWER:
+            message.message_type = ESP_SIGNALING_MESSAGE_TYPE_ANSWER;
+            break;
+        case SIGNALING_MSG_TYPE_ICE_CANDIDATE:
+            message.message_type = ESP_SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
+            break;
+        default:
+            ESP_LOGW(TAG, "Unknown signaling message type: %d", signalingMessage->messageType);
+            CHK(FALSE, STATUS_INVALID_ARG);
+    }
+
+    // Copy message fields
+    STRNCPY(message.correlation_id, signalingMessage->correlationId, MAX_CORRELATION_ID_LEN);
+    message.correlation_id[MAX_CORRELATION_ID_LEN] = '\0';
+    STRNCPY(message.peer_client_id, signalingMessage->peerClientId, MAX_SIGNALING_CLIENT_ID_LEN);
+    message.peer_client_id[MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
+    message.payload = signalingMessage->payload;
+    message.payload_len = signalingMessage->payloadLen;
+
+    ESP_LOGI(TAG, "Sending message type %d from peer %s to signaling server",
+             message.message_type, message.peer_client_id);
+
+    // Send directly to signaling server
+    CHK_STATUS(gWebRtcAppConfig.pSignalingClientInterface->sendMessage(gSignalingClientData, &message));
+
+    ESP_LOGI(TAG, "Successfully sent message to signaling server");
+
+CleanUp:
+    if (STATUS_FAILED(retStatus)) {
+        ESP_LOGE(TAG, "Failed to send message to signaling server: 0x%08" PRIx32, (UINT32) retStatus);
     }
 
     return (int) retStatus;
