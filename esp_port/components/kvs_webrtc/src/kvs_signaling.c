@@ -124,8 +124,9 @@ static STATUS adapterErrorCallback(UINT64 customData, STATUS errorStatus, PCHAR 
         return STATUS_SUCCESS;
     }
 
-    WEBRTC_STATUS webrtcStatus = convertStatusToWebrtcStatus(errorStatus);
-    WEBRTC_STATUS result = pAdapterData->originalOnError(pAdapterData->originalCustomData, webrtcStatus, errorMessage, subErrorCode);
+    // Preserve the original status code instead of converting to generic WEBRTC_STATUS_INTERNAL_ERROR
+    // This ensures signaling reconnection status codes are passed through correctly
+    WEBRTC_STATUS result = pAdapterData->originalOnError(pAdapterData->originalCustomData, (WEBRTC_STATUS)errorStatus, errorMessage, subErrorCode);
 
     return (result == WEBRTC_STATUS_SUCCESS) ? STATUS_SUCCESS : STATUS_INTERNAL_ERROR;
 }

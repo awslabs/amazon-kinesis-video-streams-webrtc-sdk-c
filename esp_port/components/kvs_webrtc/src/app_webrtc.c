@@ -478,10 +478,17 @@ STATUS signalingClientError(UINT64 customData, STATUS status, PCHAR msg, UINT32 
     SNPRINTF(errorMsg, SIZEOF(errorMsg), "Signaling error: 0x%08" PRIx32 " - %.*s", status, (int) msgLen, msg);
     raiseEvent(APP_WEBRTC_EVENT_SIGNALING_ERROR, status, NULL, errorMsg);
 
+    // DEBUG: Show status comparison
+    DLOGI("DEBUG: signalingClientError received status=0x%08x, STATUS_SIGNALING_RECONNECT_FAILED=0x%08x, STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED=0x%08x",
+          status, STATUS_SIGNALING_RECONNECT_FAILED, STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED);
+
     // We will force re-create the signaling client on the following errors
     if (status == STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED || status == STATUS_SIGNALING_RECONNECT_FAILED) {
+        DLOGI("DEBUG: Status matches, setting recreateSignalingClient=TRUE");
         ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, TRUE);
         CVAR_BROADCAST(pSampleConfiguration->cvar);
+    } else {
+        DLOGI("DEBUG: Status does not match reconnect conditions, not setting recreateSignalingClient flag");
     }
 
     return STATUS_SUCCESS;
@@ -1682,24 +1689,70 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration, BOOL isSign
             sessionFreed = FALSE;
         }
 
-        // Check if we need to re-create the signaling client on-the-fly
-        if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient) &&
+        // Check if we need to re-create the signaling client on-the-fly with retry mechanism
+        BOOL needsRecreate = ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient);
+        if (needsRecreate) {
+            DLOGD("recreateSignalingClient flag is TRUE, checking conditions");
+        }
+
+        if (needsRecreate &&
             gWebRtcAppConfig.pSignalingClientInterface != NULL &&
             gSignalingClientData != NULL) {
 
-            DLOGI("Reconnecting signaling client");
+            // Static variables to track retry attempts and timing
+            static UINT32 retryCount = 0;
+            static UINT64 lastRetryTime = 0;
+            UINT64 currentTime = GETTIME();
 
-            // Disconnect and reconnect
-            CHK_STATUS(gWebRtcAppConfig.pSignalingClientInterface->disconnect(gSignalingClientData));
-            retStatus = gWebRtcAppConfig.pSignalingClientInterface->connect(gSignalingClientData);
+            // Exponential backoff: 5s, 10s, 20s, 40s, 60s (max)
+            UINT64 retryDelays[] = {
+                5 * HUNDREDS_OF_NANOS_IN_A_SECOND,   // 5 seconds
+                10 * HUNDREDS_OF_NANOS_IN_A_SECOND,  // 10 seconds
+                20 * HUNDREDS_OF_NANOS_IN_A_SECOND,  // 20 seconds
+                40 * HUNDREDS_OF_NANOS_IN_A_SECOND,  // 40 seconds
+                60 * HUNDREDS_OF_NANOS_IN_A_SECOND   // 60 seconds (max)
+            };
+            UINT32 maxRetryIndex = ARRAY_SIZE(retryDelays) - 1;
+            UINT32 currentRetryIndex = MIN(retryCount, maxRetryIndex);
+            UINT64 retryDelay = retryDelays[currentRetryIndex];
 
-            if (STATUS_SUCCEEDED(retStatus)) {
-                // Re-set the variable again
-                ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
+            // Check if enough time has passed since last retry attempt
+            BOOL shouldRetry = (lastRetryTime == 0) || (currentTime - lastRetryTime >= retryDelay);
+
+            if (shouldRetry) {
+                DLOGI("Reconnecting signaling client (attempt %d, delay: %llu seconds)",
+                      retryCount + 1, retryDelay / HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+                // Disconnect and reconnect
+                CHK_STATUS(gWebRtcAppConfig.pSignalingClientInterface->disconnect(gSignalingClientData));
+                retStatus = gWebRtcAppConfig.pSignalingClientInterface->connect(gSignalingClientData);
+
+                if (STATUS_SUCCEEDED(retStatus)) {
+                    // Reset retry tracking on successful reconnection
+                    DLOGI("Signaling client reconnected successfully after %d attempts", retryCount + 1);
+                    ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
+                    retryCount = 0;
+                    lastRetryTime = 0;
+                    raiseEvent(APP_WEBRTC_EVENT_SIGNALING_CONNECTED, 0, NULL, "Signaling client reconnected");
+                } else {
+                    // Update retry tracking on failure
+                    retryCount++;
+                    lastRetryTime = currentTime;
+                    DLOGE("Failed to reconnect signaling client: 0x%08x (attempt %d, next retry in %llu seconds)",
+                          retStatus, retryCount,
+                          retryDelays[MIN(retryCount, maxRetryIndex)] / HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+                    // Keep the recreateSignalingClient flag set to continue retrying
+                    // Don't reset it - we want to keep trying
+
+                    // Reset status to avoid breaking the loop
+                    retStatus = STATUS_SUCCESS;
+                }
             } else {
-                DLOGE("Failed to reconnect signaling client: 0x%08x", retStatus);
-                // Reset status to avoid breaking the loop
-                retStatus = STATUS_SUCCESS;
+                // Not time to retry yet
+                UINT64 timeUntilNextRetry = retryDelay - (currentTime - lastRetryTime);
+                DLOGD("Waiting %llu more seconds before next reconnection attempt",
+                      timeUntilNextRetry / HUNDREDS_OF_NANOS_IN_A_SECOND);
             }
         }
 

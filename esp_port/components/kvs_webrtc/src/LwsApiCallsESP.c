@@ -323,19 +323,57 @@ static void esp_websocket_event_handler(void *handler_args, esp_event_base_t bas
 
         case WEBSOCKET_EVENT_DISCONNECTED:
             ESP_LOGI(TAG, "WEBSOCKET_EVENT_DISCONNECTED");
+
+            BOOL connected = FALSE;
+            STATUS retStatus = STATUS_SUCCESS;
+
             MUTEX_LOCK(pEspWrapper->wsClientLock);
+            connected = pEspWrapper->isConnected;
             pEspWrapper->isConnected = FALSE;
             MUTEX_UNLOCK(pEspWrapper->wsClientLock);
 
+            // Now DISCONNECT is the primary event for handling connection cleanup and reconnection
+            BOOL wasConnected = connected;
             ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
-            if ((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_NOT_SET) {
-                ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
-            }
 
-            // Signal the condition variable to wake up the waiting thread
+            // Signal condition variables to wake up waiting threads
             MUTEX_LOCK(pSignalingClient->connectedLock);
             CVAR_SIGNAL(pSignalingClient->connectedCvar);
             MUTEX_UNLOCK(pSignalingClient->connectedLock);
+
+            CVAR_BROADCAST(pSignalingClient->receiveCvar);
+            CVAR_BROADCAST(pSignalingClient->sendCvar);
+            ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_RESULT_OK);
+
+            // Handle reconnection logic
+            if (wasConnected && ATOMIC_LOAD(&pSignalingClient->result) != SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE &&
+                !ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown)) {
+
+                ESP_LOGI(TAG, "WebSocket disconnected from active connection, triggering reconnection via error callback");
+
+                // Set the result failed to indicate disconnection
+                ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
+
+                // Use the existing error callback mechanism to trigger reconnection
+                if (pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
+                    CHAR errorMsg[] = "WebSocket connection lost, triggering reconnection";
+                    ESP_LOGI(TAG, "DEBUG: Calling errorReportFn with STATUS_SIGNALING_RECONNECT_FAILED=0x%08x", STATUS_SIGNALING_RECONNECT_FAILED);
+                    pSignalingClient->signalingClientCallbacks.errorReportFn(
+                        pSignalingClient->signalingClientCallbacks.customData,
+                        STATUS_SIGNALING_RECONNECT_FAILED,
+                        errorMsg,
+                        (UINT32) STRLEN(errorMsg));
+                    ESP_LOGI(TAG, "Signaled for reconnection via error callback");
+                } else {
+                    ESP_LOGW(TAG, "No error callback registered, cannot signal for reconnection");
+                }
+            } else if (!wasConnected) {
+                ESP_LOGI(TAG, "WebSocket disconnected but was not previously connected, not triggering reconnection");
+            } else if (ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown)) {
+                ESP_LOGI(TAG, "WebSocket disconnected during shutdown, not triggering reconnection");
+            } else {
+                ESP_LOGI(TAG, "WebSocket disconnected during ICE reconnect, not triggering full reconnection");
+            }
 
             // Free the WebSocket buffer on disconnect
             freeWebSocketBuffer();
@@ -400,20 +438,19 @@ static void esp_websocket_event_handler(void *handler_args, esp_event_base_t bas
                 }
             }
 
+            // For ERROR events, just log and wake up waiting threads
+            // Let DISCONNECT event handle all state changes and reconnection logic
             if (pSignalingClient != NULL) {
-                ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
-                // Set result if not already set
-                if ((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_NOT_SET) {
-                    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
+                ESP_LOGI(TAG, "WebSocket error occurred, waiting for disconnect event to handle cleanup and reconnection");
 
-                    // Signal the waiting thread about the error
-                    // The mutex must be locked before signaling
-                    MUTEX_LOCK(pSignalingClient->connectedLock);
-                    CVAR_SIGNAL(pSignalingClient->connectedCvar);
-                    MUTEX_UNLOCK(pSignalingClient->connectedLock);
-                }
-                // Reset the buffer on error
-                resetWebSocketBuffer();
+                // Signal condition variables to wake up waiting threads
+                MUTEX_LOCK(pSignalingClient->connectedLock);
+                CVAR_SIGNAL(pSignalingClient->connectedCvar);
+                MUTEX_UNLOCK(pSignalingClient->connectedLock);
+
+                CVAR_BROADCAST(pSignalingClient->receiveCvar);
+                CVAR_BROADCAST(pSignalingClient->sendCvar);
+                ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_RESULT_OK);
             } else {
                 ESP_LOGW(TAG, "pSignalingClient is NULL in WEBSOCKET_EVENT_ERROR!");
             }
@@ -920,17 +957,15 @@ STATUS connectEspSignalingClient(PSignalingClient pSignalingClient)
     // Set ping interval to match SIGNALING_SERVICE_WSS_PING_PONG_INTERVAL_IN_SECONDS (10 seconds)
     ws_cfg.ping_interval_sec = 10;
 
-    // Enable auto reconnect to handle network issues gracefully
-    ws_cfg.disable_auto_reconnect = FALSE;
+    // Disable auto reconnect to let the state machine handle reconnection with fresh credentials
+    // Auto-reconnect would fail after 5 minutes when the signed URL expires
+    ws_cfg.disable_auto_reconnect = TRUE;
 
     // Set reconnect timeout to match ESP-IDF recommendations
     ws_cfg.reconnect_timeout_ms = 10000; // 10 seconds
 
     // Configure TCP keepalive to match SIGNALING_SERVICE_TCP_KEEPALIVE settings
     ws_cfg.network_timeout_ms = SIGNALING_SERVICE_TCP_KEEPALIVE_IN_SECONDS * 1000;
-
-    // Configure transport - since we're using wss:// in the URL, this will automatically be SSL
-    // ws_cfg.transport = WEBSOCKET_TRANSPORT_OVER_SSL;
 
     // For development, set skip_cert_common_name_check to true to skip cert verification
     // In production environments, this should be set to false
