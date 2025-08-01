@@ -14,11 +14,17 @@ static const char *TAG = "wifi_cli";
 
 static int wifi_set_cli_handler(int argc, char *argv[])
 {
+
     /* Just to go to the next line */
     printf("\n");
     if (argc != 3) {
         printf("%s: Incorrect arguments\n", TAG);
         return 0;
+    }
+
+    /* Stop the Wi-Fi */
+    if (esp_wifi_stop() != ESP_OK) {
+        printf("%s: Failed to stop wifi\n", TAG);
     }
 
     wifi_config_t wifi_cfg = {
@@ -44,9 +50,16 @@ static int wifi_set_cli_handler(int argc, char *argv[])
         return 0;
     }
 
-    ESP_LOGI(TAG, "Rebooting with new wi-fi configuration...");
-    vTaskDelay(pdMS_TO_TICKS(2 * 1000));
-    esp_restart(); // for now we simply re-start the device
+    /* (Re)Start Wi-Fi */
+    if (esp_wifi_start() != ESP_OK) {
+        printf("%s: Failed to start wifi\n", TAG);
+    }
+
+    /* Connect to AP */
+    if (esp_wifi_connect() != ESP_OK) {
+        printf("%s: Failed to connect wifi\n", TAG);
+    }
+
     return 0;
 }
 
