@@ -1,8 +1,13 @@
-/*******************************************
-Shared include file for the samples
-*******************************************/
-#ifndef __KINESIS_VIDEO_SAMPLE_INCLUDE__
-#define __KINESIS_VIDEO_SAMPLE_INCLUDE__
+/*
+ * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO LTD
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/**
+ * @file app_webrtc.h
+ * @brief App WebRTC API file
+ */
 
 #pragma once
 
@@ -10,167 +15,81 @@ Shared include file for the samples
 extern "C" {
 #endif
 
-#include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
-#include "media_stream.h"
-#include "WebRtcLogging.h"
 #include "signaling_serializer.h"
 #include "webrtc_signaling_if.h"
 
-#define AUDIO_CODEC_NAME_ALAW  "alaw"
-#define AUDIO_CODEC_NAME_MULAW "mulaw"
-#define AUDIO_CODEC_NAME_OPUS  "opus"
-#define VIDEO_CODEC_NAME_H264  "h264"
-#define VIDEO_CODEC_NAME_H265  "h265"
-#define VIDEO_CODEC_NAME_VP8   "vp8"
+// Default Client IDs for signaling
+#define DEFAULT_MASTER_CLIENT_ID "ProducerMaster"
+#define DEFAULT_VIEWER_CLIENT_ID "ConsumerViewer"
 
-#define SAMPLE_MASTER_CLIENT_ID "ProducerMaster"
-#define SAMPLE_VIEWER_CLIENT_ID "ConsumerViewer"
-#define SAMPLE_CHANNEL_NAME     (PCHAR) "ScaryTestChannel"
-
-#define SAMPLE_STATS_DURATION       (60 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-
-#define SAMPLE_PRE_GENERATE_CERT        TRUE
-#define SAMPLE_PRE_GENERATE_CERT_PERIOD (1000 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
-
-#define SAMPLE_SESSION_CLEANUP_WAIT_PERIOD (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-
-#define SAMPLE_PENDING_MESSAGE_CLEANUP_DURATION (20 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-
-#define CA_CERT_PEM_FILE_EXTENSION ".pem"
-
-#define FILE_LOGGING_BUFFER_SIZE (10 * 1024)
-#define MAX_NUMBER_OF_LOG_FILES  5
-
-#define SAMPLE_HASH_TABLE_BUCKET_COUNT  50
-#define SAMPLE_HASH_TABLE_BUCKET_LENGTH 2
-
-#define RTSP_PIPELINE_MAX_CHAR_COUNT 1000
-
-/* To enable IoT credentials checks in the provided samples, specify
-   this through the CMake flag: cmake .. -DIOT_CORE_ENABLE_CREDENTIALS=ON */
-#define IOT_CORE_CREDENTIAL_ENDPOINT ((PCHAR) "AWS_IOT_CORE_CREDENTIAL_ENDPOINT")
-#define IOT_CORE_CERT                ((PCHAR) "AWS_IOT_CORE_CERT")
-#define IOT_CORE_PRIVATE_KEY         ((PCHAR) "AWS_IOT_CORE_PRIVATE_KEY")
-#define IOT_CORE_ROLE_ALIAS          ((PCHAR) "AWS_IOT_CORE_ROLE_ALIAS")
-#define IOT_CORE_THING_NAME          ((PCHAR) "AWS_IOT_CORE_THING_NAME")
-#define IOT_CORE_CERTIFICATE_ID      ((PCHAR) "AWS_IOT_CORE_CERTIFICATE_ID")
-
-#define MASTER_DATA_CHANNEL_MESSAGE "This message is from the KVS Master"
-#define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"
-
+/**
+ * @brief WebRTC application event types
+ */
 typedef enum {
     // Initialization / Deinitialization
-    APP_WEBRTC_EVENT_INITIALIZED,
-    APP_WEBRTC_EVENT_DEINITIALIZING,
+    APP_WEBRTC_EVENT_INITIALIZED,                   //!< WebRTC application has been initialized
+    APP_WEBRTC_EVENT_DEINITIALIZING,                //!< WebRTC application is being deinitialized
 
     // Signaling Client States
-    APP_WEBRTC_EVENT_SIGNALING_CONNECTING,
-    APP_WEBRTC_EVENT_SIGNALING_CONNECTED,
-    APP_WEBRTC_EVENT_SIGNALING_DISCONNECTED,
-    APP_WEBRTC_EVENT_SIGNALING_DESCRIBE,
-    APP_WEBRTC_EVENT_SIGNALING_GET_ENDPOINT,
-    APP_WEBRTC_EVENT_SIGNALING_GET_ICE,
-    APP_WEBRTC_EVENT_PEER_CONNECTION_REQUESTED,
-    APP_WEBRTC_EVENT_PEER_CONNECTED,
-    APP_WEBRTC_EVENT_PEER_DISCONNECTED,
-    APP_WEBRTC_EVENT_STREAMING_STARTED,        // When media threads actually start for a peer
-    APP_WEBRTC_EVENT_STREAMING_STOPPED,        // When media threads stop for a peer
-    APP_WEBRTC_EVENT_RECEIVED_OFFER,
-    APP_WEBRTC_EVENT_SENT_ANSWER,
-    APP_WEBRTC_EVENT_SENT_OFFER,
-    APP_WEBRTC_EVENT_RECEIVED_ICE_CANDIDATE,
-    APP_WEBRTC_EVENT_SENT_ICE_CANDIDATE,
-    APP_WEBRTC_EVENT_ICE_GATHERING_COMPLETE,
+    APP_WEBRTC_EVENT_SIGNALING_CONNECTING,          //!< Attempting to connect to signaling server
+    APP_WEBRTC_EVENT_SIGNALING_CONNECTED,           //!< Successfully connected to signaling server
+    APP_WEBRTC_EVENT_SIGNALING_DISCONNECTED,        //!< Disconnected from signaling server
+    APP_WEBRTC_EVENT_SIGNALING_DESCRIBE,            //!< Describing signaling channel
+    APP_WEBRTC_EVENT_SIGNALING_GET_ENDPOINT,        //!< Getting signaling endpoint
+    APP_WEBRTC_EVENT_SIGNALING_GET_ICE,             //!< Getting ICE server configuration
+    APP_WEBRTC_EVENT_PEER_CONNECTION_REQUESTED,     //!< Peer connection has been requested
+    APP_WEBRTC_EVENT_PEER_CONNECTED,                //!< Peer connection established successfully
+    APP_WEBRTC_EVENT_PEER_DISCONNECTED,             //!< Peer connection terminated
+    APP_WEBRTC_EVENT_STREAMING_STARTED,             //!< Media streaming threads started for a peer
+    APP_WEBRTC_EVENT_STREAMING_STOPPED,             //!< Media streaming threads stopped for a peer
+    APP_WEBRTC_EVENT_RECEIVED_OFFER,                //!< Received WebRTC offer from peer
+    APP_WEBRTC_EVENT_SENT_ANSWER,                   //!< Sent WebRTC answer to peer
+    APP_WEBRTC_EVENT_SENT_OFFER,                    //!< Sent WebRTC offer to peer
+    APP_WEBRTC_EVENT_RECEIVED_ICE_CANDIDATE,        //!< Received ICE candidate from peer
+    APP_WEBRTC_EVENT_SENT_ICE_CANDIDATE,            //!< Sent ICE candidate to peer
+    APP_WEBRTC_EVENT_ICE_GATHERING_COMPLETE,        //!< ICE candidate gathering completed
 
     // Peer Connection States
-    APP_WEBRTC_EVENT_PEER_CONNECTING,          // Peer connection attempt started
-    APP_WEBRTC_EVENT_PEER_CONNECTION_FAILED,   // Specific connection failure
+    APP_WEBRTC_EVENT_PEER_CONNECTING,               //!< Peer connection attempt started
+    APP_WEBRTC_EVENT_PEER_CONNECTION_FAILED,        //!< Peer connection failed
 
     // Error Events
-    APP_WEBRTC_EVENT_ERROR,
-    APP_WEBRTC_EVENT_SIGNALING_ERROR,
+    APP_WEBRTC_EVENT_ERROR,                         //!< General WebRTC error occurred
+    APP_WEBRTC_EVENT_SIGNALING_ERROR,               //!< Signaling-specific error occurred
 } app_webrtc_event_t;
 
-#define DATA_CHANNEL_MESSAGE_TEMPLATE                                                                                                                \
-    "{\"content\":\"%s\",\"firstMessageFromViewerTs\":\"%s\",\"firstMessageFromMasterTs\":\"%s\",\"secondMessageFromViewerTs\":\"%s\","              \
-    "\"secondMessageFromMasterTs\":\"%s\",\"lastMessageFromViewerTs\":\"%s\" }"
-#define PEER_CONNECTION_METRICS_JSON_TEMPLATE "{\"peerConnectionStartTime\": %llu, \"peerConnectionEndTime\": %llu }"
-#define SIGNALING_CLIENT_METRICS_JSON_TEMPLATE                                                                                                       \
-    "{\"signalingStartTime\": %llu, \"signalingEndTime\": %llu, \"offerReceiptTime\": %llu, \"sendAnswerTime\": %llu, "                              \
-    "\"describeChannelStartTime\": %llu, \"describeChannelEndTime\": %llu, \"getSignalingChannelEndpointStartTime\": %llu, "                         \
-    "\"getSignalingChannelEndpointEndTime\": %llu, \"getIceServerConfigStartTime\": %llu, \"getIceServerConfigEndTime\": %llu, "                     \
-    "\"getTokenStartTime\": %llu, \"getTokenEndTime\": %llu, \"createChannelStartTime\": %llu, \"createChannelEndTime\": %llu, "                     \
-    "\"connectStartTime\": %llu, \"connectEndTime\": %llu }"
-#define ICE_AGENT_METRICS_JSON_TEMPLATE "{\"candidateGatheringStartTime\": %llu, \"candidateGatheringEndTime\": %llu }"
-
-#define MAX_DATA_CHANNEL_METRICS_MESSAGE_SIZE     300 // strlen(DATA_CHANNEL_MESSAGE_TEMPLATE) + 20 * 5
-#define MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE  105 // strlen(PEER_CONNECTION_METRICS_JSON_TEMPLATE) + 20 * 2
-#define MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE 736 // strlen(SIGNALING_CLIENT_METRICS_JSON_TEMPLATE) + 20 * 10
-#define MAX_ICE_AGENT_METRICS_MESSAGE_SIZE        113 // strlen(ICE_AGENT_METRICS_JSON_TEMPLATE) + 20 * 2
-
-#define TWCC_BITRATE_ADJUSTMENT_INTERVAL_MS 1000 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
-#define MIN_VIDEO_BITRATE_KBPS              512     // Unit kilobits/sec. Value could change based on codec.
-#define MAX_VIDEO_BITRATE_KBPS              2048000 // Unit kilobits/sec. Value could change based on codec.
-#define MIN_AUDIO_BITRATE_BPS               4000    // Unit bits/sec. Value could change based on codec.
-#define MAX_AUDIO_BITRATE_BPS               650000  // Unit bits/sec. Value could change based on codec.
-
+/**
+ * @brief Media streaming types supported by WebRTC application
+ */
 typedef enum {
-    APP_WEBRTC_MEDIA_VIDEO,
-    APP_WEBRTC_MEDIA_AUDIO_VIDEO,
-} AppWebrtcStreamingMediaType;
-
-typedef struct {
-    CHAR content[100];
-    CHAR firstMessageFromViewerTs[20];
-    CHAR firstMessageFromMasterTs[20];
-    CHAR secondMessageFromViewerTs[20];
-    CHAR secondMessageFromMasterTs[20];
-    CHAR lastMessageFromViewerTs[20];
-} DataChannelMessage;
-
-typedef struct {
-    MUTEX updateLock;
-    UINT64 lastAdjustmentTimeMs;
-    UINT64 currentVideoBitrate;
-    UINT64 currentAudioBitrate;
-    UINT64 newVideoBitrate;
-    UINT64 newAudioBitrate;
-    DOUBLE averagePacketLoss;
-} TwccMetadata, *PTwccMetadata;
-
-#ifdef DYNAMIC_SIGNALING_PAYLOAD
-/**
- * @brief Allocate memory for the payload of a SignalingMessage
- *
- * @param[in,out] pSignalingMessage The signaling message for which to allocate payload
- * @param[in] size Size in bytes to allocate
- *
- * @return STATUS code of the execution
- */
-STATUS allocateSignalingMessagePayload(PSignalingMessage pSignalingMessage, UINT32 size);
+    APP_WEBRTC_MEDIA_VIDEO,         //!< Video only streaming
+    APP_WEBRTC_MEDIA_AUDIO_VIDEO,   //!< Both audio and video streaming
+} app_webrtc_streaming_media_t;
 
 /**
- * @brief Free the dynamically allocated payload of a SignalingMessage
- *
- * @param[in,out] pSignalingMessage The signaling message whose payload should be freed
- *
- * @return STATUS code of the execution
+ * @brief Event data structure passed to event callbacks
  */
-STATUS freeSignalingMessagePayload(PSignalingMessage pSignalingMessage);
-#endif
-
-// Event data structure to pass to callbacks
 typedef struct {
-    app_webrtc_event_t event_id;
-    UINT32 status_code;
-    CHAR peer_id[MAX_SIGNALING_CLIENT_ID_LEN + 1];
-    CHAR message[256];
+    app_webrtc_event_t event_id;                        //!< Type of event that occurred
+    uint32_t status_code;                               //!< Status code associated with the event (0 = success)
+    char peer_id[SS_MAX_SIGNALING_CLIENT_ID_LEN + 1];   //!< Peer ID associated with the event (if applicable)
+    char message[256];                                  //!< Human-readable message describing the event
 } app_webrtc_event_data_t;
 
-// Event callback type
+/**
+ * @brief Event callback function type
+ *
+ * @param event_data Pointer to event data structure containing event details
+ * @param user_ctx User context pointer passed during callback registration
+ */
 typedef void (*app_webrtc_event_callback_t) (app_webrtc_event_data_t *event_data, void *user_ctx);
 
-// Define message sending callback type
+/**
+ * @brief Message sending callback function type for bridge communication
+ *
+ * @param signalingMessage Pointer to signaling message to be sent to bridge
+ * @return 0 on success, non-zero on failure
+ */
 typedef int (*app_webrtc_send_msg_cb_t) (signaling_msg_t *signalingMessage);
 
 /**
@@ -181,66 +100,76 @@ typedef int (*app_webrtc_send_msg_cb_t) (signaling_msg_t *signalingMessage);
  *
  * @return 0 on success, non-zero on failure
  */
-INT32 app_webrtc_register_event_callback(app_webrtc_event_callback_t callback, void *user_ctx);
+int32_t app_webrtc_register_event_callback(app_webrtc_event_callback_t callback, void *user_ctx);
 
 /**
- * @brief WebRTC application configuration structure
+ * @brief The enum specifies the codec types for audio and video tracks
+ */
+ typedef enum {
+    APP_WEBRTC_CODEC_H264 = 1, //!< H264 video codec
+    APP_WEBRTC_CODEC_OPUS = 2,                                                  //!< OPUS audio codec
+    APP_WEBRTC_CODEC_VP8 = 3,                                                   //!< VP8 video codec.
+    APP_WEBRTC_CODEC_MULAW = 4,                                                 //!< MULAW audio codec
+    APP_WEBRTC_CODEC_ALAW = 5,                                                  //!< ALAW audio codec
+    APP_WEBRTC_CODEC_UNKNOWN = 6,
+    APP_WEBRTC_CODEC_H265 = 7, //!< H265 video codec
+    APP_WEBRTC_CODEC_MAX //!< Placeholder for max number of supported codecs
+} app_webrtc_rtc_codec_t;
+
+/**
+ * @brief WebRTC application configuration structure (simplified for ease of use)
+ *
+ * This configuration focuses on the essentials that 90% of users need.
+ * Advanced configurations can be set using dedicated APIs after initialization.
  */
 typedef struct {
-    // Signaling configuration
-    WebRtcSignalingClientInterface *pSignalingClientInterface;  // Signaling client interface
-    PVOID pSignalingConfig;                  // Signaling-specific configuration (opaque pointer)
+    // Essential - what you MUST provide
+    webrtc_signaling_client_if_t *signaling_client_if;      //!< Signaling client interface implementation
+    void *signaling_cfg;                                    //!< Signaling-specific configuration (opaque pointer)
 
-    // WebRTC configuration
-    SIGNALING_CHANNEL_ROLE_TYPE roleType;    // Role type (master initiates, viewer receives)
-    BOOL trickleIce;                         // Whether to use trickle ICE
-    BOOL useTurn;                            // Whether to use TURN servers
-    UINT32 logLevel;                         // Log level
-    BOOL signalingOnly;                      // If TRUE, disable media streaming components to save memory
+    // Media interfaces (optional - set to NULL for signaling-only applications)
+    void* video_capture;                                    //!< Video capture interface (media_stream_video_capture_t*)
+    void* audio_capture;                                    //!< Audio capture interface (media_stream_audio_capture_t*)
+    void* video_player;                                     //!< Video player interface (media_stream_video_player_t*)
+    void* audio_player;                                     //!< Audio player interface (media_stream_audio_player_t*)
+} app_webrtc_config_t;
 
-    // Media configuration
-    RTC_CODEC audioCodec;                    // Audio codec to use
-    RTC_CODEC videoCodec;                    // Video codec to use
-    AppWebrtcStreamingMediaType mediaType;   // Media type (audio-only, video-only, or both)
-
-    // Media capture interfaces
-    void* videoCapture;                      // Video capture interface
-    void* audioCapture;                      // Audio capture interface
-
-    // Media player interfaces
-    void* videoPlayer;                       // Video player interface
-    void* audioPlayer;                       // Audio player interface
-
-    // Media reception
-    BOOL receiveMedia;                       // Whether to receive media
-} WebRtcAppConfig, *PWebRtcAppConfig;
-
-#define WEBRTC_APP_CONFIG_DEFAULT() \
+/**
+ * @brief Default WebRTC application configuration initializer
+ *
+ * Initialize with reasonable defaults for most use cases.
+ * Advanced settings use built-in defaults and can be changed via dedicated APIs.
+ */
+#define APP_WEBRTC_CONFIG_DEFAULT() \
 { \
-    .pSignalingClientInterface = NULL, \
-    .pSignalingConfig = NULL, \
-    .roleType = WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_MASTER, \
-    .trickleIce = TRUE, \
-    .useTurn = TRUE, \
-    .logLevel = 3, \
-    .signalingOnly = FALSE, \
-    .audioCodec = RTC_CODEC_OPUS, \
-    .videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, \
-    .mediaType = APP_WEBRTC_MEDIA_AUDIO_VIDEO, \
-    .receiveMedia = FALSE, \
+    .signaling_client_if = NULL, \
+    .signaling_cfg = NULL, \
+    .video_capture = NULL, \
+    .audio_capture = NULL, \
+    .video_player = NULL, \
+    .audio_player = NULL, \
 }
 
 /**
  * @brief Initialize WebRTC application with the given configuration
  *
- * This function creates and initializes the WebRTC configuration, sets up
- * the signaling client, and prepares the WebRTC stack for streaming.
+ * This function creates and initializes the WebRTC configuration with reasonable defaults:
+ * - Role: MASTER (initiates connections)
+ * - Trickle ICE: enabled (faster connection setup)
+ * - TURN servers: enabled (better NAT traversal)
+ * - Log level: INFO (good balance of information)
+ * - Audio codec: OPUS (most common)
+ * - Video codec: H264 (most common)
+ * - Media reception: disabled (most IoT devices are senders)
+ * - Signaling-only: auto-detected (based on provided media interfaces)
  *
- * @param[in] pConfig Configuration for the WebRTC application
+ * Advanced settings can be changed using dedicated APIs after initialization.
  *
- * @return STATUS code of the execution
+ * @param[in] config Configuration for the WebRTC application
+ *
+ * @return WEBRTC_STATUS code of the execution
  */
-WEBRTC_STATUS webrtcAppInit(PWebRtcAppConfig pConfig);
+WEBRTC_STATUS app_webrtc_init(app_webrtc_config_t *config);
 
 /**
  * @brief Run the WebRTC application and wait for termination
@@ -249,7 +178,7 @@ WEBRTC_STATUS webrtcAppInit(PWebRtcAppConfig pConfig);
  *
  * @return STATUS code of the execution
  */
-WEBRTC_STATUS webrtcAppRun(VOID);
+WEBRTC_STATUS app_webrtc_run(void);
 
 /**
  * @brief Terminate the WebRTC application
@@ -258,7 +187,90 @@ WEBRTC_STATUS webrtcAppRun(VOID);
  *
  * @return STATUS code of the execution
  */
-WEBRTC_STATUS webrtcAppTerminate(VOID);
+WEBRTC_STATUS app_webrtc_terminate(void);
+
+/********************************************************************************
+ *                      Advanced Configuration APIs                             *
+ ********************************************************************************/
+
+/**
+ * @brief Set the WebRTC role type
+ *
+ * By default, the application starts as MASTER (initiates connections).
+ * Call this API to change to VIEWER role if needed.
+ *
+ * @param[in] role Role type (MASTER or VIEWER)
+ * @return WEBRTC_STATUS code of the execution
+ */
+WEBRTC_STATUS app_webrtc_set_role(webrtc_signaling_channel_role_type_t role);
+
+/**
+ * @brief Configure ICE connection behavior
+ *
+ * By default, trickle ICE and TURN servers are both enabled for optimal connectivity.
+ *
+ * @param[in] trickle_ice Whether to use trickle ICE for faster connection setup
+ * @param[in] use_turn Whether to use TURN servers for NAT traversal
+ * @return WEBRTC_STATUS code of the execution
+ */
+WEBRTC_STATUS app_webrtc_set_ice_config(bool trickle_ice, bool use_turn);
+
+/**
+ * @brief Set logging level
+ *
+ * By default, log level is set to INFO (level 3).
+ * Levels: 0=PROFILE, 1=VERBOSE, 2=DEBUG, 3=INFO, 4=WARN, 5=ERROR, 6=FATAL
+ *
+ * @param[in] level Log level
+ * @return WEBRTC_STATUS code of the execution
+ */
+WEBRTC_STATUS app_webrtc_set_log_level(uint32_t level);
+
+/**
+ * @brief Configure media codecs
+ *
+ * By default, OPUS is used for audio and H264 for video.
+ *
+ * @param[in] audio_codec Audio codec to use
+ * @param[in] video_codec Video codec to use
+ * @return WEBRTC_STATUS code of the execution
+ */
+WEBRTC_STATUS app_webrtc_set_codecs(app_webrtc_rtc_codec_t audio_codec, app_webrtc_rtc_codec_t video_codec);
+
+/**
+ * @brief Set media streaming type
+ *
+ * By default, media type is auto-detected based on provided interfaces.
+ *
+ * @param[in] media_type Media type (video-only or audio+video)
+ * @return WEBRTC_STATUS code of the execution
+ */
+WEBRTC_STATUS app_webrtc_set_media_type(app_webrtc_streaming_media_t media_type);
+
+/**
+ * @brief Enable or disable media reception from remote peers
+ *
+ * By default, media reception is disabled (most IoT devices are senders).
+ *
+ * @param[in] enable Whether to enable receiving media from remote peers
+ * @return WEBRTC_STATUS code of the execution
+ */
+WEBRTC_STATUS app_webrtc_enable_media_reception(bool enable);
+
+/**
+ * @brief Force signaling-only mode
+ *
+ * By default, signaling-only mode is auto-detected (enabled if no media interfaces are provided).
+ * Use this API to explicitly force signaling-only mode even with media interfaces present.
+ *
+ * @param[in] enable Whether to enable signaling-only mode
+ * @return WEBRTC_STATUS code of the execution
+ */
+WEBRTC_STATUS app_webrtc_set_signaling_only_mode(bool enable);
+
+/********************************************************************************
+ *                          Granular APIs for advanced use cases                *
+ ********************************************************************************/
 
 /**
  * @brief Register a callback for sending signaling messages to bridge (used in split mode)
@@ -266,7 +278,7 @@ WEBRTC_STATUS webrtcAppTerminate(VOID);
  * @param callback Function to call when messages need to be sent to bridge
  * @return 0 on success, non-zero on failure
  */
-int webrtcAppRegisterSendToBridgeCallback(app_webrtc_send_msg_cb_t callback);
+int app_webrtc_register_msg_callback(app_webrtc_send_msg_cb_t callback);
 
 /**
  * @brief Send a message from bridge to signaling server (used in split mode)
@@ -275,11 +287,70 @@ int webrtcAppRegisterSendToBridgeCallback(app_webrtc_send_msg_cb_t callback);
  * @param signalingMessage The signaling message to send to signaling server
  * @return 0 on success, non-zero on failure
  */
-int webrtcAppSendMessageToSignalingServer(signaling_msg_t *signalingMessage);
+int app_webrtc_send_msg_to_signaling(signaling_msg_t *signalingMessage);
 
-int webrtcAppCreateAndSendOffer(char *pPeerId);
+/**
+ * @brief Create and send WebRTC offer to a specific peer
+ *
+ * This function creates a WebRTC offer and sends it to the specified peer through
+ * the signaling channel. Used to initiate a WebRTC connection when operating as
+ * the viewer/initiator role.
+ *
+ * @param pPeerId Peer ID to send the offer to
+ * @return 0 on success, non-zero on failure
+ */
+int app_webrtc_trigger_offer(char *pPeerId);
+
+/**
+ * @brief Get ICE servers configuration from the WebRTC application
+ *
+ * This function retrieves the ICE server configuration that was obtained from
+ * the signaling client. Used in split mode to forward ICE configuration from
+ * signaling_only device to streaming_only device.
+ *
+ * @param[out] pIceServerCount Number of ICE servers returned
+ * @param[out] pIceConfiguration Buffer to store ICE server configuration
+ *                               (RtcConfiguration.iceServers array format)
+ * @return WEBRTC_STATUS_SUCCESS on success, error code on failure
+ */
+WEBRTC_STATUS app_webrtc_get_ice_servers(uint32_t *pIceServerCount, void *pIceConfiguration);
+
+/**
+ * @brief Query ICE server by index through signaling abstraction
+ *
+ * This function delegates to the appropriate signaling implementation via callbacks.
+ * The signaling_only application should use this instead of direct KVS calls.
+ *
+ * @param[in] index ICE server index (0 = STUN, 1+ = TURN servers)
+ * @param[in] useTurn Whether TURN servers are requested
+ * @param[out] data Pointer to allocated ICE server data (caller must free)
+ * @param[out] len Size of allocated data
+ * @param[out] have_more Whether more servers are available for subsequent requests
+ * @return WEBRTC_STATUS_SUCCESS on success, error code on failure
+ */
+WEBRTC_STATUS app_webrtc_get_server_by_idx(int index, bool useTurn, uint8_t **data, int *len, bool *have_more);
+
+/**
+ * @brief Check if ICE configuration refresh is needed through signaling abstraction
+ *
+ * This function delegates to the appropriate signaling implementation to check
+ * if ICE server configuration needs to be refreshed (immediate, non-blocking check).
+ *
+ * @param[out] refreshNeeded Whether ICE refresh is needed
+ * @return WEBRTC_STATUS_SUCCESS on success, error code on failure
+ */
+WEBRTC_STATUS app_webrtc_is_ice_refresh_needed(bool *refreshNeeded);
+
+/**
+ * @brief Trigger ICE configuration refresh through signaling abstraction
+ *
+ * This function delegates to the appropriate signaling implementation to trigger
+ * a background refresh of ICE server configuration (non-blocking operation).
+ *
+ * @return WEBRTC_STATUS_SUCCESS on success, error code on failure
+ */
+WEBRTC_STATUS app_webrtc_refresh_ice_configuration(void);
 
 #ifdef __cplusplus
 }
 #endif
-#endif  /* __KINESIS_VIDEO_SAMPLE_INCLUDE__ */

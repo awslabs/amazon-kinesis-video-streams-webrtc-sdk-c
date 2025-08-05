@@ -12,9 +12,9 @@ extern "C" {
 #include "../Include_i.h"
 
 // Configuration parameters
-#define DATA_BUFFER_DEFAULT_SIZE (4 * 1024)   // Default buffer size: 4KB
+#define DATA_BUFFER_DEFAULT_SIZE (2 * 1024)   // Default buffer size: 2KB
 #define DATA_BUFFER_MAX_SIZE (20 * 1024) // Maximum buffer size: 20KB
-#define DATA_BUFFER_EXPANSION_PADDING (1024)   // Padding when expanding buffer
+#define DATA_BUFFER_EXPANSION_PADDING (512)   // Padding when expanding buffer
 
 // Special status codes for buffer operations
 #define STATUS_DATA_BUFFER_COMPLETE 0x01000000 // Buffer contains complete message

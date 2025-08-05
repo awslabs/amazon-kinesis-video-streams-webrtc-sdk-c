@@ -60,6 +60,7 @@
 #endif
 
 #include "network_coprocessor.h"
+#include <stdbool.h>
 
 static const char *TAG = "fg_mcu_slave";
 
@@ -1264,18 +1265,24 @@ static SemaphoreHandle_t mutex;
 
 static received_msg_t *received_msg;
 
-__attribute__((weak))
-int app_common_queryServer_get_by_idx(int index, uint8_t **data, int *len, bool *have_more)
-{
-    return -1;
-}
+/* Static callback pointer for ICE server queries */
+static ice_server_query_callback_t ice_server_query_callback = NULL;
 
-extern bool kvswebrtc_is_time_sync_done();
-
-/* Function pointer for WebRTC message handler */
+/* Function pointer for WebRTC signaling message handler */
 static webrtc_message_callback_t webrtc_msg_callback = NULL;
 
-/* Register a callback for WebRTC messages */
+/**
+ * @brief Register a callback for ICE server queries via RPC_ID__Req_USR3
+ *
+ * @param callback Function to call for ICE server queries (index -> server data)
+ */
+void network_coprocessor_register_ice_server_query_callback(ice_server_query_callback_t callback)
+{
+    ice_server_query_callback = callback;
+    ESP_LOGI(TAG, "ICE server query callback %s", callback ? "registered" : "unregistered");
+}
+
+/* Register a callback for WebRTC signaling messages */
 void network_coprocessor_register_webrtc_callback(webrtc_message_callback_t callback)
 {
     webrtc_msg_callback = callback;
@@ -1373,10 +1380,19 @@ static esp_err_t user_defined_rpc_h2s_req_handler(Rpc *req, Rpc *resp)
 		bool have_more = false;
 		int index = req_usr->int_1;
 		resp_usr->data.data = NULL;
-		app_common_queryServer_get_by_idx(index, &resp_usr->data.data, &len, &have_more);
-		resp_usr->data.len = (size_t) len;
-		resp_usr->uint_1 = have_more;
-		resp_usr->resp = SUCCESS;
+
+		// Use registered ICE server query callback if available
+		if (ice_server_query_callback) {
+			int result = ice_server_query_callback(index, &resp_usr->data.data, &len, &have_more);
+			resp_usr->data.len = (size_t) len;
+			resp_usr->uint_1 = have_more;
+			resp_usr->resp = (result == 0) ? SUCCESS : FAILURE;
+		} else {
+			ESP_LOGW(TAG, "No ICE server query callback registered - RPC_ID__Req_USR3 failed");
+			resp_usr->data.len = 0;
+			resp_usr->uint_1 = false;
+			resp_usr->resp = FAILURE;
+		}
 		return ESP_OK;
 	}
 #endif

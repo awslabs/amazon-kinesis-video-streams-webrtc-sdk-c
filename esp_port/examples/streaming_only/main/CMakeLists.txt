@@ -1,4 +1,4 @@
-idf_component_register(SRCS "streaming_only_main.c" "signalling_remote.c"
+idf_component_register(SRCS "streaming_only_main.c"
                     INCLUDE_DIRS "."
                     REQUIRES "app_common" "kvs_webrtc" "esp_webrtc_utils")
 

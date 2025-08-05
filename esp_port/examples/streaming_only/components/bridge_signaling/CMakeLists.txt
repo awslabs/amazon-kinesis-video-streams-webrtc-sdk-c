@@ -4,6 +4,7 @@
 idf_component_register(
     SRCS
         "bridge_signaling.c"
+        "ice_bridge_client.c"
     INCLUDE_DIRS
         "include"
     REQUIRES

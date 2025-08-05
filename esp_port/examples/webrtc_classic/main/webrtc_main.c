@@ -4,6 +4,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/*
+ * WebRTC Classic Example - Simplified API Demo
+ *
+ * This example demonstrates the new simplified WebRTC API design that:
+ * - Uses reasonable defaults (MASTER role, OPUS/H264 codecs, trickle ICE, etc.)
+ * - Requires only essential configuration (signaling + media interfaces)
+ * - Auto-detects signaling-only vs. media streaming based on provided interfaces
+ * - Provides advanced configuration APIs for power users (commented examples)
+ *
+ * BEFORE (complex): 12+ config fields to set manually
+ * AFTER (simple):   6 essential fields with smart defaults
+ */
+
 #include <string.h>
 #include <pthread.h>
 #include <inttypes.h>
@@ -226,22 +239,12 @@ void app_main(void)
     // Perform the time sync
     esp_webrtc_time_sntp_time_sync_and_wait();
 
-    if (esp_work_queue_init() != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize work queue");
-        return;
-    }
-
-    if (esp_work_queue_start() != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to start work queue");
-        return;
-    }
-
     // Register the event callback *before* init to catch all events
     if (app_webrtc_register_event_callback(app_webrtc_event_handler, NULL) != 0) {
         ESP_LOGE(TAG, "Failed to register KVS event callback.");
     }
 
-    // Get the media capture interfaces directly
+    // Get the media capture interfaces for sending audio/video
     media_stream_video_capture_t *video_capture = media_stream_get_video_capture_if();
     media_stream_audio_capture_t *audio_capture = media_stream_get_audio_capture_if();
     media_stream_video_player_t *video_player = media_stream_get_video_player_if();
@@ -254,65 +257,75 @@ void app_main(void)
     }
 
     // Set up KVS signaling configuration (as opaque config)
-    static KvsSignalingConfig kvsSignalingConfig = {0};
+    static kvs_signaling_config_t kvs_signaling_cfg = {0};
 
     // Channel configuration
-    kvsSignalingConfig.pChannelName = CONFIG_AWS_KVS_CHANNEL_NAME;
+    kvs_signaling_cfg.pChannelName = CONFIG_AWS_KVS_CHANNEL_NAME;
 
 #ifdef CONFIG_IOT_CORE_ENABLE_CREDENTIALS
     // Configure IoT Core credentials
-    kvsSignalingConfig.useIotCredentials = true;
-    kvsSignalingConfig.iotCoreCredentialEndpoint = CONFIG_AWS_IOT_CORE_CREDENTIAL_ENDPOINT;
-    kvsSignalingConfig.iotCoreCert = CONFIG_AWS_IOT_CORE_CERT;
-    kvsSignalingConfig.iotCorePrivateKey = CONFIG_AWS_IOT_CORE_PRIVATE_KEY;
-    kvsSignalingConfig.iotCoreRoleAlias = CONFIG_AWS_IOT_CORE_ROLE_ALIAS;
-    kvsSignalingConfig.iotCoreThingName = CONFIG_AWS_IOT_CORE_THING_NAME;
+    kvs_signaling_cfg.useIotCredentials = true;
+    kvs_signaling_cfg.iotCoreCredentialEndpoint = CONFIG_AWS_IOT_CORE_CREDENTIAL_ENDPOINT;
+    kvs_signaling_cfg.iotCoreCert = CONFIG_AWS_IOT_CORE_CERT;
+    kvs_signaling_cfg.iotCorePrivateKey = CONFIG_AWS_IOT_CORE_PRIVATE_KEY;
+    kvs_signaling_cfg.iotCoreRoleAlias = CONFIG_AWS_IOT_CORE_ROLE_ALIAS;
+    kvs_signaling_cfg.iotCoreThingName = CONFIG_AWS_IOT_CORE_THING_NAME;
 #else
     // Configure direct AWS credentials
-    kvsSignalingConfig.useIotCredentials = false;
-    kvsSignalingConfig.awsAccessKey = CONFIG_AWS_ACCESS_KEY_ID;
-    kvsSignalingConfig.awsSecretKey = CONFIG_AWS_SECRET_ACCESS_KEY;
-    kvsSignalingConfig.awsSessionToken = CONFIG_AWS_SESSION_TOKEN;
+    kvs_signaling_cfg.useIotCredentials = false;
+    kvs_signaling_cfg.awsAccessKey = CONFIG_AWS_ACCESS_KEY_ID;
+    kvs_signaling_cfg.awsSecretKey = CONFIG_AWS_SECRET_ACCESS_KEY;
+    kvs_signaling_cfg.awsSessionToken = CONFIG_AWS_SESSION_TOKEN;
 #endif
 
     // Set common AWS options
-    kvsSignalingConfig.awsRegion = "us-east-1";
-    kvsSignalingConfig.caCertPath = "/spiffs/certs/cacert.pem";
+    kvs_signaling_cfg.awsRegion = "us-east-1";
+    kvs_signaling_cfg.caCertPath = "/spiffs/certs/cacert.pem";
 
-    // Configure WebRTC app with signaling interface and config as opaque pointers
-    WebRtcAppConfig webrtcConfig = WEBRTC_APP_CONFIG_DEFAULT();
+    // Configure WebRTC app with our new simplified API
+    app_webrtc_config_t app_webrtc_config = APP_WEBRTC_CONFIG_DEFAULT();
 
-    // WebRTC configuration
-    webrtcConfig.logLevel = 2;
-    webrtcConfig.roleType = WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_MASTER;  // Set WebRTC role type
+    // Essential configuration - what you MUST provide
+    app_webrtc_config.signaling_client_if = kvs_signaling_client_if_get();
+    app_webrtc_config.signaling_cfg = &kvs_signaling_cfg;
 
-    // Signaling configuration (passed as opaque pointers)
-    webrtcConfig.pSignalingClientInterface = getKvsSignalingClientInterface();
-    webrtcConfig.pSignalingConfig = &kvsSignalingConfig;
+    // Media interfaces for sending (optional - NULL for signaling-only)
+    app_webrtc_config.video_capture = video_capture;
+    app_webrtc_config.audio_capture = audio_capture;
+    // app_webrtc_config.video_player = NULL;
+    app_webrtc_config.audio_player = audio_player;
 
-    // Media interfaces
-    webrtcConfig.videoCapture = video_capture;
-    webrtcConfig.audioCapture = audio_capture;
-    webrtcConfig.videoPlayer = NULL;
-    webrtcConfig.audioPlayer = NULL;
-    webrtcConfig.receiveMedia = false;  // Enable media reception
+    ESP_LOGI(TAG, "Initializing WebRTC application with reasonable defaults");
+    ESP_LOGI(TAG, "  - Role: MASTER (initiates connections)");
+    ESP_LOGI(TAG, "  - Trickle ICE: enabled (faster connection setup)");
+    ESP_LOGI(TAG, "  - TURN servers: enabled (better NAT traversal)");
+    ESP_LOGI(TAG, "  - Log level: INFO (good balance)");
+    ESP_LOGI(TAG, "  - Audio codec: OPUS, Video codec: H264");
+    ESP_LOGI(TAG, "  - Media type: auto-detected (audio+video)");
+    ESP_LOGI(TAG, "  - Media reception: disabled (IoT devices typically send)");
 
-    ESP_LOGI(TAG, "Initializing WebRTC application");
-
-    // Initialize WebRTC application
-    status = webrtcAppInit(&webrtcConfig);
+    // Initialize WebRTC application with simplified API
+    status = app_webrtc_init(&app_webrtc_config);
     if (status != WEBRTC_STATUS_SUCCESS) {
         ESP_LOGE(TAG, "Failed to initialize WebRTC application: 0x%08" PRIx32, status);
         return;
     }
 
+    // Example: Advanced configuration APIs (optional)
+    // Uncomment any of these if you need to change defaults:
+    //
+    // app_webrtc_set_role(WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_VIEWER);  // Change to viewer role
+    // app_webrtc_set_log_level(2);                                     // Enable DEBUG logging
+    app_webrtc_enable_media_reception(true);                         // Enable receiving media
+    // app_webrtc_set_ice_config(false, false);                         // Disable trickle ICE and TURN
+
     ESP_LOGI(TAG, "Running WebRTC application");
 
     // Run WebRTC application
-    status = webrtcAppRun();
+    status = app_webrtc_run();
     if (status != WEBRTC_STATUS_SUCCESS) {
         ESP_LOGE(TAG, "WebRTC application failed: 0x%08" PRIx32, status);
-        webrtcAppTerminate();
+        app_webrtc_terminate();
     } else {
         ESP_LOGI(TAG, "WebRTC application started successfully");
     }

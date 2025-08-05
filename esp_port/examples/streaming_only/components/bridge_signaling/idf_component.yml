@@ -6,3 +6,9 @@ dependencies:
   signaling_serializer:
     path: ${KVS_SDK_PATH}/esp_port/components/signaling_serializer
     version: '*'
+
+  espressif/esp_hosted:
+    override_path: ${KVS_SDK_PATH}/esp_port/components/esp_hosted
+    version: '*'
+    rules:
+    - if: target in [esp32p4]

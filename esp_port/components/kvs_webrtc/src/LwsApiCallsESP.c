@@ -21,7 +21,7 @@
 #define TAG "LWS_API_ESP"
 
 // Define constants needed for ESP implementation
-#define WS_TASK_STACK_SIZE  (8 * 1024)
+#define WS_TASK_STACK_SIZE  (6 * 1024)
 #define WS_BUFFER_SIZE      (4 * 1024)
 
 // HTTP-specific constants
@@ -70,6 +70,15 @@
     "\t\"MessagePayload\": \"%s\",\n" \
     "\t\"CorrelationId\": \"%.*s\"%s\n" \
     "}"
+
+// Structure to hold ESP WebSocket client context
+typedef struct __EspSignalingClientWrapper {
+    PSignalingClient signalingClient;
+    esp_websocket_client_handle_t wsClient;
+    MUTEX wsClientLock;
+    BOOL isConnected;
+    BOOL connectionAwaitingConfirmation; // Track pending connections
+} EspSignalingClientWrapper, *PEspSignalingClientWrapper;
 
 // Global ESP signaling client wrapper
 static PEspSignalingClientWrapper gEspSignalingClientWrapper = NULL;
@@ -681,6 +690,16 @@ STATUS handleReceivedSignalingMessage(PSignalingClient pSignalingClient, PCHAR m
             receivedSignalingMessage.signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
         }
     }
+
+    // Update offer received timestamp for timing diagnostics (matches original LwsApiCalls.c logic)
+    if (receivedSignalingMessage.signalingMessage.messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
+        MUTEX_LOCK(pSignalingClient->offerSendReceiveTimeLock);
+        pSignalingClient->offerReceivedTime = GETTIME();
+        MUTEX_UNLOCK(pSignalingClient->offerSendReceiveTimeLock);
+    }
+
+    // Update diagnostics
+    ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfMessagesReceived);
 
     // Call the message received callback if registered
     // IMPORTANT: We call this with no locks held to avoid deadlocks

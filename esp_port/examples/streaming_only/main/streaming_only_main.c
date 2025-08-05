@@ -200,8 +200,11 @@ void app_main(void)
     // Initialize signaling serializer
     signaling_serializer_init();
 
+    esp_work_queue_config_t work_queue_config = ESP_WORK_QUEUE_CONFIG_DEFAULT();
+    work_queue_config.stack_size = 24 * 1024;
+
     // Initialize work queue
-    if (esp_work_queue_init() != ESP_OK) {
+    if (esp_work_queue_init_with_config(&work_queue_config) != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize work queue");
         return;
     }
@@ -216,7 +219,7 @@ void app_main(void)
         ESP_LOGE(TAG, "Failed to register KVS event callback.");
     }
 
-    // Get the media capture interfaces directly
+    // Get media interfaces for streaming (capture for sending, player for receiving)
     media_stream_video_capture_t *video_capture = media_stream_get_video_capture_if();
     media_stream_audio_capture_t *audio_capture = media_stream_get_audio_capture_if();
     media_stream_video_player_t *video_player = media_stream_get_video_player_if();
@@ -228,8 +231,8 @@ void app_main(void)
         return;
     }
 
-    // Configure WebRTC
-    WebRtcAppConfig webrtcConfig = WEBRTC_APP_CONFIG_DEFAULT();
+    // Configure WebRTC with our new simplified API - streaming-only mode
+    app_webrtc_config_t app_webrtc_config = APP_WEBRTC_CONFIG_DEFAULT();
 
     // Set up bridge signaling interface and config
     bridge_signaling_config_t bridge_config = {
@@ -237,25 +240,32 @@ void app_main(void)
         .log_level = 2
     };
 
-    // Configure WebRTC with bridge signaling
-    webrtcConfig.pSignalingClientInterface = getBridgeSignalingClientInterface();
-    webrtcConfig.pSignalingConfig = &bridge_config;
+    // Essential configuration - signaling interface
+    app_webrtc_config.signaling_client_if = getBridgeSignalingClientInterface();
+    app_webrtc_config.signaling_cfg = &bridge_config;
 
-    // Pass the media capture interfaces directly
-    webrtcConfig.videoCapture = video_capture;
-    webrtcConfig.audioCapture = audio_capture;
-    webrtcConfig.videoPlayer = video_player;
-    webrtcConfig.audioPlayer = audio_player;
-    webrtcConfig.receiveMedia = true; // Enable media reception
+    // Media interfaces for bi-directional streaming
+    app_webrtc_config.video_capture = video_capture;
+    app_webrtc_config.audio_capture = audio_capture;
+    app_webrtc_config.video_player = video_player;
+    app_webrtc_config.audio_player = audio_player;
 
-    ESP_LOGI(TAG, "Initializing WebRTC application with bridge signaling");
+    ESP_LOGI(TAG, "Initializing WebRTC streaming-only device with simplified API:");
+    ESP_LOGI(TAG, "  - Mode: streaming-only (no signaling, receives via bridge)");
+    ESP_LOGI(TAG, "  - Media type: auto-detected (audio+video from interfaces)");
+    ESP_LOGI(TAG, "  - Streaming: bi-directional (can send and receive media)");
+    ESP_LOGI(TAG, "  - Bridge: communicates with signaling device");
+    ESP_LOGI(TAG, "  - Role: MASTER (default - optimized for streaming)");
 
-    // Initialize WebRTC application
-    status = webrtcAppInit(&webrtcConfig);
+    // Initialize WebRTC application with simplified API
+    status = app_webrtc_init(&app_webrtc_config);
     if (status != WEBRTC_STATUS_SUCCESS) {
         ESP_LOGE(TAG, "Failed to initialize WebRTC application: 0x%08" PRIx32, status);
         goto CleanUp;
     }
+
+    // Enable media reception for bi-directional streaming
+    app_webrtc_enable_media_reception(true);
 
     // Start webrtc bridge
     webrtc_bridge_start();
@@ -263,7 +273,7 @@ void app_main(void)
     ESP_LOGI(TAG, "Streaming example initialized, waiting for signaling messages");
 
     // Run WebRTC application
-    status = webrtcAppRun();
+    status = app_webrtc_run();
     if (status != WEBRTC_STATUS_SUCCESS) {
         ESP_LOGE(TAG, "WebRTC application failed: 0x%08" PRIx32, status);
         goto CleanUp;
@@ -272,5 +282,5 @@ void app_main(void)
 CleanUp:
     // Do not terminate the WebRTC application in streaming-only mode
     // Only streaming sessions are created and destroyed internally
-    // webrtcAppTerminate();
+    // app_webrtc_terminate();
 }

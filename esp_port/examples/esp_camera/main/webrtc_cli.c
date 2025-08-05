@@ -28,7 +28,7 @@ static const char* get_role_type_str(void)
 
 // Structure to pass room joining data to the work queue task
 typedef struct {
-    char room_id[MAX_SIGNALING_CLIENT_ID_LEN + 1];
+    char room_id[SS_MAX_SIGNALING_CLIENT_ID_LEN + 1];
     bool is_new_room;
 } join_room_task_data_t;
 
@@ -81,8 +81,8 @@ static int webrtc_join_room_cli_handler(int argc, char *argv[])
 
     if (strcmp(argv[1], "new") != 0) {
         // Copy room ID to task data
-        strncpy(task_data->room_id, argv[1], MAX_SIGNALING_CLIENT_ID_LEN);
-        task_data->room_id[MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
+        strncpy(task_data->room_id, argv[1], SS_MAX_SIGNALING_CLIENT_ID_LEN);
+        task_data->room_id[SS_MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
         task_data->is_new_room = false;
 
         ESP_LOGI(TAG, "Joining room: %s (Role: %s)", task_data->room_id, get_role_type_str());
@@ -284,8 +284,8 @@ static int webrtc_retry_cli_handler(int argc, char *argv[])
     if (argc == 1) {
         const char* current_room_id = apprtc_signaling_get_room_id();
         if (current_room_id != NULL && current_room_id[0] != '\0') {
-            strncpy(task_data->room_id, current_room_id, MAX_SIGNALING_CLIENT_ID_LEN);
-            task_data->room_id[MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
+            strncpy(task_data->room_id, current_room_id, SS_MAX_SIGNALING_CLIENT_ID_LEN);
+            task_data->room_id[SS_MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
             task_data->is_new_room = false;
 
             ESP_LOGI(TAG, "Retrying connection to current room: %s (Role: %s)", task_data->room_id, get_role_type_str());
@@ -297,8 +297,8 @@ static int webrtc_retry_cli_handler(int argc, char *argv[])
         }
     } else if (strcmp(argv[1], "new") != 0) {
         // Copy room ID to task data
-        strncpy(task_data->room_id, argv[1], MAX_SIGNALING_CLIENT_ID_LEN);
-        task_data->room_id[MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
+        strncpy(task_data->room_id, argv[1], SS_MAX_SIGNALING_CLIENT_ID_LEN);
+        task_data->room_id[SS_MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
         task_data->is_new_room = false;
 
         ESP_LOGI(TAG, "Retrying connection to room: %s (Role: %s)", task_data->room_id, get_role_type_str());

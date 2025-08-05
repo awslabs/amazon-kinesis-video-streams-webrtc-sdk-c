@@ -13,6 +13,15 @@ menu "KVS WebRTC Configuration"
             Kinesis Video Stream SDK uses libwebsockets for the signaling API requests.
             By using esp_websocket_client, you get better control over memory usage as the complete signaling part is re-implemented with ESP-IDF constraints in mind
 
+    config USE_ESP_TLS_FOR_KVS
+        bool "Use ESP-TLS for KVS TLS connections (TURN over TLS)"
+        default y
+        help
+            Use ESP-TLS implementation instead of direct mbedTLS for TLS connections.
+            This enables the use of ESP certificate bundle for CA verification,
+            eliminating the need for certificate files on the filesystem.
+            Recommended for ESP platforms to avoid certificate management complexity.
+
     config PREFER_DYNAMIC_ALLOCS
         bool "Prefer dynamic memory allocations"
         default y

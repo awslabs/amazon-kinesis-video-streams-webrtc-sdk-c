@@ -433,7 +433,7 @@ STATUS signalingGetIceConfigInfoCount(PSignalingClient pSignalingClient, PUINT32
 
     CHK(pSignalingClient != NULL && pIceConfigCount != NULL, STATUS_NULL_ARG);
 
-    CHK_STATUS(refreshIceConfiguration(pSignalingClient));
+    CHK_STATUS(refresh_ice_configuration(pSignalingClient));
 
     *pIceConfigCount = pSignalingClient->iceConfigCount;
 
@@ -453,7 +453,7 @@ STATUS signalingGetIceConfigInfo(PSignalingClient pSignalingClient, UINT32 index
     CHK(pSignalingClient != NULL && ppIceConfigInfo != NULL, STATUS_NULL_ARG);
 
     // Refresh the ICE configuration first
-    CHK_STATUS(refreshIceConfiguration(pSignalingClient));
+    CHK_STATUS(refresh_ice_configuration(pSignalingClient));
 
     CHK(index < pSignalingClient->iceConfigCount, STATUS_INVALID_ARG);
 
@@ -696,7 +696,36 @@ CleanUp:
     return retStatus;
 }
 
-STATUS refreshIceConfiguration(PSignalingClient pSignalingClient)
+BOOL signaling_is_ice_config_refresh_needed(PSignalingClient pSignalingClient)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT64 curTime;
+    BOOL refreshNeeded = FALSE;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    // Check whether we have a valid not-yet-expired ICE configuration
+    curTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
+
+    // Refresh is needed if:
+    // 1. No ICE configuration exists yet, OR
+    // 2. Current ICE configuration has expired
+    if (pSignalingClient->iceConfigCount == 0 || curTime > pSignalingClient->iceConfigExpiration) {
+        refreshNeeded = TRUE;
+        ESP_LOGI(TAG, "ICE refresh needed: iceConfigCount=%d, expired=%s",
+                 pSignalingClient->iceConfigCount,
+                 (curTime > pSignalingClient->iceConfigExpiration) ? "yes" : "no");
+    } else {
+        ESP_LOGI(TAG, "ICE refresh not needed: valid config available");
+    }
+
+CleanUp:
+    LEAVES();
+    return refreshNeeded;
+}
+
+STATUS refresh_ice_configuration(PSignalingClient pSignalingClient)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;

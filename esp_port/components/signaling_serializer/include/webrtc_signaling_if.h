@@ -199,7 +199,7 @@ typedef WEBRTC_STATUS (*create_signaling_client_func_t)(const char *client_type,
  */
 typedef struct {
     // Initialize the signaling client with configuration
-    WEBRTC_STATUS (*init)(void *pSignalingConfig, void **ppSignalingClient);
+    WEBRTC_STATUS (*init)(void *signaling_cfg, void **ppSignalingClient);
 
     // Connect to signaling service
     WEBRTC_STATUS (*connect)(void *pSignalingClient);
@@ -208,24 +208,33 @@ typedef struct {
     WEBRTC_STATUS (*disconnect)(void *pSignalingClient);
 
     // Send a signaling message
-    WEBRTC_STATUS (*sendMessage)(void *pSignalingClient, esp_webrtc_signaling_message_t *pMessage);
+    WEBRTC_STATUS (*send_message)(void *pSignalingClient, esp_webrtc_signaling_message_t *pMessage);
 
     // Free resources
     WEBRTC_STATUS (*free)(void *pSignalingClient);
 
     // Set callbacks for signaling events
-    WEBRTC_STATUS (*setCallbacks)(void *pSignalingClient,
+    WEBRTC_STATUS (*set_callback)(void *pSignalingClient,
                                  uint64_t customData,
-                                 WEBRTC_STATUS (*onMessageReceived)(uint64_t, esp_webrtc_signaling_message_t*),
-                                 WEBRTC_STATUS (*onStateChanged)(uint64_t, webrtc_signaling_client_state_t),
-                                 WEBRTC_STATUS (*onError)(uint64_t, WEBRTC_STATUS, char*, uint32_t));
+                                 WEBRTC_STATUS (*on_msg_received)(uint64_t, esp_webrtc_signaling_message_t*),
+                                 WEBRTC_STATUS (*on_state_changed)(uint64_t, webrtc_signaling_client_state_t),
+                                 WEBRTC_STATUS (*on_error)(uint64_t, WEBRTC_STATUS, char*, uint32_t));
 
     // Set the role type for the signaling client
-    WEBRTC_STATUS (*setRoleType)(void *pSignalingClient, webrtc_signaling_channel_role_type_t roleType);
+    WEBRTC_STATUS (*set_role_type)(void *pSignalingClient, webrtc_signaling_channel_role_type_t role_type);
 
-    // Get ICE server configuration
-    WEBRTC_STATUS (*getIceServers)(void *pSignalingClient, uint32_t *pIceConfigCount, void *pRtcConfiguration);
-} WebRtcSignalingClientInterface;
+    // Get ICE server configuration (expects iceServers array, not full RtcConfiguration)
+    WEBRTC_STATUS (*get_ice_servers)(void *pSignalingClient, uint32_t *pIceConfigCount, void *pIceServersArray);
+
+    // Query ICE server by index (for bridge/RPC pattern)
+    WEBRTC_STATUS (*get_ice_server_by_idx)(void *pSignalingClient, int index, bool useTurn, uint8_t **data, int *len, bool *have_more);
+
+    // Check if ICE configuration refresh is needed (immediate, non-blocking check)
+    WEBRTC_STATUS (*is_ice_refresh_needed)(void *pSignalingClient, bool *refreshNeeded);
+
+    // Trigger ICE configuration refresh (background operation)
+    WEBRTC_STATUS (*refresh_ice_configuration)(void *pSignalingClient);
+} webrtc_signaling_client_if_t;
 
 #ifdef __cplusplus
 }

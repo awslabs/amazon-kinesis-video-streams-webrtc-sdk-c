@@ -5,7 +5,7 @@
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
 #include "esp_system.h"
-#include "esp_wifi.h"
+// #include "esp_wifi.h"
 #include "esp_event.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
@@ -15,47 +15,44 @@
 #include "wifi_cli.h"
 
 #include "app_storage.h"
-#include "flash_wrapper.h"
-
-#include "webrtc_bridge.h"
 #include "esp_work_queue.h"
 #include "kvs_signaling.h"
-#include "webrtc_signaling_if.h"
 #include "network_coprocessor.h"
 #include "esp_webrtc_time.h"
 #include "app_webrtc.h"
-#include "signaling_serializer.h"
+#include "signaling_bridge_adapter.h"
 
 static const char *TAG = "signaling_only";
 
 extern int sleep_command_register_cli();
 
-int app_common_queryServer_get_by_idx(int index, uint8_t **data, int *len, bool *have_more)
-{
-    return -1;
-}
-
 // Global configuration - keep same structure as before for IoT Core compatibility
-static KvsSignalingConfig g_kvsSignalingConfig = {0};
+static kvs_signaling_config_t g_kvsSignalingConfig = {0};
 
 /**
  * @brief Handle WebRTC application events
  */
 static void app_webrtc_event_handler(app_webrtc_event_data_t *event_data, void *user_ctx)
 {
-    ESP_LOGI(TAG, "WebRTC Event: %d, Status: 0x%08" PRIx32 ", Peer: %s, Message: %s",
+    ESP_LOGI(TAG, "🎯 WebRTC Event: %d, Status: 0x%08" PRIx32 ", Peer: %s, Message: %s",
              event_data->event_id, event_data->status_code,
-             event_data->peer_id, event_data->message);
+             event_data->peer_id ? event_data->peer_id : "NULL",
+             event_data->message ? event_data->message : "NULL");
 
     switch (event_data->event_id) {
         case APP_WEBRTC_EVENT_SIGNALING_CONNECTED:
             ESP_LOGI(TAG, "Signaling connected successfully");
+            // Note: ICE servers are now transferred on-demand when streaming device requests them
+            break;
+        case APP_WEBRTC_EVENT_SIGNALING_GET_ICE:
+            ESP_LOGI(TAG, "ICE servers fetched from AWS and ready for requests");
             break;
         case APP_WEBRTC_EVENT_SIGNALING_DISCONNECTED:
             ESP_LOGI(TAG, "Signaling disconnected");
             break;
         case APP_WEBRTC_EVENT_RECEIVED_OFFER:
             ESP_LOGI(TAG, "Received offer from peer %s", event_data->peer_id);
+            // Note: ICE servers are now provided on-demand when requested by streaming device
             break;
         case APP_WEBRTC_EVENT_SENT_ANSWER:
             ESP_LOGI(TAG, "Sent answer to peer %s", event_data->peer_id);
@@ -68,62 +65,11 @@ static void app_webrtc_event_handler(app_webrtc_event_data_t *event_data, void *
             break;
         case APP_WEBRTC_EVENT_ERROR:
         case APP_WEBRTC_EVENT_SIGNALING_ERROR:
-            ESP_LOGE(TAG, "WebRTC error occurred: %s", event_data->message);
+            ESP_LOGE(TAG, "WebRTC error occurred: %s", event_data->message ? event_data->message : "Unknown error");
             break;
         default:
+            ESP_LOGI(TAG, "🔍 Unhandled WebRTC event: %d", event_data->event_id);
             break;
-    }
-}
-
-/**
- * @brief Callback to send signaling messages to the streaming device via webrtc_bridge
- */
-static int send_message_callback(signaling_msg_t *signalingMessage)
-{
-    ESP_LOGI(TAG, "Sending signaling message type %d to streaming device", signalingMessage->messageType);
-
-    size_t serializedMsgLen = 0;
-    char *serializedMsg = serialize_signaling_message(signalingMessage, &serializedMsgLen);
-    if (serializedMsg == NULL) {
-        ESP_LOGE(TAG, "Failed to serialize signaling message");
-        return -1;
-    }
-
-    // ownership of serializedMsg is transferred to webrtc_bridge_send_message
-    webrtc_bridge_send_message(serializedMsg, serializedMsgLen);
-
-    ESP_LOGI(TAG, "Successfully sent message type %d via bridge", signalingMessage->messageType);
-    return 0;
-}
-
-/**
- * @brief Handle signaling messages received from the streaming device via webrtc_bridge
- */
-static void handle_bridged_message(const void* data, int len)
-{
-    ESP_LOGI(TAG, "Received bridged message from streaming device (%d bytes)", len);
-
-    signaling_msg_t signalingMsg = {0};
-    esp_err_t ret = deserialize_signaling_message(data, len, &signalingMsg);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to deserialize signaling message");
-        return;
-    }
-
-    ESP_LOGI(TAG, "Deserialized message type %d from peer %s",
-             signalingMsg.messageType, signalingMsg.peerClientId);
-
-    // Send the message from bridge to signaling server
-    int result = webrtcAppSendMessageToSignalingServer(&signalingMsg);
-    if (result != 0) {
-        ESP_LOGE(TAG, "Failed to send message to signaling server: %d", result);
-    } else {
-        ESP_LOGI(TAG, "Successfully sent message to signaling server");
-    }
-
-    // Clean up
-    if (signalingMsg.payload != NULL) {
-        free(signalingMsg.payload);
     }
 }
 
@@ -218,50 +164,54 @@ void app_main(void)
     // Register WebRTC event callback
     app_webrtc_register_event_callback(app_webrtc_event_handler, NULL);
 
-    // Register the message sending callback for split mode (sends to streaming device)
-    webrtcAppRegisterSendToBridgeCallback(send_message_callback);
+    // Configure and initialize signaling bridge adapter (handles all bridge communication)
+    signaling_bridge_adapter_config_t adapter_config = {
+        .user_ctx = NULL
+    };
 
-    // Register the bridge message handler to receive messages from streaming device
-    webrtc_bridge_register_handler(handle_bridged_message);
+    WEBRTC_STATUS adapter_status = signaling_bridge_adapter_init(&adapter_config);
+    if (adapter_status != WEBRTC_STATUS_SUCCESS) {
+        ESP_LOGE(TAG, "Failed to initialize signaling bridge adapter: 0x%08" PRIx32, adapter_status);
+        return;
+    }
 
-    // Start the WebRTC bridge
-    webrtc_bridge_start();
+    // Start the signaling bridge adapter (starts bridge and handles all communication)
+    adapter_status = signaling_bridge_adapter_start();
+    if (adapter_status != WEBRTC_STATUS_SUCCESS) {
+        ESP_LOGE(TAG, "Failed to start signaling bridge adapter: 0x%08" PRIx32, adapter_status);
+        return;
+    }
 
-    // Configure WebRTC application for signaling-only mode with split mode support
-    WebRtcAppConfig webrtcConfig = WEBRTC_APP_CONFIG_DEFAULT();
+    // Configure WebRTC with our new simplified API - signaling-only mode
+    app_webrtc_config_t app_webrtc_config = APP_WEBRTC_CONFIG_DEFAULT();
 
-    // Configure signaling with KVS - pass the SAME config that was working
-    webrtcConfig.pSignalingClientInterface = getKvsSignalingClientInterface();
-    webrtcConfig.pSignalingConfig = &g_kvsSignalingConfig;
+    // Essential configuration - what you MUST provide
+    app_webrtc_config.signaling_client_if = kvs_signaling_client_if_get();
+    app_webrtc_config.signaling_cfg = &g_kvsSignalingConfig;
 
-    // WebRTC configuration
-    webrtcConfig.roleType = WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-    webrtcConfig.trickleIce = TRUE;
-    webrtcConfig.useTurn = TRUE;
-    webrtcConfig.logLevel = 3; // INFO level
-    webrtcConfig.signalingOnly = TRUE; // Disable streaming components to save memory
+    // No media interfaces = signaling-only mode (auto-detected!)
+    // video_capture, audio_capture, video_player, audio_player all default to NULL
 
-    // No media interfaces needed for signaling-only mode
-    webrtcConfig.videoCapture = NULL;
-    webrtcConfig.audioCapture = NULL;
-    webrtcConfig.videoPlayer = NULL;
-    webrtcConfig.audioPlayer = NULL;
-    webrtcConfig.receiveMedia = FALSE;
+    ESP_LOGI(TAG, "Initializing WebRTC in signaling-only mode with simplified API:");
+    ESP_LOGI(TAG, "  - Mode: auto-detected as signaling-only (no media interfaces)");
+    ESP_LOGI(TAG, "  - Role: MASTER (default - manages connections)");
+    ESP_LOGI(TAG, "  - Memory: optimized (media components disabled automatically)");
+    ESP_LOGI(TAG, "  - Split mode: ready for bridge communication");
+    ESP_LOGI(TAG, "  - Channel: %s", g_kvsSignalingConfig.pChannelName);
 
-    ESP_LOGI(TAG, "Initializing WebRTC application");
-    status = webrtcAppInit(&webrtcConfig);
+    status = app_webrtc_init(&app_webrtc_config);
     if (status != WEBRTC_STATUS_SUCCESS) {
         ESP_LOGE(TAG, "Failed to initialize WebRTC application: 0x%08" PRIx32, status);
         return;
     }
 
-    ESP_LOGI(TAG, "Starting WebRTC application with split mode support");
-    ESP_LOGI(TAG, "Signaling device ready - will forward messages to/from streaming device via bridge");
+    ESP_LOGI(TAG, "Starting signaling-only WebRTC application");
+    ESP_LOGI(TAG, "Ready to forward signaling messages to/from streaming device via bridge");
 
-    status = webrtcAppRun();
+    status = app_webrtc_run();
     if (status != WEBRTC_STATUS_SUCCESS) {
         ESP_LOGE(TAG, "WebRTC application failed: 0x%08" PRIx32, status);
-        webrtcAppTerminate();
+        app_webrtc_terminate();
     } else {
         ESP_LOGI(TAG, "WebRTC application started successfully");
     }

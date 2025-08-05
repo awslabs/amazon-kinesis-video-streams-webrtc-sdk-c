@@ -1,111 +1,179 @@
-# WebRTC Classic Example
+# 🏆 WebRTC Classic Example - **AWS KVS Streaming**
 
-This example demonstrates the classic mode of WebRTC operation for ESP32 devices, where signaling and streaming are performed on the same chip.
+**Simple AWS KVS Integration** - Complete WebRTC implementation using Amazon Kinesis Video Streams for signaling. This example provides a straightforward way to stream video to browsers via AWS infrastructure.
 
-## Features
+## 🎯 What You'll Build
 
-- Complete WebRTC implementation on a single ESP32 device
-- Video streaming from camera
-- Audio streaming from microphone
-- AWS KVS integration with both direct credentials and IoT Core credentials
-- Configurable media settings (resolution, bitrate, etc.)
-- Automatic reconnection on network issues
+A WebRTC camera that streams video and audio to web browsers using AWS KVS (Kinesis Video Streams) for signaling.
 
-## Hardware Required
+**Expected Result**: Device auto-connects to AWS KVS and streams video to browsers through the KVS WebRTC test page!
 
-- One of the following ESP32 development boards:
-  - ESP32-WROVER-KIT with camera module
-  - ESP32-S3-EYE
-  - ESP32-P4-Function-EV-Board (with ESP32-C6 as network coprocessor)
-- Microphone connected to I2S input (optional for audio)
-- Speaker or headphone output (optional for audio playback)
+## ✨ Features
 
-## How to Use
+- 📹 **Video Streaming** - H.264 encoding for live video transmission
+- 🎤 **Audio Streaming** - Opus encoding for audio transmission
+- ☁️ **AWS KVS Integration** - Uses Amazon Kinesis Video Streams for signaling
+- 🔐 **Authentication Options** - Direct AWS credentials or IoT Core certificates
+- ⚡ **Auto-Connect** - Automatically connects to AWS KVS on startup
+- 🎯 **Single Device** - Everything runs on one ESP32 (signaling + streaming)
 
-### Build and Flash
+## 🔧 Hardware Requirements
 
-1. Configure the project:
+### Supported Development Boards
+| Board | Video | Audio | Notes |
+|-------|-------|-------|-------|
+| **ESP32-S3-EYE** | ✅ Built-in camera | ✅ Built-in mic | **Recommended** - Ready to use |
+| **ESP32-WROVER-KIT** | ➕ Add camera module | ➕ Add I2S mic | Requires additional hardware |
+| **ESP32-P4-Function-EV-Board** | ✅ High-quality camera | ✅ Built-in mic | **Premium** - Best performance |
 
+### Additional Hardware (Optional)
+- **Microphone**: I2S microphone for audio streaming
+- **Speaker**: I2S speaker for audio playback (bidirectional audio)
+- **External Antenna**: For better Wi-Fi range in challenging environments
+
+## 🚀 Quick Start - AWS KVS Streaming
+
+### Prerequisites ✅
+- ESP-IDF v5.4 or v5.5 installed and configured
+- ESP32 development board with camera (ESP32-S3-EYE recommended)
+- AWS account with KVS access
+- Wi-Fi network
+
+### Step 1: Configure Target Device
 ```bash
-# For ESP32
-idf.py set-target esp32
+cd examples/webrtc_classic
 
-# For ESP32-S3
-idf.py set-target esp32s3
-
-# For ESP32-P4
-idf.py set-target esp32p4
+# Choose your ESP32 variant
+idf.py set-target esp32s3     # For ESP32-S3-EYE (recommended)
+# idf.py set-target esp32     # For ESP32-CAM
+# idf.py set-target esp32p4   # For ESP32-P4 Function EV Board
 ```
 
-2. Configure Wi-Fi and AWS credentials:
+### Step 2: Configure Wi-Fi & AWS Credentials
 
+**Navigate to: Example Configuration Options**
+
+```
+ESP_WIFI_SSID = "YourWiFiNetwork"
+ESP_WIFI_PASSWORD = "YourPassword"
+ESP_MAXIMUM_RETRY = 5
+```
+
+#### AWS Authentication (Choose Option A or B)
+
+**Option A: Direct AWS Credentials**
 ```bash
 idf.py menuconfig
+# Navigate to: Component config → Amazon Web Services IoT →
+# Disable: CONFIG_IOT_CORE_ENABLE_CREDENTIALS
+```
+Then edit `main/webrtc_main.c` (lines 277-281):
+```c
+kvs_signaling_cfg.awsAccessKey = CONFIG_AWS_ACCESS_KEY_ID;     // Set via menuconfig
+kvs_signaling_cfg.awsSecretKey = CONFIG_AWS_SECRET_ACCESS_KEY; // Set via menuconfig
+kvs_signaling_cfg.awsSessionToken = CONFIG_AWS_SESSION_TOKEN;  // Set via menuconfig
 ```
 
-Navigate to "Example Configuration" and set:
-- ESP_WIFI_SSID: Your Wi-Fi network name
-- ESP_WIFI_PASSWORD: Your Wi-Fi password
-- AWS_ACCESS_KEY_ID: Your AWS access key
-- AWS_SECRET_ACCESS_KEY: Your AWS secret key
-- AWS_DEFAULT_REGION: Your AWS region (e.g., us-west-2)
-- AWS_KVS_CHANNEL: Your Kinesis Video Stream channel name
-
-Alternatively, you can use IoT Core credentials by enabling `CONFIG_IOT_CORE_ENABLE_CREDENTIALS` and placing the required certificates in the `app_common/spiffs_image/certs/` directory.
-
-3. Build and flash the project:
-
+**Option B: IoT Core Certificates (Recommended)**
 ```bash
-idf.py build
-idf.py -p [PORT] flash monitor
+idf.py menuconfig
+# Navigate to: Component config → Amazon Web Services IoT →
+# Enable: CONFIG_IOT_CORE_ENABLE_CREDENTIALS
+```
+Then may also modify values in `main/webrtc_main.c` directly:
+```c
+kvs_signaling_cfg.iotCoreCredentialEndpoint = "your-endpoint.credentials.iot.us-east-1.amazonaws.com";
+kvs_signaling_cfg.iotCoreCert = "/spiffs/certs/certificate.pem";
+kvs_signaling_cfg.iotCorePrivateKey = "/spiffs/certs/private.key";
+kvs_signaling_cfg.iotCoreRoleAlias = "your_role_alias";
+kvs_signaling_cfg.iotCoreThingName = "your_thing_name";
 ```
 
-### Using with Network Coprocessor (ESP32-P4 + ESP32-C6)
+### Step 3: Build & Flash
+```bash
+# Build the project
+idf.py build
 
-When using the ESP32-P4-Function-EV-Board, you need to:
+# Flash and monitor
+idf.py -p /dev/ttyUSB0 flash monitor
 
-1. Flash the `network_adapter` example to the ESP32-C6 coprocessor:
-   ```bash
-   cd ../network_adapter
-   idf.py set-target esp32c6
-   idf.py build
-   idf.py -p [C6_PORT] flash
-   ```
+# Expected output:
+# I (12345) webrtc_main: ESP32 WebRTC Example
+# I (12346) webrtc_main: got ip:192.168.1.100
+# I (12347) webrtc_main: Connected to WiFi
+# I (12348) webrtc_main: [KVS Event] WebRTC Initialized.
+# I (12349) webrtc_main: Initializing WebRTC application
+# I (12350) webrtc_main: Running WebRTC application
+```
 
-2. Then flash this `webrtc_classic` example to the ESP32-P4:
-   ```bash
-   cd ../webrtc_classic
-   idf.py set-target esp32p4
-   idf.py build
-   idf.py -p [P4_PORT] flash
-   ```
+### Step 4: View Your Stream! 📺
+1. **Open [AWS KVS WebRTC Test Page](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-js/examples/index.html)**
+2. **Enter your AWS credentials** (same as in Step 2)
+3. **Enter channel name** (`ScaryTestChannel` or your custom name)
+4. **Select "Join as viewer"**
+5. **Click "Start Viewer"** - you should see your ESP32 camera feed!
+## 🔧 Architecture Overview
 
-### Viewing the Stream
+This example implements:
+- **AWS KVS Signaling**: Uses Amazon Kinesis Video Streams for WebRTC signaling
+- **Media Streaming**: H.264 video and Opus audio over WebRTC
+- **Auto-Connect**: Simple startup that automatically connects to AWS
+- **Single Device**: Everything runs on one ESP32 (no split mode)
 
-To view the WebRTC stream:
+## 🚨 Troubleshooting
 
-1. Open the [KVS WebRTC Test Page](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-js/examples/index.html)
-2. Enter your AWS credentials
-3. Enter the same channel name configured in your ESP32 application
-4. Click "Start Viewer" to view the stream
+### Common Issues & Solutions
 
-## Configuration Options
+| Problem | Symptoms | Solution |
+|---------|----------|----------|
+| **Build Errors** | `STATUS.h not found` | Apply ESP-IDF patches (see main README) |
+| **Wi-Fi Connection Failed** | `Failed to connect to WiFi` | Update hardcoded SSID/password in `webrtc_main.c` |
+| **AWS Authentication Failed** | `AWS credentials invalid` | Verify AWS keys in menuconfig or IoT Core certificates |
+| **No Video Stream** | Viewer connects but no video | Check camera connections, verify power supply |
+| **Poor Video Quality** | Choppy/pixelated video | Check Wi-Fi signal strength, reduce interference |
+| **Memory Issues** | `Allocation failed` | Check available RAM, restart device |
 
-### AWS Settings
+### Debug Information
 
-You can configure AWS-related settings:
+**Monitor WebRTC Events:**
+```
+I (12345) webrtc_main: ESP32 WebRTC Example
+I (12346) webrtc_main: got ip:192.168.1.100
+I (12347) webrtc_main: Connected to WiFi
+I (12348) webrtc_main: [KVS Event] WebRTC Initialized.
+I (12349) webrtc_main: [KVS Event] Signaling Connecting.
+I (12350) webrtc_main: [KVS Event] Signaling Connected.
+I (12351) webrtc_main: [KVS Event] Peer Connected: viewer-12345
+I (12352) webrtc_main: [KVS Event] Streaming Started for Peer: viewer-12345
+```
 
-- KVS channel name
-- AWS region
-- Log level
-- Credential type (direct or IoT Core)
+**Test AWS Connectivity First:**
+```bash
+# Verify AWS credentials work
+aws kinesisvideo list-signaling-channels --region us-east-1
+```
 
-## Troubleshooting
+### Expected Behavior
+1. **Device boots** → Connects to hardcoded Wi-Fi network
+2. **AWS KVS connection** → Automatically connects to AWS KVS signaling
+3. **Waiting for viewers** → Ready to accept connections from browsers
+4. **Viewer connects** → Starts streaming video/audio immediately
 
-- If the device fails to connect to Wi-Fi, check your Wi-Fi credentials
-- If the device connects to Wi-Fi but fails to connect to AWS, verify your AWS credentials and region
-- If no video is displayed, check that your camera is properly connected and supported
-- If you experience poor video quality, try reducing the resolution or bitrate
+## 📚 Next Steps
+
+### After Success ✅
+1. **Try Split Mode** - Explore `streaming_only` + `signaling_only` for power optimization
+2. **Custom Signaling** - Implement your own signaling protocol
+3. **Production Deployment** - Use IoT Core certificates for security
+
+### Related Examples
+- 📱 **[streaming_only](../streaming_only/README.md)** - Split mode streaming device
+- 📡 **[signaling_only](../signaling_only/README.md)** - Split mode signaling device
+- 🌐 **[esp_camera](../esp_camera/README.md)** - AppRTC compatible (no AWS needed)
+
+### Documentation
+- 📖 **[API_USAGE.md](../../API_USAGE.md)** - Complete API reference
+- 📖 **[CUSTOM_SIGNALING.md](../../CUSTOM_SIGNALING.md)** - Custom signaling guide
 
 ## License
 

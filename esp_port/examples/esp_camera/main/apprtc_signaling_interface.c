@@ -14,13 +14,13 @@ static const char *TAG = "apprtc_signaling_if";
 
 // Global state for the AppRTC signaling adapter
 typedef struct {
-    AppRtcSignalingConfig config;
+    apprtc_signaling_config_t config;
     bool initialized;
     bool connected;
-    void *customData;
-    WEBRTC_STATUS (*onMessageReceived)(uint64_t, esp_webrtc_signaling_message_t*);
-    WEBRTC_STATUS (*onStateChanged)(uint64_t, webrtc_signaling_client_state_t);
-    WEBRTC_STATUS (*onError)(uint64_t, WEBRTC_STATUS, char*, uint32_t);
+    uint64_t customData;
+    WEBRTC_STATUS (*on_msg_received)(uint64_t, esp_webrtc_signaling_message_t*);
+    WEBRTC_STATUS (*on_state_changed)(uint64_t, webrtc_signaling_client_state_t);
+    WEBRTC_STATUS (*on_error)(uint64_t, WEBRTC_STATUS, char*, uint32_t);
 } AppRtcSignalingClientData;
 
 static AppRtcSignalingClientData gAppRtcClientData = {0};
@@ -51,7 +51,7 @@ static void apprtc_message_handler(const char *message, size_t message_len, void
 {
     ESP_LOGI(TAG, "AppRTC message received: %.*s", (int)message_len, message);
 
-    if (gAppRtcClientData.onMessageReceived == NULL) {
+    if (gAppRtcClientData.on_msg_received == NULL) {
         ESP_LOGW(TAG, "No message callback registered");
         return;
     }
@@ -103,7 +103,7 @@ static void apprtc_message_handler(const char *message, size_t message_len, void
     webrtc_msg.payload_len = signaling_msg.payloadLen;
 
     // Call the registered callback
-    gAppRtcClientData.onMessageReceived((uint64_t)(uintptr_t)gAppRtcClientData.customData, &webrtc_msg);
+    gAppRtcClientData.on_msg_received(gAppRtcClientData.customData, &webrtc_msg);
 
     // Clean up the payload (it was allocated by apprtc_json_to_signaling_message)
     if (webrtc_msg.payload) {
@@ -119,17 +119,17 @@ static void apprtc_state_change_handler(int state, void *user_data)
     gAppRtcClientData.connected = (state == APPRTC_SIGNALING_STATE_CONNECTED);
 
     // Forward state change to WebRTC app if callback is set
-    if (gAppRtcClientData.onStateChanged != NULL) {
+    if (gAppRtcClientData.on_state_changed != NULL) {
         webrtc_signaling_client_state_t clientState = convertAppRtcState((apprtc_signaling_state_t)state);
-        gAppRtcClientData.onStateChanged((uint64_t)(uintptr_t)gAppRtcClientData.customData, clientState);
+        gAppRtcClientData.on_state_changed(gAppRtcClientData.customData, clientState);
     }
 }
 
 // Interface implementation functions
-static WEBRTC_STATUS apprtcInit(void *pSignalingConfig, void **ppSignalingClient)
+static WEBRTC_STATUS apprtcInit(void *signaling_cfg, void **ppSignalingClient)
 {
     WEBRTC_STATUS retStatus = WEBRTC_STATUS_SUCCESS;
-    PAppRtcSignalingConfig pConfig = (PAppRtcSignalingConfig)pSignalingConfig;
+    apprtc_signaling_config_t *pConfig = (apprtc_signaling_config_t *)signaling_cfg;
 
     ESP_LOGI(TAG, "Initializing AppRTC signaling interface");
 
@@ -138,7 +138,7 @@ static WEBRTC_STATUS apprtcInit(void *pSignalingConfig, void **ppSignalingClient
     }
 
     // Copy configuration
-    memcpy(&gAppRtcClientData.config, pConfig, sizeof(AppRtcSignalingConfig));
+    memcpy(&gAppRtcClientData.config, pConfig, sizeof(apprtc_signaling_config_t));
 
     // Initialize AppRTC signaling with our callbacks
     esp_err_t ret = apprtc_signaling_init(apprtc_message_handler, apprtc_state_change_handler, NULL);
@@ -263,10 +263,10 @@ static WEBRTC_STATUS apprtcFree(void *pSignalingClient)
 }
 
 static WEBRTC_STATUS apprtcSetCallbacks(void *pSignalingClient,
-                                void *customData,
-                                WEBRTC_STATUS (*onMessageReceived)(uint64_t, esp_webrtc_signaling_message_t*),
-                                WEBRTC_STATUS (*onStateChanged)(uint64_t, webrtc_signaling_client_state_t),
-                                WEBRTC_STATUS (*onError)(uint64_t, WEBRTC_STATUS, char*, uint32_t))
+                                        uint64_t customData,
+                                        WEBRTC_STATUS (*on_msg_received)(uint64_t, esp_webrtc_signaling_message_t*),
+                                        WEBRTC_STATUS (*on_state_changed)(uint64_t, webrtc_signaling_client_state_t),
+                                        WEBRTC_STATUS (*on_error)(uint64_t, WEBRTC_STATUS, char*, uint32_t))
 {
     ESP_LOGI(TAG, "Setting AppRTC signaling callbacks");
 
@@ -276,16 +276,16 @@ static WEBRTC_STATUS apprtcSetCallbacks(void *pSignalingClient,
 
     // Store the callbacks
     gAppRtcClientData.customData = customData;
-    gAppRtcClientData.onMessageReceived = onMessageReceived;
-    gAppRtcClientData.onStateChanged = onStateChanged;
-    gAppRtcClientData.onError = onError;
+    gAppRtcClientData.on_msg_received = on_msg_received;
+    gAppRtcClientData.on_state_changed = on_state_changed;
+    gAppRtcClientData.on_error = on_error;
 
     return WEBRTC_STATUS_SUCCESS;
 }
 
-static WEBRTC_STATUS apprtcSetRoleType(void *pSignalingClient, webrtc_signaling_channel_role_type_t roleType)
+static WEBRTC_STATUS apprtcSetRoleType(void *pSignalingClient, webrtc_signaling_channel_role_type_t role_type)
 {
-    ESP_LOGI(TAG, "Setting AppRTC signaling role type: %d", roleType);
+    ESP_LOGI(TAG, "Setting AppRTC signaling role type: %d", role_type);
 
     // AppRTC doesn't have a explicit role type concept like KVS
     // The role is determined by who creates the room vs who joins
@@ -310,29 +310,29 @@ static WEBRTC_STATUS apprtcGetIceServers(void *pSignalingClient, uint32_t *pIceC
 }
 
 // Interface instance
-static WebRtcSignalingClientInterface apprtcSignalingInterface = {
+static webrtc_signaling_client_if_t apprtcSignalingInterface = {
     .init = apprtcInit,
     .connect = apprtcConnect,
     .disconnect = apprtcDisconnect,
-    .sendMessage = apprtcSendMessage,
+    .send_message = apprtcSendMessage,
     .free = apprtcFree,
-    .setCallbacks = apprtcSetCallbacks,
-    .setRoleType = apprtcSetRoleType,
-    .getIceServers = apprtcGetIceServers
+    .set_callback = apprtcSetCallbacks,
+    .set_role_type = apprtcSetRoleType,
+    .get_ice_servers = apprtcGetIceServers
 };
 
 // Public interface functions
-WebRtcSignalingClientInterface* getAppRtcSignalingClientInterface(void)
+webrtc_signaling_client_if_t* apprtc_signaling_client_if_get(void)
 {
     return &apprtcSignalingInterface;
 }
 
-bool isAppRtcSignalingConnected(void)
+bool is_apprtc_signaling_connected(void)
 {
     return gAppRtcClientData.connected;
 }
 
-char* getAppRtcRoomId(void)
+char* apprtc_room_id_get(void)
 {
     return (char*)apprtc_signaling_get_room_id();
 }
