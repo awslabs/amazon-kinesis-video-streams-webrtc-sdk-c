@@ -10,6 +10,8 @@
 #include "esp_log.h"
 #include "string.h"
 #include "stdlib.h"
+#include <inttypes.h>
+#include "ice_bridge_client.h"
 
 static const char *TAG = "bridge_signaling";
 
@@ -22,11 +24,15 @@ typedef struct {
     bool initialized;
     esp_webrtc_signaling_state_t state;
 
-    // Callbacks matching WebRtcSignalingClientInterface
-    WEBRTC_STATUS (*onMessageReceived)(uint64_t, esp_webrtc_signaling_message_t*);
-    WEBRTC_STATUS (*onStateChanged)(uint64_t, webrtc_signaling_client_state_t);
-    WEBRTC_STATUS (*onError)(uint64_t, WEBRTC_STATUS, char*, uint32_t);
+    // Callbacks matching webrtc_signaling_client_if_t
+    WEBRTC_STATUS (*on_msg_received)(uint64_t, esp_webrtc_signaling_message_t*);
+    WEBRTC_STATUS (*on_state_changed)(uint64_t, webrtc_signaling_client_state_t);
+    WEBRTC_STATUS (*on_error)(uint64_t, WEBRTC_STATUS, char*, uint32_t);
     uint64_t user_data;
+
+    // ICE servers received from signaling_only device
+    bool ice_servers_received;
+    ss_ice_servers_payload_t ice_servers_config;
 } BridgeSignalingClientData;
 
 // Global client instance (bridge is typically singleton)
@@ -37,24 +43,70 @@ static BridgeSignalingClientData* g_bridge_client = NULL;
  */
 void bridge_message_handler(const void* data, int len)
 {
-    if (g_bridge_client == NULL || g_bridge_client->onMessageReceived == NULL) {
+    ESP_LOGI(TAG, "🚀 bridge_message_handler called with %d bytes", len);
+
+    if (g_bridge_client == NULL || g_bridge_client->on_msg_received == NULL) {
         ESP_LOGW(TAG, "Bridge message received but no client or callback registered");
         return;
     }
 
     // Deserialize the message
     signaling_msg_t signaling_msg;
+    ESP_LOGI(TAG, "📥 Processing bridge message (%d bytes)", len);
     esp_err_t deserialize_result = deserialize_signaling_message(data, len, &signaling_msg);
     if (deserialize_result != ESP_OK) {
         ESP_LOGE(TAG, "Failed to deserialize bridge message with error: %d", deserialize_result);
         return;
     }
 
+    ESP_LOGI(TAG, "📊 Deserialized message: type=%d, correlation_id=%s, peer_id=%s, payload_len=%d",
+             signaling_msg.messageType, signaling_msg.correlationId, signaling_msg.peerClientId, signaling_msg.payloadLen);
+
     // Convert to standardized esp_webrtc_signaling_message_t structure
     esp_webrtc_signaling_message_t webrtc_msg;
     memset(&webrtc_msg, 0, sizeof(esp_webrtc_signaling_message_t));
 
-    // Convert message type
+    // Handle ICE servers message separately (not forwarded to WebRTC)
+    if (signaling_msg.messageType == SIGNALING_MSG_TYPE_ICE_SERVERS) {
+        ESP_LOGI(TAG, "🔧 Received ICE servers configuration from signaling device");
+
+        if (g_bridge_client && extract_ice_servers_from_message(&signaling_msg, &g_bridge_client->ice_servers_config) == ESP_OK) {
+            g_bridge_client->ice_servers_received = true;
+            ESP_LOGI(TAG, "✅ Stored %d ICE servers for WebRTC connection", g_bridge_client->ice_servers_config.ice_server_count);
+
+            // Log the ICE servers for debugging
+            for (uint32_t i = 0; i < g_bridge_client->ice_servers_config.ice_server_count; i++) {
+                ESP_LOGI(TAG, "ICE Server %d: %s (user: %s)", i,
+                         g_bridge_client->ice_servers_config.ice_servers[i].urls,
+                         g_bridge_client->ice_servers_config.ice_servers[i].username);
+            }
+        } else {
+            ESP_LOGE(TAG, "Failed to extract ICE servers from message");
+        }
+        goto cleanup;  // Don't forward ICE servers to WebRTC layer
+    }
+
+    // Handle ICE server response message separately (for index-based requests)
+    if (signaling_msg.messageType == SIGNALING_MSG_TYPE_ICE_SERVER_RESPONSE) {
+        ESP_LOGI(TAG, "🎯 Received ICE server response from signaling device");
+
+        // Extract the ICE server response
+        ss_ice_server_response_t ice_server_response;
+        esp_err_t extract_result = extract_ice_server_response_from_message(&signaling_msg, &ice_server_response);
+        if (extract_result == ESP_OK) {
+            ESP_LOGI(TAG, "✅ Successfully extracted ICE server response: %s (have_more: %s)",
+                     ice_server_response.urls, ice_server_response.have_more ? "true" : "false");
+
+            // Notify ice_bridge_client.c about the response
+            ice_bridge_client_set_ice_server_response(&ice_server_response);
+        } else {
+            ESP_LOGE(TAG, "❌ Failed to extract ICE server response from message");
+        }
+
+        goto cleanup;  // Don't forward ICE server responses to WebRTC layer
+    }
+
+    // Convert message type for regular signaling messages
     switch (signaling_msg.messageType) {
         case SIGNALING_MSG_TYPE_OFFER:
             webrtc_msg.message_type = ESP_SIGNALING_MESSAGE_TYPE_OFFER;
@@ -84,9 +136,9 @@ void bridge_message_handler(const void* data, int len)
     }
 
     // Call the callback with standardized message format
-    WEBRTC_STATUS callback_result = g_bridge_client->onMessageReceived((uint64_t)g_bridge_client->user_data, &webrtc_msg);
+    WEBRTC_STATUS callback_result = g_bridge_client->on_msg_received((uint64_t)g_bridge_client->user_data, &webrtc_msg);
     if (callback_result != WEBRTC_STATUS_SUCCESS) {
-        ESP_LOGE(TAG, "g_bridge_client->onMessageReceived returned error: 0x%08" PRIx32, callback_result);
+        ESP_LOGE(TAG, "g_bridge_client->on_msg_received returned error: 0x%08" PRIx32, callback_result);
     }
 
 cleanup:
@@ -124,15 +176,15 @@ WEBRTC_STATUS bridge_signaling_send_message_via_bridge(signaling_msg_t* pMessage
 /**
  * @brief Bridge signaling init implementation
  */
-static WEBRTC_STATUS bridgeInit(void *pSignalingConfig, void **ppSignalingClient)
+static WEBRTC_STATUS bridgeInit(void *signaling_cfg, void **ppSignalingClient)
 {
     ESP_LOGI(TAG, "Initializing bridge signaling client");
 
-    if (pSignalingConfig == NULL || ppSignalingClient == NULL) {
+    if (signaling_cfg == NULL || ppSignalingClient == NULL) {
         return WEBRTC_STATUS_NULL_ARG;
     }
 
-    bridge_signaling_config_t* config = (bridge_signaling_config_t*)pSignalingConfig;
+    bridge_signaling_config_t* config = (bridge_signaling_config_t*)signaling_cfg;
 
     // Allocate client data
     BridgeSignalingClientData* client_data = (BridgeSignalingClientData*)calloc(1, sizeof(BridgeSignalingClientData));
@@ -179,8 +231,8 @@ static WEBRTC_STATUS bridgeConnect(void *pSignalingClient)
     client_data->state = ESP_SIGNALING_STATE_CONNECTED;
 
     // Notify state change using portable state type
-    if (client_data->onStateChanged) {
-        client_data->onStateChanged((uint64_t)client_data->user_data, WEBRTC_SIGNALING_CLIENT_STATE_CONNECTED);
+    if (client_data->on_state_changed) {
+        client_data->on_state_changed((uint64_t)client_data->user_data, WEBRTC_SIGNALING_CLIENT_STATE_CONNECTED);
     }
 
     ESP_LOGI(TAG, "Bridge signaling client connected");
@@ -208,8 +260,8 @@ static WEBRTC_STATUS bridgeDisconnect(void *pSignalingClient)
     client_data->state = ESP_SIGNALING_STATE_DISCONNECTED;
 
     // Notify state change using portable state type
-    if (client_data->onStateChanged) {
-        client_data->onStateChanged((uint64_t)client_data->user_data, WEBRTC_SIGNALING_CLIENT_STATE_DISCONNECTED);
+    if (client_data->on_state_changed) {
+        client_data->on_state_changed((uint64_t)client_data->user_data, WEBRTC_SIGNALING_CLIENT_STATE_DISCONNECTED);
     }
 
     ESP_LOGI(TAG, "Bridge signaling client disconnected");
@@ -297,9 +349,9 @@ static WEBRTC_STATUS bridgeFree(void *pSignalingClient)
  */
 static WEBRTC_STATUS bridgeSetCallbacks(void *pSignalingClient,
                                         uint64_t customData,
-                                        WEBRTC_STATUS (*onMessageReceived)(uint64_t, esp_webrtc_signaling_message_t*),
-                                        WEBRTC_STATUS (*onStateChanged)(uint64_t, webrtc_signaling_client_state_t),
-                                        WEBRTC_STATUS (*onError)(uint64_t, WEBRTC_STATUS, char*, uint32_t))
+                                        WEBRTC_STATUS (*on_msg_received)(uint64_t, esp_webrtc_signaling_message_t*),
+                                        WEBRTC_STATUS (*on_state_changed)(uint64_t, webrtc_signaling_client_state_t),
+                                        WEBRTC_STATUS (*on_error)(uint64_t, WEBRTC_STATUS, char*, uint32_t))
 {
     if (pSignalingClient == NULL) {
         ESP_LOGE(TAG, "pSignalingClient is NULL");
@@ -309,9 +361,9 @@ static WEBRTC_STATUS bridgeSetCallbacks(void *pSignalingClient,
     BridgeSignalingClientData* client_data = (BridgeSignalingClientData*)pSignalingClient;
 
     // Set the callbacks
-    client_data->onMessageReceived = onMessageReceived;
-    client_data->onStateChanged = onStateChanged;
-    client_data->onError = onError;
+    client_data->on_msg_received = on_msg_received;
+    client_data->on_state_changed = on_state_changed;
+    client_data->on_error = on_error;
     client_data->user_data = customData;
 
     return WEBRTC_STATUS_SUCCESS;
@@ -320,9 +372,9 @@ static WEBRTC_STATUS bridgeSetCallbacks(void *pSignalingClient,
 /**
  * @brief Bridge signaling set role type implementation (stub)
  */
-static WEBRTC_STATUS bridgeSetRoleType(void *pSignalingClient, webrtc_signaling_channel_role_type_t roleType)
+static WEBRTC_STATUS bridgeSetRoleType(void *pSignalingClient, webrtc_signaling_channel_role_type_t role_type)
 {
-    ESP_LOGI(TAG, "Setting bridge signaling role type: %d", roleType);
+    ESP_LOGI(TAG, "Setting bridge signaling role type: %d", role_type);
 
     if (pSignalingClient == NULL) {
         return WEBRTC_STATUS_NULL_ARG;
@@ -335,38 +387,57 @@ static WEBRTC_STATUS bridgeSetRoleType(void *pSignalingClient, webrtc_signaling_
 }
 
 /**
- * @brief Bridge signaling get ICE servers implementation (stub)
+ * @brief Bridge signaling get ICE servers implementation
+ *
+ * This function uses the new index-based ICE server retrieval approach,
+ * requesting servers one-by-one from the signaling device via bridge.
+ *
+ * @param pSignalingClient - Bridge signaling client instance
+ * @param pIceConfigCount - IN/OUT - Number of ICE servers
+ * @param pIceServersArray - OUT - Array of ICE servers (abstraction layer passes the iceServers array directly)
  */
-static WEBRTC_STATUS bridgeGetIceServers(void *pSignalingClient, uint32_t *pIceConfigCount, void *pRtcConfiguration)
+static WEBRTC_STATUS bridgeGetIceServers(void *pSignalingClient, uint32_t *pIceConfigCount, void *pIceServersArray)
 {
-    ESP_LOGI(TAG, "Getting ICE servers for bridge signaling");
+    ESP_LOGI(TAG, "🔍 Getting ICE servers via bridge signaling (index-based)");
 
-    if (pSignalingClient == NULL || pIceConfigCount == NULL || pRtcConfiguration == NULL) {
+    if (pSignalingClient == NULL || pIceConfigCount == NULL || pIceServersArray == NULL) {
         return WEBRTC_STATUS_NULL_ARG;
     }
 
-    // Bridge signaling doesn't provide ICE servers
-    // The actual signaling client (KVS) will provide them
-    *pIceConfigCount = 0;
+    ESP_LOGI(TAG, "🎯 Using generic ICE servers array (abstraction layer handles structure conversion)");
 
-    ESP_LOGI(TAG, "Bridge signaling ICE servers retrieved (none)");
-    return WEBRTC_STATUS_SUCCESS;
+    // Use the new ice_bridge_client to get servers via index-based requests
+    // The abstraction layer passes the iceServers array directly, not the full RtcConfiguration
+    WEBRTC_STATUS status = ice_bridge_client_get_servers(
+        NULL,  // pAppSignaling (unused in streaming-only mode)
+        pIceServersArray,  // ICE servers array (compatible with RtcIceServer format)
+        pIceConfigCount
+    );
+
+    if (status == WEBRTC_STATUS_SUCCESS && *pIceConfigCount > 0) {
+        ESP_LOGI(TAG, "🎯 Bridge signaling successfully retrieved %d ICE servers", *pIceConfigCount);
+        return WEBRTC_STATUS_SUCCESS;
+    } else {
+        ESP_LOGW(TAG, "⚠️ Bridge signaling failed to retrieve ICE servers, status: 0x%08" PRIx32, status);
+        *pIceConfigCount = 0;
+        return WEBRTC_STATUS_INTERNAL_ERROR;
+    }
 }
 
 /**
  * @brief Get the bridge signaling client interface
  */
-WebRtcSignalingClientInterface* getBridgeSignalingClientInterface(void)
+webrtc_signaling_client_if_t* getBridgeSignalingClientInterface(void)
 {
-    static WebRtcSignalingClientInterface bridge_interface = {
+    static webrtc_signaling_client_if_t bridge_interface = {
         .init = bridgeInit,
         .connect = bridgeConnect,
         .disconnect = bridgeDisconnect,
-        .sendMessage = bridgeSendMessage,
+        .send_message = bridgeSendMessage,
         .free = bridgeFree,
-        .setCallbacks = bridgeSetCallbacks,
-        .setRoleType = bridgeSetRoleType,
-        .getIceServers = bridgeGetIceServers
+        .set_callback = bridgeSetCallbacks,
+        .set_role_type = bridgeSetRoleType,
+        .get_ice_servers = bridgeGetIceServers
     };
 
     return &bridge_interface;

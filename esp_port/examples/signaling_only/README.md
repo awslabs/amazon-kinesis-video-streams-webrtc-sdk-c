@@ -1,104 +1,270 @@
-# Signaling-Only Example
+# 📡 Signaling-Only Example - **Always-On Communication Hub**
 
-This example demonstrates the signaling-only part of the WebRTC implementation for ESP32. It separates the WebRTC functionality into two parts - this component handles AWS KVS signaling while relying on the separate `streaming_only` component for media handling.
+**Power-efficient signaling device** - This device stays connected to AWS KVS 24/7, handling all WebRTC signaling while a separate `streaming_only` device sleeps until needed. Perfect for battery-powered security cameras and IoT applications.
 
-## Features
+## 🎯 What This Does
 
-- AWS Kinesis Video Streams (KVS) WebRTC signaling
-- SDP offer/answer exchange
-- ICE candidate handling
-- Bridge-based communication with `streaming_only` component
+This is **the communication brain** of a two-device system:
+- 📡 **This Device (ESP32-C6)**: Always-on AWS KVS signaling and connection management
+- 📱 **Partner Device (ESP32-P4)**: Sleeps until signaled to stream video (see `streaming_only` example)
 
-## Architecture
+**Result**: Ultra-low power consumption while maintaining 24/7 connectivity and instant responsiveness!
 
-                    ┌─────────────────┐
-                    │   AWS KVS       │
-                    │   WebRTC        │
-                    │   Signaling     │
-                    └─────────────────┘
-                            ↕
-              ┌─────────────────────────────┐
-              │     signaling_only          │
-              │  ┌─────────────────────┐    │
-              │  │ KVS Signaling IF    │    │
-              │  │   (Clean Interface) │    │
-              │  └─────────────────────┘    │
-              └─────────────────────────────┘
-                            ↕ webrtc_bridge
-              ┌─────────────────────────────┐
-              │     streaming_only          │
-              │  ┌─────────────────────┐    │
-              │  │    WebRTC App       │    │
-              │  │       +             │    │
-              │  │ Bridge Signaling IF │    │
-              │  └─────────────────────┘    │
-              └─────────────────────────────┘
+## ✨ Features
 
-## Hardware Required
+- ☁️ **AWS KVS Integration** - Full WebRTC signaling protocol support
+- 🔄 **SDP Negotiation** - Handles offers, answers, and ICE candidates
+- 🌉 **Bridge Protocol** - Seamless communication with streaming device
+- 🔋 **Always-On Operation** - Maintains connection while partner sleeps
+- ⚡ **Instant Wake-up** - Can wake streaming device in milliseconds
+- 🛡️ **Reliable Connection** - Auto-reconnection and error recovery
+- 💾 **Low Memory Footprint** - Optimized for C6's memory constraints
 
-- ESP32-C6 board
-- Note: No camera or microphone is required for this component as it only handles signaling
+## 🔧 Hardware Requirements
 
-## How to Use
+### Primary Hardware
+| Component | Requirement | Notes |
+|-----------|-------------|-------|
+| **Main Board** | ESP32-P4 Function EV Board | **Required** - Has both P4 + C6 onboard |
+| **Network Processor** | ESP32-C6 (this device) | Handles signaling and bridge communication |
+| **Streaming Processor** | ESP32-P4 (partner) | Runs `streaming_only` example |
 
-### AWS Credentials Setup
+### Network Requirements
+- **Wi-Fi Connection** with internet access
+- **Stable Connection** - Recommended for 24/7 operation
+- **Low Latency** preferred for responsive wake-up
 
-1. Configure the AWS credentials:
-   - If using IoT Core-based credentials, upload certificate files to the SPIFFS partition
-   - If using direct credentials, configure them via environment variables
+### Power Supply
+- **3.3V/500mA** sufficient for C6 signaling-only operation
+- **Battery Powered** - Can run for weeks on battery
+- **USB Power** - Convenient for development
 
-2. Setup the Kinesis Video Stream channel:
-   - Create a Kinesis Video Stream channel in your AWS account
-   - Configure the channel name in the code or via menuconfig
+## 🏗️ Architecture Overview
 
-### Build and Flash
-
-1. Build the project and flash it to the ESP32-C6 board:
-
+### Two-Device System Architecture
 ```
-idf.py build
-idf.py -p PORT flash
+    Internet                    ESP32-P4 Function EV Board
+        │                    ┌─────────────────────────────────┐
+        │                    │                                 │
+        ▼                    │  ┌─────────────┐ Bridge IPC ┌──▼──────┐
+┌─────────────┐              │  │  ESP32-C6   │◄──────────►│ESP32-P4 │
+│   AWS KVS   │              │  │(This Device)│            │(Partner)│
+│ Signaling   │◄─────────────┼──┤             │            │         │
+│  Server     │              │  │ • Signaling │            │ • Video │
+└─────────────┘              │  │ • Always-On │            │ • Audio │
+                             │  │ • Low Power │            │ • Sleep │
+                             │  └─────────────┘            └─────────┘
+                             │                                 │
+                             └─────────────────────────────────┘
 ```
 
-2. You'll also need to build and flash the `streaming_only` example to an ESP32-P4 board.
-
-### Configuration
-
-Configure Wi-Fi credentials via menuconfig:
-
+### Signaling Flow
 ```
+Viewer Browser                   ESP32-C6                    ESP32-P4
+      │                     (signaling_only)            (streaming_only)
+      │                           │                           │
+      ├─── SDP Offer ─────────────►│                           │
+      │                           ├─── Wake + SDP ────────────►│
+      │                           │◄─── SDP Answer ───────────┤
+      │◄─── SDP Answer ───────────┤                           │
+      ├─── ICE Candidates ────────►│                           │
+      │                           ├─── ICE Candidates ────────►│
+      │                           │◄─── ICE Candidates ───────┤
+      │◄─── ICE Candidates ───────┤                           │
+      │                           │                           │
+      │◄══════════ Direct RTP/SCTP Connection ═══════════════►│
+```
+
+## 🚀 Setup Instructions - Communication Hub
+
+This is **Device #1** of a two-device system. Flash this first, then flash the partner `streaming_only` device.
+
+### Prerequisites ✅
+- ESP32-P4 Function EV Board (has both P4 and C6 chips)
+- ESP-IDF v5.4 or v5.5 configured
+- AWS account with KVS access
+- Stable Wi-Fi network
+
+### Step 1: Configure Target Device
+```bash
+cd examples/signaling_only
+
+# Configure for C6 chip (signaling device)
+idf.py set-target esp32c6
+```
+
+### Step 2: Configure AWS & Network
+```bash
 idf.py menuconfig
 ```
 
-Navigate to "Example Configuration" and set:
-- Wi-Fi SSID
-- Wi-Fi Password
-- AWS Region
-- AWS KVS Channel Name
+**Navigate to: Example Configuration Options**
 
-### Connection
+#### Wi-Fi Settings (Required)
+```
+ESP_WIFI_SSID = "YourWiFiNetwork"
+ESP_WIFI_PASSWORD = "YourPassword"
+ESP_MAXIMUM_RETRY = 5
+```
 
-1. Power on both the signaling_only (ESP32-C6) and streaming_only (ESP32-P4) devices.
-2. They will automatically connect via their bridge interface.
-3. This component will connect to AWS KVS and handle all signaling.
-4. When a WebRTC peer connects to your KVS channel, this component will receive and forward signaling messages to the streaming_only component.
+#### AWS KVS Settings (Required)
+```
+AWS_ACCESS_KEY_ID = "AKIA..."
+AWS_SECRET_ACCESS_KEY = "your-secret-key"
+AWS_DEFAULT_REGION = "us-east-1"
+AWS_KVS_CHANNEL = "my-security-camera"
+AWS_KVS_LOG_LEVEL = 2
+```
 
-## Architecture
+### Step 3: Build & Flash Signaling Device
+```bash
+# Build for C6
+idf.py build
 
-This example implements:
-- AWS KVS WebRTC signaling client
-- SDP offer/answer mechanism
-- ICE candidate exchange
-- Bridge-based IPC with the streaming component
+# Flash to C6 (usually second USB port)
+idf.py -p /dev/ttyUSB1 flash monitor
 
-The signaling_only component needs valid AWS credentials but doesn't require media hardware like cameras.
+# Expected output:
+# I (2345) wifi: connected to YourWiFiNetwork
+# I (3456) kvs_signaling: ✅ Connected to AWS KVS
+# I (4567) signaling_only: ✅ Waiting for streaming device...
+```
 
-## Troubleshooting
+### Step 4: Flash Partner Streaming Device
+**⚡ Now flash the partner `streaming_only` example to ESP32-P4**
 
-- If connection to AWS fails, check your credentials and AWS region
-- Verify Wi-Fi connectivity
-- Ensure both signaling_only and streaming_only examples are running
-- Check that the KVS channel name matches the one in your AWS console
+See **[streaming_only README](../streaming_only/README.md)** for complete instructions.
+
+### Step 5: Test the Complete System
+**Expected Boot Sequence:**
+
+**1. C6 Signaling Device (this device) Boots First:**
+```
+I (2345) wifi: connected to YourWiFiNetwork
+I (3456) kvs_signaling: ✅ Connected to AWS KVS
+I (4567) signaling_only: ✅ Ready for bridge connections
+I (5678) signaling_only: ⏳ Waiting for streaming device...
+```
+
+**2. P4 Streaming Device Connects:**
+```
+I (8901) bridge: ✅ Bridge connected to P4
+I (8902) signaling_only: ✅ Two-device system ready!
+I (8903) signaling_only: 👀 Monitoring for viewer connections...
+```
+
+**3. Viewer Connects via Browser:**
+```
+I (15000) signaling_only: 📞 Incoming viewer: viewer-12345
+I (15001) bridge: 🚀 Signaling P4 to start streaming...
+I (15002) signaling_only: ✅ WebRTC session established
+```
+
+## 🔧 Advanced Configuration
+
+### ICE Server Management
+```c
+// In main/app_main.c - Configure ICE servers
+#define ICE_SERVER_REFRESH_INTERVAL_HOURS  12    // Refresh every 12 hours
+#define ICE_SERVER_RETRY_COUNT            3     // Retry failed requests
+#define ICE_SERVER_TIMEOUT_MS             30000 // 30 second timeout
+```
+
+### Bridge Communication Tuning
+```c
+// Bridge timing configuration
+#define BRIDGE_HEARTBEAT_INTERVAL_MS      5000  // Keep-alive ping
+#define BRIDGE_WAKE_TIMEOUT_MS           10000  // Wake-up timeout
+#define BRIDGE_RETRY_ATTEMPTS             5     // Connection retries
+```
+
+### Power Optimization
+```bash
+# In menuconfig → Component Config → Power Management
+CONFIG_PM_ENABLE=y                    # Enable power management
+CONFIG_ESP32C6_DEFAULT_CPU_FREQ_160=y # Balanced performance
+CONFIG_ESP_WIFI_IRAM_OPT=y            # Optimize Wi-Fi for power
+```
+
+### Memory Optimization for C6
+```bash
+# In menuconfig → Component Config → ESP32C6-specific
+CONFIG_ESP32C6_INSTRUCTION_CACHE_SIZE_32KB=y  # Smaller cache
+CONFIG_ESP32C6_DATA_CACHE_SIZE_32KB=y         # Optimize for signaling
+```
+
+## 🏗️ Bridge Protocol Deep Dive
+
+### Bridge Communication Flow
+The signaling device communicates with the streaming device through the webrtc_bridge component and signaling_bridge_adapter. The bridge handles message serialization, transfer, and ICE server coordination between the two devices.
+
+## 🚨 Troubleshooting
+
+### Common Issues & Solutions
+
+| Problem | Symptoms | Solution |
+|---------|----------|----------|
+| **AWS Connection Failed** | `KVS connection error` | Verify credentials, region, channel name |
+| **Bridge Connection Failed** | `No streaming device` | Check P4 is running `streaming_only` |
+| **ICE Server Errors** | `ICE refresh failed` | Check network connectivity, AWS quotas |
+| **Memory Issues** | `Allocation failed` | Enable memory optimizations in menuconfig |
+| **Wi-Fi Disconnections** | `Connection lost` | Check Wi-Fi signal strength, power supply |
+
+### Debug Information
+
+**Monitor WebRTC Events:**
+The application logs all major events - watch the serial monitor for:
+```
+I (12345) signaling_only: 🎯 WebRTC Event: 1, Status: 0x00000000, Peer: NULL, Message: NULL
+I (12346) signaling_only: Signaling connected successfully
+I (12347) signaling_only: ICE servers fetched from AWS and ready for requests
+```
+
+**Bridge Communication Logs:**
+```
+I (15000) signaling_bridge_adapter: Received bridged message from streaming device (123 bytes)
+I (15001) signaling_bridge_adapter: Successfully sent message to signaling server
+```
+
+### Expected Connection Logs
+
+**Successful Initialization:**
+```
+I (12345) signaling_only: ESP32 WebRTC Signaling-Only Example (Using App WebRTC State Machine)
+I (12346) signaling_only: Setting up WebRTC application with KVS signaling and app_webrtc state machine
+I (12347) signaling_only: Initializing WebRTC application
+I (12348) signaling_only: Starting WebRTC application with split mode support
+I (12349) signaling_only: Signaling device ready - will forward messages to/from streaming device via bridge
+```
+
+**WebRTC Events:**
+```
+I (15000) signaling_only: 🎯 WebRTC Event: 1, Status: 0x00000000, Peer: NULL, Message: NULL
+I (15001) signaling_only: Signaling connected successfully
+I (15002) signaling_only: ICE servers fetched from AWS and ready for requests
+```
+
+## ⚡ Power & Performance
+
+### Power Efficiency
+This signaling-only device enables power optimization by allowing the streaming device (P4) to sleep until needed. The C6 maintains the AWS KVS connection continuously while consuming significantly less power than running full WebRTC on the P4.
+
+## 📚 Next Steps
+
+### After Successful Setup ✅
+1. **Monitor Performance** - Track power consumption and reliability
+2. **Custom Bridge Protocol** - Add your own bridge commands
+3. **Production Deployment** - Add error recovery and monitoring
+
+### Related Examples
+- 📱 **[streaming_only](../streaming_only/README.md)** - Partner device (required!)
+- 🏆 **[webrtc_classic](../webrtc_classic/README.md)** - Single-device alternative
+- 🌐 **[esp_camera](../esp_camera/README.md)** - AppRTC compatible mode
+
+### Advanced Topics
+- 📖 **[ICE_SERVER_BRIDGE_README.md](../ICE_SERVER_BRIDGE_README.md)** - Bridge architecture details
+- 📖 **[API_USAGE.md](../../API_USAGE.md)** - Complete API reference
+- 📖 **[CUSTOM_SIGNALING.md](../../CUSTOM_SIGNALING.md)** - Custom signaling protocols
 
 ## License
 

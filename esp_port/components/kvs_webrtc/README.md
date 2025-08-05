@@ -1,21 +1,35 @@
-# ESP-IDF WebSocket Signaling Implementation
+# ESP-IDF Native Implementations for KVS WebRTC SDK
 
-This directory contains an ESP-IDF native implementation of the WebRTC signaling client for the Amazon Kinesis Video Streams WebRTC SDK. It replaces the libwebsockets-based implementation with ESP-IDF's native WebSocket and HTTP client libraries.
+This directory contains ESP-IDF native implementations that optimize the Amazon Kinesis Video Streams WebRTC SDK for ESP platforms. It includes two main ESP-specific optimizations:
+
+1. **ESP WebSocket Signaling**: Replaces libwebsockets with ESP-IDF's native WebSocket client
+2. **ESP-TLS Implementation**: Replaces direct mbedTLS with ESP-TLS and certificate bundle support
 
 ## Benefits
 
+### ESP WebSocket Signaling
 1. **Reduced Memory Footprint**: Uses ESP-IDF's native WebSocket client instead of the more resource-intensive libwebsockets library.
-
 2. **Native ESP-IDF Integration**: Integrates directly with ESP-IDF's event loop system for improved compatibility and performance.
-
 3. **Lower Resource Usage**: Optimized for resource-constrained ESP32 devices.
+
+### ESP-TLS Implementation
+4. **No Certificate File Dependencies**: Uses ESP certificate bundle, eliminating need for `/spiffs/certs/cacert.pem` files.
+5. **Platform Optimized TLS**: Leverages ESP-IDF's optimized TLS implementation with better memory management.
+6. **Simplified Configuration**: Works out-of-the-box without certificate setup or file system requirements.
 
 ## Implementation Details
 
-The implementation consists of two main files:
+This component provides two ESP-specific implementations:
 
+### ESP WebSocket Signaling
 - **SignalingESP.c/h**: Main signaling client implementation replacing the original Signaling.c
 - **LwsApiCallsESP.c**: Implementation of WebSocket and HTTP API calls using ESP-IDF libraries
+
+### ESP-TLS Implementation
+- **Tls_esp.c**: ESP-TLS based TLS session management replacing direct mbedTLS implementation
+- **Configuration**: Controlled via `CONFIG_USE_ESP_TLS_FOR_KVS` Kconfig option
+
+📖 **For detailed ESP-TLS configuration and usage, see [ESP_TLS_README.md](ESP_TLS_README.md)**
 
 ## Features
 
@@ -26,14 +40,42 @@ The implementation consists of two main files:
 
 ## Usage
 
-To use this implementation:
+### ESP WebSocket Signaling
+To use the ESP WebSocket implementation:
 
-1. Set the `USE_ESP_WEBSOCKET` flag to `ON` in `esp_port/components/kvs_webrtc/CMakeLists.txt`
-2. Ensure the ESP-IDF websocket client component is available in your project
+1. Set the `USE_ESP_WEBSOCKET_CLIENT` option to `y` in menuconfig:
+   ```
+   Component config → KVS WebRTC Configuration → Use esp_websocket_client instead of libwebscoekts
+   ```
 
-```cmake
-option(USE_ESP_WEBSOCKET "Use ESP-IDF WebSocket client instead of libwebsockets" ON)
-```
+### ESP-TLS Implementation
+To use the ESP-TLS implementation:
+
+1. Set the `USE_ESP_TLS_FOR_KVS` option to `y` in menuconfig:
+   ```
+   Component config → KVS WebRTC Configuration → Use ESP-TLS for KVS TLS connections
+   ```
+
+2. Or set in `sdkconfig`:
+   ```
+   CONFIG_USE_ESP_TLS_FOR_KVS=y
+   ```
+
+**Both implementations can be used independently or together for maximum optimization.**
+
+## When ESP-TLS is Used
+
+The ESP-TLS implementation automatically handles TLS connections for:
+
+1. **TURN over TLS**: When TURN servers use `turns:` protocol with TCP transport
+   - Example: `turns:stun.kinesisvideo.us-east-1.amazonaws.com:443?transport=tcp`
+2. **Secure TURN connections**: When `iceServer.isSecure = TRUE` and protocol is TCP
+
+### Benefits vs File-Based Certificates
+- ✅ **No certificate files needed** - uses ESP certificate bundle
+- ✅ **Automatic certificate updates** with ESP-IDF releases
+- ✅ **Lower memory usage** - no file I/O overhead
+- ✅ **Simplified deployment** - works out-of-the-box
 
 ## Current Limitations
 

@@ -25,36 +25,36 @@ extern "C" {
  */
 typedef struct {
     // Channel configuration
-    char *pChannelName;                      // Name of the signaling channel
+    char *pChannelName;                      //!< Name of the signaling channel (e.g., "my-esp32-channel")
 
     // AWS credentials configuration
-    bool useIotCredentials;                  // Whether to use IoT Core credentials
-    char *iotCoreCredentialEndpoint;         // IoT Core credential endpoint
-    char *iotCoreCert;                       // Path to IoT Core certificate
-    char *iotCorePrivateKey;                 // Path to IoT Core private key
-    char *iotCoreRoleAlias;                  // IoT Core role alias
-    char *iotCoreThingName;                  // IoT Core thing name
+    bool useIotCredentials;                  //!< Whether to use IoT Core credentials (TRUE) or direct AWS credentials (FALSE)
+    char *iotCoreCredentialEndpoint;         //!< IoT Core credential endpoint URL (when useIotCredentials=TRUE)
+    char *iotCoreCert;                       //!< Path to IoT Core device certificate file (e.g., "/spiffs/cert.pem")
+    char *iotCorePrivateKey;                 //!< Path to IoT Core device private key file (e.g., "/spiffs/private.key")
+    char *iotCoreRoleAlias;                  //!< IoT Core role alias for credential exchange
+    char *iotCoreThingName;                  //!< IoT Core thing name (device identifier)
 
     // Direct AWS credentials (if not using IoT credentials)
-    char *awsAccessKey;                      // AWS access key
-    char *awsSecretKey;                      // AWS secret key
-    char *awsSessionToken;                   // AWS session token
+    char *awsAccessKey;                      //!< AWS access key ID (when useIotCredentials=FALSE)
+    char *awsSecretKey;                      //!< AWS secret access key (when useIotCredentials=FALSE)
+    char *awsSessionToken;                   //!< AWS session token (optional, for temporary credentials)
 
     // Common AWS options
-    char *awsRegion;                         // AWS region
-    char *caCertPath;                        // Path to CA certificates
-} KvsSignalingConfig, *PKvsSignalingConfig;
+    char *awsRegion;                         //!< AWS region (e.g., "us-west-2", "eu-west-1")
+    char *caCertPath;                        //!< Path to CA certificate bundle file (e.g., "/spiffs/ca.pem")
+} kvs_signaling_config_t;
 
 /**
  * @brief Get the KVS signaling client interface implementation
  *
  * This returns a pointer to the KVS signaling interface that implements
- * the portable WebRtcSignalingClientInterface. All interactions should
+ * the portable webrtc_signaling_client_if_t. All interactions should
  * go through this interface to maintain portability.
  *
- * @return WebRtcSignalingClientInterface* Pointer to the KVS signaling interface
+ * @return webrtc_signaling_client_if_t* Pointer to the KVS signaling interface
  */
-WebRtcSignalingClientInterface* getKvsSignalingClientInterface(void);
+webrtc_signaling_client_if_t* kvs_signaling_client_if_get(void);
 
 #ifdef __cplusplus
 }

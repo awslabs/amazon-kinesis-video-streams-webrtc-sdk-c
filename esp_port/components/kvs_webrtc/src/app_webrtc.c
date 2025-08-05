@@ -5,8 +5,13 @@
  */
 
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
+#include "WebRtcLogging.h"
 #include "app_webrtc.h"
+#include "app_webrtc_internal.h"
+#include "app_webrtc_media.h"
 #include "webrtc_mem_utils.h"
+#include "esp_work_queue.h"
+#include "webrtc_signaling_if.h"
 #include "flash_wrapper.h"
 #include "fileio.h"
 
@@ -15,7 +20,6 @@
 #include "webrtc_signaling_if.h"
 
 #include "sdkconfig.h"
-#include "iot_credential_provider.h"
 
 static const char *TAG = "app_webrtc";
 
@@ -25,9 +29,9 @@ static void* gEventUserCtx = NULL;
 static MUTEX gEventCallbackLock = INVALID_MUTEX_VALUE;
 
 // Global variables to track app state
-static WebRtcAppConfig gWebRtcAppConfig = {0};
+app_webrtc_config_t gWebRtcAppConfig = {0};
 static PVOID gSignalingClientData = NULL;  // Store the initialized signaling client
-static BOOL gWebRtcAppInitialized = FALSE;
+static BOOL gapp_webrtc_initialized = FALSE;
 
 // Global callback for sending signaling messages in split mode
 static app_webrtc_send_msg_cb_t g_sendMessageCallback = NULL;
@@ -38,141 +42,11 @@ static TaskHandle_t gWebRtcRunTaskHandle = NULL;
 // Forward declaration for wrapper function
 static WEBRTC_STATUS signalingMessageReceivedWrapper(uint64_t customData, esp_webrtc_signaling_message_t* pWebRtcMessage);
 
-typedef struct __SampleStreamingSession SampleStreamingSession;
-typedef struct __SampleStreamingSession* PSampleStreamingSession;
-
-typedef struct {
-    UINT64 hashValue;
-    UINT64 createTime;
-    PStackQueue messageQueue;
-} PendingMessageQueue, *PPendingMessageQueue;
-
-typedef enum {
-    TEST_SOURCE,
-    DEVICE_SOURCE,
-    RTSP_SOURCE,
-} SampleSourceType;
-
-typedef struct {
-    volatile ATOMIC_BOOL appTerminateFlag;
-    volatile ATOMIC_BOOL interrupted;
-    volatile ATOMIC_BOOL mediaThreadStarted;
-    volatile ATOMIC_BOOL recreateSignalingClient;
-    volatile ATOMIC_BOOL connected;
-    SampleSourceType srcType;
-    ChannelInfo channelInfo;
-    PCHAR pCaCertPath;
-    PAwsCredentialProvider pCredentialProvider;
-    SIGNALING_CLIENT_HANDLE signalingClientHandle;
-    RTC_CODEC audioCodec;
-    RTC_CODEC videoCodec;
-    PBYTE pAudioFrameBuffer;
-    UINT32 audioBufferSize;
-    PBYTE pVideoFrameBuffer;
-    UINT32 videoBufferSize;
-    TID mediaSenderTid;
-    TID audioSenderTid;
-    TID videoSenderTid;
-    TIMER_QUEUE_HANDLE timerQueueHandle;
-    UINT32 iceCandidatePairStatsTimerId;
-    AppWebrtcStreamingMediaType mediaType;
-    startRoutine audioSource;
-    startRoutine videoSource;
-    startRoutine receiveAudioVideoSource;
-    RtcOnDataChannel onDataChannel;
-    SignalingClientMetrics signalingClientMetrics;
-
-    // Media capture interfaces
-    void* videoCapture;
-    void* audioCapture;
-
-    // Media player interfaces
-    void* videoPlayer;
-    void* audioPlayer;
-
-    // Media player handles
-    video_player_handle_t video_player_handle;
-    audio_player_handle_t audio_player_handle;
-
-    // Count of active sessions using media players
-    UINT32 activePlayerSessionCount;
-    MUTEX playerLock;
-
-    // Media reception
-    BOOL receiveMedia;
-
-    // Callbacks for signaling messages
-    VOID (*onAnswer)(UINT64, PSignalingMessage);
-    VOID (*onIceCandidate)(UINT64, PSignalingMessage);
-
-    PStackQueue pPendingSignalingMessageForRemoteClient;
-    PHashTable pRtcPeerConnectionForRemoteClient;
-
-    MUTEX sampleConfigurationObjLock;
-    CVAR cvar;
-    BOOL trickleIce;
-    BOOL useTurn;
-    BOOL enableSendingMetricsToViewerViaDc;
-    BOOL enableFileLogging;
-    UINT64 customData;
-    PSampleStreamingSession sampleStreamingSessionList[CONFIG_KVS_MAX_CONCURRENT_STREAMS];
-    UINT32 streamingSessionCount;
-    MUTEX streamingSessionListReadLock;
-    UINT32 iceUriCount;
-    SignalingClientCallbacks signalingClientCallbacks;
-    SignalingClientInfo clientInfo;
-
-    RtcStats rtcIceCandidatePairMetrics;
-
-    MUTEX signalingSendMessageLock;
-
-    UINT32 pregenerateCertTimerId;
-    PStackQueue pregeneratedCertificates; // Max MAX_RTCCONFIGURATION_CERTIFICATES certificates
-
-    PCHAR rtspUri;
-    UINT32 logLevel;
-    BOOL enableTwcc;
-} SampleConfiguration, *PSampleConfiguration;
-
-typedef VOID (*StreamSessionShutdownCallback)(UINT64, PSampleStreamingSession);
-
-struct __SampleStreamingSession {
-    volatile ATOMIC_BOOL terminateFlag;
-    volatile ATOMIC_BOOL candidateGatheringDone;
-    volatile ATOMIC_BOOL peerIdReceived;
-    volatile ATOMIC_BOOL firstFrame;
-    volatile SIZE_T frameIndex;
-    volatile SIZE_T correlationIdPostFix;
-    PRtcPeerConnection pPeerConnection;
-    PRtcRtpTransceiver pVideoRtcRtpTransceiver;
-    PRtcRtpTransceiver pAudioRtcRtpTransceiver;
-    RtcSessionDescriptionInit answerSessionDescriptionInit;
-    PSampleConfiguration pSampleConfiguration;
-    UINT64 audioTimestamp;
-    UINT64 videoTimestamp;
-    CHAR peerId[MAX_SIGNALING_CLIENT_ID_LEN + 1];
-    TID receiveAudioVideoSenderTid;
-    UINT64 startUpLatency;
-    RtcMetricsHistory rtcMetricsHistory;
-    BOOL remoteCanTrickleIce;
-    TwccMetadata twccMetadata;
-
-    // this is called when the SampleStreamingSession is being freed
-    StreamSessionShutdownCallback shutdownCallback;
-    UINT64 shutdownCallbackCustomData;
-    UINT64 offerReceiveTime;
-    PeerConnectionMetrics peerConnectionMetrics;
-    KvsIceAgentMetrics iceMetrics;
-    CHAR pPeerConnectionMetricsMessage[MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE];
-    CHAR pSignalingClientMetricsMessage[MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE];
-    CHAR pIceAgentMetricsMessage[MAX_ICE_AGENT_METRICS_MESSAGE_SIZE];
-};
-
-PVOID sampleReceiveAudioVideoFrame(PVOID);
+// Core WebRTC app function declarations
 STATUS getIceCandidatePairStatsCallback(UINT32, UINT64, UINT64);
 STATUS pregenerateCertTimerCallback(UINT32, UINT64, UINT64);
-STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE roleType, BOOL trickleIce, BOOL useTurn, UINT32 logLevel,
-                                 BOOL signalingOnly, PSampleConfiguration* ppSampleConfiguration);
+STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE role_type, BOOL trickleIce, BOOL useTurn, UINT32 logLevel,
+                                 BOOL signaling_only, PSampleConfiguration* ppSampleConfiguration);
 STATUS freeSampleConfiguration(PSampleConfiguration*);
 STATUS signalingClientStateChanged(UINT64, SIGNALING_CLIENT_STATE);
 STATUS signalingMessageReceived(UINT64, PReceivedSignalingMessage);
@@ -185,12 +59,8 @@ STATUS streamingSessionOnShutdown(PSampleStreamingSession, UINT64, StreamSession
 STATUS sendSignalingMessage(PSampleStreamingSession, PSignalingMessage);
 STATUS respondWithAnswer(PSampleStreamingSession);
 
-VOID sampleBandwidthEstimationHandler(UINT64, DOUBLE);
-VOID sampleSenderBandwidthEstimationHandler(UINT64, UINT32, UINT32, UINT32, UINT32, UINT64);
-VOID onDataChannel(UINT64, PRtcDataChannel);
 VOID onConnectionStateChange(UINT64, RTC_PEER_CONNECTION_STATE);
 STATUS sessionCleanupWait(PSampleConfiguration, BOOL);
-// STATUS logStartUpLatency(PSampleConfiguration);
 STATUS createMessageQueue(UINT64, PPendingMessageQueue*);
 STATUS freeMessageQueue(PPendingMessageQueue);
 STATUS submitPendingIceCandidate(PPendingMessageQueue, PSampleStreamingSession);
@@ -198,17 +68,6 @@ STATUS removeExpiredMessageQueues(PStackQueue);
 STATUS getPendingMessageQueueForHash(PStackQueue, UINT64, BOOL, PPendingMessageQueue*);
 STATUS initSignaling(PSampleConfiguration, PCHAR);
 BOOL sampleFilterNetworkInterfaces(UINT64, PCHAR);
-
-// Forward declarations for media sender functions
-PVOID sendVideoFramesFromCamera(PVOID args);
-PVOID sendAudioFramesFromMic(PVOID args);
-PVOID sendVideoFramesFromSamples(PVOID args);
-PVOID sendAudioFramesFromSamples(PVOID args);
-PVOID sampleReceiveAudioVideoFrame(PVOID);
-
-// Forward declarations for media handlers
-VOID sampleVideoFrameHandler(UINT64 customData, PFrame pFrame);
-VOID sampleAudioFrameHandler(UINT64 customData, PFrame pFrame);
 
 // Helper function to raise WebRTC events
 static void raiseEvent(app_webrtc_event_t event_id, UINT32 status_code, PCHAR peer_id, PCHAR message)
@@ -446,13 +305,22 @@ STATUS signalingClientStateChanged(UINT64 customData, SIGNALING_CLIENT_STATE sta
 
     signalingClientGetStateString(state, &pStateStr);
 
-    DLOGV("Signaling client state changed to %d - '%s'", state, pStateStr);
+    ESP_LOGI(TAG, "🎯 signalingClientStateChanged called: state=%d ('%s')", state, pStateStr);
 
     switch (state) {
         case SIGNALING_CLIENT_STATE_NEW:
             break;
         case SIGNALING_CLIENT_STATE_CONNECTING:
             raiseEvent(APP_WEBRTC_EVENT_SIGNALING_CONNECTING, 0, NULL, "Signaling client connecting");
+            break;
+        case SIGNALING_CLIENT_STATE_DESCRIBE:
+            raiseEvent(APP_WEBRTC_EVENT_SIGNALING_DESCRIBE, 0, NULL, "Signaling describe channel");
+            break;
+        case SIGNALING_CLIENT_STATE_GET_ENDPOINT:
+            raiseEvent(APP_WEBRTC_EVENT_SIGNALING_GET_ENDPOINT, 0, NULL, "Signaling get endpoint");
+            break;
+        case SIGNALING_CLIENT_STATE_GET_ICE_CONFIG:
+            raiseEvent(APP_WEBRTC_EVENT_SIGNALING_GET_ICE, 0, NULL, "Signaling get ICE config");
             break;
         case SIGNALING_CLIENT_STATE_CONNECTED:
             raiseEvent(APP_WEBRTC_EVENT_SIGNALING_CONNECTED, 0, NULL, "Signaling client connected");
@@ -467,6 +335,70 @@ STATUS signalingClientStateChanged(UINT64 customData, SIGNALING_CLIENT_STATE sta
     webrtc_mem_utils_print_stats(TAG);
     // Return success to continue
     return retStatus;
+}
+
+/**
+ * @brief Convert SIGNALING_CLIENT_STATE to webrtc_signaling_client_state_t
+ */
+static webrtc_signaling_client_state_t convertToWebrtcState(SIGNALING_CLIENT_STATE state)
+{
+    switch (state) {
+        case SIGNALING_CLIENT_STATE_NEW:
+            return WEBRTC_SIGNALING_CLIENT_STATE_NEW;
+        case SIGNALING_CLIENT_STATE_CONNECTING:
+        case SIGNALING_CLIENT_STATE_GET_CREDENTIALS:
+        case SIGNALING_CLIENT_STATE_DESCRIBE:
+        case SIGNALING_CLIENT_STATE_CREATE:
+        case SIGNALING_CLIENT_STATE_GET_ENDPOINT:
+        case SIGNALING_CLIENT_STATE_GET_ICE_CONFIG:
+        case SIGNALING_CLIENT_STATE_READY:
+            return WEBRTC_SIGNALING_CLIENT_STATE_CONNECTING;
+        case SIGNALING_CLIENT_STATE_CONNECTED:
+        case SIGNALING_CLIENT_STATE_JOIN_SESSION_CONNECTED:
+            return WEBRTC_SIGNALING_CLIENT_STATE_CONNECTED;
+        case SIGNALING_CLIENT_STATE_DISCONNECTED:
+        case SIGNALING_CLIENT_STATE_DELETE:
+        case SIGNALING_CLIENT_STATE_DELETED:
+            return WEBRTC_SIGNALING_CLIENT_STATE_DISCONNECTED;
+        default:
+            return WEBRTC_SIGNALING_CLIENT_STATE_FAILED;
+    }
+}
+
+/**
+ * @brief Wrapper for signaling state change callback with WEBRTC_STATUS return type
+ */
+static WEBRTC_STATUS signalingClientStateChangedWrapper(uint64_t customData, webrtc_signaling_client_state_t state)
+{
+    ESP_LOGI(TAG, "🔧 signalingClientStateChangedWrapper called: state=%d", state);
+
+    // Convert webrtc state back to KVS state
+    SIGNALING_CLIENT_STATE kvsState;
+    switch (state) {
+        case WEBRTC_SIGNALING_CLIENT_STATE_NEW:
+            kvsState = SIGNALING_CLIENT_STATE_NEW;
+            break;
+        case WEBRTC_SIGNALING_CLIENT_STATE_CONNECTING:
+            kvsState = SIGNALING_CLIENT_STATE_CONNECTING;
+            break;
+        case WEBRTC_SIGNALING_CLIENT_STATE_CONNECTED:
+            kvsState = SIGNALING_CLIENT_STATE_CONNECTED;
+            break;
+        case WEBRTC_SIGNALING_CLIENT_STATE_DISCONNECTED:
+            kvsState = SIGNALING_CLIENT_STATE_DISCONNECTED;
+            break;
+        case WEBRTC_SIGNALING_CLIENT_STATE_FAILED:
+            // KVS doesn't have a direct FAILED state, map to DISCONNECTED
+            kvsState = SIGNALING_CLIENT_STATE_DISCONNECTED;
+            break;
+        default:
+            kvsState = SIGNALING_CLIENT_STATE_UNKNOWN;
+            break;
+    }
+
+    ESP_LOGI(TAG, "🔄 Calling signalingClientStateChanged with KVS state=%d", kvsState);
+    STATUS status = signalingClientStateChanged((UINT64)customData, kvsState);
+    return (status == STATUS_SUCCESS) ? WEBRTC_STATUS_SUCCESS : WEBRTC_STATUS_INTERNAL_ERROR;
 }
 
 STATUS signalingClientError(UINT64 customData, STATUS status, PCHAR msg, UINT32 msgLen)
@@ -494,7 +426,22 @@ STATUS signalingClientError(UINT64 customData, STATUS status, PCHAR msg, UINT32 
     return STATUS_SUCCESS;
 }
 
-PVOID mediaSenderRoutine(PVOID customData);
+/**
+ * @brief Wrapper for signaling error callback with WEBRTC_STATUS return type
+ *
+ * NOTE: For error callbacks, we preserve the original KVS status codes
+ * rather than converting them, as specific error codes like
+ * STATUS_SIGNALING_RECONNECT_FAILED are needed for reconnection logic.
+ */
+static WEBRTC_STATUS signalingClientErrorWrapper(uint64_t customData, WEBRTC_STATUS status, char* msg, uint32_t msgLen)
+{
+    // Preserve the original status code - don't convert it to generic WEBRTC_STATUS
+    // The status parameter is actually a KVS STATUS value passed as WEBRTC_STATUS
+    STATUS kvsStatus = (STATUS)status;
+
+    STATUS result = signalingClientError((UINT64)customData, kvsStatus, (PCHAR)msg, (UINT32)msgLen);
+    return (result == STATUS_SUCCESS) ? WEBRTC_STATUS_SUCCESS : WEBRTC_STATUS_INTERNAL_ERROR;
+}
 
 STATUS handleAnswer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSession pSampleStreamingSession, PSignalingMessage pSignalingMessage)
 {
@@ -528,71 +475,99 @@ CleanUp:
     return retStatus;
 }
 
-PVOID mediaSenderRoutine(PVOID customData)
+/**
+ * @brief Query ICE server by index through signaling abstraction
+ */
+WEBRTC_STATUS app_webrtc_get_server_by_idx(int index, bool useTurn, uint8_t **data, int *len, bool *have_more)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
-    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
-    pSampleConfiguration->videoSenderTid = INVALID_TID_VALUE;
-    pSampleConfiguration->audioSenderTid = INVALID_TID_VALUE;
 
-    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->connected) && !ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
-        CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, 5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
-    }
-    MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    CHK(data != NULL && len != NULL && have_more != NULL, STATUS_NULL_ARG);
+    CHK(gSignalingClientData != NULL && gWebRtcAppConfig.signaling_client_if != NULL, STATUS_INVALID_OPERATION);
+    CHK(gWebRtcAppConfig.signaling_client_if->get_ice_server_by_idx != NULL, STATUS_INVALID_OPERATION);
 
-    CHK(!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag), retStatus);
+    ESP_LOGI(TAG, "🔍 app_webrtc_get_server_by_idx: index=%d, useTurn=%s", index, useTurn ? "true" : "false");
 
-    // We are now connected and about to start streaming
-    raiseEvent(APP_WEBRTC_EVENT_STREAMING_STARTED, 0, NULL, "Media streaming started");
+    // Delegate to the signaling interface implementation
+    CHK_STATUS(gWebRtcAppConfig.signaling_client_if->get_ice_server_by_idx(
+        gSignalingClientData,
+        index,
+        useTurn,
+        data,
+        len,
+        have_more
+    ));
 
-    // Start video and audio threads based on configuration
-    if (pSampleConfiguration->mediaType == APP_WEBRTC_MEDIA_VIDEO ||
-        pSampleConfiguration->mediaType == APP_WEBRTC_MEDIA_AUDIO_VIDEO) {
-
-        // Determine which video source to use
-        if (pSampleConfiguration->videoSource != NULL) {
-            // Use the configured video source callback
-            THREAD_CREATE_EX_EXT(&pSampleConfiguration->videoSenderTid, "videoSender", 8 * 1024, TRUE,
-                          pSampleConfiguration->videoSource, (PVOID) pSampleConfiguration);
-        } else {
-            // Use our built-in video sender functions
-            THREAD_CREATE_EX_EXT(&pSampleConfiguration->videoSenderTid, "videoSender", 8 * 1024, TRUE,
-                          sendVideoFramesFromCamera, (PVOID) pSampleConfiguration);
-        }
-    }
-
-    if (pSampleConfiguration->mediaType == APP_WEBRTC_MEDIA_AUDIO_VIDEO) {
-        // Determine which audio source to use
-        if (pSampleConfiguration->audioSource != NULL) {
-            // Use the configured audio source callback
-            THREAD_CREATE_EX_EXT(&pSampleConfiguration->audioSenderTid, "audioSender", 8 * 1024, TRUE,
-                          pSampleConfiguration->audioSource, (PVOID) pSampleConfiguration);
-        } else {
-            // Use our built-in audio sender functions
-            THREAD_CREATE_EX_EXT(&pSampleConfiguration->audioSenderTid, "audioSender", 8 * 1024, TRUE,
-                          sendAudioFramesFromMic, (PVOID) pSampleConfiguration);
-        }
-    }
-
-    if (pSampleConfiguration->videoSenderTid != INVALID_TID_VALUE) {
-        THREAD_JOIN(pSampleConfiguration->videoSenderTid, NULL);
-    }
-
-    if (pSampleConfiguration->audioSenderTid != INVALID_TID_VALUE) {
-        THREAD_JOIN(pSampleConfiguration->audioSenderTid, NULL);
-    }
+    ESP_LOGI(TAG, "✅ Successfully queried ICE server by index (have_more: %s)", *have_more ? "true" : "false");
 
 CleanUp:
-    // clean the flag of the media thread.
-    ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, FALSE);
+    if (STATUS_FAILED(retStatus)) {
+        ESP_LOGE(TAG, "❌ Failed to query ICE server by index: 0x%08x", retStatus);
+    }
 
-    // Signal that streaming has stopped
-    raiseEvent(APP_WEBRTC_EVENT_STREAMING_STOPPED, 0, NULL, "Media streaming stopped");
+    LEAVES();
+    return retStatus;
+}
 
-    CHK_LOG_ERR(retStatus);
-    return NULL;
+/**
+ * @brief Check if ICE configuration refresh is needed through signaling abstraction
+ */
+WEBRTC_STATUS app_webrtc_is_ice_refresh_needed(bool *refreshNeeded)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(refreshNeeded != NULL, STATUS_NULL_ARG);
+    CHK(gSignalingClientData != NULL && gWebRtcAppConfig.signaling_client_if != NULL, STATUS_INVALID_OPERATION);
+    CHK(gWebRtcAppConfig.signaling_client_if->is_ice_refresh_needed != NULL, STATUS_INVALID_OPERATION);
+
+    ESP_LOGI(TAG, "🔍 app_webrtc_is_ice_refresh_needed: checking ICE refresh status");
+
+    // Delegate to the signaling interface implementation
+    CHK_STATUS(gWebRtcAppConfig.signaling_client_if->is_ice_refresh_needed(
+        gSignalingClientData,
+        refreshNeeded
+    ));
+
+    ESP_LOGI(TAG, "✅ ICE refresh check completed: refreshNeeded=%s", *refreshNeeded ? "true" : "false");
+
+CleanUp:
+    if (STATUS_FAILED(retStatus)) {
+        ESP_LOGE(TAG, "❌ Failed to check ICE refresh status: 0x%08x", retStatus);
+        if (refreshNeeded != NULL) {
+            *refreshNeeded = true;  // Default to refresh needed on error
+        }
+    }
+
+    LEAVES();
+    return retStatus;
+}
+
+WEBRTC_STATUS app_webrtc_refresh_ice_configuration(void)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(gSignalingClientData != NULL && gWebRtcAppConfig.signaling_client_if != NULL, STATUS_INVALID_OPERATION);
+    CHK(gWebRtcAppConfig.signaling_client_if->refresh_ice_configuration != NULL, STATUS_INVALID_OPERATION);
+
+    ESP_LOGI(TAG, "app_webrtc_refresh_ice_configuration: triggering background ICE refresh");
+
+    // Delegate to the signaling interface implementation
+    CHK_STATUS(gWebRtcAppConfig.signaling_client_if->refresh_ice_configuration(
+        gSignalingClientData
+    ));
+
+    ESP_LOGI(TAG, "ICE refresh triggered successfully");
+
+CleanUp:
+    if (STATUS_FAILED(retStatus)) {
+        ESP_LOGE(TAG, "Failed to trigger ICE refresh: 0x%08x", retStatus);
+    }
+
+    LEAVES();
+    return retStatus;
 }
 
 STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSession pSampleStreamingSession, PSignalingMessage pSignalingMessage)
@@ -648,7 +623,7 @@ STATUS sendSignalingMessage(PSampleStreamingSession pSampleStreamingSession, PSi
     CHK(pSampleStreamingSession != NULL && pSampleStreamingSession->pSampleConfiguration != NULL && pMessage != NULL, STATUS_NULL_ARG);
     pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
 
-    if (gWebRtcAppConfig.pSignalingClientInterface != NULL && gSignalingClientData != NULL) {
+    if (gWebRtcAppConfig.signaling_client_if != NULL && gSignalingClientData != NULL) {
         // Convert the message to the generic format
         message.version = pMessage->version;
         message.message_type = (esp_webrtc_signaling_message_type_t)pMessage->messageType;
@@ -660,7 +635,7 @@ STATUS sendSignalingMessage(PSampleStreamingSession pSampleStreamingSession, PSi
         message.payload_len = pMessage->payloadLen;
 
         // Use the signaling interface to send the message
-        CHK_STATUS(gWebRtcAppConfig.pSignalingClientInterface->sendMessage(gSignalingClientData, &message));
+        CHK_STATUS(gWebRtcAppConfig.signaling_client_if->send_message(gSignalingClientData, &message));
 
         if (pMessage->messageType == SIGNALING_MESSAGE_TYPE_ANSWER) {
             DLOGD("Sent answer to peer %s", pMessage->peerClientId);
@@ -828,15 +803,16 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
 
     // Configure ICE servers
-    if (gWebRtcAppConfig.pSignalingClientInterface != NULL &&
+    if (gWebRtcAppConfig.signaling_client_if != NULL &&
         gSignalingClientData != NULL &&
-        gWebRtcAppConfig.pSignalingClientInterface->getIceServers != NULL) {
+        gWebRtcAppConfig.signaling_client_if->get_ice_servers != NULL) {
 
         // Use the signaling interface to get ICE servers
-        CHK_STATUS(gWebRtcAppConfig.pSignalingClientInterface->getIceServers(
+        // Pass the iceServers array directly to keep the interface generic
+        CHK_STATUS(gWebRtcAppConfig.signaling_client_if->get_ice_servers(
             gSignalingClientData,
             &pSampleConfiguration->iceUriCount,
-            &configuration));
+            configuration.iceServers));  // Extract iceServers array from RtcConfiguration
         DLOGD("Got %d ICE servers from signaling interface", pSampleConfiguration->iceUriCount);
     } else {
         // Fallback to hardcoded STUN servers
@@ -858,7 +834,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     for (int i = 0; i < pSampleConfiguration->iceUriCount; i++) {
         DLOGD("ICE server %d: %s", i, configuration.iceServers[i].urls);
     }
-    // ICE server count is now set by the getIceServers function or fallback
+    // ICE server count is now set by the get_ice_servers function or fallback
 
     // Check if we have any pregenerated certs and use them
     // NOTE: We are running under the config lock
@@ -909,7 +885,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     if (isMaster) {
         STRCPY(pSampleStreamingSession->peerId, peerId);
     } else {
-        STRCPY(pSampleStreamingSession->peerId, SAMPLE_VIEWER_CLIENT_ID);
+        STRCPY(pSampleStreamingSession->peerId, DEFAULT_VIEWER_CLIENT_ID);
     }
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->peerIdReceived, TRUE);
 
@@ -960,7 +936,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     // Add a SendRecv Transceiver of type video
     videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
     videoTrack.codec = pSampleConfiguration->videoCodec;
-    if (pSampleConfiguration->receiveMedia) {
+    if (pSampleConfiguration->receive_media) {
         videoRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     } else {
         videoRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
@@ -976,7 +952,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     // Add a SendRecv Transceiver of type audio
     audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
     audioTrack.codec = pSampleConfiguration->audioCodec;
-    if (pSampleConfiguration->receiveMedia) {
+    if (pSampleConfiguration->receive_media) {
         audioRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     } else {
         audioRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
@@ -1044,16 +1020,16 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
             // If this was the last active session, clean up the players
             if (pSampleConfiguration->activePlayerSessionCount == 0) {
                 // Clean up video player if initialized
-                if (pSampleConfiguration->video_player_handle != NULL && pSampleConfiguration->videoPlayer != NULL) {
-                    media_stream_video_player_t *video_player = (media_stream_video_player_t*)pSampleConfiguration->videoPlayer;
+                if (pSampleConfiguration->video_player_handle != NULL && pSampleConfiguration->video_player != NULL) {
+                    media_stream_video_player_t *video_player = (media_stream_video_player_t*)pSampleConfiguration->video_player;
                     ESP_LOGI(TAG, "Stopping video player (last session)");
                     video_player->stop(pSampleConfiguration->video_player_handle);
                     // Note: We don't deinit here, as we might reuse the player for future sessions
                 }
 
                 // Clean up audio player if initialized
-                if (pSampleConfiguration->audio_player_handle != NULL && pSampleConfiguration->audioPlayer != NULL) {
-                    media_stream_audio_player_t *audio_player = (media_stream_audio_player_t*)pSampleConfiguration->audioPlayer;
+                if (pSampleConfiguration->audio_player_handle != NULL && pSampleConfiguration->audio_player != NULL) {
+                    media_stream_audio_player_t *audio_player = (media_stream_audio_player_t*)pSampleConfiguration->audio_player;
                     ESP_LOGI(TAG, "Stopping audio player (last session)");
                     audio_player->stop(pSampleConfiguration->audio_player_handle);
                     // Note: We don't deinit here, as we might reuse the player for future sessions
@@ -1109,74 +1085,6 @@ CleanUp:
     return retStatus;
 }
 
-VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
-{
-    UNUSED_PARAM(customData);
-    DLOGV("received bitrate suggestion: %f", maximumBitrate);
-#if CONFIG_IDF_TARGET_ESP32P4
-    // FIXME: Do this via media_stream API
-    extern esp_err_t esp_h264_hw_enc_set_bitrate(uint32_t bitrate);
-    esp_h264_hw_enc_set_bitrate((uint32_t) maximumBitrate);
-#endif
-}
-
-// Sample callback for TWCC. Average packet is calculated with exponential moving average (EMA). If average packet lost is <= 5%,
-// the current bitrate is increased by 5%. If more than 5%, the current bitrate
-// is reduced by percent lost. Bitrate update is allowed every second and is increased/decreased upto the limits
-VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPacketsCnt, UINT32 rxPacketsCnt,
-                                            UINT64 duration)
-{
-    UNUSED_PARAM(duration);
-    UINT64 videoBitrate, audioBitrate;
-    UINT64 currentTimeMs, timeDiff;
-    UINT32 lostPacketsCnt = txPacketsCnt - rxPacketsCnt;
-    DOUBLE percentLost = (DOUBLE) ((txPacketsCnt > 0) ? (lostPacketsCnt * 100 / txPacketsCnt) : 0.0);
-    SampleStreamingSession* pSampleStreamingSession = (SampleStreamingSession*) customData;
-
-    if (pSampleStreamingSession == NULL) {
-        DLOGW("Invalid streaming session (NULL object)");
-        return;
-    }
-
-    // Calculate packet loss
-    pSampleStreamingSession->twccMetadata.averagePacketLoss =
-        EMA_ACCUMULATOR_GET_NEXT(pSampleStreamingSession->twccMetadata.averagePacketLoss, ((DOUBLE) percentLost));
-
-    currentTimeMs = GETTIME();
-    timeDiff = currentTimeMs - pSampleStreamingSession->twccMetadata.lastAdjustmentTimeMs;
-    if (timeDiff < TWCC_BITRATE_ADJUSTMENT_INTERVAL_MS) {
-        // Too soon for another adjustment
-        return;
-    }
-
-    MUTEX_LOCK(pSampleStreamingSession->twccMetadata.updateLock);
-    videoBitrate = pSampleStreamingSession->twccMetadata.currentVideoBitrate;
-    audioBitrate = pSampleStreamingSession->twccMetadata.currentAudioBitrate;
-
-    if (pSampleStreamingSession->twccMetadata.averagePacketLoss <= 5) {
-        // increase encoder bitrate by 5 percent with a cap at MAX_BITRATE
-        videoBitrate = (UINT64) MIN(videoBitrate * 1.05, MAX_VIDEO_BITRATE_KBPS);
-        // increase encoder bitrate by 5 percent with a cap at MAX_BITRATE
-        audioBitrate = (UINT64) MIN(audioBitrate * 1.05, MAX_AUDIO_BITRATE_BPS);
-    } else {
-        // decrease encoder bitrate by average packet loss percent, with a cap at MIN_BITRATE
-        videoBitrate = (UINT64) MAX(videoBitrate * (1.0 - pSampleStreamingSession->twccMetadata.averagePacketLoss / 100.0), MIN_VIDEO_BITRATE_KBPS);
-        // decrease encoder bitrate by average packet loss percent, with a cap at MIN_BITRATE
-        audioBitrate = (UINT64) MAX(audioBitrate * (1.0 - pSampleStreamingSession->twccMetadata.averagePacketLoss / 100.0), MIN_AUDIO_BITRATE_BPS);
-    }
-
-    // Update the session with the new bitrate and adjustment time
-    pSampleStreamingSession->twccMetadata.newVideoBitrate = videoBitrate;
-    pSampleStreamingSession->twccMetadata.newAudioBitrate = audioBitrate;
-    MUTEX_UNLOCK(pSampleStreamingSession->twccMetadata.updateLock);
-
-    pSampleStreamingSession->twccMetadata.lastAdjustmentTimeMs = currentTimeMs;
-
-    DLOGI("Adjustment made: average packet loss = %.2f%%, timediff: %llu ms", pSampleStreamingSession->twccMetadata.averagePacketLoss, timeDiff);
-    DLOGI("Suggested video bitrate %u kbps, suggested audio bitrate: %u bps, sent: %u bytes %u packets received: %u bytes %u packets in %lu msec",
-          videoBitrate, audioBitrate, txBytes, txPacketsCnt, rxBytes, rxPacketsCnt, duration / 10000ULL);
-}
-
 STATUS handleRemoteCandidate(PSampleStreamingSession pSampleStreamingSession, PSignalingMessage pSignalingMessage)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -1214,28 +1122,9 @@ CleanUp:
     return retStatus;
 }
 
-STATUS traverseDirectoryPEMFileScan(UINT64 customData, DIR_ENTRY_TYPES entryType, PCHAR fullPath, PCHAR fileName)
-{
-    UNUSED_PARAM(entryType);
-    UNUSED_PARAM(fullPath);
-
-    PCHAR certName = (PCHAR) customData;
-    UINT32 fileNameLen = STRLEN(fileName);
-
-    if (fileNameLen > ARRAY_SIZE(CA_CERT_PEM_FILE_EXTENSION) + 1 &&
-        (STRCMPI(CA_CERT_PEM_FILE_EXTENSION, &fileName[fileNameLen - ARRAY_SIZE(CA_CERT_PEM_FILE_EXTENSION) + 1]) == 0)) {
-        certName[0] = FPATHSEPARATOR;
-        certName++;
-        STRCPY(certName, fileName);
-    }
-
-    return STATUS_SUCCESS;
-}
-
-
 // Configuration function without AWS credential options
-STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE roleType, BOOL trickleIce, BOOL useTurn, UINT32 logLevel,
-                                 BOOL signalingOnly, PSampleConfiguration* ppSampleConfiguration)
+STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE role_type, BOOL trickleIce, BOOL useTurn, UINT32 logLevel,
+                                 BOOL signaling_only, PSampleConfiguration* ppSampleConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = NULL;
@@ -1255,7 +1144,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->signalingSendMessageLock = MUTEX_CREATE(FALSE);
 
     // Only initialize player lock for streaming mode
-    if (!signalingOnly) {
+    if (!signaling_only) {
         pSampleConfiguration->playerLock = MUTEX_CREATE(TRUE);
     } else {
         pSampleConfiguration->playerLock = INVALID_MUTEX_VALUE;
@@ -1267,7 +1156,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->videoSenderTid = INVALID_TID_VALUE;
 
     // Only initialize player-related fields for streaming mode
-    if (!signalingOnly) {
+    if (!signaling_only) {
         pSampleConfiguration->video_player_handle = NULL;
         pSampleConfiguration->audio_player_handle = NULL;
         pSampleConfiguration->activePlayerSessionCount = 0;
@@ -1284,7 +1173,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->channelInfo.tagCount = 0;
     pSampleConfiguration->channelInfo.pTags = NULL;
     pSampleConfiguration->channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
-    pSampleConfiguration->channelInfo.channelRoleType = roleType;
+    pSampleConfiguration->channelInfo.channelRoleType = role_type;
     pSampleConfiguration->channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
     pSampleConfiguration->channelInfo.cachingPeriod = SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE;
     pSampleConfiguration->channelInfo.asyncIceServerConfig = TRUE;
@@ -1312,8 +1201,11 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     // Set default media type to audio-video
     pSampleConfiguration->mediaType = APP_WEBRTC_MEDIA_AUDIO_VIDEO;
 
+    // Store signaling-only mode flag
+    pSampleConfiguration->signaling_only = signaling_only;
+
     // Only create timer queue and certificate pre-generation for streaming mode
-    if (!signalingOnly) {
+    if (!signaling_only) {
 #define TIMER_QUEUE_THREAD_SIZE (8 * 1024)
         // Create timer queue for ICE stats and certificate pre-generation
         timerQueueCreateEx(&pSampleConfiguration->timerQueueHandle, "pregenCertTmr", TIMER_QUEUE_THREAD_SIZE);
@@ -1358,16 +1250,16 @@ STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
     // Check if we have a signaling client interface and data
-    if (gWebRtcAppConfig.pSignalingClientInterface != NULL && gSignalingClientData != NULL) {
+    if (gWebRtcAppConfig.signaling_client_if != NULL && gSignalingClientData != NULL) {
         ESP_LOGI(TAG, "Using provided signaling client interface");
 
-        // Set up callbacks for the signaling client
-        retStatus = gWebRtcAppConfig.pSignalingClientInterface->setCallbacks(
+        // Set up callbacks for the signaling client (using wrappers for type compatibility)
+        retStatus = gWebRtcAppConfig.signaling_client_if->set_callback(
             gSignalingClientData,
             (uint64_t) pSampleConfiguration,
             signalingMessageReceivedWrapper,
-            signalingClientStateChanged,
-            signalingClientError);
+            signalingClientStateChangedWrapper,
+            signalingClientErrorWrapper);
 
         CHK_STATUS(retStatus);
 
@@ -1497,24 +1389,6 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     pSampleConfiguration = *ppSampleConfiguration;
 
     CHK(pSampleConfiguration != NULL, retStatus);
-
-    // Clean up video player if initialized
-    if (pSampleConfiguration->video_player_handle != NULL && pSampleConfiguration->videoPlayer != NULL) {
-        media_stream_video_player_t *video_player = (media_stream_video_player_t*)pSampleConfiguration->videoPlayer;
-        ESP_LOGI(TAG, "Cleaning up video player");
-        video_player->stop(pSampleConfiguration->video_player_handle);
-        video_player->deinit(pSampleConfiguration->video_player_handle);
-        pSampleConfiguration->video_player_handle = NULL;
-    }
-
-    // Clean up audio player if initialized
-    if (pSampleConfiguration->audio_player_handle != NULL && pSampleConfiguration->audioPlayer != NULL) {
-        media_stream_audio_player_t *audio_player = (media_stream_audio_player_t*)pSampleConfiguration->audioPlayer;
-        ESP_LOGI(TAG, "Cleaning up audio player");
-        audio_player->stop(pSampleConfiguration->audio_player_handle);
-        audio_player->deinit(pSampleConfiguration->audio_player_handle);
-        pSampleConfiguration->audio_player_handle = NULL;
-    }
 
     // Free the player lock
     if (IS_VALID_MUTEX_VALUE(pSampleConfiguration->playerLock)) {
@@ -1678,13 +1552,13 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration, BOOL isSign
         // Check if we need to reconnect the signaling client for media storage
         if (sessionFreed &&
             pSampleConfiguration->channelInfo.useMediaStorage &&
-            gWebRtcAppConfig.pSignalingClientInterface != NULL &&
+            gWebRtcAppConfig.signaling_client_if != NULL &&
             gSignalingClientData != NULL &&
             !ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient)) {
             // In the WebRTC Media Storage Ingestion Case the backend will terminate the session after
             // 1 hour. The SDK needs to reconnect to receive a new offer from the backend.
-            CHK_STATUS(gWebRtcAppConfig.pSignalingClientInterface->disconnect(gSignalingClientData));
-            CHK_STATUS(gWebRtcAppConfig.pSignalingClientInterface->connect(gSignalingClientData));
+            CHK_STATUS(gWebRtcAppConfig.signaling_client_if->disconnect(gSignalingClientData));
+            CHK_STATUS(gWebRtcAppConfig.signaling_client_if->connect(gSignalingClientData));
             sessionFreed = FALSE;
         }
 
@@ -1695,7 +1569,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration, BOOL isSign
         }
 
         if (needsRecreate &&
-            gWebRtcAppConfig.pSignalingClientInterface != NULL &&
+            gWebRtcAppConfig.signaling_client_if != NULL &&
             gSignalingClientData != NULL) {
 
             // Static variables to track retry attempts and timing
@@ -1723,8 +1597,8 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration, BOOL isSign
                       retryCount + 1, retryDelay / HUNDREDS_OF_NANOS_IN_A_SECOND);
 
                 // Disconnect and reconnect
-                CHK_STATUS(gWebRtcAppConfig.pSignalingClientInterface->disconnect(gSignalingClientData));
-                retStatus = gWebRtcAppConfig.pSignalingClientInterface->connect(gSignalingClientData);
+                CHK_STATUS(gWebRtcAppConfig.signaling_client_if->disconnect(gSignalingClientData));
+                retStatus = gWebRtcAppConfig.signaling_client_if->connect(gSignalingClientData);
 
                 if (STATUS_SUCCEEDED(retStatus)) {
                     // Reset retry tracking on successful reconnection
@@ -2246,184 +2120,6 @@ CleanUp:
     return retStatus;
 }
 
-#ifdef ENABLE_DATA_CHANNEL
-VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    UINT32 i, strLen, tokenCount;
-    CHAR pMessageSend[MAX_DATA_CHANNEL_METRICS_MESSAGE_SIZE], errorMessage[200];
-    PCHAR json;
-    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
-    PSampleConfiguration pSampleConfiguration;
-    DataChannelMessage dataChannelMessage;
-    jsmn_parser parser;
-    jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
-
-    CHK(pMessage != NULL && pDataChannel != NULL, STATUS_NULL_ARG);
-
-    if (pSampleStreamingSession == NULL) {
-        STRCPY(errorMessage, "Could not generate stats since the streaming session is NULL");
-        retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) errorMessage, STRLEN(errorMessage));
-        DLOGE("%s", errorMessage);
-        goto CleanUp;
-    }
-
-    pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
-    if (pSampleConfiguration == NULL) {
-        STRCPY(errorMessage, "Could not generate stats since the sample configuration is NULL");
-        retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) errorMessage, STRLEN(errorMessage));
-        DLOGE("%s", errorMessage);
-        goto CleanUp;
-    }
-
-    if (pSampleConfiguration->enableSendingMetricsToViewerViaDc) {
-        jsmn_init(&parser);
-        json = (PCHAR) pMessage;
-        tokenCount = jsmn_parse(&parser, json, STRLEN(json), tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
-
-        MEMSET(dataChannelMessage.content, '\0', SIZEOF(dataChannelMessage.content));
-        MEMSET(dataChannelMessage.firstMessageFromViewerTs, '\0', SIZEOF(dataChannelMessage.firstMessageFromViewerTs));
-        MEMSET(dataChannelMessage.firstMessageFromMasterTs, '\0', SIZEOF(dataChannelMessage.firstMessageFromMasterTs));
-        MEMSET(dataChannelMessage.secondMessageFromViewerTs, '\0', SIZEOF(dataChannelMessage.secondMessageFromViewerTs));
-        MEMSET(dataChannelMessage.secondMessageFromMasterTs, '\0', SIZEOF(dataChannelMessage.secondMessageFromMasterTs));
-        MEMSET(dataChannelMessage.lastMessageFromViewerTs, '\0', SIZEOF(dataChannelMessage.lastMessageFromViewerTs));
-
-        if (tokenCount > 1) {
-            if (tokens[0].type != JSMN_OBJECT) {
-                STRCPY(errorMessage, "Invalid JSON received, please send a valid json as the SDK is operating in datachannel-benchmarking mode");
-                retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) errorMessage, STRLEN(errorMessage));
-                DLOGE("%s", errorMessage);
-                retStatus = STATUS_INVALID_API_CALL_RETURN_JSON;
-                goto CleanUp;
-            }
-            DLOGI("DataChannel json message: %.*s\n", pMessageLen, pMessage);
-
-            for (i = 1; i < tokenCount; i++) {
-                if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "content")) {
-                    strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-                    if (strLen != 0) {
-                        STRNCPY(dataChannelMessage.content, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
-                    }
-                } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "firstMessageFromViewerTs")) {
-                    strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-                    // parse and retain this message from the viewer to send it back again
-                    if (strLen != 0) {
-                        // since the length is not zero, we have already attached this timestamp to structure in the last iteration
-                        STRNCPY(dataChannelMessage.firstMessageFromViewerTs, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
-                    }
-                } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "firstMessageFromMasterTs")) {
-                    strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-                    if (strLen != 0) {
-                        // since the length is not zero, we have already attached this timestamp to structure in the last iteration
-                        STRNCPY(dataChannelMessage.firstMessageFromMasterTs, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
-                    } else {
-                        // if this timestamp was not assigned during the previous message session, add it now
-                        SNPRINTF(dataChannelMessage.firstMessageFromMasterTs, 20, "%llu", GETTIME() / 10000);
-                        break;
-                    }
-                } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "secondMessageFromViewerTs")) {
-                    strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-                    // parse and retain this message from the viewer to send it back again
-                    if (strLen != 0) {
-                        STRNCPY(dataChannelMessage.secondMessageFromViewerTs, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
-                    }
-                } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "secondMessageFromMasterTs")) {
-                    strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-                    if (strLen != 0) {
-                        // since the length is not zero, we have already attached this timestamp to structure in the last iteration
-                        STRNCPY(dataChannelMessage.secondMessageFromMasterTs, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
-                    } else {
-                        // if this timestamp was not assigned during the previous message session, add it now
-                        SNPRINTF(dataChannelMessage.secondMessageFromMasterTs, 20, "%llu", GETTIME() / 10000);
-                        break;
-                    }
-                } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "lastMessageFromViewerTs")) {
-                    strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
-                    if (strLen != 0) {
-                        STRNCPY(dataChannelMessage.lastMessageFromViewerTs, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
-                    }
-                }
-            }
-
-            if (STRLEN(dataChannelMessage.lastMessageFromViewerTs) == 0) {
-                // continue sending the data_channel_metrics_message with new timestamps until we receive the lastMessageFromViewerTs from the viewer
-                SNPRINTF(pMessageSend, MAX_DATA_CHANNEL_METRICS_MESSAGE_SIZE, DATA_CHANNEL_MESSAGE_TEMPLATE, MASTER_DATA_CHANNEL_MESSAGE,
-                         dataChannelMessage.firstMessageFromViewerTs, dataChannelMessage.firstMessageFromMasterTs,
-                         dataChannelMessage.secondMessageFromViewerTs, dataChannelMessage.secondMessageFromMasterTs,
-                         dataChannelMessage.lastMessageFromViewerTs);
-                DLOGI("Master's response: %s", pMessageSend);
-
-                retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pMessageSend, STRLEN(pMessageSend));
-            } else {
-                // now that we've received the last message, send across the signaling, peerConnection, ice metrics
-                SNPRINTF(pSampleStreamingSession->pSignalingClientMetricsMessage, MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE,
-                         SIGNALING_CLIENT_METRICS_JSON_TEMPLATE, pSampleConfiguration->signalingClientMetrics.signalingStartTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingEndTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.offerReceivedTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.answerTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.describeChannelStartTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.describeChannelEndTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.getSignalingChannelEndpointStartTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.getSignalingChannelEndpointEndTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.getIceServerConfigStartTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.getIceServerConfigEndTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.getTokenStartTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.getTokenEndTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.createChannelStartTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.createChannelEndTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.connectStartTime,
-                         pSampleConfiguration->signalingClientMetrics.signalingClientStats.connectEndTime);
-                DLOGI("Sending signaling metrics to the viewer: %s", pSampleStreamingSession->pSignalingClientMetricsMessage);
-
-                CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->peerConnectionMetrics));
-                SNPRINTF(pSampleStreamingSession->pPeerConnectionMetricsMessage, MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE,
-                         PEER_CONNECTION_METRICS_JSON_TEMPLATE,
-                         pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionStartTime,
-                         pSampleStreamingSession->peerConnectionMetrics.peerConnectionStats.peerConnectionConnectedTime);
-                DLOGI("Sending peer-connection metrics to the viewer: %s", pSampleStreamingSession->pPeerConnectionMetricsMessage);
-
-                CHK_STATUS(iceAgentGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->iceMetrics));
-                SNPRINTF(pSampleStreamingSession->pIceAgentMetricsMessage, MAX_ICE_AGENT_METRICS_MESSAGE_SIZE, ICE_AGENT_METRICS_JSON_TEMPLATE,
-                         pSampleStreamingSession->iceMetrics.kvsIceAgentStats.candidateGatheringStartTime,
-                         pSampleStreamingSession->iceMetrics.kvsIceAgentStats.candidateGatheringEndTime);
-                DLOGI("Sending ice-agent metrics to the viewer: %s", pSampleStreamingSession->pIceAgentMetricsMessage);
-
-                retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pSampleStreamingSession->pSignalingClientMetricsMessage,
-                                            STRLEN(pSampleStreamingSession->pSignalingClientMetricsMessage));
-                retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pSampleStreamingSession->pPeerConnectionMetricsMessage,
-                                            STRLEN(pSampleStreamingSession->pPeerConnectionMetricsMessage));
-                retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pSampleStreamingSession->pIceAgentMetricsMessage,
-                                            STRLEN(pSampleStreamingSession->pIceAgentMetricsMessage));
-            }
-        } else {
-            DLOGI("DataChannel string message: %.*s\n", pMessageLen, pMessage);
-            STRCPY(errorMessage, "Send a json message for benchmarking as the C SDK is operating in benchmarking mode");
-            retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) errorMessage, STRLEN(errorMessage));
-        }
-    } else {
-        if (isBinary) {
-            DLOGI("DataChannel Binary Message");
-        } else {
-            DLOGI("DataChannel String Message: %.*s\n", pMessageLen, pMessage);
-        }
-        // Send Echo message to the viewer
-        retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pMessage, pMessageLen);
-    }
-    if (retStatus != STATUS_SUCCESS) {
-        DLOGI("[KVS Master] dataChannelSend(): operation returned status code: 0x%08x \n", retStatus);
-    }
-
-CleanUp:
-    CHK_LOG_ERR(retStatus);
-}
-
-VOID onDataChannel(UINT64 customData, PRtcDataChannel pRtcDataChannel)
-{
-    DLOGI("New DataChannel has been opened %s \n", pRtcDataChannel->name);
-    dataChannelOnMessage(pRtcDataChannel, customData, onDataChannelMessage);
-}
-#endif
-
 /* WebRTC App API Implementation */
 
 #ifndef CONFIG_USE_ESP_WEBSOCKET_CLIENT
@@ -2436,18 +2132,18 @@ static void *realloc_wrapper(void *ptr, size_t size, const char *reason)
 extern void lws_set_allocator(void *(*realloc)(void *ptr, size_t size, const char *reason));
 #endif
 
-
 /**
  * @brief Initialize WebRTC application with the given configuration
  */
-STATUS webrtcAppInit(PWebRtcAppConfig pConfig)
+STATUS app_webrtc_init(app_webrtc_config_t *pConfig)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = NULL;
 
     CHK(pConfig != NULL, STATUS_NULL_ARG);
-    CHK(!gWebRtcAppInitialized, STATUS_INVALID_OPERATION);
+    CHK(pConfig->signaling_client_if != NULL, STATUS_NULL_ARG);
+    CHK(!gapp_webrtc_initialized, STATUS_INVALID_OPERATION);
 
     // Initialize flash wrapper first
     retStatus = flash_wrapper_init();
@@ -2456,11 +2152,39 @@ STATUS webrtcAppInit(PWebRtcAppConfig pConfig)
         goto CleanUp;
     }
 
-    // Store the config in our global structure
-    MEMCPY(&gWebRtcAppConfig, pConfig, SIZEOF(WebRtcAppConfig));
+    // Initialize and run the work queue if not already done
+    esp_work_queue_config_t work_queue_config = ESP_WORK_QUEUE_CONFIG_DEFAULT();
+    work_queue_config.stack_size = 32 * 1024;
+
+    if (esp_work_queue_init_with_config(&work_queue_config) != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to initialize work queue");
+        return STATUS_INTERNAL_ERROR;
+    }
+
+    if (esp_work_queue_start() != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to start work queue");
+        return STATUS_INTERNAL_ERROR;
+    }
+
+    // Store the user config in our global structure
+    MEMCPY(&gWebRtcAppConfig, pConfig, SIZEOF(app_webrtc_config_t));
+
+    // Apply reasonable defaults for configuration not provided by user
+    BOOL signaling_only = (pConfig->video_capture == NULL && pConfig->audio_capture == NULL);
+    BOOL trickle_ice = TRUE;  // Always enabled for faster connection setup
+    BOOL use_turn = TRUE;     // Always enabled for better NAT traversal
+    UINT32 log_level = 3;     // INFO level (good balance of information)
+    SIGNALING_CHANNEL_ROLE_TYPE role_type = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;  // Most common case for IoT devices
+
+    DLOGI("WebRTC app initializing with reasonable defaults:");
+    DLOGI("  - Role: %s", role_type == SIGNALING_CHANNEL_ROLE_TYPE_MASTER ? "MASTER" : "VIEWER");
+    DLOGI("  - Trickle ICE: %s", trickle_ice ? "enabled" : "disabled");
+    DLOGI("  - TURN servers: %s", use_turn ? "enabled" : "disabled");
+    DLOGI("  - Log level: %d (INFO)", log_level);
+    DLOGI("  - Signaling-only: %s", signaling_only ? "enabled (auto-detected)" : "disabled");
 
     // Initialize KVS WebRTC library - this must be done before any other WebRTC operations
-    if (!pConfig->signalingOnly) {
+    if (!signaling_only) {
         CHK_STATUS(initKvsWebRtc());
         DLOGI("KVS WebRTC library initialized successfully");
     } else {
@@ -2472,48 +2196,69 @@ STATUS webrtcAppInit(PWebRtcAppConfig pConfig)
         gEventCallbackLock = MUTEX_CREATE(FALSE);
     }
 
-    // Create the sample configuration
-    CHK_STATUS(createSampleConfiguration(NULL, pConfig->roleType,
-                                         pConfig->trickleIce, pConfig->useTurn,
-                                         pConfig->logLevel, pConfig->signalingOnly, &pSampleConfiguration));
+    // Create the sample configuration with reasonable defaults
+    CHK_STATUS(createSampleConfiguration(NULL, role_type, trickle_ice, use_turn, log_level, signaling_only, &pSampleConfiguration));
 
     // Store the sample configuration for later use
     gSampleConfiguration = pSampleConfiguration;
 
-    pSampleConfiguration->mediaType = pConfig->mediaType;
+    // Set default role to MASTER (most common for IoT devices)
+    // Note: This can be overridden later using app_webrtc_set_role() advanced API
+    pSampleConfiguration->channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+    DLOGI("Default role set to: MASTER (can be changed via app_webrtc_set_role)");
 
-    // Set the audio and video codecs
-    pSampleConfiguration->audioCodec = pConfig->audioCodec;
-    pSampleConfiguration->videoCodec = pConfig->videoCodec;
+    // Apply reasonable defaults for media configuration
+    pSampleConfiguration->audioCodec = RTC_CODEC_OPUS;  // Most common audio codec
+    pSampleConfiguration->videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;  // Most common video codec
 
-    // Configure media capture interfaces if provided
-    if (pConfig->videoCapture != NULL) {
-        pSampleConfiguration->videoCapture = pConfig->videoCapture;
+    // Auto-detect media type based on provided interfaces
+    if (pConfig->video_capture != NULL && pConfig->audio_capture != NULL) {
+        pSampleConfiguration->mediaType = APP_WEBRTC_MEDIA_AUDIO_VIDEO;
+        DLOGI("Media type: audio+video (auto-detected)");
+    } else if (pConfig->video_capture != NULL) {
+        pSampleConfiguration->mediaType = APP_WEBRTC_MEDIA_VIDEO;
+        DLOGI("Media type: video-only (auto-detected)");
+    } else if (pConfig->audio_capture != NULL) {
+        // Note: There's no APP_WEBRTC_MEDIA_AUDIO_ONLY, so fallback to audio+video
+        pSampleConfiguration->mediaType = APP_WEBRTC_MEDIA_AUDIO_VIDEO;
+        DLOGI("Media type: audio+video (fallback for audio-only)");
+    } else {
+        pSampleConfiguration->mediaType = APP_WEBRTC_MEDIA_AUDIO_VIDEO;  // Default for signaling-only
+        DLOGI("Media type: audio+video (default for signaling-only)");
     }
 
-    if (pConfig->audioCapture != NULL) {
-        pSampleConfiguration->audioCapture = pConfig->audioCapture;
+    // Configure media capture interfaces if provided
+    if (pConfig->video_capture != NULL) {
+        pSampleConfiguration->video_capture = pConfig->video_capture;
+        DLOGI("Video capture interface configured");
+    }
+
+    if (pConfig->audio_capture != NULL) {
+        pSampleConfiguration->audio_capture = pConfig->audio_capture;
+        DLOGI("Audio capture interface configured");
     }
 
     // Configure media player interfaces if provided
-    if (pConfig->videoPlayer != NULL) {
-        pSampleConfiguration->videoPlayer = pConfig->videoPlayer;
+    if (pConfig->video_player != NULL) {
+        pSampleConfiguration->video_player = pConfig->video_player;
+        DLOGI("Video player interface configured");
     }
 
-    if (pConfig->audioPlayer != NULL) {
-        pSampleConfiguration->audioPlayer = pConfig->audioPlayer;
+    if (pConfig->audio_player != NULL) {
+        pSampleConfiguration->audio_player = pConfig->audio_player;
+        DLOGI("Audio player interface configured");
     }
 
-    // Configure media reception
-    pSampleConfiguration->receiveMedia = pConfig->receiveMedia;
+    // Default: disable media reception (most IoT devices are senders)
+    pSampleConfiguration->receive_media = FALSE;
 
     // Set the WebRTC app as initialized
-    gWebRtcAppInitialized = TRUE;
+    gapp_webrtc_initialized = TRUE;
 
     // Raise the initialized event
-    raiseEvent(APP_WEBRTC_EVENT_INITIALIZED, STATUS_SUCCESS, NULL, "WebRTC app initialized successfully");
+    raiseEvent(APP_WEBRTC_EVENT_INITIALIZED, STATUS_SUCCESS, NULL, "WebRTC app initialized with reasonable defaults");
 
-    DLOGI("WebRTC app initialized successfully");
+    DLOGI("WebRTC app initialized successfully with simplified configuration");
 
 CleanUp:
     if (STATUS_FAILED(retStatus)) {
@@ -2531,7 +2276,7 @@ CleanUp:
  * @brief Task function to run the WebRTC application
  * This task handles the WebRTC application main loop
  */
-static void webrtcAppRunTask(void *pvParameters)
+static void app_webrtc_runTask(void *pvParameters)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -2539,12 +2284,12 @@ static void webrtcAppRunTask(void *pvParameters)
     DLOGI("Running WebRTC application in task");
 
     // Initialize signaling client using the provided interface and config
-    if (gWebRtcAppConfig.pSignalingClientInterface != NULL && gWebRtcAppConfig.pSignalingConfig != NULL) {
+    if (gWebRtcAppConfig.signaling_client_if != NULL && gWebRtcAppConfig.signaling_cfg != NULL) {
         DLOGI("Initializing signaling client using interface");
 
         // Initialize the signaling client using the interface and opaque config
-        retStatus = gWebRtcAppConfig.pSignalingClientInterface->init(
-            gWebRtcAppConfig.pSignalingConfig,
+        retStatus = gWebRtcAppConfig.signaling_client_if->init(
+            gWebRtcAppConfig.signaling_cfg,
             &gSignalingClientData);
 
         if (STATUS_FAILED(retStatus)) {
@@ -2555,11 +2300,15 @@ static void webrtcAppRunTask(void *pvParameters)
         DLOGI("Signaling client initialized successfully");
 
         // Set the role type for the signaling client
-        if (gWebRtcAppConfig.pSignalingClientInterface->setRoleType != NULL) {
-            DLOGI("Setting signaling client role type: %d", gWebRtcAppConfig.roleType);
-            retStatus = gWebRtcAppConfig.pSignalingClientInterface->setRoleType(
+        if (gWebRtcAppConfig.signaling_client_if->set_role_type != NULL) {
+            DLOGI("Setting signaling client role type: %d", gSampleConfiguration->channelInfo.channelRoleType);
+            webrtc_signaling_channel_role_type_t role_type = WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+            if (gSampleConfiguration->channelInfo.channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER) {
+                role_type = WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
+            }
+            retStatus = gWebRtcAppConfig.signaling_client_if->set_role_type(
                 gSignalingClientData,
-                gWebRtcAppConfig.roleType);
+                role_type);
 
             if (STATUS_FAILED(retStatus)) {
                 DLOGE("Failed to set signaling client role type: 0x%08x", retStatus);
@@ -2568,14 +2317,14 @@ static void webrtcAppRunTask(void *pvParameters)
         }
 
         // Set up callbacks
-        if (gWebRtcAppConfig.pSignalingClientInterface->setCallbacks != NULL) {
+        if (gWebRtcAppConfig.signaling_client_if->set_callback != NULL) {
             DLOGI("Setting up signaling callbacks");
-            retStatus = gWebRtcAppConfig.pSignalingClientInterface->setCallbacks(
+            retStatus = gWebRtcAppConfig.signaling_client_if->set_callback(
                 gSignalingClientData,
                 (uint64_t) gSampleConfiguration,
                 signalingMessageReceivedWrapper,
-                signalingClientStateChanged,
-                signalingClientError);
+                signalingClientStateChangedWrapper,
+                signalingClientErrorWrapper);
 
             if (STATUS_FAILED(retStatus)) {
                 DLOGE("Failed to set signaling callbacks: 0x%08x", retStatus);
@@ -2584,9 +2333,9 @@ static void webrtcAppRunTask(void *pvParameters)
         }
 
         // Connect the signaling client
-        if (gWebRtcAppConfig.pSignalingClientInterface->connect != NULL) {
+        if (gWebRtcAppConfig.signaling_client_if->connect != NULL) {
             DLOGI("Connecting signaling client");
-            retStatus = gWebRtcAppConfig.pSignalingClientInterface->connect(gSignalingClientData);
+            retStatus = gWebRtcAppConfig.signaling_client_if->connect(gSignalingClientData);
 
             if (STATUS_FAILED(retStatus)) {
                 DLOGE("Failed to connect signaling client: 0x%08x", retStatus);
@@ -2600,7 +2349,7 @@ static void webrtcAppRunTask(void *pvParameters)
     }
 
     // Wait for termination
-    sessionCleanupWait(gSampleConfiguration, gWebRtcAppConfig.signalingOnly);
+    sessionCleanupWait(gSampleConfiguration, gSampleConfiguration->signaling_only);
     DLOGI("WebRTC app terminated");
 
 CleanUp:
@@ -2610,7 +2359,7 @@ CleanUp:
     }
 
     // Terminate WebRTC application
-    webrtcAppTerminate();
+    app_webrtc_terminate();
     DLOGI("WebRTC task cleanup done");
 
     // Clear the task handle since we're about to delete the task
@@ -2625,12 +2374,12 @@ CleanUp:
 /**
  * @brief Run the WebRTC application and wait for termination
  */
-STATUS webrtcAppRun(VOID)
+STATUS app_webrtc_run(VOID)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
-    CHK(gWebRtcAppInitialized, STATUS_INVALID_OPERATION);
+    CHK(gapp_webrtc_initialized, STATUS_INVALID_OPERATION);
     CHK(gSampleConfiguration != NULL, STATUS_INTERNAL_ERROR);
 
     DLOGI("WebRTC app running");
@@ -2645,7 +2394,7 @@ STATUS webrtcAppRun(VOID)
     // Use a higher stack size for the WebRTC task as signaling requires substantial stack
     DLOGI("Creating WebRTC run task");
     int result = xTaskCreate(
-        webrtcAppRunTask,
+        app_webrtc_runTask,
         "webrtc_run",
         (16 * 1024),  // 16KB stack size for credential provider and signaling
         NULL,
@@ -2670,32 +2419,14 @@ CleanUp:
 }
 
 /**
- * @brief Get the sample configuration
- */
-STATUS webrtcAppGetSampleConfiguration(PSampleConfiguration *ppSampleConfiguration)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-
-    CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
-    CHK(gWebRtcAppInitialized, STATUS_INVALID_OPERATION);
-
-    *ppSampleConfiguration = gSampleConfiguration;
-
-CleanUp:
-    LEAVES();
-    return retStatus;
-}
-
-/**
  * @brief Terminate the WebRTC application
  */
-STATUS webrtcAppTerminate(VOID)
+STATUS app_webrtc_terminate(VOID)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
-    CHK(gWebRtcAppInitialized, STATUS_INVALID_OPERATION);
+    CHK(gapp_webrtc_initialized, STATUS_INVALID_OPERATION);
 
     if (gSampleConfiguration != NULL) {
         // Kick off the termination sequence
@@ -2707,12 +2438,12 @@ STATUS webrtcAppTerminate(VOID)
         }
 
         // Disconnect signaling client if available
-        if (gWebRtcAppConfig.pSignalingClientInterface != NULL &&
+        if (gWebRtcAppConfig.signaling_client_if != NULL &&
             gSignalingClientData != NULL &&
-            gWebRtcAppConfig.pSignalingClientInterface->disconnect != NULL) {
+            gWebRtcAppConfig.signaling_client_if->disconnect != NULL) {
 
             DLOGI("Disconnecting signaling client");
-            retStatus = gWebRtcAppConfig.pSignalingClientInterface->disconnect(gSignalingClientData);
+            retStatus = gWebRtcAppConfig.signaling_client_if->disconnect(gSignalingClientData);
 
             if (STATUS_FAILED(retStatus)) {
                 DLOGW("Failed to disconnect signaling client: 0x%08x", retStatus);
@@ -2724,12 +2455,12 @@ STATUS webrtcAppTerminate(VOID)
         }
 
         // Free signaling client if available
-        if (gWebRtcAppConfig.pSignalingClientInterface != NULL &&
+        if (gWebRtcAppConfig.signaling_client_if != NULL &&
             gSignalingClientData != NULL &&
-            gWebRtcAppConfig.pSignalingClientInterface->free != NULL) {
+            gWebRtcAppConfig.signaling_client_if->free != NULL) {
 
             DLOGI("Freeing signaling client");
-            retStatus = gWebRtcAppConfig.pSignalingClientInterface->free(gSignalingClientData);
+            retStatus = gWebRtcAppConfig.signaling_client_if->free(gSignalingClientData);
 
             if (STATUS_FAILED(retStatus)) {
                 DLOGW("Failed to free signaling client: 0x%08x", retStatus);
@@ -2745,9 +2476,9 @@ STATUS webrtcAppTerminate(VOID)
     }
 
     // Reset state
-    gWebRtcAppInitialized = FALSE;
+    gapp_webrtc_initialized = FALSE;
     gSignalingClientData = NULL;
-    MEMSET(&gWebRtcAppConfig, 0, SIZEOF(WebRtcAppConfig));
+    MEMSET(&gWebRtcAppConfig, 0, SIZEOF(app_webrtc_config_t));
 
     DLOGI("WebRTC app terminated successfully");
 
@@ -2760,654 +2491,6 @@ CleanUp:
     return retStatus;
 }
 
-// Add these new functions after webrtcAppGetSampleConfiguration
-
-/**
- * @brief Send a video frame to all connected peers
- *
- * @param frame_data Pointer to frame data
- * @param frame_size Size of the frame in bytes
- * @param timestamp Presentation timestamp
- * @param is_key_frame Whether this is a key frame
- * @return STATUS code of the execution
- */
-STATUS webrtcAppSendVideoFrame(PBYTE frame_data, UINT32 frame_size, UINT64 timestamp, BOOL is_key_frame)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    PSampleConfiguration pSampleConfiguration = NULL;
-    Frame frame = {0};
-    UINT32 i;
-
-    CHK(frame_data != NULL, STATUS_NULL_ARG);
-    CHK(gSampleConfiguration != NULL, STATUS_INVALID_OPERATION);
-
-    pSampleConfiguration = gSampleConfiguration;
-
-    frame.version = FRAME_CURRENT_VERSION;
-    frame.frameData = frame_data;
-    frame.size = frame_size;
-    frame.trackId = DEFAULT_VIDEO_TRACK_ID;
-    frame.duration = 0;
-    frame.index = 0;
-    frame.presentationTs = timestamp;
-    frame.decodingTs = timestamp;
-
-    // Set key frame flag if needed
-    if (is_key_frame) {
-        frame.flags = FRAME_FLAG_KEY_FRAME;
-    }
-
-    MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
-    for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
-        // Check if the peer connection is connected by checking if it's not NULL
-        if (pSampleConfiguration->sampleStreamingSessionList[i]->pPeerConnection != NULL) {
-            retStatus = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &frame);
-            if (STATUS_FAILED(retStatus)) {
-                ESP_LOGW(TAG, "writeFrame for video failed with 0x%08" PRIx32 , retStatus);
-            }
-            if (retStatus == STATUS_SRTP_NOT_READY_YET) {
-                vTaskDelay(pdMS_TO_TICKS(100));
-                retStatus = STATUS_SUCCESS;
-            }
-        }
-    }
-    MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
-
-CleanUp:
-    return retStatus;
-}
-
-/**
- * @brief Send an audio frame to all connected peers
- *
- * @param frame_data Pointer to frame data
- * @param frame_size Size of the frame in bytes
- * @param timestamp Presentation timestamp
- * @return STATUS code of the execution
- */
-STATUS webrtcAppSendAudioFrame(PBYTE frame_data, UINT32 frame_size, UINT64 timestamp)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    PSampleConfiguration pSampleConfiguration = NULL;
-    Frame frame = {0};
-    UINT32 i;
-
-    CHK(frame_data != NULL, STATUS_NULL_ARG);
-    CHK(gSampleConfiguration != NULL, STATUS_INVALID_OPERATION);
-
-    pSampleConfiguration = gSampleConfiguration;
-
-    frame.version = FRAME_CURRENT_VERSION;
-    frame.frameData = frame_data;
-    frame.size = frame_size;
-    frame.trackId = DEFAULT_AUDIO_TRACK_ID;
-    frame.duration = 0;
-    frame.index = 0;
-    frame.presentationTs = timestamp;
-    frame.decodingTs = timestamp;
-
-    MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
-    for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
-        // Check if the peer connection is connected by checking if it's not NULL
-        if (pSampleConfiguration->sampleStreamingSessionList[i]->pPeerConnection != NULL) {
-            retStatus = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pAudioRtcRtpTransceiver, &frame);
-            if (STATUS_FAILED(retStatus)) {
-                ESP_LOGW(TAG, "writeFrame for audio failed with 0x%08" PRIx32 , retStatus);
-            }
-            if (retStatus == STATUS_SRTP_NOT_READY_YET) {
-                vTaskDelay(pdMS_TO_TICKS(100));
-                retStatus = STATUS_SUCCESS;
-            }
-        }
-    }
-    MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
-
-CleanUp:
-    return retStatus;
-}
-
-// Add these new media thread functions
-
-/**
- * @brief Thread function to send video frames from camera
- */
-PVOID sendVideoFramesFromCamera(PVOID args)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
-    UINT64 refTime = GETTIME();
-    UINT64 nextFrameTime = refTime;
-    media_stream_video_capture_t *video_capture = NULL;
-    video_capture_handle_t video_handle = NULL;
-    video_frame_t *video_frame = NULL;
-    const uint32_t fps = 30;
-    // Use precise frame duration to avoid timing drift
-    const UINT64 frame_duration_100ns = HUNDREDS_OF_NANOS_IN_A_SECOND / fps; // Precise: 333,333.33 * 100ns units
-
-    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
-
-    // Get the video capture interface from the sample configuration
-    video_capture = (media_stream_video_capture_t*) pSampleConfiguration->videoCapture;
-    CHK(video_capture != NULL, STATUS_INVALID_ARG);
-
-    // Initialize video capture with H264 configuration
-    video_capture_config_t video_config = {
-        .codec = VIDEO_CODEC_H264,
-        .resolution = {
-            .width = 640,
-            .height = 480,
-            .fps = fps
-        },
-        .quality = 80,
-        .bitrate = 500, // 500 kbps
-        .codec_specific = NULL
-    };
-
-    // Initialize video capture
-    ESP_LOGI(TAG, "Initializing video capture");
-    CHK(video_capture->init(&video_config, &video_handle) == ESP_OK, STATUS_INTERNAL_ERROR);
-
-    // Start video capture
-    CHK(video_capture->start(video_handle) == ESP_OK, STATUS_INTERNAL_ERROR);
-
-    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
-        UINT64 currentTime = GETTIME();
-
-        // Sleep until next frame time for consistent pacing
-        if (currentTime < nextFrameTime) {
-            THREAD_SLEEP(nextFrameTime - currentTime);
-            currentTime = nextFrameTime; // Use scheduled time for timestamp consistency
-        }
-
-        // Get video frame from camera
-        if (video_capture->get_frame(video_handle, &video_frame, 0) == ESP_OK) {
-            if (video_frame != NULL && video_frame->len > 0) {
-                // Send the frame with precise timestamp
-                retStatus = webrtcAppSendVideoFrame(
-                    video_frame->buffer,
-                    video_frame->len,
-                    currentTime - refTime,  // Precise relative timestamp
-                    video_frame->type == VIDEO_FRAME_TYPE_I
-                );
-
-                if (STATUS_FAILED(retStatus)) {
-                    ESP_LOGE(TAG, "Failed to send video frame: 0x%08" PRIx32, retStatus);
-                }
-
-                // Release the frame when done
-                video_capture->release_frame(video_handle, video_frame);
-                video_frame = NULL;
-            }
-        }
-
-        // Schedule next frame with precise timing
-        nextFrameTime += frame_duration_100ns;
-
-        // Handle case where we've fallen behind schedule
-        if (nextFrameTime <= GETTIME()) {
-            // ESP_LOGW(TAG, "Frame pacing falling behind, resetting to current time");
-            nextFrameTime = GETTIME() + frame_duration_100ns / 2;
-        }
-    }
-
-CleanUp:
-    if (video_handle != NULL && video_capture != NULL) {
-        video_capture->stop(video_handle);
-        video_capture->deinit(video_handle);
-    }
-
-    ESP_LOGI(TAG, "Video frame sending thread exiting");
-    return (PVOID) ((uintptr_t) retStatus);
-}
-
-/**
- * @brief Thread function to send audio frames from microphone
- */
-PVOID sendAudioFramesFromMic(PVOID args)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
-    UINT64 refTime = GETTIME();
-    UINT64 nextFrameTime = refTime;
-    media_stream_audio_capture_t *audio_capture = NULL;
-    audio_capture_handle_t audio_handle = NULL;
-    audio_frame_t *audio_frame = NULL;
-    const uint32_t sample_rate = 48000; // 48kHz sample rate
-    const uint32_t frame_size_ms = 20;   // 20ms audio frames
-    // Precise frame duration for 20ms audio frames
-    const UINT64 frame_duration_100ns = frame_size_ms * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
-
-    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
-
-    // Get the audio capture interface from the sample configuration
-    audio_capture = (media_stream_audio_capture_t*) pSampleConfiguration->audioCapture;
-    CHK(audio_capture != NULL, STATUS_INVALID_ARG);
-
-    // Initialize audio capture configuration
-    audio_capture_config_t audio_config = {
-        .codec = AUDIO_CODEC_OPUS,
-        .format = {
-            .sample_rate = sample_rate,
-            .channels = 1, // Mono
-            .bits_per_sample = 16
-        },
-        .bitrate = 64, // 64 kbps
-        .frame_duration_ms = frame_size_ms,
-        .codec_specific = NULL
-    };
-
-    // Initialize audio capture
-    ESP_LOGI(TAG, "Initializing audio capture");
-    CHK(audio_capture->init(&audio_config, &audio_handle) == ESP_OK, STATUS_INTERNAL_ERROR);
-
-    // Start audio capture
-    CHK(audio_capture->start(audio_handle) == ESP_OK, STATUS_INTERNAL_ERROR);
-
-    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
-        UINT64 currentTime = GETTIME();
-
-        // Sleep until next frame time for consistent pacing
-        if (currentTime < nextFrameTime) {
-            THREAD_SLEEP(nextFrameTime - currentTime);
-            currentTime = nextFrameTime; // Use scheduled time for timestamp consistency
-        }
-
-        // Get audio frame from microphone
-        if (audio_capture->get_frame(audio_handle, &audio_frame, 0) == ESP_OK) {
-            if (audio_frame != NULL && audio_frame->len > 0) {
-                // Send the frame with precise timestamp
-                retStatus = webrtcAppSendAudioFrame(
-                    audio_frame->buffer,
-                    audio_frame->len,
-                    currentTime - refTime  // Precise relative timestamp
-                );
-
-                if (STATUS_FAILED(retStatus)) {
-                    ESP_LOGE(TAG, "Failed to send audio frame: 0x%08" PRIx32, retStatus);
-                }
-
-                // Release the frame when done
-                audio_capture->release_frame(audio_handle, audio_frame);
-                audio_frame = NULL;
-            }
-        }
-
-        // Schedule next frame with precise timing
-        nextFrameTime += frame_duration_100ns;
-
-        // Handle case where we've fallen behind schedule
-        if (nextFrameTime <= GETTIME()) {
-            // ESP_LOGW(TAG, "Audio frame pacing falling behind, resetting to current time");
-            nextFrameTime = GETTIME() + frame_duration_100ns / 2;
-        }
-    }
-
-CleanUp:
-    if (audio_handle != NULL && audio_capture != NULL) {
-        audio_capture->stop(audio_handle);
-        audio_capture->deinit(audio_handle);
-    }
-
-    ESP_LOGI(TAG, "Audio frame sending thread exiting");
-    return (PVOID) ((uintptr_t) retStatus);
-}
-
-/**
- * @brief Thread function to send video frames from sample files
- */
-PVOID sendVideoFramesFromSamples(PVOID args)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
-    UINT64 refTime = GETTIME();
-    UINT64 nextFrameTime = refTime;
-    media_stream_video_capture_t *video_capture = NULL;
-    video_capture_handle_t video_handle = NULL;
-    video_frame_t *video_frame = NULL;
-    const uint32_t fps = 30;
-    // Use precise frame duration to avoid timing drift
-    const UINT64 frame_duration_100ns = HUNDREDS_OF_NANOS_IN_A_SECOND / fps; // Precise: 333,333.33 * 100ns units
-
-    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
-
-    // Get the video capture interface from the sample configuration
-    video_capture = (media_stream_video_capture_t*) pSampleConfiguration->videoCapture;
-    CHK(video_capture != NULL, STATUS_INVALID_ARG);
-
-    // Initialize with sample video configuration
-    video_capture_config_t video_config = {
-        .codec = VIDEO_CODEC_H264,
-        .resolution = {
-            .width = 640,
-            .height = 480,
-            .fps = fps
-        },
-        .quality = 80,
-        .bitrate = 500, // 500 kbps
-        .codec_specific = NULL
-    };
-
-    // Initialize video capture for samples
-    ESP_LOGI(TAG, "Initializing sample video capture");
-    CHK(video_capture->init(&video_config, &video_handle) == ESP_OK, STATUS_INTERNAL_ERROR);
-
-    // Start video capture
-    CHK(video_capture->start(video_handle) == ESP_OK, STATUS_INTERNAL_ERROR);
-
-    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
-        UINT64 currentTime = GETTIME();
-
-        // Sleep until next frame time for consistent pacing
-        if (currentTime < nextFrameTime) {
-            THREAD_SLEEP(nextFrameTime - currentTime);
-            currentTime = nextFrameTime; // Use scheduled time for timestamp consistency
-        }
-
-        // Get video frame from capture interface
-        if (video_capture->get_frame(video_handle, &video_frame, 0) == ESP_OK) {
-            if (video_frame != NULL && video_frame->len > 0) {
-                // Send the frame with precise timestamp
-                retStatus = webrtcAppSendVideoFrame(
-                    video_frame->buffer,
-                    video_frame->len,
-                    currentTime - refTime,  // Precise relative timestamp
-                    video_frame->type == VIDEO_FRAME_TYPE_I
-                );
-
-                if (STATUS_FAILED(retStatus)) {
-                    ESP_LOGE(TAG, "Failed to send video frame: 0x%08" PRIx32, retStatus);
-                }
-
-                // Release the frame when done
-                video_capture->release_frame(video_handle, video_frame);
-                video_frame = NULL;
-            }
-        } else {
-            ESP_LOGW(TAG, "Failed to get sample video frame");
-        }
-
-        // Schedule next frame with precise timing
-        nextFrameTime += frame_duration_100ns;
-
-        // Handle case where we've fallen behind schedule
-        if (nextFrameTime <= GETTIME()) {
-            // ESP_LOGW(TAG, "Sample video frame pacing falling behind, resetting to current time");
-            nextFrameTime = GETTIME() + frame_duration_100ns / 2;
-        }
-    }
-
-CleanUp:
-    if (video_handle != NULL && video_capture != NULL) {
-        video_capture->stop(video_handle);
-        video_capture->deinit(video_handle);
-    }
-
-    ESP_LOGI(TAG, "Sample video frame sending thread exiting");
-    return (PVOID) ((uintptr_t) retStatus);
-}
-
-/**
- * @brief Thread function to send audio frames from sample files
- */
-PVOID sendAudioFramesFromSamples(PVOID args)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
-    UINT64 refTime = GETTIME();
-    UINT64 nextFrameTime = refTime;
-    media_stream_audio_capture_t *audio_capture = NULL;
-    audio_capture_handle_t audio_handle = NULL;
-    audio_frame_t *audio_frame = NULL;
-    const uint32_t sample_rate = 48000; // 48kHz sample rate
-    const uint32_t frame_size_ms = 20;   // 20ms audio frames
-    // Precise frame duration for 20ms audio frames
-    const UINT64 frame_duration_100ns = frame_size_ms * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
-
-    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
-
-    // Get the audio capture interface from the sample configuration
-    audio_capture = (media_stream_audio_capture_t*) pSampleConfiguration->audioCapture;
-    CHK(audio_capture != NULL, STATUS_INVALID_ARG);
-
-    // Initialize with sample audio configuration
-    audio_capture_config_t audio_config = {
-        .codec = AUDIO_CODEC_OPUS,
-        .format = {
-            .sample_rate = sample_rate,
-            .channels = 1, // Mono
-            .bits_per_sample = 16
-        },
-        .bitrate = 64, // 64 kbps
-        .frame_duration_ms = frame_size_ms,
-        .codec_specific = NULL
-    };
-
-    // Initialize audio capture for samples
-    ESP_LOGI(TAG, "Initializing sample audio capture");
-    CHK(audio_capture->init(&audio_config, &audio_handle) == ESP_OK, STATUS_INTERNAL_ERROR);
-
-    // Start audio capture
-    CHK(audio_capture->start(audio_handle) == ESP_OK, STATUS_INTERNAL_ERROR);
-
-    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
-        UINT64 currentTime = GETTIME();
-
-        // Sleep until next frame time for consistent pacing
-        if (currentTime < nextFrameTime) {
-            THREAD_SLEEP(nextFrameTime - currentTime);
-            currentTime = nextFrameTime; // Use scheduled time for timestamp consistency
-        }
-
-        // Get audio frame from capture interface
-        if (audio_capture->get_frame(audio_handle, &audio_frame, 0) == ESP_OK) {
-            if (audio_frame != NULL && audio_frame->len > 0) {
-                // Send the frame with precise timestamp
-                retStatus = webrtcAppSendAudioFrame(
-                    audio_frame->buffer,
-                    audio_frame->len,
-                    currentTime - refTime  // Precise relative timestamp
-                );
-
-                if (STATUS_FAILED(retStatus)) {
-                    ESP_LOGE(TAG, "Failed to send audio frame: 0x%08" PRIx32, retStatus);
-                }
-
-                // Release the frame when done
-                audio_capture->release_frame(audio_handle, audio_frame);
-                audio_frame = NULL;
-            }
-        } else {
-            ESP_LOGW(TAG, "Failed to get sample audio frame");
-        }
-
-        // Schedule next frame with precise timing
-        nextFrameTime += frame_duration_100ns;
-
-        // Handle case where we've fallen behind schedule
-        if (nextFrameTime <= GETTIME()) {
-            // ESP_LOGW(TAG, "Sample audio frame pacing falling behind, resetting to current time");
-            nextFrameTime = GETTIME() + frame_duration_100ns / 2;
-        }
-    }
-
-CleanUp:
-    if (audio_handle != NULL && audio_capture != NULL) {
-        audio_capture->stop(audio_handle);
-        audio_capture->deinit(audio_handle);
-    }
-
-    ESP_LOGI(TAG, "Sample audio frame sending thread exiting");
-    return (PVOID) ((uintptr_t) retStatus);
-}
-
-/**
- * @brief Receiver for audio/video frames
- */
-PVOID sampleReceiveAudioVideoFrame(PVOID args)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) args;
-
-    CHK(pSampleStreamingSession != NULL, STATUS_NULL_ARG);
-
-    ESP_LOGI(TAG, "Setting up media reception callbacks");
-
-    // Get the sample configuration
-    PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
-    CHK(pSampleConfiguration != NULL, STATUS_INTERNAL_ERROR);
-
-    // Lock for player initialization
-    MUTEX_LOCK(pSampleConfiguration->playerLock);
-
-    // Initialize video player if available and not already initialized
-    if (pSampleConfiguration->videoPlayer != NULL && pSampleConfiguration->video_player_handle == NULL) {
-        media_stream_video_player_t *video_player = (media_stream_video_player_t*)pSampleConfiguration->videoPlayer;
-
-        // Initialize with default configuration
-        video_player_config_t video_config = {
-            .codec = VIDEO_PLAYER_CODEC_H264,
-            .format = {
-                .width = 640,
-                .height = 480,
-                .framerate = 30
-            },
-            .buffer_frames = 5,
-            .codec_specific = NULL,
-            .display_handle = NULL
-        };
-
-        ESP_LOGI(TAG, "Initializing video player");
-        if (video_player->init(&video_config, &pSampleConfiguration->video_player_handle) != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to initialize video player");
-        } else if (video_player->start(pSampleConfiguration->video_player_handle) != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to start video player");
-        } else {
-            ESP_LOGI(TAG, "Video player initialized successfully");
-        }
-    }
-
-    // Initialize audio player if available and not already initialized
-    if (pSampleConfiguration->audioPlayer != NULL && pSampleConfiguration->audio_player_handle == NULL) {
-        media_stream_audio_player_t *audio_player = (media_stream_audio_player_t*)pSampleConfiguration->audioPlayer;
-
-        // Initialize with default configuration
-        audio_player_config_t audio_config = {
-            .codec = AUDIO_PLAYER_CODEC_OPUS,
-            .format = {
-                .sample_rate = 48000,
-                .channels = 1,
-                .bits_per_sample = 16
-            },
-            .buffer_ms = 500,
-            .codec_specific = NULL
-        };
-
-        ESP_LOGI(TAG, "Initializing audio player");
-        if (audio_player->init(&audio_config, &pSampleConfiguration->audio_player_handle) != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to initialize audio player");
-        } else if (audio_player->start(pSampleConfiguration->audio_player_handle) != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to start audio player");
-        } else {
-            ESP_LOGI(TAG, "Audio player initialized successfully");
-        }
-    }
-
-    // Increment the active session count
-    pSampleConfiguration->activePlayerSessionCount++;
-
-    MUTEX_UNLOCK(pSampleConfiguration->playerLock);
-
-    // Set up callback for video frames
-    if (pSampleConfiguration->videoPlayer != NULL && pSampleConfiguration->video_player_handle != NULL) {
-        CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver,
-                                      (UINT64)(uintptr_t) pSampleStreamingSession,
-                                      sampleVideoFrameHandler));
-    }
-
-    // Set up callback for audio frames
-    if (pSampleConfiguration->audioPlayer != NULL && pSampleConfiguration->audio_player_handle != NULL) {
-    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver,
-                                  (UINT64)(uintptr_t) pSampleStreamingSession,
-                                  sampleAudioFrameHandler));
-    }
-
-CleanUp:
-    return (PVOID) (ULONG_PTR) retStatus;
-}
-
-/**
- * @brief Handler for received video frames
- */
-VOID sampleVideoFrameHandler(UINT64 customData, PFrame pFrame)
-{
-    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession)(uintptr_t) customData;
-
-    if (pFrame == NULL || pFrame->frameData == NULL || pSampleStreamingSession == NULL) {
-        ESP_LOGW(TAG, "Invalid video frame or session data");
-        return;
-    }
-
-    // Get the sample configuration and video player interface
-    PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
-    if (pSampleConfiguration == NULL || pSampleConfiguration->videoPlayer == NULL) {
-        ESP_LOGW(TAG, "Video player interface not available");
-        return;
-    }
-
-    // Use the video player interface from config
-    media_stream_video_player_t *video_player = (media_stream_video_player_t*)pSampleConfiguration->videoPlayer;
-
-    // Check if we have a valid handle from initialization
-    if (pSampleConfiguration->video_player_handle == NULL) {
-        ESP_LOGW(TAG, "Video player handle not initialized");
-        return;
-    }
-
-    // Play the frame with the correct parameters
-    video_player->play_frame(
-        pSampleConfiguration->video_player_handle,
-        pFrame->frameData,
-        pFrame->size,
-        (pFrame->flags & FRAME_FLAG_KEY_FRAME) != 0
-    );
-}
-
-/**
- * @brief Handler for received audio frames
- */
-VOID sampleAudioFrameHandler(UINT64 customData, PFrame pFrame)
-{
-    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession)(uintptr_t) customData;
-
-    if (pFrame == NULL || pFrame->frameData == NULL || pSampleStreamingSession == NULL) {
-        ESP_LOGW(TAG, "Invalid audio frame or session data");
-        return;
-    }
-
-    // Get the sample configuration and audio player interface
-    PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
-    if (pSampleConfiguration == NULL || pSampleConfiguration->audioPlayer == NULL) {
-        ESP_LOGW(TAG, "Audio player interface not available");
-        return;
-    }
-
-    // Use the audio player interface from config
-    media_stream_audio_player_t *audio_player = (media_stream_audio_player_t*)pSampleConfiguration->audioPlayer;
-
-    // Check if we have a valid handle from initialization
-    if (pSampleConfiguration->audio_player_handle == NULL) {
-        ESP_LOGW(TAG, "Audio player handle not initialized");
-        return;
-    }
-
-    // Play the frame with the correct parameters
-    audio_player->play_frame(
-        pSampleConfiguration->audio_player_handle,
-        pFrame->frameData,
-        pFrame->size
-    );
-}
-
 /**
  * @brief Create and send an offer as the initiator
  *
@@ -3417,7 +2500,7 @@ VOID sampleAudioFrameHandler(UINT64 customData, PFrame pFrame)
  * @param pPeerId Peer ID to send the offer to
  * @return STATUS code of the execution
  */
-int webrtcAppCreateAndSendOffer(char *pPeerId)
+int app_webrtc_trigger_offer(char *pPeerId)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = NULL;
@@ -3539,7 +2622,7 @@ CleanUp:
  * @param callback Function to call when messages need to be sent to bridge
  * @return 0 on success, non-zero on failure
  */
-int webrtcAppRegisterSendToBridgeCallback(app_webrtc_send_msg_cb_t callback)
+int app_webrtc_register_msg_callback(app_webrtc_send_msg_cb_t callback)
 {
     ESP_LOGI(TAG, "Registering send to bridge callback for split mode");
     g_sendMessageCallback = callback;
@@ -3555,7 +2638,7 @@ int webrtcAppRegisterSendToBridgeCallback(app_webrtc_send_msg_cb_t callback)
  * @param signalingMessage The signaling message to send to signaling server
  * @return 0 on success, non-zero on failure
  */
-int webrtcAppSendMessageToSignalingServer(signaling_msg_t *signalingMessage)
+int app_webrtc_send_msg_to_signaling(signaling_msg_t *signalingMessage)
 {
     STATUS retStatus = STATUS_SUCCESS;
     esp_webrtc_signaling_message_t message;
@@ -3563,7 +2646,7 @@ int webrtcAppSendMessageToSignalingServer(signaling_msg_t *signalingMessage)
     ESP_LOGI(TAG, "Sending message from bridge to signaling server");
 
     CHK(signalingMessage != NULL, STATUS_NULL_ARG);
-    CHK(gWebRtcAppConfig.pSignalingClientInterface != NULL && gSignalingClientData != NULL, STATUS_INVALID_OPERATION);
+    CHK(gWebRtcAppConfig.signaling_client_if != NULL && gSignalingClientData != NULL, STATUS_INVALID_OPERATION);
 
     // Convert signaling_msg_t to esp_webrtc_signaling_message_t format for signaling interface
     message.version = signalingMessage->version;
@@ -3595,7 +2678,7 @@ int webrtcAppSendMessageToSignalingServer(signaling_msg_t *signalingMessage)
              message.message_type, message.peer_client_id);
 
     // Send directly to signaling server
-    CHK_STATUS(gWebRtcAppConfig.pSignalingClientInterface->sendMessage(gSignalingClientData, &message));
+    CHK_STATUS(gWebRtcAppConfig.signaling_client_if->send_message(gSignalingClientData, &message));
 
     ESP_LOGI(TAG, "Successfully sent message to signaling server");
 
@@ -3605,4 +2688,258 @@ CleanUp:
     }
 
     return (int) retStatus;
+}
+
+/**
+ * @brief Get ICE servers configuration from the WebRTC application
+ */
+WEBRTC_STATUS app_webrtc_get_ice_servers(PUINT32 pIceServerCount, PVOID pIceConfiguration)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    RtcConfiguration rtcConfiguration;
+
+    CHK(pIceServerCount != NULL && pIceConfiguration != NULL, STATUS_NULL_ARG);
+    CHK(gSignalingClientData != NULL && gWebRtcAppConfig.signaling_client_if != NULL, STATUS_INVALID_OPERATION);
+
+    // Initialize configuration
+    MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
+
+    // Get ICE servers from signaling client interface
+    if (gWebRtcAppConfig.signaling_client_if->get_ice_servers != NULL) {
+        // Pass the iceServers array directly to keep the interface generic
+        CHK_STATUS(gWebRtcAppConfig.signaling_client_if->get_ice_servers(
+            gSignalingClientData,
+            pIceServerCount,
+            rtcConfiguration.iceServers));  // Extract iceServers array from RtcConfiguration
+    } else {
+        ESP_LOGW(TAG, "No get_ice_servers function available in signaling interface");
+        *pIceServerCount = 0;
+        CHK(FALSE, STATUS_SUCCESS);
+    }
+
+    // Copy the ICE servers array to the output buffer
+    // Caller expects RtcConfiguration.iceServers array format
+    if (*pIceServerCount > 0) {
+        MEMCPY(pIceConfiguration, &rtcConfiguration.iceServers, sizeof(rtcConfiguration.iceServers));
+        ESP_LOGI(TAG, "Retrieved %d ICE servers for bridge forwarding", *pIceServerCount);
+
+        // Log the ICE servers for debugging
+        for (UINT32 i = 0; i < *pIceServerCount; i++) {
+            ESP_LOGI(TAG, "ICE Server %d: %s", i, rtcConfiguration.iceServers[i].urls);
+        }
+    }
+
+CleanUp:
+    if (STATUS_FAILED(retStatus)) {
+        ESP_LOGE(TAG, "Failed to get ICE servers: 0x%08" PRIx32, (UINT32) retStatus);
+        if (pIceServerCount != NULL) {
+            *pIceServerCount = 0;
+        }
+    }
+
+    LEAVES();
+    return retStatus;
+}
+
+/********************************************************************************
+ *                      Advanced Configuration APIs Implementation               *
+ ********************************************************************************/
+
+WEBRTC_STATUS app_webrtc_set_role(webrtc_signaling_channel_role_type_t role)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    SIGNALING_CHANNEL_ROLE_TYPE kvsRole;
+
+    CHK(gapp_webrtc_initialized, STATUS_INVALID_OPERATION);
+    CHK(gSampleConfiguration != NULL, STATUS_NULL_ARG);
+
+    // Convert ESP enum to KVS SDK enum
+    switch (role) {
+        case WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_MASTER:
+            kvsRole = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+            DLOGI("Setting WebRTC role to: MASTER");
+            break;
+        case WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_VIEWER:
+            kvsRole = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
+            DLOGI("Setting WebRTC role to: VIEWER");
+            break;
+        default:
+            DLOGE("Invalid role type: %d", role);
+            CHK(FALSE, STATUS_INVALID_ARG);
+    }
+
+    // Update the channel role type with converted enum
+    gSampleConfiguration->channelInfo.channelRoleType = kvsRole;
+
+CleanUp:
+    return retStatus;
+}
+
+WEBRTC_STATUS app_webrtc_set_ice_config(bool trickle_ice, bool use_turn)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(gapp_webrtc_initialized, STATUS_INVALID_OPERATION);
+    CHK(gSampleConfiguration != NULL, STATUS_NULL_ARG);
+
+    DLOGI("Setting ICE configuration: trickle_ice=%s, use_turn=%s",
+          trickle_ice ? "enabled" : "disabled",
+          use_turn ? "enabled" : "disabled");
+
+    gSampleConfiguration->trickleIce = trickle_ice;
+    gSampleConfiguration->useTurn = use_turn;
+
+CleanUp:
+    return retStatus;
+}
+
+WEBRTC_STATUS app_webrtc_set_log_level(uint32_t level)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    static CHAR logLevelStr[16];
+
+    CHK(level <= 6, STATUS_INVALID_ARG);  // Valid levels: 0-6
+
+    DLOGI("Setting log level to: %d", level);
+
+    if (gSampleConfiguration != NULL) {
+        gSampleConfiguration->logLevel = level;
+    }
+
+    // Convert level to string and update the global log level
+    SPRINTF(logLevelStr, "%" PRIu32, level);
+    setLogLevel(logLevelStr);
+
+CleanUp:
+    return retStatus;
+}
+
+WEBRTC_STATUS app_webrtc_set_codecs(app_webrtc_rtc_codec_t audio_codec, app_webrtc_rtc_codec_t video_codec)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(gapp_webrtc_initialized, STATUS_INVALID_OPERATION);
+    CHK(gSampleConfiguration != NULL, STATUS_NULL_ARG);
+
+    DLOGI("Setting codecs: audio=%d, video=%d", audio_codec, video_codec);
+
+    // Set audio codec
+    switch (audio_codec) {
+        case APP_WEBRTC_CODEC_OPUS:
+            gSampleConfiguration->audioCodec = RTC_CODEC_OPUS;
+            break;
+        case APP_WEBRTC_CODEC_MULAW:
+            gSampleConfiguration->audioCodec = RTC_CODEC_MULAW;
+            break;
+        case APP_WEBRTC_CODEC_ALAW:
+            gSampleConfiguration->audioCodec = RTC_CODEC_ALAW;
+            break;
+        default:
+            DLOGW("Unsupported audio codec: %d, using OPUS", audio_codec);
+            gSampleConfiguration->audioCodec = RTC_CODEC_OPUS;
+            break;
+    }
+
+    // Set video codec
+    switch (video_codec) {
+        case APP_WEBRTC_CODEC_H264:
+            gSampleConfiguration->videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+            break;
+        case APP_WEBRTC_CODEC_H265:
+            gSampleConfiguration->videoCodec = RTC_CODEC_H265;
+            break;
+        case APP_WEBRTC_CODEC_VP8:
+            gSampleConfiguration->videoCodec = RTC_CODEC_VP8;
+            break;
+        default:
+            DLOGW("Unsupported video codec: %d, using H264", video_codec);
+            gSampleConfiguration->videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+            break;
+    }
+
+CleanUp:
+    return retStatus;
+}
+
+WEBRTC_STATUS app_webrtc_set_media_type(app_webrtc_streaming_media_t media_type)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(gapp_webrtc_initialized, STATUS_INVALID_OPERATION);
+    CHK(gSampleConfiguration != NULL, STATUS_NULL_ARG);
+
+    DLOGI("Setting media type to: %d", media_type);
+
+    switch (media_type) {
+        case APP_WEBRTC_MEDIA_VIDEO:
+            gSampleConfiguration->mediaType = APP_WEBRTC_MEDIA_VIDEO;
+            break;
+        case APP_WEBRTC_MEDIA_AUDIO_VIDEO:
+            gSampleConfiguration->mediaType = APP_WEBRTC_MEDIA_AUDIO_VIDEO;
+            break;
+        default:
+            DLOGW("Unsupported media type: %d, using audio+video", media_type);
+            gSampleConfiguration->mediaType = APP_WEBRTC_MEDIA_AUDIO_VIDEO;
+            break;
+    }
+
+CleanUp:
+    return retStatus;
+}
+
+WEBRTC_STATUS app_webrtc_enable_media_reception(bool enable)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(gapp_webrtc_initialized, STATUS_INVALID_OPERATION);
+    CHK(gSampleConfiguration != NULL, STATUS_NULL_ARG);
+
+    DLOGI("Setting media reception: %s", enable ? "enabled" : "disabled");
+    gSampleConfiguration->receive_media = enable;
+
+CleanUp:
+    return retStatus;
+}
+
+WEBRTC_STATUS app_webrtc_set_signaling_only_mode(bool enable)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(gapp_webrtc_initialized, STATUS_INVALID_OPERATION);
+    CHK(gSampleConfiguration != NULL, STATUS_NULL_ARG);
+
+    DLOGI("Setting signaling-only mode: %s", enable ? "enabled" : "disabled");
+
+    // Check if changing from current state
+    if (gSampleConfiguration->signaling_only == enable) {
+        DLOGI("Signaling-only mode already %s", enable ? "enabled" : "disabled");
+        CHK(FALSE, STATUS_SUCCESS);  // Early exit with success
+    }
+
+    // Update the signaling-only flag
+    gSampleConfiguration->signaling_only = enable;
+
+    if (enable) {
+        DLOGW("Forcing signaling-only mode - media components will be disabled for future operations");
+
+        // Clean up media interfaces to prevent their use
+        gSampleConfiguration->video_capture = NULL;
+        gSampleConfiguration->audio_capture = NULL;
+        gSampleConfiguration->video_player = NULL;
+        gSampleConfiguration->audio_player = NULL;
+
+        // Stop any active media threads if running
+        if (IS_VALID_TID_VALUE(gSampleConfiguration->mediaSenderTid)) {
+            DLOGW("Terminating media sender thread due to signaling-only mode");
+            // The media thread will detect signaling_only flag and terminate gracefully
+        }
+    } else {
+        DLOGI("Disabling signaling-only mode - media components can be used again");
+        // Note: Media interfaces need to be re-configured by the user
+        // This just allows media operations to proceed if interfaces are provided
+    }
+
+CleanUp:
+    return retStatus;
 }

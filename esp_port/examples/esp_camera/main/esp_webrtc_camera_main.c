@@ -4,6 +4,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/*
+ * ESP Camera WebRTC Example - AppRTC Signaling + Simplified API
+ *
+ * This example demonstrates:
+ * - Simplified WebRTC API with reasonable defaults
+ * - AppRTC signaling (browser-compatible)
+ * - Advanced configuration APIs for role selection
+ * - Bi-directional media streaming (send + receive)
+ *
+ * BEFORE: 7+ manual config assignments with complex role handling
+ * AFTER:  4 essential config assignments + advanced APIs for customization
+ */
+
 #include <string.h>
 #include <inttypes.h>
 #include "freertos/FreeRTOS.h"
@@ -218,7 +231,7 @@ void app_main(void)
     }
 
     // Configure AppRTC signaling
-    AppRtcSignalingConfig apprtcConfig = {
+    apprtc_signaling_config_t apprtc_config = {
         .serverUrl = NULL,  // Use default AppRTC server
         .roomId = NULL,     // Will be set based on role type
         .autoConnect = false,
@@ -226,47 +239,51 @@ void app_main(void)
         .logLevel = 3
     };
 
-    // Configure WebRTC app
-    WebRtcAppConfig webrtcConfig = WEBRTC_APP_CONFIG_DEFAULT();
+    // Configure WebRTC app with our new simplified API
+    app_webrtc_config_t app_webrtc_config = APP_WEBRTC_CONFIG_DEFAULT();
 
-    // Set signaling interface to AppRTC
-    webrtcConfig.pSignalingClientInterface = getAppRtcSignalingClientInterface();
-    webrtcConfig.pSignalingConfig = &apprtcConfig;
+    // Essential configuration - signaling interface
+    app_webrtc_config.signaling_client_if = apprtc_signaling_client_if_get();
+    app_webrtc_config.signaling_cfg = &apprtc_config;
 
-    // Set role type based on configuration
-#if CONFIG_APPRTC_ROLE_TYPE == 0
-    // This mode can be used when you want to connect to the existing room.
-    // Will then receive the offer from the other peer and send the answer.
-    webrtcConfig.roleType = WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-    ESP_LOGI(TAG, "Configured as MASTER role");
-#else
-    // In this mode, the application will send the offer and wait for the answer.
-    webrtcConfig.roleType = WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
-    ESP_LOGI(TAG, "Configured as VIEWER role");
-#endif
+    // Media interfaces for bi-directional streaming
+    app_webrtc_config.video_capture = video_capture;
+    app_webrtc_config.audio_capture = audio_capture;
+    app_webrtc_config.video_player = video_player;
+    app_webrtc_config.audio_player = audio_player;
 
-    // Pass the media capture interfaces
-    webrtcConfig.videoCapture = video_capture;
-    webrtcConfig.audioCapture = audio_capture;
-    webrtcConfig.videoPlayer = video_player;
-    webrtcConfig.audioPlayer = audio_player;
-    webrtcConfig.mediaType = APP_WEBRTC_MEDIA_AUDIO_VIDEO;
-    webrtcConfig.receiveMedia = true;  // Enable media reception
+    ESP_LOGI(TAG, "Initializing WebRTC application with simplified API:");
+    ESP_LOGI(TAG, "  - Media type: auto-detected (audio+video from interfaces)");
+    ESP_LOGI(TAG, "  - AppRTC signaling: browser-compatible");
+    ESP_LOGI(TAG, "  - Streaming: bi-directional (can send and receive)");
 
-    ESP_LOGI(TAG, "Initializing WebRTC application");
-
-    // Initialize WebRTC application
-    status = webrtcAppInit(&webrtcConfig);
+    // Initialize WebRTC application with simplified API
+    status = app_webrtc_init(&app_webrtc_config);
     if (status != WEBRTC_STATUS_SUCCESS) {
         ESP_LOGE(TAG, "Failed to initialize WebRTC application: 0x%08" PRIx32, status);
         return;
     }
 
+    // Advanced configuration: Set role type based on configuration
+#if CONFIG_APPRTC_ROLE_TYPE == 0
+    // This mode can be used when you want to connect to the existing room.
+    // Will then receive the offer from the other peer and send the answer.
+    app_webrtc_set_role(WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_MASTER);
+    ESP_LOGI(TAG, "Configured as MASTER role using advanced API");
+#else
+    // In this mode, the application will send the offer and wait for the answer.
+    app_webrtc_set_role(WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_VIEWER);
+    ESP_LOGI(TAG, "Configured as VIEWER role using advanced API");
+#endif
+
+    // Enable media reception for bi-directional streaming
+    app_webrtc_enable_media_reception(true);
+
     // Start the WebRTC application (this will handle signaling connection)
-    status = webrtcAppRun();
+    status = app_webrtc_run();
     if (status != WEBRTC_STATUS_SUCCESS) {
         ESP_LOGE(TAG, "Failed to start WebRTC application: 0x%08" PRIx32, status);
-        webrtcAppTerminate();
+        app_webrtc_terminate();
         return;
     }
 
@@ -278,7 +295,7 @@ void app_main(void)
     // For VIEWER role, configure room ID if specified
 #if CONFIG_APPRTC_USE_FIXED_ROOM
     // Set the room ID to join in the AppRTC configuration
-    apprtcConfig.roomId = CONFIG_APPRTC_ROOM_ID;
+    apprtc_config.roomId = CONFIG_APPRTC_ROOM_ID;
     ESP_LOGI(TAG, "VIEWER role - will join fixed room: %s", CONFIG_APPRTC_ROOM_ID);
 #else
     // For VIEWER role without fixed room, will create a new room

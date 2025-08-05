@@ -6,7 +6,7 @@ set(kvs_webrtc_srcs
       "${KVS_WEBRTC_ROOT}/src/source/Crypto/Dtls_mbedtls.c"
       "${KVS_WEBRTC_ROOT}/src/source/Crypto/Dtls.c"
       "${KVS_WEBRTC_ROOT}/src/source/Crypto/IOBuffer.c"
-      "${KVS_WEBRTC_ROOT}/src/source/Crypto/Tls_mbedtls.c"
+      # TLS implementation will be added conditionally below
       "${KVS_WEBRTC_ROOT}/src/source/Crypto/Tls.c"
       "${KVS_WEBRTC_ROOT}/src/source/Ice/ConnectionListener.c"
       "${KVS_WEBRTC_ROOT}/src/source/Ice/IceAgent.c"
@@ -82,11 +82,34 @@ else()
     message(STATUS "Using libwebsockets for signaling")
 endif()
 
+# Conditionally add TLS implementation
+if(CONFIG_USE_ESP_TLS_FOR_KVS)
+    set(kvs_webrtc_srcs
+        ${kvs_webrtc_srcs}
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/Tls_esp.c"
+    )
+    message(STATUS "Using ESP-TLS for KVS TLS sessions")
+else()
+    set(kvs_webrtc_srcs
+        ${kvs_webrtc_srcs}
+        "${KVS_WEBRTC_ROOT}/src/source/Crypto/Tls_mbedtls.c"
+    )
+    message(STATUS "Using direct mbedTLS for KVS TLS sessions")
+endif()
+
+set(requires "mbedtls" "lwip" "esp_timer" "nvs_flash" "freertos" "esp_system" "heap" "driver" "spi_flash" "esp_http_client")
+
+# Add ESP-TLS dependency if using ESP-TLS implementation
+if(CONFIG_USE_ESP_TLS_FOR_KVS)
+    list(APPEND requires esp-tls)
+endif()
+
 idf_component_register(
     SRCS "${kvs_webrtc_srcs}"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/WebRtcLogging.c"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/app_webrtc.c"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/kvs_signaling.c"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/app_webrtc_media.c"
 
     INCLUDE_DIRS "${kvs_webrtc_include_dirs}"
         "${CMAKE_CURRENT_SOURCE_DIR}/include"

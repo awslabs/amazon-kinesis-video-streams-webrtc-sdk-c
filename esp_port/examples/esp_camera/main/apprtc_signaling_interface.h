@@ -30,28 +30,28 @@ typedef struct {
 
     // Logging
     uint32_t logLevel;                  // Log level for AppRTC signaling
-} AppRtcSignalingConfig, *PAppRtcSignalingConfig;
+} apprtc_signaling_config_t;
 
 /**
  * @brief Get the AppRTC signaling client interface
  *
- * @return WebRtcSignalingClientInterface* Pointer to the AppRTC signaling interface
+ * @return webrtc_signaling_client_if_t* Pointer to the AppRTC signaling interface
  */
-WebRtcSignalingClientInterface* getAppRtcSignalingClientInterface(void);
+webrtc_signaling_client_if_t* apprtc_signaling_client_if_get(void);
 
 /**
  * @brief Helper function to check if AppRTC signaling is connected
  *
  * @return bool true if connected, false otherwise
  */
-bool isAppRtcSignalingConnected(void);
+bool is_apprtc_signaling_connected(void);
 
 /**
  * @brief Helper function to get the current room ID
  *
  * @return char* Current room ID or NULL if not connected
  */
-char* getAppRtcRoomId(void);
+char* apprtc_room_id_get(void);
 
 #ifdef __cplusplus
 }

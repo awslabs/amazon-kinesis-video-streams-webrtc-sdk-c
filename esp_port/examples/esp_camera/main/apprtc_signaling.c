@@ -109,10 +109,6 @@ typedef struct {
     bool                         ice_reload_stop;
 } wss_sig_t;
 
-// Function pointer for the custom message sender
-static STATUS (*custom_message_sender)(UINT64, signaling_msg_t*) = NULL;
-static UINT64 custom_message_sender_data = 0;
-
 // Client state
 static struct {
     apprtc_signaling_state_t state;
@@ -1081,28 +1077,6 @@ apprtc_signaling_state_t apprtc_signaling_get_state(void)
     return apprtc_client.state;
 }
 
-/**
- * Register a custom message sender for WebRTC signaling
- */
-esp_err_t apprtc_signaling_register_message_sender(
-                STATUS (*message_sender)(UINT64, signaling_msg_t*), UINT64 custom_data)
-{
-    ESP_LOGI(TAG, "Registering custom signaling message sender");
-
-    if (message_sender == NULL) {
-        ESP_LOGE(TAG, "Message sender function cannot be NULL");
-        return ESP_ERR_INVALID_ARG;
-    }
-
-    xSemaphoreTake(apprtc_client.mutex, portMAX_DELAY);
-    custom_message_sender = message_sender;
-    custom_message_sender_data = custom_data;
-    xSemaphoreGive(apprtc_client.mutex);
-
-    ESP_LOGI(TAG, "Custom signaling message sender registered successfully");
-    return ESP_OK;
-}
-
 /************************* Private functions *************************/
 
 static void update_state(apprtc_signaling_state_t new_state)
@@ -1337,12 +1311,12 @@ int apprtc_signaling_send_callback(signaling_msg_t *pSignalingMsg)
 
     // Use the client ID designated by the server
     if (apprtc_client.client_id[0] != '\0') {
-        STRNCPY(pSignalingMsg->peerClientId, apprtc_client.client_id, SS_MAX_SIGNALING_CLIENT_ID_LEN);
+        strncpy(pSignalingMsg->peerClientId, apprtc_client.client_id, SS_MAX_SIGNALING_CLIENT_ID_LEN);
         pSignalingMsg->peerClientId[SS_MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
         ESP_LOGI(TAG, "Using server-designated client ID: %s for message", apprtc_client.client_id);
     } else if (apprtc_client.room_id[0] != '\0') {
         // Fallback to room ID if client ID is not available
-        STRNCPY(pSignalingMsg->peerClientId, apprtc_client.room_id, SS_MAX_SIGNALING_CLIENT_ID_LEN);
+        strncpy(pSignalingMsg->peerClientId, apprtc_client.room_id, SS_MAX_SIGNALING_CLIENT_ID_LEN);
         pSignalingMsg->peerClientId[SS_MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
         ESP_LOGW(TAG, "Client ID not available, using room ID: %s instead", apprtc_client.room_id);
     }
@@ -1471,7 +1445,7 @@ static void send_initial_messages(void)
                 ESP_LOGI(TAG, "Using client ID from client_info: %s", apprtc_client.client_id);
             } else {
                 ESP_LOGW(TAG, "No client ID available, using room ID instead");
-                int status = webrtcAppCreateAndSendOffer(apprtc_client.room_id);
+                int status = app_webrtc_trigger_offer(apprtc_client.room_id);
                 if (status != 0) {
                     ESP_LOGE(TAG, "Failed to create and send offer: %d", status);
                 } else {
@@ -1484,7 +1458,7 @@ static void send_initial_messages(void)
             // Use the app_webrtc.c function to create and send an offer
             // Use the client ID designated by the server
             ESP_LOGI(TAG, "Using client ID: %s for offer", apprtc_client.client_id);
-            int status = webrtcAppCreateAndSendOffer(apprtc_client.client_id);
+            int status = app_webrtc_trigger_offer(apprtc_client.client_id);
             if (status != 0) {
                 ESP_LOGE(TAG, "Failed to create and send offer: %d", status);
             } else {

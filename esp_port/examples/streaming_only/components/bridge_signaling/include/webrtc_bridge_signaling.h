@@ -29,11 +29,11 @@ typedef struct {
  * @brief Get the bridge signaling client interface
  *
  * This returns a pointer to the bridge signaling interface that can be used
- * with webrtcAppInit to enable bridge-based signaling.
+ * with app_webrtc_init to enable bridge-based signaling.
  *
  * @return Pointer to the bridge signaling client interface
  */
-WebRtcSignalingClientInterface* getBridgeSignalingClientInterface(void);
+webrtc_signaling_client_if_t* getBridgeSignalingClientInterface(void);
 
 /**
  * @brief Common utility function to send a signaling message via webrtc_bridge
