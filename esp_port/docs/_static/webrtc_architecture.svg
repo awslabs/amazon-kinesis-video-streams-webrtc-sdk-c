@@ -1,0 +1,101 @@
+<svg width="720" height="760" xmlns="http://www.w3.org/2000/svg">
+ <defs>
+  <marker orient="auto" refY="3.5" refX="9" markerHeight="7" markerWidth="10" id="arrowhead">
+   <polygon id="svg_1" fill="#666" points="0 0, 10 3.5, 0 7"/>
+  </marker>
+ </defs>
+ <!-- Top Layer: Examples -->
+ <!-- Top-layer items -->
+ <!-- Second Layer: Options & Integrations -->
+ <!-- Arrows: Examples to Options -->
+ <!-- Arrows: Options to Transport Layer -->
+ <!-- Third Layer: Signaling & Media Transport -->
+ <!-- Signaling Components (high level) -->
+ <!-- Media Transport Flavors -->
+ <!-- Core Components -->
+ <!-- Media Stream API (Core) -->
+ <!-- External Components -->
+ <!-- Foundation Layer: ESP-IDF -->
+ <!-- Arrows -->
+ <!-- Transport to Core & Base -->
+ <g>
+  <title>Layer 1</title>
+  <rect stroke="#999" id="svg_2" opacity="0.5" stroke-dasharray="5,5" stroke-width="2" fill="#e6e6e6" class="group" ry="10" rx="10" height="186.00001" width="298.00003" y="17" x="39"/>
+  <text id="svg_3" text-anchor="middle" font-weight="bold" font-size="16px" font-family="Arial, sans-serif" class="group-title" y="47" x="182">Solutions</text>
+  <rect stroke="#666" id="svg_4" stroke-width="2" fill="#f2f2f2" class="component" ry="5" rx="5" height="30" width="133.99999" y="69" x="49"/>
+  <text id="svg_5" text-anchor="middle" font-weight="bold" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="88" x="115">WebRTC Classic</text>
+  <rect stroke="#999" id="svg_6" opacity="0.5" stroke-dasharray="5,5" stroke-width="2" fill="#e6e6e6" class="group" ry="10" rx="10" height="180.00001" width="279.99999" y="15.99999" x="394.00001"/>
+  <text id="svg_7" text-anchor="middle" font-weight="bold" font-size="16px" font-family="Arial, sans-serif" class="group-title" y="41" x="549">Options &amp; Integrations</text>
+  <rect id="svg_8" stroke-width="2" stroke="#8a6d3b" fill="#fcf8e3" class="component highlight" ry="5" rx="5" height="30" width="140" y="66" x="524"/>
+  <text stroke="null" id="svg_9" text-anchor="middle" font-weight="bold" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="85" x="593">Matter Camera</text>
+  <rect id="svg_10" stroke-width="2" stroke="#8a6d3b" fill="#fcf8e3" class="component highlight" ry="5" rx="5" height="30" width="120" y="108" x="533"/>
+  <text id="svg_11" text-anchor="middle" font-weight="bold" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="127" x="591">RainMaker</text>
+  <rect stroke="#666" id="svg_12" stroke-width="2" fill="#f2f2f2" class="component" ry="5" rx="5" height="30" width="90" y="68" x="411"/>
+  <text id="svg_13" text-anchor="middle" font-weight="bold" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="86" x="455">KVS</text>
+  <rect id="svg_14" stroke-width="2" stroke="#666" fill="#f2f2f2" class="component" ry="5" rx="5" height="30" width="90" y="108" x="412"/>
+  <text id="svg_15" text-anchor="middle" font-weight="bold" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="128" x="461">AppRTC</text>
+  <path stroke="#666" id="svg_17" marker-end="url(#arrowhead)" fill="none" stroke-width="2" class="arrow" d="m216,200l0,35"/>
+  <path stroke="#666" transform="rotate(-90 363 118.5)" id="svg_18" marker-end="url(#arrowhead)" fill="none" stroke-width="2" class="arrow" d="m363,93l0,51"/>
+  <path id="svg_19" marker-end="url(#arrowhead)" fill="none" stroke-width="2" stroke="#666" class="arrow" d="m456,200l0,35"/>
+  <path id="svg_20" marker-end="url(#arrowhead)" fill="none" stroke-width="2" stroke="#666" class="arrow" d="m546,200l0,35"/>
+  <rect stroke="#999" id="svg_21" opacity="0.5" stroke-dasharray="5,5" stroke-width="2" fill="#e6e6e6" class="group" ry="10" rx="10" height="437.99997" width="697.00001" y="236" x="6"/>
+  <text id="svg_22" text-anchor="middle" font-weight="bold" font-size="16px" font-family="Arial, sans-serif" class="group-title" y="260" x="356">Signaling &amp; Media Transport</text>
+  <rect id="svg_23" opacity="0.5" stroke-dasharray="5,5" stroke-width="2" stroke="#999" fill="#e6e6e6" class="group" ry="10" rx="10" height="170" width="300" y="285" x="36"/>
+  <text id="svg_24" text-anchor="middle" font-weight="bold" font-size="16px" font-family="Arial, sans-serif" class="group-title" y="312" x="183">Signaling</text>
+  <rect id="svg_25" opacity="0.5" stroke-dasharray="5,5" stroke-width="2" stroke="#999" fill="#e6e6e6" class="group" ry="10" rx="10" height="170" width="300" y="285" x="376"/>
+  <text id="svg_26" text-anchor="middle" font-weight="bold" font-size="16px" font-family="Arial, sans-serif" class="group-title" y="305" x="531">Media Transport</text>
+  <rect stroke="#999" id="svg_27" opacity="0.5" stroke-dasharray="5,5" stroke-width="2" fill="#e6e6e6" class="group" ry="10" rx="10" height="189" width="640" y="478" x="37"/>
+  <text id="svg_28" text-anchor="middle" font-weight="bold" font-size="16px" font-family="Arial, sans-serif" class="group-title" y="507" x="356">Core Components</text>
+  <rect stroke="#666" id="svg_29" stroke-width="2" fill="#f2f2f2" class="component" ry="5" rx="5" height="109" width="250" y="330" x="66.00001"/>
+  <rect id="svg_32" stroke-width="2" stroke="#666" fill="#f2f2f2" class="component" ry="5" rx="5" height="55" width="160" y="319" x="381"/>
+  <text id="svg_33" text-anchor="middle" font-weight="bold" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="340" x="454">media_stream</text>
+  <text id="svg_34" text-anchor="middle" font-size="12px" font-family="Arial, sans-serif" class="component-desc" y="361" x="459">Default IF</text>
+  <rect stroke="#666" id="svg_35" stroke-width="2" fill="#f2f2f2" class="component" ry="5" rx="5" height="55" width="155" y="382" x="385"/>
+  <text id="svg_36" text-anchor="middle" font-weight="bold" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="413" x="464">File Streaming</text>
+  <rect stroke="#666" id="svg_37" stroke-width="2" fill="#f2f2f2" class="component" ry="5" rx="5" height="51" width="127" y="321" x="549"/>
+  <text id="svg_38" text-anchor="middle" font-weight="bold" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="349" x="611">Custom Media IF</text>
+  <rect id="svg_39" stroke-width="2" stroke="#666" fill="#f2f2f2" class="component" ry="5" rx="5" height="60" width="120" y="525" x="56"/>
+  <text id="svg_40" text-anchor="middle" font-weight="bold" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="550" x="116">WebRTC Config</text>
+  <text id="svg_41" text-anchor="middle" font-size="12px" font-family="Arial, sans-serif" class="component-desc" y="570" x="116">Configuration</text>
+  <rect id="svg_42" stroke-width="2" stroke="#666" fill="#f2f2f2" class="component" ry="5" rx="5" height="60" width="120" y="525" x="196"/>
+  <text id="svg_43" text-anchor="middle" font-weight="bold" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="550" x="256">Credential</text>
+  <text style="cursor: move;" stroke="null" id="svg_44" text-anchor="middle" font-size="12px" font-family="Arial, sans-serif" class="component-desc" y="570" x="256">For AWS Auth</text>
+  <rect stroke="#666" id="svg_45" stroke-width="2" fill="#f2f2f2" class="component" ry="5" rx="5" height="60" width="229.00001" y="523" x="333"/>
+  <text stroke="null" transform="matrix(1.04065 0 0 1 -4.60052 0)" id="svg_46" text-anchor="middle" font-weight="bold" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="548" x="433">Amazon KVS WebRTC SDK C</text>
+  <text id="svg_47" text-anchor="middle" font-size="12px" font-family="Arial, sans-serif" class="component-desc" y="570" x="438">Core</text>
+  <rect id="svg_48" stroke-width="2" stroke="#666" fill="#f2f2f2" class="component" ry="5" rx="5" height="60" width="120" y="595" x="56"/>
+  <text id="svg_49" text-anchor="middle" font-weight="bold" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="620" x="116">ESP WiFi</text>
+  <text id="svg_50" text-anchor="middle" font-size="12px" font-family="Arial, sans-serif" class="component-desc" y="640" x="116">Network IF</text>
+  <rect id="svg_51" stroke-width="2" stroke="#666" fill="#f2f2f2" class="component" ry="5" rx="5" height="60" width="120" y="595" x="196"/>
+  <text style="cursor: move;" id="svg_52" text-anchor="middle" font-weight="bold" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="620" x="256">WebRTC Bridge</text>
+  <text style="cursor: move;" id="svg_53" text-anchor="middle" font-size="12px" font-family="Arial, sans-serif" class="component-desc" y="640" x="256">For Split Mode</text>
+  <rect id="svg_54" stroke-width="2" stroke="#666" fill="#f2f2f2" class="component" ry="5" rx="5" height="60" width="120" y="595" x="336"/>
+  <text id="svg_55" text-anchor="middle" font-weight="bold" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="620" x="396">State Machine</text>
+  <text id="svg_56" text-anchor="middle" font-size="12px" font-family="Arial, sans-serif" class="component-desc" y="640" x="396">Conn States</text>
+  <rect stroke="#666" id="svg_57" stroke-width="2" fill="#f2f2f2" class="component" ry="5" rx="5" height="53" width="120" y="381" x="550"/>
+  <text id="svg_58" text-anchor="middle" font-weight="bold" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="399" x="611">media_stream</text>
+  <text id="svg_59" text-anchor="middle" font-size="12px" font-family="Arial, sans-serif" class="component-desc" y="426" x="607">Capture/Player</text>
+  <rect stroke="#31708f" id="svg_60" stroke-width="2" fill="#d9edf7" class="external" ry="5" rx="5" height="45" width="669" y="698" x="41"/>
+  <text id="svg_61" text-anchor="middle" font-weight="bold" font-size="14px" font-family="Arial, sans-serif" dominant-baseline="middle" class="component-title" y="722" x="370">ESP-IDF</text>
+  <path stroke="#666" id="svg_62" marker-end="url(#arrowhead)" fill="none" stroke-width="2" class="arrow" d="m186,455l0,30"/>
+  <path stroke="#666" id="svg_63" marker-end="url(#arrowhead)" fill="none" stroke-width="2" class="arrow" d="m562,451l0,28"/>
+  <path stroke="#666" id="svg_64" marker-end="url(#arrowhead)" fill="none" stroke-width="2" class="arrow" d="m365,676l0,21"/>
+  <rect stroke="#666" id="svg_66" stroke-width="2" fill="#f2f2f2" class="component" ry="5" rx="5" height="79" width="139" y="108" x="48"/>
+  <text id="svg_67" text-anchor="middle" font-weight="bold" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="136" x="113">ESP Camera</text>
+  <rect stroke="#666" id="svg_68" stroke-width="2" fill="#f2f2f2" class="component" ry="5" rx="5" height="118" width="136.00002" y="68" x="193.99999"/>
+  <text stroke="null" transform="matrix(1.00985 0 0 1 -9.84805 8)" id="svg_69" text-anchor="middle" font-weight="bold" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="89" x="266.22484">WebRTC Split</text>
+  <rect id="svg_70" stroke-width="2" stroke="#666" fill="#f2f2f2" class="component" ry="5" rx="5" height="30" width="80" y="343" x="78"/>
+  <text id="svg_71" text-anchor="middle" font-weight="bold" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="365" x="118">KVS</text>
+  <rect id="svg_73" stroke-width="2" stroke="#666" fill="#f2f2f2" class="component" ry="5" rx="5" height="30" width="90" y="395" x="73"/>
+  <text id="svg_74" text-anchor="middle" font-weight="bold" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="414" x="122">AppRTC</text>
+  <path id="svg_75" d="m186,350c0,-2.71689 2.28311,-5 5,-5l104,0c2.71689,0 5,2.28311 5,5l0,20c0,2.71689 -2.28311,5 -5,5l-104,0c-2.71689,0 -5,-2.28311 -5,-5l0,-20z" opacity="undefined" stroke-width="2" stroke="#8a6d3b" fill="#fcf8e3"/>
+  <rect stroke="#8a6d3b" id="svg_76" stroke-width="2" fill="#fcf8e3" class="component highlight" ry="5" rx="5" height="30" width="125.99999" y="392" x="179"/>
+  <text id="svg_16" text-anchor="middle" font-weight="normal" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="135" x="266">Streaming Only +</text>
+  <text id="svg_30" text-anchor="middle" font-weight="normal" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="160" x="261">Signaling Only</text>
+  <text id="svg_31" text-anchor="middle" font-weight="normal" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="170" x="113">(AppRTC)</text>
+  <path id="svg_65" d="m455,157c0,-2.71689 2.28311,-5 5,-5l156,0c2.71692,0 5,2.28311 5,5l0,20c0,2.71689 -2.28308,5 -5,5l-156,0c-2.71689,0 -5,-2.28311 -5,-5l0,-20z" opacity="undefined" stroke-width="2" stroke="#666" fill="#f2f2f2"/>
+  <text id="svg_72" text-anchor="middle" font-weight="bold" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="171" x="537">Custom Signaling</text>
+  <text stroke="null" id="svg_77" text-anchor="middle" font-weight="bold" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="363" x="243">Matter Camera</text>
+  <text id="svg_78" text-anchor="middle" font-weight="bold" font-size="14px" font-family="Arial, sans-serif" class="component-title" y="410" x="245">Custom Signaling</text>
+ </g>
+</svg>

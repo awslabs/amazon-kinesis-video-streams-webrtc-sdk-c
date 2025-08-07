@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="300" height="60" viewBox="0 0 300 60" xmlns="http://www.w3.org/2000/svg">
+  <!-- AWS Orange color for the icon -->
+  <style>
+    .aws-orange { fill: #FF9900; }
+    .text-dark { fill: #232F3E; }
+    .text-gray { fill: #666666; }
+  </style>
+
+  <!-- Stylized WebRTC icon -->
+  <g transform="translate(10,10)">
+    <path class="aws-orange" d="M30,0 L40,20 L30,40 L10,40 L0,20 L10,0 Z" />
+    <path class="aws-orange" d="M15,15 L25,15 L25,25 L15,25 Z" fill-opacity="0.3" />
+  </g>
+
+  <!-- Text: ESP WebRTC -->
+  <text x="60" y="28" class="text-dark" font-family="Arial, sans-serif" font-weight="bold" font-size="18">ESP WebRTC</text>
+
+  <!-- Text: for AWS Kinesis Video Streams -->
+  <text x="60" y="45" class="text-gray" font-family="Arial, sans-serif" font-size="12">for AWS Kinesis Video Streams</text>
+</svg>

@@ -1,0 +1,272 @@
+/* Theme overrides for ESP-Docs style that matches ESP-RainMaker */
+
+/* Sidebar header (and topbar for mobile) */
+.wy-side-nav-search, .wy-nav-top {
+    background: #f2f2f2;
+}
+
+.wy-side-nav-search > div.version {
+    color: #404040;
+}
+
+.wy-side-nav-search > a {
+    color: #404040;
+}
+
+.wy-side-nav-search input[type=text] {
+    border-color: #d9d9d9;
+}
+
+/* Sidebar */
+.wy-nav-side {
+    background: #f2f2f2;
+    border-right: 1px solid #e6e6e6;
+}
+
+.wy-menu-vertical a {
+    color: #404040;
+}
+
+.wy-menu-vertical a:hover {
+    background-color: #e6e6e6;
+    color: #404040;
+}
+
+.wy-menu-vertical li.current {
+    background: #e6e6e6;
+}
+
+.wy-menu-vertical li.current > a {
+    background-color: #e6e6e6;
+    color: #404040;
+}
+
+.wy-menu-vertical li.current > a:hover {
+    background-color: #d9d9d9;
+}
+
+.wy-menu-vertical li.toctree-l1.current > a {
+    border-bottom: 1px solid #d9d9d9;
+    border-top: 1px solid #d9d9d9;
+}
+
+/* Links */
+a {
+    color: #ff7300;
+}
+
+a:hover {
+    color: #ff9e4f;
+}
+
+a:visited {
+    color: #ff7300;
+}
+
+/* Code blocks */
+.rst-content code.literal, .rst-content tt.literal {
+    color: #ff7300;
+    background: #f2f2f2;
+    border: 1px solid #e6e6e6;
+}
+
+.rst-content div[class^="highlight"] {
+    border: 1px solid #e6e6e6;
+}
+
+/* Tables */
+.rst-content table.docutils {
+    border: 1px solid #e6e6e6;
+}
+
+.rst-content table.docutils thead th {
+    background-color: #f2f2f2;
+    border-bottom: 1px solid #e6e6e6;
+}
+
+.rst-content table.docutils td {
+    border-bottom: 1px solid #e6e6e6;
+}
+
+/* Admonitions */
+.rst-content .admonition {
+    background: #f2f2f2;
+    border: 1px solid #e6e6e6;
+}
+
+.rst-content .admonition .admonition-title {
+    background: #e6e6e6;
+    color: #404040;
+}
+
+.rst-content .admonition.note .admonition-title {
+    background: #6ab0de;
+    color: #fff;
+}
+
+.rst-content .admonition.warning .admonition-title {
+    background: #f0b37e;
+    color: #fff;
+}
+
+.rst-content .admonition.danger .admonition-title {
+    background: #f29f97;
+    color: #fff;
+}
+
+/* Buttons */
+.btn {
+    box-shadow: none;
+    border: 1px solid #e6e6e6;
+    background-color: #f2f2f2;
+    color: #404040;
+}
+
+.btn:hover {
+    background-color: #e6e6e6;
+    color: #404040;
+}
+
+.btn-neutral {
+    background-color: #f2f2f2 !important;
+    color: #404040 !important;
+}
+
+.btn-neutral:hover {
+    background-color: #e6e6e6 !important;
+    color: #404040 !important;
+}
+
+/* Fix for RTD theme */
+.wy-nav-content {
+    max-width: 1200px;
+}
+
+/* Custom logo styling */
+.wy-side-nav-search > a img.logo {
+    width: 240px;
+    height: auto;
+    padding: 0;
+    margin: 0.5em auto;
+}
+
+/* Mobile view */
+@media screen and (max-width: 768px) {
+    .wy-nav-top {
+        background: #f2f2f2;
+        color: #404040;
+    }
+
+    .wy-nav-top a {
+        color: #404040;
+    }
+}
+
+/* ESP specific colors */
+.esp-color-primary {
+    color: #ff7300;
+}
+
+.esp-color-secondary {
+    color: #143055;
+}
+
+/* Make the page width fill the window */
+.wy-nav-content {
+    max-width: 1200px;
+}
+
+/* Improve table display */
+.rst-content table.docutils {
+    width: 100%;
+}
+
+/* Improve code display */
+.highlight {
+    background: #f8f8f8;
+}
+
+/* Fix for nested lists */
+.rst-content .section ol li > ol,
+.rst-content .section ul li > ul {
+    margin-bottom: 0;
+}
+
+/* Custom styles for API references */
+dl.function, dl.type, dl.enum {
+    border-left: 2px solid #ff7300;
+    padding-left: 12px;
+}
+
+/* Custom styles for notes */
+.rst-content .note .admonition-title {
+    background: #6ab0de;
+}
+
+/* Custom styles for warnings */
+.rst-content .warning .admonition-title {
+    background: #f0b37e;
+}
+
+/* Custom styles for tips */
+.rst-content .tip .admonition-title {
+    background: #1abc9c;
+}
+
+/* Custom styles for important notes */
+.rst-content .important .admonition-title {
+    background: #ff7300;
+}
+
+/* override table width restrictions */
+@media screen and (min-width: 767px) {
+
+  .wy-table-responsive table td {
+    /* !important prevents the common CSS stylesheets from overriding
+       this as on RTD they are loaded after this stylesheet */
+    white-space: normal !important;
+  }
+
+  .wy-table-responsive {
+    overflow: visible !important;
+  }
+}
+
+.wy-side-nav-search {
+  background-color: #e3e3e3 !important;
+}
+
+.wy-side-nav-search input[type=text] {
+   border-radius: 0px !important;
+   border-color: #333333 !important;
+}
+
+.icon-home {
+  color: #333333 !important;
+}
+
+.icon-home:hover {
+  background-color: #d6d6d6 !important;
+}
+
+.version {
+  color: #000000 !important;
+}
+
+a:hover {
+  color: #bd2c2a !important;
+}
+
+.logo {
+  width: 240px !important;
+}
+
+/* For space between the return type and function name */
+a.internal + code.descname::before {
+  content: ' ';
+}
+
+/* For space between the arguments of the function */
+a.internal + em::before {
+  content: ' ';
+}
