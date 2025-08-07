@@ -1,0 +1,92 @@
+@startuml
+skinparam roundCorner 20
+skinparam BoxPadding 50
+
+actor Client #Green
+
+participant SignallingServer [
+    = Signalling
+    = Server
+]
+
+participant StunTurn [
+   = STUN/TURN
+   = Server
+]
+
+box "<font size = 20><b><i>Camera Device</i>" #LightBlue
+
+participant Communicator [
+    = Network
+    = Coprocessor
+]
+note over Communicator
+    Handles Signalling
+end note
+
+participant Streamer [
+    = Main
+    = Processor
+]
+note over Streamer
+    Handles Streaming
+end note
+end box
+
+== Call Initialisation ==
+
+note over Client
+   Client Initiates the call
+end note
+
+Client -> SignallingServer: SDP Offer (Streaming Request)
+SignallingServer->Communicator: SDP Offer (Streaming Request)
+
+Communicator -> Streamer: WAKEUP
+note over Streamer
+   Wakes Up from the Deep Sleep
+end note
+Activate Streamer #LightGreen
+Streamer --> Streamer: Initialization
+Streamer -> Communicator: WAKEUP Event
+Communicator ->Streamer: SDP Offer (Streaming Request)
+Streamer -> Communicator: SDP Answer (Accept the connection)
+Communicator -> SignallingServer: SDP Answer (Accept the connection)
+SignallingServer -> Client: SDP Answer (Accept the connection)
+
+== STUN/TURN and CandidateGeneration  ==
+Client -> Client: LocalCandidate
+Client -> StunTurn: RequestCandidates
+StunTurn -> Client: Reflex/Relay candidates
+
+Streamer -> Streamer: LocalCandidate
+Streamer -> StunTurn: RequestCandidates
+StunTurn -> Streamer: Reflex/Relay candidates
+
+== ICE Negotiation ==
+
+Client -> SignallingServer : ICE candidates
+SignallingServer -> Communicator : ICE candidates
+Communicator -> Streamer : ICE candidates
+Streamer -> Communicator : ICE candidates
+
+Communicator -> SignallingServer: ICE candidates
+SignallingServer -> Client: ICE candidates
+
+Client -> Client: Candidate selection
+Streamer -> Streamer: Candidate selection
+
+|||
+
+== RTP Stream ==
+Client <--> Streamer: Video/Audio/Data over DTLS
+
+Client -> Streamer: Call End
+Streamer --> Communicator: Sleeping
+
+Deactivate Streamer
+
+note over Streamer
+   Deep Sleep
+end note
+@enduml
