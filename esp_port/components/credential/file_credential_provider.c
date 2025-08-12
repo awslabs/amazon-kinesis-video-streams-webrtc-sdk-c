@@ -42,11 +42,19 @@ typedef struct __FileCredentialProvider {
     PCHAR credentialsFilepath[MAX_PATH_LEN + 1];
 } FileCredentialProvider, *PFileCredentialProvider;
 
+typedef struct __CallbackCredentialProvider {
+    AwsCredentialProvider credentialProvider;
+    CredentialFetchCallback fetchCb;
+    UINT64 customData;
+    PAwsCredentials pAwsCredentials;
+} CallbackCredentialProvider, *PCallbackCredentialProvider;
+
 /******************************************************************************
  * FUNCTIONS
  ******************************************************************************/
 static STATUS priv_file_credential_provider_get(PAwsCredentialProvider, PAwsCredentials*);
 static STATUS priv_file_credential_provider_read(PFileCredentialProvider);
+static STATUS priv_callback_credential_provider_get(PAwsCredentialProvider, PAwsCredentials*);
 
 STATUS file_credential_provider_create(PCHAR pCredentialsFilepath, PAwsCredentialProvider* ppCredentialProvider)
 {
@@ -91,6 +99,73 @@ CleanUp:
         *ppCredentialProvider = (PAwsCredentialProvider) pFileCredentialProvider;
     }
 
+    LEAVES();
+    return retStatus;
+}
+
+STATUS createCallbackCredentialProvider(CredentialFetchCallback fetchCb,
+                                        UINT64 customData,
+                                        PAwsCredentialProvider* ppCredentialProvider)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PCallbackCredentialProvider pCbProvider = NULL;
+
+    CHK(ppCredentialProvider != NULL && fetchCb != NULL, STATUS_NULL_ARG);
+
+    pCbProvider = (PCallbackCredentialProvider) MEMCALLOC(1, SIZEOF(CallbackCredentialProvider));
+    CHK(pCbProvider != NULL, STATUS_NOT_ENOUGH_MEMORY);
+
+    pCbProvider->fetchCb = fetchCb;
+    pCbProvider->customData = customData;
+    pCbProvider->credentialProvider.getCredentialsFn = priv_callback_credential_provider_get;
+
+CleanUp:
+    if (STATUS_FAILED(retStatus)) {
+        if (pCbProvider != NULL) {
+            aws_credential_free(&pCbProvider->pAwsCredentials);
+            MEMFREE(pCbProvider);
+        }
+        pCbProvider = NULL;
+    }
+    if (ppCredentialProvider != NULL) {
+        *ppCredentialProvider = (PAwsCredentialProvider) pCbProvider;
+    }
+    LEAVES();
+    return retStatus;
+}
+
+static STATUS priv_callback_credential_provider_get(PAwsCredentialProvider pCredentialProvider, PAwsCredentials* ppAwsCredentials)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PCallbackCredentialProvider pCbProvider = (PCallbackCredentialProvider) pCredentialProvider;
+    PCHAR accessKey = NULL, secretKey = NULL, sessionToken = NULL;
+    UINT32 accessKeyLen = 0, secretKeyLen = 0, sessionTokenLen = 0;
+    UINT64 expiration = 0;
+
+    CHK(pCbProvider != NULL && ppAwsCredentials != NULL && pCbProvider->fetchCb != NULL, STATUS_NULL_ARG);
+
+    CHK_STATUS(pCbProvider->fetchCb(pCbProvider->customData,
+                                    &accessKey, &accessKeyLen,
+                                    &secretKey, &secretKeyLen,
+                                    &sessionToken, &sessionTokenLen,
+                                    &expiration));
+
+    aws_credential_free(&pCbProvider->pAwsCredentials);
+
+    CHK_STATUS(aws_credential_create(accessKey, accessKeyLen,
+                                     secretKey, secretKeyLen,
+                                     sessionToken, sessionTokenLen,
+                                     expiration,
+                                     &pCbProvider->pAwsCredentials));
+
+    *ppAwsCredentials = pCbProvider->pAwsCredentials;
+
+CleanUp:
+    if (STATUS_FAILED(retStatus)) {
+        *ppAwsCredentials = NULL;
+    }
     LEAVES();
     return retStatus;
 }
@@ -243,5 +318,33 @@ CleanUp:
         FCLOSE(fp);
     }
 
+    return retStatus;
+}
+
+STATUS freeCallbackCredentialProvider(PAwsCredentialProvider* ppCredentialProvider)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PCallbackCredentialProvider pCbProvider = NULL;
+
+    CHK(ppCredentialProvider != NULL, STATUS_NULL_ARG);
+
+    pCbProvider = (PCallbackCredentialProvider) *ppCredentialProvider;
+
+    // Call is idempotent
+    CHK(pCbProvider != NULL, retStatus);
+
+    // Release the underlying AWS credentials object
+    aws_credential_free(&pCbProvider->pAwsCredentials);
+
+    // Release the object
+    MEMFREE(pCbProvider);
+
+    // Set the pointer to NULL
+    *ppCredentialProvider = NULL;
+
+CleanUp:
+
+    LEAVES();
     return retStatus;
 }

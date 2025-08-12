@@ -12,6 +12,9 @@
 #include "iot_credential_provider.h"
 #endif
 
+// For callback based credentials provider
+#include "file_credential_provider.h"
+
 #ifdef CONFIG_USE_ESP_WEBSOCKET_CLIENT
 #include "SignalingESP.h"
 #endif
@@ -23,6 +26,12 @@
 #include "Signaling.h"
 
 static const char *TAG = "kvs_signaling";
+
+// kvs fetch credentials context
+typedef struct kvs_cred_fetch_ctx {
+    kvs_fetch_credentials_cb_t cb;
+    uint64_t ud;
+} kvs_cred_fetch_ctx_t;
 
 // Work queue task for refreshing ICE configuration in background
 static void kvs_refresh_ice_task(void *arg)
@@ -91,6 +100,9 @@ typedef struct {
 
     // Metrics
     SignalingClientMetrics metrics;
+
+    // Optional credential-fetch callback adapter context
+    void *pCredFetchAdapterCtx;
 } KvsSignalingClientData;
 
 /**
@@ -169,7 +181,11 @@ static STATUS adapterErrorCallback(UINT64 customData, STATUS errorStatus, PCHAR 
 
 // Forward declarations
 STATUS createCredentialProvider(KvsSignalingClientData *pClientData);
-STATUS extractRegionFromCredentialToken(const char* token, char* region, size_t region_size);
+static STATUS fetchCredentialsAdapter(UINT64 customData,
+                                      PCHAR* pAccessKey, PUINT32 pAccessKeyLen,
+                                      PCHAR* pSecretKey, PUINT32 pSecretKeyLen,
+                                      PCHAR* pSessionToken, PUINT32 pSessionTokenLen,
+                                      PUINT64 pExpiration);
 
 /**
  * @brief KVS signaling state change callback
@@ -389,7 +405,19 @@ STATUS createCredentialProvider(KvsSignalingClientData *pClientData)
     ESP_LOGI(TAG, "Credential type: %s", pClientData->config.useIotCredentials ? "IoT Core" : "Static");
 
     // Create credential provider based on type
-    if (pClientData->config.useIotCredentials) {
+    if (pClientData->config.fetch_credentials_cb != NULL) {
+        // Highest precedence: callback-based credentials supplier
+        kvs_cred_fetch_ctx_t *ctx = (kvs_cred_fetch_ctx_t*) MEMCALLOC(1, SIZEOF(kvs_cred_fetch_ctx_t));
+        CHK(ctx != NULL, STATUS_NOT_ENOUGH_MEMORY);
+        ctx->cb = (kvs_fetch_credentials_cb_t) pClientData->config.fetch_credentials_cb;
+        ctx->ud = pClientData->config.fetch_credentials_user_data;
+        pClientData->pCredFetchAdapterCtx = ctx;
+
+        CHK_STATUS(createCallbackCredentialProvider(fetchCredentialsAdapter,
+                                                    (UINT64)(uintptr_t) ctx,
+                                                    &pClientData->pCredentialProvider));
+        ESP_LOGI(TAG, "Using callback-based credential provider");
+    } else if (pClientData->config.useIotCredentials) {
         // Use IoT Core credentials from the options
         pIotCoreCredentialEndPoint = pClientData->config.iotCoreCredentialEndpoint;
         pIotCoreCert = pClientData->config.iotCoreCert;
@@ -508,6 +536,32 @@ STATUS createCredentialProvider(KvsSignalingClientData *pClientData)
 
 CleanUp:
     return retStatus;
+}
+
+static STATUS fetchCredentialsAdapter(UINT64 customData,
+                                      PCHAR* pAccessKey, PUINT32 pAccessKeyLen,
+                                      PCHAR* pSecretKey, PUINT32 pSecretKeyLen,
+                                      PCHAR* pSessionToken, PUINT32 pSessionTokenLen,
+                                      PUINT64 pExpiration)
+{
+    kvs_cred_fetch_ctx_t *ctx = (kvs_cred_fetch_ctx_t*) (uintptr_t) customData;
+    if (ctx == NULL || ctx->cb == NULL) {
+        return STATUS_NULL_ARG;
+    }
+    const char *ak = NULL, *sk = NULL, *tk = NULL; uint32_t akl=0, skl=0, tkl=0; uint64_t exp=0;
+    int rc = ctx->cb(ctx->ud, &ak, &akl, &sk, &skl, &tk, &tkl, &exp);
+    if (rc != 0) {
+        return STATUS_INTERNAL_ERROR;
+    }
+    *pAccessKey = (PCHAR) ak; *pAccessKeyLen = akl;
+    *pSecretKey = (PCHAR) sk; *pSecretKeyLen = skl;
+    *pSessionToken = (PCHAR) tk; *pSessionTokenLen = tkl;
+
+    /* Convert relative expiration (seconds from now) to absolute nanoseconds */
+    UINT64 currentTimeNs = GETTIME();
+    UINT64 expirationNs = currentTimeNs + (exp * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    *pExpiration = expirationNs;
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -655,7 +709,10 @@ STATUS freeKvsSignalingClient(PVOID pSignalingClient)
 
     // Free the credential provider
     if (pClientData->pCredentialProvider != NULL) {
-        if (pClientData->config.useIotCredentials) {
+        if (pClientData->config.fetch_credentials_cb != NULL) {
+            // Callback-based credential provider
+            freeCallbackCredentialProvider(&pClientData->pCredentialProvider);
+        } else if (pClientData->config.useIotCredentials) {
             freeIotCredentialProvider(&pClientData->pCredentialProvider);
         } else {
             freeStaticCredentialProvider(&pClientData->pCredentialProvider);

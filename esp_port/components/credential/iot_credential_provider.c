@@ -82,7 +82,19 @@ STATUS createIotCredentialProviderWithTime(PCHAR iotGetCredentialEndpoint, PCHAR
 
     pIotCredentialProvider->serviceCallFn = serviceCallFn;
 
-    CHK_STATUS(http_api_getIotCredential(pIotCredentialProvider));
+    // Initial credential fetch with simple retry policy
+    {
+        const UINT32 maxRetries = 3;
+        STATUS fetchStatus = STATUS_SUCCESS;
+        UINT32 attempt = 0;
+        for (attempt = 0; attempt < maxRetries; attempt++) {
+            fetchStatus = http_api_getIotCredential(pIotCredentialProvider);
+            if (STATUS_SUCCEEDED(fetchStatus)) {
+                break;
+            }
+        }
+        CHK_STATUS(fetchStatus);
+    }
 
 CleanUp:
 
@@ -145,8 +157,19 @@ STATUS priv_iot_credential_provider_get(PAwsCredentialProvider pCredentialProvid
             currentTime + IOT_CREDENTIAL_FETCH_GRACE_PERIOD > pIotCredentialProvider->pAwsCredentials->expiration,
         retStatus);
 
-    // Fill the credentials
-    CHK_STATUS(http_api_getIotCredential(pIotCredentialProvider));
+    // Fill the credentials with retry if needed
+    {
+        const UINT32 maxRetries = 3;
+        STATUS fetchStatus = STATUS_SUCCESS;
+        UINT32 attempt = 0;
+        for (attempt = 0; attempt < maxRetries; attempt++) {
+            fetchStatus = http_api_getIotCredential(pIotCredentialProvider);
+            if (STATUS_SUCCEEDED(fetchStatus)) {
+                break;
+            }
+        }
+        CHK_STATUS(fetchStatus);
+    }
 
 CleanUp:
 
