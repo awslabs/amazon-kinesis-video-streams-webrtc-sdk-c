@@ -26,8 +26,6 @@ extern "C" {
 #include "common_defs.h"
 #include "error.h"
 #include "common.h"
-// #include "signaling.h"
-// #include "iot_credential_provider.h"
 
 /**
  * Service call callback functionality
