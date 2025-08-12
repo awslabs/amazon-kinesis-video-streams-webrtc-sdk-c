@@ -70,6 +70,38 @@ STATUS file_credential_provider_createWithTime(PCHAR, GetCurrentTimeFunc, UINT64
  */
 STATUS file_credential_provider_free(PAwsCredentialProvider*);
 
+/**
+ * Callback-based credential provider: system supplies AK/SK/Token/Expiration
+ */
+typedef STATUS (*CredentialFetchCallback)(UINT64 customData,
+                                          PCHAR* pAccessKey,
+                                          PUINT32 pAccessKeyLen,
+                                          PCHAR* pSecretKey,
+                                          PUINT32 pSecretKeyLen,
+                                          PCHAR* pSessionToken,
+                                          PUINT32 pSessionTokenLen,
+                                          PUINT64 pExpiration);
+
+/**
+ * @brief Create a Callback Credential Provider object
+ *
+ * @param fetchCb
+ * @param customData
+ * @param ppCredentialProvider
+ * @return STATUS
+ */
+STATUS createCallbackCredentialProvider(CredentialFetchCallback fetchCb,
+                                        UINT64 customData,
+                                        PAwsCredentialProvider* ppCredentialProvider);
+
+/**
+ * @brief Free Callback Credential Provider object
+ *
+ * @param ppCredentialProvider
+ * @return STATUS
+ */
+STATUS freeCallbackCredentialProvider(PAwsCredentialProvider* ppCredentialProvider);
+
 #ifdef __cplusplus
 }
 #endif

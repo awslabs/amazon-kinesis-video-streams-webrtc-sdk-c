@@ -16,6 +16,18 @@
 extern "C" {
 #endif
 
+// kvs fetch credentials callback
+typedef int (*kvs_fetch_credentials_cb_t) (
+                uint64_t customData,
+                const char **pAccessKey,
+                uint32_t *pAccessKeyLen,
+                const char **pSecretKey,
+                uint32_t *pSecretKeyLen,
+                const char **pSessionToken,
+                uint32_t *pSessionTokenLen, // session token length
+                uint32_t *pExpiration /* Expiration in seconds from now */
+            );
+
 /**
  * @brief KVS Signaling configuration structure
  *
@@ -43,6 +55,13 @@ typedef struct {
     // Common AWS options
     char *awsRegion;                         //!< AWS region (e.g., "us-west-2", "eu-west-1")
     char *caCertPath;                        //!< Path to CA certificate bundle file (e.g., "/spiffs/ca.pem")
+
+    // Optional: Callback-based credentials supplier. If set (non-NULL), this takes precedence
+    // over IoT Core and static credentials. The callback should return 0 on success.
+    // Define a public typedef so application can implement with exact signature.
+
+    kvs_fetch_credentials_cb_t fetch_credentials_cb; //!< Application-provided callback
+    uint64_t fetch_credentials_user_data;            //!< Opaque user data passed to fetch_credentials_cb
 } kvs_signaling_config_t;
 
 /**
