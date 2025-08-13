@@ -101,7 +101,7 @@ STATUS defaultSignalingStateTransitionHook(UINT64 customData /* customData shoul
                  pSignalingStateMachineRetryStrategy, &pSignalingClient->diagnostics.stateMachineRetryCount)) != STATUS_SUCCESS) {
             DLOGW("Failed to get retry count. Error code: %08x", countStatus);
         } else {
-            DLOGD("Retry count: %llu", pSignalingClient->diagnostics.stateMachineRetryCount);
+            DLOGD("Retry count: %" PRIu32, pSignalingClient->diagnostics.stateMachineRetryCount);
         }
     }
     DLOGV("Signaling Client base result is [%u]. Executing KVS retry handler of retry strategy type [%u]", pSignalingClient->result,
