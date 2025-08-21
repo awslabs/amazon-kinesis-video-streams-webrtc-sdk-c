@@ -25,3 +25,8 @@ esp_h264_out_buf_t *get_h264_encoded_frame();
 
 /* Explicitly initialize camera and encoder */
 esp_err_t camera_and_encoder_init(video_capture_config_t *config);
+
+/* Start/stop/deinit functions for H264 encoder */
+esp_err_t h264_encoder_start(void);
+esp_err_t h264_encoder_stop(void);
+esp_err_t h264_encoder_deinit(void);

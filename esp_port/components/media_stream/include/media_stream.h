@@ -179,6 +179,15 @@ typedef struct {
      * @return esp_err_t ESP_OK on success
      */
     esp_err_t (*deinit)(video_capture_handle_t handle);
+
+    /**
+     * @brief Set video bitrate dynamically
+     *
+     * @param handle Video capture handle
+     * @param bitrate_kbps New bitrate in kbps
+     * @return esp_err_t ESP_OK on success
+     */
+    esp_err_t (*set_bitrate)(video_capture_handle_t handle, uint32_t bitrate_kbps);
 } media_stream_video_capture_t;
 
 /**

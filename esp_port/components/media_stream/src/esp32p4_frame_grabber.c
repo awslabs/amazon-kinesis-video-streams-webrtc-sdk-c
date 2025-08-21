@@ -17,6 +17,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
+#include "freertos/semphr.h"
 #include "esp_timer.h"
 #include "esp_log.h"
 
@@ -228,14 +229,25 @@ void esp32p4_frame_grabber_cleanup(void)
 #endif
 }
 
-static QueueHandle_t frame_queue;
+typedef struct {
+    QueueHandle_t frame_queue;
+    TaskHandle_t encoder_task_handle;
+    StaticTask_t *task_buffer;
+    void *task_stack;
+    bool encoder_initialized;
+    bool running;
+    SemaphoreHandle_t run_semaphore;
+} esp32p4_encoder_data_t;
+
+static esp32p4_encoder_data_t s_p4_enc_data = {0};
+
 #define QUEUE_RECEIVE_WAIT_MS  CONFIG_VIDEO_QUEUE_RECEIVE_WAIT_MS
 #define QUEUE_SEND_WAIT_MS     CONFIG_VIDEO_QUEUE_SEND_WAIT_MS
 
 esp_h264_out_buf_t *esp32p4_grab_one_frame()
 {
     esp_h264_out_buf_t *frame_data = heap_caps_calloc(1, sizeof(esp_h264_out_buf_t), MALLOC_CAP_SPIRAM);
-    if (xQueueReceive(frame_queue, frame_data, pdMS_TO_TICKS(QUEUE_RECEIVE_WAIT_MS)) != pdTRUE) {
+    if (xQueueReceive(s_p4_enc_data.frame_queue, frame_data, pdMS_TO_TICKS(QUEUE_RECEIVE_WAIT_MS)) != pdTRUE) {
         heap_caps_free(frame_data);
         return NULL;
     }
@@ -246,7 +258,17 @@ extern void *get_buffer();
 extern esp_err_t esp_h264_hw_enc_set_reset_request();
 static void video_encoder_task(void *arg)
 {
+    ESP_LOGI(TAG, "🎬 Video encoder task started (singleton mode - runs continuously)");
+
     while (1) {
+        // Check if encoding should be running
+        if (!s_p4_enc_data.running) {
+            ESP_LOGI(TAG, "📥 Video encoder paused, waiting for start signal...");
+            // Wait for start signal (blocking)
+            xSemaphoreTake(s_p4_enc_data.run_semaphore, portMAX_DELAY);
+            ESP_LOGI(TAG, "▶️ Video encoder resumed");
+        }
+
 #if USE_ESP_VIDEO_IF
         // Get raw frame
         video_fb_t *raw_frame = esp_video_if_get_frame();
@@ -301,35 +323,50 @@ static void video_encoder_task(void *arg)
         memcpy(frame->buffer, h264_out_data.buffer, frame->len);
         frame->type = h264_out_data.type;
 #endif
-        if (xQueueSend(frame_queue, frame, pdMS_TO_TICKS(QUEUE_SEND_WAIT_MS)) != pdTRUE) {
+        if (xQueueSend(s_p4_enc_data.frame_queue, frame, pdMS_TO_TICKS(QUEUE_SEND_WAIT_MS)) != pdTRUE) {
             free(frame->buffer);
             vTaskDelay(pdMS_TO_TICKS(10));
         }
         free(frame);
     }
+
+    ESP_LOGE(TAG, "❌ Video encoder task unexpectedly exited!");
 }
 
 void esp32p4_frame_grabber_init(void)
 {
+    // Singleton pattern: return if already initialized
+    if (s_p4_enc_data.encoder_initialized) {
+        ESP_LOGI(TAG, "ESP32P4 frame grabber already initialized (singleton)");
+        return;
+    }
+
     init_chip();
     init_clock();
 
-    frame_queue = xQueueCreate(CONFIG_VIDEO_FRAME_QUEUE_SIZE, sizeof(esp_h264_out_buf_t));
-    if (!frame_queue) {
+    s_p4_enc_data.frame_queue = xQueueCreate(CONFIG_VIDEO_FRAME_QUEUE_SIZE, sizeof(esp_h264_out_buf_t));
+    if (!s_p4_enc_data.frame_queue) {
         ESP_LOGE(TAG, "Failed to create frame queue");
-        return;
+        goto cleanup;
+    }
+
+    // Create semaphore for start/stop control
+    s_p4_enc_data.run_semaphore = xSemaphoreCreateBinary();
+    if (!s_p4_enc_data.run_semaphore) {
+        ESP_LOGE(TAG, "Failed to create run semaphore");
+        goto cleanup;
     }
 #if USE_ESP_VIDEO_IF
     esp_err_t ret = esp_video_if_init();
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize video interface");
-        return;
+        goto cleanup;
     }
     ESP_LOGI(TAG, "video interface initialized");
 #else
     if (camera_init() != ESP_OK) {
         ESP_LOGE(TAG, "Camera initialization failed");
-        return;
+        goto cleanup;
     }
 #endif
     vTaskDelay(pdMS_TO_TICKS(10));
@@ -337,7 +374,7 @@ void esp32p4_frame_grabber_init(void)
     sdmmc_card_t *sdcard = bsp_sdcard_mount();
     if (sdcard == NULL) {
         ESP_LOGE(TAG, "sdcard initialization failed!");
-        return;
+        goto cleanup;
     }
 
     printf("Filesystem mounted\n");
@@ -352,7 +389,7 @@ void esp32p4_frame_grabber_init(void)
     if (f264 == NULL) {
         printf("H264 file create failed\n");
         esp32p4_frame_grabber_cleanup();
-        return;
+        goto cleanup;
     }
 #endif
 
@@ -373,17 +410,123 @@ void esp32p4_frame_grabber_init(void)
 
 #define ENC_TASK_STACK_SIZE     CONFIG_VIDEO_ENCODER_TASK_STACK_SIZE
 #define ENC_TASK_PRIO           CONFIG_VIDEO_ENCODER_TASK_PRIORITY
-    StaticTask_t *task_buffer = heap_caps_calloc(1, sizeof(StaticTask_t), MALLOC_CAP_INTERNAL);
-    void *task_stack = heap_caps_calloc(ENC_TASK_STACK_SIZE, 1, MALLOC_CAP_SPIRAM);
-    assert(task_buffer && task_stack);
+    s_p4_enc_data.task_buffer = heap_caps_calloc(1, sizeof(StaticTask_t), MALLOC_CAP_INTERNAL);
+    s_p4_enc_data.task_stack = heap_caps_calloc(ENC_TASK_STACK_SIZE, 1, MALLOC_CAP_SPIRAM);
+    if (!s_p4_enc_data.task_buffer || !s_p4_enc_data.task_stack) {
+        ESP_LOGE(TAG, "Failed to allocate task buffers");
+        goto cleanup;
+    }
 
-    /* the task never exits, so do not bother to free the buffers */
-    TaskHandle_t enc_task_handle = xTaskCreateStatic(video_encoder_task, "video_encoder", ENC_TASK_STACK_SIZE,
-                                                     NULL, ENC_TASK_PRIO, task_stack, task_buffer);
+    s_p4_enc_data.running = false;  // Start in stopped state
+    s_p4_enc_data.encoder_task_handle = xTaskCreateStatic(video_encoder_task, "video_encoder", ENC_TASK_STACK_SIZE,
+                                                          NULL, ENC_TASK_PRIO, s_p4_enc_data.task_stack, s_p4_enc_data.task_buffer);
 
-    if (enc_task_handle == NULL) {
+    if (s_p4_enc_data.encoder_task_handle == NULL) {
         ESP_LOGE(TAG, "failed to create encoder task!");
+        goto cleanup;
     }
 #endif
+
+    s_p4_enc_data.encoder_initialized = true;
+
+    ESP_LOGI(TAG, "✅ ESP32P4 frame grabber initialized as singleton (stopped, use start() to begin)");
+    return;
+
+cleanup:
+    // Conditional cleanup based on what was allocated
+    if (s_p4_enc_data.task_buffer != NULL) {
+        heap_caps_free(s_p4_enc_data.task_buffer);
+        s_p4_enc_data.task_buffer = NULL;
+    }
+    if (s_p4_enc_data.task_stack != NULL) {
+        heap_caps_free(s_p4_enc_data.task_stack);
+        s_p4_enc_data.task_stack = NULL;
+    }
+    if (s_p4_enc_data.run_semaphore != NULL) {
+        vSemaphoreDelete(s_p4_enc_data.run_semaphore);
+        s_p4_enc_data.run_semaphore = NULL;
+    }
+    if (s_p4_enc_data.frame_queue != NULL) {
+        vQueueDelete(s_p4_enc_data.frame_queue);
+        s_p4_enc_data.frame_queue = NULL;
+    }
+
+    ESP_LOGE(TAG, "ESP32P4 frame grabber initialization failed");
+}
+
+esp_err_t esp32p4_frame_grabber_start(void)
+{
+    if (!s_p4_enc_data.encoder_initialized) {
+        ESP_LOGE(TAG, "ESP32P4 frame grabber not initialized");
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    if (s_p4_enc_data.running) {
+        ESP_LOGI(TAG, "ESP32P4 frame grabber already running");
+        return ESP_OK;
+    }
+
+    s_p4_enc_data.running = true;
+    xSemaphoreGive(s_p4_enc_data.run_semaphore);  // Signal encoder to start
+    ESP_LOGI(TAG, "▶️ ESP32P4 frame grabber started");
+
+    return ESP_OK;
+}
+
+esp_err_t esp32p4_frame_grabber_stop(void)
+{
+    if (!s_p4_enc_data.encoder_initialized) {
+        ESP_LOGE(TAG, "ESP32P4 frame grabber not initialized");
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    if (!s_p4_enc_data.running) {
+        ESP_LOGI(TAG, "ESP32P4 frame grabber already stopped");
+        return ESP_OK;
+    }
+
+    s_p4_enc_data.running = false;
+    ESP_LOGI(TAG, "⏸️ ESP32P4 frame grabber stopped");
+
+    return ESP_OK;
+}
+
+esp_err_t esp32p4_frame_grabber_deinit(void)
+{
+    if (!s_p4_enc_data.encoder_initialized) {
+        ESP_LOGI(TAG, "ESP32P4 frame grabber not initialized, nothing to deinitialize");
+        return ESP_OK;
+    }
+
+    // Stop encoding first
+    esp32p4_frame_grabber_stop();
+
+    // Drain the frame queue with limited iterations to prevent infinite loop
+    if (s_p4_enc_data.frame_queue != NULL) {
+        ESP_LOGI(TAG, "🗑️ Draining video frame queue...");
+        esp_h264_out_buf_t h264_frame;
+        int drained_count = 0;
+        const int max_drain_iterations = CONFIG_VIDEO_FRAME_QUEUE_SIZE;  // Prevent infinite loop
+
+        while (xQueueReceive(s_p4_enc_data.frame_queue, &h264_frame, 0) == pdTRUE &&
+               drained_count < max_drain_iterations) {
+            if (h264_frame.buffer) {
+                heap_caps_free(h264_frame.buffer);
+            }
+            drained_count++;
+        }
+
+        if (drained_count > 0) {
+            ESP_LOGI(TAG, "Drained %d video frames from queue", drained_count);
+        }
+        if (drained_count >= max_drain_iterations) {
+            ESP_LOGW(TAG, "⚠️ Reached max drain limit, queue may still contain frames");
+        }
+    }
+
+    // Singleton pattern: encoder task remains running but paused
+    ESP_LOGI(TAG, "ESP32P4 frame grabber is singleton - task remains paused until start() is called");
+
+    return ESP_OK;
 }
 #endif
