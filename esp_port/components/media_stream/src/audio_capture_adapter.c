@@ -60,6 +60,7 @@ esp_err_t audio_capture_start(audio_capture_handle_t handle)
 
     // The microphone and encoder are already running when frames are requested
     ctx->running = true;
+    opus_encoder_start_internal();
     return ESP_OK;
 }
 
@@ -70,8 +71,7 @@ esp_err_t audio_capture_stop(audio_capture_handle_t handle)
         return ESP_ERR_INVALID_ARG;
     }
 
-    // There's no explicit stop in the current implementation
-    // We'll just mark it as not running
+    opus_encoder_stop_internal();
     ctx->running = false;
     return ESP_OK;
 }
@@ -124,8 +124,15 @@ esp_err_t audio_capture_deinit(audio_capture_handle_t handle)
         return ESP_ERR_INVALID_ARG;
     }
 
-    // The current implementation doesn't have a deinit function
-    // So we'll just free our context
+    if (ctx->initialized) {
+        // Deinitialize the OPUS encoder
+        esp_err_t ret = opus_encoder_deinit_internal();
+        if (ret != ESP_OK) {
+            ESP_LOGW(TAG, "Failed to deinitialize OPUS encoder: %d", ret);
+            // Continue anyway to clean up our resources
+        }
+    }
+
     free(ctx);
     return ESP_OK;
 }

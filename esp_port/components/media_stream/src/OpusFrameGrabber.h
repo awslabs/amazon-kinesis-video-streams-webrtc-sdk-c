@@ -22,3 +22,9 @@ typedef struct {
 esp_opus_out_buf_t *get_opus_encoded_frame();
 
 void *opus_encoder_init_internal(audio_capture_config_t *config);
+
+esp_err_t opus_encoder_start_internal(void);
+
+esp_err_t opus_encoder_stop_internal(void);
+
+esp_err_t opus_encoder_deinit_internal(void);

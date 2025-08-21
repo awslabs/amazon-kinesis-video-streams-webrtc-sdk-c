@@ -108,6 +108,15 @@ esp_err_t video_capture_stop(video_capture_handle_t handle);
 esp_err_t video_capture_get_frame(video_capture_handle_t handle, video_frame_t **frame, uint32_t wait_ms);
 
 /**
+ * @brief Set the video bitrate dynamically
+ *
+ * @param handle Video capture handle
+ * @param bitrate_kbps New bitrate in kbps
+ * @return esp_err_t ESP_OK on success, otherwise an error code
+ */
+esp_err_t video_capture_set_bitrate(video_capture_handle_t handle, uint32_t bitrate_kbps);
+
+/**
  * @brief Release a video frame when no longer needed
  *
  * @param handle Video capture handle

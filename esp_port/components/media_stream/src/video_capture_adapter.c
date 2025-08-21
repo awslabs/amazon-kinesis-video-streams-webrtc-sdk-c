@@ -85,6 +85,13 @@ esp_err_t video_capture_start(video_capture_handle_t handle)
 
     // The camera and encoder are already running after initialization
     ctx->running = true;
+    if (ctx->codec_type == VIDEO_CODEC_H264) {
+        esp_err_t ret = h264_encoder_start();
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to start H264 encoder: %d", ret);
+            return ret;
+        }
+    }
     return ESP_OK;
 }
 
@@ -95,8 +102,13 @@ esp_err_t video_capture_stop(video_capture_handle_t handle)
         return ESP_ERR_INVALID_ARG;
     }
 
-    // There's no explicit stop in the current implementation
-    // We'll just mark it as not running
+    if (ctx->codec_type == VIDEO_CODEC_H264) {
+        esp_err_t ret = h264_encoder_stop();
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to stop H264 encoder: %d", ret);
+            return ret;
+        }
+    }
     ctx->running = false;
     return ESP_OK;
 }
@@ -159,6 +171,11 @@ esp_err_t video_capture_get_frame(video_capture_handle_t handle, video_frame_t *
     }
 
     *frame = output_frame;
+    return ESP_OK;
+}
+
+__attribute__((weak)) esp_err_t video_capture_set_bitrate(video_capture_handle_t handle, uint32_t bitrate_kbps)
+{
     return ESP_OK;
 }
 
