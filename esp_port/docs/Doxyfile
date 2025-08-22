@@ -21,8 +21,9 @@ PROJECT_NAME = "Amazon Kinesis Video Streams WebRTC SDK for ESP-IDF"
 ## and used to include in API reference documentation
 
 INPUT = \
-    $(PROJECT_PATH)/components/kvs_webrtc/include/app_webrtc.h \
-    $(PROJECT_PATH)/components/kvs_webrtc/include/kvs_signaling.h \
+    $(PROJECT_PATH)/components/app_webrtc/include/app_webrtc.h \
+    $(PROJECT_PATH)/components/kvs_signaling/include/kvs_signaling.h \
+    $(PROJECT_PATH)/components/kvs_webrtc/include/kvs_peer_connection.h \
     $(PROJECT_PATH)/components/media_stream/include/media_stream.h \
     $(PROJECT_PATH)/components/media_stream/include/video_capture.h \
     $(PROJECT_PATH)/components/media_stream/include/video_player.h \

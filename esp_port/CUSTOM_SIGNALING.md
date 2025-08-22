@@ -1,6 +1,6 @@
 # Custom Signaling Integration Guide
 
-This guide explains how to integrate custom signaling solutions with the ESP-IDF WebRTC SDK. The SDK provides a flexible signaling abstraction layer that allows you to implement various signaling backends while maintaining a consistent API.
+This guide explains how to integrate custom signaling solutions with the ESP-IDF WebRTC SDK. The SDK provides a **pluggable architecture** with flexible signaling and peer connection abstraction layers that allow you to implement various signaling backends and peer connection strategies while maintaining a consistent, simplified API.
 
 ## Table of Contents
 
@@ -14,25 +14,41 @@ This guide explains how to integrate custom signaling solutions with the ESP-IDF
 
 ## Architecture Overview
 
-The WebRTC SDK uses a modular signaling architecture that separates the signaling logic from the core WebRTC functionality:
+The WebRTC SDK uses a **pluggable architecture** that separates signaling, peer connections, and media handling into interchangeable components:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Application Layer                        │
+│                Application Layer (Your Code)                │
 ├─────────────────────────────────────────────────────────────┤
-│                  app_webrtc.h (Public API)                 │
+│            app_webrtc.h (Simplified Public API)             │
+│     • Smart defaults  • Auto-detection  • Advanced APIs     │
 ├─────────────────────────────────────────────────────────────┤
-│              webrtc_signaling_client_if_t                 │
-│              (Abstraction Layer - Your Code)               │
+│ Signaling Interface │ Peer Connection If │  Media Interface │
+│ webrtc_signaling_   │ webrtc_peer_       │ media_stream_    │
+│client_if_t          │connection_if_t     │*_capture/player_t│
 ├─────────────────────────────────────────────────────────────┤
-│     KVS Signaling    │   Bridge Signaling   │   Custom     │
-│   (kvs_signaling.c)  │  (bridge_signaling.c) │  Signaling  │
+│ KVS │AppRTC│Bridge  │ KVS │Bridge│Custom │ Default│Custom   │
+│Signaling │ Signaling │ WebRTC│Only │ Impl  │ Media │ Media  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
+### 🚀 **New Simplified Integration**
+
+**Before (Complex)**:
+- 12+ configuration fields to set manually
+- Hard-coded signaling backends
+- Monolithic peer connection handling
+
+**After (Simple)**:
+- **4 essential fields** with smart defaults
+- **Pluggable signaling** interfaces (KVS, AppRTC, Bridge, Custom)
+- **Pluggable peer connections** (KVS WebRTC, Bridge-only, Custom)
+- **Auto-detection** of signaling-only vs. streaming modes
+- **Advanced APIs** to override any default
+
 ## Signaling Interface Definition
 
-The core signaling interface is defined in `webrtc_signaling_if.h` as `webrtc_signaling_client_if_t`:
+The core signaling interface is defined in `app_webrtc_if.h` as `webrtc_signaling_client_if_t`:
 
 ```c
 typedef struct {
@@ -46,7 +62,7 @@ typedef struct {
     WEBRTC_STATUS (*disconnect)(void *pSignalingClient);
 
     // Send a signaling message
-    WEBRTC_STATUS (*send_message)(void *pSignalingClient, esp_webrtc_signaling_message_t *pMessage);
+    WEBRTC_STATUS (*send_message)(void *pSignalingClient, webrtc_message_t *pMessage);
 
     // Free resources
     WEBRTC_STATUS (*free)(void *pSignalingClient);
@@ -54,8 +70,8 @@ typedef struct {
     // Set callbacks for signaling events
     WEBRTC_STATUS (*set_callbacks)(void *pSignalingClient,
                                  uint64_t customData,
-                                 WEBRTC_STATUS (*on_msg_received)(uint64_t, esp_webrtc_signaling_message_t*),
-                                 WEBRTC_STATUS (*on_state_changed)(uint64_t, webrtc_signaling_client_state_t),
+                                 WEBRTC_STATUS (*on_msg_received)(uint64_t, webrtc_message_t*),
+                                 WEBRTC_STATUS (*on_state_changed)(uint64_t, webrtc_state_t),
                                  WEBRTC_STATUS (*on_error)(uint64_t, WEBRTC_STATUS, char*, uint32_t));
 
     // Set the role type for the signaling client
@@ -77,6 +93,26 @@ typedef struct {
 
 ## Implementation Steps
 
+### 🎯 **Quick Integration (Recommended)**
+
+Use the simplified API with existing peer connection interfaces:
+
+```c
+// Configure with your custom signaling + existing peer connection
+app_webrtc_config_t config = APP_WEBRTC_CONFIG_DEFAULT();
+config.signaling_client_if = my_custom_signaling_if_get();
+config.signaling_cfg = &my_signaling_config;
+config.peer_connection_if = kvs_peer_connection_if_get();  // Use KVS peer connections
+config.video_capture = media_stream_get_video_capture_if();
+
+app_webrtc_init(&config);
+app_webrtc_run();
+```
+
+### 🔧 **Advanced Integration (Custom Peer Connections)**
+
+Implement both custom signaling AND custom peer connection interfaces for full control.
+
 ### Step 1: Create Your Signaling Implementation
 
 Create a new component or source file with your signaling implementation:
@@ -85,7 +121,7 @@ Create a new component or source file with your signaling implementation:
 // my_custom_signaling.c
 
 #include "app_webrtc.h"
-#include "webrtc_signaling_if.h"
+#include "app_webrtc_if.h"
 
 // Your custom signaling configuration structure
 typedef struct {
@@ -105,8 +141,8 @@ typedef struct {
 
     // Callbacks
     uint64_t customData;
-    WEBRTC_STATUS (*on_msg_received)(uint64_t, esp_webrtc_signaling_message_t*);
-    WEBRTC_STATUS (*on_state_changed)(uint64_t, webrtc_signaling_client_state_t);
+    WEBRTC_STATUS (*on_msg_received)(uint64_t, webrtc_message_t*);
+    WEBRTC_STATUS (*on_state_changed)(uint64_t, webrtc_state_t);
     WEBRTC_STATUS (*on_error)(uint64_t, WEBRTC_STATUS, char*, uint32_t);
 
     // Add your specific fields here
@@ -125,7 +161,7 @@ static WEBRTC_STATUS my_custom_signaling_init(void *signaling_cfg, void **ppSign
     pData->server_url = strdup(pConfig->server_url);
     pData->room_id = strdup(pConfig->room_id);
     pData->websocket_handle = NULL;
-    pData->role = WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+    pData->role = WEBRTC_CHANNEL_ROLE_TYPE_MASTER;
 
     // Initialize callbacks to NULL
     pData->customData = 0;
@@ -153,7 +189,7 @@ static WEBRTC_STATUS my_custom_signaling_connect(void *pSignalingClient)
     return WEBRTC_STATUS_SUCCESS;
 }
 
-static WEBRTC_STATUS my_custom_signaling_send_message(void *pSignalingClient, esp_webrtc_signaling_message_t *pMessage)
+static WEBRTC_STATUS my_custom_signaling_send_message(void *pSignalingClient, webrtc_message_t *pMessage)
 {
     my_custom_signaling_data_t *pData = (my_custom_signaling_data_t *)pSignalingClient;
 
@@ -165,8 +201,8 @@ static WEBRTC_STATUS my_custom_signaling_send_message(void *pSignalingClient, es
 
 static WEBRTC_STATUS my_custom_signaling_set_callbacks(void *pSignalingClient,
                                                        uint64_t customData,
-                                                       WEBRTC_STATUS (*on_msg_received)(uint64_t, esp_webrtc_signaling_message_t*),
-                                                       WEBRTC_STATUS (*on_state_changed)(uint64_t, webrtc_signaling_client_state_t),
+                                                       WEBRTC_STATUS (*on_msg_received)(uint64_t, webrtc_message_t*),
+                                                       WEBRTC_STATUS (*on_state_changed)(uint64_t, webrtc_state_t),
                                                        WEBRTC_STATUS (*on_error)(uint64_t, WEBRTC_STATUS, char*, uint32_t))
 {
     my_custom_signaling_data_t *pData = (my_custom_signaling_data_t *)pSignalingClient;
@@ -218,7 +254,7 @@ void myCustomMessageHandler(const char *message)
     my_custom_signaling_data_t *pData = getCurrentSignalingData();
 
     // Parse your protocol message
-    esp_webrtc_signaling_message_t webrtcMessage = {0};
+    webrtc_message_t webrtcMessage = {0};
     parseCustomMessage(message, &webrtcMessage);
 
     // Invoke the callback
@@ -230,29 +266,17 @@ void myCustomMessageHandler(const char *message)
 
 ## Configuration and Initialization
 
-### Step 3: Configure the WebRTC Application
+### Step 3: Configure with Simplified API
 
 ```c
 #include "app_webrtc.h"
 #include "my_custom_signaling.h"
+#include "kvs_peer_connection.h"  // or your custom peer connection
 
 void app_main(void)
 {
-    WEBRTC_STATUS status;
-
     // Initialize NVS, WiFi, time sync, etc. (standard ESP-IDF setup)
     // ... standard initialization code ...
-
-    // Initialize work queue (required for ICE operations)
-    if (esp_work_queue_init() != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize work queue");
-        return;
-    }
-
-    if (esp_work_queue_start() != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to start work queue");
-        return;
-    }
 
     // Register event callback (optional)
     app_webrtc_register_event_callback(app_webrtc_event_handler, NULL);
@@ -272,31 +296,33 @@ void app_main(void)
         .log_level = 3
     };
 
-    // Configure WebRTC application
-    app_webrtc_config_t webrtcConfig = WEBRTC_APP_CONFIG_DEFAULT();
+    // Configure WebRTC with simplified API
+    app_webrtc_config_t config = APP_WEBRTC_CONFIG_DEFAULT();
 
-    // Set signaling interface and config (as opaque pointers)
-    webrtcConfig.signaling_client_if = my_custom_signaling_if_get();
-    webrtcConfig.signaling_cfg = &customConfig;
+    // Essential configuration - what you MUST provide
+    config.signaling_client_if = my_custom_signaling_if_get();
+    config.signaling_cfg = &customConfig;
+    config.peer_connection_if = kvs_peer_connection_if_get();  // Use existing KVS peer connections
 
-    // Set WebRTC configuration
-    webrtcConfig.role_type = WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-    webrtcConfig.logLevel = 3;
-    webrtcConfig.mediaType = APP_WEBRTC_MEDIA_AUDIO_VIDEO;
+    // Media interfaces for streaming
+    config.video_capture = video_capture;
+    config.audio_capture = audio_capture;
+    config.video_player = video_player;
+    config.audio_player = audio_player;
 
-    // Set media interfaces
-    webrtcConfig.video_capture = video_capture;
-    webrtcConfig.audio_capture = audio_capture;
-    webrtcConfig.video_player = video_player;
-    webrtcConfig.audio_player = audio_player;
-    webrtcConfig.receive_media = true;
+    ESP_LOGI(TAG, "Initializing WebRTC with custom signaling + simplified API");
+    ESP_LOGI(TAG, "Smart defaults: MASTER role, H.264+OPUS, trickle ICE");
 
-    // Initialize WebRTC application
-    status = app_webrtc_init(&webrtcConfig);
+    // Initialize WebRTC application with smart defaults
+    WEBRTC_STATUS status = app_webrtc_init(&config);
     if (status != WEBRTC_STATUS_SUCCESS) {
         ESP_LOGE(TAG, "Failed to initialize WebRTC app: 0x%08x", status);
         return;
     }
+
+    // Advanced configuration: Override defaults if needed
+    app_webrtc_set_role(WEBRTC_CHANNEL_ROLE_TYPE_VIEWER);  // Change role
+    app_webrtc_enable_media_reception(true);               // Enable media reception
 
     // Start the WebRTC application
     status = app_webrtc_run();
@@ -309,134 +335,118 @@ void app_main(void)
 
 ## Existing Examples
 
-### 1. webrtc_classic: KVS Signaling
+### 1. webrtc_classic: KVS Signaling + KVS Peer Connection
 
 **Location**: `examples/webrtc_classic/main/webrtc_main.c`
+**Architecture**: `kvs_signaling + kvs_peer_connection`
 
-Uses the AWS Kinesis Video Streams signaling service:
+Uses AWS KVS for both signaling and peer connections (full functionality):
 
 ```c
-// Set up KVS signaling configuration
-static kvs_signaling_config_t kvs_signaling_cfg = {0};
-kvs_signaling_cfg.pChannelName = "ScaryTestChannel";
-kvs_signaling_cfg.awsRegion = "us-east-1";
-kvs_signaling_cfg.caCertPath = "/spiffs/certs/cacert.pem";
+// Configure with simplified API
+app_webrtc_config_t config = APP_WEBRTC_CONFIG_DEFAULT();
+config.signaling_client_if = kvs_signaling_client_if_get();
+config.signaling_cfg = &kvs_signaling_cfg;
+config.peer_connection_if = kvs_peer_connection_if_get();
+config.video_capture = media_stream_get_video_capture_if();
 
-#ifdef CONFIG_IOT_CORE_ENABLE_CREDENTIALS
-    kvs_signaling_cfg.useIotCredentials = true;
-    kvs_signaling_cfg.iotCoreCredentialEndpoint = CONFIG_AWS_IOT_CORE_CREDENTIAL_ENDPOINT;
-    kvs_signaling_cfg.iotCoreCert = CONFIG_AWS_IOT_CORE_CERT;
-    // ... other IoT credentials
-#else
-    kvs_signaling_cfg.useIotCredentials = false;
-    kvs_signaling_cfg.awsAccessKey = CONFIG_AWS_ACCESS_KEY_ID;
-    kvs_signaling_cfg.awsSecretKey = CONFIG_AWS_SECRET_ACCESS_KEY;
-#endif
-
-// Configure WebRTC app with KVS signaling
-app_webrtc_config_t webrtcConfig = WEBRTC_APP_CONFIG_DEFAULT();
-webrtcConfig.signaling_client_if = kvs_signaling_client_if_get();
-webrtcConfig.signaling_cfg = &kvs_signaling_cfg;
-webrtcConfig.role_type = WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+// Smart defaults: MASTER role, H.264+OPUS, trickle ICE, TURN
+app_webrtc_init(&config);
+app_webrtc_enable_media_reception(true);  // Override default
+app_webrtc_run();
 ```
 
 **Key Features**:
 - Full AWS KVS integration
+- Simplified 4-field configuration
+- Smart defaults with advanced override APIs
 - Automatic ICE server management
-- IoT Core or direct AWS credential support
-- TURN server support
 
-### 2. streaming_only: Bridge Signaling
+### 2. streaming_only: Bridge Signaling + KVS Peer Connection
 
 **Location**: `examples/streaming_only/main/streaming_only_main.c`
+**Architecture**: `bridge_signaling + kvs_peer_connection`
 
-Uses bridge signaling to communicate with a separate signaling device:
+Receives signaling from partner device, handles full WebRTC peer connections:
 
 ```c
-// Set up bridge signaling interface and config
-bridge_signaling_config_t bridge_config = {
-    .client_id = "streaming_client",
-    .log_level = 2
-};
+// Configure with simplified API
+app_webrtc_config_t config = APP_WEBRTC_CONFIG_DEFAULT();
+config.signaling_client_if = getBridgeSignalingClientInterface(); // signaling relay via webrtc_bridge
+config.signaling_cfg = &bridge_config;
+config.peer_connection_if = kvs_peer_connection_if_get();  // Full WebRTC
+config.video_capture = video_capture;
+config.audio_capture = audio_capture;
+config.video_player = video_player;
+config.audio_player = audio_player;
 
-// Configure WebRTC with bridge signaling
-app_webrtc_config_t webrtcConfig = WEBRTC_APP_CONFIG_DEFAULT();
-webrtcConfig.signaling_client_if = getBridgeSignalingClientInterface();
-webrtcConfig.signaling_cfg = &bridge_config;
-webrtcConfig.receive_media = true; // Enable media reception
-
-// Start webrtc bridge
-webrtc_bridge_start();
+app_webrtc_init(&config);
+app_webrtc_enable_media_reception(true);  // Bi-directional streaming
+webrtc_bridge_start();  // Start bridge communication
+app_webrtc_run();
 ```
 
 **Key Features**:
-- Receives signaling messages from network coprocessor
-- ICE server bridge for TURN credentials
-- Event-driven architecture
-- Power-efficient operation
+- Power-efficient split mode architecture
+- Receives signaling via bridge from partner device
+- Full WebRTC peer connections for media streaming
+- Bi-directional media support
 
-### 3. signaling_only: KVS with Bridge Adapter
+### 3. signaling_only: KVS Signaling + Bridge Peer Connection
 
 **Location**: `examples/signaling_only/main/signaling_only_main.c`
+**Architecture**: `kvs_signaling + bridge_peer_connection`
 
-Uses KVS signaling with a bridge adapter for relay functionality:
+Handles AWS KVS signaling, forwards messages via bridge (no WebRTC peer connections):
 
 ```c
-// Configure signaling bridge adapter
-signaling_bridge_adapter_config_t adapter_config = {
-    .user_ctx = NULL
-};
+// Configure with simplified API - signaling-only mode
+app_webrtc_config_t config = APP_WEBRTC_CONFIG_DEFAULT();
+config.signaling_client_if = kvs_signaling_client_if_get();
+config.signaling_cfg = &kvs_signaling_cfg;
+config.peer_connection_if = bridge_peer_connection_if_get();  // Fake peer doing signaling relay via webrtc_bridge
 
-WEBRTC_STATUS adapter_status = signaling_bridge_adapter_init(&adapter_config);
-adapter_status = signaling_bridge_adapter_start();
-
-// Configure WebRTC application for signaling-only mode
-app_webrtc_config_t webrtcConfig = WEBRTC_APP_CONFIG_DEFAULT();
-webrtcConfig.signaling_client_if = kvs_signaling_client_if_get();
-webrtcConfig.signaling_cfg = &g_kvsSignalingConfig;
-webrtcConfig.role_type = WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-webrtcConfig.signaling_only = true; // Disable media components
+// Automatically optimizes for memory and power efficiency
+app_webrtc_init(&config);
+app_webrtc_run();
 ```
 
 **Key Features**:
-- KVS signaling with bridge relay
-- Message forwarding to streaming device
-- ICE server bridging
-- Signaling-only mode (no media components)
+- AWS KVS signaling with bridge forwarding
+- No WebRTC SDK initialization (memory efficient)
+- signaling-only (i.e, bridged_peer) mode (As peer_connection_if intentionally sets create_session NULL)
+- Always-on connectivity with partner device
 
-### 4. esp_camera: AppRTC Signaling
+### 4. esp_camera: AppRTC Signaling + KVS Peer Connection
 
 **Location**: `examples/esp_camera/main/esp_webrtc_camera_main.c`
+**Architecture**: `apprtc_signaling + kvs_peer_connection`
 
-Implements AppRTC-compatible signaling:
+Browser-compatible AppRTC signaling with full WebRTC peer connections:
 
 ```c
-// Configure AppRTC signaling
-apprtc_signaling_config_t apprtc_config = {
-    .serverUrl = NULL,  // Use default AppRTC server
-    .roomId = NULL,     // Will be set based on role type
-    .autoConnect = false,
-    .connectionTimeout = 30000,
-    .logLevel = 3
-};
+// Configure with simplified API
+app_webrtc_config_t config = APP_WEBRTC_CONFIG_DEFAULT();
+config.signaling_client_if = apprtc_signaling_client_if_get();
+config.signaling_cfg = &apprtc_config;
+config.peer_connection_if = kvs_peer_connection_if_get();
+config.video_capture = video_capture;
+config.audio_capture = audio_capture;
+config.video_player = video_player;
+config.audio_player = audio_player;
 
-// Configure WebRTC app
-app_webrtc_config_t webrtcConfig = WEBRTC_APP_CONFIG_DEFAULT();
-webrtcConfig.signaling_client_if = apprtc_signaling_client_if_get();
-webrtcConfig.signaling_cfg = &apprtc_config;
-
-#if CONFIG_APPRTC_ROLE_TYPE == 0
-    webrtcConfig.role_type = WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
-#else
-    webrtcConfig.role_type = WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
-#endif
+app_webrtc_init(&config);
+// Advanced APIs: Set role after initialization
+app_webrtc_set_role(WEBRTC_CHANNEL_ROLE_TYPE_MASTER);
+app_webrtc_enable_media_reception(true);
+app_webrtc_run();
 ```
 
 **Key Features**:
-- AppRTC protocol compatibility
-- Room-based sessions
-- WebSocket transport
-- Browser interoperability
+- AppRTC protocol (browser-compatible)
+- Room-based sessions with CLI control
+- No AWS account needed
+- Advanced configuration APIs for role management
 
 ## Message Flow Examples
 
@@ -484,7 +494,7 @@ typedef struct {
     // Your data...
 } MySignalingData;
 
-static WEBRTC_STATUS my_custom_signaling_send_message(void *pSignalingClient, esp_webrtc_signaling_message_t *pMessage)
+static WEBRTC_STATUS my_custom_signaling_send_message(void *pSignalingClient, webrtc_message_t *pMessage)
 {
     MySignalingData *pData = (MySignalingData *)pSignalingClient;
 
@@ -625,7 +635,7 @@ Add custom protocol features while maintaining compatibility:
 
 ```c
 typedef struct {
-    esp_webrtc_signaling_message_t base;
+    webrtc_message_t base;
     // Your extensions
     char *custom_field;
     uint32_t custom_data;

@@ -7,8 +7,10 @@ This is a complete ESP-IDF port of the Amazon Kinesis Video Streams WebRTC SDK, 
 **Want to get streaming in 5 minutes?**
 
 1. **Clone and setup**: `git clone --recursive <repo>` → Install ESP-IDF v5.4 → Apply patches
-2. **Build example**: `cd examples/webrtc_classic` → Configure AWS credentials → `idf.py build flash monitor`
+2. **Build example**: `cd examples/webrtc_classic` → Configure WiFi & AWS credentials → `idf.py build flash monitor`
 3. **Start streaming**: Open [WebRTC Test Page](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-js/examples/index.html) → Connect to your channel
+
+✨ **New Features**: Simplified API with 4-line configuration, smart defaults, and advanced configuration APIs
 
 📖 **Detailed setup instructions below** ⬇️
 
@@ -25,21 +27,30 @@ This is a complete ESP-IDF port of the Amazon Kinesis Video Streams WebRTC SDK, 
 - **Development Host**: Linux, macOS, or Windows with ESP-IDF environment
 - **AWS Account**: For KVS signaling (or use AppRTC for testing)
 
-## 📱 Examples Overview
+## 📱 Examples Overview - New Simplified API
 
-Choose the right example for your use case:
+Choose the right example for your use case. All examples now use the new **simplified API** with smart defaults:
 
-| Example | Description | Hardware | Use Case |
-|---------|-------------|----------|----------|
-| **[webrtc_classic](examples/webrtc_classic/)** | 🏆 **Start here!** Complete WebRTC on single device | ESP32/S3/C6 + camera | Simple streaming, prototyping, single device solutions |
-| **[streaming_only](examples/streaming_only/)** | Media streaming device (split mode) | ESP32-P4 (main processor) | High-performance streaming, power optimization |
-| **[signaling_only](examples/signaling_only/)** | Signaling device (split mode) | ESP32-C6 (network processor) | Power-efficient signaling, always-on connectivity |
-| **[esp_camera](examples/esp_camera/)** | AppRTC compatible streaming | ESP32-CAM modules | Browser compatibility, no AWS account needed |
+| Example | Architecture | Hardware | Use Case |
+|---------|--------------|----------|----------|
+| **[webrtc_classic](examples/webrtc_classic/)** | 🏆 **Start here!** `kvs_signaling + kvs_peer_connection` | ESP32/S3/P4 + camera | Learning WebRTC, single device, AWS integration |
+| **[esp_camera](examples/esp_camera/)** | `apprtc_signaling + kvs_peer_connection` | ESP32-CAM modules | Browser compatibility, **no AWS account needed** |
+| **[streaming_only](examples/streaming_only/)** | `bridge_signaling + kvs_peer_connection` | ESP32-P4 (main processor) | High-performance streaming, power optimization |
+| **[signaling_only](examples/signaling_only/)** | `kvs_signaling + bridge_peer_connection` | ESP32-C6 (network processor) | Always-on connectivity, power optimization |
+
+### ✨ **New Simplified API Highlights**
+All examples now use **4-line configuration** with smart defaults:
+```c
+app_webrtc_config_t config = APP_WEBRTC_CONFIG_DEFAULT();
+config.signaling_client_if = kvs_signaling_client_if_get();    // Choose your signaling
+config.peer_connection_if = kvs_peer_connection_if_get();      // Choose your peer connection
+config.video_capture = media_stream_get_video_capture_if();    // Add media interfaces
+```
 
 ### What Should I Use?
-- **👨‍💻 New to WebRTC?** → Start with `webrtc_classic`
+- **👨‍💻 New to WebRTC?** → Start with `webrtc_classic` (full AWS integration)
+- **🌐 No AWS account?** → Try `esp_camera` (works with any browser)
 - **🔋 Need power optimization?** → Use split mode (`streaming_only` + `signaling_only`)
-- **🌐 Want browser compatibility?** → Try `esp_camera` with AppRTC
 - **🛠️ Building custom signaling?** → See [Custom Signaling Guide](CUSTOM_SIGNALING.md)
 
 ## Directory Structure
@@ -235,6 +246,7 @@ It is also possible to use AWS IoT credentials instead of Access token.
 - For this, please find and set `CONFIG_IOT_CORE_ENABLE_CREDENTIALS` via menuconfig.
 - Put the certificates under [examples/app_common/spiffs_image/certs](examples/app_common/spiffs_image/certs/) directory.
 - To generate these certificates, please take a look at [this](../scripts/generate-iot-credential.sh) script.
+- **Note**: The credential handling has been significantly streamlined with centralized AWS credentials management using simplified APIs.
 
 - Find the detailed info on KVS specific setup [here](../README#setup-iot).
 
@@ -242,8 +254,32 @@ It is also possible to use AWS IoT credentials instead of Access token.
 
 For detailed API usage and implementation guides:
 
-- **[API_USAGE.md](API_USAGE.md)** - Complete API documentation, configuration options, and usage examples for all deployment modes
-- **[CUSTOM_SIGNALING.md](CUSTOM_SIGNALING.md)** - Comprehensive guide for implementing custom signaling protocols
+- **[API_USAGE.md](API_USAGE.md)** - **Complete API documentation** featuring the new simplified API, configuration options, and usage examples for all deployment modes
+- **[CUSTOM_SIGNALING.md](CUSTOM_SIGNALING.md)** - **Comprehensive guide** for implementing custom signaling protocols using the pluggable architecture
+
+### 🚀 **API Evolution**
+The SDK has evolved from a complex configuration-heavy API to a **simplified, developer-friendly** interface:
+
+**Before (Complex)**:
+```c
+// 12+ manual configuration fields
+webrtcConfig.role_type = WEBRTC_CHANNEL_ROLE_TYPE_MASTER;
+webrtcConfig.trickleIce = true;
+webrtcConfig.useTurn = true;
+webrtcConfig.logLevel = 3;
+webrtcConfig.signalingOnly = false;
+// ... many more fields
+```
+
+**After (Simple)**:
+```c
+// 4 essential fields with smart defaults
+app_webrtc_config_t config = APP_WEBRTC_CONFIG_DEFAULT();
+config.signaling_client_if = kvs_signaling_client_if_get();
+config.peer_connection_if = kvs_peer_connection_if_get();
+config.video_capture = media_stream_get_video_capture_if();
+// Smart defaults: MASTER role, H.264+OPUS, trickle ICE, TURN enabled
+```
 
 ## License
 

@@ -19,6 +19,7 @@ This is **the communication brain** of a two-device system:
 - ⚡ **Instant Wake-up** - Can wake streaming device in milliseconds
 - 🛡️ **Reliable Connection** - Auto-reconnection and error recovery
 - 💾 **Low Memory Footprint** - Optimized for C6's memory constraints
+- 🔧 **Streamlined Credentials** - Compatible with ESP RainMaker's simplified AWS credential management
 
 ## 🔧 Hardware Requirements
 

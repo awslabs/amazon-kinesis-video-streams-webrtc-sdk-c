@@ -1,7 +1,7 @@
 Overview
 ========
 
-This section provides an overview of the Amazon Kinesis Video Streams WebRTC SDK for ESP-IDF.
+This section provides an overview of the Amazon Kinesis Video Streams WebRTC SDK for ESP-IDF, featuring the new simplified API with pluggable architecture.
 
 Software Stack Overview
 -----------------------
@@ -26,12 +26,23 @@ Architecture
 Core Components
 ---------------
 
-The SDK consists of the following core components:
+The SDK features a **pluggable architecture** with the following core components:
 
-* **Signaling Client**: Handles the WebRTC signaling process with Amazon Kinesis Video Streams.
-* **Media Pipeline**: Manages the capture, encoding, and transmission of audio and video data.
-* **WebRTC Connection**: Manages the peer connection, including ICE candidates, SDP negotiation, and data channels.
-* **ESP-IDF Integration**: Provides integration with ESP-IDF components such as Wi-Fi, camera, and audio drivers.
+* **Simplified API Layer (app_webrtc.h)**: 4-line configuration with smart defaults and advanced override APIs
+* **Signaling Interfaces**: Pluggable signaling implementations (KVS, AppRTC, Bridge, Custom)
+* **Peer Connection Interfaces**: Pluggable peer connection implementations (KVS WebRTC, Bridge-only, Custom)
+* **Media Pipeline**: Standardized capture/player interfaces for audio and video data
+* **ESP-IDF Integration**: Deep integration with ESP-IDF components for Wi-Fi, camera, and audio drivers
+
+New Simplified API Benefits
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The new API design provides:
+
+* **Smart Defaults**: MASTER role, H.264+OPUS codecs, trickle ICE, TURN servers enabled
+* **Auto-Detection**: Automatically detects signaling-only vs streaming modes based on provided interfaces
+* **Pluggable**: Mix and match signaling and peer connection implementations
+* **Backward Compatible**: Advanced users can override any default with dedicated APIs
 
 Next Steps
 ----------

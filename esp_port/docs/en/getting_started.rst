@@ -1,7 +1,7 @@
 Getting Started
 ===============
 
-This guide will help you get started with the Amazon Kinesis Video Streams WebRTC SDK for ESP-IDF.
+This guide will help you get started with the Amazon Kinesis Video Streams WebRTC SDK for ESP-IDF, featuring the new simplified API with smart defaults and pluggable architecture.
 
 Prerequisites
 -------------
@@ -86,7 +86,7 @@ For Windows, follow the instructions in the `ESP-IDF Windows Setup Guide <https:
 Configure AWS Credentials
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can use either direct AWS credentials or IoT Core credentials:
+You can use either direct AWS credentials, IoT Core credentials, or ESP RainMaker integration for simplified credential management:
 
 Option A: Direct AWS Credentials
 """"""""""""""""""""""""""""""""
@@ -130,6 +130,31 @@ Enable IoT Core credentials in menuconfig and place your certificates in the app
    * private.key
    * cacert.pem
 
+Option C: ESP RainMaker Integration (Recommended)
+"""""""""""""""""""""""""""""""""""""""""""""""""
+
+For the best experience with ESP32 camera devices, use ESP RainMaker integration which provides:
+
+* **Simplified AWS Credentials**: Automatic credential management using ``esp_rmaker_get_aws_security_token()``
+* **Centralized Device Management**: Control camera settings through ESP RainMaker mobile app
+* **Optimized Memory Usage**: Credentials allocated from external RAM with proper cleanup
+* **Reduced Code Complexity**: No manual certificate handling required
+
+See the `kvs_webrtc_camera example <https://github.com/espressif/esp-rainmaker/tree/master/examples/kvs_webrtc_camera>`_ in the ESP RainMaker repository for complete implementation.
+
+The RainMaker integration features:
+
+.. code-block:: c
+
+   // Simplified camera device creation (includes name and channel parameters)
+   esp_rmaker_device_t *device = esp_rmaker_camera_device_create("Camera", NULL);
+
+   // Automatic AWS region detection
+   char *aws_region = esp_rmaker_get_aws_region();
+
+   // Streamlined credential retrieval
+   esp_rmaker_aws_credentials_t *credentials = esp_rmaker_get_aws_security_token("esp-videostream-v1-NodeRole");
+
 Build and Flash
 ^^^^^^^^^^^^^^^
 
@@ -149,14 +174,27 @@ Build and flash the example for your specific board:
 Running Your First WebRTC Application
 -------------------------------------
 
+All examples now use the **new simplified API** with smart defaults. Instead of 12+ configuration fields, you only need to set 4 essential fields.
+
 Classic Mode Example
 ^^^^^^^^^^^^^^^^^^^^
 
-The ``webrtc_classic`` example demonstrates a complete WebRTC application running on a single ESP32 device:
+The ``webrtc_classic`` example demonstrates a complete WebRTC application running on a single ESP32 device using the simplified API:
 
-1. After flashing, the device will connect to Wi-Fi
-2. It will establish a connection to AWS KVS
-3. When a viewer connects to the channel, video streaming will begin
+.. code-block:: c
+
+   // Simplified 4-line configuration
+   app_webrtc_config_t config = APP_WEBRTC_CONFIG_DEFAULT();
+   config.signaling_client_if = kvs_signaling_client_if_get();
+   config.peer_connection_if = kvs_peer_connection_if_get();
+   config.video_capture = media_stream_get_video_capture_if();
+   // Smart defaults: MASTER role, H.264+OPUS, trickle ICE, TURN
+
+After flashing:
+
+1. The device will connect to Wi-Fi with the configured credentials
+2. It will establish a connection to AWS KVS using smart defaults
+3. When a viewer connects to the channel, video streaming will begin automatically
 
 To view the stream:
 

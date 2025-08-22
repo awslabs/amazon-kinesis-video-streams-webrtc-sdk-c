@@ -18,6 +18,7 @@ This is **half of a two-device system**:
 - 🚀 **Instant Wake-up** - Shared network stack enables immediate streaming
 - 🌉 **Bridge Communication** - Seamless IPC with signaling device
 - ⚡ **Performance Focused** - Dedicated streaming processor
+- 🔧 **Simplified Architecture** - Works with ESP RainMaker's streamlined credential management
 
 ## 🔧 Hardware Requirements
 

@@ -89,6 +89,24 @@ kvs_signaling_cfg.iotCoreRoleAlias = "your_role_alias";
 kvs_signaling_cfg.iotCoreThingName = "your_thing_name";
 ```
 
+**Option C: ESP RainMaker Integration (Advanced)**
+
+For seamless credential management with ESP RainMaker, use the credential callback approach:
+
+```c
+// Credential callback implementation
+int rmaker_fetch_aws_credentials(uint64_t user_data, /* ... other params ... */) {
+    esp_rmaker_aws_credentials_t *credentials = esp_rmaker_get_aws_security_token("esp-videostream-v1-NodeRole");
+    // Set output parameters and return 0 on success
+}
+
+// Configure KVS signaling with callback
+kvs_signaling_cfg.fetch_credentials_cb = rmaker_fetch_aws_credentials;
+kvs_signaling_cfg.fetch_credentials_user_data = 0;
+```
+
+This approach provides **dynamic credential renewal** and **optimized memory management** with ESP RainMaker's streamlined AWS integration.
+
 ### Step 3: Build & Flash
 ```bash
 # Build the project
