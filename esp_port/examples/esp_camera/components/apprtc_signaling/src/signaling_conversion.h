@@ -8,7 +8,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "signaling_serializer.h"
+#include "app_webrtc_if.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,7 +28,7 @@ extern "C" {
 int apprtc_json_to_signaling_message(
     const char *json_message,
     size_t json_message_len,
-    signaling_msg_t *pSignalingMessage
+    webrtc_message_t *pWebrtcMessage
 );
 
 /**
@@ -43,7 +43,7 @@ int apprtc_json_to_signaling_message(
  * @return 0 on success, non-zero on failure
  */
 int signaling_message_to_apprtc_json(
-    signaling_msg_t *pSignalingMessage,
+    webrtc_message_t *pWebrtcMessage,
     char **ppJsonMessage,
     size_t *pJsonMessageLen
 );

@@ -30,18 +30,16 @@
 #include "esp_netif.h"
 
 #include "esp_cli.h"
-#include "app_storage.h"
 
 #include "app_webrtc.h"
 #include "esp_webrtc_time.h"
 #include "esp_work_queue.h"
 #include "media_stream.h"
 #include "apprtc_signaling.h"
-#include "apprtc_signaling_interface.h"
 #include "wifi_cli.h"
 #include "webrtc_cli.h"
-#include "signaling_serializer.h"
-#include "signaling_conversion.h"
+#include "app_webrtc_if.h"
+#include "kvs_peer_connection.h"
 
 static const char *TAG = "esp_webrtc_camera";
 
@@ -194,25 +192,6 @@ void app_main(void)
     wifi_register_cli();
     webrtc_register_cli();
 
-    app_storage_init();
-
-    esp_work_queue_config_t work_queue_config = ESP_WORK_QUEUE_CONFIG_DEFAULT();
-    work_queue_config.stack_size = 60 * 1024;
-
-    // Initialize work queue for background tasks
-    if (esp_work_queue_init_with_config(&work_queue_config) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize work queue");
-        return;
-    }
-
-    if (esp_work_queue_start() != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to start work queue");
-        return;
-    }
-
-    // Initialize signaling serializer for message format conversion
-    signaling_serializer_init();
-
     // Register the WebRTC event callback to receive events from the WebRTC SDK
     if (app_webrtc_register_event_callback(app_webrtc_event_handler, NULL) != 0) {
         ESP_LOGE(TAG, "Failed to register WebRTC event callback");
@@ -246,6 +225,10 @@ void app_main(void)
     app_webrtc_config.signaling_client_if = apprtc_signaling_client_if_get();
     app_webrtc_config.signaling_cfg = &apprtc_config;
 
+    // Peer connection interface
+    app_webrtc_config.peer_connection_if = kvs_peer_connection_if_get();
+    app_webrtc_config.implementation_config = NULL;
+
     // Media interfaces for bi-directional streaming
     app_webrtc_config.video_capture = video_capture;
     app_webrtc_config.audio_capture = audio_capture;
@@ -260,7 +243,7 @@ void app_main(void)
     // Initialize WebRTC application with simplified API
     status = app_webrtc_init(&app_webrtc_config);
     if (status != WEBRTC_STATUS_SUCCESS) {
-        ESP_LOGE(TAG, "Failed to initialize WebRTC application: 0x%08" PRIx32, status);
+        ESP_LOGE(TAG, "Failed to initialize WebRTC application: 0x%08" PRIx32, (uint32_t) status);
         return;
     }
 
@@ -268,11 +251,11 @@ void app_main(void)
 #if CONFIG_APPRTC_ROLE_TYPE == 0
     // This mode can be used when you want to connect to the existing room.
     // Will then receive the offer from the other peer and send the answer.
-    app_webrtc_set_role(WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_MASTER);
+    app_webrtc_set_role(WEBRTC_CHANNEL_ROLE_TYPE_MASTER);
     ESP_LOGI(TAG, "Configured as MASTER role using advanced API");
 #else
     // In this mode, the application will send the offer and wait for the answer.
-    app_webrtc_set_role(WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_VIEWER);
+    app_webrtc_set_role(WEBRTC_CHANNEL_ROLE_TYPE_VIEWER);
     ESP_LOGI(TAG, "Configured as VIEWER role using advanced API");
 #endif
 
@@ -282,7 +265,7 @@ void app_main(void)
     // Start the WebRTC application (this will handle signaling connection)
     status = app_webrtc_run();
     if (status != WEBRTC_STATUS_SUCCESS) {
-        ESP_LOGE(TAG, "Failed to start WebRTC application: 0x%08" PRIx32, status);
+        ESP_LOGE(TAG, "Failed to start WebRTC application: 0x%08" PRIx32, (uint32_t) status);
         app_webrtc_terminate();
         return;
     }
