@@ -56,7 +56,7 @@ Here's a basic example of configuring the WebRTC SDK using the default configura
    webrtcConfig.signaling_cfg = &kvs_signaling_cfg; // Your KVS configuration
 
    // Set role type
-   webrtcConfig.role_type = WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+   webrtcConfig.role_type = WEBRTC_CHANNEL_ROLE_TYPE_MASTER;
 
    // Configure media interfaces
    webrtcConfig.video_capture = media_stream_get_video_capture_if();
@@ -154,10 +154,10 @@ Configure the WebRTC role (Master vs Viewer):
 .. code-block:: c
 
    // Master role (initiates connection, sends offer)
-   webrtcConfig.role_type = WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+   webrtcConfig.role_type = WEBRTC_CHANNEL_ROLE_TYPE_MASTER;
 
    // Viewer role (receives offer, sends answer)
-   webrtcConfig.role_type = WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
+   webrtcConfig.role_type = WEBRTC_CHANNEL_ROLE_TYPE_VIEWER;
 
 WebRTC Options
 --------------
@@ -240,7 +240,7 @@ From the ``esp_camera`` example:
        webrtcConfig.signaling_cfg = &apprtc_config;
 
        // Configure role and media
-       webrtcConfig.role_type = WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+       webrtcConfig.role_type = WEBRTC_CHANNEL_ROLE_TYPE_MASTER;
        webrtcConfig.video_capture = media_stream_get_video_capture_if();
        webrtcConfig.audio_capture = media_stream_get_audio_capture_if();
        webrtcConfig.video_player = media_stream_get_video_player_if();
@@ -283,7 +283,7 @@ From the ``signaling_only`` example:
        app_webrtc_config_t webrtcConfig = WEBRTC_APP_CONFIG_DEFAULT();
        webrtcConfig.signaling_client_if = kvs_signaling_client_if_get();
        webrtcConfig.signaling_cfg = &kvsConfig;
-       webrtcConfig.role_type = WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+       webrtcConfig.role_type = WEBRTC_CHANNEL_ROLE_TYPE_MASTER;
        webrtcConfig.signaling_only = true; // Disable streaming components to save memory
 
        // No media interfaces needed for signaling-only mode
