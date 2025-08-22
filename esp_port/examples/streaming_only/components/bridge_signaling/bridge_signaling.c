@@ -22,11 +22,11 @@ typedef struct {
     // Configuration
     bridge_signaling_config_t config;
     bool initialized;
-    esp_webrtc_signaling_state_t state;
+    webrtc_signaling_state_t state;
 
     // Callbacks matching webrtc_signaling_client_if_t
-    WEBRTC_STATUS (*on_msg_received)(uint64_t, esp_webrtc_signaling_message_t*);
-    WEBRTC_STATUS (*on_state_changed)(uint64_t, webrtc_signaling_client_state_t);
+    WEBRTC_STATUS (*on_msg_received)(uint64_t, webrtc_message_t*);
+    WEBRTC_STATUS (*on_signaling_state_changed)(uint64_t, webrtc_signaling_state_t);
     WEBRTC_STATUS (*on_error)(uint64_t, WEBRTC_STATUS, char*, uint32_t);
     uint64_t user_data;
 
@@ -62,9 +62,9 @@ void bridge_message_handler(const void* data, int len)
     ESP_LOGD(TAG, "Deserialized message: type=%d, correlation_id=%s, peer_id=%s, payload_len=%d",
              (int) signaling_msg.messageType, signaling_msg.correlationId, signaling_msg.peerClientId, (int) signaling_msg.payloadLen);
 
-    // Convert to standardized esp_webrtc_signaling_message_t structure
-    esp_webrtc_signaling_message_t webrtc_msg;
-    memset(&webrtc_msg, 0, sizeof(esp_webrtc_signaling_message_t));
+    // Convert to standardized webrtc_message_t structure
+    webrtc_message_t webrtc_msg;
+    memset(&webrtc_msg, 0, sizeof(webrtc_message_t));
 
     // Handle ICE servers message separately (not forwarded to WebRTC)
     if (signaling_msg.messageType == SIGNALING_MSG_TYPE_ICE_SERVERS) {
@@ -109,13 +109,13 @@ void bridge_message_handler(const void* data, int len)
     // Convert message type for regular signaling messages
     switch (signaling_msg.messageType) {
         case SIGNALING_MSG_TYPE_OFFER:
-            webrtc_msg.message_type = ESP_SIGNALING_MESSAGE_TYPE_OFFER;
+            webrtc_msg.message_type = WEBRTC_MESSAGE_TYPE_OFFER;
             break;
         case SIGNALING_MSG_TYPE_ANSWER:
-            webrtc_msg.message_type = ESP_SIGNALING_MESSAGE_TYPE_ANSWER;
+            webrtc_msg.message_type = WEBRTC_MESSAGE_TYPE_ANSWER;
             break;
         case SIGNALING_MSG_TYPE_ICE_CANDIDATE:
-            webrtc_msg.message_type = ESP_SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
+            webrtc_msg.message_type = WEBRTC_MESSAGE_TYPE_ICE_CANDIDATE;
             break;
         default:
             ESP_LOGW(TAG, "Unknown message type from bridge: %d", signaling_msg.messageType);
@@ -165,7 +165,10 @@ WEBRTC_STATUS bridge_signaling_send_message_via_bridge(signaling_msg_t* pMessage
         return WEBRTC_STATUS_INTERNAL_ERROR;
     }
 
-    ESP_LOGI(TAG, "Sending serialized message (%d bytes) via webrtc_bridge", (int)serialized_len);
+    // Debug: preview the serialized JSON we send to the bridge (payload is base64 already)
+    const int preview_len = (serialized_len < 1600) ? (int)serialized_len : 1600;
+    ESP_LOGD(TAG, "Sending serialized message (%d bytes) via webrtc_bridge", (int)serialized_len);
+    ESP_LOGD(TAG, "serialized preview: %.*s", preview_len, serialized_data);
 
     // Send via webrtc_bridge (it takes ownership of the data)
     webrtc_bridge_send_message(serialized_data, (int)serialized_len);
@@ -195,7 +198,7 @@ static WEBRTC_STATUS bridgeInit(void *signaling_cfg, void **ppSignalingClient)
     // Copy configuration
     memcpy(&client_data->config, config, sizeof(bridge_signaling_config_t));
     client_data->initialized = true;
-    client_data->state = ESP_SIGNALING_STATE_NEW;
+    client_data->state = WEBRTC_SIGNALING_STATE_NEW;
 
     // Set global client reference
     g_bridge_client = client_data;
@@ -228,11 +231,11 @@ static WEBRTC_STATUS bridgeConnect(void *pSignalingClient)
     }
 
     // Set connected state
-    client_data->state = ESP_SIGNALING_STATE_CONNECTED;
+    client_data->state = WEBRTC_SIGNALING_STATE_CONNECTED;
 
     // Notify state change using portable state type
-    if (client_data->on_state_changed) {
-        client_data->on_state_changed((uint64_t)client_data->user_data, WEBRTC_SIGNALING_CLIENT_STATE_CONNECTED);
+    if (client_data->on_signaling_state_changed) {
+        client_data->on_signaling_state_changed((uint64_t)client_data->user_data, WEBRTC_SIGNALING_STATE_CONNECTED);
     }
 
     ESP_LOGI(TAG, "Bridge signaling client connected");
@@ -257,11 +260,11 @@ static WEBRTC_STATUS bridgeDisconnect(void *pSignalingClient)
     }
 
     // Set disconnected state
-    client_data->state = ESP_SIGNALING_STATE_DISCONNECTED;
+    client_data->state = WEBRTC_SIGNALING_STATE_DISCONNECTED;
 
     // Notify state change using portable state type
-    if (client_data->on_state_changed) {
-        client_data->on_state_changed((uint64_t)client_data->user_data, WEBRTC_SIGNALING_CLIENT_STATE_DISCONNECTED);
+    if (client_data->on_signaling_state_changed) {
+        client_data->on_signaling_state_changed((uint64_t)client_data->user_data, WEBRTC_SIGNALING_STATE_DISCONNECTED);
     }
 
     ESP_LOGI(TAG, "Bridge signaling client disconnected");
@@ -271,7 +274,7 @@ static WEBRTC_STATUS bridgeDisconnect(void *pSignalingClient)
 /**
  * @brief Bridge signaling send message implementation
  */
-static WEBRTC_STATUS bridgeSendMessage(void *pSignalingClient, esp_webrtc_signaling_message_t* pMessage)
+static WEBRTC_STATUS bridgeSendMessage(void *pSignalingClient, webrtc_message_t* pMessage)
 {
     ESP_LOGI(TAG, "Sending message via bridge signaling");
 
@@ -281,23 +284,23 @@ static WEBRTC_STATUS bridgeSendMessage(void *pSignalingClient, esp_webrtc_signal
 
     BridgeSignalingClientData* client_data = (BridgeSignalingClientData*)pSignalingClient;
 
-    if (!client_data->initialized || client_data->state != ESP_SIGNALING_STATE_CONNECTED) {
+    if (!client_data->initialized || client_data->state != WEBRTC_SIGNALING_STATE_CONNECTED) {
         return WEBRTC_STATUS_INVALID_OPERATION;
     }
 
-    // Convert esp_webrtc_signaling_message_t to signaling_msg_t
+    // Convert webrtc_message_t to signaling_msg_t
     signaling_msg_t signaling_msg;
     signaling_msg.version = pMessage->version;
 
     // Convert message type
     switch (pMessage->message_type) {
-        case ESP_SIGNALING_MESSAGE_TYPE_OFFER:
+        case WEBRTC_MESSAGE_TYPE_OFFER:
             signaling_msg.messageType = SIGNALING_MSG_TYPE_OFFER;
             break;
-        case ESP_SIGNALING_MESSAGE_TYPE_ANSWER:
+        case WEBRTC_MESSAGE_TYPE_ANSWER:
             signaling_msg.messageType = SIGNALING_MSG_TYPE_ANSWER;
             break;
-        case ESP_SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE:
+        case WEBRTC_MESSAGE_TYPE_ICE_CANDIDATE:
             signaling_msg.messageType = SIGNALING_MSG_TYPE_ICE_CANDIDATE;
             break;
         default:
@@ -349,8 +352,8 @@ static WEBRTC_STATUS bridgeFree(void *pSignalingClient)
  */
 static WEBRTC_STATUS bridgeSetCallbacks(void *pSignalingClient,
                                         uint64_t customData,
-                                        WEBRTC_STATUS (*on_msg_received)(uint64_t, esp_webrtc_signaling_message_t*),
-                                        WEBRTC_STATUS (*on_state_changed)(uint64_t, webrtc_signaling_client_state_t),
+                                        WEBRTC_STATUS (*on_msg_received)(uint64_t, webrtc_message_t*),
+                                        WEBRTC_STATUS (*on_signaling_state_changed)(uint64_t, webrtc_signaling_state_t),
                                         WEBRTC_STATUS (*on_error)(uint64_t, WEBRTC_STATUS, char*, uint32_t))
 {
     if (pSignalingClient == NULL) {
@@ -362,7 +365,7 @@ static WEBRTC_STATUS bridgeSetCallbacks(void *pSignalingClient,
 
     // Set the callbacks
     client_data->on_msg_received = on_msg_received;
-    client_data->on_state_changed = on_state_changed;
+    client_data->on_signaling_state_changed = on_signaling_state_changed;
     client_data->on_error = on_error;
     client_data->user_data = customData;
 
@@ -372,7 +375,7 @@ static WEBRTC_STATUS bridgeSetCallbacks(void *pSignalingClient,
 /**
  * @brief Bridge signaling set role type implementation (stub)
  */
-static WEBRTC_STATUS bridgeSetRoleType(void *pSignalingClient, webrtc_signaling_channel_role_type_t role_type)
+static WEBRTC_STATUS bridgeSetRoleType(void *pSignalingClient, webrtc_channel_role_type_t role_type)
 {
     ESP_LOGI(TAG, "Setting bridge signaling role type: %d", role_type);
 
@@ -435,7 +438,7 @@ webrtc_signaling_client_if_t* getBridgeSignalingClientInterface(void)
         .disconnect = bridgeDisconnect,
         .send_message = bridgeSendMessage,
         .free = bridgeFree,
-        .set_callback = bridgeSetCallbacks,
+        .set_callbacks = bridgeSetCallbacks,
         .set_role_type = bridgeSetRoleType,
         .get_ice_servers = bridgeGetIceServers
     };

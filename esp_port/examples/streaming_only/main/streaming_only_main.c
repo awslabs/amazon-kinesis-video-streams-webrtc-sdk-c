@@ -20,12 +20,100 @@
 #include "webrtc_bridge_signaling.h"
 #include "esp_work_queue.h"
 #include "app_webrtc.h"
+#include "kvs_peer_connection.h"
 
 static const char *TAG = "streaming_only";
+
+// Data channel callback context
+typedef struct {
+    char peer_id[64];
+} data_channel_context_t;
+
+// Global data channel context for active peer
+static data_channel_context_t g_data_channel_ctx;
 
 // WiFi event group
 static EventGroupHandle_t s_wifi_event_group;
 static char wifi_ip[72];
+
+// Data channel callbacks
+static void on_data_channel_open(uint64_t custom_data, void *p_data_channel, const char *peer_id)
+{
+    data_channel_context_t *ctx = (data_channel_context_t *)(uintptr_t)custom_data;
+
+    ESP_LOGI(TAG, "on_data_channel_open called with custom_data: 0x%llx", (unsigned long long)custom_data);
+    ESP_LOGI(TAG, "p_data_channel: %p, peer_id: %s", p_data_channel, peer_id);
+
+    if (ctx == NULL) {
+        ESP_LOGE(TAG, "Invalid data channel context (NULL) in open callback");
+        return;
+    }
+
+    // Store the peer_id in our context
+    if (peer_id != NULL) {
+        strncpy(ctx->peer_id, peer_id, sizeof(ctx->peer_id) - 1);
+        ctx->peer_id[sizeof(ctx->peer_id) - 1] = '\0';
+    }
+
+    ESP_LOGI(TAG, "Data channel opened for peer: %s", ctx->peer_id);
+
+    // Send a welcome message when the channel opens
+    const char *welcome_msg = "Hello from ESP32! Data channel is now open. Send a message and I'll echo it back.";
+    ESP_LOGI(TAG, "Sending welcome message to peer: %s", ctx->peer_id);
+
+    WEBRTC_STATUS status = app_webrtc_send_data_channel_message(
+        ctx->peer_id,
+        p_data_channel,
+        false,
+        (const uint8_t *)welcome_msg,
+        strlen(welcome_msg)
+    );
+
+    if (status != WEBRTC_STATUS_SUCCESS) {
+        ESP_LOGE(TAG, "Failed to send welcome message: 0x%08x", status);
+    } else {
+        ESP_LOGI(TAG, "Successfully sent welcome message");
+    }
+}
+
+static void on_data_channel_message(uint64_t custom_data, void *p_data_channel, const char *peer_id,
+                                    bool is_binary, uint8_t *p_message, uint32_t message_len)
+{
+    data_channel_context_t *ctx = (data_channel_context_t *)(uintptr_t)custom_data;
+
+    ESP_LOGI(TAG, "on_data_channel_message called with custom_data: 0x%llx", (unsigned long long)custom_data);
+    ESP_LOGI(TAG, "p_data_channel: %p, peer_id: %s, is_binary: %d, p_message: %p, message_len: %u",
+             p_data_channel, peer_id, is_binary, p_message, message_len);
+
+    if (ctx == NULL) {
+        ESP_LOGE(TAG, "Invalid data channel context (NULL) in message callback");
+        return;
+    }
+
+    if (p_message == NULL) {
+        ESP_LOGE(TAG, "Invalid message pointer (NULL) in message callback");
+        return;
+    }
+
+    // Store or update the peer_id in our context
+    if (peer_id != NULL) {
+        strncpy(ctx->peer_id, peer_id, sizeof(ctx->peer_id) - 1);
+        ctx->peer_id[sizeof(ctx->peer_id) - 1] = '\0';
+    }
+
+    ESP_LOGI(TAG, "Data channel message received from peer %s: %.*s (binary: %s)",
+             peer_id, message_len, p_message, is_binary ? "yes" : "no");
+
+    // Echo the message back
+    ESP_LOGI(TAG, "Echoing message back to peer: %s", peer_id);
+    WEBRTC_STATUS status = app_webrtc_send_data_channel_message(peer_id, p_data_channel, is_binary, p_message, message_len);
+
+    if (status != WEBRTC_STATUS_SUCCESS) {
+        ESP_LOGE(TAG, "Failed to echo message back: 0x%08x", status);
+    } else {
+        ESP_LOGI(TAG, "Successfully echoed message back");
+    }
+}
 
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT      BIT1
@@ -131,6 +219,8 @@ static void wifi_init_sta(void)
 
 static void app_webrtc_event_handler(app_webrtc_event_data_t *event_data, void *user_ctx)
 {
+    WEBRTC_STATUS status;
+
     if (event_data == NULL) {
         return;
     }
@@ -147,9 +237,22 @@ static void app_webrtc_event_handler(app_webrtc_event_data_t *event_data, void *
             break;
         case APP_WEBRTC_EVENT_PEER_CONNECTED:
             ESP_LOGI(TAG, "[KVS Event] Peer Connected: %s", event_data->peer_id);
+
+            // Update data channel context with the connected peer ID
+            strncpy(g_data_channel_ctx.peer_id, event_data->peer_id, sizeof(g_data_channel_ctx.peer_id) - 1);
+            g_data_channel_ctx.peer_id[sizeof(g_data_channel_ctx.peer_id) - 1] = '\0';
+            ESP_LOGI(TAG, "Updated data channel context with peer ID: %s", g_data_channel_ctx.peer_id);
+
+            // Note: Data channel callbacks are now registered early in app_main
+            // No need to register them here again
             break;
         case APP_WEBRTC_EVENT_PEER_DISCONNECTED:
             ESP_LOGI(TAG, "[KVS Event] Peer Disconnected: %s", event_data->peer_id);
+
+            // Clear data channel context if this is our active peer
+            if (strcmp(g_data_channel_ctx.peer_id, event_data->peer_id) == 0) {
+                memset(&g_data_channel_ctx, 0, sizeof(g_data_channel_ctx));
+            }
             break;
         case APP_WEBRTC_EVENT_STREAMING_STARTED:
             ESP_LOGI(TAG, "[KVS Event] Streaming Started for Peer: %s", event_data->peer_id);
@@ -200,20 +303,6 @@ void app_main(void)
     // Initialize signaling serializer
     signaling_serializer_init();
 
-    esp_work_queue_config_t work_queue_config = ESP_WORK_QUEUE_CONFIG_DEFAULT();
-    work_queue_config.stack_size = 24 * 1024;
-
-    // Initialize work queue
-    if (esp_work_queue_init_with_config(&work_queue_config) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize work queue");
-        return;
-    }
-
-    if (esp_work_queue_start() != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to start work queue");
-        return;
-    }
-
     // Register the event callback *before* init to catch all events
     if (app_webrtc_register_event_callback(app_webrtc_event_handler, NULL) != 0) {
         ESP_LOGE(TAG, "Failed to register KVS event callback.");
@@ -244,6 +333,9 @@ void app_main(void)
     app_webrtc_config.signaling_client_if = getBridgeSignalingClientInterface();
     app_webrtc_config.signaling_cfg = &bridge_config;
 
+    // Enable pluggable peer connection using KVS implementation
+    app_webrtc_config.peer_connection_if = kvs_peer_connection_if_get();
+
     // Media interfaces for bi-directional streaming
     app_webrtc_config.video_capture = video_capture;
     app_webrtc_config.audio_capture = audio_capture;
@@ -266,6 +358,26 @@ void app_main(void)
 
     // Enable media reception for bi-directional streaming
     app_webrtc_enable_media_reception(true);
+
+    // Initialize data channel context
+    memset(&g_data_channel_ctx, 0, sizeof(g_data_channel_ctx));
+    strcpy(g_data_channel_ctx.peer_id, "default");  // Will be updated when peer connects
+
+    // Register data channel callbacks early - they will be used for any peer that connects
+    ESP_LOGI(TAG, "Registering data channel callbacks early");
+    status = app_webrtc_set_data_channel_callbacks(
+        "default",  // Will be updated when actual peer connects
+        on_data_channel_open,
+        on_data_channel_message,
+        (uint64_t)&g_data_channel_ctx
+    );
+
+    if (status != WEBRTC_STATUS_SUCCESS) {
+        ESP_LOGI(TAG, "Early callback registration pending - callbacks will be applied when peers connect (status: 0x%08x)", status);
+        // Non-fatal, continue initialization
+    } else {
+        ESP_LOGI(TAG, "Data channel callbacks registered early successfully");
+    }
 
     // Start webrtc bridge
     webrtc_bridge_start();

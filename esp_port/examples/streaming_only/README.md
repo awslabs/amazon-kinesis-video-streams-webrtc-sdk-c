@@ -173,6 +173,23 @@ CONFIG_ESP_SLEEP_GPIO_RESET_WORKAROUND=y # Reliable wake-up
 | **Streaming** | Active (signaling) | Active (streaming) | Full power both devices |
 | **Setup** | Active (connecting) | Active (bridge init) | Both devices active during initialization |
 
+### New Simplified API
+This example uses the new simplified `app_webrtc` API with pluggable interfaces:
+
+```c
+// Configure with minimal settings
+app_webrtc_config_t app_webrtc_config = APP_WEBRTC_CONFIG_DEFAULT();
+app_webrtc_config.signaling_client_if = getBridgeSignalingClientInterface();
+app_webrtc_config.signaling_cfg = &bridge_config;
+app_webrtc_config.peer_connection_if = kvs_peer_connection_if_get(); // Full WebRTC
+
+// Media interfaces provided
+app_webrtc_config.video_capture = video_capture;
+app_webrtc_config.audio_capture = audio_capture;
+app_webrtc_config.video_player = video_player;
+app_webrtc_config.audio_player = audio_player;
+```
+
 ### Bridge Communication
 The streaming device communicates with the signaling device through the webrtc_bridge component. The bridge handles signaling message serialization and transfer between the two devices.
 

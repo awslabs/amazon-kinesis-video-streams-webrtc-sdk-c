@@ -7,7 +7,7 @@
 #ifndef __WEBRTC_BRIDGE_SIGNALING_H__
 #define __WEBRTC_BRIDGE_SIGNALING_H__
 
-#include "webrtc_signaling_if.h"
+#include "app_webrtc_if.h"
 #include "signaling_serializer.h"
 
 #ifdef __cplusplus

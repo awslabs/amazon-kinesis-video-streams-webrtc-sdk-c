@@ -14,7 +14,7 @@
 #ifndef __ICE_BRIDGE_CLIENT_H__
 #define __ICE_BRIDGE_CLIENT_H__
 
-#include "webrtc_signaling_if.h"
+#include "app_webrtc_if.h"
 #include "signaling_serializer.h"
 
 /**

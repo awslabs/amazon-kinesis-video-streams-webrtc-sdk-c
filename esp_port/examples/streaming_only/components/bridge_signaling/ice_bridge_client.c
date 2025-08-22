@@ -67,7 +67,8 @@ WEBRTC_STATUS ice_bridge_client_get_servers(void* pAppSignaling, void* pIceServe
 {
     WEBRTC_STATUS retStatus = WEBRTC_STATUS_SUCCESS;
     uint32_t uriCount = 0;
-    bool have_more = false;
+    uint32_t max_tries = 10;
+    bool have_more = true;
 
     // pAppSignaling is unused in streaming-only mode
     (void)pAppSignaling;
@@ -83,13 +84,13 @@ WEBRTC_STATUS ice_bridge_client_get_servers(void* pAppSignaling, void* pIceServe
 
 #if CONFIG_ESP_HOSTED_ENABLED
     // Use synchronous RPC calls - this completely bypasses the async event queue!
-    do {
-        ESP_LOGI(TAG, "RPC: Requesting ICE server at index %d", uriCount);
-
-        if (uriCount >= MAX_ICE_SERVERS_COUNT) {
-            ESP_LOGW(TAG, "Max ICE URI count reached");
+    for (int i = 0; i < max_tries; i++) {
+        if (uriCount >= MAX_ICE_SERVERS_COUNT || !have_more) {
+            ESP_LOGW(TAG, "Done or Max ICE URI count reached (try %d/%d)", i, max_tries);
             break;
         }
+
+        ESP_LOGI(TAG, "RPC: Requesting ICE server at index %d (try %d/%d)", uriCount, i, max_tries);
 
         // Prepare RPC request
         rpc_usr_t req = {0};
@@ -148,7 +149,7 @@ WEBRTC_STATUS ice_bridge_client_get_servers(void* pAppSignaling, void* pIceServe
             ESP_LOGI(TAG, "RPC: ICE refresh in progress for index %" PRIu32, uriCount);
             vTaskDelay(pdMS_TO_TICKS(500));
         }
-    } while (have_more && uriCount < MAX_ICE_SERVERS_COUNT);
+    }
 
 #else
     ESP_LOGW(TAG, "RPC not available, falling back to STUN only");

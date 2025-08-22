@@ -1,5 +1,5 @@
 idf_component_register(
-    SRCS "src/signaling_bridge_adapter.c"
+    SRCS "src/signaling_bridge_adapter.c" "src/bridge_peer_connection.c"
     INCLUDE_DIRS "include"
-    REQUIRES kvs_webrtc signaling_serializer esp_common network_coprocessor webrtc_bridge
+    REQUIRES esp_common
 )

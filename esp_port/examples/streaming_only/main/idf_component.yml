@@ -21,6 +21,10 @@ dependencies:
     path: ${KVS_SDK_PATH}/esp_port/components/kvs_webrtc
     version: '*'
 
+  app_webrtc:
+    path: ${KVS_SDK_PATH}/esp_port/components/app_webrtc
+    version: '*'
+
   media_stream:
     path: ${KVS_SDK_PATH}/esp_port/components/media_stream
     version: '*'

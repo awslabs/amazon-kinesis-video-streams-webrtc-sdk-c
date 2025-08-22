@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "app_webrtc.h"
-#include "signaling_serializer.h"
+// #include "signaling_serializer.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,6 +20,7 @@ extern "C" {
  */
 typedef struct {
     void *user_ctx;
+    bool auto_register_callbacks;  // Automatically register callbacks with app_webrtc and bridge
 } signaling_bridge_adapter_config_t;
 
 /**
@@ -28,7 +29,8 @@ typedef struct {
  * This function initializes the bridge adapter and automatically:
  * - Registers RPC handler for ICE server queries
  * - Sets up bridge message handlers
- * - Configures WebRTC application callbacks
+ * - Configures WebRTC application callbacks (if auto_register_callbacks is true)
+ * - Integrates with bridge_peer_connection interface
  *
  * @param config Configuration structure
  * @return WEBRTC_STATUS_SUCCESS on success, error code otherwise
@@ -52,7 +54,19 @@ WEBRTC_STATUS signaling_bridge_adapter_start(void);
  * @param signalingMessage Message to send
  * @return 0 on success, negative on error
  */
-int signaling_bridge_adapter_send_message(signaling_msg_t *signalingMessage);
+int signaling_bridge_adapter_send_message(webrtc_message_t *signalingMessage);
+
+/**
+ * @brief Direct message handler for bridge peer connection
+ *
+ * This function handles WebRTC messages directly from bridge_peer_connection
+ * without going through app_webrtc. This provides a more direct path for
+ * messages between the bridge and signaling.
+ *
+ * @param message WebRTC message to handle
+ * @return WEBRTC_STATUS_SUCCESS on success, error code otherwise
+ */
+WEBRTC_STATUS signaling_bridge_adapter_direct_message_handler(webrtc_message_t *message);
 
 /**
  * @brief RPC callback handler for ICE server queries (Internal)
@@ -67,6 +81,20 @@ int signaling_bridge_adapter_send_message(signaling_msg_t *signalingMessage);
  * @return 0 on success, -1 on failure
  */
 int signaling_bridge_adapter_rpc_handler(int index, uint8_t **data, int *len, bool *have_more);
+
+/**
+ * @brief Register callbacks for bridge peer connection
+ *
+ * This function registers callbacks for the bridge peer connection interface
+ * to use when receiving messages from the bridge.
+ *
+ * @param custom_data Custom data to pass to callbacks
+ * @param on_message_received Callback for received messages
+ * @return WEBRTC_STATUS_SUCCESS on success, error code otherwise
+ */
+WEBRTC_STATUS signaling_bridge_adapter_register_callbacks(
+    uint64_t custom_data,
+    WEBRTC_STATUS (*on_message_received)(uint64_t, webrtc_message_t*));
 
 /**
  * @brief Deinitialize the signaling bridge adapter

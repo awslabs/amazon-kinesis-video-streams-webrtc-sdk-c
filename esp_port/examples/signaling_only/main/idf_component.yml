@@ -11,8 +11,12 @@ dependencies:
     path: ${KVS_SDK_PATH}/esp_port/components/esp_webrtc_utils
     version: "*"
 
-  kvs_webrtc:
-    path: ${KVS_SDK_PATH}/esp_port/components/kvs_webrtc
+  app_webrtc:
+    path: ${KVS_SDK_PATH}/esp_port/components/app_webrtc
+    version: "*"
+
+  kvs_signaling:
+    path: ${KVS_SDK_PATH}/esp_port/components/kvs_signaling
     version: "*"
 
   webrtc_bridge:
