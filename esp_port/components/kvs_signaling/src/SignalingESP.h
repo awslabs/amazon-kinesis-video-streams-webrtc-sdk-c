@@ -8,7 +8,8 @@
 extern "C" {
 #endif
 
-#include "Include_i.h"
+// #include "Include_i.h"
+#include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 #include "Signaling/Signaling.h"
 
 // ICE configuration helper functions

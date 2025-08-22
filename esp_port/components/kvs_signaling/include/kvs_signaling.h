@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "esp_log.h"
-#include "webrtc_signaling_if.h"
+#include "app_webrtc_if.h"
 
 #ifdef __cplusplus
 extern "C" {

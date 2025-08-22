@@ -1,6 +1,11 @@
 #define LOG_CLASS "SignalingESP"
-#include "../Include_i.h"
+// #include "../Include_i.h"
+#include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 #include "SignalingESP.h"
+#include "LwsApiCalls.h"
+#include "ChannelInfo.h"
+#include "Signaling/FileCache.h"
+#include "StateMachine.h"
 
 static const char *TAG = "ESP_SIGNALING";
 

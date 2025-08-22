@@ -43,7 +43,7 @@ static BridgeSignalingClientData* g_bridge_client = NULL;
  */
 void bridge_message_handler(const void* data, int len)
 {
-    ESP_LOGI(TAG, "🚀 bridge_message_handler called with %d bytes", len);
+    ESP_LOGD(TAG, "bridge_message_handler called with %d bytes", len);
 
     if (g_bridge_client == NULL || g_bridge_client->on_msg_received == NULL) {
         ESP_LOGW(TAG, "Bridge message received but no client or callback registered");
@@ -52,15 +52,15 @@ void bridge_message_handler(const void* data, int len)
 
     // Deserialize the message
     signaling_msg_t signaling_msg;
-    ESP_LOGI(TAG, "📥 Processing bridge message (%d bytes)", len);
+    ESP_LOGD(TAG, "Processing bridge message (%d bytes)", len);
     esp_err_t deserialize_result = deserialize_signaling_message(data, len, &signaling_msg);
     if (deserialize_result != ESP_OK) {
         ESP_LOGE(TAG, "Failed to deserialize bridge message with error: %d", deserialize_result);
         return;
     }
 
-    ESP_LOGI(TAG, "📊 Deserialized message: type=%d, correlation_id=%s, peer_id=%s, payload_len=%d",
-             signaling_msg.messageType, signaling_msg.correlationId, signaling_msg.peerClientId, signaling_msg.payloadLen);
+    ESP_LOGD(TAG, "Deserialized message: type=%d, correlation_id=%s, peer_id=%s, payload_len=%d",
+             (int) signaling_msg.messageType, signaling_msg.correlationId, signaling_msg.peerClientId, (int) signaling_msg.payloadLen);
 
     // Convert to standardized esp_webrtc_signaling_message_t structure
     esp_webrtc_signaling_message_t webrtc_msg;
@@ -68,14 +68,14 @@ void bridge_message_handler(const void* data, int len)
 
     // Handle ICE servers message separately (not forwarded to WebRTC)
     if (signaling_msg.messageType == SIGNALING_MSG_TYPE_ICE_SERVERS) {
-        ESP_LOGI(TAG, "🔧 Received ICE servers configuration from signaling device");
+        ESP_LOGI(TAG, "Received ICE servers configuration from signaling device");
 
         if (g_bridge_client && extract_ice_servers_from_message(&signaling_msg, &g_bridge_client->ice_servers_config) == ESP_OK) {
             g_bridge_client->ice_servers_received = true;
-            ESP_LOGI(TAG, "✅ Stored %d ICE servers for WebRTC connection", g_bridge_client->ice_servers_config.ice_server_count);
+            ESP_LOGI(TAG, "Stored %d ICE servers for WebRTC connection", (int) g_bridge_client->ice_servers_config.ice_server_count);
 
             // Log the ICE servers for debugging
-            for (uint32_t i = 0; i < g_bridge_client->ice_servers_config.ice_server_count; i++) {
+            for (int i = 0; i < g_bridge_client->ice_servers_config.ice_server_count; i++) {
                 ESP_LOGI(TAG, "ICE Server %d: %s (user: %s)", i,
                          g_bridge_client->ice_servers_config.ice_servers[i].urls,
                          g_bridge_client->ice_servers_config.ice_servers[i].username);
@@ -88,19 +88,19 @@ void bridge_message_handler(const void* data, int len)
 
     // Handle ICE server response message separately (for index-based requests)
     if (signaling_msg.messageType == SIGNALING_MSG_TYPE_ICE_SERVER_RESPONSE) {
-        ESP_LOGI(TAG, "🎯 Received ICE server response from signaling device");
+        ESP_LOGI(TAG, "Received ICE server response from signaling device");
 
         // Extract the ICE server response
         ss_ice_server_response_t ice_server_response;
         esp_err_t extract_result = extract_ice_server_response_from_message(&signaling_msg, &ice_server_response);
         if (extract_result == ESP_OK) {
-            ESP_LOGI(TAG, "✅ Successfully extracted ICE server response: %s (have_more: %s)",
+            ESP_LOGI(TAG, "Successfully extracted ICE server response: %s (have_more: %s)",
                      ice_server_response.urls, ice_server_response.have_more ? "true" : "false");
 
             // Notify ice_bridge_client.c about the response
             ice_bridge_client_set_ice_server_response(&ice_server_response);
         } else {
-            ESP_LOGE(TAG, "❌ Failed to extract ICE server response from message");
+            ESP_LOGE(TAG, "Failed to extract ICE server response from message");
         }
 
         goto cleanup;  // Don't forward ICE server responses to WebRTC layer
@@ -138,7 +138,7 @@ void bridge_message_handler(const void* data, int len)
     // Call the callback with standardized message format
     WEBRTC_STATUS callback_result = g_bridge_client->on_msg_received((uint64_t)g_bridge_client->user_data, &webrtc_msg);
     if (callback_result != WEBRTC_STATUS_SUCCESS) {
-        ESP_LOGE(TAG, "g_bridge_client->on_msg_received returned error: 0x%08" PRIx32, callback_result);
+        ESP_LOGE(TAG, "g_bridge_client->on_msg_received returned error: 0x%08" PRIx32, (uint32_t) callback_result);
     }
 
 cleanup:
@@ -398,13 +398,13 @@ static WEBRTC_STATUS bridgeSetRoleType(void *pSignalingClient, webrtc_signaling_
  */
 static WEBRTC_STATUS bridgeGetIceServers(void *pSignalingClient, uint32_t *pIceConfigCount, void *pIceServersArray)
 {
-    ESP_LOGI(TAG, "🔍 Getting ICE servers via bridge signaling (index-based)");
+    ESP_LOGI(TAG, "Getting ICE servers via bridge signaling (index-based)");
 
     if (pSignalingClient == NULL || pIceConfigCount == NULL || pIceServersArray == NULL) {
         return WEBRTC_STATUS_NULL_ARG;
     }
 
-    ESP_LOGI(TAG, "🎯 Using generic ICE servers array (abstraction layer handles structure conversion)");
+    ESP_LOGI(TAG, "Using generic ICE servers array (abstraction layer handles structure conversion)");
 
     // Use the new ice_bridge_client to get servers via index-based requests
     // The abstraction layer passes the iceServers array directly, not the full RtcConfiguration
@@ -415,10 +415,10 @@ static WEBRTC_STATUS bridgeGetIceServers(void *pSignalingClient, uint32_t *pIceC
     );
 
     if (status == WEBRTC_STATUS_SUCCESS && *pIceConfigCount > 0) {
-        ESP_LOGI(TAG, "🎯 Bridge signaling successfully retrieved %d ICE servers", *pIceConfigCount);
+        ESP_LOGI(TAG, "Bridge signaling successfully retrieved %" PRIu32 " ICE servers", *pIceConfigCount);
         return WEBRTC_STATUS_SUCCESS;
     } else {
-        ESP_LOGW(TAG, "⚠️ Bridge signaling failed to retrieve ICE servers, status: 0x%08" PRIx32, status);
+        ESP_LOGW(TAG, "Bridge signaling failed to retrieve ICE servers, status: 0x%08" PRIx32, (uint32_t) status);
         *pIceConfigCount = 0;
         return WEBRTC_STATUS_INTERNAL_ERROR;
     }

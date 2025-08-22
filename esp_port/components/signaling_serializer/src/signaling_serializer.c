@@ -89,7 +89,7 @@ esp_err_t create_ice_servers_message(const void* pRtcConfiguration, uint32_t ice
     payload->ice_server_count = (ice_server_count > SS_MAX_ICE_SERVERS_COUNT) ? SS_MAX_ICE_SERVERS_COUNT : ice_server_count;
 
     // Copy ICE servers data
-    for (uint32_t i = 0; i < payload->ice_server_count; i++) {
+    for (int i = 0; i < payload->ice_server_count; i++) {
         const char* src_server = ice_servers_ptr + (i * rtc_ice_server_size);
 
         // Copy urls (first field)
@@ -116,7 +116,7 @@ esp_err_t create_ice_servers_message(const void* pRtcConfiguration, uint32_t ice
     pSignalingMessage->payload = (char*)payload;
     pSignalingMessage->payloadLen = sizeof(ss_ice_servers_payload_t);
 
-    ESP_LOGI(TAG, "Created ICE servers message with %d servers", payload->ice_server_count);
+    ESP_LOGI(TAG, "Created ICE servers message with %d servers", (int) payload->ice_server_count);
     return ESP_OK;
 }
 
@@ -142,7 +142,7 @@ esp_err_t extract_ice_servers_from_message(const signaling_msg_t* pSignalingMess
     // Copy the payload
     memcpy(pIceServersPayload, pSignalingMessage->payload, sizeof(ss_ice_servers_payload_t));
 
-    ESP_LOGI(TAG, "Extracted %d ICE servers from message", pIceServersPayload->ice_server_count);
+    ESP_LOGI(TAG, "Extracted %d ICE servers from message", (int) pIceServersPayload->ice_server_count);
     return ESP_OK;
 }
 
@@ -181,7 +181,7 @@ esp_err_t create_ice_request_message(uint32_t index, bool use_turn, signaling_ms
     pSignalingMessage->payload = (char*)payload;
     pSignalingMessage->payloadLen = sizeof(ss_ice_request_payload_t);
 
-    ESP_LOGI(TAG, "Created ICE request message for index %d (use_turn: %s)", index, use_turn ? "true" : "false");
+    ESP_LOGI(TAG, "Created ICE request message for index %d (use_turn: %s)", (int) index, use_turn ? "true" : "false");
     return ESP_OK;
 }
 
@@ -209,7 +209,7 @@ esp_err_t extract_ice_request_from_message(const signaling_msg_t* pSignalingMess
     memcpy(pIceRequestPayload, pSignalingMessage->payload, sizeof(ss_ice_request_payload_t));
 
     ESP_LOGI(TAG, "Extracted ICE request: index=%d, use_turn=%s",
-             pIceRequestPayload->index, pIceRequestPayload->use_turn ? "true" : "false");
+             (int) pIceRequestPayload->index, pIceRequestPayload->use_turn ? "true" : "false");
     return ESP_OK;
 }
 

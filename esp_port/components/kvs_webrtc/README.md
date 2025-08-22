@@ -1,104 +1,102 @@
-# ESP-IDF Native Implementations for KVS WebRTC SDK
+# KVS WebRTC Component
 
-This directory contains ESP-IDF native implementations that optimize the Amazon Kinesis Video Streams WebRTC SDK for ESP platforms. It includes two main ESP-specific optimizations:
+This component provides AWS Kinesis Video Streams (KVS) WebRTC peer connection functionality for ESP32 platforms.
 
-1. **ESP WebSocket Signaling**: Replaces libwebsockets with ESP-IDF's native WebSocket client
-2. **ESP-TLS Implementation**: Replaces direct mbedTLS with ESP-TLS and certificate bundle support
+## Overview
 
-## Benefits
+The `kvs_webrtc` component contains the KVS SDK WebRTC peer connection implementation, including ICE handling, DTLS, SRTP, and media processing.
 
-### ESP WebSocket Signaling
-1. **Reduced Memory Footprint**: Uses ESP-IDF's native WebSocket client instead of the more resource-intensive libwebsockets library.
-2. **Native ESP-IDF Integration**: Integrates directly with ESP-IDF's event loop system for improved compatibility and performance.
-3. **Lower Resource Usage**: Optimized for resource-constrained ESP32 devices.
+## Architecture Role
 
-### ESP-TLS Implementation
-4. **No Certificate File Dependencies**: Uses ESP certificate bundle, eliminating need for `/spiffs/certs/cacert.pem` files.
-5. **Platform Optimized TLS**: Leverages ESP-IDF's optimized TLS implementation with better memory management.
-6. **Simplified Configuration**: Works out-of-the-box without certificate setup or file system requirements.
+In the 3-component architecture:
+- **app_webrtc** (Application layer and unified interface)
+- **kvs_webrtc** ← YOU ARE HERE (KVS peer connection implementation)
+- **kvs_signaling** (KVS signaling implementation)
 
-## Implementation Details
+## Key Features
 
-This component provides two ESP-specific implementations:
+- **KVS SDK Integration**: Full AWS Kinesis Video Streams WebRTC SDK
+- **Peer Connection Management**: ICE, DTLS, SRTP handling
+- **Media Processing**: Audio/video encoding, RTP packetization
+- **STUN/TURN Support**: NAT traversal capabilities
+- **Data Channels**: Bidirectional data communication
+- **Codec Support**: H.264, H.265, VP8, Opus, G.711
 
-### ESP WebSocket Signaling
-- **SignalingESP.c/h**: Main signaling client implementation replacing the original Signaling.c
-- **LwsApiCallsESP.c**: Implementation of WebSocket and HTTP API calls using ESP-IDF libraries
+## Files
 
-### ESP-TLS Implementation
-- **Tls_esp.c**: ESP-TLS based TLS session management replacing direct mbedTLS implementation
-- **Configuration**: Controlled via `CONFIG_USE_ESP_TLS_FOR_KVS` Kconfig option
+### Headers
+- `kvs_peer_connection.h` - KVS peer connection interface implementation
+- `DataBuffer.h` - Data buffer utilities
+- `WebRtcLogging.h` - Logging functionality
 
-📖 **For detailed ESP-TLS configuration and usage, see [ESP_TLS_README.md](ESP_TLS_README.md)**
+### Sources
+- `kvs_peer_connection.c` - KVS peer connection implementation
+- `DataBuffer.c` - Data buffer implementation
+- `WebRtcLogging.c` - Logging implementation
+- `Tls_esp.c` - ESP-specific TLS implementation
 
-## Features
+### KVS SDK Sources (Included)
+- All KVS WebRTC SDK source files for peer connections
+- Crypto, ICE, PeerConnection, RTC, RTP, SRTP, SCTP, SDP, STUN modules
 
-- Full compatibility with the original KVS WebRTC SDK API
-- Maintains the same function signatures for seamless integration
-- Handles WebSocket connection management, reconnection, and message passing
-- Currently uses stub implementations for HTTP API calls that need to be completed
+## Dependencies
+
+- **mbedtls** - TLS and cryptography
+- **lwip** - TCP/IP stack
+- **esp_timer** - Timer functionality
+- **esp_system** - ESP-IDF system functions
+- **esp_wifi** - WiFi functionality
 
 ## Usage
 
-### ESP WebSocket Signaling
-To use the ESP WebSocket implementation:
+This component is used by applications that need KVS WebRTC peer connections:
 
-1. Set the `USE_ESP_WEBSOCKET_CLIENT` option to `y` in menuconfig:
-   ```
-   Component config → KVS WebRTC Configuration → Use esp_websocket_client instead of libwebscoekts
-   ```
+### Examples Using This Component
 
-### ESP-TLS Implementation
-To use the ESP-TLS implementation:
+**webrtc_classic**: Full KVS functionality
+```cmake
+REQUIRES "app_webrtc" "kvs_webrtc" "kvs_signaling"
+```
 
-1. Set the `USE_ESP_TLS_FOR_KVS` option to `y` in menuconfig:
-   ```
-   Component config → KVS WebRTC Configuration → Use ESP-TLS for KVS TLS connections
-   ```
+**esp_camera**: KVS peer connections with AppRTC signaling
+```cmake
+REQUIRES "app_webrtc" "kvs_webrtc"
+```
 
-2. Or set in `sdkconfig`:
-   ```
-   CONFIG_USE_ESP_TLS_FOR_KVS=y
-   ```
+**streaming_only**: KVS peer connections with Bridge signaling
+```cmake
+REQUIRES "app_webrtc" "kvs_webrtc"
+```
 
-**Both implementations can be used independently or together for maximum optimization.**
+### Not Used By
 
-## When ESP-TLS is Used
+**signaling_only**: Uses null peer connections instead
+```cmake
+REQUIRES "app_webrtc" "kvs_signaling"  # No kvs_webrtc
+```
 
-The ESP-TLS implementation automatically handles TLS connections for:
+## Configuration
 
-1. **TURN over TLS**: When TURN servers use `turns:` protocol with TCP transport
-   - Example: `turns:stun.kinesisvideo.us-east-1.amazonaws.com:443?transport=tcp`
-2. **Secure TURN connections**: When `iceServer.isSecure = TRUE` and protocol is TCP
+The component supports various ESP-IDF configuration options:
+- `CONFIG_USE_ESP_TLS_FOR_KVS` - Use ESP-TLS instead of direct mbedTLS
+- `CONFIG_ENABLE_DATA_CHANNEL` - Enable data channel support
+- `CONFIG_PREFER_DYNAMIC_ALLOCS` - Use dynamic memory allocation
 
-### Benefits vs File-Based Certificates
-- ✅ **No certificate files needed** - uses ESP certificate bundle
-- ✅ **Automatic certificate updates** with ESP-IDF releases
-- ✅ **Lower memory usage** - no file I/O overhead
-- ✅ **Simplified deployment** - works out-of-the-box
+## KVS SDK Integration
 
-## Current Limitations
+This component wraps the AWS KVS WebRTC SDK to provide:
+- Peer connection lifecycle management
+- Media stream handling
+- Network transport (UDP/TCP)
+- Security (DTLS/SRTP)
+- NAT traversal (STUN/TURN)
 
-1. HTTP API calls (for operations like describeChannel, createChannel, etc.) are currently implemented as stubs and need to be completed using ESP-IDF's HTTP client.
-2. File caching functionality is not yet implemented for ESP.
-3. Some diagnostics metrics might need adjustment to fully match the original implementation.
+## API
 
-## Planned Improvements
+The component implements the `webrtc_peer_connection_if_t` interface defined in `app_webrtc_if.h`:
 
-1. Complete HTTP API call implementations for all signaling operations
-2. Add file caching support
-3. Add comprehensive logging and error handling
-4. Improve connection reliability and reconnection logic
+```c
+webrtc_peer_connection_if_t* kvs_peer_connection_if_get(void);
+```
 
-## Contributing
-
-When modifying this implementation, please ensure:
-
-1. All public-facing functions maintain the same signatures as the original SDK
-2. Error handling follows the same patterns as the original code
-3. Memory usage is kept to a minimum
-4. Changes do not break compatibility with the rest of the SDK
-
-## License
-
-This implementation follows the same license as the Amazon Kinesis Video Streams WebRTC SDK.
+This allows it to be used as a pluggable peer connection backend in the unified app_webrtc architecture.

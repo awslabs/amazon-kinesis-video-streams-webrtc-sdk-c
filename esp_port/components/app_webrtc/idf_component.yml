@@ -1,0 +1,29 @@
+## IDF Component Manager Manifest File
+dependencies:
+  ## Required IDF version
+  idf:
+    version: ">=4.4.0"
+
+  media_stream:
+    path: ../media_stream
+    version: '*'
+
+  libsrtp2:
+    path: ../libsrtp2
+    version: '*'
+
+  kvs_utils:
+    path: ../kvs_utils
+    version: '*'
+
+  esp_usrsctp:
+    path: ../esp_usrsctp
+    version: '*'
+
+  webrtc_bridge:
+    path: ../webrtc_bridge
+    version: '*'
+
+  state_machine:
+    path: ../state_machine
+    version: '*'

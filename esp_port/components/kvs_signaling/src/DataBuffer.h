@@ -9,7 +9,8 @@
 extern "C" {
 #endif
 
-#include "../Include_i.h"
+// #include "../Include_i.h"
+#include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 
 // Configuration parameters
 #define DATA_BUFFER_DEFAULT_SIZE (2 * 1024)   // Default buffer size: 2KB

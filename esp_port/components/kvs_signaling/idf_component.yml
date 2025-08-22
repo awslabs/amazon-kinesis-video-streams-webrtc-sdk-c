@@ -1,0 +1,38 @@
+## IDF Component Manager Manifest File
+dependencies:
+  idf:
+    version: ">=4.4.0"
+  ## Required IDF components
+  esp_websocket_client: "*"
+
+  libwebsockets:
+    path: ../libwebsockets
+    version: '*'
+
+  credential:
+    path: ../credential
+    version: '*'
+
+  kvs_utils:
+    path: ../kvs_utils
+    version: '*'
+
+  state_machine:
+    path: ../state_machine
+    version: '*'
+
+  libsrtp2:
+    path: ../libsrtp2
+    version: '*'
+
+  esp_usrsctp:
+    path: ../esp_usrsctp
+    version: '*'
+
+  esp_webrtc_utils:
+    path: ../esp_webrtc_utils
+    version: '*'
+
+  app_webrtc:
+    path: ../app_webrtc
+    version: '*'

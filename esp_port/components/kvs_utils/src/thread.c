@@ -219,13 +219,13 @@ STATUS defaultCreateThreadPriWithCaps(PTID pThreadId, PCHAR threadName, UINT32 t
     // }
 
     if (threadSize == 0) {
-        pthread_cfg.stack_size = 64000;
+        pthread_cfg.stack_size = DEFAULT_THREAD_SIZE;
     } else {
         pthread_cfg.stack_size = threadSize;
     }
 
     if (threadName == NULL) {
-        pthread_cfg.thread_name = "pthread";
+        pthread_cfg.thread_name = DEFAULT_THREAD_NAME;
     } else {
         pthread_cfg.thread_name = threadName;
     }

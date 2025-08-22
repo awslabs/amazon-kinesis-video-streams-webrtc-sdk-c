@@ -18,13 +18,11 @@ extern "C" {
 #include "timer_queue.h"
 #include "thread.h"
 #include "filelogger.h"
+#include "hash_table.h"
 #include "ThreadSafeBlockingQueue.h"
 #include "ThreadPool.h"
 
 #define MAX_STRING_CONVERSION_BASE 36
-
-// Max path characters as defined in linux/limits.h
-// #define MAX_PATH_LEN 4096
 
 // thread stack size to use when running on constrained device like raspberry pi
 #define THREAD_STACK_SIZE_ON_CONSTRAINED_DEVICE (512 * 1024)
@@ -138,125 +136,6 @@ PUBLIC_API STATUS toupperstr(PCHAR, UINT32, PCHAR);
  * @return Status of the operation
  */
 STATUS tolowerupperstr(PCHAR, UINT32, BOOL, PCHAR);
-
-/////////////////////////////////////////
-// Directory functionality
-/////////////////////////////////////////
-
-
-
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-// Hash table functionality
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * Hash table declaration
- * NOTE: Variable size structure - the buckets follow directly after the main structure
- */
-typedef struct {
-    UINT32 itemCount;
-    UINT32 bucketCount;
-    UINT32 bucketLength;
-    UINT32 flags;
-    /*-- HashBucket[bucketCount] buckets; --*/
-} HashTable, *PHashTable;
-
-/**
- * Hash table entry declaration
- */
-typedef struct {
-    UINT64 key;
-    UINT64 value;
-} HashEntry, *PHashEntry;
-
-/**
- * Minimum number of buckets
- */
-#define MIN_HASH_BUCKET_COUNT 16
-
-/**
- * Hash table iteration callback function.
- * IMPORTANT!
- * To terminate the iteration the caller must return
- * STATUS_HASH_ENTRY_ITERATION_ABORT
- *
- * @UINT64 - data that was passed to the iterate function
- * @PHashEntry - the entry to process
- */
-typedef STATUS (*HashEntryCallbackFunc)(UINT64, PHashEntry);
-
-
-/**
- * Create a new hash table with default parameters
- */
-PUBLIC_API STATUS hashTableCreate(PHashTable*);
-
-/**
- * Create a new hash table with specific parameters
- */
-PUBLIC_API STATUS hashTableCreateWithParams(UINT32, UINT32, PHashTable*);
-
-/**
- * Frees and de-allocates the hash table
- */
-PUBLIC_API STATUS hashTableFree(PHashTable);
-
-/**
- * Clears all the items and the buckets
- */
-PUBLIC_API STATUS hashTableClear(PHashTable);
-
-/**
- * Gets the number of items in the hash table
- */
-PUBLIC_API STATUS hashTableGetCount(PHashTable, PUINT32);
-
-/**
- * Whether the hash table is empty
- */
-PUBLIC_API STATUS hashTableIsEmpty(PHashTable, PBOOL);
-
-/**
- * Puts an item into the hash table
- */
-PUBLIC_API STATUS hashTablePut(PHashTable, UINT64, UINT64);
-
-/**
- * Upserts an item into the hash table
- */
-PUBLIC_API STATUS hashTableUpsert(PHashTable, UINT64, UINT64);
-
-/**
- * Gets an item from the hash table
- */
-PUBLIC_API STATUS hashTableGet(PHashTable, UINT64, PUINT64);
-
-/**
- * Checks whether an item exists in the hash table
- */
-PUBLIC_API STATUS hashTableContains(PHashTable, UINT64, PBOOL);
-
-/**
- * Removes an item from the hash table. If the bucket is empty it's deleted. The existing items will be shifted.
- */
-PUBLIC_API STATUS hashTableRemove(PHashTable, UINT64);
-
-/**
- * Gets the number of buckets
- */
-PUBLIC_API STATUS hashTableGetBucketCount(PHashTable, PUINT32);
-
-/**
- * Gets all the entries from the hash table
- */
-PUBLIC_API STATUS hashTableGetAllEntries(PHashTable, PHashEntry, PUINT32);
-
-/**
- * Iterates over the hash entries. No predefined order
- */
-PUBLIC_API STATUS hashTableIterateEntries(PHashTable, UINT64, HashEntryCallbackFunc);
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 // Bitfield functionality

@@ -36,6 +36,7 @@ typedef struct kvs_cred_fetch_ctx {
 // Work queue task for refreshing ICE configuration in background
 static void kvs_refresh_ice_task(void *arg)
 {
+#ifdef CONFIG_USE_ESP_WEBSOCKET_CLIENT
     PSignalingClient pSignalingClient = (PSignalingClient)arg;
     if (pSignalingClient != NULL) {
         ESP_LOGI(TAG, "Background ICE refresh task started");
@@ -46,17 +47,21 @@ static void kvs_refresh_ice_task(void *arg)
             ESP_LOGI(TAG, "Background ICE refresh completed successfully");
         }
     }
+#else
+    UNUSED_PARAM(arg);
+    ESP_LOGI(TAG, "Async ICE refresh is not supported in default websocket client mode");
+#endif
 }
 
 // Forward declarations for internal KVS functions (not exposed in public header)
 STATUS createKvsSignalingClient(kvs_signaling_config_t *pConfig, PVOID *ppSignalingClient);
 STATUS connectKvsSignalingClient(PVOID pSignalingClient);
 STATUS disconnectKvsSignalingClient(PVOID pSignalingClient);
-STATUS sendKvsSignalingMessage(PVOID pSignalingClient, esp_webrtc_signaling_message_t *pMessage);
+STATUS sendKvsSignalingMessage(PVOID pSignalingClient, webrtc_message_t *pMessage);
 STATUS freeKvsSignalingClient(PVOID pSignalingClient);
 STATUS setKvsSignalingCallbacks(PVOID pSignalingClient,
                               PVOID customData,
-                              STATUS (*on_msg_received)(UINT64, esp_webrtc_signaling_message_t*),
+                              STATUS (*on_msg_received)(UINT64, webrtc_message_t*),
                               STATUS (*on_state_changed)(UINT64, SIGNALING_CLIENT_STATE),
                               STATUS (*on_error)(UINT64, STATUS, PCHAR, UINT32));
 STATUS setKvsSignalingRoleType(PVOID pSignalingClient, SIGNALING_CHANNEL_ROLE_TYPE role_type);
@@ -69,7 +74,7 @@ static WEBRTC_STATUS kvsIsIceRefreshNeededWrapper(void *pSignalingClient, bool *
  */
  typedef struct {
     uint64_t originalCustomData;
-    WEBRTC_STATUS (*originalOnStateChanged)(uint64_t, webrtc_signaling_client_state_t);
+    WEBRTC_STATUS (*originalOnSignalingStateChanged)(uint64_t, webrtc_signaling_state_t);
     WEBRTC_STATUS (*originalOnError)(uint64_t, WEBRTC_STATUS, char*, uint32_t);
 } CallbackAdapterData;
 
@@ -88,7 +93,7 @@ typedef struct {
 
     // Callback data
     PVOID customData;
-    STATUS (*on_msg_received)(UINT64, esp_webrtc_signaling_message_t*);
+    STATUS (*on_msg_received)(UINT64, webrtc_message_t*);
     STATUS (*on_state_changed)(UINT64, SIGNALING_CLIENT_STATE);
     STATUS (*on_error)(UINT64, STATUS, PCHAR, UINT32);
 
@@ -106,16 +111,16 @@ typedef struct {
 } KvsSignalingClientData;
 
 /**
- * @brief Convert SIGNALING_CLIENT_STATE to webrtc_signaling_client_state_t
+ * @brief Convert SIGNALING_CLIENT_STATE to webrtc_signaling_state_t
  *
  * This conversion matches the logic from app_webrtc.c to properly handle
  * all intermediate KVS signaling states.
  */
-static webrtc_signaling_client_state_t convertKvsToWebrtcState(SIGNALING_CLIENT_STATE kvsState)
+static webrtc_signaling_state_t convertKvsToWebrtcSignalingState(SIGNALING_CLIENT_STATE kvsState)
 {
     switch (kvsState) {
         case SIGNALING_CLIENT_STATE_NEW:
-            return WEBRTC_SIGNALING_CLIENT_STATE_NEW;
+            return WEBRTC_SIGNALING_STATE_NEW;
         case SIGNALING_CLIENT_STATE_CONNECTING:
         case SIGNALING_CLIENT_STATE_GET_CREDENTIALS:
         case SIGNALING_CLIENT_STATE_DESCRIBE:
@@ -123,16 +128,16 @@ static webrtc_signaling_client_state_t convertKvsToWebrtcState(SIGNALING_CLIENT_
         case SIGNALING_CLIENT_STATE_GET_ENDPOINT:
         case SIGNALING_CLIENT_STATE_GET_ICE_CONFIG:
         case SIGNALING_CLIENT_STATE_READY:
-            return WEBRTC_SIGNALING_CLIENT_STATE_CONNECTING;
+            return WEBRTC_SIGNALING_STATE_CONNECTING;
         case SIGNALING_CLIENT_STATE_CONNECTED:
         case SIGNALING_CLIENT_STATE_JOIN_SESSION_CONNECTED:
-            return WEBRTC_SIGNALING_CLIENT_STATE_CONNECTED;
+            return WEBRTC_SIGNALING_STATE_CONNECTED;
         case SIGNALING_CLIENT_STATE_DISCONNECTED:
         case SIGNALING_CLIENT_STATE_DELETE:
         case SIGNALING_CLIENT_STATE_DELETED:
-            return WEBRTC_SIGNALING_CLIENT_STATE_DISCONNECTED;
+            return WEBRTC_SIGNALING_STATE_DISCONNECTED;
         default:
-            return WEBRTC_SIGNALING_CLIENT_STATE_FAILED;
+            return WEBRTC_SIGNALING_STATE_FAILED;
     }
 }
 
@@ -151,14 +156,59 @@ static STATUS adapterStateChangedCallback(UINT64 customData, SIGNALING_CLIENT_ST
 {
     CallbackAdapterData *pAdapterData = (CallbackAdapterData *) customData;
 
-    if (pAdapterData == NULL || pAdapterData->originalOnStateChanged == NULL) {
+    if (pAdapterData == NULL || pAdapterData->originalOnSignalingStateChanged == NULL) {
         return STATUS_SUCCESS;
     }
 
-    webrtc_signaling_client_state_t webrtcState = convertKvsToWebrtcState(state);
-    WEBRTC_STATUS result = pAdapterData->originalOnStateChanged(pAdapterData->originalCustomData, webrtcState);
+    webrtc_signaling_state_t webrtcSignalingState = convertKvsToWebrtcSignalingState(state);
+    WEBRTC_STATUS result = pAdapterData->originalOnSignalingStateChanged(pAdapterData->originalCustomData, webrtcSignalingState);
 
     return (result == WEBRTC_STATUS_SUCCESS) ? STATUS_SUCCESS : STATUS_INTERNAL_ERROR;
+}
+
+/**
+ * @brief Map KVS signaling errors to generic WebRTC status codes
+ */
+static WEBRTC_STATUS mapKvsErrorToWebrtcStatus(STATUS kvsStatus)
+{
+    /* Map specific KVS signaling errors to generic WebRTC signaling errors.
+     * These error codes are defined in the KVS SDK and should trigger reconnection.
+     */
+    switch (kvsStatus) {
+        /* KVS-specific error codes that should trigger signaling reconnection */
+        case STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED:
+            return WEBRTC_STATUS_SIGNALING_ICE_REFRESH_FAILED;
+        case STATUS_SIGNALING_RECONNECT_FAILED:
+            return WEBRTC_STATUS_SIGNALING_RECONNECT_FAILED;
+
+        /* Connection and network related errors */
+        case STATUS_SIGNALING_CONNECT_CALL_FAILED:
+        case STATUS_SIGNALING_LWS_CLIENT_CONNECT_FAILED:
+        case STATUS_SIGNALING_LWS_CALL_FAILED:
+        case STATUS_SIGNALING_CONNECTED_CALLBACK_FAILED:
+        case STATUS_SIGNALING_MESSAGE_DELIVERY_FAILED:
+        case STATUS_SIGNALING_DISCONNECTED_CALLBACK_FAILED:
+            return WEBRTC_STATUS_SIGNALING_CONNECTION_LOST;
+
+        /* Authentication and credentials related errors */
+        case STATUS_SIGNALING_GET_TOKEN_CALL_FAILED:
+            return WEBRTC_STATUS_SIGNALING_AUTH_FAILED;
+
+        /* API call timeouts and failures */
+        case STATUS_SIGNALING_DESCRIBE_CALL_FAILED:
+        case STATUS_SIGNALING_CREATE_CALL_FAILED:
+        case STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED:
+        case STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED:
+        case STATUS_SIGNALING_DELETE_CALL_FAILED:
+            return WEBRTC_STATUS_SIGNALING_TIMEOUT;
+
+        default:
+            /* For other errors, return the original KVS status code.
+             * This preserves fine-grained error information while allowing
+             * app_webrtc to handle known reconnection cases.
+             */
+            return (WEBRTC_STATUS)kvsStatus;
+    }
 }
 
 /**
@@ -172,9 +222,12 @@ static STATUS adapterErrorCallback(UINT64 customData, STATUS errorStatus, PCHAR 
         return STATUS_SUCCESS;
     }
 
-    // Preserve the original status code instead of converting to generic WEBRTC_STATUS_INTERNAL_ERROR
-    // This ensures signaling reconnection status codes are passed through correctly
-    WEBRTC_STATUS result = pAdapterData->originalOnError(pAdapterData->originalCustomData, (WEBRTC_STATUS)errorStatus, errorMessage, subErrorCode);
+    // Map KVS errors to generic WebRTC status codes for proper reconnection handling
+    WEBRTC_STATUS webrtcStatus = mapKvsErrorToWebrtcStatus(errorStatus);
+
+    ESP_LOGI(TAG, "Mapped KVS error 0x%08x to WebRTC status 0x%08x", errorStatus, webrtcStatus);
+
+    WEBRTC_STATUS result = pAdapterData->originalOnError(pAdapterData->originalCustomData, webrtcStatus, errorMessage, subErrorCode);
 
     return (result == WEBRTC_STATUS_SUCCESS) ? STATUS_SUCCESS : STATUS_INTERNAL_ERROR;
 }
@@ -242,25 +295,25 @@ static STATUS kvsErrorCallback(UINT64 customData, STATUS status, PCHAR errorMsg,
 /**
  * @brief Convert KVS SDK message format to standardized WebRTC signaling message format
  */
-static STATUS convertKvsToWebRtcMessage(PReceivedSignalingMessage pKvsMessage, esp_webrtc_signaling_message_t* pWebRtcMessage)
+static STATUS convertKvsToWebRtcMessage(PReceivedSignalingMessage pKvsMessage, webrtc_message_t* pWebRtcMessage)
 {
     if (pKvsMessage == NULL || pWebRtcMessage == NULL) {
         return STATUS_NULL_ARG;
     }
 
     // Clear the output structure
-    memset(pWebRtcMessage, 0, sizeof(esp_webrtc_signaling_message_t));
+    memset(pWebRtcMessage, 0, sizeof(webrtc_message_t));
 
     // Convert message type
     switch (pKvsMessage->signalingMessage.messageType) {
         case SIGNALING_MESSAGE_TYPE_OFFER:
-            pWebRtcMessage->message_type = ESP_SIGNALING_MESSAGE_TYPE_OFFER;
+            pWebRtcMessage->message_type = WEBRTC_MESSAGE_TYPE_OFFER;
             break;
         case SIGNALING_MESSAGE_TYPE_ANSWER:
-            pWebRtcMessage->message_type = ESP_SIGNALING_MESSAGE_TYPE_ANSWER;
+            pWebRtcMessage->message_type = WEBRTC_MESSAGE_TYPE_ANSWER;
             break;
         case SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE:
-            pWebRtcMessage->message_type = ESP_SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
+            pWebRtcMessage->message_type = WEBRTC_MESSAGE_TYPE_ICE_CANDIDATE;
             break;
         default:
             ESP_LOGW(TAG, "Unknown KVS message type: %d", pKvsMessage->signalingMessage.messageType);
@@ -291,7 +344,7 @@ static STATUS kvsMessageReceivedCallback(UINT64 customData, PReceivedSignalingMe
 {
     STATUS retStatus = STATUS_SUCCESS;
     KvsSignalingClientData *pClientData = (KvsSignalingClientData *)(UINT64)customData;
-    esp_webrtc_signaling_message_t webRtcMessage = {0};
+    webrtc_message_t webRtcMessage = {0};
 
     if (pClientData == NULL || pReceivedSignalingMessage == NULL) {
         retStatus = STATUS_NULL_ARG;
@@ -627,7 +680,7 @@ CleanUp:
 /**
  * @brief Send message through KVS signaling client
  */
-STATUS sendKvsSignalingMessage(PVOID pSignalingClient, esp_webrtc_signaling_message_t *pMessage)
+STATUS sendKvsSignalingMessage(PVOID pSignalingClient, webrtc_message_t *pMessage)
 {
     STATUS retStatus = STATUS_SUCCESS;
     KvsSignalingClientData *pClientData = (KvsSignalingClientData *)pSignalingClient;
@@ -644,7 +697,12 @@ STATUS sendKvsSignalingMessage(PVOID pSignalingClient, esp_webrtc_signaling_mess
     signalingMessage.peerClientId[MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
     STRNCPY(signalingMessage.correlationId, pMessage->correlation_id, MAX_CORRELATION_ID_LEN);
     signalingMessage.correlationId[MAX_CORRELATION_ID_LEN] = '\0';
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    // Allocate a buffer to store the decoded data
     signalingMessage.payload = pMessage->payload;
+#else
+    MEMCPY(signalingMessage.payload, pMessage->payload, pMessage->payload_len);
+#endif
     signalingMessage.payloadLen = pMessage->payload_len;
 
     // Send the message with thread safety
@@ -655,7 +713,7 @@ STATUS sendKvsSignalingMessage(PVOID pSignalingClient, esp_webrtc_signaling_mess
     locked = FALSE;
 
     // Update metrics for answer messages
-    if (pMessage->message_type == ESP_SIGNALING_MESSAGE_TYPE_ANSWER) {
+    if (pMessage->message_type == WEBRTC_MESSAGE_TYPE_ANSWER) {
         // Get updated metrics
         CHK_STATUS(signalingClientGetMetrics(pClientData->signalingClientHandle, &pClientData->metrics));
     }
@@ -673,7 +731,7 @@ CleanUp:
  */
 STATUS setKvsSignalingCallbacks(PVOID pSignalingClient,
                               PVOID customData,
-                              STATUS (*on_msg_received)(UINT64, esp_webrtc_signaling_message_t*),
+                              STATUS (*on_msg_received)(UINT64, webrtc_message_t*),
                               STATUS (*on_state_changed)(UINT64, SIGNALING_CLIENT_STATE),
                               STATUS (*on_error)(UINT64, STATUS, PCHAR, UINT32))
 {
@@ -852,7 +910,7 @@ STATUS kvsSignalingQueryServerGetByIdx(PVOID pSignalingClient, int index, bool u
 
     *len = 0;
     *have_more = false;
-    ss_ice_server_t* pIceServer = NULL;
+    app_webrtc_ice_server_t* pIceServer = NULL;
 
     CHK(pClientData != NULL && data != NULL && len != NULL && have_more != NULL, STATUS_NULL_ARG);
 
@@ -863,9 +921,9 @@ STATUS kvsSignalingQueryServerGetByIdx(PVOID pSignalingClient, int index, bool u
         is_ice_refresh_in_progress = false;
 
         // Allocate ICE server structure
-        pIceServer = (ss_ice_server_t*) MEMCALLOC(1, sizeof(ss_ice_server_t));
+        pIceServer = (app_webrtc_ice_server_t*) MEMCALLOC(1, sizeof(app_webrtc_ice_server_t));
         CHK(pIceServer != NULL, STATUS_NOT_ENOUGH_MEMORY);
-        *len = sizeof(ss_ice_server_t);
+        *len = sizeof(app_webrtc_ice_server_t);
 
         // Set the STUN server (region-aware KVS STUN server)
         PCHAR pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX;
@@ -874,7 +932,7 @@ STATUS kvsSignalingQueryServerGetByIdx(PVOID pSignalingClient, int index, bool u
             pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX_CN;
         }
 
-        SNPRINTF(pIceServer->urls, SS_MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL,
+        SNPRINTF(pIceServer->urls, APP_WEBRTC_MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL,
                  pClientData->channelInfo.pRegion, pKinesisVideoStunUrlPostFix);
         pIceServer->username[0] = '\0';    // STUN has no username
         pIceServer->credential[0] = '\0';  // STUN has no credential
@@ -973,13 +1031,13 @@ STATUS kvsSignalingQueryServerGetByIdx(PVOID pSignalingClient, int index, bool u
 
         if (turnIndex < pIceConfigInfo->uriCount) {
             // Allocate and populate TURN server
-            pIceServer = (ss_ice_server_t*)MEMCALLOC(1, sizeof(ss_ice_server_t));
+            pIceServer = (app_webrtc_ice_server_t*)MEMCALLOC(1, sizeof(app_webrtc_ice_server_t));
             CHK(pIceServer != NULL, STATUS_NOT_ENOUGH_MEMORY);
-            *len = sizeof(ss_ice_server_t);
+            *len = sizeof(app_webrtc_ice_server_t);
 
-            STRNCPY(pIceServer->urls, pIceConfigInfo->uris[turnIndex], SS_MAX_ICE_CONFIG_URI_LEN);
-            STRNCPY(pIceServer->username, pIceConfigInfo->userName, SS_MAX_ICE_CONFIG_USER_NAME_LEN);
-            STRNCPY(pIceServer->credential, pIceConfigInfo->password, SS_MAX_ICE_CONFIG_CREDENTIAL_LEN);
+            STRNCPY(pIceServer->urls, pIceConfigInfo->uris[turnIndex], APP_WEBRTC_MAX_ICE_CONFIG_URI_LEN);
+            STRNCPY(pIceServer->username, pIceConfigInfo->userName, APP_WEBRTC_MAX_ICE_CONFIG_USER_NAME_LEN);
+            STRNCPY(pIceServer->credential, pIceConfigInfo->password, APP_WEBRTC_MAX_ICE_CONFIG_CREDENTIAL_LEN);
 
             *have_more = (index < uriCount - 1);
 
@@ -1052,7 +1110,7 @@ static WEBRTC_STATUS kvsDisconnectWrapper(void *pSignalingClient)
 /**
  * @brief Wrapper for send_message to convert return types
  */
-static WEBRTC_STATUS kvsSendMessageWrapper(void *pSignalingClient, esp_webrtc_signaling_message_t *pMessage)
+static WEBRTC_STATUS kvsSendMessageWrapper(void *pSignalingClient, webrtc_message_t *pMessage)
 {
     STATUS retStatus = sendKvsSignalingMessage(pSignalingClient, pMessage);
     return (retStatus == STATUS_SUCCESS) ? WEBRTC_STATUS_SUCCESS : WEBRTC_STATUS_INTERNAL_ERROR;
@@ -1068,12 +1126,12 @@ static WEBRTC_STATUS kvsFreeWrapper(void *pSignalingClient)
 }
 
 /**
- * @brief Wrapper for set_callback to convert types
+ * @brief Wrapper for set_callbacks to convert types
  */
 static WEBRTC_STATUS kvsSetCallbacksWrapper(void *pSignalingClient,
                                             uint64_t customData,
-                                            WEBRTC_STATUS (*on_msg_received)(uint64_t, esp_webrtc_signaling_message_t*),
-                                            WEBRTC_STATUS (*on_state_changed)(uint64_t, webrtc_signaling_client_state_t),
+                                            WEBRTC_STATUS (*on_msg_received)(uint64_t, webrtc_message_t*),
+                                            WEBRTC_STATUS (*on_signaling_state_changed)(uint64_t, webrtc_signaling_state_t),
                                             WEBRTC_STATUS (*on_error)(uint64_t, WEBRTC_STATUS, char*, uint32_t))
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -1083,11 +1141,11 @@ static WEBRTC_STATUS kvsSetCallbacksWrapper(void *pSignalingClient,
     CHK(pClientData != NULL, STATUS_NULL_ARG);
 
     // Allocate adapter data if we have callbacks that need conversion
-    if (on_state_changed != NULL || on_error != NULL) {
+    if (on_signaling_state_changed != NULL || on_error != NULL) {
         pAdapterData = (CallbackAdapterData *)MEMCALLOC(1, SIZEOF(CallbackAdapterData));
         CHK(pAdapterData != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
-        pAdapterData->originalOnStateChanged = on_state_changed;
+        pAdapterData->originalOnSignalingStateChanged = on_signaling_state_changed;
         pAdapterData->originalOnError = on_error;
         pAdapterData->originalCustomData = (uint64_t)customData;
 
@@ -1098,7 +1156,7 @@ static WEBRTC_STATUS kvsSetCallbacksWrapper(void *pSignalingClient,
     retStatus = setKvsSignalingCallbacks(pSignalingClient,
                                        (PVOID)pAdapterData,
                                        on_msg_received,
-                                       on_state_changed ? adapterStateChangedCallback : NULL,
+                                       on_signaling_state_changed ? adapterStateChangedCallback : NULL,
                                        on_error ? adapterErrorCallback : NULL);
 
 CleanUp:
@@ -1115,15 +1173,15 @@ CleanUp:
 /**
  * @brief Wrapper for set_role_type to convert types
  */
-static WEBRTC_STATUS kvsSetRoleTypeWrapper(void *pSignalingClient, webrtc_signaling_channel_role_type_t role_type)
+static WEBRTC_STATUS kvsSetRoleTypeWrapper(void *pSignalingClient, webrtc_channel_role_type_t role_type)
 {
     // Convert portable role type to KVS role type
     SIGNALING_CHANNEL_ROLE_TYPE kvsRoleType;
     switch (role_type) {
-        case WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_MASTER:
+        case WEBRTC_CHANNEL_ROLE_TYPE_MASTER:
             kvsRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
             break;
-        case WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_VIEWER:
+        case WEBRTC_CHANNEL_ROLE_TYPE_VIEWER:
             kvsRoleType = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
             break;
         default:
@@ -1152,7 +1210,7 @@ static WEBRTC_STATUS kvsGetIceServersWrapper(void *pSignalingClient, uint32_t *p
     PUINT32 kvsIceConfigCount = (PUINT32)pIceConfigCount;
     retStatus = getKvsSignalingIceServers(pSignalingClient, kvsIceConfigCount, iceServers);
 
-    uint32_t max_ice_config_count = SS_MAX_ICE_SERVERS_COUNT;
+    uint32_t max_ice_config_count = APP_WEBRTC_MAX_ICE_SERVERS_COUNT;
     if (max_ice_config_count > MAX_ICE_CONFIG_COUNT) {
         max_ice_config_count = MAX_ICE_CONFIG_COUNT;
     }
@@ -1244,7 +1302,7 @@ webrtc_signaling_client_if_t* kvs_signaling_client_if_get(void)
         .disconnect = kvsDisconnectWrapper,
         .send_message = kvsSendMessageWrapper,
         .free = kvsFreeWrapper,
-        .set_callback = kvsSetCallbacksWrapper,
+        .set_callbacks = kvsSetCallbacksWrapper,
         .set_role_type = kvsSetRoleTypeWrapper,
         .get_ice_servers = kvsGetIceServersWrapper,
         .get_ice_server_by_idx = kvsQueryServerGetByIdxWrapper,
