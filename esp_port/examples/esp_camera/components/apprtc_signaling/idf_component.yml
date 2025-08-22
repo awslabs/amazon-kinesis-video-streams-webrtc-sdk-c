@@ -1,0 +1,19 @@
+dependencies:
+  esp_webrtc_utils:
+    path: ${KVS_SDK_PATH}/esp_port/components/esp_webrtc_utils
+    version: '*'
+
+  app_webrtc:
+    path: ${KVS_SDK_PATH}/esp_port/components/app_webrtc
+    version: '*'
+
+  signaling_serializer:
+    path: ${KVS_SDK_PATH}/esp_port/components/signaling_serializer
+    version: '*'
+
+  espressif/esp_websocket_client:
+    version: '*'
+
+  media_stream:
+    path: ${KVS_SDK_PATH}/esp_port/components/media_stream
+    version: '*'

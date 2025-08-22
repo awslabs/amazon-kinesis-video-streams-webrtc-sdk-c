@@ -4,11 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "apprtc_signaling_interface.h"
-#include "apprtc_signaling.h"
-#include "signaling_conversion.h"
-#include "webrtc_signaling_if.h"
+#include <string.h>
 #include "esp_log.h"
+
+#include "app_webrtc_if.h"
+#include "signaling_conversion.h"
+#include "apprtc_signaling.h"
+#include "apprtc_signaling_internal.h"
 
 static const char *TAG = "apprtc_signaling_if";
 
@@ -18,8 +20,8 @@ typedef struct {
     bool initialized;
     bool connected;
     uint64_t customData;
-    WEBRTC_STATUS (*on_msg_received)(uint64_t, esp_webrtc_signaling_message_t*);
-    WEBRTC_STATUS (*on_state_changed)(uint64_t, webrtc_signaling_client_state_t);
+    WEBRTC_STATUS (*on_msg_received)(uint64_t, webrtc_message_t*);
+    WEBRTC_STATUS (*on_signaling_state_changed)(uint64_t, webrtc_signaling_state_t);
     WEBRTC_STATUS (*on_error)(uint64_t, WEBRTC_STATUS, char*, uint32_t);
 } AppRtcSignalingClientData;
 
@@ -30,19 +32,19 @@ static void apprtc_message_handler(const char *message, size_t message_len, void
 static void apprtc_state_change_handler(int state, void *user_data);
 
 // Convert AppRTC state to portable signaling client state
-static webrtc_signaling_client_state_t convertAppRtcState(apprtc_signaling_state_t apprtc_state)
+static webrtc_signaling_state_t convertAppRtcSignalingState(apprtc_signaling_state_t apprtc_state)
 {
     switch (apprtc_state) {
         case APPRTC_SIGNALING_STATE_DISCONNECTED:
-            return WEBRTC_SIGNALING_CLIENT_STATE_NEW;
+            return WEBRTC_SIGNALING_STATE_NEW;
         case APPRTC_SIGNALING_STATE_CONNECTING:
-            return WEBRTC_SIGNALING_CLIENT_STATE_CONNECTING;
+            return WEBRTC_SIGNALING_STATE_CONNECTING;
         case APPRTC_SIGNALING_STATE_CONNECTED:
-            return WEBRTC_SIGNALING_CLIENT_STATE_CONNECTED;
+            return WEBRTC_SIGNALING_STATE_CONNECTED;
         case APPRTC_SIGNALING_STATE_ERROR:
-            return WEBRTC_SIGNALING_CLIENT_STATE_FAILED;
+            return WEBRTC_SIGNALING_STATE_FAILED;
         default:
-            return WEBRTC_SIGNALING_CLIENT_STATE_FAILED;
+            return WEBRTC_SIGNALING_STATE_FAILED;
     }
 }
 
@@ -57,58 +59,18 @@ static void apprtc_message_handler(const char *message, size_t message_len, void
     }
 
     // First convert AppRTC JSON to signaling_msg_t format
-    signaling_msg_t signaling_msg = {0};
-    int result = apprtc_json_to_signaling_message(message, message_len, &signaling_msg);
+    webrtc_message_t webrtc_msg = {0};
+    int result = apprtc_json_to_signaling_message(message, message_len, &webrtc_msg);
     if (result != 0) {
         ESP_LOGE(TAG, "Failed to convert AppRTC message to signaling format");
         return;
     }
 
-    // Then convert from signaling_msg_t to esp_webrtc_signaling_message_t
-    esp_webrtc_signaling_message_t webrtc_msg = {0};
-
-    // Copy version
-    webrtc_msg.version = signaling_msg.version;
-
-    // Convert message type
-    switch (signaling_msg.messageType) {
-        case SIGNALING_MSG_TYPE_OFFER:
-            webrtc_msg.message_type = ESP_SIGNALING_MESSAGE_TYPE_OFFER;
-            break;
-        case SIGNALING_MSG_TYPE_ANSWER:
-            webrtc_msg.message_type = ESP_SIGNALING_MESSAGE_TYPE_ANSWER;
-            break;
-        case SIGNALING_MSG_TYPE_ICE_CANDIDATE:
-            webrtc_msg.message_type = ESP_SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
-            break;
-        default:
-            ESP_LOGW(TAG, "Unknown signaling message type: %d", signaling_msg.messageType);
-            // Clean up allocated payload from signaling_msg
-            if (signaling_msg.payload) {
-                free(signaling_msg.payload);
-            }
-            return;
-    }
-
-    // Copy correlation ID
-    strncpy(webrtc_msg.correlation_id, signaling_msg.correlationId, sizeof(webrtc_msg.correlation_id) - 1);
-    webrtc_msg.correlation_id[sizeof(webrtc_msg.correlation_id) - 1] = '\0';
-
-    // Copy peer client ID
-    strncpy(webrtc_msg.peer_client_id, signaling_msg.peerClientId, sizeof(webrtc_msg.peer_client_id) - 1);
-    webrtc_msg.peer_client_id[sizeof(webrtc_msg.peer_client_id) - 1] = '\0';
-
-    // Copy payload (transfer ownership)
-    webrtc_msg.payload = signaling_msg.payload;
-    webrtc_msg.payload_len = signaling_msg.payloadLen;
-
     // Call the registered callback
     gAppRtcClientData.on_msg_received(gAppRtcClientData.customData, &webrtc_msg);
 
     // Clean up the payload (it was allocated by apprtc_json_to_signaling_message)
-    if (webrtc_msg.payload) {
-        free(webrtc_msg.payload);
-    }
+    free(webrtc_msg.payload);
 }
 
 static void apprtc_state_change_handler(int state, void *user_data)
@@ -119,9 +81,9 @@ static void apprtc_state_change_handler(int state, void *user_data)
     gAppRtcClientData.connected = (state == APPRTC_SIGNALING_STATE_CONNECTED);
 
     // Forward state change to WebRTC app if callback is set
-    if (gAppRtcClientData.on_state_changed != NULL) {
-        webrtc_signaling_client_state_t clientState = convertAppRtcState((apprtc_signaling_state_t)state);
-        gAppRtcClientData.on_state_changed(gAppRtcClientData.customData, clientState);
+    if (gAppRtcClientData.on_signaling_state_changed != NULL) {
+        webrtc_signaling_state_t clientState = convertAppRtcSignalingState((apprtc_signaling_state_t)state);
+        gAppRtcClientData.on_signaling_state_changed(gAppRtcClientData.customData, clientState);
     }
 }
 
@@ -190,10 +152,9 @@ static WEBRTC_STATUS apprtcDisconnect(void *pSignalingClient)
     return WEBRTC_STATUS_SUCCESS;
 }
 
-static WEBRTC_STATUS apprtcSendMessage(void *pSignalingClient, esp_webrtc_signaling_message_t *pMessage)
+static WEBRTC_STATUS apprtcSendMessage(void *pSignalingClient, webrtc_message_t *pMessage)
 {
     WEBRTC_STATUS retStatus = WEBRTC_STATUS_SUCCESS;
-    signaling_msg_t signalingMsg;
 
     ESP_LOGI(TAG, "Sending message via AppRTC signaling interface");
 
@@ -201,39 +162,7 @@ static WEBRTC_STATUS apprtcSendMessage(void *pSignalingClient, esp_webrtc_signal
         return WEBRTC_STATUS_NULL_ARG;
     }
 
-    // Convert from esp_webrtc_signaling_message_t to signaling_msg_t
-    signalingMsg.version = pMessage->version;
-
-    // Convert message type
-    switch (pMessage->message_type) {
-        case ESP_SIGNALING_MESSAGE_TYPE_OFFER:
-            signalingMsg.messageType = SIGNALING_MSG_TYPE_OFFER;
-            break;
-        case ESP_SIGNALING_MESSAGE_TYPE_ANSWER:
-            signalingMsg.messageType = SIGNALING_MSG_TYPE_ANSWER;
-            break;
-        case ESP_SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE:
-            signalingMsg.messageType = SIGNALING_MSG_TYPE_ICE_CANDIDATE;
-            break;
-        default:
-            ESP_LOGW(TAG, "Unknown message type: %d", pMessage->message_type);
-            return WEBRTC_STATUS_INVALID_ARG;
-    }
-
-    // Copy correlation ID
-    strncpy(signalingMsg.correlationId, pMessage->correlation_id, SS_MAX_CORRELATION_ID_LEN);
-    signalingMsg.correlationId[SS_MAX_CORRELATION_ID_LEN] = '\0';
-
-    // Copy peer client ID
-    strncpy(signalingMsg.peerClientId, pMessage->peer_client_id, SS_MAX_SIGNALING_CLIENT_ID_LEN);
-    signalingMsg.peerClientId[SS_MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
-
-    // Copy payload
-    signalingMsg.payload = pMessage->payload;
-    signalingMsg.payloadLen = pMessage->payload_len;
-
-    // Send the message using the AppRTC signaling callback
-    int result = apprtc_signaling_send_callback(&signalingMsg);
+    int result = apprtc_signaling_send_webrtc_message(pMessage);
 
     // Handle the callback return value:
     // 0 = success (message sent immediately)
@@ -264,8 +193,8 @@ static WEBRTC_STATUS apprtcFree(void *pSignalingClient)
 
 static WEBRTC_STATUS apprtcSetCallbacks(void *pSignalingClient,
                                         uint64_t customData,
-                                        WEBRTC_STATUS (*on_msg_received)(uint64_t, esp_webrtc_signaling_message_t*),
-                                        WEBRTC_STATUS (*on_state_changed)(uint64_t, webrtc_signaling_client_state_t),
+                                        WEBRTC_STATUS (*on_msg_received)(uint64_t, webrtc_message_t*),
+                                        WEBRTC_STATUS (*on_signaling_state_changed)(uint64_t, webrtc_signaling_state_t),
                                         WEBRTC_STATUS (*on_error)(uint64_t, WEBRTC_STATUS, char*, uint32_t))
 {
     ESP_LOGI(TAG, "Setting AppRTC signaling callbacks");
@@ -277,13 +206,13 @@ static WEBRTC_STATUS apprtcSetCallbacks(void *pSignalingClient,
     // Store the callbacks
     gAppRtcClientData.customData = customData;
     gAppRtcClientData.on_msg_received = on_msg_received;
-    gAppRtcClientData.on_state_changed = on_state_changed;
+    gAppRtcClientData.on_signaling_state_changed = on_signaling_state_changed;
     gAppRtcClientData.on_error = on_error;
 
     return WEBRTC_STATUS_SUCCESS;
 }
 
-static WEBRTC_STATUS apprtcSetRoleType(void *pSignalingClient, webrtc_signaling_channel_role_type_t role_type)
+static WEBRTC_STATUS apprtcSetRoleType(void *pSignalingClient, webrtc_channel_role_type_t role_type)
 {
     ESP_LOGI(TAG, "Setting AppRTC signaling role type: %d", role_type);
 
@@ -316,7 +245,7 @@ static webrtc_signaling_client_if_t apprtcSignalingInterface = {
     .disconnect = apprtcDisconnect,
     .send_message = apprtcSendMessage,
     .free = apprtcFree,
-    .set_callback = apprtcSetCallbacks,
+    .set_callbacks = apprtcSetCallbacks,
     .set_role_type = apprtcSetRoleType,
     .get_ice_servers = apprtcGetIceServers
 };

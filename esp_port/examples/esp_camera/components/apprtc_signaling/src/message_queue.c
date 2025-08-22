@@ -96,26 +96,14 @@ esp_err_t message_queue_add(message_queue_t *queue, const void *data, int len)
         queue->count--;
     }
 
-    // Allocate memory for the message data
-    void *message_data = heap_caps_malloc(len, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-    if (!message_data) {
-        ESP_LOGE(TAG, "Failed to allocate memory for queued message");
-        ret = ESP_ERR_NO_MEM;
-        goto cleanup;
-    }
-
-    // Copy the message data
-    memcpy(message_data, data, len);
-
     // Add to queue
     int idx = queue->count;
-    queue->messages[idx].data = message_data;
+    queue->messages[idx].data = data;
     queue->messages[idx].len = len;
     queue->count++;
 
     ESP_LOGI(TAG, "Message added to queue (%d/%d)", queue->count, MAX_QUEUED_MESSAGES);
 
-cleanup:
     xSemaphoreGive(queue->mutex);
     return ret;
 }

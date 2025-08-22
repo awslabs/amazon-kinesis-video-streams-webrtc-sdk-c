@@ -204,11 +204,32 @@ WebRTC Status:
 
 ## 🏗️ Architecture Overview
 
-This example uses AppRTC-compatible signaling:
-- **AppRTC Signaling**: Direct connection to `webrtc.espressif.com`
-- **Media Streaming**: H.264 video + Opus audio over WebRTC
-- **Room Management**: CLI-based room creation and joining
-- **Browser Compatible**: Standard WebRTC, works with any modern browser
+This example demonstrates the simplified WebRTC API with AppRTC signaling:
+
+```c
+// Simplified configuration with AppRTC signaling
+app_webrtc_config_t app_webrtc_config = APP_WEBRTC_CONFIG_DEFAULT();
+app_webrtc_config.signaling_client_if = apprtc_signaling_client_if_get();
+app_webrtc_config.signaling_cfg = &apprtc_config;
+app_webrtc_config.peer_connection_if = kvs_peer_connection_if_get();
+
+// Media interfaces for bi-directional streaming
+app_webrtc_config.video_capture = video_capture;
+app_webrtc_config.audio_capture = audio_capture;
+app_webrtc_config.video_player = video_player;
+app_webrtc_config.audio_player = audio_player;
+
+// Advanced API: Set role after initialization
+app_webrtc_set_role(WEBRTC_CHANNEL_ROLE_TYPE_MASTER);
+app_webrtc_enable_media_reception(true);
+```
+
+**Key Features:**
+- **Simplified API**: Reasonable defaults with advanced configuration APIs
+- **AppRTC Signaling**: Browser-compatible signaling via `webrtc.espressif.com`
+- **CLI Control**: Interactive room management commands
+- **Role-Based**: MASTER (create rooms) or VIEWER (join rooms) modes
+- **No AWS Required**: Uses Espressif's free AppRTC server
 
 ## 📚 Next Steps
 

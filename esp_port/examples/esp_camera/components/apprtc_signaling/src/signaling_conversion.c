@@ -11,7 +11,7 @@
 #include "esp_heap_caps.h"
 #include "cJSON.h"
 #include "signaling_conversion.h"
-#include "signaling_serializer.h"
+#include "app_webrtc_if.h"
 
 static const char *TAG = "signaling_conversion";
 
@@ -29,13 +29,13 @@ static const char *TAG = "signaling_conversion";
 int apprtc_json_to_signaling_message(
     const char *json_message,
     size_t json_message_len,
-    signaling_msg_t *pSignalingMessage
+    webrtc_message_t *pWebrtcMessage
 )
 {
     int status = 0;
 
     // Validate parameters
-    if (json_message == NULL || pSignalingMessage == NULL) {
+    if (json_message == NULL || pWebrtcMessage == NULL) {
         ESP_LOGE(TAG, "Invalid parameters");
         return -1;
     }
@@ -59,48 +59,48 @@ int apprtc_json_to_signaling_message(
     ESP_LOGI(TAG, "Converting signaling message type: %s", messageType);
 
     // Initialize the output SignalingMessage
-    pSignalingMessage->version = 0;
-    pSignalingMessage->payload = NULL;
-    pSignalingMessage->payloadLen = 0;
+    pWebrtcMessage->version = 0;
+    pWebrtcMessage->payload = NULL;
+    pWebrtcMessage->payload_len = 0;
 
     // Extract clientId if present
     cJSON *clientIdNode = cJSON_GetObjectItem(jsonMessage, "clientId");
     if (clientIdNode && cJSON_IsString(clientIdNode)) {
-        strncpy(pSignalingMessage->peerClientId, cJSON_GetStringValue(clientIdNode), SS_MAX_SIGNALING_CLIENT_ID_LEN);
-        pSignalingMessage->peerClientId[SS_MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
+        strncpy(pWebrtcMessage->peer_client_id, cJSON_GetStringValue(clientIdNode), APP_WEBRTC_MAX_SIGNALING_CLIENT_ID_LEN);
+        pWebrtcMessage->peer_client_id[APP_WEBRTC_MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
     } else {
-        pSignalingMessage->peerClientId[0] = '\0';
+        pWebrtcMessage->peer_client_id[0] = '\0';
     }
 
     // Extract correlationId if present
     cJSON *correlationIdNode = cJSON_GetObjectItem(jsonMessage, "correlationId");
     if (correlationIdNode && cJSON_IsString(correlationIdNode)) {
-        strncpy(pSignalingMessage->correlationId, cJSON_GetStringValue(correlationIdNode), SS_MAX_CORRELATION_ID_LEN);
-        pSignalingMessage->correlationId[SS_MAX_CORRELATION_ID_LEN] = '\0';
+        strncpy(pWebrtcMessage->correlation_id, cJSON_GetStringValue(correlationIdNode), APP_WEBRTC_MAX_CORRELATION_ID_LEN);
+        pWebrtcMessage->correlation_id[APP_WEBRTC_MAX_CORRELATION_ID_LEN] = '\0';
     } else {
-        pSignalingMessage->correlationId[0] = '\0';
+        pWebrtcMessage->correlation_id[0] = '\0';
     }
 
     // Convert message type to KVS WebRTC SDK message type
     if (strcmp(messageType, "offer") == 0) {
-        pSignalingMessage->messageType = SIGNALING_MSG_TYPE_OFFER;
+        pWebrtcMessage->message_type = WEBRTC_MESSAGE_TYPE_OFFER;
     } else if (strcmp(messageType, "answer") == 0) {
-        pSignalingMessage->messageType = SIGNALING_MSG_TYPE_ANSWER;
+        pWebrtcMessage->message_type = WEBRTC_MESSAGE_TYPE_ANSWER;
     } else if (strcmp(messageType, "iceCandidate") == 0 || strcmp(messageType, "candidate") == 0) {
-        pSignalingMessage->messageType = SIGNALING_MSG_TYPE_ICE_CANDIDATE;
+        pWebrtcMessage->message_type = WEBRTC_MESSAGE_TYPE_ICE_CANDIDATE;
     } else if (strcmp(messageType, "customized") == 0) {
         // Handle customized messages
         cJSON *dataNode = cJSON_GetObjectItem(jsonMessage, "data");
         if (dataNode && cJSON_IsString(dataNode)) {
             const char *data = cJSON_GetStringValue(dataNode);
-            pSignalingMessage->payloadLen = (uint32_t) strlen(data);
-            pSignalingMessage->payload = (char*) heap_caps_calloc(1, pSignalingMessage->payloadLen + 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-            if (!pSignalingMessage->payload) {
+            pWebrtcMessage->payload_len = (uint32_t) strlen(data);
+            pWebrtcMessage->payload = (char*) heap_caps_calloc(1, pWebrtcMessage->payload_len + 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+            if (!pWebrtcMessage->payload) {
                 ESP_LOGE(TAG, "Failed to allocate memory for custom message");
                 cJSON_Delete(jsonMessage);
                 return -1;
             }
-            strcpy(pSignalingMessage->payload, data);
+            strcpy(pWebrtcMessage->payload, data);
         } else {
             ESP_LOGW(TAG, "Invalid custom message format");
             cJSON_Delete(jsonMessage);
@@ -112,33 +112,33 @@ int apprtc_json_to_signaling_message(
         return -1;
     }
 
-    // Store the full JSON message in the payload for non-custom messages
-    if (pSignalingMessage->messageType != SIGNALING_MSG_TYPE_ICE_CANDIDATE &&
+        // For all message types, store the full JSON message in the payload
+    if (pWebrtcMessage->message_type != WEBRTC_MESSAGE_TYPE_ICE_CANDIDATE &&
         strcmp(messageType, "customized") != 0) {
-        // Use the original full JSON message as the payload
-        pSignalingMessage->payloadLen = (uint32_t) json_message_len;
-        pSignalingMessage->payload = (char*) heap_caps_calloc(1, pSignalingMessage->payloadLen + 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-        if (pSignalingMessage->payload == NULL) {
+        // Store the full JSON message for non-custom messages
+        pWebrtcMessage->payload_len = (uint32_t) json_message_len;
+        pWebrtcMessage->payload = (char*) heap_caps_calloc(1, pWebrtcMessage->payload_len + 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+        if (pWebrtcMessage->payload == NULL) {
             ESP_LOGE(TAG, "Failed to allocate memory for full JSON payload");
             cJSON_Delete(jsonMessage);
             return -1;
         }
-        memcpy(pSignalingMessage->payload, json_message, json_message_len);
-        pSignalingMessage->payload[json_message_len] = '\0';
-        ESP_LOGI(TAG, "Using full JSON as payload: %s", pSignalingMessage->payload);
+        memcpy(pWebrtcMessage->payload, json_message, json_message_len);
+        pWebrtcMessage->payload[json_message_len] = '\0';
+        ESP_LOGI(TAG, "Using full JSON as payload for %s", messageType);
     }
     // For ICE candidates, also use the full JSON
-    else if (pSignalingMessage->messageType == SIGNALING_MSG_TYPE_ICE_CANDIDATE) {
-        pSignalingMessage->payloadLen = (uint32_t) json_message_len;
-        pSignalingMessage->payload = (char*) heap_caps_calloc(1, pSignalingMessage->payloadLen + 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-        if (pSignalingMessage->payload == NULL) {
+    else if (pWebrtcMessage->message_type == WEBRTC_MESSAGE_TYPE_ICE_CANDIDATE) {
+        pWebrtcMessage->payload_len = (uint32_t) json_message_len;
+        pWebrtcMessage->payload = (char*) heap_caps_calloc(1, pWebrtcMessage->payload_len + 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+        if (pWebrtcMessage->payload == NULL) {
             ESP_LOGE(TAG, "Failed to allocate memory for ICE candidate");
             cJSON_Delete(jsonMessage);
             return -1;
         }
-        memcpy(pSignalingMessage->payload, json_message, json_message_len);
-        pSignalingMessage->payload[json_message_len] = '\0';
-        ESP_LOGI(TAG, "Using full JSON as ICE candidate payload: %s", pSignalingMessage->payload);
+        memcpy(pWebrtcMessage->payload, json_message, json_message_len);
+        pWebrtcMessage->payload[json_message_len] = '\0';
+        ESP_LOGI(TAG, "Using full JSON as ICE candidate payload");
     }
 
     // Clean up
@@ -153,35 +153,35 @@ int apprtc_json_to_signaling_message(
  * This function converts a signaling_msg_t structure to an AppRTC
  * signaling message in JSON format.
  *
- * @param pSignalingMessage The signaling message to convert
+ * @param pWebrtcMessage The signaling message to convert
  * @param ppJsonMessage Output JSON message (caller must free)
  * @param pJsonMessageLen Output JSON message length
  * @return 0 on success, non-zero on failure
  */
-int signaling_message_to_apprtc_json(signaling_msg_t *pSignalingMessage,
-                                        char **ppJsonMessage, size_t *pJsonMessageLen)
+int signaling_message_to_apprtc_json(webrtc_message_t *pWebrtcMessage,
+                                     char **ppJsonMessage, size_t *pJsonMessageLen)
 {
     int status = 0;
 
     // Validate parameters
-    if (pSignalingMessage == NULL || ppJsonMessage == NULL || pJsonMessageLen == NULL) {
+    if (pWebrtcMessage == NULL || ppJsonMessage == NULL || pJsonMessageLen == NULL) {
         ESP_LOGE(TAG, "Invalid parameters");
         return -1;
     }
 
     // Check if the payload is already a JSON message
-    if (pSignalingMessage->payload != NULL && pSignalingMessage->payloadLen > 0 &&
-        pSignalingMessage->payload[0] == '{') {
+    if (pWebrtcMessage->payload != NULL && pWebrtcMessage->payload_len > 0 &&
+        pWebrtcMessage->payload[0] == '{') {
         ESP_LOGI(TAG, "Payload appears to be a JSON message already, using as-is");
 
         // Just duplicate the payload
-        *ppJsonMessage = heap_caps_calloc(1, pSignalingMessage->payloadLen + 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+        *ppJsonMessage = heap_caps_calloc(1, pWebrtcMessage->payload_len + 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
         if (*ppJsonMessage == NULL) {
             ESP_LOGE(TAG, "Failed to allocate memory for JSON message");
             return -1;
         }
-        memcpy(*ppJsonMessage, pSignalingMessage->payload, pSignalingMessage->payloadLen);
-        *pJsonMessageLen = pSignalingMessage->payloadLen;
+        memcpy(*ppJsonMessage, pWebrtcMessage->payload, pWebrtcMessage->payload_len);
+        *pJsonMessageLen = pWebrtcMessage->payload_len;
         return 0;
     }
 
@@ -193,51 +193,51 @@ int signaling_message_to_apprtc_json(signaling_msg_t *pSignalingMessage,
     }
 
     // Add client ID if provided
-    if (pSignalingMessage->peerClientId[0] != '\0') {
-        cJSON_AddStringToObject(jsonMessage, "clientId", pSignalingMessage->peerClientId);
+    if (pWebrtcMessage->peer_client_id[0] != '\0') {
+        cJSON_AddStringToObject(jsonMessage, "clientId", pWebrtcMessage->peer_client_id);
     }
 
     // Convert message type and add appropriate fields
-    switch (pSignalingMessage->messageType) {
-        case SIGNALING_MSG_TYPE_OFFER:
+    switch (pWebrtcMessage->message_type) {
+        case WEBRTC_MESSAGE_TYPE_OFFER:
             cJSON_AddStringToObject(jsonMessage, "type", "offer");
-            if (pSignalingMessage->payload != NULL && pSignalingMessage->payloadLen > 0) {
-                cJSON_AddStringToObject(jsonMessage, "sdp", pSignalingMessage->payload);
-                ESP_LOGI(TAG, "Converting offer with SDP: %s", pSignalingMessage->payload);
+            if (pWebrtcMessage->payload != NULL && pWebrtcMessage->payload_len > 0) {
+                cJSON_AddStringToObject(jsonMessage, "sdp", pWebrtcMessage->payload);
+                ESP_LOGI(TAG, "Converting offer with SDP: %s", pWebrtcMessage->payload);
             } else {
                 ESP_LOGW(TAG, "No SDP payload in offer message");
             }
             break;
 
-        case SIGNALING_MSG_TYPE_ANSWER:
+        case WEBRTC_MESSAGE_TYPE_ANSWER:
             cJSON_AddStringToObject(jsonMessage, "type", "answer");
-            if (pSignalingMessage->payload != NULL && pSignalingMessage->payloadLen > 0) {
-                cJSON_AddStringToObject(jsonMessage, "sdp", pSignalingMessage->payload);
-                ESP_LOGI(TAG, "Converting answer with SDP: %s", pSignalingMessage->payload);
+            if (pWebrtcMessage->payload != NULL && pWebrtcMessage->payload_len > 0) {
+                cJSON_AddStringToObject(jsonMessage, "sdp", pWebrtcMessage->payload);
+                ESP_LOGI(TAG, "Converting answer with SDP: %s", pWebrtcMessage->payload);
             } else {
                 ESP_LOGW(TAG, "No SDP payload in answer message");
             }
             break;
 
-        case SIGNALING_MSG_TYPE_ICE_CANDIDATE:
+        case WEBRTC_MESSAGE_TYPE_ICE_CANDIDATE:
             cJSON_AddStringToObject(jsonMessage, "type", "iceCandidate");
-            if (pSignalingMessage->payload != NULL && pSignalingMessage->payloadLen > 0) {
-                cJSON_AddStringToObject(jsonMessage, "candidate", pSignalingMessage->payload);
-                ESP_LOGI(TAG, "Converting ICE candidate: %s", pSignalingMessage->payload);
+            if (pWebrtcMessage->payload != NULL && pWebrtcMessage->payload_len > 0) {
+                cJSON_AddStringToObject(jsonMessage, "candidate", pWebrtcMessage->payload);
+                ESP_LOGI(TAG, "Converting ICE candidate: %s", pWebrtcMessage->payload);
             } else {
                 ESP_LOGW(TAG, "No candidate payload in ICE candidate message");
             }
             break;
 
         default:
-            ESP_LOGE(TAG, "Unsupported message type: %d", pSignalingMessage->messageType);
+            ESP_LOGE(TAG, "Unsupported message type: %d", pWebrtcMessage->message_type);
             cJSON_Delete(jsonMessage);
             return -1;
     }
 
     // Add correlation ID if present
-    if (pSignalingMessage->correlationId[0] != '\0') {
-        cJSON_AddStringToObject(jsonMessage, "correlationId", pSignalingMessage->correlationId);
+    if (pWebrtcMessage->correlation_id[0] != '\0') {
+        cJSON_AddStringToObject(jsonMessage, "correlationId", pWebrtcMessage->correlation_id);
     }
 
     // Serialize to string

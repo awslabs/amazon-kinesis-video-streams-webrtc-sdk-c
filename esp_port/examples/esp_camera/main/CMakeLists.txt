@@ -1,5 +1,5 @@
 idf_component_register(
-    SRCS "esp_webrtc_camera_main.c" "apprtc_signaling.c" "apprtc_signaling_interface.c" "webrtc_cli.c" "message_queue.c" "signaling_conversion.c"
+    SRCS "esp_webrtc_camera_main.c" "webrtc_cli.c"
     INCLUDE_DIRS "."
     REQUIRES "nvs_flash"
              "esp_wifi"
@@ -8,7 +8,6 @@ idf_component_register(
              "esp_event"
              "mbedtls"
              "lwip"
-             "app_common"
              "json"
     )
 

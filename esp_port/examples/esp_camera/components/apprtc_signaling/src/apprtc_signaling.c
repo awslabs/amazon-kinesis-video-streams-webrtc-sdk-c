@@ -23,11 +23,12 @@
 #include "sdkconfig.h"
 #include "esp_work_queue.h"
 #include "esp_heap_caps.h"
-
 #include "apprtc_signaling.h"
-#include "signaling_serializer.h"
-#include "app_webrtc.h"
+#include "apprtc_signaling_internal.h"
+#include "message_queue.h"
 #include "signaling_conversion.h"
+#include "app_webrtc.h"
+#include "signaling_serializer.h"
 
 // Simple structure for peer signaling message
 typedef struct {
@@ -42,7 +43,7 @@ typedef struct {
 } esp_peer_signaling_cfg_t, esp_peer_signaling_ice_info_t;
 
 // Forward declarations for WebRTC app functions
-int apprtc_signaling_send_callback(signaling_msg_t *pSignalingMsg);
+int apprtc_signaling_send_webrtc_message(webrtc_message_t *pWebrtcMessage);
 
 // Forward declarations
 static void update_state(apprtc_signaling_state_t new_state);
@@ -54,6 +55,7 @@ static void ws_event_work_handler(void *priv_data);
 static esp_err_t send_custom_command(esp_websocket_client_handle_t ws, const char *cmd);
 static void send_initial_messages(void);
 static esp_err_t process_initial_messages(void);
+esp_err_t apprtc_signaling_queue_message(const void *data, int len);
 
 #ifndef CONFIG_APPRTC_SERVER_URL
 #define APPRTC_SERVER_URL "https://webrtc.espressif.com"
@@ -363,7 +365,7 @@ static void apprtc_websocket_event_handler(void *handler_args, esp_event_base_t 
             // Check if data is valid UTF-8 text before logging
             if (data->op_code == WS_TRANSPORT_OPCODES_TEXT) {
                 // Log the raw message
-                ESP_LOGI(TAG, "Received raw WebSocket message (%d bytes): %.*s",
+                ESP_LOGD(TAG, "Received raw WebSocket message (%d bytes): %.*s",
                         data->data_len, data->data_len, (char*)data->data_ptr);
 
                 // Check for duplicate registration error in the raw message
@@ -531,7 +533,7 @@ static void ws_event_work_handler(void *priv_data)
                 }
 
                 if (is_valid_text) {
-                    ESP_LOGI(TAG, "Received WebSocket message (%d bytes): %.*s",
+                    ESP_LOGD(TAG, "Received WebSocket message (%d bytes): %.*s",
                             work_item->data_len, work_item->data_len, (char*)work_item->data);
 
                     // Check for empty messages or empty error fields
@@ -569,7 +571,7 @@ static void ws_event_work_handler(void *priv_data)
 
                             // Process the inner message only if it's a WebRTC signaling message
                             if (msg_str && strlen(msg_str) > 0 && strcmp(msg_str, "{\"error\":\"\"}") != 0) {
-                                ESP_LOGI(TAG, "Received inner message: %s", msg_str);
+                                ESP_LOGD(TAG, "Received inner message: %s", msg_str);
 
                                 // Parse the inner message to check if it's a WebRTC signaling message
                                 cJSON *inner_json = cJSON_Parse(msg_str);
@@ -582,20 +584,20 @@ static void ws_event_work_handler(void *priv_data)
                                         if (strcmp(type_str, "offer") == 0 ||
                                             strcmp(type_str, "answer") == 0 ||
                                             strcmp(type_str, "candidate") == 0) {
-                                            ESP_LOGI(TAG, "Forwarding WebRTC signaling message: %s", type_str);
+                                            ESP_LOGI(TAG, "Forwarding signaling message: %s", type_str);
 
                                             if (apprtc_client.message_handler) {
                                                 apprtc_client.message_handler(msg_str, strlen(msg_str), apprtc_client.user_data);
                                             }
                                         } else {
-                                            ESP_LOGI(TAG, "Ignoring non-WebRTC message type: %s", type_str);
+                                            ESP_LOGD(TAG, "Ignoring non-WebRTC message type: %s", type_str);
                                         }
                                     } else {
-                                        ESP_LOGI(TAG, "Inner message has no type field, ignoring");
+                                        ESP_LOGD(TAG, "Inner message has no type field, ignoring");
                                     }
                                     cJSON_Delete(inner_json);
                                 } else {
-                                    ESP_LOGI(TAG, "Failed to parse inner message as JSON, ignoring");
+                                    ESP_LOGD(TAG, "Failed to parse inner message as JSON, ignoring");
                                 }
                             }
 
@@ -688,6 +690,7 @@ esp_err_t apprtc_signaling_init(apprtc_signaling_message_handler_t message_handl
                                apprtc_signaling_state_change_handler_t state_handler,
                                void* user_data)
 {
+    esp_err_t err = ESP_OK;
     ESP_LOGI(TAG, "Initializing AppRTC signaling client");
 
     if (!message_handler) {
@@ -704,19 +707,20 @@ esp_err_t apprtc_signaling_init(apprtc_signaling_message_handler_t message_handl
         }
     }
 
-    // Initialize work queue
-    esp_err_t err = esp_work_queue_init();
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize work queue");
-        return err;
-    }
+    // // Initialize work queue
+    // esp_err_t err = esp_work_queue_init();
+    // if (err != ESP_OK) {
+    //     ESP_LOGE(TAG, "Failed to initialize work queue");
+    //     return err;
+    // }
 
-    err = esp_work_queue_start();
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to start work queue");
-        esp_work_queue_deinit();
-        return err;
-    }
+    // err = esp_work_queue_start();
+    // if (err != ESP_OK) {
+    //     ESP_LOGE(TAG, "Failed to start work queue");
+    //     esp_work_queue_deinit();
+    //     return err;
+    // }
+    signaling_serializer_init();
 
     xSemaphoreTake(apprtc_client.mutex, portMAX_DELAY);
 
@@ -1033,7 +1037,7 @@ esp_err_t apprtc_signaling_send_message(const char* message, size_t message_len)
         return ESP_FAIL;
     }
 
-    ESP_LOGI(TAG, "Sending message to room %s: %s", apprtc_client.room_id, new_message);
+    ESP_LOGD(TAG, "Sending message to room %s: %s", apprtc_client.room_id, new_message);
 
     // Double-check connection before sending
     esp_err_t ret = ESP_FAIL;
@@ -1183,7 +1187,7 @@ esp_err_t apprtc_signaling_process_message(const char *message, size_t message_l
         return ESP_ERR_INVALID_ARG;
     }
 
-    ESP_LOGI(TAG, "Processing message: %.*s", (int)message_len, message);
+    ESP_LOGD(TAG, "Processing message: %.*s", (int)message_len, message);
 
     // Check if the message is a JSON object
     cJSON *json = cJSON_Parse(message);
@@ -1204,7 +1208,7 @@ esp_err_t apprtc_signaling_process_message(const char *message, size_t message_l
             return ESP_OK;
         }
 
-        ESP_LOGI(TAG, "Found inner message: %s", inner_msg);
+        ESP_LOGD(TAG, "Found inner message: %s", inner_msg);
 
         // Parse the inner message to check the type
         cJSON *inner_json = cJSON_Parse(inner_msg);
@@ -1212,13 +1216,13 @@ esp_err_t apprtc_signaling_process_message(const char *message, size_t message_l
             cJSON *type = cJSON_GetObjectItem(inner_json, "type");
             if (type && cJSON_IsString(type)) {
                 const char *type_str = cJSON_GetStringValue(type);
-                ESP_LOGI(TAG, "Message type: %s", type_str);
+                ESP_LOGD(TAG, "Message type: %s", type_str);
 
                 // Only forward WebRTC signaling messages
                 if (strcmp(type_str, "offer") == 0 ||
                     strcmp(type_str, "answer") == 0 ||
                     strcmp(type_str, "candidate") == 0) {
-                    ESP_LOGI(TAG, "Forwarding WebRTC signaling message: %s", type_str);
+                    ESP_LOGI(TAG, "Forwarding signaling message: %s", type_str);
 
                     if (apprtc_client.message_handler) {
                         apprtc_client.message_handler(inner_msg, strlen(inner_msg), apprtc_client.user_data);
@@ -1226,14 +1230,14 @@ esp_err_t apprtc_signaling_process_message(const char *message, size_t message_l
                         ESP_LOGE(TAG, "No message handler registered");
                     }
                 } else {
-                    ESP_LOGI(TAG, "Ignoring non-WebRTC message type: %s", type_str);
+                    ESP_LOGD(TAG, "Ignoring non-WebRTC message type: %s", type_str);
                 }
             } else {
-                ESP_LOGI(TAG, "Inner message has no type field, ignoring");
+                ESP_LOGD(TAG, "Inner message has no type field, ignoring");
             }
             cJSON_Delete(inner_json);
         } else {
-            ESP_LOGI(TAG, "Failed to parse inner message as JSON, ignoring");
+            ESP_LOGD(TAG, "Failed to parse inner message as JSON, ignoring");
         }
 
         cJSON_Delete(json);
@@ -1268,13 +1272,13 @@ esp_err_t apprtc_signaling_process_message(const char *message, size_t message_l
     return ESP_OK;
 }
 
-int apprtc_signaling_send_callback(signaling_msg_t *pSignalingMsg)
+int apprtc_signaling_send_webrtc_message(webrtc_message_t *pWebrtcMessage)
 {
     esp_err_t ret;
     char *apprtc_json_msg = NULL;
     size_t apprtc_json_len = 0;
 
-    if (!pSignalingMsg) {
+    if (!pWebrtcMessage) {
         ESP_LOGE(TAG, "Invalid data for sending");
         return -1;
     }
@@ -1291,47 +1295,59 @@ int apprtc_signaling_send_callback(signaling_msg_t *pSignalingMsg)
         !apprtc_client.client ||
         !esp_websocket_client_is_connected(apprtc_client.client)) {
         ESP_LOGW(TAG, "Not connected to signaling server, queueing message for later");
-
-        // Queue the message for later sending
-        if (apprtc_signaling_queue_message(pSignalingMsg, sizeof(signaling_msg_t)) != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to queue message");
+        webrtc_message_t *webrtc_message_copy = (webrtc_message_t *) malloc(sizeof(webrtc_message_t));
+        if (webrtc_message_copy == NULL) {
+            ESP_LOGE(TAG, "Failed to allocate memory for signaling message");
             return -1;
         }
-
+        memcpy(webrtc_message_copy, pWebrtcMessage, sizeof(webrtc_message_t));
+        webrtc_message_copy->payload = strdup(pWebrtcMessage->payload);
+        if (webrtc_message_copy->payload == NULL) {
+            ESP_LOGE(TAG, "Failed to duplicate payload");
+            free(webrtc_message_copy);
+            return -1;
+        }
+        // Queue the message for later sending
+        if (apprtc_signaling_queue_message(webrtc_message_copy, sizeof(webrtc_message_t)) != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to queue message");
+            free(webrtc_message_copy->payload);
+            free(webrtc_message_copy);
+            return -1;
+        }
         // Return a special status code to indicate "message queued"
         return 1;  // Custom code for "message queued"
     }
 
     // Log the payload for debugging
-    if (pSignalingMsg->payload != NULL && pSignalingMsg->payloadLen > 0) {
-        ESP_LOGI(TAG, "Signaling message payload: %.*s", (int)pSignalingMsg->payloadLen, pSignalingMsg->payload);
+    if (pWebrtcMessage->payload != NULL && pWebrtcMessage->payload_len > 0) {
+        ESP_LOGI(TAG, "Signaling message payload: %.*s", (int)pWebrtcMessage->payload_len, pWebrtcMessage->payload);
     } else {
         ESP_LOGW(TAG, "Signaling message has no payload");
     }
 
     // Use the client ID designated by the server
     if (apprtc_client.client_id[0] != '\0') {
-        strncpy(pSignalingMsg->peerClientId, apprtc_client.client_id, SS_MAX_SIGNALING_CLIENT_ID_LEN);
-        pSignalingMsg->peerClientId[SS_MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
+        strncpy(pWebrtcMessage->peer_client_id, apprtc_client.client_id, APP_WEBRTC_MAX_SIGNALING_CLIENT_ID_LEN);
+        pWebrtcMessage->peer_client_id[APP_WEBRTC_MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
         ESP_LOGI(TAG, "Using server-designated client ID: %s for message", apprtc_client.client_id);
     } else if (apprtc_client.room_id[0] != '\0') {
         // Fallback to room ID if client ID is not available
-        strncpy(pSignalingMsg->peerClientId, apprtc_client.room_id, SS_MAX_SIGNALING_CLIENT_ID_LEN);
-        pSignalingMsg->peerClientId[SS_MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
+        strncpy(pWebrtcMessage->peer_client_id, apprtc_client.room_id, APP_WEBRTC_MAX_SIGNALING_CLIENT_ID_LEN);
+        pWebrtcMessage->peer_client_id[APP_WEBRTC_MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
         ESP_LOGW(TAG, "Client ID not available, using room ID: %s instead", apprtc_client.room_id);
     }
 
     ESP_LOGI(TAG, "Processing message for room: %s", apprtc_client.room_id);
 
     // Convert directly to AppRTC format using the conversion module
-    int status = signaling_message_to_apprtc_json(pSignalingMsg, &apprtc_json_msg, &apprtc_json_len);
+    int status = signaling_message_to_apprtc_json(pWebrtcMessage, &apprtc_json_msg, &apprtc_json_len);
     if (status != 0 || apprtc_json_msg == NULL) {
         ESP_LOGE(TAG, "Failed to convert to AppRTC JSON format, status: %d", status);
         return -1;
     }
 
     // Log the message being sent
-    ESP_LOGI(TAG, "Sending AppRTC message: %.*s", (int)apprtc_json_len, apprtc_json_msg);
+    ESP_LOGD(TAG, "Sending AppRTC message: %.*s", (int)apprtc_json_len, apprtc_json_msg);
 
     // Send the converted message via AppRTC signaling
     ret = apprtc_signaling_send_message(apprtc_json_msg, apprtc_json_len);
@@ -1675,9 +1691,9 @@ esp_err_t apprtc_signaling_process_queued_messages(void)
         // Process the message
         ESP_LOGI(TAG, "Processing queued message %d", processed + 1);
 
-        signaling_msg_t *signalingMessage = (signaling_msg_t *)data;
+        webrtc_message_t *webrtcMessage = (webrtc_message_t *)data;
         // Call the send callback directly with the message data
-        int result = apprtc_signaling_send_callback(signalingMessage);
+        int result = apprtc_signaling_send_webrtc_message(webrtcMessage);
         if (result != 0) {
             ESP_LOGW(TAG, "Failed to process queued message %d, result: %d", processed + 1, result);
             ret = ESP_FAIL;
@@ -1686,6 +1702,7 @@ esp_err_t apprtc_signaling_process_queued_messages(void)
         }
 
         // Free the message data
+        free(webrtcMessage->payload);
         free(data);
     }
 
