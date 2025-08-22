@@ -45,7 +45,6 @@ set(kvs_webrtc_srcs
       "${KVS_WEBRTC_ROOT}/src/source/Srtp/SrtpSession.c"
       "${KVS_WEBRTC_ROOT}/src/source/Stun/Stun.c"
       "${KVS_WEBRTC_ROOT}/src/source/Threadpool/ThreadPoolContext.c"
-      "${CMAKE_CURRENT_SOURCE_DIR}/src/app_webrtc.c"
 )
 
 set(kvs_webrtc_include_dirs
@@ -64,40 +63,25 @@ set(kvs_webrtc_include_dirs
       "${KVS_WEBRTC_ROOT}/src/source/Threadpool"
 )
 
-# Conditionally add Signaling sources
-if(CONFIG_USE_ESP_WEBSOCKET_CLIENT)
-    set(kvs_webrtc_srcs
-        ${kvs_webrtc_srcs}
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/SignalingESP.c"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/LwsApiCallsESP.c"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/DataBuffer.c"
-    )
-    message(STATUS "Using ESP WebSocket client for signaling")
-else()
-    set(kvs_webrtc_srcs
-        ${kvs_webrtc_srcs}
-        "${KVS_WEBRTC_ROOT}/src/source/Signaling/Signaling.c"
-        "${KVS_WEBRTC_ROOT}/src/source/Signaling/LwsApiCalls.c"
-    )
-    message(STATUS "Using libwebsockets for signaling")
-endif()
+list(APPEND kvs_webrtc_srcs
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/kvs_media.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/WebRtcLogging.c"
+)
 
 # Conditionally add TLS implementation
 if(CONFIG_USE_ESP_TLS_FOR_KVS)
-    set(kvs_webrtc_srcs
-        ${kvs_webrtc_srcs}
+    list(APPEND kvs_webrtc_srcs
         "${CMAKE_CURRENT_SOURCE_DIR}/src/Tls_esp.c"
     )
     message(STATUS "Using ESP-TLS for KVS TLS sessions")
 else()
-    set(kvs_webrtc_srcs
-        ${kvs_webrtc_srcs}
+    list(APPEND kvs_webrtc_srcs
         "${KVS_WEBRTC_ROOT}/src/source/Crypto/Tls_mbedtls.c"
     )
     message(STATUS "Using direct mbedTLS for KVS TLS sessions")
 endif()
 
-set(requires "mbedtls" "lwip" "esp_timer" "nvs_flash" "freertos" "esp_system" "heap" "driver" "spi_flash" "esp_http_client")
+set(requires "mbedtls" "lwip" "esp_timer" "nvs_flash" "freertos" "esp_system" "heap" "driver" "spi_flash" "esp_http_client" "app_webrtc" "kvs_utils" "libsrtp2" "esp_usrsctp")
 
 # Add ESP-TLS dependency if using ESP-TLS implementation
 if(CONFIG_USE_ESP_TLS_FOR_KVS)
@@ -105,11 +89,8 @@ if(CONFIG_USE_ESP_TLS_FOR_KVS)
 endif()
 
 idf_component_register(
-    SRCS "${kvs_webrtc_srcs}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/WebRtcLogging.c"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/app_webrtc.c"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/kvs_signaling.c"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/app_webrtc_media.c"
+    SRCS "${CMAKE_CURRENT_SOURCE_DIR}/src/kvs_webrtc.c"
+         "${kvs_webrtc_srcs}"
 
     INCLUDE_DIRS "${kvs_webrtc_include_dirs}"
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
@@ -128,10 +109,6 @@ idf_component_register(
              "spi_flash"
              "esp_http_client"
 )
-
-if(CONFIG_USE_ESP_WEBSOCKET_CLIENT)
-    target_compile_definitions(${COMPONENT_LIB} PUBLIC -DUSE_ESP_WEBSOCKET -DESP_PLATFORM)
-endif()
 
 # option(ENABLE_KVS_THREADPOOL "Enable support for KVS thread pool in signaling" OFF)
 set(KVS_PLAT_ESP_FREERTOS ON CACHE BOOL "Build for ESP FreeRTOS")
@@ -171,10 +148,23 @@ target_compile_definitions(${COMPONENT_LIB} PUBLIC
     -DESP_PLATFORM
     -DAWS_IOT_SDK
     -DKVS_PLAT_ESP
-    # -DLWS_WITH_ESP32
     -DLWS_WITH_CUSTOM_HEADERS
     -DENABLE_STREAMING
     -DKVS_USE_PLATFORM_TYPES
+    -DKVS_PLAT_ESP_FREERTOS
+)
+
+# Add definitions for usrsctp
+target_compile_definitions(${COMPONENT_LIB} PUBLIC
+    -DHAVE_SCONN_LEN=1
+    -DSCTP_USE_LWIP=1
+    -DSCTP_USE_RTOS=1
+    -DSCTP_SIMPLE_ALLOCATOR
+    -D__Userspace__
+    -DINET=1
+    -DSCTP_DEBUG=1
+    -DSCTP_USE_IPV6=0
+    -DSCTP_USE_MBEDTLS_SHA1=1
 )
 
 target_compile_options(${COMPONENT_LIB} PRIVATE

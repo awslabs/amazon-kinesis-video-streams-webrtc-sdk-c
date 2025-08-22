@@ -114,10 +114,26 @@ idf.py -p /dev/ttyUSB0 flash monitor
 5. **Click "Start Viewer"** - you should see your ESP32 camera feed!
 ## 🔧 Architecture Overview
 
-This example implements:
-- **AWS KVS Signaling**: Uses Amazon Kinesis Video Streams for WebRTC signaling
-- **Media Streaming**: H.264 video and Opus audio over WebRTC
-- **Auto-Connect**: Simple startup that automatically connects to AWS
+This example demonstrates the new simplified WebRTC API:
+
+```c
+// Simplified configuration with reasonable defaults
+app_webrtc_config_t app_webrtc_config = APP_WEBRTC_CONFIG_DEFAULT();
+app_webrtc_config.signaling_client_if = kvs_signaling_client_if_get();
+app_webrtc_config.signaling_cfg = &kvs_signaling_cfg;
+app_webrtc_config.peer_connection_if = kvs_peer_connection_if_get();
+
+// Media interfaces for bi-directional streaming
+app_webrtc_config.video_capture = video_capture;
+app_webrtc_config.audio_capture = audio_capture;
+app_webrtc_config.audio_player = audio_player;
+```
+
+**Key Features:**
+- **Simplified API**: Reasonable defaults (MASTER role, H.264/OPUS codecs, trickle ICE)
+- **AWS KVS Integration**: Full signaling and peer connection through AWS
+- **Auto-Detection**: Streaming mode auto-detected from provided media interfaces
+- **Advanced APIs**: Override defaults using dedicated configuration functions
 - **Single Device**: Everything runs on one ESP32 (no split mode)
 
 ## 🚨 Troubleshooting

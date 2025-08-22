@@ -1,0 +1,16 @@
+menu "App WebRTC Configuration"
+
+    config ENABLE_DATA_CHANNEL
+        bool "Enable Data channel support using usrsctp"
+        default y
+        help
+            Enables WebRTC Data channel support
+
+    config KVS_MAX_CONCURRENT_STREAMS
+        int "Maximum concurrent streams"
+        default 2
+        range 1 10
+        help
+            Maximum number of concurrent WebRTC streams.
+endmenu
+

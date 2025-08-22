@@ -1,4 +1,0 @@
-dependencies:
-  credential:
-    path: ../credential
-    version: "*"

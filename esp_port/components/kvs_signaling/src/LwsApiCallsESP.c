@@ -2,8 +2,12 @@
  * Implementation of a API calls based on LibWebSocket
  */
 #define LOG_CLASS "LwsApiCallsESP"
-#include "../Include_i.h"
+// #include "../Include_i.h"
+#include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
+// #include "Signaling/Signaling.h"
 #include "SignalingESP.h"
+#include "Signaling/LwsApiCalls.h"
+#include "Signaling/ChannelInfo.h"
 #include "../../kvs_utils/src/request_info.h"
 
 // ESP-specific includes
@@ -303,7 +307,6 @@ static void esp_websocket_event_handler(void *handler_args, esp_event_base_t bas
             ESP_LOGI(TAG, "WEBSOCKET_EVENT_DISCONNECTED");
 
             BOOL connected = FALSE;
-            STATUS retStatus = STATUS_SUCCESS;
 
             MUTEX_LOCK(pEspWrapper->wsClientLock);
             connected = pEspWrapper->isConnected;
@@ -324,33 +327,51 @@ static void esp_websocket_event_handler(void *handler_args, esp_event_base_t bas
             ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_RESULT_OK);
 
             // Handle reconnection logic
-            if (wasConnected && ATOMIC_LOAD(&pSignalingClient->result) != SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE &&
-                !ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown)) {
+            if (wasConnected && !ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown)) {
+                // Check if this is a GOAWAY or ICE reconnect scenario
+                SERVICE_CALL_RESULT currentResult = (SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result);
 
-                ESP_LOGI(TAG, "WebSocket disconnected from active connection, triggering reconnection via error callback");
+                if (currentResult == SERVICE_CALL_RESULT_SIGNALING_GO_AWAY) {
+                    ESP_LOGI(TAG, "WebSocket closed due to GO_AWAY message, handling reconnection");
 
-                // Set the result failed to indicate disconnection
-                ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
-
-                // Use the existing error callback mechanism to trigger reconnection
-                if (pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
-                    CHAR errorMsg[] = "WebSocket connection lost, triggering reconnection";
-                    ESP_LOGI(TAG, "DEBUG: Calling errorReportFn with STATUS_SIGNALING_RECONNECT_FAILED=0x%08x", STATUS_SIGNALING_RECONNECT_FAILED);
-                    pSignalingClient->signalingClientCallbacks.errorReportFn(
-                        pSignalingClient->signalingClientCallbacks.customData,
-                        STATUS_SIGNALING_RECONNECT_FAILED,
-                        errorMsg,
-                        (UINT32) STRLEN(errorMsg));
-                    ESP_LOGI(TAG, "Signaled for reconnection via error callback");
+                    // Use the existing error callback mechanism to trigger reconnection
+                    if (pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
+                        CHAR errorMsg[] = "WebSocket connection closed due to GO_AWAY message, reconnecting";
+                        pSignalingClient->signalingClientCallbacks.errorReportFn(
+                            pSignalingClient->signalingClientCallbacks.customData,
+                            STATUS_SIGNALING_RECONNECT_FAILED,
+                            errorMsg,
+                            (UINT32) STRLEN(errorMsg));
+                        ESP_LOGI(TAG, "Signaled for reconnection after GO_AWAY via error callback");
+                    } else {
+                        ESP_LOGW(TAG, "No error callback registered, cannot signal for reconnection after GO_AWAY");
+                    }
+                } else if (currentResult == SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE) {
+                    ESP_LOGI(TAG, "WebSocket disconnected during ICE reconnect, not triggering full reconnection");
                 } else {
-                    ESP_LOGW(TAG, "No error callback registered, cannot signal for reconnection");
+                    ESP_LOGI(TAG, "WebSocket disconnected from active connection, triggering reconnection via error callback");
+
+                    // Set the result failed to indicate disconnection
+                    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
+
+                    // Use the existing error callback mechanism to trigger reconnection
+                    if (pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
+                        CHAR errorMsg[] = "WebSocket connection lost, triggering reconnection";
+                        ESP_LOGI(TAG, "DEBUG: Calling errorReportFn with STATUS_SIGNALING_RECONNECT_FAILED=0x%08x", STATUS_SIGNALING_RECONNECT_FAILED);
+                        pSignalingClient->signalingClientCallbacks.errorReportFn(
+                            pSignalingClient->signalingClientCallbacks.customData,
+                            STATUS_SIGNALING_RECONNECT_FAILED,
+                            errorMsg,
+                            (UINT32) STRLEN(errorMsg));
+                        ESP_LOGI(TAG, "Signaled for reconnection via error callback");
+                    } else {
+                        ESP_LOGW(TAG, "No error callback registered, cannot signal for reconnection");
+                    }
                 }
             } else if (!wasConnected) {
                 ESP_LOGI(TAG, "WebSocket disconnected but was not previously connected, not triggering reconnection");
             } else if (ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown)) {
                 ESP_LOGI(TAG, "WebSocket disconnected during shutdown, not triggering reconnection");
-            } else {
-                ESP_LOGI(TAG, "WebSocket disconnected during ICE reconnect, not triggering full reconnection");
             }
 
             // Free the WebSocket buffer on disconnect
@@ -667,35 +688,61 @@ STATUS handleReceivedSignalingMessage(PSignalingClient pSignalingClient, PCHAR m
         }
     }
 
-    // Message type is a mandatory field.
-    CHK(parsedMessageType, STATUS_SIGNALING_INVALID_MESSAGE_TYPE);
-
-    // If message type is still UNKNOWN after parsing, try to determine it from payload
-    if (receivedSignalingMessage.signalingMessage.messageType == SIGNALING_MESSAGE_TYPE_UNKNOWN &&
-        receivedSignalingMessage.signalingMessage.payloadLen > 0) {
-
-        // Look for ICE candidate in the payload
-        if (STRSTR(receivedSignalingMessage.signalingMessage.payload, "candidate") != NULL) {
-            ESP_LOGI(TAG, "Detected ICE candidate in payload, setting message type accordingly");
-            receivedSignalingMessage.signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
+    // If message type is UNKNOWN after parsing, try to determine it from payload
+    if (receivedSignalingMessage.signalingMessage.messageType == SIGNALING_MESSAGE_TYPE_UNKNOWN) {
+        // Check for GOAWAY message first - this doesn't need payload
+        if (STRSTR(message, "GO_AWAY") != NULL) {
+            ESP_LOGI(TAG, "Detected GO_AWAY message, setting message type accordingly");
+            receivedSignalingMessage.signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_GO_AWAY;
         }
-        // Check for SDP offer in the payload
-        else if (STRSTR(receivedSignalingMessage.signalingMessage.payload, "offer") != NULL) {
-            ESP_LOGI(TAG, "Detected SDP offer in payload, setting message type accordingly");
-            receivedSignalingMessage.signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
+        // Check for RECONNECT_ICE_SERVER message - this doesn't need payload
+        else if (STRSTR(message, "RECONNECT_ICE_SERVER") != NULL) {
+            ESP_LOGI(TAG, "Detected RECONNECT_ICE_SERVER message, setting message type accordingly");
+            receivedSignalingMessage.signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_RECONNECT_ICE_SERVER;
         }
-        // Check for SDP answer in the payload
-        else if (STRSTR(receivedSignalingMessage.signalingMessage.payload, "answer") != NULL) {
-            ESP_LOGI(TAG, "Detected SDP answer in payload, setting message type accordingly");
-            receivedSignalingMessage.signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
+        // For other message types, check payload if available
+        else if (receivedSignalingMessage.signalingMessage.payloadLen > 0) {
+            // Look for ICE candidate in the payload
+            if (STRSTR(receivedSignalingMessage.signalingMessage.payload, "candidate") != NULL) {
+                ESP_LOGI(TAG, "Detected ICE candidate in payload, setting message type accordingly");
+                receivedSignalingMessage.signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
+            }
+            // Check for SDP offer in the payload
+            else if (STRSTR(receivedSignalingMessage.signalingMessage.payload, "offer") != NULL) {
+                ESP_LOGI(TAG, "Detected SDP offer in payload, setting message type accordingly");
+                receivedSignalingMessage.signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
+            }
+            // Check for SDP answer in the payload
+            else if (STRSTR(receivedSignalingMessage.signalingMessage.payload, "answer") != NULL) {
+                ESP_LOGI(TAG, "Detected SDP answer in payload, setting message type accordingly");
+                receivedSignalingMessage.signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
+            }
         }
     }
 
-    // Update offer received timestamp for timing diagnostics (matches original LwsApiCalls.c logic)
-    if (receivedSignalingMessage.signalingMessage.messageType == SIGNALING_MESSAGE_TYPE_OFFER) {
-        MUTEX_LOCK(pSignalingClient->offerSendReceiveTimeLock);
-        pSignalingClient->offerReceivedTime = GETTIME();
-        MUTEX_UNLOCK(pSignalingClient->offerSendReceiveTimeLock);
+    // Handle special message types
+    switch (receivedSignalingMessage.signalingMessage.messageType) {
+        case SIGNALING_MESSAGE_TYPE_GO_AWAY:
+            ESP_LOGI(TAG, "Received GO_AWAY message, setting status for reconnection");
+            // Set the result to GOAWAY to trigger reconnection in the disconnect handler
+            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_SIGNALING_GO_AWAY);
+            break;
+
+        case SIGNALING_MESSAGE_TYPE_RECONNECT_ICE_SERVER:
+            ESP_LOGI(TAG, "Received RECONNECT_ICE_SERVER message, setting status for ICE reconnection");
+            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE);
+            break;
+
+        case SIGNALING_MESSAGE_TYPE_OFFER:
+            // Update offer received timestamp for timing diagnostics
+            MUTEX_LOCK(pSignalingClient->offerSendReceiveTimeLock);
+            pSignalingClient->offerReceivedTime = GETTIME();
+            MUTEX_UNLOCK(pSignalingClient->offerSendReceiveTimeLock);
+            break;
+
+        default:
+            // No special handling for other message types
+            break;
     }
 
     // Update diagnostics
@@ -703,6 +750,8 @@ STATUS handleReceivedSignalingMessage(PSignalingClient pSignalingClient, PCHAR m
 
     // Call the message received callback if registered
     // IMPORTANT: We call this with no locks held to avoid deadlocks
+    // Note: Even for GOAWAY and RECONNECT_ICE_SERVER, we still call the callback
+    // so the application can be aware of these events
     if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
         pSignalingClient->signalingClientCallbacks.messageReceivedFn(
             pSignalingClient->signalingClientCallbacks.customData,

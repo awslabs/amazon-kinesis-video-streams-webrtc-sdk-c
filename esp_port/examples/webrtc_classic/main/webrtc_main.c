@@ -35,6 +35,7 @@
 
 #include "app_webrtc.h"
 #include "kvs_signaling.h"
+#include "kvs_peer_connection.h"
 #include "esp_webrtc_time.h"
 #include "esp_work_queue.h"
 #include "media_stream.h"
@@ -289,32 +290,50 @@ void app_main(void)
     app_webrtc_config.signaling_client_if = kvs_signaling_client_if_get();
     app_webrtc_config.signaling_cfg = &kvs_signaling_cfg;
 
+    // Peer connection configuration - for full WebRTC functionality
+    app_webrtc_config.peer_connection_if = kvs_peer_connection_if_get();
+    // peer_connection_cfg can be NULL for default settings
+
+    /*
+     * 🏗️ Architecture Examples:
+     *
+     * webrtc_classic (this):    kvs_signaling + kvs_webrtc       (Full KVS)
+     * esp_camera:               apprtc_signaling + kvs_webrtc    (Custom signaling + KVS peer)
+     * streaming_only:           bridge_signaling + kvs_webrtc    (Bridge signaling + KVS peer)
+     * signaling_only:           kvs_signaling + null_peer        (KVS signaling only)
+     *
+     * For signaling_only example:
+     *   app_webrtc_config.signaling_client_if = kvs_signaling_client_if_get();
+     *   app_webrtc_config.peer_connection_if = null_peer_connection_if_get();
+     */
+
     // Media interfaces for sending (optional - NULL for signaling-only)
     app_webrtc_config.video_capture = video_capture;
     app_webrtc_config.audio_capture = audio_capture;
     // app_webrtc_config.video_player = NULL;
     app_webrtc_config.audio_player = audio_player;
 
-    ESP_LOGI(TAG, "Initializing WebRTC application with reasonable defaults");
+    ESP_LOGI(TAG, "Initializing WebRTC Classic Example - Full KVS Integration");
+    ESP_LOGI(TAG, "  - Architecture: app_webrtc + kvs_webrtc + kvs_signaling");
+    ESP_LOGI(TAG, "  - Signaling: AWS KVS WebSocket signaling");
+    ESP_LOGI(TAG, "  - Peer Connections: Full KVS WebRTC peer connections");
     ESP_LOGI(TAG, "  - Role: MASTER (initiates connections)");
     ESP_LOGI(TAG, "  - Trickle ICE: enabled (faster connection setup)");
     ESP_LOGI(TAG, "  - TURN servers: enabled (better NAT traversal)");
-    ESP_LOGI(TAG, "  - Log level: INFO (good balance)");
     ESP_LOGI(TAG, "  - Audio codec: OPUS, Video codec: H264");
-    ESP_LOGI(TAG, "  - Media type: auto-detected (audio+video)");
-    ESP_LOGI(TAG, "  - Media reception: disabled (IoT devices typically send)");
+    ESP_LOGI(TAG, "  - Media reception: enabled for bidirectional streaming");
 
     // Initialize WebRTC application with simplified API
     status = app_webrtc_init(&app_webrtc_config);
     if (status != WEBRTC_STATUS_SUCCESS) {
-        ESP_LOGE(TAG, "Failed to initialize WebRTC application: 0x%08" PRIx32, status);
+        ESP_LOGE(TAG, "Failed to initialize WebRTC application: 0x%08" PRIx32, (uint32_t) status);
         return;
     }
 
     // Example: Advanced configuration APIs (optional)
     // Uncomment any of these if you need to change defaults:
     //
-    // app_webrtc_set_role(WEBRTC_SIGNALING_CHANNEL_ROLE_TYPE_VIEWER);  // Change to viewer role
+    // app_webrtc_set_role(WEBRTC_CHANNEL_ROLE_TYPE_VIEWER);  // Change to viewer role
     // app_webrtc_set_log_level(2);                                     // Enable DEBUG logging
     app_webrtc_enable_media_reception(true);                         // Enable receiving media
     // app_webrtc_set_ice_config(false, false);                         // Disable trickle ICE and TURN
@@ -324,7 +343,7 @@ void app_main(void)
     // Run WebRTC application
     status = app_webrtc_run();
     if (status != WEBRTC_STATUS_SUCCESS) {
-        ESP_LOGE(TAG, "WebRTC application failed: 0x%08" PRIx32, status);
+        ESP_LOGE(TAG, "WebRTC application failed: 0x%08" PRIx32, (uint32_t) status);
         app_webrtc_terminate();
     } else {
         ESP_LOGI(TAG, "WebRTC application started successfully");

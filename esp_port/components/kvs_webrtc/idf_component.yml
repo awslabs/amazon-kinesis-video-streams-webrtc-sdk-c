@@ -32,10 +32,9 @@ dependencies:
     path: ../media_stream
     version: "*"
 
-  signaling_serializer:
-    path: ../signaling_serializer
+  app_webrtc:
+    path: ../app_webrtc
     version: "*"
-    public: true
 
   espressif/esp_websocket_client:
     version: "*"

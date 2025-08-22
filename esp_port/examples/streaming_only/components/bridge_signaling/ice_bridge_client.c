@@ -47,15 +47,15 @@ static bool g_ice_servers_received = false;
  */
 void ice_bridge_client_set_ice_server_response(const ss_ice_server_response_t* ice_server_response)
 {
-    ESP_LOGI(TAG, "🎯 ice_bridge_client_set_ice_server_response called!");
+    ESP_LOGI(TAG, "ice_bridge_client_set_ice_server_response called!");
 
     if (ice_server_response != NULL) {
         memcpy(&g_received_ice_server, ice_server_response, sizeof(ss_ice_server_response_t));
         g_ice_servers_received = true;
-        ESP_LOGI(TAG, "✅ Set g_ice_servers_received = true! Response: %s (have_more: %s)",
+        ESP_LOGI(TAG, "Set g_ice_servers_received = true! Response: %s (have_more: %s)",
                  g_received_ice_server.urls, g_received_ice_server.have_more ? "true" : "false");
     } else {
-        ESP_LOGE(TAG, "❌ ice_bridge_client_set_ice_server_response called with NULL response!");
+        ESP_LOGE(TAG, "ice_bridge_client_set_ice_server_response called with NULL response!");
     }
 }
 
@@ -79,12 +79,12 @@ WEBRTC_STATUS ice_bridge_client_get_servers(void* pAppSignaling, void* pIceServe
     // Cast to RtcIceServer array (we know the layout matches ss_ice_server_t)
     ss_ice_server_t* ice_servers_array = (ss_ice_server_t*)pIceServers;
 
-    ESP_LOGI(TAG, "🚀 Requesting ICE servers via synchronous RPC (bypasses event queue!)");
+    ESP_LOGI(TAG, "Requesting ICE servers via synchronous RPC (bypasses event queue!)");
 
 #if CONFIG_ESP_HOSTED_ENABLED
     // Use synchronous RPC calls - this completely bypasses the async event queue!
     do {
-        ESP_LOGI(TAG, "📤 RPC: Requesting ICE server at index %d", uriCount);
+        ESP_LOGI(TAG, "RPC: Requesting ICE server at index %d", uriCount);
 
         if (uriCount >= MAX_ICE_SERVERS_COUNT) {
             ESP_LOGW(TAG, "Max ICE URI count reached");
@@ -105,7 +105,7 @@ WEBRTC_STATUS ice_bridge_client_get_servers(void* pAppSignaling, void* pIceServe
         esp_err_t rpc_result = rpc_send_usr_request(3, &req, &resp); // usr_req_num = 3 for RPC_ID__Req_USR3
 
         if (rpc_result != ESP_OK) {
-            ESP_LOGE(TAG, "❌ RPC request failed: %d", rpc_result);
+            ESP_LOGE(TAG, "RPC request failed: %d", rpc_result);
             retStatus = WEBRTC_STATUS_INTERNAL_ERROR;
             break;
         }
@@ -130,33 +130,33 @@ WEBRTC_STATUS ice_bridge_client_get_servers(void* pAppSignaling, void* pIceServe
                 strncpy(ice_servers_array[uriCount].credential, ice_response.credential, MAX_ICE_CONFIG_CREDENTIAL_LEN);
                 ice_servers_array[uriCount].credential[MAX_ICE_CONFIG_CREDENTIAL_LEN] = '\0';
 
-                ESP_LOGI(TAG, "✅ RPC: Received ICE server %d: %s (user: %s, have_more: %s)",
+                ESP_LOGI(TAG, "RPC: Received ICE server %" PRIu32 ": %s (user: %s, have_more: %s)",
                          uriCount, ice_servers_array[uriCount].urls,
                          ice_servers_array[uriCount].username[0] ? ice_servers_array[uriCount].username : "none",
                          have_more ? "true" : "false");
                 uriCount++;
             } else {
-                ESP_LOGE(TAG, "❌ RPC: Invalid response data size: %d (expected: %d)", resp.data_len, sizeof(ss_ice_server_t));
+                ESP_LOGE(TAG, "RPC: Invalid response data size: %d (expected: %d)", resp.data_len, sizeof(ss_ice_server_t));
                 have_more = false;
             }
             if (have_more) {
-                ESP_LOGI(TAG, "🔄 More ICE servers available, requesting next index %d", uriCount);
+                ESP_LOGI(TAG, "More ICE servers available, requesting next index %" PRIu32, uriCount);
             } else {
-                ESP_LOGI(TAG, "✅ No more ICE servers, completed with %d servers", uriCount);
+                ESP_LOGI(TAG, "No more ICE servers, completed with %" PRIu32 " servers", uriCount);
             }
         } else if (resp.data_len == 0 && have_more) {
-            ESP_LOGI(TAG, "🔄 RPC: ICE refresh in progress for index %d", uriCount);
+            ESP_LOGI(TAG, "RPC: ICE refresh in progress for index %" PRIu32, uriCount);
             vTaskDelay(pdMS_TO_TICKS(500));
         }
     } while (have_more && uriCount < MAX_ICE_SERVERS_COUNT);
 
 #else
-    ESP_LOGW(TAG, "⚠️ RPC not available, falling back to STUN only");
+    ESP_LOGW(TAG, "RPC not available, falling back to STUN only");
 #endif
 
     // Fallback if no servers received
     if (uriCount == 0) {
-        ESP_LOGW(TAG, "🔄 No servers received from signaling device - using fallback STUN");
+        ESP_LOGW(TAG, "No servers received from signaling device - using fallback STUN");
         snprintf(ice_servers_array[0].urls, MAX_ICE_CONFIG_URI_LEN, "stun:stun.l.google.com:19302");
         ice_servers_array[0].urls[MAX_ICE_CONFIG_URI_LEN] = '\0';
         ice_servers_array[0].username[0] = '\0';
@@ -165,7 +165,7 @@ WEBRTC_STATUS ice_bridge_client_get_servers(void* pAppSignaling, void* pIceServe
     }
 
     *pServerNum = uriCount;
-    ESP_LOGI(TAG, "🎯 RPC: Successfully configured %d ICE servers via synchronous calls!", uriCount);
+    ESP_LOGI(TAG, "RPC: Successfully configured %" PRIu32 " ICE servers via synchronous calls!", uriCount);
 
     return retStatus;
 }

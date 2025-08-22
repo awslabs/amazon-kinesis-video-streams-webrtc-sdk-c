@@ -6,13 +6,6 @@ menu "KVS WebRTC Configuration"
         help
             Enables WebRTC Data channel support
 
-    config USE_ESP_WEBSOCKET_CLIENT
-        bool "Use esp_websocket_client instead of libwebscoekts"
-        default y
-        help
-            Kinesis Video Stream SDK uses libwebsockets for the signaling API requests.
-            By using esp_websocket_client, you get better control over memory usage as the complete signaling part is re-implemented with ESP-IDF constraints in mind
-
     config USE_ESP_TLS_FOR_KVS
         bool "Use ESP-TLS for KVS TLS connections (TURN over TLS)"
         default y
@@ -21,25 +14,4 @@ menu "KVS WebRTC Configuration"
             This enables the use of ESP certificate bundle for CA verification,
             eliminating the need for certificate files on the filesystem.
             Recommended for ESP platforms to avoid certificate management complexity.
-
-    config PREFER_DYNAMIC_ALLOCS
-        bool "Prefer dynamic memory allocations"
-        default y
-        help
-            When enabled, use dynamic memory allocation for signaling payloads and URLs.
-            This can reduce static memory usage but may increase heap fragmentation.
-            Enable this option on platforms with limited memory to avoid large static allocations.
-
-    config KVS_WEBRTC_MEMORY_POOL_SIZE
-        int "Memory pool size for KVS WebRTC (KB)"
-        default 512
-        help
-            Size of the memory pool allocated for KVS WebRTC operations.
-
-    config KVS_MAX_CONCURRENT_STREAMS
-        int "Maximum concurrent streams"
-        default 2
-        range 1 10
-        help
-            Maximum number of concurrent WebRTC streams.
 endmenu

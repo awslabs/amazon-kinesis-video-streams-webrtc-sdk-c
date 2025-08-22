@@ -12,6 +12,7 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+
 #ifndef __AWS_KVS_WEBRTC_HASH_TABLE_INCLUDE__
 #define __AWS_KVS_WEBRTC_HASH_TABLE_INCLUDE__
 

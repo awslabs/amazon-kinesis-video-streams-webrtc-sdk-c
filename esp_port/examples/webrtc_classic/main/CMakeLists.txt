@@ -9,6 +9,9 @@ idf_component_register(
              "mbedtls"
              "lwip"
              "app_common"
+             "app_webrtc"
+             "kvs_webrtc"
+             "kvs_signaling"
     )
 
 target_compile_definitions(${COMPONENT_LIB} PRIVATE

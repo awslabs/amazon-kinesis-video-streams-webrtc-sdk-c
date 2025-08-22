@@ -201,7 +201,7 @@ void app_main(void)
 
     status = app_webrtc_init(&app_webrtc_config);
     if (status != WEBRTC_STATUS_SUCCESS) {
-        ESP_LOGE(TAG, "Failed to initialize WebRTC application: 0x%08" PRIx32, status);
+        ESP_LOGE(TAG, "Failed to initialize WebRTC application: 0x%08" PRIx32, (uint32_t) status);
         return;
     }
 
@@ -210,7 +210,7 @@ void app_main(void)
 
     status = app_webrtc_run();
     if (status != WEBRTC_STATUS_SUCCESS) {
-        ESP_LOGE(TAG, "WebRTC application failed: 0x%08" PRIx32, status);
+        ESP_LOGE(TAG, "WebRTC application failed: 0x%08" PRIx32, (uint32_t) status);
         app_webrtc_terminate();
     } else {
         ESP_LOGI(TAG, "WebRTC application started successfully");
