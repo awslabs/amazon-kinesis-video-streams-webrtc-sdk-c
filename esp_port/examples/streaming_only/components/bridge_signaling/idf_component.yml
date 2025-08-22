@@ -7,6 +7,14 @@ dependencies:
     path: ${KVS_SDK_PATH}/esp_port/components/signaling_serializer
     version: '*'
 
+  app_webrtc:
+    path: ${KVS_SDK_PATH}/esp_port/components/app_webrtc
+    version: '*'
+
+  kvs_webrtc:
+    path: ${KVS_SDK_PATH}/esp_port/components/kvs_webrtc
+    version: '*'
+
   espressif/esp_hosted:
     override_path: ${KVS_SDK_PATH}/esp_port/components/esp_hosted
     version: '*'

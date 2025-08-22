@@ -1,0 +1,17 @@
+dependencies:
+
+  app_webrtc:
+    path: ${KVS_SDK_PATH}/esp_port/components/app_webrtc
+    version: "*"
+
+  signaling_serializer:
+    path: ${KVS_SDK_PATH}/esp_port/components/signaling_serializer
+    version: "*"
+
+  network_coprocessor:
+    path: ${KVS_SDK_PATH}/esp_port/components/network_coprocessor
+    version: "*"
+
+  webrtc_bridge:
+    path: ${KVS_SDK_PATH}/esp_port/components/webrtc_bridge
+    version: "*"

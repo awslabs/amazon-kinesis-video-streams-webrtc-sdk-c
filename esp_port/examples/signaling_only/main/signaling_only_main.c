@@ -15,12 +15,12 @@
 #include "wifi_cli.h"
 
 #include "app_storage.h"
-#include "esp_work_queue.h"
 #include "kvs_signaling.h"
 #include "network_coprocessor.h"
 #include "esp_webrtc_time.h"
 #include "app_webrtc.h"
-#include "signaling_bridge_adapter.h"
+#include "esp_work_queue.h"
+#include "bridge_peer_connection.h"
 
 static const char *TAG = "signaling_only";
 
@@ -113,9 +113,6 @@ void app_main(void)
 
     app_storage_init();
 
-    // Initialize signaling serializer (needed for bridge communication)
-    signaling_serializer_init();
-
     int count = 0;
     while (!ip_event_got_ip) {
         vTaskDelay(pdMS_TO_TICKS(100));
@@ -129,7 +126,10 @@ void app_main(void)
     // Perform the time sync
     esp_webrtc_time_sntp_time_sync_and_wait();
 
-    if (esp_work_queue_init() != ESP_OK) {
+    // Initialize work queue in advance with lower (than default) stack size
+    esp_work_queue_config_t work_queue_config = ESP_WORK_QUEUE_CONFIG_DEFAULT();
+    work_queue_config.stack_size = 12 * 1024;
+    if (esp_work_queue_init_with_config(&work_queue_config) != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize work queue");
         return;
     }
@@ -164,24 +164,6 @@ void app_main(void)
     // Register WebRTC event callback
     app_webrtc_register_event_callback(app_webrtc_event_handler, NULL);
 
-    // Configure and initialize signaling bridge adapter (handles all bridge communication)
-    signaling_bridge_adapter_config_t adapter_config = {
-        .user_ctx = NULL
-    };
-
-    WEBRTC_STATUS adapter_status = signaling_bridge_adapter_init(&adapter_config);
-    if (adapter_status != WEBRTC_STATUS_SUCCESS) {
-        ESP_LOGE(TAG, "Failed to initialize signaling bridge adapter: 0x%08" PRIx32, adapter_status);
-        return;
-    }
-
-    // Start the signaling bridge adapter (starts bridge and handles all communication)
-    adapter_status = signaling_bridge_adapter_start();
-    if (adapter_status != WEBRTC_STATUS_SUCCESS) {
-        ESP_LOGE(TAG, "Failed to start signaling bridge adapter: 0x%08" PRIx32, adapter_status);
-        return;
-    }
-
     // Configure WebRTC with our new simplified API - signaling-only mode
     app_webrtc_config_t app_webrtc_config = APP_WEBRTC_CONFIG_DEFAULT();
 
@@ -189,13 +171,13 @@ void app_main(void)
     app_webrtc_config.signaling_client_if = kvs_signaling_client_if_get();
     app_webrtc_config.signaling_cfg = &g_kvsSignalingConfig;
 
-    // No media interfaces = signaling-only mode (auto-detected!)
-    // video_capture, audio_capture, video_player, audio_player all default to NULL
+    // Peer connection interface - use bridge-only implementation
+    app_webrtc_config.peer_connection_if = bridge_peer_connection_if_get();
 
-    ESP_LOGI(TAG, "Initializing WebRTC in signaling-only mode with simplified API:");
-    ESP_LOGI(TAG, "  - Mode: auto-detected as signaling-only (no media interfaces)");
+    ESP_LOGI(TAG, "Initializing WebRTC with bridge peer connection interface:");
+    ESP_LOGI(TAG, "  - Interface: bridge-only (no WebRTC SDK initialization)");
     ESP_LOGI(TAG, "  - Role: MASTER (default - manages connections)");
-    ESP_LOGI(TAG, "  - Memory: optimized (media components disabled automatically)");
+    ESP_LOGI(TAG, "  - Memory: optimized (no WebRTC components loaded)");
     ESP_LOGI(TAG, "  - Split mode: ready for bridge communication");
     ESP_LOGI(TAG, "  - Channel: %s", g_kvsSignalingConfig.pChannelName);
 

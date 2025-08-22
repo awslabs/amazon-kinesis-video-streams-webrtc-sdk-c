@@ -193,10 +193,21 @@ CONFIG_ESP32C6_INSTRUCTION_CACHE_SIZE_32KB=y  # Smaller cache
 CONFIG_ESP32C6_DATA_CACHE_SIZE_32KB=y         # Optimize for signaling
 ```
 
-## 🏗️ Bridge Protocol Deep Dive
+## 🏗️ Architecture Deep Dive
+
+### New Simplified API
+This example uses the new simplified `app_webrtc` API that uses pluggable peer connection interfaces. It auto-detects signaling-only mode by checking if peer_connectio if has create_session callback.
+
+```c
+// Configure with minimal settings
+app_webrtc_config_t app_webrtc_config = APP_WEBRTC_CONFIG_DEFAULT();
+app_webrtc_config.signaling_client_if = kvs_signaling_client_if_get();
+app_webrtc_config.signaling_cfg = &g_kvsSignalingConfig;
+app_webrtc_config.peer_connection_if = bridge_peer_connection_if_get(); // Signaling-only
+```
 
 ### Bridge Communication Flow
-The signaling device communicates with the streaming device through the webrtc_bridge component and signaling_bridge_adapter. The bridge handles message serialization, transfer, and ICE server coordination between the two devices.
+The signaling device communicates with the streaming device through the direct bridge connection. The peer interface provided interntionally lacks create_session, the system thus, bypasses all the session managements and takes appropriate efficient path.
 
 ## 🚨 Troubleshooting
 

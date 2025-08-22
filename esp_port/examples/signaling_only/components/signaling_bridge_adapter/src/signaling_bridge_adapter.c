@@ -4,13 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "signaling_bridge_adapter.h"
-#include "network_coprocessor.h"
-#include "webrtc_bridge.h"
-#include "app_webrtc.h"
 #include "esp_log.h"
 #include "string.h"
 #include "stdlib.h"
+#include "network_coprocessor.h"
+#include "webrtc_bridge.h"
+#include "app_webrtc.h"
+#include "signaling_bridge_adapter.h"
+#include "bridge_peer_connection.h"
+#include "signaling_serializer.h"
 
 static const char *TAG = "signaling_bridge_adapter";
 
@@ -18,12 +20,16 @@ static const char *TAG = "signaling_bridge_adapter";
 static signaling_bridge_adapter_config_t g_config = {0};
 static bool g_initialized = false;
 
+// Global reference for bridge peer connection session
+static uint64_t g_custom_data = 0;
+static WEBRTC_STATUS (*g_on_message_received)(uint64_t, webrtc_message_t*) = NULL;
+
 /**
  * @brief Handle signaling messages received from the streaming device via webrtc_bridge
  */
 static void handle_bridged_message(const void* data, int len)
 {
-    ESP_LOGI(TAG, "Received bridged message from streaming device (%d bytes)", len);
+    ESP_LOGD(TAG, "Received bridged message from streaming device (%d bytes)", len);
 
     signaling_msg_t signalingMsg = {0};
     esp_err_t ret = deserialize_signaling_message(data, len, &signalingMsg);
@@ -32,24 +38,77 @@ static void handle_bridged_message(const void* data, int len)
         return;
     }
 
-    ESP_LOGI(TAG, "Deserialized message type %d from peer %s",
+    ESP_LOGD(TAG, "Deserialized message type %d from peer %s",
              signalingMsg.messageType, signalingMsg.peerClientId);
 
     // Note: ICE requests are now handled via synchronous RPC, not bridge messages
     // This provides much better performance (89ms vs 1.4s) by bypassing the async queue
 
-    // Send other messages to signaling server
-    int result = app_webrtc_send_msg_to_signaling(&signalingMsg);
-    if (result != 0) {
-        ESP_LOGE(TAG, "Failed to send message to signaling server: %d", result);
+    // Convert to webrtc_message_t format for potential direct handling by bridge_peer_connection
+    webrtc_message_t webrtcMsg = {0};
+    webrtcMsg.version = signalingMsg.version;
+
+    // Map message types
+    switch (signalingMsg.messageType) {
+        case SIGNALING_MSG_TYPE_OFFER:
+            webrtcMsg.message_type = WEBRTC_MESSAGE_TYPE_OFFER;
+            break;
+        case SIGNALING_MSG_TYPE_ANSWER:
+            webrtcMsg.message_type = WEBRTC_MESSAGE_TYPE_ANSWER;
+            break;
+        case SIGNALING_MSG_TYPE_ICE_CANDIDATE:
+            webrtcMsg.message_type = WEBRTC_MESSAGE_TYPE_ICE_CANDIDATE;
+            break;
+        default:
+            ESP_LOGW(TAG, "Unknown signaling message type: %d", signalingMsg.messageType);
+            if (signalingMsg.payload != NULL) {
+                free(signalingMsg.payload);
+            }
+            return;
+    }
+
+    // Copy message fields
+    strncpy(webrtcMsg.correlation_id, signalingMsg.correlationId, sizeof(webrtcMsg.correlation_id) - 1);
+    webrtcMsg.correlation_id[sizeof(webrtcMsg.correlation_id) - 1] = '\0';
+
+    strncpy(webrtcMsg.peer_client_id, signalingMsg.peerClientId, sizeof(webrtcMsg.peer_client_id) - 1);
+    webrtcMsg.peer_client_id[sizeof(webrtcMsg.peer_client_id) - 1] = '\0';
+
+    webrtcMsg.payload = signalingMsg.payload;
+    webrtcMsg.payload_len = signalingMsg.payloadLen;
+
+    // If we have a registered message callback, use it directly
+    // if (g_on_message_received != NULL) {
+    ESP_LOGD(TAG, "Using registered callback for message type %d", webrtcMsg.message_type);
+    WEBRTC_STATUS status = g_on_message_received(g_custom_data, &webrtcMsg);
+    if (status != WEBRTC_STATUS_SUCCESS) {
+        ESP_LOGE(TAG, "Failed to process message via callback: 0x%08x", status);
     } else {
-        ESP_LOGI(TAG, "Successfully sent message to signaling server");
+        ESP_LOGD(TAG, "Successfully processed message via callback");
     }
 
     // Clean up
     if (signalingMsg.payload != NULL) {
         free(signalingMsg.payload);
     }
+}
+
+/**
+ * @brief Register callbacks for bridge peer connection
+ *
+ * This function registers callbacks for the bridge peer connection interface
+ * to use when receiving messages from the bridge.
+ */
+WEBRTC_STATUS signaling_bridge_adapter_register_callbacks(
+    uint64_t custom_data,
+    WEBRTC_STATUS (*on_message_received)(uint64_t, webrtc_message_t*))
+{
+    ESP_LOGI(TAG, "Registering bridge peer connection callbacks");
+
+    g_custom_data = custom_data;
+    g_on_message_received = on_message_received; // Callback to be called when meesages from bridge are received
+
+    return WEBRTC_STATUS_SUCCESS;
 }
 
 WEBRTC_STATUS signaling_bridge_adapter_init(const signaling_bridge_adapter_config_t *config)
@@ -59,14 +118,13 @@ WEBRTC_STATUS signaling_bridge_adapter_init(const signaling_bridge_adapter_confi
         return WEBRTC_STATUS_SUCCESS;
     }
 
+    // Initialize signaling serializer
+    signaling_serializer_init();
+
     if (config) {
         // Store configuration
         memcpy(&g_config, config, sizeof(signaling_bridge_adapter_config_t));
     }
-
-    // Register the message sending callback for split mode (sends to streaming device)
-    app_webrtc_register_msg_callback(signaling_bridge_adapter_send_message);
-    ESP_LOGI(TAG, "Registered bridge message sending callback");
 
     // Register the bridge message handler to receive messages from streaming device
     webrtc_bridge_register_handler(handle_bridged_message);
@@ -95,17 +153,26 @@ WEBRTC_STATUS signaling_bridge_adapter_start(void)
     return WEBRTC_STATUS_SUCCESS;
 }
 
-int signaling_bridge_adapter_send_message(signaling_msg_t *signalingMessage)
+int signaling_bridge_adapter_send_message(webrtc_message_t *signalingMessage)
 {
     if (!signalingMessage) {
         ESP_LOGE(TAG, "Invalid signaling message");
         return -1;
     }
 
-    ESP_LOGI(TAG, "Sending signaling message type %d to streaming device", signalingMessage->messageType);
+    // Convert to signaling_msg_t format for bridge
+    signaling_msg_t signalingMsg = {0};
+    signalingMsg.version = signalingMessage->version;
+    signalingMsg.messageType = signalingMessage->message_type;
+    strncpy(signalingMsg.peerClientId, signalingMessage->peer_client_id, sizeof(signalingMsg.peerClientId) - 1);
+    strncpy(signalingMsg.correlationId, signalingMessage->correlation_id, sizeof(signalingMsg.correlationId) - 1);
+    signalingMsg.payload = signalingMessage->payload;
+    signalingMsg.payloadLen = signalingMessage->payload_len;
+
+    ESP_LOGD(TAG, "Sending signaling message type %d to streaming device", signalingMessage->message_type);
 
     size_t serializedMsgLen = 0;
-    char *serializedMsg = serialize_signaling_message(signalingMessage, &serializedMsgLen);
+    char *serializedMsg = serialize_signaling_message(&signalingMsg, &serializedMsgLen);
     if (serializedMsg == NULL) {
         ESP_LOGE(TAG, "Failed to serialize signaling message");
         return -1;
@@ -114,7 +181,7 @@ int signaling_bridge_adapter_send_message(signaling_msg_t *signalingMessage)
     // ownership of serializedMsg is transferred to webrtc_bridge_send_message
     webrtc_bridge_send_message(serializedMsg, serializedMsgLen);
 
-    ESP_LOGI(TAG, "Successfully sent message type %d via bridge", signalingMessage->messageType);
+    ESP_LOGD(TAG, "Successfully sent message type %d via bridge", signalingMessage->message_type);
     return 0;
 }
 
