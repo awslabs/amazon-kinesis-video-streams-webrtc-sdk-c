@@ -302,6 +302,17 @@ STATUS createIceAgent(PCHAR, PCHAR, PIceAgentCallbacks, PRtcConfiguration, TIMER
 STATUS freeIceAgent(PIceAgent*);
 
 /**
+ * Add new ICE servers to an existing ICE agent and initialize relay candidates for TURN servers
+ *
+ * @param - PIceAgent - IN - IceAgent object
+ * @param - PRtcIceServer - IN - Array of new ICE servers to add
+ * @param - UINT32 - IN - Number of ICE servers in the array
+ *
+ * @return - STATUS - status of execution
+ */
+STATUS iceAgentAddIceServers(PIceAgent pIceAgent, PRtcIceServer pIceServers, UINT32 iceServersCount);
+
+/**
  * if PIceCandidate doesnt exist already in remoteCandidates, create a copy and add to remoteCandidates
  *
  * @param - PIceAgent - IN - IceAgent object
