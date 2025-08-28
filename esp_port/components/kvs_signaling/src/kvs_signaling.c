@@ -395,7 +395,7 @@ STATUS createKvsSignalingClient(kvs_signaling_config_t *pConfig, PVOID *ppSignal
     pClientData->channelInfo.pTags = NULL;
     pClientData->channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     pClientData->channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER; // Default, will be updated
-    pClientData->channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
+    pClientData->channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_FILE;  // Uses NVS on ESP platform
     pClientData->channelInfo.cachingPeriod = SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE;
     pClientData->channelInfo.asyncIceServerConfig = TRUE;
     pClientData->channelInfo.retry = TRUE;
