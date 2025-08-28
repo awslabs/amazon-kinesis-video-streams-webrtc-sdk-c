@@ -42,6 +42,7 @@ static rb_handle_t rb_handle;
 #define OPUS_CHANNELS           (2)
 #define OPUS_OUTPUT_BUFFER_SIZE (4096)
 #define CODEC_SAMPLE_RATE       (16000)
+#define OPUS_PLAYER_OUT_RB_SIZE (32000)
 #define CODEC_CHANNELS          (1)
 
 static int decode_one_frame(uint8_t *data, int size)
@@ -320,9 +321,9 @@ esp_err_t OpusAudioPlayerInit()
     }
 
 #if OPUS_PLAYER_TASK
-    rb_handle = rb_init("opus_player", 16 * 1024);
+    rb_handle = rb_init("opus_player", OPUS_PLAYER_OUT_RB_SIZE);
 
-#define OPUS_TASK_STACK_SIZE     (20 * 1024)
+#define OPUS_TASK_STACK_SIZE     (16 * 1024)
 #define OPUS_TASK_PRIO           (4) // A bit higher than grabber tasks
     StaticTask_t *task_buffer = heap_caps_calloc(1, sizeof(StaticTask_t), MALLOC_CAP_INTERNAL);
     void *task_stack = heap_caps_calloc(1, OPUS_TASK_STACK_SIZE, MALLOC_CAP_SPIRAM);
