@@ -289,6 +289,119 @@ CleanUp:
     return retStatus;
 }
 
+STATUS iceAgentAddIceServers(PIceAgent pIceAgent, PRtcIceServer pIceServers, UINT32 iceServersCount)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 i, j, originalCount;
+    BOOL locked = FALSE;
+
+    CHK(pIceAgent != NULL && pIceServers != NULL, STATUS_NULL_ARG);
+    CHK(iceServersCount > 0, STATUS_INVALID_ARG);
+    CHK(!ATOMIC_LOAD_BOOL(&pIceAgent->shutdown), STATUS_INVALID_OPERATION);
+
+    DLOGI("Adding %u new ICE servers to existing agent", iceServersCount);
+
+    MUTEX_LOCK(pIceAgent->lock);
+    locked = TRUE;
+
+    originalCount = pIceAgent->iceServersCount;
+
+        // Check if we have space for new ICE servers
+    CHK_ERR(originalCount + iceServersCount <= MAX_ICE_SERVERS_COUNT, STATUS_INVALID_ARG,
+            "Cannot add %u ICE servers, would exceed maximum of %u (current: %u)",
+            iceServersCount, MAX_ICE_SERVERS_COUNT, originalCount);
+
+    // Add new ICE servers to the agent
+    for (i = 0; i < iceServersCount; i++) {
+        if (pIceServers[i].urls[0] != '\0') {
+            UINT32 newIndex = pIceAgent->iceServersCount;
+
+            // Check for duplicates (optional optimization)
+            BOOL isDuplicate = FALSE;
+            for (j = 0; j < originalCount; j++) {
+                if (STRNCMP(pIceAgent->iceServers[j].url, pIceServers[i].urls, MAX_ICE_CONFIG_URI_LEN) == 0) {
+                    isDuplicate = TRUE;
+                    DLOGD("Skipping duplicate ICE server: %s", pIceServers[i].urls);
+                    break;
+                }
+            }
+
+            if (!isDuplicate) {
+                // Set up callback for STUN servers
+                if (STRSTR(pIceServers[i].urls, "stun")) {
+                    pIceAgent->iceServers[newIndex].setIpFn = pIceAgent->iceAgentCallbacks.setStunServerIpFn;
+                } else {
+                    pIceAgent->iceServers[newIndex].setIpFn = NULL;
+                }
+
+                // Parse and add the new ICE server
+                retStatus = parseIceServer(&pIceAgent->iceServers[newIndex],
+                                         (PCHAR) pIceServers[i].urls,
+                                         (PCHAR) pIceServers[i].username,
+                                         (PCHAR) pIceServers[i].credential);
+                if (STATUS_SUCCEEDED(retStatus)) {
+                    pIceAgent->iceServersCount++;
+                    DLOGI("Successfully added ICE server: %s (index: %u)",
+                          pIceServers[i].urls, newIndex);
+                } else {
+                    DLOGW("Failed to parse ICE server: %s, error: 0x%08x",
+                          pIceServers[i].urls, retStatus);
+                    // Continue with other servers
+                    retStatus = STATUS_SUCCESS;
+                }
+            }
+        }
+    }
+
+    MUTEX_UNLOCK(pIceAgent->lock);
+    locked = FALSE;
+
+    // Initialize relay candidates for any new TURN servers
+    // This happens outside the lock to avoid deadlocks with candidate gathering
+    UINT32 newTurnCount = 0;
+    for (i = originalCount; i < pIceAgent->iceServersCount; i++) {
+        if (pIceAgent->iceServers[i].isTurn) {
+            newTurnCount++;
+            DLOGI("Initializing relay candidates for new TURN server: %s",
+                  pIceAgent->iceServers[i].url);
+
+            // Initialize relay candidates for this TURN server
+            if (pIceAgent->iceServers[i].transport == KVS_SOCKET_PROTOCOL_UDP ||
+                pIceAgent->iceServers[i].transport == KVS_SOCKET_PROTOCOL_NONE) {
+                retStatus = iceAgentInitRelayCandidate(pIceAgent, i, KVS_SOCKET_PROTOCOL_UDP);
+                if (STATUS_FAILED(retStatus)) {
+                    DLOGW("Failed to initialize UDP relay candidate for server %u: 0x%08x", i, retStatus);
+                    // Continue with other protocols/servers
+                    retStatus = STATUS_SUCCESS;
+                }
+            }
+
+            if (pIceAgent->iceServers[i].transport == KVS_SOCKET_PROTOCOL_TCP ||
+                pIceAgent->iceServers[i].transport == KVS_SOCKET_PROTOCOL_NONE) {
+                retStatus = iceAgentInitRelayCandidate(pIceAgent, i, KVS_SOCKET_PROTOCOL_TCP);
+                if (STATUS_FAILED(retStatus)) {
+                    DLOGW("Failed to initialize TCP relay candidate for server %u: 0x%08x", i, retStatus);
+                    // Continue with other servers
+                    retStatus = STATUS_SUCCESS;
+                }
+            }
+        }
+    }
+
+    DLOGI("Dynamic ICE server update completed: added %u servers (%u TURN)",
+          pIceAgent->iceServersCount - originalCount, newTurnCount);
+
+CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pIceAgent->lock);
+    }
+
+    CHK_LOG_ERR(retStatus);
+    LEAVES();
+    return retStatus;
+}
+
 STATUS iceAgentValidateKvsRtcConfig(PKvsRtcConfiguration pKvsRtcConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
