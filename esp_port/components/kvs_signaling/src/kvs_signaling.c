@@ -27,31 +27,29 @@
 
 static const char *TAG = "kvs_signaling";
 
+/*
+ * Progressive ICE Server Optimization
+ * When enabled, returns STUN servers immediately and fetches TURN servers asynchronously
+ * This can reduce connection startup time from 6+ seconds to near-instant for STUN-only connections
+ */
+#ifndef CONFIG_KVS_PROGRESSIVE_ICE_SERVERS
+#define CONFIG_KVS_PROGRESSIVE_ICE_SERVERS 1    // Enable by default for better performance
+#endif
+
 // kvs fetch credentials context
 typedef struct kvs_cred_fetch_ctx {
     kvs_fetch_credentials_cb_t cb;
     uint64_t ud;
 } kvs_cred_fetch_ctx_t;
 
-// Work queue task for refreshing ICE configuration in background
-static void kvs_refresh_ice_task(void *arg)
-{
-#ifdef CONFIG_USE_ESP_WEBSOCKET_CLIENT
-    PSignalingClient pSignalingClient = (PSignalingClient)arg;
-    if (pSignalingClient != NULL) {
-        ESP_LOGI(TAG, "Background ICE refresh task started");
-        STATUS status = refresh_ice_configuration(pSignalingClient);
-        if (STATUS_FAILED(status)) {
-            ESP_LOGE(TAG, "Background ICE refresh failed: 0x%08x", status);
-        } else {
-            ESP_LOGI(TAG, "Background ICE refresh completed successfully");
-        }
-    }
-#else
-    UNUSED_PARAM(arg);
-    ESP_LOGI(TAG, "Async ICE refresh is not supported in default websocket client mode");
-#endif
-}
+// Progressive ICE callback context
+typedef struct {
+    uint64_t customData;
+    WEBRTC_STATUS (*on_ice_servers_updated)(uint64_t, uint32_t);
+} kvs_ice_callback_ctx_t;
+
+// Forward declaration for kvs_refresh_ice_task (defined after KvsSignalingClientData)
+static void kvs_refresh_ice_task(void *arg);
 
 // Forward declarations for internal KVS functions (not exposed in public header)
 STATUS createKvsSignalingClient(kvs_signaling_config_t *pConfig, PVOID *ppSignalingClient);
@@ -108,7 +106,67 @@ typedef struct {
 
     // Optional credential-fetch callback adapter context
     void *pCredFetchAdapterCtx;
+
+    // Progressive ICE server callback context
+    kvs_ice_callback_ctx_t ice_callback_ctx;
 } KvsSignalingClientData;
+
+/**
+ * @brief Work queue task for refreshing ICE configuration in background
+ */
+static void kvs_refresh_ice_task(void *arg)
+{
+#ifdef CONFIG_USE_ESP_WEBSOCKET_CLIENT
+    if (arg == NULL) {
+        ESP_LOGE(TAG, "Background ICE refresh task received NULL argument");
+        return;
+    }
+
+    // For progressive ICE, arg contains KvsSignalingClientData instead of PSignalingClient
+    KvsSignalingClientData *pClientData = (KvsSignalingClientData *)arg;
+    SIGNALING_CLIENT_HANDLE signalingClientHandle = pClientData->signalingClientHandle;
+
+    if (signalingClientHandle != INVALID_SIGNALING_CLIENT_HANDLE_VALUE) {
+        ESP_LOGI(TAG, "Background ICE refresh task started");
+        STATUS status = refresh_ice_configuration((PSignalingClient)signalingClientHandle);
+        if (STATUS_FAILED(status)) {
+            ESP_LOGE(TAG, "Background ICE refresh failed: 0x%08x", status);
+        } else {
+            ESP_LOGI(TAG, "Background ICE refresh completed successfully");
+
+            // Notify callback that new ICE servers (TURN) are now available
+            // This provides proactive updates in addition to the polling mechanism
+            if (pClientData->ice_callback_ctx.on_ice_servers_updated != NULL) {
+                UINT32 iceConfigCount = 0;
+                STATUS iceCountStatus = signalingClientGetIceConfigInfoCount(signalingClientHandle, &iceConfigCount);
+
+                if (STATUS_SUCCEEDED(iceCountStatus) && iceConfigCount > 0) {
+                    ESP_LOGI(TAG, "Progressive ICE: Notifying callback about %u new ICE servers", iceConfigCount);
+                    ESP_LOGI(TAG, "Triggering peer connection ICE server update...");
+                    if (pClientData->ice_callback_ctx.on_ice_servers_updated != NULL) {
+                        WEBRTC_STATUS callbackStatus = pClientData->ice_callback_ctx.on_ice_servers_updated(
+                            pClientData->ice_callback_ctx.customData, iceConfigCount);
+
+                        if (callbackStatus == WEBRTC_STATUS_SUCCESS) {
+                            ESP_LOGI(TAG, "Progressive ICE callback completed successfully");
+                        } else {
+                            ESP_LOGW(TAG, "Progressive ICE callback returned error: 0x%08x", callbackStatus);
+                        }
+                    }
+                } else {
+                    ESP_LOGW(TAG, "Failed to get ICE config count or no servers available: status=0x%08x, count=%u",
+                             iceCountStatus, iceConfigCount);
+                }
+            } else {
+                ESP_LOGI(TAG, "No progressive ICE callback registered - using traditional polling mode");
+            }
+        }
+    }
+#else
+    UNUSED_PARAM(arg);
+    ESP_LOGI(TAG, "Async ICE refresh is not supported in default websocket client mode");
+#endif
+}
 
 /**
  * @brief Convert SIGNALING_CLIENT_STATE to webrtc_signaling_state_t
@@ -947,7 +1005,8 @@ STATUS kvsSignalingQueryServerGetByIdx(PVOID pSignalingClient, int index, bool u
                 ESP_LOGI(TAG, "ICE refresh needed - triggering background refresh");
 
                 // Trigger background refresh using work queue
-                esp_err_t result = esp_work_queue_add_task(&kvs_refresh_ice_task, (void*)pClientData->signalingClientHandle);
+                // Pass pClientData instead of signalingClientHandle for progressive callback support
+                esp_err_t result = esp_work_queue_add_task(&kvs_refresh_ice_task, (void*)pClientData);
                 if (result != ESP_OK) {
                     ESP_LOGE(TAG, "Failed to queue background ICE refresh: %d", result);
                 }
@@ -1228,6 +1287,28 @@ static WEBRTC_STATUS kvsGetIceServersWrapper(void *pSignalingClient, uint32_t *p
 }
 
 /**
+ * @brief Set ICE update callback for progressive ICE server delivery
+ */
+static WEBRTC_STATUS kvsSetIceUpdateCallbackWrapper(void *pSignalingClient,
+                                                    uint64_t customData,
+                                                    WEBRTC_STATUS (*on_ice_servers_updated)(uint64_t, uint32_t))
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    KvsSignalingClientData *pClientData = (KvsSignalingClientData *)pSignalingClient;
+
+    CHK(pClientData != NULL, STATUS_NULL_ARG);
+
+    // Store the callback context
+    pClientData->ice_callback_ctx.customData = customData;
+    pClientData->ice_callback_ctx.on_ice_servers_updated = on_ice_servers_updated;
+
+    ESP_LOGI(TAG, "ICE update callback set successfully");
+
+CleanUp:
+    return convertStatusToWebrtcStatus(retStatus);
+}
+
+/**
  * @brief Wrapper for is_ice_refresh_needed to convert return types
  */
 static WEBRTC_STATUS kvsIsIceRefreshNeededWrapper(void *pSignalingClient, bool *refreshNeeded)
@@ -1307,7 +1388,8 @@ webrtc_signaling_client_if_t* kvs_signaling_client_if_get(void)
         .get_ice_servers = kvsGetIceServersWrapper,
         .get_ice_server_by_idx = kvsQueryServerGetByIdxWrapper,
         .is_ice_refresh_needed = kvsIsIceRefreshNeededWrapper,
-        .refresh_ice_configuration = kvsRefreshIceConfigurationWrapper
+        .refresh_ice_configuration = kvsRefreshIceConfigurationWrapper,
+        .set_ice_update_callback = kvsSetIceUpdateCallbackWrapper
     };
 
     return &kvs_signaling_client_if;

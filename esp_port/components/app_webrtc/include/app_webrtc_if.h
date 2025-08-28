@@ -70,7 +70,7 @@ typedef enum {
 #define APP_WEBRTC_MAX_ICE_CONFIG_URI_LEN          127
 #define APP_WEBRTC_MAX_ICE_CONFIG_USER_NAME_LEN    256
 #define APP_WEBRTC_MAX_ICE_CONFIG_CREDENTIAL_LEN   256
-#define APP_WEBRTC_MAX_ICE_SERVERS_COUNT           16
+#define APP_WEBRTC_MAX_ICE_SERVERS_COUNT           5
 
 /**
  * @brief WebRTC application event types
@@ -238,6 +238,11 @@ typedef struct {
 
     // Trigger ICE configuration refresh (background operation)
     WEBRTC_STATUS (*refresh_ice_configuration)(void *pSignalingClient);
+
+    // Progressive ICE server callbacks (for async TURN server delivery)
+    WEBRTC_STATUS (*set_ice_update_callback)(void *pSignalingClient,
+                                              uint64_t customData,
+                                              WEBRTC_STATUS (*on_ice_servers_updated)(uint64_t, uint32_t));
 } webrtc_signaling_client_if_t;
 
 /**

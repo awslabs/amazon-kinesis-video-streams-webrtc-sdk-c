@@ -85,20 +85,108 @@ static STATUS kvs_startIceStats(kvs_pc_client_t* client);
 static STATUS kvs_stopIceStats(kvs_pc_client_t* client);
 
 /**
+ * @brief Callback for applying new ICE servers to existing sessions
+ * This is called for each active session when ICE servers are updated
+ * Now uses the new peerConnectionUpdateIceServers API for dynamic updates
+ */
+static STATUS kvs_applyNewIceServersCallback(UINT64 callerData, PHashEntry pHashEntry)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    kvs_pc_client_t* client = (kvs_pc_client_t*)callerData;
+    kvs_pc_session_t* session = NULL;
+    RtcIceServer* newTurnServers = NULL;
+    UINT32 newTurnServerCount = 0;
+    UINT32 turnServerIndex = 0;
+
+    CHK(client != NULL && pHashEntry != NULL, STATUS_NULL_ARG);
+
+    session = (kvs_pc_session_t*)pHashEntry->value;
+    CHK(session != NULL && !session->terminated && session->peer_connection != NULL, STATUS_NULL_ARG);
+
+    ESP_LOGI(TAG, "Applying new ICE servers to existing session: %s", session->peer_id);
+
+    // Extract only TURN servers for dynamic update (STUN servers are typically already applied)
+    if (client->config.ice_servers != NULL && client->config.ice_server_count > 0) {
+        // First pass: count TURN servers
+        for (UINT32 i = 0; i < client->config.ice_server_count; i++) {
+            RtcIceServer *server = &((RtcIceServer*)client->config.ice_servers)[i];
+            if (STRNCMPI(server->urls, "turn:", 5) == 0 || STRNCMPI(server->urls, "turns:", 6) == 0) {
+                newTurnServerCount++;
+            }
+        }
+
+        // If we have TURN servers, prepare them for dynamic update
+        if (newTurnServerCount > 0) {
+            newTurnServers = (RtcIceServer*)MEMCALLOC(newTurnServerCount, SIZEOF(RtcIceServer));
+            CHK(newTurnServers != NULL, STATUS_NOT_ENOUGH_MEMORY);
+
+            ESP_LOGI(TAG, "Found %u new TURN servers for dynamic update", newTurnServerCount);
+
+            // Second pass: copy TURN servers
+            for (UINT32 i = 0; i < client->config.ice_server_count; i++) {
+                RtcIceServer *server = &((RtcIceServer*)client->config.ice_servers)[i];
+                if (STRNCMPI(server->urls, "turn:", 5) == 0 || STRNCMPI(server->urls, "turns:", 6) == 0) {
+                    MEMCPY(&newTurnServers[turnServerIndex], server, SIZEOF(RtcIceServer));
+                    ESP_LOGI(TAG, "TURN server %u: %s (user: %s)",
+                             turnServerIndex, server->urls,
+                             server->username[0] != '\0' ? server->username : "(none)");
+                    turnServerIndex++;
+                }
+            }
+
+            // Now use the new API to dynamically add TURN servers to the existing peer connection
+            ESP_LOGI(TAG, "Dynamically adding %u TURN servers to peer connection: %s",
+                     newTurnServerCount, session->peer_id);
+
+            STATUS updateStatus = peerConnectionUpdateIceServers(session->peer_connection,
+                                                               newTurnServers,
+                                                               newTurnServerCount);
+
+            if (STATUS_SUCCEEDED(updateStatus)) {
+                ESP_LOGI(TAG, "Successfully added %u new TURN servers to existing peer connection: %s",
+                         newTurnServerCount, session->peer_id);
+                ESP_LOGI(TAG, "Progressive ICE: TURN servers now available for ongoing connection!");
+            } else {
+                ESP_LOGW(TAG, "Failed to add TURN servers to peer connection %s: 0x%08x",
+                         session->peer_id, updateStatus);
+                ESP_LOGI(TAG, "New TURN servers will be available for ICE restarts or new connections");
+            }
+        } else {
+            ESP_LOGI(TAG, "No new TURN servers found in update - only STUN servers (already applied)");
+        }
+    } else {
+        ESP_LOGI(TAG, "No ICE servers in client configuration");
+    }
+
+    ESP_LOGI(TAG, "ICE server update processing completed for session: %s", session->peer_id);
+
+CleanUp:
+    if (newTurnServers != NULL) {
+        SAFE_MEMFREE(newTurnServers);
+    }
+    return retStatus;
+}
+
+/**
  * @brief Set or update ICE servers for a KVS peer connection client
  *
  * This function allows updating ICE servers separately from initialization.
  * It can be called multiple times to refresh ICE servers during runtime.
+ * When called, it updates both the client configuration and applies changes
+ * to existing sessions where possible.
  */
 static WEBRTC_STATUS kvs_pc_set_ice_servers(void *pPeerConnectionClient, void *ice_servers, uint32_t ice_count)
 {
     STATUS retStatus = STATUS_SUCCESS;
     kvs_pc_client_t *client_data = NULL;
+    UINT32 activeSessionCount = 0;
 
     CHK(pPeerConnectionClient != NULL, STATUS_NULL_ARG);
 
     client_data = (kvs_pc_client_t *)pPeerConnectionClient;
     CHK(client_data->initialized, STATUS_INVALID_OPERATION);
+
+    ESP_LOGI(TAG, "Updating ICE servers for KVS peer connection client (new count: %u)", ice_count);
 
     // Free any existing ICE servers
     if (client_data->config.ice_servers != NULL &&
@@ -114,11 +202,12 @@ static WEBRTC_STATUS kvs_pc_set_ice_servers(void *pPeerConnectionClient, void *i
             for (UINT32 i = 0; i < ice_count; i++) {
                 // Copy full struct safely
                 MEMCPY(&dst[i], &src[i], SIZEOF(RtcIceServer));
+                ESP_LOGI(TAG, "ICE Server %u: %s", i, dst[i].urls);
             }
             client_data->config.ice_servers = dst;
             client_data->config.ice_server_count = ice_count;
 
-            ESP_LOGI(TAG, "Updated ICE servers for KVS peer connection client: %u servers", ice_count);
+            ESP_LOGI(TAG, "Updated ICE server configuration: %u servers", ice_count);
         } else {
             client_data->config.ice_servers = NULL;
             client_data->config.ice_server_count = 0;
@@ -131,7 +220,22 @@ static WEBRTC_STATUS kvs_pc_set_ice_servers(void *pPeerConnectionClient, void *i
         ESP_LOGI(TAG, "Cleared ICE servers for KVS peer connection client");
     }
 
+    // Apply new ICE servers to existing sessions where possible
+    if (client_data->activeSessions != NULL) {
+        CHK_STATUS(hashTableGetCount(client_data->activeSessions, &activeSessionCount));
+        if (activeSessionCount > 0) {
+            ESP_LOGI(TAG, "Progressive ICE: Dynamically applying new ICE servers to %u existing sessions", activeSessionCount);
+            CHK_STATUS(hashTableIterateEntries(client_data->activeSessions, (UINT64)client_data, kvs_applyNewIceServersCallback));
+            ESP_LOGI(TAG, "Progressive ICE: Successfully processed all %u existing sessions for dynamic updates", activeSessionCount);
+        } else {
+            ESP_LOGI(TAG, "Progressive ICE: No existing sessions to update - new ICE servers will be used for future connections");
+        }
+    }
+
 CleanUp:
+    if (STATUS_FAILED(retStatus)) {
+        ESP_LOGE(TAG, "Failed to update ICE servers: 0x%08x", retStatus);
+    }
     return retStatus;
 }
 
@@ -297,9 +401,9 @@ CleanUp:
  * This implements the actual KVS SDK peer connection creation logic
  */
 static WEBRTC_STATUS kvs_pc_create_session(void *pPeerConnectionClient,
-                                          const char *peer_id,
-                                          bool is_initiator,
-                                          void **ppSession)
+                                           const char *peer_id,
+                                           bool is_initiator,
+                                           void **ppSession)
 {
     STATUS retStatus = STATUS_SUCCESS;
     kvs_pc_session_t *session = NULL;
@@ -1236,8 +1340,7 @@ static STATUS kvs_initializePeerConnection(kvs_pc_client_t* client, PRtcPeerConn
     configuration.kvsRtcConfiguration.iceConnectionCheckTimeout = 12 * HUNDREDS_OF_NANOS_IN_A_SECOND; // 12 seconds
     configuration.kvsRtcConfiguration.iceLocalCandidateGatheringTimeout = 20 * HUNDREDS_OF_NANOS_IN_A_SECOND; // 20 seconds (more generous)
     configuration.kvsRtcConfiguration.iceCandidateNominationTimeout = 30 * HUNDREDS_OF_NANOS_IN_A_SECOND; // 30 seconds (doubled)
-    // More frequent checks for faster connection
-    configuration.kvsRtcConfiguration.iceConnectionCheckPollingInterval = 100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND; // 100ms
+    configuration.kvsRtcConfiguration.iceConnectionCheckPollingInterval = 200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND; // 200ms
 
     // Enable interface filtering to handle IPv6 properly
     configuration.kvsRtcConfiguration.iceSetInterfaceFilterFunc = kvs_sampleFilterNetworkInterfaces;
