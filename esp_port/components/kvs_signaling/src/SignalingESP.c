@@ -6,8 +6,158 @@
 #include "ChannelInfo.h"
 #include "Signaling/FileCache.h"
 #include "StateMachine.h"
+#include "flash_wrapper.h"
 
 static const char *TAG = "ESP_SIGNALING";
+
+/* NVS-based caching configuration */
+#define SIGNALING_NVS_NAMESPACE      "kvs_signaling"
+#define SIGNALING_CACHE_VERSION      "v1"   // 2 chars for future compatibility
+#define MAX_NVS_KEY_LEN              16     // NVS key limit: 15 chars + NULL terminator
+
+/**
+ * @brief Generate NVS key for signaling cache entry
+ *
+ * Creates a compact key within NVS 15-character limit using version + role + hash
+ * Key format: <version><role><hash> (e.g., "v1Md160527d")
+ *
+ * @param channelName Channel name
+ * @param region AWS region
+ * @param role Channel role type
+ * @param key Output buffer for NVS key (must be >= MAX_NVS_KEY_LEN)
+ * @param keySize Size of output buffer
+ * @return STATUS_SUCCESS on success
+ */
+static STATUS generateSignalingCacheNvsKey(PCHAR channelName, PCHAR region, SIGNALING_CHANNEL_ROLE_TYPE role,
+                                           PCHAR key, UINT32 keySize)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    CHAR roleChar;
+    CHAR combinedInput[256];
+    UINT32 combinedHash;
+    UINT32 keyLen;
+
+    CHK(channelName != NULL && region != NULL && key != NULL, STATUS_NULL_ARG);
+    CHK(keySize >= MAX_NVS_KEY_LEN, STATUS_INVALID_ARG);
+
+    // Convert role to single character
+    roleChar = (role == SIGNALING_CHANNEL_ROLE_TYPE_MASTER) ? 'M' : 'V';
+
+    // Create combined input string for hashing: "channel_name|region"
+    keyLen = SNPRINTF(combinedInput, SIZEOF(combinedInput), "%s|%s", channelName, region);
+    CHK(keyLen < SIZEOF(combinedInput), STATUS_INVALID_ARG);
+
+    // Generate hash of combined channel+region
+    combinedHash = COMPUTE_CRC32((PBYTE)combinedInput, (UINT32)STRLEN(combinedInput));
+
+    // Create efficient key: <version><role><hash> (e.g., "v1Md160527d" = 11 chars)
+    // No leading zeros needed - CRC32 is naturally 8 hex chars
+    keyLen = SNPRINTF(key, keySize, "%s%c%08x", SIGNALING_CACHE_VERSION, roleChar, combinedHash);
+    CHK(keyLen < keySize && keyLen <= 15, STATUS_INVALID_ARG);
+
+    ESP_LOGI(TAG, "Generated NVS key: '%s' (len=%d) for channel='%s', region='%s', role=%c, hash=0x%08x",
+             key, keyLen, channelName, region, roleChar, combinedHash);
+
+CleanUp:
+    return retStatus;
+}
+
+/**
+ * @brief Load signaling cache from NVS storage
+ *
+ * @param channelName Channel name
+ * @param region AWS region
+ * @param role Channel role type
+ * @param pFileCacheEntry Output cache entry
+ * @param pCacheFound Set to TRUE if cache was found
+ * @return STATUS_SUCCESS on success
+ */
+static STATUS signalingCacheLoadFromNvs(PCHAR channelName, PCHAR region, SIGNALING_CHANNEL_ROLE_TYPE role,
+                                        PSignalingFileCacheEntry pFileCacheEntry, PBOOL pCacheFound)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    CHAR nvsKey[MAX_NVS_KEY_LEN];
+    esp_err_t espRet;
+    bool exists = false;
+    size_t entrySize = sizeof(SignalingFileCacheEntry);
+
+    CHK(channelName != NULL && region != NULL && pFileCacheEntry != NULL && pCacheFound != NULL, STATUS_NULL_ARG);
+
+    *pCacheFound = FALSE;
+
+    // Generate NVS key for this cache entry
+    CHK_STATUS(generateSignalingCacheNvsKey(channelName, region, role, nvsKey, SIZEOF(nvsKey)));
+
+    ESP_LOGI(TAG, "Loading signaling cache from NVS: namespace=%s, key=%s (channel='%s', region='%s', role=%d)",
+             SIGNALING_NVS_NAMESPACE, nvsKey, channelName, region, role);
+
+    // Check if cache entry exists using direct NVS API
+    espRet = flash_wrapper_nvs_exists(SIGNALING_NVS_NAMESPACE, nvsKey, &exists);
+    CHK(espRet == ESP_OK, STATUS_INTERNAL_ERROR);
+
+    if (!exists) {
+        ESP_LOGI(TAG, "Signaling cache not found in NVS");
+        CHK(FALSE, STATUS_SUCCESS); // Not an error, just no cache
+    }
+
+        // Load cache entry from NVS using direct API
+    espRet = flash_wrapper_nvs_read(SIGNALING_NVS_NAMESPACE, nvsKey, NVS_TYPE_BLOB,
+                                    pFileCacheEntry, &entrySize);
+    CHK(espRet == ESP_OK, STATUS_INTERNAL_ERROR);
+
+    *pCacheFound = TRUE;
+    ESP_LOGI(TAG, "Successfully loaded signaling cache from NVS: channel=%s, region=%s, role=%d",
+             channelName, region, role);
+
+CleanUp:
+    if (STATUS_FAILED(retStatus)) {
+        ESP_LOGE(TAG, "Failed to load signaling cache from NVS: 0x%08x", retStatus);
+    }
+
+    LEAVES();
+    return retStatus;
+}
+
+/**
+ * @brief Save signaling cache to NVS storage
+ *
+ * @param pFileCacheEntry Cache entry to save
+ * @return STATUS_SUCCESS on success
+ */
+static STATUS signalingCacheSaveToNvs(PSignalingFileCacheEntry pFileCacheEntry)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    CHAR nvsKey[MAX_NVS_KEY_LEN];
+    esp_err_t espRet;
+    size_t entrySize = sizeof(SignalingFileCacheEntry);
+
+    CHK(pFileCacheEntry != NULL, STATUS_NULL_ARG);
+
+    // Generate NVS key for this cache entry
+    CHK_STATUS(generateSignalingCacheNvsKey(pFileCacheEntry->channelName, pFileCacheEntry->region,
+                                            pFileCacheEntry->role, nvsKey, SIZEOF(nvsKey)));
+
+    ESP_LOGI(TAG, "Saving signaling cache to NVS: namespace=%s, key=%s (channel='%s', region='%s', role=%d)",
+             SIGNALING_NVS_NAMESPACE, nvsKey, pFileCacheEntry->channelName, pFileCacheEntry->region, pFileCacheEntry->role);
+
+        // Save cache entry to NVS using direct API
+    espRet = flash_wrapper_nvs_write(SIGNALING_NVS_NAMESPACE, nvsKey, NVS_TYPE_BLOB,
+                                     pFileCacheEntry, entrySize);
+    CHK(espRet == ESP_OK, STATUS_INTERNAL_ERROR);
+
+    ESP_LOGI(TAG, "Successfully saved signaling cache to NVS: channel=%s, region=%s, role=%d",
+             pFileCacheEntry->channelName, pFileCacheEntry->region, pFileCacheEntry->role);
+
+CleanUp:
+    if (STATUS_FAILED(retStatus)) {
+        ESP_LOGE(TAG, "Failed to save signaling cache to NVS: 0x%08x", retStatus);
+    }
+
+    LEAVES();
+    return retStatus;
+}
 
 extern StateMachineState SIGNALING_STATE_MACHINE_STATES[];
 extern UINT32 SIGNALING_STATE_MACHINE_STATE_COUNT;
@@ -66,10 +216,10 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     pSignalingClient->offerSentTime = INVALID_TIMESTAMP_VALUE;
 
     if (pSignalingClient->pChannelInfo->cachingPolicy == SIGNALING_API_CALL_CACHE_TYPE_FILE) {
-        if (STATUS_FAILED(signalingCacheLoadFromFile(pSignalingClient->pChannelInfo->pChannelName, pSignalingClient->pChannelInfo->pRegion,
-                                                     pSignalingClient->pChannelInfo->channelRoleType, pFileCacheEntry, &cacheFound,
-                                                     pSignalingClient->clientInfo.cacheFilePath))) {
-            DLOGW("Failed to load signaling cache from file");
+        // Use NVS-based caching instead of file-based caching for ESP platform
+        if (STATUS_FAILED(signalingCacheLoadFromNvs(pSignalingClient->pChannelInfo->pChannelName, pSignalingClient->pChannelInfo->pRegion,
+                                                    pSignalingClient->pChannelInfo->channelRoleType, pFileCacheEntry, &cacheFound))) {
+            DLOGW("Failed to load signaling cache from NVS");
         } else if (cacheFound) {
             STRCPY(pSignalingClient->channelDescription.channelName, pFileCacheEntry->channelName);
             STRCPY(pSignalingClient->channelDescription.channelArn, pFileCacheEntry->channelArn);
@@ -1149,8 +1299,9 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
                         STRCPY(signalingFileCacheEntry.httpsEndpoint, pSignalingClient->channelEndpointHttps);
                         STRCPY(signalingFileCacheEntry.wssEndpoint, pSignalingClient->channelEndpointWss);
                         STRCPY(signalingFileCacheEntry.webrtcEndpoint, pSignalingClient->channelEndpointWebrtc);
-                        if (STATUS_FAILED(signalingCacheSaveToFile(&signalingFileCacheEntry, pSignalingClient->clientInfo.cacheFilePath))) {
-                            DLOGW("Failed to save signaling cache to file");
+                        // Use NVS-based caching instead of file-based caching for ESP platform
+                        if (STATUS_FAILED(signalingCacheSaveToNvs(&signalingFileCacheEntry))) {
+                            DLOGW("Failed to save signaling cache to NVS");
                         }
                     }
                 }
