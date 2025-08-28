@@ -1868,6 +1868,21 @@ PUBLIC_API STATUS restartIce(PRtcPeerConnection);
 PUBLIC_API STATUS closePeerConnection(PRtcPeerConnection);
 
 /**
+ * @brief Dynamically update the ICE servers for an existing peer connection
+ *
+ * This function allows adding new ICE servers to an already created peer connection.
+ * New TURN servers will have relay candidates created automatically, enabling
+ * progressive ICE server delivery for improved connection establishment performance.
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in] PRtcIceServer Array of new ICE servers to add
+ * @param[in] UINT32 Number of ICE servers in the array
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS peerConnectionUpdateIceServers(PRtcPeerConnection, PRtcIceServer, UINT32);
+
+/**
  * @brief Create a new RtcRtpTransceiver and add it to the set of transceivers.
  *
  * Reference https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-addtransceiver

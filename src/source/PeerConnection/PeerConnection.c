@@ -1963,6 +1963,34 @@ CleanUp:
     return retStatus;
 }
 
+STATUS peerConnectionUpdateIceServers(PRtcPeerConnection pPeerConnection, PRtcIceServer pIceServers, UINT32 iceServersCount)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
+
+    CHK(pKvsPeerConnection != NULL && pIceServers != NULL, STATUS_NULL_ARG);
+    CHK(iceServersCount > 0, STATUS_INVALID_ARG);
+
+    DLOGI("Updating peer connection with %u new ICE servers", iceServersCount);
+
+    /*
+     * Dynamic ICE server update:
+     * - Add new ICE servers to the ICE agent
+     * - For TURN servers, new relay candidates will be created automatically
+     * - New candidates will be gathered and made available for connectivity checks
+     * - This enables progressive ICE server delivery without disrupting existing connections
+     */
+    CHK_STATUS(iceAgentAddIceServers(pKvsPeerConnection->pIceAgent, pIceServers, iceServersCount));
+
+    DLOGI("Successfully updated peer connection ICE servers");
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+    LEAVES();
+    return retStatus;
+}
+
 STATUS peerConnectionGetMetrics(PRtcPeerConnection pPeerConnection, PPeerConnectionMetrics pPeerConnectionMetrics)
 {
     ENTERS();
