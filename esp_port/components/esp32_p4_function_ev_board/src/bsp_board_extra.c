@@ -10,6 +10,8 @@
 
 #include "esp_log.h"
 #include "esp_check.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 
 #include "bsp/esp-bsp.h"
 #include "bsp/bsp_board_extra.h"
@@ -20,6 +22,7 @@ static esp_codec_dev_handle_t play_dev_handle;
 
 static bool _is_audio_init = false;
 static int _vloume_intensity = CODEC_DEFAULT_VOLUME;
+static SemaphoreHandle_t _audio_init_mutex = NULL;
 
 esp_err_t bsp_extra_i2s_read(void *audio_buffer, size_t len, size_t *bytes_read, uint32_t timeout_ms)
 {
@@ -104,16 +107,48 @@ esp_err_t bsp_extra_codec_dev_resume(void)
 
 esp_err_t bsp_extra_codec_init()
 {
+    // Create mutex on first call
+    if (_audio_init_mutex == NULL) {
+        _audio_init_mutex = xSemaphoreCreateMutex();
+        if (_audio_init_mutex == NULL) {
+            ESP_LOGE(TAG, "Failed to create audio init mutex");
+            return ESP_ERR_NO_MEM;
+        }
+    }
+
+    // Thread-safe initialization
+    if (xSemaphoreTake(_audio_init_mutex, pdMS_TO_TICKS(1000)) != pdTRUE) {
+        ESP_LOGE(TAG, "Failed to take audio init mutex");
+        return ESP_ERR_TIMEOUT;
+    }
+
+    // Double-check pattern inside mutex
     if (_is_audio_init) {
+        ESP_LOGD(TAG, "Audio codec already initialized, skipping");
+        xSemaphoreGive(_audio_init_mutex);
         return ESP_OK;
     }
 
-    play_dev_handle = bsp_audio_codec_speaker_init();
-    assert((play_dev_handle) && "play_dev_handle not initialized");
+    ESP_LOGI(TAG, "Initializing BSP audio codec (thread-safe)");
 
-    bsp_extra_codec_set_fs(CODEC_DEFAULT_SAMPLE_RATE, CODEC_DEFAULT_BIT_WIDTH, CONFIG_BSP_I2S_NUM);
+    play_dev_handle = bsp_audio_codec_speaker_init();
+    if (!play_dev_handle) {
+        ESP_LOGE(TAG, "Failed to initialize audio codec speaker");
+        xSemaphoreGive(_audio_init_mutex);
+        return ESP_FAIL;
+    }
+
+    // Only set FS if this is the first initialization
+    esp_err_t ret = bsp_extra_codec_set_fs(CODEC_DEFAULT_SAMPLE_RATE, CODEC_DEFAULT_BIT_WIDTH, CONFIG_BSP_I2S_NUM);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to set codec FS during init: %s", esp_err_to_name(ret));
+        xSemaphoreGive(_audio_init_mutex);
+        return ret;
+    }
 
     _is_audio_init = true;
+    ESP_LOGI(TAG, "BSP audio codec initialized successfully");
 
+    xSemaphoreGive(_audio_init_mutex);
     return ESP_OK;
 }
