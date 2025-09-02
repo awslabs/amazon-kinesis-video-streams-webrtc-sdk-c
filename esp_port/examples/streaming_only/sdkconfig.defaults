@@ -156,3 +156,10 @@ CONFIG_ESP_WEBRTC_BRIDGE_HOSTED=y
 
 # Since we use esp_video, which needs latest I2C driver
 CONFIG_CODEC_I2C_BACKWARD_COMPATIBLE=n
+
+
+#
+# ESP-Hosted : Host component
+#
+CONFIG_SLAVE_LWIP_ENABLED=y
+

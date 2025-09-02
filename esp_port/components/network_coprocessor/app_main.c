@@ -1529,7 +1529,7 @@ static void host_wakeup_callback(void)
 #endif
 }
 
-void network_coprocessor_init()
+void network_coprocessor_init(void)
 {
 #ifndef CONFIG_ADAPTER_ONLY_MODE
 	mutex = xSemaphoreCreateMutex();

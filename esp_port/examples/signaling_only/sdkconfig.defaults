@@ -68,6 +68,10 @@ CONFIG_MBEDTLS_SSL_ALPN=y
 # Some issues when working with libwebsockets
 CONFIG_MBEDTLS_ASYMMETRIC_CONTENT_LEN=n
 
+# fix build issues on idf master
+# CONFIG_MBEDTLS_X509_CREATE_C=y
+# CONFIG_MBEDTLS_SSL_DTLS_SRTP=y
+
 #
 # FreeRTOS
 #
@@ -132,3 +136,9 @@ CONFIG_WS_DYNAMIC_BUFFER=y
 
 # Additional WebRTC configs
 CONFIG_ENABLE_DATA_CHANNEL=n
+
+#
+# ESP-Hosted - Network coprocessor
+#
+CONFIG_SLAVE_LWIP_ENABLED=y
+

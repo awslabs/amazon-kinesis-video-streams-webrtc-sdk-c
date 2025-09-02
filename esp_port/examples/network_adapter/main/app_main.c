@@ -9,8 +9,8 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "esp_system.h"
+#include "network_coprocessor.h"
 
-extern void network_coprocessor_init();
 
 void app_main(void)
 {

@@ -428,7 +428,7 @@ menu "Network Co-processor Configuration"
 
 	config SLAVE_LWIP_ENABLED
 		bool "Enable the LWIP at slave"
-		default y
+		default n
 		help
 			Enable the LWIP at slave, additionally to host LWIP
 

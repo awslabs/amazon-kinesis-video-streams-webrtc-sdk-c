@@ -738,7 +738,7 @@ ESP32P4_SDIO_CLK_FREQ_KHZ_RANGE_MAX := 80000
 
 	config SLAVE_LWIP_ENABLED
 		bool "Enable the LWIP at slave"
-		default y
+		default n
 		help
 			Enable the LWIP at slave, additionally to host LWIP.
 			This makes host aware that slave LWIP ports range cannot be used at host

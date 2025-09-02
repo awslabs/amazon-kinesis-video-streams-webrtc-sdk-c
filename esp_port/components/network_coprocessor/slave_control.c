@@ -693,9 +693,11 @@ static void event_handler_wifi(void* arg, esp_event_base_t event_base,
 			station_connected = false;
 			esp_wifi_internal_reg_rxcb(ESP_IF_WIFI_STA, NULL);
 
+#ifdef CONFIG_SLAVE_LWIP_ENABLED
 			rpc_set_dhcp_dns_status_t s2h_dhcp_dns = {0};
 			send_event_data_to_host(RPC_ID__Event_SetDhcpDnsStatus,
 					&s2h_dhcp_dns, sizeof(rpc_set_dhcp_dns_status_t));
+#endif
 
 			if (sta_connect_retry < MAX_STA_CONNECT_ATTEMPTS) {
 				esp_wifi_connect();
@@ -838,7 +840,10 @@ static esp_err_t req_wifi_connect(Rpc *req, Rpc *resp, void *priv_data)
 		send_event_data_to_host(RPC_ID__Event_StaConnected,
 				&lkg_sta_connected_event, sizeof(wifi_event_sta_connected_t));
 		ESP_LOGI(TAG, "Already connected");
+
+#ifdef CONFIG_SLAVE_LWIP_ENABLED
 		send_dhcp_dns_info_to_host(1);
+#endif
 	}
 
 	return ESP_OK;
@@ -2597,6 +2602,7 @@ static esp_err_t rpc_evt_Event_WifiEventNoArgs(Rpc *ntfy,
 }
 
 
+#ifdef CONFIG_SLAVE_LWIP_ENABLED
 static esp_err_t rpc_evt_Event_SetDhcpDnsStatus(Rpc *ntfy,
 		const uint8_t *data, ssize_t len)
 {
@@ -2633,6 +2639,7 @@ static esp_err_t rpc_evt_Event_SetDhcpDnsStatus(Rpc *ntfy,
 	p_c->resp = SUCCESS;
 	return ESP_OK;
 }
+#endif
 
 static esp_err_t rpc_evt_Event_USR(Rpc *ntfy,
 		const uint8_t *data, ssize_t len, uint8_t usr_msg_num)
@@ -2725,9 +2732,11 @@ esp_err_t rpc_evt_handler(uint32_t session_id,const uint8_t *inbuf,
 		} case RPC_ID__Event_WifiEventNoArgs: {
 			ret = rpc_evt_Event_WifiEventNoArgs(&ntfy, inbuf, inlen);
 			break;
+#ifdef CONFIG_SLAVE_LWIP_ENABLED
 		} case RPC_ID__Event_SetDhcpDnsStatus: {
 			ret = rpc_evt_Event_SetDhcpDnsStatus(&ntfy, inbuf, inlen);
 			break;
+#endif
 		} case RPC_ID__Event_USR1: {
 			ret = rpc_evt_Event_USR(&ntfy, inbuf, inlen, 1);
 			break;
