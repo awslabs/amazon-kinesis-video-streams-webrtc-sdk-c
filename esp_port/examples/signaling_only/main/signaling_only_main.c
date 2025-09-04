@@ -100,6 +100,7 @@ void app_main(void)
 
     esp_cli_start();
     wifi_register_cli(); // for wifi-set command
+    sleep_command_register_cli();
 
 #if CONFIG_IDF_TARGET_ESP32C6
     /* Initialize network co-processor */

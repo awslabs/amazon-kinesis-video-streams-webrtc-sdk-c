@@ -22,6 +22,9 @@
 #include "app_webrtc.h"
 #include "kvs_peer_connection.h"
 
+extern esp_err_t esp_hosted_wait_for_slave(void);
+extern int sleep_command_register_cli();
+
 static const char *TAG = "streaming_only";
 
 // Data channel callback context
@@ -292,6 +295,9 @@ void app_main(void)
     ESP_LOGI(TAG, "ESP32 WebRTC Streaming Example");
 
     esp_cli_start();
+
+    /* Register deep sleep command */
+    sleep_command_register_cli();
 
     // Initialize WiFi
     wifi_init_sta();

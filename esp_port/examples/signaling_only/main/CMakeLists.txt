@@ -1,3 +1,7 @@
-idf_component_register(SRCS "signaling_only_main.c"
+idf_component_register(SRCS
+                        "signaling_only_main.c"
+                        "sleep_command.c"
                     INCLUDE_DIRS "."
-                    REQUIRES "app_common" "app_webrtc" "esp_webrtc_utils" "signaling_bridge_adapter" "kvs_signaling")
+                    REQUIRES
+                        "app_common"
+                        "signaling_bridge_adapter")
