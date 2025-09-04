@@ -27,6 +27,8 @@
  * returns a pointer to the sdio context */
 void * hosted_sdio_init(void);
 
+void hosted_sdio_deinit(void);
+
 /* Hosted SDIO deinit function
  * expects a pointer to the sdio context */
 /* Hosted SDIO to initialise the SDIO card */

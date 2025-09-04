@@ -724,6 +724,29 @@ static void event_handler_wifi(void* arg, esp_event_base_t event_base,
 	}
 }
 
+esp_err_t esp_hosted_register_event_handlers(void)
+{
+	esp_event_handler_instance_register(WIFI_EVENT,
+		ESP_EVENT_ANY_ID,
+		&event_handler_wifi,
+		NULL,
+		&instance_any_id);
+
+#ifdef CONFIG_SLAVE_LWIP_ENABLED
+	esp_event_handler_instance_register(IP_EVENT,
+		IP_EVENT_STA_GOT_IP,
+		&event_handler_ip,
+		NULL,
+		&instance_ip);
+	esp_event_handler_instance_register(IP_EVENT,
+		IP_EVENT_STA_LOST_IP,
+		&event_handler_ip,
+		NULL,
+		&instance_ip);
+#endif
+	return ESP_OK;
+}
+
 static esp_err_t req_wifi_init(Rpc *req, Rpc *resp, void *priv_data)
 {
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
@@ -760,24 +783,6 @@ static esp_err_t req_wifi_init(Rpc *req, Rpc *resp, void *priv_data)
 	cfg.magic                   = req_payload->cfg->magic                  ;
 
     RPC_RET_FAIL_IF(esp_wifi_init(&cfg));
-
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
-                                                        ESP_EVENT_ANY_ID,
-                                                        &event_handler_wifi,
-                                                        NULL,
-                                                        &instance_any_id));
-#ifdef CONFIG_SLAVE_LWIP_ENABLED
-	ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT,
-														IP_EVENT_STA_GOT_IP,
-														&event_handler_ip,
-														NULL,
-														&instance_ip));
-	ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT,
-														IP_EVENT_STA_LOST_IP,
-														&event_handler_ip,
-														NULL,
-														&instance_ip));
-#endif
 
 	return ESP_OK;
 }

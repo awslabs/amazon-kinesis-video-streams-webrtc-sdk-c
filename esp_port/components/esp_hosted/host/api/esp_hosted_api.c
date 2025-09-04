@@ -145,7 +145,10 @@ esp_err_t esp_hosted_reinit(void(*esp_hosted_up_cb)(void))
 esp_err_t esp_hosted_wait_for_slave(void)
 {
 	ESP_LOGI(TAG, "ESP-Hosted Try to communicate with ESP-Hosted slave\n");
-	return transport_drv_reconfigure();
+	ESP_ERROR_CHECK(transport_drv_reconfigure());
+	wait_for_esp_hosted_to_be_up();
+
+	return ESP_OK;
 }
 
 

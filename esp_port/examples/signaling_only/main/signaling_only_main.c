@@ -5,7 +5,7 @@
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
 #include "esp_system.h"
-// #include "esp_wifi.h"
+#include "esp_wifi.h"
 #include "esp_event.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
@@ -83,6 +83,33 @@ static void event_handler_ip(void* arg, esp_event_base_t event_base,
     }
 }
 
+#ifdef CONFIG_SLAVE_LWIP_ENABLED
+static void create_slave_sta_netif(uint8_t dhcp_at_slave)
+{
+    /* Create "almost" default station, but with un-flagged DHCP client */
+	esp_netif_inherent_config_t netif_cfg;
+	memcpy(&netif_cfg, ESP_NETIF_BASE_DEFAULT_WIFI_STA, sizeof(netif_cfg));
+
+	if (!dhcp_at_slave)
+		netif_cfg.flags &= ~ESP_NETIF_DHCP_CLIENT;
+
+	esp_netif_config_t cfg_sta = {
+		.base = &netif_cfg,
+		.stack = ESP_NETIF_NETSTACK_DEFAULT_WIFI_STA,
+	};
+	esp_netif_t *netif_sta = esp_netif_new(&cfg_sta);
+	assert(netif_sta);
+
+	ESP_ERROR_CHECK(esp_netif_attach_wifi_station(netif_sta));
+	ESP_ERROR_CHECK(esp_wifi_set_default_wifi_sta_handlers());
+
+	if (!dhcp_at_slave)
+		ESP_ERROR_CHECK(esp_netif_dhcpc_stop(netif_sta));
+
+	// slave_sta_netif = netif_sta;
+}
+#endif
+
 void app_main(void)
 {
     esp_err_t ret;
@@ -102,8 +129,14 @@ void app_main(void)
     wifi_register_cli(); // for wifi-set command
     sleep_command_register_cli();
 
+    ESP_ERROR_CHECK(esp_netif_init());
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+
 #if CONFIG_IDF_TARGET_ESP32C6
     /* Initialize network co-processor */
+#ifdef CONFIG_SLAVE_LWIP_ENABLED
+    create_slave_sta_netif(true);
+#endif
     network_coprocessor_init();
     ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT,
                                                         IP_EVENT_STA_GOT_IP,
@@ -112,6 +145,15 @@ void app_main(void)
                                                         NULL));
 #endif
 
+    // Initialize and start WiFi
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_ERROR_CHECK(esp_wifi_start());
+    ESP_ERROR_CHECK(esp_wifi_connect());
+
+    // Initialize storage
     app_storage_init();
 
     int count = 0;

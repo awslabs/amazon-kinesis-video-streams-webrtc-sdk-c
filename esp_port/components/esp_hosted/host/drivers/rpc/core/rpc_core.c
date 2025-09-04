@@ -511,7 +511,7 @@ static void rpc_tx_thread(void const *arg)
 	while (1) {
 
 		/* 4.1 Block on read of protobuf encoded msg */
-		if (is_rpc_lib_state(RPC_LIB_STATE_INACTIVE)) {
+		if (is_rpc_lib_state(RPC_LIB_STATE_INACTIVE) || !rpc_tx_sem || !rpc_tx_q) {
 			g_h.funcs->_h_sleep(1);
 			ESP_LOGV(TAG, "%s:%u rpc lib inactive",__func__,__LINE__);
 			continue;
@@ -666,7 +666,7 @@ static int post_sync_resp_sem(ctrl_cmd_t *app_resp)
 	}
 
 	for (i = 0; i < MAX_SYNC_RPC_TRANSACTIONS; i++) {
-		if (sync_rsp_table[i].uid == app_resp->uid) {
+		if ((sync_rsp_table[i].uid == app_resp->uid) && (sync_rsp_table[i].sem)) {
 			return g_h.funcs->_h_post_semaphore(sync_rsp_table[i].sem);
 		}
 	}

@@ -82,7 +82,7 @@ static void reset_slave(void)
 	g_h.funcs->_h_msleep(50);
 	g_h.funcs->_h_write_gpio(H_GPIO_PIN_RESET_Port, H_GPIO_PIN_RESET_Pin, H_RESET_VAL_ACTIVE);
 
-	/* stop spi transactions short time to avoid slave sync issues */
+	/* stop transport transactions short time to avoid slave sync issues */
 	g_h.funcs->_h_sleep(1);
 }
 #endif
@@ -411,7 +411,7 @@ transport_channel_t *transport_drv_add_channel(void *api_chan,
 
 	/* Need to change size wrt transport */
 	channel->memp = mempool_create(MAX_TRANSPORT_BUFFER_SIZE);
-#ifdef CONFIG_ESP_CACHE_MALLOC
+#ifdef CONFIG_ESP_USE_MEMPOOL
 	assert(channel->memp);
 #endif
 

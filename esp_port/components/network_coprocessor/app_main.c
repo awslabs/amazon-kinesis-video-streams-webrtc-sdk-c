@@ -379,10 +379,11 @@ esp_err_t wlan_sta_rx_callback(void *buffer, uint16_t len, void *eb)
 {
 	interface_buffer_handle_t buf_handle = {0};
 	hosted_l2_bridge bridge_to_use = HOST_LWIP_BRIDGE;
+	assert(slave_sta_netif);
 
 	if (!buffer || !eb || !datapath) {
 		if (eb) {
-			ESP_LOGW(TAG, "free packet");
+			// ESP_LOGW(TAG, "free packet");
 			esp_wifi_internal_free_rx_buffer(eb);
 		}
 		return ESP_OK;
@@ -542,7 +543,7 @@ static void host_reset_task(void* pvParameters)
 		ESP_LOGI(TAG,"host reconfig event");
 		generate_startup_event(capa);
 
-#ifdef CONFIG_SLAVE_LWIP_ENABLED
+#if 0 //def CONFIG_SLAVE_LWIP_ENABLED
 		ESP_LOGI(TAG,"--- Wait for IP ---");
 		while (!station_got_ip) {
 			vTaskDelay(pdMS_TO_TICKS(50));
@@ -690,7 +691,7 @@ static int host_to_slave_reconfig(uint8_t *evt_buf, uint16_t len)
 						CONFIG_ESP_DEFAULT_TASK_PRIO, NULL) == pdTRUE);
 			}
 #endif
-#ifdef CONFIG_SLAVE_LWIP_ENABLED
+#if 0 //def CONFIG_SLAVE_LWIP_ENABLED
 		send_dhcp_dns_info_to_host(1);
 #endif
 		} else if (*pos == SLV_CFG_FLOW_CTL_CLEAR_THRESHOLD) {
@@ -1156,7 +1157,7 @@ static void register_reset_pin(uint32_t gpio_num)
 }
 
 
-#ifdef CONFIG_SLAVE_LWIP_ENABLED
+#if 0 //def CONFIG_SLAVE_LWIP_ENABLED
 void create_slave_sta_netif(uint8_t dhcp_at_slave)
 {
     /* Create "almost" default station, but with un-flagged DHCP client */
@@ -1531,6 +1532,25 @@ static void host_wakeup_callback(void)
 
 void network_coprocessor_init(void)
 {
+#ifdef CONFIG_SLAVE_LWIP_ENABLED
+	// create_slave_sta_netif(H_SLAVE_LWIP_DHCP_AT_SLAVE);
+	slave_sta_netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+	if (!slave_sta_netif) {
+		ESP_LOGE(TAG, "Failed to get slave sta netif, Make sure to call esp_netif_init() and esp_event_loop_create_default() in the main function");
+		return;
+	}
+
+	ESP_LOGI(TAG, "Default LWIP post filtering packets to send: %s",
+#if defined(CONFIG_ESP_DEFAULT_LWIP_SLAVE)
+			"slave. Host need to use **static netif** only"
+#elif defined(CONFIG_ESP_DEFAULT_LWIP_HOST)
+			"host"
+#elif defined(CONFIG_ESP_DEFAULT_LWIP_BOTH)
+			"host+slave"
+#endif
+			);
+#endif
+
 #ifndef CONFIG_ADAPTER_ONLY_MODE
 	mutex = xSemaphoreCreateMutex();
 #endif
@@ -1538,8 +1558,8 @@ void network_coprocessor_init(void)
 
 	print_firmware_version();
 
-	ESP_ERROR_CHECK(esp_netif_init());
-	ESP_ERROR_CHECK(esp_event_loop_create_default());
+	// ESP_ERROR_CHECK(esp_netif_init());
+	// ESP_ERROR_CHECK(esp_event_loop_create_default());
 
 	register_reset_pin(CONFIG_ESP_GPIO_SLAVE_RESET);
 
@@ -1612,12 +1632,19 @@ void network_coprocessor_init(void)
 #endif
 	// create_debugging_tasks();
 
+#if 0
 	while(!datapath) {
 		vTaskDelay(10);
 	}
+#endif
 
-#ifdef CONFIG_SLAVE_LWIP_ENABLED
-	create_slave_sta_netif(H_SLAVE_LWIP_DHCP_AT_SLAVE);
+#if 0 //def CONFIG_SLAVE_LWIP_ENABLED
+	// create_slave_sta_netif(H_SLAVE_LWIP_DHCP_AT_SLAVE);
+	slave_sta_netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+	if (!slave_sta_netif) {
+		ESP_LOGE(TAG, "Failed to get slave sta netif, Make sure to call esp_netif_init() and esp_event_loop_create_default() in the main function");
+		return;
+	}
 
 	ESP_LOGI(TAG, "Default LWIP post filtering packets to send: %s",
 #if defined(CONFIG_ESP_DEFAULT_LWIP_SLAVE)
@@ -1633,4 +1660,6 @@ void network_coprocessor_init(void)
 	assert(xTaskCreate(host_reset_task, "host_reset_task" ,
 			HOST_RESET_TASK_STACK, NULL ,
 			CONFIG_ESP_DEFAULT_TASK_PRIO, NULL) == pdTRUE);
+
+	esp_hosted_register_event_handlers();
 }

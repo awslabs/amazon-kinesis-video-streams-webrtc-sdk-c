@@ -172,4 +172,6 @@ esp_err_t rpc_evt_handler(uint32_t session_id,const uint8_t *inbuf,
 void send_event_to_host(int event_id);
 void send_event_data_to_host(int event_id, void *data, int size);
 
+esp_err_t esp_hosted_register_event_handlers(void);
+
 #endif /*__SLAVE_CONTROL__H__*/

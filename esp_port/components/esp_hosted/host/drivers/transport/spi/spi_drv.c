@@ -68,7 +68,7 @@ static inline void spi_mempool_create()
 {
 	MEM_DUMP("spi_mempool_create");
 	buf_mp_g = mempool_create(MAX_SPI_BUFFER_SIZE);
-#ifdef CONFIG_ESP_CACHE_MALLOC
+#ifdef CONFIG_ESP_USE_MEMPOOL
 	assert(buf_mp_g);
 #endif
 }

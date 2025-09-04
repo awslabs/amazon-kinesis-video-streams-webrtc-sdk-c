@@ -239,7 +239,7 @@ static esp_err_t sdio_write_toio(sdmmc_card_t *card, uint32_t function, uint32_t
 	return ESP_OK;
 }
 
-void * hosted_sdio_init(void)
+static esp_err_t hosted_sdio_init_internal(void)
 {
 	esp_err_t res;
 
@@ -247,8 +247,10 @@ void * hosted_sdio_init(void)
 
 	// initialise SDMMC host
 	res = sdmmc_host_init();
-	if (res != ESP_OK)
-		return NULL;
+	if (res != ESP_OK) {
+		ESP_EARLY_LOGE(TAG, "sdmmc_host_init failed");
+		return res;
+	}
 
 	// configure SDIO interface and slot
 	slot_config.width = H_SDIO_BUS_WIDTH;
@@ -262,15 +264,41 @@ void * hosted_sdio_init(void)
 	slot_config.d3  = H_SDIO_PIN_D3;
 #endif
 #endif
+#if 0 // slot2 not used
+	slot_config.clk = 43;
+	slot_config.cmd = 44;
+	slot_config.d0  = 39;
+	slot_config.d1  = 40;
+	slot_config.d2  = 41;
+	slot_config.d3  = 42;
+#endif
+
 	res = sdmmc_host_init_slot(H_SDMMC_HOST_SLOT, &slot_config);
 	if (res != ESP_OK) {
-		ESP_LOGE(TAG, "init SDMMC Host slot %d failed", H_SDMMC_HOST_SLOT);
+		ESP_EARLY_LOGE(TAG, "init SDMMC Host slot %d failed", H_SDMMC_HOST_SLOT);
+		return res;
+	}
+	return ESP_OK;
+}
+
+static esp_err_t hosted_sdio_deinit_internal(void)
+{
+	sdmmc_host_deinit();
+	return ESP_OK;
+}
+
+void * hosted_sdio_init(void)
+{
+	if (hosted_sdio_init_internal() != ESP_OK) {
 		return NULL;
 	}
+
 	// initialise connected SDIO card/slave
 	card = (sdmmc_card_t *)g_h.funcs->_h_malloc(sizeof(sdmmc_card_t));
-	if (!card)
+	if (!card) {
+		ESP_EARLY_LOGE(TAG, "failed to allocate card");
 		return NULL;
+	}
 
 	// initialise mutex for bus locking
 	sdio_bus_lock = g_h.funcs->_h_create_mutex();
@@ -310,41 +338,42 @@ int hosted_sdio_card_init(void)
 	config.flags |= SDMMC_HOST_FLAG_ALLOC_ALIGNED_BUF;
 #endif
 
-	if (sdmmc_card_init(&config, card) != ESP_OK) {
-		ESP_LOGE(TAG, "sdmmc_card_init failed");
-		goto fail;
+	if(sdmmc_card_init(&config, card) != ESP_OK) {
+		ESP_EARLY_LOGE(TAG, "sdmmc_card_init failed");
+		return ESP_FAIL;
 	}
 
 	// output CIS info from the slave
 	sdmmc_card_print_info(stdout, card);
 
 	if (hosted_sdio_print_cis_information(card) != ESP_OK) {
-		ESP_LOGW(TAG, "failed to print card info");
+		ESP_EARLY_LOGE(TAG, "failed to print card info");
 	}
 
-	// initialise the card functions
+	/* initialise the card functions */
 	if (hosted_sdio_card_fn_init(card) != ESP_OK) {
-		ESP_LOGE(TAG, "sdio_cared_fn_init failed");
+		ESP_EARLY_LOGE(TAG, "hosted_sdio_card_fn_init failed");
 		goto fail;
 	}
+
 	return ESP_OK;
 
 fail:
-	sdmmc_host_deinit();
-	if (card) {
-		HOSTED_FREE(card);
-	}
+	hosted_sdio_deinit_internal();
 	return ESP_FAIL;
 }
 
-esp_err_t hosted_sdio_card_deinit(void)
+int hosted_sdio_card_deinit(void)
 {
-	if (card) {
-		sdmmc_host_deinit();
-		HOSTED_FREE(card);
-		return ESP_OK;
-	}
-	return ESP_FAIL;
+	/* Nothing to do in idf sdmmc host driver */
+	return ESP_OK;
+}
+
+void hosted_sdio_deinit(void)
+{
+	hosted_sdio_deinit_internal();
+	HOSTED_FREE(card);
+	HOSTED_FREE(sdio_bus_lock);
 }
 
 int hosted_sdio_read_reg(uint32_t reg, uint8_t *data, uint16_t size, bool lock_required)

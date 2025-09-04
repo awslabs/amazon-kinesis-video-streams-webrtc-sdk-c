@@ -11,7 +11,6 @@
 #include "esp_system.h"
 #include "network_coprocessor.h"
 
-
 void app_main(void)
 {
     /* Initialize NVS */
@@ -21,6 +20,8 @@ void app_main(void)
       ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
+
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     /* Initialize network co-processor */
     network_coprocessor_init();
