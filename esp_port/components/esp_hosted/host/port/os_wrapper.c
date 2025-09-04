@@ -581,7 +581,7 @@ int hosted_destroy_semaphore(void * semaphore_handle)
 	return ret;
 }
 
-#ifdef CONFIG_USE_MEMPOOL
+#ifdef CONFIG_ESP_USE_MEMPOOL
 static void * hosted_create_spinlock(void)
 {
 	spinlock_handle_t spin_dummy = portMUX_INITIALIZER_UNLOCKED;
@@ -615,7 +615,7 @@ void hosted_lock_mempool(void *lock_handle)
 void hosted_unlock_mempool(void *lock_handle)
 {
 	assert(lock_handle);
-	portEXIT_CRITICAL((spinlock_handle_t *)spinlock_handle);
+	portEXIT_CRITICAL((spinlock_handle_t *)lock_handle);
 }
 #endif
 /* -------- Timers  ---------- */
@@ -883,7 +883,7 @@ hosted_osi_funcs_t g_hosted_osi_funcs = {
 	._h_destroy_semaphore        =  hosted_destroy_semaphore       ,
 	._h_timer_stop               =  hosted_timer_stop              ,
 	._h_timer_start              =  hosted_timer_start             ,
-#ifdef CONFIG_USE_MEMPOOL
+#ifdef CONFIG_ESP_USE_MEMPOOL
 	._h_create_lock_mempool      =  hosted_create_lock_mempool     ,
 	._h_lock_mempool             =  hosted_lock_mempool            ,
 	._h_unlock_mempool           =  hosted_unlock_mempool          ,
@@ -901,6 +901,7 @@ hosted_osi_funcs_t g_hosted_osi_funcs = {
 	._h_hosted_init_hook         =  hosted_init_hook               ,
 #ifdef CONFIG_ESP_SDIO_HOST_INTERFACE
 	._h_bus_init                 =  hosted_sdio_init               ,
+	._h_bus_deinit               =  hosted_sdio_deinit             ,
 	._h_sdio_card_init           =  hosted_sdio_card_init          ,
 	._h_sdio_card_deinit         =  hosted_sdio_card_deinit        ,
 	._h_sdio_read_reg            =  hosted_sdio_read_reg           ,

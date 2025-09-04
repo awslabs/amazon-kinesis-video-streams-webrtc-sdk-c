@@ -29,7 +29,7 @@ static char * MEM_TAG = "mpool";
 
 struct mempool * mempool_create(uint32_t block_size)
 {
-#ifdef CONFIG_USE_MEMPOOL
+#ifdef CONFIG_ESP_USE_MEMPOOL
 	struct mempool * new = (struct mempool *)g_h.funcs->_h_malloc(MEMPOOL_ALIGNED(sizeof(struct mempool)));
 
 	if (!new) {
@@ -64,7 +64,7 @@ struct mempool * mempool_create(uint32_t block_size)
 
 void mempool_destroy(struct mempool* mp)
 {
-#ifdef CONFIG_USE_MEMPOOL
+#ifdef CONFIG_ESP_USE_MEMPOOL
 	void * node1 = NULL;
 
 	if (!mp)
@@ -87,7 +87,7 @@ void * mempool_alloc(struct mempool* mp, int nbytes, int need_memset)
 {
 	void *buf = NULL;
 
-#ifdef CONFIG_USE_MEMPOOL
+#ifdef CONFIG_ESP_USE_MEMPOOL
 	if (!mp || mp->block_size < nbytes)
 		return NULL;
 
@@ -118,7 +118,7 @@ void * mempool_alloc(struct mempool* mp, int nbytes, int need_memset)
 		ESP_LOGV(MEM_TAG, "%p: num_alloc: %lu", mp, (unsigned long int)(h_stats_g.mp_stats.num_fresh_alloc));
 #endif
 	}
-#else
+#else /* CONFIG_ESP_USE_MEMPOOL */
 	buf = MEM_ALLOC(MEMPOOL_ALIGNED(nbytes));
 #endif
 	ESP_LOGV(MEM_TAG, "alloc %u bytes at %p", nbytes, buf);
@@ -134,7 +134,7 @@ void mempool_free(struct mempool* mp, void *mem)
 {
 	if (!mem)
 		return;
-#ifdef CONFIG_USE_MEMPOOL
+#ifdef CONFIG_ESP_USE_MEMPOOL
 	if (!mp)
 		return;
 

@@ -185,30 +185,30 @@ int transport_pserial_send(uint8_t* data, uint16_t data_length)
 	buf_len = SIZE_OF_TYPE + SIZE_OF_LENGTH + strlen(ep_name) +
 		SIZE_OF_TYPE + SIZE_OF_LENGTH + data_length;
 
-	HOSTED_CALLOC(uint8_t,write_buf,buf_len,free_bufs);
+	HOSTED_CALLOC(uint8_t,write_buf,buf_len,free_bufs2);
 
 	if (!serial_handle) {
 		ESP_LOGE(TAG, "Serial connection closed?\n");
-		goto free_bufs;
+		goto free_bufs1;
 	}
 
 	count = compose_tlv(write_buf, data, data_length);
 	if (!count) {
 		ESP_LOGE(TAG, "Failed to compose TX data\n");
-		goto free_bufs;
+		goto free_bufs1;
 	}
 
 	ret = serial_drv_write(serial_handle, write_buf, count, &count);
 	if (ret != SUCCESS) {
 		ESP_LOGE(TAG, "Failed to write TX data\n");
-		goto free_bufs;
+		goto free_bufs2;
 	}
-	return SUCCESS;
-free_bufs:
-	if (write_buf) {
-		g_h.funcs->_h_free(write_buf);
-	}
+	return ret;
 
+free_bufs1:
+	HOSTED_FREE(write_buf);
+free_bufs2:
+	/* write_buf is supposed to be freed by serial_drv_write() */
 	return FAILURE;
 }
 

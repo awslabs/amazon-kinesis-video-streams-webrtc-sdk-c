@@ -166,7 +166,7 @@ int interface_remove_driver()
 	return 0;
 }
 
-IRAM_ATTR static void event_cb(uint8_t val)
+static void event_cb_work(uint8_t val)
 {
 	if (val == ESP_RESET) {
 		/* Force power save off state when host resets */
@@ -178,11 +178,11 @@ IRAM_ATTR static void event_cb(uint8_t val)
 	if (val == ESP_OPEN_DATA_PATH) {
 		/* Also force power save off on data path open */
 		host_power_save_alert(ESP_POWER_SAVE_OFF);
-		sdio_reset(&if_handle_g);
+		// sdio_reset(&if_handle_g);
 	}
 
 	if (val == ESP_POWER_SAVE_OFF) {
-		//sdio_reset(&if_handle_g);
+		// sdio_reset(&if_handle_g);
 	}
 
 	if (context.event_handler) {
@@ -192,6 +192,21 @@ IRAM_ATTR static void event_cb(uint8_t val)
 	if (val == ESP_POWER_SAVE_ON) {
 		sdio_reset(&if_handle_g);
 	}
+}
+
+/* Task to handle event processing */
+static void event_cb_task(void *param)
+{
+	uint8_t val = (uint8_t)(uintptr_t)param;
+	event_cb_work(val);
+	vTaskDelete(NULL);
+}
+
+IRAM_ATTR static void event_cb(uint8_t val)
+{
+	/* Create a task with 2KB stack to handle event processing */
+	xTaskCreate(event_cb_task, "event_cb_task", 2048,
+			(void *)(uintptr_t)val, CONFIG_ESP_DEFAULT_TASK_PRIO, NULL);
 }
 
 void generate_startup_event(uint8_t cap)

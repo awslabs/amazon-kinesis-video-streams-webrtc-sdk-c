@@ -56,7 +56,7 @@ typedef struct {
 /* 33 */  void*  (*_h_timer_start)(int duration, int type, void (*timeout_handler)(void *), void *arg);
 
           /* Mempool */
-#if CONFIG_USE_MEMPOOL
+#if CONFIG_ESP_USE_MEMPOOL
 /* 34 */  void*   (*_h_create_lock_mempool)(void);
 /* 35 */  void   (*_h_lock_mempool)(void *lock_handle);
 /* 36 */  void   (*_h_unlock_mempool)(void *lock_handle);
@@ -70,6 +70,7 @@ typedef struct {
 
           /* All Transports - Init */
 /* 41 */ void * (*_h_bus_init)(void);
+         void (*_h_bus_deinit)(void);
           /* Transport - SPI */
 #ifdef CONFIG_ESP_SPI_HOST_INTERFACE
 /* 42 */ int (*_h_do_bus_transfer)(void *transfer_context);

@@ -118,23 +118,26 @@ static void on_data_channel_message(uint64_t custom_data, void *p_data_channel, 
     }
 }
 
-#define WIFI_CONNECTED_BIT BIT0
-#define WIFI_FAIL_BIT      BIT1
+#define GOT_IP_BIT BIT0
 
 // WiFi event handler
 static void event_handler(void* arg, esp_event_base_t event_base,
-                         int32_t event_id, void* event_data)
+                          int32_t event_id, void* event_data)
 {
+#if 0
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         esp_wifi_connect();
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
         esp_wifi_connect();
-    } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
+    } else
+#endif
+
+    if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         memset(wifi_ip, 0, sizeof(wifi_ip)/sizeof(wifi_ip[0]));
         ESP_LOGI(TAG, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
         memcpy(wifi_ip, &event->ip_info.ip, 4);
-        xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
+        xEventGroupSetBits(s_wifi_event_group, GOT_IP_BIT);
     }
 }
 
@@ -160,16 +163,8 @@ esp_netif_t *create_slave_sta_netif_with_static_ip(void)
 
     ESP_LOGI(TAG, "Creating slave sta netif with static IP");
 
-    ESP_ERROR_CHECK(esp_netif_attach_wifi_station(sta_netif));
-    ESP_ERROR_CHECK(esp_wifi_set_default_wifi_sta_handlers());
-
     /* stop dhcpc */
     ESP_ERROR_CHECK(esp_netif_dhcpc_stop(sta_netif));
-
-    //esp_netif_action_start(sta_netif, NULL, 0, NULL);
-    //esp_netif_action_connected(sta_netif, 0, 0, 0);
-
-    //esp_netif_up(netif);
 
     return sta_netif;
 }
@@ -187,33 +182,17 @@ static void wifi_init_sta(void)
     esp_netif_create_default_wifi_sta();
 #endif
 
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-
-    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL));
 
-#if 0 // Leave wifi config for co-processor to handle
-    wifi_config_t wifi_config = {
-        .sta = {
-            .ssid = CONFIG_ESP_WIFI_SSID,
-            .password = CONFIG_ESP_WIFI_PASSWORD,
-        },
-    };
+    ESP_ERROR_CHECK(esp_hosted_wait_for_slave());
 
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config));
-#endif
-    ESP_ERROR_CHECK(esp_wifi_start());
-
-    ESP_LOGI(TAG, "Waiting for WiFi connection");
     EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group,
-            WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
+            GOT_IP_BIT,
             pdFALSE,
             pdFALSE,
             pdMS_TO_TICKS(20000));
 
-    if (bits & WIFI_CONNECTED_BIT) {
+    if (bits & GOT_IP_BIT) {
         ESP_LOGI(TAG, "Connected to WiFi");
     } else {
         ESP_LOGE(TAG, "Failed to connect to WiFi");

@@ -321,7 +321,6 @@ stm_ret_t serial_ll_rx_handler(interface_buffer_handle_t * buf_handle)
 serial_buff_cleanup:
 
 	ESP_LOGE(TAG, "Err occured, discard current buffer");
-	H_FREE_PTR_WITH_FUNC(buf_handle->free_buf_handle, buf_handle->priv_buffer_handle);
 
 	r.len = 0;
 

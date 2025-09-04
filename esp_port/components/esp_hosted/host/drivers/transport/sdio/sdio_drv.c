@@ -111,7 +111,7 @@ static inline void sdio_mempool_create(void)
 {
 	MEM_DUMP("sdio_mempool_create");
 	buf_mp_g = mempool_create(MAX_SDIO_BUFFER_SIZE);
-#ifdef CONFIG_ESP_CACHE_MALLOC
+#ifdef CONFIG_ESP_USE_MEMPOOL
 	assert(buf_mp_g);
 #endif
 }
@@ -623,7 +623,7 @@ static esp_err_t sdio_push_data_to_queue(uint8_t * buf, uint32_t buf_len)
 		 * wrong header/bit packing?
 		 * */
 		ESP_LOGW(TAG, "Dropping packet");
-		HOSTED_FREE(buf);
+		sdio_buffer_free(buf);
 		return ESP_FAIL;
 	}
 
@@ -787,6 +787,7 @@ static void sdio_read_task(void const* pvParameters)
 		/* inform the slave device that we are ready */
 		//sdio_generate_slave_intr(ESP_POWER_SAVE_OFF);
 		sdio_generate_slave_intr(ESP_OPEN_DATA_PATH);
+		get_firmware_data(ACQUIRE_LOCK);
 	}
 
 	for (;;) {

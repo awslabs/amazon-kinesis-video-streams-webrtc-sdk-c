@@ -30,7 +30,7 @@
 #define MEMSET_NOT_REQUIRED              0
 
 
-#ifdef CONFIG_USE_MEMPOOL
+#ifdef CONFIG_ESP_USE_MEMPOOL
 struct mempool_entry {
 	SLIST_ENTRY(mempool_entry) entries;
 };

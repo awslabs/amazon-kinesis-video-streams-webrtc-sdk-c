@@ -14,6 +14,11 @@
   #define HOST_PS_ALLOWED 1
 #endif
 
+#ifdef CONFIG_HOST_DEEP_SLEEP_ALLOWED
+  #define H_HOST_PS_ALLOWED 1
+#else
+  #define H_HOST_PS_ALLOWED 0
+#endif
 
 void host_power_save_init(void (*host_wakeup_callback)(void));
 void host_power_save_deinit(void);

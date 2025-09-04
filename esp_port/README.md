@@ -140,7 +140,7 @@ cd -
 Patch on IDF, required for esp_hosted to work correctly:
 ```bash
 cd $IDF_PATH
-git am -i <path-to-sdk>/esp_port/patches/0002-Fixes-for-IDF-deep-sleep-and-lwip_split_for_esp_host.patch
+git am -i <path-to-sdk>/esp_port/patches/0002-feat-esp-hosted-Changes-for-IDF-deep-sleep-and-lwip_.patch
 cd -
 ```
 
