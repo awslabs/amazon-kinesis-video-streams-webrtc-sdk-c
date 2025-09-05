@@ -9,6 +9,7 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "esp_system.h"
+#include "esp_event.h"
 #include "network_coprocessor.h"
 
 void app_main(void)
