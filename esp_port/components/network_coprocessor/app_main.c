@@ -379,8 +379,9 @@ esp_err_t wlan_sta_rx_callback(void *buffer, uint16_t len, void *eb)
 {
 	interface_buffer_handle_t buf_handle = {0};
 	hosted_l2_bridge bridge_to_use = HOST_LWIP_BRIDGE;
+#ifdef CONFIG_SLAVE_LWIP_ENABLED
 	assert(slave_sta_netif);
-
+#endif
 	if (!buffer || !eb || !datapath) {
 		if (eb) {
 			// ESP_LOGW(TAG, "free packet");
@@ -417,6 +418,7 @@ esp_err_t wlan_sta_rx_callback(void *buffer, uint16_t len, void *eb)
 #endif
 			break;
 
+#ifdef CONFIG_SLAVE_LWIP_ENABLED
 		case SLAVE_LWIP_BRIDGE:
 			/* Send to local LWIP */
 			ESP_LOGV(TAG, "slave packet");
@@ -448,6 +450,7 @@ esp_err_t wlan_sta_rx_callback(void *buffer, uint16_t len, void *eb)
 			pkt_stats.sta_both_lwip_out++;
 #endif
 			break;
+#endif
 
 		default:
 			ESP_LOGW(TAG, "Packet filtering failed, drop packet");
@@ -1524,9 +1527,11 @@ void custom_rpc_events_demo()
 
 static void host_wakeup_callback(void)
 {
+#ifdef CONFIG_SLAVE_LWIP_ENABLED
 #if H_HOST_PS_ALLOWED
 	ESP_EARLY_LOGI(TAG, "Sending DHCP status to host");
 	send_dhcp_dns_info_to_host(1);
+#endif
 #endif
 }
 
