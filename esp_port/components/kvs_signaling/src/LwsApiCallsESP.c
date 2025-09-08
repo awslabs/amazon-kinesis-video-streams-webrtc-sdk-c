@@ -281,6 +281,46 @@ static void esp_websocket_event_handler(void *handler_args, esp_event_base_t bas
 
     ESP_LOGD(TAG, "WebSocket event: %d, signalingClient: %p", (int)event_id, pSignalingClient);
 
+    /* Handle special opcodes up-front to prevent crashes when non-JSON frames
+     * (like close frames) are processed as signaling messages */
+    if (event_id == WEBSOCKET_EVENT_DATA && data != NULL) {
+        if (data->data_ptr == NULL || data->data_len == 0) {
+            ESP_LOGI(TAG, "WebSocket empty frame received, op_code: 0x%x, fin: %d",
+                    data->op_code, data->fin);
+        } else {
+            // For frames with data, log the content
+            ESP_LOGI(TAG, "WebSocket data: %.*s, op_code: 0x%x, fin: %d",
+                    data->data_len, data->data_ptr, data->op_code, data->fin);
+        }
+        switch (data->op_code) {
+            case WS_TRANSPORT_OPCODES_CONT:
+                /* Continuation frame */
+                break;
+            case WS_TRANSPORT_OPCODES_CLOSE: // Close frame
+                ESP_LOGI(TAG, "Received WebSocket Close frame! Data: %.*s", data->data_len, data->data_ptr);
+                /* No need to process this as a message - the connection will close */
+                return;
+            case WS_TRANSPORT_OPCODES_FIN: // FIN frame
+                ESP_LOGI(TAG, "Received WebSocket Close frame! Data: %.*s", data->data_len, data->data_ptr);
+                /* No need to process this as a message - the connection will close */
+                return;
+            case WS_TRANSPORT_OPCODES_PING: // Ping frame
+                ESP_LOGI(TAG, "Received WebSocket Ping frame! Data: %.*s", data->data_len, data->data_ptr);
+                /* The ESP WebSocket client should automatically respond with a pong */
+                return;
+            case WS_TRANSPORT_OPCODES_PONG: // Pong frame
+                ESP_LOGI(TAG, "Received WebSocket Pong frame! Data: %.*s", data->data_len, data->data_ptr);
+                return;
+            default:
+                /* Only process text (0x1) or binary (0x2) frames */
+                if (data->op_code != WS_TRANSPORT_OPCODES_TEXT && data->op_code != WS_TRANSPORT_OPCODES_BINARY) {
+                    ESP_LOGW(TAG, "Ignoring WebSocket frame with op_code: %d", data->op_code);
+                    return;
+                }
+                break;
+        }
+    }
+
     switch (event_id) {
         case WEBSOCKET_EVENT_CONNECTED:
             ESP_LOGI(TAG, "WEBSOCKET_EVENT_CONNECTED");
@@ -381,7 +421,23 @@ static void esp_websocket_event_handler(void *handler_args, esp_event_base_t bas
         case WEBSOCKET_EVENT_DATA:
             if (data != NULL) {
                 if (data->data_ptr == NULL || data->data_len == 0) {
-                    ESP_LOGW(TAG, "Received empty WebSocket data");
+                    // Empty PONG frames might come with op_code=0x1
+                    // So we'll identify them based on being empty rather than by opcode
+                    ESP_LOGI(TAG, "Received empty WebSocket frame, likely a control frame (PING/PONG), op_code: 0x%x, fin: %d",
+                            data->op_code, data->fin);
+                    break;
+                }
+
+                // Check for GOAWAY message with various case combinations
+                // This needs to be done here in the event handler to catch non-JSON formats
+                if (data->data_len >= 6 &&
+                    (strstr(data->data_ptr, "GO_AWAY") != NULL ||
+                     strstr(data->data_ptr, "Go away") != NULL ||
+                     strstr(data->data_ptr, "go away") != NULL ||
+                     strstr(data->data_ptr, "Go Away") != NULL)) {
+                    ESP_LOGI(TAG, "Detected GOAWAY message (mixed case) in WebSocket data event, triggering reconnection");
+                    // Set the result to GOAWAY to trigger reconnection in the disconnect handler
+                    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_SIGNALING_GO_AWAY);
                     break;
                 }
                 ESP_LOGD(TAG, "Received WebSocket data: %.*s", data->data_len, data->data_ptr);
