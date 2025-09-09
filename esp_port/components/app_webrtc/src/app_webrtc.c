@@ -179,6 +179,12 @@ static WEBRTC_STATUS signalingClientStateChangedWrapper(uint64_t customData, web
         case WEBRTC_SIGNALING_STATE_CONNECTED:
             raiseEvent(APP_WEBRTC_EVENT_SIGNALING_CONNECTED, 0, NULL, "Signaling client connected");
             pStateStr = stateStrConnected;
+
+            // Reset retry logic on successful connection
+            if (gSampleConfiguration != NULL) {
+                ATOMIC_STORE_BOOL(&gSampleConfiguration->recreate_signaling_client, FALSE);
+                ESP_LOGI(TAG, "Signaling client connected successfully, retry logic reset");
+            }
             break;
         case WEBRTC_SIGNALING_STATE_DISCONNECTED:
             raiseEvent(APP_WEBRTC_EVENT_SIGNALING_DISCONNECTED, 0, NULL, "Signaling client disconnected");
@@ -754,7 +760,6 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration, bool isSign
             }
         }
 
-        // Note: Removed automatic signaling reconnection logic as it was KVS Media Storage specific.
         // Signaling reconnection should be handled by the signaling interface implementation
         // if needed for specific use cases.
 
@@ -771,6 +776,8 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration, bool isSign
             // Static variables to track retry attempts and timing
             static UINT32 retryCount = 0;
             static UINT64 lastRetryTime = 0;
+            static UINT64 connectionStartTime = 0;
+            static BOOL connectionInProgress = FALSE;
             UINT64 currentTime = GETTIME();
 
             // Exponential backoff: 5s, 10s, 20s, 40s, 60s (max)
@@ -785,8 +792,22 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration, bool isSign
             UINT32 currentRetryIndex = MIN(retryCount, maxRetryIndex);
             UINT64 retryDelay = retryDelays[currentRetryIndex];
 
+            // Connection timeout: 15 seconds
+            const UINT64 CONNECTION_TIMEOUT = 15 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+
+            // Check for connection timeout
+            if (connectionInProgress && (currentTime - connectionStartTime >= CONNECTION_TIMEOUT)) {
+                DLOGE("Connection attempt timed out after %llu seconds, marking as failed",
+                      CONNECTION_TIMEOUT / HUNDREDS_OF_NANOS_IN_A_SECOND);
+                connectionInProgress = FALSE;
+                retryCount++;
+                lastRetryTime = currentTime;
+                // Keep recreate_signaling_client flag TRUE to continue retrying
+            }
+
             // Check if enough time has passed since last retry attempt
-            BOOL shouldRetry = (lastRetryTime == 0) || (currentTime - lastRetryTime >= retryDelay);
+            BOOL shouldRetry = !connectionInProgress &&
+                             ((lastRetryTime == 0) || (currentTime - lastRetryTime >= retryDelay));
 
             if (shouldRetry) {
                 DLOGI("Reconnecting signaling client (attempt %d, delay: %llu seconds)",
@@ -794,34 +815,47 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration, bool isSign
 
                 // Disconnect and reconnect
                 CHK_STATUS(gWebRtcAppConfig.signaling_client_if->disconnect(gSignalingClientData));
+
+                // Mark connection as starting
+                connectionInProgress = TRUE;
+                connectionStartTime = currentTime;
+
                 retStatus = gWebRtcAppConfig.signaling_client_if->connect(gSignalingClientData);
 
-                if (STATUS_SUCCEEDED(retStatus)) {
-                    // Reset retry tracking on successful reconnection
-                    DLOGI("Signaling client reconnected successfully after %d attempts", retryCount + 1);
-                    ATOMIC_STORE_BOOL(&pSampleConfiguration->recreate_signaling_client, FALSE);
-                    retryCount = 0;
-                    lastRetryTime = 0;
-                    raiseEvent(APP_WEBRTC_EVENT_SIGNALING_CONNECTED, 0, NULL, "Signaling client reconnected");
-                } else {
-                    // Update retry tracking on failure
+                if (STATUS_FAILED(retStatus)) {
+                    // Immediate failure - update retry tracking
+                    connectionInProgress = FALSE;
                     retryCount++;
                     lastRetryTime = currentTime;
-                    DLOGE("Failed to reconnect signaling client: 0x%08x (attempt %d, next retry in %llu seconds)",
+                    DLOGE("Failed to start signaling client connection: 0x%08x (attempt %d, next retry in %llu seconds)",
                           retStatus, retryCount,
                           retryDelays[MIN(retryCount, maxRetryIndex)] / HUNDREDS_OF_NANOS_IN_A_SECOND);
 
-                    // Keep the recreateSignalingClient flag set to continue retrying
-                    // Don't reset it - we want to keep trying
-
                     // Reset status to avoid breaking the loop
                     retStatus = STATUS_SUCCESS;
+                } else {
+                    // Connection started successfully - but don't reset retry tracking yet
+                    // Wait for actual connection success in the next iteration
+                    DLOGI("Signaling client connection started, waiting for completion...");
                 }
+            } else if (connectionInProgress) {
+                DLOGD("Connection in progress for %llu seconds (timeout: %llu)",
+                      (currentTime - connectionStartTime) / HUNDREDS_OF_NANOS_IN_A_SECOND,
+                      CONNECTION_TIMEOUT / HUNDREDS_OF_NANOS_IN_A_SECOND);
             } else {
                 // Not time to retry yet
                 UINT64 timeUntilNextRetry = retryDelay - (currentTime - lastRetryTime);
                 DLOGD("Waiting %llu more seconds before next reconnection attempt",
                       timeUntilNextRetry / HUNDREDS_OF_NANOS_IN_A_SECOND);
+            }
+
+            // Check if connection actually succeeded by checking signaling state
+            if (connectionInProgress) {
+                // TODO: Add proper signaling state check here
+                // For now, we rely on the timeout mechanism above
+                // The connection will be marked as failed if it times out
+                // and successful connection should reset the recreate_signaling_client flag
+                // via the signaling state change callback
             }
         }
 
@@ -871,7 +905,7 @@ STATUS submitPendingIceCandidate(PPendingMessageQueue pPendingMessageQueue, PApp
                 // Use peer connection interface for queued ICE candidate handling if available
                 if (gWebRtcAppConfig.peer_connection_if != NULL &&
                     gWebRtcAppConfig.peer_connection_if->send_message != NULL) {
-                    ESP_LOGI("app_webrtc", "Processing queued ICE candidate via peer connection interface for peer: %s",
+                    ESP_LOGI(TAG, "Processing queued ICE candidate via peer connection interface for peer: %s",
                              pWebRtcMessage->peer_client_id);
 
                     // Send message through interface using stored session handle
@@ -1729,11 +1763,17 @@ static void app_webrtc_runTask(void *pvParameters)
             retStatus = gWebRtcAppConfig.signaling_client_if->connect(gSignalingClientData);
 
             if (STATUS_FAILED(retStatus)) {
-                DLOGE("Failed to connect signaling client: 0x%08x", retStatus);
-                CHK(FALSE, retStatus);
-            }
+                DLOGE("Initial signaling client connection failed: 0x%08x", retStatus);
+                DLOGI("Connection failure will be handled by retry logic in sessionCleanupWait");
 
-            DLOGI("Signaling client connected successfully");
+                // Set the recreate flag to trigger retry logic in sessionCleanupWait
+                ATOMIC_STORE_BOOL(&gSampleConfiguration->recreate_signaling_client, TRUE);
+
+                // Reset status to continue to sessionCleanupWait - don't treat initial connection failure as fatal
+                retStatus = STATUS_SUCCESS;
+            } else {
+                DLOGI("Initial signaling client connection successful");
+            }
         }
     } else {
         DLOGI("No signaling client interface or config provided, running in streaming-only mode");

@@ -104,6 +104,16 @@ VOID kvs_media_video_frame_handler(UINT64 customData, PFrame pFrame);
  */
 VOID kvs_media_audio_frame_handler(UINT64 customData, PFrame pFrame);
 
+/**
+ * @brief Print frame transmission statistics for debugging
+ *
+ * This prints detailed statistics about frame transmission including
+ * success rates, FPS, and timing information for both video and audio.
+ *
+ * @param session Session to print stats for
+ */
+void kvs_media_print_stats(kvs_pc_session_t* session);
+
 #ifdef __cplusplus
 }
 #endif

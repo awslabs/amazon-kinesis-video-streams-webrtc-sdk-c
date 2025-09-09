@@ -787,3 +787,53 @@ VOID kvs_media_audio_frame_handler(UINT64 customData, PFrame pFrame)
         ESP_LOGW(TAG, "Failed to write audio frame to player: %s", esp_err_to_name(err));
     }
 }
+
+/**
+ * @brief Print frame transmission statistics for debugging
+ */
+void kvs_media_print_stats(kvs_pc_session_t* session)
+{
+    if (session == NULL) {
+        return;
+    }
+
+    UINT64 currentTime = GETTIME();
+    UINT64 sessionDuration = (currentTime - session->start_time) / HUNDREDS_OF_NANOS_IN_A_SECOND;
+
+    if (sessionDuration == 0) sessionDuration = 1; // Avoid division by zero
+
+    UINT64 totalVideoFrames = session->video_frames_sent + session->video_frames_dropped + session->video_frames_failed;
+    UINT64 totalAudioFrames = session->audio_frames_sent + session->audio_frames_dropped + session->audio_frames_failed;
+
+    ESP_LOGI(TAG, "Frame Statistics for peer: %s", session->peer_id);
+    ESP_LOGI(TAG, "  Video: Sent=%llu, Dropped=%llu, Failed=%llu, Total=%llu",
+             session->video_frames_sent, session->video_frames_dropped,
+             session->video_frames_failed, totalVideoFrames);
+    ESP_LOGI(TAG, "  Audio: Sent=%llu, Dropped=%llu, Failed=%llu, Total=%llu",
+             session->audio_frames_sent, session->audio_frames_dropped,
+             session->audio_frames_failed, totalAudioFrames);
+
+    if (totalVideoFrames > 0) {
+        DOUBLE videoSuccessRate = (DOUBLE)session->video_frames_sent / totalVideoFrames * 100.0;
+        DOUBLE videoFPS = (DOUBLE)session->video_frames_sent / sessionDuration;
+        ESP_LOGI(TAG, "  Video Success Rate: %.2f%%, FPS: %.2f", videoSuccessRate, videoFPS);
+    }
+
+    if (totalAudioFrames > 0) {
+        DOUBLE audioSuccessRate = (DOUBLE)session->audio_frames_sent / totalAudioFrames * 100.0;
+        DOUBLE audioFPS = (DOUBLE)session->audio_frames_sent / sessionDuration;
+        ESP_LOGI(TAG, "  Audio Success Rate: %.2f%%, FPS: %.2f", audioSuccessRate, audioFPS);
+    }
+
+    if (session->first_video_frame_sent > 0) {
+        UINT64 timeToFirstVideo = (session->first_video_frame_sent - session->start_time) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+        ESP_LOGI(TAG, "  Time to first video frame: %llu ms", timeToFirstVideo);
+    }
+
+    if (session->first_audio_frame_sent > 0) {
+        UINT64 timeToFirstAudio = (session->first_audio_frame_sent - session->start_time) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+        ESP_LOGI(TAG, "  Time to first audio frame: %llu ms", timeToFirstAudio);
+    }
+
+    ESP_LOGI(TAG, "  Session Duration: %llu seconds", sessionDuration);
+}

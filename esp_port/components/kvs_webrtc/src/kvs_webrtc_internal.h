@@ -150,6 +150,16 @@ typedef struct kvs_pc_session_s {
     RtcStats rtc_stats;
     RtcMetricsHistory rtc_metrics_history;
 
+    // Frame transmission statistics for monitoring performance
+    uint64_t video_frames_sent;
+    uint64_t video_frames_dropped;
+    uint64_t video_frames_failed;
+    uint64_t audio_frames_sent;
+    uint64_t audio_frames_dropped;
+    uint64_t audio_frames_failed;
+    uint64_t first_video_frame_sent;  // Timestamp of first successful video frame
+    uint64_t first_audio_frame_sent;  // Timestamp of first successful audio frame
+
     // Correlation ID counter for messages
     SIZE_T correlation_id_postfix;
 } kvs_pc_session_t;
