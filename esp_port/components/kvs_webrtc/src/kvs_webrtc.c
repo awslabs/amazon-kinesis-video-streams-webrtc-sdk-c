@@ -47,6 +47,9 @@ static struct {
 #define KVS_PRE_GENERATE_CERT_PERIOD (1000 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)  // 1 second (same as Common.c)
 #define KVS_TIMER_QUEUE_THREAD_SIZE (8 * 1024)
 
+// Sender bandwidth estimation (TWCC) control
+#define KVS_ENABLE_SENDER_BANDWIDTH_ESTIMATION FALSE  // Disable TWCC bandwidth estimation
+
 // ICE candidate pair statistics settings
 #define KVS_ICE_STATS_DURATION (20 * HUNDREDS_OF_NANOS_IN_A_SECOND)  // 20 seconds
 
@@ -65,8 +68,10 @@ static VOID onDataChannelHandler(UINT64 customData, PRtcDataChannel pDataChannel
 // Bandwidth estimation handlers
 static VOID kvs_videoBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate);
 static VOID kvs_audioBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate);
+#if KVS_ENABLE_SENDER_BANDWIDTH_ESTIMATION
 static VOID kvs_senderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes,
                                                  UINT32 txPacketsCnt, UINT32 rxPacketsCnt, UINT64 duration);
+#endif
 
 // Forward declaration for helper functions
 static STATUS kvs_create_and_send_offer(kvs_pc_session_t* session);
@@ -1466,10 +1471,15 @@ static STATUS kvs_setupMediaTracks(kvs_pc_session_t* session)
     // Set up bandwidth estimation for audio transceiver
     CHK_STATUS(transceiverOnBandwidthEstimation(session->audio_transceiver, (UINT64)session, kvs_audioBandwidthEstimationHandler));
 
-    // Set up TWCC bandwidth estimation if client supports it
+    // Set up TWCC bandwidth estimation if enabled and client supports it
+#if KVS_ENABLE_SENDER_BANDWIDTH_ESTIMATION
     if (session->client->config.trickle_ice) {  // Use trickle_ice as proxy for TWCC support
         CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(session->peer_connection, (UINT64)session, kvs_senderBandwidthEstimationHandler));
+        ESP_LOGI(TAG, "TWCC sender bandwidth estimation enabled for peer: %s", session->peer_id);
     }
+#else
+    ESP_LOGD(TAG, "TWCC sender bandwidth estimation disabled by macro for peer: %s", session->peer_id);
+#endif
 
     ESP_LOGI(TAG, "Media tracks configured successfully");
 
@@ -1777,6 +1787,7 @@ static VOID kvs_audioBandwidthEstimationHandler(UINT64 customData, DOUBLE maximu
     ESP_LOGD(TAG, "Audio bitrate adjustment not implemented");
 }
 
+#if KVS_ENABLE_SENDER_BANDWIDTH_ESTIMATION
 /**
  * @brief KVS TWCC bandwidth estimation handler - equivalent to sampleSenderBandwidthEstimationHandler
  */
@@ -1847,6 +1858,7 @@ static VOID kvs_senderBandwidthEstimationHandler(UINT64 customData, UINT32 txByt
              session->peer_id, session->twcc_metadata.average_packet_loss,
              videoBitrate / 1000, audioBitrate / 1000);
 }
+#endif // KVS_ENABLE_SENDER_BANDWIDTH_ESTIMATION
 
 // =============================================================================
 // Certificate Pre-generation Implementation

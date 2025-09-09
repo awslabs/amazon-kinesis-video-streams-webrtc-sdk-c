@@ -493,19 +493,46 @@ static void esp_websocket_event_handler(void *handler_args, esp_event_base_t bas
                 }
             }
 
-            // For ERROR events, just log and wake up waiting threads
-            // Let DISCONNECT event handle all state changes and reconnection logic
             if (pSignalingClient != NULL) {
-                ESP_LOGI(TAG, "WebSocket error occurred, waiting for disconnect event to handle cleanup and reconnection");
+                /*
+                 * Set connection failure immediately to unblock waiting threads.
+                 * This prevents the 10-second timeout delay when WebSocket connections fail.
+                 * By immediately setting the result and signaling
+                 * the condition variable, we enable immediate failure detection.
+                 */
 
-                // Signal condition variables to wake up waiting threads
+                // Mark as not connected
+                ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
+
+                // Set error result to indicate connection failure
+                ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_NETWORK_CONNECTION_TIMEOUT);
+
+                // Signal waiting threads immediately
                 MUTEX_LOCK(pSignalingClient->connectedLock);
-                CVAR_SIGNAL(pSignalingClient->connectedCvar);
+                CVAR_BROADCAST(pSignalingClient->connectedCvar);
                 MUTEX_UNLOCK(pSignalingClient->connectedLock);
+
+                // Update wrapper state (lockless to avoid hanging in error handler)
+                if (pEspWrapper != NULL) {
+                    pEspWrapper->isConnected = FALSE;
+                    pEspWrapper->connectionAwaitingConfirmation = FALSE;
+                }
 
                 CVAR_BROADCAST(pSignalingClient->receiveCvar);
                 CVAR_BROADCAST(pSignalingClient->sendCvar);
-                ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_RESULT_OK);
+
+                // Use the error callback to trigger reconnection
+                if (pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
+                    CHAR errorMsg[] = "WebSocket connection error, triggering reconnection";
+                    pSignalingClient->signalingClientCallbacks.errorReportFn(
+                        pSignalingClient->signalingClientCallbacks.customData,
+                        STATUS_SIGNALING_LWS_CALL_FAILED,
+                        errorMsg,
+                        (UINT32) STRLEN(errorMsg));
+                    ESP_LOGI(TAG, "Signaled for reconnection via error callback");
+                } else {
+                    ESP_LOGW(TAG, "No error callback registered, cannot signal for reconnection");
+                }
             } else {
                 ESP_LOGW(TAG, "pSignalingClient is NULL in WEBSOCKET_EVENT_ERROR!");
             }
@@ -582,7 +609,7 @@ STATUS handleReceivedSignalingMessage(PSignalingClient pSignalingClient, PCHAR m
     jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
     UINT32 tokenCount;
     UINT32 i, strLen;
-    BOOL parsedMessageType = FALSE, parsedStatusResponse = FALSE, jsonInIceServerList = FALSE;
+    BOOL parsedStatusResponse = FALSE, jsonInIceServerList = FALSE;
     CHAR messageTypeStr[MAX_SIGNALING_MESSAGE_TYPE_LEN + 1] = {0};
     UINT32 outLen;
     UINT32 decodedLen = 0;
@@ -623,8 +650,6 @@ STATUS handleReceivedSignalingMessage(PSignalingClient pSignalingClient, PCHAR m
             // Now use getMessageTypeFromString to parse it
             CHK_STATUS(getMessageTypeFromString(messageTypeStr, strLen,
                                                &receivedSignalingMessage.signalingMessage.messageType));
-
-            parsedMessageType = TRUE;
             i++;
         } else if (compareJsonString(message, &tokens[i], JSMN_STRING, (PCHAR) "messagePayload")) {
             // Extract message payload
@@ -833,6 +858,7 @@ STATUS terminateEspSignalingClient(PSignalingClient pSignalingClient)
 {
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
+    esp_websocket_client_handle_t wsClientToDestroy = NULL;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -841,13 +867,34 @@ STATUS terminateEspSignalingClient(PSignalingClient pSignalingClient)
         locked = TRUE;
 
         if (gEspSignalingClientWrapper->wsClient != NULL) {
-            esp_websocket_client_stop(gEspSignalingClientWrapper->wsClient);
-            esp_websocket_client_destroy(gEspSignalingClientWrapper->wsClient);
-            gEspSignalingClientWrapper->wsClient = NULL;
-        }
+            ESP_LOGI(TAG, "Terminating WebSocket client - stopping first");
 
-        ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
-        gEspSignalingClientWrapper->isConnected = FALSE;
+            /* Store reference and clear it immediately to prevent other operations */
+            wsClientToDestroy = gEspSignalingClientWrapper->wsClient;
+            gEspSignalingClientWrapper->wsClient = NULL;
+
+            /* Update connection state immediately */
+            ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
+            gEspSignalingClientWrapper->isConnected = FALSE;
+
+            /* Release the lock before potentially blocking operations */
+            MUTEX_UNLOCK(gEspSignalingClientWrapper->wsClientLock);
+            locked = FALSE;
+
+            /* Now perform the potentially blocking operations without holding the lock */
+            ESP_LOGI(TAG, "Attempting graceful WebSocket client stop");
+            esp_websocket_client_stop(wsClientToDestroy);
+
+            /* Wait a bit for the stop operation to take effect */
+            vTaskDelay(pdMS_TO_TICKS(200));
+
+            esp_websocket_client_destroy(wsClientToDestroy);
+            ESP_LOGI(TAG, "WebSocket client termination completed");
+        } else {
+            /* No client to destroy, just update state */
+            ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
+            gEspSignalingClientWrapper->isConnected = FALSE;
+        }
     }
 
 CleanUp:
@@ -1098,13 +1145,20 @@ STATUS connectEspSignalingClient(PSignalingClient pSignalingClient)
     // Wait for the connection event or timeout
     while (TRUE) {
         // Direct check of ESP WebSocket connection state - this is the most reliable indicator
-        BOOL espClientConnected = esp_websocket_client_is_connected(gEspSignalingClientWrapper->wsClient);
+        BOOL espClientConnected = FALSE;
+
+        // Safely check WebSocket client state
+        MUTEX_LOCK(gEspSignalingClientWrapper->wsClientLock);
+        if (gEspSignalingClientWrapper->wsClient != NULL) {
+            espClientConnected = esp_websocket_client_is_connected(gEspSignalingClientWrapper->wsClient);
+        }
+        MUTEX_UNLOCK(gEspSignalingClientWrapper->wsClientLock);
 
         // Check the signaling client connected flag from atomic store
         connected = ATOMIC_LOAD_BOOL(&pSignalingClient->connected);
         callResult = (SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result);
 
-        ESP_LOGI(TAG, "Connection wait loop - connected: %s, esp_client.connected: %s, callResult: %d",
+        ESP_LOGD(TAG, "Connection wait loop - connected: %s, esp_client.connected: %s, callResult: %d",
                  connected ? "TRUE" : "FALSE",
                  espClientConnected ? "TRUE" : "FALSE",
                  callResult);
@@ -1124,6 +1178,26 @@ STATUS connectEspSignalingClient(PSignalingClient pSignalingClient)
             }
 
             ESP_LOGI(TAG, "WebSocket connected successfully");
+            break;
+        }
+
+        // Check for error conditions that should cause immediate exit
+        if (callResult != SERVICE_CALL_RESULT_NOT_SET && callResult != SERVICE_CALL_RESULT_OK) {
+            ESP_LOGW(TAG, "WebSocket connection failed with call result: %d, exiting wait loop", callResult);
+            retStatus = STATUS_SIGNALING_LWS_CALL_FAILED;
+            break;
+        }
+
+        // Additional check: If we've been trying to connect for a while and the client is NULL,
+        // that usually means the connection failed and was cleaned up
+        MUTEX_LOCK(gEspSignalingClientWrapper->wsClientLock);
+        BOOL clientExists = (gEspSignalingClientWrapper->wsClient != NULL);
+        MUTEX_UNLOCK(gEspSignalingClientWrapper->wsClientLock);
+
+        if (!clientExists && (GETTIME() - startTime > 5 * HUNDREDS_OF_NANOS_IN_A_SECOND)) {
+            ESP_LOGW(TAG, "WebSocket client is NULL after connection attempt - treating as failure");
+            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_NETWORK_CONNECTION_TIMEOUT);
+            retStatus = STATUS_SIGNALING_LWS_CALL_FAILED;
             break;
         }
 
@@ -2361,29 +2435,11 @@ CleanUp:
 STATUS terminateLwsListenerLoop(PSignalingClient pSignalingClient)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-
-    // For ESP WebSocket client, we need to stop the client if active
-    if (gEspSignalingClientWrapper != NULL) {
-        MUTEX_LOCK(gEspSignalingClientWrapper->wsClientLock);
-        locked = TRUE;
-
-        if (gEspSignalingClientWrapper->wsClient != NULL) {
-            ESP_LOGI(TAG, "Terminating WebSocket listener loop");
-            esp_websocket_client_stop(gEspSignalingClientWrapper->wsClient);
-
-            // Mark as not connected
-            gEspSignalingClientWrapper->isConnected = FALSE;
-            ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
-        }
-    }
+    // Nothing to do here
 
 CleanUp:
-    if (locked && gEspSignalingClientWrapper != NULL) {
-        MUTEX_UNLOCK(gEspSignalingClientWrapper->wsClientLock);
-    }
 
     return retStatus;
 }
