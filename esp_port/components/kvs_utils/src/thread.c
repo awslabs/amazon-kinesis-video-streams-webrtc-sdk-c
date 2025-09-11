@@ -250,7 +250,7 @@ STATUS defaultCreateThreadPriWithCaps(PTID pThreadId, PCHAR threadName, UINT32 t
     }
     ESP_LOGI("Thread", "pthread_attr_setdetachstate finished");
     if (threadSize == 0) {
-        pthread_attr_setstacksize(pAttr, 68000);
+        pthread_attr_setstacksize(pAttr, DEFAULT_THREAD_SIZE);
     } else {
         pthread_attr_setstacksize(pAttr, threadSize);
     }

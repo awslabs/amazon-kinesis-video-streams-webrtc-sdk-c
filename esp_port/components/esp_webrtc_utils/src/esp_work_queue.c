@@ -148,8 +148,9 @@ esp_err_t esp_work_queue_start(void)
                                 NULL, queue_config.priority, task_stack, task_buffer) == NULL ? ESP_FAIL : ESP_OK;
     } else {
         ret = xTaskCreate(&esp_work_queue_task, "esp_workq_task", queue_config.stack_size,
-                          NULL, queue_config.priority, NULL) == NULL ? ESP_FAIL : ESP_OK;
+                          NULL, queue_config.priority, NULL) != pdPASS ? ESP_FAIL : ESP_OK;
     }
+
 
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to create Work Queue task.");
