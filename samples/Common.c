@@ -378,35 +378,6 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->channelInfo.pRegion,
              pKinesisVideoStunUrlPostFix);
 
-    if (pSampleConfiguration->useTurn) {
-        // Set the URIs from the configuration
-        CHK_STATUS(signalingClientGetIceConfigInfoCount(pSampleConfiguration->signalingClientHandle, &iceConfigCount));
-
-        /* signalingClientGetIceConfigInfoCount can return more than one turn server. Use only one to optimize
-         * candidate gathering latency. But user can also choose to use more than 1 turn server. */
-        for (uriCount = 0, i = 0; i < maxTurnServer; i++) {
-            CHK_STATUS(signalingClientGetIceConfigInfo(pSampleConfiguration->signalingClientHandle, i, &pIceConfigInfo));
-            for (j = 0; j < pIceConfigInfo->uriCount; j++) {
-                CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
-                /*
-                 * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=udp" then ICE will try TURN over UDP
-                 * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
-                 * if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=udp", it's currently ignored because sdk dont do TURN
-                 * over DTLS yet. if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
-                 * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port" then ICE will try both TURN over UDP and TCP/TLS
-                 *
-                 * It's recommended to not pass too many TURN iceServers to configuration because it will slow down ice gathering in non-trickle mode.
-                 */
-
-                STRNCPY(configuration.iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
-                STRNCPY(configuration.iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
-                STRNCPY(configuration.iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
-
-                uriCount++;
-            }
-        }
-    }
-
     pSampleConfiguration->iceUriCount = uriCount + 1;
 
     // Check if we have any pregenerated certs and use them
@@ -1433,6 +1404,9 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
     PPendingMessageQueue pPendingMessageQueue = NULL;
     PSampleStreamingSession pSampleStreamingSession = NULL;
     PReceivedSignalingMessage pReceivedSignalingMessageCopy = NULL;
+    UINT32 i, j, iceConfigCount, uriCount = 0, maxTurnServer = 1;
+    PIceConfigInfo pIceConfigInfo;
+    RtcConfiguration configuration;
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
@@ -1486,6 +1460,41 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
                 // NULL the pointer to avoid it being freed in the cleanup
                 pPendingMessageQueue = NULL;
             }
+
+            MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+            // We started the PeerConnection, now set the additional ice servers
+            if (pSampleConfiguration->useTurn) {
+                // Set the URIs from the configuration
+                CHK_STATUS(signalingClientGetIceConfigInfoCount(pSampleConfiguration->signalingClientHandle, &iceConfigCount));
+
+                /* signalingClientGetIceConfigInfoCount can return more than one turn server. Use only one to optimize
+                * candidate gathering latency. But user can also choose to use more than 1 turn server. */
+                for (uriCount = 0, i = 0; i < maxTurnServer; i++) {
+                    CHK_STATUS(signalingClientGetIceConfigInfo(pSampleConfiguration->signalingClientHandle, i, &pIceConfigInfo));
+                    for (j = 0; j < pIceConfigInfo->uriCount; j++) {
+                        CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
+                        /*
+                        * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=udp" then ICE will try TURN over UDP
+                        * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
+                        * if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=udp", it's currently ignored because sdk dont do TURN
+                        * over DTLS yet. if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
+                        * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port" then ICE will try both TURN over UDP and TCP/TLS
+                        *
+                        * It's recommended to not pass too many TURN iceServers to configuration because it will slow down ice gathering in non-trickle mode.
+                        */
+
+                        STRNCPY(configuration.iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
+                        STRNCPY(configuration.iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
+                        STRNCPY(configuration.iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
+
+                        uriCount++;
+                    }
+                }
+
+                // Update the ICE servers but skip the STUN server
+                peerConnectionUpdateIceServers(pSampleStreamingSession->pPeerConnection, &configuration.iceServers[1], uriCount);
+            }
+            pSampleConfiguration->iceUriCount = uriCount + 1;
 
             MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
             pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
