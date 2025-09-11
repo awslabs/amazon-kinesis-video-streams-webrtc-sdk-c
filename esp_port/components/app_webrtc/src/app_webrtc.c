@@ -1808,46 +1808,67 @@ CleanUp:
 WEBRTC_STATUS app_webrtc_run(void)
 {
     ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
+    WEBRTC_STATUS retStatus = WEBRTC_STATUS_SUCCESS;
 
-    CHK(gapp_webrtc_initialized, STATUS_INVALID_OPERATION);
-    CHK(gSampleConfiguration != NULL, STATUS_INTERNAL_ERROR);
+    CHK(gapp_webrtc_initialized, WEBRTC_STATUS_INVALID_OPERATION);
+    CHK(gSampleConfiguration != NULL, WEBRTC_STATUS_INTERNAL_ERROR);
 
     DLOGI("WebRTC app running");
 
     // Check if task is already running
     if (gWebRtcRunTaskHandle != NULL) {
         DLOGI("WebRTC task is already running");
-        CHK(FALSE, STATUS_INVALID_OPERATION);
+        CHK(FALSE, WEBRTC_STATUS_INVALID_OPERATION);
     }
 
     // Create a task to run the WebRTC application
     // Use a higher stack size for the WebRTC task as signaling requires substantial stack
     DLOGI("Creating WebRTC run task");
-    int result = xTaskCreate(
+
+#define WEBRTC_TASK_STACK_SIZE     (16 * 1024)
+#define WEBRTC_TASK_PRIO           5
+    static StaticTask_t *task_buffer = NULL;
+    static void *task_stack = NULL;
+
+    /* Check if we need to allocate or reuse existing buffers */
+    if (task_buffer == NULL) {
+        task_buffer = heap_caps_calloc(1, sizeof(StaticTask_t), MALLOC_CAP_INTERNAL);
+    }
+
+    if (task_stack == NULL) {
+        task_stack = heap_caps_calloc_prefer(1, WEBRTC_TASK_STACK_SIZE, MALLOC_CAP_SPIRAM, MALLOC_CAP_INTERNAL);
+    }
+
+    if (!task_buffer || !task_stack) {
+        DLOGE("Failed to allocate task buffers");
+        CHK(FALSE, WEBRTC_STATUS_NOT_ENOUGH_MEMORY);
+    }
+
+    gWebRtcRunTaskHandle = xTaskCreateStatic(
         app_webrtc_runTask,
         "webrtc_run",
-        (16 * 1024),  // 16KB stack size for credential provider and signaling
+        WEBRTC_TASK_STACK_SIZE,
         NULL,
-        5,
-        &gWebRtcRunTaskHandle
+        WEBRTC_TASK_PRIO,
+        task_stack,
+        task_buffer
     );
 
-    if (result != pdPASS) {
+    if (gWebRtcRunTaskHandle == NULL) {
         DLOGE("Failed to create WebRTC run task");
-        CHK(FALSE, STATUS_OPERATION_TIMED_OUT);
+        CHK(FALSE, WEBRTC_STATUS_INTERNAL_ERROR);
     } else {
         DLOGI("WebRTC run task created successfully");
     }
 
 CleanUp:
-    if (STATUS_FAILED(retStatus)) {
+    if (WEBRTC_STATUS_FAILED(retStatus)) {
         DLOGE("WebRTC app run failed with status 0x%08x", retStatus);
     }
 
     LEAVES();
     // Convert STATUS to WEBRTC_STATUS for public API consistency
-    return (retStatus == STATUS_SUCCESS) ? WEBRTC_STATUS_SUCCESS : WEBRTC_STATUS_INTERNAL_ERROR;
+    return retStatus;
 }
 
 /**
@@ -1856,9 +1877,9 @@ CleanUp:
 WEBRTC_STATUS app_webrtc_terminate(void)
 {
     ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
+    WEBRTC_STATUS retStatus = WEBRTC_STATUS_SUCCESS;
 
-    CHK(gapp_webrtc_initialized, STATUS_INVALID_OPERATION);
+    CHK(gapp_webrtc_initialized, WEBRTC_STATUS_INVALID_OPERATION);
 
     if (gSampleConfiguration != NULL) {
         // Kick off the termination sequence
@@ -1872,10 +1893,10 @@ WEBRTC_STATUS app_webrtc_terminate(void)
             DLOGI("Disconnecting signaling client");
             retStatus = gWebRtcAppConfig.signaling_client_if->disconnect(gSignalingClientData);
 
-            if (STATUS_FAILED(retStatus)) {
+            if (WEBRTC_STATUS_FAILED(retStatus)) {
                 DLOGW("Failed to disconnect signaling client: 0x%08x", retStatus);
                 // Continue with termination even if disconnect fails
-                retStatus = STATUS_SUCCESS;
+                retStatus = WEBRTC_STATUS_SUCCESS;
             } else {
                 DLOGI("Signaling client disconnected successfully");
             }
@@ -1908,10 +1929,10 @@ WEBRTC_STATUS app_webrtc_terminate(void)
             DLOGI("Freeing signaling client");
             retStatus = gWebRtcAppConfig.signaling_client_if->free(gSignalingClientData);
 
-            if (STATUS_FAILED(retStatus)) {
+            if (WEBRTC_STATUS_FAILED(retStatus)) {
                 DLOGW("Failed to free signaling client: 0x%08x", retStatus);
                 // Continue with termination even if free fails
-                retStatus = STATUS_SUCCESS;
+                retStatus = WEBRTC_STATUS_SUCCESS;
             } else {
                 DLOGI("Signaling client freed successfully");
             }
@@ -1929,13 +1950,13 @@ WEBRTC_STATUS app_webrtc_terminate(void)
     DLOGI("WebRTC app terminated successfully");
 
 CleanUp:
-    if (STATUS_FAILED(retStatus)) {
+    if (WEBRTC_STATUS_FAILED(retStatus)) {
         DLOGE("WebRTC app termination failed with status 0x%08x", retStatus);
     }
 
     LEAVES();
     // Convert STATUS to WEBRTC_STATUS for public API consistency
-    return (retStatus == STATUS_SUCCESS) ? WEBRTC_STATUS_SUCCESS : WEBRTC_STATUS_INTERNAL_ERROR;
+    return retStatus;
 }
 
 /**
