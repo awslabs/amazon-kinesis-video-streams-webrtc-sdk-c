@@ -118,6 +118,19 @@ AWS_KVS_LOG_LEVEL = 2
 ```
 
 ### Step 3: Build & Flash Signaling Device
+
+**Important for ESP32-C6:**
+- ESP32-C6 does not have an onboard UART port. You will need to use ESP-Prog or any other JTAG.
+- Use the following Pin configuration:
+
+| ESP32-C6 (J2/Prog-C6) | ESP-Prog |
+|-----------------------|----------|
+| IO0                   | IO9      |
+| TX0                   | TXD0     |
+| RX0                   | RXD0     |
+| EN                    | EN       |
+| GND                   | GND      |
+
 ```bash
 # Build for C6
 idf.py build

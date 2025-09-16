@@ -107,7 +107,20 @@ kvs_signaling_cfg.fetch_credentials_user_data = 0;
 
 This approach provides **dynamic credential renewal** and **optimized memory management** with ESP RainMaker's streamlined AWS integration.
 
-### Step 3: Build & Flash
+### Step 3: Configure Console Output
+
+Different Dev boards have different options for CONSOLE and LOGs. You may want to configure the console output as per your board:
+
+```bash
+idf.py menuconfig
+# Go to Component config -> ESP System Settings -> Channel for console output
+# (X) USB Serial/JTAG Controller # For ESP32-P4 Function_EV_Board V1.2 OR V1.5
+# (X) Default: UART0 # For ESP32-P4 Function_EV_Board V1.4
+```
+
+**Note**: If the console selection is wrong, you will only see the initial bootloader logs. Please change the console as instructed above and reflash the app to see the complete logs.
+
+### Step 4: Build & Flash
 ```bash
 # Build the project
 idf.py build
@@ -124,7 +137,22 @@ idf.py -p /dev/ttyUSB0 flash monitor
 # I (12350) webrtc_main: Running WebRTC application
 ```
 
-### Step 4: View Your Stream! 📺
+**For Dual Chip Setup (P4+C6 Configuration):**
+
+While using P4+C6 setup, please build and flash the network_adapter example from `examples/network_adapter` on ESP32-C6.
+
+- ESP32-C6 does not have an onboard UART port. You will need to use ESP-Prog or any other JTAG.
+- Use the following Pin configuration:
+
+| ESP32-C6 (J2/Prog-C6) | ESP-Prog |
+|-----------------------|----------|
+| IO0                   | IO9      |
+| TX0                   | TXD0     |
+| RX0                   | RXD0     |
+| EN                    | EN       |
+| GND                   | GND      |
+
+### Step 5: View Your Stream! 📺
 1. **Open [AWS KVS WebRTC Test Page](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-js/examples/index.html)**
 2. **Enter your AWS credentials** (same as in Step 2)
 3. **Enter channel name** (`ScaryTestChannel` or your custom name)

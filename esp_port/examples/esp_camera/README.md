@@ -69,7 +69,20 @@ APPRTC_AUTO_CONNECT = y       # Auto-connect or manual CLI mode
 APPRTC_USE_FIXED_ROOM = n     # Use fixed room ID or create new
 ```
 
-### Step 3: Build & Flash
+### Step 3: Configure Console Output
+
+Different Dev boards have different options for CONSOLE and LOGs. You may want to configure the console output as per your board:
+
+```bash
+idf.py menuconfig
+# Go to Component config -> ESP System Settings -> Channel for console output
+# (X) USB Serial/JTAG Controller # For ESP32-P4 Function_EV_Board V1.2 OR V1.5
+# (X) Default: UART0 # For ESP32-P4 Function_EV_Board V1.4
+```
+
+**Note**: If the console selection is wrong, you will only see the initial bootloader logs. Please change the console as instructed above and reflash the app to see the complete logs.
+
+### Step 4: Build & Flash
 ```bash
 # Build the project
 idf.py build
@@ -84,7 +97,7 @@ idf.py -p /dev/ttyUSB0 flash monitor
 # I (12348) esp_webrtc_camera: [WebRTC Event] WebRTC Initialized.
 ```
 
-### Step 4: Control WebRTC Rooms via CLI 🎮
+### Step 5: Control WebRTC Rooms via CLI 🎮
 
 **Available CLI Commands:**
 ```bash
@@ -110,7 +123,7 @@ disconnect
 retry-room
 ```
 
-### Step 5: View Your Stream! 📺
+### Step 6: View Your Stream! 📺
 
 **Option A: Auto-Connect Mode (Default)**
 1. **Device automatically creates/joins a room**
