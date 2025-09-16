@@ -228,6 +228,35 @@ Use menuconfig of ESP-IDF to configure the project.
 idf.py menuconfig
 ```
 
+### Console Configuration
+
+Different Dev boards have different options for CONSOLE and LOGs. You may want to configure the console output as per your board:
+
+```bash
+idf.py menuconfig
+# Go to Component config -> ESP System Settings -> Channel for console output
+# (X) USB Serial/JTAG Controller # For ESP32-P4 Function_EV_Board V1.2 OR V1.5
+# (X) Default: UART0 # For ESP32-P4 Function_EV_Board V1.4
+```
+
+**Note**: If the console selection is wrong, you will only see the initial bootloader logs. Please change the console as instructed above and reflash the app to see the complete logs.
+
+### ESP32-C6 Configuration (For Dual Chip Setup)
+
+While using P4+C6 setup (such as ESP32-P4 Function EV Board), please build and flash the network_adapter example from `examples/network_adapter` on ESP32-C6.
+
+**Important Notes for ESP32-C6:**
+- ESP32-C6 does not have an onboard UART port. You will need to use ESP-Prog or any other JTAG.
+- Use the following Pin configuration:
+
+| ESP32-C6 (J2/Prog-C6) | ESP-Prog |
+|-----------------------|----------|
+| IO0                   | IO9      |
+| TX0                   | TXD0     |
+| RX0                   | RXD0     |
+| EN                    | EN       |
+| GND                   | GND      |
+
 - These parameters under Example Configuration Options must be set:
 
   - ESP_WIFI_SSID

@@ -79,7 +79,22 @@ idf.py set-target esp32p4
 idf.py menuconfig
 # → Set same Wi-Fi SSID/Password as C6
 # → No AWS configuration needed
+```
 
+### Step 2.1: Configure Console Output
+
+Different Dev boards have different options for CONSOLE and LOGs. You may want to configure the console output as per your board:
+
+```bash
+idf.py menuconfig
+# Go to Component config -> ESP System Settings -> Channel for console output
+# (X) USB Serial/JTAG Controller # For ESP32-P4 Function_EV_Board V1.2 OR V1.5
+# (X) Default: UART0 # For ESP32-P4 Function_EV_Board V1.4
+```
+
+**Note**: If the console selection is wrong, you will only see the initial bootloader logs. Please change the console as instructed above and reflash the app to see the complete logs.
+
+```bash
 # Build and flash to P4
 idf.py build
 idf.py -p /dev/ttyUSB0 flash monitor  # P4 port (usually first port)
