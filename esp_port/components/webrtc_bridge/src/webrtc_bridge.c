@@ -252,14 +252,15 @@ void webrtc_bridge_send_message(const char *data, int len)
 {
 #if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED
     send_msg_t *send_msg = calloc(1, sizeof(send_msg_t));
-    send_msg->buf = data;
-    send_msg->size = len;
     if (!send_msg) {
         ESP_LOGE(TAG, "Failed to allocate memory for send_msg");
         free(data);
         return;
     }
+    send_msg->buf = data;
+    send_msg->size = len;
 
+    /* free delegated to send_message_via_hosted_handler */
     if (esp_work_queue_add_task(&send_message_via_hosted_handler, (void *) send_msg) != ESP_OK) {
         ESP_LOGE(TAG, "Failed to add task to work queue");
         free(data);

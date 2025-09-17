@@ -161,13 +161,17 @@ esp_h264_out_buf_t *esp_h264_hw_enc_encode_frame(uint8_t *frame, size_t frame_le
         // printf("Encode FPS: %d\n", (int) (1000000 / (end_time - start_time)));
 
         if (ret != ESP_H264_ERR_OK) {
-            printf("process failed. line %d \n", __LINE__);
+            ESP_LOGE(TAG, "esp_h264_enc_process failed. line %d", __LINE__);
             return NULL;
         }
         esp_h264_out_buf_t *out_buf = calloc(1, sizeof(esp_h264_out_buf_t));
+        if (!out_buf) {
+            ESP_LOGE(TAG, "Allocation failed for esp_h264_out_buf_t");
+            return NULL;
+        }
         out_buf->buffer = heap_caps_aligned_calloc(64, 1, enc_data.out_frame.length, MALLOC_CAP_SPIRAM);
         if (!out_buf->buffer) {
-            printf("mem allocation failed.line %d \n", __LINE__);
+            ESP_LOGE(TAG, "mem allocation failed for frame_buffer. line %d", __LINE__);
             free(out_buf);
             return NULL;
         }

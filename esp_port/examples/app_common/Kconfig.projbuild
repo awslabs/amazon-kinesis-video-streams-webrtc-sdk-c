@@ -79,7 +79,20 @@ menu "App Common Configs (Wi-Fi, SD-Card, Camera)"
     endif  # IDF_TARGET_ESP32S3
 endmenu
 
-menu "AWS IoT Core Credentials"
+menu "AWS Security Credentials "
+
+    config AWS_KVS_CHANNEL_NAME
+        string "KVS Channel Name"
+        default "ESP32Channel"
+        help
+            The name of the signaling channel to use for WebRTC communication.
+
+    config AWS_DEFAULT_REGION
+        string "AWS Region"
+        default "us-east-1"
+        help
+            AWS Region for KVS service.
+
     config IOT_CORE_ENABLE_CREDENTIALS
         bool "Enable AWS IoT Core credentials for authentication"
         default y
@@ -124,12 +137,6 @@ menu "AWS IoT Core Credentials"
         help
             AWS IoT Core thing name. This identifies your device in AWS IoT Core.
 
-    config AWS_KVS_CHANNEL_NAME
-        string "KVS Channel Name"
-        default "ESP32Channel"
-        help
-            The name of the signaling channel to use for WebRTC communication.
-
     config AWS_ACCESS_KEY_ID
         string "AWS Access Key ID"
         default ""
@@ -144,9 +151,11 @@ menu "AWS IoT Core Credentials"
         help
             AWS Secret Access Key for KVS access. Used when not using IoT Core credentials.
 
-    config AWS_DEFAULT_REGION
-        string "AWS Region"
-        default "us-east-1"
+    config AWS_SESSION_TOKEN
+        string "AWS Secret Access Key"
+        default ""
+        depends on !IOT_CORE_ENABLE_CREDENTIALS
         help
-            AWS Region for KVS service.
+            AWS session token. Keep this empty if not needed
+
 endmenu

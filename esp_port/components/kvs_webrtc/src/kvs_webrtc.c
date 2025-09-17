@@ -1621,15 +1621,6 @@ static STATUS kvs_handleRemoteCandidate(kvs_pc_session_t* session, webrtc_messag
     // Deserialize the ICE candidate
     CHK_STATUS(deserializeRtcIceCandidateInit(message->payload, message->payload_len, &iceCandidate));
 
-    // Comprehensive validation logic from inline implementation
-    {
-        UINT32 candLen = (UINT32) STRLEN(iceCandidate.candidate);
-        UINT32 previewLen = candLen > 64 ? 64 : candLen;
-        ESP_LOGD(TAG, "ICE cand len=%u preview='%.*s'%s",
-                candLen, previewLen, iceCandidate.candidate,
-                candLen > 64 ? "..." : "");
-    }
-
     if (iceCandidate.candidate[0] == '\0') {
         ESP_LOGD(TAG, "Ignoring empty ICE candidate");
         CHK(FALSE, STATUS_SUCCESS);
@@ -1652,30 +1643,6 @@ static STATUS kvs_handleRemoteCandidate(kvs_pc_session_t* session, webrtc_messag
     if (STRSTR(iceCandidate.candidate, " udp ") == NULL) {
         ESP_LOGD(TAG, "Skipping non-UDP ICE candidate");
         CHK(FALSE, STATUS_SUCCESS);
-    }
-
-    // Heuristic: extract address token after protocol and priority, skip IPv6 addresses
-    {
-        PCHAR protoPos = STRSTR(iceCandidate.candidate, " udp ");
-        if (protoPos != NULL) {
-            // advance past " udp "
-            protoPos += 5;
-            // next token is priority; skip it
-            PCHAR space1 = STRCHR(protoPos, ' ');
-            if (space1 != NULL) {
-                PCHAR addrStart = space1 + 1;
-                PCHAR addrEnd = STRCHR(addrStart, ' ');
-                UINT32 segLen = (addrEnd != NULL) ? (UINT32)(addrEnd - addrStart) : (UINT32)STRLEN(addrStart);
-                BOOL hasDot = FALSE;
-                for (UINT32 i = 0; i < segLen; i++) {
-                    if (addrStart[i] == '.') { hasDot = TRUE; break; }
-                }
-                if (!hasDot) {
-                    ESP_LOGD(TAG, "Skipping IPv6 ICE candidate address: %.*s", segLen > 64 ? 64 : segLen, addrStart);
-                    CHK(FALSE, STATUS_SUCCESS);
-                }
-            }
-        }
     }
 
     // Add the candidate
