@@ -86,11 +86,11 @@ WEBRTC_STATUS ice_bridge_client_get_servers(void* pAppSignaling, void* pIceServe
     // Use synchronous RPC calls - this completely bypasses the async event queue!
     for (int i = 0; i < max_tries; i++) {
         if (uriCount >= MAX_ICE_SERVERS_COUNT || !have_more) {
-            ESP_LOGW(TAG, "Done or Max ICE URI count reached (try %d/%d)", i, max_tries);
+            ESP_LOGW(TAG, "Done or Max ICE URI count reached (try %d/%d)", i, (int) max_tries);
             break;
         }
 
-        ESP_LOGI(TAG, "RPC: Requesting ICE server at index %d (try %d/%d)", uriCount, i, max_tries);
+        ESP_LOGI(TAG, "RPC: Requesting ICE server at index %d (try %d/%d)", (int) uriCount, i, (int) max_tries);
 
         // Prepare RPC request
         rpc_usr_t req = {0};
