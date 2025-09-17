@@ -42,7 +42,7 @@ typedef struct {
  */
 static WEBRTC_STATUS bridge_pc_set_ice_servers(void *pPeerConnectionClient, void *ice_servers, uint32_t ice_count)
 {
-    ESP_LOGI(TAG, "Setting ICE servers for bridge peer connection (ignored, count=%u)", ice_count);
+    ESP_LOGI(TAG, "Setting ICE servers for bridge peer connection (ignored, count=%" PRIu32 ")", ice_count);
 
     if (pPeerConnectionClient == NULL) {
         return WEBRTC_STATUS_NULL_ARG;
@@ -73,14 +73,14 @@ static WEBRTC_STATUS bridge_pc_init(void *pc_cfg, void **ppPeerConnectionClient)
 
     WEBRTC_STATUS adapter_status = signaling_bridge_adapter_init(&adapter_config);
     if (adapter_status != WEBRTC_STATUS_SUCCESS) {
-        ESP_LOGE(TAG, "Failed to initialize signaling bridge adapter: 0x%08" PRIx32, adapter_status);
+        ESP_LOGE(TAG, "Failed to initialize signaling bridge adapter: 0x%08" PRIx32, (uint32_t) adapter_status);
         return WEBRTC_STATUS_INTERNAL_ERROR;
     }
 
     // Start the signaling bridge adapter (starts bridge and handles all communication)
     adapter_status = signaling_bridge_adapter_start();
     if (adapter_status != WEBRTC_STATUS_SUCCESS) {
-        ESP_LOGE(TAG, "Failed to start signaling bridge adapter: 0x%08" PRIx32, adapter_status);
+        ESP_LOGE(TAG, "Failed to start signaling bridge adapter: 0x%08" PRIx32, (uint32_t) adapter_status);
         return WEBRTC_STATUS_INTERNAL_ERROR;
     }
 

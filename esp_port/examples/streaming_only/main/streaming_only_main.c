@@ -82,8 +82,8 @@ static void on_data_channel_message(uint64_t custom_data, void *p_data_channel, 
     data_channel_context_t *ctx = (data_channel_context_t *)(uintptr_t)custom_data;
 
     ESP_LOGI(TAG, "on_data_channel_message called with custom_data: 0x%llx", (unsigned long long)custom_data);
-    ESP_LOGI(TAG, "p_data_channel: %p, peer_id: %s, is_binary: %d, p_message: %p, message_len: %u",
-             p_data_channel, peer_id, is_binary, p_message, message_len);
+    ESP_LOGI(TAG, "p_data_channel: %p, peer_id: %s, is_binary: %d, p_message: %p, message_len: %" PRIu32,
+             p_data_channel, peer_id, (int) is_binary, p_message, message_len);
 
     if (ctx == NULL) {
         ESP_LOGE(TAG, "Invalid data channel context (NULL) in message callback");
@@ -102,7 +102,7 @@ static void on_data_channel_message(uint64_t custom_data, void *p_data_channel, 
     }
 
     ESP_LOGI(TAG, "Data channel message received from peer %s: %.*s (binary: %s)",
-             peer_id, message_len, p_message, is_binary ? "yes" : "no");
+             peer_id, (int) message_len, p_message, is_binary ? "yes" : "no");
 
     // Echo the message back
     ESP_LOGI(TAG, "Echoing message back to peer: %s", peer_id);
@@ -219,8 +219,6 @@ static void wifi_init_sta(void)
 
 static void app_webrtc_event_handler(app_webrtc_event_data_t *event_data, void *user_ctx)
 {
-    WEBRTC_STATUS status;
-
     if (event_data == NULL) {
         return;
     }
@@ -373,7 +371,7 @@ void app_main(void)
     );
 
     if (status != WEBRTC_STATUS_SUCCESS) {
-        ESP_LOGI(TAG, "Early callback registration pending - callbacks will be applied when peers connect (status: 0x%08x)", status);
+        ESP_LOGI(TAG, "Early callback registration pending - callbacks will be applied when peers connect (status: 0x%08" PRIx32 ")", (uint32_t) status);
         // Non-fatal, continue initialization
     } else {
         ESP_LOGI(TAG, "Data channel callbacks registered early successfully");
