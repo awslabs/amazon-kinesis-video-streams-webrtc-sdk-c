@@ -145,12 +145,15 @@ void app_main(void)
                                                         NULL));
 #endif
 
+    vTaskDelay(pdMS_TO_TICKS(5 * 1000));
     // Initialize and start WiFi
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_start());
+
+    vTaskDelay(pdMS_TO_TICKS(1000));
     ESP_ERROR_CHECK(esp_wifi_connect());
 
     // Initialize storage

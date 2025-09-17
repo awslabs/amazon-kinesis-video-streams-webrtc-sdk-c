@@ -562,15 +562,16 @@ static esp_err_t req_config_heartbeat(Rpc *req,
 
 void send_dhcp_dns_info_to_host(uint8_t send_wifi_connected)
 {
+#if 0
 	ESP_EARLY_LOGI(TAG, "Send DHCP-DNS status to Host");
 	send_event_data_to_host(RPC_ID__Event_SetDhcpDnsStatus,
 			&s2h_dhcp_dns, sizeof(rpc_set_dhcp_dns_status_t));
 
-	if (send_wifi_connected && station_connected) {
-			send_event_data_to_host(RPC_ID__Event_StaConnected,
-				&lkg_sta_connected_event, sizeof(wifi_event_sta_connected_t));
+#endif
+	if (station_connected) {
+		send_event_data_to_host(RPC_ID__Event_StaConnected,
+			&lkg_sta_connected_event, sizeof(wifi_event_sta_connected_t));
 	}
-
 }
 
 static void event_handler_ip(void* arg, esp_event_base_t event_base,
@@ -694,9 +695,9 @@ static void event_handler_wifi(void* arg, esp_event_base_t event_base,
 			esp_wifi_internal_reg_rxcb(ESP_IF_WIFI_STA, NULL);
 
 #ifdef CONFIG_SLAVE_LWIP_ENABLED
-			rpc_set_dhcp_dns_status_t s2h_dhcp_dns = {0};
-			send_event_data_to_host(RPC_ID__Event_SetDhcpDnsStatus,
-					&s2h_dhcp_dns, sizeof(rpc_set_dhcp_dns_status_t));
+			// rpc_set_dhcp_dns_status_t s2h_dhcp_dns = {0};
+			// send_event_data_to_host(RPC_ID__Event_SetDhcpDnsStatus,
+			// 		&s2h_dhcp_dns, sizeof(rpc_set_dhcp_dns_status_t));
 #endif
 
 			if (sta_connect_retry < MAX_STA_CONNECT_ATTEMPTS) {
@@ -718,6 +719,7 @@ static void event_handler_wifi(void* arg, esp_event_base_t event_base,
 				softap_started = 0;
 			}
 
+			ESP_LOGI(TAG, "########  Sending Wifi event %d #########", (int)event_id);
 			send_event_data_to_host(RPC_ID__Event_WifiEventNoArgs,
 					&event_id, sizeof(event_id));
 		}
