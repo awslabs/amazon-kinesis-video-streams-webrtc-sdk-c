@@ -159,12 +159,16 @@ esp_netif_t *create_slave_sta_netif_with_static_ip(void)
         .stack = ESP_NETIF_NETSTACK_DEFAULT_WIFI_STA,
     };
     esp_netif_t *sta_netif = esp_netif_new(&cfg_sta);
+    ESP_LOGI(TAG, "Created slave sta netif with static IP %p", sta_netif);
     assert(sta_netif);
 
     ESP_LOGI(TAG, "Creating slave sta netif with static IP");
 
     /* stop dhcpc */
     ESP_ERROR_CHECK(esp_netif_dhcpc_stop(sta_netif));
+
+    // esp_netif_action_start(sta_netif, NULL, 0, NULL);
+    // esp_netif_action_connected(sta_netif, 0, 0, 0);
 
     return sta_netif;
 }
@@ -182,9 +186,15 @@ static void wifi_init_sta(void)
     esp_netif_create_default_wifi_sta();
 #endif
 
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL));
 
-    ESP_ERROR_CHECK(esp_hosted_wait_for_slave());
+    ESP_ERROR_CHECK(esp_wifi_start());
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    esp_wifi_connect();
+    // ESP_ERROR_CHECK(esp_hosted_wait_for_slave());
 
     EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group,
             GOT_IP_BIT,

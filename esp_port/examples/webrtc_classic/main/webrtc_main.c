@@ -96,8 +96,8 @@ esp_netif_t *create_slave_sta_netif_with_static_ip(void)
     /* stop dhcpc */
     ESP_ERROR_CHECK(esp_netif_dhcpc_stop(sta_netif));
 
-    //esp_netif_action_start(sta_netif, NULL, 0, NULL);
-    //esp_netif_action_connected(sta_netif, 0, 0, 0);
+    // esp_netif_action_start(sta_netif, NULL, 0, NULL);
+    // esp_netif_action_connected(sta_netif, 0, 0, 0);
 
     //esp_netif_up(netif);
 

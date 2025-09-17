@@ -304,11 +304,17 @@ static hosted_l2_bridge find_destination_bridge(void *frame_data, uint16_t frame
 
 #ifdef DEBUG_PRINT_RECEIVED_PACKETS
 			{
+				int to_send = DEFAULT_LWIP_TO_SEND;
+				if (IS_REMOTE_TCP_PORT(dst_port) || (dst_port == 80)) {
+					to_send = (int) HOST_LWIP_BRIDGE;
+				} else if (IS_LOCAL_TCP_PORT(dst_port)) {
+					to_send = (int) SLAVE_LWIP_BRIDGE;
+				}
 				u16_t src_port = lwip_ntohs(tcphdr->src);
 				struct ip_hdr *ip4hdr = iphdr;
 				ip4_addr_t src_addr;
 				src_addr.addr = ip4hdr->src.addr;
-				printf("dst_port: %d, src_port: %d to %d\n", dst_port, src_port, (int) DEFAULT_LWIP_TO_SEND);
+				printf("dst_port: %d, src_port: %d to %d\n", dst_port, src_port, to_send);
 				printf("tcp src_addr: %u.%u.%u.%u\n",
 					(unsigned int) (src_addr.addr) & 0xFF,
 					(unsigned int) (src_addr.addr >> 8) & 0xFF,
@@ -316,7 +322,7 @@ static hosted_l2_bridge find_destination_bridge(void *frame_data, uint16_t frame
 					(unsigned int) (src_addr.addr >> 24) & 0xFF);
 			}
 #endif
-			if (IS_REMOTE_TCP_PORT(dst_port)) {
+			if (IS_REMOTE_TCP_PORT(dst_port) || (dst_port == 80)) {
 				return HOST_LWIP_BRIDGE;
 			} else if (IS_LOCAL_TCP_PORT(dst_port)) {
 				return SLAVE_LWIP_BRIDGE;
@@ -326,11 +332,21 @@ static hosted_l2_bridge find_destination_bridge(void *frame_data, uint16_t frame
 			u16_t dst_port = lwip_ntohs(udphdr->dest);
 #ifdef DEBUG_PRINT_RECEIVED_PACKETS
 			{
+				int to_send = DEFAULT_LWIP_TO_SEND;
+				if (dst_port == LWIP_IANA_PORT_DHCP_CLIENT || (int) dst_port == 68)
+					to_send = (int) BOTH_LWIP_BRIDGE;
+				if ((int) dst_port == 53) {
+					to_send = (int) BOTH_LWIP_BRIDGE;
+				} else if (IS_REMOTE_UDP_PORT(dst_port)) {
+					to_send = (int) HOST_LWIP_BRIDGE;
+				} else if (IS_LOCAL_UDP_PORT(dst_port)) {
+					to_send = (int) SLAVE_LWIP_BRIDGE;
+				}
 				u16_t src_port = lwip_ntohs(udphdr->src);
 				struct ip_hdr *ip4hdr = iphdr;
 				ip4_addr_t src_addr;
 				src_addr.addr = ip4hdr->src.addr;
-				printf("dst_port: %d, src_port: %d to %d\n", dst_port, src_port, (int) DEFAULT_LWIP_TO_SEND);
+				printf("dst_port: %d, src_port: %d to %d\n", dst_port, src_port, to_send);
 				printf("udp src_addr: %u.%u.%u.%u\n",
 					(unsigned int) (src_addr.addr) & 0xFF,
 					(unsigned int) (src_addr.addr >> 8) & 0xFF,
@@ -338,11 +354,16 @@ static hosted_l2_bridge find_destination_bridge(void *frame_data, uint16_t frame
 					(unsigned int) (src_addr.addr >> 24) & 0xFF);
 			}
 #endif
-			if (dst_port == LWIP_IANA_PORT_DHCP_CLIENT)
-				return DHCP_LWIP_BRIDGE;
+			if (dst_port == LWIP_IANA_PORT_DHCP_CLIENT || (int) dst_port == 68)
+				return BOTH_LWIP_BRIDGE;
+				// return DHCP_LWIP_BRIDGE;
 
-			if (IS_REMOTE_UDP_PORT(dst_port)) {
+			if ((int) dst_port == 53 ||(int) dst_port == 5353) {
+				return BOTH_LWIP_BRIDGE;
+			} else if (IS_REMOTE_UDP_PORT(dst_port)) {
 				return HOST_LWIP_BRIDGE;
+			} else if (IS_LOCAL_UDP_PORT(dst_port)) {
+				return SLAVE_LWIP_BRIDGE;
 			}
 
 		} else if (proto == IP_PROTO_ICMP) {
@@ -756,7 +777,7 @@ static void process_rx_pkt(interface_buffer_handle_t *buf_handle)
 	payload = buf_handle->payload + le16toh(header->offset);
 	payload_len = le16toh(header->len);
 
-	ESP_HEXLOGV("bus_RX", buf_handle->payload, buf_handle->payload_len, 8);
+	ESP_HEXLOGV("bus_RX", buf_handle->payload, buf_handle->payload_len, buf_handle->payload_len);
 
 #define WIFI_TX_REPEAT_STEP       4
 #define WIFI_TX_INTERVAL_START    5
