@@ -49,7 +49,7 @@ STATUS createTlsSession(PTlsSessionCallbacks pCallbacks, PTlsSession* ppTlsSessi
     STATUS retStatus = STATUS_SUCCESS;
     PEspTlsSession pTlsSession = NULL;
 
-    ESP_LOGI(TAG, "🔧 ESP-TLS: createTlsSession() called - Using ESP-TLS implementation instead of mbedTLS");
+    ESP_LOGI(TAG, "ESP-TLS: createTlsSession() called - Using ESP-TLS implementation instead of mbedTLS");
     CHK(ppTlsSession != NULL && pCallbacks != NULL && pCallbacks->outboundPacketFn != NULL, STATUS_NULL_ARG);
 
     pTlsSession = (PEspTlsSession) MEMCALLOC(1, SIZEOF(EspTlsSession));
@@ -77,7 +77,7 @@ STATUS createTlsSession(PTlsSessionCallbacks pCallbacks, PTlsSession* ppTlsSessi
     pTlsSession->pOutboundBuffer = (PBYTE) MEMCALLOC(1, pTlsSession->outboundBufferCapacity);
     CHK(pTlsSession->pOutboundBuffer != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
-    ESP_LOGI(TAG, "✅ ESP-TLS: Created ESP-TLS session with certificate bundle verification (no cert files needed!)");
+    ESP_LOGI(TAG, "ESP-TLS: Created ESP-TLS session with certificate bundle verification (no cert files needed!)");
 
 CleanUp:
     if (STATUS_FAILED(retStatus) && pTlsSession != NULL) {
@@ -143,7 +143,7 @@ STATUS tlsSessionStartWithHostname(PTlsSession pTlsSession, BOOL isServer, PCHAR
     STATUS retStatus = STATUS_SUCCESS;
     PEspTlsSession pEspTlsSession = (PEspTlsSession) pTlsSession;
 
-    ESP_LOGI(TAG, "🚀 ESP-TLS: tlsSessionStartWithHostname() called - hostname: %s, isServer: %s",
+    ESP_LOGI(TAG, "ESP-TLS: tlsSessionStartWithHostname() called - hostname: %s, isServer: %s",
              hostname ? hostname : "NULL", isServer ? "true" : "false");
     CHK(pTlsSession != NULL, STATUS_NULL_ARG);
     CHK(pEspTlsSession->state == TLS_SESSION_STATE_NEW, retStatus);
@@ -205,7 +205,7 @@ STATUS tlsSessionProcessPacket(PTlsSession pTlsSession, PBYTE pData, UINT32 buff
     PIOBuffer pReadBuffer;
     INT32 readBytes = 0;
 
-    ESP_LOGD(TAG, "📥 ESP-TLS: tlsSessionProcessPacket() - processing %u bytes through ESP-TLS", bufferLen);
+    ESP_LOGD(TAG, "ESP-TLS: tlsSessionProcessPacket() - processing %u bytes through ESP-TLS", bufferLen);
     CHK(pTlsSession != NULL && pData != NULL && pDataLen != NULL, STATUS_NULL_ARG);
     CHK(pEspTlsSession->state != TLS_SESSION_STATE_NEW, STATUS_SOCKET_CONNECTION_NOT_READY_TO_SEND);
     CHK(pEspTlsSession->state != TLS_SESSION_STATE_CLOSED, STATUS_SOCKET_CONNECTION_CLOSED_ALREADY);

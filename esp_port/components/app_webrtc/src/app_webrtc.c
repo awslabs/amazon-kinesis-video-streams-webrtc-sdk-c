@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 #include "app_webrtc.h"
 #include "app_webrtc_internal.h"
 #include "webrtc_mem_utils.h"
@@ -115,7 +116,6 @@ static void raiseEvent(app_webrtc_event_t event_id, UINT32 status_code, PCHAR pe
 // Function to register event callback
 INT32 app_webrtc_register_event_callback(app_webrtc_event_callback_t callback, void *user_ctx)
 {
-    STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
 
     if (gEventCallbackLock == INVALID_MUTEX_VALUE) {
@@ -255,47 +255,84 @@ static WEBRTC_STATUS signalingClientErrorWrapper(uint64_t customData, WEBRTC_STA
  */
 static WEBRTC_STATUS peerConnectionStateChangedWrapper(uint64_t customData, webrtc_peer_state_t state)
 {
-    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration)customData;
-    PAppWebRTCSession pSessionToMark = NULL;
+    // Try to determine if this is a specific session or global config
+    // Bridge mode passes global config, real WebRTC passes specific session
+    PAppWebRTCSession pAppWebRTCSession = NULL;
+    PSampleConfiguration pSampleConfiguration = NULL;
 
-    ESP_LOGD(TAG, "🔧 peerConnectionStateChangedWrapper called: peer_state=%d", state);
+    // Simple heuristic: check if the pointer looks like a session structure
+    // by checking if it has valid peerId field (sessions have peerId, global config doesn't)
+    PAppWebRTCSession test_session = (PAppWebRTCSession)customData;
+    if (test_session != NULL && test_session->peerId[0] != '\0' &&
+        STRLEN(test_session->peerId) > 0 && STRLEN(test_session->peerId) < 256) {
+        // Looks like a specific session
+        pAppWebRTCSession = test_session;
+        pSampleConfiguration = pAppWebRTCSession->pSampleConfiguration;
+        ESP_LOGI(TAG, "peerConnectionStateChangedWrapper: peer=%s, state=%d",
+                 pAppWebRTCSession->peerId, state);
+    } else {
+        // Looks like global config (bridge mode)
+        pSampleConfiguration = (PSampleConfiguration)customData;
+        ESP_LOGI(TAG, "peerConnectionStateChangedWrapper: bridge_mode, state=%d", state);
+    }
+
+    if (pSampleConfiguration == NULL) {
+        ESP_LOGE(TAG, "peerConnectionStateChangedWrapper: Unable to determine configuration!");
+        return WEBRTC_STATUS_NULL_ARG;
+    }
 
     switch (state) {
         case WEBRTC_PEER_STATE_NEW:
         case WEBRTC_PEER_STATE_CONNECTING:
         case WEBRTC_PEER_STATE_CONNECTED:
+            if (pAppWebRTCSession != NULL) {
+                ESP_LOGI(TAG, "Peer connection state for %s: %d", pAppWebRTCSession->peerId, state);
+            } else {
+                ESP_LOGI(TAG, "Peer connection state (bridge): %d", state);
+            }
+            break;
+
         case WEBRTC_PEER_STATE_DISCONNECTED:
         case WEBRTC_PEER_STATE_FAILED:
-            // For regular states, we could translate to KVS peer connection states if needed
-            // But for now, just log them
-            ESP_LOGI(TAG, "Peer connection state: %d", state);
-            // If interface path and state implies termination, mark the matching session terminateFlag=TRUE
-            if (state == WEBRTC_PEER_STATE_DISCONNECTED || state == WEBRTC_PEER_STATE_FAILED) {
-                if (pSampleConfiguration != NULL) {
-                    // Find the first interface-based active session and mark for termination
-                    MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
-                    for (UINT32 i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
-                        PAppWebRTCSession s = pSampleConfiguration->webrtcSessionList[i];
-                        if (s != NULL && s->pPeerConnection == NULL && s->interface_session_handle != NULL) {
-                            pSessionToMark = s;
-                            break;
-                        }
-                    }
-                    MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
-                    if (pSessionToMark != NULL) {
-                        ATOMIC_STORE_BOOL(&pSessionToMark->terminateFlag, TRUE);
+            if (pAppWebRTCSession != NULL) {
+                // FIXED: Mark only the specific session that failed, not the first one found!
+                ESP_LOGI(TAG, "Peer %s failed/disconnected - marking for cleanup", pAppWebRTCSession->peerId);
+                ATOMIC_STORE_BOOL(&pAppWebRTCSession->terminateFlag, TRUE);  // Mark THIS session
+                CVAR_BROADCAST(pSampleConfiguration->cvar);
+                ESP_LOGI(TAG, "Marked specific peer %s for termination (not affecting other peers)",
+                         pAppWebRTCSession->peerId);
+            } else {
+                // Bridge mode - use old logic as fallback
+                ESP_LOGI(TAG, "Bridge mode connection failed/disconnected");
+                MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
+                for (UINT32 i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+                    PAppWebRTCSession s = pSampleConfiguration->webrtcSessionList[i];
+                    if (s != NULL && s->pPeerConnection == NULL && s->interface_session_handle != NULL) {
+                        ATOMIC_STORE_BOOL(&s->terminateFlag, TRUE);
                         CVAR_BROADCAST(pSampleConfiguration->cvar);
+                        ESP_LOGI(TAG, "Bridge mode: marked session %s for termination", s->peerId);
+                        break;
                     }
                 }
+                MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
             }
             break;
 
         case WEBRTC_PEER_STATE_MEDIA_STARTING:
-            ESP_LOGI(TAG, "🎬 Media starting (handled by kvs_webrtc interface)");
+            if (pAppWebRTCSession != NULL) {
+                ESP_LOGI(TAG, "Media starting for peer %s (handled by kvs_webrtc interface)",
+                         pAppWebRTCSession->peerId);
+            } else {
+                ESP_LOGI(TAG, "Media starting (bridge mode)");
+            }
             break;
 
         default:
-            ESP_LOGW(TAG, "Unknown peer connection state: %d", state);
+            if (pAppWebRTCSession != NULL) {
+                ESP_LOGW(TAG, "Unknown peer connection state: %d for peer %s", state, pAppWebRTCSession->peerId);
+            } else {
+                ESP_LOGW(TAG, "Unknown peer connection state: %d (bridge mode)", state);
+            }
             break;
     }
 
@@ -318,7 +355,7 @@ static WEBRTC_STATUS peerOutboundMessageWrapper(uint64_t customData, webrtc_mess
 
     // DEBUG: Log SDP answer content for comparison with legacy
     if (pWebRtcMessage->message_type == WEBRTC_MESSAGE_TYPE_ANSWER) {
-        ESP_LOGI(TAG, "INTERFACE_SDP_ANSWER: len=%u, corr_id=%s",
+        ESP_LOGI(TAG, "INTERFACE_SDP_ANSWER: len=%" PRIu32 ", corr_id=%s",
                  pWebRtcMessage->payload_len, pWebRtcMessage->correlation_id);
         ESP_LOGD(TAG, "INTERFACE_SDP_ANSWER_CONTENT: %.500s", pWebRtcMessage->payload);
 
@@ -350,7 +387,7 @@ WEBRTC_STATUS app_webrtc_get_server_by_idx(int index, bool useTurn, uint8_t **da
     CHK(gSignalingClientData != NULL && gWebRtcAppConfig.signaling_client_if != NULL, STATUS_INVALID_OPERATION);
     CHK(gWebRtcAppConfig.signaling_client_if->get_ice_server_by_idx != NULL, STATUS_INVALID_OPERATION);
 
-    ESP_LOGI(TAG, "🔍 app_webrtc_get_server_by_idx: index=%d, useTurn=%s", index, useTurn ? "true" : "false");
+    ESP_LOGI(TAG, "app_webrtc_get_server_by_idx: index=%d, useTurn=%s", index, useTurn ? "true" : "false");
 
     // Delegate to the signaling interface implementation
     CHK_STATUS(gWebRtcAppConfig.signaling_client_if->get_ice_server_by_idx(
@@ -362,11 +399,11 @@ WEBRTC_STATUS app_webrtc_get_server_by_idx(int index, bool useTurn, uint8_t **da
         have_more
     ));
 
-    ESP_LOGI(TAG, "✅ Successfully queried ICE server by index (have_more: %s)", *have_more ? "true" : "false");
+    ESP_LOGI(TAG, "Successfully queried ICE server by index (have_more: %s)", *have_more ? "true" : "false");
 
 CleanUp:
     if (STATUS_FAILED(retStatus)) {
-        ESP_LOGE(TAG, "❌ Failed to query ICE server by index: 0x%08x", retStatus);
+        ESP_LOGE(TAG, "Failed to query ICE server by index: 0x%08" PRIx32, (UINT32) retStatus);
     }
 
     LEAVES();
@@ -385,7 +422,7 @@ WEBRTC_STATUS app_webrtc_is_ice_refresh_needed(bool *refreshNeeded)
     CHK(gSignalingClientData != NULL && gWebRtcAppConfig.signaling_client_if != NULL, STATUS_INVALID_OPERATION);
     CHK(gWebRtcAppConfig.signaling_client_if->is_ice_refresh_needed != NULL, STATUS_INVALID_OPERATION);
 
-    ESP_LOGI(TAG, "🔍 app_webrtc_is_ice_refresh_needed: checking ICE refresh status");
+    ESP_LOGI(TAG, "app_webrtc_is_ice_refresh_needed: checking ICE refresh status");
 
     // Delegate to the signaling interface implementation
     CHK_STATUS(gWebRtcAppConfig.signaling_client_if->is_ice_refresh_needed(
@@ -393,11 +430,11 @@ WEBRTC_STATUS app_webrtc_is_ice_refresh_needed(bool *refreshNeeded)
         refreshNeeded
     ));
 
-    ESP_LOGI(TAG, "✅ ICE refresh check completed: refreshNeeded=%s", *refreshNeeded ? "true" : "false");
+    ESP_LOGI(TAG, "ICE refresh check completed: refreshNeeded=%s", *refreshNeeded ? "true" : "false");
 
 CleanUp:
     if (STATUS_FAILED(retStatus)) {
-        ESP_LOGE(TAG, "❌ Failed to check ICE refresh status: 0x%08x", retStatus);
+        ESP_LOGE(TAG, "Failed to check ICE refresh status: 0x%08" PRIx32, (UINT32) retStatus);
         if (refreshNeeded != NULL) {
             *refreshNeeded = true;  // Default to refresh needed on error
         }
@@ -422,11 +459,11 @@ WEBRTC_STATUS app_webrtc_refresh_ice_configuration(void)
         gSignalingClientData
     ));
 
-    ESP_LOGI(TAG, "✅ ICE refresh triggered successfully");
+    ESP_LOGI(TAG, "ICE refresh triggered successfully");
 
 CleanUp:
     if (STATUS_FAILED(retStatus)) {
-        ESP_LOGE(TAG, "❌ Failed to trigger ICE refresh: 0x%08x", retStatus);
+        ESP_LOGE(TAG, "Failed to trigger ICE refresh: 0x%08" PRIx32, (UINT32) retStatus);
     }
 
     LEAVES();
@@ -722,7 +759,6 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration, bool isSign
     BOOL sampleConfigurationObjLockLocked = FALSE, streamingSessionListReadLockLocked = FALSE;
     PAppWebRTCSession pAppWebRTCSession = NULL;
     UINT32 i, clientIdHash;
-    BOOL sessionFreed = FALSE;
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
@@ -753,7 +789,6 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration, bool isSign
                 streamingSessionListReadLockLocked = FALSE;
 
                 CHK_LOG_ERR(freeAppWebRTCSession(&pAppWebRTCSession));
-                sessionFreed = TRUE;
 
                 // Quit the for loop as we have modified the collection and the for loop iterator
                 break;
@@ -965,7 +1000,7 @@ static WEBRTC_STATUS signalingMessageReceivedWrapper(uint64_t customData, webrtc
                 return WEBRTC_STATUS_INTERNAL_ERROR;
             }
 
-            ESP_LOGD("app_webrtc", "✅ Message forwarded to bridge successfully");
+            ESP_LOGD("app_webrtc", "Message forwarded to bridge successfully");
             return WEBRTC_STATUS_SUCCESS;
         } else {
             ESP_LOGE("app_webrtc", "Bridge mode enabled but no bridge interface available");
@@ -987,7 +1022,7 @@ static WEBRTC_STATUS signalingMessageReceivedWrapper(uint64_t customData, webrtc
 
     // Check for errors and log them with more details
     if (kvsStatus != STATUS_SUCCESS) {
-        ESP_LOGE(TAG, "Failed to process %s: 0x%08x, peer_id=%s",
+        ESP_LOGE(TAG, "Failed to process %s: 0x%08" PRIx32 ", peer_id=%s",
                  pWebRtcMessage->message_type == WEBRTC_MESSAGE_TYPE_OFFER ? "offer" :
                  pWebRtcMessage->message_type == WEBRTC_MESSAGE_TYPE_ANSWER ? "answer" :
                  pWebRtcMessage->message_type == WEBRTC_MESSAGE_TYPE_ICE_CANDIDATE ? "ICE candidate" : "unknown message",
@@ -1027,7 +1062,6 @@ STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMess
 
     // Declare variables once at the top of function scope to avoid redefinition errors
     webrtc_peer_connection_if_t* pc_interface = NULL;
-    webrtc_message_t webrtc_msg = {0};
     WEBRTC_STATUS message_status = WEBRTC_STATUS_SUCCESS;
 
     switch (pWebRtcMessage->message_type) {
@@ -1123,10 +1157,9 @@ STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMess
 
             // Set up callbacks for the session
             if (pc_interface != NULL && pc_interface->set_callbacks != NULL) {
-                // Use the same callbacks that were registered in app_webrtc_init
                 WEBRTC_STATUS cb_status = pc_interface->set_callbacks(
                     pAppWebRTCSession->interface_session_handle,
-                    (uint64_t) pAppWebRTCSession->pSampleConfiguration,
+                    (uint64_t) pAppWebRTCSession,  // Pass specific session, not global config
                     peerOutboundMessageWrapper,
                     peerConnectionStateChangedWrapper);
                 if (cb_status != WEBRTC_STATUS_SUCCESS) {
@@ -1631,9 +1664,10 @@ static void app_webrtc_runTask(void *pvParameters)
         if (gSampleConfiguration->bridge_mode) {
             ESP_LOGI(TAG, "Bridge-only mode detected (no real WebRTC sessions will be created)");
             // Set the callbacks to the bridge interface
+            // NOTE: For bridge mode, we still use global config since there are no specific sessions
             gWebRtcAppConfig.peer_connection_if->set_callbacks(
                 NULL, // No session_handle for bridge mode
-                (uint64_t) gSampleConfiguration, // customData
+                (uint64_t) gSampleConfiguration, // customData - keep global for bridge mode
                 peerOutboundMessageWrapper, // From peer connection interface
                 peerConnectionStateChangedWrapper); // From peer connection interface
         } else {
@@ -2059,7 +2093,7 @@ int app_webrtc_trigger_offer(char *pPeerId)
         if (pc_interface->set_callbacks != NULL) {
             WEBRTC_STATUS cb_status = pc_interface->set_callbacks(
                 pAppWebRTCSession->interface_session_handle,
-                (uint64_t) pAppWebRTCSession->pSampleConfiguration,
+                (uint64_t) pAppWebRTCSession,  // Pass specific session, not global config
                 peerOutboundMessageWrapper,
                 peerConnectionStateChangedWrapper);
             if (cb_status != WEBRTC_STATUS_SUCCESS) {
@@ -2098,7 +2132,7 @@ int app_webrtc_trigger_offer(char *pPeerId)
             // Instead, use the existing session and just set the callbacks if needed
 
             // Verify message callback is properly set
-            ESP_LOGI(TAG, "Using existing session with handle: 0x%llx", (unsigned long long)(uint64_t)pAppWebRTCSession->interface_session_handle);
+            ESP_LOGI(TAG, "Using existing session with handle: %p", (void *)pAppWebRTCSession->interface_session_handle);
 
             // We should NOT trigger a new offer here - this is causing duplicate offers
             // The apprtc_signaling is already calling this function when it needs to send an offer
@@ -2116,7 +2150,7 @@ int app_webrtc_trigger_offer(char *pPeerId)
                 g_kvs_webrtc_client, pPeerId, TRUE, &session_handle);  // TRUE = is_initiator
 
             if (create_status != WEBRTC_STATUS_SUCCESS) {
-                ESP_LOGE(TAG, "Failed to create initiator session via interface: 0x%08x", create_status);
+                ESP_LOGE(TAG, "Failed to create initiator session via interface: 0x%08" PRIx32, (UINT32) create_status);
                 CHK(FALSE, STATUS_INTERNAL_ERROR);
             }
 
@@ -2124,11 +2158,11 @@ int app_webrtc_trigger_offer(char *pPeerId)
             pAppWebRTCSession->interface_session_handle = session_handle;
 
             // Set callbacks for this session - IMPORTANT: This must happen BEFORE auto-offer generation
-            ESP_LOGI(TAG, "Setting callbacks for session with pAppWebRTCSession=0x%llx", (unsigned long long)(uint64_t)pAppWebRTCSession);
+            ESP_LOGI(TAG, "Setting callbacks for session with pAppWebRTCSession=%p", (void *)pAppWebRTCSession);
             WEBRTC_STATUS cb_status = pc_interface->set_callbacks(session_handle, (uint64_t)pAppWebRTCSession,
                                                   peerOutboundMessageWrapper, peerConnectionStateChangedWrapper);
             if (cb_status != WEBRTC_STATUS_SUCCESS) {
-                ESP_LOGE(TAG, "Failed to set session callbacks: 0x%08x", cb_status);
+                ESP_LOGE(TAG, "Failed to set session callbacks: 0x%08" PRIx32, (UINT32) cb_status);
                 CHK(FALSE, STATUS_INTERNAL_ERROR);
             }
 
@@ -2138,7 +2172,7 @@ int app_webrtc_trigger_offer(char *pPeerId)
             // after the callbacks are set, so we don't need to explicitly call createOffer here
 
             // Verify message callback is properly set
-            ESP_LOGI(TAG, "Message callback registered: %p", peerOutboundMessageWrapper);
+            ESP_LOGI(TAG, "Message callback registered: %p", (void *) peerOutboundMessageWrapper);
             raiseEvent(APP_WEBRTC_EVENT_SENT_OFFER, 0, pPeerId, "Triggered offer creation via interface");
         }
     }
@@ -2191,10 +2225,10 @@ WEBRTC_STATUS app_webrtc_get_ice_servers(PUINT32 pIceServerCount, PVOID pIceConf
     if (*pIceServerCount > 0) {
         ice_config.ice_server_count = *pIceServerCount;
         MEMCPY(pIceConfiguration, &ice_config.ice_servers, sizeof(ice_config.ice_servers));
-        ESP_LOGI(TAG, "Retrieved %d ICE servers for bridge forwarding", *pIceServerCount);
+        ESP_LOGI(TAG, "Retrieved %" PRIu32 " ICE servers for bridge forwarding", *pIceServerCount);
 
         // Log the ICE servers for debugging
-        for (UINT32 i = 0; i < *pIceServerCount; i++) {
+        for (int i = 0; i < (int)*pIceServerCount; i++) {
             ESP_LOGI(TAG, "ICE Server %d: %s", i, ice_config.ice_servers[i].urls);
         }
     }
@@ -2412,7 +2446,7 @@ CleanUp:
     CHK(valid > 0, STATUS_INVALID_OPERATION);
 
     // Update ICE servers in the peer connection client
-    ESP_LOGI(TAG, "Progressive ICE: Setting %u fresh ICE servers for peer connection client", valid);
+    ESP_LOGI(TAG, "Progressive ICE: Setting %" PRIu32 " fresh ICE servers for peer connection client", valid);
     ESP_LOGI(TAG, "Progressive ICE: Calling kvs_pc_set_ice_servers() -> kvs_applyNewIceServersCallback() -> peerConnectionUpdateIceServers()");
     WEBRTC_STATUS update_status = gWebRtcAppConfig.peer_connection_if->set_ice_servers(
         g_kvs_webrtc_client, persistent_ice_cfg.ice_servers, valid);
@@ -2422,7 +2456,7 @@ CleanUp:
 
 CleanUp:
     if (STATUS_FAILED(retStatus)) {
-        ESP_LOGE(TAG, "Failed to update ICE servers: 0x%08x", retStatus);
+        ESP_LOGE(TAG, "Failed to update ICE servers: 0x%08" PRIx32, (UINT32) retStatus);
     }
     return retStatus;
 }
@@ -2440,7 +2474,7 @@ static WEBRTC_STATUS app_webrtc_on_ice_servers_updated(uint64_t customData, uint
     UNUSED_PARAM(customData);
     WEBRTC_STATUS retStatus = WEBRTC_STATUS_SUCCESS;
 
-    ESP_LOGI(TAG, "Progressive ICE callback triggered! New server count: %u", newServerCount);
+    ESP_LOGI(TAG, "Progressive ICE callback triggered! New server count: %" PRIu32, newServerCount);
     ESP_LOGI(TAG, "This means TURN servers are now available for improved NAT traversal");
 
     if (newServerCount == 0) {
@@ -2457,7 +2491,7 @@ static WEBRTC_STATUS app_webrtc_on_ice_servers_updated(uint64_t customData, uint
         ESP_LOGI(TAG, "   • New connections: Will use fresh servers including TURN");
         ESP_LOGI(TAG, "   • NAT traversal: Improved for future sessions");
     } else {
-        ESP_LOGE(TAG, "Progressive ICE update failed: 0x%08x", retStatus);
+        ESP_LOGE(TAG, "Progressive ICE update failed: 0x%08" PRIx32, (UINT32) retStatus);
         ESP_LOGE(TAG, "   • Impact: New connections may have reduced NAT traversal capability");
     }
 
@@ -2514,7 +2548,7 @@ static WEBRTC_STATUS app_webrtc_trigger_progressive_ice(const char* context, boo
                 SAFE_MEMFREE(ice_data);
             }
         } else {
-            ESP_LOGW(TAG, "Progressive ICE: Failed to trigger ICE refresh for %s: 0x%08x", context, trigger_status);
+            ESP_LOGW(TAG, "Progressive ICE: Failed to trigger ICE refresh for %s: 0x%08" PRIx32, context, (UINT32) trigger_status);
         }
 
         return trigger_status;
@@ -2528,7 +2562,7 @@ static WEBRTC_STATUS app_webrtc_trigger_progressive_ice(const char* context, boo
             if (refresh_status == WEBRTC_STATUS_SUCCESS) {
                 ESP_LOGI(TAG, "Traditional ICE refresh triggered successfully for %s", context);
             } else {
-                ESP_LOGW(TAG, "Traditional ICE refresh failed for %s: 0x%08x", context, refresh_status);
+                ESP_LOGW(TAG, "Traditional ICE refresh failed for %s: 0x%08" PRIx32, context, (UINT32) refresh_status);
             }
 
             return refresh_status;
@@ -2540,7 +2574,7 @@ static WEBRTC_STATUS app_webrtc_trigger_progressive_ice(const char* context, boo
             if (update_status == WEBRTC_STATUS_SUCCESS) {
                 ESP_LOGI(TAG, "Direct ICE server update completed successfully for %s", context);
             } else {
-                ESP_LOGW(TAG, "Direct ICE server update failed for %s: 0x%08x", context, update_status);
+                ESP_LOGW(TAG, "Direct ICE server update failed for %s: 0x%08" PRIx32, context, (UINT32) update_status);
             }
 
             return update_status;
@@ -2562,8 +2596,8 @@ WEBRTC_STATUS app_webrtc_set_data_channel_callbacks(const char *peer_id,
     UINT32 i;
     bool peer_found = FALSE;
 
-    ESP_LOGI(TAG, "Setting data channel callbacks for peer: %s, custom_data: 0x%llx",
-             peer_id ? peer_id : "NULL", (unsigned long long)custom_data);
+    ESP_LOGI(TAG, "Setting data channel callbacks for peer: %s, custom_data: 0x%" PRIx64,
+             peer_id ? peer_id : "NULL", (uint64_t)custom_data);
 
     CHK(peer_id != NULL, STATUS_NULL_ARG);
 
@@ -2586,7 +2620,7 @@ WEBRTC_STATUS app_webrtc_set_data_channel_callbacks(const char *peer_id,
         if (gSampleConfiguration->webrtcSessionList[i] != NULL &&
             STRCMP(gSampleConfiguration->webrtcSessionList[i]->peerId, peer_id) == 0) {
             pStreamingSession = gSampleConfiguration->webrtcSessionList[i];
-            ESP_LOGI(TAG, "Found streaming session for peer: %s at index %u", peer_id, i);
+            ESP_LOGI(TAG, "Found streaming session for peer: %s at index %" PRIu32, peer_id, i);
             peer_found = TRUE;
             break;
         }
@@ -2606,8 +2640,8 @@ WEBRTC_STATUS app_webrtc_set_data_channel_callbacks(const char *peer_id,
         CHK(gWebRtcAppConfig.peer_connection_if->set_data_channel_callbacks != NULL, STATUS_NOT_IMPLEMENTED);
 
         ESP_LOGI(TAG, "Setting data channel callbacks via interface for peer: %s", peer_id);
-        ESP_LOGI(TAG, "  - onOpen callback: %p", onOpen);
-        ESP_LOGI(TAG, "  - onMessage callback: %p", onMessage);
+        ESP_LOGI(TAG, "  - onOpen callback: %p", (void *) onOpen);
+        ESP_LOGI(TAG, "  - onMessage callback: %p", (void *) onMessage);
         ESP_LOGI(TAG, "  - interface_session_handle: %p", pStreamingSession->interface_session_handle);
 
         // Set the callbacks using the peer connection interface
@@ -2623,15 +2657,15 @@ WEBRTC_STATUS app_webrtc_set_data_channel_callbacks(const char *peer_id,
 
             // Store the custom data in the streaming session for later use
             pStreamingSession->shutdownCallbackCustomData = custom_data;
-            ESP_LOGI(TAG, "Stored custom_data 0x%llx in session", (unsigned long long)custom_data);
+            ESP_LOGI(TAG, "Stored custom_data 0x%" PRIx64 " in session", custom_data);
         } else {
-            ESP_LOGE(TAG, "Failed to set data channel callbacks via interface: 0x%08x", retStatus);
+            ESP_LOGE(TAG, "Failed to set data channel callbacks via interface: 0x%08" PRIx32, (UINT32) retStatus);
         }
     }
 
 CleanUp:
     if (STATUS_FAILED(retStatus)) {
-        ESP_LOGE(TAG, "Failed to set data channel callbacks: 0x%08x", retStatus);
+        ESP_LOGE(TAG, "Failed to set data channel callbacks: 0x%08" PRIx32, (UINT32) retStatus);
     }
     return retStatus;
 }
@@ -2656,7 +2690,7 @@ WEBRTC_STATUS app_webrtc_send_data_channel_message(const char *peer_id,
         if (gSampleConfiguration->webrtcSessionList[i] != NULL &&
             STRCMP(gSampleConfiguration->webrtcSessionList[i]->peerId, peer_id) == 0) {
             pStreamingSession = gSampleConfiguration->webrtcSessionList[i];
-            ESP_LOGD(TAG, "Found streaming session for peer: %s at index %u", peer_id, i);
+            ESP_LOGD(TAG, "Found streaming session for peer: %s at index %" PRIu32, peer_id, i);
             break;
         }
     }
@@ -2673,7 +2707,7 @@ WEBRTC_STATUS app_webrtc_send_data_channel_message(const char *peer_id,
 
     ESP_LOGD(TAG, "Sending data channel message via interface for peer: %s", peer_id);
     ESP_LOGD(TAG, "  - interface_session_handle: %p", pStreamingSession->interface_session_handle);
-    ESP_LOGD(TAG, "  - message length: %u", messageLen);
+    ESP_LOGD(TAG, "  - message length: %" PRIu32, messageLen);
 
     // Send the message using the peer connection interface
     retStatus = gWebRtcAppConfig.peer_connection_if->send_data_channel_message(
@@ -2686,7 +2720,7 @@ WEBRTC_STATUS app_webrtc_send_data_channel_message(const char *peer_id,
 
 CleanUp:
     if (STATUS_FAILED(retStatus)) {
-        ESP_LOGE(TAG, "Failed to send data channel message: 0x%08x", retStatus);
+        ESP_LOGE(TAG, "Failed to send data channel message: 0x%08" PRIx32, (UINT32) retStatus);
     }
     return retStatus;
 }

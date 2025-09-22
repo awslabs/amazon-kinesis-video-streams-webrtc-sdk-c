@@ -20,6 +20,7 @@ typedef struct {
     UINT64 prevNumberOfBytesReceived;
     UINT64 prevPacketsDiscardedOnSend;
     UINT64 prevTs;
+    UINT64 sessionStartTime;
 } RtcMetricsHistory, *PRtcMetricsHistory;
 
 /**

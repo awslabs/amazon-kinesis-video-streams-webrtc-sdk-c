@@ -9,8 +9,9 @@ menu "App WebRTC Configuration"
     config KVS_MAX_CONCURRENT_STREAMS
         int "Maximum concurrent streams"
         default 2
-        range 1 10
+        range 1 5
         help
-            Maximum number of concurrent WebRTC streams.
+            Maximum number of concurrent WebRTC streams. (Tested for MAX 3 with 16 MAX sockets setting)
+            Please increase max sockets from 10 to larger number if you wish to use higher simultaneous connections.
+            Note that more simultaneous connection means higher memory usage
 endmenu
-

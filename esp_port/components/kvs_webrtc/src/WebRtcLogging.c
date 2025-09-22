@@ -152,6 +152,10 @@ STATUS logIceCandidatePairStats(PRtcPeerConnection pPeerConnection, PRtcStats pR
     currentMeasureDuration = (pRtcStats->timestamp - pRtcMetricsHistory->prevTs) / HUNDREDS_OF_NANOS_IN_A_SECOND;
     DLOGD("Current duration: %" PRIu64 " seconds", currentMeasureDuration);
 
+    /* Calculate and log total peer connection time */
+    UINT64 totalConnectionTime = (pRtcStats->timestamp - pRtcMetricsHistory->sessionStartTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
+    DLOGD("Total peer connection time: %" PRIu64 " seconds", totalConnectionTime);
+
     if (currentMeasureDuration > 0) {
         // Log the candidate pair information
         DLOGD("Selected local candidate ID: %s", pRtcStats->rtcStatsObject.iceCandidatePairStats.localCandidateId);
