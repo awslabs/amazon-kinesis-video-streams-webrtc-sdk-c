@@ -12,14 +12,13 @@
 #include "freertos/queue.h"
 #include "MJPEGFrameGrabber.h"
 
-#if CONFIG_IDF_TARGET_ESP32S3
-#include "esp_camera.h"
-#include "app_camera_esp.h"
-
-#elif CONFIG_IDF_TARGET_ESP32P4
+#if CONFIG_IDF_TARGET_ESP32P4
 #include "driver/jpeg_encode.h"
 #include "esp_video_if.h"
 #include "esp_heap_caps.h"
+#else
+#include "esp_camera.h"
+#include "app_camera_esp.h"
 #endif
 
 static const char *TAG = "MJPEGFrameGrabber";
@@ -105,7 +104,8 @@ static void mjpeg_encoder_task(void *arg)
 
     while (1) {
         // Capture a frame
-#if CONFIG_IDF_TARGET_ESP32S3
+#if !CONFIG_IDF_TARGET_ESP32P4
+#if ESP_CAMERA_SUPPORTED
         // ESP32-S3 uses esp_camera
         camera_fb_t *fb = esp_camera_fb_get();
         if (!fb) {
@@ -139,7 +139,10 @@ static void mjpeg_encoder_task(void *arg)
 
         // Return the camera frame buffer
         esp_camera_fb_return(fb);
-
+#else
+        ESP_LOGE(TAG, "ESP Camera not supported for this target");
+        break;
+#endif
 #elif CONFIG_IDF_TARGET_ESP32P4
         // Get a frame using the ESP video interface
         video_fb_t *video_frame = esp_video_if_get_frame();
@@ -180,12 +183,14 @@ static void mjpeg_encoder_task(void *arg)
         frame->type = ESP_MJPEG_FRAME_TYPE_JPEG;
 #endif
 
+#if CONFIG_IDF_TARGET_ESP32P4 || ESP_CAMERA_SUPPORTED
         // Send frame to queue, with timeout
         if (xQueueSend(mjpeg_frame_queue, &frame, pdMS_TO_TICKS(100)) != pdTRUE) {
             ESP_LOGW(TAG, "Queue full, dropping frame");
             free(frame->buffer);
             free(frame);
         }
+#endif
 
         // Limit frame rate
         vTaskDelay(pdMS_TO_TICKS(33)); // ~30fps

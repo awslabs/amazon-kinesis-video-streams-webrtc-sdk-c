@@ -17,8 +17,10 @@
 #include "message_utils.h"
 #include "webrtc_bridge.h"
 
+#if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED
 #if defined(ENABLE_SIGNALLING_ONLY)
 #include "network_coprocessor.h"
+#endif
 #endif
 
 #define RECEIVED_MSG_BUF_SIZE (10 * 1024)

@@ -21,9 +21,9 @@
 
 static const char *TAG = "H264FrameGrabber";
 
-#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4
 #include "H264FrameGrabber.h"
 
+#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4
 #if CONFIG_IDF_TARGET_ESP32S3
 #include "app_camera_esp.h"
 #include "esp_h264_enc_single_sw.h"
@@ -378,10 +378,17 @@ esp_err_t h264_encoder_deinit(void)
 }
 #endif
 #else /* all other targets */
-void get_h264_encoded_frame(uint8_t *out_buf, uint32_t *frame_len)
+esp_err_t camera_and_encoder_init(video_capture_config_t *config)
+{
+    (void) config;
+    return ESP_ERR_NOT_SUPPORTED;
+}
+
+esp_h264_out_buf_t * get_h264_encoded_frame(uint8_t *out_buf, uint32_t *frame_len)
 {
     /* Dummy function which does nothing. Set the frame size to 0 */
     *frame_len = 0;
+    return NULL;
 }
 
 esp_err_t video_capture_set_bitrate(video_capture_handle_t handle, uint32_t bitrate_kbps)

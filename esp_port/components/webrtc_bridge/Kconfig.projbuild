@@ -1,9 +1,9 @@
 menu "WebRTC Bridge Config"
     choice WEBRTC_BRIDGE_TYPE
         bool "Bridge to use between streaming and signalling device"
-        default ESP_WEBRTC_BRIDGE_MQTT
         default ESP_WEBRTC_BRIDGE_HOSTED if IDF_TARGET_ESP32P4
         default ESP_WEBRTC_BRIDGE_HOSTED if IDF_TARGET_ESP32C6
+        default ESP_WEBRTC_BRIDGE_MQTT
         help
             Bus interface to be used for communication with the host
 
