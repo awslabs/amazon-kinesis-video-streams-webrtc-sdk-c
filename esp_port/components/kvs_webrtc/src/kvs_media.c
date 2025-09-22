@@ -28,6 +28,28 @@
 
 static const char *TAG = "kvs_media";
 
+/* Global media state following KVS official pattern */
+static struct {
+    void* client_data;                    // KVS client for session iteration
+    kvs_media_config_t config;           // Global media configuration
+    TID video_sender_tid;                // Global video thread
+    TID audio_sender_tid;                // Global audio thread
+    BOOL global_media_started;           // Global media threads running
+    BOOL terminated;                     // Global termination flag
+    MUTEX global_media_mutex;            // Protects global state
+
+    // Media capture handles (shared)
+    void* video_handle;
+    void* audio_handle;
+
+    // Frame buffers (shared across all sessions)
+    PBYTE video_frame_buffer;
+    PBYTE audio_frame_buffer;
+    UINT32 video_buffer_size;
+    UINT32 audio_buffer_size;
+    UINT64 frame_index;
+} g_global_media = {0};
+
 // Sample file fallback settings
 #define KVS_SAMPLE_VIDEO_FRAME_DURATION (HUNDREDS_OF_NANOS_IN_A_SECOND / 30)  // 30 FPS
 #define KVS_SAMPLE_AUDIO_FRAME_DURATION (20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)  // 20ms audio frames
@@ -37,15 +59,14 @@ static const char *TAG = "kvs_media";
 /* Forward declarations for internal functions */
 static STATUS kvs_media_setup_players(kvs_pc_session_t* session, kvs_media_config_t* config);
 static STATUS kvs_media_setup_frame_callbacks(kvs_pc_session_t* session);
-static PVOID kvs_media_transmission_routine(PVOID customData);
-static PVOID kvs_media_reception_routine(PVOID customData);
 
-/* Sample file fallback functions */
+/* Global media thread functions - following KVS official pattern */
+static PVOID kvs_global_video_sender_thread(PVOID args);
+static PVOID kvs_global_audio_sender_thread(PVOID args);
+static STATUS kvs_iterate_sessions_send_frame(Frame* frame, BOOL is_video);
+
+/* Sample file fallback functions (used by global threads) */
 static STATUS kvs_media_read_frame_from_disk(PBYTE pFrame, PUINT32 pSize, PCHAR frameFilePath);
-static PVOID kvs_media_send_video_samples(PVOID args);
-static PVOID kvs_media_send_audio_samples(PVOID args);
-static PVOID kvs_media_send_video_from_camera(PVOID args);
-static PVOID kvs_media_send_audio_from_mic(PVOID args);
 
 /* Sample file fallback functionality */
 
@@ -69,429 +90,455 @@ CleanUp:
     return retStatus;
 }
 
+// Note: Old per-session functions removed - replaced by global media threads
+
+// Note: Old per-session media functions removed - functionality moved to global threads
+
+/* Global media implementation following KVS official pattern */
+
 /**
- * @brief Thread function to send video frames from sample files
+ * @brief Initialize global media state (call once at startup)
  */
-static PVOID kvs_media_send_video_samples(PVOID args)
+STATUS kvs_media_init_shared_state(void)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    kvs_pc_session_t *session = (kvs_pc_session_t *) args;
+
+    CHK(!IS_VALID_MUTEX_VALUE(g_global_media.global_media_mutex), STATUS_INVALID_OPERATION);
+
+    // Clear the state first
+    MEMSET(&g_global_media, 0x00, SIZEOF(g_global_media));
+
+    // Then initialize properly
+    g_global_media.global_media_mutex = MUTEX_CREATE(FALSE);
+    CHK_ERR(IS_VALID_MUTEX_VALUE(g_global_media.global_media_mutex), STATUS_NOT_ENOUGH_MEMORY, "Failed to create global media mutex");
+
+    g_global_media.video_sender_tid = INVALID_TID_VALUE;
+    g_global_media.audio_sender_tid = INVALID_TID_VALUE;
+    g_global_media.global_media_started = FALSE;
+    g_global_media.terminated = FALSE;
+
+CleanUp:
+    return retStatus;
+}
+
+/**
+ * @brief Cleanup global media state (call once at shutdown)
+ */
+void kvs_media_cleanup_shared_state(void)
+{
+    if (IS_VALID_MUTEX_VALUE(g_global_media.global_media_mutex)) {
+        MUTEX_FREE(g_global_media.global_media_mutex);
+        g_global_media.global_media_mutex = INVALID_MUTEX_VALUE;
+    }
+
+    // Free global frame buffers
+    SAFE_MEMFREE(g_global_media.video_frame_buffer);
+    SAFE_MEMFREE(g_global_media.audio_frame_buffer);
+
+    MEMSET(&g_global_media, 0x00, SIZEOF(g_global_media));
+}
+
+/**
+ * @brief Global video sender thread - equivalent to sendVideoPackets in kvsWebRTCClientMaster.c
+ * Captures video frames and sends them to ALL active sessions
+ */
+static PVOID kvs_global_video_sender_thread(PVOID args)
+{
+    STATUS retStatus = STATUS_SUCCESS;
     Frame frame;
     UINT32 frameSize;
     CHAR filePath[KVS_MAX_PATH_LEN + 1];
     UINT64 startTime, lastFrameTime, elapsed;
-    CHK(session != NULL, STATUS_NULL_ARG);
-
-    frame.version = FRAME_CURRENT_VERSION;
-    frame.trackId = DEFAULT_VIDEO_TRACK_ID;
-    frame.duration = 0;
-    frame.index = 0;
-    frame.presentationTs = 0;
-
-    startTime = GETTIME();
-    lastFrameTime = startTime;
-
-    ESP_LOGI(TAG, "🎬 Sample video sender started for peer: %s", session->peer_id);
-
-    while (!session->terminated) {
-        // Read H.264 frame
-        SNPRINTF(filePath, KVS_MAX_PATH_LEN, "./h264SampleFrames/frame-%04" PRIu64 ".h264", (UINT64)session->frame_index);
-
-        CHK_STATUS(kvs_media_read_frame_from_disk(NULL, &frameSize, filePath));
-
-        // Re-alloc if needed
-        if (frameSize > session->video_buffer_size) {
-            CHK(NULL != (session->video_frame_buffer =
-                (PBYTE) REALLOC(session->video_frame_buffer, frameSize)), STATUS_NOT_ENOUGH_MEMORY);
-            session->video_buffer_size = frameSize;
-        }
-
-        frame.frameData = session->video_frame_buffer;
-        frame.size = frameSize;
-        CHK_STATUS(kvs_media_read_frame_from_disk(session->video_frame_buffer, &frameSize, filePath));
-
-        frame.index = (UINT32) ATOMIC_INCREMENT(&session->frame_index);
-
-        // Key frame every 45 frames
-        if (frame.index % 45 == 0) {
-            frame.flags = FRAME_FLAG_KEY_FRAME;
-        } else {
-            frame.flags = FRAME_FLAG_NONE;
-        }
-
-        // Send frame via video transceiver
-        if (session->video_transceiver != NULL) {
-            retStatus = writeFrame(session->video_transceiver, &frame);
-            if (STATUS_FAILED(retStatus)) {
-                ESP_LOGW(TAG, "writeFrame for video failed with 0x%08" PRIx32, retStatus);
-            }
-            if (retStatus == STATUS_SRTP_NOT_READY_YET) {
-                THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-                retStatus = STATUS_SUCCESS;
-            }
-        }
-
-        frame.presentationTs += KVS_SAMPLE_VIDEO_FRAME_DURATION;
-
-        // Simulate video frame rate
-        elapsed = GETTIME() - lastFrameTime;
-        if (elapsed < KVS_SAMPLE_VIDEO_FRAME_DURATION) {
-            THREAD_SLEEP(KVS_SAMPLE_VIDEO_FRAME_DURATION - elapsed);
-        }
-        lastFrameTime = GETTIME();
-    }
-
-CleanUp:
-    ESP_LOGI(TAG, "🛑 Sample video sender finished for peer: %s", session->peer_id);
-    CHK_LOG_ERR(retStatus);
-    return (PVOID) (ULONG_PTR) retStatus;
-}
-
-/**
- * @brief Thread function to send audio frames from sample files
- */
-static PVOID kvs_media_send_audio_samples(PVOID args)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    kvs_pc_session_t *session = (kvs_pc_session_t *) args;
-    Frame frame;
-    UINT32 frameSize;
-    CHAR filePath[KVS_MAX_PATH_LEN + 1];
-    UINT64 startTime, lastFrameTime, elapsed;
-    UINT32 audioIndex = 0;
-
-    CHK(session != NULL, STATUS_NULL_ARG);
-
-    frame.version = FRAME_CURRENT_VERSION;
-    frame.trackId = DEFAULT_AUDIO_TRACK_ID;
-    frame.duration = 0;
-    frame.index = 0;
-    frame.presentationTs = 0;
-
-    startTime = GETTIME();
-    lastFrameTime = startTime;
-
-    ESP_LOGI(TAG, "🎵 Sample audio sender started for peer: %s", session->peer_id);
-
-    while (!session->terminated) {
-        // Read OPUS frame
-        SNPRINTF(filePath, KVS_MAX_PATH_LEN, "./opusSampleFrames/sample-%03" PRIu32 ".opus", audioIndex);
-
-        CHK_STATUS(kvs_media_read_frame_from_disk(NULL, &frameSize, filePath));
-
-        // Re-alloc if needed
-        if (frameSize > session->audio_buffer_size) {
-            CHK(NULL != (session->audio_frame_buffer =
-                (PBYTE) REALLOC(session->audio_frame_buffer, frameSize)), STATUS_NOT_ENOUGH_MEMORY);
-            session->audio_buffer_size = frameSize;
-        }
-
-        frame.frameData = session->audio_frame_buffer;
-        frame.size = frameSize;
-        CHK_STATUS(kvs_media_read_frame_from_disk(session->audio_frame_buffer, &frameSize, filePath));
-
-        // Send frame via audio transceiver
-        if (session->audio_transceiver != NULL) {
-            retStatus = writeFrame(session->audio_transceiver, &frame);
-            if (STATUS_FAILED(retStatus)) {
-                ESP_LOGW(TAG, "writeFrame for audio failed with 0x%08" PRIx32, retStatus);
-            }
-            if (retStatus == STATUS_SRTP_NOT_READY_YET) {
-                THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-                retStatus = STATUS_SUCCESS;
-            }
-        }
-
-        frame.presentationTs += KVS_SAMPLE_AUDIO_FRAME_DURATION;
-        audioIndex = (audioIndex + 1) % KVS_NUMBER_OF_OPUS_FRAME_FILES;
-
-        // Simulate audio frame rate
-        elapsed = GETTIME() - lastFrameTime;
-        if (elapsed < KVS_SAMPLE_AUDIO_FRAME_DURATION) {
-            THREAD_SLEEP(KVS_SAMPLE_AUDIO_FRAME_DURATION - elapsed);
-        }
-        lastFrameTime = GETTIME();
-    }
-
-CleanUp:
-    ESP_LOGI(TAG, "🛑 Sample audio sender finished for peer: %s", session->peer_id);
-    CHK_LOG_ERR(retStatus);
-    return (PVOID) (ULONG_PTR) retStatus;
-}
-
-/* Media capture functions */
-
-/**
- * @brief Thread function to send video frames from camera
- */
-static PVOID kvs_media_send_video_from_camera(PVOID args)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    kvs_pc_session_t *session = (kvs_pc_session_t *) args;
     media_stream_video_capture_t *video_capture = NULL;
     video_frame_t *video_frame = NULL;
-    Frame frame;
     UINT64 refTime = GETTIME();
-    UINT64 nextFrameTime = refTime;
-    UINT32 fps = 30;
-    const UINT64 frame_duration_100ns = HUNDREDS_OF_NANOS_IN_A_SECOND / fps;
+    const UINT64 frame_duration_100ns = KVS_SAMPLE_VIDEO_FRAME_DURATION;
 
-    CHK(session != NULL, STATUS_NULL_ARG);
-    CHK(session->client->config.video_capture != NULL, STATUS_INTERNAL_ERROR);
+    ESP_LOGI(TAG, "Global video sender thread started");
 
-    video_capture = (media_stream_video_capture_t*)session->client->config.video_capture;
+    // Initialize capture interface if available
+    if (g_global_media.config.video_capture != NULL) {
+        video_capture = (media_stream_video_capture_t*)g_global_media.config.video_capture;
 
-    // Initialize video capture
-    video_capture_config_t video_config = {
-        .codec = VIDEO_CODEC_H264,
-        .resolution = {
-            .width = 640,
-            .height = 480,
-            .fps = fps
-        },
-        .quality = 80,
-        .bitrate = 500, // 500 kbps
-        .codec_specific = NULL
-    };
+        video_capture_config_t video_config = {
+            .codec = VIDEO_CODEC_H264,
+            .resolution = {
+                .width = 640,
+                .height = 480,
+                .fps = 30
+            },
+            .quality = 80,
+            .bitrate = 500,
+            .codec_specific = NULL
+        };
 
-    ESP_LOGI(TAG, "📹 Initializing video capture for peer: %s", session->peer_id);
-    CHK(video_capture->init(&video_config, &session->video_handle) == ESP_OK, STATUS_INTERNAL_ERROR);
-    CHK(video_capture->start(session->video_handle) == ESP_OK, STATUS_INTERNAL_ERROR);
+        ESP_LOGI(TAG, "Initializing global video capture");
+        if (video_capture->init(&video_config, &g_global_media.video_handle) != ESP_OK ||
+            video_capture->start(g_global_media.video_handle) != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to initialize video capture - falling back to samples");
+            video_capture = NULL;
+        }
+    }
 
     frame.version = FRAME_CURRENT_VERSION;
     frame.trackId = DEFAULT_VIDEO_TRACK_ID;
     frame.duration = 0;
+    frame.index = 0;
+    frame.presentationTs = 0;
 
-    nextFrameTime = GETTIME();
-    UINT64 currentTime = GETTIME();
+    startTime = GETTIME();
+    lastFrameTime = startTime;
 
-    ESP_LOGI(TAG, "📹 Camera video transmission started for peer: %s", session->peer_id);
+    while (!g_global_media.terminated) {
+        BOOL frame_available = FALSE;
 
-    // Send frames until terminated
-    while (!session->terminated) {
-        // Sleep until next frame time for consistent pacing
-        if (currentTime < nextFrameTime) {
-            THREAD_SLEEP(nextFrameTime - currentTime);
-            currentTime = nextFrameTime; // Use scheduled time for timestamp consistency
+        if (video_capture != NULL) {
+            // Get frame from camera
+            if (video_capture->get_frame(g_global_media.video_handle, &video_frame, 0) == ESP_OK && video_frame != NULL) {
+                frame.frameData = video_frame->buffer;
+                frame.size = video_frame->len;
+                frame.flags = (video_frame->type == VIDEO_FRAME_TYPE_I) ? FRAME_FLAG_KEY_FRAME : FRAME_FLAG_NONE;
+                frame_available = TRUE;
+            }
+    } else {
+            // Fall back to sample files
+            SNPRINTF(filePath, KVS_MAX_PATH_LEN, "./h264SampleFrames/frame-%04" PRIu64 ".h264",
+                     (UINT64)(g_global_media.frame_index % 300 + 1));
+
+            if (kvs_media_read_frame_from_disk(NULL, &frameSize, filePath) == STATUS_SUCCESS) {
+                // Re-alloc if needed
+                if (frameSize > g_global_media.video_buffer_size) {
+                    g_global_media.video_frame_buffer = (PBYTE) REALLOC(g_global_media.video_frame_buffer, frameSize);
+                    if (g_global_media.video_frame_buffer != NULL) {
+                        g_global_media.video_buffer_size = frameSize;
+                    }
+                }
+
+                if (g_global_media.video_frame_buffer != NULL &&
+                    kvs_media_read_frame_from_disk(g_global_media.video_frame_buffer, &frameSize, filePath) == STATUS_SUCCESS) {
+                    frame.frameData = g_global_media.video_frame_buffer;
+                    frame.size = frameSize;
+                    frame.flags = (g_global_media.frame_index % 45 == 0) ? FRAME_FLAG_KEY_FRAME : FRAME_FLAG_NONE;
+                    frame_available = TRUE;
+                }
+            }
         }
 
-        // Get frame from capture interface
-        if (video_capture->get_frame(session->video_handle, &video_frame, 0) == ESP_OK && video_frame != NULL) {
-            frame.frameData = video_frame->buffer;
-            frame.size = video_frame->len;
-            frame.presentationTs = currentTime - refTime;
-            frame.decodingTs = frame.presentationTs;
-            frame.index++;
+        if (frame_available) {
+            frame.index = (UINT32) ATOMIC_INCREMENT(&g_global_media.frame_index);
+            frame.presentationTs += frame_duration_100ns;
 
-            // Set key frame flag if needed
-            if (video_frame->type == VIDEO_FRAME_TYPE_I) {
-                frame.flags = FRAME_FLAG_KEY_FRAME;
-            } else {
-                frame.flags = FRAME_FLAG_NONE;
+            // Send frame to ALL sessions (KVS official pattern)
+            STATUS send_status = kvs_iterate_sessions_send_frame(&frame, TRUE);
+            if (STATUS_FAILED(send_status)) {
+                ESP_LOGW(TAG, "Failed to send frame to sessions: 0x%08x", send_status);
             }
 
-            // Send frame via video transceiver
-            if (session->video_transceiver != NULL) {
-                retStatus = writeFrame(session->video_transceiver, &frame);
-                if (STATUS_FAILED(retStatus)) {
-                    ESP_LOGW(TAG, "writeFrame for video failed with 0x%08" PRIx32, retStatus);
-                }
-                if (retStatus == STATUS_SRTP_NOT_READY_YET) {
-                    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-                    retStatus = STATUS_SUCCESS;
-                }
+            // Release camera frame if used
+            if (video_capture != NULL && video_frame != NULL) {
+                video_capture->release_frame(g_global_media.video_handle, video_frame);
+                video_frame = NULL;
             }
-
-            // Release the frame
-            video_capture->release_frame(session->video_handle, video_frame);
         }
 
-        // Calculate next frame time (maintain FPS)
-        nextFrameTime += frame_duration_100ns;
-        currentTime = GETTIME();
-        // Handle case where we've fallen behind schedule
-        if (nextFrameTime <= currentTime) {
-            nextFrameTime = currentTime + frame_duration_100ns / 2;
+        // Frame rate control
+        elapsed = GETTIME() - lastFrameTime;
+        if (elapsed < frame_duration_100ns) {
+            THREAD_SLEEP(frame_duration_100ns - elapsed);
         }
+        lastFrameTime = GETTIME();
     }
 
-CleanUp:
-    if (session->video_handle != NULL && video_capture != NULL) {
-        video_capture->stop(session->video_handle);
-        video_capture->deinit(session->video_handle);
-        session->video_handle = NULL;
+    // Cleanup
+    if (video_capture != NULL && g_global_media.video_handle != NULL) {
+        video_capture->stop(g_global_media.video_handle);
+        video_capture->deinit(g_global_media.video_handle);
+        g_global_media.video_handle = NULL;
     }
 
-    ESP_LOGI(TAG, "🛑 Camera video transmission finished for peer: %s", session->peer_id);
+    ESP_LOGI(TAG, "Global video sender thread finished");
     return (PVOID) (ULONG_PTR) retStatus;
 }
 
 /**
- * @brief Thread function to send audio frames from microphone
+ * @brief Global audio sender thread - equivalent to sendAudioPackets in kvsWebRTCClientMaster.c
+ * Captures audio frames and sends them to ALL active sessions
  */
-static PVOID kvs_media_send_audio_from_mic(PVOID args)
+static PVOID kvs_global_audio_sender_thread(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    kvs_pc_session_t *session = (kvs_pc_session_t *) args;
+    Frame frame;
+    UINT32 frameSize;
+    CHAR filePath[KVS_MAX_PATH_LEN + 1];
+    UINT64 lastFrameTime;
     media_stream_audio_capture_t *audio_capture = NULL;
     audio_frame_t *audio_frame = NULL;
-    Frame frame;
-    UINT64 refTime = GETTIME();
-    UINT64 nextFrameTime = refTime;
-    UINT32 frameDurationMs = 20;
+    UINT32 audioIndex = 0;
+    const UINT64 frame_duration_100ns = KVS_SAMPLE_AUDIO_FRAME_DURATION;
 
-    CHK(session != NULL, STATUS_NULL_ARG);
-    CHK(session->client->config.audio_capture != NULL, STATUS_INTERNAL_ERROR);
+    ESP_LOGI(TAG, "Global audio sender thread started");
 
-    audio_capture = (media_stream_audio_capture_t*)session->client->config.audio_capture;
+    // Initialize capture interface if available
+    if (g_global_media.config.audio_capture != NULL) {
+        audio_capture = (media_stream_audio_capture_t*)g_global_media.config.audio_capture;
 
-    // Initialize audio capture
-    audio_capture_config_t audio_config = {
-        .codec = AUDIO_CODEC_OPUS,
-        .format = {
-            .sample_rate = 16000,
-            .channels = 1,
-            .bits_per_sample = 16
-        },
-        .bitrate = 16000,
-        .frame_duration_ms = frameDurationMs,
-        .codec_specific = NULL
-    };
+        audio_capture_config_t audio_config = {
+            .codec = AUDIO_CODEC_OPUS,
+            .format = {
+                .sample_rate = 16000,
+                .channels = 1,
+                .bits_per_sample = 16
+            },
+            .bitrate = 16000,
+            .frame_duration_ms = 20,
+            .codec_specific = NULL
+        };
 
-    ESP_LOGI(TAG, "🎵 Initializing audio capture for peer: %s", session->peer_id);
-    CHK(audio_capture->init(&audio_config, &session->audio_handle) == ESP_OK, STATUS_INTERNAL_ERROR);
-    CHK(audio_capture->start(session->audio_handle) == ESP_OK, STATUS_INTERNAL_ERROR);
+        ESP_LOGI(TAG, "Initializing global audio capture");
+        if (audio_capture->init(&audio_config, &g_global_media.audio_handle) != ESP_OK ||
+            audio_capture->start(g_global_media.audio_handle) != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to initialize audio capture - falling back to samples");
+            audio_capture = NULL;
+        }
+    }
 
     frame.version = FRAME_CURRENT_VERSION;
     frame.trackId = DEFAULT_AUDIO_TRACK_ID;
     frame.duration = 0;
     frame.index = 0;
     frame.flags = FRAME_FLAG_NONE;
+    frame.presentationTs = 0;
 
-    nextFrameTime = GETTIME();
-    UINT64 currentTime = GETTIME();
+    lastFrameTime = GETTIME();
 
-    ESP_LOGI(TAG, "🎵 Microphone audio transmission started for peer: %s", session->peer_id);
+    while (!g_global_media.terminated) {
+        BOOL frame_available = FALSE;
 
-    while (!session->terminated) {
-        // Get frame from capture interface
-        // Sleep until next frame time for consistent pacing
-        if (currentTime < nextFrameTime) {
-            THREAD_SLEEP(nextFrameTime - currentTime);
-            currentTime = nextFrameTime; // Use scheduled time for timestamp consistency
-        }
+        if (audio_capture != NULL) {
+            // Get frame from microphone
+            if (audio_capture->get_frame(g_global_media.audio_handle, &audio_frame, 0) == ESP_OK && audio_frame != NULL) {
+                frame.frameData = audio_frame->buffer;
+                frame.size = audio_frame->len;
+                frame_available = TRUE;
+            }
+    } else {
+            // Fall back to sample files
+            SNPRINTF(filePath, KVS_MAX_PATH_LEN, "./opusSampleFrames/sample-%03u.opus", audioIndex + 1);
 
-        if (audio_capture->get_frame(session->audio_handle, &audio_frame, 0) == ESP_OK && audio_frame != NULL) {
-            frame.frameData = audio_frame->buffer;
-            frame.size = audio_frame->len;
-            frame.presentationTs = currentTime - refTime;
-            frame.decodingTs = frame.presentationTs;
-            frame.index++;
-
-            // Send frame via audio transceiver
-            if (session->audio_transceiver != NULL) {
-                retStatus = writeFrame(session->audio_transceiver, &frame);
-                if (STATUS_FAILED(retStatus)) {
-                    ESP_LOGW(TAG, "writeFrame for audio failed with 0x%08" PRIx32, retStatus);
+            if (kvs_media_read_frame_from_disk(NULL, &frameSize, filePath) == STATUS_SUCCESS) {
+                // Re-alloc if needed
+                if (frameSize > g_global_media.audio_buffer_size) {
+                    g_global_media.audio_frame_buffer = (PBYTE) REALLOC(g_global_media.audio_frame_buffer, frameSize);
+                    if (g_global_media.audio_frame_buffer != NULL) {
+                        g_global_media.audio_buffer_size = frameSize;
+                    }
                 }
-                if (retStatus == STATUS_SRTP_NOT_READY_YET) {
-                    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-                    retStatus = STATUS_SUCCESS;
+
+                if (g_global_media.audio_frame_buffer != NULL &&
+                    kvs_media_read_frame_from_disk(g_global_media.audio_frame_buffer, &frameSize, filePath) == STATUS_SUCCESS) {
+                    frame.frameData = g_global_media.audio_frame_buffer;
+                    frame.size = frameSize;
+                    frame_available = TRUE;
+                    audioIndex = (audioIndex + 1) % KVS_NUMBER_OF_OPUS_FRAME_FILES;
                 }
             }
-
-            // Release the frame
-            audio_capture->release_frame(session->audio_handle, audio_frame);
         }
 
-        // Schedule next frame with precise timing
-        nextFrameTime += frameDurationMs * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
-        // Handle case where we've fallen behind schedule
-        currentTime = GETTIME();
-        if (nextFrameTime <= currentTime) {
-            nextFrameTime = currentTime + frameDurationMs * HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 2;
+        if (frame_available) {
+            frame.presentationTs += frame_duration_100ns;
+
+            // Send frame to ALL sessions (KVS official pattern)
+            kvs_iterate_sessions_send_frame(&frame, FALSE);
+
+            // Release microphone frame if used
+            if (audio_capture != NULL && audio_frame != NULL) {
+                audio_capture->release_frame(g_global_media.audio_handle, audio_frame);
+                audio_frame = NULL;
+            }
         }
+
+        // Frame rate control
+        THREAD_SLEEP(frame_duration_100ns);
+        lastFrameTime = GETTIME();
     }
 
-CleanUp:
-    if (session->audio_handle != NULL && audio_capture != NULL) {
-        audio_capture->stop(session->audio_handle);
-        audio_capture->deinit(session->audio_handle);
-        session->audio_handle = NULL;
+    // Cleanup
+    if (audio_capture != NULL && g_global_media.audio_handle != NULL) {
+        audio_capture->stop(g_global_media.audio_handle);
+        audio_capture->deinit(g_global_media.audio_handle);
+        g_global_media.audio_handle = NULL;
     }
 
-    ESP_LOGI(TAG, "🛑 Microphone audio transmission finished for peer: %s", session->peer_id);
+    ESP_LOGI(TAG, "Global audio sender thread finished");
     return (PVOID) (ULONG_PTR) retStatus;
 }
 
-/* Public API implementations */
-
 /**
- * @brief Main media transmission routine - equivalent to mediaSenderRoutine in app_webrtc_media.c
+ * @brief Callback function for session iteration - called for each active session
+ * This implements the writeFrame call from the official KVS pattern
  */
-static PVOID kvs_media_transmission_routine(PVOID customData)
+static STATUS kvs_session_frame_callback(UINT64 callerData, PHashEntry pHashEntry)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    kvs_pc_session_t *session = (kvs_pc_session_t *)(ULONG_PTR)customData;
-    TID videoSenderTid = INVALID_TID_VALUE, audioSenderTid = INVALID_TID_VALUE;
+    Frame* frame = (Frame*)callerData;
+    kvs_pc_session_t* session = NULL;
+    STATUS writeStatus;
 
-    CHK(session != NULL, STATUS_NULL_ARG);
+    CHK(frame != NULL && pHashEntry != NULL, STATUS_NULL_ARG);
 
-    ESP_LOGI(TAG, "🚀 Media transmission routine started for peer: %s", session->peer_id);
+    session = (kvs_pc_session_t*)pHashEntry->value;
+    CHK(session != NULL && !session->terminated, STATUS_NULL_ARG);
 
-    // Wait for connection to be established
-    while (!session->media_started && !session->terminated) {
-        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);  // 100ms
+    // Determine which transceiver to use based on frame track ID
+    PRtcRtpTransceiver transceiver = NULL;
+    if (frame->trackId == DEFAULT_VIDEO_TRACK_ID) {
+        transceiver = session->video_transceiver;
+    } else if (frame->trackId == DEFAULT_AUDIO_TRACK_ID) {
+        transceiver = session->audio_transceiver;
     }
 
-    if (session->terminated) {
-        ESP_LOGI(TAG, "🛑 Media transmission terminated before connection established");
-        goto CleanUp;
-    }
-
-    ESP_LOGI(TAG, "✅ Connection established, starting media transmission for peer: %s", session->peer_id);
-
-    // Start video transmission if available
-    if (session->client->config.video_capture != NULL) {
-        ESP_LOGI(TAG, "📹 Starting video transmission from camera for peer: %s", session->peer_id);
-        CHK_STATUS(THREAD_CREATE_EX_EXT(&videoSenderTid, "kvsVideoSender", 8 * 1024, TRUE,
-                                       kvs_media_send_video_from_camera, (PVOID) session));
-    } else {
-        // Fall back to sample files if no capture interface is available
-        ESP_LOGI(TAG, "📹 Starting video transmission from sample files for peer: %s (fallback)", session->peer_id);
-        CHK_STATUS(THREAD_CREATE_EX_EXT(&videoSenderTid, "kvsVideoSampleSender", 8 * 1024, TRUE,
-                                       kvs_media_send_video_samples, (PVOID) session));
-    }
-
-    // Start audio transmission if available
-    if (session->client->config.audio_capture != NULL) {
-        ESP_LOGI(TAG, "🎵 Starting audio transmission from microphone for peer: %s", session->peer_id);
-        CHK_STATUS(THREAD_CREATE_EX_EXT(&audioSenderTid, "kvsAudioSender", 8 * 1024, TRUE,
-                                       kvs_media_send_audio_from_mic, (PVOID) session));
-    } else {
-        // Fall back to sample files if no capture interface is available
-        ESP_LOGI(TAG, "🎵 Starting audio transmission from sample files for peer: %s (fallback)", session->peer_id);
-        CHK_STATUS(THREAD_CREATE_EX_EXT(&audioSenderTid, "kvsAudioSampleSender", 8 * 1024, TRUE,
-                                       kvs_media_send_audio_samples, (PVOID) session));
-    }
-
-    // Wait for termination
-    while (!session->terminated) {
-        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);  // 100ms
-    }
-
-    // Wait for media threads to complete
-    if (IS_VALID_TID_VALUE(videoSenderTid)) {
-        THREAD_JOIN(videoSenderTid, NULL);
-    }
-    if (IS_VALID_TID_VALUE(audioSenderTid)) {
-        THREAD_JOIN(audioSenderTid, NULL);
+    if (transceiver != NULL) {
+        writeStatus = writeFrame(transceiver, frame);
+        if (writeStatus != STATUS_SUCCESS && writeStatus != STATUS_SRTP_NOT_READY_YET) {
+            ESP_LOGW(TAG, "writeFrame failed for session %s: 0x%08x", session->peer_id, writeStatus);
+        }
+        // Don't propagate SRTP_NOT_READY as error - it's expected during connection setup
+        retStatus = STATUS_SUCCESS;
     }
 
 CleanUp:
-    ESP_LOGI(TAG, "🛑 Media transmission routine finished for peer: %s", session->peer_id);
-    CHK_LOG_ERR(retStatus);
-    return NULL;
+    return retStatus;
+}
+
+/**
+ * @brief Iterate through all active sessions and send frame - equivalent to kvsWebRTCClientMaster.c loop
+ * This is the KEY function that implements the official KVS pattern
+ */
+static STATUS kvs_iterate_sessions_send_frame(Frame* frame, BOOL is_video)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(frame != NULL, STATUS_NULL_ARG);
+    CHK(g_global_media.client_data != NULL, STATUS_INVALID_OPERATION);
+
+    // Get client data to access active sessions
+    kvs_pc_client_t* client = (kvs_pc_client_t*)g_global_media.client_data;
+    CHK(client != NULL && client->activeSessions != NULL, STATUS_NULL_ARG);
+
+    // Protect against race condition with session destruction by using the session count mutex
+    if (!IS_VALID_MUTEX_VALUE(client->session_count_mutex)) {
+        retStatus = STATUS_INVALID_OPERATION;
+        goto CleanUp;
+    }
+
+    MUTEX_LOCK(client->session_count_mutex);
+
+    // Check if we still have active sessions after acquiring the lock
+    if (client->session_count == 0) {
+        MUTEX_UNLOCK(client->session_count_mutex);
+        retStatus = STATUS_SUCCESS; // Not an error, just no sessions to send to
+        goto CleanUp;
+    }
+
+    // Use the official KVS pattern: iterate through sessions and call writeFrame for each
+    // This is equivalent to the loop in kvsWebRTCClientMaster.c
+    retStatus = hashTableIterateEntries(client->activeSessions, (UINT64)frame, kvs_session_frame_callback);
+
+    MUTEX_UNLOCK(client->session_count_mutex);
+
+CleanUp:
+    return retStatus;
+}
+
+/* Public API implementations following KVS official pattern */
+
+/**
+ * @brief Start global media transmission threads (called once at client level)
+ */
+STATUS kvs_media_start_global_transmission(void* client_data, kvs_media_config_t* config)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(client_data != NULL && config != NULL, STATUS_NULL_ARG);
+    CHK(IS_VALID_MUTEX_VALUE(g_global_media.global_media_mutex), STATUS_INVALID_OPERATION);
+
+    MUTEX_LOCK(g_global_media.global_media_mutex);
+
+    if (g_global_media.global_media_started) {
+        ESP_LOGI(TAG, "Global media threads already started");
+        goto CleanUp;
+    }
+
+    // Store client data and configuration
+    g_global_media.client_data = client_data;
+    MEMCPY(&g_global_media.config, config, SIZEOF(kvs_media_config_t));
+    g_global_media.terminated = FALSE;
+
+    ESP_LOGI(TAG, "Starting global media threads (KVS official pattern)");
+
+    // Start global video thread
+    if (config->video_capture != NULL || config->enable_sample_fallback) {
+        CHK_STATUS(THREAD_CREATE_EX_EXT(&g_global_media.video_sender_tid, "kvsGlobalVideo", 8 * 1024, TRUE,
+                                       kvs_global_video_sender_thread, NULL));
+        ESP_LOGI(TAG, "Global video sender thread started");
+    }
+
+    // Start global audio thread
+    if (config->audio_capture != NULL || config->enable_sample_fallback) {
+        CHK_STATUS(THREAD_CREATE_EX_EXT(&g_global_media.audio_sender_tid, "kvsGlobalAudio", 8 * 1024, TRUE,
+                                       kvs_global_audio_sender_thread, NULL));
+        ESP_LOGI(TAG, "Global audio sender thread started");
+    }
+
+    g_global_media.global_media_started = TRUE;
+    ESP_LOGI(TAG, "Global media transmission started successfully");
+
+CleanUp:
+    MUTEX_UNLOCK(g_global_media.global_media_mutex);
+    return retStatus;
+}
+
+/**
+ * @brief Stop global media transmission threads
+ */
+STATUS kvs_media_stop_global_transmission(void* client_data)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(client_data != NULL, STATUS_NULL_ARG);
+    CHK(IS_VALID_MUTEX_VALUE(g_global_media.global_media_mutex), STATUS_INVALID_OPERATION);
+
+    MUTEX_LOCK(g_global_media.global_media_mutex);
+
+    if (!g_global_media.global_media_started) {
+        ESP_LOGI(TAG, "Global media threads not running");
+        goto CleanUp;
+    }
+
+    ESP_LOGI(TAG, "Stopping global media threads");
+
+    // Signal termination
+    g_global_media.terminated = TRUE;
+
+    // Wait for threads to complete
+    if (IS_VALID_TID_VALUE(g_global_media.video_sender_tid)) {
+        THREAD_JOIN(g_global_media.video_sender_tid, NULL);
+        g_global_media.video_sender_tid = INVALID_TID_VALUE;
+        ESP_LOGI(TAG, "Global video thread stopped");
+    }
+
+    if (IS_VALID_TID_VALUE(g_global_media.audio_sender_tid)) {
+        THREAD_JOIN(g_global_media.audio_sender_tid, NULL);
+        g_global_media.audio_sender_tid = INVALID_TID_VALUE;
+        ESP_LOGI(TAG, "Global audio thread stopped");
+    }
+
+    g_global_media.global_media_started = FALSE;
+    ESP_LOGI(TAG, "Global media transmission stopped successfully");
+
+CleanUp:
+    MUTEX_UNLOCK(g_global_media.global_media_mutex);
+    return retStatus;
 }
 
 /**
@@ -512,11 +559,11 @@ static PVOID kvs_media_reception_routine(PVOID customData)
     }
 
     if (session->terminated) {
-        ESP_LOGI(TAG, "🛑 Media reception terminated before connection established");
+        ESP_LOGI(TAG, "Media reception terminated before connection established");
         goto CleanUp;
     }
 
-    ESP_LOGI(TAG, "✅ Setting up media reception for peer: %s", session->peer_id);
+    ESP_LOGI(TAG, "Setting up media reception for peer: %s", session->peer_id);
 
     // Setup media players and frame callbacks happens in kvs_media_start_reception
     // This thread just stays alive while reception is active
@@ -525,32 +572,12 @@ static PVOID kvs_media_reception_routine(PVOID customData)
     }
 
 CleanUp:
-    ESP_LOGI(TAG, "🛑 Media reception routine finished for peer: %s", session->peer_id);
+    ESP_LOGI(TAG, "Media reception routine finished for peer: %s", session->peer_id);
     CHK_LOG_ERR(retStatus);
     return NULL;
 }
 
-STATUS kvs_media_start_transmission(kvs_pc_session_t* session, kvs_media_config_t* config)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-
-    CHK(session != NULL && config != NULL, STATUS_NULL_ARG);
-
-    // Copy media config to session for access by media threads
-    session->client->config.video_capture = config->video_capture;
-    session->client->config.audio_capture = config->audio_capture;
-
-    // Start the main media transmission routine
-    if (config->video_capture != NULL || config->audio_capture != NULL || config->enable_sample_fallback) {
-        CHK_STATUS(THREAD_CREATE_EX_EXT(&session->media_sender_tid, "kvs_mediaSender", 6 * 1024, TRUE,
-                                       kvs_media_transmission_routine, (PVOID)session));
-        session->media_sender_thread_started = TRUE;
-        session->media_threads_started = TRUE;
-    }
-
-CleanUp:
-    return retStatus;
-}
+// Note: kvs_media_start_transmission() removed - replaced with global transmission
 
 STATUS kvs_media_start_reception(kvs_pc_session_t* session, kvs_media_config_t* config)
 {
@@ -580,27 +607,22 @@ CleanUp:
     return retStatus;
 }
 
-STATUS kvs_media_stop(kvs_pc_session_t* session)
+STATUS kvs_media_stop_session(kvs_pc_session_t* session)
 {
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(session != NULL, STATUS_NULL_ARG);
 
-    // Mark session as terminated to stop all media threads
+    // Mark session as terminated (global media threads handle transmission termination separately)
     session->terminated = TRUE;
 
-    // Wait for media threads to complete
-    if (session->media_sender_thread_started && IS_VALID_TID_VALUE(session->media_sender_tid)) {
-        THREAD_JOIN(session->media_sender_tid, NULL);
-        session->media_sender_thread_started = FALSE;
-    }
-
+    // Wait for session-specific receive thread to complete
     if (session->receive_thread_started && IS_VALID_TID_VALUE(session->receive_audio_video_tid)) {
         THREAD_JOIN(session->receive_audio_video_tid, NULL);
         session->receive_thread_started = FALSE;
     }
 
-    // Cleanup media players
+    // Cleanup media players (session-specific)
     if (session->client->config.video_player != NULL && session->video_player_handle != NULL) {
         media_stream_video_player_t *video_player = (media_stream_video_player_t*)session->client->config.video_player;
         video_player->stop(session->video_player_handle);
@@ -615,11 +637,8 @@ STATUS kvs_media_stop(kvs_pc_session_t* session)
         session->audio_player_handle = NULL;
     }
 
-    // Free media buffers
-    SAFE_MEMFREE(session->video_frame_buffer);
-    SAFE_MEMFREE(session->audio_frame_buffer);
-    session->video_buffer_size = 0;
-    session->audio_buffer_size = 0;
+    // Session-specific frame buffers are now handled by global threads
+    // No per-session cleanup needed
 
 CleanUp:
     return retStatus;

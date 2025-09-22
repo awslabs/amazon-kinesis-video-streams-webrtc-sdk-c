@@ -63,6 +63,11 @@ typedef struct {
     // Statistics tracking
     bool enable_metrics;
 
+    // Global media management (KVS official pattern)
+    bool global_media_started;           // Global media threads running
+    UINT32 session_count;                // Active session count
+    MUTEX session_count_mutex;           // Protects session count
+
     // Event handler callback
     void (*event_handler)(app_webrtc_event_t event_id, UINT32 status_code, PCHAR peer_id, PCHAR message);
 } kvs_pc_client_t;

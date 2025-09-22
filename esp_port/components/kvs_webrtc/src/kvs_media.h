@@ -33,6 +33,18 @@ extern "C" {
 typedef struct kvs_pc_session_s kvs_pc_session_t;
 
 /**
+ * @brief Reference counting structure for shared media capture interfaces
+ */
+typedef struct {
+    void* video_capture;          // Video capture interface pointer
+    void* audio_capture;          // Audio capture interface pointer
+    int video_ref_count;          // Number of sessions using video capture
+    int audio_ref_count;          // Number of sessions using audio capture
+    bool video_initialized;       // Whether video capture is initialized
+    bool audio_initialized;       // Whether audio capture is initialized
+} kvs_media_shared_state_t;
+
+/**
  * @brief Media transmission configuration
  */
 typedef struct {
@@ -48,17 +60,24 @@ typedef struct {
 } kvs_media_config_t;
 
 /**
- * @brief Start media transmission for a session
+ * @brief Start global media transmission threads (call once at client level)
  *
- * This starts both video and audio transmission threads based on the
- * available interfaces. Falls back to sample files if no capture
- * interfaces are available.
+ * This starts global video and audio transmission threads that serve
+ * all sessions. Follows the official KVS pattern from kvsWebRTCClientMaster.c
  *
- * @param session Session to start media for
+ * @param client_data Client to start global media for
  * @param config Media configuration
  * @return STATUS_SUCCESS on success, error code on failure
  */
-STATUS kvs_media_start_transmission(kvs_pc_session_t* session, kvs_media_config_t* config);
+STATUS kvs_media_start_global_transmission(void* client_data, kvs_media_config_t* config);
+
+/**
+ * @brief Stop global media transmission threads
+ *
+ * @param client_data Client to stop global media for
+ * @return STATUS_SUCCESS on success, error code on failure
+ */
+STATUS kvs_media_stop_global_transmission(void* client_data);
 
 /**
  * @brief Start media reception for a session
@@ -73,14 +92,14 @@ STATUS kvs_media_start_transmission(kvs_pc_session_t* session, kvs_media_config_
 STATUS kvs_media_start_reception(kvs_pc_session_t* session, kvs_media_config_t* config);
 
 /**
- * @brief Stop media transmission and reception for a session
+ * @brief Stop media reception for a session (global transmission handled separately)
  *
- * This stops all media threads and cleans up media resources.
+ * This stops session-specific reception and cleans up media resources.
  *
  * @param session Session to stop media for
  * @return STATUS_SUCCESS on success, error code on failure
  */
-STATUS kvs_media_stop(kvs_pc_session_t* session);
+STATUS kvs_media_stop_session(kvs_pc_session_t* session);
 
 /**
  * @brief Video frame handler for received frames
@@ -113,6 +132,16 @@ VOID kvs_media_audio_frame_handler(UINT64 customData, PFrame pFrame);
  * @param session Session to print stats for
  */
 void kvs_media_print_stats(kvs_pc_session_t* session);
+
+/**
+ * @brief Initialize global media state (call once at startup)
+ */
+STATUS kvs_media_init_shared_state(void);
+
+/**
+ * @brief Cleanup global media state (call once at shutdown)
+ */
+void kvs_media_cleanup_shared_state(void);
 
 #ifdef __cplusplus
 }

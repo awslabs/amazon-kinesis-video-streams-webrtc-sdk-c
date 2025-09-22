@@ -344,7 +344,9 @@ static STATUS kvsErrorCallback(UINT64 customData, STATUS status, PCHAR errorMsg,
 
     // Call user callback if set
     if (pClientData->on_error != NULL) {
-        return pClientData->on_error((UINT64)pClientData->customData, status, errorMsg, errorMsgLen);
+        /* Convert KVS status to WEBRTC status before forwarding to user callback */
+        WEBRTC_STATUS webrtcStatus = mapKvsErrorToWebrtcStatus(status);
+        return pClientData->on_error((UINT64)pClientData->customData, webrtcStatus, errorMsg, errorMsgLen);
     }
 
     return STATUS_SUCCESS;
