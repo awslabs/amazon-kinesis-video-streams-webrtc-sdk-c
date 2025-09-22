@@ -8,7 +8,9 @@
 
 #include <esp_console.h>
 #include <esp_log.h>
+#if CONFIG_IDF_TARGET_ESP32C6
 #include "host_power_save.h"
+#endif
 
 static const char *TAG = "sleep_cmd";
 

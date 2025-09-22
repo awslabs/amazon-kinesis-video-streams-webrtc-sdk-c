@@ -407,6 +407,12 @@ esp_err_t opus_encoder_deinit_internal(void)
     return ESP_OK;
 }
 #else
+void *opus_encoder_init_internal(audio_capture_config_t *config)
+{
+    (void) config;
+    return NULL;
+}
+
 esp_opus_out_buf_t *get_opus_encoded_frame()
 {
   return NULL;

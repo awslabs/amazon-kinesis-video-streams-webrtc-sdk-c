@@ -7,12 +7,14 @@
 #include "esp_log.h"
 #include "string.h"
 #include "stdlib.h"
-#include "network_coprocessor.h"
 #include "webrtc_bridge.h"
 #include "app_webrtc.h"
 #include "signaling_bridge_adapter.h"
 #include "bridge_peer_connection.h"
 #include "signaling_serializer.h"
+#if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED
+#include "network_coprocessor.h"
+#endif
 
 static const char *TAG = "signaling_bridge_adapter";
 
@@ -131,8 +133,10 @@ WEBRTC_STATUS signaling_bridge_adapter_init(const signaling_bridge_adapter_confi
     ESP_LOGI(TAG, "Registered bridge message handler");
 
     // Register RPC handler with network coprocessor for ICE server queries
+#if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED
     network_coprocessor_register_ice_server_query_callback(signaling_bridge_adapter_rpc_handler);
     ESP_LOGI(TAG, "Registered ICE server RPC handler");
+#endif
 
     g_initialized = true;
     ESP_LOGI(TAG, "Signaling bridge adapter initialized successfully");
@@ -229,7 +233,9 @@ void signaling_bridge_adapter_deinit(void)
 {
     if (g_initialized) {
         // Unregister RPC handler
+#if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED
         network_coprocessor_register_ice_server_query_callback(NULL);
+#endif
 
         // Clear configuration
         memset(&g_config, 0, sizeof(signaling_bridge_adapter_config_t));

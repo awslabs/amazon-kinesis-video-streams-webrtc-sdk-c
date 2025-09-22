@@ -16,7 +16,9 @@
 
 #include "app_storage.h"
 #include "kvs_signaling.h"
+#if CONFIG_IDF_TARGET_ESP32C6
 #include "network_coprocessor.h"
+#endif
 #include "esp_webrtc_time.h"
 #include "app_webrtc.h"
 #include "esp_work_queue.h"

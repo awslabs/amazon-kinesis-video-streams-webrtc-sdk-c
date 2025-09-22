@@ -1,0 +1,113 @@
+stages:
+  - build
+
+variables:
+  V: "0"
+  MAKEFLAGS: "-j8 --no-keep-going"
+  APP_BUILD: "all"
+  GIT_SUBMODULE_STRATEGY: recursive
+
+before_script:
+  # add gitlab ssh key
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+  - echo -n $GITLAB_KEY > ~/.ssh/id_rsa_base64
+  - base64 --decode --ignore-garbage ~/.ssh/id_rsa_base64 > ~/.ssh/id_rsa
+  - chmod 600 ~/.ssh/id_rsa
+  - echo -e "Host gitlab.espressif.cn\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config
+  - mkdir -p $CI_PROJECT_DIR/kvs_sdk_for_esp-${CI_JOB_ID}
+
+.cross_platform_build_template: &cross_platform_build_template
+  - echo "Installing tools..."
+  - apt-get update
+  - apt-get install -y pkg-config libssl-dev libmbedtls-dev cmake ccache git autoconf gcc g++ make
+  - for EXAMPLE in $EXAMPLES; do
+  - echo "Building $EXAMPLE"
+  - cd $CI_PROJECT_DIR/examples/cross_platform/$EXAMPLE
+  - mkdir -p build
+  - cd build
+  - cmake ..
+  - make
+  - cd $CI_PROJECT_DIR
+  - done
+
+.build_kvs_sdk_for_esp: &build_kvs_sdk_for_esp
+  - echo "Installing pkg-config"
+  - apt-get update
+  - apt-get install -y pkg-config
+  - echo "Applying IDF patches..."
+  - cd $IDF_PATH
+  - for i in $CI_PROJECT_DIR/esp_port/patches/*.patch; do patch -p1 < $i; done
+  - cd -
+  - echo Building kvs_sdk_for_esp app - Started
+  - ls
+  # Additional configs for CI build
+  # - cat sdkconfig.ci >> sdkconfig.defaults
+  - for TARGET in $TARGETS; do
+  - for EXAMPLE in $EXAMPLES; do
+  - if [ $EXAMPLE == "network_adapter" ]; then # Build network_adapter only for esp32c6
+  - if [ $TARGET != "esp32c6" ]; then
+  - echo "Skipping $EXAMPLE for $TARGET"
+  - continue
+  - fi
+  - fi
+  - example_path=$CI_PROJECT_DIR/esp_port/examples/$EXAMPLE
+  - cd $example_path
+  - echo Building $EXAMPLE for $TARGET
+  - idf.py set-target $TARGET
+  - idf.py build
+  # Copying kvs_sdk_for_esp binary for esp-idf master and target ESP32 to artifacts
+  - echo Copy kvs_sdk_for_esp.bin to kvs_sdk_for_esp-${CI_JOB_ID}/
+  - mkdir -p $CI_PROJECT_DIR/esp_port/kvs_sdk_for_esp-${CI_JOB_ID}/$EXAMPLE/$TARGET/
+  - cp $example_path/build/*.bin $CI_PROJECT_DIR/esp_port/kvs_sdk_for_esp-${CI_JOB_ID}/$EXAMPLE/$TARGET/
+  - cp $example_path/build/*.elf $CI_PROJECT_DIR/esp_port/kvs_sdk_for_esp-${CI_JOB_ID}/$EXAMPLE/$TARGET/
+  - cp $example_path/build/*.map $CI_PROJECT_DIR/esp_port/kvs_sdk_for_esp-${CI_JOB_ID}/$EXAMPLE/$TARGET/
+  - rm -rf build sdkconfig
+  - done
+  - done
+  - cd $CI_PROJECT_DIR
+  - echo Generating zip file for binaries generated
+  - tar -zcvf kvs_sdk_for_esp-${CI_JOB_ID}.zip kvs_sdk_for_esp-${CI_JOB_ID}/
+
+.build_template:
+  stage: build
+  image: espressif/idf:latest
+  variables:
+    EXAMPLES: signaling_only streaming_only webrtc_classic network_adapter
+    TARGETS: esp32 esp32s3 esp32c6 esp32p4
+  tags:
+    - build
+  artifacts:
+    paths:
+      - kvs_sdk_for_esp-${CI_JOB_ID}.zip
+    expire_in: 6 mos
+  script:
+    # build example
+    - *build_kvs_sdk_for_esp
+    - echo Build Complete for ${EXAMPLES}
+
+# build for all the possible combinations of example and target
+build_idf_v5.4:
+  extends: .build_template
+  image: espressif/idf:release-v5.4
+  variables:
+    EXAMPLES: signaling_only streaming_only webrtc_classic network_adapter
+    TARGETS: esp32 esp32s3 esp32c6 esp32p4
+
+# build for all the possible combinations of example and target
+build_idf_v5.5:
+  extends: .build_template
+  image: espressif/idf:release-v5.5
+  variables:
+    EXAMPLES: signaling_only streaming_only webrtc_classic network_adapter
+    TARGETS: esp32 esp32s3 esp32c6 esp32p4
+
+# linux_build:
+#   stage: build
+#   image: ubuntu:24.04
+#   variables:
+#     EXAMPLES: signaling_only streaming_only webrtc_classic
+#   tags:
+#     - build
+#   script:
+#     - *cross_platform_build_template
