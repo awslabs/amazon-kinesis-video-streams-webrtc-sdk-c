@@ -234,9 +234,9 @@ STATUS defaultCreateThreadPriWithCaps(PTID pThreadId, PCHAR threadName, UINT32 t
         pthread_cfg.stack_alloc_caps = caps;
     }
 
-    ESP_LOGI("Thread", "pthread_cfg.thread_name: %s", pthread_cfg.thread_name);
-    ESP_LOGI("Thread", "pthread_cfg.stack_size: %d", (int) pthread_cfg.stack_size);
-    ESP_LOGI("Thread", "pthread_cfg.stack_alloc_caps: %d", (int) pthread_cfg.stack_alloc_caps);
+    DLOGD("pthread_cfg.thread_name: %s", pthread_cfg.thread_name);
+    DLOGD("pthread_cfg.stack_size: %d", (int) pthread_cfg.stack_size);
+    DLOGD("pthread_cfg.stack_alloc_caps: %d", (int) pthread_cfg.stack_alloc_caps);
 
     // pthread_cfg.stack_alloc_caps = MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT;
     esp_err = esp_pthread_set_cfg(&pthread_cfg);
@@ -248,14 +248,14 @@ STATUS defaultCreateThreadPriWithCaps(PTID pThreadId, PCHAR threadName, UINT32 t
     } else {
         pthread_attr_setdetachstate(pAttr, PTHREAD_CREATE_DETACHED);
     }
-    ESP_LOGI("Thread", "pthread_attr_setdetachstate finished");
+    DLOGD("pthread_attr_setdetachstate finished");
     if (threadSize == 0) {
         pthread_attr_setstacksize(pAttr, DEFAULT_THREAD_SIZE);
     } else {
         pthread_attr_setstacksize(pAttr, threadSize);
     }
 
-    ESP_LOGI("Thread", "pthread_attr_setstacksize finished");
+    DLOGD("pthread_attr_setstacksize finished");
 
     esp_err = esp_pthread_set_cfg(&pthread_cfg);
     if (esp_err != ESP_OK) {
@@ -264,7 +264,7 @@ STATUS defaultCreateThreadPriWithCaps(PTID pThreadId, PCHAR threadName, UINT32 t
 #endif
 
     result = pthread_create(&threadId, pAttr, start, args);
-    ESP_LOGI("Thread", "pthread_create finished, result: %d", (int) result);
+    DLOGD("pthread_create finished, result: %d", (int) result);
 
 #if defined(KVS_PLAT_ESP_FREERTOS)
     UINT32 curTotalSize = esp_get_free_heap_size();

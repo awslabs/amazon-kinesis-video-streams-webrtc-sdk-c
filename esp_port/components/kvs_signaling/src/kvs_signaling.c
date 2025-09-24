@@ -148,7 +148,7 @@ static void kvs_refresh_ice_task(void *arg)
                             pClientData->ice_callback_ctx.customData, iceConfigCount);
 
                         if (callbackStatus == WEBRTC_STATUS_SUCCESS) {
-                            ESP_LOGI(TAG, "Progressive ICE callback completed successfully");
+                            ESP_LOGD(TAG, "Progressive ICE callback completed successfully");
                         } else {
                             ESP_LOGW(TAG, "Progressive ICE callback returned error: 0x%08x", callbackStatus);
                         }
@@ -158,13 +158,13 @@ static void kvs_refresh_ice_task(void *arg)
                              iceCountStatus, iceConfigCount);
                 }
             } else {
-                ESP_LOGI(TAG, "No progressive ICE callback registered - using traditional polling mode");
+                ESP_LOGD(TAG, "No progressive ICE callback registered - using traditional polling mode");
             }
         }
     }
 #else
     UNUSED_PARAM(arg);
-    ESP_LOGI(TAG, "Async ICE refresh is not supported in default websocket client mode");
+    ESP_LOGW(TAG, "Async ICE refresh is not supported in default websocket client mode");
 #endif
 }
 
@@ -320,7 +320,7 @@ static STATUS kvsStateChangedCallback(UINT64 customData, SIGNALING_CLIENT_STATE 
 
     // Call user callback if set
     if (pClientData->on_state_changed != NULL) {
-        ESP_LOGI(TAG, "Calling user on_state_changed callback");
+        ESP_LOGD(TAG, "Calling user on_state_changed callback");
         return pClientData->on_state_changed((UINT64)pClientData->customData, state);
     } else {
         ESP_LOGW(TAG, "No on_state_changed callback set - events will not be propagated!");

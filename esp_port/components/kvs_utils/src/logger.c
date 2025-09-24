@@ -76,6 +76,8 @@ VOID addLogMetadata(const PCHAR buffer, UINT32 bufferLen, const PCHAR fmt, UINT3
 //
 // Default logger function
 //
+#include "esp_log.h"
+
 VOID defaultLogPrint(UINT32 level, const PCHAR tag, const PCHAR fmt, ...)
 {
     CHAR logFmtString[MAX_LOG_FORMAT_LENGTH + 1];
@@ -86,7 +88,9 @@ VOID defaultLogPrint(UINT32 level, const PCHAR tag, const PCHAR fmt, ...)
 
         va_list valist;
         va_start(valist, fmt);
-        vprintf(logFmtString, valist);
+        level = level > 3 ? 3 : level;
+        esp_log_writev(3 - level, tag, logFmtString, valist);
+        // vprintf(logFmtString, valist);
         va_end(valist);
     }
 }

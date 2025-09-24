@@ -67,6 +67,7 @@ typedef struct {
     bool global_media_started;           // Global media threads running
     UINT32 session_count;                // Active session count
     MUTEX session_count_mutex;           // Protects session count
+    MUTEX ice_state_cleanup_mutex;       // Ensures ICE agent state cleanup atomicity
 
     // Event handler callback
     void (*event_handler)(app_webrtc_event_t event_id, UINT32 status_code, PCHAR peer_id, PCHAR message);

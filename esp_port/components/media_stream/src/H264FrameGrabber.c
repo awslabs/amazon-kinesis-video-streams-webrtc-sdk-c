@@ -65,7 +65,7 @@ static esp_h264_enc_handle_t initialize_h264_encoder();
 static void video_encoder_task(void *arg)
 {
     static uint8_t fill_val = 0;
-    ESP_LOGI(TAG, "🎬 H264 encoder task started (singleton mode - runs continuously)");
+    ESP_LOGD(TAG, "H264 encoder task started (singleton mode - runs continuously)");
 
     s_h264_enc_data.frame_count = 0;
     int one_image_size = s_h264_enc_data.cfg.res.height * s_h264_enc_data.cfg.res.width * 2;
@@ -73,10 +73,10 @@ static void video_encoder_task(void *arg)
     while(1) {
         // Check if encoding should be running
         if (!s_h264_enc_data.running) {
-            ESP_LOGI(TAG, "📥 H264 encoder paused, waiting for start signal...");
+            ESP_LOGD(TAG, "H264 encoder paused, waiting for start signal...");
             // Wait for start signal (blocking)
             xSemaphoreTake(s_h264_enc_data.run_semaphore, portMAX_DELAY);
-            ESP_LOGI(TAG, "▶️ H264 encoder resumed");
+            ESP_LOGD(TAG, "H264 encoder resumed");
         }
         camera_fb_t *fb = esp_camera_fb_get();
         if (fb) {
@@ -124,14 +124,14 @@ static void video_encoder_task(void *arg)
         }
     }
 
-    ESP_LOGE(TAG, "❌ H264 encoder task unexpectedly exited!");
+    ESP_LOGE(TAG, "H264 encoder task unexpectedly exited!");
 }
 
 esp_err_t camera_and_encoder_init(video_capture_config_t *config)
 {
     // Singleton pattern: return if already initialized
     if (s_h264_enc_data.encoder_initialized) {
-        ESP_LOGI(TAG, "H264 encoder already initialized (singleton)");
+        ESP_LOGD(TAG, "H264 encoder already initialized (singleton)");
         return ESP_OK;
     }
 
@@ -176,8 +176,7 @@ esp_err_t camera_and_encoder_init(video_capture_config_t *config)
 
     s_h264_enc_data.encoder_initialized = true;
 
-    printf("encoder initialized\n");
-    ESP_LOGI(TAG, "✅ H264 encoder initialized as singleton (stopped, use start() to begin)");
+    ESP_LOGD(TAG, "H264 encoder initialized as singleton (stopped, use start() to begin)");
     return ESP_OK;
 
 cleanup:
@@ -270,13 +269,13 @@ esp_err_t h264_encoder_start(void)
     }
 
     if (s_h264_enc_data.running) {
-        ESP_LOGI(TAG, "H264 encoder already running");
+        ESP_LOGD(TAG, "H264 encoder already running");
         return ESP_OK;
     }
 
     s_h264_enc_data.running = true;
     xSemaphoreGive(s_h264_enc_data.run_semaphore);  // Signal encoder to start
-    ESP_LOGI(TAG, "▶️ H264 encoder started");
+    ESP_LOGD(TAG, "H264 encoder started");
 
     return ESP_OK;
 }
@@ -289,12 +288,12 @@ esp_err_t h264_encoder_stop(void)
     }
 
     if (!s_h264_enc_data.running) {
-        ESP_LOGI(TAG, "H264 encoder already stopped");
+        ESP_LOGD(TAG, "H264 encoder already stopped");
         return ESP_OK;
     }
 
     s_h264_enc_data.running = false;
-    ESP_LOGI(TAG, "⏸️ H264 encoder stopped");
+    ESP_LOGD(TAG, "H264 encoder stopped");
 
     return ESP_OK;
 }
@@ -302,7 +301,7 @@ esp_err_t h264_encoder_stop(void)
 esp_err_t h264_encoder_deinit(void)
 {
     if (!s_h264_enc_data.encoder_initialized) {
-        ESP_LOGI(TAG, "H264 encoder not initialized, nothing to deinitialize");
+        ESP_LOGD(TAG, "H264 encoder not initialized, nothing to deinitialize");
         return ESP_OK;
     }
 
@@ -311,7 +310,7 @@ esp_err_t h264_encoder_deinit(void)
 
     // Drain the frame queue with limited iterations to prevent infinite loop
     if (s_h264_enc_data.frame_queue != NULL) {
-        ESP_LOGI(TAG, "🗑️ Draining H264 frame queue...");
+        ESP_LOGD(TAG, "Draining H264 frame queue...");
         esp_h264_out_buf_t h264_frame;
         int drained_count = 0;
         const int max_drain_iterations = CONFIG_VIDEO_FRAME_QUEUE_SIZE;  // Prevent infinite loop
@@ -325,15 +324,15 @@ esp_err_t h264_encoder_deinit(void)
         }
 
         if (drained_count > 0) {
-            ESP_LOGI(TAG, "Drained %d H264 frames from queue", drained_count);
+            ESP_LOGD(TAG, "Drained %d H264 frames from queue", drained_count);
         }
         if (drained_count >= max_drain_iterations) {
-            ESP_LOGW(TAG, "⚠️ Reached max drain limit, queue may still contain frames");
+            ESP_LOGI(TAG, "Reached max drain limit, queue may still contain frames");
         }
     }
 
     // Singleton pattern: encoder task remains running but paused
-    ESP_LOGI(TAG, "H264 encoder is singleton - task remains paused until start() is called");
+    ESP_LOGD(TAG, "H264 encoder is singleton - task remains paused until start() is called");
 
     return ESP_OK;
 }
@@ -342,7 +341,7 @@ esp_err_t camera_and_encoder_init(video_capture_config_t *config)
 {
     static bool camera_enc_init_done = false;
     if (camera_enc_init_done == true) {
-        ESP_LOGW(TAG, "camera_and_encoder_init already done!");
+        ESP_LOGI(TAG, "camera_and_encoder_init already done!");
         return ESP_OK;
     }
 

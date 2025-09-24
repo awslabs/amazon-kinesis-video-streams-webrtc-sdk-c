@@ -262,7 +262,6 @@ static void esp_websocket_event_handler(void *handler_args, esp_event_base_t bas
     PEspSignalingClientWrapper pEspWrapper = (PEspSignalingClientWrapper)handler_args;
     esp_websocket_event_data_t *data = (esp_websocket_event_data_t *)event_data;
     PSignalingClient pSignalingClient = NULL;
-    STATUS status = STATUS_SUCCESS;
 
     // Safety check for NULL wrapper
     if (pEspWrapper == NULL) {
@@ -289,8 +288,8 @@ static void esp_websocket_event_handler(void *handler_args, esp_event_base_t bas
                     data->op_code, data->fin);
         } else {
             // For frames with data, log the content
-            ESP_LOGI(TAG, "WebSocket data: %.*s, op_code: 0x%x, fin: %d",
-                    data->data_len, data->data_ptr, data->op_code, data->fin);
+            ESP_LOGI(TAG, "WebSocket data preview: %.*s, op_code: 0x%x, fin: %d",
+                     data->data_len > 100 ? 100 : data->data_len, data->data_ptr, data->op_code, data->fin);
         }
         switch (data->op_code) {
             case WS_TRANSPORT_OPCODES_CONT:
@@ -298,18 +297,30 @@ static void esp_websocket_event_handler(void *handler_args, esp_event_base_t bas
                 break;
             case WS_TRANSPORT_OPCODES_CLOSE: // Close frame
                 ESP_LOGI(TAG, "Received WebSocket Close frame! Data: %.*s", data->data_len, data->data_ptr);
+
+                // Check for AWS KVS "Going away" message in close frame
+                if (data->data_len >= 5 && data->data_ptr != NULL &&
+                    (strstr(data->data_ptr, "Going away") != NULL ||
+                     strstr(data->data_ptr, "going away") != NULL ||
+                     strstr(data->data_ptr, "GO_AWAY") != NULL ||
+                     strstr(data->data_ptr, "Go away") != NULL ||
+                     strstr(data->data_ptr, "go_away") != NULL)) {
+                    ESP_LOGI(TAG, "Detected AWS KVS 'Going away' message in close frame");
+                    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_SIGNALING_GO_AWAY);
+                }
+
                 /* No need to process this as a message - the connection will close */
                 return;
             case WS_TRANSPORT_OPCODES_FIN: // FIN frame
-                ESP_LOGI(TAG, "Received WebSocket Close frame! Data: %.*s", data->data_len, data->data_ptr);
+                ESP_LOGI(TAG, "Received WebSocket FIN frame! Data: %.*s", data->data_len, data->data_ptr);
                 /* No need to process this as a message - the connection will close */
                 return;
             case WS_TRANSPORT_OPCODES_PING: // Ping frame
-                ESP_LOGI(TAG, "Received WebSocket Ping frame! Data: %.*s", data->data_len, data->data_ptr);
+                ESP_LOGD(TAG, "Received WebSocket Ping frame! Data: %.*s", data->data_len, data->data_ptr);
                 /* The ESP WebSocket client should automatically respond with a pong */
                 return;
             case WS_TRANSPORT_OPCODES_PONG: // Pong frame
-                ESP_LOGI(TAG, "Received WebSocket Pong frame! Data: %.*s", data->data_len, data->data_ptr);
+                ESP_LOGD(TAG, "Received WebSocket Pong frame! Data: %.*s", data->data_len, data->data_ptr);
                 return;
             default:
                 /* Only process text (0x1) or binary (0x2) frames */
@@ -428,18 +439,6 @@ static void esp_websocket_event_handler(void *handler_args, esp_event_base_t bas
                     break;
                 }
 
-                // Check for GOAWAY message with various case combinations
-                // This needs to be done here in the event handler to catch non-JSON formats
-                if (data->data_len >= 6 &&
-                    (strstr(data->data_ptr, "GO_AWAY") != NULL ||
-                     strstr(data->data_ptr, "Go away") != NULL ||
-                     strstr(data->data_ptr, "go away") != NULL ||
-                     strstr(data->data_ptr, "Go Away") != NULL)) {
-                    ESP_LOGI(TAG, "Detected GOAWAY message (mixed case) in WebSocket data event, triggering reconnection");
-                    // Set the result to GOAWAY to trigger reconnection in the disconnect handler
-                    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_SIGNALING_GO_AWAY);
-                    break;
-                }
                 ESP_LOGD(TAG, "Received WebSocket data: %.*s", data->data_len, data->data_ptr);
 
                 // Process the message now using our buffer append function
@@ -536,6 +535,32 @@ static void esp_websocket_event_handler(void *handler_args, esp_event_base_t bas
             } else {
                 ESP_LOGW(TAG, "pSignalingClient is NULL in WEBSOCKET_EVENT_ERROR!");
             }
+            break;
+
+        case WEBSOCKET_EVENT_CLOSED:
+            ESP_LOGI(TAG, "WEBSOCKET_EVENT_CLOSED - WebSocket connection closed");
+
+            if (pSignalingClient != NULL) {
+                ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
+
+                // Trigger reconnection via error callback
+                if (pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
+                    CHAR errorMsg[] = "WebSocket connection closed, triggering reconnection";
+                    pSignalingClient->signalingClientCallbacks.errorReportFn(
+                        pSignalingClient->signalingClientCallbacks.customData,
+                        STATUS_SIGNALING_RECONNECT_FAILED,
+                        errorMsg,
+                        (UINT32) STRLEN(errorMsg));
+                    ESP_LOGI(TAG, "Signaled for reconnection via error callback");
+                } else {
+                    ESP_LOGW(TAG, "No error callback registered for close event");
+                }
+            }
+            break;
+
+        case WEBSOCKET_EVENT_FINISH:
+            ESP_LOGI(TAG, "WEBSOCKET_EVENT_FINISH - WebSocket operation finished");
+            // Usually comes after WEBSOCKET_EVENT_CLOSED, no additional action needed
             break;
 
         default:
@@ -771,13 +796,8 @@ STATUS handleReceivedSignalingMessage(PSignalingClient pSignalingClient, PCHAR m
 
     // If message type is UNKNOWN after parsing, try to determine it from payload
     if (receivedSignalingMessage.signalingMessage.messageType == SIGNALING_MESSAGE_TYPE_UNKNOWN) {
-        // Check for GOAWAY message first - this doesn't need payload
-        if (STRSTR(message, "GO_AWAY") != NULL) {
-            ESP_LOGI(TAG, "Detected GO_AWAY message, setting message type accordingly");
-            receivedSignalingMessage.signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_GO_AWAY;
-        }
         // Check for RECONNECT_ICE_SERVER message - this doesn't need payload
-        else if (STRSTR(message, "RECONNECT_ICE_SERVER") != NULL) {
+        if (STRSTR(message, "RECONNECT_ICE_SERVER") != NULL) {
             ESP_LOGI(TAG, "Detected RECONNECT_ICE_SERVER message, setting message type accordingly");
             receivedSignalingMessage.signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_RECONNECT_ICE_SERVER;
         }
@@ -803,12 +823,6 @@ STATUS handleReceivedSignalingMessage(PSignalingClient pSignalingClient, PCHAR m
 
     // Handle special message types
     switch (receivedSignalingMessage.signalingMessage.messageType) {
-        case SIGNALING_MESSAGE_TYPE_GO_AWAY:
-            ESP_LOGI(TAG, "Received GO_AWAY message, setting status for reconnection");
-            // Set the result to GOAWAY to trigger reconnection in the disconnect handler
-            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_SIGNALING_GO_AWAY);
-            break;
-
         case SIGNALING_MESSAGE_TYPE_RECONNECT_ICE_SERVER:
             ESP_LOGI(TAG, "Received RECONNECT_ICE_SERVER message, setting status for ICE reconnection");
             ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE);
@@ -1027,7 +1041,7 @@ STATUS connectEspSignalingClient(PSignalingClient pSignalingClient)
                 pSignalingClient->channelDescription.channelArn);
     }
 
-    ESP_LOGI(TAG, "WebSocket URL (before signing): %s", url);
+    ESP_LOGD(TAG, "WebSocket URL (before signing): %s", url);
 
     // Create RequestInfo for SigV4 signing with the properly formatted URL
     CHK_STATUS(createRequestInfo(
@@ -1077,8 +1091,8 @@ STATUS connectEspSignalingClient(PSignalingClient pSignalingClient)
     }
     CHK_STATUS(removeRequestHeaders(pRequestInfo));
 
-    ESP_LOGI(TAG, "Using signed WebSocket URL");
-    ESP_LOGI(TAG, "url after signing: %s", pRequestInfo->url);
+    ESP_LOGD(TAG, "Using signed WebSocket URL");
+    ESP_LOGD(TAG, "url after signing: %s", pRequestInfo->url);
 
     // Add more verbose logging for troubleshooting
     ESP_LOGD(TAG, "Full request details - Verb: %d, Host: %s, Path: %s",
@@ -1128,7 +1142,7 @@ STATUS connectEspSignalingClient(PSignalingClient pSignalingClient)
 
     // Start WebSocket client
     CHK(esp_websocket_client_start(gEspSignalingClientWrapper->wsClient) == ESP_OK, STATUS_INTERNAL_ERROR);
-    ESP_LOGI(TAG, "WebSocket client started");
+    ESP_LOGD(TAG, "WebSocket client started");
 
     // Wait for WebSocket connection with timeout
     UINT64 timeout = (pSignalingClient->clientInfo.connectTimeout != 0) ?
@@ -1139,8 +1153,7 @@ STATUS connectEspSignalingClient(PSignalingClient pSignalingClient)
     BOOL connected = FALSE;
     SERVICE_CALL_RESULT callResult = SERVICE_CALL_RESULT_NOT_SET;
 
-    ESP_LOGI(TAG, "Waiting for WebSocket connection with timeout %" PRIu64 " ns", timeout);
-
+    ESP_LOGD(TAG, "Waiting for WebSocket connection with timeout %" PRIu64 " ns", timeout);
 
     // Wait for the connection event or timeout
     while (TRUE) {
@@ -1167,17 +1180,17 @@ STATUS connectEspSignalingClient(PSignalingClient pSignalingClient)
         if (connected || espClientConnected) {
             // Synchronize connection state if needed
             if (!connected && espClientConnected) {
-                ESP_LOGI(TAG, "Syncing connection status from ESP client to signaling client");
+                ESP_LOGD(TAG, "Syncing connection status from ESP client to signaling client");
                 ATOMIC_STORE_BOOL(&pSignalingClient->connected, TRUE);
                 connected = TRUE;
 
                 if (callResult == SERVICE_CALL_RESULT_NOT_SET) {
-                    ESP_LOGI(TAG, "Setting result to SERVICE_CALL_RESULT_OK");
+                    ESP_LOGD(TAG, "Setting result to SERVICE_CALL_RESULT_OK");
                     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
                 }
             }
 
-            ESP_LOGI(TAG, "WebSocket connected successfully");
+            ESP_LOGD(TAG, "WebSocket connected successfully");
             break;
         }
 
@@ -1219,7 +1232,7 @@ STATUS connectEspSignalingClient(PSignalingClient pSignalingClient)
 
     // Update connection status in the signaling client
     if (connected) {
-        ESP_LOGI(TAG, "WebSocket connection confirmed as successful");
+        ESP_LOGD(TAG, "WebSocket connection confirmed as successful");
         // Store the time when we connect for diagnostics
         MUTEX_LOCK(pSignalingClient->diagnosticsLock);
         pSignalingClient->diagnostics.connectTime = GETTIME();
@@ -1315,7 +1328,7 @@ STATUS sendEspWebSocketMessage(PSignalingClient pSignalingClient, PCHAR pMessage
         ESP_LOGE(TAG, "Failed to send WebSocket message, error: %d", result);
         CHK_STATUS(STATUS_SIGNALING_SEND_MESSAGE_FAILED);
     } else {
-        ESP_LOGI(TAG, "Successfully sent %d bytes", result);
+        ESP_LOGD(TAG, "Successfully sent %d bytes", result);
     }
 
 CleanUp:
@@ -2177,7 +2190,7 @@ STATUS performEspHttpRequest(PSignalingClient pSignalingClient, PCHAR url,
     CHK(response != NULL, STATUS_NOT_ENOUGH_MEMORY);
     response[0] = '\0';
 
-    ESP_LOGI(TAG, "Setting up the user context and performing HTTP request to %s", url);
+    ESP_LOGD(TAG, "Sending HTTP request to %s", url);
 
     // Set up context
     context.responseData = response;
@@ -2492,7 +2505,7 @@ STATUS sendEspSignalingMessage(PSignalingClient pSignalingClient, PSignalingMess
             CHK(FALSE, STATUS_INVALID_ARG);
     }
 
-    ESP_LOGI(TAG, "Sending signaling message: type=%s, recipient=%s", pMessageType, pSignalingMessage->peerClientId);
+    ESP_LOGD(TAG, "Sending signaling message: type=%s, recipient=%s", pMessageType, pSignalingMessage->peerClientId);
 
     // Start off with an empty string for ICE config
     encodedIceConfig[0] = '\0';

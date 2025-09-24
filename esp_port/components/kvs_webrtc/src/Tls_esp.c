@@ -101,7 +101,7 @@ STATUS freeTlsSession(PTlsSession* ppTlsSession)
     STATUS retStatus = STATUS_SUCCESS;
     PEspTlsSession pTlsSession = NULL;
 
-    ESP_LOGI(TAG, "🧹 ESP-TLS: freeTlsSession() called - cleaning up ESP-TLS resources");
+    ESP_LOGD(TAG, "ESP-TLS: freeTlsSession() called - cleaning up ESP-TLS resources");
     CHK(ppTlsSession != NULL, STATUS_NULL_ARG);
 
     pTlsSession = (PEspTlsSession) *ppTlsSession;
@@ -143,7 +143,7 @@ STATUS tlsSessionStartWithHostname(PTlsSession pTlsSession, BOOL isServer, PCHAR
     STATUS retStatus = STATUS_SUCCESS;
     PEspTlsSession pEspTlsSession = (PEspTlsSession) pTlsSession;
 
-    ESP_LOGI(TAG, "ESP-TLS: tlsSessionStartWithHostname() called - hostname: %s, isServer: %s",
+    ESP_LOGD(TAG, "ESP-TLS: tlsSessionStartWithHostname() called - hostname: %s, isServer: %s",
              hostname ? hostname : "NULL", isServer ? "true" : "false");
     CHK(pTlsSession != NULL, STATUS_NULL_ARG);
     CHK(pEspTlsSession->state == TLS_SESSION_STATE_NEW, retStatus);
@@ -161,11 +161,11 @@ STATUS tlsSessionStartWithHostname(PTlsSession pTlsSession, BOOL isServer, PCHAR
     if (hostname != NULL) {
         // Strict verification for hostname-based connections
         pEspTlsSession->espTlsConfig.skip_common_name = false;
-        ESP_LOGI(TAG, "🔒 ESP-TLS: Starting TLS with STRICT hostname verification for: %s", hostname);
+        ESP_LOGD(TAG, "ESP-TLS: Starting TLS with STRICT hostname verification for: %s", hostname);
     } else {
         // Optional verification for IP-based connections
         pEspTlsSession->espTlsConfig.skip_common_name = true;
-        ESP_LOGI(TAG, "🔓 ESP-TLS: Starting TLS with RELAXED certificate verification (IP-based connection)");
+        ESP_LOGD(TAG, "ESP-TLS: Starting TLS with RELAXED certificate verification (IP-based connection)");
     }
 
     // ESP-TLS doesn't support server mode in the same way - this is typically for client connections to TURN servers
@@ -178,7 +178,7 @@ STATUS tlsSessionStartWithHostname(PTlsSession pTlsSession, BOOL isServer, PCHAR
     // Change state to connecting - actual connection happens during first data exchange
     CHK_STATUS(tlsSessionChangeState(pTlsSession, TLS_SESSION_STATE_CONNECTING));
 
-    ESP_LOGI(TAG, "✨ ESP-TLS: TLS session initialized with ESP certificate bundle - ready for secure connection!");
+    ESP_LOGD(TAG, "ESP-TLS: TLS session initialized with ESP certificate bundle - ready for secure connection!");
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
@@ -258,7 +258,7 @@ STATUS tlsSessionPutApplicationData(PTlsSession pTlsSession, PBYTE pData, UINT32
     STATUS retStatus = STATUS_SUCCESS;
     PEspTlsSession pEspTlsSession = (PEspTlsSession) pTlsSession;
 
-    ESP_LOGD(TAG, "📤 ESP-TLS: tlsSessionPutApplicationData() - sending %u bytes through ESP-TLS", dataLen);
+    ESP_LOGD(TAG, "ESP-TLS: tlsSessionPutApplicationData() - sending %u bytes through ESP-TLS", dataLen);
     CHK(pTlsSession != NULL, STATUS_NULL_ARG);
     CHK(pEspTlsSession->state == TLS_SESSION_STATE_CONNECTED, STATUS_SOCKET_CONNECTION_NOT_READY_TO_SEND);
 
@@ -313,7 +313,7 @@ STATUS tlsSessionShutdown(PTlsSession pTlsSession)
     CHK(pTlsSession != NULL, STATUS_NULL_ARG);
     CHK(pEspTlsSession->state != TLS_SESSION_STATE_CLOSED, retStatus);
 
-    ESP_LOGI(TAG, "Shutting down TLS session");
+    ESP_LOGD(TAG, "Shutting down TLS session");
 
     // Send close notify if connected
     if (pEspTlsSession->state == TLS_SESSION_STATE_CONNECTED && pEspTlsSession->pEspTls != NULL) {

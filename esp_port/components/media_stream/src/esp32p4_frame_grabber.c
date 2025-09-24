@@ -258,15 +258,15 @@ extern void *get_buffer();
 extern esp_err_t esp_h264_hw_enc_set_reset_request();
 static void video_encoder_task(void *arg)
 {
-    ESP_LOGI(TAG, "🎬 Video encoder task started (singleton mode - runs continuously)");
+    ESP_LOGD(TAG, "Video encoder task started (singleton mode - runs continuously)");
 
     while (1) {
         // Check if encoding should be running
         if (!s_p4_enc_data.running) {
-            ESP_LOGI(TAG, "📥 Video encoder paused, waiting for start signal...");
+            ESP_LOGD(TAG, "Video encoder paused, waiting for start signal...");
             // Wait for start signal (blocking)
             xSemaphoreTake(s_p4_enc_data.run_semaphore, portMAX_DELAY);
-            ESP_LOGI(TAG, "▶️ Video encoder resumed");
+            ESP_LOGD(TAG, "Video encoder resumed");
         }
 
 #if USE_ESP_VIDEO_IF
@@ -330,14 +330,14 @@ static void video_encoder_task(void *arg)
         free(frame);
     }
 
-    ESP_LOGE(TAG, "❌ Video encoder task unexpectedly exited!");
+    ESP_LOGE(TAG, "Video encoder task unexpectedly exited!");
 }
 
 void esp32p4_frame_grabber_init(void)
 {
     // Singleton pattern: return if already initialized
     if (s_p4_enc_data.encoder_initialized) {
-        ESP_LOGI(TAG, "ESP32P4 frame grabber already initialized (singleton)");
+        ESP_LOGD(TAG, "ESP32P4 frame grabber already initialized (singleton)");
         return;
     }
 
@@ -362,7 +362,7 @@ void esp32p4_frame_grabber_init(void)
         ESP_LOGE(TAG, "Failed to initialize video interface");
         goto cleanup;
     }
-    ESP_LOGI(TAG, "video interface initialized");
+    ESP_LOGD(TAG, "video interface initialized");
 #else
     if (camera_init() != ESP_OK) {
         ESP_LOGE(TAG, "Camera initialization failed");
@@ -429,7 +429,7 @@ void esp32p4_frame_grabber_init(void)
 
     s_p4_enc_data.encoder_initialized = true;
 
-    ESP_LOGI(TAG, "✅ ESP32P4 frame grabber initialized as singleton (stopped, use start() to begin)");
+    ESP_LOGD(TAG, "ESP32P4 frame grabber initialized as singleton (stopped, use start() to begin)");
     return;
 
 cleanup:
@@ -462,13 +462,13 @@ esp_err_t esp32p4_frame_grabber_start(void)
     }
 
     if (s_p4_enc_data.running) {
-        ESP_LOGI(TAG, "ESP32P4 frame grabber already running");
+        ESP_LOGD(TAG, "ESP32P4 frame grabber already running");
         return ESP_OK;
     }
 
     s_p4_enc_data.running = true;
     xSemaphoreGive(s_p4_enc_data.run_semaphore);  // Signal encoder to start
-    ESP_LOGI(TAG, "▶️ ESP32P4 frame grabber started");
+    ESP_LOGD(TAG, "ESP32P4 frame grabber started");
 
     return ESP_OK;
 }
@@ -481,12 +481,12 @@ esp_err_t esp32p4_frame_grabber_stop(void)
     }
 
     if (!s_p4_enc_data.running) {
-        ESP_LOGI(TAG, "ESP32P4 frame grabber already stopped");
+        ESP_LOGD(TAG, "ESP32P4 frame grabber already stopped");
         return ESP_OK;
     }
 
     s_p4_enc_data.running = false;
-    ESP_LOGI(TAG, "⏸️ ESP32P4 frame grabber stopped");
+    ESP_LOGD(TAG, "ESP32P4 frame grabber stopped");
 
     return ESP_OK;
 }
@@ -494,7 +494,7 @@ esp_err_t esp32p4_frame_grabber_stop(void)
 esp_err_t esp32p4_frame_grabber_deinit(void)
 {
     if (!s_p4_enc_data.encoder_initialized) {
-        ESP_LOGI(TAG, "ESP32P4 frame grabber not initialized, nothing to deinitialize");
+        ESP_LOGD(TAG, "ESP32P4 frame grabber not initialized, nothing to deinitialize");
         return ESP_OK;
     }
 
@@ -503,7 +503,7 @@ esp_err_t esp32p4_frame_grabber_deinit(void)
 
     // Drain the frame queue with limited iterations to prevent infinite loop
     if (s_p4_enc_data.frame_queue != NULL) {
-        ESP_LOGI(TAG, "🗑️ Draining video frame queue...");
+        ESP_LOGD(TAG, "Draining video frame queue...");
         esp_h264_out_buf_t h264_frame;
         int drained_count = 0;
         const int max_drain_iterations = CONFIG_VIDEO_FRAME_QUEUE_SIZE;  // Prevent infinite loop
@@ -517,15 +517,15 @@ esp_err_t esp32p4_frame_grabber_deinit(void)
         }
 
         if (drained_count > 0) {
-            ESP_LOGI(TAG, "Drained %d video frames from queue", drained_count);
+            ESP_LOGD(TAG, "Drained %d video frames from queue", drained_count);
         }
         if (drained_count >= max_drain_iterations) {
-            ESP_LOGW(TAG, "⚠️ Reached max drain limit, queue may still contain frames");
+            ESP_LOGI(TAG, "Reached max drain limit, queue may still contain frames");
         }
     }
 
     // Singleton pattern: encoder task remains running but paused
-    ESP_LOGI(TAG, "ESP32P4 frame grabber is singleton - task remains paused until start() is called");
+    ESP_LOGD(TAG, "ESP32P4 frame grabber is singleton - task remains paused until start() is called");
 
     return ESP_OK;
 }
