@@ -35,7 +35,7 @@ static struct {
     TID video_sender_tid;                // Global video thread
     TID audio_sender_tid;                // Global audio thread
     BOOL global_media_started;           // Global media threads running
-    BOOL terminated;                     // Global termination flag
+    volatile ATOMIC_BOOL terminated;     // Global termination flag
     MUTEX global_media_mutex;            // Protects global state
 
     // Media capture handles (shared)
@@ -115,7 +115,7 @@ STATUS kvs_media_init_shared_state(void)
     g_global_media.video_sender_tid = INVALID_TID_VALUE;
     g_global_media.audio_sender_tid = INVALID_TID_VALUE;
     g_global_media.global_media_started = FALSE;
-    g_global_media.terminated = FALSE;
+    ATOMIC_STORE_BOOL(&g_global_media.terminated, FALSE);
 
 CleanUp:
     return retStatus;
@@ -154,7 +154,7 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
     UINT64 refTime = GETTIME();
     const UINT64 frame_duration_100ns = KVS_SAMPLE_VIDEO_FRAME_DURATION;
 
-    ESP_LOGI(TAG, "Global video sender thread started");
+    ESP_LOGD(TAG, "Global video sender thread started");
 
     // Initialize capture interface if available
     if (g_global_media.config.video_capture != NULL) {
@@ -172,7 +172,7 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
             .codec_specific = NULL
         };
 
-        ESP_LOGI(TAG, "Initializing global video capture");
+        ESP_LOGD(TAG, "Initializing global video capture");
         if (video_capture->init(&video_config, &g_global_media.video_handle) != ESP_OK ||
             video_capture->start(g_global_media.video_handle) != ESP_OK) {
             ESP_LOGE(TAG, "Failed to initialize video capture - falling back to samples");
@@ -189,7 +189,7 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
     startTime = GETTIME();
     lastFrameTime = startTime;
 
-    while (!g_global_media.terminated) {
+    while (!ATOMIC_LOAD_BOOL(&g_global_media.terminated)) {
         BOOL frame_available = FALSE;
 
         if (video_capture != NULL) {
@@ -200,7 +200,7 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
                 frame.flags = (video_frame->type == VIDEO_FRAME_TYPE_I) ? FRAME_FLAG_KEY_FRAME : FRAME_FLAG_NONE;
                 frame_available = TRUE;
             }
-    } else {
+        } else {
             // Fall back to sample files
             SNPRINTF(filePath, KVS_MAX_PATH_LEN, "./h264SampleFrames/frame-%04" PRIu64 ".h264",
                      (UINT64)(g_global_media.frame_index % 300 + 1));
@@ -227,6 +227,12 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
         if (frame_available) {
             frame.index = (UINT32) ATOMIC_INCREMENT(&g_global_media.frame_index);
             frame.presentationTs += frame_duration_100ns;
+
+            // Check termination before send to avoid blocking on shutdown
+            if (ATOMIC_LOAD_BOOL(&g_global_media.terminated)) {
+                ESP_LOGD(TAG, "Video thread: termination observed before send - breaking loop");
+                break;
+            }
 
             // Send frame to ALL sessions (KVS official pattern)
             STATUS send_status = kvs_iterate_sessions_send_frame(&frame, TRUE);
@@ -256,7 +262,7 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
         g_global_media.video_handle = NULL;
     }
 
-    ESP_LOGI(TAG, "Global video sender thread finished");
+    ESP_LOGD(TAG, "Global video sender thread finished");
     return (PVOID) (ULONG_PTR) retStatus;
 }
 
@@ -276,7 +282,7 @@ static PVOID kvs_global_audio_sender_thread(PVOID args)
     UINT32 audioIndex = 0;
     const UINT64 frame_duration_100ns = KVS_SAMPLE_AUDIO_FRAME_DURATION;
 
-    ESP_LOGI(TAG, "Global audio sender thread started");
+    ESP_LOGD(TAG, "Global audio sender thread started");
 
     // Initialize capture interface if available
     if (g_global_media.config.audio_capture != NULL) {
@@ -294,7 +300,7 @@ static PVOID kvs_global_audio_sender_thread(PVOID args)
             .codec_specific = NULL
         };
 
-        ESP_LOGI(TAG, "Initializing global audio capture");
+        ESP_LOGD(TAG, "Initializing global audio capture");
         if (audio_capture->init(&audio_config, &g_global_media.audio_handle) != ESP_OK ||
             audio_capture->start(g_global_media.audio_handle) != ESP_OK) {
             ESP_LOGE(TAG, "Failed to initialize audio capture - falling back to samples");
@@ -311,7 +317,7 @@ static PVOID kvs_global_audio_sender_thread(PVOID args)
 
     lastFrameTime = GETTIME();
 
-    while (!g_global_media.terminated) {
+    while (!ATOMIC_LOAD_BOOL(&g_global_media.terminated)) {
         BOOL frame_available = FALSE;
 
         if (audio_capture != NULL) {
@@ -347,6 +353,12 @@ static PVOID kvs_global_audio_sender_thread(PVOID args)
         if (frame_available) {
             frame.presentationTs += frame_duration_100ns;
 
+            // Check termination before send to avoid blocking on shutdown
+            if (ATOMIC_LOAD_BOOL(&g_global_media.terminated)) {
+                ESP_LOGD(TAG, "Audio thread: termination observed before send - breaking loop");
+                break;
+            }
+
             // Send frame to ALL sessions (KVS official pattern)
             kvs_iterate_sessions_send_frame(&frame, FALSE);
 
@@ -369,7 +381,7 @@ static PVOID kvs_global_audio_sender_thread(PVOID args)
         g_global_media.audio_handle = NULL;
     }
 
-    ESP_LOGI(TAG, "Global audio sender thread finished");
+    ESP_LOGD(TAG, "Global audio sender thread finished");
     return (PVOID) (ULONG_PTR) retStatus;
 }
 
@@ -425,26 +437,33 @@ static STATUS kvs_iterate_sessions_send_frame(Frame* frame, BOOL is_video)
     kvs_pc_client_t* client = (kvs_pc_client_t*)g_global_media.client_data;
     CHK(client != NULL && client->activeSessions != NULL, STATUS_NULL_ARG);
 
-    // Protect against race condition with session destruction by using the session count mutex
-    if (!IS_VALID_MUTEX_VALUE(client->session_count_mutex)) {
+    // Prefer statsLock to synchronize with metrics/cleanup without blocking destruction
+    if (!IS_VALID_MUTEX_VALUE(client->statsLock)) {
         retStatus = STATUS_INVALID_OPERATION;
         goto CleanUp;
     }
 
-    MUTEX_LOCK(client->session_count_mutex);
+    if (!MUTEX_TRYLOCK(client->statsLock)) {
+        ESP_LOGD(TAG, "Sender: statsLock busy, skipping frame dispatch to avoid deadlock");
+        retStatus = STATUS_SUCCESS;
+        goto CleanUp;
+    }
 
-    // Check if we still have active sessions after acquiring the lock
-    if (client->session_count == 0) {
-        MUTEX_UNLOCK(client->session_count_mutex);
-        retStatus = STATUS_SUCCESS; // Not an error, just no sessions to send to
+    // Quick check for empty table
+    if (client->activeSessions == NULL) {
+        MUTEX_UNLOCK(client->statsLock);
+        ESP_LOGD(TAG, "Sender: activeSessions is NULL - likely during cleanup");
+        retStatus = STATUS_SUCCESS;
         goto CleanUp;
     }
 
     // Use the official KVS pattern: iterate through sessions and call writeFrame for each
-    // This is equivalent to the loop in kvsWebRTCClientMaster.c
     retStatus = hashTableIterateEntries(client->activeSessions, (UINT64)frame, kvs_session_frame_callback);
+    if (STATUS_FAILED(retStatus)) {
+        ESP_LOGW(TAG, "Sender: hashTableIterateEntries failed: 0x%08" PRIx32, (UINT32) retStatus);
+    }
 
-    MUTEX_UNLOCK(client->session_count_mutex);
+    MUTEX_UNLOCK(client->statsLock);
 
 CleanUp:
     return retStatus;
@@ -465,16 +484,16 @@ STATUS kvs_media_start_global_transmission(void* client_data, kvs_media_config_t
     MUTEX_LOCK(g_global_media.global_media_mutex);
 
     if (g_global_media.global_media_started) {
-        ESP_LOGI(TAG, "Global media threads already started");
+        ESP_LOGD(TAG, "Global media threads already started");
         goto CleanUp;
     }
 
     // Store client data and configuration
     g_global_media.client_data = client_data;
     MEMCPY(&g_global_media.config, config, SIZEOF(kvs_media_config_t));
-    g_global_media.terminated = FALSE;
+    ATOMIC_STORE_BOOL(&g_global_media.terminated, FALSE);
 
-    ESP_LOGI(TAG, "Starting global media threads (KVS official pattern)");
+    ESP_LOGD(TAG, "Starting global media threads");
 
     // Start global video thread
     if (config->video_capture != NULL || config->enable_sample_fallback) {
@@ -491,7 +510,7 @@ STATUS kvs_media_start_global_transmission(void* client_data, kvs_media_config_t
     }
 
     g_global_media.global_media_started = TRUE;
-    ESP_LOGI(TAG, "Global media transmission started successfully");
+    ESP_LOGD(TAG, "Global media transmission started successfully");
 
 CleanUp:
     MUTEX_UNLOCK(g_global_media.global_media_mutex);
@@ -515,10 +534,10 @@ STATUS kvs_media_stop_global_transmission(void* client_data)
         goto CleanUp;
     }
 
-    ESP_LOGI(TAG, "Stopping global media threads");
+    ESP_LOGD(TAG, "Stopping global media threads");
 
     // Signal termination
-    g_global_media.terminated = TRUE;
+    ATOMIC_STORE_BOOL(&g_global_media.terminated, TRUE);
 
     // Wait for threads to complete
     if (IS_VALID_TID_VALUE(g_global_media.video_sender_tid)) {
@@ -534,7 +553,7 @@ STATUS kvs_media_stop_global_transmission(void* client_data)
     }
 
     g_global_media.global_media_started = FALSE;
-    ESP_LOGI(TAG, "Global media transmission stopped successfully");
+    ESP_LOGD(TAG, "Global media transmission stopped successfully");
 
 CleanUp:
     MUTEX_UNLOCK(g_global_media.global_media_mutex);
@@ -551,7 +570,7 @@ static PVOID kvs_media_reception_routine(PVOID customData)
 
     CHK(session != NULL, STATUS_NULL_ARG);
 
-    ESP_LOGI(TAG, "🎧 Media reception routine started for peer: %s", session->peer_id);
+    ESP_LOGD(TAG, "Media reception routine started for peer: %s", session->peer_id);
 
     // Wait for connection to be established
     while (!session->media_started && !session->terminated) {
@@ -559,11 +578,11 @@ static PVOID kvs_media_reception_routine(PVOID customData)
     }
 
     if (session->terminated) {
-        ESP_LOGI(TAG, "Media reception terminated before connection established");
+        ESP_LOGD(TAG, "Media reception terminated before connection established");
         goto CleanUp;
     }
 
-    ESP_LOGI(TAG, "Setting up media reception for peer: %s", session->peer_id);
+    ESP_LOGD(TAG, "Setting up media reception for peer: %s", session->peer_id);
 
     // Setup media players and frame callbacks happens in kvs_media_start_reception
     // This thread just stays alive while reception is active
@@ -572,7 +591,7 @@ static PVOID kvs_media_reception_routine(PVOID customData)
     }
 
 CleanUp:
-    ESP_LOGI(TAG, "Media reception routine finished for peer: %s", session->peer_id);
+    ESP_LOGD(TAG, "Media reception routine finished for peer: %s", session->peer_id);
     CHK_LOG_ERR(retStatus);
     return NULL;
 }
@@ -669,7 +688,7 @@ static STATUS kvs_media_setup_players(kvs_pc_session_t* session, kvs_media_confi
                 .display_handle = NULL
             };
 
-            ESP_LOGI(TAG, "Initializing video player for peer: %s", session->peer_id);
+            ESP_LOGD(TAG, "Initializing video player for peer: %s", session->peer_id);
             if (video_player->init(&video_config, &session->video_player_handle) != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to initialize video player");
             } else if (video_player->start(session->video_player_handle) != ESP_OK) {
@@ -677,7 +696,7 @@ static STATUS kvs_media_setup_players(kvs_pc_session_t* session, kvs_media_confi
                 video_player->deinit(session->video_player_handle);
                 session->video_player_handle = NULL;
             } else {
-                ESP_LOGI(TAG, "Video player initialized successfully");
+                ESP_LOGD(TAG, "Video player initialized successfully");
             }
         }
 
@@ -697,7 +716,7 @@ static STATUS kvs_media_setup_players(kvs_pc_session_t* session, kvs_media_confi
                 .codec_specific = NULL
             };
 
-            ESP_LOGI(TAG, "Initializing audio player for peer: %s", session->peer_id);
+            ESP_LOGD(TAG, "Initializing audio player for peer: %s", session->peer_id);
             if (audio_player->init(&audio_config, &session->audio_player_handle) != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to initialize audio player");
             } else if (audio_player->start(session->audio_player_handle) != ESP_OK) {
@@ -705,7 +724,7 @@ static STATUS kvs_media_setup_players(kvs_pc_session_t* session, kvs_media_confi
                 audio_player->deinit(session->audio_player_handle);
                 session->audio_player_handle = NULL;
             } else {
-                ESP_LOGI(TAG, "Audio player initialized successfully");
+                ESP_LOGD(TAG, "Audio player initialized successfully");
             }
         }
 
@@ -724,14 +743,14 @@ static STATUS kvs_media_setup_frame_callbacks(kvs_pc_session_t* session)
 
     // Set up frame reception callbacks
     if (session->client->config.video_player != NULL && session->video_player_handle != NULL) {
-        ESP_LOGI(TAG, "Setting up video frame reception callback for peer: %s", session->peer_id);
+        ESP_LOGD(TAG, "Setting up video frame reception callback for peer: %s", session->peer_id);
         CHK_STATUS(transceiverOnFrame(session->video_transceiver,
                                       (UINT64)(uintptr_t) session,
                                       kvs_media_video_frame_handler));
     }
 
     if (session->client->config.audio_player != NULL && session->audio_player_handle != NULL) {
-        ESP_LOGI(TAG, "Setting up audio frame reception callback for peer: %s", session->peer_id);
+        ESP_LOGD(TAG, "Setting up audio frame reception callback for peer: %s", session->peer_id);
         CHK_STATUS(transceiverOnFrame(session->audio_transceiver,
                                       (UINT64)(uintptr_t) session,
                                       kvs_media_audio_frame_handler));

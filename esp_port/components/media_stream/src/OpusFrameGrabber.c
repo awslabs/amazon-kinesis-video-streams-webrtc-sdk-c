@@ -8,6 +8,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <freertos/semphr.h>
+#include "esp_err.h"
 
 #include "driver/i2s.h"
 #include "esp_log.h"
@@ -112,15 +113,15 @@ static void i2s_init(void)
 static void audio_encoder_task(void *arg)
 {
     void *enc_handle = arg;
-    ESP_LOGI(TAG, "🎵 Audio encoder task started (singleton mode - runs continuously)");
+    ESP_LOGD(TAG, "Audio encoder task started (singleton mode - runs continuously)");
 
     while (1) {
         // Check if encoding should be running
         if (!s_enc_data.running) {
-            ESP_LOGI(TAG, "📥 Audio encoder paused, waiting for start signal...");
+            ESP_LOGD(TAG, "Audio encoder paused, waiting for start signal...");
             // Wait for start signal (blocking)
             xSemaphoreTake(s_enc_data.run_semaphore, portMAX_DELAY);
-            ESP_LOGI(TAG, "▶️ Audio encoder resumed");
+            ESP_LOGD(TAG, "Audio encoder resumed");
         }
 
         // Encode process
@@ -172,7 +173,7 @@ static void audio_encoder_task(void *arg)
         esp_audio_err_t ret = ESP_AUDIO_ERR_OK;
         ret = esp_opus_enc_process(enc_handle, &in_frame, &out_frame);
         if (ret != ESP_AUDIO_ERR_OK) {
-            printf("audio encoder process failed.\n");
+            ESP_LOGE(TAG, "audio encoder process failed.");
             vTaskDelay(pdMS_TO_TICKS(OPUS_ENCODE_WAIT_MS));
             continue;
         }
@@ -192,7 +193,7 @@ static void audio_encoder_task(void *arg)
     }
 
     // This point should never be reached in singleton mode
-    ESP_LOGE(TAG, "❌ Audio encoder task unexpectedly exited!");
+    ESP_LOGE(TAG, "Audio encoder task unexpectedly exited!");
 }
 
 /* returns handle */
@@ -204,7 +205,7 @@ void *opus_encoder_init_internal(audio_capture_config_t *config)
 
     // Singleton pattern: return existing handle if already initialized
     if (s_enc_data.encoder_initialized) {
-        ESP_LOGI(TAG, "Opus encoder already initialized (singleton), returning existing handle");
+        ESP_LOGD(TAG, "Opus encoder already initialized (singleton), returning existing handle");
         return s_enc_data.encoder_handle;
     }
 
@@ -251,7 +252,7 @@ void *opus_encoder_init_internal(audio_capture_config_t *config)
     bsp_extra_codec_init();
     // Give some time for the I2S channel to be properly enabled
     vTaskDelay(pdMS_TO_TICKS(100));
-    ESP_LOGI(TAG, "ESP32P4 audio codec initialized");
+    ESP_LOGD(TAG, "ESP32P4 audio codec initialized");
 #else
     i2s_init();
 #endif
@@ -273,7 +274,7 @@ void *opus_encoder_init_internal(audio_capture_config_t *config)
 
     s_enc_data.encoder_initialized = true;
 
-    ESP_LOGI(TAG, "✅ Opus encoder initialized as singleton (stopped, use start() to begin)");
+    ESP_LOGD(TAG, "Opus encoder initialized as singleton (stopped, use start() to begin)");
     webrtc_mem_utils_print_stats(TAG);
 
     return s_enc_data.encoder_handle;
@@ -339,13 +340,13 @@ esp_err_t opus_encoder_start_internal(void)
     }
 
     if (s_enc_data.running) {
-        ESP_LOGI(TAG, "Opus encoder already running");
+        ESP_LOGD(TAG, "Opus encoder already running");
         return ESP_OK;
     }
 
     s_enc_data.running = true;
     xSemaphoreGive(s_enc_data.run_semaphore);  // Signal encoder to start
-    ESP_LOGI(TAG, "▶️ Opus encoder started");
+    ESP_LOGD(TAG, "Opus encoder started");
 
     return ESP_OK;
 }
@@ -358,12 +359,12 @@ esp_err_t opus_encoder_stop_internal(void)
     }
 
     if (!s_enc_data.running) {
-        ESP_LOGI(TAG, "Opus encoder already stopped");
+        ESP_LOGD(TAG, "Opus encoder already stopped");
         return ESP_OK;
     }
 
     s_enc_data.running = false;
-    ESP_LOGI(TAG, "⏸️ Opus encoder stopped");
+    ESP_LOGD(TAG, "Opus encoder stopped");
 
     return ESP_OK;
 }
@@ -371,7 +372,7 @@ esp_err_t opus_encoder_stop_internal(void)
 esp_err_t opus_encoder_deinit_internal(void)
 {
     if (!s_enc_data.encoder_initialized) {
-        ESP_LOGI(TAG, "Opus encoder not initialized, nothing to deinitialize");
+        ESP_LOGD(TAG, "Opus encoder not initialized, nothing to deinitialize");
         return ESP_OK;
     }
 
@@ -380,7 +381,7 @@ esp_err_t opus_encoder_deinit_internal(void)
 
     // Drain the frame queue with limited iterations to prevent infinite loop
     if (s_enc_data.frame_queue != NULL) {
-        ESP_LOGI(TAG, "🗑️ Draining frame queue...");
+        ESP_LOGD(TAG, "Draining frame queue...");
         esp_opus_out_buf_t opus_frame;
         int drained_count = 0;
         const int max_drain_iterations = CONFIG_AUDIO_FRAME_QUEUE_SIZE;  // Prevent infinite loop
@@ -394,15 +395,15 @@ esp_err_t opus_encoder_deinit_internal(void)
         }
 
         if (drained_count > 0) {
-            ESP_LOGI(TAG, "Drained %d frames from queue", drained_count);
+            ESP_LOGD(TAG, "Drained %d frames from queue", drained_count);
         }
         if (drained_count >= max_drain_iterations) {
-            ESP_LOGW(TAG, "⚠️ Reached max drain limit, queue may still contain frames");
+            ESP_LOGI(TAG, "Reached max drain limit, queue may still contain frames");
         }
     }
 
     // Singleton pattern: encoder task remains running but paused
-    ESP_LOGI(TAG, "Opus encoder is singleton - task remains paused until start() is called");
+    ESP_LOGD(TAG, "Opus encoder is singleton - task remains paused until start() is called");
 
     return ESP_OK;
 }

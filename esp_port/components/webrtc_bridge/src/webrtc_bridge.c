@@ -245,6 +245,11 @@ static void webrtc_bridge_send_via_hosted(const char *data, int len)
         data_idx += data_len;
         seq_num++;
     }
+#else
+    (void) len_remain;
+    (void) seq_num;
+    (void) data_len;
+    (void) data_idx;
 #endif
     xSemaphoreGive(mutex);
 }

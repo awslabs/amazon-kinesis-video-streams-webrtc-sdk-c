@@ -180,8 +180,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = NULL;
-    PCHAR userLogLevelStr = NULL;
-    UINT32 userLogLevel;
+    // PCHAR userLogLevelStr = NULL;
+    // UINT32 userLogLevel;
     PStateMachineState pStateMachineState;
     BOOL cacheFound = FALSE;
     PSignalingFileCacheEntry pFileCacheEntry = NULL;
@@ -236,15 +236,6 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
             pSignalingClient->getEndpointTime = pFileCacheEntry->creationTsEpochSeconds * HUNDREDS_OF_NANOS_IN_A_SECOND;
         }
     }
-
-    // Attempting to get the logging level from the env var and if it fails then set it from the client info
-    if ((userLogLevelStr = GETENV(DEBUG_LOG_LEVEL_ENV_VAR)) != NULL && STATUS_SUCCEEDED(STRTOUI32(userLogLevelStr, NULL, 10, &userLogLevel))) {
-        userLogLevel = userLogLevel > LOG_LEVEL_SILENT ? LOG_LEVEL_SILENT : userLogLevel < LOG_LEVEL_VERBOSE ? LOG_LEVEL_VERBOSE : userLogLevel;
-    } else {
-        userLogLevel = pClientInfo->signalingClientInfo.loggingLevel;
-    }
-
-    SET_LOGGER_LOG_LEVEL(userLogLevel);
 
     // Store the credential provider
     pSignalingClient->pCredentialProvider = pCredentialProvider;
@@ -868,11 +859,11 @@ BOOL signaling_is_ice_config_refresh_needed(PSignalingClient pSignalingClient)
     // 2. Current ICE configuration has expired
     if (pSignalingClient->iceConfigCount == 0 || curTime > pSignalingClient->iceConfigExpiration) {
         refreshNeeded = TRUE;
-        ESP_LOGI(TAG, "ICE refresh needed: iceConfigCount=%d, expired=%s",
+        ESP_LOGD(TAG, "ICE refresh needed: iceConfigCount=%" PRIu32 ", expired=%s",
                  pSignalingClient->iceConfigCount,
                  (curTime > pSignalingClient->iceConfigExpiration) ? "yes" : "no");
     } else {
-        ESP_LOGI(TAG, "ICE refresh not needed: valid config available");
+        ESP_LOGD(TAG, "ICE refresh not needed: valid config available");
     }
 
 CleanUp:
@@ -1622,6 +1613,7 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
             pSignalingClientMetrics->signalingClientStats.connectStartTime = pSignalingClient->diagnostics.connectStartTime;
             pSignalingClientMetrics->signalingClientStats.connectEndTime = pSignalingClient->diagnostics.connectEndTime;
             pSignalingClientMetrics->signalingClientStats.joinSessionToOfferRecvTime = pSignalingClient->diagnostics.joinSessionToOfferRecvTime;
+            /* fall-through */
         case 0:
             // Fill in the data structures according to the version of the requested structure
             pSignalingClientMetrics->signalingClientStats.signalingClientUptime = curTime - pSignalingClient->diagnostics.createTime;
@@ -1637,6 +1629,7 @@ STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMe
             pSignalingClientMetrics->signalingClientStats.connectionDuration =
                 ATOMIC_LOAD_BOOL(&pSignalingClient->connected) ? curTime - pSignalingClient->diagnostics.connectTime : 0;
             pSignalingClientMetrics->signalingClientStats.apiCallRetryCount = pSignalingClient->diagnostics.stateMachineRetryCount;
+            /* fall-through */
         default:
             break;
     }
