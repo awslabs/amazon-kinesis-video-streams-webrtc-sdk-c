@@ -172,32 +172,21 @@ char * ipv4_addr_ntoa(uint32_t addr, char *buf, int buflen)
   */
 stm_ret_t convert_mac_to_bytes(uint8_t *out, const char *s)
 {
-	int mac[MAC_LEN] = {0};
+	uint8_t mac[MAC_LEN] = {0};
 	int num_bytes = 0;
 
 	if (!s || (strlen(s) < MIN_MAC_STRING_LEN))  {
 		return STM_FAIL;
 	}
 
-	num_bytes =  sscanf(s, "%2x:%2x:%2x:%2x:%2x:%2x",
-			&mac[0],&mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
+	num_bytes =  sscanf(s, "%2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx",
+			&mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
 
-	if ((num_bytes < MAC_LEN)  ||
-		(mac[0] > 0xFF) ||
-		(mac[1] > 0xFF) ||
-		(mac[2] > 0xFF) ||
-		(mac[3] > 0xFF) ||
-		(mac[4] > 0xFF) ||
-		(mac[5] > 0xFF)) {
+	if (num_bytes < MAC_LEN) {
 		return STM_FAIL;
 	}
 
-	out[0] = mac[0]&0xff;
-	out[1] = mac[1]&0xff;
-	out[2] = mac[2]&0xff;
-	out[3] = mac[3]&0xff;
-	out[4] = mac[4]&0xff;
-	out[5] = mac[5]&0xff;
+	memcpy(out, mac, MAC_LEN);
 
 	return STM_OK;
 }
