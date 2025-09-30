@@ -27,6 +27,7 @@
 static const char *TAG = "signaling_only";
 
 extern int sleep_command_register_cli();
+extern int trigger_offer_command_register_cli();
 
 // Global configuration - keep same structure as before for IoT Core compatibility
 static kvs_signaling_config_t g_kvsSignalingConfig = {0};
@@ -130,6 +131,7 @@ void app_main(void)
     esp_cli_start();
     wifi_register_cli(); // for wifi-set command
     sleep_command_register_cli();
+    trigger_offer_command_register_cli();
 
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -234,6 +236,9 @@ void app_main(void)
         ESP_LOGE(TAG, "Failed to initialize WebRTC application: 0x%08" PRIx32, (uint32_t) status);
         return;
     }
+
+    // Set this to VIEWER when using trigger offer command
+    // app_webrtc_set_role(WEBRTC_CHANNEL_ROLE_TYPE_VIEWER);
 
     ESP_LOGI(TAG, "Starting signaling-only WebRTC application");
     ESP_LOGI(TAG, "Ready to forward signaling messages to/from streaming device via bridge");
