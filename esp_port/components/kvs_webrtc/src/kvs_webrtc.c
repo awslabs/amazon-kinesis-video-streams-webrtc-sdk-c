@@ -1892,7 +1892,7 @@ static VOID kvs_videoBandwidthEstimationHandler(UINT64 customData, DOUBLE maximu
     if (bitrate_kbps < 100) bitrate_kbps = 100;  // Minimum 100 kbps
     if (bitrate_kbps > 5000) bitrate_kbps = 5000; // Maximum 5 Mbps
 
-    ESP_LOGI(TAG, "Received VIDEO bitrate suggestion for peer %s: %.0f bps (adjusted to %" PRIu32 " kbps)",
+    ESP_LOGD(TAG, "Received VIDEO bitrate suggestion for peer %s: %.0f bps (adjusted to %" PRIu32 " kbps)",
              session->peer_id, maximumBitrate, bitrate_kbps);
 
     // Update bitrate via video capture interface if available

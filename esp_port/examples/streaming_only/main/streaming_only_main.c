@@ -192,8 +192,8 @@ static void wifi_init_sta(void)
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL));
 
     ESP_ERROR_CHECK(esp_wifi_start());
-    vTaskDelay(pdMS_TO_TICKS(1000));
-    esp_wifi_connect();
+    // vTaskDelay(pdMS_TO_TICKS(1000));
+    // esp_wifi_connect();
     // ESP_ERROR_CHECK(esp_hosted_wait_for_slave());
 
     EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group,
