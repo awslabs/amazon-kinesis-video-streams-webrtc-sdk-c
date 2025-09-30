@@ -359,10 +359,13 @@ esp_err_t OpusAudioPlayerInit()
 
 esp_err_t OpusAudioPlayerDeinit()
 {
+#if 0 // Currently, we do not really deinit the player
     // Clear up resources
     esp_audio_dec_close(write_ctx.decoder);
     free(write_ctx.out_frame.buffer);
     esp_audio_dec_unregister(ESP_AUDIO_TYPE_OPUS);
+#endif
+    ESP_LOGI(TAG, "OpusAudioPlayerDeinit: Kept running in the background");
     return ESP_OK;
 }
 
