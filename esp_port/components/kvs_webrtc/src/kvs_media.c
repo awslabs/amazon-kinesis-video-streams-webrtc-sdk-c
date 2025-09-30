@@ -237,7 +237,7 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
             // Send frame to ALL sessions (KVS official pattern)
             STATUS send_status = kvs_iterate_sessions_send_frame(&frame, TRUE);
             if (STATUS_FAILED(send_status)) {
-                ESP_LOGW(TAG, "Failed to send frame to sessions: 0x%08x", send_status);
+                ESP_LOGW(TAG, "Failed to send frame to sessions: 0x%08" PRIx32, (UINT32)send_status);
             }
 
             // Release camera frame if used
@@ -412,7 +412,7 @@ static STATUS kvs_session_frame_callback(UINT64 callerData, PHashEntry pHashEntr
     if (transceiver != NULL) {
         writeStatus = writeFrame(transceiver, frame);
         if (writeStatus != STATUS_SUCCESS && writeStatus != STATUS_SRTP_NOT_READY_YET) {
-            ESP_LOGW(TAG, "writeFrame failed for session %s: 0x%08x", session->peer_id, writeStatus);
+            ESP_LOGW(TAG, "writeFrame failed for session %s: 0x%08" PRIx32, session->peer_id, (UINT32)writeStatus);
         }
         // Don't propagate SRTP_NOT_READY as error - it's expected during connection setup
         retStatus = STATUS_SUCCESS;

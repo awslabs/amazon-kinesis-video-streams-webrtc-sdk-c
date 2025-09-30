@@ -4,13 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <inttypes.h>
+#include <string.h>
+#include <stdlib.h>
+#include "esp_log.h"
+#include "app_webrtc.h"
+
 #include "webrtc_bridge_signaling.h"
 #include "webrtc_bridge.h"
 #include "signaling_serializer.h"
-#include "esp_log.h"
-#include "string.h"
-#include "stdlib.h"
-#include <inttypes.h>
 #include "ice_bridge_client.h"
 
 static const char *TAG = "bridge_signaling";
@@ -51,7 +53,7 @@ void bridge_message_handler(const void* data, int len)
     }
 
     // Deserialize the message
-    signaling_msg_t signaling_msg;
+    signaling_msg_t signaling_msg = {0};
     ESP_LOGD(TAG, "Processing bridge message (%d bytes)", len);
     esp_err_t deserialize_result = deserialize_signaling_message(data, len, &signaling_msg);
     if (deserialize_result != ESP_OK) {
@@ -62,9 +64,12 @@ void bridge_message_handler(const void* data, int len)
     ESP_LOGD(TAG, "Deserialized message: type=%d, correlation_id=%s, peer_id=%s, payload_len=%d",
              (int) signaling_msg.messageType, signaling_msg.correlationId, signaling_msg.peerClientId, (int) signaling_msg.payloadLen);
 
-    // Convert to standardized webrtc_message_t structure
-    webrtc_message_t webrtc_msg;
-    memset(&webrtc_msg, 0, sizeof(webrtc_message_t));
+    // If the message type is TRIGGER_OFFER, we need to trigger an offer
+    if (signaling_msg.messageType == SIGNALING_MSG_TYPE_TRIGGER_OFFER) {
+        ESP_LOGI(TAG, "Received TRIGGER_OFFER message from signaling device");
+        app_webrtc_trigger_offer(signaling_msg.peerClientId);
+        goto cleanup;
+    }
 
     // Handle ICE servers message separately (not forwarded to WebRTC)
     if (signaling_msg.messageType == SIGNALING_MSG_TYPE_ICE_SERVERS) {
@@ -105,6 +110,10 @@ void bridge_message_handler(const void* data, int len)
 
         goto cleanup;  // Don't forward ICE server responses to WebRTC layer
     }
+
+    // Convert to standardized webrtc_message_t structure
+    webrtc_message_t webrtc_msg;
+    memset(&webrtc_msg, 0, sizeof(webrtc_message_t));
 
     // Convert message type for regular signaling messages
     switch (signaling_msg.messageType) {

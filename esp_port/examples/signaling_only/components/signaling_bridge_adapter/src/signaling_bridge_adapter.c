@@ -167,7 +167,26 @@ int signaling_bridge_adapter_send_message(webrtc_message_t *signalingMessage)
     // Convert to signaling_msg_t format for bridge
     signaling_msg_t signalingMsg = {0};
     signalingMsg.version = signalingMessage->version;
-    signalingMsg.messageType = signalingMessage->message_type;
+
+    // Map message types between webrtc_message_type_t and signaling_msg_type
+    switch (signalingMessage->message_type) {
+        case WEBRTC_MESSAGE_TYPE_OFFER:
+            signalingMsg.messageType = SIGNALING_MSG_TYPE_OFFER;
+            break;
+        case WEBRTC_MESSAGE_TYPE_ANSWER:
+            signalingMsg.messageType = SIGNALING_MSG_TYPE_ANSWER;
+            break;
+        case WEBRTC_MESSAGE_TYPE_ICE_CANDIDATE:
+            signalingMsg.messageType = SIGNALING_MSG_TYPE_ICE_CANDIDATE;
+            break;
+        case WEBRTC_MESSAGE_TYPE_TRIGGER_OFFER:
+            signalingMsg.messageType = SIGNALING_MSG_TYPE_TRIGGER_OFFER;
+            break;
+        default:
+            ESP_LOGE(TAG, "Unsupported message type: %d", signalingMessage->message_type);
+            return -1;
+    }
+
     strncpy(signalingMsg.peerClientId, signalingMessage->peer_client_id, sizeof(signalingMsg.peerClientId) - 1);
     strncpy(signalingMsg.correlationId, signalingMessage->correlation_id, sizeof(signalingMsg.correlationId) - 1);
     signalingMsg.payload = signalingMessage->payload;
