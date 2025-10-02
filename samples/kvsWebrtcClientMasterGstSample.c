@@ -210,7 +210,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                 case DEVICE_SOURCE: {
 
 			senderPipeline = gst_parse_launch(
-                            "v4l2src device=/dev/video12 ! "
+                            "v4l2src device=/dev/video0 ! "
                             "queue ! videoconvert ! videoscale ! video/x-raw,width=1280,height=720 ! "
                             "clockoverlay halignment=right valignment=top time-format=\"%Y-%m-%d %H:%M:%S\" ! "
                             "videorate ! video/x-raw,framerate=25/1 ! "
@@ -275,12 +275,12 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                 }
                 case DEVICE_SOURCE: {
                         senderPipeline = gst_parse_launch(
-                            "v4l2src device=/dev/video12 ! "
+                            "v4l2src device=/dev/video0 ! "
                             "queue ! videorate ! videoscale ! videoconvert ! video/x-raw,width=1280,height=720,framerate=25/1 ! "
                             "clockoverlay halignment=right valignment=top time-format=\"%Y-%m-%d %H:%M:%S\" ! "
                             "x264enc name=sampleVideoEncoder bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
                             "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! "
-                            "appsink sync=TRUE emit-signals=TRUE name=appsink-video v4l2src device=/dev/media4 ! "
+                            "appsink sync=TRUE emit-signals=TRUE name=appsink-video alsasrc device=hw:1,0 ! audio/x-raw,format=S16LE,rate=16000,channels=2 !"
                             "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc name=sampleAudioEncoder ! "
                             "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
                             &error);
