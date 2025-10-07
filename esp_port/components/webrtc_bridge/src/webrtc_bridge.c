@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -90,18 +90,6 @@ void webrtc_bridge_register_handler(webrtc_bridge_msg_cb_t handler)
     message_handler = handler;
 }
 
-typedef struct send_msg {
-    char *buf;
-    int size;
-} send_msg_t;
-
-static void log_error_if_nonzero(const char *message, int error_code)
-{
-    if (error_code != 0) {
-        ESP_LOGE(TAG, "Last error %s: 0x%x", message, error_code);
-    }
-}
-
 static void handle_on_message_received(void *priv_data)
 {
     received_msg_t *received_msg = (received_msg_t *) priv_data;
@@ -119,16 +107,6 @@ static void handle_on_message_received(void *priv_data)
 }
 
 static void webrtc_bridge_send_via_hosted(const char *data, int len);
-
-static void send_message_via_hosted_handler(void *priv_data)
-{
-    send_msg_t *send_msg = (send_msg_t *) priv_data;
-    webrtc_bridge_send_via_hosted(send_msg->buf, send_msg->size);
-
-    /* Done! Free the buffer now */
-    free(send_msg->buf);
-    free(send_msg);
-}
 
 #if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED
 #if ENABLE_SIGNALLING_ONLY
@@ -258,21 +236,11 @@ static void webrtc_bridge_send_via_hosted(const char *data, int len)
 void webrtc_bridge_send_message(const char *data, int len)
 {
 #if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED
-    send_msg_t *send_msg = calloc(1, sizeof(send_msg_t));
-    if (!send_msg) {
-        ESP_LOGE(TAG, "Failed to allocate memory for send_msg");
-        free(data);
-        return;
-    }
-    send_msg->buf = data;
-    send_msg->size = len;
+    /** Send directly from caller's thread */
+    webrtc_bridge_send_via_hosted(data, len);
 
-    /* free delegated to send_message_via_hosted_handler */
-    if (esp_work_queue_add_task(&send_message_via_hosted_handler, (void *) send_msg) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to add task to work queue");
-        free(data);
-        free(send_msg);
-    }
+    /* Free the data buffer after sending */
+    free((void*)data);
 #else
     int msg_id = esp_mqtt_client_publish(g_mqtt_client, TO_TOPIC, data, len, 1, 0);
     ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
@@ -281,6 +249,13 @@ void webrtc_bridge_send_message(const char *data, int len)
 }
 
 #ifndef CONFIG_ESP_WEBRTC_BRIDGE_HOSTED
+static void log_error_if_nonzero(const char *message, int error_code)
+{
+    if (error_code != 0) {
+        ESP_LOGE(TAG, "Last error %s: 0x%x", message, error_code);
+    }
+}
+
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
     esp_mqtt_event_handle_t event = event_data;
@@ -293,11 +268,6 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         msg_id = esp_mqtt_client_subscribe(client, FROM_TOPIC, 0);
         ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
 
-        // msg_id = esp_mqtt_client_subscribe(client, "/topic/qos1", 1);
-        // ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
-
-        // msg_id = esp_mqtt_client_unsubscribe(client, "/topic/qos1");
-        // ESP_LOGI(TAG, "sent unsubscribe successful, msg_id=%d", msg_id);
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
@@ -305,8 +275,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 
     case MQTT_EVENT_SUBSCRIBED:
         ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-        // msg_id = esp_mqtt_client_publish(client, "/topic/qos0", "data", 0, 0, 0);
-        // ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
+
         break;
     case MQTT_EVENT_UNSUBSCRIBED:
         ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
@@ -316,8 +285,6 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         break;
     case MQTT_EVENT_DATA:
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
-        printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
-        printf("DATA=%.*s\r\n", event->data_len, event->data);
         if (message_handler) {
             message_handler(event->data, event->data_len);
         } else {
