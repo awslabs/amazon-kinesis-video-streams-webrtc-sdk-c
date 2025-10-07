@@ -72,6 +72,9 @@ typedef enum {
 #define APP_WEBRTC_MAX_ICE_CONFIG_CREDENTIAL_LEN   256
 #define APP_WEBRTC_MAX_ICE_SERVERS_COUNT           5
 
+// Default fallback STUN server (Google's public STUN server)
+#define APP_WEBRTC_DEFAULT_STUN_SERVER             "stun:stun.l.google.com:19302"
+
 /**
  * @brief WebRTC application event types
  */

@@ -451,7 +451,7 @@ WEBRTC_STATUS app_webrtc_refresh_ice_configuration(void)
     CHK(gSignalingClientData != NULL && gWebRtcAppConfig.signaling_client_if != NULL, STATUS_INVALID_OPERATION);
     CHK(gWebRtcAppConfig.signaling_client_if->refresh_ice_configuration != NULL, STATUS_INVALID_OPERATION);
 
-    ESP_LOGI(TAG, "🔄 app_webrtc_refresh_ice_configuration: triggering background ICE refresh");
+    ESP_LOGI(TAG, "app_webrtc_refresh_ice_configuration: triggering background ICE refresh");
 
     // Delegate to the signaling interface implementation
     CHK_STATUS(gWebRtcAppConfig.signaling_client_if->refresh_ice_configuration(
@@ -2504,6 +2504,10 @@ static WEBRTC_STATUS app_webrtc_on_ice_servers_updated(uint64_t customData, uint
  * trigger logic used in offer processing, answer processing, and offer creation.
  * Falls back to traditional ICE refresh when progressive mechanism is not available.
  *
+ * For split architecture (streaming_only + signaling_only), this provides default
+ * STUN servers immediately to start ICE gathering, then triggers async update for
+ * full ICE servers (including TURN) from the signaling device.
+ *
  * @param context Description of the context (for logging)
  * @param useTurn Whether to prioritize TURN servers
  * @return WEBRTC_STATUS Result of the operation
@@ -2546,35 +2550,46 @@ static WEBRTC_STATUS app_webrtc_trigger_progressive_ice(const char* context, boo
 
         return trigger_status;
     } else {
-        // Fallback to traditional ICE refresh for interfaces that don't support progressive mechanism
-        ESP_LOGI(TAG, "Using traditional ICE refresh for %s (progressive not supported)", context);
+        // Fallback path for interfaces without progressive ICE support (e.g., split architecture)
+        ESP_LOGI(TAG, "Progressive ICE not supported for %s - using default STUN + async update strategy", context);
 
+        // Provide default STUN server immediately so ICE gathering can start
+        if (g_kvs_webrtc_client != NULL &&
+            gWebRtcAppConfig.peer_connection_if != NULL &&
+            gWebRtcAppConfig.peer_connection_if->set_ice_servers != NULL) {
+
+            // Create default STUN server configuration
+            static app_webrtc_ice_server_t default_ice_servers[1];
+            STRNCPY(default_ice_servers[0].urls, APP_WEBRTC_DEFAULT_STUN_SERVER, APP_WEBRTC_MAX_ICE_CONFIG_URI_LEN);
+            default_ice_servers[0].urls[APP_WEBRTC_MAX_ICE_CONFIG_URI_LEN] = '\0';
+            default_ice_servers[0].username[0] = '\0';
+            default_ice_servers[0].credential[0] = '\0';
+
+            ESP_LOGI(TAG, "Setting default STUN server immediately: %s", default_ice_servers[0].urls);
+            WEBRTC_STATUS stun_status = gWebRtcAppConfig.peer_connection_if->set_ice_servers(
+                g_kvs_webrtc_client, default_ice_servers, 1);
+
+            if (stun_status == WEBRTC_STATUS_SUCCESS) {
+                ESP_LOGI(TAG, "Default STUN server set - ICE gathering can start immediately");
+            } else {
+                ESP_LOGW(TAG, "Failed to set default STUN server: 0x%08" PRIx32, (UINT32) stun_status);
+            }
+        }
+
+        // Trigger async ICE refresh
         if (gWebRtcAppConfig.signaling_client_if->refresh_ice_configuration != NULL) {
             WEBRTC_STATUS refresh_status = gWebRtcAppConfig.signaling_client_if->refresh_ice_configuration(gSignalingClientData);
 
             if (refresh_status == WEBRTC_STATUS_SUCCESS) {
                 ESP_LOGI(TAG, "Traditional ICE refresh triggered successfully for %s", context);
             } else {
-                ESP_LOGW(TAG, "Traditional ICE refresh failed for %s: 0x%08" PRIx32, context, (UINT32) refresh_status);
+                ESP_LOGW(TAG, "Failed to trigger async ICE refresh: 0x%08" PRIx32, (UINT32) refresh_status);
             }
-
-            return refresh_status;
-        } else if (gWebRtcAppConfig.signaling_client_if->get_ice_servers != NULL) {
-            // Final fallback: trigger direct ICE server update via get_ice_servers
-            ESP_LOGD(TAG, "Using direct ICE server update for %s", context);
-            WEBRTC_STATUS update_status = app_webrtc_update_ice_servers();
-
-            if (update_status == WEBRTC_STATUS_SUCCESS) {
-                ESP_LOGD(TAG, "Direct ICE server update completed successfully for %s", context);
-            } else {
-                ESP_LOGW(TAG, "Direct ICE server update failed for %s: 0x%08" PRIx32, context, (UINT32) update_status);
-            }
-
-            return update_status;
         } else {
-            ESP_LOGD(TAG, "No ICE refresh mechanism available for %s - using existing servers", context);
-            return WEBRTC_STATUS_SUCCESS;
+            ESP_LOGI(TAG, "No async ICE refresh mechanism available! Will use default STUN only");
         }
+
+        return WEBRTC_STATUS_SUCCESS;
     }
 }
 

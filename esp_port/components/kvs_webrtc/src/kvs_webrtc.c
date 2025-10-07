@@ -1574,7 +1574,7 @@ static STATUS kvs_initializePeerConnection(kvs_pc_client_t* client, PRtcPeerConn
         }
     } else {
         // Fallback to hardcoded STUN server
-        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, "stun:stun.l.google.com:19302");
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, APP_WEBRTC_DEFAULT_STUN_SERVER);
         configuration.iceServers[0].username[0] = '\0';
         configuration.iceServers[0].credential[0] = '\0';
         ESP_LOGI(TAG, "Creating peer connection with STUN server: %s", configuration.iceServers[0].urls);

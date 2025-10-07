@@ -130,7 +130,7 @@ static void kvs_refresh_ice_task(void *arg)
         ESP_LOGI(TAG, "Background ICE refresh task started");
         STATUS status = refresh_ice_configuration((PSignalingClient)signalingClientHandle);
         if (STATUS_FAILED(status)) {
-            ESP_LOGE(TAG, "Background ICE refresh failed: 0x%08x", status);
+            ESP_LOGE(TAG, "Background ICE refresh failed: 0x%08" PRIx32, status);
         } else {
             ESP_LOGI(TAG, "Background ICE refresh completed successfully");
 
@@ -141,7 +141,7 @@ static void kvs_refresh_ice_task(void *arg)
                 STATUS iceCountStatus = signalingClientGetIceConfigInfoCount(signalingClientHandle, &iceConfigCount);
 
                 if (STATUS_SUCCEEDED(iceCountStatus) && iceConfigCount > 0) {
-                    ESP_LOGI(TAG, "Progressive ICE: Notifying callback about %u new ICE servers", iceConfigCount);
+                    ESP_LOGI(TAG, "Progressive ICE: Notifying callback about %" PRIu32 " new ICE servers", iceConfigCount);
                     ESP_LOGI(TAG, "Triggering peer connection ICE server update...");
                     if (pClientData->ice_callback_ctx.on_ice_servers_updated != NULL) {
                         WEBRTC_STATUS callbackStatus = pClientData->ice_callback_ctx.on_ice_servers_updated(
@@ -150,12 +150,12 @@ static void kvs_refresh_ice_task(void *arg)
                         if (callbackStatus == WEBRTC_STATUS_SUCCESS) {
                             ESP_LOGD(TAG, "Progressive ICE callback completed successfully");
                         } else {
-                            ESP_LOGW(TAG, "Progressive ICE callback returned error: 0x%08x", callbackStatus);
+                            ESP_LOGW(TAG, "Progressive ICE callback returned error: 0x%08" PRIx32, (uint32_t) callbackStatus);
                         }
                     }
                 } else {
-                    ESP_LOGW(TAG, "Failed to get ICE config count or no servers available: status=0x%08x, count=%u",
-                             iceCountStatus, iceConfigCount);
+                    ESP_LOGW(TAG, "Failed to get ICE config count or no servers available: status=0x%08" PRIx32 ", count=%" PRIu32,
+                             (uint32_t) iceCountStatus, (uint32_t) iceConfigCount);
                 }
             } else {
                 ESP_LOGD(TAG, "No progressive ICE callback registered - using traditional polling mode");
@@ -283,7 +283,7 @@ static STATUS adapterErrorCallback(UINT64 customData, STATUS errorStatus, PCHAR 
     // Map KVS errors to generic WebRTC status codes for proper reconnection handling
     WEBRTC_STATUS webrtcStatus = mapKvsErrorToWebrtcStatus(errorStatus);
 
-    ESP_LOGI(TAG, "Mapped KVS error 0x%08x to WebRTC status 0x%08x", errorStatus, webrtcStatus);
+    ESP_LOGI(TAG, "Mapped KVS error 0x%08" PRIx32 " to WebRTC status 0x%08" PRIx32, (uint32_t) errorStatus, (uint32_t) webrtcStatus);
 
     WEBRTC_STATUS result = pAdapterData->originalOnError(pAdapterData->originalCustomData, webrtcStatus, errorMessage, subErrorCode);
 
@@ -309,7 +309,7 @@ static STATUS kvsStateChangedCallback(UINT64 customData, SIGNALING_CLIENT_STATE 
         return STATUS_NULL_ARG;
     }
 
-    ESP_LOGI(TAG, "KVS signaling state changed to %d", state);
+    ESP_LOGI(TAG, "KVS signaling state changed to %" PRIu32, (uint32_t) state);
 
     // Update internal state
     if (state == SIGNALING_CLIENT_STATE_CONNECTED) {
@@ -340,7 +340,7 @@ static STATUS kvsErrorCallback(UINT64 customData, STATUS status, PCHAR errorMsg,
         return STATUS_NULL_ARG;
     }
 
-    ESP_LOGW(TAG, "KVS signaling error: 0x%08x - %.*s", status, errorMsgLen, errorMsg);
+    ESP_LOGW(TAG, "KVS signaling error: 0x%08" PRIx32 " - %.*s", (uint32_t) status, (int) errorMsgLen, errorMsg);
 
     // Call user callback if set
     if (pClientData->on_error != NULL) {
@@ -376,7 +376,7 @@ static STATUS convertKvsToWebRtcMessage(PReceivedSignalingMessage pKvsMessage, w
             pWebRtcMessage->message_type = WEBRTC_MESSAGE_TYPE_ICE_CANDIDATE;
             break;
         default:
-            ESP_LOGW(TAG, "Unknown KVS message type: %d", pKvsMessage->signalingMessage.messageType);
+            ESP_LOGW(TAG, "Unknown KVS message type: %" PRIu32, (uint32_t) pKvsMessage->signalingMessage.messageType);
             return STATUS_INVALID_ARG;
     }
 
@@ -603,7 +603,7 @@ STATUS createCredentialProvider(KvsSignalingClientData *pClientData)
 
 #ifdef CONFIG_IOT_CORE_ENABLE_CREDENTIALS
         if (STATUS_FAILED(retStatus)) {
-            ESP_LOGE(TAG, "Failed to create credential provider: 0x%08x", retStatus);
+            ESP_LOGE(TAG, "Failed to create credential provider: 0x%08" PRIx32, retStatus);
             if ((retStatus >> 24) == 0x52) {
                 ESP_LOGE(TAG, "This appears to be a networking error. Check network connectivity.");
             } else if ((retStatus >> 24) == 0x50) {
@@ -640,7 +640,7 @@ STATUS createCredentialProvider(KvsSignalingClientData *pClientData)
             &pClientData->pCredentialProvider);
 
         if (STATUS_FAILED(retStatus)) {
-            ESP_LOGE(TAG, "Failed to create static credential provider: 0x%08x", retStatus);
+            ESP_LOGE(TAG, "Failed to create static credential provider: 0x%08" PRIx32, retStatus);
             CHK(FALSE, retStatus);
         }
 
@@ -661,7 +661,7 @@ static STATUS fetchCredentialsAdapter(UINT64 customData,
     if (ctx == NULL || ctx->cb == NULL) {
         return STATUS_NULL_ARG;
     }
-    const char *ak = NULL, *sk = NULL, *tk = NULL; uint32_t akl=0, skl=0, tkl=0; uint64_t exp=0;
+    const char *ak = NULL, *sk = NULL, *tk = NULL; uint32_t akl=0, skl=0, tkl=0; uint32_t exp=0;
     int rc = ctx->cb(ctx->ud, &ak, &akl, &sk, &skl, &tk, &tkl, &exp);
     if (rc != 0) {
         return STATUS_INTERNAL_ERROR;
@@ -873,7 +873,7 @@ STATUS getKvsSignalingIceServers(PVOID pSignalingClient, PUINT32 pIceConfigCount
 
         // Use fallback STUN server
         SNPRINTF(iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN,
-                 "stun:stun.l.google.com:19302");
+                 APP_WEBRTC_DEFAULT_STUN_SERVER);
 
         // Make sure credentials are empty for STUN
         iceServers[0].username[0] = '\0';
@@ -938,7 +938,7 @@ STATUS getKvsSignalingIceServers(PVOID pSignalingClient, PUINT32 pIceConfigCount
 
     // Add 1 for the STUN server
     *pIceConfigCount = uriCount + 1;
-    ESP_LOGI(TAG, "Total ICE servers configured: %d", *pIceConfigCount);
+    ESP_LOGI(TAG, "Total ICE servers configured: %" PRIu32, *pIceConfigCount);
 
 CleanUp:
     return retStatus;
@@ -1010,7 +1010,7 @@ STATUS kvsSignalingQueryServerGetByIdx(PVOID pSignalingClient, int index, bool u
                 // Pass pClientData instead of signalingClientHandle for progressive callback support
                 esp_err_t result = esp_work_queue_add_task(&kvs_refresh_ice_task, (void*)pClientData);
                 if (result != ESP_OK) {
-                    ESP_LOGE(TAG, "Failed to queue background ICE refresh: %d", result);
+                    ESP_LOGE(TAG, "Failed to queue background ICE refresh: %d", (int) result);
                 }
             } else if (checkStatus == WEBRTC_STATUS_SUCCESS) {
                 ESP_LOGI(TAG, "ICE configuration is up to date");
@@ -1060,25 +1060,25 @@ STATUS kvsSignalingQueryServerGetByIdx(PVOID pSignalingClient, int index, bool u
             UINT32 iceConfigCount = 0;
             STATUS status = signalingClientGetIceConfigInfoCount(pClientData->signalingClientHandle, &iceConfigCount);
             if (STATUS_FAILED(status)) {
-                ESP_LOGE(TAG, "Failed to get ICE config count: 0x%08x", status);
+                ESP_LOGE(TAG, "Failed to get ICE config count: 0x%08" PRIx32, status);
                 *have_more = false;
                 goto CleanUp;
             }
 
-            ESP_LOGI(TAG, "Retrieved %d ICE configurations", iceConfigCount);
+            ESP_LOGI(TAG, "Retrieved %" PRIu32 " ICE configurations", iceConfigCount);
 
             if (iceConfigCount > 0) {
                 // Get the first ICE config info (contains TURN servers)
                 PIceConfigInfo pIceConfigInfoPtr = NULL;
                 status = signalingClientGetIceConfigInfo(pClientData->signalingClientHandle, 0, &pIceConfigInfoPtr);
                 if (STATUS_FAILED(status) || pIceConfigInfoPtr == NULL) {
-                    ESP_LOGE(TAG, "Failed to get ICE config info: 0x%08x", status);
+                    ESP_LOGE(TAG, "Failed to get ICE config info: 0x%08" PRIx32, status);
                     *have_more = false;
                     goto CleanUp;
                 }
 
                 uriCount += pIceConfigInfoPtr->uriCount;
-                ESP_LOGI(TAG, "Total URI count (STUN + TURN): %d", uriCount);
+                ESP_LOGI(TAG, "Total URI count (STUN + TURN): %" PRIu32, uriCount);
 
                 // Store the ICE config for subsequent requests
                 pIceConfigInfo = pIceConfigInfoPtr;
@@ -1102,7 +1102,7 @@ STATUS kvsSignalingQueryServerGetByIdx(PVOID pSignalingClient, int index, bool u
 
             *have_more = (index < uriCount - 1);
 
-            ESP_LOGI(TAG, "Sending TURN server %d: %s (user: %s) [have_more: %s]",
+            ESP_LOGI(TAG, "Sending TURN server %" PRIu32 ": %s (user: %s) [have_more: %s]",
                      turnIndex, pIceServer->urls, pIceServer->username, *have_more ? "true" : "false");
             goto CleanUp;
         }
@@ -1265,7 +1265,9 @@ static WEBRTC_STATUS kvsSetRoleTypeWrapper(void *pSignalingClient, webrtc_channe
 static WEBRTC_STATUS kvsGetIceServersWrapper(void *pSignalingClient, uint32_t *pIceConfigCount, void *pIceServersArray)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    RtcIceServer iceServers[MAX_ICE_SERVERS_COUNT] = {0};
+
+    RtcIceServer *iceServers = MEMCALLOC(MAX_ICE_SERVERS_COUNT, sizeof(RtcIceServer));
+    CHK(iceServers != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
     // Call the KVS function with the local ice servers array
     PUINT32 kvsIceConfigCount = (PUINT32)pIceConfigCount;
@@ -1282,9 +1284,11 @@ static WEBRTC_STATUS kvsGetIceServersWrapper(void *pSignalingClient, uint32_t *p
         }
         // Copy the iceServers array to the output
         MEMCPY(pIceServersArray, iceServers, sizeof(RtcIceServer) * (*pIceConfigCount));
-        ESP_LOGI(TAG, "KVS get_ice_servers: copied %d servers to generic iceServers array", *pIceConfigCount);
+        ESP_LOGI(TAG, "KVS get_ice_servers: copied %" PRIu32 " servers to generic iceServers array", *pIceConfigCount);
     }
 
+CleanUp:
+    SAFE_MEMFREE(iceServers);
     return (retStatus == STATUS_SUCCESS) ? WEBRTC_STATUS_SUCCESS : WEBRTC_STATUS_INTERNAL_ERROR;
 }
 
@@ -1304,7 +1308,7 @@ static WEBRTC_STATUS kvsSetIceUpdateCallbackWrapper(void *pSignalingClient,
     pClientData->ice_callback_ctx.customData = customData;
     pClientData->ice_callback_ctx.on_ice_servers_updated = on_ice_servers_updated;
 
-    ESP_LOGI(TAG, "ICE update callback set successfully");
+    ESP_LOGD(TAG, "ICE update callback set successfully");
 
 CleanUp:
     return convertStatusToWebrtcStatus(retStatus);
@@ -1362,7 +1366,7 @@ static WEBRTC_STATUS kvsRefreshIceConfigurationWrapper(void *pSignalingClient)
     // Trigger the background refresh using the KVS signaling client
     STATUS status = refresh_ice_configuration((PSignalingClient)pClientData->signalingClientHandle);
     if (STATUS_FAILED(status)) {
-        ESP_LOGE(TAG, "Failed to refresh ICE configuration: 0x%08x", status);
+        ESP_LOGE(TAG, "Failed to refresh ICE configuration: 0x%08" PRIx32, (UINT32)status);
         return WEBRTC_STATUS_INTERNAL_ERROR;
     }
 

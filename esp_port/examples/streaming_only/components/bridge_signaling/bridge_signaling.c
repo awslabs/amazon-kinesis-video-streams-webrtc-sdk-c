@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include "esp_log.h"
 #include "app_webrtc.h"
+#include "esp_work_queue.h"
 
 #include "webrtc_bridge_signaling.h"
 #include "webrtc_bridge.h"
@@ -16,6 +17,12 @@
 #include "ice_bridge_client.h"
 
 static const char *TAG = "bridge_signaling";
+
+// Progressive ICE callback context (similar to kvs_signaling.c)
+typedef struct {
+    uint64_t customData;
+    WEBRTC_STATUS (*on_ice_servers_updated)(uint64_t, uint32_t);
+} bridge_ice_callback_ctx_t;
 
 /**
  * @brief Bridge signaling client data structure
@@ -35,6 +42,9 @@ typedef struct {
     // ICE servers received from signaling_only device
     bool ice_servers_received;
     ss_ice_servers_payload_t ice_servers_config;
+
+    // Progressive ICE server callback context
+    bridge_ice_callback_ctx_t ice_callback_ctx;
 } BridgeSignalingClientData;
 
 // Global client instance (bridge is typically singleton)
@@ -437,6 +447,115 @@ static WEBRTC_STATUS bridgeGetIceServers(void *pSignalingClient, uint32_t *pIceC
 }
 
 /**
+ * @brief Background task for fetching ICE servers via bridge (similar to kvs_refresh_ice_task)
+ *
+ * This task:
+ * 1. Fetches ICE servers from signaling_only via bridge/RPC
+ * 2. Updates the stored ICE servers in bridge client
+ * 3. Calls on_ice_servers_updated callback to notify app_webrtc
+ */
+static void bridge_refresh_ice_task(void *arg)
+{
+    if (arg == NULL || g_bridge_client == NULL) {
+        ESP_LOGE(TAG, "Background bridge ICE refresh task received NULL argument");
+        return;
+    }
+
+    BridgeSignalingClientData *pClientData = (BridgeSignalingClientData *)arg;
+    ESP_LOGI(TAG, "Background bridge ICE refresh task started");
+
+    // Fetch ICE servers via bridge (this calls ice_bridge_client_get_servers internally)
+    uint32_t iceConfigCount = 0;
+    app_webrtc_ice_server_t ice_servers[APP_WEBRTC_MAX_ICE_SERVERS_COUNT] = {0};
+
+    WEBRTC_STATUS status = ice_bridge_client_get_servers(
+        NULL,  // pAppSignaling (unused)
+        ice_servers,  // Output array
+        &iceConfigCount
+    );
+
+    if (status != WEBRTC_STATUS_SUCCESS) {
+        ESP_LOGE(TAG, "Background bridge ICE refresh failed: 0x%08" PRIx32, (uint32_t) status);
+        return;
+    }
+
+    ESP_LOGI(TAG, "Background bridge ICE refresh completed successfully with %" PRIu32 " servers", iceConfigCount);
+
+    // Update stored ICE servers
+    if (iceConfigCount > 0) {
+        pClientData->ice_servers_config.ice_server_count = iceConfigCount;
+        for (uint32_t i = 0; i < iceConfigCount && i < APP_WEBRTC_MAX_ICE_SERVERS_COUNT; i++) {
+            memcpy(&pClientData->ice_servers_config.ice_servers[i], &ice_servers[i], sizeof(app_webrtc_ice_server_t));
+        }
+        pClientData->ice_servers_received = true;
+    }
+
+    // Notify callback that new ICE servers are now available
+    if (pClientData->ice_callback_ctx.on_ice_servers_updated != NULL && iceConfigCount > 0) {
+        ESP_LOGI(TAG, "Progressive ICE: Notifying callback about %" PRIu32 " new ICE servers from bridge", iceConfigCount);
+        WEBRTC_STATUS callbackStatus = pClientData->ice_callback_ctx.on_ice_servers_updated(
+            pClientData->ice_callback_ctx.customData, iceConfigCount);
+
+        if (callbackStatus == WEBRTC_STATUS_SUCCESS) {
+            ESP_LOGD(TAG, "Progressive ICE callback completed successfully");
+        } else {
+            ESP_LOGW(TAG, "Progressive ICE callback returned error: 0x%08x", callbackStatus);
+        }
+    } else if (iceConfigCount == 0) {
+        ESP_LOGW(TAG, "No ICE servers fetched from bridge");
+    } else {
+        ESP_LOGD(TAG, "No progressive ICE callback registered - servers stored for later use");
+    }
+}
+
+/**
+ * @brief Set ICE update callback for progressive ICE server delivery
+ */
+static WEBRTC_STATUS bridgeSetIceUpdateCallback(void *pSignalingClient,
+                                                uint64_t customData,
+                                                WEBRTC_STATUS (*on_ice_servers_updated)(uint64_t, uint32_t))
+{
+    if (pSignalingClient == NULL) {
+        return WEBRTC_STATUS_NULL_ARG;
+    }
+
+    BridgeSignalingClientData *pClientData = (BridgeSignalingClientData *)pSignalingClient;
+
+    // Store the callback context
+    pClientData->ice_callback_ctx.customData = customData;
+    pClientData->ice_callback_ctx.on_ice_servers_updated = on_ice_servers_updated;
+
+    ESP_LOGD(TAG, "Bridge ICE update callback set successfully");
+    return WEBRTC_STATUS_SUCCESS;
+}
+
+/**
+ * @brief Trigger background ICE server refresh via bridge
+ *
+ * This spawns a background task that fetches ICE servers from signaling_only
+ * and calls the on_ice_servers_updated callback when done.
+ */
+static WEBRTC_STATUS bridgeRefreshIceConfiguration(void *pSignalingClient)
+{
+    if (pSignalingClient == NULL) {
+        ESP_LOGE(TAG, "Invalid signaling client for bridge ICE refresh");
+        return WEBRTC_STATUS_INVALID_ARG;
+    }
+
+    BridgeSignalingClientData *pClientData = (BridgeSignalingClientData *)pSignalingClient;
+    ESP_LOGI(TAG, "Triggering background bridge ICE configuration via work queue");
+
+    // Trigger background refresh using work queue (similar to kvs_signaling.c)
+    esp_err_t result = esp_work_queue_add_task(&bridge_refresh_ice_task, (void*)pClientData);
+    if (result != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to queue background bridge ICE refresh: %d", result);
+        return WEBRTC_STATUS_INTERNAL_ERROR;
+    }
+
+    return WEBRTC_STATUS_SUCCESS;
+}
+
+/**
  * @brief Get the bridge signaling client interface
  */
 webrtc_signaling_client_if_t* getBridgeSignalingClientInterface(void)
@@ -449,7 +568,11 @@ webrtc_signaling_client_if_t* getBridgeSignalingClientInterface(void)
         .free = bridgeFree,
         .set_callbacks = bridgeSetCallbacks,
         .set_role_type = bridgeSetRoleType,
-        .get_ice_servers = bridgeGetIceServers
+        .get_ice_servers = bridgeGetIceServers,
+        .get_ice_server_by_idx = NULL, // Bridge doesn't support index-based (uses RPC instead)
+        .is_ice_refresh_needed = NULL, // Always assume refresh is needed for bridge
+        .refresh_ice_configuration = bridgeRefreshIceConfiguration,  // NEW: Async ICE refresh
+        .set_ice_update_callback = bridgeSetIceUpdateCallback
     };
 
     return &bridge_interface;
