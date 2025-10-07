@@ -1,0 +1,97 @@
+name: WebRTC C Join Storage Master Samples
+# todo: add the provisioning and consumption check
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+      - 'test-pr-*'
+  pull_request:
+    branches:
+      - develop
+      - main
+
+jobs:
+   
+
+ 
+
+  valgrind-check-for-join-storage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      AWS_KVS_LOG_LEVEL: 1
+
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Install deps
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install valgrind 
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
+
+      - name: Build repository
+        run: |
+          mkdir build && cd build
+          cmake .. -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+          make -j
+
+      - name: Run tests
+        run: |
+          cd build
+          valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file=valgrind-master.txt ./samples/kvsWebrtcClientMaster demo-channel-storage 1 opus h264 &
+          PID_MASTER=$!
+     
+
+          # Wait for processes to run initially
+          sleep 30 # Wait 30s
+
+          
+          kill -2 $PID_MASTER
+
+          # Start a background task to enforce a timeout for graceful shutdown
+          (
+            sleep 10
+            kill -9 $PID_MASTER 2>/dev/null
+          
+          ) &
+
+          wait $PID_MASTER
+          EXIT_STATUS_MASTER=$?
+        
+
+          # Check exit statuses to determine if the interrupt was successful
+          if [ $EXIT_STATUS_MASTER -ne 0 ] ; then
+            echo "Process did not exit gracefully."
+            echo "Master exit code: $EXIT_STATUS_MASTER"
+           
+            exit 1
+          else
+
+            echo "Processes exited successfully."
+          fi
+
+          # Check for memory leaks in Valgrind output files
+          if grep "All heap blocks were freed -- no leaks are possible" valgrind-master.txt ; then
+            echo "No memory leaks detected."
+          else
+            echo "Memory leaks detected."
+          fi
+
