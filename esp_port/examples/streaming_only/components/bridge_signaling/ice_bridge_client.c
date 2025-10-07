@@ -158,7 +158,7 @@ WEBRTC_STATUS ice_bridge_client_get_servers(void* pAppSignaling, void* pIceServe
     // Fallback if no servers received
     if (uriCount == 0) {
         ESP_LOGW(TAG, "No servers received from signaling device - using fallback STUN");
-        snprintf(ice_servers_array[0].urls, MAX_ICE_CONFIG_URI_LEN, "stun:stun.l.google.com:19302");
+        snprintf(ice_servers_array[0].urls, MAX_ICE_CONFIG_URI_LEN, APP_WEBRTC_DEFAULT_STUN_SERVER);
         ice_servers_array[0].urls[MAX_ICE_CONFIG_URI_LEN] = '\0';
         ice_servers_array[0].username[0] = '\0';
         ice_servers_array[0].credential[0] = '\0';
