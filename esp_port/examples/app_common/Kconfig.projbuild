@@ -152,7 +152,7 @@ menu "AWS Security Credentials "
             AWS Secret Access Key for KVS access. Used when not using IoT Core credentials.
 
     config AWS_SESSION_TOKEN
-        string "AWS Secret Access Key"
+        string "AWS Session Token"
         default ""
         depends on !IOT_CORE_ENABLE_CREDENTIALS
         help

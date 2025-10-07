@@ -76,25 +76,54 @@ static void app_webrtc_event_handler(app_webrtc_event_data_t *event_data, void *
     }
 }
 
-volatile static bool ip_event_got_ip = false;
-static void event_handler_ip(void* arg, esp_event_base_t event_base,
-                             int32_t event_id, void* event_data)
+// WiFi event group
+static EventGroupHandle_t s_wifi_event_group;
+static char wifi_ip[72];
+
+#define WIFI_CONNECTED_BIT BIT0
+#define WIFI_FAIL_BIT      BIT1
+
+static void event_handler(void* arg, esp_event_base_t event_base,
+                          int32_t event_id, void* event_data)
 {
-	if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
-        ESP_LOGI(TAG, "IP event got IP");
-        ip_event_got_ip = true;
+    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
+        esp_wifi_connect();
+    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
+        esp_wifi_connect();
+    } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
+        ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
+
+        memset(wifi_ip, 0, sizeof(wifi_ip)/sizeof(wifi_ip[0]));
+        ESP_LOGI(TAG, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
+        memcpy(wifi_ip, &event->ip_info.ip, 4);
+        // s_retry_num = 0;
+        xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
     }
 }
 
+static bool wifi_is_provisioned(void)
+{
+    wifi_config_t wifi_cfg;
+    if (esp_wifi_get_config(WIFI_IF_STA, &wifi_cfg) != ESP_OK) {
+        ESP_LOGI(TAG, "Wifi get config failed");
+        return false;
+    }
+
+    if (strlen((const char *) wifi_cfg.sta.ssid)) {
+        ESP_LOGI(TAG, "Wifi provisioned");
+        return true;
+    }
+    ESP_LOGI(TAG, "Wifi not provisioned");
+
+    return false;
+}
+
 #ifdef CONFIG_SLAVE_LWIP_ENABLED
-static void create_slave_sta_netif(uint8_t dhcp_at_slave)
+static void create_slave_sta_netif(void)
 {
     /* Create "almost" default station, but with un-flagged DHCP client */
 	esp_netif_inherent_config_t netif_cfg;
 	memcpy(&netif_cfg, ESP_NETIF_BASE_DEFAULT_WIFI_STA, sizeof(netif_cfg));
-
-	if (!dhcp_at_slave)
-		netif_cfg.flags &= ~ESP_NETIF_DHCP_CLIENT;
 
 	esp_netif_config_t cfg_sta = {
 		.base = &netif_cfg,
@@ -105,11 +134,6 @@ static void create_slave_sta_netif(uint8_t dhcp_at_slave)
 
 	ESP_ERROR_CHECK(esp_netif_attach_wifi_station(netif_sta));
 	ESP_ERROR_CHECK(esp_wifi_set_default_wifi_sta_handlers());
-
-	if (!dhcp_at_slave)
-		ESP_ERROR_CHECK(esp_netif_dhcpc_stop(netif_sta));
-
-	// slave_sta_netif = netif_sta;
 }
 #endif
 
@@ -133,44 +157,64 @@ void app_main(void)
     sleep_command_register_cli();
     trigger_offer_command_register_cli();
 
-    ESP_ERROR_CHECK(esp_netif_init());
+    s_wifi_event_group = xEventGroupCreate();
     ESP_ERROR_CHECK(esp_event_loop_create_default());
+
+    ESP_ERROR_CHECK(esp_netif_init());
 
 #if CONFIG_IDF_TARGET_ESP32C6
     /* Initialize network co-processor */
 #ifdef CONFIG_SLAVE_LWIP_ENABLED
-    create_slave_sta_netif(true);
+    create_slave_sta_netif();
 #endif
+    /* esp_netif_init and netif creation must be done before network_coprocessor_init */
     network_coprocessor_init();
+#endif
+
     ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT,
                                                         IP_EVENT_STA_GOT_IP,
-                                                        &event_handler_ip,
+                                                        &event_handler,
                                                         NULL,
                                                         NULL));
-#endif
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
+                                                        ESP_EVENT_ANY_ID,
+                                                        &event_handler,
+                                                        NULL,
+                                                        NULL));
 
     vTaskDelay(pdMS_TO_TICKS(5 * 1000));
     // Initialize and start WiFi
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_start());
+    wifi_config_t wifi_config = { /* config from sdkconfig if not provisioned */
+        .sta = {
+            .ssid = CONFIG_ESP_WIFI_SSID,
+            .password = CONFIG_ESP_WIFI_PASSWORD,
+        },
+    };
 
-    vTaskDelay(pdMS_TO_TICKS(1000));
-    ESP_ERROR_CHECK(esp_wifi_connect());
+
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    if (!wifi_is_provisioned()) {
+        ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config));
+    }
+    ESP_ERROR_CHECK(esp_wifi_start());
 
     // Initialize storage
     app_storage_init();
 
-    int count = 0;
-    while (!ip_event_got_ip) {
-        vTaskDelay(pdMS_TO_TICKS(100));
-        count++;
-        if (count == 10) {
-            ESP_LOGI(TAG, "Waiting for Got IP event...");
-            count = 0;
-        }
+    ESP_LOGI(TAG, "Waiting for WiFi connection");
+    EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group,
+            WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
+            pdFALSE,
+            pdFALSE,
+            pdMS_TO_TICKS(20000));
+
+    if (bits & WIFI_CONNECTED_BIT) {
+        ESP_LOGI(TAG, "Connected to WiFi");
+    } else {
+        ESP_LOGE(TAG, "Failed to connect to WiFi");
     }
 
     // Perform the time sync
