@@ -109,11 +109,19 @@ STATUS tlsSessionChangeState(PTlsSession, TLS_SESSION_STATE);
 #ifdef KVS_USE_OPENSSL
 INT32 tlsSessionCertificateVerifyCallback(INT32, X509_STORE_CTX*);
 #elif KVS_USE_MBEDTLS
+#if defined(MBEDTLS_VERSION_NUMBER)
+#define MBEDTLS_BEFORE_V3 (MBEDTLS_VERSION_NUMBER < 0x03000000)
+#else
+#define MBEDTLS_BEFORE_V3 (1) /* default to before v3 */
+#endif
 // following are required callbacks for mbedtls
 // NOTE: const is not a pure C qualifier, they're here because there's no way to type cast
 //       a callback signature.
 INT32 tlsSessionSendCallback(PVOID, const unsigned char*, ULONG);
 INT32 tlsSessionReceiveCallback(PVOID, unsigned char*, ULONG);
+
+// Add hostname parameter for mbedTLS 3.x compatibility
+STATUS tlsSessionStartWithHostname(PTlsSession, BOOL, PCHAR);
 #else
 #error "A Crypto implementation is required."
 #endif

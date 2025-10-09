@@ -1,8 +1,41 @@
 #define LOG_CLASS "Signaling"
 #include "../Include_i.h"
+#include <libwebsockets.h>
+#include "LwsApiCalls.h"
 
 extern StateMachineState SIGNALING_STATE_MACHINE_STATES[];
 extern UINT32 SIGNALING_STATE_MACHINE_STATE_COUNT;
+
+// Allocate memory and read the CA certificate from the path
+PRIVATE_API STATUS readCACertificate(PCHAR pCaCertPath, PBYTE* ppCaCertBuf, PUINT32 pCaCertBufLen)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT64 cert_len = 0;
+    PBYTE cert_buf = NULL;
+
+    CHK(pCaCertPath != NULL && ppCaCertBuf != NULL && pCaCertBufLen != NULL, STATUS_NULL_ARG);
+
+    *ppCaCertBuf = NULL;
+    *pCaCertBufLen = 0;
+
+    CHK_STATUS(readFile(pCaCertPath, FALSE, NULL, &cert_len));
+    CHK(cert_len > 0, STATUS_INVALID_CERT_PATH_LENGTH);
+    cert_buf = (PBYTE) MEMCALLOC(1, cert_len + 1); // +1 for the null terminator
+    CHK(cert_buf != NULL, STATUS_NOT_ENOUGH_MEMORY);
+    CHK_STATUS(readFile(pCaCertPath, FALSE, cert_buf, &cert_len));
+
+    *ppCaCertBuf = cert_buf;
+    *pCaCertBufLen = (UINT32) cert_len;
+    cert_buf = NULL; // So that it is not freed by SAFE_MEMFREE
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+    SAFE_MEMFREE(cert_buf);
+
+    LEAVES();
+    return retStatus;
+}
 
 STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInfo pChannelInfo, PSignalingClientCallbacks pCallbacks,
                            PAwsCredentialProvider pCredentialProvider, PSignalingClient* ppSignalingClient)
@@ -12,6 +45,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     PSignalingClient pSignalingClient = NULL;
     PCHAR userLogLevelStr = NULL;
     UINT32 userLogLevel;
+    PBYTE caCertBuf = NULL;
+    UINT32 caCertBufLen = 0;
     struct lws_context_creation_info creationInfo;
     const lws_retry_bo_t retryPolicy = {
         .secs_since_valid_ping = SIGNALING_SERVICE_WSS_PING_PONG_INTERVAL_IN_SECONDS,
@@ -20,6 +55,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     PStateMachineState pStateMachineState;
     BOOL cacheFound = FALSE;
     PSignalingFileCacheEntry pFileCacheEntry = NULL;
+
+    struct lws_protocols* pProtocols = NULL;
 
     CHK(pClientInfo != NULL && pChannelInfo != NULL && pCallbacks != NULL && pCredentialProvider != NULL && ppSignalingClient != NULL,
         STATUS_NULL_ARG);
@@ -32,6 +69,14 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     // Initialize the listener and restart thread trackers
     CHK_STATUS(initializeThreadTracker(&pSignalingClient->listenerTracker));
     CHK_STATUS(initializeThreadTracker(&pSignalingClient->reconnecterTracker));
+
+    // Allocate memory for the protocols array (+ 1 for the null terminator protocol)
+    pProtocols = (struct lws_protocols*) MEMCALLOC(LWS_PROTOCOL_COUNT + 1, SIZEOF(struct lws_protocols));
+    CHK(pProtocols != NULL, STATUS_NOT_ENOUGH_MEMORY);
+
+    // Store the protocols pointer in the signalingProtocols array
+    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_HTTPS] = pProtocols;
+    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_WSS] = &pProtocols[PROTOCOL_INDEX_WSS];
 
     // Validate and store the input
     CHK_STATUS(createValidateChannelInfo(pChannelInfo, &pSignalingClient->pChannelInfo));
@@ -93,10 +138,11 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
                                           &pSignalingClient->pStateMachine));
 
     // Prepare the signaling channel protocols array
-    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_HTTPS].name = HTTPS_SCHEME_NAME;
-    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_HTTPS].callback = lwsHttpCallbackRoutine;
-    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_WSS].name = WSS_SCHEME_NAME;
-    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_WSS].callback = lwsWssCallbackRoutine;
+    pProtocols = (struct lws_protocols*) pSignalingClient->signalingProtocols[PROTOCOL_INDEX_HTTPS];
+    pProtocols[PROTOCOL_INDEX_HTTPS].name = HTTPS_SCHEME_NAME;
+    pProtocols[PROTOCOL_INDEX_HTTPS].callback = (lws_callback_function*) lwsHttpCallbackRoutine;
+    pProtocols[PROTOCOL_INDEX_WSS].name = WSS_SCHEME_NAME;
+    pProtocols[PROTOCOL_INDEX_WSS].callback = (lws_callback_function*) lwsWssCallbackRoutine;
 
     pSignalingClient->currentWsi[PROTOCOL_INDEX_HTTPS] = NULL;
     pSignalingClient->currentWsi[PROTOCOL_INDEX_WSS] = NULL;
@@ -104,11 +150,13 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     MEMSET(&creationInfo, 0x00, SIZEOF(struct lws_context_creation_info));
     creationInfo.options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
     creationInfo.port = CONTEXT_PORT_NO_LISTEN;
-    creationInfo.protocols = pSignalingClient->signalingProtocols;
+    creationInfo.protocols = pProtocols;
     creationInfo.timeout_secs = SIGNALING_SERVICE_API_CALL_TIMEOUT_IN_SECONDS;
     creationInfo.gid = -1;
     creationInfo.uid = -1;
-    creationInfo.client_ssl_ca_filepath = pChannelInfo->pCertPath;
+    CHK_STATUS(readCACertificate(pChannelInfo->pCertPath, &caCertBuf, &caCertBufLen));
+    creationInfo.client_ssl_ca_mem = caCertBuf;
+    creationInfo.client_ssl_ca_mem_len = caCertBufLen;
     creationInfo.client_ssl_cipher_list = "HIGH:!PSK:!RSP:!eNULL:!aNULL:!RC4:!MD5:!DES:!3DES:!aDH:!kDH:!DSS";
     creationInfo.ka_time = SIGNALING_SERVICE_TCP_KEEPALIVE_IN_SECONDS;
     creationInfo.ka_probes = SIGNALING_SERVICE_TCP_KEEPALIVE_PROBE_COUNT;
@@ -165,8 +213,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
 
     CHK_STATUS(configureLwsLogging(loggerGetLogLevel()));
 
-    pSignalingClient->pLwsContext = lws_create_context(&creationInfo);
-    CHK(pSignalingClient->pLwsContext != NULL, STATUS_SIGNALING_LWS_CREATE_CONTEXT_FAILED);
+    pSignalingClient->pWebsocketContext = lws_create_context(&creationInfo);
+    CHK(pSignalingClient->pWebsocketContext != NULL, STATUS_SIGNALING_LWS_CREATE_CONTEXT_FAILED);
 
     // Initializing the diagnostics mostly is taken care of by zero-mem in MEMCALLOC
     pSignalingClient->diagnostics.createTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
@@ -191,6 +239,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
                                              SIGNALING_STATE_GET_TOKEN));
 
 CleanUp:
+    SAFE_MEMFREE(caCertBuf);
     if (pClientInfo != NULL && pSignalingClient != NULL) {
         pClientInfo->signalingClientInfo.stateMachineRetryCountReadOnly = pSignalingClient->diagnostics.stateMachineRetryCount;
     }
@@ -223,12 +272,15 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
 
     terminateOngoingOperations(pSignalingClient);
 
-    if (pSignalingClient->pLwsContext != NULL) {
+    if (pSignalingClient->pWebsocketContext != NULL) {
         MUTEX_LOCK(pSignalingClient->lwsServiceLock);
-        lws_context_destroy(pSignalingClient->pLwsContext);
-        pSignalingClient->pLwsContext = NULL;
+        lws_context_destroy((struct lws_context*) pSignalingClient->pWebsocketContext);
+        pSignalingClient->pWebsocketContext = NULL;
         MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
     }
+
+    // Frees up the entire structure., both HTTPS and WSS protocols (it was allocated as single block)
+    SAFE_MEMFREE(pSignalingClient->signalingProtocols[PROTOCOL_INDEX_HTTPS]);
 
     freeStateMachine(pSignalingClient->pStateMachine);
 

@@ -121,13 +121,17 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
             pRtpPacket = NULL;
         }
     }
-CleanUp:
 
-    MUTEX_LOCK(pSenderTranceiver->statsLock);
-    pSenderTranceiver->outboundStats.nackCount += nackCount;
-    pSenderTranceiver->outboundStats.retransmittedPacketsSent += retransmittedPacketsSent;
-    pSenderTranceiver->outboundStats.retransmittedBytesSent += retransmittedBytesSent;
-    MUTEX_UNLOCK(pSenderTranceiver->statsLock);
+CleanUp:
+    if (pSenderTranceiver != NULL) {
+        MUTEX_LOCK(pSenderTranceiver->statsLock);
+        pSenderTranceiver->outboundStats.nackCount += nackCount;
+        pSenderTranceiver->outboundStats.retransmittedPacketsSent += retransmittedPacketsSent;
+        pSenderTranceiver->outboundStats.retransmittedBytesSent += retransmittedBytesSent;
+        MUTEX_UNLOCK(pSenderTranceiver->statsLock);
+    } else {
+        DLOGD("Retransmit pSenderTranceiver is NULL");
+    }
 
     CHK_LOG_ERR(retStatus);
     if (pRtpPacket != NULL) {

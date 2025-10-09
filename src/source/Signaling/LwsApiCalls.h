@@ -167,11 +167,14 @@ extern "C" {
 // Encoded max ice server infos string len
 #define MAX_ENCODED_ICE_SERVER_INFOS_STR_LEN (MAX_ICE_SERVER_INFOS_STR_LEN + ICE_SERVER_INFO_TEMPLATE_BLOAT_SIZE)
 
+// Alignment bytes for libwebsockets (Internally, it might end up using lesser than 16)
+#define LWS_ALIGN_BYTES 16
+
 // Scratch buffer size
-#define LWS_SCRATCH_BUFFER_SIZE (MAX_JSON_PARAMETER_STRING_LEN + LWS_PRE)
+#define LWS_SCRATCH_BUFFER_SIZE (MAX_JSON_PARAMETER_STRING_LEN + LWS_ALIGN_BYTES)
 
 // Send and receive buffer size
-#define LWS_MESSAGE_BUFFER_SIZE (SIZEOF(CHAR) * (MAX_SIGNALING_MESSAGE_LEN + LWS_PRE))
+#define LWS_MESSAGE_BUFFER_SIZE (SIZEOF(CHAR) * (MAX_SIGNALING_MESSAGE_LEN + LWS_ALIGN_BYTES))
 
 #define AWS_SIG_V4_HEADER_HOST (PCHAR) "host"
 
@@ -251,8 +254,8 @@ PVOID lwsListenerHandler(PVOID);
 PVOID reconnectHandler(PVOID);
 
 // LWS callback routine
-INT32 lwsHttpCallbackRoutine(struct lws*, enum lws_callback_reasons, PVOID, PVOID, size_t);
-INT32 lwsWssCallbackRoutine(struct lws*, enum lws_callback_reasons, PVOID, PVOID, size_t);
+INT32 lwsHttpCallbackRoutine(PVOID, INT32, PVOID, PVOID, size_t);
+INT32 lwsWssCallbackRoutine(PVOID, INT32, PVOID, PVOID, size_t);
 
 BOOL isCallResultSignatureExpired(PCallInfo);
 BOOL isCallResultSignatureNotYetCurrent(PCallInfo);
@@ -280,6 +283,43 @@ PCHAR getMessageTypeInString(SIGNALING_MESSAGE_TYPE);
 STATUS wakeLwsServiceEventLoop(PSignalingClient, UINT32);
 STATUS terminateConnectionWithStatus(PSignalingClient, SERVICE_CALL_RESULT);
 STATUS configureLwsLogging(UINT32 kvsLogLevel);
+
+/**
+ * Parses ICE configuration from a JSON response string.
+ * If there are more ICE configurations in the string than maxIceConfigs, we will only
+ * parse up until maxIceConfigs.
+ *
+ * @param[in] pResponseStr JSON string containing ICE server configuration.
+ * @param[in] responseLen Length of the JSON string (excluding null-terminator).
+ * @param[in] maxIceConfigs Maximum number of ICE configurations the array can hold.
+ * @param[out] pIceConfigs Pointer to array of IceConfigInfo structures to be populated.
+ * @param[out] pIceConfigCount Pointer to receive the number of ICE configurations parsed.
+ *
+ * @return STATUS code of the execution:
+ * - STATUS_SUCCESS: Successfully parsed ICE configuration.
+ * - STATUS_NULL_ARG: Invalid NULL argument provided.
+ * - STATUS_INVALID_API_CALL_RETURN_JSON: Malformed JSON or missing required fields.
+ * - STATUS_SIGNALING_MAX_ICE_URI_COUNT: Too many URIs in configuration (more than MAX_ICE_CONFIG_URI_COUNT).
+ */
+STATUS parseIceConfigResponse(PCHAR, UINT32, UINT8, PIceConfigInfo, PUINT32);
+
+/**
+ * Parses the signaling message from a JSON response string.
+ * The payload is base64-decoded in the output.
+ * See <a href="https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/async-message-reception-api.html">Asynchronous message
+ * reception</a>.
+ *
+ * @param[in] pMessage JSON of the signaling message.
+ * @param[in] messageLen Length of the JSON string (excluding null-terminator).
+ * @param[out] pReceivedSignalingMessage Pointer to receive the parsed signaling message.
+ *
+ * @return STATUS code of the execution:
+ * - STATUS_SUCCESS: Successfully parsed ICE configuration.
+ * - STATUS_NULL_ARG: Invalid NULL argument provided.
+ * - STATUS_SIGNALING_INVALID_MESSAGE_TYPE: If the required field 'messageType' is missing for non error response messages.
+ * - STATUS_INVALID_API_CALL_RETURN_JSON: Malformed JSON or missing other required fields.
+ */
+STATUS parseSignalingMessage(PCHAR, UINT32, PReceivedSignalingMessage);
 
 #ifdef __cplusplus
 }

@@ -10,6 +10,8 @@ Signaling State Machine internal include file
 extern "C" {
 #endif
 
+#include <inttypes.h>
+
 /**
  * Signaling states definitions
  */

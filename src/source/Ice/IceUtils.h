@@ -51,12 +51,13 @@ STATUS iceUtilsSendStunPacket(PStunPacket, PBYTE, UINT32, PKvsIpAddress, PSocket
 STATUS iceUtilsSendData(PBYTE, UINT32, PKvsIpAddress, PSocketConnection, struct __TurnConnection*, BOOL);
 
 typedef struct {
+    // isTurn ? TURN server : STUN server
     BOOL isTurn;
     BOOL isSecure;
-    CHAR url[MAX_ICE_CONFIG_URI_LEN + 1];
+    CHAR url[MAX_ICE_CONFIG_URI_BUFFER_LEN];
     KvsIpAddress ipAddress;
-    CHAR username[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
-    CHAR credential[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
+    CHAR username[MAX_ICE_CONFIG_USER_NAME_BUFFER_LEN];
+    CHAR credential[MAX_ICE_CONFIG_CREDENTIAL_BUFFER_LEN];
     KVS_SOCKET_PROTOCOL transport;
     IceServerSetIpFunc setIpFn;
 } IceServer, *PIceServer;

@@ -5,7 +5,7 @@ include(CheckIncludeFiles)
 include(CheckFunctionExists)
 
 # The version MUST be updated before every release
-project(KinesisVideoWebRTCClient VERSION 1.12.1 LANGUAGES C)
+project(KinesisVideoWebRTCClient VERSION 1.14.0 LANGUAGES C)
 
 # User Flags
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
@@ -22,6 +22,7 @@ option(ENABLE_KVS_THREADPOOL "Enable support for KVS thread pool in signaling" O
 option(INSTRUMENTED_ALLOCATORS "Enable memory instrumentation" OFF)
 option(ENABLE_AWS_SDK_IN_TESTS "Enable support for compiling AWS SDKs for tests" ON)
 option(ENABLE_STATS_CALCULATION_CONTROL "Enable support for runtime control of ice agent stat calculations." OFF)
+option(BUILD_OLD_MBEDTLS_VERSION "Use MbedTLS version 2.28.8." OFF)
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -76,10 +77,24 @@ if(NOT WIN32)
 CHECK_INCLUDE_FILES(ifaddrs.h       KVSWEBRTC_HAVE_IFADDRS_H)
 if(NOT KVSWEBRTC_HAVE_IFADDRS_H)
   message(FATAL_ERROR "Platform should support the ifaddrs interface.")
+else()
+  add_definitions(-DHAVE_IFADDRS_H=1)
 endif()
 CHECK_FUNCTION_EXISTS(getifaddrs    KVSWEBRTC_HAVE_GETIFADDRS)
 if(NOT KVSWEBRTC_HAVE_GETIFADDRS)
   message(FATAL_ERROR "Platform should support getifaddrs API.")
+endif()
+
+# Check for poll.h
+CHECK_INCLUDE_FILES(poll.h HAVE_POLL_H)
+if (HAVE_POLL_H)
+  add_definitions(-DHAVE_POLL_H=1)
+endif()
+
+# Check for socketpair availability
+CHECK_FUNCTION_EXISTS(socketpair HAVE_SOCKETPAIR)
+if (HAVE_SOCKETPAIR)
+  add_definitions(-DHAVE_SOCKETPAIR=1)
 endif()
 endif()
 
@@ -182,6 +197,7 @@ if(BUILD_DEPENDENCIES)
   elseif(USE_MBEDTLS)
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
                    -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                   -DBUILD_OLD_MBEDTLS_VERSION=${BUILD_OLD_MBEDTLS_VERSION}
                     "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
       build_dependency(mbedtls ${BUILD_ARGS})
   endif()
@@ -446,7 +462,7 @@ target_link_libraries(
   kvsWebrtcSignalingClient
   PUBLIC
         kvsCommonLws
-        ${LIBWEBSOCKETS_LIBRARIES} 
+        ${LIBWEBSOCKETS_LIBRARIES}
   PRIVATE kvspicUtils
          kvspicState
          ${CMAKE_THREAD_LIBS_INIT}

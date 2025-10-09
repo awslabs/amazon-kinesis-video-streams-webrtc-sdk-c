@@ -2689,6 +2689,81 @@ INSTANTIATE_TEST_SUITE_P(SdpApiTest_SdpMatch_Chromium, SdpApiTest_SdpMatch, ::te
 
 INSTANTIATE_TEST_SUITE_P(SdpApiTest_SdpMatch_Safari, SdpApiTest_SdpMatch, ::testing::Values(offer_1v1a1d_Safari_Mac));
 
+// Test case-insensitive codec matching for OPUS
+TEST_F(SdpApiTest, caseInsensitiveCodecMatching_OPUS)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection pRtcPeerConnection = nullptr;
+    PRtcRtpTransceiver transceiver = nullptr;
+    RtcMediaStreamTrack track;
+    RtcSessionDescriptionInit offerSdp;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&offerSdp, 0x00, SIZEOF(RtcSessionDescriptionInit));
+
+    // SDP offer with capitalized OPUS (instead of lowercase opus)
+    auto sdpOffer = R"(v=0
+o=- 3236679289542986524 0 IN IP4 0.0.0.0
+s=-
+t=0 0
+a=ice-options:trickle
+a=group:BUNDLE audio0
+m=audio 9 UDP/TLS/RTP/SAVPF 111
+c=IN IP4 0.0.0.0
+a=setup:actpass
+a=ice-ufrag:raliw7w40wB2zDu880kYOHG3m0ftNyys
+a=ice-pwd:KWXR7ud6QBxjXQfW4QhKNO2HVPez9DPP
+a=rtcp-mux
+a=rtcp-rsize
+a=sendrecv
+a=rtpmap:111 OPUS/48000/2
+a=rtcp-fb:111 transport-cc
+a=ssrc:47552272 msid:user1379891550@host-400f95df webrtctransceiver2
+a=ssrc:47552272 cname:user1379891550@host-400f95df
+a=mid:audio0
+a=fingerprint:sha-256 E8:35:78:98:04:A5:22:B7:47:65:5F:E1:A0:BD:C6:1B:2B:4E:14:41:E1:C8:1A:99:46:3C:FD:06:6F:94:A2:0C
+a=rtcp-mux-only
+)";
+
+    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
+    configuration.kvsRtcConfiguration.generatedCertificateBits = GENERATED_CERTIFICATE_BITS;
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+
+    track.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+    track.codec = RTC_CODEC_OPUS;
+    STRNCPY(track.streamId, "audioStream1", MAX_MEDIA_STREAM_ID_LEN);
+    STRNCPY(track.trackId, "audioTrack1", MAX_MEDIA_STREAM_TRACK_ID_LEN);
+
+    offerSdp.type = SDP_TYPE_OFFER;
+    STRNCPY(offerSdp.sdp, sdpOffer, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_OPUS));
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track, nullptr, &transceiver));
+
+    RtcSessionDescriptionInit answerSdp;
+    MEMSET(&answerSdp, 0x00, SIZEOF(RtcSessionDescriptionInit));
+
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+    EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+    std::string answer(answerSdp.sdp);
+    
+    // Verify that the answer contains sendrecv (not inactive) for audio
+    EXPECT_NE(std::string::npos, answer.find("a=sendrecv"));
+    EXPECT_EQ(std::string::npos, answer.find("a=inactive"));
+    
+    // Verify that the answer contains the correct OPUS rtpmap with payload type 111
+    EXPECT_NE(std::string::npos, answer.find("a=rtpmap:111 opus/48000/2"));
+    
+    // Verify that it doesn't contain fake stream/track
+    EXPECT_EQ(std::string::npos, answer.find("fakeStream"));
+    EXPECT_EQ(std::string::npos, answer.find("fakeTrack"));
+
+    EXPECT_EQ(STATUS_SUCCESS, closePeerConnection(pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

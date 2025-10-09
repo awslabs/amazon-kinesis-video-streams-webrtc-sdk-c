@@ -73,7 +73,7 @@ jobs:
           - name: Mac Intel
             runner: macos-13
           - name: Mac Apple Silicon
-            runner: macos-15
+            runner: macos-14
         compiler: [ gcc, clang ]
         config:
           - name: Shared OpenSSL
@@ -123,10 +123,10 @@ jobs:
             export CXX="clang++"
           fi
           echo "Using CC: $CC and CXX: $CXX"
-          
+
           mkdir -p build
           cd build
-          
+
           if [[ "${{ matrix.compiler }}" == "gcc" ]]; then
             # Skip building the tests for Mac with GCC
             # https://github.com/awslabs/aws-crt-cpp/issues/605
@@ -246,7 +246,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DBUILD_TEST=ON -DENABLE_AWS_SDK_IN_TESTS=OFF -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+          cmake .. -DBUILD_TEST=ON -DENABLE_AWS_SDK_IN_TESTS=OFF -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DBUILD_OLD_MBEDTLS_VERSION=ON
           make -j
 
       - name: Configure AWS Credentials
@@ -350,11 +350,13 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
-      - name: Move cloned repo
+      - name: Move cloned repo to shorter path
         shell: powershell
         run: |
-          mkdir C:\webrtc
-          Move-Item -Path "D:\a\amazon-kinesis-video-streams-webrtc-sdk-c\amazon-kinesis-video-streams-webrtc-sdk-c\*" -Destination "C:\webrtc"
+          $src = "${env:GITHUB_WORKSPACE}\*"
+          $dest = "C:\webrtc"
+          mkdir "$dest"
+          Move-Item -Path $src -Destination $dest
       - name: Install dependencies
         shell: powershell
         run: |

@@ -24,7 +24,7 @@ typedef struct {
     TID receiveDataRoutine;
     PBYTE pBuffer;
     UINT64 bufferLen;
-#ifndef _WIN32
+#if defined(HAVE_SOCKETPAIR)
     INT32 kickSocket[2];
 #endif
 } ConnectionListener, *PConnectionListener;

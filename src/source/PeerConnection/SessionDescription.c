@@ -1,6 +1,30 @@
 #define LOG_CLASS "SessionDescription"
 #include "../Include_i.h"
 
+// Case-insensitive string contains
+// Finds the first occurrence of the substring needle in the string haystack.
+// The terminating null bytes are not compared.
+PCHAR STRCASESTR(PCHAR haystack, PCHAR needle)
+{
+    if (haystack == NULL || needle == NULL) {
+        return NULL;
+    }
+
+    UINT32 needleLen = STRLEN(needle);
+    if (needleLen == 0) {
+        return haystack;
+    }
+
+    PCHAR p = haystack;
+    while (*p != '\0') {
+        if (STRNCMPI(p, needle, needleLen) == 0) {
+            return p;
+        }
+        p++;
+    }
+    return NULL;
+}
+
 STATUS serializeSessionDescriptionInit(PRtcSessionDescriptionInit pSessionDescriptionInit, PCHAR sessionDescriptionJSON,
                                        PUINT32 sessionDescriptionJSONLen)
 {
@@ -9,6 +33,8 @@ STATUS serializeSessionDescriptionInit(PRtcSessionDescriptionInit pSessionDescri
     PCHAR curr, tail, next;
     UINT32 lineLen, inputSize = 0, amountWritten;
 
+    // NOTE: sessionDescriptionJSON can be NULL. In this case, no writing is actually done,
+    // but the size that it would have written is returned.
     CHK(pSessionDescriptionInit != NULL && sessionDescriptionJSONLen != NULL, STATUS_NULL_ARG);
 
     inputSize = *sessionDescriptionJSONLen;
@@ -30,21 +56,29 @@ STATUS serializeSessionDescriptionInit(PRtcSessionDescriptionInit pSessionDescri
             lineLen--;
         }
 
-        amountWritten =
-            SNPRINTF(sessionDescriptionJSON + *sessionDescriptionJSONLen, sessionDescriptionJSON == NULL ? 0 : inputSize - *sessionDescriptionJSONLen,
-                     "%*.*s%s", lineLen, lineLen, curr, SESSION_DESCRIPTION_INIT_LINE_ENDING);
+        if (sessionDescriptionJSON == NULL) {
+            amountWritten = SNPRINTF(NULL, 0, "%*.*s%s", lineLen, lineLen, curr, SESSION_DESCRIPTION_INIT_LINE_ENDING);
+        } else {
+            amountWritten = SNPRINTF(sessionDescriptionJSON + *sessionDescriptionJSONLen, inputSize - *sessionDescriptionJSONLen, "%*.*s%s", lineLen,
+                                     lineLen, curr, SESSION_DESCRIPTION_INIT_LINE_ENDING);
+        }
         CHK(sessionDescriptionJSON == NULL || ((inputSize - *sessionDescriptionJSONLen) >= amountWritten), STATUS_BUFFER_TOO_SMALL);
 
         *sessionDescriptionJSONLen += amountWritten;
         curr = next + 1;
     }
 
-    amountWritten = SNPRINTF(sessionDescriptionJSON + *sessionDescriptionJSONLen,
-                             sessionDescriptionJSON == NULL ? 0 : inputSize - *sessionDescriptionJSONLen, SESSION_DESCRIPTION_INIT_TEMPLATE_TAIL);
+    if (sessionDescriptionJSON == NULL) {
+        amountWritten = SNPRINTF(NULL, 0, SESSION_DESCRIPTION_INIT_TEMPLATE_TAIL);
+    } else {
+        amountWritten = SNPRINTF(sessionDescriptionJSON + *sessionDescriptionJSONLen, inputSize - *sessionDescriptionJSONLen,
+                                 SESSION_DESCRIPTION_INIT_TEMPLATE_TAIL);
+    }
     CHK(sessionDescriptionJSON == NULL || ((inputSize - *sessionDescriptionJSONLen) >= amountWritten), STATUS_BUFFER_TOO_SMALL);
     *sessionDescriptionJSONLen += (amountWritten + 1); // NULL terminator
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
@@ -206,7 +240,7 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
                 // When there's no match, the last fmtp will be chosen. This will allow us to not break existing customers who might be using
                 // flexible decoders which can infer the video profile from the SPS header.
                 if (fmtpScore >= bestFmtpScore) {
-                    DLOGV("Found H264 payload type %" PRId64 " with score %lu: %s", parsedPayloadType, fmtpScore, fmtp);
+                    DLOGV("Found H264 payload type %" PRId64 " with score %lu: %s", parsedPayloadType, fmtpScore, fmtp ? fmtp : "NULL");
                     CHK_STATUS(
                         hashTableUpsert(codecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, parsedPayloadType));
                     bestFmtpScore = fmtpScore;
@@ -1301,7 +1335,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
                 if (STRSTR(attributeValue, H264_VALUE) != NULL) {
                     supportCodec = TRUE;
                     rtcCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
-                } else if (STRSTR(attributeValue, OPUS_VALUE) != NULL) {
+                } else if (STRCASESTR(attributeValue, OPUS_VALUE) != NULL) {
                     supportCodec = TRUE;
                     rtcCodec = RTC_CODEC_OPUS;
                 } else if (STRSTR(attributeValue, MULAW_VALUE) != NULL) {

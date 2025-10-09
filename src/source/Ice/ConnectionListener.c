@@ -26,8 +26,8 @@ STATUS createConnectionListener(PConnectionListener* ppConnectionListener)
     pConnectionListener->pBuffer = (PBYTE) (pConnectionListener + 1);
     pConnectionListener->bufferLen = MAX_UDP_PACKET_SIZE;
 
-    // TODO add support for windows socketpair
-#ifndef _WIN32
+    // Use socketpair only if available
+#if defined(HAVE_SOCKETPAIR)
     pConnectionListener->kickSocket[CONNECTION_LISTENER_KICK_SOCKET_LISTEN] = -1;
     pConnectionListener->kickSocket[CONNECTION_LISTENER_KICK_SOCKET_WRITE] = -1;
     CHK_STATUS(createSocketPair(&(pConnectionListener->kickSocket)));
@@ -69,7 +69,7 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
         // TODO add support for windows socketpair
         // This writes to the socketpair, kicking the POLL() out early,
         // otherwise wait for the POLL to timeout
-#ifndef _WIN32
+#if defined(HAVE_SOCKETPAIR)
         socketWrite(pConnectionListener->kickSocket[CONNECTION_LISTENER_KICK_SOCKET_WRITE], msg, STRLEN(msg));
 #endif
 
@@ -82,7 +82,7 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
     }
 
     // TODO add support for windows socketpair
-#ifndef _WIN32
+#if defined(HAVE_SOCKETPAIR)
     if (pConnectionListener->kickSocket[CONNECTION_LISTENER_KICK_SOCKET_LISTEN] != -1) {
         closeSocket(pConnectionListener->kickSocket[CONNECTION_LISTENER_KICK_SOCKET_LISTEN]);
     }
@@ -283,7 +283,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                     MUTEX_UNLOCK(pSocketConnection->lock);
                     rfds[nfds].fd = localSocket;
                     rfds[nfds].events = POLLIN | POLLPRI;
-#ifdef _WIN32
+#if !defined(HAVE_SOCKETPAIR)
                     rfds[nfds].events &= ~POLLPRI;
 #endif
                     rfds[nfds].revents = 0;
@@ -307,7 +307,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
             // TODO add support for socketpair() in windows
             // This end of the socketpair has been added to the list of sockets polled
             // in order to have a way to end the poll early from the destructor
-#ifndef _WIN32
+#if defined(HAVE_SOCKETPAIR)
             rfds[nfds].fd = pConnectionListener->kickSocket[CONNECTION_LISTENER_KICK_SOCKET_LISTEN];
             rfds[nfds].events = POLLIN;
             rfds[nfds].revents = 0;

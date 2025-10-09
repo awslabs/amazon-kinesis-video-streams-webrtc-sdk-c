@@ -450,10 +450,25 @@ extern "C" {
 #define MAX_ICE_CONFIG_USER_NAME_LEN 256
 
 /**
+ * Buffer length for ICE configuration user name, including null terminator.
+ *
+ * \sa MAX_ICE_CONFIG_USER_NAME_LEN
+ */
+#define MAX_ICE_CONFIG_USER_NAME_BUFFER_LEN (MAX_ICE_CONFIG_USER_NAME_LEN + 1)
+
+/**
  * Maximum allowed ICE configuration password length
- * https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_AWSAcuitySignalingService_IceServer.html#KinesisVideo-Type-AWSAcuitySignalingService_IceServer-Password
+ *
+ * \sa https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_signaling_IceServer.html#KinesisVideo-Type-signaling_IceServer-Password
  */
 #define MAX_ICE_CONFIG_CREDENTIAL_LEN 256
+
+/**
+ * Buffer length for ICE configuration password, including null terminator.
+ *
+ * \sa MAX_ICE_CONFIG_USER_NAME_LEN
+ */
+#define MAX_ICE_CONFIG_CREDENTIAL_BUFFER_LEN (MAX_ICE_CONFIG_CREDENTIAL_LEN + 1)
 
 /**
  * Maximum allowed signaling URI length
@@ -473,7 +488,7 @@ extern "C" {
 /**
  * Maximum allowed code string length
  */
-#define MAX_STATUS_CODE_STRING_LEN 256
+#define MAX_STATUS_CODE_STRING_LEN 8
 
 /**
  * Maximum allowed message description length
@@ -722,10 +737,12 @@ extern "C" {
 /**
  * Parameterized string for KVS STUN Server
  */
-#define KINESIS_VIDEO_STUN_URL_POSTFIX      "amazonaws.com"
-#define KINESIS_VIDEO_STUN_URL_POSTFIX_CN   "amazonaws.com.cn"
-#define KINESIS_VIDEO_STUN_URL              "stun:stun.kinesisvideo.%s.%s:443"
-#define KINESIS_VIDEO_STUN_URL_WITHOUT_PORT "stun.kinesisvideo.%s.%s"
+#define KINESIS_VIDEO_STUN_URL_POSTFIX       "amazonaws.com"
+#define KINESIS_VIDEO_STUN_URL_POSTFIX_CN    "amazonaws.com.cn"
+#define KINESIS_VIDEO_STUN_URL_PREFIX        "stun."
+#define KINESIS_VIDEO_STUN_URL_PREFIX_LENGTH 5
+#define KINESIS_VIDEO_STUN_URL               "stun:stun.kinesisvideo.%s.%s:443"
+#define KINESIS_VIDEO_STUN_URL_WITHOUT_PORT  "stun.kinesisvideo.%s.%s"
 
 /**
  * Default signaling SSL port
@@ -1137,9 +1154,9 @@ typedef struct {
  * https://www.w3.org/TR/webrtc/#rtciceserver-dictionary
  */
 typedef struct {
-    CHAR urls[MAX_ICE_CONFIG_URI_LEN + 1];              //!< URL of STUN/TURN Server
-    CHAR username[MAX_ICE_CONFIG_USER_NAME_LEN + 1];    //!< Username to be used with TURN server
-    CHAR credential[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1]; //!< Password to be used with TURN server
+    CHAR urls[MAX_ICE_CONFIG_URI_LEN + 1];                 //!< URL of STUN/TURN Server
+    CHAR username[MAX_ICE_CONFIG_USER_NAME_BUFFER_LEN];    //!< Username to be used with TURN server
+    CHAR credential[MAX_ICE_CONFIG_CREDENTIAL_BUFFER_LEN]; //!< Password to be used with TURN server
 } RtcIceServer, *PRtcIceServer;
 
 /**
@@ -1388,12 +1405,12 @@ typedef struct {
  * NOTE:TTL is given in default which is 100ns duration
  */
 typedef struct {
-    UINT32 version;                                                  //!< Version of the struct
-    UINT64 ttl;                                                      //!< TTL of the configuration is 100ns
-    UINT32 uriCount;                                                 //!<  Number of Ice URI objects
-    CHAR uris[MAX_ICE_CONFIG_URI_COUNT][MAX_ICE_CONFIG_URI_LEN + 1]; //!< List of Ice server URIs
-    CHAR userName[MAX_ICE_CONFIG_USER_NAME_LEN + 1];                 //!< Username for the server
-    CHAR password[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];                //!< Password for the server
+    UINT32 version;                                                     //!< Version of the struct
+    UINT64 ttl;                                                         //!< TTL of the configuration is 100ns
+    UINT32 uriCount;                                                    //!<  Number of Ice URI objects
+    CHAR uris[MAX_ICE_CONFIG_URI_COUNT][MAX_ICE_CONFIG_URI_BUFFER_LEN]; //!< List of Ice server URIs
+    CHAR userName[MAX_ICE_CONFIG_USER_NAME_BUFFER_LEN];                 //!< Username for the server
+    CHAR password[MAX_ICE_CONFIG_CREDENTIAL_BUFFER_LEN];                //!< Password for the server
 } IceConfigInfo, *PIceConfigInfo;
 
 typedef struct {

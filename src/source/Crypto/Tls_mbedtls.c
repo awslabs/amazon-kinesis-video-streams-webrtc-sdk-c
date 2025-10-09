@@ -4,6 +4,37 @@
 #define LOG_CLASS "TLS_mbedtls"
 #include "../Include_i.h"
 
+// Read and parse CA certificate
+PRIVATE_API STATUS readAndParseCACertificate(PTlsSession pTlsSession)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT64 cert_len = 0;
+    PBYTE cert_buf = NULL;
+    CHAR errBuf[128];
+
+    CHK(pTlsSession != NULL, STATUS_NULL_ARG);
+
+    CHK_STATUS(readFile(KVS_CA_CERT_PATH, FALSE, NULL, &cert_len));
+    CHK(cert_len > 0, STATUS_INVALID_CERT_PATH_LENGTH);
+    cert_buf = (PBYTE) MEMCALLOC(1, cert_len + 1);
+    CHK(cert_buf != NULL, STATUS_NOT_ENOUGH_MEMORY);
+    CHK_STATUS(readFile(KVS_CA_CERT_PATH, FALSE, cert_buf, &cert_len));
+    int ret = mbedtls_x509_crt_parse(&pTlsSession->cacert, cert_buf, (SIZE_T) (cert_len + 1));
+    if (ret != 0) {
+        mbedtls_strerror(ret, errBuf, SIZEOF(errBuf));
+        DLOGE("mbedtls_x509_crt_parse failed: %s", errBuf);
+    }
+    CHK(ret == 0, STATUS_INVALID_CA_CERT_PATH);
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+    SAFE_MEMFREE(cert_buf);
+
+    LEAVES();
+    return retStatus;
+}
+
 STATUS createTlsSession(PTlsSessionCallbacks pCallbacks, PTlsSession* ppTlsSession)
 {
     ENTERS();
@@ -26,9 +57,11 @@ STATUS createTlsSession(PTlsSessionCallbacks pCallbacks, PTlsSession* ppTlsSessi
     mbedtls_ssl_config_init(&pTlsSession->sslCtxConfig);
     mbedtls_ssl_init(&pTlsSession->sslCtx);
     CHK(mbedtls_ctr_drbg_seed(&pTlsSession->ctrDrbg, mbedtls_entropy_func, &pTlsSession->entropy, NULL, 0) == 0, STATUS_CREATE_SSL_FAILED);
-    CHK(mbedtls_x509_crt_parse_file(&pTlsSession->cacert, KVS_CA_CERT_PATH) == 0, STATUS_INVALID_CA_CERT_PATH);
+
+    CHK_STATUS(readAndParseCACertificate(pTlsSession));
 
 CleanUp:
+
     if (STATUS_FAILED(retStatus) && pTlsSession != NULL) {
         freeTlsSession(&pTlsSession);
     }
@@ -100,7 +133,7 @@ CleanUp:
     return STATUS_FAILED(retStatus) ? -retStatus : readBytes;
 }
 
-STATUS tlsSessionStart(PTlsSession pTlsSession, BOOL isServer)
+STATUS tlsSessionStartWithHostname(PTlsSession pTlsSession, BOOL isServer, PCHAR hostname)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -114,9 +147,25 @@ STATUS tlsSessionStart(PTlsSession pTlsSession, BOOL isServer)
         STATUS_CREATE_SSL_FAILED);
 
     mbedtls_ssl_conf_ca_chain(&pTlsSession->sslCtxConfig, &pTlsSession->cacert, NULL);
-    mbedtls_ssl_conf_authmode(&pTlsSession->sslCtxConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
+
+    // For mbedTLS 3.x, use appropriate verification mode
+    if (hostname != NULL) {
+        // If a hostname is provided, use strict verification
+        mbedtls_ssl_conf_authmode(&pTlsSession->sslCtxConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
+    } else {
+        // Otherwise, use optional verification for IP-based connections
+        mbedtls_ssl_conf_authmode(&pTlsSession->sslCtxConfig, MBEDTLS_SSL_VERIFY_OPTIONAL);
+    }
+
     mbedtls_ssl_conf_rng(&pTlsSession->sslCtxConfig, mbedtls_ctr_drbg_random, &pTlsSession->ctrDrbg);
     CHK(mbedtls_ssl_setup(&pTlsSession->sslCtx, &pTlsSession->sslCtxConfig) == 0, STATUS_SSL_CTX_CREATION_FAILED);
+
+    // Set the hostname for certificate verification (for mbedTLS 3.x compatibility)
+    if (!isServer && hostname != NULL) {
+        // Use the provided hostname for certificate verification
+        CHK(mbedtls_ssl_set_hostname(&pTlsSession->sslCtx, hostname) == 0, STATUS_SSL_CTX_CREATION_FAILED);
+    }
+
     mbedtls_ssl_set_mtu(&pTlsSession->sslCtx, DEFAULT_MTU_SIZE_BYTES);
     mbedtls_ssl_set_bio(&pTlsSession->sslCtx, pTlsSession, tlsSessionSendCallback, tlsSessionReceiveCallback, NULL);
 
@@ -132,6 +181,11 @@ CleanUp:
 
     LEAVES();
     return retStatus;
+}
+
+STATUS tlsSessionStart(PTlsSession pTlsSession, BOOL isServer)
+{
+    return tlsSessionStartWithHostname(pTlsSession, isServer, NULL);
 }
 
 STATUS tlsSessionProcessPacket(PTlsSession pTlsSession, PBYTE pData, UINT32 bufferLen, PUINT32 pDataLen)
@@ -171,8 +225,11 @@ STATUS tlsSessionProcessPacket(PTlsSession pTlsSession, PBYTE pData, UINT32 buff
             iterate = FALSE;
         }
     }
-
+#if MBEDTLS_BEFORE_V3
     if (pTlsSession->sslCtx.state == MBEDTLS_SSL_HANDSHAKE_OVER) {
+#else
+    if (pTlsSession->sslCtx.MBEDTLS_PRIVATE(state) == MBEDTLS_SSL_HANDSHAKE_OVER) {
+#endif
         tlsSessionChangeState(pTlsSession, TLS_SESSION_STATE_CONNECTED);
     }
 
