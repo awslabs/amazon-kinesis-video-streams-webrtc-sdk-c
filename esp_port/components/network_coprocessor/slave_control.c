@@ -569,6 +569,7 @@ void send_dhcp_dns_info_to_host(uint8_t send_wifi_connected)
 
 #endif
 	if (station_connected) {
+		ESP_LOGI(TAG, "-- Send station connected event to host --");
 		send_event_data_to_host(RPC_ID__Event_StaConnected,
 			&lkg_sta_connected_event, sizeof(wifi_event_sta_connected_t));
 	}
@@ -686,7 +687,7 @@ static void event_handler_wifi(void* arg, esp_event_base_t event_base,
 			ESP_LOGI(TAG, "Sta mode connected");
 			send_event_data_to_host(RPC_ID__Event_StaConnected,
 				event_data, sizeof(wifi_event_sta_connected_t));
-			memcpy(&lkg_sta_connected_event, event_data, sizeof(wifi_event_sta_scan_done_t));
+			memcpy(&lkg_sta_connected_event, event_data, sizeof(wifi_event_sta_connected_t));
 			esp_wifi_internal_reg_rxcb(ESP_IF_WIFI_STA, (wifi_rxcb_t) wlan_sta_rx_callback);
 			station_connected = true;
 			sta_connect_retry = 0;
@@ -701,6 +702,7 @@ static void event_handler_wifi(void* arg, esp_event_base_t event_base,
 #endif
 
 			if (sta_connect_retry < MAX_STA_CONNECT_ATTEMPTS) {
+				ESP_LOGI(TAG, "**** esp_wifi_connect ***");
 				esp_wifi_connect();
 			} else {
 				send_event_data_to_host(RPC_ID__Event_StaDisconnected,
@@ -728,6 +730,7 @@ static void event_handler_wifi(void* arg, esp_event_base_t event_base,
 
 esp_err_t esp_hosted_register_event_handlers(void)
 {
+	ESP_LOGI(TAG, "************ esp_hosted_register_event_handlers ****************");
 	esp_event_handler_instance_register(WIFI_EVENT,
 		ESP_EVENT_ANY_ID,
 		&event_handler_wifi,
@@ -784,6 +787,7 @@ static esp_err_t req_wifi_init(Rpc *req, Rpc *resp, void *priv_data)
 	cfg.espnow_max_encrypt_num  = req_payload->cfg->espnow_max_encrypt_num ;
 	cfg.magic                   = req_payload->cfg->magic                  ;
 
+	ESP_LOGI(TAG, "************ esp_wifi_init ****************");
     RPC_RET_FAIL_IF(esp_wifi_init(&cfg));
 
 	return ESP_OK;
@@ -795,6 +799,7 @@ static esp_err_t req_wifi_deinit(Rpc *req, Rpc *resp, void *priv_data)
 			RpcReqWifiDeinit, req_wifi_deinit,
 			rpc__resp__wifi_deinit__init);
 
+	ESP_LOGI(TAG, "************ esp_wifi_deinit ****************");
     RPC_RET_FAIL_IF(esp_wifi_deinit());
 
 	return ESP_OK;
@@ -818,6 +823,7 @@ static esp_err_t req_wifi_start(Rpc *req, Rpc *resp, void *priv_data)
 #endif
 		return ESP_OK;
 	}
+	ESP_LOGI(TAG, "************ wifi_start ****************");
     RPC_RET_FAIL_IF(esp_wifi_start());
 	return ESP_OK;
 }
@@ -828,6 +834,7 @@ static esp_err_t req_wifi_stop(Rpc *req, Rpc *resp, void *priv_data)
 			RpcReqWifiStop, req_wifi_stop,
 			rpc__resp__wifi_stop__init);
 
+	ESP_LOGI(TAG, "************ esp_wifi_stop ****************");
     RPC_RET_FAIL_IF(esp_wifi_stop());
 
 	return ESP_OK;
@@ -862,6 +869,7 @@ static esp_err_t req_wifi_disconnect(Rpc *req, Rpc *resp, void *priv_data)
 			RpcReqWifiDisconnect, req_wifi_disconnect,
 			rpc__resp__wifi_disconnect__init);
 
+	ESP_LOGI(TAG, "************ esp_wifi_disconnect ****************");
     RPC_RET_FAIL_IF(esp_wifi_disconnect());
 
 	return ESP_OK;
@@ -965,7 +973,7 @@ static esp_err_t req_wifi_set_config(Rpc *req, Rpc *resp, void *priv_data)
 	}
 
 	if (0 != memcmp(&cfg, &prev_config, sizeof(wifi_config_t))) {
-		ESP_LOGI(TAG, "set wifi config..");
+		ESP_LOGI(TAG, "************ esp_wifi_set_config ****************");
 		RPC_RET_FAIL_IF(esp_wifi_set_config(req_payload->iface, &cfg));
 		wifi_config_modified = 1;
 	} else {
