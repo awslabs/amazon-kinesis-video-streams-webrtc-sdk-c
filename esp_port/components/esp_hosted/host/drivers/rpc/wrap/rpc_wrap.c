@@ -71,6 +71,7 @@ uint8_t restart_after_slave_ota = 0;
 #define OTA_FROM_WEB_URL                                  1
 
 
+static int rpc_wifi_connect_async(void);
 
 static ctrl_cmd_t * RPC_DEFAULT_REQ(void)
 {
@@ -318,8 +319,10 @@ static int rpc_event_callback(ctrl_cmd_t * app_event)
 			wifi_event_sta_connected_t *p_e = &app_event->u.e_wifi_sta_connected;
 
 			if (!netif_connected && netif_started) {
+#if 0
 				g_h.funcs->_h_wifi_event_handler(WIFI_EVENT_STA_STOP, 0, 0, HOSTED_BLOCK_MAX);
 				g_h.funcs->_h_wifi_event_handler(WIFI_EVENT_STA_START, 0, 0, HOSTED_BLOCK_MAX);
+#endif
 				g_h.funcs->_h_wifi_event_handler(WIFI_EVENT_STA_CONNECTED,
 					p_e, sizeof(wifi_event_sta_connected_t), HOSTED_BLOCK_MAX);
 				netif_connected = true;
@@ -368,7 +371,7 @@ static int rpc_event_callback(ctrl_cmd_t * app_event)
 				/* Trigger connection when station is started */
 				if (!netif_started && !is_wifi_netif_started(WIFI_IF_STA)) {
 					g_h.funcs->_h_wifi_event_handler(wifi_event_id, 0, 0, HOSTED_BLOCK_MAX);
-					// rpc_wifi_connect_async();
+					rpc_wifi_connect_async();
 					netif_started = true;
 				}
 				break;
@@ -1634,6 +1637,18 @@ int rpc_wifi_connect(void)
 
 	return SUCCESS;
 #endif
+}
+
+static int rpc_wifi_connect_async(void)
+{
+	/* implemented asynchronous */
+	ctrl_cmd_t *req = RPC_DEFAULT_REQ();
+
+	req->rpc_rsp_cb = rpc_rsp_callback;
+
+	wifi_connect(req);
+
+	return SUCCESS;
 }
 
 int rpc_wifi_disconnect(void)
