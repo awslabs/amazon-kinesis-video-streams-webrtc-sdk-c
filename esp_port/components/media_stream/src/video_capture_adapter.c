@@ -152,6 +152,7 @@ esp_err_t video_capture_get_frame(video_capture_handle_t handle, video_frame_t *
                 output_frame->type = VIDEO_FRAME_TYPE_OTHER;
                 break;
         }
+        free(h264_frame);
     } else if (ctx->codec_type == VIDEO_CODEC_MJPEG) {
         // Get a frame using the MJPEG API
         esp_mjpeg_out_buf_t *mjpeg_frame = get_mjpeg_encoded_frame();
