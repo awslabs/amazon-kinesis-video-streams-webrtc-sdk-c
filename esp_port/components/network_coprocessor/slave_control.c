@@ -848,7 +848,10 @@ static esp_err_t req_wifi_connect(Rpc *req, Rpc *resp, void *priv_data)
 
 	if (wifi_config_modified || !station_connected) {
 		ESP_LOGI(TAG, "************ connect ****************");
-		RPC_RET_FAIL_IF(esp_wifi_connect());
+		int ret = esp_wifi_connect();
+		if (ret != ESP_ERR_WIFI_CONN) { // already connecting
+			RPC_RET_FAIL_IF(ret);
+		}
 		wifi_config_modified = 0;
 	} else {
 		send_event_data_to_host(RPC_ID__Event_StaConnected,

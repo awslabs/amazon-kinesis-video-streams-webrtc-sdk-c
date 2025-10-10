@@ -318,11 +318,11 @@ static int rpc_event_callback(ctrl_cmd_t * app_event)
 
 			wifi_event_sta_connected_t *p_e = &app_event->u.e_wifi_sta_connected;
 
-			if (!netif_connected && netif_started) {
-#if 0
-				g_h.funcs->_h_wifi_event_handler(WIFI_EVENT_STA_STOP, 0, 0, HOSTED_BLOCK_MAX);
-				g_h.funcs->_h_wifi_event_handler(WIFI_EVENT_STA_START, 0, 0, HOSTED_BLOCK_MAX);
-#endif
+			if (!netif_connected) {
+				if (!netif_started) {
+					// g_h.funcs->_h_wifi_event_handler(WIFI_EVENT_STA_STOP, 0, 0, HOSTED_BLOCK_MAX);
+					g_h.funcs->_h_wifi_event_handler(WIFI_EVENT_STA_START, 0, 0, HOSTED_BLOCK_MAX);
+				}
 				g_h.funcs->_h_wifi_event_handler(WIFI_EVENT_STA_CONNECTED,
 					p_e, sizeof(wifi_event_sta_connected_t), HOSTED_BLOCK_MAX);
 				netif_connected = true;
