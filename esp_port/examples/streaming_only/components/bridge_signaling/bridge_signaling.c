@@ -81,6 +81,24 @@ void bridge_message_handler(const void* data, int len)
         goto cleanup;
     }
 
+    // Handle READY signal (though P4 shouldn't normally receive this)
+    if (signaling_msg.messageType == SIGNALING_MSG_TYPE_READY) {
+        ESP_LOGI(TAG, "Received READY signal (unexpected on streaming device)");
+        goto cleanup;
+    }
+
+    // Handle READY_QUERY from C6 - respond with READY if we're initialized
+    if (signaling_msg.messageType == SIGNALING_MSG_TYPE_READY_QUERY) {
+        ESP_LOGI(TAG, "Received READY_QUERY from C6");
+        if (g_bridge_client != NULL) {
+            ESP_LOGI(TAG, "P4 is ready, responding with READY signal");
+            send_ready_signal_to_c6();
+        } else {
+            ESP_LOGI(TAG, "P4 is not ready yet, ignoring query");
+        }
+        goto cleanup;
+    }
+
     // Handle ICE servers message separately (not forwarded to WebRTC)
     if (signaling_msg.messageType == SIGNALING_MSG_TYPE_ICE_SERVERS) {
         ESP_LOGI(TAG, "Received ICE servers configuration from signaling device");
@@ -196,6 +214,31 @@ WEBRTC_STATUS bridge_signaling_send_message_via_bridge(signaling_msg_t* pMessage
 }
 
 /**
+ * @brief Send READY signal to C6 to indicate P4 is ready to receive messages
+ */
+void send_ready_signal_to_c6(void)
+{
+    ESP_LOGI(TAG, "Sending READY signal to C6");
+
+    // Create READY message
+    signaling_msg_t ready_msg = {0};
+    ready_msg.version = 1;
+    ready_msg.messageType = SIGNALING_MSG_TYPE_READY;
+    strcpy(ready_msg.correlationId, "ready");
+    strcpy(ready_msg.peerClientId, "streaming_client");
+    ready_msg.payload = NULL;
+    ready_msg.payloadLen = 0;
+
+    // Send via bridge
+    WEBRTC_STATUS status = bridge_signaling_send_message_via_bridge(&ready_msg);
+    if (status != WEBRTC_STATUS_SUCCESS) {
+        ESP_LOGE(TAG, "Failed to send READY signal: 0x%08" PRIx32, (uint32_t)status);
+    } else {
+        ESP_LOGI(TAG, "READY signal sent successfully");
+    }
+}
+
+/**
  * @brief Bridge signaling init implementation
  */
 static WEBRTC_STATUS bridgeInit(void *signaling_cfg, void **ppSignalingClient)
@@ -258,6 +301,18 @@ static WEBRTC_STATUS bridgeConnect(void *pSignalingClient)
     }
 
     ESP_LOGI(TAG, "Bridge signaling client connected");
+
+    // Wait for bridge transport to stabilize after handler registration
+    vTaskDelay(pdMS_TO_TICKS(100));
+
+    // Send READY signal to C6 - this is the correct time because:
+    // 1. Bridge transport is started (webrtc_bridge_start was called)
+    // 2. Message handler is registered (webrtc_bridge_register_handler was called in bridgeInit)
+    // 3. WebRTC client is initialized (g_bridge_client is set)
+    // 4. Now we can safely receive and process messages
+    ESP_LOGI(TAG, "Sending READY signal to C6");
+    send_ready_signal_to_c6();
+
     return WEBRTC_STATUS_SUCCESS;
 }
 

@@ -44,6 +44,31 @@ typedef struct {
  */
 webrtc_peer_connection_if_t* bridge_peer_connection_if_get(void);
 
+/**
+ * @brief Trigger P4 wake-up and queue subsequent messages
+ *
+ * This function sets the message queue state to WAITING_FOR_WAKEUP, causing
+ * subsequent messages to be queued until P4 sends a READY signal.
+ *
+ * @note This function is called automatically by signaling_bridge_adapter_send_message()
+ * when an OFFER is received. Applications typically don't need to call this directly.
+ *
+ * Simple and Robust Approach (Always Wake on OFFER):
+ * 1. OFFER arrives → ALWAYS transition to WAITING_FOR_WAKEUP state
+ * 2. Call wakeup_host() - physically wake P4 if sleeping
+ * 3. Send READY_QUERY - ask P4 for readiness (critical!)
+ * 4. Enqueue OFFER and subsequent messages
+ * 5. P4 responds with READY signal
+ * 6. Queue is flushed automatically when READY received
+ *
+ * Benefits:
+ * - No race conditions (don't trust power state detection)
+ * - P4 handler always ready when messages arrive
+ * - Works whether P4 is sleeping, waking, or already awake
+ * - READY_QUERY ensures response even if P4 already initialized
+ */
+void signaling_bridge_adapter_trigger_wakeup(void);
+
 #ifdef __cplusplus
 }
 #endif

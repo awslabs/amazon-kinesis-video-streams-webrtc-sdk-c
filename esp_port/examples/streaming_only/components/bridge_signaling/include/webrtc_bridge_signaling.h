@@ -57,6 +57,15 @@ WEBRTC_STATUS bridge_signaling_send_message_via_bridge(signaling_msg_t* pMessage
  */
 void bridge_message_handler(const void* data, int len);
 
+/**
+ * @brief Send READY signal to C6 to indicate P4 is ready to receive messages
+ *
+ * This function sends a READY signal to the signaling device (C6), indicating that
+ * the streaming device (P4) has completed initialization and is ready to receive
+ * and process queued messages.
+ */
+void send_ready_signal_to_c6(void);
+
 #ifdef __cplusplus
 }
 #endif
