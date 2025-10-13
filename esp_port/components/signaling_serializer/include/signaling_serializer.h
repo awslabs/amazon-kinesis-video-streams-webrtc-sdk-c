@@ -45,6 +45,8 @@ typedef enum {
     SIGNALING_MSG_TYPE_ICE_REQUEST,          // ← Request ICE server by index from signaling device
     SIGNALING_MSG_TYPE_ICE_SERVER_RESPONSE,  // ← Single ICE server response with have_more flag
     SIGNALING_MSG_TYPE_TRIGGER_OFFER,        // ← Trigger offer message
+    SIGNALING_MSG_TYPE_READY,                // ← Ready signal from streaming device to signaling device
+    SIGNALING_MSG_TYPE_READY_QUERY,          // ← Query from signaling device: "Are you ready?"
 } signaling_msg_type;
 
 // Must match with the defines in the signaling protocol defined in kvs

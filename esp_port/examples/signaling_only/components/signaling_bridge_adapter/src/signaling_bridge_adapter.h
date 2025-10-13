@@ -97,6 +97,14 @@ WEBRTC_STATUS signaling_bridge_adapter_register_callbacks(
     WEBRTC_STATUS (*on_message_received)(uint64_t, webrtc_message_t*));
 
 /**
+ * @brief Trigger P4 wake-up and queue subsequent messages
+ *
+ * This function sets the queue state to WAITING_FOR_WAKEUP, causing
+ * subsequent messages to be queued until P4 sends a READY signal.
+ */
+void signaling_bridge_adapter_trigger_wakeup(void);
+
+/**
  * @brief Deinitialize the signaling bridge adapter
  */
 void signaling_bridge_adapter_deinit(void);
