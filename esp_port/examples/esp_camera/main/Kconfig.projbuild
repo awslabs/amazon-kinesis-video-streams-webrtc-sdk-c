@@ -1,0 +1,42 @@
+menu "ESP WebRTC Camera Configuration"
+    config APPRTC_SERVER_URL
+        string "AppRTC server URL"
+        default "https://webrtc.espressif.com"
+        help
+            URL of the AppRTC signaling server.
+
+    config APPRTC_USE_FIXED_ROOM
+        bool "Use fixed room ID"
+        default n
+        help
+            If enabled, uses a fixed room ID instead of generating a random one.
+
+    config APPRTC_ROOM_ID
+        string "Fixed AppRTC room ID"
+        default "esp32test"
+        depends on APPRTC_USE_FIXED_ROOM
+        help
+            The fixed room ID to use when connecting to the AppRTC server.
+
+    config APPRTC_ROLE_TYPE
+        int "WebRTC role type"
+        default 1
+        range 0 1
+        help
+            Role type for the WebRTC connection.
+            0: MASTER - Creates a room and waits for viewers to connect.
+            1: VIEWER - Can create a room or join an existing one via CLI.
+
+    config APPRTC_AUTO_CONNECT
+        bool "Auto-connect to signaling server on startup"
+        default y
+        help
+            If enabled, automatically connects to the signaling server on startup.
+            If disabled, connection must be initiated manually via CLI commands.
+
+    config APPRTC_LOG_VERBOSE
+        bool "Enable verbose AppRTC logging"
+        default n
+        help
+            Enable verbose logging for AppRTC signaling.
+endmenu

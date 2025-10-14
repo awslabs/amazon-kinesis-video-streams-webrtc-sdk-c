@@ -1,0 +1,4 @@
+dependencies:
+  kvs_utils:
+    path: ../kvs_utils
+    version: "*"

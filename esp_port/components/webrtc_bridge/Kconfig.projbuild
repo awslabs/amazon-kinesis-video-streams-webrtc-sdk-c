@@ -1,0 +1,21 @@
+menu "WebRTC Bridge Config"
+    choice WEBRTC_BRIDGE_TYPE
+        bool "Bridge to use between streaming and signalling device"
+        default ESP_WEBRTC_BRIDGE_MQTT
+        default ESP_WEBRTC_BRIDGE_HOSTED if IDF_TARGET_ESP32P4
+        default ESP_WEBRTC_BRIDGE_HOSTED if IDF_TARGET_ESP32C6
+        help
+            Bus interface to be used for communication with the host
+
+        config ESP_WEBRTC_BRIDGE_HOSTED
+            bool "Use hosted bridge"
+            help
+                Relay messages using existing esp_hosted communication line
+                Direct dependancy on `ESP_HOSTED_ENABLED`
+
+        config ESP_WEBRTC_BRIDGE_MQTT
+            bool "Use MQTT bridge"
+            help
+                Relay messages using by subscribing and publishing to MQTT broker
+    endchoice
+endmenu

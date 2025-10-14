@@ -1,0 +1,34 @@
+## IDF Component Manager Manifest File
+dependencies:
+  # local components
+  espressif/esp_hosted:
+    override_path: ${KVS_SDK_PATH}/esp_port/components/esp_hosted
+    version: '*'
+    rules:
+    - if: target in [esp32p4]
+
+  espressif/esp_wifi_remote:
+    override_path: ${KVS_SDK_PATH}/esp_port/components/esp_wifi_remote
+    version: '*'
+    rules:
+    - if: target in [esp32p4]
+
+  esp_webrtc_utils:
+    path: ${KVS_SDK_PATH}/esp_port/components/esp_webrtc_utils
+    version: '*'
+
+  kvs_webrtc:
+    path: ${KVS_SDK_PATH}/esp_port/components/kvs_webrtc
+    version: '*'
+
+  media_stream:
+    path: ${KVS_SDK_PATH}/esp_port/components/media_stream
+    version: '*'
+
+  bridge_signaling:
+    path: ../components/bridge_signaling
+    version: '*'
+
+  app_common:
+    path: ${KVS_SDK_PATH}/esp_port/examples/app_common
+    version: '*'

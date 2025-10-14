@@ -1,0 +1,26 @@
+choice KVS_SERIALIZATION_METHOD
+    prompt "Signaling message serialization method"
+    default KVS_USE_PROTOBUF_SERIALIZATION
+    help
+        When WebRTC is used in a split mode, the signaling messages needs to be exchanged between signaling_only and streaming_only applications.
+        This requires a serialization/deserialization method that is compatible with both applications.
+        Note: The same serialization method should be used for both the signaling and streaming applications.
+
+    config KVS_USE_PROTOBUF_SERIALIZATION
+        bool "Protocol Buffers"
+        help
+            Use Protocol Buffers for signaling message serialization.
+            This reduces message size but requires more ROM.
+
+    config KVS_USE_JSON_SERIALIZATION
+        bool "JSON"
+        help
+            Use JSON for signaling message serialization.
+            This uses more bandwidth but requires less ROM.
+
+    config KVS_USE_RAW_SERIALIZATION
+        bool "Raw"
+        help
+            Use non-standardraw serialization, i.e. the payload is appended to the signaling message.
+            This is the most efficient serialization method but may bump into tricky issues.
+endchoice

@@ -1,0 +1,8 @@
+## IDF Component Manager Manifest File
+dependencies:
+  # local components
+  network_coprocessor:
+    version: "*"
+    path: ${KVS_SDK_PATH}/esp_port/components/network_coprocessor
+    rules:
+      - if: "target in [esp32c6]"

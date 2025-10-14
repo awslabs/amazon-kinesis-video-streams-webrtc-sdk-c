@@ -1,0 +1,19 @@
+description: webrtc_bridge
+version: "0.0.1"
+
+dependencies:
+  esp_webrtc_utils:
+    path: ../esp_webrtc_utils
+    version: "*"
+
+  espressif/esp_hosted:
+    override_path: ../esp_hosted
+    version: "*"
+    rules:
+      - if: "target not in [linux]"
+
+  network_coprocessor:
+    path: ../network_coprocessor
+    version: "*"
+    rules:
+      - if: target in [esp32c6, esp32c5]

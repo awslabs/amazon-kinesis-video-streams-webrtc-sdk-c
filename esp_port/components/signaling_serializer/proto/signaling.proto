@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package kvs.signaling;
+
+message SignalingMessage {
+  uint32 version = 1;
+  uint32 messageType = 2;
+  string peerClientId = 3;
+  string correlationId = 4;
+  bytes payload = 5;
+  uint32 payloadLen = 6;
+}

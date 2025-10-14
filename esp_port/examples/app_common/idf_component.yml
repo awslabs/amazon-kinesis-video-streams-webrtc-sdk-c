@@ -1,0 +1,29 @@
+description: app_common
+version: "0.0.1"
+
+dependencies:
+  esp_webrtc_utils:
+    path: ../../components/esp_webrtc_utils
+    version: "*"
+
+  kvs_webrtc:
+    path: ../../components/kvs_webrtc
+    version: "*"
+    public: true
+
+  credential:
+    path: ../../components/credential
+    version: "*"
+
+  media_stream:
+    path: ../../components/media_stream
+    version: "*"
+    public: true
+
+  webrtc_bridge:
+    path: ../../components/webrtc_bridge
+    version: "*"
+
+  signaling_serializer:
+    path: ../../components/signaling_serializer
+    version: "*"

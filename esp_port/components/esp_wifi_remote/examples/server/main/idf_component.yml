@@ -1,0 +1,4 @@
+dependencies:
+  esp_wifi_remote:
+    version: "*"
+    override_path: ../../..

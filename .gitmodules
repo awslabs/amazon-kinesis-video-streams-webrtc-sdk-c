@@ -4,3 +4,12 @@
 [submodule "open-source/amazon-kinesis-video-streams-producer-c"]
 	path = open-source/amazon-kinesis-video-streams-producer-c
 	url = https://github.com/awslabs/amazon-kinesis-video-streams-producer-c.git
+[submodule "esp_port/components/esp_usrsctp/usrsctp"]
+        path = esp_port/components/esp_usrsctp/usrsctp
+	url = https://github.com/vikramdattu/usrsctp.git
+[submodule "esp_port/components/libsrtp2/libsrtp"]
+	path = esp_port/components/libsrtp2/libsrtp
+	url = https://github.com/cisco/libsrtp.git
+[submodule "esp_port/components/libwebsockets/libwebsockets"]
+	path = esp_port/components/libwebsockets/libwebsockets
+	url = https://github.com/warmcat/libwebsockets.git
