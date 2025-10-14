@@ -71,6 +71,10 @@ typedef struct {
 
     // Event handler callback
     void (*event_handler)(app_webrtc_event_t event_id, UINT32 status_code, PCHAR peer_id, PCHAR message);
+
+    // Client-level data channel configuration (defaults for all sessions)
+    webrtc_data_channel_config_t client_dc_config;
+    bool has_client_dc_config;
 } kvs_pc_client_t;
 
 /**
@@ -118,6 +122,13 @@ typedef struct kvs_pc_session_s {
     bool data_channel_ready;
     char data_channel_message[MAX_DATA_CHANNEL_MESSAGE_SIZE];
 #endif
+
+    // Session-specific data channel configuration (overrides client defaults)
+    webrtc_data_channel_config_t session_dc_config;
+    bool has_session_dc_config;
+
+    // Final effective config (computed from client + session)
+    webrtc_data_channel_config_t effective_dc_config;
 
     // Session description for answers
     RtcSessionDescriptionInit answer_session_description;

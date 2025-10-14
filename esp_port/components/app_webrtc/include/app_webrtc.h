@@ -123,6 +123,9 @@ typedef struct {
     void* audio_capture;                                    //!< Audio capture interface (media_stream_audio_capture_t*)
     void* video_player;                                     //!< Video player interface (media_stream_video_player_t*)
     void* audio_player;                                     //!< Audio player interface (media_stream_audio_player_t*)
+
+    // Data channel configuration (optional - set to NULL if not using data channels)
+    webrtc_data_channel_config_t* data_channel_config;      //!< Data channel callbacks and configuration
 } app_webrtc_config_t;
 
 /**
@@ -141,6 +144,7 @@ typedef struct {
     .audio_capture = NULL, \
     .video_player = NULL, \
     .audio_player = NULL, \
+    .data_channel_config = NULL, \
 }
 
 /**

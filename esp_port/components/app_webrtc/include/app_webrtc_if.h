@@ -255,6 +255,21 @@ typedef struct {
  */
 typedef void (*app_webrtc_rtc_on_open_t)(uint64_t customData, void *pDataChannel, const char *peer_id);
 typedef void (*app_webrtc_rtc_on_message_t)(uint64_t customData, void *pDataChannel, const char *peer_id, bool isBinary, uint8_t *pMessage, uint32_t messageLen);
+typedef void (*app_webrtc_rtc_on_close_t)(uint64_t customData, void *pDataChannel, const char *peer_id);
+
+/**
+ * @brief Data channel configuration
+ * Contains callbacks and custom data for data channel events
+ *
+ * NOTE: onClose callback is currently not supported by the KVS SDK implementation.
+ * It is included in the structure for future compatibility when KVS SDK adds support.
+ */
+typedef struct {
+    app_webrtc_rtc_on_open_t onOpen;           // Called when data channel opens
+    app_webrtc_rtc_on_message_t onMessage;     // Called when message received
+    app_webrtc_rtc_on_close_t onClose;         // Called when data channel closes (NOT YET SUPPORTED)
+    uint64_t customData;                        // Custom data passed to all callbacks
+} webrtc_data_channel_config_t;
 
 /**
  * @brief Generic WebRTC peer connection configuration
@@ -272,6 +287,9 @@ typedef struct {
     // Codec configuration
     app_webrtc_rtc_codec_t audio_codec;   // Audio codec to use (OPUS, MULAW, ALAW, etc.)
     app_webrtc_rtc_codec_t video_codec;   // Video codec to use (H264, H265, VP8, etc.)
+
+    // Data channel configuration (passed through from app_webrtc_config)
+    webrtc_data_channel_config_t* data_channel_config;
 
     // Implementation-specific configuration
     void* peer_connection_cfg;          // Implementation-specific configuration (opaque pointer)
@@ -292,10 +310,11 @@ typedef struct {
     // This allows updating ICE servers separately from initialization
     WEBRTC_STATUS (*set_ice_servers)(void *pPeerConnectionClient, void *ice_servers, uint32_t ice_count);
 
-    // Create a new peer connection session
+    // Create a new peer connection session with optional per-session data channel config
     WEBRTC_STATUS (*create_session)(void *pPeerConnectionClient,
                                     const char *peer_id,
                                     bool is_initiator,
+                                    webrtc_data_channel_config_t *session_dc_config,
                                     void **ppSession);
 
     // Send a WebRTC message (SDP offer/answer, ICE candidate)
