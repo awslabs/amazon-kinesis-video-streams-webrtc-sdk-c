@@ -29,6 +29,17 @@ extern "C" {
 #endif
 #include <jsmn.h>
 
+#ifndef MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_80
+/**
+ * Copied straight from mbedtls/include/mbedtls/ssl.h
+ * When not using DTLS (i.e., in signaling only mode), we can disable DTLS,
+ * but the build system still tries to include the DTLS headers.
+ * This macro keeps the build system happy.
+ */
+#define MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_80     ((uint16_t) 0x0001)
+#define MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_32     ((uint16_t) 0x0002)
+#endif
+
 /******************************************************************************
  * DEFINITIONS
  ******************************************************************************/

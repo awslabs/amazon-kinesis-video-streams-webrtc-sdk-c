@@ -6,3 +6,9 @@ examples:
 dependencies:
   idf:
     version: ">=5.3"
+
+  esp_wifi_remote:
+    path: ../esp_wifi_remote
+    version: '*'
+    rules:
+      - if: target in [esp32p4]

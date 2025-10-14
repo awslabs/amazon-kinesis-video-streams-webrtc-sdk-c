@@ -37,10 +37,9 @@ static kvs_signaling_config_t g_kvsSignalingConfig = {0};
  */
 static void app_webrtc_event_handler(app_webrtc_event_data_t *event_data, void *user_ctx)
 {
-    ESP_LOGI(TAG, "🎯 WebRTC Event: %d, Status: 0x%08" PRIx32 ", Peer: %s, Message: %s",
+    ESP_LOGI(TAG, "WebRTC Event: %d, Status: 0x%08" PRIx32 ", Peer: %s, Message: %s",
              event_data->event_id, event_data->status_code,
-             event_data->peer_id ? event_data->peer_id : "NULL",
-             event_data->message ? event_data->message : "NULL");
+             event_data->peer_id, event_data->message);
 
     switch (event_data->event_id) {
         case APP_WEBRTC_EVENT_SIGNALING_CONNECTED:
@@ -68,10 +67,10 @@ static void app_webrtc_event_handler(app_webrtc_event_data_t *event_data, void *
             break;
         case APP_WEBRTC_EVENT_ERROR:
         case APP_WEBRTC_EVENT_SIGNALING_ERROR:
-            ESP_LOGE(TAG, "WebRTC error occurred: %s", event_data->message ? event_data->message : "Unknown error");
+            ESP_LOGE(TAG, "WebRTC error occurred: %s", event_data->message);
             break;
         default:
-            ESP_LOGI(TAG, "🔍 Unhandled WebRTC event: %d", event_data->event_id);
+            ESP_LOGI(TAG, "Unhandled WebRTC event: %d", event_data->event_id);
             break;
     }
 }

@@ -8,16 +8,8 @@ dependencies:
     path: ../media_stream
     version: '*'
 
-  libsrtp2:
-    path: ../libsrtp2
-    version: '*'
-
   kvs_utils:
     path: ../kvs_utils
-    version: '*'
-
-  esp_usrsctp:
-    path: ../esp_usrsctp
     version: '*'
 
   webrtc_bridge:

@@ -10,7 +10,7 @@ dependencies:
     override_path: ../esp_hosted
     version: "*"
     rules:
-      - if: "target not in [linux]"
+      - if: "target not in [linux, esp32c6, esp32c5]"
 
   network_coprocessor:
     path: ../network_coprocessor

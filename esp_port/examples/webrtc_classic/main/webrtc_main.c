@@ -4,19 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/*
- * WebRTC Classic Example - Simplified API Demo
- *
- * This example demonstrates the new simplified WebRTC API design that:
- * - Uses reasonable defaults (MASTER role, OPUS/H264 codecs, trickle ICE, etc.)
- * - Requires only essential configuration (signaling + media interfaces)
- * - Auto-detects signaling-only vs. media streaming based on provided interfaces
- * - Provides advanced configuration APIs for power users (commented examples)
- *
- * BEFORE (complex): 12+ config fields to set manually
- * AFTER (simple):   6 essential fields with smart defaults
- */
-
 #include <string.h>
 #include <pthread.h>
 #include <inttypes.h>
@@ -66,11 +53,6 @@ static void event_handler(void* arg, esp_event_base_t event_base,
         // s_retry_num = 0;
         xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
     }
-}
-
-char* esp_get_ip(void)
-{
-    return wifi_ip;
 }
 
 #ifdef CONFIG_HOST_USES_STATIC_NETIF
@@ -292,20 +274,6 @@ void app_main(void)
 
     // Peer connection configuration - for full WebRTC functionality
     app_webrtc_config.peer_connection_if = kvs_peer_connection_if_get();
-    // peer_connection_cfg can be NULL for default settings
-
-    /*
-     * 🏗️ Architecture Examples:
-     *
-     * webrtc_classic (this):    kvs_signaling + kvs_webrtc       (Full KVS)
-     * esp_camera:               apprtc_signaling + kvs_webrtc    (Custom signaling + KVS peer)
-     * streaming_only:           bridge_signaling + kvs_webrtc    (Bridge signaling + KVS peer)
-     * signaling_only:           kvs_signaling + null_peer        (KVS signaling only)
-     *
-     * For signaling_only example:
-     *   app_webrtc_config.signaling_client_if = kvs_signaling_client_if_get();
-     *   app_webrtc_config.peer_connection_if = null_peer_connection_if_get();
-     */
 
     // Media interfaces for sending (optional - NULL for signaling-only)
     app_webrtc_config.video_capture = video_capture;
