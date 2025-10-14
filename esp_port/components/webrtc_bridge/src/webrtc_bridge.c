@@ -18,7 +18,7 @@
 #include "webrtc_bridge.h"
 
 #if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED
-#if defined(ENABLE_SIGNALLING_ONLY)
+#if defined(ENABLE_SIGNALLING_ONLY) && defined(CONFIG_IDF_TARGET_ESP32C6)
 #include "network_coprocessor.h"
 #endif
 #endif
@@ -29,7 +29,7 @@
 static SemaphoreHandle_t mutex;
 
 #define RPC_USER_SPECIFIC_EVENT_DATA_SIZE (1024) // Not > 4K
-#if ENABLE_SIGNALLING_ONLY
+#if ENABLE_SIGNALLING_ONLY && CONFIG_IDF_TARGET_ESP32C6
 typedef struct custom_rpc_data_slave_to_host {
     int32_t resp; /* unused */
     int32_t uuid;
@@ -109,7 +109,7 @@ static void handle_on_message_received(void *priv_data)
 static void webrtc_bridge_send_via_hosted(const char *data, int len);
 
 #if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED
-#if ENABLE_SIGNALLING_ONLY
+#if ENABLE_SIGNALLING_ONLY && defined(CONFIG_IDF_TARGET_ESP32C6)
 extern void send_event_data_to_host(int event_id, void *data, int size);
 #elif ENABLE_STREAMING_ONLY && CONFIG_ESP_HOSTED_ENABLED
 static void usr_evt_cb(uint8_t usr_evt_num, rpc_usr_t *usr_evt)
@@ -176,7 +176,7 @@ static void webrtc_bridge_send_via_hosted(const char *data, int len)
     int32_t uuid = rand();
     int len_remain = len;
     int seq_num = 0;
-#if ENABLE_SIGNALLING_ONLY
+#if ENABLE_SIGNALLING_ONLY && CONFIG_IDF_TARGET_ESP32C6
 #define MAX_CHUNK_LEN  (1024)
 #else
 #define MAX_CHUNK_LEN  (1000)
@@ -185,7 +185,7 @@ static void webrtc_bridge_send_via_hosted(const char *data, int len)
     xSemaphoreTake(mutex, 5000);
     int32_t data_len = MAX_CHUNK_LEN;
     int32_t data_idx = 0;
-#if ENABLE_SIGNALLING_ONLY  // Slave (C6) --> Host (P4)
+#if ENABLE_SIGNALLING_ONLY && CONFIG_IDF_TARGET_ESP32C6  // Slave (C6) --> Host (P4)
     // RPC_ID__Event_USR1 = 778... BAD hacks?
     custom_send_data.uuid = uuid;
     custom_send_data.total_len = len;
@@ -328,7 +328,7 @@ void webrtc_bridge_start(void)
     }
 #if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED
     mutex = xSemaphoreCreateMutex();
-#if ENABLE_SIGNALLING_ONLY
+#if ENABLE_SIGNALLING_ONLY && CONFIG_IDF_TARGET_ESP32C6
     /* Register our message handling function with the network coprocessor */
     network_coprocessor_register_webrtc_callback(&on_webrtc_bridge_msg_received);
     ESP_LOGI(TAG, "WebRTC bridge registered with network coprocessor");

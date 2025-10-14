@@ -10,14 +10,13 @@
 #include "webrtc_bridge.h"
 #include "app_webrtc.h"
 #include "signaling_bridge_adapter.h"
-#include "bridge_peer_connection.h"
 #include "signaling_serializer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
-#if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED
+#if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED && !defined(CONFIG_IDF_TARGET_ESP32P4)
 #include "network_coprocessor.h"
 #endif
-#if CONFIG_IDF_TARGET_ESP32C6
+#if defined(CONFIG_IDF_TARGET_ESP32C6)
 #include "host_power_save.h"
 #endif
 
@@ -265,7 +264,7 @@ static void handle_bridged_message(const void* data, int len)
     }
 
     ESP_LOGD(TAG, "Deserialized message type %d from peer %s",
-             signalingMsg.messageType, signalingMsg.peerClientId);
+             (int) signalingMsg.messageType, signalingMsg.peerClientId);
 
     // Handle READY signal from P4
     if (signalingMsg.messageType == SIGNALING_MSG_TYPE_READY) {
@@ -318,10 +317,10 @@ static void handle_bridged_message(const void* data, int len)
 
     // If we have a registered message callback, use it directly
     // if (g_on_message_received != NULL) {
-    ESP_LOGD(TAG, "Using registered callback for message type %d", webrtcMsg.message_type);
+    ESP_LOGD(TAG, "Using registered callback for message type %d", (int) webrtcMsg.message_type);
     WEBRTC_STATUS status = g_on_message_received(g_custom_data, &webrtcMsg);
     if (status != WEBRTC_STATUS_SUCCESS) {
-        ESP_LOGE(TAG, "Failed to process message via callback: 0x%08x", status);
+        ESP_LOGE(TAG, "Failed to process message via callback: 0x%08" PRIx32, (uint32_t) status);
     } else {
         ESP_LOGD(TAG, "Successfully processed message via callback");
     }
@@ -373,7 +372,7 @@ WEBRTC_STATUS signaling_bridge_adapter_init(const signaling_bridge_adapter_confi
     ESP_LOGI(TAG, "Registered bridge message handler");
 
     // Register RPC handler with network coprocessor for ICE server queries
-#if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED
+#if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED && !defined(CONFIG_IDF_TARGET_ESP32P4)
     network_coprocessor_register_ice_server_query_callback(signaling_bridge_adapter_rpc_handler);
     ESP_LOGI(TAG, "Registered ICE server RPC handler");
 #endif
@@ -430,7 +429,7 @@ int signaling_bridge_adapter_send_message(webrtc_message_t *signalingMessage)
             signalingMsg.messageType = SIGNALING_MSG_TYPE_TRIGGER_OFFER;
             break;
         default:
-            ESP_LOGE(TAG, "Unsupported message type: %d", signalingMessage->message_type);
+            ESP_LOGE(TAG, "Unsupported message type: %d", (int) signalingMessage->message_type);
             return -1;
     }
 
@@ -439,7 +438,7 @@ int signaling_bridge_adapter_send_message(webrtc_message_t *signalingMessage)
     signalingMsg.payload = signalingMessage->payload;
     signalingMsg.payloadLen = signalingMessage->payload_len;
 
-    ESP_LOGD(TAG, "Sending signaling message type %d to streaming device", signalingMessage->message_type);
+    ESP_LOGD(TAG, "Sending signaling message type %d to streaming device", (int) signalingMessage->message_type);
 
     size_t serializedMsgLen = 0;
     char *serializedMsg = serialize_signaling_message(&signalingMsg, &serializedMsgLen);
@@ -451,7 +450,7 @@ int signaling_bridge_adapter_send_message(webrtc_message_t *signalingMessage)
     // Check if this is an OFFER - always wake P4 and queue messages
     // This is the simplest and most robust approach: assume P4 needs waking
     // even if it appears awake (handler might not be ready yet)
-#if CONFIG_IDF_TARGET_ESP32C6
+#if defined(CONFIG_IDF_TARGET_ESP32C6)
     if (signalingMessage->message_type == WEBRTC_MESSAGE_TYPE_OFFER) {
         ESP_LOGI(TAG, "Received OFFER - triggering wake-up sequence (harmless if P4 already awake)");
         set_queue_state(QUEUE_STATE_WAITING_FOR_WAKEUP);
@@ -484,7 +483,7 @@ int signaling_bridge_adapter_rpc_handler(int index, uint8_t **data, int *len, bo
         return -1;
     }
 
-    ESP_LOGI(TAG, "🚀 RPC: ICE server query for index %d", index);
+    ESP_LOGI(TAG, "RPC: ICE server query for index %d", index);
 
     // Delegate to WebRTC abstraction layer
     bool use_turn = true; // Always request TURN servers via RPC
@@ -497,16 +496,16 @@ int signaling_bridge_adapter_rpc_handler(int index, uint8_t **data, int *len, bo
         *data = raw_data;
         *len = raw_len;
 
-        ESP_LOGI(TAG, "✅ RPC: Successfully retrieved ICE server for index %d (len: %d, have_more: %s)",
+        ESP_LOGI(TAG, "RPC: Successfully retrieved ICE server for index %d (len: %d, have_more: %s)",
                  index, raw_len, *have_more ? "true" : "false");
         return 0; // Success
     } else if (*have_more == true) {
-        ESP_LOGI(TAG, "🔄 RPC: ICE server query for index %d is still in progress", index);
+        ESP_LOGI(TAG, "RPC: ICE server query for index %d is still in progress", index);
         *data = NULL;
         *len = 0;
         return 0; // Success
     } else {
-        ESP_LOGE(TAG, "❌ RPC: Failed to retrieve ICE server for index %d: 0x%08x", index, status);
+        ESP_LOGE(TAG, "RPC: Failed to retrieve ICE server for index %d: 0x%08" PRIx32, index, (uint32_t) status);
         if (raw_data) {
             free(raw_data); // Clean up on failure
         }
@@ -536,7 +535,7 @@ void signaling_bridge_adapter_deinit(void)
         }
 
         // Unregister RPC handler
-#if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED
+#if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED && !defined(CONFIG_IDF_TARGET_ESP32P4)
         network_coprocessor_register_ice_server_query_callback(NULL);
 #endif
 
