@@ -4,19 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/*
- * ESP Camera WebRTC Example - AppRTC Signaling + Simplified API
- *
- * This example demonstrates:
- * - Simplified WebRTC API with reasonable defaults
- * - AppRTC signaling (browser-compatible)
- * - Advanced configuration APIs for role selection
- * - Bi-directional media streaming (send + receive)
- *
- * BEFORE: 7+ manual config assignments with complex role handling
- * AFTER:  4 essential config assignments + advanced APIs for customization
- */
-
 #include <string.h>
 #include <inttypes.h>
 #include "freertos/FreeRTOS.h"
@@ -32,8 +19,6 @@
 #include "esp_cli.h"
 
 #include "app_webrtc.h"
-#include "esp_webrtc_time.h"
-#include "esp_work_queue.h"
 #include "media_stream.h"
 #include "apprtc_signaling.h"
 #include "wifi_cli.h"

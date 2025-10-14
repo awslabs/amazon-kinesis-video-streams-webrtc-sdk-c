@@ -193,9 +193,8 @@ static WEBRTC_STATUS kvs_pc_set_ice_servers(void *pPeerConnectionClient, void *i
 
     ESP_LOGI(TAG, "Updating ICE servers for KVS peer connection client (new count: %" PRIu32 ")", ice_count);
 
-    // Free any existing ICE servers
-    if (client_data->config.ice_servers != NULL &&
-        client_data->config.ice_servers != ice_servers) {
+    // Free any existing ICE servers (always heap-allocated or NULL)
+    if (client_data->config.ice_servers != NULL && client_data->config.ice_servers != ice_servers) {
         SAFE_MEMFREE(client_data->config.ice_servers);
     }
 
@@ -370,7 +369,13 @@ static WEBRTC_STATUS kvs_pc_init(void *pc_cfg, void **ppPeerConnectionClient)
             }
             client_data->config.ice_servers = dst;
             client_data->config.ice_server_count = count;
+        } else {
+            client_data->config.ice_servers = NULL;
+            client_data->config.ice_server_count = 0;
         }
+    } else {
+        client_data->config.ice_servers = NULL;
+        client_data->config.ice_server_count = 0;
     }
     client_data->initialized = TRUE;
     client_data->enable_metrics = TRUE;
@@ -418,6 +423,14 @@ static WEBRTC_STATUS kvs_pc_init(void *pc_cfg, void **ppPeerConnectionClient)
         ESP_LOGI(TAG, "Started ICE statistics collection for comprehensive metrics tracking");
     }
 
+    // Store client-level data channel config if provided
+    if (generic_cfg != NULL && generic_cfg->data_channel_config != NULL) {
+        MEMCPY(&client_data->client_dc_config, generic_cfg->data_channel_config,
+               SIZEOF(webrtc_data_channel_config_t));
+        client_data->has_client_dc_config = TRUE;
+        ESP_LOGI(TAG, "Client-level data channel config registered");
+    }
+
     *ppPeerConnectionClient = client_data;
 
     ESP_LOGI(TAG, "KVS peer connection client initialized");
@@ -437,6 +450,7 @@ CleanUp:
 static WEBRTC_STATUS kvs_pc_create_session(void *pPeerConnectionClient,
                                            const char *peer_id,
                                            bool is_initiator,
+                                           webrtc_data_channel_config_t *session_dc_config,
                                            void **ppSession)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -478,11 +492,37 @@ static WEBRTC_STATUS kvs_pc_create_session(void *pPeerConnectionClient,
 
     // Log global callback state
     if (g_data_channel_callbacks.callbacks_registered) {
-        ESP_LOGI(TAG, "Global callbacks are registered and will be used for peer: %s", peer_id);
+        ESP_LOGD(TAG, "Global callbacks are registered and will be used for peer: %s", peer_id);
     } else {
-        ESP_LOGI(TAG, "No global callbacks registered yet");
+        ESP_LOGD(TAG, "No global callbacks registered yet");
     }
 #endif
+
+    // Store session-level data channel config if provided
+    if (session_dc_config != NULL) {
+        MEMCPY(&session->session_dc_config, session_dc_config,
+               SIZEOF(webrtc_data_channel_config_t));
+        session->has_session_dc_config = TRUE;
+        ESP_LOGD(TAG, "Session-level data channel config for peer %s", peer_id);
+    }
+
+    // Compute effective config: session overrides client
+    if (session->has_session_dc_config) {
+        MEMCPY(&session->effective_dc_config, &session->session_dc_config,
+               SIZEOF(webrtc_data_channel_config_t));
+    } else if (client_data->has_client_dc_config) {
+        MEMCPY(&session->effective_dc_config, &client_data->client_dc_config,
+               SIZEOF(webrtc_data_channel_config_t));
+    }
+
+    // Apply callbacks if we have effective config
+    if (session->has_session_dc_config || client_data->has_client_dc_config) {
+        g_data_channel_callbacks.callbacks_registered = TRUE;
+        g_data_channel_callbacks.onOpen = (RtcOnOpen)session->effective_dc_config.onOpen;
+        g_data_channel_callbacks.onMessage = (RtcOnMessage)session->effective_dc_config.onMessage;
+        g_data_channel_callbacks.customData = session->effective_dc_config.customData;
+        ESP_LOGD(TAG, "Applied data channel callbacks from config for peer: %s", peer_id);
+    }
 
     // Initialize TWCC metadata
     session->twcc_metadata.update_lock = MUTEX_CREATE(TRUE);
@@ -875,6 +915,11 @@ static WEBRTC_STATUS kvs_pc_free(void *pPeerConnectionClient)
             hashTableFree(client_data->activeSessions);
             client_data->activeSessions = NULL;
         }
+    }
+
+    // Free ICE servers (always heap-allocated or NULL)
+    if (client_data->config.ice_servers != NULL) {
+        SAFE_MEMFREE(client_data->config.ice_servers);
     }
 
     SAFE_MEMFREE(client_data);
@@ -1358,6 +1403,7 @@ static WEBRTC_STATUS kvs_pc_create_data_channel(void *pSession, const char *chan
     // Set up default callbacks
     CHK_STATUS(dataChannelOnOpen(pDataChannel, (UINT64)session, kvs_onDataChannelOpen));
     CHK_STATUS(dataChannelOnMessage(pDataChannel, (UINT64)session, kvs_onDataChannelMessage));
+    // NOTE: KVS SDK does not support dataChannelOnClose callback registration yet
 
     // Return the data channel
     *ppDataChannel = pDataChannel;
@@ -1372,11 +1418,15 @@ CleanUp:
 }
 
 /**
- * @brief Set callbacks for data channel events
+ * @brief Set callbacks for data channel events (override mechanism)
+ *
+ * This function provides backward compatibility by allowing callbacks to be set
+ * after session creation, overriding any config-based callbacks.
  *
  * @param pSession Session handle
  * @param onOpen Callback for data channel open event
  * @param onMessage Callback for data channel message event
+ * @param customData Custom data to pass to callbacks
  * @return WEBRTC_STATUS
  */
 static WEBRTC_STATUS kvs_pc_set_data_channel_callbacks(void *pSession,
@@ -1385,18 +1435,30 @@ static WEBRTC_STATUS kvs_pc_set_data_channel_callbacks(void *pSession,
                                                        uint64_t customData)
 {
     STATUS retStatus = STATUS_SUCCESS;
+    kvs_pc_session_t *session = NULL;
 
-    // Store the callbacks in the single global registry
+    CHK(pSession != NULL, STATUS_NULL_ARG);
+    session = (kvs_pc_session_t *)pSession;
+
+    // Override the effective config for this session
+    session->effective_dc_config.onOpen = onOpen;
+    session->effective_dc_config.onMessage = onMessage;
+    session->effective_dc_config.customData = customData;
+    // Note: onClose is not set by this override API for backward compatibility yet
+    session->has_session_dc_config = TRUE;  // Mark as having session-specific config
+
+    // Update global callbacks for immediate effect
     g_data_channel_callbacks.callbacks_registered = TRUE;
     g_data_channel_callbacks.onOpen = (RtcOnOpen)onOpen;
     g_data_channel_callbacks.onMessage = (RtcOnMessage)onMessage;
     g_data_channel_callbacks.customData = customData;
 
-    ESP_LOGI(TAG, "GLOBAL CALLBACK REGISTRATION: Set global data channel callbacks for all sessions");
-    ESP_LOGI(TAG, "  - onOpen callback: %p", (void *)onOpen);
-    ESP_LOGI(TAG, "  - onMessage callback: %p", (void *)onMessage);
-    ESP_LOGI(TAG, "  - customData: 0x%llx", (unsigned long long)customData);
+    ESP_LOGD(TAG, "Data channel callbacks overridden via set_data_channel_callbacks");
+    ESP_LOGD(TAG, "  - onOpen callback: %p", (void *)onOpen);
+    ESP_LOGD(TAG, "  - onMessage callback: %p", (void *)onMessage);
+    ESP_LOGD(TAG, "  - customData: 0x%llx", (unsigned long long)customData);
 
+CleanUp:
     if (STATUS_FAILED(retStatus)) {
         ESP_LOGE(TAG, "Failed to set data channel callbacks: 0x%08" PRIx32, (UINT32) retStatus);
     }

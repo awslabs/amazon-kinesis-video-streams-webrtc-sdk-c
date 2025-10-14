@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO LTD
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include <string.h>
 #include <inttypes.h>
 #include <stdint.h>
@@ -141,11 +147,6 @@ static void event_handler(void* arg, esp_event_base_t event_base,
     }
 }
 
-char* esp_get_ip(void)
-{
-    return wifi_ip;
-}
-
 #ifdef CONFIG_HOST_USES_STATIC_NETIF
 esp_netif_t *create_slave_sta_netif_with_static_ip(void)
 {
@@ -232,9 +233,6 @@ static void app_webrtc_event_handler(app_webrtc_event_data_t *event_data, void *
             strncpy(g_data_channel_ctx.peer_id, event_data->peer_id, sizeof(g_data_channel_ctx.peer_id) - 1);
             g_data_channel_ctx.peer_id[sizeof(g_data_channel_ctx.peer_id) - 1] = '\0';
             ESP_LOGI(TAG, "Updated data channel context with peer ID: %s", g_data_channel_ctx.peer_id);
-
-            // Note: Data channel callbacks are now registered early in app_main
-            // No need to register them here again
             break;
         case APP_WEBRTC_EVENT_PEER_DISCONNECTED:
             ESP_LOGI(TAG, "[KVS Event] Peer Disconnected: %s", event_data->peer_id);
@@ -313,6 +311,17 @@ void app_main(void)
         return;
     }
 
+    // Initialize data channel context
+    memset(&g_data_channel_ctx, 0, sizeof(g_data_channel_ctx));
+    strcpy(g_data_channel_ctx.peer_id, "default");  // Will be updated when peer connects
+
+    // Define data channel config
+    static webrtc_data_channel_config_t dc_config;
+    dc_config.onOpen = on_data_channel_open;
+    dc_config.onMessage = on_data_channel_message;
+    dc_config.onClose = NULL;  // Reserved for future use (not yet supported by KVS SDK)
+    dc_config.customData = (uint64_t)&g_data_channel_ctx;
+
     // Configure WebRTC with our new simplified API - streaming-only mode
     app_webrtc_config_t app_webrtc_config = APP_WEBRTC_CONFIG_DEFAULT();
 
@@ -335,6 +344,9 @@ void app_main(void)
     app_webrtc_config.video_player = video_player;
     app_webrtc_config.audio_player = audio_player;
 
+    // Data channel configuration
+    app_webrtc_config.data_channel_config = &dc_config;
+
     ESP_LOGI(TAG, "Initializing WebRTC streaming-only device with simplified API:");
     ESP_LOGI(TAG, "  - Mode: streaming-only (no signaling, receives via bridge)");
     ESP_LOGI(TAG, "  - Media type: auto-detected (audio+video from interfaces)");
@@ -352,25 +364,7 @@ void app_main(void)
     // Enable media reception for bi-directional streaming
     app_webrtc_enable_media_reception(true);
 
-    // Initialize data channel context
-    memset(&g_data_channel_ctx, 0, sizeof(g_data_channel_ctx));
-    strcpy(g_data_channel_ctx.peer_id, "default");  // Will be updated when peer connects
-
-    // Register data channel callbacks early - they will be used for any peer that connects
-    ESP_LOGI(TAG, "Registering data channel callbacks early");
-    status = app_webrtc_set_data_channel_callbacks(
-        "default",  // Will be updated when actual peer connects
-        on_data_channel_open,
-        on_data_channel_message,
-        (uint64_t)&g_data_channel_ctx
-    );
-
-    if (status != WEBRTC_STATUS_SUCCESS) {
-        ESP_LOGI(TAG, "Early callback registration pending - callbacks will be applied when peers connect (status: 0x%08" PRIx32 ")", (uint32_t) status);
-        // Non-fatal, continue initialization
-    } else {
-        ESP_LOGI(TAG, "Data channel callbacks registered early successfully");
-    }
+    ESP_LOGI(TAG, "Data channel callbacks configured via config structure");
 
     // Start webrtc bridge
     webrtc_bridge_start();

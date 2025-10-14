@@ -1128,6 +1128,7 @@ STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMess
                     g_kvs_webrtc_client,
                     pWebRtcMessage->peer_client_id,
                     FALSE,  // is_initiator = FALSE for master (responder)
+                    NULL,  // Use client-level data channel config
                     &session_handle);
 
                 if (create_status != WEBRTC_STATUS_SUCCESS) {
@@ -1688,6 +1689,9 @@ static void app_webrtc_runTask(void *pvParameters)
         generic_config.audio_codec = gSampleConfiguration->audioCodec;
         generic_config.video_codec = gSampleConfiguration->videoCodec;
 
+        // Pass data channel configuration from app_webrtc
+        generic_config.data_channel_config = gWebRtcAppConfig.data_channel_config;
+
         // Pass the implementation-specific config as opaque pointer
         generic_config.peer_connection_cfg = gWebRtcAppConfig.implementation_config;
 
@@ -2065,6 +2069,7 @@ int app_webrtc_trigger_offer(char *pPeerId)
             g_kvs_webrtc_client,
             pPeerId,
             TRUE,  // is_initiator = TRUE for viewer (initiator)
+            NULL,  // Use client-level data channel config
             &session_handle);
 
         if (create_status != WEBRTC_STATUS_SUCCESS) {
@@ -2146,7 +2151,7 @@ int app_webrtc_trigger_offer(char *pPeerId)
             // Create session as initiator - this will automatically generate and send offer
             void* session_handle = NULL;
             WEBRTC_STATUS create_status = pc_interface->create_session(
-                g_kvs_webrtc_client, pPeerId, TRUE, &session_handle);  // TRUE = is_initiator
+                g_kvs_webrtc_client, pPeerId, TRUE, NULL, &session_handle);  // TRUE = is_initiator, NULL = use client config
 
             if (create_status != WEBRTC_STATUS_SUCCESS) {
                 ESP_LOGE(TAG, "Failed to create initiator session via interface: 0x%08" PRIx32, (UINT32) create_status);
