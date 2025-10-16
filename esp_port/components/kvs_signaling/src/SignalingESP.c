@@ -1,5 +1,5 @@
 #define LOG_CLASS "SignalingESP"
-// #include "../Include_i.h"
+
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 #include "SignalingESP.h"
 #include "LwsApiCalls.h"
@@ -7,8 +7,6 @@
 #include "Signaling/FileCache.h"
 #include "StateMachine.h"
 #include "flash_wrapper.h"
-
-static const char *TAG = "ESP_SIGNALING";
 
 /* NVS-based caching configuration */
 #define SIGNALING_NVS_NAMESPACE      "kvs_signaling"
@@ -52,11 +50,11 @@ static STATUS generateSignalingCacheNvsKey(PCHAR channelName, PCHAR region, SIGN
 
     // Create efficient key: <version><role><hash> (e.g., "v1Md160527d" = 11 chars)
     // No leading zeros needed - CRC32 is naturally 8 hex chars
-    keyLen = SNPRINTF(key, keySize, "%s%c%08x", SIGNALING_CACHE_VERSION, roleChar, combinedHash);
+    keyLen = SNPRINTF(key, keySize, "%s%c%08" PRIx32, SIGNALING_CACHE_VERSION, roleChar, combinedHash);
     CHK(keyLen < keySize && keyLen <= 15, STATUS_INVALID_ARG);
 
-    ESP_LOGI(TAG, "Generated NVS key: '%s' (len=%d) for channel='%s', region='%s', role=%c, hash=0x%08x",
-             key, keyLen, channelName, region, roleChar, combinedHash);
+    DLOGI("Generated NVS key: '%s' (len=%d) for channel='%s', region='%s', role=%c, hash=0x%08" PRIx32,
+           key, keyLen, channelName, region, roleChar, combinedHash);
 
 CleanUp:
     return retStatus;
@@ -89,15 +87,15 @@ static STATUS signalingCacheLoadFromNvs(PCHAR channelName, PCHAR region, SIGNALI
     // Generate NVS key for this cache entry
     CHK_STATUS(generateSignalingCacheNvsKey(channelName, region, role, nvsKey, SIZEOF(nvsKey)));
 
-    ESP_LOGI(TAG, "Loading signaling cache from NVS: namespace=%s, key=%s (channel='%s', region='%s', role=%d)",
-             SIGNALING_NVS_NAMESPACE, nvsKey, channelName, region, role);
+    DLOGI("Loading signaling cache from NVS: namespace=%s, key=%s (channel='%s', region='%s', role=%d)",
+           SIGNALING_NVS_NAMESPACE, nvsKey, channelName, region, role);
 
     // Check if cache entry exists using direct NVS API
     espRet = flash_wrapper_nvs_exists(SIGNALING_NVS_NAMESPACE, nvsKey, &exists);
     CHK(espRet == ESP_OK, STATUS_INTERNAL_ERROR);
 
     if (!exists) {
-        ESP_LOGI(TAG, "Signaling cache not found in NVS");
+        DLOGI("Signaling cache not found in NVS");
         CHK(FALSE, STATUS_SUCCESS); // Not an error, just no cache
     }
 
@@ -107,12 +105,12 @@ static STATUS signalingCacheLoadFromNvs(PCHAR channelName, PCHAR region, SIGNALI
     CHK(espRet == ESP_OK, STATUS_INTERNAL_ERROR);
 
     *pCacheFound = TRUE;
-    ESP_LOGI(TAG, "Successfully loaded signaling cache from NVS: channel=%s, region=%s, role=%d",
-             channelName, region, role);
+    DLOGI("Successfully loaded signaling cache from NVS: channel=%s, region=%s, role=%d",
+           channelName, region, role);
 
 CleanUp:
     if (STATUS_FAILED(retStatus)) {
-        ESP_LOGE(TAG, "Failed to load signaling cache from NVS: 0x%08x", retStatus);
+        DLOGE("Failed to load signaling cache from NVS: 0x%08x", retStatus);
     }
 
     LEAVES();
@@ -139,7 +137,7 @@ static STATUS signalingCacheSaveToNvs(PSignalingFileCacheEntry pFileCacheEntry)
     CHK_STATUS(generateSignalingCacheNvsKey(pFileCacheEntry->channelName, pFileCacheEntry->region,
                                             pFileCacheEntry->role, nvsKey, SIZEOF(nvsKey)));
 
-    ESP_LOGI(TAG, "Saving signaling cache to NVS: namespace=%s, key=%s (channel='%s', region='%s', role=%d)",
+    DLOGI("Saving signaling cache to NVS: namespace=%s, key=%s (channel='%s', region='%s', role=%d)",
              SIGNALING_NVS_NAMESPACE, nvsKey, pFileCacheEntry->channelName, pFileCacheEntry->region, pFileCacheEntry->role);
 
         // Save cache entry to NVS using direct API
@@ -147,12 +145,12 @@ static STATUS signalingCacheSaveToNvs(PSignalingFileCacheEntry pFileCacheEntry)
                                      pFileCacheEntry, entrySize);
     CHK(espRet == ESP_OK, STATUS_INTERNAL_ERROR);
 
-    ESP_LOGI(TAG, "Successfully saved signaling cache to NVS: channel=%s, region=%s, role=%d",
+    DLOGI("Successfully saved signaling cache to NVS: channel=%s, region=%s, role=%d",
              pFileCacheEntry->channelName, pFileCacheEntry->region, pFileCacheEntry->role);
 
 CleanUp:
     if (STATUS_FAILED(retStatus)) {
-        ESP_LOGE(TAG, "Failed to save signaling cache to NVS: 0x%08x", retStatus);
+        DLOGE("Failed to save signaling cache to NVS: 0x%08x", retStatus);
     }
 
     LEAVES();
@@ -859,11 +857,11 @@ BOOL signaling_is_ice_config_refresh_needed(PSignalingClient pSignalingClient)
     // 2. Current ICE configuration has expired
     if (pSignalingClient->iceConfigCount == 0 || curTime > pSignalingClient->iceConfigExpiration) {
         refreshNeeded = TRUE;
-        ESP_LOGD(TAG, "ICE refresh needed: iceConfigCount=%" PRIu32 ", expired=%s",
+        DLOGD("ICE refresh needed: iceConfigCount=%" PRIu32 ", expired=%s",
                  pSignalingClient->iceConfigCount,
                  (curTime > pSignalingClient->iceConfigExpiration) ? "yes" : "no");
     } else {
-        ESP_LOGD(TAG, "ICE refresh not needed: valid config available");
+        DLOGD("ICE refresh not needed: valid config available");
     }
 
 CleanUp:

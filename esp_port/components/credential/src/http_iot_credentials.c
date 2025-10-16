@@ -16,7 +16,6 @@
 #include "auth.h"
 #include "esp_http_client.h"
 #include "esp_crt_bundle.h"
-#include "esp_log.h"
 #include "esp_err.h"
 #include <inttypes.h>
 #include "fileio.h"
@@ -38,8 +37,6 @@
 #define HTTP_API_ROLE_ALIASES                   "/role-aliases"
 #define HTTP_API_CREDENTIALS                    "/credentials"
 #define HTTP_API_IOT_THING_NAME_HEADER          "x-amzn-iot-thingname"
-
-#define TAG "HTTP_API"
 
 // Custom response context structure for collecting response data
 typedef struct {
@@ -67,17 +64,17 @@ static esp_err_t http_event_handler(esp_http_client_event_t *evt)
                     context->currentSize += copy_len;
                     context->responseData[context->currentSize] = '\0';
                 } else {
-                    ESP_LOGE(TAG, "HTTP response buffer overflow, data truncated");
+                    DLOGE("HTTP response buffer overflow, data truncated");
                 }
             }
             break;
 
         case HTTP_EVENT_ERROR:
-            ESP_LOGE(TAG, "HTTP Event Error");
+            DLOGE("HTTP Event Error");
             break;
 
         case HTTP_EVENT_ON_FINISH:
-            ESP_LOGD(TAG, "HTTP Event Finished");
+            DLOGD("HTTP Event Finished");
             break;
 
         default:
@@ -103,20 +100,20 @@ static char* readCertFile(const char* path, size_t* out_len)
     STATUS status = getFileLength((PCHAR)path, &fileSize);
 
     if (STATUS_FAILED(status) || fileSize == 0) {
-        ESP_LOGE(TAG, "Failed to get file length or file is empty: %s", path);
+        DLOGE("Failed to get file length or file is empty: %s", path);
         return NULL;
     }
 
     char* buffer = (char*) MEMCALLOC(fileSize + 1, 1);
     if (!buffer) {
-        ESP_LOGE(TAG, "Memory allocation failed for file: %s", path);
+        DLOGE("Memory allocation failed for file: %s", path);
         return NULL;
     }
 
     status = readFile((PCHAR)path, TRUE, (PBYTE)buffer, &fileSize);
 
     if (STATUS_FAILED(status)) {
-        ESP_LOGE(TAG, "Failed to read file: %s, error: 0x%08" PRIx32, path, status);
+        DLOGE("Failed to read file: %s, error: 0x%08" PRIx32, path, status);
         SAFE_MEMFREE(buffer);
         return NULL;
     }
@@ -127,7 +124,7 @@ static char* readCertFile(const char* path, size_t* out_len)
         *out_len = (size_t)fileSize + 1; // include terminator
     }
 
-    ESP_LOGI(TAG, "Successfully read file: %s (%" PRIu64 " bytes, %" PRIu64 " with null)",
+    DLOGI("Successfully read file: %s (%" PRIu64 " bytes, %" PRIu64 " with null)",
              path, fileSize, fileSize + 1);
     return buffer;
 }
@@ -209,43 +206,43 @@ STATUS http_api_getIotCredential(PIotCredentialProvider pIotCredentialProvider)
 
     // Client certificate and key (mutual TLS)
     if (pCertPath != NULL && STRLEN(pCertPath) > 0) {
-        ESP_LOGI(TAG, "Loading client certificate from: %s", pCertPath);
+        DLOGI("Loading client certificate from: %s", pCertPath);
         clientCertData = readCertFile(pCertPath, &clientCertLen);
         CHK(clientCertData != NULL, STATUS_INVALID_OPERATION);
         config.client_cert_pem = clientCertData;
         config.client_cert_len = clientCertLen;
     } else {
-        ESP_LOGE(TAG, "Client certificate path not provided");
+        DLOGE("Client certificate path not provided");
         CHK(FALSE, STATUS_INVALID_OPERATION);
     }
 
     if (pPrivateKeyPath != NULL && STRLEN(pPrivateKeyPath) > 0) {
-        ESP_LOGI(TAG, "Loading private key from: %s", pPrivateKeyPath);
+        DLOGI("Loading private key from: %s", pPrivateKeyPath);
         privateKeyData = readCertFile(pPrivateKeyPath, &privateKeyLen);
         CHK(privateKeyData != NULL, STATUS_INVALID_OPERATION);
         config.client_key_pem = privateKeyData;
         config.client_key_len = privateKeyLen;
     } else {
-        ESP_LOGE(TAG, "Private key path not provided");
+        DLOGE("Private key path not provided");
         CHK(FALSE, STATUS_INVALID_OPERATION);
     }
 
     // Optional custom CA; otherwise rely on IDF bundle
     if (pCaCertPath != NULL && STRLEN(pCaCertPath) > 0) {
-        ESP_LOGI(TAG, "Loading CA certificate from: %s", pCaCertPath);
+        DLOGI("Loading CA certificate from: %s", pCaCertPath);
         caCertData = readCertFile(pCaCertPath, &caCertLen);
         if (caCertData != NULL) {
             config.cert_pem = caCertData;
             config.cert_len = caCertLen;
         } else {
-            ESP_LOGW(TAG, "Failed to load CA certificate, falling back to ESP-IDF cert bundle");
+            DLOGW("Failed to load CA certificate, falling back to ESP-IDF cert bundle");
         }
     }
 
-    ESP_LOGI(TAG, "IoT Credential Provider Settings:");
-    ESP_LOGI(TAG, "  Endpoint: %s", pIotCredentialProvider->iotGetCredentialEndpoint);
-    ESP_LOGI(TAG, "  Role Alias: %s", pIotCredentialProvider->roleAlias);
-    ESP_LOGI(TAG, "  Thing Name: %s", pIotCredentialProvider->thingName);
+    DLOGI("IoT Credential Provider Settings:");
+    DLOGI("  Endpoint: %s", pIotCredentialProvider->iotGetCredentialEndpoint);
+    DLOGI("  Role Alias: %s", pIotCredentialProvider->roleAlias);
+    DLOGI("  Thing Name: %s", pIotCredentialProvider->thingName);
 
     // Initialize HTTP client
     client = esp_http_client_init(&config);
@@ -257,30 +254,30 @@ STATUS http_api_getIotCredential(PIotCredentialProvider pIotCredentialProvider)
     CHK(esp_http_client_set_header(client, "User-Agent", "ESP32-KVS-WebRTC/1.0") == ESP_OK, STATUS_INTERNAL_ERROR);
 
     // Perform the request
-    ESP_LOGI(TAG, "Sending HTTP request to: %s", pUrl);
+    DLOGI("Sending HTTP request to: %s", pUrl);
     esp_err_t err = esp_http_client_perform(client);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "HTTP request failed with error %d (%s)", err, esp_err_to_name(err));
+        DLOGE("HTTP request failed with error %d (%s)", err, esp_err_to_name(err));
         CHK(FALSE, STATUS_HTTP_IOT_FAILED);
     }
 
     // Get HTTP status code
     httpStatusCode = esp_http_client_get_status_code(client);
-    ESP_LOGI(TAG, "HTTP response status code: %d", (int)httpStatusCode);
+    DLOGI("HTTP response status code: %d", (int)httpStatusCode);
     if (httpStatusCode < 200 || httpStatusCode >= 300) {
-        ESP_LOGE(TAG, "HTTP request failed with status code %d", (int)httpStatusCode);
-        ESP_LOGE(TAG, "Response body: %s", pResponseData);
+        DLOGE("HTTP request failed with status code %d", (int)httpStatusCode);
+        DLOGE("Response body: %s", pResponseData);
         CHK(FALSE, STATUS_HTTP_IOT_FAILED);
     }
 
     // Parse the response
-    ESP_LOGI(TAG, "Received response of size %d bytes", (int)responseContext.currentSize);
+    DLOGI("Received response of size %d bytes", (int)responseContext.currentSize);
     CHK_STATUS(http_api_rsp_getIoTCredential(pIotCredentialProvider, pResponseData, responseContext.currentSize));
-    ESP_LOGI(TAG, "Successfully parsed IoT credential response");
+    DLOGI("Successfully parsed IoT credential response");
 
 CleanUp:
     if (STATUS_FAILED(retStatus)) {
-        ESP_LOGE(TAG, "IoT credential request failed with status 0x%08" PRIx32, retStatus);
+        DLOGE("IoT credential request failed with status 0x%08" PRIx32, retStatus);
     }
 
     if (client != NULL) {

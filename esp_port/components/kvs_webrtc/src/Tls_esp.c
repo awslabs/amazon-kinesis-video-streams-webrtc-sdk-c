@@ -205,7 +205,7 @@ STATUS tlsSessionProcessPacket(PTlsSession pTlsSession, PBYTE pData, UINT32 buff
     PIOBuffer pReadBuffer;
     INT32 readBytes = 0;
 
-    ESP_LOGD(TAG, "ESP-TLS: tlsSessionProcessPacket() - processing %u bytes through ESP-TLS", bufferLen);
+    ESP_LOGD(TAG, "ESP-TLS: tlsSessionProcessPacket() - processing %d bytes through ESP-TLS", (int) bufferLen);
     CHK(pTlsSession != NULL && pData != NULL && pDataLen != NULL, STATUS_NULL_ARG);
     CHK(pEspTlsSession->state != TLS_SESSION_STATE_NEW, STATUS_SOCKET_CONNECTION_NOT_READY_TO_SEND);
     CHK(pEspTlsSession->state != TLS_SESSION_STATE_CLOSED, STATUS_SOCKET_CONNECTION_CLOSED_ALREADY);
@@ -219,7 +219,7 @@ STATUS tlsSessionProcessPacket(PTlsSession pTlsSession, PBYTE pData, UINT32 buff
     if (pEspTlsSession->state == TLS_SESSION_STATE_CONNECTING) {
         // For ESP-TLS, we need to feed data through the connection process
         // This is a simplified approach - in practice, ESP-TLS expects socket operations
-        ESP_LOGD(TAG, "Processing handshake data, buffer contains %d bytes", pReadBuffer->len - pReadBuffer->off);
+        ESP_LOGD(TAG, "Processing handshake data, buffer contains %d bytes", (int) (pReadBuffer->len - pReadBuffer->off));
 
         // Simulate handshake completion for now
         // In a real implementation, this would involve more complex state handling
@@ -232,7 +232,7 @@ STATUS tlsSessionProcessPacket(PTlsSession pTlsSession, PBYTE pData, UINT32 buff
             UINT32 copyLen = MIN(availableData, bufferLen);
 
             CHK_STATUS(ioBufferRead(pReadBuffer, pData, copyLen, (PUINT32) &readBytes));
-            ESP_LOGD(TAG, "Processed %d bytes of application data", readBytes);
+            ESP_LOGD(TAG, "Processed %d bytes of application data", (int) readBytes);
         }
     }
 
@@ -242,7 +242,7 @@ CleanUp:
     }
 
     if (STATUS_FAILED(retStatus)) {
-        ESP_LOGD(TAG, "Warning: processing TLS packet failed with 0x%08x", retStatus);
+        ESP_LOGD(TAG, "Warning: processing TLS packet failed with 0x%08" PRIx32, retStatus);
     }
 
     LEAVES();
@@ -258,7 +258,7 @@ STATUS tlsSessionPutApplicationData(PTlsSession pTlsSession, PBYTE pData, UINT32
     STATUS retStatus = STATUS_SUCCESS;
     PEspTlsSession pEspTlsSession = (PEspTlsSession) pTlsSession;
 
-    ESP_LOGD(TAG, "ESP-TLS: tlsSessionPutApplicationData() - sending %u bytes through ESP-TLS", dataLen);
+    ESP_LOGD(TAG, "ESP-TLS: tlsSessionPutApplicationData() - sending %d bytes through ESP-TLS", (int) dataLen);
     CHK(pTlsSession != NULL, STATUS_NULL_ARG);
     CHK(pEspTlsSession->state == TLS_SESSION_STATE_CONNECTED, STATUS_SOCKET_CONNECTION_NOT_READY_TO_SEND);
 
@@ -294,7 +294,7 @@ STATUS tlsSessionPutApplicationData(PTlsSession pTlsSession, PBYTE pData, UINT32
 
         // Clear sent data
         pEspTlsSession->outboundBufferLen = 0;
-        ESP_LOGD(TAG, "Sent %d bytes via outbound callback", dataLen);
+        ESP_LOGD(TAG, "Sent %d bytes via outbound callback", (int) dataLen);
     }
 
 CleanUp:
