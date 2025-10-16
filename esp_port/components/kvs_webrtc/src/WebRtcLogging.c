@@ -9,22 +9,6 @@
 #define TAG "WebRtcLogging"
 
 /**
- * @brief Set the log level for the WebRTC client
- *
- * @return UINT32 The log level that was set
- */
-UINT32 setLogLevel(PCHAR pLogLevelStr)
-{
-    UINT32 logLevel = LOG_LEVEL_DEBUG;
-    if (NULL == pLogLevelStr || STATUS_SUCCESS != STRTOUI32(pLogLevelStr, NULL, 10, &logLevel) ||
-        logLevel < LOG_LEVEL_VERBOSE || logLevel > LOG_LEVEL_SILENT) {
-        logLevel = LOG_LEVEL_WARN;
-    }
-    SET_LOGGER_LOG_LEVEL(logLevel);
-    return logLevel;
-}
-
-/**
  * @brief Log signaling client statistics
  *
  * @param pSignalingClientMetrics The signaling client metrics to log

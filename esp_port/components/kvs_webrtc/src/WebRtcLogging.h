@@ -24,14 +24,6 @@ typedef struct {
 } RtcMetricsHistory, *PRtcMetricsHistory;
 
 /**
- * @brief Set the log level for the WebRTC client
- *
- * @param pLogLevelStr Log level as a string, or NULL to use default
- * @return UINT32 The log level that was set
- */
-UINT32 setLogLevel(PCHAR pLogLevelStr);
-
-/**
  * @brief Log signaling client statistics
  *
  * @param pSignalingClientMetrics The signaling client metrics to log
