@@ -85,7 +85,7 @@ STATUS doubleListClear(PDoubleList pList, BOOL freeData)
         pCurNode = pNextNode;
     }
 
-    ESP_LOGI("DoubleListClear", "count: %d", count);
+    DLOGI("count: %d", count);
 
     // Reset the list
     pList->count = 0;

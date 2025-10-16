@@ -130,17 +130,10 @@ git clone -b release/v5.4 --recursive https://github.com/espressif/esp-idf.git e
 Before building for ESP32/ESP-IDF, you must apply the required patches to your ESP-IDF source tree.
 The patches are located in [`esp_port/patches/`](./patches/):
 
-Patch on `ets_sys.h` files which suppress redefinition of `STATUS`:
+Patch on IDF, required for esp_hosted to work correctly in lwip split mode:
 ```bash
 cd $IDF_PATH
-git am -i <path-to-sdk>/esp_port/patches/0001-ets_sys-Fix-for-STATUS-define.patch
-cd -
-```
-
-Patch on IDF, required for esp_hosted to work correctly:
-```bash
-cd $IDF_PATH
-git am -i <path-to-sdk>/esp_port/patches/0002-feat-esp-hosted-Changes-for-IDF-deep-sleep-and-lwip_.patch
+git am -i <path-to-sdk>/esp_port/patches/0001-feat-esp-hosted-Changes-for-IDF-deep-sleep-and-lwip_.patch
 cd -
 ```
 

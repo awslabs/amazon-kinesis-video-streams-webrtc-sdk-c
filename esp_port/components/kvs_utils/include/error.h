@@ -23,7 +23,17 @@ extern "C" {
 /******************************************************************************
  * HEADERS
  ******************************************************************************/
-// #include "platform_esp32.h"
+/*
+ * CRITICAL: Handle STATUS conflict with ESP-IDF's ets_sys.h
+ * Include ets_sys.h FIRST to let it define its STATUS enum,
+ * then immediately undefine it before defining our STATUS macro.
+ */
+#include <rom/ets_sys.h>
+
+/* Undefine ESP-IDF's STATUS enum */
+#ifdef ETS_OK
+#undef STATUS
+#endif
 
 #ifndef UINT32
 typedef uint32_t UINT32;
@@ -32,10 +42,17 @@ typedef uint32_t UINT32;
 /******************************************************************************
  * DEFINITIONS
  ******************************************************************************/
-#define STATUS UINT32
+/*
+ * STATUS type definition
+ * NOTE: KVS_STATUS is the primary type. STATUS is an alias for backward compatibility.
+ * We handle the conflict with ESP-IDF's ets_sys.h STATUS enum by including it above
+ * and undefining it before our definition.
+ */
+#define KVS_STATUS UINT32
+#define STATUS KVS_STATUS
 
-#define STATUS_SUCCESS      ((STATUS) 0x00000000)
-#define STATUS_FAILED(x)    (((STATUS)(x)) != STATUS_SUCCESS)
+#define STATUS_SUCCESS      ((KVS_STATUS) 0x00000000)
+#define STATUS_FAILED(x)    (((KVS_STATUS)(x)) != STATUS_SUCCESS)
 #define STATUS_SUCCEEDED(x) (!STATUS_FAILED(x))
 /******************************************************************************
  * Error codes base

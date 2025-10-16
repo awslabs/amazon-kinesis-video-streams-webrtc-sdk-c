@@ -278,7 +278,7 @@ STATUS defaultCreateThreadPriWithCaps(PTID pThreadId, PCHAR threadName, UINT32 t
             // Successful case
             break;
         case ENOMEM:
-            ESP_LOGE("Thread", "pthread_create failed with ENOMEM");
+            DLOGE("pthread_create failed with ENOMEM");
             CHK(FALSE, STATUS_NOT_ENOUGH_MEMORY);
         case EAGAIN:
             CHK(FALSE, STATUS_THREAD_NOT_ENOUGH_RESOURCES);

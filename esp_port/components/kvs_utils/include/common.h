@@ -18,11 +18,16 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 /******************************************************************************
  * HEADERS
  ******************************************************************************/
-#include "platform_esp32.h"
+/*
+ * NOTE: error.h handles the STATUS conflict with ESP-IDF's ets_sys.h internally.
+ * It includes ets_sys.h, undefines STATUS, then defines it as UINT32.
+ */
 #include "error.h"
+#include "platform_esp32.h"
 
 #ifndef JSMN_HEADER
 #define JSMN_HEADER

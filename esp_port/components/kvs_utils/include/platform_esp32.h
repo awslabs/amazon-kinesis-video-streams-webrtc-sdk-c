@@ -21,7 +21,8 @@
 
 // ESP-IDF includes
 #include "esp_system.h"
-#include "esp_log.h"
+// NOTE: Do NOT include esp_log.h here as it brings in ets_sys.h which conflicts with STATUS
+// Use DLOG* macros from platform_utils.h instead for logging in headers
 #include "esp_heap_caps.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
