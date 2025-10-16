@@ -1132,7 +1132,7 @@ STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMess
                     &session_handle);
 
                 if (create_status != WEBRTC_STATUS_SUCCESS) {
-                    ESP_LOGE("app_webrtc", "Failed to create peer connection session via interface: 0x%08x", create_status);
+                    ESP_LOGE(TAG, "Failed to create peer connection session via interface: 0x%08x", create_status);
                     CHK(FALSE, STATUS_INTERNAL_ERROR);
                 }
 
@@ -1163,7 +1163,7 @@ STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMess
                     peerOutboundMessageWrapper,
                     peerConnectionStateChangedWrapper);
                 if (cb_status != WEBRTC_STATUS_SUCCESS) {
-                    ESP_LOGW("app_webrtc", "Failed to set peer connection callbacks: 0x%08x", cb_status);
+                    ESP_LOGW(TAG, "Failed to set peer connection callbacks: 0x%08x", cb_status);
                 }
             }
 
@@ -1175,12 +1175,12 @@ STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMess
                 // Use pluggable interface - we can pass the message directly since it's already in the right format
                 message_status = pc_interface->send_message(pAppWebRTCSession->interface_session_handle, pWebRtcMessage);
                 if (message_status != WEBRTC_STATUS_SUCCESS) {
-                    ESP_LOGE("app_webrtc", "Failed to process offer via interface: 0x%08x", message_status);
+                    ESP_LOGE(TAG, "Failed to process offer via interface: 0x%08x", message_status);
                     CHK(FALSE, STATUS_INTERNAL_ERROR);
                 }
             }
 
-            ESP_LOGI("app_webrtc", "Successfully processed offer via unified interface for peer: %s",
+            ESP_LOGI(TAG, "Successfully processed offer via unified interface for peer: %s",
                      pWebRtcMessage->peer_client_id);
 
             CHK_STATUS(hashTablePut(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, (UINT64) pAppWebRTCSession));
@@ -1219,7 +1219,7 @@ STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMess
 
             if (pc_interface != NULL) {
                 // Use pluggable interface
-                ESP_LOGD("app_webrtc", "Using pluggable peer connection interface for answer from peer: %s",
+                ESP_LOGD(TAG, "Using pluggable peer connection interface for answer from peer: %s",
                          pWebRtcMessage->peer_client_id);
 
                 /* Progressive ICE Optimization:
@@ -1230,7 +1230,7 @@ STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMess
                 // Use the message directly since it's already in the right format
                 message_status = pc_interface->send_message(pAppWebRTCSession->interface_session_handle, pWebRtcMessage);
                 if (message_status != WEBRTC_STATUS_SUCCESS) {
-                    ESP_LOGE("app_webrtc", "Failed to process answer via interface: 0x%08x", message_status);
+                    ESP_LOGE(TAG, "Failed to process answer via interface: 0x%08x", message_status);
                     CHK(FALSE, STATUS_INTERNAL_ERROR);
                 }
             }
@@ -1525,14 +1525,14 @@ WEBRTC_STATUS app_webrtc_init(app_webrtc_config_t *config)
     // Apply reasonable defaults for configuration not provided by user
     BOOL trickle_ice = TRUE;  // Always enabled for faster connection setup
     BOOL use_turn = TRUE;     // Always enabled for better NAT traversal
-    UINT32 log_level = 3;     // INFO level (good balance of information)
+    UINT32 log_level = LOG_LEVEL_INFO;  // INFO level - good balance of information (can be changed via app_webrtc_set_log_level)
     webrtc_channel_role_type_t role_type = WEBRTC_CHANNEL_ROLE_TYPE_MASTER;  // Most common case for IoT devices
 
     DLOGI("WebRTC app initializing with reasonable defaults:");
     DLOGI("  - Role: %s", role_type == WEBRTC_CHANNEL_ROLE_TYPE_MASTER ? "MASTER" : "VIEWER");
     DLOGI("  - Trickle ICE: %s", trickle_ice ? "enabled" : "disabled");
     DLOGI("  - TURN servers: %s", use_turn ? "enabled" : "disabled");
-    DLOGI("  - Log level: %d (INFO)", log_level);
+    DLOGI("  - Log level: %d (INFO, can be changed via app_webrtc_set_log_level)", log_level);
 
     // Validate peer connection interface
     if (config->peer_connection_if == NULL) {
@@ -2301,28 +2301,18 @@ CleanUp:
 WEBRTC_STATUS app_webrtc_set_log_level(uint32_t level)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    static CHAR logLevelStr[16];
 
-    CHK(level <= 6, STATUS_INVALID_ARG);  // Valid levels: 0-6
+    CHK(level <= 8, STATUS_INVALID_ARG);  // Valid levels: 0-8
 
     DLOGI("Setting log level to: %d", level);
 
+    // Directly set the log level using kvs_utils logger
+    SET_LOGGER_LOG_LEVEL(level);
+
+    // Update in sample configuration if it exists
     if (gSampleConfiguration != NULL) {
         gSampleConfiguration->logLevel = level;
     }
-
-    // Convert level to string and update the global log level
-    SPRINTF(logLevelStr, "%" PRIu32, level);
-
-    // Set the log level using the KVS logging system if available
-    // Note: This function is from the KVS SDK logging system
-    // For a completely independent implementation, this could be replaced
-    // with ESP-IDF log level setting: esp_log_level_set("*", level);
-#ifdef WEBRTC_LOGGING_H
-    setLogLevel(logLevelStr);
-#else
-    ESP_LOGW(TAG, "KVS logging not available, log level change ignored");
-#endif
 
 CleanUp:
     return retStatus;
