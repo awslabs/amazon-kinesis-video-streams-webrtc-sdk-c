@@ -6,45 +6,52 @@
 
 - Linux環境（V4L2サポート）
 - UVC H.264対応のUSBカメラ
+- Python 3.6以上
 - Amazon Kinesis Video Streamsのセットアップ済み
 
-## ビルド方法
+## 完全セットアップガイド
+
+### 1. 開発環境のセットアップ
+
+```bash
+# システムの更新
+sudo apt update && sudo apt upgrade -y
+
+# 基本的な開発ツール
+sudo apt install -y cmake build-essential git pkg-config python3
+
+# SSL/TLS通信用
+sudo apt install -y libssl-dev libcurl4-openssl-dev
+
+# V4L2カメラアクセス用
+sudo apt install -y libv4l-dev v4l-utils
+
+# ログ出力用（オプション）
+sudo apt install -y liblog4cplus-dev
+
+# カメラアクセス権限の確認（必要に応じて）
+# 現在のユーザーがvideoグループに属しているか確認
+groups $USER | grep video
+# もしvideoが含まれていない場合のみ以下を実行
+# sudo usermod -a -G video $USER
+# ログアウト・ログインが必要
+```
+
+### 2. プロジェクトのビルド
 
 ```bash
 # プロジェクトルートディレクトリで
 mkdir build && cd build
 cmake .. -DBUILD_SAMPLE=ON
-make
+make -j$(nproc)
 
 # または特定のターゲットのみビルド
 make kvsWebrtcClientMasterCamera
 ```
 
-## 使用方法
+### 3. カメラの確認と設定
 
-### 基本的な使用方法
-
-```bash
-# デフォルト設定で実行（/dev/video0、640x480）
-./kvsWebrtcClientMasterCamera [channel_name]
-
-# カメラデバイスを指定
-./kvsWebrtcClientMasterCamera [channel_name] /dev/video1
-
-# 解像度も指定
-./kvsWebrtcClientMasterCamera [channel_name] /dev/video0 1280 720
-```
-
-### パラメータ
-
-1. `channel_name`: Kinesis Video Streamsのチャネル名（省略時は環境変数またはデフォルト値を使用）
-2. `camera_device`: カメラデバイスパス（デフォルト: `/dev/video0`）
-3. `width`: 映像の幅（デフォルト: 640）
-4. `height`: 映像の高さ（デフォルト: 480）
-
-## カメラの確認方法
-
-### 利用可能なカメラデバイスの確認
+#### 3.1 利用可能なカメラデバイスの確認
 
 ```bash
 # V4L2デバイスの一覧
@@ -55,68 +62,101 @@ v4l2-ctl --list-devices
 
 # サポートされているフォーマットの確認
 v4l2-ctl --device=/dev/video0 --list-formats-ext
-```
 
-### H.264対応の確認
-
-```bash
 # H.264フォーマットがサポートされているかチェック
 v4l2-ctl --device=/dev/video0 --list-formats | grep H264
 ```
 
-## トラブルシューティング
+#### 3.2 H.264カメラの設定（重要）
 
-### よくある問題
-
-1. **カメラデバイスが見つからない**
-   ```
-   Error: Failed to open camera device: /dev/video0
-   ```
-   - カメラが接続されているか確認
-   - デバイスパスが正しいか確認（`ls /dev/video*`）
-   - ユーザーがvideoグループに属しているか確認
-
-2. **H.264フォーマットがサポートされていない**
-   ```
-   Error: Camera does not support H.264 format
-   ```
-   - UVC H.264対応カメラを使用してください
-   - `v4l2-ctl --list-formats`でサポートフォーマットを確認
-
-3. **権限エラー**
-   ```bash
-   # ユーザーをvideoグループに追加
-   sudo usermod -a -G video $USER
-   # ログアウト・ログインが必要
-   ```
-
-### デバッグ情報の有効化
+UVC H.264カメラを使用する前に、必ず設定スクリプトを実行してください：
 
 ```bash
-# より詳細なログを出力
-export KVS_LOG_LEVEL=2
-./kvsWebrtcClientMasterCamera
+# デフォルト設定（640x480、30fps、300kbps）
+python3 scripts/configure_h264_camera.py
+
+# カスタム設定の例
+python3 scripts/configure_h264_camera.py -d /dev/video0 -w 1280 --ht 720 -f 25 -b 1000000
+
+# 設定オプション
+python3 scripts/configure_h264_camera.py --help
 ```
 
-## 対応カメラの例
+**設定パラメータ：**
+- `-d, --device`: カメラデバイスパス（デフォルト: `/dev/video0`）
+- `-w, --width`: 映像の幅（デフォルト: 640）
+- `--ht, --height`: 映像の高さ（デフォルト: 480）
+- `-f, --fps`: フレームレート（デフォルト: 30）
+- `-b, --bitrate`: ビットレート（デフォルト: 300000）
+- `-v, --verbose`: 詳細ログ出力
 
-- Logitech C920/C922/C930e（UVC H.264対応モデル）
-- その他のUVC H.264対応Webカメラ
+### 4. KVS WebRTC配信の実行
 
-## 制限事項
+#### 4.1 AWS認証情報の設定
 
-- Linux環境でのみ動作（V4L2依存）
-- H.264ハードウェアエンコード対応カメラが必要
-- 音声は既存のサンプルファイルを使用（カメラからの音声入力は未対応）
+```bash
+# 環境変数で設定
+export AWS_ACCESS_KEY_ID="your-access-key"
+export AWS_SECRET_ACCESS_KEY="your-secret-key"
+export AWS_DEFAULT_REGION="ap-northeast-1"
 
-## ファイル構成
+# またはAWS CLIで設定
+aws configure
+```
 
-- `CameraInput.h/c`: V4L2カメラ入力の実装
-- `kvsWebRTCClientMasterCamera.c`: カメラ対応マスタークライアント
-- `Samples.h`: 関数宣言の追加
+#### 4.2 基本的な使用方法
 
-## 参考情報
+```bash
+# デフォルト設定で実行（/dev/video0、640x480）
+./samples/kvsWebrtcClientMasterCamera [channel_name]
 
-- [Amazon Kinesis Video Streams WebRTC SDK](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c)
-- [V4L2 API Documentation](https://www.kernel.org/doc/html/latest/userspace-api/media/v4l/v4l2.html)
-- [UVC Driver Documentation](https://www.kernel.org/doc/html/latest/media/v4l-drivers/uvcvideo.html)
+# カメラデバイスを指定
+./samples/kvsWebrtcClientMasterCamera [channel_name] /dev/video1
+
+# 解像度も指定
+./samples/kvsWebrtcClientMasterCamera [channel_name] /dev/video0 1280 720
+```
+
+#### 4.3 動的FPS・ビットレート設定（新機能）
+
+```bash
+# カスタムFPSとビットレートで実行
+./samples/kvsWebrtcClientMasterCamera --fps 25 --bitrate 1000000 [channel_name]
+
+# 低ビットレート設定
+./samples/kvsWebrtcClientMasterCamera --fps 15 --bitrate 500000 [channel_name]
+
+# ヘルプ表示
+./samples/kvsWebrtcClientMasterCamera --help
+```
+
+**新しいコマンドライン引数：**
+- `--fps`: フレームレート（5-60fps、デフォルト: 25）
+- `--bitrate`: ビットレート（100000-10000000bps、デフォルト: 512000）
+- `--help`: 使用方法の表示
+
+### 5. 完全なワークフロー例
+
+```bash
+# 1. カメラを1280x720、25fps、1Mbpsで設定
+python3 scripts/configure_h264_camera.py -d /dev/video0 -w 1280 --ht 720 -f 25 -b 1000000
+
+# 2. 設定が完了したら、同じ設定でKVS配信を開始
+./samples/kvsWebrtcClientMasterCamera --fps 25 --bitrate 1000000 my-camera-channel /dev/video0 1280 720
+
+# 3. 別のターミナルでビューアーを起動してテスト
+./samples/kvsWebrtcClientViewer my-camera-channel
+```
+
+## パラメータ
+
+### kvsWebrtcClientMasterCamera の引数
+
+1. `--fps`: フレームレート（オプション、デフォルト: 25）
+2. `--bitrate`: ビットレート（オプション、デフォルト: 512000）
+3. `--help`: ヘルプ表示（オプション）
+4. `channel_name`: Kinesis Video Streamsのチャネル名（省略時は環境変数またはデフォルト値を使用）
+5. `camera_device`: カメラデバイスパス（デフォルト: `/dev/video0`）
+6. `width`: 映像の幅（デフォルト: 640）
+7. `height`: 映像の高さ（デフォルト: 480）
+
