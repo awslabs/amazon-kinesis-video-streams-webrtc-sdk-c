@@ -6,6 +6,11 @@ extern PSampleConfiguration gSampleConfiguration;
 // カメラコンテキストのグローバル変数
 static CameraContext gCameraContext = {0};
 
+// 動的設定用のグローバル変数
+static UINT32 gTargetFps = DEFAULT_FPS_VALUE;
+static UINT32 gTargetBitrate = 1000000; // デフォルト1Mbps
+static UINT64 gDynamicFrameDuration = SAMPLE_VIDEO_FRAME_DURATION;
+
 INT32 main(INT32 argc, CHAR* argv[])
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -15,7 +20,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     SignalingClientMetrics signalingClientMetrics;
     signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
     RTC_CODEC audioCodec = RTC_CODEC_OPUS;
-    RTC_CODEC videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    RTC_CODEC videoCodec = 1; // RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE
     UINT32 videoWidth = 640;
     UINT32 videoHeight = 480;
 
@@ -26,6 +31,26 @@ INT32 main(INT32 argc, CHAR* argv[])
     signal(SIGINT, sigintHandler);
 #endif
 
+    // ヘルプ表示
+    if (argc > 1 && (STRCMP(argv[1], "-h") == 0 || STRCMP(argv[1], "--help") == 0)) {
+        printf("Usage: %s [channel_name] [camera_device] [width] [height] [fps] [bitrate]\n", argv[0]);
+        printf("\n");
+        printf("Arguments:\n");
+        printf("  channel_name   : WebRTC signaling channel name (default: %s)\n", SAMPLE_CHANNEL_NAME);
+        printf("  camera_device  : Camera device path (default: %s)\n", DEFAULT_CAMERA_DEVICE);
+        printf("  width          : Video width in pixels (default: 640)\n");
+        printf("  height         : Video height in pixels (default: 480)\n");
+        printf("  fps            : Target frames per second (default: %u, range: 1-120)\n", DEFAULT_FPS_VALUE);
+        printf("  bitrate        : Target bitrate in bps (default: 1000000, range: 100000-50000000)\n");
+        printf("\n");
+        printf("Examples:\n");
+        printf("  %s MyChannel                           # Use defaults\n", argv[0]);
+        printf("  %s MyChannel /dev/video0 1280 720      # HD resolution\n", argv[0]);
+        printf("  %s MyChannel /dev/video0 1920 1080 30 5000000  # Full HD, 30fps, 5Mbps\n", argv[0]);
+        printf("\n");
+        return EXIT_SUCCESS;
+    }
+
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
     CHK_ERR((pChannelName = argc > 1 ? argv[1] : GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION,
             "AWS_IOT_CORE_THING_NAME must be set");
@@ -34,6 +59,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 #endif
 
     // コマンドライン引数の解析
+    // 使用方法: ./program [channel] [device] [width] [height] [fps] [bitrate]
     if (argc > 2) {
         pCameraDevice = argv[2];
     }
@@ -45,8 +71,29 @@ INT32 main(INT32 argc, CHAR* argv[])
         videoHeight = (UINT32) STRTOUL(argv[4], NULL, 10);
         if (videoHeight == 0) videoHeight = 480;
     }
+    if (argc > 5) {
+        gTargetFps = (UINT32) STRTOUL(argv[5], NULL, 10);
+        if (gTargetFps == 0 || gTargetFps > 120) {
+            DLOGW("[KVS Master Camera] Invalid FPS value %u, using default %u", gTargetFps, DEFAULT_FPS_VALUE);
+            gTargetFps = DEFAULT_FPS_VALUE;
+        }
+        // 動的フレーム間隔を計算
+        gDynamicFrameDuration = HUNDREDS_OF_NANOS_IN_A_SECOND / gTargetFps;
+    }
+    if (argc > 6) {
+        gTargetBitrate = (UINT32) STRTOUL(argv[6], NULL, 10);
+        if (gTargetBitrate < 100000) {
+            DLOGW("[KVS Master Camera] Bitrate too low %u, using minimum 100kbps", gTargetBitrate);
+            gTargetBitrate = 100000;
+        } else if (gTargetBitrate > 50000000) {
+            DLOGW("[KVS Master Camera] Bitrate too high %u, using maximum 50Mbps", gTargetBitrate);
+            gTargetBitrate = 50000000;
+        }
+    }
 
-    DLOGI("[KVS Master Camera] Using camera device: %s, resolution: %dx%d", pCameraDevice, videoWidth, videoHeight);
+    DLOGI("[KVS Master Camera] Using camera device: %s, resolution: %dx%d, FPS: %u, bitrate: %u bps",
+          pCameraDevice, videoWidth, videoHeight, gTargetFps, gTargetBitrate);
+    DLOGI("[KVS Master Camera] Dynamic frame duration: %llu (100ns units)", gDynamicFrameDuration);
 
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
 
@@ -73,10 +120,11 @@ INT32 main(INT32 argc, CHAR* argv[])
     pSampleConfiguration->videoSource = sendCameraVideoPackets;  // カメラ用の関数を使用
     pSampleConfiguration->receiveAudioVideoSource = sampleReceiveVideoOnlyFrame;
     pSampleConfiguration->videoCodec = videoCodec;
+    pSampleConfiguration->audioCodec = audioCodec;  // 音声コーデックも設定
 
     // RTPローリングバッファサイズを設定（映像のみ）
     pSampleConfiguration->videoRollingBufferDurationSec = 3;
-    pSampleConfiguration->videoRollingBufferBitratebps = 1.4 * 1024 * 1024;
+    pSampleConfiguration->videoRollingBufferBitratebps = gTargetBitrate * 1.4; // ターゲットビットレートの1.4倍
 
 #ifdef ENABLE_DATA_CHANNEL
     pSampleConfiguration->onDataChannel = onDataChannel;
@@ -169,15 +217,23 @@ PVOID sendCameraVideoPackets(PVOID args)
     // エンコーダー統計情報を設定
     encoderStats.width = gCameraContext.width;
     encoderStats.height = gCameraContext.height;
-    encoderStats.targetBitrate = 1000000; // 1Mbps
+    encoderStats.targetBitrate = gTargetBitrate; // 動的ビットレート
 
     DLOGI("[KVS Master Camera] Starting camera video streaming thread");
+    DLOGI("[KVS Master Camera] Camera resolution: %dx%d", gCameraContext.width, gCameraContext.height);
+    DLOGI("[KVS Master Camera] Target bitrate: %u bps", gTargetBitrate);
+    DLOGI("[KVS Master Camera] Target FPS: %u (frame duration: %llu)", gTargetFps, gDynamicFrameDuration);
 
-    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag) && 
+    UINT32 frameCount = 0;
+    UINT64 lastLogTime = GETTIME();
+
+    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag) &&
            !ATOMIC_LOAD_BOOL(&gCameraContext.terminateFlag)) {
         
         // カメラからH.264フレームを取得（MJPEG抽出も含む）
+        DLOGV("[KVS Master Camera] Attempting to capture H.264 frame #%u", frameCount);
         retStatus = captureH264Frame(&gCameraContext, &pFrameData, &frameSize);
+        
         if (STATUS_FAILED(retStatus)) {
             if (retStatus == STATUS_OPERATION_TIMED_OUT) {
                 DLOGV("[KVS Master Camera] Frame capture timeout, continuing...");
@@ -193,7 +249,19 @@ PVOID sendCameraVideoPackets(PVOID args)
 
         // フレームサイズが0の場合はスキップ
         if (frameSize == 0 || pFrameData == NULL) {
+            DLOGV("[KVS Master Camera] Empty frame received (size: %u, data: %p)", frameSize, pFrameData);
             continue;
+        }
+
+        frameCount++;
+        DLOGV("[KVS Master Camera] Successfully captured H.264 frame #%u: %u bytes", frameCount, frameSize);
+        
+        // 定期的にフレーム統計をログ出力
+        UINT64 currentTime = GETTIME();
+        if (currentTime - lastLogTime >= 5 * HUNDREDS_OF_NANOS_IN_A_SECOND) { // 5秒ごと
+            DLOGI("[KVS Master Camera] Frame statistics: %u frames captured in last 5 seconds", frameCount);
+            frameCount = 0;
+            lastLogTime = currentTime;
         }
 
         // フレームバッファを再割り当て（必要に応じて）
@@ -212,7 +280,7 @@ PVOID sendCameraVideoPackets(PVOID args)
         // フレーム構造体を設定
         frame.frameData = pSampleConfiguration->pVideoFrameBuffer;
         frame.size = frameSize;
-        frame.presentationTs += SAMPLE_VIDEO_FRAME_DURATION;
+        frame.presentationTs += gDynamicFrameDuration;
 
         // 全てのストリーミングセッションにフレームを送信
         MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
@@ -232,7 +300,7 @@ PVOID sendCameraVideoPackets(PVOID args)
 
         // フレームレート調整のためのスリープ
         elapsed = lastFrameTime - startTime;
-        THREAD_SLEEP(SAMPLE_VIDEO_FRAME_DURATION - elapsed % SAMPLE_VIDEO_FRAME_DURATION);
+        THREAD_SLEEP(gDynamicFrameDuration - elapsed % gDynamicFrameDuration);
         lastFrameTime = GETTIME();
     }
 

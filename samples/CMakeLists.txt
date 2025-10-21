@@ -59,13 +59,33 @@ include_directories(${OPEN_SRC_INCLUDE_DIRS})
 link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
 
 # copy sample frames to this subproject build folder, in case developer runs sample program with command `kvsWebrtcClientMaster` from `build/samples` dir.
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/opusSampleFrames" DESTINATION .)
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/h264SampleFrames" DESTINATION .)
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/h265SampleFrames" DESTINATION .)
+# Only copy if the directories exist
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/opusSampleFrames")
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/opusSampleFrames" DESTINATION .)
+  message(STATUS "Copied opusSampleFrames")
+else()
+  message(STATUS "opusSampleFrames directory not found, skipping")
+endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/h264SampleFrames")
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/h264SampleFrames" DESTINATION .)
+  message(STATUS "Copied h264SampleFrames")
+else()
+  message(STATUS "h264SampleFrames directory not found, skipping")
+endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/h265SampleFrames")
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/h265SampleFrames" DESTINATION .)
+  message(STATUS "Copied h265SampleFrames")
+else()
+  message(STATUS "h265SampleFrames directory not found, skipping")
+endif()
 
 add_executable(
   kvsWebrtcClientMaster
   Common.c
+  CameraInput.c
+  MjpegH264Extractor.c
   kvsWebRTCClientMaster.c)
 target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets)
 
