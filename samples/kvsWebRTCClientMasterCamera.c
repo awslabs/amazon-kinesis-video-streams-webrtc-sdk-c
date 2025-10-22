@@ -8,7 +8,7 @@ static CameraContext gCameraContext = {0};
 
 // 動的設定用のグローバル変数
 static UINT32 gTargetFps = DEFAULT_FPS_VALUE;
-static UINT32 gTargetBitrate = 1000000; // デフォルト1Mbps
+static UINT32 gTargetBitrate = 300000; // デフォルト300kbps
 static UINT64 gDynamicFrameDuration = SAMPLE_VIDEO_FRAME_DURATION;
 
 INT32 main(INT32 argc, CHAR* argv[])
@@ -41,12 +41,12 @@ INT32 main(INT32 argc, CHAR* argv[])
         printf("  width          : Video width in pixels (default: 640)\n");
         printf("  height         : Video height in pixels (default: 480)\n");
         printf("  fps            : Target frames per second (default: %u, range: 1-120)\n", DEFAULT_FPS_VALUE);
-        printf("  bitrate        : Target bitrate in bps (default: 1000000, range: 100000-50000000)\n");
+        printf("  bitrate        : Target bitrate in bps (default: 300000, range: 100000-50000000)\n");
         printf("\n");
         printf("Examples:\n");
         printf("  %s MyChannel                           # Use defaults\n", argv[0]);
         printf("  %s MyChannel /dev/video0 1280 720      # HD resolution\n", argv[0]);
-        printf("  %s MyChannel /dev/video0 1920 1080 30 5000000  # Full HD, 30fps, 5Mbps\n", argv[0]);
+        printf("  %s MyChannel /dev/video0 1920 1080 30 300000   # Full HD, 30fps, 300kbps\n", argv[0]);
         printf("\n");
         return EXIT_SUCCESS;
     }

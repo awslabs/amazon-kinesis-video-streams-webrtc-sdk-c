@@ -15,7 +15,7 @@ extern "C" {
 #define NUMBER_OF_H264_FRAME_FILES               1500
 #define NUMBER_OF_H265_FRAME_FILES               1500
 #define NUMBER_OF_OPUS_FRAME_FILES               618
-#define DEFAULT_FPS_VALUE                        25
+#define DEFAULT_FPS_VALUE                        30
 #define DEFAULT_VIDEO_HEIGHT_PIXELS              720
 #define DEFAULT_VIDEO_WIDTH_PIXELS               1280
 #define DEFAULT_AUDIO_OPUS_CHANNELS              2
