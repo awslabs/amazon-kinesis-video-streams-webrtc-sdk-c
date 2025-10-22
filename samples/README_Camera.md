@@ -62,9 +62,6 @@ v4l2-ctl --list-devices
 
 # サポートされているフォーマットの確認
 v4l2-ctl --device=/dev/video0 --list-formats-ext
-
-# H.264フォーマットがサポートされているかチェック
-v4l2-ctl --device=/dev/video0 --list-formats | grep H264
 ```
 
 #### 3.2 H.264カメラの設定（重要）
