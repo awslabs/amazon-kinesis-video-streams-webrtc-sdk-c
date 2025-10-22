@@ -310,12 +310,6 @@ def configure_h264_camera(device, width, height, fps, bitrate, verbose=False):
         
         if success:
             print("✅ Configuration completed successfully")
-            print()
-            print("You can now use the camera with:")
-            print("gst-launch-1.0 \\")
-            print(f"  v4l2src device={device} ! image/jpeg,width={width},height={height},framerate={fps}/1 ! \\")
-            print("  mjpgxh264demux ! h264parse ! rtph264pay config-interval=1 pt=96 ! \\")
-            print("  udpsink host=192.168.0.21 port=5000")
         else:
             print("⚠️ Configuration completed with warnings")
         
