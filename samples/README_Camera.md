@@ -9,7 +9,7 @@
 - Python 3.6以上
 - Amazon Kinesis Video Streamsのセットアップ済み
 
-## 完全セットアップガイド
+## セットアップガイド
 
 ### 1. 開発環境のセットアップ
 
@@ -156,4 +156,17 @@ python3 scripts/configure_h264_camera.py -d /dev/video0 -w 1280 --ht 720 -f 25 -
 5. `camera_device`: カメラデバイスパス（デフォルト: `/dev/video0`）
 6. `width`: 映像の幅（デフォルト: 640）
 7. `height`: 映像の高さ（デフォルト: 480）
+
+##　備考
+
+### ファイル説明
+
+MjpegH264Extractor.c: mjpegに多層化されたh264を抽出する処理
+MjpegH264Extractor.h: MjpegH264Extractor.cのヘッダーファイル
+CameraInput.c: V4L2を使用してカメラデバイスからストリーム取得、カメラ情報取得等
+CameraInput.h: CameraInput.cのヘッダーファイル
+kvsWebRTCClientMasterCamera.c: カメラデバイスから取得したストリームを配信するメインアプリ
+kvsWebRTCClientMasterCameraDebug.c: カメラデバイス診断アプリ,現在のフォーマット等診断
+Samples.h: サンプルアプリで共通で使用するヘッダーファイル、MjpegH264Extractor.cでも使用
+
 
