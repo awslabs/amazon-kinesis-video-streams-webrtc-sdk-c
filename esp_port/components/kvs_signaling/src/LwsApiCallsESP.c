@@ -180,6 +180,52 @@ typedef struct {
     PSignalingClient pSignalingClient;
 } HttpResponseContext;
 
+/* UTC tm-to-epoch converter (adapted from ESP-RainMaker rmaker_timegm) */
+static inline int is_leap_year(int y) {
+    return ((y % 4 == 0) && (y % 100 != 0)) || (y % 400 == 0);
+}
+
+static time_t utc_tm_to_epoch(struct tm *tm)
+{
+    int year  = tm->tm_year + 1900;
+    int month = tm->tm_mon;
+
+    /* Normalize month */
+    if (month < 0) {
+        year += (month - 11) / 12;
+        month = 12 + (month % 12);
+    } else if (month > 11) {
+        year += month / 12;
+        month %= 12;
+    }
+
+    static const int mdays_cum[12] = {0,31,59,90,120,151,181,212,243,273,304,334};
+
+    int64_t days = 0;
+    if (year >= 1970) {
+        for (int y = 1970; y < year; ++y) {
+            days += 365 + is_leap_year(y);
+        }
+    } else {
+        for (int y = year; y < 1970; ++y) {
+            days -= 365 + is_leap_year(y);
+        }
+    }
+
+    days += mdays_cum[month];
+    if (month > 1 && is_leap_year(year)) {
+        days += 1;
+    }
+    days += (tm->tm_mday - 1);
+
+    int64_t seconds = days * 86400LL
+                    + (int64_t)tm->tm_hour * 3600
+                    + (int64_t)tm->tm_min  * 60
+                    + (int64_t)tm->tm_sec;
+
+    return (time_t)seconds;
+}
+
 // Function to check for clock skew from the given time, updates the clock skew in the hash table if detected
 STATUS checkAndStoreClockSkew(PSignalingClient pSignalingClient, PCHAR dateHeaderValue)
 {
@@ -198,7 +244,11 @@ STATUS checkAndStoreClockSkew(PSignalingClient pSignalingClient, PCHAR dateHeade
     // Format: "Fri, 27 Jun 2025 12:27:54 GMT"
     struct tm tm = {0};
     if (strptime(dateHeaderValue, "%a, %d %b %Y %H:%M:%S GMT", &tm) != NULL) {
-        time_t serverEpochTime = mktime(&tm);
+        /* CRITICAL: Use utc_tm_to_epoch() NOT mktime()!
+         * mktime() interprets tm as LOCAL time and applies timezone offset.
+         * Since server sends GMT/UTC time, we must interpret it as UTC.
+         */
+        time_t serverEpochTime = utc_tm_to_epoch(&tm);
         if (serverEpochTime != -1) {
             // Convert to 100ns units (UINT64)
             serverTime = ((UINT64)serverEpochTime) * HUNDREDS_OF_NANOS_IN_A_SECOND;
