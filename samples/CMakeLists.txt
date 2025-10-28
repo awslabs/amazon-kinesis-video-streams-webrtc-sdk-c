@@ -86,6 +86,15 @@ add_executable(
 target_link_libraries(kvsWebrtcClientMasterCamera kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets)
 
 add_executable(
+  kvsWebrtcClientMasterDualCamera
+  Common.c
+  CameraInput.c
+  MjpegH264Extractor.c
+  V4L2LoopbackOutput.c
+  kvsWebRTCClientMasterDualCamera.c)
+target_link_libraries(kvsWebrtcClientMasterDualCamera kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets)
+
+add_executable(
   kvsWebrtcClientMasterCameraDebug
   kvsWebRTCClientMasterCameraDebug.c)
 # デバッグツールは軽量にするため、最小限のライブラリのみリンク
@@ -121,6 +130,6 @@ if(GST_FOUND)
   )
 endif()
 
-install(TARGETS kvsWebrtcClientMaster kvsWebrtcClientViewer kvsWebrtcClientMasterCamera discoverNatBehavior
+install(TARGETS kvsWebrtcClientMaster kvsWebrtcClientViewer kvsWebrtcClientMasterCamera kvsWebrtcClientMasterDualCamera discoverNatBehavior
   RUNTIME DESTINATION bin
 )
