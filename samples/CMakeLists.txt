@@ -86,13 +86,12 @@ add_executable(
 target_link_libraries(kvsWebrtcClientMasterCamera kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets)
 
 add_executable(
-  kvsWebrtcClientMasterDualCamera
+  kvsWebrtcClientMasterCamera2
   Common.c
   CameraInput.c
   MjpegH264Extractor.c
-  V4L2LoopbackOutput.c
-  kvsWebRTCClientMasterDualCamera.c)
-target_link_libraries(kvsWebrtcClientMasterDualCamera kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets)
+  kvsWebRTCClientMasterCamera2.c)
+target_link_libraries(kvsWebrtcClientMasterCamera2 kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets)
 
 add_executable(
   kvsWebrtcClientMasterCameraDebug
@@ -130,6 +129,6 @@ if(GST_FOUND)
   )
 endif()
 
-install(TARGETS kvsWebrtcClientMaster kvsWebrtcClientViewer kvsWebrtcClientMasterCamera kvsWebrtcClientMasterDualCamera discoverNatBehavior
+install(TARGETS kvsWebrtcClientMaster kvsWebrtcClientViewer kvsWebrtcClientMasterCamera kvsWebrtcClientMasterCamera2 discoverNatBehavior
   RUNTIME DESTINATION bin
 )
