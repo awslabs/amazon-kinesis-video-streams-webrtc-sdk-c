@@ -208,6 +208,8 @@ else()
 	list(APPEND COMPONENT_SRCS "${common_dir}/protobuf-c/protobuf-c/protobuf-c.c" "${common_dir}/proto/esp_hosted_rpc.pb-c.c" )
 	list(APPEND COMPONENT_ADD_INCLUDEDIRS "${common_dir}/include" "${common_dir}/protobuf-c" "${common_dir}/proto" )
 
+	set(common_include "${common_dir}/include")
+
 	# bt (NimBLE)
 	### TODO config for HCI over UART
 	list(APPEND COMPONENT_ADD_INCLUDEDIRS "${host_dir}/drivers/bt")
@@ -235,3 +237,14 @@ idf_component_register(SRCS ${COMPONENT_SRCS}
 	INCLUDE_DIRS ${COMPONENT_ADD_INCLUDEDIRS})
 
 idf_component_set_property(${COMPONENT_NAME} WHOLE_ARCHIVE TRUE)
+
+idf_component_get_property(lwip lwip COMPONENT_LIB)
+if(TARGET ${lwip})
+    # Use generator expressions to only apply to non-INTERFACE targets
+    get_target_property(lwip_type ${lwip} TYPE)
+    if(NOT lwip_type STREQUAL "INTERFACE_LIBRARY")
+        message(STATUS "********** Configuring LWIP for network split mode with custom hook ${CMAKE_CURRENT_SOURCE_DIR}/common/include **********")
+        target_include_directories(${lwip} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/common/include")
+        target_compile_definitions(${lwip} PRIVATE "-DESP_IDF_LWIP_HOOK_FILENAME=\"${CMAKE_CURRENT_SOURCE_DIR}/common/include/esp_hosted_lwip_src_port_hook.h\"")
+    endif()
+endif()
