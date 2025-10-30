@@ -125,18 +125,6 @@ Clone the IDF branch with `release/v5.4`:
 git clone -b release/v5.4 --recursive https://github.com/espressif/esp-idf.git esp-idf
 ```
 
-### Apply ESP-IDF Patches (Required Step)
-
-Before building for ESP32/ESP-IDF, you must apply the required patches to your ESP-IDF source tree.
-The patches are located in [`esp_port/patches/`](./patches/):
-
-Patch on IDF, required for esp_hosted to work correctly in lwip split mode:
-```bash
-cd $IDF_PATH
-git am -i <path-to-sdk>/esp_port/patches/0001-feat-esp-hosted-Changes-for-IDF-deep-sleep-and-lwip_.patch
-cd -
-```
-
 ### Install the tools and set the environment. For Linux/unix this looks like
 
 ```bash
