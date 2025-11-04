@@ -733,7 +733,6 @@ static void do_reset_from_task(void *arg);
 static void do_reset_from_task(void *arg)
 {
     esp_err_t ret = ESP_OK;
-    interface_handle_t *handle = (interface_handle_t *)arg;
 
     ESP_EARLY_LOGI(TAG, "sdio level reset triggered");
 

@@ -35,9 +35,9 @@ before_script:
   - echo "Installing pkg-config"
   - apt-get update
   - apt-get install -y pkg-config
-  - echo "Applying IDF patches..."
+  - echo "Applying IDF patches (if available)..."
   - cd $IDF_PATH
-  - for i in $CI_PROJECT_DIR/esp_port/patches/*.patch; do patch -p1 < $i; done
+  - if [ -d "$CI_PROJECT_DIR/esp_port/patches" ]; then for i in "$CI_PROJECT_DIR/esp_port/patches"/*.patch; do [ -f "$i" ] && patch -p1 < "$i"; done; fi 2>/dev/null || true
   - cd -
   - echo Building kvs_sdk_for_esp app - Started
   - ls

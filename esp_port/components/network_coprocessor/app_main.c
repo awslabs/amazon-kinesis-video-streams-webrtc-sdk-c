@@ -61,6 +61,9 @@
 
 #include "network_coprocessor.h"
 #include <stdbool.h>
+#ifdef CONFIG_SLAVE_LWIP_ENABLED
+#include "esp_hosted_lwip_src_port_hook.h"
+#endif
 
 static const char *TAG = "fg_mcu_slave";
 

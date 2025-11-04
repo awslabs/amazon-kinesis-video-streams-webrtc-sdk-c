@@ -1,6 +1,6 @@
 choice ESP_WIFI_REMOTE_LIBRARY
     prompt "Choose WiFi-remote implementation"
-    default ESP_WIFI_REMOTE_LIBRARY_EPPP
+	default ESP_WIFI_REMOTE_LIBRARY_HOSTED
     help
         Select type of WiFi Remote implementation
 
