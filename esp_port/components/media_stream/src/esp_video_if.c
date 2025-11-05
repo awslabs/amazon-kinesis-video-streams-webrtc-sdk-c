@@ -114,6 +114,7 @@ static esp_err_t init_camera(v4l2_src_t *v4l2)
 
     if (ioctl(fd, VIDIOC_QUERYCAP, &capability) < 0) {
         ESP_LOGE(TAG, "Failed to query capabilities, errno: %d", errno);
+        close(fd);  /* Close file descriptor on error */
         return ESP_FAIL;
     }
     print_video_device_info(&capability);
@@ -124,10 +125,11 @@ static esp_err_t init_camera(v4l2_src_t *v4l2)
     format.type = type;
     if (ioctl(fd, VIDIOC_G_FMT, &format) != 0) {
         ESP_LOGE(TAG, "failed to get format");
+        close(fd);  /* Close file descriptor on error */
         return ESP_FAIL;
     }
 
-    ESP_LOGI(TAG, "Deafult: width=%" PRIu32 " height=%" PRIu32, format.fmt.pix.width, format.fmt.pix.height);
+    ESP_LOGI(TAG, "Default: width=%" PRIu32 " height=%" PRIu32, format.fmt.pix.width, format.fmt.pix.height);
 
     v4l2->cap_fd = fd;
 
@@ -223,7 +225,10 @@ esp_err_t esp_video_if_stop(void)
         video_stop_cb(g_v4l2);
         /* Free the mapped buffers */
         for (int i = 0; i < BUFFER_COUNT; i++) {
-            munmap(g_v4l2->cap_buffer[i], g_v4l2->v4l2_buf[i].length);
+            if (g_v4l2->cap_buffer[i]) {
+                munmap(g_v4l2->cap_buffer[i], g_v4l2->v4l2_buf[i].length);
+                g_v4l2->cap_buffer[i] = NULL;
+            }
         }
         return ESP_OK;
     }
@@ -276,18 +281,42 @@ esp_err_t esp_video_if_start(void)
         buf.index       = i;
         if (ioctl(v4l2->cap_fd, VIDIOC_QUERYBUF, &buf) < 0) {
             ESP_LOGE(TAG, "Failed to query buffer, errno: %d", errno);
+            /* Cleanup any buffers we've already mapped */
+            for (int j = 0; j < i; j++) {
+                if (v4l2->cap_buffer[j]) {
+                    munmap(v4l2->cap_buffer[j], v4l2->v4l2_buf[j].length);
+                    v4l2->cap_buffer[j] = NULL;
+                }
+            }
             return ESP_FAIL;
         }
+
+        /* Store buffer info immediately after QUERYBUF so cleanup can use it */
+        v4l2->v4l2_buf[i] = buf;
 
         v4l2->cap_buffer[i] = (uint8_t *)mmap(NULL, buf.length, PROT_READ | PROT_WRITE,
                                                 MAP_SHARED, v4l2->cap_fd, buf.m.offset);
         if (!v4l2->cap_buffer[i]) {
             ESP_LOGE(TAG, "Failed to map buffer, errno: %d", errno);
+            /* Cleanup any buffers we've already mapped */
+            for (int j = 0; j < i; j++) {
+                if (v4l2->cap_buffer[j]) {
+                    munmap(v4l2->cap_buffer[j], v4l2->v4l2_buf[j].length);
+                    v4l2->cap_buffer[j] = NULL;
+                }
+            }
             return ESP_FAIL;
         }
 
         if (ioctl(v4l2->cap_fd, VIDIOC_QBUF, &buf) < 0) {
             ESP_LOGE(TAG, "Failed to queue buffer, errno: %d", errno);
+            /* Cleanup all buffers including the one we just mapped */
+            for (int j = 0; j <= i; j++) {
+                if (v4l2->cap_buffer[j]) {
+                    munmap(v4l2->cap_buffer[j], v4l2->v4l2_buf[j].length);
+                    v4l2->cap_buffer[j] = NULL;
+                }
+            }
             return ESP_FAIL;
         }
     }
@@ -312,6 +341,13 @@ esp_err_t esp_video_if_start(void)
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     if (ioctl(v4l2->cap_fd, VIDIOC_STREAMON, &type) < 0) {
         ESP_LOGE(TAG, "Failed to stream on, errno: %d", errno);
+        /* Cleanup all mapped buffers on stream start failure */
+        for (int i = 0; i < BUFFER_COUNT; i++) {
+            if (v4l2->cap_buffer[i]) {
+                munmap(v4l2->cap_buffer[i], v4l2->v4l2_buf[i].length);
+                v4l2->cap_buffer[i] = NULL;
+            }
+        }
         return ESP_FAIL;
     }
 
@@ -371,6 +407,9 @@ esp_err_t esp_video_if_init(void)
     if (esp_video_if_start() != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start video");
         g_v4l2 = NULL;
+        if (v4l2->cap_fd >= 0) {
+            close(v4l2->cap_fd);  /* Close file descriptor before freeing */
+        }
         free(v4l2);
         return ESP_FAIL;
     }
