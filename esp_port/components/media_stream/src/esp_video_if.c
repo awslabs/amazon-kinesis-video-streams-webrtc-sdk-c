@@ -24,6 +24,8 @@
 
 #include "esp_video_init.h"
 #include "esp_video_device.h"
+#include "esp_video_ioctl.h"
+#include "esp_cam_sensor.h"
 #include "esp_video_if.h"
 #include "esp_h264_hw_enc.h"
 #include "bsp/esp32_p4_function_ev_board.h"
@@ -49,6 +51,10 @@ typedef struct v4l2 {
 } v4l2_src_t;
 
 static v4l2_src_t *g_v4l2 = NULL;
+static video_resolution_t g_current_resolution = {.width = 0, .height = 0, .fps = 0};
+
+/* Global variable to pre-configure resolution before init (set by video_capture_adapter) */
+video_resolution_t g_desired_resolution = {.width = 0, .height = 0, .fps = 0};
 
 static const char *TAG = "esp_video_if";
 
@@ -241,13 +247,18 @@ esp_err_t esp_video_if_start(void)
     /* Configure camera interface capture stream */
     memset(&format, 0, sizeof(format));
     format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    format.fmt.pix.width = WIDTH;
-    format.fmt.pix.height = HEIGHT;
+    format.fmt.pix.width = g_desired_resolution.width ? g_desired_resolution.width : WIDTH;
+    format.fmt.pix.height = g_desired_resolution.height ? g_desired_resolution.height : HEIGHT;
     format.fmt.pix.pixelformat = capture_fmt;
     if (ioctl(v4l2->cap_fd, VIDIOC_S_FMT, &format) < 0) {
         ESP_LOGE(TAG, "Failed to set format, errno: %d. Check the camera resolution in menuconfig", errno);
         return ESP_FAIL;
     }
+
+    /* Track actual resolution that was set (V4L2 may adjust it) */
+    g_current_resolution.width = format.fmt.pix.width;
+    g_current_resolution.height = format.fmt.pix.height;
+    g_current_resolution.fps = g_desired_resolution.fps ? g_desired_resolution.fps : 30;
 
     memset(&req, 0, sizeof(req));
     req.count  = BUFFER_COUNT;
@@ -364,6 +375,20 @@ esp_err_t esp_video_if_init(void)
         return ESP_FAIL;
     }
 
+    return ESP_OK;
+}
+
+esp_err_t esp_video_if_get_resolution(video_resolution_t *resolution)
+{
+    if (!resolution) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if (!g_v4l2 || g_current_resolution.width == 0) {
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    *resolution = g_current_resolution;
     return ESP_OK;
 }
 #endif
