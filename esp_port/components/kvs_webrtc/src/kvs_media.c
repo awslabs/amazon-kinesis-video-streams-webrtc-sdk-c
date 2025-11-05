@@ -162,9 +162,9 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
         video_capture_config_t video_config = {
             .codec = VIDEO_CODEC_H264,
             .resolution = {
-                .width = 640,
-                .height = 480,
-                .fps = 30
+                .width = g_global_media.config.video_width ? g_global_media.config.video_width : 1280,
+                .height = g_global_media.config.video_height ? g_global_media.config.video_height : 720,
+                .fps = g_global_media.config.video_fps ? g_global_media.config.video_fps : 30
             },
             .quality = 80,
             .bitrate = 500,

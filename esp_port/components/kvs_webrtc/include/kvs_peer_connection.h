@@ -32,6 +32,11 @@ typedef struct {
     void* audio_player;                    // Audio player interface
     bool receive_media;                    // Whether to receive media
 
+    // Video resolution settings (0 = use default)
+    uint16_t video_width;                  // Desired video width
+    uint16_t video_height;                 // Desired video height
+    uint8_t video_fps;                     // Desired FPS
+
     // Codec configuration
     app_webrtc_rtc_codec_t audio_codec;    // Audio codec (KVS codec type)
     app_webrtc_rtc_codec_t video_codec;    // Video codec (KVS codec type)

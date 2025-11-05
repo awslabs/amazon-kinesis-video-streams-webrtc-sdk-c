@@ -57,6 +57,14 @@ typedef struct {
     // Media settings
     bool receive_media;                   // Whether to receive media
     bool enable_sample_fallback;          // Use sample files when no capture available
+
+    // Video resolution settings (0 = use default: 1280x720@30fps)
+    // These are applied at initialization time. Runtime changes are possible
+    // but have limitations - see video_capture_set_resolution() documentation.
+    // If requested resolution is not supported, camera will use closest available.
+    uint16_t video_width;                 // Desired video width
+    uint16_t video_height;                // Desired video height
+    uint8_t video_fps;                    // Desired FPS
 } kvs_media_config_t;
 
 /**
