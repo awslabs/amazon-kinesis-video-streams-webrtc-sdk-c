@@ -234,8 +234,13 @@ STATUS defaultCreateThreadPriWithCaps(PTID pThreadId, PCHAR threadName, UINT32 t
         pthread_cfg.stack_alloc_caps = caps;
     }
 
+    if (prio != 0) {
+        pthread_cfg.prio = prio;
+    }
+
     DLOGD("pthread_cfg.thread_name: %s", pthread_cfg.thread_name);
     DLOGD("pthread_cfg.stack_size: %d", (int) pthread_cfg.stack_size);
+    DLOGD("pthread_cfg.prio: %d", (int) pthread_cfg.prio);
     DLOGD("pthread_cfg.stack_alloc_caps: %d", (int) pthread_cfg.stack_alloc_caps);
 
     // pthread_cfg.stack_alloc_caps = MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT;
