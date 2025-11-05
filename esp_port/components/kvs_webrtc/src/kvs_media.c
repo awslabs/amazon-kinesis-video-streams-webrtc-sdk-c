@@ -19,9 +19,10 @@
  * - Frame processing and handling
  */
 
+#include "esp_timer.h"
+#include "esp_log.h"
 #include "kvs_media.h"
 #include "kvs_webrtc_internal.h"  // For session structure access
-#include "esp_log.h"
 #include "media_stream.h"
 #include "fileio.h"
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
@@ -47,7 +48,6 @@ static struct {
     PBYTE audio_frame_buffer;
     UINT32 video_buffer_size;
     UINT32 audio_buffer_size;
-    UINT64 frame_index;
 } g_global_media = {0};
 
 // Sample file fallback settings
@@ -151,7 +151,6 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
     UINT64 startTime, lastFrameTime, elapsed;
     media_stream_video_capture_t *video_capture = NULL;
     video_frame_t *video_frame = NULL;
-    UINT64 refTime = GETTIME();
     const UINT64 frame_duration_100ns = KVS_SAMPLE_VIDEO_FRAME_DURATION;
 
     ESP_LOGD(TAG, "Global video sender thread started");
@@ -186,8 +185,10 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
     frame.index = 0;
     frame.presentationTs = 0;
 
-    startTime = GETTIME();
-    lastFrameTime = startTime;
+    /* esp_timer_get_time() returns microseconds since boot. Not affected by time sync */
+    startTime = esp_timer_get_time() * HUNDREDS_OF_NANOS_IN_A_MICROSECOND;
+    lastFrameTime = GETTIME();
+    UINT64 video_frame_index = 0;  /* Local frame counter for video */
 
     while (!ATOMIC_LOAD_BOOL(&g_global_media.terminated)) {
         BOOL frame_available = FALSE;
@@ -203,7 +204,7 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
         } else {
             // Fall back to sample files
             SNPRINTF(filePath, KVS_MAX_PATH_LEN, "./h264SampleFrames/frame-%04" PRIu64 ".h264",
-                     (UINT64)(g_global_media.frame_index % 300 + 1));
+                     (UINT64)(video_frame_index % 300 + 1));
 
             if (kvs_media_read_frame_from_disk(NULL, &frameSize, filePath) == STATUS_SUCCESS) {
                 // Re-alloc if needed
@@ -218,15 +219,27 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
                     kvs_media_read_frame_from_disk(g_global_media.video_frame_buffer, &frameSize, filePath) == STATUS_SUCCESS) {
                     frame.frameData = g_global_media.video_frame_buffer;
                     frame.size = frameSize;
-                    frame.flags = (g_global_media.frame_index % 45 == 0) ? FRAME_FLAG_KEY_FRAME : FRAME_FLAG_NONE;
+                    frame.flags = (video_frame_index % 45 == 0) ? FRAME_FLAG_KEY_FRAME : FRAME_FLAG_NONE;
                     frame_available = TRUE;
                 }
             }
         }
 
         if (frame_available) {
-            frame.index = (UINT32) ATOMIC_INCREMENT(&g_global_media.frame_index);
-            frame.presentationTs += frame_duration_100ns;
+            video_frame_index++;
+            frame.index = (UINT32)video_frame_index;
+
+            /* Use real-time timestamp - matches actual production rate. Not affected by time sync */
+            frame.presentationTs = (esp_timer_get_time() * HUNDREDS_OF_NANOS_IN_A_MICROSECOND) - startTime;
+            frame.decodingTs = frame.presentationTs;
+
+            /* Log every 100 frames to monitor FPS and frame drops */
+            if (video_frame_index % 100 == 0) {
+                UINT64 pts_ms = frame.presentationTs / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+                DOUBLE actual_fps = video_frame_index * 1000.0 / (DOUBLE)pts_ms;
+                ESP_LOGI(TAG, "Video: frame %llu, pts=%llums, fps=%.2f",
+                         video_frame_index, pts_ms, actual_fps);
+            }
 
             // Check termination before send to avoid blocking on shutdown
             if (ATOMIC_LOAD_BOOL(&g_global_media.terminated)) {
@@ -234,10 +247,24 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
                 break;
             }
 
-            // Send frame to ALL sessions (KVS official pattern)
+            // Send frame to ALL sessions - measure time to detect bottleneck
+            UINT64 sendStart = GETTIME();
             STATUS send_status = kvs_iterate_sessions_send_frame(&frame, TRUE);
+            UINT64 sendDuration = GETTIME() - sendStart;
+
             if (STATUS_FAILED(send_status)) {
                 ESP_LOGW(TAG, "Failed to send frame to sessions: 0x%08" PRIx32, (UINT32)send_status);
+            }
+
+            /* Log if frame send is slow (bottleneck detection) */
+            if (sendDuration > 50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) {  // >50ms is concerning
+                ESP_LOGW(TAG, "Slow video frame send: %llums (frame %" PRIu64 "), size: %" PRIu32,
+                         sendDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, video_frame_index, frame.size);
+                // Sleep half of the frame duration to avoid overwhelming the system
+                THREAD_SLEEP(frame_duration_100ns / 2);
+            } else {
+                // Just a small delay for pacing the frame rate
+                THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
             }
 
             // Release camera frame if used
@@ -247,16 +274,23 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
             }
         }
 
-        // Frame rate control
-        elapsed = GETTIME() - lastFrameTime;
-        if (elapsed < frame_duration_100ns) {
-            THREAD_SLEEP(frame_duration_100ns - elapsed);
+        /* Frame rate control - only for sample file fallback */
+        /* Camera path: get_frame() already blocks, no additional sleep needed */
+        if (video_capture == NULL) {
+            elapsed = GETTIME() - lastFrameTime;
+            if (elapsed < frame_duration_100ns) {
+                THREAD_SLEEP(frame_duration_100ns - elapsed);
+            }
+            lastFrameTime = GETTIME();
         }
-        lastFrameTime = GETTIME();
     }
 
     // Cleanup
     if (video_capture != NULL && g_global_media.video_handle != NULL) {
+        if (video_frame != NULL) {
+            // If the frame was not used/released, release it now to avoid memory leak
+            video_capture->release_frame(g_global_media.video_handle, video_frame);
+        }
         video_capture->stop(g_global_media.video_handle);
         video_capture->deinit(g_global_media.video_handle);
         g_global_media.video_handle = NULL;
@@ -276,7 +310,7 @@ static PVOID kvs_global_audio_sender_thread(PVOID args)
     Frame frame;
     UINT32 frameSize;
     CHAR filePath[KVS_MAX_PATH_LEN + 1];
-    UINT64 lastFrameTime;
+    UINT64 startTime, lastFrameTime, elapsed;
     media_stream_audio_capture_t *audio_capture = NULL;
     audio_frame_t *audio_frame = NULL;
     UINT32 audioIndex = 0;
@@ -315,7 +349,10 @@ static PVOID kvs_global_audio_sender_thread(PVOID args)
     frame.flags = FRAME_FLAG_NONE;
     frame.presentationTs = 0;
 
+    /* esp_timer_get_time() returns microseconds since boot. Not affected by time sync */
+    startTime = esp_timer_get_time() * HUNDREDS_OF_NANOS_IN_A_MICROSECOND;
     lastFrameTime = GETTIME();
+    UINT64 audio_frame_index = 0;  /* Local frame counter for audio */
 
     while (!ATOMIC_LOAD_BOOL(&g_global_media.terminated)) {
         BOOL frame_available = FALSE;
@@ -329,7 +366,7 @@ static PVOID kvs_global_audio_sender_thread(PVOID args)
             }
     } else {
             // Fall back to sample files
-            SNPRINTF(filePath, KVS_MAX_PATH_LEN, "./opusSampleFrames/sample-%03u.opus", audioIndex + 1);
+            SNPRINTF(filePath, KVS_MAX_PATH_LEN, "./opusSampleFrames/sample-%03" PRIu32 ".opus", audioIndex + 1);
 
             if (kvs_media_read_frame_from_disk(NULL, &frameSize, filePath) == STATUS_SUCCESS) {
                 // Re-alloc if needed
@@ -351,7 +388,12 @@ static PVOID kvs_global_audio_sender_thread(PVOID args)
         }
 
         if (frame_available) {
-            frame.presentationTs += frame_duration_100ns;
+            audio_frame_index++;
+            frame.index = (UINT32)audio_frame_index;
+
+            /* Use real timestamp based on elapsed time since start. Not affected by time sync */
+            frame.presentationTs = (esp_timer_get_time() * HUNDREDS_OF_NANOS_IN_A_MICROSECOND) - startTime;
+            frame.decodingTs = frame.presentationTs;
 
             // Check termination before send to avoid blocking on shutdown
             if (ATOMIC_LOAD_BOOL(&g_global_media.terminated)) {
@@ -359,8 +401,22 @@ static PVOID kvs_global_audio_sender_thread(PVOID args)
                 break;
             }
 
-            // Send frame to ALL sessions (KVS official pattern)
-            kvs_iterate_sessions_send_frame(&frame, FALSE);
+            // Send frame to ALL sessions - measure time to detect bottleneck
+            UINT64 sendStart = GETTIME();
+            STATUS send_status = kvs_iterate_sessions_send_frame(&frame, FALSE);
+            UINT64 sendDuration = GETTIME() - sendStart;
+
+            if (STATUS_FAILED(send_status)) {
+                ESP_LOGW(TAG, "Failed to send frame to sessions: 0x%08" PRIx32, (UINT32)send_status);
+            }
+
+            /* Log if frame send is slow (bottleneck detection) */
+            if (sendDuration > 20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) {  // >20ms is concerning for audio
+                ESP_LOGW(TAG, "Slow audio frame send: %llums (frame %" PRIu64 "), size: %" PRIu32,
+                         sendDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, audio_frame_index, frame.size);
+                // Sleep half of the frame duration to avoid overwhelming the system
+                THREAD_SLEEP(frame_duration_100ns / 2);
+            }
 
             // Release microphone frame if used
             if (audio_capture != NULL && audio_frame != NULL) {
@@ -370,12 +426,21 @@ static PVOID kvs_global_audio_sender_thread(PVOID args)
         }
 
         // Frame rate control
-        THREAD_SLEEP(frame_duration_100ns);
-        lastFrameTime = GETTIME();
+        if (audio_capture == NULL) {
+            elapsed = GETTIME() - lastFrameTime;
+            if (elapsed < frame_duration_100ns) {
+                THREAD_SLEEP(frame_duration_100ns - elapsed);
+            }
+            lastFrameTime = GETTIME();
+        }
     }
 
     // Cleanup
     if (audio_capture != NULL && g_global_media.audio_handle != NULL) {
+        if (audio_frame != NULL) {
+            // If the frame was not used/released, release it now to avoid memory leak
+            audio_capture->release_frame(g_global_media.audio_handle, audio_frame);
+        }
         audio_capture->stop(g_global_media.audio_handle);
         audio_capture->deinit(g_global_media.audio_handle);
         g_global_media.audio_handle = NULL;
@@ -497,15 +562,15 @@ STATUS kvs_media_start_global_transmission(void* client_data, kvs_media_config_t
 
     // Start global video thread
     if (config->video_capture != NULL || config->enable_sample_fallback) {
-        CHK_STATUS(THREAD_CREATE_EX_EXT(&g_global_media.video_sender_tid, "kvsGlobalVideo", 8 * 1024, TRUE,
-                                       kvs_global_video_sender_thread, NULL));
+        CHK_STATUS(THREAD_CREATE_EX_PRI(&g_global_media.video_sender_tid, "kvsGlobalVideo", 8 * 1024, TRUE,
+                                        kvs_global_video_sender_thread, 6, NULL));
         ESP_LOGI(TAG, "Global video sender thread started");
     }
 
     // Start global audio thread
     if (config->audio_capture != NULL || config->enable_sample_fallback) {
-        CHK_STATUS(THREAD_CREATE_EX_EXT(&g_global_media.audio_sender_tid, "kvsGlobalAudio", 8 * 1024, TRUE,
-                                       kvs_global_audio_sender_thread, NULL));
+        CHK_STATUS(THREAD_CREATE_EX_PRI(&g_global_media.audio_sender_tid, "kvsGlobalAudio", 8 * 1024, TRUE,
+                                        kvs_global_audio_sender_thread, 6, NULL));
         ESP_LOGI(TAG, "Global audio sender thread started");
     }
 
