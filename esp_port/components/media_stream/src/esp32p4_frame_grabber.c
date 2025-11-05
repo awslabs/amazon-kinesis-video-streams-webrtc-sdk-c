@@ -397,7 +397,21 @@ void esp32p4_frame_grabber_init(void)
     h264_enc_user_cfg_t cfg = {
         .enc_cfg = DEFAULT_ENCODER_CFG()
     };
+
+    /* Get the ACTUAL camera resolution (which may differ from desired due to fallback) */
 #if USE_ESP_VIDEO_IF
+    video_resolution_t actual_resolution = {0};
+    if (esp_video_if_get_resolution(&actual_resolution) == ESP_OK &&
+        actual_resolution.width != 0 && actual_resolution.height != 0) {
+        cfg.enc_cfg.res.width = actual_resolution.width;
+        cfg.enc_cfg.res.height = actual_resolution.height;
+        if (actual_resolution.fps != 0) {
+            cfg.enc_cfg.fps = actual_resolution.fps;
+        }
+        ESP_LOGI(TAG, "Configuring encoder with actual camera resolution: %dx%d@%d",
+                 cfg.enc_cfg.res.width, cfg.enc_cfg.res.height, cfg.enc_cfg.fps);
+    }
+
     cfg.enc_cfg.fps = 27; /* used to distribute the bitrate*/
     cfg.enc_cfg.rc.qp_min = 32;
     cfg.enc_cfg.rc.qp_max = 36;

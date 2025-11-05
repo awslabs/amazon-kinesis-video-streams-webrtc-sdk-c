@@ -8,6 +8,7 @@
 
 #include "esp_err.h"
 #include "H264FrameGrabber.h"
+#include "video_capture.h"
 #include <sys/time.h>
 
 /**
@@ -55,3 +56,14 @@ video_fb_t *esp_video_if_get_frame(void);
  * @param fb Pointer to the frame to release
  */
 void esp_video_if_release_frame(video_fb_t *fb);
+
+/**
+ * @brief Get the current video resolution
+ *
+ * @param resolution Pointer to store the current resolution
+ * @return esp_err_t
+ *  - ESP_OK: Successfully retrieved resolution
+ *  - ESP_ERR_INVALID_ARG: resolution pointer is NULL
+ *  - ESP_ERR_INVALID_STATE: Video interface not initialized
+ */
+esp_err_t esp_video_if_get_resolution(video_resolution_t *resolution);
