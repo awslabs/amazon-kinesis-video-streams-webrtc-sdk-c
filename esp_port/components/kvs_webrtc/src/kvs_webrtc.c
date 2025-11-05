@@ -338,6 +338,9 @@ static WEBRTC_STATUS kvs_pc_init(void *pc_cfg, void **ppPeerConnectionClient)
             client_data->config.use_turn = kvs_cfg->use_turn;
             client_data->config.ice_servers = kvs_cfg->ice_servers;
             client_data->config.ice_server_count = kvs_cfg->ice_server_count;
+            client_data->config.video_width = kvs_cfg->video_width;
+            client_data->config.video_height = kvs_cfg->video_height;
+            client_data->config.video_fps = kvs_cfg->video_fps;
         }
     }
 
@@ -586,7 +589,10 @@ static WEBRTC_STATUS kvs_pc_create_session(void *pPeerConnectionClient,
             .video_player = client_data->config.video_player,
             .audio_player = client_data->config.audio_player,
             .receive_media = client_data->config.receive_media,
-            .enable_sample_fallback = TRUE
+            .enable_sample_fallback = TRUE,
+            .video_width = client_data->config.video_width,
+            .video_height = client_data->config.video_height,
+            .video_fps = client_data->config.video_fps
         };
 
         ESP_LOGI(TAG, "Starting global media threads for first session: %s", peer_id);
@@ -1074,7 +1080,10 @@ static VOID onConnectionStateChangeHandler(UINT64 customData, RTC_PEER_CONNECTIO
                     .video_player = session->client->config.video_player,
                     .audio_player = session->client->config.audio_player,
                     .receive_media = session->client->config.receive_media,
-                    .enable_sample_fallback = TRUE
+                    .enable_sample_fallback = TRUE,
+                    .video_width = session->client->config.video_width,
+                    .video_height = session->client->config.video_height,
+                    .video_fps = session->client->config.video_fps
                 };
 
                 CHK_STATUS(kvs_media_start_reception(session, &media_config));
