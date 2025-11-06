@@ -1378,6 +1378,40 @@ static WEBRTC_STATUS kvsRefreshIceConfigurationWrapper(void *pSignalingClient)
     return WEBRTC_STATUS_SUCCESS;
 }
 
+static WEBRTC_STATUS kvsGetStateWrapper(void *pSignalingClient, webrtc_signaling_state_t *pState)
+{
+    if (pSignalingClient == NULL || pState == NULL) {
+        return WEBRTC_STATUS_INVALID_ARG;
+    }
+
+    KvsSignalingClientData *pClientData = (KvsSignalingClientData *)pSignalingClient;
+
+    /* Query the actual KVS signaling client state using the public API */
+    if (pClientData->signalingClientHandle != INVALID_SIGNALING_CLIENT_HANDLE_VALUE) {
+        SIGNALING_CLIENT_STATE kvsState = SIGNALING_CLIENT_STATE_UNKNOWN;
+        STATUS status = signalingClientGetCurrentState(pClientData->signalingClientHandle, &kvsState);
+
+        if (STATUS_SUCCEEDED(status)) {
+            *pState = convertKvsToWebrtcSignalingState(kvsState);
+        } else {
+            ESP_LOGW(TAG, "Failed to get signaling client state: 0x%08" PRIx32, (UINT32)status);
+            /* Fallback: use cached connection flag */
+            if (pClientData->connected) {
+                *pState = WEBRTC_SIGNALING_STATE_CONNECTED;
+            } else if (pClientData->initialized) {
+                *pState = WEBRTC_SIGNALING_STATE_DISCONNECTED;
+            } else {
+                *pState = WEBRTC_SIGNALING_STATE_NEW;
+            }
+        }
+    } else {
+        /* Client not initialized yet */
+        *pState = WEBRTC_SIGNALING_STATE_NEW;
+    }
+
+    return WEBRTC_STATUS_SUCCESS;
+}
+
 /**
  * @brief Get the KVS signaling client interface
  */
@@ -1395,7 +1429,8 @@ webrtc_signaling_client_if_t* kvs_signaling_client_if_get(void)
         .get_ice_server_by_idx = kvsQueryServerGetByIdxWrapper,
         .is_ice_refresh_needed = kvsIsIceRefreshNeededWrapper,
         .refresh_ice_configuration = kvsRefreshIceConfigurationWrapper,
-        .set_ice_update_callback = kvsSetIceUpdateCallbackWrapper
+        .set_ice_update_callback = kvsSetIceUpdateCallbackWrapper,
+        .get_state = kvsGetStateWrapper
     };
 
     return &kvs_signaling_client_if;

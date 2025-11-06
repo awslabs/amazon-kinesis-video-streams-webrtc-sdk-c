@@ -885,11 +885,35 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration, bool isSign
 
             // Check if connection actually succeeded by checking signaling state
             if (connectionInProgress) {
-                // TODO: Add proper signaling state check here
-                // For now, we rely on the timeout mechanism above
-                // The connection will be marked as failed if it times out
-                // and successful connection should reset the recreate_signaling_client flag
-                // via the signaling state change callback
+                webrtc_signaling_state_t currentState = WEBRTC_SIGNALING_STATE_NEW;
+
+                if (gWebRtcAppConfig.signaling_client_if->get_state != NULL) {
+                    retStatus = gWebRtcAppConfig.signaling_client_if->get_state(gSignalingClientData, &currentState);
+
+                    if (STATUS_SUCCEEDED(retStatus)) {
+                        if (currentState == WEBRTC_SIGNALING_STATE_CONNECTED) {
+                            /* Connection succeeded - reset retry tracking */
+                            DLOGI("Signaling connection verified as connected");
+                            connectionInProgress = FALSE;
+                            retryCount = 0;
+                            lastRetryTime = 0;
+                            /* The recreate_signaling_client flag should already be reset by state callback,
+                             * but we can safely clear it here as well for robustness */
+                            ATOMIC_STORE_BOOL(&pSampleConfiguration->recreate_signaling_client, FALSE);
+                        } else if (currentState == WEBRTC_SIGNALING_STATE_FAILED ||
+                                   currentState == WEBRTC_SIGNALING_STATE_DISCONNECTED) {
+                            /* Connection failed - mark for retry */
+                            DLOGE("Signaling connection failed (state: %d), will retry", currentState);
+                            connectionInProgress = FALSE;
+                            retryCount++;
+                            lastRetryTime = currentTime;
+                        }
+                        /* else: still in CONNECTING state, keep waiting */
+                    }
+
+                    /* Reset retStatus to avoid breaking the loop */
+                    retStatus = STATUS_SUCCESS;
+                }
             }
         }
 
@@ -1089,20 +1113,6 @@ STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMess
                 CHK(FALSE, retStatus);
             }
 
-            // =================================================================
-            // UNIFIED SESSION CREATION: Interface OR Legacy
-            // =================================================================
-
-            // Check if we have a pluggable interface or need to use legacy functions directly
-            pc_interface = gWebRtcAppConfig.peer_connection_if;
-            if (pc_interface == NULL) {
-                ESP_LOGI("app_webrtc", "No interface provided - using direct legacy functions for incoming peer: %s",
-                         pWebRtcMessage->peer_client_id);
-            } else {
-                ESP_LOGI("app_webrtc", "Using pluggable peer connection interface for incoming peer: %s",
-                         pWebRtcMessage->peer_client_id);
-            }
-
             // g_kvs_webrtc_client should be initialized once in app_webrtc_runTask
             if (g_kvs_webrtc_client == NULL) {
                 ESP_LOGE(TAG, "Peer connection client not initialized - should have been initialized in app_webrtc_runTask");
@@ -1110,6 +1120,9 @@ STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMess
             } else {
                 ESP_LOGI(TAG, "Using pre-initialized peer connection client");
             }
+
+            // Check if we have a pluggable interface or need to use legacy functions directly
+            pc_interface = gWebRtcAppConfig.peer_connection_if;
 
             // Create session - either through interface or direct legacy call
             if (pc_interface != NULL) {
@@ -1167,12 +1180,7 @@ STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMess
                 }
             }
 
-            // =================================================================
-            // UNIFIED MESSAGE PROCESSING: Interface OR Direct Legacy
-            // =================================================================
-
             if (pc_interface != NULL) {
-                // Use pluggable interface - we can pass the message directly since it's already in the right format
                 message_status = pc_interface->send_message(pAppWebRTCSession->interface_session_handle, pWebRtcMessage);
                 if (message_status != WEBRTC_STATUS_SUCCESS) {
                     ESP_LOGE(TAG, "Failed to process offer via interface: 0x%08x", message_status);
@@ -1180,8 +1188,8 @@ STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMess
                 }
             }
 
-            ESP_LOGI(TAG, "Successfully processed offer via unified interface for peer: %s",
-                     pWebRtcMessage->peer_client_id);
+            DLOGD("Successfully processed offer via unified interface for peer: %s",
+                  pWebRtcMessage->peer_client_id);
 
             CHK_STATUS(hashTablePut(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, (UINT64) pAppWebRTCSession));
 
@@ -1200,7 +1208,6 @@ STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMess
             MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
             freeStreamingSession = FALSE;
 
-            // Note: ICE stats timer now managed by kvs_webrtc.c implementation
             break;
 
         case WEBRTC_MESSAGE_TYPE_ANSWER:
@@ -1210,17 +1217,12 @@ STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMess
             pAppWebRTCSession = pSampleConfiguration->webrtcSessionList[0];
             CHK(pAppWebRTCSession != NULL, STATUS_INVALID_OPERATION);
 
-            // =================================================================
-            // UNIFIED ANSWER PROCESSING: Interface OR Direct Legacy
-            // =================================================================
-
-            // Check if we have a pluggable interface or need to use legacy functions directly
             pc_interface = gWebRtcAppConfig.peer_connection_if;
 
             if (pc_interface != NULL) {
                 // Use pluggable interface
-                ESP_LOGD(TAG, "Using pluggable peer connection interface for answer from peer: %s",
-                         pWebRtcMessage->peer_client_id);
+                DLOGD("Using pluggable peer connection interface for answer from peer: %s",
+                      pWebRtcMessage->peer_client_id);
 
                 /* Progressive ICE Optimization:
                  * Trigger non-blocking ICE server refresh for answer processing
@@ -1254,6 +1256,7 @@ STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMess
             break;
 
         case WEBRTC_MESSAGE_TYPE_ICE_CANDIDATE:
+            DLOGD("Received ICE candidate message from peer: %s", pWebRtcMessage->peer_client_id);
             /*
              * if peer connection hasn't been created, create an queue to store the ice candidate message. Otherwise
              * submit the signaling message into the corresponding streaming session.
@@ -1295,18 +1298,8 @@ STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMess
                 pPendingMessageQueue = NULL;
                 pWebRtcMessageCopy = NULL;
             } else {
-                // =================================================================
-                // UNIFIED ICE CANDIDATE PROCESSING: Interface OR Direct Legacy
-                // =================================================================
-
-                // Check if we have a pluggable interface or need to use legacy functions directly
                 pc_interface = gWebRtcAppConfig.peer_connection_if;
-
                 if (pc_interface != NULL) {
-                    // Use pluggable interface
-                    ESP_LOGD("app_webrtc", "Using pluggable peer connection interface for ICE candidate from peer: %s",
-                             pWebRtcMessage->peer_client_id);
-
                     // For interface calls: pass the session that the interface expects
                     // If we have interface_session_handle, use it; otherwise pass the session directly
                     void* session_to_pass = pAppWebRTCSession;
@@ -1330,8 +1323,6 @@ STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMess
 
     MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
     locked = FALSE;
-
-    // Note: ICE stats timer management moved to kvs_webrtc.c where it belongs with the KVS implementation
 
 CleanUp:
 
@@ -1525,14 +1516,14 @@ WEBRTC_STATUS app_webrtc_init(app_webrtc_config_t *config)
     // Apply reasonable defaults for configuration not provided by user
     BOOL trickle_ice = TRUE;  // Always enabled for faster connection setup
     BOOL use_turn = TRUE;     // Always enabled for better NAT traversal
-    UINT32 log_level = LOG_LEVEL_INFO;  // INFO level - good balance of information (can be changed via app_webrtc_set_log_level)
+    UINT32 log_level = LOG_LEVEL_WARN;  // WARN level - sufficient for normal cases
     webrtc_channel_role_type_t role_type = WEBRTC_CHANNEL_ROLE_TYPE_MASTER;  // Most common case for IoT devices
 
-    DLOGI("WebRTC app initializing with reasonable defaults:");
-    DLOGI("  - Role: %s", role_type == WEBRTC_CHANNEL_ROLE_TYPE_MASTER ? "MASTER" : "VIEWER");
-    DLOGI("  - Trickle ICE: %s", trickle_ice ? "enabled" : "disabled");
-    DLOGI("  - TURN servers: %s", use_turn ? "enabled" : "disabled");
-    DLOGI("  - Log level: %d (INFO, can be changed via app_webrtc_set_log_level)", log_level);
+    ESP_LOGI(TAG, "WebRTC app initializing with reasonable defaults:");
+    ESP_LOGI(TAG, "  - Role: %s", role_type == WEBRTC_CHANNEL_ROLE_TYPE_MASTER ? "MASTER" : "VIEWER");
+    ESP_LOGI(TAG, "  - Trickle ICE: %s", trickle_ice ? "enabled" : "disabled");
+    ESP_LOGI(TAG, "  - TURN servers: %s", use_turn ? "enabled" : "disabled");
+    ESP_LOGI(TAG, "  - WebRTC Log level: %d (WARN, can be changed via app_webrtc_set_log_level)", (int) log_level);
 
     // Validate peer connection interface
     if (config->peer_connection_if == NULL) {
@@ -1540,8 +1531,6 @@ WEBRTC_STATUS app_webrtc_init(app_webrtc_config_t *config)
         DLOGE("You must provide a valid peer_connection_if in app_webrtc_config_t");
         CHK(FALSE, STATUS_INVALID_OPERATION);
     }
-
-    DLOGI("WebRTC initialization will be handled by peer_connection_if in app_webrtc_runTask");
 
     // Initialize the event callback mutex if not already done
     if (!IS_VALID_MUTEX_VALUE(gEventCallbackLock)) {
@@ -1556,10 +1545,8 @@ WEBRTC_STATUS app_webrtc_init(app_webrtc_config_t *config)
     // Store the sample configuration for later use
     gSampleConfiguration = pSampleConfiguration;
 
-    // Set default role to MASTER (most common for IoT devices)
     // Note: This can be overridden later using app_webrtc_set_role() advanced API
-    pSampleConfiguration->channel_role_type = WEBRTC_CHANNEL_ROLE_TYPE_MASTER;
-    DLOGI("Default role set to: MASTER (can be changed via app_webrtc_set_role)");
+    pSampleConfiguration->channel_role_type = role_type;
 
     // Apply reasonable defaults for media configuration
     pSampleConfiguration->audioCodec = APP_WEBRTC_CODEC_OPUS;  // Most common audio codec
@@ -2114,40 +2101,17 @@ int app_webrtc_trigger_offer(char *pPeerId)
     MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
     locked = FALSE;
 
-    // =================================================================
-    // UNIFIED OFFER CREATION: Interface OR Legacy
-    // =================================================================
-
     webrtc_peer_connection_if_t* pc_interface = gWebRtcAppConfig.peer_connection_if;
 
-    if (pc_interface == NULL) {
-        ESP_LOGE(TAG, "Direct legacy path requested but APP_WEBRTC_ENABLE_LEGACY_FALLBACKS is not enabled");
-        ESP_LOGE(TAG, "You must provide a valid peer_connection_if in app_webrtc_config_t");
-        CHK(FALSE, STATUS_INVALID_OPERATION);
-    } else {
-        // Interface path: Call interface to create session as initiator, which will auto-generate offer
-        ESP_LOGI(TAG, "Creating offer using peer connection interface");
+    if (pc_interface != NULL) {
+        DLOGD("Creating offer using peer connection interface");
 
         // Check if session already exists for this peer
         if (pAppWebRTCSession->interface_session_handle != NULL) {
-            ESP_LOGI(TAG, "Session already exists, using existing session");
-
-            // Don't create a new session - this causes duplicate offers
-            // Instead, use the existing session and just set the callbacks if needed
-
-            // Verify message callback is properly set
-            ESP_LOGI(TAG, "Using existing session with handle: %p", (void *)pAppWebRTCSession->interface_session_handle);
-
-            // We should NOT trigger a new offer here - this is causing duplicate offers
-            // The apprtc_signaling is already calling this function when it needs to send an offer
-            // If we trigger another offer here, we'll end up with multiple offers being sent
-            ESP_LOGI(TAG, "Skipping explicit offer creation to avoid duplicates");
-
-            // Just raise the event to indicate we're using the existing session
+            DLOGD("Using existing session with handle: %p", (void *)pAppWebRTCSession->interface_session_handle);
             raiseEvent(APP_WEBRTC_EVENT_SENT_OFFER, 0, pPeerId, "Using existing session");
         } else {
-            ESP_LOGI(TAG, "Creating new session as initiator, will auto-generate offer");
-
+            DLOGD("Creating new session as initiator, will auto-generate offer");
             // Create session as initiator - this will automatically generate and send offer
             void* session_handle = NULL;
             WEBRTC_STATUS create_status = pc_interface->create_session(
@@ -2172,11 +2136,6 @@ int app_webrtc_trigger_offer(char *pPeerId)
 
             ESP_LOGI(TAG, "Initiator session created, offer should be auto-generated");
 
-            // The KVS WebRTC implementation will automatically generate and send an offer
-            // after the callbacks are set, so we don't need to explicitly call createOffer here
-
-            // Verify message callback is properly set
-            ESP_LOGI(TAG, "Message callback registered: %p", (void *) peerOutboundMessageWrapper);
             raiseEvent(APP_WEBRTC_EVENT_SENT_OFFER, 0, pPeerId, "Triggered offer creation via interface");
         }
     }
@@ -2708,9 +2667,9 @@ WEBRTC_STATUS app_webrtc_send_data_channel_message(const char *peer_id,
     CHK(gWebRtcAppConfig.peer_connection_if != NULL, STATUS_INVALID_OPERATION);
     CHK(gWebRtcAppConfig.peer_connection_if->send_data_channel_message != NULL, STATUS_NOT_IMPLEMENTED);
 
-    ESP_LOGD(TAG, "Sending data channel message via interface for peer: %s", peer_id);
-    ESP_LOGD(TAG, "  - interface_session_handle: %p", pStreamingSession->interface_session_handle);
-    ESP_LOGD(TAG, "  - message length: %" PRIu32, messageLen);
+    DLOGD("Sending data channel message via interface for peer: %s", peer_id);
+    DLOGD("  - interface_session_handle: %p", pStreamingSession->interface_session_handle);
+    DLOGD("  - message length: %" PRIu32, messageLen);
 
     // Send the message using the peer connection interface
     retStatus = gWebRtcAppConfig.peer_connection_if->send_data_channel_message(
