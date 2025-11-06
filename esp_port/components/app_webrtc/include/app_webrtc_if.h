@@ -247,6 +247,9 @@ typedef struct {
     WEBRTC_STATUS (*set_ice_update_callback)(void *pSignalingClient,
                                               uint64_t customData,
                                               WEBRTC_STATUS (*on_ice_servers_updated)(uint64_t, uint32_t));
+
+    // Get current signaling connection state
+    WEBRTC_STATUS (*get_state)(void *pSignalingClient, webrtc_signaling_state_t *pState);
 } webrtc_signaling_client_if_t;
 
 /**

@@ -338,8 +338,8 @@ static void esp_websocket_event_handler(void *handler_args, esp_event_base_t bas
                     data->op_code, data->fin);
         } else {
             // For frames with data, log the content
-            ESP_LOGI(TAG, "WebSocket data preview: %.*s, op_code: 0x%x, fin: %d",
-                     data->data_len > 100 ? 100 : data->data_len, data->data_ptr, data->op_code, data->fin);
+            DLOGD("WebSocket data preview: %.*s, op_code: 0x%x, fin: %d",
+                   data->data_len > 100 ? 100 : data->data_len, data->data_ptr, data->op_code, data->fin);
         }
         switch (data->op_code) {
             case WS_TRANSPORT_OPCODES_CONT:
