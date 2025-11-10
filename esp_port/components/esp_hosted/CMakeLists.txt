@@ -243,8 +243,11 @@ if(TARGET ${lwip})
     # Use generator expressions to only apply to non-INTERFACE targets
     get_target_property(lwip_type ${lwip} TYPE)
     if(NOT lwip_type STREQUAL "INTERFACE_LIBRARY")
-        message(STATUS "********** Configuring LWIP for network split mode with custom hook ${CMAKE_CURRENT_SOURCE_DIR}/common/include **********")
-        target_include_directories(${lwip} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/common/include")
-        target_compile_definitions(${lwip} PRIVATE "-DESP_IDF_LWIP_HOOK_FILENAME=\"${CMAKE_CURRENT_SOURCE_DIR}/common/include/esp_hosted_lwip_src_port_hook.h\"")
+        message(STATUS "********** Configuring LWIP for network split mode with port range restrictions **********")
+
+        # Force include our port range hook header before any lwip source compilation
+        if(CONFIG_SLAVE_LWIP_ENABLED)
+            target_compile_options(${lwip} PRIVATE "-include" "${CMAKE_CURRENT_SOURCE_DIR}/common/include/esp_hosted_lwip_src_port_hook.h")
+        endif()
     endif()
 endif()

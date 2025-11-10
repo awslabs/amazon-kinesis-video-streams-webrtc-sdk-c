@@ -926,6 +926,12 @@ CleanUp:
             setStateMachineCurrentState(pSignalingClient->pStateMachine, pStateMachineState->state);
         }
 
+        /* Reset the result to OK to prevent further state transitions.
+         * This is critical to avoid infinite loops where the state machine
+         * continuously tries to transition based on stale error results.
+         */
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
+
         // Need to invoke the error handler callback
         if (pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
             iceRefreshErrLen = SNPRINTF(iceRefreshErrMsg, SIGNALING_MAX_ERROR_MESSAGE_LEN, SIGNALING_ICE_CONFIG_REFRESH_ERROR_MSG, retStatus);
