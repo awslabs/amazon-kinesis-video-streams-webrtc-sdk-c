@@ -11,7 +11,6 @@
 #include "sdkconfig.h"
 
 #if defined(CONFIG_SLAVE_LWIP_ENABLED)
-#include "lwip/opt.h"
 /* ----------------------------------Slave (local) Port Config---------------------------------------- */
 /* If configured, Any new UDP socket would automatically bind as local port within this specified UDP port range.
  * Please note, Reserved ports (generally <1024) like DHCP, etc would still work as they generally are hardcoded
@@ -70,4 +69,4 @@
 #endif
 
 #endif
-#endif /* __ESP_HOSTED_LWIP_SOURCE_PORT_BINDING_HOOK_H__ */
+#endif /* __ESP_HOSTED_LWIP_SRC_PORT_HOOK_H__ */
