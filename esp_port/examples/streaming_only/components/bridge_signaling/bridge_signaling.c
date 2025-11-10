@@ -333,6 +333,10 @@ static WEBRTC_STATUS bridgeDisconnect(void *pSignalingClient)
         return WEBRTC_STATUS_INVALID_OPERATION;
     }
 
+    /* Invalidate cached ICE servers on disconnect since signaling state changes */
+    client_data->ice_servers_received = false;
+    client_data->ice_servers_config.ice_server_count = 0;
+
     // Set disconnected state
     client_data->state = WEBRTC_SIGNALING_STATE_DISCONNECTED;
 
@@ -481,6 +485,24 @@ static WEBRTC_STATUS bridgeGetIceServers(void *pSignalingClient, uint32_t *pIceC
         return WEBRTC_STATUS_NULL_ARG;
     }
 
+    BridgeSignalingClientData *pClientData = (BridgeSignalingClientData *)pSignalingClient;
+
+    /* Optimization: Return cached servers if already fetched by background task
+     * This prevents duplicate RPC calls when progressive ICE callback triggers */
+    if (pClientData->ice_servers_received && pClientData->ice_servers_config.ice_server_count > 0) {
+        ESP_LOGI(TAG, "Using cached ICE servers from background refresh (%" PRIu32 " servers)",
+                 pClientData->ice_servers_config.ice_server_count);
+
+        *pIceConfigCount = pClientData->ice_servers_config.ice_server_count;
+        app_webrtc_ice_server_t *dst = (app_webrtc_ice_server_t *)pIceServersArray;
+
+        for (uint32_t i = 0; i < pClientData->ice_servers_config.ice_server_count; i++) {
+            memcpy(&dst[i], &pClientData->ice_servers_config.ice_servers[i], sizeof(app_webrtc_ice_server_t));
+        }
+
+        return WEBRTC_STATUS_SUCCESS;
+    }
+
     ESP_LOGI(TAG, "Using generic ICE servers array (abstraction layer handles structure conversion)");
 
     // Use the new ice_bridge_client to get servers via index-based requests
@@ -599,6 +621,10 @@ static WEBRTC_STATUS bridgeRefreshIceConfiguration(void *pSignalingClient)
 
     BridgeSignalingClientData *pClientData = (BridgeSignalingClientData *)pSignalingClient;
     ESP_LOGI(TAG, "Triggering background bridge ICE configuration via work queue");
+
+    /* Invalidate cache to force fresh fetch (e.g., when TURN credentials expire) */
+    pClientData->ice_servers_received = false;
+    pClientData->ice_servers_config.ice_server_count = 0;
 
     // Trigger background refresh using work queue (similar to kvs_signaling.c)
     esp_err_t result = esp_work_queue_add_task(&bridge_refresh_ice_task, (void*)pClientData);

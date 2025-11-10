@@ -31,7 +31,7 @@ static uint64_t g_custom_data = 0;
 static WEBRTC_STATUS (*g_on_message_received)(uint64_t, webrtc_message_t*) = NULL;
 
 // Message queue for buffering messages during P4 wake-up
-#define MAX_QUEUE_SIZE 16
+#define MAX_QUEUE_SIZE 24
 
 typedef enum {
     QUEUE_STATE_IDLE,              // Normal operation, P4 is awake (unused - we start in WAITING)
