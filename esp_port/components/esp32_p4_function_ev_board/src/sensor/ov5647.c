@@ -305,6 +305,7 @@ static reginfo_t ov5647_1080p_init_data[] = {
     // y inc
     {0x3815, 0x11},
 
+#undef GAIN_MAN
 #define GAIN_MAN  (0x3ff)
     {0x350a, (GAIN_MAN >> 8) & 0xff}, //AGC
     {0x350b, (GAIN_MAN >> 0) & 0xff},
@@ -314,6 +315,8 @@ static reginfo_t ov5647_1080p_init_data[] = {
     {0x3501, ((EXPOSURE_MAN >> 8) & 0xff)},
     {0x3502, ((EXPOSURE_MAN >> 0) & 0xff)},
 
+#undef MIN_EXPORE
+#undef MAX_EXPORT
 #define MIN_EXPORE (0xff)
 #define MAX_EXPORT (0xffff)
     {0x3a01, MIN_EXPORE},
@@ -339,6 +342,8 @@ static reginfo_t ov5647_1080p_init_data[] = {
     {0x3a18, 0x03},// gain celling
     {0x3a19, 0xff},
 
+#undef AG_MAN_EN
+#undef AE_MAN_EN
 #define AG_MAN_EN (0) //1
 #define AE_MAN_EN (1) //0
 #define MENU_AG_AE ((AG_MAN_EN<<1)|AE_MAN_EN)

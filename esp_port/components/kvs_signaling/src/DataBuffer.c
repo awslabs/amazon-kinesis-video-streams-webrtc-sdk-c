@@ -175,7 +175,7 @@ CleanUp:
 /**
  * Append data to a data buffer
  */
-STATUS appendDataBuffer(PDataBuffer pDataBuffer, PCHAR pData, UINT32 dataLen, BOOL isFinal)
+STATUS appendDataBuffer(PDataBuffer pDataBuffer, const char* pData, UINT32 dataLen, BOOL isFinal)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;

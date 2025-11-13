@@ -130,7 +130,7 @@ STATUS initWebSocketBuffer(UINT32 suggestedSize);
 STATUS freeWebSocketBuffer();
 STATUS resetWebSocketBuffer();
 STATUS expandWebSocketBuffer(UINT32 additionalSize);
-STATUS appendToWebSocketBuffer(PCHAR pData, UINT32 dataLen, BOOL isFinal);
+STATUS appendToWebSocketBuffer(const char* pData, UINT32 dataLen, BOOL isFinal);
 
 // Forward function declaration for HTTP API calls
 STATUS performEspHttpRequest(PSignalingClient pSignalingClient, PCHAR url,
@@ -738,7 +738,7 @@ STATUS handleReceivedSignalingMessage(PSignalingClient pSignalingClient, PCHAR m
                 // Allocate a buffer to store the decoded data
                 pDecodedData = (PBYTE) MEMALLOC(decodedLen + 1);
                 CHK(pDecodedData != NULL, STATUS_NOT_ENOUGH_MEMORY);
-                receivedSignalingMessage.signalingMessage.payload = pDecodedData;
+                receivedSignalingMessage.signalingMessage.payload = (PCHAR)pDecodedData;
 #else
                 pDecodedData = receivedSignalingMessage.signalingMessage.payload;
 #endif
@@ -783,8 +783,12 @@ STATUS handleReceivedSignalingMessage(PSignalingClient pSignalingClient, PCHAR m
             CHK(strLen <= MAX_STATUS_CODE_STRING_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
 
             // Parse the status code
-            CHK_STATUS(STRTOUI32(message + tokens[i + 1].start, message + tokens[i + 1].end, 10,
-                               &receivedSignalingMessage.statusCode));
+            {
+                UINT32 statusCodeValue;
+                CHK_STATUS(STRTOUI32(message + tokens[i + 1].start, message + tokens[i + 1].end, 10,
+                                   &statusCodeValue));
+                receivedSignalingMessage.statusCode = (SERVICE_CALL_RESULT)statusCodeValue;
+            }
             i++;
         } else if (parsedStatusResponse && compareJsonString(message, &tokens[i], JSMN_STRING, (PCHAR) "description")) {
             strLen = (UINT32)(tokens[i + 1].end - tokens[i + 1].start);
@@ -2467,7 +2471,7 @@ CleanUp:
 }
 
 // Append data to the WebSocket buffer
-STATUS appendToWebSocketBuffer(PCHAR pData, UINT32 dataLen, BOOL isFinal)
+STATUS appendToWebSocketBuffer(const char* pData, UINT32 dataLen, BOOL isFinal)
 {
     STATUS retStatus = STATUS_SUCCESS;
 

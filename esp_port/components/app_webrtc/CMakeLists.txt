@@ -27,7 +27,6 @@ set(component_requires
     "driver"
     "spi_flash"
     "mbedtls"
-    "json"
 )
 
 idf_component_register(

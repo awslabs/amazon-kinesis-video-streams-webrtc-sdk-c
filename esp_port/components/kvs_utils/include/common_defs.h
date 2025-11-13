@@ -15,6 +15,7 @@
 #include <inttypes.h>
 #include <ctype.h>
 #include <time.h>
+#include <lwip/opt.h>
 
 /**
  * @brief Controls whether to use dynamic allocation for URLs and payloads
@@ -175,11 +176,6 @@ typedef struct stat STAT_STRUCT;
 typedef struct _stat STAT_STRUCT;
 #endif
 
-// Definition of the static initializers
-#define GLOBAL_MUTEX_INIT           MUTEX_CREATE(FALSE)
-#define GLOBAL_MUTEX_INIT_RECURSIVE MUTEX_CREATE(TRUE)
-#define GLOBAL_CVAR_INIT            CVAR_CREATE()
-
 #else
 
 // Definition of the mkdir for non-Windows platforms with 2 params
@@ -195,26 +191,6 @@ typedef struct _stat STAT_STRUCT;
 
 // Typedef stat structure
 typedef struct stat STAT_STRUCT;
-
-// NOTE!!! Some of the libraries don't have a definition of PTHREAD_RECURSIVE_MUTEX_INITIALIZER
-#ifndef PTHREAD_RECURSIVE_MUTEX_INITIALIZER
-
-#ifndef PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
-#define PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP                                                                                                       \
-    {                                                                                                                                                \
-        {                                                                                                                                            \
-            PTHREAD_MUTEX_RECURSIVE                                                                                                                  \
-        }                                                                                                                                            \
-    }
-#endif
-
-#define GLOBAL_MUTEX_INIT_RECURSIVE PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
-#else
-#define GLOBAL_MUTEX_INIT_RECURSIVE PTHREAD_RECURSIVE_MUTEX_INITIALIZER
-#endif
-
-#define GLOBAL_MUTEX_INIT PTHREAD_MUTEX_INITIALIZER
-#define GLOBAL_CVAR_INIT  PTHREAD_COND_INITIALIZER
 
 #endif
 
@@ -462,12 +438,15 @@ extern PUBLIC_API atomicXor globalAtomicXor;
 //
 // File operations
 //
-#ifndef FOPEN
+#ifdef FOPEN
+#undef FOPEN
+#endif
 #define FOPEN fopen
+
+#ifdef FCLOSE
+#undef FCLOSE
 #endif
-#ifndef FCLOSE
 #define FCLOSE fclose
-#endif
 #ifndef FWRITE
 #define FWRITE fwrite
 #endif
@@ -605,6 +584,9 @@ extern freeConditionVariable globalConditionVariableFree;
 #define CVAR_WAIT      globalConditionVariableWait
 #define CVAR_FREE      globalConditionVariableFree
 
+// Include mutex.h for mutex initializer definitions
+#include "mutex.h"
+
 //
 // Static initializers
 //
@@ -693,16 +675,16 @@ extern freeConditionVariable globalConditionVariableFree;
 typedef UINT64 HANDLE;
 #endif
 #ifndef INVALID_PIC_HANDLE_VALUE
-#define INVALID_PIC_HANDLE_VALUE ((UINT64) NULL)
+#define INVALID_PIC_HANDLE_VALUE ((UINT64) (uintptr_t) NULL)
 #endif
 #ifndef IS_VALID_HANDLE
 #define IS_VALID_HANDLE(h) ((h) != INVALID_PIC_HANDLE_VALUE)
 #endif
 #ifndef POINTER_TO_HANDLE
-#define POINTER_TO_HANDLE(h) ((UINT64) (h))
+#define POINTER_TO_HANDLE(h) ((UINT64) (uintptr_t) (h))
 #endif
 #ifndef HANDLE_TO_POINTER
-#define HANDLE_TO_POINTER(h) ((PBYTE) (h))
+#define HANDLE_TO_POINTER(h) ((PBYTE) (uintptr_t) (h))
 #endif
 
 ////////////////////////////////////////////////////

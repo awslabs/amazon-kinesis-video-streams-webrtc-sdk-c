@@ -175,6 +175,7 @@ target_compile_options(${COMPONENT_LIB} PRIVATE
     -Wno-error=sign-compare
     -Wno-error=cpp
     -Wno-error=nonnull
+    -Wno-nonnull
     -Wno-error=undef
     -Wno-error=builtin-macro-redefined
     -Wno-builtin-macro-redefined
@@ -182,12 +183,15 @@ target_compile_options(${COMPONENT_LIB} PRIVATE
     -Wno-error=incompatible-pointer-types
     -Wno-error=pointer-to-int-cast
     -Wno-error=int-to-pointer-cast
+    -Wno-pointer-to-int-cast
+    -Wno-int-to-pointer-cast
     -Wno-error=format-truncation
     -Wno-error=restrict
     -Wno-error=implicit-fallthrough
     -Wno-error=type-limits
     -Wno-error=array-bounds
     -Wno-error=maybe-uninitialized
+    -Wno-maybe-uninitialized
 )
 
 # Add definitions for usrsctp

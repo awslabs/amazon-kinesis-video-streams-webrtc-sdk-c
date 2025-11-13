@@ -9,8 +9,6 @@
 #include <freertos/task.h>
 #include <freertos/semphr.h>
 #include "esp_err.h"
-
-#include "driver/i2s.h"
 #include "esp_log.h"
 #include "esp_heap_caps.h"
 #include "esp_opus_enc.h"
@@ -47,65 +45,68 @@ typedef struct {
 static opus_encoder_data_t s_enc_data = {0};
 
 #ifndef CONFIG_IDF_TARGET_ESP32P4
-static i2s_port_t i2s_port = I2S_NUM_0;
+#include "driver/i2s_std.h"
+#include "driver/gpio.h"
+
+static i2s_chan_handle_t i2s_rx_chan = NULL;
+
 static void i2s_init(void)
 {
     // Start listening for audio: MONO @ 16KHz
-    i2s_config_t i2s_config = {
-        .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX),
-        .sample_rate = SAMPLE_RATE,
-        .bits_per_sample = (i2s_bits_per_sample_t) 16,
-        .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
-        .communication_format = I2S_COMM_FORMAT_I2S,
-        .intr_alloc_flags = 0,
-        .dma_buf_count = 3,
-        .dma_buf_len = 300,
-        .use_apll = false,
-        .tx_desc_auto_clear = false,
-        .fixed_mclk = -1,
+    i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_AUTO, I2S_ROLE_MASTER);
+    chan_cfg.dma_desc_num = 3;
+    chan_cfg.dma_frame_num = 300;
+    chan_cfg.auto_clear = true;
+
+    i2s_std_config_t std_cfg = {
+        .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(SAMPLE_RATE),
+        .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO),
+        .gpio_cfg = {
+            .mclk = I2S_GPIO_UNUSED,
+            .bclk = GPIO_NUM_NC,
+            .ws = GPIO_NUM_NC,
+            .dout = I2S_GPIO_UNUSED,
+            .din = GPIO_NUM_NC,
+            .invert_flags = {
+                .mclk_inv = false,
+                .bclk_inv = false,
+                .ws_inv = false,
+            },
+        },
     };
+
 #if CONFIG_IDF_TARGET_ESP32S3
-    i2s_pin_config_t pin_config = {
-        .bck_io_num = 41,    // IIS_SCLK
-        .ws_io_num = 42,     // IIS_LCLK
-        .data_out_num = -1,  // IIS_DSIN
-        .data_in_num = 2,   // IIS_DOUT
-    };
+    std_cfg.gpio_cfg.bclk = GPIO_NUM_41;    // IIS_SCLK
+    std_cfg.gpio_cfg.ws = GPIO_NUM_42;      // IIS_LCLK
+    std_cfg.gpio_cfg.din = GPIO_NUM_2;      // IIS_DOUT
 // #define READ_SAMPLE_SIZE_30  1
 #if READ_SAMPLE_SIZE_30
-    i2s_config.bits_per_sample = (i2s_bits_per_sample_t) 32;
+    std_cfg.slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_32BIT, I2S_SLOT_MODE_MONO);
 #endif
-#elif CONFIG_IDF_TARGET_ESP32P4
-    i2s_pin_config_t pin_config = {
-        .mck_io_num = 30,
-        .bck_io_num = 29,    // IIS_SCLK
-        .ws_io_num = 27,     // IIS_LCLK
-        .data_out_num = -1,  // IIS_DSIN
-        .data_in_num = 28,   // IIS_DOUT
-    };
 #else
-    i2s_pin_config_t pin_config = {
-        .bck_io_num = 26,    // IIS_SCLK
-        .ws_io_num = 32,     // IIS_LCLK
-        .data_out_num = -1,  // IIS_DSIN
-        .data_in_num = 33,   // IIS_DOUT
-    };
-    i2s_port = I2S_NUM_1; // for esp32-eye
+    // For esp32-eye and other non-S3 targets
+    std_cfg.gpio_cfg.bclk = GPIO_NUM_26;    // IIS_SCLK
+    std_cfg.gpio_cfg.ws = GPIO_NUM_32;      // IIS_LCLK
+    std_cfg.gpio_cfg.din = GPIO_NUM_33;     // IIS_DOUT
+    // Use I2S_NUM_1 for esp32-eye
+    chan_cfg.id = I2S_NUM_1;
 #endif
 
-    esp_err_t ret = 0;
-    ret = i2s_driver_install(i2s_port, &i2s_config, 0, NULL);
+    esp_err_t ret = i2s_new_channel(&chan_cfg, NULL, &i2s_rx_chan);
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Error in i2s_driver_install");
-    }
-    ret = i2s_set_pin(i2s_port, &pin_config);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Error in i2s_set_pin");
+        ESP_LOGE(TAG, "Error in i2s_new_channel: %s", esp_err_to_name(ret));
+        return;
     }
 
-    ret = i2s_zero_dma_buffer(i2s_port);
+    ret = i2s_channel_init_std_mode(i2s_rx_chan, &std_cfg);
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Error in initializing dma buffer with 0");
+        ESP_LOGE(TAG, "Error in i2s_channel_init_std_mode: %s", esp_err_to_name(ret));
+        return;
+    }
+
+    ret = i2s_channel_enable(i2s_rx_chan);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Error in i2s_channel_enable: %s", esp_err_to_name(ret));
     }
 }
 #endif
@@ -146,24 +147,22 @@ static void audio_encoder_task(void *arg)
         }
 #else
         esp_err_t i2s_ret = ESP_OK;
+        size_t bytes_to_read = s_enc_data.insize;
 #if READ_SAMPLE_SIZE_30
-        i2s_ret = i2s_read(i2s_port, (void*)s_enc_data.inbuf, s_enc_data.insize * 2, &bytes_read, pdMS_TO_TICKS(I2S_READ_WAIT_MS));
+        bytes_to_read = s_enc_data.insize * 2;
+#endif
+        i2s_ret = i2s_channel_read(i2s_rx_chan, (void*)s_enc_data.inbuf, bytes_to_read, &bytes_read, pdMS_TO_TICKS(I2S_READ_WAIT_MS));
         if (i2s_ret != ESP_OK) {
             ESP_LOGE(TAG, "I2S read error: %s", esp_err_to_name(i2s_ret));
             vTaskDelay(pdMS_TO_TICKS(I2S_READ_WAIT_MS));
             continue;
         }
+#if READ_SAMPLE_SIZE_30
         // rescale the data (Actual data is 30 bits, use higher 16 bits out of those)
         for (int i = 0; i < bytes_read / 4; ++i) {
             ((uint16_t *) s_enc_data.inbuf)[i] = (((uint32_t *) s_enc_data.inbuf)[i] >> 14) & 0xffff;
         }
-#else
-        i2s_ret = i2s_read(i2s_port, (void*)s_enc_data.inbuf, s_enc_data.insize, &bytes_read, pdMS_TO_TICKS(I2S_READ_WAIT_MS));
-        if (i2s_ret != ESP_OK) {
-            ESP_LOGE(TAG, "I2S read error: %s", esp_err_to_name(i2s_ret));
-            vTaskDelay(pdMS_TO_TICKS(I2S_READ_WAIT_MS));
-            continue;
-        }
+        bytes_read = bytes_read / 2; // Adjust bytes_read to reflect 16-bit samples after rescaling
 #endif
 #endif
 

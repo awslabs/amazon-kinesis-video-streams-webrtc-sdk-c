@@ -19,14 +19,18 @@
 extern "C" {
 #endif
 
-#include "common_defs.h"
+#include "platform_esp32.h"
 
+// Forward declarations for Windows builds
 #if defined _WIN32 || defined _WIN64 || defined __CYGWIN__
+/* Forward declarations - these are defined in common_defs.h */
+extern MUTEX globalCreateMutex(BOOL);
+extern CVAR globalConditionVariableCreate(void);
 
 // Definition of the static initializers
-#define GLOBAL_MUTEX_INIT           MUTEX_CREATE(FALSE)
-#define GLOBAL_MUTEX_INIT_RECURSIVE MUTEX_CREATE(TRUE)
-#define GLOBAL_CVAR_INIT            CVAR_CREATE()
+#define GLOBAL_MUTEX_INIT           globalCreateMutex(FALSE)
+#define GLOBAL_MUTEX_INIT_RECURSIVE globalCreateMutex(TRUE)
+#define GLOBAL_CVAR_INIT            globalConditionVariableCreate()
 
 #else //!< #if defined _WIN32 || defined _WIN64 || defined __CYGWIN__
 
@@ -42,7 +46,10 @@ extern "C" {
     }
 #endif //!< #ifndef PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
 
-#define GLOBAL_MUTEX_INIT_RECURSIVE PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
+// On ESP32, pthread_mutex_t is a scalar type (uint32_t), so we can't use brace initialization
+// ESP32 doesn't support static initialization of recursive mutexes - must use pthread_mutex_init
+// This macro should not be used as a static initializer on ESP32
+#define GLOBAL_MUTEX_INIT_RECURSIVE 0
 #else //!< #ifndef PTHREAD_RECURSIVE_MUTEX_INITIALIZER
 #define GLOBAL_MUTEX_INIT_RECURSIVE PTHREAD_RECURSIVE_MUTEX_INITIALIZER
 #endif //!< #ifndef PTHREAD_RECURSIVE_MUTEX_INITIALIZER

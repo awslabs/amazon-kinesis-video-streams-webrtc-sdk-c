@@ -39,7 +39,6 @@ CleanUp:
 STATUS safeBlockingQueueFree(PSafeBlockingQueue pSafeQueue)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    INT32 count = 0;
     CHK(pSafeQueue != NULL, STATUS_NULL_ARG);
 
     // set terminate flag, lock mutex -- this assures all other threads

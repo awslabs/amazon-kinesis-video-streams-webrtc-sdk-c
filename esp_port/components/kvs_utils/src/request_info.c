@@ -291,14 +291,14 @@ PUBLIC_API STATUS setRequestHeader(PRequestInfo pRequestInfo, PCHAR headerName, 
     CHK_STATUS(singleListGetHeadNode(pRequestInfo->pRequestHeaders, &pCurNode));
     while (pCurNode != NULL) {
         CHK_STATUS(singleListGetNodeData(pCurNode, &item));
-        pCurrentHeader = (PRequestHeader) item;
+        pCurrentHeader = (PRequestHeader) HANDLE_TO_POINTER(item);
 
         if (STRCMPI(pCurrentHeader->pName, pRequestHeader->pName) > 0) {
             if (pPrevNode == NULL) {
                 // Insert at the head
-                CHK_STATUS(singleListInsertItemHead(pRequestInfo->pRequestHeaders, (UINT64) pRequestHeader));
+                CHK_STATUS(singleListInsertItemHead(pRequestInfo->pRequestHeaders, POINTER_TO_HANDLE(pRequestHeader)));
             } else {
-                CHK_STATUS(singleListInsertItemAfter(pRequestInfo->pRequestHeaders, pPrevNode, (UINT64) pRequestHeader));
+                CHK_STATUS(singleListInsertItemAfter(pRequestInfo->pRequestHeaders, pPrevNode, POINTER_TO_HANDLE(pRequestHeader)));
             }
 
             // Early return
@@ -311,7 +311,7 @@ PUBLIC_API STATUS setRequestHeader(PRequestInfo pRequestInfo, PCHAR headerName, 
     }
 
     // If not inserted then add to the tail
-    CHK_STATUS(singleListInsertItemTail(pRequestInfo->pRequestHeaders, (UINT64) pRequestHeader));
+    CHK_STATUS(singleListInsertItemTail(pRequestInfo->pRequestHeaders, POINTER_TO_HANDLE(pRequestHeader)));
 
 CleanUp:
 
@@ -335,7 +335,7 @@ PUBLIC_API STATUS removeRequestHeader(PRequestInfo pRequestInfo, PCHAR headerNam
     CHK_STATUS(singleListGetHeadNode(pRequestInfo->pRequestHeaders, &pCurNode));
     while (pCurNode != NULL) {
         CHK_STATUS(singleListGetNodeData(pCurNode, &item));
-        pCurrentHeader = (PRequestHeader) item;
+        pCurrentHeader = (PRequestHeader) HANDLE_TO_POINTER(item);
 
         if (STRCMPI(pCurrentHeader->pName, headerName) == 0) {
             CHK_STATUS(singleListDeleteNode(pRequestInfo->pRequestHeaders, pCurNode));
@@ -367,7 +367,7 @@ PUBLIC_API STATUS removeRequestHeaders(PRequestInfo pRequestInfo)
     while (itemCount-- != 0) {
         // Remove and delete the data
         singleListGetHeadNode(pRequestInfo->pRequestHeaders, &pNode);
-        pRequestHeader = (PRequestHeader) pNode->data;
+        pRequestHeader = (PRequestHeader) HANDLE_TO_POINTER(pNode->data);
         SAFE_MEMFREE(pRequestHeader);
 
         // Iterate

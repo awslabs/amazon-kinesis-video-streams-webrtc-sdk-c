@@ -14,7 +14,8 @@ idf_component_register(
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DLWS_WITH_CUSTOM_HEADERS=1 -DLWS_WITH_CUSTOM_HTTP_HEADERS=1")
 
 # Disable deprecation warnings for esp_spi_flash.h
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=cpp -Wno-deprecated-declarations")
+# Suppress unused variable warnings from upstream libwebsockets code
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=cpp -Wno-deprecated-declarations -Wno-unused-variable")
 
 # Disable libwebsockets export targets before adding subdirectory
 set(LWS_WITH_EXPORT_LWSTARGETS OFF CACHE BOOL "Disable lws export targets" FORCE)

@@ -78,7 +78,7 @@ STATUS doubleListClear(PDoubleList pList, BOOL freeData)
         pNextNode = pCurNode->pNext;
         if (freeData && (pCurNode->data != 0)) {
             count++;
-            MEMFREE((PVOID) pCurNode->data);
+            MEMFREE(HANDLE_TO_POINTER(pCurNode->data));
             pCurNode->data = 0;
         }
         MEMFREE(pCurNode);

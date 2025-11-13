@@ -194,7 +194,7 @@ MUTEX defaultCreateMutex(BOOL reentrant)
     // Allocate the mutex
     pMutex = (pthread_mutex_t*) MEMCALLOC(1, SIZEOF(pthread_mutex_t));
     if (NULL == pMutex) {
-        return (MUTEX)(reentrant ? &globalKvsReentrantMutex : &globalKvsNonReentrantMutex);
+        return POINTER_TO_HANDLE(reentrant ? &globalKvsReentrantMutex : &globalKvsNonReentrantMutex);
     }
 
     if (0 != pthread_mutexattr_init(&mutexAttributes) ||
@@ -202,25 +202,25 @@ MUTEX defaultCreateMutex(BOOL reentrant)
         0 != pthread_mutex_init(pMutex, &mutexAttributes)) {
         // In case of an error return the global mutexes
         MEMFREE(pMutex);
-        return (MUTEX)(reentrant ? &globalKvsReentrantMutex : &globalKvsNonReentrantMutex);
+        return POINTER_TO_HANDLE(reentrant ? &globalKvsReentrantMutex : &globalKvsNonReentrantMutex);
     }
 
-    return (MUTEX) pMutex;
+    return POINTER_TO_HANDLE(pMutex);
 }
 
 VOID defaultLockMutex(MUTEX mutex)
 {
-    pthread_mutex_lock((pthread_mutex_t*) mutex);
+    pthread_mutex_lock((pthread_mutex_t*) HANDLE_TO_POINTER(mutex));
 }
 
 VOID defaultUnlockMutex(MUTEX mutex)
 {
-    pthread_mutex_unlock((pthread_mutex_t*) mutex);
+    pthread_mutex_unlock((pthread_mutex_t*) HANDLE_TO_POINTER(mutex));
 }
 
 BOOL defaultTryLockMutex(MUTEX mutex)
 {
-    return (0 == pthread_mutex_trylock((pthread_mutex_t*) mutex));
+    return (0 == pthread_mutex_trylock((pthread_mutex_t*) HANDLE_TO_POINTER(mutex)));
 }
 
 BOOL defaultWaitLockMutex(MUTEX mutex, UINT64 timeout)
@@ -230,12 +230,12 @@ BOOL defaultWaitLockMutex(MUTEX mutex, UINT64 timeout)
     time += timeout;
     mutexTimeout.tv_nsec = (time % HUNDREDS_OF_NANOS_IN_A_SECOND) / HUNDREDS_OF_NANOS_IN_A_MICROSECOND;
     mutexTimeout.tv_sec = time / HUNDREDS_OF_NANOS_IN_A_SECOND;
-    return (0 == pthread_mutex_timedlock((pthread_mutex_t*) mutex, &mutexTimeout));
+    return (0 == pthread_mutex_timedlock((pthread_mutex_t*) HANDLE_TO_POINTER(mutex), &mutexTimeout));
 }
 
 VOID defaultFreeMutex(MUTEX mutex)
 {
-    pthread_mutex_t* pMutex = (pthread_mutex_t*) mutex;
+    pthread_mutex_t* pMutex = (pthread_mutex_t*) HANDLE_TO_POINTER(mutex);
     pthread_mutex_destroy(pMutex);
 
     // De-allocate the memory if it's not a well-known mutex - aka if we had allocated it previously
@@ -304,7 +304,7 @@ STATUS defaultConditionVariableWait(CVAR cvar, MUTEX mutex, UINT64 timeout)
     STATUS retStatus = STATUS_SUCCESS;
     INT32 retVal = 0;
     struct timespec timeSpec;
-    pthread_mutex_t* pMutex = (pthread_mutex_t*) mutex;
+    pthread_mutex_t* pMutex = (pthread_mutex_t*) HANDLE_TO_POINTER(mutex);
     UINT64 curTime = GETREALTIME();
 
     // Timeout is a duration so we need to construct an absolute time

@@ -431,14 +431,14 @@ STATUS getCanonicalQueryParams(PCHAR pUrl, UINT32 urlLen, BOOL uriEncode, PCHAR*
         pPrevNode = NULL;
         while (!inserted && pCurNode != NULL) {
             CHK_STATUS(singleListGetNodeData(pCurNode, &item));
-            pParam = (PCHAR) item;
+            pParam = (PCHAR) HANDLE_TO_POINTER(item);
 
             if (STRCMP(pNewParam, pParam) <= 0) {
                 if (pPrevNode == NULL) {
                     // Insert at the head
-                    CHK_STATUS(singleListInsertItemHead(pSingleList, (UINT64) pNewParam));
+                    CHK_STATUS(singleListInsertItemHead(pSingleList, POINTER_TO_HANDLE(pNewParam)));
                 } else {
-                    CHK_STATUS(singleListInsertItemAfter(pSingleList, pPrevNode, (UINT64) pNewParam));
+                    CHK_STATUS(singleListInsertItemAfter(pSingleList, pPrevNode, POINTER_TO_HANDLE(pNewParam)));
                 }
 
                 // Early return
@@ -452,7 +452,7 @@ STATUS getCanonicalQueryParams(PCHAR pUrl, UINT32 urlLen, BOOL uriEncode, PCHAR*
 
         if (!inserted) {
             // If not inserted then add to the tail
-            CHK_STATUS(singleListInsertItemTail(pSingleList, (UINT64) pNewParam));
+            CHK_STATUS(singleListInsertItemTail(pSingleList, POINTER_TO_HANDLE(pNewParam)));
         }
 
         // Advance the start
@@ -469,7 +469,7 @@ STATUS getCanonicalQueryParams(PCHAR pUrl, UINT32 urlLen, BOOL uriEncode, PCHAR*
     CHK_STATUS(singleListGetHeadNode(pSingleList, &pCurNode));
     while (pCurNode != NULL) {
         CHK_STATUS(singleListGetNodeData(pCurNode, &item));
-        pParam = (PCHAR) item;
+        pParam = (PCHAR) HANDLE_TO_POINTER(item);
 
         // Account for '&'
         maxLen = (UINT32) STRLEN(pParam);
@@ -682,7 +682,7 @@ STATUS generateCanonicalHeaders(PRequestInfo pRequestInfo, PCHAR pCanonicalHeade
     // Iterate through the headers
     while (pCurNode != NULL) {
         CHK_STATUS(singleListGetNodeData(pCurNode, &item));
-        pRequestHeader = (PRequestHeader) item;
+        pRequestHeader = (PRequestHeader) HANDLE_TO_POINTER(item);
 
         // Process only if we have a canonical header name
         if (IS_CANONICAL_HEADER_NAME(pRequestHeader->pName)) {
@@ -746,7 +746,7 @@ STATUS generateSignedHeaders(PRequestInfo pRequestInfo, PCHAR pSignedHeaders, PU
     // Iterate through the headers
     while (pCurNode != NULL) {
         CHK_STATUS(singleListGetNodeData(pCurNode, &item));
-        pRequestHeader = (PRequestHeader) item;
+        pRequestHeader = (PRequestHeader) HANDLE_TO_POINTER(item);
 
         // Process only if we have a canonical header name
         if (IS_CANONICAL_HEADER_NAME(pRequestHeader->pName)) {
@@ -905,6 +905,7 @@ STATUS getRequestHost(PCHAR pUrl, PCHAR* ppStart, PCHAR* ppEnd)
 
                 // Set the new end value
                 pEnd = pCurPtr;
+                /* fall-through */
             default:
                 pCurPtr++;
         }

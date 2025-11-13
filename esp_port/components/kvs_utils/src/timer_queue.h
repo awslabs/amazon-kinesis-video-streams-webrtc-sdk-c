@@ -127,8 +127,8 @@ typedef struct __TimerQueue {
 } TimerQueue, *PTimerQueue;
 
 // Public handle to and from object converters
-#define TO_TIMER_QUEUE_HANDLE(p)   ((TIMER_QUEUE_HANDLE)(p))
-#define FROM_TIMER_QUEUE_HANDLE(h) (IS_VALID_TIMER_QUEUE_HANDLE(h) ? (PTimerQueue)(h) : NULL)
+#define TO_TIMER_QUEUE_HANDLE(p)   POINTER_TO_HANDLE(p)
+#define FROM_TIMER_QUEUE_HANDLE(h) (IS_VALID_TIMER_QUEUE_HANDLE(h) ? (PTimerQueue) HANDLE_TO_POINTER(h) : NULL)
 
 /******************************************************************************
  * FUNCTIONS

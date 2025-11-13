@@ -97,7 +97,7 @@ static STATUS kvs_stopIceStats(kvs_pc_client_t* client);
 static STATUS kvs_applyNewIceServersCallback(UINT64 callerData, PHashEntry pHashEntry)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    kvs_pc_client_t* client = (kvs_pc_client_t*)callerData;
+    kvs_pc_client_t* client = (kvs_pc_client_t*)HANDLE_TO_POINTER(callerData);
     kvs_pc_session_t* session = NULL;
     RtcIceServer* newTurnServers = NULL;
     UINT32 newTurnServerCount = 0;
@@ -105,7 +105,7 @@ static STATUS kvs_applyNewIceServersCallback(UINT64 callerData, PHashEntry pHash
 
     CHK(client != NULL && pHashEntry != NULL, STATUS_NULL_ARG);
 
-    session = (kvs_pc_session_t*)pHashEntry->value;
+    session = (kvs_pc_session_t*)HANDLE_TO_POINTER(pHashEntry->value);
     CHK(session != NULL && !session->terminated && session->peer_connection != NULL, STATUS_NULL_ARG);
 
     ESP_LOGI(TAG, "Applying new ICE servers to existing session: %s", session->peer_id);
@@ -231,7 +231,7 @@ static WEBRTC_STATUS kvs_pc_set_ice_servers(void *pPeerConnectionClient, void *i
         CHK_STATUS(hashTableGetCount(client_data->activeSessions, &activeSessionCount));
         if (activeSessionCount > 0) {
             ESP_LOGI(TAG, "Progressive ICE: Dynamically applying new ICE servers to %" PRIu32 " existing sessions", activeSessionCount);
-            CHK_STATUS(hashTableIterateEntries(client_data->activeSessions, (UINT64)client_data, kvs_applyNewIceServersCallback));
+            CHK_STATUS(hashTableIterateEntries(client_data->activeSessions, POINTER_TO_HANDLE(client_data), kvs_applyNewIceServersCallback));
             ESP_LOGI(TAG, "Progressive ICE: Successfully processed all %" PRIu32 " existing sessions for dynamic updates", activeSessionCount);
         } else {
             ESP_LOGI(TAG, "Progressive ICE: No existing sessions to update - new ICE servers will be used for future connections");
@@ -242,7 +242,7 @@ static WEBRTC_STATUS kvs_pc_set_ice_servers(void *pPeerConnectionClient, void *i
         CHK_STATUS(hashTableGetCount(client_data->activeSessions, &activeSessionCount));
         if (activeSessionCount > 0) {
             ESP_LOGI(TAG, "Progressive ICE: Dynamically applying new ICE servers to %" PRIu32 " existing sessions", activeSessionCount);
-            CHK_STATUS(hashTableIterateEntries(client_data->activeSessions, (UINT64)client_data, kvs_applyNewIceServersCallback));
+            CHK_STATUS(hashTableIterateEntries(client_data->activeSessions, POINTER_TO_HANDLE(client_data), kvs_applyNewIceServersCallback));
             ESP_LOGI(TAG, "Progressive ICE: Successfully processed all %" PRIu32 " existing sessions for dynamic updates", activeSessionCount);
         } else {
             ESP_LOGI(TAG, "Progressive ICE: No existing sessions to update - new ICE servers will be used for future connections");
@@ -521,8 +521,8 @@ static WEBRTC_STATUS kvs_pc_create_session(void *pPeerConnectionClient,
     // Apply callbacks if we have effective config
     if (session->has_session_dc_config || client_data->has_client_dc_config) {
         g_data_channel_callbacks.callbacks_registered = TRUE;
-        g_data_channel_callbacks.onOpen = (RtcOnOpen)session->effective_dc_config.onOpen;
-        g_data_channel_callbacks.onMessage = (RtcOnMessage)session->effective_dc_config.onMessage;
+        g_data_channel_callbacks.onOpen = (RtcOnOpen)(void*)session->effective_dc_config.onOpen;
+        g_data_channel_callbacks.onMessage = (RtcOnMessage)(void*)session->effective_dc_config.onMessage;
         g_data_channel_callbacks.customData = session->effective_dc_config.customData;
         ESP_LOGD(TAG, "Applied data channel callbacks from config for peer: %s", peer_id);
     }
@@ -552,9 +552,9 @@ static WEBRTC_STATUS kvs_pc_create_session(void *pPeerConnectionClient,
     CHK_STATUS(kvs_initializePeerConnection(client_data, &session->peer_connection));
 
     // Set up callbacks
-    CHK_STATUS(peerConnectionOnIceCandidate(session->peer_connection, (UINT64)session, onIceCandidateHandler));
-    CHK_STATUS(peerConnectionOnConnectionStateChange(session->peer_connection, (UINT64)session, onConnectionStateChangeHandler));
-    CHK_STATUS(peerConnectionOnDataChannel(session->peer_connection, (UINT64)session, onDataChannelHandler));
+    CHK_STATUS(peerConnectionOnIceCandidate(session->peer_connection, POINTER_TO_HANDLE(session), onIceCandidateHandler));
+    CHK_STATUS(peerConnectionOnConnectionStateChange(session->peer_connection, POINTER_TO_HANDLE(session), onConnectionStateChangeHandler));
+    CHK_STATUS(peerConnectionOnDataChannel(session->peer_connection, POINTER_TO_HANDLE(session), onDataChannelHandler));
 
     // Configure codecs and media tracks
     CHK_STATUS(kvs_setupMediaTracks(session));
@@ -564,7 +564,7 @@ static WEBRTC_STATUS kvs_pc_create_session(void *pPeerConnectionClient,
     if (client_data->activeSessions != NULL && IS_VALID_MUTEX_VALUE(client_data->statsLock)) {
         MUTEX_LOCK(client_data->statsLock);
         UINT32 peerIdHash = COMPUTE_CRC32((PBYTE)peer_id, (UINT32)STRLEN(peer_id));
-        STATUS addStatus = hashTablePut(client_data->activeSessions, (UINT64)peerIdHash, (UINT64)session);
+        STATUS addStatus = hashTablePut(client_data->activeSessions, (UINT64)peerIdHash, POINTER_TO_HANDLE(session));
         if (STATUS_FAILED(addStatus)) {
             ESP_LOGW(TAG, "Failed to add session to internal tracking for metrics: 0x%08" PRIx32, (UINT32) addStatus);
         } else {
@@ -1011,7 +1011,7 @@ static WEBRTC_STATUS kvs_pc_set_callbacks(void *pSession,
 
 static VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
 {
-    kvs_pc_session_t *session = (kvs_pc_session_t *)(ULONG_PTR)customData;
+    kvs_pc_session_t *session = (kvs_pc_session_t *)HANDLE_TO_POINTER(customData);
 
     if (session == NULL) {
         ESP_LOGE(TAG, "Invalid ICE candidate callback parameters");
@@ -1047,7 +1047,7 @@ static VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
 static VOID onConnectionStateChangeHandler(UINT64 customData, RTC_PEER_CONNECTION_STATE newState)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    kvs_pc_session_t *session = (kvs_pc_session_t *)(ULONG_PTR)customData;
+    kvs_pc_session_t *session = (kvs_pc_session_t *)HANDLE_TO_POINTER(customData);
     webrtc_peer_state_t peer_state;
 
     ESP_LOGI(TAG, "Peer connection state change: peer=%s, KVS_state=%d",
@@ -1142,7 +1142,7 @@ CleanUp:
  */
 static VOID kvs_onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
 {
-    kvs_pc_session_t *session = (kvs_pc_session_t *)(ULONG_PTR)customData;
+    kvs_pc_session_t *session = (kvs_pc_session_t *)HANDLE_TO_POINTER(customData);
 
     if (session == NULL || pDataChannel == NULL || pMessage == NULL) {
         ESP_LOGE(TAG, "Invalid data channel message parameters");
@@ -1159,7 +1159,7 @@ static VOID kvs_onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataCha
 
         // The app_webrtc interface has a different signature than the KVS SDK
         // We need to adapt the parameters to match the app_webrtc_rtc_on_message_t signature
-        app_webrtc_rtc_on_message_t app_callback = (app_webrtc_rtc_on_message_t)g_data_channel_callbacks.onMessage;
+        app_webrtc_rtc_on_message_t app_callback = (app_webrtc_rtc_on_message_t)(void*)g_data_channel_callbacks.onMessage;
 
         // Call the application callback with the message
         ESP_LOGD(TAG, "Invoking global callback with peer_id=%s, message=%.*s",
@@ -1207,7 +1207,7 @@ static VOID kvs_onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataCha
 static VOID kvs_onDataChannelOpen(UINT64 customData, PRtcDataChannel pDataChannel)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    kvs_pc_session_t *session = (kvs_pc_session_t *)(ULONG_PTR)customData;
+    kvs_pc_session_t *session = (kvs_pc_session_t *)HANDLE_TO_POINTER(customData);
 
     if (session == NULL || pDataChannel == NULL) {
         ESP_LOGE(TAG, "Invalid data channel open parameters");
@@ -1231,7 +1231,7 @@ static VOID kvs_onDataChannelOpen(UINT64 customData, PRtcDataChannel pDataChanne
 
         // The app_webrtc interface has a different signature than the KVS SDK
         // We need to adapt the parameters to match the app_webrtc_rtc_on_open_t signature
-        app_webrtc_rtc_on_open_t app_callback = (app_webrtc_rtc_on_open_t)g_data_channel_callbacks.onOpen;
+        app_webrtc_rtc_on_open_t app_callback = (app_webrtc_rtc_on_open_t)(void*)g_data_channel_callbacks.onOpen;
 
         // Call the application callback with the peer_id
         ESP_LOGD(TAG, "Invoking global open callback with peer_id=%s", session->peer_id);
@@ -1255,7 +1255,7 @@ CleanUp:
 static VOID onDataChannelHandler(UINT64 customData, PRtcDataChannel pRtcDataChannel)
 {
 #if KVS_ENABLE_DATA_CHANNEL
-    kvs_pc_session_t *session = (kvs_pc_session_t *)(ULONG_PTR)customData;
+    kvs_pc_session_t *session = (kvs_pc_session_t *)HANDLE_TO_POINTER(customData);
 
     if (session == NULL) {
         ESP_LOGE(TAG, "Invalid data channel callback parameters");
@@ -1410,8 +1410,8 @@ static WEBRTC_STATUS kvs_pc_create_data_channel(void *pSession, const char *chan
     session->data_channel = pDataChannel;
 
     // Set up default callbacks
-    CHK_STATUS(dataChannelOnOpen(pDataChannel, (UINT64)session, kvs_onDataChannelOpen));
-    CHK_STATUS(dataChannelOnMessage(pDataChannel, (UINT64)session, kvs_onDataChannelMessage));
+    CHK_STATUS(dataChannelOnOpen(pDataChannel, POINTER_TO_HANDLE(session), kvs_onDataChannelOpen));
+    CHK_STATUS(dataChannelOnMessage(pDataChannel, POINTER_TO_HANDLE(session), kvs_onDataChannelMessage));
     // NOTE: KVS SDK does not support dataChannelOnClose callback registration yet
 
     // Return the data channel
@@ -1458,8 +1458,8 @@ static WEBRTC_STATUS kvs_pc_set_data_channel_callbacks(void *pSession,
 
     // Update global callbacks for immediate effect
     g_data_channel_callbacks.callbacks_registered = TRUE;
-    g_data_channel_callbacks.onOpen = (RtcOnOpen)onOpen;
-    g_data_channel_callbacks.onMessage = (RtcOnMessage)onMessage;
+    g_data_channel_callbacks.onOpen = (RtcOnOpen)(void*)onOpen;
+    g_data_channel_callbacks.onMessage = (RtcOnMessage)(void*)onMessage;
     g_data_channel_callbacks.customData = customData;
 
     ESP_LOGD(TAG, "Data channel callbacks overridden via set_data_channel_callbacks");
@@ -1706,7 +1706,7 @@ static STATUS kvs_setupMediaTracks(kvs_pc_session_t* session)
     CHK_STATUS(addTransceiver(session->peer_connection, &videoTrack, &videoRtpTransceiverInit, &session->video_transceiver));
 
     // Set up bandwidth estimation for video transceiver
-    CHK_STATUS(transceiverOnBandwidthEstimation(session->video_transceiver, (UINT64)session, kvs_videoBandwidthEstimationHandler));
+    CHK_STATUS(transceiverOnBandwidthEstimation(session->video_transceiver, POINTER_TO_HANDLE(session), kvs_videoBandwidthEstimationHandler));
 
     // Add audio transceiver (match legacy identifiers for compatibility)
     audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
@@ -1720,12 +1720,12 @@ static STATUS kvs_setupMediaTracks(kvs_pc_session_t* session)
     CHK_STATUS(addTransceiver(session->peer_connection, &audioTrack, &audioRtpTransceiverInit, &session->audio_transceiver));
 
     // Set up bandwidth estimation for audio transceiver
-    CHK_STATUS(transceiverOnBandwidthEstimation(session->audio_transceiver, (UINT64)session, kvs_audioBandwidthEstimationHandler));
+    CHK_STATUS(transceiverOnBandwidthEstimation(session->audio_transceiver, POINTER_TO_HANDLE(session), kvs_audioBandwidthEstimationHandler));
 
     // Set up TWCC bandwidth estimation if enabled and client supports it
 #if KVS_ENABLE_SENDER_BANDWIDTH_ESTIMATION
     if (session->client->config.trickle_ice) {  // Use trickle_ice as proxy for TWCC support
-        CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(session->peer_connection, (UINT64)session, kvs_senderBandwidthEstimationHandler));
+        CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(session->peer_connection, POINTER_TO_HANDLE(session), kvs_senderBandwidthEstimationHandler));
         ESP_LOGI(TAG, "TWCC sender bandwidth estimation enabled for peer: %s", session->peer_id);
     }
 #else
@@ -1949,7 +1949,7 @@ static BOOL kvs_sampleFilterNetworkInterfaces(UINT64 customData, PCHAR networkIn
  */
 static VOID kvs_videoBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
 {
-    kvs_pc_session_t *session = (kvs_pc_session_t *)(ULONG_PTR)customData;
+    kvs_pc_session_t *session = (kvs_pc_session_t *)HANDLE_TO_POINTER(customData);
 
     if (session == NULL) {
         ESP_LOGE(TAG, "Invalid session in video bandwidth estimation handler");
@@ -1983,7 +1983,7 @@ static VOID kvs_videoBandwidthEstimationHandler(UINT64 customData, DOUBLE maximu
 
 static VOID kvs_audioBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
 {
-    kvs_pc_session_t *session = (kvs_pc_session_t *)(ULONG_PTR)customData;
+    kvs_pc_session_t *session = (kvs_pc_session_t *)HANDLE_TO_POINTER(customData);
 
     if (session == NULL) {
         ESP_LOGE(TAG, "Invalid session in audio bandwidth estimation handler");
@@ -2013,7 +2013,7 @@ static VOID kvs_senderBandwidthEstimationHandler(UINT64 customData, UINT32 txByt
                                                  UINT32 txPacketsCnt, UINT32 rxPacketsCnt, UINT64 duration)
 {
     UNUSED_PARAM(duration);
-    kvs_pc_session_t *session = (kvs_pc_session_t *)(ULONG_PTR)customData;
+    kvs_pc_session_t *session = (kvs_pc_session_t *)HANDLE_TO_POINTER(customData);
     UINT64 videoBitrate, audioBitrate;
     UINT64 currentTimeMs, timeDiff;
     UINT32 lostPacketsCnt = txPacketsCnt - rxPacketsCnt;
@@ -2090,7 +2090,7 @@ static STATUS kvs_pregenerateCertTimerCallback(UINT32 timerId, UINT64 currentTim
     UNUSED_PARAM(timerId);
     UNUSED_PARAM(currentTime);
     STATUS retStatus = STATUS_SUCCESS;
-    kvs_pc_client_t *client = (kvs_pc_client_t *) customData;
+    kvs_pc_client_t *client = (kvs_pc_client_t *)HANDLE_TO_POINTER(customData);
     BOOL locked = FALSE;
     UINT32 certCount;
     PRtcCertificate pRtcCertificate = NULL;
@@ -2114,7 +2114,7 @@ static STATUS kvs_pregenerateCertTimerCallback(UINT32 timerId, UINT64 currentTim
     CHK_STATUS(createRtcCertificate(&pRtcCertificate));
 
     // Add to the stack queue
-    CHK_STATUS(stackQueueEnqueue(client->pregeneratedCertificates, (UINT64) pRtcCertificate));
+    CHK_STATUS(stackQueueEnqueue(client->pregeneratedCertificates, POINTER_TO_HANDLE(pRtcCertificate)));
 
     ESP_LOGV(TAG, "New certificate has been pre-generated and added to the queue");
 
@@ -2163,7 +2163,7 @@ static STATUS kvs_initializeCertificatePregeneration(kvs_pc_client_t* client)
     // Start the certificate pre-generation timer
     if (KVS_PRE_GENERATE_CERT) {
         CHK_STATUS(timerQueueAddTimer(client->timer_queue, 0, KVS_PRE_GENERATE_CERT_PERIOD,
-                                     kvs_pregenerateCertTimerCallback, (UINT64) client,
+                                     kvs_pregenerateCertTimerCallback, POINTER_TO_HANDLE(client),
                                      &client->pregenerateCertTimerId));
         ESP_LOGI(TAG, "Certificate pre-generation timer started");
     } else {
@@ -2197,7 +2197,7 @@ static STATUS kvs_freeCertificatePregeneration(kvs_pc_client_t* client)
 
     // Cancel timer if active
     if (IS_VALID_TIMER_QUEUE_HANDLE(client->timer_queue) && client->pregenerateCertTimerId != MAX_UINT32) {
-        retStatus = timerQueueCancelTimer(client->timer_queue, client->pregenerateCertTimerId, (UINT64) client);
+        retStatus = timerQueueCancelTimer(client->timer_queue, client->pregenerateCertTimerId, POINTER_TO_HANDLE(client));
         if (STATUS_FAILED(retStatus)) {
             ESP_LOGE(TAG, "Failed to cancel certificate pre-generation timer: 0x%08" PRIx32, (UINT32) retStatus);
         }
@@ -2210,7 +2210,7 @@ static STATUS kvs_freeCertificatePregeneration(kvs_pc_client_t* client)
         while (IS_VALID_ITERATOR(iterator)) {
             stackQueueIteratorGetItem(iterator, &data);
             stackQueueIteratorNext(&iterator);
-            freeRtcCertificate((PRtcCertificate) data);
+            freeRtcCertificate((PRtcCertificate)HANDLE_TO_POINTER(data));
         }
 
         stackQueueClear(client->pregeneratedCertificates, FALSE);
@@ -2252,7 +2252,7 @@ static STATUS kvs_getOrCreateCertificate(kvs_pc_client_t* client, PRtcCertificat
 
         // Handle both success and empty queue cases (like Common.c)
         if (retStatus == STATUS_SUCCESS) {
-            pCertificate = (PRtcCertificate) data;
+            pCertificate = (PRtcCertificate)HANDLE_TO_POINTER(data);
             CHK_STATUS(stackQueueGetCount(client->pregeneratedCertificates, &certCount));
             ESP_LOGI(TAG, "Using pre-generated certificate (remaining in pool: %" PRIu32 ")", certCount);
         } else if (retStatus == STATUS_NOT_FOUND) {
@@ -2300,7 +2300,7 @@ static STATUS kvs_iceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTi
     UNUSED_PARAM(timerId);
     UNUSED_PARAM(currentTime);
     STATUS retStatus = STATUS_SUCCESS;
-    kvs_pc_client_t* client = (kvs_pc_client_t*)customData;
+    kvs_pc_client_t* client = (kvs_pc_client_t*)HANDLE_TO_POINTER(customData);
     BOOL locked = FALSE;
 
     CHK(client != NULL, STATUS_NULL_ARG);
@@ -2324,7 +2324,7 @@ static STATUS kvs_iceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTi
 
         if (activeSessionCount > 0) {
             // Iterate through all active sessions using callback approach
-            CHK_STATUS(hashTableIterateEntries(pActiveSessionsTable, (UINT64)client, kvs_metricsCollectionCallback));
+            CHK_STATUS(hashTableIterateEntries(pActiveSessionsTable, POINTER_TO_HANDLE(client), kvs_metricsCollectionCallback));
         } else {
             ESP_LOGV(TAG, "No active sessions to collect metrics for");
         }
@@ -2352,7 +2352,7 @@ static STATUS kvs_startIceStats(kvs_pc_client_t* client)
     if (client->iceCandidatePairStatsTimerId == MAX_UINT32) {
         ESP_LOGI(TAG, "Starting ICE candidate pair statistics collection");
         CHK_STATUS(timerQueueAddTimer(client->timer_queue, KVS_ICE_STATS_DURATION, KVS_ICE_STATS_DURATION,
-                                      kvs_iceCandidatePairStatsCallback, (UINT64)client,
+                                      kvs_iceCandidatePairStatsCallback, POINTER_TO_HANDLE(client),
                                       &client->iceCandidatePairStatsTimerId));
         ESP_LOGI(TAG, "ICE stats timer started successfully");
     }
@@ -2376,7 +2376,7 @@ static STATUS kvs_stopIceStats(kvs_pc_client_t* client)
     if (client->iceCandidatePairStatsTimerId != MAX_UINT32 &&
         IS_VALID_TIMER_QUEUE_HANDLE(client->timer_queue)) {
         ESP_LOGI(TAG, "Stopping ICE candidate pair statistics collection");
-        CHK_STATUS(timerQueueCancelTimer(client->timer_queue, client->iceCandidatePairStatsTimerId, (UINT64)client));
+        CHK_STATUS(timerQueueCancelTimer(client->timer_queue, client->iceCandidatePairStatsTimerId, POINTER_TO_HANDLE(client)));
         client->iceCandidatePairStatsTimerId = MAX_UINT32;
         ESP_LOGI(TAG, "ICE stats timer stopped successfully");
     }
@@ -2400,13 +2400,13 @@ CleanUp:
 static STATUS kvs_metricsCollectionCallback(UINT64 callerData, PHashEntry pHashEntry)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    kvs_pc_client_t* client = (kvs_pc_client_t*)callerData;
+    kvs_pc_client_t* client = (kvs_pc_client_t*)HANDLE_TO_POINTER(callerData);
     kvs_pc_session_t* pSession = NULL;
 
     CHK(client != NULL && pHashEntry != NULL, STATUS_NULL_ARG);
 
     // Extract session from hash entry value
-    pSession = (kvs_pc_session_t*)pHashEntry->value;
+    pSession = (kvs_pc_session_t*)HANDLE_TO_POINTER(pHashEntry->value);
     CHK(pSession != NULL, STATUS_NULL_ARG);
 
     // Skip invalid or terminated sessions

@@ -126,17 +126,6 @@ int rpc_deinit(void)
 	return rpc_slaveif_deinit();
 }
 
-static char * get_timestamp(char *str, uint16_t str_size)
-{
-	if (str && str_size>=MIN_TIMESTAMP_STR_SIZE) {
-		time_t t = time(NULL);
-		struct tm tm = *localtime(&t);
-		sprintf(str, "%d-%02d-%02d %02d:%02d:%02d > ", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-		return str;
-	}
-	return NULL;
-}
-
 #ifdef CONFIG_HOST_USES_STATIC_NETIF
 static esp_err_t update_dns_server(esp_netif_t *netif, uint32_t addr, esp_netif_dns_type_t type)
 {
@@ -443,6 +432,17 @@ fail_parsing:
 	return FAILURE;
 }
 #else
+static char * get_timestamp(char *str, uint16_t str_size)
+{
+	if (str && str_size>=MIN_TIMESTAMP_STR_SIZE) {
+		time_t t = time(NULL);
+		struct tm tm = *localtime(&t);
+		sprintf(str, "%d-%02d-%02d %02d:%02d:%02d > ", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+		return str;
+	}
+	return NULL;
+}
+
 static int rpc_event_callback(ctrl_cmd_t * app_event)
 {
 	char ts[MIN_TIMESTAMP_STR_SIZE] = {'\0'};

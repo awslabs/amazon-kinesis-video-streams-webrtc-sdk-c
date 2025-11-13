@@ -647,5 +647,5 @@ CleanUp:
 
     THREAD_EXIT(NULL);
     LEAVES();
-    return (PVOID)(ULONG_PTR) retStatus;
+    return (PVOID)(uintptr_t) retStatus;
 }

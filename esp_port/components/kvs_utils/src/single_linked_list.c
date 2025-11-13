@@ -85,8 +85,8 @@ STATUS singleListClear(PSingleList pList, BOOL freeData)
     pCurNode = pList->pHead;
     while (pCurNode != NULL) {
         pNextNode = pCurNode->pNext;
-        if (freeData && ((PVOID) pCurNode->data != NULL)) {
-            MEMFREE((PVOID) pCurNode->data);
+        if (freeData && (pCurNode->data != 0)) {
+            MEMFREE(HANDLE_TO_POINTER(pCurNode->data));
         }
         MEMFREE(pCurNode);
         pCurNode = pNextNode;

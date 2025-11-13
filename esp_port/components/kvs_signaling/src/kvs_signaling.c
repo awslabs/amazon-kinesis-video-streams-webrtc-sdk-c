@@ -1216,7 +1216,7 @@ static WEBRTC_STATUS kvsSetCallbacksWrapper(void *pSignalingClient,
 
     retStatus = setKvsSignalingCallbacks(pSignalingClient,
                                        (PVOID)pAdapterData,
-                                       on_msg_received,
+                                       (STATUS (*)(UINT64, webrtc_message_t*))(void*)on_msg_received,
                                        on_signaling_state_changed ? adapterStateChangedCallback : NULL,
                                        on_error ? adapterErrorCallback : NULL);
 

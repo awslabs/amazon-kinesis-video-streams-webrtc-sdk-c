@@ -54,8 +54,8 @@ typedef struct {
 } Semaphore, *PSemaphore;
 
 // Public handle to and from object converters
-#define TO_SEMAPHORE_HANDLE(p)   ((SEMAPHORE_HANDLE) (p))
-#define FROM_SEMAPHORE_HANDLE(h) (IS_VALID_SEMAPHORE_HANDLE(h) ? (PSemaphore) (h) : NULL)
+#define TO_SEMAPHORE_HANDLE(p)   POINTER_TO_HANDLE(p)
+#define FROM_SEMAPHORE_HANDLE(h) (IS_VALID_SEMAPHORE_HANDLE(h) ? (PSemaphore) HANDLE_TO_POINTER(h) : NULL)
 
 // Internal Functions
 STATUS semaphoreCreateInternal(UINT32, PSemaphore*, BOOL);
