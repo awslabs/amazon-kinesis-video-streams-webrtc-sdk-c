@@ -124,6 +124,7 @@ STATUS discoverNatMappingBehavior(PIceServer pStunServer, PNatTestData data, PSo
     /* execute test I */
     DLOGD("Running mapping behavior test I. Send binding request");
     CHK_STATUS(executeNatTest(bindingRequest, &pStunServer->ipAddresses.ipv4Address, pSocketConnection, testIndex++, data, &bindingResponse));
+    // TODO: Nat behavior discovery ipv6?
 
     if (bindingResponse == NULL) {
         natMappingBehavior = NAT_BEHAVIOR_NO_UDP_CONNECTIVITY;

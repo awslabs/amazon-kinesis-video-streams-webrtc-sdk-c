@@ -270,7 +270,7 @@ STATUS socketBind(PKvsIpAddress pHostIpAddress, INT32 sockfd)
 
     if (bind(sockfd, sockAddr, addrLen) < 0) {
         CHK_STATUS(getIpAddrStr(pHostIpAddress, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
-        DLOGW("bind() failed for ip%s address: %s, port %u with errno %s", IS_IPV4_ADDR(pHostIpAddress) ? EMPTY_STRING : "V6", ipAddrStr,
+        DLOGW("bind() failed for ip%s address: %s, port %u with errno %s", isIpv4Address(pHostIpAddress) ? EMPTY_STRING : "V6", ipAddrStr,
               (UINT16) getInt16(pHostIpAddress->port), getErrorString(getErrorCode()));
         CHK(FALSE, STATUS_BINDING_SOCKET_FAILED);
     }
@@ -462,6 +462,8 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
         CHK_ERR(ipv4Resolved || ipv6Resolved, STATUS_HOSTNAME_NOT_FOUND, "Could not find network address of %s", hostname);
     } else {
         // TODO: The below is for TURN case, will need to do this based on IP family too...
+        // NOTE: Current design plan is to not send TURN host names with prepended IP addressses, so this will not need to change
+        //          and will remain for backwards compat with the legacy servers.
         inet_pton(AF_INET, addr, &inaddr);
         destIps->ipv4Address.family = KVS_IP_FAMILY_TYPE_IPV4;
         MEMCPY(destIps->ipv4Address.address, &inaddr, IPV4_ADDRESS_LENGTH);
@@ -480,7 +482,7 @@ STATUS getIpAddrStr(PKvsIpAddress pKvsIpAddress, PCHAR pBuffer, UINT32 bufferLen
     CHK(pKvsIpAddress != NULL, STATUS_NULL_ARG);
     CHK(pBuffer != NULL && bufferLen > 0, STATUS_INVALID_ARG);
 
-    if (IS_IPV4_ADDR(pKvsIpAddress)) {
+    if (isIpv4Address(pKvsIpAddress)) {
         generatedStrLen = SNPRINTF(pBuffer, bufferLen, "%u.%u.%u.%u", pKvsIpAddress->address[0], pKvsIpAddress->address[1], pKvsIpAddress->address[2],
                                    pKvsIpAddress->address[3]);
     } else {
@@ -508,7 +510,7 @@ BOOL isSameIpAddress(PKvsIpAddress pAddr1, PKvsIpAddress pAddr2, BOOL checkPort)
         return FALSE;
     }
 
-    addrLen = IS_IPV4_ADDR(pAddr1) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
+    addrLen = isIpv4Address(pAddr1) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
 
     ret =
         (pAddr1->family == pAddr2->family && MEMCMP(pAddr1->address, pAddr2->address, addrLen) == 0 && (!checkPort || pAddr1->port == pAddr2->port));

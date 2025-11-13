@@ -25,7 +25,7 @@ STATUS stunPackageIpAddr(PStunHeader pStunHeader, STUN_ATTRIBUTE_TYPE type, PKvs
      * - 4 byte or 16 byte ip address
      */
     dataLen += STUN_ATTRIBUTE_HEADER_LEN + STUN_ATTRIBUTE_ADDRESS_HEADER_LEN;
-    dataLen += IS_IPV4_ADDR(pIndirected) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
+    dataLen += isIpv4Address(pIndirected) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
 
     // Check if we are asked for size only and early return if so
     CHK(pBuffer != NULL, STATUS_SUCCESS);
@@ -55,7 +55,7 @@ STATUS stunPackageIpAddr(PStunHeader pStunHeader, STUN_ATTRIBUTE_TYPE type, PKvs
     MEMCPY(pCurrentBufferPosition, (PBYTE) &pIndirected->port, SIZEOF(pIndirected->port));
     pCurrentBufferPosition += SIZEOF(pIndirected->port);
 
-    MEMCPY(pCurrentBufferPosition, pIndirected->address, IS_IPV4_ADDR(pIndirected) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH);
+    MEMCPY(pCurrentBufferPosition, pIndirected->address, isIpv4Address(pIndirected) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH);
 
 CleanUp:
 
@@ -1163,7 +1163,7 @@ STATUS appendStunAddressAttribute(PStunPacket pStunPacket, STUN_ATTRIBUTE_TYPE a
     // Set up the new entry and copy data over
     pStunPacket->attributeList[pStunPacket->attributesCount++] = (PStunAttributeHeader) pAttribute;
 
-    pAttribute->attribute.length = STUN_ATTRIBUTE_ADDRESS_HEADER_LEN + (IS_IPV4_ADDR(pAddress) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH);
+    pAttribute->attribute.length = STUN_ATTRIBUTE_ADDRESS_HEADER_LEN + (isIpv4Address(pAddress) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH);
     pAttribute->attribute.type = addressAttributeType;
 
     // Copy the attribute entirely
@@ -1256,7 +1256,7 @@ STATUS xorIpAddress(PKvsIpAddress pAddress, PBYTE pTransactionId)
     UINT32 i;
 
     CHK(pAddress != NULL, STATUS_NULL_ARG);
-    CHK(IS_IPV4_ADDR(pAddress) || pTransactionId != NULL, STATUS_INVALID_ARG);
+    CHK(isIpv4Address(pAddress) || pTransactionId != NULL, STATUS_INVALID_ARG);
 
     // Perform the XOR-ing
     pAddress->port = (UINT16) (getInt16(STUN_HEADER_MAGIC_COOKIE >> 16)) ^ pAddress->port;

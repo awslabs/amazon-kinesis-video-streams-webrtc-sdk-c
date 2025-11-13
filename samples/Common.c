@@ -400,44 +400,46 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
 
     if (pSampleConfiguration->useTurn) {
         // // Set the URIs from the configuration
-        // CHK_STATUS(signalingClientGetIceConfigInfoCount(pSampleConfiguration->signalingClientHandle, &iceConfigCount));
+        CHK_STATUS(signalingClientGetIceConfigInfoCount(pSampleConfiguration->signalingClientHandle, &iceConfigCount));
 
-        // /* signalingClientGetIceConfigInfoCount can return more than one turn server. Use only one to optimize
-        //  * candidate gathering latency. But user can also choose to use more than 1 turn server. */
-        // for (uriCount = 0, i = 0; i < maxTurnServer; i++) {
-        //     CHK_STATUS(signalingClientGetIceConfigInfo(pSampleConfiguration->signalingClientHandle, i, &pIceConfigInfo));
-        //     for (j = 0; j < pIceConfigInfo->uriCount; j++) {
-        //         CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
-        //         /*
-        //          * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=udp" then ICE will try TURN over UDP
-        //          * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
-        //          * if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=udp", it's currently ignored because sdk dont do TURN
-        //          * over DTLS yet. if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
-        //          * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port" then ICE will try both TURN over UDP and TCP/TLS
-        //          *
-        //          * It's recommended to not pass too many TURN iceServers to configuration because it will slow down ice gathering in non-trickle mode.
-        //          */
+        /* signalingClientGetIceConfigInfoCount can return more than one turn server. Use only one to optimize
+         * candidate gathering latency. But user can also choose to use more than 1 turn server. */
+        for (uriCount = 0, i = 0; i < maxTurnServer; i++) {
+            CHK_STATUS(signalingClientGetIceConfigInfo(pSampleConfiguration->signalingClientHandle, i, &pIceConfigInfo));
+            for (j = 0; j < pIceConfigInfo->uriCount; j++) {
+                CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
+                /*
+                 * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=udp" then ICE will try TURN over UDP
+                 * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
+                 * if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=udp", it's currently ignored because sdk dont do TURN
+                 * over DTLS yet. if configuration.iceServers[uriCount + 1].urls is "turns:ip:port?transport=tcp" then ICE will try TURN over TCP/TLS
+                 * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port" then ICE will try both TURN over UDP and TCP/TLS
+                 *
+                 * It's recommended to not pass too many TURN iceServers to configuration because it will slow down ice gathering in non-trickle mode.
+                 */
 
-        //          DLOGD("Ice server %d urls: %s", j + 1, pIceConfigInfo->uris[j]);
-        //          DLOGD("Ice server %d username: %s", j + 1, pIceConfigInfo->password);
-        //          DLOGD("Ice server %d credential: %s", j + 1, pIceConfigInfo->userName);
+                 DLOGD("Ice server %d urls: %s", j + 1, pIceConfigInfo->uris[j]);
+                 DLOGD("Ice server %d username: %s", j + 1, pIceConfigInfo->password);
+                 DLOGD("Ice server %d credential: %s", j + 1, pIceConfigInfo->userName);
 
-        //         if (isTurnUdp(pIceConfigInfo->uris[j])) {
-        //             DLOGD("Adding ICE server");
-        //             STRNCPY(configuration.iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
-        //             STRNCPY(configuration.iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
-        //             STRNCPY(configuration.iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
+                if (isTurnUdp(pIceConfigInfo->uris[j])) {
+                    DLOGD("Adding ICE server");
+                    STRNCPY(configuration.iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
+                    STRNCPY(configuration.iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
+                    STRNCPY(configuration.iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
                     
-        //             uriCount++;
-        //         }
+                    uriCount++;
+                }
 
 
-        //     }
-        // }
+            }
+        }
 
-        STRNCPY(configuration.iceServers[1].urls, "turn:XX.XXX.XXX.XXX:XXXX?transport=udp", MAX_ICE_CONFIG_URI_LEN);
-        STRNCPY(configuration.iceServers[1].credential, "XXXX", MAX_ICE_CONFIG_CREDENTIAL_LEN);
-        STRNCPY(configuration.iceServers[1].username, "XXXX", MAX_ICE_CONFIG_USER_NAME_LEN);
+        // For testing purposes:
+        // STRNCPY(configuration.iceServers[1].urls, "turn:[XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX]?transport=udp", MAX_ICE_CONFIG_URI_LEN);
+        // STRNCPY(configuration.iceServers[1].urls, "turn:XXX.XXX.XXX.XXX:XXXX?transport=udp", MAX_ICE_CONFIG_URI_LEN);
+        // STRNCPY(configuration.iceServers[1].credential, "XXXXXXXX", MAX_ICE_CONFIG_CREDENTIAL_LEN);
+        // STRNCPY(configuration.iceServers[1].username, "XXXXXXXX", MAX_ICE_CONFIG_USER_NAME_LEN);
     }
 
     pSampleConfiguration->iceUriCount = uriCount + 1;
@@ -920,7 +922,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->channelInfo.pTags = NULL;
     pSampleConfiguration->channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     pSampleConfiguration->channelInfo.channelRoleType = roleType;
-    pSampleConfiguration->channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_FILE;
+    pSampleConfiguration->channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
     pSampleConfiguration->channelInfo.cachingPeriod = SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE;
     pSampleConfiguration->channelInfo.asyncIceServerConfig = TRUE; // has no effect
     pSampleConfiguration->channelInfo.retry = TRUE;

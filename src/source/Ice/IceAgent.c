@@ -117,6 +117,7 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
                     CHK(NULL != (pIceAgent->pRtcIceServerDiagnostics[i] = (PRtcIceServerDiagnostics) MEMCALLOC(1, SIZEOF(RtcIceServerDiagnostics))),
                         STATUS_NOT_ENOUGH_MEMORY);
                     pIceAgent->pRtcIceServerDiagnostics[i]->port = (INT32) getInt16(pIceAgent->iceServers[i].ipAddresses.ipv4Address.port);
+                    // TODO: How to handle ICE server diagnostis for dual-stack case?...
                     switch (pIceAgent->iceServers[pIceAgent->iceServersCount].transport) {
                         case KVS_SOCKET_PROTOCOL_UDP:
                             STRCPY(pIceAgent->pRtcIceServerDiagnostics[i]->protocol, ICE_TRANSPORT_TYPE_UDP);
@@ -1020,7 +1021,7 @@ STATUS findCandidateWithIp(PKvsIpAddress pIpAddress, PDoubleList pCandidateList,
         pIceCandidate = (PIceCandidate) data;
         pCurNode = pCurNode->pNext;
 
-        addrLen = IS_IPV4_ADDR(pIpAddress) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
+        addrLen = isIpv4Address(pIpAddress) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
         if (pIpAddress->family == pIceCandidate->ipAddress.family && MEMCMP(pIceCandidate->ipAddress.address, pIpAddress->address, addrLen) == 0 &&
             pIpAddress->port == pIceCandidate->ipAddress.port) {
             pTargetIceCandidate = pIceCandidate;
@@ -1239,7 +1240,7 @@ STATUS findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(PIceAgent pIce
 
     CHK(pIceAgent != NULL && ppIceCandidatePair != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
 
-    addrLen = IS_IPV4_ADDR(pRemoteAddr) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
+    addrLen = isIpv4Address(pRemoteAddr) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
 
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
     while (pCurNode != NULL && pTargetIceCandidatePair == NULL) {
@@ -1814,7 +1815,7 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
     // Create and start the connection listener outside of the locks
     for (j = 0; j < srflxCount; j++) {
         pCandidate = srflxCandidates[j];
-        if (IS_IPV4_ADDR(&(pCandidate->ipAddress))) {
+        if (isIpv4Address(&(pCandidate->ipAddress))) {
             DLOGI("Initializing an IPv4 STUN candidate...");
         } else {
             DLOGI("Initializing an IPv6 STUN candidate...");
@@ -1857,13 +1858,27 @@ STATUS iceAgentInitRelayCandidates(PIceAgent pIceAgent)
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     for (j = 0; j < pIceAgent->iceServersCount; j++) {
         if (pIceAgent->iceServers[j].isTurn) {
-            if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_UDP || pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
-                CHK_STATUS(iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_UDP));
+
+            if (pIceAgent->iceServers[j].ipAddresses.ipv4Address.family != KVS_IP_FAMILY_TYPE_NOT_SET) {
+                if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_UDP || pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
+                    CHK_STATUS(iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_UDP, KVS_IP_FAMILY_TYPE_IPV4));
+                }
+
+                if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_TCP || pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
+                    CHK_STATUS(iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_TCP, KVS_IP_FAMILY_TYPE_IPV4));
+                }
             }
 
-            if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_TCP || pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
-                CHK_STATUS(iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_TCP));
+            if (pIceAgent->iceServers[j].ipAddresses.ipv6Address.family != KVS_IP_FAMILY_TYPE_NOT_SET) {
+                if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_UDP || pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
+                    CHK_STATUS(iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_UDP, KVS_IP_FAMILY_TYPE_IPV6));
+                }
+
+                if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_TCP || pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
+                    CHK_STATUS(iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_TCP, KVS_IP_FAMILY_TYPE_IPV6));
+                }
             }
+
         }
     }
 
@@ -1897,7 +1912,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KVS_SOCKET_PROTOCOL protocol)
+STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KVS_SOCKET_PROTOCOL protocol, KVS_IP_FAMILY_TYPE turnServerIpFamily)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
@@ -1905,8 +1920,12 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
     PIceCandidate pNewCandidate = NULL, pCandidate = NULL;
     BOOL locked = FALSE;
     PTurnConnection pTurnConnection = NULL;
+    PKvsIpAddress pTurnServerAddress = NULL; 
+
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
+    CHK(turnServerIpFamily != KVS_IP_FAMILY_TYPE_NOT_SET, STATUS_INVALID_ARG);
+
     /* we dont support TURN on DTLS yet. */
     CHK(protocol != KVS_SOCKET_PROTOCOL_UDP || !pIceAgent->iceServers[iceServerIndex].isSecure, retStatus);
     CHK_WARN(pIceAgent->relayCandidateCount < KVS_ICE_MAX_RELAY_CANDIDATE_COUNT, retStatus,
@@ -1917,10 +1936,16 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
     generateJSONSafeString(pNewCandidate->id, ARRAY_SIZE(pNewCandidate->id));
     pNewCandidate->isRemote = FALSE;
 
+    if (turnServerIpFamily == KVS_IP_FAMILY_TYPE_IPV4) {
+        pTurnServerAddress = &pIceAgent->iceServers[iceServerIndex].ipAddresses.ipv4Address;
+    } else {
+        pTurnServerAddress = &pIceAgent->iceServers[iceServerIndex].ipAddresses.ipv6Address;
+    }
+
     // open up a new socket without binding to any host address. The candidate Ip address will later be updated
     // with the correct relay ip address once the Allocation success response is received. Relay candidate's socket is managed
     // by TurnConnection struct.
-    CHK_STATUS(createSocketConnection(KVS_IP_FAMILY_TYPE_IPV4, protocol, NULL, &pIceAgent->iceServers[iceServerIndex].ipAddresses.ipv4Address,
+    CHK_STATUS(createSocketConnection(turnServerIpFamily, protocol, NULL, pTurnServerAddress,
                                       (UINT64) pNewCandidate, incomingRelayedDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize,
                                       &pNewCandidate->pSocketConnection));
     // connectionListener will free the pSocketConnection at the end.
@@ -1956,11 +1981,17 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
         CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
         pCurNode = pCurNode->pNext;
         pCandidate = (PIceCandidate) data;
+        
+        // Add only peers with matching IP family to the TURN connection.
+        if (turnServerIpFamily == KVS_IP_FAMILY_TYPE_IPV4) {
+            if (isIpv4Address(&pCandidate->ipAddress)) {
+                CHK_STATUS(turnConnectionAddPeer(pTurnConnection, &pCandidate->ipAddress));
+            }
+        } else {
+            if (isIpv6Address(&pCandidate->ipAddress)) {
+                CHK_STATUS(turnConnectionAddPeer(pTurnConnection, &pCandidate->ipAddress));
+            }
 
-        // TODO: Stop skipping IPv6. Since we're allowing IPv6 remote candidates from iceAgentAddRemoteCandidate for host candidates,
-        // it's possible to have a situation where the turn server uses IPv4 and the remote candidate uses IPv6.
-        if (IS_IPV4_ADDR(&pCandidate->ipAddress)) {
-            CHK_STATUS(turnConnectionAddPeer(pTurnConnection, &pCandidate->ipAddress));
         }
     }
 
@@ -2445,7 +2476,7 @@ STATUS incomingDataHandler(UINT64 customData, PSocketConnection pSocketConnectio
 
         MUTEX_LOCK(pIceAgent->lock);
         locked = TRUE;
-        addrLen = IS_IPV4_ADDR(pSrc) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
+        addrLen = isIpv4Address(pSrc) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
         if (pIceAgent->pDataSendingIceCandidatePair != NULL &&
             pIceAgent->pDataSendingIceCandidatePair->local->pSocketConnection == pSocketConnection &&
             pIceAgent->pDataSendingIceCandidatePair->remote->ipAddress.family == pSrc->family &&
@@ -2483,7 +2514,7 @@ STATUS iceCandidateSerialize(PIceCandidate pIceCandidate, PCHAR pOutputData, PUI
     CHK(pIceCandidate != NULL && pOutputLength != NULL, STATUS_NULL_ARG);
 
     // TODO FIXME real source of randomness
-    if (IS_IPV4_ADDR(&(pIceCandidate->ipAddress))) {
+    if (isIpv4Address(&(pIceCandidate->ipAddress))) {
         amountWritten = SNPRINTF(pOutputData, pOutputData == NULL ? 0 : *pOutputLength,
                                  "%u 1 udp %u %d.%d.%d.%d %d typ %s raddr 0.0.0.0 rport 0 generation 0 network-cost 999", pIceCandidate->foundation,
                                  pIceCandidate->priority, pIceCandidate->ipAddress.address[0], pIceCandidate->ipAddress.address[1],
