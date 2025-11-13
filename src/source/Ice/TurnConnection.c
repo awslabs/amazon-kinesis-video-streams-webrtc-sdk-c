@@ -1296,3 +1296,19 @@ VOID turnConnectionFatalError(PTurnConnection pTurnConnection, STATUS errorStatu
     pTurnConnection->errorStatus = errorStatus;
     pTurnConnection->state = TURN_STATE_FAILED;
 }
+
+STATUS getTurnConnectionIpAddress(PTurnConnection pTurnConnection, PKvsIpAddress pTurnConnectionIp)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pTurnConnection != NULL && pTurnConnectionIp != NULL, STATUS_NULL_ARG);
+
+    if (pTurnConnection->ipFamilyType == KVS_IP_FAMILY_TYPE_IPV4) {
+        *pTurnConnectionIp = pTurnConnection->turnServer.ipAddresses.ipv4Address;
+    } else {
+        *pTurnConnectionIp = pTurnConnection->turnServer.ipAddresses.ipv6Address;
+    }
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+    return retStatus;
+}

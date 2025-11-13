@@ -126,22 +126,6 @@ static inline BOOL isIpv6Address(const KvsIpAddress* pAddress)
     return pAddress != NULL && pAddress->family == KVS_IP_FAMILY_TYPE_IPV6;
 }
 
-static inline STATUS getTurnConnectionIpAddress(PTurnConnection pTurnConnection, PKvsIpAddress pTurnConnectionIp)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-
-    CHK(pTurnConnection != NULL && pTurnConnectionIp != NULL, STATUS_NULL_ARG);
-
-    if (pTurnConnection->ipFamilyType == KVS_IP_FAMILY_TYPE_IPV4) {
-        *pTurnConnectionIp = pTurnConnection->turnServer.ipAddresses.ipv4Address;
-    } else {
-        *pTurnConnectionIp = pTurnConnection->turnServer.ipAddresses.ipv6Address;
-    }
-CleanUp:
-    CHK_LOG_ERR(retStatus);
-    return retStatus;
-}
-
 
 // Used for ensuring alignment
 #define ALIGN_UP_TO_MACHINE_WORD(x) ROUND_UP((x), SIZEOF(SIZE_T))
