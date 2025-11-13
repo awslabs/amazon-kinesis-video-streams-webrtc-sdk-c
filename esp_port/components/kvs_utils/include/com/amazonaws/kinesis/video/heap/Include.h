@@ -46,7 +46,7 @@ typedef ALLOCATION_HANDLE* PALLOCATION_HANDLE;
  * This is a sentinel indicating an invalid allocation handle value
  */
 #ifndef INVALID_ALLOCATION_HANDLE_VALUE
-#define INVALID_ALLOCATION_HANDLE_VALUE ((ALLOCATION_HANDLE) NULL)
+#define INVALID_ALLOCATION_HANDLE_VALUE ((ALLOCATION_HANDLE) (uintptr_t) NULL)
 #endif
 
 #ifndef IS_VALID_ALLOCATION_HANDLE

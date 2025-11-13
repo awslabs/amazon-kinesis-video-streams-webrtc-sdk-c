@@ -90,6 +90,13 @@ void webrtc_bridge_register_handler(webrtc_bridge_msg_cb_t handler)
     message_handler = handler;
 }
 
+#if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED
+static void webrtc_bridge_send_via_hosted(const char *data, int len);
+
+#if ENABLE_SIGNALLING_ONLY && defined(CONFIG_IDF_TARGET_ESP32C6)
+extern void send_event_data_to_host(int event_id, void *data, int size);
+#elif ENABLE_STREAMING_ONLY && CONFIG_ESP_HOSTED_ENABLED
+
 static void handle_on_message_received(void *priv_data)
 {
     received_msg_t *received_msg = (received_msg_t *) priv_data;
@@ -106,12 +113,6 @@ static void handle_on_message_received(void *priv_data)
     free(received_msg);
 }
 
-static void webrtc_bridge_send_via_hosted(const char *data, int len);
-
-#if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED
-#if ENABLE_SIGNALLING_ONLY && defined(CONFIG_IDF_TARGET_ESP32C6)
-extern void send_event_data_to_host(int event_id, void *data, int size);
-#elif ENABLE_STREAMING_ONLY && CONFIG_ESP_HOSTED_ENABLED
 static void usr_evt_cb(uint8_t usr_evt_num, rpc_usr_t *usr_evt)
 {
     if (!usr_evt)
@@ -224,6 +225,7 @@ static void webrtc_bridge_send_via_hosted(const char *data, int len)
         seq_num++;
     }
 #else
+    (void) uuid;
     (void) len_remain;
     (void) seq_num;
     (void) data_len;
@@ -231,7 +233,7 @@ static void webrtc_bridge_send_via_hosted(const char *data, int len)
 #endif
     xSemaphoreGive(mutex);
 }
-#endif
+#endif // CONFIG_ESP_WEBRTC_BRIDGE_HOSTED
 
 void webrtc_bridge_send_message(const char *data, int len)
 {
@@ -244,7 +246,7 @@ void webrtc_bridge_send_message(const char *data, int len)
 #else
     int msg_id = esp_mqtt_client_publish(g_mqtt_client, TO_TOPIC, data, len, 1, 0);
     ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
-    free(data);
+    free((void*)data);
 #endif
 }
 

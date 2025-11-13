@@ -88,7 +88,7 @@ typedef UINT64 TID;
 typedef TID* PTID;
 
 #ifndef INVALID_TID_VALUE
-#define INVALID_TID_VALUE ((UINT64) NULL)
+#define INVALID_TID_VALUE ((UINT64) (uintptr_t) NULL)
 #endif
 
 #ifndef IS_VALID_TID_VALUE
@@ -99,7 +99,7 @@ typedef TID* PTID;
 typedef UINT64 MUTEX;
 
 #ifndef INVALID_MUTEX_VALUE
-#define INVALID_MUTEX_VALUE ((UINT64) NULL)
+#define INVALID_MUTEX_VALUE ((UINT64) (uintptr_t) NULL)
 #endif
 
 #ifndef IS_VALID_MUTEX_VALUE

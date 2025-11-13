@@ -81,7 +81,7 @@ STATUS expandDataBuffer(PDataBuffer pDataBuffer, UINT32 additionalSize);
  * @return STATUS code of the execution
  *         Returns STATUS_DATA_BUFFER_COMPLETE when buffer contains a complete message
  */
-STATUS appendDataBuffer(PDataBuffer pDataBuffer, PCHAR pData, UINT32 dataLen, BOOL isFinal);
+STATUS appendDataBuffer(PDataBuffer pDataBuffer, const char* pData, UINT32 dataLen, BOOL isFinal);
 
 #ifdef __cplusplus
 }

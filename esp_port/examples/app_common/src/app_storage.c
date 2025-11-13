@@ -21,14 +21,9 @@
 
 static const char *TAG = "app_storage";
 
-static sdmmc_card_t s_card;
-
+#if !USE_SPIFFS_STORAGE // SD card
 static esp_err_t sdcard_init(void)
 {
-#if USE_SPIFFS_STORAGE
-    ESP_LOGE(TAG, "Refusing to initialize sdcard. Set to use spiffs.");
-    return ESP_FAIL;
-#endif
 #if SOC_SDMMC_HOST_SUPPORTED
     // Options for mounting the filesystem.
     // If format_if_mount_failed is set to true, SD card will be partitioned and
@@ -110,11 +105,11 @@ static esp_err_t sdcard_init(void)
     sdmmc_card_print_info(stdout, card);
     return ESP_OK;
 #else
+    ESP_LOGE(TAG, "SD card not supported. Please set config to use SPIFFS.");
     return ESP_ERR_NOT_SUPPORTED;
 #endif
 }
-
-#if USE_SPIFFS_STORAGE
+#elif USE_SPIFFS_STORAGE
 static esp_err_t spiffs_init(void)
 {
     ESP_LOGI(TAG, "Initializing SPIFFS");

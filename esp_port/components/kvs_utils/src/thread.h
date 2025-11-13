@@ -24,6 +24,9 @@ extern "C" {
 
 #ifndef DEFAULT_THREAD_SIZE
 #define DEFAULT_THREAD_SIZE (16 * 1024)
+#endif
+
+#ifndef DEFAULT_THREAD_NAME
 #define DEFAULT_THREAD_NAME "pthread"
 #endif
 

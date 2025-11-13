@@ -21,7 +21,7 @@
 
 static volatile SIZE_T gLoggerLogLevel = LOG_LEVEL_WARN;
 
-const PCHAR getLogLevelStr(UINT32 loglevel)
+PCHAR getLogLevelStr(UINT32 loglevel)
 {
     switch (loglevel) {
         case LOG_LEVEL_VERBOSE:

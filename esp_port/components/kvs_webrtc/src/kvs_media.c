@@ -297,7 +297,7 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
     }
 
     ESP_LOGD(TAG, "Global video sender thread finished");
-    return (PVOID) (ULONG_PTR) retStatus;
+    return (PVOID) (uintptr_t) retStatus;
 }
 
 /**
@@ -447,7 +447,7 @@ static PVOID kvs_global_audio_sender_thread(PVOID args)
     }
 
     ESP_LOGD(TAG, "Global audio sender thread finished");
-    return (PVOID) (ULONG_PTR) retStatus;
+    return (PVOID) (uintptr_t) retStatus;
 }
 
 /**
@@ -457,13 +457,13 @@ static PVOID kvs_global_audio_sender_thread(PVOID args)
 static STATUS kvs_session_frame_callback(UINT64 callerData, PHashEntry pHashEntry)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    Frame* frame = (Frame*)callerData;
+    Frame* frame = (Frame*)HANDLE_TO_POINTER(callerData);
     kvs_pc_session_t* session = NULL;
     STATUS writeStatus;
 
     CHK(frame != NULL && pHashEntry != NULL, STATUS_NULL_ARG);
 
-    session = (kvs_pc_session_t*)pHashEntry->value;
+    session = (kvs_pc_session_t*)HANDLE_TO_POINTER(pHashEntry->value);
     CHK(session != NULL && !session->terminated, STATUS_NULL_ARG);
 
     // Determine which transceiver to use based on frame track ID
@@ -523,7 +523,7 @@ static STATUS kvs_iterate_sessions_send_frame(Frame* frame, BOOL is_video)
     }
 
     // Use the official KVS pattern: iterate through sessions and call writeFrame for each
-    retStatus = hashTableIterateEntries(client->activeSessions, (UINT64)frame, kvs_session_frame_callback);
+    retStatus = hashTableIterateEntries(client->activeSessions, POINTER_TO_HANDLE(frame), kvs_session_frame_callback);
     if (STATUS_FAILED(retStatus)) {
         ESP_LOGW(TAG, "Sender: hashTableIterateEntries failed: 0x%08" PRIx32, (UINT32) retStatus);
     }
@@ -631,7 +631,7 @@ CleanUp:
 static PVOID kvs_media_reception_routine(PVOID customData)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    kvs_pc_session_t *session = (kvs_pc_session_t *)(ULONG_PTR)customData;
+    kvs_pc_session_t *session = (kvs_pc_session_t *)HANDLE_TO_POINTER(customData);
 
     CHK(session != NULL, STATUS_NULL_ARG);
 
@@ -810,14 +810,14 @@ static STATUS kvs_media_setup_frame_callbacks(kvs_pc_session_t* session)
     if (session->client->config.video_player != NULL && session->video_player_handle != NULL) {
         ESP_LOGD(TAG, "Setting up video frame reception callback for peer: %s", session->peer_id);
         CHK_STATUS(transceiverOnFrame(session->video_transceiver,
-                                      (UINT64)(uintptr_t) session,
+                                      POINTER_TO_HANDLE(session),
                                       kvs_media_video_frame_handler));
     }
 
     if (session->client->config.audio_player != NULL && session->audio_player_handle != NULL) {
         ESP_LOGD(TAG, "Setting up audio frame reception callback for peer: %s", session->peer_id);
         CHK_STATUS(transceiverOnFrame(session->audio_transceiver,
-                                      (UINT64)(uintptr_t) session,
+                                      POINTER_TO_HANDLE(session),
                                       kvs_media_audio_frame_handler));
     }
 
@@ -827,7 +827,7 @@ CleanUp:
 
 VOID kvs_media_video_frame_handler(UINT64 customData, PFrame pFrame)
 {
-    kvs_pc_session_t *session = (kvs_pc_session_t *)(uintptr_t)customData;
+    kvs_pc_session_t *session = (kvs_pc_session_t *)HANDLE_TO_POINTER(customData);
 
     if (pFrame == NULL || pFrame->frameData == NULL || session == NULL) {
         ESP_LOGW(TAG, "Invalid video frame or session data");
@@ -861,7 +861,7 @@ VOID kvs_media_video_frame_handler(UINT64 customData, PFrame pFrame)
 
 VOID kvs_media_audio_frame_handler(UINT64 customData, PFrame pFrame)
 {
-    kvs_pc_session_t *session = (kvs_pc_session_t *)(uintptr_t)customData;
+    kvs_pc_session_t *session = (kvs_pc_session_t *)HANDLE_TO_POINTER(customData);
 
     if (pFrame == NULL || pFrame->frameData == NULL || session == NULL) {
         ESP_LOGW(TAG, "Invalid audio frame or session data");

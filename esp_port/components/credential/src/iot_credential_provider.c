@@ -38,8 +38,8 @@ STATUS createIotCredentialProviderWithTime(PCHAR iotGetCredentialEndpoint, PCHAR
     STATUS retStatus = STATUS_SUCCESS;
     PIotCredentialProvider pIotCredentialProvider = NULL;
 
-    CHK(ppCredentialProvider != NULL && iotGetCredentialEndpoint != NULL && certPath != NULL && privateKeyPath != NULL && roleAlias != NULL &&
-            thingName != NULL,
+    CHK(ppCredentialProvider != NULL && iotGetCredentialEndpoint != NULL && certPath != NULL &&
+            privateKeyPath != NULL && roleAlias != NULL && thingName != NULL,
         // thingName != NULL && serviceCallFn != NULL,
         STATUS_NULL_ARG);
 
@@ -182,9 +182,11 @@ CleanUp:
     return retStatus;
 }
 
-STATUS createIotCredentialProvider(PCHAR iotGetCredentialEndpoint, PCHAR awsRegion, PCHAR certPath, PCHAR privateKeyPath, PCHAR caCertPath, PCHAR roleAlias,
-                                      PCHAR thingName, PAwsCredentialProvider* ppCredentialProvider)
+STATUS createIotCredentialProvider(PCHAR iotGetCredentialEndpoint, PCHAR awsRegion, PCHAR certPath,
+                                   PCHAR privateKeyPath, PCHAR caCertPath, PCHAR roleAlias,
+                                   PCHAR thingName, PAwsCredentialProvider* ppCredentialProvider)
 {
-    return createIotCredentialProviderWithTime(iotGetCredentialEndpoint, awsRegion, certPath, privateKeyPath, caCertPath, roleAlias, thingName,
-                                                  commonDefaultGetCurrentTimeFunc, (UINT64) NULL, NULL, ppCredentialProvider);
+    return createIotCredentialProviderWithTime(iotGetCredentialEndpoint, awsRegion, certPath, privateKeyPath, caCertPath,
+                                               roleAlias, thingName, commonDefaultGetCurrentTimeFunc,
+                                               POINTER_TO_HANDLE(NULL), NULL, ppCredentialProvider);
 }

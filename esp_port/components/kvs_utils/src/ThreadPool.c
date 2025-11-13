@@ -95,7 +95,7 @@ PVOID threadpoolActor(PVOID data)
         if (!ATOMIC_LOAD_BOOL(&pThreadData->terminate)) {
             ATOMIC_INCREMENT(&pThreadData->pThreadpool->availableThreads);
             if (safeBlockingQueueDequeue(pQueue, &item) == STATUS_SUCCESS) {
-                pTask = (PTaskData) item;
+                pTask = (PTaskData) HANDLE_TO_POINTER(item);
                 ATOMIC_DECREMENT(&pThreadData->pThreadpool->availableThreads);
                 MUTEX_UNLOCK(pThreadData->dataMutex);
                 if (pTask != NULL) {
@@ -136,7 +136,7 @@ PVOID threadpoolActor(PVOID data)
                     if (stackQueueGetCount(pThreadpool->threadList, &count) == STATUS_SUCCESS) {
                         if (count > pThreadpool->minThreads) {
                             finished = TRUE;
-                            if (stackQueueRemoveItem(pThreadpool->threadList, (UINT64) pThreadData) != STATUS_SUCCESS) {
+                            if (stackQueueRemoveItem(pThreadpool->threadList, POINTER_TO_HANDLE(pThreadData)) != STATUS_SUCCESS) {
                                 DLOGE("Failed to remove thread data from threadpool");
                             }
                         }
@@ -222,7 +222,7 @@ STATUS threadpoolInternalCreateThread(PThreadpool pThreadpool)
     data->pThreadpool = pThreadpool;
     ATOMIC_STORE_BOOL(&data->terminate, FALSE);
 
-    CHK_STATUS(stackQueueEnqueue(pThreadpool->threadList, (UINT64) data));
+    CHK_STATUS(stackQueueEnqueue(pThreadpool->threadList, POINTER_TO_HANDLE(data)));
 
     MUTEX_UNLOCK(pThreadpool->listMutex);
     locked = FALSE;
@@ -263,7 +263,7 @@ STATUS threadpoolInternalCreateTask(PThreadpool pThreadpool, startRoutine functi
 
     allocated = TRUE;
 
-    CHK_STATUS(safeBlockingQueueEnqueue(pThreadpool->taskQueue, (UINT64) pTask));
+    CHK_STATUS(safeBlockingQueueEnqueue(pThreadpool->taskQueue, POINTER_TO_HANDLE(pTask)));
 
 CleanUp:
     if (STATUS_FAILED(retStatus) && allocated) {
@@ -276,7 +276,6 @@ CleanUp:
 STATUS threadpoolInternalCanCreateThread(PThreadpool pThreadpool, PBOOL pSpaceAvailable)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    PThreadData data = NULL;
     UINT32 count = 0;
     BOOL locked = FALSE;
 
@@ -362,7 +361,7 @@ STATUS threadpoolFree(PThreadpool pThreadpool)
             }
 
             CHK_STATUS(stackQueueIteratorGetItem(iterator, &data));
-            item = (PThreadData) data;
+            item = (PThreadData) HANDLE_TO_POINTER(data);
 
             if (item == NULL) {
                 DLOGW("NULL thread data present on threadpool.");
@@ -425,7 +424,7 @@ STATUS threadpoolFree(PThreadpool pThreadpool)
         CHK_STATUS(safeBlockingQueueGetCount(pThreadpool->taskQueue, &i));
 
         if (i > 0 && safeBlockingQueueDequeue(pThreadpool->taskQueue, &data) == STATUS_SUCCESS) {
-            pTask = (PTaskData) data;
+            pTask = (PTaskData) HANDLE_TO_POINTER(data);
             if (pTask != NULL) {
                 pTask->function(pTask->customData);
                 SAFE_MEMFREE(pTask);

@@ -865,6 +865,8 @@ BOOL signaling_is_ice_config_refresh_needed(PSignalingClient pSignalingClient)
     }
 
 CleanUp:
+
+    CHK_LOG_ERR(retStatus);
     LEAVES();
     return refreshNeeded;
 }
@@ -934,7 +936,7 @@ CleanUp:
 
         // Need to invoke the error handler callback
         if (pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
-            iceRefreshErrLen = SNPRINTF(iceRefreshErrMsg, SIGNALING_MAX_ERROR_MESSAGE_LEN, SIGNALING_ICE_CONFIG_REFRESH_ERROR_MSG, retStatus);
+            iceRefreshErrLen = SNPRINTF(iceRefreshErrMsg, SIGNALING_MAX_ERROR_MESSAGE_LEN, SIGNALING_ICE_CONFIG_REFRESH_ERROR_MSG, (unsigned int)retStatus);
             iceRefreshErrMsg[SIGNALING_MAX_ERROR_MESSAGE_LEN] = '\0';
             pSignalingClient->signalingClientCallbacks.errorReportFn(pSignalingClient->signalingClientCallbacks.customData,
                                                                      STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED, iceRefreshErrMsg, iceRefreshErrLen);

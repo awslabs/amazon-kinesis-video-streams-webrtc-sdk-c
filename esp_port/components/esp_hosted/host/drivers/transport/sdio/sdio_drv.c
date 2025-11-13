@@ -104,7 +104,6 @@ static esp_err_t sdio_generate_slave_intr(uint8_t intr_no);
 static void sdio_write_task(void const* pvParameters);
 static void sdio_read_task(void const* pvParameters);
 static void sdio_process_rx_task(void const* pvParameters);
-static void update_flow_ctl(uint8_t *rxbuff);
 static int get_firmware_data(bool is_lock_needed);
 
 static inline void sdio_mempool_create(void)

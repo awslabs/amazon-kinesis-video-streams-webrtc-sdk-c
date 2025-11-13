@@ -207,7 +207,7 @@ static WEBRTC_STATUS signalingClientStateChangedWrapper(uint64_t customData, web
 
 STATUS signalingClientError(UINT64 customData, STATUS status, PCHAR msg, UINT32 msgLen)
 {
-    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) HANDLE_TO_POINTER(customData);
 
     DLOGW("Signaling client generated an error 0x%08x - '%.*s'", status, msgLen, msg);
     CHAR errorMsg[256];
@@ -262,7 +262,7 @@ static WEBRTC_STATUS peerConnectionStateChangedWrapper(uint64_t customData, webr
 
     // Simple heuristic: check if the pointer looks like a session structure
     // by checking if it has valid peerId field (sessions have peerId, global config doesn't)
-    PAppWebRTCSession test_session = (PAppWebRTCSession)customData;
+    PAppWebRTCSession test_session = (PAppWebRTCSession) HANDLE_TO_POINTER(customData);
     if (test_session != NULL && test_session->peerId[0] != '\0' &&
         STRLEN(test_session->peerId) > 0 && STRLEN(test_session->peerId) < 256) {
         // Looks like a specific session
@@ -272,7 +272,7 @@ static WEBRTC_STATUS peerConnectionStateChangedWrapper(uint64_t customData, webr
                  pAppWebRTCSession->peerId, state);
     } else {
         // Looks like global config (bridge mode)
-        pSampleConfiguration = (PSampleConfiguration)customData;
+        pSampleConfiguration = (PSampleConfiguration) HANDLE_TO_POINTER(customData);
         ESP_LOGI(TAG, "peerConnectionStateChangedWrapper: bridge_mode, state=%d", state);
     }
 
@@ -472,10 +472,8 @@ CleanUp:
 STATUS sendSignalingMessage(PAppWebRTCSession pAppWebRTCSession, webrtc_message_t* pMessage)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    PSampleConfiguration pSampleConfiguration = NULL;
 
     CHK(pAppWebRTCSession != NULL && pAppWebRTCSession->pSampleConfiguration != NULL && pMessage != NULL, STATUS_NULL_ARG);
-    pSampleConfiguration = pAppWebRTCSession->pSampleConfiguration;
 
     if (gWebRtcAppConfig.signaling_client_if != NULL && gSignalingClientData != NULL) {
         // Message is already in generic format - pass directly to signaling interface
@@ -671,7 +669,7 @@ STATUS freeAppWebRTCContext(papp_webrtc_context_t* ppContext)
         while (IS_VALID_ITERATOR(iterator)) {
             stackQueueIteratorGetItem(iterator, &data);
             stackQueueIteratorNext(&iterator);
-            freeMessageQueue((PPendingMessageQueue) data);
+            freeMessageQueue((PPendingMessageQueue) HANDLE_TO_POINTER(data));
         }
 
         stackQueueClear(pContext->pPendingSignalingMessageForRemoteClient, FALSE);
@@ -957,7 +955,7 @@ STATUS submitPendingIceCandidate(PPendingMessageQueue pPendingMessageQueue, PApp
         if (!noPendingSignalingMessageForClient) {
             hashValue = 0;
             CHK_STATUS(stackQueueDequeue(pPendingMessageQueue->messageQueue, &hashValue));
-            pWebRtcMessage = (webrtc_message_t*) hashValue;
+            pWebRtcMessage = (webrtc_message_t*) HANDLE_TO_POINTER(hashValue);
             CHK(pWebRtcMessage != NULL, STATUS_INTERNAL_ERROR);
             if (pWebRtcMessage->message_type == WEBRTC_MESSAGE_TYPE_ICE_CANDIDATE) {
                 // Use peer connection interface for queued ICE candidate handling if available
@@ -1006,7 +1004,7 @@ CleanUp:
 static WEBRTC_STATUS signalingMessageReceivedWrapper(uint64_t customData, webrtc_message_t* pWebRtcMessage)
 {
     STATUS kvsStatus = STATUS_SUCCESS;
-    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) HANDLE_TO_POINTER(customData);
 
     if (pWebRtcMessage == NULL) {
         return WEBRTC_STATUS_NULL_ARG;
@@ -1060,7 +1058,7 @@ static WEBRTC_STATUS signalingMessageReceivedWrapper(uint64_t customData, webrtc
 STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMessage)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) HANDLE_TO_POINTER(customData);
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
@@ -1080,7 +1078,7 @@ STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMess
     CHK_STATUS(hashTableContains(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, &peerConnectionFound));
     if (peerConnectionFound) {
         CHK_STATUS(hashTableGet(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, &hashValue));
-        pAppWebRTCSession = (PAppWebRTCSession) hashValue;
+        pAppWebRTCSession = (PAppWebRTCSession) HANDLE_TO_POINTER(hashValue);
     }
 
     // Declare variables once at the top of function scope to avoid redefinition errors
@@ -1172,7 +1170,7 @@ STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMess
             if (pc_interface != NULL && pc_interface->set_callbacks != NULL) {
                 WEBRTC_STATUS cb_status = pc_interface->set_callbacks(
                     pAppWebRTCSession->interface_session_handle,
-                    (uint64_t) pAppWebRTCSession,  // Pass specific session, not global config
+                    POINTER_TO_HANDLE(pAppWebRTCSession),  // Pass specific session, not global config
                     peerOutboundMessageWrapper,
                     peerConnectionStateChangedWrapper);
                 if (cb_status != WEBRTC_STATUS_SUCCESS) {
@@ -1191,7 +1189,7 @@ STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMess
             DLOGD("Successfully processed offer via unified interface for peer: %s",
                   pWebRtcMessage->peer_client_id);
 
-            CHK_STATUS(hashTablePut(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, (UINT64) pAppWebRTCSession));
+            CHK_STATUS(hashTablePut(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, POINTER_TO_HANDLE(pAppWebRTCSession)));
 
             // If there are any ice candidate messages in the queue for this client id, submit them now.
             CHK_STATUS(getPendingMessageQueueForHash(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, clientIdHash, TRUE,
@@ -1266,7 +1264,7 @@ STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMess
                                                          &pPendingMessageQueue));
                 if (pPendingMessageQueue == NULL) {
                     CHK_STATUS(createMessageQueue(clientIdHash, &pPendingMessageQueue));
-                    CHK_STATUS(stackQueueEnqueue(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, (UINT64) pPendingMessageQueue));
+                    CHK_STATUS(stackQueueEnqueue(pSampleConfiguration->pPendingSignalingMessageForRemoteClient, POINTER_TO_HANDLE(pPendingMessageQueue)));
                 }
 
                 pWebRtcMessageCopy = (webrtc_message_t*) MEMCALLOC(1, SIZEOF(webrtc_message_t));
@@ -1292,7 +1290,7 @@ STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMess
                     pWebRtcMessageCopy->payload = NULL;
                 }
 
-                CHK_STATUS(stackQueueEnqueue(pPendingMessageQueue->messageQueue, (UINT64) pWebRtcMessageCopy));
+                CHK_STATUS(stackQueueEnqueue(pPendingMessageQueue->messageQueue, POINTER_TO_HANDLE(pWebRtcMessageCopy)));
 
                 // NULL the pointers to not free any longer
                 pPendingMessageQueue = NULL;
@@ -1327,6 +1325,9 @@ STATUS signalingMessageReceived(UINT64 customData, webrtc_message_t* pWebRtcMess
 CleanUp:
 
     // Clean up webrtc message copy if allocated
+    // Suppress false positive warning: pWebRtcMessageCopy is initialized in ICE_CANDIDATE case
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
     if (pWebRtcMessageCopy != NULL) {
         // Free the payload if allocated separately
         if (pWebRtcMessageCopy->payload != NULL) {
@@ -1334,7 +1335,9 @@ CleanUp:
         }
         // Free the message itself
         SAFE_MEMFREE(pWebRtcMessageCopy);
+        pWebRtcMessageCopy = NULL; // Clear after freeing to help compiler analysis
     }
+    #pragma GCC diagnostic pop
 
     if (pPendingMessageQueue != NULL) {
         freeMessageQueue(pPendingMessageQueue);
@@ -1411,7 +1414,7 @@ STATUS getPendingMessageQueueForHash(PStackQueue pPendingQueue, UINT64 clientHas
         CHK_STATUS(stackQueueIteratorGetItem(iterator, &data));
         CHK_STATUS(stackQueueIteratorNext(&iterator));
 
-        pPendingMessageQueue = (PPendingMessageQueue) data;
+        pPendingMessageQueue = (PPendingMessageQueue) HANDLE_TO_POINTER(data);
 
         if (clientHash == pPendingMessageQueue->hashValue) {
             *ppPendingMessageQueue = pPendingMessageQueue;
@@ -1447,7 +1450,7 @@ STATUS removeExpiredMessageQueues(PStackQueue pPendingQueue)
         CHK_STATUS(stackQueueDequeue(pPendingQueue, &data));
 
         // Check for expiry
-        pPendingMessageQueue = (PPendingMessageQueue) data;
+        pPendingMessageQueue = (PPendingMessageQueue) HANDLE_TO_POINTER(data);
         if (pPendingMessageQueue->createTime + SAMPLE_PENDING_MESSAGE_CLEANUP_DURATION < curTime) {
             // Message queue has expired and needs to be freed
             CHK_STATUS(freeMessageQueue(pPendingMessageQueue));
@@ -1654,7 +1657,7 @@ static void app_webrtc_runTask(void *pvParameters)
             // NOTE: For bridge mode, we still use global config since there are no specific sessions
             gWebRtcAppConfig.peer_connection_if->set_callbacks(
                 NULL, // No session_handle for bridge mode
-                (uint64_t) gSampleConfiguration, // customData - keep global for bridge mode
+                POINTER_TO_HANDLE(gSampleConfiguration), // customData - keep global for bridge mode
                 peerOutboundMessageWrapper, // From peer connection interface
                 peerConnectionStateChangedWrapper); // From peer connection interface
         } else {
@@ -1751,7 +1754,7 @@ static void app_webrtc_runTask(void *pvParameters)
             DLOGI("Setting up signaling callbacks");
             retStatus = gWebRtcAppConfig.signaling_client_if->set_callbacks(
                 gSignalingClientData,
-                (uint64_t) gSampleConfiguration,
+                POINTER_TO_HANDLE(gSampleConfiguration),
                 signalingMessageReceivedWrapper,
                 signalingClientStateChangedWrapper,
                 signalingClientErrorWrapper);
@@ -1767,7 +1770,7 @@ static void app_webrtc_runTask(void *pvParameters)
             DLOGI("Setting up progressive ICE update callback");
             retStatus = gWebRtcAppConfig.signaling_client_if->set_ice_update_callback(
                 gSignalingClientData,
-                (uint64_t) gSampleConfiguration,
+                POINTER_TO_HANDLE(gSampleConfiguration),
                 app_webrtc_on_ice_servers_updated);
 
             if (STATUS_FAILED(retStatus)) {
@@ -2020,7 +2023,7 @@ int app_webrtc_trigger_offer(char *pPeerId)
         ESP_LOGW(TAG, "Peer connection already exists for %s, reusing it", pPeerId);
         UINT64 hashValue = 0;
         CHK_STATUS(hashTableGet(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, &hashValue));
-        pAppWebRTCSession = (PAppWebRTCSession) hashValue;
+        pAppWebRTCSession = (PAppWebRTCSession) HANDLE_TO_POINTER(hashValue);
     } else {
         // Create new streaming session - check limits (bridge mode handled in wrapper)
         if (pSampleConfiguration->streamingSessionCount >= ARRAY_SIZE(pSampleConfiguration->webrtcSessionList)) {
@@ -2084,7 +2087,7 @@ int app_webrtc_trigger_offer(char *pPeerId)
         if (pc_interface->set_callbacks != NULL) {
             WEBRTC_STATUS cb_status = pc_interface->set_callbacks(
                 pAppWebRTCSession->interface_session_handle,
-                (uint64_t) pAppWebRTCSession,  // Pass specific session, not global config
+                POINTER_TO_HANDLE(pAppWebRTCSession),  // Pass specific session, not global config
                 peerOutboundMessageWrapper,
                 peerConnectionStateChangedWrapper);
             if (cb_status != WEBRTC_STATUS_SUCCESS) {
@@ -2095,7 +2098,7 @@ int app_webrtc_trigger_offer(char *pPeerId)
         // Add to the list and hash table
         pSampleConfiguration->webrtcSessionList[pSampleConfiguration->streamingSessionCount++] = pAppWebRTCSession;
 
-        CHK_STATUS(hashTablePut(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, (UINT64) pAppWebRTCSession));
+        CHK_STATUS(hashTablePut(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, POINTER_TO_HANDLE(pAppWebRTCSession)));
     }
 
     MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
@@ -2127,7 +2130,7 @@ int app_webrtc_trigger_offer(char *pPeerId)
 
             // Set callbacks for this session - IMPORTANT: This must happen BEFORE auto-offer generation
             ESP_LOGI(TAG, "Setting callbacks for session with pAppWebRTCSession=%p", (void *)pAppWebRTCSession);
-            WEBRTC_STATUS cb_status = pc_interface->set_callbacks(session_handle, (uint64_t)pAppWebRTCSession,
+            WEBRTC_STATUS cb_status = pc_interface->set_callbacks(session_handle, POINTER_TO_HANDLE(pAppWebRTCSession),
                                                   peerOutboundMessageWrapper, peerConnectionStateChangedWrapper);
             if (cb_status != WEBRTC_STATUS_SUCCESS) {
                 ESP_LOGE(TAG, "Failed to set session callbacks: 0x%08" PRIx32, (UINT32) cb_status);
