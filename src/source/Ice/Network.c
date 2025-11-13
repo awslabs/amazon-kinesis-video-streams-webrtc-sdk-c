@@ -506,6 +506,16 @@ CleanUp:
     return retStatus;
 }
 
+const PCHAR kvsIpAddressToString(PKvsIpAddress pAddr)
+{
+    static __thread char addrBuf[64];
+    STATUS retStatus = getIpAddrStr(pAddr, addrBuf, sizeof(addrBuf));
+    if (STATUS_FAILED(retStatus)) {
+        SNPRINTF(addrBuf, sizeof(addrBuf), "<invalid>");
+    }
+    return addrBuf;
+}
+
 BOOL isSameIpAddress(PKvsIpAddress pAddr1, PKvsIpAddress pAddr2, BOOL checkPort)
 {
     BOOL ret;

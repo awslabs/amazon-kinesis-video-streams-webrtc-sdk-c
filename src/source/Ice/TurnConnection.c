@@ -55,7 +55,7 @@ CleanUp:
 
 STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueueHandle, TURN_CONNECTION_DATA_TRANSFER_MODE dataTransferMode,
                             KVS_SOCKET_PROTOCOL protocol, PTurnConnectionCallbacks pTurnConnectionCallbacks, PSocketConnection pTurnSocket,
-                            PConnectionListener pConnectionListener, PTurnConnection* ppTurnConnection)
+                            PConnectionListener pConnectionListener, KVS_IP_FAMILY_TYPE turnServerIpFamily, PTurnConnection* ppTurnConnection)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -114,6 +114,7 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     pTurnConnection->allocationExpirationTime = INVALID_TIMESTAMP_VALUE;
     pTurnConnection->nextAllocationRefreshTime = 0;
     pTurnConnection->currentTimerCallingPeriod = DEFAULT_TURN_TIMER_INTERVAL_BEFORE_READY;
+    pTurnConnection->ipFamilyType = turnServerIpFamily;
 
     SNPRINTF(turnStateMachineName, MAX_STATE_MACHINE_NAME_LENGTH, "%s-%p", TURN_STATE_MACHINE_NAME, (PVOID) pTurnConnection);
     CHK_STATUS(createStateMachineWithName(TURN_CONNECTION_STATE_MACHINE_STATES, TURN_CONNECTION_STATE_MACHINE_STATE_COUNT, (UINT64) pTurnConnection,
@@ -829,7 +830,7 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
     putInt16((PINT16) (pTurnConnection->sendDataBuffer + 2), (UINT16) bufLen);
     MEMCPY(pTurnConnection->sendDataBuffer + TURN_DATA_CHANNEL_SEND_OVERHEAD, pBuf, bufLen);
 
-    getTurnConnectionIpAddress(pTurnConnection, pTurnServerIp);
+    getTurnConnectionIpAddress(pTurnConnection, &pTurnServerIp);
 
     retStatus = iceUtilsSendData(pTurnConnection->sendDataBuffer, paddedDataLen, pTurnServerIp,
                                  pTurnConnection->pControlChannel, NULL, FALSE);
@@ -919,7 +920,7 @@ STATUS turnConnectionRefreshAllocation(PTurnConnection pTurnConnection)
 
     pStunAttributeLifetime->lifetime = DEFAULT_TURN_ALLOCATION_LIFETIME_SECONDS;
 
-    getTurnConnectionIpAddress(pTurnConnection, pTurnServerIp);
+    getTurnConnectionIpAddress(pTurnConnection, &pTurnServerIp);
 
     CHK_STATUS(iceUtilsSendStunPacket(pTurnConnection->pTurnAllocationRefreshPacket, pTurnConnection->longTermKey,
                                       ARRAY_SIZE(pTurnConnection->longTermKey), pTurnServerIp,
@@ -1120,7 +1121,7 @@ STATUS checkTurnPeerConnections(PTurnConnection pTurnConnection)
 
             CHK(pTurnPeer->pTransactionIdStore != NULL, STATUS_INVALID_OPERATION);
             transactionIdStoreInsert(pTurnPeer->pTransactionIdStore, pTurnConnection->pTurnCreatePermissionPacket->header.transactionId);
-            getTurnConnectionIpAddress(pTurnConnection, pTurnServerIp);
+            getTurnConnectionIpAddress(pTurnConnection, &pTurnServerIp);
             sendStatus = iceUtilsSendStunPacket(pTurnConnection->pTurnCreatePermissionPacket, pTurnConnection->longTermKey,
                                                 ARRAY_SIZE(pTurnConnection->longTermKey), pTurnServerIp,
                                                 pTurnConnection->pControlChannel, NULL, FALSE);
@@ -1147,7 +1148,7 @@ STATUS checkTurnPeerConnections(PTurnConnection pTurnConnection)
 
             CHK(pTurnPeer->pTransactionIdStore != NULL, STATUS_INVALID_OPERATION);
             transactionIdStoreInsert(pTurnPeer->pTransactionIdStore, pTurnConnection->pTurnChannelBindPacket->header.transactionId);
-            getTurnConnectionIpAddress(pTurnConnection, pTurnServerIp);
+            getTurnConnectionIpAddress(pTurnConnection, &pTurnServerIp);
             sendStatus = iceUtilsSendStunPacket(pTurnConnection->pTurnChannelBindPacket, pTurnConnection->longTermKey,
                                                 ARRAY_SIZE(pTurnConnection->longTermKey), pTurnServerIp,
                                                 pTurnConnection->pControlChannel, NULL, FALSE);
@@ -1297,16 +1298,17 @@ VOID turnConnectionFatalError(PTurnConnection pTurnConnection, STATUS errorStatu
     pTurnConnection->state = TURN_STATE_FAILED;
 }
 
-STATUS getTurnConnectionIpAddress(PTurnConnection pTurnConnection, PKvsIpAddress pTurnConnectionIp)
+STATUS getTurnConnectionIpAddress(PTurnConnection pTurnConnection, PKvsIpAddress* ppTurnConnectionIpAddress)
 {
     STATUS retStatus = STATUS_SUCCESS;
 
-    CHK(pTurnConnection != NULL && pTurnConnectionIp != NULL, STATUS_NULL_ARG);
+    CHK_ERR(ppTurnConnectionIpAddress != NULL, STATUS_NULL_ARG, "ppTurnConnectionIp is NULL");
+    CHK_ERR(pTurnConnection->ipFamilyType != KVS_IP_FAMILY_TYPE_NOT_SET, STATUS_INVALID_ARG, "pTurnConnection ip family type is not set");
 
     if (pTurnConnection->ipFamilyType == KVS_IP_FAMILY_TYPE_IPV4) {
-        *pTurnConnectionIp = pTurnConnection->turnServer.ipAddresses.ipv4Address;
+        *ppTurnConnectionIpAddress = &pTurnConnection->turnServer.ipAddresses.ipv4Address;
     } else {
-        *pTurnConnectionIp = pTurnConnection->turnServer.ipAddresses.ipv6Address;
+        *ppTurnConnectionIpAddress = &pTurnConnection->turnServer.ipAddresses.ipv6Address;
     }
 CleanUp:
     CHK_LOG_ERR(retStatus);

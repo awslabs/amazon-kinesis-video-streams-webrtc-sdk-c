@@ -1964,7 +1964,7 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
 
     CHK_STATUS(createTurnConnection(&pIceAgent->iceServers[iceServerIndex], pIceAgent->timerQueueHandle,
                                     TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL, protocol, &callback, pNewCandidate->pSocketConnection,
-                                    pIceAgent->pConnectionListener, &pTurnConnection));
+                                    pIceAgent->pConnectionListener, turnServerIpFamily, &pTurnConnection));
     pNewCandidate->pIceAgent = pIceAgent;
     pNewCandidate->pTurnConnection = pTurnConnection;
 

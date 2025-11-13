@@ -115,6 +115,7 @@ typedef struct {
     KvsIpAddress ipv6Address;
 } DualKvsIpAddresses, *PDualKvsIpAddresses;
 
+#include <stdio.h>
 
 static inline BOOL isIpv4Address(const KvsIpAddress* pAddress)
 {
@@ -132,6 +133,7 @@ static inline BOOL isIpv6Address(const KvsIpAddress* pAddress)
 
 typedef STATUS (*IceServerSetIpFunc)(UINT64, PCHAR, PDualKvsIpAddresses);
 STATUS getIpAddrStr(PKvsIpAddress pKvsIpAddress, PCHAR pBuffer, UINT32 bufferLen);
+const PCHAR kvsIpAddressToString(const KvsIpAddress* pAddr);
 
 ////////////////////////////////////////////////////
 // Project forward declarations

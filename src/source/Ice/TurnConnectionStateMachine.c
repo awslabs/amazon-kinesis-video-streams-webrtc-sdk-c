@@ -280,7 +280,7 @@ STATUS executeGetCredentialsTurnState(UINT64 customData, UINT64 time)
         CHK(currentTime <= pTurnConnection->stateTimeoutTime, STATUS_TURN_CONNECTION_GET_CREDENTIALS_FAILED);
     }
 
-    getTurnConnectionIpAddress(pTurnConnection, pTurnServerIp);
+    CHK_STATUS(getTurnConnectionIpAddress(pTurnConnection, &pTurnServerIp));
     CHK_STATUS(iceUtilsSendStunPacket(pTurnConnection->pTurnPacket, NULL, 0, pTurnServerIp,
                                       pTurnConnection->pControlChannel, NULL, FALSE));
 
@@ -353,7 +353,7 @@ STATUS executeAllocationTurnState(UINT64 customData, UINT64 time)
         CHK(currentTime <= pTurnConnection->stateTimeoutTime, STATUS_TURN_CONNECTION_ALLOCATION_FAILED);
     }
 
-    getTurnConnectionIpAddress(pTurnConnection, pTurnServerIp);
+    getTurnConnectionIpAddress(pTurnConnection, &pTurnServerIp);
     CHK_STATUS(iceUtilsSendStunPacket(pTurnConnection->pTurnPacket, pTurnConnection->longTermKey, ARRAY_SIZE(pTurnConnection->longTermKey),
                                       pTurnServerIp, pTurnConnection->pControlChannel, NULL, FALSE));
 
@@ -686,7 +686,7 @@ STATUS executeCleanUpTurnState(UINT64 customData, UINT64 time)
                                     (PStunAttributeHeader*) &pStunAttributeLifetime));
         CHK(pStunAttributeLifetime != NULL, STATUS_INTERNAL_ERROR);
         pStunAttributeLifetime->lifetime = 0;
-        getTurnConnectionIpAddress(pTurnConnection, pTurnServerIp);
+        getTurnConnectionIpAddress(pTurnConnection, &pTurnServerIp);
         CHK_STATUS(iceUtilsSendStunPacket(pTurnConnection->pTurnAllocationRefreshPacket, pTurnConnection->longTermKey,
                                           ARRAY_SIZE(pTurnConnection->longTermKey), pTurnServerIp,
                                           pTurnConnection->pControlChannel, NULL, FALSE));

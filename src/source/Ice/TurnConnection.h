@@ -189,7 +189,7 @@ struct __TurnConnection {
 typedef struct __TurnConnection* PTurnConnection;
 
 STATUS createTurnConnection(PIceServer, TIMER_QUEUE_HANDLE, TURN_CONNECTION_DATA_TRANSFER_MODE, KVS_SOCKET_PROTOCOL, PTurnConnectionCallbacks,
-                            PSocketConnection, PConnectionListener, PTurnConnection*);
+                            PSocketConnection, PConnectionListener, KVS_IP_FAMILY_TYPE, PTurnConnection*);
 STATUS freeTurnConnection(PTurnConnection*);
 STATUS turnConnectionAddPeer(PTurnConnection, PKvsIpAddress);
 STATUS turnConnectionSendData(PTurnConnection, PBYTE, UINT32, PKvsIpAddress);
@@ -220,7 +220,7 @@ VOID turnConnectionFatalError(PTurnConnection, STATUS);
 PTurnPeer turnConnectionGetPeerWithChannelNumber(PTurnConnection, UINT16);
 PTurnPeer turnConnectionGetPeerWithIp(PTurnConnection, PKvsIpAddress);
 
-STATUS getTurnConnectionIpAddress(PTurnConnection, PKvsIpAddress);
+STATUS getTurnConnectionIpAddress(PTurnConnection, PKvsIpAddress*);
 
 STATUS checkTurnPeerConnections(PTurnConnection);
 
