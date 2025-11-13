@@ -183,6 +183,8 @@ struct __TurnConnection {
     BOOL deallocatePacketSent;
     TurnProfileDiagnostics turnProfileDiagnostics;
     PStateMachine pStateMachine;
+
+    KVS_IP_FAMILY_TYPE ipFamilyType;
 };
 typedef struct __TurnConnection* PTurnConnection;
 
