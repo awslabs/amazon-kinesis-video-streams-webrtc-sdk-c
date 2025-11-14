@@ -98,9 +98,11 @@ STATUS decryptSrtpPacket(PSrtpSession pSrtpSession, PVOID encryptedMessage, PINT
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     srtp_err_status_t errStatus;
+    int tempLen = (int)*len;
 
-    CHK_ERR((errStatus = srtp_unprotect(pSrtpSession->srtp_receive_session, encryptedMessage, len)) == srtp_err_status_ok, STATUS_SRTP_DECRYPT_FAILED,
+    CHK_ERR((errStatus = srtp_unprotect(pSrtpSession->srtp_receive_session, encryptedMessage, &tempLen)) == srtp_err_status_ok, STATUS_SRTP_DECRYPT_FAILED,
             "Decrypting rtp packet failed with error code %u on srtp session %" PRIu64, errStatus, pSrtpSession->srtp_receive_session);
+    *len = (INT32)tempLen;
 
 CleanUp:
     LEAVES();
@@ -112,10 +114,12 @@ STATUS decryptSrtcpPacket(PSrtpSession pSrtpSession, PVOID encryptedMessage, PIN
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     srtp_err_status_t errStatus;
+    int tempLen = (int)*len;
 
-    CHK_ERR((errStatus = srtp_unprotect_rtcp(pSrtpSession->srtp_receive_session, encryptedMessage, len)) == srtp_err_status_ok,
+    CHK_ERR((errStatus = srtp_unprotect_rtcp(pSrtpSession->srtp_receive_session, encryptedMessage, &tempLen)) == srtp_err_status_ok,
             STATUS_SRTP_DECRYPT_FAILED, "Decrypting rtcp packet failed with error code %u on srtp session %" PRIu64, errStatus,
             pSrtpSession->srtp_receive_session);
+    *len = (INT32)tempLen;
 
 CleanUp:
     LEAVES();
@@ -127,11 +131,13 @@ STATUS encryptRtpPacket(PSrtpSession pSrtpSession, PVOID message, PINT32 len)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     srtp_err_status_t status;
+    int tempLen = (int)*len;
 
-    status = srtp_protect(pSrtpSession->srtp_transmit_session, message, len);
+    status = srtp_protect(pSrtpSession->srtp_transmit_session, message, &tempLen);
 
     CHK_ERR(status == srtp_err_status_ok, STATUS_SRTP_ENCRYPT_FAILED, "srtp_protect returned %lu on srtp session %" PRIu64, status,
             pSrtpSession->srtp_transmit_session);
+    *len = (INT32)tempLen;
 
 CleanUp:
     LEAVES();
@@ -143,11 +149,13 @@ STATUS encryptRtcpPacket(PSrtpSession pSrtpSession, PVOID message, PINT32 len)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     srtp_err_status_t status;
+    int tempLen = (int)*len;
 
-    status = srtp_protect_rtcp(pSrtpSession->srtp_transmit_session, message, len);
+    status = srtp_protect_rtcp(pSrtpSession->srtp_transmit_session, message, &tempLen);
 
     CHK_ERR(status == srtp_err_status_ok, STATUS_SRTP_ENCRYPT_FAILED, "srtp_protect_rtcp returned %lu on srtp session %" PRIu64, status,
             pSrtpSession->srtp_transmit_session);
+    *len = (INT32)tempLen;
 
 CleanUp:
     LEAVES();

@@ -327,12 +327,12 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
 
     CHK(mbedtls_ssl_setup(&pDtlsSession->sslCtx, &pDtlsSession->sslCtxConfig) == 0, STATUS_SSL_CTX_CREATION_FAILED);
     mbedtls_ssl_set_mtu(&pDtlsSession->sslCtx, DEFAULT_MTU_SIZE_BYTES);
-    mbedtls_ssl_set_bio(&pDtlsSession->sslCtx, pDtlsSession, dtlsSessionSendCallback, dtlsSessionReceiveCallback, NULL);
+    mbedtls_ssl_set_bio(&pDtlsSession->sslCtx, pDtlsSession, (mbedtls_ssl_send_t*)(void*)dtlsSessionSendCallback, (mbedtls_ssl_recv_t*)(void*)dtlsSessionReceiveCallback, NULL);
 
 #if !MBEDTLS_BEFORE_V3
     mbedtls_ssl_set_export_keys_cb(&pDtlsSession->sslCtx, dtlsSessionKeyDerivationCallback, pDtlsSession);
 #endif
-    mbedtls_ssl_set_timer_cb(&pDtlsSession->sslCtx, &pDtlsSession->transmissionTimer, dtlsSessionSetTimerCallback, dtlsSessionGetTimerCallback);
+    mbedtls_ssl_set_timer_cb(&pDtlsSession->sslCtx, &pDtlsSession->transmissionTimer, dtlsSessionSetTimerCallback, (mbedtls_ssl_get_timer_t*)(void*)dtlsSessionGetTimerCallback);
 
     // Start non-blocking handshaking
     pDtlsSession->dtlsSessionStartTime = GETTIME();

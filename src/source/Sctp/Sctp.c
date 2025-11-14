@@ -59,7 +59,7 @@ STATUS initSctpSession()
 {
     STATUS retStatus = STATUS_SUCCESS;
 
-    usrsctp_init_nothreads(0, &onSctpOutboundPacket, NULL);
+    usrsctp_init_nothreads(0, (int (*)(void *, void *, size_t, uint8_t, uint8_t))(void*)onSctpOutboundPacket, NULL);
 
     // Disable Explicit Congestion Notification
     usrsctp_sysctl_set_sctp_ecn_enable(0);
@@ -99,7 +99,7 @@ STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, PSctpSessi
     CHK_STATUS(initSctpAddrConn(pSctpSession, &localConn));
     CHK_STATUS(initSctpAddrConn(pSctpSession, &remoteConn));
 
-    CHK((pSctpSession->socket = usrsctp_socket(AF_CONN, SOCK_STREAM, IPPROTO_SCTP, onSctpInboundPacket, NULL, 0, pSctpSession)) != NULL,
+    CHK((pSctpSession->socket = usrsctp_socket(AF_CONN, SOCK_STREAM, IPPROTO_SCTP, (int (*)(struct socket *, union sctp_sockstore, void *, size_t, struct sctp_rcvinfo, int, void *))(void*)onSctpInboundPacket, NULL, 0, pSctpSession)) != NULL,
         STATUS_SCTP_SESSION_SETUP_FAILED);
     usrsctp_register_address(pSctpSession);
     CHK_STATUS(configureSctpSocket(pSctpSession->socket));
@@ -246,10 +246,10 @@ STATUS sctpSessionWriteDcep(PSctpSession pSctpSession, UINT32 streamId, PCHAR pC
     if (!pRtcDataChannelInit->ordered) {
         pSctpSession->packet[1] |= DCEP_DATA_CHANNEL_RELIABLE_UNORDERED;
     }
-    if (pRtcDataChannelInit->maxRetransmits.value >= 0 && pRtcDataChannelInit->maxRetransmits.isNull == FALSE) {
+    if (pRtcDataChannelInit->maxRetransmits.isNull == FALSE) {
         pSctpSession->packet[1] |= DCEP_DATA_CHANNEL_REXMIT;
         putUnalignedInt32BigEndian(pSctpSession->packet + SIZEOF(UINT32), pRtcDataChannelInit->maxRetransmits.value);
-    } else if (pRtcDataChannelInit->maxPacketLifeTime.value >= 0 && pRtcDataChannelInit->maxPacketLifeTime.isNull == FALSE) {
+    } else if (pRtcDataChannelInit->maxPacketLifeTime.isNull == FALSE) {
         pSctpSession->packet[1] |= DCEP_DATA_CHANNEL_TIMED;
         putUnalignedInt32BigEndian(pSctpSession->packet + SIZEOF(UINT32), pRtcDataChannelInit->maxPacketLifeTime.value);
     }
