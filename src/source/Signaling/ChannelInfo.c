@@ -177,8 +177,12 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
         STRCPY(pCurPtr, pOrigChannelInfo->pControlPlaneUrl);
     } else {
         // Create a fully qualified URI
+        // Suppress false positive restrict warning: format string arguments don't overlap with destination
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic ignored "-Wrestrict"
         SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME, pChannelInfo->pRegion,
                  CONTROL_PLANE_URI_POSTFIX);
+        #pragma GCC diagnostic pop
         // If region is in CN, add CN region uri postfix
         if (STRSTR(pChannelInfo->pRegion, "cn-")) {
             STRCAT(pCurPtr, ".cn");

@@ -52,7 +52,9 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
     STATUS retStatus = STATUS_SUCCESS;
     PConnectionListener pConnectionListener = NULL;
     TID threadId;
+#if defined(HAVE_SOCKETPAIR)
     const char* msg = "1";
+#endif
 
     CHK(ppConnectionListener != NULL, STATUS_NULL_ARG);
     CHK(*ppConnectionListener != NULL, retStatus);

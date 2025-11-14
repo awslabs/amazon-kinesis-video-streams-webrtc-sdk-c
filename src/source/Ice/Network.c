@@ -115,7 +115,6 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 ipCount = 0, destIpListLen;
-    BOOL filterSet = TRUE;
 
 #ifdef _WIN32
     DWORD retWinStatus, sizeAAPointer;
@@ -126,6 +125,7 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
 #endif
 
 #if !defined(CONFIG_IDF_CMAKE)
+    BOOL filterSet = TRUE;
     struct sockaddr_in* pIpv4Addr = NULL;
     struct sockaddr_in6* pIpv6Addr = NULL;
 #endif
@@ -457,7 +457,7 @@ CleanUp:
 BOOL isIpAddr(PCHAR hostname, UINT16 length)
 {
     BOOL status = TRUE;
-    UINT32 ip_1, ip_2, ip_3, ip_4, ip_5, ip_6, ip_7, ip_8;
+    int ip_1, ip_2, ip_3, ip_4, ip_5, ip_6, ip_7, ip_8;
     if (hostname == NULL || length > MAX_ICE_CONFIG_URI_LEN) {
         DLOGW("Provided NULL hostname");
         status = FALSE;
