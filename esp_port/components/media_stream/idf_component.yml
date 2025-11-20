@@ -21,10 +21,9 @@ dependencies:
   espressif/esp_codec_dev:
     version: "*"
 
-  # local components
-  esp32_p4_function_ev_board:
-    path: ../esp32_p4_function_ev_board
-    version: "*"
+  # BSP component from component manager
+  espressif/esp32_p4_function_ev_board:
+    version: "^5.1.0"
     rules:
       - if: "target in [esp32p4]"
 

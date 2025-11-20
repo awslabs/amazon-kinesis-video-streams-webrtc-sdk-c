@@ -18,8 +18,8 @@
 
 #if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4
 #if CONFIG_IDF_TARGET_ESP32P4
-#include "bsp/esp-bsp.h"
-#include "bsp/bsp_board_extra.h"
+#include "bsp/esp32_p4_function_ev_board.h"
+#include "esp_codec_dev.h"
 #endif
 static const char *TAG = "OpusFrameGrabber";
 
@@ -43,6 +43,9 @@ typedef struct {
 } opus_encoder_data_t;
 
 static opus_encoder_data_t s_enc_data = {0};
+#if CONFIG_IDF_TARGET_ESP32P4
+static esp_codec_dev_handle_t mic_codec_dev = NULL;
+#endif
 
 #ifndef CONFIG_IDF_TARGET_ESP32P4
 #include "driver/i2s_std.h"
@@ -134,19 +137,23 @@ static void audio_encoder_task(void *arg)
         out_frame.buffer = s_enc_data.outbuf;
         out_frame.len = s_enc_data.outsize;
 
-        size_t bytes_read = 0;
-
 #define I2S_READ_WAIT_MS CONFIG_AUDIO_QUEUE_WAIT_MS
 #if CONFIG_IDF_TARGET_ESP32P4
-        // esp_codec_dev_read(audio_handle, (void*)s_enc_data.inbuf, s_enc_data.insize);
-        esp_err_t read_ret = bsp_extra_i2s_read(s_enc_data.inbuf, s_enc_data.insize, &bytes_read, I2S_READ_WAIT_MS);
-        if (read_ret != ESP_OK) {
-            ESP_LOGE(TAG, "bsp_extra_i2s_read error: %s", esp_err_to_name(read_ret));
+        if (mic_codec_dev) {
+            esp_err_t read_ret = esp_codec_dev_read(mic_codec_dev, s_enc_data.inbuf, s_enc_data.insize);
+            if (read_ret != ESP_OK) {
+                ESP_LOGE(TAG, "esp_codec_dev_read error: %s", esp_err_to_name(read_ret));
+                vTaskDelay(pdMS_TO_TICKS(I2S_READ_WAIT_MS));
+                continue;
+            }
+        } else {
+            ESP_LOGE(TAG, "Microphone codec device not initialized");
             vTaskDelay(pdMS_TO_TICKS(I2S_READ_WAIT_MS));
             continue;
         }
-#else
+#else // CONFIG_IDF_TARGET_ESP32P4
         esp_err_t i2s_ret = ESP_OK;
+        size_t bytes_read = 0;
         size_t bytes_to_read = s_enc_data.insize;
 #if READ_SAMPLE_SIZE_30
         bytes_to_read = s_enc_data.insize * 2;
@@ -248,10 +255,32 @@ void *opus_encoder_init_internal(audio_capture_config_t *config)
 
     // Initialize audio hardware
 #if CONFIG_IDF_TARGET_ESP32P4
-    bsp_extra_codec_init();
-    // Give some time for the I2S channel to be properly enabled
-    vTaskDelay(pdMS_TO_TICKS(100));
-    ESP_LOGD(TAG, "ESP32P4 audio codec initialized");
+    if (mic_codec_dev == NULL) {
+        /* Ensure I2C is initialized before audio codec init to avoid double initialization */
+        extern esp_err_t media_stream_i2c_init_safe(void);
+        media_stream_i2c_init_safe();
+
+        mic_codec_dev = bsp_audio_codec_microphone_init();
+        if (mic_codec_dev == NULL) {
+            ESP_LOGE(TAG, "Failed to initialize microphone codec");
+            goto cleanup;
+        }
+
+        esp_codec_dev_sample_info_t fs = {
+            .sample_rate = SAMPLE_RATE,
+            .channel = CHANNELS,
+            .bits_per_sample = 16,
+        };
+        esp_err_t ret = esp_codec_dev_open(mic_codec_dev, &fs);
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to open microphone codec device: %s", esp_err_to_name(ret));
+            goto cleanup;
+        }
+
+        // Give some time for the I2S channel to be properly enabled
+        vTaskDelay(pdMS_TO_TICKS(100));
+        ESP_LOGD(TAG, "ESP32P4 audio codec initialized");
+    }
 #else
     i2s_init();
 #endif

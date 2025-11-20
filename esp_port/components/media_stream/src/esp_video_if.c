@@ -15,6 +15,7 @@
 #include <sys/errno.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <freertos/semphr.h>
 #include <sys/select.h>
 
 #include "esp_err.h"
@@ -29,7 +30,11 @@
 #include "esp_video_if.h"
 #include "esp_h264_hw_enc.h"
 #include "bsp/esp32_p4_function_ev_board.h"
-#include "bsp/bsp_board_extra.h"
+
+#if CONFIG_IDF_TARGET_ESP32P4
+/* Forward declaration of internal I2C init function */
+extern esp_err_t media_stream_i2c_init_safe(void);
+#endif
 
 #define ESP_VIDEO_MIPI_CSI_DEVICE_NAME      "/dev/video0"
 #define CAM_DEV_PATH        ESP_VIDEO_MIPI_CSI_DEVICE_NAME
@@ -366,8 +371,12 @@ esp_err_t esp_video_if_init(void)
     return ESP_FAIL;
 #endif
 
-    /* Initialize I2C bus */
-    bsp_i2c_init();
+    /* Ensure I2C is initialized using the safe initialization function */
+    esp_err_t i2c_ret = media_stream_i2c_init_safe();
+    if (i2c_ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to initialize I2C: %s", esp_err_to_name(i2c_ret));
+        return ESP_FAIL;
+    }
 
     v4l2_src_t *v4l2 = heap_caps_calloc(1, sizeof(v4l2_src_t), MALLOC_CAP_SPIRAM);
     if (!v4l2) {
@@ -379,7 +388,7 @@ esp_err_t esp_video_if_init(void)
         {
             .sccb_config = {
                 .init_sccb = false,
-                .i2c_handle = bsp_get_i2c_bus_handle(),
+                .i2c_handle = bsp_i2c_get_handle(),
                 .freq = CONFIG_EXAMPLE_MIPI_CSI_SCCB_I2C_FREQ,
             },
             .reset_pin = CONFIG_EXAMPLE_MIPI_CSI_CAM_SENSOR_RESET_PIN,
