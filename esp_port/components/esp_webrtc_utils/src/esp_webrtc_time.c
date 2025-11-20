@@ -59,7 +59,6 @@ static void initialize_sntp(void)
     // Convert to time_t
     time_t ref_time = mktime(&date);
 
-    int retry_attempts = 5;
 #define SOME_STR "Req GetTimeOfTheDay"
     struct timeval tv = {};
     // Set time obtained from coprocessor first

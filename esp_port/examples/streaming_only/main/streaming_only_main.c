@@ -27,9 +27,9 @@
 #include "esp_work_queue.h"
 #include "app_webrtc.h"
 #include "kvs_peer_connection.h"
+#include "power_save_handler.h"
 
 extern esp_err_t esp_hosted_wait_for_slave(void);
-extern int sleep_command_register_cli();
 
 static const char *TAG = "streaming_only";
 
@@ -284,7 +284,7 @@ void app_main(void)
     esp_cli_start();
 
     /* Register deep sleep command */
-    sleep_command_register_cli();
+    power_save_cli_register();
 
     // Initialize WiFi
     wifi_init_sta();
@@ -294,9 +294,15 @@ void app_main(void)
     // Initialize signaling serializer
     signaling_serializer_init();
 
-    // Register the event callback *before* init to catch all events
+    // Enable automatic power save
+    if (power_save_enable() != 0) {
+        ESP_LOGE(TAG, "Failed to enable power save.");
+    }
+
+    // Register application event handler
+    // Multiple handlers can be registered - both will receive all events
     if (app_webrtc_register_event_callback(app_webrtc_event_handler, NULL) != 0) {
-        ESP_LOGE(TAG, "Failed to register KVS event callback.");
+        ESP_LOGE(TAG, "Failed to register app event handler.");
     }
 
     // Get media interfaces for streaming (capture for sending, player for receiving)
@@ -320,7 +326,7 @@ void app_main(void)
     dc_config.onOpen = on_data_channel_open;
     dc_config.onMessage = on_data_channel_message;
     dc_config.onClose = NULL;  // Reserved for future use (not yet supported by KVS SDK)
-    dc_config.customData = (uint64_t)&g_data_channel_ctx;
+    dc_config.customData = (uint64_t)(uintptr_t)&g_data_channel_ctx;
 
     // Configure WebRTC with our new simplified API - streaming-only mode
     app_webrtc_config_t app_webrtc_config = APP_WEBRTC_CONFIG_DEFAULT();
@@ -368,6 +374,9 @@ void app_main(void)
 
     // Start webrtc bridge
     webrtc_bridge_start();
+
+	/* TODO: Set the slave's default power save mode */
+	// esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
 
     ESP_LOGI(TAG, "Streaming example initialized, waiting for signaling messages");
 

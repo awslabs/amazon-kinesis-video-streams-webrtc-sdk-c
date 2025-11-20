@@ -866,8 +866,10 @@ static WEBRTC_STATUS kvs_pc_free(void *pPeerConnectionClient)
     // Stop global media threads if still running
     if (client_data->global_media_started) {
         ESP_LOGI(TAG, "Stopping global media threads during client cleanup");
-        kvs_media_stop_global_transmission(client_data);
-        client_data->global_media_started = FALSE;
+        STATUS media_status = kvs_media_stop_global_transmission(client_data);
+        if (STATUS_SUCCEEDED(media_status)) {
+            client_data->global_media_started = FALSE;
+        }
     }
 
     // Cleanup session count mutex
