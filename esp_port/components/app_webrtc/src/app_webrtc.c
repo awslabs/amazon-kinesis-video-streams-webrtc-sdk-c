@@ -22,9 +22,16 @@
 
 static const char *TAG = "app_webrtc";
 
-// Event handling
-static app_webrtc_event_callback_t gEventCallback = NULL;
-static void* gEventUserCtx = NULL;
+// Event handling - fixed-size array of callbacks
+#define MAX_EVENT_CALLBACKS CONFIG_APP_WEBRTC_MAX_EVENT_CALLBACKS
+
+typedef struct {
+    app_webrtc_event_callback_t callback;
+    void* user_ctx;
+} event_callback_entry_t;
+
+static event_callback_entry_t gEventCallbacks[MAX_EVENT_CALLBACKS] = {0};
+static UINT32 gEventCallbackCount = 0;
 static MUTEX gEventCallbackLock = INVALID_MUTEX_VALUE;
 
 // Global variables to track app state
@@ -78,11 +85,7 @@ static void raiseEvent(app_webrtc_event_t event_id, UINT32 status_code, PCHAR pe
 {
     BOOL locked = FALSE;
     app_webrtc_event_data_t event_data = {0};
-
-    // Check if there's a registered callback
-    if (gEventCallback == NULL) {
-        return;
-    }
+    UINT32 i;
 
     // Prepare event data
     event_data.event_id = event_id;
@@ -96,15 +99,17 @@ static void raiseEvent(app_webrtc_event_t event_id, UINT32 status_code, PCHAR pe
         STRNCPY(event_data.message, message, SIZEOF(event_data.message) - 1);
     }
 
-    // Use lock for thread safety when accessing the callback
+    // Use lock for thread safety when accessing the callback array
     if (IS_VALID_MUTEX_VALUE(gEventCallbackLock)) {
         MUTEX_LOCK(gEventCallbackLock);
         locked = TRUE;
     }
 
-    // Call the user callback if set
-    if (gEventCallback != NULL) {
-        gEventCallback(&event_data, gEventUserCtx);
+    // Call all registered callbacks
+    for (i = 0; i < gEventCallbackCount; i++) {
+        if (gEventCallbacks[i].callback != NULL) {
+            gEventCallbacks[i].callback(&event_data, gEventCallbacks[i].user_ctx);
+        }
     }
 
     // Release the lock
@@ -118,6 +123,10 @@ INT32 app_webrtc_register_event_callback(app_webrtc_event_callback_t callback, v
 {
     BOOL locked = FALSE;
 
+    if (callback == NULL) {
+        return STATUS_INVALID_OPERATION;
+    }
+
     if (gEventCallbackLock == INVALID_MUTEX_VALUE) {
         gEventCallbackLock = MUTEX_CREATE(TRUE);
         if (!IS_VALID_MUTEX_VALUE(gEventCallbackLock)) {
@@ -128,9 +137,16 @@ INT32 app_webrtc_register_event_callback(app_webrtc_event_callback_t callback, v
     MUTEX_LOCK(gEventCallbackLock);
     locked = TRUE;
 
-    // Set the callback
-    gEventCallback = callback;
-    gEventUserCtx = user_ctx;
+    // Check if we have space
+    if (gEventCallbackCount >= MAX_EVENT_CALLBACKS) {
+        MUTEX_UNLOCK(gEventCallbackLock);
+        return STATUS_NOT_ENOUGH_MEMORY;
+    }
+
+    // Add callback to array
+    gEventCallbacks[gEventCallbackCount].callback = callback;
+    gEventCallbacks[gEventCallbackCount].user_ctx = user_ctx;
+    gEventCallbackCount++;
 
     MUTEX_UNLOCK(gEventCallbackLock);
     locked = FALSE;
@@ -284,11 +300,14 @@ static WEBRTC_STATUS peerConnectionStateChangedWrapper(uint64_t customData, webr
     switch (state) {
         case WEBRTC_PEER_STATE_NEW:
         case WEBRTC_PEER_STATE_CONNECTING:
+            break;
         case WEBRTC_PEER_STATE_CONNECTED:
             if (pAppWebRTCSession != NULL) {
                 ESP_LOGI(TAG, "Peer connection state for %s: %d", pAppWebRTCSession->peerId, state);
+                raiseEvent(APP_WEBRTC_EVENT_PEER_CONNECTED, 0, pAppWebRTCSession->peerId, "Peer connected");
             } else {
                 ESP_LOGI(TAG, "Peer connection state (bridge): %d", state);
+                raiseEvent(APP_WEBRTC_EVENT_PEER_CONNECTED, 0, NULL, "Peer connected");
             }
             break;
 
@@ -297,6 +316,8 @@ static WEBRTC_STATUS peerConnectionStateChangedWrapper(uint64_t customData, webr
             if (pAppWebRTCSession != NULL) {
                 // FIXED: Mark only the specific session that failed, not the first one found!
                 ESP_LOGI(TAG, "Peer %s failed/disconnected - marking for cleanup", pAppWebRTCSession->peerId);
+                raiseEvent(APP_WEBRTC_EVENT_PEER_DISCONNECTED, 0, pAppWebRTCSession->peerId, "Peer disconnected");
+                raiseEvent(APP_WEBRTC_EVENT_STREAMING_STOPPED, 0, pAppWebRTCSession->peerId, "Media streaming stopped");
                 ATOMIC_STORE_BOOL(&pAppWebRTCSession->terminateFlag, TRUE);  // Mark THIS session
                 CVAR_BROADCAST(pSampleConfiguration->cvar);
                 ESP_LOGI(TAG, "Marked specific peer %s for termination (not affecting other peers)",
@@ -308,6 +329,8 @@ static WEBRTC_STATUS peerConnectionStateChangedWrapper(uint64_t customData, webr
                 for (UINT32 i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
                     PAppWebRTCSession s = pSampleConfiguration->webrtcSessionList[i];
                     if (s != NULL && s->pPeerConnection == NULL && s->interface_session_handle != NULL) {
+                        raiseEvent(APP_WEBRTC_EVENT_PEER_DISCONNECTED, 0, s->peerId, "Peer disconnected");
+                        raiseEvent(APP_WEBRTC_EVENT_STREAMING_STOPPED, 0, s->peerId, "Media streaming stopped");
                         ATOMIC_STORE_BOOL(&s->terminateFlag, TRUE);
                         CVAR_BROADCAST(pSampleConfiguration->cvar);
                         ESP_LOGI(TAG, "Bridge mode: marked session %s for termination", s->peerId);
@@ -322,8 +345,10 @@ static WEBRTC_STATUS peerConnectionStateChangedWrapper(uint64_t customData, webr
             if (pAppWebRTCSession != NULL) {
                 ESP_LOGI(TAG, "Media starting for peer %s (handled by kvs_webrtc interface)",
                          pAppWebRTCSession->peerId);
+                raiseEvent(APP_WEBRTC_EVENT_STREAMING_STARTED, 0, pAppWebRTCSession->peerId, "Media streaming started");
             } else {
                 ESP_LOGI(TAG, "Media starting (bridge mode)");
+                raiseEvent(APP_WEBRTC_EVENT_STREAMING_STARTED, 0, NULL, "Media streaming started");
             }
             break;
 

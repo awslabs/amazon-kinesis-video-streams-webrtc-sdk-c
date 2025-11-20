@@ -8,4 +8,13 @@ menu "App WebRTC Configuration"
             Maximum number of concurrent WebRTC streams. (Tested for MAX 3 with 16 MAX sockets setting)
             Please increase max sockets from 10 to larger number if you wish to use higher simultaneous connections.
             Note that more simultaneous connection means higher memory usage
+
+    config APP_WEBRTC_MAX_EVENT_CALLBACKS
+        int "Maximum event callback handlers"
+        default 5
+        range 1 16
+        help
+            Maximum number of event callback handlers that can be registered.
+            Each handler receives all WebRTC events. Increase if you need more handlers.
+
 endmenu
