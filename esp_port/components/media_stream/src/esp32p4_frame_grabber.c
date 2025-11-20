@@ -23,9 +23,20 @@
 
 #include "esp_dma_utils.h"
 
-#include "bsp/esp-bsp.h"
-#include "sensor.h"
+#include "bsp/esp32_p4_function_ev_board.h"
+#if !USE_ESP_VIDEO_IF
+/* Old camera API path - only available with local component override */
+/* Define camera clock rate constants if not using esp_video_if */
+#ifndef OV5647_MIPI_IDI_CLOCK_RATE_720P_50FPS
+#define OV5647_MIPI_IDI_CLOCK_RATE_720P_50FPS   (74000000ULL)
+#define OV5647_MIPI_CSI_LINE_RATE_720P_50FPS   (OV5647_MIPI_IDI_CLOCK_RATE_720P_50FPS * 4)
+#define OV5647_MIPI_IDI_CLOCK_RATE_1080P_22FPS  (98437500ULL)
+#define OV5647_MIPI_CSI_LINE_RATE_1080P_22FPS  (OV5647_MIPI_IDI_CLOCK_RATE_1080P_22FPS * 4)
+#endif
+/* Note: bsp/camera.h is not available in component manager version */
+/* This path requires local component override */
 #include "bsp/camera.h"
+#endif
 #include "sdmmc_cmd.h"
 #include "driver/sdmmc_host.h"
 

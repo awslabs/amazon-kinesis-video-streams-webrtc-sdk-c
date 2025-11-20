@@ -21,8 +21,8 @@
 
 #include "sdkconfig.h"
 #if CONFIG_IDF_TARGET_ESP32P4
-#include "bsp/bsp_board_extra.h"
 #include "bsp/esp32_p4_function_ev_board.h"
+#include "esp_codec_dev.h"
 #endif
 
 static const char *TAG = "OPUS_AUDIO_PLAYER";
@@ -36,6 +36,9 @@ typedef struct {
 
 static write_ctx_t write_ctx;
 static rb_handle_t rb_handle;
+#if CONFIG_IDF_TARGET_ESP32P4
+static esp_codec_dev_handle_t spk_codec_dev = NULL;
+#endif
 
 #define OPUS_PLAYER_TASK        (1)
 #define OPUS_SAMPLE_RATE        (48000)
@@ -125,7 +128,7 @@ void i2s_write_task(void *args)
     int16_t *w_buf = (int16_t *)calloc(1, EXAMPLE_BUFF_SIZE);
     assert(w_buf);
     size_t w_bytes = 0;
-    i2s_chan_handle_t tx_chan = bsp_audio_get_tx_channel();
+    // Note: Using esp_codec_dev_write instead of direct I2S channel access
     uint8_t cnt = 0;            // The current index of the song
     uint8_t tone_select = 0;    // To selecting the tone level
 
@@ -138,8 +141,13 @@ void i2s_write_task(void *args)
         }
         for (int tot_bytes = 0; tot_bytes < EXAMPLE_BYTE_NUM_EVERY_TONE * rhythm[cnt % 7]; tot_bytes += w_bytes) {
             /* Play the tone */
-            bsp_extra_i2s_write(w_buf, tone_point * sizeof(int16_t), &w_bytes, 100);
-            // i2s_channel_write(tx_chan, w_buf, tone_point * sizeof(int16_t), &w_bytes, 1000)
+            if (spk_codec_dev) {
+                esp_codec_dev_write(spk_codec_dev, w_buf, tone_point * sizeof(int16_t));
+                w_bytes = tone_point * sizeof(int16_t);
+            } else {
+                ESP_LOGE(TAG, "Codec device not initialized");
+                w_bytes = 0;
+            }
             if (w_bytes != tone_point * sizeof(int16_t)) {
                 ESP_LOGE(TAG, "Failed to write to I2S");
                 continue;
@@ -188,12 +196,14 @@ static void i2s_write_task(void *arg)
         ESP_LOGV(TAG, "Resampled %d samples to %d", samples_to_read * OPUS_CHANNELS, outnum);
 
         size_t bytes_to_write = outnum * sizeof(int16_t);
-        size_t bytes_written = 0;
-        bsp_extra_i2s_write(resampled_buf, bytes_to_write, &bytes_written, 100);
-        // i2s_channel_write(i2s_tx_chan, resampled_buf, bytes_to_write, &bytes_written, 100);
-        if (bytes_written != bytes_to_write) {
-            // This should be very rare
-            ESP_LOGW(TAG, "Failed to write to I2S");
+        if (spk_codec_dev) {
+            esp_err_t ret = esp_codec_dev_write(spk_codec_dev, resampled_buf, bytes_to_write);
+            if (ret != ESP_OK) {
+                ESP_LOGW(TAG, "Failed to write to codec: %s", esp_err_to_name(ret));
+                continue;
+            }
+        } else {
+            ESP_LOGW(TAG, "Codec device not initialized");
             continue;
         }
     }
@@ -218,7 +228,12 @@ esp_err_t opus_player_decode_and_play_one_frame(uint8_t *data, size_t size)
     size_t bytes_written = 0;
     size_t bytes_to_write = write_ctx.out_frame.decoded_size;
 
-    bsp_extra_i2s_write(write_ctx.out_frame.buffer, write_ctx.out_frame.decoded_size, &bytes_written, 10);
+    if (spk_codec_dev) {
+        esp_codec_dev_write(spk_codec_dev, write_ctx.out_frame.buffer, write_ctx.out_frame.decoded_size);
+        bytes_written = write_ctx.out_frame.decoded_size;
+    } else {
+        bytes_written = 0;
+    }
     if (bytes_written != bytes_to_write) {
         ESP_LOGW(TAG, "Failed to write to I2S");
         return ESP_FAIL;
@@ -305,14 +320,31 @@ esp_err_t OpusAudioPlayerInit()
 #endif
 
 #if CONFIG_IDF_TARGET_ESP32P4
-    bsp_extra_codec_init();
-    bsp_extra_codec_mute_set(false);
-    int volume_set = 0;
-    bsp_extra_codec_volume_set(60, &volume_set);
-    // ESP_LOGI(TAG, "Volume set: %d", volume_set);
-    (void) volume_set;
-    bsp_extra_codec_set_fs(16000, 16, I2S_SLOT_MODE_MONO);
-    // bsp_extra_codec_dev_resume();
+    if (spk_codec_dev == NULL) {
+        /* Ensure I2C is initialized before audio codec init to avoid double initialization */
+        extern esp_err_t media_stream_i2c_init_safe(void);
+        media_stream_i2c_init_safe();
+
+        spk_codec_dev = bsp_audio_codec_speaker_init();
+        if (spk_codec_dev == NULL) {
+            ESP_LOGE(TAG, "Failed to initialize speaker codec");
+            return ESP_FAIL;
+        }
+
+        esp_codec_dev_set_out_mute(spk_codec_dev, false);
+        esp_codec_dev_set_out_vol(spk_codec_dev, 60);
+
+        esp_codec_dev_sample_info_t fs = {
+            .sample_rate = 16000,
+            .channel = 1,
+            .bits_per_sample = 16,
+        };
+        esp_err_t ret = esp_codec_dev_open(spk_codec_dev, &fs);
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to open codec device: %s", esp_err_to_name(ret));
+            return ESP_FAIL;
+        }
+    }
 #endif
 
     if (init_decoder() != ESP_OK) {
