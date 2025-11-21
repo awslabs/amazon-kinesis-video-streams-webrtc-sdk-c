@@ -133,7 +133,7 @@ static inline BOOL isIpv6Address(const KvsIpAddress* pAddress)
 
 typedef STATUS (*IceServerSetIpFunc)(UINT64, PCHAR, PDualKvsIpAddresses);
 STATUS getIpAddrStr(PKvsIpAddress pKvsIpAddress, PCHAR pBuffer, UINT32 bufferLen);
-const PCHAR kvsIpAddressToString(const KvsIpAddress* pAddr);
+const PCHAR kvsIpAddressToString(const PKvsIpAddress pAddr);
 
 ////////////////////////////////////////////////////
 // Project forward declarations
