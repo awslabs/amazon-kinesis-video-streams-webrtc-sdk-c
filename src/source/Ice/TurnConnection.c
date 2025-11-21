@@ -1300,6 +1300,7 @@ VOID turnConnectionFatalError(PTurnConnection pTurnConnection, STATUS errorStatu
 
 STATUS getTurnConnectionIpAddress(PTurnConnection pTurnConnection, PKvsIpAddress* ppTurnConnectionIpAddress)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK_ERR(ppTurnConnectionIpAddress != NULL, STATUS_NULL_ARG, "ppTurnConnectionIp is NULL");
@@ -1312,5 +1313,6 @@ STATUS getTurnConnectionIpAddress(PTurnConnection pTurnConnection, PKvsIpAddress
     }
 CleanUp:
     CHK_LOG_ERR(retStatus);
+    LEAVES();
     return retStatus;
 }

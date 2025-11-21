@@ -379,7 +379,7 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
     CHK(buf != NULL && bufLen > 0, STATUS_INVALID_ARG);
 
     if (pDestIp != NULL) {
-        if (isIpv4Address(pDestIp)) {
+        if (IS_IPV4_ADDR(pDestIp)) {
             addrLen = SIZEOF(ipv4Addr);
             MEMSET(&ipv4Addr, 0x00, SIZEOF(ipv4Addr));
             ipv4Addr.sin_family = AF_INET;

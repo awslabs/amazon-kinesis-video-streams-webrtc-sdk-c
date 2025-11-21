@@ -269,7 +269,7 @@ STATUS socketBind(PKvsIpAddress pHostIpAddress, INT32 sockfd)
 
     if (bind(sockfd, sockAddr, addrLen) < 0) {
         CHK_STATUS(getIpAddrStr(pHostIpAddress, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
-        DLOGW("bind() failed for ip%s address: %s, port %u with errno %s", isIpv4Address(pHostIpAddress) ? EMPTY_STRING : "V6", ipAddrStr,
+        DLOGW("bind() failed for ip%s address: %s, port %u with errno %s", IS_IPV4_ADDR(pHostIpAddress) ? EMPTY_STRING : "V6", ipAddrStr,
               (UINT16) getInt16(pHostIpAddress->port), getErrorString(getErrorCode()));
         CHK(FALSE, STATUS_BINDING_SOCKET_FAILED);
     }
@@ -487,7 +487,7 @@ STATUS getIpAddrStr(PKvsIpAddress pKvsIpAddress, PCHAR pBuffer, UINT32 bufferLen
     CHK(pKvsIpAddress != NULL, STATUS_NULL_ARG);
     CHK(pBuffer != NULL && bufferLen > 0, STATUS_INVALID_ARG);
 
-    if (isIpv4Address(pKvsIpAddress)) {
+    if (IS_IPV4_ADDR(pKvsIpAddress)) {
         generatedStrLen = SNPRINTF(pBuffer, bufferLen, "%u.%u.%u.%u", pKvsIpAddress->address[0], pKvsIpAddress->address[1], pKvsIpAddress->address[2],
                                    pKvsIpAddress->address[3]);
     } else {
@@ -506,15 +506,6 @@ CleanUp:
     return retStatus;
 }
 
-const PCHAR kvsIpAddressToString(PKvsIpAddress pAddr)
-{
-    static __thread char addrBuf[64];
-    STATUS retStatus = getIpAddrStr(pAddr, addrBuf, sizeof(addrBuf));
-    if (STATUS_FAILED(retStatus)) {
-        SNPRINTF(addrBuf, sizeof(addrBuf), "<invalid>");
-    }
-    return addrBuf;
-}
 
 BOOL isSameIpAddress(PKvsIpAddress pAddr1, PKvsIpAddress pAddr2, BOOL checkPort)
 {
@@ -525,7 +516,7 @@ BOOL isSameIpAddress(PKvsIpAddress pAddr1, PKvsIpAddress pAddr2, BOOL checkPort)
         return FALSE;
     }
 
-    addrLen = isIpv4Address(pAddr1) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
+    addrLen = IS_IPV4_ADDR(pAddr1) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
 
     ret =
         (pAddr1->family == pAddr2->family && MEMCMP(pAddr1->address, pAddr2->address, addrLen) == 0 && (!checkPort || pAddr1->port == pAddr2->port));

@@ -117,12 +117,12 @@ typedef struct {
 
 #include <stdio.h>
 
-static inline BOOL isIpv4Address(const KvsIpAddress* pAddress)
+static inline BOOL IS_IPV4_ADDR(const KvsIpAddress* pAddress)
 {
     return pAddress != NULL && pAddress->family == KVS_IP_FAMILY_TYPE_IPV4;
 }
 
-static inline BOOL isIpv6Address(const KvsIpAddress* pAddress)
+static inline BOOL IS_IPV6_ADDR(const KvsIpAddress* pAddress)
 {
     return pAddress != NULL && pAddress->family == KVS_IP_FAMILY_TYPE_IPV6;
 }
@@ -133,7 +133,6 @@ static inline BOOL isIpv6Address(const KvsIpAddress* pAddress)
 
 typedef STATUS (*IceServerSetIpFunc)(UINT64, PCHAR, PDualKvsIpAddresses);
 STATUS getIpAddrStr(PKvsIpAddress pKvsIpAddress, PCHAR pBuffer, UINT32 bufferLen);
-const PCHAR kvsIpAddressToString(const PKvsIpAddress pAddr);
 
 ////////////////////////////////////////////////////
 // Project forward declarations

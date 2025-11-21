@@ -1021,7 +1021,7 @@ STATUS findCandidateWithIp(PKvsIpAddress pIpAddress, PDoubleList pCandidateList,
         pIceCandidate = (PIceCandidate) data;
         pCurNode = pCurNode->pNext;
 
-        addrLen = isIpv4Address(pIpAddress) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
+        addrLen = IS_IPV4_ADDR(pIpAddress) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
         if (pIpAddress->family == pIceCandidate->ipAddress.family && MEMCMP(pIceCandidate->ipAddress.address, pIpAddress->address, addrLen) == 0 &&
             pIpAddress->port == pIceCandidate->ipAddress.port) {
             pTargetIceCandidate = pIceCandidate;
@@ -1240,7 +1240,7 @@ STATUS findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(PIceAgent pIce
 
     CHK(pIceAgent != NULL && ppIceCandidatePair != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
 
-    addrLen = isIpv4Address(pRemoteAddr) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
+    addrLen = IS_IPV4_ADDR(pRemoteAddr) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
 
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
     while (pCurNode != NULL && pTargetIceCandidatePair == NULL) {
@@ -1815,7 +1815,7 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
     // Create and start the connection listener outside of the locks
     for (j = 0; j < srflxCount; j++) {
         pCandidate = srflxCandidates[j];
-        if (isIpv4Address(&(pCandidate->ipAddress))) {
+        if (IS_IPV4_ADDR(&(pCandidate->ipAddress))) {
             DLOGI("Initializing an IPv4 STUN candidate...");
         } else {
             DLOGI("Initializing an IPv6 STUN candidate...");
@@ -1984,11 +1984,11 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
         
         // Add only peers with matching IP family to the TURN connection.
         if (turnServerIpFamily == KVS_IP_FAMILY_TYPE_IPV4) {
-            if (isIpv4Address(&pCandidate->ipAddress)) {
+            if (IS_IPV4_ADDR(&pCandidate->ipAddress)) {
                 CHK_STATUS(turnConnectionAddPeer(pTurnConnection, &pCandidate->ipAddress));
             }
         } else {
-            if (isIpv6Address(&pCandidate->ipAddress)) {
+            if (IS_IPV6_ADDR(&pCandidate->ipAddress)) {
                 CHK_STATUS(turnConnectionAddPeer(pTurnConnection, &pCandidate->ipAddress));
             }
 
@@ -2476,7 +2476,7 @@ STATUS incomingDataHandler(UINT64 customData, PSocketConnection pSocketConnectio
 
         MUTEX_LOCK(pIceAgent->lock);
         locked = TRUE;
-        addrLen = isIpv4Address(pSrc) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
+        addrLen = IS_IPV4_ADDR(pSrc) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
         if (pIceAgent->pDataSendingIceCandidatePair != NULL &&
             pIceAgent->pDataSendingIceCandidatePair->local->pSocketConnection == pSocketConnection &&
             pIceAgent->pDataSendingIceCandidatePair->remote->ipAddress.family == pSrc->family &&
@@ -2514,7 +2514,7 @@ STATUS iceCandidateSerialize(PIceCandidate pIceCandidate, PCHAR pOutputData, PUI
     CHK(pIceCandidate != NULL && pOutputLength != NULL, STATUS_NULL_ARG);
 
     // TODO FIXME real source of randomness
-    if (isIpv4Address(&(pIceCandidate->ipAddress))) {
+    if (IS_IPV4_ADDR(&(pIceCandidate->ipAddress))) {
         amountWritten = SNPRINTF(pOutputData, pOutputData == NULL ? 0 : *pOutputLength,
                                  "%u 1 udp %u %d.%d.%d.%d %d typ %s raddr 0.0.0.0 rport 0 generation 0 network-cost 999", pIceCandidate->foundation,
                                  pIceCandidate->priority, pIceCandidate->ipAddress.address[0], pIceCandidate->ipAddress.address[1],
