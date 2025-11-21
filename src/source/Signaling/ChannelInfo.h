@@ -10,9 +10,6 @@ Signaling internal include file
 extern "C" {
 #endif
 
-// Max control plane URI char len
-#define MAX_CONTROL_PLANE_URI_CHAR_LEN 256
-
 // Max channel status string length in describe API call in chars
 #define MAX_DESCRIBE_CHANNEL_STATUS_LEN 32
 

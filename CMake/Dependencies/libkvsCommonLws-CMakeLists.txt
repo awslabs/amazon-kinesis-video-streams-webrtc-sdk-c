@@ -6,7 +6,7 @@ include(ExternalProject)
 
 ExternalProject_Add(libkvsCommonLws-download
     GIT_REPOSITORY    https://github.com/awslabs/amazon-kinesis-video-streams-producer-c.git
-    GIT_TAG           v1.5.4
+    GIT_TAG           dual-stack-support
     GIT_PROGRESS      TRUE
     GIT_SHALLOW       TRUE
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
