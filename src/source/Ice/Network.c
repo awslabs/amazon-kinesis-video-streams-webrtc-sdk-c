@@ -349,18 +349,14 @@ BOOL isIpAddr(PCHAR hostname, UINT16 length)
     }
 
     // Check if IPv4 address.
-    if (sscanf(hostname, "%u.%u.%u.%u%n", &ip_1, &ip_2, &ip_3, &ip_4, &offset) == 4 &&
-        ip_1 <= 255 && ip_2 <= 255 && ip_3 <= 255 && ip_4 <= 255 &&
+    if (sscanf(hostname, "%u.%u.%u.%u%n", &ip_1, &ip_2, &ip_3, &ip_4, &offset) == 4 && ip_1 <= 255 && ip_2 <= 255 && ip_3 <= 255 && ip_4 <= 255 &&
         offset == strlen(hostname)) {
         return TRUE;
     }
 
     // Check if IPv6 address.
     offset = 0;
-    if (sscanf(hostname, "%x:%x:%x:%x:%x:%x:%x:%x%n",
-               &ip_1, &ip_2, &ip_3, &ip_4,
-               &ip_5, &ip_6, &ip_7, &ip_8,
-               &offset) == 8 &&
+    if (sscanf(hostname, "%x:%x:%x:%x:%x:%x:%x:%x%n", &ip_1, &ip_2, &ip_3, &ip_4, &ip_5, &ip_6, &ip_7, &ip_8, &offset) == 8 &&
         offset == strlen(hostname)) {
         return TRUE;
     }
