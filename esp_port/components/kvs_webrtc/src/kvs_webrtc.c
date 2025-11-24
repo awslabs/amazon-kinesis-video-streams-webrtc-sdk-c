@@ -1947,7 +1947,11 @@ static BOOL kvs_sampleFilterNetworkInterfaces(UINT64 customData, PCHAR networkIn
 // =============================================================================
 
 /**
- * @brief KVS bandwidth estimation handler - equivalent to sampleBandwidthEstimationHandler
+ * @brief KVS bandwidth estimation handler - monitors network bandwidth and reduces bitrate if needed
+ *
+ * This handler receives bandwidth estimates from the KVS SDK and adjusts bitrate accordingly.
+ * It ONLY reduces bitrate to avoid conflicts with the adaptive bitrate increase logic.
+ * Uses the shared bitrate adjustment API from kvs_media.c for coordinated control.
  */
 static VOID kvs_videoBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
 {
@@ -1958,29 +1962,55 @@ static VOID kvs_videoBandwidthEstimationHandler(UINT64 customData, DOUBLE maximu
         return;
     }
 
-    // Convert to kbps and apply some headroom (80% of suggested bitrate)
-    uint32_t bitrate_kbps = (uint32_t)((maximumBitrate * 0.8) / 1000);
+#if KVS_MEDIA_ENABLE_ADAPTIVE_BITRATE
+    void* video_handle = NULL;
 
-    // Apply reasonable limits for video
-    if (bitrate_kbps < 100) bitrate_kbps = 100;  // Minimum 100 kbps
-    if (bitrate_kbps > 5000) bitrate_kbps = 5000; // Maximum 5 Mbps
+    /* Convert to kbps with 80% headroom */
+    uint32_t suggested_bitrate_kbps = (uint32_t)((maximumBitrate * 0.8) / 1000);
 
-    ESP_LOGD(TAG, "Received VIDEO bitrate suggestion for peer %s: %.0f bps (adjusted to %" PRIu32 " kbps)",
-             session->peer_id, maximumBitrate, bitrate_kbps);
+    ESP_LOGD(TAG, "Received VIDEO bandwidth estimate for peer %s: %.0f bps (suggested: %" PRIu32 " kbps)",
+             session->peer_id, maximumBitrate, suggested_bitrate_kbps);
 
-    // Update bitrate via video capture interface if available
-    if (session->client->config.video_capture != NULL && session->video_handle != NULL) {
+    /* Get global video handle via API */
+    video_handle = kvs_media_get_global_video_handle();
+
+    /* Access global video capture interface */
+    if (session->client->config.video_capture != NULL && video_handle != NULL) {
         media_stream_video_capture_t *video_capture =
             (media_stream_video_capture_t*)session->client->config.video_capture;
 
-        if (video_capture->set_bitrate != NULL) {
-            ESP_LOGI(TAG, "Adjusting video bitrate to %" PRIu32 " kbps for peer %s",
-                     bitrate_kbps, session->peer_id);
-            video_capture->set_bitrate(session->video_handle, bitrate_kbps);
+        /* Get current bitrate to determine if reduction is needed */
+        uint32_t current_bitrate_kbps = 0;
+        if (video_capture->get_bitrate != NULL &&
+            video_capture->get_bitrate(video_handle, &current_bitrate_kbps) == ESP_OK) {
+
+            /* Only reduce bitrate if bandwidth estimate suggests lower value
+             * This avoids conflicts with adaptive bitrate increase logic */
+            if (suggested_bitrate_kbps < current_bitrate_kbps) {
+                /* Calculate reduction needed */
+                int32_t reduction_kbps = -(int32_t)(current_bitrate_kbps - suggested_bitrate_kbps);
+
+                /* Use shared adjustment API with centralized bounds */
+                if (kvs_media_adjust_video_bitrate(video_capture, video_handle,
+                                                  reduction_kbps,
+                                                  KVS_MEDIA_MIN_BITRATE_KBPS, KVS_MEDIA_MAX_BITRATE_KBPS,
+                                                  "bandwidth estimation",
+                                                  &current_bitrate_kbps)) {
+                    ESP_LOGI(TAG, "Reduced bitrate based on bandwidth estimate (peer: %s)", session->peer_id);
+                }
+            } else {
+                ESP_LOGD(TAG, "Current bitrate (%" PRIu32 " kbps) already below bandwidth estimate - no reduction needed",
+                        current_bitrate_kbps);
+            }
         } else {
-            ESP_LOGW(TAG, "Video capture interface does not support dynamic bitrate adjustment");
+            ESP_LOGW(TAG, "Cannot get current bitrate for comparison");
         }
     }
+#else
+    /* Adaptive bitrate disabled - just log bandwidth estimate */
+    ESP_LOGD(TAG, "Received VIDEO bandwidth estimate for peer %s: %.0f bps (adaptive bitrate disabled)",
+             session->peer_id, maximumBitrate);
+#endif
 }
 
 static VOID kvs_audioBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)

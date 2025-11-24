@@ -278,4 +278,9 @@ esp_err_t esp_h264_hw_enc_set_bitrate(uint32_t bitrate)
     }
     return ESP_FAIL;
 }
+
+uint32_t esp_h264_hw_enc_get_bitrate(void)
+{
+    return enc_data.cfg.rc.bitrate;
+}
 #endif

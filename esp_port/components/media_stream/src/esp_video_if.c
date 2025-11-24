@@ -8,6 +8,7 @@
 
 #if CONFIG_IDF_TARGET_ESP32P4
 #include <string.h>
+#include <stdbool.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
@@ -254,14 +255,55 @@ esp_err_t esp_video_if_start(void)
     int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     uint32_t capture_fmt = V4L2_PIX_FMT_YUV420;
 
-    /* Configure camera interface capture stream */
-    memset(&format, 0, sizeof(format));
-    format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    format.fmt.pix.width = g_desired_resolution.width ? g_desired_resolution.width : WIDTH;
-    format.fmt.pix.height = g_desired_resolution.height ? g_desired_resolution.height : HEIGHT;
-    format.fmt.pix.pixelformat = capture_fmt;
-    if (ioctl(v4l2->cap_fd, VIDIOC_S_FMT, &format) < 0) {
-        ESP_LOGE(TAG, "Failed to set format, errno: %d. Check the camera resolution in menuconfig", errno);
+    /* Define fallback resolutions to try in order */
+    typedef struct {
+        uint32_t width;
+        uint32_t height;
+    } resolution_t;
+
+    resolution_t fallback_resolutions[] = {
+        {g_desired_resolution.width ? g_desired_resolution.width : WIDTH,
+         g_desired_resolution.height ? g_desired_resolution.height : HEIGHT},
+        {1280, 720},
+        {800, 600},
+        {640, 480},
+        {320, 240}
+    };
+    int num_fallbacks = sizeof(fallback_resolutions) / sizeof(fallback_resolutions[0]);
+    bool format_set_success = false;
+
+    /* Try to set format with fallback resolutions */
+    for (int i = 0; i < num_fallbacks; i++) {
+        /* Skip duplicate attempts */
+        if (i > 0 && fallback_resolutions[i].width == fallback_resolutions[i - 1].width &&
+            fallback_resolutions[i].height == fallback_resolutions[i - 1].height) {
+            continue;
+        }
+
+        memset(&format, 0, sizeof(format));
+        format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        format.fmt.pix.width = fallback_resolutions[i].width;
+        format.fmt.pix.height = fallback_resolutions[i].height;
+        format.fmt.pix.pixelformat = capture_fmt;
+
+        if (i == 0) {
+            ESP_LOGI(TAG, "Attempting to set format: %dx%d", (int)format.fmt.pix.width, (int)format.fmt.pix.height);
+        } else {
+            ESP_LOGW(TAG, "Retrying with fallback resolution: %dx%d", (int)format.fmt.pix.width, (int)format.fmt.pix.height);
+        }
+
+        if (ioctl(v4l2->cap_fd, VIDIOC_S_FMT, &format) == 0) {
+            format_set_success = true;
+            ESP_LOGI(TAG, "Successfully set format: %dx%d", (int)format.fmt.pix.width, (int)format.fmt.pix.height);
+            break;
+        } else {
+            ESP_LOGW(TAG, "Failed to set format %dx%d, errno: %d",
+                     (int)format.fmt.pix.width, (int)format.fmt.pix.height, errno);
+        }
+    }
+
+    if (!format_set_success) {
+        ESP_LOGE(TAG, "Failed to set any supported format. Check the camera resolution in menuconfig");
         return ESP_FAIL;
     }
 

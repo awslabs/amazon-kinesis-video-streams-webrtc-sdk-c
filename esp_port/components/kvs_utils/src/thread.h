@@ -22,19 +22,6 @@
 extern "C" {
 #endif
 
-#ifndef DEFAULT_THREAD_SIZE
-#define DEFAULT_THREAD_SIZE (16 * 1024)
-#endif
-
-#ifndef DEFAULT_THREAD_NAME
-#define DEFAULT_THREAD_NAME "pthread"
-#endif
-
-// Max thread name buffer length - similar to Linux platforms
-#ifndef MAX_THREAD_NAME
-#define MAX_THREAD_NAME 16
-#endif
-
 typedef VOID (*exitThread)(PVOID);
 
 //

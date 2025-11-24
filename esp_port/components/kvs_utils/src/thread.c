@@ -12,11 +12,25 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-#include "common_defs.h"
+
+ #include "common_defs.h"
 #include "error.h"
 #include "platform_utils.h"
 #include "thread.h"
 #include "esp_pthread.h"
+
+#ifndef DEFAULT_THREAD_SIZE
+#define DEFAULT_THREAD_SIZE (16 * 1024)
+#endif
+
+#ifndef DEFAULT_THREAD_NAME
+#define DEFAULT_THREAD_NAME "pthread"
+#endif
+
+// Max thread name buffer length - similar to Linux platforms
+#ifndef MAX_THREAD_NAME
+#define MAX_THREAD_NAME 16
+#endif
 
 #if defined _WIN32 || defined _WIN64 || defined __CYGWIN__
 /**

@@ -180,6 +180,14 @@ __attribute__((weak)) esp_err_t video_capture_set_bitrate(video_capture_handle_t
     return ESP_OK;
 }
 
+__attribute__((weak)) esp_err_t video_capture_get_bitrate(video_capture_handle_t handle, uint32_t *bitrate_kbps)
+{
+    if (bitrate_kbps != NULL) {
+        *bitrate_kbps = 500; /* Default bitrate */
+    }
+    return ESP_OK;
+}
+
 esp_err_t video_capture_release_frame(video_capture_handle_t handle, video_frame_t *frame)
 {
     if (handle == NULL || frame == NULL) {

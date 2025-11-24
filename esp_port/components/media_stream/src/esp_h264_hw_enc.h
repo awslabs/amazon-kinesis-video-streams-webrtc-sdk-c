@@ -47,4 +47,5 @@ esp_err_t esp_h264_setup_encoder(h264_enc_user_cfg_t *cfg);
 esp_err_t esp_h264_hw_enc_process_one_frame();
 esp_h264_out_buf_t *esp_h264_hw_enc_encode_frame(uint8_t *frame, size_t frame_len);
 esp_err_t esp_h264_hw_enc_set_bitrate(uint32_t bitrate);
+uint32_t esp_h264_hw_enc_get_bitrate(void);
 void esp_h264_destroy_encoder();

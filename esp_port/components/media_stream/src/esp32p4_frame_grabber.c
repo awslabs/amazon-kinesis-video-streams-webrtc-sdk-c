@@ -423,9 +423,14 @@ void esp32p4_frame_grabber_init(void)
                  cfg.enc_cfg.res.width, cfg.enc_cfg.res.height, cfg.enc_cfg.fps);
     }
 
-    cfg.enc_cfg.fps = 27; /* used to distribute the bitrate*/
-    cfg.enc_cfg.rc.qp_min = 32;
-    cfg.enc_cfg.rc.qp_max = 36;
+    cfg.enc_cfg.fps = 27; /* used to distribute the bitrate */
+    if (cfg.enc_cfg.res.height <= 720) {
+        cfg.enc_cfg.rc.qp_min = 32;
+        cfg.enc_cfg.rc.qp_max = 40;
+    } else {
+        cfg.enc_cfg.rc.qp_min = 35;
+        cfg.enc_cfg.rc.qp_max = 42;
+    }
 #else
     cfg.read_cb = &data_read_callback,
     cfg.write_cb = &data_write_callback,

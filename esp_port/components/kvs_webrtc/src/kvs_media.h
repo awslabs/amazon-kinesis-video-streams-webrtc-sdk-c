@@ -44,6 +44,17 @@ typedef struct {
     bool audio_initialized;       // Whether audio capture is initialized
 } kvs_media_shared_state_t;
 
+/* Adaptive bitrate control feature toggle */
+#ifndef KVS_MEDIA_ENABLE_ADAPTIVE_BITRATE
+#define KVS_MEDIA_ENABLE_ADAPTIVE_BITRATE   0       /* Enable adaptive bitrate control (1=enabled, 0=disabled) */
+#endif
+
+/* Adaptive bitrate control parameters */
+#define KVS_MEDIA_BITRATE_STEP_KBPS         50      /* Bitrate adjustment step: 50 kbps */
+#define KVS_MEDIA_MIN_BITRATE_KBPS          500     /* Minimum bitrate: 500 kbps */
+#define KVS_MEDIA_MAX_BITRATE_KBPS          2000    /* Maximum bitrate: 2 Mbps */
+#define KVS_MEDIA_SMOOTH_FRAMES_THRESHOLD   100     /* Increase bitrate after 100 smooth frames */
+
 /**
  * @brief Media transmission configuration
  */
@@ -150,6 +161,40 @@ STATUS kvs_media_init_shared_state(void);
  * @brief Cleanup global media state (call once at shutdown)
  */
 void kvs_media_cleanup_shared_state(void);
+
+/**
+ * @brief Get the global video capture handle
+ *
+ * Returns the global video capture handle that is shared across all sessions.
+ * This is needed for bitrate control and other video capture operations.
+ *
+ * @return void* Global video capture handle, or NULL if not initialized
+ */
+void* kvs_media_get_global_video_handle(void);
+
+/**
+ * @brief Adjust video bitrate dynamically based on network conditions
+ *
+ * This is a thread-safe helper that adjusts the global video capture bitrate.
+ * It applies bounds and logs the adjustment reason.
+ *
+ * @param video_capture Video capture interface
+ * @param handle Video capture handle
+ * @param adjustment_kbps Bitrate adjustment in kbps (positive to increase, negative to decrease)
+ * @param min_bitrate_kbps Minimum allowed bitrate
+ * @param max_bitrate_kbps Maximum allowed bitrate
+ * @param reason Reason for adjustment (for logging)
+ * @param current_bitrate Pointer to current bitrate variable (will be updated)
+ * @return true if bitrate was adjusted, false otherwise
+ */
+bool kvs_media_adjust_video_bitrate(
+    media_stream_video_capture_t *video_capture,
+    video_capture_handle_t handle,
+    int32_t adjustment_kbps,
+    uint32_t min_bitrate_kbps,
+    uint32_t max_bitrate_kbps,
+    const char *reason,
+    uint32_t *current_bitrate);
 
 #ifdef __cplusplus
 }
