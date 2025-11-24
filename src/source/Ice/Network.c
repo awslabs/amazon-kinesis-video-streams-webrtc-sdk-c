@@ -336,17 +336,37 @@ CleanUp:
 
 BOOL isIpAddr(PCHAR hostname, UINT16 length)
 {
-    BOOL status = TRUE;
+    int offset = 0;
     UINT32 ip_1, ip_2, ip_3, ip_4, ip_5, ip_6, ip_7, ip_8;
-    if (hostname == NULL || length > MAX_ICE_CONFIG_URI_LEN) {
-        DLOGW("Provided NULL hostname");
-        status = FALSE;
-    } else {
-        status = (SSCANF(hostname, IPV4_TEMPLATE, &ip_1, &ip_2, &ip_3, &ip_4) == 4 && ip_1 >= 0 && ip_1 <= 255 && ip_2 >= 0 && ip_2 <= 255 &&
-                  ip_3 >= 0 && ip_3 <= 255 && ip_4 >= 0 && ip_4 <= 255) ||
-            (SSCANF(hostname, IPV6_TEMPLATE, &ip_1, &ip_2, &ip_3, &ip_4, &ip_5, &ip_6, &ip_7, &ip_8) == 8);
+
+    if (hostname == NULL) {
+        DLOGW("Provided NULL hostname.");
+        return FALSE;
     }
-    return status;
+    if (length >= MAX_ICE_CONFIG_URI_LEN) {
+        DLOGW("Provided invalid hostname length: %u.", length);
+        return FALSE;
+    }
+
+    // Check if IPv4 address.
+    if (sscanf(hostname, "%u.%u.%u.%u%n", &ip_1, &ip_2, &ip_3, &ip_4, &offset) == 4 &&
+        ip_1 <= 255 && ip_2 <= 255 && ip_3 <= 255 && ip_4 <= 255 &&
+        offset == strlen(hostname)) {
+        return TRUE;
+    }
+
+    // Check if IPv6 address.
+    offset = 0;
+    UINT32 ip[8];
+    if (sscanf(hostname, "%x:%x:%x:%x:%x:%x:%x:%x%n",
+               &ip_1, &ip_2, &ip_3, &ip_4,
+               &ip_5, &ip_6, &ip_7, &ip_8,
+               &offset) == 8 &&
+        offset == strlen(hostname)) {
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 STATUS getIpAddrFromDnsHostname(PCHAR hostname, PCHAR address, UINT16 lengthSrc, UINT16 maxLenDst)
