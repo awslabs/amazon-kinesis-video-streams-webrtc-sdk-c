@@ -186,6 +186,16 @@ static esp_err_t video_capture_deinit_impl(video_capture_handle_t handle)
     return video_capture_deinit(handle);
 }
 
+static esp_err_t video_capture_set_bitrate_impl(video_capture_handle_t handle, uint32_t bitrate_kbps)
+{
+    return video_capture_set_bitrate(handle, bitrate_kbps);
+}
+
+static esp_err_t video_capture_get_bitrate_impl(video_capture_handle_t handle, uint32_t *bitrate_kbps)
+{
+    return video_capture_get_bitrate(handle, bitrate_kbps);
+}
+
 // Static interface structures
 static media_stream_audio_capture_t s_audio_capture = {
     .init = audio_capture_init_impl,
@@ -202,7 +212,9 @@ static media_stream_video_capture_t s_video_capture = {
     .stop = video_capture_stop_impl,
     .get_frame = video_capture_get_frame_impl,
     .release_frame = video_capture_release_frame_impl,
-    .deinit = video_capture_deinit_impl
+    .deinit = video_capture_deinit_impl,
+    .set_bitrate = video_capture_set_bitrate_impl,
+    .get_bitrate = video_capture_get_bitrate_impl
 };
 
 // Default audio player implementation

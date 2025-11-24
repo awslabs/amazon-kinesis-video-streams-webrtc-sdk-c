@@ -139,6 +139,83 @@ void kvs_media_cleanup_shared_state(void)
 }
 
 /**
+ * @brief Get the global video capture handle
+ *
+ * Provides controlled access to the global video handle for external modules
+ * that need to perform video capture operations (e.g., bitrate control).
+ *
+ * @return void* Global video capture handle, or NULL if not initialized
+ */
+void* kvs_media_get_global_video_handle(void)
+{
+    return g_global_media.video_handle;
+}
+
+/**
+ * @brief Adjust video bitrate dynamically based on network conditions
+ *
+ * Public API for coordinated bitrate management across the system.
+ * Used by both adaptive bitrate logic and bandwidth estimation handlers.
+ *
+ * @param video_capture Video capture interface
+ * @param handle Video capture handle
+ * @param adjustment_kbps Bitrate adjustment in kbps (positive to increase, negative to decrease)
+ * @param min_bitrate_kbps Minimum allowed bitrate
+ * @param max_bitrate_kbps Maximum allowed bitrate
+ * @param reason Reason for adjustment (for logging)
+ * @param current_bitrate Pointer to current bitrate variable (will be updated)
+ * @return true if bitrate was adjusted, false otherwise
+ */
+bool kvs_media_adjust_video_bitrate(media_stream_video_capture_t *video_capture,
+                                    video_capture_handle_t handle,
+                                    int32_t adjustment_kbps,
+                                    uint32_t min_bitrate_kbps,
+                                    uint32_t max_bitrate_kbps,
+                                    const char *reason,
+                                    uint32_t *current_bitrate)
+{
+    if (video_capture == NULL || handle == NULL || current_bitrate == NULL) {
+        return false;
+    }
+
+    /* Check if bitrate control APIs are available */
+    if (video_capture->get_bitrate == NULL || video_capture->set_bitrate == NULL) {
+        return false;
+    }
+
+    /* Get current bitrate */
+    uint32_t old_bitrate = 0;
+    if (video_capture->get_bitrate(handle, &old_bitrate) != ESP_OK) {
+        return false;
+    }
+
+    /* Calculate new bitrate */
+    int32_t new_bitrate_signed = (int32_t)old_bitrate + adjustment_kbps;
+    uint32_t new_bitrate = (uint32_t)(new_bitrate_signed < 0 ? 0 : new_bitrate_signed);
+
+    /* Apply bounds */
+    if (new_bitrate < min_bitrate_kbps) {
+        new_bitrate = min_bitrate_kbps;
+    }
+
+    if (new_bitrate > max_bitrate_kbps) {
+        new_bitrate = max_bitrate_kbps;
+    }
+
+    /* Set new bitrate if changed */
+    if (new_bitrate != old_bitrate) {
+        if (video_capture->set_bitrate(handle, new_bitrate) == ESP_OK) {
+            ESP_LOGI(TAG, "Adjusted bitrate: %lu -> %lu kbps (%s)",
+                    (unsigned long)old_bitrate, (unsigned long)new_bitrate, reason);
+            *current_bitrate = new_bitrate;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
  * @brief Global video sender thread - equivalent to sendVideoPackets in kvsWebRTCClientMaster.c
  * Captures video frames and sends them to ALL active sessions
  */
@@ -152,6 +229,12 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
     media_stream_video_capture_t *video_capture = NULL;
     video_frame_t *video_frame = NULL;
     const UINT64 frame_duration_100ns = KVS_SAMPLE_VIDEO_FRAME_DURATION;
+
+#if KVS_MEDIA_ENABLE_ADAPTIVE_BITRATE
+    /* Adaptive bitrate control variables */
+    UINT32 current_bitrate_kbps = 0;
+    UINT32 smooth_frame_count = 0;
+#endif
 
     ESP_LOGD(TAG, "Global video sender thread started");
 
@@ -176,6 +259,19 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
             video_capture->start(g_global_media.video_handle) != ESP_OK) {
             ESP_LOGE(TAG, "Failed to initialize video capture - falling back to samples");
             video_capture = NULL;
+        } else {
+#if KVS_MEDIA_ENABLE_ADAPTIVE_BITRATE
+            /* Get initial bitrate if get_bitrate is available */
+            if (video_capture->get_bitrate != NULL) {
+                if (video_capture->get_bitrate(g_global_media.video_handle, &current_bitrate_kbps) == ESP_OK) {
+                    ESP_LOGI(TAG, "Initial video bitrate: %lu kbps", (unsigned long)current_bitrate_kbps);
+                } else {
+                    current_bitrate_kbps = video_config.bitrate;
+                }
+            } else {
+                current_bitrate_kbps = video_config.bitrate;
+            }
+#endif
         }
     }
 
@@ -256,8 +352,47 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
                 ESP_LOGW(TAG, "Failed to send frame to sessions: 0x%08" PRIx32, (UINT32)send_status);
             }
 
-            /* Log if frame send is slow (bottleneck detection) */
+#if KVS_MEDIA_ENABLE_ADAPTIVE_BITRATE
+            /* Adaptive bitrate control based on send performance */
             if (sendDuration > 50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) {  // >50ms is concerning
+                ESP_LOGW(TAG, "Slow video frame send: %llums (frame %" PRIu64 "), size: %" PRIu32,
+                         sendDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, video_frame_index, frame.size);
+
+                /* Reduce bitrate using configured step */
+                if (kvs_media_adjust_video_bitrate(video_capture, g_global_media.video_handle,
+                                            -(int32_t)KVS_MEDIA_BITRATE_STEP_KBPS,
+                                            KVS_MEDIA_MIN_BITRATE_KBPS, KVS_MEDIA_MAX_BITRATE_KBPS,
+                                            "slow send detected",
+                                            &current_bitrate_kbps)) {
+                    smooth_frame_count = 0; /* Reset smooth counter after bitrate reduction */
+                }
+
+                // Sleep half of the frame duration to avoid overwhelming the system
+                THREAD_SLEEP(frame_duration_100ns / 2);
+            } else {
+                /* Frame sent smoothly - increment counter */
+                smooth_frame_count++;
+
+                /* Increase bitrate if we've had smooth sends for a while */
+                if (smooth_frame_count >= KVS_MEDIA_SMOOTH_FRAMES_THRESHOLD) {
+                    /* Increase bitrate using configured step */
+                    if (kvs_media_adjust_video_bitrate(video_capture, g_global_media.video_handle,
+                                                (int32_t)KVS_MEDIA_BITRATE_STEP_KBPS,
+                                                KVS_MEDIA_MIN_BITRATE_KBPS, KVS_MEDIA_MAX_BITRATE_KBPS,
+                                                "smooth streaming",
+                                                &current_bitrate_kbps)) {
+                        /* Bitrate was successfully increased */
+                    }
+                    /* Reset smooth counter regardless of adjustment success */
+                    smooth_frame_count = 0;
+                }
+
+                // Just a small delay for pacing the frame rate
+                THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+            }
+#else
+            /* Adaptive bitrate disabled - just log slow sends without adjustment */
+            if (sendDuration > 50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) {
                 ESP_LOGW(TAG, "Slow video frame send: %llums (frame %" PRIu64 "), size: %" PRIu32,
                          sendDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, video_frame_index, frame.size);
                 // Sleep half of the frame duration to avoid overwhelming the system
@@ -266,6 +401,7 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
                 // Just a small delay for pacing the frame rate
                 THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
             }
+#endif
 
             // Release camera frame if used
             if (video_capture != NULL && video_frame != NULL) {

@@ -336,6 +336,30 @@ esp_err_t h264_encoder_deinit(void)
 
     return ESP_OK;
 }
+
+esp_err_t video_capture_set_bitrate(video_capture_handle_t handle, uint32_t bitrate_kbps)
+{
+    (void) handle;
+    s_h264_enc_data.cfg.rc.bitrate = bitrate_kbps * 1000;
+    /* Note: For ESP32-S3 software encoder, bitrate changes may require encoder restart */
+    return ESP_OK;
+}
+
+esp_err_t video_capture_get_bitrate(video_capture_handle_t handle, uint32_t *bitrate_kbps)
+{
+    (void) handle;
+    if (bitrate_kbps == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    *bitrate_kbps = s_h264_enc_data.cfg.rc.bitrate / 1000;
+    return ESP_OK;
+}
+
+esp_h264_out_buf_t *get_h264_encoded_frame_putmedia()
+{
+    return NULL;
+}
+
 #else /* CONFIG_IDF_TARGET_ESP32P4 */
 esp_err_t camera_and_encoder_init(video_capture_config_t *config)
 {
@@ -357,7 +381,17 @@ esp_h264_out_buf_t *get_h264_encoded_frame()
 
 esp_err_t video_capture_set_bitrate(video_capture_handle_t handle, uint32_t bitrate_kbps)
 {
-    esp_h264_hw_enc_set_bitrate(bitrate_kbps * 1000);
+    (void) handle;
+    return esp_h264_hw_enc_set_bitrate(bitrate_kbps * 1000);
+}
+
+esp_err_t video_capture_get_bitrate(video_capture_handle_t handle, uint32_t *bitrate_kbps)
+{
+    (void) handle;
+    if (bitrate_kbps == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    *bitrate_kbps = esp_h264_hw_enc_get_bitrate() / 1000;
     return ESP_OK;
 }
 
@@ -394,6 +428,15 @@ esp_err_t video_capture_set_bitrate(video_capture_handle_t handle, uint32_t bitr
 {
     (void) handle;
     (void) bitrate_kbps;
+    return ESP_OK;
+}
+
+esp_err_t video_capture_get_bitrate(video_capture_handle_t handle, uint32_t *bitrate_kbps)
+{
+    (void) handle;
+    if (bitrate_kbps != NULL) {
+        *bitrate_kbps = 500; /* Default bitrate for unsupported targets */
+    }
     return ESP_OK;
 }
 
