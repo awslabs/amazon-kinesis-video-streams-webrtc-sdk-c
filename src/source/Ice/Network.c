@@ -357,7 +357,6 @@ BOOL isIpAddr(PCHAR hostname, UINT16 length)
 
     // Check if IPv6 address.
     offset = 0;
-    UINT32 ip[8];
     if (sscanf(hostname, "%x:%x:%x:%x:%x:%x:%x:%x%n",
                &ip_1, &ip_2, &ip_3, &ip_4,
                &ip_5, &ip_6, &ip_7, &ip_8,
