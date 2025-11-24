@@ -343,7 +343,7 @@ BOOL isIpAddr(PCHAR hostname, UINT16 length)
         DLOGW("Provided NULL hostname.");
         return FALSE;
     }
-    if (length >= MAX_ICE_CONFIG_URI_LEN) {
+    if (length > MAX_ICE_CONFIG_URI_LEN) {
         DLOGW("Provided invalid hostname length: %u.", length);
         return FALSE;
     }
