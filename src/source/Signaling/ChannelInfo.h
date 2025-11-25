@@ -37,6 +37,9 @@ extern "C" {
 #define SIGNALING_USER_AGENT_POSTFIX_VERSION (PCHAR) "UNKNOWN"
 #endif
 
+#define USE_DUAL_STACK_ENDPOINTS_ENV_VAR ((PCHAR) "KVS_DUALSTACK_ENDPOINTS")
+
+
 /**
  * Takes in a pointer to a public version of ChannelInfo object.
  * Validates and creates an internal object

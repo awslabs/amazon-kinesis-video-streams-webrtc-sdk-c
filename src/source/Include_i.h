@@ -115,7 +115,6 @@ typedef struct {
     KvsIpAddress ipv6Address;
 } DualKvsIpAddresses, *PDualKvsIpAddresses;
 
-#include <stdio.h>
 
 static inline BOOL IS_IPV4_ADDR(const KvsIpAddress* pAddress)
 {

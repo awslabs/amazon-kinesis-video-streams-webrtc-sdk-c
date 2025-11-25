@@ -176,12 +176,25 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     if (!IS_NULL_OR_EMPTY_STRING(pOrigChannelInfo->pControlPlaneUrl)) {
         STRCPY(pCurPtr, pOrigChannelInfo->pControlPlaneUrl);
     } else {
-        // Create a fully qualified URI
-        SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME, pChannelInfo->pRegion,
-                 CONTROL_PLANE_URI_POSTFIX);
-        // If region is in CN, add CN region uri postfix
-        if (STRSTR(pChannelInfo->pRegion, "cn-")) {
-            STRCAT(pCurPtr, ".cn");
+        if (NULL != GETENV(USE_DUAL_STACK_ENDPOINTS_ENV_VAR)) {
+            // Create dual-stack fully qualified URI for appropriate region.
+            if (STRSTR(pChannelInfo->pRegion, AWS_CN_REGION_PREFIX)) {
+                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME, pChannelInfo->pRegion,
+                     CONTROL_PLANE_URI_POSTFIX_CN_DUAL_STACK);
+            } else {
+                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME, pChannelInfo->pRegion,
+                     CONTROL_PLANE_URI_POSTFIX_DUAL_STACK);
+            }
+
+        } else {
+            // Create legacy fully qualified URI for appropriate region.
+            if (STRSTR(pChannelInfo->pRegion, AWS_CN_REGION_PREFIX)) {
+                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME, pChannelInfo->pRegion,
+                         CONTROL_PLANE_URI_POSTFIX_CN);
+            } else {
+                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME, pChannelInfo->pRegion,
+                         CONTROL_PLANE_URI_POSTFIX);
+            }
         }
     }
 
