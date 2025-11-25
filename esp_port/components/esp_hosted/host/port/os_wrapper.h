@@ -55,10 +55,9 @@ ESP_EVENT_DECLARE_BASE(WIFI_EVENT);
 #define HOSTED_BLOCK_MAX                             portMAX_DELAY
 
 #define RPC_TASK_STACK_SIZE                          (5*1024)
-#define RPC_TASK_PRIO                                23
+#define RPC_TASK_PRIO                                22
 #define DFLT_TASK_STACK_SIZE                         (5*1024)
-#define DFLT_TASK_PRIO                               22
-
+#define DFLT_TASK_PRIO                               23
 
 
 #define H_GPIO_MODE_DEF_DISABLE         (0)

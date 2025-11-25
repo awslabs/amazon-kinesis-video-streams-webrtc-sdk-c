@@ -38,8 +38,8 @@
 #endif
 #endif
 
-#define SDIO_SLAVE_QUEUE_SIZE            5
-#define SIMPLIFIED_SDIO_SLAVE            1
+#define SDIO_SLAVE_QUEUE_SIZE            CONFIG_ESP_SDIO_RX_Q_SIZE
+//#define SIMPLIFIED_SDIO_SLAVE            1
 
 //#define SEPARATE_TX_TASK                 1
 #define BUFFER_SIZE                      MAX_TRANSPORT_BUF_SIZE
