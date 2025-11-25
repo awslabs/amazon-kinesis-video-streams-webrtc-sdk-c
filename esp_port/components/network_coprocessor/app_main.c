@@ -74,7 +74,7 @@ static const char *TAG = "fg_mcu_slave";
 #endif
 #endif
 
-// #define FLOW_CTL_ENABLED 1
+#define FLOW_CTL_ENABLED 1
 #define BYPASS_TX_PRIORITY_Q 1
 
 #ifdef CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS
@@ -782,15 +782,18 @@ static void process_rx_pkt(interface_buffer_handle_t *buf_handle)
 
 	ESP_HEXLOGV("bus_RX", buf_handle->payload, buf_handle->payload_len, buf_handle->payload_len);
 
+// #define WIFI_TX_MAX_RETRY         100 //
+#define MAX_WIFI_STA_TX_RETRY            2
+
+	int retry_wifi_tx = MAX_WIFI_STA_TX_RETRY;
+	if (buf_handle->if_type == ESP_STA_IF && station_connected) {
 #define WIFI_TX_REPEAT_STEP       4
 #define WIFI_TX_INTERVAL_START    5
 #define WIFI_TX_INTERVAL_CAP      10240
-#define WIFI_TX_MAX_RETRY         100
-
-	if (buf_handle->if_type == ESP_STA_IF && station_connected) {
 
 		ESP_HEXLOGV("STA_Put", payload, payload_len, 32);
 
+#if 0
 		/* Forward data to WLAN driver */
 		do {
 			ret = esp_wifi_internal_tx(ESP_IF_WIFI_STA, payload, payload_len);
@@ -816,9 +819,26 @@ static void process_rx_pkt(interface_buffer_handle_t *buf_handle)
 
 			retry++;
 		} while (ret && (retry < WIFI_TX_MAX_RETRY));
+#elif 0
+		/* Forward data to wlan driver */
+		do {
+			ret = esp_wifi_internal_tx(WIFI_IF_STA, payload, payload_len);
+			if (ret) {
+				vTaskDelay(pdMS_TO_TICKS(1));
+			}
+
+			retry_wifi_tx--;
+		} while (ret && retry_wifi_tx);
+		(void) ret;
+#else
+		ret = esp_wifi_internal_tx(WIFI_IF_STA, payload, payload_len);
+		if (ret) {
+			vTaskDelay(2);
+		}
+#endif
 
 #if ESP_PKT_STATS
-		if (retry >= WIFI_TX_MAX_RETRY)
+		if (ret)
 			pkt_stats.hs_bus_sta_fail++;
 		else
 			pkt_stats.hs_bus_sta_out++;
