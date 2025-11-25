@@ -1846,6 +1846,17 @@ STATUS getIceConfigEsp(PSignalingClient pSignalingClient, UINT64 time)
     // It should be okay if this failed
     if (STATUS_FAILED(retStatus)) {
         ESP_LOGW(TAG, "Failed to get ice config, proceeding anyway...");
+
+        /* Set ICE config expiration to prevent immediate re-triggering of refresh.
+         * Use a 1-minute TTL to allow retry later, but avoid tight loop.
+         * STUN server fallback is handled elsewhere in the get_ice_servers code. */
+        UINT64 currentTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
+        UINT64 retryTtl = 1 * 60 * HUNDREDS_OF_NANOS_IN_A_SECOND; /* 1 minutes */
+        pSignalingClient->iceConfigExpiration = currentTime + retryTtl;
+
+        ESP_LOGI(TAG, "ICE config fetch failed - will retry after %" PRIu64 " seconds",
+                 retryTtl / HUNDREDS_OF_NANOS_IN_A_SECOND);
+
         // Store successful result
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
         retStatus = STATUS_SUCCESS;

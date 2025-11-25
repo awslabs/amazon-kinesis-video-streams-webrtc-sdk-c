@@ -847,10 +847,23 @@ BOOL signaling_is_ice_config_refresh_needed(PSignalingClient pSignalingClient)
     UINT64 curTime;
     BOOL refreshNeeded = FALSE;
 
+    /* Minimum time between refresh attempts (30 seconds) to prevent rapid retries on transient failures */
+#define MIN_ICE_REFRESH_INTERVAL_100NS (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // Check whether we have a valid not-yet-expired ICE configuration
     curTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
+
+    /* Rate limiting: Don't refresh if we just attempted within the last 30 seconds.
+     * This prevents rapid retry loops when ICE config requests fail (e.g., clock skew). */
+    if (pSignalingClient->getIceConfigTime != 0 &&
+        (curTime - pSignalingClient->getIceConfigTime) < MIN_ICE_REFRESH_INTERVAL_100NS) {
+        DLOGD("ICE refresh rate limited: last attempt was %" PRIu64 "s ago (minimum: 30s)",
+              (curTime - pSignalingClient->getIceConfigTime) / HUNDREDS_OF_NANOS_IN_A_SECOND);
+        refreshNeeded = FALSE;
+        goto CleanUp;
+    }
 
     // Refresh is needed if:
     // 1. No ICE configuration exists yet, OR
