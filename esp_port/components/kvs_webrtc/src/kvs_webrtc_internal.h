@@ -42,6 +42,7 @@ extern "C" {
 typedef struct {
     kvs_peer_connection_config_t config;
     bool initialized;
+    bool trickleIce;  // Trickle ICE configuration
 
     // KVS SDK objects
     RtcConfiguration rtc_configuration;
