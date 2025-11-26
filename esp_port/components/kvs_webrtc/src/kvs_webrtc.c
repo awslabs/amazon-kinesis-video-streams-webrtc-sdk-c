@@ -342,6 +342,9 @@ static WEBRTC_STATUS kvs_pc_init(void *pc_cfg, void **ppPeerConnectionClient)
             client_data->config.video_height = kvs_cfg->video_height;
             client_data->config.video_fps = kvs_cfg->video_fps;
         }
+
+        // Sync trickleIce flag from config for easy access
+        client_data->trickleIce = client_data->config.trickle_ice;
     }
 
     // Initialize the KVS WebRTC SDK
@@ -533,6 +536,10 @@ static WEBRTC_STATUS kvs_pc_create_session(void *pPeerConnectionClient,
     session->twcc_metadata.current_video_bitrate = 1000000; // 1 Mbps default
     session->twcc_metadata.current_audio_bitrate = 64000;   // 64 kbps default
     session->twcc_metadata.last_adjustment_time_ms = 0;
+
+    // Initialize ICE gathering flags
+    session->candidate_gathering_done = FALSE;
+    session->remote_can_trickle_ice = FALSE;  // Will be set when processing offer/answer
 
     // Initialize metrics
     session->pc_metrics.version = PEER_CONNECTION_METRICS_CURRENT_VERSION;
@@ -1013,37 +1020,75 @@ static WEBRTC_STATUS kvs_pc_set_callbacks(void *pSession,
 
 static VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
 {
+    STATUS retStatus = STATUS_SUCCESS;
     kvs_pc_session_t *session = (kvs_pc_session_t *)HANDLE_TO_POINTER(customData);
 
-    if (session == NULL) {
-        ESP_LOGE(TAG, "Invalid ICE candidate callback parameters");
-        return;
-    }
+    CHK(session != NULL, STATUS_NULL_ARG);
 
-    // Some stacks indicate end-of-candidates with NULL/empty candidate
     if (candidateJson == NULL || candidateJson[0] == '\0') {
-        ESP_LOGD(TAG, "ICE candidate callback received end-of-candidates for peer %s", session->peer_id);
-        return;
+        /* ICE gathering completed */
+        ESP_LOGI(TAG, "ICE candidate gathering finished for peer: %s", session->peer_id);
+        session->candidate_gathering_done = TRUE;
+
+        /* Master (responder) in non-trickle mode: Send answer now with all candidates */
+        if (!session->is_initiator && !session->remote_can_trickle_ice) {
+            ESP_LOGI(TAG, "Non-trickle ICE: Creating and sending answer now for peer: %s", session->peer_id);
+
+            /* Ensure useTrickleIce is still set correctly before creating final answer */
+            session->answer_session_description.useTrickleIce = session->remote_can_trickle_ice;
+
+            /* Re-create answer now that gathering is complete (SDP now contains all candidates) */
+            CHK_STATUS(createAnswer(session->peer_connection, &session->answer_session_description));
+
+            /* Send the answer */
+            if (session->on_message_received != NULL) {
+                webrtc_message_t answer_msg = {0};
+                UINT32 answer_len = 0;
+
+                CHK_STATUS(serializeSessionDescriptionInit(&session->answer_session_description, NULL, &answer_len));
+                PCHAR payload = (PCHAR)MEMALLOC(answer_len + 1);
+                CHK(payload != NULL, STATUS_NOT_ENOUGH_MEMORY);
+                CHK_STATUS(serializeSessionDescriptionInit(&session->answer_session_description, payload, &answer_len));
+
+                answer_msg.version = SIGNALING_MESSAGE_CURRENT_VERSION;
+                answer_msg.message_type = WEBRTC_MESSAGE_TYPE_ANSWER;
+                STRCPY(answer_msg.peer_client_id, session->peer_id);
+                SNPRINTF(answer_msg.correlation_id, MAX_CORRELATION_ID_LEN, "%llu_%zu",
+                         GETTIME(), ATOMIC_INCREMENT(&session->correlation_id_postfix));
+                answer_msg.payload = payload;
+                answer_msg.payload_len = (UINT32)STRLEN(payload);
+
+                ESP_LOGI(TAG, "Sending non-trickle answer with all candidates included for peer: %s", session->peer_id);
+                session->on_message_received(session->custom_data, &answer_msg);
+                SAFE_MEMFREE(payload);
+            }
+        }
+        /* Viewer in non-trickle mode: Signal waiting thread */
+        else if (session->is_initiator && !session->client->trickleIce) {
+            ESP_LOGI(TAG, "Non-trickle ICE: Candidate gathering done, offer can be created for peer: %s", session->peer_id);
+        }
+
+        CHK(FALSE, retStatus);  /* Skip trickle ICE candidate sending below */
     }
 
-    ESP_LOGD(TAG, "ICE candidate generated for peer %s: %.*s%s",
-             session->peer_id,
-             64, candidateJson,
-             STRLEN(candidateJson) > 64 ? "..." : "");
-
-    // Send ICE candidate through callback with proper format
+    /* Trickle ICE: Send individual candidates as they arrive */
     if (session->on_message_received != NULL) {
-        webrtc_message_t ice_msg = {0};
-        ice_msg.version = SIGNALING_MESSAGE_CURRENT_VERSION;
-        ice_msg.message_type = WEBRTC_MESSAGE_TYPE_ICE_CANDIDATE;
-        STRCPY(ice_msg.peer_client_id, session->peer_id);
-        ice_msg.payload = candidateJson;
-        ice_msg.payload_len = (UINT32)STRLEN(candidateJson);
-        // Match legacy behavior: ICE candidates use empty correlation id
-        ice_msg.correlation_id[0] = '\0';
+        /* Only send if remote supports trickle ICE */
+        if (session->remote_can_trickle_ice) {
+            webrtc_message_t ice_msg = {0};
+            ice_msg.version = SIGNALING_MESSAGE_CURRENT_VERSION;
+            ice_msg.message_type = WEBRTC_MESSAGE_TYPE_ICE_CANDIDATE;
+            STRCPY(ice_msg.peer_client_id, session->peer_id);
+            ice_msg.payload = candidateJson;
+            ice_msg.payload_len = (UINT32)STRLEN(candidateJson);
+            ice_msg.correlation_id[0] = '\0';
 
-        session->on_message_received(session->custom_data, &ice_msg);
+            session->on_message_received(session->custom_data, &ice_msg);
+        }
     }
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
 }
 
 static VOID onConnectionStateChangeHandler(UINT64 customData, RTC_PEER_CONNECTION_STATE newState)
@@ -1319,10 +1364,32 @@ static STATUS kvs_create_and_send_offer(kvs_pc_session_t* session)
 
     ESP_LOGI(TAG, "Creating SDP offer for peer: %s", session->peer_id);
 
-    // Set local description first (this initializes the peer connection)
+    /* Set trickle ICE based on config */
+    offer_sdp.useTrickleIce = session->client->trickleIce;
+
+    /* Set local description first (this triggers ICE gathering) */
     CHK_STATUS(setLocalDescription(session->peer_connection, &offer_sdp));
 
-    // Create the offer
+    /* For non-trickle ICE: Wait for candidate gathering to complete */
+    if (!session->client->trickleIce) {
+        ESP_LOGI(TAG, "Non-trickle ICE: Waiting for candidate gathering to complete...");
+
+        UINT64 startTime = GETTIME();
+        UINT64 timeout = 10 * HUNDREDS_OF_NANOS_IN_A_SECOND;  /* 10 second timeout */
+
+        while (!session->candidate_gathering_done && !session->terminated) {
+            if (GETTIME() - startTime >= timeout) {
+                ESP_LOGE(TAG, "Timeout waiting for ICE candidate gathering");
+                CHK(FALSE, STATUS_OPERATION_TIMED_OUT);
+            }
+            THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);  /* 100ms sleep */
+        }
+
+        CHK(!session->terminated, STATUS_OPERATION_TIMED_OUT);
+        ESP_LOGI(TAG, "Candidate gathering completed for peer: %s", session->peer_id);
+    }
+
+    /* Now create the offer (will contain all candidates if non-trickle) */
     CHK_STATUS(createOffer(session->peer_connection, &offer_sdp));
 
         // Serialize the SDP offer
@@ -1767,45 +1834,55 @@ static STATUS kvs_handleOffer(kvs_pc_session_t* session, webrtc_message_t* messa
     // Set remote description
     CHK_STATUS(setRemoteDescription(session->peer_connection, &offerSessionDescriptionInit));
 
-    // Check if remote supports trickle ICE
+    /* Check if remote supports trickle ICE */
     canTrickle = canTrickleIceCandidates(session->peer_connection);
     CHECK(!NULLABLE_CHECK_EMPTY(canTrickle));
     session->remote_can_trickle_ice = canTrickle.value;
 
-    // CRITICAL FIX: Follow EXACT legacy sequence - setLocalDescription BEFORE createAnswer!
+    ESP_LOGD(TAG, "Remote peer trickle ICE support: %s", session->remote_can_trickle_ice ? "YES" : "NO");
+
+    /* Set local description (triggers ICE gathering) */
     MEMSET(&session->answer_session_description, 0x00, SIZEOF(RtcSessionDescriptionInit));
-    session->answer_session_description.useTrickleIce = TRUE;
+    /* CRITICAL: Answer must respect remote peer's trickle ICE capability from offer */
+    session->answer_session_description.useTrickleIce = session->remote_can_trickle_ice;
     CHK_STATUS(setLocalDescription(session->peer_connection, &session->answer_session_description));
-    CHK_STATUS(createAnswer(session->peer_connection, &session->answer_session_description));
 
-    // CRITICAL: Send answer timing based on trickle ICE support
-    if (session->remote_can_trickle_ice && session->on_message_received != NULL) {
-        webrtc_message_t answer_msg = {0};
-        answer_msg.version = SIGNALING_MESSAGE_CURRENT_VERSION;
-        answer_msg.message_type = WEBRTC_MESSAGE_TYPE_ANSWER;
-        STRCPY(answer_msg.peer_client_id, session->peer_id);
-        // Generate fresh correlation ID like legacy respondWithAnswer
-        SNPRINTF(answer_msg.correlation_id, MAX_CORRELATION_ID_LEN, "%llu_%zu",
-                 GETTIME(), ATOMIC_INCREMENT(&session->correlation_id_postfix));
+    /*
+     * If remote supports trickle ICE: Create and send answer immediately
+     * If non-trickle ICE: Answer will be sent when ICE gathering completes (in onIceCandidateHandler)
+     */
+    if (session->remote_can_trickle_ice) {
+        CHK_STATUS(createAnswer(session->peer_connection, &session->answer_session_description));
 
-        // Serialize the SDP answer with exact-sized heap buffer
-        UINT32 answer_len = 0;
-        CHK_STATUS(serializeSessionDescriptionInit(&session->answer_session_description, NULL, &answer_len));
-        if (answer_len > 0) {
-            PCHAR payload = (PCHAR) MEMALLOC(answer_len + 1);
-            CHK(payload != NULL, STATUS_NOT_ENOUGH_MEMORY);
-            CHK_STATUS(serializeSessionDescriptionInit(&session->answer_session_description, payload, &answer_len));
-            payload[answer_len] = '\0';
-            answer_msg.payload = payload;
-            answer_msg.payload_len = (UINT32) STRLEN(payload);
-            ESP_LOGD(TAG, "Master sending SDP answer to viewer: peer=%s, len=%" PRIu32 ", corr_id='%s', trickle=%s",
-                     session->peer_id, answer_len, answer_msg.correlation_id,
-                     session->remote_can_trickle_ice ? "true" : "false");
-            ESP_LOGD(TAG, "INTERFACE_SDP_ANSWER_FULL: %s", payload);
+        /* Send answer immediately (trickle ICE mode) */
+        if (session->on_message_received != NULL) {
+            webrtc_message_t answer_msg = {0};
+            answer_msg.version = SIGNALING_MESSAGE_CURRENT_VERSION;
+            answer_msg.message_type = WEBRTC_MESSAGE_TYPE_ANSWER;
+            STRCPY(answer_msg.peer_client_id, session->peer_id);
+            /* Generate fresh correlation ID like legacy respondWithAnswer */
+            SNPRINTF(answer_msg.correlation_id, MAX_CORRELATION_ID_LEN, "%llu_%zu",
+                     GETTIME(), ATOMIC_INCREMENT(&session->correlation_id_postfix));
 
-            session->on_message_received(session->custom_data, &answer_msg);
-            SAFE_MEMFREE(payload);
+            /* Serialize the SDP answer with exact-sized heap buffer */
+            UINT32 answer_len = 0;
+            CHK_STATUS(serializeSessionDescriptionInit(&session->answer_session_description, NULL, &answer_len));
+            if (answer_len > 0) {
+                PCHAR payload = (PCHAR) MEMALLOC(answer_len + 1);
+                CHK(payload != NULL, STATUS_NOT_ENOUGH_MEMORY);
+                CHK_STATUS(serializeSessionDescriptionInit(&session->answer_session_description, payload, &answer_len));
+                payload[answer_len] = '\0';
+                answer_msg.payload = payload;
+                answer_msg.payload_len = (UINT32) STRLEN(payload);
+                ESP_LOGI(TAG, "Sending answer to peer: %s", session->peer_id);
+
+                session->on_message_received(session->custom_data, &answer_msg);
+                SAFE_MEMFREE(payload);
+            }
         }
+    } else {
+        ESP_LOGI(TAG, "Non-trickle ICE mode: Answer will be sent after candidate gathering completes for peer: %s",
+                 session->peer_id);
     }
 
     // CRITICAL PARITY FIX: Start media threads exactly like legacy handleOffer
