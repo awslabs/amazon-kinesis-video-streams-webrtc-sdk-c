@@ -1888,7 +1888,7 @@ WEBRTC_STATUS app_webrtc_run(void)
     }
 
     if (task_stack == NULL) {
-        task_stack = heap_caps_calloc_prefer(1, WEBRTC_TASK_STACK_SIZE, MALLOC_CAP_SPIRAM, MALLOC_CAP_INTERNAL);
+        task_stack = heap_caps_calloc_prefer(1, WEBRTC_TASK_STACK_SIZE, 2, MALLOC_CAP_SPIRAM, MALLOC_CAP_INTERNAL);
     }
 
     if (!task_buffer || !task_stack) {

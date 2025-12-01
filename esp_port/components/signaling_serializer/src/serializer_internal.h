@@ -11,7 +11,7 @@
 #include <esp_heap_caps.h>
 
 static inline void* serializer_memalloc(size_t size) {
-    return heap_caps_malloc_prefer(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT, MALLOC_CAP_DEFAULT);
+    return heap_caps_malloc_prefer(size, 2, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT, MALLOC_CAP_DEFAULT);
 }
 
 #else
