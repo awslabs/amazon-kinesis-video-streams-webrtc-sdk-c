@@ -116,15 +116,6 @@ typedef struct {
 } RtcMetricsHistory, *PRtcMetricsHistory;
 
 typedef struct {
-    PCHAR channelName;
-    SIGNALING_CHANNEL_ROLE_TYPE roleType;
-    BOOL trickleIce;
-    BOOL useTurn;
-    BOOL useDualStackEndpoints;
-    UINT32 logLevel;
-} CreateSampleConfigurationParams, *PCreateSampleConfigurationParams;
-
-typedef struct {
     volatile ATOMIC_BOOL appTerminateFlag;
     volatile ATOMIC_BOOL interrupted;
     volatile ATOMIC_BOOL mediaThreadStarted;
@@ -185,8 +176,6 @@ typedef struct {
     UINT32 logLevel;
     BOOL enableTwcc;
     BOOL enableIceStats;
-    BOOL useDualStackEndpoints;
-    CHAR customControlPlaneEndpoint[MAX_CONTROL_PLANE_URI_CHAR_LEN];
 } SampleConfiguration, *PSampleConfiguration;
 
 typedef struct {
@@ -258,7 +247,7 @@ PVOID sampleReceiveAudioVideoFrame(PVOID);
 PVOID getPeriodicIceCandidatePairStats(PVOID);
 STATUS getIceCandidatePairStatsCallback(UINT32, UINT64, UINT64);
 STATUS pregenerateCertTimerCallback(UINT32, UINT64, UINT64);
-STATUS createSampleConfiguration(PCreateSampleConfigurationParams, PSampleConfiguration*);
+STATUS createSampleConfiguration(PCHAR, SIGNALING_CHANNEL_ROLE_TYPE, BOOL, BOOL, UINT32, PSampleConfiguration*);
 STATUS freeSampleConfiguration(PSampleConfiguration*);
 STATUS signalingClientStateChanged(UINT64, SIGNALING_CLIENT_STATE);
 STATUS signalingMessageReceived(UINT64, PReceivedSignalingMessage);

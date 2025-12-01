@@ -345,26 +345,6 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 }
 
-
-// Using for testing purposes to filter out tcp and turns cases. 
-BOOL isTurnUdp(const char* url) {
-    size_t len = STRLEN(url);
-    if (len < 7) return FALSE;
-
-    // Check start: "turn:"
-    if (STRNCMP(url, "turn:", 5) != 0) {
-        return FALSE;
-    }
-
-    // Check end: "udp"
-    if (STRCMP(url + len - 3, "udp") != 0) {
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
-
 STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcPeerConnection* ppRtcPeerConnection)
 {
     ENTERS();
@@ -383,7 +363,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     configuration.kvsRtcConfiguration.iceSetInterfaceFilterFunc = NULL;
 
     // Set the ICE mode explicitly
-    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
+    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
 
 #ifdef ENABLE_STATS_CALCULATION_CONTROL
     configuration.kvsRtcConfiguration.enableIceStats = pSampleConfiguration->enableIceStats;
@@ -399,7 +379,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
              pKinesisVideoStunUrlPostFix);
 
     if (pSampleConfiguration->useTurn) {
-        // // Set the URIs from the configuration
+        // Set the URIs from the configuration
         CHK_STATUS(signalingClientGetIceConfigInfoCount(pSampleConfiguration->signalingClientHandle, &iceConfigCount));
 
         /* signalingClientGetIceConfigInfoCount can return more than one turn server. Use only one to optimize
@@ -418,28 +398,15 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
                  * It's recommended to not pass too many TURN iceServers to configuration because it will slow down ice gathering in non-trickle mode.
                  */
 
-                 DLOGD("Ice server %d urls: %s", j + 1, pIceConfigInfo->uris[j]);
-                 DLOGD("Ice server %d username: %s", j + 1, pIceConfigInfo->password);
-                 DLOGD("Ice server %d credential: %s", j + 1, pIceConfigInfo->userName);
+                DLOGD("TURN server %d urls: %s", j + 1, pIceConfigInfo->uris[j]);
 
-                if (isTurnUdp(pIceConfigInfo->uris[j])) {
-                    DLOGD("Adding ICE server");
-                    STRNCPY(configuration.iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
-                    STRNCPY(configuration.iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
-                    STRNCPY(configuration.iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
-                    
-                    uriCount++;
-                }
+                STRNCPY(configuration.iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
+                STRNCPY(configuration.iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
+                STRNCPY(configuration.iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
 
-
+                uriCount++;
             }
         }
-
-        // For testing purposes:
-        // STRNCPY(configuration.iceServers[1].urls, "turn:[XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX]?transport=udp", MAX_ICE_CONFIG_URI_LEN);
-        // STRNCPY(configuration.iceServers[1].urls, "turn:XXX.XXX.XXX.XXX:XXXX?transport=udp", MAX_ICE_CONFIG_URI_LEN);
-        // STRNCPY(configuration.iceServers[1].credential, "XXXXXXXX", MAX_ICE_CONFIG_CREDENTIAL_LEN);
-        // STRNCPY(configuration.iceServers[1].username, "XXXXXXXX", MAX_ICE_CONFIG_USER_NAME_LEN);
     }
 
     pSampleConfiguration->iceUriCount = uriCount + 1;
@@ -829,13 +796,14 @@ CleanUp:
     return retStatus;
 }
 
-STATUS createSampleConfiguration(PCreateSampleConfigurationParams pCreateSampleConfigurationParams, PSampleConfiguration* ppSampleConfiguration)
+STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE roleType, BOOL trickleIce, BOOL useTurn, UINT32 logLevel,
+                                 PSampleConfiguration* ppSampleConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR pAccessKey, pSecretKey, pSessionToken;
     PSampleConfiguration pSampleConfiguration = NULL;
 
-    CHK(ppSampleConfiguration != NULL && pCreateSampleConfigurationParams != NULL, STATUS_NULL_ARG);
+    CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
 
     CHK(NULL != (pSampleConfiguration = (PSampleConfiguration) MEMCALLOC(1, SIZEOF(SampleConfiguration))), STATUS_NOT_ENOUGH_MEMORY);
 
@@ -904,41 +872,23 @@ STATUS createSampleConfiguration(PCreateSampleConfigurationParams pCreateSampleC
     pSampleConfiguration->signalingSendMessageLock = MUTEX_CREATE(FALSE);
     /* This is ignored for master. Master can extract the info from offer. Viewer has to know if peer can trickle or
      * not ahead of time. */
-    pSampleConfiguration->trickleIce = pCreateSampleConfigurationParams->trickleIce;
-    pSampleConfiguration->useTurn = pCreateSampleConfigurationParams->useTurn;
+    pSampleConfiguration->trickleIce = trickleIce;
+    pSampleConfiguration->useTurn = useTurn;
     pSampleConfiguration->enableSendingMetricsToViewerViaDc = FALSE;
     pSampleConfiguration->receiveAudioVideoSource = NULL;
 
     pSampleConfiguration->channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
-    pSampleConfiguration->channelInfo.pChannelName = pCreateSampleConfigurationParams->channelName;
+    pSampleConfiguration->channelInfo.pChannelName = channelName;
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
     if ((pIotCoreCertificateId = GETENV(IOT_CORE_CERTIFICATE_ID)) != NULL) {
         pSampleConfiguration->channelInfo.pChannelName = pIotCoreCertificateId;
     }
 #endif
-
-    if (pCreateSampleConfigurationParams->useDualStackEndpoints) {
-        // Create the custom fully qualified control plane endpoint, sans the legacy/dual-stack postfix.
-        SNPRINTF(pSampleConfiguration->customControlPlaneEndpoint, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s", CONTROL_PLANE_URI_PREFIX,
-                 KINESIS_VIDEO_SERVICE_NAME, pSampleConfiguration->channelInfo.pRegion);
-
-        if (STRSTR(pSampleConfiguration->channelInfo.pRegion, "cn-")) {
-            STRCAT(pSampleConfiguration->customControlPlaneEndpoint,
-                   CONTROL_PLANE_URI_POSTFIX_CN_DUAL_STACK); // Will use CN region dual-stack endpoint.
-        } else {
-            STRCAT(pSampleConfiguration->customControlPlaneEndpoint, CONTROL_PLANE_URI_POSTFIX_DUAL_STACK); // Will use Dual-stack endpoint.
-        }
-
-        pSampleConfiguration->channelInfo.pControlPlaneUrl = pSampleConfiguration->customControlPlaneEndpoint;
-    } else {
-        pSampleConfiguration->channelInfo.pControlPlaneUrl = NULL; // Will use default legacy endpoints.
-    }
-
     pSampleConfiguration->channelInfo.pKmsKeyId = NULL;
     pSampleConfiguration->channelInfo.tagCount = 0;
     pSampleConfiguration->channelInfo.pTags = NULL;
     pSampleConfiguration->channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
-    pSampleConfiguration->channelInfo.channelRoleType = pCreateSampleConfigurationParams->roleType;
+    pSampleConfiguration->channelInfo.channelRoleType = roleType;
     pSampleConfiguration->channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_FILE;
     pSampleConfiguration->channelInfo.cachingPeriod = SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE;
     pSampleConfiguration->channelInfo.asyncIceServerConfig = TRUE; // has no effect
@@ -953,7 +903,7 @@ STATUS createSampleConfiguration(PCreateSampleConfigurationParams pCreateSampleC
     pSampleConfiguration->signalingClientCallbacks.customData = (UINT64) pSampleConfiguration;
 
     pSampleConfiguration->clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
-    pSampleConfiguration->clientInfo.loggingLevel = pCreateSampleConfigurationParams->logLevel;
+    pSampleConfiguration->clientInfo.loggingLevel = logLevel;
     pSampleConfiguration->clientInfo.cacheFilePath = NULL; // Use the default path
     pSampleConfiguration->clientInfo.signalingClientCreationMaxRetryAttempts = CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE;
     pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;

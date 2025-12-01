@@ -44,7 +44,6 @@ INT32 main(INT32 argc, CHAR* argv[])
     BOOL locked = FALSE;
     PCHAR pChannelName;
     CHAR clientId[256];
-    CreateSampleConfigurationParams createSampleConfigurationParams;
 
     SET_INSTRUMENTED_ALLOCATORS();
     UINT32 logLevel = setLogLevel();
@@ -82,14 +81,7 @@ INT32 main(INT32 argc, CHAR* argv[])
         }
     }
 
-    createSampleConfigurationParams.channelName = pChannelName;
-    createSampleConfigurationParams.roleType = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
-    createSampleConfigurationParams.trickleIce = TRUE;
-    createSampleConfigurationParams.useTurn = TRUE;
-    createSampleConfigurationParams.useDualStackEndpoints = FALSE;
-    createSampleConfigurationParams.logLevel = logLevel;
-
-    CHK_STATUS(createSampleConfiguration(&createSampleConfigurationParams, &pSampleConfiguration));
+    CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, TRUE, TRUE, logLevel, &pSampleConfiguration));
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
     pSampleConfiguration->audioCodec = audioCodec;
     pSampleConfiguration->videoCodec = videoCodec;
