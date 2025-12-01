@@ -733,8 +733,12 @@ STATUS turnConnectionAddPeer(PTurnConnection pTurnConnection, PKvsIpAddress pPee
     BOOL locked = FALSE;
 
     CHK(pTurnConnection != NULL && pPeerAddress != NULL, STATUS_NULL_ARG);
-    // CHK(pTurnConnection->turnServer.ipAddresses.ipv4Address.family == pPeerAddress->family, STATUS_INVALID_ARG);
-    // CHK_WARN(IS_IPV4_ADDR(pPeerAddress), retStatus, "Drop IPv6 turn peer because only IPv4 turn peer is supported right now");
+
+    if (pTurnConnection->ipFamilyType == KVS_IP_FAMILY_TYPE_IPV4) {
+        CHK_WARN(IS_IPV4_ADDR(pPeerAddress), STATUS_INVALID_ARG, "Dropping IPv6 peer for IPv4 TURN connection.");
+    } else if (pTurnConnection->ipFamilyType == KVS_IP_FAMILY_TYPE_IPV6) {
+        CHK_WARN(IS_IPV6_ADDR(pPeerAddress), STATUS_INVALID_ARG, "Dropping IPv4 peer for IPv6 TURN connection.");
+    }
 
     MUTEX_LOCK(pTurnConnection->lock);
     locked = TRUE;
