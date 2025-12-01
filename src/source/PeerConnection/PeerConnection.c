@@ -188,12 +188,6 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
     if (buff[0] > 19 && buff[0] < 64) {
         dtlsSessionProcessPacket(pKvsPeerConnection->pDtlsSession, buff, &signedBuffLen);
 
-#ifdef ENABLE_DATA_CHANNEL
-        if (ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpIsEnabled) && signedBuffLen > 0) {
-            CHK_STATUS(putSctpPacket(pKvsPeerConnection->pSctpSession, buff, signedBuffLen));
-        }
-#endif
-
         CHK_STATUS(dtlsSessionIsInitFinished(pKvsPeerConnection->pDtlsSession, &isDtlsConnected));
         if (isDtlsConnected) {
             if (pKvsPeerConnection->pSrtpSession == NULL) {
