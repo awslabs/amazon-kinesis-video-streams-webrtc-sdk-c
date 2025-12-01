@@ -20,7 +20,7 @@ received_msg_t *esp_webrtc_create_buffer_for_msg(int capacity)
         return NULL;
     }
 
-    msg->buf = heap_caps_malloc_prefer(capacity, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT, MALLOC_CAP_INTERNAL);
+    msg->buf = heap_caps_malloc_prefer(capacity, 2, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT, MALLOC_CAP_INTERNAL);
     if (!msg->buf) {
         ESP_LOGE(TAG, "Failed allocation of buffer size %d", capacity);
         free(msg);

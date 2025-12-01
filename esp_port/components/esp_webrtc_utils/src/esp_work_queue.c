@@ -140,7 +140,7 @@ esp_err_t esp_work_queue_start(void)
     esp_err_t ret = ESP_OK;
     if (queue_config.prefer_ext_ram) {
         task_buffer = heap_caps_calloc(1, sizeof(StaticTask_t), MALLOC_CAP_INTERNAL);
-        task_stack = heap_caps_malloc_prefer(queue_config.stack_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT, MALLOC_CAP_INTERNAL);
+        task_stack = heap_caps_malloc_prefer(queue_config.stack_size, 2, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT, MALLOC_CAP_INTERNAL);
         assert(task_buffer && task_stack);
 
         /* the task never exits, so do not bother to free the buffers */
