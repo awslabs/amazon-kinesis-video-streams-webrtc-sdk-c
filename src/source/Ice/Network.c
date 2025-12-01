@@ -354,19 +354,6 @@ BOOL isIpAddr(PCHAR hostname, UINT16 length)
         return TRUE;
     }
 
-    // TODO: Remove this once sure not keeping.
-    // Check if IPv6 address within brackets.
-    // if (hostname[0] == '[' && hostname[strlen(hostname) - 1] == ']') {
-    //     offset = 0;
-    //     if (sscanf(hostname + 1, "%x:%x:%x:%x:%x:%x:%x:%x%n",
-    //                &ip_1, &ip_2, &ip_3, &ip_4,
-    //                &ip_5, &ip_6, &ip_7, &ip_8,
-    //                &offset) == 8 &&
-    //         offset == length - 2) {
-    //         return TRUE;
-    //     }
-    // }
-
     // Check if IPv6 address.
     offset = 0;
     if (SSCANF(hostname, "%x:%x:%x:%x:%x:%x:%x:%x%n", &ip_1, &ip_2, &ip_3, &ip_4, &ip_5, &ip_6, &ip_7, &ip_8, &offset) == 8 &&

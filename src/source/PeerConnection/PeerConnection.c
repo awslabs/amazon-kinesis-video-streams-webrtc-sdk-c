@@ -811,6 +811,11 @@ STATUS getStunAddr(PStunIpAddrContext pStunIpAddrCtx)
     pStunIpAddrCtx->kvsIpAddresses.ipv4Address.port = 0;
     pStunIpAddrCtx->kvsIpAddresses.ipv6Address.port = 0;
 
+    // Don't attempt to resolve IPv6 address if not in dual-stack mode.
+    if (GETENV(USE_DUAL_STACK_ENDPOINTS_ENV_VAR) == NULL) {
+        ipv6Resolved = TRUE;
+    }
+
     DLOGD("Resolving STUN server address for hostname: %s", pStunIpAddrCtx->hostname);
 
     errCode = getaddrinfo(pStunIpAddrCtx->hostname, NULL, NULL, &res);

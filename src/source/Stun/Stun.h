@@ -72,7 +72,7 @@ extern "C" {
  */
 #define STUN_ATTRIBUTE_REQUESTED_TRANSPORT_PROTOCOL_LEN (UINT16) 4
 
-/**f
+/**
  * Requested address family attribute value length = 4 bytes = 32 bits
  */
 #define STUN_ATTRIBUTE_REQUESTED_ADDRESS_FAMILY_LEN (UINT16) 4
