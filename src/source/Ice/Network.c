@@ -474,18 +474,17 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
     struct addrinfo *res, *rp;
     BOOL ipv4Resolved = FALSE;
     BOOL ipv6Resolved = FALSE;
-    struct sockaddr_in* ipv4Addr;
-    struct sockaddr_in6* ipv6Addr;
+    struct sockaddr_in* ipv4SockAddr;
+    struct sockaddr_in6* ipv6SockAddr;
     struct in_addr inaddr;
     struct in6_addr in6addr;
-    CHAR ipv4AddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
-    CHAR ipv6AddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
 
     CHAR addr[KVS_IP_ADDRESS_STRING_BUFFER_LEN] = {'\0'};
     CHAR ipv4Addr[KVS_IP_ADDRESS_STRING_BUFFER_LEN] = {'\0'};
     CHAR ipv6Addr[KVS_IP_ADDRESS_STRING_BUFFER_LEN] = {'\0'};
     BOOL isStunServer;
-    BOOL wasAddressParsed = FALSE;
+    BOOL wasAddressParseSuccessful = FALSE;
+    BOOL dualStackEnvVarSet = FALSE;
 
     CHK(hostname != NULL, STATUS_NULL_ARG);
     DLOGI("ICE SERVER Hostname received: %s", hostname);
@@ -493,6 +492,7 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
     hostnameLen = STRLEN(hostname);
     addrLen = SIZEOF(addr);
     isStunServer = STRNCMP(hostname, KINESIS_VIDEO_STUN_URL_PREFIX, KINESIS_VIDEO_STUN_URL_PREFIX_LENGTH) == 0;
+    dualStackEnvVarSet = GETENV(USE_DUAL_STACK_ENDPOINTS_ENV_VAR) != NULL;
 
     // Adding this check in case we directly get an IP address. With the current usage pattern,
     // there is no way this function would receive an address directly, but having this check
@@ -506,7 +506,9 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
             addr[hostnameLen] = '\0';
         }
     } else if (!isStunServer) {
-        if (GETENV(USE_DUAL_STACK_ENDPOINTS_ENV_VAR) != NULL) {
+        // Try to parse the address from the TURN server hostname.
+
+        if (dualStackEnvVarSet) {
             DLOGD("Attempting to parse dual-stack IP addresses from TURN server hostname: %s", hostname);
 
             retStatus = getDualStackIpAddrFromDnsHostname(hostname, ipv4Addr, ipv6Addr, hostnameLen, ARRAY_SIZE(ipv4Addr), ARRAY_SIZE(ipv6Addr));
@@ -523,13 +525,18 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
         }
     }
 
-    wasAddressParsed = isIpAddr(addr, STRLEN(addr)) || (isIpAddr(ipv4Addr, STRLEN(ipv4Addr)) && isIpAddr(ipv6Addr, STRLEN(ipv6Addr)));
+    wasAddressParseSuccessful = isIpAddr(addr, STRLEN(addr)) || (isIpAddr(ipv4Addr, STRLEN(ipv4Addr)) && isIpAddr(ipv6Addr, STRLEN(ipv6Addr)));
 
-    // Verify the generated address has the format x.x.x.x
-    if (!wasAddressParsed || retStatus != STATUS_SUCCESS) {
+    // Fall back to getaddrinfo if parsing the address from the hostname was not possible or failed.
+    if (!wasAddressParseSuccessful || retStatus != STATUS_SUCCESS) {
         // Only print the warning for TURN servers since STUN addresses don't get parsed from the hostname.
         if (!isStunServer) {
             DLOGW("Parsing for TURN address failed for %s, fallback to getaddrinfo", hostname);
+        }
+
+        // Skip the IPv6 resolution if dual stack env var is not set.
+        if (!dualStackEnvVarSet) {
+            ipv6Resolved = TRUE;
         }
 
         errCode = getaddrinfo(hostname, NULL, NULL, &res);
@@ -538,23 +545,23 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
             CHK_ERR(FALSE, STATUS_RESOLVE_HOSTNAME_FAILED, "getaddrinfo() with errno %s", errStr);
         }
         for (rp = res; rp != NULL && !(ipv4Resolved && ipv6Resolved); rp = rp->ai_next) {
-            if (rp->ai_family == AF_INET) {
-                ipv4Addr = (struct sockaddr_in*) rp->ai_addr;
+            if (rp->ai_family == AF_INET && !ipv4Resolved) {
+                ipv4SockAddr = (struct sockaddr_in*) rp->ai_addr;
                 destIps->ipv4Address.family = KVS_IP_FAMILY_TYPE_IPV4;
-                MEMCPY(destIps->ipv4Address.address, &ipv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
+                MEMCPY(destIps->ipv4Address.address, &ipv4SockAddr->sin_addr, IPV4_ADDRESS_LENGTH);
 
-                CHK_STATUS(getIpAddrStr(&(destIps->ipv4Address), ipv4AddrStr, ARRAY_SIZE(ipv4AddrStr)));
-                DLOGD("Found an IPv4 ICE server addresss: %s", ipv4AddrStr);
+                CHK_STATUS(getIpAddrStr(&(destIps->ipv4Address), ipv4Addr, ARRAY_SIZE(ipv4Addr)));
+                DLOGD("Found an IPv4 ICE server addresss: %s", ipv4Addr);
 
                 ipv4Resolved = TRUE;
 
-            } else if (rp->ai_family == AF_INET6) {
-                ipv6Addr = (struct sockaddr_in6*) rp->ai_addr;
+            } else if (rp->ai_family == AF_INET6 && !ipv6Resolved) {
+                ipv6SockAddr = (struct sockaddr_in6*) rp->ai_addr;
                 destIps->ipv6Address.family = KVS_IP_FAMILY_TYPE_IPV6;
-                MEMCPY(destIps->ipv6Address.address, &ipv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
+                MEMCPY(destIps->ipv6Address.address, &ipv6SockAddr->sin6_addr, IPV6_ADDRESS_LENGTH);
 
-                CHK_STATUS(getIpAddrStr(&(destIps->ipv6Address), ipv6AddrStr, ARRAY_SIZE(ipv6AddrStr)));
-                DLOGD("Found an IPv6 ICE server addresss: %s", ipv6AddrStr);
+                CHK_STATUS(getIpAddrStr(&(destIps->ipv6Address), ipv6Addr, ARRAY_SIZE(ipv6Addr)));
+                DLOGD("Found an IPv6 ICE server addresss: %s", ipv6Addr);
 
                 ipv6Resolved = TRUE;
 
@@ -565,7 +572,9 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
         freeaddrinfo(res);
         CHK_ERR(ipv4Resolved || ipv6Resolved, STATUS_HOSTNAME_NOT_FOUND, "Could not find network address of %s", hostname);
     } else {
+        // Address parsing was successful. Capture the address(es).
 
+        // Both addresses should be present in TURN url for dual-stack case.
         if (STRLEN(ipv4Addr) > 0 && STRLEN(ipv6Addr) > 0) {
             // Dual-stack case.
 
@@ -573,15 +582,15 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
                 destIps->ipv4Address.family = KVS_IP_FAMILY_TYPE_IPV4;
                 MEMCPY(destIps->ipv4Address.address, &inaddr, IPV4_ADDRESS_LENGTH);
             } else {
-                DLOGW("inet_pton failed on IPv4 ICE server address: %s", addr);
+                DLOGW("inet_pton failed on IPv4 ICE server address: %s", ipv4Addr);
                 retStatus = STATUS_INVALID_ARG;
             }
-
+        
             if (inet_pton(AF_INET6, ipv6Addr, &in6addr) == 1) {
                 destIps->ipv6Address.family = KVS_IP_FAMILY_TYPE_IPV6;
                 MEMCPY(destIps->ipv6Address.address, &in6addr, IPV6_ADDRESS_LENGTH);
             } else {
-                DLOGW("inet_pton failed on IPv6 ICE server address: %s", addr);
+                DLOGW("inet_pton failed on IPv6 ICE server address: %s", ipv6Addr);
                 retStatus = STATUS_INVALID_ARG;
             }
 
