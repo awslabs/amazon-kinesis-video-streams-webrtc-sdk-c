@@ -498,13 +498,8 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
     // there is no way this function would receive an address directly, but having this check
     // in place anyways
     if (isIpAddr(hostname, hostnameLen)) {
-        if (hostname[0] == '[' && hostname[hostnameLen - 1] == ']') {
-            MEMCPY(addr, hostname + 1, hostnameLen - 2);
-            addr[hostnameLen - 2] = '\0';
-        } else {
             MEMCPY(addr, hostname, hostnameLen);
             addr[hostnameLen] = '\0';
-        }
     } else if (!isStunServer) {
         // Try to parse the address from the TURN server hostname.
 
@@ -600,6 +595,11 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
             if (inet_pton(AF_INET, addr, &inaddr) == 1) {
                 destIps->ipv4Address.family = KVS_IP_FAMILY_TYPE_IPV4;
                 MEMCPY(destIps->ipv4Address.address, &inaddr, IPV4_ADDRESS_LENGTH);
+            } else if (inet_pton(AF_INET6, addr, &in6addr) == 1) {
+                // This case will never happen with current TURN server URL format,
+                // but adding in case a hardcoded direct IPv6 address gets used. 
+                destIps->ipv6Address.family = KVS_IP_FAMILY_TYPE_IPV6;
+                MEMCPY(destIps->ipv6Address.address, &in6addr, IPV6_ADDRESS_LENGTH);
             } else {
                 DLOGW("inet_pton failed on legacy ICE server address: %s", addr);
                 retStatus = STATUS_INVALID_ARG;
