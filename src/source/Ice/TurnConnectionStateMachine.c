@@ -207,7 +207,7 @@ STATUS executeCheckSocketConnectionTurnState(UINT64 customData, UINT64 time)
     if (pTurnConnection->state != TURN_STATE_CHECK_SOCKET_CONNECTION) {
         pTurnConnection->state = TURN_STATE_CHECK_SOCKET_CONNECTION;
         CHK_STATUS(
-            turnConnectionPackageTurnAllocationRequest(NULL, NULL, NULL, 0, DEFAULT_TURN_ALLOCATION_LIFETIME_SECONDS, &pTurnConnection->pTurnPacket));
+            turnConnectionPackageTurnAllocationRequest(NULL, NULL, NULL, 0, DEFAULT_TURN_ALLOCATION_LIFETIME_SECONDS, &pTurnConnection->pTurnPacket, pTurnConnection->ipFamilyType));
     }
 CleanUp:
 
@@ -347,7 +347,7 @@ STATUS executeAllocationTurnState(UINT64 customData, UINT64 time)
                                                 SIZEOF(pTurnConnection->longTermKey)));
         CHK_STATUS(turnConnectionPackageTurnAllocationRequest(pTurnConnection->turnServer.username, pTurnConnection->turnRealm,
                                                               pTurnConnection->turnNonce, pTurnConnection->nonceLen,
-                                                              DEFAULT_TURN_ALLOCATION_LIFETIME_SECONDS, &pTurnConnection->pTurnPacket));
+                                                              DEFAULT_TURN_ALLOCATION_LIFETIME_SECONDS, &pTurnConnection->pTurnPacket, pTurnConnection->ipFamilyType));
         pTurnConnection->state = TURN_STATE_ALLOCATION;
     } else {
         CHK(currentTime <= pTurnConnection->stateTimeoutTime, STATUS_TURN_CONNECTION_ALLOCATION_FAILED);

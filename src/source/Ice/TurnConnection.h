@@ -207,7 +207,7 @@ UINT64 turnConnectionGetTime(UINT64);
 STATUS turnConnectionUpdateNonce(PTurnConnection);
 STATUS turnConnectionTimerCallback(UINT32, UINT64, UINT64);
 STATUS turnConnectionGetLongTermKey(PCHAR, PCHAR, PCHAR, PBYTE, UINT32);
-STATUS turnConnectionPackageTurnAllocationRequest(PCHAR, PCHAR, PBYTE, UINT16, UINT32, PStunPacket*);
+STATUS turnConnectionPackageTurnAllocationRequest(PCHAR, PCHAR, PBYTE, UINT16, UINT32, PStunPacket*, KVS_IP_FAMILY_TYPE);
 
 STATUS turnConnectionIncomingDataHandler(PTurnConnection, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress, PTurnChannelData, PUINT32);
 

@@ -1225,7 +1225,7 @@ CleanUp:
 }
 
 STATUS turnConnectionPackageTurnAllocationRequest(PCHAR username, PCHAR realm, PBYTE nonce, UINT16 nonceLen, UINT32 lifetime,
-                                                  PStunPacket* ppStunPacket)
+                                                  PStunPacket* ppStunPacket, KVS_IP_FAMILY_TYPE turnConnectionFamilyType)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PStunPacket pTurnAllocateRequest = NULL;
@@ -1243,10 +1243,11 @@ STATUS turnConnectionPackageTurnAllocationRequest(PCHAR username, PCHAR realm, P
         CHK_STATUS(appendStunUsernameAttribute(pTurnAllocateRequest, username));
         CHK_STATUS(appendStunRealmAttribute(pTurnAllocateRequest, realm));
         CHK_STATUS(appendStunNonceAttribute(pTurnAllocateRequest, nonce, nonceLen));
-        // CHK_STATUS(appendStunAllocationAddressFamily(pTurnAllocateRequest, KVS_IP_FAMILY_TYPE_IPV4));
-        // Note: No longer planning to use this attribute, IP-family will be determined
-        //          to match the socket connection between client and TURN server.
 
+        // KVS TURN server will default to IPv4 if no address family attribute is specified.
+        if (turnConnectionFamilyType == KVS_IP_FAMILY_TYPE_IPV6) {
+            CHK_STATUS(appendStunAllocationAddressFamily(pTurnAllocateRequest, KVS_IP_FAMILY_TYPE_IPV6));
+        }
     }
 
 CleanUp:
