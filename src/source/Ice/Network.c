@@ -406,6 +406,7 @@ CleanUp:
     return retStatus;
 }
 
+// NOTE: IPv6 address parsing assumes the full notation is used without any compression (e.g., no '::' usage).
 STATUS getDualStackIpAddrFromDnsHostname(PCHAR hostname, PCHAR ipv4Address, PCHAR ipv6Address, UINT16 lengthSrc, UINT16 maxLenV4Dst, UINT16 maxLenV6Dst)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -413,6 +414,7 @@ STATUS getDualStackIpAddrFromDnsHostname(PCHAR hostname, PCHAR ipv4Address, PCHA
     UINT16 hostNameLen = lengthSrc;
     CHK(hostname != NULL && ipv4Address != NULL && ipv6Address != NULL, STATUS_NULL_ARG);
     CHK(hostNameLen > 0 && hostNameLen < MAX_ICE_CONFIG_URI_LEN, STATUS_INVALID_ARG);
+    CHAR c;
 
 
     // Dual-stack TURN server URLs conform with the following IPv4 and IPv6 DNS hostname format:
@@ -423,7 +425,9 @@ STATUS getDualStackIpAddrFromDnsHostname(PCHAR hostname, PCHAR ipv4Address, PCHA
 
         CHK_WARN(j < maxLenV4Dst, STATUS_INVALID_ADDRESS_LENGTH, "Generated IPv4 address is past allowed size.");
 
-        if (hostname[i] >= '0' && hostname[i] <= '9') {
+        c = hostname[i];
+
+        if (c >= '0' && c <= '9') {
             ipv4Address[j] = hostname[i];
         } else if (hostname[i] == '-') {
             ipv4Address[j] = '.';
@@ -447,7 +451,11 @@ STATUS getDualStackIpAddrFromDnsHostname(PCHAR hostname, PCHAR ipv4Address, PCHA
 
         CHK_WARN(j < maxLenV6Dst, STATUS_INVALID_ADDRESS_LENGTH, "Generated IPv6 address is past allowed size.");
 
-        if (hostname[i] >= '0' && hostname[i] <= '9') {
+        c = hostname[i];
+
+        if ((c >= '0' && c <= '9') ||
+                (c >= 'a' && c <= 'f') ||
+                (c >= 'A' && c <= 'F')) {
             ipv6Address[j] = hostname[i];
         } else if (hostname[i] == '-') {
             ipv6Address[j] = ':';
@@ -560,8 +568,6 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
 
                 ipv6Resolved = TRUE;
 
-            } else {
-                DLOGD("Found an invalid ICE server addresss family type - must be IPv4 or IPv6.");
             }
         }
         freeaddrinfo(res);
