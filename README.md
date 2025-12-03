@@ -573,6 +573,8 @@ Similar to the heap profile, you only need to specify the following environment 
 
 More information about what environment variables you can configure can be found [here](https://gperftools.github.io/gperftools/cpuprofile.html)
 
+## Additional Features
+
 ### Filtering network interfaces
 
 This is useful to reduce candidate gathering time when it is known for certain network interfaces to not work well. A sample callback is available in `Common.c`. The `iceSetInterfaceFilterFunc` in `KvsRtcConfiguration` must be set to the required callback. In the sample, it can be done this way in `initializePeerConnection()`: 
@@ -631,6 +633,20 @@ For more information on these stats, refer to [AWS Docs](https://docs.aws.amazon
 The SDK enables generating these stats by default. To control whether the SDK calculates these stats, the ENABLE_STATS_CALCULATION_CONTROL CMake option must be set, enabling the use of the following field:
 `configuration.kvsRtcConfiguration.enableIceStats = FALSE`.
 Disabling these stats may lead to reductions in memory use.
+
+### Enabling dual-stack mode
+To use dual-stack AWS KVS endpoints and attempt to gather IPv6 ICE candidates, set the following environment variable:
+```
+export KVS_DUALSTACK_ENDPOINTS=ON
+```
+
+In dual-stack mode, ICE gathering will attempt to include IPv6 candidates, but compatibility ultimately depends on the local network configuration and the capabilities of the receiving peers.
+
+
+To disable dual-stack mode, unset the environment variable:
+```
+unset KVS_DUALSTACK_ENDPOINTS
+```
 
 ## Documentation
 All Public APIs are documented in our [Include.h](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/main/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h), we also generate a [Doxygen](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/) each commit for easier navigation.
