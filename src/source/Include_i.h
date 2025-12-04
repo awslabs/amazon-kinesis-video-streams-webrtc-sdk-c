@@ -115,7 +115,6 @@ typedef struct {
     KvsIpAddress ipv6Address;
 } DualKvsIpAddresses, *PDualKvsIpAddresses;
 
-
 static inline BOOL IS_IPV4_ADDR(const KvsIpAddress* pAddress)
 {
     return pAddress != NULL && pAddress->family == KVS_IP_FAMILY_TYPE_IPV4;
@@ -125,7 +124,6 @@ static inline BOOL IS_IPV6_ADDR(const KvsIpAddress* pAddress)
 {
     return pAddress != NULL && pAddress->family == KVS_IP_FAMILY_TYPE_IPV6;
 }
-
 
 // Used for ensuring alignment
 #define ALIGN_UP_TO_MACHINE_WORD(x) ROUND_UP((x), SIZEOF(SIZE_T))

@@ -39,7 +39,6 @@ extern "C" {
 
 #define USE_DUAL_STACK_ENDPOINTS_ENV_VAR ((PCHAR) "KVS_DUALSTACK_ENDPOINTS")
 
-
 /**
  * Takes in a pointer to a public version of ChannelInfo object.
  * Validates and creates an internal object

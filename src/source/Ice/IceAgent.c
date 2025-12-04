@@ -1461,13 +1461,15 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
                 case ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE:
                     pIceServer = &(pIceAgent->iceServers[pCandidate->iceServerIndex]);
 
-                    if (pIceServer->ipAddresses.ipv4Address.family != KVS_IP_FAMILY_TYPE_NOT_SET && pCandidate->ipAddress.family == KVS_IP_FAMILY_TYPE_IPV4) {
+                    if (pIceServer->ipAddresses.ipv4Address.family != KVS_IP_FAMILY_TYPE_NOT_SET &&
+                        pCandidate->ipAddress.family == KVS_IP_FAMILY_TYPE_IPV4) {
                         pStunServerAddr = &pIceServer->ipAddresses.ipv4Address;
                     } else if (pIceServer->ipAddresses.ipv6Address.family != KVS_IP_FAMILY_TYPE_NOT_SET &&
                                pCandidate->ipAddress.family == KVS_IP_FAMILY_TYPE_IPV6) {
                         pStunServerAddr = &pIceServer->ipAddresses.ipv6Address;
                     }
-                    CHK_ERR(pStunServerAddr != NULL, STATUS_INVALID_ARG, "No IP-family-compatible STUN server address found for candidate %s", pCandidate->id);
+                    CHK_ERR(pStunServerAddr != NULL, STATUS_INVALID_ARG, "No IP-family-compatible STUN server address found for candidate %s",
+                            pCandidate->id);
 
                     // update transactionId
                     CHK_STATUS(
@@ -1476,8 +1478,7 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
                     transactionIdStoreInsert(pIceAgent->pStunBindingRequestTransactionIdStore, pBindingRequest->header.transactionId);
                     checkSum = COMPUTE_CRC32(pBindingRequest->header.transactionId, ARRAY_SIZE(pBindingRequest->header.transactionId));
 
-                    DLOGD("Sending STUN binding request to STUN server: %u:%u", pStunServerAddr->address,
-                            pStunServerAddr->port);
+                    DLOGD("Sending STUN binding request to STUN server: %u:%u", pStunServerAddr->address, pStunServerAddr->port);
 
                     CHK_STATUS(iceAgentSendStunPacket(pBindingRequest, NULL, 0, pIceAgent, pCandidate, &pIceServer->ipAddresses.ipv4Address));
                     if (pIceAgent->pRtcIceServerDiagnostics[pCandidate->iceServerIndex] != NULL) {
@@ -1856,7 +1857,6 @@ STATUS iceAgentInitRelayCandidates(PIceAgent pIceAgent)
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     for (j = 0; j < pIceAgent->iceServersCount; j++) {
         if (pIceAgent->iceServers[j].isTurn) {
-
             DLOGD("Initializing TURN relay candidates for ICE server %u with IPv4 family %u and IPv6 family (if available) %u", j,
                   pIceAgent->iceServers[j].ipAddresses.ipv4Address.family, pIceAgent->iceServers[j].ipAddresses.ipv6Address.family);
 
@@ -1879,7 +1879,6 @@ STATUS iceAgentInitRelayCandidates(PIceAgent pIceAgent)
                     CHK_STATUS(iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_TCP, KVS_IP_FAMILY_TYPE_IPV6));
                 }
             }
-
         }
     }
 
@@ -1921,8 +1920,7 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
     PIceCandidate pNewCandidate = NULL, pCandidate = NULL;
     BOOL locked = FALSE;
     PTurnConnection pTurnConnection = NULL;
-    PKvsIpAddress pTurnServerAddress = NULL; 
-
+    PKvsIpAddress pTurnServerAddress = NULL;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     CHK(turnServerIpFamily != KVS_IP_FAMILY_TYPE_NOT_SET, STATUS_INVALID_ARG);
@@ -1946,9 +1944,8 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
     // open up a new socket without binding to any host address. The candidate Ip address will later be updated
     // with the correct relay ip address once the Allocation success response is received. Relay candidate's socket is managed
     // by TurnConnection struct.
-    CHK_STATUS(createSocketConnection(turnServerIpFamily, protocol, NULL, pTurnServerAddress,
-                                      (UINT64) pNewCandidate, incomingRelayedDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize,
-                                      &pNewCandidate->pSocketConnection));
+    CHK_STATUS(createSocketConnection(turnServerIpFamily, protocol, NULL, pTurnServerAddress, (UINT64) pNewCandidate, incomingRelayedDataHandler,
+                                      pIceAgent->kvsRtcConfiguration.sendBufSize, &pNewCandidate->pSocketConnection));
     // connectionListener will free the pSocketConnection at the end.
     CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener, pNewCandidate->pSocketConnection));
 
@@ -1982,7 +1979,7 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
         CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
         pCurNode = pCurNode->pNext;
         pCandidate = (PIceCandidate) data;
-        
+
         // Add only peers with matching IP family to the TURN connection.
         if (turnServerIpFamily == KVS_IP_FAMILY_TYPE_IPV4) {
             if (IS_IPV4_ADDR(&pCandidate->ipAddress)) {
@@ -1992,7 +1989,6 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
             if (IS_IPV6_ADDR(&pCandidate->ipAddress)) {
                 CHK_STATUS(turnConnectionAddPeer(pTurnConnection, &pCandidate->ipAddress));
             }
-
         }
     }
 

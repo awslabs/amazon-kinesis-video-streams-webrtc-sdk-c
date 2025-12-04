@@ -407,7 +407,8 @@ CleanUp:
 }
 
 // NOTE: IPv6 address parsing assumes the full notation is used without any compression (e.g., no '::' usage).
-STATUS getDualStackIpAddrFromDnsHostname(PCHAR hostname, PCHAR ipv4Address, PCHAR ipv6Address, UINT16 lengthSrc, UINT16 maxLenV4Dst, UINT16 maxLenV6Dst)
+STATUS getDualStackIpAddrFromDnsHostname(PCHAR hostname, PCHAR ipv4Address, PCHAR ipv6Address, UINT16 lengthSrc, UINT16 maxLenV4Dst,
+                                         UINT16 maxLenV6Dst)
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT8 i = 0, j = 0;
@@ -416,13 +417,11 @@ STATUS getDualStackIpAddrFromDnsHostname(PCHAR hostname, PCHAR ipv4Address, PCHA
     CHK(hostNameLen > 0 && hostNameLen < MAX_ICE_CONFIG_URI_LEN, STATUS_INVALID_ARG);
     CHAR c;
 
-
     // Dual-stack TURN server URLs conform with the following IPv4 and IPv6 DNS hostname format:
     // 35-90-63-38_2001-0db8-85a3-0000-0000-8a2e-0370-7334.t-ae7dd61a.kinesisvideo.us-west-2.api.aws
 
     // Parse the IPv4 portion.
     while (hostNameLen > 0 && hostname[i] != '_') {
-
         CHK_WARN(j < maxLenV4Dst, STATUS_INVALID_ADDRESS_LENGTH, "Generated IPv4 address is past allowed size.");
 
         c = hostname[i];
@@ -445,17 +444,13 @@ STATUS getDualStackIpAddrFromDnsHostname(PCHAR hostname, PCHAR ipv4Address, PCHA
     i++;
     hostNameLen--;
 
-
     // Parse the IPv6 portion.
     while (hostNameLen > 0 && hostname[i] != '.') {
-
         CHK_WARN(j < maxLenV6Dst, STATUS_INVALID_ADDRESS_LENGTH, "Generated IPv6 address is past allowed size.");
 
         c = hostname[i];
 
-        if ((c >= '0' && c <= '9') ||
-                (c >= 'a' && c <= 'f') ||
-                (c >= 'A' && c <= 'F')) {
+        if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
             ipv6Address[j] = hostname[i];
         } else if (hostname[i] == '-') {
             ipv6Address[j] = ':';
@@ -506,8 +501,8 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
     // there is no way this function would receive an address directly, but having this check
     // in place anyways
     if (isIpAddr(hostname, hostnameLen)) {
-            MEMCPY(addr, hostname, hostnameLen);
-            addr[hostnameLen] = '\0';
+        MEMCPY(addr, hostname, hostnameLen);
+        addr[hostnameLen] = '\0';
     } else if (!isStunServer) {
         // Try to parse the address from the TURN server hostname.
 
@@ -522,7 +517,7 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
             DLOGD("Attempting to parse IP address from legacy TURN server hostname: %s", hostname);
 
             retStatus = getIpAddrFromDnsHostname(hostname, addr, hostnameLen, addrLen);
-            if(retStatus == STATUS_SUCCESS) {
+            if (retStatus == STATUS_SUCCESS) {
                 DLOGD("Parsed IP address from legacy TURN server hostname: %s", addr);
             }
         }
@@ -567,7 +562,6 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
                 DLOGD("Found an IPv6 ICE server addresss: %s", ipv6Addr);
 
                 ipv6Resolved = TRUE;
-
             }
         }
         freeaddrinfo(res);
@@ -586,7 +580,7 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
                 DLOGW("inet_pton failed on IPv4 ICE server address: %s", ipv4Addr);
                 retStatus = STATUS_INVALID_ARG;
             }
-        
+
             if (inet_pton(AF_INET6, ipv6Addr, &in6addr) == 1) {
                 destIps->ipv6Address.family = KVS_IP_FAMILY_TYPE_IPV6;
                 MEMCPY(destIps->ipv6Address.address, &in6addr, IPV6_ADDRESS_LENGTH);
@@ -603,7 +597,7 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
                 MEMCPY(destIps->ipv4Address.address, &inaddr, IPV4_ADDRESS_LENGTH);
             } else if (inet_pton(AF_INET6, addr, &in6addr) == 1) {
                 // This case will never happen with current TURN server URL format,
-                // but adding in case a hardcoded direct IPv6 address gets used. 
+                // but adding in case a hardcoded direct IPv6 address gets used.
                 destIps->ipv6Address.family = KVS_IP_FAMILY_TYPE_IPV6;
                 MEMCPY(destIps->ipv6Address.address, &in6addr, IPV6_ADDRESS_LENGTH);
             } else {

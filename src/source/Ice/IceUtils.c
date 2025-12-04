@@ -285,13 +285,15 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
     if (pIceServer->ipAddresses.ipv4Address.family != KVS_IP_FAMILY_TYPE_NOT_SET) {
         pIceServer->ipAddresses.ipv4Address.port = (UINT16) getInt16((INT16) port);
         CHK_STATUS(getIpAddrStr(&pIceServer->ipAddresses.ipv4Address, addressResolvedIPv4, ARRAY_SIZE(addressResolvedIPv4)));
-        DLOGD("Resolved ICE Server IPv4 address for %s: %s with port: %u", pIceServer->url, addressResolvedIPv4, pIceServer->ipAddresses.ipv4Address.port);
+        DLOGD("Resolved ICE Server IPv4 address for %s: %s with port: %u", pIceServer->url, addressResolvedIPv4,
+              pIceServer->ipAddresses.ipv4Address.port);
     }
 
     if (pIceServer->ipAddresses.ipv6Address.family != KVS_IP_FAMILY_TYPE_NOT_SET) {
         pIceServer->ipAddresses.ipv6Address.port = (UINT16) getInt16((INT16) port);
         CHK_STATUS(getIpAddrStr(&pIceServer->ipAddresses.ipv6Address, addressResolvedIPv6, ARRAY_SIZE(addressResolvedIPv6)));
-        DLOGD("Resolved ICE Server IPv6 address for %s: %s with port: %u", pIceServer->url, addressResolvedIPv6, pIceServer->ipAddresses.ipv6Address.port);
+        DLOGD("Resolved ICE Server IPv6 address for %s: %s with port: %u", pIceServer->url, addressResolvedIPv6,
+              pIceServer->ipAddresses.ipv6Address.port);
     }
 
 CleanUp:

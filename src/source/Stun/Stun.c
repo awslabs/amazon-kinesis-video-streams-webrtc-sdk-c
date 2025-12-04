@@ -282,7 +282,7 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
 
                     // Package the value
                     MEMCPY(pCurrentBufferPosition + STUN_ATTRIBUTE_HEADER_LEN, pStunAttributeAllocationAddressFamily->ipFamily,
-                        STUN_ATTRIBUTE_REQUESTED_ADDRESS_FAMILY_LEN);
+                           STUN_ATTRIBUTE_REQUESTED_ADDRESS_FAMILY_LEN);
                 }
 
                 break;
@@ -1492,7 +1492,7 @@ STATUS appendStunAllocationAddressFamily(PStunPacket pStunPacket, KVS_IP_FAMILY_
 
     // Validate the overall size
     CHK((PBYTE) pStunPacket + pStunPacket->allocationSize >= (PBYTE) pAttribute + ROUND_UP(SIZEOF(StunAttributeAllocationAddressFamily), 4),
-    STATUS_NOT_ENOUGH_MEMORY);
+        STATUS_NOT_ENOUGH_MEMORY);
 
     // Set up the new entry and copy data over
     pStunPacket->attributeList[pStunPacket->attributesCount++] = (PStunAttributeHeader) pAttribute;

@@ -180,22 +180,22 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
             // Create dual-stack fully qualified URI for appropriate region.
             DLOGI("Using dual-stack KVS endpoints.");
             if (STRSTR(pChannelInfo->pRegion, AWS_CN_REGION_PREFIX)) {
-                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME, pChannelInfo->pRegion,
-                     CONTROL_PLANE_URI_POSTFIX_CN_DUAL_STACK);
+                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
+                         pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX_CN_DUAL_STACK);
             } else {
-                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME, pChannelInfo->pRegion,
-                     CONTROL_PLANE_URI_POSTFIX_DUAL_STACK);
+                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
+                         pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX_DUAL_STACK);
             }
 
         } else {
             // Create legacy fully qualified URI for appropriate region.
             DLOGI("Using legacy KVS endpoints.");
             if (STRSTR(pChannelInfo->pRegion, AWS_CN_REGION_PREFIX)) {
-                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME, pChannelInfo->pRegion,
-                         CONTROL_PLANE_URI_POSTFIX_CN);
+                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
+                         pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX_CN);
             } else {
-                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME, pChannelInfo->pRegion,
-                         CONTROL_PLANE_URI_POSTFIX);
+                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
+                         pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX);
             }
         }
     }
