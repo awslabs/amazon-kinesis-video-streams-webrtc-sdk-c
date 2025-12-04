@@ -17,6 +17,10 @@ jobs:
     env:
       AWS_KVS_LOG_LEVEL: 2
 
+    strategy:
+      matrix:
+        endpoint-type: [ "legacy", "dual-stack" ]
+
     permissions:
       id-token: write
       contents: read
@@ -35,6 +39,15 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Set endpoint type
+        run: |
+          if [ "${{ matrix.endpoint-type }}" = "dual-stack" ]; then
+            echo "Using dual-stack endpoints"
+            echo "USE_DUAL_STACK_ENDPOINTS=ON" >> $GITHUB_ENV
+          else
+            echo "Using legacy endpoints"
+          fi
 
       - name: Build repository
         run: |
