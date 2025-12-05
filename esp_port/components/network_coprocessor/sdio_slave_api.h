@@ -17,7 +17,7 @@
 #ifndef __SDIO_SLAVE_API_H
 #define __SDIO_SLAVE_API_H
 
-#if defined CONFIG_IDF_TARGET_ESP32 || CONFIG_IDF_TARGET_ESP32C6
+#if defined(CONFIG_IDF_TARGET_ESP32) || defined(CONFIG_IDF_TARGET_ESP32C6) || defined(CONFIG_IDF_TARGET_ESP32C5)
 #else
     #error "SDIO is not supported for this target. Please use SPI"
 #endif

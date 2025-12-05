@@ -396,11 +396,9 @@ static STATUS convertKvsToWebRtcMessage(PReceivedSignalingMessage pKvsMessage, w
     pWebRtcMessage->version = pKvsMessage->signalingMessage.version;
 
     // Copy correlation ID and peer client ID (with bounds checking)
-    strncpy(pWebRtcMessage->correlation_id, pKvsMessage->signalingMessage.correlationId, MAX_CORRELATION_ID_LEN);
-    pWebRtcMessage->correlation_id[MAX_CORRELATION_ID_LEN] = '\0';
+    strlcpy(pWebRtcMessage->correlation_id, pKvsMessage->signalingMessage.correlationId, MAX_CORRELATION_ID_LEN);
 
-    strncpy(pWebRtcMessage->peer_client_id, pKvsMessage->signalingMessage.peerClientId, MAX_SIGNALING_CLIENT_ID_LEN);
-    pWebRtcMessage->peer_client_id[MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
+    strlcpy(pWebRtcMessage->peer_client_id, pKvsMessage->signalingMessage.peerClientId, MAX_SIGNALING_CLIENT_ID_LEN);
 
     // Copy payload (note: this is a shallow copy - the payload memory is shared)
     pWebRtcMessage->payload = pKvsMessage->signalingMessage.payload;
@@ -774,10 +772,8 @@ STATUS sendKvsSignalingMessage(PVOID pSignalingClient, webrtc_message_t *pMessag
     // Convert the message to KVS format
     signalingMessage.version = pMessage->version;
     signalingMessage.messageType = (SIGNALING_MESSAGE_TYPE)pMessage->message_type;
-    STRNCPY(signalingMessage.peerClientId, pMessage->peer_client_id, MAX_SIGNALING_CLIENT_ID_LEN);
-    signalingMessage.peerClientId[MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
-    STRNCPY(signalingMessage.correlationId, pMessage->correlation_id, MAX_CORRELATION_ID_LEN);
-    signalingMessage.correlationId[MAX_CORRELATION_ID_LEN] = '\0';
+    strlcpy(signalingMessage.peerClientId, pMessage->peer_client_id, MAX_SIGNALING_CLIENT_ID_LEN);
+    strlcpy(signalingMessage.correlationId, pMessage->correlation_id, MAX_CORRELATION_ID_LEN);
 #ifdef DYNAMIC_SIGNALING_PAYLOAD
     // Allocate a buffer to store the decoded data
     signalingMessage.payload = pMessage->payload;
@@ -949,9 +945,9 @@ STATUS getKvsSignalingIceServers(PVOID pSignalingClient, PUINT32 pIceConfigCount
              * It's recommended to not pass too many TURN iceServers because it will slow down ice gathering in non-trickle mode.
              */
 
-            STRNCPY(iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
-            STRNCPY(iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
-            STRNCPY(iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
+            strlcpy(iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
+            strlcpy(iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
+            strlcpy(iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
 
             uriCount++;
         }
@@ -1118,8 +1114,11 @@ STATUS kvsSignalingQueryServerGetByIdx(PVOID pSignalingClient, int index, bool u
             *len = sizeof(app_webrtc_ice_server_t);
 
             STRNCPY(pIceServer->urls, pIceConfigInfo->uris[turnIndex], APP_WEBRTC_MAX_ICE_CONFIG_URI_LEN);
+            pIceServer->urls[APP_WEBRTC_MAX_ICE_CONFIG_URI_LEN - 1] = '\0';
             STRNCPY(pIceServer->username, pIceConfigInfo->userName, APP_WEBRTC_MAX_ICE_CONFIG_USER_NAME_LEN);
+            pIceServer->username[APP_WEBRTC_MAX_ICE_CONFIG_USER_NAME_LEN - 1] = '\0';
             STRNCPY(pIceServer->credential, pIceConfigInfo->password, APP_WEBRTC_MAX_ICE_CONFIG_CREDENTIAL_LEN);
+            pIceServer->credential[APP_WEBRTC_MAX_ICE_CONFIG_CREDENTIAL_LEN - 1] = '\0';
 
             *have_more = (index < uriCount - 1);
 

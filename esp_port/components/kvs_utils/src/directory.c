@@ -142,7 +142,15 @@ CleanUp:
         tempFileName[pathLen] = '\0';
 
         // Check if it's a directory, link, file or unknown
-        STRNCAT(tempFileName, pDirEnt->d_name, MAX_PATH_LEN - pathLen);
+        // Ensure we don't overflow the buffer
+        SIZE_T nameLen = STRLEN(pDirEnt->d_name);
+        SIZE_T remainingSpace = MAX_PATH_LEN - pathLen - 1;
+        if (nameLen < remainingSpace) {
+            STRNCAT(tempFileName, pDirEnt->d_name, remainingSpace);
+        } else {
+            // Path is too long, skip this entry
+            continue;
+        }
         CHK(0 == FSTAT(tempFileName, &entryStat), STATUS_DIRECTORY_ENTRY_STAT_ERROR);
 
         if (S_ISREG(entryStat.st_mode)) {

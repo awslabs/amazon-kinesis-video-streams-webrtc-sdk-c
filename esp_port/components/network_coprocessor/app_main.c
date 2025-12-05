@@ -1583,6 +1583,8 @@ void network_coprocessor_init(void)
 		return;
 	}
 
+	ESP_LOGI(TAG, "slave_sta_netif %p", slave_sta_netif);
+
 	ESP_LOGI(TAG, "Default LWIP post filtering packets to send: %s",
 #if defined(CONFIG_ESP_DEFAULT_LWIP_SLAVE)
 			"slave. Host need to use **static netif** only"

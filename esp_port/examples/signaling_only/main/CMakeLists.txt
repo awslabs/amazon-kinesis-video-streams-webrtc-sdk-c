@@ -5,4 +5,5 @@ idf_component_register(SRCS
                     INCLUDE_DIRS "."
                     REQUIRES
                         "app_common"
-                        "signaling_bridge_adapter")
+                        "signaling_bridge_adapter"
+                        "network_coprocessor")
