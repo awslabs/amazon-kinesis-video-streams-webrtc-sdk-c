@@ -695,6 +695,11 @@ extern "C" {
  */
 #define WEBRTC_THREADPOOL_MAX_THREADS_ENV_VAR (PCHAR) "AWS_KVS_WEBRTC_THREADPOOL_MAX_THREADS"
 
+/**
+ * Env to control whether to use dual stack endpoints, unset means false
+ */
+#define USE_DUAL_STACK_ENDPOINTS_ENV_VAR ((PCHAR) "KVS_DUALSTACK_ENDPOINTS")
+
 #ifdef _WIN32
 /**
  * Default timeout for sending data
@@ -742,12 +747,14 @@ extern "C" {
 /**
  * Parameterized string for KVS STUN Server
  */
-#define KINESIS_VIDEO_STUN_URL_POSTFIX       "amazonaws.com"
-#define KINESIS_VIDEO_STUN_URL_POSTFIX_CN    "amazonaws.com.cn"
-#define KINESIS_VIDEO_STUN_URL_PREFIX        "stun."
-#define KINESIS_VIDEO_STUN_URL_PREFIX_LENGTH 5
-#define KINESIS_VIDEO_STUN_URL               "stun:stun.kinesisvideo.%s.%s:443"
-#define KINESIS_VIDEO_STUN_URL_WITHOUT_PORT  "stun.kinesisvideo.%s.%s"
+#define KINESIS_VIDEO_STUN_URL_POSTFIX              "amazonaws.com"
+#define KINESIS_VIDEO_STUN_URL_POSTFIX_CN           "amazonaws.com.cn"
+#define KINESIS_VIDEO_STUN_URL_PREFIX               "stun."
+#define KINESIS_VIDEO_STUN_URL_PREFIX_LENGTH        5
+#define KINESIS_VIDEO_STUN_URL                      "stun:stun.kinesisvideo.%s.%s:443"
+#define KINESIS_VIDEO_STUN_URL_WITHOUT_PORT         "stun.kinesisvideo.%s.%s"
+#define KINESIS_VIDEO_DUALSTACK_STUN_URL_POSTFIX    "api.aws"
+#define KINESIS_VIDEO_DUALSTACK_STUN_URL_POSTFIX_CN "api.amazonwebservices.com.cn"
 
 /**
  * Default signaling SSL port

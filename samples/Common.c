@@ -370,11 +370,23 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
 #endif
 
     // Set the  STUN server
-    PCHAR pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX;
-    // If region is in CN, add CN region uri postfix
-    if (STRSTR(pSampleConfiguration->channelInfo.pRegion, "cn-")) {
-        pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX_CN;
+    PCHAR pKinesisVideoStunUrlPostFix = NULL;
+    if (GETENV(USE_DUAL_STACK_ENDPOINTS_ENV_VAR) != NULL) {
+        DLOGD("Using dual-stack STUN endpoint");
+        if (STRSTR(pSampleConfiguration->channelInfo.pRegion, "cn-")) {
+            pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_DUALSTACK_STUN_URL_POSTFIX_CN;
+        } else {
+            pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_DUALSTACK_STUN_URL_POSTFIX;
+        }
+    } else {
+        DLOGD("Using legacy STUN endpoint");
+        if (STRSTR(pSampleConfiguration->channelInfo.pRegion, "cn-")) {
+            pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX_CN;
+        } else {
+            pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX;
+        }
     }
+
     SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->channelInfo.pRegion,
              pKinesisVideoStunUrlPostFix);
 

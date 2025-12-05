@@ -924,10 +924,18 @@ PVOID resolveStunIceServerIp(PVOID args)
                     pRegion = DEFAULT_AWS_REGION;
                 }
 
-                pHostnamePostfix = KINESIS_VIDEO_STUN_URL_POSTFIX;
-                // If region is in CN, add CN region uri postfix
-                if (STRSTR(pRegion, "cn-")) {
-                    pHostnamePostfix = KINESIS_VIDEO_STUN_URL_POSTFIX_CN;
+                if (GETENV(USE_DUAL_STACK_ENDPOINTS_ENV_VAR) != NULL) {
+                    if (STRSTR(pRegion, "cn-")) {
+                        pHostnamePostfix = KINESIS_VIDEO_DUALSTACK_STUN_URL_POSTFIX_CN;
+                    } else {
+                        pHostnamePostfix = KINESIS_VIDEO_DUALSTACK_STUN_URL_POSTFIX;
+                    }
+                } else {
+                    if (STRSTR(pRegion, "cn-")) {
+                        pHostnamePostfix = KINESIS_VIDEO_STUN_URL_POSTFIX_CN;
+                    } else {
+                        pHostnamePostfix = KINESIS_VIDEO_STUN_URL_POSTFIX;
+                    }
                 }
 
                 SNPRINTF(pWebRtcClientContext->pStunIpAddrCtx->hostname, SIZEOF(pWebRtcClientContext->pStunIpAddrCtx->hostname),
