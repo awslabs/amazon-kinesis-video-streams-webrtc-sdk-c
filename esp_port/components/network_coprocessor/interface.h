@@ -21,7 +21,7 @@
 
 #ifdef CONFIG_ESP_SDIO_HOST_INTERFACE
 
-#if defined(CONFIG_IDF_TARGET_ESP32)||defined(CONFIG_IDF_TARGET_ESP32C6)
+#if defined(CONFIG_IDF_TARGET_ESP32)||defined(CONFIG_IDF_TARGET_ESP32C6) || defined(CONFIG_IDF_TARGET_ESP32C5)
 	#include "driver/sdio_slave.h"
 #else
 	#error "SDIO is not supported for this chipset"

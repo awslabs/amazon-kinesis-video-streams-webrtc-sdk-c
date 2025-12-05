@@ -34,6 +34,7 @@ menu "Network Co-processor Configuration"
 		default ESP_SPI_HOST_INTERFACE if IDF_TARGET_ESP32C3
 		default ESP_SPI_HOST_INTERFACE if C6_SPI_WITH_P4
 		default ESP_SDIO_HOST_INTERFACE if IDF_TARGET_ESP32C6
+		default ESP_SDIO_HOST_INTERFACE if IDF_TARGET_ESP32C5
 		help
 			Bus interface to be used for communication with the host
 
@@ -44,7 +45,7 @@ menu "Network Co-processor Configuration"
 
 		config ESP_SDIO_HOST_INTERFACE
 			bool "SDIO interface"
-			depends on IDF_TARGET_ESP32 || IDF_TARGET_ESP32C6
+			depends on IDF_TARGET_ESP32 || IDF_TARGET_ESP32C6 || IDF_TARGET_ESP32C5
 			help
 				Enable/Disable SDIO host interface
 	endchoice
@@ -275,6 +276,7 @@ menu "Network Co-processor Configuration"
 				int "CMD GPIO number"
 				range 15 15 if IDF_TARGET_ESP32
 				range 18 18 if IDF_TARGET_ESP32C6
+				range 10 10 if IDF_TARGET_ESP32C5
 				help
 					"Value cannot be configured. Displayed for reference."
 
@@ -282,6 +284,7 @@ menu "Network Co-processor Configuration"
 				int "CLK GPIO number"
 				range 14 14 if IDF_TARGET_ESP32
 				range 19 19 if IDF_TARGET_ESP32C6
+				range 9 9 if IDF_TARGET_ESP32C5
 				help
 					"Value cannot be configured. Displayed for reference."
 
@@ -289,6 +292,7 @@ menu "Network Co-processor Configuration"
 				int "D0 GPIO number"
 				range 2 2 if IDF_TARGET_ESP32
 				range 20 20 if IDF_TARGET_ESP32C6
+				range 8 8 if IDF_TARGET_ESP32C5
 				help
 					"Value cannot be configured. Displayed for reference."
 
@@ -296,6 +300,7 @@ menu "Network Co-processor Configuration"
 				int "D1 GPIO number"
 				range 4 4 if IDF_TARGET_ESP32
 				range 21 21 if IDF_TARGET_ESP32C6
+				range 7 7 if IDF_TARGET_ESP32C5
 				help
 					"Value cannot be configured. Displayed for reference."
 
@@ -303,6 +308,7 @@ menu "Network Co-processor Configuration"
 				int "D2 GPIO number"
 				range 12 12 if IDF_TARGET_ESP32
 				range 22 22 if IDF_TARGET_ESP32C6
+				range 14 14 if IDF_TARGET_ESP32C5
 				help
 					"Value cannot be configured. Displayed for reference."
 
@@ -310,6 +316,7 @@ menu "Network Co-processor Configuration"
 				int "D3 GPIO number"
 				range 13 13 if IDF_TARGET_ESP32
 				range 23 23 if IDF_TARGET_ESP32C6
+				range 13 13 if IDF_TARGET_ESP32C5
 				help
 					"Value cannot be configured. Displayed for reference."
 		endmenu
@@ -539,6 +546,7 @@ menu "Network Co-processor Configuration"
 		config HOST_WAKEUP_GPIO
 			int "Host wakeup GPIO"
 			default 2 if IDF_TARGET_ESP32C6
+			default 2 if IDF_TARGET_ESP32C5
 			default -1
 	endmenu
 

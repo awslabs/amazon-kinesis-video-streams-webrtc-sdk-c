@@ -16,7 +16,15 @@
 
 #include "app_storage.h"
 #include "kvs_signaling.h"
-#if CONFIG_IDF_TARGET_ESP32C6
+
+
+#if defined(CONFIG_IDF_TARGET_ESP32C6) || defined(CONFIG_IDF_TARGET_ESP32C5)
+#define IS_VALID_SLAVE_CHIPSET 1
+#else
+#define IS_VALID_SLAVE_CHIPSET 0
+#endif
+
+#if IS_VALID_SLAVE_CHIPSET
 #include "network_coprocessor.h"
 #endif
 #include "esp_webrtc_time.h"
@@ -77,6 +85,7 @@ static void app_webrtc_event_handler(app_webrtc_event_data_t *event_data, void *
 
 // WiFi event group
 static EventGroupHandle_t s_wifi_event_group;
+static esp_netif_t *sta_netif = NULL;
 static char wifi_ip[72];
 
 #define WIFI_CONNECTED_BIT BIT0
@@ -118,10 +127,11 @@ static bool wifi_is_provisioned(void)
 }
 
 #ifdef CONFIG_SLAVE_LWIP_ENABLED
-static void create_slave_sta_netif(void)
+static esp_netif_t* create_slave_sta_netif(void)
 {
     /* Create "almost" default station, but with un-flagged DHCP client */
-	esp_netif_inherent_config_t netif_cfg;
+	/* Use static to ensure the config persists after function returns */
+	static esp_netif_inherent_config_t netif_cfg;
 	memcpy(&netif_cfg, ESP_NETIF_BASE_DEFAULT_WIFI_STA, sizeof(netif_cfg));
 
 	esp_netif_config_t cfg_sta = {
@@ -129,10 +139,13 @@ static void create_slave_sta_netif(void)
 		.stack = ESP_NETIF_NETSTACK_DEFAULT_WIFI_STA,
 	};
 	esp_netif_t *netif_sta = esp_netif_new(&cfg_sta);
+	ESP_LOGI(TAG, "Created netif_sta: %p (if_key: %s)", netif_sta, netif_cfg.if_key);
 	assert(netif_sta);
 
 	ESP_ERROR_CHECK(esp_netif_attach_wifi_station(netif_sta));
 	ESP_ERROR_CHECK(esp_wifi_set_default_wifi_sta_handlers());
+
+	return netif_sta;
 }
 #endif
 
@@ -161,10 +174,11 @@ void app_main(void)
 
     ESP_ERROR_CHECK(esp_netif_init());
 
-#if CONFIG_IDF_TARGET_ESP32C6
+#if IS_VALID_SLAVE_CHIPSET
     /* Initialize network co-processor */
 #ifdef CONFIG_SLAVE_LWIP_ENABLED
-    create_slave_sta_netif();
+    /* Create and register the netif with "WIFI_STA_DEF" key */
+    sta_netif = create_slave_sta_netif();
 #endif
     /* esp_netif_init and netif creation must be done before network_coprocessor_init */
     network_coprocessor_init();

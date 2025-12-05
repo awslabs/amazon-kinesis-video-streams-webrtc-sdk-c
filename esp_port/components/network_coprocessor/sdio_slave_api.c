@@ -337,8 +337,8 @@ static interface_handle_t * sdio_init(void)
 #else
 	ESP_LOGI(TAG, "%s: sending mode: SDIO_SLAVE_SEND_PACKET", __func__);
 #endif
-#if defined(CONFIG_IDF_TARGET_ESP32C6)
-	ESP_LOGI(TAG, "%s: ESP32-C6 SDIO RxQ[%d] TxQ[%d] timing[%u]\n", __func__,
+#if defined(CONFIG_IDF_TARGET_ESP32C6) || defined(CONFIG_IDF_TARGET_ESP32C5)
+	ESP_LOGI(TAG, "%s: ESP32-C5/C6 SDIO RxQ[%d] TxQ[%d] timing[%u]\n", __func__,
 			SDIO_RX_QUEUE_SIZE, SDIO_TX_QUEUE_SIZE, config.timing);
 #else
 	ESP_LOGI(TAG, "%s: ESP32 SDIO RxQ[%d] TxQ[%d] timing[%u]\n", __func__,

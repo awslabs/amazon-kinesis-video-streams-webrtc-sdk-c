@@ -587,6 +587,7 @@ static void event_handler_ip(void* arg, esp_event_base_t event_base,
 		switch (event_id) {
 
 		case IP_EVENT_STA_GOT_IP: {
+			ESP_LOGI(TAG, "network coprocessor got ip");
 			ip_event_got_ip_t* event = event_data;
 			esp_netif_t *netif = event->esp_netif;
 			esp_netif_dns_info_t dns = {0};

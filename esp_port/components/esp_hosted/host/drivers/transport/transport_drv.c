@@ -83,7 +83,7 @@ static void reset_slave(void)
 	g_h.funcs->_h_write_gpio(H_GPIO_PIN_RESET_Port, H_GPIO_PIN_RESET_Pin, H_RESET_VAL_ACTIVE);
 
 	/* stop transport transactions short time to avoid slave sync issues */
-	g_h.funcs->_h_sleep(1);
+	g_h.funcs->_h_msleep(2500);
 }
 #endif
 static void transport_driver_event_handler(uint8_t event)
@@ -499,6 +499,9 @@ static esp_err_t get_chip_str_from_id(int chip_id, char* chip_str)
 	case ESP_PRIV_FIRMWARE_CHIP_ESP32C3:
 		strcpy(chip_str, "esp32c3");
 		break;
+	case ESP_PRIV_FIRMWARE_CHIP_ESP32C5:
+		strcpy(chip_str, "esp32c5");
+		break;
 	case ESP_PRIV_FIRMWARE_CHIP_ESP32C6:
 		strcpy(chip_str, "esp32c6");
 		break;
@@ -528,6 +531,8 @@ static void verify_host_config_for_slave(uint8_t chip_type)
 	exp_chip_id = ESP_PRIV_FIRMWARE_CHIP_ESP32C2;
 #elif CONFIG_SLAVE_CHIPSET_ESP32C3
 	exp_chip_id = ESP_PRIV_FIRMWARE_CHIP_ESP32C3;
+#elif CONFIG_SLAVE_CHIPSET_ESP32C5
+	exp_chip_id = ESP_PRIV_FIRMWARE_CHIP_ESP32C5;
 #elif CONFIG_SLAVE_CHIPSET_ESP32C6
 	exp_chip_id = ESP_PRIV_FIRMWARE_CHIP_ESP32C6;
 #elif CONFIG_SLAVE_CHIPSET_ESP32S2
@@ -675,6 +680,7 @@ int process_init_event(uint8_t *evt_buf, uint16_t len)
 		(chip_type != ESP_PRIV_FIRMWARE_CHIP_ESP32C2) &&
 		(chip_type != ESP_PRIV_FIRMWARE_CHIP_ESP32C3) &&
 		(chip_type != ESP_PRIV_FIRMWARE_CHIP_ESP32C6) &&
+		(chip_type != ESP_PRIV_FIRMWARE_CHIP_ESP32C5) &&
 		(chip_type != ESP_PRIV_FIRMWARE_CHIP_ESP32S3)) {
 		ESP_LOGI(TAG, "ESP board type is not mentioned, ignoring [%d]\n\r", chip_type);
 		chip_type = ESP_PRIV_FIRMWARE_CHIP_UNRECOGNIZED;

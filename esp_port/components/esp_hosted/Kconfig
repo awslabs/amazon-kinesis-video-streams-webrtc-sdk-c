@@ -55,6 +55,10 @@ menu "ESP-Hosted config"
 		config SLAVE_CHIPSET_ESP32C6
 				depends on ESP_SPI_HOST_INTERFACE || ESP_SDIO_HOST_INTERFACE
 			bool "Slave as ESP32C6"
+
+	config SLAVE_CHIPSET_ESP32C5
+			depends on ESP_SPI_HOST_INTERFACE || ESP_SDIO_HOST_INTERFACE
+		bool "Slave as ESP32C5"
 	endchoice
 
 	config IDF_SLAVE_TARGET
@@ -65,7 +69,31 @@ menu "ESP-Hosted config"
 		default "esp32c2" if SLAVE_CHIPSET_ESP32C2
 		default "esp32c3" if SLAVE_CHIPSET_ESP32C3
 		default "esp32c6" if SLAVE_CHIPSET_ESP32C6
+		default "esp32c5" if SLAVE_CHIPSET_ESP32C5
 		default "invalid"
+
+	choice ESP_P4_DEV_BOARD
+		bool "Configure GPIOs for P4 Development Board (SDIO)"
+		depends on IDF_TARGET_ESP32P4 && ESP_SDIO_HOST_INTERFACE
+		default ESP_P4_DEV_BOARD_NONE
+		help
+			Sets GPIOs used for SDIO transport on ESP32-P4 Development Boards
+			- ESP32-P4 Function_EV_Board with on-board ESP32-C6
+			- ESP32-P4-C5 Core Board with on-board ESP32-C5
+			Select "No development board" if you want to manually configure GPIOs
+
+		config ESP_P4_DEV_BOARD_NONE
+			bool "No development board"
+
+		config ESP_P4_DEV_BOARD_FUNC_BOARD
+			depends on SLAVE_CHIPSET_ESP32C6
+			bool "ESP32-P4-Function-EV-Board with on-board C6"
+
+		config ESP_P4_CORE_BOARD
+			depends on SLAVE_CHIPSET_ESP32C5 || SLAVE_CHIPSET_ESP32C6
+			bool "ESP32-P4 Core Board with on-board C5/C6"
+
+	endchoice
 
 	menu "Task defaults"
 		config ESP_RPC_TASK_STACK
@@ -450,55 +478,167 @@ ESP32P4_SDIO_CLK_FREQ_KHZ_RANGE_MAX := 80000
 				int "GPIO pin for Reseting slave ESP"
 				default 54 if IDF_TARGET_ESP32P4
 				default 5
+				range ESP_SDIO_RESET_SLAVE_GPIO_MIN ESP_SDIO_RESET_SLAVE_GPIO_MAX
 				help
 					GPIO pin for Reseting ESP SDIO slave device. Should be connected to RST/EN of ESP SDIO slave device.
+		config ESP_SDIO_CMD_GPIO_RANGE_MIN
+			int
+				default 51 if ESP_P4_CORE_BOARD
+			default 19 if ESP_P4_DEV_BOARD_FUNC_BOARD && SLAVE_CHIPSET_ESP32C6
+			default 15 if IDF_TARGET_ESP32
+			default 0
+
+		config ESP_SDIO_CMD_GPIO_RANGE_MAX
+			int
+				default 51 if ESP_P4_CORE_BOARD
+			default 19 if ESP_P4_DEV_BOARD_FUNC_BOARD && SLAVE_CHIPSET_ESP32C6
+			default 15 if IDF_TARGET_ESP32
+			default 100
+
+		config ESP_SDIO_CLK_GPIO_RANGE_MIN
+			int
+			default 50 if ESP_P4_CORE_BOARD
+			default 18 if ESP_P4_DEV_BOARD_FUNC_BOARD && SLAVE_CHIPSET_ESP32C6
+			default 14 if IDF_TARGET_ESP32
+			default 0
+
+		config ESP_SDIO_CLK_GPIO_RANGE_MAX
+			int
+			default 50 if ESP_P4_CORE_BOARD
+			default 18 if ESP_P4_DEV_BOARD_FUNC_BOARD && SLAVE_CHIPSET_ESP32C6
+			default 14 if IDF_TARGET_ESP32
+			default 100
+
+		config ESP_SDIO_D0_GPIO_RANGE_MIN
+			int
+			default 49 if ESP_P4_CORE_BOARD
+			default 14 if ESP_P4_DEV_BOARD_FUNC_BOARD && SLAVE_CHIPSET_ESP32C6
+			default 2 if IDF_TARGET_ESP32
+			default 0
+
+		config ESP_SDIO_D0_GPIO_RANGE_MAX
+			int
+			default 49 if ESP_P4_CORE_BOARD
+			default 14 if ESP_P4_DEV_BOARD_FUNC_BOARD && SLAVE_CHIPSET_ESP32C6
+			default 2 if IDF_TARGET_ESP32
+			default 100
+
+		config ESP_SDIO_D1_GPIO_RANGE_MIN
+			int
+			default 48 if ESP_P4_CORE_BOARD
+			default 15 if ESP_P4_DEV_BOARD_FUNC_BOARD && SLAVE_CHIPSET_ESP32C6
+			default 4 if IDF_TARGET_ESP32
+			default 0
+
+		config ESP_SDIO_D1_GPIO_RANGE_MAX
+			int
+			default 48 if ESP_P4_CORE_BOARD
+			default 15 if ESP_P4_DEV_BOARD_FUNC_BOARD && SLAVE_CHIPSET_ESP32C6
+			default 4 if IDF_TARGET_ESP32
+			default 100
+
+		config ESP_SDIO_D2_GPIO_RANGE_MIN
+			int
+			default 53 if ESP_P4_CORE_BOARD
+			default 16 if ESP_P4_DEV_BOARD_FUNC_BOARD && SLAVE_CHIPSET_ESP32C6
+			default 12 if IDF_TARGET_ESP32
+			default 0
+
+		config ESP_SDIO_D2_GPIO_RANGE_MAX
+			int
+			default 53 if ESP_P4_CORE_BOARD
+			default 16 if ESP_P4_DEV_BOARD_FUNC_BOARD && SLAVE_CHIPSET_ESP32C6
+			default 12 if IDF_TARGET_ESP32
+			default 100
+
+		config ESP_SDIO_D3_GPIO_RANGE_MIN
+			int
+			default 52 if ESP_P4_CORE_BOARD
+			default 17 if ESP_P4_DEV_BOARD_FUNC_BOARD && SLAVE_CHIPSET_ESP32C6
+			default 13 if IDF_TARGET_ESP32
+			default 0
+
+		config ESP_SDIO_D3_GPIO_RANGE_MAX
+			int
+			default 52 if ESP_P4_CORE_BOARD
+			default 17 if ESP_P4_DEV_BOARD_FUNC_BOARD && SLAVE_CHIPSET_ESP32C6
+			default 13 if IDF_TARGET_ESP32
+			default 100
+
+		config ESP_SDIO_RESET_SLAVE_GPIO_MIN
+			int
+			default 54 if ESP_P4_CORE_BOARD
+			default 54 if ESP_P4_DEV_BOARD_FUNC_BOARD && SLAVE_CHIPSET_ESP32C6
+			default 5 if IDF_TARGET_ESP32
+			default 0
+			help
+				GPIO pin for Resetting ESP SDIO slave device. Should be connected to RST/EN of ESP SDIO slave device.
+
+		config ESP_SDIO_RESET_SLAVE_GPIO_MAX
+			int
+			default 54 if ESP_P4_DEV_BOARD_FUNC_BOARD && SLAVE_CHIPSET_ESP32C6
+			default 5 if IDF_TARGET_ESP32
+			default 100
+
 
 			config ESP_SDIO_PIN_CMD
 				int "CMD GPIO number"
 				default 15 if IDF_TARGET_ESP32S3
+				default 51 if ESP_P4_CORE_BOARD
 				default 19 if IDF_TARGET_ESP32P4
 				range 15 15 if IDF_TARGET_ESP32
+				range ESP_SDIO_CMD_GPIO_RANGE_MIN ESP_SDIO_CMD_GPIO_RANGE_MAX if IDF_TARGET_ESP32P4
 				help
 					"Value can only be configured for some targets. Displayed always for reference."
 
 			config ESP_SDIO_PIN_CLK
 				int "CLK GPIO number"
 				default 14 if IDF_TARGET_ESP32S3
+				default 50 if ESP_P4_CORE_BOARD
 				default 18 if IDF_TARGET_ESP32P4
 				range 14 14 if IDF_TARGET_ESP32
+				range ESP_SDIO_CLK_GPIO_RANGE_MIN ESP_SDIO_CLK_GPIO_RANGE_MAX if IDF_TARGET_ESP32P4
 				help
 					"Value can only be configured for some targets. Displayed always for reference."
 
 			config ESP_SDIO_PIN_D0
 				int "D0 GPIO number"
 				default 2 if IDF_TARGET_ESP32S3
+				default 49 if ESP_P4_CORE_BOARD
 				default 14 if IDF_TARGET_ESP32P4
 				range 2 2 if IDF_TARGET_ESP32
+				range ESP_SDIO_D0_GPIO_RANGE_MIN ESP_SDIO_D0_GPIO_RANGE_MAX if IDF_TARGET_ESP32P4
 				help
 					"Value can only be configured for some targets. Displayed always for reference."
 
 			config ESP_SDIO_PIN_D1
 				int "D1 GPIO number"
 				default 4 if IDF_TARGET_ESP32S3
+				default 48 if ESP_P4_CORE_BOARD
 				default 15 if IDF_TARGET_ESP32P4
 				range 4 4 if IDF_TARGET_ESP32
+				range ESP_SDIO_D1_GPIO_RANGE_MIN ESP_SDIO_D1_GPIO_RANGE_MAX if IDF_TARGET_ESP32P4
 				help
 					"Value can only be configured for some targets. Displayed always for reference."
 
 			if ESP_SDIO_4_BIT_BUS
 				config ESP_SDIO_PIN_D2
 					int "D2 GPIO number"
+					default 53 if ESP_P4_CORE_BOARD
 					default 16 if IDF_TARGET_ESP32P4
 					default 12 if IDF_TARGET_ESP32S3
 					range 12 12 if IDF_TARGET_ESP32
+					range ESP_SDIO_D2_GPIO_RANGE_MIN ESP_SDIO_D2_GPIO_RANGE_MAX if IDF_TARGET_ESP32P4
 					help
 						"Value can only be configured for some targets. Displayed always for reference."
 
 				config ESP_SDIO_PIN_D3
 					int "D3 GPIO number"
+					default 52 if ESP_P4_CORE_BOARD
 					default 17 if IDF_TARGET_ESP32P4
 					default 13 if IDF_TARGET_ESP32S3
 					range 13 13 if IDF_TARGET_ESP32
+					range ESP_SDIO_D3_GPIO_RANGE_MIN ESP_SDIO_D3_GPIO_RANGE_MAX if IDF_TARGET_ESP32P4
 					help
 						"Value can only be configured for some targets. Displayed always for reference."
 
@@ -869,6 +1009,7 @@ ESP32P4_SDIO_CLK_FREQ_KHZ_RANGE_MAX := 80000
 			int "Host Wakeup GPIO"
 			depends on HOST_WAKEUP_USING_RTC_GPIO
 			default 6 if IDF_TARGET_ESP32P4 && SLAVE_CHIPSET_ESP32C6
+			default 25 if IDF_TARGET_ESP32P4 && SLAVE_CHIPSET_ESP32C5
 			default -1
 			range -1 15 if IDF_TARGET_ESP32P4
 			help

@@ -306,11 +306,9 @@ static void handle_bridged_message(const void* data, int len)
     }
 
     // Copy message fields
-    strncpy(webrtcMsg.correlation_id, signalingMsg.correlationId, sizeof(webrtcMsg.correlation_id) - 1);
-    webrtcMsg.correlation_id[sizeof(webrtcMsg.correlation_id) - 1] = '\0';
+    strlcpy(webrtcMsg.correlation_id, signalingMsg.correlationId, sizeof(webrtcMsg.correlation_id));
 
-    strncpy(webrtcMsg.peer_client_id, signalingMsg.peerClientId, sizeof(webrtcMsg.peer_client_id) - 1);
-    webrtcMsg.peer_client_id[sizeof(webrtcMsg.peer_client_id) - 1] = '\0';
+    strlcpy(webrtcMsg.peer_client_id, signalingMsg.peerClientId, sizeof(webrtcMsg.peer_client_id));
 
     webrtcMsg.payload = signalingMsg.payload;
     webrtcMsg.payload_len = signalingMsg.payloadLen;
@@ -433,8 +431,8 @@ int signaling_bridge_adapter_send_message(webrtc_message_t *signalingMessage)
             return -1;
     }
 
-    strncpy(signalingMsg.peerClientId, signalingMessage->peer_client_id, sizeof(signalingMsg.peerClientId) - 1);
-    strncpy(signalingMsg.correlationId, signalingMessage->correlation_id, sizeof(signalingMsg.correlationId) - 1);
+    strlcpy(signalingMsg.peerClientId, signalingMessage->peer_client_id, sizeof(signalingMsg.peerClientId));
+    strlcpy(signalingMsg.correlationId, signalingMessage->correlation_id, sizeof(signalingMsg.correlationId));
     signalingMsg.payload = signalingMessage->payload;
     signalingMsg.payloadLen = signalingMessage->payload_len;
 

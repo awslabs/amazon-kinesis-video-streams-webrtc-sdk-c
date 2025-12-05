@@ -5,4 +5,4 @@ dependencies:
     version: "*"
     path: ${KVS_SDK_PATH}/esp_port/components/network_coprocessor
     rules:
-      - if: "target in [esp32c6]"
+      - if: "target in [esp32c6, esp32c5]"
