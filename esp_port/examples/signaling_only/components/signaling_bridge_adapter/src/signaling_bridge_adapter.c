@@ -13,10 +13,17 @@
 #include "signaling_serializer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
-#if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED && !defined(CONFIG_IDF_TARGET_ESP32P4)
+
+#if CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32C5
+#define NETWORK_SPLIT_ENABLED 1
+#else
+#define NETWORK_SPLIT_ENABLED 0
+#endif
+
+#if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED && NETWORK_SPLIT_ENABLED
 #include "network_coprocessor.h"
 #endif
-#if defined(CONFIG_IDF_TARGET_ESP32C6)
+#if NETWORK_SPLIT_ENABLED
 #include "host_power_save.h"
 #endif
 
@@ -448,7 +455,7 @@ int signaling_bridge_adapter_send_message(webrtc_message_t *signalingMessage)
     // Check if this is an OFFER - always wake P4 and queue messages
     // This is the simplest and most robust approach: assume P4 needs waking
     // even if it appears awake (handler might not be ready yet)
-#if defined(CONFIG_IDF_TARGET_ESP32C6)
+#if NETWORK_SPLIT_ENABLED
     if (signalingMessage->message_type == WEBRTC_MESSAGE_TYPE_OFFER) {
         ESP_LOGI(TAG, "Received OFFER - triggering wake-up sequence (harmless if P4 already awake)");
         set_queue_state(QUEUE_STATE_WAITING_FOR_WAKEUP);
@@ -533,7 +540,7 @@ void signaling_bridge_adapter_deinit(void)
         }
 
         // Unregister RPC handler
-#if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED && !defined(CONFIG_IDF_TARGET_ESP32P4)
+#if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED && NETWORK_SPLIT_ENABLED
         network_coprocessor_register_ice_server_query_callback(NULL);
 #endif
 

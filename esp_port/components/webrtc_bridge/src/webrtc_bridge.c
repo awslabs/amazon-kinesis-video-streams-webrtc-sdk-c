@@ -17,8 +17,12 @@
 #include "message_utils.h"
 #include "webrtc_bridge.h"
 
+#if CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32C5
+#define NETWORK_SPLIT_ENABLED 1
+#endif
+
 #if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED
-#if defined(ENABLE_SIGNALLING_ONLY) && defined(CONFIG_IDF_TARGET_ESP32C6)
+#if defined(ENABLE_SIGNALLING_ONLY) && defined(NETWORK_SPLIT_ENABLED)
 #include "network_coprocessor.h"
 #endif
 #endif
@@ -29,7 +33,7 @@
 static SemaphoreHandle_t mutex;
 
 #define RPC_USER_SPECIFIC_EVENT_DATA_SIZE (1024) // Not > 4K
-#if ENABLE_SIGNALLING_ONLY && CONFIG_IDF_TARGET_ESP32C6
+#if ENABLE_SIGNALLING_ONLY && NETWORK_SPLIT_ENABLED
 typedef struct custom_rpc_data_slave_to_host {
     int32_t resp; /* unused */
     int32_t uuid;
@@ -93,7 +97,7 @@ void webrtc_bridge_register_handler(webrtc_bridge_msg_cb_t handler)
 #if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED
 static void webrtc_bridge_send_via_hosted(const char *data, int len);
 
-#if ENABLE_SIGNALLING_ONLY && defined(CONFIG_IDF_TARGET_ESP32C6)
+#if ENABLE_SIGNALLING_ONLY && defined(NETWORK_SPLIT_ENABLED)
 extern void send_event_data_to_host(int event_id, void *data, int size);
 #elif ENABLE_STREAMING_ONLY && CONFIG_ESP_HOSTED_ENABLED
 
@@ -177,7 +181,7 @@ static void webrtc_bridge_send_via_hosted(const char *data, int len)
     int32_t uuid = rand();
     int len_remain = len;
     int seq_num = 0;
-#if ENABLE_SIGNALLING_ONLY && CONFIG_IDF_TARGET_ESP32C6
+#if ENABLE_SIGNALLING_ONLY && NETWORK_SPLIT_ENABLED
 #define MAX_CHUNK_LEN  (1024)
 #else
 #define MAX_CHUNK_LEN  (1000)
@@ -186,7 +190,7 @@ static void webrtc_bridge_send_via_hosted(const char *data, int len)
     xSemaphoreTake(mutex, 5000);
     int32_t data_len = MAX_CHUNK_LEN;
     int32_t data_idx = 0;
-#if ENABLE_SIGNALLING_ONLY && CONFIG_IDF_TARGET_ESP32C6  // Slave (C6) --> Host (P4)
+#if ENABLE_SIGNALLING_ONLY && NETWORK_SPLIT_ENABLED  // Slave (C6) --> Host (P4)
     // RPC_ID__Event_USR1 = 778... BAD hacks?
     custom_send_data.uuid = uuid;
     custom_send_data.total_len = len;
@@ -330,7 +334,7 @@ void webrtc_bridge_start(void)
     }
 #if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED
     mutex = xSemaphoreCreateMutex();
-#if ENABLE_SIGNALLING_ONLY && CONFIG_IDF_TARGET_ESP32C6
+#if ENABLE_SIGNALLING_ONLY && NETWORK_SPLIT_ENABLED
     /* Register our message handling function with the network coprocessor */
     network_coprocessor_register_webrtc_callback(&on_webrtc_bridge_msg_received);
     ESP_LOGI(TAG, "WebRTC bridge registered with network coprocessor");
