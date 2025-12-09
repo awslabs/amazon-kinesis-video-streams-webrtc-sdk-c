@@ -1618,14 +1618,17 @@ WEBRTC_STATUS app_webrtc_init(app_webrtc_config_t *config)
         register_event_handler_fn = (WEBRTC_STATUS (*)(void *, void (*)(app_webrtc_event_t, UINT32, PCHAR, PCHAR)))
             config->peer_connection_if->register_event_handler;
 
-        if (register_event_handler_fn != NULL) {
-            DLOGI("Registering event handler with peer connection interface");
-            if (STATUS_FAILED(register_event_handler_fn(
-                    (void*)pSampleConfiguration, raiseEvent))) {
-                DLOGE("Failed to register event handler with peer connection interface");
-                // Non-fatal error, continue initialization
-            }
-        }
+        // TODO: pSampleConfiguration is not of type kvs_pc_client_t* which is what
+        // register_event_handler_fn expects
+        //
+        // if (register_event_handler_fn != NULL) {
+        //     DLOGI("Registering event handler with peer connection interface");
+        //     if (STATUS_FAILED(register_event_handler_fn(
+        //             (void*)pSampleConfiguration, raiseEvent))) {
+        //         DLOGE("Failed to register event handler with peer connection interface");
+        //         // Non-fatal error, continue initialization
+        //     }
+        // }
     }
 
     // Default: disable media reception (most IoT devices are senders)
