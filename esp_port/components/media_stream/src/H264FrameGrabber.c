@@ -31,7 +31,7 @@ static const char *TAG = "H264FrameGrabber";
 #else
 #include "esp_h264_hw_enc.h"
 #include "esp_h264_enc_single.h"
-extern void esp32p4_frame_grabber_init(void);
+extern void esp32p4_frame_grabber_init(video_frame_preprocess_fn_t);
 extern esp_err_t esp32p4_frame_grabber_start(void);
 extern esp_err_t esp32p4_frame_grabber_stop(void);
 extern esp_err_t esp32p4_frame_grabber_deinit(void);
@@ -66,6 +66,7 @@ static void video_encoder_task(void *arg)
 {
     static uint8_t fill_val = 0;
     ESP_LOGD(TAG, "H264 encoder task started (singleton mode - runs continuously)");
+    video_frame_preprocess_fn_t frame_preprocess_fn = (video_frame_preprocess_fn_t) arg;
 
     s_h264_enc_data.frame_count = 0;
     int one_image_size = s_h264_enc_data.cfg.res.height * s_h264_enc_data.cfg.res.width * 2;
@@ -79,13 +80,31 @@ static void video_encoder_task(void *arg)
             ESP_LOGD(TAG, "H264 encoder resumed");
         }
         camera_fb_t *fb = esp_camera_fb_get();
+        video_frame_pixformat_t pixfmt;
         if (fb) {
             memcpy(s_h264_enc_data.in_frame.raw_data.buffer, fb->buf, one_image_size);
+            switch (fb->format) {
+                case PIXFORMAT_YUV422: pixfmt = PIXFMT_YUV422; break;
+                case PIXFORMAT_YUV420: pixfmt = PIXFMT_YUV420; break;
+                default: pixfmt = PIXFMT_OTHER; break;
+            }
             esp_camera_fb_return(fb);
         } else {
             memset(s_h264_enc_data.in_frame.raw_data.buffer, fill_val++, one_image_size);
             vTaskDelay(pdMS_TO_TICKS(100));
             continue;
+        }
+
+        if (frame_preprocess_fn)
+        {
+            video_frame_raw_t frame = {
+                .buffer = s_h264_enc_data.in_frame.raw_data.buffer,
+                .width = s_h264_enc_data.cfg.res.width,
+                .height = s_h264_enc_data.cfg.res.height,
+                .pixfmt = pixfmt,
+                .len = one_image_size,
+            };
+            frame_preprocess_fn(frame);
         }
 
         s_h264_enc_data.in_frame.pts = s_h264_enc_data.frame_count++ * (1000 / s_h264_enc_data.cfg.fps);
@@ -168,7 +187,7 @@ esp_err_t camera_and_encoder_init(video_capture_config_t *config)
 
     s_h264_enc_data.running = false;  // Start in stopped state
     s_h264_enc_data.encoder_task_handle = xTaskCreateStatic(video_encoder_task, "video_encoder", ENC_TASK_STACK_SIZE,
-                                                            NULL, ENC_TASK_PRIO, s_h264_enc_data.task_stack, s_h264_enc_data.task_buffer);
+                                                            config->frame_preprocess_fn, ENC_TASK_PRIO, s_h264_enc_data.task_stack, s_h264_enc_data.task_buffer);
     if (s_h264_enc_data.encoder_task_handle == NULL) {
         ESP_LOGE(TAG, "failed to create encoder task!");
         goto cleanup;
@@ -371,7 +390,7 @@ esp_err_t camera_and_encoder_init(video_capture_config_t *config)
         return ESP_OK;
     }
 
-    esp32p4_frame_grabber_init();
+    esp32p4_frame_grabber_init(config->frame_preprocess_fn);
     camera_enc_init_done = true;
     return ESP_OK;
 }

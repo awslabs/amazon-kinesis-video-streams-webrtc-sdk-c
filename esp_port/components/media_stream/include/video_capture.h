@@ -46,15 +46,39 @@ typedef enum {
     VIDEO_FRAME_TYPE_OTHER /* Other frame types */
 } video_frame_type_t;
 
+typedef enum {
+    PIXFMT_YUV422,    // 2BPP/YUV422
+    PIXFMT_YUV420,    // 1.5BPP/YUV420
+    PIXFMT_OTHER,
+} video_frame_pixformat_t;
+
+typedef struct {
+    uint8_t *buffer;
+    uint16_t height;
+    uint16_t width;
+    size_t len;
+    video_frame_pixformat_t pixfmt;
+} video_frame_raw_t;
+
+/**
+ * @brief Callback to preprocess raw frame before h264 encoding
+ *
+ * @param frame_raw Raw frame data
+ * @return esp_err_t ESP_OK on success, otherwise an error code
+ */
+typedef esp_err_t (*video_frame_preprocess_fn_t)(video_frame_raw_t frame_raw);
+
 /**
  * @brief Video capture configuration
  */
 typedef struct {
     video_codec_type_t codec;
     video_resolution_t resolution;
-    uint8_t quality;       /* 0-100, higher is better quality */
-    uint32_t bitrate;      /* Target bitrate in kbps */
-    void *codec_specific;  /* Codec-specific parameters if needed */
+    uint8_t quality;            /* 0-100, higher is better quality */
+    uint32_t bitrate;           /* Target bitrate in kbps */
+    video_frame_preprocess_fn_t
+        frame_preprocess_fn;    /* Callback to preprocess raw frame */
+    void *codec_specific;       /* Codec-specific parameters if needed */
 } video_capture_config_t;
 
 /**

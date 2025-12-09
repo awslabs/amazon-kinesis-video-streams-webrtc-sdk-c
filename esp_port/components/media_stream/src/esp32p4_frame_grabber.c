@@ -280,12 +280,31 @@ static void video_encoder_task(void *arg)
             ESP_LOGD(TAG, "Video encoder resumed");
         }
 
+        video_frame_preprocess_fn_t frame_preprocess_fn = (video_frame_preprocess_fn_t) arg;
 #if USE_ESP_VIDEO_IF
         // Get raw frame
         video_fb_t *raw_frame = esp_video_if_get_frame();
         if (!raw_frame) {
             vTaskDelay(pdMS_TO_TICKS(QUEUE_RECEIVE_WAIT_MS));
             continue;
+        }
+
+        // This assumes frame is YUV420
+        if (frame_preprocess_fn)
+        {
+            video_resolution_t resolution;
+            esp_err_t err = esp_video_if_get_resolution(&resolution);
+            if (err == ESP_OK) {
+                video_frame_raw_t frame = {
+                    .len = raw_frame->len,
+                    .buffer = raw_frame->buf,
+                    .height = resolution.height,
+                    .width = resolution.width,
+                    .pixfmt = PIXFMT_YUV420,
+                };
+
+                frame_preprocess_fn(frame);
+            }
         }
 
         // Encode the raw frame
@@ -344,7 +363,7 @@ static void video_encoder_task(void *arg)
     ESP_LOGE(TAG, "Video encoder task unexpectedly exited!");
 }
 
-void esp32p4_frame_grabber_init(void)
+void esp32p4_frame_grabber_init(video_frame_preprocess_fn_t frame_preprocess_fn)
 {
     // Singleton pattern: encoder task remains, but check if esp_video_if needs reinitialization
     if (s_p4_enc_data.encoder_initialized) {
@@ -458,7 +477,7 @@ void esp32p4_frame_grabber_init(void)
 
     s_p4_enc_data.running = false;  // Start in stopped state
     s_p4_enc_data.encoder_task_handle = xTaskCreateStatic(video_encoder_task, "video_encoder", ENC_TASK_STACK_SIZE,
-                                                          NULL, ENC_TASK_PRIO, s_p4_enc_data.task_stack, s_p4_enc_data.task_buffer);
+                                                          frame_preprocess_fn, ENC_TASK_PRIO, s_p4_enc_data.task_stack, s_p4_enc_data.task_buffer);
 
     if (s_p4_enc_data.encoder_task_handle == NULL) {
         ESP_LOGE(TAG, "failed to create encoder task!");
