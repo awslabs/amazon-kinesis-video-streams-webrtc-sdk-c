@@ -465,6 +465,16 @@ STATUS getDualStackIpAddrFromDnsHostname(PCHAR hostname, PCHAR ipv4Address, PCHA
     ipv6Address[j] = '\0';
 
 CleanUp:
+    if (STATUS_FAILED(retStatus)) {
+        if (ipv4Address != NULL) {
+            ipv4Address[0] = '\0';
+        }
+        if (ipv6Address != NULL) {
+            ipv6Address[0] = '\0';
+        }
+        DLOGW("Failed to parse dual-stack address with error 0x%08x from hostname: %s", retStatus, hostname);
+    }
+
     return retStatus;
 }
 

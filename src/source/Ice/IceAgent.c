@@ -117,7 +117,6 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
                     CHK(NULL != (pIceAgent->pRtcIceServerDiagnostics[i] = (PRtcIceServerDiagnostics) MEMCALLOC(1, SIZEOF(RtcIceServerDiagnostics))),
                         STATUS_NOT_ENOUGH_MEMORY);
                     pIceAgent->pRtcIceServerDiagnostics[i]->port = (INT32) getInt16(pIceAgent->iceServers[i].ipAddresses.ipv4Address.port);
-                    // TODO: How to handle ICE server diagnostis for dual-stack case?...
                     switch (pIceAgent->iceServers[pIceAgent->iceServersCount].transport) {
                         case KVS_SOCKET_PROTOCOL_UDP:
                             STRCPY(pIceAgent->pRtcIceServerDiagnostics[i]->protocol, ICE_TRANSPORT_TYPE_UDP);
@@ -367,6 +366,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     SDP_ICE_CANDIDATE_PARSER_STATE state;
     ICE_CANDIDATE_TYPE iceCandidateType = ICE_CANDIDATE_TYPE_HOST;
     KVS_SOCKET_PROTOCOL remoteProtocol = KVS_SOCKET_PROTOCOL_NONE;
+    BOOL isMatchingTurnFamily = FALSE;
 
     CHK(pIceAgent != NULL && pIceCandidateString != NULL, STATUS_NULL_ARG);
     CHK(!IS_EMPTY_STRING(pIceCandidateString), STATUS_INVALID_ARG);
@@ -471,7 +471,12 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
         pCurNode = pCurNode->pNext;
 
         if (pLocalIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
-            CHK_LOG_ERR(turnConnectionAddPeer(pLocalIceCandidate->pTurnConnection, &pIceCandidate->ipAddress));
+            isMatchingTurnFamily =
+                (pLocalIceCandidate->pTurnConnection->ipFamilyType == KVS_IP_FAMILY_TYPE_IPV4 && IS_IPV4_ADDR(&pIceCandidate->ipAddress)) ||
+                (pLocalIceCandidate->pTurnConnection->ipFamilyType == KVS_IP_FAMILY_TYPE_IPV6 && IS_IPV6_ADDR(&pIceCandidate->ipAddress));
+            if (isMatchingTurnFamily) {
+                CHK_STATUS(turnConnectionAddPeer(pLocalIceCandidate->pTurnConnection, &pIceCandidate->ipAddress));
+            }
         }
     }
 
@@ -1853,6 +1858,7 @@ STATUS iceAgentInitRelayCandidates(PIceAgent pIceAgent)
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 j;
+    UINT64 startTime = 0;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     for (j = 0; j < pIceAgent->iceServersCount; j++) {
@@ -1862,21 +1868,37 @@ STATUS iceAgentInitRelayCandidates(PIceAgent pIceAgent)
 
             if (pIceAgent->iceServers[j].ipAddresses.ipv4Address.family != KVS_IP_FAMILY_TYPE_NOT_SET) {
                 if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_UDP || pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
+                    DLOGD("Initializing an IPv4 TURN UDP relay candidate...");
+                    startTime = GETTIME();
                     CHK_STATUS(iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_UDP, KVS_IP_FAMILY_TYPE_IPV4));
+                    DLOGD("Finished initializing an IPv4 TURN UDP relay candidate. Time taken: %" PRIu64 " ms",
+                          (GETTIME() - startTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
                 }
 
                 if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_TCP || pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
+                    DLOGD("Initializing an IPv4 TURN TCP relay candidate...");
+                    startTime = GETTIME();
                     CHK_STATUS(iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_TCP, KVS_IP_FAMILY_TYPE_IPV4));
+                    DLOGD("Finished initializing an IPv4 TURN TCP relay candidate. Time taken: %" PRIu64 " ms",
+                          (GETTIME() - startTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
                 }
             }
 
             if (pIceAgent->iceServers[j].ipAddresses.ipv6Address.family != KVS_IP_FAMILY_TYPE_NOT_SET) {
                 if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_UDP || pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
+                    DLOGD("Initializing an IPv6 TURN UDP relay candidate...");
+                    startTime = GETTIME();
                     CHK_STATUS(iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_UDP, KVS_IP_FAMILY_TYPE_IPV6));
+                    DLOGD("Finished initializing an IPv6 TURN UDP relay candidate. Time taken: %" PRIu64 " ms",
+                          (GETTIME() - startTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
                 }
 
                 if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_TCP || pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
+                    DLOGD("Initializing an IPv6 TURN TCP relay candidate...");
+                    startTime = GETTIME();
                     CHK_STATUS(iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_TCP, KVS_IP_FAMILY_TYPE_IPV6));
+                    DLOGD("Finished initializing an IPv6 TURN TCP relay candidate. Time taken: %" PRIu64 " ms",
+                          (GETTIME() - startTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
                 }
             }
         }
@@ -1921,6 +1943,7 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
     BOOL locked = FALSE;
     PTurnConnection pTurnConnection = NULL;
     PKvsIpAddress pTurnServerAddress = NULL;
+    BOOL isMatchingFamily = FALSE;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     CHK(turnServerIpFamily != KVS_IP_FAMILY_TYPE_NOT_SET, STATUS_INVALID_ARG);
@@ -1980,15 +2003,12 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
         pCurNode = pCurNode->pNext;
         pCandidate = (PIceCandidate) data;
 
-        // Add only peers with matching IP family to the TURN connection.
-        if (turnServerIpFamily == KVS_IP_FAMILY_TYPE_IPV4) {
-            if (IS_IPV4_ADDR(&pCandidate->ipAddress)) {
-                CHK_STATUS(turnConnectionAddPeer(pTurnConnection, &pCandidate->ipAddress));
-            }
-        } else {
-            if (IS_IPV6_ADDR(&pCandidate->ipAddress)) {
-                CHK_STATUS(turnConnectionAddPeer(pTurnConnection, &pCandidate->ipAddress));
-            }
+        // Check IP family match and add peer
+        isMatchingFamily = (turnServerIpFamily == KVS_IP_FAMILY_TYPE_IPV4 && IS_IPV4_ADDR(&pCandidate->ipAddress)) ||
+            (turnServerIpFamily == KVS_IP_FAMILY_TYPE_IPV6 && IS_IPV6_ADDR(&pCandidate->ipAddress));
+
+        if (isMatchingFamily) {
+            CHK_STATUS(turnConnectionAddPeer(pTurnConnection, &pCandidate->ipAddress));
         }
     }
 

@@ -16,10 +16,10 @@ TEST_F(CustomEndpointTest, customControlPlaneEndpointBasicCase)
     MEMSET(&channelInfo, 0, SIZEOF(channelInfo));
     PChannelInfo pChannelInfo = nullptr;
     CHAR originalCustomControlPlaneUrl[MAX_CONTROL_PLANE_URI_CHAR_LEN] = "https://kinesisvideo.us-west-2.api.aws";
-    CHAR validatedCustomControlPlaneUrl[MAX_CONTROL_PLANE_URI_CHAR_LEN]  =  {0};
+    CHAR validatedCustomControlPlaneUrl[MAX_CONTROL_PLANE_URI_CHAR_LEN] = {0};
 
     // Make a deep copy of originalCustomControlPlaneUrl into validatedCustomControlPlaneUrl to save the value for later comparison.
-    strncpy(validatedCustomControlPlaneUrl, originalCustomControlPlaneUrl, MAX_CONTROL_PLANE_URI_CHAR_LEN);
+    STRNCPY(validatedCustomControlPlaneUrl, originalCustomControlPlaneUrl, MAX_CONTROL_PLANE_URI_CHAR_LEN);
     validatedCustomControlPlaneUrl[MAX_CONTROL_PLANE_URI_CHAR_LEN - 1] = '\0';
     
     channelInfo.pControlPlaneUrl = (PCHAR) validatedCustomControlPlaneUrl;
@@ -68,7 +68,7 @@ TEST_F(CustomEndpointTest, customControlPlaneEndpointEdgeCases)
 
     // Make a deep copy of originalCustomControlPlaneUrl into validatedCustomControlPlaneUrl to save the value for
     //      later comparison in case createValidateChannelInfo modified validatedCustomControlPlaneUrl.
-    strncpy(validatedCustomControlPlaneUrl, originalCustomControlPlaneUrl, SIZEOF(validatedCustomControlPlaneUrl));
+    STRNCPY(validatedCustomControlPlaneUrl, originalCustomControlPlaneUrl, SIZEOF(validatedCustomControlPlaneUrl));
     validatedCustomControlPlaneUrl[SIZEOF(validatedCustomControlPlaneUrl) - 1] = '\0';
 
     channelInfo.pControlPlaneUrl = (PCHAR) validatedCustomControlPlaneUrl;

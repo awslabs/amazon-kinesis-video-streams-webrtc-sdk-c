@@ -1307,6 +1307,7 @@ STATUS getTurnConnectionIpAddress(PTurnConnection pTurnConnection, PKvsIpAddress
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK_ERR(ppTurnConnectionIpAddress != NULL, STATUS_NULL_ARG, "ppTurnConnectionIp is NULL");
+    CHK_ERR(pTurnConnection != NULL, STATUS_NULL_ARG, "pTurnConnection is NULL");
     CHK_ERR(pTurnConnection->ipFamilyType != KVS_IP_FAMILY_TYPE_NOT_SET, STATUS_INVALID_ARG, "pTurnConnection ip family type is not set");
 
     if (pTurnConnection->ipFamilyType == KVS_IP_FAMILY_TYPE_IPV4) {
