@@ -17,9 +17,17 @@ TEST_F(NetworkApiTest, GetIpWithHostNameTest)
     EXPECT_EQ(STATUS_SUCCESS, getIpWithHostName((PCHAR) "35-90-63-38.t-ae7dd61a.kinesisvideo.us-west-2.amazonaws.com", &ipAddresses));
 
     // Test dual-stack TURN server hostname parsing with the dual-stack envvar set.
+    #ifdef _WIN32
+    _putenv_s(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON");
+    #else
     setenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON", 1);
+    #endif
     EXPECT_EQ(STATUS_SUCCESS, getIpWithHostName((PCHAR) "35-90-63-38_2001-0db8-85a3-0000-0000-8a2e-0370-7334.t-ae7dd61a.kinesisvideo.us-west-2.api.aws", &ipAddresses));
+    #ifdef _WIN32
+    _putenv_s(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "");
+    #else
     unsetenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
+    #endif
 
     EXPECT_EQ(STATUS_SUCCESS, getIpWithHostName((PCHAR) "12.34.45.40", &ipAddresses));
     EXPECT_EQ(STATUS_SUCCESS, getIpWithHostName((PCHAR) "2001:0db8:85a3:0000:0000:8a2e:0370:7334", &ipAddresses));
