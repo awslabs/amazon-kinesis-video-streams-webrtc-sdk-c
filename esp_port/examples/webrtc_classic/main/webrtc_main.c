@@ -5,6 +5,7 @@
  */
 
 #include <string.h>
+#include <stdlib.h>
 #include <pthread.h>
 #include <inttypes.h>
 #include "freertos/FreeRTOS.h"
@@ -27,6 +28,7 @@
 #include "esp_work_queue.h"
 #include "media_stream.h"
 
+#include "esp_console.h"
 
 static const char *TAG = "webrtc_main";
 
@@ -197,6 +199,92 @@ static void app_webrtc_event_handler(app_webrtc_event_data_t *event_data, void *
     }
 }
 
+/* Structure to pass peer_id to trigger offer work function */
+typedef struct {
+    char peer_id[256];
+} trigger_offer_work_params_t;
+
+/* Work function to trigger offer in esp_work_queue context (avoids console reentrancy) */
+static void trigger_offer_work_fn(void *priv_data)
+{
+    trigger_offer_work_params_t *params = (trigger_offer_work_params_t *)priv_data;
+
+    if (params == NULL) {
+        ESP_LOGE(TAG, "Invalid parameters for trigger offer work function");
+        return;
+    }
+
+    ESP_LOGI(TAG, "Triggering offer for peer: %s", params->peer_id);
+
+    int result = app_webrtc_trigger_offer(params->peer_id);
+
+    if (result == 0) {
+        ESP_LOGI(TAG, "Trigger offer command completed successfully");
+    } else {
+        ESP_LOGE(TAG, "Trigger offer command failed with code: %d", result);
+    }
+
+    /* Free the parameters */
+    free(params);
+}
+
+/* CLI handler for trigger offer command */
+static int trigger_offer_cli_handler(int argc, char *argv[])
+{
+    if (argc != 2) {
+        ESP_LOGE(TAG, "Usage: trigger-offer <peer_id>");
+        return -1;
+    }
+
+    const char *peer_id = argv[1];
+
+    /* Validate peer_id length */
+    if (strlen(peer_id) >= 256) {
+        ESP_LOGE(TAG, "Peer ID too long (max 255 characters)");
+        return -1;
+    }
+
+    /* Allocate parameters for the work function */
+    trigger_offer_work_params_t *params = (trigger_offer_work_params_t *)malloc(sizeof(trigger_offer_work_params_t));
+    if (params == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate memory for trigger offer work function");
+        return -1;
+    }
+
+    /* Copy peer_id to work parameters */
+    strncpy(params->peer_id, peer_id, sizeof(params->peer_id) - 1);
+    params->peer_id[sizeof(params->peer_id) - 1] = '\0';
+
+    /* Enqueue work to esp_work_queue (avoids console reentrancy issues) */
+    esp_err_t err = esp_work_queue_add_task(trigger_offer_work_fn, params);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to enqueue trigger offer work: %d", err);
+        free(params);
+        return -1;
+    }
+
+    ESP_LOGI(TAG, "Trigger offer work queued for peer: %s", peer_id);
+    return 0;
+}
+
+/* Register trigger offer CLI command */
+static void register_trigger_offer_cli(void)
+{
+    esp_console_cmd_t cmd = {
+        .command = "trigger-offer",
+        .help = "Trigger WebRTC offer to a peer. Usage: trigger-offer <peer_id>",
+        .hint = "<peer_id>",
+        .func = trigger_offer_cli_handler,
+    };
+
+    esp_err_t ret = esp_console_cmd_register(&cmd);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to register trigger-offer command: %d", ret);
+    } else {
+        ESP_LOGI(TAG, "Registered trigger-offer command");
+    }
+}
+
 void app_main(void)
 {
     esp_err_t ret;
@@ -213,6 +301,8 @@ void app_main(void)
     ESP_LOGI(TAG, "ESP32 WebRTC Example");
 
     esp_cli_start();
+    wifi_register_cli();
+    register_trigger_offer_cli();
 
     // Initialize WiFi
     wifi_init_sta();
