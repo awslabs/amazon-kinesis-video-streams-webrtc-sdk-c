@@ -1073,8 +1073,19 @@ static VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
 
     /* Trickle ICE: Send individual candidates as they arrive */
     if (session->on_message_received != NULL) {
-        /* Only send if remote supports trickle ICE */
-        if (session->remote_can_trickle_ice) {
+        /* For initiators: Send candidates if we have trickle ICE enabled locally
+         * For responders: Only send if remote supports trickle ICE (known from offer)
+         * This allows initiators to send candidates optimistically before receiving answer */
+        BOOL should_send_candidate = FALSE;
+        if (session->is_initiator) {
+            /* Initiator: Send if we have trickle ICE enabled */
+            should_send_candidate = session->client->trickleIce;
+        } else {
+            /* Responder: Only send if remote supports trickle ICE */
+            should_send_candidate = session->remote_can_trickle_ice;
+        }
+
+        if (should_send_candidate) {
             webrtc_message_t ice_msg = {0};
             ice_msg.version = SIGNALING_MESSAGE_CURRENT_VERSION;
             ice_msg.message_type = WEBRTC_MESSAGE_TYPE_ICE_CANDIDATE;
