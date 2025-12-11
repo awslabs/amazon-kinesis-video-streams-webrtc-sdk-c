@@ -176,12 +176,30 @@ STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 pa
     CHK(pDest != NULL, STATUS_NULL_ARG);
     switch (pStunPacket->header.stunMessageType) {
         case STUN_PACKET_TYPE_BINDING_REQUEST:
-            DLOGD("Sending BINDING_REQUEST on socket id: %d, to ip:%u.%u.%u.%u, port:%u", pSocketConnection->localSocket, pDest->address[0],
-                  pDest->address[1], pDest->address[2], pDest->address[3], (UINT16) getInt16(pDest->port));
+            if (pDest->family == KVS_IP_FAMILY_TYPE_IPV4) {
+                DLOGD("Sending BINDING_REQUEST on socket id: %d, to ip:%u.%u.%u.%u, port:%u", pSocketConnection->localSocket, pDest->address[0],
+                      pDest->address[1], pDest->address[2], pDest->address[3], (UINT16) getInt16(pDest->port));
+            } else {
+                DLOGD("Sending BINDING_REQUEST on socket id: %d, to ip:%x:%x:%x:%x:%x:%x:%x:%x, port:%u", pSocketConnection->localSocket,
+                      (UINT16) ((pDest->address[0] << 8) | pDest->address[1]), (UINT16) ((pDest->address[2] << 8) | pDest->address[3]),
+                      (UINT16) ((pDest->address[4] << 8) | pDest->address[5]), (UINT16) ((pDest->address[6] << 8) | pDest->address[7]),
+                      (UINT16) ((pDest->address[8] << 8) | pDest->address[9]), (UINT16) ((pDest->address[10] << 8) | pDest->address[11]),
+                      (UINT16) ((pDest->address[12] << 8) | pDest->address[13]), (UINT16) ((pDest->address[14] << 8) | pDest->address[15]),
+                      (UINT16) getInt16(pDest->port));
+            }
             break;
         case STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS:
-            DLOGD("Sending BINDING_RESPONSE_SUCCESS on socket id: %d to ip:%u.%u.%u.%u, port:%u", pSocketConnection->localSocket, pDest->address[0],
-                  pDest->address[1], pDest->address[2], pDest->address[3], (UINT16) getInt16(pDest->port));
+            if (pDest->family == KVS_IP_FAMILY_TYPE_IPV4) {
+                DLOGD("Sending BINDING_RESPONSE_SUCCESS on socket id: %d to ip:%u.%u.%u.%u, port:%u", pSocketConnection->localSocket, pDest->address[0],
+                      pDest->address[1], pDest->address[2], pDest->address[3], (UINT16) getInt16(pDest->port));
+            } else {
+                DLOGD("Sending BINDING_RESPONSE_SUCCESS on socket id: %d to ip:%x:%x:%x:%x:%x:%x:%x:%x, port:%u", pSocketConnection->localSocket,
+                      (UINT16) ((pDest->address[0] << 8) | pDest->address[1]), (UINT16) ((pDest->address[2] << 8) | pDest->address[3]),
+                      (UINT16) ((pDest->address[4] << 8) | pDest->address[5]), (UINT16) ((pDest->address[6] << 8) | pDest->address[7]),
+                      (UINT16) ((pDest->address[8] << 8) | pDest->address[9]), (UINT16) ((pDest->address[10] << 8) | pDest->address[11]),
+                      (UINT16) ((pDest->address[12] << 8) | pDest->address[13]), (UINT16) ((pDest->address[14] << 8) | pDest->address[15]),
+                      (UINT16) getInt16(pDest->port));
+            }
             break;
         default:
             break;
