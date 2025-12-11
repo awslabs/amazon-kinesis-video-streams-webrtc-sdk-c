@@ -1468,9 +1468,11 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
 
                     if (pIceServer->ipAddresses.ipv4Address.family != KVS_IP_FAMILY_TYPE_NOT_SET &&
                         pCandidate->ipAddress.family == KVS_IP_FAMILY_TYPE_IPV4) {
+                        DLOGD("Sending STUN binding request to IPv4 STUN server address.");
                         pStunServerAddr = &pIceServer->ipAddresses.ipv4Address;
                     } else if (pIceServer->ipAddresses.ipv6Address.family != KVS_IP_FAMILY_TYPE_NOT_SET &&
                                pCandidate->ipAddress.family == KVS_IP_FAMILY_TYPE_IPV6) {
+                        DLOGD("Sending STUN binding request to IPv6 STUN server address.");
                         pStunServerAddr = &pIceServer->ipAddresses.ipv6Address;
                     }
                     CHK_ERR(pStunServerAddr != NULL, STATUS_INVALID_ARG, "No IP-family-compatible STUN server address found for candidate %s",
@@ -1483,9 +1485,7 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
                     transactionIdStoreInsert(pIceAgent->pStunBindingRequestTransactionIdStore, pBindingRequest->header.transactionId);
                     checkSum = COMPUTE_CRC32(pBindingRequest->header.transactionId, ARRAY_SIZE(pBindingRequest->header.transactionId));
 
-                    DLOGD("Sending STUN binding request to STUN server: %u:%u", pStunServerAddr->address, pStunServerAddr->port);
-
-                    CHK_STATUS(iceAgentSendStunPacket(pBindingRequest, NULL, 0, pIceAgent, pCandidate, &pIceServer->ipAddresses.ipv4Address));
+                    CHK_STATUS(iceAgentSendStunPacket(pBindingRequest, NULL, 0, pIceAgent, pCandidate, pStunServerAddr));
                     if (pIceAgent->pRtcIceServerDiagnostics[pCandidate->iceServerIndex] != NULL) {
                         pIceAgent->pRtcIceServerDiagnostics[pCandidate->iceServerIndex]->totalRequestsSent++;
                         CHK_STATUS(hashTableUpsert(pIceAgent->requestTimestampDiagnostics, checkSum, GETTIME()));
