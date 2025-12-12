@@ -773,8 +773,6 @@ static void process_rx_pkt(interface_buffer_handle_t *buf_handle)
 	uint8_t *payload = NULL;
 	uint16_t payload_len = 0;
 	int ret = 0;
-	int retry = 0;
-	uint32_t delay = 0;
 
 	header = (struct esp_payload_header *) buf_handle->payload;
 	payload = buf_handle->payload + le16toh(header->offset);
@@ -782,10 +780,6 @@ static void process_rx_pkt(interface_buffer_handle_t *buf_handle)
 
 	ESP_HEXLOGV("bus_RX", buf_handle->payload, buf_handle->payload_len, buf_handle->payload_len);
 
-// #define WIFI_TX_MAX_RETRY         100 //
-#define MAX_WIFI_STA_TX_RETRY            2
-
-	int retry_wifi_tx = MAX_WIFI_STA_TX_RETRY;
 	if (buf_handle->if_type == ESP_STA_IF && station_connected) {
 #define WIFI_TX_REPEAT_STEP       4
 #define WIFI_TX_INTERVAL_START    5

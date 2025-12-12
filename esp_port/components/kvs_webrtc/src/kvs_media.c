@@ -198,7 +198,7 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
     Frame frame;
-    UINT64 startTime, lastFrameTime;
+    UINT64 startTime;
     media_stream_video_capture_t *video_capture = NULL;
     video_frame_t *video_frame = NULL;
     const UINT64 frame_duration_100ns = KVS_SAMPLE_VIDEO_FRAME_DURATION;
@@ -242,7 +242,6 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
 
     /* esp_timer_get_time() returns microseconds since boot. Not affected by time sync */
     startTime = esp_timer_get_time() * HUNDREDS_OF_NANOS_IN_A_MICROSECOND;
-    lastFrameTime = GETTIME();
     UINT64 video_frame_index = 0;  /* Local frame counter for video */
 
     while (!ATOMIC_LOAD_BOOL(&g_global_media.terminated)) {
@@ -374,7 +373,7 @@ static PVOID kvs_global_audio_sender_thread(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
     Frame frame;
-    UINT64 startTime, lastFrameTime;
+    UINT64 startTime;
     media_stream_audio_capture_t *audio_capture = NULL;
     audio_frame_t *audio_frame = NULL;
     const UINT64 frame_duration_100ns = KVS_SAMPLE_AUDIO_FRAME_DURATION;
@@ -416,7 +415,6 @@ static PVOID kvs_global_audio_sender_thread(PVOID args)
 
     /* esp_timer_get_time() returns microseconds since boot. Not affected by time sync */
     startTime = esp_timer_get_time() * HUNDREDS_OF_NANOS_IN_A_MICROSECOND;
-    lastFrameTime = GETTIME();
     UINT64 audio_frame_index = 0;  /* Local frame counter for audio */
 
     while (!ATOMIC_LOAD_BOOL(&g_global_media.terminated)) {
@@ -492,7 +490,6 @@ CleanupAudio:
  */
 static STATUS kvs_session_frame_callback(UINT64 callerData, PHashEntry pHashEntry)
 {
-    STATUS retStatus = STATUS_SUCCESS;
     Frame* frame = (Frame*)HANDLE_TO_POINTER(callerData);
     kvs_pc_session_t* session = NULL;
     STATUS writeStatus;
@@ -537,8 +534,6 @@ static STATUS kvs_session_frame_callback(UINT64 callerData, PHashEntry pHashEntr
                 ESP_LOGW(TAG, "writeFrame failed for session %s: 0x%08" PRIx32, session->peer_id, (UINT32)writeStatus);
             }
         }
-        // Don't propagate SRTP_NOT_READY as error - it's expected during connection setup
-        retStatus = STATUS_SUCCESS;
     }
 
     /* Always return SUCCESS to continue iteration, even if we skipped this session */

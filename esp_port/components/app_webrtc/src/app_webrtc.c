@@ -1492,16 +1492,6 @@ CleanUp:
 
 /* WebRTC App API Implementation */
 
-#ifndef CONFIG_USE_ESP_WEBSOCKET_CLIENT
-static void *realloc_wrapper(void *ptr, size_t size, const char *reason)
-{
-    (void) reason;
-    return heap_caps_realloc(ptr, size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-}
-
-extern void lws_set_allocator(void *(*realloc)(void *ptr, size_t size, const char *reason));
-#endif
-
 /**
  * @brief Initialize WebRTC application with the given configuration
  */
@@ -1877,7 +1867,11 @@ WEBRTC_STATUS app_webrtc_run(void)
     // Use a higher stack size for the WebRTC task as signaling requires substantial stack
     DLOGI("Creating WebRTC run task");
 
+#if CONFIG_USE_ESP_WEBSOCKET_CLIENT
 #define WEBRTC_TASK_STACK_SIZE     (16 * 1024)
+#else
+#define WEBRTC_TASK_STACK_SIZE     (36 * 1024)
+#endif
 #define WEBRTC_TASK_PRIO           5
     static StaticTask_t *task_buffer = NULL;
     static void *task_stack = NULL;

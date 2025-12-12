@@ -67,6 +67,18 @@ STATUS getKvsSignalingIceServers(PVOID pSignalingClient, PUINT32 pIceConfigCount
 STATUS kvsSignalingQueryServerGetByIdx(PVOID pSignalingClient, int index, bool useTurn, uint8_t **data, int *len, bool *have_more);
 static WEBRTC_STATUS kvsIsIceRefreshNeededWrapper(void *pSignalingClient, bool *refreshNeeded);
 
+#ifndef CONFIG_USE_ESP_WEBSOCKET_CLIENT
+/**
+ * @brief Custom realloc wrapper for libwebsockets to use SPIRAM-capable memory
+ */
+static void *realloc_wrapper(void *ptr, size_t size, const char *reason)
+{
+    (void) reason;
+    return heap_caps_realloc_prefer(ptr, size, 2, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM, MALLOC_CAP_DEFAULT);
+}
+extern void lws_set_allocator(void *(*realloc)(void *ptr, size_t size, const char *reason));
+#endif
+
 /**
  * @brief Adapter data structure for callback conversion
  */
@@ -436,6 +448,11 @@ STATUS createKvsSignalingClient(kvs_signaling_config_t *pConfig, PVOID *ppSignal
 
     CHK(pConfig != NULL && ppSignalingClient != NULL, STATUS_NULL_ARG);
 
+#ifndef CONFIG_USE_ESP_WEBSOCKET_CLIENT
+    // Set custom allocator for libwebsockets to use SPIRAM-capable memory
+    lws_set_allocator(realloc_wrapper);
+#endif
+
     // Allocate client data
     pClientData = (KvsSignalingClientData *)MEMCALLOC(1, SIZEOF(KvsSignalingClientData));
     CHK(pClientData != NULL, STATUS_NOT_ENOUGH_MEMORY);
@@ -455,7 +472,11 @@ STATUS createKvsSignalingClient(kvs_signaling_config_t *pConfig, PVOID *ppSignal
     pClientData->channelInfo.pTags = NULL;
     pClientData->channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
     pClientData->channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER; // Default, will be updated
+#if CONFIG_USE_ESP_WEBSOCKET_CLIENT || CONFIG_SPIRAM_BOOT_INIT
     pClientData->channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_FILE;  // Uses NVS on ESP platform
+#else // stack usage is quite high in default websocket client mode
+    pClientData->channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
+#endif
     pClientData->channelInfo.cachingPeriod = SIGNALING_API_CALL_CACHE_TTL_SENTINEL_VALUE;
     pClientData->channelInfo.asyncIceServerConfig = TRUE;
     pClientData->channelInfo.retry = TRUE;
