@@ -40,6 +40,7 @@ static const char TAG[] = "protocomm_pserial";
 
 #define PROTO_PSER_TLV_T_EPNAME       1
 #define PROTO_PSER_TLV_T_DATA         2
+#define PSERIAL_TASK_STACK_SIZE       (6 * 1024)
 
 struct pserial_config {
 	pserial_xmit    xmit;
@@ -326,7 +327,7 @@ esp_err_t protocomm_pserial_start(protocomm_t *pc,
 
 	pc->priv = pserial_cfg;
 
-	xTaskCreate(pserial_task, "pserial_task", 1024*5,
+	xTaskCreate(pserial_task, "pserial_task", PSERIAL_TASK_STACK_SIZE,
 			(void *) pc, CONFIG_ESP_DEFAULT_TASK_PRIO, NULL);
 
 	return ESP_OK;
