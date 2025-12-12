@@ -596,7 +596,6 @@ static WEBRTC_STATUS kvs_pc_create_session(void *pPeerConnectionClient,
             .video_player = client_data->config.video_player,
             .audio_player = client_data->config.audio_player,
             .receive_media = client_data->config.receive_media,
-            .enable_sample_fallback = TRUE,
             .video_width = client_data->config.video_width,
             .video_height = client_data->config.video_height,
             .video_fps = client_data->config.video_fps
@@ -751,6 +750,10 @@ static WEBRTC_STATUS kvs_pc_destroy_session(void *pSession)
                 ESP_LOGW(TAG, "Failed to stop global media threads: 0x%08" PRIx32, (UINT32) media_status);
             }
         }
+
+        // CRITICAL: Mark session as terminated BEFORE removing from hash table
+        // This ensures any metrics callbacks that are already running will skip this session
+        session->terminated = TRUE;
 
         // Remove session from activeSessions hash table
         // CRITICAL: Use statsLock to synchronize with metrics timer to prevent deadlock
@@ -1130,22 +1133,23 @@ static VOID onConnectionStateChangeHandler(UINT64 customData, RTC_PEER_CONNECTIO
 
             // Start media reception for this session if needed (transmission is global)
             if (session->client->config.receive_media && !session->media_threads_started) {
-                ESP_LOGD(TAG, "Starting media reception for session: %s", session->peer_id);
-
                 kvs_media_config_t media_config = {
                     .video_capture = session->client->config.video_capture,
                     .audio_capture = session->client->config.audio_capture,
                     .video_player = session->client->config.video_player,
                     .audio_player = session->client->config.audio_player,
                     .receive_media = session->client->config.receive_media,
-                    .enable_sample_fallback = TRUE,
                     .video_width = session->client->config.video_width,
                     .video_height = session->client->config.video_height,
                     .video_fps = session->client->config.video_fps
                 };
 
-                CHK_STATUS(kvs_media_start_reception(session, &media_config));
-                session->media_threads_started = TRUE;
+                STATUS ret = kvs_media_start_reception(session, &media_config);
+                if (STATUS_SUCCEEDED(ret)) {
+                    session->media_threads_started = TRUE;
+                } else {
+                    ESP_LOGE(TAG, "Failed to start media reception: 0x%08" PRIx32, (UINT32)ret);
+                }
             }
 
             // Collect metrics like legacy path
@@ -1901,6 +1905,36 @@ static STATUS kvs_handleOffer(kvs_pc_session_t* session, webrtc_message_t* messa
         session->on_peer_state_changed(session->custom_data, WEBRTC_PEER_STATE_MEDIA_STARTING);
     }
 
+    // Set up frame reception callbacks AFTER setRemoteDescription and setLocalDescription
+    // This ensures transceivers are fully initialized and ready to receive frames
+    if (session->client->config.receive_media && !session->media_threads_started) {
+        kvs_media_config_t media_config = {
+            .video_capture = session->client->config.video_capture,
+            .audio_capture = session->client->config.audio_capture,
+            .video_player = session->client->config.video_player,
+            .audio_player = session->client->config.audio_player,
+            .receive_media = session->client->config.receive_media,
+            .video_width = session->client->config.video_width,
+            .video_height = session->client->config.video_height,
+            .video_fps = session->client->config.video_fps
+        };
+
+        session->client->config.video_player = media_config.video_player;
+        session->client->config.audio_player = media_config.audio_player;
+        session->client->config.receive_media = media_config.receive_media;
+
+        STATUS ret = kvs_media_setup_players(session, &media_config);
+        if (STATUS_SUCCEEDED(ret)) {
+            STATUS callback_ret = kvs_media_setup_frame_callbacks(session);
+            if (STATUS_FAILED(callback_ret)) {
+                ESP_LOGE(TAG, "Failed to set up frame callbacks: 0x%08" PRIx32, (UINT32)callback_ret);
+            }
+            session->media_threads_started = TRUE;
+        } else {
+            ESP_LOGE(TAG, "Failed to set up media players: 0x%08" PRIx32, (UINT32)ret);
+        }
+    }
+
     ESP_LOGD(TAG, "SDP offer processed successfully, trickle ICE: %s",
              session->remote_can_trickle_ice ? "enabled" : "disabled");
 
@@ -1934,6 +1968,27 @@ static STATUS kvs_handleAnswer(kvs_pc_session_t* session, webrtc_message_t* mess
     // CRITICAL PARITY FIX: Start media threads exactly like legacy handleAnswer
     if (session->on_peer_state_changed != NULL) {
         session->on_peer_state_changed(session->custom_data, WEBRTC_PEER_STATE_MEDIA_STARTING);
+    }
+
+    // Start media reception for this session if needed (transmission is global)
+    if (session->client->config.receive_media && !session->media_threads_started) {
+        kvs_media_config_t media_config = {
+            .video_capture = session->client->config.video_capture,
+            .audio_capture = session->client->config.audio_capture,
+            .video_player = session->client->config.video_player,
+            .audio_player = session->client->config.audio_player,
+            .receive_media = session->client->config.receive_media,
+            .video_width = session->client->config.video_width,
+            .video_height = session->client->config.video_height,
+            .video_fps = session->client->config.video_fps
+        };
+
+        STATUS ret = kvs_media_start_reception(session, &media_config);
+        if (STATUS_SUCCEEDED(ret)) {
+            session->media_threads_started = TRUE;
+        } else {
+            ESP_LOGE(TAG, "Failed to start media reception: 0x%08" PRIx32, (UINT32)ret);
+        }
     }
 
     ESP_LOGD(TAG, "SDP answer processed successfully");
@@ -2529,40 +2584,46 @@ static STATUS kvs_metricsCollectionCallback(UINT64 callerData, PHashEntry pHashE
     pSession = (kvs_pc_session_t*)HANDLE_TO_POINTER(pHashEntry->value);
     CHK(pSession != NULL, STATUS_NULL_ARG);
 
-    // Skip invalid or terminated sessions
-    if (pSession->terminated || pSession->peer_connection == NULL) {
-        ESP_LOGV(TAG, "Skipping invalid or terminated session");
+    // CRITICAL: Skip invalid or terminated sessions - check multiple conditions
+    // to avoid race conditions where peer connection is being destroyed
+    if (pSession->terminated || pSession->peer_connection == NULL || pSession->client == NULL) {
+        ESP_LOGV(TAG, "Skipping invalid or terminated session (terminated=%d, peer_conn=%p, client=%p)",
+                 pSession->terminated, pSession->peer_connection, pSession->client);
         CHK(FALSE, retStatus);  // Continue to next session
     }
 
     ESP_LOGV(TAG, "Collecting metrics for session: %s", pSession->peer_id);
 
-    // Collect comprehensive ICE candidate pair statistics using the KVS logging function
+    // CRITICAL: Collect metrics with error handling - if any step fails, skip the session
+    // This prevents crashes when peer connection is being destroyed or ICE agent is invalid
     STATUS statsStatus = logIceCandidatePairStats(
         pSession->peer_connection,
         &pSession->rtc_stats,
         &pSession->rtc_metrics_history
     );
 
+    // If ICE stats collection fails, skip this session to avoid crash
+    // This can happen if the peer connection is being destroyed or ICE agent is invalid
     if (STATUS_FAILED(statsStatus)) {
-        ESP_LOGW(TAG, "Failed to collect ICE stats for session %s: 0x%08" PRIx32,
+        ESP_LOGV(TAG, "Failed to collect ICE stats for session %s: 0x%08" PRIx32 " - skipping session",
                 pSession->peer_id, (UINT32) statsStatus);
-        // Continue with other metrics even if ICE stats fail
-    } else {
-        ESP_LOGV(TAG, "Successfully collected ICE stats for session: %s", pSession->peer_id);
+        CHK(FALSE, retStatus);  // Continue to next session - don't try other metrics
     }
 
     // Also collect general peer connection and ICE agent metrics if enabled
     if (client->enable_metrics) {
         STATUS pcStatsStatus = peerConnectionGetMetrics(pSession->peer_connection, &pSession->pc_metrics);
-        STATUS iceStatsStatus = iceAgentGetMetrics(pSession->peer_connection, &pSession->ice_metrics);
-
         if (STATUS_FAILED(pcStatsStatus)) {
-            ESP_LOGV(TAG, "Failed to get peer connection metrics for %s: 0x%08" PRIx32,
+            ESP_LOGV(TAG, "Failed to get peer connection metrics for %s: 0x%08" PRIx32 " (session may be terminating)",
                     pSession->peer_id, (UINT32) pcStatsStatus);
+            // If peer connection metrics fail, ICE agent metrics will likely also fail
+            // Skip to avoid crash - continue to next session
+            CHK(FALSE, retStatus);
         }
+
+        STATUS iceStatsStatus = iceAgentGetMetrics(pSession->peer_connection, &pSession->ice_metrics);
         if (STATUS_FAILED(iceStatsStatus)) {
-            ESP_LOGV(TAG, "Failed to get ICE agent metrics for %s: 0x%08" PRIx32,
+            ESP_LOGV(TAG, "Failed to get ICE agent metrics for %s: 0x%08" PRIx32 " (session may be terminating)",
                     pSession->peer_id, (UINT32) iceStatsStatus);
         }
     }
