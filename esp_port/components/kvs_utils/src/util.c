@@ -87,6 +87,16 @@ CleanUp:
 
 BOOL compareJsonString(PCHAR pJsonStr, jsmntok_t* pToken, jsmntype_t jsmnType, PCHAR pStr)
 {
+    /* Safety check: validate pointer before dereferencing */
+    if (pToken == NULL || pJsonStr == NULL || pStr == NULL) {
+        return FALSE;
+    }
+
+    /* Validate token fields before accessing */
+    if (pToken->end < pToken->start) {
+        return FALSE;
+    }
+
     if (pToken->type == jsmnType && STRLEN(pStr) == pToken->end - pToken->start &&
         0 == STRNCMP(pJsonStr + pToken->start, pStr, (UINT32) pToken->end - pToken->start)) {
         return TRUE;

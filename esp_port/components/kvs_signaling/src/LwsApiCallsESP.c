@@ -707,10 +707,15 @@ STATUS handleReceivedSignalingMessage(PSignalingClient pSignalingClient, PCHAR m
 
     // Verify we have at least the outer JSON object
     CHK(tokenCount >= 1, STATUS_INVALID_API_CALL_RETURN_JSON);
+    CHK(tokenCount <= (INT32)(SIZEOF(tokens) / SIZEOF(jsmntok_t)), STATUS_INVALID_API_CALL_RETURN_JSON);
     CHK(tokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
 
     // Extract message fields
     for (i = 1; i < tokenCount; i++) {
+        /* Safety check: ensure we don't access out of bounds */
+        if (i >= tokenCount) {
+            break;
+        }
         // Look for either "messageType" or "action" field as the message type
         if (compareJsonString(message, &tokens[i], JSMN_STRING, (PCHAR) "messageType") ||
             compareJsonString(message, &tokens[i], JSMN_STRING, (PCHAR) "action")) {

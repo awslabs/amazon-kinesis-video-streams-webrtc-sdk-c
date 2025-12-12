@@ -67,7 +67,6 @@ typedef struct {
 
     // Media settings
     bool receive_media;                   // Whether to receive media
-    bool enable_sample_fallback;          // Use sample files when no capture available
 
     // Video resolution settings (0 = use default: 1280x720@30fps)
     // These are applied at initialization time. Runtime changes are possible
@@ -171,6 +170,28 @@ void kvs_media_cleanup_shared_state(void);
  * @return void* Global video capture handle, or NULL if not initialized
  */
 void* kvs_media_get_global_video_handle(void);
+
+/**
+ * @brief Set up media players for a session
+ *
+ * Initializes video and audio players for receiving media.
+ *
+ * @param session Session to set up players for
+ * @param config Media configuration
+ * @return STATUS_SUCCESS on success, error code on failure
+ */
+STATUS kvs_media_setup_players(kvs_pc_session_t* session, kvs_media_config_t* config);
+
+/**
+ * @brief Set up frame reception callbacks for a session
+ *
+ * Registers callbacks with transceivers to receive video/audio frames.
+ * Should be called after connection is established (CONNECTED state).
+ *
+ * @param session Session to set up callbacks for
+ * @return STATUS_SUCCESS on success, error code on failure
+ */
+STATUS kvs_media_setup_frame_callbacks(kvs_pc_session_t* session);
 
 /**
  * @brief Adjust video bitrate dynamically based on network conditions
