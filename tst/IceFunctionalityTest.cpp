@@ -198,14 +198,17 @@ TEST_F(IceFunctionalityTest, connectionListenerFunctionalityTest)
     newConnectionCount = pConnectionListener->socketCount;
     EXPECT_EQ(connectionCount, newConnectionCount);
 
-    // Keeping TSAN happy need to lock/unlock when retrieving the value of TID
+    // receiveDataRoutine TID should be used under pConnectionListener->lock lock.
+    DLOGW("[TESTING] LOCKING pConnectionListener->lock for pConnectionListener->receiveDataRoutine.");
     MUTEX_LOCK(pConnectionListener->lock);
     threadId = pConnectionListener->receiveDataRoutine;
-    MUTEX_UNLOCK(pConnectionListener->lock);
     EXPECT_TRUE(IS_VALID_TID_VALUE(threadId));
     ATOMIC_STORE_BOOL(&pConnectionListener->terminate, TRUE);
 
     THREAD_JOIN(threadId, NULL);
+    pConnectionListener->receiveDataRoutine = INVALID_TID_VALUE;
+    MUTEX_UNLOCK(pConnectionListener->lock);
+    DLOGW("[TESTING] UNLOCKING pConnectionListener->lock for pConnectionListener->receiveDataRoutine.");
 
     EXPECT_EQ(STATUS_SUCCESS, freeConnectionListener(&pConnectionListener));
 

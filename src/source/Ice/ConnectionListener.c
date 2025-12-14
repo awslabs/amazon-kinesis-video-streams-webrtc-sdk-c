@@ -62,10 +62,6 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
     ATOMIC_STORE_BOOL(&pConnectionListener->terminate, TRUE);
 
     if (IS_VALID_MUTEX_VALUE(pConnectionListener->lock)) {
-        MUTEX_LOCK(pConnectionListener->lock);
-        threadId = pConnectionListener->receiveDataRoutine;
-        MUTEX_UNLOCK(pConnectionListener->lock);
-
         // TODO add support for windows socketpair
         // This writes to the socketpair, kicking the POLL() out early,
         // otherwise wait for the POLL to timeout
@@ -73,13 +69,22 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
         socketWrite(pConnectionListener->kickSocket[CONNECTION_LISTENER_KICK_SOCKET_WRITE], msg, STRLEN(msg));
 #endif
 
+        DLOGW("[TESTING] LOCKING pConnectionListener->lock for pConnectionListener->receiveDataRoutine.");
+        // receiveDataRoutine TID should be used under pConnectionListener->lock lock.
+        MUTEX_LOCK(pConnectionListener->lock);
+        threadId = pConnectionListener->receiveDataRoutine;
         // wait for thread to finish.
         if (IS_VALID_TID_VALUE(threadId)) {
-            THREAD_JOIN(pConnectionListener->receiveDataRoutine, NULL);
+            THREAD_JOIN(threadId, NULL);
+            pConnectionListener->receiveDataRoutine = INVALID_TID_VALUE;
         }
 
-        MUTEX_FREE(pConnectionListener->lock);
+        MUTEX_UNLOCK(pConnectionListener->lock);
+        DLOGW("[TESTING] UNLOCKING pConnectionListener->lock for pConnectionListener->receiveDataRoutine.");
     }
+
+    DLOGW("[TESTING] LOCKING pConnectionListener->lock for closeSocket.");
+    MUTEX_LOCK(pConnectionListener->lock);
 
     // TODO add support for windows socketpair
 #ifndef _WIN32
@@ -90,6 +95,11 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
         closeSocket(pConnectionListener->kickSocket[CONNECTION_LISTENER_KICK_SOCKET_WRITE]);
     }
 #endif
+
+    MUTEX_UNLOCK(pConnectionListener->lock);
+    DLOGW("[TESTING] UNLOCKING pConnectionListener->lock for closeSocket.");
+
+    MUTEX_FREE(pConnectionListener->lock);
 
     MEMFREE(pConnectionListener);
 
@@ -332,8 +342,13 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                     if (canReadFd(localSocket, rfds, nfds)) {
                         iterate = TRUE;
                         while (iterate) {
+                            DLOGW("[TESTING] LOCKING pConnectionListener->lock for recvfrom.");
+                            MUTEX_LOCK(pConnectionListener->lock);
                             readLen = recvfrom(localSocket, pConnectionListener->pBuffer, pConnectionListener->bufferLen, 0,
                                                (struct sockaddr*) &srcAddrBuff, &srcAddrBuffLen);
+                            MUTEX_UNLOCK(pConnectionListener->lock);
+                            DLOGW("[TESTING] UNLOCKING pConnectionListener->lock for recvfrom.");
+
                             if (readLen < 0) {
                                 switch (getErrorCode()) {
                                     case EWOULDBLOCK:

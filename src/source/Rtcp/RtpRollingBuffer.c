@@ -68,7 +68,14 @@ STATUS rtpRollingBufferAddRtpPacket(PRtpRollingBuffer pRollingBuffer, PRtpPacket
     pRawPacketCopy = NULL;
 
     CHK_STATUS(rollingBufferAppendData(pRollingBuffer->pRollingBuffer, (UINT64) pRtpPacketCopy, &index));
+
+    CHK(pRollingBuffer->pRollingBuffer != NULL, STATUS_NULL_ARG);
+
+    // DLOGW("[TESTING] LOCKING pRollingBuffer->lock for pRollingBuffer->lastIndex.");
+    MUTEX_LOCK(pRollingBuffer->pRollingBuffer->lock);
     pRollingBuffer->lastIndex = index;
+    MUTEX_UNLOCK(pRollingBuffer->pRollingBuffer->lock);
+    // DLOGW("[TESTING] UNLOCKING pRollingBuffer->lock for pRollingBuffer->lastIndex.");
 
 CleanUp:
     SAFE_MEMFREE(pRawPacketCopy);
@@ -90,9 +97,13 @@ STATUS rtpRollingBufferGetValidSeqIndexList(PRtpRollingBuffer pRollingBuffer, PU
     PUINT64 pCurSeqIndexListPtr;
     UINT16 seqNum;
     UINT32 size = 0;
+    BOOL rollingBufferLocked = FALSE;
 
-    CHK(pRollingBuffer != NULL && pValidSeqIndexList != NULL && pSequenceNumberList != NULL, STATUS_NULL_ARG);
+    CHK(pRollingBuffer != NULL && pRollingBuffer->pRollingBuffer && pValidSeqIndexList != NULL && pSequenceNumberList != NULL, STATUS_NULL_ARG);
 
+    DLOGW("[TESTING] LOCKING pRollingBuffer->lock for pRollingBuffer size.");
+    MUTEX_LOCK(pRollingBuffer->pRollingBuffer->lock);
+    rollingBufferLocked = TRUE;
     CHK_STATUS(rollingBufferGetSize(pRollingBuffer->pRollingBuffer, &size));
     // Empty buffer, just return
     CHK(size > 0, retStatus);
@@ -124,6 +135,11 @@ STATUS rtpRollingBufferGetValidSeqIndexList(PRtpRollingBuffer pRollingBuffer, PU
     }
 
 CleanUp:
+    if (rollingBufferLocked) {
+        MUTEX_UNLOCK(pRollingBuffer->pRollingBuffer->lock);
+        DLOGW("[TESTING] UNLOCKING pRollingBuffer->lock for pRollingBuffer size.");
+    }
+
     CHK_LOG_ERR(retStatus);
 
     if (pValidIndexListLen != NULL) {
