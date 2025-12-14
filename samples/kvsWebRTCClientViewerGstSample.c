@@ -76,6 +76,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     }
 
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, TRUE, TRUE, logLevel, &pSampleConfiguration));
+    CHK_STATUS(setUpCredentialProvider(pSampleConfiguration, IOT_CORE_ENABLE_CREDENTIALS));
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
     pSampleConfiguration->receiveAudioVideoSource = receiveGstreamerAudioVideo;
     pSampleConfiguration->audioCodec = audioCodec;
@@ -208,7 +209,8 @@ CleanUp:
     }
     DLOGI("[KVS Gstreamer Viewer] Cleanup done");
 
-    RESET_INSTRUMENTED_ALLOCATORS();
+    retStatus = RESET_INSTRUMENTED_ALLOCATORS();
+    DLOGI("All SDK allocations freed? %s..0x%08x", retStatus == STATUS_SUCCESS ? "Yes" : "No", retStatus);
 
     // https://www.gnu.org/software/libc/manual/html_node/Exit-Status.html
     // We can only return with 0 - 127. Some platforms treat exit code >= 128

@@ -396,7 +396,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 #endif
 
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
-
+    CHK_STATUS(setUpCredentialProvider(pSampleConfiguration, IOT_CORE_ENABLE_CREDENTIALS));
     if (argc > 3 && STRCMP(argv[3], "testsrc") == 0) {
         if (argc > 4) {
             if (!STRCMP(argv[4], AUDIO_CODEC_NAME_AAC)) {

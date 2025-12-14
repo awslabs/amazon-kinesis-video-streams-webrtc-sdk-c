@@ -21,6 +21,7 @@ option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
 option(ENABLE_KVS_THREADPOOL "Enable support for KVS thread pool in signaling" ON)
 option(INSTRUMENTED_ALLOCATORS "Enable memory instrumentation" OFF)
 option(ENABLE_AWS_SDK_IN_TESTS "Enable support for compiling AWS SDKs for tests" ON)
+option(ENABLE_AWS_SDK_INTEG "Enable building samples with cloudwatch" OFF)
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -248,9 +249,12 @@ if(BUILD_DEPENDENCIES)
 
   if(BUILD_TEST)
     build_dependency(gtest)
-
+    set(BUILD_ARGS
+            -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+            -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
+            -DBUILD_ONLY=kinesisvideo|kinesis-video-webrtc-storage)
     if(ENABLE_AWS_SDK_IN_TESTS)
-      build_dependency(awscpp)
+      build_dependency(awscpp ${BUILD_ARGS})
     endif()
 
   endif()
@@ -262,7 +266,16 @@ if(BUILD_DEPENDENCIES)
   if (LINK_PROFILER)
     build_dependency(gperftools)
   endif()
+
   message(STATUS "Finished building dependencies.")
+endif()
+
+if(ENABLE_AWS_SDK_INTEG)
+  set(BUILD_ARGS
+          -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+          -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
+          -DBUILD_ONLY=monitoring|logs)
+  build_dependency(awscpp ${BUILD_ARGS})
 endif()
 
 # building kvsCommonLws also builds kvspic
@@ -502,6 +515,9 @@ if (BUILD_SAMPLE)
   add_subdirectory(samples)
 endif()
 
+if(ENABLE_AWS_SDK_INTEG)
+  add_subdirectory(cloudwatch-integ)
+endif()
 if(BUILD_TEST)
   # adding ZLIB because aws sdk static link seems to be broken when zlib is needed
   if(NOT WIN32)
