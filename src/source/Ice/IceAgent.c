@@ -474,7 +474,9 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
             isMatchingTurnFamily =
                 (pLocalIceCandidate->pTurnConnection->ipFamilyType == KVS_IP_FAMILY_TYPE_IPV4 && IS_IPV4_ADDR(&pIceCandidate->ipAddress)) ||
                 (pLocalIceCandidate->pTurnConnection->ipFamilyType == KVS_IP_FAMILY_TYPE_IPV6 && IS_IPV6_ADDR(&pIceCandidate->ipAddress));
-            if (isMatchingTurnFamily) {
+            // [TURN Allocation] Only supporting IPv4 allocations for now.
+            // if (isMatchingTurnFamily) {
+            if (pIceCandidate->ipAddress.family == KVS_IP_FAMILY_TYPE_IPV4) {
                 CHK_STATUS(turnConnectionAddPeer(pLocalIceCandidate->pTurnConnection, &pIceCandidate->ipAddress));
             }
         }
@@ -1943,7 +1945,7 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
     BOOL locked = FALSE;
     PTurnConnection pTurnConnection = NULL;
     PKvsIpAddress pTurnServerAddress = NULL;
-    BOOL isMatchingFamily = FALSE;
+    BOOL isMatchingTurnFamily = FALSE;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     CHK(turnServerIpFamily != KVS_IP_FAMILY_TYPE_NOT_SET, STATUS_INVALID_ARG);
@@ -2004,10 +2006,13 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
         pCandidate = (PIceCandidate) data;
 
         // Check IP family match and add peer
-        isMatchingFamily = (turnServerIpFamily == KVS_IP_FAMILY_TYPE_IPV4 && IS_IPV4_ADDR(&pCandidate->ipAddress)) ||
+        isMatchingTurnFamily = (turnServerIpFamily == KVS_IP_FAMILY_TYPE_IPV4 && IS_IPV4_ADDR(&pCandidate->ipAddress)) ||
             (turnServerIpFamily == KVS_IP_FAMILY_TYPE_IPV6 && IS_IPV6_ADDR(&pCandidate->ipAddress));
 
-        if (isMatchingFamily) {
+            
+        // [TURN Allocation] Only supporting IPv4 allocations for now.
+        // if (isMatchingTurnFamily) {
+        if (pCandidate->ipAddress.family == KVS_IP_FAMILY_TYPE_IPV4) {
             CHK_STATUS(turnConnectionAddPeer(pTurnConnection, &pCandidate->ipAddress));
         }
     }

@@ -734,11 +734,13 @@ STATUS turnConnectionAddPeer(PTurnConnection pTurnConnection, PKvsIpAddress pPee
 
     CHK(pTurnConnection != NULL && pPeerAddress != NULL, STATUS_NULL_ARG);
 
-    if (pTurnConnection->ipFamilyType == KVS_IP_FAMILY_TYPE_IPV4) {
-        CHK_WARN(IS_IPV4_ADDR(pPeerAddress), STATUS_INVALID_ARG, "Dropping IPv6 peer for IPv4 TURN connection.");
-    } else if (pTurnConnection->ipFamilyType == KVS_IP_FAMILY_TYPE_IPV6) {
-        CHK_WARN(IS_IPV6_ADDR(pPeerAddress), STATUS_INVALID_ARG, "Dropping IPv4 peer for IPv6 TURN connection.");
-    }
+    // [TURN Allocation] Only supporting IPv4 allocations for now.
+    // if (pTurnConnection->ipFamilyType == KVS_IP_FAMILY_TYPE_IPV4) {
+    //     CHK_WARN(IS_IPV4_ADDR(pPeerAddress), STATUS_INVALID_ARG, "Dropping IPv6 peer for IPv4 TURN connection.");
+    // } else if (pTurnConnection->ipFamilyType == KVS_IP_FAMILY_TYPE_IPV6) {
+    //     CHK_WARN(IS_IPV6_ADDR(pPeerAddress), STATUS_INVALID_ARG, "Dropping IPv4 peer for IPv6 TURN connection.");
+    // }
+    CHK_WARN(IS_IPV4_ADDR(pPeerAddress), STATUS_INVALID_ARG, "Dropping IPv6 peer for IPv4 TURN connection.");
 
     MUTEX_LOCK(pTurnConnection->lock);
     locked = TRUE;
@@ -1244,7 +1246,8 @@ STATUS turnConnectionPackageTurnAllocationRequest(PCHAR username, PCHAR realm, P
 
         // KVS TURN server will default to IPv4 if no address family attribute is specified.
         if (turnConnectionFamilyType == KVS_IP_FAMILY_TYPE_IPV6) {
-            CHK_STATUS(appendStunAllocationAddressFamily(pTurnAllocateRequest, KVS_IP_FAMILY_TYPE_IPV6));
+            // [TURN Allocation] Only supporting IPv4 allocations for now.
+            // CHK_STATUS(appendStunAllocationAddressFamily(pTurnAllocateRequest, KVS_IP_FAMILY_TYPE_IPV6));
         }
     }
 
