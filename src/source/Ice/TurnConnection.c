@@ -57,7 +57,6 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
                             KVS_SOCKET_PROTOCOL protocol, PTurnConnectionCallbacks pTurnConnectionCallbacks, PSocketConnection pTurnSocket,
                             PConnectionListener pConnectionListener, PTurnConnection* ppTurnConnection)
 {
-    UNUSED_PARAM(dataTransferMode);
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = NULL;
@@ -68,6 +67,10 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     CHK(pTurnServer->isTurn && !IS_EMPTY_STRING(pTurnServer->url) && !IS_EMPTY_STRING(pTurnServer->credential) &&
             !IS_EMPTY_STRING(pTurnServer->username),
         STATUS_INVALID_ARG);
+
+    // Only TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL is supported for now.
+    CHK_ERR(dataTransferMode == TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL, STATUS_NOT_IMPLEMENTED,
+            "Only data-channel data-transfer mode is supported.");
 
     // Set the TURN server hostname in the socket connection for TLS hostname verification
     PCHAR hostname = NULL;
@@ -89,8 +92,7 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     pTurnConnection->pTurnPacket = NULL;
     pTurnConnection->pTurnChannelBindPacket = NULL;
     pTurnConnection->pConnectionListener = pConnectionListener;
-    pTurnConnection->dataTransferMode =
-        TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL; // only TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL for now
+    pTurnConnection->dataTransferMode = dataTransferMode;
     pTurnConnection->protocol = protocol;
     pTurnConnection->relayAddressReported = FALSE;
     pTurnConnection->pControlChannel = pTurnSocket;
