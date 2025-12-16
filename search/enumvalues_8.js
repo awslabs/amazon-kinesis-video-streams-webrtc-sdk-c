@@ -5,7 +5,7 @@ var searchData=
   ['tls_5fsession_5fstate_5fconnecting_2',['TLS_SESSION_STATE_CONNECTING',['../Tls_8h.html#a34f7163b11d867c707f8b11f584ebc06aa2f35446568afb2476726133fc0729ba',1,'Tls.h']]],
   ['tls_5fsession_5fstate_5fnew_3',['TLS_SESSION_STATE_NEW',['../Tls_8h.html#a34f7163b11d867c707f8b11f584ebc06ac621f6e65573bf16650707b53aa238c9',1,'Tls.h']]],
   ['turn_5fconnection_5fdata_5ftransfer_5fmode_5fdata_5fchannel_4',['TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL',['../TurnConnection_8h.html#a23f3a4cb706b4bdbc3ab360fe79dd9bbac606e474b7c484e9e6bfe3feb3b6f026',1,'TurnConnection.h']]],
-  ['turn_5fconnection_5fdata_5ftransfer_5fmode_5fsend_5findidation_5',['TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDIDATION',['../TurnConnection_8h.html#a23f3a4cb706b4bdbc3ab360fe79dd9bba120b33115cc5efdfca3abc261f9fdb8f',1,'TurnConnection.h']]],
+  ['turn_5fconnection_5fdata_5ftransfer_5fmode_5fsend_5findication_5',['TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDICATION',['../TurnConnection_8h.html#a23f3a4cb706b4bdbc3ab360fe79dd9bba05b8d09f93c5a4dc88369d3e08b50fb8',1,'TurnConnection.h']]],
   ['turn_5fpeer_5fconn_5fstate_5fbind_5fchannel_6',['TURN_PEER_CONN_STATE_BIND_CHANNEL',['../TurnConnection_8h.html#a55eb4c6ede27be47adf8277f73a5c656a817864762cff3f9a703b0d1b0339e72a',1,'TurnConnection.h']]],
   ['turn_5fpeer_5fconn_5fstate_5fcreate_5fpermission_7',['TURN_PEER_CONN_STATE_CREATE_PERMISSION',['../TurnConnection_8h.html#a55eb4c6ede27be47adf8277f73a5c656ac4ef76d4c17eca52e75e22af42aafba5',1,'TurnConnection.h']]],
   ['turn_5fpeer_5fconn_5fstate_5ffailed_8',['TURN_PEER_CONN_STATE_FAILED',['../TurnConnection_8h.html#a55eb4c6ede27be47adf8277f73a5c656a17792594d3f855622ad695a7ad9d6e81',1,'TurnConnection.h']]],
