@@ -355,9 +355,16 @@ BOOL isIpAddr(PCHAR hostname, UINT16 length)
     }
 
     // Check if IPv6 address.
+    // NOTE: This IPv6 address check assumes the full notation is used without any compression (e.g., no '::' usage).
     offset = 0;
     if (SSCANF(hostname, "%x:%x:%x:%x:%x:%x:%x:%x%n", &ip_1, &ip_2, &ip_3, &ip_4, &ip_5, &ip_6, &ip_7, &ip_8, &offset) == 8 &&
-        offset == STRLEN(hostname)) {
+        // Verify that the entire input was consumed - do not allow extra characters.
+        offset == STRLEN(hostname) &&
+
+        // Check the validity of each hextet.
+        ip_1 <= 0xFFFF && ip_2 <= 0xFFFF && ip_3 <= 0xFFFF && ip_4 <= 0xFFFF && ip_5 <= 0xFFFF && ip_6 <= 0xFFFF && ip_7 <= 0xFFFF && ip_8 <= 0xFFFF)
+
+    {
         return TRUE;
     }
 

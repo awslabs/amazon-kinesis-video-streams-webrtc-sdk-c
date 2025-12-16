@@ -22,9 +22,6 @@ extern "C" {
 
 #define KVS_GET_IP_ADDRESS_PORT(a) ((UINT16) getInt16((a)->port))
 
-#define IPV4_TEMPLATE "%d.%d.%d.%d"
-#define IPV6_TEMPLATE "%04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x"
-
 #if defined(__MACH__)
 #define NO_SIGNAL_SOCK_OPT SO_NOSIGPIPE
 #define NO_SIGNAL_SEND     0
