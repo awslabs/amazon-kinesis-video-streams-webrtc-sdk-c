@@ -2764,6 +2764,35 @@ a=rtcp-mux-only
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
+TEST_F(SdpApiTest, addTransceiverUnknownCodecId_returnsStatusNotImplemented)
+{
+    PRtcPeerConnection offerPc = NULL;
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit sessionDescriptionInit;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    // Create peer connection
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+
+    RtcMediaStreamTrack track;
+    PRtcRtpTransceiver pTransceiver;
+    RtcRtpTransceiverInit rtcRtpTransceiverInit;
+    rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+
+    MEMSET(&track, 0x00, SIZEOF(RtcMediaStreamTrack));
+
+    track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    track.codec = RTC_CODEC_MAX;
+    STRCPY(track.streamId, "myKvsVideoStream");
+    STRCPY(track.trackId, "myTrack");
+
+    EXPECT_EQ(STATUS_NOT_IMPLEMENTED, addTransceiver(offerPc, &track, &rtcRtpTransceiverInit, &pTransceiver));
+
+    closePeerConnection(offerPc);
+    freePeerConnection(&offerPc);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

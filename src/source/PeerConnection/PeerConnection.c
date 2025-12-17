@@ -1654,6 +1654,9 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
             break;
 
         default:
+            DLOGW("[TrackID: %s, StreamID: %s, kind: %d] contains unsupported codec: %d",
+                  pRtcMediaStreamTrack->trackId, pRtcMediaStreamTrack->streamId,
+                  pRtcMediaStreamTrack->kind, pRtcMediaStreamTrack->codec);
             CHK(FALSE, STATUS_NOT_IMPLEMENTED);
     }
 
