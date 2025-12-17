@@ -38,13 +38,13 @@
 #endif
 #endif
 
-#define SDIO_SLAVE_QUEUE_SIZE            CONFIG_ESP_SDIO_RX_Q_SIZE
+#define SDIO_SLAVE_QUEUE_SIZE            CONFIG_ESP_SDIO_TX_Q_SIZE
 //#define SIMPLIFIED_SDIO_SLAVE            1
 
 //#define SEPARATE_TX_TASK                 1
 #define BUFFER_SIZE                      MAX_TRANSPORT_BUF_SIZE
 //TODO: lower for low mem
-#define BUFFER_NUM                       5
+#define BUFFER_NUM                       CONFIG_ESP_SDIO_RX_Q_SIZE
 static uint8_t sdio_slave_rx_buffer[BUFFER_NUM][BUFFER_SIZE];
 
 static struct hosted_mempool * buf_mp_tx_g;
@@ -81,7 +81,9 @@ static const char *TAG = "SDIO_SLAVE";
 #define SDIO_S2H_INTR_FLOW_CTRL_OFF     SDIO_SLAVE_TO_HOST_INT_BIT6
 
 
-#define SDIO_MEMPOOL_NUM_BLOCKS     (BUFFER_NUM * 2) //((SDIO_TX_QUEUE_SIZE+SDIO_RX_QUEUE_SIZE)+SDIO_SLAVE_QUEUE_SIZE)
+// #define SDIO_MEMPOOL_NUM_BLOCKS     (BUFFER_NUM * 2) //((SDIO_TX_QUEUE_SIZE+SDIO_RX_QUEUE_SIZE)+SDIO_SLAVE_QUEUE_SIZE)
+#define SDIO_MEMPOOL_NUM_BLOCKS     (2 * CONFIG_ESP_SDIO_TX_Q_SIZE + 1)
+
 /* Note: Sometimes the SDIO card is detected but gets problem in
  * Read/Write or handling ISR because of SDIO timing issues.
  * In these cases, Please tune timing below via Menuconfig
@@ -417,7 +419,7 @@ static interface_handle_t * sdio_init(void)
 	// task to clean up after doing sdio tx
 	assert(xTaskCreate(sdio_tx_done_task, "sdio_tx_done_task" ,
 			CONFIG_ESP_DEFAULT_TASK_STACK_SIZE, NULL,
-			CONFIG_ESP_DEFAULT_TASK_PRIO, NULL) == pdTRUE);
+			CONFIG_ESP_DEFAULT_TASK_PRIO + 1, NULL) == pdTRUE);
 
 #endif
 
@@ -432,16 +434,48 @@ static interface_handle_t * sdio_init(void)
 static void sdio_tx_done_task(void* pvParameters)
 {
 	esp_err_t res;
-	uint8_t sendbuf = 0;
-	uint8_t *sendbuf_p = &sendbuf;
+	uint8_t *sendbuf_p = NULL;
+	uint32_t empty_loops = 0;
 
 	while (true) {
-		res = sdio_slave_send_get_finished((void**)&sendbuf_p, portMAX_DELAY);
-		if (res) {
-			ESP_LOGE(TAG, "sdio_slave_send_get_finished() error");
+		/* Aggressively process ALL available finished buffers in tight loop */
+		/* This ensures the internal ret_queue never fills up, preventing ISR assertion failures */
+		bool processed_any = false;
+
+		/* Process as many items as possible without blocking */
+		while (true) {
+			res = sdio_slave_send_get_finished((void**)&sendbuf_p, 0);
+			if (res == ESP_OK && sendbuf_p != NULL) {
+				sdio_buffer_tx_free(sendbuf_p);
+				processed_any = true;
+				sendbuf_p = NULL;
+			} else {
+				break;  // No more items available
+			}
+		}
+
+		if (processed_any) {
+			/* Reset empty loop counter when we process items */
+			empty_loops = 0;
+			/* Continue immediately to check for more items - don't yield */
 			continue;
 		}
-		sdio_buffer_tx_free(sendbuf_p);
+
+		/* No items available - use short timeout to be responsive */
+		/* Short timeout ensures we wake up quickly when new items arrive */
+		empty_loops++;
+		res = sdio_slave_send_get_finished((void**)&sendbuf_p, pdMS_TO_TICKS(10));
+		if (res == ESP_OK && sendbuf_p != NULL) {
+			sdio_buffer_tx_free(sendbuf_p);
+			sendbuf_p = NULL;
+			empty_loops = 0;
+		} else if (res == ESP_ERR_TIMEOUT) {
+			/* After many empty loops, yield briefly to allow other tasks */
+			if (empty_loops > 100) {
+				vTaskDelay(1);
+				empty_loops = 0;
+			}
+		}
 	}
 }
 #endif
