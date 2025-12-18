@@ -306,15 +306,33 @@ void app_main(void)
     }
 
     // Get media interfaces for streaming (capture for sending, player for receiving)
+    // Optionally use file-based capture instead of camera/microphone
+    // Set USE_FILE_STREAM to 1 to use file-based streaming, 0 for hardware capture
+#define USE_FILE_STREAM 0
+
+#if USE_FILE_STREAM
+    media_stream_video_capture_t *video_capture = media_stream_get_file_video_capture_if();
+    media_stream_audio_capture_t *audio_capture = NULL;
+#else
     media_stream_video_capture_t *video_capture = media_stream_get_video_capture_if();
     media_stream_audio_capture_t *audio_capture = media_stream_get_audio_capture_if();
+#endif
     media_stream_video_player_t *video_player = media_stream_get_video_player_if();
     media_stream_audio_player_t *audio_player = media_stream_get_audio_player_if();
 
-    if (video_capture == NULL || audio_capture == NULL ||
-        video_player == NULL || audio_player == NULL) {
-        ESP_LOGE(TAG, "Failed to get media interfaces");
-        return;
+    if (video_capture == NULL) {
+        ESP_LOGW(TAG, "Video capture not available - continuing without video capture");
+    }
+    if (video_player == NULL) {
+        ESP_LOGW(TAG, "Video player not available - continuing without video player");
+    }
+
+    if (audio_capture == NULL) {
+        ESP_LOGW(TAG, "Audio capture not available - continuing without audio capture");
+    }
+
+    if (audio_player == NULL) {
+        ESP_LOGW(TAG, "Audio player not available - continuing without audio player");
     }
 
     // Initialize data channel context

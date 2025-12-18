@@ -9,7 +9,9 @@
 #include <inttypes.h>
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "esp_heap_caps.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "freertos/semphr.h"
 #include "media_stream.h"
 #if CONFIG_IDF_TARGET_ESP32P4
@@ -123,6 +125,31 @@ static uint32_t s_video_file_index = 0;
 static uint32_t s_audio_file_index = 0;
 static uint64_t s_video_ref_time = 0;
 static uint64_t s_audio_ref_time = 0;
+
+// Configurable file paths for sample frames
+static char s_mount_point[64] = "/spiffs";
+static char s_video_file_prefix[64] = "samples/frame";
+static char s_audio_file_prefix[64] = "samples/sample";
+static char s_video_file_extension[16] = ".h264";
+static char s_audio_file_extension[16] = ".opus";
+
+// File-based capture state structures
+typedef struct {
+    bool started;
+    video_frame_t current_frame;
+    uint8_t *frame_buffer;
+    uint32_t frame_buffer_size;
+    uint32_t current_bitrate_kbps;
+    uint64_t start_time;
+} file_video_capture_state_t;
+
+typedef struct {
+    bool started;
+    audio_frame_t current_frame;
+    uint8_t *frame_buffer;
+    uint32_t frame_buffer_size;
+    uint64_t start_time;
+} file_audio_capture_state_t;
 
 // Default audio capture implementation
 static esp_err_t audio_capture_init_impl(audio_capture_config_t *config, audio_capture_handle_t *handle)
@@ -286,6 +313,335 @@ static media_stream_video_player_t s_video_player_if = {
     .deinit = video_player_deinit_impl
 };
 
+// =============================================================================
+// File-based Video Capture Interface Implementation
+// =============================================================================
+
+static esp_err_t file_video_capture_init_impl(video_capture_config_t *config, video_capture_handle_t *handle)
+{
+    file_video_capture_state_t *state = NULL;
+
+    if (config == NULL || handle == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    state = (file_video_capture_state_t *)calloc(1, sizeof(file_video_capture_state_t));
+    if (state == NULL) {
+        return ESP_ERR_NO_MEM;
+    }
+
+    state->started = false;
+    state->current_bitrate_kbps = config->bitrate;
+    state->frame_buffer = NULL;
+    state->frame_buffer_size = 0;
+    state->start_time = 0;
+
+    *handle = (video_capture_handle_t)state;
+    ESP_LOGI(TAG, "File-based video capture initialized");
+    return ESP_OK;
+}
+
+static esp_err_t file_video_capture_start_impl(video_capture_handle_t handle)
+{
+    file_video_capture_state_t *state = (file_video_capture_state_t *)handle;
+
+    if (state == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    state->started = true;
+    state->start_time = esp_timer_get_time() * 10; // Convert to 100ns units
+    s_video_ref_time = state->start_time;
+    s_video_file_index = 0;
+    ESP_LOGI(TAG, "File-based video capture started");
+    return ESP_OK;
+}
+
+static esp_err_t file_video_capture_stop_impl(video_capture_handle_t handle)
+{
+    file_video_capture_state_t *state = (file_video_capture_state_t *)handle;
+
+    if (state == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    state->started = false;
+    ESP_LOGI(TAG, "File-based video capture stopped");
+    return ESP_OK;
+}
+
+static esp_err_t file_video_capture_get_frame_impl(video_capture_handle_t handle, video_frame_t **frame, uint32_t timeout_ms)
+{
+    file_video_capture_state_t *state = (file_video_capture_state_t *)handle;
+    esp_err_t ret = ESP_OK;
+    size_t actual_size = 0;
+    uint64_t timestamp = 0;
+
+    if (state == NULL || frame == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if (!state->started) {
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    // Allocate buffer if needed (start with 256KB, will grow if needed)
+    // Prefer SPIRAM, fallback to internal memory
+    if (state->frame_buffer == NULL) {
+        state->frame_buffer_size = 256 * 1024;
+        state->frame_buffer = (uint8_t *) heap_caps_malloc_prefer(state->frame_buffer_size, 2,
+                                                                  MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT,
+                                                                  MALLOC_CAP_DEFAULT | MALLOC_CAP_INTERNAL);
+        if (state->frame_buffer == NULL) {
+            return ESP_ERR_NO_MEM;
+        }
+    }
+
+    // Get frame from file
+    ret = media_stream_get_sample_video_frame(state->frame_buffer, state->frame_buffer_size,
+                                              &actual_size, &timestamp);
+    if (ret != ESP_OK) {
+        if (ret == ESP_ERR_INVALID_SIZE) {
+            // Buffer too small, reallocate - prefer SPIRAM, fallback to internal memory
+            heap_caps_free(state->frame_buffer);
+            state->frame_buffer_size = actual_size;
+            state->frame_buffer = (uint8_t *) heap_caps_malloc_prefer(state->frame_buffer_size, 2,
+                                                                      MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT,
+                                                                      MALLOC_CAP_DEFAULT | MALLOC_CAP_INTERNAL);
+            if (state->frame_buffer == NULL) {
+                return ESP_ERR_NO_MEM;
+            }
+            ret = media_stream_get_sample_video_frame(state->frame_buffer, state->frame_buffer_size,
+                                                      &actual_size, &timestamp);
+        }
+        if (ret != ESP_OK) {
+            return ret;
+        }
+    }
+
+    // Fill frame structure
+    state->current_frame.buffer = state->frame_buffer;
+    state->current_frame.len = actual_size;
+    state->current_frame.timestamp = timestamp;
+    state->current_frame.type = VIDEO_FRAME_TYPE_I; // Sample frames are treated as I-frames
+
+    *frame = &state->current_frame;
+    return ESP_OK;
+}
+
+static esp_err_t file_video_capture_release_frame_impl(video_capture_handle_t handle, video_frame_t *frame)
+{
+    // For file-based capture, frames are managed internally, no action needed
+    (void)handle;
+    (void)frame;
+    return ESP_OK;
+}
+
+static esp_err_t file_video_capture_deinit_impl(video_capture_handle_t handle)
+{
+    file_video_capture_state_t *state = (file_video_capture_state_t *)handle;
+
+    if (state == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if (state->frame_buffer != NULL) {
+        heap_caps_free(state->frame_buffer);
+        state->frame_buffer = NULL;
+    }
+
+    free(state);
+    ESP_LOGI(TAG, "File-based video capture deinitialized");
+    return ESP_OK;
+}
+
+static esp_err_t file_video_capture_set_bitrate_impl(video_capture_handle_t handle, uint32_t bitrate_kbps)
+{
+    file_video_capture_state_t *state = (file_video_capture_state_t *)handle;
+
+    if (state == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    state->current_bitrate_kbps = bitrate_kbps;
+    ESP_LOGD(TAG, "File-based video capture bitrate set to %" PRIu32 " kbps", bitrate_kbps);
+    return ESP_OK;
+}
+
+static esp_err_t file_video_capture_get_bitrate_impl(video_capture_handle_t handle, uint32_t *bitrate_kbps)
+{
+    file_video_capture_state_t *state = (file_video_capture_state_t *)handle;
+
+    if (state == NULL || bitrate_kbps == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    *bitrate_kbps = state->current_bitrate_kbps;
+    return ESP_OK;
+}
+
+// Static file-based video capture interface
+static media_stream_video_capture_t s_file_video_capture = {
+    .init = file_video_capture_init_impl,
+    .start = file_video_capture_start_impl,
+    .stop = file_video_capture_stop_impl,
+    .get_frame = file_video_capture_get_frame_impl,
+    .release_frame = file_video_capture_release_frame_impl,
+    .deinit = file_video_capture_deinit_impl,
+    .set_bitrate = file_video_capture_set_bitrate_impl,
+    .get_bitrate = file_video_capture_get_bitrate_impl
+};
+
+// =============================================================================
+// File-based Audio Capture Interface Implementation
+// =============================================================================
+
+static esp_err_t file_audio_capture_init_impl(audio_capture_config_t *config, audio_capture_handle_t *handle)
+{
+    file_audio_capture_state_t *state = NULL;
+
+    if (config == NULL || handle == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    state = (file_audio_capture_state_t *)calloc(1, sizeof(file_audio_capture_state_t));
+    if (state == NULL) {
+        return ESP_ERR_NO_MEM;
+    }
+
+    state->started = false;
+    state->frame_buffer = NULL;
+    state->frame_buffer_size = 0;
+    state->start_time = 0;
+
+    *handle = (audio_capture_handle_t)state;
+    ESP_LOGI(TAG, "File-based audio capture initialized");
+    return ESP_OK;
+}
+
+static esp_err_t file_audio_capture_start_impl(audio_capture_handle_t handle)
+{
+    file_audio_capture_state_t *state = (file_audio_capture_state_t *)handle;
+
+    if (state == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    state->started = true;
+    state->start_time = esp_timer_get_time() * 10; // Convert to 100ns units
+    s_audio_ref_time = state->start_time;
+    s_audio_file_index = 0;
+    ESP_LOGI(TAG, "File-based audio capture started");
+    return ESP_OK;
+}
+
+static esp_err_t file_audio_capture_stop_impl(audio_capture_handle_t handle)
+{
+    file_audio_capture_state_t *state = (file_audio_capture_state_t *)handle;
+
+    if (state == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    state->started = false;
+    ESP_LOGI(TAG, "File-based audio capture stopped");
+    return ESP_OK;
+}
+
+static esp_err_t file_audio_capture_get_frame_impl(audio_capture_handle_t handle, audio_frame_t **frame, uint32_t timeout_ms)
+{
+    file_audio_capture_state_t *state = (file_audio_capture_state_t *)handle;
+    esp_err_t ret = ESP_OK;
+    size_t actual_size = 0;
+    uint64_t timestamp = 0;
+
+    if (state == NULL || frame == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if (!state->started) {
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    // Allocate buffer if needed (start with 4KB, will grow if needed)
+    // Prefer SPIRAM, fallback to internal memory
+    if (state->frame_buffer == NULL) {
+        state->frame_buffer_size = 4 * 1024;
+        state->frame_buffer = (uint8_t *) heap_caps_malloc_prefer(state->frame_buffer_size, 2,
+                                                                  MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT,
+                                                                  MALLOC_CAP_DEFAULT | MALLOC_CAP_INTERNAL);
+        if (state->frame_buffer == NULL) {
+            return ESP_ERR_NO_MEM;
+        }
+    }
+
+    // Get frame from file
+    ret = media_stream_get_sample_audio_frame(state->frame_buffer, state->frame_buffer_size,
+                                              &actual_size, &timestamp);
+    if (ret != ESP_OK) {
+        if (ret == ESP_ERR_INVALID_SIZE) {
+            // Buffer too small, reallocate - prefer SPIRAM, fallback to internal memory
+            heap_caps_free(state->frame_buffer);
+            state->frame_buffer_size = actual_size;
+            state->frame_buffer = (uint8_t *) heap_caps_malloc_prefer(state->frame_buffer_size, 2,
+                                                                      MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT,
+                                                                      MALLOC_CAP_DEFAULT | MALLOC_CAP_INTERNAL);
+            if (state->frame_buffer == NULL) {
+                return ESP_ERR_NO_MEM;
+            }
+            ret = media_stream_get_sample_audio_frame(state->frame_buffer, state->frame_buffer_size,
+                                                      &actual_size, &timestamp);
+        }
+        if (ret != ESP_OK) {
+            return ret;
+        }
+    }
+
+    // Fill frame structure
+    state->current_frame.buffer = state->frame_buffer;
+    state->current_frame.len = actual_size;
+    state->current_frame.timestamp = timestamp;
+
+    *frame = &state->current_frame;
+    return ESP_OK;
+}
+
+static esp_err_t file_audio_capture_release_frame_impl(audio_capture_handle_t handle, audio_frame_t *frame)
+{
+    // For file-based capture, frames are managed internally, no action needed
+    (void)handle;
+    (void)frame;
+    return ESP_OK;
+}
+
+static esp_err_t file_audio_capture_deinit_impl(audio_capture_handle_t handle)
+{
+    file_audio_capture_state_t *state = (file_audio_capture_state_t *)handle;
+
+    if (state == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if (state->frame_buffer != NULL) {
+        heap_caps_free(state->frame_buffer);
+        state->frame_buffer = NULL;
+    }
+
+    free(state);
+    ESP_LOGI(TAG, "File-based audio capture deinitialized");
+    return ESP_OK;
+}
+
+// Static file-based audio capture interface
+static media_stream_audio_capture_t s_file_audio_capture = {
+    .init = file_audio_capture_init_impl,
+    .start = file_audio_capture_start_impl,
+    .stop = file_audio_capture_stop_impl,
+    .get_frame = file_audio_capture_get_frame_impl,
+    .release_frame = file_audio_capture_release_frame_impl,
+    .deinit = file_audio_capture_deinit_impl
+};
+
 // Get interface functions
 media_stream_audio_capture_t* media_stream_get_audio_capture_if(void)
 {
@@ -295,6 +651,16 @@ media_stream_audio_capture_t* media_stream_get_audio_capture_if(void)
 media_stream_video_capture_t* media_stream_get_video_capture_if(void)
 {
     return &s_video_capture;
+}
+
+media_stream_video_capture_t* media_stream_get_file_video_capture_if(void)
+{
+    return &s_file_video_capture;
+}
+
+media_stream_audio_capture_t* media_stream_get_file_audio_capture_if(void)
+{
+    return &s_file_audio_capture;
 }
 
 // Get player interface functions
@@ -612,11 +978,80 @@ void media_stream_handle_audio_frame(uint32_t stream_id, uint8_t *frame_data, si
     }
 }
 
-// External declarations for embedded files
-extern const uint8_t h264_frame_start[] asm("_binary_frame_001_h264_start");
-extern const uint8_t h264_frame_end[] asm("_binary_frame_001_h264_end");
-extern const uint8_t opus_sample_start[] asm("_binary_sample_001_opus_start");
-extern const uint8_t opus_sample_end[] asm("_binary_sample_001_opus_end");
+esp_err_t media_stream_configure_file_paths(const media_stream_file_config_t *config)
+{
+    int needed_size;
+
+    if (config == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    // Update mount point if provided
+    if (config->mount_point != NULL) {
+        needed_size = snprintf(s_mount_point, sizeof(s_mount_point), "%s", config->mount_point);
+        if (needed_size < 0) {
+            ESP_LOGE(TAG, "Failed to format mount point");
+            return ESP_FAIL;
+        } else if (needed_size >= sizeof(s_mount_point)) {
+            ESP_LOGE(TAG, "Mount point too long: %s", config->mount_point);
+            return ESP_ERR_NO_MEM;
+        }
+    }
+
+    // Update video file prefix if provided
+    if (config->video_file_prefix != NULL) {
+        needed_size = snprintf(s_video_file_prefix, sizeof(s_video_file_prefix), "%s", config->video_file_prefix);
+        if (needed_size < 0) {
+            ESP_LOGE(TAG, "Failed to format video file prefix");
+            return ESP_FAIL;
+        } else if (needed_size >= sizeof(s_video_file_prefix)) {
+            ESP_LOGE(TAG, "Video file prefix too long: %s", config->video_file_prefix);
+            return ESP_ERR_NO_MEM;
+        }
+    }
+
+    // Update audio file prefix if provided
+    if (config->audio_file_prefix != NULL) {
+        needed_size = snprintf(s_audio_file_prefix, sizeof(s_audio_file_prefix), "%s", config->audio_file_prefix);
+        if (needed_size < 0) {
+            ESP_LOGE(TAG, "Failed to format audio file prefix");
+            return ESP_FAIL;
+        } else if (needed_size >= sizeof(s_audio_file_prefix)) {
+            ESP_LOGE(TAG, "Audio file prefix too long: %s", config->audio_file_prefix);
+            return ESP_ERR_NO_MEM;
+        }
+    }
+
+    // Update video file extension if provided
+    if (config->video_file_extension != NULL) {
+        needed_size = snprintf(s_video_file_extension, sizeof(s_video_file_extension), "%s", config->video_file_extension);
+        if (needed_size < 0) {
+            ESP_LOGE(TAG, "Failed to format video file extension");
+            return ESP_FAIL;
+        } else if (needed_size >= sizeof(s_video_file_extension)) {
+            ESP_LOGE(TAG, "Video file extension too long: %s", config->video_file_extension);
+            return ESP_ERR_NO_MEM;
+        }
+    }
+
+    // Update audio file extension if provided
+    if (config->audio_file_extension != NULL) {
+        needed_size = snprintf(s_audio_file_extension, sizeof(s_audio_file_extension), "%s", config->audio_file_extension);
+        if (needed_size < 0) {
+            ESP_LOGE(TAG, "Failed to format audio file extension");
+            return ESP_FAIL;
+        } else if (needed_size >= sizeof(s_audio_file_extension)) {
+            ESP_LOGE(TAG, "Audio file extension too long: %s", config->audio_file_extension);
+            return ESP_ERR_NO_MEM;
+        }
+    }
+
+    ESP_LOGI(TAG, "File paths configured: mount=%s, video=%s-XXXX%s, audio=%s-XXXX%s",
+             s_mount_point, s_video_file_prefix, s_video_file_extension,
+             s_audio_file_prefix, s_audio_file_extension);
+
+    return ESP_OK;
+}
 
 esp_err_t media_stream_read_frame_from_disk(uint8_t *frame_data, uint32_t *size, const char *frame_path)
 {
@@ -673,8 +1108,17 @@ esp_err_t media_stream_get_sample_video_frame(uint8_t *frame_data, size_t max_si
     s_video_file_index = s_video_file_index % NUMBER_OF_H264_FRAME_FILES + 1;
     ESP_LOGD(TAG, "Getting H264 Sample: %" PRIu32, s_video_file_index);
 
-    char filePath[128]; // TODO: The path should be configurable
-    snprintf(filePath, sizeof(filePath), "/spiffs/samples/frame-%04" PRIu32 ".h264", s_video_file_index);
+    char filePath[256];
+    int needed_size = snprintf(filePath, sizeof(filePath), "%s/%s-%04" PRIu32 "%s",
+                               s_mount_point, s_video_file_prefix, s_video_file_index, s_video_file_extension);
+
+    if (needed_size < 0) {
+        ESP_LOGE(TAG, "Failed to format file path: %s", filePath);
+        return ESP_FAIL;
+    } else if (needed_size >= sizeof(filePath)) {
+        ESP_LOGE(TAG, "File path too long: %s", filePath);
+        return ESP_ERR_NO_MEM;
+    }
 
     // Get frame size first
     uint32_t frameSize = max_size;
@@ -719,20 +1163,40 @@ esp_err_t media_stream_get_sample_audio_frame(uint8_t *frame_data, size_t max_si
         return ESP_ERR_INVALID_ARG;
     }
 
-    // Update file index
+    // Update file index and get next frame
     s_audio_file_index = s_audio_file_index % NUMBER_OF_OPUS_FRAME_FILES + 1;
     ESP_LOGD(TAG, "Getting Opus Sample: %" PRIu32, s_audio_file_index);
 
-    // For simplicity, we're using the embedded opus sample
-    size_t sample_size = opus_sample_end - opus_sample_start;
+    char filePath[256];
+    int needed_size = snprintf(filePath, sizeof(filePath), "%s/%s-%04" PRIu32 "%s",
+                               s_mount_point, s_audio_file_prefix, s_audio_file_index, s_audio_file_extension);
+    if (needed_size < 0) {
+        ESP_LOGE(TAG, "Failed to format file path: %s", filePath);
+        return ESP_FAIL;
+    } else if (needed_size >= sizeof(filePath)) {
+        ESP_LOGE(TAG, "File path too long: %s", filePath);
+        return ESP_ERR_NO_MEM;
+    }
 
-    if (sample_size > max_size) {
+    // Get frame size first
+    uint32_t frameSize = max_size;
+    esp_err_t ret = media_stream_read_frame_from_disk(NULL, &frameSize, filePath);
+    if (ret != ESP_OK) {
+        return ret;
+    }
+
+    if (frameSize > max_size) {
+        *actual_size = frameSize;
         return ESP_ERR_INVALID_SIZE;
     }
 
-    // Copy the sample data
-    memcpy(frame_data, opus_sample_start, sample_size);
-    *actual_size = sample_size;
+    // Read the actual frame
+    ret = media_stream_read_frame_from_disk(frame_data, &frameSize, filePath);
+    if (ret != ESP_OK) {
+        return ret;
+    }
+
+    *actual_size = frameSize;
     // TODO: is this good way for reference time?
     *timestamp = esp_timer_get_time() * 10 - s_audio_ref_time; // Convert to 100ns units
 

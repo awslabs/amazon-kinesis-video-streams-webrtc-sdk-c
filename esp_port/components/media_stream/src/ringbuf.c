@@ -1,5 +1,5 @@
 /**
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -37,37 +37,75 @@ typedef struct ringbuf {
 
 rb_handle_t rb_init(const char *name, uint32_t size)
 {
-    ringbuf_t *r;
-    unsigned char *buf;
+    ringbuf_t *r = NULL;
+    unsigned char *buf = NULL;
+    rb_handle_t handle = NULL;
 
     if (size < 2 || !name) {
         return NULL;
     }
 
     r = malloc(sizeof(ringbuf_t));
-    assert(r);
+    if (r == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate ringbuf structure");
+        goto cleanup;
+    }
     buf = heap_caps_calloc(1, size, MALLOC_CAP_SPIRAM);
-    assert(buf);
+    if (buf == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate ringbuf buffer");
+        goto cleanup;
+    }
 
     r->type = RB_TYPE_BASIC;
     r->name = (char *) name;
     r->base = r->readptr = r->writeptr = buf;
     r->fill_cnt = 0;
     r->size = size;
+    r->can_read = NULL;
+    r->can_write = NULL;
+    r->lock = NULL;
 
     vSemaphoreCreateBinary(r->can_read);
-    assert(r->can_read);
+    if (r->can_read == NULL) {
+        ESP_LOGE(TAG, "Failed to create read semaphore");
+        goto cleanup;
+    }
     vSemaphoreCreateBinary(r->can_write);
-    assert(r->can_write);
+    if (r->can_write == NULL) {
+        ESP_LOGE(TAG, "Failed to create write semaphore");
+        goto cleanup;
+    }
     r->lock = xSemaphoreCreateMutex();
-    assert(r->lock);
+    if (r->lock == NULL) {
+        ESP_LOGE(TAG, "Failed to create mutex");
+        goto cleanup;
+    }
 
     r->abort_read = 0;
     r->abort_write = 0;
     r->writer_finished = 0;
     r->reader_unblock = 0;
 
-    return (rb_handle_t)r;
+    handle = (rb_handle_t)r;
+    return handle;
+
+cleanup:
+    if (r != NULL) {
+        if (r->lock != NULL) {
+            vSemaphoreDelete(r->lock);
+        }
+        if (r->can_write != NULL) {
+            vSemaphoreDelete(r->can_write);
+        }
+        if (r->can_read != NULL) {
+            vSemaphoreDelete(r->can_read);
+        }
+        free(r);
+    }
+    if (buf != NULL) {
+        free(buf);
+    }
+    return NULL;
 }
 
 void rb_cleanup(rb_handle_t handle)
