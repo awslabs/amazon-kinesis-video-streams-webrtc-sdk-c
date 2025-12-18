@@ -374,7 +374,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
 
     // Set the  STUN server
     PCHAR pKinesisVideoStunUrlPostFix = NULL;
-    if (dualStackEnvVar != NULL && dualStackEnvVar[0] != '\0') {
+    if (!IS_NULL_OR_EMPTY_STRING(dualStackEnvVar)) {
         DLOGD("Using dual-stack STUN endpoint");
         if (STRSTR(pSampleConfiguration->channelInfo.pRegion, "cn-")) {
             pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_DUALSTACK_STUN_URL_POSTFIX_CN;

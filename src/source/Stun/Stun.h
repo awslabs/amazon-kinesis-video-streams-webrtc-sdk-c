@@ -407,7 +407,7 @@ STATUS appendStunChangeRequestAttribute(PStunPacket, UINT32);
 STATUS getStunAttribute(PStunPacket, STUN_ATTRIBUTE_TYPE, PStunAttributeHeader*);
 
 /**
- * xor an ip address in place
+ * xor an IP address in place
  */
 STATUS xorIpAddress(PKvsIpAddress, PBYTE);
 //

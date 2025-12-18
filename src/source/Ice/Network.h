@@ -49,7 +49,7 @@ typedef enum {
 } KVS_SOCKET_PROTOCOL;
 
 /**
- * @param - PKvsIpAddress - IN/OUT - array for getLocalhostIpAddresses to store any local ips it found. The ip address and port
+ * @param - PKvsIpAddress - IN/OUT - array for getLocalhostIpAddresses to store any local ips it found. The IP address and port
  *                                   will be in network byte order.
  * @param - UINT32 - IN/OUT - length of the array, upon return it will be updated to the actual number of ips in the array
  *
@@ -114,7 +114,7 @@ STATUS socketWrite(INT32, const void*, SIZE_T);
 /**
  * @param - PCHAR - IN - hostname to resolve
  *
- * @param - PKvsIpAddress - OUT - resolved ip address
+ * @param - PKvsIpAddress - OUT - resolved IP address
  *
  * @return - STATUS status of execution
  */

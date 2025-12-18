@@ -22,7 +22,7 @@ STATUS stunPackageIpAddr(PStunHeader pStunHeader, STUN_ATTRIBUTE_TYPE type, PKvs
      * - 2 byte attribute data len
      * - 2 byte address family
      * - 2 byte port
-     * - 4 byte or 16 byte ip address
+     * - 4 byte or 16 byte IP address
      */
     dataLen += STUN_ATTRIBUTE_HEADER_LEN + STUN_ATTRIBUTE_ADDRESS_HEADER_LEN;
     dataLen += IS_IPV4_ADDR(pIndirected) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;

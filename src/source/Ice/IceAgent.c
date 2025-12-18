@@ -1827,9 +1827,9 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
             DLOGI("Initializing an IPv6 STUN candidate...");
         }
 
-        // open up a new socket at host candidate's ip address for server reflex candidate.
-        // the new port will be stored in pNewCandidate->ipAddress.port. And the Ip address will later be updated
-        // with the correct ip address once the STUN response is received.
+        // Open up a new socket at host candidate's IP address for server reflex candidate.
+        // The new port will be stored in pNewCandidate->ipAddress.port. And the IP address will later be updated
+        // with the correct IP address once the STUN response is received.
         CHK_STATUS(createSocketConnection(pCandidate->ipAddress.family, KVS_SOCKET_PROTOCOL_UDP, &pCandidate->ipAddress, NULL, (UINT64) pIceAgent,
                                           incomingDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize, &pCandidate->pSocketConnection));
         ATOMIC_STORE_BOOL(&pCandidate->pSocketConnection->receiveData, TRUE);
@@ -1966,8 +1966,8 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
         pTurnServerAddress = &pIceAgent->iceServers[iceServerIndex].ipAddresses.ipv6Address;
     }
 
-    // open up a new socket without binding to any host address. The candidate Ip address will later be updated
-    // with the correct relay ip address once the Allocation success response is received. Relay candidate's socket is managed
+    // Open up a new socket without binding to any host address. The candidate IP address will later be updated
+    // with the correct relay IP address once the Allocation success response is received. Relay candidate's socket is managed
     // by TurnConnection struct.
     CHK_STATUS(createSocketConnection(turnServerIpFamily, protocol, NULL, pTurnServerAddress, (UINT64) pNewCandidate, incomingRelayedDataHandler,
                                       pIceAgent->kvsRtcConfiguration.sendBufSize, &pNewCandidate->pSocketConnection));
@@ -2727,10 +2727,10 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 pIceCandidatePair->remote->iceCandidateType == ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE &&
                 !isSameIpAddress(&pStunAttributeAddress->address, &pIceCandidatePair->local->ipAddress, FALSE)) {
                 // this can happen for host and server reflexive candidates. If the peer
-                // is in the same subnet, server reflexive candidate's binding response's xor mapped ip address will be
-                // the host candidate ip address. In this case we will ignore the packet since the host candidate will
+                // is in the same subnet, server reflexive candidate's binding response's xor mapped IP address will be
+                // the host candidate IP address. In this case we will ignore the packet since the host candidate will
                 // be getting its own response for the connection check.
-                DLOGD("local candidate ip address does not match with xor mapped address in binding response");
+                DLOGD("local candidate IP address does not match with xor mapped address in binding response");
 
                 // we have a peer reflexive local candidate
                 CHK_STATUS(iceAgentCheckPeerReflexiveCandidate(pIceAgent, &pStunAttributeAddress->address, pIceCandidatePair->local->priority, FALSE,
