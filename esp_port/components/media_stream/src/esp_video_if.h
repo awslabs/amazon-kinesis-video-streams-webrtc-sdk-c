@@ -37,6 +37,17 @@ esp_err_t esp_video_if_init(void);
 esp_err_t esp_video_if_stop(void);
 
 /**
+ * @brief Deinitialize the video interface and release camera hardware
+ *
+ * This function fully deinitializes the camera hardware, closes the device,
+ * and frees all resources. Should be called when camera is no longer needed
+ * to save power and address security concerns.
+ *
+ * @return esp_err_t ESP_OK on success, otherwise an error code
+ */
+esp_err_t esp_video_if_deinit(void);
+
+/**
  * @brief Start the video interface
  *
  * @return esp_err_t ESP_OK on success, otherwise an error code

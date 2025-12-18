@@ -346,9 +346,18 @@ static void video_encoder_task(void *arg)
 
 void esp32p4_frame_grabber_init(void)
 {
-    // Singleton pattern: return if already initialized
+    // Singleton pattern: encoder task remains, but check if esp_video_if needs reinitialization
     if (s_p4_enc_data.encoder_initialized) {
         ESP_LOGD(TAG, "ESP32P4 frame grabber already initialized (singleton)");
+#if USE_ESP_VIDEO_IF
+        // Reinitialize esp_video_if if it was deinitialized (for power/security reasons)
+        // esp_video_if_init() will check internally and return early if already initialized
+        esp_err_t ret = esp_video_if_init();
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to reinitialize video interface: %s", esp_err_to_name(ret));
+            return;
+        }
+#endif
         return;
     }
 
@@ -557,6 +566,9 @@ esp_err_t esp32p4_frame_grabber_deinit(void)
     // Singleton pattern: encoder task remains running but paused
     ESP_LOGD(TAG, "ESP32P4 frame grabber is singleton - task remains paused until start() is called");
 
+#if USE_ESP_VIDEO_IF
+    esp_video_if_deinit();
+#endif
     return ESP_OK;
 }
 #endif

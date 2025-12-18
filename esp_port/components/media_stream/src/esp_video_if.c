@@ -241,6 +241,44 @@ esp_err_t esp_video_if_stop(void)
     return ESP_FAIL;
 }
 
+esp_err_t esp_video_if_deinit(void)
+{
+    if (!g_v4l2) {
+        ESP_LOGD(TAG, "Video interface not initialized, nothing to deinitialize");
+        return ESP_OK;
+    }
+
+    ESP_LOGI(TAG, "Deinitializing camera hardware");
+
+    // Stop streaming first (stops frame capture and reduces power consumption)
+    esp_video_if_stop();
+
+    // Close the camera device file descriptor
+    if (g_v4l2->cap_fd >= 0) {
+        close(g_v4l2->cap_fd);
+        g_v4l2->cap_fd = -1;
+    }
+
+    // Free the v4l2 structure
+    heap_caps_free(g_v4l2);
+    g_v4l2 = NULL;
+
+    // Reset current resolution
+    g_current_resolution.width = 0;
+    g_current_resolution.height = 0;
+    g_current_resolution.fps = 0;
+
+    /* NOTE: The ISP device registered by esp_video_init() remains registered
+     * because there's no esp_video_deinit() API. This means:
+     * - The /dev/video0 device file persists
+     * - Some ISP hardware may remain powered (limitation of esp_video API)
+     * - However, streaming is stopped and device file is closed, which reduces power consumption
+     * - On reinit, we can skip esp_video_init() since ISP is already registered
+     */
+    ESP_LOGI(TAG, "Camera hardware deinitialized (streaming stopped, device closed)");
+    return ESP_OK;
+}
+
 esp_err_t esp_video_if_start(void)
 {
     if (!g_v4l2) {
@@ -438,14 +476,27 @@ esp_err_t esp_video_if_init(void)
         },
     };
 
-    esp_video_init_config_t cam_config = {
-        .csi      = csi_config,
-    };
+    // Check if video device already exists (from previous initialization)
+    // If it exists, esp_video_init() is not needed because ISP is already registered
+    // NOTE: This handles the case where esp_video_if_deinit() was called but ISP device
+    // registration persists (no esp_video_deinit() API exists)
+    int test_fd = open(CAM_DEV_PATH, O_RDONLY);
+    bool device_exists = (test_fd >= 0);
+    if (test_fd >= 0) {
+        close(test_fd);
+        ESP_LOGI(TAG, "Video device already exists (ISP already registered), skipping esp_video_init");
+    } else {
+        // Device doesn't exist - need to initialize esp_video to register ISP device
+        esp_video_init_config_t cam_config = {
+            .csi      = csi_config,
+        };
 
-    if (esp_video_init(&cam_config) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize video");
-        free(v4l2);
-        return ESP_FAIL;
+        esp_err_t video_init_ret = esp_video_init(&cam_config);
+        if (video_init_ret != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to initialize video");
+            free(v4l2);
+            return ESP_FAIL;
+        }
     }
 
     if (init_camera(v4l2) != ESP_OK) {

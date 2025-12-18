@@ -361,9 +361,11 @@ esp_h264_out_buf_t *get_h264_encoded_frame_putmedia()
 }
 
 #else /* CONFIG_IDF_TARGET_ESP32P4 */
+/* File-scope variable to track camera initialization state (reset on deinit) */
+static bool camera_enc_init_done = false;
+
 esp_err_t camera_and_encoder_init(video_capture_config_t *config)
 {
-    static bool camera_enc_init_done = false;
     if (camera_enc_init_done == true) {
         ESP_LOGI(TAG, "camera_and_encoder_init already done!");
         return ESP_OK;
@@ -407,7 +409,10 @@ esp_err_t h264_encoder_stop(void)
 
 esp_err_t h264_encoder_deinit(void)
 {
-    return esp32p4_frame_grabber_deinit();
+    esp_err_t ret = esp32p4_frame_grabber_deinit();
+    /* Reset the camera initialization flag so it can be reinitialized later */
+    camera_enc_init_done = false;
+    return ret;
 }
 #endif
 #else /* all other targets */
