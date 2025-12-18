@@ -211,8 +211,10 @@ esp_err_t video_capture_deinit(video_capture_handle_t handle)
     // Clean up based on codec type
     if (ctx->codec_type == VIDEO_CODEC_MJPEG) {
         mjpeg_encoder_deinit();
+    } else if (ctx->codec_type == VIDEO_CODEC_H264) {
+        // Deinitialize H264 encoder and camera hardware
+        h264_encoder_deinit();
     }
-    // For H264, there's no explicit deinit function
 
     // Free our context
     free(ctx);
