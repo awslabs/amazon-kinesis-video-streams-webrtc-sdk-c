@@ -274,6 +274,7 @@ void *opus_encoder_init_internal(audio_capture_config_t *config)
         esp_err_t ret = esp_codec_dev_open(mic_codec_dev, &fs);
         if (ret != ESP_OK) {
             ESP_LOGE(TAG, "Failed to open microphone codec device: %s", esp_err_to_name(ret));
+            mic_codec_dev = NULL;
             goto cleanup;
         }
 

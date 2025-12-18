@@ -126,7 +126,11 @@ static const char *tone_name[3] = {"bass", "alto", "treble"};
 void i2s_write_task(void *args)
 {
     int16_t *w_buf = (int16_t *)calloc(1, EXAMPLE_BUFF_SIZE);
-    assert(w_buf);
+    if (w_buf == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate write buffer in i2s_write_task");
+        vTaskDelete(NULL);
+        return;
+    }
     size_t w_bytes = 0;
     // Note: Using esp_codec_dev_write instead of direct I2S channel access
     uint8_t cnt = 0;            // The current index of the song
@@ -354,25 +358,68 @@ esp_err_t OpusAudioPlayerInit()
 
 #if OPUS_PLAYER_TASK
     rb_handle = rb_init("opus_player", OPUS_PLAYER_OUT_RB_SIZE);
+    if (rb_handle == NULL) {
+        ESP_LOGE(TAG, "Failed to initialize ring buffer");
+        return ESP_FAIL;
+    }
 
 #define OPUS_TASK_STACK_SIZE     (16 * 1024)
 #define OPUS_TASK_PRIO           (4) // A bit higher than grabber tasks
     StaticTask_t *task_buffer = heap_caps_calloc(1, sizeof(StaticTask_t), MALLOC_CAP_INTERNAL);
     void *task_stack = heap_caps_calloc(1, OPUS_TASK_STACK_SIZE, MALLOC_CAP_SPIRAM);
-    assert(task_buffer && task_stack);
+    if (task_buffer == NULL || task_stack == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate opus player task buffers");
+        if (task_buffer) {
+            heap_caps_free(task_buffer);
+        }
+        if (task_stack) {
+            heap_caps_free(task_stack);
+        }
+        if (rb_handle) {
+            rb_cleanup(rb_handle);
+            rb_handle = NULL;
+        }
+        return ESP_FAIL;
+    }
 
     /* the task never exits, so do not bother to free the buffers */
     TaskHandle_t opus_task_handle = xTaskCreateStatic(opus_player_task, "opus_player", OPUS_TASK_STACK_SIZE,
                                                      NULL, OPUS_TASK_PRIO, task_stack, task_buffer);
     if (opus_task_handle == NULL) {
         ESP_LOGE(TAG, "failed to create opus player task!");
+        heap_caps_free(task_buffer);
+        heap_caps_free(task_stack);
+        if (rb_handle) {
+            rb_cleanup(rb_handle);
+            rb_handle = NULL;
+        }
+        return ESP_FAIL;
     }
 
 #define I2S_SYNC_TASK_STACK_SIZE     (10 * 1024)
 #define I2S_SYNC_TASK_PRIO           (6) // IO sensitive task
     StaticTask_t *i2s_write_task_buffer = heap_caps_calloc(1, sizeof(StaticTask_t), MALLOC_CAP_INTERNAL);
     void *i2s_write_task_stack = heap_caps_calloc(1, I2S_SYNC_TASK_STACK_SIZE, MALLOC_CAP_SPIRAM);
-    assert(i2s_write_task_buffer && i2s_write_task_stack);
+    if (i2s_write_task_buffer == NULL || i2s_write_task_stack == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate i2s sync task buffers");
+        if (task_buffer) {
+            heap_caps_free(task_buffer);
+        }
+        if (task_stack) {
+            heap_caps_free(task_stack);
+        }
+        if (i2s_write_task_buffer) {
+            heap_caps_free(i2s_write_task_buffer);
+        }
+        if (i2s_write_task_stack) {
+            heap_caps_free(i2s_write_task_stack);
+        }
+        if (rb_handle) {
+            rb_cleanup(rb_handle);
+            rb_handle = NULL;
+        }
+        return ESP_FAIL;
+    }
 
     /* the task never exits, so do not bother to free the buffers */
     TaskHandle_t i2s_write_task_handle = xTaskCreateStatic(i2s_write_task, "i2s_write", I2S_SYNC_TASK_STACK_SIZE,

@@ -116,7 +116,10 @@ static esp_err_t init_camera(v4l2_src_t *v4l2)
     const int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
     fd = open(CAM_DEV_PATH, O_RDONLY);
-    assert(fd >= 0);
+    if (fd < 0) {
+        ESP_LOGE(TAG, "Failed to open camera device %s, errno: %d", CAM_DEV_PATH, errno);
+        return ESP_FAIL;
+    }
 
     if (ioctl(fd, VIDIOC_QUERYCAP, &capability) < 0) {
         ESP_LOGE(TAG, "Failed to query capabilities, errno: %d", errno);

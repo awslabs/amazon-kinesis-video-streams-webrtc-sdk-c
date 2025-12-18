@@ -201,7 +201,10 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
     UINT64 startTime;
     media_stream_video_capture_t *video_capture = NULL;
     video_frame_t *video_frame = NULL;
-    const UINT64 frame_duration_100ns = KVS_SAMPLE_VIDEO_FRAME_DURATION;
+    UINT64 frame_duration_100ns = KVS_SAMPLE_VIDEO_FRAME_DURATION; // Default 30 fps
+    UINT64 last_send_time_us = 0; // Track last frame send time for rate control
+    UINT32 target_fps = 30; // Default FPS
+    UINT64 frame_interval_us = 0; // Frame interval in microseconds
 
 #if KVS_MEDIA_ENABLE_ADAPTIVE_BITRATE
     /* Adaptive bitrate control variables */
@@ -215,6 +218,14 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
     // Thread just needs to check if camera is available and get frames
     if (g_global_media.config.video_capture != NULL && g_global_media.video_handle != NULL) {
         video_capture = (media_stream_video_capture_t*)g_global_media.config.video_capture;
+
+        // Calculate frame duration from configured FPS
+        target_fps = g_global_media.config.video_fps > 0 ? g_global_media.config.video_fps : 30;
+        frame_duration_100ns = HUNDREDS_OF_NANOS_IN_A_SECOND / target_fps;
+        frame_interval_us = frame_duration_100ns / 10; // Convert 100ns to microseconds
+        ESP_LOGI(TAG, "Video frame rate control: %" PRIu32 " fps (frame interval: %llu us)",
+                 target_fps, frame_interval_us);
+
 #if KVS_MEDIA_ENABLE_ADAPTIVE_BITRATE
         /* Get initial bitrate if get_bitrate is available */
         if (video_capture->get_bitrate != NULL) {
@@ -243,13 +254,15 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
     /* esp_timer_get_time() returns microseconds since boot. Not affected by time sync */
     startTime = esp_timer_get_time() * HUNDREDS_OF_NANOS_IN_A_MICROSECOND;
     UINT64 video_frame_index = 0;  /* Local frame counter for video */
+    last_send_time_us = 0; // Initialize frame timing
 
     while (!ATOMIC_LOAD_BOOL(&g_global_media.terminated)) {
         BOOL frame_available = FALSE;
 
-        if (video_capture != NULL) {
-            // Get frame from camera (wait up to 33ms for a frame at 30fps)
-            esp_err_t get_ret = video_capture->get_frame(g_global_media.video_handle, &video_frame, 33);
+        if (video_capture != NULL && g_global_media.video_handle != NULL) {
+            // Get frame from camera/file (wait up to frame_duration_ms for a frame)
+            UINT32 timeout_ms = (UINT32)(frame_duration_100ns / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+            esp_err_t get_ret = video_capture->get_frame(g_global_media.video_handle, &video_frame, timeout_ms);
             if (get_ret == ESP_OK && video_frame != NULL) {
                 frame.frameData = video_frame->buffer;
                 frame.size = video_frame->len;
@@ -290,6 +303,9 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
                 ESP_LOGW(TAG, "Failed to send frame to sessions: 0x%08" PRIx32, (UINT32)send_status);
             }
 
+            // Get end time after send completes
+            UINT64 send_end_time_us = esp_timer_get_time();
+
 #if KVS_MEDIA_ENABLE_ADAPTIVE_BITRATE
             /* Adaptive bitrate control based on send performance */
             if (sendDuration > 50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) {  // >50ms is concerning
@@ -304,9 +320,6 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
                                             &current_bitrate_kbps)) {
                     smooth_frame_count = 0; /* Reset smooth counter after bitrate reduction */
                 }
-
-                // Sleep half of the frame duration to avoid overwhelming the system
-                THREAD_SLEEP(frame_duration_100ns / 2);
             } else {
                 /* Frame sent smoothly - increment counter */
                 smooth_frame_count++;
@@ -324,41 +337,58 @@ static PVOID kvs_global_video_sender_thread(PVOID args)
                     /* Reset smooth counter regardless of adjustment success */
                     smooth_frame_count = 0;
                 }
-
-                // Just a small delay for pacing the frame rate
-                THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
             }
 #else
             /* Adaptive bitrate disabled - just log slow sends without adjustment */
             if (sendDuration > 50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) {
                 ESP_LOGW(TAG, "Slow video frame send: %llums (frame %" PRIu64 "), size: %" PRIu32,
                          sendDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, video_frame_index, frame.size);
-                // Sleep half of the frame duration to avoid overwhelming the system
-                THREAD_SLEEP(frame_duration_100ns / 2);
-            } else {
-                // Just a small delay for pacing the frame rate
-                THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
             }
 #endif
+
+            // Frame rate control: maintain target FPS by sleeping between sends
+            if (last_send_time_us > 0) {
+                INT64 time_since_last_send_us = (INT64)(send_end_time_us - last_send_time_us);
+
+                // If we sent too quickly, sleep the remaining time to maintain target FPS
+                if (time_since_last_send_us < (INT64)frame_interval_us) {
+                    UINT64 sleep_time_us = frame_interval_us - time_since_last_send_us;
+                    if (sleep_time_us > 1000) {
+                        // Sleep if delay is significant (>1ms)
+                        THREAD_SLEEP(sleep_time_us * 10); // Convert microseconds to 100ns units
+                        last_send_time_us = esp_timer_get_time();
+                    } else {
+                        last_send_time_us = send_end_time_us;
+                    }
+                } else {
+                    // We're behind schedule, update timestamp and continue immediately
+                    last_send_time_us = send_end_time_us;
+                }
+            } else {
+                // First frame - just record the time
+                last_send_time_us = send_end_time_us;
+            }
 
             // Release camera frame if used
             if (video_capture != NULL && video_frame != NULL) {
                 video_capture->release_frame(g_global_media.video_handle, video_frame);
                 video_frame = NULL;
             }
+        } else {
+            // No frame available - sleep a bit to avoid busy waiting
+            THREAD_SLEEP(frame_duration_100ns / 4); // Sleep quarter frame duration
         }
     }
 
 CleanupVideo:
-    // Cleanup
+    // Cleanup - release any pending frame
+    // Note: Video capture stop and deinit are handled in kvs_media_stop_global_transmission after thread joins
     if (video_capture != NULL && g_global_media.video_handle != NULL) {
         if (video_frame != NULL) {
             // If the frame was not used/released, release it now to avoid memory leak
             video_capture->release_frame(g_global_media.video_handle, video_frame);
         }
-        video_capture->stop(g_global_media.video_handle);
-        video_capture->deinit(g_global_media.video_handle);
-        g_global_media.video_handle = NULL;
+        // Don't stop or deinit here - both happen in kvs_media_stop_global_transmission
     }
 
     ESP_LOGD(TAG, "Global video sender thread finished");
@@ -376,35 +406,30 @@ static PVOID kvs_global_audio_sender_thread(PVOID args)
     UINT64 startTime;
     media_stream_audio_capture_t *audio_capture = NULL;
     audio_frame_t *audio_frame = NULL;
-    const UINT64 frame_duration_100ns = KVS_SAMPLE_AUDIO_FRAME_DURATION;
+    UINT64 frame_duration_100ns = KVS_SAMPLE_AUDIO_FRAME_DURATION; // Default 20ms
+    UINT64 last_send_time_us = 0; // Track last frame send time for rate control
+    UINT32 frame_duration_ms = 20; // Default audio frame duration
+    UINT64 frame_interval_us = 0; // Frame interval in microseconds
 
     ESP_LOGD(TAG, "Global audio sender thread started");
 
-    // Initialize capture interface if available
-    if (g_global_media.config.audio_capture != NULL) {
+    // Audio hardware and streaming are already initialized synchronously in kvs_media_start_global_transmission()
+    // Thread just needs to check if audio is available and get frames
+    if (g_global_media.config.audio_capture != NULL && g_global_media.audio_handle != NULL) {
         audio_capture = (media_stream_audio_capture_t*)g_global_media.config.audio_capture;
 
-        audio_capture_config_t audio_config = {
-            .codec = AUDIO_CODEC_OPUS,
-            .format = {
-                .sample_rate = 16000,
-                .channels = 1,
-                .bits_per_sample = 16
-            },
-            .bitrate = 16000,
-            .frame_duration_ms = 20,
-            .codec_specific = NULL
-        };
-
-        ESP_LOGD(TAG, "Initializing global audio capture");
-        if (audio_capture->init(&audio_config, &g_global_media.audio_handle) != ESP_OK ||
-            audio_capture->start(g_global_media.audio_handle) != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to initialize audio capture - thread will exit");
-            goto CleanupAudio;
-        }
+        // Store frame duration for rate control (matches config used in init)
+        frame_duration_ms = 20; // Default audio frame duration
+        frame_duration_100ns = frame_duration_ms * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+        frame_interval_us = frame_duration_ms * 1000ULL; // Convert ms to microseconds
+        ESP_LOGI(TAG, "Audio frame rate control: %" PRIu32 " ms per frame (frame interval: %llu us)",
+                 frame_duration_ms, frame_interval_us);
     } else {
         goto CleanupAudio;
     }
+
+    /* NOTE: Audio hardware initialization happens synchronously in kvs_media_start_global_transmission()
+     * BEFORE this thread starts. This thread only starts audio streaming (hardware already initialized). */
 
     frame.version = FRAME_CURRENT_VERSION;
     frame.trackId = DEFAULT_AUDIO_TRACK_ID;
@@ -416,13 +441,14 @@ static PVOID kvs_global_audio_sender_thread(PVOID args)
     /* esp_timer_get_time() returns microseconds since boot. Not affected by time sync */
     startTime = esp_timer_get_time() * HUNDREDS_OF_NANOS_IN_A_MICROSECOND;
     UINT64 audio_frame_index = 0;  /* Local frame counter for audio */
+    last_send_time_us = 0; // Initialize frame timing
 
     while (!ATOMIC_LOAD_BOOL(&g_global_media.terminated)) {
         BOOL frame_available = FALSE;
 
         if (audio_capture != NULL) {
-            // Get frame from microphone
-            if (audio_capture->get_frame(g_global_media.audio_handle, &audio_frame, 0) == ESP_OK && audio_frame != NULL) {
+            // Get frame from microphone/file (wait up to frame_duration_ms)
+            if (audio_capture->get_frame(g_global_media.audio_handle, &audio_frame, frame_duration_ms) == ESP_OK && audio_frame != NULL) {
                 frame.frameData = audio_frame->buffer;
                 frame.size = audio_frame->len;
                 frame_available = TRUE;
@@ -452,12 +478,36 @@ static PVOID kvs_global_audio_sender_thread(PVOID args)
                 ESP_LOGW(TAG, "Failed to send frame to sessions: 0x%08" PRIx32, (UINT32)send_status);
             }
 
+            // Get end time after send completes
+            UINT64 send_end_time_us = esp_timer_get_time();
+
             /* Log if frame send is slow (bottleneck detection) */
             if (sendDuration > 20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) {  // >20ms is concerning for audio
                 ESP_LOGW(TAG, "Slow audio frame send: %llums (frame %" PRIu64 "), size: %" PRIu32,
                          sendDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, audio_frame_index, frame.size);
-                // Sleep half of the frame duration to avoid overwhelming the system
-                THREAD_SLEEP(frame_duration_100ns / 2);
+            }
+
+            // Frame rate control: maintain target FPS by sleeping between sends
+            if (last_send_time_us > 0) {
+                INT64 time_since_last_send_us = (INT64)(send_end_time_us - last_send_time_us);
+
+                // If we sent too quickly, sleep the remaining time to maintain target FPS
+                if (time_since_last_send_us < (INT64)frame_interval_us) {
+                    UINT64 sleep_time_us = frame_interval_us - time_since_last_send_us;
+                    if (sleep_time_us > 1000) {
+                        // Sleep if delay is significant (>1ms)
+                        THREAD_SLEEP(sleep_time_us * 10); // Convert microseconds to 100ns units
+                        last_send_time_us = esp_timer_get_time();
+                    } else {
+                        last_send_time_us = send_end_time_us;
+                    }
+                } else {
+                    // We're behind schedule, update timestamp and continue immediately
+                    last_send_time_us = send_end_time_us;
+                }
+            } else {
+                // First frame - just record the time
+                last_send_time_us = send_end_time_us;
             }
 
             // Release microphone frame if used
@@ -465,19 +515,21 @@ static PVOID kvs_global_audio_sender_thread(PVOID args)
                 audio_capture->release_frame(g_global_media.audio_handle, audio_frame);
                 audio_frame = NULL;
             }
+        } else {
+            // No frame available - sleep a bit to avoid busy waiting
+            THREAD_SLEEP(frame_duration_100ns / 4); // Sleep quarter frame duration
         }
     }
 
 CleanupAudio:
-    // Cleanup
+    // Cleanup - release any pending frame
+    // Note: Audio capture stop and deinit are handled in kvs_media_stop_global_transmission after thread joins
     if (audio_capture != NULL && g_global_media.audio_handle != NULL) {
         if (audio_frame != NULL) {
             // If the frame was not used/released, release it now to avoid memory leak
             audio_capture->release_frame(g_global_media.audio_handle, audio_frame);
         }
-        audio_capture->stop(g_global_media.audio_handle);
-        audio_capture->deinit(g_global_media.audio_handle);
-        g_global_media.audio_handle = NULL;
+        // Don't stop or deinit here - both happen in kvs_media_stop_global_transmission
     }
 
     ESP_LOGD(TAG, "Global audio sender thread finished");
@@ -620,11 +672,13 @@ CleanUp:
 STATUS kvs_media_start_global_transmission(void* client_data, kvs_media_config_t* config)
 {
     STATUS retStatus = STATUS_SUCCESS;
+    BOOL mutext_locked = FALSE;
 
     CHK(client_data != NULL && config != NULL, STATUS_NULL_ARG);
     CHK(IS_VALID_MUTEX_VALUE(g_global_media.global_media_mutex), STATUS_INVALID_OPERATION);
 
     MUTEX_LOCK(g_global_media.global_media_mutex);
+    mutext_locked = TRUE;
 
     if (g_global_media.global_media_started) {
         ESP_LOGD(TAG, "Global media threads already started");
@@ -662,36 +716,73 @@ STATUS kvs_media_start_global_transmission(void* client_data, kvs_media_config_t
 
         esp_err_t init_ret = video_capture->init(&video_config, &g_global_media.video_handle);
         if (init_ret != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to initialize camera hardware: 0x%x", init_ret);
-            retStatus = STATUS_INTERNAL_ERROR;
-            goto CleanUp;
-        }
-
-        esp_err_t start_ret = video_capture->start(g_global_media.video_handle);
-        if (start_ret != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to start camera streaming: 0x%x", start_ret);
-            video_capture->deinit(g_global_media.video_handle);
+            ESP_LOGW(TAG, "Failed to initialize camera hardware: 0x%x (non-fatal, continuing without video)", init_ret);
             g_global_media.video_handle = NULL;
-            retStatus = STATUS_INTERNAL_ERROR;
-            goto CleanUp;
+            /* Continue to allow audio initialization even if video fails */
+        } else {
+            esp_err_t start_ret = video_capture->start(g_global_media.video_handle);
+            if (start_ret != ESP_OK) {
+                ESP_LOGW(TAG, "Failed to start camera streaming: 0x%x (non-fatal, continuing without video)", start_ret);
+                video_capture->deinit(g_global_media.video_handle);
+                g_global_media.video_handle = NULL;
+                /* Continue to allow audio initialization even if video fails */
+            }
         }
     }
 #endif
 
-    // Start global video thread only if video capture is provided
-    if (config->video_capture != NULL) {
+    // Start global video thread only if video capture is provided and initialized successfully
+    if (config->video_capture != NULL && g_global_media.video_handle != NULL) {
         CHK_STATUS(THREAD_CREATE_EX_PRI(&g_global_media.video_sender_tid, "kvsGlobalVideo", 8 * 1024, TRUE,
                                         kvs_global_video_sender_thread, 6, NULL));
         ESP_LOGI(TAG, "Global video sender thread started");
     } else {
-        ESP_LOGD(TAG, "Video capture not provided - skipping video transmission");
+        if (config->video_capture != NULL) {
+            ESP_LOGW(TAG, "Video capture provided but initialization failed - skipping video transmission");
+        } else {
+            ESP_LOGD(TAG, "Video capture not provided - skipping video transmission");
+        }
     }
 
-    // Start global audio thread only if audio capture is provided
+    // Initialize audio capture synchronously before starting thread (symmetric with video)
     if (config->audio_capture != NULL) {
+        media_stream_audio_capture_t *audio_capture = (media_stream_audio_capture_t*)config->audio_capture;
+
+        audio_capture_config_t audio_config = {
+            .codec = AUDIO_CODEC_OPUS,
+            .format = {
+                .sample_rate = 16000,
+                .channels = 1,
+                .bits_per_sample = 16
+            },
+            .bitrate = 16000,
+            .frame_duration_ms = 20,
+            .codec_specific = NULL
+        };
+
+        esp_err_t init_ret = audio_capture->init(&audio_config, &g_global_media.audio_handle);
+        if (init_ret != ESP_OK) {
+            ESP_LOGW(TAG, "Failed to initialize audio capture hardware: 0x%x (non-fatal, continuing without audio)", init_ret);
+            g_global_media.audio_handle = NULL;
+            /* Continue to allow video even if audio fails */
+        } else {
+            esp_err_t start_ret = audio_capture->start(g_global_media.audio_handle);
+            if (start_ret != ESP_OK) {
+                ESP_LOGW(TAG, "Failed to start audio capture streaming: 0x%x (non-fatal, continuing without audio)", start_ret);
+                audio_capture->deinit(g_global_media.audio_handle);
+                g_global_media.audio_handle = NULL;
+                /* Continue to allow video even if audio fails */
+            }
+        }
+    }
+
+    // Start global audio thread only if audio capture is provided and initialized successfully
+    if (config->audio_capture != NULL && g_global_media.audio_handle != NULL) {
         CHK_STATUS(THREAD_CREATE_EX_PRI(&g_global_media.audio_sender_tid, "kvsGlobalAudio", 8 * 1024, TRUE,
                                         kvs_global_audio_sender_thread, 6, NULL));
         ESP_LOGI(TAG, "Global audio sender thread started");
+    } else if (config->audio_capture != NULL && g_global_media.audio_handle == NULL) {
+        ESP_LOGW(TAG, "Audio capture provided but initialization failed - skipping audio transmission");
     } else {
         ESP_LOGD(TAG, "Audio capture not provided - skipping audio transmission");
     }
@@ -700,7 +791,9 @@ STATUS kvs_media_start_global_transmission(void* client_data, kvs_media_config_t
     ESP_LOGD(TAG, "Global media transmission started successfully");
 
 CleanUp:
-    MUTEX_UNLOCK(g_global_media.global_media_mutex);
+    if (mutext_locked) {
+        MUTEX_UNLOCK(g_global_media.global_media_mutex);
+    }
     return retStatus;
 }
 
@@ -710,11 +803,17 @@ CleanUp:
 STATUS kvs_media_stop_global_transmission(void* client_data)
 {
     STATUS retStatus = STATUS_SUCCESS;
+    BOOL mutext_locked = FALSE;
 
     CHK(client_data != NULL, STATUS_NULL_ARG);
-    CHK(IS_VALID_MUTEX_VALUE(g_global_media.global_media_mutex), STATUS_INVALID_OPERATION);
+    if (!IS_VALID_MUTEX_VALUE(g_global_media.global_media_mutex)) {
+        ESP_LOGW(TAG, "Global media mutex not valid - skipping stop");
+        retStatus = STATUS_INVALID_OPERATION;
+        goto CleanUp;
+    }
 
     MUTEX_LOCK(g_global_media.global_media_mutex);
+    mutext_locked = TRUE;
 
     if (!g_global_media.global_media_started) {
         ESP_LOGI(TAG, "Global media threads not running");
@@ -739,11 +838,33 @@ STATUS kvs_media_stop_global_transmission(void* client_data)
         ESP_LOGI(TAG, "Global audio thread stopped");
     }
 
+    // Deinitialize camera hardware after threads are stopped (power and security)
+    if (g_global_media.config.video_capture != NULL && g_global_media.video_handle != NULL) {
+        media_stream_video_capture_t *video_capture = (media_stream_video_capture_t*)g_global_media.config.video_capture;
+        ESP_LOGI(TAG, "Deinitializing camera hardware (no active sessions)");
+        video_capture->stop(g_global_media.video_handle);
+        video_capture->deinit(g_global_media.video_handle);
+        g_global_media.video_handle = NULL;
+        ESP_LOGI(TAG, "Camera hardware deinitialized successfully");
+    }
+
+    // Deinitialize audio capture hardware after threads are stopped
+    if (g_global_media.config.audio_capture != NULL && g_global_media.audio_handle != NULL) {
+        media_stream_audio_capture_t *audio_capture = (media_stream_audio_capture_t*)g_global_media.config.audio_capture;
+        ESP_LOGI(TAG, "Deinitializing audio capture hardware (no active sessions)");
+        audio_capture->stop(g_global_media.audio_handle);
+        audio_capture->deinit(g_global_media.audio_handle);
+        g_global_media.audio_handle = NULL;
+        ESP_LOGI(TAG, "Audio capture hardware deinitialized successfully");
+    }
+
     g_global_media.global_media_started = FALSE;
     ESP_LOGD(TAG, "Global media transmission stopped successfully");
 
 CleanUp:
-    MUTEX_UNLOCK(g_global_media.global_media_mutex);
+    if (mutext_locked) {
+        MUTEX_UNLOCK(g_global_media.global_media_mutex);
+    }
     return retStatus;
 }
 

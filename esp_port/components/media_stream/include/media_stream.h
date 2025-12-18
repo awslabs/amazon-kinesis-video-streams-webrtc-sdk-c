@@ -312,6 +312,26 @@ media_stream_audio_capture_t* media_stream_get_audio_capture_if(void);
 media_stream_video_capture_t* media_stream_get_video_capture_if(void);
 
 /**
+ * @brief Get file-based video capture interface
+ *
+ * This interface reads video frames from files on disk (e.g., /spiffs/samples/frame-XXXX.h264)
+ * Useful for testing or when camera hardware is not available.
+ *
+ * @return media_stream_video_capture_t* Pointer to the file-based video capture interface
+ */
+media_stream_video_capture_t* media_stream_get_file_video_capture_if(void);
+
+/**
+ * @brief Get file-based audio capture interface
+ *
+ * This interface reads audio frames from embedded files or disk.
+ * Useful for testing or when microphone hardware is not available.
+ *
+ * @return media_stream_audio_capture_t* Pointer to the file-based audio capture interface
+ */
+media_stream_audio_capture_t* media_stream_get_file_audio_capture_if(void);
+
+/**
  * @brief Register a callback for received frames
  *
  * @param callback Function to call when a frame is received
@@ -419,6 +439,31 @@ esp_err_t media_stream_get_sample_video_frame(uint8_t *frame_data, size_t max_si
  */
 esp_err_t media_stream_get_sample_audio_frame(uint8_t *frame_data, size_t max_size,
                                               size_t *actual_size, uint64_t *timestamp);
+
+/**
+ * @brief Configuration structure for file-based sample frame paths
+ */
+typedef struct {
+    const char *mount_point;          /**< Mount point (e.g., "/spiffs") */
+    const char *video_file_prefix;    /**< Video file prefix (e.g., "samples/frame") */
+    const char *audio_file_prefix;    /**< Audio file prefix (e.g., "samples/sample") */
+    const char *video_file_extension; /**< Video file extension (e.g., ".h264") */
+    const char *audio_file_extension; /**< Audio file extension (e.g., ".opus") */
+} media_stream_file_config_t;
+
+/**
+ * @brief Configure file paths for sample frame reading
+ *
+ * This function allows configuring the mount point and file naming patterns
+ * for file-based streaming. If not called, defaults are used:
+ * - Mount point: "/spiffs"
+ * - Video prefix: "samples/frame", extension: ".h264"
+ * - Audio prefix: "samples/sample", extension: ".opus"
+ *
+ * @param config Configuration structure with file paths (NULL fields use defaults)
+ * @return esp_err_t ESP_OK on success
+ */
+esp_err_t media_stream_configure_file_paths(const media_stream_file_config_t *config);
 
 /**
  * @brief Get the default audio player interface

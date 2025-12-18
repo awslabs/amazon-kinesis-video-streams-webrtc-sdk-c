@@ -42,11 +42,16 @@ esp_err_t audio_capture_init(audio_capture_config_t *config, audio_capture_handl
 
     // Save configuration
     memcpy(&ctx->config, config, sizeof(audio_capture_config_t));
-    ctx->initialized = true;
     ctx->running = false;
 
-    opus_encoder_init_internal(config);
+    void *encoder_handle = opus_encoder_init_internal(config);
+    if (encoder_handle == NULL) {
+        ESP_LOGE(TAG, "Failed to initialize Opus encoder");
+        free(ctx);
+        return ESP_FAIL;
+    }
 
+    ctx->initialized = true;
     *ret_handle = ctx;
     return ESP_OK;
 }
