@@ -1244,7 +1244,6 @@ STATUS turnConnectionPackageTurnAllocationRequest(PCHAR username, PCHAR realm, P
         CHK_STATUS(appendStunRealmAttribute(pTurnAllocateRequest, realm));
         CHK_STATUS(appendStunNonceAttribute(pTurnAllocateRequest, nonce, nonceLen));
 
-        // KVS TURN server will default to IPv4 if no address family attribute is specified.
         if (turnConnectionFamilyType == KVS_IP_FAMILY_TYPE_IPV6) {
             // [TURN Allocation] Only supporting IPv4 allocations for now.
             CHK_STATUS(appendStunAllocationAddressFamily(pTurnAllocateRequest, KVS_IP_FAMILY_TYPE_IPV4));
