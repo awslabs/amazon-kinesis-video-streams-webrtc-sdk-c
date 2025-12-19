@@ -256,6 +256,7 @@ extern "C" {
 #define STATUS_TURN_CONNECTION_ALLOCATION_FAILED                           STATUS_ICE_BASE + 0x0000002a
 #define STATUS_TURN_INVALID_STATE                                          STATUS_ICE_BASE + 0x0000002b
 #define STATUS_TURN_CONNECTION_GET_CREDENTIALS_FAILED                      STATUS_ICE_BASE + 0x0000002c
+#define STATUS_FAILED_TO_INIT_RELAY_CANDIDATES                             STATUS_ICE_BASE + 0x0000002d
 
 /*!@} */
 
