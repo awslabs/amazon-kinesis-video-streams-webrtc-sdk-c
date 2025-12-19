@@ -1874,9 +1874,9 @@ STATUS iceAgentInitRelayCandidates(PIceAgent pIceAgent)
                 if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_UDP || pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
                     DLOGD("Initializing an IPv4 TURN UDP relay candidate...");
                     startTime = GETTIME();
-                    iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_UDP, KVS_IP_FAMILY_TYPE_IPV4) == STATUS_SUCCESS
-                        ? wasARelayCandidateInitialized = TRUE
-                        : NULL;
+                    if(iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_UDP, KVS_IP_FAMILY_TYPE_IPV4) == STATUS_SUCCESS) {
+                        wasARelayCandidateInitialized = TRUE;
+                    }
                     DLOGD("Finished initializing an IPv4 TURN UDP relay candidate. Time taken: %" PRIu64 " ms",
                           (GETTIME() - startTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
                 }
@@ -1884,9 +1884,9 @@ STATUS iceAgentInitRelayCandidates(PIceAgent pIceAgent)
                 if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_TCP || pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
                     DLOGD("Initializing an IPv4 TURN TCP relay candidate...");
                     startTime = GETTIME();
-                    iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_TCP, KVS_IP_FAMILY_TYPE_IPV4) == STATUS_SUCCESS
-                        ? wasARelayCandidateInitialized = TRUE
-                        : NULL;
+                    if(iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_TCP, KVS_IP_FAMILY_TYPE_IPV4) == STATUS_SUCCESS) {
+                        wasARelayCandidateInitialized = TRUE;
+                    }
                     DLOGD("Finished initializing an IPv4 TURN TCP relay candidate. Time taken: %" PRIu64 " ms",
                           (GETTIME() - startTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
                 }
@@ -1896,9 +1896,9 @@ STATUS iceAgentInitRelayCandidates(PIceAgent pIceAgent)
                 if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_UDP || pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
                     DLOGD("Initializing an IPv6 TURN UDP relay candidate...");
                     startTime = GETTIME();
-                    iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_UDP, KVS_IP_FAMILY_TYPE_IPV6) == STATUS_SUCCESS
-                        ? wasARelayCandidateInitialized = TRUE
-                        : NULL;
+                    if(iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_UDP, KVS_IP_FAMILY_TYPE_IPV6) == STATUS_SUCCESS) {
+                        wasARelayCandidateInitialized = TRUE;
+                    }
                     DLOGD("Finished initializing an IPv6 TURN UDP relay candidate. Time taken: %" PRIu64 " ms",
                           (GETTIME() - startTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
                 }
@@ -1906,9 +1906,9 @@ STATUS iceAgentInitRelayCandidates(PIceAgent pIceAgent)
                 if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_TCP || pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
                     DLOGD("Initializing an IPv6 TURN TCP relay candidate...");
                     startTime = GETTIME();
-                    iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_TCP, KVS_IP_FAMILY_TYPE_IPV6) == STATUS_SUCCESS
-                        ? wasARelayCandidateInitialized = TRUE
-                        : NULL;
+                    if(iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_TCP, KVS_IP_FAMILY_TYPE_IPV6) == STATUS_SUCCESS) {
+                        wasARelayCandidateInitialized = TRUE;
+                    }
                     DLOGD("Finished initializing an IPv6 TURN TCP relay candidate. Time taken: %" PRIu64 " ms",
                           (GETTIME() - startTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
                 }
