@@ -11,40 +11,41 @@ class DualStackEndpointsTest : public WebRtcClientTestBase {};
 
 TEST_F(DualStackEndpointsTest, connectTwoDualStackPeersWithForcedTurn)
 {
-    // (This fails because service is not yet ready.)
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
 
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
-    // RtcConfiguration configuration;
-    // PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    #ifdef _WIN32
+    _putenv_s(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON");
+    #else
+    setenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON", 1);
+    #endif
 
-    // ASSERT_EQ(TRUE, mAccessKeyIdSet);
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
 
-    // #ifdef _WIN32
-    // _putenv_s(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON");
-    // #else
-    // setenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON", 1);
-    // #endif
+    initializeSignalingClient();
+    getIceServers(&configuration);
 
-    // MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
-    // configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
 
-    // initializeSignalingClient();
-    // getIceServers(&configuration);
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
-    // EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
-    // EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
 
-    // EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
 
-    // closePeerConnection(offerPc);
-    // closePeerConnection(answerPc);
+    deinitializeSignalingClient();
 
-    // freePeerConnection(&offerPc);
-    // freePeerConnection(&answerPc);
-
-    // deinitializeSignalingClient();
-
-    // unsetenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
+    #ifdef _WIN32
+        _putenv_s(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "");
+    #else
+        unsetenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
+    #endif
 }
 
 

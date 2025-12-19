@@ -73,7 +73,7 @@ TEST_F(IceConfigParsingTest, ParseSuccess)
     EXPECT_STREQ("turn:example3.com:443?transport=udp", iceConfigs[2].uris[0]);
 }
 
-TEST_F(IceConfigParsingTest, InvalidArgs)
+static void runInvalidArgsTests()
 {
     IceConfigInfo iceConfigs[MAX_ICE_CONFIG_COUNT];
     UINT32 iceConfigCount;
@@ -106,6 +106,31 @@ TEST_F(IceConfigParsingTest, InvalidArgs)
 
     // 0 output parameter length
     EXPECT_EQ(STATUS_INVALID_ARG, parseIceConfigResponse((PCHAR) mockResponse.c_str(), mockResponseLen, 0, iceConfigs, &iceConfigCount));
+}
+
+
+TEST_F(IceConfigParsingTest, InvalidArgs)
+{
+    
+    // Legacy mode.
+    DLOGI("Running IceConfigParsingTest.InvalidArgs test in legacy mode.");
+    runInvalidArgsTests();
+
+    // Dual-stack mode.
+    #ifdef _WIN32
+        _putenv_s(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON");
+    #else
+        setenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON", 1);
+    #endif
+
+    DLOGI("Running IceConfigParsingTest.InvalidArgs in dual-stack mode.");
+    runInvalidArgsTests();
+    
+    #ifdef _WIN32
+        (USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "");
+    #else
+        unsetenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
+    #endif
 }
 
 TEST_F(IceConfigParsingTest, TooManyIceConfigsReturned)

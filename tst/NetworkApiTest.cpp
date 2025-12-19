@@ -18,15 +18,15 @@ TEST_F(NetworkApiTest, GetIpWithHostNameTest)
 
     // Test dual-stack TURN server hostname parsing with the dual-stack envvar set.
     #ifdef _WIN32
-    _putenv_s(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON");
+        _putenv_s(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON");
     #else
-    setenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON", 1);
+        setenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON", 1);
     #endif
     EXPECT_EQ(STATUS_SUCCESS, getIpWithHostName((PCHAR) "35-90-63-38_2001-0db8-85a3-0000-0000-8a2e-0370-7334.t-ae7dd61a.kinesisvideo.us-west-2.api.aws", &ipAddresses));
     #ifdef _WIN32
-    _putenv_s(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "");
+        _putenv_s(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "");
     #else
-    unsetenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
+        unsetenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
     #endif
 
     EXPECT_EQ(STATUS_SUCCESS, getIpWithHostName((PCHAR) "12.34.45.40", &ipAddresses));
@@ -37,11 +37,27 @@ TEST_F(NetworkApiTest, GetIpWithHostNameTest)
 
 TEST_F(NetworkApiTest, ipIpAddrTest)
 {
-    EXPECT_EQ(FALSE, isIpAddr((PCHAR) "stun:stun.test.net:3478", STRLEN("stun:stun.test.net:3478")));
     EXPECT_EQ(TRUE, isIpAddr((PCHAR) "12.34.45.40", STRLEN("12.34.45.40")));
-    EXPECT_EQ(FALSE, isIpAddr((PCHAR) "567.123.345.000", STRLEN("567.123.345.000")));
     EXPECT_EQ(TRUE, isIpAddr((PCHAR) "2001:0db8:85a3:0000:0000:8a2e:0370:7334", STRLEN("2001:0db8:85a3:0000:0000:8a2e:0370:7334")));
+
+    EXPECT_EQ(FALSE, isIpAddr((PCHAR) "stun:stun.test.net:3478", STRLEN("stun:stun.test.net:3478")));
+    EXPECT_EQ(FALSE, isIpAddr((PCHAR) "567.123.345.000", STRLEN("567.123.345.000")));
     EXPECT_EQ(FALSE, isIpAddr((PCHAR) "2001:85a3:0000:0000:8a2e:0370:7334", STRLEN("2001:85a3:0000:0000:8a2e:0370:7334")));
+    EXPECT_EQ(FALSE, isIpAddr((PCHAR) "2001:85a3:0000:0000:8a2e:0370:7334:7334:7334", STRLEN("2001:85a3:0000:0000:8a2e:0370:7334:7334:7334")));
+
+    // Should fail if extra characters are present.
+    EXPECT_EQ(FALSE, isIpAddr((PCHAR) "12.34.45.40.extraCharacters", STRLEN("12.34.45.40.extraCharacters")));
+    EXPECT_EQ(FALSE, isIpAddr((PCHAR) "2001:85a3:0000:0000:8a2e:0370:7334:extraCharacters", STRLEN("2001:85a3:0000:0000:8a2e:0370:7334:extraCharacters")));
+
+    EXPECT_EQ(FALSE, isIpAddr((PCHAR) "12.34.45.40extraCharacters", STRLEN("12.34.45.40extraCharacters")));
+    EXPECT_EQ(FALSE, isIpAddr((PCHAR) "2001:85a3:0000:0000:8a2e:0370:7334extraCharacters", STRLEN("2001:85a3:0000:0000:8a2e:0370:7334extraCharacters")));
+
+    EXPECT_EQ(FALSE, isIpAddr((PCHAR) "extraCharacters12.34.45.40", STRLEN("extraCharacters12.34.45.40")));
+    EXPECT_EQ(FALSE, isIpAddr((PCHAR) "extraCharacters2001:85a3:0000:0000:8a2e:0370:7334", STRLEN("extraCharacters2001:85a3:0000:0000:8a2e:0370:7334")));
+
+    EXPECT_EQ(FALSE, isIpAddr((PCHAR) "extraCharacters.12.34.45.40", STRLEN("extraCharacters.12.34.45.40")));
+    EXPECT_EQ(FALSE, isIpAddr((PCHAR) "extraCharacters.2001:85a3:0000:0000:8a2e:0370:7334", STRLEN("extraCharacters.2001:85a3:0000:0000:8a2e:0370:7334")));
+
 }
 
 // ------------------------------- getIpAddrStr ----------------------
