@@ -1247,7 +1247,7 @@ STATUS turnConnectionPackageTurnAllocationRequest(PCHAR username, PCHAR realm, P
         // KVS TURN server will default to IPv4 if no address family attribute is specified.
         if (turnConnectionFamilyType == KVS_IP_FAMILY_TYPE_IPV6) {
             // [TURN Allocation] Only supporting IPv4 allocations for now.
-            // CHK_STATUS(appendStunAllocationAddressFamily(pTurnAllocateRequest, KVS_IP_FAMILY_TYPE_IPV6));
+            CHK_STATUS(appendStunAllocationAddressFamily(pTurnAllocateRequest, KVS_IP_FAMILY_TYPE_IPV4));
         }
     }
 
