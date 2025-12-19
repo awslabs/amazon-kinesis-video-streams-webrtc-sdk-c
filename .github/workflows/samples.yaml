@@ -44,7 +44,7 @@ jobs:
         run: |
           if [ "${{ matrix.endpoint-type }}" = "dual-stack" ]; then
             echo "Using dual-stack endpoints"
-            echo "USE_DUAL_STACK_ENDPOINTS=ON" >> $GITHUB_ENV
+            echo "KVS_DUALSTACK_ENDPOINTS=ON" >> $GITHUB_ENV
           else
             echo "Using legacy endpoints"
           fi
