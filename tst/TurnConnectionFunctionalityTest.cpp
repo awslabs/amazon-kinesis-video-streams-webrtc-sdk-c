@@ -52,7 +52,7 @@ class TurnConnectionFunctionalityTest : public WebRtcClientTestBase {
 
         EXPECT_EQ(STATUS_SUCCESS, getLocalhostIpAddresses(localIpInterfaces, &localIpInterfaceCount, NULL, 0));
         for (i = 0; i < localIpInterfaceCount; ++i) {
-            if (localIpInterfaces[i].family == pTurnServer->ipAddress.family && (pTurnSocketAddr == NULL || localIpInterfaces[i].isPointToPoint)) {
+            if (localIpInterfaces[i].family == pTurnServer->ipAddresses.ipv4Address.family && (pTurnSocketAddr == NULL || localIpInterfaces[i].isPointToPoint)) {
                 pTurnSocketAddr = &localIpInterfaces[i];
             }
         }
@@ -69,12 +69,12 @@ class TurnConnectionFunctionalityTest : public WebRtcClientTestBase {
             return STATUS_SUCCESS;
         };
         EXPECT_EQ(STATUS_SUCCESS,
-                  createSocketConnection((KVS_IP_FAMILY_TYPE) pTurnServer->ipAddress.family, KVS_ICE_DEFAULT_TURN_PROTOCOL, NULL,
-                                         &pTurnServer->ipAddress, (UINT64) this, onDataHandler, 0, &pTurnSocket));
+                  createSocketConnection((KVS_IP_FAMILY_TYPE) pTurnServer->ipAddresses.ipv4Address.family, KVS_ICE_DEFAULT_TURN_PROTOCOL, NULL,
+                                         &pTurnServer->ipAddresses.ipv4Address, (UINT64) this, onDataHandler, 0, &pTurnSocket));
         EXPECT_EQ(STATUS_SUCCESS, connectionListenerAddConnection(pConnectionListener, pTurnSocket));
         ASSERT_EQ(STATUS_SUCCESS,
                   createTurnConnection(pTurnServer, timerQueueHandle, TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL, KVS_ICE_DEFAULT_TURN_PROTOCOL,
-                                       NULL, pTurnSocket, pConnectionListener, &pTurnConnection));
+                                       NULL, pTurnSocket, pConnectionListener, KVS_IP_FAMILY_TYPE_IPV4, &pTurnConnection));
         EXPECT_EQ(STATUS_SUCCESS, connectionListenerStart(pConnectionListener));
     }
 

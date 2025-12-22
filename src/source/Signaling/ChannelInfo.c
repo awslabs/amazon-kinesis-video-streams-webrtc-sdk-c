@@ -64,7 +64,7 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
         pRegionPtr = DEFAULT_AWS_REGION;
     }
 
-    if (pOrigChannelInfo->pControlPlaneUrl != NULL) {
+    if (!IS_NULL_OR_EMPTY_STRING(pOrigChannelInfo->pControlPlaneUrl)) {
         CHK((cpUrlLen = (UINT32) STRNLEN(pOrigChannelInfo->pControlPlaneUrl, MAX_URI_CHAR_LEN + 1)) <= MAX_URI_CHAR_LEN,
             STATUS_SIGNALING_INVALID_CPL_LENGTH);
     } else {
@@ -173,15 +173,30 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     pChannelInfo->pRegion = pCurPtr;
     pCurPtr += ALIGN_UP_TO_MACHINE_WORD(regionLen + 1);
 
-    if (pOrigChannelInfo->pControlPlaneUrl != NULL && *pOrigChannelInfo->pControlPlaneUrl != '\0') {
+    if (!IS_NULL_OR_EMPTY_STRING(pOrigChannelInfo->pControlPlaneUrl)) {
         STRCPY(pCurPtr, pOrigChannelInfo->pControlPlaneUrl);
     } else {
-        // Create a fully qualified URI
-        SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME, pChannelInfo->pRegion,
-                 CONTROL_PLANE_URI_POSTFIX);
-        // If region is in CN, add CN region uri postfix
-        if (STRSTR(pChannelInfo->pRegion, "cn-")) {
-            STRCAT(pCurPtr, ".cn");
+        if (NULL != GETENV(USE_DUAL_STACK_ENDPOINTS_ENV_VAR)) {
+            // Create dual-stack fully qualified URI for appropriate region.
+            DLOGI("Using dual-stack KVS endpoints.");
+            if (STRSTR(pChannelInfo->pRegion, AWS_CN_REGION_PREFIX)) {
+                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
+                         pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX_CN_DUAL_STACK);
+            } else {
+                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
+                         pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX_DUAL_STACK);
+            }
+
+        } else {
+            // Create legacy fully qualified URI for appropriate region.
+            DLOGI("Using legacy KVS endpoints.");
+            if (STRSTR(pChannelInfo->pRegion, AWS_CN_REGION_PREFIX)) {
+                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
+                         pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX_CN);
+            } else {
+                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
+                         pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX);
+            }
         }
     }
 

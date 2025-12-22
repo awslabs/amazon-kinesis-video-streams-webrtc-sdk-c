@@ -355,7 +355,7 @@ STATUS iceCandidateSerialize(PIceCandidate, PCHAR, PUINT32);
 STATUS iceAgentSendPacket(PIceAgent, PBYTE, UINT32);
 
 /**
- * gather local ip addresses and create a udp port. If port creation succeeded then create a new candidate
+ * gather local IP addresses and create a udp port. If port creation succeeded then create a new candidate
  * and store it in localCandidates. Ips that are already a local candidate will not be added again.
  *
  * @param - PIceAgent - IN - IceAgent object
@@ -429,7 +429,7 @@ STATUS iceAgentSendStunPacket(PStunPacket, PBYTE, UINT32, PIceAgent, PIceCandida
 STATUS iceAgentInitHostCandidate(PIceAgent);
 STATUS iceAgentInitSrflxCandidate(PIceAgent);
 STATUS iceAgentInitRelayCandidates(PIceAgent);
-STATUS iceAgentInitRelayCandidate(PIceAgent, UINT32, KVS_SOCKET_PROTOCOL);
+STATUS iceAgentInitRelayCandidate(PIceAgent, UINT32, KVS_SOCKET_PROTOCOL, KVS_IP_FAMILY_TYPE);
 
 STATUS iceAgentCheckConnectionStateSetup(PIceAgent);
 STATUS iceAgentConnectedStateSetup(PIceAgent);

@@ -354,6 +354,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     PIceConfigInfo pIceConfigInfo;
     UINT64 data;
     PRtcCertificate pRtcCertificate = NULL;
+    PCHAR dualStackEnvVar = NULL;
 
     CHK(pSampleConfiguration != NULL && ppRtcPeerConnection != NULL, STATUS_NULL_ARG);
 
@@ -369,12 +370,26 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     configuration.kvsRtcConfiguration.enableIceStats = pSampleConfiguration->enableIceStats;
 #endif
 
+    dualStackEnvVar = GETENV(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
+
     // Set the  STUN server
-    PCHAR pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX;
-    // If region is in CN, add CN region uri postfix
-    if (STRSTR(pSampleConfiguration->channelInfo.pRegion, "cn-")) {
-        pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX_CN;
+    PCHAR pKinesisVideoStunUrlPostFix = NULL;
+    if (!IS_NULL_OR_EMPTY_STRING(dualStackEnvVar)) {
+        DLOGD("Using dual-stack STUN endpoint");
+        if (STRSTR(pSampleConfiguration->channelInfo.pRegion, "cn-")) {
+            pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_DUALSTACK_STUN_URL_POSTFIX_CN;
+        } else {
+            pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_DUALSTACK_STUN_URL_POSTFIX;
+        }
+    } else {
+        DLOGD("Using legacy STUN endpoint");
+        if (STRSTR(pSampleConfiguration->channelInfo.pRegion, "cn-")) {
+            pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX_CN;
+        } else {
+            pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX;
+        }
     }
+
     SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->channelInfo.pRegion,
              pKinesisVideoStunUrlPostFix);
 
@@ -397,6 +412,8 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
                  *
                  * It's recommended to not pass too many TURN iceServers to configuration because it will slow down ice gathering in non-trickle mode.
                  */
+
+                DLOGD("TURN server %d urls: %s", j + 1, pIceConfigInfo->uris[j]);
 
                 STRNCPY(configuration.iceServers[uriCount + 1].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
                 STRNCPY(configuration.iceServers[uriCount + 1].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
