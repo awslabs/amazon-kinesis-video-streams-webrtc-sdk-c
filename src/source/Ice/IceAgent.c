@@ -474,9 +474,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
             isMatchingTurnFamily =
                 (pLocalIceCandidate->pTurnConnection->ipFamilyType == KVS_IP_FAMILY_TYPE_IPV4 && IS_IPV4_ADDR(&pIceCandidate->ipAddress)) ||
                 (pLocalIceCandidate->pTurnConnection->ipFamilyType == KVS_IP_FAMILY_TYPE_IPV6 && IS_IPV6_ADDR(&pIceCandidate->ipAddress));
-            // [TURN Allocation] Only supporting IPv4 allocations for now.
-            // if (isMatchingTurnFamily) {
-            if (pIceCandidate->ipAddress.family == KVS_IP_FAMILY_TYPE_IPV4) {
+            if (isMatchingTurnFamily) {
                 CHK_STATUS(turnConnectionAddPeer(pLocalIceCandidate->pTurnConnection, &pIceCandidate->ipAddress));
             }
         }
@@ -2022,9 +2020,7 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
         isMatchingTurnFamily = (turnServerIpFamily == KVS_IP_FAMILY_TYPE_IPV4 && IS_IPV4_ADDR(&pCandidate->ipAddress)) ||
             (turnServerIpFamily == KVS_IP_FAMILY_TYPE_IPV6 && IS_IPV6_ADDR(&pCandidate->ipAddress));
 
-        // [TURN Allocation] Only supporting IPv4 allocations for now.
-        // if (isMatchingTurnFamily) {
-        if (pCandidate->ipAddress.family == KVS_IP_FAMILY_TYPE_IPV4) {
+        if (isMatchingTurnFamily) {
             CHK_STATUS(turnConnectionAddPeer(pTurnConnection, &pCandidate->ipAddress));
         }
     }
