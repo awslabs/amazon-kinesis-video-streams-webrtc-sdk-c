@@ -38,7 +38,7 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
         // Skip inactive interfaces and loop back interfaces
         if (aa->OperStatus == IfOperStatusUp && aa->IfType != IF_TYPE_SOFTWARE_LOOPBACK) {
             char ifa_name[BUFSIZ];
-            memset(ifa_name, 0, BUFSIZ);
+            MEMSET(ifa_name, 0, BUFSIZ);
             WideCharToMultiByte(CP_ACP, 0, aa->FriendlyName, wcslen(aa->FriendlyName), ifa_name, BUFSIZ, NULL, NULL);
 
             for (ua = aa->FirstUnicastAddress; ua != NULL; ua = ua->Next) {
@@ -336,17 +336,39 @@ CleanUp:
 
 BOOL isIpAddr(PCHAR hostname, UINT16 length)
 {
-    BOOL status = TRUE;
+    UINT32 offset = 0;
     UINT32 ip_1, ip_2, ip_3, ip_4, ip_5, ip_6, ip_7, ip_8;
-    if (hostname == NULL || length > MAX_ICE_CONFIG_URI_LEN) {
-        DLOGW("Provided NULL hostname");
-        status = FALSE;
-    } else {
-        status = (SSCANF(hostname, IPV4_TEMPLATE, &ip_1, &ip_2, &ip_3, &ip_4) == 4 && ip_1 >= 0 && ip_1 <= 255 && ip_2 >= 0 && ip_2 <= 255 &&
-                  ip_3 >= 0 && ip_3 <= 255 && ip_4 >= 0 && ip_4 <= 255) ||
-            (SSCANF(hostname, IPV6_TEMPLATE, &ip_1, &ip_2, &ip_3, &ip_4, &ip_5, &ip_6, &ip_7, &ip_8) == 8);
+
+    if (hostname == NULL) {
+        DLOGW("Provided NULL hostname.");
+        return FALSE;
     }
-    return status;
+    if (length >= MAX_ICE_CONFIG_URI_LEN) {
+        DLOGW("Provided invalid hostname length: %u.", length);
+        return FALSE;
+    }
+
+    // Check if IPv4 address.
+    if (SSCANF(hostname, "%u.%u.%u.%u%n", &ip_1, &ip_2, &ip_3, &ip_4, &offset) == 4 && ip_1 <= 255 && ip_2 <= 255 && ip_3 <= 255 && ip_4 <= 255 &&
+        offset == STRLEN(hostname)) {
+        return TRUE;
+    }
+
+    // Check if IPv6 address.
+    // NOTE: This IPv6 address check assumes the full notation is used without any compression (e.g., no '::' usage).
+    offset = 0;
+    if (SSCANF(hostname, "%x:%x:%x:%x:%x:%x:%x:%x%n", &ip_1, &ip_2, &ip_3, &ip_4, &ip_5, &ip_6, &ip_7, &ip_8, &offset) == 8 &&
+        // Verify that the entire input was consumed - do not allow extra characters.
+        offset == STRLEN(hostname) &&
+
+        // Check the validity of each hextet.
+        ip_1 <= 0xFFFF && ip_2 <= 0xFFFF && ip_3 <= 0xFFFF && ip_4 <= 0xFFFF && ip_5 <= 0xFFFF && ip_6 <= 0xFFFF && ip_7 <= 0xFFFF && ip_8 <= 0xFFFF)
+
+    {
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 STATUS getIpAddrFromDnsHostname(PCHAR hostname, PCHAR address, UINT16 lengthSrc, UINT16 maxLenDst)
@@ -361,7 +383,6 @@ STATUS getIpAddrFromDnsHostname(PCHAR hostname, PCHAR address, UINT16 lengthSrc,
     // https://docs.aws.amazon.com/vpc/latest/userguide/vpc-dns.html#vpc-dns-hostnames
     // So, we first try to parse the IP from the hostname if it conforms to this format
     // For example: 35-90-63-38.t-ae7dd61a.kinesisvideo.us-west-2.amazonaws.com
-    // Note: public IPv6 DNS hostnames are not available
     while (hostNameLen > 0 && hostname[i] != '.') {
         if (hostname[i] >= '0' && hostname[i] <= '9') {
             if (j > maxLenDst) {
@@ -392,20 +413,98 @@ CleanUp:
     return retStatus;
 }
 
-STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
+// NOTE: IPv6 address parsing assumes the full notation is used without any compression (e.g., no '::' usage).
+STATUS getDualStackIpAddrFromDnsHostname(PCHAR hostname, PCHAR ipv4Address, PCHAR ipv6Address, UINT16 lengthSrc, UINT16 maxLenV4Dst,
+                                         UINT16 maxLenV6Dst)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT8 i = 0, j = 0;
+    UINT16 hostNameLen = lengthSrc;
+    CHK(hostname != NULL && ipv4Address != NULL && ipv6Address != NULL, STATUS_NULL_ARG);
+    CHK(hostNameLen > 0 && hostNameLen < MAX_ICE_CONFIG_URI_LEN, STATUS_INVALID_ARG);
+    CHAR c;
+
+    // Dual-stack TURN server URLs conform with the following IPv4 and IPv6 DNS hostname format:
+    // 35-90-63-38_2001-0db8-85a3-0000-0000-8a2e-0370-7334.t-ae7dd61a.kinesisvideo.us-west-2.api.aws
+
+    // Parse the IPv4 portion.
+    while (hostNameLen > 0 && hostname[i] != '_') {
+        CHK_WARN(j < maxLenV4Dst, STATUS_INVALID_ADDRESS_LENGTH, "Generated IPv4 address is past allowed size.");
+
+        c = hostname[i];
+
+        if (c >= '0' && c <= '9') {
+            ipv4Address[j] = hostname[i];
+        } else if (hostname[i] == '-') {
+            ipv4Address[j] = '.';
+        } else {
+            CHK_WARN(FALSE, STATUS_INVALID_ARG, "Parsing IPv4 address failed, received unexpected hostname format: %s", hostname);
+        }
+
+        j++;
+        i++;
+        hostNameLen--;
+    }
+    ipv4Address[j] = '\0';
+
+    j = 0;
+    i++;
+    hostNameLen--;
+
+    // Parse the IPv6 portion.
+    while (hostNameLen > 0 && hostname[i] != '.') {
+        CHK_WARN(j < maxLenV6Dst, STATUS_INVALID_ADDRESS_LENGTH, "Generated IPv6 address is past allowed size.");
+
+        c = hostname[i];
+
+        if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+            ipv6Address[j] = hostname[i];
+        } else if (hostname[i] == '-') {
+            ipv6Address[j] = ':';
+        } else {
+            CHK_WARN(FALSE, STATUS_INVALID_ARG, "Parsing IPv6 address failed, received unexpected hostname format: %s", hostname);
+        }
+
+        j++;
+        i++;
+        hostNameLen--;
+    }
+    ipv6Address[j] = '\0';
+
+CleanUp:
+    if (STATUS_FAILED(retStatus)) {
+        if (ipv4Address != NULL) {
+            ipv4Address[0] = '\0';
+        }
+        if (ipv6Address != NULL) {
+            ipv6Address[0] = '\0';
+        }
+        DLOGW("Failed to parse dual-stack address with error 0x%08x from hostname: %s", retStatus, hostname);
+    }
+
+    return retStatus;
+}
+
+STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
 {
     STATUS retStatus = STATUS_SUCCESS;
     INT32 errCode;
     UINT16 hostnameLen, addrLen;
     PCHAR errStr;
     struct addrinfo *res, *rp;
-    BOOL resolved = FALSE;
-    struct sockaddr_in* ipv4Addr;
-    struct sockaddr_in6* ipv6Addr;
+    BOOL ipv4Resolved = FALSE;
+    BOOL ipv6Resolved = FALSE;
+    struct sockaddr_in* ipv4SockAddr;
+    struct sockaddr_in6* ipv6SockAddr;
     struct in_addr inaddr;
+    struct in6_addr in6addr;
 
-    CHAR addr[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
+    CHAR addr[KVS_IP_ADDRESS_STRING_BUFFER_LEN] = {'\0'};
+    CHAR ipv4Addr[KVS_IP_ADDRESS_STRING_BUFFER_LEN] = {'\0'};
+    CHAR ipv6Addr[KVS_IP_ADDRESS_STRING_BUFFER_LEN] = {'\0'};
     BOOL isStunServer;
+    BOOL wasAddressParseSuccessful = FALSE;
+    BOOL dualStackEnvVarSet = FALSE;
 
     CHK(hostname != NULL, STATUS_NULL_ARG);
     DLOGI("ICE SERVER Hostname received: %s", hostname);
@@ -413,21 +512,46 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
     hostnameLen = STRLEN(hostname);
     addrLen = SIZEOF(addr);
     isStunServer = STRNCMP(hostname, KINESIS_VIDEO_STUN_URL_PREFIX, KINESIS_VIDEO_STUN_URL_PREFIX_LENGTH) == 0;
+    dualStackEnvVarSet = GETENV(USE_DUAL_STACK_ENDPOINTS_ENV_VAR) != NULL;
 
     // Adding this check in case we directly get an IP address. With the current usage pattern,
     // there is no way this function would receive an address directly, but having this check
     // in place anyways
     if (isIpAddr(hostname, hostnameLen)) {
         MEMCPY(addr, hostname, hostnameLen);
+        addr[hostnameLen] = '\0';
     } else if (!isStunServer) {
-        retStatus = getIpAddrFromDnsHostname(hostname, addr, hostnameLen, addrLen);
+        // Try to parse the address from the TURN server hostname.
+
+        if (dualStackEnvVarSet) {
+            DLOGD("Attempting to parse dual-stack IP addresses from TURN server hostname: %s", hostname);
+
+            retStatus = getDualStackIpAddrFromDnsHostname(hostname, ipv4Addr, ipv6Addr, hostnameLen, ARRAY_SIZE(ipv4Addr), ARRAY_SIZE(ipv6Addr));
+            if (retStatus == STATUS_SUCCESS) {
+                DLOGD("Parsed dual-stack IP addresses from TURN server hostname: IPv4 %s, IPv6 %s", ipv4Addr, ipv6Addr);
+            }
+        } else {
+            DLOGD("Attempting to parse IP address from legacy TURN server hostname: %s", hostname);
+
+            retStatus = getIpAddrFromDnsHostname(hostname, addr, hostnameLen, addrLen);
+            if (retStatus == STATUS_SUCCESS) {
+                DLOGD("Parsed IP address from legacy TURN server hostname: %s", addr);
+            }
+        }
     }
 
-    // Verify the generated address has the format x.x.x.x
-    if (!isIpAddr(addr, hostnameLen) || retStatus != STATUS_SUCCESS) {
-        // Only print the message for TURN servers since STUN addresses don't have the IP in the URL
+    wasAddressParseSuccessful = isIpAddr(addr, STRLEN(addr)) || (isIpAddr(ipv4Addr, STRLEN(ipv4Addr)) && isIpAddr(ipv6Addr, STRLEN(ipv6Addr)));
+
+    // Fall back to getaddrinfo if parsing the address from the hostname was not possible or failed.
+    if (!wasAddressParseSuccessful || retStatus != STATUS_SUCCESS) {
+        // Only print the warning for TURN servers since STUN addresses don't get parsed from the hostname.
         if (!isStunServer) {
-            DLOGW("Parsing for address failed for %s, fallback to getaddrinfo", hostname);
+            DLOGW("Parsing for TURN address failed for %s, fallback to getaddrinfo", hostname);
+        }
+
+        // Skip the IPv6 resolution if dual stack env var is not set.
+        if (!dualStackEnvVarSet) {
+            ipv6Resolved = TRUE;
         }
 
         errCode = getaddrinfo(hostname, NULL, NULL, &res);
@@ -435,27 +559,69 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
             errStr = errCode == EAI_SYSTEM ? (strerror(errno)) : ((PCHAR) gai_strerror(errCode));
             CHK_ERR(FALSE, STATUS_RESOLVE_HOSTNAME_FAILED, "getaddrinfo() with errno %s", errStr);
         }
-        for (rp = res; rp != NULL && !resolved; rp = rp->ai_next) {
-            if (rp->ai_family == AF_INET) {
-                ipv4Addr = (struct sockaddr_in*) rp->ai_addr;
-                destIp->family = KVS_IP_FAMILY_TYPE_IPV4;
-                MEMCPY(destIp->address, &ipv4Addr->sin_addr, IPV4_ADDRESS_LENGTH);
-                resolved = TRUE;
-            } else if (rp->ai_family == AF_INET6) {
-                ipv6Addr = (struct sockaddr_in6*) rp->ai_addr;
-                destIp->family = KVS_IP_FAMILY_TYPE_IPV6;
-                MEMCPY(destIp->address, &ipv6Addr->sin6_addr, IPV6_ADDRESS_LENGTH);
-                resolved = TRUE;
+        for (rp = res; rp != NULL && !(ipv4Resolved && ipv6Resolved); rp = rp->ai_next) {
+            if (rp->ai_family == AF_INET && !ipv4Resolved) {
+                ipv4SockAddr = (struct sockaddr_in*) rp->ai_addr;
+                destIps->ipv4Address.family = KVS_IP_FAMILY_TYPE_IPV4;
+                MEMCPY(destIps->ipv4Address.address, &ipv4SockAddr->sin_addr, IPV4_ADDRESS_LENGTH);
+
+                CHK_STATUS(getIpAddrStr(&(destIps->ipv4Address), ipv4Addr, ARRAY_SIZE(ipv4Addr)));
+                DLOGD("Found an IPv4 ICE server addresss: %s", ipv4Addr);
+
+                ipv4Resolved = TRUE;
+
+            } else if (rp->ai_family == AF_INET6 && !ipv6Resolved) {
+                ipv6SockAddr = (struct sockaddr_in6*) rp->ai_addr;
+                destIps->ipv6Address.family = KVS_IP_FAMILY_TYPE_IPV6;
+                MEMCPY(destIps->ipv6Address.address, &ipv6SockAddr->sin6_addr, IPV6_ADDRESS_LENGTH);
+
+                CHK_STATUS(getIpAddrStr(&(destIps->ipv6Address), ipv6Addr, ARRAY_SIZE(ipv6Addr)));
+                DLOGD("Found an IPv6 ICE server addresss: %s", ipv6Addr);
+
+                ipv6Resolved = TRUE;
             }
         }
         freeaddrinfo(res);
-        CHK_ERR(resolved, STATUS_HOSTNAME_NOT_FOUND, "Could not find network address of %s", hostname);
-    }
+        CHK_ERR(ipv4Resolved || ipv6Resolved, STATUS_HOSTNAME_NOT_FOUND, "Could not find network address of %s", hostname);
+    } else {
+        // Address parsing was successful. Capture the address(es).
 
-    else {
-        inet_pton(AF_INET, addr, &inaddr);
-        destIp->family = KVS_IP_FAMILY_TYPE_IPV4;
-        MEMCPY(destIp->address, &inaddr, IPV4_ADDRESS_LENGTH);
+        // Both addresses should be present in TURN url for dual-stack case.
+        if (STRLEN(ipv4Addr) > 0 && STRLEN(ipv6Addr) > 0) {
+            // Dual-stack case.
+
+            if (inet_pton(AF_INET, ipv4Addr, &inaddr) == 1) {
+                destIps->ipv4Address.family = KVS_IP_FAMILY_TYPE_IPV4;
+                MEMCPY(destIps->ipv4Address.address, &inaddr, IPV4_ADDRESS_LENGTH);
+            } else {
+                DLOGW("inet_pton failed on IPv4 ICE server address: %s", ipv4Addr);
+                retStatus = STATUS_INVALID_ARG;
+            }
+
+            if (inet_pton(AF_INET6, ipv6Addr, &in6addr) == 1) {
+                destIps->ipv6Address.family = KVS_IP_FAMILY_TYPE_IPV6;
+                MEMCPY(destIps->ipv6Address.address, &in6addr, IPV6_ADDRESS_LENGTH);
+            } else {
+                DLOGW("inet_pton failed on IPv6 ICE server address: %s", ipv6Addr);
+                retStatus = STATUS_INVALID_ARG;
+            }
+
+        } else {
+            // Legacy case.
+
+            if (inet_pton(AF_INET, addr, &inaddr) == 1) {
+                destIps->ipv4Address.family = KVS_IP_FAMILY_TYPE_IPV4;
+                MEMCPY(destIps->ipv4Address.address, &inaddr, IPV4_ADDRESS_LENGTH);
+            } else if (inet_pton(AF_INET6, addr, &in6addr) == 1) {
+                // This case will never happen with current TURN server URL format,
+                // but adding in case a hardcoded direct IPv6 address gets used.
+                destIps->ipv6Address.family = KVS_IP_FAMILY_TYPE_IPV6;
+                MEMCPY(destIps->ipv6Address.address, &in6addr, IPV6_ADDRESS_LENGTH);
+            } else {
+                DLOGW("inet_pton failed on legacy ICE server address: %s", addr);
+                retStatus = STATUS_INVALID_ARG;
+            }
+        }
     }
 
 CleanUp:

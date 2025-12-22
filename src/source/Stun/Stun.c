@@ -22,7 +22,7 @@ STATUS stunPackageIpAddr(PStunHeader pStunHeader, STUN_ATTRIBUTE_TYPE type, PKvs
      * - 2 byte attribute data len
      * - 2 byte address family
      * - 2 byte port
-     * - 4 byte or 16 byte ip address
+     * - 4 byte or 16 byte IP address
      */
     dataLen += STUN_ATTRIBUTE_HEADER_LEN + STUN_ATTRIBUTE_ADDRESS_HEADER_LEN;
     dataLen += IS_IPV4_ADDR(pIndirected) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
@@ -82,6 +82,7 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
     PStunAttributeLifetime pStunAttributeLifetime;
     PStunAttributeChangeRequest pStunAttributeChangeRequest;
     PStunAttributeRequestedTransport pStunAttributeRequestedTransport;
+    PStunAttributeAllocationAddressFamily pStunAttributeAllocationAddressFamily;
     PStunAttributeRealm pStunAttributeRealm;
     PStunAttributeNonce pStunAttributeNonce;
     PStunAttributeErrorCode pStunAttributeErrorCode;
@@ -261,6 +262,27 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
                     // Package the value
                     MEMCPY(pCurrentBufferPosition + STUN_ATTRIBUTE_HEADER_LEN, pStunAttributeRequestedTransport->protocol,
                            STUN_ATTRIBUTE_REQUESTED_TRANSPORT_PROTOCOL_LEN);
+                }
+
+                break;
+
+            case STUN_ATTRIBUTE_TYPE_REQUESTED_ADDRESS_FAMILY:
+
+                pStunAttributeAllocationAddressFamily = (PStunAttributeAllocationAddressFamily) pStunAttributeHeader;
+
+                encodedLen = STUN_ATTRIBUTE_HEADER_LEN + STUN_ATTRIBUTE_REQUESTED_ADDRESS_FAMILY_LEN;
+
+                CHK(!fingerprintFound && !messaageIntegrityFound, STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY);
+
+                if (pBuffer != NULL) {
+                    CHK(remaining >= encodedLen, STATUS_NOT_ENOUGH_MEMORY);
+
+                    // Package the message header first
+                    PACKAGE_STUN_ATTR_HEADER(pCurrentBufferPosition, pStunAttributeHeader->type, pStunAttributeHeader->length);
+
+                    // Package the value
+                    MEMCPY(pCurrentBufferPosition + STUN_ATTRIBUTE_HEADER_LEN, pStunAttributeAllocationAddressFamily->ipFamily,
+                           STUN_ATTRIBUTE_REQUESTED_ADDRESS_FAMILY_LEN);
                 }
 
                 break;
@@ -1449,6 +1471,42 @@ STATUS appendStunRealmAttribute(PStunPacket pStunPacket, PCHAR realm)
 
     // Fix-up the STUN header message length
     pStunPacket->header.messageLength += paddedLength + STUN_ATTRIBUTE_HEADER_LEN;
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS appendStunAllocationAddressFamily(PStunPacket pStunPacket, KVS_IP_FAMILY_TYPE ipFamily)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PStunAttributeAllocationAddressFamily pAttribute = NULL;
+    PStunAttributeHeader pAttributeHeader = NULL;
+    UINT16 ATTRIBUTE_LENGTH = 4;
+    UINT8 addressFamily = (UINT8) ipFamily;
+
+    CHK_STATUS(getFirstAvailableStunAttribute(pStunPacket, &pAttributeHeader));
+    pAttribute = (PStunAttributeAllocationAddressFamily) pAttributeHeader;
+
+    // Validate the overall size
+    CHK((PBYTE) pStunPacket + pStunPacket->allocationSize >= (PBYTE) pAttribute + ROUND_UP(SIZEOF(StunAttributeAllocationAddressFamily), 4),
+        STATUS_NOT_ENOUGH_MEMORY);
+
+    // Set up the new entry and copy data over
+    pStunPacket->attributeList[pStunPacket->attributesCount++] = (PStunAttributeHeader) pAttribute;
+
+    pAttribute->attribute.length = ATTRIBUTE_LENGTH;
+
+    pAttribute->attribute.type = STUN_ATTRIBUTE_TYPE_REQUESTED_ADDRESS_FAMILY;
+
+    // Set the address family
+    MEMSET(pAttribute->ipFamily, 0x00, ATTRIBUTE_LENGTH);
+    *pAttribute->ipFamily = (BYTE) addressFamily;
+
+    // Fix-up the STUN header message length
+    pStunPacket->header.messageLength += pAttribute->attribute.length + STUN_ATTRIBUTE_HEADER_LEN;
 
 CleanUp:
 

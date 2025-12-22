@@ -71,9 +71,9 @@ jobs:
       matrix:
         os:
           - name: Mac Intel
-            runner: macos-13
+            runner: macos-15-intel
           - name: Mac Apple Silicon
-            runner: macos-14
+            runner: macos-15
         compiler: [ gcc, clang ]
         config:
           - name: Shared OpenSSL

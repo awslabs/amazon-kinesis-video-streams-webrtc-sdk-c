@@ -97,6 +97,7 @@ extern "C" {
 #define MAX_UDP_PACKET_SIZE 65507
 
 typedef enum {
+    KVS_IP_FAMILY_TYPE_NOT_SET = (UINT16) 0x0000, // Sentinel value for not yet set IP address.
     KVS_IP_FAMILY_TYPE_IPV4 = (UINT16) 0x0001,
     KVS_IP_FAMILY_TYPE_IPV6 = (UINT16) 0x0002,
 } KVS_IP_FAMILY_TYPE;
@@ -108,12 +109,26 @@ typedef struct {
     BOOL isPointToPoint;
 } KvsIpAddress, *PKvsIpAddress;
 
-#define IS_IPV4_ADDR(pAddress) ((pAddress)->family == KVS_IP_FAMILY_TYPE_IPV4)
+// This structure stores both an IPv4 and IPv6 address (if applicable).
+typedef struct {
+    KvsIpAddress ipv4Address;
+    KvsIpAddress ipv6Address;
+} DualKvsIpAddresses, *PDualKvsIpAddresses;
+
+static inline BOOL IS_IPV4_ADDR(const PKvsIpAddress pAddress)
+{
+    return pAddress != NULL && pAddress->family == KVS_IP_FAMILY_TYPE_IPV4;
+}
+
+static inline BOOL IS_IPV6_ADDR(const PKvsIpAddress pAddress)
+{
+    return pAddress != NULL && pAddress->family == KVS_IP_FAMILY_TYPE_IPV6;
+}
 
 // Used for ensuring alignment
 #define ALIGN_UP_TO_MACHINE_WORD(x) ROUND_UP((x), SIZEOF(SIZE_T))
 
-typedef STATUS (*IceServerSetIpFunc)(UINT64, PCHAR, PKvsIpAddress);
+typedef STATUS (*IceServerSetIpFunc)(UINT64, PCHAR, PDualKvsIpAddresses);
 STATUS getIpAddrStr(PKvsIpAddress pKvsIpAddress, PCHAR pBuffer, UINT32 bufferLen);
 
 ////////////////////////////////////////////////////

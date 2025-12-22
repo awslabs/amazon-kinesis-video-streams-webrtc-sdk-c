@@ -68,7 +68,7 @@ typedef enum {
 } TURN_PEER_CONNECTION_STATE;
 
 typedef enum {
-    TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDIDATION,
+    TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDICATION, // Not currently supported
     TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL,
 } TURN_CONNECTION_DATA_TRANSFER_MODE;
 
@@ -183,11 +183,13 @@ struct __TurnConnection {
     BOOL deallocatePacketSent;
     TurnProfileDiagnostics turnProfileDiagnostics;
     PStateMachine pStateMachine;
+
+    KVS_IP_FAMILY_TYPE ipFamilyType;
 };
 typedef struct __TurnConnection* PTurnConnection;
 
 STATUS createTurnConnection(PIceServer, TIMER_QUEUE_HANDLE, TURN_CONNECTION_DATA_TRANSFER_MODE, KVS_SOCKET_PROTOCOL, PTurnConnectionCallbacks,
-                            PSocketConnection, PConnectionListener, PTurnConnection*);
+                            PSocketConnection, PConnectionListener, KVS_IP_FAMILY_TYPE, PTurnConnection*);
 STATUS freeTurnConnection(PTurnConnection*);
 STATUS turnConnectionAddPeer(PTurnConnection, PKvsIpAddress);
 STATUS turnConnectionSendData(PTurnConnection, PBYTE, UINT32, PKvsIpAddress);
@@ -205,7 +207,7 @@ UINT64 turnConnectionGetTime(UINT64);
 STATUS turnConnectionUpdateNonce(PTurnConnection);
 STATUS turnConnectionTimerCallback(UINT32, UINT64, UINT64);
 STATUS turnConnectionGetLongTermKey(PCHAR, PCHAR, PCHAR, PBYTE, UINT32);
-STATUS turnConnectionPackageTurnAllocationRequest(PCHAR, PCHAR, PBYTE, UINT16, UINT32, PStunPacket*);
+STATUS turnConnectionPackageTurnAllocationRequest(PCHAR, PCHAR, PBYTE, UINT16, UINT32, PStunPacket*, KVS_IP_FAMILY_TYPE);
 
 STATUS turnConnectionIncomingDataHandler(PTurnConnection, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress, PTurnChannelData, PUINT32);
 
@@ -217,6 +219,8 @@ VOID turnConnectionFatalError(PTurnConnection, STATUS);
 
 PTurnPeer turnConnectionGetPeerWithChannelNumber(PTurnConnection, UINT16);
 PTurnPeer turnConnectionGetPeerWithIp(PTurnConnection, PKvsIpAddress);
+
+STATUS getTurnConnectionIpAddress(PTurnConnection, PKvsIpAddress*);
 
 STATUS checkTurnPeerConnections(PTurnConnection);
 
