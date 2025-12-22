@@ -108,9 +108,11 @@ Collaboration diagram for StunIpAddrContext:</div>
 <div class="dyncontent">
 <div class="center"><img src="structStunIpAddrContext__coll__graph.png" border="0" usemap="#aStunIpAddrContext_coll__map" alt="Collaboration graph"/></div>
 <map name="aStunIpAddrContext_coll__map" id="aStunIpAddrContext_coll__map">
-<area shape="rect" title=" " alt="" coords="5,193,189,359"/>
+<area shape="rect" title=" " alt="" coords="5,336,189,501"/>
+<area shape="rect" href="structDualKvsIpAddresses.html" title=" " alt="" coords="24,208,171,273"/>
+<area shape="poly" title=" " alt="" coords="100,273,100,320,95,320,95,273"/>
 <area shape="rect" href="structKvsIpAddress.html" title=" " alt="" coords="37,5,157,131"/>
-<area shape="poly" title=" " alt="" coords="100,131,100,177,95,177,95,131"/>
+<area shape="poly" title=" " alt="" coords="100,131,100,191,95,191,95,131"/>
 </map>
 </div>
 <table class="memberdecls">
@@ -118,8 +120,8 @@ Collaboration diagram for StunIpAddrContext:</div>
 Public Attributes</h2></td></tr>
 <tr class="memitem:ac0beb1d0139b71306177a3859a7c5708" id="r_ac0beb1d0139b71306177a3859a7c5708"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structStunIpAddrContext.html#ac0beb1d0139b71306177a3859a7c5708">hostname</a> [<a class="el" href="group__StatsNameLengths.html#ga160cda488c482290cca205dcd1d29abc">MAX_ICE_CONFIG_URI_LEN</a>+1]</td></tr>
 <tr class="separator:ac0beb1d0139b71306177a3859a7c5708"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acd698bc1d7779a9626101ffaf5a5f00e" id="r_acd698bc1d7779a9626101ffaf5a5f00e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structKvsIpAddress.html">KvsIpAddress</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structStunIpAddrContext.html#acd698bc1d7779a9626101ffaf5a5f00e">kvsIpAddr</a></td></tr>
-<tr class="separator:acd698bc1d7779a9626101ffaf5a5f00e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a71c62ff0d8da8792ff14d6aa2a545536" id="r_a71c62ff0d8da8792ff14d6aa2a545536"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structDualKvsIpAddresses.html">DualKvsIpAddresses</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structStunIpAddrContext.html#a71c62ff0d8da8792ff14d6aa2a545536">kvsIpAddresses</a></td></tr>
+<tr class="separator:a71c62ff0d8da8792ff14d6aa2a545536"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a90efad0b39ce9250703ab4e9e717205e" id="r_a90efad0b39ce9250703ab4e9e717205e"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structStunIpAddrContext.html#a90efad0b39ce9250703ab4e9e717205e">isIpInitialized</a></td></tr>
 <tr class="separator:a90efad0b39ce9250703ab4e9e717205e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac1d91dee1994ba8abca91076851e28dd" id="r_ac1d91dee1994ba8abca91076851e28dd"><td class="memItemLeft" align="right" valign="top">UINT64&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structStunIpAddrContext.html#ac1d91dee1994ba8abca91076851e28dd">startTime</a></td></tr>
@@ -174,14 +176,14 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="acd698bc1d7779a9626101ffaf5a5f00e" name="acd698bc1d7779a9626101ffaf5a5f00e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#acd698bc1d7779a9626101ffaf5a5f00e">&#9670;&#160;</a></span>kvsIpAddr</h2>
+<a id="a71c62ff0d8da8792ff14d6aa2a545536" name="a71c62ff0d8da8792ff14d6aa2a545536"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a71c62ff0d8da8792ff14d6aa2a545536">&#9670;&#160;</a></span>kvsIpAddresses</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="structKvsIpAddress.html">KvsIpAddress</a> StunIpAddrContext::kvsIpAddr</td>
+          <td class="memname"><a class="el" href="structDualKvsIpAddresses.html">DualKvsIpAddresses</a> StunIpAddrContext::kvsIpAddresses</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -239,7 +241,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="structStunIpAddrContext.html">StunIpAddrContext</a></li>
-    <li class="footer">Generated on Tue Dec 16 2025 20:46:28 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Mon Dec 22 2025 17:12:28 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>

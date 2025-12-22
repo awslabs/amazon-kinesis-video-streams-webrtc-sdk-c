@@ -6,6 +6,6 @@ var searchData=
   ['keyframesencoded_3',['keyFramesEncoded',['../structRtcOutboundRtpStreamStats.html#a89792ab59e206e4b27ee817e4127229f',1,'RtcOutboundRtpStreamStats']]],
   ['kind_4',['kind',['../group__StatusCodes.html#ga0ab3d1535c557003a68f2c0d9abde2c3',1,'RtcMediaStreamTrack::kind'],['../structRTCRtpStreamStats.html#a46a1d7a813fd33f8cc41e42b733d5b24',1,'RTCRtpStreamStats::kind']]],
   ['kvsiceagentstats_5',['kvsIceAgentStats',['../group__StatusCodes.html#ga4f2c08754c0b4aae91b78d1692f13725',1,'KvsIceAgentMetrics']]],
-  ['kvsipaddr_6',['kvsIpAddr',['../structStunIpAddrContext.html#acd698bc1d7779a9626101ffaf5a5f00e',1,'StunIpAddrContext']]],
+  ['kvsipaddresses_6',['kvsIpAddresses',['../structStunIpAddrContext.html#a71c62ff0d8da8792ff14d6aa2a545536',1,'StunIpAddrContext']]],
   ['kvsrtcconfiguration_7',['kvsrtcconfiguration',['../group__StatusCodes.html#ga69bb47ece52e306b555cf69a153db483',1,'RtcConfiguration::kvsRtcConfiguration'],['../struct____IceAgent.html#a83dfd8dfd598f9266eacc2d441fb3508',1,'__IceAgent::kvsRtcConfiguration']]]
 ];

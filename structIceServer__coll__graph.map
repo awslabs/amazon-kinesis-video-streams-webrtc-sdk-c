@@ -1,5 +1,7 @@
 <map id="IceServer" name="IceServer">
-<area shape="rect" id="Node000001" title=" " alt="" coords="19,208,112,373"/>
-<area shape="rect" id="Node000002" href="$structKvsIpAddress.html" title=" " alt="" coords="5,5,125,131"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="68,131,68,192,63,192,63,131"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="32,351,125,516"/>
+<area shape="rect" id="Node000002" href="$structDualKvsIpAddresses.html" title=" " alt="" coords="5,208,152,273"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="81,273,81,334,76,334,76,273"/>
+<area shape="rect" id="Node000003" href="$structKvsIpAddress.html" title=" " alt="" coords="19,5,139,131"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="81,131,81,191,76,191,76,131"/>
 </map>

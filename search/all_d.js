@@ -8,7 +8,7 @@ var searchData=
   ['max_5fcandidate_5fid_5flength_5',['MAX_CANDIDATE_ID_LENGTH',['../group__StatsNameLengths.html#gaeb7cb54e2a66447e46fca79db9a8fda0',1,'Stats.h']]],
   ['max_5fcandidate_5ftype_5flength_6',['MAX_CANDIDATE_TYPE_LENGTH',['../Stats_8h.html#a6f56fd5e4474c4b1ffa11faf0835dd75',1,'Stats.h']]],
   ['max_5fchannel_5fname_5flen_7',['MAX_CHANNEL_NAME_LEN',['../group__NameLengths.html#gaee73129a95e82e17eb62dff027c92faf',1,'Include.h']]],
-  ['max_5fcontrol_5fplane_5furi_5fchar_5flen_8',['MAX_CONTROL_PLANE_URI_CHAR_LEN',['../ChannelInfo_8h.html#af6d330768f4d0373a1e369243c127bab',1,'ChannelInfo.h']]],
+  ['max_5fcontrol_5fplane_5furi_5fchar_5flen_8',['MAX_CONTROL_PLANE_URI_CHAR_LEN',['../group__NameLengths.html#gaf6d330768f4d0373a1e369243c127bab',1,'Include.h']]],
   ['max_5fcorrelation_5fid_5flen_9',['MAX_CORRELATION_ID_LEN',['../group__NameLengths.html#gadc7946d36507e0ef87459229ac246d62',1,'Include.h']]],
   ['max_5fdata_5fchannel_5fname_5flen_10',['MAX_DATA_CHANNEL_NAME_LEN',['../group__NameLengths.html#gafa229aa7776bec0878728ce98ae86953',1,'Include.h']]],
   ['max_5fdata_5fchannel_5fprotocol_5flen_11',['MAX_DATA_CHANNEL_PROTOCOL_LEN',['../group__NameLengths.html#ga53cf010bea0629dc2e3869487bc1562d',1,'Include.h']]],

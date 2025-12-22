@@ -44,12 +44,9 @@ var searchData=
   ['inet6_41',['INET6',['../Include__i_8h.html#a1ff8450564172348a0045dfee094ea80',1,'Include_i.h']]],
   ['infinite_5fretry_5fcount_5fsentinel_42',['INFINITE_RETRY_COUNT_SENTINEL',['../StateMachine_8h.html#a04856ecb0596c8806b099c5c149e88f9',1,'StateMachine.h']]],
   ['ipv4_5faddress_5flength_43',['IPV4_ADDRESS_LENGTH',['../Include__i_8h.html#a5b4d96bc437598cbbee2359efe652769',1,'Include_i.h']]],
-  ['ipv4_5ftemplate_44',['IPV4_TEMPLATE',['../Network_8h.html#acb3a4b473cbe2cef91120ad5c15e211a',1,'Network.h']]],
-  ['ipv6_5faddress_5flength_45',['IPV6_ADDRESS_LENGTH',['../Include__i_8h.html#a933c5bc924a8334c6f8596aa137a3890',1,'Include_i.h']]],
-  ['ipv6_5ftemplate_46',['IPV6_TEMPLATE',['../Network_8h.html#aeb4fed831c7f5e1187bcf447347599a6',1,'Network.h']]],
-  ['is_5fcann_5fpair_5fsending_5ffrom_5frelayed_47',['IS_CANN_PAIR_SENDING_FROM_RELAYED',['../IceAgent_8h.html#a1c18a7eb14332ab0c9540676f191b86e',1,'IceAgent.h']]],
-  ['is_5fcurrent_5ftime_5fcallback_5fset_48',['IS_CURRENT_TIME_CALLBACK_SET',['../Signaling_8h.html#a538702bf0e59d84272fb4f0228996c53',1,'Signaling.h']]],
-  ['is_5fipv4_5faddr_49',['IS_IPV4_ADDR',['../Include__i_8h.html#a0ad3c81d511351975e3f640bcf4d833a',1,'Include_i.h']]],
-  ['is_5fstun_5fpacket_50',['IS_STUN_PACKET',['../IceAgent_8h.html#a498a56dcc14a2efff117f68d7c4aef46',1,'IceAgent.h']]],
-  ['is_5ftwcc_5frunlen_51',['IS_TWCC_RUNLEN',['../Rtcp_8h.html#a60db4d3b2bc7f22bcb0d0dbf3ac3684b',1,'Rtcp.h']]]
+  ['ipv6_5faddress_5flength_44',['IPV6_ADDRESS_LENGTH',['../Include__i_8h.html#a933c5bc924a8334c6f8596aa137a3890',1,'Include_i.h']]],
+  ['is_5fcann_5fpair_5fsending_5ffrom_5frelayed_45',['IS_CANN_PAIR_SENDING_FROM_RELAYED',['../IceAgent_8h.html#a1c18a7eb14332ab0c9540676f191b86e',1,'IceAgent.h']]],
+  ['is_5fcurrent_5ftime_5fcallback_5fset_46',['IS_CURRENT_TIME_CALLBACK_SET',['../Signaling_8h.html#a538702bf0e59d84272fb4f0228996c53',1,'Signaling.h']]],
+  ['is_5fstun_5fpacket_47',['IS_STUN_PACKET',['../IceAgent_8h.html#a498a56dcc14a2efff117f68d7c4aef46',1,'IceAgent.h']]],
+  ['is_5ftwcc_5frunlen_48',['IS_TWCC_RUNLEN',['../Rtcp_8h.html#a60db4d3b2bc7f22bcb0d0dbf3ac3684b',1,'Rtcp.h']]]
 ];
