@@ -36,3 +36,7 @@ dependencies:
   app_common:
     path: ${KVS_SDK_PATH}/esp_port/examples/app_common
     version: '*'
+
+  slave_flasher:
+    path: ${KVS_SDK_PATH}/esp_port/components/slave_flasher
+    version: '*'

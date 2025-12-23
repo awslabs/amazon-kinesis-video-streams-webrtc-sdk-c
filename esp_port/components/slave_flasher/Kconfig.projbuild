@@ -1,0 +1,39 @@
+menu "Slave Flasher Configuration"
+
+    config SLAVE_PARTITION_TABLE_ADDRESS
+        hex "Partition Table Address"
+        default 0xC000
+        help
+            Flash address where the partition table will be written.
+            Default is 0xC000 (49152 decimal).
+
+    config SLAVE_APPLICATION_ADDRESS
+        hex "Application Address"
+        default 0x20000
+        help
+            Flash address where the application binary will be written.
+            Default is 0x20000 (131072 decimal).
+
+    config SLAVE_UART_RX_PIN
+        int "UART RX Pin"
+        default 22
+        help
+            GPIO pin number for UART RX.
+            Default is 22.
+
+    config SLAVE_UART_TX_PIN
+        int "UART TX Pin"
+        default 21
+        help
+            GPIO pin number for UART TX.
+            Default is 21.
+
+    config SLAVE_GPIO0_TRIGGER_PIN
+        int "GPIO0 Trigger Pin"
+        default 20
+        help
+            GPIO pin number for GPIO0 trigger.
+            Default is 20.
+
+endmenu
+
