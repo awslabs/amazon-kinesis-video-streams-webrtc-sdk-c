@@ -692,12 +692,9 @@ STATUS kvs_media_start_global_transmission(void* client_data, kvs_media_config_t
 
     ESP_LOGD(TAG, "Starting global media threads");
 
-#if CONFIG_IDF_TARGET_ESP32P4
-    /* CRITICAL: Initialize camera hardware FIRST (synchronously) before starting thread
-     * On ESP32-P4, camera hardware initialization must happen synchronously.
-     * The correct order is:
-     * 1. Initialize camera hardware FIRST (synchronously here)
-     * 2. Start camera streaming thread (thread will just start streaming, hardware already init'd)
+    /* Initialize video capture synchronously before starting thread
+     * For ESP32-P4: Camera hardware initialization must happen synchronously before display init.
+     * For other targets: Video capture interface initialization is still needed.
      */
     if (config->video_capture != NULL) {
         media_stream_video_capture_t *video_capture = (media_stream_video_capture_t*)config->video_capture;
@@ -716,20 +713,19 @@ STATUS kvs_media_start_global_transmission(void* client_data, kvs_media_config_t
 
         esp_err_t init_ret = video_capture->init(&video_config, &g_global_media.video_handle);
         if (init_ret != ESP_OK) {
-            ESP_LOGW(TAG, "Failed to initialize camera hardware: 0x%x (non-fatal, continuing without video)", init_ret);
+            ESP_LOGW(TAG, "Failed to initialize video capture: 0x%x (non-fatal, continuing without video)", init_ret);
             g_global_media.video_handle = NULL;
             /* Continue to allow audio initialization even if video fails */
         } else {
             esp_err_t start_ret = video_capture->start(g_global_media.video_handle);
             if (start_ret != ESP_OK) {
-                ESP_LOGW(TAG, "Failed to start camera streaming: 0x%x (non-fatal, continuing without video)", start_ret);
+                ESP_LOGW(TAG, "Failed to start video capture streaming: 0x%x (non-fatal, continuing without video)", start_ret);
                 video_capture->deinit(g_global_media.video_handle);
                 g_global_media.video_handle = NULL;
                 /* Continue to allow audio initialization even if video fails */
             }
         }
     }
-#endif
 
     // Start global video thread only if video capture is provided and initialized successfully
     if (config->video_capture != NULL && g_global_media.video_handle != NULL) {
