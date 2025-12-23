@@ -6,6 +6,9 @@
 #include "esp_spiffs.h"
 #include "mbedtls/md5.h"
 
+#include "esp_console.h"
+#include "argtable3/argtable3.h"
+
 static const char *TAG = "slave_flasher";
 
 #define HIGHER_BAUDRATE 2000000
@@ -18,6 +21,79 @@ static const char *TAG = "slave_flasher";
 static uint8_t buf[BUF_LEN] = {0};
 static char slave_line_buffer[SLAVE_BUFFER_SIZE] = {0};
 static size_t slave_line_pos = 0;
+
+/**
+ * CLI command argument structure for write_slave command
+ */
+static struct {
+    struct arg_str *data;
+    struct arg_end *end;
+} write_slave_args;
+
+/**
+ * Write data to slave console via UART
+ * @param data Pointer to data buffer
+ * @param len Length of data to write
+ * @return Number of bytes written, or negative on error
+ */
+static int slave_write(const uint8_t *data, size_t len)
+{
+    if (!data || len == 0) {
+        return -1;
+    }
+
+    int written = uart_write_bytes(UART_NUM_1, (const char *)data, len);
+    if (written > 0) {
+        uart_wait_tx_done(UART_NUM_1, portMAX_DELAY);
+    }
+    return written;
+}
+
+/**
+ * Write a string to slave console via UART
+ * @param str Null-terminated string to write
+ * @return Number of bytes written, or negative on error
+ */
+int slave_write_string(const char *str)
+{
+    if (!str) {
+        return -1;
+    }
+    return slave_write((const uint8_t *)str, strlen(str));
+}
+
+/**
+ * CLI command handler: write_slave
+ * Writes data to the slave device console
+ */
+static int cmd_write_slave(int argc, char **argv)
+{
+    int nerrors = arg_parse(argc, argv, (void **)&write_slave_args);
+    if (nerrors != 0) {
+        arg_print_errors(stderr, write_slave_args.end, argv[0]);
+        return 1;
+    }
+
+    const char *data = write_slave_args.data->sval[0];
+    if (!data) {
+        printf("Error: No data provided\n");
+        return 1;
+    }
+
+    int written = slave_write_string(data);
+    if (written < 0) {
+        printf("Error: Failed to write to slave\n");
+        return 1;
+    }
+
+    // Optionally add newline if not present
+    if (data[strlen(data) - 1] != '\n') {
+        slave_write_string("\n");
+    }
+
+    printf("Sent %d bytes to slave: %s\n", written, data);
+    return 0;
+}
 
 static void slave_print_line(const char* line)
 {
@@ -210,6 +286,27 @@ static esp_err_t check_and_flash_partition(const char *file_path, uint32_t addr)
     }
 }
 
+/**
+ * Register CLI commands for slave console interaction
+ */
+static void register_slave_commands(void)
+{
+    // Register write_slave command
+    write_slave_args.data = arg_str1(NULL, NULL, "<data>", "Data string to write to slave device");
+    write_slave_args.end = arg_end(1);
+
+    const esp_console_cmd_t write_slave_cmd = {
+        .command = "write_slave",
+        .help = "Write data string to slave device console",
+        .hint = NULL,
+        .func = &cmd_write_slave,
+        .argtable = &write_slave_args
+    };
+
+    ESP_ERROR_CHECK(esp_console_cmd_register(&write_slave_cmd));
+    ESP_LOGI(TAG, "Registered CLI command: write_slave");
+}
+
 esp_err_t flash_slave()
 {
     ESP_LOGI(TAG, "Initializing SPIFFS");
@@ -288,6 +385,7 @@ esp_err_t flash_slave()
     }
 
     xTaskCreate(slave_monitor, "slave_monitor", 2048, NULL, configMAX_PRIORITIES - 1, NULL);
-
+    // Register CLI commands for slave console interaction
+    register_slave_commands();
     return ESP_OK;
 }

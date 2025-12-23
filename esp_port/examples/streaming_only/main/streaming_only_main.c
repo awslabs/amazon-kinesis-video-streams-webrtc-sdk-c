@@ -28,10 +28,10 @@
 #include "app_webrtc.h"
 #include "kvs_peer_connection.h"
 #include "power_save_handler.h"
-
+#ifdef CONFIG_SLAVE_FLASHER_ENABLE
 #include "slave_flasher.h"
-
-
+#endif
+#ifdef CONFIG_SLAVE_FLASHER_ENABLE
 static vprintf_like_t s_original_vprintf = NULL;
 
 static int custom_vprintf(const char* fmt, va_list args)
@@ -45,6 +45,7 @@ static int custom_vprintf(const char* fmt, va_list args)
         return vprintf(fmt, args);
     }
 }
+#endif
 
 extern esp_err_t esp_hosted_wait_for_slave(void);
 
@@ -287,14 +288,6 @@ void app_main(void)
 {
     esp_err_t ret;
 
-    s_original_vprintf = esp_log_set_vprintf(custom_vprintf);
-
-    ret = flash_slave();
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to flash slave: %s", esp_err_to_name(ret));
-        return;
-    }
-
     WEBRTC_STATUS status;
 
     // Initialize NVS
@@ -304,6 +297,16 @@ void app_main(void)
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
+
+#ifdef CONFIG_SLAVE_FLASHER_ENABLE
+    s_original_vprintf = esp_log_set_vprintf(custom_vprintf);
+
+    ret = flash_slave();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to flash slave: %s", esp_err_to_name(ret));
+        return;
+    }
+#endif
 
     ESP_LOGI(TAG, "ESP32 WebRTC Streaming Example");
 
