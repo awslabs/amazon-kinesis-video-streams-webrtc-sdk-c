@@ -56,6 +56,9 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     BOOL cacheFound = FALSE;
     PSignalingFileCacheEntry pFileCacheEntry = NULL;
 
+    PCHAR useDualStackEnvVar = NULL;
+    BOOL useDualStackEndpoints = FALSE;
+
     struct lws_protocols* pProtocols = NULL;
 
     CHK(pClientInfo != NULL && pChannelInfo != NULL && pCallbacks != NULL && pCredentialProvider != NULL && ppSignalingClient != NULL,
@@ -96,7 +99,11 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     pSignalingClient->offerSentTime = INVALID_TIMESTAMP_VALUE;
 
     if (pSignalingClient->pChannelInfo->cachingPolicy == SIGNALING_API_CALL_CACHE_TYPE_FILE) {
+        useDualStackEnvVar = GETENV(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
+        useDualStackEndpoints = useDualStackEnvVar != NULL && (STRCMP(useDualStackEnvVar, "1") == 0 || STRCMP(useDualStackEnvVar, "TRUE") == 0 || STRCMP(useDualStackEnvVar, "true") == 0 || STRCMP(useDualStackEnvVar, "ON") == 0);
+
         if (STATUS_FAILED(signalingCacheLoadFromFile(pSignalingClient->pChannelInfo->pChannelName, pSignalingClient->pChannelInfo->pRegion,
+                                                     pSignalingClient->pChannelInfo->pControlPlaneUrl, useDualStackEndpoints,
                                                      pSignalingClient->pChannelInfo->channelRoleType, pFileCacheEntry, &cacheFound,
                                                      pSignalingClient->clientInfo.cacheFilePath))) {
             DLOGW("Failed to load signaling cache from file");
@@ -1121,6 +1128,8 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
     STATUS retStatus = STATUS_SUCCESS;
     BOOL apiCall = TRUE;
     SignalingFileCacheEntry signalingFileCacheEntry;
+    PCHAR useDualStackEnvVar = NULL;
+    BOOL useDualStackEndpoints = FALSE;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -1160,6 +1169,9 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
                     pSignalingClient->getEndpointTime = time;
 
                     if (pSignalingClient->pChannelInfo->cachingPolicy == SIGNALING_API_CALL_CACHE_TYPE_FILE) {
+                        useDualStackEnvVar = GETENV(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
+                        useDualStackEndpoints = useDualStackEnvVar != NULL && (STRCMP(useDualStackEnvVar, "1") == 0 || STRCMP(useDualStackEnvVar, "TRUE") == 0 || STRCMP(useDualStackEnvVar, "true") == 0 || STRCMP(useDualStackEnvVar, "ON") == 0);
+
                         signalingFileCacheEntry.creationTsEpochSeconds = time / HUNDREDS_OF_NANOS_IN_A_SECOND;
                         signalingFileCacheEntry.role = pSignalingClient->pChannelInfo->channelRoleType;
                         // In case of pre-created channels, the channel name can be NULL in which case we will use ARN.
@@ -1168,6 +1180,10 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
                                pSignalingClient->pChannelInfo->pChannelName != NULL ? pSignalingClient->pChannelInfo->pChannelName
                                                                                     : pSignalingClient->pChannelInfo->pChannelArn);
                         STRCPY(signalingFileCacheEntry.region, pSignalingClient->pChannelInfo->pRegion);
+                        STRCPY(signalingFileCacheEntry.controlPlaneUrl, pSignalingClient->pChannelInfo->pControlPlaneUrl != NULL
+                                                                          ? pSignalingClient->pChannelInfo->pControlPlaneUrl
+                                                                          : "");
+                        STRCPY(signalingFileCacheEntry.useDualStackEndpoints, useDualStackEndpoints ? "1" : "0");
                         STRCPY(signalingFileCacheEntry.channelArn, pSignalingClient->channelDescription.channelArn);
                         STRCPY(signalingFileCacheEntry.storageEnabled, pSignalingClient->mediaStorageConfig.storageStatus ? "1" : "0");
                         STRCPY(signalingFileCacheEntry.storageStreamArn, pSignalingClient->mediaStorageConfig.storageStreamArn);

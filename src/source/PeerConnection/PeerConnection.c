@@ -803,6 +803,7 @@ STATUS getStunAddr(PStunIpAddrContext pStunIpAddrCtx)
     struct sockaddr_in6* ipv6Addr;
     BOOL ipv4Resolved = FALSE;
     BOOL ipv6Resolved = FALSE;
+    PCHAR useDualStackEnvVar = NULL;
 
     // Initialize IP address families to a sentinel value
     // to indicate that they are not set.
@@ -811,8 +812,10 @@ STATUS getStunAddr(PStunIpAddrContext pStunIpAddrCtx)
     pStunIpAddrCtx->kvsIpAddresses.ipv4Address.port = 0;
     pStunIpAddrCtx->kvsIpAddresses.ipv6Address.port = 0;
 
+    useDualStackEnvVar = GETENV(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
+
     // Don't attempt to resolve IPv6 address if not in dual-stack mode.
-    if (GETENV(USE_DUAL_STACK_ENDPOINTS_ENV_VAR) == NULL) {
+    if (useDualStackEnvVar == NULL || STRCMP(GETENV(useDualStackEnvVar), "0") == 0 || STRCMP(GETENV(useDualStackEnvVar), "") == 0) {
         ipv6Resolved = TRUE;
     }
 

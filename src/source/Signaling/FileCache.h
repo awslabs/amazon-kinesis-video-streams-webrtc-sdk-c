@@ -29,6 +29,8 @@ typedef struct {
     CHAR channelName[MAX_CHANNEL_NAME_LEN + 1];
     CHAR channelArn[MAX_ARN_LEN + 1];
     CHAR region[MAX_REGION_NAME_LEN + 1];
+    CHAR controlPlaneUrl[MAX_CONTROL_PLANE_URI_CHAR_LEN + 1];
+    CHAR useDualStackEndpoints[2];
     CHAR httpsEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1];
     CHAR wssEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1];
     CHAR storageStreamArn[MAX_ARN_LEN + 1];
@@ -36,7 +38,7 @@ typedef struct {
 } SignalingFileCacheEntry, *PSignalingFileCacheEntry;
 
 STATUS deserializeSignalingCacheEntries(PCHAR, UINT64, PSignalingFileCacheEntry, PUINT32, PCHAR);
-STATUS signalingCacheLoadFromFile(PCHAR, PCHAR, SIGNALING_CHANNEL_ROLE_TYPE, PSignalingFileCacheEntry, PBOOL, PCHAR);
+STATUS signalingCacheLoadFromFile(PCHAR, PCHAR, PCHAR, BOOL, SIGNALING_CHANNEL_ROLE_TYPE, PSignalingFileCacheEntry, PBOOL, PCHAR);
 STATUS signalingCacheSaveToFile(PSignalingFileCacheEntry, PCHAR);
 
 #ifdef __cplusplus
