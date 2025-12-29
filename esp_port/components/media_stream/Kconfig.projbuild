@@ -12,6 +12,13 @@ menu "Media Stream Configuration"
             depends on USE_ESP_VIDEO_IF
             help
                 Flip the image horizontally.
+
+        config ESP_VIDEO_IF_VER_FLIP
+            bool "Vertical Flip"
+            default n
+            depends on USE_ESP_VIDEO_IF
+            help
+                Flip the image vertically.
     endmenu
 
     menu "Camera Configuration"

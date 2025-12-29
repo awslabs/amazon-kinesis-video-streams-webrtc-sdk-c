@@ -409,20 +409,29 @@ esp_err_t esp_video_if_start(void)
         }
     }
 
-#if CONFIG_ESP_VIDEO_IF_HOR_FLIP
-    // Set horizontal flip using extended controls since VIDIOC_S_CTRL is not supported
-    struct v4l2_ext_controls ext_ctrls;
-    struct v4l2_ext_control ctrl;
-    memset(&ext_ctrls, 0, sizeof(ext_ctrls));
-    memset(&ctrl, 0, sizeof(ctrl));
+#if CONFIG_ESP_VIDEO_IF_HOR_FLIP || CONFIG_ESP_VIDEO_IF_VER_FLIP
+    // Set horizontal and/or vertical flip using extended controls since VIDIOC_S_CTRL is not supported
+    struct v4l2_ext_controls ext_ctrls = {0};
+    struct v4l2_ext_control ctrls[2] = {0};
+    int ctrl_count = 0;
 
-    ctrl.id = V4L2_CID_HFLIP;
-    ctrl.value = 1; // 1 to enable horizontal flip, 0 to disable
-    ext_ctrls.controls = &ctrl;
-    ext_ctrls.count = 1;
+#if CONFIG_ESP_VIDEO_IF_HOR_FLIP
+    ctrls[ctrl_count].id = V4L2_CID_HFLIP;
+    ctrls[ctrl_count].value = 1; // 1 to enable horizontal flip, 0 to disable
+    ctrl_count++;
+#endif
+
+#if CONFIG_ESP_VIDEO_IF_VER_FLIP
+    ctrls[ctrl_count].id = V4L2_CID_VFLIP;
+    ctrls[ctrl_count].value = 1; // 1 to enable vertical flip, 0 to disable
+    ctrl_count++;
+#endif
+
+    ext_ctrls.controls = ctrls;
+    ext_ctrls.count = ctrl_count;
 
     if (ioctl(v4l2->cap_fd, VIDIOC_S_EXT_CTRLS, &ext_ctrls) < 0) {
-        ESP_LOGW(TAG, "Failed to set horizontal flip, errno: %d", errno);
+        ESP_LOGW(TAG, "Failed to set flip controls, errno: %d", errno);
     }
 #endif
 
