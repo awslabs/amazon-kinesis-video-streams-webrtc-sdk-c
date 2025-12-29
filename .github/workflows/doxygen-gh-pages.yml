@@ -7,6 +7,9 @@ on:
       - develop
       - 'test-pr-*'
 
+permissions:
+  contents: write
+
 jobs:
   generate-and-deploy-doxygen:
     runs-on: ubuntu-latest
@@ -25,5 +28,6 @@ jobs:
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4.2.5
         with:
+          aws-region: us-west-2
           folder: doc/html
           branch: gh-pages
