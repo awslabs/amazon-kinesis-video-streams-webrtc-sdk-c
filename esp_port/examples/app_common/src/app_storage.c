@@ -11,8 +11,10 @@
 #include "driver/sdmmc_host.h"
 #include "driver/sdspi_host.h"
 #include "sdmmc_cmd.h"
+#if SOC_SDMMC_IO_POWER_EXTERNAL
+#include "sd_pwr_ctrl_by_on_chip_ldo.h"
+#endif
 
-// sdcard and hosted both cannot work on p4. Please use spiffs
 #define USE_SPIFFS_STORAGE  CONFIG_APP_COMMON_USE_SPIFFS
 
 #if USE_SPIFFS_STORAGE
@@ -22,6 +24,12 @@
 static const char *TAG = "app_storage";
 
 #if !USE_SPIFFS_STORAGE // SD card
+#if SOC_SDMMC_IO_POWER_EXTERNAL
+static sd_pwr_ctrl_handle_t s_pwr_ctrl_handle = NULL;
+#endif
+static sdmmc_card_t* s_card = NULL;
+static const char* s_mount_point = "/sdcard";
+
 static esp_err_t sdcard_init(void)
 {
 #if SOC_SDMMC_HOST_SUPPORTED
@@ -40,8 +48,29 @@ static esp_err_t sdcard_init(void)
 
     ESP_LOGI(TAG, "Initializing SD card");
     sdmmc_card_t* card;
+    esp_err_t ret;
     ESP_LOGI(TAG, "Using SDMMC peripheral");
     sdmmc_host_t host = SDMMC_HOST_DEFAULT();
+
+    // Set host slot and frequency before configuring slot
+#if CONFIG_IDF_TARGET_ESP32P4
+    host.slot = SDMMC_HOST_SLOT_0;
+#endif
+
+    // For SoCs where the SD power can be supplied both via an internal or external (e.g. on-board LDO) power supply.
+    // When using specific IO pins (which can be used for ultra high-speed SDMMC) to connect to the SD card
+    // and the internal LDO power supply, we need to initialize the power supply first.
+#if SOC_SDMMC_IO_POWER_EXTERNAL && CONFIG_IDF_TARGET_ESP32P4
+    sd_pwr_ctrl_ldo_config_t ldo_config = {
+        .ldo_chan_id = 4,
+    };
+    ret = sd_pwr_ctrl_new_on_chip_ldo(&ldo_config, &s_pwr_ctrl_handle);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to create a new on-chip LDO power control driver");
+        return ret;
+    }
+    host.pwr_ctrl_handle = s_pwr_ctrl_handle;
+#endif
 
     // This initializes the slot without card detect (CD) and write protect (WP) signals.
     // Modify slot_config.gpio_cd and slot_config.gpio_wp if your board has these signals.
@@ -56,38 +85,39 @@ static esp_err_t sdcard_init(void)
 
     // On chips where the GPIOs used for SD card can be configured, set them in
     // the slot_config structure:
-#ifdef CONFIG_IDF_TARGET_ESP32S3
-    slot_config.clk = GPIO_NUM_39;//CONFIG_EXAMPLE_PIN_CLK;
-    slot_config.cmd = GPIO_NUM_38;//CONFIG_EXAMPLE_PIN_CMD;
-    slot_config.d0 = GPIO_NUM_40;//CONFIG_EXAMPLE_PIN_D0;
+#if CONFIG_IDF_TARGET_ESP32S3
+    // For ESP32S3, CONFIG_EXAMPLE_PIN_* are defined in Kconfig
+    slot_config.clk = CONFIG_EXAMPLE_PIN_CLK;
+    slot_config.cmd = CONFIG_EXAMPLE_PIN_CMD;
+    slot_config.d0 = CONFIG_EXAMPLE_PIN_D0;
 #ifdef CONFIG_EXAMPLE_SDMMC_BUS_WIDTH_4
     slot_config.d1 = CONFIG_EXAMPLE_PIN_D1;
     slot_config.d2 = CONFIG_EXAMPLE_PIN_D2;
     slot_config.d3 = CONFIG_EXAMPLE_PIN_D3;
 #endif  // CONFIG_EXAMPLE_SDMMC_BUS_WIDTH_4
+#elif CONFIG_IDF_TARGET_ESP32P4
+    // For ESP32P4, CONFIG_EXAMPLE_PIN_* are defined in Kconfig
+    slot_config.clk = CONFIG_EXAMPLE_PIN_CLK;
+    slot_config.cmd = CONFIG_EXAMPLE_PIN_CMD;
+    slot_config.d0 = CONFIG_EXAMPLE_PIN_D0;
+#ifdef CONFIG_EXAMPLE_SDMMC_BUS_WIDTH_4
+    slot_config.d1 = CONFIG_EXAMPLE_PIN_D1;
+    slot_config.d2 = CONFIG_EXAMPLE_PIN_D2;
+    slot_config.d3 = CONFIG_EXAMPLE_PIN_D3;
+#endif  // CONFIG_EXAMPLE_SDMMC_BUS_WIDTH_4
+#endif  // CONFIG_IDF_TARGET_ESP32S3
 
     // Enable internal pullups on enabled pins. The internal pullups
     // are insufficient however, please make sure 10k external pullups are
     // connected on the bus. This is for debug / example purpose only.
     slot_config.flags |= SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
-#elif CONFIG_IDF_TARGET_ESP32P4
-    slot_config.width = 4;
-    slot_config.cmd = 44;
-    slot_config.clk = 43;
-    slot_config.d0 = 39;
-    slot_config.d1 = 40;
-    slot_config.d2 = 41;
-    slot_config.d3 = 42;
-    slot_config.flags |= SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
-    host.slot = SDMMC_HOST_SLOT_0;
-#endif  // CONFIG_IDF_TARGET_ESP32S3
 
     // Use settings defined above to initialize SD card and mount FAT filesystem.
     // Note: esp_vfs_fat_sdmmc/sdspi_mount is all-in-one convenience functions.
     // Please check its source code and implement error recovery when developing
     // production applications.
     ESP_LOGI(TAG, "Mounting filesystem");
-    esp_err_t ret = esp_vfs_fat_sdmmc_mount("/sdcard", &host, &slot_config, &mount_config, &card);
+    ret = esp_vfs_fat_sdmmc_mount(s_mount_point, &host, &slot_config, &mount_config, &card);
 
     if (ret != ESP_OK) {
         if (ret == ESP_FAIL) {
@@ -100,6 +130,9 @@ static esp_err_t sdcard_init(void)
         return ESP_FAIL;
     }
     ESP_LOGI(TAG, "Filesystem mounted");
+
+    // Store card pointer for unmounting
+    s_card = card;
 
     // Card has been initialized, print its properties
     sdmmc_card_print_info(stdout, card);
@@ -166,8 +199,23 @@ esp_err_t app_storage_deinit()
     ESP_LOGI(TAG, "SPIFFS unmounted");
 #else
     // All done, unmount partition and disable SDMMC or SPI peripheral
-    esp_vfs_fat_sdmmc_unmount();
+    if (s_card != NULL) {
+        esp_vfs_fat_sdcard_unmount(s_mount_point, s_card);
+        s_card = NULL;
+    }
     ESP_LOGI(TAG, "Card unmounted");
+
+    // Deinitialize the power control driver if it was used
+#if SOC_SDMMC_IO_POWER_EXTERNAL && CONFIG_IDF_TARGET_ESP32P4
+    if (s_pwr_ctrl_handle != NULL) {
+        esp_err_t ret = sd_pwr_ctrl_del_on_chip_ldo(s_pwr_ctrl_handle);
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to delete the on-chip LDO power control driver");
+            return ret;
+        }
+        s_pwr_ctrl_handle = NULL;
+    }
+#endif
 #endif
     return ESP_OK;
 }
