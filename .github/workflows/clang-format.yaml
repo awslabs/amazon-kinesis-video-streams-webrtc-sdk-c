@@ -11,6 +11,9 @@ on:
       - develop
       - main
 
+permissions:
+  contents: read
+
 jobs:
   clang-format-check:
     runs-on: macos-15-intel
