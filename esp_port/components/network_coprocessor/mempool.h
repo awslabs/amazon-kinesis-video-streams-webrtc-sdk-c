@@ -45,7 +45,7 @@ struct hosted_mempool {
 
 #define CALLOC(x,y)                      calloc(x,y)
 #define MALLOC(x)                        malloc(x)
-#define MEM_ALLOC(x)                     heap_caps_malloc(x, MALLOC_CAP_DMA)
+#define MEM_ALLOC(x)                     heap_caps_malloc(x, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL)
 #define FREE(x) do {                     \
 	if (x) {                             \
 		free(x);                         \
@@ -55,7 +55,7 @@ struct hosted_mempool {
 
 #define MEMPOOL_NAME_STR_SIZE            32
 
-#define MEMPOOL_ALIGNMENT_BYTES          4
+#define MEMPOOL_ALIGNMENT_BYTES          64
 #define MEMPOOL_ALIGNMENT_MASK           (MEMPOOL_ALIGNMENT_BYTES-1)
 #define IS_MEMPOOL_ALIGNED(VAL)          (!((VAL)& MEMPOOL_ALIGNMENT_MASK))
 #define MEMPOOL_ALIGNED(VAL)             ((VAL) + MEMPOOL_ALIGNMENT_BYTES - \

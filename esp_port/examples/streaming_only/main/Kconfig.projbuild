@@ -2,8 +2,9 @@ menu "Example Configuration"
 
     config EXAMPLE_ENABLE_POWER_SAVE
         bool "Enable automatic deep sleep power save"
-        default y if IDF_TARGET_ESP32P4
         default n
+        # default n if SLAVE_CHIPSET_ESP32C5
+        # default y if IDF_TARGET_ESP32P4 && !SLAVE_CHIPSET_ESP32C5
         help
             Enable automatic deep sleep timer management based on WebRTC peer connections.
             When enabled, the device will automatically enter deep sleep after all peer

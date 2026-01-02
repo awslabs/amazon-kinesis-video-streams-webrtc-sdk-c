@@ -33,7 +33,7 @@ struct hosted_mempool * hosted_mempool_create(void *pre_allocated_mem,
 
 	if (!pre_allocated_mem) {
 		/* no pre-allocated mem, allocate new */
-		heap = (uint8_t *)CALLOC(1, MEMPOOL_ALIGNED(OS_MEMPOOL_BYTES(
+		heap = (uint8_t *)MEM_ALLOC(MEMPOOL_ALIGNED(OS_MEMPOOL_BYTES(
 						num_blocks,block_size)));
 		if (!heap) {
 			ESP_LOGE(TAG, "mempool create failed, no mem\n");
@@ -53,8 +53,8 @@ struct hosted_mempool * hosted_mempool_create(void *pre_allocated_mem,
 		}
 	}
 
-	new = (struct hosted_mempool*)CALLOC(1, sizeof(struct hosted_mempool));
-	pool = (struct os_mempool *)CALLOC(1, sizeof(struct os_mempool));
+	new = (struct hosted_mempool*)MEM_ALLOC(sizeof(struct hosted_mempool));
+	pool = (struct os_mempool *)MEM_ALLOC(sizeof(struct os_mempool));
 
 	if(!new || !pool) {
 		goto free_buffs;
