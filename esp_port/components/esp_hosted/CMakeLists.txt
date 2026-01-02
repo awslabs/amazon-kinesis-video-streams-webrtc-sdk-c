@@ -232,7 +232,7 @@ else()
 endif()
 
 idf_component_register(SRCS ${COMPONENT_SRCS}
-	REQUIRES soc esp_event esp_netif esp_timer driver esp_wifi sdmmc bt esp_http_client esp_gdbstub
+	REQUIRES soc esp_event esp_netif esp_timer driver esp_wifi sdmmc bt esp_http_client esp_gdbstub esp_driver_gpio
 	EXCLUDE_SRCS ${EXCLUDE_COMPONENT_SRCS}
 	INCLUDE_DIRS ${COMPONENT_ADD_INCLUDEDIRS})
 

@@ -23,6 +23,7 @@
 #include "esp_timer.h"
 #include "esp_wifi.h"
 #include "esp_system.h"
+#include "driver/gpio.h"
 #include "esp_hosted_config.h"
 
 static const char TAG[] = "H_power_save";
