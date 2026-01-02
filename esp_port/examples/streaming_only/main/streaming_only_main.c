@@ -310,15 +310,23 @@ void app_main(void)
     // Set USE_FILE_STREAM to 1 to use file-based streaming, 0 for hardware capture
 #define USE_FILE_STREAM 0
 
-#if USE_FILE_STREAM
-    media_stream_video_capture_t *video_capture = media_stream_get_file_video_capture_if();
+    media_stream_video_capture_t *video_capture = NULL;
     media_stream_audio_capture_t *audio_capture = NULL;
+    media_stream_video_player_t *video_player = NULL;
+    media_stream_audio_player_t *audio_player = NULL;
+
+#if USE_FILE_STREAM
+    video_capture = media_stream_get_file_video_capture_if();
 #else
-    media_stream_video_capture_t *video_capture = media_stream_get_video_capture_if();
-    media_stream_audio_capture_t *audio_capture = media_stream_get_audio_capture_if();
+#ifdef CONFIG_ESP_P4_CORE_BOARD
+    video_capture = media_stream_get_video_capture_if();
+#else
+    video_capture = media_stream_get_video_capture_if();
+    audio_capture = media_stream_get_audio_capture_if();
+    video_player = media_stream_get_video_player_if();
+    audio_player = media_stream_get_audio_player_if();
 #endif
-    media_stream_video_player_t *video_player = media_stream_get_video_player_if();
-    media_stream_audio_player_t *audio_player = media_stream_get_audio_player_if();
+#endif
 
     if (video_capture == NULL) {
         ESP_LOGW(TAG, "Video capture not available - continuing without video capture");

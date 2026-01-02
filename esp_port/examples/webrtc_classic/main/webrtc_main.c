@@ -323,10 +323,25 @@ void app_main(void)
     media_stream_video_player_t *video_player = media_stream_get_video_player_if();
     media_stream_audio_player_t *audio_player = media_stream_get_audio_player_if();
 
-    if (video_capture == NULL || audio_capture == NULL ||
-        video_player == NULL || audio_player == NULL) {
-        ESP_LOGE(TAG, "Failed to get media interfaces");
-        return;
+#ifdef CONFIG_ESP_P4_CORE_BOARD
+    audio_capture = NULL;
+    video_player = NULL;
+    audio_player = NULL;
+#endif
+
+    if (video_capture == NULL) {
+        ESP_LOGW(TAG, "Video capture not available - continuing without video capture");
+    }
+    if (video_player == NULL) {
+        ESP_LOGW(TAG, "Video player not available - continuing without video player");
+    }
+
+    if (audio_capture == NULL) {
+        ESP_LOGW(TAG, "Audio capture not available - continuing without audio capture");
+    }
+
+    if (audio_player == NULL) {
+        ESP_LOGW(TAG, "Audio player not available - continuing without audio player");
     }
 
     // Set up KVS signaling configuration (as opaque config)
