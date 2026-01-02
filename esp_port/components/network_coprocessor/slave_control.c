@@ -27,6 +27,7 @@
 #include "lwip/inet.h"
 #include "host_power_save.h"
 #include "esp_wifi.h"
+#include "nvs_flash.h"
 
 #define MAC_STR_LEN                 17
 #define MAC2STR(a)                  (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
@@ -1349,11 +1350,19 @@ static esp_err_t req_wifi_clear_ap_list(Rpc *req, Rpc *resp, void *priv_data)
 
 static esp_err_t req_wifi_restore(Rpc *req, Rpc *resp, void *priv_data)
 {
-    RPC_TEMPLATE_SIMPLE(RpcRespWifiRestore, resp_wifi_restore,
+	ESP_LOGI(TAG, "Restoring WiFi");
+	RPC_TEMPLATE_SIMPLE(RpcRespWifiRestore, resp_wifi_restore,
 			RpcReqWifiRestore, req_wifi_restore,
 			rpc__resp__wifi_restore__init);
 
-    RPC_RET_FAIL_IF(esp_wifi_restore());
+	ESP_LOGI(TAG, "WiFi restore called");
+	RPC_RET_FAIL_IF(esp_wifi_restore());
+	ESP_LOGI(TAG, "WiFi restore completed");
+
+	nvs_flash_deinit();
+	nvs_flash_erase();
+	vTaskDelay(100 / portTICK_PERIOD_MS);
+
 	return ESP_OK;
 }
 
