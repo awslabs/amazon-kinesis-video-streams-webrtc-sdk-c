@@ -75,7 +75,7 @@ menu "ESP-Hosted config"
 	choice ESP_P4_DEV_BOARD
 		bool "Configure GPIOs for P4 Development Board (SDIO)"
 		depends on IDF_TARGET_ESP32P4 && ESP_SDIO_HOST_INTERFACE
-		default ESP_P4_DEV_BOARD_NONE
+		default ESP_P4_DEV_BOARD_FUNC_BOARD
 		help
 			Sets GPIOs used for SDIO transport on ESP32-P4 Development Boards
 			- ESP32-P4 Function_EV_Board with on-board ESP32-C6
