@@ -19,6 +19,7 @@
 #include "esp_netif.h"
 
 #include "esp_cli.h"
+#include "wifi_cli.h"
 #include "app_storage.h"
 
 #include "app_webrtc.h"
