@@ -192,6 +192,11 @@ static inline void spi_trans_free(spi_slave_transaction_t *trans)
 #define set_dataready_gpio()     gpio_set_level(GPIO_DATA_READY, 1);
 #define reset_dataready_gpio()   gpio_set_level(GPIO_DATA_READY, 0);
 
+uint32_t get_cur_back_pressure(void)
+{
+	return uxQueueMessagesWaiting(spi_rx_queue[PRIO_Q_OTHERS]);
+}
+
 interface_context_t *interface_insert_driver(int (*event_handler)(uint8_t val))
 {
 	ESP_LOGI(TAG, "Using SPI interface");
@@ -224,7 +229,7 @@ static inline int find_wifi_tx_throttling_to_be_set(void)
 
 	queue_load = uxQueueMessagesWaiting(spi_rx_queue[PRIO_Q_OTHERS]);
 #if ESP_PKT_STATS
-	pkt_stats.slave_wifi_rx_msg_loaded = queue_load;
+	/* pkt_stats.slave_wifi_rx_msg_loaded = queue_load; */
 #endif
 
 	load_percent = (queue_load*100/SPI_RX_QUEUE_SIZE);
@@ -239,7 +244,7 @@ static inline int find_wifi_tx_throttling_to_be_set(void)
 		ESP_LOGV(TAG, "flow ctl stopped");
 	}
 
-	return slv_state_g.current_throttling;
+	return slv_state_g.flow_ctl_wifi;
 }
 #endif
 
@@ -622,7 +627,7 @@ static void queue_next_transaction(void)
 		ESP_LOGE(TAG , "Failed to queue new transaction\r\n");
 		return;
 	}
-	ESP_HEXLOGD("spi_tx", tx_buffer, len);
+	ESP_HEXLOGD("spi_tx", tx_buffer, len, len);
 
 	spi_trans = spi_trans_alloc(MEMSET_REQUIRED);
 	assert(spi_trans);

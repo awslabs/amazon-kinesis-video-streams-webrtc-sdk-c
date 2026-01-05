@@ -45,11 +45,13 @@ before_script:
   # - cat sdkconfig.ci >> sdkconfig.defaults
   - for TARGET in $TARGETS; do
   - for EXAMPLE in $EXAMPLES; do
-  - if [ $EXAMPLE == "network_adapter" ]; then # Build network_adapter only for esp32c6
-  - if [ $TARGET != "esp32c6" ]; then
-  - echo "Skipping $EXAMPLE for $TARGET"
+  - if [ $EXAMPLE == "network_adapter" ] && [ $TARGET != "esp32c6" ] && [ $TARGET != "esp32c5" ]; then
+  - echo "Skipping $EXAMPLE for $TARGET (network_adapter only for esp32c6/esp32c5)"
   - continue
   - fi
+  - if [ $EXAMPLE == "signaling_only" ] && [ $TARGET == "esp32p4" ]; then
+  - echo "Skipping $EXAMPLE for $TARGET (not yet supported)"
+  - continue
   - fi
   - example_path=$CI_PROJECT_DIR/esp_port/examples/$EXAMPLE
   - cd $example_path
@@ -100,7 +102,7 @@ build_idf_v5.5:
   image: espressif/idf:release-v5.5
   variables:
     EXAMPLES: signaling_only streaming_only webrtc_classic network_adapter
-    TARGETS: esp32 esp32s3 esp32c6 esp32p4
+    TARGETS: esp32 esp32s3 esp32c6 esp32c5 esp32p4
 
 # linux_build:
 #   stage: build

@@ -12,7 +12,7 @@ else(CONFIG_ESP_SPI_HOST_INTERFACE)
     list(APPEND app_srcs spi_slave_api.c)
 endif()
 
-set(priv_requires esp_wifi protobuf-c esp_driver_gpio esp_driver_uart esp_driver_sdio wpa_supplicant app_update)
+set(priv_requires esp_wifi protobuf-c esp_driver_gpio esp_driver_uart esp_driver_sdio esp_driver_spi wpa_supplicant app_update)
 set(requires esp_wifi nvs_flash protocomm esp_webrtc_utils)
 
 LIST(APPEND APP_INCLUDE_DIRS include)
