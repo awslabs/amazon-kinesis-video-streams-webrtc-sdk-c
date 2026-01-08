@@ -1864,13 +1864,16 @@ STATUS iceAgentInitRelayCandidates(PIceAgent pIceAgent)
 
     BOOL wasARelayCandidateInitialized = FALSE;
 
+    BOOL isIPv6TurnDisabled = isEnvVarEnabled(DISABLE_IPV6_TURN_ENV_VAR);
+    BOOL isIPv4TurnDisabled = isEnvVarEnabled(DISABLE_IPV4_TURN_ENV_VAR);
+
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     for (j = 0; j < pIceAgent->iceServersCount; j++) {
         if (pIceAgent->iceServers[j].isTurn) {
             DLOGD("Initializing TURN relay candidates for ICE server %u with IPv4 family %u and IPv6 family (if available) %u", j,
                   pIceAgent->iceServers[j].ipAddresses.ipv4Address.family, pIceAgent->iceServers[j].ipAddresses.ipv6Address.family);
 
-            if (pIceAgent->iceServers[j].ipAddresses.ipv4Address.family != KVS_IP_FAMILY_TYPE_NOT_SET) {
+            if (!isIPv4TurnDisabled && pIceAgent->iceServers[j].ipAddresses.ipv4Address.family != KVS_IP_FAMILY_TYPE_NOT_SET) {
                 if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_UDP || pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
                     DLOGD("Initializing an IPv4 TURN UDP relay candidate...");
                     startTime = GETTIME();
@@ -1892,7 +1895,7 @@ STATUS iceAgentInitRelayCandidates(PIceAgent pIceAgent)
                 }
             }
 
-            if (pIceAgent->iceServers[j].ipAddresses.ipv6Address.family != KVS_IP_FAMILY_TYPE_NOT_SET) {
+            if (!isIPv6TurnDisabled && pIceAgent->iceServers[j].ipAddresses.ipv6Address.family != KVS_IP_FAMILY_TYPE_NOT_SET) {
                 if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_UDP || pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
                     DLOGD("Initializing an IPv6 TURN UDP relay candidate...");
                     startTime = GETTIME();
