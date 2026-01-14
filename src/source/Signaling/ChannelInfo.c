@@ -176,7 +176,7 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     if (!IS_NULL_OR_EMPTY_STRING(pOrigChannelInfo->pControlPlaneUrl)) {
         STRCPY(pCurPtr, pOrigChannelInfo->pControlPlaneUrl);
     } else {
-        if (NULL != GETENV(USE_DUAL_STACK_ENDPOINTS_ENV_VAR)) {
+        if (isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR)) {
             // Create dual-stack fully qualified URI for appropriate region.
             DLOGI("Using dual-stack KVS endpoints.");
             if (STRSTR(pChannelInfo->pRegion, AWS_CN_REGION_PREFIX)) {

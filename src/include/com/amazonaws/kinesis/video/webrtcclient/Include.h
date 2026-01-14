@@ -701,6 +701,12 @@ extern "C" {
  */
 #define USE_DUAL_STACK_ENDPOINTS_ENV_VAR ((PCHAR) "KVS_DUALSTACK_ENDPOINTS")
 
+/**
+ * Envs to disable IPv4 or IPv6 TURN relay candidates
+ */
+#define DISABLE_IPV4_TURN_ENV_VAR ((PCHAR) "KVS_DISABLE_IPV4_TURN")
+#define DISABLE_IPV6_TURN_ENV_VAR ((PCHAR) "KVS_DISABLE_IPV6_TURN")
+
 #ifdef _WIN32
 /**
  * Default timeout for sending data

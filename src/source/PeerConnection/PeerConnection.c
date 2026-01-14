@@ -815,7 +815,7 @@ STATUS getStunAddr(PStunIpAddrContext pStunIpAddrCtx)
     useDualStackEnvVar = GETENV(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
 
     // Don't attempt to resolve IPv6 address if not in dual-stack mode.
-    if (useDualStackEnvVar == NULL || STRCMP(GETENV(useDualStackEnvVar), "0") == 0 || STRCMP(GETENV(useDualStackEnvVar), "") == 0) {
+    if (!isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR)) {
         ipv6Resolved = TRUE;
     }
 
@@ -927,7 +927,7 @@ PVOID resolveStunIceServerIp(PVOID args)
                     pRegion = DEFAULT_AWS_REGION;
                 }
 
-                if (GETENV(USE_DUAL_STACK_ENDPOINTS_ENV_VAR) != NULL) {
+                if (isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR)) {
                     if (STRSTR(pRegion, "cn-")) {
                         pHostnamePostfix = KINESIS_VIDEO_DUALSTACK_STUN_URL_POSTFIX_CN;
                     } else {

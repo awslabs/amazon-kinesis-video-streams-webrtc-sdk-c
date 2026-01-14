@@ -354,7 +354,6 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     PIceConfigInfo pIceConfigInfo;
     UINT64 data;
     PRtcCertificate pRtcCertificate = NULL;
-    PCHAR dualStackEnvVar = NULL;
 
     CHK(pSampleConfiguration != NULL && ppRtcPeerConnection != NULL, STATUS_NULL_ARG);
 
@@ -370,11 +369,9 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     configuration.kvsRtcConfiguration.enableIceStats = pSampleConfiguration->enableIceStats;
 #endif
 
-    dualStackEnvVar = GETENV(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
-
     // Set the  STUN server
     PCHAR pKinesisVideoStunUrlPostFix = NULL;
-    if (!IS_NULL_OR_EMPTY_STRING(dualStackEnvVar)) {
+    if (isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR)) {
         DLOGD("Using dual-stack STUN endpoint");
         if (STRSTR(pSampleConfiguration->channelInfo.pRegion, "cn-")) {
             pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_DUALSTACK_STUN_URL_POSTFIX_CN;

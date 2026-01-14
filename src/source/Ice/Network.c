@@ -504,7 +504,7 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
     CHAR ipv6Addr[KVS_IP_ADDRESS_STRING_BUFFER_LEN] = {'\0'};
     BOOL isStunServer;
     BOOL wasAddressParseSuccessful = FALSE;
-    BOOL dualStackEnvVarSet = FALSE;
+    BOOL useDualStackMode = FALSE;
 
     CHK(hostname != NULL, STATUS_NULL_ARG);
     DLOGI("ICE SERVER Hostname received: %s", hostname);
@@ -512,7 +512,8 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
     hostnameLen = STRLEN(hostname);
     addrLen = SIZEOF(addr);
     isStunServer = STRNCMP(hostname, KINESIS_VIDEO_STUN_URL_PREFIX, KINESIS_VIDEO_STUN_URL_PREFIX_LENGTH) == 0;
-    dualStackEnvVarSet = GETENV(USE_DUAL_STACK_ENDPOINTS_ENV_VAR) != NULL;
+
+    useDualStackMode = isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
 
     // Adding this check in case we directly get an IP address. With the current usage pattern,
     // there is no way this function would receive an address directly, but having this check
@@ -523,7 +524,7 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
     } else if (!isStunServer) {
         // Try to parse the address from the TURN server hostname.
 
-        if (dualStackEnvVarSet) {
+        if (useDualStackMode) {
             DLOGD("Attempting to parse dual-stack IP addresses from TURN server hostname: %s", hostname);
 
             retStatus = getDualStackIpAddrFromDnsHostname(hostname, ipv4Addr, ipv6Addr, hostnameLen, ARRAY_SIZE(ipv4Addr), ARRAY_SIZE(ipv6Addr));
@@ -550,7 +551,7 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
         }
 
         // Skip the IPv6 resolution if dual stack env var is not set.
-        if (!dualStackEnvVarSet) {
+        if (!useDualStackMode) {
             ipv6Resolved = TRUE;
         }
 
