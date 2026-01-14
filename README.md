@@ -651,6 +651,13 @@ To disable dual-stack mode, unset the environment variable:
 unset KVS_DUALSTACK_ENDPOINTS
 ```
 
+When running in dual-stack mode, you can disable specific IP-family TURN connections and candidates by setting the following environment variables:
+```
+export KVS_DISABLE_IPV4_TURN=ON
+export KVS_DISABLE_IPV6_TURN=ON
+```
+
+
 ## Documentation
 All Public APIs are documented in our [Include.h](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/main/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h), we also generate a [Doxygen](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/) each commit for easier navigation.
 
