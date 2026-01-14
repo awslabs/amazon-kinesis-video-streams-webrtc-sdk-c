@@ -651,11 +651,15 @@ To disable dual-stack mode, unset the environment variable:
 unset KVS_DUALSTACK_ENDPOINTS
 ```
 
-When running in dual-stack mode, you can disable specific IP-family TURN connections and candidates by setting the following environment variables:
+### Disabling IP-Family-Specific TURN Candidates
+The following environment variables can be used to disable TURN relay candidates from being generated for the local peer:
 ```
 export KVS_DISABLE_IPV4_TURN=ON
 export KVS_DISABLE_IPV6_TURN=ON
 ```
+
+**Note:** `KVS_DISABLE_IPV6_TURN` is only applicable when running in dual-stack mode.
+
 
 
 ## Documentation
