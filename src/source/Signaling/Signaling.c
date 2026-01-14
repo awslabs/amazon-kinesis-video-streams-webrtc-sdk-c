@@ -55,8 +55,6 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     PStateMachineState pStateMachineState;
     BOOL cacheFound = FALSE;
     PSignalingFileCacheEntry pFileCacheEntry = NULL;
-
-    PCHAR useDualStackEnvVar = NULL;
     BOOL useDualStackEndpoints = FALSE;
 
     struct lws_protocols* pProtocols = NULL;
@@ -99,8 +97,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     pSignalingClient->offerSentTime = INVALID_TIMESTAMP_VALUE;
 
     if (pSignalingClient->pChannelInfo->cachingPolicy == SIGNALING_API_CALL_CACHE_TYPE_FILE) {
-        useDualStackEnvVar = GETENV(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
-        useDualStackEndpoints = useDualStackEnvVar != NULL && (STRCMP(useDualStackEnvVar, "1") == 0 || STRCMP(useDualStackEnvVar, "TRUE") == 0 || STRCMP(useDualStackEnvVar, "true") == 0 || STRCMP(useDualStackEnvVar, "ON") == 0);
+        useDualStackEndpoints = isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
 
         if (STATUS_FAILED(signalingCacheLoadFromFile(pSignalingClient->pChannelInfo->pChannelName, pSignalingClient->pChannelInfo->pRegion,
                                                      pSignalingClient->pChannelInfo->pControlPlaneUrl, useDualStackEndpoints,
@@ -1128,7 +1125,6 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
     STATUS retStatus = STATUS_SUCCESS;
     BOOL apiCall = TRUE;
     SignalingFileCacheEntry signalingFileCacheEntry;
-    PCHAR useDualStackEnvVar = NULL;
     BOOL useDualStackEndpoints = FALSE;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
@@ -1169,8 +1165,7 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
                     pSignalingClient->getEndpointTime = time;
 
                     if (pSignalingClient->pChannelInfo->cachingPolicy == SIGNALING_API_CALL_CACHE_TYPE_FILE) {
-                        useDualStackEnvVar = GETENV(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
-                        useDualStackEndpoints = useDualStackEnvVar != NULL && (STRCMP(useDualStackEnvVar, "1") == 0 || STRCMP(useDualStackEnvVar, "TRUE") == 0 || STRCMP(useDualStackEnvVar, "true") == 0 || STRCMP(useDualStackEnvVar, "ON") == 0);
+                        useDualStackEndpoints = isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
 
                         signalingFileCacheEntry.creationTsEpochSeconds = time / HUNDREDS_OF_NANOS_IN_A_SECOND;
                         signalingFileCacheEntry.role = pSignalingClient->pChannelInfo->channelRoleType;
