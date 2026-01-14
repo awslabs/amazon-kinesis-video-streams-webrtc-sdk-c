@@ -707,7 +707,6 @@ extern "C" {
 #define DISABLE_IPV4_TURN_ENV_VAR ((PCHAR) "KVS_DISABLE_IPV4_TURN")
 #define DISABLE_IPV6_TURN_ENV_VAR ((PCHAR) "KVS_DISABLE_IPV6_TURN")
 
-
 #ifdef _WIN32
 /**
  * Default timeout for sending data
