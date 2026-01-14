@@ -135,6 +135,10 @@ Macros</h2></td></tr>
 <tr class="separator:ga167b8c2ac28906b0a211b461397aaa89"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga7161d3f1688ce06b1ea2a1ee35c5f7f4" id="r_ga7161d3f1688ce06b1ea2a1ee35c5f7f4"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Timeouts.html#ga7161d3f1688ce06b1ea2a1ee35c5f7f4">USE_DUAL_STACK_ENDPOINTS_ENV_VAR</a>&#160;&#160;&#160;((PCHAR) &quot;KVS_DUALSTACK_ENDPOINTS&quot;)</td></tr>
 <tr class="separator:ga7161d3f1688ce06b1ea2a1ee35c5f7f4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaa4188e3a5a6d6f6944b4604e0f6d7797" id="r_gaa4188e3a5a6d6f6944b4604e0f6d7797"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Timeouts.html#gaa4188e3a5a6d6f6944b4604e0f6d7797">DISABLE_IPV4_TURN_ENV_VAR</a>&#160;&#160;&#160;((PCHAR) &quot;KVS_DISABLE_IPV4_TURN&quot;)</td></tr>
+<tr class="separator:gaa4188e3a5a6d6f6944b4604e0f6d7797"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gab9442caff3e57a657ff85d7160386beb" id="r_gab9442caff3e57a657ff85d7160386beb"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Timeouts.html#gab9442caff3e57a657ff85d7160386beb">DISABLE_IPV6_TURN_ENV_VAR</a>&#160;&#160;&#160;((PCHAR) &quot;KVS_DISABLE_IPV6_TURN&quot;)</td></tr>
+<tr class="separator:gab9442caff3e57a657ff85d7160386beb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gad1b8f63e3ef3b4e3d3d1c40792929896" id="r_gad1b8f63e3ef3b4e3d3d1c40792929896"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Timeouts.html#gad1b8f63e3ef3b4e3d3d1c40792929896">SIGNALING_SEND_TIMEOUT</a>&#160;&#160;&#160;(5 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td></tr>
 <tr class="separator:gad1b8f63e3ef3b4e3d3d1c40792929896"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaf8435cf31d8d11ee2261c227a7b913ea" id="r_gaf8435cf31d8d11ee2261c227a7b913ea"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Timeouts.html#gaf8435cf31d8d11ee2261c227a7b913ea">SIGNALING_DELETE_TIMEOUT</a>&#160;&#160;&#160;(5 * HUNDREDS_OF_NANOS_IN_A_SECOND)</td></tr>
@@ -162,6 +166,35 @@ Macros</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <p>Default jitter buffer tolerated latency, frame will be dropped if it is out of window </p>
+
+</div>
+</div>
+<a id="gaa4188e3a5a6d6f6944b4604e0f6d7797" name="gaa4188e3a5a6d6f6944b4604e0f6d7797"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaa4188e3a5a6d6f6944b4604e0f6d7797">&#9670;&#160;</a></span>DISABLE_IPV4_TURN_ENV_VAR</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define DISABLE_IPV4_TURN_ENV_VAR&#160;&#160;&#160;((PCHAR) &quot;KVS_DISABLE_IPV4_TURN&quot;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Envs to disable IPv4 or IPv6 TURN relay candidates </p>
+
+</div>
+</div>
+<a id="gab9442caff3e57a657ff85d7160386beb" name="gab9442caff3e57a657ff85d7160386beb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gab9442caff3e57a657ff85d7160386beb">&#9670;&#160;</a></span>DISABLE_IPV6_TURN_ENV_VAR</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define DISABLE_IPV6_TURN_ENV_VAR&#160;&#160;&#160;((PCHAR) &quot;KVS_DISABLE_IPV6_TURN&quot;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
 
 </div>
 </div>
@@ -379,7 +412,7 @@ Macros</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Wed Jan 14 2026 20:59:56 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Wed Jan 14 2026 22:52:52 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>
