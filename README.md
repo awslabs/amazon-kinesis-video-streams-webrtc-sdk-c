@@ -642,9 +642,6 @@ export KVS_DUALSTACK_ENDPOINTS=ON
 
 In dual-stack mode, ICE gathering will attempt to include IPv6 candidates, but compatibility ultimately depends on the local network configuration and the capabilities of the receiving peers. Note that enabling dual-stack endpoints may result in longer connection establishment times because there will be additional ICE server hosts to resolve and ICE candidates to check.
 
->[!NOTE]
-> If signaling cache is enabled, the cahce file (e.g. `./build/.SignalingCache_v0`) should be deleted when changing endpoint modes so that the SDK fetches new endpoints.
-
 
 To disable dual-stack mode, unset the environment variable:
 ```

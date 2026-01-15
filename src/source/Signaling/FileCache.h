@@ -12,7 +12,7 @@ extern "C" {
 
 /* If SignalingFileCacheEntry layout is changed, change the version in cache file name so we wont read from older
  * cache file. */
-#define DEFAULT_CACHE_FILE_PATH                     (PCHAR) "./.SignalingCache_v0"
+#define DEFAULT_CACHE_FILE_PATH                     (PCHAR) "./.SignalingCache_v1"
 #define MAX_SIGNALING_CACHE_ENTRY_TIMESTAMP_STR_LEN 10
 /* Max length for a serialized signaling cache entry. 8 accounts for 6 commas and 1 newline
  * char and null terminator */

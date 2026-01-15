@@ -22,7 +22,7 @@
 #define TEST_VIDEO_FRAME_SIZE           (120 * 1024)
 #define TEST_FILE_CREDENTIALS_FILE_PATH (PCHAR) "credsFile"
 #define MAX_TEST_AWAIT_DURATION         (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define TEST_CACHE_FILE_PATH            (PCHAR) "./.TestSignalingCache_v0"
+#define TEST_CACHE_FILE_PATH            (PCHAR) "./.TestSignalingCache_v1"
 
 namespace com {
 namespace amazonaws {
