@@ -3367,8 +3367,8 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
     STRCPY(testEntry2.region, "testRegion");
     STRCPY(testEntry2.channelArn, "testChannelArn2");
     STRCPY(testEntry2.channelName, "testChannel2");
-    STRCPY(testEntry.controlPlaneUrl, "testControlPlaneUrl");
-    STRCPY(testEntry.useDualStackEndpoints, testUseDualStack ? "1" : "0");
+    STRCPY(testEntry2.controlPlaneUrl, "testControlPlaneUrl");
+    STRCPY(testEntry2.useDualStackEndpoints, testUseDualStack ? "1" : "0");
     testEntry2.creationTsEpochSeconds = GETTIME() / HUNDREDS_OF_NANOS_IN_A_SECOND;
     EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry2, DEFAULT_CACHE_FILE_PATH));
 
