@@ -106,7 +106,9 @@ STATUS deserializeSignalingCacheEntries(PCHAR cachedFileContent, UINT64 fileSize
                 !IS_EMPTY_STRING(pSignalingFileCacheEntryList[entryCount].channelName) &&
                 !IS_EMPTY_STRING(pSignalingFileCacheEntryList[entryCount].region) &&
                 !IS_EMPTY_STRING(pSignalingFileCacheEntryList[entryCount].httpsEndpoint) &&
-                !IS_EMPTY_STRING(pSignalingFileCacheEntryList[entryCount].wssEndpoint),
+                !IS_EMPTY_STRING(pSignalingFileCacheEntryList[entryCount].wssEndpoint) &&
+                !IS_EMPTY_STRING(pSignalingFileCacheEntryList[entryCount].controlPlaneUrl) &&
+                !IS_EMPTY_STRING(pSignalingFileCacheEntryList[entryCount].useDualStackEndpoints),
             STATUS_INVALID_ARG);
 
         entryCount++;
@@ -146,8 +148,10 @@ STATUS signalingCacheLoadFromFile(PCHAR channelName, PCHAR region, PCHAR control
     BOOL cacheFound = FALSE;
     PCHAR useDualStackStr = useDualStackEndpoints ? "1" : "0";
 
-    CHK(channelName != NULL && region != NULL && pSignalingFileCacheEntry != NULL && pCacheFound != NULL && cacheFilePath != NULL, STATUS_NULL_ARG);
-    CHK(!IS_EMPTY_STRING(channelName) && !IS_EMPTY_STRING(region), STATUS_INVALID_ARG);
+    CHK(channelName != NULL && region != NULL && controlPlaneUrl != NULL && pSignalingFileCacheEntry != NULL && pCacheFound != NULL &&
+            cacheFilePath != NULL,
+        STATUS_NULL_ARG);
+    CHK(!IS_EMPTY_STRING(channelName) && !IS_EMPTY_STRING(region) && !IS_EMPTY_STRING(controlPlaneUrl), STATUS_INVALID_ARG);
 
     CHK_STATUS(createFileIfNotExist(cacheFilePath));
 
@@ -199,6 +203,7 @@ STATUS signalingCacheSaveToFile(PSignalingFileCacheEntry pSignalingFileCacheEntr
 
     CHK(cacheFilePath != NULL && pSignalingFileCacheEntry != NULL, STATUS_NULL_ARG);
     CHK(!IS_EMPTY_STRING(pSignalingFileCacheEntry->channelArn) && !IS_EMPTY_STRING(pSignalingFileCacheEntry->channelName) &&
+            !IS_EMPTY_STRING(pSignalingFileCacheEntry->controlPlaneUrl) && !IS_EMPTY_STRING(pSignalingFileCacheEntry->useDualStackEndpoints) &&
             !IS_EMPTY_STRING(pSignalingFileCacheEntry->region) && !IS_EMPTY_STRING(pSignalingFileCacheEntry->httpsEndpoint) &&
             !IS_EMPTY_STRING(pSignalingFileCacheEntry->wssEndpoint),
         STATUS_INVALID_ARG);
@@ -224,6 +229,8 @@ STATUS signalingCacheSaveToFile(PSignalingFileCacheEntry pSignalingFileCacheEntr
     for (i = 0; i < entryCount; ++i) {
         /* Assume channel name and region has been validated */
         if (STRCMP(entries[i].channelName, pSignalingFileCacheEntry->channelName) == 0 &&
+            STRCMP(entries[i].controlPlaneUrl, pSignalingFileCacheEntry->controlPlaneUrl) == 0 &&
+            STRCMP(entries[i].useDualStackEndpoints, pSignalingFileCacheEntry->useDualStackEndpoints) == 0 &&
             STRCMP(entries[i].region, pSignalingFileCacheEntry->region) == 0 && entries[i].role == pSignalingFileCacheEntry->role) {
             newEntry = FALSE;
             break;
