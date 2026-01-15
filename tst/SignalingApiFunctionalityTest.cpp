@@ -3339,6 +3339,9 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
 
     SignalingFileCacheEntry testEntry;
     SignalingFileCacheEntry testEntry2;
+    
+    PCHAR testControlPlaneUrl = (PCHAR) "testControlPlaneUrl";
+    BOOL testUseDualStack = FALSE;
 
     // It is very important to MEMSET these to 0.
     // Otherwise SignalingFileCacheEntry will have uninitialized values for
@@ -3353,6 +3356,8 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
     STRCPY(testEntry.region, "testRegion");
     STRCPY(testEntry.channelArn, "testChannelArn");
     STRCPY(testEntry.channelName, "testChannel");
+    STRCPY(testEntry.controlPlaneUrl, "testControlPlaneUrl");
+    STRCPY(testEntry.useDualStackEndpoints, testUseDualStack ? "1" : "0");
     testEntry.creationTsEpochSeconds = GETTIME() / HUNDREDS_OF_NANOS_IN_A_SECOND;
     EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry, DEFAULT_CACHE_FILE_PATH));
 
@@ -3362,6 +3367,8 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
     STRCPY(testEntry2.region, "testRegion");
     STRCPY(testEntry2.channelArn, "testChannelArn2");
     STRCPY(testEntry2.channelName, "testChannel2");
+    STRCPY(testEntry.controlPlaneUrl, "testControlPlaneUrl");
+    STRCPY(testEntry.useDualStackEndpoints, testUseDualStack ? "1" : "0");
     testEntry2.creationTsEpochSeconds = GETTIME() / HUNDREDS_OF_NANOS_IN_A_SECOND;
     EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry2, DEFAULT_CACHE_FILE_PATH));
 
@@ -3385,6 +3392,8 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
     char testRegion[MAX_REGION_NAME_LEN + 1] = {0};
     char testChannelArn[MAX_ARN_LEN + 1] = {0};
     char testChannel[MAX_CHANNEL_NAME_LEN + 1] = {0};
+    PCHAR testControlPlaneUrl = (PCHAR) "testControlPlaneUrl";
+    BOOL testUseDualStack = FALSE;
     int time = GETTIME() / HUNDREDS_OF_NANOS_IN_A_SECOND;
     int append = 0;
     int i = 0;
@@ -3417,11 +3426,13 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
         STRCPY(testEntry.region, testRegion);
         STRCPY(testEntry.channelArn, testChannelArn);
         STRCPY(testEntry.channelName, testChannel);
+        STRCPY(testEntry.controlPlaneUrl, "testControlPlaneUrl");
+        STRCPY(testEntry.useDualStackEndpoints, testUseDualStack ? "1" : "0");
         testEntry.creationTsEpochSeconds = time + i;
         EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry, DEFAULT_CACHE_FILE_PATH));
     }
     testEntry.creationTsEpochSeconds = 0;
-    EXPECT_EQ(STATUS_SUCCESS, signalingCacheLoadFromFile(testChannel, testRegion, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, &testEntry, &cacheFound, DEFAULT_CACHE_FILE_PATH));
+    EXPECT_EQ(STATUS_SUCCESS, signalingCacheLoadFromFile(testChannel, testRegion, testControlPlaneUrl, testUseDualStack, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, &testEntry, &cacheFound, DEFAULT_CACHE_FILE_PATH));
     EXPECT_EQ(TRUE, cacheFound);
     EXPECT_EQ(time + i - 1, testEntry.creationTsEpochSeconds);
     EXPECT_EQ(0, STRCMP(testEntry.wssEndpoint, testWssEndpoint));
@@ -3429,6 +3440,8 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
     EXPECT_EQ(0, STRCMP(testEntry.region, testRegion));
     EXPECT_EQ(0, STRCMP(testEntry.channelArn, testChannelArn));
     EXPECT_EQ(0, STRCMP(testEntry.channelName, testChannel));
+    EXPECT_EQ(0, STRCMP(testEntry.controlPlaneUrl, testControlPlaneUrl));
+    EXPECT_EQ(0, STRCMP(testEntry.useDualStackEndpoints, testUseDualStack ? "1" : "0"));
 
     //Check size to ensure entries are properly overwriting each other
     EXPECT_EQ(STATUS_SUCCESS, readFile(DEFAULT_CACHE_FILE_PATH, FALSE, NULL, &fileSize));
@@ -3460,6 +3473,8 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateFullMultiChannelCache)
     char testRegion[MAX_REGION_NAME_LEN + 1] = {0};
     char testChannelArn[MAX_ARN_LEN + 1] = {0};
     char testChannel[MAX_CHANNEL_NAME_LEN + 1] = {0};
+    PCHAR testControlPlaneUrl = (PCHAR) "testControlPlaneUrl";
+    BOOL testUseDualStack = FALSE;
     int time = GETTIME() / HUNDREDS_OF_NANOS_IN_A_SECOND;
     int append = 0;
     int i = 0;
@@ -3484,11 +3499,13 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateFullMultiChannelCache)
         STRCPY(testEntry.region, testRegion);
         STRCPY(testEntry.channelArn, testChannelArn);
         STRCPY(testEntry.channelName, testChannel);
+        STRCPY(testEntry.controlPlaneUrl, testControlPlaneUrl);
+        STRCPY(testEntry.useDualStackEndpoints, testUseDualStack ? "1" : "0");
         testEntry.creationTsEpochSeconds = time + i;
         EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry, DEFAULT_CACHE_FILE_PATH));
     }
     testEntry.creationTsEpochSeconds = 0;
-    EXPECT_EQ(STATUS_SUCCESS, signalingCacheLoadFromFile(testChannel, testRegion, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, &testEntry, &cacheFound, DEFAULT_CACHE_FILE_PATH));
+    EXPECT_EQ(STATUS_SUCCESS, signalingCacheLoadFromFile(testChannel, testRegion, testControlPlaneUrl, testUseDualStack, SIGNALING_CHANNEL_ROLE_TYPE_VIEWER, &testEntry, &cacheFound, DEFAULT_CACHE_FILE_PATH));
     EXPECT_EQ(TRUE, cacheFound);
     EXPECT_EQ(time + i - 1, testEntry.creationTsEpochSeconds);
     EXPECT_EQ(0, STRCMP(testEntry.wssEndpoint, testWssEndpoint));
@@ -3496,6 +3513,8 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateFullMultiChannelCache)
     EXPECT_EQ(0, STRCMP(testEntry.region, testRegion));
     EXPECT_EQ(0, STRCMP(testEntry.channelArn, testChannelArn));
     EXPECT_EQ(0, STRCMP(testEntry.channelName, testChannel));
+    EXPECT_EQ(0, STRCMP(testEntry.controlPlaneUrl, testControlPlaneUrl));
+    EXPECT_EQ(0, STRCMP(testEntry.useDualStackEndpoints, testUseDualStack ? "1" : "0"));
 
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
 }
