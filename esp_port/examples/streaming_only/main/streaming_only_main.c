@@ -29,6 +29,23 @@
 #include "kvs_peer_connection.h"
 #include "power_save_handler.h"
 
+#include "slave_flasher.h"
+
+
+static vprintf_like_t s_original_vprintf = NULL;
+
+static int custom_vprintf(const char* fmt, va_list args)
+{
+    // Print the [HOST] prefix in bright cyan color
+    printf("\033[1;36m[HOST]\033[0m ");
+
+    if (s_original_vprintf) {
+        return s_original_vprintf(fmt, args);
+    } else {
+        return vprintf(fmt, args);
+    }
+}
+
 extern esp_err_t esp_hosted_wait_for_slave(void);
 
 static const char *TAG = "streaming_only";
@@ -269,6 +286,15 @@ static void app_webrtc_event_handler(app_webrtc_event_data_t *event_data, void *
 void app_main(void)
 {
     esp_err_t ret;
+
+    s_original_vprintf = esp_log_set_vprintf(custom_vprintf);
+
+    ret = flash_slave();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to flash slave: %s", esp_err_to_name(ret));
+        return;
+    }
+
     WEBRTC_STATUS status;
 
     // Initialize NVS
