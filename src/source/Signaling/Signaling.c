@@ -1175,9 +1175,8 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
                                pSignalingClient->pChannelInfo->pChannelName != NULL ? pSignalingClient->pChannelInfo->pChannelName
                                                                                     : pSignalingClient->pChannelInfo->pChannelArn);
                         STRCPY(signalingFileCacheEntry.region, pSignalingClient->pChannelInfo->pRegion);
-                        STRCPY(signalingFileCacheEntry.controlPlaneUrl, pSignalingClient->pChannelInfo->pControlPlaneUrl != NULL
-                                                                          ? pSignalingClient->pChannelInfo->pControlPlaneUrl
-                                                                          : "");
+                        STRCPY(signalingFileCacheEntry.controlPlaneUrl,
+                               pSignalingClient->pChannelInfo->pControlPlaneUrl != NULL ? pSignalingClient->pChannelInfo->pControlPlaneUrl : "");
                         STRCPY(signalingFileCacheEntry.useDualStackEndpoints, useDualStackEndpoints ? "1" : "0");
                         STRCPY(signalingFileCacheEntry.channelArn, pSignalingClient->channelDescription.channelArn);
                         STRCPY(signalingFileCacheEntry.storageEnabled, pSignalingClient->mediaStorageConfig.storageStatus ? "1" : "0");

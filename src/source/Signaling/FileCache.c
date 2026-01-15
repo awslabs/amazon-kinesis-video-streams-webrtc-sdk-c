@@ -84,7 +84,7 @@ STATUS deserializeSignalingCacheEntries(PCHAR cachedFileContent, UINT64 fileSize
                     STRNCPY(pSignalingFileCacheEntryList[entryCount].webrtcEndpoint, pCurrent, nextToken - pCurrent);
                     break;
 
-                /* case 11 is for creationTsEpochSeconds which is handled after this loop. */
+                    /* case 11 is for creationTsEpochSeconds which is handled after this loop. */
 
                 default:
                     break;
@@ -133,8 +133,9 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingCacheLoadFromFile(PCHAR channelName, PCHAR region, PCHAR controlPlaneUrl, BOOL useDualStackEndpoints, SIGNALING_CHANNEL_ROLE_TYPE role,
-                                  PSignalingFileCacheEntry pSignalingFileCacheEntry, PBOOL pCacheFound, PCHAR cacheFilePath)
+STATUS signalingCacheLoadFromFile(PCHAR channelName, PCHAR region, PCHAR controlPlaneUrl, BOOL useDualStackEndpoints,
+                                  SIGNALING_CHANNEL_ROLE_TYPE role, PSignalingFileCacheEntry pSignalingFileCacheEntry, PBOOL pCacheFound,
+                                  PCHAR cacheFilePath)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -164,8 +165,8 @@ STATUS signalingCacheLoadFromFile(PCHAR channelName, PCHAR region, PCHAR control
 
         for (i = 0; !cacheFound && i < entryCount; ++i) {
             /* Assume channel name and region has been validated */
-            if (STRCMP(entries[i].channelName, channelName) == 0 && STRCMP(entries[i].region, region) == 0 && entries[i].role == role && STRCMP(entries[i].controlPlaneUrl, controlPlaneUrl) == 0 &&
-                    STRCMP(entries[i].useDualStackEndpoints, useDualStackStr) == 0) {
+            if (STRCMP(entries[i].channelName, channelName) == 0 && STRCMP(entries[i].region, region) == 0 && entries[i].role == role &&
+                STRCMP(entries[i].controlPlaneUrl, controlPlaneUrl) == 0 && STRCMP(entries[i].useDualStackEndpoints, useDualStackStr) == 0) {
                 cacheFound = TRUE;
                 MEMCPY(pSignalingFileCacheEntry, &entries[i], SIZEOF(entries[i]));
             }
@@ -242,12 +243,13 @@ STATUS signalingCacheSaveToFile(PSignalingFileCacheEntry pSignalingFileCacheEntr
     entries[i] = *pSignalingFileCacheEntry;
 
     for (i = 0; i < entryCount; ++i) {
-        serializedCacheEntryLen =
-            SNPRINTF(serializedCacheEntry, ARRAY_SIZE(serializedCacheEntry), "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%.10" PRIu64 "\n", entries[i].channelName,
-                     entries[i].role == SIGNALING_CHANNEL_ROLE_TYPE_MASTER ? SIGNALING_FILE_CACHE_ROLE_TYPE_MASTER_STR
-                                                                           : SIGNALING_FILE_CACHE_ROLE_TYPE_VIEWER_STR,
-                     entries[i].region, entries[i].controlPlaneUrl, entries[i].useDualStackEndpoints, entries[i].channelArn, entries[i].httpsEndpoint, entries[i].wssEndpoint, entries[i].storageEnabled,
-                     entries[i].storageStreamArn, entries[i].webrtcEndpoint, entries[i].creationTsEpochSeconds);
+        serializedCacheEntryLen = SNPRINTF(serializedCacheEntry, ARRAY_SIZE(serializedCacheEntry),
+                                           "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%.10" PRIu64 "\n", entries[i].channelName,
+                                           entries[i].role == SIGNALING_CHANNEL_ROLE_TYPE_MASTER ? SIGNALING_FILE_CACHE_ROLE_TYPE_MASTER_STR
+                                                                                                 : SIGNALING_FILE_CACHE_ROLE_TYPE_VIEWER_STR,
+                                           entries[i].region, entries[i].controlPlaneUrl, entries[i].useDualStackEndpoints, entries[i].channelArn,
+                                           entries[i].httpsEndpoint, entries[i].wssEndpoint, entries[i].storageEnabled, entries[i].storageStreamArn,
+                                           entries[i].webrtcEndpoint, entries[i].creationTsEpochSeconds);
         CHK_STATUS(writeFile(cacheFilePath, FALSE, i == 0 ? FALSE : TRUE, (PBYTE) serializedCacheEntry, serializedCacheEntryLen));
     }
 
