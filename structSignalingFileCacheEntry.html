@@ -108,7 +108,7 @@ Collaboration diagram for SignalingFileCacheEntry:</div>
 <div class="dyncontent">
 <div class="center"><img src="structSignalingFileCacheEntry__coll__graph.png" border="0" usemap="#aSignalingFileCacheEntry_coll__map" alt="Collaboration graph"/></div>
 <map name="aSignalingFileCacheEntry_coll__map" id="aSignalingFileCacheEntry_coll__map">
-<area shape="rect" title=" " alt="" coords="5,5,193,251"/>
+<area shape="rect" title=" " alt="" coords="5,5,193,291"/>
 </map>
 </div>
 <table class="memberdecls">
@@ -126,6 +126,10 @@ Public Attributes</h2></td></tr>
 <tr class="separator:a22bb732c14c675748b633ba74d9c3a6d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1245c1b2d115a45d0e89b6bc73b9d05a" id="r_a1245c1b2d115a45d0e89b6bc73b9d05a"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingFileCacheEntry.html#a1245c1b2d115a45d0e89b6bc73b9d05a">region</a> [MAX_REGION_NAME_LEN+1]</td></tr>
 <tr class="separator:a1245c1b2d115a45d0e89b6bc73b9d05a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8a2697b96ecd0b5c0e709fc866060eec" id="r_a8a2697b96ecd0b5c0e709fc866060eec"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingFileCacheEntry.html#a8a2697b96ecd0b5c0e709fc866060eec">controlPlaneUrl</a> [<a class="el" href="group__NameLengths.html#gaf6d330768f4d0373a1e369243c127bab">MAX_CONTROL_PLANE_URI_CHAR_LEN</a>+1]</td></tr>
+<tr class="separator:a8a2697b96ecd0b5c0e709fc866060eec"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1c11cc1de9bf132da5b57ef624520658" id="r_a1c11cc1de9bf132da5b57ef624520658"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingFileCacheEntry.html#a1c11cc1de9bf132da5b57ef624520658">useDualStackEndpoints</a> [2]</td></tr>
+<tr class="separator:a1c11cc1de9bf132da5b57ef624520658"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6a1e892d13b44e35d4c41f6335197795" id="r_a6a1e892d13b44e35d4c41f6335197795"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingFileCacheEntry.html#a6a1e892d13b44e35d4c41f6335197795">httpsEndpoint</a> [<a class="el" href="group__NameLengths.html#ga857b8aa1fcbcb9509aa0042e95a4e3b9">MAX_SIGNALING_ENDPOINT_URI_LEN</a>+1]</td></tr>
 <tr class="separator:a6a1e892d13b44e35d4c41f6335197795"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a72429007c86ef09723da34d279abfe9a" id="r_a72429007c86ef09723da34d279abfe9a"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structSignalingFileCacheEntry.html#a72429007c86ef09723da34d279abfe9a">wssEndpoint</a> [<a class="el" href="group__NameLengths.html#ga857b8aa1fcbcb9509aa0042e95a4e3b9">MAX_SIGNALING_ENDPOINT_URI_LEN</a>+1]</td></tr>
@@ -158,6 +162,20 @@ Public Attributes</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">CHAR SignalingFileCacheEntry::channelName[<a class="el" href="group__NameLengths.html#gaee73129a95e82e17eb62dff027c92faf">MAX_CHANNEL_NAME_LEN</a>+1]</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a8a2697b96ecd0b5c0e709fc866060eec" name="a8a2697b96ecd0b5c0e709fc866060eec"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8a2697b96ecd0b5c0e709fc866060eec">&#9670;&#160;</a></span>controlPlaneUrl</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">CHAR SignalingFileCacheEntry::controlPlaneUrl[<a class="el" href="group__NameLengths.html#gaf6d330768f4d0373a1e369243c127bab">MAX_CONTROL_PLANE_URI_CHAR_LEN</a>+1]</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -248,6 +266,20 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
+<a id="a1c11cc1de9bf132da5b57ef624520658" name="a1c11cc1de9bf132da5b57ef624520658"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1c11cc1de9bf132da5b57ef624520658">&#9670;&#160;</a></span>useDualStackEndpoints</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">CHAR SignalingFileCacheEntry::useDualStackEndpoints[2]</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="ab1373604c1416f321183acfe690ac693" name="ab1373604c1416f321183acfe690ac693"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ab1373604c1416f321183acfe690ac693">&#9670;&#160;</a></span>webrtcEndpoint</h2>
 
@@ -285,7 +317,7 @@ Public Attributes</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="structSignalingFileCacheEntry.html">SignalingFileCacheEntry</a></li>
-    <li class="footer">Generated on Wed Jan 14 2026 22:52:53 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Fri Jan 16 2026 18:50:46 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>
