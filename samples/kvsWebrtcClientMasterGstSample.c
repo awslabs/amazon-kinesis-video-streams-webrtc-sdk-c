@@ -154,6 +154,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     GstBus* bus = NULL;
     GstMessage* msg = NULL;
     GError* gError = NULL;
+    gchar* gDebug = NULL;
     GstStateChangeReturn stateChangeStatus = GST_STATE_CHANGE_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
 
@@ -329,6 +330,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
         g_signal_connect(appsinkAudio, "new-sample", G_CALLBACK(on_new_sample_audio), (gpointer) pSampleConfiguration);
     }
     stateChangeStatus = gst_element_set_state(senderPipeline, GST_STATE_PLAYING);
+    DLOGD("[KVS GStreamer Master] State change null->playing returned status: %d", stateChangeStatus);
     CHK_ERR(stateChangeStatus != GST_STATE_CHANGE_FAILURE, STATUS_FORMAT_ERROR, "State change to PLAYING failed!");
 
     /* block until error or EOS */
@@ -336,12 +338,33 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     msg = gst_bus_timed_pop_filtered(bus, GST_CLOCK_TIME_NONE, GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
 
 CleanUp:
-    CHK_LOG_ERR(retStatus);
+    if (gError != NULL) {
+        DLOGE("[KVS GStreamer Master] GStreamer error: %s", gError->message);
+        g_clear_error(&gError);
+        gError = NULL;
+    }
 
     if (msg != NULL) {
+        switch (GST_MESSAGE_TYPE(msg)) {
+            case GST_MESSAGE_ERROR:
+                gst_message_parse_error(msg, &gError, &gDebug);
+                DLOGE("[KVS GStreamer Master] Received error from GStreamer: %s", gError->message);
+                DLOGD("[KVS GStreamer Master] Received debug from GStreamer: %s", gDebug);
+                g_clear_error(&gError);
+                g_free(gDebug);
+                gDebug = NULL;
+                break;
+            case GST_MESSAGE_EOS:
+                DLOGI("[KVS GStreamer Master] Received GStreamer End-Of-Stream");
+                break;
+            default:
+                DLOGE("[KVS GStreamer Master] Unhandled message type: %d", GST_MESSAGE_TYPE(msg));
+                break;
+        }
         gst_message_unref(msg);
         msg = NULL;
     }
+
     if (bus != NULL) {
         gst_object_unref(bus);
         bus = NULL;
@@ -349,7 +372,7 @@ CleanUp:
     if (senderPipeline != NULL) {
         stateChangeStatus = gst_element_set_state(senderPipeline, GST_STATE_NULL);
         if (stateChangeStatus == GST_STATE_CHANGE_FAILURE) {
-            DLOGE("State change to NULL failed!");
+            DLOGE("[KVS GStreamer Master] State change to NULL failed!");
         }
         gst_object_unref(senderPipeline);
         senderPipeline = NULL;
@@ -363,13 +386,12 @@ CleanUp:
         appsinkVideo = NULL;
     }
 
-    if (gError != NULL) {
-        DLOGE("[KVS GStreamer Master] GStreamer error: %s", gError->message);
-        g_clear_error(&gError);
-        gError = NULL;
+    if (STATUS_SUCCEEDED(retStatus)) {
+        DLOGI("[KVS GStreamer Master] Media sender thread exited gracefully");
+    } else {
+        DLOGE("[KVS GStreamer Master] Media sender thread exited with status: 0x%08x", retStatus);
     }
 
-    DLOGI("Media sender thread exited");
     return (PVOID) (ULONG_PTR) retStatus;
 }
 
