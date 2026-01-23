@@ -26,9 +26,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-region: us-west-2
+          aws-region: ${{ secrets.AWS_REGION }}
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: us-west-2
 
   cleanup-old-resources:
     needs: check-aws-credentials
@@ -41,14 +40,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          aws-region: us-west-2
           repository: 'aws-samples/amazon-kinesis-video-streams-demos'
           path: demos-repo
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          aws-region: us-west-2
           python-version: "3.12"
 
       - name: Install dependencies
@@ -60,9 +57,8 @@ jobs:
       - name: Setup credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-region: us-west-2
+          aws-region: ${{ secrets.AWS_REGION }}
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: us-west-2
 
       - name: Run cleanup script
         working-directory: ./demos-repo/python/cleanup
@@ -105,13 +101,11 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2
         with:
-          aws-region: us-west-2
           cmake-version: '3.x'
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-region: us-west-2
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
 
