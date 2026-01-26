@@ -909,6 +909,11 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->channelInfo.pCertPath = pSampleConfiguration->pCaCertPath;
     pSampleConfiguration->channelInfo.messageTtl = 0; // Default is 60 seconds
 
+    pSampleConfiguration->channelInfo.pControlPlaneUrl = GETENV(CONTROL_PLANE_URI_ENV_VAR);
+    if (!IS_NULL_OR_EMPTY_STRING(pSampleConfiguration->channelInfo.pControlPlaneUrl)) {
+        DLOGI("Override URL: %s", pSampleConfiguration->channelInfo.pControlPlaneUrl);
+    }
+
     pSampleConfiguration->signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     pSampleConfiguration->signalingClientCallbacks.errorReportFn = signalingClientError;
     pSampleConfiguration->signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
