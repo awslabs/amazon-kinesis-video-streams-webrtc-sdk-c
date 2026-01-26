@@ -151,9 +151,11 @@ PVOID sendGstreamerAudioVideo(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
     GstElement *appsinkVideo = NULL, *appsinkAudio = NULL;
-    GstBus* bus;
-    GstMessage* msg;
-    GError* error = NULL;
+    GstBus* bus = NULL;
+    GstMessage* msg = NULL;
+    GError* gError = NULL;
+    gchar* gDebug = NULL;
+    GstStateChangeReturn stateChangeStatus = GST_STATE_CHANGE_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
 
     CHK_ERR(pSampleConfiguration != NULL, STATUS_NULL_ARG, "[KVS Gstreamer Master] Streaming session is NULL");
@@ -193,7 +195,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                                                           "x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! "
                                                           "video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! appsink sync=TRUE "
                                                           "emit-signals=TRUE name=appsink-video",
-                                                          &error);
+                                                          &gError);
                     } else {
                         senderPipeline = gst_parse_launch(
                             "videotestsrc pattern=ball is-live=TRUE ! "
@@ -203,7 +205,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                             "x264enc name=sampleVideoEncoder bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
                             "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! "
                             "appsink sync=TRUE emit-signals=TRUE name=appsink-video",
-                            &error);
+                            &gError);
                     }
                     break;
                 }
@@ -214,7 +216,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                         "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! "
                         " appsink sync=TRUE "
                         "emit-signals=TRUE name=appsink-video",
-                        &error);
+                        &gError);
                     break;
                 }
                 case RTSP_SOURCE: {
@@ -231,7 +233,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                         DLOGE("[KVS GStreamer Master] ERROR: rtsp uri entered exceeds maximum allowed length set by RTSP_PIPELINE_MAX_CHAR_COUNT");
                         goto CleanUp;
                     }
-                    senderPipeline = gst_parse_launch(rtspPipeLineBuffer, &error);
+                    senderPipeline = gst_parse_launch(rtspPipeLineBuffer, &gError);
 
                     break;
                 }
@@ -252,7 +254,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                             "appsink sync=TRUE emit-signals=TRUE name=appsink-video audiotestsrc wave=ticks is-live=TRUE ! "
                             "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc name=sampleAudioEncoder ! "
                             "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                            &error);
+                            &gError);
                     } else if (pSampleConfiguration->videoCodec == RTC_CODEC_H265 && pSampleConfiguration->audioCodec == RTC_CODEC_OPUS) {
                         senderPipeline =
                             gst_parse_launch("videotestsrc pattern=ball is-live=TRUE ! timeoverlay ! queue ! videoconvert ! "
@@ -262,7 +264,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                                              "emit-signals=TRUE name=appsink-video audiotestsrc is-live=TRUE ! "
                                              "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
                                              "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                                             &error);
+                                             &gError);
                     }
                     // TODO: test and add more such combinations
                     break;
@@ -275,7 +277,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                         "name=appsink-video autoaudiosrc ! "
                         "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc name=sampleAudioEncoder ! "
                         "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                        &error);
+                        &gError);
                     break;
                 }
                 case RTSP_SOURCE: {
@@ -294,7 +296,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                         DLOGE("[KVS GStreamer Master] ERROR: rtsp uri entered exceeds maximum allowed length set by RTSP_PIPELINE_MAX_CHAR_COUNT");
                         goto CleanUp;
                     }
-                    senderPipeline = gst_parse_launch(rtspPipeLineBuffer, &error);
+                    senderPipeline = gst_parse_launch(rtspPipeLineBuffer, &gError);
 
                     break;
                 }
@@ -302,6 +304,15 @@ PVOID sendGstreamerAudioVideo(PVOID args)
             break;
     }
 
+    // When the senderPipeline is non-null and gError is non-null at the same time, it means
+    // GStreamer encountered a "recoverable parsing error", which doesn't guarantee the pipeline will
+    // actually work, it just means GStreamer could parse enough of the string to return a pipeline object.
+    if (gError != NULL) {
+        DLOGE("[KVS GStreamer Master] Pipeline error: %s", gError->message);
+        g_clear_error(&gError);
+        retStatus = STATUS_INVALID_OPERATION;
+        goto CleanUp;
+    }
     CHK_ERR(senderPipeline != NULL, STATUS_NULL_ARG, "[KVS Gstreamer Master] Pipeline is NULL");
 
     appsinkVideo = gst_bin_get_by_name(GST_BIN(senderPipeline), "appsink-video");
@@ -318,35 +329,67 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     if (appsinkAudio != NULL) {
         g_signal_connect(appsinkAudio, "new-sample", G_CALLBACK(on_new_sample_audio), (gpointer) pSampleConfiguration);
     }
-    gst_element_set_state(senderPipeline, GST_STATE_PLAYING);
+    stateChangeStatus = gst_element_set_state(senderPipeline, GST_STATE_PLAYING);
+    DLOGD("[KVS GStreamer Master] State change null->playing returned status: %d", stateChangeStatus);
+    CHK_ERR(stateChangeStatus != GST_STATE_CHANGE_FAILURE, STATUS_FORMAT_ERROR, "State change to PLAYING failed!");
 
     /* block until error or EOS */
     bus = gst_element_get_bus(senderPipeline);
     msg = gst_bus_timed_pop_filtered(bus, GST_CLOCK_TIME_NONE, GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
 
-    /* Free resources */
-    if (msg != NULL) {
-        gst_message_unref(msg);
+CleanUp:
+    if (gError != NULL) {
+        DLOGE("[KVS GStreamer Master] GStreamer error: %s", gError->message);
+        g_clear_error(&gError);
+        gError = NULL;
     }
+
+    if (msg != NULL) {
+        switch (GST_MESSAGE_TYPE(msg)) {
+            case GST_MESSAGE_ERROR:
+                gst_message_parse_error(msg, &gError, &gDebug);
+                DLOGE("[KVS GStreamer Master] Received error from GStreamer: %s", gError->message);
+                DLOGD("[KVS GStreamer Master] Received debug from GStreamer: %s", gDebug);
+                g_clear_error(&gError);
+                g_free(gDebug);
+                gDebug = NULL;
+                break;
+            case GST_MESSAGE_EOS:
+                DLOGI("[KVS GStreamer Master] Received GStreamer End-Of-Stream");
+                break;
+            default:
+                DLOGE("[KVS GStreamer Master] Unhandled message type: %d", GST_MESSAGE_TYPE(msg));
+                break;
+        }
+        gst_message_unref(msg);
+        msg = NULL;
+    }
+
     if (bus != NULL) {
         gst_object_unref(bus);
+        bus = NULL;
     }
     if (senderPipeline != NULL) {
-        gst_element_set_state(senderPipeline, GST_STATE_NULL);
+        stateChangeStatus = gst_element_set_state(senderPipeline, GST_STATE_NULL);
+        if (stateChangeStatus == GST_STATE_CHANGE_FAILURE) {
+            DLOGE("[KVS GStreamer Master] State change to NULL failed!");
+        }
         gst_object_unref(senderPipeline);
+        senderPipeline = NULL;
     }
     if (appsinkAudio != NULL) {
         gst_object_unref(appsinkAudio);
+        appsinkAudio = NULL;
     }
     if (appsinkVideo != NULL) {
         gst_object_unref(appsinkVideo);
+        appsinkVideo = NULL;
     }
 
-CleanUp:
-
-    if (error != NULL) {
-        DLOGE("[KVS GStreamer Master] %s", error->message);
-        g_clear_error(&error);
+    if (STATUS_SUCCEEDED(retStatus)) {
+        DLOGI("[KVS GStreamer Master] Media sender thread exited gracefully");
+    } else {
+        DLOGE("[KVS GStreamer Master] Media sender thread exited with status: 0x%08x", retStatus);
     }
 
     return (PVOID) (ULONG_PTR) retStatus;
