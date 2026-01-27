@@ -550,6 +550,9 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
             DLOGW("Parsing for TURN address failed for %s, fallback to getaddrinfo", hostname);
         }
 
+        // Reset status before attempting getaddrinfo
+        retStatus = STATUS_SUCCESS;
+
         // Skip the IPv6 resolution if dual stack env var is not set.
         if (!useDualStackMode) {
             ipv6Resolved = TRUE;
