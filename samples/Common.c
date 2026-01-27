@@ -354,6 +354,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     PIceConfigInfo pIceConfigInfo;
     UINT64 data;
     PRtcCertificate pRtcCertificate = NULL;
+    PCHAR pIceTransportPolicy;
 
     CHK(pSampleConfiguration != NULL && ppRtcPeerConnection != NULL, STATUS_NULL_ARG);
 
@@ -362,8 +363,15 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     // Set this to custom callback to enable filtering of interfaces
     configuration.kvsRtcConfiguration.iceSetInterfaceFilterFunc = NULL;
 
-    // Set the ICE mode explicitly
-    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
+    // Set the ICE transport policy from environment variable or default to ALL
+    pIceTransportPolicy = GETENV(ICE_TRANSPORT_POLICY_ENV_VAR);
+    if (!IS_NULL_OR_EMPTY_STRING(pIceTransportPolicy) && STRCMPI(pIceTransportPolicy, "relay") == 0) {
+        configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
+        DLOGI("ICE transport policy: relay");
+    } else {
+        configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
+        DLOGI("ICE transport policy: all");
+    }
 
 #ifdef ENABLE_STATS_CALCULATION_CONTROL
     configuration.kvsRtcConfiguration.enableIceStats = pSampleConfiguration->enableIceStats;
