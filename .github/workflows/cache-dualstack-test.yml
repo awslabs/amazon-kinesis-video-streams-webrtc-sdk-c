@@ -1,0 +1,255 @@
+name: Cache Functionality Test with Dual-Stack Toggle
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+      - 'test-pr-*'
+  pull_request:
+    branches:
+      - develop
+      - main
+
+jobs:
+  cache-dualstack-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    env:
+      AWS_KVS_LOG_LEVEL: 2
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Check AWS credentials
+        run: |
+          if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" || -z "$AWS_SESSION_TOKEN" ]]; then
+            echo "Couldn't find AWS credentials. Very likely this build is coming from a fork. Skipping cache test."
+            exit 0
+          fi
+
+      - name: Build repository
+        run: |
+          mkdir build && cd build
+          cmake .. -DBUILD_SAMPLE=ON
+          make -j
+
+      - name: Test 1 - Run sample with dual-stack endpoints enabled
+        run: |
+          export KVS_DUALSTACK_ENDPOINTS=ON
+          echo "=== Test 1: Running with dual-stack endpoints enabled ==="
+          echo "KVS_DUALSTACK_ENDPOINTS=$KVS_DUALSTACK_ENDPOINTS"
+          
+          cd build/samples
+          
+          # Run with output capture to verify endpoint usage
+          ./kvsWebrtcClientMaster "cache-test-dualstack-${{ github.run_number }}" > master1.log 2>&1 &
+          PID_MASTER=$!
+          
+          sleep 2
+          ./kvsWebrtcClientViewer "cache-test-dualstack-${{ github.run_number }}" > viewer1.log 2>&1 &
+          PID_VIEWER=$!
+          
+          # Wait for connection establishment then send SIGINT
+          bash -c "sleep 10 && kill -s INT $PID_MASTER $PID_VIEWER" &
+          
+          wait $PID_MASTER || EXIT_MASTER=$?
+          wait $PID_VIEWER || EXIT_VIEWER=$?
+          
+          # Check exit codes
+          if [[ ${EXIT_MASTER:-0} -ne 0 && ${EXIT_MASTER:-0} -ne 130 ]] || [[ ${EXIT_VIEWER:-0} -ne 0 && ${EXIT_VIEWER:-0} -ne 130 ]]; then
+            echo "✗ Test 1 FAILED: Process exited with unexpected error"
+            exit 1
+          fi
+          
+          # Verify dual-stack endpoint usage
+          if grep -q "Using dual-stack KVS endpoints" master1.log; then
+            echo "✓ Verified: Master is using dual-stack KVS endpoints"
+          else
+            echo "✗ FAILED: Master should use dual-stack endpoints but log doesn't confirm it"
+            echo "Master logs:"
+            cat master1.log
+            exit 1
+          fi
+          
+          # Check for api.aws endpoint usage (dual-stack pattern)
+          if grep -E "(kinesisvideo\..*\.api\.aws|\.api\.aws)" master1.log; then
+            echo "✓ Verified: Dual-stack endpoint pattern (.api.aws) detected in master logs"
+          else
+            echo "⚠ Warning: Could not verify dual-stack endpoint pattern in master logs (may be normal if no explicit URL logging)"
+          fi
+          
+          echo "✓ Test 1 SUCCESS: Dual-stack mode connection established and verified"
+
+      - name: Test 2 - Run sample with dual-stack endpoints disabled (cache test)
+        run: |
+          unset KVS_DUALSTACK_ENDPOINTS
+          echo "=== Test 2: Running with dual-stack endpoints disabled (cache test) ==="
+          echo "KVS_DUALSTACK_ENDPOINTS=${KVS_DUALSTACK_ENDPOINTS:-unset}"
+          
+          cd build/samples
+          
+          # Run with output capture to verify endpoint usage
+          ./kvsWebrtcClientMaster "cache-test-normal-${{ github.run_number }}" > master2.log 2>&1 &
+          PID_MASTER=$!
+          
+          sleep 2
+          ./kvsWebrtcClientViewer "cache-test-normal-${{ github.run_number }}" > viewer2.log 2>&1 &
+          PID_VIEWER=$!
+          
+          # Wait for connection establishment then send SIGINT
+          bash -c "sleep 10 && kill -s INT $PID_MASTER $PID_VIEWER" &
+          
+          wait $PID_MASTER || EXIT_MASTER=$?
+          wait $PID_VIEWER || EXIT_VIEWER=$?
+          
+          # Check exit codes
+          if [[ ${EXIT_MASTER:-0} -ne 0 && ${EXIT_MASTER:-0} -ne 130 ]] || [[ ${EXIT_VIEWER:-0} -ne 0 && ${EXIT_VIEWER:-0} -ne 130 ]]; then
+            echo "✗ Test 2 FAILED: Process exited with unexpected error"
+            exit 1
+          fi
+          
+          # Verify legacy endpoint usage
+          if grep -q "Using legacy KVS endpoints" master2.log; then
+            echo "✓ Verified: Master is using legacy KVS endpoints"
+          else
+            echo "✗ FAILED: Master should use legacy endpoints but log doesn't confirm it"
+            echo "Master logs:"
+            cat master2.log
+            exit 1
+          fi
+          
+          # Check for amazonaws.com endpoint usage (legacy pattern)
+          if grep -E "(kinesisvideo\..*\.amazonaws\.com|\.amazonaws\.com)" master2.log; then
+            echo "✓ Verified: Legacy endpoint pattern (.amazonaws.com) detected in master logs"
+          else
+            echo "⚠ Warning: Could not verify legacy endpoint pattern in master logs (may be normal if no explicit URL logging)"
+          fi
+          
+          # Ensure NOT using dual-stack endpoints
+          if grep -E "(\.api\.aws)" master2.log; then
+            echo "✗ FAILED: Legacy mode should NOT use .api.aws endpoints"
+            echo "Master logs:"
+            cat master2.log
+            exit 1
+          fi
+          
+          echo "✓ Test 2 SUCCESS: Legacy mode connection established and verified"
+
+      - name: Test 3 - Run sample with dual-stack endpoints enabled again (cache verification)
+        run: |
+          export KVS_DUALSTACK_ENDPOINTS=ON
+          echo "=== Test 3: Running with dual-stack endpoints enabled again (cache verification) ==="
+          echo "KVS_DUALSTACK_ENDPOINTS=$KVS_DUALSTACK_ENDPOINTS"
+          
+          cd build/samples
+          
+          # Run with output capture to verify endpoint usage
+          ./kvsWebrtcClientMaster "cache-test-dualstack2-${{ github.run_number }}" > master3.log 2>&1 &
+          PID_MASTER=$!
+          
+          sleep 2
+          ./kvsWebrtcClientViewer "cache-test-dualstack2-${{ github.run_number }}" > viewer3.log 2>&1 &
+          PID_VIEWER=$!
+          
+          # Wait for connection establishment then send SIGINT
+          bash -c "sleep 10 && kill -s INT $PID_MASTER $PID_VIEWER" &
+          
+          wait $PID_MASTER || EXIT_MASTER=$?
+          wait $PID_VIEWER || EXIT_VIEWER=$?
+          
+          # Check exit codes
+          if [[ ${EXIT_MASTER:-0} -ne 0 && ${EXIT_MASTER:-0} -ne 130 ]] || [[ ${EXIT_VIEWER:-0} -ne 0 && ${EXIT_VIEWER:-0} -ne 130 ]]; then
+            echo "✗ Test 3 FAILED: Process exited with unexpected error"
+            exit 1
+          fi
+          
+          # Verify dual-stack endpoint usage again
+          if grep -q "Using dual-stack KVS endpoints" master3.log; then
+            echo "✓ Verified: Master is using dual-stack KVS endpoints (cache working)"
+          else
+            echo "✗ FAILED: Master should use dual-stack endpoints but log doesn't confirm it (cache issue?)"
+            echo "Master logs:"
+            cat master3.log
+            exit 1
+          fi
+          
+          echo "✓ Test 3 SUCCESS: Dual-stack mode re-established (cache verified)"
+
+      - name: Test 4 - Run sample with dual-stack endpoints disabled again (double-safe cache test)
+        run: |
+          unset KVS_DUALSTACK_ENDPOINTS
+          echo "=== Test 4: Running with dual-stack endpoints disabled again (double-safe cache test) ==="
+          echo "KVS_DUALSTACK_ENDPOINTS=${KVS_DUALSTACK_ENDPOINTS:-unset}"
+          
+          cd build/samples
+          
+          # Run with output capture to verify endpoint usage
+          ./kvsWebrtcClientMaster "cache-test-normal2-${{ github.run_number }}" > master4.log 2>&1 &
+          PID_MASTER=$!
+          
+          sleep 2
+          ./kvsWebrtcClientViewer "cache-test-normal2-${{ github.run_number }}" > viewer4.log 2>&1 &
+          PID_VIEWER=$!
+          
+          # Wait for connection establishment then send SIGINT
+          bash -c "sleep 10 && kill -s INT $PID_MASTER $PID_VIEWER" &
+          
+          wait $PID_MASTER || EXIT_MASTER=$?
+          wait $PID_VIEWER || EXIT_VIEWER=$?
+          
+          # Check exit codes
+          if [[ ${EXIT_MASTER:-0} -ne 0 && ${EXIT_MASTER:-0} -ne 130 ]] || [[ ${EXIT_VIEWER:-0} -ne 0 && ${EXIT_VIEWER:-0} -ne 130 ]]; then
+            echo "✗ Test 4 FAILED: Process exited with unexpected error"
+            exit 1
+          fi
+          
+          # Verify legacy endpoint usage again
+          if grep -q "Using legacy KVS endpoints" master4.log; then
+            echo "✓ Verified: Master is using legacy KVS endpoints (cache working)"
+          else
+            echo "✗ FAILED: Master should use legacy endpoints but log doesn't confirm it (cache issue?)"
+            echo "Master logs:"
+            cat master4.log
+            exit 1
+          fi
+          
+          # Ensure NOT using dual-stack endpoints
+          if grep -E "(\.api\.aws)" master4.log; then
+            echo "✗ FAILED: Legacy mode should NOT use .api.aws endpoints"
+            echo "Master logs:"
+            cat master4.log
+            exit 1
+          fi
+          
+          echo "✓ Test 4 SUCCESS: Legacy mode re-established (double-safe cache verified)"
+
+      - name: Verify cache functionality test results
+        run: |
+          echo "=== Cache Functionality Test Results ==="
+          echo "Successfully ran samples in the following sequence:"
+          echo "1. Dual-stack endpoints enabled (set)"
+          echo "2. Dual-stack endpoints disabled (unset)"
+          echo "3. Dual-stack endpoints enabled again (set)"
+          echo "4. Dual-stack endpoints disabled again (unset)"
+          echo ""
+          echo "This comprehensive 4x test verifies that the SDK properly handles"
+          echo "caching behavior when repeatedly toggling between dual-stack and"
+          echo "legacy endpoint modes. Cache functionality test completed successfully!"
