@@ -133,7 +133,7 @@ jobs:
           VIEWER_EXIT=$?
 
           if [ $MASTER_EXIT -ne 0 ] || [ $VIEWER_EXIT -ne 0 ]; then
-            echo "Sample execution failed"
+            echo "Sample execution failed. Master exit code: $MASTER_EXIT, Viewer exit code: $VIEWER_EXIT"
             cat master.log
             cat viewer.log
             exit 1
