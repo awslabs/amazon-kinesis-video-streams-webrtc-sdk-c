@@ -58,26 +58,23 @@ jobs:
           echo "KVS_DUALSTACK_ENDPOINTS=$KVS_DUALSTACK_ENDPOINTS"
           
           cd build/samples
-          
-          # Run with output capture to verify endpoint usage
+          pids=""
           ./kvsWebrtcClientMaster "cache-test-dualstack-${{ github.run_number }}" > master1.log 2>&1 &
-          PID_MASTER=$!
+          pids+=" $!"
           
           sleep 2
           ./kvsWebrtcClientViewer "cache-test-dualstack-${{ github.run_number }}" > viewer1.log 2>&1 &
-          PID_VIEWER=$!
+          pids+=" $!"
           
           # Wait for connection establishment then send SIGINT
-          bash -c "sleep 10 && kill -s INT $PID_MASTER $PID_VIEWER" &
+          bash -c "sleep 10 && kill -s INT $(jobs -p)" &
           
-          wait $PID_MASTER || EXIT_MASTER=$?
-          wait $PID_VIEWER || EXIT_VIEWER=$?
-          
-          # Check exit codes
-          if [[ ${EXIT_MASTER:-0} -ne 0 && ${EXIT_MASTER:-0} -ne 130 ]] || [[ ${EXIT_VIEWER:-0} -ne 0 && ${EXIT_VIEWER:-0} -ne 130 ]]; then
-            echo "✗ Test 1 FAILED: Process exited with unexpected error"
-            exit 1
-          fi
+          for pid in $pids; do
+            if ! wait $pid; then
+              echo "✗ Test 1 FAILED: Process exited with unexpected error"
+              exit 1
+            fi
+          done
           
           # Verify dual-stack endpoint usage
           if grep -q "Using dual-stack KVS endpoints" master1.log; then
@@ -105,26 +102,23 @@ jobs:
           echo "KVS_DUALSTACK_ENDPOINTS=${KVS_DUALSTACK_ENDPOINTS:-unset}"
           
           cd build/samples
-          
-          # Run with output capture to verify endpoint usage
+          pids=""
           ./kvsWebrtcClientMaster "cache-test-normal-${{ github.run_number }}" > master2.log 2>&1 &
-          PID_MASTER=$!
+          pids+=" $!"
           
           sleep 2
           ./kvsWebrtcClientViewer "cache-test-normal-${{ github.run_number }}" > viewer2.log 2>&1 &
-          PID_VIEWER=$!
+          pids+=" $!"
           
           # Wait for connection establishment then send SIGINT
-          bash -c "sleep 10 && kill -s INT $PID_MASTER $PID_VIEWER" &
+          bash -c "sleep 10 && kill -s INT $(jobs -p)" &
           
-          wait $PID_MASTER || EXIT_MASTER=$?
-          wait $PID_VIEWER || EXIT_VIEWER=$?
-          
-          # Check exit codes
-          if [[ ${EXIT_MASTER:-0} -ne 0 && ${EXIT_MASTER:-0} -ne 130 ]] || [[ ${EXIT_VIEWER:-0} -ne 0 && ${EXIT_VIEWER:-0} -ne 130 ]]; then
-            echo "✗ Test 2 FAILED: Process exited with unexpected error"
-            exit 1
-          fi
+          for pid in $pids; do
+            if ! wait $pid; then
+              echo "✗ Test 2 FAILED: Process exited with unexpected error"
+              exit 1
+            fi
+          done
           
           # Verify legacy endpoint usage
           if grep -q "Using legacy KVS endpoints" master2.log; then
@@ -160,26 +154,23 @@ jobs:
           echo "KVS_DUALSTACK_ENDPOINTS=$KVS_DUALSTACK_ENDPOINTS"
           
           cd build/samples
-          
-          # Run with output capture to verify endpoint usage
+          pids=""
           ./kvsWebrtcClientMaster "cache-test-dualstack2-${{ github.run_number }}" > master3.log 2>&1 &
-          PID_MASTER=$!
+          pids+=" $!"
           
           sleep 2
           ./kvsWebrtcClientViewer "cache-test-dualstack2-${{ github.run_number }}" > viewer3.log 2>&1 &
-          PID_VIEWER=$!
+          pids+=" $!"
           
           # Wait for connection establishment then send SIGINT
-          bash -c "sleep 10 && kill -s INT $PID_MASTER $PID_VIEWER" &
+          bash -c "sleep 10 && kill -s INT $(jobs -p)" &
           
-          wait $PID_MASTER || EXIT_MASTER=$?
-          wait $PID_VIEWER || EXIT_VIEWER=$?
-          
-          # Check exit codes
-          if [[ ${EXIT_MASTER:-0} -ne 0 && ${EXIT_MASTER:-0} -ne 130 ]] || [[ ${EXIT_VIEWER:-0} -ne 0 && ${EXIT_VIEWER:-0} -ne 130 ]]; then
-            echo "✗ Test 3 FAILED: Process exited with unexpected error"
-            exit 1
-          fi
+          for pid in $pids; do
+            if ! wait $pid; then
+              echo "✗ Test 3 FAILED: Process exited with unexpected error"
+              exit 1
+            fi
+          done
           
           # Verify dual-stack endpoint usage again
           if grep -q "Using dual-stack KVS endpoints" master3.log; then
@@ -200,26 +191,23 @@ jobs:
           echo "KVS_DUALSTACK_ENDPOINTS=${KVS_DUALSTACK_ENDPOINTS:-unset}"
           
           cd build/samples
-          
-          # Run with output capture to verify endpoint usage
+          pids=""
           ./kvsWebrtcClientMaster "cache-test-normal2-${{ github.run_number }}" > master4.log 2>&1 &
-          PID_MASTER=$!
+          pids+=" $!"
           
           sleep 2
           ./kvsWebrtcClientViewer "cache-test-normal2-${{ github.run_number }}" > viewer4.log 2>&1 &
-          PID_VIEWER=$!
+          pids+=" $!"
           
           # Wait for connection establishment then send SIGINT
-          bash -c "sleep 10 && kill -s INT $PID_MASTER $PID_VIEWER" &
+          bash -c "sleep 10 && kill -s INT $(jobs -p)" &
           
-          wait $PID_MASTER || EXIT_MASTER=$?
-          wait $PID_VIEWER || EXIT_VIEWER=$?
-          
-          # Check exit codes
-          if [[ ${EXIT_MASTER:-0} -ne 0 && ${EXIT_MASTER:-0} -ne 130 ]] || [[ ${EXIT_VIEWER:-0} -ne 0 && ${EXIT_VIEWER:-0} -ne 130 ]]; then
-            echo "✗ Test 4 FAILED: Process exited with unexpected error"
-            exit 1
-          fi
+          for pid in $pids; do
+            if ! wait $pid; then
+              echo "✗ Test 4 FAILED: Process exited with unexpected error"
+              exit 1
+            fi
+          done
           
           # Verify legacy endpoint usage again
           if grep -q "Using legacy KVS endpoints" master4.log; then
