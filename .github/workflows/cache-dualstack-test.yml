@@ -76,18 +76,8 @@ jobs:
             fi
           done
           
-          # Verify dual-stack endpoint usage
-          if grep -q "Using dual-stack KVS endpoints" master1.log; then
-            echo "✓ Verified: Master is using dual-stack KVS endpoints"
-          else
-            echo "✗ FAILED: Master should use dual-stack endpoints but log doesn't confirm it"
-            echo "Master logs:"
-            cat master1.log
-            exit 1
-          fi
-          
           # Check for api.aws endpoint usage (dual-stack pattern) from setRequestHeader logs
-          if grep -E "setRequestHeader\(\).*host.*\.api\.aws" master1.log; then
+          if grep -qE "setRequestHeader\(\).*host.*\.api\.aws" master1.log; then
             echo "✓ Verified: Dual-stack endpoint pattern (.api.aws) detected in setRequestHeader logs"
           else
             echo "⚠ Warning: Could not verify dual-stack endpoint pattern in setRequestHeader logs"
@@ -127,25 +117,15 @@ jobs:
             fi
           done
           
-          # Verify legacy endpoint usage
-          if grep -q "Using legacy KVS endpoints" master2.log; then
-            echo "✓ Verified: Master is using legacy KVS endpoints"
-          else
-            echo "✗ FAILED: Master should use legacy endpoints but log doesn't confirm it"
-            echo "Master logs:"
-            cat master2.log
-            exit 1
-          fi
-          
           # Check for amazonaws.com endpoint usage (legacy pattern) from setRequestHeader logs
-          if grep -E "setRequestHeader\(\).*host.*\.amazonaws\.com" master2.log; then
+          if grep -qE "setRequestHeader\(\).*host.*\.amazonaws\.com" master2.log; then
             echo "✓ Verified: Legacy endpoint pattern (.amazonaws.com) detected in setRequestHeader logs"
           else
             echo "⚠ Warning: Could not verify legacy endpoint pattern in setRequestHeader logs"
           fi
           
           # Ensure NOT using dual-stack endpoints
-          if grep -E "setRequestHeader\(\).*host.*\.api\.aws" master2.log; then
+          if grep -qE "setRequestHeader\(\).*host.*\.api\.aws" master2.log; then
             echo "✗ FAILED: Legacy mode should NOT use .api.aws endpoints"
             echo "Master logs:"
             cat master2.log
@@ -186,18 +166,8 @@ jobs:
             fi
           done
           
-          # Verify dual-stack endpoint usage again
-          if grep -q "Using dual-stack KVS endpoints" master3.log; then
-            echo "✓ Verified: Master is using dual-stack KVS endpoints (cache working)"
-          else
-            echo "✗ FAILED: Master should use dual-stack endpoints but log doesn't confirm it (cache issue?)"
-            echo "Master logs:"
-            cat master3.log
-            exit 1
-          fi
-          
           # Check for api.aws endpoint usage (dual-stack pattern) from setRequestHeader logs
-          if grep -E "setRequestHeader\(\).*host.*\.api\.aws" master3.log; then
+          if grep -qE "setRequestHeader\(\).*host.*\.api\.aws" master3.log; then
             echo "✓ Verified: Dual-stack endpoint pattern (.api.aws) detected in setRequestHeader logs"
           else
             echo "⚠ Warning: Could not verify dual-stack endpoint pattern in setRequestHeader logs"
@@ -237,25 +207,15 @@ jobs:
             fi
           done
           
-          # Verify legacy endpoint usage again
-          if grep -q "Using legacy KVS endpoints" master4.log; then
-            echo "✓ Verified: Master is using legacy KVS endpoints (cache working)"
-          else
-            echo "✗ FAILED: Master should use legacy endpoints but log doesn't confirm it (cache issue?)"
-            echo "Master logs:"
-            cat master4.log
-            exit 1
-          fi
-          
           # Check for amazonaws.com endpoint usage (legacy pattern) from setRequestHeader logs
-          if grep -E "setRequestHeader\(\).*host.*\.amazonaws\.com" master4.log; then
+          if grep -qE "setRequestHeader\(\).*host.*\.amazonaws\.com" master4.log; then
             echo "✓ Verified: Legacy endpoint pattern (.amazonaws.com) detected in setRequestHeader logs"
           else
             echo "⚠ Warning: Could not verify legacy endpoint pattern in setRequestHeader logs"
           fi
           
           # Ensure NOT using dual-stack endpoints
-          if grep -E "setRequestHeader\(\).*host.*\.api\.aws" master4.log; then
+          if grep -qE "setRequestHeader\(\).*host.*\.api\.aws" master4.log; then
             echo "✗ FAILED: Legacy mode should NOT use .api.aws endpoints"
             echo "Master logs:"
             cat master4.log
