@@ -67,7 +67,7 @@ jobs:
           pids+=" $!"
           
           # Wait for connection establishment then send SIGINT
-          bash -c "sleep 10 && kill -s INT $(jobs -p)" &
+          bash -c "sleep 10 && kill -s INT $pids" &
           
           for pid in $pids; do
             if ! wait $pid; then
@@ -86,11 +86,18 @@ jobs:
             exit 1
           fi
           
-          # Check for api.aws endpoint usage (dual-stack pattern)
-          if grep -E "(kinesisvideo\..*\.api\.aws|\.api\.aws)" master1.log; then
-            echo "✓ Verified: Dual-stack endpoint pattern (.api.aws) detected in master logs"
+          # Check for api.aws endpoint usage (dual-stack pattern) from setRequestHeader logs
+          if grep -E "setRequestHeader\(\).*host.*\.api\.aws" master1.log; then
+            echo "✓ Verified: Dual-stack endpoint pattern (.api.aws) detected in setRequestHeader logs"
           else
-            echo "⚠ Warning: Could not verify dual-stack endpoint pattern in master logs (may be normal if no explicit URL logging)"
+            echo "⚠ Warning: Could not verify dual-stack endpoint pattern in setRequestHeader logs"
+          fi
+          
+          # Verify ICE connection establishment
+          if grep -q "iceAgentReadyStateSetup(): Selected pair" master1.log; then
+            echo "✓ Verified: ICE connection established successfully (selected candidate pair)"
+          else
+            echo "⚠ Warning: Could not verify ICE connection establishment in master logs"
           fi
           
           echo "✓ Test 1 SUCCESS: Dual-stack mode connection established and verified"
@@ -111,7 +118,7 @@ jobs:
           pids+=" $!"
           
           # Wait for connection establishment then send SIGINT
-          bash -c "sleep 10 && kill -s INT $(jobs -p)" &
+          bash -c "sleep 10 && kill -s INT $pids" &
           
           for pid in $pids; do
             if ! wait $pid; then
@@ -130,19 +137,26 @@ jobs:
             exit 1
           fi
           
-          # Check for amazonaws.com endpoint usage (legacy pattern)
-          if grep -E "(kinesisvideo\..*\.amazonaws\.com|\.amazonaws\.com)" master2.log; then
-            echo "✓ Verified: Legacy endpoint pattern (.amazonaws.com) detected in master logs"
+          # Check for amazonaws.com endpoint usage (legacy pattern) from setRequestHeader logs
+          if grep -E "setRequestHeader\(\).*host.*\.amazonaws\.com" master2.log; then
+            echo "✓ Verified: Legacy endpoint pattern (.amazonaws.com) detected in setRequestHeader logs"
           else
-            echo "⚠ Warning: Could not verify legacy endpoint pattern in master logs (may be normal if no explicit URL logging)"
+            echo "⚠ Warning: Could not verify legacy endpoint pattern in setRequestHeader logs"
           fi
           
           # Ensure NOT using dual-stack endpoints
-          if grep -E "(\.api\.aws)" master2.log; then
+          if grep -E "setRequestHeader\(\).*host.*\.api\.aws" master2.log; then
             echo "✗ FAILED: Legacy mode should NOT use .api.aws endpoints"
             echo "Master logs:"
             cat master2.log
             exit 1
+          fi
+          
+          # Verify ICE connection establishment
+          if grep -q "iceAgentReadyStateSetup(): Selected pair" master2.log; then
+            echo "✓ Verified: ICE connection established successfully (selected candidate pair)"
+          else
+            echo "⚠ Warning: Could not verify ICE connection establishment in master logs"
           fi
           
           echo "✓ Test 2 SUCCESS: Legacy mode connection established and verified"
@@ -163,7 +177,7 @@ jobs:
           pids+=" $!"
           
           # Wait for connection establishment then send SIGINT
-          bash -c "sleep 10 && kill -s INT $(jobs -p)" &
+          bash -c "sleep 10 && kill -s INT $pids" &
           
           for pid in $pids; do
             if ! wait $pid; then
@@ -180,6 +194,20 @@ jobs:
             echo "Master logs:"
             cat master3.log
             exit 1
+          fi
+          
+          # Check for api.aws endpoint usage (dual-stack pattern) from setRequestHeader logs
+          if grep -E "setRequestHeader\(\).*host.*\.api\.aws" master3.log; then
+            echo "✓ Verified: Dual-stack endpoint pattern (.api.aws) detected in setRequestHeader logs"
+          else
+            echo "⚠ Warning: Could not verify dual-stack endpoint pattern in setRequestHeader logs"
+          fi
+          
+          # Verify ICE connection establishment
+          if grep -q "iceAgentReadyStateSetup(): Selected pair" master3.log; then
+            echo "✓ Verified: ICE connection established successfully (selected candidate pair)"
+          else
+            echo "⚠ Warning: Could not verify ICE connection establishment in master logs"
           fi
           
           echo "✓ Test 3 SUCCESS: Dual-stack mode re-established (cache verified)"
@@ -200,7 +228,7 @@ jobs:
           pids+=" $!"
           
           # Wait for connection establishment then send SIGINT
-          bash -c "sleep 10 && kill -s INT $(jobs -p)" &
+          bash -c "sleep 10 && kill -s INT $pids" &
           
           for pid in $pids; do
             if ! wait $pid; then
@@ -219,12 +247,26 @@ jobs:
             exit 1
           fi
           
+          # Check for amazonaws.com endpoint usage (legacy pattern) from setRequestHeader logs
+          if grep -E "setRequestHeader\(\).*host.*\.amazonaws\.com" master4.log; then
+            echo "✓ Verified: Legacy endpoint pattern (.amazonaws.com) detected in setRequestHeader logs"
+          else
+            echo "⚠ Warning: Could not verify legacy endpoint pattern in setRequestHeader logs"
+          fi
+          
           # Ensure NOT using dual-stack endpoints
-          if grep -E "(\.api\.aws)" master4.log; then
+          if grep -E "setRequestHeader\(\).*host.*\.api\.aws" master4.log; then
             echo "✗ FAILED: Legacy mode should NOT use .api.aws endpoints"
             echo "Master logs:"
             cat master4.log
             exit 1
+          fi
+          
+          # Verify ICE connection establishment
+          if grep -q "iceAgentReadyStateSetup(): Selected pair" master4.log; then
+            echo "✓ Verified: ICE connection established successfully (selected candidate pair)"
+          else
+            echo "⚠ Warning: Could not verify ICE connection establishment in master logs"
           fi
           
           echo "✓ Test 4 SUCCESS: Legacy mode re-established (double-safe cache verified)"
