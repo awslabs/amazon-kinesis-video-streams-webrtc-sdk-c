@@ -54,8 +54,10 @@ jobs:
       - name: Test 1 - Run sample with dual-stack endpoints enabled
         run: |
           export KVS_DUALSTACK_ENDPOINTS=ON
+          export CONTROL_PLANE_URI="https://kinesisvideo.${AWS_REGION}.api.aws"
           echo "=== Test 1: Running with dual-stack endpoints enabled ==="
           echo "KVS_DUALSTACK_ENDPOINTS=$KVS_DUALSTACK_ENDPOINTS"
+          echo "CONTROL_PLANE_URI=$CONTROL_PLANE_URI"
           
           cd build/samples
           pids=""
@@ -71,32 +73,34 @@ jobs:
           
           for pid in $pids; do
             if ! wait $pid; then
-              echo "✗ Test 1 FAILED: Process exited with unexpected error"
+              echo "Test 1 FAILED: Process exited with unexpected error"
               exit 1
             fi
           done
           
           # Check for api.aws endpoint usage (dual-stack pattern) from setRequestHeader logs
           if grep -qE "setRequestHeader\(\).*host.*\.api\.aws" master1.log; then
-            echo "✓ Verified: Dual-stack endpoint pattern (.api.aws) detected in setRequestHeader logs"
+            echo "Verified: Dual-stack endpoint pattern (.api.aws) detected in setRequestHeader logs"
           else
-            echo "⚠ Warning: Could not verify dual-stack endpoint pattern in setRequestHeader logs"
+            echo "Could not verify dual-stack endpoint pattern in setRequestHeader logs"
           fi
           
           # Verify ICE connection establishment
           if grep -q "iceAgentReadyStateSetup(): Selected pair" master1.log; then
-            echo "✓ Verified: ICE connection established successfully (selected candidate pair)"
+            echo "Verified: ICE connection established successfully (selected candidate pair)"
           else
-            echo "⚠ Warning: Could not verify ICE connection establishment in master logs"
+            echo "Could not verify ICE connection establishment in master logs"
           fi
           
-          echo "✓ Test 1 SUCCESS: Dual-stack mode connection established and verified"
+          echo "Test 1 SUCCESS: Dual-stack mode connection established and verified"
 
       - name: Test 2 - Run sample with dual-stack endpoints disabled (cache test)
         run: |
           unset KVS_DUALSTACK_ENDPOINTS
+          export CONTROL_PLANE_URI="https://kinesisvideo.${AWS_REGION}.amazonaws.com"
           echo "=== Test 2: Running with dual-stack endpoints disabled (cache test) ==="
           echo "KVS_DUALSTACK_ENDPOINTS=${KVS_DUALSTACK_ENDPOINTS:-unset}"
+          echo "CONTROL_PLANE_URI=$CONTROL_PLANE_URI"
           
           cd build/samples
           pids=""
@@ -112,21 +116,21 @@ jobs:
           
           for pid in $pids; do
             if ! wait $pid; then
-              echo "✗ Test 2 FAILED: Process exited with unexpected error"
+              echo "Test 2 FAILED: Process exited with unexpected error"
               exit 1
             fi
           done
           
           # Check for amazonaws.com endpoint usage (legacy pattern) from setRequestHeader logs
           if grep -qE "setRequestHeader\(\).*host.*\.amazonaws\.com" master2.log; then
-            echo "✓ Verified: Legacy endpoint pattern (.amazonaws.com) detected in setRequestHeader logs"
+            echo "Verified: Legacy endpoint pattern (.amazonaws.com) detected in setRequestHeader logs"
           else
-            echo "⚠ Warning: Could not verify legacy endpoint pattern in setRequestHeader logs"
+            echo "Could not verify legacy endpoint pattern in setRequestHeader logs"
           fi
           
           # Ensure NOT using dual-stack endpoints
           if grep -qE "setRequestHeader\(\).*host.*\.api\.aws" master2.log; then
-            echo "✗ FAILED: Legacy mode should NOT use .api.aws endpoints"
+            echo "FAILED: Legacy mode should NOT use .api.aws endpoints"
             echo "Master logs:"
             cat master2.log
             exit 1
@@ -134,18 +138,20 @@ jobs:
           
           # Verify ICE connection establishment
           if grep -q "iceAgentReadyStateSetup(): Selected pair" master2.log; then
-            echo "✓ Verified: ICE connection established successfully (selected candidate pair)"
+            echo "Verified: ICE connection established successfully (selected candidate pair)"
           else
-            echo "⚠ Warning: Could not verify ICE connection establishment in master logs"
+            echo "Could not verify ICE connection establishment in master logs"
           fi
           
-          echo "✓ Test 2 SUCCESS: Legacy mode connection established and verified"
+          echo "Test 2 SUCCESS: Legacy mode connection established and verified"
 
       - name: Test 3 - Run sample with dual-stack endpoints enabled again (cache verification)
         run: |
           export KVS_DUALSTACK_ENDPOINTS=ON
+          export CONTROL_PLANE_URI="https://kinesisvideo.${AWS_REGION}.api.aws"
           echo "=== Test 3: Running with dual-stack endpoints enabled again (cache verification) ==="
           echo "KVS_DUALSTACK_ENDPOINTS=$KVS_DUALSTACK_ENDPOINTS"
+          echo "CONTROL_PLANE_URI=$CONTROL_PLANE_URI"
           
           cd build/samples
           pids=""
@@ -161,32 +167,34 @@ jobs:
           
           for pid in $pids; do
             if ! wait $pid; then
-              echo "✗ Test 3 FAILED: Process exited with unexpected error"
+              echo "Test 3 FAILED: Process exited with unexpected error"
               exit 1
             fi
           done
           
           # Check for api.aws endpoint usage (dual-stack pattern) from setRequestHeader logs
           if grep -qE "setRequestHeader\(\).*host.*\.api\.aws" master3.log; then
-            echo "✓ Verified: Dual-stack endpoint pattern (.api.aws) detected in setRequestHeader logs"
+            echo "Verified: Dual-stack endpoint pattern (.api.aws) detected in setRequestHeader logs"
           else
-            echo "⚠ Warning: Could not verify dual-stack endpoint pattern in setRequestHeader logs"
+            echo "Could not verify dual-stack endpoint pattern in setRequestHeader logs"
           fi
           
           # Verify ICE connection establishment
           if grep -q "iceAgentReadyStateSetup(): Selected pair" master3.log; then
-            echo "✓ Verified: ICE connection established successfully (selected candidate pair)"
+            echo "Verified: ICE connection established successfully (selected candidate pair)"
           else
-            echo "⚠ Warning: Could not verify ICE connection establishment in master logs"
+            echo "Could not verify ICE connection establishment in master logs"
           fi
           
-          echo "✓ Test 3 SUCCESS: Dual-stack mode re-established (cache verified)"
+          echo "Test 3 SUCCESS: Dual-stack mode re-established (cache verified)"
 
       - name: Test 4 - Run sample with dual-stack endpoints disabled again (double-safe cache test)
         run: |
           unset KVS_DUALSTACK_ENDPOINTS
+          export CONTROL_PLANE_URI="https://kinesisvideo.${AWS_REGION}.amazonaws.com"
           echo "=== Test 4: Running with dual-stack endpoints disabled again (double-safe cache test) ==="
           echo "KVS_DUALSTACK_ENDPOINTS=${KVS_DUALSTACK_ENDPOINTS:-unset}"
+          echo "CONTROL_PLANE_URI=$CONTROL_PLANE_URI"
           
           cd build/samples
           pids=""
@@ -202,21 +210,21 @@ jobs:
           
           for pid in $pids; do
             if ! wait $pid; then
-              echo "✗ Test 4 FAILED: Process exited with unexpected error"
+              echo "Test 4 FAILED: Process exited with unexpected error"
               exit 1
             fi
           done
           
           # Check for amazonaws.com endpoint usage (legacy pattern) from setRequestHeader logs
           if grep -qE "setRequestHeader\(\).*host.*\.amazonaws\.com" master4.log; then
-            echo "✓ Verified: Legacy endpoint pattern (.amazonaws.com) detected in setRequestHeader logs"
+            echo "Verified: Legacy endpoint pattern (.amazonaws.com) detected in setRequestHeader logs"
           else
-            echo "⚠ Warning: Could not verify legacy endpoint pattern in setRequestHeader logs"
+            echo "Could not verify legacy endpoint pattern in setRequestHeader logs"
           fi
           
           # Ensure NOT using dual-stack endpoints
           if grep -qE "setRequestHeader\(\).*host.*\.api\.aws" master4.log; then
-            echo "✗ FAILED: Legacy mode should NOT use .api.aws endpoints"
+            echo "FAILED: Legacy mode should NOT use .api.aws endpoints"
             echo "Master logs:"
             cat master4.log
             exit 1
@@ -224,12 +232,12 @@ jobs:
           
           # Verify ICE connection establishment
           if grep -q "iceAgentReadyStateSetup(): Selected pair" master4.log; then
-            echo "✓ Verified: ICE connection established successfully (selected candidate pair)"
+            echo "Verified: ICE connection established successfully (selected candidate pair)"
           else
-            echo "⚠ Warning: Could not verify ICE connection establishment in master logs"
+            echo "Could not verify ICE connection establishment in master logs"
           fi
           
-          echo "✓ Test 4 SUCCESS: Legacy mode re-established (double-safe cache verified)"
+          echo "Test 4 SUCCESS: Legacy mode re-established (double-safe cache verified)"
 
       - name: Verify cache functionality test results
         run: |
