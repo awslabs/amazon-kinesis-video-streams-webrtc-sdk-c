@@ -12,7 +12,37 @@ on:
       - main
 
 jobs:
+  credential-check:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      id-token: write
+      contents: read
+
+    outputs:
+      run_tests: ${{ steps.check_credentials.outputs.run_tests }}
+
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Check AWS credentials
+        id: check_credentials
+        run: |
+          if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" || -z "$AWS_SESSION_TOKEN" ]]; then
+            echo "Couldn't find AWS credentials. Very likely this build is coming from a fork. Skipping cache test."
+            echo "run_tests=false" >> $GITHUB_OUTPUT
+          else
+            echo "AWS credentials found. Proceeding with cache tests."
+            echo "run_tests=true" >> $GITHUB_OUTPUT
+          fi
+
   cache-dualstack-test:
+    needs: [credential-check]
+    if: needs.credential-check.outputs.run_tests == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     
@@ -38,13 +68,6 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Check AWS credentials
-        run: |
-          if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" || -z "$AWS_SESSION_TOKEN" ]]; then
-            echo "Couldn't find AWS credentials. Very likely this build is coming from a fork. Skipping cache test."
-            exit 0
-          fi
-
       - name: Build repository
         run: |
           mkdir build && cd build
@@ -61,11 +84,11 @@ jobs:
           
           cd build/samples
           pids=""
-          ./kvsWebrtcClientMaster "cache-test-dualstack-${{ github.run_number }}" > master1.log 2>&1 &
+          ./kvsWebrtcClientMaster "cache-test-${{ github.run_number }}" > master1.log 2>&1 &
           pids+=" $!"
           
           sleep 2
-          ./kvsWebrtcClientViewer "cache-test-dualstack-${{ github.run_number }}" > viewer1.log 2>&1 &
+          ./kvsWebrtcClientViewer "cache-test-${{ github.run_number }}" > viewer1.log 2>&1 &
           pids+=" $!"
           
           # Wait for connection establishment then send SIGINT
@@ -104,11 +127,11 @@ jobs:
           
           cd build/samples
           pids=""
-          ./kvsWebrtcClientMaster "cache-test-normal-${{ github.run_number }}" > master2.log 2>&1 &
+          ./kvsWebrtcClientMaster "cache-test-${{ github.run_number }}" > master2.log 2>&1 &
           pids+=" $!"
           
           sleep 2
-          ./kvsWebrtcClientViewer "cache-test-normal-${{ github.run_number }}" > viewer2.log 2>&1 &
+          ./kvsWebrtcClientViewer "cache-test-${{ github.run_number }}" > viewer2.log 2>&1 &
           pids+=" $!"
           
           # Wait for connection establishment then send SIGINT
@@ -155,11 +178,11 @@ jobs:
           
           cd build/samples
           pids=""
-          ./kvsWebrtcClientMaster "cache-test-dualstack2-${{ github.run_number }}" > master3.log 2>&1 &
+          ./kvsWebrtcClientMaster "cache-test-${{ github.run_number }}" > master3.log 2>&1 &
           pids+=" $!"
           
           sleep 2
-          ./kvsWebrtcClientViewer "cache-test-dualstack2-${{ github.run_number }}" > viewer3.log 2>&1 &
+          ./kvsWebrtcClientViewer "cache-test-${{ github.run_number }}" > viewer3.log 2>&1 &
           pids+=" $!"
           
           # Wait for connection establishment then send SIGINT
@@ -198,11 +221,11 @@ jobs:
           
           cd build/samples
           pids=""
-          ./kvsWebrtcClientMaster "cache-test-normal2-${{ github.run_number }}" > master4.log 2>&1 &
+          ./kvsWebrtcClientMaster "cache-test-${{ github.run_number }}" > master4.log 2>&1 &
           pids+=" $!"
           
           sleep 2
-          ./kvsWebrtcClientViewer "cache-test-normal2-${{ github.run_number }}" > viewer4.log 2>&1 &
+          ./kvsWebrtcClientViewer "cache-test-${{ github.run_number }}" > viewer4.log 2>&1 &
           pids+=" $!"
           
           # Wait for connection establishment then send SIGINT
@@ -251,3 +274,16 @@ jobs:
           echo "This comprehensive 4x test verifies that the SDK properly handles"
           echo "caching behavior when repeatedly toggling between dual-stack and"
           echo "legacy endpoint modes. Cache functionality test completed successfully!"
+
+      - name: Cleanup - Delete test channel
+        if: always()
+        run: |
+          echo "=== Cleaning up test channel ==="
+          CHANNEL_NAME="cache-test-${{ github.run_number }}"
+          echo "Attempting to delete channel: $CHANNEL_NAME"
+          
+          aws kinesisvideo delete-signaling-channel \
+            --channel-name "$CHANNEL_NAME" \
+            --region "$AWS_REGION" || echo "Channel may not exist or already deleted"
+          
+          echo "Cleanup completed"
