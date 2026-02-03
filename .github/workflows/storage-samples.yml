@@ -1,5 +1,4 @@
-name: WebRTC C Join Storage Master Samples
-# todo: add the provisioning and consumption check
+name: WebRTC C Join Storage Master Sample
 
 on:
   push:
@@ -13,16 +12,14 @@ on:
       - main
 
 jobs:
-   
-
- 
-
   valgrind-check-for-join-storage:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     env:
       AWS_KVS_LOG_LEVEL: 1
+      CHANNEL_NAME: demo-channel-storage
+      STREAM_NAME: demo-stream-storage
 
     permissions:
       id-token: write
@@ -36,6 +33,37 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Provision AWS KVS resources
+        run: |
+          # Create stream if it doesn't exist
+          if ! aws kinesisvideo describe-stream --stream-name "$STREAM_NAME"; then
+            echo "Creating stream: $STREAM_NAME"
+            aws kinesisvideo create-stream --stream-name "$STREAM_NAME" --data-retention-in-hours 1
+          else
+            echo "Stream already exists: $STREAM_NAME"
+          fi
+
+          # Create signaling channel if it doesn't exist
+          if ! aws kinesisvideo describe-signaling-channel --channel-name "$CHANNEL_NAME"; then
+            echo "Creating signaling channel: $CHANNEL_NAME"
+            aws kinesisvideo create-signaling-channel --channel-name "$CHANNEL_NAME"
+          else
+            echo "Signaling channel already exists: $CHANNEL_NAME"
+          fi
+
+          CHANNEL_ARN=$(aws kinesisvideo describe-signaling-channel --channel-name "$CHANNEL_NAME" --query 'ChannelInfo.ChannelARN' --output text)
+          STREAM_ARN=$(aws kinesisvideo describe-stream --stream-name "$STREAM_NAME" --query 'StreamInfo.StreamARN' --output text)
+
+          STATUS=$(aws kinesisvideo describe-media-storage-configuration --channel-arn "$CHANNEL_ARN" --query 'MediaStorageConfiguration.Status' --output text)
+          if [ "$STATUS" != "ENABLED" ]; then
+            echo "Linking channel to stream"
+            aws kinesisvideo update-media-storage-configuration \
+              --channel-arn "$CHANNEL_ARN" \
+              --media-storage-configuration Status=ENABLED,StreamARN="$STREAM_ARN"
+          else
+            echo "Channel already linked to stream"
+          fi
 
       - name: Install deps
         run: |
@@ -54,44 +82,71 @@ jobs:
           make -j
 
       - name: Run tests
+        working-directory: build
         run: |
-          cd build
-          valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file=valgrind-master.txt ./samples/kvsWebrtcClientMaster demo-channel-storage 1 opus h264 &
+          valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file=valgrind-master.txt ./samples/kvsWebrtcClientMaster $CHANNEL_NAME 1 opus h264 &
           PID_MASTER=$!
-     
 
           # Wait for processes to run initially
-          sleep 30 # Wait 30s
+          sleep 60 # Wait 60s
 
-          
+          # Interrupt master application (CTRL+C)
           kill -2 $PID_MASTER
 
           # Start a background task to enforce a timeout for graceful shutdown
           (
             sleep 10
             kill -9 $PID_MASTER 2>/dev/null
-          
           ) &
 
           wait $PID_MASTER
           EXIT_STATUS_MASTER=$?
-        
 
           # Check exit statuses to determine if the interrupt was successful
           if [ $EXIT_STATUS_MASTER -ne 0 ] ; then
             echo "Process did not exit gracefully."
             echo "Master exit code: $EXIT_STATUS_MASTER"
-           
             exit 1
           else
-
             echo "Processes exited successfully."
           fi
 
-          # Check for memory leaks in Valgrind output files
+      - name: Check valgrind output
+        working-directory: build
+        run: |
           if grep "All heap blocks were freed -- no leaks are possible" valgrind-master.txt ; then
             echo "No memory leaks detected."
           else
             echo "Memory leaks detected."
+            cat valgrind-master.txt
+            # TODO: exit 1
           fi
 
+      - name: Setup Python for media validation
+        if: false # TODO: re-enable
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Download and verify media
+        if: false # TODO: re-enable
+        run: |
+          # Clone validation tools
+          git clone --depth 1 --branch develop https://github.com/awslabs/amazon-kinesis-video-streams-producer-sdk-java.git /tmp/kvs-tools
+          cd /tmp/kvs-tools/scripts/python/getmediavalidation
+          
+          # Install dependencies
+          python -m pip install --upgrade pip
+          pip install -e .
+
+          # Fetch fragment info and check if table is non-empty
+          OUTPUT=$(python ./bin/fetch_fragment_info.py --stream-name "$STREAM_NAME" --last 5m)
+          echo "$OUTPUT"
+          
+          # Check if table contains data rows (look for fragment numbers)
+          if echo "$OUTPUT" | grep -E "^\| [0-9]+" > /dev/null; then
+            echo "✓ Media fragments found in stream"
+          else
+            echo "✗ No media fragments found in stream"
+            exit 1
+          fi
