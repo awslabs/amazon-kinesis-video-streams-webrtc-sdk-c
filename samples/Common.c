@@ -848,7 +848,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 
     // If the env is set, we generate normal log files apart from filtered profile log files
     // If not set, we generate only the filtered profile log files
-    if (NULL != GETENV(ENABLE_FILE_LOGGING)) {
+    if (isEnvVarEnabled(ENABLE_FILE_LOGGING)) {
         retStatus = createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH,
                                                        TRUE, TRUE, TRUE, LOG_LEVEL_PROFILE, NULL);
 
