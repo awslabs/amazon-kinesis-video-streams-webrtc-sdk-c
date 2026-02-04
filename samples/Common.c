@@ -277,7 +277,7 @@ CleanUp:
 STATUS respondWithAnswer(PSampleStreamingSession pSampleStreamingSession)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    SignalingMessage message;
+    SignalingMessage message = {0};
     UINT32 buffLen = MAX_SIGNALING_MESSAGE_LEN;
 
     CHK_STATUS(serializeSessionDescriptionInit(&pSampleStreamingSession->answerSessionDescriptionInit, message.payload, &buffLen));
@@ -312,7 +312,7 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
-    SignalingMessage message;
+    SignalingMessage message = {0};
 
     CHK(pSampleStreamingSession != NULL, STATUS_NULL_ARG);
 
