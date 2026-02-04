@@ -62,20 +62,24 @@ jobs:
       - name: Run 50 Iterations
         run: |
           cd build
-          for _ in {1..50}; do
+          for i in {1..50}; do
+            echo "Iteration: $i"
             (
               ./samples/kvsWebRTCClientMaster "$CHANNEL_NAME" 2>&1 | grep "PROFILE" >> master_profile_logs.txt
             )&
-            MASTER_PID=$!
+            export MASTER_PID=$!
+            echo "Master PID: $PID"
             sleep 15
 
             (
               ./samples/kvsWebRTCClientViewer "$CHANNEL_NAME" 2>&1 | grep "PROFILE" >> viewer_profile_logs.txt
             )&
-            VIEWER_PID=$!
+            export VIEWER_PID=$!
+            echo "Viewer PID: $PID"
             sleep 15
 
-            kill -9 "$MASTER_PID" "$VIEWER_PID"
+            kill -9 "$MASTER_PID" "$VIEWER_PID" || true
+            sleep 3
           done
         shell: bash
 
