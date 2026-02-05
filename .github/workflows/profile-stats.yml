@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AWS_KVS_LOG_LEVEL: 5
-      MIN_COUNT: 3
+      MIN_COUNT: 4
       LOG_FILE_LIMIT: 50
       ITERATIONS: 50
 
