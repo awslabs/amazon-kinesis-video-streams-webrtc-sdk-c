@@ -820,8 +820,9 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
                                  PSampleConfiguration* ppSampleConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    PCHAR pAccessKey, pSecretKey, pSessionToken;
+    PCHAR pAccessKey, pSecretKey, pSessionToken, pLogFilesDir = (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH;
     PSampleConfiguration pSampleConfiguration = NULL;
+    UINT32 numLogFiles = DEFAULT_MAX_NUMBER_OF_LOG_FILES;
 
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
 
@@ -846,10 +847,19 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
         pSessionToken = NULL;
     }
 
+    if (!IS_NULL_OR_EMPTY_STRING(GETENV(MAX_NUM_LOG_FILES_ENV_VAR))) {
+        CHK_STATUS_ERR(STRTOUI32(GETENV(MAX_NUM_LOG_FILES_ENV_VAR), NULL, 10, &numLogFiles), STATUS_INVALID_ARG, "Failed to parse max number of log files: %s", GETENV(MAX_NUM_LOG_FILES_ENV_VAR));
+        CHK_ERR(CHECK_IN_RANGE(numLogFiles, 1, 100), STATUS_INVALID_ARG, "MaxLogFiles must be in range: [0, 100], was: %d", numLogFiles);
+    }
+
+    if (!IS_NULL_OR_EMPTY_STRING(GETENV(LOG_FILE_DIR))) {
+        pLogFilesDir = GETENV(LOG_FILE_DIR);
+    }
+
     // If the env is set, we generate normal log files apart from filtered profile log files
     // If not set, we generate only the filtered profile log files
     if (isEnvVarEnabled(ENABLE_FILE_LOGGING)) {
-        retStatus = createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH,
+        retStatus = createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, numLogFiles, pLogFilesDir,
                                                        TRUE, TRUE, TRUE, LOG_LEVEL_PROFILE, NULL);
 
         if (retStatus != STATUS_SUCCESS) {
@@ -858,7 +868,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
             pSampleConfiguration->enableFileLogging = TRUE;
         }
     } else {
-        retStatus = createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH,
+        retStatus = createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, numLogFiles, pLogFilesDir,
                                                        TRUE, TRUE, FALSE, LOG_LEVEL_PROFILE, NULL);
 
         if (retStatus != STATUS_SUCCESS) {
