@@ -850,7 +850,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     if (!IS_NULL_OR_EMPTY_STRING(GETENV(MAX_NUM_LOG_FILES_ENV_VAR))) {
         CHK_STATUS_ERR(STRTOUI32(GETENV(MAX_NUM_LOG_FILES_ENV_VAR), NULL, 10, &numLogFiles), STATUS_INVALID_ARG,
                        "Failed to parse max number of log files: %s", GETENV(MAX_NUM_LOG_FILES_ENV_VAR));
-        CHK_ERR(CHECK_IN_RANGE(numLogFiles, 1, 100), STATUS_INVALID_ARG, "MaxLogFiles must be in range: [0, 100], was: %d", numLogFiles);
+        CHK_ERR(CHECK_IN_RANGE(numLogFiles, 1, 100), STATUS_INVALID_ARG, "MaxLogFiles must be in range: [1, 100], was: %d", numLogFiles);
     }
 
     if (!IS_NULL_OR_EMPTY_STRING(GETENV(LOG_FILE_DIR))) {
