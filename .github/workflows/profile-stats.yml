@@ -1,0 +1,109 @@
+name: Profile Statistics
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+      - 'test-pr-*'
+  pull_request:
+    branches:
+      - develop
+      - main
+
+jobs:
+  profile-stats:
+    runs-on: ubuntu-latest
+    env:
+      AWS_KVS_LOG_LEVEL: 5
+      MIN_COUNT: 4
+      LOG_FILE_LIMIT: 50
+      ITERATIONS: 50
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Python Environment
+        run: |
+          python3 -m venv scripts/profile-stats/venv
+          source scripts/profile-stats/venv/bin/activate
+          pip install -r scripts/profile-stats/requirements.txt
+
+      - name: Build
+        run: |
+          mkdir -p build && cd build
+          cmake .. -DBUILD_SAMPLE=ON
+          make -j
+
+      - name: Setup Signaling Channel
+        run: |
+          CHANNEL_NAME="profile-test-channel-${{ github.run_id }}"
+          aws kinesisvideo create-signaling-channel --channel-name $CHANNEL_NAME
+          echo "CHANNEL_NAME=$CHANNEL_NAME" >> $GITHUB_ENV
+
+      - name: Run 50 Iterations
+        working-directory: build
+        run: |
+          mkdir master-logs
+          mkdir viewer-logs
+
+          for i in $(seq 1 $ITERATIONS); do
+            echo "Iteration: $i"
+            export FILE_LOGGING_DIR="./master-logs"
+            ./samples/kvsWebrtcClientMaster "$CHANNEL_NAME" &
+            export MASTER_PID=$!
+            echo "Master PID: $MASTER_PID"
+            sleep 15
+
+            export FILE_LOGGING_DIR="./viewer-logs"
+            ./samples/kvsWebrtcClientViewer "$CHANNEL_NAME" &
+            export VIEWER_PID=$!
+            echo "Viewer PID: $VIEWER_PID"
+            sleep 15
+
+            # Interrupt to give time for shutdown numbers
+            kill -2 "$VIEWER_PID"
+            sleep 5
+            kill -2 "$MASTER_PID"
+            sleep 5
+
+            # Cleanup in case of slowdown
+            kill -9 "$MASTER_PID" "$VIEWER_PID" || true
+            sleep 3
+          done
+        shell: bash
+
+      - name: Master Statistics
+        run: |
+          source scripts/profile-stats/venv/bin/activate
+          python3 scripts/profile-stats/aggregate.py "./build/master-logs/kvsFileLog*"
+
+      - name: Viewer Statistics
+        run: |
+          source scripts/profile-stats/venv/bin/activate
+          python3 scripts/profile-stats/aggregate.py "./build/viewer-logs/kvsFileLog*"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          aws kinesisvideo delete-signaling-channel --channel-arn $(aws kinesisvideo describe-signaling-channel --channel-name $CHANNEL_NAME --query 'ChannelInfo.ChannelARN' --output text) || true
