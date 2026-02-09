@@ -1394,6 +1394,9 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
 
     // In master mode, this should be freed once `createAnswer` is invoked for the session.
     // In viewer mode, this should be freed once `setRemoteDescription` is completed for the session.
+    // Free any previously allocated remote session description to support re-negotiation
+    // (e.g. when setRemoteDescription is called again without a prior createAnswer call).
+    SAFE_MEMFREE(pKvsPeerConnection->pRemoteSessionDescription);
     pKvsPeerConnection->pRemoteSessionDescription = (PSessionDescription) MEMCALLOC(1, SIZEOF(SessionDescription));
     pSessionDescription = pKvsPeerConnection->pRemoteSessionDescription;
     CHK(pSessionDescription != NULL, STATUS_NOT_ENOUGH_MEMORY);

@@ -350,6 +350,14 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
         }
 
         if (pKvsRtpTransceiver != NULL) {
+            // Skip transceivers that already have rolling buffer and retransmitter allocated
+            // (from a previous offer/answer exchange). During re-negotiation, media sender
+            // threads may be actively using these buffers, so freeing and recreating them
+            // would cause a use-after-free race condition. The existing buffers remain valid.
+            if (pKvsRtpTransceiver->sender.packetBuffer != NULL && pKvsRtpTransceiver->sender.retransmitter != NULL) {
+                continue;
+            }
+
             if (pKvsRtpTransceiver->pRollingBufferConfig == NULL) {
                 // Passing in 0,0. The default values will be set up since application has not set up rolling buffer config with the
                 // configureTransceiverRollingBuffer() call
@@ -1250,6 +1258,21 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
     PKvsRtpTransceiver pKvsRtpFakeTransceiver = NULL;
     PRtcMediaStreamTrack pRtcMediaStreamTrack;
     RtcMediaStreamTrack track;
+    PDoubleListNode pCurNode = NULL;
+    UINT64 item = 0;
+
+    // Clean up pFakeTransceivers and pAnswerTransceivers from any previous offer/answer exchange.
+    // This is needed to support re-negotiation where findTransceiversByRemoteDescription is called
+    // again on an already-connected PeerConnection. Without this, the lists would accumulate
+    // duplicate entries from each successive offer.
+    CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pFakeTransceivers, &pCurNode));
+    while (pCurNode != NULL) {
+        CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
+        CHK_STATUS(freeKvsRtpTransceiver((PKvsRtpTransceiver*) &item));
+        pCurNode = pCurNode->pNext;
+    }
+    CHK_STATUS(doubleListClear(pKvsPeerConnection->pFakeTransceivers, FALSE));
+    CHK_STATUS(doubleListClear(pKvsPeerConnection->pAnswerTransceivers, FALSE));
 
     // pSeenTranceivers is populated only with codec types supported by the SDK. And if already populated, it is not added again.
     // Hence, it is sufficient if the hash table count is set to minimum or required transceivers

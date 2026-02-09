@@ -1487,9 +1487,46 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 
     switch (pReceivedSignalingMessage->signalingMessage.messageType) {
         case SIGNALING_MESSAGE_TYPE_OFFER:
-            // Check if we already have an ongoing master session with the same peer
-            CHK_ERR(!peerConnectionFound, STATUS_INVALID_OPERATION, "Peer connection %s is in progress",
-                    pReceivedSignalingMessage->signalingMessage.peerClientId);
+            if (peerConnectionFound) {
+                /*
+                 * Re-offer / re-negotiation handling: a second offer arrived from the same client_id.
+                 * Decide between true re-negotiation (reuse existing PeerConnection) and session
+                 * replacement (tear down old, create new) based on the session's terminate flag.
+                 */
+                if (!ATOMIC_LOAD_BOOL(&pSampleStreamingSession->terminateFlag)) {
+                    /* True re-negotiation: connection is still active. Re-use existing PeerConnection
+                     * and process the new offer on it. DTLS/SRTP stay alive, ICE restarts only if
+                     * the remote ICE credentials changed. */
+                    DLOGI("Re-negotiation: processing re-offer from peer %s on existing connection",
+                          pReceivedSignalingMessage->signalingMessage.peerClientId);
+                    CHK_STATUS(handleOffer(pSampleConfiguration, pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
+                    startStats = pSampleConfiguration->iceCandidatePairStatsTimerId == MAX_UINT32;
+                    break;
+                }
+
+                /* Session replacement: the old connection is terminated (DISCONNECTED/FAILED/CLOSED).
+                 * Clean up the old session and fall through to create a new one. */
+                DLOGI("Session replacement: replacing terminated session for peer %s", pReceivedSignalingMessage->signalingMessage.peerClientId);
+
+                // Remove old session from hash table
+                CHK_STATUS(hashTableRemove(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash));
+
+                // Remove old session from session list and free it
+                MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
+                for (UINT32 idx = 0; idx < pSampleConfiguration->streamingSessionCount; ++idx) {
+                    if (pSampleConfiguration->sampleStreamingSessionList[idx] == pSampleStreamingSession) {
+                        pSampleConfiguration->streamingSessionCount--;
+                        pSampleConfiguration->sampleStreamingSessionList[idx] =
+                            pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount];
+                        break;
+                    }
+                }
+                MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
+
+                freeSampleStreamingSession(&pSampleStreamingSession);
+                pSampleStreamingSession = NULL;
+                // Fall through to create a new session below
+            }
 
             /*
              * Create new streaming session for each offer, then insert the client id and streaming session into
