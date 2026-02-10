@@ -315,6 +315,9 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
 #endif
             // blocking call until resolves as a timeout, an error, a signal or data received
             retval = POLL(rfds, nfds, CONNECTION_LISTENER_SOCKET_WAIT_FOR_DATA_TIMEOUT / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        } else {
+            // No sockets to poll (no active sessions). Yield to other tasks.
+            THREAD_SLEEP(CONNECTION_LISTENER_SOCKET_WAIT_FOR_DATA_TIMEOUT);
         }
 
         // In case of 0 we have a timeout and should re-lock to allow for other
