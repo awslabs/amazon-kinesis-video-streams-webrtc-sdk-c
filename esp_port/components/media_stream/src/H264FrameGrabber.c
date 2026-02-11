@@ -36,6 +36,18 @@ extern esp_err_t esp32p4_frame_grabber_start(void);
 extern esp_err_t esp32p4_frame_grabber_stop(void);
 extern esp_err_t esp32p4_frame_grabber_deinit(void);
 extern esp_h264_out_buf_t *esp32p4_grab_one_frame();
+extern bool esp32p4_is_encoder_running(void);
+extern bool esp32p4_is_encoder_initialized(void);
+extern esp_err_t esp32p4_snapshot_intercept_frame(uint8_t *buf, size_t buf_size,
+                                                   size_t *len, uint16_t *width,
+                                                   uint16_t *height,
+                                                   video_frame_pixformat_t *pixfmt,
+                                                   uint32_t timeout_ms);
+extern esp_err_t esp32p4_snapshot_direct_grab(uint8_t *buf, size_t buf_size,
+                                               size_t *len, uint16_t *width,
+                                               uint16_t *height,
+                                               video_frame_pixformat_t *pixfmt,
+                                               uint32_t timeout_ms);
 #endif
 
 #if CONFIG_IDF_TARGET_ESP32S3
@@ -379,6 +391,16 @@ esp_h264_out_buf_t *get_h264_encoded_frame_putmedia()
     return NULL;
 }
 
+bool h264_encoder_is_running(void)
+{
+    return s_h264_enc_data.running;
+}
+
+bool h264_encoder_is_initialized(void)
+{
+    return s_h264_enc_data.encoder_initialized;
+}
+
 #else /* CONFIG_IDF_TARGET_ESP32P4 */
 /* File-scope variable to track camera initialization state (reset on deinit) */
 static bool camera_enc_init_done = false;
@@ -433,6 +455,16 @@ esp_err_t h264_encoder_deinit(void)
     camera_enc_init_done = false;
     return ret;
 }
+
+bool h264_encoder_is_running(void)
+{
+    return esp32p4_is_encoder_running();
+}
+
+bool h264_encoder_is_initialized(void)
+{
+    return esp32p4_is_encoder_initialized();
+}
 #endif
 #else /* all other targets */
 esp_err_t camera_and_encoder_init(video_capture_config_t *config)
@@ -480,5 +512,15 @@ esp_err_t h264_encoder_deinit(void)
 {
     // No-op for unsupported targets
     return ESP_OK;
+}
+
+bool h264_encoder_is_running(void)
+{
+    return false;
+}
+
+bool h264_encoder_is_initialized(void)
+{
+    return false;
 }
 #endif

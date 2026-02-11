@@ -166,6 +166,48 @@ esp_err_t video_capture_release_frame(video_capture_handle_t handle, video_frame
  */
 esp_err_t video_capture_deinit(video_capture_handle_t handle);
 
+/**
+ * @brief Capture a single JPEG snapshot
+ *
+ * When H264 streaming is active, intercepts the next raw frame from the
+ * encoder pipeline and JPEG-encodes it (no camera sharing issues).
+ * When streaming is NOT active but camera is initialized, directly grabs
+ * a raw frame from the camera and JPEG-encodes it.
+ * When camera is not initialized, temporarily initializes it, captures
+ * one frame, encodes, and cleans up.
+ *
+ * Caller must free the returned buffer with video_capture_snapshot_free().
+ *
+ * @param jpeg_buf[out]  Pointer to store the allocated JPEG buffer
+ * @param jpeg_len[out]  Pointer to store the JPEG data length
+ * @param quality        JPEG quality (1-100, higher is better)
+ * @param timeout_ms     Maximum time to wait for a frame in milliseconds
+ * @return esp_err_t ESP_OK on success, otherwise an error code
+ */
+esp_err_t video_capture_get_snapshot(uint8_t **jpeg_buf, size_t *jpeg_len,
+                                     uint8_t quality, uint32_t timeout_ms);
+
+/**
+ * @brief Free a JPEG snapshot buffer allocated by video_capture_get_snapshot()
+ *
+ * @param jpeg_buf Pointer to the JPEG buffer to free
+ */
+void video_capture_snapshot_free(uint8_t *jpeg_buf);
+
+/**
+ * @brief Check if the H264 encoder is currently running (actively encoding)
+ *
+ * @return true if the encoder task is running, false otherwise
+ */
+bool h264_encoder_is_running(void);
+
+/**
+ * @brief Check if the H264 encoder has been initialized
+ *
+ * @return true if initialized, false otherwise
+ */
+bool h264_encoder_is_initialized(void);
+
 #ifdef __cplusplus
 }
 #endif
