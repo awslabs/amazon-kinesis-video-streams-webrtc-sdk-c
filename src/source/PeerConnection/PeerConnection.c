@@ -1115,6 +1115,11 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     CHK_LOG_ERR(freeSctpSession(&pKvsPeerConnection->pSctpSession));
 #endif
 
+    // Join thread BEFORE freeing transceivers
+    if (pKvsPeerConnection->pIceAgent->pConnectionListener != NULL) {
+        CHK_LOG_ERR(freeConnectionListener(&pKvsPeerConnection->pIceAgent->pConnectionListener));
+    }
+
     // free transceivers
     CHK_LOG_ERR(doubleListGetHeadNode(pKvsPeerConnection->pTransceivers, &pCurNode));
     while (pCurNode != NULL) {
