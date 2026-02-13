@@ -12,7 +12,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
     RTC_CODEC audioCodec = RTC_CODEC_OPUS;
     RTC_CODEC videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
-    BOOL usePresignedURL = FALSE;
+    BOOL usePresignedURL = TRUE;
 
     SET_INSTRUMENTED_ALLOCATORS();
     UINT32 logLevel = setLogLevel();
