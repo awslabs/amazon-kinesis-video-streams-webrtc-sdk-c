@@ -1037,68 +1037,22 @@ CleanUp:
     return retStatus;
 }
 
-STATUS createPresignedUrl(PCHAR signalingChannelEndpoint, PCHAR channelArn, PCHAR region,
-                          PCHAR accessKeyId, PCHAR secretKey, PCHAR sessionToken, UINT64 expiry,
-                          PCHAR presignedURL) {
-    STATUS retStatus = STATUS_SUCCESS;
-    CHAR url[MAX_URI_CHAR_LEN + 1];
-    PRequestInfo pRequestInfo = NULL;
-    PAwsCredentials pAwsCredentials = NULL;
-
-    UINT16 urlLen;
-
-    if (sessionToken == NULL) {
-        CHK_STATUS(createAwsCredentials(accessKeyId, STRLEN(accessKeyId), secretKey, STRLEN(secretKey), NULL, 0, expiry,
-                                        &pAwsCredentials));
-    } else {
-        CHK_STATUS(createAwsCredentials(accessKeyId, 0, secretKey, 0, sessionToken, 0, expiry,
-                                        &pAwsCredentials));
-    }
-
-    SNPRINTF(url, MAX_URI_CHAR_LEN + 1, "%s?%s=%s", signalingChannelEndpoint, "X-Amz-ChannelARN", channelArn);
-    CHK_STATUS(createRequestInfo(url, NULL, region, NULL, NULL, NULL, SSL_CERTIFICATE_TYPE_NOT_SPECIFIED,
-                                 "AWS-WEBRTC-KVS-AGENT/1.10.3", 2 * HUNDREDS_OF_NANOS_IN_A_SECOND, 5 * HUNDREDS_OF_NANOS_IN_A_SECOND,
-                                 DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pAwsCredentials, &pRequestInfo));
-    pRequestInfo->verb = HTTP_REQUEST_VERB_GET;
-
-    CHK_STATUS(removeRequestHeader(pRequestInfo, (PCHAR) "user-agent"));
-
-    // Sign the request
-    CHK_STATUS(signAwsRequestInfoQueryParam(pRequestInfo));
-    // Remove the headers
-    CHK_STATUS(removeRequestHeaders(pRequestInfo));
-
-    urlLen = STRLEN(pRequestInfo->url);
-    STRNCPY(presignedURL, pRequestInfo->url, urlLen);
-    presignedURL[urlLen] = '\0';
-
-CleanUp:
-    return retStatus;
-}
-
 
 STATUS initSignaling(PSampleConfiguration pSampleConfiguration, PCHAR clientId)
 {
     STATUS retStatus = STATUS_SUCCESS;
+    PCHAR presignedUrl;
     SignalingClientMetrics signalingClientMetrics = pSampleConfiguration->signalingClientMetrics;
     pSampleConfiguration->signalingClientCallbacks.messageReceivedFn = signalingMessageReceived;
     STRCPY(pSampleConfiguration->clientInfo.clientId, clientId);
 
     if(pSampleConfiguration->usePresignedUrl) {
-        CHAR presignedURL[MAX_URI_CHAR_LEN + 1];
-        PCHAR signalingChannelEndpoint = "";
-        PCHAR channelArn = "";
-        PCHAR region = "";
-        PCHAR accessKeyId = "";
-        PCHAR secretKey = "";
-        PCHAR sessionToken = NULL;
-
-        CHK_STATUS(createPresignedUrl(signalingChannelEndpoint, channelArn, region, accessKeyId, secretKey, sessionToken,
-                                      5 * HUNDREDS_OF_NANOS_IN_A_MINUTE, presignedURL));
+        presignedUrl = GETENV("KVS_WEBRTC_SIGNALING_PRESIGNED_URL");
+        CHK_ERR(!IS_NULL_OR_EMPTY_STRING(presignedUrl), STATUS_NULL_ARG, "Missing presigned URL env!");
 
         CHK_STATUS(createSignalingClientWithPresignedUrlSync(
             &pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo, &pSampleConfiguration->signalingClientCallbacks,
-            presignedURL, &pSampleConfiguration->signalingClientHandle));
+            presignedUrl, &pSampleConfiguration->signalingClientHandle));
     } else {
         CHK_STATUS(createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
                                              &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,

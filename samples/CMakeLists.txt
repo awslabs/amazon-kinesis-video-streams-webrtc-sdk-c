@@ -80,6 +80,12 @@ add_executable(
         discoverNatBehavior.c)
 target_link_libraries(discoverNatBehavior kvsWebrtcClient ${EXTRA_DEPS})
 
+add_executable(
+        createPresignedUrl
+        Common.c
+        createPresignedUrl.c)
+target_link_libraries(createPresignedUrl kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets)
+
 if(GST_FOUND)
   add_executable(
     kvsWebrtcClientMasterGstSample
@@ -106,7 +112,7 @@ if(GST_FOUND)
   )
 endif()
 
-install(TARGETS kvsWebrtcClientMaster kvsWebrtcClientViewer discoverNatBehavior
+install(TARGETS kvsWebrtcClientMaster kvsWebrtcClientViewer discoverNatBehavior createPresignedUrl
   RUNTIME DESTINATION bin
 )
 
