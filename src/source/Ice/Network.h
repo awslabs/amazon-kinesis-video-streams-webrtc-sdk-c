@@ -17,6 +17,9 @@ extern "C" {
 // for ipv4 mapped ipv6: 0000:0000:0000:0000:0000:ffff:192.168.100.228 = 45
 #define KVS_IP_ADDRESS_STRING_BUFFER_LEN 46
 
+// IPv6 needs +2 for [], +1 for :, +5 for port
+#define KVS_IP_ADDRESS_PORT_STRING_BUFFER_LEN (KVS_IP_ADDRESS_STRING_BUFFER_LEN + 8)
+
 // 000.000.000.000
 #define KVS_MAX_IPV4_ADDRESS_STRING_LEN 15
 
@@ -132,6 +135,8 @@ STATUS getIpWithHostName(PCHAR, PDualKvsIpAddresses);
 BOOL isIpAddr(PCHAR, UINT16);
 
 STATUS getIpAddrStr(PKvsIpAddress, PCHAR, UINT32);
+
+STATUS getIpAddrPortStr(PKvsIpAddress, PCHAR, UINT32);
 
 BOOL isSameIpAddress(PKvsIpAddress, PKvsIpAddress, BOOL);
 

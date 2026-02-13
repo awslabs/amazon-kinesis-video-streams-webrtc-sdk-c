@@ -656,6 +656,39 @@ STATUS getIpAddrStr(PKvsIpAddress pKvsIpAddress, PCHAR pBuffer, UINT32 bufferLen
     CHK(generatedStrLen < bufferLen, STATUS_BUFFER_TOO_SMALL);
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
+
+    return retStatus;
+}
+
+STATUS getIpAddrPortStr(PKvsIpAddress pKvsIpAddress, PCHAR pBuffer, UINT32 bufferLen)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 ipStrLen = 0;
+    UINT32 generatedStrLen = 0;
+
+    CHK(pKvsIpAddress != NULL, STATUS_NULL_ARG);
+    CHK(pBuffer != NULL && bufferLen > 0, STATUS_INVALID_ARG);
+
+    CHK_STATUS(getIpAddrStr(pKvsIpAddress, pBuffer, bufferLen));
+    ipStrLen = STRLEN(pBuffer);
+
+    if (IS_IPV4_ADDR(pKvsIpAddress)) {
+        generatedStrLen = SNPRINTF(pBuffer + ipStrLen, bufferLen - ipStrLen, ":%u", KVS_GET_IP_ADDRESS_PORT(pKvsIpAddress));
+        CHK(generatedStrLen < bufferLen - ipStrLen, STATUS_BUFFER_TOO_SMALL);
+    } else {
+        // IPv6 needs brackets: [addr]:port - need room for [ ] : and up to 5 digits
+        CHK(ipStrLen + 8 <= bufferLen, STATUS_BUFFER_TOO_SMALL);
+        MEMMOVE(pBuffer + 1, pBuffer, ipStrLen + 1);
+        pBuffer[0] = '[';
+        ipStrLen++;
+        pBuffer[ipStrLen] = ']';
+        generatedStrLen = SNPRINTF(pBuffer + ipStrLen + 1, bufferLen - ipStrLen - 1, ":%u", KVS_GET_IP_ADDRESS_PORT(pKvsIpAddress));
+        CHK(generatedStrLen < bufferLen - ipStrLen - 1, STATUS_BUFFER_TOO_SMALL);
+    }
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     return retStatus;
 }

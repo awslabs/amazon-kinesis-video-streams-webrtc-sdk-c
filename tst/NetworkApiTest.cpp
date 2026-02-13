@@ -144,6 +144,89 @@ TEST_F(NetworkApiTest, GetIpAddrStrIpv6Addr)
     EXPECT_STREQ("2001:0db8:1234:5678:9abc:def0:1234:5678", buffer);
 }
 
+// ------------------------------- getIpAddrPortStr ----------------------
+
+TEST_F(NetworkApiTest, GetIpAddrPortStrNullIpAddress)
+{
+    CHAR buffer[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+    EXPECT_EQ(STATUS_NULL_ARG, getIpAddrPortStr(NULL, buffer, SIZEOF(buffer)));
+}
+
+TEST_F(NetworkApiTest, GetIpAddrPortStrInvalidBuffer)
+{
+    KvsIpAddress ipAddress;
+    EXPECT_EQ(STATUS_SUCCESS, initTestKvsIpv4Address(&ipAddress));
+    ipAddress.port = htons(8080);
+
+    EXPECT_EQ(STATUS_INVALID_ARG, getIpAddrPortStr(&ipAddress, NULL, SIZEOF(CHAR) * 32));
+    CHAR buffer[32];
+    EXPECT_EQ(STATUS_INVALID_ARG, getIpAddrPortStr(&ipAddress, buffer, 0));
+}
+
+TEST_F(NetworkApiTest, GetIpAddrPortStrBufferTooSmall)
+{
+    KvsIpAddress ipAddress;
+    EXPECT_EQ(STATUS_SUCCESS, initTestKvsIpv4Address(&ipAddress));
+    ipAddress.port = htons(8080);
+
+    CHAR tinyBuffer[10];
+    EXPECT_EQ(STATUS_BUFFER_TOO_SMALL, getIpAddrPortStr(&ipAddress, tinyBuffer, SIZEOF(tinyBuffer)));
+}
+
+TEST_F(NetworkApiTest, GetIpAddrPortStrIpv4)
+{
+    CHAR buffer[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+    KvsIpAddress ipAddress;
+    EXPECT_EQ(STATUS_SUCCESS, initTestKvsIpv4Address(&ipAddress));
+    ipAddress.port = htons(8080);
+
+    EXPECT_EQ(STATUS_SUCCESS, getIpAddrPortStr(&ipAddress, buffer, SIZEOF(buffer)));
+    EXPECT_STREQ("192.168.1.1:8080", buffer);
+}
+
+TEST_F(NetworkApiTest, GetIpAddrPortStrIpv4HighPort)
+{
+    CHAR buffer[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+    KvsIpAddress ipAddress;
+    EXPECT_EQ(STATUS_SUCCESS, initTestKvsIpv4Address(&ipAddress));
+    ipAddress.port = htons(65535);
+
+    EXPECT_EQ(STATUS_SUCCESS, getIpAddrPortStr(&ipAddress, buffer, SIZEOF(buffer)));
+    EXPECT_STREQ("192.168.1.1:65535", buffer);
+}
+
+TEST_F(NetworkApiTest, GetIpAddrPortStrIpv6)
+{
+    CHAR buffer[KVS_IP_ADDRESS_PORT_STRING_BUFFER_LEN];
+    KvsIpAddress ipAddress;
+    MEMSET(&ipAddress, 0, SIZEOF(KvsIpAddress));
+    ipAddress.family = KVS_IP_FAMILY_TYPE_IPV6;
+    ipAddress.port = htons(443);
+
+    UINT8 addr[] = {0x20, 0x01, 0x0d, 0xb8, 0x12, 0x34, 0x56, 0x78,
+                    0x9a, 0xbc, 0xde, 0xf0, 0x12, 0x34, 0x56, 0x78};
+    MEMCPY(ipAddress.address, addr, IPV6_ADDRESS_LENGTH);
+
+    EXPECT_EQ(STATUS_SUCCESS, getIpAddrPortStr(&ipAddress, buffer, SIZEOF(buffer)));
+    EXPECT_STREQ("[2001:0db8:1234:5678:9abc:def0:1234:5678]:443", buffer);
+}
+
+TEST_F(NetworkApiTest, GetIpAddrPortStrIpv6BufferTooSmallByOne)
+{
+    // "[2001:0db8:1234:5678:9abc:def0:1234:5678]:65535" is 48 long
+    CHAR buffer[48 - 1];
+    KvsIpAddress ipAddress;
+    MEMSET(&ipAddress, 0, SIZEOF(KvsIpAddress));
+    ipAddress.family = KVS_IP_FAMILY_TYPE_IPV6;
+    ipAddress.port = htons(65535);
+
+    UINT8 addr[] = {0x20, 0x01, 0x0d, 0xb8, 0x12, 0x34, 0x56, 0x78,
+                    0x9a, 0xbc, 0xde, 0xf0, 0x12, 0x34, 0x56, 0x78};
+    MEMCPY(ipAddress.address, addr, IPV6_ADDRESS_LENGTH);
+
+    EXPECT_EQ(STATUS_BUFFER_TOO_SMALL, getIpAddrPortStr(&ipAddress, buffer, SIZEOF(buffer)));
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
