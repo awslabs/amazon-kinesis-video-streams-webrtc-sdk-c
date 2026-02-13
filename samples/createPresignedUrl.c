@@ -80,7 +80,7 @@ INT32 main(INT32 argc, CHAR* argv[])
                                   5 * HUNDREDS_OF_NANOS_IN_A_MINUTE, presignedURL));
 
     // Avoiding the logging prefix for easier copy/paste
-    printf("%s", presignedURL);
+    printf("%s\n", presignedURL);
 
 CleanUp:
     CHK_LOG_ERR(retStatus);

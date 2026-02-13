@@ -401,37 +401,21 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     if (pSampleConfiguration->useTurn) {
         // Set the URIs from the configuration
         if(pSampleConfiguration->usePresignedUrl) {
-            // TODO:  For each turn server populate this, example below:
             uriCount = 0;
-            STRNCPY(configuration.iceServers[uriCount + 1].urls, "",
-                    MAX_ICE_CONFIG_URI_LEN);
-            STRNCPY(configuration.iceServers[uriCount + 1].credential, "", MAX_ICE_CONFIG_CREDENTIAL_LEN);
-            STRNCPY(
-                configuration.iceServers[uriCount + 1].username,
-                "",
-                MAX_ICE_CONFIG_USER_NAME_LEN);
-            uriCount++;
-            STRNCPY(configuration.iceServers[uriCount + 1].urls,
-                    "", MAX_ICE_CONFIG_URI_LEN);
-            STRNCPY(configuration.iceServers[uriCount + 1].credential, "", MAX_ICE_CONFIG_CREDENTIAL_LEN);
-            STRNCPY(
-                configuration.iceServers[uriCount + 1].username,
-                "",
-                MAX_ICE_CONFIG_USER_NAME_LEN);
-            uriCount++;
-            STRNCPY(configuration.iceServers[uriCount + 1].urls,
-                    "", MAX_ICE_CONFIG_URI_LEN);
-            STRNCPY(configuration.iceServers[uriCount + 1].credential, "", MAX_ICE_CONFIG_CREDENTIAL_LEN);
-            STRNCPY(
-                configuration.iceServers[uriCount + 1].username,
-                "",
-                MAX_ICE_CONFIG_USER_NAME_LEN);
-            uriCount++;
+            PCHAR turnUri = GETENV(KVS_PRESIGNED_TURN_URI), turnUser = GETENV(KVS_PRESIGNED_TURN_USERNAME), turnPass = GETENV(KVS_PRESIGNED_TURN_PASSWORD);
+            if (!IS_NULL_OR_EMPTY_STRING(turnUri) && !IS_NULL_OR_EMPTY_STRING(turnUser) && !IS_NULL_OR_EMPTY_STRING(turnPass)) {
+                STRNCPY(configuration.iceServers[uriCount + 1].urls, turnUri, MAX_ICE_CONFIG_URI_LEN);
+                STRNCPY(configuration.iceServers[uriCount + 1].username, turnUser, MAX_ICE_CONFIG_USER_NAME_LEN);
+                STRNCPY(configuration.iceServers[uriCount + 1].credential, turnPass, MAX_ICE_CONFIG_CREDENTIAL_LEN);
+                uriCount++;
+            } else {
+                DLOGI("No TURN server credentials provided");
+            }
         } else {
             CHK_STATUS(signalingClientGetIceConfigInfoCount(pSampleConfiguration->signalingClientHandle, &iceConfigCount));
 
             /* signalingClientGetIceConfigInfoCount can return more than one turn server. Use only one to optimize
-         * candidate gathering latency. But user can also choose to use more than 1 turn server. */
+            * candidate gathering latency. But user can also choose to use more than 1 turn server. */
             for (uriCount = 0, i = 0; i < maxTurnServer; i++) {
                 CHK_STATUS(signalingClientGetIceConfigInfo(pSampleConfiguration->signalingClientHandle, i, &pIceConfigInfo));
                 DLOGD("Printinf IceConfigInfo As Parsed From Get Ice Server Config Response");
