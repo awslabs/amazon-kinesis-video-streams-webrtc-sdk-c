@@ -107,6 +107,10 @@ TEST_F(NetworkApiTest, GetIpAddrStrBufferTooSmall)
 
     CHAR smallBuffer[5];
     EXPECT_EQ(STATUS_BUFFER_TOO_SMALL, getIpAddrStr(&ipAddress, smallBuffer, SIZEOF(smallBuffer)));
+
+    // Should be empty on error
+    EXPECT_STREQ("", tinyBuffer);
+    EXPECT_STREQ("", smallBuffer);
 }
 
 TEST_F(NetworkApiTest, GetIpAddrStrIpv4Addr)
@@ -225,6 +229,9 @@ TEST_F(NetworkApiTest, GetIpAddrPortStrIpv6BufferTooSmallByOne)
     MEMCPY(ipAddress.address, addr, IPV6_ADDRESS_LENGTH);
 
     EXPECT_EQ(STATUS_BUFFER_TOO_SMALL, getIpAddrPortStr(&ipAddress, buffer, SIZEOF(buffer)));
+
+    // Should be empty on error
+    EXPECT_STREQ("", buffer);
 }
 
 } // namespace webrtcclient

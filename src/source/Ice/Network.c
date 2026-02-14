@@ -658,14 +658,18 @@ STATUS getIpAddrStr(PKvsIpAddress pKvsIpAddress, PCHAR pBuffer, UINT32 bufferLen
 CleanUp:
     CHK_LOG_ERR(retStatus);
 
+    if (STATUS_FAILED(retStatus) && pBuffer != NULL && bufferLen > 0) {
+        pBuffer[0] = '\0';
+    }
+
     return retStatus;
 }
 
 STATUS getIpAddrPortStr(PKvsIpAddress pKvsIpAddress, PCHAR pBuffer, UINT32 bufferLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 ipStrLen = 0;
-    UINT32 generatedStrLen = 0;
+    UINT32 ipStrLen = 0, generatedStrLen = 0;
+    UINT32 closingBracketIndex, portOffset;
 
     CHK(pKvsIpAddress != NULL, STATUS_NULL_ARG);
     CHK(pBuffer != NULL && bufferLen > 0, STATUS_INVALID_ARG);
@@ -677,18 +681,30 @@ STATUS getIpAddrPortStr(PKvsIpAddress pKvsIpAddress, PCHAR pBuffer, UINT32 buffe
         generatedStrLen = SNPRINTF(pBuffer + ipStrLen, bufferLen - ipStrLen, ":%u", KVS_GET_IP_ADDRESS_PORT(pKvsIpAddress));
         CHK(generatedStrLen < bufferLen - ipStrLen, STATUS_BUFFER_TOO_SMALL);
     } else {
-        // IPv6 needs brackets: [addr]:port - need room for [ ] : and up to 5 digits
-        CHK(ipStrLen + 8 <= bufferLen, STATUS_BUFFER_TOO_SMALL);
+        CHK(ipStrLen + KVS_IPV6_ADDRESS_DECORATOR_STR_LEN <= bufferLen, STATUS_BUFFER_TOO_SMALL);
+        closingBracketIndex = ipStrLen + 1;
+        portOffset = closingBracketIndex + 1;
+
+        // Shift right 1 to the to make room for the square bracket
         MEMMOVE(pBuffer + 1, pBuffer, ipStrLen + 1);
+
+        // Put square brackets
         pBuffer[0] = '[';
-        ipStrLen++;
-        pBuffer[ipStrLen] = ']';
-        generatedStrLen = SNPRINTF(pBuffer + ipStrLen + 1, bufferLen - ipStrLen - 1, ":%u", KVS_GET_IP_ADDRESS_PORT(pKvsIpAddress));
-        CHK(generatedStrLen < bufferLen - ipStrLen - 1, STATUS_BUFFER_TOO_SMALL);
+        pBuffer[closingBracketIndex] = ']';
+
+        // Write port
+        generatedStrLen = SNPRINTF(pBuffer + portOffset, bufferLen - portOffset, ":%u", KVS_GET_IP_ADDRESS_PORT(pKvsIpAddress));
+
+        // Defensive check (should be covered by initial decorator buffer validation)
+        CHK(generatedStrLen < bufferLen - portOffset, STATUS_BUFFER_TOO_SMALL);
     }
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
+
+    if (STATUS_FAILED(retStatus) && pBuffer != NULL && bufferLen > 0) {
+        pBuffer[0] = '\0';
+    }
 
     return retStatus;
 }
