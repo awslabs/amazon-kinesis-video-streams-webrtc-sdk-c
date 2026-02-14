@@ -965,9 +965,8 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 
     // Start the cert pre-gen timer callback
     if (preGenerateCert) {
-        CHK_LOG_ERR(retStatus =
-                        timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, 0, preGenerateCertPeriod, pregenerateCertTimerCallback,
-                                           (UINT64) pSampleConfiguration, &pSampleConfiguration->pregenerateCertTimerId));
+        CHK_LOG_ERR(retStatus = timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, 0, preGenerateCertPeriod, pregenerateCertTimerCallback,
+                                                   (UINT64) pSampleConfiguration, &pSampleConfiguration->pregenerateCertTimerId));
     }
 
     pSampleConfiguration->iceUriCount = 0;

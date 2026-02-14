@@ -193,7 +193,7 @@ struct __SampleConfiguration {
 
     UINT32 pregenerateCertTimerId;
     PStackQueue pregeneratedCertificates; // Holds the pre-generated certificates
-    UINT32 pregenerateCertificatesMax; // Max certificates to have pre-generated and ready to use on standby
+    UINT32 pregenerateCertificatesMax;    // Max certificates to have pre-generated and ready to use on standby
 
     PCHAR rtspUri;
     UINT32 logLevel;
