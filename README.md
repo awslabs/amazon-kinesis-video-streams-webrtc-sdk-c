@@ -509,13 +509,16 @@ AWS access keys are ignored from environment variables if the sample was built i
 
 ### Other sample environment variables
 
-| Variable                   | Description                         | Type                 | Default               | Notes                                             |
-|----------------------------|-------------------------------------|----------------------|-----------------------|---------------------------------------------------|
-| `AWS_KVS_LOG_LEVEL`        | Log level                           | Int (1-8)            | WARN (4)              | See [Setup Logging](#setup-logging)               |
-| `ENABLE_FILE_LOGGING`      | Save all logs to file               | Bool                 | `0`/`OFF`/`FALSE`     | `1`, `ON`, `TRUE` to enable. Case insensitive.    |
-| `AWS_KVS_CACERT_PATH`      | Root certificate path               | String               | `repo/certs/cert.pem` | Must end with `.pem` extension                    |
-| `CONTROL_PLANE_URI`        | Endpoint override                   | String               | Based on the region   | Example: "https://kinesisvideo.us-west-2.api.aws" |
-| `KVS_ICE_TRANSPORT_POLICY` | Types of ICE candidates to consider | Enum (`relay`/`all`) | `all`                 | Case insensitive                                  |
+| Variable                          | Description                                                    | Type                 | Default               | Notes                                                                                |
+|-----------------------------------|----------------------------------------------------------------|----------------------|-----------------------|--------------------------------------------------------------------------------------|
+| `AWS_KVS_LOG_LEVEL`               | Log level                                                      | Int (1-8)            | WARN (4)              | See [Setup Logging](#setup-logging)                                                  |
+| `ENABLE_FILE_LOGGING`             | Save all logs to file                                          | Bool                 | `0`/`OFF`/`FALSE`     | `1`, `ON`, `TRUE` to enable. Case insensitive.                                       |
+| `AWS_KVS_CACERT_PATH`             | Root certificate path                                          | String               | `repo/certs/cert.pem` | Must end with `.pem` extension                                                       |
+| `CONTROL_PLANE_URI`               | Endpoint override                                              | String               | Based on the region   | Example: "https://kinesisvideo.us-west-2.api.aws"                                    |
+| `KVS_ICE_TRANSPORT_POLICY`        | Types of ICE candidates to consider                            | Enum (`relay`/`all`) | `all`                 | Case insensitive                                                                     |
+| `KVS_PRE_GENERATE_CERT`           | Toggle to enable (TRUE) or disable (FALSE) cert pre-generation | Bool                 | `TRUE`                | See [use pre-generated certs](#use-pre-generated-certificates) for more information. |
+| `KVS_PRE_GENERATE_CERT_PERIOD_MS` | Interval in milliseconds to check and generate certificates    | Int                  | `3000` (3 seconds)    | See [use pre-generated certs](#use-pre-generated-certificates) for more information. |
+| `KVS_PRE_GENERATE_CERT_MAX`       | Maximum certificates to keep in the queue (ready-to-go)        | Int                  | 2                     | See [use pre-generated certs](#use-pre-generated-certificates) for more information. |
 
 ## TWCC support
 
@@ -545,21 +548,23 @@ CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(pSampleStreamingSession->pP
 ```
 
 ## Use Pre-generated Certificates
-The certificate generating function ([createCertificateAndKey](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/Dtls__openssl_8c.html#a451c48525b0c0a8919a880d6834c1f7f)) in createDtlsSession() can take between 5 - 15 seconds in low performance embedded devices, it is called for every peer connection creation when KVS WebRTC receives an offer. To avoid this extra start-up latency, certificate can be pre-generated and passed in when offer comes.
+The certificate generating function ([createCertificateAndKey](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/Dtls__openssl_8c.html#a451c48525b0c0a8919a880d6834c1f7f)) in createDtlsSession() can take between 5 - 15 seconds in low performance embedded devices, it is called for every peer connection creation when KVS WebRTC receives an offer. To avoid this extra start-up latency, certificate can be pre-generated and passed into the PeerConnectionConfiguration when offer comes.
 
 **Important Note: It is recommended to rotate the certificates often - preferably for every peer connection to avoid a compromised client weakening the security of the new connections.**
 
-Take `kvsWebRTCClientMaster` as sample, add `RtcCertificate certificates[CERT_COUNT];` to **SampleConfiguration** in [Samples.h](samples/common/Samples.h).
-Then pass in the pre-generated certificate in initializePeerConnection() in [Common.c](samples/common/Common.c).
+### How It Works
+
+The samples automatically pre-generate certificates in the background using a timer callback. When a peer connection is created, a certificate is dequeued from the pre-generated pool and used:
 
 ```c
-configuration.certificates[0].pCertificate = pSampleConfiguration->certificates[0].pCertificate;
-configuration.certificates[0].pPrivateKey = pSampleConfiguration->certificates[0].pPrivateKey;
+retStatus = stackQueueDequeue(pSampleConfiguration->pregeneratedCertificates, &data);
+if (retStatus == STATUS_SUCCESS) {
+    pRtcCertificate = (PRtcCertificate) data;
+    configuration.certificates[0] = *pRtcCertificate;
+}
 ```
 
-where, `configuration` is of type [`RtcConfiguration`](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/structRtcConfiguration.html) in the function that calls `initializePeerConnection()`.
-
-Doing this will make sure that [`createCertificateAndKey()`](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/Dtls__openssl_8c.html#a451c48525b0c0a8919a880d6834c1f7f) would not execute since a certificate is already available.
+See the [sample environment variables](#other-sample-environment-variables) section on how to configure the pre-generation behavior.
 
 ## Provide Hardware Entropy Source
 
