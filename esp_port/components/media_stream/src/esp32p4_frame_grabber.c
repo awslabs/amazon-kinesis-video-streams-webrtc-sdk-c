@@ -762,7 +762,7 @@ esp_err_t esp32p4_snapshot_direct_grab(uint8_t *buf, size_t buf_size,
      * (exposure, white balance). Without this the first frame is often
      * noisy and produces an abnormally large JPEG. */
     if (need_start) {
-        const int warmup_frames = 5;
+        const int warmup_frames = 10;
         for (int i = 0; i < warmup_frames; i++) {
             video_fb_t *discard = esp_video_if_get_frame();
             if (discard) {

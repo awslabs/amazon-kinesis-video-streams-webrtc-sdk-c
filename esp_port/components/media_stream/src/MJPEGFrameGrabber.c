@@ -37,10 +37,65 @@ static TaskHandle_t encoder_task_handle = NULL;
 // JPEG encoder handle
 static jpeg_encoder_handle_t jpeg_encoder = NULL;
 
+#if CONFIG_ESP_REV_MIN_FULL < 300
+/**
+ * Convert YUV420 planar to YUV422 planar by duplicating chroma rows.
+ *
+ * YUV420: Y(W*H) + U(W/2 * H/2) + V(W/2 * H/2) = W*H*3/2
+ * YUV422: Y(W*H) + U(W/2 * H)   + V(W/2 * H)   = W*H*2
+ *
+ * P4 chip rev < 3 JPEG HW encoder lacks YUV420 support (no extd_config
+ * register), so we convert to YUV422 before encoding.
+ */
+static esp_err_t yuv420_to_yuv422(const uint8_t *yuv420, size_t yuv420_len,
+                                   uint16_t width, uint16_t height,
+                                   uint8_t **yuv422_out, size_t *yuv422_len)
+{
+    size_t y_size = (size_t)width * height;
+    size_t uv_stride = width / 2;
+    size_t expected_420 = y_size * 3 / 2;
+    size_t out_size = (size_t)width * height * 2;
+
+    if (yuv420_len < expected_420) {
+        ESP_LOGE(TAG, "YUV420 buffer too small: %zu < %zu", yuv420_len, expected_420);
+        return ESP_ERR_INVALID_SIZE;
+    }
+
+    uint8_t *out = heap_caps_aligned_alloc(64, out_size, MALLOC_CAP_SPIRAM);
+    if (!out) {
+        ESP_LOGE(TAG, "Failed to alloc YUV422 buffer (%zu bytes)", out_size);
+        return ESP_ERR_NO_MEM;
+    }
+
+    /* Y plane: copy as-is */
+    memcpy(out, yuv420, y_size);
+
+    /* U and V planes: duplicate each row */
+    const uint8_t *u420 = yuv420 + y_size;
+    const uint8_t *v420 = u420 + (y_size / 4);
+    uint8_t *u422 = out + y_size;
+    uint8_t *v422 = u422 + (y_size / 2);
+
+    for (int y = 0; y < height / 2; y++) {
+        memcpy(u422 + (y * 2 + 0) * uv_stride, u420 + y * uv_stride, uv_stride);
+        memcpy(u422 + (y * 2 + 1) * uv_stride, u420 + y * uv_stride, uv_stride);
+        memcpy(v422 + (y * 2 + 0) * uv_stride, v420 + y * uv_stride, uv_stride);
+        memcpy(v422 + (y * 2 + 1) * uv_stride, v420 + y * uv_stride, uv_stride);
+    }
+
+    *yuv422_out = out;
+    *yuv422_len = out_size;
+    return ESP_OK;
+}
+#endif
+
 /**
  * @brief Wrapper function for JPEG encoding
  *
- * @param input_buf Input YUV buffer
+ * On P4 rev < 3 the input is expected to be YUV422 (converted from YUV420
+ * by the caller). On rev >= 3 the input can be YUV420 directly.
+ *
+ * @param input_buf Input YUV buffer (format depends on chip revision)
  * @param input_size Size of input buffer
  * @param width Image width
  * @param height Image height
@@ -53,46 +108,41 @@ static esp_err_t esp_jpeg_encode(uint8_t *input_buf, size_t input_size,
                                  uint16_t width, uint16_t height,
                                  uint8_t quality, uint8_t **output_buf, size_t *output_size)
 {
-    esp_err_t ret = ESP_OK;
-
-    // Check if the encoder is initialized
     if (jpeg_encoder == NULL) {
         ESP_LOGE(TAG, "JPEG encoder not initialized");
         return ESP_ERR_INVALID_STATE;
     }
 
-    // Allocate output buffer - make it large enough for the worst case
-    size_t max_jpeg_size = width * height * 2;  // Conservative estimate
+    size_t max_jpeg_size = width * height * 2;
     uint8_t *jpeg_buf = heap_caps_aligned_calloc(64, 1, max_jpeg_size, MALLOC_CAP_SPIRAM);
     if (!jpeg_buf) {
         ESP_LOGE(TAG, "Failed to allocate JPEG buffer");
         return ESP_ERR_NO_MEM;
     }
 
-    // Configure the encoder
     jpeg_encode_cfg_t config = {
         .width = width,
         .height = height,
-        .src_type = JPEG_ENCODE_IN_FORMAT_YUV422,  // YUV422 input format
-        .sub_sample = JPEG_DOWN_SAMPLING_YUV422,   // YUV422 subsampling
+#if CONFIG_ESP_REV_MIN_FULL < 300
+        .src_type = JPEG_ENCODE_IN_FORMAT_YUV422,
+#else
+        .src_type = JPEG_ENCODE_IN_FORMAT_YUV420,
+#endif
+        .sub_sample = JPEG_DOWN_SAMPLING_YUV420,
         .image_quality = quality,
     };
 
-    // Encode the image
     uint32_t jpeg_len = 0;
-    ret = jpeg_encoder_process(jpeg_encoder, &config, input_buf, input_size,
-                             jpeg_buf, max_jpeg_size, &jpeg_len);
-
+    esp_err_t ret = jpeg_encoder_process(jpeg_encoder, &config, input_buf, input_size,
+                                         jpeg_buf, max_jpeg_size, &jpeg_len);
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "JPEG encoding failed: %d", ret);
+        ESP_LOGE(TAG, "JPEG encoding failed: %s", esp_err_to_name(ret));
         free(jpeg_buf);
         return ret;
     }
 
-    // Set the output parameters
     *output_buf = jpeg_buf;
     *output_size = jpeg_len;
-
     return ESP_OK;
 }
 #endif
@@ -161,15 +211,37 @@ static void mjpeg_encoder_task(void *arg)
             continue;
         }
 
-        // Encode the raw frame to JPEG
+        uint8_t *enc_src = video_frame->buf;
+        size_t enc_src_len = video_frame->len;
+        uint8_t *conv_buf = NULL;
+        esp_err_t ret;
+
+#if CONFIG_ESP_REV_MIN_FULL < 300
+        /* P4 rev < 3: HW encoder lacks YUV420 input support, convert to YUV422 */
+        size_t conv_len = 0;
+        ret = yuv420_to_yuv422(video_frame->buf, video_frame->len,
+                               frame_width, frame_height,
+                               &conv_buf, &conv_len);
+        esp_video_if_release_frame(video_frame);
+        if (ret != ESP_OK || !conv_buf) {
+            ESP_LOGE(TAG, "YUV420 to YUV422 conversion failed");
+            free(frame);
+            vTaskDelay(pdMS_TO_TICKS(33));
+            continue;
+        }
+        enc_src = conv_buf;
+        enc_src_len = conv_len;
+#else
+        /* P4 rev >= 3: HW encoder accepts YUV420 natively */
+        esp_video_if_release_frame(video_frame);
+#endif
+
         size_t jpeg_len = 0;
         uint8_t *jpeg_buf = NULL;
-        esp_err_t ret = esp_jpeg_encode(video_frame->buf, video_frame->len,
-                                        frame_width, frame_height,
-                                        jpeg_quality, &jpeg_buf, &jpeg_len);
-
-        // Release the raw frame as we're done with it
-        esp_video_if_release_frame(video_frame);
+        ret = esp_jpeg_encode(enc_src, enc_src_len,
+                              frame_width, frame_height,
+                              jpeg_quality, &jpeg_buf, &jpeg_len);
+        free(conv_buf);
 
         if (ret != ESP_OK || !jpeg_buf) {
             ESP_LOGE(TAG, "JPEG encoding failed");
