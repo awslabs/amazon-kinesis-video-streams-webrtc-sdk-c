@@ -1517,6 +1517,189 @@ TEST_F(PeerConnectionFunctionalityTest, renegotiateWithNewTransceiver)
     freePeerConnection(&answerPc);
 }
 
+// Re-negotiation test: new offer with track removed. Connect with video+audio, then receive an offer
+// that has only audio. Verify the video transceiver is marked INACTIVE and writeFrame no-sends on it.
+TEST_F(PeerConnectionFunctionalityTest, renegotiateWithTrackRemoved)
+{
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit sdp;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL, offerAudioOnlyPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, offerAudioTrack, answerVideoTrack, answerAudioTrack, audioOnlyTrack;
+    PRtcRtpTransceiver offerVideoTransceiver = NULL, offerAudioTransceiver = NULL;
+    PRtcRtpTransceiver answerVideoTransceiver = NULL, answerAudioTransceiver = NULL, audioOnlyTransceiver = NULL;
+    Frame frame;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(offerPc, &offerAudioTrack, &offerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerAudioTrack, &answerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    this->lock.lock();
+    for (auto& th : this->threads) th.join();
+    this->threads.clear();
+    this->noNewThreads = FALSE;
+    this->lock.unlock();
+
+    // Create a peer connection with only audio to simulate "remote sent new offer with video track removed".
+    // Use addTransceiver directly to avoid addSupportedCodec duplicate (new PC may already have default codecs).
+    EXPECT_EQ(createPeerConnection(&configuration, &offerAudioOnlyPc), STATUS_SUCCESS);
+    MEMSET(&audioOnlyTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+    audioOnlyTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+    audioOnlyTrack.codec = RTC_CODEC_OPUS;
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(audioOnlyTrack.streamId, MAX_MEDIA_STREAM_ID_LEN));
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(audioOnlyTrack.trackId, MAX_MEDIA_STREAM_ID_LEN));
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(offerAudioOnlyPc, &audioOnlyTrack, NULL, &audioOnlyTransceiver));
+
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerAudioOnlyPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(offerAudioOnlyPc, &sdp));
+
+    std::string offerSdp(sdp.sdp);
+    EXPECT_NE(std::string::npos, offerSdp.find("m=audio"));
+    EXPECT_EQ(std::string::npos, offerSdp.find("m=video")) << "Offer must contain only audio for this test";
+
+    // Answerer receives the new offer (only audio). Its video transceiver should be marked INACTIVE.
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(answerPc, &sdp));
+
+    EXPECT_EQ(RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE, answerVideoTransceiver->direction)
+        << "Video transceiver should be INACTIVE after remote offer removed video m-line";
+
+    EXPECT_NE(RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE, answerAudioTransceiver->direction)
+        << "Audio transceiver should still be active (sendonly/recvonly/sendrecv)";
+
+    // writeFrame on the INACTIVE video transceiver should return success without sending
+    MEMSET(&frame, 0x00, SIZEOF(Frame));
+    frame.size = 0;
+    frame.presentationTs = GETTIME();
+    EXPECT_EQ(STATUS_SUCCESS, writeFrame(answerVideoTransceiver, &frame));
+
+    EXPECT_EQ(STATUS_SUCCESS, createAnswer(answerPc, &sdp));
+    std::string answerSdp(sdp.sdp);
+    EXPECT_NE(std::string::npos, answerSdp.find("m=audio"));
+    EXPECT_EQ(std::string::npos, answerSdp.find("m=video")) << "Answer should have only audio m-line";
+
+    // Verify no old/extra transceivers accumulated in the lists
+    UINT32 transceiverCount = 0;
+    PKvsPeerConnection pAnswerPcImpl = (PKvsPeerConnection) answerPc;
+
+    // Answerer started with 2 user transceivers (video + audio). After re-negotiation
+    // with track removed, the count should remain 2 (video is marked INACTIVE, not deleted).
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pAnswerPcImpl->pTransceivers, &transceiverCount));
+    EXPECT_EQ(2u, transceiverCount) << "Answerer should still have 2 user transceivers (video is INACTIVE, not removed)";
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pAnswerPcImpl->pFakeTransceivers, &transceiverCount));
+    EXPECT_EQ(0u, transceiverCount) << "Answerer should have no fake transceivers";
+
+    this->lock.lock();
+    for (auto& th : this->threads)
+        th.join();
+    this->threads.clear();
+    this->noNewThreads = TRUE;
+    this->lock.unlock();
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    closePeerConnection(offerAudioOnlyPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+    freePeerConnection(&offerAudioOnlyPc);
+}
+
+// Re-negotiation test: direction-only change without track removal.
+// Connect with video sendrecv, then receive an offer where video is recvonly.
+// Verify transceiver direction updates to sendonly and is NOT marked INACTIVE.
+TEST_F(PeerConnectionFunctionalityTest, renegotiateDirectionChangeOnly)
+{
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit sdp;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack;
+    PRtcRtpTransceiver offerVideoTransceiver = NULL, answerVideoTransceiver = NULL;
+    PKvsRtpTransceiver pOfferKvsTransceiver = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+
+    // Initial connection with video sendrecv
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    this->lock.lock();
+    for (auto& th : this->threads)
+        th.join();
+    this->threads.clear();
+    this->noNewThreads = FALSE;
+    this->lock.unlock();
+
+    // Change offerer's video transceiver direction to recvonly before re-offer
+    pOfferKvsTransceiver = (PKvsRtpTransceiver) offerVideoTransceiver;
+    pOfferKvsTransceiver->transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
+
+    // Re-negotiation with direction change only
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(offerPc, &sdp));
+
+    // Verify the offer SDP contains recvonly
+    std::string offerSdp(sdp.sdp);
+    EXPECT_NE(std::string::npos, offerSdp.find("a=recvonly"));
+
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(answerPc, &sdp));
+
+    // Answerer's direction should be sendonly (mirror of remote recvonly), NOT inactive
+    EXPECT_EQ(RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY, answerVideoTransceiver->direction)
+        << "Answerer video transceiver should be sendonly (mirror of remote recvonly)";
+
+    EXPECT_EQ(STATUS_SUCCESS, createAnswer(answerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(answerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(offerPc, &sdp));
+
+    // Verify answer SDP contains sendonly (mirror of recvonly)
+    std::string answerSdp(sdp.sdp);
+    EXPECT_NE(std::string::npos, answerSdp.find("m=video"));
+
+    THREAD_SLEEP(2 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    // Verify no old/extra transceivers accumulated in the lists
+    UINT32 transceiverCount = 0;
+    PKvsPeerConnection pOfferPcImpl = (PKvsPeerConnection) offerPc;
+    PKvsPeerConnection pAnswerPcImpl = (PKvsPeerConnection) answerPc;
+
+    // Offerer: 1 user transceiver (video with changed direction), no fake transceivers
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pOfferPcImpl->pTransceivers, &transceiverCount));
+    EXPECT_EQ(1u, transceiverCount) << "Offerer should have exactly 1 transceiver after direction change";
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pOfferPcImpl->pFakeTransceivers, &transceiverCount));
+    EXPECT_EQ(0u, transceiverCount) << "Offerer should have no fake transceivers";
+
+    // Answerer: 1 user transceiver (video), no fake transceivers
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pAnswerPcImpl->pTransceivers, &transceiverCount));
+    EXPECT_EQ(1u, transceiverCount) << "Answerer should have exactly 1 transceiver after direction change";
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pAnswerPcImpl->pFakeTransceivers, &transceiverCount));
+    EXPECT_EQ(0u, transceiverCount) << "Answerer should have no fake transceivers";
+
+    this->lock.lock();
+    for (auto& th : this->threads)
+        th.join();
+    this->threads.clear();
+    this->noNewThreads = TRUE;
+    this->lock.unlock();
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
