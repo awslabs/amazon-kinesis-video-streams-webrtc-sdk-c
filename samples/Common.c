@@ -277,7 +277,7 @@ CleanUp:
 STATUS respondWithAnswer(PSampleStreamingSession pSampleStreamingSession)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    SignalingMessage message;
+    SignalingMessage message = {0};
     UINT32 buffLen = MAX_SIGNALING_MESSAGE_LEN;
 
     CHK_STATUS(serializeSessionDescriptionInit(&pSampleStreamingSession->answerSessionDescriptionInit, message.payload, &buffLen));
@@ -312,7 +312,7 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
-    SignalingMessage message;
+    SignalingMessage message = {0};
 
     CHK(pSampleStreamingSession != NULL, STATUS_NULL_ARG);
 
@@ -354,7 +354,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     PIceConfigInfo pIceConfigInfo;
     UINT64 data;
     PRtcCertificate pRtcCertificate = NULL;
-    PCHAR dualStackEnvVar = NULL;
+    PCHAR pIceTransportPolicy;
 
     CHK(pSampleConfiguration != NULL && ppRtcPeerConnection != NULL, STATUS_NULL_ARG);
 
@@ -363,18 +363,23 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     // Set this to custom callback to enable filtering of interfaces
     configuration.kvsRtcConfiguration.iceSetInterfaceFilterFunc = NULL;
 
-    // Set the ICE mode explicitly
-    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
+    // Set the ICE transport policy from environment variable or default to ALL
+    pIceTransportPolicy = GETENV(ICE_TRANSPORT_POLICY_ENV_VAR);
+    if (!IS_NULL_OR_EMPTY_STRING(pIceTransportPolicy) && STRCMPI(pIceTransportPolicy, "relay") == 0) {
+        configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
+        DLOGI("ICE transport policy: relay");
+    } else {
+        configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
+        DLOGI("ICE transport policy: all");
+    }
 
 #ifdef ENABLE_STATS_CALCULATION_CONTROL
     configuration.kvsRtcConfiguration.enableIceStats = pSampleConfiguration->enableIceStats;
 #endif
 
-    dualStackEnvVar = GETENV(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
-
     // Set the  STUN server
     PCHAR pKinesisVideoStunUrlPostFix = NULL;
-    if (!IS_NULL_OR_EMPTY_STRING(dualStackEnvVar)) {
+    if (isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR)) {
         DLOGD("Using dual-stack STUN endpoint");
         if (STRSTR(pSampleConfiguration->channelInfo.pRegion, "cn-")) {
             pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_DUALSTACK_STUN_URL_POSTFIX_CN;
@@ -815,8 +820,9 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
                                  PSampleConfiguration* ppSampleConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    PCHAR pAccessKey, pSecretKey, pSessionToken;
+    PCHAR pAccessKey, pSecretKey, pSessionToken, pLogFilesDir = (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH;
     PSampleConfiguration pSampleConfiguration = NULL;
+    UINT32 numLogFiles = DEFAULT_MAX_NUMBER_OF_LOG_FILES;
 
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
 
@@ -841,11 +847,21 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
         pSessionToken = NULL;
     }
 
+    if (!IS_NULL_OR_EMPTY_STRING(GETENV(MAX_NUM_LOG_FILES_ENV_VAR))) {
+        CHK_STATUS_ERR(STRTOUI32(GETENV(MAX_NUM_LOG_FILES_ENV_VAR), NULL, 10, &numLogFiles), STATUS_INVALID_ARG,
+                       "Failed to parse max number of log files: %s", GETENV(MAX_NUM_LOG_FILES_ENV_VAR));
+        CHK_ERR(CHECK_IN_RANGE(numLogFiles, 1, 100), STATUS_INVALID_ARG, "MaxLogFiles must be in range: [1, 100], was: %d", numLogFiles);
+    }
+
+    if (!IS_NULL_OR_EMPTY_STRING(GETENV(LOG_FILE_DIR))) {
+        pLogFilesDir = GETENV(LOG_FILE_DIR);
+    }
+
     // If the env is set, we generate normal log files apart from filtered profile log files
     // If not set, we generate only the filtered profile log files
-    if (NULL != GETENV(ENABLE_FILE_LOGGING)) {
-        retStatus = createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH,
-                                                       TRUE, TRUE, TRUE, LOG_LEVEL_PROFILE, NULL);
+    if (isEnvVarEnabled(ENABLE_FILE_LOGGING)) {
+        retStatus =
+            createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, numLogFiles, pLogFilesDir, TRUE, TRUE, TRUE, LOG_LEVEL_PROFILE, NULL);
 
         if (retStatus != STATUS_SUCCESS) {
             DLOGW("[KVS Master] createFileLogger(): operation returned status code: 0x%08x", retStatus);
@@ -853,8 +869,8 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
             pSampleConfiguration->enableFileLogging = TRUE;
         }
     } else {
-        retStatus = createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, MAX_NUMBER_OF_LOG_FILES, (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH,
-                                                       TRUE, TRUE, FALSE, LOG_LEVEL_PROFILE, NULL);
+        retStatus =
+            createFileLoggerWithLevelFiltering(FILE_LOGGING_BUFFER_SIZE, numLogFiles, pLogFilesDir, TRUE, TRUE, FALSE, LOG_LEVEL_PROFILE, NULL);
 
         if (retStatus != STATUS_SUCCESS) {
             DLOGW("[KVS Master] createFileLogger(): operation returned status code: 0x%08x", retStatus);
@@ -911,6 +927,11 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->channelInfo.reconnect = TRUE;
     pSampleConfiguration->channelInfo.pCertPath = pSampleConfiguration->pCaCertPath;
     pSampleConfiguration->channelInfo.messageTtl = 0; // Default is 60 seconds
+
+    pSampleConfiguration->channelInfo.pControlPlaneUrl = GETENV(CONTROL_PLANE_URI_ENV_VAR);
+    if (!IS_NULL_OR_EMPTY_STRING(pSampleConfiguration->channelInfo.pControlPlaneUrl)) {
+        DLOGI("Override URL: %s", pSampleConfiguration->channelInfo.pControlPlaneUrl);
+    }
 
     pSampleConfiguration->signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     pSampleConfiguration->signalingClientCallbacks.errorReportFn = signalingClientError;

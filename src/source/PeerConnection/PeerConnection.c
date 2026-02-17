@@ -812,7 +812,7 @@ STATUS getStunAddr(PStunIpAddrContext pStunIpAddrCtx)
     pStunIpAddrCtx->kvsIpAddresses.ipv6Address.port = 0;
 
     // Don't attempt to resolve IPv6 address if not in dual-stack mode.
-    if (GETENV(USE_DUAL_STACK_ENDPOINTS_ENV_VAR) == NULL) {
+    if (!isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR)) {
         ipv6Resolved = TRUE;
     }
 
@@ -924,7 +924,7 @@ PVOID resolveStunIceServerIp(PVOID args)
                     pRegion = DEFAULT_AWS_REGION;
                 }
 
-                if (GETENV(USE_DUAL_STACK_ENDPOINTS_ENV_VAR) != NULL) {
+                if (isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR)) {
                     if (STRSTR(pRegion, "cn-")) {
                         pHostnamePostfix = KINESIS_VIDEO_DUALSTACK_STUN_URL_POSTFIX_CN;
                     } else {
@@ -1654,6 +1654,8 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
             break;
 
         default:
+            DLOGW("[TrackID: %s, StreamID: %s, kind: %d] contains unsupported codec: %d", pRtcMediaStreamTrack->trackId,
+                  pRtcMediaStreamTrack->streamId, pRtcMediaStreamTrack->kind, pRtcMediaStreamTrack->codec);
             CHK(FALSE, STATUS_NOT_IMPLEMENTED);
     }
 

@@ -12,3 +12,5 @@ tags
 CMakeLists.txt.user
 *.vscode
 *.swp
+venv/
+

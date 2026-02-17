@@ -485,6 +485,16 @@ export AWS_IOT_CORE_CERT=xxxxx-certificate.pem.crt
 
 AWS access keys are ignored from environment variables if the sample was built in IoT Core credentials mode.
 
+### Other sample environment variables
+
+| Variable                   | Description                         | Type                 | Default               | Notes                                             |
+|----------------------------|-------------------------------------|----------------------|-----------------------|---------------------------------------------------|
+| `AWS_KVS_LOG_LEVEL`        | Log level                           | Int (1-8)            | WARN (4)              | See [Setup Logging](#setup-logging)               |
+| `ENABLE_FILE_LOGGING`      | Save all logs to file               | Bool                 | `0`/`OFF`/`FALSE`     | `1`, `ON`, `TRUE` to enable. Case insensitive.    |
+| `AWS_KVS_CACERT_PATH`      | Root certificate path               | String               | `repo/certs/cert.pem` | Must end with `.pem` extension                    |
+| `CONTROL_PLANE_URI`        | Endpoint override                   | String               | Based on the region   | Example: "https://kinesisvideo.us-west-2.api.aws" |
+| `KVS_ICE_TRANSPORT_POLICY` | Types of ICE candidates to consider | Enum (`relay`/`all`) | `all`                 | Case insensitive                                  |
+
 ## TWCC support
 
 Transport Wide Congestion Control (TWCC) is a mechanism in WebRTC designed to enhance the performance and reliability of real-time communication over the internet. TWCC addresses the challenges of network congestion by providing detailed feedback on the transport of packets across the network, enabling adaptive bitrate control and optimization of media streams in real-time. This feedback mechanism is crucial for maintaining high-quality audio and video communication, as it allows senders to adjust their transmission strategies based on comprehensive information about packet losses, delays, and jitter experienced across the entire transport path.
@@ -642,17 +652,27 @@ export KVS_DUALSTACK_ENDPOINTS=ON
 
 In dual-stack mode, ICE gathering will attempt to include IPv6 candidates, but compatibility ultimately depends on the local network configuration and the capabilities of the receiving peers. Note that enabling dual-stack endpoints may result in longer connection establishment times because there will be additional ICE server hosts to resolve and ICE candidates to check.
 
->[!NOTE]
-> If signaling cache is enabled, the cahce file (e.g. `./build/.SignalingCache_v0`) should be deleted when changing endpoint modes so that the SDK fetches new endpoints.
-
 
 To disable dual-stack mode, unset the environment variable:
 ```
 unset KVS_DUALSTACK_ENDPOINTS
 ```
 
+### Disabling IP-Family-Specific TURN Candidates
+The following environment variables can be used to disable certain TURN relay candidates from being generated for the local peer:
+```
+export KVS_DISABLE_IPV4_TURN=ON
+export KVS_DISABLE_IPV6_TURN=ON
+```
+
+**Note:** `KVS_DISABLE_IPV6_TURN` is only applicable when running in dual-stack mode.
+
+
+
 ## Documentation
 All Public APIs are documented in our [Include.h](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/main/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h), we also generate a [Doxygen](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/) each commit for easier navigation.
+
+See the [Status code reference](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/wiki/WebRTC-Status-Code-Reference) wiki page.
 
 Refer to [related](#related) for more about WebRTC and KVS.
 

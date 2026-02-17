@@ -88,6 +88,67 @@ jobs:
         run: |
           ./scripts/check-sample.sh
 
+  sample-check-force-turn:
+    runs-on: ubuntu-latest
+    env:
+      AWS_KVS_LOG_LEVEL: 3
+      KVS_ICE_TRANSPORT_POLICY: relay
+    timeout-minutes: 30
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Build repository
+        run: |
+          mkdir build && cd build
+          cmake ..
+          make
+      - name: Sample check with force TURN
+        run: |
+          cd build/samples
+          ./kvsWebrtcClientMaster SampleChannelForceTurn > master.log 2>&1 &
+          MASTER_PID=$!
+          sleep 15
+          ./kvsWebrtcClientViewer SampleChannelForceTurn > viewer.log 2>&1 &
+          VIEWER_PID=$!
+          sleep 15
+
+          # Interrupt after 30s, and kill 15s later for safety
+          bash -c "sleep 30 && kill -s INT $MASTER_PID $VIEWER_PID" &
+          bash -c "sleep 45 && kill -9 $MASTER_PID $VIEWER_PID" &
+          wait $MASTER_PID
+          MASTER_EXIT=$?
+          wait $VIEWER_PID
+          VIEWER_EXIT=$?
+
+          if [ $MASTER_EXIT -ne 0 ] || [ $VIEWER_EXIT -ne 0 ]; then
+            echo "Sample execution failed. Master exit code: $MASTER_EXIT, Viewer exit code: $VIEWER_EXIT"
+            cat master.log
+            cat viewer.log
+            exit 1
+          fi
+          if grep "local candidate type: relay. remote candidate type: relay" master.log || \
+             grep "local candidate type: relay. remote candidate type: relay" viewer.log; then
+            echo "SUCCESS: Force TURN verified - relay candidates selected"
+            exit 0
+          else
+            echo "FAILURE: Expected relay candidate pair not found in logs"
+            cat master.log
+            cat viewer.log
+            exit 1
+          fi
+
   valgrind-check:
     runs-on: ubuntu-latest
     timeout-minutes: 20
