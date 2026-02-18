@@ -674,6 +674,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     attributeCount++;
 
     if (pKvsPeerConnection->isOffer) {
+        // Viewer mode
         switch (pKvsRtpTransceiver->transceiver.direction) {
             case RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV:
                 STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "sendrecv");
@@ -690,6 +691,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
                 STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "inactive");
         }
     } else {
+        // Master mode
         pSdpMediaDescriptionRemote = &pRemoteSessionDescription->mediaDescriptions[mediaSectionId];
         remoteAttributeCount = pSdpMediaDescriptionRemote->mediaAttributesCount;
 
@@ -698,9 +700,17 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
             STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "inactive");
             directionFound = TRUE;
         }
+
+        // Intersection between offer and transceiver direction
         for (i = 0; i < remoteAttributeCount && directionFound == FALSE; i++) {
             if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[i].attributeName, "sendrecv") == 0) {
-                STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "sendrecv");
+                if (pKvsRtpTransceiver->transceiver.direction == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY) {
+                    DLOGE("POPULATE WITH RECVONLY!!");
+                    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "recvonly");
+                } else {
+                    DLOGE("POPULATE WITH SENDRECV!!");
+                    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "sendrecv");
+                }
                 directionFound = TRUE;
             } else if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[i].attributeName, "recvonly") == 0) {
                 STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "sendonly");
@@ -1265,6 +1275,37 @@ static RTC_RTP_TRANSCEIVER_DIRECTION getLocalDirectionFromRemoteMediaDescription
     return RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE;
 }
 
+// Compute the intersection of local and remote transceiver directions.
+// This respects the user's configured direction while negotiating with the remote peer.
+static RTC_RTP_TRANSCEIVER_DIRECTION intersectTransceiverDirection(RTC_RTP_TRANSCEIVER_DIRECTION local, RTC_RTP_TRANSCEIVER_DIRECTION remote)
+{
+    // If either side is inactive, result is inactive
+    if (local == RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE || remote == RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE) {
+        return RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE;
+    }
+
+    // Determine if local can send and remote can receive
+    BOOL localCanSend = (local == RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV || local == RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY);
+    BOOL remoteCanRecv = (remote == RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV || remote == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY);
+    BOOL canSend = localCanSend && remoteCanRecv;
+
+    // Determine if local can receive and remote can send
+    BOOL localCanRecv = (local == RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV || local == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY);
+    BOOL remoteCanSend = (remote == RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV || remote == RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY);
+    BOOL canRecv = localCanRecv && remoteCanSend;
+
+    // Compute result
+    if (canSend && canRecv) {
+        return RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    } else if (canSend) {
+        return RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+    } else if (canRecv) {
+        return RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
+    } else {
+        return RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE;
+    }
+}
+
 // primarily used for creating a list of transceivers corresponding to each media m-line to respond to an offer with an answer
 // This function generates the pAnswerTransceivers list which contains transceivers corresponding to each m-line in correct order
 // To generate this list, it traverses over each m-line, first checks if it has a user-created transceiver present using findCodecInTransceivers
@@ -1502,7 +1543,9 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
         pKvsRtpTransceiver = (PKvsRtpTransceiver) item;
         CHK_STATUS(hashTableContains(pSeenTransceivers, (UINT64) pKvsRtpTransceiver, &inSeenTransceivers));
         if (inSeenTransceivers) {
-            pKvsRtpTransceiver->transceiver.direction = getLocalDirectionFromRemoteMediaDescription(pMediaDescription);
+            RTC_RTP_TRANSCEIVER_DIRECTION originalDirection = pKvsRtpTransceiver->transceiver.direction;
+            RTC_RTP_TRANSCEIVER_DIRECTION remoteDirection = getLocalDirectionFromRemoteMediaDescription(pMediaDescription);
+            pKvsRtpTransceiver->transceiver.direction = intersectTransceiverDirection(originalDirection, remoteDirection);
         }
         pCurNode = pCurNode->pNext;
     }
