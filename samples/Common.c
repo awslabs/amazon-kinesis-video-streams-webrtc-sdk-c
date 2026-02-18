@@ -287,7 +287,8 @@ STATUS respondWithAnswer(PSampleStreamingSession pSampleStreamingSession)
     STRNCPY(message.peerClientId, pSampleStreamingSession->peerId, MAX_SIGNALING_CLIENT_ID_LEN);
     message.payloadLen = (UINT32) STRLEN(message.payload);
     // SNPRINTF appends null terminator, so we do not manually add it
-    SNPRINTF(message.correlationId, MAX_CORRELATION_ID_LEN, "%llu_%llu", GETTIME(), ATOMIC_INCREMENT(&pSampleStreamingSession->correlationIdPostFix));
+    SNPRINTF(message.correlationId, MAX_CORRELATION_ID_LEN, "%" PRIu64 "_%" PRIu64, GETTIME(),
+             (UINT64) ATOMIC_INCREMENT(&pSampleStreamingSession->correlationIdPostFix));
     DLOGD("Responding With Answer With correlationId: %s", message.correlationId);
     CHK_STATUS(sendSignalingMessage(pSampleStreamingSession, &message));
 
@@ -1513,7 +1514,8 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 
                 // Remove old session from session list and free it
                 MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
-                for (UINT32 idx = 0; idx < pSampleConfiguration->streamingSessionCount; ++idx) {
+                UINT32 idx = 0;
+                for (; idx < pSampleConfiguration->streamingSessionCount; ++idx) {
                     if (pSampleConfiguration->sampleStreamingSessionList[idx] == pSampleStreamingSession) {
                         pSampleConfiguration->streamingSessionCount--;
                         pSampleConfiguration->sampleStreamingSessionList[idx] =
@@ -1845,7 +1847,7 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
                         STRNCPY(dataChannelMessage.firstMessageFromMasterTs, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
                     } else {
                         // if this timestamp was not assigned during the previous message session, add it now
-                        SNPRINTF(dataChannelMessage.firstMessageFromMasterTs, 20, "%llu", GETTIME() / 10000);
+                        SNPRINTF(dataChannelMessage.firstMessageFromMasterTs, 20, "%" PRIu64, (UINT64) (GETTIME() / 10000));
                         break;
                     }
                 } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "secondMessageFromViewerTs")) {
@@ -1861,7 +1863,7 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
                         STRNCPY(dataChannelMessage.secondMessageFromMasterTs, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
                     } else {
                         // if this timestamp was not assigned during the previous message session, add it now
-                        SNPRINTF(dataChannelMessage.secondMessageFromMasterTs, 20, "%llu", GETTIME() / 10000);
+                        SNPRINTF(dataChannelMessage.secondMessageFromMasterTs, 20, "%" PRIu64, (UINT64) (GETTIME() / 10000));
                         break;
                     }
                 } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "lastMessageFromViewerTs")) {
