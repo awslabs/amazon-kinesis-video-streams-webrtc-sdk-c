@@ -691,7 +691,8 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         }
         for (i = 0; i < remoteAttributeCount && directionFound == FALSE; i++) {
             if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[i].attributeName, "sendrecv") == 0) {
-                STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "sendrecv");
+                RTC_RTP_TRANSCEIVER_DIRECTION intersection = intersectTransceiverDirection(pKvsRtpTransceiver->transceiver.direction, RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV);
+                CHK_STATUS(writeTransceiverDirection(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName), intersection));
                 directionFound = TRUE;
             } else if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[i].attributeName, "recvonly") == 0) {
                 STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "sendonly");
@@ -1220,6 +1221,68 @@ STATUS findCodecInTransceivers(PKvsPeerConnection pKvsPeerConnection, RTC_CODEC 
 
 CleanUp:
 
+    return retStatus;
+}
+
+// Compute the intersection of local and remote transceiver directions.
+// This respects the user's configured direction while negotiating with the remote peer.
+RTC_RTP_TRANSCEIVER_DIRECTION intersectTransceiverDirection(RTC_RTP_TRANSCEIVER_DIRECTION local, RTC_RTP_TRANSCEIVER_DIRECTION remote)
+{
+    // If either side is inactive, result is inactive
+    if (local == RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE || remote == RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE) {
+        return RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE;
+    }
+
+    // Determine if local can send and remote can receive
+    BOOL localCanSend = (local == RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV || local == RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY);
+    BOOL remoteCanRecv = (remote == RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV || remote == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY);
+    BOOL canSend = localCanSend && remoteCanRecv;
+
+    // Determine if local can receive and remote can send
+    BOOL localCanRecv = (local == RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV || local == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY);
+    BOOL remoteCanSend = (remote == RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV || remote == RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY);
+    BOOL canRecv = localCanRecv && remoteCanSend;
+
+    // Compute result
+    if (canSend && canRecv) {
+        return RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    } else if (canSend) {
+        return RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+    } else if (canRecv) {
+        return RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
+    } else {
+        return RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE;
+    }
+}
+
+STATUS writeTransceiverDirection(PCHAR buf, UINT32 len, RTC_RTP_TRANSCEIVER_DIRECTION direction)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 amountWritten;
+
+    CHK(buf != NULL, STATUS_NULL_ARG);
+    CHK(len > 0, STATUS_INVALID_ARG_LEN);
+
+    if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV) {
+        amountWritten = SNPRINTF(buf, len, "%s", RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV_STR);
+        CHK(amountWritten == RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV_STRLEN, STATUS_BUFFER_TOO_SMALL);
+    } else if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY) {
+        amountWritten = SNPRINTF(buf, len, "%s", RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY_STR);
+        CHK(amountWritten == RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY_STRLEN, STATUS_BUFFER_TOO_SMALL);
+    } else if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY) {
+        amountWritten = SNPRINTF(buf, len, "%s", RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY_STR);
+        CHK(amountWritten == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY_STRLEN, STATUS_BUFFER_TOO_SMALL);
+    } else {
+        amountWritten = SNPRINTF(buf, len, "%s", RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE_STR);
+        CHK(amountWritten == RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE_STRLEN, STATUS_BUFFER_TOO_SMALL);
+    }
+
+CleanUp:
+    if (STATUS_FAILED(retStatus) && buf != NULL & len > 0) {
+        buf[0] = '\0';
+    }
+
+    CHK_LOG_ERR(retStatus);
     return retStatus;
 }
 
