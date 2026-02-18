@@ -350,6 +350,15 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
         }
 
         if (pKvsRtpTransceiver != NULL) {
+            // Skip transceivers that already have rolling buffer and retransmitter allocated
+            // (from a previous offer/answer exchange). During re-negotiation, media sender
+            // threads may be actively using these buffers, so freeing and recreating them
+            // would cause a use-after-free race condition. The existing buffers remain valid.
+            if (pKvsRtpTransceiver->sender.packetBuffer != NULL && pKvsRtpTransceiver->sender.retransmitter != NULL) {
+                DLOGD("Re-negotiation: reusing existing rolling buffer and retransmitter for transceiver");
+                continue;
+            }
+
             if (pKvsRtpTransceiver->pRollingBufferConfig == NULL) {
                 // Passing in 0,0. The default values will be set up since application has not set up rolling buffer config with the
                 // configureTransceiverRollingBuffer() call
@@ -1223,6 +1232,39 @@ CleanUp:
     return retStatus;
 }
 
+// Returns TRUE if the direction is an active (non-INACTIVE, non-STOPPED) media direction.
+static BOOL isActiveDirection(RTC_RTP_TRANSCEIVER_DIRECTION direction)
+{
+    return direction == RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV || direction == RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY ||
+        direction == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
+}
+
+// Parse remote offer media direction and return our perspective (e.g. remote sendonly -> we recvonly).
+// Used when applying remote offer to update transceiver directions for re-negotiation.
+static RTC_RTP_TRANSCEIVER_DIRECTION getLocalDirectionFromRemoteMediaDescription(PSdpMediaDescription pMediaDescription)
+{
+    UINT32 i;
+    if (pMediaDescription == NULL) {
+        return RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE;
+    }
+    for (i = 0; i < pMediaDescription->mediaAttributesCount; i++) {
+        PCHAR name = pMediaDescription->sdpAttributes[i].attributeName;
+        if (STRCMP(name, "sendonly") == 0) {
+            return RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
+        }
+        if (STRCMP(name, "recvonly") == 0) {
+            return RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+        }
+        if (STRCMP(name, "sendrecv") == 0) {
+            return RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+        }
+        if (STRCMP(name, "inactive") == 0) {
+            return RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE;
+        }
+    }
+    return RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE;
+}
+
 // primarily used for creating a list of transceivers corresponding to each media m-line to respond to an offer with an answer
 // This function generates the pAnswerTransceivers list which contains transceivers corresponding to each m-line in correct order
 // To generate this list, it traverses over each m-line, first checks if it has a user-created transceiver present using findCodecInTransceivers
@@ -1243,13 +1285,29 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
     PCHAR attributeValue, end, codecs = NULL;
     PCHAR rtpMapValue = NULL;
     CHAR firstCodec[MAX_PAYLOAD_TYPE_LENGTH];
-    BOOL supportCodec, foundMediaSectionWithCodec, containsPayloadType = FALSE, containsRtpMap = FALSE;
+    BOOL supportCodec, foundMediaSectionWithCodec;
+    BOOL containsPayloadType = FALSE, containsRtpMap = FALSE, inSeenTransceivers = FALSE;
     PHashTable pSeenTransceivers;
     RTC_CODEC rtcCodec;
     MEDIA_STREAM_TRACK_KIND streamKind;
-    PKvsRtpTransceiver pKvsRtpFakeTransceiver = NULL;
+    PKvsRtpTransceiver pKvsRtpFakeTransceiver = NULL, pKvsRtpTransceiver = NULL;
     PRtcMediaStreamTrack pRtcMediaStreamTrack;
     RtcMediaStreamTrack track;
+    PDoubleListNode pCurNode = NULL;
+    UINT64 item = 0;
+
+    // Clean up pFakeTransceivers and pAnswerTransceivers from any previous offer/answer exchange.
+    // This is needed to support re-negotiation where findTransceiversByRemoteDescription is called
+    // again on an already-connected PeerConnection. Without this, the lists would accumulate
+    // duplicate entries from each successive offer.
+    CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pFakeTransceivers, &pCurNode));
+    while (pCurNode != NULL) {
+        CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
+        CHK_STATUS(freeKvsRtpTransceiver((PKvsRtpTransceiver*) &item));
+        pCurNode = pCurNode->pNext;
+    }
+    CHK_STATUS(doubleListClear(pKvsPeerConnection->pFakeTransceivers, FALSE));
+    CHK_STATUS(doubleListClear(pKvsPeerConnection->pAnswerTransceivers, FALSE));
 
     // pSeenTranceivers is populated only with codec types supported by the SDK. And if already populated, it is not added again.
     // Hence, it is sufficient if the hash table count is set to minimum or required transceivers
@@ -1403,6 +1461,63 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
                 containsRtpMap = FALSE;
             }
         }
+    }
+
+    // Validate that the number of audio/video m-lines matches the answer transceiver count.
+    // By construction, findTransceiversByRemoteDescription creates one entry in pAnswerTransceivers
+    // per audio/video m-line (either a real match or a fake). A mismatch indicates a bug.
+    UINT32 avMlineCount = 0, answerTransceiverCount = 0;
+    for (currentMedia = 0; currentMedia < pRemoteSessionDescription->mediaCount; currentMedia++) {
+        attributeValue = pRemoteSessionDescription->mediaDescriptions[currentMedia].mediaName;
+        if ((end = STRCHR(attributeValue, ' ')) != NULL) {
+            tokenLen = (UINT32) (end - attributeValue);
+        } else {
+            tokenLen = (UINT32) STRLEN(attributeValue);
+        }
+        if (STRNCMP(MEDIA_SECTION_AUDIO_VALUE, attributeValue, tokenLen) == 0 || STRNCMP(MEDIA_SECTION_VIDEO_VALUE, attributeValue, tokenLen) == 0) {
+            avMlineCount++;
+        }
+    }
+    CHK_STATUS(doubleListGetNodeCount(pKvsPeerConnection->pAnswerTransceivers, &answerTransceiverCount));
+    if (avMlineCount != answerTransceiverCount) {
+        DLOGW("Audio/video m-line count (%u) does not match answer transceiver count (%u)", avMlineCount, answerTransceiverCount);
+    }
+
+    // Set each real transceiver's direction from the remote offer (re-negotiation: track re-added restores direction).
+    // Walk pAnswerTransceivers in lockstep with remote audio/video m-lines.
+    // Skip fake transceivers (not in pSeenTransceivers) — they must stay INACTIVE.
+    CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pAnswerTransceivers, &pCurNode));
+    for (currentMedia = 0; currentMedia < pRemoteSessionDescription->mediaCount && pCurNode != NULL; currentMedia++) {
+        pMediaDescription = &(pRemoteSessionDescription->mediaDescriptions[currentMedia]);
+        attributeValue = pMediaDescription->mediaName;
+        if ((end = STRCHR(attributeValue, ' ')) != NULL) {
+            tokenLen = (UINT32) (end - attributeValue);
+        } else {
+            tokenLen = (UINT32) STRLEN(attributeValue);
+        }
+        if (STRNCMP(MEDIA_SECTION_AUDIO_VALUE, attributeValue, tokenLen) != 0 && STRNCMP(MEDIA_SECTION_VIDEO_VALUE, attributeValue, tokenLen) != 0) {
+            continue;
+        }
+        CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
+        pKvsRtpTransceiver = (PKvsRtpTransceiver) item;
+        CHK_STATUS(hashTableContains(pSeenTransceivers, (UINT64) pKvsRtpTransceiver, &inSeenTransceivers));
+        if (inSeenTransceivers) {
+            pKvsRtpTransceiver->transceiver.direction = getLocalDirectionFromRemoteMediaDescription(pMediaDescription);
+        }
+        pCurNode = pCurNode->pNext;
+    }
+
+    // Mark transceivers that have no matching remote m-line as INACTIVE (track removed in offer).
+    // Applies to send-capable (SENDRECV, SENDONLY) and recv-only (RECVONLY) so both sides reflect removal.
+    CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceivers, &pCurNode));
+    while (pCurNode != NULL) {
+        CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
+        pKvsRtpTransceiver = (PKvsRtpTransceiver) item;
+        CHK_STATUS(hashTableContains(pSeenTransceivers, (UINT64) pKvsRtpTransceiver, &inSeenTransceivers));
+        if (!inSeenTransceivers && isActiveDirection(pKvsRtpTransceiver->transceiver.direction)) {
+            pKvsRtpTransceiver->transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE;
+        }
+        pCurNode = pCurNode->pNext;
     }
 
 CleanUp:

@@ -1394,6 +1394,9 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
 
     // In master mode, this should be freed once `createAnswer` is invoked for the session.
     // In viewer mode, this should be freed once `setRemoteDescription` is completed for the session.
+    // Free any previously allocated remote session description to support re-negotiation
+    // (e.g. when setRemoteDescription is called again without a prior createAnswer call).
+    SAFE_MEMFREE(pKvsPeerConnection->pRemoteSessionDescription);
     pKvsPeerConnection->pRemoteSessionDescription = (PSessionDescription) MEMCALLOC(1, SIZEOF(SessionDescription));
     pSessionDescription = pKvsPeerConnection->pRemoteSessionDescription;
     CHK(pSessionDescription != NULL, STATUS_NOT_ENOUGH_MEMORY);
@@ -1479,6 +1482,27 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     }
     CHK_STATUS(setTransceiverPayloadTypes(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pKvsPeerConnection->pTransceivers));
     CHK_STATUS(setReceiversSsrc(pSessionDescription, pKvsPeerConnection->pTransceivers));
+
+    /* Apply remote offer to transceiver directions (e.g. mark removed tracks INACTIVE) so the app sees updated state before createAnswer. */
+    if (!pKvsPeerConnection->isOffer) {
+        PHashTable pUnknownCodecPayloadTypesTable = NULL;
+        PHashTable pUnknownCodecRtpmapTable = NULL;
+        UINT32 unknownHashTableBucketCount =
+            pSessionDescription->mediaCount < MIN_HASH_BUCKET_COUNT ? MIN_HASH_BUCKET_COUNT : pSessionDescription->mediaCount;
+        retStatus = hashTableCreateWithParams(unknownHashTableBucketCount, CODEC_RTPMAP_PAYLOAD_TYPES_HASH_TABLE_BUCKET_LENGTH,
+                                              &pUnknownCodecPayloadTypesTable);
+        if (STATUS_SUCCEEDED(retStatus)) {
+            retStatus = hashTableCreateWithParams(unknownHashTableBucketCount, CODEC_RTPMAP_PAYLOAD_TYPES_HASH_TABLE_BUCKET_LENGTH,
+                                                  &pUnknownCodecRtpmapTable);
+        }
+        if (STATUS_SUCCEEDED(retStatus)) {
+            retStatus = findTransceiversByRemoteDescription(pKvsPeerConnection, pSessionDescription, pUnknownCodecPayloadTypesTable,
+                                                            pUnknownCodecRtpmapTable);
+        }
+        (void) hashTableFree(pUnknownCodecPayloadTypesTable);
+        (void) hashTableFree(pUnknownCodecRtpmapTable);
+        CHK_STATUS(retStatus);
+    }
 
     if (NULL != GETENV(DEBUG_LOG_SDP)) {
         DLOGD("REMOTE_SDP:%s\n", pSessionDescriptionInit->sdp);

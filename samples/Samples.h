@@ -79,12 +79,14 @@ extern "C" {
     "\"secondMessageFromMasterTs\":\"%s\",\"lastMessageFromViewerTs\":\"%s\" }"
 #define PEER_CONNECTION_METRICS_JSON_TEMPLATE "{\"peerConnectionStartTime\": %llu, \"peerConnectionEndTime\": %llu }"
 #define SIGNALING_CLIENT_METRICS_JSON_TEMPLATE                                                                                                       \
-    "{\"signalingStartTime\": %llu, \"signalingEndTime\": %llu, \"offerReceiptTime\": %llu, \"sendAnswerTime\": %llu, "                              \
-    "\"describeChannelStartTime\": %llu, \"describeChannelEndTime\": %llu, \"getSignalingChannelEndpointStartTime\": %llu, "                         \
-    "\"getSignalingChannelEndpointEndTime\": %llu, \"getIceServerConfigStartTime\": %llu, \"getIceServerConfigEndTime\": %llu, "                     \
-    "\"getTokenStartTime\": %llu, \"getTokenEndTime\": %llu, \"createChannelStartTime\": %llu, \"createChannelEndTime\": %llu, "                     \
-    "\"connectStartTime\": %llu, \"connectEndTime\": %llu }"
-#define ICE_AGENT_METRICS_JSON_TEMPLATE "{\"candidateGatheringStartTime\": %llu, \"candidateGatheringEndTime\": %llu }"
+    "{\"signalingStartTime\": %" PRIu64 ", \"signalingEndTime\": %" PRIu64 ", \"offerReceiptTime\": %" PRIu64 ", \"sendAnswerTime\": %" PRIu64 ", "  \
+    "\"describeChannelStartTime\": %" PRIu64 ", \"describeChannelEndTime\": %" PRIu64 ", \"getSignalingChannelEndpointStartTime\": %" PRIu64 ", "    \
+    "\"getSignalingChannelEndpointEndTime\": %" PRIu64 ", \"getIceServerConfigStartTime\": %" PRIu64 ", \"getIceServerConfigEndTime\": %" PRIu64     \
+    ", "                                                                                                                                             \
+    "\"getTokenStartTime\": %" PRIu64 ", \"getTokenEndTime\": %" PRIu64 ", \"createChannelStartTime\": %" PRIu64                                     \
+    ", \"createChannelEndTime\": %" PRIu64 ", "                                                                                                      \
+    "\"connectStartTime\": %" PRIu64 ", \"connectEndTime\": %" PRIu64 " }"
+#define ICE_AGENT_METRICS_JSON_TEMPLATE "{\"candidateGatheringStartTime\": %" PRIu64 ", \"candidateGatheringEndTime\": %" PRIu64 " }"
 
 #define ICE_TRANSPORT_POLICY_ENV_VAR ((PCHAR) "KVS_ICE_TRANSPORT_POLICY")
 
