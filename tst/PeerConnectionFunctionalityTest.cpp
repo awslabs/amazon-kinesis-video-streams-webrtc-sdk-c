@@ -43,14 +43,15 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
 
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
-        PPeerContainer container = (PPeerContainer)customData;
+        PPeerContainer container = (PPeerContainer) customData;
         if (candidateStr != NULL) {
             container->client->lock.lock();
-            if(!container->client->noNewThreads) {
+            if (!container->client->noNewThreads) {
                 container->client->threads.push_back(std::thread(
                     [container](std::string candidate) {
                         RtcIceCandidateInit iceCandidate;
-                        EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
+                        EXPECT_EQ(STATUS_SUCCESS,
+                                  deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
                         EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) container->pc, iceCandidate.candidate));
                     },
                     std::string(candidateStr)));
@@ -99,8 +100,9 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
     EXPECT_EQ(2, connectedCount);
 
     this->lock.lock();
-    //join all threads before leaving
-    for (auto& th : this->threads) th.join();
+    // join all threads before leaving
+    for (auto& th : this->threads)
+        th.join();
 
     this->threads.clear();
     this->noNewThreads = TRUE;
@@ -652,14 +654,15 @@ TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
     addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
 
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
-        PPeerContainer container = (PPeerContainer)customData;
+        PPeerContainer container = (PPeerContainer) customData;
         if (candidateStr != NULL) {
             container->client->lock.lock();
-            if(!container->client->noNewThreads) {
+            if (!container->client->noNewThreads) {
                 container->client->threads.push_back(std::thread(
                     [container](std::string candidate) {
                         RtcIceCandidateInit iceCandidate;
-                        EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
+                        EXPECT_EQ(STATUS_SUCCESS,
+                                  deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
                         EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) container->pc, iceCandidate.candidate));
                     },
                     std::string(candidateStr)));
@@ -726,7 +729,8 @@ TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
     }
 
     this->lock.lock();
-    for (auto& th : this->threads) th.join();
+    for (auto& th : this->threads)
+        th.join();
 
     this->threads.clear();
     this->noNewThreads = TRUE;
@@ -1302,7 +1306,8 @@ TEST_F(PeerConnectionFunctionalityTest, renegotiateWithSameIceCredentials)
 
     // Stop ICE candidate forwarding threads before re-negotiation
     this->lock.lock();
-    for (auto& th : this->threads) th.join();
+    for (auto& th : this->threads)
+        th.join();
     this->threads.clear();
     this->noNewThreads = FALSE;
     this->lock.unlock();
@@ -1340,7 +1345,8 @@ TEST_F(PeerConnectionFunctionalityTest, renegotiateWithSameIceCredentials)
     EXPECT_EQ(0u, transceiverCount) << "Answerer should have no fake transceivers";
 
     this->lock.lock();
-    for (auto& th : this->threads) th.join();
+    for (auto& th : this->threads)
+        th.join();
     this->threads.clear();
     this->noNewThreads = TRUE;
     this->lock.unlock();
@@ -1374,7 +1380,8 @@ TEST_F(PeerConnectionFunctionalityTest, renegotiateWithIceRestart)
 
     // Stop ICE candidate forwarding threads before re-negotiation
     this->lock.lock();
-    for (auto& th : this->threads) th.join();
+    for (auto& th : this->threads)
+        th.join();
     this->threads.clear();
     this->noNewThreads = FALSE;
     this->lock.unlock();
@@ -1403,7 +1410,8 @@ TEST_F(PeerConnectionFunctionalityTest, renegotiateWithIceRestart)
     EXPECT_GE(ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]), (SIZE_T) 1);
 
     this->lock.lock();
-    for (auto& th : this->threads) th.join();
+    for (auto& th : this->threads)
+        th.join();
     this->threads.clear();
     this->noNewThreads = TRUE;
     this->lock.unlock();
@@ -1447,7 +1455,8 @@ TEST_F(PeerConnectionFunctionalityTest, renegotiateWithNewTransceiver)
 
     // Stop ICE candidate forwarding threads before re-negotiation
     this->lock.lock();
-    for (auto& th : this->threads) th.join();
+    for (auto& th : this->threads)
+        th.join();
     this->threads.clear();
     this->noNewThreads = FALSE;
     this->lock.unlock();
@@ -1505,7 +1514,8 @@ TEST_F(PeerConnectionFunctionalityTest, renegotiateWithNewTransceiver)
     EXPECT_EQ(1u, transceiverCount) << "Answerer should have 1 user transceiver (audio)";
 
     this->lock.lock();
-    for (auto& th : this->threads) th.join();
+    for (auto& th : this->threads)
+        th.join();
     this->threads.clear();
     this->noNewThreads = TRUE;
     this->lock.unlock();
@@ -1542,7 +1552,8 @@ TEST_F(PeerConnectionFunctionalityTest, renegotiateWithTrackRemoved)
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
     this->lock.lock();
-    for (auto& th : this->threads) th.join();
+    for (auto& th : this->threads)
+        th.join();
     this->threads.clear();
     this->noNewThreads = FALSE;
     this->lock.unlock();
