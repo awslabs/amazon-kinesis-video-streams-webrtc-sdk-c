@@ -305,7 +305,7 @@ This application can send media from a GStreamer pipeline using test H264/Opus f
 ```shell
 ./samples/kvsWebrtcClientMasterGstSample <channelName> <mediaType> <sourceType>
 ```
-Pass the desired media and source type when running the sample. The mediaType can be `audio-video` or `video-only`. To use the **Storage For WebRTC** feature, use `audio-video-storage` as the mediaType. The source type can be `testsrc`, `devicesrc`, or `rtspsrc`. Specify the RTSP URI if using `rtspsrc`:
+Pass the desired media and source type when running the sample. The mediaType parameter supports three values: `audio-video`, `video-only`, and `audio-video-storage` (WebRTC Storage). The source type can be `testsrc`, `devicesrc`, or `rtspsrc`. Specify the RTSP URI if using `rtspsrc`:
 
 ```shell
 ./samples/kvsWebrtcClientMasterGstSample <channelName> <mediaType> rtspsrc rtsp://<rtspUri>
