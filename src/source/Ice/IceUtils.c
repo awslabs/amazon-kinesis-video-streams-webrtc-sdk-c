@@ -168,30 +168,18 @@ STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 pa
     UINT32 stunPacketSize = STUN_PACKET_ALLOCATION_SIZE;
     BYTE stunPacketBuffer[STUN_PACKET_ALLOCATION_SIZE];
 
-    CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+    CHAR ipAddrStr[KVS_IP_ADDRESS_PORT_STRING_BUFFER_LEN];
 
-    CHK_STATUS(getIpAddrStr(pDest, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
+    CHK_STATUS(getIpAddrPortStr(pDest, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
 
     CHK_STATUS(iceUtilsPackageStunPacket(pStunPacket, password, passwordLen, stunPacketBuffer, &stunPacketSize));
     CHK(pDest != NULL, STATUS_NULL_ARG);
     switch (pStunPacket->header.stunMessageType) {
         case STUN_PACKET_TYPE_BINDING_REQUEST:
-            if (pDest->family == KVS_IP_FAMILY_TYPE_IPV4) {
-                DLOGD("Sending BINDING_REQUEST on socket id: %d, to ip:%s, port:%u", pSocketConnection->localSocket, ipAddrStr,
-                      getInt16(pDest->port));
-            } else {
-                DLOGD("Sending BINDING_REQUEST on socket id: %d, to ip:%s, port:%u", pSocketConnection->localSocket, ipAddrStr,
-                      getInt16(pDest->port));
-            }
+            DLOGD("Sending BINDING_REQUEST on socket id: %d, to %s", pSocketConnection->localSocket, ipAddrStr);
             break;
         case STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS:
-            if (pDest->family == KVS_IP_FAMILY_TYPE_IPV4) {
-                DLOGD("Sending BINDING_RESPONSE_SUCCESS on socket id: %d to ip:%s, port:%u", pSocketConnection->localSocket, ipAddrStr,
-                      getInt16(pDest->port));
-            } else {
-                DLOGD("Sending BINDING_RESPONSE_SUCCESS on socket id: %d to ip:%s, port:%u", pSocketConnection->localSocket, ipAddrStr,
-                      getInt16(pDest->port));
-            }
+            DLOGD("Sending BINDING_RESPONSE_SUCCESS on socket id: %d to %s", pSocketConnection->localSocket, ipAddrStr);
             break;
         default:
             break;
