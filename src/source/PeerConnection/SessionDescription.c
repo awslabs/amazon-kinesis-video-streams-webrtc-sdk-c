@@ -1258,24 +1258,21 @@ RTC_RTP_TRANSCEIVER_DIRECTION intersectTransceiverDirection(RTC_RTP_TRANSCEIVER_
 STATUS writeTransceiverDirection(PCHAR buf, UINT32 len, RTC_RTP_TRANSCEIVER_DIRECTION direction)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 amountWritten;
+    UINT32 amountWouldHaveWritten;
 
     CHK(buf != NULL, STATUS_NULL_ARG);
     CHK(len > 0, STATUS_INVALID_ARG_LEN);
 
     if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV) {
-        amountWritten = SNPRINTF(buf, len, "%s", RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV_STR);
-        CHK(amountWritten == RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV_STRLEN, STATUS_BUFFER_TOO_SMALL);
+        amountWouldHaveWritten = SNPRINTF(buf, len, "%s", RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV_STR);
     } else if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY) {
-        amountWritten = SNPRINTF(buf, len, "%s", RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY_STR);
-        CHK(amountWritten == RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY_STRLEN, STATUS_BUFFER_TOO_SMALL);
+        amountWouldHaveWritten = SNPRINTF(buf, len, "%s", RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY_STR);
     } else if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY) {
-        amountWritten = SNPRINTF(buf, len, "%s", RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY_STR);
-        CHK(amountWritten == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY_STRLEN, STATUS_BUFFER_TOO_SMALL);
+        amountWouldHaveWritten = SNPRINTF(buf, len, "%s", RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY_STR);
     } else {
-        amountWritten = SNPRINTF(buf, len, "%s", RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE_STR);
-        CHK(amountWritten == RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE_STRLEN, STATUS_BUFFER_TOO_SMALL);
+        amountWouldHaveWritten = SNPRINTF(buf, len, "%s", RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE_STR);
     }
+    CHK(amountWouldHaveWritten < len, STATUS_BUFFER_TOO_SMALL);
 
 CleanUp:
     if (STATUS_FAILED(retStatus) && buf != NULL & len > 0) {
