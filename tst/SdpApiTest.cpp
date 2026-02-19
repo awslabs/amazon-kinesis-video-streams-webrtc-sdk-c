@@ -2793,6 +2793,176 @@ TEST_F(SdpApiTest, addTransceiverUnknownCodecId_returnsStatusNotImplemented)
     freePeerConnection(&offerPc);
 }
 
+TEST_F(SdpApiTest, intersectTransceiverDirection_SendVideoBackNoAudio)
+{
+    auto offer = std::string(R"(v=0
+o=- 481034601 1588366671 IN IP4 0.0.0.0
+s=-
+t=0 0
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+a=group:BUNDLE 0 1
+m=video 9 UDP/TLS/RTP/SAVPF 96
+c=IN IP4 0.0.0.0
+a=setup:actpass
+a=mid:0
+a=ice-ufrag:WWlXtoHfeAVCwqHc
+a=ice-pwd:GvmyTnsfVtQuxuoareyqyAapQRoAeMdp
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:96 H264/90000
+a=recvonly
+m=audio 9 UDP/TLS/RTP/SAVPF 111
+c=IN IP4 0.0.0.0
+a=setup:actpass
+a=mid:1
+a=ice-ufrag:WWlXtoHfeAVCwqHc
+a=ice-pwd:GvmyTnsfVtQuxuoareyqyAapQRoAeMdp
+a=rtcp-mux
+a=rtpmap:111 opus/48000/2
+a=sendrecv
+)");
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcMediaStreamTrack videoTrack{}, audioTrack{};
+        PRtcRtpTransceiver videoTransceiver = nullptr, audioTransceiver = nullptr;
+        RtcSessionDescriptionInit offerSdp{}, answerSdp{};
+        RtcRtpTransceiverInit videoInit{}, audioInit{};
+
+        videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+        STRCPY(videoTrack.streamId, "videoStream");
+        STRCPY(videoTrack.trackId, "videoTrack");
+        videoInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+
+        audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+        audioTrack.codec = RTC_CODEC_OPUS;
+        STRCPY(audioTrack.streamId, "audioStream");
+        STRCPY(audioTrack.trackId, "audioTrack");
+        audioInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRCPY(offerSdp.sdp, sdp);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_OPUS));
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &videoTrack, &videoInit, &videoTransceiver));
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &audioTrack, &audioInit, &audioTransceiver));
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+        std::string answer(answerSdp.sdp);
+        EXPECT_PRED_FORMAT2(testing::IsSubstring, "m=video", answer);
+        EXPECT_PRED_FORMAT2(testing::IsSubstring, "m=audio", answer);
+        
+        // Find positions of media sections
+        size_t videoPos = answer.find("m=video");
+        size_t audioPos = answer.find("m=audio");
+        
+        // Find direction attributes, searching from each media section start
+        size_t videoSendonly = answer.find("a=sendonly", videoPos);
+        size_t audioRecvonly = answer.find("a=recvonly", audioPos);
+        
+        // Verify video has sendonly (offer recvonly + answer sendonly = sendonly)
+        EXPECT_NE(videoSendonly, std::string::npos);
+        EXPECT_LT(videoSendonly, audioPos); // sendonly must be before audio section (i.e., in video section)
+        
+        // Verify audio has recvonly (offer sendrecv + answer recvonly = recvonly)
+        EXPECT_NE(audioRecvonly, std::string::npos);
+        EXPECT_GT(audioRecvonly, audioPos); // recvonly must be after audio section start (i.e., in audio section)
+
+        closePeerConnection(pRtcPeerConnection);
+        freePeerConnection(&pRtcPeerConnection);
+    });
+}
+
+TEST_F(SdpApiTest, intersectTransceiverDirection_SendBothVideoAndAudioBack)
+{
+    auto offer = std::string(R"(v=0
+o=- 481034601 1588366671 IN IP4 0.0.0.0
+s=-
+t=0 0
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+a=group:BUNDLE 0 1
+m=video 9 UDP/TLS/RTP/SAVPF 96
+c=IN IP4 0.0.0.0
+a=setup:actpass
+a=mid:0
+a=ice-ufrag:WWlXtoHfeAVCwqHc
+a=ice-pwd:GvmyTnsfVtQuxuoareyqyAapQRoAeMdp
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:96 H264/90000
+a=recvonly
+m=audio 9 UDP/TLS/RTP/SAVPF 111
+c=IN IP4 0.0.0.0
+a=setup:actpass
+a=mid:1
+a=ice-ufrag:WWlXtoHfeAVCwqHc
+a=ice-pwd:GvmyTnsfVtQuxuoareyqyAapQRoAeMdp
+a=rtcp-mux
+a=rtpmap:111 opus/48000/2
+a=sendrecv
+)");
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcMediaStreamTrack videoTrack{}, audioTrack{};
+        PRtcRtpTransceiver videoTransceiver = nullptr, audioTransceiver = nullptr;
+        RtcSessionDescriptionInit offerSdp{}, answerSdp{};
+        RtcRtpTransceiverInit videoInit{}, audioInit{};
+
+        videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+        STRCPY(videoTrack.streamId, "videoStream");
+        STRCPY(videoTrack.trackId, "videoTrack");
+        videoInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+
+        audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+        audioTrack.codec = RTC_CODEC_OPUS;
+        STRCPY(audioTrack.streamId, "audioStream");
+        STRCPY(audioTrack.trackId, "audioTrack");
+        audioInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRCPY(offerSdp.sdp, sdp);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_OPUS));
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &videoTrack, &videoInit, &videoTransceiver));
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &audioTrack, &audioInit, &audioTransceiver));
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+        std::string answer(answerSdp.sdp);
+        EXPECT_PRED_FORMAT2(testing::IsSubstring, "m=video", answer);
+        EXPECT_PRED_FORMAT2(testing::IsSubstring, "m=audio", answer);
+
+        // Find positions of media sections
+        size_t videoPos = answer.find("m=video");
+        size_t audioPos = answer.find("m=audio");
+
+        // Find direction attributes, searching from each media section start
+        size_t videoSendonly = answer.find("a=sendonly", videoPos);
+        size_t audioSendrecv = answer.find("a=sendrecv", audioPos);
+
+        // Verify video has sendonly (offer recvonly + answer sendrecv = sendonly)
+        EXPECT_NE(videoSendonly, std::string::npos);
+        EXPECT_LT(videoSendonly, audioPos); // sendonly must be before audio section (i.e., in video section)
+
+        // Verify audio has recvonly (offer sendrecv + answer sendrecv = sendrecv)
+        EXPECT_NE(audioSendrecv, std::string::npos);
+        EXPECT_GT(audioSendrecv, audioPos); // sendrecv must be after audio section start (i.e., in audio section)
+
+        closePeerConnection(pRtcPeerConnection);
+        freePeerConnection(&pRtcPeerConnection);
+    });
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
