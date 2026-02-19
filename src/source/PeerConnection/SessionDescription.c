@@ -691,8 +691,10 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         }
         for (i = 0; i < remoteAttributeCount && directionFound == FALSE; i++) {
             if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[i].attributeName, "sendrecv") == 0) {
-                RTC_RTP_TRANSCEIVER_DIRECTION intersection = intersectTransceiverDirection(pKvsRtpTransceiver->transceiver.direction, RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV);
-                CHK_STATUS(writeTransceiverDirection(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName), intersection));
+                RTC_RTP_TRANSCEIVER_DIRECTION intersection =
+                    intersectTransceiverDirection(pKvsRtpTransceiver->transceiver.direction, RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV);
+                CHK_STATUS(writeTransceiverDirection(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName,
+                                                     SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName), intersection));
                 directionFound = TRUE;
             } else if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[i].attributeName, "recvonly") == 0) {
                 STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "sendonly");
