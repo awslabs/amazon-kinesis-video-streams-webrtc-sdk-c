@@ -3,8 +3,6 @@
 
 extern PSampleConfiguration gSampleConfiguration;
 
-STATUS addSendOnlyVideoRecvOnlyAudioTransceivers(PSampleConfiguration, PSampleStreamingSession);
-
 #define SAMPLE_NAME ((PCHAR) "KVS WebRTC Storage VideoOnly Master")
 
 INT32 main(INT32 argc, CHAR* argv[])
@@ -101,51 +99,6 @@ CleanUp:
     // Some platforms also treat 1 or 0 differently, so it's better to use
     // EXIT_FAILURE and EXIT_SUCCESS macros for portability.
     return STATUS_FAILED(retStatus) ? EXIT_FAILURE : EXIT_SUCCESS;
-}
-
-STATUS addSendOnlyVideoRecvOnlyAudioTransceivers(PSampleConfiguration pSampleConfiguration, PSampleStreamingSession pSampleStreamingSession) {
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    RtcRtpTransceiverInit audioRtpTransceiverInit, videoRtpTransceiverInit;
-    RtcMediaStreamTrack videoTrack = {0}, audioTrack = {0};
-
-    CHK(pSampleStreamingSession != NULL && pSampleStreamingSession != NULL, STATUS_NULL_ARG);
-
-    videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
-    videoTrack.codec = pSampleConfiguration->videoCodec;
-    videoRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
-    STRCPY(videoTrack.streamId, "myKvsVideoStream");
-    STRCPY(videoTrack.trackId, "myVideoTrack");
-
-    CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &videoTrack, &videoRtpTransceiverInit,
-                              &pSampleStreamingSession->pVideoRtcRtpTransceiver));
-
-    CHK_STATUS(configureTransceiverRollingBuffer(pSampleStreamingSession->pVideoRtcRtpTransceiver, &videoTrack,
-                                                 pSampleConfiguration->videoRollingBufferDurationSec,
-                                                 pSampleConfiguration->videoRollingBufferBitratebps));
-
-    CHK_STATUS(transceiverOnBandwidthEstimation(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession,
-                                                sampleBandwidthEstimationHandler));
-
-    audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
-    audioTrack.codec = pSampleConfiguration->audioCodec;
-    audioRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
-    STRCPY(audioTrack.streamId, "myKvsVideoStream");
-    STRCPY(audioTrack.trackId, "myAudioTrack");
-    CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &audioTrack, &audioRtpTransceiverInit,
-                              &pSampleStreamingSession->pAudioRtcRtpTransceiver));
-
-    CHK_STATUS(configureTransceiverRollingBuffer(pSampleStreamingSession->pAudioRtcRtpTransceiver, &audioTrack,
-                                                 pSampleConfiguration->audioRollingBufferDurationSec,
-                                                 pSampleConfiguration->audioRollingBufferBitratebps));
-
-    CHK_STATUS(transceiverOnBandwidthEstimation(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession,
-                                                sampleBandwidthEstimationHandler));
-CleanUp:
-    CHK_LOG_ERR(retStatus);
-
-    LEAVES();
-    return retStatus;
 }
 
 PVOID sampleReceiveAudioVideoFrame(PVOID args)

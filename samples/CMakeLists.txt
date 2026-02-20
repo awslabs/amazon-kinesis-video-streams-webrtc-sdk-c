@@ -115,10 +115,30 @@ if(GST_FOUND)
   add_executable(
     kvsWebrtcClientMasterGstSample
           common/Common.c
+          common/GstMedia.c
           p2p/GstAudioVideoReceiver.c
           p2p/kvsWebRTCClientMasterGstSample.c
   )
   target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets)
+
+  add_executable(
+          kvsWebrtcStorageAudioVideoMasterGstSample
+          common/Common.c
+          common/GstMedia.c
+          p2p/GstAudioVideoReceiver.c
+          webrtcstorage/kvsWebRTCStorageAudioVideoMasterGstSample.c
+  )
+  target_link_libraries(kvsWebrtcStorageAudioVideoMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets)
+
+  add_executable(
+          kvsWebrtcStorageVideoOnlyMasterGstSample
+          common/Common.c
+          common/GstMedia.c
+          p2p/GstAudioVideoReceiver.c
+          webrtcstorage/kvsWebRTCStorageVideoOnlyMasterGstSample.c
+  )
+  target_link_libraries(kvsWebrtcStorageVideoOnlyMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets)
+
 
   install(TARGETS kvsWebrtcClientMasterGstSample
     RUNTIME DESTINATION bin

@@ -10,7 +10,7 @@ Shared include file for the samples
 extern "C" {
 #endif
 
-#include "com/amazonaws/kinesis/video/webrtcclient/Include.h"
+#include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 
 #define NUMBER_OF_H264_FRAME_FILES               1500
 #define NUMBER_OF_H265_FRAME_FILES               1500
@@ -297,6 +297,8 @@ BOOL sampleFilterNetworkInterfaces(UINT64, PCHAR);
 UINT32 setLogLevel();
 STATUS checkSampleFramesExist(RTC_CODEC);
 STATUS addSendrecvVideoAndAudioTransceivers(PSampleConfiguration, PSampleStreamingSession);
+STATUS addSendOnlyVideoRecvOnlyAudioTransceivers(PSampleConfiguration, PSampleStreamingSession);
+STATUS addSendOnlyVideoSendrecvAudioTransceivers(PSampleConfiguration, PSampleStreamingSession);
 
 #ifdef __cplusplus
 }

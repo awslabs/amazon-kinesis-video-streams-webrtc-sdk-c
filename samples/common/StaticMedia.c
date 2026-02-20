@@ -1,14 +1,14 @@
 #include "StaticMedia.h"
 
-STATUS useStaticFramePresets(PSampleConfiguration pSampleConfiguration, RTC_CODEC codec) {
+STATUS useStaticFramePresets(PSampleConfiguration pSampleConfiguration, RTC_CODEC codec)
+{
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
     CHK_STATUS(checkSampleFramesExist(codec));
 
-    switch (codec)
-    {
+    switch (codec) {
         case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
             pSampleConfiguration->videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
             pSampleConfiguration->videoRollingBufferDurationSec = 3;
@@ -201,8 +201,7 @@ STATUS checkSampleFramesExist(RTC_CODEC codec)
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 frameSize;
 
-    switch (codec)
-    {
+    switch (codec) {
         case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
             CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./h264SampleFrames/frame-0001.h264"));
             DLOGI("Checked H264 sample video frame availability....available");
