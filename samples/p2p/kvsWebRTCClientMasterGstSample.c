@@ -1,4 +1,4 @@
-#include "Samples.h"
+#include "../common/Samples.h"
 #include <gst/gst.h>
 #include <gst/app/gstappsink.h>
 
@@ -451,7 +451,6 @@ INT32 main(INT32 argc, CHAR* argv[])
             DLOGI("[KVS Gstreamer Master] Streaming video only");
         } else if (STRCMP(argv[2], "audio-video-storage") == 0) {
             pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
-            pSampleConfiguration->channelInfo.useMediaStorage = TRUE;
             DLOGI("[KVS Gstreamer Master] Streaming audio and video");
         } else if (STRCMP(argv[2], "audio-video") == 0) {
             pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;

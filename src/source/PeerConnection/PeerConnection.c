@@ -757,7 +757,9 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
         packetCount = pKvsRtpTransceiver->outboundStats.sent.packetsSent;
         octetCount = pKvsRtpTransceiver->outboundStats.sent.bytesSent;
         MUTEX_UNLOCK(pKvsRtpTransceiver->statsLock);
-        DLOGD("sender report %u %" PRIu64 " %" PRIu64 " : %u packets %u bytes", ssrc, ntpTime, rtpTime, packetCount, octetCount);
+        if (pKvsRtpTransceiver->transceiver.direction == RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY || pKvsRtpTransceiver->transceiver.direction == RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV) {
+            DLOGD("sender report %u %" PRIu64 " %" PRIu64 " : %u packets %u bytes", ssrc, ntpTime, rtpTime, packetCount, octetCount);
+        }
         packetLen = RTCP_PACKET_HEADER_LEN + 24;
 
         // srtp_protect_rtcp() in encryptRtcpPacket() assumes memory availability to write 10 bytes of authentication tag and

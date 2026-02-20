@@ -65,14 +65,15 @@ file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/h265SampleFrames" DESTINATION .)
 
 add_executable(
   kvsWebrtcClientMaster
-  Common.c
-  kvsWebRTCClientMaster.c)
+        common/Common.c
+        common/StaticMedia.c
+        p2p/kvsWebRTCClientMaster.c)
 target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets)
 
 add_executable(
   kvsWebrtcClientViewer
-  Common.c
-  kvsWebRTCClientViewer.c)
+        common/Common.c
+        p2p/kvsWebRTCClientViewer.c)
 target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets)
 
 add_executable(
@@ -80,12 +81,42 @@ add_executable(
         discoverNatBehavior.c)
 target_link_libraries(discoverNatBehavior kvsWebrtcClient ${EXTRA_DEPS})
 
+# WebRTC Storage (Ingest) Samples
+add_executable(
+    kvsWebrtcStorageAudioVideoMaster
+    common/Common.c
+    common/StaticMedia.c
+    webrtcstorage/kvsWebRTCStorageAudioVideoMasterSample.c
+)
+target_link_libraries(kvsWebrtcStorageAudioVideoMaster
+    kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS}
+    kvsCommonLws kvspicUtils websockets
+)
+
+add_executable(
+    kvsWebrtcStorageVideoOnlyMaster
+    common/Common.c
+    common/StaticMedia.c
+    webrtcstorage/kvsWebRTCStorageVideoOnlyMasterSample.c
+)
+
+target_link_libraries(kvsWebrtcStorageVideoOnlyMaster
+    kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS}
+    kvsCommonLws kvspicUtils websockets
+)
+
+install(TARGETS
+    kvsWebrtcStorageAudioVideoMaster
+    kvsWebrtcStorageVideoOnlyMaster
+    RUNTIME DESTINATION bin
+)
+
 if(GST_FOUND)
   add_executable(
     kvsWebrtcClientMasterGstSample
-    Common.c
-    GstAudioVideoReceiver.c
-    kvsWebrtcClientMasterGstSample.c
+          common/Common.c
+          p2p/GstAudioVideoReceiver.c
+          p2p/kvsWebRTCClientMasterGstSample.c
   )
   target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets)
 
@@ -95,9 +126,9 @@ if(GST_FOUND)
 
   add_executable(
     kvsWebrtcClientViewerGstSample
-    Common.c
-    GstAudioVideoReceiver.c
-    kvsWebRTCClientViewerGstSample.c
+          common/Common.c
+          p2p/GstAudioVideoReceiver.c
+          p2p/kvsWebRTCClientViewerGstSample.c
   )
   target_link_libraries(kvsWebrtcClientViewerGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets)
 

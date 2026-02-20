@@ -527,8 +527,8 @@ The certificate generating function ([createCertificateAndKey](https://awslabs.g
 
 **Important Note: It is recommended to rotate the certificates often - preferably for every peer connection to avoid a compromised client weakening the security of the new connections.**
 
-Take `kvsWebRTCClientMaster` as sample, add `RtcCertificate certificates[CERT_COUNT];` to **SampleConfiguration** in [Samples.h](./samples/Samples.h).
-Then pass in the pre-generated certificate in initializePeerConnection() in [Common.c](./samples/Common.c).
+Take `kvsWebRTCClientMaster` as sample, add `RtcCertificate certificates[CERT_COUNT];` to **SampleConfiguration** in [Samples.h](samples/common/Samples.h).
+Then pass in the pre-generated certificate in initializePeerConnection() in [Common.c](samples/common/Common.c).
 
 ```c
 configuration.certificates[0].pCertificate = pSampleConfiguration->certificates[0].pCertificate;

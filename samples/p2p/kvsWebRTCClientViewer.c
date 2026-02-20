@@ -1,4 +1,4 @@
-#include "Samples.h"
+#include "../common/Samples.h"
 
 extern PSampleConfiguration gSampleConfiguration;
 
