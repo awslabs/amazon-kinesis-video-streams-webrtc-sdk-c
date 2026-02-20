@@ -564,7 +564,12 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     // Add a SendRecv Transceiver of type audio
     audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
     audioTrack.codec = pSampleConfiguration->audioCodec;
-    audioRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+
+    if (isEnvVarEnabled("DONT_SEND_AUDIO")) {
+        audioRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
+    } else {
+        audioRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    }
     STRCPY(audioTrack.streamId, "myKvsVideoStream");
     STRCPY(audioTrack.trackId, "myAudioTrack");
     CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &audioTrack, &audioRtpTransceiverInit,

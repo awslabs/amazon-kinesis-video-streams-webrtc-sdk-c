@@ -83,11 +83,18 @@ extern "C" {
 
 #define CODEC_RTPMAP_PAYLOAD_TYPES_HASH_TABLE_BUCKET_LENGTH 2
 
+#define RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV_STR ((PCHAR) "sendrecv")
+#define RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY_STR ((PCHAR) "sendonly")
+#define RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY_STR ((PCHAR) "recvonly")
+#define RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE_STR ((PCHAR) "inactive")
+
 STATUS setPayloadTypesFromOffer(PHashTable, PHashTable, PSessionDescription);
 STATUS setPayloadTypesForOffer(PHashTable);
 
 STATUS setTransceiverPayloadTypes(PHashTable, PHashTable, PDoubleList);
 STATUS populateSessionDescription(PKvsPeerConnection, PSessionDescription, PSessionDescription);
+RTC_RTP_TRANSCEIVER_DIRECTION intersectTransceiverDirection(RTC_RTP_TRANSCEIVER_DIRECTION, RTC_RTP_TRANSCEIVER_DIRECTION);
+STATUS writeTransceiverDirection(PCHAR, UINT32, RTC_RTP_TRANSCEIVER_DIRECTION);
 STATUS findTransceiversByRemoteDescription(PKvsPeerConnection, PSessionDescription, PHashTable, PHashTable);
 STATUS setReceiversSsrc(PSessionDescription, PDoubleList);
 PCHAR fmtpForPayloadType(UINT64, PSessionDescription);
