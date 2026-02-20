@@ -1613,7 +1613,12 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
 
     if (pRtcRtpTransceiverInit != NULL) {
-        direction = pRtcRtpTransceiverInit->direction;
+        if (RTC_RTP_TRANSCEIVER_DIRECTION_UNINITIALIZED < pRtcRtpTransceiverInit->direction &&
+            pRtcRtpTransceiverInit->direction < RTC_RTP_TRANSCEIVER_DIRECTION_MAX) {
+            direction = pRtcRtpTransceiverInit->direction;
+        } else {
+            DLOGW("Unknown direction: %u, defaulting to sendrecv", (UINT32) pRtcRtpTransceiverInit->direction);
+        }
     }
 
     if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY && pRtcMediaStreamTrack == NULL) {
