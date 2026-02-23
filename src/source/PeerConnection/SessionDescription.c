@@ -1230,6 +1230,16 @@ CleanUp:
 // This respects the user's configured direction while negotiating with the remote peer.
 RTC_RTP_TRANSCEIVER_DIRECTION intersectTransceiverDirection(RTC_RTP_TRANSCEIVER_DIRECTION local, RTC_RTP_TRANSCEIVER_DIRECTION remote)
 {
+    if (local <= RTC_RTP_TRANSCEIVER_DIRECTION_UNINITIALIZED || local >= RTC_RTP_TRANSCEIVER_DIRECTION_MAX) {
+        DLOGW("Unrecognized local direction: %u, default to sendrecv", (UINT32) local);
+        local = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    }
+
+    if (remote <= RTC_RTP_TRANSCEIVER_DIRECTION_UNINITIALIZED || remote >= RTC_RTP_TRANSCEIVER_DIRECTION_MAX) {
+        DLOGW("Unrecognized remote direction: %u, default to sendrecv", (UINT32) remote);
+        remote = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    }
+
     // If either side is inactive, result is inactive
     if (local == RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE || remote == RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE) {
         return RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE;
