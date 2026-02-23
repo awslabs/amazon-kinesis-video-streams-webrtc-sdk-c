@@ -11,6 +11,7 @@ extern "C" {
 #endif
 
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
+#include <inttypes.h>
 
 #define NUMBER_OF_H264_FRAME_FILES               1500
 #define NUMBER_OF_H265_FRAME_FILES               1500
@@ -190,7 +191,7 @@ struct __SampleConfiguration {
     BOOL enableIceStats;
 
     AddTransceiversCallback addTransceiversCallback;
-} __SampleConfiguration;
+};
 
 typedef struct {
     CHAR content[100];
