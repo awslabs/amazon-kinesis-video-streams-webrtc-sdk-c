@@ -689,6 +689,12 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
             STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "inactive");
             directionFound = TRUE;
         }
+
+        // Compute the intersection of local and remote transceiver directions to determine the answer SDP direction.
+        // Example:
+        // If local transceiver supports "sendrecv" (audio) and "sendonly" (video), and remote offer supports "sendrecv" (audio)
+        // and "recvonly" (video), the intersection yields "sendrecv" (audio) and "sendonly" (video) respectively.
+        // This ensures the answer reflects the mutually compatible direction based on both peers' capabilities.
         for (i = 0; i < remoteAttributeCount && directionFound == FALSE; i++) {
             RTC_RTP_TRANSCEIVER_DIRECTION remoteDirection;
             if (STATUS_SUCCEEDED(parseTransceiverDirection(pSdpMediaDescriptionRemote->sdpAttributes[i].attributeName, &remoteDirection)) &&
