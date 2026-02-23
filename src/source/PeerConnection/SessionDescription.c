@@ -690,17 +690,13 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
             directionFound = TRUE;
         }
         for (i = 0; i < remoteAttributeCount && directionFound == FALSE; i++) {
-            if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[i].attributeName, "sendrecv") == 0) {
+            RTC_RTP_TRANSCEIVER_DIRECTION remoteDirection;
+            if (STATUS_SUCCEEDED(parseTransceiverDirection(pSdpMediaDescriptionRemote->sdpAttributes[i].attributeName, &remoteDirection)) &&
+                remoteDirection != RTC_RTP_TRANSCEIVER_DIRECTION_UNINITIALIZED) {
                 RTC_RTP_TRANSCEIVER_DIRECTION intersection =
-                    intersectTransceiverDirection(pKvsRtpTransceiver->transceiver.direction, RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV);
-                CHK_STATUS(writeTransceiverDirection(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName,
-                                                     SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName), intersection));
-                directionFound = TRUE;
-            } else if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[i].attributeName, "recvonly") == 0) {
-                STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "sendonly");
-                directionFound = TRUE;
-            } else if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[i].attributeName, "sendonly") == 0) {
-                STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "recvonly");
+                    intersectTransceiverDirection(pKvsRtpTransceiver->transceiver.direction, remoteDirection);
+                CHK_LOG_ERR(writeTransceiverDirection(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName,
+                                                      SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName), intersection));
                 directionFound = TRUE;
             }
         }
@@ -1223,6 +1219,36 @@ STATUS findCodecInTransceivers(PKvsPeerConnection pKvsPeerConnection, RTC_CODEC 
 
 CleanUp:
 
+    return retStatus;
+}
+
+RTC_RTP_TRANSCEIVER_DIRECTION parseTransceiverDirection(PCHAR str, RTC_RTP_TRANSCEIVER_DIRECTION* pDirection)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(str != NULL && pDirection != NULL, STATUS_NULL_ARG);
+
+    if (STRCMP(str, RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV_STR) == 0) {
+        *pDirection = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    } else if (STRCMP(str, RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY_STR) == 0) {
+        *pDirection = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
+    } else if (STRCMP(str, RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY_STR) == 0) {
+        *pDirection = RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+    } else if (STRCMP(str, RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE_STR) == 0) {
+        *pDirection = RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE;
+    } else {
+        *pDirection = RTC_RTP_TRANSCEIVER_DIRECTION_UNINITIALIZED;
+    }
+
+CleanUp:
+    if (STATUS_FAILED(retStatus) && pDirection != NULL) {
+        *pDirection = RTC_RTP_TRANSCEIVER_DIRECTION_UNINITIALIZED;
+    }
+
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
     return retStatus;
 }
 

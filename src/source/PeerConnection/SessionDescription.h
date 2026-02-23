@@ -94,6 +94,7 @@ STATUS setPayloadTypesForOffer(PHashTable);
 STATUS setTransceiverPayloadTypes(PHashTable, PHashTable, PDoubleList);
 STATUS populateSessionDescription(PKvsPeerConnection, PSessionDescription, PSessionDescription);
 RTC_RTP_TRANSCEIVER_DIRECTION intersectTransceiverDirection(RTC_RTP_TRANSCEIVER_DIRECTION, RTC_RTP_TRANSCEIVER_DIRECTION);
+RTC_RTP_TRANSCEIVER_DIRECTION parseTransceiverDirection(PCHAR, RTC_RTP_TRANSCEIVER_DIRECTION*);
 STATUS writeTransceiverDirection(PCHAR, UINT32, RTC_RTP_TRANSCEIVER_DIRECTION);
 STATUS findTransceiversByRemoteDescription(PKvsPeerConnection, PSessionDescription, PHashTable, PHashTable);
 STATUS setReceiversSsrc(PSessionDescription, PDoubleList);

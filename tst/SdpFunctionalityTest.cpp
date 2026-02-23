@@ -8,6 +8,52 @@ namespace webrtcclient {
 
 class SdpFunctionalityTest : public WebRtcClientTestBase {};
 
+// --------------- parseTransceiverDirection -----------------
+
+TEST_F(SdpFunctionalityTest, parseTransceiverDirection_NullString)
+{
+    RTC_RTP_TRANSCEIVER_DIRECTION direction;
+    EXPECT_EQ(STATUS_NULL_ARG, parseTransceiverDirection(NULL, &direction));
+
+    // It should set the direction to zero on failure
+    EXPECT_EQ(direction, RTC_RTP_TRANSCEIVER_DIRECTION_UNINITIALIZED);
+}
+
+TEST_F(SdpFunctionalityTest, parseTransceiverDirection_Invalid)
+{
+    RTC_RTP_TRANSCEIVER_DIRECTION direction;
+    EXPECT_EQ(STATUS_SUCCESS, parseTransceiverDirection((PCHAR) "rtcp-mux", &direction));
+    EXPECT_EQ(direction, RTC_RTP_TRANSCEIVER_DIRECTION_UNINITIALIZED);
+}
+
+TEST_F(SdpFunctionalityTest, parseTransceiverDirection_SendOnly)
+{
+    RTC_RTP_TRANSCEIVER_DIRECTION direction;
+    EXPECT_EQ(STATUS_SUCCESS, parseTransceiverDirection(RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY_STR, &direction));
+    EXPECT_EQ(direction, RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY);
+}
+
+TEST_F(SdpFunctionalityTest, parseTransceiverDirection_SendRecv)
+{
+    RTC_RTP_TRANSCEIVER_DIRECTION direction;
+    EXPECT_EQ(STATUS_SUCCESS, parseTransceiverDirection(RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV_STR, &direction));
+    EXPECT_EQ(direction, RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV);
+}
+
+TEST_F(SdpFunctionalityTest, parseTransceiverDirection_RecvOnly)
+{
+    RTC_RTP_TRANSCEIVER_DIRECTION direction;
+    EXPECT_EQ(STATUS_SUCCESS, parseTransceiverDirection(RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY_STR, &direction));
+    EXPECT_EQ(direction, RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY);
+}
+
+TEST_F(SdpFunctionalityTest, parseTransceiverDirection_Inactive)
+{
+    RTC_RTP_TRANSCEIVER_DIRECTION direction;
+    EXPECT_EQ(STATUS_SUCCESS, parseTransceiverDirection(RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE_STR, &direction));
+    EXPECT_EQ(direction, RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE);
+}
+
 // --------------- writeTransceiverDirection -----------------
 
 TEST_F(SdpFunctionalityTest, writeTransceiverDirection_NullBuffer)
