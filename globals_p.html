@@ -108,8 +108,9 @@ $(document).ready(function(){initNavTree('globals_p.html',''); initResizable(); 
 <li>parseMediaAttributes()&#160;:&#160;<a class="el" href="Deserialize_8c.html#a0f9d711b199b6e6614c89c4189f16ba2">Deserialize.c</a>, <a class="el" href="Sdp_8h.html#a9be1620cc5d7524e71b825fc65a32c38">Sdp.h</a></li>
 <li>parseMediaName()&#160;:&#160;<a class="el" href="Deserialize_8c.html#a1ac042ed524a6cdab914760ff6c0bac1">Deserialize.c</a>, <a class="el" href="Sdp_8h.html#aa758d49b2f55526ba876c32f8ec1e53c">Sdp.h</a></li>
 <li>parseRtcpTwccPacket()&#160;:&#160;<a class="el" href="Rtcp_8c.html#ac98ea92ed8b55757be82d8718389a35f">Rtcp.c</a>, <a class="el" href="Rtcp_8h.html#afd8f957057a8040f0d9384feebb6a558">Rtcp.h</a></li>
-<li>parseSessionAttributes()&#160;:&#160;<a class="el" href="Deserialize_8c.html#a297ed0b51990bce839f7df8d0f7aea2b">Deserialize.c</a>, <a class="el" href="Sdp_8h.html#ae4447853d5d93b52d6a590a76901e8b4">Sdp.h</a></li>
+<li>parseSessionAttributes()&#160;:&#160;<a class="el" href="Sdp_8h.html#ae4447853d5d93b52d6a590a76901e8b4">Sdp.h</a>, <a class="el" href="Deserialize_8c.html#a297ed0b51990bce839f7df8d0f7aea2b">Deserialize.c</a></li>
 <li>parseSignalingMessage()&#160;:&#160;<a class="el" href="LwsApiCalls_8c.html#a541e0b94e3a906e198afd76258df1b2e">LwsApiCalls.c</a>, <a class="el" href="LwsApiCalls_8h.html#aa7ab997b9484eff47fd521c859616d6d">LwsApiCalls.h</a></li>
+<li>parseTransceiverDirection()&#160;:&#160;<a class="el" href="SessionDescription_8c.html#a8a55a9ce13c774792b221f0c4ad3012c">SessionDescription.c</a>, <a class="el" href="SessionDescription_8h.html#a007d477e5c8b4e3a4f0441fc7fe96881">SessionDescription.h</a></li>
 <li>PAYLOAD_TYPE_MASK&#160;:&#160;<a class="el" href="RtpPacket_8h.html#a93f695445dd7b05c9e2e417345bab9cc">RtpPacket.h</a></li>
 <li>PayloadArray&#160;:&#160;<a class="el" href="RtpPacket_8h.html#af5428ee3dccb79a37f4f9d0d06054053">RtpPacket.h</a></li>
 <li>PChannelInfo&#160;:&#160;<a class="el" href="group__PublicStructures.html#gab1a88feab2cf5a556a90170eb434910a">Include.h</a></li>
@@ -125,7 +126,7 @@ $(document).ready(function(){initNavTree('globals_p.html',''); initResizable(); 
 <li>PEER_FRAME_BUFFER_SIZE_INCREMENT_FACTOR&#160;:&#160;<a class="el" href="PeerConnection_8h.html#ae8fb11058d6fd60fb6e163b8e4704c01">PeerConnection.h</a></li>
 <li>peerConnectionGetCurrentLocalDescription()&#160;:&#160;<a class="el" href="group__PublicMemberFunctions.html#ga19dfcbdcf4d136b56ce366fe2fb9bfb3">Include.h</a>, <a class="el" href="group__PublicMemberFunctions.html#ga19dfcbdcf4d136b56ce366fe2fb9bfb3">PeerConnection.c</a></li>
 <li>peerConnectionGetLocalDescription()&#160;:&#160;<a class="el" href="group__PublicMemberFunctions.html#gaa1940a0ddabf41c445b55f1317476e96">Include.h</a>, <a class="el" href="group__PublicMemberFunctions.html#gaa1940a0ddabf41c445b55f1317476e96">PeerConnection.c</a></li>
-<li>peerConnectionGetMetrics()&#160;:&#160;<a class="el" href="group__PublicMemberFunctions.html#ga84a68cd53825426050af16006b381a94">PeerConnection.c</a>, <a class="el" href="group__PublicMemberFunctions.html#ga84a68cd53825426050af16006b381a94">Include.h</a></li>
+<li>peerConnectionGetMetrics()&#160;:&#160;<a class="el" href="group__PublicMemberFunctions.html#ga84a68cd53825426050af16006b381a94">Include.h</a>, <a class="el" href="group__PublicMemberFunctions.html#ga84a68cd53825426050af16006b381a94">PeerConnection.c</a></li>
 <li>peerConnectionOnConnectionStateChange()&#160;:&#160;<a class="el" href="group__PublicMemberFunctions.html#gae937526652e3287c3e2dd9bee74ea799">Include.h</a>, <a class="el" href="group__PublicMemberFunctions.html#gae937526652e3287c3e2dd9bee74ea799">PeerConnection.c</a></li>
 <li>peerConnectionOnDataChannel()&#160;:&#160;<a class="el" href="group__PublicMemberFunctions.html#ga41afed748235c04e38fa7481e421055d">Include.h</a>, <a class="el" href="group__PublicMemberFunctions.html#ga41afed748235c04e38fa7481e421055d">PeerConnection.c</a></li>
 <li>peerConnectionOnIceCandidate()&#160;:&#160;<a class="el" href="group__PublicMemberFunctions.html#ga5a45606d264d6005c559b10fa42338bf">Include.h</a>, <a class="el" href="group__PublicMemberFunctions.html#ga5a45606d264d6005c559b10fa42338bf">PeerConnection.c</a></li>
@@ -274,7 +275,7 @@ $(document).ready(function(){initNavTree('globals_p.html',''); initResizable(); 
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Mon Feb 23 2026 22:00:16 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Mon Feb 23 2026 22:08:59 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>
