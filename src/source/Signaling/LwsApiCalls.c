@@ -2090,7 +2090,7 @@ STATUS parseSignalingMessage(PCHAR pMessage, UINT32 messageLen, PReceivedSignali
         }
     }
 
-    CHK(parsedMessageType, STATUS_SIGNALING_INVALID_MESSAGE_TYPE);
+    CHK_ERR(parsedMessageType, STATUS_SIGNALING_INVALID_MESSAGE_TYPE, "Could not parse: %.*s", messageLen, pMessage);
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
