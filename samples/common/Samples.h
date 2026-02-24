@@ -117,6 +117,10 @@ typedef struct __SampleStreamingSession* PSampleStreamingSession;
 typedef struct __SampleConfiguration SampleConfiguration;
 typedef struct __SampleConfiguration* PSampleConfiguration;
 
+/*
+ * @param pSampleConfiguration     Pointer to the sample configuration holding codec settings and rolling buffer parameters.
+ * @param pSampleStreamingSession  Pointer to the streaming session that owns the peer connection and will store the resulting transceiver handles.
+ */
 typedef STATUS (*AddTransceiversCallback)(PSampleConfiguration, PSampleStreamingSession);
 
 typedef struct {

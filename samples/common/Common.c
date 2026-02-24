@@ -1710,6 +1710,7 @@ CleanUp:
     return retStatus;
 }
 
+// Implements: AddTransceiversCallback
 STATUS addSendrecvVideoAndAudioTransceivers(PSampleConfiguration pSampleConfiguration, PSampleStreamingSession pSampleStreamingSession)
 {
     ENTERS();
@@ -1717,7 +1718,7 @@ STATUS addSendrecvVideoAndAudioTransceivers(PSampleConfiguration pSampleConfigur
     RtcRtpTransceiverInit audioRtpTransceiverInit, videoRtpTransceiverInit;
     RtcMediaStreamTrack videoTrack = {0}, audioTrack = {0};
 
-    CHK(pSampleStreamingSession != NULL && pSampleStreamingSession != NULL, STATUS_NULL_ARG);
+    CHK(pSampleConfiguration != NULL && pSampleStreamingSession != NULL, STATUS_NULL_ARG);
 
     videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
     videoTrack.codec = pSampleConfiguration->videoCodec;
@@ -1934,6 +1935,7 @@ VOID onDataChannel(UINT64 customData, PRtcDataChannel pRtcDataChannel)
 }
 #endif
 
+// Implements: AddTransceiversCallback
 STATUS addSendOnlyVideoRecvOnlyAudioTransceivers(PSampleConfiguration pSampleConfiguration, PSampleStreamingSession pSampleStreamingSession)
 {
     ENTERS();
@@ -1941,7 +1943,7 @@ STATUS addSendOnlyVideoRecvOnlyAudioTransceivers(PSampleConfiguration pSampleCon
     RtcRtpTransceiverInit audioRtpTransceiverInit, videoRtpTransceiverInit;
     RtcMediaStreamTrack videoTrack = {0}, audioTrack = {0};
 
-    CHK(pSampleStreamingSession != NULL && pSampleStreamingSession != NULL, STATUS_NULL_ARG);
+    CHK(pSampleConfiguration != NULL && pSampleStreamingSession != NULL, STATUS_NULL_ARG);
 
     videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
     videoTrack.codec = pSampleConfiguration->videoCodec;
@@ -1980,6 +1982,7 @@ CleanUp:
     return retStatus;
 }
 
+// Implements: AddTransceiversCallback
 STATUS addSendOnlyVideoSendrecvAudioTransceivers(PSampleConfiguration pSampleConfiguration, PSampleStreamingSession pSampleStreamingSession)
 {
     ENTERS();
@@ -1987,7 +1990,7 @@ STATUS addSendOnlyVideoSendrecvAudioTransceivers(PSampleConfiguration pSampleCon
     RtcRtpTransceiverInit audioRtpTransceiverInit, videoRtpTransceiverInit;
     RtcMediaStreamTrack videoTrack = {0}, audioTrack = {0};
 
-    CHK(pSampleStreamingSession != NULL && pSampleStreamingSession != NULL, STATUS_NULL_ARG);
+    CHK(pSampleConfiguration != NULL && pSampleStreamingSession != NULL, STATUS_NULL_ARG);
 
     videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
     videoTrack.codec = pSampleConfiguration->videoCodec;
