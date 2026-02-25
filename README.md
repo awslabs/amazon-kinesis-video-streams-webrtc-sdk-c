@@ -285,27 +285,23 @@ By default, the SSL CA certificate is set to [`../certs/cert.pem`](./certs/cert.
 ### Running the Samples
 After executing `make` you will have sample applications in your `build/samples` directory. From the `build/` directory, run any of the sample applications by passing to it the name of your signaling channel. If a signaling channel does not exist with the name you provide, the application creates one.
 
-#### Sample: kvsWebrtcClientMaster
+#### Peer-to-peer samples
+
+##### Sample: kvsWebrtcClientMaster
 This application sends sample H264/Opus frames (path: `/samples/h264SampleFrames` and `/samples/opusSampleFrames`) via WebRTC. It also accepts incoming audio, if enabled in the browser. When checked in the browser, it prints the metadata of the received audio packets in your terminal. To run:
 ```shell
-./samples/kvsWebrtcClientMaster <channelName> <storage-option> <audio-codec> <video-codec>
-```
-
-To use the **Storage for WebRTC** feature, run the same command as above but with an additional command line arg to enable the feature.  
-
-```shell
-./samples/kvsWebrtcClientMaster <channelName> 1 <audio-codec> <video-codec>
+./samples/kvsWebrtcClientMaster <channelName> <audio-codec> <video-codec>
 ```
 
 Allowed audio-codec: opus (default codec if nothing is specified)
 Allowed video-codec: h264 (default codec if nothing is specified), h265
 
-#### Sample: kvsWebrtcClientMasterGstSample
+##### Sample: kvsWebrtcClientMasterGstSample
 This application can send media from a GStreamer pipeline using test H264/Opus frames, device `autovideosrc` and `autoaudiosrc` input, or a received RTSP stream. It also will playback incoming audio via an `autoaudiosink`. To run:
 ```shell
 ./samples/kvsWebrtcClientMasterGstSample <channelName> <mediaType> <sourceType>
 ```
-Pass the desired media and source type when running the sample. The mediaType parameter supports three values: `audio-video`, `video-only`, and `audio-video-storage` (WebRTC Storage). The source type can be `testsrc`, `devicesrc`, or `rtspsrc`. Specify the RTSP URI if using `rtspsrc`:
+Pass the desired media and source type when running the sample. The mediaType parameter supports three values: `audio-video`, `video-only`. The source type can be `testsrc`, `devicesrc`, or `rtspsrc`. Specify the RTSP URI if using `rtspsrc`:
 
 ```shell
 ./samples/kvsWebrtcClientMasterGstSample <channelName> <mediaType> rtspsrc rtsp://<rtspUri>
@@ -345,6 +341,32 @@ To run:
 
 Allowed audio-codec: opus (default codec if nothing is specified)
 Allowed video-codec: h264 (default codec if nothing is specified), h265
+
+#### WebRTC Storage (ingest) samples
+
+##### Sample: kvsWebrtcStorageAudioVideoMaster and kvsWebrtcStorageVideoOnlyMaster
+
+These samples stream to the specified signaling channel that is already configured for WebRTC ingestion and storage.
+```shell
+./samples/kvsWebrtcStorageAudioVideoMaster <channelName>
+./samples/kvsWebrtcStorageVideoOnlyMaster <channelName>
+```
+
+##### Sample: kvsWebrtcStorageAudioVideoMasterGstSample and kvsWebrtcStorageVideoOnlyMasterGstSample
+
+Similar to kvsWebrtcClientMasterGstSample, there are a few modes for this sample:
+```shell
+./samples/kvsWebrtcStorageAudioVideoMasterGstSample <channelName> <srcType>
+./samples/kvsWebrtcStorageVideoOnlyMasterGstSample <channelName> <srcType>
+```
+
+srcType can be `testsrc`, `devicesrc`, or `rtspsrc`
+
+For `rtspsrc`, include the RTSP URL as the next parameter.
+
+```shell
+./samples/kvsWebrtcStorageVideoOnlyMasterGstSample <channelName> rtspsrc "rtsp://YourRtspUrl"
+```
 
 ##### Known issues:
 Our GStreamer samples leverage [MatroskaMux](https://gstreamer.freedesktop.org/documentation/matroska/matroskamux.html?gi-language=c) to receive media from its peer and save it to a file. However, MatroskaMux is designed for scenarios where the media's format remains constant throughout streaming. When the media's format changes mid-streaming (referred to as "caps changes"), MatroskaMux encounters limitations, its behavior cannot be predicted and it may be unable to handle these changes, resulting in an error message like:
@@ -527,8 +549,8 @@ The certificate generating function ([createCertificateAndKey](https://awslabs.g
 
 **Important Note: It is recommended to rotate the certificates often - preferably for every peer connection to avoid a compromised client weakening the security of the new connections.**
 
-Take `kvsWebRTCClientMaster` as sample, add `RtcCertificate certificates[CERT_COUNT];` to **SampleConfiguration** in [Samples.h](./samples/Samples.h).
-Then pass in the pre-generated certificate in initializePeerConnection() in [Common.c](./samples/Common.c).
+Take `kvsWebRTCClientMaster` as sample, add `RtcCertificate certificates[CERT_COUNT];` to **SampleConfiguration** in [Samples.h](samples/common/Samples.h).
+Then pass in the pre-generated certificate in initializePeerConnection() in [Common.c](samples/common/Common.c).
 
 ```c
 configuration.certificates[0].pCertificate = pSampleConfiguration->certificates[0].pCertificate;

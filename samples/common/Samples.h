@@ -11,6 +11,7 @@ extern "C" {
 #endif
 
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
+#include <inttypes.h>
 
 #define NUMBER_OF_H264_FRAME_FILES               1500
 #define NUMBER_OF_H265_FRAME_FILES               1500
@@ -113,6 +114,15 @@ typedef enum {
 typedef struct __SampleStreamingSession SampleStreamingSession;
 typedef struct __SampleStreamingSession* PSampleStreamingSession;
 
+typedef struct __SampleConfiguration SampleConfiguration;
+typedef struct __SampleConfiguration* PSampleConfiguration;
+
+/*
+ * @param pSampleConfiguration     Pointer to the sample configuration holding codec settings and rolling buffer parameters.
+ * @param pSampleStreamingSession  Pointer to the streaming session that owns the peer connection and will store the resulting transceiver handles.
+ */
+typedef STATUS (*AddTransceiversCallback)(PSampleConfiguration, PSampleStreamingSession);
+
 typedef struct {
     UINT64 prevNumberOfPacketsSent;
     UINT64 prevNumberOfPacketsReceived;
@@ -122,7 +132,7 @@ typedef struct {
     UINT64 prevTs;
 } RtcMetricsHistory, *PRtcMetricsHistory;
 
-typedef struct {
+struct __SampleConfiguration {
     volatile ATOMIC_BOOL appTerminateFlag;
     volatile ATOMIC_BOOL interrupted;
     volatile ATOMIC_BOOL mediaThreadStarted;
@@ -183,7 +193,9 @@ typedef struct {
     UINT32 logLevel;
     BOOL enableTwcc;
     BOOL enableIceStats;
-} SampleConfiguration, *PSampleConfiguration;
+
+    AddTransceiversCallback addTransceiversCallback;
+};
 
 typedef struct {
     CHAR content[100];
@@ -288,6 +300,10 @@ STATUS getPendingMessageQueueForHash(PStackQueue, UINT64, BOOL, PPendingMessageQ
 STATUS initSignaling(PSampleConfiguration, PCHAR);
 BOOL sampleFilterNetworkInterfaces(UINT64, PCHAR);
 UINT32 setLogLevel();
+STATUS checkSampleFramesExist(RTC_CODEC);
+STATUS addSendrecvVideoAndAudioTransceivers(PSampleConfiguration, PSampleStreamingSession);
+STATUS addSendOnlyVideoRecvOnlyAudioTransceivers(PSampleConfiguration, PSampleStreamingSession);
+STATUS addSendOnlyVideoSendrecvAudioTransceivers(PSampleConfiguration, PSampleStreamingSession);
 
 #ifdef __cplusplus
 }

@@ -1,152 +1,39 @@
-#include "Samples.h"
+#include "StaticMedia.h"
 
-extern PSampleConfiguration gSampleConfiguration;
-
-INT32 main(INT32 argc, CHAR* argv[])
+STATUS useStaticFramePresets(PSampleConfiguration pSampleConfiguration, RTC_CODEC codec)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 frameSize;
-    PSampleConfiguration pSampleConfiguration = NULL;
-    PCHAR pChannelName;
-    SignalingClientMetrics signalingClientMetrics;
-    signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
-    RTC_CODEC audioCodec = RTC_CODEC_OPUS;
-    RTC_CODEC videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
 
-    SET_INSTRUMENTED_ALLOCATORS();
-    UINT32 logLevel = setLogLevel();
+    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
-#ifndef _WIN32
-    signal(SIGINT, sigintHandler);
-#endif
+    CHK_STATUS(checkSampleFramesExist(codec));
 
-#ifdef IOT_CORE_ENABLE_CREDENTIALS
-    CHK_ERR((pChannelName = argc > 1 ? argv[1] : GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION,
-            "AWS_IOT_CORE_THING_NAME must be set");
-#else
-    pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
-#endif
-
-    CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
-
-    if (argc > 3) {
-        if (!STRCMP(argv[3], AUDIO_CODEC_NAME_OPUS)) {
-            audioCodec = RTC_CODEC_OPUS;
-        }
+    switch (codec) {
+        case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
+            pSampleConfiguration->videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+            pSampleConfiguration->videoRollingBufferDurationSec = 3;
+            pSampleConfiguration->videoRollingBufferBitratebps = 1.4 * 1024 * 1024;
+            pSampleConfiguration->videoSource = sendVideoPacketsFromDisk;
+            break;
+        case RTC_CODEC_H265:
+            pSampleConfiguration->videoCodec = RTC_CODEC_H265;
+            pSampleConfiguration->videoRollingBufferDurationSec = 3;
+            pSampleConfiguration->videoRollingBufferBitratebps = 462 * 1024;
+            pSampleConfiguration->videoSource = sendVideoPacketsFromDisk;
+            break;
+        case RTC_CODEC_OPUS:
+            pSampleConfiguration->audioCodec = RTC_CODEC_OPUS;
+            pSampleConfiguration->audioRollingBufferDurationSec = 3;
+            pSampleConfiguration->audioRollingBufferBitratebps = 512 * 1024;
+            pSampleConfiguration->audioSource = sendAudioPacketsFromDisk;
+            break;
+        default:
+            CHK_ERR(FALSE, STATUS_NOT_IMPLEMENTED, "Codec %d not implemented", codec);
     }
-
-    if (argc > 4) {
-        if (!STRCMP(argv[4], VIDEO_CODEC_NAME_H265)) {
-            videoCodec = RTC_CODEC_H265;
-        } else {
-            DLOGI("[KVS Master] Defaulting to H264 as the specified codec's sample frames may not be available");
-        }
-    }
-
-    // Set the audio and video handlers
-    pSampleConfiguration->audioSource = sendAudioPackets;
-    pSampleConfiguration->videoSource = sendVideoPackets;
-    pSampleConfiguration->receiveAudioVideoSource = sampleReceiveAudioVideoFrame;
-    pSampleConfiguration->audioCodec = audioCodec;
-    pSampleConfiguration->videoCodec = videoCodec;
-
-    // Configure the RTP rolling buffer sizes for the set of sample frames
-    // to be smaller than the default settings (plus some extra for padding).
-    if (pSampleConfiguration->videoCodec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
-        pSampleConfiguration->videoRollingBufferDurationSec = 3;
-        pSampleConfiguration->videoRollingBufferBitratebps = 1.4 * 1024 * 1024;
-    } else if (pSampleConfiguration->videoCodec == RTC_CODEC_H265) {
-        pSampleConfiguration->videoRollingBufferDurationSec = 3;
-        pSampleConfiguration->videoRollingBufferBitratebps = 462 * 1024;
-    }
-
-    if (pSampleConfiguration->audioCodec == RTC_CODEC_OPUS) {
-        pSampleConfiguration->audioRollingBufferDurationSec = 3;
-        pSampleConfiguration->audioRollingBufferBitratebps = 512 * 1024;
-    }
-
-    if (argc > 2 && STRNCMP(argv[2], "1", 2) == 0) {
-        pSampleConfiguration->channelInfo.useMediaStorage = TRUE;
-    }
-
-#ifdef ENABLE_DATA_CHANNEL
-    pSampleConfiguration->onDataChannel = onDataChannel;
-#endif
-    pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
-    DLOGI("[KVS Master] Finished setting handlers");
-
-    // Check if the samples are present
-
-    if (videoCodec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
-        CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./h264SampleFrames/frame-0001.h264"));
-        DLOGI("[KVS Master] Checked H264 sample video frame availability....available");
-    } else if (videoCodec == RTC_CODEC_H265) {
-        CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./h265SampleFrames/frame-0001.h265"));
-        DLOGI("[KVS Master] Checked H265 sample video frame availability....available");
-    }
-
-    if (audioCodec == RTC_CODEC_OPUS) {
-        CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./opusSampleFrames/sample-001.opus"));
-        DLOGI("[KVS Master] Checked Opus sample audio frame availability....available");
-    }
-
-    // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
-    CHK_STATUS(initKvsWebRtc());
-    DLOGI("[KVS Master] KVS WebRTC initialization completed successfully");
-
-    PROFILE_CALL_WITH_START_END_T_OBJ(
-        retStatus = initSignaling(pSampleConfiguration, SAMPLE_MASTER_CLIENT_ID), pSampleConfiguration->signalingClientMetrics.signalingStartTime,
-        pSampleConfiguration->signalingClientMetrics.signalingEndTime, pSampleConfiguration->signalingClientMetrics.signalingCallTime,
-        "Initialize signaling client and connect to the signaling channel");
-
-    DLOGI("[KVS Master] Channel %s set up done ", pChannelName);
-
-    // Checking for termination
-    CHK_STATUS(sessionCleanupWait(pSampleConfiguration));
-    DLOGI("[KVS Master] Streaming session terminated");
 
 CleanUp:
-
-    if (retStatus != STATUS_SUCCESS) {
-        DLOGE("[KVS Master] Terminated with status code 0x%08x", retStatus);
-    }
-
-    DLOGI("[KVS Master] Cleaning up....");
-    if (pSampleConfiguration != NULL) {
-        // Kick of the termination sequence
-        ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, TRUE);
-
-        if (pSampleConfiguration->mediaSenderTid != INVALID_TID_VALUE) {
-            THREAD_JOIN(pSampleConfiguration->mediaSenderTid, NULL);
-        }
-
-        retStatus = signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &signalingClientMetrics);
-        if (retStatus == STATUS_SUCCESS) {
-            logSignalingClientStats(&signalingClientMetrics);
-        } else {
-            DLOGE("[KVS Master] signalingClientGetMetrics() operation returned status code: 0x%08x", retStatus);
-        }
-        retStatus = freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
-        if (retStatus != STATUS_SUCCESS) {
-            DLOGE("[KVS Master] freeSignalingClient(): operation returned status code: 0x%08x", retStatus);
-        }
-
-        retStatus = freeSampleConfiguration(&pSampleConfiguration);
-        if (retStatus != STATUS_SUCCESS) {
-            DLOGE("[KVS Master] freeSampleConfiguration(): operation returned status code: 0x%08x", retStatus);
-        }
-    }
-    DLOGI("[KVS Master] Cleanup done");
     CHK_LOG_ERR(retStatus);
-
-    RESET_INSTRUMENTED_ALLOCATORS();
-
-    // https://www.gnu.org/software/libc/manual/html_node/Exit-Status.html
-    // We can only return with 0 - 127. Some platforms treat exit code >= 128
-    // to be a success code, which might give an unintended behaviour.
-    // Some platforms also treat 1 or 0 differently, so it's better to use
-    // EXIT_FAILURE and EXIT_SUCCESS macros for portability.
-    return STATUS_FAILED(retStatus) ? EXIT_FAILURE : EXIT_SUCCESS;
+    return retStatus;
 }
 
 STATUS readFrameFromDisk(PBYTE pFrame, PUINT32 pSize, PCHAR frameFilePath)
@@ -166,7 +53,7 @@ CleanUp:
     return retStatus;
 }
 
-PVOID sendVideoPackets(PVOID args)
+PVOID sendVideoPacketsFromDisk(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
@@ -242,13 +129,13 @@ PVOID sendVideoPackets(PVOID args)
     }
 
 CleanUp:
-    DLOGI("[KVS Master] Closing video thread");
+    DLOGI("Closing video thread");
     CHK_LOG_ERR(retStatus);
 
     return (PVOID) (ULONG_PTR) retStatus;
 }
 
-PVOID sendAudioPackets(PVOID args)
+PVOID sendAudioPacketsFromDisk(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
@@ -304,19 +191,36 @@ PVOID sendAudioPackets(PVOID args)
     }
 
 CleanUp:
-    DLOGI("[KVS Master] closing audio thread");
+    DLOGI("Closing audio thread");
     return (PVOID) (ULONG_PTR) retStatus;
 }
 
-PVOID sampleReceiveAudioVideoFrame(PVOID args)
+STATUS checkSampleFramesExist(RTC_CODEC codec)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) args;
-    CHK_ERR(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "[KVS Master] Streaming session is NULL");
-    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleVideoFrameHandler));
-    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleAudioFrameHandler));
+    UINT32 frameSize;
+
+    switch (codec) {
+        case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
+            CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./h264SampleFrames/frame-0001.h264"));
+            DLOGI("Checked H264 sample video frame availability....available");
+            break;
+        case RTC_CODEC_H265:
+            CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./h265SampleFrames/frame-0001.h265"));
+            DLOGI("Checked H265 sample video frame availability....available");
+            break;
+        case RTC_CODEC_OPUS:
+            CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./opusSampleFrames/sample-001.opus"));
+            DLOGI("Checked Opus sample audio frame availability....available");
+            break;
+        default:
+            CHK_ERR(FALSE, STATUS_NOT_IMPLEMENTED, "No sample frames for codec type: %d", codec);
+    }
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
-    return (PVOID) (ULONG_PTR) retStatus;
+    LEAVES();
+    return retStatus;
 }
