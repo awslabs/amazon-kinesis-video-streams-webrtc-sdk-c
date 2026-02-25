@@ -668,6 +668,27 @@ export KVS_DISABLE_IPV6_TURN=ON
 **Note:** `KVS_DISABLE_IPV6_TURN` is only applicable when running in dual-stack mode.
 
 
+## Troubleshooting WebRTC Storage
+
+See [AWS documentation](https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/troubleshoot-establish-storage.html) for troubleshooting.
+
+#### Successfully connected to the storage session and sending media, but the media didn't make it to streams, or facing playback issues
+
+Note that you can use `https://github.com/aws-samples/amazon-kinesis-video-streams-media-viewer` to play back streams content.
+
+To help support this issue, please share the following details to `kinesis-video-support [at] amazon.com`.
+
+- Channel ARN
+- Stream ARN
+- Time ranges when this was tested
+- Additional supporting information:
+  - Use case 
+  - SDK version
+  - Observations or patterns
+  - Whether the stock sample worked (is it specific to a certain platform)
+  - Changes made to the SDK or samples
+  - Media source, media formats
+  - VERBOSE SDK logs
 
 ## Documentation
 All Public APIs are documented in our [Include.h](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/main/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h), we also generate a [Doxygen](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/) each commit for easier navigation.
