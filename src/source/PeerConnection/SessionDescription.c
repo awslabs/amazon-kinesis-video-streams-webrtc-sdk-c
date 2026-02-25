@@ -1,6 +1,30 @@
 #define LOG_CLASS "SessionDescription"
 #include "../Include_i.h"
 
+// Case-insensitive string contains
+// Finds the first occurrence of the substring needle in the string haystack.
+// The terminating null bytes are not compared.
+PCHAR STRCASESTR(PCHAR haystack, PCHAR needle)
+{
+    if (haystack == NULL || needle == NULL) {
+        return NULL;
+    }
+
+    UINT32 needleLen = STRLEN(needle);
+    if (needleLen == 0) {
+        return haystack;
+    }
+
+    PCHAR p = haystack;
+    while (*p != '\0') {
+        if (STRNCMPI(p, needle, needleLen) == 0) {
+            return p;
+        }
+        p++;
+    }
+    return NULL;
+}
+
 STATUS serializeSessionDescriptionInit(PRtcSessionDescriptionInit pSessionDescriptionInit, PCHAR sessionDescriptionJSON,
                                        PUINT32 sessionDescriptionJSONLen)
 {
@@ -33,10 +57,10 @@ STATUS serializeSessionDescriptionInit(PRtcSessionDescriptionInit pSessionDescri
         }
 
         if (sessionDescriptionJSON == NULL) {
-            amountWritten = SNPRINTF(NULL, 0, "%*.*s%s", (int)lineLen, (int)lineLen, curr, SESSION_DESCRIPTION_INIT_LINE_ENDING);
+            amountWritten = SNPRINTF(NULL, 0, "%*.*s%s", (int) lineLen, (int) lineLen, curr, SESSION_DESCRIPTION_INIT_LINE_ENDING);
         } else {
-            amountWritten = SNPRINTF(sessionDescriptionJSON + *sessionDescriptionJSONLen, inputSize - *sessionDescriptionJSONLen, "%*.*s%s", (int)lineLen,
-                                     (int)lineLen, curr, SESSION_DESCRIPTION_INIT_LINE_ENDING);
+            amountWritten = SNPRINTF(sessionDescriptionJSON + *sessionDescriptionJSONLen, inputSize - *sessionDescriptionJSONLen, "%*.*s%s",
+                                     (int) lineLen, (int) lineLen, curr, SESSION_DESCRIPTION_INIT_LINE_ENDING);
         }
         CHK(sessionDescriptionJSON == NULL || ((inputSize - *sessionDescriptionJSONLen) >= amountWritten), STATUS_BUFFER_TOO_SMALL);
 
@@ -1313,7 +1337,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
                 if (STRSTR(attributeValue, H264_VALUE) != NULL) {
                     supportCodec = TRUE;
                     rtcCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
-                } else if (STRSTR(attributeValue, OPUS_VALUE) != NULL) {
+                } else if (STRCASESTR(attributeValue, OPUS_VALUE) != NULL) {
                     supportCodec = TRUE;
                     rtcCodec = RTC_CODEC_OPUS;
                 } else if (STRSTR(attributeValue, MULAW_VALUE) != NULL) {

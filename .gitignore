@@ -16,3 +16,4 @@ CMakeLists.txt.user
 sdkconfig
 sdkconfig.old
 dependencies.lock
+venv/

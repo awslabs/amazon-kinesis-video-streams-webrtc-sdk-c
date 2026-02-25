@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "WebRTCClientTestFixture.h"
 
 namespace com {
@@ -288,6 +290,7 @@ TEST_F(IceFunctionalityTest, IceAgentIceAgentAddIceServerUnitTest)
     EXPECT_EQ(STATUS_ICE_URL_TURN_MISSING_CREDENTIAL, parseIceServer(&iceServer, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "username", (PCHAR) ""));
     EXPECT_NE(STATUS_SUCCESS, parseIceServer(NULL, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "username", (PCHAR) "password"));
     EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "username", (PCHAR) "password"));
+    EXPECT_FALSE(iceServer.isSecure);
     EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "turns:54.202.170.151:443", (PCHAR) "username", (PCHAR) "password"));
     EXPECT_TRUE(iceServer.isSecure);
     EXPECT_EQ(iceServer.transport, KVS_SOCKET_PROTOCOL_NONE);
@@ -305,11 +308,84 @@ TEST_F(IceFunctionalityTest, IceAgentIceAgentAddIceServerUnitTest)
     EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "turn:54.202.170.151:443?transport=udp", (PCHAR) "username", (PCHAR) "password"));
     EXPECT_TRUE(!iceServer.isSecure);
     EXPECT_EQ(iceServer.transport, KVS_SOCKET_PROTOCOL_UDP);
-    EXPECT_EQ(443, (UINT16) getInt16(iceServer.ipAddress.port));
+    EXPECT_EQ(443, (UINT16) getInt16(iceServer.ipAddresses.ipv4Address.port));
 
     /* we are not doing full validation. Only parsing out what we know */
     EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "turn:54.202.170.151:443?randomstuff", (PCHAR) "username", (PCHAR) "password"));
     EXPECT_EQ(iceServer.transport, KVS_SOCKET_PROTOCOL_NONE);
+
+
+    //
+    // Dual-stack checks.
+    //
+
+    // Clear the iceServer struct.
+    MEMSET(&iceServer, 0x00, SIZEOF(IceServer));
+
+    // Set the env var to enable dual-stack mode.
+    #ifdef _WIN32
+        _putenv_s(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON");
+    #else
+        setenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON", 1);
+    #endif
+
+    std::string test_ipv4_addr = "35-90-63-38";
+    std::string test_ipv6_addr = "2001-0db8-85a3-0000-0000-8a2e-0370-7334";
+    std::string test_hostname = "turn:" + test_ipv4_addr + "_" + test_ipv6_addr + ".test.com";
+
+    // The test IPv4-address.
+    CHAR ipv4_addr[KVS_IP_ADDRESS_STRING_BUFFER_LEN] = {0};
+    MEMCPY(ipv4_addr, test_ipv4_addr.c_str(), test_ipv4_addr.size());
+
+    // The test IPv6-address.
+    CHAR ipv6_addr[KVS_IP_ADDRESS_STRING_BUFFER_LEN] = {0};
+    MEMCPY(ipv6_addr, test_ipv6_addr.c_str(), test_ipv6_addr.size());
+
+    // The test hostname (addresses with a suffix).
+    CHAR hostname[MAX_ICE_CONFIG_URI_BUFFER_LEN] = {0};
+    MEMCPY(hostname, test_hostname.c_str(), test_hostname.size());
+
+    // Failing cases: IP addresses must have a proper prefix.
+    EXPECT_EQ(STATUS_ICE_URL_INVALID_PREFIX, parseIceServer(&iceServer, (PCHAR) test_ipv4_addr.c_str(), (PCHAR) "username", (PCHAR) "password"));
+    EXPECT_EQ(STATUS_ICE_URL_INVALID_PREFIX, parseIceServer(&iceServer, (PCHAR) test_ipv6_addr.c_str(), (PCHAR) "username", (PCHAR) "password"));
+
+    // Failing cases: both IPv4 and IPv6 addresses should be present in hostname, else will
+    // fallback to getAddrInfo and fail.
+    EXPECT_EQ(STATUS_RESOLVE_HOSTNAME_FAILED, parseIceServer(&iceServer, (PCHAR) ("turn:" + test_ipv4_addr).c_str(), (PCHAR) "username", (PCHAR) "password"));
+    EXPECT_EQ(STATUS_RESOLVE_HOSTNAME_FAILED, parseIceServer(&iceServer, (PCHAR) ("turn:" + test_ipv6_addr).c_str(), (PCHAR) "username", (PCHAR) "password"));
+    
+    // Clear the iceServer struct again incase of partial population from previous calls.
+    MEMSET(&iceServer, 0x00, SIZEOF(IceServer));
+
+    // Parse the IP addresses from the hostname.
+    EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) hostname, (PCHAR) "username", (PCHAR) "password"));
+
+    // Presence of IP family types indicate successful parsing.
+    EXPECT_EQ(iceServer.ipAddresses.ipv4Address.family, KVS_IP_FAMILY_TYPE_IPV4);
+    EXPECT_EQ(iceServer.ipAddresses.ipv6Address.family, KVS_IP_FAMILY_TYPE_IPV6);
+
+    std::string decimal_delim_test_ipv4_addr = test_ipv4_addr;
+    std::replace(decimal_delim_test_ipv4_addr.begin(), decimal_delim_test_ipv4_addr.end(), '-', '.');
+    std::string colon_delim_test_ipv6_addr = test_ipv6_addr;
+    std::replace(colon_delim_test_ipv6_addr.begin(), colon_delim_test_ipv6_addr.end(), '-', ':');
+
+    // Validate the parsed IPv4 address.
+    CHAR parsed_ipv4_addr[KVS_IP_ADDRESS_STRING_BUFFER_LEN] = {0};
+    getIpAddrStr(&iceServer.ipAddresses.ipv4Address, (PCHAR) parsed_ipv4_addr, SIZEOF(parsed_ipv4_addr));
+    EXPECT_STREQ(parsed_ipv4_addr, decimal_delim_test_ipv4_addr.c_str());
+
+    // Validate the parsed IPv6 address.
+    CHAR parsed_ipv6_addr[KVS_IP_ADDRESS_STRING_BUFFER_LEN] = {0};
+    getIpAddrStr(&iceServer.ipAddresses.ipv6Address, (PCHAR) parsed_ipv6_addr, SIZEOF(parsed_ipv6_addr));
+    EXPECT_STREQ(parsed_ipv6_addr, colon_delim_test_ipv6_addr.c_str());
+
+    // Cleanup the env var.
+    #ifdef _WIN32
+        _putenv_s(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "");
+    #else
+        unsetenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
+    #endif   
+
 }
 
 TEST_F(IceFunctionalityTest, IceAgentAddRemoteCandidateUnitTest)

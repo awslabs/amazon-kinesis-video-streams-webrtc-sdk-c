@@ -11,6 +11,9 @@ on:
       - reopened
       - edited
 
+permissions:
+  contents: read
+
 jobs:
   check-description:
     runs-on: macos-latest

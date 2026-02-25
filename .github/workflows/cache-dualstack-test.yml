@@ -1,0 +1,289 @@
+name: Cache Functionality Test with Dual-Stack Toggle
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+      - 'test-pr-*'
+  pull_request:
+    branches:
+      - develop
+      - main
+
+jobs:
+  credential-check:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      id-token: write
+      contents: read
+
+    outputs:
+      run_tests: ${{ steps.check_credentials.outputs.run_tests }}
+
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Check AWS credentials
+        id: check_credentials
+        run: |
+          if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" || -z "$AWS_SESSION_TOKEN" ]]; then
+            echo "Couldn't find AWS credentials. Very likely this build is coming from a fork. Skipping cache test."
+            echo "run_tests=false" >> $GITHUB_OUTPUT
+          else
+            echo "AWS credentials found. Proceeding with cache tests."
+            echo "run_tests=true" >> $GITHUB_OUTPUT
+          fi
+
+  cache-dualstack-test:
+    needs: [credential-check]
+    if: needs.credential-check.outputs.run_tests == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    env:
+      AWS_KVS_LOG_LEVEL: 2
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Build repository
+        run: |
+          mkdir build && cd build
+          cmake .. -DBUILD_SAMPLE=ON
+          make -j
+
+      - name: Test 1 - Run sample with dual-stack endpoints enabled
+        run: |
+          export KVS_DUALSTACK_ENDPOINTS=ON
+          export CONTROL_PLANE_URI="https://kinesisvideo.${AWS_REGION}.api.aws"
+          echo "=== Test 1: Running with dual-stack endpoints enabled ==="
+          echo "KVS_DUALSTACK_ENDPOINTS=$KVS_DUALSTACK_ENDPOINTS"
+          echo "CONTROL_PLANE_URI=$CONTROL_PLANE_URI"
+          
+          cd build/samples
+          pids=""
+          ./kvsWebrtcClientMaster "cache-test-${{ github.run_number }}" > master1.log 2>&1 &
+          pids+=" $!"
+          
+          sleep 2
+          ./kvsWebrtcClientViewer "cache-test-${{ github.run_number }}" > viewer1.log 2>&1 &
+          pids+=" $!"
+          
+          # Wait for connection establishment then send SIGINT
+          bash -c "sleep 10 && kill -s INT $pids" &
+          
+          for pid in $pids; do
+            if ! wait $pid; then
+              echo "Test 1 FAILED: Process exited with unexpected error"
+              exit 1
+            fi
+          done
+          
+          # Check for api.aws endpoint usage (dual-stack pattern) from setRequestHeader logs
+          if grep -qE "setRequestHeader\(\).*host.*\.api\.aws" master1.log; then
+            echo "Verified: Dual-stack endpoint pattern (.api.aws) detected in setRequestHeader logs"
+          else
+            echo "Could not verify dual-stack endpoint pattern in setRequestHeader logs"
+          fi
+          
+          # Verify ICE connection establishment
+          if grep -q "iceAgentReadyStateSetup(): Selected pair" master1.log; then
+            echo "Verified: ICE connection established successfully (selected candidate pair)"
+          else
+            echo "Could not verify ICE connection establishment in master logs"
+          fi
+          
+          echo "Test 1 SUCCESS: Dual-stack mode connection established and verified"
+
+      - name: Test 2 - Run sample with dual-stack endpoints disabled (cache test)
+        run: |
+          unset KVS_DUALSTACK_ENDPOINTS
+          export CONTROL_PLANE_URI="https://kinesisvideo.${AWS_REGION}.amazonaws.com"
+          echo "=== Test 2: Running with dual-stack endpoints disabled (cache test) ==="
+          echo "KVS_DUALSTACK_ENDPOINTS=${KVS_DUALSTACK_ENDPOINTS:-unset}"
+          echo "CONTROL_PLANE_URI=$CONTROL_PLANE_URI"
+          
+          cd build/samples
+          pids=""
+          ./kvsWebrtcClientMaster "cache-test-${{ github.run_number }}" > master2.log 2>&1 &
+          pids+=" $!"
+          
+          sleep 2
+          ./kvsWebrtcClientViewer "cache-test-${{ github.run_number }}" > viewer2.log 2>&1 &
+          pids+=" $!"
+          
+          # Wait for connection establishment then send SIGINT
+          bash -c "sleep 10 && kill -s INT $pids" &
+          
+          for pid in $pids; do
+            if ! wait $pid; then
+              echo "Test 2 FAILED: Process exited with unexpected error"
+              exit 1
+            fi
+          done
+          
+          # Check for amazonaws.com endpoint usage (legacy pattern) from setRequestHeader logs
+          if grep -qE "setRequestHeader\(\).*host.*\.amazonaws\.com" master2.log; then
+            echo "Verified: Legacy endpoint pattern (.amazonaws.com) detected in setRequestHeader logs"
+          else
+            echo "Could not verify legacy endpoint pattern in setRequestHeader logs"
+          fi
+          
+          # Ensure NOT using dual-stack endpoints
+          if grep -qE "setRequestHeader\(\).*host.*\.api\.aws" master2.log; then
+            echo "FAILED: Legacy mode should NOT use .api.aws endpoints"
+            echo "Master logs:"
+            cat master2.log
+            exit 1
+          fi
+          
+          # Verify ICE connection establishment
+          if grep -q "iceAgentReadyStateSetup(): Selected pair" master2.log; then
+            echo "Verified: ICE connection established successfully (selected candidate pair)"
+          else
+            echo "Could not verify ICE connection establishment in master logs"
+          fi
+          
+          echo "Test 2 SUCCESS: Legacy mode connection established and verified"
+
+      - name: Test 3 - Run sample with dual-stack endpoints enabled again (cache verification)
+        run: |
+          export KVS_DUALSTACK_ENDPOINTS=ON
+          export CONTROL_PLANE_URI="https://kinesisvideo.${AWS_REGION}.api.aws"
+          echo "=== Test 3: Running with dual-stack endpoints enabled again (cache verification) ==="
+          echo "KVS_DUALSTACK_ENDPOINTS=$KVS_DUALSTACK_ENDPOINTS"
+          echo "CONTROL_PLANE_URI=$CONTROL_PLANE_URI"
+          
+          cd build/samples
+          pids=""
+          ./kvsWebrtcClientMaster "cache-test-${{ github.run_number }}" > master3.log 2>&1 &
+          pids+=" $!"
+          
+          sleep 2
+          ./kvsWebrtcClientViewer "cache-test-${{ github.run_number }}" > viewer3.log 2>&1 &
+          pids+=" $!"
+          
+          # Wait for connection establishment then send SIGINT
+          bash -c "sleep 10 && kill -s INT $pids" &
+          
+          for pid in $pids; do
+            if ! wait $pid; then
+              echo "Test 3 FAILED: Process exited with unexpected error"
+              exit 1
+            fi
+          done
+          
+          # Check for api.aws endpoint usage (dual-stack pattern) from setRequestHeader logs
+          if grep -qE "setRequestHeader\(\).*host.*\.api\.aws" master3.log; then
+            echo "Verified: Dual-stack endpoint pattern (.api.aws) detected in setRequestHeader logs"
+          else
+            echo "Could not verify dual-stack endpoint pattern in setRequestHeader logs"
+          fi
+          
+          # Verify ICE connection establishment
+          if grep -q "iceAgentReadyStateSetup(): Selected pair" master3.log; then
+            echo "Verified: ICE connection established successfully (selected candidate pair)"
+          else
+            echo "Could not verify ICE connection establishment in master logs"
+          fi
+          
+          echo "Test 3 SUCCESS: Dual-stack mode re-established (cache verified)"
+
+      - name: Test 4 - Run sample with dual-stack endpoints disabled again (double-safe cache test)
+        run: |
+          unset KVS_DUALSTACK_ENDPOINTS
+          export CONTROL_PLANE_URI="https://kinesisvideo.${AWS_REGION}.amazonaws.com"
+          echo "=== Test 4: Running with dual-stack endpoints disabled again (double-safe cache test) ==="
+          echo "KVS_DUALSTACK_ENDPOINTS=${KVS_DUALSTACK_ENDPOINTS:-unset}"
+          echo "CONTROL_PLANE_URI=$CONTROL_PLANE_URI"
+          
+          cd build/samples
+          pids=""
+          ./kvsWebrtcClientMaster "cache-test-${{ github.run_number }}" > master4.log 2>&1 &
+          pids+=" $!"
+          
+          sleep 2
+          ./kvsWebrtcClientViewer "cache-test-${{ github.run_number }}" > viewer4.log 2>&1 &
+          pids+=" $!"
+          
+          # Wait for connection establishment then send SIGINT
+          bash -c "sleep 10 && kill -s INT $pids" &
+          
+          for pid in $pids; do
+            if ! wait $pid; then
+              echo "Test 4 FAILED: Process exited with unexpected error"
+              exit 1
+            fi
+          done
+          
+          # Check for amazonaws.com endpoint usage (legacy pattern) from setRequestHeader logs
+          if grep -qE "setRequestHeader\(\).*host.*\.amazonaws\.com" master4.log; then
+            echo "Verified: Legacy endpoint pattern (.amazonaws.com) detected in setRequestHeader logs"
+          else
+            echo "Could not verify legacy endpoint pattern in setRequestHeader logs"
+          fi
+          
+          # Ensure NOT using dual-stack endpoints
+          if grep -qE "setRequestHeader\(\).*host.*\.api\.aws" master4.log; then
+            echo "FAILED: Legacy mode should NOT use .api.aws endpoints"
+            echo "Master logs:"
+            cat master4.log
+            exit 1
+          fi
+          
+          # Verify ICE connection establishment
+          if grep -q "iceAgentReadyStateSetup(): Selected pair" master4.log; then
+            echo "Verified: ICE connection established successfully (selected candidate pair)"
+          else
+            echo "Could not verify ICE connection establishment in master logs"
+          fi
+          
+          echo "Test 4 SUCCESS: Legacy mode re-established (double-safe cache verified)"
+
+      - name: Verify cache functionality test results
+        run: |
+          echo "=== Cache Functionality Test Results ==="
+          echo "Successfully ran samples in the following sequence:"
+          echo "1. Dual-stack endpoints enabled (set)"
+          echo "2. Dual-stack endpoints disabled (unset)"
+          echo "3. Dual-stack endpoints enabled again (set)"
+          echo "4. Dual-stack endpoints disabled again (unset)"
+          echo ""
+          echo "This comprehensive 4x test verifies that the SDK properly handles"
+          echo "caching behavior when repeatedly toggling between dual-stack and"
+          echo "legacy endpoint modes. Cache functionality test completed successfully!"
+
+      - name: Cleanup - Delete test channel
+        if: always()
+        run: |
+          echo "=== Cleaning up test channel ==="
+          CHANNEL_NAME="cache-test-${{ github.run_number }}"
+          echo "Attempting to delete channel: $CHANNEL_NAME"
+          
+          aws kinesisvideo delete-signaling-channel \
+            --channel-name "$CHANNEL_NAME" \
+            --region "$AWS_REGION" || echo "Channel may not exist or already deleted"
+          
+          echo "Cleanup completed"

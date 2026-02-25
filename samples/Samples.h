@@ -49,8 +49,11 @@ extern "C" {
 
 #define CA_CERT_PEM_FILE_EXTENSION ".pem"
 
-#define FILE_LOGGING_BUFFER_SIZE (10 * 1024)
-#define MAX_NUMBER_OF_LOG_FILES  5
+#define FILE_LOGGING_BUFFER_SIZE        (10 * 1024)
+#define DEFAULT_MAX_NUMBER_OF_LOG_FILES 5
+
+#define LOG_FILE_DIR              ((PCHAR) "FILE_LOGGING_DIR")
+#define MAX_NUM_LOG_FILES_ENV_VAR ((PCHAR) "LOG_FILE_LIMIT")
 
 #define SAMPLE_HASH_TABLE_BUCKET_COUNT  50
 #define SAMPLE_HASH_TABLE_BUCKET_LENGTH 2
@@ -69,6 +72,8 @@ extern "C" {
 #define MASTER_DATA_CHANNEL_MESSAGE "This message is from the KVS Master"
 #define VIEWER_DATA_CHANNEL_MESSAGE "This message is from the KVS Viewer"
 
+#define CONTROL_PLANE_URI_ENV_VAR ((PCHAR) "CONTROL_PLANE_URI")
+
 #define DATA_CHANNEL_MESSAGE_TEMPLATE                                                                                                                \
     "{\"content\":\"%s\",\"firstMessageFromViewerTs\":\"%s\",\"firstMessageFromMasterTs\":\"%s\",\"secondMessageFromViewerTs\":\"%s\","              \
     "\"secondMessageFromMasterTs\":\"%s\",\"lastMessageFromViewerTs\":\"%s\" }"
@@ -80,6 +85,8 @@ extern "C" {
     "\"getTokenStartTime\": %llu, \"getTokenEndTime\": %llu, \"createChannelStartTime\": %llu, \"createChannelEndTime\": %llu, "                     \
     "\"connectStartTime\": %llu, \"connectEndTime\": %llu }"
 #define ICE_AGENT_METRICS_JSON_TEMPLATE "{\"candidateGatheringStartTime\": %llu, \"candidateGatheringEndTime\": %llu }"
+
+#define ICE_TRANSPORT_POLICY_ENV_VAR ((PCHAR) "KVS_ICE_TRANSPORT_POLICY")
 
 #define MAX_DATA_CHANNEL_METRICS_MESSAGE_SIZE     260 // strlen(DATA_CHANNEL_MESSAGE_TEMPLATE) + 20 * 5
 #define MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE  105 // strlen(PEER_CONNECTION_METRICS_JSON_TEMPLATE) + 20 * 2

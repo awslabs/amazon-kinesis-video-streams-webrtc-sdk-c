@@ -1309,6 +1309,9 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
                         STRCPY(signalingFileCacheEntry.httpsEndpoint, pSignalingClient->channelEndpointHttps);
                         STRCPY(signalingFileCacheEntry.wssEndpoint, pSignalingClient->channelEndpointWss);
                         STRCPY(signalingFileCacheEntry.webrtcEndpoint, pSignalingClient->channelEndpointWebrtc);
+                        STRCPY(signalingFileCacheEntry.controlPlaneUrl,
+                               pSignalingClient->pChannelInfo->pControlPlaneUrl != NULL ? pSignalingClient->pChannelInfo->pControlPlaneUrl : "");
+                        STRCPY(signalingFileCacheEntry.useDualStackEndpoints, "0");
                         // Use NVS-based caching instead of file-based caching for ESP platform
                         if (STATUS_FAILED(signalingCacheSaveToNvs(&signalingFileCacheEntry))) {
                             DLOGW("Failed to save signaling cache to NVS");

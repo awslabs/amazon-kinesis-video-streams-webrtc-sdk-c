@@ -14,6 +14,9 @@ on:
       - main
       - 'test-pr-*'
 
+permissions:
+  contents: read
+
 jobs:
   analyze:
     name: Analyze

@@ -222,7 +222,7 @@ typedef struct {
     UINT64 bytesReceived;                      //!< Total number of bytes (minus header and padding) received on this candidate pair
     UINT64 lastPacketSentTimestamp;            //!< Represents the timestamp at which the last packet was sent on this particular
                                                //!< candidate pair, excluding STUN packets.
-    UINT64 lastPacketReceivedTimestamp;        //!< Represents the timestamp at which the last packet was sent on this particular
+    UINT64 lastPacketReceivedTimestamp;        //!< Represents the timestamp at which the last packet was received on this particular
                                                //!< candidate pair, excluding STUN packets.
     UINT64 firstRequestTimestamp;    //!< Represents the timestamp at which the first STUN request was sent on this particular candidate pair.
     UINT64 lastRequestTimestamp;     //!< Represents the timestamp at which the last STUN request was sent on this particular candidate pair.

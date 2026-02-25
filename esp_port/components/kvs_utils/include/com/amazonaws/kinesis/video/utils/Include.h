@@ -855,6 +855,12 @@ PUBLIC_API STATUS exponentialBackoffRetryStrategyFree(PKvsRetryStrategy);
  */
 PUBLIC_API STATUS computePower(UINT64, UINT64, PUINT64);
 
+/**
+ * Checks if an environment variable is set and enabled (value is "1" or "TRUE").
+ * On ESP-IDF, environment variables are not used, so this always returns FALSE.
+ */
+PUBLIC_API BOOL isEnvVarEnabled(PCHAR);
+
 #ifdef __cplusplus
 }
 #endif

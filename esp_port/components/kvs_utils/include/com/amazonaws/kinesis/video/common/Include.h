@@ -280,6 +280,14 @@ extern "C" {
 
 #define CONTROL_PLANE_URI_POSTFIX_ISO_B ".sc2s.sgov.gov"
 
+#define CONTROL_PLANE_URI_POSTFIX_DUAL_STACK ".api.aws"
+
+#define CONTROL_PLANE_URI_POSTFIX_CN_DUAL_STACK ".api.amazonwebservices.com.cn"
+
+#define CONTROL_PLANE_URI_POSTFIX_ISO_DUAL_STACK ".api.aws.ic.gov"
+
+#define CONTROL_PLANE_URI_POSTFIX_ISO_B_DUAL_STACK ".api.aws.scloud"
+
 #define AWS_ISO_B_REGION_PREFIX "us-isob-"
 
 #define AWS_ISO_REGION_PREFIX "us-iso-"

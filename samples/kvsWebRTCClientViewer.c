@@ -36,7 +36,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     STATUS retStatus = STATUS_SUCCESS;
     RtcSessionDescriptionInit offerSessionDescriptionInit;
     UINT32 buffLen = 0;
-    SignalingMessage message;
+    SignalingMessage message = {0};
     PSampleConfiguration pSampleConfiguration = NULL;
     PSampleStreamingSession pSampleStreamingSession = NULL;
     RTC_CODEC audioCodec = RTC_CODEC_OPUS;
