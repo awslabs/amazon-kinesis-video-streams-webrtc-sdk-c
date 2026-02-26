@@ -947,15 +947,29 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     if ((pPreGenPeriod = GETENV(PRE_GENERATE_CERT_PERIOD_ENV_VAR)) != NULL) {
         UINT64 periodMs;
         if (STRTOUI64(pPreGenPeriod, NULL, 10, &periodMs) == STATUS_SUCCESS && periodMs > 0) {
-            preGenerateCertPeriod = periodMs * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+            if (periodMs < PRE_GENERATE_CERT_PERIOD_MIN_MS || periodMs > PRE_GENERATE_CERT_PERIOD_MAX_MS) {
+                DLOGW("The %s is not within [%d, %d], using the default", PRE_GENERATE_CERT_PERIOD_ENV_VAR, PRE_GENERATE_CERT_PERIOD_MIN_MS,
+                      PRE_GENERATE_CERT_PERIOD_MAX_MS);
+            } else {
+                preGenerateCertPeriod = periodMs * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+            }
         }
     }
     DLOGD("Pre-generate cert period: %dms", preGenerateCertPeriod / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 
     if ((pPreGenMax = GETENV(PRE_GENERATE_CERT_MAX_ENV_VAR)) != NULL) {
         UINT32 maxCerts;
-        if (STRTOUI32(pPreGenMax, NULL, 10, &maxCerts) == STATUS_SUCCESS && maxCerts > 0 && maxCerts <= MAX_RTCCONFIGURATION_CERTIFICATES) {
-            preGenerateCertMax = maxCerts;
+        if (STRTOUI32(pPreGenMax, NULL, 10, &maxCerts) == STATUS_SUCCESS) {
+            if (maxCerts == 0) {
+                DLOGI("Disable pre-generated certs since queue size is 0");
+                preGenerateCert = FALSE;
+            } else if (maxCerts > PRE_GENERATE_CERT_MAX_UPPER_BOUND) {
+                DLOGW("The %s has max value of %d, using %d", PRE_GENERATE_CERT_MAX_ENV_VAR, PRE_GENERATE_CERT_MAX_UPPER_BOUND,
+                      PRE_GENERATE_CERT_MAX_UPPER_BOUND);
+                preGenerateCertMax = PRE_GENERATE_CERT_MAX_UPPER_BOUND;
+            } else {
+                preGenerateCertMax = maxCerts;
+            }
         }
     }
     DLOGD("Pre-generate cert max standby: %d", preGenerateCertMax);

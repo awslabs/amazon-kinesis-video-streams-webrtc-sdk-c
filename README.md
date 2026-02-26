@@ -509,16 +509,16 @@ AWS access keys are ignored from environment variables if the sample was built i
 
 ### Other sample environment variables
 
-| Variable                          | Description                                                    | Type                 | Default               | Notes                                                                                |
-|-----------------------------------|----------------------------------------------------------------|----------------------|-----------------------|--------------------------------------------------------------------------------------|
-| `AWS_KVS_LOG_LEVEL`               | Log level                                                      | Int (1-8)            | WARN (4)              | See [Setup Logging](#setup-logging)                                                  |
-| `ENABLE_FILE_LOGGING`             | Save all logs to file                                          | Bool                 | `0`/`OFF`/`FALSE`     | `1`, `ON`, `TRUE` to enable. Case insensitive.                                       |
-| `AWS_KVS_CACERT_PATH`             | Root certificate path                                          | String               | `repo/certs/cert.pem` | Must end with `.pem` extension                                                       |
-| `CONTROL_PLANE_URI`               | Endpoint override                                              | String               | Based on the region   | Example: "https://kinesisvideo.us-west-2.api.aws"                                    |
-| `KVS_ICE_TRANSPORT_POLICY`        | Types of ICE candidates to consider                            | Enum (`relay`/`all`) | `all`                 | Case insensitive                                                                     |
-| `KVS_PRE_GENERATE_CERT`           | Toggle to enable (TRUE) or disable (FALSE) cert pre-generation | Bool                 | `TRUE`                | See [use pre-generated certs](#use-pre-generated-certificates) for more information. |
-| `KVS_PRE_GENERATE_CERT_PERIOD_MS` | Interval in milliseconds to check and generate certificates    | Int                  | `3000` (3 seconds)    | See [use pre-generated certs](#use-pre-generated-certificates) for more information. |
-| `KVS_PRE_GENERATE_CERT_MAX`       | Maximum certificates to keep in the queue (ready-to-go)        | Int                  | 2                     | See [use pre-generated certs](#use-pre-generated-certificates) for more information. |
+| Variable                          | Description                                                                   | Type                 | Default               | Notes                                                                                |
+|-----------------------------------|-------------------------------------------------------------------------------|----------------------|-----------------------|--------------------------------------------------------------------------------------|
+| `AWS_KVS_LOG_LEVEL`               | Log level                                                                     | Int (1-8)            | WARN (4)              | See [Setup Logging](#setup-logging)                                                  |
+| `ENABLE_FILE_LOGGING`             | Save all logs to file                                                         | Bool                 | `0`/`OFF`/`FALSE`     | `1`, `ON`, `TRUE` to enable. Case insensitive.                                       |
+| `AWS_KVS_CACERT_PATH`             | Root certificate path                                                         | String               | `repo/certs/cert.pem` | Must end with `.pem` extension                                                       |
+| `CONTROL_PLANE_URI`               | Endpoint override                                                             | String               | Based on the region   | Example: "https://kinesisvideo.us-west-2.api.aws"                                    |
+| `KVS_ICE_TRANSPORT_POLICY`        | Types of ICE candidates to consider                                           | Enum (`relay`/`all`) | `all`                 | Case insensitive                                                                     |
+| `KVS_PRE_GENERATE_CERT`           | Toggle to enable (TRUE) or disable (FALSE) cert pre-generation                | Bool                 | `TRUE`                | See [use pre-generated certs](#use-pre-generated-certificates) for more information. |
+| `KVS_PRE_GENERATE_CERT_PERIOD_MS` | Interval in milliseconds to check and generate certificates to fill the queue | Int (100-60000)      | `3000` (3 seconds)    | See [use pre-generated certs](#use-pre-generated-certificates) for more information. |
+| `KVS_PRE_GENERATE_CERT_MAX`       | Maximum certificates to keep in the queue (ready-to-go)                       | Int (0-10)           | 2                     | See [use pre-generated certs](#use-pre-generated-certificates) for more information. |
 
 ## TWCC support
 
