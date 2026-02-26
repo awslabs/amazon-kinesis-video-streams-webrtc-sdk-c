@@ -689,15 +689,20 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
             STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "inactive");
             directionFound = TRUE;
         }
+
+        // Compute the intersection of local and remote transceiver directions to determine the answer SDP direction.
+        // Example:
+        // If local transceiver supports "sendrecv" (audio) and "sendonly" (video), and remote offer supports "sendrecv" (audio)
+        // and "recvonly" (video), the intersection yields "sendrecv" (audio) and "sendonly" (video) respectively.
+        // This ensures the answer reflects the mutually compatible direction based on both peers' capabilities.
         for (i = 0; i < remoteAttributeCount && directionFound == FALSE; i++) {
-            if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[i].attributeName, "sendrecv") == 0) {
-                STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "sendrecv");
-                directionFound = TRUE;
-            } else if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[i].attributeName, "recvonly") == 0) {
-                STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "sendonly");
-                directionFound = TRUE;
-            } else if (STRCMP(pSdpMediaDescriptionRemote->sdpAttributes[i].attributeName, "sendonly") == 0) {
-                STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "recvonly");
+            RTC_RTP_TRANSCEIVER_DIRECTION remoteDirection;
+            if (STATUS_SUCCEEDED(parseTransceiverDirection(pSdpMediaDescriptionRemote->sdpAttributes[i].attributeName, &remoteDirection)) &&
+                remoteDirection != RTC_RTP_TRANSCEIVER_DIRECTION_UNINITIALIZED) {
+                RTC_RTP_TRANSCEIVER_DIRECTION intersection =
+                    intersectTransceiverDirection(pKvsRtpTransceiver->transceiver.direction, remoteDirection);
+                CHK_LOG_ERR(writeTransceiverDirection(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName,
+                                                      SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName), intersection));
                 directionFound = TRUE;
             }
         }
@@ -1220,6 +1225,105 @@ STATUS findCodecInTransceivers(PKvsPeerConnection pKvsPeerConnection, RTC_CODEC 
 
 CleanUp:
 
+    return retStatus;
+}
+
+RTC_RTP_TRANSCEIVER_DIRECTION parseTransceiverDirection(PCHAR str, RTC_RTP_TRANSCEIVER_DIRECTION* pDirection)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(str != NULL && pDirection != NULL, STATUS_NULL_ARG);
+
+    if (STRCMP(str, RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV_STR) == 0) {
+        *pDirection = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    } else if (STRCMP(str, RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY_STR) == 0) {
+        *pDirection = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
+    } else if (STRCMP(str, RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY_STR) == 0) {
+        *pDirection = RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+    } else if (STRCMP(str, RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE_STR) == 0) {
+        *pDirection = RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE;
+    } else {
+        *pDirection = RTC_RTP_TRANSCEIVER_DIRECTION_UNINITIALIZED;
+    }
+
+CleanUp:
+    if (STATUS_FAILED(retStatus) && pDirection != NULL) {
+        *pDirection = RTC_RTP_TRANSCEIVER_DIRECTION_UNINITIALIZED;
+    }
+
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
+}
+
+// Compute the intersection of local and remote transceiver directions.
+// This respects the user's configured direction while negotiating with the remote peer.
+RTC_RTP_TRANSCEIVER_DIRECTION intersectTransceiverDirection(RTC_RTP_TRANSCEIVER_DIRECTION local, RTC_RTP_TRANSCEIVER_DIRECTION remote)
+{
+    if (local <= RTC_RTP_TRANSCEIVER_DIRECTION_UNINITIALIZED || local >= RTC_RTP_TRANSCEIVER_DIRECTION_MAX) {
+        DLOGW("Unrecognized local direction: %u, default to sendrecv", (UINT32) local);
+        local = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    }
+
+    if (remote <= RTC_RTP_TRANSCEIVER_DIRECTION_UNINITIALIZED || remote >= RTC_RTP_TRANSCEIVER_DIRECTION_MAX) {
+        DLOGW("Unrecognized remote direction: %u, default to sendrecv", (UINT32) remote);
+        remote = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    }
+
+    // If either side is inactive, result is inactive
+    if (local == RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE || remote == RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE) {
+        return RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE;
+    }
+
+    // Determine if local can send and remote can receive
+    BOOL localCanSend = (local == RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV || local == RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY);
+    BOOL remoteCanRecv = (remote == RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV || remote == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY);
+    BOOL canSend = localCanSend && remoteCanRecv;
+
+    // Determine if local can receive and remote can send
+    BOOL localCanRecv = (local == RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV || local == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY);
+    BOOL remoteCanSend = (remote == RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV || remote == RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY);
+    BOOL canRecv = localCanRecv && remoteCanSend;
+
+    // Compute result
+    if (canSend && canRecv) {
+        return RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    } else if (canSend) {
+        return RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+    } else if (canRecv) {
+        return RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
+    } else {
+        return RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE;
+    }
+}
+
+STATUS writeTransceiverDirection(PCHAR buf, UINT32 len, RTC_RTP_TRANSCEIVER_DIRECTION direction)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 amountWouldHaveWritten;
+
+    CHK(buf != NULL, STATUS_NULL_ARG);
+    CHK(len > 0, STATUS_INVALID_ARG_LEN);
+
+    if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV) {
+        amountWouldHaveWritten = SNPRINTF(buf, len, "%s", RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV_STR);
+    } else if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY) {
+        amountWouldHaveWritten = SNPRINTF(buf, len, "%s", RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY_STR);
+    } else if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY) {
+        amountWouldHaveWritten = SNPRINTF(buf, len, "%s", RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY_STR);
+    } else {
+        amountWouldHaveWritten = SNPRINTF(buf, len, "%s", RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE_STR);
+    }
+    CHK(amountWouldHaveWritten < len, STATUS_BUFFER_TOO_SMALL);
+
+CleanUp:
+    if (STATUS_FAILED(retStatus) && buf != NULL & len > 0) {
+        buf[0] = '\0';
+    }
+
+    CHK_LOG_ERR(retStatus);
     return retStatus;
 }
 

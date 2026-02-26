@@ -25,7 +25,7 @@ TEST_F(CustomEndpointTest, customControlPlaneEndpointBasicCase)
     channelInfo.pControlPlaneUrl = (PCHAR) validatedCustomControlPlaneUrl;
 
     // pChannelName must be set to make the createValidateChannelInfo call.
-    channelInfo.pChannelName = "TestChannelName";
+    channelInfo.pChannelName = (PCHAR) "TestChannelName";
 
     EXPECT_EQ(STATUS_SUCCESS, createValidateChannelInfo(&channelInfo, &pChannelInfo));
     EXPECT_NE(nullptr, pChannelInfo);
@@ -57,7 +57,7 @@ TEST_F(CustomEndpointTest, customControlPlaneEndpointEdgeCases)
     channelInfo.pControlPlaneUrl = (PCHAR) validatedCustomControlPlaneUrl;
 
     // pChannelName must be set to make the createValidateChannelInfo call.
-    channelInfo.pChannelName = "TestChannelName";
+    channelInfo.pChannelName = (PCHAR) "TestChannelName";
 
 
     /* MAX URL ARRAY LENGTH (expect the custom URL be used) */
@@ -123,7 +123,7 @@ TEST_F(CustomEndpointTest, customControlPlaneEndpointTooLong)
     CHAR customControlPlaneUrl[MAX_URI_CHAR_LEN + 2] =  {0};
 
     // pChannelName must be set to make the createValidateChannelInfo call.
-    channelInfo.pChannelName = "TestChannelName";
+    channelInfo.pChannelName = (PCHAR) "TestChannelName";
 
     // Fill array full of non-null values, accounting for null terminator.
     MEMSET(customControlPlaneUrl, 'X', SIZEOF(customControlPlaneUrl));

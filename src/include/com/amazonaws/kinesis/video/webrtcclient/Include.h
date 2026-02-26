@@ -889,10 +889,12 @@ typedef enum {
  * Reference: https://www.w3.org/TR/webrtc/#dom-rtcrtptransceiverdirection
  */
 typedef enum {
-    RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV = 1, //!< This indicates that peer can send and receive data
-    RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY = 2, //!< This indicates that the peer can only send information
-    RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY = 3, //!< This indicates that the peer can only receive information
-    RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE = 4, //!< This indicates that the peer can not send or receive data
+    RTC_RTP_TRANSCEIVER_DIRECTION_UNINITIALIZED = 0, //!< Will use the default "sendrecv" after initialization
+    RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV = 1,      //!< This indicates that peer can send and receive data
+    RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY = 2,      //!< This indicates that the peer can only send information
+    RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY = 3,      //!< This indicates that the peer can only receive information
+    RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE = 4,      //!< This indicates that the peer can not send or receive data
+    RTC_RTP_TRANSCEIVER_DIRECTION_MAX,               //!< Sentinel for validation, keep last
 } RTC_RTP_TRANSCEIVER_DIRECTION;
 
 /**

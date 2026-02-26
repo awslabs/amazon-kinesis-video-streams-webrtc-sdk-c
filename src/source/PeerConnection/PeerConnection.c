@@ -746,7 +746,7 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
     ready = pKvsPeerConnection->pSrtpSession != NULL &&
         currentTime - pKvsRtpTransceiver->sender.firstFrameWallClockTime >= 2500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
     if (!ready) {
-        DLOGV("sender report no frames sent %u", ssrc);
+        DLOGD("sender report no frames sent %u", ssrc);
     } else {
         // create rtcp sender report packet
         // https://tools.ietf.org/html/rfc3550#section-6.4.1
@@ -757,7 +757,7 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
         packetCount = pKvsRtpTransceiver->outboundStats.sent.packetsSent;
         octetCount = pKvsRtpTransceiver->outboundStats.sent.bytesSent;
         MUTEX_UNLOCK(pKvsRtpTransceiver->statsLock);
-        DLOGV("sender report %u %" PRIu64 " %" PRIu64 " : %u packets %u bytes", ssrc, ntpTime, rtpTime, packetCount, octetCount);
+        DLOGD("sender report %u %" PRIu64 " %" PRIu64 " : %u packets %u bytes", ssrc, ntpTime, rtpTime, packetCount, octetCount);
         packetLen = RTCP_PACKET_HEADER_LEN + 24;
 
         // srtp_protect_rtcp() in encryptRtcpPacket() assumes memory availability to write 10 bytes of authentication tag and
@@ -1613,7 +1613,12 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
 
     if (pRtcRtpTransceiverInit != NULL) {
-        direction = pRtcRtpTransceiverInit->direction;
+        if (RTC_RTP_TRANSCEIVER_DIRECTION_UNINITIALIZED < pRtcRtpTransceiverInit->direction &&
+            pRtcRtpTransceiverInit->direction < RTC_RTP_TRANSCEIVER_DIRECTION_MAX) {
+            direction = pRtcRtpTransceiverInit->direction;
+        } else {
+            DLOGW("Unknown direction: %u, defaulting to sendrecv", (UINT32) pRtcRtpTransceiverInit->direction);
+        }
     }
 
     if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY && pRtcMediaStreamTrack == NULL) {

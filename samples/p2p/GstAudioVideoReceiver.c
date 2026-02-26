@@ -1,4 +1,4 @@
-#include "Samples.h"
+#include "../common/Samples.h"
 #include <gst/gst.h>
 #include <gst/app/app.h>
 #include <gst/app/gstappsink.h>
