@@ -30,7 +30,7 @@ permissions:
 jobs:
   mac:
     runs-on: [self-hosted, macOS, ARM64]
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -82,3 +82,48 @@ jobs:
       - name: Clean MbedTLS build
         if: always()
         run: rm -rf build-mbedtls
+
+      # ---------------------------------------------------------------
+      # Sanitizers
+      # ---------------------------------------------------------------
+
+      - name: ASAN + UBSAN build + test
+        if: success() || failure()
+        env:
+          ASAN_OPTIONS: detect_odr_violation=0
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: |
+          export PATH="/opt/homebrew/bin:$PATH"
+          export CC=clang CXX=clang++
+          export CMAKE_BUILD_PARALLEL_LEVEL=$(sysctl -n hw.ncpu)
+          mkdir -p build-asan && cd build-asan
+          cmake .. -DBUILD_TEST=ON -DENABLE_SIGNALING=OFF -DENABLE_SELF_CONTAINED=ON -DENABLE_AWS_SDK_IN_TESTS=OFF \
+                   -DADDRESS_SANITIZER=ON -DUNDEFINED_BEHAVIOR_SANITIZER=ON \
+                   -DOPEN_SRC_INSTALL_PREFIX=$(pwd)/deps
+          make -j$(sysctl -n hw.ncpu)
+          timeout 600 ./tst/webrtc_client_test --gtest_break_on_failure
+        shell: bash
+
+      - name: Clean ASAN build
+        if: always()
+        run: rm -rf build-asan
+
+      - name: TSAN build + test
+        if: success() || failure()
+        env:
+          TSAN_OPTIONS: second_deadlock_stack=1:halt_on_error=1:suppressions=${{ github.workspace }}/tst/suppressions/TSAN.supp
+        run: |
+          export PATH="/opt/homebrew/bin:$PATH"
+          export CC=clang CXX=clang++
+          export CMAKE_BUILD_PARALLEL_LEVEL=$(sysctl -n hw.ncpu)
+          mkdir -p build-tsan && cd build-tsan
+          cmake .. -DBUILD_TEST=ON -DENABLE_SIGNALING=OFF -DENABLE_SELF_CONTAINED=ON -DENABLE_AWS_SDK_IN_TESTS=OFF \
+                   -DTHREAD_SANITIZER=ON \
+                   -DOPEN_SRC_INSTALL_PREFIX=$(pwd)/deps
+          make -j$(sysctl -n hw.ncpu)
+          timeout 600 ./tst/webrtc_client_test --gtest_break_on_failure
+        shell: bash
+
+      - name: Clean TSAN build
+        if: always()
+        run: rm -rf build-tsan
