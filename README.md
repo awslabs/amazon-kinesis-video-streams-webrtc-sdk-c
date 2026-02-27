@@ -61,7 +61,7 @@ To download run the following command:
 git clone https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c.git --single-branch -b main kvs-webrtc-sdk
 ```
 
-You will also need to install `pkg-config` and `CMake` and a build environment
+You will also need to install `pkg-config` and `CMake` (requires 3.x, `CMake` 4.x is not yet supported) and a build environment
 
 ### Configuring on Ubuntu / Unix
 
