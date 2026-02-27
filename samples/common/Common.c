@@ -445,11 +445,14 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     CHK(retStatus == STATUS_SUCCESS || retStatus == STATUS_NOT_FOUND, retStatus);
 
     if (retStatus == STATUS_NOT_FOUND) {
+        DLOGI("No pre-generated cert available");
+        // If no pre-generated cert is available, the SDK will generate one
         retStatus = STATUS_SUCCESS;
     } else {
         // Use the pre-generated cert and get rid of it to not reuse again
         pRtcCertificate = (PRtcCertificate) data;
         configuration.certificates[0] = *pRtcCertificate;
+        DLOGI("Using pre-generated cert");
     }
 
     CHK_STATUS(createPeerConnection(&configuration, ppRtcPeerConnection));
@@ -930,13 +933,54 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 
     CHK_STATUS(timerQueueCreate(&pSampleConfiguration->timerQueueHandle));
 
+    // Configure certificate pre-generation from environment variables
+    BOOL preGenerateCert = SAMPLE_PRE_GENERATE_CERT;
+    UINT64 preGenerateCertPeriod = SAMPLE_PRE_GENERATE_CERT_PERIOD;
+    UINT32 preGenerateCertMax = SAMPLE_PRE_GENERATE_CERT_MAX;
+    PCHAR pPreGenPeriod, pPreGenMax;
+
+    if (GETENV(PRE_GENERATE_CERT_ENV_VAR) != NULL) {
+        preGenerateCert = isEnvVarEnabled(PRE_GENERATE_CERT_ENV_VAR);
+    }
+    DLOGD("Pre-generated certs: %s", preGenerateCert ? "enabled" : "disabled");
+
+    if ((pPreGenPeriod = GETENV(PRE_GENERATE_CERT_PERIOD_ENV_VAR)) != NULL) {
+        UINT64 periodMs;
+        if (STRTOUI64(pPreGenPeriod, NULL, 10, &periodMs) == STATUS_SUCCESS && periodMs > 0) {
+            if (periodMs < PRE_GENERATE_CERT_PERIOD_MIN_MS || periodMs > PRE_GENERATE_CERT_PERIOD_MAX_MS) {
+                DLOGW("The %s is not within [%d, %d], using the default", PRE_GENERATE_CERT_PERIOD_ENV_VAR, PRE_GENERATE_CERT_PERIOD_MIN_MS,
+                      PRE_GENERATE_CERT_PERIOD_MAX_MS);
+            } else {
+                preGenerateCertPeriod = periodMs * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+            }
+        }
+    }
+    DLOGD("Pre-generate cert period: %dms", preGenerateCertPeriod / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+
+    if ((pPreGenMax = GETENV(PRE_GENERATE_CERT_MAX_ENV_VAR)) != NULL) {
+        UINT32 maxCerts;
+        if (STRTOUI32(pPreGenMax, NULL, 10, &maxCerts) == STATUS_SUCCESS) {
+            if (maxCerts == 0) {
+                DLOGI("Disable pre-generated certs since queue size is 0");
+                preGenerateCert = FALSE;
+            } else if (maxCerts > PRE_GENERATE_CERT_MAX_UPPER_BOUND) {
+                DLOGW("The %s has max value of %d, using %d", PRE_GENERATE_CERT_MAX_ENV_VAR, PRE_GENERATE_CERT_MAX_UPPER_BOUND,
+                      PRE_GENERATE_CERT_MAX_UPPER_BOUND);
+                preGenerateCertMax = PRE_GENERATE_CERT_MAX_UPPER_BOUND;
+            } else {
+                preGenerateCertMax = maxCerts;
+            }
+        }
+    }
+    DLOGD("Pre-generate cert max standby: %d", preGenerateCertMax);
+
     CHK_STATUS(stackQueueCreate(&pSampleConfiguration->pregeneratedCertificates));
+    pSampleConfiguration->pregenerateCertificatesMax = preGenerateCertMax;
 
     // Start the cert pre-gen timer callback
-    if (SAMPLE_PRE_GENERATE_CERT) {
-        CHK_LOG_ERR(retStatus =
-                        timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, 0, SAMPLE_PRE_GENERATE_CERT_PERIOD, pregenerateCertTimerCallback,
-                                           (UINT64) pSampleConfiguration, &pSampleConfiguration->pregenerateCertTimerId));
+    if (preGenerateCert) {
+        CHK_LOG_ERR(retStatus = timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, 0, preGenerateCertPeriod, pregenerateCertTimerCallback,
+                                                   (UINT64) pSampleConfiguration, &pSampleConfiguration->pregenerateCertTimerId));
     }
 
     pSampleConfiguration->iceUriCount = 0;
@@ -1147,7 +1191,7 @@ STATUS pregenerateCertTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 c
 
     // Quick check if there is anything that needs to be done.
     CHK_STATUS(stackQueueGetCount(pSampleConfiguration->pregeneratedCertificates, &certCount));
-    CHK(certCount != MAX_RTCCONFIGURATION_CERTIFICATES, retStatus);
+    CHK(certCount != pSampleConfiguration->pregenerateCertificatesMax, retStatus);
 
     // Generate the certificate with the keypair
     CHK_STATUS(createRtcCertificate(&pRtcCertificate));
