@@ -320,6 +320,10 @@ if (BUILD_DEPENDENCIES)
   else()
     find_library(SRTP_LIBRARIES srtp2 REQUIRED)
   endif()
+elseif(TARGET srtp2)
+  # Provided by a parent superbuild via add_subdirectory; include dirs are
+  # already on the path from the parent's include_directories() calls.
+  set(SRTP_LIBRARIES srtp2)
 else()
   pkg_check_modules(LIBSRTP REQUIRED libsrtp2)
   set(SRTP_LIBRARIES ${LIBSRTP_LIBRARIES})
@@ -350,6 +354,10 @@ if (BUILD_DEPENDENCIES)
     Usrsctp
     NAMES ${USRSCTP_LIBNAME} usrsctp REQUIRED
     PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib ${OPEN_SRC_INSTALL_PREFIX}/lib64)
+elseif(TARGET usrsctp)
+  # Provided by a parent superbuild via add_subdirectory; include dirs are
+  # already on the path from the parent's include_directories() calls.
+  set(Usrsctp usrsctp)
 else()
   pkg_check_modules(LIBUSRSCTP REQUIRED usrsctp)
   set(Usrsctp ${LIBUSRSCTP_LIBRARIES})
@@ -573,6 +581,12 @@ if (BUILD_SAMPLE)
 endif()
 
 if(BUILD_TEST)
+  # If gtest was provided by a parent superbuild via add_subdirectory(googletest),
+  # create the imported aliases that find_package(GTest) would normally produce.
+  if(TARGET gtest AND NOT TARGET GTest::GTest)
+    add_library(GTest::GTest ALIAS gtest)
+    add_library(GTest::Main  ALIAS gtest_main)
+  endif()
   # adding ZLIB because aws sdk static link seems to be broken when zlib is needed
   if(NOT WIN32 AND ENABLE_AWS_SDK_IN_TESTS)
     find_package(ZLIB REQUIRED)

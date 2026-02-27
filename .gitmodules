@@ -4,3 +4,15 @@
 [submodule "open-source/amazon-kinesis-video-streams-producer-c"]
 	path = open-source/amazon-kinesis-video-streams-producer-c
 	url = https://github.com/awslabs/amazon-kinesis-video-streams-producer-c.git
+[submodule "superbuild/openssl"]
+	path = superbuild/openssl
+	url = https://github.com/openssl/openssl.git
+[submodule "superbuild/libsrtp"]
+	path = superbuild/libsrtp
+	url = https://github.com/cisco/libsrtp.git
+[submodule "superbuild/usrsctp"]
+	path = superbuild/usrsctp
+	url = https://github.com/sctplab/usrsctp.git
+[submodule "superbuild/googletest"]
+	path = superbuild/googletest
+	url = https://github.com/google/googletest.git

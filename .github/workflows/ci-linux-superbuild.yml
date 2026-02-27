@@ -1,0 +1,58 @@
+name: CI Linux Superbuild
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+      - 'test-pr-*'
+    paths-ignore:
+      - '**.md'
+      - 'doc/**'
+      - '.github/workflows/close-stale-issues.yml'
+      - '.github/workflows/doxygen-gh-pages.yml'
+  pull_request:
+    branches:
+      - develop
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'doc/**'
+      - '.github/workflows/close-stale-issues.yml'
+      - '.github/workflows/doxygen-gh-pages.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  superbuild-linux:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialise superbuild submodules
+        run: |
+          git submodule update --init \
+            superbuild/openssl superbuild/libsrtp \
+            superbuild/usrsctp superbuild/googletest
+
+      - name: Build Docker image
+        run: docker build -t webrtc-u24 -f .github/docker/ubuntu24.Dockerfile .
+
+      - name: Configure + Build
+        run: |
+          docker run --rm --user $(id -u):$(id -g) \
+            -v $PWD:/src -w /src \
+            -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) \
+            webrtc-u24 bash -c "
+              export CC=clang CXX=clang++
+              cd superbuild
+              cmake --preset linux-x64
+              cmake --build build-linux-x64 --parallel \$(nproc)
+            "
+
+      - name: Cleanup
+        if: always()
+        run: rm -rf superbuild/build-linux-x64
