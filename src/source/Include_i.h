@@ -159,11 +159,13 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #include "Ice/NatBehaviorDiscovery.h"
 #include "Srtp/SrtpSession.h"
 #include "Sctp/Sctp.h"
+#ifdef ENABLE_SIGNALING
 #include "Signaling/FileCache.h"
 #include "Signaling/Signaling.h"
 #include "Signaling/ChannelInfo.h"
 #include "Signaling/StateMachine.h"
 #include "Signaling/LwsApiCalls.h"
+#endif
 #include "Rtp/RtpPacket.h"
 #include "Rtcp/RtcpPacket.h"
 #include "Rtcp/RollingBuffer.h"

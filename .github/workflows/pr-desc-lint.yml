@@ -16,27 +16,24 @@ permissions:
 
 jobs:
   check-description:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
-      - name: Install GitHub CLI
-        run: |
-          brew install gh
-
       - name: Check PR Description
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           pr_link="https://github.com/${GITHUB_REPOSITORY}/pull/${{ github.event.pull_request.number }}"
-          
+
           echo "$pr_link"
-          
+
           pr_description=$(gh pr view $pr_link --json body -q ".body")
-          
+
           if [ -z "$pr_description" ]; then
             echo "Failed to fetch the PR description"
             exit 1
           fi
-          
+
           # Define minimum character count for each section
           MIN_CHARS=10
 
@@ -45,7 +42,7 @@ jobs:
           why_changed=$(echo "$pr_description" | sed -n -e '/\*Why was it changed?\*/,/\*How was it changed?\*/p' | sed '$d' | sed '1d')
           how_changed=$(echo "$pr_description" | sed -n -e '/\*How was it changed?\*/,/\*What testing was done for the changes?\*/p' | sed '$d' | sed '1d')
           testing_done=$(echo "$pr_description" | sed -n -e '/\*What testing was done for the changes?\*/,/By submitting this pull request/p' | sed '$d' | sed '1d')
-  
+
           error_occurred=0
           if [[ ${#what_changed} -lt $MIN_CHARS ]]; then
             echo "PR description for what changed section is either missing or too short. Required: ${MIN_CHARS}, Current: ${what_changed}"

@@ -56,10 +56,10 @@ TEST_F(PeerConnectionApiTest, serializeSessionDescriptionInit)
 
 TEST_F(PeerConnectionApiTest, suppliedCertificatesVariation)
 {
-    RtcConfiguration configuration;
+    RtcConfiguration configuration{};
     PRtcPeerConnection pRtcPeerConnection;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
 
     // Private key is null but the size is not zero
@@ -183,6 +183,7 @@ TEST_F(PeerConnectionApiTest, connectionState)
 {
     PRtcPeerConnection pc = nullptr;
     RtcConfiguration config{};
+    initRtcConfiguration(&config);
     EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pc));
     EXPECT_EQ(RTC_PEER_CONNECTION_STATE_NEW, fromIceAgentState(pc, ICE_AGENT_STATE_NEW));
     EXPECT_EQ(RTC_PEER_CONNECTION_STATE_CONNECTING, fromIceAgentState(pc, ICE_AGENT_STATE_CHECK_CONNECTION));

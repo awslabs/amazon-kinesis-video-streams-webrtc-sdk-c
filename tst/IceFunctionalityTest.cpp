@@ -205,10 +205,8 @@ TEST_F(IceFunctionalityTest, connectionListenerFunctionalityTest)
     threadId = pConnectionListener->receiveDataRoutine;
     MUTEX_UNLOCK(pConnectionListener->lock);
     EXPECT_TRUE(IS_VALID_TID_VALUE(threadId));
-    ATOMIC_STORE_BOOL(&pConnectionListener->terminate, TRUE);
 
-    THREAD_JOIN(threadId, NULL);
-
+    // freeConnectionListener handles terminate + kick + join internally
     EXPECT_EQ(STATUS_SUCCESS, freeConnectionListener(&pConnectionListener));
 
     EXPECT_EQ(STATUS_SUCCESS, freeSocketConnection(&pSocketConnection));
@@ -713,7 +711,7 @@ TEST_F(IceFunctionalityTest, IceAgentPruneUnconnectedIceCandidatePairUnitTest)
     EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.iceCandidatePairs));
 }
 
-TEST_F(IceFunctionalityTest, IceAgentCandidateGatheringTest)
+TEST_F(IceFunctionalityTest, DISABLED_IceAgentCandidateGatheringTest)
 {
     ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
@@ -732,7 +730,7 @@ TEST_F(IceFunctionalityTest, IceAgentCandidateGatheringTest)
     BOOL foundHostCandidate = FALSE, foundSrflxCandidate = FALSE, foundRelayCandidate = FALSE;
     CandidateList candidateList;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
     MEMSET(localIceUfrag, 0x00, SIZEOF(localIceUfrag));
     MEMSET(localIcePwd, 0x00, SIZEOF(localIcePwd));
     MEMSET(&iceAgentCallbacks, 0x00, SIZEOF(IceAgentCallbacks));

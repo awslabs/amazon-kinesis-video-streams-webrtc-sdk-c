@@ -8,7 +8,7 @@ namespace webrtcclient {
 
 class DualStackEndpointsTest : public WebRtcClientTestBase {};
 
-
+#ifdef ENABLE_SIGNALING
 TEST_F(DualStackEndpointsTest, connectTwoDualStackPeersWithForcedTurn)
 {
     RtcConfiguration configuration;
@@ -24,6 +24,7 @@ TEST_F(DualStackEndpointsTest, connectTwoDualStackPeersWithForcedTurn)
     setenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON", 1);
     #endif
 
+    initRtcConfiguration(&configuration);
     EXPECT_EQ(TRUE, isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR));
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
@@ -51,7 +52,7 @@ TEST_F(DualStackEndpointsTest, connectTwoDualStackPeersWithForcedTurn)
         unsetenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
     #endif
 }
-
+#endif
 
 
 } // namespace webrtcclient

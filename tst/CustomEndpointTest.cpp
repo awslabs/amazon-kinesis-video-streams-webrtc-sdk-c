@@ -8,7 +8,7 @@ namespace webrtcclient {
 
 class CustomEndpointTest : public WebRtcClientTestBase {
 };
-
+#ifdef ENABLE_SIGNALING
 TEST_F(CustomEndpointTest, customControlPlaneEndpointBasicCase)
 {
     STATUS retStatus;
@@ -134,7 +134,7 @@ TEST_F(CustomEndpointTest, customControlPlaneEndpointTooLong)
     EXPECT_EQ(STATUS_SIGNALING_INVALID_CPL_LENGTH, createValidateChannelInfo(&channelInfo, &pChannelInfo));
     freeChannelInfo(&pChannelInfo);
 }
-
+#endif
 
 } // namespace webrtcclient
 } // namespace video

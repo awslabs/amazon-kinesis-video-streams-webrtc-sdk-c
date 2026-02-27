@@ -28,7 +28,7 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_Disconnected)
     SIZE_T datachannelLocalOpenCount = 0, msgCount = 0;
     RemoteOpen remoteOpen{};
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
@@ -106,7 +106,7 @@ TEST_F(DataChannelFunctionalityTest, dataChannelSendRecvMessageAfterDtlsComplete
     SIZE_T datachannelLocalOpenCount = 0, msgCount = 0;
     BOOL dtlsCompleted = FALSE;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
 
     auto onDataChannel = [](UINT64 customData, PRtcDataChannel pRtcDataChannel) { ATOMIC_STORE((PSIZE_T)customData, reinterpret_cast<UINT64>(pRtcDataChannel)); };
 
@@ -178,7 +178,7 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_PartialReliabilityUnorder
     PKvsDataChannel pKvsDataChannel = NULL;
     RemoteOpen remoteOpen{};
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
@@ -234,7 +234,7 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_PartialReliabilityUnorder
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
     // Busy wait until DataChannels connect and send a message
-    for (auto i = 0; i <= 100 && (ATOMIC_LOAD(&datachannelLocalOpenCount) + ATOMIC_LOAD(&msgCount)) != 4 ; i++) {
+    for (auto i = 0; i <= 10 && (ATOMIC_LOAD(&datachannelLocalOpenCount) + ATOMIC_LOAD(&msgCount)) != 4 ; i++) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
     // Close the connection to avoid data race while accessing SctpSession
@@ -263,7 +263,7 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_PartialReliabilityUnOrder
     PKvsDataChannel pKvsDataChannel = NULL;
     RemoteOpen remoteOpen{};
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
@@ -319,7 +319,7 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_PartialReliabilityUnOrder
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
     // Busy wait until DataChannels connect and send a message
-    for (auto i = 0; i <= 100 && (ATOMIC_LOAD(&datachannelLocalOpenCount) + ATOMIC_LOAD(&msgCount)) != 4 ; i++) {
+    for (auto i = 0; i <= 10 && (ATOMIC_LOAD(&datachannelLocalOpenCount) + ATOMIC_LOAD(&msgCount)) != 4 ; i++) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
 
@@ -349,7 +349,7 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_PartialReliabilityOrdered
     PKvsDataChannel pKvsDataChannel = NULL;
     RemoteOpen remoteOpen{};
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
@@ -435,7 +435,7 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_PartialReliabilityOrdered
     PKvsDataChannel pKvsDataChannel = NULL;
     RemoteOpen remoteOpen{};
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
@@ -521,7 +521,7 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_DataChannelMetricsTest)
 
     EXPECT_EQ(rtcPeerConnectionGetMetrics(NULL, NULL, NULL), STATUS_NULL_ARG);
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);

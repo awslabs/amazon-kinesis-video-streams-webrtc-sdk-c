@@ -1,0 +1,68 @@
+name: CI Windows
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+      - 'test-pr-*'
+    paths-ignore:
+      - '**.md'
+      - 'doc/**'
+      - '.github/workflows/close-stale-issues.yml'
+      - '.github/workflows/doxygen-gh-pages.yml'
+  pull_request:
+    branches:
+      - develop
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'doc/**'
+      - '.github/workflows/close-stale-issues.yml'
+      - '.github/workflows/doxygen-gh-pages.yml'
+
+env:
+  AWS_KVS_LOG_LEVEL: 3
+
+permissions:
+  contents: read
+
+jobs:
+  windows-msvc-openssl:
+    if: false
+    runs-on: windows-2022
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Move cloned repo to shorter path
+        shell: powershell
+        run: |
+          $src = "${env:GITHUB_WORKSPACE}\*"
+          $dest = "C:\webrtc"
+          mkdir "$dest"
+          Move-Item -Path $src -Destination $dest
+      - name: Install dependencies
+        shell: powershell
+        run: |
+          choco install pkgconfiglite
+          choco install gstreamer --version=1.16.3
+          choco install gstreamer-devel --version=1.16.3
+          curl.exe -o C:\tools\pthreads-w32-2-9-1-release.zip ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
+          mkdir C:\tools\pthreads-w32-2-9-1-release\
+          Expand-Archive -Path C:\tools\pthreads-w32-2-9-1-release.zip -DestinationPath C:\tools\pthreads-w32-2-9-1-release
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
+      - name: Build repository
+        shell: powershell
+        run: |
+          cd C:\webrtc
+          git config --system core.longpaths true
+          .github\build_windows_openssl.bat
+      - name: Run tests
+        shell: powershell
+        timeout-minutes: 10
+        run: |
+          $env:Path += ';C:\webrtc\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre-built.2\dll\x64;C:\webrtc\build'
+          & "C:\webrtc\build\tst\webrtc_client_test.exe" --gtest_break_on_failure --gtest_filter="-DataChannelFunctionalityTest.*:DtlsApiTest.*:IceApiTest.*:IceFunctionalityTest.*:PeerConnectionFunctionalityTest.*:TurnConnectionFunctionalityTest.*:RtpFunctionalityTest.marshallUnmarshallH264Data:RtpFunctionalityTest.packingUnpackingVerifySameH264Frame:RtpFunctionalityTest.packingUnpackingVerifySameH265Frame:RtcpFunctionalityTest.onRtcpPacketCompound:RtcpFunctionalityTest.twcc3"

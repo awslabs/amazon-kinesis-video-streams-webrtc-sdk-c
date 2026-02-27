@@ -158,6 +158,7 @@ TEST_F(RtpRollingBufferFunctionalityTest, getIndexForSeqListReturnCorrectIndexsW
 TEST_F(RtpRollingBufferFunctionalityTest, testRollingBufferParams)
 {
     RtcConfiguration config{};
+    initRtcConfiguration(&config);
     PKvsRtpTransceiver pKvsRtpTransceiver = nullptr;
     PRtcPeerConnection pRtcPeerConnection = nullptr;
     PRtcRtpTransceiver pRtcRtpTransceiver = nullptr;

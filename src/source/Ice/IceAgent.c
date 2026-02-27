@@ -311,14 +311,20 @@ STATUS iceAgentValidateKvsRtcConfig(PKvsRtcConfiguration pKvsRtcConfiguration)
         pKvsRtcConfiguration->iceConnectionCheckPollingInterval = KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL;
     }
 
+    if (pKvsRtcConfiguration->iceDisconnectionTimeout == 0) {
+        pKvsRtcConfiguration->iceDisconnectionTimeout = KVS_ICE_ENTER_STATE_DISCONNECTION_GRACE_PERIOD;
+    }
+
     DLOGI("\n\ticeLocalCandidateGatheringTimeout: %u ms"
           "\n\ticeConnectionCheckTimeout: %u ms"
           "\n\ticeCandidateNominationTimeout: %u ms"
-          "\n\ticeConnectionCheckPollingInterval: %u ms",
+          "\n\ticeConnectionCheckPollingInterval: %u ms"
+          "\n\ticeDisconnectionTimeout: %u ms",
           pKvsRtcConfiguration->iceLocalCandidateGatheringTimeout / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
           pKvsRtcConfiguration->iceConnectionCheckTimeout / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
           pKvsRtcConfiguration->iceCandidateNominationTimeout / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-          pKvsRtcConfiguration->iceConnectionCheckPollingInterval / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+          pKvsRtcConfiguration->iceConnectionCheckPollingInterval / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+          pKvsRtcConfiguration->iceDisconnectionTimeout / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 
 CleanUp:
 

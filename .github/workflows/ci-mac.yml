@@ -1,0 +1,84 @@
+name: CI macOS
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+      - 'test-pr-*'
+    paths-ignore:
+      - '**.md'
+      - 'doc/**'
+      - '.github/workflows/close-stale-issues.yml'
+      - '.github/workflows/doxygen-gh-pages.yml'
+  pull_request:
+    branches:
+      - develop
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'doc/**'
+      - '.github/workflows/close-stale-issues.yml'
+      - '.github/workflows/doxygen-gh-pages.yml'
+
+env:
+  AWS_KVS_LOG_LEVEL: 3
+
+permissions:
+  contents: read
+
+jobs:
+  mac:
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install clang-format
+        run: |
+          export PATH="/opt/homebrew/bin:$PATH"
+          brew list clang-format &>/dev/null || brew install clang-format
+          clang-format --version
+        shell: bash
+
+      - name: Clang format check
+        run: |
+          export PATH="/opt/homebrew/bin:$PATH"
+          bash scripts/check-clang.sh
+        shell: bash
+
+      - name: OpenSSL shared build + test
+        run: |
+          export PATH="/opt/homebrew/bin:$PATH"
+          export CC=clang CXX=clang++
+          export CMAKE_BUILD_PARALLEL_LEVEL=$(sysctl -n hw.ncpu)
+          mkdir -p build-openssl && cd build-openssl
+          cmake .. -DBUILD_TEST=ON -DENABLE_SIGNALING=OFF -DENABLE_SELF_CONTAINED=ON -DENABLE_AWS_SDK_IN_TESTS=OFF \
+                   -DOPEN_SRC_INSTALL_PREFIX=$(pwd)/deps
+          make -j$(sysctl -n hw.ncpu)
+          timeout 600 ./tst/webrtc_client_test --gtest_break_on_failure
+        shell: bash
+
+      - name: Clean OpenSSL build
+        if: always()
+        run: rm -rf build-openssl
+
+      - name: MbedTLS static build + test
+        if: success() || failure()
+        run: |
+          export PATH="/opt/homebrew/bin:$PATH"
+          export CC=clang CXX=clang++
+          export CMAKE_BUILD_PARALLEL_LEVEL=$(sysctl -n hw.ncpu)
+          mkdir -p build-mbedtls && cd build-mbedtls
+          cmake .. -DBUILD_TEST=ON -DBUILD_STATIC_LIBS=ON \
+                   -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON \
+                   -DENABLE_SIGNALING=OFF -DENABLE_SELF_CONTAINED=ON -DENABLE_AWS_SDK_IN_TESTS=OFF \
+                   -DOPEN_SRC_INSTALL_PREFIX=$(pwd)/deps
+          make -j$(sysctl -n hw.ncpu)
+          timeout 600 ./tst/webrtc_client_test --gtest_break_on_failure
+        shell: bash
+
+      - name: Clean MbedTLS build
+        if: always()
+        run: rm -rf build-mbedtls

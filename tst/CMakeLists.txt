@@ -39,6 +39,7 @@ endif()
 file(GLOB WEBRTC_CLIENT_TEST_SOURCE_FILES "*.cpp" )
 
 add_executable(webrtc_client_test ${WEBRTC_CLIENT_TEST_SOURCE_FILES} SignalingApiFunctionalityTest.h)
+if (ENABLE_SIGNALING)
 target_link_libraries(webrtc_client_test
     kvsWebrtcClient
     kvsWebrtcSignalingClient
@@ -48,3 +49,13 @@ target_link_libraries(webrtc_client_test
     kvspicUtils
     ${GTEST_LIBNAME}
     ${AWS_SDK_TEST_LIBS})
+else ()
+  target_link_libraries(webrtc_client_test
+          kvsWebrtcClient
+          ${EXTRA_DEPS}
+          ${OPENSSL_CRYPTO_LIBRARY}
+          kvspicUtils
+          ${GTEST_LIBNAME}
+          ${AWS_SDK_TEST_LIBS})
+
+endif ()

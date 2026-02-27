@@ -63,24 +63,28 @@ file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/opusSampleFrames" DESTINATION .)
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/h264SampleFrames" DESTINATION .)
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/h265SampleFrames" DESTINATION .)
 
+if (ENABLE_SIGNALING)
 add_executable(
   kvsWebrtcClientMaster
   Common.c
   kvsWebRTCClientMaster.c)
 target_link_libraries(kvsWebrtcClientMaster kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets)
+endif ()
 
+if (ENABLE_SIGNALING)
 add_executable(
   kvsWebrtcClientViewer
   Common.c
   kvsWebRTCClientViewer.c)
 target_link_libraries(kvsWebrtcClientViewer kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets)
+endif ()
 
 add_executable(
         discoverNatBehavior
         discoverNatBehavior.c)
 target_link_libraries(discoverNatBehavior kvsWebrtcClient ${EXTRA_DEPS})
 
-if(GST_FOUND)
+if(GST_FOUND AND ENABLE_SIGNALING)
   add_executable(
     kvsWebrtcClientMasterGstSample
     Common.c
@@ -106,7 +110,13 @@ if(GST_FOUND)
   )
 endif()
 
+if (ENABLE_SIGNALING)
 install(TARGETS kvsWebrtcClientMaster kvsWebrtcClientViewer discoverNatBehavior
   RUNTIME DESTINATION bin
 )
+else ()
+install(TARGETS discoverNatBehavior
+        RUNTIME DESTINATION bin
+)
+endif ()
 

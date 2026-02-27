@@ -1,0 +1,7 @@
+# Only include files needed by Dockerfiles (COPY instructions).
+# Everything else is excluded to keep the build context small
+# and avoid unnecessary Docker cache invalidation.
+*
+!.github/docker/build-deps.sh
+!CMake/Dependencies/
+!configs/

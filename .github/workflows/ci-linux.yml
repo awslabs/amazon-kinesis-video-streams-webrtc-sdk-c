@@ -1,0 +1,381 @@
+name: CI Linux
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+      - 'test-pr-*'
+    paths-ignore:
+      - '**.md'
+      - 'doc/**'
+      - '.github/workflows/close-stale-issues.yml'
+      - '.github/workflows/doxygen-gh-pages.yml'
+  pull_request:
+    branches:
+      - develop
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'doc/**'
+      - '.github/workflows/close-stale-issues.yml'
+      - '.github/workflows/doxygen-gh-pages.yml'
+
+env:
+  AWS_KVS_LOG_LEVEL: 3
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify core dump configuration
+        run: |
+          pattern=$(cat /proc/sys/kernel/core_pattern)
+          echo "core_pattern: $pattern"
+          if echo "$pattern" | grep -q '^|'; then
+            echo "ERROR: core_pattern pipes to a program ($pattern). Set it to a file path, e.g.:"
+            echo "  echo 'core.%e.%p' | sudo tee /proc/sys/kernel/core_pattern"
+            exit 1
+          fi
+
+      - name: Build Docker images
+        run: |
+          docker build -t webrtc-u22 -f .github/docker/ubuntu22.Dockerfile .
+          docker build -t webrtc-u20 -f .github/docker/ubuntu20.Dockerfile .
+          docker build -t webrtc-alpine -f .github/docker/alpine.Dockerfile .
+          docker build -t webrtc-u24-sys-deps -f .github/docker/ubuntu24-sys-deps.Dockerfile .
+
+      # ---------------------------------------------------------------
+      # Ubuntu 24.04 system-deps build + test (no BUILD_DEPENDENCIES)
+      # ---------------------------------------------------------------
+
+      - name: Ubuntu 24.04 system-deps build + test
+        run: |
+          docker run --rm --ulimit core=-1:-1 --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) webrtc-u24-sys-deps bash -c "
+            export CC=gcc CXX=g++
+            mkdir -p build-sys-deps && cd build-sys-deps
+            cmake .. -DBUILD_TEST=ON -DBUILD_DEPENDENCIES=OFF -DENABLE_SELF_CONTAINED=ON \
+                     -DENABLE_SIGNALING=OFF -DENABLE_AWS_SDK_IN_TESTS=OFF
+            make -j\$(nproc)
+            timeout 600 ./tst/webrtc_client_test --gtest_break_on_failure; test_exit=\$?
+            if [ \$test_exit -ne 0 ]; then
+              echo '--- Core dump backtrace (if available) ---'
+              for core in \$(find . -name 'core*' -type f 2>/dev/null); do
+                gdb -batch -ex 'thread apply all bt full' ./tst/webrtc_client_test \"\$core\" || true
+              done
+              exit \$test_exit
+            fi
+          "
+
+      - name: Clean system-deps build
+        if: always()
+        run: rm -rf build-sys-deps
+
+      # ---------------------------------------------------------------
+      # Default settings build (samples included)
+      # Intentionally builds deps from source to test the default
+      # user experience (cmake .. && make).
+      # ---------------------------------------------------------------
+
+      - name: Default settings build (GCC + OpenSSL + samples)
+        if: false
+        run: |
+          docker run --rm --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) webrtc-u22 bash -c "
+            export CC=gcc CXX=g++
+            mkdir -p build-default && cd build-default
+            cmake .. -DBUILD_TEST=ON -DENABLE_AWS_SDK_IN_TESTS=OFF -DOPEN_SRC_INSTALL_PREFIX=\$(pwd)/deps
+            make -j\$(nproc)
+          "
+
+      - name: Clean default build
+        if: always()
+        run: rm -rf build-default
+
+      # ---------------------------------------------------------------
+      # Gate: Alpine static build + test
+      # ---------------------------------------------------------------
+
+      - name: Alpine static GCC build + test
+        run: |
+          docker run --rm --ulimit core=-1:-1 --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) webrtc-alpine bash -c "
+            export CC=gcc CXX=g++
+            export PKG_CONFIG_PATH=/opt/deps/alpine-openssl/lib/pkgconfig
+            mkdir -p build-alpine && cd build-alpine
+            cmake .. -DBUILD_STATIC_LIBS=ON -DBUILD_TEST=ON -DBUILD_DEPENDENCIES=OFF \
+                     -DENABLE_SIGNALING=OFF -DENABLE_SELF_CONTAINED=ON -DENABLE_AWS_SDK_IN_TESTS=OFF \
+                     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                     -DCMAKE_PREFIX_PATH=/opt/deps/alpine-openssl \
+                     -DOPENSSL_ROOT_DIR=/opt/deps/alpine-openssl \
+                     -DOPEN_SRC_INSTALL_PREFIX=/opt/deps/alpine-openssl
+            make -j\$(nproc)
+            timeout 600 ./tst/webrtc_client_test --gtest_break_on_failure; test_exit=\$?
+            if [ \$test_exit -ne 0 ]; then
+              echo '--- Core dump backtrace (if available) ---'
+              for core in \$(find . -name 'core*' -type f 2>/dev/null); do
+                gdb -batch -ex 'thread apply all bt full' ./tst/webrtc_client_test \"\$core\" || true
+              done
+              exit \$test_exit
+            fi
+          "
+
+      - name: Clean Alpine build
+        if: always()
+        run: rm -rf build-alpine
+
+      # ---------------------------------------------------------------
+      # Native builds + tests
+      # ---------------------------------------------------------------
+
+      - name: GCC + OpenSSL build + test
+        run: |
+          docker run --rm --ulimit core=-1:-1 --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) webrtc-u22 bash -c "
+            export CC=gcc CXX=g++
+            export PKG_CONFIG_PATH=/opt/deps/x86_64-openssl/lib/pkgconfig
+            mkdir -p build-gcc-openssl && cd build-gcc-openssl
+            cmake .. -DBUILD_TEST=ON -DBUILD_DEPENDENCIES=OFF \
+                     -DENABLE_SIGNALING=OFF -DENABLE_SELF_CONTAINED=ON -DENABLE_AWS_SDK_IN_TESTS=OFF \
+                     -DUSE_OPENSSL=ON -DUSE_MBEDTLS=OFF \
+                     -DCMAKE_PREFIX_PATH=/opt/deps/x86_64-openssl \
+                     -DOPENSSL_ROOT_DIR=/opt/deps/x86_64-openssl \
+                     -DOPEN_SRC_INSTALL_PREFIX=/opt/deps/x86_64-openssl
+            make -j\$(nproc)
+            timeout 600 ./tst/webrtc_client_test --gtest_break_on_failure; test_exit=\$?
+            if [ \$test_exit -ne 0 ]; then
+              echo '--- Core dump backtrace (if available) ---'
+              for core in \$(find . -name 'core*' -type f 2>/dev/null); do
+                gdb -batch -ex 'thread apply all bt full' ./tst/webrtc_client_test \"\$core\" || true
+              done
+              exit \$test_exit
+            fi
+          "
+
+      - name: Clean GCC OpenSSL build
+        if: always()
+        run: rm -rf build-gcc-openssl
+
+      - name: GCC + OpenSSL + stats-calc test
+        run: |
+          docker run --rm --ulimit core=-1:-1 --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) webrtc-u22 bash -c "
+            export CC=gcc CXX=g++
+            export PKG_CONFIG_PATH=/opt/deps/x86_64-openssl/lib/pkgconfig
+            mkdir -p build-stats-calc && cd build-stats-calc
+            cmake .. -DBUILD_TEST=ON -DBUILD_DEPENDENCIES=OFF \
+                     -DENABLE_SIGNALING=OFF -DENABLE_SELF_CONTAINED=ON -DENABLE_AWS_SDK_IN_TESTS=OFF \
+                     -DENABLE_STATS_CALCULATION_CONTROL=ON \
+                     -DCMAKE_PREFIX_PATH=/opt/deps/x86_64-openssl \
+                     -DOPENSSL_ROOT_DIR=/opt/deps/x86_64-openssl \
+                     -DOPEN_SRC_INSTALL_PREFIX=/opt/deps/x86_64-openssl
+            make -j\$(nproc)
+            timeout 600 ./tst/webrtc_client_test --gtest_break_on_failure --gtest_filter='*MetricsApiTest*'; test_exit=\$?
+            if [ \$test_exit -ne 0 ]; then
+              echo '--- Core dump backtrace (if available) ---'
+              for core in \$(find . -name 'core*' -type f 2>/dev/null); do
+                gdb -batch -ex 'thread apply all bt full' ./tst/webrtc_client_test \"\$core\" || true
+              done
+              exit \$test_exit
+            fi
+          "
+
+      - name: Clean stats-calc build
+        if: always()
+        run: rm -rf build-stats-calc
+
+      - name: Clang + MbedTLS build + test
+        run: |
+          docker run --rm --ulimit core=-1:-1 --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) webrtc-u22 bash -c "
+            export CC=clang CXX=clang++
+            export PKG_CONFIG_PATH=/opt/deps/x86_64-mbedtls/lib/pkgconfig
+            mkdir -p build-clang-mbedtls && cd build-clang-mbedtls
+            cmake .. -DBUILD_TEST=ON -DBUILD_DEPENDENCIES=OFF \
+                     -DENABLE_SIGNALING=OFF -DENABLE_SELF_CONTAINED=ON -DENABLE_AWS_SDK_IN_TESTS=OFF \
+                     -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON \
+                     -DCMAKE_PREFIX_PATH=/opt/deps/x86_64-mbedtls \
+                     -DOPEN_SRC_INSTALL_PREFIX=/opt/deps/x86_64-mbedtls
+            make -j\$(nproc)
+            timeout 600 ./tst/webrtc_client_test --gtest_break_on_failure; test_exit=\$?
+            if [ \$test_exit -ne 0 ]; then
+              echo '--- Core dump backtrace (if available) ---'
+              for core in \$(find . -name 'core*' -type f 2>/dev/null); do
+                gdb -batch -ex 'thread apply all bt full' ./tst/webrtc_client_test \"\$core\" || true
+              done
+              exit \$test_exit
+            fi
+          "
+
+      - name: Clean Clang MbedTLS build
+        if: always()
+        run: rm -rf build-clang-mbedtls
+
+      - name: GCC 4.4 + old MbedTLS build + test
+        run: |
+          docker run --rm --ulimit core=-1:-1 --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) webrtc-u20 bash -c "
+            export CC=gcc-4.4
+            export PKG_CONFIG_PATH=/opt/deps/x86_64-mbedtls-old/lib/pkgconfig
+            mkdir -p build-gcc44 && cd build-gcc44
+            cmake .. -DBUILD_TEST=ON -DBUILD_DEPENDENCIES=OFF \
+                     -DENABLE_SIGNALING=OFF -DENABLE_SELF_CONTAINED=ON -DENABLE_AWS_SDK_IN_TESTS=OFF \
+                     -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON \
+                     -DCMAKE_PREFIX_PATH=/opt/deps/x86_64-mbedtls-old \
+                     -DOPEN_SRC_INSTALL_PREFIX=/opt/deps/x86_64-mbedtls-old
+            make -j\$(nproc)
+            timeout --signal=SIGABRT 600 ./tst/webrtc_client_test --gtest_break_on_failure; test_exit=\$?
+            if [ \$test_exit -ne 0 ]; then
+              echo '--- Core dump backtrace (if available) ---'
+              for core in \$(find . -name 'core*' -type f 2>/dev/null); do
+                gdb -batch -ex 'thread apply all bt full' ./tst/webrtc_client_test \"\$core\" || true
+              done
+              exit \$test_exit
+            fi
+          "
+
+      - name: Clean GCC 4.4 build
+        if: always()
+        run: rm -rf build-gcc44
+
+      # ---------------------------------------------------------------
+      # Sanitizers
+      # ---------------------------------------------------------------
+
+      - name: ASAN + UBSAN build + test
+        run: |
+          docker run --rm --user $(id -u):$(id -g) -v $PWD:/src -w /src \
+            -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) \
+            -e ASAN_OPTIONS=detect_odr_violation=0:detect_leaks=1 \
+            -e LSAN_OPTIONS=suppressions=/src/tst/suppressions/LSAN.supp \
+            -e UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 \
+            webrtc-u22 bash -c "
+            export CC=clang CXX=clang++
+            export PKG_CONFIG_PATH=/opt/deps/x86_64-openssl/lib/pkgconfig
+            mkdir -p build-asan && cd build-asan
+            cmake .. -DBUILD_TEST=ON -DBUILD_DEPENDENCIES=OFF \
+                     -DENABLE_SIGNALING=OFF -DENABLE_SELF_CONTAINED=ON -DENABLE_AWS_SDK_IN_TESTS=OFF \
+                     -DADDRESS_SANITIZER=ON -DUNDEFINED_BEHAVIOR_SANITIZER=ON \
+                     -DCMAKE_PREFIX_PATH=/opt/deps/x86_64-openssl \
+                     -DOPENSSL_ROOT_DIR=/opt/deps/x86_64-openssl \
+                     -DOPEN_SRC_INSTALL_PREFIX=/opt/deps/x86_64-openssl
+            make -j\$(nproc)
+            timeout 600 ./tst/webrtc_client_test --gtest_break_on_failure
+          "
+
+      - name: Clean ASAN build
+        if: always()
+        run: rm -rf build-asan
+
+      - name: TSAN build + test
+        run: |
+          docker run --rm --user $(id -u):$(id -g) -v $PWD:/src -w /src \
+            -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) \
+            -e TSAN_OPTIONS=second_deadlock_stack=1:halt_on_error=1:suppressions=/src/tst/suppressions/TSAN.supp \
+            webrtc-u22 bash -c "
+            export CC=clang CXX=clang++
+            export PKG_CONFIG_PATH=/opt/deps/x86_64-openssl/lib/pkgconfig
+            mkdir -p build-tsan && cd build-tsan
+            cmake .. -DBUILD_TEST=ON -DBUILD_DEPENDENCIES=OFF \
+                     -DENABLE_SIGNALING=OFF -DENABLE_SELF_CONTAINED=ON -DENABLE_AWS_SDK_IN_TESTS=OFF \
+                     -DTHREAD_SANITIZER=ON \
+                     -DCMAKE_PREFIX_PATH=/opt/deps/x86_64-openssl \
+                     -DOPENSSL_ROOT_DIR=/opt/deps/x86_64-openssl \
+                     -DOPEN_SRC_INSTALL_PREFIX=/opt/deps/x86_64-openssl
+            make -j\$(nproc)
+            timeout 600 ./tst/webrtc_client_test --gtest_break_on_failure
+          "
+
+      - name: Clean TSAN build
+        if: always()
+        run: rm -rf build-tsan
+
+      # ---------------------------------------------------------------
+      # Cross-compilation
+      # Uses PKG_CONFIG_LIBDIR (replaces search path) instead of
+      # PKG_CONFIG_PATH (prepends) to avoid finding host x86_64 libs.
+      # ---------------------------------------------------------------
+
+      - name: Cross-compile mips-32 (static, OpenSSL)
+        run: |
+          docker run --rm --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) webrtc-u22 bash -c "
+            export CC=mips-linux-gnu-gcc CXX=mips-linux-gnu-g++
+            export PKG_CONFIG_LIBDIR=/opt/deps/mips-openssl/lib/pkgconfig
+            mkdir -p build-cross-mips && cd build-cross-mips
+            cmake .. -DBUILD_TEST=ON -DBUILD_DEPENDENCIES=OFF \
+                     -DENABLE_SIGNALING=OFF -DENABLE_SELF_CONTAINED=ON -DENABLE_AWS_SDK_IN_TESTS=OFF \
+                     -DBUILD_STATIC_LIBS=ON -DUSE_OPENSSL=ON -DUSE_MBEDTLS=OFF \
+                     -DCMAKE_PREFIX_PATH=/opt/deps/mips-openssl \
+                     -DOPENSSL_ROOT_DIR=/opt/deps/mips-openssl \
+                     -DOPEN_SRC_INSTALL_PREFIX=/opt/deps/mips-openssl
+            make -j\$(nproc)
+            file ./tst/webrtc_client_test
+            file ./tst/webrtc_client_test | grep 'ELF 32-bit MSB executable, MIPS, MIPS32'
+          "
+
+      - name: Clean cross-compile mips build
+        if: always()
+        run: rm -rf build-cross-mips
+
+      - name: Cross-compile arm-32 (static, OpenSSL)
+        run: |
+          docker run --rm --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) webrtc-u22 bash -c "
+            export CC=arm-linux-gnueabihf-gcc CXX=arm-linux-gnueabihf-g++
+            export PKG_CONFIG_LIBDIR=/opt/deps/arm32-openssl/lib/pkgconfig
+            mkdir -p build-cross-arm32 && cd build-cross-arm32
+            cmake .. -DBUILD_TEST=ON -DBUILD_DEPENDENCIES=OFF \
+                     -DENABLE_SIGNALING=OFF -DENABLE_SELF_CONTAINED=ON -DENABLE_AWS_SDK_IN_TESTS=OFF \
+                     -DBUILD_STATIC_LIBS=ON -DUSE_OPENSSL=ON -DUSE_MBEDTLS=OFF \
+                     -DCMAKE_PREFIX_PATH=/opt/deps/arm32-openssl \
+                     -DOPENSSL_ROOT_DIR=/opt/deps/arm32-openssl \
+                     -DOPEN_SRC_INSTALL_PREFIX=/opt/deps/arm32-openssl
+            make -j\$(nproc)
+            file ./tst/webrtc_client_test
+            file ./tst/webrtc_client_test | grep 'ELF 32-bit LSB pie executable, ARM'
+          "
+
+      - name: Clean cross-compile arm32 build
+        if: always()
+        run: rm -rf build-cross-arm32
+
+      - name: Cross-compile aarch64 (static, OpenSSL)
+        run: |
+          docker run --rm --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) webrtc-u22 bash -c "
+            export CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++
+            export PKG_CONFIG_LIBDIR=/opt/deps/aarch64-openssl/lib/pkgconfig
+            mkdir -p build-cross-aarch64 && cd build-cross-aarch64
+            cmake .. -DBUILD_TEST=ON -DBUILD_DEPENDENCIES=OFF \
+                     -DENABLE_SIGNALING=OFF -DENABLE_SELF_CONTAINED=ON -DENABLE_AWS_SDK_IN_TESTS=OFF \
+                     -DBUILD_STATIC_LIBS=ON -DUSE_OPENSSL=ON -DUSE_MBEDTLS=OFF \
+                     -DCMAKE_PREFIX_PATH=/opt/deps/aarch64-openssl \
+                     -DOPENSSL_ROOT_DIR=/opt/deps/aarch64-openssl \
+                     -DOPEN_SRC_INSTALL_PREFIX=/opt/deps/aarch64-openssl
+            make -j\$(nproc)
+            file ./tst/webrtc_client_test
+            file ./tst/webrtc_client_test | grep 'ELF 64-bit LSB pie executable, ARM'
+          "
+
+      - name: Clean cross-compile aarch64 build
+        if: always()
+        run: rm -rf build-cross-aarch64
+
+      - name: Cross-compile aarch64 (static, MbedTLS spot-check)
+        run: |
+          docker run --rm --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) webrtc-u22 bash -c "
+            export CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++
+            export PKG_CONFIG_LIBDIR=/opt/deps/aarch64-mbedtls/lib/pkgconfig
+            mkdir -p build-cross-aarch64-mbedtls && cd build-cross-aarch64-mbedtls
+            cmake .. -DBUILD_TEST=ON -DBUILD_DEPENDENCIES=OFF \
+                     -DENABLE_SIGNALING=OFF -DENABLE_SELF_CONTAINED=ON -DENABLE_AWS_SDK_IN_TESTS=OFF \
+                     -DBUILD_STATIC_LIBS=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON \
+                     -DCMAKE_PREFIX_PATH=/opt/deps/aarch64-mbedtls \
+                     -DOPEN_SRC_INSTALL_PREFIX=/opt/deps/aarch64-mbedtls
+            make -j\$(nproc)
+            file ./tst/webrtc_client_test
+            file ./tst/webrtc_client_test | grep 'ELF 64-bit LSB pie executable, ARM'
+          "
+
+      - name: Clean cross-compile aarch64 MbedTLS build
+        if: always()
+        run: rm -rf build-cross-aarch64-mbedtls

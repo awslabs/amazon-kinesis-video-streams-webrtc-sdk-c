@@ -34,7 +34,11 @@ CleanUp:
 }
 
 WebRtcClientTestBase::WebRtcClientTestBase()
-    : mSignalingClientHandle(INVALID_SIGNALING_CLIENT_HANDLE_VALUE), mAccessKey(NULL), mSecretKey(NULL), mSessionToken(NULL), mRegion(NULL),
+    :
+#ifdef ENABLE_SIGNALING
+      mSignalingClientHandle(INVALID_SIGNALING_CLIENT_HANDLE_VALUE),
+#endif
+      mAccessKey(NULL), mSecretKey(NULL), mSessionToken(NULL), mRegion(NULL),
       mCaCertPath(NULL), mAccessKeyIdSet(FALSE)
 {
     // Initialize the endianness of the library
@@ -69,6 +73,7 @@ void WebRtcClientTestBase::SetUp()
         DLOGE("Test initKvsWebRtc FAILED!!!!");
     }
 
+#ifdef ENABLE_SIGNALING
     if (NULL != (mAccessKey = getenv(ACCESS_KEY_ENV_VAR))) {
         mAccessKeyIdSet = TRUE;
     }
@@ -104,6 +109,7 @@ void WebRtcClientTestBase::SetUp()
     }
 
     *pCur = '\0';
+#endif
 }
 
 void WebRtcClientTestBase::TearDown()
@@ -111,10 +117,14 @@ void WebRtcClientTestBase::TearDown()
     DLOGI("\nTearing down test: %s\n", GetTestName());
 
     deinitKvsWebRtc();
+#ifdef ENABLE_KVS_THREADPOOL
     // Need this sleep for threads in threadpool to close
     THREAD_SLEEP(400 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+#endif
 
+#ifdef ENABLE_SIGNALING
     freeStaticCredentialProvider(&mTestCredentialProvider);
+#endif
 
     EXPECT_EQ(STATUS_SUCCESS, RESET_INSTRUMENTED_ALLOCATORS());
 }
@@ -242,7 +252,9 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
         EXPECT_NE((PCHAR) NULL, STRSTR(sdp.sdp, pAnswerCertFingerprint));
     }
 
-    for (auto i = 0; i <= 100 && ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) != 2; i++) {
+    for (auto i = 0; i <= 10 && ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) != 2 &&
+             ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_FAILED]) == 0;
+         i++) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
 
@@ -279,6 +291,7 @@ void WebRtcClientTestBase::addTrackToPeerConnection(PRtcPeerConnection pRtcPeerC
 
 void WebRtcClientTestBase::getIceServers(PRtcConfiguration pRtcConfiguration)
 {
+#ifdef ENABLE_SIGNALING
     UINT32 i, j, iceConfigCount, uriCount;
     PIceConfigInfo pIceConfigInfo;
 
@@ -298,6 +311,15 @@ void WebRtcClientTestBase::getIceServers(PRtcConfiguration pRtcConfiguration)
             uriCount++;
         }
     }
+#endif /* ENABLE_SIGNALING */
+}
+
+void WebRtcClientTestBase::initRtcConfiguration(PRtcConfiguration pRtcConfiguration)
+{
+    MEMSET(pRtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
+    pRtcConfiguration->kvsRtcConfiguration.iceLocalCandidateGatheringTimeout = KVS_CONVERT_TIMESCALE(1000, 1000, HUNDREDS_OF_NANOS_IN_A_SECOND);
+    pRtcConfiguration->kvsRtcConfiguration.iceConnectionCheckTimeout = KVS_CONVERT_TIMESCALE(1000, 1000, HUNDREDS_OF_NANOS_IN_A_SECOND);
+    pRtcConfiguration->kvsRtcConfiguration.iceCandidateNominationTimeout = KVS_CONVERT_TIMESCALE(2000, 1000, HUNDREDS_OF_NANOS_IN_A_SECOND);
 }
 
 PCHAR WebRtcClientTestBase::GetTestName()

@@ -11,10 +11,10 @@ class PeerConnectionFunctionalityTest : public WebRtcClientTestBase {};
 // Assert that two PeerConnections can connect to each other and go to connected
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
 {
-    RtcConfiguration configuration;
+    RtcConfiguration configuration{};
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
@@ -30,14 +30,14 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
 
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
 {
-    RtcConfiguration configuration;
+    RtcConfiguration configuration{};
     RtcSessionDescriptionInit sdp;
     SIZE_T connectedCount = 0;
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
     PeerContainer offer;
     PeerContainer answer;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
@@ -119,7 +119,7 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
 #ifdef KVS_USE_OPENSSL
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithPresetCerts)
 {
-    RtcConfiguration offerConfig, answerConfig;
+    RtcConfiguration offerConfig{}, answerConfig{};
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
     X509* pOfferCert = NULL;
     X509* pAnswerCert = NULL;
@@ -136,13 +136,13 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithPresetCerts)
     ASSERT_EQ(STATUS_SUCCESS, createCertificateAndKey(GENERATED_CERTIFICATE_BITS, true, &pAnswerCert, &pAnswerKey));
     ASSERT_EQ(STATUS_SUCCESS, dtlsCertificateFingerprint(pAnswerCert, answerCertFingerprint));
 
-    MEMSET(&offerConfig, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&offerConfig);
     offerConfig.certificates[0].pCertificate = (PBYTE) pOfferCert;
     offerConfig.certificates[0].certificateSize = 0;
     offerConfig.certificates[0].pPrivateKey = (PBYTE) pOfferKey;
     offerConfig.certificates[0].privateKeySize = 0;
 
-    MEMSET(&answerConfig, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&answerConfig);
     answerConfig.certificates[0].pCertificate = (PBYTE) pAnswerCert;
     answerConfig.certificates[0].certificateSize = 0;
     answerConfig.certificates[0].pPrivateKey = (PBYTE) pAnswerKey;
@@ -166,7 +166,7 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithPresetCerts)
 #elif KVS_USE_MBEDTLS
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithPresetCerts)
 {
-    RtcConfiguration offerConfig, answerConfig;
+    RtcConfiguration offerConfig{}, answerConfig{};
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
     mbedtls_x509_crt offerCert;
     mbedtls_x509_crt answerCert;
@@ -183,13 +183,13 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithPresetCerts)
     ASSERT_EQ(STATUS_SUCCESS, createCertificateAndKey(GENERATED_CERTIFICATE_BITS, true, &answerCert, &answerKey));
     ASSERT_EQ(STATUS_SUCCESS, dtlsCertificateFingerprint(&answerCert, answerCertFingerprint));
 
-    MEMSET(&offerConfig, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&offerConfig);
     offerConfig.certificates[0].pCertificate = (PBYTE) &offerCert;
     offerConfig.certificates[0].certificateSize = 0;
     offerConfig.certificates[0].pPrivateKey = (PBYTE) &offerKey;
     offerConfig.certificates[0].privateKeySize = 0;
 
-    MEMSET(&answerConfig, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&answerConfig);
     answerConfig.certificates[0].pCertificate = (PBYTE) &answerCert;
     answerConfig.certificates[0].certificateSize = 0;
     answerConfig.certificates[0].pPrivateKey = (PBYTE) &answerKey;
@@ -213,14 +213,14 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithPresetCerts)
 #endif
 
 // Assert that two PeerConnections with forced TURN can connect to each other and go to connected
-TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURN)
+TEST_F(PeerConnectionFunctionalityTest, DISABLED_connectTwoPeersForcedTURN)
 {
     ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
-    RtcConfiguration configuration;
+    RtcConfiguration configuration{};
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
 
     initializeSignalingClient();
@@ -240,20 +240,20 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURN)
     deinitializeSignalingClient();
 }
 
-TEST_F(PeerConnectionFunctionalityTest, sendDataWithClosedSocketConnectionWithHostAndStun)
+TEST_F(PeerConnectionFunctionalityTest, DISABLED_sendDataWithClosedSocketConnectionWithHostAndStun)
 {
     ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     RtcMediaStreamTrack offerVideoTrack;
     PRtcRtpTransceiver offerVideoTransceiver;
-    RtcConfiguration configuration;
+    RtcConfiguration configuration{};
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
     PKvsPeerConnection pOfferPcImpl;
     PIceAgent pIceAgent;
     PIceCandidate pLocalCandidate;
     PSocketConnection pSocketConnection;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
     SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
@@ -301,20 +301,20 @@ TEST_F(PeerConnectionFunctionalityTest, sendDataWithClosedSocketConnectionWithHo
     freePeerConnection(&answerPc);
 }
 
-TEST_F(PeerConnectionFunctionalityTest, sendDataWithClosedSocketConnectionWithForcedTurn)
+TEST_F(PeerConnectionFunctionalityTest, DISABLED_sendDataWithClosedSocketConnectionWithForcedTurn)
 {
     ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
     RtcMediaStreamTrack offerVideoTrack;
     PRtcRtpTransceiver offerVideoTransceiver;
-    RtcConfiguration configuration;
+    RtcConfiguration configuration{};
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
     PKvsPeerConnection pOfferPcImpl;
     PIceAgent pIceAgent;
     PIceCandidate pLocalCandidate;
     PSocketConnection pSocketConnection;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
 
     initializeSignalingClient();
@@ -367,17 +367,17 @@ TEST_F(PeerConnectionFunctionalityTest, sendDataWithClosedSocketConnectionWithFo
     deinitializeSignalingClient();
 }
 
-TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundBeforeTurnEstablished)
+TEST_F(PeerConnectionFunctionalityTest, DISABLED_shutdownTurnDueToP2PFoundBeforeTurnEstablished)
 {
     ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
-    RtcConfiguration configuration;
+    RtcConfiguration configuration{};
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
     PIceAgent pIceAgent = NULL;
     PDoubleListNode pCurNode = NULL;
     PIceCandidate pIceCandidate = NULL;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
 
     initializeSignalingClient();
     getIceServers(&configuration);
@@ -426,11 +426,11 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundBeforeTurnEstab
     deinitializeSignalingClient();
 }
 
-TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundAfterTurnEstablished)
+TEST_F(PeerConnectionFunctionalityTest, DISABLED_shutdownTurnDueToP2PFoundAfterTurnEstablished)
 {
     ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
-    RtcConfiguration configuration;
+    RtcConfiguration configuration{};
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
     RtcSessionDescriptionInit sdp;
     SIZE_T offerPcDoneGatherCandidate = 0, answerPcDoneGatherCandidate = 0;
@@ -439,7 +439,7 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundAfterTurnEstabl
     PDoubleListNode pCurNode = NULL;
     PIceCandidate pIceCandidate = NULL;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
 
     initializeSignalingClient();
     getIceServers(&configuration);
@@ -534,10 +534,10 @@ TEST_F(PeerConnectionFunctionalityTest, shutdownTurnDueToP2PFoundAfterTurnEstabl
 // Assert that two PeerConnections with host and stun candidate can go to connected
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithHostAndStun)
 {
-    RtcConfiguration configuration;
+    RtcConfiguration configuration{};
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
 
     // Set the  STUN server
     SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
@@ -557,12 +557,13 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithHostAndStun)
 // Assert that two PeerConnections can connect and then terminate one of them, the other one will eventually report disconnection
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersThenDisconnectTest)
 {
-    ASSERT_EQ(TRUE, mAccessKeyIdSet);
-    RtcConfiguration configuration;
+    RtcConfiguration configuration{};
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
     UINT32 i;
+    constexpr UINT64 disconnectionTimeout = 2 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
+    configuration.kvsRtcConfiguration.iceDisconnectionTimeout = disconnectionTimeout;
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
@@ -572,7 +573,7 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersThenDisconnectTest)
     // free offerPc so it wont send anymore keep alives and answerPc will detect disconnection
     freePeerConnection(&offerPc);
 
-    THREAD_SLEEP(KVS_ICE_ENTER_STATE_DISCONNECTION_GRACE_PERIOD);
+    THREAD_SLEEP(disconnectionTimeout);
 
     for (i = 0; i < 10; ++i) {
         if (ATOMIC_LOAD(&stateChangeCount[RTC_PEER_CONNECTION_STATE_DISCONNECTED]) > 0) {
@@ -590,10 +591,10 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersThenDisconnectTest)
 // Assert that PeerConnection will go to failed state when no turn server was given in turn only mode.
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersExpectFailureBecauseNoCandidatePair)
 {
-    RtcConfiguration configuration;
+    RtcConfiguration configuration{};
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
@@ -601,8 +602,14 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersExpectFailureBecauseNoCan
 
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), FALSE);
 
-    // give time for to gathering to time out.
-    THREAD_SLEEP(KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT);
+    // Both peers should have already transitioned to failed state by the time connectTwoPeers returns.
+    // Poll briefly in case of scheduling delays.
+    for (UINT32 i = 0; i < 10; ++i) {
+        if (ATOMIC_LOAD(&stateChangeCount[RTC_PEER_CONNECTION_STATE_FAILED]) == 2) {
+            break;
+        }
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
     EXPECT_TRUE(ATOMIC_LOAD(&stateChangeCount[RTC_PEER_CONNECTION_STATE_FAILED]) == 2);
 
     closePeerConnection(offerPc);
@@ -620,7 +627,7 @@ TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
         CVAR cvar;
     };
 
-    RtcConfiguration configuration;
+    RtcConfiguration configuration{};
     Context context;
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
     RtcMediaStreamTrack offerVideoTrack, answerVideoTrack;
@@ -632,7 +639,7 @@ TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
     PeerContainer offer;
     PeerContainer answer;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
     MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
 
     videoFrame.frameData = (PBYTE) MEMALLOC(1);
@@ -753,19 +760,20 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
 {
     auto const frameBufferSize = 200000;
 
-    RtcConfiguration configuration;
+    RtcConfiguration configuration{};
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
     RtcMediaStreamTrack offerVideoTrack, answerVideoTrack, offerAudioTrack, answerAudioTrack;
     PRtcRtpTransceiver offerVideoTransceiver, answerVideoTransceiver, offerAudioTransceiver, answerAudioTransceiver;
     SIZE_T seenVideo = 0;
     Frame videoFrame;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
     MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
 
     videoFrame.frameData = (PBYTE) MEMALLOC(frameBufferSize);
     videoFrame.size = TEST_VIDEO_FRAME_SIZE;
     MEMSET(videoFrame.frameData, 0x11, videoFrame.size);
+    videoFrame.presentationTs = HUNDREDS_OF_NANOS_IN_A_SECOND;
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
@@ -823,18 +831,16 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
 // Same test as exchangeMedia, but assert that if one side is RSA DTLS and Key Extraction works
 TEST_F(PeerConnectionFunctionalityTest, exchangeMediaRSA)
 {
-    ASSERT_EQ(TRUE, mAccessKeyIdSet);
-
     auto const frameBufferSize = 200000;
 
-    RtcConfiguration configuration;
+    RtcConfiguration configuration{};
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
     RtcMediaStreamTrack offerVideoTrack, answerVideoTrack, offerAudioTrack, answerAudioTrack;
     PRtcRtpTransceiver offerVideoTransceiver, answerVideoTransceiver, offerAudioTransceiver, answerAudioTransceiver;
     SIZE_T seenVideo = 0;
     Frame videoFrame;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
     MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
 
     videoFrame.frameData = (PBYTE) MEMALLOC(frameBufferSize);
@@ -878,10 +884,10 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMediaRSA)
 
 TEST_F(PeerConnectionFunctionalityTest, iceRestartTest)
 {
-    RtcConfiguration configuration;
+    RtcConfiguration configuration{};
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
@@ -902,14 +908,14 @@ TEST_F(PeerConnectionFunctionalityTest, iceRestartTest)
     freePeerConnection(&answerPc);
 }
 
-TEST_F(PeerConnectionFunctionalityTest, iceRestartTestForcedTurn)
+TEST_F(PeerConnectionFunctionalityTest, DISABLED_iceRestartTestForcedTurn)
 {
-    RtcConfiguration configuration;
+    RtcConfiguration configuration{};
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
 
     ASSERT_EQ(TRUE, mAccessKeyIdSet);
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
     configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
 
     initializeSignalingClient();
@@ -938,15 +944,10 @@ TEST_F(PeerConnectionFunctionalityTest, iceRestartTestForcedTurn)
 
 TEST_F(PeerConnectionFunctionalityTest, peerConnectionOfferCloseConnection)
 {
-    RtcConfiguration configuration;
+    RtcConfiguration configuration{};
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
 
-    ASSERT_EQ(TRUE, mAccessKeyIdSet);
-
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
-
-    initializeSignalingClient();
-    getIceServers(&configuration);
+    initRtcConfiguration(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
@@ -959,17 +960,13 @@ TEST_F(PeerConnectionFunctionalityTest, peerConnectionOfferCloseConnection)
 
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
-
-    deinitializeSignalingClient();
 }
 
 TEST_F(PeerConnectionFunctionalityTest, peerConnectionAnswerCloseConnection)
 {
-    RtcConfiguration configuration;
+    RtcConfiguration configuration{};
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
-
-    ASSERT_EQ(TRUE, mAccessKeyIdSet);
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
 
     initializeSignalingClient();
 
@@ -979,7 +976,7 @@ TEST_F(PeerConnectionFunctionalityTest, peerConnectionAnswerCloseConnection)
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
     closePeerConnection(answerPc);
-    EXPECT_EQ(stateChangeCount[RTC_PEER_CONNECTION_STATE_CLOSED], 2);
+    EXPECT_EQ(ATOMIC_LOAD(&stateChangeCount[RTC_PEER_CONNECTION_STATE_CLOSED]), 2);
     closePeerConnection(offerPc);
 
     freePeerConnection(&offerPc);
@@ -1002,7 +999,7 @@ TEST_F(PeerConnectionFunctionalityTest, DISABLED_exchangeMediaThroughTurnRandomS
         PRtcRtpTransceiver offerVideoTransceiver, answerVideoTransceiver, offerAudioTransceiver, answerAudioTransceiver;
         ATOMIC_BOOL offerSeenVideo = 0, answerSeenVideo = 0, offerStopVideo = 0, answerStopVideo = 0;
         UINT64 streamingTimeMs;
-        RtcConfiguration configuration;
+        RtcConfiguration configuration{};
 
         MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
         videoFrame.frameData = (PBYTE) MEMALLOC(frameBufferSize);
@@ -1010,7 +1007,7 @@ TEST_F(PeerConnectionFunctionalityTest, DISABLED_exchangeMediaThroughTurnRandomS
         MEMSET(videoFrame.frameData, 0x11, videoFrame.size);
 
         for (int i = 0; i < iteration; ++i) {
-            MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+            initRtcConfiguration(&configuration);
             configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
             getIceServers(&configuration);
 
@@ -1087,7 +1084,7 @@ TEST_F(PeerConnectionFunctionalityTest, multipleCandidateSuccessOneDTLSCheck)
     for (auto i = 0; i < 10; i++) {
         offerPc = NULL;
         answerPc = NULL;
-        MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+        initRtcConfiguration(&configuration);
 
         EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
         EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
@@ -1180,7 +1177,7 @@ TEST_F(PeerConnectionFunctionalityTest, aggressiveNominationDTLSRaceConditionChe
     for (auto i = 0; i < 10; i++) {
         offerPc = NULL;
         answerPc = NULL;
-        MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+        initRtcConfiguration(&configuration);
 
         EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
         EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);

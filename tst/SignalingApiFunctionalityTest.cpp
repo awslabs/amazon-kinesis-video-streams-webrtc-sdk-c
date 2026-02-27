@@ -8,6 +8,7 @@ namespace webrtcclient {
 
 
 
+#ifdef ENABLE_SIGNALING
 
 SignalingApiFunctionalityTest::SignalingApiFunctionalityTest() : pActiveClient(NULL)
 {
@@ -3781,6 +3782,7 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_InvalidJson) {
     EXPECT_EQ(0, receivedMessage.signalingMessage.payloadLen);
     EXPECT_EQ(SIGNALING_MESSAGE_TYPE_UNKNOWN, receivedMessage.signalingMessage.messageType);
 }
+#endif
 
 } // namespace webrtcclient
 } // namespace video

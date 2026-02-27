@@ -6,6 +6,7 @@ namespace kinesis {
 namespace video {
 namespace webrtcclient {
 
+#ifdef ENABLE_SIGNALING
 class SignalingApiTest : public WebRtcClientTestBase {
 };
 
@@ -675,6 +676,7 @@ TEST_F(SignalingApiTest, signalingClientCreateWithClientInfoVariations)
     //wait for threads of threadpool to close
     THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
+#endif
 
 } // namespace webrtcclient
 } // namespace video

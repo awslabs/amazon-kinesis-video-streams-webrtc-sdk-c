@@ -16,6 +16,7 @@ class RtcpFunctionalityTest : public WebRtcClientTestBase {
     STATUS initTransceiver(UINT32 ssrc)
     {
         RtcConfiguration config{};
+        initRtcConfiguration(&config);
         EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
         pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
         pRtcRtpTransceiver = addTransceiver(ssrc);
@@ -410,6 +411,7 @@ TEST_F(RtcpFunctionalityTest, updateTwccHashTableTest)
     PRtcPeerConnection pRtcPeerConnection = NULL;
     PKvsPeerConnection pKvsPeerConnection = NULL;
     RtcConfiguration config{};
+    initRtcConfiguration(&config);
     UINT64 receivedBytes = 0, receivedPackets = 0, sentBytes = 0, sentPackets = 0;
     INT64 duration = 0;
     PTwccRtpPacketInfo pTwccRtpPacketInfo = NULL;
@@ -475,6 +477,7 @@ TEST_F(RtcpFunctionalityTest, updateTwccHashTableIntPromotionCase) {
     PRtcPeerConnection pRtcPeerConnection = NULL;
     PKvsPeerConnection pKvsPeerConnection = NULL;
     RtcConfiguration config{};
+    initRtcConfiguration(&config);
     EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
     pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
     PTwccRtpPacketInfo pTwccRtpPacketInfo = NULL;

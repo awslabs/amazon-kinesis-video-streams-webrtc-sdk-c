@@ -16,7 +16,7 @@ TEST_F(DataChannelApiTest, createDataChannel_Disconnected)
     PRtcPeerConnection pPeerConnection = nullptr;
     PRtcDataChannel pDataChannel = nullptr;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
 
     EXPECT_EQ(createPeerConnection(&configuration, &pPeerConnection), STATUS_SUCCESS);
 

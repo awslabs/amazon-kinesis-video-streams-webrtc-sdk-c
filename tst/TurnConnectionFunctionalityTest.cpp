@@ -5,6 +5,7 @@ namespace amazonaws {
 namespace kinesis {
 namespace video {
 namespace webrtcclient {
+#ifdef ENABLE_SIGNALING
 
 class TurnConnectionFunctionalityTest : public WebRtcClientTestBase {
     PIceConfigInfo pIceConfigInfo;
@@ -993,6 +994,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionCallMultipleTurnSendDataIn
 
     freeTestTurnConnection();
 }
+#endif
 
 } // namespace webrtcclient
 } // namespace video

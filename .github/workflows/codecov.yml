@@ -5,14 +5,23 @@ on:
       - develop
       - main
       - 'test-pr-*'
+    paths-ignore:
+      - '**.md'
+      - 'doc/**'
   pull_request:
     branches:
       - develop
       - main
+    paths-ignore:
+      - '**.md'
+      - 'doc/**'
 
 env:
-  AWS_KVS_LOG_LEVEL: 7
+  AWS_KVS_LOG_LEVEL: 3
   DEBIAN_FRONTEND: noninteractive
+
+permissions:
+  contents: read
 
 jobs:
   linux-gcc-codecov:
@@ -24,10 +33,6 @@ jobs:
     env:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-    permissions:
-      id-token: write
-      contents: read
-
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
@@ -38,7 +43,6 @@ jobs:
         run: |
           apt-get update
           apt-get -y install git cmake build-essential pkg-config
-          apt-get -y install zlib1g-dev libcurl4-openssl-dev
           apt-get -y install curl
 
       - name: Check versions
@@ -48,29 +52,25 @@ jobs:
 
       - name: Build repository
         run: |
-          mkdir build 
+          mkdir build
           cd build
-          cmake .. -DCODE_COVERAGE=ON -DBUILD_TEST=ON
+          cmake .. -DCODE_COVERAGE=ON -DBUILD_TEST=ON -DENABLE_SIGNALING=OFF -DENABLE_AWS_SDK_IN_TESTS=OFF
           make -j
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Run tests
         working-directory: ./build
+        timeout-minutes: 10
         run: |
-          ./tst/webrtc_client_test
+          ./tst/webrtc_client_test --gtest_break_on_failure
 
       - name: Generate report
         working-directory: ./build
         shell: bash
         run: |
-          for test_file in $(find CMakeFiles/kvsWebrtcClient.dir CMakeFiles/kvsWebrtcSignalingClient.dir -name '*.gcno'); do gcov $test_file; done
+          for test_file in $(find CMakeFiles/kvsWebrtcClient.dir -name '*.gcno'); do gcov $test_file; done
 
       - name: Upload report
-        shell: bash
-        run: |
-          bash <(curl -s https://codecov.io/bash)
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false

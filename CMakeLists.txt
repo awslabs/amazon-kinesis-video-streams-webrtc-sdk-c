@@ -19,7 +19,13 @@ option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destin
 option(BUILD_SAMPLE "Build available samples" ON)
 option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
 option(ENABLE_KVS_THREADPOOL "Enable support for KVS thread pool in signaling" OFF)
+option(ENABLE_SELF_CONTAINED "Use vendored PIC/producer-c sources instead of external dependencies" OFF)
+option(ENABLE_SIGNALING "Enable AWS signaling client (requires libwebsockets)" ON)
 option(INSTRUMENTED_ALLOCATORS "Enable memory instrumentation" OFF)
+
+if(ENABLE_SELF_CONTAINED)
+  set(ENABLE_SIGNALING OFF CACHE BOOL "" FORCE)
+endif()
 option(ENABLE_AWS_SDK_IN_TESTS "Enable support for compiling AWS SDKs for tests" ON)
 option(ENABLE_STATS_CALCULATION_CONTROL "Enable support for runtime control of ice agent stat calculations." OFF)
 option(BUILD_OLD_MBEDTLS_VERSION "Use MbedTLS version 2.28.8." OFF)
@@ -242,7 +248,9 @@ if(BUILD_DEPENDENCIES)
                   -DLWS_MBEDTLS_LIBRARIES=${MBEDTLS_LIBRARIES_ALT_SEP}
                   -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
   endif()
-  build_dependency(websockets ${BUILD_ARGS})
+  if (ENABLE_SIGNALING)
+    build_dependency(websockets ${BUILD_ARGS})
+  endif ()
 
   set(BUILD_ARGS
       -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
@@ -278,18 +286,21 @@ if(BUILD_DEPENDENCIES)
   if (LINK_PROFILER)
     build_dependency(gperftools)
   endif()
+
+  if(ENABLE_SIGNALING)
+    # building kvsCommonLws also builds kvspic
+    set(BUILD_ARGS
+            -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+            -DBUILD_STATIC=${BUILD_STATIC_LIBS}
+            -DUSE_OPENSSL=${USE_OPENSSL}
+            -DUSE_MBEDTLS=${USE_MBEDTLS}
+            -DKVS_DEFAULT_STACK_SIZE=${KVS_DEFAULT_STACK_SIZE}
+            -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+    build_dependency(kvsCommonLws ${BUILD_ARGS})
+  endif()
+
   message(STATUS "Finished building dependencies.")
 endif()
-
-# building kvsCommonLws also builds kvspic
-set(BUILD_ARGS
-        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-        -DBUILD_STATIC=${BUILD_STATIC_LIBS}
-        -DUSE_OPENSSL=${USE_OPENSSL}
-        -DUSE_MBEDTLS=${USE_MBEDTLS}
-        -DKVS_DEFAULT_STACK_SIZE=${KVS_DEFAULT_STACK_SIZE}
-        -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
-build_dependency(kvsCommonLws ${BUILD_ARGS})
 
 ############# find dependent libraries ############
 
@@ -303,37 +314,57 @@ else()
   set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${MBEDTLS_INCLUDE_DIRS})
 endif()
 
-if (OPEN_SRC_INSTALL_PREFIX)
-  find_library(SRTP_LIBRARIES srtp2 REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
+if (BUILD_DEPENDENCIES)
+  if (OPEN_SRC_INSTALL_PREFIX)
+    find_library(SRTP_LIBRARIES srtp2 REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
+  else()
+    find_library(SRTP_LIBRARIES srtp2 REQUIRED)
+  endif()
+else()
+  pkg_check_modules(LIBSRTP REQUIRED libsrtp2)
+  set(SRTP_LIBRARIES ${LIBSRTP_LIBRARIES})
+endif()
 
+if (OPEN_SRC_INSTALL_PREFIX)
   if (LINK_PROFILER)
     find_library(GPERFTOOLS_MALLOC_LIBRARIES tcmalloc REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
     find_library(GPERFTOOLS_PROFILER_LIBRARIES profiler REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
   endif()
 else()
-  find_library(SRTP_LIBRARIES srtp2 REQUIRED )
   if (LINK_PROFILER)
     find_library(GPERFTOOLS_MALLOC_LIBRARIES tcmalloc REQUIRED)
     find_library(GPERFTOOLS_PROFILER_LIBRARIES profiler REQUIRED)
   endif()
 endif()
 
+if (ENABLE_SIGNALING)
 if (WIN32)
   SET(LIBWEBSOCKETS_LIBRARIES "websockets.lib")
 else()
   pkg_check_modules(LIBWEBSOCKETS REQUIRED libwebsockets)
 endif()
+endif()
 
-# usrsctp dont support pkgconfig yet
-find_library(
-  Usrsctp
-  NAMES ${USRSCTP_LIBNAME} usrsctp REQUIRED
-  PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib ${OPEN_SRC_INSTALL_PREFIX}/lib64)
+if (BUILD_DEPENDENCIES)
+  find_library(
+    Usrsctp
+    NAMES ${USRSCTP_LIBNAME} usrsctp REQUIRED
+    PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib ${OPEN_SRC_INSTALL_PREFIX}/lib64)
+else()
+  pkg_check_modules(LIBUSRSCTP REQUIRED usrsctp)
+  set(Usrsctp ${LIBUSRSCTP_LIBRARIES})
+  # The usrsctp .pc file sets includedir to .../include/usrsctp but the header
+  # lives in .../include/usrsctp.h.  Use find_path to get the correct directory.
+  find_path(USRSCTP_INCLUDE_DIR usrsctp.h HINTS ${LIBUSRSCTP_INCLUDE_DIRS} PATH_SUFFIXES .. REQUIRED)
+  set(LIBUSRSCTP_INCLUDE_DIRS ${USRSCTP_INCLUDE_DIR})
+endif()
 
 set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${LIBSRTP_INCLUDE_DIRS}
+                          ${LIBUSRSCTP_INCLUDE_DIRS}
                           ${CURL_INCLUDE_DIRS} ${LIBWEBSOCKETS_INCLUDE_DIRS})
 
 link_directories(${LIBSRTP_LIBRARY_DIRS})
+link_directories(${LIBUSRSCTP_LIBRARY_DIRS})
 link_directories(${LIBWEBSOCKETS_LIBRARY_DIRS})
 link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
 
@@ -391,6 +422,10 @@ if(ENABLE_AWS_SDK_IN_TESTS)
   add_definitions(-DENABLE_AWS_SDK_IN_TESTS)
 endif()
 
+if (ENABLE_SIGNALING)
+  add_definitions(-DENABLE_SIGNALING)
+endif()
+
 file(
   GLOB
   WEBRTC_CLIENT_SOURCE_FILES
@@ -417,13 +452,34 @@ elseif (USE_MBEDTLS)
   list(FILTER WEBRTC_CLIENT_SOURCE_FILES EXCLUDE REGEX ".*_openssl\\.c")
 endif()
 
+if(ENABLE_SIGNALING)
 file(GLOB WEBRTC_SIGNALING_CLIENT_SOURCE_FILES "src/source/Signaling/*.c")
+endif()
 
 
 message(STATUS "OPEN_SRC_INSTALL_PREFIX: ${OPEN_SRC_INSTALL_PREFIX}")
 include_directories(${OPEN_SRC_INCLUDE_DIRS})
 include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
+
+if(ENABLE_SELF_CONTAINED)
+  # Build vendored PIC utils + state as a static library
+  file(GLOB PIC_UTILS_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/deps/src/utils/*.c")
+  set(PIC_STATE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/deps/src/state/State.c")
+
+  add_library(kvspic_vendored STATIC ${PIC_UTILS_SOURCES} ${PIC_STATE_SOURCES})
+  target_include_directories(kvspic_vendored
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/deps/include)
+  target_link_libraries(kvspic_vendored
+    PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
+
+  # Alias so kvsWebrtcClient can link uniformly
+  add_library(kvspicUtils ALIAS kvspic_vendored)
+  add_library(kvspicState ALIAS kvspic_vendored)
+
+  # Add vendored headers to include path
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/deps/include)
+endif()
 
 add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES} ${DATACHANNEL_SRC})
 
@@ -452,6 +508,7 @@ target_link_libraries(
           ${GPERFTOOLS_PROFILER_LIBRARIES}
           ${EXTRA_DEPS})
 
+if(ENABLE_SIGNALING)
 add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
 
 if(USE_MBEDTLS)
@@ -472,6 +529,7 @@ target_link_libraries(
          ${GPERFTOOLS_MALLOC_LIBRARIES}
          ${GPERFTOOLS_PROFILER_LIBRARIES}
          ${MBEDTLS_LIBRARIES})
+endif ()
 
 if (WIN32)
   target_link_libraries(kvsWebrtcClient PRIVATE "Ws2_32" "iphlpapi")
@@ -489,10 +547,17 @@ if(ENABLE_KVS_THREADPOOL)
   )
 endif()
 
-install(TARGETS kvsWebrtcClient kvsWebrtcSignalingClient
+install(TARGETS kvsWebrtcClient
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
+
+if (ENABLE_SIGNALING)
+install(TARGETS kvsWebrtcSignalingClient
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+)
+endif ()
 
 install(DIRECTORY ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include/
   DESTINATION include

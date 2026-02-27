@@ -345,7 +345,7 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendRecv)
     RtcConfiguration configuration;
     RtcSessionDescriptionInit sessionDescriptionInit;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
 
     // Create peer connection
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
@@ -385,7 +385,7 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendRecvMaxTransceivers)
     RtcConfiguration configuration;
     RtcSessionDescriptionInit sessionDescriptionInit;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
 
     // Create peer connection
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
@@ -424,7 +424,7 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendOnly)
     RtcConfiguration configuration;
     RtcSessionDescriptionInit sessionDescriptionInit;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
 
     // Create peer connection
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
@@ -464,7 +464,7 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendOnly_H265)
     RtcConfiguration configuration;
     RtcSessionDescriptionInit sessionDescriptionInit;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
 
     // Create peer connection
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
@@ -504,7 +504,7 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxRecvOnly)
     RtcConfiguration configuration;
     RtcSessionDescriptionInit sessionDescriptionInit;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
 
     // Create peer connection
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
@@ -535,7 +535,7 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxRecvOnlyStreamNull)
     RtcConfiguration configuration;
     RtcSessionDescriptionInit sessionDescriptionInit;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
 
     // Create peer connection
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
@@ -583,7 +583,7 @@ a=rtpmap:102 H264/90000
         RtcRtpTransceiverInit rtcRtpTransceiverInit;
         RtcSessionDescriptionInit rtcSessionDescriptionInit;
 
-        MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
+        initRtcConfiguration(&rtcConfiguration);
         MEMSET(&rtcMediaStreamTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
         MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
         MEMSET(&rtcRtpTransceiverInit, 0x00, SIZEOF(RtcRtpTransceiverInit));
@@ -1265,7 +1265,7 @@ a=fmtp:125 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01
         RtcRtpTransceiverInit rtcRtpTransceiverInit;
         RtcSessionDescriptionInit rtcSessionDescriptionInit;
 
-        MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
+        initRtcConfiguration(&rtcConfiguration);
         MEMSET(&rtcMediaStreamTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
         MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
         MEMSET(&rtcRtpTransceiverInit, 0x00, SIZEOF(RtcRtpTransceiverInit));
@@ -1351,7 +1351,7 @@ a=rtpmap:102 H264/90000
         RtcMediaStreamTrack rtcMediaStreamTrack;
         RtcSessionDescriptionInit rtcSessionDescriptionInit;
 
-        MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
+        initRtcConfiguration(&rtcConfiguration);
         MEMSET(&rtcMediaStreamTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
         MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
 
@@ -1433,8 +1433,8 @@ TEST_F(SdpApiTest, noMediaTrickleIce) {
     RtcSessionDescriptionInit sessionDescriptionInitViewer;
     RtcSessionDescriptionInit sessionDescriptionInitMaster;
 
-    MEMSET(&configurationOffer, 0x00, SIZEOF(RtcConfiguration));
-    MEMSET(&configurationAnswer, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configurationOffer);
+    initRtcConfiguration(&configurationAnswer);
 
     // Create peer connection
     EXPECT_EQ(createPeerConnection(&configurationOffer, &offerPc), STATUS_SUCCESS);
@@ -1463,8 +1463,8 @@ TEST_F(SdpApiTest, noMediaTrickleIceNegativeCase) {
     RtcSessionDescriptionInit sessionDescriptionInitViewer;
     RtcSessionDescriptionInit sessionDescriptionInitMaster;
 
-    MEMSET(&configurationOffer, 0x00, SIZEOF(RtcConfiguration));
-    MEMSET(&configurationAnswer, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configurationOffer);
+    initRtcConfiguration(&configurationAnswer);
 
     // Create peer connection
     EXPECT_EQ(createPeerConnection(&configurationOffer, &offerPc), STATUS_SUCCESS);
@@ -1741,7 +1741,7 @@ TEST_P(SdpApiTest_SdpMatch, populateSingleMediaSection_TestH264Fmtp)
     RtcRtpTransceiverInit rtcRtpTransceiverInit;
     RtcSessionDescriptionInit rtcSessionDescriptionInit;
 
-    MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&rtcConfiguration);
     MEMSET(&track1, 0x00, SIZEOF(RtcMediaStreamTrack));
     MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
     MEMSET(&rtcRtpTransceiverInit, 0x00, SIZEOF(RtcRtpTransceiverInit));
@@ -2698,7 +2698,7 @@ TEST_F(SdpApiTest, caseInsensitiveCodecMatching_OPUS)
     RtcMediaStreamTrack track;
     RtcSessionDescriptionInit offerSdp;
 
-    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    initRtcConfiguration(&configuration);
     MEMSET(&offerSdp, 0x00, SIZEOF(RtcSessionDescriptionInit));
 
     // SDP offer with capitalized OPUS (instead of lowercase opus)

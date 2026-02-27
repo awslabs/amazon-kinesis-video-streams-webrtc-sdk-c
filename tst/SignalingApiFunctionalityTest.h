@@ -9,7 +9,7 @@ namespace amazonaws {
 namespace kinesis {
 namespace video {
 namespace webrtcclient {
-
+#ifdef ENABLE_SIGNALING
 class SignalingApiFunctionalityTest : public WebRtcClientTestBase {
   public:
     SignalingApiFunctionalityTest();
@@ -57,6 +57,7 @@ STATUS describeMediaPreHook(UINT64);
 STATUS getEndpointPreHook(UINT64);
 VOID setupSignalingStateMachineRetryStrategyCallbacks(PSignalingClientInfoInternal);
 VOID setupSignalingStateMachineRetryStrategyCallbacks(PSignalingClientInfo);
+#endif
 
 } // namespace webrtcclient
 } // namespace video

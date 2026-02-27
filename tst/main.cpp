@@ -12,7 +12,7 @@
 #endif
 
 // The number of retries allowed. 0 means no retry, all tests will run exactly run once.
-#define MAX_TRIALS 10
+#define MAX_TRIALS 0
 
 using namespace std;
 

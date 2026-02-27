@@ -9,6 +9,7 @@ namespace webrtcclient {
 
 class IceConfigParsingTest : public WebRtcClientTestBase {};
 
+#ifdef ENABLE_SIGNALING
 TEST_F(IceConfigParsingTest, ParseSuccess)
 {
     IceConfigInfo iceConfigs[MAX_ICE_CONFIG_COUNT];
@@ -378,6 +379,7 @@ TEST_F(IceConfigParsingTest, IgnoreExtraFieldsInTheJson)
     EXPECT_STREQ("turn:example1.com:443?transport=udp", iceConfigs[0].uris[0]);
     EXPECT_STREQ("turn:example1.com:443?transport=tcp", iceConfigs[0].uris[1]);
 }
+#endif
 
 } // namespace webrtcclient
 } // namespace video
