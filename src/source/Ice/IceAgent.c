@@ -1381,16 +1381,6 @@ STATUS iceAgentSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 pa
         }
 
         retStatus = STATUS_SUCCESS;
-
-        /* Update iceCandidatePair state to failed.
-         * pIceCandidatePair could no longer exist. */
-        CHK_STATUS(findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(pIceAgent, pLocalCandidate->pSocketConnection, pDestAddr, TRUE,
-                                                                              &pIceCandidatePair));
-
-        if (pIceCandidatePair != NULL) {
-            DLOGD("mark candidate pair %s_%s as failed", pIceCandidatePair->local->id, pIceCandidatePair->remote->id);
-            pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_FAILED;
-        }
     } else {
         CHK_STATUS(findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(pIceAgent, pLocalCandidate->pSocketConnection, pDestAddr, TRUE,
                                                                               &pIceCandidatePair));

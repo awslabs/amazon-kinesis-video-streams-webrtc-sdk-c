@@ -10,9 +10,11 @@ if(UNIX OR APPLE)
 
   if (DEFINED CMAKE_OSX_SYSROOT AND NOT CMAKE_OSX_SYSROOT STREQUAL "")
     if ("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
-      SET(KVS_CFLAGS "-I${CMAKE_OSX_SYSROOT}/usr/include -Wno-error=implicit-function-declaration")
+      SET(KVS_CFLAGS "-I${CMAKE_OSX_SYSROOT}/usr/include -Wno-error=implicit-function-declaration -Wno-nullability-completeness")
       SET(CONFIGURE_COMMAND ${CONFIGURE_COMMAND} CFLAGS=${KVS_CFLAGS} LDFLAGS=-L${CMAKE_OSX_SYSROOT}/usr/lib)
     endif()
+  elseif(APPLE AND "${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
+    SET(CONFIGURE_COMMAND ${CONFIGURE_COMMAND} "CFLAGS=-Wno-nullability-completeness")
   endif()
 
   if (USE_OPENSSL)

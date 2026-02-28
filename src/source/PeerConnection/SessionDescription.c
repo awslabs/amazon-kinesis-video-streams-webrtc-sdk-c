@@ -473,7 +473,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT64 payloadType, rtxPayloadType;
+    UINT64 payloadType, rtxPayloadType, rtpMapValueRaw;
     BOOL containRtx = FALSE;
     BOOL directionFound = FALSE;
     UINT32 i, remoteAttributeCount, attributeCount = 0;
@@ -862,7 +862,10 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
             attributeCount++;
         }
     } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_UNKNOWN) {
-        CHK_STATUS(hashTableGet(pUnknownCodecRtpmapTable, unknownCodecHashTableKey, (PUINT64) &rtpMapValue));
+        // Use a UINT64 temporary to avoid writing 8 bytes into a 4-byte pointer on 32-bit platforms.
+        // Passing (PUINT64) &rtpMapValue directly would overflow into adjacent stack variables on ARM32.
+        CHK_STATUS(hashTableGet(pUnknownCodecRtpmapTable, unknownCodecHashTableKey, &rtpMapValueRaw));
+        rtpMapValue = (PCHAR) rtpMapValueRaw;
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
         amountWritten =
             SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,

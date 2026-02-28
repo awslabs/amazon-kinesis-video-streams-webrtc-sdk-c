@@ -38,6 +38,8 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
     PeerContainer answer;
 
     initRtcConfiguration(&configuration);
+    //solves occassional failure in this test where the peers fail to connect because of the delay in ICE candidate nomination
+    configuration.kvsRtcConfiguration.iceCandidateNominationTimeout = KVS_CONVERT_TIMESCALE(2000, 1000, HUNDREDS_OF_NANOS_IN_A_SECOND);
 
     EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
@@ -785,16 +787,22 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
 
     auto onFrameHandler = [](UINT64 customData, PFrame pFrame) -> void {
         UNUSED_PARAM(pFrame);
-        ATOMIC_STORE((PSIZE_T) customData, 1);
+        ATOMIC_INCREMENT((PSIZE_T) customData);
     };
     EXPECT_EQ(transceiverOnFrame(answerVideoTransceiver, (UINT64) &seenVideo, onFrameHandler), STATUS_SUCCESS);
 
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
-    for (auto i = 0; i <= 1000 && ATOMIC_LOAD(&seenVideo) != 1; i++) {
+    //send 2 frames, receiver should see at least 1 frames
+    for (int i = 0; i < 2; i++) {
         EXPECT_EQ(writeFrame(offerVideoTransceiver, &videoFrame), STATUS_SUCCESS);
         videoFrame.presentationTs += (HUNDREDS_OF_NANOS_IN_A_SECOND / 25);
+        THREAD_SLEEP(40 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
 
+    // Wait for receiver to see at least 1 frame
+    // exact number of frames depends on timing
+    for (auto i = 0; i <= 1000 && ATOMIC_LOAD(&seenVideo) < 2; i++) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     }
 
@@ -813,6 +821,8 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
 
     RtcInboundRtpStreamStats answerStats{};
     EXPECT_EQ(STATUS_SUCCESS, getRtpInboundStats(answerPc, answerVideoTransceiver, &answerStats));
+
+    EXPECT_LE(1, ATOMIC_LOAD(&seenVideo));
     EXPECT_LE(1, answerStats.framesReceived);
     EXPECT_LT(103, answerStats.received.packetsReceived);
     EXPECT_LT(120000, answerStats.bytesReceived);
@@ -825,7 +835,6 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
     freePeerConnection(&offerPc);
     freePeerConnection(&answerPc);
 
-    EXPECT_EQ(ATOMIC_LOAD(&seenVideo), 1);
 }
 
 // Same test as exchangeMedia, but assert that if one side is RSA DTLS and Key Extraction works

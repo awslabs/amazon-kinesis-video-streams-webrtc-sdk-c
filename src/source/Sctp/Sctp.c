@@ -269,7 +269,7 @@ CleanUp:
     return retStatus;
 }
 
-INT32 onSctpOutboundPacket(PVOID addr, PVOID data, ULONG length, UINT8 tos, UINT8 set_df)
+INT32 onSctpOutboundPacket(PVOID addr, PVOID data, SIZE_T length, UINT8 tos, UINT8 set_df)
 {
     UNUSED_PARAM(tos);
     UNUSED_PARAM(set_df);
@@ -327,7 +327,7 @@ CleanUp:
     return retStatus;
 }
 
-INT32 onSctpInboundPacket(struct socket* sock, union sctp_sockstore addr, PVOID data, ULONG length, struct sctp_rcvinfo rcv, INT32 flags,
+INT32 onSctpInboundPacket(struct socket* sock, union sctp_sockstore addr, PVOID data, SIZE_T length, struct sctp_rcvinfo rcv, INT32 flags,
                           PVOID ulp_info)
 {
     UNUSED_PARAM(sock);

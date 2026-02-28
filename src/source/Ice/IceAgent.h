@@ -57,7 +57,10 @@ extern "C" {
 #define ICE_HASH_TABLE_BUCKET_COUNT  100
 #define ICE_HASH_TABLE_BUCKET_LENGTH 2
 
-#define ICE_CANDIDATE_ID_LEN 8
+// Candidate ID length must match MAX_CANDIDATE_ID_LENGTH in Stats.h so that
+// strncpy from id[] into localCandidateId[]/remoteCandidateId[] does not read
+// past the source buffer, which Android FORTIFY detects as an abort.
+#define ICE_CANDIDATE_ID_LEN 9
 
 #define STATS_NOT_APPLICABLE_STR (PCHAR) "N/A"
 

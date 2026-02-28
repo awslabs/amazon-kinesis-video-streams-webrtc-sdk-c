@@ -1,0 +1,311 @@
+name: CI Android
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+      - 'test-pr-*'
+    paths-ignore:
+      - '**.md'
+      - 'doc/**'
+      - '.github/workflows/close-stale-issues.yml'
+      - '.github/workflows/doxygen-gh-pages.yml'
+  pull_request:
+    branches:
+      - develop
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'doc/**'
+      - '.github/workflows/close-stale-issues.yml'
+      - '.github/workflows/doxygen-gh-pages.yml'
+
+env:
+  ANDROID_HOME: /Users/firefly/Library/Android/sdk
+  ANDROID_NDK: /Users/firefly/Library/Android/sdk/ndk/28.2.13676358
+  AWS_KVS_LOG_LEVEL: 3
+
+permissions:
+  contents: read
+
+jobs:
+  # ===========================================================================
+  # arm64 — emulator
+  # ===========================================================================
+
+  android-arm64:
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Start emulator
+        run: bash scripts/emulator.sh start --avd "test-android26-arm64" -f
+
+      - name: Configure
+        run: |
+          export PATH="/opt/homebrew/bin:${PATH}"
+          export ANDROID_NDK_HOME="${ANDROID_NDK}"
+          NDK_BIN=$(ls -d "${ANDROID_NDK}/toolchains/llvm/prebuilt"/*/bin | head -1)
+          export PATH="${NDK_BIN}:${PATH}"
+          cmake -S superbuild -B build-android-arm64-v8a \
+            -DCMAKE_TOOLCHAIN_FILE="${ANDROID_NDK}/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-26 \
+            -DBUILD_STATIC_LIBS=ON
+
+      - name: Build
+        run: |
+          export PATH="/opt/homebrew/bin:${PATH}"
+          cmake --build build-android-arm64-v8a -j$(sysctl -n hw.ncpu)
+
+      - name: Push and test
+        run: |
+          ADB="${ANDROID_HOME}/platform-tools/adb"
+          SERIAL=$("${ADB}" devices | awk '/emulator.*device/{print $1;exit}')
+          "${ADB}" -s "${SERIAL}" shell mkdir -p /data/local/tmp/tst /data/local/tmp/samples
+          "${ADB}" -s "${SERIAL}" push build-android-arm64-v8a/sdk/tst/webrtc_client_test /data/local/tmp/tst/
+          "${ADB}" -s "${SERIAL}" shell chmod +x /data/local/tmp/tst/webrtc_client_test
+          for d in h264SampleFrames h265SampleFrames opusSampleFrames girH264 bbbH264; do
+            [ -d "samples/$d" ] && "${ADB}" -s "${SERIAL}" push --sync "samples/$d" /data/local/tmp/samples/
+          done
+          "${ADB}" -s "${SERIAL}" push scripts/run-tests-on-device.sh /data/local/tmp/
+          "${ADB}" -s "${SERIAL}" shell chmod +x /data/local/tmp/run-tests-on-device.sh
+          "${ADB}" -s "${SERIAL}" shell "AWS_KVS_LOG_LEVEL=${AWS_KVS_LOG_LEVEL} /data/local/tmp/run-tests-on-device.sh '*'"
+
+      - name: Stop emulator
+        if: always()
+        run: bash scripts/emulator.sh stop --avd "test-android26-arm64" || true
+
+      - name: Cleanup
+        if: always()
+        run: rm -rf build-android-arm64-v8a
+
+  android-arm64-asan:
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Start emulator
+        run: bash scripts/emulator.sh start --avd "test-android26-arm64" -f
+
+      - name: Configure
+        run: |
+          export PATH="/opt/homebrew/bin:${PATH}"
+          export ANDROID_NDK_HOME="${ANDROID_NDK}"
+          NDK_BIN=$(ls -d "${ANDROID_NDK}/toolchains/llvm/prebuilt"/*/bin | head -1)
+          export PATH="${NDK_BIN}:${PATH}"
+          cmake -S superbuild -B build-android-arm64-v8a-asan \
+            -DCMAKE_TOOLCHAIN_FILE="${ANDROID_NDK}/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-26 \
+            -DBUILD_STATIC_LIBS=ON \
+            -DADDRESS_SANITIZER=ON -DUNDEFINED_BEHAVIOR_SANITIZER=ON
+
+      - name: Build
+        run: |
+          export PATH="/opt/homebrew/bin:${PATH}"
+          cmake --build build-android-arm64-v8a-asan -j$(sysctl -n hw.ncpu)
+
+      - name: Push and test
+        run: |
+          ADB="${ANDROID_HOME}/platform-tools/adb"
+          SERIAL=$("${ADB}" devices | awk '/emulator.*device/{print $1;exit}')
+          ASAN_RT=$(find "${ANDROID_NDK}/toolchains/llvm/prebuilt" -name "libclang_rt.asan-aarch64-android.so" | head -1)
+          "${ADB}" -s "${SERIAL}" push "${ASAN_RT}" /data/local/tmp/
+          "${ADB}" -s "${SERIAL}" shell mkdir -p /data/local/tmp/tst /data/local/tmp/samples
+          "${ADB}" -s "${SERIAL}" push build-android-arm64-v8a-asan/sdk/tst/webrtc_client_test /data/local/tmp/tst/
+          "${ADB}" -s "${SERIAL}" shell chmod +x /data/local/tmp/tst/webrtc_client_test
+          for d in h264SampleFrames h265SampleFrames opusSampleFrames girH264 bbbH264; do
+            [ -d "samples/$d" ] && "${ADB}" -s "${SERIAL}" push --sync "samples/$d" /data/local/tmp/samples/
+          done
+          "${ADB}" -s "${SERIAL}" push scripts/run-tests-on-device.sh /data/local/tmp/
+          "${ADB}" -s "${SERIAL}" shell chmod +x /data/local/tmp/run-tests-on-device.sh
+          "${ADB}" -s "${SERIAL}" shell \
+            "AWS_KVS_LOG_LEVEL=${AWS_KVS_LOG_LEVEL} ASAN_OPTIONS=detect_odr_violation=0 UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 /data/local/tmp/run-tests-on-device.sh '*'"
+
+      - name: Stop emulator
+        if: always()
+        run: bash scripts/emulator.sh stop --avd "test-android26-arm64" || true
+
+      - name: Cleanup
+        if: always()
+        run: rm -rf build-android-arm64-v8a-asan
+
+  android-arm64-app:
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 15
+    needs: android-arm64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Start emulator
+        run: bash scripts/emulator.sh start --avd "test-android26-arm64" -f
+
+      - name: Build APK
+        run: |
+          export PATH="/opt/homebrew/bin:${PATH}"
+          export JAVA_HOME="${HOME}/.sdkman/candidates/java/current"
+          export PATH="${JAVA_HOME}/bin:${PATH}"
+          cd android-test-app
+          ./gradlew assembleDebug assembleDebugAndroidTest \
+            -Pandroid.injected.build.abi=arm64-v8a
+
+      - name: Install and test
+        run: |
+          ADB="${ANDROID_HOME}/platform-tools/adb"
+          SERIAL=$("${ADB}" devices | awk '/emulator.*device/{print $1;exit}')
+          APK_DEBUG=$(find android-test-app/app/build -name "app-debug.apk" -not -name "*androidTest*" | head -1)
+          APK_TEST=$(find android-test-app/app/build -name "app-debug-androidTest.apk" | head -1)
+          "${ADB}" -s "${SERIAL}" uninstall com.kvs.webrtctest || true
+          "${ADB}" -s "${SERIAL}" uninstall com.kvs.webrtctest.test || true
+          "${ADB}" -s "${SERIAL}" install -r -t "${APK_DEBUG}"
+          "${ADB}" -s "${SERIAL}" install -r -t "${APK_TEST}"
+          "${ADB}" -s "${SERIAL}" shell am instrument -w -r \
+            com.kvs.webrtctest.test/androidx.test.runner.AndroidJUnitRunner
+
+      - name: Stop emulator
+        if: always()
+        run: bash scripts/emulator.sh stop --avd "test-android26-arm64" || true
+
+      - name: Cleanup
+        if: always()
+        run: rm -rf android-test-app/app/build android-test-app/.gradle
+
+  # ===========================================================================
+  # arm32 — physical device
+  # ===========================================================================
+
+  android-arm32:
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure
+        run: |
+          export PATH="/opt/homebrew/bin:${PATH}"
+          export ANDROID_NDK_HOME="${ANDROID_NDK}"
+          NDK_BIN=$(ls -d "${ANDROID_NDK}/toolchains/llvm/prebuilt"/*/bin | head -1)
+          export PATH="${NDK_BIN}:${PATH}"
+          cmake -S superbuild -B build-android-armeabi-v7a \
+            -DCMAKE_TOOLCHAIN_FILE="${ANDROID_NDK}/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=armeabi-v7a \
+            -DANDROID_PLATFORM=android-26 \
+            -DBUILD_STATIC_LIBS=ON
+
+      - name: Build
+        run: |
+          export PATH="/opt/homebrew/bin:${PATH}"
+          cmake --build build-android-armeabi-v7a -j$(sysctl -n hw.ncpu)
+
+      - name: Push and test
+        run: |
+          ADB="${ANDROID_HOME}/platform-tools/adb"
+          SERIAL=$("${ADB}" devices | grep -v "^List" | grep "device$" | grep -v "emulator" | awk '{print $1}' | head -1)
+          "${ADB}" -s "${SERIAL}" shell mkdir -p /data/local/tmp/tst /data/local/tmp/samples
+          "${ADB}" -s "${SERIAL}" push build-android-armeabi-v7a/sdk/tst/webrtc_client_test /data/local/tmp/tst/
+          "${ADB}" -s "${SERIAL}" shell chmod +x /data/local/tmp/tst/webrtc_client_test
+          for d in h264SampleFrames h265SampleFrames opusSampleFrames girH264 bbbH264; do
+            [ -d "samples/$d" ] && "${ADB}" -s "${SERIAL}" push --sync "samples/$d" /data/local/tmp/samples/
+          done
+          "${ADB}" -s "${SERIAL}" push scripts/run-tests-on-device.sh /data/local/tmp/
+          "${ADB}" -s "${SERIAL}" shell chmod +x /data/local/tmp/run-tests-on-device.sh
+          "${ADB}" -s "${SERIAL}" shell "AWS_KVS_LOG_LEVEL=${AWS_KVS_LOG_LEVEL} /data/local/tmp/run-tests-on-device.sh '*'"
+
+      - name: Cleanup
+        if: always()
+        run: rm -rf build-android-armeabi-v7a
+
+  android-arm32-asan:
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure
+        run: |
+          export PATH="/opt/homebrew/bin:${PATH}"
+          export ANDROID_NDK_HOME="${ANDROID_NDK}"
+          NDK_BIN=$(ls -d "${ANDROID_NDK}/toolchains/llvm/prebuilt"/*/bin | head -1)
+          export PATH="${NDK_BIN}:${PATH}"
+          # UBSAN excluded: Android Bionic calloc on arm32 returns 4-byte aligned
+          # memory, triggering false alignment errors for structs with UINT64.
+          cmake -S superbuild -B build-android-armeabi-v7a-asan \
+            -DCMAKE_TOOLCHAIN_FILE="${ANDROID_NDK}/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=armeabi-v7a \
+            -DANDROID_PLATFORM=android-26 \
+            -DBUILD_STATIC_LIBS=ON \
+            -DADDRESS_SANITIZER=ON
+
+      - name: Build
+        run: |
+          export PATH="/opt/homebrew/bin:${PATH}"
+          cmake --build build-android-armeabi-v7a-asan -j$(sysctl -n hw.ncpu)
+
+      - name: Push and test
+        run: |
+          ADB="${ANDROID_HOME}/platform-tools/adb"
+          SERIAL=$("${ADB}" devices | grep -v "^List" | grep "device$" | grep -v "emulator" | awk '{print $1}' | head -1)
+          ASAN_RT=$(find "${ANDROID_NDK}/toolchains/llvm/prebuilt" -name "libclang_rt.asan-arm-android.so" | head -1)
+          "${ADB}" -s "${SERIAL}" push "${ASAN_RT}" /data/local/tmp/
+          "${ADB}" -s "${SERIAL}" shell mkdir -p /data/local/tmp/tst /data/local/tmp/samples
+          "${ADB}" -s "${SERIAL}" push build-android-armeabi-v7a-asan/sdk/tst/webrtc_client_test /data/local/tmp/tst/
+          "${ADB}" -s "${SERIAL}" shell chmod +x /data/local/tmp/tst/webrtc_client_test
+          for d in h264SampleFrames h265SampleFrames opusSampleFrames girH264 bbbH264; do
+            [ -d "samples/$d" ] && "${ADB}" -s "${SERIAL}" push --sync "samples/$d" /data/local/tmp/samples/
+          done
+          "${ADB}" -s "${SERIAL}" push scripts/run-tests-on-device.sh /data/local/tmp/
+          "${ADB}" -s "${SERIAL}" shell chmod +x /data/local/tmp/run-tests-on-device.sh
+          "${ADB}" -s "${SERIAL}" shell \
+            "AWS_KVS_LOG_LEVEL=${AWS_KVS_LOG_LEVEL} ASAN_OPTIONS=detect_odr_violation=0 /data/local/tmp/run-tests-on-device.sh '*'"
+
+      - name: Cleanup
+        if: always()
+        run: rm -rf build-android-armeabi-v7a-asan
+
+  android-arm32-app:
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build APK
+        run: |
+          export PATH="/opt/homebrew/bin:${PATH}"
+          export JAVA_HOME="${HOME}/.sdkman/candidates/java/current"
+          export PATH="${JAVA_HOME}/bin:${PATH}"
+          cd android-test-app
+          ./gradlew assembleDebug assembleDebugAndroidTest \
+            -Pandroid.injected.build.abi=armeabi-v7a
+
+      - name: Install and test
+        run: |
+          ADB="${ANDROID_HOME}/platform-tools/adb"
+          SERIAL=$("${ADB}" devices | grep -v "^List" | grep "device$" | grep -v "emulator" | awk '{print $1}' | head -1)
+          APK_DEBUG=$(find android-test-app/app/build -name "app-debug.apk" -not -name "*androidTest*" | head -1)
+          APK_TEST=$(find android-test-app/app/build -name "app-debug-androidTest.apk" | head -1)
+          "${ADB}" -s "${SERIAL}" uninstall com.kvs.webrtctest || true
+          "${ADB}" -s "${SERIAL}" uninstall com.kvs.webrtctest.test || true
+          "${ADB}" -s "${SERIAL}" install -r -t "${APK_DEBUG}"
+          "${ADB}" -s "${SERIAL}" install -r -t "${APK_TEST}"
+          "${ADB}" -s "${SERIAL}" shell am instrument -w -r \
+            com.kvs.webrtctest.test/androidx.test.runner.AndroidJUnitRunner
+
+      - name: Cleanup
+        if: always()
+        run: rm -rf android-test-app/app/build android-test-app/.gradle

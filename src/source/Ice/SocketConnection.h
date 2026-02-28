@@ -13,8 +13,14 @@ extern "C" {
 #define SOCKET_SEND_RETRY_TIMEOUT_MILLI_SECOND 500
 #define MAX_SOCKET_WRITE_RETRY                 3
 
+// EHOSTDOWN is not defined on Windows
+#ifndef EHOSTDOWN
+#define EHOSTDOWN 64
+#endif
+
 #define CLOSE_SOCKET_IF_CANT_RETRY(e, ps)                                                                                                            \
-    if ((e) != EAGAIN && (e) != EWOULDBLOCK && (e) != EINTR && (e) != EINPROGRESS && (e) != EPERM && (e) != EALREADY && (e) != ENETUNREACH) {        \
+    if ((e) != EAGAIN && (e) != EWOULDBLOCK && (e) != EINTR && (e) != EINPROGRESS && (e) != EPERM && (e) != EALREADY && (e) != ENETUNREACH &&        \
+        (e) != EHOSTDOWN && (e) != EHOSTUNREACH) {                                                                                                   \
         DLOGD("Close socket %d", (ps)->localSocket);                                                                                                 \
         ATOMIC_STORE_BOOL(&(ps)->connectionClosed, TRUE);                                                                                            \
     }

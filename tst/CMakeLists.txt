@@ -59,3 +59,11 @@ else ()
           ${AWS_SDK_TEST_LIBS})
 
 endif ()
+
+# UBSan false positives on Android in mixed C/C++ codebases:
+# - vptr: Google Test global registration triggers during dynamic linker init
+# - function: C++ calling C functions via function pointers lacks RTTI metadata
+if(UNDEFINED_BEHAVIOR_SANITIZER AND ANDROID)
+    target_compile_options(webrtc_client_test PRIVATE -fno-sanitize=vptr,function)
+    target_link_options(webrtc_client_test PRIVATE -fno-sanitize=vptr,function)
+endif()

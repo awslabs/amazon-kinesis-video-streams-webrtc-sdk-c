@@ -58,7 +58,7 @@ jobs:
 
       - name: Ubuntu 24.04 system-deps build + test
         run: |
-          docker run --rm --ulimit core=-1:-1 --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) webrtc-u24-sys-deps bash -c "
+          docker run --rm --ulimit core=-1:-1 --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) -e AWS_KVS_LOG_LEVEL webrtc-u24-sys-deps bash -c "
             export CC=gcc CXX=g++
             mkdir -p build-sys-deps && cd build-sys-deps
             cmake .. -DBUILD_TEST=ON -DBUILD_DEPENDENCIES=OFF -DENABLE_SELF_CONTAINED=ON \
@@ -87,7 +87,7 @@ jobs:
       - name: Default settings build (GCC + OpenSSL + samples)
         if: false
         run: |
-          docker run --rm --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) webrtc-u22 bash -c "
+          docker run --rm --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) -e AWS_KVS_LOG_LEVEL webrtc-u22 bash -c "
             export CC=gcc CXX=g++
             mkdir -p build-default && cd build-default
             cmake .. -DBUILD_TEST=ON -DENABLE_AWS_SDK_IN_TESTS=OFF -DOPEN_SRC_INSTALL_PREFIX=\$(pwd)/deps
@@ -104,7 +104,7 @@ jobs:
 
       - name: Alpine static GCC build + test
         run: |
-          docker run --rm --ulimit core=-1:-1 --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) webrtc-alpine bash -c "
+          docker run --rm --ulimit core=-1:-1 --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) -e AWS_KVS_LOG_LEVEL webrtc-alpine bash -c "
             export CC=gcc CXX=g++
             export PKG_CONFIG_PATH=/opt/deps/alpine-openssl/lib/pkgconfig
             mkdir -p build-alpine && cd build-alpine
@@ -135,7 +135,7 @@ jobs:
 
       - name: GCC + OpenSSL build + test
         run: |
-          docker run --rm --ulimit core=-1:-1 --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) webrtc-u22 bash -c "
+          docker run --rm --ulimit core=-1:-1 --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) -e AWS_KVS_LOG_LEVEL webrtc-u22 bash -c "
             export CC=gcc CXX=g++
             export PKG_CONFIG_PATH=/opt/deps/x86_64-openssl/lib/pkgconfig
             mkdir -p build-gcc-openssl && cd build-gcc-openssl
@@ -162,7 +162,7 @@ jobs:
 
       - name: GCC + OpenSSL + stats-calc test
         run: |
-          docker run --rm --ulimit core=-1:-1 --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) webrtc-u22 bash -c "
+          docker run --rm --ulimit core=-1:-1 --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) -e AWS_KVS_LOG_LEVEL webrtc-u22 bash -c "
             export CC=gcc CXX=g++
             export PKG_CONFIG_PATH=/opt/deps/x86_64-openssl/lib/pkgconfig
             mkdir -p build-stats-calc && cd build-stats-calc
@@ -189,7 +189,7 @@ jobs:
 
       - name: Clang + MbedTLS build + test
         run: |
-          docker run --rm --ulimit core=-1:-1 --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) webrtc-u22 bash -c "
+          docker run --rm --ulimit core=-1:-1 --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) -e AWS_KVS_LOG_LEVEL webrtc-u22 bash -c "
             export CC=clang CXX=clang++
             export PKG_CONFIG_PATH=/opt/deps/x86_64-mbedtls/lib/pkgconfig
             mkdir -p build-clang-mbedtls && cd build-clang-mbedtls
@@ -215,7 +215,7 @@ jobs:
 
       - name: GCC 4.4 + old MbedTLS build + test
         run: |
-          docker run --rm --ulimit core=-1:-1 --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) webrtc-u20 bash -c "
+          docker run --rm --ulimit core=-1:-1 --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) -e AWS_KVS_LOG_LEVEL webrtc-u20 bash -c "
             export CC=gcc-4.4
             export PKG_CONFIG_PATH=/opt/deps/x86_64-mbedtls-old/lib/pkgconfig
             mkdir -p build-gcc44 && cd build-gcc44
@@ -247,6 +247,7 @@ jobs:
         run: |
           docker run --rm --user $(id -u):$(id -g) -v $PWD:/src -w /src \
             -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) \
+            -e AWS_KVS_LOG_LEVEL \
             -e ASAN_OPTIONS=detect_odr_violation=0:detect_leaks=1 \
             -e LSAN_OPTIONS=suppressions=/src/tst/suppressions/LSAN.supp \
             -e UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 \
@@ -272,6 +273,7 @@ jobs:
         run: |
           docker run --rm --user $(id -u):$(id -g) -v $PWD:/src -w /src \
             -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) \
+            -e AWS_KVS_LOG_LEVEL \
             -e TSAN_OPTIONS=second_deadlock_stack=1:halt_on_error=1:suppressions=/src/tst/suppressions/TSAN.supp \
             webrtc-u22 bash -c "
             export CC=clang CXX=clang++
@@ -299,7 +301,7 @@ jobs:
 
       - name: Cross-compile mips-32 (static, OpenSSL)
         run: |
-          docker run --rm --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) webrtc-u22 bash -c "
+          docker run --rm --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) -e AWS_KVS_LOG_LEVEL webrtc-u22 bash -c "
             export CC=mips-linux-gnu-gcc CXX=mips-linux-gnu-g++
             export PKG_CONFIG_LIBDIR=/opt/deps/mips-openssl/lib/pkgconfig
             mkdir -p build-cross-mips && cd build-cross-mips
@@ -320,7 +322,7 @@ jobs:
 
       - name: Cross-compile arm-32 (static, OpenSSL)
         run: |
-          docker run --rm --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) webrtc-u22 bash -c "
+          docker run --rm --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) -e AWS_KVS_LOG_LEVEL webrtc-u22 bash -c "
             export CC=arm-linux-gnueabihf-gcc CXX=arm-linux-gnueabihf-g++
             export PKG_CONFIG_LIBDIR=/opt/deps/arm32-openssl/lib/pkgconfig
             mkdir -p build-cross-arm32 && cd build-cross-arm32
@@ -341,7 +343,7 @@ jobs:
 
       - name: Cross-compile aarch64 (static, OpenSSL)
         run: |
-          docker run --rm --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) webrtc-u22 bash -c "
+          docker run --rm --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) -e AWS_KVS_LOG_LEVEL webrtc-u22 bash -c "
             export CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++
             export PKG_CONFIG_LIBDIR=/opt/deps/aarch64-openssl/lib/pkgconfig
             mkdir -p build-cross-aarch64 && cd build-cross-aarch64
@@ -362,7 +364,7 @@ jobs:
 
       - name: Cross-compile aarch64 (static, MbedTLS spot-check)
         run: |
-          docker run --rm --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) webrtc-u22 bash -c "
+          docker run --rm --user $(id -u):$(id -g) -v $PWD:/src -w /src -e CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) -e AWS_KVS_LOG_LEVEL webrtc-u22 bash -c "
             export CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++
             export PKG_CONFIG_LIBDIR=/opt/deps/aarch64-mbedtls/lib/pkgconfig
             mkdir -p build-cross-aarch64-mbedtls && cd build-cross-aarch64-mbedtls
