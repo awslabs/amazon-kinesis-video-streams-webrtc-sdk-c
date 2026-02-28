@@ -2263,6 +2263,37 @@ PUBLIC_API STATUS createRtcCertificate(PRtcCertificate*);
  */
 PUBLIC_API STATUS freeRtcCertificate(PRtcCertificate);
 
+/**
+ * @brief Requests a key frame from the remote peer.
+ *
+ * This function sends a Picture Loss Indication (PLI) packet to the remote peer,
+ * requesting a key frame. This is useful when the decoder detects packet loss
+ * or corruption and needs a fresh key frame to recover.
+ *
+ * @param[in] PRtcRtpTransceiver The transceiver associated with the media stream.
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success.
+ */
+PUBLIC_API STATUS requestKeyFrame(PRtcRtpTransceiver);
+
+/**
+ * @brief Sends a Picture Loss Indication (PLI) packet to the remote peer.
+ *
+ * @param[in] PRtcRtpTransceiver The transceiver associated with the media stream.
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success.
+ */
+PUBLIC_API STATUS transceiverSendPli(PRtcRtpTransceiver);
+
+/**
+ * @brief Sends a Full Intra Request (FIR) packet to the remote peer.
+ *
+ * @param[in] PRtcRtpTransceiver The transceiver associated with the media stream.
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success.
+ */
+PUBLIC_API STATUS transceiverSendFir(PRtcRtpTransceiver);
+
 /*!@} */
 #ifdef __cplusplus
 }

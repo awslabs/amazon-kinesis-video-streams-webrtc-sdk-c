@@ -49,6 +49,7 @@ typedef enum {
     RTCP_FEEDBACK_MESSAGE_TYPE_NACK = 1,
     RTCP_PSFB_PLI = 1, // https://tools.ietf.org/html/rfc4585#section-6.3
     RTCP_PSFB_SLI = 2, // https://tools.ietf.org/html/rfc4585#section-6.3.2
+    RTCP_PSFB_FIR = 4, // https://tools.ietf.org/html/rfc5104#section-4.3.1
     RTCP_FEEDBACK_MESSAGE_TYPE_APPLICATION_LAYER_FEEDBACK = 15,
 } RTCP_FEEDBACK_MESSAGE_TYPE;
 

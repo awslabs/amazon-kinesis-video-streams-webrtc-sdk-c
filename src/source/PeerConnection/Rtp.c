@@ -526,3 +526,35 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
     return retStatus;
 }
+
+STATUS transceiverSendPli(PRtcRtpTransceiver pRtcRtpTransceiver)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;
+
+    CHK(pKvsRtpTransceiver != NULL && pKvsRtpTransceiver->pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+
+    CHK_STATUS(sendRtcpPLI(pKvsRtpTransceiver->pKvsPeerConnection, pKvsRtpTransceiver->sender.ssrc, pKvsRtpTransceiver->jitterBufferSsrc));
+
+CleanUp:
+    return retStatus;
+}
+
+STATUS transceiverSendFir(PRtcRtpTransceiver pRtcRtpTransceiver)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;
+
+    CHK(pKvsRtpTransceiver != NULL && pKvsRtpTransceiver->pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+
+    CHK_STATUS(sendRtcpFIR(pKvsRtpTransceiver->pKvsPeerConnection, pKvsRtpTransceiver->sender.ssrc, pKvsRtpTransceiver->jitterBufferSsrc,
+                           &pKvsRtpTransceiver->firSequenceNumber));
+
+CleanUp:
+    return retStatus;
+}
+
+STATUS requestKeyFrame(PRtcRtpTransceiver pRtcRtpTransceiver)
+{
+    return transceiverSendPli(pRtcRtpTransceiver);
+}

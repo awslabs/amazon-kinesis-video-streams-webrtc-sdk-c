@@ -13,6 +13,8 @@ STATUS onRtcpPLIPacket(PRtcpPacket, PKvsPeerConnection);
 STATUS parseRtcpTwccPacket(PRtcpPacket, PTwccManager);
 STATUS onRtcpTwccPacket(PRtcpPacket, PKvsPeerConnection);
 STATUS updateTwccHashTable(PTwccManager, PINT64, PUINT64, PUINT64, PUINT64, PUINT64);
+STATUS sendRtcpPLI(PKvsPeerConnection pKvsPeerConnection, UINT32 senderSsrc, UINT32 mediaSsrc);
+STATUS sendRtcpFIR(PKvsPeerConnection pKvsPeerConnection, UINT32 senderSsrc, UINT32 mediaSsrc, UINT8* pSeqNum);
 
 // https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
 // Deltas are represented as multiples of 250us:

@@ -431,6 +431,57 @@ CleanUp:
     return retStatus;
 }
 
+/*
+* 0                   1                   2                   3
+0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|V=2|P|   FMT=4 |   PT=206      |          Length = 4           |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                  SSRC of Packet Sender                        |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|        SSRC of Media Source (UNUSED - MUST BE 0)              |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                              SSRC     (useful)                |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|   Seq Nr      |    Reserved (Must be all 0)                   |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+...
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|    SSRC2     (technically possible to have multiple ssrcs)    |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|   Seq Nr      |    Reserved (Must be all 0)                   |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+*/
+#define PSFB_FIR_MIN_SIZE        16
+#define PSFB_FIR_FCI_SSRC_OFFSET 8
+STATUS onRtcpPSFBFIRPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 ssrc, offset;
+    PKvsRtpTransceiver pTransceiver = NULL;
+
+    CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
+    if (pRtcpPacket->payloadLength >= PSFB_FIR_MIN_SIZE) {
+        offset = PSFB_FIR_FCI_SSRC_OFFSET;
+        for (; (offset + 4) < pRtcpPacket->payloadLength; offset += PSFB_FIR_FCI_SSRC_OFFSET) {
+            ssrc = getUnalignedInt32BigEndian(pRtcpPacket->payload + offset);
+            CHK_STATUS_ERR(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, ssrc), STATUS_RTCP_INPUT_SSRC_INVALID,
+                           "Received FIR for non existing ssrc: %u", ssrc);
+            MUTEX_LOCK(pTransceiver->statsLock);
+            pTransceiver->outboundStats.firCount++;
+            MUTEX_UNLOCK(pTransceiver->statsLock);
+
+            if (pTransceiver->onPictureLoss != NULL) {
+                pTransceiver->onPictureLoss(pTransceiver->onPictureLossCustomData);
+            }
+        }
+    }
+
+CleanUp:
+    return retStatus;
+}
+
 STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 buffLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -443,6 +494,13 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
 
         switch (rtcpPacket.header.packetType) {
             case RTCP_PACKET_TYPE_FIR:
+                //  0                   1                   2                   3
+                //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+                // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                // |V=2|P|   MBZ   |  PT=RTCP_FIR  |           length              |
+                // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                // |                              SSRC                             |
+                // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
                 CHK_STATUS(onRtcpFIRPacket(&rtcpPacket, pKvsPeerConnection));
                 break;
             case RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK:
@@ -460,6 +518,8 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
                     CHK_STATUS(onRtcpRembPacket(&rtcpPacket, pKvsPeerConnection));
                 } else if (rtcpPacket.header.receptionReportCount == RTCP_PSFB_PLI) {
                     CHK_STATUS(onRtcpPLIPacket(&rtcpPacket, pKvsPeerConnection));
+                } else if (rtcpPacket.header.receptionReportCount == RTCP_PSFB_FIR) {
+                    CHK_STATUS(onRtcpPSFBFIRPacket(&rtcpPacket, pKvsPeerConnection));
                 } else if (rtcpPacket.header.receptionReportCount == RTCP_PSFB_SLI) {
                     CHK_STATUS(onRtcpSLIPacket(&rtcpPacket, pKvsPeerConnection));
                 } else {
@@ -539,5 +599,90 @@ STATUS onRtcpPLIPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConne
 
 CleanUp:
 
+    return retStatus;
+}
+
+static STATUS writeRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pPacket, UINT32 packetLen)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PBYTE pRawPacket = NULL;
+    UINT32 allocSize;
+
+    CHK(pKvsPeerConnection != NULL && pPacket != NULL, STATUS_NULL_ARG);
+
+    // srtp_protect_rtcp() in encryptRtcpPacket() assumes memory availability to write 10 bytes of authentication tag and
+    // SRTP_MAX_TRAILER_LEN + 4 following the actual rtcp Packet payload
+    allocSize = packetLen + SRTP_AUTH_TAG_OVERHEAD + SRTP_MAX_TRAILER_LEN + 4;
+    CHK(NULL != (pRawPacket = (PBYTE) MEMALLOC(allocSize)), STATUS_NOT_ENOUGH_MEMORY);
+
+    MEMCPY(pRawPacket, pPacket, packetLen);
+
+    CHK_STATUS(encryptRtcpPacket(pKvsPeerConnection->pSrtpSession, pRawPacket, (PINT32) &packetLen));
+    CHK_STATUS(iceAgentSendPacket(pKvsPeerConnection->pIceAgent, pRawPacket, packetLen));
+
+CleanUp:
+    SAFE_MEMFREE(pRawPacket);
+    return retStatus;
+}
+
+STATUS sendRtcpPLI(PKvsPeerConnection pKvsPeerConnection, UINT32 senderSsrc, UINT32 mediaSsrc)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    BYTE packet[12];
+    UINT32 packetLen = sizeof(packet);
+
+    CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+
+    // RTCP Header
+    packet[0] = (RTCP_PACKET_VERSION_VAL << 6) | RTCP_PSFB_PLI; // V=2, P=0, FMT=1 (PLI)
+    packet[1] = RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK;     // PT=206
+    putUnalignedInt16BigEndian(packet + 2, (packetLen / 4) - 1);
+
+    // SSRC of packet sender
+    putUnalignedInt32BigEndian(packet + 4, senderSsrc);
+
+    // SSRC of media source
+    putUnalignedInt32BigEndian(packet + 8, mediaSsrc);
+
+    CHK_STATUS(writeRtcpPacket(pKvsPeerConnection, packet, packetLen));
+
+CleanUp:
+    return retStatus;
+}
+
+STATUS sendRtcpFIR(PKvsPeerConnection pKvsPeerConnection, UINT32 senderSsrc, UINT32 mediaSsrc, UINT8* pSeqNum)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    BYTE packet[20];
+    UINT32 packetLen = sizeof(packet);
+
+    CHK(pKvsPeerConnection != NULL && pSeqNum != NULL, STATUS_NULL_ARG);
+
+    // RTCP Header
+    packet[0] = (RTCP_PACKET_VERSION_VAL << 6) | RTCP_PSFB_FIR; // V=2, P=0, FMT=4 (FIR)
+    packet[1] = RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK;     // PT=206
+    putUnalignedInt16BigEndian(packet + 2, (packetLen / 4) - 1);
+
+    // SSRC of packet sender
+    putUnalignedInt32BigEndian(packet + 4, senderSsrc);
+
+    // SSRC of media source (unused, set to 0)
+    putUnalignedInt32BigEndian(packet + 8, 0);
+
+    // FCI: SSRC
+    putUnalignedInt32BigEndian(packet + 12, mediaSsrc);
+
+    // FCI: Sequence number
+    (*pSeqNum)++;
+    packet[16] = *pSeqNum;
+
+    // FCI: Reserved (set to 0)
+    packet[17] = 0;
+    packet[18] = 0;
+    packet[19] = 0;
+
+    CHK_STATUS(writeRtcpPacket(pKvsPeerConnection, packet, packetLen));
+
+CleanUp:
     return retStatus;
 }

@@ -1288,6 +1288,298 @@ TEST_F(PeerConnectionFunctionalityTest, aggressiveNominationDTLSRaceConditionChe
     }
 }
 
+// Test PLI (Picture Loss Indication) functionality
+// Sender sends I-frames (filled with 'I') and P-frames (filled with 'P')
+// When receiver gets a P-frame, it sends a PLI request
+// Sender responds to PLI by sending a special i-frame (filled with lowercase 'i')
+// Test passes when receiver gets the lowercase 'i' frame
+TEST_F(PeerConnectionFunctionalityTest, pliRequestTriggersKeyFrame)
+{
+    // Frame size for test frames
+    auto const frameBufferSize = 42;
+
+    // Frame type markers
+    const BYTE IFRAME_MARKER = 'I';     // Regular I-frame
+    const BYTE PFRAME_MARKER = 'P';     // P-frame
+    const BYTE PLI_IFRAME_MARKER = 'i'; // I-frame sent in response to PLI
+
+    // Context structure for sharing state between callbacks
+    struct PliTestContext {
+        PRtcRtpTransceiver pSenderTransceiver;
+        ATOMIC_BOOL pliReceived;
+        ATOMIC_BOOL pliResponseFrameReceived;
+        ATOMIC_BOOL pFrameReceived;
+        ATOMIC_BOOL testComplete;
+    };
+
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack;
+    PRtcRtpTransceiver offerVideoTransceiver, answerVideoTransceiver;
+    Frame videoFrame;
+    PliTestContext context;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
+    MEMSET(&context, 0x00, SIZEOF(PliTestContext));
+
+    // Allocate frame buffer
+    videoFrame.frameData = (PBYTE) MEMALLOC(frameBufferSize);
+    videoFrame.size = frameBufferSize;
+    ASSERT_NE(videoFrame.frameData, nullptr);
+
+    // Initialize atomic flags
+    ATOMIC_STORE_BOOL(&context.pliReceived, FALSE);
+    ATOMIC_STORE_BOOL(&context.pliResponseFrameReceived, FALSE);
+    ATOMIC_STORE_BOOL(&context.pFrameReceived, FALSE);
+    ATOMIC_STORE_BOOL(&context.testComplete, FALSE);
+
+    // Create peer connections
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    // Add video tracks to both peers
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+
+    context.pSenderTransceiver = offerVideoTransceiver;
+
+    // Callback for when sender (offer) receives PLI from receiver
+    auto onPictureLossHandler = [](UINT64 customData) -> void {
+        PliTestContext* pContext = (PliTestContext*) customData;
+        ATOMIC_STORE_BOOL(&pContext->pliReceived, TRUE);
+        DLOGD("PLI received by sender");
+    };
+
+    // Register PLI callback on sender's transceiver
+    EXPECT_EQ(transceiverOnPictureLoss(offerVideoTransceiver, (UINT64) &context, onPictureLossHandler), STATUS_SUCCESS);
+
+    // Callback for when receiver (answer) gets a frame
+    // If it's a P-frame, send PLI; if it's lowercase 'i', the test passes
+    auto onFrameHandler = [](UINT64 customData, PFrame pFrame) -> void {
+        PliTestContext* pContext = (PliTestContext*) customData;
+
+        if (pFrame == NULL || pFrame->frameData == NULL || pFrame->size == 0) {
+            return;
+        }
+
+        BYTE frameMarker = pFrame->frameData[0];
+
+        if (frameMarker == 'P' && !ATOMIC_LOAD_BOOL(&pContext->pFrameReceived)) {
+            // First P-frame received, send PLI
+            ATOMIC_STORE_BOOL(&pContext->pFrameReceived, TRUE);
+            DLOGD("P-frame received, sending PLI");
+            // Note: We'll send PLI from the main test loop after detecting pFrameReceived
+        } else if (frameMarker == 'i') {
+            // Received the I-frame sent in response to PLI
+            ATOMIC_STORE_BOOL(&pContext->pliResponseFrameReceived, TRUE);
+            ATOMIC_STORE_BOOL(&pContext->testComplete, TRUE);
+            DLOGD("PLI response I-frame received (lowercase 'i')");
+        }
+    };
+
+    // Register frame callback on receiver's transceiver
+    EXPECT_EQ(transceiverOnFrame(answerVideoTransceiver, (UINT64) &context, onFrameHandler), STATUS_SUCCESS);
+
+    // Connect the two peers
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    // Send frames: I, P, P... until we get PLI response
+    BOOL sentPliResponseFrame = FALSE;
+    BOOL pliSent = FALSE;
+
+    for (auto i = 0; i < 200 && !ATOMIC_LOAD_BOOL(&context.testComplete); i++) {
+        // Check if we received PLI and need to send response I-frame
+        if (ATOMIC_LOAD_BOOL(&context.pliReceived) && !sentPliResponseFrame) {
+            // Send I-frame in response to PLI (lowercase 'i')
+            MEMSET(videoFrame.frameData, PLI_IFRAME_MARKER, videoFrame.size);
+            videoFrame.flags = FRAME_FLAG_KEY_FRAME;
+            EXPECT_EQ(writeFrame(offerVideoTransceiver, &videoFrame), STATUS_SUCCESS);
+            sentPliResponseFrame = TRUE;
+            DLOGD("Sent PLI response I-frame (lowercase 'i')");
+        } else if (ATOMIC_LOAD_BOOL(&context.pFrameReceived) && !pliSent) {
+            // Receiver got P-frame, now send PLI from receiver
+            EXPECT_EQ(transceiverSendPli(answerVideoTransceiver), STATUS_SUCCESS);
+            pliSent = TRUE;
+            DLOGD("PLI sent from receiver");
+        } else if (i == 0) {
+            // First frame: send I-frame
+            MEMSET(videoFrame.frameData, IFRAME_MARKER, videoFrame.size);
+            videoFrame.flags = FRAME_FLAG_KEY_FRAME;
+            EXPECT_EQ(writeFrame(offerVideoTransceiver, &videoFrame), STATUS_SUCCESS);
+            DLOGD("Sent I-frame");
+        } else if (!ATOMIC_LOAD_BOOL(&context.pFrameReceived)) {
+            // Send P-frames until receiver gets one
+            MEMSET(videoFrame.frameData, PFRAME_MARKER, videoFrame.size);
+            videoFrame.flags = FRAME_FLAG_NONE;
+            EXPECT_EQ(writeFrame(offerVideoTransceiver, &videoFrame), STATUS_SUCCESS);
+        }
+
+        videoFrame.presentationTs += (HUNDREDS_OF_NANOS_IN_A_SECOND / 25);
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND * 10);
+    }
+
+    // Cleanup
+    MEMFREE(videoFrame.frameData);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    // Verify test succeeded
+    EXPECT_TRUE(ATOMIC_LOAD_BOOL(&context.pFrameReceived)) << "Receiver should have received a P-frame";
+    EXPECT_TRUE(pliSent) << "PLI should have been sent";
+    EXPECT_TRUE(ATOMIC_LOAD_BOOL(&context.pliReceived)) << "Sender should have received PLI";
+    EXPECT_TRUE(ATOMIC_LOAD_BOOL(&context.pliResponseFrameReceived)) << "Receiver should have received the I-frame sent in response to PLI";
+}
+
+// Test FIR (Full Intra Request) functionality - similar to PLI test
+// Sender sends I-frames (filled with 'I') and P-frames (filled with 'P')
+// When receiver gets a P-frame, it sends a FIR request
+// Sender responds to FIR by sending a special i-frame (filled with lowercase 'i')
+// Test passes when receiver gets the lowercase 'i' frame
+TEST_F(PeerConnectionFunctionalityTest, firRequestTriggersKeyFrame)
+{
+    // Frame size for test frames
+    auto const frameBufferSize = 42;
+
+    // Frame type markers
+    const BYTE IFRAME_MARKER = 'I';     // Regular I-frame
+    const BYTE PFRAME_MARKER = 'P';     // P-frame
+    const BYTE FIR_IFRAME_MARKER = 'i'; // I-frame sent in response to FIR
+
+    // Context structure for sharing state between callbacks
+    struct FirTestContext {
+        PRtcRtpTransceiver pSenderTransceiver;
+        ATOMIC_BOOL firReceived;
+        ATOMIC_BOOL firResponseFrameReceived;
+        ATOMIC_BOOL pFrameReceived;
+        ATOMIC_BOOL testComplete;
+    };
+
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack;
+    PRtcRtpTransceiver offerVideoTransceiver, answerVideoTransceiver;
+    Frame videoFrame;
+    FirTestContext context;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
+    MEMSET(&context, 0x00, SIZEOF(FirTestContext));
+
+    // Allocate frame buffer
+    videoFrame.frameData = (PBYTE) MEMALLOC(frameBufferSize);
+    videoFrame.size = frameBufferSize;
+    ASSERT_NE(videoFrame.frameData, nullptr);
+
+    // Initialize atomic flags
+    ATOMIC_STORE_BOOL(&context.firReceived, FALSE);
+    ATOMIC_STORE_BOOL(&context.firResponseFrameReceived, FALSE);
+    ATOMIC_STORE_BOOL(&context.pFrameReceived, FALSE);
+    ATOMIC_STORE_BOOL(&context.testComplete, FALSE);
+
+    // Create peer connections
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    // Add video tracks to both peers
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+
+    context.pSenderTransceiver = offerVideoTransceiver;
+
+    // Callback for when sender (offer) receives FIR from receiver (uses same onPictureLoss callback)
+    auto onPictureLossHandler = [](UINT64 customData) -> void {
+        FirTestContext* pContext = (FirTestContext*) customData;
+        ATOMIC_STORE_BOOL(&pContext->firReceived, TRUE);
+        DLOGD("FIR received by sender (via onPictureLoss callback)");
+    };
+
+    // Register PLI/FIR callback on sender's transceiver
+    EXPECT_EQ(transceiverOnPictureLoss(offerVideoTransceiver, (UINT64) &context, onPictureLossHandler), STATUS_SUCCESS);
+
+    // Callback for when receiver (answer) gets a frame
+    auto onFrameHandler = [](UINT64 customData, PFrame pFrame) -> void {
+        FirTestContext* pContext = (FirTestContext*) customData;
+
+        if (pFrame == NULL || pFrame->frameData == NULL || pFrame->size == 0) {
+            return;
+        }
+
+        BYTE frameMarker = pFrame->frameData[0];
+
+        if (frameMarker == 'P' && !ATOMIC_LOAD_BOOL(&pContext->pFrameReceived)) {
+            // First P-frame received, will trigger FIR from main loop
+            ATOMIC_STORE_BOOL(&pContext->pFrameReceived, TRUE);
+            DLOGD("P-frame received, will send FIR");
+        } else if (frameMarker == 'i') {
+            // Received the I-frame sent in response to FIR
+            ATOMIC_STORE_BOOL(&pContext->firResponseFrameReceived, TRUE);
+            ATOMIC_STORE_BOOL(&pContext->testComplete, TRUE);
+            DLOGD("FIR response I-frame received (lowercase 'i')");
+        }
+    };
+
+    // Register frame callback on receiver's transceiver
+    EXPECT_EQ(transceiverOnFrame(answerVideoTransceiver, (UINT64) &context, onFrameHandler), STATUS_SUCCESS);
+
+    // Connect the two peers
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    // Send frames: I, P, P... until we get FIR response
+    BOOL sentFirResponseFrame = FALSE;
+    BOOL firSent = FALSE;
+
+    for (auto i = 0; i < 200 && !ATOMIC_LOAD_BOOL(&context.testComplete); i++) {
+        // Check if we received FIR and need to send response I-frame
+        if (ATOMIC_LOAD_BOOL(&context.firReceived) && !sentFirResponseFrame) {
+            // Send I-frame in response to FIR (lowercase 'i')
+            MEMSET(videoFrame.frameData, FIR_IFRAME_MARKER, videoFrame.size);
+            videoFrame.flags = FRAME_FLAG_KEY_FRAME;
+            EXPECT_EQ(writeFrame(offerVideoTransceiver, &videoFrame), STATUS_SUCCESS);
+            sentFirResponseFrame = TRUE;
+            DLOGD("Sent FIR response I-frame (lowercase 'i')");
+        } else if (ATOMIC_LOAD_BOOL(&context.pFrameReceived) && !firSent) {
+            // Receiver got P-frame, now send FIR from receiver
+            EXPECT_EQ(transceiverSendFir(answerVideoTransceiver), STATUS_SUCCESS);
+            firSent = TRUE;
+            DLOGD("FIR sent from receiver");
+        } else if (i == 0) {
+            // First frame: send I-frame
+            MEMSET(videoFrame.frameData, IFRAME_MARKER, videoFrame.size);
+            videoFrame.flags = FRAME_FLAG_KEY_FRAME;
+            EXPECT_EQ(writeFrame(offerVideoTransceiver, &videoFrame), STATUS_SUCCESS);
+            DLOGD("Sent I-frame");
+        } else if (!ATOMIC_LOAD_BOOL(&context.pFrameReceived)) {
+            // Send P-frames until receiver gets one
+            MEMSET(videoFrame.frameData, PFRAME_MARKER, videoFrame.size);
+            videoFrame.flags = FRAME_FLAG_NONE;
+            EXPECT_EQ(writeFrame(offerVideoTransceiver, &videoFrame), STATUS_SUCCESS);
+        }
+
+        videoFrame.presentationTs += (HUNDREDS_OF_NANOS_IN_A_SECOND / 25);
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND * 10);
+    }
+
+    // Cleanup
+    MEMFREE(videoFrame.frameData);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    // Verify test succeeded
+    EXPECT_TRUE(ATOMIC_LOAD_BOOL(&context.pFrameReceived)) << "Receiver should have received a P-frame";
+    EXPECT_TRUE(firSent) << "FIR should have been sent";
+    EXPECT_TRUE(ATOMIC_LOAD_BOOL(&context.firReceived)) << "Sender should have received FIR";
+    EXPECT_TRUE(ATOMIC_LOAD_BOOL(&context.firResponseFrameReceived)) << "Receiver should have received the I-frame sent in response to FIR";
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
