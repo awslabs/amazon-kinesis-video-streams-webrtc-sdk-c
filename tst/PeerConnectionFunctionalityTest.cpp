@@ -800,11 +800,13 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
         THREAD_SLEEP(40 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     }
 
+    DLOGI("framesSent");
     // Wait for receiver to see at least 1 frame
     // exact number of frames depends on timing
     for (auto i = 0; i <= 1000 && ATOMIC_LOAD(&seenVideo) < 2; i++) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     }
+    DLOGI("framesReceived %zu", ATOMIC_LOAD(&seenVideo));
 
     MEMFREE(videoFrame.frameData);
     RtcOutboundRtpStreamStats stats{};
