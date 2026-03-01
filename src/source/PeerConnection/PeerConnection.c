@@ -414,7 +414,7 @@ STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, U
     CHK(frameSize == filledSize, STATUS_INVALID_ARG_LEN);
 
     frame.version = FRAME_CURRENT_VERSION;
-    frame.decodingTs = pPacket->header.timestamp * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    frame.decodingTs = KVS_CONVERT_TIMESCALE(pPacket->header.timestamp, pTransceiver->pJitterBuffer->clockRate, HUNDREDS_OF_NANOS_IN_A_SECOND);
     frame.presentationTs = frame.decodingTs;
     frame.frameData = pTransceiver->peerFrameBuffer;
     frame.size = frameSize;
