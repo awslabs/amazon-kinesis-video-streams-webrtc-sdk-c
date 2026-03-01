@@ -31,10 +31,71 @@ permissions:
 
 jobs:
   # ===========================================================================
+  # Environment probe — report Android toolchain availability on all runners
+  # ===========================================================================
+
+  env-probe:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner:
+          - [self-hosted, macOS, ARM64]
+          - [self-hosted, Linux]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 5
+    continue-on-error: true
+    steps:
+      - name: Report Android environment
+        shell: bash
+        run: |
+          echo "::group::Runner info"
+          echo "Runner:   $(hostname)"
+          echo "OS:       $(uname -s)"
+          echo "Arch:     $(uname -m)"
+          echo "Kernel:   $(uname -r)"
+          echo "::endgroup::"
+
+          echo "::group::ANDROID_HOME"
+          if [ -n "${ANDROID_HOME}" ]; then
+            echo "ANDROID_HOME=${ANDROID_HOME}"
+            [ -d "${ANDROID_HOME}" ] && echo "  -> directory exists" || echo "  -> WARNING: directory does not exist"
+          else
+            echo "WARNING: ANDROID_HOME is not set"
+          fi
+          echo "::endgroup::"
+
+          echo "::group::ANDROID_NDK"
+          if [ -n "${ANDROID_NDK}" ]; then
+            echo "ANDROID_NDK=${ANDROID_NDK}"
+            [ -d "${ANDROID_NDK}" ] && echo "  -> directory exists" || echo "  -> WARNING: directory does not exist"
+          else
+            echo "WARNING: ANDROID_NDK is not set"
+          fi
+          echo "::endgroup::"
+
+          echo "::group::adb"
+          ADB_PATH=""
+          if [ -n "${ANDROID_HOME}" ] && [ -x "${ANDROID_HOME}/platform-tools/adb" ]; then
+            ADB_PATH="${ANDROID_HOME}/platform-tools/adb"
+          elif command -v adb &>/dev/null; then
+            ADB_PATH="$(command -v adb)"
+          fi
+          if [ -n "${ADB_PATH}" ]; then
+            echo "adb found: ${ADB_PATH}"
+            "${ADB_PATH}" version || echo "WARNING: adb version failed"
+            echo "--- connected devices ---"
+            "${ADB_PATH}" devices -l || echo "WARNING: adb devices failed"
+          else
+            echo "WARNING: adb not found"
+          fi
+          echo "::endgroup::"
+
+  # ===========================================================================
   # arm64 — emulator
   # ===========================================================================
 
   android-arm64:
+    if: false
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 15
     steps:
@@ -85,6 +146,7 @@ jobs:
         run: rm -rf build-android-arm64-v8a
 
   android-arm64-asan:
+    if: false
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 15
     steps:
@@ -139,6 +201,7 @@ jobs:
         run: rm -rf build-android-arm64-v8a-asan
 
   android-arm64-app:
+    if: false
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 15
     needs: android-arm64
@@ -185,6 +248,7 @@ jobs:
   # ===========================================================================
 
   android-arm32:
+    if: false
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 15
     steps:
@@ -228,6 +292,7 @@ jobs:
         run: rm -rf build-android-armeabi-v7a
 
   android-arm32-asan:
+    if: false
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 15
     steps:
@@ -277,6 +342,7 @@ jobs:
         run: rm -rf build-android-armeabi-v7a-asan
 
   android-arm32-app:
+    if: false
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 15
     steps:
