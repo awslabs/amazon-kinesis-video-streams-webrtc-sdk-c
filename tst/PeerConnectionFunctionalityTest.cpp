@@ -1605,6 +1605,292 @@ TEST_F(PeerConnectionFunctionalityTest, firRequestTriggersKeyFrame)
     EXPECT_TRUE(ATOMIC_LOAD_BOOL(&context.firResponseFrameReceived)) << "Receiver should have received the I-frame sent in response to FIR";
 }
 
+// Test TWCC (Transport-Wide Congestion Control) feedback functionality
+// Sender sends video frames to receiver
+// Receiver generates TWCC feedback for incoming RTP packets
+// When sender receives TWCC feedback, RtcOnSenderBandwidthEstimation callback is fired
+TEST_F(PeerConnectionFunctionalityTest, twccFeedbackTriggersBandwidthEstimation)
+{
+    // Frame size for test frames
+    auto const frameBufferSize = 1200;
+
+    // Context structure for sharing state between callbacks
+    struct TwccTestContext {
+        ATOMIC_BOOL bandwidthEstimationReceived;
+        ATOMIC_BOOL frameReceived;
+        ATOMIC_BOOL testComplete;
+        SIZE_T callbackCount;
+        UINT32 totalTxBytes;
+        UINT32 totalRxBytes;
+        UINT32 totalTxPackets;
+        UINT32 totalRxPackets;
+    };
+
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack;
+    PRtcRtpTransceiver offerVideoTransceiver, answerVideoTransceiver;
+    Frame videoFrame;
+    TwccTestContext context;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
+    MEMSET(&context, 0x00, SIZEOF(TwccTestContext));
+
+    // Allocate frame buffer
+    videoFrame.frameData = (PBYTE) MEMALLOC(frameBufferSize);
+    videoFrame.size = frameBufferSize;
+    ASSERT_NE(videoFrame.frameData, nullptr);
+    MEMSET(videoFrame.frameData, 0xAB, videoFrame.size);
+
+    // Initialize atomic flags
+    ATOMIC_STORE_BOOL(&context.bandwidthEstimationReceived, FALSE);
+    ATOMIC_STORE_BOOL(&context.frameReceived, FALSE);
+    ATOMIC_STORE_BOOL(&context.testComplete, FALSE);
+    context.callbackCount = 0;
+
+    // Create peer connections
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    // Manually enable TWCC extension on both peers
+    // In real scenarios, this is negotiated via SDP when connecting to browsers
+    // For peer-to-peer testing between SDK instances, we need to set it manually
+    PKvsPeerConnection pOfferKvs = (PKvsPeerConnection) offerPc;
+    PKvsPeerConnection pAnswerKvs = (PKvsPeerConnection) answerPc;
+    pOfferKvs->twccExtId = 1;  // Standard TWCC extension ID
+    pAnswerKvs->twccExtId = 1;
+
+    // Add video tracks to both peers (VP8 codec supports TWCC)
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+
+    // Callback for when sender receives TWCC feedback and computes bandwidth estimation
+    auto onBandwidthEstimationHandler = [](UINT64 customData, UINT32 txBytes, UINT32 rxBytes,
+                                           UINT32 txPackets, UINT32 rxPackets, UINT64 duration) -> void {
+        UNUSED_PARAM(duration);
+        TwccTestContext* pContext = (TwccTestContext*) customData;
+
+        pContext->callbackCount++;
+        pContext->totalTxBytes += txBytes;
+        pContext->totalRxBytes += rxBytes;
+        pContext->totalTxPackets += txPackets;
+        pContext->totalRxPackets += rxPackets;
+
+        ATOMIC_STORE_BOOL(&pContext->bandwidthEstimationReceived, TRUE);
+        DLOGD("Bandwidth estimation callback: txBytes=%u rxBytes=%u txPackets=%u rxPackets=%u",
+              txBytes, rxBytes, txPackets, rxPackets);
+
+        // Mark test complete if we've received enough callbacks
+        if (pContext->callbackCount >= 2) {
+            ATOMIC_STORE_BOOL(&pContext->testComplete, TRUE);
+        }
+    };
+
+    // Register bandwidth estimation callback on sender (offer peer)
+    EXPECT_EQ(peerConnectionOnSenderBandwidthEstimation(offerPc, (UINT64) &context, onBandwidthEstimationHandler), STATUS_SUCCESS);
+
+    // Callback for when receiver gets a frame
+    auto onFrameHandler = [](UINT64 customData, PFrame pFrame) -> void {
+        UNUSED_PARAM(pFrame);
+        TwccTestContext* pContext = (TwccTestContext*) customData;
+        ATOMIC_STORE_BOOL(&pContext->frameReceived, TRUE);
+    };
+
+    // Register frame callback on receiver's transceiver
+    EXPECT_EQ(transceiverOnFrame(answerVideoTransceiver, (UINT64) &context, onFrameHandler), STATUS_SUCCESS);
+
+    // Connect the two peers
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    // Verify TWCC extension ID is set
+    DLOGD("Offer TWCC ext ID: %u, Answer TWCC ext ID: %u", pOfferKvs->twccExtId, pAnswerKvs->twccExtId);
+
+    // Send video frames from offer to answer
+    // TWCC feedback is generated every ~100ms, so we need to send for a while
+    for (auto i = 0; i < 300 && !ATOMIC_LOAD_BOOL(&context.testComplete); i++) {
+        // Send video frame
+        videoFrame.flags = (i % 30 == 0) ? FRAME_FLAG_KEY_FRAME : FRAME_FLAG_NONE;
+        EXPECT_EQ(writeFrame(offerVideoTransceiver, &videoFrame), STATUS_SUCCESS);
+        videoFrame.presentationTs += (HUNDREDS_OF_NANOS_IN_A_SECOND / 30);  // 30 fps
+
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND * 33);  // ~30fps timing
+    }
+
+    // Cleanup
+    MEMFREE(videoFrame.frameData);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    // Verify test succeeded
+    EXPECT_TRUE(ATOMIC_LOAD_BOOL(&context.frameReceived)) << "Receiver should have received video frames";
+    EXPECT_TRUE(ATOMIC_LOAD_BOOL(&context.bandwidthEstimationReceived))
+        << "Sender should have received TWCC feedback and bandwidth estimation callback should have been fired";
+    EXPECT_GT(context.callbackCount, 0) << "Bandwidth estimation callback should have been called at least once";
+    EXPECT_GT(context.totalTxPackets, 0) << "Should have reported transmitted packets";
+    EXPECT_GT(context.totalRxPackets, 0) << "Should have reported received packets";
+
+    DLOGD("TWCC test completed: %zu callbacks, txPackets=%u rxPackets=%u",
+          context.callbackCount, context.totalTxPackets, context.totalRxPackets);
+}
+
+// Test TWCC feedback generation on the receiver side
+// This verifies the receiver correctly generates TWCC feedback packets
+// with proper incremental deltas (not absolute timestamps)
+// Bug history: Chrome reported 300kbps stable bitrate because:
+// 1. Delta calculation was absolute instead of incremental
+// 2. 24-bit reference time wraparound caused delta overflow
+// 3. First packet with relative time=0 was treated as "no packet found"
+TEST_F(PeerConnectionFunctionalityTest, twccReceiverGeneratesFeedback)
+{
+    auto const frameBufferSize = 1200;
+
+    struct TwccReceiverTestContext {
+        ATOMIC_BOOL feedbackSent;
+        SIZE_T feedbackCount;
+        ATOMIC_BOOL testComplete;
+        UINT32 totalTxPackets;
+        UINT32 totalRxPackets;
+        SIZE_T validDurationCount;
+        SIZE_T invalidDurationCount;
+    };
+
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack;
+    PRtcRtpTransceiver offerVideoTransceiver, answerVideoTransceiver;
+    Frame videoFrame;
+    TwccReceiverTestContext context;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
+    MEMSET(&context, 0x00, SIZEOF(TwccReceiverTestContext));
+
+    videoFrame.frameData = (PBYTE) MEMALLOC(frameBufferSize);
+    videoFrame.size = frameBufferSize;
+    ASSERT_NE(videoFrame.frameData, nullptr);
+    MEMSET(videoFrame.frameData, 0xAB, videoFrame.size);
+
+    ATOMIC_STORE_BOOL(&context.feedbackSent, FALSE);
+    ATOMIC_STORE_BOOL(&context.testComplete, FALSE);
+    context.feedbackCount = 0;
+    context.totalTxPackets = 0;
+    context.totalRxPackets = 0;
+    context.validDurationCount = 0;
+    context.invalidDurationCount = 0;
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    // Enable TWCC on both peers
+    PKvsPeerConnection pOfferKvs = (PKvsPeerConnection) offerPc;
+    PKvsPeerConnection pAnswerKvs = (PKvsPeerConnection) answerPc;
+    pOfferKvs->twccExtId = 1;
+    pAnswerKvs->twccExtId = 1;
+
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+
+    // Bandwidth estimation callback on SENDER (offer) proves receiver sent feedback
+    auto onBandwidthEstimationHandler = [](UINT64 customData, UINT32 txBytes, UINT32 rxBytes,
+                                           UINT32 txPackets, UINT32 rxPackets, UINT64 duration) -> void {
+        UNUSED_PARAM(txBytes);
+        UNUSED_PARAM(rxBytes);
+        TwccReceiverTestContext* pContext = (TwccReceiverTestContext*) customData;
+
+        pContext->feedbackCount++;
+        pContext->totalTxPackets += txPackets;
+        pContext->totalRxPackets += rxPackets;
+        ATOMIC_STORE_BOOL(&pContext->feedbackSent, TRUE);
+
+        // Verify we're getting reasonable packet counts (not zero due to delta overflow)
+        // This would fail with the old bugs where packets were marked as "lost"
+        EXPECT_GT(rxPackets, 0) << "rxPackets should be > 0 (not marked as lost due to delta overflow)";
+
+        // Verify duration is reasonable (not negative or huge due to delta overflow)
+        // Duration is in 100ns units, should be positive and less than 10 seconds for each feedback
+        INT64 signedDuration = (INT64) duration;
+        if (signedDuration >= 0 && signedDuration <= 10 * HUNDREDS_OF_NANOS_IN_A_SECOND) {
+            pContext->validDurationCount++;
+        } else {
+            pContext->invalidDurationCount++;
+            DLOGW("Invalid TWCC duration: %lld (possible delta overflow)", (long long) signedDuration);
+        }
+
+        // Verify receive ratio is reasonable (> 50% of packets should be marked received)
+        // With delta overflow bugs, most packets would be marked as "lost"
+        if (txPackets > 0) {
+            UINT32 receivePercent = (rxPackets * 100) / txPackets;
+            EXPECT_GE(receivePercent, 50) << "Receive ratio should be >= 50% (was " << receivePercent
+                                          << "%), low ratio indicates delta calculation bugs";
+        }
+
+        // After several feedbacks, mark complete
+        if (pContext->feedbackCount >= 3) {
+            ATOMIC_STORE_BOOL(&pContext->testComplete, TRUE);
+        }
+    };
+
+    EXPECT_EQ(peerConnectionOnSenderBandwidthEstimation(offerPc, (UINT64) &context, onBandwidthEstimationHandler), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    // Verify TWCC receiver manager is initialized on answer peer
+    EXPECT_NE(pAnswerKvs->pTwccReceiverManager, nullptr) << "TWCC receiver manager should be initialized";
+
+    // Send frames - receiver (answer) should generate TWCC feedback
+    for (auto i = 0; i < 300 && !ATOMIC_LOAD_BOOL(&context.testComplete); i++) {
+        videoFrame.flags = (i % 30 == 0) ? FRAME_FLAG_KEY_FRAME : FRAME_FLAG_NONE;
+        EXPECT_EQ(writeFrame(offerVideoTransceiver, &videoFrame), STATUS_SUCCESS);
+        videoFrame.presentationTs += (HUNDREDS_OF_NANOS_IN_A_SECOND / 30);
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND * 33);
+    }
+
+    MEMFREE(videoFrame.frameData);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    // Verify receiver generated feedback
+    EXPECT_TRUE(ATOMIC_LOAD_BOOL(&context.feedbackSent))
+        << "Receiver should have sent TWCC feedback";
+    EXPECT_GE(context.feedbackCount, 3)
+        << "Should have received multiple TWCC feedbacks";
+    EXPECT_GT(context.totalRxPackets, 0)
+        << "Should have reported received packets (not all marked lost due to delta bugs)";
+
+    // Verify duration checks actually ran and ALL passed
+    // Using total ensures we don't pass by doing nothing (0 == 0 would be meaningless)
+    SIZE_T totalDurationChecks = context.validDurationCount + context.invalidDurationCount;
+    EXPECT_GT(totalDurationChecks, 0)
+        << "Should have performed duration checks (test did nothing if 0)";
+    EXPECT_EQ(context.validDurationCount, totalDurationChecks)
+        << "All duration checks should pass (had " << context.invalidDurationCount
+        << " invalid out of " << totalDurationChecks << ", indicates delta overflow bugs)";
+
+    // Final receive ratio check - should be high if deltas are correct
+    EXPECT_GT(context.totalTxPackets, 0)
+        << "Should have transmitted packets";
+    if (context.totalTxPackets > 0) {
+        UINT32 overallReceivePercent = (context.totalRxPackets * 100) / context.totalTxPackets;
+        EXPECT_GE(overallReceivePercent, 80)
+            << "Overall receive ratio should be >= 80% (was " << overallReceivePercent
+            << "%), low ratio indicates TWCC delta calculation bugs";
+    }
+
+    DLOGD("TWCC receiver test completed: %zu feedbacks, txPackets=%u rxPackets=%u ratio=%u%% validDurations=%zu invalidDurations=%zu",
+          context.feedbackCount, context.totalTxPackets, context.totalRxPackets,
+          context.totalTxPackets > 0 ? (context.totalRxPackets * 100) / context.totalTxPackets : 0,
+          context.validDurationCount, context.invalidDurationCount);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

@@ -512,6 +512,251 @@ TEST_F(RtcpFunctionalityTest, updateTwccHashTableIntPromotionCase) {
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
+//
+// TWCC Feedback Generation (Receiver Side) Tests
+//
+
+TEST_F(RtcpFunctionalityTest, twccReceiverOnPacketReceivedBasic)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    RtcConfiguration config{};
+    RtpPacket rtpPacket;
+    BYTE extensionPayload[4];
+    UINT64 packetInfoValue = 0;
+
+    // Create peer connection
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+
+    // Verify receiver manager was created
+    EXPECT_NE(nullptr, pKvsPeerConnection->pTwccReceiverManager);
+
+    // Set up TWCC extension ID (simulating SDP negotiation)
+    pKvsPeerConnection->twccExtId = 1;
+
+    // Create a mock RTP packet with TWCC extension
+    MEMSET(&rtpPacket, 0, SIZEOF(RtpPacket));
+    rtpPacket.header.extension = TRUE;
+    rtpPacket.header.extensionProfile = TWCC_EXT_PROFILE;
+    rtpPacket.header.ssrc = 0x12345678;
+    rtpPacket.receivedTime = GETTIME();
+
+    // Create TWCC extension payload for sequence number 100
+    // Format: ID (4 bits) | Length-1 (4 bits) | SeqNum (16 bits) | Padding
+    UINT32 twccPayload = htonl((1 << 28) | (1 << 24) | (100 << 8));
+    MEMCPY(extensionPayload, &twccPayload, 4);
+    rtpPacket.header.extensionPayload = extensionPayload;
+    rtpPacket.header.extensionLength = 4;
+
+    // Track the packet
+    EXPECT_EQ(STATUS_SUCCESS, twccReceiverOnPacketReceived(pKvsPeerConnection, &rtpPacket));
+
+    // Verify packet was tracked
+    PTwccReceiverManager pManager = pKvsPeerConnection->pTwccReceiverManager;
+    EXPECT_EQ(TRUE, pManager->firstPacketReceived);
+    EXPECT_EQ(100, pManager->firstSeqNum);
+    EXPECT_EQ(100, pManager->lastSeqNum);
+    EXPECT_EQ(0x12345678, pManager->mediaSourceSsrc);
+
+    // Verify packet is in hash table
+    EXPECT_EQ(STATUS_SUCCESS, hashTableGet(pManager->pReceivedPktsHashTable, 100, &packetInfoValue));
+    EXPECT_NE(0, packetInfoValue);
+
+    // Add another packet with sequence number 101
+    twccPayload = htonl((1 << 28) | (1 << 24) | (101 << 8));
+    MEMCPY(extensionPayload, &twccPayload, 4);
+    rtpPacket.receivedTime = GETTIME();
+    EXPECT_EQ(STATUS_SUCCESS, twccReceiverOnPacketReceived(pKvsPeerConnection, &rtpPacket));
+
+    // Verify sequence tracking updated
+    EXPECT_EQ(100, pManager->firstSeqNum);
+    EXPECT_EQ(101, pManager->lastSeqNum);
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
+TEST_F(RtcpFunctionalityTest, twccReceiverOnPacketReceivedOutOfOrder)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    RtcConfiguration config{};
+    RtpPacket rtpPacket;
+    BYTE extensionPayload[4];
+
+    // Create peer connection
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+    pKvsPeerConnection->twccExtId = 1;
+
+    // Set up mock RTP packet
+    MEMSET(&rtpPacket, 0, SIZEOF(RtpPacket));
+    rtpPacket.header.extension = TRUE;
+    rtpPacket.header.extensionProfile = TWCC_EXT_PROFILE;
+    rtpPacket.header.ssrc = 0x12345678;
+    rtpPacket.header.extensionPayload = extensionPayload;
+    rtpPacket.header.extensionLength = 4;
+
+    PTwccReceiverManager pManager = pKvsPeerConnection->pTwccReceiverManager;
+
+    // Add packet 100 first
+    UINT32 twccPayload = htonl((1 << 28) | (1 << 24) | (100 << 8));
+    MEMCPY(extensionPayload, &twccPayload, 4);
+    rtpPacket.receivedTime = GETTIME();
+    EXPECT_EQ(STATUS_SUCCESS, twccReceiverOnPacketReceived(pKvsPeerConnection, &rtpPacket));
+    EXPECT_EQ(100, pManager->firstSeqNum);
+    EXPECT_EQ(100, pManager->lastSeqNum);
+
+    // Add packet 102 (skip 101)
+    twccPayload = htonl((1 << 28) | (1 << 24) | (102 << 8));
+    MEMCPY(extensionPayload, &twccPayload, 4);
+    rtpPacket.receivedTime = GETTIME();
+    EXPECT_EQ(STATUS_SUCCESS, twccReceiverOnPacketReceived(pKvsPeerConnection, &rtpPacket));
+    EXPECT_EQ(100, pManager->firstSeqNum);
+    EXPECT_EQ(102, pManager->lastSeqNum);
+
+    // Add packet 99 (out of order, before first)
+    twccPayload = htonl((1 << 28) | (1 << 24) | (99 << 8));
+    MEMCPY(extensionPayload, &twccPayload, 4);
+    rtpPacket.receivedTime = GETTIME();
+    EXPECT_EQ(STATUS_SUCCESS, twccReceiverOnPacketReceived(pKvsPeerConnection, &rtpPacket));
+    EXPECT_EQ(99, pManager->firstSeqNum);  // Updated to earlier packet
+    EXPECT_EQ(102, pManager->lastSeqNum);
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
+TEST_F(RtcpFunctionalityTest, twccReceiverOnPacketReceivedSeqNumWraparound)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    RtcConfiguration config{};
+    RtpPacket rtpPacket;
+    BYTE extensionPayload[4];
+
+    // Create peer connection
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+    pKvsPeerConnection->twccExtId = 1;
+
+    // Set up mock RTP packet
+    MEMSET(&rtpPacket, 0, SIZEOF(RtpPacket));
+    rtpPacket.header.extension = TRUE;
+    rtpPacket.header.extensionProfile = TWCC_EXT_PROFILE;
+    rtpPacket.header.ssrc = 0x12345678;
+    rtpPacket.header.extensionPayload = extensionPayload;
+    rtpPacket.header.extensionLength = 4;
+
+    PTwccReceiverManager pManager = pKvsPeerConnection->pTwccReceiverManager;
+
+    // Add packet at UINT16_MAX - 1
+    UINT32 twccPayload = htonl((1 << 28) | (1 << 24) | ((UINT16_MAX - 1) << 8));
+    MEMCPY(extensionPayload, &twccPayload, 4);
+    rtpPacket.receivedTime = GETTIME();
+    EXPECT_EQ(STATUS_SUCCESS, twccReceiverOnPacketReceived(pKvsPeerConnection, &rtpPacket));
+    EXPECT_EQ(UINT16_MAX - 1, pManager->firstSeqNum);
+    EXPECT_EQ(UINT16_MAX - 1, pManager->lastSeqNum);
+
+    // Add packet at UINT16_MAX
+    twccPayload = htonl((1 << 28) | (1 << 24) | (UINT16_MAX << 8));
+    MEMCPY(extensionPayload, &twccPayload, 4);
+    rtpPacket.receivedTime = GETTIME();
+    EXPECT_EQ(STATUS_SUCCESS, twccReceiverOnPacketReceived(pKvsPeerConnection, &rtpPacket));
+    EXPECT_EQ(UINT16_MAX - 1, pManager->firstSeqNum);
+    EXPECT_EQ(UINT16_MAX, pManager->lastSeqNum);
+
+    // Add packet at 0 (wrapped around)
+    twccPayload = htonl((1 << 28) | (1 << 24) | (0 << 8));
+    MEMCPY(extensionPayload, &twccPayload, 4);
+    rtpPacket.receivedTime = GETTIME();
+    EXPECT_EQ(STATUS_SUCCESS, twccReceiverOnPacketReceived(pKvsPeerConnection, &rtpPacket));
+    EXPECT_EQ(UINT16_MAX - 1, pManager->firstSeqNum);
+    EXPECT_EQ(0, pManager->lastSeqNum);  // Wrapped to 0
+
+    // Add packet at 1
+    twccPayload = htonl((1 << 28) | (1 << 24) | (1 << 8));
+    MEMCPY(extensionPayload, &twccPayload, 4);
+    rtpPacket.receivedTime = GETTIME();
+    EXPECT_EQ(STATUS_SUCCESS, twccReceiverOnPacketReceived(pKvsPeerConnection, &rtpPacket));
+    EXPECT_EQ(UINT16_MAX - 1, pManager->firstSeqNum);
+    EXPECT_EQ(1, pManager->lastSeqNum);
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
+TEST_F(RtcpFunctionalityTest, twccReceiverDuplicatePacketHandling)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    RtcConfiguration config{};
+    RtpPacket rtpPacket;
+    BYTE extensionPayload[4];
+    UINT32 itemCount = 0;
+
+    // Create peer connection
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+    pKvsPeerConnection->twccExtId = 1;
+
+    // Set up mock RTP packet
+    MEMSET(&rtpPacket, 0, SIZEOF(RtpPacket));
+    rtpPacket.header.extension = TRUE;
+    rtpPacket.header.extensionProfile = TWCC_EXT_PROFILE;
+    rtpPacket.header.ssrc = 0x12345678;
+    rtpPacket.header.extensionPayload = extensionPayload;
+    rtpPacket.header.extensionLength = 4;
+
+    PTwccReceiverManager pManager = pKvsPeerConnection->pTwccReceiverManager;
+
+    // Add packet 100
+    UINT32 twccPayload = htonl((1 << 28) | (1 << 24) | (100 << 8));
+    MEMCPY(extensionPayload, &twccPayload, 4);
+    rtpPacket.receivedTime = GETTIME();
+    EXPECT_EQ(STATUS_SUCCESS, twccReceiverOnPacketReceived(pKvsPeerConnection, &rtpPacket));
+
+    // Get initial count
+    EXPECT_EQ(STATUS_SUCCESS, hashTableGetCount(pManager->pReceivedPktsHashTable, &itemCount));
+    EXPECT_EQ(1, itemCount);
+
+    // Try to add duplicate packet 100 - should be silently ignored
+    rtpPacket.receivedTime = GETTIME();
+    EXPECT_EQ(STATUS_SUCCESS, twccReceiverOnPacketReceived(pKvsPeerConnection, &rtpPacket));
+
+    // Count should still be 1
+    EXPECT_EQ(STATUS_SUCCESS, hashTableGetCount(pManager->pReceivedPktsHashTable, &itemCount));
+    EXPECT_EQ(1, itemCount);
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
+TEST_F(RtcpFunctionalityTest, twccMakeRunlenMacro)
+{
+    // Test run-length chunk creation macro
+    // Run-length chunk: bit 15 = 0, bits 14-13 = status symbol, bits 12-0 = run length
+
+    // Test with NOT_RECEIVED status (00), run length 10
+    UINT16 chunk = TWCC_MAKE_RUNLEN(TWCC_STATUS_SYMBOL_NOTRECEIVED, 10);
+    EXPECT_EQ(0, (chunk >> 15) & 1);  // Bit 15 should be 0 for run-length
+    EXPECT_EQ(TWCC_STATUS_SYMBOL_NOTRECEIVED, (chunk >> 13) & 3);
+    EXPECT_EQ(10, chunk & 0x1FFF);
+
+    // Test with SMALL_DELTA status (01), run length 100
+    chunk = TWCC_MAKE_RUNLEN(TWCC_STATUS_SYMBOL_SMALLDELTA, 100);
+    EXPECT_EQ(0, (chunk >> 15) & 1);
+    EXPECT_EQ(TWCC_STATUS_SYMBOL_SMALLDELTA, (chunk >> 13) & 3);
+    EXPECT_EQ(100, chunk & 0x1FFF);
+
+    // Test with LARGE_DELTA status (10), run length 1000
+    chunk = TWCC_MAKE_RUNLEN(TWCC_STATUS_SYMBOL_LARGEDELTA, 1000);
+    EXPECT_EQ(0, (chunk >> 15) & 1);
+    EXPECT_EQ(TWCC_STATUS_SYMBOL_LARGEDELTA, (chunk >> 13) & 3);
+    EXPECT_EQ(1000, chunk & 0x1FFF);
+
+    // Test max run length (0x1FFF = 8191)
+    chunk = TWCC_MAKE_RUNLEN(TWCC_STATUS_SYMBOL_SMALLDELTA, 0x1FFF);
+    EXPECT_EQ(0x1FFF, chunk & 0x1FFF);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
