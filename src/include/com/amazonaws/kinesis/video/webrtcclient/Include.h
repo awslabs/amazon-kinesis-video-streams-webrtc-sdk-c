@@ -1046,6 +1046,35 @@ typedef VOID (*RtcOnBandwidthEstimation)(UINT64, DOUBLE);
 typedef VOID (*RtcOnSenderBandwidthEstimation)(UINT64, UINT32, UINT32, UINT32, UINT32, UINT64);
 
 /**
+ * @brief Per-packet report from TWCC feedback for congestion control algorithms.
+ *
+ * This structure provides detailed information about individual packets from
+ * TWCC (Transport-Wide Congestion Control) feedback. Applications can use this
+ * to implement congestion control algorithms like GCC (Google Congestion Control).
+ */
+typedef struct {
+    UINT16 seqNum;         //!< Transport-wide sequence number
+    UINT64 sendTimeKvs;    //!< Time packet was sent (100ns units from GETTIME())
+    UINT64 arrivalTimeKvs; //!< Time remote peer received packet (0 = lost/not received)
+    UINT32 packetSize;     //!< Packet size in bytes
+    BOOL received;         //!< TRUE if packet was received, FALSE if lost
+} TwccPacketReport, *PTwccPacketReport;
+
+/**
+ * @brief RtcOnTwccPacketReport is fired when TWCC feedback is received, providing
+ * per-packet arrival time and loss information for congestion control.
+ *
+ * Applications can implement GCC or other congestion control algorithms using
+ * this callback. The SDK also provides GccController as a reference implementation.
+ *
+ * @param[in] UINT64 User customData passed during registration
+ * @param[in] PTwccPacketReport Array of TwccPacketReport structures
+ * @param[in] UINT32 Number of reports in the array
+ * @param[in] UINT64 Estimated round-trip time in 100ns units (0 if unknown)
+ */
+typedef VOID (*RtcOnTwccPacketReport)(UINT64, PTwccPacketReport, UINT32, UINT64);
+
+/**
  * @brief RtcOnPictureLoss is fired everytime a Picture Loss Indication (PLI)
  * feedback message is received. Receiving such message normally indicates that
  * you sent a video frame which receiver could not decode.
@@ -1706,6 +1735,24 @@ PUBLIC_API STATUS peerConnectionOnIceCandidate(PRtcPeerConnection, UINT64, RtcOn
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS peerConnectionOnSenderBandwidthEstimation(PRtcPeerConnection, UINT64, RtcOnSenderBandwidthEstimation);
+
+/**
+ * @brief Set a callback for per-packet TWCC feedback data.
+ *
+ * This callback provides detailed per-packet arrival time and loss information
+ * from TWCC feedback. Applications can use this to implement congestion control
+ * algorithms like GCC (Google Congestion Control), SCReAM, or custom algorithms.
+ *
+ * The SDK provides GccController as a reference implementation that can be
+ * hooked to this callback.
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in] UINT64 User customData that will be passed to the callback
+ * @param[in] RtcOnTwccPacketReport User callback for TWCC packet reports
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS peerConnectionOnTwccPacketReport(PRtcPeerConnection, UINT64, RtcOnTwccPacketReport);
 
 /**
  * Set a callback for data channel

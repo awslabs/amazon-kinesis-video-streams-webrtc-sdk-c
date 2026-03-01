@@ -405,26 +405,72 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     UINT64 sentBytes = 0, receivedBytes = 0;
     UINT64 sentPackets = 0, receivedPackets = 0;
     INT64 duration = 0;
+    PTwccPacketReport pReports = NULL;
+    UINT32 reportCount = 0;
+    UINT16 seqNum = 0;
+    UINT64 twccPktValue = 0;
+    PTwccRtpPacketInfo pTwccPacket = NULL;
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
-    CHK(pKvsPeerConnection->pTwccManager != NULL && pKvsPeerConnection->onSenderBandwidthEstimation != NULL, STATUS_SUCCESS);
+    // Allow processing if either callback is registered
+    CHK(pKvsPeerConnection->pTwccManager != NULL &&
+            (pKvsPeerConnection->onSenderBandwidthEstimation != NULL || pKvsPeerConnection->onTwccPacketReport != NULL),
+        STATUS_SUCCESS);
 
     MUTEX_LOCK(pKvsPeerConnection->twccLock);
     locked = TRUE;
     pTwccManager = pKvsPeerConnection->pTwccManager;
     CHK_STATUS(parseRtcpTwccPacket(pRtcpPacket, pTwccManager));
 
+    // Build per-packet reports for the new callback BEFORE updateTwccHashTable removes them
+    if (pKvsPeerConnection->onTwccPacketReport != NULL) {
+        // Calculate the number of packets in this report
+        UINT16 baseSeqNum = pTwccManager->prevReportedBaseSeqNum;
+        UINT16 lastSeqNum = pTwccManager->lastReportedSeqNum;
+        UINT32 maxReports = (UINT32) ((UINT16) (lastSeqNum - baseSeqNum + 1));
+
+        if (maxReports > 0 && maxReports < 65536) {
+            pReports = (PTwccPacketReport) MEMCALLOC(maxReports, SIZEOF(TwccPacketReport));
+            if (pReports != NULL) {
+                // Iterate through sequence numbers and build reports
+                for (seqNum = baseSeqNum; seqNum != (UINT16) (lastSeqNum + 1); seqNum++) {
+                    if (STATUS_SUCCEEDED(hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, seqNum, &twccPktValue))) {
+                        pTwccPacket = (PTwccRtpPacketInfo) twccPktValue;
+                        if (pTwccPacket != NULL) {
+                            pReports[reportCount].seqNum = seqNum;
+                            pReports[reportCount].sendTimeKvs = pTwccPacket->localTimeKvs;
+                            pReports[reportCount].arrivalTimeKvs = pTwccPacket->remoteTimeKvs;
+                            pReports[reportCount].packetSize = pTwccPacket->packetSize;
+                            pReports[reportCount].received = (pTwccPacket->remoteTimeKvs != TWCC_PACKET_LOST_TIME);
+                            reportCount++;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     updateTwccHashTable(pTwccManager, &duration, &receivedBytes, &receivedPackets, &sentBytes, &sentPackets);
 
-    if (duration > 0) {
-        MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
-        locked = FALSE;
+    // Unlock before callbacks to avoid holding lock during application code
+    MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
+    locked = FALSE;
+
+    // Invoke the new per-packet callback
+    if (pKvsPeerConnection->onTwccPacketReport != NULL && pReports != NULL && reportCount > 0) {
+        pKvsPeerConnection->onTwccPacketReport(pKvsPeerConnection->onTwccPacketReportCustomData, pReports, reportCount,
+                                               0); // RTT estimate - could be computed from SR/RR
+    }
+
+    // Invoke the existing bandwidth estimation callback
+    if (pKvsPeerConnection->onSenderBandwidthEstimation != NULL && duration > 0) {
         pKvsPeerConnection->onSenderBandwidthEstimation(pKvsPeerConnection->onSenderBandwidthEstimationCustomData, sentBytes, receivedBytes,
                                                         sentPackets, receivedPackets, duration);
     }
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
+    SAFE_MEMFREE(pReports);
     if (locked) {
         MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
     }

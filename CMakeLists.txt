@@ -444,6 +444,7 @@ file(
   "src/source/PeerConnection/PeerConnection.c"
   "src/source/PeerConnection/Retransmitter.c"
   "src/source/PeerConnection/Rtcp.c"
+  "src/source/PeerConnection/Gcc.c"
   "src/source/PeerConnection/Rtp.c"
   "src/source/PeerConnection/SessionDescription.c"
   "src/source/Rtcp/*.c"
@@ -515,6 +516,10 @@ target_link_libraries(
           ${GPERFTOOLS_MALLOC_LIBRARIES}
           ${GPERFTOOLS_PROFILER_LIBRARIES}
           ${EXTRA_DEPS})
+
+if(NOT WIN32)
+  target_link_libraries(kvsWebrtcClient PRIVATE m)
+endif()
 
 if(ENABLE_SIGNALING)
 add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})

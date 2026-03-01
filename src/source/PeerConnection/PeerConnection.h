@@ -160,6 +160,13 @@ typedef struct {
     PTwccManager pTwccManager;
     RtcOnSenderBandwidthEstimation onSenderBandwidthEstimation;
     UINT64 onSenderBandwidthEstimationCustomData;
+    RtcOnTwccPacketReport onTwccPacketReport;
+    UINT64 onTwccPacketReportCustomData;
+
+    // TWCC feedback generation (receiver side)
+    MUTEX twccReceiverLock;
+    PTwccReceiverManager pTwccReceiverManager;
+    UINT32 twccFeedbackTimerId;
 
     // TWCC feedback generation (receiver side)
     MUTEX twccReceiverLock;

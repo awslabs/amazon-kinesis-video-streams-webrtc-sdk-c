@@ -1349,6 +1349,31 @@ CleanUp:
     return retStatus;
 }
 
+STATUS peerConnectionOnTwccPacketReport(PRtcPeerConnection pRtcPeerConnection, UINT64 customData, RtcOnTwccPacketReport rtcOnTwccPacketReport)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pRtcPeerConnection;
+    BOOL locked = FALSE;
+
+    CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pKvsPeerConnection->peerConnectionObjLock);
+    locked = TRUE;
+
+    pKvsPeerConnection->onTwccPacketReport = rtcOnTwccPacketReport;
+    pKvsPeerConnection->onTwccPacketReportCustomData = customData;
+
+CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pKvsPeerConnection->peerConnectionObjLock);
+    }
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
+}
+
 STATUS peerConnectionGetLocalDescription(PRtcPeerConnection pRtcPeerConnection, PRtcSessionDescriptionInit pRtcSessionDescriptionInit)
 {
     ENTERS();
