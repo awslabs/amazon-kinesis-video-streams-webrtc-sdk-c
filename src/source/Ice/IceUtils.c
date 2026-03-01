@@ -178,19 +178,19 @@ STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 pa
         case STUN_PACKET_TYPE_BINDING_REQUEST:
             if (pDest->family == KVS_IP_FAMILY_TYPE_IPV4) {
                 DLOGD("Sending BINDING_REQUEST on socket id: %d, to ip:%s, port:%u", pSocketConnection->localSocket, ipAddrStr,
-                      getInt16(pDest->port));
+                      (UINT16) getInt16(pDest->port));
             } else {
                 DLOGD("Sending BINDING_REQUEST on socket id: %d, to ip:%s, port:%u", pSocketConnection->localSocket, ipAddrStr,
-                      getInt16(pDest->port));
+                      (UINT16) getInt16(pDest->port));
             }
             break;
         case STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS:
             if (pDest->family == KVS_IP_FAMILY_TYPE_IPV4) {
                 DLOGD("Sending BINDING_RESPONSE_SUCCESS on socket id: %d to ip:%s, port:%u", pSocketConnection->localSocket, ipAddrStr,
-                      getInt16(pDest->port));
+                      (UINT16) getInt16(pDest->port));
             } else {
                 DLOGD("Sending BINDING_RESPONSE_SUCCESS on socket id: %d to ip:%s, port:%u", pSocketConnection->localSocket, ipAddrStr,
-                      getInt16(pDest->port));
+                      (UINT16) getInt16(pDest->port));
             }
             break;
         default:
