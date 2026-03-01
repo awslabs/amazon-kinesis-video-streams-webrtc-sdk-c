@@ -11,8 +11,9 @@
 extern "C" {
 #endif
 
-// 1200 - 12 (SCTP header Size)
-#define SCTP_MTU                         1188
+// DEFAULT_MTU_SIZE(1200) - DTLS record overhead (~50 bytes depending on cipher)
+// Must fit within a single DTLS record to avoid fragmentation across datagrams
+#define SCTP_MTU                         1150
 #define SCTP_ASSOCIATION_DEFAULT_PORT    5000
 #define SCTP_DCEP_HEADER_LENGTH          12
 #define SCTP_DCEP_LABEL_LEN_OFFSET       8
@@ -64,6 +65,7 @@ typedef struct {
     struct sctp_sendv_spa spa;
     BYTE packet[SCTP_MAX_ALLOWABLE_PACKET_LENGTH];
     UINT32 packetSize;
+    volatile SIZE_T lastTimerTime;
     SctpSessionCallbacks sctpSessionCallbacks;
 } SctpSession, *PSctpSession;
 

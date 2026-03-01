@@ -65,8 +65,8 @@ STATUS dataChannelSend(PRtcDataChannel pRtcDataChannel, BOOL isBinary, PBYTE pMe
     pSctpSession = ((PKvsPeerConnection) pKvsDataChannel->pRtcPeerConnection)->pSctpSession;
 
     CHK_STATUS(sctpSessionWriteMessage(pSctpSession, pKvsDataChannel->channelId, isBinary, pMessage, pMessageLen));
-    pKvsDataChannel->rtcDataChannelDiagnostics.messagesSent++;
-    pKvsDataChannel->rtcDataChannelDiagnostics.bytesSent += pMessageLen;
+    ATOMIC_INCREMENT(&pKvsDataChannel->atomicMessagesSent);
+    ATOMIC_ADD(&pKvsDataChannel->atomicBytesSent, (SIZE_T) pMessageLen);
 CleanUp:
 
     return retStatus;
