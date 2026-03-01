@@ -1646,10 +1646,13 @@ STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, 
         }
 
         // If the candidate has moved to valid state, then we can report it and start creating pairs with
-        // srflx candidates.
+        // srflx candidates. Only report up to KVS_ICE_MAX_NEW_LOCAL_CANDIDATES_TO_REPORT_AT_ONCE candidates
+        // per timer callback - remaining candidates will be reported in subsequent callbacks.
         else if (pIceCandidate->state == ICE_CANDIDATE_STATE_VALID && !pIceCandidate->reported) {
-            newLocalCandidates[newLocalCandidateCount++] = *pIceCandidate;
-            pIceCandidate->reported = TRUE;
+            if (newLocalCandidateCount < KVS_ICE_MAX_NEW_LOCAL_CANDIDATES_TO_REPORT_AT_ONCE) {
+                newLocalCandidates[newLocalCandidateCount++] = *pIceCandidate;
+                pIceCandidate->reported = TRUE;
+            }
 
             if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE) {
                 CHK_STATUS(createIceCandidatePairs(pIceAgent, pIceCandidate, FALSE));
