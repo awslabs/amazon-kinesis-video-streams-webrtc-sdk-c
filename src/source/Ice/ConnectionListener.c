@@ -390,12 +390,19 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                         }
                     }
                 }
+
+                // Release this socket immediately so freeSocketConnection can
+                // proceed as soon as this socket's processing is done, rather
+                // than waiting for all sockets in this iteration to finish.
+                ATOMIC_STORE_BOOL(&pSocketConnection->inUse, FALSE);
             }
         }
 
-        // Mark as unused
-        for (i = 0; i < socketCount; i++) {
-            ATOMIC_STORE_BOOL(&sockets[i]->inUse, FALSE);
+        // Release sockets that were not processed (poll timeout or error)
+        if (retval <= 0) {
+            for (i = 0; i < socketCount; i++) {
+                ATOMIC_STORE_BOOL(&sockets[i]->inUse, FALSE);
+            }
         }
     }
 
