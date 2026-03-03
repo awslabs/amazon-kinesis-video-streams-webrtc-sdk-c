@@ -11,9 +11,12 @@ on:
       - develop
       - main
 
+permissions:
+  contents: read
+
 jobs:
   clang-format-check:
-    runs-on: macos-13
+    runs-on: macos-15-intel
     timeout-minutes: 15
 
     steps:

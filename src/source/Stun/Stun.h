@@ -73,6 +73,11 @@ extern "C" {
 #define STUN_ATTRIBUTE_REQUESTED_TRANSPORT_PROTOCOL_LEN (UINT16) 4
 
 /**
+ * Requested address family attribute value length = 4 bytes = 32 bits
+ */
+#define STUN_ATTRIBUTE_REQUESTED_ADDRESS_FAMILY_LEN (UINT16) 4
+
+/**
  * Candidate attribute has no size
  */
 #define STUN_ATTRIBUTE_FLAG_LEN (UINT16) 0
@@ -209,6 +214,7 @@ typedef enum {
     STUN_ATTRIBUTE_TYPE_REALM = (UINT16) 0x0014,
     STUN_ATTRIBUTE_TYPE_NONCE = (UINT16) 0x0015,
     STUN_ATTRIBUTE_TYPE_XOR_RELAYED_ADDRESS = (UINT16) 0x0016,
+    STUN_ATTRIBUTE_TYPE_REQUESTED_ADDRESS_FAMILY = 0x0017,
     STUN_ATTRIBUTE_TYPE_EVEN_PORT = (UINT16) 0x0018,
     STUN_ATTRIBUTE_TYPE_REQUESTED_TRANSPORT = (UINT16) 0x0019,
     STUN_ATTRIBUTE_TYPE_DONT_FRAGMENT = (UINT16) 0x001A,
@@ -301,6 +307,11 @@ typedef struct {
 
 typedef struct {
     StunAttributeHeader attribute;
+    BYTE ipFamily[4];
+} StunAttributeAllocationAddressFamily, *PStunAttributeAllocationAddressFamily;
+
+typedef struct {
+    StunAttributeHeader attribute;
 
     // Padded with 0 - 3 bytes to be 32-bit aligned
     UINT16 paddedLength;
@@ -379,6 +390,7 @@ STATUS appendStunPriorityAttribute(PStunPacket, UINT32);
 STATUS appendStunLifetimeAttribute(PStunPacket, UINT32);
 STATUS appendStunRequestedTransportAttribute(PStunPacket, UINT8);
 STATUS appendStunRealmAttribute(PStunPacket, PCHAR);
+STATUS appendStunAllocationAddressFamily(PStunPacket, KVS_IP_FAMILY_TYPE);
 STATUS appendStunNonceAttribute(PStunPacket, PBYTE, UINT16);
 STATUS updateStunNonceAttribute(PStunPacket, PBYTE, UINT16);
 STATUS appendStunErrorCodeAttribute(PStunPacket, PCHAR, UINT16);
@@ -395,7 +407,7 @@ STATUS appendStunChangeRequestAttribute(PStunPacket, UINT32);
 STATUS getStunAttribute(PStunPacket, STUN_ATTRIBUTE_TYPE, PStunAttributeHeader*);
 
 /**
- * xor an ip address in place
+ * xor an IP address in place
  */
 STATUS xorIpAddress(PKvsIpAddress, PBYTE);
 //

@@ -52,13 +52,13 @@ typedef struct __SocketConnection* PSocketConnection;
 
 /**
  * Create a SocketConnection object and store it in PSocketConnection. creates a socket based on KVS_SOCKET_PROTOCOL
- * specified, and bind it to the host ip address. If the protocol is tcp, then peer ip address is required and it will
+ * specified, and bind it to the host IP address. If the protocol is tcp, then peer IP address is required and it will
  * try to establish the tcp connection.
  *
  * @param - KVS_IP_FAMILY_TYPE - IN - Family for the socket. Must be one of KVS_IP_FAMILY_TYPE
  * @param - KVS_SOCKET_PROTOCOL - IN - socket protocol. TCP or UDP
- * @param - PKvsIpAddress - IN - host ip address to bind to (OPTIONAL)
- * @param - PKvsIpAddress - IN - peer ip address to connect in case of TCP (OPTIONAL)
+ * @param - PKvsIpAddress - IN - host IP address to bind to (OPTIONAL)
+ * @param - PKvsIpAddress - IN - peer IP address to connect in case of TCP (OPTIONAL)
  * @param - UINT64 - IN - data available callback custom data
  * @param - ConnectionDataAvailableFunc - IN - data available callback (OPTIONAL)
  * @param - UINT32 - IN - send buffer size in bytes

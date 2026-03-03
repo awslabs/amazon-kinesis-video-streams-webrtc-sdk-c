@@ -110,3 +110,10 @@ UINT64 commonDefaultGetCurrentTimeFunc(UINT64 customData)
     UNUSED_PARAM(customData);
     return GETTIME();
 }
+
+BOOL isEnvVarEnabled(PCHAR pEnvVar)
+{
+    /* Environment variables are not used on ESP-IDF */
+    UNUSED_PARAM(pEnvVar);
+    return FALSE;
+}

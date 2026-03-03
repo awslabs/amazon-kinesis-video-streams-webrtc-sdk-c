@@ -22,9 +22,6 @@ extern "C" {
 
 #define KVS_GET_IP_ADDRESS_PORT(a) ((UINT16) getInt16((a)->port))
 
-#define IPV4_TEMPLATE "%d.%d.%d.%d"
-#define IPV6_TEMPLATE "%04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x"
-
 #if defined(__MACH__)
 #define NO_SIGNAL_SOCK_OPT SO_NOSIGPIPE
 #define NO_SIGNAL_SEND     0
@@ -52,7 +49,7 @@ typedef enum {
 } KVS_SOCKET_PROTOCOL;
 
 /**
- * @param - PKvsIpAddress - IN/OUT - array for getLocalhostIpAddresses to store any local ips it found. The ip address and port
+ * @param - PKvsIpAddress - IN/OUT - array for getLocalhostIpAddresses to store any local ips it found. The IP address and port
  *                                   will be in network byte order.
  * @param - UINT32 - IN/OUT - length of the array, upon return it will be updated to the actual number of ips in the array
  *
@@ -117,11 +114,11 @@ STATUS socketWrite(INT32, const void*, SIZE_T);
 /**
  * @param - PCHAR - IN - hostname to resolve
  *
- * @param - PKvsIpAddress - OUT - resolved ip address
+ * @param - PKvsIpAddress - OUT - resolved IP address
  *
  * @return - STATUS status of execution
  */
-STATUS getIpWithHostName(PCHAR, PKvsIpAddress);
+STATUS getIpWithHostName(PCHAR, PDualKvsIpAddresses);
 
 /**
  * @param - PCHAR - IN - IP address string to verify if it is IPv4 or IPv6 format
