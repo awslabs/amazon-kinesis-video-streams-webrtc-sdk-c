@@ -37,6 +37,20 @@ extern "C" {
 #define SIGNALING_USER_AGENT_POSTFIX_VERSION (PCHAR) "UNKNOWN"
 #endif
 
+// FIPS endpoint region prefixes
+#define AWS_ISO_REGION_PREFIX     "us-iso-"
+#define AWS_ISOB_REGION_PREFIX    "us-isob-"
+#define AWS_GOV_REGION_PREFIX     "us-gov-"
+
+// Number of FIPS endpoint mappings
+#define FIPS_ENDPOINT_MAPPING_COUNT 5
+
+// Structure to hold FIPS endpoint mapping
+typedef struct {
+    PCHAR pRegion;
+    PCHAR pEndpoint;
+} FipsEndpointMapping;
+
 /**
  * Takes in a pointer to a public version of ChannelInfo object.
  * Validates and creates an internal object

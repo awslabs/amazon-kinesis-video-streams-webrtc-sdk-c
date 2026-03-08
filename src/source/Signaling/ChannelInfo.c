@@ -1,6 +1,54 @@
 #define LOG_CLASS "ChannelInfo"
 #include "../Include_i.h"
 
+// FIPS endpoint mappings - region to endpoint URL (legacy/non-dual-stack)
+// These endpoints are used when only USE_FIPS_ENDPOINT_ENV_VAR is enabled
+static const FipsEndpointMapping FIPS_ENDPOINT_MAPPINGS[FIPS_ENDPOINT_MAPPING_COUNT] = {
+    {"us-iso-east-1", "https://kinesisvideo-fips.us-iso-east-1.c2s.ic.gov"},
+    {"us-iso-west-1", "https://kinesisvideo-fips.us-iso-west-1.c2s.ic.gov"},
+    {"us-isob-east-1", "https://kinesisvideo-fips.us-isob-east-1.sc2s.sgov.gov"},
+    {"us-gov-west-1", "https://kinesisvideo-fips.us-gov-west-1.amazonaws.com"},
+    {"us-gov-east-1", "https://kinesisvideo-fips.us-gov-east-1.amazonaws.com"},
+};
+
+// FIPS dual-stack endpoint mappings - region to endpoint URL
+// These endpoints are used when BOTH USE_FIPS_ENDPOINT_ENV_VAR and USE_DUAL_STACK_ENDPOINTS_ENV_VAR are enabled
+static const FipsEndpointMapping FIPS_DUAL_STACK_ENDPOINT_MAPPINGS[FIPS_ENDPOINT_MAPPING_COUNT] = {
+    {"us-iso-east-1", "https://kinesisvideo-fips.us-iso-east-1.api.aws.ic.gov"},
+    {"us-iso-west-1", "https://kinesisvideo-fips.us-iso-west-1.api.aws.ic.gov"},
+    {"us-isob-east-1", "https://kinesisvideo-fips.us-isob-east-1.api.aws.scloud"},
+    {"us-gov-west-1", "https://kinesisvideo-fips.us-gov-west-1.api.aws"},
+    {"us-gov-east-1", "https://kinesisvideo-fips.us-gov-east-1.api.aws"},
+};
+
+/**
+ * Gets the FIPS endpoint URL for a given region.
+ *
+ * @param pRegion - The AWS region string
+ * @param useDualStack - Whether to use dual-stack FIPS endpoints
+ *
+ * @return - The FIPS endpoint URL if found, NULL otherwise
+ */
+static PCHAR getFipsEndpointForRegion(PCHAR pRegion, BOOL useDualStack)
+{
+    UINT32 i;
+    const FipsEndpointMapping* pMappings;
+
+    if (pRegion == NULL) {
+        return NULL;
+    }
+
+    pMappings = useDualStack ? FIPS_DUAL_STACK_ENDPOINT_MAPPINGS : FIPS_ENDPOINT_MAPPINGS;
+
+    for (i = 0; i < FIPS_ENDPOINT_MAPPING_COUNT; i++) {
+        if (STRCMP(pRegion, pMappings[i].pRegion) == 0) {
+            return pMappings[i].pEndpoint;
+        }
+    }
+
+    return NULL;
+}
+
 #define ARN_DELIMETER_CHAR                  ':'
 #define ARN_CHANNEL_NAME_CODE_SEP           '/'
 #define ARN_BEGIN                           "arn:aws"
@@ -175,28 +223,37 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
 
     if (!IS_NULL_OR_EMPTY_STRING(pOrigChannelInfo->pControlPlaneUrl)) {
         STRCPY(pCurPtr, pOrigChannelInfo->pControlPlaneUrl);
-    } else {
-        if (isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR)) {
-            // Create dual-stack fully qualified URI for appropriate region.
-            DLOGI("Using dual-stack KVS endpoints.");
-            if (STRSTR(pChannelInfo->pRegion, AWS_CN_REGION_PREFIX)) {
-                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
-                         pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX_CN_DUAL_STACK);
-            } else {
-                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
-                         pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX_DUAL_STACK);
-            }
-
+    } else if (isEnvVarEnabled(USE_FIPS_ENDPOINT_ENV_VAR) && isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR)) {
+        // Case 1: BOTH FIPS and dual-stack enabled - use FIPS dual-stack endpoint
+        PCHAR pFipsEndpoint = getFipsEndpointForRegion(pChannelInfo->pRegion, TRUE);
+        DLOGI("Using FIPS dual-stack KVS endpoint for region %s.", pChannelInfo->pRegion);
+        STRNCPY(pCurPtr, pFipsEndpoint, MAX_CONTROL_PLANE_URI_CHAR_LEN - 1);
+        pCurPtr[MAX_CONTROL_PLANE_URI_CHAR_LEN - 1] = '\0';
+    } else if (isEnvVarEnabled(USE_FIPS_ENDPOINT_ENV_VAR)) {
+        // Case 2: Only FIPS enabled - use FIPS endpoint (legacy/non-dual-stack)
+        PCHAR pFipsEndpoint = getFipsEndpointForRegion(pChannelInfo->pRegion, FALSE);
+        DLOGI("Using FIPS KVS endpoint for region %s.", pChannelInfo->pRegion);
+        STRNCPY(pCurPtr, pFipsEndpoint, MAX_CONTROL_PLANE_URI_CHAR_LEN - 1);
+        pCurPtr[MAX_CONTROL_PLANE_URI_CHAR_LEN - 1] = '\0';
+    } else if (isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR)) {
+        // Case 3: Only dual-stack enabled - use dual-stack endpoint
+        DLOGI("Using dual-stack KVS endpoints.");
+        if (STRSTR(pChannelInfo->pRegion, AWS_CN_REGION_PREFIX)) {
+            SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
+                     pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX_CN_DUAL_STACK);
         } else {
-            // Create legacy fully qualified URI for appropriate region.
-            DLOGI("Using legacy KVS endpoints.");
-            if (STRSTR(pChannelInfo->pRegion, AWS_CN_REGION_PREFIX)) {
-                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
-                         pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX_CN);
-            } else {
-                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
-                         pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX);
-            }
+            SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
+                     pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX_DUAL_STACK);
+        }
+    } else {
+        // Case 4: Neither enabled - use standard/legacy endpoint
+        DLOGI("Using legacy KVS endpoints.");
+        if (STRSTR(pChannelInfo->pRegion, AWS_CN_REGION_PREFIX)) {
+            SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
+                     pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX_CN);
+        } else {
+            SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
+                     pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX);
         }
     }
 

@@ -856,6 +856,27 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
         pSampleConfiguration->channelInfo.pRegion = DEFAULT_AWS_REGION;
     }
 
+    // Early validation: Check if FIPS endpoint is enabled with an unsupported region
+    if (isEnvVarEnabled(USE_FIPS_ENDPOINT_ENV_VAR)) {
+        BOOL fipsRegionSupported = FALSE;
+        PCHAR supportedFipsRegions[] = {"us-iso-east-1", "us-iso-west-1", "us-isob-east-1", "us-gov-west-1", "us-gov-east-1"};
+        UINT32 numSupportedRegions = ARRAY_SIZE(supportedFipsRegions);
+        UINT32 regionIdx;
+        
+        for (regionIdx = 0; regionIdx < numSupportedRegions; regionIdx++) {
+            if (STRCMP(pSampleConfiguration->channelInfo.pRegion, supportedFipsRegions[regionIdx]) == 0) {
+                fipsRegionSupported = TRUE;
+                break;
+            }
+        }
+        
+        if (!fipsRegionSupported) {
+            DLOGE("FIPS endpoint is not supported for region '%s'. Supported FIPS regions: us-iso-east-1, us-iso-west-1, us-isob-east-1, us-gov-west-1, us-gov-east-1. Exiting.", 
+                  pSampleConfiguration->channelInfo.pRegion);
+            CHK(FALSE, STATUS_SIGNALING_INVALID_REGION_LENGTH);
+        }
+    }
+
     CHK_STATUS(lookForSslCert(&pSampleConfiguration));
 
 #ifdef IOT_CORE_ENABLE_CREDENTIALS

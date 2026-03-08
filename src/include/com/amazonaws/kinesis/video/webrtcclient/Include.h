@@ -702,6 +702,16 @@ extern "C" {
 #define USE_DUAL_STACK_ENDPOINTS_ENV_VAR ((PCHAR) "KVS_DUALSTACK_ENDPOINTS")
 
 /**
+ * Env to control whether to use FIPS endpoints, unset means false
+ * When enabled, the SDK will automatically use the appropriate FIPS endpoint
+ * based on the configured region. Supported regions:
+ * - us-iso-east-1, us-iso-west-1 (C2S)
+ * - us-isob-east-1 (SC2S)
+ * - us-gov-west-1, us-gov-east-1 (GovCloud)
+ */
+#define USE_FIPS_ENDPOINT_ENV_VAR ((PCHAR) "USE_KVS_FIPS_ENDPOINT")
+
+/**
  * Envs to disable IPv4 or IPv6 TURN relay candidates
  */
 #define DISABLE_IPV4_TURN_ENV_VAR ((PCHAR) "KVS_DISABLE_IPV4_TURN")
