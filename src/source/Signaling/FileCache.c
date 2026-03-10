@@ -2,9 +2,8 @@
 #include "../Include_i.h"
 
 /****************************************************************************************************
- * Content of the caching file will look as follows:
- * channelName,role,region,channelARN,httpEndpoint,wssEndpoint,cacheCreationTimestamp\n
- * channelName,role,region,channelARN,httpEndpoint,wssEndpoint,cacheCreationTimestamp\n
+ * Content of the caching file will look as follows (v2):
+ * channelName,role,region,controlPlaneUrl,useDualStackEndpoints,channelArn,httpsEndpoint,wssEndpoint,storageStreamArn,webrtcEndpoint,timestamp\n
  ****************************************************************************************************/
 
 STATUS createFileIfNotExist(PCHAR fileName)
@@ -42,12 +41,11 @@ STATUS deserializeSignalingCacheEntries(PCHAR cachedFileContent, UINT64 fileSize
            remainingSize > MAX_SIGNALING_CACHE_ENTRY_TIMESTAMP_STR_LEN) {
         nextLine = STRCHR(pCurrent, '\n');
         while ((nextToken = STRCHR(pCurrent, ',')) != NULL && nextToken < nextLine) {
-            switch (tokenCount % 12) {
+            switch (tokenCount % 11) {
                 case 0:
                     STRNCPY(pSignalingFileCacheEntryList[entryCount].channelName, pCurrent, nextToken - pCurrent);
                     break;
                 case 1:
-                    STRNCPY(pSignalingFileCacheEntryList[entryCount].region, pCurrent, nextToken - pCurrent);
                     if (STRNCMP(pCurrent, SIGNALING_FILE_CACHE_ROLE_TYPE_MASTER_STR, STRLEN(SIGNALING_FILE_CACHE_ROLE_TYPE_MASTER_STR)) == 0) {
                         pSignalingFileCacheEntryList[entryCount].role = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
                     } else if (STRNCMP(pCurrent, SIGNALING_FILE_CACHE_ROLE_TYPE_VIEWER_STR, STRLEN(SIGNALING_FILE_CACHE_ROLE_TYPE_VIEWER_STR)) == 0) {
@@ -75,16 +73,13 @@ STATUS deserializeSignalingCacheEntries(PCHAR cachedFileContent, UINT64 fileSize
                     STRNCPY(pSignalingFileCacheEntryList[entryCount].wssEndpoint, pCurrent, nextToken - pCurrent);
                     break;
                 case 8:
-                    STRNCPY(pSignalingFileCacheEntryList[entryCount].storageEnabled, pCurrent, nextToken - pCurrent);
-                    break;
-                case 9:
                     STRNCPY(pSignalingFileCacheEntryList[entryCount].storageStreamArn, pCurrent, nextToken - pCurrent);
                     break;
-                case 10:
+                case 9:
                     STRNCPY(pSignalingFileCacheEntryList[entryCount].webrtcEndpoint, pCurrent, nextToken - pCurrent);
                     break;
 
-                    /* case 11 is for creationTsEpochSeconds which is handled after this loop. */
+                    /* case 10 is for creationTsEpochSeconds which is handled after this loop. */
 
                 default:
                     break;
@@ -251,11 +246,11 @@ STATUS signalingCacheSaveToFile(PSignalingFileCacheEntry pSignalingFileCacheEntr
 
     for (i = 0; i < entryCount; ++i) {
         serializedCacheEntryLen = SNPRINTF(serializedCacheEntry, ARRAY_SIZE(serializedCacheEntry),
-                                           "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%.10" PRIu64 "\n", entries[i].channelName,
+                                           "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%.10" PRIu64 "\n", entries[i].channelName,
                                            entries[i].role == SIGNALING_CHANNEL_ROLE_TYPE_MASTER ? SIGNALING_FILE_CACHE_ROLE_TYPE_MASTER_STR
                                                                                                  : SIGNALING_FILE_CACHE_ROLE_TYPE_VIEWER_STR,
                                            entries[i].region, entries[i].controlPlaneUrl, entries[i].useDualStackEndpoints, entries[i].channelArn,
-                                           entries[i].httpsEndpoint, entries[i].wssEndpoint, entries[i].storageEnabled, entries[i].storageStreamArn,
+                                           entries[i].httpsEndpoint, entries[i].wssEndpoint, entries[i].storageStreamArn,
                                            entries[i].webrtcEndpoint, entries[i].creationTsEpochSeconds);
         CHK_STATUS(writeFile(cacheFilePath, FALSE, i == 0 ? FALSE : TRUE, (PBYTE) serializedCacheEntry, serializedCacheEntryLen));
     }

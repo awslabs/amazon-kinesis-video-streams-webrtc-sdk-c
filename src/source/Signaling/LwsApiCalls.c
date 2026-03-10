@@ -1665,6 +1665,8 @@ STATUS describeMediaStorageConfLws(PSignalingClient pSignalingClient, UINT64 tim
                 CHK(strLen <= MAX_ARN_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
                 if (STRNCMP("ENABLED", pResponseStr + tokens[i + 1].start, strLen) == 0) {
                     pSignalingClient->mediaStorageConfig.storageStatus = TRUE;
+                    // Invalidate endpoint cache so GetChannelEndpoint will request WEBRTC protocol
+                    pSignalingClient->getEndpointTime = INVALID_TIMESTAMP_VALUE;
                 } else {
                     pSignalingClient->mediaStorageConfig.storageStatus = FALSE;
                 }

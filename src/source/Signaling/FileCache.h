@@ -12,12 +12,16 @@ extern "C" {
 
 /* If SignalingFileCacheEntry layout is changed, change the version in cache file name so we wont read from older
  * cache file. */
-#define DEFAULT_CACHE_FILE_PATH                     (PCHAR) "./.SignalingCache_v1"
+#define DEFAULT_CACHE_FILE_PATH                     (PCHAR) "./.SignalingCache_v2"
 #define MAX_SIGNALING_CACHE_ENTRY_TIMESTAMP_STR_LEN 10
-/* Max length for a serialized signaling cache entry. 8 accounts for 6 commas and 1 newline
- * char and null terminator */
+/* Max length for a serialized signaling cache entry. Accounts for:
+ * - channelName, region, controlPlaneUrl, role, useDualStackEndpoints (small fields)
+ * - 2 ARNs (channelArn, storageStreamArn)
+ * - 3 endpoints (httpsEndpoint, wssEndpoint, webrtcEndpoint)
+ * - timestamp + 10 commas + newline + null terminator */
 #define MAX_SERIALIZED_SIGNALING_CACHE_ENTRY_LEN                                                                                                     \
-    MAX_CHANNEL_NAME_LEN + MAX_ARN_LEN + MAX_REGION_NAME_LEN + MAX_SIGNALING_ENDPOINT_URI_LEN * 2 + MAX_SIGNALING_CACHE_ENTRY_TIMESTAMP_STR_LEN + 8
+    MAX_CHANNEL_NAME_LEN + MAX_REGION_NAME_LEN + MAX_CONTROL_PLANE_URI_CHAR_LEN + (MAX_ARN_LEN * 2) + (MAX_SIGNALING_ENDPOINT_URI_LEN * 3) + \
+        MAX_SIGNALING_CACHE_ENTRY_TIMESTAMP_STR_LEN + 32
 #define MAX_SIGNALING_CACHE_ENTRY_COUNT           32
 #define SIGNALING_FILE_CACHE_ROLE_TYPE_MASTER_STR "Master"
 #define SIGNALING_FILE_CACHE_ROLE_TYPE_VIEWER_STR "Viewer"
@@ -25,7 +29,6 @@ extern "C" {
 typedef struct {
     SIGNALING_CHANNEL_ROLE_TYPE role;
     UINT64 creationTsEpochSeconds;
-    CHAR storageEnabled[2];
     CHAR channelName[MAX_CHANNEL_NAME_LEN + 1];
     CHAR channelArn[MAX_ARN_LEN + 1];
     CHAR region[MAX_REGION_NAME_LEN + 1];

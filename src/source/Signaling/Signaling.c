@@ -87,7 +87,6 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     // Set invalid call times
     pSignalingClient->describeTime = INVALID_TIMESTAMP_VALUE;
     pSignalingClient->createTime = INVALID_TIMESTAMP_VALUE;
-    pSignalingClient->getEndpointTime = INVALID_TIMESTAMP_VALUE;
     pSignalingClient->getIceConfigTime = INVALID_TIMESTAMP_VALUE;
     pSignalingClient->deleteTime = INVALID_TIMESTAMP_VALUE;
     pSignalingClient->connectTime = INVALID_TIMESTAMP_VALUE;
@@ -108,15 +107,11 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
             STRCPY(pSignalingClient->channelDescription.channelName, pFileCacheEntry->channelName);
             STRCPY(pSignalingClient->channelDescription.channelArn, pFileCacheEntry->channelArn);
             STRCPY(pSignalingClient->mediaStorageConfig.storageStreamArn, pFileCacheEntry->storageStreamArn);
-            // If client channel info has explicitly set use media storage to false, we need to set this to false even if the cache says the signaling
-            // channel has media enabled
-            pSignalingClient->mediaStorageConfig.storageStatus =
-                (pSignalingClient->pChannelInfo->useMediaStorage && (STRNCMP(pFileCacheEntry->storageEnabled, "1", 1) == 0)) ? TRUE : FALSE;
             STRCPY(pSignalingClient->channelEndpointHttps, pFileCacheEntry->httpsEndpoint);
             STRCPY(pSignalingClient->channelEndpointWss, pFileCacheEntry->wssEndpoint);
             STRCPY(pSignalingClient->channelEndpointWebrtc, pFileCacheEntry->webrtcEndpoint);
             pSignalingClient->describeTime = pFileCacheEntry->creationTsEpochSeconds * HUNDREDS_OF_NANOS_IN_A_SECOND;
-            pSignalingClient->describeMediaTime = pFileCacheEntry->creationTsEpochSeconds * HUNDREDS_OF_NANOS_IN_A_SECOND;
+            // pSignalingClient->describeMediaTime = pFileCacheEntry->creationTsEpochSeconds * HUNDREDS_OF_NANOS_IN_A_SECOND;
             pSignalingClient->getEndpointTime = pFileCacheEntry->creationTsEpochSeconds * HUNDREDS_OF_NANOS_IN_A_SECOND;
         }
     }
@@ -1179,7 +1174,6 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
                                pSignalingClient->pChannelInfo->pControlPlaneUrl != NULL ? pSignalingClient->pChannelInfo->pControlPlaneUrl : "");
                         STRCPY(signalingFileCacheEntry.useDualStackEndpoints, useDualStackEndpoints ? "1" : "0");
                         STRCPY(signalingFileCacheEntry.channelArn, pSignalingClient->channelDescription.channelArn);
-                        STRCPY(signalingFileCacheEntry.storageEnabled, pSignalingClient->mediaStorageConfig.storageStatus ? "1" : "0");
                         STRCPY(signalingFileCacheEntry.storageStreamArn, pSignalingClient->mediaStorageConfig.storageStreamArn);
                         STRCPY(signalingFileCacheEntry.httpsEndpoint, pSignalingClient->channelEndpointHttps);
                         STRCPY(signalingFileCacheEntry.wssEndpoint, pSignalingClient->channelEndpointWss);
@@ -1385,7 +1379,6 @@ STATUS describeMediaStorageConf(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL apiCall = TRUE;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -1395,46 +1388,29 @@ STATUS describeMediaStorageConf(PSignalingClient pSignalingClient, UINT64 time)
 
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
-    switch (pSignalingClient->pChannelInfo->cachingPolicy) {
-        case SIGNALING_API_CALL_CACHE_TYPE_NONE:
-            break;
+    // NOTE: Always call DescribeMediaStorage API (no caching)
+    // We need fresh storageStatus to properly invalidate getEndpointTime
+    // for WEBRTC endpoint retrieval when transitioning to storage mode.
+    // Caching would prevent proper cache invalidation flow.
 
-        case SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT:
-            /* explicit fall-through */
-        case SIGNALING_API_CALL_CACHE_TYPE_FILE:
-            if (IS_VALID_TIMESTAMP(pSignalingClient->describeMediaTime) &&
-                time <= pSignalingClient->describeMediaTime + pSignalingClient->pChannelInfo->cachingPeriod) {
-                apiCall = FALSE;
-            }
-
-            break;
+    // Call pre hook func
+    if (pSignalingClient->clientInfo.describeMediaStorageConfPreHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.describeMediaStorageConfPreHookFn(pSignalingClient->clientInfo.hookCustomData);
     }
 
-    // Call API
     if (STATUS_SUCCEEDED(retStatus)) {
-        if (apiCall) {
-            // Call pre hook func
-            if (pSignalingClient->clientInfo.describeMediaStorageConfPreHookFn != NULL) {
-                retStatus = pSignalingClient->clientInfo.describeMediaStorageConfPreHookFn(pSignalingClient->clientInfo.hookCustomData);
-            }
-
-            if (STATUS_SUCCEEDED(retStatus)) {
-                retStatus = describeMediaStorageConfLws(pSignalingClient, time);
-                // Store the last call time on success
-                if (STATUS_SUCCEEDED(retStatus)) {
-                    pSignalingClient->describeMediaTime = time;
-                }
-                // Calculate the latency whether the call succeeded or not
-                SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, TRUE);
-            }
-
-            // Call post hook func
-            if (pSignalingClient->clientInfo.describeMediaStorageConfPostHookFn != NULL) {
-                retStatus = pSignalingClient->clientInfo.describeMediaStorageConfPostHookFn(pSignalingClient->clientInfo.hookCustomData);
-            }
-        } else {
-            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
+        retStatus = describeMediaStorageConfLws(pSignalingClient, time);
+        // Store the last call time on success
+        if (STATUS_SUCCEEDED(retStatus)) {
+            pSignalingClient->describeMediaTime = time;
         }
+        // Calculate the latency whether the call succeeded or not
+        SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, TRUE);
+    }
+
+    // Call post hook func
+    if (pSignalingClient->clientInfo.describeMediaStorageConfPostHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.describeMediaStorageConfPostHookFn(pSignalingClient->clientInfo.hookCustomData);
     }
 
 CleanUp:
