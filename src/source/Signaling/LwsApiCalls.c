@@ -865,6 +865,15 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     // Perform some validation on the channel description
     CHK(pSignalingClient->channelDescription.channelStatus != SIGNALING_CHANNEL_STATUS_DELETING, STATUS_SIGNALING_CHANNEL_BEING_DELETED);
 
+    DLOGD("=== DescribeMediaStorageConfiguration COMPLETE ===");
+    DLOGD("Final storage status: %s (%d)", pSignalingClient->mediaStorageConfig.storageStatus ? "ENABLED" : "DISABLED", 
+          pSignalingClient->mediaStorageConfig.storageStatus);
+    DLOGD("Final storage stream ARN: %s", pSignalingClient->mediaStorageConfig.storageStreamArn);
+    DLOGD("Endpoint cache usable: %s", 
+          (IS_VALID_TIMESTAMP(pSignalingClient->getEndpointTime) &&
+           SIGNALING_GET_CURRENT_TIME(pSignalingClient) <= pSignalingClient->getEndpointTime + pSignalingClient->pChannelInfo->cachingPeriod) 
+          ? "YES" : "NO (will fetch fresh endpoints)");
+
 CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
@@ -1003,18 +1012,25 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
+    DLOGD("=== GetChannelEndpoint START ===");
+    DLOGD("Storage status: %s (%d)", pSignalingClient->mediaStorageConfig.storageStatus ? "ENABLED" : "DISABLED",
+          pSignalingClient->mediaStorageConfig.storageStatus);
+
     // Create the API url
     STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
     STRCAT(url, GET_SIGNALING_CHANNEL_ENDPOINT_API_POSTFIX);
 
     // Prepare the json params for the call
     if (pSignalingClient->mediaStorageConfig.storageStatus == FALSE) {
+        DLOGD("Requesting protocols: WSS, HTTPS (storage disabled - no WEBRTC)");
         SNPRINTF(paramsJson, ARRAY_SIZE(paramsJson), GET_CHANNEL_ENDPOINT_PARAM_JSON_TEMPLATE, pSignalingClient->channelDescription.channelArn,
                  SIGNALING_CHANNEL_PROTOCOL, getStringFromChannelRoleType(pSignalingClient->pChannelInfo->channelRoleType));
     } else {
+        DLOGD("Requesting protocols: WSS, HTTPS, WEBRTC (storage enabled)");
         SNPRINTF(paramsJson, ARRAY_SIZE(paramsJson), GET_CHANNEL_ENDPOINT_PARAM_JSON_TEMPLATE, pSignalingClient->channelDescription.channelArn,
                  SIGNALING_CHANNEL_PROTOCOL_W_MEDIA_STORAGE, getStringFromChannelRoleType(pSignalingClient->pChannelInfo->channelRoleType));
     }
+    DLOGD("Request params: %s", paramsJson);
 
     // Create the request info with the body
     CHK_STATUS(createRequestInfo(url, paramsJson, pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
@@ -1120,6 +1136,12 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
     // Perform some validation on the channel description
     CHK(pSignalingClient->channelEndpointHttps[0] != '\0' && pSignalingClient->channelEndpointWss[0] != '\0',
         STATUS_SIGNALING_MISSING_ENDPOINTS_IN_GET_ENDPOINT);
+
+    DLOGD("=== GetChannelEndpoint COMPLETE ===");
+    DLOGD("Retrieved endpoints:");
+    DLOGD("  HTTPS: %s", pSignalingClient->channelEndpointHttps);
+    DLOGD("  WSS: %s", pSignalingClient->channelEndpointWss);
+    DLOGD("  WEBRTC: %s", pSignalingClient->channelEndpointWebrtc[0] != '\0' ? pSignalingClient->channelEndpointWebrtc : "(not requested/empty)");
 
 CleanUp:
 
@@ -1608,8 +1630,19 @@ STATUS describeMediaStorageConfLws(PSignalingClient pSignalingClient, UINT64 tim
     UINT32 i, strLen, resultLen;
     UINT32 tokenCount;
     BOOL jsonInMediaStorageConfig = FALSE;
+    BOOL previousStorageStatus;  // Store the previous status to compare
+    BOOL newStorageStatus = FALSE;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    DLOGD("=== DescribeMediaStorageConfiguration START ===");
+    DLOGD("Cache policy: %d", pSignalingClient->pChannelInfo->cachingPolicy);
+    
+    // Store the current storage status before making the API call
+    // This allows us to detect when storage status changes and invalidate endpoint cache accordingly
+    previousStorageStatus = pSignalingClient->mediaStorageConfig.storageStatus;
+    DLOGD("Previous storage status: %s (%d)", previousStorageStatus ? "ENABLED" : "DISABLED", previousStorageStatus);
+    DLOGD("Previous storage stream ARN: %s", pSignalingClient->mediaStorageConfig.storageStreamArn);
 
     // Create the API url
     STRCPY(url, pSignalingClient->pChannelInfo->pControlPlaneUrl);
@@ -1646,11 +1679,15 @@ STATUS describeMediaStorageConfLws(PSignalingClient pSignalingClient, UINT64 tim
     CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL,
         STATUS_SIGNALING_LWS_CALL_FAILED);
 
+    DLOGD("API call successful, parsing response (length: %u bytes)", resultLen);
+    
     // Parse the response
     jsmn_init(&parser);
     tokenCount = jsmn_parse(&parser, pResponseStr, resultLen, tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
     CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
     CHK(tokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
+    
+    DLOGD("Parsed %d JSON tokens, extracting storage configuration...", tokenCount);
 
     // Loop through the tokens and extract the stream description
     for (i = 1; i < tokenCount; i++) {
@@ -1664,12 +1701,28 @@ STATUS describeMediaStorageConfLws(PSignalingClient pSignalingClient, UINT64 tim
                 strLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
                 CHK(strLen <= MAX_ARN_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
                 if (STRNCMP("ENABLED", pResponseStr + tokens[i + 1].start, strLen) == 0) {
-                    pSignalingClient->mediaStorageConfig.storageStatus = TRUE;
-                    // Invalidate endpoint cache so GetChannelEndpoint will request WEBRTC protocol
-                    pSignalingClient->getEndpointTime = INVALID_TIMESTAMP_VALUE;
+                    newStorageStatus = TRUE;
                 } else {
-                    pSignalingClient->mediaStorageConfig.storageStatus = FALSE;
+                    newStorageStatus = FALSE;
                 }
+                
+                // Update the storage status
+                pSignalingClient->mediaStorageConfig.storageStatus = newStorageStatus;
+                
+                // Check if storage status changed - this is important regardless of caching policy
+                // because whenever storage status changes, we need different protocol endpoints
+                // (WEBRTC is only needed when storage is enabled)
+                if (previousStorageStatus != newStorageStatus) {
+                    DLOGD("Storage status changed: %d -> %d", previousStorageStatus, newStorageStatus);
+                    
+                    // Invalidate getEndpointTime to force GetChannelEndpoint to make a fresh API call
+                    // This ensures we request the correct protocol list based on the new storage status:
+                    // - If storage was disabled and now enabled: need to request WEBRTC protocol
+                    // - If storage was enabled and now disabled: can skip WEBRTC protocol request
+                    pSignalingClient->getEndpointTime = INVALID_TIMESTAMP_VALUE;
+                    DLOGD("Invalidated getEndpointTime due to storage status change");
+                }
+                
                 i++;
             } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "StreamARN")) {
                 // StorageStream may be null.

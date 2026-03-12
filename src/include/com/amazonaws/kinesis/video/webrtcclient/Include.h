@@ -1001,6 +1001,11 @@ typedef enum {
                                                         //!< called once and the
                                                         //!< information will be cached into file
                                                         //!< which will allow the cache to persist next time the signaling client is created.
+    SIGNALING_API_CALL_CACHE_TYPE_FILE_EXCEPT_DESCRIBE_MEDIA, //!< Cache DeleteSignalingChannel and GetSignalingChannelEndpoint
+                                                              //!< but always call DescribeMediaStorageConfiguration.
+                                                              //!< This mode ensures fresh storage status is retrieved
+                                                              //!< to properly invalidate endpoint cache when storage
+                                                              //!< configuration changes.
 } SIGNALING_API_CALL_CACHE_TYPE;
 
 /*!@} */
