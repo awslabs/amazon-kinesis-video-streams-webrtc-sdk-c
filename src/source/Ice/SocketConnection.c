@@ -191,13 +191,7 @@ STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection,
 
     CHK_STATUS(createTlsSession(&callbacks, &pSocketConnection->pTlsSession));
 
-#if KVS_USE_MBEDTLS
-    // Setting the hostname is recommended by mbedTLS and is default in mbedTLS 3.0 and above
-    // https://mbed-tls.readthedocs.io/en/latest/security-advisories/mbedtls-security-advisory-2025-03-1/
-    CHK_STATUS(tlsSessionStartWithHostname(pSocketConnection->pTlsSession, isServer, pSocketConnection->hostname));
-#else
     CHK_STATUS(tlsSessionStart(pSocketConnection->pTlsSession, isServer));
-#endif
     pSocketConnection->secureConnection = TRUE;
 
 CleanUp:

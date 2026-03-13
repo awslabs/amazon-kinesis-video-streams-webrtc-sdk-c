@@ -282,8 +282,16 @@ TEST_F(IceFunctionalityTest, IceAgentIceAgentAddIceServerUnitTest)
 
     EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "stun:stun.kinesisvideo.us-west-2.amazonaws.com:443", NULL, NULL));
     EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "stun:stun.kinesisvideo.us-west-2.amazonaws.com:443", (PCHAR) "", (PCHAR) ""));
+    EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "stuns:stun.kinesisvideo.us-west-2.amazonaws.com", NULL, NULL));
+    EXPECT_TRUE(iceServer.isSecure);
+    EXPECT_FALSE(iceServer.isTurn);
+    EXPECT_EQ(iceServer.scheme, ICE_SERVER_SCHEME_STUNS);
+    EXPECT_EQ(iceServer.transport, KVS_SOCKET_PROTOCOL_UDP);
+    EXPECT_EQ(5349, (UINT16) getInt16(iceServer.ipAddresses.ipv4Address.port));
 
     EXPECT_NE(STATUS_SUCCESS, parseIceServer(&iceServer, NULL, NULL, NULL));
+    EXPECT_EQ(STATUS_ICE_URL_MALFORMED, parseIceServer(&iceServer, (PCHAR) "stuns:", NULL, NULL));
+    EXPECT_EQ(STATUS_ICE_URL_STUNS_IP_LITERAL_NOT_ALLOWED, parseIceServer(&iceServer, (PCHAR) "stuns:54.202.170.151:443", NULL, NULL));
     EXPECT_EQ(STATUS_ICE_URL_TURN_MISSING_USERNAME, parseIceServer(&iceServer, (PCHAR) "turn:54.202.170.151:443", NULL, NULL));
     EXPECT_EQ(STATUS_ICE_URL_TURN_MISSING_CREDENTIAL, parseIceServer(&iceServer, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "username", NULL));
     EXPECT_EQ(STATUS_ICE_URL_TURN_MISSING_USERNAME, parseIceServer(&iceServer, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "", (PCHAR) ""));
@@ -293,6 +301,7 @@ TEST_F(IceFunctionalityTest, IceAgentIceAgentAddIceServerUnitTest)
     EXPECT_FALSE(iceServer.isSecure);
     EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "turns:54.202.170.151:443", (PCHAR) "username", (PCHAR) "password"));
     EXPECT_TRUE(iceServer.isSecure);
+    EXPECT_EQ(iceServer.scheme, ICE_SERVER_SCHEME_TURNS);
     EXPECT_EQ(iceServer.transport, KVS_SOCKET_PROTOCOL_NONE);
     EXPECT_EQ(STATUS_ICE_URL_INVALID_PREFIX, parseIceServer(&iceServer, (PCHAR) "randomUrl", (PCHAR) "username", (PCHAR) "password"));
 

@@ -14,8 +14,10 @@ extern "C" {
 #define MAX_STORED_TRANSACTION_ID_COUNT         100
 
 #define ICE_STUN_DEFAULT_PORT 3478
+#define ICE_STUNS_DEFAULT_PORT 5349
 
 #define ICE_URL_PREFIX_STUN        "stun:"
+#define ICE_URL_PREFIX_STUN_SECURE "stuns:"
 #define ICE_URL_PREFIX_TURN        "turn:"
 #define ICE_URL_PREFIX_TURN_SECURE "turns:"
 #define ICE_URL_TRANSPORT_UDP      "transport=udp"
@@ -50,10 +52,18 @@ STATUS iceUtilsPackageStunPacket(PStunPacket, PBYTE, UINT32, PBYTE, PUINT32);
 STATUS iceUtilsSendStunPacket(PStunPacket, PBYTE, UINT32, PKvsIpAddress, PSocketConnection, struct __TurnConnection*, BOOL);
 STATUS iceUtilsSendData(PBYTE, UINT32, PKvsIpAddress, PSocketConnection, struct __TurnConnection*, BOOL);
 
+typedef enum {
+    ICE_SERVER_SCHEME_STUN = 0,
+    ICE_SERVER_SCHEME_STUNS,
+    ICE_SERVER_SCHEME_TURN,
+    ICE_SERVER_SCHEME_TURNS,
+} ICE_SERVER_SCHEME;
+
 typedef struct {
     // isTurn ? TURN server : STUN server
     BOOL isTurn;
     BOOL isSecure;
+    ICE_SERVER_SCHEME scheme;
     CHAR url[MAX_ICE_CONFIG_URI_BUFFER_LEN];
     DualKvsIpAddresses ipAddresses;
     CHAR username[MAX_ICE_CONFIG_USER_NAME_BUFFER_LEN];

@@ -27,7 +27,7 @@ extern "C" {
 /**
  * Maximum allowed ICE URI length
  */
-#define MAX_ICE_CONFIG_URI_LEN 127
+#define MAX_ICE_CONFIG_URI_LEN 256
 
 /**
  * Maximum allowed ICE URI buffer length, including the null terminator.

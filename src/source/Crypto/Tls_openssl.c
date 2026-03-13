@@ -61,9 +61,8 @@ CleanUp:
 // https://www.openssl.org/docs/man1.0.2/man3/SSL_CTX_set_verify.html
 INT32 tlsSessionCertificateVerifyCallback(INT32 preverify_ok, X509_STORE_CTX* ctx)
 {
-    UNUSED_PARAM(preverify_ok);
     UNUSED_PARAM(ctx);
-    return 1;
+    return preverify_ok;
 }
 
 STATUS tlsSessionStart(PTlsSession pTlsSession, BOOL isServer)
@@ -80,7 +79,12 @@ STATUS tlsSessionStart(PTlsSession pTlsSession, BOOL isServer)
     CHK(pTlsSession->pSslCtx != NULL, STATUS_SSL_CTX_CREATION_FAILED);
 
     SSL_CTX_set_read_ahead(pTlsSession->pSslCtx, 1);
-    SSL_CTX_set_verify(pTlsSession->pSslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, tlsSessionCertificateVerifyCallback);
+    if (!isServer && !IS_EMPTY_STRING(hostname)) {
+        SSL_CTX_set_verify(pTlsSession->pSslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, tlsSessionCertificateVerifyCallback);
+        CHK(SSL_CTX_set_default_verify_paths(pTlsSession->pSslCtx) == 1, STATUS_SSL_CTX_CREATION_FAILED);
+    } else {
+        SSL_CTX_set_verify(pTlsSession->pSslCtx, SSL_VERIFY_NONE, NULL);
+    }
     CHK(SSL_CTX_set_cipher_list(pTlsSession->pSslCtx, "HIGH:!aNULL:!MD5:!RC4"), STATUS_SSL_CTX_CREATION_FAILED);
 
     pTlsSession->pSsl = SSL_new(pTlsSession->pSslCtx);
@@ -90,6 +94,10 @@ STATUS tlsSessionStart(PTlsSession pTlsSession, BOOL isServer)
         SSL_set_accept_state(pTlsSession->pSsl);
     } else {
         SSL_set_connect_state(pTlsSession->pSsl);
+        if (!IS_EMPTY_STRING(hostname)) {
+            CHK(SSL_set_tlsext_host_name(pTlsSession->pSsl, hostname) == 1, STATUS_SSL_CTX_CREATION_FAILED);
+            CHK(X509_VERIFY_PARAM_set1_host(SSL_get0_param(pTlsSession->pSsl), hostname, 0) == 1, STATUS_SSL_CTX_CREATION_FAILED);
+        }
     }
 
     SSL_set_mode(pTlsSession->pSsl, SSL_MODE_AUTO_RETRY);

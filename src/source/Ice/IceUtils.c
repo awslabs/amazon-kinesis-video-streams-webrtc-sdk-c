@@ -221,61 +221,104 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    PCHAR separator = NULL, urlNoPrefix = NULL, paramStart = NULL;
-    UINT32 port = ICE_STUN_DEFAULT_PORT;
+    PCHAR urlNoPrefix = NULL, paramStart = NULL, portSeparator = NULL;
+    UINT32 port = 0, hostLen = 0;
     CHAR addressResolvedIPv4[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
     CHAR addressResolvedIPv6[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
 
-    // username and credential is only mandatory for turn server
     CHK(url != NULL && pIceServer != NULL, STATUS_NULL_ARG);
 
-    if (STRNCMP(ICE_URL_PREFIX_STUN, url, STRLEN(ICE_URL_PREFIX_STUN)) == 0) {
-        urlNoPrefix = STRCHR(url, ':') + 1;
-        pIceServer->isTurn = FALSE;
-    } else if (STRNCMP(ICE_URL_PREFIX_TURN, url, STRLEN(ICE_URL_PREFIX_TURN)) == 0 ||
-               STRNCMP(ICE_URL_PREFIX_TURN_SECURE, url, STRLEN(ICE_URL_PREFIX_TURN_SECURE)) == 0) {
+    MEMSET(pIceServer->url, 0x00, SIZEOF(pIceServer->url));
+    MEMSET(&pIceServer->ipAddresses, 0x00, SIZEOF(pIceServer->ipAddresses));
+    MEMSET(pIceServer->username, 0x00, SIZEOF(pIceServer->username));
+    MEMSET(pIceServer->credential, 0x00, SIZEOF(pIceServer->credential));
+    pIceServer->isTurn = FALSE;
+    pIceServer->isSecure = FALSE;
+    pIceServer->scheme = ICE_SERVER_SCHEME_STUN;
+    pIceServer->transport = KVS_SOCKET_PROTOCOL_UDP;
+
+    if (STRNCMPI(ICE_URL_PREFIX_STUN_SECURE, url, STRLEN(ICE_URL_PREFIX_STUN_SECURE)) == 0) {
+        urlNoPrefix = url + STRLEN(ICE_URL_PREFIX_STUN_SECURE);
+        pIceServer->isSecure = TRUE;
+        pIceServer->scheme = ICE_SERVER_SCHEME_STUNS;
+        pIceServer->transport = KVS_SOCKET_PROTOCOL_UDP;
+        port = ICE_STUNS_DEFAULT_PORT;
+    } else if (STRNCMPI(ICE_URL_PREFIX_STUN, url, STRLEN(ICE_URL_PREFIX_STUN)) == 0) {
+        urlNoPrefix = url + STRLEN(ICE_URL_PREFIX_STUN);
+        pIceServer->scheme = ICE_SERVER_SCHEME_STUN;
+        pIceServer->transport = KVS_SOCKET_PROTOCOL_UDP;
+        port = ICE_STUN_DEFAULT_PORT;
+    } else if (STRNCMPI(ICE_URL_PREFIX_TURN_SECURE, url, STRLEN(ICE_URL_PREFIX_TURN_SECURE)) == 0) {
         CHK(username != NULL && username[0] != '\0', STATUS_ICE_URL_TURN_MISSING_USERNAME);
         CHK(credential != NULL && credential[0] != '\0', STATUS_ICE_URL_TURN_MISSING_CREDENTIAL);
 
-        // TODO after getIceServerConfig no longer give turn: ips, do TLS only for turns:
         STRNCPY(pIceServer->username, username, MAX_ICE_CONFIG_USER_NAME_LEN);
         STRNCPY(pIceServer->credential, credential, MAX_ICE_CONFIG_CREDENTIAL_LEN);
-        urlNoPrefix = STRCHR(url, ':') + 1;
+        urlNoPrefix = url + STRLEN(ICE_URL_PREFIX_TURN_SECURE);
         pIceServer->isTurn = TRUE;
-        pIceServer->isSecure = STRNCMP(ICE_URL_PREFIX_TURN_SECURE, url, STRLEN(ICE_URL_PREFIX_TURN_SECURE)) == 0;
-
+        pIceServer->isSecure = TRUE;
+        pIceServer->scheme = ICE_SERVER_SCHEME_TURNS;
         pIceServer->transport = KVS_SOCKET_PROTOCOL_NONE;
+        port = ICE_STUN_DEFAULT_PORT;
+    } else if (STRNCMPI(ICE_URL_PREFIX_TURN, url, STRLEN(ICE_URL_PREFIX_TURN)) == 0) {
+        CHK(username != NULL && username[0] != '\0', STATUS_ICE_URL_TURN_MISSING_USERNAME);
+        CHK(credential != NULL && credential[0] != '\0', STATUS_ICE_URL_TURN_MISSING_CREDENTIAL);
+
+        STRNCPY(pIceServer->username, username, MAX_ICE_CONFIG_USER_NAME_LEN);
+        STRNCPY(pIceServer->credential, credential, MAX_ICE_CONFIG_CREDENTIAL_LEN);
+        urlNoPrefix = url + STRLEN(ICE_URL_PREFIX_TURN);
+        pIceServer->isTurn = TRUE;
+        pIceServer->scheme = ICE_SERVER_SCHEME_TURN;
+        pIceServer->transport = KVS_SOCKET_PROTOCOL_NONE;
+        port = ICE_STUN_DEFAULT_PORT;
+    } else {
+        CHK(FALSE, STATUS_ICE_URL_INVALID_PREFIX);
+    }
+
+    CHK(urlNoPrefix != NULL && urlNoPrefix[0] != '\0', STATUS_ICE_URL_MALFORMED);
+
+    paramStart = STRCHR(urlNoPrefix, '?');
+    portSeparator = STRCHR(urlNoPrefix, ':');
+    if (portSeparator != NULL && paramStart != NULL && portSeparator > paramStart) {
+        portSeparator = NULL;
+    }
+
+    if (portSeparator != NULL) {
+        hostLen = (UINT32) (portSeparator - urlNoPrefix);
+        CHK(hostLen != 0 && hostLen <= MAX_ICE_CONFIG_URI_LEN, STATUS_ICE_URL_MALFORMED);
+        STRNCPY(pIceServer->url, urlNoPrefix, hostLen);
+        pIceServer->url[hostLen] = '\0';
+        DLOGD("DEBUG: PARSED HOSTNAME: '%s' from full URL: '%s'", pIceServer->url, url);
+
+        CHK(portSeparator[1] != '\0' && (paramStart == NULL || portSeparator + 1 < paramStart), STATUS_ICE_URL_MALFORMED);
+        CHK_STATUS(STRTOUI32(portSeparator + 1, paramStart, 10, &port));
+    } else {
+        hostLen = (UINT32) ((paramStart != NULL) ? (paramStart - urlNoPrefix) : STRLEN(urlNoPrefix));
+        CHK(hostLen != 0 && hostLen <= MAX_ICE_CONFIG_URI_LEN, STATUS_ICE_URL_MALFORMED);
+        STRNCPY(pIceServer->url, urlNoPrefix, hostLen);
+        pIceServer->url[hostLen] = '\0';
+        DLOGD("DEBUG: PARSED HOSTNAME: '%s' from full URL: '%s'", pIceServer->url, url);
+    }
+
+    CHK(port <= MAX_UINT16, STATUS_ICE_URL_MALFORMED);
+
+    if (pIceServer->scheme == ICE_SERVER_SCHEME_STUNS) {
+        CHK(!isIpAddr(pIceServer->url, hostLen), STATUS_ICE_URL_STUNS_IP_LITERAL_NOT_ALLOWED);
+    }
+
+    if (pIceServer->isTurn) {
         if (STRSTR(url, ICE_URL_TRANSPORT_UDP) != NULL) {
             pIceServer->transport = KVS_SOCKET_PROTOCOL_UDP;
         } else if (STRSTR(url, ICE_URL_TRANSPORT_TCP) != NULL) {
             pIceServer->transport = KVS_SOCKET_PROTOCOL_TCP;
         }
-
-    } else {
-        CHK(FALSE, STATUS_ICE_URL_INVALID_PREFIX);
-    }
-
-    if ((separator = STRCHR(urlNoPrefix, ':')) != NULL) {
-        separator++;
-        paramStart = STRCHR(urlNoPrefix, '?');
-        CHK_STATUS(STRTOUI32(separator, paramStart, 10, &port));
-        STRNCPY(pIceServer->url, urlNoPrefix, separator - urlNoPrefix - 1);
-        // need to null terminate since we are not copying the entire urlNoPrefix
-        pIceServer->url[separator - urlNoPrefix - 1] = '\0';
-    } else {
-        STRNCPY(pIceServer->url, urlNoPrefix, MAX_ICE_CONFIG_URI_LEN);
     }
 
     if (pIceServer->setIpFn != NULL) {
         retStatus = pIceServer->setIpFn(0, pIceServer->url, &pIceServer->ipAddresses);
     }
 
-    // Adding a NULL_ARG check specifically to cover for the case where early STUN
-    // resolution might not be enabled
-    // Also cover the case where hostname is not resolved because the request was made too soon
     if (retStatus == STATUS_NULL_ARG || retStatus == STATUS_PEERCONNECTION_EARLY_DNS_RESOLUTION_FAILED || pIceServer->setIpFn == NULL) {
-        // Reset the retStatus to ensure the appropriate status code is returned from
-        // getIpWithHostName
         retStatus = STATUS_SUCCESS;
         CHK_STATUS(getIpWithHostName(pIceServer->url, &pIceServer->ipAddresses));
     }
