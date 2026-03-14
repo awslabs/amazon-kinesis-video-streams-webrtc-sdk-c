@@ -38,6 +38,7 @@ struct __SocketConnection {
 
     BOOL secureConnection;
     PTlsSession pTlsSession;
+    PDtlsSession pDtlsSession;
 
     MUTEX lock;
 
@@ -86,7 +87,7 @@ STATUS freeSocketConnection(PSocketConnection*);
  *
  * @return - STATUS - status of execution
  */
-STATUS socketConnectionInitSecureConnection(PSocketConnection, BOOL);
+STATUS socketConnectionInitSecureConnection(PSocketConnection, BOOL, TIMER_QUEUE_HANDLE);
 
 /**
  * Given a created SocketConnection, send data through the underlying socket. If socket type is UDP, then destination
@@ -115,6 +116,15 @@ STATUS socketConnectionSendData(PSocketConnection, PBYTE, UINT32, PKvsIpAddress)
  * @return - STATUS - status of execution
  */
 STATUS socketConnectionReadData(PSocketConnection, PBYTE, UINT32, PUINT32);
+
+/**
+ * Tear down any active TLS/DTLS session while keeping the underlying socket open.
+ *
+ * @param - PSocketConnection - IN - the SocketConnection struct
+ *
+ * @return - STATUS - status of execution
+ */
+STATUS socketConnectionShutdownSecureSession(PSocketConnection);
 
 /**
  * Mark PSocketConnection as closed

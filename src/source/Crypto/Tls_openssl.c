@@ -61,11 +61,12 @@ CleanUp:
 // https://www.openssl.org/docs/man1.0.2/man3/SSL_CTX_set_verify.html
 INT32 tlsSessionCertificateVerifyCallback(INT32 preverify_ok, X509_STORE_CTX* ctx)
 {
+    UNUSED_PARAM(preverify_ok);
     UNUSED_PARAM(ctx);
-    return preverify_ok;
+    return 1;
 }
 
-STATUS tlsSessionStart(PTlsSession pTlsSession, BOOL isServer)
+STATUS tlsSessionStartWithHostname(PTlsSession pTlsSession, BOOL isServer, PCHAR hostname)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -74,17 +75,13 @@ STATUS tlsSessionStart(PTlsSession pTlsSession, BOOL isServer)
 
     CHK(pTlsSession != NULL, STATUS_NULL_ARG);
     CHK(pTlsSession->state == TLS_SESSION_STATE_NEW, retStatus);
+    UNUSED_PARAM(hostname);
 
     pTlsSession->pSslCtx = SSL_CTX_new(SSLv23_method());
     CHK(pTlsSession->pSslCtx != NULL, STATUS_SSL_CTX_CREATION_FAILED);
 
     SSL_CTX_set_read_ahead(pTlsSession->pSslCtx, 1);
-    if (!isServer && !IS_EMPTY_STRING(hostname)) {
-        SSL_CTX_set_verify(pTlsSession->pSslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, tlsSessionCertificateVerifyCallback);
-        CHK(SSL_CTX_set_default_verify_paths(pTlsSession->pSslCtx) == 1, STATUS_SSL_CTX_CREATION_FAILED);
-    } else {
-        SSL_CTX_set_verify(pTlsSession->pSslCtx, SSL_VERIFY_NONE, NULL);
-    }
+    SSL_CTX_set_verify(pTlsSession->pSslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, tlsSessionCertificateVerifyCallback);
     CHK(SSL_CTX_set_cipher_list(pTlsSession->pSslCtx, "HIGH:!aNULL:!MD5:!RC4"), STATUS_SSL_CTX_CREATION_FAILED);
 
     pTlsSession->pSsl = SSL_new(pTlsSession->pSslCtx);
@@ -94,10 +91,6 @@ STATUS tlsSessionStart(PTlsSession pTlsSession, BOOL isServer)
         SSL_set_accept_state(pTlsSession->pSsl);
     } else {
         SSL_set_connect_state(pTlsSession->pSsl);
-        if (!IS_EMPTY_STRING(hostname)) {
-            CHK(SSL_set_tlsext_host_name(pTlsSession->pSsl, hostname) == 1, STATUS_SSL_CTX_CREATION_FAILED);
-            CHK(X509_VERIFY_PARAM_set1_host(SSL_get0_param(pTlsSession->pSsl), hostname, 0) == 1, STATUS_SSL_CTX_CREATION_FAILED);
-        }
     }
 
     SSL_set_mode(pTlsSession->pSsl, SSL_MODE_AUTO_RETRY);
@@ -135,6 +128,11 @@ CleanUp:
 
     LEAVES();
     return retStatus;
+}
+
+STATUS tlsSessionStart(PTlsSession pTlsSession, BOOL isServer)
+{
+    return tlsSessionStartWithHostname(pTlsSession, isServer, NULL);
 }
 
 STATUS tlsSessionProcessPacket(PTlsSession pTlsSession, PBYTE pData, UINT32 bufferLen, PUINT32 pDataLen)

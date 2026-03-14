@@ -288,8 +288,6 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
         CHK(hostLen != 0 && hostLen <= MAX_ICE_CONFIG_URI_LEN, STATUS_ICE_URL_MALFORMED);
         STRNCPY(pIceServer->url, urlNoPrefix, hostLen);
         pIceServer->url[hostLen] = '\0';
-        DLOGD("DEBUG: PARSED HOSTNAME: '%s' from full URL: '%s'", pIceServer->url, url);
-
         CHK(portSeparator[1] != '\0' && (paramStart == NULL || portSeparator + 1 < paramStart), STATUS_ICE_URL_MALFORMED);
         CHK_STATUS(STRTOUI32(portSeparator + 1, paramStart, 10, &port));
     } else {
@@ -297,7 +295,6 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
         CHK(hostLen != 0 && hostLen <= MAX_ICE_CONFIG_URI_LEN, STATUS_ICE_URL_MALFORMED);
         STRNCPY(pIceServer->url, urlNoPrefix, hostLen);
         pIceServer->url[hostLen] = '\0';
-        DLOGD("DEBUG: PARSED HOSTNAME: '%s' from full URL: '%s'", pIceServer->url, url);
     }
 
     CHK(port <= MAX_UINT16, STATUS_ICE_URL_MALFORMED);

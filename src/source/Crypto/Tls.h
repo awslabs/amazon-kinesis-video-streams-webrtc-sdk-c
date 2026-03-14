@@ -68,6 +68,16 @@ STATUS createTlsSession(PTlsSessionCallbacks, PTlsSession*);
 STATUS freeTlsSession(PTlsSession*);
 
 /**
+ * Start TLS handshake with an optional hostname parameter.
+ * NOT THREAD SAFE.
+ * @param PTlsSession - TlsSession object
+ * @param BOOL - is server
+ * @param PCHAR - hostname hint for TLS implementations that use it, or NULL
+ * @return STATUS - status of operation
+ */
+STATUS tlsSessionStartWithHostname(PTlsSession, BOOL, PCHAR);
+
+/**
  * Start TLS handshake.
  * NOT THREAD SAFE.
  * @param PTlsSession - TlsSession object
