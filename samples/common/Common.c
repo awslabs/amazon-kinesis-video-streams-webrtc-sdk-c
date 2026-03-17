@@ -385,26 +385,8 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     configuration.kvsRtcConfiguration.enableIceStats = pSampleConfiguration->enableIceStats;
 #endif
 
-    // Set the  STUN server
-    PCHAR pKinesisVideoStunUrlPostFix = NULL;
-    if (isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR)) {
-        DLOGD("Using dual-stack STUN endpoint");
-        if (STRSTR(pSampleConfiguration->channelInfo.pRegion, "cn-")) {
-            pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_DUALSTACK_STUN_URL_POSTFIX_CN;
-        } else {
-            pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_DUALSTACK_STUN_URL_POSTFIX;
-        }
-    } else {
-        DLOGD("Using legacy STUN endpoint");
-        if (STRSTR(pSampleConfiguration->channelInfo.pRegion, "cn-")) {
-            pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX_CN;
-        } else {
-            pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX;
-        }
-    }
-
-    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->channelInfo.pRegion,
-             pKinesisVideoStunUrlPostFix);
+    // Set the STUN server URL using SDK function (handles standard, dual-stack, China, and FIPS endpoints)
+    CHK_STATUS(getStunUrl(pSampleConfiguration->channelInfo.pRegion, configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN));
 
     if (pSampleConfiguration->useTurn) {
         // Set the URIs from the configuration
@@ -856,26 +838,6 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
         pSampleConfiguration->channelInfo.pRegion = DEFAULT_AWS_REGION;
     }
 
-    // Early validation: Check if FIPS endpoint is enabled with an unsupported region
-    if (isEnvVarEnabled(USE_FIPS_ENDPOINT_ENV_VAR)) {
-        BOOL fipsRegionSupported = FALSE;
-        PCHAR supportedFipsRegions[] = {"us-iso-east-1", "us-iso-west-1", "us-isob-east-1", "us-gov-west-1", "us-gov-east-1"};
-        UINT32 numSupportedRegions = ARRAY_SIZE(supportedFipsRegions);
-        UINT32 regionIdx;
-        
-        for (regionIdx = 0; regionIdx < numSupportedRegions; regionIdx++) {
-            if (STRCMP(pSampleConfiguration->channelInfo.pRegion, supportedFipsRegions[regionIdx]) == 0) {
-                fipsRegionSupported = TRUE;
-                break;
-            }
-        }
-        
-        if (!fipsRegionSupported) {
-            DLOGE("FIPS endpoint is not supported for region '%s'. Supported FIPS regions: us-iso-east-1, us-iso-west-1, us-isob-east-1, us-gov-west-1, us-gov-east-1. Exiting.", 
-                  pSampleConfiguration->channelInfo.pRegion);
-            CHK(FALSE, STATUS_SIGNALING_INVALID_REGION_LENGTH);
-        }
-    }
 
     CHK_STATUS(lookForSslCert(&pSampleConfiguration));
 

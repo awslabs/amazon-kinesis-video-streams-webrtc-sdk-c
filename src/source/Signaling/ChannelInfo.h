@@ -37,19 +37,51 @@ extern "C" {
 #define SIGNALING_USER_AGENT_POSTFIX_VERSION (PCHAR) "UNKNOWN"
 #endif
 
-// FIPS endpoint region prefixes
-#define AWS_ISO_REGION_PREFIX     "us-iso-"
-#define AWS_ISOB_REGION_PREFIX    "us-isob-"
-#define AWS_GOV_REGION_PREFIX     "us-gov-"
-
-// Number of FIPS endpoint mappings
-#define FIPS_ENDPOINT_MAPPING_COUNT 5
-
 // Structure to hold FIPS endpoint mapping
 typedef struct {
     PCHAR pRegion;
     PCHAR pEndpoint;
 } FipsEndpointMapping;
+
+// Number of FIPS endpoint mappings
+#define FIPS_ENDPOINT_MAPPING_COUNT 5
+
+// FIPS endpoint mappings - region to endpoint URL (legacy/non-dual-stack)
+// These endpoints are used when only USE_FIPS_ENDPOINT_ENV_VAR is enabled
+static const FipsEndpointMapping FIPS_ENDPOINT_MAPPINGS[FIPS_ENDPOINT_MAPPING_COUNT] = {
+    {"us-iso-east-1", "https://kinesisvideo-fips.us-iso-east-1.c2s.ic.gov"},
+    {"us-iso-west-1", "https://kinesisvideo-fips.us-iso-west-1.c2s.ic.gov"},
+    {"us-isob-east-1", "https://kinesisvideo-fips.us-isob-east-1.sc2s.sgov.gov"},
+    {"us-gov-west-1", "https://kinesisvideo-fips.us-gov-west-1.amazonaws.com"},
+    {"us-gov-east-1", "https://kinesisvideo-fips.us-gov-east-1.amazonaws.com"},
+};
+
+// FIPS dual-stack endpoint mappings - region to endpoint URL
+// These endpoints are used when BOTH USE_FIPS_ENDPOINT_ENV_VAR and USE_DUAL_STACK_ENDPOINTS_ENV_VAR are enabled
+static const FipsEndpointMapping FIPS_DUAL_STACK_ENDPOINT_MAPPINGS[FIPS_ENDPOINT_MAPPING_COUNT] = {
+    {"us-iso-east-1", "https://kinesisvideo-fips.us-iso-east-1.api.aws.ic.gov"},
+    {"us-iso-west-1", "https://kinesisvideo-fips.us-iso-west-1.api.aws.ic.gov"},
+    {"us-isob-east-1", "https://kinesisvideo-fips.us-isob-east-1.api.aws.scloud"},
+    {"us-gov-west-1", "https://kinesisvideo-fips.us-gov-west-1.api.aws"},
+    {"us-gov-east-1", "https://kinesisvideo-fips.us-gov-east-1.api.aws"},
+};
+
+/**
+ * Constructs the control plane endpoint URL based on region and environment settings.
+ * 
+ * Priority:
+ * 1. FIPS + dual-stack enabled -> FIPS dual-stack endpoint
+ * 2. FIPS only enabled -> FIPS legacy endpoint
+ * 3. Dual-stack only enabled -> standard dual-stack endpoint
+ * 4. Neither enabled -> standard legacy endpoint
+ *
+ * @param - PCHAR - IN - The AWS region string
+ * @param - PCHAR - OUT - Buffer to store the constructed endpoint URL
+ * @param - UINT32 - IN - Size of the endpoint buffer
+ *
+ * @return - STATUS_SUCCESS on success, error status otherwise
+ */
+STATUS constructControlPlaneEndpoint(PCHAR, PCHAR, UINT32);
 
 /**
  * Takes in a pointer to a public version of ChannelInfo object.
@@ -128,6 +160,20 @@ PCHAR getStringFromChannelRoleType(SIGNALING_CHANNEL_ROLE_TYPE);
  *@return - success if arn was valid otherwise failure
  */
 STATUS validateKvsSignalingChannelArnAndExtractChannelName(PChannelInfo, PUINT16, PUINT16);
+
+/**
+ * Constructs the STUN server URL based on region and environment settings.
+ * Handles standard, dual-stack, China, and FIPS endpoints.
+ *
+ * Note: FIPS STUN requires "stuns:" scheme (TLS), not "stun:"
+ *
+ * @param - PCHAR - IN - The AWS region string
+ * @param - PCHAR - OUT - Buffer to store the constructed STUN URL
+ * @param - UINT32 - IN - Size of the buffer
+ *
+ * @return - STATUS_SUCCESS on success, error status otherwise
+ */
+STATUS getStunUrl(PCHAR, PCHAR, UINT32);
 
 #ifdef __cplusplus
 }

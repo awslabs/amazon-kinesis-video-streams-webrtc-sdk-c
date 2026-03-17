@@ -98,9 +98,10 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
 
     if (pSignalingClient->pChannelInfo->cachingPolicy == SIGNALING_API_CALL_CACHE_TYPE_FILE) {
         useDualStackEndpoints = isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
+        BOOL useFipsEndpoint = isEnvVarEnabled(USE_FIPS_ENDPOINT_ENV_VAR);
 
         if (STATUS_FAILED(signalingCacheLoadFromFile(pSignalingClient->pChannelInfo->pChannelName, pSignalingClient->pChannelInfo->pRegion,
-                                                     pSignalingClient->pChannelInfo->pControlPlaneUrl, useDualStackEndpoints,
+                                                     pSignalingClient->pChannelInfo->pControlPlaneUrl, useDualStackEndpoints, useFipsEndpoint,
                                                      pSignalingClient->pChannelInfo->channelRoleType, pFileCacheEntry, &cacheFound,
                                                      pSignalingClient->clientInfo.cacheFilePath))) {
             DLOGW("Failed to load signaling cache from file");
@@ -1126,6 +1127,7 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
     BOOL apiCall = TRUE;
     SignalingFileCacheEntry signalingFileCacheEntry;
     BOOL useDualStackEndpoints = FALSE;
+    BOOL useFipsEndpoint = FALSE;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -1166,6 +1168,7 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
 
                     if (pSignalingClient->pChannelInfo->cachingPolicy == SIGNALING_API_CALL_CACHE_TYPE_FILE) {
                         useDualStackEndpoints = isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
+                        useFipsEndpoint = isEnvVarEnabled(USE_FIPS_ENDPOINT_ENV_VAR);
 
                         signalingFileCacheEntry.creationTsEpochSeconds = time / HUNDREDS_OF_NANOS_IN_A_SECOND;
                         signalingFileCacheEntry.role = pSignalingClient->pChannelInfo->channelRoleType;
@@ -1178,6 +1181,7 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
                         STRCPY(signalingFileCacheEntry.controlPlaneUrl,
                                pSignalingClient->pChannelInfo->pControlPlaneUrl != NULL ? pSignalingClient->pChannelInfo->pControlPlaneUrl : "");
                         STRCPY(signalingFileCacheEntry.useDualStackEndpoints, useDualStackEndpoints ? "1" : "0");
+                        STRCPY(signalingFileCacheEntry.useFipsEndpoint, useFipsEndpoint ? "1" : "0");
                         STRCPY(signalingFileCacheEntry.channelArn, pSignalingClient->channelDescription.channelArn);
                         STRCPY(signalingFileCacheEntry.storageEnabled, pSignalingClient->mediaStorageConfig.storageStatus ? "1" : "0");
                         STRCPY(signalingFileCacheEntry.storageStreamArn, pSignalingClient->mediaStorageConfig.storageStreamArn);
