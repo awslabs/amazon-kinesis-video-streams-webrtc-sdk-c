@@ -403,8 +403,13 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
         }
     }
 
-    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->channelInfo.pRegion,
-             pKinesisVideoStunUrlPostFix);
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN,
+             (STRNCMP(pSampleConfiguration->channelInfo.pRegion, AWS_GOV_REGION_PREFIX, STRLEN(AWS_GOV_REGION_PREFIX)) == 0 ||
+              STRNCMP(pSampleConfiguration->channelInfo.pRegion, AWS_ISO_REGION_PREFIX, STRLEN(AWS_ISO_REGION_PREFIX)) == 0 ||
+              STRNCMP(pSampleConfiguration->channelInfo.pRegion, AWS_ISO_B_REGION_PREFIX, STRLEN(AWS_ISO_B_REGION_PREFIX)) == 0)
+                 ? KINESIS_VIDEO_STUNS_URL
+                 : KINESIS_VIDEO_STUN_URL,
+             pSampleConfiguration->channelInfo.pRegion, pKinesisVideoStunUrlPostFix);
 
     if (pSampleConfiguration->useTurn) {
         // Set the URIs from the configuration

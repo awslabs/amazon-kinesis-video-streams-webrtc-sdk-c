@@ -204,7 +204,7 @@ VOID socketConnectionDtlsSessionOnStateChange(UINT64 customData, RTC_DTLS_TRANSP
     }
 }
 
-STATUS socketConnectionDtlsSessionOutBoundPacket(UINT64 customData, PBYTE pBuffer, UINT32 bufferLen)
+VOID socketConnectionDtlsSessionOutBoundPacket(UINT64 customData, PBYTE pBuffer, UINT32 bufferLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSocketConnection pSocketConnection = NULL;
@@ -214,7 +214,8 @@ STATUS socketConnectionDtlsSessionOutBoundPacket(UINT64 customData, PBYTE pBuffe
     CHK_STATUS(socketSendDataWithRetry(pSocketConnection, pBuffer, bufferLen, &pSocketConnection->peerIpAddr, NULL));
 
 CleanUp:
-    return retStatus;
+    CHK_LOG_ERR(retStatus);
+    return;
 }
 
 STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection, BOOL isServer, TIMER_QUEUE_HANDLE timerQueueHandle)

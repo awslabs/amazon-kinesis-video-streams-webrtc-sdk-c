@@ -517,6 +517,8 @@ AWS access keys are ignored from environment variables if the sample was built i
 | `CONTROL_PLANE_URI`        | Endpoint override                   | String               | Based on the region   | Example: "https://kinesisvideo.us-west-2.api.aws" |
 | `KVS_ICE_TRANSPORT_POLICY` | Types of ICE candidates to consider | Enum (`relay`/`all`) | `all`                 | Case insensitive                                  |
 
+For sample applications, GovCloud (`us-gov-*`), ADC (`us-iso-*`), and ADC-2 (`us-isob-*`) regions use the managed `stuns:` endpoint automatically. Commercial regions continue to use the managed `stun:` endpoint by default.
+
 ## TWCC support
 
 Transport Wide Congestion Control (TWCC) is a mechanism in WebRTC designed to enhance the performance and reliability of real-time communication over the internet. TWCC addresses the challenges of network congestion by providing detailed feedback on the transport of packets across the network, enabling adaptive bitrate control and optimization of media streams in real-time. This feedback mechanism is crucial for maintaining high-quality audio and video communication, as it allows senders to adjust their transmission strategies based on comprehensive information about packet losses, delays, and jitter experienced across the entire transport path.
