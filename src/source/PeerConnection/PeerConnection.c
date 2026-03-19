@@ -939,7 +939,12 @@ PVOID resolveStunIceServerIp(PVOID args)
                 }
 
                 SNPRINTF(pWebRtcClientContext->pStunIpAddrCtx->hostname, SIZEOF(pWebRtcClientContext->pStunIpAddrCtx->hostname),
-                         KINESIS_VIDEO_STUN_URL_WITHOUT_PORT, pRegion, pHostnamePostfix);
+                         (STRNCMP(pRegion, AWS_GOV_REGION_PREFIX, STRLEN(AWS_GOV_REGION_PREFIX)) == 0 ||
+                          STRNCMP(pRegion, AWS_ISO_REGION_PREFIX, STRLEN(AWS_ISO_REGION_PREFIX)) == 0 ||
+                          STRNCMP(pRegion, AWS_ISO_B_REGION_PREFIX, STRLEN(AWS_ISO_B_REGION_PREFIX)) == 0)
+                             ? KINESIS_VIDEO_STUNS_URL_WITHOUT_PORT
+                             : KINESIS_VIDEO_STUN_URL_WITHOUT_PORT,
+                         pRegion, pHostnamePostfix);
                 stunDnsResolutionStartTime = GETTIME();
                 if (getStunAddr(pWebRtcClientContext->pStunIpAddrCtx) == STATUS_SUCCESS) {
                     if (pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv4Address.family != KVS_IP_FAMILY_TYPE_NOT_SET) {
