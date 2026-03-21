@@ -75,6 +75,8 @@ STATUS tlsSessionStartWithHostname(PTlsSession pTlsSession, BOOL isServer, PCHAR
 
     CHK(pTlsSession != NULL, STATUS_NULL_ARG);
     CHK(pTlsSession->state == TLS_SESSION_STATE_NEW, retStatus);
+    // Keep the existing OpenSSL TURN/TLS behavior. The hostname parameter is accepted to keep the TLS API aligned
+    // across backends, but this implementation does not use it for hostname verification or SNI.
     UNUSED_PARAM(hostname);
 
     pTlsSession->pSslCtx = SSL_CTX_new(SSLv23_method());

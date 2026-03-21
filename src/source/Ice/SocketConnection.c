@@ -136,6 +136,9 @@ CleanUp:
     return retStatus;
 }
 
+/**
+ * Send TLS records produced by the TLS session over the connected TCP socket.
+ */
 STATUS socketConnectionTlsSessionOutBoundPacket(UINT64 customData, PBYTE pBuffer, UINT32 bufferLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -176,6 +179,10 @@ VOID socketConnectionTlsSessionOnStateChange(UINT64 customData, TLS_SESSION_STAT
     }
 }
 
+/**
+ * Track DTLS state transitions so handshake timing can be profiled and the socket connection can react to DTLS
+ * close and failure events.
+ */
 VOID socketConnectionDtlsSessionOnStateChange(UINT64 customData, RTC_DTLS_TRANSPORT_STATE state)
 {
     PSocketConnection pSocketConnection = NULL;
@@ -204,6 +211,9 @@ VOID socketConnectionDtlsSessionOnStateChange(UINT64 customData, RTC_DTLS_TRANSP
     }
 }
 
+/**
+ * Send DTLS records produced by the DTLS session to the UDP peer associated with this socket connection.
+ */
 VOID socketConnectionDtlsSessionOutBoundPacket(UINT64 customData, PBYTE pBuffer, UINT32 bufferLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -327,6 +337,8 @@ STATUS socketConnectionReadData(PSocketConnection pSocketConnection, PBYTE pBuf,
     if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP) {
         CHK_STATUS(tlsSessionProcessPacket(pSocketConnection->pTlsSession, pBuf, bufferLen, pDataLen));
     } else {
+        // dtlsSessionProcessPacket expects a signed length pointer. Use a temporary INT32, then copy the validated
+        // decrypted byte count back to the caller's UINT32.
         INT32 dtlsDataLen = (INT32) *pDataLen;
         CHK_STATUS(dtlsSessionProcessPacket(pSocketConnection->pDtlsSession, pBuf, &dtlsDataLen));
         *pDataLen = (UINT32) dtlsDataLen;

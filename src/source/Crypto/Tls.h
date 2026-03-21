@@ -72,7 +72,8 @@ STATUS freeTlsSession(PTlsSession*);
  * NOT THREAD SAFE.
  * @param PTlsSession - TlsSession object
  * @param BOOL - is server
- * @param PCHAR - hostname hint for TLS implementations that use it, or NULL
+ * @param PCHAR - hostname hint for TLS backends that support hostname verification or SNI, or NULL when no hostname
+ *                is available. The current OpenSSL backend ignores this parameter and preserves the existing behavior.
  * @return STATUS - status of operation
  */
 STATUS tlsSessionStartWithHostname(PTlsSession, BOOL, PCHAR);

@@ -2763,6 +2763,8 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 PKvsIpAddress pIceServerAddress = IS_IPV4_ADDR(pSrcAddr) ? &pIceAgent->iceServers[pIceCandidate->iceServerIndex].ipAddresses.ipv4Address
                                                                          : &pIceAgent->iceServers[pIceCandidate->iceServerIndex].ipAddresses.ipv6Address;
 
+                // The STUN server can still send responses after this srflx candidate has already been resolved. This packet
+                // is not a peer ICE success response and does not belong to any candidate pair and thus can ignored.
                 if (pIceServerAddress->family != KVS_IP_FAMILY_TYPE_NOT_SET && isSameIpAddress(pSrcAddr, pIceServerAddress, TRUE)) {
                     DLOGW("Ignoring late STUN binding success response from ICE server %s on srflx candidate %s",
                           pIceAgent->iceServers[pIceCandidate->iceServerIndex].url, pIceCandidate->id);
