@@ -21,6 +21,12 @@ typedef enum {
 extern StateMachineState ICE_AGENT_STATE_MACHINE_STATES[];
 extern UINT32 ICE_AGENT_STATE_MACHINE_STATE_COUNT;
 
+#define MARK_STUNS_SRFLX_CANDIDATE_INVALID(logFn, candidate, ...)                                                                                     \
+    do {                                                                                                                                               \
+        logFn(__VA_ARGS__);                                                                                                                            \
+        (candidate)->state = ICE_CANDIDATE_STATE_INVALID;                                                                                              \
+    } while (0)
+
 STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAgentCallbacks, PRtcConfiguration pRtcConfiguration,
                       TIMER_QUEUE_HANDLE timerQueueHandle, PConnectionListener pConnectionListener, PIceAgent* ppIceAgent)
 {
@@ -1487,8 +1493,7 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
                     if (pIceServer->scheme == ICE_SERVER_SCHEME_STUNS) {
                         pSocketConnection = pCandidate->pSocketConnection;
                         if (pSocketConnection == NULL || socketConnectionIsClosed(pSocketConnection)) {
-                            DLOGD("STUNS srflx candidate socket closed or null, marking invalid");
-                            pCandidate->state = ICE_CANDIDATE_STATE_INVALID;
+                            MARK_STUNS_SRFLX_CANDIDATE_INVALID(DLOGD, pCandidate, "STUNS srflx candidate socket closed or null, marking invalid");
                             break;
                         }
 
@@ -1497,16 +1502,15 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
                             DLOGD("STUNS srflx candidate initiating DTLS handshake to %s", pIceServer->url);
                             retStatus = socketConnectionInitSecureConnection(pSocketConnection, FALSE, pIceAgent->timerQueueHandle);
                             if (STATUS_FAILED(retStatus)) {
-                                DLOGW("Failed to init DTLS for STUNS srflx candidate, marking invalid. Status: 0x%08x", retStatus);
-                                pCandidate->state = ICE_CANDIDATE_STATE_INVALID;
+                                MARK_STUNS_SRFLX_CANDIDATE_INVALID(
+                                    DLOGW, pCandidate, "Failed to init DTLS for STUNS srflx candidate, marking invalid. Status: 0x%08x", retStatus);
                                 retStatus = STATUS_SUCCESS;
                             }
                             break;
                         }
 
                         if (pDtlsSession->state == RTC_DTLS_TRANSPORT_STATE_CLOSED || pDtlsSession->state == RTC_DTLS_TRANSPORT_STATE_FAILED) {
-                            DLOGW("STUNS srflx candidate DTLS handshake failed, marking invalid");
-                            pCandidate->state = ICE_CANDIDATE_STATE_INVALID;
+                            MARK_STUNS_SRFLX_CANDIDATE_INVALID(DLOGW, pCandidate, "STUNS srflx candidate DTLS handshake failed, marking invalid");
                             break;
                         }
 
