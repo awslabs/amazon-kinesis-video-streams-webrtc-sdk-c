@@ -282,6 +282,11 @@ TEST_F(IceFunctionalityTest, IceAgentIceAgentAddIceServerUnitTest)
 
     EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "stun:stun.kinesisvideo.us-west-2.amazonaws.com:443", NULL, NULL));
     EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "stun:stun.kinesisvideo.us-west-2.amazonaws.com:443", (PCHAR) "", (PCHAR) ""));
+    EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "stun:stun.kinesisvideo.us-west-2.amazonaws.com:443?transport=tcp", NULL, NULL));
+    EXPECT_FALSE(iceServer.isSecure);
+    EXPECT_FALSE(iceServer.isTurn);
+    EXPECT_EQ(iceServer.scheme, ICE_SERVER_SCHEME_STUN);
+    EXPECT_EQ(iceServer.transport, KVS_SOCKET_PROTOCOL_UDP);
     EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "stuns:stun.kinesisvideo.us-west-2.amazonaws.com", NULL, NULL));
     EXPECT_TRUE(iceServer.isSecure);
     EXPECT_FALSE(iceServer.isTurn);
@@ -323,7 +328,6 @@ TEST_F(IceFunctionalityTest, IceAgentIceAgentAddIceServerUnitTest)
     EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "turn:54.202.170.151:443?randomstuff", (PCHAR) "username", (PCHAR) "password"));
     EXPECT_EQ(iceServer.transport, KVS_SOCKET_PROTOCOL_NONE);
 
-
     //
     // Dual-stack checks.
     //
@@ -331,12 +335,12 @@ TEST_F(IceFunctionalityTest, IceAgentIceAgentAddIceServerUnitTest)
     // Clear the iceServer struct.
     MEMSET(&iceServer, 0x00, SIZEOF(IceServer));
 
-    // Set the env var to enable dual-stack mode.
-    #ifdef _WIN32
-        _putenv_s(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON");
-    #else
-        setenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON", 1);
-    #endif
+// Set the env var to enable dual-stack mode.
+#ifdef _WIN32
+    _putenv_s(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON");
+#else
+    setenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON", 1);
+#endif
 
     std::string test_ipv4_addr = "35-90-63-38";
     std::string test_ipv6_addr = "2001-0db8-85a3-0000-0000-8a2e-0370-7334";
@@ -360,9 +364,11 @@ TEST_F(IceFunctionalityTest, IceAgentIceAgentAddIceServerUnitTest)
 
     // Failing cases: both IPv4 and IPv6 addresses should be present in hostname, else will
     // fallback to getAddrInfo and fail.
-    EXPECT_EQ(STATUS_RESOLVE_HOSTNAME_FAILED, parseIceServer(&iceServer, (PCHAR) ("turn:" + test_ipv4_addr).c_str(), (PCHAR) "username", (PCHAR) "password"));
-    EXPECT_EQ(STATUS_RESOLVE_HOSTNAME_FAILED, parseIceServer(&iceServer, (PCHAR) ("turn:" + test_ipv6_addr).c_str(), (PCHAR) "username", (PCHAR) "password"));
-    
+    EXPECT_EQ(STATUS_RESOLVE_HOSTNAME_FAILED,
+              parseIceServer(&iceServer, (PCHAR) ("turn:" + test_ipv4_addr).c_str(), (PCHAR) "username", (PCHAR) "password"));
+    EXPECT_EQ(STATUS_RESOLVE_HOSTNAME_FAILED,
+              parseIceServer(&iceServer, (PCHAR) ("turn:" + test_ipv6_addr).c_str(), (PCHAR) "username", (PCHAR) "password"));
+
     // Clear the iceServer struct again incase of partial population from previous calls.
     MEMSET(&iceServer, 0x00, SIZEOF(IceServer));
 
@@ -388,13 +394,12 @@ TEST_F(IceFunctionalityTest, IceAgentIceAgentAddIceServerUnitTest)
     getIpAddrStr(&iceServer.ipAddresses.ipv6Address, (PCHAR) parsed_ipv6_addr, SIZEOF(parsed_ipv6_addr));
     EXPECT_STREQ(parsed_ipv6_addr, colon_delim_test_ipv6_addr.c_str());
 
-    // Cleanup the env var.
-    #ifdef _WIN32
-        _putenv_s(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "");
-    #else
-        unsetenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
-    #endif   
-
+// Cleanup the env var.
+#ifdef _WIN32
+    _putenv_s(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "");
+#else
+    unsetenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
+#endif
 }
 
 TEST_F(IceFunctionalityTest, IceAgentAddRemoteCandidateUnitTest)

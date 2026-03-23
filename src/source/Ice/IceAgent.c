@@ -21,10 +21,10 @@ typedef enum {
 extern StateMachineState ICE_AGENT_STATE_MACHINE_STATES[];
 extern UINT32 ICE_AGENT_STATE_MACHINE_STATE_COUNT;
 
-#define MARK_STUNS_SRFLX_CANDIDATE_INVALID(logFn, candidate, ...)                                                                                     \
-    do {                                                                                                                                               \
-        logFn(__VA_ARGS__);                                                                                                                            \
-        (candidate)->state = ICE_CANDIDATE_STATE_INVALID;                                                                                              \
+#define MARK_STUNS_SRFLX_CANDIDATE_INVALID(logFn, candidate, ...)                                                                                    \
+    do {                                                                                                                                             \
+        logFn(__VA_ARGS__);                                                                                                                          \
+        (candidate)->state = ICE_CANDIDATE_STATE_INVALID;                                                                                            \
     } while (0)
 
 STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAgentCallbacks, PRtcConfiguration pRtcConfiguration,
@@ -1877,19 +1877,20 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
         pIceServer = &pIceAgent->iceServers[pCandidate->iceServerIndex];
         if (IS_IPV4_ADDR(&(pCandidate->ipAddress))) {
             DLOGI("Initializing an IPv4 %s srflx candidate (server: %s, transport: %s)...",
-                  pIceServer->scheme == ICE_SERVER_SCHEME_STUNS ? "STUNS" : "STUN",
-                  pIceServer->url,
+                  pIceServer->scheme == ICE_SERVER_SCHEME_STUNS ? "STUNS" : "STUN", pIceServer->url,
                   pIceServer->scheme == ICE_SERVER_SCHEME_STUNS ? "UDP/DTLS" : "UDP");
             pStunServerAddress = &pIceServer->ipAddresses.ipv4Address;
         } else {
             DLOGI("Initializing an IPv6 %s srflx candidate (server: %s, transport: %s)...",
-                  pIceServer->scheme == ICE_SERVER_SCHEME_STUNS ? "STUNS" : "STUN",
-                  pIceServer->url,
+                  pIceServer->scheme == ICE_SERVER_SCHEME_STUNS ? "STUNS" : "STUN", pIceServer->url,
                   pIceServer->scheme == ICE_SERVER_SCHEME_STUNS ? "UDP/DTLS" : "UDP");
             pStunServerAddress = &pIceServer->ipAddresses.ipv6Address;
         }
 
         CHK(pStunServerAddress != NULL && pStunServerAddress->family != KVS_IP_FAMILY_TYPE_NOT_SET, STATUS_INVALID_ARG);
+        CHK_ERR(pIceServer->transport == KVS_SOCKET_PROTOCOL_UDP, STATUS_INVALID_ARG,
+                "srflx candidate gathering only supports UDP ICE server transport. Server: %s, transport: %u", pIceServer->url,
+                pIceServer->transport);
 
         // Open up a new socket at host candidate's IP address for server reflex candidate.
         // `stuns:` uses the same UDP socket type as `stun:`, but wraps the exchange in DTLS before the binding request is sent.
@@ -2735,8 +2736,8 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 CHK_WARN(pIceCandidate != NULL, retStatus, "Local candidate with socket %d not found. Dropping STUN binding success response",
                          pSocketConnection->localSocket);
                 CHK_WARN(pIceCandidate->iceServerIndex < pIceAgent->iceServersCount, retStatus,
-                         "Invalid ice server index %u for candidate %s. Dropping STUN binding success response",
-                         pIceCandidate->iceServerIndex, pIceCandidate->id);
+                         "Invalid ice server index %u for candidate %s. Dropping STUN binding success response", pIceCandidate->iceServerIndex,
+                         pIceCandidate->id);
 
                 if (pIceAgent->pRtcIceServerDiagnostics[pIceCandidate->iceServerIndex] != NULL) {
                     // Update round trip time for server reflexive candidate
@@ -2771,10 +2772,11 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             CHK_STATUS(findCandidateWithSocketConnection(pSocketConnection, pIceAgent->localCandidates, &pIceCandidate));
             if (pIceCandidate != NULL && pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE) {
                 CHK_WARN(pIceCandidate->iceServerIndex < pIceAgent->iceServersCount, retStatus,
-                         "Invalid ice server index %u for candidate %s. Dropping STUN binding success response",
-                         pIceCandidate->iceServerIndex, pIceCandidate->id);
-                PKvsIpAddress pIceServerAddress = IS_IPV4_ADDR(pSrcAddr) ? &pIceAgent->iceServers[pIceCandidate->iceServerIndex].ipAddresses.ipv4Address
-                                                                         : &pIceAgent->iceServers[pIceCandidate->iceServerIndex].ipAddresses.ipv6Address;
+                         "Invalid ice server index %u for candidate %s. Dropping STUN binding success response", pIceCandidate->iceServerIndex,
+                         pIceCandidate->id);
+                PKvsIpAddress pIceServerAddress = IS_IPV4_ADDR(pSrcAddr)
+                    ? &pIceAgent->iceServers[pIceCandidate->iceServerIndex].ipAddresses.ipv4Address
+                    : &pIceAgent->iceServers[pIceCandidate->iceServerIndex].ipAddresses.ipv6Address;
 
                 // The STUN server can still send responses after this srflx candidate has already been resolved. This packet
                 // is not a peer ICE success response and does not belong to any candidate pair and thus can ignored.

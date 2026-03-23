@@ -4,6 +4,34 @@
 #define LOG_CLASS "IceUtils"
 #include "../Include_i.h"
 
+static PCHAR iceServerSchemeToString(ICE_SERVER_SCHEME scheme)
+{
+    switch (scheme) {
+        case ICE_SERVER_SCHEME_STUN:
+            return (PCHAR) "stun";
+        case ICE_SERVER_SCHEME_STUNS:
+            return (PCHAR) "stuns";
+        case ICE_SERVER_SCHEME_TURN:
+            return (PCHAR) "turn";
+        case ICE_SERVER_SCHEME_TURNS:
+            return (PCHAR) "turns";
+        default:
+            return (PCHAR) "unknown";
+    }
+}
+
+static PCHAR iceServerTransportToString(KVS_SOCKET_PROTOCOL transport)
+{
+    switch (transport) {
+        case KVS_SOCKET_PROTOCOL_UDP:
+            return (PCHAR) ICE_TRANSPORT_TYPE_UDP;
+        case KVS_SOCKET_PROTOCOL_TCP:
+            return (PCHAR) ICE_TRANSPORT_TYPE_TCP;
+        default:
+            return (PCHAR) "none";
+    }
+}
+
 STATUS createTransactionIdStore(UINT32 maxIdCount, PTransactionIdStore* ppTransactionIdStore)
 {
     ENTERS();
@@ -309,7 +337,14 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
         } else if (STRSTR(url, ICE_URL_TRANSPORT_TCP) != NULL) {
             pIceServer->transport = KVS_SOCKET_PROTOCOL_TCP;
         }
+    } else if (paramStart != NULL && STRSTR(paramStart, ICE_URL_TRANSPORT_TCP) != NULL) {
+        DLOGW("Ignoring unsupported transport=tcp parameter for %s URL %s. Using %s for srflx gathering.",
+              iceServerSchemeToString(pIceServer->scheme), url, pIceServer->scheme == ICE_SERVER_SCHEME_STUNS ? "udp/dtls" : ICE_TRANSPORT_TYPE_UDP);
     }
+
+    DLOGD("Parsed ICE server config. Input URL: %s. Host: %s. Scheme: %s. Secure: %s. Turn: %s. Transport: %s. Port: %u", url, pIceServer->url,
+          iceServerSchemeToString(pIceServer->scheme), pIceServer->isSecure ? "true" : "false", pIceServer->isTurn ? "true" : "false",
+          iceServerTransportToString(pIceServer->transport), port);
 
     if (pIceServer->setIpFn != NULL) {
         retStatus = pIceServer->setIpFn(0, pIceServer->url, &pIceServer->ipAddresses);
