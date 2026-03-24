@@ -210,8 +210,8 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
             }
         }
 
-        SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, pControlPlaneServiceName,
-                 pChannelInfo->pRegion, pControlPlaneUrlPostfix);
+        SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, pControlPlaneServiceName, pChannelInfo->pRegion,
+                 pControlPlaneUrlPostfix);
     }
 
     pChannelInfo->pControlPlaneUrl = pCurPtr;
