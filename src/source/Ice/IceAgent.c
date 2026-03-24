@@ -2557,6 +2557,7 @@ STATUS incomingDataHandler(UINT64 customData, PSocketConnection pSocketConnectio
 {
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
+    PSocketConnection pSocketConnectionToShutdown = NULL;
     BOOL locked = FALSE;
     UINT32 addrLen = 0;
     CHK(pIceAgent != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
@@ -2591,9 +2592,12 @@ STATUS incomingDataHandler(UINT64 customData, PSocketConnection pSocketConnectio
         }
     } else {
         if (ATOMIC_LOAD_BOOL(&pIceAgent->processStun)) {
-            CHK_STATUS(handleStunPacket(pIceAgent, pBuffer, bufferLen, pSocketConnection, pSrc, pDest));
+            CHK_STATUS(handleStunPacket(pIceAgent, pBuffer, bufferLen, pSocketConnection, pSrc, pDest, &pSocketConnectionToShutdown));
             MUTEX_UNLOCK(pIceAgent->lock);
             locked = FALSE;
+            if (pSocketConnectionToShutdown != NULL) {
+                CHK_STATUS(socketConnectionShutdownSecureSession(pSocketConnectionToShutdown));
+            }
         }
     }
 
@@ -2648,7 +2652,7 @@ CleanUp:
 }
 
 STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PSocketConnection pSocketConnection, PKvsIpAddress pSrcAddr,
-                        PKvsIpAddress pDestAddr)
+                        PKvsIpAddress pDestAddr, PSocketConnection* ppSocketConnectionToShutdown)
 {
     UNUSED_PARAM(pDestAddr);
 
@@ -2669,6 +2673,9 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
     UINT64 connectivityCheckResponsesSent = 0;
     UINT64 connectivityCheckResponsesReceived = 0;
     UINT32 count = 0;
+
+    CHK(ppSocketConnectionToShutdown != NULL, STATUS_NULL_ARG);
+    *ppSocketConnectionToShutdown = NULL;
 
     // need to determine stunPacketType before deserializing because different password should be used depending on the packet type
     stunPacketType = (UINT16) getInt16(*((PUINT16) pBuffer));
@@ -2761,7 +2768,9 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 CHK_STATUS(updateCandidateAddress(pIceCandidate, &pStunAttributeAddress->address));
 
                 if (pIceAgent->iceServers[pIceCandidate->iceServerIndex].scheme == ICE_SERVER_SCHEME_STUNS) {
-                    CHK_STATUS(socketConnectionShutdownSecureSession(pIceCandidate->pSocketConnection));
+                    // Shut down the DTLS session after releasing the ICE agent lock to avoid inverting the
+                    // timer-queue and ICE-agent lock order during DTLS timer cancellation.
+                    *ppSocketConnectionToShutdown = pIceCandidate->pSocketConnection;
                 }
 
                 // Remove from the transaction id store as we no longer are awaiting for the bind response

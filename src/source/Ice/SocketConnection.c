@@ -234,6 +234,8 @@ STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection,
     TlsSessionCallbacks callbacks;
     DtlsSessionCallbacks dtlsCallbacks;
     STATUS retStatus = STATUS_SUCCESS;
+    PTlsSession pTlsSessionToFree = NULL;
+    PDtlsSession pDtlsSessionToFree = NULL;
     BOOL locked = FALSE;
 
     CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
@@ -265,15 +267,24 @@ STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection,
     pSocketConnection->secureConnection = TRUE;
 
 CleanUp:
-    if (STATUS_FAILED(retStatus) && pSocketConnection->pTlsSession != NULL) {
-        freeTlsSession(&pSocketConnection->pTlsSession);
-    }
-    if (STATUS_FAILED(retStatus) && pSocketConnection->pDtlsSession != NULL) {
-        freeDtlsSession(&pSocketConnection->pDtlsSession);
+    if (STATUS_FAILED(retStatus)) {
+        pTlsSessionToFree = pSocketConnection->pTlsSession;
+        pDtlsSessionToFree = pSocketConnection->pDtlsSession;
+        pSocketConnection->pTlsSession = NULL;
+        pSocketConnection->pDtlsSession = NULL;
+        pSocketConnection->secureConnection = FALSE;
+        pSocketConnection->tlsHandshakeStartTime = INVALID_TIMESTAMP_VALUE;
     }
 
     if (locked) {
         MUTEX_UNLOCK(pSocketConnection->lock);
+    }
+
+    if (pTlsSessionToFree != NULL) {
+        freeTlsSession(&pTlsSessionToFree);
+    }
+    if (pDtlsSessionToFree != NULL) {
+        freeDtlsSession(&pDtlsSessionToFree);
     }
 
     LEAVES();
@@ -361,6 +372,8 @@ CleanUp:
 STATUS socketConnectionShutdownSecureSession(PSocketConnection pSocketConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
+    PTlsSession pTlsSessionToFree = NULL;
+    PDtlsSession pDtlsSessionToFree = NULL;
     BOOL locked = FALSE;
 
     CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
@@ -368,13 +381,10 @@ STATUS socketConnectionShutdownSecureSession(PSocketConnection pSocketConnection
     MUTEX_LOCK(pSocketConnection->lock);
     locked = TRUE;
 
-    if (pSocketConnection->pTlsSession != NULL) {
-        freeTlsSession(&pSocketConnection->pTlsSession);
-    }
-
-    if (pSocketConnection->pDtlsSession != NULL) {
-        freeDtlsSession(&pSocketConnection->pDtlsSession);
-    }
+    pTlsSessionToFree = pSocketConnection->pTlsSession;
+    pDtlsSessionToFree = pSocketConnection->pDtlsSession;
+    pSocketConnection->pTlsSession = NULL;
+    pSocketConnection->pDtlsSession = NULL;
 
     pSocketConnection->secureConnection = FALSE;
     pSocketConnection->tlsHandshakeStartTime = INVALID_TIMESTAMP_VALUE;
@@ -383,6 +393,14 @@ CleanUp:
 
     if (locked) {
         MUTEX_UNLOCK(pSocketConnection->lock);
+    }
+
+    if (pTlsSessionToFree != NULL) {
+        freeTlsSession(&pTlsSessionToFree);
+    }
+
+    if (pDtlsSessionToFree != NULL) {
+        freeDtlsSession(&pDtlsSessionToFree);
     }
 
     CHK_LOG_ERR(retStatus);
