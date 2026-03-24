@@ -185,6 +185,7 @@ STATUS setRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket pR
     csrcCount = rawPacket[0] & CSRC_COUNT_MASK;
     marker = ((rawPacket[1] >> MARKER_SHIFT) & MARKER_MASK) > 0;
     payloadType = rawPacket[1] & PAYLOAD_TYPE_MASK;
+    // Convert multi-byte fields from network byte order to host byte order
     sequenceNumber = getInt16(*(PUINT16) (rawPacket + SEQ_NUMBER_OFFSET));
     timestamp = getInt32(*(PUINT32) (rawPacket + TIMESTAMP_OFFSET));
     ssrc = getInt32(*(PUINT32) (rawPacket + SSRC_OFFSET));
@@ -347,6 +348,71 @@ STATUS constructRtpPackets(PPayloadArray pPayloadArray, UINT8 payloadType, UINT1
     }
 
 CleanUp:
+    LEAVES();
+    return retStatus;
+}
+
+STATUS rtpPacketHeaderToString(PRtpPacket pRtpPacket, PCHAR buffer, UINT32 bufferLen)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    INT32 charsWritten;
+    UINT32 i;
+
+    CHK(pRtpPacket != NULL && buffer != NULL, STATUS_NULL_ARG);
+    CHK(bufferLen > 0, STATUS_INVALID_ARG_LEN);
+
+    // Construct fixed header string
+    charsWritten = SNPRINTF(buffer, bufferLen,
+             "RtpPacket: V=%u P=%u X=%u CC=%u M=%u PT=%u SEQ=%u TS=%u SSRC=%u payloadLen=%u",
+             pRtpPacket->header.version,
+             pRtpPacket->header.padding,
+             pRtpPacket->header.extension,
+             pRtpPacket->header.csrcCount,
+             pRtpPacket->header.marker,
+             pRtpPacket->header.payloadType,
+             pRtpPacket->header.sequenceNumber,
+             pRtpPacket->header.timestamp,
+             pRtpPacket->header.ssrc,
+             pRtpPacket->payloadLength);
+
+    CHK(charsWritten >= 0 && (UINT32) charsWritten < bufferLen, STATUS_BUFFER_TOO_SMALL);
+
+    // Add header extensions if present
+    if (pRtpPacket->header.extension && pRtpPacket->header.extensionPayload != NULL) {
+        charsWritten += SNPRINTF(buffer + charsWritten, bufferLen - charsWritten,
+                                 " extProfile=0x%04X extLen=%u",
+                                 pRtpPacket->header.extensionProfile,
+                                 pRtpPacket->header.extensionLength);
+        CHK(charsWritten >= 0 && (UINT32) charsWritten < bufferLen, STATUS_BUFFER_TOO_SMALL);
+
+        if (pRtpPacket->header.extensionProfile == TWCC_EXT_PROFILE && pRtpPacket->header.extensionLength >= 3) {
+            // TWCC is currently the only supported extension
+            charsWritten += SNPRINTF(buffer + charsWritten, bufferLen - charsWritten,
+                                     " twccExtId=%u twccSeqNum=%u",
+                                     (pRtpPacket->header.extensionPayload[0] >> 4),
+                                     TWCC_SEQNUM(pRtpPacket->header.extensionPayload));
+            CHK(charsWritten >= 0 && (UINT32) charsWritten < bufferLen, STATUS_BUFFER_TOO_SMALL);
+        } else {
+            // Unknown extension, dump the bytes
+            charsWritten += SNPRINTF(buffer + charsWritten, bufferLen - charsWritten, " extData=");
+            CHK(charsWritten >= 0 && (UINT32) charsWritten < bufferLen, STATUS_BUFFER_TOO_SMALL);
+
+            for (i = 0; i < pRtpPacket->header.extensionLength; i++) {
+                charsWritten += snprintf(buffer + charsWritten, bufferLen - charsWritten,
+                                         "%02x", pRtpPacket->header.extensionPayload[i]);
+                CHK(charsWritten >= 0 && (UINT32) charsWritten < bufferLen, STATUS_BUFFER_TOO_SMALL);
+            }
+        }
+    }
+
+CleanUp:
+    if (STATUS_FAILED(retStatus) && buffer != NULL && bufferLen > 0) {
+        buffer[0] = '\0';
+    }
+
+    CHK_LOG_ERR(retStatus);
+
     LEAVES();
     return retStatus;
 }

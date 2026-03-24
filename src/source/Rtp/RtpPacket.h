@@ -66,6 +66,7 @@ typedef STATUS (*DepayRtpPayloadFunc)(PBYTE, UINT32, PBYTE, PUINT32, PBOOL);
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  */
 
+// All fields are stored in host byte order
 struct __RtpPacketHeader {
     UINT8 version;
     BOOL padding;
@@ -118,6 +119,7 @@ STATUS setRtpPacketFromBytes(PBYTE, UINT32, PRtpPacket);
 STATUS createBytesFromRtpPacket(PRtpPacket, PBYTE, PUINT32);
 STATUS setBytesFromRtpPacket(PRtpPacket, PBYTE, UINT32);
 STATUS constructRtpPackets(PPayloadArray, UINT8, UINT16, UINT32, UINT32, PRtpPacket, UINT32);
+STATUS rtpPacketHeaderToString(PRtpPacket, PCHAR, UINT32);
 
 #ifdef __cplusplus
 }

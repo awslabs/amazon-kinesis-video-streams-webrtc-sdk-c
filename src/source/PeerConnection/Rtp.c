@@ -385,6 +385,17 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
             CHK_STATUS(rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
         }
 
+        if (isEnvVarEnabled(KVS_LOG_RTP_PACKETS_ENV_VAR) && loggerGetLogLevel() <= LOG_LEVEL_VERBOSE) {
+            CHAR packetContents[RTP_PACKET_TOSTRING_BUFFER_LEN];
+            STATUS toStringStatus = rtpPacketHeaderToString(pRtpPacket, packetContents, SIZEOF(packetContents));
+
+            if (STATUS_SUCCEEDED(toStringStatus)) {
+                DLOGV("%s", packetContents);
+            } else {
+                DLOGW("Error printing packet contents: 0x%08x", toStringStatus);
+            }
+        }
+
         CHK_STATUS(encryptRtpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, (PINT32) &packetLen));
         sendStatus = iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, packetLen);
         if (sendStatus == STATUS_SEND_DATA_FAILED) {
@@ -474,8 +485,12 @@ STATUS writeRtpPacket(PKvsPeerConnection pKvsPeerConnection, PRtpPacket pRtpPack
     BOOL locked = FALSE;
     PBYTE pRawPacket = NULL;
     INT32 rawLen = 0;
+    CHAR packetStr[1000] = {0};
 
     CHK(pKvsPeerConnection != NULL && pRtpPacket != NULL && pRtpPacket->pRawPacket != NULL, STATUS_NULL_ARG);
+
+    CHK_STATUS(rtpPacketHeaderToString(pRtpPacket, packetStr, SIZEOF(packetStr)));
+    DLOGE("Writing the packet: %s", packetStr);
 
     MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
     locked = TRUE;

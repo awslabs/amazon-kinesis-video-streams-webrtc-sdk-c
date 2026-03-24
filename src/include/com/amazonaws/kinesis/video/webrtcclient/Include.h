@@ -540,6 +540,18 @@ extern "C" {
  * Maximum length of signaling message
  */
 #define MAX_SIGNALING_MESSAGE_LEN 18750
+
+/**
+ * Maximum length of RTP packet dump string
+ */
+#define RTP_PACKET_TOSTRING_LEN 255
+
+/**
+ * Maximum allowed ICE URI buffer length, including the null terminator.
+ *
+ * \sa RTP_PACKET_TOSTRING_LEN
+ */
+#define RTP_PACKET_TOSTRING_BUFFER_LEN (RTP_PACKET_TOSTRING_LEN + 1)
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -706,6 +718,11 @@ extern "C" {
  */
 #define DISABLE_IPV4_TURN_ENV_VAR ((PCHAR) "KVS_DISABLE_IPV4_TURN")
 #define DISABLE_IPV6_TURN_ENV_VAR ((PCHAR) "KVS_DISABLE_IPV6_TURN")
+
+/**
+ * Env to print RTP packet headers to the log
+ */
+#define KVS_LOG_RTP_PACKETS_ENV_VAR ((PCHAR) "KVS_LOG_RTP_PACKETS")
 
 #ifdef _WIN32
 /**
