@@ -803,6 +803,81 @@ TEST_F(IceFunctionalityTest, IceAgentCandidateGatheringTest)
 
     deinitializeSignalingClient();
 }
+
+TEST_F(IceFunctionalityTest, IceAgentGovCloudStunsCandidateGatheringTest)
+{
+    typedef struct {
+        std::vector<std::string> list;
+        std::mutex lock;
+    } CandidateList;
+
+    PIceAgent pIceAgent = NULL;
+    CHAR localIceUfrag[LOCAL_ICE_UFRAG_LEN + 1];
+    CHAR localIcePwd[LOCAL_ICE_PWD_LEN + 1];
+    RtcConfiguration configuration;
+    IceAgentCallbacks iceAgentCallbacks;
+    PConnectionListener pConnectionListener = NULL;
+    TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+    BOOL foundHostCandidate = FALSE, foundSrflxCandidate = FALSE, foundRelayCandidate = FALSE;
+    CandidateList candidateList;
+    PCHAR pGovCloudRegion = (PCHAR) "us-gov-west-1";
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(localIceUfrag, 0x00, SIZEOF(localIceUfrag));
+    MEMSET(localIcePwd, 0x00, SIZEOF(localIcePwd));
+    MEMSET(&iceAgentCallbacks, 0x00, SIZEOF(IceAgentCallbacks));
+
+    // This uses the public GovCloud STUNS endpoint directly and does not require signaling or AWS credentials.
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUNS_URL, pGovCloudRegion, KINESIS_VIDEO_STUN_URL_POSTFIX);
+
+    auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
+        CandidateList* candidateList1 = (CandidateList*) customData;
+        std::lock_guard<std::mutex> lock(candidateList1->lock);
+        candidateList1->list.push_back(candidateStr != NULL ? std::string(candidateStr) : std::string(""));
+    };
+
+    iceAgentCallbacks.customData = (UINT64) &candidateList;
+    iceAgentCallbacks.newLocalCandidateFn = onICECandidateHdlr;
+
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(localIceUfrag, LOCAL_ICE_UFRAG_LEN));
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(localIcePwd, LOCAL_ICE_PWD_LEN));
+    EXPECT_EQ(STATUS_SUCCESS, createConnectionListener(&pConnectionListener));
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+    EXPECT_EQ(STATUS_SUCCESS,
+              createIceAgent(localIceUfrag, localIcePwd, &iceAgentCallbacks, &configuration, timerQueueHandle, pConnectionListener, &pIceAgent));
+
+    EXPECT_EQ(STATUS_SUCCESS, iceAgentStartGathering(pIceAgent));
+
+    THREAD_SLEEP(KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT + 2 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    {
+        std::lock_guard<std::mutex> lock(candidateList.lock);
+        EXPECT_FALSE(candidateList.list.empty());
+        if (!candidateList.list.empty()) {
+            // newLocalCandidateFn should return NULL in its last invocation, which we convert to an empty string.
+            EXPECT_TRUE(candidateList.list.back().empty());
+
+            for (std::vector<std::string>::iterator it = candidateList.list.begin(); it != candidateList.list.end(); ++it) {
+                std::string candidateStr = *it;
+                if (candidateStr.find(std::string(SDP_CANDIDATE_TYPE_HOST)) != std::string::npos) {
+                    foundHostCandidate = TRUE;
+                } else if (candidateStr.find(std::string(SDP_CANDIDATE_TYPE_SERFLX)) != std::string::npos) {
+                    foundSrflxCandidate = TRUE;
+                } else if (candidateStr.find(std::string(SDP_CANDIDATE_TYPE_RELAY)) != std::string::npos) {
+                    foundRelayCandidate = TRUE;
+                }
+            }
+        }
+    }
+
+    EXPECT_TRUE(foundHostCandidate);
+    EXPECT_TRUE(foundSrflxCandidate);
+    EXPECT_FALSE(foundRelayCandidate);
+    EXPECT_EQ(STATUS_SUCCESS, iceAgentShutdown(pIceAgent));
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueShutdown(timerQueueHandle));
+    EXPECT_EQ(STATUS_SUCCESS, freeIceAgent(&pIceAgent));
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueFree(&timerQueueHandle));
+}
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
