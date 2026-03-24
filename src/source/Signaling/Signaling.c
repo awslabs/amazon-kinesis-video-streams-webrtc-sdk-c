@@ -1146,7 +1146,9 @@ STATUS getChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
             // describeMediaStorageConfLws will invalidate getEndpointTime if storage status changes
             DLOGD("FILE_EXCEPT_DESCRIBE_MEDIA: cache usable: %s, time: %llu, endpoint time: %llu, caching period: %llu",
                   (IS_VALID_TIMESTAMP(pSignalingClient->getEndpointTime) &&
-                   time <= pSignalingClient->getEndpointTime + pSignalingClient->pChannelInfo->cachingPeriod) ? "YES" : "NO",
+                   time <= pSignalingClient->getEndpointTime + pSignalingClient->pChannelInfo->cachingPeriod)
+                      ? "YES"
+                      : "NO",
                   time, pSignalingClient->getEndpointTime, pSignalingClient->pChannelInfo->cachingPeriod);
             if (IS_VALID_TIMESTAMP(pSignalingClient->getEndpointTime) &&
                 time <= pSignalingClient->getEndpointTime + pSignalingClient->pChannelInfo->cachingPeriod) {

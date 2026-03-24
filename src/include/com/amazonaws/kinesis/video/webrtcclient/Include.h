@@ -986,21 +986,21 @@ typedef enum {
 typedef enum {
     SIGNALING_API_CALL_CACHE_TYPE_NONE, //!< No caching. The calls to the backend will be made for every API.
 
-    SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT, //!< Cache DescribeSignalingChannel and GetSignalingChannelEndpoint
-                                                        //!< backend API calls.
-                                                        //!< In this mode, the actual backend APIs will be
-                                                        //!< called once and the
-                                                        //!< information will be cached.
-                                                        //!< This mode is the recommended mode for most of the
-                                                        //!< use cases when the
-                                                        //!< signaling channel is not being constantly
-                                                        //!< created/deleted by other entities.
-    SIGNALING_API_CALL_CACHE_TYPE_FILE,                 //!< Cache DescribeSignalingChannel and GetSignalingChannelEndpoint
-                                                        //!< backend API calls.
-                                                        //!< In this mode, the actual backend APIs will be
-                                                        //!< called once and the
-                                                        //!< information will be cached into file
-                                                        //!< which will allow the cache to persist next time the signaling client is created.
+    SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT,       //!< Cache DescribeSignalingChannel and GetSignalingChannelEndpoint
+                                                              //!< backend API calls.
+                                                              //!< In this mode, the actual backend APIs will be
+                                                              //!< called once and the
+                                                              //!< information will be cached.
+                                                              //!< This mode is the recommended mode for most of the
+                                                              //!< use cases when the
+                                                              //!< signaling channel is not being constantly
+                                                              //!< created/deleted by other entities.
+    SIGNALING_API_CALL_CACHE_TYPE_FILE,                       //!< Cache DescribeSignalingChannel and GetSignalingChannelEndpoint
+                                                              //!< backend API calls.
+                                                              //!< In this mode, the actual backend APIs will be
+                                                              //!< called once and the
+                                                              //!< information will be cached into file
+                                                              //!< which will allow the cache to persist next time the signaling client is created.
     SIGNALING_API_CALL_CACHE_TYPE_FILE_EXCEPT_DESCRIBE_MEDIA, //!< Cache DescribeSignalingChannel and GetSignalingChannelEndpoint
                                                               //!< but always call DescribeMediaStorageConfiguration.
                                                               //!< This mode ensures fresh storage status is retrieved

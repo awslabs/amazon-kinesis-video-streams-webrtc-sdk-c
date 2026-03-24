@@ -866,13 +866,14 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK(pSignalingClient->channelDescription.channelStatus != SIGNALING_CHANNEL_STATUS_DELETING, STATUS_SIGNALING_CHANNEL_BEING_DELETED);
 
     DLOGD("=== DescribeMediaStorageConfiguration COMPLETE ===");
-    DLOGD("Final storage status: %s (%d)", pSignalingClient->mediaStorageConfig.storageStatus ? "ENABLED" : "DISABLED", 
+    DLOGD("Final storage status: %s (%d)", pSignalingClient->mediaStorageConfig.storageStatus ? "ENABLED" : "DISABLED",
           pSignalingClient->mediaStorageConfig.storageStatus);
     DLOGD("Final storage stream ARN: %s", pSignalingClient->mediaStorageConfig.storageStreamArn);
-    DLOGD("Endpoint cache usable: %s", 
+    DLOGD("Endpoint cache usable: %s",
           (IS_VALID_TIMESTAMP(pSignalingClient->getEndpointTime) &&
-           SIGNALING_GET_CURRENT_TIME(pSignalingClient) <= pSignalingClient->getEndpointTime + pSignalingClient->pChannelInfo->cachingPeriod) 
-          ? "YES" : "NO (will fetch fresh endpoints)");
+           SIGNALING_GET_CURRENT_TIME(pSignalingClient) <= pSignalingClient->getEndpointTime + pSignalingClient->pChannelInfo->cachingPeriod)
+              ? "YES"
+              : "NO (will fetch fresh endpoints)");
 
 CleanUp:
 
@@ -1630,14 +1631,14 @@ STATUS describeMediaStorageConfLws(PSignalingClient pSignalingClient, UINT64 tim
     UINT32 i, strLen, resultLen;
     UINT32 tokenCount;
     BOOL jsonInMediaStorageConfig = FALSE;
-    BOOL previousStorageStatus;  // Store the previous status to compare
+    BOOL previousStorageStatus; // Store the previous status to compare
     BOOL newStorageStatus = FALSE;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     DLOGD("=== DescribeMediaStorageConfiguration START ===");
     DLOGD("Cache policy: %d", pSignalingClient->pChannelInfo->cachingPolicy);
-    
+
     // Store the current storage status before making the API call
     // This allows us to detect when storage status changes and invalidate endpoint cache accordingly
     previousStorageStatus = pSignalingClient->mediaStorageConfig.storageStatus;
@@ -1680,13 +1681,13 @@ STATUS describeMediaStorageConfLws(PSignalingClient pSignalingClient, UINT64 tim
         STATUS_SIGNALING_LWS_CALL_FAILED);
 
     DLOGD("API call successful, parsing response (length: %u bytes)", resultLen);
-    
+
     // Parse the response
     jsmn_init(&parser);
     tokenCount = jsmn_parse(&parser, pResponseStr, resultLen, tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
     CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
     CHK(tokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
-    
+
     DLOGD("Parsed %d JSON tokens, extracting storage configuration...", tokenCount);
 
     // Loop through the tokens and extract the stream description
@@ -1705,16 +1706,16 @@ STATUS describeMediaStorageConfLws(PSignalingClient pSignalingClient, UINT64 tim
                 } else {
                     newStorageStatus = FALSE;
                 }
-                
+
                 // Update the storage status
                 pSignalingClient->mediaStorageConfig.storageStatus = newStorageStatus;
-                
+
                 // Check if storage status changed - this is important regardless of caching policy
                 // because whenever storage status changes, we need different protocol endpoints
                 // (WEBRTC is only needed when storage is enabled)
                 if (previousStorageStatus != newStorageStatus) {
                     DLOGD("Storage status changed: %d -> %d", previousStorageStatus, newStorageStatus);
-                    
+
                     // Invalidate getEndpointTime to force GetChannelEndpoint to make a fresh API call
                     // This ensures we request the correct protocol list based on the new storage status:
                     // - If storage was disabled and now enabled: need to request WEBRTC protocol
@@ -1722,7 +1723,7 @@ STATUS describeMediaStorageConfLws(PSignalingClient pSignalingClient, UINT64 tim
                     pSignalingClient->getEndpointTime = INVALID_TIMESTAMP_VALUE;
                     DLOGD("Invalidated getEndpointTime due to storage status change");
                 }
-                
+
                 i++;
             } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "StreamARN")) {
                 // StorageStream may be null.
