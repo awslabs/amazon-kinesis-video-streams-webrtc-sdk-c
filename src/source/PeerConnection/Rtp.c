@@ -264,7 +264,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = NULL;
     PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;
-    BOOL locked = FALSE, bufferAfterEncrypt = FALSE;
+    BOOL locked = FALSE, bufferAfterEncrypt = FALSE, shouldLog = FALSE;
     PRtpPacket pPacketList = NULL, pRtpPacket = NULL;
     UINT32 i = 0, packetLen = 0, headerLen = 0, allocSize;
     PBYTE rawPacket = NULL;
@@ -339,6 +339,24 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     }
 
     rtpTimestamp += randomRtpTimeoffset;
+
+     /* log the rtp time codes about every second */
+    shouldLog = (now - pKvsRtpTransceiver->lastWriteFrameLogTime >= HUNDREDS_OF_NANOS_IN_A_SECOND) ||
+                (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind &&
+                 0 != (pFrame->flags & FRAME_FLAG_KEY_FRAME));
+    if (shouldLog) {
+        if (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind) {
+            DLOGD("VIDEO: pts_ms=%" PRIu64 ", rtpTs=%" PRIu64 ", wallClock_ms=%" PRIu64 " %s",
+                  pFrame->presentationTs / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, rtpTimestamp,
+                  now / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                  (0 != (pFrame->flags & FRAME_FLAG_KEY_FRAME)) ? "[KEY]" : "[non-KEY]");
+        } else {
+            DLOGD("AUDIO: pts_ms=%" PRIu64 ", rtpTs=%" PRIu64 ", wallClock_ms=%" PRIu64,
+                  pFrame->presentationTs / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, rtpTimestamp,
+                  now / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        }
+        pKvsRtpTransceiver->lastWriteFrameLogTime = now;
+    }
 
     CHK_STATUS(rtpPayloadFunc(pKvsPeerConnection->MTU, (PBYTE) pFrame->frameData, pFrame->size, NULL, &(pPayloadArray->payloadLength), NULL,
                               &(pPayloadArray->payloadSubLenSize)));
