@@ -13,6 +13,7 @@ STATUS onRtcpPLIPacket(PRtcpPacket, PKvsPeerConnection);
 STATUS parseRtcpTwccPacket(PRtcpPacket, PTwccManager);
 STATUS onRtcpTwccPacket(PRtcpPacket, PKvsPeerConnection);
 STATUS updateTwccHashTable(PTwccManager, PINT64, PUINT64, PUINT64, PUINT64, PUINT64);
+STATUS computeTwccTrendline(PTwccManager, PDOUBLE);
 
 // https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
 // Deltas are represented as multiples of 250us:
@@ -20,8 +21,12 @@ STATUS updateTwccHashTable(PTwccManager, PINT64, PUINT64, PUINT64, PUINT64, PUIN
 #define MICROSECONDS_PER_SECOND      1000000LL
 #define MILLISECONDS_PER_SECOND      1000LL
 #define TWCC_PACKET_LOST_TIME        ((UINT64) (-1LL))
-#define TWCC_PACKET_UNITIALIZED_TIME 0
-#define TWCC_ESTIMATOR_TIME_WINDOW   (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define TWCC_PACKET_UNITIALIZED_TIME        0
+#define TWCC_ESTIMATOR_TIME_WINDOW          (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define TWCC_TRENDLINE_SMOOTHING_FACTOR     0.1
+#define TWCC_TRENDLINE_INCREASE_THRESHOLD   (-50.0)  // TODO: tune — slope below this means network is clearing
+#define TWCC_TRENDLINE_DECREASE_THRESHOLD   (50.0)   // TODO: tune — slope above this means congestion building
+#define TWCC_ADJUSTMENT_INTERVAL            (3 * HUNDREDS_OF_NANOS_IN_A_SECOND) // How often to log/act on bitrate decisions
 
 typedef enum {
     TWCC_STATUS_SYMBOL_NOTRECEIVED = 0,

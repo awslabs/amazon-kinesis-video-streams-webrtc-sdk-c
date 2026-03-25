@@ -175,6 +175,7 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
        |           recv delta          |  recv delta   | zero padding  |
        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
      */
+    DLOGI("RECEIVE TWCC PACKET");
     STATUS retStatus = STATUS_SUCCESS;
     INT32 packetsRemaining;
     UINT16 baseSeqNum, packetStatusCount, packetSeqNum;
@@ -317,6 +318,65 @@ CleanUp:
     return retStatus;
 }
 
+// Computes the trendline slope of one-way delay variation across the current TWCC report window.
+// Iterates consecutive received packets in [prevReportedBaseSeqNum, lastReportedSeqNum],
+// accumulates per-pair delay variation: (R_i - R_{i-1}) - (T_i - T_{i-1}),
+// then fits a line via least-squares and applies EMA smoothing across reports.
+// pSlope output: positive = congestion (decrease), negative = draining (increase), ~0 = hold.
+STATUS computeTwccTrendline(PTwccManager pTwccManager, PDOUBLE pSlope)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT64 twccPktValue = 0;
+    PTwccRtpPacketInfo pCurr = NULL, pPrev = NULL;
+    UINT16 seqNum;
+    DOUBLE accumulatedDelay = 0.0;
+    DOUBLE sumX = 0.0, sumY = 0.0, sumXY = 0.0, sumX2 = 0.0;
+    DOUBLE rawSlope = 0.0;
+    UINT32 n = 0;
+
+    CHK(pTwccManager != NULL && pSlope != NULL, STATUS_NULL_ARG);
+
+    for (seqNum = pTwccManager->prevReportedBaseSeqNum; seqNum != (UINT16) (pTwccManager->lastReportedSeqNum + 1); seqNum++) {
+        if (STATUS_FAILED(hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, seqNum, &twccPktValue))) {
+            continue;
+        }
+        pCurr = (PTwccRtpPacketInfo) twccPktValue;
+        if (pCurr == NULL || pCurr->remoteTimeKvs == TWCC_PACKET_LOST_TIME) {
+            continue;
+        }
+
+        if (pPrev != NULL) {
+            INT64 interRecv = (INT64) (pCurr->remoteTimeKvs - pPrev->remoteTimeKvs);
+            INT64 interSend = (INT64) (pCurr->localTimeKvs - pPrev->localTimeKvs);
+            accumulatedDelay += (DOUBLE) (interRecv - interSend);
+
+            sumX += (DOUBLE) n;
+            sumY += accumulatedDelay;
+            sumXY += (DOUBLE) n * accumulatedDelay;
+            sumX2 += (DOUBLE) n * (DOUBLE) n;
+            n++;
+        }
+
+        pPrev = pCurr;
+    }
+
+    if (n >= 2) {
+        DOUBLE denom = (DOUBLE) n * sumX2 - sumX * sumX;
+        if (denom != 0.0) {
+            rawSlope = ((DOUBLE) n * sumXY - sumX * sumY) / denom;
+        }
+    }
+
+    pTwccManager->smoothedSlope = TWCC_TRENDLINE_SMOOTHING_FACTOR * rawSlope +
+                                  (1.0 - TWCC_TRENDLINE_SMOOTHING_FACTOR) * pTwccManager->smoothedSlope;
+    *pSlope = pTwccManager->smoothedSlope;
+
+    DLOGI("TWCC trendline raw=%.2f smoothed=%.2f", rawSlope, *pSlope);
+
+CleanUp:
+    return retStatus;
+}
+
 STATUS updateTwccHashTable(PTwccManager pTwccManager, PINT64 duration, PUINT64 receivedBytes, PUINT64 receivedPackets, PUINT64 sentBytes,
                            PUINT64 sentPackets)
 {
@@ -413,6 +473,25 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     locked = TRUE;
     pTwccManager = pKvsPeerConnection->pTwccManager;
     CHK_STATUS(parseRtcpTwccPacket(pRtcpPacket, pTwccManager));
+
+    DOUBLE trendSlope = 0.0;
+    UINT64 currentTimeKvs = GETTIME();
+    computeTwccTrendline(pTwccManager, &trendSlope);
+
+    if (currentTimeKvs >= pTwccManager->lastAdjustmentTimeKvs + TWCC_ADJUSTMENT_INTERVAL) {
+        pTwccManager->lastAdjustmentTimeKvs = currentTimeKvs;
+
+        if (trendSlope > TWCC_TRENDLINE_DECREASE_THRESHOLD) {
+            // TODO: decrease bitrate
+            DLOGP("TWCC trendline: DECREASE bitrate (slope=%.2f)", trendSlope);
+        } else if (trendSlope < TWCC_TRENDLINE_INCREASE_THRESHOLD) {
+            // TODO: increase bitrate
+            DLOGP("TWCC trendline: INCREASE bitrate (slope=%.2f)", trendSlope);
+        } else {
+            // TODO: hold bitrate
+            DLOGP("TWCC trendline: HOLD bitrate (slope=%.2f)", trendSlope);
+        }
+    }
 
     updateTwccHashTable(pTwccManager, &duration, &receivedBytes, &receivedPackets, &sentBytes, &sentPackets);
 

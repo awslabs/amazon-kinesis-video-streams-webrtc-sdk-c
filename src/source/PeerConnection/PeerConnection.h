@@ -48,9 +48,16 @@ typedef enum {
     RTC_RTX_CODEC_H265 = 3,
 } RTX_CODEC;
 
+/**
+ * Contains the necessary info for TWCC one-way delay variation calculation.
+ * Between two consecutive seqNum packets 1 and 2:
+ * - Inter-send delta: T2 - T1
+ * - Inter-recv delta: R2 - R1
+ * - One-way delay variation: (R2 - R1) - (T2 - T1)
+ */
 typedef struct {
-    UINT64 localTimeKvs;
-    UINT64 remoteTimeKvs;
+    UINT64 localTimeKvs;  //!< sender send time (T) in hundreds of nanos
+    UINT64 remoteTimeKvs; //!< receiver arrival time (R) in hundreds of nanos (reconstructed)
     UINT32 packetSize;
 } TwccRtpPacketInfo, *PTwccRtpPacketInfo;
 
@@ -59,6 +66,8 @@ typedef struct {
     UINT16 firstSeqNumInRollingWindow;    // To monitor the last deleted packet in the rolling window
     UINT16 lastReportedSeqNum;            // To monitor the last packet's seqNum in the TWCC response
     UINT16 prevReportedBaseSeqNum;        // To monitor the base seqNum in the TWCC response
+    DOUBLE smoothedSlope;                 // EMA-smoothed trendline slope for congestion signaling
+    UINT64 lastAdjustmentTimeKvs;         // Last time a bitrate adjustment decision was logged/acted on
 } TwccManager, *PTwccManager;
 
 typedef struct {

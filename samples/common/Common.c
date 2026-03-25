@@ -414,7 +414,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
          * candidate gathering latency. But user can also choose to use more than 1 turn server. */
         for (uriCount = 0, i = 0; i < maxTurnServer; i++) {
             CHK_STATUS(signalingClientGetIceConfigInfo(pSampleConfiguration->signalingClientHandle, i, &pIceConfigInfo));
-            for (j = 0; j < pIceConfigInfo->uriCount; j++) {
+            for (j = 2; ; j++) {
                 CHECK(uriCount < MAX_ICE_SERVERS_COUNT);
                 /*
                  * if configuration.iceServers[uriCount + 1].urls is "turn:ip:port?transport=udp" then ICE will try TURN over UDP
@@ -433,6 +433,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
                 STRNCPY(configuration.iceServers[uriCount + 1].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
 
                 uriCount++;
+                break;
             }
         }
     }
