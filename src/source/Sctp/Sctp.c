@@ -306,6 +306,8 @@ STATUS handleDcepPacket(PSctpSession pSctpSession, UINT32 streamId, PBYTE data, 
     STATUS retStatus = STATUS_SUCCESS;
     UINT16 labelLength = 0;
     UINT16 protocolLength = 0;
+    struct sctp_sendv_spa ackSpa;
+    BYTE ackPacket = DCEP_DATA_CHANNEL_ACK;
 
     // Assert that is DCEP of type DataChannelOpen
     CHK(length > SCTP_DCEP_HEADER_LENGTH && data[0] == DCEP_DATA_CHANNEL_OPEN, STATUS_SUCCESS);
@@ -318,6 +320,19 @@ STATUS handleDcepPacket(PSctpSession pSctpSession, UINT32 streamId, PBYTE data, 
     CHK((labelLength + protocolLength + SCTP_DCEP_HEADER_LENGTH) >= length, STATUS_SCTP_INVALID_DCEP_PACKET);
 
     CHK(SCTP_MAX_ALLOWABLE_PACKET_LENGTH >= length, STATUS_SCTP_INVALID_DCEP_PACKET);
+
+    // Send DATA_CHANNEL_ACK (RFC 8832 Section 5.2) back on the same stream
+    // https://datatracker.ietf.org/doc/html/rfc8832#name-data_channel_ack-message
+    //   0                   1                   2                   3
+    //   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    //  |  Message Type |
+    //  +-+-+-+-+-+-+-+-+
+    MEMSET(&ackSpa, 0x00, SIZEOF(struct sctp_sendv_spa));
+    ackSpa.sendv_flags |= SCTP_SEND_SNDINFO_VALID;
+    ackSpa.sendv_sndinfo.snd_sid = streamId;
+    putInt32((PINT32) &ackSpa.sendv_sndinfo.snd_ppid, SCTP_PPID_DCEP);
+    CHK(usrsctp_sendv(pSctpSession->socket, &ackPacket, 1, NULL, 0, &ackSpa, SIZEOF(ackSpa), SCTP_SENDV_SPA, 0) > 0, STATUS_INTERNAL_ERROR);
 
     pSctpSession->sctpSessionCallbacks.dataChannelOpenFunc(pSctpSession->sctpSessionCallbacks.customData, streamId, data + SCTP_DCEP_HEADER_LENGTH,
                                                            labelLength);
