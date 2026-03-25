@@ -267,7 +267,7 @@ STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection,
     pSocketConnection->secureConnection = TRUE;
 
 CleanUp:
-    if (STATUS_FAILED(retStatus)) {
+    if (STATUS_FAILED(retStatus) && locked) {
         pTlsSessionToFree = pSocketConnection->pTlsSession;
         pDtlsSessionToFree = pSocketConnection->pDtlsSession;
         pSocketConnection->pTlsSession = NULL;
