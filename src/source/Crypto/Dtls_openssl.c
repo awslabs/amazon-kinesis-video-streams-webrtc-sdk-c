@@ -64,6 +64,7 @@ STATUS dtlsSessionConfigureRemoteCertificateValidation(PDtlsSession pDtlsSession
     CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
     CHK(pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER, retStatus);
     CHK(pDtlsSession->pExpectedServerHostname != NULL && pDtlsSession->pExpectedServerHostname[0] != '\0', STATUS_INVALID_ARG);
+    DLOGD("Configuring strict DTLS server certificate validation for %s using CA bundle %s", pDtlsSession->pExpectedServerHostname, KVS_CA_CERT_PATH);
     CHK(SSL_CTX_load_verify_locations(pDtlsSession->pSslCtx, KVS_CA_CERT_PATH, NULL) == 1, STATUS_SSL_CTX_CREATION_FAILED);
     CHK(SSL_set_tlsext_host_name(pDtlsSession->pSsl, pDtlsSession->pExpectedServerHostname) == 1, STATUS_SSL_CTX_CREATION_FAILED);
     CHK(SSL_set1_host(pDtlsSession->pSsl, pDtlsSession->pExpectedServerHostname) == 1, STATUS_SSL_CTX_CREATION_FAILED);
@@ -79,16 +80,25 @@ STATUS dtlsSessionCheckRemoteCertificateVerification(PDtlsSession pDtlsSession)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     X509* pRemoteCertificate = NULL;
+    LONG verifyResult = X509_V_OK;
 
     CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
     CHK(pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER, retStatus);
+    verifyResult = SSL_get_verify_result(pDtlsSession->pSsl);
     CHK(!ATOMIC_LOAD_BOOL(&pDtlsSession->remoteCertVerificationFailed), STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
     CHK((pRemoteCertificate = SSL_get_peer_certificate(pDtlsSession->pSsl)) != NULL, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
-    CHK(SSL_get_verify_result(pDtlsSession->pSsl) == X509_V_OK, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
+    CHK(verifyResult == X509_V_OK, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
+    DLOGD("DTLS strict server certificate verification passed for %s using CA bundle %s", pDtlsSession->pExpectedServerHostname, KVS_CA_CERT_PATH);
 
 CleanUp:
     if (pRemoteCertificate != NULL) {
         X509_free(pRemoteCertificate);
+    }
+
+    if (retStatus == STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED && pDtlsSession != NULL &&
+        pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER) {
+        DLOGW("DTLS strict server certificate verification failed for %s. OpenSSL verify result: %ld",
+              pDtlsSession->pExpectedServerHostname != NULL ? pDtlsSession->pExpectedServerHostname : "(null)", verifyResult);
     }
 
     CHK_LOG_ERR(retStatus);
@@ -150,6 +160,8 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
     locked = TRUE;
 
     if (ATOMIC_LOAD_BOOL(&pDtlsSession->remoteCertVerificationFailed)) {
+        DLOGW("DTLS strict server certificate verification failed for %s during timer-driven handshake processing",
+              pDtlsSession->pExpectedServerHostname != NULL ? pDtlsSession->pExpectedServerHostname : "(null)");
         CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_FAILED));
         CHK(FALSE, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
     }
@@ -578,6 +590,8 @@ STATUS dtlsSessionHandshakeInThread(PDtlsSession pDtlsSession, BOOL isServer)
                         CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
                     } else {
                         if (ATOMIC_LOAD_BOOL(&pDtlsSession->remoteCertVerificationFailed)) {
+                            DLOGW("DTLS strict server certificate verification failed for %s during threaded handshake processing",
+                                  pDtlsSession->pExpectedServerHostname != NULL ? pDtlsSession->pExpectedServerHostname : "(null)");
                             CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_FAILED));
                             retStatus = STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED;
                             dtlsHandshakeErrored = TRUE;
@@ -760,6 +774,8 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
         sslRet = SSL_read(pDtlsSession->pSsl, pData, *pDataLen);
 
         if (ATOMIC_LOAD_BOOL(&pDtlsSession->remoteCertVerificationFailed)) {
+            DLOGW("DTLS strict server certificate verification failed for %s while processing handshake packets",
+                  pDtlsSession->pExpectedServerHostname != NULL ? pDtlsSession->pExpectedServerHostname : "(null)");
             CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_FAILED));
             CHK(FALSE, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
         }
