@@ -447,7 +447,9 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOO
 
         DLOGS("jitterBufferPush get packet timestamp %lu seqNum %lu", pRtpPacket->header.timestamp, pRtpPacket->header.sequenceNumber);
     } else {
-        // Free the packet if it is out of range, jitter buffer need to own the packet and do free
+        DLOGW("jitterBufferPush: DISCARDED packet seq=%u ts=%u outside latency tolerance (head=%u tail=%u maxLatency=%u)",
+              pRtpPacket->header.sequenceNumber, pRtpPacket->header.timestamp,
+              pJitterBuffer->headTimestamp, pJitterBuffer->tailTimestamp, pJitterBuffer->maxLatency);
         freeRtpPacket(&pRtpPacket);
         if (pPacketDiscarded != NULL) {
             *pPacketDiscarded = TRUE;
@@ -511,6 +513,11 @@ STATUS jitterBufferInternalParse(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
         if (!hasEntry) {
             isFrameDataContinuous = FALSE;
             // if the max latency has not been reached, or the buffer is not being closed, exit parse when a missing entry is found
+            if (pJitterBuffer->headTimestamp < earliestAllowedTimestamp) {
+                DLOGW("jitterBufferParse: missing seq=%u, latency exceeded (headTs=%u tailTs=%u gap=%u maxLatency=%u)",
+                      index, pJitterBuffer->headTimestamp, pJitterBuffer->tailTimestamp,
+                      pJitterBuffer->tailTimestamp - pJitterBuffer->headTimestamp, pJitterBuffer->maxLatency);
+            }
             CHK(pJitterBuffer->headTimestamp < earliestAllowedTimestamp || bufferClosed, retStatus);
         } else {
             lastNonNullIndex = index;
@@ -538,6 +545,9 @@ STATUS jitterBufferInternalParse(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
                 }
                 // are we forcibly clearing out the buffer? if so drop the contents of incomplete frame
                 else if (pJitterBuffer->headTimestamp < earliestAllowedTimestamp || bufferClosed) {
+                    DLOGW("jitterBufferParse: DROPPING incomplete frame headTs=%u tailTs=%u earliestAllowed=%u seqRange=[%u-%u] bufferClosed=%s",
+                          pJitterBuffer->headTimestamp, pJitterBuffer->tailTimestamp, earliestAllowedTimestamp,
+                          startDropIndex, UINT16_DEC(index), bufferClosed ? "yes" : "no");
                     // do not CHK_STATUS of onFrameDropped because we need to clear the jitter buffer no matter what else happens.
                     pJitterBuffer->onFrameDroppedFn(pJitterBuffer->customData, startDropIndex, UINT16_DEC(index), pJitterBuffer->headTimestamp);
                     CHK_STATUS(jitterBufferDropBufferData(pJitterBuffer, startDropIndex, UINT16_DEC(index), curTimestamp));

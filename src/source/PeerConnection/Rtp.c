@@ -286,6 +286,10 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     UINT32 extpayload;
     STATUS sendStatus;
 
+    // send delay instrumentation
+    UINT64 lockWaitStart = 0, lockAcquiredTime = 0, frameSendStart = 0, frameSendDuration = 0;
+    UINT64 sendStart = 0, sendDuration = 0, maxSendDuration = 0, totalSendDuration = 0;
+
     CHK(pKvsRtpTransceiver != NULL && pFrame != NULL, STATUS_NULL_ARG);
     pKvsPeerConnection = pKvsRtpTransceiver->pKvsPeerConnection;
     pPayloadArray = &(pKvsRtpTransceiver->sender.payloadArray);
@@ -304,8 +308,15 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
         }
     }
 
+    lockWaitStart = GETTIME();
     MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
     locked = TRUE;
+    lockAcquiredTime = GETTIME();
+    if (lockAcquiredTime - lockWaitStart > 5 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) {
+        DLOGW("writeFrame(): SRTP lock wait took %" PRIu64 " ms",
+              (lockAcquiredTime - lockWaitStart) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    frameSendStart = lockAcquiredTime;
     CHK(pKvsPeerConnection->pSrtpSession != NULL, STATUS_SRTP_NOT_READY_YET); // Discard packets till SRTP is ready
     switch (pKvsRtpTransceiver->sender.track.codec) {
         case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
@@ -404,7 +415,18 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
         }
 
         CHK_STATUS(encryptRtpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, (PINT32) &packetLen));
+        sendStart = GETTIME();
         sendStatus = iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, packetLen);
+        sendDuration = GETTIME() - sendStart;
+        totalSendDuration += sendDuration;
+        if (sendDuration > maxSendDuration) {
+            maxSendDuration = sendDuration;
+        }
+        if (sendDuration > 5 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) {
+            DLOGW("writeFrame(): slow iceAgentSendPacket: %" PRIu64 " ms, seq=%u, size=%u",
+                  sendDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                  pRtpPacket->header.sequenceNumber, packetLen);
+        }
         if (sendStatus == STATUS_SEND_DATA_FAILED) {
             packetsDiscardedOnSend++;
             bytesDiscardedOnSend += packetLen - headerLen;
@@ -441,6 +463,19 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     if (pKvsRtpTransceiver->sender.firstFrameWallClockTime == 0) {
         pKvsRtpTransceiver->sender.rtpTimeOffset = randomRtpTimeoffset;
         pKvsRtpTransceiver->sender.firstFrameWallClockTime = now;
+    }
+
+    if (frameSendStart > 0) {
+        frameSendDuration = GETTIME() - frameSendStart;
+        if (frameSendDuration > 10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) {
+            DLOGW("writeFrame(): %s frame send took %" PRIu64 " ms (packets=%u, totalSend=%" PRIu64 " ms, maxSend=%" PRIu64
+                  " ms, frameSize=%u, pts_ms=%" PRIu64 ")",
+                  MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind ? "VIDEO" : "AUDIO",
+                  frameSendDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, packetsSent,
+                  totalSendDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                  maxSendDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, pFrame->size,
+                  pFrame->presentationTs / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        }
     }
 
 CleanUp:

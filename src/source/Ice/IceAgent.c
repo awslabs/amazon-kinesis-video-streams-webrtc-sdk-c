@@ -676,12 +676,19 @@ STATUS iceAgentSendPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen)
     UINT32 bytesDiscarded = 0;
     UINT32 bytesSent = 0;
     UINT32 packetsSent = 0;
+    UINT64 iceLockWaitStart = 0, iceLockAcquiredTime = 0, iceSendStart = 0, iceSendDuration = 0;
 
     CHK(pIceAgent != NULL && pBuffer != NULL, STATUS_NULL_ARG);
     CHK(bufferLen != 0, STATUS_INVALID_ARG);
 
+    iceLockWaitStart = GETTIME();
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
+    iceLockAcquiredTime = GETTIME();
+    if (iceLockAcquiredTime - iceLockWaitStart > 5 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) {
+        DLOGW("iceAgentSendPacket(): ICE lock wait took %" PRIu64 " ms, bufLen=%u",
+              (iceLockAcquiredTime - iceLockWaitStart) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, bufferLen);
+    }
 
     /* Do not proceed if ice is shutting down */
     CHK(!ATOMIC_LOAD_BOOL(&pIceAgent->shutdown), retStatus);
@@ -700,8 +707,14 @@ STATUS iceAgentSendPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen)
         pTurnConnection = pIceAgent->pDataSendingIceCandidatePair->local->pTurnConnection;
     }
 
+    iceSendStart = GETTIME();
     retStatus = iceUtilsSendData(pBuffer, bufferLen, &pIceAgent->pDataSendingIceCandidatePair->remote->ipAddress,
                                  pIceAgent->pDataSendingIceCandidatePair->local->pSocketConnection, pTurnConnection, isRelay);
+    iceSendDuration = GETTIME() - iceSendStart;
+    if (iceSendDuration > 5 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) {
+        DLOGW("iceAgentSendPacket(): iceUtilsSendData took %" PRIu64 " ms, bufLen=%u, relay=%s",
+              iceSendDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, bufferLen, isRelay ? "yes" : "no");
+    }
 
     if (STATUS_FAILED(retStatus)) {
         DLOGW("iceUtilsSendData failed with 0x%08x", retStatus);
