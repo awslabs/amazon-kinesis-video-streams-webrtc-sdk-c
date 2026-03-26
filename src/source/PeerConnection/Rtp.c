@@ -347,9 +347,9 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
 
     /* log the rtp time codes about every second */
     shouldLog = pKvsPeerConnection->printExtraTimingInfo &&
-            (now - pKvsRtpTransceiver->lastWriteFrameLogTime >= pKvsPeerConnection->writeFrameLoggingIntervalMs * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) ||
-        (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind &&
-         0 != (pFrame->flags & FRAME_FLAG_KEY_FRAME));
+            (now - pKvsRtpTransceiver->lastWriteFrameLogTime >=
+             pKvsPeerConnection->writeFrameLoggingIntervalMs * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) ||
+        (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind && 0 != (pFrame->flags & FRAME_FLAG_KEY_FRAME));
 
     CHK_STATUS(rtpPayloadFunc(pKvsPeerConnection->MTU, (PBYTE) pFrame->frameData, pFrame->size, NULL, &(pPayloadArray->payloadLength), NULL,
                               &(pPayloadArray->payloadSubLenSize)));
@@ -453,9 +453,8 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
         if (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind) {
             DLOGD("VIDEO SENT: %s, pts_ms=%" PRIu64 ", rtpTs=%" PRIu64 ", packets=%u, bytes=%u, discarded=%u"
                   ", wallClock_ms=%" PRIu64 ", srtpDuration=%" PRIu64 ".%02" PRIu64 " ms, frameSendDuration=%" PRIu64 ".%02" PRIu64 " ms",
-                  (0 != (pFrame->flags & FRAME_FLAG_KEY_FRAME)) ? "[KEY]" : "[non-KEY]",
-                  pFrame->presentationTs / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, rtpTimestamp, packetsSent, bytesSent, packetsDiscardedOnSend,
-                  postSendWallClock / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                  (0 != (pFrame->flags & FRAME_FLAG_KEY_FRAME)) ? "[KEY]" : "[non-KEY]", pFrame->presentationTs / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                  rtpTimestamp, packetsSent, bytesSent, packetsDiscardedOnSend, postSendWallClock / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
                   (srtpEnd - srtpStart) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
                   ((srtpEnd - srtpStart) % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100),
                   (sendEnd - sendStart) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
@@ -464,8 +463,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
             DLOGD("AUDIO SENT: pts_ms=%" PRIu64 ", rtpTs=%" PRIu64 ", packets=%u, bytes=%u, discarded=%u"
                   ", wallClock_ms=%" PRIu64 ", srtpDuration=%" PRIu64 ".%02" PRIu64 " ms, frameSendDuration=%" PRIu64 ".%02" PRIu64 " ms",
                   pFrame->presentationTs / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, rtpTimestamp, packetsSent, bytesSent, packetsDiscardedOnSend,
-                  postSendWallClock / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                  (srtpEnd - srtpStart) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                  postSendWallClock / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, (srtpEnd - srtpStart) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
                   ((srtpEnd - srtpStart) % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100),
                   (sendEnd - sendStart) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
                   ((sendEnd - sendStart) % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100));
@@ -592,35 +590,23 @@ STATUS rtpPacketHeaderToString(PRtpPacket pRtpPacket, PCHAR buffer, UINT32 buffe
     CHK(bufferLen > 0, STATUS_INVALID_ARG_LEN);
 
     // Construct fixed header string
-    charsWritten = SNPRINTF(buffer, bufferLen,
-                            "RtpPacket: V=%u P=%u X=%u CC=%u M=%u PT=%u SEQ=%u TS=%u SSRC=%u payloadLen=%u",
-                            pRtpPacket->header.version,
-                            pRtpPacket->header.padding,
-                            pRtpPacket->header.extension,
-                            pRtpPacket->header.csrcCount,
-                            pRtpPacket->header.marker,
-                            pRtpPacket->header.payloadType,
-                            pRtpPacket->header.sequenceNumber,
-                            pRtpPacket->header.timestamp,
-                            pRtpPacket->header.ssrc,
-                            pRtpPacket->payloadLength);
+    charsWritten = SNPRINTF(buffer, bufferLen, "RtpPacket: V=%u P=%u X=%u CC=%u M=%u PT=%u SEQ=%u TS=%u SSRC=%u payloadLen=%u",
+                            pRtpPacket->header.version, pRtpPacket->header.padding, pRtpPacket->header.extension, pRtpPacket->header.csrcCount,
+                            pRtpPacket->header.marker, pRtpPacket->header.payloadType, pRtpPacket->header.sequenceNumber,
+                            pRtpPacket->header.timestamp, pRtpPacket->header.ssrc, pRtpPacket->payloadLength);
 
     CHK(charsWritten >= 0 && (UINT32) charsWritten < bufferLen, STATUS_BUFFER_TOO_SMALL);
 
     // Add header extensions if present
     if (pRtpPacket->header.extension && pRtpPacket->header.extensionPayload != NULL) {
-        charsWritten += SNPRINTF(buffer + charsWritten, bufferLen - charsWritten,
-                                 " extProfile=0x%04X extLen=%u",
-                                 pRtpPacket->header.extensionProfile,
+        charsWritten += SNPRINTF(buffer + charsWritten, bufferLen - charsWritten, " extProfile=0x%04X extLen=%u", pRtpPacket->header.extensionProfile,
                                  pRtpPacket->header.extensionLength);
         CHK(charsWritten >= 0 && (UINT32) charsWritten < bufferLen, STATUS_BUFFER_TOO_SMALL);
 
         if (pRtpPacket->header.extensionProfile == TWCC_EXT_PROFILE && pRtpPacket->header.extensionLength >= 3) {
             // TWCC is currently the only supported extension
-            charsWritten += SNPRINTF(buffer + charsWritten, bufferLen - charsWritten,
-                                     " twccExtId=%u twccSeqNum=%u",
-                                     (pRtpPacket->header.extensionPayload[0] >> 4),
-                                     TWCC_SEQNUM(pRtpPacket->header.extensionPayload));
+            charsWritten += SNPRINTF(buffer + charsWritten, bufferLen - charsWritten, " twccExtId=%u twccSeqNum=%u",
+                                     (pRtpPacket->header.extensionPayload[0] >> 4), TWCC_SEQNUM(pRtpPacket->header.extensionPayload));
             CHK(charsWritten >= 0 && (UINT32) charsWritten < bufferLen, STATUS_BUFFER_TOO_SMALL);
         } else {
             // Unknown extension, dump the bytes
@@ -628,8 +614,7 @@ STATUS rtpPacketHeaderToString(PRtpPacket pRtpPacket, PCHAR buffer, UINT32 buffe
             CHK(charsWritten >= 0 && (UINT32) charsWritten < bufferLen, STATUS_BUFFER_TOO_SMALL);
 
             for (i = 0; i < pRtpPacket->header.extensionLength; i++) {
-                charsWritten += snprintf(buffer + charsWritten, bufferLen - charsWritten,
-                                         "%02x", pRtpPacket->header.extensionPayload[i]);
+                charsWritten += snprintf(buffer + charsWritten, bufferLen - charsWritten, "%02x", pRtpPacket->header.extensionPayload[i]);
                 CHK(charsWritten >= 0 && (UINT32) charsWritten < bufferLen, STATUS_BUFFER_TOO_SMALL);
             }
         }

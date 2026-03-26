@@ -103,14 +103,15 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
                 retransmittedBytesSent += pRtpPacket->rawPacketLength - RTP_HEADER_LEN(pRtpPacket);
                 if (pKvsPeerConnection->printNacks) {
                     DLOGD("Retransmit (%s) ssrc %u seqNum %u timestamp %u payloadType %u marker %u size %u",
-                          (pSenderTranceiver->sender.payloadType == pSenderTranceiver->sender.rtxPayloadType) ? "resent as-is" : "reconstructed as RTX",
-                          pRtpPacket->header.ssrc, pRtpPacket->header.sequenceNumber, pRtpPacket->header.timestamp,
-                          pRtpPacket->header.payloadType, pRtpPacket->header.marker, pRtpPacket->rawPacketLength);
+                          (pSenderTranceiver->sender.payloadType == pSenderTranceiver->sender.rtxPayloadType) ? "resent as-is"
+                                                                                                              : "reconstructed as RTX",
+                          pRtpPacket->header.ssrc, pRtpPacket->header.sequenceNumber, pRtpPacket->header.timestamp, pRtpPacket->header.payloadType,
+                          pRtpPacket->header.marker, pRtpPacket->rawPacketLength);
                 }
                 twccManagerOnPacketSent(pKvsPeerConnection, pRtpPacket);
             } else {
-                DLOGV("Retransmit FAILED ssrc %u seqNum %u timestamp %u err 0x%08x",
-                      pRtpPacket->header.ssrc, pRtpPacket->header.sequenceNumber, pRtpPacket->header.timestamp, retStatus);
+                DLOGV("Retransmit FAILED ssrc %u seqNum %u timestamp %u err 0x%08x", pRtpPacket->header.ssrc, pRtpPacket->header.sequenceNumber,
+                      pRtpPacket->header.timestamp, retStatus);
             }
             // putBackPacketToRollingBuffer
             retStatus =

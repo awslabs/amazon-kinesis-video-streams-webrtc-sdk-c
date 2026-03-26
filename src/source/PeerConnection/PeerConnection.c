@@ -1045,8 +1045,9 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     if (envVarVal == NULL) {
         pKvsPeerConnection->printSenderReceiverReports = loggerGetLogLevel() <= LOG_LEVEL_DEBUG;
     } else {
-        pKvsPeerConnection->printSenderReceiverReports = (loggerGetLogLevel() <= LOG_LEVEL_DEBUG &&
-            (STRCMPI(envVarVal, "1") == 0 || STRCMPI(envVarVal, "true") == 0 || STRCMPI(envVarVal, "on") == 0));
+        pKvsPeerConnection->printSenderReceiverReports =
+            (loggerGetLogLevel() <= LOG_LEVEL_DEBUG &&
+             (STRCMPI(envVarVal, "1") == 0 || STRCMPI(envVarVal, "true") == 0 || STRCMPI(envVarVal, "on") == 0));
     }
 
     envVarVal = GETENV(KVS_LOG_DEBUG_FRAME_TIMING_FREQUENCY_ENV_VAR_MS);
