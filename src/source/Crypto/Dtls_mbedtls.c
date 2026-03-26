@@ -8,8 +8,105 @@ mbedtls_ssl_srtp_profile DTLS_SRTP_SUPPORTED_PROFILES[] = {
     MBEDTLS_TLS_SRTP_UNSET,
 };
 
+static STATUS dtlsReadAndParseCACertificate(PDtlsSession pDtlsSession)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT64 certLen = 0;
+    PBYTE certBuf = NULL;
+    CHAR errBuf[128];
+    INT32 sslRet;
+
+    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
+
+    CHK_STATUS(readFile(KVS_CA_CERT_PATH, FALSE, NULL, &certLen));
+    CHK(certLen > 0, STATUS_INVALID_CERT_PATH_LENGTH);
+    certBuf = (PBYTE) MEMCALLOC(1, certLen + 1);
+    CHK(certBuf != NULL, STATUS_NOT_ENOUGH_MEMORY);
+    CHK_STATUS(readFile(KVS_CA_CERT_PATH, FALSE, certBuf, &certLen));
+    sslRet = mbedtls_x509_crt_parse(&pDtlsSession->trustedCaCert, certBuf, (SIZE_T) (certLen + 1));
+    if (sslRet != 0) {
+        mbedtls_strerror(sslRet, errBuf, SIZEOF(errBuf));
+        DLOGE("mbedtls_x509_crt_parse failed: %s", errBuf);
+    }
+    CHK(sslRet == 0, STATUS_INVALID_CA_CERT_PATH);
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+    SAFE_MEMFREE(certBuf);
+    LEAVES();
+    return retStatus;
+}
+
+STATUS dtlsSessionCopyOptions(PDtlsSession pDtlsSession, PDtlsSessionOptions pDtlsSessionOptions)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 hostnameLen = 0;
+
+    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
+
+    pDtlsSession->validationMode = DTLS_SESSION_VALIDATION_MODE_RELAXED;
+    pDtlsSession->pExpectedServerHostname = NULL;
+
+    if (pDtlsSessionOptions == NULL) {
+        CHK(FALSE, retStatus);
+    }
+
+    pDtlsSession->validationMode = pDtlsSessionOptions->validationMode;
+    if (pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER) {
+        CHK(pDtlsSessionOptions->pExpectedServerHostname != NULL && pDtlsSessionOptions->pExpectedServerHostname[0] != '\0', STATUS_INVALID_ARG);
+        hostnameLen = (UINT32) STRLEN(pDtlsSessionOptions->pExpectedServerHostname);
+        pDtlsSession->pExpectedServerHostname = MEMCALLOC(hostnameLen + 1, SIZEOF(CHAR));
+        CHK(pDtlsSession->pExpectedServerHostname != NULL, STATUS_NOT_ENOUGH_MEMORY);
+        STRNCPY(pDtlsSession->pExpectedServerHostname, pDtlsSessionOptions->pExpectedServerHostname, hostnameLen);
+    }
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+    LEAVES();
+    return retStatus;
+}
+
+STATUS dtlsSessionCheckRemoteCertificateVerification(PDtlsSession pDtlsSession)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
+    CHK(pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER, retStatus);
+    CHK(mbedtls_ssl_get_peer_cert(&pDtlsSession->sslCtx) != NULL, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
+    CHK(mbedtls_ssl_get_verify_result(&pDtlsSession->sslCtx) == 0, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+    LEAVES();
+    return retStatus;
+}
+
+STATUS dtlsSessionGetCertificateVerificationFailureStatus(PDtlsSession pDtlsSession, INT32 sslRet)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
+    CHK(pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER, retStatus);
+    CHK(sslRet == MBEDTLS_ERR_X509_CERT_VERIFY_FAILED || mbedtls_ssl_get_verify_result(&pDtlsSession->sslCtx) != 0,
+        STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
+
+CleanUp:
+    return retStatus;
+}
+
 STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, INT32 certificateBits,
                          BOOL generateRSACertificate, PRtcCertificate pRtcCertificates, PDtlsSession* ppDtlsSession)
+{
+    return createDtlsSessionWithOptions(pDtlsSessionCallbacks, timerQueueHandle, certificateBits, generateRSACertificate, pRtcCertificates, NULL,
+                                        ppDtlsSession);
+}
+
+STATUS createDtlsSessionWithOptions(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, INT32 certificateBits,
+                                    BOOL generateRSACertificate, PRtcCertificate pRtcCertificates, PDtlsSessionOptions pDtlsSessionOptions,
+                                    PDtlsSession* ppDtlsSession)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -28,6 +125,7 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
     mbedtls_ctr_drbg_init(&pDtlsSession->ctrDrbg);
     mbedtls_ssl_config_init(&pDtlsSession->sslCtxConfig);
     mbedtls_ssl_init(&pDtlsSession->sslCtx);
+    mbedtls_x509_crt_init(&pDtlsSession->trustedCaCert);
     mbedtls_ctr_drbg_set_prediction_resistance(&pDtlsSession->ctrDrbg, MBEDTLS_CTR_DRBG_PR_ON);
     CHK(mbedtls_ctr_drbg_seed(&pDtlsSession->ctrDrbg, mbedtls_entropy_func, &pDtlsSession->entropy, NULL, 0) == 0, STATUS_CREATE_SSL_FAILED);
 
@@ -36,6 +134,12 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
     pDtlsSession->timerId = MAX_UINT32;
     pDtlsSession->sslLock = MUTEX_CREATE(TRUE);
     pDtlsSession->dtlsSessionCallbacks = *pDtlsSessionCallbacks;
+    pDtlsSession->validationMode = DTLS_SESSION_VALIDATION_MODE_RELAXED;
+    pDtlsSession->pExpectedServerHostname = NULL;
+    CHK_STATUS(dtlsSessionCopyOptions(pDtlsSession, pDtlsSessionOptions));
+    if (pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER) {
+        CHK_STATUS(dtlsReadAndParseCACertificate(pDtlsSession));
+    }
     if (certificateBits == 0) {
         certificateBits = GENERATED_CERTIFICATE_BITS;
     }
@@ -94,6 +198,7 @@ STATUS freeDtlsSession(PDtlsSession* ppDtlsSession)
         pCertInfo = pDtlsSession->certificates + i;
         freeCertificateAndKey(&pCertInfo->cert, &pCertInfo->privateKey);
     }
+    mbedtls_x509_crt_free(&pDtlsSession->trustedCaCert);
     mbedtls_entropy_free(&pDtlsSession->entropy);
     mbedtls_ctr_drbg_free(&pDtlsSession->ctrDrbg);
     mbedtls_ssl_config_free(&pDtlsSession->sslCtxConfig);
@@ -103,6 +208,7 @@ STATUS freeDtlsSession(PDtlsSession* ppDtlsSession)
     if (IS_VALID_MUTEX_VALUE(pDtlsSession->sslLock)) {
         MUTEX_FREE(pDtlsSession->sslLock);
     }
+    SAFE_MEMFREE(pDtlsSession->pExpectedServerHostname);
     SAFE_MEMFREE(*ppDtlsSession);
 
 CleanUp:
@@ -205,6 +311,7 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
     switch (handshakeStatus) {
         case 0:
             // success.
+            CHK_STATUS(dtlsSessionCheckRemoteCertificateVerification(pDtlsSession));
             CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CONNECTED));
             CHK(FALSE, STATUS_TIMER_QUEUE_STOP_SCHEDULING);
             break;
@@ -216,8 +323,9 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
             break;
         default:
             LOG_MBEDTLS_ERROR("mbedtls_ssl_handshake", handshakeStatus);
+            retStatus = dtlsSessionGetCertificateVerificationFailureStatus(pDtlsSession, handshakeStatus);
             CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_FAILED));
-            CHK(FALSE, STATUS_TIMER_QUEUE_STOP_SCHEDULING);
+            CHK(FALSE, STATUS_FAILED(retStatus) ? retStatus : STATUS_TIMER_QUEUE_STOP_SCHEDULING);
             break;
     }
 
@@ -310,8 +418,13 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
     CHK(mbedtls_ssl_config_defaults(&pDtlsSession->sslCtxConfig, isServer ? MBEDTLS_SSL_IS_SERVER : MBEDTLS_SSL_IS_CLIENT,
                                     MBEDTLS_SSL_TRANSPORT_DATAGRAM, MBEDTLS_SSL_PRESET_DEFAULT) == 0,
         STATUS_CREATE_SSL_FAILED);
-    // no need to verify since the certificate will be verified through SDP later
-    mbedtls_ssl_conf_authmode(&pDtlsSession->sslCtxConfig, MBEDTLS_SSL_VERIFY_OPTIONAL);
+    if (pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER) {
+        mbedtls_ssl_conf_ca_chain(&pDtlsSession->sslCtxConfig, &pDtlsSession->trustedCaCert, NULL);
+        mbedtls_ssl_conf_authmode(&pDtlsSession->sslCtxConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
+    } else {
+        // No need to verify in the default peer DTLS path since the certificate will be verified through SDP later.
+        mbedtls_ssl_conf_authmode(&pDtlsSession->sslCtxConfig, MBEDTLS_SSL_VERIFY_OPTIONAL);
+    }
     mbedtls_ssl_conf_rng(&pDtlsSession->sslCtxConfig, mbedtls_ctr_drbg_random, &pDtlsSession->ctrDrbg);
 
     for (i = 0; i < pDtlsSession->certificateCount; i++) {
@@ -328,6 +441,9 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
     CHK(mbedtls_ssl_setup(&pDtlsSession->sslCtx, &pDtlsSession->sslCtxConfig) == 0, STATUS_SSL_CTX_CREATION_FAILED);
     mbedtls_ssl_set_mtu(&pDtlsSession->sslCtx, DEFAULT_MTU_SIZE_BYTES);
     mbedtls_ssl_set_bio(&pDtlsSession->sslCtx, pDtlsSession, dtlsSessionSendCallback, dtlsSessionReceiveCallback, NULL);
+    if (!isServer && pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER) {
+        CHK(mbedtls_ssl_set_hostname(&pDtlsSession->sslCtx, pDtlsSession->pExpectedServerHostname) == 0, STATUS_SSL_CTX_CREATION_FAILED);
+    }
 
 #if !MBEDTLS_BEFORE_V3
     mbedtls_ssl_set_export_keys_cb(&pDtlsSession->sslCtx, dtlsSessionKeyDerivationCallback, pDtlsSession);
@@ -398,7 +514,12 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
         } else {
             LOG_MBEDTLS_ERROR("mbedtls_ssl_read", sslRet);
             readBytes = 0;
-            retStatus = STATUS_INTERNAL_ERROR;
+            retStatus = dtlsSessionGetCertificateVerificationFailureStatus(pDtlsSession, sslRet);
+            if (STATUS_FAILED(retStatus)) {
+                CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_FAILED));
+            } else {
+                retStatus = STATUS_INTERNAL_ERROR;
+            }
             iterate = FALSE;
         }
     }
@@ -408,6 +529,7 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
 #else
     if (pDtlsSession->sslCtx.MBEDTLS_PRIVATE(state) == MBEDTLS_SSL_HANDSHAKE_OVER) {
 #endif
+        CHK_STATUS(dtlsSessionCheckRemoteCertificateVerification(pDtlsSession));
         CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CONNECTED));
     }
 
