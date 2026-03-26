@@ -71,7 +71,7 @@ class DtlsFunctionalityTest : public WebRtcClientTestBase {
 
         // In case of mbedtls it will be a black return of SUCCESS
 #ifdef KVS_USE_OPENSSL
-        if(useThread) {
+        if (useThread) {
             dtlsClientThread = std::thread(dtlsSessionHandshakeInThread, pClient, TRUE);
             dtlsServerThread = std::thread(dtlsSessionHandshakeInThread, pServer, FALSE);
         } else {
@@ -95,7 +95,7 @@ class DtlsFunctionalityTest : public WebRtcClientTestBase {
         *ppServer = pServer;
 
 #ifdef KVS_USE_OPENSSL
-        if(useThread) {
+        if (useThread) {
             dtlsClientThread.join();
             dtlsServerThread.join();
         }
@@ -130,7 +130,7 @@ TEST_F(DtlsFunctionalityTest, putApplicationDataWithVariedSizes)
     TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
     PBYTE pData = NULL;
     INT32 dataSizes[] = {
-        4,                      // very small packet
+        4,                            // very small packet
         DEFAULT_MTU_SIZE_BYTES - 200, // small packet but should be still under mtu
         DEFAULT_MTU_SIZE_BYTES + 200, // big packet and bigger than even a jumbo frame
     };
@@ -160,7 +160,7 @@ TEST_F(DtlsFunctionalityTest, processPacketWithVariedSizes)
     TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
     PBYTE pData = NULL;
     INT32 dataSizes[] = {
-        4,                      // very small packet
+        4,                            // very small packet
         DEFAULT_MTU_SIZE_BYTES - 200, // small packet but should be still under mtu
         DEFAULT_MTU_SIZE_BYTES + 200, // big packet and bigger than even a jumbo frame
     };
@@ -192,9 +192,9 @@ TEST_F(DtlsFunctionalityTest, putApplicationDataWithVariedSizesInThread)
     TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
     PBYTE pData = NULL;
     INT32 dataSizes[] = {
-            4,                      // very small packet
-            DEFAULT_MTU_SIZE_BYTES - 200, // small packet but should be still under mtu
-            DEFAULT_MTU_SIZE_BYTES + 200, // big packet and bigger than even a jumbo frame
+        4,                            // very small packet
+        DEFAULT_MTU_SIZE_BYTES - 200, // small packet but should be still under mtu
+        DEFAULT_MTU_SIZE_BYTES + 200, // big packet and bigger than even a jumbo frame
     };
 
     EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
@@ -213,7 +213,7 @@ TEST_F(DtlsFunctionalityTest, putApplicationDataWithVariedSizesInThread)
     freeDtlsSession(&pClient);
     freeDtlsSession(&pServer);
     timerQueueFree(&timerQueueHandle);
-MEMFREE(pData);
+    MEMFREE(pData);
 }
 
 TEST_F(DtlsFunctionalityTest, processPacketWithVariedSizesInThread)
@@ -222,9 +222,9 @@ TEST_F(DtlsFunctionalityTest, processPacketWithVariedSizesInThread)
     TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
     PBYTE pData = NULL;
     INT32 dataSizes[] = {
-            4,                      // very small packet
-            DEFAULT_MTU_SIZE_BYTES - 200, // small packet but should be still under mtu
-            DEFAULT_MTU_SIZE_BYTES + 200, // big packet and bigger than even a jumbo frame
+        4,                            // very small packet
+        DEFAULT_MTU_SIZE_BYTES - 200, // small packet but should be still under mtu
+        DEFAULT_MTU_SIZE_BYTES + 200, // big packet and bigger than even a jumbo frame
     };
     INT32 readDataSize;
 
@@ -232,7 +232,6 @@ TEST_F(DtlsFunctionalityTest, processPacketWithVariedSizesInThread)
     EXPECT_EQ(STATUS_SUCCESS, createAndConnect(timerQueueHandle, &pClient, &pServer, TRUE));
     EXPECT_EQ(STATUS_SUCCESS, dtlsSessionOnOutBoundData(pServer, 0, outboundPacketFnNoop));
     EXPECT_EQ(STATUS_SUCCESS, dtlsSessionOnOutBoundData(pClient, 0, outboundPacketFnNoop));
-
 
     for (int i = 0; i < (INT32) ARRAY_SIZE(dataSizes); i++) {
         pData = (PBYTE) MEMREALLOC(pData, dataSizes[i]);
@@ -248,6 +247,117 @@ TEST_F(DtlsFunctionalityTest, processPacketWithVariedSizesInThread)
     MEMFREE(pData);
 }
 
+TEST_F(DtlsFunctionalityTest, strictServerValidationRejectsUntrustedServerCertificate)
+{
+    struct PacketContext {
+        std::mutex mtx;
+        std::queue<std::vector<BYTE>> queue;
+    };
+    struct SessionState {
+        std::atomic<int> state{RTC_DTLS_TRANSPORT_STATE_NEW};
+        std::atomic<SIZE_T> connectedCount{0};
+        std::atomic<SIZE_T> failedCount{0};
+    };
+
+    STATUS retStatus = STATUS_SUCCESS;
+    DtlsSessionCallbacks serverCallbacks, clientCallbacks;
+    TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+    PDtlsSession pServer = NULL, pStrictClient = NULL;
+    UINT64 sleepDelay = 20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    UINT64 timeout = 5 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    PacketContext clientInboundCtx, serverInboundCtx;
+    SessionState serverState, clientState;
+    CHAR expectedServerHostname[] = "stun.kinesisvideo-fips.us-gov-west-1.amazonaws.com";
+    DtlsSessionOptions strictOptions;
+
+    MEMSET(&serverCallbacks, 0x00, SIZEOF(serverCallbacks));
+    MEMSET(&clientCallbacks, 0x00, SIZEOF(clientCallbacks));
+    MEMSET(&strictOptions, 0x00, SIZEOF(strictOptions));
+
+    serverCallbacks.stateChangeFn = [](UINT64 customData, RTC_DTLS_TRANSPORT_STATE state) {
+        SessionState* pState = reinterpret_cast<SessionState*>(customData);
+        pState->state.store((int) state);
+        if (state == RTC_DTLS_TRANSPORT_STATE_CONNECTED) {
+            pState->connectedCount.fetch_add(1);
+        } else if (state == RTC_DTLS_TRANSPORT_STATE_FAILED) {
+            pState->failedCount.fetch_add(1);
+        }
+    };
+    serverCallbacks.stateChangeFnCustomData = (UINT64) &serverState;
+    clientCallbacks.stateChangeFn = serverCallbacks.stateChangeFn;
+    clientCallbacks.stateChangeFnCustomData = (UINT64) &clientState;
+
+    DtlsSessionOutboundPacketFunc outboundPacketFn = [](UINT64 customData, PBYTE pData, UINT32 dataLen) {
+        PacketContext* pCtx = reinterpret_cast<PacketContext*>(customData);
+        assert(pCtx != NULL);
+        assert(pData != NULL);
+        std::lock_guard<std::mutex> lock(pCtx->mtx);
+        pCtx->queue.push(std::vector<BYTE>(pData, pData + dataLen));
+    };
+
+    auto consumeMessages = [](PacketContext* pCtx, PDtlsSession pPeer) -> STATUS {
+        STATUS retStatus = STATUS_SUCCESS;
+        std::queue<std::vector<BYTE>> pendingMessages;
+
+        assert(pCtx != NULL);
+        assert(pPeer != NULL);
+
+        {
+            std::lock_guard<std::mutex> lock(pCtx->mtx);
+            pCtx->queue.swap(pendingMessages);
+        }
+
+        while (!pendingMessages.empty()) {
+            auto& msg = pendingMessages.front();
+            INT32 readLen = (INT32) msg.size();
+            CHK_STATUS(dtlsSessionProcessPacket(pPeer, (PBYTE) msg.data(), &readLen));
+            pendingMessages.pop();
+        }
+
+    CleanUp:
+        return retStatus;
+    };
+
+    strictOptions.validationMode = DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER;
+    strictOptions.pExpectedServerHostname = expectedServerHostname;
+
+    ASSERT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+    ASSERT_EQ(STATUS_SUCCESS, createDtlsSession(&serverCallbacks, timerQueueHandle, 0, FALSE, NULL, &pServer));
+    ASSERT_EQ(STATUS_SUCCESS, createDtlsSessionWithOptions(&clientCallbacks, timerQueueHandle, 0, FALSE, NULL, &strictOptions, &pStrictClient));
+
+    ASSERT_EQ(STATUS_SUCCESS, dtlsSessionOnOutBoundData(pServer, (UINT64) &clientInboundCtx, outboundPacketFn));
+    ASSERT_EQ(STATUS_SUCCESS, dtlsSessionOnOutBoundData(pStrictClient, (UINT64) &serverInboundCtx, outboundPacketFn));
+
+    ASSERT_EQ(STATUS_SUCCESS, dtlsSessionStart(pServer, TRUE));
+    ASSERT_EQ(STATUS_SUCCESS, dtlsSessionStart(pStrictClient, FALSE));
+
+    for (UINT64 duration = 0; duration < timeout && clientState.failedCount.load() == 0 && clientState.connectedCount.load() == 0;
+         duration += sleepDelay) {
+        STATUS clientConsumeStatus = STATUS_SUCCESS;
+
+        EXPECT_EQ(STATUS_SUCCESS, consumeMessages(&serverInboundCtx, pServer));
+        clientConsumeStatus = consumeMessages(&clientInboundCtx, pStrictClient);
+        EXPECT_TRUE(clientConsumeStatus == STATUS_SUCCESS || clientConsumeStatus == STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
+        if (clientConsumeStatus == STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED) {
+            break;
+        }
+        THREAD_SLEEP(sleepDelay);
+    }
+
+    EXPECT_EQ(clientState.failedCount.load(), 1);
+    EXPECT_EQ(clientState.connectedCount.load(), 0);
+    EXPECT_EQ(clientState.state.load(), RTC_DTLS_TRANSPORT_STATE_FAILED);
+
+    if (pStrictClient != NULL) {
+        freeDtlsSession(&pStrictClient);
+    }
+    if (pServer != NULL) {
+        freeDtlsSession(&pServer);
+    }
+    if (IS_VALID_TIMER_QUEUE_HANDLE(timerQueueHandle)) {
+        timerQueueFree(&timerQueueHandle);
+    }
+}
 
 } // namespace webrtcclient
 } // namespace video
