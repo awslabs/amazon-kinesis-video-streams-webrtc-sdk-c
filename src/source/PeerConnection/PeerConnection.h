@@ -119,6 +119,9 @@ typedef struct {
     // Print extra debug logs related to sender/receiver reports
     BOOL printSenderReceiverReports;
 
+    // Print extra debug logs related to nacks
+    BOOL printNacks;
+
     // Throttle debug logging for frame timing information. Use 0 to print timing for every frame.
     UINT64 writeFrameLoggingIntervalMs;
 

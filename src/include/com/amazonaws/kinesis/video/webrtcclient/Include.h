@@ -740,6 +740,11 @@ extern "C" {
 #define KVS_LOG_DEBUG_FRAME_TIMING_FREQUENCY_ENV_VAR_MS ((PCHAR) "KVS_LOG_DEBUG_FRAME_TIMING_FREQUENCY_MS")
 
 /**
+ * Env to print nack/retransmit requests to the debug log
+ */
+#define KVS_LOG_NACKS_ENV_VAR ((PCHAR) "KVS_DEBUG_LOG_NACKS")
+
+/**
  * Default interval for frame debug log frequency in ms
  */
 #define KVS_LOG_DEBUG_FRAME_TIMING_FREQUENCY_DEFAULT_MS 1000

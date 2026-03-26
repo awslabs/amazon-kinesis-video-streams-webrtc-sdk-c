@@ -1038,6 +1038,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     // default=OFF
     pKvsPeerConnection->logRtpPackets = (loggerGetLogLevel() <= LOG_LEVEL_DEBUG && isEnvVarEnabled(KVS_LOG_RTP_PACKETS_ENV_VAR));
     pKvsPeerConnection->printExtraTimingInfo = (loggerGetLogLevel() <= LOG_LEVEL_DEBUG && isEnvVarEnabled(KVS_LOG_TIMING_INFO_ENV_VAR));
+    pKvsPeerConnection->printNacks = (loggerGetLogLevel() <= LOG_LEVEL_DEBUG && isEnvVarEnabled(KVS_LOG_NACKS_ENV_VAR));
 
     // default=ON
     envVarVal = GETENV(KVS_LOG_SENDER_RECEIVER_REPORTS_ENV_VAR);
