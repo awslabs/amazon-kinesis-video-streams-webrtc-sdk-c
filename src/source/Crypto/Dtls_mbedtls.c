@@ -72,13 +72,22 @@ STATUS dtlsSessionCheckRemoteCertificateVerification(PDtlsSession pDtlsSession)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    UINT32 verifyResult = 0;
 
     CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
     CHK(pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER, retStatus);
+    verifyResult = (UINT32) mbedtls_ssl_get_verify_result(&pDtlsSession->sslCtx);
     CHK(mbedtls_ssl_get_peer_cert(&pDtlsSession->sslCtx) != NULL, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
-    CHK(mbedtls_ssl_get_verify_result(&pDtlsSession->sslCtx) == 0, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
+    CHK(verifyResult == 0, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
+    DLOGD("DTLS strict server certificate verification passed for %s using CA bundle %s", pDtlsSession->pExpectedServerHostname, KVS_CA_CERT_PATH);
 
 CleanUp:
+    if (retStatus == STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED && pDtlsSession != NULL &&
+        pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER) {
+        DLOGW("DTLS strict server certificate verification failed for %s. mbedTLS verify flags: 0x%08x",
+              pDtlsSession->pExpectedServerHostname != NULL ? pDtlsSession->pExpectedServerHostname : "(null)", verifyResult);
+    }
+
     CHK_LOG_ERR(retStatus);
     LEAVES();
     return retStatus;
@@ -87,13 +96,20 @@ CleanUp:
 STATUS dtlsSessionGetCertificateVerificationFailureStatus(PDtlsSession pDtlsSession, INT32 sslRet)
 {
     STATUS retStatus = STATUS_SUCCESS;
+    UINT32 verifyResult = 0;
 
     CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
     CHK(pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER, retStatus);
-    CHK(sslRet == MBEDTLS_ERR_X509_CERT_VERIFY_FAILED || mbedtls_ssl_get_verify_result(&pDtlsSession->sslCtx) != 0,
-        STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
+    verifyResult = (UINT32) mbedtls_ssl_get_verify_result(&pDtlsSession->sslCtx);
+    CHK(sslRet == MBEDTLS_ERR_X509_CERT_VERIFY_FAILED || verifyResult != 0, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
 
 CleanUp:
+    if (retStatus == STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED && pDtlsSession != NULL &&
+        pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER) {
+        DLOGW("DTLS strict server certificate verification failed for %s during handshake processing. mbedTLS verify flags: 0x%08x, sslRet: %d",
+              pDtlsSession->pExpectedServerHostname != NULL ? pDtlsSession->pExpectedServerHostname : "(null)", verifyResult, sslRet);
+    }
+
     return retStatus;
 }
 
@@ -419,6 +435,8 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
                                     MBEDTLS_SSL_TRANSPORT_DATAGRAM, MBEDTLS_SSL_PRESET_DEFAULT) == 0,
         STATUS_CREATE_SSL_FAILED);
     if (pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER) {
+        DLOGD("Configuring strict DTLS server certificate validation for %s using CA bundle %s", pDtlsSession->pExpectedServerHostname,
+              KVS_CA_CERT_PATH);
         mbedtls_ssl_conf_ca_chain(&pDtlsSession->sslCtxConfig, &pDtlsSession->trustedCaCert, NULL);
         mbedtls_ssl_conf_authmode(&pDtlsSession->sslCtxConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
     } else {
