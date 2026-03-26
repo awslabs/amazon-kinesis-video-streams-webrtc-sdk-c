@@ -318,12 +318,22 @@ CleanUp:
     return retStatus;
 }
 
-// Computes the trendline slope of one-way delay variation across the current TWCC report window.
-// Iterates consecutive received packets in [prevReportedBaseSeqNum, lastReportedSeqNum],
-// accumulates per-pair delay variation: (R_i - R_{i-1}) - (T_i - T_{i-1}),
-// then fits a line via least-squares and applies EMA smoothing across reports.
-// pSlope output: positive = congestion (decrease), negative = draining (increase), ~0 = hold.
-STATUS computeTwccTrendline(PTwccManager pTwccManager, PDOUBLE pSlope)
+// Computes TWCC congestion signals from the current feedback window [prevReportedBaseSeqNum, lastReportedSeqNum].
+//
+// One-way delay variation measures how packet spacing changes through the network:
+//   For two consecutive packets, if the sender sends them 10ms apart but the receiver gets them 15ms apart,
+//   the extra 5ms means the second packet was delayed longer — likely sitting in a network buffer/queue.
+//   Formally: delayVariation = (receiverArrivalGap - senderSendGap) = (R_i - R_{i-1}) - (T_i - T_{i-1})
+//
+// Outputs (both in milliseconds):
+//   pDelayTrend: EMA-smoothed least-squares slope of accumulated delay variation.
+//                positive = congestion accelerating (decrease bitrate),
+//                negative = congestion clearing (increase bitrate), ~0 = stable (hold).
+//   pQueueDelay: sum of per-pair delay variations across the window.
+//                positive = packets arriving with larger gaps than sent (queue building),
+//                negative = packets arriving with smaller gaps than sent (queue draining),
+//                ~0 = stable.
+STATUS computeTwccTrendline(PTwccManager pTwccManager, PDOUBLE pDelayTrend, PDOUBLE pQueueDelay)
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 twccPktValue = 0;
@@ -334,7 +344,7 @@ STATUS computeTwccTrendline(PTwccManager pTwccManager, PDOUBLE pSlope)
     DOUBLE rawSlope = 0.0;
     UINT32 n = 0;
 
-    CHK(pTwccManager != NULL && pSlope != NULL, STATUS_NULL_ARG);
+    CHK(pTwccManager != NULL && pDelayTrend != NULL && pQueueDelay != NULL, STATUS_NULL_ARG);
 
     for (seqNum = pTwccManager->prevReportedBaseSeqNum; seqNum != (UINT16) (pTwccManager->lastReportedSeqNum + 1); seqNum++) {
         if (STATUS_FAILED(hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, seqNum, &twccPktValue))) {
@@ -369,9 +379,11 @@ STATUS computeTwccTrendline(PTwccManager pTwccManager, PDOUBLE pSlope)
 
     pTwccManager->smoothedSlope = TWCC_TRENDLINE_SMOOTHING_FACTOR * rawSlope +
                                   (1.0 - TWCC_TRENDLINE_SMOOTHING_FACTOR) * pTwccManager->smoothedSlope;
-    *pSlope = pTwccManager->smoothedSlope;
+    *pDelayTrend = pTwccManager->smoothedSlope / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    *pQueueDelay = accumulatedDelay / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
 
-    DLOGI("TWCC trendline raw=%.2f smoothed=%.2f", rawSlope, *pSlope);
+    DLOGI("TWCC trendline rawTrend=%.4f delayTrend=%.4f ms queueDelay=%.2f ms", rawSlope / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+          *pDelayTrend, *pQueueDelay);
 
 CleanUp:
     return retStatus;
@@ -474,22 +486,28 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     pTwccManager = pKvsPeerConnection->pTwccManager;
     CHK_STATUS(parseRtcpTwccPacket(pRtcpPacket, pTwccManager));
 
-    DOUBLE trendSlope = 0.0;
+    // delayTrend (ms): EMA-smoothed slope of accumulated delay variation over the TWCC window.
+    //   positive = congestion accelerating, negative = congestion clearing, ~0 = stable.
+    DOUBLE delayTrend = 0.0;
+    // queueDelay (ms): sum of per-packet-pair one-way delay variations: (receiverArrivalGap - senderSendGap).
+    //   positive = packets arriving with larger gaps than sent (queue building),
+    //   negative = packets arriving with smaller gaps than sent (queue draining), ~0 = stable.
+    DOUBLE queueDelay = 0.0;
     UINT64 currentTimeKvs = GETTIME();
-    computeTwccTrendline(pTwccManager, &trendSlope);
+    computeTwccTrendline(pTwccManager, &delayTrend, &queueDelay);
 
     if (currentTimeKvs >= pTwccManager->lastAdjustmentTimeKvs + TWCC_ADJUSTMENT_INTERVAL) {
         pTwccManager->lastAdjustmentTimeKvs = currentTimeKvs;
 
-        if (trendSlope > TWCC_TRENDLINE_DECREASE_THRESHOLD) {
+        if (delayTrend > TWCC_TRENDLINE_DECREASE_THRESHOLD) {
             // TODO: decrease bitrate
-            DLOGP("TWCC trendline: DECREASE bitrate (slope=%.2f)", trendSlope);
-        } else if (trendSlope < TWCC_TRENDLINE_INCREASE_THRESHOLD) {
+            DLOGP("TWCC trendline: DECREASE bitrate (delayTrend=%.4f ms, queueDelay=%.2f ms)", delayTrend, queueDelay);
+        } else if (delayTrend < TWCC_TRENDLINE_INCREASE_THRESHOLD) {
             // TODO: increase bitrate
-            DLOGP("TWCC trendline: INCREASE bitrate (slope=%.2f)", trendSlope);
+            DLOGP("TWCC trendline: INCREASE bitrate (delayTrend=%.4f ms, queueDelay=%.2f ms)", delayTrend, queueDelay);
         } else {
             // TODO: hold bitrate
-            DLOGP("TWCC trendline: HOLD bitrate (slope=%.2f)", trendSlope);
+            DLOGP("TWCC trendline: HOLD bitrate (delayTrend=%.4f ms, queueDelay=%.2f ms)", delayTrend, queueDelay);
         }
     }
 

@@ -66,7 +66,7 @@ typedef struct {
     UINT16 firstSeqNumInRollingWindow;    // To monitor the last deleted packet in the rolling window
     UINT16 lastReportedSeqNum;            // To monitor the last packet's seqNum in the TWCC response
     UINT16 prevReportedBaseSeqNum;        // To monitor the base seqNum in the TWCC response
-    DOUBLE smoothedSlope;                 // EMA-smoothed trendline slope for congestion signaling
+    DOUBLE smoothedSlope;                 // EMA-smoothed trendline slope (hundreds-of-nanos); converted to ms on output as delayTrend
     UINT64 lastAdjustmentTimeKvs;         // Last time a bitrate adjustment decision was logged/acted on
 } TwccManager, *PTwccManager;
 
