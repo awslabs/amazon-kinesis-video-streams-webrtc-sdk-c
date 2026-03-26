@@ -1897,6 +1897,12 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
         CHK_STATUS(createSocketConnection(pCandidate->ipAddress.family, KVS_SOCKET_PROTOCOL_UDP, &pCandidate->ipAddress,
                                           pIceServer->scheme == ICE_SERVER_SCHEME_STUNS ? pStunServerAddress : NULL, (UINT64) pIceAgent,
                                           incomingDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize, &pCandidate->pSocketConnection));
+        if (pIceServer->scheme == ICE_SERVER_SCHEME_STUNS) {
+            UINT32 hostnameLen = (UINT32) STRLEN(pIceServer->url);
+            pCandidate->pSocketConnection->hostname = (PCHAR) MEMCALLOC(1, hostnameLen + 1);
+            CHK(pCandidate->pSocketConnection->hostname != NULL, STATUS_NOT_ENOUGH_MEMORY);
+            STRNCPY(pCandidate->pSocketConnection->hostname, pIceServer->url, hostnameLen);
+        }
         ATOMIC_STORE_BOOL(&pCandidate->pSocketConnection->receiveData, TRUE);
         // connectionListener will free the pSocketConnection at the end.
         CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener, pCandidate->pSocketConnection));
