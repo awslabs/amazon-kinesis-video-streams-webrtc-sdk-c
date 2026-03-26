@@ -746,7 +746,9 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
     ready = pKvsPeerConnection->pSrtpSession != NULL &&
         currentTime - pKvsRtpTransceiver->sender.firstFrameWallClockTime >= 2500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
     if (!ready) {
-        DLOGD("sender report no frames sent %u", ssrc);
+        if (pKvsPeerConnection->printSenderReceiverReports) {
+            DLOGD("sender report no frames sent %u", ssrc);
+        }
     } else {
         // create rtcp sender report packet
         // https://tools.ietf.org/html/rfc3550#section-6.4.1
@@ -757,7 +759,9 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
         packetCount = pKvsRtpTransceiver->outboundStats.sent.packetsSent;
         octetCount = pKvsRtpTransceiver->outboundStats.sent.bytesSent;
         MUTEX_UNLOCK(pKvsRtpTransceiver->statsLock);
-        DLOGD("sender report %u %" PRIu64 " %" PRIu64 " : %u packets %u bytes", ssrc, ntpTime, rtpTime, packetCount, octetCount);
+        if (pKvsPeerConnection->printSenderReceiverReports) {
+            DLOGD("sender report %u %" PRIu64 " %" PRIu64 " : %u packets %u bytes", ssrc, ntpTime, rtpTime, packetCount, octetCount);
+        }
         packetLen = RTCP_PACKET_HEADER_LEN + 24;
 
         // srtp_protect_rtcp() in encryptRtcpPacket() assumes memory availability to write 10 bytes of authentication tag and
@@ -990,6 +994,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     PConnectionListener pConnectionListener = NULL;
     UINT64 startTime = 0;
     UINT64 startTimeInMacro = 0;
+    PCHAR envVarVal = NULL;
 
     CHK(pConfiguration != NULL && ppPeerConnection != NULL, STATUS_NULL_ARG);
 
@@ -1029,6 +1034,30 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
         ? DEFAULT_MTU_SIZE_BYTES
         : pConfiguration->kvsRtcConfiguration.maximumTransmissionUnit;
     ATOMIC_STORE_BOOL(&pKvsPeerConnection->sctpIsEnabled, FALSE);
+
+    // default=OFF
+    pKvsPeerConnection->logRtpPackets = (loggerGetLogLevel() <= LOG_LEVEL_DEBUG && isEnvVarEnabled(KVS_LOG_RTP_PACKETS_ENV_VAR));
+    pKvsPeerConnection->printExtraTimingInfo = (loggerGetLogLevel() <= LOG_LEVEL_DEBUG && isEnvVarEnabled(KVS_LOG_TIMING_INFO_ENV_VAR));
+
+    // default=ON
+    envVarVal = GETENV(KVS_LOG_SENDER_RECEIVER_REPORTS_ENV_VAR);
+    if (envVarVal == NULL) {
+        pKvsPeerConnection->printSenderReceiverReports = loggerGetLogLevel() <= LOG_LEVEL_DEBUG;
+    } else {
+        pKvsPeerConnection->printSenderReceiverReports = (loggerGetLogLevel() <= LOG_LEVEL_DEBUG &&
+            (STRCMPI(envVarVal, "1") == 0 || STRCMPI(envVarVal, "true") == 0 || STRCMPI(envVarVal, "on") == 0));
+    }
+
+    envVarVal = GETENV(KVS_LOG_DEBUG_FRAME_TIMING_FREQUENCY_ENV_VAR_MS);
+    if (envVarVal == NULL) {
+        pKvsPeerConnection->writeFrameLoggingIntervalMs = KVS_LOG_DEBUG_FRAME_TIMING_FREQUENCY_DEFAULT_MS;
+    } else {
+        STATUS convertStatus = STRTOUI64(envVarVal, NULL, 10, &pKvsPeerConnection->writeFrameLoggingIntervalMs);
+        if (STATUS_FAILED(convertStatus)) {
+            DLOGW("Unrecognized value for %s, using the default: %d ms", envVarVal, KVS_LOG_DEBUG_FRAME_TIMING_FREQUENCY_DEFAULT_MS);
+            pKvsPeerConnection->writeFrameLoggingIntervalMs = KVS_LOG_DEBUG_FRAME_TIMING_FREQUENCY_DEFAULT_MS;
+        }
+    }
 
     iceAgentCallbacks.customData = (UINT64) pKvsPeerConnection;
     iceAgentCallbacks.inboundPacketFn = onInboundPacket;

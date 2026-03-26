@@ -540,6 +540,18 @@ extern "C" {
  * Maximum length of signaling message
  */
 #define MAX_SIGNALING_MESSAGE_LEN 18750
+
+/**
+ * Maximum length of RTP packet dump string
+ */
+#define RTP_PACKET_TOSTRING_LEN 255
+
+/**
+ * Maximum allowed ICE URI buffer length, including the null terminator.
+ *
+ * \sa RTP_PACKET_TOSTRING_LEN
+ */
+#define RTP_PACKET_TOSTRING_BUFFER_LEN (RTP_PACKET_TOSTRING_LEN + 1)
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -706,6 +718,31 @@ extern "C" {
  */
 #define DISABLE_IPV4_TURN_ENV_VAR ((PCHAR) "KVS_DISABLE_IPV4_TURN")
 #define DISABLE_IPV6_TURN_ENV_VAR ((PCHAR) "KVS_DISABLE_IPV6_TURN")
+
+/**
+ * Env to print RTP packet headers to the debug log
+ */
+#define KVS_LOG_RTP_PACKETS_ENV_VAR ((PCHAR) "KVS_DEBUG_LOG_RTP_PACKETS")
+
+/**
+ * Env to print extra timing information to the debug log
+ */
+#define KVS_LOG_TIMING_INFO_ENV_VAR ((PCHAR) "KVS_DEBUG_LOG_EXTRA_TIMING_INFO")
+
+/**
+ * Env to print sender/receiver reports to the debug log
+ */
+#define KVS_LOG_SENDER_RECEIVER_REPORTS_ENV_VAR ((PCHAR) "KVS_DEBUG_LOG_SENDER_RECEIVER_REPORTS")
+
+/**
+ * Env for the frame debug log frequency in ms
+ */
+#define KVS_LOG_DEBUG_FRAME_TIMING_FREQUENCY_ENV_VAR_MS ((PCHAR) "KVS_LOG_DEBUG_FRAME_TIMING_FREQUENCY_MS")
+
+/**
+ * Default interval for frame debug log frequency in ms
+ */
+#define KVS_LOG_DEBUG_FRAME_TIMING_FREQUENCY_DEFAULT_MS 1000
 
 #ifdef _WIN32
 /**
