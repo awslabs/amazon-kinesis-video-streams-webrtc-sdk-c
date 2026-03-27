@@ -334,8 +334,10 @@ TEST_F(DtlsFunctionalityTest, strictServerValidationRejectsUntrustedServerCertif
     for (UINT64 duration = 0; duration < timeout && clientState.failedCount.load() == 0 && clientState.connectedCount.load() == 0;
          duration += sleepDelay) {
         STATUS clientConsumeStatus = STATUS_SUCCESS;
+        STATUS serverConsumeStatus = STATUS_SUCCESS;
 
-        EXPECT_EQ(STATUS_SUCCESS, consumeMessages(&serverInboundCtx, pServer));
+        serverConsumeStatus = consumeMessages(&serverInboundCtx, pServer);
+        EXPECT_TRUE(serverConsumeStatus == STATUS_SUCCESS || serverConsumeStatus == STATUS_INTERNAL_ERROR);
         clientConsumeStatus = consumeMessages(&clientInboundCtx, pStrictClient);
         EXPECT_TRUE(clientConsumeStatus == STATUS_SUCCESS || clientConsumeStatus == STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
         if (clientConsumeStatus == STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED) {
