@@ -286,15 +286,21 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     UINT32 extpayload;
     STATUS sendStatus;
 
-    // timing information
-    BOOL shouldLog;
-    UINT64 sendStart = 0, sendEnd = 0;
-    UINT64 srtpStart = 0, srtpEnd = 0;
+    // timing information; duration = total sum for this frame
+    BOOL shouldLogDebugTimingInfo = FALSE;
+    UINT64 sendStart = 0, sendEnd = 0, sendDuration = 0;
+    UINT64 srtpStart = 0, srtpEnd = 0, srtpDuration = 0;
 
     CHK(pKvsRtpTransceiver != NULL && pFrame != NULL, STATUS_NULL_ARG);
     pKvsPeerConnection = pKvsRtpTransceiver->pKvsPeerConnection;
 
-    if (pKvsPeerConnection->printExtraTimingInfo) {
+    /* log on an interval as to not consume so much CPU */
+    shouldLogDebugTimingInfo = pKvsPeerConnection->printExtraTimingInfo &&
+            (now - pKvsRtpTransceiver->lastWriteFrameLogTime >=
+             pKvsPeerConnection->writeFrameLoggingIntervalMs * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) ||
+        (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind && 0 != (pFrame->flags & FRAME_FLAG_KEY_FRAME));
+
+    if (shouldLogDebugTimingInfo) {
         if (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind) {
             DLOGV("Start writeFrame VIDEO: pts=%" PRIu64, pFrame->presentationTs);
         } else {
@@ -354,12 +360,6 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
 
     rtpTimestamp += randomRtpTimeoffset;
 
-    /* log the rtp time codes about every second */
-    shouldLog = pKvsPeerConnection->printExtraTimingInfo &&
-            (now - pKvsRtpTransceiver->lastWriteFrameLogTime >=
-             pKvsPeerConnection->writeFrameLoggingIntervalMs * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) ||
-        (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind && 0 != (pFrame->flags & FRAME_FLAG_KEY_FRAME));
-
     CHK_STATUS(rtpPayloadFunc(pKvsPeerConnection->MTU, (PBYTE) pFrame->frameData, pFrame->size, NULL, &(pPayloadArray->payloadLength), NULL,
                               &(pPayloadArray->payloadSubLenSize)));
     if (pPayloadArray->payloadLength > pPayloadArray->maxPayloadLength) {
@@ -416,24 +416,26 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
             }
         }
 
-        if (pKvsPeerConnection->printExtraTimingInfo) {
+        if (shouldLogDebugTimingInfo) {
             DLOGV("Start encrypting RTP seqNum=%d", pRtpPacket->header.sequenceNumber);
         }
         srtpStart = GETTIME();
         CHK_STATUS(encryptRtpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, (PINT32) &packetLen));
         srtpEnd = GETTIME();
-        if (pKvsPeerConnection->printExtraTimingInfo) {
+        if (shouldLogDebugTimingInfo) {
             DLOGV("Finish encrypting RTP seqNum=%d", pRtpPacket->header.sequenceNumber);
+            srtpDuration += (srtpEnd - srtpStart);
         }
 
-        if (pKvsPeerConnection->printExtraTimingInfo) {
+        if (shouldLogDebugTimingInfo) {
             DLOGV("Start sending RTP seqNum=%d", pRtpPacket->header.sequenceNumber);
         }
         sendStart = GETTIME();
         sendStatus = iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, packetLen);
         sendEnd = GETTIME();
-        if (pKvsPeerConnection->printExtraTimingInfo) {
+        if (shouldLogDebugTimingInfo) {
             DLOGV("Finish sending RTP seqNum=%d", pRtpPacket->header.sequenceNumber);
+            sendDuration += (sendEnd - sendStart);
         }
 
         if (sendStatus == STATUS_SEND_DATA_FAILED) {
@@ -469,22 +471,25 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
         framesSent++;
     }
 
-    if (shouldLog) {
+    if (shouldLogDebugTimingInfo) {
         UINT64 postSendWallClock = GETTIME();
         if (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind) {
-            DLOGD("VIDEO SENT: %s, pts_ms=%" PRIu64 ", rtpTs=%" PRIu64 ", packets=%u, bytes=%u, discarded=%u"
-                  ", wallClock_ms=%" PRIu64 ", srtpDuration=%" PRIu64 ".%02" PRIu64 " ms, frameSendDuration=%" PRIu64 ".%02" PRIu64 " ms",
+            DLOGD("VIDEO SENT: %s, pts_ms=%" PRIu64 ", rtpTs=%" PRIu64 ", packets=%u (%u-%u), bytes=%u, discarded=%u"
+                  ", wallClock_ms=%" PRIu64 ", srtpDuration=%" PRIu64 ".%02" PRIu64 " ms, socketWriteDuration=%" PRIu64 ".%02" PRIu64 " ms",
                   (0 != (pFrame->flags & FRAME_FLAG_KEY_FRAME)) ? "[KEY]" : "[non-KEY]", pFrame->presentationTs / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                  rtpTimestamp, packetsSent, bytesSent, packetsDiscardedOnSend, postSendWallClock / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                  (srtpEnd - srtpStart) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                  ((srtpEnd - srtpStart) % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100),
-                  (sendEnd - sendStart) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                  ((sendEnd - sendStart) % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100));
+                  rtpTimestamp, packetsSent, pKvsRtpTransceiver->sender.sequenceNumber - packetsSent, pKvsRtpTransceiver->sender.sequenceNumber - 1,
+                  bytesSent, packetsDiscardedOnSend, postSendWallClock / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                  srtpDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                  (srtpDuration % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100),
+                  sendDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                  (sendDuration % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100));
         } else {
-            DLOGD("AUDIO SENT: pts_ms=%" PRIu64 ", rtpTs=%" PRIu64 ", packets=%u, bytes=%u, discarded=%u"
-                  ", wallClock_ms=%" PRIu64 ", srtpDuration=%" PRIu64 ".%02" PRIu64 " ms, frameSendDuration=%" PRIu64 ".%02" PRIu64 " ms",
-                  pFrame->presentationTs / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, rtpTimestamp, packetsSent, bytesSent, packetsDiscardedOnSend,
-                  postSendWallClock / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, (srtpEnd - srtpStart) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+            DLOGD("AUDIO SENT: pts_ms=%" PRIu64 ", rtpTs=%" PRIu64 ", packets=%u (%u-%u), bytes=%u, discarded=%u"
+                  ", wallClock_ms=%" PRIu64 ", srtpDuration=%" PRIu64 ".%02" PRIu64 " ms, socketWriteDuration=%" PRIu64 ".%02" PRIu64 " ms",
+                  pFrame->presentationTs / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, rtpTimestamp, packetsSent,
+                  pKvsRtpTransceiver->sender.sequenceNumber - packetsSent, pKvsRtpTransceiver->sender.sequenceNumber - 1, bytesSent,
+                  packetsDiscardedOnSend, postSendWallClock / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                  (srtpEnd - srtpStart) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
                   ((srtpEnd - srtpStart) % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100),
                   (sendEnd - sendStart) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
                   ((sendEnd - sendStart) % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100));
@@ -538,7 +543,7 @@ CleanUp:
         CHK_LOG_ERR(retStatus);
     }
 
-    if (pKvsRtpTransceiver != NULL && pFrame != NULL && pKvsPeerConnection->printExtraTimingInfo) {
+    if (pKvsRtpTransceiver != NULL && pFrame != NULL && shouldLogDebugTimingInfo) {
         if (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind) {
             DLOGV("Finish writeFrame VIDEO: pts=%" PRIu64, pFrame->presentationTs);
         } else {

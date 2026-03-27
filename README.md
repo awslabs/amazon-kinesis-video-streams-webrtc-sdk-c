@@ -519,12 +519,12 @@ AWS access keys are ignored from environment variables if the sample was built i
 
 ### SDK environment variables
 
-| Variable                                   | Description                                                                                                   | Type  | Default           | Notes                                           |
-|--------------------------------------------|---------------------------------------------------------------------------------------------------------------|-------|-------------------|-------------------------------------------------|
-| `KVS_DEBUG_LOG_SENDER_RECEIVER_REPORTS`    | Print sender/receiver reports to DEBUG logs                                                                   | Bool  | `1`/`ON`/`TRUE`   | `0`/`OFF`/`FALSE` to disable. Case insensitive. |
-| `KVS_DEBUG_LOG_RTP_PACKETS`                | Print RTP debug info to DEBUG logs                                                                            | Bool  | `0`/`OFF`/`FALSE` | `1`/`ON`/`TRUE` to enable. Case insensitive.    |
-| `KVS_DEBUG_LOG_EXTRA_TIMING_INFO`          | Print extra timing info to DEBUG logs                                                                         | Bool  | `0`/`OFF`/`FALSE` | `1`/`ON`/`TRUE` to enable. Case insensitive.    |
-| `KVS_LOG_DEBUG_FRAME_TIMING_FREQUENCY_MS`  | When printing the extra timing info to DEBUG logs, the minimum duration to wait before printing the next one. | Int   | 1000ms (1s)       | Milliseconds                                    |
+| Variable                                | Description                                                                                                                                     | Type  | Default           | Notes                                           |
+|-----------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|-------|-------------------|-------------------------------------------------|
+| `KVS_DEBUG_LOG_SENDER_RECEIVER_REPORTS` | Print sender/receiver reports to DEBUG logs                                                                                                     | Bool  | `1`/`ON`/`TRUE`   | `0`/`OFF`/`FALSE` to disable. Case insensitive. |
+| `KVS_DEBUG_LOG_RTP_PACKETS`             | Print RTP packet headers to DEBUG logs                                                                                                          | Bool  | `0`/`OFF`/`FALSE` | `1`/`ON`/`TRUE` to enable. Case insensitive.    |
+| `KVS_DEBUG_LOG_EXTRA_TX_TIMING_INFO`    | Print RTP timestamps on the transmission path to DEBUG logs and print start + stop for WriteFrame, SRTP encrypt, and SocketSend to VERBOSE logs | Bool  | `0`/`OFF`/`FALSE` | `1`/`ON`/`TRUE` to enable. Case insensitive.    |
+| `KVS_DEBUG_FRAME_TIMING_FREQUENCY_MS`   | When printing the extra timing info to DEBUG logs, the minimum duration to wait before printing the next one.                                   | Int   | 1000ms (1s)       | Milliseconds                                    |
 
 ## TWCC support
 

@@ -727,7 +727,7 @@ extern "C" {
 /**
  * Env to print extra timing information to the debug log
  */
-#define KVS_LOG_TIMING_INFO_ENV_VAR ((PCHAR) "KVS_DEBUG_LOG_EXTRA_TIMING_INFO")
+#define KVS_LOG_TIMING_INFO_ENV_VAR ((PCHAR) "KVS_DEBUG_LOG_EXTRA_TX_TIMING_INFO")
 
 /**
  * Env to print sender/receiver reports to the debug log
@@ -737,7 +737,7 @@ extern "C" {
 /**
  * Env for the frame debug log frequency in ms
  */
-#define KVS_LOG_DEBUG_FRAME_TIMING_FREQUENCY_ENV_VAR_MS ((PCHAR) "KVS_LOG_DEBUG_FRAME_TIMING_FREQUENCY_MS")
+#define KVS_LOG_DEBUG_FRAME_TIMING_FREQUENCY_ENV_VAR_MS ((PCHAR) "KVS_DEBUG_FRAME_TIMING_FREQUENCY_MS")
 
 /**
  * Env to print nack/retransmit requests to the debug log
