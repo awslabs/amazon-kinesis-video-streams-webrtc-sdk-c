@@ -680,6 +680,30 @@ To disable dual-stack mode, unset the environment variable:
 unset KVS_DUALSTACK_ENDPOINTS
 ```
 
+### Enabling FIPS mode
+To use FIPS-compliant AWS KVS endpoints, set the following environment variable:
+```
+export USE_KVS_FIPS_ENDPOINT=ON
+```
+
+When enabled, the SDK will automatically use the appropriate FIPS endpoint based on the configured region. FIPS endpoints are available for the following regions:
+- `us-iso-east-1`, `us-iso-west-1` (C2S)
+- `us-isob-east-1` (SC2S)
+- `us-gov-west-1`, `us-gov-east-1` (GovCloud)
+
+Note: FIPS STUN endpoints use the `stuns:` scheme (TLS) instead of `stun:` for secure communication.
+
+FIPS mode can be combined with dual-stack mode by setting both environment variables:
+```
+export USE_KVS_FIPS_ENDPOINT=ON
+export KVS_DUALSTACK_ENDPOINTS=ON
+```
+
+To disable FIPS mode, unset the environment variable:
+```
+unset USE_KVS_FIPS_ENDPOINT
+```
+
 ### Disabling IP-Family-Specific TURN Candidates
 The following environment variables can be used to disable certain TURN relay candidates from being generated for the local peer:
 ```

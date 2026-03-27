@@ -361,6 +361,7 @@ extern "C" {
 #define STATUS_SIGNALING_JOIN_SESSION_CALL_FAILED                  STATUS_SIGNALING_BASE + 0x0000004a
 #define STATUS_SIGNALING_JOIN_SESSION_CONNECTED_FAILED             STATUS_SIGNALING_BASE + 0x0000004b
 #define STATUS_SIGNALING_DESCRIBE_MEDIA_CALL_FAILED                STATUS_SIGNALING_BASE + 0x0000004c
+#define STATUS_SIGNALING_FIPS_UNSUPPORTED_REGION                   STATUS_SIGNALING_BASE + 0x0000004d
 
 /*!@} */
 
@@ -700,6 +701,16 @@ extern "C" {
  * Env to control whether to use dual stack endpoints, unset means false
  */
 #define USE_DUAL_STACK_ENDPOINTS_ENV_VAR ((PCHAR) "KVS_DUALSTACK_ENDPOINTS")
+
+/**
+ * Env to control whether to use FIPS endpoints, unset means false
+ * When enabled, the SDK will automatically use the appropriate FIPS endpoint
+ * based on the configured region. Supported regions:
+ * - us-iso-east-1, us-iso-west-1 (C2S)
+ * - us-isob-east-1 (SC2S)
+ * - us-gov-west-1, us-gov-east-1 (GovCloud)
+ */
+#define USE_FIPS_ENDPOINT_ENV_VAR ((PCHAR) "USE_KVS_FIPS_ENDPOINT")
 
 /**
  * Envs to disable IPv4 or IPv6 TURN relay candidates
@@ -2259,6 +2270,20 @@ PUBLIC_API STATUS createRtcCertificate(PRtcCertificate*);
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS freeRtcCertificate(PRtcCertificate);
+
+/**
+ * @brief Constructs the STUN server URL based on region and environment settings.
+ * Handles standard, dual-stack, China, and FIPS endpoints.
+ *
+ * Note: FIPS STUN requires "stuns:" scheme (TLS), not "stun:"
+ *
+ * @param[in] PCHAR The AWS region string
+ * @param[out] PCHAR Buffer to store the constructed STUN URL
+ * @param[in] UINT32 Size of the buffer
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS getStunUrl(PCHAR, PCHAR, UINT32);
 
 /*!@} */
 #ifdef __cplusplus

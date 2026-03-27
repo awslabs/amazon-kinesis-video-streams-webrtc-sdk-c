@@ -1,6 +1,99 @@
 #define LOG_CLASS "ChannelInfo"
 #include "../Include_i.h"
 
+/**
+ * Gets the FIPS endpoint URL for a given region.
+ *
+ * @param pRegion - The AWS region string
+ * @param useDualStack - Whether to use dual-stack FIPS endpoints
+ * @param pOutBuffer - Output buffer to store the endpoint URL
+ * @param outBufferLen - Length of the output buffer
+ *
+ * @return - STATUS_SUCCESS on success, error status otherwise
+ */
+static STATUS getFipsEndpointForRegion(PCHAR pRegion, BOOL useDualStack, PCHAR pOutBuffer, UINT32 outBufferLen)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 i;
+    const FipsEndpointMapping* pMappings;
+
+    CHK(pRegion != NULL, STATUS_NULL_ARG);
+    CHK(pOutBuffer != NULL, STATUS_NULL_ARG);
+    CHK(outBufferLen > 0, STATUS_INVALID_ARG);
+
+    pMappings = useDualStack ? FIPS_DUAL_STACK_ENDPOINT_MAPPINGS : FIPS_ENDPOINT_MAPPINGS;
+
+    for (i = 0; i < FIPS_ENDPOINT_MAPPING_COUNT; i++) {
+        if (STRCMP(pRegion, pMappings[i].pRegion) == 0) {
+            STRNCPY(pOutBuffer, pMappings[i].pEndpoint, outBufferLen - 1);
+            pOutBuffer[outBufferLen - 1] = '\0';
+            CHK(FALSE, retStatus);  // Jump to CleanUp with STATUS_SUCCESS
+        }
+    }
+
+    DLOGW("FIPS endpoint is not supported for region: %s", pRegion);
+    CHK(FALSE, STATUS_SIGNALING_FIPS_UNSUPPORTED_REGION);
+
+CleanUp:
+    return retStatus;
+}
+
+/**
+ * Constructs the control plane endpoint URL based on region and environment settings.
+ * 
+ * Priority:
+ * 1. FIPS + dual-stack enabled -> FIPS dual-stack endpoint
+ * 2. FIPS only enabled -> FIPS legacy endpoint
+ * 3. Dual-stack only enabled -> standard dual-stack endpoint
+ * 4. Neither enabled -> standard legacy endpoint
+ *
+ * @param pRegion - The AWS region string
+ * @param pEndpointBuffer - Buffer to store the constructed endpoint URL
+ * @param bufferSize - Size of the endpoint buffer
+ *
+ * @return - STATUS_SUCCESS on success, error status otherwise
+ */
+STATUS constructControlPlaneEndpoint(PCHAR pRegion, PCHAR pEndpointBuffer, UINT32 bufferSize)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pRegion != NULL && pEndpointBuffer != NULL, STATUS_NULL_ARG);
+    CHK(bufferSize > 0, STATUS_INVALID_ARG);
+
+    if (isEnvVarEnabled(USE_FIPS_ENDPOINT_ENV_VAR) && isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR)) {
+        // Case 1: BOTH FIPS and dual-stack enabled - use FIPS dual-stack endpoint
+        CHK_STATUS(getFipsEndpointForRegion(pRegion, TRUE, pEndpointBuffer, bufferSize));
+        DLOGI("Using FIPS dual-stack KVS endpoint for region %s.", pRegion);
+    } else if (isEnvVarEnabled(USE_FIPS_ENDPOINT_ENV_VAR)) {
+        // Case 2: Only FIPS enabled - use FIPS endpoint (legacy/non-dual-stack)
+        CHK_STATUS(getFipsEndpointForRegion(pRegion, FALSE, pEndpointBuffer, bufferSize));
+        DLOGI("Using FIPS KVS endpoint for region %s.", pRegion);
+    } else if (isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR)) {
+        // Case 3: Only dual-stack enabled - use dual-stack endpoint
+        DLOGI("Using dual-stack KVS endpoints.");
+        if (STRSTR(pRegion, AWS_CN_REGION_PREFIX)) {
+            SNPRINTF(pEndpointBuffer, bufferSize, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
+                     pRegion, CONTROL_PLANE_URI_POSTFIX_CN_DUAL_STACK);
+        } else {
+            SNPRINTF(pEndpointBuffer, bufferSize, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
+                     pRegion, CONTROL_PLANE_URI_POSTFIX_DUAL_STACK);
+        }
+    } else {
+        // Case 4: Neither enabled - use standard/legacy endpoint
+        DLOGI("Using legacy KVS endpoints.");
+        if (STRSTR(pRegion, AWS_CN_REGION_PREFIX)) {
+            SNPRINTF(pEndpointBuffer, bufferSize, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
+                     pRegion, CONTROL_PLANE_URI_POSTFIX_CN);
+        } else {
+            SNPRINTF(pEndpointBuffer, bufferSize, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
+                     pRegion, CONTROL_PLANE_URI_POSTFIX);
+        }
+    }
+
+CleanUp:
+    return retStatus;
+}
+
 #define ARN_DELIMETER_CHAR                  ':'
 #define ARN_CHANNEL_NAME_CODE_SEP           '/'
 #define ARN_BEGIN                           "arn:aws"
@@ -176,28 +269,7 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     if (!IS_NULL_OR_EMPTY_STRING(pOrigChannelInfo->pControlPlaneUrl)) {
         STRCPY(pCurPtr, pOrigChannelInfo->pControlPlaneUrl);
     } else {
-        if (isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR)) {
-            // Create dual-stack fully qualified URI for appropriate region.
-            DLOGI("Using dual-stack KVS endpoints.");
-            if (STRSTR(pChannelInfo->pRegion, AWS_CN_REGION_PREFIX)) {
-                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
-                         pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX_CN_DUAL_STACK);
-            } else {
-                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
-                         pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX_DUAL_STACK);
-            }
-
-        } else {
-            // Create legacy fully qualified URI for appropriate region.
-            DLOGI("Using legacy KVS endpoints.");
-            if (STRSTR(pChannelInfo->pRegion, AWS_CN_REGION_PREFIX)) {
-                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
-                         pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX_CN);
-            } else {
-                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
-                         pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX);
-            }
-        }
+        CHK_STATUS(constructControlPlaneEndpoint(pChannelInfo->pRegion, pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN));
     }
 
     pChannelInfo->pControlPlaneUrl = pCurPtr;
@@ -455,4 +527,68 @@ STATUS validateKvsSignalingChannelArnAndExtractChannelName(PChannelInfo pChannel
     }
 
     return STATUS_SIGNALING_INVALID_CHANNEL_ARN;
+}
+
+/**
+ * Constructs the STUN server URL based on region and environment settings.
+ *
+ * @param pRegion - The AWS region string
+ * @param pStunUrlBuffer - Buffer to store the constructed STUN URL
+ * @param bufferSize - Size of the buffer
+ *
+ * @return - STATUS_SUCCESS on success, error status otherwise
+ */
+STATUS getStunUrl(PCHAR pRegion, PCHAR pStunUrlBuffer, UINT32 bufferSize)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PCHAR pUrlPostfix = NULL;
+    PCHAR pScheme = NULL;
+    PCHAR pServiceName = NULL;
+
+    CHK(pRegion != NULL && pStunUrlBuffer != NULL, STATUS_NULL_ARG);
+    CHK(bufferSize > 0, STATUS_INVALID_ARG);
+
+    if (isEnvVarEnabled(USE_FIPS_ENDPOINT_ENV_VAR)) {
+        // FIPS STUN requires "stuns:" scheme (TLS)
+        pScheme = "stuns";
+        pServiceName = "kinesisvideo-fips";
+
+        if (isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR)) {
+            // FIPS + dual-stack
+            pUrlPostfix = KINESIS_VIDEO_DUALSTACK_STUN_URL_POSTFIX;
+            DLOGI("Using FIPS dual-stack STUN endpoint for region %s.", pRegion);
+        } else {
+            // FIPS only (legacy)
+            pUrlPostfix = KINESIS_VIDEO_STUN_URL_POSTFIX;
+            DLOGI("Using FIPS STUN endpoint for region %s.", pRegion);
+        }
+    } else {
+        // Standard STUN uses "stun:" scheme
+        pScheme = "stun";
+        pServiceName = "kinesisvideo";
+
+        if (isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR)) {
+            // Dual-stack only
+            DLOGD("Using dual-stack STUN endpoint.");
+            if (STRSTR(pRegion, AWS_CN_REGION_PREFIX)) {
+                pUrlPostfix = KINESIS_VIDEO_DUALSTACK_STUN_URL_POSTFIX_CN;
+            } else {
+                pUrlPostfix = KINESIS_VIDEO_DUALSTACK_STUN_URL_POSTFIX;
+            }
+        } else {
+            // Standard/legacy
+            DLOGD("Using legacy STUN endpoint.");
+            if (STRSTR(pRegion, AWS_CN_REGION_PREFIX)) {
+                pUrlPostfix = KINESIS_VIDEO_STUN_URL_POSTFIX_CN;
+            } else {
+                pUrlPostfix = KINESIS_VIDEO_STUN_URL_POSTFIX;
+            }
+        }
+    }
+
+    // Construct the STUN URL: <scheme>:stun.<service>.<region>.<postfix>:443
+    SNPRINTF(pStunUrlBuffer, bufferSize, "%s:stun.%s.%s.%s:443", pScheme, pServiceName, pRegion, pUrlPostfix);
+
+CleanUp:
+    return retStatus;
 }

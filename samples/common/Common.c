@@ -385,26 +385,8 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     configuration.kvsRtcConfiguration.enableIceStats = pSampleConfiguration->enableIceStats;
 #endif
 
-    // Set the  STUN server
-    PCHAR pKinesisVideoStunUrlPostFix = NULL;
-    if (isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR)) {
-        DLOGD("Using dual-stack STUN endpoint");
-        if (STRSTR(pSampleConfiguration->channelInfo.pRegion, "cn-")) {
-            pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_DUALSTACK_STUN_URL_POSTFIX_CN;
-        } else {
-            pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_DUALSTACK_STUN_URL_POSTFIX;
-        }
-    } else {
-        DLOGD("Using legacy STUN endpoint");
-        if (STRSTR(pSampleConfiguration->channelInfo.pRegion, "cn-")) {
-            pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX_CN;
-        } else {
-            pKinesisVideoStunUrlPostFix = KINESIS_VIDEO_STUN_URL_POSTFIX;
-        }
-    }
-
-    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, pSampleConfiguration->channelInfo.pRegion,
-             pKinesisVideoStunUrlPostFix);
+    // Set the STUN server URL using SDK function (handles standard, dual-stack, China, and FIPS endpoints)
+    CHK_STATUS(getStunUrl(pSampleConfiguration->channelInfo.pRegion, configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN));
 
     if (pSampleConfiguration->useTurn) {
         // Set the URIs from the configuration
@@ -855,6 +837,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     if ((pSampleConfiguration->channelInfo.pRegion = GETENV(DEFAULT_REGION_ENV_VAR)) == NULL) {
         pSampleConfiguration->channelInfo.pRegion = DEFAULT_AWS_REGION;
     }
+
 
     CHK_STATUS(lookForSslCert(&pSampleConfiguration));
 
