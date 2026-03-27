@@ -175,7 +175,6 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
        |           recv delta          |  recv delta   | zero padding  |
        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
      */
-    DLOGI("RECEIVE TWCC PACKET");
     STATUS retStatus = STATUS_SUCCESS;
     INT32 packetsRemaining;
     UINT16 baseSeqNum, packetStatusCount, packetSeqNum;
@@ -193,6 +192,7 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
     baseSeqNum = getUnalignedInt16BigEndian(pRtcpPacket->payload + 8);
     pTwccManager->prevReportedBaseSeqNum = baseSeqNum;
     packetStatusCount = TWCC_PACKET_STATUS_COUNT(pRtcpPacket->payload);
+    DLOGD("Received TWCC feedback for seqNum: %u to %u", baseSeqNum, (UINT16) (baseSeqNum + packetStatusCount - 1));
     referenceTime = (pRtcpPacket->payload[12] << 16) | (pRtcpPacket->payload[13] << 8) | (pRtcpPacket->payload[14] & 0xff);
     referenceTime = KVS_CONVERT_TIMESCALE(referenceTime * 64, MILLISECONDS_PER_SECOND, HUNDREDS_OF_NANOS_IN_A_SECOND);
     // TODO: handle lost twcc report packets
@@ -228,6 +228,7 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
                         recvOffset += 2;
                         break;
                     case TWCC_STATUS_SYMBOL_NOTRECEIVED:
+                        DLOGD("feedback for seqNum %u - not received", packetSeqNum);
                         DLOGS("runLength packetSeqNum %u not received %lu", packetSeqNum, referenceTime);
                         // If it does not exist it means the packet was already visited
                         if (STATUS_SUCCEEDED(hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, packetSeqNum, &twccPktValue))) {
@@ -244,6 +245,8 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
                 }
                 if (recvDelta != MIN_INT16) {
                     referenceTime += KVS_CONVERT_TIMESCALE(recvDelta, TWCC_TICKS_PER_SECOND, HUNDREDS_OF_NANOS_IN_A_SECOND);
+                    DLOGD("feedback for seqNum %u - received time: %lu.%02lu ms", packetSeqNum,
+                          referenceTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, (referenceTime % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / 100);
                     DLOGS("runLength packetSeqNum %u received %lu", packetSeqNum, referenceTime);
 
                     // If it does not exist it means the packet was already visited
@@ -277,6 +280,7 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
                         recvOffset += 2;
                         break;
                     case TWCC_STATUS_SYMBOL_NOTRECEIVED:
+                        DLOGD("feedback for seqNum %u - not received", packetSeqNum);
                         DLOGS("statusVector packetSeqNum %u not received %lu", packetSeqNum, referenceTime);
                         // If it does not exist it means the packet was already visited
                         if (STATUS_SUCCEEDED(hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, packetSeqNum, &twccPktValue))) {
@@ -293,6 +297,8 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
                 }
                 if (recvDelta != MIN_INT16) {
                     referenceTime += KVS_CONVERT_TIMESCALE(recvDelta, TWCC_TICKS_PER_SECOND, HUNDREDS_OF_NANOS_IN_A_SECOND);
+                    DLOGD("feedback for seqNum %u - received time: %lu.%02lu ms", packetSeqNum,
+                          referenceTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, (referenceTime % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / 100);
                     DLOGS("statusVector packetSeqNum %u received %lu", packetSeqNum, referenceTime);
                     // If it does not exist it means the packet was already visited
                     if (STATUS_SUCCEEDED(hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, packetSeqNum, &twccPktValue))) {
