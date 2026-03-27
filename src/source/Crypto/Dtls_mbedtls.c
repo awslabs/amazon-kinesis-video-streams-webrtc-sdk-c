@@ -101,7 +101,9 @@ STATUS dtlsSessionGetCertificateVerificationFailureStatus(PDtlsSession pDtlsSess
     CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
     CHK(pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER, retStatus);
     verifyResult = (UINT32) mbedtls_ssl_get_verify_result(&pDtlsSession->sslCtx);
-    CHK(sslRet == MBEDTLS_ERR_X509_CERT_VERIFY_FAILED || verifyResult != 0, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
+    if (sslRet == MBEDTLS_ERR_X509_CERT_VERIFY_FAILED || verifyResult != 0) {
+        retStatus = STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED;
+    }
 
 CleanUp:
     if (retStatus == STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED && pDtlsSession != NULL &&
