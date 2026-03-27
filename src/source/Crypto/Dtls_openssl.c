@@ -56,6 +56,33 @@ CleanUp:
     return retStatus;
 }
 
+STATUS dtlsSessionConfigureStrictHostnameValidation(PDtlsSession pDtlsSession)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    X509_VERIFY_PARAM* pVerifyParam = NULL;
+
+    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
+    CHK(pDtlsSession->pExpectedServerHostname != NULL && pDtlsSession->pExpectedServerHostname[0] != '\0', STATUS_INVALID_ARG);
+
+#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
+    CHK(SSL_set1_host(pDtlsSession->pSsl, pDtlsSession->pExpectedServerHostname) == 1, STATUS_SSL_CTX_CREATION_FAILED);
+#elif (OPENSSL_VERSION_NUMBER >= 0x10002000L)
+    pVerifyParam = SSL_get0_param(pDtlsSession->pSsl);
+    CHK(pVerifyParam != NULL, STATUS_SSL_CTX_CREATION_FAILED);
+    CHK(X509_VERIFY_PARAM_set1_host(pVerifyParam, pDtlsSession->pExpectedServerHostname, 0) == 1, STATUS_SSL_CTX_CREATION_FAILED);
+#else
+    DLOGW("Strict DTLS server hostname validation for %s is not supported with OpenSSL versions older than 1.0.2",
+          pDtlsSession->pExpectedServerHostname);
+    CHK(FALSE, STATUS_NOT_IMPLEMENTED);
+#endif
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+    LEAVES();
+    return retStatus;
+}
+
 STATUS dtlsSessionConfigureRemoteCertificateValidation(PDtlsSession pDtlsSession)
 {
     ENTERS();
@@ -67,7 +94,7 @@ STATUS dtlsSessionConfigureRemoteCertificateValidation(PDtlsSession pDtlsSession
     DLOGD("Configuring strict DTLS server certificate validation for %s using CA bundle %s", pDtlsSession->pExpectedServerHostname, KVS_CA_CERT_PATH);
     CHK(SSL_CTX_load_verify_locations(pDtlsSession->pSslCtx, KVS_CA_CERT_PATH, NULL) == 1, STATUS_SSL_CTX_CREATION_FAILED);
     CHK(SSL_set_tlsext_host_name(pDtlsSession->pSsl, pDtlsSession->pExpectedServerHostname) == 1, STATUS_SSL_CTX_CREATION_FAILED);
-    CHK(SSL_set1_host(pDtlsSession->pSsl, pDtlsSession->pExpectedServerHostname) == 1, STATUS_SSL_CTX_CREATION_FAILED);
+    CHK_STATUS(dtlsSessionConfigureStrictHostnameValidation(pDtlsSession));
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
