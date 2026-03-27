@@ -712,8 +712,8 @@ STATUS iceAgentSendPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen)
                                  pIceAgent->pDataSendingIceCandidatePair->local->pSocketConnection, pTurnConnection, isRelay);
     iceSendDuration = GETTIME() - iceSendStart;
     if (iceSendDuration > 5 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) {
-        DLOGW("iceAgentSendPacket(): iceUtilsSendData took %" PRIu64 " ms, bufLen=%u, relay=%s",
-              iceSendDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, bufferLen, isRelay ? "yes" : "no");
+        DLOGW("iceAgentSendPacket(): iceUtilsSendData took %" PRIu64 " ms, bufLen=%u, relay=%s", iceSendDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+              bufferLen, isRelay ? "yes" : "no");
     }
 
     if (STATUS_FAILED(retStatus)) {

@@ -264,7 +264,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = NULL;
     PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;
-    BOOL locked = FALSE, bufferAfterEncrypt = FALSE, shouldLog = FALSE;
+    BOOL locked = FALSE, bufferAfterEncrypt = FALSE;
     PRtpPacket pPacketList = NULL, pRtpPacket = NULL;
     UINT32 i = 0, packetLen = 0, headerLen = 0, allocSize;
     PBYTE rawPacket = NULL;
@@ -286,13 +286,22 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     UINT32 extpayload;
     STATUS sendStatus;
 
-    // send delay instrumentation
-    UINT64 lockWaitStart = 0, lockAcquiredTime = 0, frameSendStart = 0, frameSendDuration = 0;
-    UINT64 sendStart = 0, sendDuration = 0, maxSendDuration = 0, totalSendDuration = 0;
-    UINT64 srtpStart = 0, srtpDuration = 0, maxSrtpDuration = 0, totalSrtpDuration = 0;
+    // timing information
+    BOOL shouldLog;
+    UINT64 sendStart = 0, sendEnd = 0;
+    UINT64 srtpStart = 0, srtpEnd = 0;
 
     CHK(pKvsRtpTransceiver != NULL && pFrame != NULL, STATUS_NULL_ARG);
     pKvsPeerConnection = pKvsRtpTransceiver->pKvsPeerConnection;
+
+    if (pKvsPeerConnection->printExtraTimingInfo) {
+        if (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind) {
+            DLOGV("Start writeFrame VIDEO: pts=%" PRIu64, pFrame->presentationTs);
+        } else {
+            DLOGV("Start writeFrame AUDIO: pts=%" PRIu64, pFrame->presentationTs);
+        }
+    }
+
     pPayloadArray = &(pKvsRtpTransceiver->sender.payloadArray);
     if (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind) {
         frames++;
@@ -309,15 +318,8 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
         }
     }
 
-    lockWaitStart = GETTIME();
     MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
     locked = TRUE;
-    lockAcquiredTime = GETTIME();
-    if (lockAcquiredTime - lockWaitStart > 5 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) {
-        DLOGW("writeFrame(): SRTP lock wait took %" PRIu64 " ms",
-              (lockAcquiredTime - lockWaitStart) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-    }
-    frameSendStart = lockAcquiredTime;
     CHK(pKvsPeerConnection->pSrtpSession != NULL, STATUS_SRTP_NOT_READY_YET); // Discard packets till SRTP is ready
     switch (pKvsRtpTransceiver->sender.track.codec) {
         case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
@@ -352,23 +354,11 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
 
     rtpTimestamp += randomRtpTimeoffset;
 
-     /* log the rtp time codes about every second */
-    shouldLog = (now - pKvsRtpTransceiver->lastWriteFrameLogTime >= HUNDREDS_OF_NANOS_IN_A_SECOND) ||
-                (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind &&
-                 0 != (pFrame->flags & FRAME_FLAG_KEY_FRAME));
-    if (shouldLog) {
-        if (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind) {
-            DLOGD("VIDEO: pts_ms=%" PRIu64 ", rtpTs=%" PRIu64 ", wallClock_ms=%" PRIu64 " %s",
-                  pFrame->presentationTs / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, rtpTimestamp,
-                  now / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                  (0 != (pFrame->flags & FRAME_FLAG_KEY_FRAME)) ? "[KEY]" : "[non-KEY]");
-        } else {
-            DLOGD("AUDIO: pts_ms=%" PRIu64 ", rtpTs=%" PRIu64 ", wallClock_ms=%" PRIu64,
-                  pFrame->presentationTs / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, rtpTimestamp,
-                  now / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-        }
-        pKvsRtpTransceiver->lastWriteFrameLogTime = now;
-    }
+    /* log the rtp time codes about every second */
+    shouldLog = pKvsPeerConnection->printExtraTimingInfo &&
+            (now - pKvsRtpTransceiver->lastWriteFrameLogTime >=
+             pKvsPeerConnection->writeFrameLoggingIntervalMs * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) ||
+        (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind && 0 != (pFrame->flags & FRAME_FLAG_KEY_FRAME));
 
     CHK_STATUS(rtpPayloadFunc(pKvsPeerConnection->MTU, (PBYTE) pFrame->frameData, pFrame->size, NULL, &(pPayloadArray->payloadLength), NULL,
                               &(pPayloadArray->payloadSubLenSize)));
@@ -415,25 +405,37 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
             CHK_STATUS(rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
         }
 
+        if (pKvsPeerConnection->logRtpPackets) {
+            CHAR packetContents[RTP_PACKET_TOSTRING_BUFFER_LEN];
+            STATUS toStringStatus = rtpPacketHeaderToString(pRtpPacket, packetContents, SIZEOF(packetContents));
+
+            if (STATUS_SUCCEEDED(toStringStatus)) {
+                DLOGD("%s", packetContents);
+            } else {
+                DLOGW("Error printing packet contents: 0x%08x", toStringStatus);
+            }
+        }
+
+        if (pKvsPeerConnection->printExtraTimingInfo) {
+            DLOGV("Start encrypting RTP seqNum=%d", pRtpPacket->header.sequenceNumber);
+        }
         srtpStart = GETTIME();
         CHK_STATUS(encryptRtpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, (PINT32) &packetLen));
-        srtpDuration = GETTIME() - srtpStart;
-        totalSrtpDuration += srtpDuration;
-        if (srtpDuration > maxSrtpDuration) {
-            maxSrtpDuration = srtpDuration;
+        srtpEnd = GETTIME();
+        if (pKvsPeerConnection->printExtraTimingInfo) {
+            DLOGV("Finish encrypting RTP seqNum=%d", pRtpPacket->header.sequenceNumber);
+        }
+
+        if (pKvsPeerConnection->printExtraTimingInfo) {
+            DLOGV("Start sending RTP seqNum=%d", pRtpPacket->header.sequenceNumber);
         }
         sendStart = GETTIME();
         sendStatus = iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, packetLen);
-        sendDuration = GETTIME() - sendStart;
-        totalSendDuration += sendDuration;
-        if (sendDuration > maxSendDuration) {
-            maxSendDuration = sendDuration;
+        sendEnd = GETTIME();
+        if (pKvsPeerConnection->printExtraTimingInfo) {
+            DLOGV("Finish sending RTP seqNum=%d", pRtpPacket->header.sequenceNumber);
         }
-        if (sendDuration > 5 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) {
-            DLOGW("writeFrame(): slow iceAgentSendPacket: %" PRIu64 " ms, seq=%u, size=%u",
-                  sendDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                  pRtpPacket->header.sequenceNumber, packetLen);
-        }
+
         if (sendStatus == STATUS_SEND_DATA_FAILED) {
             packetsDiscardedOnSend++;
             bytesDiscardedOnSend += packetLen - headerLen;
@@ -470,41 +472,30 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     if (shouldLog) {
         UINT64 postSendWallClock = GETTIME();
         if (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind) {
-            DLOGD("VIDEO SENT: pts_ms=%" PRIu64 ", rtpTs=%" PRIu64 ", packets=%u, bytes=%u, discarded=%u, "
-                  "totalSrtp_ms=%" PRIu64 ", maxSrtp_ms=%" PRIu64 ", totalSocketSend_ms=%" PRIu64 ", maxSocketSend_ms=%" PRIu64
-                  ", wallClock_ms=%" PRIu64 " %s",
-                  pFrame->presentationTs / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, rtpTimestamp, packetsSent, bytesSent, packetsDiscardedOnSend,
-                  totalSrtpDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, maxSrtpDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                  totalSendDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, maxSendDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                  postSendWallClock / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                  (0 != (pFrame->flags & FRAME_FLAG_KEY_FRAME)) ? "[KEY]" : "[non-KEY]");
+            DLOGD("VIDEO SENT: %s, pts_ms=%" PRIu64 ", rtpTs=%" PRIu64 ", packets=%u, bytes=%u, discarded=%u"
+                  ", wallClock_ms=%" PRIu64 ", srtpDuration=%" PRIu64 ".%02" PRIu64 " ms, frameSendDuration=%" PRIu64 ".%02" PRIu64 " ms",
+                  (0 != (pFrame->flags & FRAME_FLAG_KEY_FRAME)) ? "[KEY]" : "[non-KEY]", pFrame->presentationTs / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                  rtpTimestamp, packetsSent, bytesSent, packetsDiscardedOnSend, postSendWallClock / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                  (srtpEnd - srtpStart) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                  ((srtpEnd - srtpStart) % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100),
+                  (sendEnd - sendStart) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                  ((sendEnd - sendStart) % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100));
         } else {
-            DLOGD("AUDIO SENT: pts_ms=%" PRIu64 ", rtpTs=%" PRIu64 ", packets=%u, bytes=%u, discarded=%u, "
-                  "totalSrtp_ms=%" PRIu64 ", maxSrtp_ms=%" PRIu64 ", totalSocketSend_ms=%" PRIu64 ", maxSocketSend_ms=%" PRIu64
-                  ", wallClock_ms=%" PRIu64,
+            DLOGD("AUDIO SENT: pts_ms=%" PRIu64 ", rtpTs=%" PRIu64 ", packets=%u, bytes=%u, discarded=%u"
+                  ", wallClock_ms=%" PRIu64 ", srtpDuration=%" PRIu64 ".%02" PRIu64 " ms, frameSendDuration=%" PRIu64 ".%02" PRIu64 " ms",
                   pFrame->presentationTs / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, rtpTimestamp, packetsSent, bytesSent, packetsDiscardedOnSend,
-                  totalSrtpDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, maxSrtpDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                  totalSendDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, maxSendDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                  postSendWallClock / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+                  postSendWallClock / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, (srtpEnd - srtpStart) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                  ((srtpEnd - srtpStart) % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100),
+                  (sendEnd - sendStart) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                  ((sendEnd - sendStart) % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100));
         }
+
+        pKvsRtpTransceiver->lastWriteFrameLogTime = now;
     }
 
     if (pKvsRtpTransceiver->sender.firstFrameWallClockTime == 0) {
         pKvsRtpTransceiver->sender.rtpTimeOffset = randomRtpTimeoffset;
         pKvsRtpTransceiver->sender.firstFrameWallClockTime = now;
-    }
-
-    if (frameSendStart > 0) {
-        frameSendDuration = GETTIME() - frameSendStart;
-        if (frameSendDuration > 10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) {
-            DLOGW("writeFrame(): %s frame send took %" PRIu64 " ms (packets=%u, totalSend=%" PRIu64 " ms, maxSend=%" PRIu64
-                  " ms, frameSize=%u, pts_ms=%" PRIu64 ")",
-                  MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind ? "VIDEO" : "AUDIO",
-                  frameSendDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, packetsSent,
-                  totalSendDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                  maxSendDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND, pFrame->size,
-                  pFrame->presentationTs / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
-        }
     }
 
 CleanUp:
@@ -545,6 +536,14 @@ CleanUp:
     SAFE_MEMFREE(pPacketList);
     if (retStatus != STATUS_SRTP_NOT_READY_YET) {
         CHK_LOG_ERR(retStatus);
+    }
+
+    if (pKvsRtpTransceiver != NULL && pFrame != NULL && pKvsPeerConnection->printExtraTimingInfo) {
+        if (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind) {
+            DLOGV("Finish writeFrame VIDEO: pts=%" PRIu64, pFrame->presentationTs);
+        } else {
+            DLOGV("Finish writeFrame AUDIO: pts=%" PRIu64, pFrame->presentationTs);
+        }
     }
 
     return retStatus;
@@ -606,5 +605,57 @@ STATUS findTransceiverBySsrc(PKvsPeerConnection pKvsPeerConnection, PKvsRtpTrans
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
+    return retStatus;
+}
+
+STATUS rtpPacketHeaderToString(PRtpPacket pRtpPacket, PCHAR buffer, UINT32 bufferLen)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    INT32 charsWritten;
+    UINT32 i;
+
+    CHK(pRtpPacket != NULL && buffer != NULL, STATUS_NULL_ARG);
+    CHK(bufferLen > 0, STATUS_INVALID_ARG_LEN);
+
+    // Construct fixed header string
+    charsWritten = SNPRINTF(buffer, bufferLen, "RtpPacket: V=%u P=%u X=%u CC=%u M=%u PT=%u SEQ=%u TS=%u SSRC=%u payloadLen=%u",
+                            pRtpPacket->header.version, pRtpPacket->header.padding, pRtpPacket->header.extension, pRtpPacket->header.csrcCount,
+                            pRtpPacket->header.marker, pRtpPacket->header.payloadType, pRtpPacket->header.sequenceNumber,
+                            pRtpPacket->header.timestamp, pRtpPacket->header.ssrc, pRtpPacket->payloadLength);
+
+    CHK(charsWritten >= 0 && (UINT32) charsWritten < bufferLen, STATUS_BUFFER_TOO_SMALL);
+
+    // Add header extensions if present
+    if (pRtpPacket->header.extension && pRtpPacket->header.extensionPayload != NULL) {
+        charsWritten += SNPRINTF(buffer + charsWritten, bufferLen - charsWritten, " extProfile=0x%04X extLen=%u", pRtpPacket->header.extensionProfile,
+                                 pRtpPacket->header.extensionLength);
+        CHK(charsWritten >= 0 && (UINT32) charsWritten < bufferLen, STATUS_BUFFER_TOO_SMALL);
+
+        if (pRtpPacket->header.extensionProfile == TWCC_EXT_PROFILE && pRtpPacket->header.extensionLength >= 3) {
+            // TWCC is currently the only supported extension
+            charsWritten += SNPRINTF(buffer + charsWritten, bufferLen - charsWritten, " twccExtId=%u twccSeqNum=%u",
+                                     (pRtpPacket->header.extensionPayload[0] >> 4), TWCC_SEQNUM(pRtpPacket->header.extensionPayload));
+            CHK(charsWritten >= 0 && (UINT32) charsWritten < bufferLen, STATUS_BUFFER_TOO_SMALL);
+        } else {
+            // Unknown extension, dump the bytes
+            charsWritten += SNPRINTF(buffer + charsWritten, bufferLen - charsWritten, " extData=");
+            CHK(charsWritten >= 0 && (UINT32) charsWritten < bufferLen, STATUS_BUFFER_TOO_SMALL);
+
+            for (i = 0; i < pRtpPacket->header.extensionLength; i++) {
+                charsWritten += snprintf(buffer + charsWritten, bufferLen - charsWritten, "%02x", pRtpPacket->header.extensionPayload[i]);
+                CHK(charsWritten >= 0 && (UINT32) charsWritten < bufferLen, STATUS_BUFFER_TOO_SMALL);
+            }
+        }
+    }
+
+CleanUp:
+    if (STATUS_FAILED(retStatus) && buffer != NULL && bufferLen > 0) {
+        buffer[0] = '\0';
+    }
+
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
     return retStatus;
 }

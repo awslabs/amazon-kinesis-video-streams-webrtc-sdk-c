@@ -905,10 +905,9 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         attributeCount++;
 
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "extmap");
-        amountWritten =
-            SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                     SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u %s",
-                     pKvsPeerConnection->twccExtId, TWCC_EXT_URL);
+        amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u %s", pKvsPeerConnection->twccExtId,
+                                 TWCC_EXT_URL);
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full extmap twcc could not be written");
         attributeCount++;
     }
