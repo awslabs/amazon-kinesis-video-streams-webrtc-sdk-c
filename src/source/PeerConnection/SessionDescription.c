@@ -910,7 +910,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         //                         SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u %s", pKvsPeerConnection->twccExtId,
         //                         TWCC_EXT_URL);
         // CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full extmap twcc could not be written");
-        //attributeCount++;
+        // attributeCount++;
     }
 
     pSdpMediaDescription->mediaAttributesCount = attributeCount;
