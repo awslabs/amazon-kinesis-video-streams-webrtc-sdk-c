@@ -282,8 +282,21 @@ TEST_F(IceFunctionalityTest, IceAgentIceAgentAddIceServerUnitTest)
 
     EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "stun:stun.kinesisvideo.us-west-2.amazonaws.com:443", NULL, NULL));
     EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "stun:stun.kinesisvideo.us-west-2.amazonaws.com:443", (PCHAR) "", (PCHAR) ""));
+    EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "stun:stun.kinesisvideo.us-west-2.amazonaws.com:443?transport=tcp", NULL, NULL));
+    EXPECT_FALSE(iceServer.isSecure);
+    EXPECT_FALSE(iceServer.isTurn);
+    EXPECT_EQ(iceServer.scheme, ICE_SERVER_SCHEME_STUN);
+    EXPECT_EQ(iceServer.transport, KVS_SOCKET_PROTOCOL_UDP);
+    EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "stuns:stun.kinesisvideo.us-west-2.amazonaws.com", NULL, NULL));
+    EXPECT_TRUE(iceServer.isSecure);
+    EXPECT_FALSE(iceServer.isTurn);
+    EXPECT_EQ(iceServer.scheme, ICE_SERVER_SCHEME_STUNS);
+    EXPECT_EQ(iceServer.transport, KVS_SOCKET_PROTOCOL_UDP);
+    EXPECT_EQ(5349, (UINT16) getInt16(iceServer.ipAddresses.ipv4Address.port));
 
     EXPECT_NE(STATUS_SUCCESS, parseIceServer(&iceServer, NULL, NULL, NULL));
+    EXPECT_EQ(STATUS_ICE_URL_MALFORMED, parseIceServer(&iceServer, (PCHAR) "stuns:", NULL, NULL));
+    EXPECT_EQ(STATUS_ICE_URL_STUNS_IP_LITERAL_NOT_ALLOWED, parseIceServer(&iceServer, (PCHAR) "stuns:54.202.170.151:443", NULL, NULL));
     EXPECT_EQ(STATUS_ICE_URL_TURN_MISSING_USERNAME, parseIceServer(&iceServer, (PCHAR) "turn:54.202.170.151:443", NULL, NULL));
     EXPECT_EQ(STATUS_ICE_URL_TURN_MISSING_CREDENTIAL, parseIceServer(&iceServer, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "username", NULL));
     EXPECT_EQ(STATUS_ICE_URL_TURN_MISSING_USERNAME, parseIceServer(&iceServer, (PCHAR) "turn:54.202.170.151:443", (PCHAR) "", (PCHAR) ""));
@@ -293,6 +306,7 @@ TEST_F(IceFunctionalityTest, IceAgentIceAgentAddIceServerUnitTest)
     EXPECT_FALSE(iceServer.isSecure);
     EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "turns:54.202.170.151:443", (PCHAR) "username", (PCHAR) "password"));
     EXPECT_TRUE(iceServer.isSecure);
+    EXPECT_EQ(iceServer.scheme, ICE_SERVER_SCHEME_TURNS);
     EXPECT_EQ(iceServer.transport, KVS_SOCKET_PROTOCOL_NONE);
     EXPECT_EQ(STATUS_ICE_URL_INVALID_PREFIX, parseIceServer(&iceServer, (PCHAR) "randomUrl", (PCHAR) "username", (PCHAR) "password"));
 
@@ -314,7 +328,6 @@ TEST_F(IceFunctionalityTest, IceAgentIceAgentAddIceServerUnitTest)
     EXPECT_EQ(STATUS_SUCCESS, parseIceServer(&iceServer, (PCHAR) "turn:54.202.170.151:443?randomstuff", (PCHAR) "username", (PCHAR) "password"));
     EXPECT_EQ(iceServer.transport, KVS_SOCKET_PROTOCOL_NONE);
 
-
     //
     // Dual-stack checks.
     //
@@ -322,12 +335,12 @@ TEST_F(IceFunctionalityTest, IceAgentIceAgentAddIceServerUnitTest)
     // Clear the iceServer struct.
     MEMSET(&iceServer, 0x00, SIZEOF(IceServer));
 
-    // Set the env var to enable dual-stack mode.
-    #ifdef _WIN32
-        _putenv_s(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON");
-    #else
-        setenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON", 1);
-    #endif
+// Set the env var to enable dual-stack mode.
+#ifdef _WIN32
+    _putenv_s(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON");
+#else
+    setenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON", 1);
+#endif
 
     std::string test_ipv4_addr = "35-90-63-38";
     std::string test_ipv6_addr = "2001-0db8-85a3-0000-0000-8a2e-0370-7334";
@@ -351,9 +364,11 @@ TEST_F(IceFunctionalityTest, IceAgentIceAgentAddIceServerUnitTest)
 
     // Failing cases: both IPv4 and IPv6 addresses should be present in hostname, else will
     // fallback to getAddrInfo and fail.
-    EXPECT_EQ(STATUS_RESOLVE_HOSTNAME_FAILED, parseIceServer(&iceServer, (PCHAR) ("turn:" + test_ipv4_addr).c_str(), (PCHAR) "username", (PCHAR) "password"));
-    EXPECT_EQ(STATUS_RESOLVE_HOSTNAME_FAILED, parseIceServer(&iceServer, (PCHAR) ("turn:" + test_ipv6_addr).c_str(), (PCHAR) "username", (PCHAR) "password"));
-    
+    EXPECT_EQ(STATUS_RESOLVE_HOSTNAME_FAILED,
+              parseIceServer(&iceServer, (PCHAR) ("turn:" + test_ipv4_addr).c_str(), (PCHAR) "username", (PCHAR) "password"));
+    EXPECT_EQ(STATUS_RESOLVE_HOSTNAME_FAILED,
+              parseIceServer(&iceServer, (PCHAR) ("turn:" + test_ipv6_addr).c_str(), (PCHAR) "username", (PCHAR) "password"));
+
     // Clear the iceServer struct again incase of partial population from previous calls.
     MEMSET(&iceServer, 0x00, SIZEOF(IceServer));
 
@@ -379,13 +394,12 @@ TEST_F(IceFunctionalityTest, IceAgentIceAgentAddIceServerUnitTest)
     getIpAddrStr(&iceServer.ipAddresses.ipv6Address, (PCHAR) parsed_ipv6_addr, SIZEOF(parsed_ipv6_addr));
     EXPECT_STREQ(parsed_ipv6_addr, colon_delim_test_ipv6_addr.c_str());
 
-    // Cleanup the env var.
-    #ifdef _WIN32
-        _putenv_s(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "");
-    #else
-        unsetenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
-    #endif   
-
+// Cleanup the env var.
+#ifdef _WIN32
+    _putenv_s(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "");
+#else
+    unsetenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
+#endif
 }
 
 TEST_F(IceFunctionalityTest, IceAgentAddRemoteCandidateUnitTest)
@@ -788,6 +802,81 @@ TEST_F(IceFunctionalityTest, IceAgentCandidateGatheringTest)
     EXPECT_EQ(STATUS_SUCCESS, timerQueueFree(&timerQueueHandle));
 
     deinitializeSignalingClient();
+}
+
+TEST_F(IceFunctionalityTest, IceAgentGovCloudStunsCandidateGatheringTest)
+{
+    typedef struct {
+        std::vector<std::string> list;
+        std::mutex lock;
+    } CandidateList;
+
+    PIceAgent pIceAgent = NULL;
+    CHAR localIceUfrag[LOCAL_ICE_UFRAG_LEN + 1];
+    CHAR localIcePwd[LOCAL_ICE_PWD_LEN + 1];
+    RtcConfiguration configuration;
+    IceAgentCallbacks iceAgentCallbacks;
+    PConnectionListener pConnectionListener = NULL;
+    TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+    BOOL foundHostCandidate = FALSE, foundSrflxCandidate = FALSE, foundRelayCandidate = FALSE;
+    CandidateList candidateList;
+    PCHAR pGovCloudRegion = (PCHAR) "us-gov-west-1";
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(localIceUfrag, 0x00, SIZEOF(localIceUfrag));
+    MEMSET(localIcePwd, 0x00, SIZEOF(localIcePwd));
+    MEMSET(&iceAgentCallbacks, 0x00, SIZEOF(IceAgentCallbacks));
+
+    // This uses the public GovCloud STUNS endpoint directly and does not require signaling or AWS credentials.
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUNS_URL, pGovCloudRegion, KINESIS_VIDEO_STUN_URL_POSTFIX);
+
+    auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
+        CandidateList* candidateList1 = (CandidateList*) customData;
+        std::lock_guard<std::mutex> lock(candidateList1->lock);
+        candidateList1->list.push_back(candidateStr != NULL ? std::string(candidateStr) : std::string(""));
+    };
+
+    iceAgentCallbacks.customData = (UINT64) &candidateList;
+    iceAgentCallbacks.newLocalCandidateFn = onICECandidateHdlr;
+
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(localIceUfrag, LOCAL_ICE_UFRAG_LEN));
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(localIcePwd, LOCAL_ICE_PWD_LEN));
+    EXPECT_EQ(STATUS_SUCCESS, createConnectionListener(&pConnectionListener));
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+    EXPECT_EQ(STATUS_SUCCESS,
+              createIceAgent(localIceUfrag, localIcePwd, &iceAgentCallbacks, &configuration, timerQueueHandle, pConnectionListener, &pIceAgent));
+
+    EXPECT_EQ(STATUS_SUCCESS, iceAgentStartGathering(pIceAgent));
+
+    THREAD_SLEEP(KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT + 2 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    {
+        std::lock_guard<std::mutex> lock(candidateList.lock);
+        EXPECT_FALSE(candidateList.list.empty());
+        if (!candidateList.list.empty()) {
+            // newLocalCandidateFn should return NULL in its last invocation, which we convert to an empty string.
+            EXPECT_TRUE(candidateList.list.back().empty());
+
+            for (std::vector<std::string>::iterator it = candidateList.list.begin(); it != candidateList.list.end(); ++it) {
+                std::string candidateStr = *it;
+                if (candidateStr.find(std::string(SDP_CANDIDATE_TYPE_HOST)) != std::string::npos) {
+                    foundHostCandidate = TRUE;
+                } else if (candidateStr.find(std::string(SDP_CANDIDATE_TYPE_SERFLX)) != std::string::npos) {
+                    foundSrflxCandidate = TRUE;
+                } else if (candidateStr.find(std::string(SDP_CANDIDATE_TYPE_RELAY)) != std::string::npos) {
+                    foundRelayCandidate = TRUE;
+                }
+            }
+        }
+    }
+
+    EXPECT_TRUE(foundHostCandidate);
+    EXPECT_TRUE(foundSrflxCandidate);
+    EXPECT_FALSE(foundRelayCandidate);
+    EXPECT_EQ(STATUS_SUCCESS, iceAgentShutdown(pIceAgent));
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueShutdown(timerQueueHandle));
+    EXPECT_EQ(STATUS_SUCCESS, freeIceAgent(&pIceAgent));
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueFree(&timerQueueHandle));
 }
 } // namespace webrtcclient
 } // namespace video

@@ -68,6 +68,17 @@ STATUS createTlsSession(PTlsSessionCallbacks, PTlsSession*);
 STATUS freeTlsSession(PTlsSession*);
 
 /**
+ * Start TLS handshake with an optional hostname parameter.
+ * NOT THREAD SAFE.
+ * @param PTlsSession - TlsSession object
+ * @param BOOL - is server
+ * @param PCHAR - hostname hint for TLS backends that support hostname verification or SNI, or NULL when no hostname
+ *                is available. The current OpenSSL backend ignores this parameter and preserves the existing behavior.
+ * @return STATUS - status of operation
+ */
+STATUS tlsSessionStartWithHostname(PTlsSession, BOOL, PCHAR);
+
+/**
  * Start TLS handshake.
  * NOT THREAD SAFE.
  * @param PTlsSession - TlsSession object
@@ -120,8 +131,6 @@ INT32 tlsSessionCertificateVerifyCallback(INT32, X509_STORE_CTX*);
 INT32 tlsSessionSendCallback(PVOID, const unsigned char*, ULONG);
 INT32 tlsSessionReceiveCallback(PVOID, unsigned char*, ULONG);
 
-// Add hostname parameter for mbedTLS 3.x compatibility
-STATUS tlsSessionStartWithHostname(PTlsSession, BOOL, PCHAR);
 #else
 #error "A Crypto implementation is required."
 #endif

@@ -406,7 +406,7 @@ STATUS iceAgentValidateKvsRtcConfig(PKvsRtcConfiguration);
 // Incoming data handling functions
 STATUS incomingDataHandler(UINT64, PSocketConnection, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress);
 STATUS incomingRelayedDataHandler(UINT64, PSocketConnection, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress);
-STATUS handleStunPacket(PIceAgent, PBYTE, UINT32, PSocketConnection, PKvsIpAddress, PKvsIpAddress);
+STATUS handleStunPacket(PIceAgent, PBYTE, UINT32, PSocketConnection, PKvsIpAddress, PKvsIpAddress, PSocketConnection*);
 
 // IceCandidate functions
 STATUS updateCandidateAddress(PIceCandidate, PKvsIpAddress);

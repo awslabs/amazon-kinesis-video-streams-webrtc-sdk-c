@@ -66,7 +66,7 @@ INT32 tlsSessionCertificateVerifyCallback(INT32 preverify_ok, X509_STORE_CTX* ct
     return 1;
 }
 
-STATUS tlsSessionStart(PTlsSession pTlsSession, BOOL isServer)
+STATUS tlsSessionStartWithHostname(PTlsSession pTlsSession, BOOL isServer, PCHAR hostname)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -75,6 +75,9 @@ STATUS tlsSessionStart(PTlsSession pTlsSession, BOOL isServer)
 
     CHK(pTlsSession != NULL, STATUS_NULL_ARG);
     CHK(pTlsSession->state == TLS_SESSION_STATE_NEW, retStatus);
+    // Keep the existing OpenSSL TURN/TLS behavior. The hostname parameter is accepted to keep the TLS API aligned
+    // across backends, but this implementation does not use it for hostname verification or SNI.
+    UNUSED_PARAM(hostname);
 
     pTlsSession->pSslCtx = SSL_CTX_new(SSLv23_method());
     CHK(pTlsSession->pSslCtx != NULL, STATUS_SSL_CTX_CREATION_FAILED);
@@ -127,6 +130,11 @@ CleanUp:
 
     LEAVES();
     return retStatus;
+}
+
+STATUS tlsSessionStart(PTlsSession pTlsSession, BOOL isServer)
+{
+    return tlsSessionStartWithHostname(pTlsSession, isServer, NULL);
 }
 
 STATUS tlsSessionProcessPacket(PTlsSession pTlsSession, PBYTE pData, UINT32 bufferLen, PUINT32 pDataLen)
