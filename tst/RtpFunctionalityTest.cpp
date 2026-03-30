@@ -729,7 +729,7 @@ TEST_F(RtpFunctionalityTest, twccExtensionRoundTrip)
 
     // Contains the expected parameters
     EXPECT_NE(std::string::npos, std::string(packetToString).find("X=1")); // header extension is present
-    EXPECT_NE(std::string::npos, std::string(packetToString).find("extProfile=0xbede")); // 1-byte header extension
+    EXPECT_NE(std::string::npos, std::string(packetToString).find("extProfile=0xBEDE")); // 1-byte header extension
     EXPECT_NE(std::string::npos, std::string(packetToString).find("twccExtId=5")); // ext ID
     EXPECT_NE(std::string::npos, std::string(packetToString).find("twccSeqNum=9876")); // seqNum part of TWCC
 
