@@ -25,7 +25,7 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
 
     UINT32 allocSize, channelArnLen = 0, storageStreamArnLen = 0, regionLen = 0, cpUrlLen = 0, certPathLen = 0, userAgentPostfixLen = 0,
                       customUserAgentLen = 0, userAgentLen = 0, kmsLen = 0, tagsSize;
-    PCHAR pCurPtr, pRegionPtr, pUserAgentPostfixPtr;
+    PCHAR pCurPtr, pRegionPtr, pUserAgentPostfixPtr, pControlPlaneServiceName, pControlPlaneUrlPostfix;
     CHAR agentString[MAX_CUSTOM_USER_AGENT_NAME_POSTFIX_LEN + 1];
 
     PChannelInfo pChannelInfo = NULL;
@@ -176,28 +176,42 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     if (!IS_NULL_OR_EMPTY_STRING(pOrigChannelInfo->pControlPlaneUrl)) {
         STRCPY(pCurPtr, pOrigChannelInfo->pControlPlaneUrl);
     } else {
+        if (STRNCMP(pChannelInfo->pRegion, AWS_GOV_CLOUD_REGION_PREFIX, STRLEN(AWS_GOV_CLOUD_REGION_PREFIX)) == 0 ||
+            STRNCMP(pChannelInfo->pRegion, AWS_ISO_REGION_PREFIX, STRLEN(AWS_ISO_REGION_PREFIX)) == 0 ||
+            STRNCMP(pChannelInfo->pRegion, AWS_ISO_B_REGION_PREFIX, STRLEN(AWS_ISO_B_REGION_PREFIX)) == 0) {
+            pControlPlaneServiceName = (PCHAR) KINESIS_VIDEO_SERVICE_NAME AWS_KVS_FIPS_ENDPOINT_POSTFIX;
+        } else {
+            pControlPlaneServiceName = (PCHAR) KINESIS_VIDEO_SERVICE_NAME;
+        }
+
         if (isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR)) {
             // Create dual-stack fully qualified URI for appropriate region.
             DLOGI("Using dual-stack KVS endpoints.");
             if (STRSTR(pChannelInfo->pRegion, AWS_CN_REGION_PREFIX)) {
-                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
-                         pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX_CN_DUAL_STACK);
+                pControlPlaneUrlPostfix = (PCHAR) CONTROL_PLANE_URI_POSTFIX_CN_DUAL_STACK;
+            } else if (STRNCMP(pChannelInfo->pRegion, AWS_ISO_REGION_PREFIX, STRLEN(AWS_ISO_REGION_PREFIX)) == 0) {
+                pControlPlaneUrlPostfix = (PCHAR) CONTROL_PLANE_URI_POSTFIX_ISO_DUAL_STACK;
+            } else if (STRNCMP(pChannelInfo->pRegion, AWS_ISO_B_REGION_PREFIX, STRLEN(AWS_ISO_B_REGION_PREFIX)) == 0) {
+                pControlPlaneUrlPostfix = (PCHAR) CONTROL_PLANE_URI_POSTFIX_ISO_B_DUAL_STACK;
             } else {
-                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
-                         pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX_DUAL_STACK);
+                pControlPlaneUrlPostfix = (PCHAR) CONTROL_PLANE_URI_POSTFIX_DUAL_STACK;
             }
-
         } else {
             // Create legacy fully qualified URI for appropriate region.
             DLOGI("Using legacy KVS endpoints.");
             if (STRSTR(pChannelInfo->pRegion, AWS_CN_REGION_PREFIX)) {
-                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
-                         pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX_CN);
+                pControlPlaneUrlPostfix = (PCHAR) CONTROL_PLANE_URI_POSTFIX_CN;
+            } else if (STRNCMP(pChannelInfo->pRegion, AWS_ISO_REGION_PREFIX, STRLEN(AWS_ISO_REGION_PREFIX)) == 0) {
+                pControlPlaneUrlPostfix = (PCHAR) CONTROL_PLANE_URI_POSTFIX_ISO;
+            } else if (STRNCMP(pChannelInfo->pRegion, AWS_ISO_B_REGION_PREFIX, STRLEN(AWS_ISO_B_REGION_PREFIX)) == 0) {
+                pControlPlaneUrlPostfix = (PCHAR) CONTROL_PLANE_URI_POSTFIX_ISO_B;
             } else {
-                SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, KINESIS_VIDEO_SERVICE_NAME,
-                         pChannelInfo->pRegion, CONTROL_PLANE_URI_POSTFIX);
+                pControlPlaneUrlPostfix = (PCHAR) CONTROL_PLANE_URI_POSTFIX;
             }
         }
+
+        SNPRINTF(pCurPtr, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s%s.%s%s", CONTROL_PLANE_URI_PREFIX, pControlPlaneServiceName, pChannelInfo->pRegion,
+                 pControlPlaneUrlPostfix);
     }
 
     pChannelInfo->pControlPlaneUrl = pCurPtr;

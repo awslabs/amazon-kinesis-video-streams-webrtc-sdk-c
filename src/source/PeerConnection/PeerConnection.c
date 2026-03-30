@@ -939,7 +939,12 @@ PVOID resolveStunIceServerIp(PVOID args)
                 }
 
                 SNPRINTF(pWebRtcClientContext->pStunIpAddrCtx->hostname, SIZEOF(pWebRtcClientContext->pStunIpAddrCtx->hostname),
-                         KINESIS_VIDEO_STUN_URL_WITHOUT_PORT, pRegion, pHostnamePostfix);
+                         (STRNCMP(pRegion, AWS_GOV_CLOUD_REGION_PREFIX, STRLEN(AWS_GOV_CLOUD_REGION_PREFIX)) == 0 ||
+                          STRNCMP(pRegion, AWS_ISO_REGION_PREFIX, STRLEN(AWS_ISO_REGION_PREFIX)) == 0 ||
+                          STRNCMP(pRegion, AWS_ISO_B_REGION_PREFIX, STRLEN(AWS_ISO_B_REGION_PREFIX)) == 0)
+                             ? KINESIS_VIDEO_STUNS_URL_WITHOUT_PORT
+                             : KINESIS_VIDEO_STUN_URL_WITHOUT_PORT,
+                         pRegion, pHostnamePostfix);
                 stunDnsResolutionStartTime = GETTIME();
                 if (getStunAddr(pWebRtcClientContext->pStunIpAddrCtx) == STATUS_SUCCESS) {
                     if (pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv4Address.family != KVS_IP_FAMILY_TYPE_NOT_SET) {
@@ -1827,6 +1832,8 @@ STATUS initKvsWebRtc(VOID)
     DLOGI("KVS WebRtc library using thread pool");
     CHK_STATUS(createWebRtcClientInstance());
     CHK_STATUS(createThreadPoolContext());
+    // The thread pool enables early STUN resolution. Resolve the managed STUN hostname in the background so later
+    // ICE setup can reuse cached IPv4 and IPv6 addresses for the default STUN server.
     CHK_STATUS(threadpoolContextPush(resolveStunIceServerIp, NULL));
 #endif
     ATOMIC_STORE_BOOL(&gKvsWebRtcInitialized, TRUE);

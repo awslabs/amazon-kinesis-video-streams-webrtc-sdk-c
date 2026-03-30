@@ -21,6 +21,12 @@ typedef enum {
 extern StateMachineState ICE_AGENT_STATE_MACHINE_STATES[];
 extern UINT32 ICE_AGENT_STATE_MACHINE_STATE_COUNT;
 
+#define MARK_STUNS_SRFLX_CANDIDATE_INVALID(logFn, candidate, ...)                                                                                    \
+    do {                                                                                                                                             \
+        logFn(__VA_ARGS__);                                                                                                                          \
+        (candidate)->state = ICE_CANDIDATE_STATE_INVALID;                                                                                            \
+    } while (0)
+
 STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAgentCallbacks, PRtcConfiguration pRtcConfiguration,
                       TIMER_QUEUE_HANDLE timerQueueHandle, PConnectionListener pConnectionListener, PIceAgent* ppIceAgent)
 {
@@ -117,15 +123,31 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
                     CHK(NULL != (pIceAgent->pRtcIceServerDiagnostics[i] = (PRtcIceServerDiagnostics) MEMCALLOC(1, SIZEOF(RtcIceServerDiagnostics))),
                         STATUS_NOT_ENOUGH_MEMORY);
                     pIceAgent->pRtcIceServerDiagnostics[i]->port = (INT32) getInt16(pIceAgent->iceServers[i].ipAddresses.ipv4Address.port);
-                    switch (pIceAgent->iceServers[pIceAgent->iceServersCount].transport) {
-                        case KVS_SOCKET_PROTOCOL_UDP:
+                    switch (pIceAgent->iceServers[pIceAgent->iceServersCount].scheme) {
+                        case ICE_SERVER_SCHEME_STUN:
                             STRCPY(pIceAgent->pRtcIceServerDiagnostics[i]->protocol, ICE_TRANSPORT_TYPE_UDP);
                             break;
-                        case KVS_SOCKET_PROTOCOL_TCP:
-                            STRCPY(pIceAgent->pRtcIceServerDiagnostics[i]->protocol, ICE_TRANSPORT_TYPE_TCP);
+                        case ICE_SERVER_SCHEME_STUNS:
+                            STRCPY(pIceAgent->pRtcIceServerDiagnostics[i]->protocol, ICE_TRANSPORT_TYPE_UDP);
+                            break;
+                        case ICE_SERVER_SCHEME_TURN:
+                        case ICE_SERVER_SCHEME_TURNS:
+                            switch (pIceAgent->iceServers[pIceAgent->iceServersCount].transport) {
+                                case KVS_SOCKET_PROTOCOL_UDP:
+                                    STRCPY(pIceAgent->pRtcIceServerDiagnostics[i]->protocol, ICE_TRANSPORT_TYPE_UDP);
+                                    break;
+                                case KVS_SOCKET_PROTOCOL_TCP:
+                                    STRCPY(pIceAgent->pRtcIceServerDiagnostics[i]->protocol, ICE_TRANSPORT_TYPE_TCP);
+                                    break;
+                                default:
+                                    MEMSET(pIceAgent->pRtcIceServerDiagnostics[i]->protocol, 0,
+                                           SIZEOF(pIceAgent->pRtcIceServerDiagnostics[i]->protocol));
+                                    break;
+                            }
                             break;
                         default:
                             MEMSET(pIceAgent->pRtcIceServerDiagnostics[i]->protocol, 0, SIZEOF(pIceAgent->pRtcIceServerDiagnostics[i]->protocol));
+                            break;
                     }
                     STRCPY(pIceAgent->pRtcIceServerDiagnostics[i]->url, pRtcConfiguration->iceServers[i].urls);
                 }
@@ -1444,6 +1466,8 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
     UINT64 data;
     PIceCandidate pCandidate = NULL;
     PIceServer pIceServer = NULL;
+    PSocketConnection pSocketConnection = NULL;
+    PDtlsSession pDtlsSession = NULL;
     PStunPacket pBindingRequest = NULL;
     UINT64 checkSum = 0;
     PKvsIpAddress pStunServerAddr = NULL;
@@ -1465,6 +1489,38 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
             switch (pCandidate->iceCandidateType) {
                 case ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE:
                     pIceServer = &(pIceAgent->iceServers[pCandidate->iceServerIndex]);
+
+                    if (pIceServer->scheme == ICE_SERVER_SCHEME_STUNS) {
+                        pSocketConnection = pCandidate->pSocketConnection;
+                        if (pSocketConnection == NULL || socketConnectionIsClosed(pSocketConnection)) {
+                            MARK_STUNS_SRFLX_CANDIDATE_INVALID(DLOGD, pCandidate, "STUNS srflx candidate socket closed or null, marking invalid");
+                            break;
+                        }
+
+                        pDtlsSession = pSocketConnection->pDtlsSession;
+                        if (pDtlsSession == NULL) {
+                            DLOGD("STUNS srflx candidate initiating DTLS handshake to %s", pIceServer->url);
+                            retStatus = socketConnectionInitSecureConnection(pSocketConnection, FALSE, pIceAgent->timerQueueHandle);
+                            if (STATUS_FAILED(retStatus)) {
+                                MARK_STUNS_SRFLX_CANDIDATE_INVALID(
+                                    DLOGW, pCandidate, "Failed to init DTLS for STUNS srflx candidate, marking invalid. Status: 0x%08x", retStatus);
+                                retStatus = STATUS_SUCCESS;
+                            }
+                            break;
+                        }
+
+                        if (pDtlsSession->state == RTC_DTLS_TRANSPORT_STATE_CLOSED || pDtlsSession->state == RTC_DTLS_TRANSPORT_STATE_FAILED) {
+                            MARK_STUNS_SRFLX_CANDIDATE_INVALID(DLOGW, pCandidate, "STUNS srflx candidate DTLS handshake failed, marking invalid");
+                            break;
+                        }
+
+                        if (pDtlsSession->state != RTC_DTLS_TRANSPORT_STATE_CONNECTED) {
+                            DLOGV("STUNS srflx candidate DTLS handshake in progress...");
+                            break;
+                        }
+
+                        DLOGD("STUNS srflx candidate DTLS handshake complete, sending binding request");
+                    }
 
                     if (pIceServer->ipAddresses.ipv4Address.family != KVS_IP_FAMILY_TYPE_NOT_SET &&
                         pCandidate->ipAddress.family == KVS_IP_FAMILY_TYPE_IPV4) {
@@ -1627,7 +1683,6 @@ STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     MEMSET(newLocalCandidates, 0x00, SIZEOF(newLocalCandidates));
     MEMSET(&relayAddress, 0x00, SIZEOF(KvsIpAddress));
-
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
@@ -1762,7 +1817,7 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
     UINT32 j, srflxCount = 0;
     BOOL locked = FALSE;
     PIceCandidate srflxCandidates[KVS_ICE_MAX_LOCAL_CANDIDATE_COUNT];
-
+    PKvsIpAddress pStunServerAddress = NULL;
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
     // Interlock the loop as there could be accessors with the connection
@@ -1819,16 +1874,28 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
     // Create and start the connection listener outside of the locks
     for (j = 0; j < srflxCount; j++) {
         pCandidate = srflxCandidates[j];
+        pIceServer = &pIceAgent->iceServers[pCandidate->iceServerIndex];
         if (IS_IPV4_ADDR(&(pCandidate->ipAddress))) {
-            DLOGI("Initializing an IPv4 STUN candidate...");
+            DLOGI("Initializing an IPv4 %s srflx candidate (server: %s, transport: %s)...",
+                  pIceServer->scheme == ICE_SERVER_SCHEME_STUNS ? "STUNS" : "STUN", pIceServer->url,
+                  pIceServer->scheme == ICE_SERVER_SCHEME_STUNS ? "UDP/DTLS" : "UDP");
+            pStunServerAddress = &pIceServer->ipAddresses.ipv4Address;
         } else {
-            DLOGI("Initializing an IPv6 STUN candidate...");
+            DLOGI("Initializing an IPv6 %s srflx candidate (server: %s, transport: %s)...",
+                  pIceServer->scheme == ICE_SERVER_SCHEME_STUNS ? "STUNS" : "STUN", pIceServer->url,
+                  pIceServer->scheme == ICE_SERVER_SCHEME_STUNS ? "UDP/DTLS" : "UDP");
+            pStunServerAddress = &pIceServer->ipAddresses.ipv6Address;
         }
 
+        CHK(pStunServerAddress != NULL && pStunServerAddress->family != KVS_IP_FAMILY_TYPE_NOT_SET, STATUS_INVALID_ARG);
+        CHK_ERR(pIceServer->transport == KVS_SOCKET_PROTOCOL_UDP, STATUS_INVALID_ARG,
+                "srflx candidate gathering only supports UDP ICE server transport. Server: %s, transport: %u", pIceServer->url,
+                pIceServer->transport);
+
         // Open up a new socket at host candidate's IP address for server reflex candidate.
-        // The new port will be stored in pNewCandidate->ipAddress.port. And the IP address will later be updated
-        // with the correct IP address once the STUN response is received.
-        CHK_STATUS(createSocketConnection(pCandidate->ipAddress.family, KVS_SOCKET_PROTOCOL_UDP, &pCandidate->ipAddress, NULL, (UINT64) pIceAgent,
+        // `stuns:` uses the same UDP socket type as `stun:`, but wraps the exchange in DTLS before the binding request is sent.
+        CHK_STATUS(createSocketConnection(pCandidate->ipAddress.family, KVS_SOCKET_PROTOCOL_UDP, &pCandidate->ipAddress,
+                                          pIceServer->scheme == ICE_SERVER_SCHEME_STUNS ? pStunServerAddress : NULL, (UINT64) pIceAgent,
                                           incomingDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize, &pCandidate->pSocketConnection));
         ATOMIC_STORE_BOOL(&pCandidate->pSocketConnection->receiveData, TRUE);
         // connectionListener will free the pSocketConnection at the end.
@@ -2490,6 +2557,7 @@ STATUS incomingDataHandler(UINT64 customData, PSocketConnection pSocketConnectio
 {
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
+    PSocketConnection pSocketConnectionToShutdown = NULL;
     BOOL locked = FALSE;
     UINT32 addrLen = 0;
     CHK(pIceAgent != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
@@ -2524,9 +2592,12 @@ STATUS incomingDataHandler(UINT64 customData, PSocketConnection pSocketConnectio
         }
     } else {
         if (ATOMIC_LOAD_BOOL(&pIceAgent->processStun)) {
-            CHK_STATUS(handleStunPacket(pIceAgent, pBuffer, bufferLen, pSocketConnection, pSrc, pDest));
+            CHK_STATUS(handleStunPacket(pIceAgent, pBuffer, bufferLen, pSocketConnection, pSrc, pDest, &pSocketConnectionToShutdown));
             MUTEX_UNLOCK(pIceAgent->lock);
             locked = FALSE;
+            if (pSocketConnectionToShutdown != NULL) {
+                CHK_STATUS(socketConnectionShutdownSecureSession(pSocketConnectionToShutdown));
+            }
         }
     }
 
@@ -2581,7 +2652,7 @@ CleanUp:
 }
 
 STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PSocketConnection pSocketConnection, PKvsIpAddress pSrcAddr,
-                        PKvsIpAddress pDestAddr)
+                        PKvsIpAddress pDestAddr, PSocketConnection* ppSocketConnectionToShutdown)
 {
     UNUSED_PARAM(pDestAddr);
 
@@ -2602,6 +2673,9 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
     UINT64 connectivityCheckResponsesSent = 0;
     UINT64 connectivityCheckResponsesReceived = 0;
     UINT32 count = 0;
+
+    CHK(ppSocketConnectionToShutdown != NULL, STATUS_NULL_ARG);
+    *ppSocketConnectionToShutdown = NULL;
 
     // need to determine stunPacketType before deserializing because different password should be used depending on the packet type
     stunPacketType = (UINT16) getInt16(*((PUINT16) pBuffer));
@@ -2668,6 +2742,9 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 CHK_STATUS(findCandidateWithSocketConnection(pSocketConnection, pIceAgent->localCandidates, &pIceCandidate));
                 CHK_WARN(pIceCandidate != NULL, retStatus, "Local candidate with socket %d not found. Dropping STUN binding success response",
                          pSocketConnection->localSocket);
+                CHK_WARN(pIceCandidate->iceServerIndex < pIceAgent->iceServersCount, retStatus,
+                         "Invalid ice server index %u for candidate %s. Dropping STUN binding success response", pIceCandidate->iceServerIndex,
+                         pIceCandidate->id);
 
                 if (pIceAgent->pRtcIceServerDiagnostics[pIceCandidate->iceServerIndex] != NULL) {
                     // Update round trip time for server reflexive candidate
@@ -2690,9 +2767,33 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 // Update the server reflexive address which later will be picked up by the timer callback
                 CHK_STATUS(updateCandidateAddress(pIceCandidate, &pStunAttributeAddress->address));
 
+                if (pIceAgent->iceServers[pIceCandidate->iceServerIndex].scheme == ICE_SERVER_SCHEME_STUNS) {
+                    // Shut down the DTLS session after releasing the ICE agent lock to avoid inverting the
+                    // timer-queue and ICE-agent lock order during DTLS timer cancellation.
+                    *ppSocketConnectionToShutdown = pIceCandidate->pSocketConnection;
+                }
+
                 // Remove from the transaction id store as we no longer are awaiting for the bind response
                 transactionIdStoreRemove(pIceAgent->pStunBindingRequestTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET);
                 CHK(FALSE, retStatus);
+            }
+
+            CHK_STATUS(findCandidateWithSocketConnection(pSocketConnection, pIceAgent->localCandidates, &pIceCandidate));
+            if (pIceCandidate != NULL && pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE) {
+                CHK_WARN(pIceCandidate->iceServerIndex < pIceAgent->iceServersCount, retStatus,
+                         "Invalid ice server index %u for candidate %s. Dropping STUN binding success response", pIceCandidate->iceServerIndex,
+                         pIceCandidate->id);
+                PKvsIpAddress pIceServerAddress = IS_IPV4_ADDR(pSrcAddr)
+                    ? &pIceAgent->iceServers[pIceCandidate->iceServerIndex].ipAddresses.ipv4Address
+                    : &pIceAgent->iceServers[pIceCandidate->iceServerIndex].ipAddresses.ipv6Address;
+
+                // The STUN server can still send responses after this srflx candidate has already been resolved. This packet
+                // is not a peer ICE success response and does not belong to any candidate pair and thus can ignored.
+                if (pIceServerAddress->family != KVS_IP_FAMILY_TYPE_NOT_SET && isSameIpAddress(pSrcAddr, pIceServerAddress, TRUE)) {
+                    DLOGW("Ignoring late STUN binding success response from ICE server %s on srflx candidate %s",
+                          pIceAgent->iceServers[pIceCandidate->iceServerIndex].url, pIceCandidate->id);
+                    CHK(FALSE, retStatus);
+                }
             }
 
             CHK_STATUS(findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(pIceAgent, pSocketConnection, pSrcAddr, TRUE, &pIceCandidatePair));

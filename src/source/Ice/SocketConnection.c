@@ -31,8 +31,10 @@ STATUS createSocketConnection(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL
     pSocketConnection->secureConnection = FALSE;
     pSocketConnection->protocol = protocol;
     pSocketConnection->hostname = NULL;
-    if (protocol == KVS_SOCKET_PROTOCOL_TCP) {
+    if (pPeerIpAddr != NULL) {
         pSocketConnection->peerIpAddr = *pPeerIpAddr;
+    }
+    if (protocol == KVS_SOCKET_PROTOCOL_TCP) {
         CHK_STATUS(socketConnect(pPeerIpAddr, pSocketConnection->localSocket));
     }
 
@@ -106,6 +108,9 @@ STATUS freeSocketConnection(PSocketConnection* ppSocketConnection)
     if (pSocketConnection->pTlsSession != NULL) {
         freeTlsSession(&pSocketConnection->pTlsSession);
     }
+    if (pSocketConnection->pDtlsSession != NULL) {
+        freeDtlsSession(&pSocketConnection->pDtlsSession);
+    }
 
     SAFE_MEMFREE(pSocketConnection->hostname);
 
@@ -131,6 +136,9 @@ CleanUp:
     return retStatus;
 }
 
+/**
+ * Send TLS records produced by the TLS session over the connected TCP socket.
+ */
 STATUS socketConnectionTlsSessionOutBoundPacket(UINT64 customData, PBYTE pBuffer, UINT32 bufferLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -171,11 +179,63 @@ VOID socketConnectionTlsSessionOnStateChange(UINT64 customData, TLS_SESSION_STAT
     }
 }
 
-STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection, BOOL isServer)
+/**
+ * Track DTLS state transitions so handshake timing can be profiled and the socket connection can react to DTLS
+ * close and failure events.
+ */
+VOID socketConnectionDtlsSessionOnStateChange(UINT64 customData, RTC_DTLS_TRANSPORT_STATE state)
+{
+    PSocketConnection pSocketConnection = NULL;
+    if (customData == 0) {
+        return;
+    }
+
+    pSocketConnection = (PSocketConnection) customData;
+    switch (state) {
+        case RTC_DTLS_TRANSPORT_STATE_NEW:
+            pSocketConnection->tlsHandshakeStartTime = INVALID_TIMESTAMP_VALUE;
+            break;
+        case RTC_DTLS_TRANSPORT_STATE_CONNECTING:
+            pSocketConnection->tlsHandshakeStartTime = GETTIME();
+            break;
+        case RTC_DTLS_TRANSPORT_STATE_CONNECTED:
+            if (IS_VALID_TIMESTAMP(pSocketConnection->tlsHandshakeStartTime)) {
+                PROFILE_WITH_START_TIME(pSocketConnection->tlsHandshakeStartTime, "DTLS handshake time");
+                pSocketConnection->tlsHandshakeStartTime = INVALID_TIMESTAMP_VALUE;
+            }
+            break;
+        case RTC_DTLS_TRANSPORT_STATE_CLOSED:
+        case RTC_DTLS_TRANSPORT_STATE_FAILED:
+            ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, TRUE);
+            break;
+    }
+}
+
+/**
+ * Send DTLS records produced by the DTLS session to the UDP peer associated with this socket connection.
+ */
+VOID socketConnectionDtlsSessionOutBoundPacket(UINT64 customData, PBYTE pBuffer, UINT32 bufferLen)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSocketConnection pSocketConnection = NULL;
+    CHK(customData != 0, STATUS_NULL_ARG);
+
+    pSocketConnection = (PSocketConnection) customData;
+    CHK_STATUS(socketSendDataWithRetry(pSocketConnection, pBuffer, bufferLen, &pSocketConnection->peerIpAddr, NULL));
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+    return;
+}
+
+STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection, BOOL isServer, TIMER_QUEUE_HANDLE timerQueueHandle)
 {
     ENTERS();
     TlsSessionCallbacks callbacks;
+    DtlsSessionCallbacks dtlsCallbacks;
     STATUS retStatus = STATUS_SUCCESS;
+    PTlsSession pTlsSessionToFree = NULL;
+    PDtlsSession pDtlsSessionToFree = NULL;
     BOOL locked = FALSE;
 
     CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
@@ -183,30 +243,48 @@ STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection,
     MUTEX_LOCK(pSocketConnection->lock);
     locked = TRUE;
 
-    CHK(pSocketConnection->pTlsSession == NULL, STATUS_INVALID_ARG);
+    if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP) {
+        CHK(pSocketConnection->pTlsSession == NULL, STATUS_INVALID_ARG);
 
-    callbacks.outBoundPacketFnCustomData = callbacks.stateChangeFnCustomData = (UINT64) pSocketConnection;
-    callbacks.outboundPacketFn = socketConnectionTlsSessionOutBoundPacket;
-    callbacks.stateChangeFn = socketConnectionTlsSessionOnStateChange;
+        callbacks.outBoundPacketFnCustomData = callbacks.stateChangeFnCustomData = (UINT64) pSocketConnection;
+        callbacks.outboundPacketFn = socketConnectionTlsSessionOutBoundPacket;
+        callbacks.stateChangeFn = socketConnectionTlsSessionOnStateChange;
 
-    CHK_STATUS(createTlsSession(&callbacks, &pSocketConnection->pTlsSession));
+        CHK_STATUS(createTlsSession(&callbacks, &pSocketConnection->pTlsSession));
+        CHK_STATUS(tlsSessionStartWithHostname(pSocketConnection->pTlsSession, isServer, pSocketConnection->hostname));
+    } else {
+        CHK(pSocketConnection->pDtlsSession == NULL, STATUS_INVALID_ARG);
+        CHK(IS_VALID_TIMER_QUEUE_HANDLE(timerQueueHandle), STATUS_INVALID_ARG);
 
-#if KVS_USE_MBEDTLS
-    // Setting the hostname is recommended by mbedTLS and is default in mbedTLS 3.0 and above
-    // https://mbed-tls.readthedocs.io/en/latest/security-advisories/mbedtls-security-advisory-2025-03-1/
-    CHK_STATUS(tlsSessionStartWithHostname(pSocketConnection->pTlsSession, isServer, pSocketConnection->hostname));
-#else
-    CHK_STATUS(tlsSessionStart(pSocketConnection->pTlsSession, isServer));
-#endif
+        MEMSET(&dtlsCallbacks, 0x00, SIZEOF(dtlsCallbacks));
+        dtlsCallbacks.outBoundPacketFnCustomData = dtlsCallbacks.stateChangeFnCustomData = (UINT64) pSocketConnection;
+        dtlsCallbacks.outboundPacketFn = socketConnectionDtlsSessionOutBoundPacket;
+        dtlsCallbacks.stateChangeFn = socketConnectionDtlsSessionOnStateChange;
+
+        CHK_STATUS(createDtlsSession(&dtlsCallbacks, timerQueueHandle, GENERATED_CERTIFICATE_BITS, FALSE, NULL, &pSocketConnection->pDtlsSession));
+        CHK_STATUS(dtlsSessionStart(pSocketConnection->pDtlsSession, isServer));
+    }
     pSocketConnection->secureConnection = TRUE;
 
 CleanUp:
-    if (STATUS_FAILED(retStatus) && pSocketConnection->pTlsSession != NULL) {
-        freeTlsSession(&pSocketConnection->pTlsSession);
+    if (STATUS_FAILED(retStatus) && locked) {
+        pTlsSessionToFree = pSocketConnection->pTlsSession;
+        pDtlsSessionToFree = pSocketConnection->pDtlsSession;
+        pSocketConnection->pTlsSession = NULL;
+        pSocketConnection->pDtlsSession = NULL;
+        pSocketConnection->secureConnection = FALSE;
+        pSocketConnection->tlsHandshakeStartTime = INVALID_TIMESTAMP_VALUE;
     }
 
     if (locked) {
         MUTEX_UNLOCK(pSocketConnection->lock);
+    }
+
+    if (pTlsSessionToFree != NULL) {
+        freeTlsSession(&pTlsSessionToFree);
+    }
+    if (pDtlsSessionToFree != NULL) {
+        freeDtlsSession(&pDtlsSessionToFree);
     }
 
     LEAVES();
@@ -234,6 +312,8 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
     CHK(pBuf != NULL && bufLen > 0, STATUS_INVALID_ARG);
     if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP && pSocketConnection->secureConnection) {
         CHK_STATUS(tlsSessionPutApplicationData(pSocketConnection->pTlsSession, pBuf, bufLen));
+    } else if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_UDP && pSocketConnection->secureConnection) {
+        CHK_STATUS(dtlsSessionPutApplicationData(pSocketConnection->pDtlsSession, pBuf, bufLen));
     } else if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP) {
         CHK_STATUS(retStatus = socketSendDataWithRetry(pSocketConnection, pBuf, bufLen, NULL, NULL));
     } else if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_UDP) {
@@ -265,7 +345,15 @@ STATUS socketConnectionReadData(PSocketConnection pSocketConnection, PBYTE pBuf,
     // return early if connection is not secure
     CHK(pSocketConnection->secureConnection, retStatus);
 
-    CHK_STATUS(tlsSessionProcessPacket(pSocketConnection->pTlsSession, pBuf, bufferLen, pDataLen));
+    if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP) {
+        CHK_STATUS(tlsSessionProcessPacket(pSocketConnection->pTlsSession, pBuf, bufferLen, pDataLen));
+    } else {
+        // dtlsSessionProcessPacket expects a signed length pointer. Use a temporary INT32, then copy the validated
+        // decrypted byte count back to the caller's UINT32.
+        INT32 dtlsDataLen = (INT32) *pDataLen;
+        CHK_STATUS(dtlsSessionProcessPacket(pSocketConnection->pDtlsSession, pBuf, &dtlsDataLen));
+        *pDataLen = (UINT32) dtlsDataLen;
+    }
 
 CleanUp:
 
@@ -281,6 +369,44 @@ CleanUp:
     return retStatus;
 }
 
+STATUS socketConnectionShutdownSecureSession(PSocketConnection pSocketConnection)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PTlsSession pTlsSessionToFree = NULL;
+    PDtlsSession pDtlsSessionToFree = NULL;
+    BOOL locked = FALSE;
+
+    CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pSocketConnection->lock);
+    locked = TRUE;
+
+    pTlsSessionToFree = pSocketConnection->pTlsSession;
+    pDtlsSessionToFree = pSocketConnection->pDtlsSession;
+    pSocketConnection->pTlsSession = NULL;
+    pSocketConnection->pDtlsSession = NULL;
+
+    pSocketConnection->secureConnection = FALSE;
+    pSocketConnection->tlsHandshakeStartTime = INVALID_TIMESTAMP_VALUE;
+
+CleanUp:
+
+    if (locked) {
+        MUTEX_UNLOCK(pSocketConnection->lock);
+    }
+
+    if (pTlsSessionToFree != NULL) {
+        freeTlsSession(&pTlsSessionToFree);
+    }
+
+    if (pDtlsSessionToFree != NULL) {
+        freeDtlsSession(&pDtlsSessionToFree);
+    }
+
+    CHK_LOG_ERR(retStatus);
+    return retStatus;
+}
+
 STATUS socketConnectionClosed(PSocketConnection pSocketConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -292,6 +418,9 @@ STATUS socketConnectionClosed(PSocketConnection pSocketConnection)
     ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, TRUE);
     if (pSocketConnection->pTlsSession != NULL) {
         tlsSessionShutdown(pSocketConnection->pTlsSession);
+    }
+    if (pSocketConnection->pDtlsSession != NULL) {
+        dtlsSessionShutdown(pSocketConnection->pDtlsSession);
     }
     MUTEX_UNLOCK(pSocketConnection->lock);
 
