@@ -30,43 +30,63 @@ extern "C" {
     do {                                                                                                                                             \
         startTimeInMacro = GETTIME();                                                                                                                \
         f;                                                                                                                                           \
-        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (GETTIME() - startTimeInMacro) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                        \
+        UINT64 __dt = GETTIME() - startTimeInMacro;                                                                                                  \
+        DLOGP("[%s] Time taken: %" PRIu64 ".%02" PRIu64 " ms", (msg),                                                                               \
+              __dt / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,                                                                                             \
+              (__dt % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100));                                              \
     } while (FALSE)
 
 #define PROFILE_CALL_WITH_T_OBJ(f, t, msg)                                                                                                           \
     do {                                                                                                                                             \
         startTimeInMacro = GETTIME();                                                                                                                \
         f;                                                                                                                                           \
-        t = (GETTIME() - startTimeInMacro) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                     \
-        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (t));                                                                                        \
+        UINT64 __dt = GETTIME() - startTimeInMacro;                                                                                                  \
+        t = __dt / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                               \
+        DLOGP("[%s] Time taken: %" PRIu64 ".%02" PRIu64 " ms", (msg),                                                                               \
+              __dt / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,                                                                                             \
+              (__dt % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100));                                              \
     } while (FALSE)
 
 #define PROFILE_WITH_START_TIME(t, msg)                                                                                                              \
     do {                                                                                                                                             \
-        DLOGP("[%s] Time taken: %" PRIu64 " ms", msg, (GETTIME() - (t)) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                       \
+        UINT64 __dt = GETTIME() - (t);                                                                                                               \
+        DLOGP("[%s] Time taken: %" PRIu64 ".%02" PRIu64 " ms", msg,                                                                                 \
+              __dt / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,                                                                                             \
+              (__dt % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100));                                              \
     } while (FALSE)
 
 #define PROFILE_CALL_WITH_START_END_T_OBJ(f, s, e, d, msg)                                                                                           \
     do {                                                                                                                                             \
-        s = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                          \
+        UINT64 __s = GETTIME();                                                                                                                      \
         f;                                                                                                                                           \
-        e = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                          \
+        UINT64 __e = GETTIME();                                                                                                                      \
+        UINT64 __dt = __e - __s;                                                                                                                     \
+        s = __s / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                                \
+        e = __e / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                                \
         d = ((e) - (s));                                                                                                                             \
-        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (d));                                                                                        \
+        DLOGP("[%s] Time taken: %" PRIu64 ".%02" PRIu64 " ms", (msg),                                                                               \
+              __dt / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,                                                                                             \
+              (__dt % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100));                                              \
     } while (FALSE)
 
 #define PROFILE_WITH_START_END_TIME_OBJ(t1, t2, d, msg)                                                                                              \
     do {                                                                                                                                             \
+        UINT64 __dt = GETTIME() - (t1);                                                                                                              \
         t1 = (t1 / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                                                                              \
         t2 = (GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                                                                       \
         d = ((t2) - (t1));                                                                                                                           \
-        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (d));                                                                                        \
+        DLOGP("[%s] Time taken: %" PRIu64 ".%02" PRIu64 " ms", (msg),                                                                               \
+              __dt / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,                                                                                             \
+              (__dt % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100));                                              \
     } while (FALSE)
 
 #define PROFILE_WITH_START_TIME_OBJ(t1, t2, msg)                                                                                                     \
     do {                                                                                                                                             \
-        t2 = (GETTIME() - (t1)) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                \
-        DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), t2);                                                                                         \
+        UINT64 __dt = GETTIME() - (t1);                                                                                                              \
+        t2 = __dt / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                              \
+        DLOGP("[%s] Time taken: %" PRIu64 ".%02" PRIu64 " ms", (msg),                                                                               \
+              __dt / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,                                                                                             \
+              (__dt % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100));                                              \
     } while (FALSE)
 
 /*! \addtogroup StatusCodes
