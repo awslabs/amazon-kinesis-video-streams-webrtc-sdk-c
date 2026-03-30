@@ -113,7 +113,7 @@ $(document).ready(function(){initNavTree('Stats_8h_source.html',''); initResizab
 <div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span> </div>
 <div class="line"><a id="l00025" name="l00025"></a><span class="lineno"><a class="line" href="group__StatsNameLengths.html#gaeb7cb54e2a66447e46fca79db9a8fda0">   25</a></span><span class="preprocessor">#define MAX_CANDIDATE_ID_LENGTH 9U</span></div>
 <div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span> </div>
-<div class="line"><a id="l00030" name="l00030"></a><span class="lineno"><a class="line" href="group__StatsNameLengths.html#ga160cda488c482290cca205dcd1d29abc">   30</a></span><span class="preprocessor">#define MAX_ICE_CONFIG_URI_LEN 127</span></div>
+<div class="line"><a id="l00030" name="l00030"></a><span class="lineno"><a class="line" href="group__StatsNameLengths.html#ga160cda488c482290cca205dcd1d29abc">   30</a></span><span class="preprocessor">#define MAX_ICE_CONFIG_URI_LEN 255</span></div>
 <div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span> </div>
 <div class="line"><a id="l00037" name="l00037"></a><span class="lineno"><a class="line" href="group__StatsNameLengths.html#gac0eecefb40ad7dbfd69e78fdcf3c3db0">   37</a></span><span class="preprocessor">#define MAX_ICE_CONFIG_URI_BUFFER_LEN (MAX_ICE_CONFIG_URI_LEN + 1)</span></div>
 <div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span> </div>
@@ -253,7 +253,7 @@ $(document).ready(function(){initNavTree('Stats_8h_source.html',''); initResizab
 <div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span> </div>
 <div class="foldopen" id="foldopen00253" data-start="{" data-end="};">
 <div class="line"><a id="l00253" name="l00253"></a><span class="lineno"><a class="line" href="structRtcIceServerStats.html">  253</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span>{</div>
-<div class="line"><a id="l00254" name="l00254"></a><span class="lineno"><a class="line" href="structRtcIceServerStats.html#a9a3f072c4be87a96b02a8065df7f96e3">  254</a></span>    CHAR url[<a class="code hl_define" href="group__StatsNameLengths.html#gac0eecefb40ad7dbfd69e78fdcf3c3db0">MAX_ICE_CONFIG_URI_BUFFER_LEN</a>]; </div>
+<div class="line"><a id="l00254" name="l00254"></a><span class="lineno"><a class="line" href="structRtcIceServerStats.html#a2c54f591369d21498962b9a7d7ae86d4">  254</a></span>    CHAR url[<a class="code hl_define" href="group__StatsNameLengths.html#gac0eecefb40ad7dbfd69e78fdcf3c3db0">MAX_ICE_CONFIG_URI_BUFFER_LEN</a>]; </div>
 <div class="line"><a id="l00255" name="l00255"></a><span class="lineno"><a class="line" href="structRtcIceServerStats.html#aafa5965c021a041136c33802aac40726">  255</a></span>    CHAR protocol[<a class="code hl_define" href="group__StatsNameLengths.html#gab3b05eb23c726d76352f92e7722f1877">MAX_PROTOCOL_LENGTH</a> + 1];  </div>
 <div class="line"><a id="l00256" name="l00256"></a><span class="lineno"><a class="line" href="structRtcIceServerStats.html#a3c3c3a06e3748ab080eb70c71f5274fb">  256</a></span>    UINT32 <a class="code hl_variable" href="structRtcIceServerStats.html#a3c3c3a06e3748ab080eb70c71f5274fb">iceServerIndex</a>;                   </div>
 <div class="line"><a id="l00258" name="l00258"></a><span class="lineno"><a class="line" href="structRtcIceServerStats.html#a27c5b9c1c86d202813b4a055d44bb6a3">  258</a></span>    INT32 <a class="code hl_variable" href="structRtcIceServerStats.html#a27c5b9c1c86d202813b4a055d44bb6a3">port</a>;                              </div>
@@ -898,7 +898,7 @@ $(document).ready(function(){initNavTree('Stats_8h_source.html',''); initResizab
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html">src</a></li><li class="navelem"><a class="el" href="dir_b0856f6b0d80ccb263b2f415c91f9e17.html">include</a></li><li class="navelem"><a class="el" href="dir_8f5ac45a6ada111b95e80af22bb6017d.html">com</a></li><li class="navelem"><a class="el" href="dir_6eddcaa8cb3f84b1b7290fa7880ed0c5.html">amazonaws</a></li><li class="navelem"><a class="el" href="dir_ffe25b375dd9c47f978782781b252738.html">kinesis</a></li><li class="navelem"><a class="el" href="dir_40be0bfe93e499fae0ac3fc2c0b3ca29.html">video</a></li><li class="navelem"><a class="el" href="dir_4165afa699965307903ffe413a1cdec9.html">webrtcclient</a></li><li class="navelem"><a class="el" href="Stats_8h.html">Stats.h</a></li>
-    <li class="footer">Generated on Tue Mar 24 2026 04:44:44 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Mon Mar 30 2026 18:35:22 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>

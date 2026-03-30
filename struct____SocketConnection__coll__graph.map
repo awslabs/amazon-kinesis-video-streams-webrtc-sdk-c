@@ -1,10 +1,14 @@
 <map id="__SocketConnection" name="__SocketConnection">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,396,260,641"/>
-<area shape="poly" id="edge4_Node000001_Node000001" title=" " alt="" coords="262,491,280,501,287,518,284,530,277,539,273,535,279,528,281,519,276,505,259,496"/>
-<area shape="rect" id="Node000002" href="$structKvsIpAddress.html" title=" " alt="" coords="15,193,135,319"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="80,319,87,372,89,380,84,381,82,372,75,319"/>
-<area shape="rect" id="Node000003" href="$struct____TlsSession.html" title=" " alt="" coords="160,223,257,289"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="202,289,175,381,170,379,197,288"/>
-<area shape="rect" id="Node000004" href="$structTlsSessionCallbacks.html" title=" " alt="" coords="94,5,323,131"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="211,131,211,207,206,207,206,131"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="71,536,326,781"/>
+<area shape="poly" id="edge6_Node000001_Node000001" title=" " alt="" coords="328,631,346,641,353,658,350,670,343,679,339,675,345,668,347,659,342,645,325,636"/>
+<area shape="rect" id="Node000002" href="$structKvsIpAddress.html" title=" " alt="" coords="5,263,125,389"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="77,388,90,449,110,511,114,520,110,522,106,513,85,450,72,389"/>
+<area shape="rect" id="Node000003" href="$struct____TlsSession.html" title=" " alt="" coords="150,293,247,359"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="201,359,201,520,196,520,196,359"/>
+<area shape="rect" id="Node000004" href="$structTlsSessionCallbacks.html" title=" " alt="" coords="68,5,297,131"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="189,131,198,277,193,277,184,131"/>
+<area shape="rect" id="Node000005" href="$struct____DtlsSession.html" title=" " alt="" coords="317,193,491,459"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="332,460,300,513,293,523,289,520,295,511,327,457"/>
+<area shape="rect" id="Node000006" href="$structDtlsSessionCallbacks.html" title=" " alt="" coords="321,5,551,131"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="431,131,425,177,420,177,426,131"/>
 </map>

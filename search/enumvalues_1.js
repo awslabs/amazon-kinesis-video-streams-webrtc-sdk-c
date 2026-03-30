@@ -12,6 +12,10 @@ var searchData=
   ['ice_5fcandidate_5ftype_5fpeer_5freflexive_9',['ICE_CANDIDATE_TYPE_PEER_REFLEXIVE',['../Stats_8h.html#ac9e1b12f44dc91db1cd6373f87ec55b6ae4bb79539718c2454eb3aa1d8de872f1',1,'Stats.h']]],
   ['ice_5fcandidate_5ftype_5frelayed_10',['ICE_CANDIDATE_TYPE_RELAYED',['../Stats_8h.html#ac9e1b12f44dc91db1cd6373f87ec55b6a2fcd25cbc2d1c585d32f9ebae2622045',1,'Stats.h']]],
   ['ice_5fcandidate_5ftype_5fserver_5freflexive_11',['ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE',['../Stats_8h.html#ac9e1b12f44dc91db1cd6373f87ec55b6ac0ce2fc7bc8da270caa5ebf77f699ddd',1,'Stats.h']]],
-  ['ice_5ftransport_5fpolicy_5fall_12',['ICE_TRANSPORT_POLICY_ALL',['../group__PublicEnums.html#gga9447d6f4c97788d32853140452659f70a01c96edce3eb6527fe9d48a82d4f3da2',1,'Include.h']]],
-  ['ice_5ftransport_5fpolicy_5frelay_13',['ICE_TRANSPORT_POLICY_RELAY',['../group__PublicEnums.html#gga9447d6f4c97788d32853140452659f70a9305a9ec5500c1b7ebf137f8c1d3685d',1,'Include.h']]]
+  ['ice_5fserver_5fscheme_5fstun_12',['ICE_SERVER_SCHEME_STUN',['../IceUtils_8h.html#a055ccbe5077decd5b381d053f6a9d874a86a0bbe7dcc9de9fb8bf73e5fcc58fd0',1,'IceUtils.h']]],
+  ['ice_5fserver_5fscheme_5fstuns_13',['ICE_SERVER_SCHEME_STUNS',['../IceUtils_8h.html#a055ccbe5077decd5b381d053f6a9d874a31b71528fe16bee1a12b18464823c425',1,'IceUtils.h']]],
+  ['ice_5fserver_5fscheme_5fturn_14',['ICE_SERVER_SCHEME_TURN',['../IceUtils_8h.html#a055ccbe5077decd5b381d053f6a9d874a7a7d2ecbdb2d5031592160daddb39d81',1,'IceUtils.h']]],
+  ['ice_5fserver_5fscheme_5fturns_15',['ICE_SERVER_SCHEME_TURNS',['../IceUtils_8h.html#a055ccbe5077decd5b381d053f6a9d874a00bde781ea53352cf7e90e1e9b06b7a7',1,'IceUtils.h']]],
+  ['ice_5ftransport_5fpolicy_5fall_16',['ICE_TRANSPORT_POLICY_ALL',['../group__PublicEnums.html#gga9447d6f4c97788d32853140452659f70a01c96edce3eb6527fe9d48a82d4f3da2',1,'Include.h']]],
+  ['ice_5ftransport_5fpolicy_5frelay_17',['ICE_TRANSPORT_POLICY_RELAY',['../group__PublicEnums.html#gga9447d6f4c97788d32853140452659f70a9305a9ec5500c1b7ebf137f8c1d3685d',1,'Include.h']]]
 ];
