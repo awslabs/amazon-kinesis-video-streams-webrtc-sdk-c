@@ -110,6 +110,21 @@ typedef struct {
     // (TRUE = viewer mode, FALSE = master mode)
     BOOL isOffer;
 
+    // Debug logs for RTP packets
+    BOOL logRtpPackets;
+
+    // Print extra debug logs related to timing
+    BOOL printExtraTimingInfo;
+
+    // Print extra debug logs related to sender/receiver reports
+    BOOL printSenderReceiverReports;
+
+    // Print extra debug logs related to nacks
+    BOOL printNacks;
+
+    // Throttle debug logging for frame timing information. Use 0 to print timing for every frame.
+    UINT64 writeFrameLoggingIntervalMs;
+
     TIMER_QUEUE_HANDLE timerQueueHandle;
 
     // Codecs that we support and their payloadTypes

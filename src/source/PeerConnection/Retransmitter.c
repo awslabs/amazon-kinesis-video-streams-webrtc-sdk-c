@@ -75,6 +75,9 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
     filledLen = pRetransmitter->seqNumListLen;
     CHK_STATUS(rtcpNackListGet(pRtcpPacket->payload, pRtcpPacket->payloadLength, &senderSsrc, &receiverSsrc, pRetransmitter->sequenceNumberList,
                                &filledLen));
+    if (pKvsPeerConnection->printNacks) {
+        DLOGD("NACK received: senderSsrc %u receiverSsrc %u requestedSeqNums %u", senderSsrc, receiverSsrc, filledLen);
+    }
     validIndexListLen = pRetransmitter->validIndexListLen;
     CHK_STATUS(rtpRollingBufferGetValidSeqIndexList(pSenderTranceiver->sender.packetBuffer, pRetransmitter->sequenceNumberList, filledLen,
                                                     pRetransmitter->validIndexList, &validIndexListLen));
@@ -98,10 +101,17 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
                 pRtpPacket->sentTime = GETTIME();
                 retransmittedPacketsSent++;
                 retransmittedBytesSent += pRtpPacket->rawPacketLength - RTP_HEADER_LEN(pRtpPacket);
-                DLOGV("Resent packet ssrc %lu seq %lu succeeded", pRtpPacket->header.ssrc, pRtpPacket->header.sequenceNumber);
+                if (pKvsPeerConnection->printNacks) {
+                    DLOGD("Retransmit (%s) ssrc %u seqNum %u timestamp %u payloadType %u marker %u size %u",
+                          (pSenderTranceiver->sender.payloadType == pSenderTranceiver->sender.rtxPayloadType) ? "resent as-is"
+                                                                                                              : "reconstructed as RTX",
+                          pRtpPacket->header.ssrc, pRtpPacket->header.sequenceNumber, pRtpPacket->header.timestamp, pRtpPacket->header.payloadType,
+                          pRtpPacket->header.marker, pRtpPacket->rawPacketLength);
+                }
                 twccManagerOnPacketSent(pKvsPeerConnection, pRtpPacket);
             } else {
-                DLOGV("Resent packet ssrc %lu seq %lu failed 0x%08x", pRtpPacket->header.ssrc, pRtpPacket->header.sequenceNumber, retStatus);
+                DLOGV("Retransmit FAILED ssrc %u seqNum %u timestamp %u err 0x%08x", pRtpPacket->header.ssrc, pRtpPacket->header.sequenceNumber,
+                      pRtpPacket->header.timestamp, retStatus);
             }
             // putBackPacketToRollingBuffer
             retStatus =

@@ -82,6 +82,8 @@ typedef struct {
     RtcOutboundRtpStreamStats outboundStats;
     RtcRemoteInboundRtpStreamStats remoteInboundStats;
     RtcInboundRtpStreamStats inboundStats;
+
+    UINT64 lastWriteFrameLogTime; // 100ns precision, for throttling writeFrame debug logs
 } KvsRtpTransceiver, *PKvsRtpTransceiver;
 
 STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION, PKvsPeerConnection, UINT32, UINT32, PRtcMediaStreamTrack, PJitterBuffer, RTC_CODEC,

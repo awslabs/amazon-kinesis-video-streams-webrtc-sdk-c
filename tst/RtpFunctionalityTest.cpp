@@ -631,6 +631,113 @@ TEST_F(RtpFunctionalityTest, twccPayload)
     EXPECT_EQ(0, ptr[3]);
 }
 
+// --------------- rtpPacketHeaderToString -----------------
+
+TEST_F(RtpFunctionalityTest, rtpPacketHeaderToString_invalidParameters)
+{
+    CHAR buffer[100] = {0};
+    UINT32 bufferLen = SIZEOF(buffer);
+
+    BYTE payload[] = {0x00, 0x01, 0x02, 0x03};
+    BYTE rawbytes[1024] = {0};
+    PBYTE ptr = reinterpret_cast<PBYTE>(&rawbytes);
+    PRtpPacket pRtpPacket = NULL;
+    PRtpPacket pParsedPacket = NULL;
+    UINT16 twccSeqNum = 9876;
+    UINT8 twccExtId = 5;
+    UINT32 extpayload = TWCC_PAYLOAD(twccExtId, twccSeqNum);
+    UINT32 packetLen = 0;
+
+    EXPECT_EQ(STATUS_SUCCESS,
+              createRtpPacket(2, FALSE, TRUE, 0, FALSE, 96, 1, 1000, 0xDEADBEEF, NULL,
+                              TWCC_EXT_PROFILE, SIZEOF(UINT32), reinterpret_cast<PBYTE>(&extpayload),
+                              payload, SIZEOF(payload), &pRtpPacket));
+
+    // Check invalid arguments
+    EXPECT_EQ(STATUS_NULL_ARG, rtpPacketHeaderToString(NULL, buffer, bufferLen));
+    EXPECT_EQ(STATUS_NULL_ARG, rtpPacketHeaderToString(pRtpPacket, NULL, bufferLen));
+    EXPECT_EQ(STATUS_INVALID_ARG_LEN, rtpPacketHeaderToString(pRtpPacket, buffer, 0));
+
+    freeRtpPacket(&pRtpPacket);
+}
+
+TEST_F(RtpFunctionalityTest, rtpPacketHeaderToString_zeroBufferWhenTooSmall)
+{
+    CHAR buffer[6];
+    SNPRINTF(buffer, SIZEOF(buffer), "Hello");
+
+    BYTE payload[] = {0x00, 0x01, 0x02, 0x03};
+    BYTE rawbytes[1024] = {0};
+    PBYTE ptr = reinterpret_cast<PBYTE>(&rawbytes);
+    PRtpPacket pRtpPacket = NULL;
+    PRtpPacket pParsedPacket = NULL;
+    UINT16 twccSeqNum = 9876;
+    UINT8 twccExtId = 5;
+    UINT32 extpayload = TWCC_PAYLOAD(twccExtId, twccSeqNum);
+    UINT32 packetLen = 0;
+
+    EXPECT_EQ(STATUS_SUCCESS,
+              createRtpPacket(2, FALSE, TRUE, 0, FALSE, 96, 1, 1000, 0xDEADBEEF, NULL,
+                              TWCC_EXT_PROFILE, SIZEOF(UINT32), reinterpret_cast<PBYTE>(&extpayload),
+                              payload, SIZEOF(payload), &pRtpPacket));
+
+    // It should clear the buffer when it's too small to avoid partial strings
+    EXPECT_EQ(STATUS_BUFFER_TOO_SMALL, rtpPacketHeaderToString(pRtpPacket, buffer, SIZEOF(buffer)));
+    EXPECT_STREQ("", buffer);
+
+    freeRtpPacket(&pRtpPacket);
+}
+
+TEST_F(RtpFunctionalityTest, twccExtensionRoundTrip)
+{
+    BYTE payload[] = {0x00, 0x01, 0x02, 0x03};
+    BYTE rawbytes[1024] = {0};
+    PBYTE ptr = reinterpret_cast<PBYTE>(&rawbytes);
+    PRtpPacket pRtpPacket = NULL;
+    PRtpPacket pParsedPacket = NULL;
+    UINT16 twccSeqNum = 9876;
+    UINT8 twccExtId = 5;
+    UINT32 extpayload = TWCC_PAYLOAD(twccExtId, twccSeqNum);
+    UINT32 packetLen = 0;
+    CHAR packetToString[10000];
+
+    EXPECT_EQ(STATUS_SUCCESS,
+              createRtpPacket(2, FALSE, TRUE, 0, FALSE, 96, 1, 1000, 0xDEADBEEF, NULL,
+                              TWCC_EXT_PROFILE, SIZEOF(UINT32), reinterpret_cast<PBYTE>(&extpayload),
+                              payload, SIZEOF(payload), &pRtpPacket));
+
+    // Serialize to bytes
+    EXPECT_EQ(STATUS_SUCCESS, createBytesFromRtpPacket(pRtpPacket, NULL, &packetLen));
+    EXPECT_TRUE(packetLen <= SIZEOF(rawbytes));
+    EXPECT_EQ(STATUS_SUCCESS, createBytesFromRtpPacket(pRtpPacket, ptr, &packetLen));
+
+    // Parse back from bytes
+    EXPECT_EQ(STATUS_SUCCESS, createRtpPacketFromBytes(ptr, packetLen, &pParsedPacket));
+
+    // Verify TWCC extension survived the round trip
+    EXPECT_TRUE(pParsedPacket->header.extension);
+    EXPECT_EQ(TWCC_EXT_PROFILE, pParsedPacket->header.extensionProfile);
+    EXPECT_EQ(SIZEOF(UINT32), pParsedPacket->header.extensionLength);
+    EXPECT_EQ(twccSeqNum, TWCC_SEQNUM(pParsedPacket->header.extensionPayload));
+
+    // Verify the ext ID is preserved in the payload
+    EXPECT_EQ(twccExtId, (pParsedPacket->header.extensionPayload[0] >> 4));
+
+    // Check the toString output
+    EXPECT_EQ(STATUS_SUCCESS, rtpPacketHeaderToString(pParsedPacket, packetToString, SIZEOF(packetToString)));
+    DLOGD("toString output: %s", packetToString);
+
+    // Contains the expected parameters
+    EXPECT_NE(std::string::npos, std::string(packetToString).find("X=1")); // header extension is present
+    EXPECT_NE(std::string::npos, std::string(packetToString).find("extProfile=0xBEDE")); // 1-byte header extension
+    EXPECT_NE(std::string::npos, std::string(packetToString).find("twccExtId=5")); // ext ID
+    EXPECT_NE(std::string::npos, std::string(packetToString).find("twccSeqNum=9876")); // seqNum part of TWCC
+
+    freeRtpPacket(&pRtpPacket);
+    pParsedPacket->pRawPacket = NULL;
+    freeRtpPacket(&pParsedPacket);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
