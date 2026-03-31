@@ -38,6 +38,7 @@ struct __SocketConnection {
 
     BOOL secureConnection;
     PTlsSession pTlsSession;
+    PDtlsSession pDtlsSession;
 
     MUTEX lock;
 
@@ -83,10 +84,12 @@ STATUS freeSocketConnection(PSocketConnection*);
  *
  * @param - PSocketConnection - IN - the SocketConnection struct
  * @param - BOOL - IN - will SocketConnection act as server during the TLS or DTLS handshake
+ * @param - TIMER_QUEUE_HANDLE - IN - timer queue used by DTLS to schedule handshake retransmissions. Ignored for
+ * TCP/TLS sockets.
  *
  * @return - STATUS - status of execution
  */
-STATUS socketConnectionInitSecureConnection(PSocketConnection, BOOL);
+STATUS socketConnectionInitSecureConnection(PSocketConnection, BOOL, TIMER_QUEUE_HANDLE);
 
 /**
  * Given a created SocketConnection, send data through the underlying socket. If socket type is UDP, then destination
@@ -115,6 +118,15 @@ STATUS socketConnectionSendData(PSocketConnection, PBYTE, UINT32, PKvsIpAddress)
  * @return - STATUS - status of execution
  */
 STATUS socketConnectionReadData(PSocketConnection, PBYTE, UINT32, PUINT32);
+
+/**
+ * Tear down any active TLS/DTLS session while keeping the underlying socket open.
+ *
+ * @param - PSocketConnection - IN - the SocketConnection struct
+ *
+ * @return - STATUS - status of execution
+ */
+STATUS socketConnectionShutdownSecureSession(PSocketConnection);
 
 /**
  * Mark PSocketConnection as closed
@@ -146,8 +158,13 @@ BOOL socketConnectionIsConnected(PSocketConnection);
 
 // internal functions
 STATUS socketSendDataWithRetry(PSocketConnection, PBYTE, UINT32, PKvsIpAddress, PUINT32);
+
+// TLS and DTLS session callbacks used by SocketConnection to forward encrypted records and react to handshake state
+// changes. These are internal hooks for the secure transport path, not part of the public SocketConnection API.
 STATUS socketConnectionTlsSessionOutBoundPacket(UINT64, PBYTE, UINT32);
 VOID socketConnectionTlsSessionOnStateChange(UINT64, TLS_SESSION_STATE);
+VOID socketConnectionDtlsSessionOnStateChange(UINT64, RTC_DTLS_TRANSPORT_STATE);
+VOID socketConnectionDtlsSessionOutBoundPacket(UINT64, PBYTE, UINT32);
 
 #ifdef __cplusplus
 }

@@ -14,3 +14,5 @@ CMakeLists.txt.user
 *.swp
 venv/
 
+.SignalingCache_v*
+.kiro/
