@@ -42,7 +42,17 @@ extern "C" {
 #define SAMPLE_VIDEO_FRAME_DURATION (HUNDREDS_OF_NANOS_IN_A_SECOND / DEFAULT_FPS_VALUE)
 
 #define SAMPLE_PRE_GENERATE_CERT        TRUE
-#define SAMPLE_PRE_GENERATE_CERT_PERIOD (1000 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define SAMPLE_PRE_GENERATE_CERT_PERIOD (3000 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define SAMPLE_PRE_GENERATE_CERT_MAX    2
+
+#define PRE_GENERATE_CERT_ENV_VAR        ((PCHAR) "KVS_PRE_GENERATE_CERT_ENABLED")
+#define PRE_GENERATE_CERT_PERIOD_ENV_VAR ((PCHAR) "KVS_PRE_GENERATE_CERT_PERIOD_MS")
+#define PRE_GENERATE_CERT_MAX_ENV_VAR    ((PCHAR) "KVS_PRE_GENERATE_CERT_MAX")
+
+#define PRE_GENERATE_CERT_PERIOD_MIN_MS 100
+#define PRE_GENERATE_CERT_PERIOD_MAX_MS 60000
+
+#define PRE_GENERATE_CERT_MAX_UPPER_BOUND 10
 
 #define SAMPLE_SESSION_CLEANUP_WAIT_PERIOD (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
@@ -187,7 +197,8 @@ struct __SampleConfiguration {
     MUTEX signalingSendMessageLock;
 
     UINT32 pregenerateCertTimerId;
-    PStackQueue pregeneratedCertificates; // Max MAX_RTCCONFIGURATION_CERTIFICATES certificates
+    PStackQueue pregeneratedCertificates; // Holds the pre-generated certificates
+    UINT32 pregenerateCertificatesMax;    // Max certificates to have pre-generated and ready to use on standby
 
     PCHAR rtspUri;
     UINT32 logLevel;
