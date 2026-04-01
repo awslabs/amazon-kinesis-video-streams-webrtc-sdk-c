@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 30
 
     env:
-      AWS_KVS_LOG_LEVEL: 2
+      AWS_KVS_LOG_LEVEL: 1
       CHANNEL_NAME: "storage-reverse-test-${{ github.run_number }}"
       STREAM_NAME: "storage-reverse-stream-${{ github.run_number }}"
 
@@ -94,6 +94,15 @@ jobs:
 
           if [ $EXIT_CODE -ne 0 ]; then
             echo "Test 1 FAILED: Storage Master exited with code $EXIT_CODE"
+            cat master1.log
+            exit 1
+          fi
+
+          # Verify JoinStorageSession succeeded by checking for the offer received log
+          if grep -q "Offer Received from JoinStorageSession Call" master1.log; then
+            echo "Test 1: JoinStorageSession verified - offer received successfully"
+          else
+            echo "Test 1 FAILED: JoinStorageSession offer not received. Log output:"
             cat master1.log
             exit 1
           fi
@@ -184,6 +193,15 @@ jobs:
 
           if [ $EXIT_CODE -ne 0 ]; then
             echo "Test 3 FAILED: Storage Master exited with code $EXIT_CODE"
+            cat master3.log
+            exit 1
+          fi
+
+          # Verify JoinStorageSession succeeded by checking for the offer received log
+          if grep -q "Offer Received from JoinStorageSession Call" master3.log; then
+            echo "Test 3: JoinStorageSession verified - offer received successfully"
+          else
+            echo "Test 3 FAILED: JoinStorageSession offer not received. Log output:"
             cat master3.log
             exit 1
           fi

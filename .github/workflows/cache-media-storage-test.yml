@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 30
 
     env:
-      AWS_KVS_LOG_LEVEL: 2
+      AWS_KVS_LOG_LEVEL: 1
       CHANNEL_NAME: "storage-toggle-test-${{ github.run_number }}"
       STREAM_NAME: "storage-toggle-stream-${{ github.run_number }}"
 
@@ -141,6 +141,15 @@ jobs:
 
           if [ $EXIT_CODE -ne 0 ]; then
             echo "Test 2 FAILED: Storage Master exited with code $EXIT_CODE"
+            cat master2.log
+            exit 1
+          fi
+
+          # Verify JoinStorageSession succeeded by checking for the offer received log
+          if grep -q "Offer Received from JoinStorageSession Call" master2.log; then
+            echo "Test 2: JoinStorageSession verified - offer received successfully"
+          else
+            echo "Test 2 FAILED: JoinStorageSession offer not received. Log output:"
             cat master2.log
             exit 1
           fi
