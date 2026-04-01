@@ -517,6 +517,25 @@ AWS access keys are ignored from environment variables if the sample was built i
 | `CONTROL_PLANE_URI`        | Endpoint override                   | String               | Based on the region   | Example: "https://kinesisvideo.us-west-2.api.aws" |
 | `KVS_ICE_TRANSPORT_POLICY` | Types of ICE candidates to consider | Enum (`relay`/`all`) | `all`                 | Case insensitive                                  |
 
+## Signaling API call caching
+
+The SDK caches signaling API responses (DescribeSignalingChannel, GetSignalingChannelEndpoint) to reduce latency and avoid redundant service calls. The caching behavior is controlled by the `cachingPolicy` field on `ChannelInfo`.
+
+| Policy | Description |
+|--------|-------------|
+| `SIGNALING_API_CALL_CACHE_TYPE_NONE` | No caching. Every signaling API call goes to the backend. |
+| `SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT` | Cache DescribeSignalingChannel and GetSignalingChannelEndpoint in memory. Cache is lost when the signaling client is freed. |
+| `SIGNALING_API_CALL_CACHE_TYPE_FILE` | Cache DescribeSignalingChannel and GetSignalingChannelEndpoint to a file. Cache persists across signaling client restarts. |
+| `SIGNALING_API_CALL_CACHE_TYPE_FILE_EXCEPT_DESCRIBE_MEDIA` | Same file-based caching as above, but always calls DescribeMediaStorageConfiguration to get real-time storage status. When the storage status changes between ENABLED and DISABLED, the endpoint cache is automatically invalidated to force fresh endpoint retrieval. |
+
+The sample applications use `SIGNALING_API_CALL_CACHE_TYPE_FILE_EXCEPT_DESCRIBE_MEDIA`.
+
+To set the caching policy programmatically:
+
+```c
+channelInfo.cachingPolicy = CACHE_POLICY;
+```
+
 ## TWCC support
 
 Transport Wide Congestion Control (TWCC) is a mechanism in WebRTC designed to enhance the performance and reliability of real-time communication over the internet. TWCC addresses the challenges of network congestion by providing detailed feedback on the transport of packets across the network, enabling adaptive bitrate control and optimization of media streams in real-time. This feedback mechanism is crucial for maintaining high-quality audio and video communication, as it allows senders to adjust their transmission strategies based on comprehensive information about packet losses, delays, and jitter experienced across the entire transport path.
