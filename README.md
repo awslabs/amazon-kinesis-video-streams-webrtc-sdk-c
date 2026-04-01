@@ -517,6 +517,8 @@ AWS access keys are ignored from environment variables if the sample was built i
 | `CONTROL_PLANE_URI`        | Endpoint override                   | String               | Based on the region   | Example: "https://kinesisvideo.us-west-2.api.aws" |
 | `KVS_ICE_TRANSPORT_POLICY` | Types of ICE candidates to consider | Enum (`relay`/`all`) | `all`                 | Case insensitive                                  |
 
+For sample applications, GovCloud (`us-gov-*`), ADC (`us-iso-*`), and ADC-2 (`us-isob-*`) regions use the managed `stuns:` endpoint automatically. Commercial regions continue to use the managed `stun:` endpoint by default.
+
 ## Signaling API call caching
 
 The SDK caches signaling API responses (DescribeSignalingChannel, GetSignalingChannelEndpoint) to reduce latency and avoid redundant service calls. The caching behavior is controlled by the `cachingPolicy` field on `ChannelInfo`.
