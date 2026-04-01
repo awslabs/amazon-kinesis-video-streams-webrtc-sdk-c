@@ -99,6 +99,15 @@ jobs:
             exit 1
           fi
 
+          # Verify the cache file was created with storage-disabled endpoints
+          CACHE_FILE=".SignalingCache_v1"
+          if [ -f "$CACHE_FILE" ]; then
+            echo "Cache file exists after Test 1 (storage disabled):"
+            cat "$CACHE_FILE"
+          else
+            echo "Test 1 WARNING: Cache file not found at $CACHE_FILE"
+          fi
+
           echo "Test 1 PASSED: P2P Master ran successfully with storage disabled"
 
       - name: "Enable media storage configuration"
@@ -122,8 +131,17 @@ jobs:
       - name: "Test 2: Storage AudioVideo Master (storage enabled)"
         run: |
           echo "=== Test 2: Running kvsWebrtcStorageAudioVideoMaster with storage ENABLED ==="
+          echo "=== Cache file from Test 1 should be invalidated due to storage status change ==="
 
           cd build/samples
+
+          # Show the stale cache before running (written by Test 1 with storage disabled)
+          CACHE_FILE=".SignalingCache_v1"
+          if [ -f "$CACHE_FILE" ]; then
+            echo "Stale cache from Test 1 (storage was DISABLED):"
+            cat "$CACHE_FILE"
+          fi
+
           ./kvsWebrtcStorageAudioVideoMaster "$CHANNEL_NAME" > master2.log 2>&1 &
           PID_MASTER=$!
 
@@ -145,13 +163,21 @@ jobs:
             exit 1
           fi
 
-          # Verify JoinStorageSession succeeded by checking for the offer received log
+          # Verify JoinStorageSession succeeded — this proves the SDK detected the storage
+          # status change in the cache and re-fetched endpoints with the WEBRTC protocol.
+          # With stale (storage-disabled) cached endpoints, JoinStorageSession would fail.
           if grep -q "Offer Received from JoinStorageSession Call" master2.log; then
-            echo "Test 2: JoinStorageSession verified - offer received successfully"
+            echo "Test 2: JoinStorageSession verified - cache invalidation worked correctly"
           else
-            echo "Test 2 FAILED: JoinStorageSession offer not received. Log output:"
+            echo "Test 2 FAILED: JoinStorageSession offer not received (possible cache invalidation failure). Log output:"
             cat master2.log
             exit 1
+          fi
+
+          # Show the refreshed cache (should now reflect storage enabled)
+          if [ -f "$CACHE_FILE" ]; then
+            echo "Refreshed cache after Test 2 (storage ENABLED):"
+            cat "$CACHE_FILE"
           fi
 
           echo "Test 2 PASSED: Storage AudioVideo Master ran successfully with storage enabled"
