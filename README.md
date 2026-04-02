@@ -526,8 +526,8 @@ The SDK caches signaling API responses (DescribeSignalingChannel, GetSignalingCh
 | Policy | Description |
 |--------|-------------|
 | `SIGNALING_API_CALL_CACHE_TYPE_NONE` | No caching. Every signaling API call goes to the backend. |
-| `SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT` | Cache DescribeSignalingChannel and GetSignalingChannelEndpoint in memory. Cache is lost when the signaling client is freed. |
-| `SIGNALING_API_CALL_CACHE_TYPE_FILE` | Cache DescribeSignalingChannel and GetSignalingChannelEndpoint to a file. Cache persists across signaling client restarts. |
+| `SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT` | Cache DescribeSignalingChannel, GetSignalingChannelEndpoint, and DescribeMediaStorageConfiguration in memory. Cache is lost when the signaling client is freed. |
+| `SIGNALING_API_CALL_CACHE_TYPE_FILE` | Cache DescribeSignalingChannel, GetSignalingChannelEndpoint, and DescribeMediaStorageConfiguration to a file. Cache persists across signaling client restarts. |
 | `SIGNALING_API_CALL_CACHE_TYPE_FILE_EXCEPT_DESCRIBE_MEDIA` | Same file-based caching as above, but always calls DescribeMediaStorageConfiguration to get real-time storage status. When the storage status changes between ENABLED and DISABLED, the endpoint cache is automatically invalidated to force fresh endpoint retrieval. |
 
 The sample applications use `SIGNALING_API_CALL_CACHE_TYPE_FILE_EXCEPT_DESCRIBE_MEDIA`.
