@@ -1,0 +1,268 @@
+name: Cache Functionality Test with Media Storage Toggle
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+      - 'test-pr-*'
+  pull_request:
+    branches:
+      - develop
+      - main
+
+jobs:
+  media-storage-toggle-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      AWS_KVS_LOG_LEVEL: 1
+      CHANNEL_NAME: "storage-toggle-test-${{ github.run_number }}"
+      STREAM_NAME: "storage-toggle-stream-${{ github.run_number }}"
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Build repository
+        run: |
+          mkdir build && cd build
+          cmake .. -DBUILD_SAMPLE=ON
+          make -j
+
+      - name: Provision AWS resources
+        run: |
+          echo "=== Creating signaling channel: $CHANNEL_NAME ==="
+          aws kinesisvideo create-signaling-channel --channel-name "$CHANNEL_NAME"
+
+          echo "=== Creating video stream: $STREAM_NAME ==="
+          aws kinesisvideo create-stream --stream-name "$STREAM_NAME" --data-retention-in-hours 1
+
+          CHANNEL_ARN=$(aws kinesisvideo describe-signaling-channel \
+            --channel-name "$CHANNEL_NAME" \
+            --query 'ChannelInfo.ChannelARN' --output text)
+          echo "CHANNEL_ARN=$CHANNEL_ARN" >> $GITHUB_ENV
+
+          STREAM_ARN=$(aws kinesisvideo describe-stream \
+            --stream-name "$STREAM_NAME" \
+            --query 'StreamInfo.StreamARN' --output text)
+          echo "STREAM_ARN=$STREAM_ARN" >> $GITHUB_ENV
+
+          echo "Channel ARN: $CHANNEL_ARN"
+          echo "Stream ARN: $STREAM_ARN"
+
+      - name: "Test 1: P2P Master (storage disabled)"
+        run: |
+          echo "=== Test 1: Running kvsWebrtcClientMaster with storage DISABLED ==="
+
+          # Verify storage is disabled (default for new channel)
+          STATUS=$(aws kinesisvideo describe-media-storage-configuration \
+            --channel-arn "$CHANNEL_ARN" \
+            --query 'MediaStorageConfiguration.Status' --output text)
+          echo "Current storage status: $STATUS"
+
+          cd build/samples
+          ./kvsWebrtcClientMaster "$CHANNEL_NAME" > master1.log 2>&1 &
+          PID_MASTER=$!
+
+          # Let it run and establish signaling
+          sleep 30
+
+          # Graceful shutdown
+          kill -2 $PID_MASTER
+
+          # Enforce timeout for graceful shutdown
+          ( sleep 15 && kill -9 $PID_MASTER 2>/dev/null ) &
+
+          wait $PID_MASTER
+          EXIT_CODE=$?
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "Test 1 FAILED: Master exited with code $EXIT_CODE"
+            cat master1.log
+            exit 1
+          fi
+
+          # Verify the cache file was created with storage-disabled endpoints
+          CACHE_FILE=".SignalingCache_v1"
+          if [ -f "$CACHE_FILE" ]; then
+            echo "Cache file exists after Test 1 (storage disabled):"
+            cat "$CACHE_FILE"
+          else
+            echo "Test 1 WARNING: Cache file not found at $CACHE_FILE"
+          fi
+
+          echo "Test 1 PASSED: P2P Master ran successfully with storage disabled"
+
+      - name: "Enable media storage configuration"
+        run: |
+          echo "=== Enabling media storage: linking channel to stream ==="
+          aws kinesisvideo update-media-storage-configuration \
+            --channel-arn "$CHANNEL_ARN" \
+            --media-storage-configuration Status=ENABLED,StreamARN="$STREAM_ARN"
+
+          # Verify storage is enabled
+          STATUS=$(aws kinesisvideo describe-media-storage-configuration \
+            --channel-arn "$CHANNEL_ARN" \
+            --query 'MediaStorageConfiguration.Status' --output text)
+          echo "Storage status after enable: $STATUS"
+
+          if [ "$STATUS" != "ENABLED" ]; then
+            echo "FAILED: Expected storage status ENABLED, got $STATUS"
+            exit 1
+          fi
+
+      - name: "Test 2: Storage AudioVideo Master (storage enabled)"
+        run: |
+          echo "=== Test 2: Running kvsWebrtcStorageAudioVideoMaster with storage ENABLED ==="
+          echo "=== Cache file from Test 1 should be invalidated due to storage status change ==="
+
+          cd build/samples
+
+          # Show the stale cache before running (written by Test 1 with storage disabled)
+          CACHE_FILE=".SignalingCache_v1"
+          if [ -f "$CACHE_FILE" ]; then
+            echo "Stale cache from Test 1 (storage was DISABLED):"
+            cat "$CACHE_FILE"
+          fi
+
+          ./kvsWebrtcStorageAudioVideoMaster "$CHANNEL_NAME" > master2.log 2>&1 &
+          PID_MASTER=$!
+
+          # Let it run, join storage session, and stream
+          sleep 60
+
+          # Graceful shutdown
+          kill -2 $PID_MASTER
+
+          # Enforce timeout for graceful shutdown
+          ( sleep 15 && kill -9 $PID_MASTER 2>/dev/null ) &
+
+          wait $PID_MASTER
+          EXIT_CODE=$?
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "Test 2 FAILED: Storage Master exited with code $EXIT_CODE"
+            cat master2.log
+            exit 1
+          fi
+
+          # Verify JoinStorageSession succeeded — this proves the SDK detected the storage
+          # status change in the cache and re-fetched endpoints with the WEBRTC protocol.
+          # With stale (storage-disabled) cached endpoints, JoinStorageSession would fail.
+          if grep -q "Offer Received from JoinStorageSession Call" master2.log; then
+            echo "Test 2: JoinStorageSession verified - cache invalidation worked correctly"
+          else
+            echo "Test 2 FAILED: JoinStorageSession offer not received (possible cache invalidation failure). Log output:"
+            cat master2.log
+            exit 1
+          fi
+
+          # Show the refreshed cache (should now reflect storage enabled)
+          if [ -f "$CACHE_FILE" ]; then
+            echo "Refreshed cache after Test 2 (storage ENABLED):"
+            cat "$CACHE_FILE"
+          fi
+
+          echo "Test 2 PASSED: Storage AudioVideo Master ran successfully with storage enabled"
+
+      - name: "Disable media storage configuration"
+        run: |
+          echo "=== Disabling media storage ==="
+          aws kinesisvideo update-media-storage-configuration \
+            --channel-arn "$CHANNEL_ARN" \
+            --media-storage-configuration Status=DISABLED
+
+          # Verify storage is disabled
+          STATUS=$(aws kinesisvideo describe-media-storage-configuration \
+            --channel-arn "$CHANNEL_ARN" \
+            --query 'MediaStorageConfiguration.Status' --output text)
+          echo "Storage status after disable: $STATUS"
+
+          if [ "$STATUS" != "DISABLED" ]; then
+            echo "FAILED: Expected storage status DISABLED, got $STATUS"
+            exit 1
+          fi
+
+      - name: "Test 3: P2P Master again (storage disabled)"
+        run: |
+          echo "=== Test 3: Running kvsWebrtcClientMaster with storage DISABLED again ==="
+
+          cd build/samples
+          ./kvsWebrtcClientMaster "$CHANNEL_NAME" > master3.log 2>&1 &
+          PID_MASTER=$!
+
+          # Let it run and establish signaling
+          sleep 30
+
+          # Graceful shutdown
+          kill -2 $PID_MASTER
+
+          # Enforce timeout for graceful shutdown
+          ( sleep 15 && kill -9 $PID_MASTER 2>/dev/null ) &
+
+          wait $PID_MASTER
+          EXIT_CODE=$?
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "Test 3 FAILED: Master exited with code $EXIT_CODE"
+            cat master3.log
+            exit 1
+          fi
+
+          echo "Test 3 PASSED: P2P Master ran successfully after storage was toggled back to disabled"
+
+      - name: Verify test results
+        run: |
+          echo "=== Media Storage Toggle Test Results ==="
+          echo "Successfully ran samples in the following sequence:"
+          echo "1. kvsWebrtcClientMaster         - storage DISABLED (normal P2P)"
+          echo "2. kvsWebrtcStorageAudioVideoMaster - storage ENABLED  (media ingestion)"
+          echo "3. kvsWebrtcClientMaster         - storage DISABLED (back to P2P)"
+          echo ""
+          echo "This verifies that the SDK correctly handles media storage"
+          echo "configuration changes on the same signaling channel, including"
+          echo "proper endpoint cache invalidation when toggling storage status."
+
+      - name: Cleanup AWS resources
+        if: always()
+        run: |
+          echo "=== Cleaning up AWS resources ==="
+
+          # Disable storage before deleting (required by API)
+          STATUS=$(aws kinesisvideo describe-media-storage-configuration \
+            --channel-arn "$CHANNEL_ARN" \
+            --query 'MediaStorageConfiguration.Status' --output text 2>/dev/null || echo "UNKNOWN")
+
+          if [ "$STATUS" = "ENABLED" ]; then
+            echo "Disabling media storage before cleanup..."
+            aws kinesisvideo update-media-storage-configuration \
+              --channel-arn "$CHANNEL_ARN" \
+              --media-storage-configuration Status=DISABLED || true
+          fi
+
+          echo "Deleting signaling channel: $CHANNEL_NAME"
+          aws kinesisvideo delete-signaling-channel \
+            --channel-arn "$CHANNEL_ARN" || echo "Channel may not exist or already deleted"
+
+          echo "Deleting video stream: $STREAM_NAME"
+          aws kinesisvideo delete-stream \
+            --stream-arn "$STREAM_ARN" || echo "Stream may not exist or already deleted"
+
+          echo "Cleanup completed"
