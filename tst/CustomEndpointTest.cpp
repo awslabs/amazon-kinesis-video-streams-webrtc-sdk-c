@@ -9,6 +9,19 @@ namespace webrtcclient {
 class CustomEndpointTest : public WebRtcClientTestBase {
 };
 
+static void setDualStackEndpointsEnabled(BOOL enabled)
+{
+#ifdef _WIN32
+    _putenv_s(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, enabled ? "ON" : "");
+#else
+    if (enabled) {
+        setenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR, "ON", 1);
+    } else {
+        unsetenv(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
+    }
+#endif
+}
+
 TEST_F(CustomEndpointTest, customControlPlaneEndpointBasicCase)
 {
     STATUS retStatus;
@@ -132,6 +145,59 @@ TEST_F(CustomEndpointTest, customControlPlaneEndpointTooLong)
     channelInfo.pControlPlaneUrl = (PCHAR) customControlPlaneUrl;
 
     EXPECT_EQ(STATUS_SIGNALING_INVALID_CPL_LENGTH, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+    freeChannelInfo(&pChannelInfo);
+}
+
+TEST_F(CustomEndpointTest, sdkGeneratedGovCloudControlPlaneEndpointUsesFipsNaming)
+{
+    ChannelInfo channelInfo;
+    MEMSET(&channelInfo, 0, SIZEOF(channelInfo));
+    PChannelInfo pChannelInfo = nullptr;
+
+    channelInfo.pChannelName = (PCHAR) "TestChannelName";
+    channelInfo.pRegion = (PCHAR) "us-gov-west-1";
+
+    EXPECT_EQ(FALSE, isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR));
+    EXPECT_EQ(STATUS_SUCCESS, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+    EXPECT_NE(nullptr, pChannelInfo);
+    EXPECT_STREQ((PCHAR) "https://kinesisvideo-fips.us-gov-west-1.amazonaws.com", pChannelInfo->pControlPlaneUrl);
+
+    freeChannelInfo(&pChannelInfo);
+}
+
+TEST_F(CustomEndpointTest, sdkGeneratedGovCloudDualStackControlPlaneEndpointUsesFipsNaming)
+{
+    ChannelInfo channelInfo;
+    MEMSET(&channelInfo, 0, SIZEOF(channelInfo));
+    PChannelInfo pChannelInfo = nullptr;
+
+    channelInfo.pChannelName = (PCHAR) "TestChannelName";
+    channelInfo.pRegion = (PCHAR) "us-gov-east-1";
+
+    setDualStackEndpointsEnabled(TRUE);
+
+    EXPECT_EQ(STATUS_SUCCESS, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+    EXPECT_NE(nullptr, pChannelInfo);
+    EXPECT_STREQ((PCHAR) "https://kinesisvideo-fips.us-gov-east-1.api.aws", pChannelInfo->pControlPlaneUrl);
+
+    freeChannelInfo(&pChannelInfo);
+    setDualStackEndpointsEnabled(FALSE);
+}
+
+TEST_F(CustomEndpointTest, sdkGeneratedCommercialControlPlaneEndpointDoesNotUseFipsNaming)
+{
+    ChannelInfo channelInfo;
+    MEMSET(&channelInfo, 0, SIZEOF(channelInfo));
+    PChannelInfo pChannelInfo = nullptr;
+
+    channelInfo.pChannelName = (PCHAR) "TestChannelName";
+    channelInfo.pRegion = (PCHAR) "us-west-2";
+
+    EXPECT_EQ(FALSE, isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR));
+    EXPECT_EQ(STATUS_SUCCESS, createValidateChannelInfo(&channelInfo, &pChannelInfo));
+    EXPECT_NE(nullptr, pChannelInfo);
+    EXPECT_STREQ((PCHAR) "https://kinesisvideo.us-west-2.amazonaws.com", pChannelInfo->pControlPlaneUrl);
+
     freeChannelInfo(&pChannelInfo);
 }
 
