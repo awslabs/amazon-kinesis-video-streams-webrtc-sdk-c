@@ -517,7 +517,7 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
                 retValue = (INT32) lws_write(wsi, pLwsCallInfo->sendBuffer + LWS_PRE, remainingSize, LWS_WRITE_TEXT);
                 if (retValue < 0) {
                     DLOGW("Write failed with %d", retValue);
-                    CHK(FALSE, retValue); // Return non-zero value to callback to indicate failure
+                    CHK(FALSE, STATUS_SIGNALING_LWS_CALL_FAILED);
                 } else if ((SIZE_T) retValue < remainingSize) {
                     DLOGW("Partial write occurred: %d of %zu bytes", retValue, remainingSize);
                     // Move remaining data to start of buffer
@@ -612,10 +612,12 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     // Execute the LWS REST call
     MEMSET(&connectInfo, 0x00, SIZEOF(struct lws_client_connect_info));
     connectInfo.context = pContext;
-    connectInfo.ssl_connection = LCCSCF_USE_SSL | LCCSCF_H2_QUIRK_OVERFLOWS_TXCR; // Add flag to handle H2 flow control
+    // H2 quirk flag handles flow control edge cases. HTTP/1.1 is forced via ALPN to reduce memory
+    // footprint and improve reliability on constrained platforms (e.g. ESP32). KVS endpoints support both.
+    connectInfo.ssl_connection = LCCSCF_USE_SSL | LCCSCF_H2_QUIRK_OVERFLOWS_TXCR;
     connectInfo.port = SIGNALING_DEFAULT_SSL_PORT;
-    connectInfo.alpn = "http/1.1";     // Force HTTP/1.1 only
-    connectInfo.protocol = "http/1.1"; // Force HTTP/1.1 protocol
+    connectInfo.alpn = "http/1.1";
+    connectInfo.protocol = "http/1.1";
 
     CHK_STATUS(getRequestHost(pCallInfo->callInfo.pRequestInfo->url, &pHostStart, &pHostEnd));
     CHK(pHostEnd == NULL || *pHostEnd == '/' || *pHostEnd == '?', STATUS_INTERNAL_ERROR);
@@ -2042,7 +2044,6 @@ STATUS writeLwsData(PSignalingClient pSignalingClient, BOOL awaitForResponse)
     SERVICE_CALL_RESULT result;
 
     UINT32 retryCount = 0;
-    const UINT32 MAX_RETRY_COUNT = 3;
 
     CHK(pSignalingClient != NULL && pSignalingClient->pOngoingCallInfo != NULL, STATUS_NULL_ARG);
 
@@ -2057,14 +2058,18 @@ STATUS writeLwsData(PSignalingClient pSignalingClient, BOOL awaitForResponse)
 
     MUTEX_LOCK(pSignalingClient->sendLock);
     sendLocked = TRUE;
-    while (iterate && retryCount < MAX_RETRY_COUNT) {
+    while (iterate && retryCount < MAX_LWS_SEND_RETRY_COUNT) {
         offset = ATOMIC_LOAD(&pSignalingClient->pOngoingCallInfo->sendOffset);
         size = ATOMIC_LOAD(&pSignalingClient->pOngoingCallInfo->sendBufferSize);
 
         result = (SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->messageResult);
 
         if (offset != size && result == SERVICE_CALL_RESULT_NOT_SET) {
-            CHK_STATUS(CVAR_WAIT(pSignalingClient->sendCvar, pSignalingClient->sendLock, SIGNALING_SEND_TIMEOUT));
+            retStatus = CVAR_WAIT(pSignalingClient->sendCvar, pSignalingClient->sendLock, SIGNALING_SEND_TIMEOUT);
+            if (STATUS_FAILED(retStatus)) {
+                DLOGD("writeLwsData: CVAR_WAIT returned 0x%08x, retry count: %u", retStatus, retryCount + 1);
+                retStatus = STATUS_SUCCESS;
+            }
             retryCount++;
         } else if (result == SERVICE_CALL_UNKNOWN) {
             // Partial write occurred, continue waiting
@@ -2082,8 +2087,8 @@ STATUS writeLwsData(PSignalingClient pSignalingClient, BOOL awaitForResponse)
     sendLocked = FALSE;
 
     // Check if we timed out
-    if (retryCount >= MAX_RETRY_COUNT) {
-        DLOGW("Failed to send data after %d attempts", MAX_RETRY_COUNT);
+    if (retryCount >= MAX_LWS_SEND_RETRY_COUNT) {
+        DLOGW("Failed to send data after %d attempts", MAX_LWS_SEND_RETRY_COUNT);
         CHK(FALSE, STATUS_SIGNALING_MESSAGE_DELIVERY_FAILED);
     }
 
