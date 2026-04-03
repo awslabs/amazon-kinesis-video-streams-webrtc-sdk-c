@@ -1313,7 +1313,7 @@ typedef struct {
  * @brief Define macros to do dynamic memory allocations over static ones
  */
 #if PREFER_DYNAMIC_ALLOCS
-#define DYNAMIC_SIGNALING_PAYLOAD   1
+#define DYNAMIC_SIGNALING_PAYLOAD 1
 #endif
 
 /**

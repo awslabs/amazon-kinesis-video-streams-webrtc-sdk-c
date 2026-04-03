@@ -2187,8 +2187,7 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     CHK(NULL != (pSignalingMessageWrapper = (PSignalingMessageWrapper) MEMCALLOC(1, SIZEOF(SignalingMessageWrapper))), STATUS_NOT_ENOUGH_MEMORY);
 
 #ifdef DYNAMIC_SIGNALING_PAYLOAD
-    CHK(NULL != (pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.payload =
-                     (PCHAR) MEMCALLOC(1, MAX_SIGNALING_MESSAGE_LEN + 1)),
+    CHK(NULL != (pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.payload = (PCHAR) MEMCALLOC(1, MAX_SIGNALING_MESSAGE_LEN + 1)),
         STATUS_NOT_ENOUGH_MEMORY);
 #endif
 

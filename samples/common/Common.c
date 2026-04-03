@@ -1567,7 +1567,8 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 #ifdef DYNAMIC_SIGNALING_PAYLOAD
                 pReceivedSignalingMessageCopy->signalingMessage.payload = (PCHAR) MEMALLOC(pReceivedSignalingMessage->signalingMessage.payloadLen);
                 CHK(pReceivedSignalingMessageCopy->signalingMessage.payload != NULL, STATUS_NOT_ENOUGH_MEMORY);
-                MEMCPY(pReceivedSignalingMessageCopy->signalingMessage.payload, pReceivedSignalingMessage->signalingMessage.payload, pReceivedSignalingMessage->signalingMessage.payloadLen);
+                MEMCPY(pReceivedSignalingMessageCopy->signalingMessage.payload, pReceivedSignalingMessage->signalingMessage.payload,
+                       pReceivedSignalingMessage->signalingMessage.payloadLen);
 #endif
 
                 CHK_STATUS(stackQueueEnqueue(pPendingMessageQueue->messageQueue, (UINT64) pReceivedSignalingMessageCopy));
