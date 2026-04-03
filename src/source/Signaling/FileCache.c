@@ -3,8 +3,7 @@
 
 /****************************************************************************************************
  * Content of the caching file will look as follows:
- * channelName,role,region,channelARN,httpEndpoint,wssEndpoint,cacheCreationTimestamp\n
- * channelName,role,region,channelARN,httpEndpoint,wssEndpoint,cacheCreationTimestamp\n
+ * channelName,role,region,controlPlaneUrl,useDualStackEndpoints,channelArn,httpsEndpoint,wssEndpoint,storageEnabled,storageStreamArn,webrtcEndpoint,cacheCreationTimestamp\n
  ****************************************************************************************************/
 
 STATUS createFileIfNotExist(PCHAR fileName)
