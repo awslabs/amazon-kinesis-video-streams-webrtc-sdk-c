@@ -191,7 +191,7 @@ STATUS sctpSessionWriteMessage(PSctpSession pSctpSession, UINT32 streamId, BOOL 
 
     putInt32((PINT32) &pSctpSession->spa.sendv_sndinfo.snd_ppid, isBinary ? SCTP_PPID_BINARY : SCTP_PPID_STRING);
     CHK(usrsctp_sendv(pSctpSession->socket, pMessage, pMessageLen, NULL, 0, &pSctpSession->spa, SIZEOF(pSctpSession->spa), SCTP_SENDV_SPA, 0) > 0,
-        STATUS_INTERNAL_ERROR);
+        STATUS_SCTP_SEND_FAILED);
 
 CleanUp:
     LEAVES();
@@ -262,7 +262,7 @@ STATUS sctpSessionWriteDcep(PSctpSession pSctpSession, UINT32 streamId, PCHAR pC
     putInt32((PINT32) &pSctpSession->spa.sendv_sndinfo.snd_ppid, SCTP_PPID_DCEP);
     CHK(usrsctp_sendv(pSctpSession->socket, pSctpSession->packet, pSctpSession->packetSize, NULL, 0, &pSctpSession->spa, SIZEOF(pSctpSession->spa),
                       SCTP_SENDV_SPA, 0) > 0,
-        STATUS_INTERNAL_ERROR);
+        STATUS_SCTP_SEND_FAILED);
 CleanUp:
 
     LEAVES();
@@ -309,6 +309,8 @@ STATUS handleDcepPacket(PSctpSession pSctpSession, UINT32 streamId, PBYTE data, 
     struct sctp_sendv_spa ackSpa;
     BYTE ackPacket = DCEP_DATA_CHANNEL_ACK;
 
+    CHK(pSctpSession != NULL && pSctpSession->socket != NULL && data != NULL, STATUS_NULL_ARG);
+
     // Assert that is DCEP of type DataChannelOpen
     CHK(length > SCTP_DCEP_HEADER_LENGTH && data[0] == DCEP_DATA_CHANNEL_OPEN, STATUS_SUCCESS);
 
@@ -332,12 +334,16 @@ STATUS handleDcepPacket(PSctpSession pSctpSession, UINT32 streamId, PBYTE data, 
     ackSpa.sendv_flags |= SCTP_SEND_SNDINFO_VALID;
     ackSpa.sendv_sndinfo.snd_sid = streamId;
     putInt32((PINT32) &ackSpa.sendv_sndinfo.snd_ppid, SCTP_PPID_DCEP);
-    CHK(usrsctp_sendv(pSctpSession->socket, &ackPacket, 1, NULL, 0, &ackSpa, SIZEOF(ackSpa), SCTP_SENDV_SPA, 0) > 0, STATUS_INTERNAL_ERROR);
+
+    DLOGD("Sending DATA_CHANNEL_ACK back to same stream (%u)", streamId);
+    CHK(usrsctp_sendv(pSctpSession->socket, &ackPacket, 1, NULL, 0, &ackSpa, SIZEOF(ackSpa), SCTP_SENDV_SPA, 0) > 0, STATUS_SCTP_SEND_FAILED);
 
     pSctpSession->sctpSessionCallbacks.dataChannelOpenFunc(pSctpSession->sctpSessionCallbacks.customData, streamId, data + SCTP_DCEP_HEADER_LENGTH,
                                                            labelLength);
 
 CleanUp:
+
+    CHK_LOG_ERR(retStatus);
     LEAVES();
     return retStatus;
 }
