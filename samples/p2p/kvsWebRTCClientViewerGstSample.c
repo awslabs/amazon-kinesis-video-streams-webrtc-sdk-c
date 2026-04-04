@@ -146,11 +146,19 @@ INT32 main(INT32 argc, CHAR* argv[])
     DLOGI("[KVS Gstreamer Viewer] Generating JSON of session description....");
     CHK_STATUS(serializeSessionDescriptionInit(&offerSessionDescriptionInit, NULL, &buffLen));
 
-    if (buffLen >= SIZEOF(message.payload)) {
+    /* Under DYNAMIC_SIGNALING_PAYLOAD, message.payload is a PCHAR (pointer),
+     * so SIZEOF would only give the pointer width. Compare against the actual
+     * SDK-side cap, MAX_SIGNALING_MESSAGE_LEN, instead. */
+    if (buffLen > MAX_SIGNALING_MESSAGE_LEN + 1) {
         DLOGE("[KVS Gstreamer Viewer] serializeSessionDescriptionInit(): operation returned status code: 0x%08x ", STATUS_INVALID_OPERATION);
         retStatus = STATUS_INVALID_OPERATION;
         goto CleanUp;
     }
+
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    message.payload = (PCHAR) MEMCALLOC(1, buffLen);
+    CHK(message.payload != NULL, STATUS_NOT_ENOUGH_MEMORY);
+#endif
 
     CHK_STATUS(serializeSessionDescriptionInit(&offerSessionDescriptionInit, message.payload, &buffLen));
 
@@ -187,6 +195,10 @@ CleanUp:
     }
 
     DLOGI("[KVS Gstreamer Viewer] Cleaning up....");
+
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(message.payload);
+#endif
 
     if (locked) {
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);

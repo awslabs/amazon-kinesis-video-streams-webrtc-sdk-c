@@ -477,6 +477,27 @@ CHK_STATUS(configureTransceiverRollingBuffer(pVideoRtcRtpTransceiver, &videoTrac
 By setting these up, applications can have better control over the amount of memory that the application consumes. However, note, if the allocation is too small and the network bad leading to multiple nacks, it can lead to choppy media / dropped frames. Hence, care must be taken while deciding on the values to ensure the parameters satisfy necessary performance requirements.
 For more information, check the sample to see how these values are set up.
 
+### Preferring dynamic allocations over large static arrays
+
+Build with `-DPREFER_DYNAMIC_ALLOCS=ON` to replace the signaling path's
+large stack buffers with heap allocations — useful on constrained
+platforms (e.g. ESP32). This enables `USE_DYNAMIC_URL` (transparent;
+URL / paramsJson sized via `SNPRINTF(NULL, 0, ...)`) and
+`DYNAMIC_SIGNALING_PAYLOAD` (`SignalingMessage.payload` becomes a
+`PCHAR` instead of `CHAR[MAX_SIGNALING_MESSAGE_LEN + 1]`). The SDK and
+the application must agree on the flag.
+
+Release the payload via the SDK-side helper (declared unconditionally,
+no-op in the static build, so callers don't need an `#ifdef`):
+
+```c
+ReceivedSignalingMessage receivedMessage;
+parseSignalingMessage(json, jsonLen, &receivedMessage);
+freeSignalingMessagePayload(&receivedMessage.signalingMessage);
+```
+
+See `samples/common/Common.c` for usage.
+
 ## Setup IoT
 * To use IoT certificate to authenticate with KVS signaling, please refer to [Controlling Access to Kinesis Video Streams Resources Using AWS IoT](https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/how-iot.html) for provisioning details.
 * A sample IAM policy for the IoT role looks like below, policy can be modified based on your permission requirement.
