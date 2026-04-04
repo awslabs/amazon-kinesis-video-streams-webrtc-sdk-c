@@ -1340,6 +1340,56 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURNWithDynamicIceS
     deinitializeSignalingClient();
 }
 
+// Verify that peerConnectionUpdateIceServers returns error after ICE agent has failed
+TEST_F(PeerConnectionFunctionalityTest, updateIceServersAfterIceFailure)
+{
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
+
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    UINT32 i, uriCount = 0, iceConfigCount;
+    PIceConfigInfo pIceConfigInfo;
+    RtcIceServer turnServers[MAX_ICE_SERVERS_COUNT];
+
+    initializeSignalingClient();
+
+    // Create PCs with relay-only policy and NO TURN servers — connection will fail
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &offerPc));
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &answerPc));
+
+    // Attempt to connect — will fail because no relay candidates can be generated
+    EXPECT_EQ(FALSE, connectTwoPeers(offerPc, answerPc));
+
+    // Now try to add TURN servers after ICE has failed
+    MEMSET(turnServers, 0x00, SIZEOF(turnServers));
+    ASSERT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(mSignalingClientHandle, &iceConfigCount));
+    for (uriCount = 0, i = 0; i < iceConfigCount; i++) {
+        ASSERT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(mSignalingClientHandle, i, &pIceConfigInfo));
+        for (UINT32 j = 0; j < pIceConfigInfo->uriCount; j++) {
+            STRNCPY(turnServers[uriCount].urls, pIceConfigInfo->uris[j], MAX_ICE_CONFIG_URI_LEN);
+            STRNCPY(turnServers[uriCount].credential, pIceConfigInfo->password, MAX_ICE_CONFIG_CREDENTIAL_LEN);
+            STRNCPY(turnServers[uriCount].username, pIceConfigInfo->userName, MAX_ICE_CONFIG_USER_NAME_LEN);
+            uriCount++;
+        }
+    }
+    ASSERT_TRUE(uriCount > 0);
+
+    // Should fail because ICE agent is in FAILED state
+    EXPECT_EQ(STATUS_INVALID_OPERATION, peerConnectionUpdateIceServers(offerPc, turnServers, uriCount));
+    EXPECT_EQ(STATUS_INVALID_OPERATION, peerConnectionUpdateIceServers(answerPc, turnServers, uriCount));
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    deinitializeSignalingClient();
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
