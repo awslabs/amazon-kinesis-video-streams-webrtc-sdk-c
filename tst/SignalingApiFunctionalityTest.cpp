@@ -1,5 +1,21 @@
 #include "SignalingApiFunctionalityTest.h"
 
+// Helper to free payloads allocated inside the SDK shared library.
+// Tests use instrumented allocators but the SDK library may use default allocators,
+// causing MEMFREE to corrupt the pointer offset. Use free() directly for SDK-allocated payloads.
+// TODO: Replace with a proper SDK helper API for freeing dynamic payloads.
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+#define DYNAMIC_SAFE_MEMFREE(p)                                                                                                           \
+    do {                                                                                                                                             \
+        if ((p) != NULL) {                                                                                                                           \
+            free(p);                                                                                                                                 \
+            (p) = NULL;                                                                                                                              \
+        }                                                                                                                                            \
+    } while (0)
+#else
+#define DYNAMIC_SAFE_MEMFREE(p) /* no-op when payload is static array */
+#endif
+
 namespace com {
 namespace amazonaws {
 namespace kinesis {
@@ -3666,7 +3682,7 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_ParseOfferSuccess)
     EXPECT_EQ(5, receivedMessage.signalingMessage.payloadLen);
     EXPECT_EQ(SIGNALING_MESSAGE_TYPE_OFFER, receivedMessage.signalingMessage.messageType);
 #ifdef DYNAMIC_SIGNALING_PAYLOAD
-    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+    DYNAMIC_SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
 #endif
 }
 
@@ -3693,11 +3709,13 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_ParseStatusRespons
     // Check not-present fields are correctly zeroed
     EXPECT_STREQ("", receivedMessage.description);
     EXPECT_STREQ("", receivedMessage.signalingMessage.peerClientId);
-    EXPECT_STREQ("", receivedMessage.signalingMessage.payload);
-    EXPECT_EQ(0, receivedMessage.signalingMessage.payloadLen);
 #ifdef DYNAMIC_SIGNALING_PAYLOAD
-    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+    // With dynamic payload, unparsed payload is NULL (not allocated)
+    EXPECT_EQ(NULL, receivedMessage.signalingMessage.payload);
+#else
+    EXPECT_STREQ("", receivedMessage.signalingMessage.payload);
 #endif
+    EXPECT_EQ(0, receivedMessage.signalingMessage.payloadLen);
 }
 
 TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_InvalidArgs) {
@@ -3714,7 +3732,7 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_InvalidArgs) {
     STATUS status = parseSignalingMessage((PCHAR) jsonMessage.c_str(), jsonMessage.length(), &receivedMessage);
     EXPECT_EQ(STATUS_SUCCESS, status);
 #ifdef DYNAMIC_SIGNALING_PAYLOAD
-    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+    DYNAMIC_SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
 #endif
 
     // NULL parameter
@@ -3731,7 +3749,7 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_messageTooLong) {
 
     EXPECT_EQ(STATUS_INVALID_API_CALL_RETURN_JSON, status);
 #ifdef DYNAMIC_SIGNALING_PAYLOAD
-    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+    DYNAMIC_SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
 #endif
 }
 
@@ -3751,7 +3769,7 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_senderClientIdIsTo
 
     EXPECT_EQ(STATUS_INVALID_API_CALL_RETURN_JSON, status);
 #ifdef DYNAMIC_SIGNALING_PAYLOAD
-    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+    DYNAMIC_SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
 #endif
 }
 
@@ -3771,7 +3789,7 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_messageTypeIsTooLo
 
     EXPECT_EQ(STATUS_INVALID_API_CALL_RETURN_JSON, status);
 #ifdef DYNAMIC_SIGNALING_PAYLOAD
-    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+    DYNAMIC_SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
 #endif
 }
 
@@ -3791,7 +3809,7 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_messagePayloadIsTo
 
     EXPECT_EQ(STATUS_INVALID_API_CALL_RETURN_JSON, status);
 #ifdef DYNAMIC_SIGNALING_PAYLOAD
-    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+    DYNAMIC_SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
 #endif
 }
 
@@ -3815,7 +3833,7 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_correlationIdIsToo
 
     EXPECT_EQ(STATUS_INVALID_API_CALL_RETURN_JSON, status);
 #ifdef DYNAMIC_SIGNALING_PAYLOAD
-    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+    DYNAMIC_SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
 #endif
 }
 
@@ -3839,7 +3857,7 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_errorTypeIsTooLong
 
     EXPECT_EQ(STATUS_INVALID_API_CALL_RETURN_JSON, status);
 #ifdef DYNAMIC_SIGNALING_PAYLOAD
-    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+    DYNAMIC_SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
 #endif
 }
 
@@ -3863,7 +3881,7 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_statusCodeIsTooLon
 
     EXPECT_EQ(STATUS_INVALID_API_CALL_RETURN_JSON, status);
 #ifdef DYNAMIC_SIGNALING_PAYLOAD
-    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+    DYNAMIC_SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
 #endif
 }
 
@@ -3887,7 +3905,7 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_descriptionIsTooLo
 
     EXPECT_EQ(STATUS_INVALID_API_CALL_RETURN_JSON, status);
 #ifdef DYNAMIC_SIGNALING_PAYLOAD
-    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+    DYNAMIC_SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
 #endif
 }
 
@@ -3899,7 +3917,7 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_emptyJson) {
     STATUS status = parseSignalingMessage((PCHAR) emptyJsonMessage.c_str(), emptyJsonMessage.length(), &receivedMessage);
     EXPECT_EQ(STATUS_INVALID_API_CALL_RETURN_JSON, status);
 #ifdef DYNAMIC_SIGNALING_PAYLOAD
-    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+    DYNAMIC_SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
 #endif
 }
 
@@ -3925,7 +3943,7 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_ignoreExtraFields)
     EXPECT_EQ(5, receivedMessage.signalingMessage.payloadLen);
     EXPECT_EQ(SIGNALING_MESSAGE_TYPE_OFFER, receivedMessage.signalingMessage.messageType);
 #ifdef DYNAMIC_SIGNALING_PAYLOAD
-    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+    DYNAMIC_SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
 #endif
 }
 
@@ -3947,7 +3965,7 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_InvalidJson) {
     EXPECT_EQ(0, receivedMessage.signalingMessage.payloadLen);
     EXPECT_EQ(SIGNALING_MESSAGE_TYPE_UNKNOWN, receivedMessage.signalingMessage.messageType);
 #ifdef DYNAMIC_SIGNALING_PAYLOAD
-    SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
+    DYNAMIC_SAFE_MEMFREE(receivedMessage.signalingMessage.payload);
 #endif
 }
 
