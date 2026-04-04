@@ -287,6 +287,12 @@ STATUS respondWithAnswer(PSampleStreamingSession pSampleStreamingSession)
     SignalingMessage message = {0};
     UINT32 buffLen = MAX_SIGNALING_MESSAGE_LEN;
 
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    /* MEMCALLOC so the +1 NULL-terminator byte is zeroed even if
+     * serializeSessionDescriptionInit doesn't write that last byte. */
+    message.payload = (PCHAR) MEMCALLOC(1, MAX_SIGNALING_MESSAGE_LEN + 1);
+    CHK(message.payload != NULL, STATUS_NOT_ENOUGH_MEMORY);
+#endif
     CHK_STATUS(serializeSessionDescriptionInit(&pSampleStreamingSession->answerSessionDescriptionInit, message.payload, &buffLen));
 
     message.version = SIGNALING_MESSAGE_CURRENT_VERSION;
@@ -300,6 +306,10 @@ STATUS respondWithAnswer(PSampleStreamingSession pSampleStreamingSession)
     CHK_STATUS(sendSignalingMessage(pSampleStreamingSession, &message));
 
 CleanUp:
+
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(message.payload);
+#endif
 
     CHK_LOG_ERR(retStatus);
     return retStatus;
@@ -343,12 +353,23 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
         message.messageType = SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
         STRNCPY(message.peerClientId, pSampleStreamingSession->peerId, MAX_SIGNALING_CLIENT_ID_LEN);
         message.payloadLen = (UINT32) STRNLEN(candidateJson, MAX_SIGNALING_MESSAGE_LEN);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+        /* MEMCALLOC so payload[payloadLen] is guaranteed '\0' — STRNCPY
+         * below copies exactly payloadLen bytes and does not write the
+         * terminator. */
+        message.payload = (PCHAR) MEMCALLOC(1, message.payloadLen + 1);
+        CHK(message.payload != NULL, STATUS_NOT_ENOUGH_MEMORY);
+#endif
         STRNCPY(message.payload, candidateJson, message.payloadLen);
         message.correlationId[0] = '\0';
         CHK_STATUS(sendSignalingMessage(pSampleStreamingSession, &message));
     }
 
 CleanUp:
+
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(message.payload);
+#endif
 
     CHK_LOG_ERR(retStatus);
 }
@@ -1529,6 +1550,7 @@ STATUS submitPendingIceCandidate(PPendingMessageQueue pPendingMessageQueue, PSam
             if (pReceivedSignalingMessage->signalingMessage.messageType == SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE) {
                 CHK_STATUS(handleRemoteCandidate(pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
             }
+            freeSignalingMessagePayload(&pReceivedSignalingMessage->signalingMessage);
             SAFE_MEMFREE(pReceivedSignalingMessage);
         }
     } while (!noPendingSignalingMessageForClient);
@@ -1537,6 +1559,9 @@ STATUS submitPendingIceCandidate(PPendingMessageQueue pPendingMessageQueue, PSam
 
 CleanUp:
 
+    if (pReceivedSignalingMessage != NULL) {
+        freeSignalingMessagePayload(&pReceivedSignalingMessage->signalingMessage);
+    }
     SAFE_MEMFREE(pReceivedSignalingMessage);
     CHK_LOG_ERR(retStatus);
     return retStatus;
@@ -1657,6 +1682,13 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
                 pReceivedSignalingMessageCopy = (PReceivedSignalingMessage) MEMCALLOC(1, SIZEOF(ReceivedSignalingMessage));
 
                 *pReceivedSignalingMessageCopy = *pReceivedSignalingMessage;
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+                pReceivedSignalingMessageCopy->signalingMessage.payload =
+                    (PCHAR) MEMALLOC(pReceivedSignalingMessage->signalingMessage.payloadLen + 1);
+                CHK(pReceivedSignalingMessageCopy->signalingMessage.payload != NULL, STATUS_NOT_ENOUGH_MEMORY);
+                STRNCPY(pReceivedSignalingMessageCopy->signalingMessage.payload, pReceivedSignalingMessage->signalingMessage.payload,
+                        pReceivedSignalingMessage->signalingMessage.payloadLen + 1);
+#endif
 
                 CHK_STATUS(stackQueueEnqueue(pPendingMessageQueue->messageQueue, (UINT64) pReceivedSignalingMessageCopy));
 
@@ -1690,7 +1722,15 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 
 CleanUp:
 
-    SAFE_MEMFREE(pReceivedSignalingMessageCopy);
+    if (pReceivedSignalingMessage != NULL) {
+        freeSignalingMessagePayload(&pReceivedSignalingMessage->signalingMessage);
+    }
+    if (pReceivedSignalingMessageCopy != NULL) {
+        /* Release the copy's own payload before the struct — under
+         * DYNAMIC_SIGNALING_PAYLOAD the copy owns a distinct heap buffer. */
+        freeSignalingMessagePayload(&pReceivedSignalingMessageCopy->signalingMessage);
+        SAFE_MEMFREE(pReceivedSignalingMessageCopy);
+    }
     if (pPendingMessageQueue != NULL) {
         freeMessageQueue(pPendingMessageQueue);
     }
@@ -1736,12 +1776,27 @@ CleanUp:
 STATUS freeMessageQueue(PPendingMessageQueue pPendingMessageQueue)
 {
     STATUS retStatus = STATUS_SUCCESS;
+    BOOL isEmpty = FALSE;
+    UINT64 item = 0;
+    PReceivedSignalingMessage pReceivedSignalingMessage = NULL;
 
     // free is idempotent
     CHK(pPendingMessageQueue != NULL, retStatus);
 
     if (pPendingMessageQueue->messageQueue != NULL) {
-        stackQueueClear(pPendingMessageQueue->messageQueue, TRUE);
+        // Drain any still-queued messages, releasing each one's dynamically-allocated
+        // payload (DYNAMIC_SIGNALING_PAYLOAD) before freeing the struct. A plain
+        // stackQueueClear(TRUE) would free the struct but leak the inner payload.
+        while (stackQueueIsEmpty(pPendingMessageQueue->messageQueue, &isEmpty) == STATUS_SUCCESS && !isEmpty) {
+            item = 0;
+            CHK_STATUS(stackQueueDequeue(pPendingMessageQueue->messageQueue, &item));
+            pReceivedSignalingMessage = (PReceivedSignalingMessage) item;
+            if (pReceivedSignalingMessage != NULL) {
+                freeSignalingMessagePayload(&pReceivedSignalingMessage->signalingMessage);
+                MEMFREE(pReceivedSignalingMessage);
+            }
+        }
+        stackQueueClear(pPendingMessageQueue->messageQueue, FALSE);
         stackQueueFree(pPendingMessageQueue->messageQueue);
     }
 
