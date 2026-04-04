@@ -324,6 +324,7 @@ STATUS iceAgentAddIceServers(PIceAgent pIceAgent, PRtcIceServer pIceServers, UIN
     CHK(pIceAgent != NULL && pIceServers != NULL, STATUS_NULL_ARG);
     CHK(iceServersCount > 0, STATUS_INVALID_ARG);
     CHK(!ATOMIC_LOAD_BOOL(&pIceAgent->shutdown), STATUS_INVALID_OPERATION);
+    CHK(pIceAgent->iceAgentState != ICE_AGENT_STATE_FAILED, STATUS_INVALID_OPERATION);
 
     DLOGI("Adding %u new ICE servers to existing agent", iceServersCount);
 
