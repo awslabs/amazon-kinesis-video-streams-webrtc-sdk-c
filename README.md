@@ -644,6 +644,37 @@ CHK_STATUS(configureTransceiverRollingBuffer(pVideoRtcRtpTransceiver, &videoTrac
 By setting these up, applications can have better control over the amount of memory that the application consumes. However, note, if the allocation is too small and the network bad leading to multiple nacks, it can lead to choppy media / dropped frames. Hence, care must be taken while deciding on the values to ensure the parameters satisfy necessary performance requirements.
 For more information, check the sample to see how these values are set up.
 
+### Preferring dynamic allocations over large static arrays
+
+The signaling API calls always build their URL and request body in heap
+buffers sized to fit, instead of fixed stack arrays. This needs no
+application change.
+
+Build with `-DPREFER_DYNAMIC_ALLOCS=ON` to move two more large buffers off
+the stack, which helps on platforms with small thread stacks (e.g. ESP32):
+
+* `SignalingMessage.payload` becomes a `PCHAR` allocated for each message
+  (`DYNAMIC_SIGNALING_PAYLOAD`) instead of
+  `CHAR[MAX_SIGNALING_MESSAGE_LEN + 1]`. This changes the layout of
+  `SignalingMessage`, so the application must be built with the same
+  setting as the SDK.
+* The TURN channel-data buffer used for each received TURN packet (about
+  16 KB) is allocated on the heap instead of the stack.
+
+Release the payload via the SDK-side helper (declared unconditionally,
+no-op in the static build, so callers don't need an `#ifdef`):
+
+```c
+ReceivedSignalingMessage receivedMessage;
+parseSignalingMessage(json, jsonLen, &receivedMessage);
+freeSignalingMessagePayload(&receivedMessage.signalingMessage);
+```
+
+A message passed to the `messageReceivedFn` callback is valid only until
+the callback returns, when the SDK frees its payload. To keep it, copy the
+payload too: a struct copy shares the pointer. See `samples/common/Common.c`
+for usage.
+
 ## Setup IoT
 * To use IoT certificate to authenticate with KVS signaling, please refer to [Controlling Access to Kinesis Video Streams Resources Using AWS IoT](https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/how-iot.html) for provisioning details.
 * A sample IAM policy for the IoT role looks like below, policy can be modified based on your permission requirement.
