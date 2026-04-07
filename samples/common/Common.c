@@ -51,6 +51,14 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
             CHK_STATUS(peerConnectionGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->peerConnectionMetrics));
             CHK_STATUS(iceAgentGetMetrics(pSampleStreamingSession->pPeerConnection, &pSampleStreamingSession->iceMetrics));
 
+            // Start pacers now that the connection is up
+            if (pSampleStreamingSession->pVideoPacer != NULL) {
+                pacerStart(pSampleStreamingSession->pVideoPacer);
+            }
+            if (pSampleStreamingSession->pAudioPacer != NULL) {
+                pacerStart(pSampleStreamingSession->pAudioPacer);
+            }
+
             if (pSampleConfiguration->enableIceStats) {
                 CHK_LOG_ERR(logSelectedIceCandidatesInformation(pSampleStreamingSession));
             }
@@ -554,6 +562,17 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
         CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
                                                              sampleSenderBandwidthEstimationHandler));
     }
+
+    // Create pacers for rate-limited sending (started later on CONNECTED)
+    if (pSampleStreamingSession->pVideoRtcRtpTransceiver != NULL) {
+        CHK_STATUS(createPacer(250 * 1024, PACER_DEFAULT_MAX_QUEUE_SIZE,
+                               pacerSendVideoFrame, &pSampleStreamingSession->pVideoPacer));
+    }
+    if (pSampleStreamingSession->pAudioRtcRtpTransceiver != NULL) {
+        CHK_STATUS(createPacer(250 * 1024, PACER_DEFAULT_MAX_QUEUE_SIZE,
+                               pacerSendAudioFrame, &pSampleStreamingSession->pAudioPacer));
+    }
+
     pSampleStreamingSession->startUpLatency = 0;
 CleanUp:
 
@@ -610,6 +629,14 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
         }
     }
 
+    // Free pacers
+    if (pSampleStreamingSession->pVideoPacer != NULL) {
+        freePacer(&pSampleStreamingSession->pVideoPacer);
+    }
+    if (pSampleStreamingSession->pAudioPacer != NULL) {
+        freePacer(&pSampleStreamingSession->pAudioPacer);
+    }
+
     CHK_LOG_ERR(closePeerConnection(pSampleStreamingSession->pPeerConnection));
     CHK_LOG_ERR(freePeerConnection(&pSampleStreamingSession->pPeerConnection));
     SAFE_MEMFREE(pSampleStreamingSession);
@@ -658,6 +685,27 @@ VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
 {
     UNUSED_PARAM(customData);
     DLOGV("received bitrate suggestion: %f", maximumBitrate);
+}
+
+// Pacer send callbacks – these are invoked by the pacer drain thread
+// to actually transmit a frame via writeFrame().
+// customData is a (PRtcRtpTransceiver) cast to UINT64.
+STATUS pacerSendVideoFrame(UINT64 customData, PFrame pFrame)
+{
+    PRtcRtpTransceiver pTransceiver = (PRtcRtpTransceiver) customData;
+    if (pTransceiver == NULL || pFrame == NULL) {
+        return STATUS_NULL_ARG;
+    }
+    return writeFrame(pTransceiver, pFrame);
+}
+
+STATUS pacerSendAudioFrame(UINT64 customData, PFrame pFrame)
+{
+    PRtcRtpTransceiver pTransceiver = (PRtcRtpTransceiver) customData;
+    if (pTransceiver == NULL || pFrame == NULL) {
+        return STATUS_NULL_ARG;
+    }
+    return writeFrame(pTransceiver, pFrame);
 }
 
 // Sample callback for TWCC. Average packet is calculated with exponential moving average (EMA). If average packet lost is <= 5%,
@@ -711,6 +759,14 @@ VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, U
     MUTEX_UNLOCK(pSampleStreamingSession->twccMetadata.updateLock);
 
     pSampleStreamingSession->twccMetadata.lastAdjustmentTimeMs = currentTimeMs;
+
+    // Feed the pacer with the new combined bitrate from congestion control
+    if (pSampleStreamingSession->pVideoPacer != NULL) {
+        pacerSetBitrate(pSampleStreamingSession->pVideoPacer, videoBitrate * 1000); // kbps -> bps
+    }
+    if (pSampleStreamingSession->pAudioPacer != NULL) {
+        pacerSetBitrate(pSampleStreamingSession->pAudioPacer, audioBitrate); // already bps
+    }
 
     DLOGI("Adjustment made: average packet loss = %.2f%%, timediff: %llu ms", pSampleStreamingSession->twccMetadata.averagePacketLoss, timeDiff);
     DLOGI("Suggested video bitrate %u kbps, suggested audio bitrate: %u bps, sent: %u bytes %u packets received: %u bytes %u packets in %lu msec",

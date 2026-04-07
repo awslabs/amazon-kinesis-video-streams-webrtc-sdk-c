@@ -401,6 +401,7 @@ file(
   "src/source/PeerConnection/PeerConnection.c"
   "src/source/PeerConnection/Retransmitter.c"
   "src/source/PeerConnection/Rtcp.c"
+  "src/source/PeerConnection/Pacer.c"
   "src/source/PeerConnection/Rtp.c"
   "src/source/PeerConnection/SessionDescription.c"
   "src/source/Rtcp/*.c"

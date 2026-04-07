@@ -171,6 +171,7 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #include "PeerConnection/JitterBuffer.h"
 #include "PeerConnection/PeerConnection.h"
 #include "PeerConnection/Retransmitter.h"
+#include "PeerConnection/Pacer.h"
 #include "PeerConnection/SessionDescription.h"
 #include "PeerConnection/Rtp.h"
 #include "PeerConnection/Rtcp.h"

@@ -245,6 +245,10 @@ struct __SampleStreamingSession {
     BOOL remoteCanTrickleIce;
     TwccMetadata twccMetadata;
 
+    // Pacer for rate-limiting outgoing media (congestion-control aware)
+    PPacer pVideoPacer;
+    PPacer pAudioPacer;
+
     // this is called when the SampleStreamingSession is being freed
     StreamSessionShutdownCallback shutdownCallback;
     UINT64 shutdownCallbackCustomData;
@@ -286,6 +290,8 @@ VOID sampleAudioFrameHandler(UINT64, PFrame);
 VOID sampleFrameHandler(UINT64, PFrame);
 VOID sampleBandwidthEstimationHandler(UINT64, DOUBLE);
 VOID sampleSenderBandwidthEstimationHandler(UINT64, UINT32, UINT32, UINT32, UINT32, UINT64);
+STATUS pacerSendVideoFrame(UINT64, PFrame);
+STATUS pacerSendAudioFrame(UINT64, PFrame);
 VOID onDataChannel(UINT64, PRtcDataChannel);
 VOID onConnectionStateChange(UINT64, RTC_PEER_CONNECTION_STATE);
 STATUS sessionCleanupWait(PSampleConfiguration);

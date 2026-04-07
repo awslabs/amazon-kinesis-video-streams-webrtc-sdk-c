@@ -2302,7 +2302,40 @@ PUBLIC_API STATUS createRtcCertificate(PRtcCertificate*);
  */
 PUBLIC_API STATUS freeRtcCertificate(PRtcCertificate);
 
+//!@}
+
+/*!
+ * \addtogroup Pacer
+ * Frame-level pacer with token-bucket rate control.
+ * Sits between the media source and writeFrame(); congestion control
+ * (TWCC) feeds back via pacerSetBitrate().
+ * @{
+ */
+
+#define PACER_DEFAULT_BITRATE_BPS   (2 * 1024 * 1024)
+#define PACER_MIN_BITRATE_BPS       (50 * 1024)
+#define PACER_MAX_BITRATE_BPS       (100 * 1024 * 1024)
+#define PACER_DEFAULT_MAX_QUEUE_SIZE 200
+#define PACER_DRAIN_INTERVAL_US     (5 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+
+typedef struct Pacer Pacer;
+typedef Pacer* PPacer;
+
+typedef STATUS (*PacerSendFrameFn)(UINT64 customData, PFrame pFrame);
+
+PUBLIC_API STATUS createPacer(UINT64 initialBitrateBps, UINT32 maxQueueSize,
+                              PacerSendFrameFn sendFrameFn, PPacer* ppPacer);
+PUBLIC_API STATUS freePacer(PPacer* ppPacer);
+PUBLIC_API STATUS pacerStart(PPacer pPacer);
+PUBLIC_API STATUS pacerStop(PPacer pPacer);
+PUBLIC_API STATUS pacerEnqueueFrame(PPacer pPacer, UINT64 sendCustomData, PFrame pFrame);
+PUBLIC_API STATUS pacerEnqueueFrameZeroCopy(PPacer pPacer, UINT64 sendCustomData, PFrame pFrame, PBYTE pFrameData);
+PUBLIC_API STATUS pacerSetBitrate(PPacer pPacer, UINT64 bitrateBps);
+PUBLIC_API UINT64 pacerGetBitrate(PPacer pPacer);
+PUBLIC_API BOOL pacerIsRunning(PPacer pPacer);
+
 /*!@} */
+
 #ifdef __cplusplus
 }
 #endif

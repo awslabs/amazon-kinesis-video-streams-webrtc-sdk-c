@@ -101,13 +101,20 @@ PVOID sendVideoPacketsFromDisk(PVOID args)
         frame.presentationTs += SAMPLE_VIDEO_FRAME_DURATION;
         MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
         for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
-            status = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &frame);
-            if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame && status == STATUS_SUCCESS) {
-                PROFILE_WITH_START_TIME(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, "Time to first frame");
-                pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame = FALSE;
+            PSampleStreamingSession pSession = pSampleConfiguration->sampleStreamingSessionList[i];
+            // Route through pacer if available and running, otherwise direct path
+            if (pSession->pVideoPacer != NULL && pacerIsRunning(pSession->pVideoPacer)) {
+                status = pacerEnqueueFrame(pSession->pVideoPacer,
+                                           (UINT64) pSession->pVideoRtcRtpTransceiver, &frame);
+            } else {
+                status = writeFrame(pSession->pVideoRtcRtpTransceiver, &frame);
+            }
+            if (pSession->firstFrame && status == STATUS_SUCCESS) {
+                PROFILE_WITH_START_TIME(pSession->offerReceiveTime, "Time to first frame");
+                pSession->firstFrame = FALSE;
             }
             encoderStats.encodeTimeMsec = 4; // update encode time to an arbitrary number to demonstrate stats update
-            updateEncoderStats(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &encoderStats);
+            updateEncoderStats(pSession->pVideoRtcRtpTransceiver, &encoderStats);
             if (status != STATUS_SRTP_NOT_READY_YET) {
                 if (status != STATUS_SUCCESS) {
                     DLOGV("writeFrame() failed with 0x%08x", status);
@@ -173,13 +180,20 @@ PVOID sendAudioPacketsFromDisk(PVOID args)
 
         MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
         for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
-            status = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pAudioRtcRtpTransceiver, &frame);
+            PSampleStreamingSession pSession = pSampleConfiguration->sampleStreamingSessionList[i];
+            // Route through pacer if available and running, otherwise direct path
+            if (pSession->pAudioPacer != NULL && pacerIsRunning(pSession->pAudioPacer)) {
+                status = pacerEnqueueFrame(pSession->pAudioPacer,
+                                           (UINT64) pSession->pAudioRtcRtpTransceiver, &frame);
+            } else {
+                status = writeFrame(pSession->pAudioRtcRtpTransceiver, &frame);
+            }
             if (status != STATUS_SRTP_NOT_READY_YET) {
                 if (status != STATUS_SUCCESS) {
                     DLOGV("writeFrame() failed with 0x%08x", status);
-                } else if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame && status == STATUS_SUCCESS) {
-                    PROFILE_WITH_START_TIME(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, "Time to first frame");
-                    pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame = FALSE;
+                } else if (pSession->firstFrame && status == STATUS_SUCCESS) {
+                    PROFILE_WITH_START_TIME(pSession->offerReceiveTime, "Time to first frame");
+                    pSession->firstFrame = FALSE;
                 }
             } else {
                 // Reset file index to stay in sync with video frames.
