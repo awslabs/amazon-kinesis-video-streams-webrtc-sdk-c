@@ -44,7 +44,8 @@ extern "C" {
     } while (FALSE)
 
 /**
- * @brief Executes f, stores elapsed time in t, and logs it. Requires external startTimeInMacro variable, which will be set to the startTime in 100ns units.
+ * @brief Executes f, stores elapsed time in t, and logs it. Requires external startTimeInMacro variable, which will be set to the startTime in 100ns
+ * units.
  * @param[in]  f   Function call or expression to profile.
  * @param[out] t   Output elapsed time in milliseconds.
  * @param[in]  msg Log message string.
@@ -138,7 +139,8 @@ extern "C" {
     } while (FALSE)
 
 /**
- * @brief Executes f, stores elapsed time in t, and logs it. Requires external startTimeInMacro variable, which will be set to the startTime in 100ns units.
+ * @brief Executes f, stores elapsed time in t, and logs it. Requires external startTimeInMacro variable, which will be set to the startTime in 100ns
+ * units.
  * @param[in]  f   Function call or expression to profile.
  * @param[out] t   Output elapsed time in milliseconds.
  * @param[in]  msg Log message string.
