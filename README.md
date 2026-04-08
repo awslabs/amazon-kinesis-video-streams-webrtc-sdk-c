@@ -163,6 +163,7 @@ You can pass the following options to `cmake ..`:
 * `-DPKG_CONFIG_EXECUTABLE` -- Set pkg config path. This might be required to find gstreamer's pkg config specifically on Windows.
 * `-DENABLE_KVS_THREADPOOL` -- Enable the KVS threadpool which is off by default.
 * `-DENABLE_STATS_CALCULATION_CONTROL` -- Enable the runtime control of ICE agent stats calculations.
+* `-DINCREASE_PRECISION_TIMING_LOGS` -- Default ON. ON=Use 2 decimals in PROFILE-logs timing. OFF=Truncates down to whole ms.
 
 These options get propagated to [PIC](https://github.com/awslabs/amazon-kinesis-video-streams-pic):
 * `-DKVS_STACK_SIZE` -- Default stack size for threads created using THREAD_CREATE(), in bytes.
