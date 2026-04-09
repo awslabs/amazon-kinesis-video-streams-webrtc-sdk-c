@@ -248,7 +248,6 @@ Enumerations</h2></td></tr>
 <tr class="memitem:gac3fea669f2ac4c7db6d7e9528955a4c1" id="r_gac3fea669f2ac4c7db6d7e9528955a4c1"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicEnums.html#gac3fea669f2ac4c7db6d7e9528955a4c1">SIGNALING_API_CALL_CACHE_TYPE</a> { <a class="el" href="group__PublicEnums.html#ggac3fea669f2ac4c7db6d7e9528955a4c1a887c5433bc1a60c8d331b220138b413a">SIGNALING_API_CALL_CACHE_TYPE_NONE</a>
 , <a class="el" href="group__PublicEnums.html#ggac3fea669f2ac4c7db6d7e9528955a4c1a21d8468dffe94ffe6c6144b984b5ead3">SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT</a>
 , <a class="el" href="group__PublicEnums.html#ggac3fea669f2ac4c7db6d7e9528955a4c1a9ac35384c83c5ca9a1ec198f28f7008e">SIGNALING_API_CALL_CACHE_TYPE_FILE</a>
-, <a class="el" href="group__PublicEnums.html#ggac3fea669f2ac4c7db6d7e9528955a4c1a9c6b65b82655c7d3b53d92d4cd16bf66">SIGNALING_API_CALL_CACHE_TYPE_FILE_EXCEPT_DESCRIBE_MEDIA</a>
  }</td></tr>
 <tr class="memdesc:gac3fea669f2ac4c7db6d7e9528955a4c1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type of caching implementation to use with the signaling client.  <a href="group__PublicEnums.html#gac3fea669f2ac4c7db6d7e9528955a4c1">More...</a><br /></td></tr>
 <tr class="separator:gac3fea669f2ac4c7db6d7e9528955a4c1"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -483,11 +482,9 @@ Enumerations</h2></td></tr>
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ggac3fea669f2ac4c7db6d7e9528955a4c1a887c5433bc1a60c8d331b220138b413a" name="ggac3fea669f2ac4c7db6d7e9528955a4c1a887c5433bc1a60c8d331b220138b413a"></a>SIGNALING_API_CALL_CACHE_TYPE_NONE&#160;</td><td class="fielddoc"><p>No caching. The calls to the backend will be made for every API. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="ggac3fea669f2ac4c7db6d7e9528955a4c1a21d8468dffe94ffe6c6144b984b5ead3" name="ggac3fea669f2ac4c7db6d7e9528955a4c1a21d8468dffe94ffe6c6144b984b5ead3"></a>SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT&#160;</td><td class="fielddoc"><p>Cache DescribeSignalingChannel and GetSignalingChannelEndpoint backend API calls. In this mode, the actual backend APIs will be called once and the information will be cached. This mode is the recommended mode for most of the use cases when the signaling channel is not being constantly created/deleted by other entities. </p>
+<tr><td class="fieldname"><a id="ggac3fea669f2ac4c7db6d7e9528955a4c1a21d8468dffe94ffe6c6144b984b5ead3" name="ggac3fea669f2ac4c7db6d7e9528955a4c1a21d8468dffe94ffe6c6144b984b5ead3"></a>SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT&#160;</td><td class="fielddoc"><p>Cache DeleteSignalingChannel and GetSignalingChannelEndpoint backend API calls. In this mode, the actual backend APIs will be called once and the information will be cached. This mode is the recommended mode for most of the use cases when the signaling channel is not being constantly created/deleted by other entities. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="ggac3fea669f2ac4c7db6d7e9528955a4c1a9ac35384c83c5ca9a1ec198f28f7008e" name="ggac3fea669f2ac4c7db6d7e9528955a4c1a9ac35384c83c5ca9a1ec198f28f7008e"></a>SIGNALING_API_CALL_CACHE_TYPE_FILE&#160;</td><td class="fielddoc"><p>Cache DescribeSignalingChannel and GetSignalingChannelEndpoint backend API calls. In this mode, the actual backend APIs will be called once and the information will be cached into file which will allow the cache to persist next time the signaling client is created. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="ggac3fea669f2ac4c7db6d7e9528955a4c1a9c6b65b82655c7d3b53d92d4cd16bf66" name="ggac3fea669f2ac4c7db6d7e9528955a4c1a9c6b65b82655c7d3b53d92d4cd16bf66"></a>SIGNALING_API_CALL_CACHE_TYPE_FILE_EXCEPT_DESCRIBE_MEDIA&#160;</td><td class="fielddoc"><p>Cache DescribeSignalingChannel and GetSignalingChannelEndpoint but always call DescribeMediaStorageConfiguration. This mode ensures fresh storage status is retrieved to properly invalidate endpoint cache when storage configuration changes. </p>
+<tr><td class="fieldname"><a id="ggac3fea669f2ac4c7db6d7e9528955a4c1a9ac35384c83c5ca9a1ec198f28f7008e" name="ggac3fea669f2ac4c7db6d7e9528955a4c1a9ac35384c83c5ca9a1ec198f28f7008e"></a>SIGNALING_API_CALL_CACHE_TYPE_FILE&#160;</td><td class="fielddoc"><p>Cache DeleteSignalingChannel and GetSignalingChannelEndpoint backend API calls. In this mode, the actual backend APIs will be called once and the information will be cached into file which will allow the cache to persist next time the signaling client is created. </p>
 </td></tr>
 </table>
 
@@ -652,7 +649,7 @@ Enumerations</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Thu Apr 9 2026 13:54:03 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Thu Apr 9 2026 16:35:12 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>
