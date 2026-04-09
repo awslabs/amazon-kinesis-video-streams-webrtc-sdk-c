@@ -430,6 +430,35 @@ jobs:
 
   # ----------------------------------------------------
 
+  dynamic-allocs-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.x'
+
+      - name: Build repository
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DBUILD_TEST=ON -DPREFER_DYNAMIC_ALLOCS=ON -DENABLE_AWS_SDK_IN_TESTS=OFF
+          make -j
+
+      - name: Run tests
+        working-directory: ./build
+        run: |
+          ./tst/webrtc_client_test
+
   stats-calc-control-check:
     runs-on: ubuntu-latest
     timeout-minutes: 30
