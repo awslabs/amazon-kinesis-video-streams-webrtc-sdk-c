@@ -182,7 +182,7 @@ jobs:
       - name: Build repository
         run: |
           mkdir build && cd build
-          cmake .. -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
+          cmake .. -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DPREFER_DYNAMIC_ALLOCS=ON
           make -j
 
       - name: Run tests
