@@ -26,6 +26,111 @@ extern "C" {
 #endif
 
 /* TODO: Potentially move these call to PIC instead. Moving to PIC in the future would not cause any backward compatibility issues */
+
+#ifdef INCREASE_PRECISION_TIMING_LOGS
+
+/**
+ * @brief Executes f and logs the elapsed time. Requires external startTimeInMacro variable, which will be set to the startTime in 100ns units.
+ * @param[in] f   Function call or expression to profile.
+ * @param[in] msg Log message string.
+ */
+#define PROFILE_CALL(f, msg)                                                                                                                         \
+    do {                                                                                                                                             \
+        startTimeInMacro = GETTIME();                                                                                                                \
+        f;                                                                                                                                           \
+        UINT64 __dt = GETTIME() - startTimeInMacro;                                                                                                  \
+        DLOGP("[%s] Time taken: %" PRIu64 ".%02" PRIu64 " ms", (msg), __dt / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,                                     \
+              (__dt % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100));                                             \
+    } while (FALSE)
+
+/**
+ * @brief Executes f, stores elapsed time in t, and logs it. Requires external startTimeInMacro variable, which will be set to the startTime in 100ns
+ * units.
+ * @param[in]  f   Function call or expression to profile.
+ * @param[out] t   Output elapsed time in milliseconds.
+ * @param[in]  msg Log message string.
+ */
+#define PROFILE_CALL_WITH_T_OBJ(f, t, msg)                                                                                                           \
+    do {                                                                                                                                             \
+        startTimeInMacro = GETTIME();                                                                                                                \
+        f;                                                                                                                                           \
+        UINT64 __dt = GETTIME() - startTimeInMacro;                                                                                                  \
+        t = __dt / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                               \
+        DLOGP("[%s] Time taken: %" PRIu64 ".%02" PRIu64 " ms", (msg), __dt / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,                                     \
+              (__dt % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100));                                             \
+    } while (FALSE)
+
+/**
+ * @brief Logs elapsed time since a given start time. Does not store the result.
+ * @param[in] t   Input start time in 100ns units. Not modified.
+ * @param[in] msg Log message string.
+ */
+#define PROFILE_WITH_START_TIME(t, msg)                                                                                                              \
+    do {                                                                                                                                             \
+        UINT64 __dt = GETTIME() - (t);                                                                                                               \
+        DLOGP("[%s] Time taken: %" PRIu64 ".%02" PRIu64 " ms", msg, __dt / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,                                       \
+              (__dt % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100));                                             \
+    } while (FALSE)
+
+/**
+ * @brief Executes f, stores start/end/delta times, and logs elapsed time.
+ * @param[in]  f   Function call or expression to profile.
+ * @param[out] s   Output start time in milliseconds.
+ * @param[out] e   Output end time in milliseconds.
+ * @param[out] d   Output elapsed time in milliseconds (e - s).
+ * @param[in]  msg Log message string.
+ */
+#define PROFILE_CALL_WITH_START_END_T_OBJ(f, s, e, d, msg)                                                                                           \
+    do {                                                                                                                                             \
+        UINT64 __s = GETTIME();                                                                                                                      \
+        f;                                                                                                                                           \
+        UINT64 __e = GETTIME();                                                                                                                      \
+        UINT64 __dt = __e - __s;                                                                                                                     \
+        s = __s / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                                \
+        e = __e / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                                \
+        d = ((e) - (s));                                                                                                                             \
+        DLOGP("[%s] Time taken: %" PRIu64 ".%02" PRIu64 " ms", (msg), __dt / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,                                     \
+              (__dt % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100));                                             \
+    } while (FALSE)
+
+/**
+ * @brief Profiles elapsed time from a given start time, storing start (converted to ms), end, and delta.
+ * @param[in,out] t1 Input start time in 100ns units. Modified: converted to milliseconds.
+ * @param[out]    t2 Output end time in milliseconds, calculated via GETTIME().
+ * @param[out]    d  Output elapsed time in milliseconds (t2 - t1).
+ * @param[in]     msg Log message string.
+ */
+#define PROFILE_WITH_START_END_TIME_OBJ(t1, t2, d, msg)                                                                                              \
+    do {                                                                                                                                             \
+        UINT64 __dt = GETTIME() - (t1);                                                                                                              \
+        t1 = (t1 / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                                                                              \
+        t2 = (GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                                                                       \
+        d = ((t2) - (t1));                                                                                                                           \
+        DLOGP("[%s] Time taken: %" PRIu64 ".%02" PRIu64 " ms", (msg), __dt / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,                                     \
+              (__dt % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100));                                             \
+    } while (FALSE)
+
+/**
+ * @brief Profiles elapsed time from a given start time, storing the delta in t2.
+ * @param[in]  t1 Input start time in 100ns units. Not modified.
+ * @param[out] t2 Output elapsed time in milliseconds.
+ * @param[in]  msg Log message string.
+ */
+#define PROFILE_WITH_START_TIME_OBJ(t1, t2, msg)                                                                                                     \
+    do {                                                                                                                                             \
+        UINT64 __dt = GETTIME() - (t1);                                                                                                              \
+        t2 = __dt / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                              \
+        DLOGP("[%s] Time taken: %" PRIu64 ".%02" PRIu64 " ms", (msg), __dt / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,                                     \
+              (__dt % HUNDREDS_OF_NANOS_IN_A_MILLISECOND) / (HUNDREDS_OF_NANOS_IN_A_MILLISECOND / 100));                                             \
+    } while (FALSE)
+
+#else // INCREASE_PRECISION_TIMING_LOGS
+
+/**
+ * @brief Executes f and logs the elapsed time. Requires external startTimeInMacro variable, which will be set to the startTime in 100ns units.
+ * @param[in] f   Function call or expression to profile.
+ * @param[in] msg Log message string.
+ */
 #define PROFILE_CALL(f, msg)                                                                                                                         \
     do {                                                                                                                                             \
         startTimeInMacro = GETTIME();                                                                                                                \
@@ -33,6 +138,13 @@ extern "C" {
         DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (GETTIME() - startTimeInMacro) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                        \
     } while (FALSE)
 
+/**
+ * @brief Executes f, stores elapsed time in t, and logs it. Requires external startTimeInMacro variable, which will be set to the startTime in 100ns
+ * units.
+ * @param[in]  f   Function call or expression to profile.
+ * @param[out] t   Output elapsed time in milliseconds.
+ * @param[in]  msg Log message string.
+ */
 #define PROFILE_CALL_WITH_T_OBJ(f, t, msg)                                                                                                           \
     do {                                                                                                                                             \
         startTimeInMacro = GETTIME();                                                                                                                \
@@ -41,11 +153,24 @@ extern "C" {
         DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (t));                                                                                        \
     } while (FALSE)
 
+/**
+ * @brief Logs elapsed time since a given start time. Does not store the result.
+ * @param[in] t   Input start time in 100ns units. Not modified.
+ * @param[in] msg Log message string.
+ */
 #define PROFILE_WITH_START_TIME(t, msg)                                                                                                              \
     do {                                                                                                                                             \
         DLOGP("[%s] Time taken: %" PRIu64 " ms", msg, (GETTIME() - (t)) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                       \
     } while (FALSE)
 
+/**
+ * @brief Executes f, stores start/end/delta times, and logs elapsed time.
+ * @param[in]  f   Function call or expression to profile.
+ * @param[out] s   Output start time in milliseconds.
+ * @param[out] e   Output end time in milliseconds.
+ * @param[out] d   Output elapsed time in milliseconds (e - s).
+ * @param[in]  msg Log message string.
+ */
 #define PROFILE_CALL_WITH_START_END_T_OBJ(f, s, e, d, msg)                                                                                           \
     do {                                                                                                                                             \
         s = GETTIME() / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                          \
@@ -55,6 +180,13 @@ extern "C" {
         DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (d));                                                                                        \
     } while (FALSE)
 
+/**
+ * @brief Profiles elapsed time from a given start time, storing start (converted to ms), end, and delta.
+ * @param[in,out] t1 Input start time in 100ns units. Modified: converted to milliseconds.
+ * @param[out]    t2 Output end time in milliseconds, calculated via GETTIME().
+ * @param[out]    d  Output elapsed time in milliseconds (t2 - t1).
+ * @param[in]     msg Log message string.
+ */
 #define PROFILE_WITH_START_END_TIME_OBJ(t1, t2, d, msg)                                                                                              \
     do {                                                                                                                                             \
         t1 = (t1 / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);                                                                                              \
@@ -63,15 +195,23 @@ extern "C" {
         DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), (d));                                                                                        \
     } while (FALSE)
 
+/**
+ * @brief Profiles elapsed time from a given start time, storing the delta in t2.
+ * @param[in]  t1 Input start time in 100ns units. Not modified.
+ * @param[out] t2 Output elapsed time in milliseconds.
+ * @param[in]  msg Log message string.
+ */
 #define PROFILE_WITH_START_TIME_OBJ(t1, t2, msg)                                                                                                     \
     do {                                                                                                                                             \
         t2 = (GETTIME() - (t1)) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;                                                                                \
         DLOGP("[%s] Time taken: %" PRIu64 " ms", (msg), t2);                                                                                         \
     } while (FALSE)
 
+#endif // INCREASE_PRECISION_TIMING_LOGS
+
 /*! \addtogroup StatusCodes
  * WEBRTC related status codes. Each value is an positive integer formed by adding
- * a base integer inticating the category to an index. Users may run scripts/parse_status.py
+ * a base integer indicating the category to an index. Users may run scripts/parse_status.py
  * to print a list of all status codes and their hex value.
  *  @{
  */
