@@ -26,36 +26,6 @@ INT32 dtlsCertificateVerifyCallback(INT32 preverify_ok, X509_STORE_CTX* ctx)
     return 1;
 }
 
-STATUS dtlsSessionCopyOptions(PDtlsSession pDtlsSession, PDtlsSessionOptions pDtlsSessionOptions)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    UINT32 hostnameLen = 0;
-
-    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
-
-    pDtlsSession->validationMode = DTLS_SESSION_VALIDATION_MODE_RELAXED;
-    pDtlsSession->pExpectedServerHostname = NULL;
-
-    if (pDtlsSessionOptions == NULL) {
-        CHK(FALSE, retStatus);
-    }
-
-    pDtlsSession->validationMode = pDtlsSessionOptions->validationMode;
-    if (pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER) {
-        CHK(pDtlsSessionOptions->pExpectedServerHostname != NULL && pDtlsSessionOptions->pExpectedServerHostname[0] != '\0', STATUS_INVALID_ARG);
-        hostnameLen = (UINT32) STRLEN(pDtlsSessionOptions->pExpectedServerHostname);
-        pDtlsSession->pExpectedServerHostname = MEMCALLOC(hostnameLen + 1, SIZEOF(CHAR));
-        CHK(pDtlsSession->pExpectedServerHostname != NULL, STATUS_NOT_ENOUGH_MEMORY);
-        STRNCPY(pDtlsSession->pExpectedServerHostname, pDtlsSessionOptions->pExpectedServerHostname, hostnameLen);
-    }
-
-CleanUp:
-    CHK_LOG_ERR(retStatus);
-    LEAVES();
-    return retStatus;
-}
-
 STATUS dtlsSessionConfigureStrictHostnameValidation(PDtlsSession pDtlsSession)
 {
     ENTERS();

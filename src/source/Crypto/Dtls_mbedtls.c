@@ -1,6 +1,8 @@
 #define LOG_CLASS "DTLS_mbedtls"
 #include "../Include_i.h"
 
+#define DTLS_MBEDTLS_ERROR_STRING_BUFFER_SIZE 128
+
 /**  https://tools.ietf.org/html/rfc5764#section-4.1.2 */
 mbedtls_ssl_srtp_profile DTLS_SRTP_SUPPORTED_PROFILES[] = {
     MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_80,
@@ -8,13 +10,14 @@ mbedtls_ssl_srtp_profile DTLS_SRTP_SUPPORTED_PROFILES[] = {
     MBEDTLS_TLS_SRTP_UNSET,
 };
 
+// Backend-local helper: only the mbedTLS DTLS implementation parses the shared CA bundle directly.
 static STATUS dtlsReadAndParseCACertificate(PDtlsSession pDtlsSession)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 certLen = 0;
     PBYTE certBuf = NULL;
-    CHAR errBuf[128];
+    CHAR errBuf[DTLS_MBEDTLS_ERROR_STRING_BUFFER_SIZE];
     INT32 sslRet;
 
     CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
@@ -38,29 +41,48 @@ CleanUp:
     return retStatus;
 }
 
-STATUS dtlsSessionCopyOptions(PDtlsSession pDtlsSession, PDtlsSessionOptions pDtlsSessionOptions)
+static STATUS dtlsSessionLoadTrustedCaCertificate(PDtlsSession pDtlsSession)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 hostnameLen = 0;
 
     CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
+    CHK(pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER, retStatus);
+    CHK_STATUS(dtlsReadAndParseCACertificate(pDtlsSession));
 
-    pDtlsSession->validationMode = DTLS_SESSION_VALIDATION_MODE_RELAXED;
-    pDtlsSession->pExpectedServerHostname = NULL;
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+    LEAVES();
+    return retStatus;
+}
 
-    if (pDtlsSessionOptions == NULL) {
-        CHK(FALSE, retStatus);
-    }
+static STATUS dtlsSessionConfigureRemoteCertificateValidation(PDtlsSession pDtlsSession)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
 
-    pDtlsSession->validationMode = pDtlsSessionOptions->validationMode;
-    if (pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER) {
-        CHK(pDtlsSessionOptions->pExpectedServerHostname != NULL && pDtlsSessionOptions->pExpectedServerHostname[0] != '\0', STATUS_INVALID_ARG);
-        hostnameLen = (UINT32) STRLEN(pDtlsSessionOptions->pExpectedServerHostname);
-        pDtlsSession->pExpectedServerHostname = MEMCALLOC(hostnameLen + 1, SIZEOF(CHAR));
-        CHK(pDtlsSession->pExpectedServerHostname != NULL, STATUS_NOT_ENOUGH_MEMORY);
-        STRNCPY(pDtlsSession->pExpectedServerHostname, pDtlsSessionOptions->pExpectedServerHostname, hostnameLen);
-    }
+    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
+    CHK(pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER, retStatus);
+    DLOGD("Configuring strict DTLS server certificate validation for %s using CA bundle %s", pDtlsSession->pExpectedServerHostname,
+          KVS_CA_CERT_PATH);
+    mbedtls_ssl_conf_ca_chain(&pDtlsSession->sslCtxConfig, &pDtlsSession->trustedCaCert, NULL);
+    mbedtls_ssl_conf_authmode(&pDtlsSession->sslCtxConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+    LEAVES();
+    return retStatus;
+}
+
+static STATUS dtlsSessionConfigureExpectedServerHostname(PDtlsSession pDtlsSession, BOOL isServer)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
+    CHK(!isServer, retStatus);
+    CHK(pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER, retStatus);
+    CHK(mbedtls_ssl_set_hostname(&pDtlsSession->sslCtx, pDtlsSession->pExpectedServerHostname) == 0, STATUS_SSL_CTX_CREATION_FAILED);
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
@@ -77,6 +99,8 @@ STATUS dtlsSessionCheckRemoteCertificateVerification(PDtlsSession pDtlsSession)
     CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
     CHK(pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER, retStatus);
     verifyResult = (UINT32) mbedtls_ssl_get_verify_result(&pDtlsSession->sslCtx);
+    // Strict mode requires both a parsed peer certificate and a clean verify result.
+    // The verify flags alone do not guarantee that the handshake surfaced a peer certificate.
     CHK(mbedtls_ssl_get_peer_cert(&pDtlsSession->sslCtx) != NULL, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
     CHK(verifyResult == 0, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
     DLOGD("DTLS strict server certificate verification passed for %s using CA bundle %s", pDtlsSession->pExpectedServerHostname, KVS_CA_CERT_PATH);
@@ -95,11 +119,15 @@ CleanUp:
 
 STATUS dtlsSessionGetCertificateVerificationFailureStatus(PDtlsSession pDtlsSession, INT32 sslRet)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 verifyResult = 0;
 
     CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
     CHK(pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER, retStatus);
+    // Handshake/read/write paths can fail before the normal post-handshake certificate check runs.
+    // Re-reading the verify flags here preserves the certificate failure reason even if the peer cert
+    // is not yet available through the completed-handshake path.
     verifyResult = (UINT32) mbedtls_ssl_get_verify_result(&pDtlsSession->sslCtx);
     if (sslRet == MBEDTLS_ERR_X509_CERT_VERIFY_FAILED || verifyResult != 0) {
         retStatus = STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED;
@@ -112,6 +140,8 @@ CleanUp:
               pDtlsSession->pExpectedServerHostname != NULL ? pDtlsSession->pExpectedServerHostname : "(null)", verifyResult, sslRet);
     }
 
+    CHK_LOG_ERR(retStatus);
+    LEAVES();
     return retStatus;
 }
 
@@ -152,12 +182,8 @@ STATUS createDtlsSessionWithOptions(PDtlsSessionCallbacks pDtlsSessionCallbacks,
     pDtlsSession->timerId = MAX_UINT32;
     pDtlsSession->sslLock = MUTEX_CREATE(TRUE);
     pDtlsSession->dtlsSessionCallbacks = *pDtlsSessionCallbacks;
-    pDtlsSession->validationMode = DTLS_SESSION_VALIDATION_MODE_RELAXED;
-    pDtlsSession->pExpectedServerHostname = NULL;
     CHK_STATUS(dtlsSessionCopyOptions(pDtlsSession, pDtlsSessionOptions));
-    if (pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER) {
-        CHK_STATUS(dtlsReadAndParseCACertificate(pDtlsSession));
-    }
+    CHK_STATUS(dtlsSessionLoadTrustedCaCertificate(pDtlsSession));
     if (certificateBits == 0) {
         certificateBits = GENERATED_CERTIFICATE_BITS;
     }
@@ -436,15 +462,10 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
     CHK(mbedtls_ssl_config_defaults(&pDtlsSession->sslCtxConfig, isServer ? MBEDTLS_SSL_IS_SERVER : MBEDTLS_SSL_IS_CLIENT,
                                     MBEDTLS_SSL_TRANSPORT_DATAGRAM, MBEDTLS_SSL_PRESET_DEFAULT) == 0,
         STATUS_CREATE_SSL_FAILED);
-    if (pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER) {
-        DLOGD("Configuring strict DTLS server certificate validation for %s using CA bundle %s", pDtlsSession->pExpectedServerHostname,
-              KVS_CA_CERT_PATH);
-        mbedtls_ssl_conf_ca_chain(&pDtlsSession->sslCtxConfig, &pDtlsSession->trustedCaCert, NULL);
-        mbedtls_ssl_conf_authmode(&pDtlsSession->sslCtxConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
-    } else {
-        // No need to verify in the default peer DTLS path since the certificate will be verified through SDP later.
-        mbedtls_ssl_conf_authmode(&pDtlsSession->sslCtxConfig, MBEDTLS_SSL_VERIFY_OPTIONAL);
-    }
+    // Relaxed mode is only intended for peer DTLS flows that verify identity later via SDP fingerprint.
+    // Do not use it when production-style server certificate validation is required.
+    mbedtls_ssl_conf_authmode(&pDtlsSession->sslCtxConfig, MBEDTLS_SSL_VERIFY_OPTIONAL);
+    CHK_STATUS(dtlsSessionConfigureRemoteCertificateValidation(pDtlsSession));
     mbedtls_ssl_conf_rng(&pDtlsSession->sslCtxConfig, mbedtls_ctr_drbg_random, &pDtlsSession->ctrDrbg);
 
     for (i = 0; i < pDtlsSession->certificateCount; i++) {
@@ -461,9 +482,7 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
     CHK(mbedtls_ssl_setup(&pDtlsSession->sslCtx, &pDtlsSession->sslCtxConfig) == 0, STATUS_SSL_CTX_CREATION_FAILED);
     mbedtls_ssl_set_mtu(&pDtlsSession->sslCtx, DEFAULT_MTU_SIZE_BYTES);
     mbedtls_ssl_set_bio(&pDtlsSession->sslCtx, pDtlsSession, dtlsSessionSendCallback, dtlsSessionReceiveCallback, NULL);
-    if (!isServer && pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER) {
-        CHK(mbedtls_ssl_set_hostname(&pDtlsSession->sslCtx, pDtlsSession->pExpectedServerHostname) == 0, STATUS_SSL_CTX_CREATION_FAILED);
-    }
+    CHK_STATUS(dtlsSessionConfigureExpectedServerHostname(pDtlsSession, isServer));
 
 #if !MBEDTLS_BEFORE_V3
     mbedtls_ssl_set_export_keys_cb(&pDtlsSession->sslCtx, dtlsSessionKeyDerivationCallback, pDtlsSession);
