@@ -85,6 +85,37 @@ CleanUp:
     return retStatus;
 }
 
+STATUS dtlsSessionCopyOptions(PDtlsSession pDtlsSession, PDtlsSessionOptions pDtlsSessionOptions)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 hostnameLen = 0;
+
+    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
+
+    pDtlsSession->validationMode = DTLS_SESSION_VALIDATION_MODE_RELAXED;
+    pDtlsSession->pExpectedServerHostname = NULL;
+
+    CHK(pDtlsSessionOptions != NULL, retStatus);
+
+    pDtlsSession->validationMode = pDtlsSessionOptions->validationMode;
+    if (pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER) {
+        CHK(pDtlsSessionOptions->pExpectedServerHostname != NULL && pDtlsSessionOptions->pExpectedServerHostname[0] != '\0', STATUS_INVALID_ARG);
+        hostnameLen = (UINT32) STRLEN(pDtlsSessionOptions->pExpectedServerHostname);
+#ifdef KVS_USE_MBEDTLS
+        CHK(hostnameLen <= MBEDTLS_SSL_MAX_HOST_NAME_LEN, STATUS_INVALID_ARG_LEN);
+#endif
+        pDtlsSession->pExpectedServerHostname = MEMCALLOC(hostnameLen + 1, SIZEOF(CHAR));
+        CHK(pDtlsSession->pExpectedServerHostname != NULL, STATUS_NOT_ENOUGH_MEMORY);
+        STRNCPY(pDtlsSession->pExpectedServerHostname, pDtlsSessionOptions->pExpectedServerHostname, hostnameLen);
+    }
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+    LEAVES();
+    return retStatus;
+}
+
 STATUS dtlsFillPseudoRandomBits(PBYTE pBuf, UINT32 bufSize)
 {
     ENTERS();
