@@ -66,8 +66,10 @@ typedef struct {
 } DtlsSessionCallbacks, *PDtlsSessionCallbacks;
 
 typedef enum {
-    DTLS_SESSION_VALIDATION_MODE_RELAXED,
-    DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER,
+    DTLS_SESSION_VALIDATION_MODE_RELAXED,       /* Default peer DTLS flow. Identity is validated later via SDP fingerprint and is not
+                                                 * recommended for production server certificate validation. */
+    DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER, /* Require the remote certificate chain and hostname to validate against
+                                                 * pExpectedServerHostname and the configured CA bundle. */
 } DTLS_SESSION_VALIDATION_MODE;
 
 typedef struct {
@@ -201,6 +203,11 @@ STATUS dtlsSessionHandshakeInThread(PDtlsSession, BOOL);
 /******** Internal Functions **********/
 STATUS dtlsValidateRtcCertificates(PRtcCertificate, PUINT32);
 STATUS dtlsSessionChangeState(PDtlsSession, RTC_DTLS_TRANSPORT_STATE);
+/**
+ * Copy DTLS validation options into the session, defaulting to relaxed validation when options are omitted.
+ * Strict server validation requires a non-empty expected hostname.
+ */
+STATUS dtlsSessionCopyOptions(PDtlsSession, PDtlsSessionOptions);
 
 STATUS dtlsFillPseudoRandomBits(PBYTE, UINT32);
 
