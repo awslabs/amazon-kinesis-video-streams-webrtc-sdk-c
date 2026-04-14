@@ -63,8 +63,7 @@ static STATUS dtlsSessionConfigureRemoteCertificateValidation(PDtlsSession pDtls
 
     CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
     CHK(pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER, retStatus);
-    DLOGD("Configuring strict DTLS server certificate validation for %s using CA bundle %s", pDtlsSession->pExpectedServerHostname,
-          KVS_CA_CERT_PATH);
+    DLOGD("Configuring strict DTLS server certificate validation for %s using CA bundle %s", pDtlsSession->pExpectedServerHostname, KVS_CA_CERT_PATH);
     mbedtls_ssl_conf_ca_chain(&pDtlsSession->sslCtxConfig, &pDtlsSession->trustedCaCert, NULL);
     mbedtls_ssl_conf_authmode(&pDtlsSession->sslCtxConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
 
