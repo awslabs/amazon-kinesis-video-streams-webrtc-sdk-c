@@ -7,6 +7,7 @@
 
 #include "app_webrtc.h"
 #include "app_webrtc_internal.h"
+#include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 #include "webrtc_mem_utils.h"
 #include "esp_work_queue.h"
 
@@ -2654,6 +2655,70 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         ESP_LOGE(TAG, "Failed to set data channel callbacks: 0x%08" PRIx32, (UINT32) retStatus);
     }
+    return retStatus;
+}
+
+/**
+ * @brief Find an active streaming session by peer ID.
+ *
+ * Walks the streaming session list guarded by streamingSessionListReadLock.
+ * Returns NULL if no session matches or if app_webrtc isn't initialized.
+ */
+static PAppWebRTCSession find_session_by_peer_id(const char *peer_id)
+{
+    if (peer_id == NULL || gSampleConfiguration == NULL) {
+        return NULL;
+    }
+
+    PAppWebRTCSession match = NULL;
+    MUTEX_LOCK(gSampleConfiguration->streamingSessionListReadLock);
+    for (UINT32 i = 0; i < gSampleConfiguration->streamingSessionCount; i++) {
+        PAppWebRTCSession s = gSampleConfiguration->webrtcSessionList[i];
+        if (s != NULL && STRCMP(s->peerId, peer_id) == 0) {
+            match = s;
+            break;
+        }
+    }
+    MUTEX_UNLOCK(gSampleConfiguration->streamingSessionListReadLock);
+    return match;
+}
+
+/**
+ * @brief Create a data channel on the active peer session for @p peer_id.
+ */
+WEBRTC_STATUS app_webrtc_create_data_channel(const char *peer_id,
+                                             const char *label,
+                                             bool ordered)
+{
+    ENTERS();
+    WEBRTC_STATUS retStatus = WEBRTC_STATUS_SUCCESS;
+
+    CHK(peer_id != NULL && label != NULL && label[0] != '\0', WEBRTC_STATUS_NULL_ARG);
+    CHK(gWebRtcAppConfig.peer_connection_if != NULL &&
+        gWebRtcAppConfig.peer_connection_if->create_data_channel != NULL,
+        WEBRTC_STATUS_INVALID_OPERATION);
+
+    PAppWebRTCSession pSession = find_session_by_peer_id(peer_id);
+    if (pSession == NULL || pSession->interface_session_handle == NULL) {
+        ESP_LOGE(TAG, "No active session for peer: %s", peer_id);
+        CHK(FALSE, WEBRTC_STATUS_INVALID_OPERATION);
+    }
+
+    RtcDataChannelInit dcInit;
+    MEMSET(&dcInit, 0x00, SIZEOF(RtcDataChannelInit));
+    dcInit.ordered = ordered ? TRUE : FALSE;
+    NULLABLE_SET_EMPTY(dcInit.maxPacketLifeTime);
+    NULLABLE_SET_EMPTY(dcInit.maxRetransmits);
+
+    void *pChannel = NULL;
+    retStatus = gWebRtcAppConfig.peer_connection_if->create_data_channel(
+        pSession->interface_session_handle, label, &dcInit, &pChannel);
+
+CleanUp:
+    if (WEBRTC_STATUS_FAILED(retStatus)) {
+        ESP_LOGE(TAG, "app_webrtc_create_data_channel failed: 0x%08x", retStatus);
+    }
+    LEAVES();
     return retStatus;
 }
 
