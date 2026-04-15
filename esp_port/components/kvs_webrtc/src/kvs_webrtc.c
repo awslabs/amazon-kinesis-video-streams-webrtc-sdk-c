@@ -1775,29 +1775,36 @@ static STATUS kvs_setupMediaTracks(kvs_pc_session_t* session)
 
     ESP_LOGI(TAG, "Setting up media tracks for peer: %s", session->peer_id);
 
+    BOOL hasVideo = (session->client->config.video_capture != NULL);
+
     // Add supported codecs from configuration
-    CHK_STATUS(addSupportedCodec(session->peer_connection, session->client->config.video_codec));
+    if (hasVideo) {
+        CHK_STATUS(addSupportedCodec(session->peer_connection, session->client->config.video_codec));
+    }
     CHK_STATUS(addSupportedCodec(session->peer_connection, session->client->config.audio_codec));
 
-    // Add video transceiver (match legacy identifiers for compatibility)
-    videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
-    videoTrack.codec = session->client->config.video_codec;
-    videoRtpTransceiverInit.direction = session->client->config.receive_media
-        ? RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV
-        : RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
-    STRCPY(videoTrack.streamId, "myKvsVideoStream");
-    STRCPY(videoTrack.trackId, "myVideoTrack");
-    CHK_STATUS(addTransceiver(session->peer_connection, &videoTrack, &videoRtpTransceiverInit, &session->video_transceiver));
+    // Add video transceiver only when video capture is available
+    if (hasVideo) {
+        videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        videoTrack.codec = session->client->config.video_codec;
+        videoRtpTransceiverInit.direction = session->client->config.receive_media
+            ? RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV
+            : RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+        STRCPY(videoTrack.streamId, "myKvsVideoStream");
+        STRCPY(videoTrack.trackId, "myVideoTrack");
+        CHK_STATUS(addTransceiver(session->peer_connection, &videoTrack, &videoRtpTransceiverInit, &session->video_transceiver));
 
-    // Set up bandwidth estimation for video transceiver
-    CHK_STATUS(transceiverOnBandwidthEstimation(session->video_transceiver, POINTER_TO_HANDLE(session), kvs_videoBandwidthEstimationHandler));
+        // Set up bandwidth estimation for video transceiver
+        CHK_STATUS(transceiverOnBandwidthEstimation(session->video_transceiver, POINTER_TO_HANDLE(session), kvs_videoBandwidthEstimationHandler));
+    } else {
+        ESP_LOGI(TAG, "Skipping video transceiver (no video capture configured)");
+    }
 
-    // Add audio transceiver (match legacy identifiers for compatibility)
+    // Add audio transceiver
     audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
     audioTrack.codec = session->client->config.audio_codec;
     audioRtpTransceiverInit.direction = session->client->config.receive_media
         ? RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV
-
         : RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
     STRCPY(audioTrack.streamId, "myKvsVideoStream");
     STRCPY(audioTrack.trackId, "myAudioTrack");
