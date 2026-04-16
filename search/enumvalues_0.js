@@ -1,14 +1,13 @@
 var searchData=
 [
-  ['dcep_5fdata_5fchannel_5fopen_0',['DCEP_DATA_CHANNEL_OPEN',['../Sctp_8h.html#adf764cbdea00d65edcd07bb9953ad2b7acd45f0cf340fbbc099edaed0a5454699',1,'Sctp.h']]],
-  ['dcep_5fdata_5fchannel_5freliable_5fordered_1',['DCEP_DATA_CHANNEL_RELIABLE_ORDERED',['../Sctp_8h.html#ac30615997d46d1cefff7c8755cd38792ab8bf027a9ef73a31cd6326d0bc65ae2e',1,'Sctp.h']]],
-  ['dcep_5fdata_5fchannel_5freliable_5funordered_2',['DCEP_DATA_CHANNEL_RELIABLE_UNORDERED',['../Sctp_8h.html#ac30615997d46d1cefff7c8755cd38792a9577798d1a95e122ff2bccce93c9cae1',1,'Sctp.h']]],
-  ['dcep_5fdata_5fchannel_5frexmit_3',['DCEP_DATA_CHANNEL_REXMIT',['../Sctp_8h.html#ac30615997d46d1cefff7c8755cd38792af627655af1170af34512d3b53b5ac907',1,'Sctp.h']]],
-  ['dcep_5fdata_5fchannel_5ftimed_4',['DCEP_DATA_CHANNEL_TIMED',['../Sctp_8h.html#ac30615997d46d1cefff7c8755cd38792a2a1c0b5cc0b1b95c91eb2b98b3a4c472',1,'Sctp.h']]],
-  ['dtls_5fsession_5fvalidation_5fmode_5frelaxed_5',['DTLS_SESSION_VALIDATION_MODE_RELAXED',['../Dtls_8h.html#ac74b5e481dbdea93ff7483fe26056719af7c38d80a950d9306d164128287ee36e',1,'Dtls.h']]],
-  ['dtls_5fsession_5fvalidation_5fmode_5fstrict_5fserver_6',['DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER',['../Dtls_8h.html#ac74b5e481dbdea93ff7483fe26056719afda5d89033faa56f3c2a0aa5c485449d',1,'Dtls.h']]],
-  ['dtls_5fstate_5fhandshake_5fcompleted_7',['DTLS_STATE_HANDSHAKE_COMPLETED',['../Dtls_8h.html#a24a0a539af96854f8039db1b633a5fb8a73871150b59ab7587a35f7a009b1b13b',1,'Dtls.h']]],
-  ['dtls_5fstate_5fhandshake_5ferror_8',['DTLS_STATE_HANDSHAKE_ERROR',['../Dtls_8h.html#a24a0a539af96854f8039db1b633a5fb8a038a551c5f92fa7ceb1a03ca7e609d93',1,'Dtls.h']]],
-  ['dtls_5fstate_5fhandshake_5fin_5fprogress_9',['DTLS_STATE_HANDSHAKE_IN_PROGRESS',['../Dtls_8h.html#a24a0a539af96854f8039db1b633a5fb8a8ea02de644eb6a51bdc39d44af04bbf6',1,'Dtls.h']]],
-  ['dtls_5fstate_5fhandshake_5fnew_10',['DTLS_STATE_HANDSHAKE_NEW',['../Dtls_8h.html#a24a0a539af96854f8039db1b633a5fb8ad698b0b96437d144ef9b67f91f5a1423',1,'Dtls.h']]]
+  ['dcep_5fdata_5fchannel_5fack_0',['DCEP_DATA_CHANNEL_ACK',['../Sctp_8h.html#adf764cbdea00d65edcd07bb9953ad2b7af0ca7cbabe7a89e45f1b77b95a230cd1',1,'Sctp.h']]],
+  ['dcep_5fdata_5fchannel_5fopen_1',['DCEP_DATA_CHANNEL_OPEN',['../Sctp_8h.html#adf764cbdea00d65edcd07bb9953ad2b7acd45f0cf340fbbc099edaed0a5454699',1,'Sctp.h']]],
+  ['dcep_5fdata_5fchannel_5freliable_5fordered_2',['DCEP_DATA_CHANNEL_RELIABLE_ORDERED',['../Sctp_8h.html#ac30615997d46d1cefff7c8755cd38792ab8bf027a9ef73a31cd6326d0bc65ae2e',1,'Sctp.h']]],
+  ['dcep_5fdata_5fchannel_5freliable_5funordered_3',['DCEP_DATA_CHANNEL_RELIABLE_UNORDERED',['../Sctp_8h.html#ac30615997d46d1cefff7c8755cd38792a9577798d1a95e122ff2bccce93c9cae1',1,'Sctp.h']]],
+  ['dcep_5fdata_5fchannel_5frexmit_4',['DCEP_DATA_CHANNEL_REXMIT',['../Sctp_8h.html#ac30615997d46d1cefff7c8755cd38792af627655af1170af34512d3b53b5ac907',1,'Sctp.h']]],
+  ['dcep_5fdata_5fchannel_5ftimed_5',['DCEP_DATA_CHANNEL_TIMED',['../Sctp_8h.html#ac30615997d46d1cefff7c8755cd38792a2a1c0b5cc0b1b95c91eb2b98b3a4c472',1,'Sctp.h']]],
+  ['dtls_5fstate_5fhandshake_5fcompleted_6',['DTLS_STATE_HANDSHAKE_COMPLETED',['../Dtls_8h.html#a24a0a539af96854f8039db1b633a5fb8a73871150b59ab7587a35f7a009b1b13b',1,'Dtls.h']]],
+  ['dtls_5fstate_5fhandshake_5ferror_7',['DTLS_STATE_HANDSHAKE_ERROR',['../Dtls_8h.html#a24a0a539af96854f8039db1b633a5fb8a038a551c5f92fa7ceb1a03ca7e609d93',1,'Dtls.h']]],
+  ['dtls_5fstate_5fhandshake_5fin_5fprogress_8',['DTLS_STATE_HANDSHAKE_IN_PROGRESS',['../Dtls_8h.html#a24a0a539af96854f8039db1b633a5fb8a8ea02de644eb6a51bdc39d44af04bbf6',1,'Dtls.h']]],
+  ['dtls_5fstate_5fhandshake_5fnew_9',['DTLS_STATE_HANDSHAKE_NEW',['../Dtls_8h.html#a24a0a539af96854f8039db1b633a5fb8ad698b0b96437d144ef9b67f91f5a1423',1,'Dtls.h']]]
 ];
