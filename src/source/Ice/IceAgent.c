@@ -206,6 +206,11 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
 
     pIceAgent = *ppIceAgent;
 
+    // Join the listener thread first so it is no longer accessing any sockets
+    if (pIceAgent->pConnectionListener != NULL) {
+        CHK_LOG_ERR(freeConnectionListener(&pIceAgent->pConnectionListener));
+    }
+
     if (pIceAgent->localCandidates != NULL) {
         CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
         while (pCurNode != NULL) {
@@ -216,10 +221,6 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
                 CHK_LOG_ERR(freeTurnConnection(&pIceCandidate->pTurnConnection));
             }
         }
-    }
-
-    if (pIceAgent->pConnectionListener != NULL) {
-        CHK_LOG_ERR(freeConnectionListener(&pIceAgent->pConnectionListener));
     }
 
     if (pIceAgent->iceCandidatePairs != NULL) {
