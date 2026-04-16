@@ -31,6 +31,7 @@ enum { SCTP_PPID_DCEP = 50, SCTP_PPID_STRING = 51, SCTP_PPID_BINARY = 53, SCTP_P
 
 enum {
     DCEP_DATA_CHANNEL_OPEN = 0x03,
+    DCEP_DATA_CHANNEL_ACK = 0x02,
 };
 
 typedef enum {
