@@ -292,6 +292,21 @@ int app_webrtc_send_msg_to_signaling(webrtc_message_t *message);
 int app_webrtc_trigger_offer(char *pPeerId);
 
 /**
+ * @brief Create a data channel on the active peer session for @p peer_id.
+ *
+ * The channel's onOpen callback (from app_webrtc_config_t.data_channel_config
+ * or the session-level config) fires when DCEP negotiation completes.
+ *
+ * @param[in] peer_id  Peer identifier — must match an active session.
+ * @param[in] label    UTF-8 channel label (e.g. "control").
+ * @param[in] ordered  true for reliable/ordered SCTP semantics.
+ * @return WEBRTC_STATUS_SUCCESS on success, error otherwise.
+ */
+WEBRTC_STATUS app_webrtc_create_data_channel(const char *peer_id,
+                                             const char *label,
+                                             bool ordered);
+
+/**
  * @brief Get ICE servers configuration from the WebRTC application
  *
  * This function retrieves the ICE server configuration that was obtained from

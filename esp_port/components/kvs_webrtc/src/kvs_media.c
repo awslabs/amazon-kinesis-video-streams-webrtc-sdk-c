@@ -916,6 +916,10 @@ STATUS kvs_media_start_reception(kvs_pc_session_t* session, kvs_media_config_t* 
     // Setup media players
     CHK_STATUS(kvs_media_setup_players(session, config));
 
+    // Register per-transceiver frame callbacks so inbound RTP reaches the
+    // video/audio player interfaces.
+    CHK_STATUS(kvs_media_setup_frame_callbacks(session));
+
     // Start receive thread if needed
     if (config->receive_media && !session->receive_thread_started) {
         CHK_STATUS(THREAD_CREATE_EX_EXT(&session->receive_audio_video_tid, "kvs_receiveAV", 8 * 1024, TRUE,
@@ -1051,15 +1055,15 @@ STATUS kvs_media_setup_frame_callbacks(kvs_pc_session_t* session)
         goto CleanUp;
     }
 
-    // Set up video frame callback
+    // Set up video frame callback (only when the transceiver exists — audio-only
+    // configurations skip the video transceiver entirely in kvs_setupMediaTracks).
     if (session->video_transceiver == NULL) {
-        ESP_LOGW(TAG, "video_transceiver is NULL for peer: %s - cannot set up video callback", session->peer_id);
-        CHK(FALSE, retStatus);  // Return error to retry later
+        ESP_LOGD(TAG, "video_transceiver is NULL for peer: %s - skipping video callback", session->peer_id);
+    } else {
+        CHK_STATUS(transceiverOnFrame(session->video_transceiver,
+                                      POINTER_TO_HANDLE(session),
+                                      kvs_media_video_frame_handler));
     }
-
-    CHK_STATUS(transceiverOnFrame(session->video_transceiver,
-                                  POINTER_TO_HANDLE(session),
-                                  kvs_media_video_frame_handler));
 
     // Set up audio frame callback
     if (session->audio_transceiver == NULL) {
