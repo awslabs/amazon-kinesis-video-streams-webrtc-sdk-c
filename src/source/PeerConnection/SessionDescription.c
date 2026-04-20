@@ -724,9 +724,16 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
 
     if (pRtcMediaStreamTrack->codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
         // TODO: Need additional condition for a signaling channel with an ENABLED media storage configuration
-        if (pKvsPeerConnection->isOffer) {
-            currentFmtp = DEFAULT_H264_FMTP;
-        }
+        //
+        // Advertise our own fmtp on both offer and answer. The previous
+        // answer-path behavior echoed the peer's fmtp, which on Baseline-only
+        // decoders (e.g. tinyh264 on ESP32-P4/S3) caused the SDK to accept
+        // High/Main offers and then fail to decode the resulting stream.
+        // Per RFC 6184 §8.2.2 profile-level-id and packetization-mode are
+        // symmetric parameters; advertising them ourselves correctly reflects
+        // what we will actually send. transceiverSetFmtp() lets callers pin
+        // a different fmtp when their codec needs it.
+        currentFmtp = pKvsRtpTransceiver->fmtpOverride[0] != '\0' ? pKvsRtpTransceiver->fmtpOverride : DEFAULT_H264_FMTP;
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
         amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
                                  SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " H264/90000", payloadType);
@@ -745,13 +752,13 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full H264 rtcp-fb nack-pli value could not be written");
         attributeCount++;
 
-        // TODO: If level asymmetry is allowed, consider sending back DEFAULT_H264_FMTP instead of the received fmtp value.
         if (currentFmtp != NULL) {
             STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fmtp");
             amountWritten =
                 SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
                          SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " %s", payloadType, currentFmtp);
             CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full H264 fmtp value could not be written");
+            DLOGI("H264 fmtp advertised in %s: pt=%" PRId64 " %s", pKvsPeerConnection->isOffer ? "offer" : "answer", payloadType, currentFmtp);
             attributeCount++;
         }
 
