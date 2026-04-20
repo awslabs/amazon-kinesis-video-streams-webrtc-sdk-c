@@ -169,7 +169,9 @@ STATUS freeTurnConnection(PTurnConnection* ppTurnConnection)
     }
     // shutdown control channel
     if (pTurnConnection->pControlChannel) {
-        CHK_LOG_ERR(connectionListenerRemoveConnection(pTurnConnection->pConnectionListener, pTurnConnection->pControlChannel));
+        if (pTurnConnection->pConnectionListener != NULL) {
+            CHK_LOG_ERR(connectionListenerRemoveConnection(pTurnConnection->pConnectionListener, pTurnConnection->pControlChannel));
+        }
         CHK_LOG_ERR(freeSocketConnection(&pTurnConnection->pControlChannel));
     }
 

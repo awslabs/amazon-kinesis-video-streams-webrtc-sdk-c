@@ -82,6 +82,7 @@ class TurnConnectionFunctionalityTest : public WebRtcClientTestBase {
     {
         EXPECT_TRUE(pTurnConnection != NULL);
         EXPECT_EQ(STATUS_SUCCESS, freeConnectionListener(&pConnectionListener));
+        pTurnConnection->pConnectionListener = NULL;
         EXPECT_EQ(STATUS_SUCCESS, freeTurnConnection(&pTurnConnection));
         timerQueueFree(&timerQueueHandle);
         deinitializeSignalingClient();
