@@ -1035,6 +1035,8 @@ STATUS describeChannel(PSignalingClient pSignalingClient, UINT64 time)
         case SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT:
             /* explicit fall-through */
         case SIGNALING_API_CALL_CACHE_TYPE_FILE:
+            /* explicit fall-through */
+        case SIGNALING_API_CALL_CACHE_TYPE_FILE_EXCEPT_DESCRIBE_MEDIA:
             if (IS_VALID_TIMESTAMP(pSignalingClient->describeTime) &&
                 time <= pSignalingClient->describeTime + pSignalingClient->pChannelInfo->cachingPeriod) {
                 apiCall = FALSE;
