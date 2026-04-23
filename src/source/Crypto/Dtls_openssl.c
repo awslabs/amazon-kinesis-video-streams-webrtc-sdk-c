@@ -202,7 +202,17 @@ STATUS createSslCtx(PDtlsSessionCertificateInfo pCertificates, UINT32 certCount,
 #endif
 
     SSL_CTX_set_verify(pSslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, dtlsCertificateVerifyCallback);
-    CHK(SSL_CTX_set_tlsext_use_srtp(pSslCtx, "SRTP_AES128_CM_SHA1_32:SRTP_AES128_CM_SHA1_80") == 0, STATUS_SSL_CTX_CREATION_FAILED);
+
+    // Use AES-256-GCM only for CNSA 1.0 compliance in gov/ADC regions
+    PCHAR pRegion = GETENV(DEFAULT_REGION_ENV_VAR);
+    if (pRegion != NULL && (STRNCMP(pRegion, AWS_GOV_CLOUD_REGION_PREFIX, STRLEN(AWS_GOV_CLOUD_REGION_PREFIX)) == 0 ||
+                            STRNCMP(pRegion, AWS_ISO_REGION_PREFIX, STRLEN(AWS_ISO_REGION_PREFIX)) == 0 ||
+                            STRNCMP(pRegion, AWS_ISO_B_REGION_PREFIX, STRLEN(AWS_ISO_B_REGION_PREFIX)) == 0)) {
+        CHK(SSL_CTX_set_tlsext_use_srtp(pSslCtx, "SRTP_AEAD_AES_256_GCM") == 0, STATUS_SSL_CTX_CREATION_FAILED);
+    } else {
+        CHK(SSL_CTX_set_tlsext_use_srtp(pSslCtx, "SRTP_AEAD_AES_256_GCM:SRTP_AES128_CM_SHA1_32:SRTP_AES128_CM_SHA1_80") == 0,
+            STATUS_SSL_CTX_CREATION_FAILED);
+    }
 
     for (i = 0; i < certCount; i++) {
         CHK(SSL_CTX_use_certificate(pSslCtx, pCertificates[i].pCert) == 1, STATUS_SSL_CTX_CREATION_FAILED);
@@ -815,6 +825,7 @@ STATUS dtlsSessionPopulateKeyingMaterial(PDtlsSession pDtlsSession, PDtlsKeyingM
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 offset = 0;
+    UINT32 masterKeyLen, saltKeyLen;
     BYTE keyingMaterialBuffer[MAX_SRTP_MASTER_KEY_LEN * 2 + MAX_SRTP_SALT_KEY_LEN * 2];
     BOOL locked = FALSE;
 
@@ -824,31 +835,37 @@ STATUS dtlsSessionPopulateKeyingMaterial(PDtlsSession pDtlsSession, PDtlsKeyingM
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
 
-    CHK(SSL_export_keying_material(pDtlsSession->pSsl, keyingMaterialBuffer, SIZEOF(keyingMaterialBuffer), KEYING_EXTRACTOR_LABEL,
-                                   ARRAY_SIZE(KEYING_EXTRACTOR_LABEL) - 1, NULL, 0, 0),
-        STATUS_INTERNAL_ERROR);
-
-    pDtlsKeyingMaterial->key_length = MAX_SRTP_MASTER_KEY_LEN + MAX_SRTP_SALT_KEY_LEN;
-
-    MEMCPY(pDtlsKeyingMaterial->clientWriteKey, &keyingMaterialBuffer[offset], MAX_SRTP_MASTER_KEY_LEN);
-    offset += MAX_SRTP_MASTER_KEY_LEN;
-
-    MEMCPY(pDtlsKeyingMaterial->serverWriteKey, &keyingMaterialBuffer[offset], MAX_SRTP_MASTER_KEY_LEN);
-    offset += MAX_SRTP_MASTER_KEY_LEN;
-
-    MEMCPY(pDtlsKeyingMaterial->clientWriteKey + MAX_SRTP_MASTER_KEY_LEN, &keyingMaterialBuffer[offset], MAX_SRTP_SALT_KEY_LEN);
-    offset += MAX_SRTP_SALT_KEY_LEN;
-
-    MEMCPY(pDtlsKeyingMaterial->serverWriteKey + MAX_SRTP_MASTER_KEY_LEN, &keyingMaterialBuffer[offset], MAX_SRTP_SALT_KEY_LEN);
-
     switch (SSL_get_selected_srtp_profile(pDtlsSession->pSsl)->id) {
         case KVS_SRTP_PROFILE_AES128_CM_HMAC_SHA1_32:
         case KVS_SRTP_PROFILE_AES128_CM_HMAC_SHA1_80:
-            pDtlsKeyingMaterial->srtpProfile = SSL_get_selected_srtp_profile(pDtlsSession->pSsl)->id;
+            masterKeyLen = 16;
+            saltKeyLen = 14;
+            break;
+        case KVS_SRTP_PROFILE_AEAD_AES_256_GCM:
+            masterKeyLen = 32;
+            saltKeyLen = 12;
             break;
         default:
             CHK(FALSE, STATUS_SSL_UNKNOWN_SRTP_PROFILE);
     }
+
+    pDtlsKeyingMaterial->srtpProfile = SSL_get_selected_srtp_profile(pDtlsSession->pSsl)->id;
+    pDtlsKeyingMaterial->key_length = (UINT8)(masterKeyLen + saltKeyLen);
+
+    CHK(SSL_export_keying_material(pDtlsSession->pSsl, keyingMaterialBuffer, masterKeyLen * 2 + saltKeyLen * 2, KEYING_EXTRACTOR_LABEL,
+                                   ARRAY_SIZE(KEYING_EXTRACTOR_LABEL) - 1, NULL, 0, 0),
+        STATUS_INTERNAL_ERROR);
+
+    MEMCPY(pDtlsKeyingMaterial->clientWriteKey, &keyingMaterialBuffer[offset], masterKeyLen);
+    offset += masterKeyLen;
+
+    MEMCPY(pDtlsKeyingMaterial->serverWriteKey, &keyingMaterialBuffer[offset], masterKeyLen);
+    offset += masterKeyLen;
+
+    MEMCPY(pDtlsKeyingMaterial->clientWriteKey + masterKeyLen, &keyingMaterialBuffer[offset], saltKeyLen);
+    offset += saltKeyLen;
+
+    MEMCPY(pDtlsKeyingMaterial->serverWriteKey + masterKeyLen, &keyingMaterialBuffer[offset], saltKeyLen);
 
 CleanUp:
     if (locked) {
