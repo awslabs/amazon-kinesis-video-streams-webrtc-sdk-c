@@ -520,6 +520,7 @@ STATUS dtlsSessionPopulateKeyingMaterial(PDtlsSession pDtlsSession, PDtlsKeyingM
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 offset = 0;
+    UINT32 masterKeyLen = 0, saltKeyLen = 0;
     BOOL locked = FALSE;
     PTlsKeys pKeys;
     BYTE keyingMaterialBuffer[MAX_SRTP_MASTER_KEY_LEN * 2 + MAX_SRTP_SALT_KEY_LEN * 2];
@@ -531,23 +532,6 @@ STATUS dtlsSessionPopulateKeyingMaterial(PDtlsSession pDtlsSession, PDtlsKeyingM
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
 
-    CHK(mbedtls_ssl_tls_prf(pKeys->tlsProfile, pKeys->masterSecret, ARRAY_SIZE(pKeys->masterSecret), KEYING_EXTRACTOR_LABEL, pKeys->randBytes,
-                            ARRAY_SIZE(pKeys->randBytes), keyingMaterialBuffer, ARRAY_SIZE(keyingMaterialBuffer)) == 0,
-        STATUS_INTERNAL_ERROR);
-
-    pDtlsKeyingMaterial->key_length = MAX_SRTP_MASTER_KEY_LEN + MAX_SRTP_SALT_KEY_LEN;
-
-    MEMCPY(pDtlsKeyingMaterial->clientWriteKey, &keyingMaterialBuffer[offset], MAX_SRTP_MASTER_KEY_LEN);
-    offset += MAX_SRTP_MASTER_KEY_LEN;
-
-    MEMCPY(pDtlsKeyingMaterial->serverWriteKey, &keyingMaterialBuffer[offset], MAX_SRTP_MASTER_KEY_LEN);
-    offset += MAX_SRTP_MASTER_KEY_LEN;
-
-    MEMCPY(pDtlsKeyingMaterial->clientWriteKey + MAX_SRTP_MASTER_KEY_LEN, &keyingMaterialBuffer[offset], MAX_SRTP_SALT_KEY_LEN);
-    offset += MAX_SRTP_SALT_KEY_LEN;
-
-    MEMCPY(pDtlsKeyingMaterial->serverWriteKey + MAX_SRTP_MASTER_KEY_LEN, &keyingMaterialBuffer[offset], MAX_SRTP_SALT_KEY_LEN);
-
     mbedtls_ssl_get_dtls_srtp_negotiation_result(&pDtlsSession->sslCtx, &negotiatedSRTPProfile);
 #if MBEDTLS_BEFORE_V3
     switch (negotiatedSRTPProfile.chosen_dtls_srtp_profile) {
@@ -555,14 +539,35 @@ STATUS dtlsSessionPopulateKeyingMaterial(PDtlsSession pDtlsSession, PDtlsKeyingM
     switch (negotiatedSRTPProfile.MBEDTLS_PRIVATE(chosen_dtls_srtp_profile)) {
 #endif
         case MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_80:
+            masterKeyLen = 16;
+            saltKeyLen = 14;
             pDtlsKeyingMaterial->srtpProfile = KVS_SRTP_PROFILE_AES128_CM_HMAC_SHA1_80;
             break;
         case MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_32:
+            masterKeyLen = 16;
+            saltKeyLen = 14;
             pDtlsKeyingMaterial->srtpProfile = KVS_SRTP_PROFILE_AES128_CM_HMAC_SHA1_32;
             break;
         default:
             CHK(FALSE, STATUS_SSL_UNKNOWN_SRTP_PROFILE);
     }
+
+    pDtlsKeyingMaterial->key_length = (UINT8) (masterKeyLen + saltKeyLen);
+
+    CHK(mbedtls_ssl_tls_prf(pKeys->tlsProfile, pKeys->masterSecret, ARRAY_SIZE(pKeys->masterSecret), KEYING_EXTRACTOR_LABEL, pKeys->randBytes,
+                            ARRAY_SIZE(pKeys->randBytes), keyingMaterialBuffer, masterKeyLen * 2 + saltKeyLen * 2) == 0,
+        STATUS_INTERNAL_ERROR);
+
+    MEMCPY(pDtlsKeyingMaterial->clientWriteKey, &keyingMaterialBuffer[offset], masterKeyLen);
+    offset += masterKeyLen;
+
+    MEMCPY(pDtlsKeyingMaterial->serverWriteKey, &keyingMaterialBuffer[offset], masterKeyLen);
+    offset += masterKeyLen;
+
+    MEMCPY(pDtlsKeyingMaterial->clientWriteKey + masterKeyLen, &keyingMaterialBuffer[offset], saltKeyLen);
+    offset += saltKeyLen;
+
+    MEMCPY(pDtlsKeyingMaterial->serverWriteKey + masterKeyLen, &keyingMaterialBuffer[offset], saltKeyLen);
 
 CleanUp:
 

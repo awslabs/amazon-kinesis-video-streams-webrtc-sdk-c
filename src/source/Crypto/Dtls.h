@@ -13,6 +13,7 @@
 extern "C" {
 #endif
 
+/* Storage sized for the largest SRTP profile we support. Negotiated lengths remain profile-specific. */
 #define MAX_SRTP_MASTER_KEY_LEN   32
 #define MAX_SRTP_SALT_KEY_LEN     14
 #define MAX_DTLS_RANDOM_BYTES_LEN 32
