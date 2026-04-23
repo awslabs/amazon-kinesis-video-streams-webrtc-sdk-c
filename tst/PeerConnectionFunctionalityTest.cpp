@@ -794,10 +794,11 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
     RtcOutboundRtpStreamStats stats{};
     EXPECT_EQ(STATUS_SUCCESS, getRtpOutboundStats(offerPc, offerVideoTransceiver, &stats));
     EXPECT_EQ(206, stats.sent.packetsSent);
+    // bytesSent varies by SRTP profile: AES-128-CM (10-byte tag) vs AES-256-GCM (16-byte tag)
 #ifdef KVS_USE_MBEDTLS
     EXPECT_EQ(248026, stats.sent.bytesSent);
 #else
-    EXPECT_EQ(246790, stats.sent.bytesSent);
+    EXPECT_TRUE(stats.sent.bytesSent == 246790 || stats.sent.bytesSent == 249262);
 #endif
     EXPECT_EQ(2, stats.framesSent);
     EXPECT_EQ(2472, stats.headerBytesSent);
