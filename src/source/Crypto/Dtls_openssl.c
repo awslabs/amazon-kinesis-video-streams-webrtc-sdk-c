@@ -205,9 +205,10 @@ STATUS createSslCtx(PDtlsSessionCertificateInfo pCertificates, UINT32 certCount,
 
     // Use AES-256-GCM only for CNSA 1.0 compliance in gov/ADC regions
     PCHAR pRegion = GETENV(DEFAULT_REGION_ENV_VAR);
-    if (pRegion != NULL && (STRNCMP(pRegion, AWS_GOV_CLOUD_REGION_PREFIX, STRLEN(AWS_GOV_CLOUD_REGION_PREFIX)) == 0 ||
-                            STRNCMP(pRegion, AWS_ISO_REGION_PREFIX, STRLEN(AWS_ISO_REGION_PREFIX)) == 0 ||
-                            STRNCMP(pRegion, AWS_ISO_B_REGION_PREFIX, STRLEN(AWS_ISO_B_REGION_PREFIX)) == 0)) {
+    if (pRegion != NULL &&
+        (STRNCMP(pRegion, AWS_GOV_CLOUD_REGION_PREFIX, STRLEN(AWS_GOV_CLOUD_REGION_PREFIX)) == 0 ||
+         STRNCMP(pRegion, AWS_ISO_REGION_PREFIX, STRLEN(AWS_ISO_REGION_PREFIX)) == 0 ||
+         STRNCMP(pRegion, AWS_ISO_B_REGION_PREFIX, STRLEN(AWS_ISO_B_REGION_PREFIX)) == 0)) {
         CHK(SSL_CTX_set_tlsext_use_srtp(pSslCtx, "SRTP_AEAD_AES_256_GCM") == 0, STATUS_SSL_CTX_CREATION_FAILED);
     } else {
         CHK(SSL_CTX_set_tlsext_use_srtp(pSslCtx, "SRTP_AEAD_AES_256_GCM:SRTP_AES128_CM_SHA1_32:SRTP_AES128_CM_SHA1_80") == 0,
@@ -850,7 +851,7 @@ STATUS dtlsSessionPopulateKeyingMaterial(PDtlsSession pDtlsSession, PDtlsKeyingM
     }
 
     pDtlsKeyingMaterial->srtpProfile = SSL_get_selected_srtp_profile(pDtlsSession->pSsl)->id;
-    pDtlsKeyingMaterial->key_length = (UINT8)(masterKeyLen + saltKeyLen);
+    pDtlsKeyingMaterial->key_length = (UINT8) (masterKeyLen + saltKeyLen);
 
     CHK(SSL_export_keying_material(pDtlsSession->pSsl, keyingMaterialBuffer, masterKeyLen * 2 + saltKeyLen * 2, KEYING_EXTRACTOR_LABEL,
                                    ARRAY_SIZE(KEYING_EXTRACTOR_LABEL) - 1, NULL, 0, 0),
