@@ -32,10 +32,10 @@ jobs:
 
     steps:
       - name: Clone repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
@@ -49,7 +49,7 @@ jobs:
           sudo apt-get -y install zlib1g-dev libcurl4-openssl-dev
 
       - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v2
+        uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
           cmake-version: '3.x'
 
@@ -78,10 +78,10 @@ jobs:
 
     steps:
       - name: Clone repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
@@ -95,7 +95,7 @@ jobs:
           sudo apt-get -y install zlib1g-dev libcurl4-openssl-dev
 
       - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v2
+        uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
           cmake-version: '3.x'
 
@@ -119,7 +119,7 @@ jobs:
   #     AWS_KVS_LOG_LEVEL: 2
   #   steps:
   #     - name: Clone repository
-  #       uses: actions/checkout@v4
+  #       uses: actions/checkout@v6
   #     - name: Install dependencies
   #       run: |
   #         sudo apt clean && sudo apt update
@@ -147,7 +147,7 @@ jobs:
 
     steps:
       - name: Clone repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Install dependencies
         run: |
           apt-get update
@@ -157,7 +157,7 @@ jobs:
           apt-get -y install zlib1g-dev libcurl4-openssl-dev
 
       - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v2
+        uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
           cmake-version: '3.x'
 
@@ -169,7 +169,7 @@ jobs:
           make -j
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
