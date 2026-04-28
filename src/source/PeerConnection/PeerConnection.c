@@ -1507,8 +1507,8 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
         pKvsPeerConnection->twccExtId = remoteTwccExtId;
         DLOGD("TWCC enabled, ext id: %u", pKvsPeerConnection->twccExtId);
     } else if (remoteHasTwccExtmap || remoteHasTwccRtcpFb) {
-        DLOGI("TWCC not supported by remote (extmap=%s, rtcp-fb=%s), not enabling",
-              remoteHasTwccExtmap ? "yes" : "no", remoteHasTwccRtcpFb ? "yes" : "no");
+        DLOGI("TWCC not supported by remote (extmap=%s, rtcp-fb=%s), not enabling", remoteHasTwccExtmap ? "yes" : "no",
+              remoteHasTwccRtcpFb ? "yes" : "no");
     }
 
     CHK(remoteIceUfrag != NULL && remoteIcePwd != NULL, STATUS_SESSION_DESCRIPTION_MISSING_ICE_VALUES);
