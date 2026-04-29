@@ -299,12 +299,12 @@ int app_webrtc_trigger_offer(char *pPeerId);
  *
  * @param[in] peer_id  Peer identifier — must match an active session.
  * @param[in] label    UTF-8 channel label (e.g. "control").
- * @param[in] ordered  true for reliable/ordered SCTP semantics.
+ * @param[in] pInit    Data channel init parameters (NULL for defaults: ordered=true).
  * @return WEBRTC_STATUS_SUCCESS on success, error otherwise.
  */
 WEBRTC_STATUS app_webrtc_create_data_channel(const char *peer_id,
                                              const char *label,
-                                             bool ordered);
+                                             const app_webrtc_data_channel_init_t *pInit);
 
 /**
  * @brief Get ICE servers configuration from the WebRTC application

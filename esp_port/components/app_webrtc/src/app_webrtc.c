@@ -7,7 +7,6 @@
 
 #include "app_webrtc.h"
 #include "app_webrtc_internal.h"
-#include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
 #include "webrtc_mem_utils.h"
 #include "esp_work_queue.h"
 
@@ -2688,7 +2687,7 @@ static PAppWebRTCSession find_session_by_peer_id(const char *peer_id)
  */
 WEBRTC_STATUS app_webrtc_create_data_channel(const char *peer_id,
                                              const char *label,
-                                             bool ordered)
+                                             const app_webrtc_data_channel_init_t *pInit)
 {
     ENTERS();
     WEBRTC_STATUS retStatus = WEBRTC_STATUS_SUCCESS;
@@ -2704,15 +2703,9 @@ WEBRTC_STATUS app_webrtc_create_data_channel(const char *peer_id,
         CHK(FALSE, WEBRTC_STATUS_INVALID_OPERATION);
     }
 
-    RtcDataChannelInit dcInit;
-    MEMSET(&dcInit, 0x00, SIZEOF(RtcDataChannelInit));
-    dcInit.ordered = ordered ? TRUE : FALSE;
-    NULLABLE_SET_EMPTY(dcInit.maxPacketLifeTime);
-    NULLABLE_SET_EMPTY(dcInit.maxRetransmits);
-
     void *pChannel = NULL;
     retStatus = gWebRtcAppConfig.peer_connection_if->create_data_channel(
-        pSession->interface_session_handle, label, &dcInit, &pChannel);
+        pSession->interface_session_handle, label, pInit, &pChannel);
 
 CleanUp:
     if (WEBRTC_STATUS_FAILED(retStatus)) {

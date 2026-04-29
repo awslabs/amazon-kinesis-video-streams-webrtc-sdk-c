@@ -1473,7 +1473,8 @@ CleanUp:
  * @return WEBRTC_STATUS
  */
 static WEBRTC_STATUS kvs_pc_create_data_channel(void *pSession, const char *channelName,
-                                               void *pDataChannelInit, void **ppDataChannel)
+                                               const app_webrtc_data_channel_init_t *pInit,
+                                               void **ppDataChannel)
 {
     STATUS retStatus = STATUS_SUCCESS;
     kvs_pc_session_t *session = NULL;
@@ -1486,9 +1487,14 @@ static WEBRTC_STATUS kvs_pc_create_data_channel(void *pSession, const char *chan
 
     ESP_LOGI(TAG, "Creating data channel '%s' for peer: %s", channelName, session->peer_id);
 
-    // Create the data channel
+    RtcDataChannelInit dcInit;
+    MEMSET(&dcInit, 0x00, SIZEOF(RtcDataChannelInit));
+    dcInit.ordered = (pInit != NULL) ? (pInit->ordered ? TRUE : FALSE) : TRUE;
+    NULLABLE_SET_EMPTY(dcInit.maxPacketLifeTime);
+    NULLABLE_SET_EMPTY(dcInit.maxRetransmits);
+
     CHK_STATUS(createDataChannel(session->peer_connection, (PCHAR)channelName,
-                                (PRtcDataChannelInit)pDataChannelInit, &pDataChannel));
+                                 &dcInit, &pDataChannel));
 
     // Store the data channel in the session
     session->data_channel = pDataChannel;
@@ -1601,7 +1607,8 @@ CleanUp:
  * @brief Stub implementation for data channel creation when data channels are disabled
  */
 static WEBRTC_STATUS kvs_pc_create_data_channel(void *pSession, const char *channelName,
-                                                void *pDataChannelInit, void **ppDataChannel)
+                                                const app_webrtc_data_channel_init_t *pInit,
+                                                void **ppDataChannel)
 {
     ESP_LOGW(TAG, "Data channel support is disabled");
     return WEBRTC_STATUS_NOT_IMPLEMENTED;

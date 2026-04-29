@@ -275,6 +275,14 @@ typedef struct {
 } webrtc_data_channel_config_t;
 
 /**
+ * @brief Configuration for creating a data channel.
+ *
+ */
+typedef struct {
+    bool ordered; //!< true for reliable/ordered SCTP semantics
+} app_webrtc_data_channel_init_t;
+
+/**
  * @brief Generic WebRTC peer connection configuration
  *
  * This configuration can be used by any peer connection implementation
@@ -343,7 +351,7 @@ typedef struct {
     // Create a data channel for a session
     WEBRTC_STATUS (*create_data_channel)(void *pSession,
                                         const char *channelName,
-                                        void *pDataChannelInit,
+                                        const app_webrtc_data_channel_init_t *pInit,
                                         void **ppDataChannel);
 
     // Event handler registration
