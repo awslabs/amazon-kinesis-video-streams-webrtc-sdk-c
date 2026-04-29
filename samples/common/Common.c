@@ -1196,7 +1196,7 @@ STATUS pregenerateCertTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 c
 
     // Quick check if there is anything that needs to be done.
     CHK_STATUS(stackQueueGetCount(pSampleConfiguration->pregeneratedCertificates, &certCount));
-    CHK(certCount != pSampleConfiguration->pregenerateCertificatesMax, retStatus);
+    CHK(certCount < pSampleConfiguration->pregenerateCertificatesMax, retStatus);
 
     // Generate the certificate with the keypair
     CHK_STATUS(createRtcCertificate(&pRtcCertificate));
