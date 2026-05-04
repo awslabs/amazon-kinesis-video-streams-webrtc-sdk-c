@@ -49,7 +49,7 @@ TEST_F(RtpFunctionalityTest, marshallUnmarshallGettingSameData)
     EXPECT_EQ(STATUS_SUCCESS,
               constructRtpPackets(&payloadArray, 8, 1, 1324857487, 0x1234ABCD, (PRtpPacket) packetList, payloadArray.payloadSubLenSize));
 
-    EXPECT_NE(NULL, (UINT64) packetList);
+    EXPECT_TRUE(packetList != NULL);
 
     for (i = 0; i < payloadArray.payloadSubLenSize; i++) {
         pRtpPacket = packetList + i;
