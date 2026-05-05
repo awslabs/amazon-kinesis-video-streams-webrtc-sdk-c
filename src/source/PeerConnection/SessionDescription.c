@@ -630,8 +630,8 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     }
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fingerprint");
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "sha-256 ");
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue + 8, pCertificateFingerprint);
+    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, DTLS_FINGERPRINT_SHA256_PREFIX);
+    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue + DTLS_FINGERPRINT_SHA256_PREFIX_LEN, pCertificateFingerprint);
     attributeCount++;
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "setup");
@@ -947,8 +947,8 @@ STATUS populateSessionDescriptionDataChannel(PKvsPeerConnection pKvsPeerConnecti
     }
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "fingerprint");
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "sha-256 ");
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue + 8, pCertificateFingerprint);
+    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, DTLS_FINGERPRINT_SHA256_PREFIX);
+    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue + DTLS_FINGERPRINT_SHA256_PREFIX_LEN, pCertificateFingerprint);
     attributeCount++;
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "setup");

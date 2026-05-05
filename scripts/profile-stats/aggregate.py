@@ -12,8 +12,8 @@ from tabulate import tabulate
 def parse_profile_logs(log_file):
     stats = defaultdict(list)
     order = {}
-    pattern1 = r"PROFILE\s+\w+\(\):\s+\[([^\]]+)\]\s+Time taken:\s+(\d+)\s+ms"
-    pattern2 = r"PROFILE\s+\w+\(\):\s+\[([^\]]+)\]\s+(\d+)\s+ms"
+    pattern1 = r"PROFILE\s+\w+\(\):\s+\[([^\]]+)\]\s+Time taken:\s+(\d+(?:\.\d+)?)\s+ms"
+    pattern2 = r"PROFILE\s+\w+\(\):\s+\[([^\]]+)\]\s+(\d+(?:\.\d+)?)\s+ms"
 
     with open(log_file, "r") as f:
         for line in f:
@@ -22,7 +22,7 @@ def parse_profile_logs(log_file):
                 metric, time = match.groups()
                 if metric not in order:
                     order[metric] = len(order)
-                stats[metric].append(int(time))
+                stats[metric].append(float(time))
 
     return stats, order
 

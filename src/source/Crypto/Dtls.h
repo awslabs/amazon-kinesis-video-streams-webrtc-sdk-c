@@ -26,6 +26,14 @@ extern "C" {
 #define GENERATED_CERTIFICATE_NAME     "KVS-WebRTC-Client"
 #define KEYING_EXTRACTOR_LABEL         "EXTRACTOR-dtls_srtp"
 
+// All DTLS certificate fingerprints emitted and validated by this SDK use
+// SHA-256 (see `dtlsCertificateFingerprint` in both Dtls_mbedtls.c and
+// Dtls_openssl.c). The corresponding `a=fingerprint:` SDP attribute value is
+// therefore prefixed by "sha-256 " (RFC 8122 §5).
+#define DTLS_FINGERPRINT_SHA256_HASH_NAME  "sha-256"
+#define DTLS_FINGERPRINT_SHA256_PREFIX     DTLS_FINGERPRINT_SHA256_HASH_NAME " "
+#define DTLS_FINGERPRINT_SHA256_PREFIX_LEN (SIZEOF(DTLS_FINGERPRINT_SHA256_PREFIX) - 1)
+
 /*
  * DTLS transmission interval timer (in 100ns)
  */

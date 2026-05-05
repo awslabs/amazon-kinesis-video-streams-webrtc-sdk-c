@@ -49,7 +49,7 @@ TEST_F(RtpFunctionalityTest, marshallUnmarshallGettingSameData)
     EXPECT_EQ(STATUS_SUCCESS,
               constructRtpPackets(&payloadArray, 8, 1, 1324857487, 0x1234ABCD, (PRtpPacket) packetList, payloadArray.payloadSubLenSize));
 
-    EXPECT_NE(NULL, (UINT64) packetList);
+    EXPECT_TRUE(packetList != NULL);
 
     for (i = 0; i < payloadArray.payloadSubLenSize; i++) {
         pRtpPacket = packetList + i;
@@ -412,6 +412,21 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameOpusFrame)
     MEMFREE(payloadArray.payloadBuffer);
     MEMFREE(payloadArray.payloadSubLength);
     MEMFREE(depayload);
+}
+
+TEST_F(RtpFunctionalityTest, packingEmptyOpusFrameReturnsZeroSubLenSize)
+{
+    BYTE payload[] = {0x00};
+    PayloadArray payloadArray;
+
+    payloadArray.payloadLength = 0;
+    payloadArray.payloadSubLenSize = 0;
+
+    EXPECT_EQ(STATUS_SUCCESS,
+              createPayloadForOpus(DEFAULT_MTU_SIZE_BYTES, (PBYTE) &payload, 0, NULL, &payloadArray.payloadLength, NULL,
+                                   &payloadArray.payloadSubLenSize));
+    EXPECT_EQ(0, payloadArray.payloadLength);
+    EXPECT_EQ(0, payloadArray.payloadSubLenSize);
 }
 
 TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameShortG711Frame)

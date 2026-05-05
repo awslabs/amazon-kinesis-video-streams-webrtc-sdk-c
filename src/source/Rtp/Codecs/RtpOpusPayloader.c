@@ -14,6 +14,7 @@ STATUS createPayloadForOpus(UINT32 mtu, PBYTE opusFrame, UINT32 opusFrameLength,
 
     CHK(opusFrame != NULL && pPayloadSubLenSize != NULL && pPayloadLength != NULL && (sizeCalculationOnly || pPayloadSubLength != NULL),
         STATUS_NULL_ARG);
+    CHK(opusFrameLength > 0, retStatus);
 
     payloadLength = opusFrameLength;
     payloadSubLenSize = 1;

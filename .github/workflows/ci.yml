@@ -24,7 +24,7 @@ jobs:
 
     steps:
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           aws-region: ${{ secrets.AWS_REGION }}
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
@@ -38,7 +38,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: 'aws-samples/amazon-kinesis-video-streams-demos'
           path: demos-repo
@@ -55,7 +55,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Setup credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           aws-region: ${{ secrets.AWS_REGION }}
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
@@ -96,15 +96,15 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v2
+        uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
           cmake-version: '3.x'
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
@@ -153,9 +153,9 @@ jobs:
 #      contents: read
 #    steps:
 #      - name: Clone repository
-#        uses: actions/checkout@v4
+#        uses: actions/checkout@v6
 #      - name: Configure AWS Credentials
-#        uses: aws-actions/configure-aws-credentials@v4
+#        uses: aws-actions/configure-aws-credentials@v6
 #        with:
 #          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
 #          aws-region: ${{ secrets.AWS_REGION }}
@@ -171,7 +171,7 @@ jobs:
 #          sudo apt-get -y install gdb
 #          sudo apt-get -y install libcurl4-openssl-dev
 #      - name: Setup cmake
-#        uses: jwlawson/actions-setup-cmake@v2
+#        uses: jwlawson/actions-setup-cmake@v2.2.0
 #        with:
 #          cmake-version: '3.x'
 #      - name: Build repository
@@ -189,7 +189,7 @@ jobs:
   static-build-alpine-linux:
     runs-on: ubuntu-22.04
     container:
-      image: alpine:3.15.4
+      image: alpine:3.20.0
     env:
       CC: gcc
       CXX: g++
@@ -198,7 +198,7 @@ jobs:
       contents: read
     steps:
       - name: Clone repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Install dependencies
         run: |
           apk update
@@ -225,7 +225,7 @@ jobs:
 
     steps:
       - name: Clone repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Install deps
         run: |
           apt-get update
@@ -238,7 +238,7 @@ jobs:
           apt-get -y install gcc-4.4
 
       - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v2
+        uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
           cmake-version: '3.x'
 
@@ -250,7 +250,7 @@ jobs:
           make -j
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
@@ -293,7 +293,7 @@ jobs:
 
     steps:
       - name: Clone repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install dependencies
         run: |
@@ -316,7 +316,7 @@ jobs:
           echo "CXX=clang++" >> $GITHUB_ENV
 
       - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v2
+        uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
           cmake-version: '3.x'
 
@@ -329,7 +329,7 @@ jobs:
 
       - name: Configure AWS Credentials
         if: ${{ matrix.container.test == 'ON' }}
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
@@ -349,7 +349,7 @@ jobs:
       contents: read
     steps:
       - name: Clone repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Move cloned repo to shorter path
         shell: powershell
         run: |
@@ -380,7 +380,7 @@ jobs:
       #     cmake .. -DLWS_HAVE_PTHREAD_H=1 -DLWS_EXT_PTHREAD_INCLUDE_DIR="C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\include" -DLWS_EXT_PTHREAD_LIBRARIES="C:\\tools\\pthreads-w32-2-9-1-release\\Pre-built.2\\lib\\x64\\libpthreadGC2.a" -DLWS_WITH_MINIMAL_EXAMPLES=1 -DLWS_OPENSSL_INCLUDE_DIRS="C:\\Program Files\\OpenSSL\\include" -DLWS_OPENSSL_LIBRARIES="C:\\Program Files\\OpenSSL\\lib\\libssl.lib;C:\\Program Files\\OpenSSL\\lib\\libcrypto.lib"
       #     cmake --build . --config DEBUG
       - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v2
+        uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
           cmake-version: '3.x'
       - name: Build repository
@@ -390,7 +390,7 @@ jobs:
           git config --system core.longpaths true
           .github\build_windows_openssl.bat
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
@@ -405,7 +405,7 @@ jobs:
   #     AWS_KVS_LOG_LEVEL: 7
   #   steps:
   #     - name: Clone repository
-  #       uses: actions/checkout@v4
+  #       uses: actions/checkout@v6
   #     - name: Move cloned repo
   #       shell: powershell
   #       run: |
@@ -440,10 +440,10 @@ jobs:
 
     steps:
       - name: Clone repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v2
+        uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
           cmake-version: '3.x'
 
@@ -468,10 +468,10 @@ jobs:
 
     steps:
       - name: Clone repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v2
+        uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
           cmake-version: '3.x'
 

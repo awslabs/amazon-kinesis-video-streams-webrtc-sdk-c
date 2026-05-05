@@ -61,11 +61,11 @@ TEST_F(RollingBufferFunctionalityTest, insertDataToBufferAndVerify)
     EXPECT_EQ(STATUS_ROLLING_BUFFER_NOT_IN_RANGE, rollingBufferInsertData(pRollingBuffer, 0, second));
     EXPECT_EQ(3, pRollingBuffer->headIndex);
     EXPECT_EQ(1, pRollingBuffer->tailIndex);
-    EXPECT_EQ(NULL, pRollingBuffer->dataBuffer[0]);
+    EXPECT_EQ((UINT64) 0, pRollingBuffer->dataBuffer[0]);
     EXPECT_EQ(STATUS_ROLLING_BUFFER_NOT_IN_RANGE, rollingBufferInsertData(pRollingBuffer, 3, third));
     EXPECT_EQ(3, pRollingBuffer->headIndex);
     EXPECT_EQ(1, pRollingBuffer->tailIndex);
-    EXPECT_EQ(NULL, pRollingBuffer->dataBuffer[3]);
+    EXPECT_EQ((UINT64) 0, pRollingBuffer->dataBuffer[3]);
     EXPECT_EQ(STATUS_SUCCESS, rollingBufferInsertData(pRollingBuffer, 2, fourth));
     EXPECT_EQ(3, pRollingBuffer->headIndex);
     EXPECT_EQ(1, pRollingBuffer->tailIndex);
@@ -73,7 +73,7 @@ TEST_F(RollingBufferFunctionalityTest, insertDataToBufferAndVerify)
     EXPECT_EQ(STATUS_ROLLING_BUFFER_NOT_IN_RANGE, rollingBufferInsertData(pRollingBuffer, 5, fifth));
     EXPECT_EQ(3, pRollingBuffer->headIndex);
     EXPECT_EQ(1, pRollingBuffer->tailIndex);
-    EXPECT_EQ(NULL, pRollingBuffer->dataBuffer[5]);
+    EXPECT_EQ((UINT64) 0, pRollingBuffer->dataBuffer[5]);
     EXPECT_EQ(STATUS_SUCCESS, freeRollingBuffer(&pRollingBuffer));
 }
 
@@ -98,7 +98,7 @@ TEST_F(RollingBufferFunctionalityTest, extractDataFromBufferAndInsertBack)
     EXPECT_EQ(STATUS_SUCCESS, rollingBufferExtractData(pRollingBuffer, 2, &data));
     EXPECT_EQ(third, data);
     EXPECT_EQ(STATUS_SUCCESS, rollingBufferExtractData(pRollingBuffer, 2, &data));
-    EXPECT_EQ(NULL, data);
+    EXPECT_EQ((UINT64) 0, data);
     EXPECT_EQ(STATUS_SUCCESS, rollingBufferInsertData(pRollingBuffer, 2, third));
     EXPECT_EQ(third, pRollingBuffer->dataBuffer[2]);
     EXPECT_EQ(STATUS_SUCCESS, rollingBufferInsertData(pRollingBuffer, 3, third));
