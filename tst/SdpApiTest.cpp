@@ -129,6 +129,50 @@ a=candidate:842163049 1 udp 1677729535 54.240.196.188 15632 typ srflx raddr 10.1
     });
 }
 
+TEST_F(SdpApiTest, deserializeSessionDescription_SessionNameTruncatedAtMaxLength)
+{
+    std::string longName(MAX_SDP_SESSION_NAME_LENGTH + 50, 'A');
+    std::string sdpStr = "v=0\ns=" + longName + "\n";
+
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescription(&sessionDescription, (PCHAR) sdpStr.c_str()));
+    EXPECT_EQ(STRLEN(sessionDescription.sessionName), (UINT32) MAX_SDP_SESSION_NAME_LENGTH);
+}
+
+TEST_F(SdpApiTest, deserializeSessionDescription_UriTruncatedAtMaxLength)
+{
+    std::string longUri(MAX_SDP_SESSION_URI_LENGTH + 50, 'A');
+    std::string sdpStr = "v=0\nu=" + longUri + "\n";
+
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescription(&sessionDescription, (PCHAR) sdpStr.c_str()));
+    EXPECT_EQ(STRLEN(sessionDescription.uri), (UINT32) MAX_SDP_SESSION_URI_LENGTH);
+}
+
+TEST_F(SdpApiTest, deserializeSessionDescription_EmailAddressTruncatedAtMaxLength)
+{
+    std::string longEmail(MAX_SDP_SESSION_EMAIL_ADDRESS_LENGTH + 50, 'A');
+    std::string sdpStr = "v=0\ne=" + longEmail + "\n";
+
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescription(&sessionDescription, (PCHAR) sdpStr.c_str()));
+    EXPECT_EQ(STRLEN(sessionDescription.emailAddress), (UINT32) MAX_SDP_SESSION_EMAIL_ADDRESS_LENGTH);
+}
+
+TEST_F(SdpApiTest, deserializeSessionDescription_PhoneNumberTruncatedAtMaxLength)
+{
+    std::string longPhone(MAX_SDP_SESSION_PHONE_NUMBER_LENGTH + 50, 'A');
+    std::string sdpStr = "v=0\np=" + longPhone + "\n";
+
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescription(&sessionDescription, (PCHAR) sdpStr.c_str()));
+    EXPECT_EQ(STRLEN(sessionDescription.phoneNumber), (UINT32) MAX_SDP_SESSION_PHONE_NUMBER_LENGTH);
+}
+
 auto populate_session_description = [](PSessionDescription pSessionDescription) {
     MEMSET(pSessionDescription, 0x00, SIZEOF(SessionDescription));
 

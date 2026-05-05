@@ -106,7 +106,7 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
             // SDP Session Name
             if (0 == STRNCMP(curr, SDP_SESSION_NAME_MARKER, (ARRAY_SIZE(SDP_SESSION_NAME_MARKER) - 1))) {
                 STRNCPY(pSessionDescription->sessionName, (curr + SDP_ATTRIBUTE_LENGTH),
-                        MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
+                        MIN(MAX_SDP_SESSION_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
             }
 
             // SDP Session Name
@@ -117,19 +117,19 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
 
             // SDP URI
             if (0 == STRNCMP(curr, SDP_URI_MARKER, (ARRAY_SIZE(SDP_URI_MARKER) - 1))) {
-                STRNCPY(pSessionDescription->uri, (curr + SDP_ATTRIBUTE_LENGTH), MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
+                STRNCPY(pSessionDescription->uri, (curr + SDP_ATTRIBUTE_LENGTH), MIN(MAX_SDP_SESSION_URI_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
             }
 
             // SDP Email Address
             if (0 == STRNCMP(curr, SDP_EMAIL_ADDRESS_MARKER, (ARRAY_SIZE(SDP_EMAIL_ADDRESS_MARKER) - 1))) {
                 STRNCPY(pSessionDescription->emailAddress, (curr + SDP_ATTRIBUTE_LENGTH),
-                        MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
+                        MIN(MAX_SDP_SESSION_EMAIL_ADDRESS_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
             }
 
             // SDP Phone number
             if (0 == STRNCMP(curr, SDP_PHONE_NUMBER_MARKER, (ARRAY_SIZE(SDP_PHONE_NUMBER_MARKER) - 1))) {
                 STRNCPY(pSessionDescription->phoneNumber, (curr + SDP_ATTRIBUTE_LENGTH),
-                        MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
+                        MIN(MAX_SDP_SESSION_PHONE_NUMBER_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
             }
 
             if (0 == STRNCMP(curr, SDP_VERSION_MARKER, (ARRAY_SIZE(SDP_VERSION_MARKER) - 1))) {
