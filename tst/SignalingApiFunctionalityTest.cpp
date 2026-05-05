@@ -3377,6 +3377,130 @@ TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateCache)
     EXPECT_EQ(STATUS_SUCCESS, signalingCacheSaveToFile(&testEntry, DEFAULT_CACHE_FILE_PATH));
 }
 
+// Verifies that under SIGNALING_API_CALL_CACHE_TYPE_FILE_EXCEPT_DESCRIBE_MEDIA,
+// DescribeSignalingChannel and GetSignalingChannelEndpoint responses are cached
+// the same way as SIGNALING_API_CALL_CACHE_TYPE_FILE, while
+// DescribeMediaStorageConfiguration is always called (never cached).
+TEST_F(SignalingApiFunctionalityTest, fileCachingExceptDescribeMediaTest)
+{
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
+
+    ChannelInfo channelInfo;
+    SignalingClientCallbacks signalingClientCallbacks;
+    SignalingClientInfoInternal clientInfoInternal;
+    PSignalingClient pSignalingClient;
+    SIGNALING_CLIENT_HANDLE signalingHandle;
+    CHAR signalingChannelName[64];
+    const UINT32 totalChannelCount = MAX_SIGNALING_CACHE_ENTRY_COUNT + 1;
+    UINT32 i, describeCountNoCache, describeMediaCountNoCache, getEndpointCountNoCache;
+
+    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+    signalingClientCallbacks.customData = (UINT64) this;
+    signalingClientCallbacks.messageReceivedFn = NULL;
+    signalingClientCallbacks.errorReportFn = signalingClientError;
+    signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
+    signalingClientCallbacks.getCurrentTimeFn = NULL;
+
+    MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
+
+    clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    clientInfoInternal.hookCustomData = (UINT64) this;
+    clientInfoInternal.connectPreHookFn = connectPreHook;
+    clientInfoInternal.describePreHookFn = describePreHook;
+    clientInfoInternal.describeMediaStorageConfPreHookFn = describeMediaPreHook;
+    clientInfoInternal.getEndpointPreHookFn = getEndpointPreHook;
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfoInternal);
+
+    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
+    channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    channelInfo.pKmsKeyId = NULL;
+    channelInfo.tagCount = 0;
+    channelInfo.pTags = NULL;
+    channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+    channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+    channelInfo.retry = TRUE;
+    channelInfo.reconnect = TRUE;
+    channelInfo.pCertPath = mCaCertPath;
+    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_FILE_EXCEPT_DESCRIBE_MEDIA;
+    channelInfo.pRegion = TEST_DEFAULT_REGION;
+    // Enable media storage path so DescribeMediaStorageConfiguration is actually invoked
+    channelInfo.useMediaStorage = TRUE;
+
+    FREMOVE(DEFAULT_CACHE_FILE_PATH);
+
+    // Prime the cache: create/fetch each channel once
+    for (i = 0; i < totalChannelCount; ++i) {
+        SNPRINTF(signalingChannelName, SIZEOF(signalingChannelName), "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
+        channelInfo.pChannelName = signalingChannelName;
+        EXPECT_EQ(STATUS_SUCCESS,
+                  createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
+                                      &pSignalingClient));
+        signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
+        EXPECT_EQ(STATUS_SUCCESS, signalingClientFetchSync(signalingHandle));
+        EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+        EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    }
+
+    describeCountNoCache = describeCount;
+    describeMediaCountNoCache = describeMediaCount;
+    getEndpointCountNoCache = getEndpointCount;
+
+    // Second pass: re-fetch each channel by name.
+    //
+    // The file cache evicts by always overwriting the last slot
+    // (MAX_SIGNALING_CACHE_ENTRY_COUNT - 1) -- see signalingCacheSaveToFile in
+    // FileCache.c. After pass 1 populated 33 channels into a 32-slot cache,
+    // the last-inserted channel (index 32) sits in slot 31 and the channel
+    // that used to occupy slot 31 (index 31) was evicted. So going into
+    // pass 2:
+    //   - Iterations 0..30: cache hit -> no API calls.
+    //   - Iteration 31: by-name misses (ch31 was evicted); the save then
+    //     re-evicts slot 31, displacing ch32.
+    //   - Iteration 32: by-name misses (ch32 was just re-evicted); the save
+    //     re-evicts slot 31 again.
+    // Net effect: describeCount and getEndpointCount each grow by exactly 2
+    // across pass 2. describeMedia always calls the API under this policy
+    // (no timestamp guard in describeMediaStorageConf's switch case), so its
+    // counter grows on every fetch regardless of cache state.
+    for (i = 0; i < totalChannelCount; ++i) {
+        SNPRINTF(signalingChannelName, SIZEOF(signalingChannelName), "%s%u", TEST_SIGNALING_CHANNEL_NAME, i);
+        channelInfo.pChannelName = signalingChannelName;
+        channelInfo.pChannelArn = NULL;
+        EXPECT_EQ(STATUS_SUCCESS,
+                  createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
+                                      &pSignalingClient))
+            << "Failed on channel name: " << channelInfo.pChannelName;
+
+        signalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
+        EXPECT_TRUE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
+        EXPECT_EQ(STATUS_SUCCESS, signalingClientFetchSync(signalingHandle));
+        EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+    }
+
+    DLOGD("describeCount: %d, describeCountNoCache: %d", describeCount, describeCountNoCache);
+    DLOGD("describeMediaCount: %d, describeMediaCountNoCache: %d", describeMediaCount, describeMediaCountNoCache);
+    DLOGD("getEndpointCount: %d, getEndpointCountNoCache: %d", getEndpointCount, getEndpointCountNoCache);
+
+    // describeCount and getEndpointCount are cached (same behavior as the
+    // FILE policy). Due to cyclic eviction of the last cache slot between
+    // channels 31 and 32 (see the block comment above the pass-2 loop),
+    // exactly two by-name fetches miss across the loop -- one in iteration
+    // 31 and one in iteration 32. Each miss fires one DescribeChannel and
+    // one GetSignalingChannelEndpoint call, so both counters grow by 2.
+    EXPECT_TRUE(describeCount > describeCountNoCache && (describeCount - describeCountNoCache) == 2);
+    EXPECT_TRUE(getEndpointCount > getEndpointCountNoCache && (getEndpointCount - getEndpointCountNoCache) == 2);
+
+    // describeMedia is NEVER cached under SIGNALING_API_CALL_CACHE_TYPE_FILE_EXCEPT_DESCRIBE_MEDIA:
+    // its switch case in describeMediaStorageConf() falls through with no
+    // timestamp check, so every createSignalingSync + signalingClientFetchSync
+    // pair invokes the DescribeMediaStorageConfiguration API. Pass 2 runs that
+    // pair totalChannelCount times (once by name per channel).
+    EXPECT_TRUE(describeMediaCount - describeMediaCountNoCache == totalChannelCount);
+}
+
 TEST_F(SignalingApiFunctionalityTest, fileCachingUpdateMultiChannelCache)
 {
     FREMOVE(DEFAULT_CACHE_FILE_PATH);
