@@ -21,6 +21,7 @@
 #include "app_storage.h"
 
 #include "media_stream.h"
+#include "video_capture.h"
 #include "signaling_serializer.h"
 #include "webrtc_bridge.h"
 #include "webrtc_bridge_signaling.h"
@@ -208,6 +209,38 @@ static void wifi_init_sta(void)
     } else {
         ESP_LOGE(TAG, "Failed to connect to WiFi");
     }
+}
+
+/**
+ * Handle a binary BRIDGE_CMD_SNAPSHOT_REQUEST from the signaling device:
+ * capture a JPEG and reply with BRIDGE_CMD_SNAPSHOT_RESPONSE carrying raw bytes.
+ *
+ * Wire payload of the request: 1 byte JPEG quality (1-100, 0 means default).
+ */
+static void handle_snapshot_request(uint8_t cmd_id, const uint8_t *data, size_t len)
+{
+    (void)cmd_id;
+
+    uint8_t quality = 80;
+    if (len >= 1 && data[0] >= 1 && data[0] <= 100) {
+        quality = data[0];
+    }
+
+    ESP_LOGI(TAG, "Snapshot request received (quality=%u)", quality);
+
+    uint8_t *jpeg_buf = NULL;
+    size_t jpeg_len = 0;
+    esp_err_t ret = video_capture_get_snapshot(&jpeg_buf, &jpeg_len, quality, 5000);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "video_capture_get_snapshot failed: %s", esp_err_to_name(ret));
+        /* Empty response signals failure to caller */
+        webrtc_bridge_send_binary_cmd(BRIDGE_CMD_SNAPSHOT_RESPONSE, NULL, 0);
+        return;
+    }
+
+    ESP_LOGI(TAG, "Sending snapshot response (%zu bytes)", jpeg_len);
+    webrtc_bridge_send_binary_cmd(BRIDGE_CMD_SNAPSHOT_RESPONSE, jpeg_buf, jpeg_len);
+    video_capture_snapshot_free(jpeg_buf);
 }
 
 static void app_webrtc_event_handler(app_webrtc_event_data_t *event_data, void *user_ctx)
@@ -400,6 +433,9 @@ void app_main(void)
 
     // Start webrtc bridge
     webrtc_bridge_start();
+
+    /* Register snapshot request handler: capture JPEG and respond with raw bytes */
+    webrtc_bridge_register_binary_handler(BRIDGE_CMD_SNAPSHOT_REQUEST, handle_snapshot_request);
 
 	/* TODO: Set the slave's default power save mode */
 	// esp_wifi_set_ps(WIFI_PS_MIN_MODEM);

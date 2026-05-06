@@ -2,8 +2,10 @@ idf_component_register(SRCS
                         "signaling_only_main.c"
                         "sleep_command.c"
                         "trigger_offer_command.c"
+                        "query_snapshot_command.c"
                     INCLUDE_DIRS "."
                     REQUIRES
                         "app_common"
                         "signaling_bridge_adapter"
-                        "network_coprocessor")
+                        "network_coprocessor"
+                        "webrtc_bridge")
