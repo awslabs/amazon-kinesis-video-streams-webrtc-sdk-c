@@ -1,18 +1,8 @@
-// SPDX-License-Identifier: Apache-2.0
-// Copyright 2015-2022 Espressif Systems (Shanghai) PTE LTD
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+/*
+ * SPDX-FileCopyrightText: 2015-2026 Espressif Systems (Shanghai) CO LTD
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 #ifndef __MEMPOOL_H__
 #define __MEMPOOL_H__
@@ -20,23 +10,18 @@
 #include <string.h>
 #include <stdio.h>
 #include <sys/queue.h>
+#include "esp_idf_version.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/portmacro.h>
 
 #ifdef CONFIG_ESP_CACHE_MALLOC
 #include "mempool_ll.h"
-struct hosted_mempool {
-	struct os_mempool *pool;
-	uint8_t *heap;
-	uint8_t static_heap;
-	size_t num_blocks;
-	size_t block_size;
-};
 #endif
 
 #define MEM_DUMP(s) \
-    printf("%s free:%lu min-free:%lu lfb-def:%u lfb-8bit:%u\n\n", s, \
+    printf("%s free:%lu min-free:%lu lfb-dma:%u lfb-def:%u lfb-8bit:%u\n", s, \
                   esp_get_free_heap_size(), esp_get_minimum_free_heap_size(), \
+                  heap_caps_get_largest_free_block(MALLOC_CAP_DMA),\
                   heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT),\
                   heap_caps_get_largest_free_block(MALLOC_CAP_8BIT))
 
@@ -45,7 +30,7 @@ struct hosted_mempool {
 
 #define CALLOC(x,y)                      calloc(x,y)
 #define MALLOC(x)                        malloc(x)
-#define MEM_ALLOC(x)                     heap_caps_malloc(x, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL)
+#define MEM_ALLOC(x)                     heap_caps_malloc((x), MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA | MALLOC_CAP_8BIT)
 #define FREE(x) do {                     \
 	if (x) {                             \
 		free(x);                         \
@@ -55,7 +40,7 @@ struct hosted_mempool {
 
 #define MEMPOOL_NAME_STR_SIZE            32
 
-#define MEMPOOL_ALIGNMENT_BYTES          64
+#define MEMPOOL_ALIGNMENT_BYTES          4
 #define MEMPOOL_ALIGNMENT_MASK           (MEMPOOL_ALIGNMENT_BYTES-1)
 #define IS_MEMPOOL_ALIGNED(VAL)          (!((VAL)& MEMPOOL_ALIGNMENT_MASK))
 #define MEMPOOL_ALIGNED(VAL)             ((VAL) + MEMPOOL_ALIGNMENT_BYTES - \
