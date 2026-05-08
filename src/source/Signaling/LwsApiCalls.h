@@ -20,6 +20,7 @@ extern "C" {
 #define SIGNALING_SERVICE_TCP_KEEPALIVE_PROBE_INTERVAL_IN_SECONDS 1
 #define SIGNALING_SERVICE_WSS_PING_PONG_INTERVAL_IN_SECONDS       10
 #define SIGNALING_SERVICE_WSS_HANGUP_IN_SECONDS                   7200
+#define MAX_LWS_SEND_RETRY_COUNT                                  3
 
 // Protocol indexes
 #define PROTOCOL_INDEX_HTTPS 0
@@ -210,6 +211,9 @@ struct __LwsCallInfo {
 
     // Service exit indicator;
     volatile ATOMIC_BOOL cancelService;
+
+    // Message receiving indicator
+    volatile ATOMIC_BOOL receiveMessage;
 
     // Protocol index
     UINT32 protocolIndex;
