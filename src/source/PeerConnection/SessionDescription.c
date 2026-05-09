@@ -1326,7 +1326,7 @@ STATUS writeTransceiverDirection(PCHAR buf, UINT32 len, RTC_RTP_TRANSCEIVER_DIRE
     CHK(amountWouldHaveWritten < len, STATUS_BUFFER_TOO_SMALL);
 
 CleanUp:
-    if (STATUS_FAILED(retStatus) && buf != NULL & len > 0) {
+    if (STATUS_FAILED(retStatus) && buf != NULL && len > 0) {
         buf[0] = '\0';
     }
 
