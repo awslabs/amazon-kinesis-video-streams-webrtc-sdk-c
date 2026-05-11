@@ -2037,7 +2037,9 @@ STATUS twccManagerOnPacketSent(PKvsPeerConnection pKvsPeerConnection, PRtpPacket
     PTwccRtpPacketInfo pTwccRtpPktInfo = NULL;
 
     CHK(pKvsPeerConnection != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
-    CHK(pKvsPeerConnection->onSenderBandwidthEstimation != NULL && pKvsPeerConnection->pTwccManager != NULL, STATUS_SUCCESS);
+    CHK((pKvsPeerConnection->onSenderBandwidthEstimation != NULL || pKvsPeerConnection->onPeerCongestionFeedback != NULL) &&
+            pKvsPeerConnection->pTwccManager != NULL,
+        STATUS_SUCCESS);
     CHK(TWCC_EXT_PROFILE == pRtpPacket->header.extensionProfile, STATUS_SUCCESS);
 
     MUTEX_LOCK(pKvsPeerConnection->twccLock);
@@ -2139,6 +2141,42 @@ STATUS iceAgentGetMetrics(PRtcPeerConnection pPeerConnection, PKvsIceAgentMetric
         pKvsIceAgentMetrics->version = ICE_AGENT_METRICS_CURRENT_VERSION;
     }
     CHK_STATUS(getIceAgentStats(pKvsPeerConnection->pIceAgent, pKvsIceAgentMetrics));
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS setOnTwccFeedbackReceived(PRtcPeerConnection pPeerConnection, UINT64 customData, RtcOnTwccFeedbackReceived onTwccFbReceived)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
+
+    CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+
+    pKvsPeerConnection->onTwccFeedbackReceivedCustomData = customData;
+    pKvsPeerConnection->onTwccFeedbackReceived = onTwccFbReceived;
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS setOnPeerCongestionFeedbackFn(PRtcPeerConnection pPeerConnection, UINT64 customData, RtcOnPeerCongestionFeedback onPeerCongestionFeedback)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
+
+    CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+
+    pKvsPeerConnection->onPeerCongestionFeedbackCustomData = customData;
+    pKvsPeerConnection->onPeerCongestionFeedback = onPeerCongestionFeedback;
+
 CleanUp:
     CHK_LOG_ERR(retStatus);
 

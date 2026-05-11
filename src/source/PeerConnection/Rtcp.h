@@ -13,6 +13,7 @@ STATUS onRtcpPLIPacket(PRtcpPacket, PKvsPeerConnection);
 STATUS parseRtcpTwccPacket(PRtcpPacket, PTwccManager);
 STATUS onRtcpTwccPacket(PRtcpPacket, PKvsPeerConnection);
 STATUS updateTwccHashTable(PTwccManager, PINT64, PUINT64, PUINT64, PUINT64, PUINT64);
+STATUS computeTwccTrendline(PTwccManager, PDOUBLE, PDOUBLE);
 
 // https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
 // Deltas are represented as multiples of 250us:
@@ -21,7 +22,10 @@ STATUS updateTwccHashTable(PTwccManager, PINT64, PUINT64, PUINT64, PUINT64, PUIN
 #define MILLISECONDS_PER_SECOND      1000LL
 #define TWCC_PACKET_LOST_TIME        ((UINT64) (-1LL))
 #define TWCC_PACKET_UNITIALIZED_TIME 0
-#define TWCC_ESTIMATOR_TIME_WINDOW   (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define TWCC_ESTIMATOR_TIME_WINDOW   (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+
+// Trendline estimation parameters
+#define TWCC_TRENDLINE_SMOOTHING_FACTOR 0.2
 
 typedef enum {
     TWCC_STATUS_SYMBOL_NOTRECEIVED = 0,

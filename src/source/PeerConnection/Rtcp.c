@@ -317,6 +317,73 @@ CleanUp:
     return retStatus;
 }
 
+// Computes TWCC congestion signals from the current feedback window [prevReportedBaseSeqNum, lastReportedSeqNum].
+//
+// One-way delay variation measures how packet spacing changes through the network:
+//   For two consecutive packets, if the sender sends them 10ms apart but the receiver gets them 15ms apart,
+//   the extra 5ms means the second packet was delayed longer — likely sitting in a network buffer/queue.
+//   Formally: delayVariation = (receiverArrivalGap - senderSendGap) = (R_i - R_{i-1}) - (T_i - T_{i-1})
+//
+// Outputs (both in milliseconds):
+//   pDelayTrend: EMA-smoothed least-squares slope of accumulated delay variation.
+//                positive = congestion accelerating, negative = congestion clearing, ~0 = stable.
+//   pQueueDelay: sum of per-pair delay variations across the window.
+STATUS computeTwccTrendline(PTwccManager pTwccManager, PDOUBLE pDelayTrend, PDOUBLE pQueueDelay)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT64 twccPktValue = 0;
+    PTwccRtpPacketInfo pCurr = NULL, pPrev = NULL;
+    UINT16 seqNum;
+    DOUBLE accumulatedDelay = 0.0;
+    DOUBLE sumX = 0.0, sumY = 0.0, sumXY = 0.0, sumX2 = 0.0;
+    DOUBLE rawSlope = 0.0;
+    UINT32 n = 0;
+
+    CHK(pTwccManager != NULL && pDelayTrend != NULL && pQueueDelay != NULL, STATUS_NULL_ARG);
+
+    for (seqNum = pTwccManager->prevReportedBaseSeqNum; seqNum != (UINT16) (pTwccManager->lastReportedSeqNum + 1); seqNum++) {
+        if (STATUS_FAILED(hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, seqNum, &twccPktValue))) {
+            continue;
+        }
+        pCurr = (PTwccRtpPacketInfo) twccPktValue;
+        if (pCurr == NULL || pCurr->remoteTimeKvs == TWCC_PACKET_LOST_TIME || pCurr->remoteTimeKvs == TWCC_PACKET_UNITIALIZED_TIME) {
+            continue;
+        }
+
+        if (pPrev != NULL) {
+            INT64 interRecv = (INT64) (pCurr->remoteTimeKvs - pPrev->remoteTimeKvs);
+            INT64 interSend = (INT64) (pCurr->localTimeKvs - pPrev->localTimeKvs);
+            accumulatedDelay += (DOUBLE) (interRecv - interSend);
+
+            sumX += (DOUBLE) n;
+            sumY += accumulatedDelay;
+            sumXY += (DOUBLE) n * accumulatedDelay;
+            sumX2 += (DOUBLE) n * (DOUBLE) n;
+            n++;
+        }
+
+        pPrev = pCurr;
+    }
+
+    if (n >= 2) {
+        DOUBLE denom = (DOUBLE) n * sumX2 - sumX * sumX;
+        if (denom != 0.0) {
+            rawSlope = ((DOUBLE) n * sumXY - sumX * sumY) / denom;
+        }
+    }
+
+    pTwccManager->smoothedSlope = TWCC_TRENDLINE_SMOOTHING_FACTOR * rawSlope + (1.0 - TWCC_TRENDLINE_SMOOTHING_FACTOR) * pTwccManager->smoothedSlope;
+    pTwccManager->lastQueueDelay = accumulatedDelay;
+    *pDelayTrend = pTwccManager->smoothedSlope / (DOUBLE) HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    *pQueueDelay = accumulatedDelay / (DOUBLE) HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+
+    DLOGD("TWCC trendline: delayTrend=%.4f ms queueDelay=%.2f ms (n=%u)", *pDelayTrend, *pQueueDelay, n);
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+    return retStatus;
+}
+
 STATUS updateTwccHashTable(PTwccManager pTwccManager, PINT64 duration, PUINT64 receivedBytes, PUINT64 receivedPackets, PUINT64 sentBytes,
                            PUINT64 sentPackets)
 {
@@ -405,22 +472,55 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     UINT64 sentBytes = 0, receivedBytes = 0;
     UINT64 sentPackets = 0, receivedPackets = 0;
     INT64 duration = 0;
+    DOUBLE delayTrend = 0.0, queueDelay = 0.0;
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
-    CHK(pKvsPeerConnection->pTwccManager != NULL && pKvsPeerConnection->onSenderBandwidthEstimation != NULL, STATUS_SUCCESS);
+    CHK(pKvsPeerConnection->pTwccManager != NULL, STATUS_SUCCESS);
 
     MUTEX_LOCK(pKvsPeerConnection->twccLock);
     locked = TRUE;
     pTwccManager = pKvsPeerConnection->pTwccManager;
     CHK_STATUS(parseRtcpTwccPacket(pRtcpPacket, pTwccManager));
 
+    // Compute trendline
+    if (pKvsPeerConnection->onTwccFeedbackReceived != NULL) {
+        // Custom estimator callback
+        TwccCongestionState congestionState;
+        MEMSET(&congestionState, 0, SIZEOF(congestionState));
+        MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
+        locked = FALSE;
+        CHK_STATUS(pKvsPeerConnection->onTwccFeedbackReceived(pKvsPeerConnection->onTwccFeedbackReceivedCustomData, NULL, 0, &congestionState));
+        MUTEX_LOCK(pKvsPeerConnection->twccLock);
+        locked = TRUE;
+        delayTrend = congestionState.delayTrend;
+    } else {
+        // Default trendline estimator
+        CHK_STATUS(computeTwccTrendline(pTwccManager, &delayTrend, &queueDelay));
+    }
+
     updateTwccHashTable(pTwccManager, &duration, &receivedBytes, &receivedPackets, &sentBytes, &sentPackets);
 
     if (duration > 0) {
         MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
         locked = FALSE;
-        pKvsPeerConnection->onSenderBandwidthEstimation(pKvsPeerConnection->onSenderBandwidthEstimationCustomData, sentBytes, receivedBytes,
-                                                        sentPackets, receivedPackets, duration);
+
+        // Invoke the new congestion feedback callback if set
+        if (pKvsPeerConnection->onPeerCongestionFeedback != NULL) {
+            CongestionCtx ctx;
+            ctx.txBytes = (UINT32) sentBytes;
+            ctx.rxBytes = (UINT32) receivedBytes;
+            ctx.txPackets = (UINT32) sentPackets;
+            ctx.rxPackets = (UINT32) receivedPackets;
+            ctx.duration = (UINT64) duration;
+            ctx.congestionState.delayTrend = delayTrend;
+            CHK_LOG_ERR(pKvsPeerConnection->onPeerCongestionFeedback(pKvsPeerConnection->onPeerCongestionFeedbackCustomData, &ctx));
+        }
+
+        // Also invoke the legacy callback for backward compatibility
+        if (pKvsPeerConnection->onSenderBandwidthEstimation != NULL) {
+            pKvsPeerConnection->onSenderBandwidthEstimation(pKvsPeerConnection->onSenderBandwidthEstimationCustomData, sentBytes, receivedBytes,
+                                                            sentPackets, receivedPackets, duration);
+        }
     }
 
 CleanUp:
