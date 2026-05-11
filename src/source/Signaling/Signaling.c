@@ -13,36 +13,21 @@ PRIVATE_API STATUS readCACertificate(PCHAR pCaCertPath, PBYTE* ppCaCertBuf, PUIN
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 cert_len = 0;
     PBYTE cert_buf = NULL;
-    PBYTE pCachedBuf = NULL;
-    UINT32 cachedBufLen = 0;
 
     CHK(pCaCertPath != NULL && ppCaCertBuf != NULL && pCaCertBufLen != NULL, STATUS_NULL_ARG);
 
     *ppCaCertBuf = NULL;
     *pCaCertBufLen = 0;
 
-    // Try to use the cached cert first
-    getCachedCaCert(&pCachedBuf, &cachedBufLen);
-    if (pCachedBuf != NULL && cachedBufLen > 0) {
-        DLOGD("Using cached CA certificate, size %u bytes", cachedBufLen);
-        cert_buf = (PBYTE) MEMCALLOC(1, cachedBufLen + 1);
-        CHK(cert_buf != NULL, STATUS_NOT_ENOUGH_MEMORY);
-        MEMCPY(cert_buf, pCachedBuf, cachedBufLen);
-        *ppCaCertBuf = cert_buf;
-        *pCaCertBufLen = cachedBufLen;
-        cert_buf = NULL;
-    } else {
-        DLOGD("CA certificate cache not initialized, reading from file: %s", pCaCertPath);
-        CHK_STATUS(readFile(pCaCertPath, FALSE, NULL, &cert_len));
-        CHK(cert_len > 0, STATUS_INVALID_CERT_PATH_LENGTH);
-        cert_buf = (PBYTE) MEMCALLOC(1, cert_len + 1); // +1 for the null terminator
-        CHK(cert_buf != NULL, STATUS_NOT_ENOUGH_MEMORY);
-        CHK_STATUS(readFile(pCaCertPath, FALSE, cert_buf, &cert_len));
+    CHK_STATUS(readFile(pCaCertPath, FALSE, NULL, &cert_len));
+    CHK(cert_len > 0, STATUS_INVALID_CERT_PATH_LENGTH);
+    cert_buf = (PBYTE) MEMCALLOC(1, cert_len + 1); // +1 for the null terminator
+    CHK(cert_buf != NULL, STATUS_NOT_ENOUGH_MEMORY);
+    CHK_STATUS(readFile(pCaCertPath, FALSE, cert_buf, &cert_len));
 
-        *ppCaCertBuf = cert_buf;
-        *pCaCertBufLen = (UINT32) cert_len;
-        cert_buf = NULL; // So that it is not freed by SAFE_MEMFREE
-    }
+    *ppCaCertBuf = cert_buf;
+    *pCaCertBufLen = (UINT32) cert_len;
+    cert_buf = NULL; // So that it is not freed by SAFE_MEMFREE
 
 CleanUp:
     CHK_LOG_ERR(retStatus);

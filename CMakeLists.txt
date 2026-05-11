@@ -423,7 +423,6 @@ elseif (USE_MBEDTLS)
 endif()
 
 file(GLOB WEBRTC_SIGNALING_CLIENT_SOURCE_FILES "src/source/Signaling/*.c")
-list(APPEND WEBRTC_SIGNALING_CLIENT_SOURCE_FILES "src/source/Crypto/CaCertCache.c")
 
 
 message(STATUS "OPEN_SRC_INSTALL_PREFIX: ${OPEN_SRC_INSTALL_PREFIX}")
