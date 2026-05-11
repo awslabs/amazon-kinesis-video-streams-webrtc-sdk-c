@@ -11,16 +11,32 @@ PRIVATE_API STATUS readAndParseCACertificate(PTlsSession pTlsSession)
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 cert_len = 0;
     PBYTE cert_buf = NULL;
+    PBYTE pCachedBuf = NULL;
+    UINT32 cachedBufLen = 0;
+    PBYTE pBuf;
+    UINT32 bufLen;
     CHAR errBuf[128];
 
     CHK(pTlsSession != NULL, STATUS_NULL_ARG);
 
-    CHK_STATUS(readFile(KVS_CA_CERT_PATH, FALSE, NULL, &cert_len));
-    CHK(cert_len > 0, STATUS_INVALID_CERT_PATH_LENGTH);
-    cert_buf = (PBYTE) MEMCALLOC(1, cert_len + 1);
-    CHK(cert_buf != NULL, STATUS_NOT_ENOUGH_MEMORY);
-    CHK_STATUS(readFile(KVS_CA_CERT_PATH, FALSE, cert_buf, &cert_len));
-    int ret = mbedtls_x509_crt_parse(&pTlsSession->cacert, cert_buf, (SIZE_T) (cert_len + 1));
+    // Try to use the cached cert first
+    getCachedCaCert(&pCachedBuf, &cachedBufLen);
+    if (pCachedBuf != NULL && cachedBufLen > 0) {
+        DLOGD("TLS: Using cached CA certificate, size %u bytes", cachedBufLen);
+        pBuf = pCachedBuf;
+        bufLen = cachedBufLen;
+    } else {
+        DLOGD("TLS: CA certificate cache not initialized, reading from file: %s", KVS_CA_CERT_PATH);
+        CHK_STATUS(readFile(KVS_CA_CERT_PATH, FALSE, NULL, &cert_len));
+        CHK(cert_len > 0, STATUS_INVALID_CERT_PATH_LENGTH);
+        cert_buf = (PBYTE) MEMCALLOC(1, cert_len + 1);
+        CHK(cert_buf != NULL, STATUS_NOT_ENOUGH_MEMORY);
+        CHK_STATUS(readFile(KVS_CA_CERT_PATH, FALSE, cert_buf, &cert_len));
+        pBuf = cert_buf;
+        bufLen = (UINT32) cert_len;
+    }
+
+    int ret = mbedtls_x509_crt_parse(&pTlsSession->cacert, pBuf, (SIZE_T) (bufLen + 1));
     if (ret != 0) {
         mbedtls_strerror(ret, errBuf, SIZEOF(errBuf));
         DLOGE("mbedtls_x509_crt_parse failed: %s", errBuf);

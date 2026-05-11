@@ -470,6 +470,7 @@ target_link_libraries(
         ${LIBWEBSOCKETS_LIBRARIES}
   PRIVATE kvspicUtils
          kvspicState
+         kvsWebrtcClient
          ${CMAKE_THREAD_LIBS_INIT}
          ${EXTRA_DEPS}
          ${OPENSSL_SSL_LIBRARY}

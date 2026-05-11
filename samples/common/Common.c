@@ -866,6 +866,9 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 
     CHK_STATUS(lookForSslCert(&pSampleConfiguration));
 
+    // Initialize the CA cert cache to avoid repeated file I/O
+    CHK_STATUS(initCaCertCache(pSampleConfiguration->pCaCertPath));
+
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
     CHK_STATUS(createLwsIotCredentialProvider(pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pSampleConfiguration->pCaCertPath,
                                               pIotCoreRoleAlias, pIotCoreThingName, &pSampleConfiguration->pCredentialProvider));
@@ -1341,6 +1344,7 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     if (pSampleConfiguration->enableFileLogging) {
         freeFileLogger();
     }
+    deinitCaCertCache();
     SAFE_MEMFREE(*ppSampleConfiguration);
 
 CleanUp:
