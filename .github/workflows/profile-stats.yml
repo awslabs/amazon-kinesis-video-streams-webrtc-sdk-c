@@ -14,11 +14,20 @@ on:
 jobs:
   profile-stats:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default
+            forceTurn: false
+          - name: forceTurn
+            forceTurn: true
     env:
       AWS_KVS_LOG_LEVEL: 5
       MIN_COUNT: 4
       LOG_FILE_LIMIT: 50
       ITERATIONS: 50
+      KVS_ICE_TRANSPORT_POLICY: ${{ matrix.forceTurn && 'relay' || 'all' }}
 
     permissions:
       id-token: write
@@ -57,7 +66,7 @@ jobs:
 
       - name: Setup Signaling Channel
         run: |
-          CHANNEL_NAME="profile-test-channel-${{ github.run_id }}"
+          CHANNEL_NAME="profile-test-channel-${{ matrix.name }}-${{ github.run_id }}"
           aws kinesisvideo create-signaling-channel --channel-name $CHANNEL_NAME
           echo "CHANNEL_NAME=$CHANNEL_NAME" >> $GITHUB_ENV
 
