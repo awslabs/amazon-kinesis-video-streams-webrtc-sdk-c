@@ -423,6 +423,7 @@ elseif (USE_MBEDTLS)
 endif()
 
 file(GLOB WEBRTC_SIGNALING_CLIENT_SOURCE_FILES "src/source/Signaling/*.c")
+list(APPEND WEBRTC_SIGNALING_CLIENT_SOURCE_FILES "src/source/Crypto/CaCertCache.c")
 
 
 message(STATUS "OPEN_SRC_INSTALL_PREFIX: ${OPEN_SRC_INSTALL_PREFIX}")
@@ -470,7 +471,6 @@ target_link_libraries(
         ${LIBWEBSOCKETS_LIBRARIES}
   PRIVATE kvspicUtils
          kvspicState
-         kvsWebrtcClient
          ${CMAKE_THREAD_LIBS_INIT}
          ${EXTRA_DEPS}
          ${OPENSSL_SSL_LIBRARY}
