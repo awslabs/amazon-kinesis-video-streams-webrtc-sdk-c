@@ -646,6 +646,19 @@ TEST_F(RtpFunctionalityTest, twccPayload)
     EXPECT_EQ(0, ptr[3]);
 }
 
+TEST_F(RtpFunctionalityTest, writeFrameNullArgs)
+{
+    Frame frame;
+    RtcRtpTransceiver transceiver;
+
+    MEMSET(&frame, 0x00, SIZEOF(Frame));
+    MEMSET(&transceiver, 0x00, SIZEOF(RtcRtpTransceiver));
+
+    EXPECT_EQ(STATUS_NULL_ARG, writeFrame(NULL, &frame));
+    EXPECT_EQ(STATUS_NULL_ARG, writeFrame(&transceiver, NULL));
+    EXPECT_EQ(STATUS_NULL_ARG, writeFrame(NULL, NULL));
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
