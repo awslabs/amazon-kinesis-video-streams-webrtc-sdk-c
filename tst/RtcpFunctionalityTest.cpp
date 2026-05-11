@@ -528,8 +528,8 @@ TEST_F(RtcpFunctionalityTest, computeTwccTrendline_stableNetwork)
     // Insert 10 packets with uniform 10ms send and receive spacing (no delay variation)
     for (UINT16 i = 0; i < 10; i++) {
         PTwccRtpPacketInfo pInfo = (PTwccRtpPacketInfo) MEMCALLOC(1, SIZEOF(TwccRtpPacketInfo));
-        pInfo->localTimeKvs = i * 10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
-        pInfo->remoteTimeKvs = i * 10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND; // same spacing
+        pInfo->localTimeKvs = (1000 + i * 10) * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+        pInfo->remoteTimeKvs = (1000 + i * 10) * HUNDREDS_OF_NANOS_IN_A_MILLISECOND; // same spacing
         pInfo->packetSize = 1200;
         hashTablePut(pTwccManager->pTwccRtpPktInfosHashTable, i, (UINT64) pInfo);
     }
@@ -542,12 +542,7 @@ TEST_F(RtcpFunctionalityTest, computeTwccTrendline_stableNetwork)
     EXPECT_NEAR(0.0, delayTrend, 0.001);
     EXPECT_NEAR(0.0, queueDelay, 0.001);
 
-    // Cleanup hash table entries
-    for (UINT16 i = 0; i < 10; i++) {
-        UINT64 val;
-        hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, i, &val);
-        MEMFREE((PVOID) val);
-    }
+    // freePeerConnection will clean up hash table entries via freeHashEntry
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
@@ -565,7 +560,7 @@ TEST_F(RtcpFunctionalityTest, computeTwccTrendline_increasingDelay)
     PTwccManager pTwccManager = pKvsPeerConnection->pTwccManager;
 
     // Sender sends every 10ms, but receiver gets them with increasing gaps (10, 11, 12, 13... ms)
-    UINT64 recvTime = 0;
+    UINT64 recvTime = 1000 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
     for (UINT16 i = 0; i < 10; i++) {
         PTwccRtpPacketInfo pInfo = (PTwccRtpPacketInfo) MEMCALLOC(1, SIZEOF(TwccRtpPacketInfo));
         pInfo->localTimeKvs = i * 10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
@@ -584,17 +579,13 @@ TEST_F(RtcpFunctionalityTest, computeTwccTrendline_increasingDelay)
     // Queue delay should be positive (accumulated delay variation)
     EXPECT_GT(queueDelay, 0.0);
 
-    for (UINT16 i = 0; i < 10; i++) {
-        UINT64 val;
-        hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, i, &val);
-        MEMFREE((PVOID) val);
-    }
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
 TEST_F(RtcpFunctionalityTest, computeTwccTrendline_decreasingDelay)
 {
-    // Simulate packets where receiver gaps shrink (congestion clearing)
+    // Simulate packets where receiver gaps are smaller than sender gaps and shrinking (congestion clearing)
+    // Sender sends every 10ms, receiver gaps: 9, 8, 7, 6, 5, 4, 3, 2, 1 ms — all below send interval
     PRtcPeerConnection pRtcPeerConnection = nullptr;
     PKvsPeerConnection pKvsPeerConnection;
     RtcConfiguration config{};
@@ -605,15 +596,14 @@ TEST_F(RtcpFunctionalityTest, computeTwccTrendline_decreasingDelay)
 
     PTwccManager pTwccManager = pKvsPeerConnection->pTwccManager;
 
-    // Sender sends every 10ms, receiver gaps shrink (15, 14, 13, 12, 11, 10, 9, 8, 7, 6 ms)
-    UINT64 recvTime = 0;
+    UINT64 recvTime = 1000 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
     for (UINT16 i = 0; i < 10; i++) {
         PTwccRtpPacketInfo pInfo = (PTwccRtpPacketInfo) MEMCALLOC(1, SIZEOF(TwccRtpPacketInfo));
         pInfo->localTimeKvs = i * 10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
         pInfo->remoteTimeKvs = recvTime;
         pInfo->packetSize = 1200;
         hashTablePut(pTwccManager->pTwccRtpPktInfosHashTable, i, (UINT64) pInfo);
-        recvTime += (15 - i) * HUNDREDS_OF_NANOS_IN_A_MILLISECOND; // shrinking gaps
+        recvTime += (9 - i) * HUNDREDS_OF_NANOS_IN_A_MILLISECOND; // gaps smaller than send interval and shrinking
     }
     pTwccManager->prevReportedBaseSeqNum = 0;
     pTwccManager->lastReportedSeqNum = 9;
@@ -623,11 +613,6 @@ TEST_F(RtcpFunctionalityTest, computeTwccTrendline_decreasingDelay)
     // Delay trend should be negative (congestion clearing)
     EXPECT_LT(delayTrend, 0.0);
 
-    for (UINT16 i = 0; i < 10; i++) {
-        UINT64 val;
-        hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, i, &val);
-        MEMFREE((PVOID) val);
-    }
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
@@ -664,11 +649,6 @@ TEST_F(RtcpFunctionalityTest, computeTwccTrendline_skipsLostPackets)
     // Should still compute without crashing; stable network so ~0
     EXPECT_NEAR(0.0, queueDelay, 0.5);
 
-    for (UINT16 i = 0; i < 5; i++) {
-        UINT64 val;
-        hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, i, &val);
-        MEMFREE((PVOID) val);
-    }
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
