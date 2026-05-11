@@ -210,7 +210,11 @@ cmake .. -DBUILD_DEPENDENCIES=OFF -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
 If the versions are not satisfied, this option would not work and enabling the SDK to build dependencies for you would be the best option to go ahead with.
 
 
-> **Note:** System-installed libwebsockets and libsrtp packages (from apt, brew, etc.) are typically built against OpenSSL. If you are building the SDK with `-DUSE_MBEDTLS=ON` and relying on system packages, you might encounter linker or runtimer erros. You must also build these dependencies from source (`-DBUILD_DEPENDENCIES=ON`) to ensure they are compiled against mbedTLS. This does not apply if you have manually built and installed mbedTLS-linked versions of these libraries.
+> [!CAUTION]
+> System-installed libwebsockets and libsrtp packages (from apt, brew, etc.) are typically built against OpenSSL. If you are building the SDK with `-DUSE_MBEDTLS=ON` and relying on system packages, you might encounter linker or runtime erros. You must also build these dependencies from source (`-DBUILD_DEPENDENCIES=ON`) to ensure they are compiled against mbedTLS. This does not apply if you have manually built and installed mbedTLS-linked versions of these libraries.
+
+> [!TIP]
+> If you are unsure, recommendation is to enable SDK to build dependencies using `-DBUILD_DEPENDENCIES=ON`
 
 ### Building selective dependencies from source
 
