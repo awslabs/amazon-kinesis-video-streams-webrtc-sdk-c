@@ -490,7 +490,11 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     DOUBLE delayTrend = 0.0, queueDelay = 0.0;
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
-    CHK(pKvsPeerConnection->pTwccManager != NULL, STATUS_SUCCESS);
+    // Skip TWCC parsing if no callback is set to consume the results
+    CHK(pKvsPeerConnection->pTwccManager != NULL &&
+            (pKvsPeerConnection->onSenderBandwidthEstimation != NULL || pKvsPeerConnection->onPeerCongestionFeedback != NULL ||
+             pKvsPeerConnection->onTwccFeedbackReceived != NULL),
+        STATUS_SUCCESS);
 
     MUTEX_LOCK(pKvsPeerConnection->twccLock);
     locked = TRUE;

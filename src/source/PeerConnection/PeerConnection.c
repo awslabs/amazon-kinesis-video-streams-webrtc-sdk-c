@@ -2037,7 +2037,9 @@ STATUS twccManagerOnPacketSent(PKvsPeerConnection pKvsPeerConnection, PRtpPacket
     PTwccRtpPacketInfo pTwccRtpPktInfo = NULL;
 
     CHK(pKvsPeerConnection != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
-    CHK((pKvsPeerConnection->onSenderBandwidthEstimation != NULL || pKvsPeerConnection->onPeerCongestionFeedback != NULL) &&
+    // Skip TWCC tracking if no callback is set to consume the results
+    CHK((pKvsPeerConnection->onSenderBandwidthEstimation != NULL || pKvsPeerConnection->onPeerCongestionFeedback != NULL ||
+         pKvsPeerConnection->onTwccFeedbackReceived != NULL) &&
             pKvsPeerConnection->pTwccManager != NULL,
         STATUS_SUCCESS);
     CHK(TWCC_EXT_PROFILE == pRtpPacket->header.extensionProfile, STATUS_SUCCESS);
