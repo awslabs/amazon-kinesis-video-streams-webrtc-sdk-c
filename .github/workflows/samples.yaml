@@ -230,4 +230,7 @@ jobs:
             echo "No memory leaks detected."
           else
             echo "Memory leaks detected."
+            cat valgrind-master.txt
+            cat valgrind-viewer.txt
+            exit 1
           fi
