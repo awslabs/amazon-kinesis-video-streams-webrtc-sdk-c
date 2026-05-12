@@ -321,17 +321,6 @@ CleanUp:
     return retStatus;
 }
 
-// Computes TWCC congestion signals from the current feedback window [prevReportedBaseSeqNum, lastReportedSeqNum].
-//
-// One-way delay variation measures how packet spacing changes through the network:
-//   For two consecutive packets, if the sender sends them 10ms apart but the receiver gets them 15ms apart,
-//   the extra 5ms means the second packet was delayed longer — likely sitting in a network buffer/queue.
-//   Formally: delayVariation = (receiverArrivalGap - senderSendGap) = (R_i - R_{i-1}) - (T_i - T_{i-1})
-//
-// Outputs (both in milliseconds):
-//   pDelayTrend: EMA-smoothed least-squares slope of accumulated delay variation.
-//                positive = congestion accelerating, negative = congestion clearing, ~0 = stable.
-//   pQueueDelay: sum of per-pair delay variations across the window.
 STATUS computeTwccTrendline(PTwccManager pTwccManager, PDOUBLE pDelayTrend, PDOUBLE pQueueDelay)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -339,6 +328,7 @@ STATUS computeTwccTrendline(PTwccManager pTwccManager, PDOUBLE pDelayTrend, PDOU
     PTwccRtpPacketInfo pCurr = NULL, pPrev = NULL;
     UINT16 seqNum;
     DOUBLE accumulatedDelay = 0.0;
+    // Accumulators for least-squares: sum(x), sum(y), sum(x*y), sum(x^2)
     DOUBLE sumX = 0.0, sumY = 0.0, sumXY = 0.0, sumX2 = 0.0;
     DOUBLE rawSlope = 0.0;
     UINT32 n = 0;
@@ -355,10 +345,26 @@ STATUS computeTwccTrendline(PTwccManager pTwccManager, PDOUBLE pDelayTrend, PDOU
         }
 
         if (pPrev != NULL) {
+            // d_i = (recvTime_i - recvTime_{i-1}) - (sendTime_i - sendTime_{i-1})
+            // Positive means receiver-side gap grew relative to sender-side gap (queuing delay increased)
             INT64 interRecv = (INT64) (pCurr->remoteTimeKvs - pPrev->remoteTimeKvs);
             INT64 interSend = (INT64) (pCurr->localTimeKvs - pPrev->localTimeKvs);
+            // D_i = D_{i-1} + d_i  (running sum of delay variations)
             accumulatedDelay += (DOUBLE) (interRecv - interSend);
 
+            // Build accumulators for ordinary least-squares (OLS) linear regression.
+            // We are fitting the model: y = slope * x + intercept
+            //   where x_i = sample index (0, 1, 2, ...)
+            //         y_i = accumulated delay D_i at that sample
+            //
+            // The OLS slope formula requires these running sums:
+            //   sumX  = Σ x_i           (sum of all x values)
+            //   sumY  = Σ y_i           (sum of all y values)
+            //   sumXY = Σ (x_i * y_i)   (sum of products, measures correlation)
+            //   sumX2 = Σ (x_i^2)       (sum of squared x, measures x spread)
+            //
+            // These avoid storing all data points in an array. We compute the
+            // slope in O(1) space by maintaining only these four running totals.
             sumX += (DOUBLE) n;
             sumY += accumulatedDelay;
             sumXY += (DOUBLE) n * accumulatedDelay;
@@ -369,6 +375,8 @@ STATUS computeTwccTrendline(PTwccManager pTwccManager, PDOUBLE pDelayTrend, PDOU
         pPrev = pCurr;
     }
 
+    // Least-squares slope: (n*sum(xy) - sum(x)*sum(y)) / (n*sum(x^2) - sum(x)^2)
+    // Need at least 2 points to define a line
     if (n >= 2) {
         DOUBLE denom = (DOUBLE) n * sumX2 - sumX * sumX;
         if (denom != 0.0) {
@@ -376,8 +384,11 @@ STATUS computeTwccTrendline(PTwccManager pTwccManager, PDOUBLE pDelayTrend, PDOU
         }
     }
 
+    // EMA smoothing: S_t = alpha * rawSlope + (1 - alpha) * S_{t-1}
+    // This filters out short-term noise while tracking sustained trends
     pTwccManager->smoothedSlope = TWCC_TRENDLINE_SMOOTHING_FACTOR * rawSlope + (1.0 - TWCC_TRENDLINE_SMOOTHING_FACTOR) * pTwccManager->smoothedSlope;
     pTwccManager->lastQueueDelay = accumulatedDelay;
+    // Convert from internal time units (hundreds of nanoseconds) to milliseconds for output
     *pDelayTrend = pTwccManager->smoothedSlope / (DOUBLE) HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
     *pQueueDelay = accumulatedDelay / (DOUBLE) HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
 

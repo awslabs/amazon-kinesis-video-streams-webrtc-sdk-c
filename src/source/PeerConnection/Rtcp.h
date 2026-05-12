@@ -13,6 +13,36 @@ STATUS onRtcpPLIPacket(PRtcpPacket, PKvsPeerConnection);
 STATUS parseRtcpTwccPacket(PRtcpPacket, PTwccManager);
 STATUS onRtcpTwccPacket(PRtcpPacket, PKvsPeerConnection);
 STATUS updateTwccHashTable(PTwccManager, PINT64, PUINT64, PUINT64, PUINT64, PUINT64);
+
+/**
+ * @brief Estimates network congestion trend using least-squares linear regression
+ *        on accumulated one-way delay variations, smoothed with an exponential moving average (EMA).
+ *
+ * Algorithm overview:
+ *   1. For each consecutive packet pair (i-1, i), compute the inter-arrival delay variation:
+ *        d_i = (recvTime_i - recvTime_{i-1}) - (sendTime_i - sendTime_{i-1})
+ *      A positive d_i means the network took longer to deliver packet i than packet i-1.
+ *
+ *   2. Accumulate these variations into a running sum (the "accumulated delay"):
+ *        D_i = D_{i-1} + d_i    (where D_0 = 0)
+ *      This represents the total queuing delay buildup over the observation window.
+ *
+ *   3. Fit a line to the points (x_i, y_i) = (i, D_i) using ordinary least-squares regression.
+ *      The slope formula is:
+ *        rawSlope = (n * sum(x_i * y_i) - sum(x_i) * sum(y_i))
+ *                   / (n * sum(x_i^2) - (sum(x_i))^2)
+ *      A positive slope indicates delay is growing (congestion building up).
+ *      A near-zero slope indicates stable network conditions.
+ *      A negative slope indicates delay is decreasing (congestion clearing).
+ *
+ *   4. Smooth the slope with an EMA to reduce noise:
+ *        smoothedSlope = alpha * rawSlope + (1 - alpha) * prevSmoothedSlope
+ *      where alpha = TWCC_TRENDLINE_SMOOTHING_FACTOR (0.2 by default).
+ *
+ * @param[in]  pTwccManager  TWCC manager containing packet timing history
+ * @param[out] pDelayTrend   Smoothed slope in ms per sample (positive = congestion building)
+ * @param[out] pQueueDelay   Total accumulated delay variation in ms over the window
+ */
 STATUS computeTwccTrendline(PTwccManager, PDOUBLE, PDOUBLE);
 
 // https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
