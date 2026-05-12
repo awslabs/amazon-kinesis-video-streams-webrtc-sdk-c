@@ -146,6 +146,10 @@ CleanUp:
     return retStatus;
 }
 
+// After this function executes, the twccManager saves the indexes of the packets
+// reported in this feedback.
+// - twccManager.prevReportedBaseSeqNum = base seqNum, first packet in the report
+// - twccManager.lastReportedSeqNum = final seqNum, last packet in the report
 STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
 {
     /*
@@ -484,12 +488,40 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
 
     // Compute trendline
     if (pKvsPeerConnection->onTwccFeedbackReceived != NULL) {
-        // Custom estimator callback
+        // Custom estimator callback, build feedback list from this TWCC report
         TwccCongestionState congestionState;
+        PTwccFeedback pFeedbackList = NULL;
+        UINT32 feedbackCount = 0;
+        UINT16 seqNum;
+        UINT64 twccPktVal = 0;
+        PTwccRtpPacketInfo pPktInfo = NULL;
+        UINT16 reportLen = (UINT16) (pTwccManager->lastReportedSeqNum - pTwccManager->prevReportedBaseSeqNum + 1);
+
         MEMSET(&congestionState, 0, SIZEOF(congestionState));
+        pFeedbackList = (PTwccFeedback) MEMALLOC(reportLen * SIZEOF(TwccFeedback));
+        CHK(pFeedbackList != NULL, STATUS_NOT_ENOUGH_MEMORY);
+
+        for (seqNum = pTwccManager->prevReportedBaseSeqNum; seqNum != (UINT16) (pTwccManager->lastReportedSeqNum + 1); seqNum++) {
+            if (STATUS_SUCCEEDED(hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, seqNum, &twccPktVal))) {
+                pPktInfo = (PTwccRtpPacketInfo) twccPktVal;
+                if (pPktInfo != NULL && pPktInfo->remoteTimeKvs != TWCC_PACKET_LOST_TIME && pPktInfo->remoteTimeKvs != TWCC_PACKET_UNITIALIZED_TIME) {
+                    pFeedbackList[feedbackCount].twccSeqNum = seqNum;
+                    pFeedbackList[feedbackCount].sendTime = pPktInfo->localTimeKvs;
+                    pFeedbackList[feedbackCount].recvTime = pPktInfo->remoteTimeKvs;
+                    pFeedbackList[feedbackCount].packetSize = pPktInfo->packetSize;
+                    feedbackCount++;
+                }
+            }
+        }
+
         MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
         locked = FALSE;
-        CHK_STATUS(pKvsPeerConnection->onTwccFeedbackReceived(pKvsPeerConnection->onTwccFeedbackReceivedCustomData, NULL, 0, &congestionState));
+
+        // Invoke custom callback to perform the calculation
+        retStatus = pKvsPeerConnection->onTwccFeedbackReceived(pKvsPeerConnection->onTwccFeedbackReceivedCustomData, pFeedbackList, feedbackCount,
+                                                               &congestionState);
+        SAFE_MEMFREE(pFeedbackList);
+        CHK_STATUS(retStatus);
         MUTEX_LOCK(pKvsPeerConnection->twccLock);
         locked = TRUE;
         delayTrend = congestionState.delayTrend;
