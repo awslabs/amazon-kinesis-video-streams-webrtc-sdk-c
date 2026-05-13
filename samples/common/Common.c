@@ -705,6 +705,29 @@ STATUS sampleOnPeerCongestionFeedback(UINT64 customData, PCongestionCtx pCongest
     BOOL lossClear = pSampleStreamingSession->twccMetadata.averagePacketLoss <= 2.0;
     BOOL delayClear = delayTrendMs < -0.1;
 
+    /*
+     * Multiplicative decrease factors (combined, take the minimum):
+     *
+     *   averagePacketLoss (EMA) | lossFactor
+     *   ------------------------+-----------
+     *   > 10.0%                 | 0.70
+     *   > 5.0% and <= 10.0%     | 0.85
+     *   <= 5.0%                 | 1.00
+     *
+     *   delayTrendMs (smoothed) | delayFactor
+     *   ------------------------+------------
+     *   > 5.0                   | 0.50
+     *   > 1.0 and <= 5.0        | 0.70
+     *   > 0.5 and <= 1.0        | 0.95
+     *   <= 0.5                  | 1.00
+     *
+     *   Additive increase (when not congested):
+     *   condition                | video step          | audio step
+     *   -------------------------+---------------------+---------------------
+     *   lossClear AND delayClear | +MAX_VIDEO/40       | +MAX_AUDIO/20
+     *   lossClear OR delayClear  | +MAX_VIDEO/80       | +MAX_AUDIO/20
+     *   both neutral             | hold                | hold
+     */
     DOUBLE factor = 1.0;
     if (lossCongested || delayCongested) {
         // Multiplicative decrease
@@ -725,10 +748,10 @@ STATUS sampleOnPeerCongestionFeedback(UINT64 customData, PCongestionCtx pCongest
         factor = MIN(lossFactor, delayFactor);
     } else if (lossClear && delayClear) {
         // Additive increase: fixed step relative to max
-        videoBitrate = MIN(videoBitrate + MAX_VIDEO_BITRATE_KBPS / 50, MAX_VIDEO_BITRATE_KBPS);
+        videoBitrate = MIN(videoBitrate + MAX_VIDEO_BITRATE_KBPS / 40, MAX_VIDEO_BITRATE_KBPS);
         factor = 0; // signal that we used additive increase
     } else if (lossClear || delayClear) {
-        videoBitrate = MIN(videoBitrate + MAX_VIDEO_BITRATE_KBPS / 100, MAX_VIDEO_BITRATE_KBPS);
+        videoBitrate = MIN(videoBitrate + MAX_VIDEO_BITRATE_KBPS / 80, MAX_VIDEO_BITRATE_KBPS);
         factor = 0;
     }
     // else: both neutral -> hold (factor = 1.0, no change)
@@ -738,7 +761,13 @@ STATUS sampleOnPeerCongestionFeedback(UINT64 customData, PCongestionCtx pCongest
     } else {
         videoBitrate = (UINT64) MAX(videoBitrate, MIN_VIDEO_BITRATE_KBPS);
     }
-    audioBitrate = (UINT64) MAX(MIN(audioBitrate * (factor > 0 ? factor : 1.0), MAX_AUDIO_BITRATE_BPS), MIN_AUDIO_BITRATE_BPS);
+    if (factor > 0) {
+        audioBitrate = (UINT64) MAX(MIN(audioBitrate * factor, MAX_AUDIO_BITRATE_BPS), MIN_AUDIO_BITRATE_BPS);
+    } else {
+        // Additive increase for audio
+        audioBitrate = MIN(audioBitrate + MAX_AUDIO_BITRATE_BPS / 20, MAX_AUDIO_BITRATE_BPS);
+        audioBitrate = (UINT64) MAX(audioBitrate, MIN_AUDIO_BITRATE_BPS);
+    }
 
     pSampleStreamingSession->twccMetadata.newVideoBitrate = videoBitrate;
     pSampleStreamingSession->twccMetadata.newAudioBitrate = audioBitrate;

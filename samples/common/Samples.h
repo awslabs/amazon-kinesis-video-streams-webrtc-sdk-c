@@ -108,7 +108,7 @@ extern "C" {
 #define MIN_VIDEO_BITRATE_KBPS              384    // Unit kilobits/sec. Value could change based on codec.
 #define MAX_VIDEO_BITRATE_KBPS              2500   // Unit kilobits/sec. Value could change based on codec.
 #define MIN_AUDIO_BITRATE_BPS               4000   // Unit bits/sec. Value could change based on codec.
-#define MAX_AUDIO_BITRATE_BPS               650000 // Unit bits/sec. Value could change based on codec.
+#define MAX_AUDIO_BITRATE_BPS               128000 // Unit bits/sec. Value could change based on codec.
 
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,

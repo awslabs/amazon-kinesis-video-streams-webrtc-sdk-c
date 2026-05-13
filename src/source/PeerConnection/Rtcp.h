@@ -52,7 +52,9 @@ STATUS computeTwccTrendline(PTwccManager, PDOUBLE, PDOUBLE);
 #define MILLISECONDS_PER_SECOND      1000LL
 #define TWCC_PACKET_LOST_TIME        ((UINT64) (-1LL))
 #define TWCC_PACKET_UNITIALIZED_TIME 0
-#define TWCC_ESTIMATOR_TIME_WINDOW   (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+// Max packet age in the TWCC hash table. If feedback is not received within this
+// window, the entry is evicted. Entries are also evicted once we receive feedback.
+#define TWCC_ESTIMATOR_TIME_WINDOW (4 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 // Trendline estimation parameters
 #define TWCC_TRENDLINE_SMOOTHING_FACTOR 0.2
