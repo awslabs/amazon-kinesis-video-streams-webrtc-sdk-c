@@ -1392,6 +1392,8 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     PCHAR remoteIceUfrag = NULL, remoteIcePwd = NULL;
     UINT32 i, j;
     PSessionDescription pSessionDescription;
+    BOOL remoteHasTwccExtmap = FALSE, remoteHasTwccRtcpFb = FALSE;
+    UINT16 remoteTwccExtId = 0;
 
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
 
@@ -1486,9 +1488,27 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
                 // The standard dictates clearly that it should be a session level attribute:  https://tools.ietf.org/html/rfc5245#page-76
             } else if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "extmap") == 0 &&
                        STRSTR(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, TWCC_EXT_URL) != NULL) {
-                pKvsPeerConnection->twccExtId = parseExtId(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue);
+                remoteHasTwccExtmap = TRUE;
+                remoteTwccExtId = parseExtId(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue);
+            } else if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "rtcp-fb") == 0 &&
+                       STRSTR(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, TWCC_SDP_ATTR) != NULL) {
+                remoteHasTwccRtcpFb = TRUE;
             }
         }
+    }
+
+    // Enable TWCC if all 3 conditions are met:
+    // 1: remote has TWCC extmap line
+    // 2: remote has rtcp-fb transport-cc line
+    // 3: local configuration allows it
+    if (pKvsPeerConnection->pTwccManager == NULL) {
+        DLOGD("TWCC disabled by local configuration");
+    } else if (remoteHasTwccExtmap && remoteHasTwccRtcpFb) {
+        pKvsPeerConnection->twccExtId = remoteTwccExtId;
+        DLOGD("TWCC enabled, ext id: %u", pKvsPeerConnection->twccExtId);
+    } else {
+        DLOGD("TWCC not advertised by remote (extmap=%s, rtcp-fb=%s), not enabling", remoteHasTwccExtmap ? "yes" : "no",
+              remoteHasTwccRtcpFb ? "yes" : "no");
     }
 
     CHK(remoteIceUfrag != NULL && remoteIcePwd != NULL, STATUS_SESSION_DESCRIPTION_MISSING_ICE_VALUES);
@@ -2017,7 +2037,11 @@ STATUS twccManagerOnPacketSent(PKvsPeerConnection pKvsPeerConnection, PRtpPacket
     PTwccRtpPacketInfo pTwccRtpPktInfo = NULL;
 
     CHK(pKvsPeerConnection != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
-    CHK(pKvsPeerConnection->onSenderBandwidthEstimation != NULL && pKvsPeerConnection->pTwccManager != NULL, STATUS_SUCCESS);
+    // Skip TWCC tracking if no callback is set to consume the results
+    CHK((pKvsPeerConnection->onSenderBandwidthEstimation != NULL || pKvsPeerConnection->onPeerCongestionFeedback != NULL ||
+         pKvsPeerConnection->onTwccFeedbackReceived != NULL) &&
+            pKvsPeerConnection->pTwccManager != NULL,
+        STATUS_SUCCESS);
     CHK(TWCC_EXT_PROFILE == pRtpPacket->header.extensionProfile, STATUS_SUCCESS);
 
     MUTEX_LOCK(pKvsPeerConnection->twccLock);
@@ -2039,6 +2063,34 @@ CleanUp:
     }
     CHK_LOG_ERR(retStatus);
 
+    LEAVES();
+    return retStatus;
+}
+
+STATUS peerConnectionUpdateIceServers(PRtcPeerConnection pPeerConnection, PRtcIceServer pIceServers, UINT32 iceServersCount)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
+
+    CHK(pKvsPeerConnection != NULL && pIceServers != NULL, STATUS_NULL_ARG);
+    CHK(iceServersCount > 0, STATUS_INVALID_ARG);
+
+    DLOGI("Updating peer connection with %u new ICE servers", iceServersCount);
+
+    /*
+     * Dynamic ICE server update:
+     * - Add new ICE servers to the ICE agent
+     * - For TURN servers, new relay candidates will be created automatically
+     * - New candidates will be gathered and made available for connectivity checks
+     * - This enables progressive ICE server delivery without disrupting existing connections
+     */
+    CHK_STATUS(iceAgentAddIceServers(pKvsPeerConnection->pIceAgent, pIceServers, iceServersCount));
+
+    DLOGI("Successfully updated peer connection ICE servers");
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
     LEAVES();
     return retStatus;
 }
@@ -2091,6 +2143,42 @@ STATUS iceAgentGetMetrics(PRtcPeerConnection pPeerConnection, PKvsIceAgentMetric
         pKvsIceAgentMetrics->version = ICE_AGENT_METRICS_CURRENT_VERSION;
     }
     CHK_STATUS(getIceAgentStats(pKvsPeerConnection->pIceAgent, pKvsIceAgentMetrics));
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS setOnTwccFeedbackReceived(PRtcPeerConnection pPeerConnection, UINT64 customData, RtcOnTwccFeedbackReceived onTwccFbReceived)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
+
+    CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+
+    pKvsPeerConnection->onTwccFeedbackReceivedCustomData = customData;
+    pKvsPeerConnection->onTwccFeedbackReceived = onTwccFbReceived;
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS setOnPeerCongestionFeedbackFn(PRtcPeerConnection pPeerConnection, UINT64 customData, RtcOnPeerCongestionFeedback onPeerCongestionFeedback)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
+
+    CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+
+    pKvsPeerConnection->onPeerCongestionFeedbackCustomData = customData;
+    pKvsPeerConnection->onPeerCongestionFeedback = onPeerCongestionFeedback;
+
 CleanUp:
     CHK_LOG_ERR(retStatus);
 

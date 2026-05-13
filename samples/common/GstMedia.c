@@ -20,9 +20,9 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
     UINT32 i;
     guint bitrate;
 
-    CHK_ERR(pSampleConfiguration != NULL, STATUS_NULL_ARG, "NULL sample configuration");
-
     info.data = NULL;
+
+    CHK_ERR(pSampleConfiguration != NULL, STATUS_NULL_ARG, "NULL sample configuration");
     sample = gst_app_sink_pull_sample(GST_APP_SINK(sink));
 
     buffer = gst_sample_get_buffer(sample);

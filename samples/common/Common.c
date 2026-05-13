@@ -559,8 +559,8 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
 
     // twcc bandwidth estimation
     if (pSampleConfiguration->enableTwcc) {
-        CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
-                                                             sampleSenderBandwidthEstimationHandler));
+        CHK_STATUS(setOnPeerCongestionFeedbackFn(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
+                                                 sampleOnPeerCongestionFeedback));
     }
     pSampleStreamingSession->startUpLatency = 0;
 CleanUp:
@@ -668,61 +668,118 @@ VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
     DLOGV("received bitrate suggestion: %f", maximumBitrate);
 }
 
-// Sample callback for TWCC. Average packet is calculated with exponential moving average (EMA). If average packet lost is <= 5%,
-// the current bitrate is increased by 5%. If more than 5%, the current bitrate
-// is reduced by percent lost. Bitrate update is allowed every second and is increased/decreased upto the limits
-VOID sampleSenderBandwidthEstimationHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPacketsCnt, UINT32 rxPacketsCnt,
-                                            UINT64 duration)
+// Congestion feedback callback: SDK invokes this when TWCC feedback arrives.
+// Combines loss-based and delay-based signals to adjust encoder bitrate.
+STATUS sampleOnPeerCongestionFeedback(UINT64 customData, PCongestionCtx pCongestionCtx)
 {
-    UNUSED_PARAM(duration);
-    UINT64 videoBitrate, audioBitrate;
-    UINT64 currentTimeMs, timeDiff;
-    UINT32 lostPacketsCnt = txPacketsCnt - rxPacketsCnt;
-    DOUBLE percentLost = (DOUBLE) ((txPacketsCnt > 0) ? (lostPacketsCnt * 100 / txPacketsCnt) : 0.0);
-    SampleStreamingSession* pSampleStreamingSession = (SampleStreamingSession*) customData;
-
-    if (pSampleStreamingSession == NULL) {
-        DLOGW("Invalid streaming session (NULL object)");
-        return;
+    PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
+    if (pSampleStreamingSession == NULL || pCongestionCtx == NULL) {
+        return STATUS_NULL_ARG;
     }
 
-    // Calculate packet loss
+    UINT64 videoBitrate, audioBitrate;
+    UINT64 currentTimeMs, timeDiff;
+    UINT32 txPacketsCnt = pCongestionCtx->txPackets;
+    UINT32 rxPacketsCnt = pCongestionCtx->rxPackets;
+    UINT32 lostPacketsCnt = txPacketsCnt > rxPacketsCnt ? txPacketsCnt - rxPacketsCnt : 0;
+    DOUBLE percentLost = (DOUBLE) ((txPacketsCnt > 0) ? (lostPacketsCnt * 100 / txPacketsCnt) : 0.0);
+    DOUBLE delayTrendMs = pCongestionCtx->congestionState.delayTrend;
+
+    // Calculate packet loss (EMA smoothed)
     pSampleStreamingSession->twccMetadata.averagePacketLoss =
         EMA_ACCUMULATOR_GET_NEXT(pSampleStreamingSession->twccMetadata.averagePacketLoss, ((DOUBLE) percentLost));
 
     currentTimeMs = GETTIME();
     timeDiff = currentTimeMs - pSampleStreamingSession->twccMetadata.lastAdjustmentTimeMs;
     if (timeDiff < TWCC_BITRATE_ADJUSTMENT_INTERVAL_MS) {
-        // Too soon for another adjustment
-        return;
+        return STATUS_SUCCESS;
     }
 
     MUTEX_LOCK(pSampleStreamingSession->twccMetadata.updateLock);
     videoBitrate = pSampleStreamingSession->twccMetadata.currentVideoBitrate;
     audioBitrate = pSampleStreamingSession->twccMetadata.currentAudioBitrate;
 
-    if (pSampleStreamingSession->twccMetadata.averagePacketLoss <= 5) {
-        // increase encoder bitrate by 5 percent with a cap at MAX_BITRATE
-        videoBitrate = (UINT64) MIN(videoBitrate * 1.05, MAX_VIDEO_BITRATE_KBPS);
-        // increase encoder bitrate by 5 percent with a cap at MAX_BITRATE
-        audioBitrate = (UINT64) MIN(audioBitrate * 1.05, MAX_AUDIO_BITRATE_BPS);
+    // Combine loss-based and delay-based signals for bandwidth decision
+    BOOL lossCongested = pSampleStreamingSession->twccMetadata.averagePacketLoss > 5.0;
+    BOOL delayCongested = delayTrendMs > 0.5;
+    BOOL lossClear = pSampleStreamingSession->twccMetadata.averagePacketLoss <= 2.0;
+    BOOL delayClear = delayTrendMs < -0.1;
+
+    /*
+     * Multiplicative decrease factors (combined, take the minimum):
+     *
+     *   averagePacketLoss (EMA) | lossFactor
+     *   ------------------------+-----------
+     *   > 10.0%                 | 0.70
+     *   > 5.0% and <= 10.0%     | 0.85
+     *   <= 5.0%                 | 1.00
+     *
+     *   delayTrendMs (smoothed) | delayFactor
+     *   ------------------------+------------
+     *   > 5.0                   | 0.50
+     *   > 1.0 and <= 5.0        | 0.70
+     *   > 0.5 and <= 1.0        | 0.95
+     *   <= 0.5                  | 1.00
+     *
+     *   Additive increase (when not congested):
+     *   condition                | video step          | audio step
+     *   -------------------------+---------------------+---------------------
+     *   lossClear AND delayClear | +MAX_VIDEO/40       | +MAX_AUDIO/20
+     *   lossClear OR delayClear  | +MAX_VIDEO/80       | +MAX_AUDIO/20
+     *   both neutral             | hold                | hold
+     */
+    DOUBLE factor = 1.0;
+    if (lossCongested || delayCongested) {
+        // Multiplicative decrease
+        DOUBLE lossFactor = 1.0;
+        DOUBLE delayFactor = 1.0;
+        if (pSampleStreamingSession->twccMetadata.averagePacketLoss > 10.0) {
+            lossFactor = 0.7;
+        } else if (lossCongested) {
+            lossFactor = 0.85;
+        }
+        if (delayTrendMs > 5.0) {
+            delayFactor = 0.5;
+        } else if (delayTrendMs > 1.0) {
+            delayFactor = 0.7;
+        } else if (delayCongested) {
+            delayFactor = 0.95;
+        }
+        factor = MIN(lossFactor, delayFactor);
+    } else if (lossClear && delayClear) {
+        // Additive increase: fixed step relative to max
+        videoBitrate = MIN(videoBitrate + MAX_VIDEO_BITRATE_KBPS / 40, MAX_VIDEO_BITRATE_KBPS);
+        factor = 0; // signal that we used additive increase
+    } else if (lossClear || delayClear) {
+        videoBitrate = MIN(videoBitrate + MAX_VIDEO_BITRATE_KBPS / 80, MAX_VIDEO_BITRATE_KBPS);
+        factor = 0;
+    }
+    // else: both neutral -> hold (factor = 1.0, no change)
+
+    if (factor > 0) {
+        videoBitrate = (UINT64) MAX(MIN(videoBitrate * factor, MAX_VIDEO_BITRATE_KBPS), MIN_VIDEO_BITRATE_KBPS);
     } else {
-        // decrease encoder bitrate by average packet loss percent, with a cap at MIN_BITRATE
-        videoBitrate = (UINT64) MAX(videoBitrate * (1.0 - pSampleStreamingSession->twccMetadata.averagePacketLoss / 100.0), MIN_VIDEO_BITRATE_KBPS);
-        // decrease encoder bitrate by average packet loss percent, with a cap at MIN_BITRATE
-        audioBitrate = (UINT64) MAX(audioBitrate * (1.0 - pSampleStreamingSession->twccMetadata.averagePacketLoss / 100.0), MIN_AUDIO_BITRATE_BPS);
+        videoBitrate = (UINT64) MAX(videoBitrate, MIN_VIDEO_BITRATE_KBPS);
+    }
+    if (factor > 0) {
+        audioBitrate = (UINT64) MAX(MIN(audioBitrate * factor, MAX_AUDIO_BITRATE_BPS), MIN_AUDIO_BITRATE_BPS);
+    } else {
+        // Additive increase for audio
+        audioBitrate = MIN(audioBitrate + MAX_AUDIO_BITRATE_BPS / 20, MAX_AUDIO_BITRATE_BPS);
+        audioBitrate = (UINT64) MAX(audioBitrate, MIN_AUDIO_BITRATE_BPS);
     }
 
-    // Update the session with the new bitrate and adjustment time
     pSampleStreamingSession->twccMetadata.newVideoBitrate = videoBitrate;
     pSampleStreamingSession->twccMetadata.newAudioBitrate = audioBitrate;
     MUTEX_UNLOCK(pSampleStreamingSession->twccMetadata.updateLock);
 
     pSampleStreamingSession->twccMetadata.lastAdjustmentTimeMs = currentTimeMs;
 
-    DLOGI("Adjustment made: average packet loss = %.2f%%, timediff: %llu ms", pSampleStreamingSession->twccMetadata.averagePacketLoss, timeDiff);
-    DLOGI("Suggested video bitrate %u kbps, suggested audio bitrate: %u bps, sent: %u bytes %u packets received: %u bytes %u packets in %lu msec",
-          videoBitrate, audioBitrate, txBytes, txPacketsCnt, rxBytes, rxPacketsCnt, duration / 10000ULL);
+    DLOGD("BWE: pktLoss=%.2f%% delayTrend=%.4f ms factor=%.2f | video=%llu kbps audio=%llu bps | tx: %u bytes %u pkts, rx: %u bytes %u pkts",
+          pSampleStreamingSession->twccMetadata.averagePacketLoss, delayTrendMs, factor, videoBitrate, audioBitrate, pCongestionCtx->txBytes,
+          txPacketsCnt, pCongestionCtx->rxBytes, rxPacketsCnt);
+
+    return STATUS_SUCCESS;
 }
 
 STATUS handleRemoteCandidate(PSampleStreamingSession pSampleStreamingSession, PSignalingMessage pSignalingMessage)
@@ -802,6 +859,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 {
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR pAccessKey, pSecretKey, pSessionToken, pLogFilesDir = (PCHAR) FILE_LOGGER_LOG_FILE_DIRECTORY_PATH;
+    PCHAR pMaxLogFiles, pLogFileDir;
     PSampleConfiguration pSampleConfiguration = NULL;
     UINT32 numLogFiles = DEFAULT_MAX_NUMBER_OF_LOG_FILES;
 
@@ -828,14 +886,14 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
         pSessionToken = NULL;
     }
 
-    if (!IS_NULL_OR_EMPTY_STRING(GETENV(MAX_NUM_LOG_FILES_ENV_VAR))) {
-        CHK_STATUS_ERR(STRTOUI32(GETENV(MAX_NUM_LOG_FILES_ENV_VAR), NULL, 10, &numLogFiles), STATUS_INVALID_ARG,
-                       "Failed to parse max number of log files: %s", GETENV(MAX_NUM_LOG_FILES_ENV_VAR));
+    if (!IS_NULL_OR_EMPTY_STRING((pMaxLogFiles = GETENV(MAX_NUM_LOG_FILES_ENV_VAR)))) {
+        CHK_STATUS_ERR(STRTOUI32(pMaxLogFiles, NULL, 10, &numLogFiles), STATUS_INVALID_ARG, "Failed to parse max number of log files: %s",
+                       pMaxLogFiles);
         CHK_ERR(CHECK_IN_RANGE(numLogFiles, 1, 100), STATUS_INVALID_ARG, "MaxLogFiles must be in range: [1, 100], was: %d", numLogFiles);
     }
 
-    if (!IS_NULL_OR_EMPTY_STRING(GETENV(LOG_FILE_DIR))) {
-        pLogFilesDir = GETENV(LOG_FILE_DIR);
+    if (!IS_NULL_OR_EMPTY_STRING((pLogFileDir = GETENV(LOG_FILE_DIR)))) {
+        pLogFilesDir = pLogFileDir;
     }
 
     // If the env is set, we generate normal log files apart from filtered profile log files

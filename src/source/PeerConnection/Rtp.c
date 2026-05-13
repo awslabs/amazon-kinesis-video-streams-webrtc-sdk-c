@@ -429,35 +429,38 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pKvsPeerConnection->pSrtpSessionLock);
     }
-    MUTEX_LOCK(pKvsRtpTransceiver->statsLock);
-    pKvsRtpTransceiver->outboundStats.totalEncodedBytesTarget += pFrame->size;
-    pKvsRtpTransceiver->outboundStats.framesEncoded += frames;
-    pKvsRtpTransceiver->outboundStats.keyFramesEncoded += keyframes;
-    if (fps > 0.0) {
-        pKvsRtpTransceiver->outboundStats.framesPerSecond = fps;
-    }
-    pKvsRtpTransceiver->sender.lastKnownFrameCountTime = now;
-    pKvsRtpTransceiver->sender.lastKnownFrameCount = pKvsRtpTransceiver->outboundStats.framesEncoded;
-    pKvsRtpTransceiver->outboundStats.sent.bytesSent += bytesSent;
-    pKvsRtpTransceiver->outboundStats.sent.packetsSent += packetsSent;
-    if (lastPacketSentTimestamp > 0) {
-        pKvsRtpTransceiver->outboundStats.lastPacketSentTimestamp = lastPacketSentTimestamp;
-    }
-    pKvsRtpTransceiver->outboundStats.headerBytesSent += headerBytesSent;
-    pKvsRtpTransceiver->outboundStats.framesSent += framesSent;
-    if (pKvsRtpTransceiver->outboundStats.framesPerSecond > 0.0) {
-        if (pFrame->size >=
-            pKvsRtpTransceiver->outboundStats.targetBitrate / pKvsRtpTransceiver->outboundStats.framesPerSecond * HUGE_FRAME_MULTIPLIER) {
-            pKvsRtpTransceiver->outboundStats.hugeFramesSent++;
-        }
-    }
-    // iceAgentSendPacket tries to send packet immediately, explicitly settings totalPacketSendDelay to 0
-    pKvsRtpTransceiver->outboundStats.totalPacketSendDelay = 0;
 
-    pKvsRtpTransceiver->outboundStats.framesDiscardedOnSend += framesDiscardedOnSend;
-    pKvsRtpTransceiver->outboundStats.packetsDiscardedOnSend += packetsDiscardedOnSend;
-    pKvsRtpTransceiver->outboundStats.bytesDiscardedOnSend += bytesDiscardedOnSend;
-    MUTEX_UNLOCK(pKvsRtpTransceiver->statsLock);
+    if (pKvsRtpTransceiver != NULL && pFrame != NULL) {
+        MUTEX_LOCK(pKvsRtpTransceiver->statsLock);
+        pKvsRtpTransceiver->outboundStats.totalEncodedBytesTarget += pFrame->size;
+        pKvsRtpTransceiver->outboundStats.framesEncoded += frames;
+        pKvsRtpTransceiver->outboundStats.keyFramesEncoded += keyframes;
+        if (fps > 0.0) {
+            pKvsRtpTransceiver->outboundStats.framesPerSecond = fps;
+        }
+        pKvsRtpTransceiver->sender.lastKnownFrameCountTime = now;
+        pKvsRtpTransceiver->sender.lastKnownFrameCount = pKvsRtpTransceiver->outboundStats.framesEncoded;
+        pKvsRtpTransceiver->outboundStats.sent.bytesSent += bytesSent;
+        pKvsRtpTransceiver->outboundStats.sent.packetsSent += packetsSent;
+        if (lastPacketSentTimestamp > 0) {
+            pKvsRtpTransceiver->outboundStats.lastPacketSentTimestamp = lastPacketSentTimestamp;
+        }
+        pKvsRtpTransceiver->outboundStats.headerBytesSent += headerBytesSent;
+        pKvsRtpTransceiver->outboundStats.framesSent += framesSent;
+        if (pKvsRtpTransceiver->outboundStats.framesPerSecond > 0.0) {
+            if (pFrame->size >=
+                pKvsRtpTransceiver->outboundStats.targetBitrate / pKvsRtpTransceiver->outboundStats.framesPerSecond * HUGE_FRAME_MULTIPLIER) {
+                pKvsRtpTransceiver->outboundStats.hugeFramesSent++;
+            }
+        }
+        // iceAgentSendPacket tries to send packet immediately, explicitly settings totalPacketSendDelay to 0
+        pKvsRtpTransceiver->outboundStats.totalPacketSendDelay = 0;
+
+        pKvsRtpTransceiver->outboundStats.framesDiscardedOnSend += framesDiscardedOnSend;
+        pKvsRtpTransceiver->outboundStats.packetsDiscardedOnSend += packetsDiscardedOnSend;
+        pKvsRtpTransceiver->outboundStats.bytesDiscardedOnSend += bytesDiscardedOnSend;
+        MUTEX_UNLOCK(pKvsRtpTransceiver->statsLock);
+    }
 
     SAFE_MEMFREE(rawPacket);
     SAFE_MEMFREE(pPacketList);

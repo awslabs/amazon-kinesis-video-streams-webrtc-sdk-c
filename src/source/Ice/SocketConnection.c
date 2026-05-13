@@ -44,10 +44,6 @@ STATUS createSocketConnection(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL
     pSocketConnection->dataAvailableCallbackCustomData = customData;
     pSocketConnection->dataAvailableCallbackFn = dataAvailableFn;
 
-CleanUp:
-
-    CHK_LOG_ERR(retStatus);
-
     if (pBindAddr) {
         getIpAddrStr(pBindAddr, ipAddr, ARRAY_SIZE(ipAddr));
         DLOGD("create socket id: %d, with ip: %s:%u. family:%d", pSocketConnection->localSocket, ipAddr, (UINT16) getInt16(pBindAddr->port),
@@ -59,6 +55,10 @@ CleanUp:
         getIpAddrStr(pPeerIpAddr, ipAddr, ARRAY_SIZE(ipAddr));
         DLOGD("tcp socket connected with ip: %s:%u. family:%d", ipAddr, (UINT16) getInt16(pPeerIpAddr->port), pPeerIpAddr->family);
     }
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
 
     if (STATUS_FAILED(retStatus) && pSocketConnection != NULL) {
         freeSocketConnection(&pSocketConnection);

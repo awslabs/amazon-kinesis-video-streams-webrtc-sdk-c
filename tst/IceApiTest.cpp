@@ -97,6 +97,12 @@ TEST_F(IceApiTest, IceUtilApiTest)
     EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
     EXPECT_EQ(STATUS_SUCCESS, freeTransactionIdStore(&pTransactionIdStore));
 }
+TEST_F(IceApiTest, createSocketConnectionNullArgument)
+{
+    EXPECT_EQ(STATUS_NULL_ARG,
+              createSocketConnection(KVS_IP_FAMILY_TYPE_IPV4, KVS_SOCKET_PROTOCOL_UDP, NULL, NULL, 0, NULL, 0, NULL));
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

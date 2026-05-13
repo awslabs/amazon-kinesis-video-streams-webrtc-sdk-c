@@ -147,7 +147,10 @@ You can pass the following options to `cmake ..`:
 * `-DENABLE_DATA_CHANNEL` -- Build SDK & samples with data channel. ON by default.
 * `-DBUILD_STATIC_LIBS` -- Build all KVS WebRTC and third-party libraries as static libraries. Default: OFF (shared build).
 * `-DADD_MUCLIBC`  -- Add -muclibc c flag
-* `-DBUILD_DEPENDENCIES` -- Whether or not to build depending libraries from source
+* `-DBUILD_DEPENDENCIES` -- Whether or not to build depending libraries from source. ON by default.
+* `-DBUILD_WEBSOCKETS` -- Build libwebsockets from source. Defaults to value of BUILD_DEPENDENCIES.
+* `-DBUILD_SRTP` -- Build libsrtp from source. Defaults to value of BUILD_DEPENDENCIES.
+* `-DBUILD_USRSCTP` -- Build libusrsctp from source. Defaults to value of BUILD_DEPENDENCIES.
 * `-DBUILD_OPENSSL_PLATFORM` -- If building OpenSSL what is the target platform
 * `-DBUILD_LIBSRTP_HOST_PLATFORM` -- If building LibSRTP what is the current platform
 * `-DBUILD_LIBSRTP_DESTINATION_PLATFORM` -- If building LibSRTP what is the destination platform
@@ -203,8 +206,34 @@ To use MBedTLS:
 cmake .. -DBUILD_DEPENDENCIES=OFF -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON
 ```
 
-Note: Please follow the dependency requirements to confirm the version requirements are satisfied to use the SDK with system installed dependencies.
+> **Note:** Please follow the dependency requirements to confirm the version requirements are satisfied to use the SDK with system installed dependencies.
 If the versions are not satisfied, this option would not work and enabling the SDK to build dependencies for you would be the best option to go ahead with.
+
+
+> [!CAUTION]
+> System-installed libwebsockets and libsrtp packages (from apt, brew, etc.) are typically built against OpenSSL. If you are building the SDK with `-DUSE_MBEDTLS=ON` and relying on system packages, you might encounter linker or runtime erros. You must also build these dependencies from source (`-DBUILD_DEPENDENCIES=ON`) to ensure they are compiled against mbedTLS. This does not apply if you have manually built and installed mbedTLS-linked versions of these libraries.
+
+> [!TIP]
+> If you are unsure, recommendation is to enable SDK to build dependencies using `-DBUILD_DEPENDENCIES=ON`
+
+### Building selective dependencies from source
+
+If your system has some compatible dependencies but not others, you can selectively build individual libraries from source using the per-dependency flags. Each flag defaults to the value of `BUILD_DEPENDENCIES`.
+
+To just build libwebsockets from source and use system package for others
+```shell
+cmake .. -DBUILD_DEPENDENCIES=OFF -DBUILD_WEBSOCKETS=ON -DUSE_OPENSSL=ON
+```
+
+To build everything from source except libusrsctp (use system package):
+```shell
+cmake .. -DBUILD_DEPENDENCIES=ON -DBUILD_USRSCTP=OFF
+```
+
+Available per-dependency flags:
+* `-DBUILD_WEBSOCKETS=ON/OFF` -- Build libwebsockets from source (default: same as BUILD_DEPENDENCIES)
+* `-DBUILD_SRTP=ON/OFF` -- Build libsrtp from source (default: same as BUILD_DEPENDENCIES)
+* `-DBUILD_USRSCTP=ON/OFF` -- Build libusrsctp from source (default: same as BUILD_DEPENDENCIES)
 
 ## Run
 ### Setup your environment with your AWS account credentials and AWS region:

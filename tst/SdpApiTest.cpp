@@ -3495,6 +3495,273 @@ a=rtpmap:96 VP8/90000
                     [](PCHAR sdp) { runSetRemoteDescriptionAndAssertMissingFingerprint(sdp); });
 }
 
+TEST_F(SdpApiTest, whenRemoteOfferIncludesTwcc_thenAnswerIncludesTwcc)
+{
+    CHAR remoteSessionDescription[] = R"(v=0
+o=- 7732334361409071710 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=msid-semantic: WMS
+m=video 16485 UDP/TLS/RTP/SAVPF 96
+c=IN IP4 205.251.233.176
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:9YRc
+a=ice-pwd:/ELMEiczRSsx2OEi2ynq+TbZ
+a=ice-options:trickle
+a=fingerprint:sha-256 51:04:F9:20:45:5C:9D:85:AF:D7:AF:FB:2B:F8:DB:24:66:7B:6A:E3:E3:EF:EC:72:93:6E:01:B8:C9:53:A6:31
+a=setup:actpass
+a=mid:0
+a=sendrecv
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:96 H264/90000
+a=fmtp:96 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f
+a=rtcp-fb:96 transport-cc
+a=extmap:5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+)";
+
+    assertLFAndCRLF(remoteSessionDescription, ARRAY_SIZE(remoteSessionDescription) - 1, [](PCHAR sdp) {
+        PRtcPeerConnection pRtcPeerConnection = NULL;
+        PRtcRtpTransceiver pRtcRtpTransceiver = NULL;
+        RtcConfiguration rtcConfiguration;
+        RtcMediaStreamTrack rtcMediaStreamTrack;
+        RtcRtpTransceiverInit rtcRtpTransceiverInit;
+        RtcSessionDescriptionInit rtcSessionDescriptionInit;
+
+        MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
+        MEMSET(&rtcMediaStreamTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+        MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+        MEMSET(&rtcRtpTransceiverInit, 0x00, SIZEOF(RtcRtpTransceiverInit));
+
+        EXPECT_EQ(createPeerConnection(&rtcConfiguration, &pRtcPeerConnection), STATUS_SUCCESS);
+        EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE), STATUS_SUCCESS);
+
+        rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+        rtcMediaStreamTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        rtcMediaStreamTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+        STRCPY(rtcMediaStreamTrack.streamId, "myKvsVideoStream");
+        STRCPY(rtcMediaStreamTrack.trackId, "myTrack");
+        EXPECT_EQ(addTransceiver(pRtcPeerConnection, &rtcMediaStreamTrack, &rtcRtpTransceiverInit, &pRtcRtpTransceiver), STATUS_SUCCESS);
+
+        STRCPY(rtcSessionDescriptionInit.sdp, sdp);
+        rtcSessionDescriptionInit.type = SDP_TYPE_OFFER;
+        EXPECT_EQ(setRemoteDescription(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
+        EXPECT_EQ(createAnswer(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
+
+        std::string answerSdp(rtcSessionDescriptionInit.sdp);
+
+        // Answer must contain the TWCC extmap with the same ext ID (5) from the offer
+        std::string expectedExtmap = "a=extmap:5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01";
+        EXPECT_NE(answerSdp.find(expectedExtmap), std::string::npos);
+
+        // Answer must also contain the rtcp-fb transport-cc line
+        EXPECT_NE(answerSdp.find("transport-cc"), std::string::npos);
+
+        closePeerConnection(pRtcPeerConnection);
+        freePeerConnection(&pRtcPeerConnection);
+    });
+}
+
+// Check: TWCC is NOT enabled when the remote offer has extmap but no rtcp-fb transport-cc (partial)
+TEST_F(SdpApiTest, whenRemoteOfferPartiallyIncludesTwccHasExtMapMissingTransportCC_thenAnswerDisablesTwcc)
+{
+    CHAR remoteSessionDescription[] = R"(v=0
+o=- 7732334361409071710 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=msid-semantic: WMS
+m=video 16485 UDP/TLS/RTP/SAVPF 96
+c=IN IP4 205.251.233.176
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:9YRc
+a=ice-pwd:/ELMEiczRSsx2OEi2ynq+TbZ
+a=ice-options:trickle
+a=fingerprint:sha-256 51:04:F9:20:45:5C:9D:85:AF:D7:AF:FB:2B:F8:DB:24:66:7B:6A:E3:E3:EF:EC:72:93:6E:01:B8:C9:53:A6:31
+a=setup:actpass
+a=mid:0
+a=sendrecv
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:96 H264/90000
+a=fmtp:96 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f
+a=extmap:5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+)";
+
+    assertLFAndCRLF(remoteSessionDescription, ARRAY_SIZE(remoteSessionDescription) - 1, [](PCHAR sdp) {
+        PRtcPeerConnection pRtcPeerConnection = NULL;
+        PRtcRtpTransceiver pRtcRtpTransceiver = NULL;
+        RtcConfiguration rtcConfiguration;
+        RtcMediaStreamTrack rtcMediaStreamTrack;
+        RtcRtpTransceiverInit rtcRtpTransceiverInit;
+        RtcSessionDescriptionInit rtcSessionDescriptionInit;
+
+        MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
+        MEMSET(&rtcMediaStreamTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+        MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+        MEMSET(&rtcRtpTransceiverInit, 0x00, SIZEOF(RtcRtpTransceiverInit));
+
+        EXPECT_EQ(createPeerConnection(&rtcConfiguration, &pRtcPeerConnection), STATUS_SUCCESS);
+        EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE), STATUS_SUCCESS);
+
+        rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+        rtcMediaStreamTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        rtcMediaStreamTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+        STRCPY(rtcMediaStreamTrack.streamId, "myKvsVideoStream");
+        STRCPY(rtcMediaStreamTrack.trackId, "myTrack");
+        EXPECT_EQ(addTransceiver(pRtcPeerConnection, &rtcMediaStreamTrack, &rtcRtpTransceiverInit, &pRtcRtpTransceiver), STATUS_SUCCESS);
+
+        STRCPY(rtcSessionDescriptionInit.sdp, sdp);
+        rtcSessionDescriptionInit.type = SDP_TYPE_OFFER;
+        EXPECT_EQ(setRemoteDescription(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
+        EXPECT_EQ(createAnswer(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
+
+        std::string answerSdp(rtcSessionDescriptionInit.sdp);
+
+        // Answer must NOT contain TWCC since the offer only had extmap without rtcp-fb
+        EXPECT_EQ(answerSdp.find(TWCC_EXT_URL), std::string::npos);
+        EXPECT_EQ(answerSdp.find("transport-cc"), std::string::npos);
+
+        closePeerConnection(pRtcPeerConnection);
+        freePeerConnection(&pRtcPeerConnection);
+    });
+}
+
+// Check: TWCC is NOT enabled when the remote offer has rtcp-fb transport-cc but no extmap (partial)
+TEST_F(SdpApiTest, whenRemoteOfferPartiallyIncludesTwccHasTransportCCMissingExtMap_thenAnswerDisablesTwcc)
+{
+    CHAR remoteSessionDescription[] = R"(v=0
+o=- 7732334361409071710 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=msid-semantic: WMS
+m=video 16485 UDP/TLS/RTP/SAVPF 96
+c=IN IP4 205.251.233.176
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:9YRc
+a=ice-pwd:/ELMEiczRSsx2OEi2ynq+TbZ
+a=ice-options:trickle
+a=fingerprint:sha-256 51:04:F9:20:45:5C:9D:85:AF:D7:AF:FB:2B:F8:DB:24:66:7B:6A:E3:E3:EF:EC:72:93:6E:01:B8:C9:53:A6:31
+a=setup:actpass
+a=mid:0
+a=sendrecv
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:96 H264/90000
+a=fmtp:96 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f
+a=rtcp-fb:96 transport-cc
+)";
+
+    assertLFAndCRLF(remoteSessionDescription, ARRAY_SIZE(remoteSessionDescription) - 1, [](PCHAR sdp) {
+        PRtcPeerConnection pRtcPeerConnection = NULL;
+        PRtcRtpTransceiver pRtcRtpTransceiver = NULL;
+        RtcConfiguration rtcConfiguration;
+        RtcMediaStreamTrack rtcMediaStreamTrack;
+        RtcRtpTransceiverInit rtcRtpTransceiverInit;
+        RtcSessionDescriptionInit rtcSessionDescriptionInit;
+
+        MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
+        MEMSET(&rtcMediaStreamTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+        MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+        MEMSET(&rtcRtpTransceiverInit, 0x00, SIZEOF(RtcRtpTransceiverInit));
+
+        EXPECT_EQ(createPeerConnection(&rtcConfiguration, &pRtcPeerConnection), STATUS_SUCCESS);
+        EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE), STATUS_SUCCESS);
+
+        rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+        rtcMediaStreamTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        rtcMediaStreamTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+        STRCPY(rtcMediaStreamTrack.streamId, "myKvsVideoStream");
+        STRCPY(rtcMediaStreamTrack.trackId, "myTrack");
+        EXPECT_EQ(addTransceiver(pRtcPeerConnection, &rtcMediaStreamTrack, &rtcRtpTransceiverInit, &pRtcRtpTransceiver), STATUS_SUCCESS);
+
+        STRCPY(rtcSessionDescriptionInit.sdp, sdp);
+        rtcSessionDescriptionInit.type = SDP_TYPE_OFFER;
+        EXPECT_EQ(setRemoteDescription(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
+        EXPECT_EQ(createAnswer(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
+
+        std::string answerSdp(rtcSessionDescriptionInit.sdp);
+
+        // Answer must NOT contain TWCC since the offer only had rtcp-fb without extmap
+        EXPECT_EQ(answerSdp.find(TWCC_EXT_URL), std::string::npos);
+        EXPECT_EQ(answerSdp.find("transport-cc"), std::string::npos);
+
+        closePeerConnection(pRtcPeerConnection);
+        freePeerConnection(&pRtcPeerConnection);
+    });
+}
+
+// Check: TWCC is NOT enabled when the remote offer supports it, but the local configuration disables it
+TEST_F(SdpApiTest, whenLocalDisablesTwcc_thenAnswerExcludesTwcc)
+{
+    CHAR remoteSessionDescription[] = R"(v=0
+o=- 7732334361409071710 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=msid-semantic: WMS
+m=video 16485 UDP/TLS/RTP/SAVPF 96
+c=IN IP4 205.251.233.176
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:9YRc
+a=ice-pwd:/ELMEiczRSsx2OEi2ynq+TbZ
+a=ice-options:trickle
+a=fingerprint:sha-256 51:04:F9:20:45:5C:9D:85:AF:D7:AF:FB:2B:F8:DB:24:66:7B:6A:E3:E3:EF:EC:72:93:6E:01:B8:C9:53:A6:31
+a=setup:actpass
+a=mid:0
+a=sendrecv
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:96 H264/90000
+a=fmtp:96 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f
+a=rtcp-fb:96 transport-cc
+a=extmap:5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+)";
+
+    assertLFAndCRLF(remoteSessionDescription, ARRAY_SIZE(remoteSessionDescription) - 1, [](PCHAR sdp) {
+        PRtcPeerConnection pRtcPeerConnection = NULL;
+        PRtcRtpTransceiver pRtcRtpTransceiver = NULL;
+        RtcConfiguration rtcConfiguration;
+        RtcMediaStreamTrack rtcMediaStreamTrack;
+        RtcRtpTransceiverInit rtcRtpTransceiverInit;
+        RtcSessionDescriptionInit rtcSessionDescriptionInit;
+
+        MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
+        MEMSET(&rtcMediaStreamTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+        MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+        MEMSET(&rtcRtpTransceiverInit, 0x00, SIZEOF(RtcRtpTransceiverInit));
+
+        // Disable TWCC
+        rtcConfiguration.kvsRtcConfiguration.disableSenderSideBandwidthEstimation = TRUE;
+
+        EXPECT_EQ(createPeerConnection(&rtcConfiguration, &pRtcPeerConnection), STATUS_SUCCESS);
+        EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE), STATUS_SUCCESS);
+
+        rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+        rtcMediaStreamTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        rtcMediaStreamTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+        STRCPY(rtcMediaStreamTrack.streamId, "myKvsVideoStream");
+        STRCPY(rtcMediaStreamTrack.trackId, "myTrack");
+        EXPECT_EQ(addTransceiver(pRtcPeerConnection, &rtcMediaStreamTrack, &rtcRtpTransceiverInit, &pRtcRtpTransceiver), STATUS_SUCCESS);
+
+        STRCPY(rtcSessionDescriptionInit.sdp, sdp);
+        rtcSessionDescriptionInit.type = SDP_TYPE_OFFER;
+        EXPECT_EQ(setRemoteDescription(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
+        EXPECT_EQ(createAnswer(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
+
+        std::string answerSdp(rtcSessionDescriptionInit.sdp);
+
+        // Answer must NOT contain TWCC since the local configuration disallowed it
+        EXPECT_EQ(answerSdp.find(TWCC_EXT_URL), std::string::npos);
+        EXPECT_EQ(answerSdp.find("transport-cc"), std::string::npos);
+
+        closePeerConnection(pRtcPeerConnection);
+        freePeerConnection(&pRtcPeerConnection);
+    });
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

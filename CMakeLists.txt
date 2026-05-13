@@ -13,6 +13,16 @@ option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from sour
 option(USE_OPENSSL "Use openssl as crypto library" ON)
 option(USE_MBEDTLS "Use mbedtls as crypto library" OFF)
 option(BUILD_STATIC_LIBS "Build all libraries statically. (This includes third-party libraries.)" OFF)
+
+# Per-dependency build control. Each defaults to BUILD_DEPENDENCIES.
+# Override individually to build specific deps from source while using system packages for others.
+# Example: 
+# cmake .. -DBUILD_DEPENDENCIES=OFF -DBUILD_WEBSOCKETS=ON
+
+option(BUILD_WEBSOCKETS "Build libwebsockets from source" ${BUILD_DEPENDENCIES})
+option(BUILD_SRTP "Build libsrtp from source" ${BUILD_DEPENDENCIES})
+option(BUILD_USRSCTP "Build libusrsctp from source" ${BUILD_DEPENDENCIES})
+
 option(BUILD_OPENSSL_PLATFORM "If buildng OpenSSL what is the target platform" OFF)
 option(BUILD_LIBSRTP_HOST_PLATFORM "If buildng LibSRTP what is the current platform" OFF)
 option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destination platform" OFF)
@@ -175,7 +185,7 @@ elseif(USE_MBEDTLS)
 endif()
 
 
-if(BUILD_DEPENDENCIES)
+if(BUILD_DEPENDENCIES OR BUILD_WEBSOCKETS OR BUILD_SRTP OR BUILD_USRSCTP)
   if(NOT EXISTS ${OPEN_SRC_INSTALL_PREFIX})
     file(MAKE_DIRECTORY ${OPEN_SRC_INSTALL_PREFIX})
   endif()
@@ -192,24 +202,26 @@ if(BUILD_DEPENDENCIES)
     message(FATAL_ERROR "Only one of ${SSL_OPTIONS} can be enabled")
   endif()
 
-  if (USE_OPENSSL)
-    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-                   -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-                   -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM}
-                   -DOPENSSL_EXTRA=${OPENSSL_EXTRA})
-    build_dependency(openssl ${BUILD_ARGS})
-    set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
-  elseif(USE_MBEDTLS)
-    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-                   -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-                   -DBUILD_OLD_MBEDTLS_VERSION=${BUILD_OLD_MBEDTLS_VERSION}
-                    "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
-      build_dependency(mbedtls ${BUILD_ARGS})
+  # OpenSSL/mbedTLS is built from source only when BUILD_DEPENDENCIES is fully ON.
+  # When individual deps are selected, system SSL is used.
+  if(BUILD_DEPENDENCIES)
+    if (USE_OPENSSL)
+      set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+                     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                     -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM}
+                     -DOPENSSL_EXTRA=${OPENSSL_EXTRA})
+      build_dependency(openssl ${BUILD_ARGS})
+      set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
+    elseif(USE_MBEDTLS)
+      set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+                     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                     -DBUILD_OLD_MBEDTLS_VERSION=${BUILD_OLD_MBEDTLS_VERSION}
+                      "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
+        build_dependency(mbedtls ${BUILD_ARGS})
+    endif()
   endif()
 
-  # This step is necessary because the next set of dependencies have a dependency on
-  # mbedtls/openssl and the find_package command  populates certain cmake variables which
-  # are needed to pass to the cmake commands for the next set of dependencies
+  # Find SSL libraries (needed by libwebsockets build args)
   if (USE_OPENSSL)
     find_package(OpenSSL REQUIRED)
     set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
@@ -219,53 +231,60 @@ if(BUILD_DEPENDENCIES)
     string(REPLACE ";" "|" MBEDTLS_LIBRARIES_ALT_SEP "${MBEDTLS_LIBRARIES}")
   endif()
 
-  if(WIN32)
-    set(OPENSSL_INCLUDE_DIRS "${OPEN_SRC_INSTALL_PREFIX}/include/")
-    set(OPENSSL_CRYPTO_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libcrypto.lib")
-    set(OPENSSL_SSL_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libssl.lib")
-    set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
-    string(REPLACE ";" "|" OPENSSL_LIBRARIES_ALT_SEP "${OPENSSL_LIBRARIES}")
-    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-                  -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-                  -DUSE_OPENSSL=${USE_OPENSSL}
-                  -DUSE_MBEDTLS=${USE_MBEDTLS}
-                  -DLWS_EXT_PTHREAD_INCLUDE_DIR=${EXT_PTHREAD_INCLUDE_DIR}
-                  -DLWS_EXT_PTHREAD_LIBRARIES=${EXT_PTHREAD_LIBRARIES}
-                  -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIRS}
-                  -DLWS_OPENSSL_LIBRARIES=${OPENSSL_LIBRARIES_ALT_SEP}
-                  -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
-  else()
-    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-                  -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-                  -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
-                  -DUSE_OPENSSL=${USE_OPENSSL}
-                  -DUSE_MBEDTLS=${USE_MBEDTLS}
-                  -DLWS_OPENSSL_CRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}
-                  -DLWS_OPENSSL_SSL_LIBRARY=${OPENSSL_SSL_LIBRARY}
-                  -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIR}
-                  -DLWS_MBEDTLS_INCLUDE_DIRS=${MBEDTLS_INCLUDE_DIRS}
-                  -DLWS_MBEDTLS_LIBRARIES=${MBEDTLS_LIBRARIES_ALT_SEP}
-                  -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+  if(BUILD_WEBSOCKETS)
+    message(STATUS "Building libwebsockets from source")
+    if(WIN32)
+      set(OPENSSL_INCLUDE_DIRS "${OPEN_SRC_INSTALL_PREFIX}/include/")
+      set(OPENSSL_CRYPTO_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libcrypto.lib")
+      set(OPENSSL_SSL_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libssl.lib")
+      set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
+      string(REPLACE ";" "|" OPENSSL_LIBRARIES_ALT_SEP "${OPENSSL_LIBRARIES}")
+      set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+                    -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                    -DUSE_OPENSSL=${USE_OPENSSL}
+                    -DUSE_MBEDTLS=${USE_MBEDTLS}
+                    -DLWS_EXT_PTHREAD_INCLUDE_DIR=${EXT_PTHREAD_INCLUDE_DIR}
+                    -DLWS_EXT_PTHREAD_LIBRARIES=${EXT_PTHREAD_LIBRARIES}
+                    -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIRS}
+                    -DLWS_OPENSSL_LIBRARIES=${OPENSSL_LIBRARIES_ALT_SEP}
+                    -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+    else()
+      set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+                    -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                    -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
+                    -DUSE_OPENSSL=${USE_OPENSSL}
+                    -DUSE_MBEDTLS=${USE_MBEDTLS}
+                    -DLWS_OPENSSL_CRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}
+                    -DLWS_OPENSSL_SSL_LIBRARY=${OPENSSL_SSL_LIBRARY}
+                    -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIR}
+                    -DLWS_MBEDTLS_INCLUDE_DIRS=${MBEDTLS_INCLUDE_DIRS}
+                    -DLWS_MBEDTLS_LIBRARIES=${MBEDTLS_LIBRARIES_ALT_SEP}
+                    -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+    endif()
+    build_dependency(websockets ${BUILD_ARGS})
   endif()
-  build_dependency(websockets ${BUILD_ARGS})
 
-  set(BUILD_ARGS
-      -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-      -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
-      -DBUILD_LIBSRTP_HOST_PLATFORM=${BUILD_LIBSRTP_HOST_PLATFORM}
-      -DBUILD_LIBSRTP_DESTINATION_PLATFORM=${BUILD_LIBSRTP_DESTINATION_PLATFORM}
-      -DUSE_OPENSSL=${USE_OPENSSL}
-      -DUSE_MBEDTLS=${USE_MBEDTLS}
-      -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+  if(BUILD_SRTP)
+    message(STATUS "Building libsrtp from source")
+    set(BUILD_ARGS
+        -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
+        -DBUILD_LIBSRTP_HOST_PLATFORM=${BUILD_LIBSRTP_HOST_PLATFORM}
+        -DBUILD_LIBSRTP_DESTINATION_PLATFORM=${BUILD_LIBSRTP_DESTINATION_PLATFORM}
+        -DUSE_OPENSSL=${USE_OPENSSL}
+        -DUSE_MBEDTLS=${USE_MBEDTLS}
+        -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+    build_dependency(srtp ${BUILD_ARGS})
+  endif()
 
-  build_dependency(srtp ${BUILD_ARGS})
-
-  set(BUILD_ARGS
-      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-      -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
-
-  build_dependency(usrsctp ${BUILD_ARGS})
+  if(BUILD_USRSCTP)
+    message(STATUS "Building libusrsctp from source")
+    set(BUILD_ARGS
+        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
+    build_dependency(usrsctp ${BUILD_ARGS})
+  endif()
 
   if(BUILD_TEST)
     build_dependency(gtest)
@@ -308,7 +327,7 @@ else()
   set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${MBEDTLS_INCLUDE_DIRS})
 endif()
 
-if (OPEN_SRC_INSTALL_PREFIX)
+if (BUILD_SRTP)
   find_library(SRTP_LIBRARIES srtp2 REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
 
   if (LINK_PROFILER)
@@ -316,7 +335,11 @@ if (OPEN_SRC_INSTALL_PREFIX)
     find_library(GPERFTOOLS_PROFILER_LIBRARIES profiler REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
   endif()
 else()
-  find_library(SRTP_LIBRARIES srtp2 REQUIRED )
+  pkg_check_modules(LIBSRTP libsrtp2)
+  if(NOT LIBSRTP_FOUND)
+    message(FATAL_ERROR "libsrtp2 not found. Install it using system package manager(e.g. 'sudo apt-get install libsrtp2-dev') or enable -DBUILD_SRTP=ON to build from source.")
+  endif()
+  set(SRTP_LIBRARIES ${LIBSRTP_LIBRARIES})
   if (LINK_PROFILER)
     find_library(GPERFTOOLS_MALLOC_LIBRARIES tcmalloc REQUIRED)
     find_library(GPERFTOOLS_PROFILER_LIBRARIES profiler REQUIRED)
@@ -325,18 +348,34 @@ endif()
 
 if (WIN32)
   SET(LIBWEBSOCKETS_LIBRARIES "websockets.lib")
-else()
+elseif(BUILD_WEBSOCKETS)
   pkg_check_modules(LIBWEBSOCKETS REQUIRED libwebsockets)
+else()
+  pkg_check_modules(LIBWEBSOCKETS libwebsockets)
+  if(NOT LIBWEBSOCKETS_FOUND)
+    message(FATAL_ERROR "libwebsockets not found. Install it using system package manager (e.g. 'sudo apt-get install libwebsockets-dev') or enable -DBUILD_WEBSOCKETS=ON to build from source.")
+  endif()
 endif()
 
 # usrsctp dont support pkgconfig yet
-find_library(
-  Usrsctp
-  NAMES ${USRSCTP_LIBNAME} usrsctp REQUIRED
-  PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib ${OPEN_SRC_INSTALL_PREFIX}/lib64)
+if (BUILD_USRSCTP)
+  find_library(
+    Usrsctp
+    NAMES ${USRSCTP_LIBNAME} usrsctp REQUIRED
+    PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib ${OPEN_SRC_INSTALL_PREFIX}/lib64)
+else()
+  find_library(Usrsctp NAMES usrsctp)
+  if(NOT Usrsctp)
+    message(FATAL_ERROR "libusrsctp not found. Install it using system package manager(e.g. 'sudo apt-get install libusrsctp-dev') or enable -DBUILD_USRSCTP=ON to build from source.")
+  endif()
+  find_path(USRSCTP_INCLUDE_DIRS usrsctp.h)
+  if(NOT USRSCTP_INCLUDE_DIRS)
+    message(FATAL_ERROR "usrsctp.h not found. Install libusrsctp-dev or enable -DBUILD_USRSCTP=ON to build from source.")
+  endif()
+endif()
 
 set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${LIBSRTP_INCLUDE_DIRS}
-                          ${CURL_INCLUDE_DIRS} ${LIBWEBSOCKETS_INCLUDE_DIRS})
+                          ${USRSCTP_INCLUDE_DIRS} ${CURL_INCLUDE_DIRS} ${LIBWEBSOCKETS_INCLUDE_DIRS})
 
 link_directories(${LIBSRTP_LIBRARY_DIRS})
 link_directories(${LIBWEBSOCKETS_LIBRARY_DIRS})

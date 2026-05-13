@@ -197,6 +197,70 @@ TEST_F(PeerConnectionApiTest, connectionState)
     freePeerConnection(&pc);
 }
 
+TEST_F(PeerConnectionApiTest, peerConnectionUpdateIceServersNullArgs)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    RtcConfiguration configuration;
+    RtcIceServer iceServers[1];
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(iceServers, 0x00, SIZEOF(iceServers));
+    SNPRINTF(iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, "stun:stun.kinesisvideo.us-west-2.amazonaws.com:443");
+
+    // NULL peer connection
+    EXPECT_EQ(STATUS_NULL_ARG, peerConnectionUpdateIceServers(NULL, iceServers, 1));
+
+    // NULL ice servers array
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_NULL_ARG, peerConnectionUpdateIceServers(pRtcPeerConnection, NULL, 1));
+
+    // Zero count
+    EXPECT_EQ(STATUS_INVALID_ARG, peerConnectionUpdateIceServers(pRtcPeerConnection, iceServers, 0));
+
+    closePeerConnection(pRtcPeerConnection);
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+TEST_F(PeerConnectionApiTest, peerConnectionUpdateIceServersSuccess)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    RtcConfiguration configuration;
+    RtcIceServer iceServers[1];
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(iceServers, 0x00, SIZEOF(iceServers));
+    SNPRINTF(iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, "stun:stun.kinesisvideo.us-west-2.amazonaws.com:443");
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionUpdateIceServers(pRtcPeerConnection, iceServers, 1));
+
+    closePeerConnection(pRtcPeerConnection);
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+TEST_F(PeerConnectionApiTest, peerConnectionUpdateIceServersDuplicate)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    RtcConfiguration configuration;
+    RtcIceServer iceServers[1];
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    // Create peer connection without any ICE servers
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+
+    // Add a STUN server via the update API
+    MEMSET(iceServers, 0x00, SIZEOF(iceServers));
+    SNPRINTF(iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, "stun:stun.kinesisvideo.us-west-2.amazonaws.com:443");
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionUpdateIceServers(pRtcPeerConnection, iceServers, 1));
+
+    // Try to add the same server again -- should succeed with duplicate silently skipped
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionUpdateIceServers(pRtcPeerConnection, iceServers, 1));
+
+    closePeerConnection(pRtcPeerConnection);
+    freePeerConnection(&pRtcPeerConnection);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
