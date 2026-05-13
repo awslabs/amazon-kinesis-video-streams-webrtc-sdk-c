@@ -1198,6 +1198,66 @@ typedef VOID (*RtcOnBandwidthEstimation)(UINT64, DOUBLE);
 typedef VOID (*RtcOnSenderBandwidthEstimation)(UINT64, UINT32, UINT32, UINT32, UINT32, UINT64);
 
 /**
+ * @brief Per-packet feedback from a TWCC report.
+ *
+ * NOTE: sendTime and recvTime use different unsynchronized clocks
+ * (local sender clock vs. remote receiver clock).
+ * These values are meaningful for computing inter-packet deltas
+ * (e.g., one-way delay variation). Do NOT use them to calculate RTT.
+ */
+typedef struct {
+    UINT16 twccSeqNum; //!< Transport-wide sequence number
+    UINT64 sendTime;   //!< RTP packet send time in hundreds of nanos (local clock)
+    UINT64 recvTime;   //!< RTP packet reported receive time in hundreds of nanos (remote clock, reconstructed)
+    UINT32 packetSize; //!< Size of the packet sent (bytes)
+} TwccFeedback, *PTwccFeedback;
+
+/**
+ * @brief Congestion state output from the trendline estimator.
+ */
+typedef struct {
+    DOUBLE delayTrend; //!< Smoothed slope of accumulated delay variation (ms).
+                       //!<   >0: congestion building
+                       //!<   ~0: stable
+                       //!<   <0: congestion clearing
+} TwccCongestionState, *PTwccCongestionState;
+
+/**
+ * @brief Context provided to the bandwidth controller callback.
+ */
+typedef struct {
+    UINT32 txBytes;                      //!< Bytes sent over the transport
+    UINT32 rxBytes;                      //!< Bytes reported as received
+    UINT32 txPackets;                    //!< Packets sent over the transport
+    UINT32 rxPackets;                    //!< Packets reported as received
+    UINT64 duration;                     //!< Time window for this feedback (hundreds of nanos)
+    TwccCongestionState congestionState; //!< Current congestion state
+} CongestionCtx, *PCongestionCtx;
+
+/**
+ * @brief Called when new TWCC feedback is available from the remote peer.
+ * Updates the current network congestion state with latest data.
+ * The SDK provides a default implementation; set a custom callback to override.
+ *
+ * @param[in] UINT64 customData - User customData
+ * @param[in] PTwccFeedback twccFeedbackList - batch of per-packet feedback
+ * @param[in] UINT32 twccFeedbackListLen - length of the list
+ * @param[in,out] PTwccCongestionState pCongestionState - congestion state to update
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+typedef STATUS (*RtcOnTwccFeedbackReceived)(UINT64, PTwccFeedback, UINT32, PTwccCongestionState);
+
+/**
+ * @brief Called when the SDK has computed congestion context from TWCC feedback.
+ * The application uses this to make bandwidth decisions and adjust encoder parameters.
+ *
+ * @param[in] UINT64 customData - User customData
+ * @param[in] PCongestionCtx congestionContext - latest feedback context
+ */
+typedef STATUS (*RtcOnPeerCongestionFeedback)(UINT64, PCongestionCtx);
+
+/**
  * @brief RtcOnPictureLoss is fired everytime a Picture Loss Indication (PLI)
  * feedback message is received. Receiving such message normally indicates that
  * you sent a video frame which receiver could not decode.
@@ -1855,6 +1915,31 @@ PUBLIC_API STATUS peerConnectionOnIceCandidate(PRtcPeerConnection, UINT64, RtcOn
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS peerConnectionOnSenderBandwidthEstimation(PRtcPeerConnection, UINT64, RtcOnSenderBandwidthEstimation);
+
+/**
+ * @brief Configure a custom TWCC feedback received callback.
+ * When TWCC feedback arrives from the remote peer, this callback is invoked to update the congestion state.
+ * If not set, the SDK uses a default EMA-smoothed least-squares trendline estimator.
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in] UINT64 User customData that will be passed along when the callback is called
+ * @param[in] RtcOnTwccFeedbackReceived User callback
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS setOnTwccFeedbackReceived(PRtcPeerConnection, UINT64, RtcOnTwccFeedbackReceived);
+
+/**
+ * @brief Configure a callback invoked when the SDK has congestion context ready for the application.
+ * The application uses this to adjust encoder bitrate or other media parameters.
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in] UINT64 User customData that will be passed along when the callback is called
+ * @param[in] RtcOnPeerCongestionFeedback User callback
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS setOnPeerCongestionFeedbackFn(PRtcPeerConnection, UINT64, RtcOnPeerCongestionFeedback);
 
 /**
  * Set a callback for data channel

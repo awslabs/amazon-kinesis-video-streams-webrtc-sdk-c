@@ -146,6 +146,10 @@ CleanUp:
     return retStatus;
 }
 
+// After this function executes, the twccManager saves the indexes of the packets
+// reported in this feedback.
+// - twccManager.prevReportedBaseSeqNum = base seqNum, first packet in the report
+// - twccManager.lastReportedSeqNum = final seqNum, last packet in the report
 STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
 {
     /*
@@ -317,6 +321,84 @@ CleanUp:
     return retStatus;
 }
 
+STATUS computeTwccTrendline(PTwccManager pTwccManager, PDOUBLE pDelayTrend, PDOUBLE pQueueDelay)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT64 twccPktValue = 0;
+    PTwccRtpPacketInfo pCurr = NULL, pPrev = NULL;
+    UINT16 seqNum;
+    DOUBLE accumulatedDelay = 0.0;
+    // Accumulators for least-squares: sum(x), sum(y), sum(x*y), sum(x^2)
+    DOUBLE sumX = 0.0, sumY = 0.0, sumXY = 0.0, sumX2 = 0.0;
+    DOUBLE rawSlope = 0.0;
+    UINT32 n = 0;
+
+    CHK(pTwccManager != NULL && pDelayTrend != NULL && pQueueDelay != NULL, STATUS_NULL_ARG);
+
+    for (seqNum = pTwccManager->prevReportedBaseSeqNum; seqNum != (UINT16) (pTwccManager->lastReportedSeqNum + 1); seqNum++) {
+        if (STATUS_FAILED(hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, seqNum, &twccPktValue))) {
+            continue;
+        }
+        pCurr = (PTwccRtpPacketInfo) twccPktValue;
+        if (pCurr == NULL || pCurr->remoteTimeKvs == TWCC_PACKET_LOST_TIME || pCurr->remoteTimeKvs == TWCC_PACKET_UNITIALIZED_TIME) {
+            continue;
+        }
+
+        if (pPrev != NULL) {
+            // d_i = (recvTime_i - recvTime_{i-1}) - (sendTime_i - sendTime_{i-1})
+            // Positive means receiver-side gap grew relative to sender-side gap (queuing delay increased)
+            INT64 interRecv = (INT64) (pCurr->remoteTimeKvs - pPrev->remoteTimeKvs);
+            INT64 interSend = (INT64) (pCurr->localTimeKvs - pPrev->localTimeKvs);
+            // D_i = D_{i-1} + d_i  (running sum of delay variations)
+            accumulatedDelay += (DOUBLE) (interRecv - interSend);
+
+            // Build accumulators for ordinary least-squares (OLS) linear regression.
+            // We are fitting the model: y = slope * x + intercept
+            //   where x_i = sample index (0, 1, 2, ...)
+            //         y_i = accumulated delay D_i at that sample
+            //
+            // The OLS slope formula requires these running sums:
+            //   sumX  = Σ x_i           (sum of all x values)
+            //   sumY  = Σ y_i           (sum of all y values)
+            //   sumXY = Σ (x_i * y_i)   (sum of products, measures correlation)
+            //   sumX2 = Σ (x_i^2)       (sum of squared x, measures x spread)
+            //
+            // These avoid storing all data points in an array. We compute the
+            // slope in O(1) space by maintaining only these four running totals.
+            sumX += (DOUBLE) n;
+            sumY += accumulatedDelay;
+            sumXY += (DOUBLE) n * accumulatedDelay;
+            sumX2 += (DOUBLE) n * (DOUBLE) n;
+            n++;
+        }
+
+        pPrev = pCurr;
+    }
+
+    // Least-squares slope: (n*sum(xy) - sum(x)*sum(y)) / (n*sum(x^2) - sum(x)^2)
+    // Need at least 2 points to define a line
+    if (n >= 2) {
+        DOUBLE denom = (DOUBLE) n * sumX2 - sumX * sumX;
+        if (denom != 0.0) {
+            rawSlope = ((DOUBLE) n * sumXY - sumX * sumY) / denom;
+        }
+    }
+
+    // EMA smoothing: S_t = alpha * rawSlope + (1 - alpha) * S_{t-1}
+    // This filters out short-term noise while tracking sustained trends
+    pTwccManager->smoothedSlope = TWCC_TRENDLINE_SMOOTHING_FACTOR * rawSlope + (1.0 - TWCC_TRENDLINE_SMOOTHING_FACTOR) * pTwccManager->smoothedSlope;
+    pTwccManager->lastQueueDelay = accumulatedDelay;
+    // Convert from internal time units (hundreds of nanoseconds) to milliseconds for output
+    *pDelayTrend = pTwccManager->smoothedSlope / (DOUBLE) HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    *pQueueDelay = accumulatedDelay / (DOUBLE) HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+
+    DLOGD("TWCC trendline: delayTrend=%.4f ms queueDelay=%.2f ms (n=%u)", *pDelayTrend, *pQueueDelay, n);
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+    return retStatus;
+}
+
 STATUS updateTwccHashTable(PTwccManager pTwccManager, PINT64 duration, PUINT64 receivedBytes, PUINT64 receivedPackets, PUINT64 sentBytes,
                            PUINT64 sentPackets)
 {
@@ -405,22 +487,87 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     UINT64 sentBytes = 0, receivedBytes = 0;
     UINT64 sentPackets = 0, receivedPackets = 0;
     INT64 duration = 0;
+    DOUBLE delayTrend = 0.0, queueDelay = 0.0;
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
-    CHK(pKvsPeerConnection->pTwccManager != NULL && pKvsPeerConnection->onSenderBandwidthEstimation != NULL, STATUS_SUCCESS);
+    // Skip TWCC parsing if no callback is set to consume the results
+    CHK(pKvsPeerConnection->pTwccManager != NULL &&
+            (pKvsPeerConnection->onSenderBandwidthEstimation != NULL || pKvsPeerConnection->onPeerCongestionFeedback != NULL ||
+             pKvsPeerConnection->onTwccFeedbackReceived != NULL),
+        STATUS_SUCCESS);
 
     MUTEX_LOCK(pKvsPeerConnection->twccLock);
     locked = TRUE;
     pTwccManager = pKvsPeerConnection->pTwccManager;
     CHK_STATUS(parseRtcpTwccPacket(pRtcpPacket, pTwccManager));
 
+    // Compute trendline
+    if (pKvsPeerConnection->onTwccFeedbackReceived != NULL) {
+        // Custom estimator callback, build feedback list from this TWCC report
+        TwccCongestionState congestionState;
+        PTwccFeedback pFeedbackList = NULL;
+        UINT32 feedbackCount = 0;
+        UINT16 seqNum;
+        UINT64 twccPktVal = 0;
+        PTwccRtpPacketInfo pPktInfo = NULL;
+        UINT16 reportLen = (UINT16) (pTwccManager->lastReportedSeqNum - pTwccManager->prevReportedBaseSeqNum + 1);
+
+        MEMSET(&congestionState, 0, SIZEOF(congestionState));
+        pFeedbackList = (PTwccFeedback) MEMALLOC(reportLen * SIZEOF(TwccFeedback));
+        CHK(pFeedbackList != NULL, STATUS_NOT_ENOUGH_MEMORY);
+
+        for (seqNum = pTwccManager->prevReportedBaseSeqNum; seqNum != (UINT16) (pTwccManager->lastReportedSeqNum + 1); seqNum++) {
+            if (STATUS_SUCCEEDED(hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, seqNum, &twccPktVal))) {
+                pPktInfo = (PTwccRtpPacketInfo) twccPktVal;
+                if (pPktInfo != NULL && pPktInfo->remoteTimeKvs != TWCC_PACKET_LOST_TIME && pPktInfo->remoteTimeKvs != TWCC_PACKET_UNITIALIZED_TIME) {
+                    pFeedbackList[feedbackCount].twccSeqNum = seqNum;
+                    pFeedbackList[feedbackCount].sendTime = pPktInfo->localTimeKvs;
+                    pFeedbackList[feedbackCount].recvTime = pPktInfo->remoteTimeKvs;
+                    pFeedbackList[feedbackCount].packetSize = pPktInfo->packetSize;
+                    feedbackCount++;
+                }
+            }
+        }
+
+        MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
+        locked = FALSE;
+
+        // Invoke custom callback to perform the calculation
+        retStatus = pKvsPeerConnection->onTwccFeedbackReceived(pKvsPeerConnection->onTwccFeedbackReceivedCustomData, pFeedbackList, feedbackCount,
+                                                               &congestionState);
+        SAFE_MEMFREE(pFeedbackList);
+        CHK_STATUS(retStatus);
+        MUTEX_LOCK(pKvsPeerConnection->twccLock);
+        locked = TRUE;
+        delayTrend = congestionState.delayTrend;
+    } else {
+        // Default trendline estimator
+        CHK_STATUS(computeTwccTrendline(pTwccManager, &delayTrend, &queueDelay));
+    }
+
     updateTwccHashTable(pTwccManager, &duration, &receivedBytes, &receivedPackets, &sentBytes, &sentPackets);
 
     if (duration > 0) {
         MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
         locked = FALSE;
-        pKvsPeerConnection->onSenderBandwidthEstimation(pKvsPeerConnection->onSenderBandwidthEstimationCustomData, sentBytes, receivedBytes,
-                                                        sentPackets, receivedPackets, duration);
+
+        // Invoke the new congestion feedback callback if set
+        if (pKvsPeerConnection->onPeerCongestionFeedback != NULL) {
+            CongestionCtx ctx;
+            ctx.txBytes = (UINT32) sentBytes;
+            ctx.rxBytes = (UINT32) receivedBytes;
+            ctx.txPackets = (UINT32) sentPackets;
+            ctx.rxPackets = (UINT32) receivedPackets;
+            ctx.duration = (UINT64) duration;
+            ctx.congestionState.delayTrend = delayTrend;
+            CHK_LOG_ERR(pKvsPeerConnection->onPeerCongestionFeedback(pKvsPeerConnection->onPeerCongestionFeedbackCustomData, &ctx));
+        }
+
+        // Also invoke the legacy callback for backward compatibility
+        if (pKvsPeerConnection->onSenderBandwidthEstimation != NULL) {
+            pKvsPeerConnection->onSenderBandwidthEstimation(pKvsPeerConnection->onSenderBandwidthEstimationCustomData, sentBytes, receivedBytes,
+                                                            sentPackets, receivedPackets, duration);
+        }
     }
 
 CleanUp:

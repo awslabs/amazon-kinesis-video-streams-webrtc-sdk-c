@@ -104,11 +104,11 @@ extern "C" {
 #define MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE 736 // strlen(SIGNALING_CLIENT_METRICS_JSON_TEMPLATE) + 20 * 10
 #define MAX_ICE_AGENT_METRICS_MESSAGE_SIZE        113 // strlen(ICE_AGENT_METRICS_JSON_TEMPLATE) + 20 * 2
 
-#define TWCC_BITRATE_ADJUSTMENT_INTERVAL_MS 1000 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
-#define MIN_VIDEO_BITRATE_KBPS              512     // Unit kilobits/sec. Value could change based on codec.
-#define MAX_VIDEO_BITRATE_KBPS              2048000 // Unit kilobits/sec. Value could change based on codec.
-#define MIN_AUDIO_BITRATE_BPS               4000    // Unit bits/sec. Value could change based on codec.
-#define MAX_AUDIO_BITRATE_BPS               650000  // Unit bits/sec. Value could change based on codec.
+#define TWCC_BITRATE_ADJUSTMENT_INTERVAL_MS 250 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
+#define MIN_VIDEO_BITRATE_KBPS              384    // Unit kilobits/sec. Value could change based on codec.
+#define MAX_VIDEO_BITRATE_KBPS              2500   // Unit kilobits/sec. Value could change based on codec.
+#define MIN_AUDIO_BITRATE_BPS               4000   // Unit bits/sec. Value could change based on codec.
+#define MAX_AUDIO_BITRATE_BPS               128000 // Unit bits/sec. Value could change based on codec.
 
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
@@ -296,7 +296,7 @@ VOID sampleVideoFrameHandler(UINT64, PFrame);
 VOID sampleAudioFrameHandler(UINT64, PFrame);
 VOID sampleFrameHandler(UINT64, PFrame);
 VOID sampleBandwidthEstimationHandler(UINT64, DOUBLE);
-VOID sampleSenderBandwidthEstimationHandler(UINT64, UINT32, UINT32, UINT32, UINT32, UINT64);
+STATUS sampleOnPeerCongestionFeedback(UINT64, PCongestionCtx);
 VOID onDataChannel(UINT64, PRtcDataChannel);
 VOID onConnectionStateChange(UINT64, RTC_PEER_CONNECTION_STATE);
 STATUS sessionCleanupWait(PSampleConfiguration);
