@@ -1,0 +1,5 @@
+<map id="CongestionCtx" name="CongestionCtx">
+<area shape="rect" id="Node000001" title="Context provided to the bandwidth controller callback." alt="" coords="27,133,136,279"/>
+<area shape="rect" id="Node000002" href="$structTwccCongestionState.html" title="Congestion state output from the trendline estimator." alt="" coords="5,5,157,71"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="84,71,84,117,79,117,79,71"/>
+</map>
