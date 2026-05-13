@@ -3762,6 +3762,220 @@ a=extmap:5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extension
     });
 }
 
+// Check: When remote offer has TWCC on video m-line only (like Firefox), the answer includes TWCC only on video, not audio
+TEST_F(SdpApiTest, whenRemoteOfferHasTwccOnVideoOnly_thenAnswerIncludesTwccOnVideoOnly)
+{
+    // Firefox-style offer: audio + video, TWCC extmap only on video m-line
+    CHAR remoteSessionDescription[] = R"(v=0
+o=mozilla...THIS_IS_SDPARTA-99.0 1594401690149404988 0 IN IP4 0.0.0.0
+s=-
+t=0 0
+a=group:BUNDLE 0 1
+a=ice-options:trickle
+a=msid-semantic: WMS *
+m=audio 9 UDP/TLS/RTP/SAVPF 109
+c=IN IP4 0.0.0.0
+a=recvonly
+a=ice-ufrag:6ca5a4b1
+a=ice-pwd:e19ac94391e12f14994bdaaa7b4fc812
+a=fingerprint:sha-256 59:DE:2A:3C:0B:B9:68:EB:D9:7E:40:60:5C:90:E7:1D:2E:C1:B1:9A:FF:88:B7:D7:38:10:98:8B:F2:9C:5C:42
+a=setup:actpass
+a=mid:0
+a=rtcp-mux
+a=rtpmap:109 opus/48000/2
+a=fmtp:109 maxplaybackrate=48000;stereo=1;useinbandfec=1
+m=video 9 UDP/TLS/RTP/SAVPF 126
+c=IN IP4 0.0.0.0
+a=recvonly
+a=ice-ufrag:6ca5a4b1
+a=ice-pwd:e19ac94391e12f14994bdaaa7b4fc812
+a=fingerprint:sha-256 59:DE:2A:3C:0B:B9:68:EB:D9:7E:40:60:5C:90:E7:1D:2E:C1:B1:9A:FF:88:B7:D7:38:10:98:8B:F2:9C:5C:42
+a=setup:actpass
+a=mid:1
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:126 H264/90000
+a=fmtp:126 profile-level-id=42e01f;level-asymmetry-allowed=1;packetization-mode=1
+a=rtcp-fb:126 nack
+a=rtcp-fb:126 nack pli
+a=rtcp-fb:126 transport-cc
+a=extmap:7 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+)";
+
+    assertLFAndCRLF(remoteSessionDescription, ARRAY_SIZE(remoteSessionDescription) - 1, [](PCHAR sdp) {
+        PRtcPeerConnection pRtcPeerConnection = NULL;
+        PRtcRtpTransceiver pAudioTransceiver = NULL;
+        PRtcRtpTransceiver pVideoTransceiver = NULL;
+        RtcConfiguration rtcConfiguration;
+        RtcMediaStreamTrack audioTrack, videoTrack;
+        RtcRtpTransceiverInit rtcRtpTransceiverInit;
+        RtcSessionDescriptionInit rtcSessionDescriptionInit;
+
+        MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
+        MEMSET(&audioTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+        MEMSET(&videoTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+        MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+        MEMSET(&rtcRtpTransceiverInit, 0x00, SIZEOF(RtcRtpTransceiverInit));
+
+        EXPECT_EQ(createPeerConnection(&rtcConfiguration, &pRtcPeerConnection), STATUS_SUCCESS);
+        EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_OPUS), STATUS_SUCCESS);
+        EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE), STATUS_SUCCESS);
+
+        rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+
+        audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+        audioTrack.codec = RTC_CODEC_OPUS;
+        STRCPY(audioTrack.streamId, "myKvsVideoStream");
+        STRCPY(audioTrack.trackId, "myAudioTrack");
+        EXPECT_EQ(addTransceiver(pRtcPeerConnection, &audioTrack, &rtcRtpTransceiverInit, &pAudioTransceiver), STATUS_SUCCESS);
+
+        videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+        STRCPY(videoTrack.streamId, "myKvsVideoStream");
+        STRCPY(videoTrack.trackId, "myVideoTrack");
+        EXPECT_EQ(addTransceiver(pRtcPeerConnection, &videoTrack, &rtcRtpTransceiverInit, &pVideoTransceiver), STATUS_SUCCESS);
+
+        STRCPY(rtcSessionDescriptionInit.sdp, sdp);
+        rtcSessionDescriptionInit.type = SDP_TYPE_OFFER;
+        EXPECT_EQ(setRemoteDescription(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
+        EXPECT_EQ(createAnswer(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
+
+        std::string answerSdp(rtcSessionDescriptionInit.sdp);
+
+        // Split the answer SDP into audio (m=audio) and video (m=video) sections
+        auto audioPos = answerSdp.find("m=audio");
+        auto videoPos = answerSdp.find("m=video");
+        ASSERT_NE(audioPos, std::string::npos);
+        ASSERT_NE(videoPos, std::string::npos);
+
+        std::string audioSection = answerSdp.substr(audioPos, videoPos - audioPos);
+        std::string videoSection = answerSdp.substr(videoPos);
+
+        // Audio section must NOT contain TWCC extmap or transport-cc
+        EXPECT_EQ(audioSection.find(TWCC_EXT_URL), std::string::npos);
+        EXPECT_EQ(audioSection.find("transport-cc"), std::string::npos);
+
+        // Video section MUST contain TWCC extmap and transport-cc
+        EXPECT_NE(videoSection.find(TWCC_EXT_URL), std::string::npos);
+        EXPECT_NE(videoSection.find("transport-cc"), std::string::npos);
+
+        // Verify per-transceiver twccEnabled flags
+        PKvsRtpTransceiver pKvsAudioTransceiver = (PKvsRtpTransceiver) pAudioTransceiver;
+        PKvsRtpTransceiver pKvsVideoTransceiver = (PKvsRtpTransceiver) pVideoTransceiver;
+        EXPECT_FALSE(pKvsAudioTransceiver->twccEnabled);
+        EXPECT_TRUE(pKvsVideoTransceiver->twccEnabled);
+
+        closePeerConnection(pRtcPeerConnection);
+        freePeerConnection(&pRtcPeerConnection);
+    });
+}
+
+// Check: When remote offer has TWCC on both audio and video, the answer includes TWCC on both
+TEST_F(SdpApiTest, whenRemoteOfferHasTwccOnBothMlines_thenAnswerIncludesTwccOnBoth)
+{
+    CHAR remoteSessionDescription[] = R"(v=0
+o=- 7732334361409071710 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0 1
+a=msid-semantic: WMS
+m=audio 9 UDP/TLS/RTP/SAVPF 109
+c=IN IP4 0.0.0.0
+a=ice-ufrag:9YRc
+a=ice-pwd:/ELMEiczRSsx2OEi2ynq+TbZ
+a=ice-options:trickle
+a=fingerprint:sha-256 51:04:F9:20:45:5C:9D:85:AF:D7:AF:FB:2B:F8:DB:24:66:7B:6A:E3:E3:EF:EC:72:93:6E:01:B8:C9:53:A6:31
+a=setup:actpass
+a=mid:0
+a=recvonly
+a=rtcp-mux
+a=rtpmap:109 opus/48000/2
+a=fmtp:109 maxplaybackrate=48000;stereo=1;useinbandfec=1
+a=rtcp-fb:109 transport-cc
+a=extmap:5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+m=video 9 UDP/TLS/RTP/SAVPF 96
+c=IN IP4 0.0.0.0
+a=ice-ufrag:9YRc
+a=ice-pwd:/ELMEiczRSsx2OEi2ynq+TbZ
+a=ice-options:trickle
+a=fingerprint:sha-256 51:04:F9:20:45:5C:9D:85:AF:D7:AF:FB:2B:F8:DB:24:66:7B:6A:E3:E3:EF:EC:72:93:6E:01:B8:C9:53:A6:31
+a=setup:actpass
+a=mid:1
+a=recvonly
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:96 H264/90000
+a=fmtp:96 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f
+a=rtcp-fb:96 transport-cc
+a=extmap:5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+)";
+
+    assertLFAndCRLF(remoteSessionDescription, ARRAY_SIZE(remoteSessionDescription) - 1, [](PCHAR sdp) {
+        PRtcPeerConnection pRtcPeerConnection = NULL;
+        PRtcRtpTransceiver pAudioTransceiver = NULL;
+        PRtcRtpTransceiver pVideoTransceiver = NULL;
+        RtcConfiguration rtcConfiguration;
+        RtcMediaStreamTrack audioTrack, videoTrack;
+        RtcRtpTransceiverInit rtcRtpTransceiverInit;
+        RtcSessionDescriptionInit rtcSessionDescriptionInit;
+
+        MEMSET(&rtcConfiguration, 0x00, SIZEOF(RtcConfiguration));
+        MEMSET(&audioTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+        MEMSET(&videoTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+        MEMSET(&rtcSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+        MEMSET(&rtcRtpTransceiverInit, 0x00, SIZEOF(RtcRtpTransceiverInit));
+
+        EXPECT_EQ(createPeerConnection(&rtcConfiguration, &pRtcPeerConnection), STATUS_SUCCESS);
+        EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_OPUS), STATUS_SUCCESS);
+        EXPECT_EQ(addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE), STATUS_SUCCESS);
+
+        rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+
+        audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+        audioTrack.codec = RTC_CODEC_OPUS;
+        STRCPY(audioTrack.streamId, "myKvsVideoStream");
+        STRCPY(audioTrack.trackId, "myAudioTrack");
+        EXPECT_EQ(addTransceiver(pRtcPeerConnection, &audioTrack, &rtcRtpTransceiverInit, &pAudioTransceiver), STATUS_SUCCESS);
+
+        videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+        STRCPY(videoTrack.streamId, "myKvsVideoStream");
+        STRCPY(videoTrack.trackId, "myVideoTrack");
+        EXPECT_EQ(addTransceiver(pRtcPeerConnection, &videoTrack, &rtcRtpTransceiverInit, &pVideoTransceiver), STATUS_SUCCESS);
+
+        STRCPY(rtcSessionDescriptionInit.sdp, sdp);
+        rtcSessionDescriptionInit.type = SDP_TYPE_OFFER;
+        EXPECT_EQ(setRemoteDescription(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
+        EXPECT_EQ(createAnswer(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
+
+        std::string answerSdp(rtcSessionDescriptionInit.sdp);
+
+        // Split the answer SDP into audio and video sections
+        auto audioPos = answerSdp.find("m=audio");
+        auto videoPos = answerSdp.find("m=video");
+        ASSERT_NE(audioPos, std::string::npos);
+        ASSERT_NE(videoPos, std::string::npos);
+
+        std::string audioSection = answerSdp.substr(audioPos, videoPos - audioPos);
+        std::string videoSection = answerSdp.substr(videoPos);
+
+        // Both sections MUST contain TWCC extmap and transport-cc
+        EXPECT_NE(audioSection.find(TWCC_EXT_URL), std::string::npos);
+        EXPECT_NE(audioSection.find("transport-cc"), std::string::npos);
+        EXPECT_NE(videoSection.find(TWCC_EXT_URL), std::string::npos);
+        EXPECT_NE(videoSection.find("transport-cc"), std::string::npos);
+
+        // Verify per-transceiver twccEnabled flags
+        PKvsRtpTransceiver pKvsAudioTransceiver = (PKvsRtpTransceiver) pAudioTransceiver;
+        PKvsRtpTransceiver pKvsVideoTransceiver = (PKvsRtpTransceiver) pVideoTransceiver;
+        EXPECT_TRUE(pKvsAudioTransceiver->twccEnabled);
+        EXPECT_TRUE(pKvsVideoTransceiver->twccEnabled);
+
+        closePeerConnection(pRtcPeerConnection);
+        freePeerConnection(&pRtcPeerConnection);
+    });
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

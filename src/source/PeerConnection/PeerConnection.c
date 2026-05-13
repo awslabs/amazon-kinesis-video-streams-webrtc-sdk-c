@@ -1490,6 +1490,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
                        STRSTR(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, TWCC_EXT_URL) != NULL) {
                 remoteHasTwccExtmap = TRUE;
                 remoteTwccExtId = parseExtId(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue);
+                pKvsPeerConnection->remoteTwccOfferedPerMedia[i] = TRUE;
             } else if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "rtcp-fb") == 0 &&
                        STRSTR(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, TWCC_SDP_ATTR) != NULL) {
                 remoteHasTwccRtcpFb = TRUE;
