@@ -363,7 +363,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     bufferAfterEncrypt = (pKvsRtpTransceiver->sender.payloadType == pKvsRtpTransceiver->sender.rtxPayloadType);
     for (i = 0; i < pPayloadArray->payloadSubLenSize; i++) {
         pRtpPacket = pPacketList + i;
-        if (pKvsRtpTransceiver->pKvsPeerConnection->twccExtId != 0) {
+        if (pKvsRtpTransceiver->twccEnabled) {
             pRtpPacket->header.extension = TRUE;
             pRtpPacket->header.extensionProfile = TWCC_EXT_PROFILE;
             pRtpPacket->header.extensionLength = SIZEOF(UINT32);
@@ -394,7 +394,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
             framesDiscardedOnSend = 1;
             SAFE_MEMFREE(rawPacket);
             continue;
-        } else if (sendStatus == STATUS_SUCCESS && pKvsRtpTransceiver->pKvsPeerConnection->twccExtId != 0) {
+        } else if (sendStatus == STATUS_SUCCESS && pKvsRtpTransceiver->twccEnabled) {
             pRtpPacket->sentTime = GETTIME();
             twccManagerOnPacketSent(pKvsPeerConnection, pRtpPacket);
         }

@@ -485,6 +485,11 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     CHK(pKvsRtpTransceiver != NULL, STATUS_NULL_ARG);
     CHK(pKvsPeerConnection->isOffer || pRemoteSessionDescription != NULL, STATUS_NULL_ARG);
 
+    // Set per-transceiver TWCC flag based on whether this m-line negotiated TWCC
+    if (pKvsPeerConnection->twccExtId != 0) {
+        pKvsRtpTransceiver->twccEnabled = pKvsPeerConnection->remoteTwccOfferedPerMedia[mediaSectionId];
+    }
+
     PRtcMediaStreamTrack pRtcMediaStreamTrack = &(pKvsRtpTransceiver->sender.track);
 
     MEMSET(remoteSdpAttributeValue, 0, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
@@ -896,7 +901,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full rtcp-fb goog-remb could not be written");
     attributeCount++;
 
-    if (pKvsPeerConnection->twccExtId != 0) {
+    if (pKvsPeerConnection->twccExtId != 0 && pKvsPeerConnection->remoteTwccOfferedPerMedia[mediaSectionId]) {
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp-fb");
         amountWritten =
             SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,

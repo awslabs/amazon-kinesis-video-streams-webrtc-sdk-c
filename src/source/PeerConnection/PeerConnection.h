@@ -150,6 +150,7 @@ typedef struct {
     // congestion control
     // https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
     UINT16 twccExtId;
+    BOOL remoteTwccOfferedPerMedia[MAX_SDP_SESSION_MEDIA_COUNT]; // tracks which remote m-lines offered TWCC extmap
     MUTEX twccLock;
     PTwccManager pTwccManager;
     RtcOnSenderBandwidthEstimation onSenderBandwidthEstimation;

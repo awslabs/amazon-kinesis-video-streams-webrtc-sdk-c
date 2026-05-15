@@ -1458,6 +1458,84 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURNWithDelayedDyna
     deinitializeSignalingClient();
 }
 
+// Verify that writeFrame only adds TWCC header extension on transceivers with twccEnabled=TRUE
+TEST_F(PeerConnectionFunctionalityTest, twccHeaderOnlyOnEnabledTransceivers)
+{
+    auto const frameBufferSize = 200000;
+
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack, offerAudioTrack, answerAudioTrack;
+    PRtcRtpTransceiver offerVideoTransceiver, answerVideoTransceiver, offerAudioTransceiver, answerAudioTransceiver;
+    SIZE_T seenVideo = 0;
+    Frame videoFrame, audioFrame;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
+    MEMSET(&audioFrame, 0x00, SIZEOF(Frame));
+
+    videoFrame.frameData = (PBYTE) MEMALLOC(frameBufferSize);
+    videoFrame.size = TEST_VIDEO_FRAME_SIZE;
+    MEMSET(videoFrame.frameData, 0x11, videoFrame.size);
+
+    audioFrame.frameData = (PBYTE) MEMALLOC(frameBufferSize);
+    audioFrame.size = 160; // small audio frame
+    MEMSET(audioFrame.frameData, 0x22, audioFrame.size);
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(offerPc, &offerAudioTrack, &offerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerAudioTrack, &answerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
+
+    auto onFrameHandler = [](UINT64 customData, PFrame pFrame) -> void {
+        UNUSED_PARAM(pFrame);
+        ATOMIC_STORE((PSIZE_T) customData, 1);
+    };
+    EXPECT_EQ(transceiverOnFrame(answerVideoTransceiver, (UINT64) &seenVideo, onFrameHandler), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    // After connection, simulate Firefox scenario: disable TWCC on audio transceiver
+    PKvsRtpTransceiver pKvsOfferAudioTransceiver = (PKvsRtpTransceiver) offerAudioTransceiver;
+    PKvsRtpTransceiver pKvsOfferVideoTransceiver = (PKvsRtpTransceiver) offerVideoTransceiver;
+    pKvsOfferAudioTransceiver->twccEnabled = FALSE;
+    pKvsOfferVideoTransceiver->twccEnabled = TRUE;
+
+    PKvsPeerConnection pKvsOfferPc = (PKvsPeerConnection) offerPc;
+    SIZE_T twccSeqBefore = ATOMIC_LOAD(&pKvsOfferPc->transportWideSequenceNumber);
+
+    // Send audio frames - should NOT increment transportWideSequenceNumber
+    for (int i = 0; i < 5; i++) {
+        writeFrame(offerAudioTransceiver, &audioFrame);
+        audioFrame.presentationTs += (HUNDREDS_OF_NANOS_IN_A_SECOND / 50);
+    }
+
+    SIZE_T twccSeqAfterAudio = ATOMIC_LOAD(&pKvsOfferPc->transportWideSequenceNumber);
+    EXPECT_EQ(twccSeqBefore, twccSeqAfterAudio);
+
+    // Send video frames - SHOULD increment transportWideSequenceNumber
+    for (int i = 0; i < 3; i++) {
+        writeFrame(offerVideoTransceiver, &videoFrame);
+        videoFrame.presentationTs += (HUNDREDS_OF_NANOS_IN_A_SECOND / 25);
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+
+    SIZE_T twccSeqAfterVideo = ATOMIC_LOAD(&pKvsOfferPc->transportWideSequenceNumber);
+    EXPECT_LT(twccSeqAfterAudio, twccSeqAfterVideo);
+
+    MEMFREE(videoFrame.frameData);
+    MEMFREE(audioFrame.frameData);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
