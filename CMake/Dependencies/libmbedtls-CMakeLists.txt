@@ -7,7 +7,7 @@ include(ExternalProject)
 if (BUILD_OLD_MBEDTLS_VERSION)
   SET(MBEDTLS_GIT_TAG "v2.28.8")
 else()
-  SET(MBEDTLS_GIT_TAG "v3.6.3")
+  SET(MBEDTLS_GIT_TAG "v3.6.6")
 endif()
 
 if (BUILD_STATIC_LIBS)
