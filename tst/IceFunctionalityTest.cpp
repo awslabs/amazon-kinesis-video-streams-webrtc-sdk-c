@@ -207,8 +207,6 @@ TEST_F(IceFunctionalityTest, connectionListenerFunctionalityTest)
     EXPECT_TRUE(IS_VALID_TID_VALUE(threadId));
     ATOMIC_STORE_BOOL(&pConnectionListener->terminate, TRUE);
 
-    THREAD_JOIN(threadId, NULL);
-
     EXPECT_EQ(STATUS_SUCCESS, freeConnectionListener(&pConnectionListener));
 
     EXPECT_EQ(STATUS_SUCCESS, freeSocketConnection(&pSocketConnection));
