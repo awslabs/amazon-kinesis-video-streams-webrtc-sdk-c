@@ -130,6 +130,12 @@ Functions</h2></td></tr>
 <tr class="memitem:ga3ce2483c1d6b864dd0dab6b3bb749915" id="r_ga3ce2483c1d6b864dd0dab6b3bb749915"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga3ce2483c1d6b864dd0dab6b3bb749915">peerConnectionOnSenderBandwidthEstimation</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#ga31935aba346c035df91b7771e62ad3bc">RtcOnSenderBandwidthEstimation</a>)</td></tr>
 <tr class="memdesc:ga3ce2483c1d6b864dd0dab6b3bb749915"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set a callback for transport-wide sender bandwidth estimation results.  <br /></td></tr>
 <tr class="separator:ga3ce2483c1d6b864dd0dab6b3bb749915"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf24b6c1b2d5fa637b47b10759849514d" id="r_gaf24b6c1b2d5fa637b47b10759849514d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#gaf24b6c1b2d5fa637b47b10759849514d">setOnTwccFeedbackReceived</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#ga92d619bd4ed3d0a6a9a1d30a54916d39">RtcOnTwccFeedbackReceived</a>)</td></tr>
+<tr class="memdesc:gaf24b6c1b2d5fa637b47b10759849514d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Configure a custom TWCC feedback received callback. When TWCC feedback arrives from the remote peer, this callback is invoked to update the congestion state. If not set, the SDK uses a default EMA-smoothed least-squares trendline estimator.  <br /></td></tr>
+<tr class="separator:gaf24b6c1b2d5fa637b47b10759849514d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga478a28d6a238cdccb013c72956311438" id="r_ga478a28d6a238cdccb013c72956311438"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga478a28d6a238cdccb013c72956311438">setOnPeerCongestionFeedbackFn</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#ga183d2c9b124e7591b37a6a6478926d52">RtcOnPeerCongestionFeedback</a>)</td></tr>
+<tr class="memdesc:ga478a28d6a238cdccb013c72956311438"><td class="mdescLeft">&#160;</td><td class="mdescRight">Configure a callback invoked when the SDK has congestion context ready for the application. The application uses this to adjust encoder bitrate or other media parameters.  <br /></td></tr>
+<tr class="separator:ga478a28d6a238cdccb013c72956311438"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga41afed748235c04e38fa7481e421055d" id="r_ga41afed748235c04e38fa7481e421055d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga41afed748235c04e38fa7481e421055d">peerConnectionOnDataChannel</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#ga264cd66b2d9905c3085cab6f3faf650b">RtcOnDataChannel</a>)</td></tr>
 <tr class="separator:ga41afed748235c04e38fa7481e421055d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gae937526652e3287c3e2dd9bee74ea799" id="r_gae937526652e3287c3e2dd9bee74ea799"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#gae937526652e3287c3e2dd9bee74ea799">peerConnectionOnConnectionStateChange</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#gad3f715dac4dd4d756e1728a37fb46eb9">RtcOnConnectionStateChange</a>)</td></tr>
@@ -3322,6 +3328,96 @@ Here is the call graph for this function:</div>
 
 </div>
 </div>
+<a id="ga478a28d6a238cdccb013c72956311438" name="ga478a28d6a238cdccb013c72956311438"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga478a28d6a238cdccb013c72956311438">&#9670;&#160;</a></span>setOnPeerCongestionFeedbackFn()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a> setOnPeerCongestionFeedbackFn </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>&#160;</td>
+          <td class="paramname"><em>pPeerConnection</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>&#160;</td>
+          <td class="paramname"><em>customData</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__Callbacks.html#ga183d2c9b124e7591b37a6a6478926d52">RtcOnPeerCongestionFeedback</a>&#160;</td>
+          <td class="paramname"><em>onPeerCongestionFeedback</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Configure a callback invoked when the SDK has congestion context ready for the application. The application uses this to adjust encoder bitrate or other media parameters. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">PRtcPeerConnection</td><td>Initialized <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a> </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">UINT64</td><td>User customData that will be passed along when the callback is called </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">RtcOnPeerCongestionFeedback</td><td>User callback</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>STATUS code of the execution. STATUS_SUCCESS on success </dd></dl>
+
+</div>
+</div>
+<a id="gaf24b6c1b2d5fa637b47b10759849514d" name="gaf24b6c1b2d5fa637b47b10759849514d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaf24b6c1b2d5fa637b47b10759849514d">&#9670;&#160;</a></span>setOnTwccFeedbackReceived()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a> setOnTwccFeedbackReceived </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>&#160;</td>
+          <td class="paramname"><em>pPeerConnection</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>&#160;</td>
+          <td class="paramname"><em>customData</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__Callbacks.html#ga92d619bd4ed3d0a6a9a1d30a54916d39">RtcOnTwccFeedbackReceived</a>&#160;</td>
+          <td class="paramname"><em>onTwccFbReceived</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Configure a custom TWCC feedback received callback. When TWCC feedback arrives from the remote peer, this callback is invoked to update the congestion state. If not set, the SDK uses a default EMA-smoothed least-squares trendline estimator. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">PRtcPeerConnection</td><td>Initialized <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a> </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">UINT64</td><td>User customData that will be passed along when the callback is called </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">RtcOnTwccFeedbackReceived</td><td>User callback</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>STATUS code of the execution. STATUS_SUCCESS on success </dd></dl>
+
+</div>
+</div>
 <a id="ga4378f3c6aec4d69c647c46852bdfe6ed" name="ga4378f3c6aec4d69c647c46852bdfe6ed"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga4378f3c6aec4d69c647c46852bdfe6ed">&#9670;&#160;</a></span>setRemoteDescription()</h2>
 
@@ -4295,7 +4391,7 @@ Here is the call graph for this function:</div>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Fri May 15 2026 20:27:58 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Sat May 16 2026 18:23:08 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>
