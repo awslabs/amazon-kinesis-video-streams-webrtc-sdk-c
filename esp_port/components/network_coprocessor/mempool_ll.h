@@ -1,4 +1,10 @@
-// SPDX-License-Identifier: Apache-2.0
+/*
+ * SPDX-FileCopyrightText: 2015-2022 The Apache Software Foundation (ASF)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * SPDX-FileContributor: 2019-2026 Espressif Systems (Shanghai) CO LTD
+ */
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,6 +22,10 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
+ *
+ */
+/*
+ * NOTICE: File has been changed from original implementation.
  */
 
 /**
@@ -63,33 +73,9 @@ extern "C" {
         )
 #define OS_ALIGNMENT 4
 
-#if 0
-extern portMUX_TYPE hosted_port_mutex;
-#endif
 extern SemaphoreHandle_t hosted_port_mutex;
-//critical section
-#if 0
-static inline uint32_t
-hosted_mp_enter_critical(void)
-{
-    portENTER_CRITICAL(&hosted_port_mutex);
-    return 0;
-}
-
-static inline void
-hosted_mp_exit_critical(uint32_t ctx)
-{
-    portEXIT_CRITICAL(&hosted_port_mutex);
-
-}
-#endif
 
 typedef uint32_t os_sr_t;
-
-#if 0
-#define OS_ENTER_CRITICAL(_sr) (_sr = hosted_mp_enter_critical())
-#define OS_EXIT_CRITICAL(_sr) (hosted_mp_exit_critical(_sr))
-#endif
 
 #define OS_INIT_CRITICAL() (hosted_port_mutex = xSemaphoreCreateMutex())
 #define OS_ENTER_CRITICAL() (xSemaphoreTake((hosted_port_mutex), portMAX_DELAY))
@@ -113,7 +99,6 @@ enum os_error {
 
 typedef enum os_error os_error_t;
 
-
 /**
  * A memory block structure. This simply contains a pointer to the free list
  * chain and is only used when the block is on the free list. When the block
@@ -123,11 +108,6 @@ typedef enum os_error os_error_t;
 struct os_memblock {
     SLIST_ENTRY(os_memblock) mb_next;
 };
-
-/* XXX: Change this structure so that we keep the first address in the pool? */
-/* XXX: add memory debug structure and associated code */
-/* XXX: Change how I coded the SLIST_HEAD here. It should be named:
-   SLIST_HEAD(,os_memblock) mp_head; */
 
 /**
  * Memory pool
@@ -150,6 +130,7 @@ struct os_mempool {
     /** Name for memory block */
     const char *name;
 };
+
 
 /**
  * Indicates an extended mempool.  Address can be safely cast to
@@ -207,19 +188,6 @@ struct os_mempool_info {
     char omi_name[OS_MEMPOOL_INFO_NAME_LEN];
 };
 
-/**
- * Get information about the next system memory pool.
- *
- * @param mempool The current memory pool, or NULL if starting iteration.
- * @param info    A pointer to the structure to return memory pool information
- *                into.
- *
- * @return The next memory pool in the list to get information about, or NULL
- *         when at the last memory pool.
- */
-struct os_mempool *os_mempool_info_get_next(struct os_mempool *,
-        struct os_mempool_info *);
-
 /*
  * To calculate size of the memory buffer needed for the pool. NOTE: This size
  * is NOT in bytes! The size is the number of os_membuf_t elements required for
@@ -237,113 +205,20 @@ typedef uint64_t os_membuf_t;
 #define OS_MEMPOOL_BYTES(n,blksize)     \
     (sizeof (os_membuf_t) * OS_MEMPOOL_SIZE((n), (blksize)))
 
-/**
- * Initialize a memory pool.
- *
- * @param mp            Pointer to a pointer to a mempool
- * @param blocks        The number of blocks in the pool
- * @param blocks_size   The size of the block, in bytes.
- * @param membuf        Pointer to memory to contain blocks.
- * @param name          Name of the pool.
- *
- * @return os_error_t
- */
-os_error_t os_mempool_init(struct os_mempool *mp, uint16_t blocks,
-                           uint32_t block_size, void *membuf, const char *name);
+struct mempool_ops_t {
+	os_error_t (*mempool_init)(struct os_mempool *mp, uint16_t blocks, uint32_t block_size, void *membuf, const char *name);
+	void       (*mempool_unregister)(struct os_mempool *mp);
+	void *     (*memblock_get)(struct os_mempool *mp);
+	os_error_t (*memblock_put)(struct os_mempool *mp, void *block_addr);
+};
 
-/**
- * Initializes an extended memory pool.  Extended attributes (e.g., callbacks)
- * are not specified when this function is called; they are assigned manually
- * after initialization.
- *
- * @param mpe           The extended memory pool to initialize.
- * @param blocks        The number of blocks in the pool.
- * @param block_size    The size of each block, in bytes.
- * @param membuf        Pointer to memory to contain blocks.
- * @param name          Name of the pool.
- *
- * @return os_error_t
- */
-os_error_t os_mempool_ext_init(struct os_mempool_ext *mpe, uint16_t blocks,
-                               uint32_t block_size, void *membuf, const char *name);
-
-/**
- * Clears a memory pool.
- *
- * @param mp            The mempool to clear.
- *
- * @return os_error_t
- */
-os_error_t os_mempool_clear(struct os_mempool *mp);
-
-/**
- * Clears an extended memory pool.
- *
- * @param mpe            The extended memory pool to clear.
- *
- * @return os_error_t
- */
-os_error_t os_mempool_ext_clear(struct os_mempool_ext *mpe);
-
-/**
- * Performs an integrity check of the specified mempool.  This function
- * attempts to detect memory corruption in the specified memory pool.
- *
- * @param mp                    The mempool to check.
- *
- * @return                      true if the memory pool passes the integrity
- *                                  check;
- *                              false if the memory pool is corrupt.
- */
-bool os_mempool_is_sane(const struct os_mempool *mp);
-
-/**
- * Checks if a memory block was allocated from the specified mempool.
- *
- * @param mp                    The mempool to check as parent.
- * @param block_addr            The memory block to check as child.
- *
- * @return                      0 if the block does not belong to the mempool;
- *                              1 if the block does belong to the mempool.
- */
-int os_memblock_from(const struct os_mempool *mp, const void *block_addr);
-
-/**
- * Get a memory block from a memory pool
- *
- * @param mp Pointer to the memory pool
- *
- * @return void* Pointer to block if available; NULL otherwise
- */
-void *os_memblock_get(struct os_mempool *mp);
-
-/**
- * Puts the memory block back into the pool, ignoring the put callback, if any.
- * This function should only be called from a put callback to free a block
- * without causing infinite recursion.
- *
- * @param mp Pointer to memory pool
- * @param block_addr Pointer to memory block
- *
- * @return os_error_t
- */
-os_error_t os_memblock_put_from_cb(struct os_mempool *mp, void *block_addr);
-
-/**
- * Puts the memory block back into the pool
- *
- * @param mp Pointer to memory pool
- * @param block_addr Pointer to memory block
- *
- * @return os_error_t
- */
-os_error_t os_memblock_put(struct os_mempool *mp, void *block_addr);
+struct mempool_ops_t * os_mempool_get_ops(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif // CONFIG_ESP_CACHE_MALLOC
 
 #endif  /* _OS_MEMPOOL_H_ */
 

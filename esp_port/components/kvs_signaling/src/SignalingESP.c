@@ -10,7 +10,16 @@
 
 /* NVS-based caching configuration */
 #define SIGNALING_NVS_NAMESPACE      "kvs_signaling"
-#define SIGNALING_CACHE_VERSION      "v1"   // 2 chars for future compatibility
+/* SIGNALING_CACHE_VERSION must be bumped any time SignalingFileCacheEntry's
+ * binary layout changes (in FileCache.h). The version is the prefix of the
+ * NVS key, so bumping it orphans old-layout blobs and forces fresh entries.
+ *
+ * Bumped to v2: SignalingFileCacheEntry gained controlPlaneUrl[] and
+ * useDualStackEndpoints[] (upstream commit 795a60d4f7, on
+ * beta-reference-esp-port via Release v1.16.0 b6396850a4). Old v1 blobs
+ * lack those fields, so reading them with the new struct shifts every
+ * field after `region` and produces garbage WSS / HTTPS endpoints. */
+#define SIGNALING_CACHE_VERSION      "v2"   // 2 chars for future compatibility
 #define MAX_NVS_KEY_LEN              16     // NVS key limit: 15 chars + NULL terminator
 
 /**
