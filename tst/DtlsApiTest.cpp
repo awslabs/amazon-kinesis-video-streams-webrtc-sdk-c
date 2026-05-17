@@ -32,7 +32,7 @@ TEST_F(DtlsApiTest, dtlsSessionIsInitFinished_Null_Check)
     EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
     EXPECT_EQ(STATUS_NULL_ARG, dtlsSessionIsInitFinished(pClient, &isDtlsConnected));
     EXPECT_EQ(FALSE, isDtlsConnected);
-    EXPECT_EQ(STATUS_SUCCESS, createDtlsSession(&callbacks, timerQueueHandle, 0, FALSE, NULL, &pClient));
+    EXPECT_EQ(STATUS_SUCCESS, createDtlsSession(&callbacks, timerQueueHandle, 0, FALSE, NULL, NULL, &pClient));
     EXPECT_EQ(STATUS_NULL_ARG, dtlsSessionIsInitFinished(pClient, NULL));
     freeDtlsSession(&pClient);
     EXPECT_EQ(NULL, pClient);
@@ -45,7 +45,7 @@ TEST_F(DtlsApiTest, dtlsSessionCreated_RefCount)
     PDtlsSession pClient = NULL;
     TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
     EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
-    EXPECT_EQ(STATUS_SUCCESS, createDtlsSession(&callbacks, timerQueueHandle, 0, FALSE, NULL, &pClient));
+    EXPECT_EQ(STATUS_SUCCESS, createDtlsSession(&callbacks, timerQueueHandle, 0, FALSE, NULL, NULL, &pClient));
     EXPECT_EQ(0, pClient->objRefCount);
     freeDtlsSession(&pClient);
     EXPECT_EQ(NULL, pClient);
@@ -60,7 +60,7 @@ TEST_F(DtlsApiTest, dtlsProcessPacket_Api_Check)
     TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
     EXPECT_EQ(STATUS_NULL_ARG, dtlsSessionProcessPacket(pClient, NULL, &length));
     EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
-    EXPECT_EQ(STATUS_SUCCESS, createDtlsSession(&callbacks, timerQueueHandle, 0, FALSE, NULL, &pClient));
+    EXPECT_EQ(STATUS_SUCCESS, createDtlsSession(&callbacks, timerQueueHandle, 0, FALSE, NULL, NULL, &pClient));
     EXPECT_EQ(STATUS_NULL_ARG, dtlsSessionProcessPacket(pClient, NULL, NULL));
     EXPECT_EQ(STATUS_SSL_PACKET_BEFORE_DTLS_READY, dtlsSessionProcessPacket(pClient, NULL, &length));
     freeDtlsSession(&pClient);

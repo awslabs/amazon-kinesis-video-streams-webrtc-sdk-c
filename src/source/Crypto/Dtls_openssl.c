@@ -10,6 +10,14 @@ INT32 dtlsCertificateVerifyCallback(INT32 preverify_ok, X509_STORE_CTX* ctx)
     return 1;
 }
 
+static BOOL dtlsShouldUseGcmOnlySrtpProfile(PCHAR pRegion)
+{
+    return pRegion != NULL &&
+        (STRNCMP(pRegion, AWS_GOV_CLOUD_REGION_PREFIX, STRLEN(AWS_GOV_CLOUD_REGION_PREFIX)) == 0 ||
+         STRNCMP(pRegion, AWS_ISO_REGION_PREFIX, STRLEN(AWS_ISO_REGION_PREFIX)) == 0 ||
+         STRNCMP(pRegion, AWS_ISO_B_REGION_PREFIX, STRLEN(AWS_ISO_B_REGION_PREFIX)) == 0);
+}
+
 VOID acquireDtlsSession(PDtlsSession pDtlsSession)
 {
     if (pDtlsSession != NULL) {
@@ -164,7 +172,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS createSslCtx(PDtlsSessionCertificateInfo pCertificates, UINT32 certCount, SSL_CTX** ppSslCtx)
+STATUS createSslCtx(PDtlsSessionCertificateInfo pCertificates, UINT32 certCount, PCHAR pRegion, SSL_CTX** ppSslCtx)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -204,11 +212,13 @@ STATUS createSslCtx(PDtlsSessionCertificateInfo pCertificates, UINT32 certCount,
     SSL_CTX_set_verify(pSslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, dtlsCertificateVerifyCallback);
 
     // Use AES-256-GCM only for CNSA 1.0 compliance in gov/ADC regions
-    PCHAR pRegion = GETENV(DEFAULT_REGION_ENV_VAR);
-    if (pRegion != NULL &&
-        (STRNCMP(pRegion, AWS_GOV_CLOUD_REGION_PREFIX, STRLEN(AWS_GOV_CLOUD_REGION_PREFIX)) == 0 ||
-         STRNCMP(pRegion, AWS_ISO_REGION_PREFIX, STRLEN(AWS_ISO_REGION_PREFIX)) == 0 ||
-         STRNCMP(pRegion, AWS_ISO_B_REGION_PREFIX, STRLEN(AWS_ISO_B_REGION_PREFIX)) == 0)) {
+    if (IS_NULL_OR_EMPTY_STRING(pRegion)) {
+        pRegion = GETENV(DEFAULT_REGION_ENV_VAR);
+    }
+    if (IS_NULL_OR_EMPTY_STRING(pRegion)) {
+        pRegion = DEFAULT_AWS_REGION;
+    }
+    if (dtlsShouldUseGcmOnlySrtpProfile(pRegion)) {
         CHK(SSL_CTX_set_tlsext_use_srtp(pSslCtx, "SRTP_AEAD_AES_256_GCM") == 0, STATUS_SSL_CTX_CREATION_FAILED);
     } else {
         CHK(SSL_CTX_set_tlsext_use_srtp(pSslCtx, "SRTP_AEAD_AES_256_GCM:SRTP_AES128_CM_SHA1_32:SRTP_AES128_CM_SHA1_80") == 0,
@@ -296,7 +306,7 @@ CleanUp:
 }
 
 STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, INT32 certificateBits,
-                         BOOL generateRSACertificate, PRtcCertificate pRtcCertificates, PDtlsSession* ppDtlsSession)
+                         BOOL generateRSACertificate, PRtcCertificate pRtcCertificates, PCHAR pRegion, PDtlsSession* ppDtlsSession)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -344,7 +354,7 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
         }
     }
 
-    PROFILE_CALL(CHK_STATUS(createSslCtx(certInfos, pDtlsSession->certificateCount, &pDtlsSession->pSslCtx)), "Create SSL Context");
+    PROFILE_CALL(CHK_STATUS(createSslCtx(certInfos, pDtlsSession->certificateCount, pRegion, &pDtlsSession->pSslCtx)), "Create SSL Context");
     PROFILE_CALL(CHK_STATUS(createSsl(pDtlsSession->pSslCtx, &pDtlsSession->pSsl)), "Create SSL session");
 
     // Generate and store the certificate fingerprints

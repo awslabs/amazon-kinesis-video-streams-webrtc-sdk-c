@@ -384,6 +384,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
 #ifdef ENABLE_STATS_CALCULATION_CONTROL
     configuration.kvsRtcConfiguration.enableIceStats = pSampleConfiguration->enableIceStats;
 #endif
+    configuration.kvsRtcConfiguration.pRegion = pSampleConfiguration->channelInfo.pRegion;
 
     // Set the  STUN server
     PCHAR pKinesisVideoStunUrlPostFix = NULL;

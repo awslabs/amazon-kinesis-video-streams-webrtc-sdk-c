@@ -1437,6 +1437,8 @@ typedef struct {
     BOOL generateRSACertificate; //!< GenerateRSACertificate controls if an ECDSA or RSA certificate is generated.
                                  //!< By default we generate an ECDSA certificate but some platforms may not support them.
 
+    PCHAR pRegion; //!< Optional AWS region used for region-specific media security policy.
+
     UINT32 sendBufSize; //!< Socket send buffer length. Item larger then this size will get dropped. Use system default if 0.
 
     UINT64 filterCustomData; //!< Custom Data that can be populated by the developer while developing filter function

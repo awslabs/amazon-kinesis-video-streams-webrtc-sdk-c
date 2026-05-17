@@ -9,9 +9,10 @@ mbedtls_ssl_srtp_profile DTLS_SRTP_SUPPORTED_PROFILES[] = {
 };
 
 STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, INT32 certificateBits,
-                         BOOL generateRSACertificate, PRtcCertificate pRtcCertificates, PDtlsSession* ppDtlsSession)
+                         BOOL generateRSACertificate, PRtcCertificate pRtcCertificates, PCHAR pRegion, PDtlsSession* ppDtlsSession)
 {
     ENTERS();
+    UNUSED_PARAM(pRegion);
     STATUS retStatus = STATUS_SUCCESS;
     PDtlsSession pDtlsSession = NULL;
     PDtlsSessionCertificateInfo pCertInfo;

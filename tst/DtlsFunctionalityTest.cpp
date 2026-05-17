@@ -63,8 +63,8 @@ class DtlsFunctionalityTest : public WebRtcClientTestBase {
             return retStatus;
         };
 
-        CHK_STATUS(createDtlsSession(&callbacks, timerQueueHandle, 0, FALSE, NULL, &pServer));
-        CHK_STATUS(createDtlsSession(&callbacks, timerQueueHandle, 0, FALSE, NULL, &pClient));
+        CHK_STATUS(createDtlsSession(&callbacks, timerQueueHandle, 0, FALSE, NULL, NULL, &pServer));
+        CHK_STATUS(createDtlsSession(&callbacks, timerQueueHandle, 0, FALSE, NULL, NULL, &pClient));
 
         CHK_STATUS(dtlsSessionOnOutBoundData(pServer, (UINT64) &clientCtx, outboundPacketFn));
         CHK_STATUS(dtlsSessionOnOutBoundData(pClient, (UINT64) &serverCtx, outboundPacketFn));
