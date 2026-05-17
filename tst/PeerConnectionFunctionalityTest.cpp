@@ -8,6 +8,14 @@ namespace webrtcclient {
 
 class PeerConnectionFunctionalityTest : public WebRtcClientTestBase {};
 
+static BOOL isGovOrAdcRegion(PCHAR pRegion)
+{
+    return pRegion != NULL &&
+        (STRNCMP(pRegion, AWS_GOV_CLOUD_REGION_PREFIX, STRLEN(AWS_GOV_CLOUD_REGION_PREFIX)) == 0 ||
+         STRNCMP(pRegion, AWS_ISO_REGION_PREFIX, STRLEN(AWS_ISO_REGION_PREFIX)) == 0 ||
+         STRNCMP(pRegion, AWS_ISO_B_REGION_PREFIX, STRLEN(AWS_ISO_B_REGION_PREFIX)) == 0);
+}
+
 // Assert that two PeerConnections can connect to each other and go to connected
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
 {
@@ -794,11 +802,25 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
     RtcOutboundRtpStreamStats stats{};
     EXPECT_EQ(STATUS_SUCCESS, getRtpOutboundStats(offerPc, offerVideoTransceiver, &stats));
     EXPECT_EQ(206, stats.sent.packetsSent);
-    // bytesSent varies by SRTP profile: AES-128-CM (10-byte tag) vs AES-256-GCM (16-byte tag)
+    const UINT64 mbedtlsAes128CmBytesSent = 248026;
+    const UINT64 opensslAes128CmBytesSent = 246790;
+    const UINT64 opensslAes256GcmBytesSent = 249262;
 #ifdef KVS_USE_MBEDTLS
-    EXPECT_EQ(248026, stats.sent.bytesSent);
+    EXPECT_EQ(mbedtlsAes128CmBytesSent, stats.sent.bytesSent);
 #else
-    EXPECT_TRUE(stats.sent.bytesSent == 246790 || stats.sent.bytesSent == 249262);
+    PCHAR pRegion = configuration.kvsRtcConfiguration.pRegion;
+    if (IS_NULL_OR_EMPTY_STRING(pRegion)) {
+        pRegion = GETENV(DEFAULT_REGION_ENV_VAR);
+    }
+    if (IS_NULL_OR_EMPTY_STRING(pRegion)) {
+        pRegion = DEFAULT_AWS_REGION;
+    }
+
+    if (isGovOrAdcRegion(pRegion)) {
+        EXPECT_EQ(opensslAes256GcmBytesSent, stats.sent.bytesSent);
+    } else {
+        EXPECT_TRUE(stats.sent.bytesSent == opensslAes128CmBytesSent || stats.sent.bytesSent == opensslAes256GcmBytesSent);
+    }
 #endif
     EXPECT_EQ(2, stats.framesSent);
     EXPECT_EQ(2472, stats.headerBytesSent);
