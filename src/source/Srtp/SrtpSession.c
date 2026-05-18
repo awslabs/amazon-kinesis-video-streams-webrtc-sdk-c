@@ -29,6 +29,10 @@ STATUS initSrtpSession(PBYTE receiveKey, PBYTE transmitKey, KVS_SRTP_PROFILE pro
             srtp_policy_setter = srtp_crypto_policy_set_rtp_default;
             srtcp_policy_setter = srtp_crypto_policy_set_rtp_default;
             break;
+        case KVS_SRTP_PROFILE_AEAD_AES_256_GCM:
+            srtp_policy_setter = srtp_crypto_policy_set_aes_gcm_256_16_auth;
+            srtcp_policy_setter = srtp_crypto_policy_set_aes_gcm_256_16_auth;
+            break;
         default:
             CHK(FALSE, STATUS_SSL_UNKNOWN_SRTP_PROFILE);
     }
@@ -38,6 +42,7 @@ STATUS initSrtpSession(PBYTE receiveKey, PBYTE transmitKey, KVS_SRTP_PROFILE pro
 
     receivePolicy.key = receiveKey;
     receivePolicy.ssrc.type = ssrc_any_inbound;
+    receivePolicy.window_size = 1024;
     receivePolicy.next = NULL;
 
     CHK_ERR((errStatus = srtp_create(&(pSrtpSession->srtp_receive_session), &receivePolicy)) == srtp_err_status_ok,
@@ -48,6 +53,7 @@ STATUS initSrtpSession(PBYTE receiveKey, PBYTE transmitKey, KVS_SRTP_PROFILE pro
 
     transmitPolicy.key = transmitKey;
     transmitPolicy.ssrc.type = ssrc_any_outbound;
+    transmitPolicy.window_size = 1024;
     transmitPolicy.next = NULL;
 
     CHK_ERR((errStatus = srtp_create(&(pSrtpSession->srtp_transmit_session), &transmitPolicy)) == srtp_err_status_ok,

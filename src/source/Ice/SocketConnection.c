@@ -261,7 +261,8 @@ STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection,
         dtlsCallbacks.outboundPacketFn = socketConnectionDtlsSessionOutBoundPacket;
         dtlsCallbacks.stateChangeFn = socketConnectionDtlsSessionOnStateChange;
 
-        CHK_STATUS(createDtlsSession(&dtlsCallbacks, timerQueueHandle, GENERATED_CERTIFICATE_BITS, FALSE, NULL, &pSocketConnection->pDtlsSession));
+        CHK_STATUS(
+            createDtlsSession(&dtlsCallbacks, timerQueueHandle, GENERATED_CERTIFICATE_BITS, FALSE, NULL, NULL, &pSocketConnection->pDtlsSession));
         CHK_STATUS(dtlsSessionStart(pSocketConnection->pDtlsSession, isServer));
     }
     pSocketConnection->secureConnection = TRUE;

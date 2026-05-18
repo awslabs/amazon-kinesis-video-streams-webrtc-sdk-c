@@ -13,7 +13,8 @@
 extern "C" {
 #endif
 
-#define MAX_SRTP_MASTER_KEY_LEN   16
+/* Storage sized for the largest SRTP profile we support. Negotiated lengths remain profile-specific. */
+#define MAX_SRTP_MASTER_KEY_LEN   32
 #define MAX_SRTP_SALT_KEY_LEN     14
 #define MAX_DTLS_RANDOM_BYTES_LEN 32
 #define MAX_DTLS_MASTER_KEY_LEN   48
@@ -159,11 +160,12 @@ struct __DtlsSession {
  * @param INT32 - size of generated certificate
  * @param BOOL - whether to generate certificate or not
  * @param PRtcCertificate - user provided certificate
+ * @param PCHAR - optional AWS region for region-specific SRTP profile policy
  * @param PDtlsSession* - pointer to created DtlsSession object
  *
  * @return STATUS - status of operation
  */
-STATUS createDtlsSession(PDtlsSessionCallbacks, TIMER_QUEUE_HANDLE, INT32, BOOL, PRtcCertificate, PDtlsSession*);
+STATUS createDtlsSession(PDtlsSessionCallbacks, TIMER_QUEUE_HANDLE, INT32, BOOL, PRtcCertificate, PCHAR, PDtlsSession*);
 
 /**
  * Free DTLS session. Not thread safe.
@@ -204,7 +206,7 @@ STATUS dtlsGenerateCertificateFingerprints(PDtlsSession, PDtlsSessionCertificate
 STATUS createCertificateAndKey(INT32, BOOL, X509** ppCert, EVP_PKEY** ppPkey);
 STATUS freeCertificateAndKey(X509** ppCert, EVP_PKEY** ppPkey);
 STATUS dtlsValidateRtcCertificates(PRtcCertificate, PUINT32);
-STATUS createSslCtx(PDtlsSessionCertificateInfo, UINT32, SSL_CTX**);
+STATUS createSslCtx(PDtlsSessionCertificateInfo, UINT32, PCHAR, SSL_CTX**);
 #elif KVS_USE_MBEDTLS
 STATUS dtlsCertificateFingerprint(mbedtls_x509_crt*, PCHAR);
 STATUS copyCertificateAndKey(mbedtls_x509_crt*, mbedtls_pk_context*, PDtlsSessionCertificateInfo, mbedtls_ctr_drbg_context*);
