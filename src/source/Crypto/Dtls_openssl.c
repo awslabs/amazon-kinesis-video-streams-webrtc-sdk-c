@@ -1,13 +1,106 @@
 #define LOG_CLASS "DTLS_openssl"
 #include "../Include_i.h"
 
-// Allow all certificates since they are checked via fingerprint in SDP later
-// https://www.openssl.org/docs/man1.0.2/man3/SSL_CTX_set_verify.html
 INT32 dtlsCertificateVerifyCallback(INT32 preverify_ok, X509_STORE_CTX* ctx)
 {
-    UNUSED_PARAM(preverify_ok);
-    UNUSED_PARAM(ctx);
+    SSL* pSsl = NULL;
+    PDtlsSession pDtlsSession = NULL;
+
+    if (ctx != NULL) {
+        pSsl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+    }
+
+    if (pSsl != NULL) {
+        pDtlsSession = (PDtlsSession) SSL_get_app_data(pSsl);
+    }
+
+    if (pDtlsSession != NULL && pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER) {
+        if (!preverify_ok) {
+            ATOMIC_STORE_BOOL(&pDtlsSession->remoteCertVerificationFailed, TRUE);
+        }
+
+        return preverify_ok;
+    }
+
+    // Allow all certificates in the default peer DTLS path since identity is verified later via SDP fingerprint.
     return 1;
+}
+
+STATUS dtlsSessionConfigureStrictHostnameValidation(PDtlsSession pDtlsSession)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    X509_VERIFY_PARAM* pVerifyParam = NULL;
+
+    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
+    CHK(pDtlsSession->pExpectedServerHostname != NULL && pDtlsSession->pExpectedServerHostname[0] != '\0', STATUS_INVALID_ARG);
+
+#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
+    CHK(SSL_set1_host(pDtlsSession->pSsl, pDtlsSession->pExpectedServerHostname) == 1, STATUS_SSL_CTX_CREATION_FAILED);
+#elif (OPENSSL_VERSION_NUMBER >= 0x10002000L)
+    pVerifyParam = SSL_get0_param(pDtlsSession->pSsl);
+    CHK(pVerifyParam != NULL, STATUS_SSL_CTX_CREATION_FAILED);
+    CHK(X509_VERIFY_PARAM_set1_host(pVerifyParam, pDtlsSession->pExpectedServerHostname, 0) == 1, STATUS_SSL_CTX_CREATION_FAILED);
+#else
+    DLOGW("Strict DTLS server hostname validation for %s is not supported with OpenSSL versions older than 1.0.2",
+          pDtlsSession->pExpectedServerHostname);
+    CHK(FALSE, STATUS_NOT_IMPLEMENTED);
+#endif
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+    LEAVES();
+    return retStatus;
+}
+
+STATUS dtlsSessionConfigureRemoteCertificateValidation(PDtlsSession pDtlsSession)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
+    CHK(pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER, retStatus);
+    CHK(pDtlsSession->pExpectedServerHostname != NULL && pDtlsSession->pExpectedServerHostname[0] != '\0', STATUS_INVALID_ARG);
+    DLOGD("Configuring strict DTLS server certificate validation for %s using CA bundle %s", pDtlsSession->pExpectedServerHostname, KVS_CA_CERT_PATH);
+    CHK(SSL_CTX_load_verify_locations(pDtlsSession->pSslCtx, KVS_CA_CERT_PATH, NULL) == 1, STATUS_SSL_CTX_CREATION_FAILED);
+    CHK(SSL_set_tlsext_host_name(pDtlsSession->pSsl, pDtlsSession->pExpectedServerHostname) == 1, STATUS_SSL_CTX_CREATION_FAILED);
+    CHK_STATUS(dtlsSessionConfigureStrictHostnameValidation(pDtlsSession));
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+    LEAVES();
+    return retStatus;
+}
+
+STATUS dtlsSessionCheckRemoteCertificateVerification(PDtlsSession pDtlsSession)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    X509* pRemoteCertificate = NULL;
+    LONG verifyResult = X509_V_OK;
+
+    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
+    CHK(pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER, retStatus);
+    verifyResult = SSL_get_verify_result(pDtlsSession->pSsl);
+    CHK(!ATOMIC_LOAD_BOOL(&pDtlsSession->remoteCertVerificationFailed), STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
+    CHK((pRemoteCertificate = SSL_get_peer_certificate(pDtlsSession->pSsl)) != NULL, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
+    CHK(verifyResult == X509_V_OK, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
+    DLOGD("DTLS strict server certificate verification passed for %s using CA bundle %s", pDtlsSession->pExpectedServerHostname, KVS_CA_CERT_PATH);
+
+CleanUp:
+    if (pRemoteCertificate != NULL) {
+        X509_free(pRemoteCertificate);
+    }
+
+    if (retStatus == STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED && pDtlsSession != NULL &&
+        pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER) {
+        DLOGW("DTLS strict server certificate verification failed for %s. OpenSSL verify result: %ld",
+              pDtlsSession->pExpectedServerHostname != NULL ? pDtlsSession->pExpectedServerHostname : "(null)", verifyResult);
+    }
+
+    CHK_LOG_ERR(retStatus);
+    LEAVES();
+    return retStatus;
 }
 
 VOID acquireDtlsSession(PDtlsSession pDtlsSession)
@@ -63,7 +156,15 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
 
+    if (ATOMIC_LOAD_BOOL(&pDtlsSession->remoteCertVerificationFailed)) {
+        DLOGW("DTLS strict server certificate verification failed for %s during timer-driven handshake processing",
+              pDtlsSession->pExpectedServerHostname != NULL ? pDtlsSession->pExpectedServerHostname : "(null)");
+        CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_FAILED));
+        CHK(FALSE, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
+    }
+
     if (SSL_is_init_finished(pDtlsSession->pSsl)) {
+        CHK_STATUS(dtlsSessionCheckRemoteCertificateVerification(pDtlsSession));
         CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CONNECTED));
         ATOMIC_STORE_BOOL(&pDtlsSession->sslInitFinished, TRUE);
         CHK(FALSE, STATUS_TIMER_QUEUE_STOP_SCHEDULING);
@@ -287,6 +388,14 @@ CleanUp:
 STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, INT32 certificateBits,
                          BOOL generateRSACertificate, PRtcCertificate pRtcCertificates, PDtlsSession* ppDtlsSession)
 {
+    return createDtlsSessionWithOptions(pDtlsSessionCallbacks, timerQueueHandle, certificateBits, generateRSACertificate, pRtcCertificates, NULL,
+                                        ppDtlsSession);
+}
+
+STATUS createDtlsSessionWithOptions(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, INT32 certificateBits,
+                                    BOOL generateRSACertificate, PRtcCertificate pRtcCertificates, PDtlsSessionOptions pDtlsSessionOptions,
+                                    PDtlsSession* ppDtlsSession)
+{
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PDtlsSession pDtlsSession = NULL;
@@ -312,8 +421,10 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
     pDtlsSession->receivePacketCvar = CVAR_CREATE();
     ATOMIC_STORE_BOOL(&pDtlsSession->isStarted, FALSE);
     ATOMIC_STORE_BOOL(&pDtlsSession->sslInitFinished, FALSE);
+    ATOMIC_STORE_BOOL(&pDtlsSession->remoteCertVerificationFailed, FALSE);
 
     pDtlsSession->dtlsSessionCallbacks = *pDtlsSessionCallbacks;
+    CHK_STATUS(dtlsSessionCopyOptions(pDtlsSession, pDtlsSessionOptions));
 
     if (certificateBits == 0) {
         certificateBits = GENERATED_CERTIFICATE_BITS;
@@ -335,6 +446,8 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
 
     PROFILE_CALL(CHK_STATUS(createSslCtx(certInfos, pDtlsSession->certificateCount, &pDtlsSession->pSslCtx)), "Create SSL Context");
     PROFILE_CALL(CHK_STATUS(createSsl(pDtlsSession->pSslCtx, &pDtlsSession->pSsl)), "Create SSL session");
+    SSL_set_app_data(pDtlsSession->pSsl, pDtlsSession);
+    CHK_STATUS(dtlsSessionConfigureRemoteCertificateValidation(pDtlsSession));
 
     // Generate and store the certificate fingerprints
     CHK_STATUS(dtlsGenerateCertificateFingerprints(pDtlsSession, certInfos));
@@ -473,6 +586,14 @@ STATUS dtlsSessionHandshakeInThread(PDtlsSession pDtlsSession, BOOL isServer)
                         DLOGD("Handshake want READ/WRITE");
                         CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
                     } else {
+                        if (ATOMIC_LOAD_BOOL(&pDtlsSession->remoteCertVerificationFailed)) {
+                            DLOGW("DTLS strict server certificate verification failed for %s during threaded handshake processing",
+                                  pDtlsSession->pExpectedServerHostname != NULL ? pDtlsSession->pExpectedServerHostname : "(null)");
+                            CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_FAILED));
+                            retStatus = STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED;
+                            dtlsHandshakeErrored = TRUE;
+                            break;
+                        }
                         DLOGI("Failed to complete handshake..but let it go on");
                         // Handle other errors
                         LOG_OPENSSL_ERROR("SSL_do_handshake");
@@ -481,6 +602,7 @@ STATUS dtlsSessionHandshakeInThread(PDtlsSession pDtlsSession, BOOL isServer)
                 } else {
                     pDtlsSession->handshakeState = DTLS_STATE_HANDSHAKE_COMPLETED;
                     ATOMIC_STORE_BOOL(&pDtlsSession->sslInitFinished, TRUE);
+                    CHK_STATUS(dtlsSessionCheckRemoteCertificateVerification(pDtlsSession));
                     CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CONNECTED));
                 }
                 pDtlsSession->handshakeState = DTLS_STATE_HANDSHAKE_IN_PROGRESS;
@@ -489,6 +611,7 @@ STATUS dtlsSessionHandshakeInThread(PDtlsSession pDtlsSession, BOOL isServer)
                 if (SSL_is_init_finished(pDtlsSession->pSsl)) {
                     pDtlsSession->handshakeState = DTLS_STATE_HANDSHAKE_COMPLETED;
                     ATOMIC_STORE_BOOL(&pDtlsSession->sslInitFinished, TRUE);
+                    CHK_STATUS(dtlsSessionCheckRemoteCertificateVerification(pDtlsSession));
                     CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CONNECTED));
                 } else {
                     // We check for timeout here. If the timeout is 0, it is likely it
@@ -610,6 +733,7 @@ STATUS freeDtlsSession(PDtlsSession* ppDtlsSession)
         CVAR_FREE(pDtlsSession->receivePacketCvar);
     }
 
+    SAFE_MEMFREE(pDtlsSession->pExpectedServerHostname);
     SAFE_MEMFREE(pDtlsSession);
     *ppDtlsSession = NULL;
 
@@ -645,6 +769,13 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
         // should clear error before SSL_read: https://stackoverflow.com/a/47218133
         ERR_clear_error();
         sslRet = SSL_read(pDtlsSession->pSsl, pData, *pDataLen);
+
+        if (ATOMIC_LOAD_BOOL(&pDtlsSession->remoteCertVerificationFailed)) {
+            DLOGW("DTLS strict server certificate verification failed for %s while processing handshake packets",
+                  pDtlsSession->pExpectedServerHostname != NULL ? pDtlsSession->pExpectedServerHostname : "(null)");
+            CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_FAILED));
+            CHK(FALSE, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
+        }
 
         if (sslRet == 0 && SSL_get_error(pDtlsSession->pSsl, sslRet) == SSL_ERROR_ZERO_RETURN) {
             DLOGI("Detected DTLS close_notify alert");
