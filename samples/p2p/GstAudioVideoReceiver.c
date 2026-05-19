@@ -103,7 +103,7 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
     GstBus* bus;
     GstMessage* msg;
     GError* error = NULL;
-    GstCaps *audiocaps, *videocaps;
+    GstCaps *audiocaps = NULL, *videocaps = NULL;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) args;
     PSampleConfiguration pSampleConfiguration = pSampleStreamingSession->pSampleConfiguration;
     PCHAR roleType = "Viewer";
@@ -168,15 +168,19 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
     appsrcVideo = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-video");
     CHK_ERR(appsrcVideo != NULL, STATUS_INTERNAL_ERROR, "[KVS GStreamer %s] Cannot find appsrc video", roleType);
     CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) appsrcVideo, onGstVideoFrameReady));
-    g_object_set(G_OBJECT(appsrcVideo), "caps", videocaps, NULL);
-    gst_caps_unref(videocaps);
+    if (videocaps != NULL) {
+        g_object_set(G_OBJECT(appsrcVideo), "caps", videocaps, NULL);
+        gst_caps_unref(videocaps);
+    }
 
     if (pSampleConfiguration->mediaType == SAMPLE_STREAMING_AUDIO_VIDEO) {
         appsrcAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-audio");
         CHK_ERR(appsrcAudio != NULL, STATUS_INTERNAL_ERROR, "[KVS GStreamer %s] Cannot find appsrc audio", roleType);
         CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) appsrcAudio, onGstAudioFrameReady));
-        g_object_set(G_OBJECT(appsrcAudio), "caps", audiocaps, NULL);
-        gst_caps_unref(audiocaps);
+        if (audiocaps != NULL) {
+            g_object_set(G_OBJECT(appsrcAudio), "caps", audiocaps, NULL);
+            gst_caps_unref(audiocaps);
+        }
     }
 
     CHK_STATUS(streamingSessionOnShutdown(pSampleStreamingSession, (UINT64) pipeline, onSampleStreamingSessionShutdown));
