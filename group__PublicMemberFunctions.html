@@ -189,9 +189,6 @@ Functions</h2></td></tr>
 <tr class="memitem:ga934a685bb5d0fb3d547fcd7e828b7566" id="r_ga934a685bb5d0fb3d547fcd7e828b7566"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga934a685bb5d0fb3d547fcd7e828b7566">transceiverOnPictureLoss</a> (<a class="el" href="group__PublicStructures.html#ga575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#gac7f4225ac2545664aabdc88d0b58e329">RtcOnPictureLoss</a>)</td></tr>
 <tr class="memdesc:ga934a685bb5d0fb3d547fcd7e828b7566"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set a callback for picture loss packet (PLI)  <br /></td></tr>
 <tr class="separator:ga934a685bb5d0fb3d547fcd7e828b7566"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga13f0a8efdd5bd707d9c51091a4eedc06" id="r_ga13f0a8efdd5bd707d9c51091a4eedc06"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga13f0a8efdd5bd707d9c51091a4eedc06">transceiverSetFmtp</a> (<a class="el" href="group__PublicStructures.html#ga575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PCHAR</a>)</td></tr>
-<tr class="memdesc:ga13f0a8efdd5bd707d9c51091a4eedc06"><td class="mdescLeft">&#160;</td><td class="mdescRight">Override the H264 fmtp string advertised in SDP offers and answers for this transceiver.  <br /></td></tr>
-<tr class="separator:ga13f0a8efdd5bd707d9c51091a4eedc06"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga10479b49a6df2035fd1549809e11d9f5" id="r_ga10479b49a6df2035fd1549809e11d9f5"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga10479b49a6df2035fd1549809e11d9f5">freeTransceiver</a> (<a class="el" href="group__PublicStructures.html#ga575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a> *)</td></tr>
 <tr class="memdesc:ga10479b49a6df2035fd1549809e11d9f5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Frees the previously created transceiver object.  <br /></td></tr>
 <tr class="separator:ga10479b49a6df2035fd1549809e11d9f5"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -4230,46 +4227,6 @@ Here is the call graph for this function:</div>
 
 </div>
 </div>
-<a id="ga13f0a8efdd5bd707d9c51091a4eedc06" name="ga13f0a8efdd5bd707d9c51091a4eedc06"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga13f0a8efdd5bd707d9c51091a4eedc06">&#9670;&#160;</a></span>transceiverSetFmtp()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a> transceiverSetFmtp </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__PublicStructures.html#ga575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a>&#160;</td>
-          <td class="paramname"><em>pRtcRtpTransceiver</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PCHAR</a>&#160;</td>
-          <td class="paramname"><em>fmtp</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Override the H264 fmtp string advertised in SDP offers and answers for this transceiver. </p>
-<p>By default the SDK advertises a Baseline-profile fmtp (DEFAULT_H264_FMTP). Use this to pin a different fmtp (for example, a different profile-level-id) when the local encoder/decoder requires it. Pass NULL or an empty string to clear the override and fall back to the default.</p>
-<p>Only applied to H264 (RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE); ignored for other codecs.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">PRtcRtpTransceiver</td><td>Transceiver returned from <a class="el" href="group__PublicMemberFunctions.html#ga5b89dc2e301e35f30330c57bc1361dcb" title="Create a new RtcRtpTransceiver and add it to the set of transceivers.">addTransceiver()</a> </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">PCHAR</td><td>Null-terminated fmtp string (without the "a=fmtp:&lt;pt&gt; " prefix), or NULL to clear</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>STATUS code of the execution. STATUS_SUCCESS on success </dd></dl>
-
-</div>
-</div>
 <a id="gaba8d6226887ac3b7c24ec3a5f686e5c5" name="gaba8d6226887ac3b7c24ec3a5f686e5c5"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#gaba8d6226887ac3b7c24ec3a5f686e5c5">&#9670;&#160;</a></span>updateEncoderStats()</h2>
 
@@ -4433,7 +4390,7 @@ Here is the call graph for this function:</div>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Tue May 19 2026 15:17:29 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Tue May 19 2026 19:37:43 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>

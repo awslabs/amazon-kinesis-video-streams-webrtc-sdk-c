@@ -1,14 +1,14 @@
 <map id="KvsRtpTransceiver" name="KvsRtpTransceiver">
-<area shape="rect" id="Node000001" title=" " alt="" coords="3771,1345,4036,1651"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="3771,1345,4036,1631"/>
 <area shape="rect" id="Node000002" href="$structRtcRtpTransceiver.html" title="The RTCRtpTransceiver represents a combination of an RTCRtpSender and an RTCRtpReceiver that share a ..." alt="" coords="149,1117,279,1183"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="251,1181,323,1234,367,1260,414,1280,497,1300,623,1319,787,1337,982,1355,1446,1388,1969,1417,3013,1463,3754,1489,3754,1495,3013,1469,1969,1423,1445,1393,982,1360,786,1343,622,1324,496,1305,412,1285,364,1265,320,1239,247,1185"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="251,1181,323,1234,367,1260,413,1280,497,1300,623,1318,787,1336,982,1354,1446,1385,1969,1413,3013,1456,3754,1480,3754,1485,3013,1461,1969,1418,1446,1391,982,1359,786,1342,622,1324,496,1305,412,1285,364,1265,320,1239,247,1185"/>
 <area shape="rect" id="Node000003" href="$structRtcRtpReceiver.html" title="RTCRtpReceiver allows an application to inspect the receipt of a MediaStreamTrack." alt="" coords="26,759,141,825"/>
 <area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="84,825,85,903,91,948,103,992,117,1023,135,1052,174,1103,170,1107,131,1056,113,1026,98,994,86,949,80,903,78,825"/>
 <area shape="rect" id="Node000004" href="$structRtcMediaStreamTrack.html" title="Represents a single track in a MediaStream." alt="" coords="5,305,161,431"/>
 <area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="86,431,86,743,81,743,81,431"/>
 <area shape="rect" id="Node000005" href="$structRtcRtpSender.html" title=" " alt="" coords="425,1027,635,1273"/>
 <area shape="poly" id="edge6_Node000005_Node000004" title=" " alt="" coords="107,430,141,546,155,629,161,680,161,724,158,801,158,836,165,872,179,911,203,953,275,1000,412,1079,409,1084,273,1005,199,956,174,913,159,874,153,837,152,801,156,724,155,680,150,630,135,547,102,432"/>
-<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="635,1159,3755,1479,3754,1484,635,1165"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="635,1159,3755,1469,3754,1475,635,1164"/>
 <area shape="rect" id="Node000006" href="$struct____Payloads.html" title=" " alt="" coords="263,709,445,875"/>
 <area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="379,874,399,933,424,992,435,1012,430,1014,420,994,394,935,373,876"/>
 <area shape="rect" id="Node000007" href="$structRtpRollingBuffer.html" title=" " alt="" coords="470,759,590,825"/>
@@ -18,7 +18,7 @@
 <area shape="rect" id="Node000009" href="$structRetransmitter.html" title=" " alt="" coords="614,729,779,855"/>
 <area shape="poly" id="edge9_Node000005_Node000009" title=" " alt="" coords="684,856,664,923,635,994,625,1014,620,1012,630,992,659,922,679,854"/>
 <area shape="rect" id="Node000010" href="$structKvsPeerConnection.html" title=" " alt="" coords="3236,1017,3472,1283"/>
-<area shape="poly" id="edge10_Node000001_Node000010" title=" " alt="" coords="3474,1223,3758,1402,3755,1407,3471,1228"/>
+<area shape="poly" id="edge10_Node000001_Node000010" title=" " alt="" coords="3474,1221,3758,1395,3755,1399,3471,1226"/>
 <area shape="rect" id="Node000011" href="$structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer&#45;to&#45;peer communications with ano..." alt="" coords="1501,759,1639,825"/>
 <area shape="poly" id="edge11_Node000010_Node000011" title=" " alt="" coords="1579,824,1588,856,1603,891,1624,925,1653,953,1708,983,1778,1011,1860,1035,1953,1057,2165,1091,2397,1115,2633,1131,2860,1141,3220,1147,3219,1152,2860,1146,2633,1137,2396,1121,2164,1096,1952,1062,1859,1041,1776,1016,1706,988,1650,957,1620,928,1599,894,1583,857,1574,826"/>
 <area shape="rect" id="Node000012" href="$struct____IceAgent.html" title=" " alt="" coords="1663,659,1874,925"/>
@@ -84,11 +84,11 @@
 <area shape="rect" id="Node000056" href="$structKvsPeerConnectionDiagnostics.html" title=" " alt="" coords="4107,719,4326,865"/>
 <area shape="poly" id="edge43_Node000010_Node000056" title=" " alt="" coords="4222,865,4218,900,4210,935,4194,968,4170,996,4140,1006,4086,1012,3939,1016,3790,1016,3701,1020,3591,1051,3488,1090,3486,1085,3590,1045,3700,1015,3790,1011,3939,1011,4086,1007,4139,1001,4167,991,4190,965,4204,933,4213,899,4217,865"/>
 <area shape="rect" id="Node000057" href="$structJitterBuffer.html" title=" " alt="" coords="3713,1017,3889,1283"/>
-<area shape="poly" id="edge44_Node000001_Node000057" title=" " alt="" coords="3842,1282,3856,1329,3851,1330,3837,1284"/>
+<area shape="poly" id="edge44_Node000001_Node000057" title=" " alt="" coords="3843,1282,3858,1329,3853,1330,3838,1284"/>
 <area shape="rect" id="Node000058" href="$structRollingBufferConfig.html" title=" " alt="" coords="3913,1107,4101,1193"/>
-<area shape="poly" id="edge45_Node000001_Node000058" title=" " alt="" coords="3997,1194,3956,1330,3951,1329,3992,1192"/>
+<area shape="poly" id="edge45_Node000001_Node000058" title=" " alt="" coords="3997,1194,3955,1330,3950,1329,3992,1192"/>
 <area shape="rect" id="Node000059" href="$structRtcOutboundRtpStreamStats.html" title="RtcOutboundRtpStreamStats Gathers stats for media stream from the embedded device Note: RTCOutboundRt..." alt="" coords="4341,1017,4541,1283"/>
-<area shape="poly" id="edge46_Node000001_Node000059" title=" " alt="" coords="4342,1218,4052,1404,4049,1400,4339,1214"/>
+<area shape="poly" id="edge46_Node000001_Node000059" title=" " alt="" coords="4342,1216,4052,1397,4049,1393,4339,1212"/>
 <area shape="rect" id="Node000060" href="$structRTCSentRtpStreamStats.html" title="RTCSentRtpStreamStats will be used as part of outbound Rtp stats Reference: https://www...." alt="" coords="4351,749,4520,835"/>
 <area shape="poly" id="edge47_Node000059_Node000060" title=" " alt="" coords="4439,835,4441,1001,4436,1001,4433,835"/>
 <area shape="rect" id="Node000062" href="$structQualityLimitationDurationsRecord.html" title=" " alt="" coords="4544,742,4735,842"/>
@@ -96,9 +96,9 @@
 <area shape="rect" id="Node000063" href="$structDscpPacketsSentRecord.html" title="Record of total number of packets sent per DSCP. Used by RTCOutboundRtpStreamStats object." alt="" coords="4759,749,4963,835"/>
 <area shape="poly" id="edge49_Node000059_Node000063" title=" " alt="" coords="4848,836,4830,875,4804,919,4771,961,4730,996,4707,1007,4686,1012,4645,1011,4604,1009,4581,1012,4556,1020,4555,1015,4580,1006,4604,1003,4646,1006,4685,1007,4705,1002,4727,991,4767,958,4800,916,4825,873,4843,834"/>
 <area shape="rect" id="Node000064" href="$structRtcRemoteInboundRtpStreamStats.html" title="RTCRemoteInboundRtpStreamStats Represents the remote endpoint&#39;s measurement metrics for a particular ..." alt="" coords="4565,1060,4783,1240"/>
-<area shape="poly" id="edge50_Node000001_Node000064" title=" " alt="" coords="4605,1242,4554,1285,4493,1321,4429,1352,4297,1405,4168,1445,4053,1473,4052,1467,4166,1440,4295,1400,4427,1348,4491,1316,4551,1280,4602,1238"/>
+<area shape="poly" id="edge50_Node000001_Node000064" title=" " alt="" coords="4606,1242,4581,1265,4554,1285,4493,1320,4429,1351,4297,1402,4168,1439,4053,1465,4052,1460,4166,1434,4295,1397,4427,1346,4491,1315,4551,1280,4578,1261,4602,1238"/>
 <area shape="rect" id="Node000065" href="$structRtcInboundRtpStreamStats.html" title="The RTCInboundRtpStreamStats dictionary represents the measurement metrics for the incoming RTP media..." alt="" coords="4899,1017,5089,1283"/>
-<area shape="poly" id="edge51_Node000001_Node000065" title=" " alt="" coords="4900,1225,4850,1257,4796,1285,4701,1325,4601,1360,4500,1390,4400,1416,4211,1456,4053,1481,4052,1476,4210,1451,4399,1411,4499,1385,4600,1355,4699,1320,4794,1280,4847,1252,4898,1221"/>
+<area shape="poly" id="edge51_Node000001_Node000065" title=" " alt="" coords="4900,1225,4850,1257,4796,1285,4701,1325,4602,1359,4501,1389,4400,1413,4211,1451,4053,1474,4052,1469,4210,1446,4399,1408,4499,1383,4600,1354,4699,1320,4794,1280,4847,1252,4898,1221"/>
 <area shape="rect" id="Node000066" href="$structRtcReceivedRtpStreamStats.html" title=" " alt="" coords="4987,659,5185,925"/>
 <area shape="poly" id="edge52_Node000065_Node000066" title=" " alt="" coords="5054,926,5035,1002,5030,1001,5049,924"/>
 </map>
