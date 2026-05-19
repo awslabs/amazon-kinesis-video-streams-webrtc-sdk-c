@@ -199,7 +199,7 @@ STATUS checkSampleFramesExist(RTC_CODEC codec)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 frameSize;
+    UINT32 frameSize = 0;
 
     switch (codec) {
         case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
