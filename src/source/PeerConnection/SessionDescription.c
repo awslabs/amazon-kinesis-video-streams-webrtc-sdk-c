@@ -1430,6 +1430,14 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
                 attributeValue = end + 1;
             }
         } while (end != NULL && !foundMediaSectionWithCodec);
+
+        // If codecs is NULL, the m-line had no payload types (e.g., "m=audio 9 UDP/TLS/RTP/SAVPF" with nothing after the protocol).
+        // There is no first payload type to extract for a fake transceiver, so skip this media section.
+        if (codecs == NULL) {
+            DLOGW("No payload types found in m-line, skipping media section %u", currentMedia);
+            continue;
+        }
+
         // get the first payload type from codecs in case we need to use it to generate a fake transceiver to respond to an m-line
         // if we don't have a user-created one corresponding to an m-line
         // we can respond to an m-line by including any one codec the offer had
