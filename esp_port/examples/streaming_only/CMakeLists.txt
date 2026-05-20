@@ -14,3 +14,5 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 idf_build_set_property(__BUILD_COMPONENT_DEPGRAPH_ENABLED 1)
 
 project(streaming_only)
+
+spiffs_create_partition_image(slave ${CMAKE_CURRENT_SOURCE_DIR}/target-firmware FLASH_IN_PROJECT)

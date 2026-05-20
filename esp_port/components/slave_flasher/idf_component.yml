@@ -1,0 +1,6 @@
+dependencies:
+  esp-serial-flasher:  
+    version: "==1.10.0"
+  esp_hosted:
+    version: "*"
+    path: "../esp_hosted"

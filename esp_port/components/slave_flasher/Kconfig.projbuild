@@ -1,0 +1,52 @@
+menu "Slave Flasher Configuration"
+
+    config SLAVE_FLASHER_ENABLE
+        bool "Enable slave flashing via host"
+        default y
+        help
+            Enable the slave flasher component to flash firmware to a slave ESP32
+            device via UART. When enabled, the host device can flash bootloader,
+            partition table, and application binaries to the slave device.
+
+    config SLAVE_PARTITION_TABLE_ADDRESS
+        hex "Partition Table Address"
+        default 0xC000
+        depends on SLAVE_FLASHER_ENABLE
+        help
+            Flash address where the partition table will be written.
+            Default is 0xC000 (49152 decimal).
+
+    config SLAVE_APPLICATION_ADDRESS
+        hex "Application Address"
+        default 0x20000
+        depends on SLAVE_FLASHER_ENABLE
+        help
+            Flash address where the application binary will be written.
+            Default is 0x20000 (131072 decimal).
+
+    config SLAVE_UART_RX_PIN
+        int "UART RX Pin"
+        default 22
+        depends on SLAVE_FLASHER_ENABLE
+        help
+            GPIO pin number for UART RX.
+            Default is 22.
+
+    config SLAVE_UART_TX_PIN
+        int "UART TX Pin"
+        default 21
+        depends on SLAVE_FLASHER_ENABLE
+        help
+            GPIO pin number for UART TX.
+            Default is 21.
+
+    config SLAVE_GPIO0_TRIGGER_PIN
+        int "GPIO0 Trigger Pin"
+        default 20
+        depends on SLAVE_FLASHER_ENABLE
+        help
+            GPIO pin number for GPIO0 trigger.
+            Default is 20.
+
+endmenu
+
