@@ -1,8 +1,15 @@
+/*
+ * SPDX-FileCopyrightText: 2026 Espressif Systems (Shanghai) CO LTD
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include "esp_loader.h"
 #include "esp32_port.h"
 #include "slave_flasher.h"
 #include "loader_utils.h"
-
+#include "esp_err.h"
+#include "esp_log.h"
 #include "esp_spiffs.h"
 #include "mbedtls/md5.h"
 
@@ -309,6 +316,10 @@ static void register_slave_commands(void)
 
 esp_err_t flash_slave()
 {
+#if !CONFIG_SLAVE_FLASHER_ENABLE
+    ESP_LOGE(TAG, "Enable slave flasher in menuconfig");
+    return ESP_FAIL;
+#else
     ESP_LOGI(TAG, "Initializing SPIFFS");
 
     esp_vfs_spiffs_conf_t conf = {
@@ -388,4 +399,5 @@ esp_err_t flash_slave()
     // Register CLI commands for slave console interaction
     register_slave_commands();
     return ESP_OK;
+#endif
 }

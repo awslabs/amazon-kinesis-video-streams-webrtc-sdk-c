@@ -1,16 +1,7 @@
-/* Copyright 2020-2024 Espressif Systems (Shanghai) CO LTD
+/*
+ * SPDX-FileCopyrightText: 2026 Espressif Systems (Shanghai) CO LTD
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 #include <stdio.h>
@@ -19,14 +10,12 @@
 #include <inttypes.h>
 #include <sys/param.h>
 #include <assert.h>
+#include "esp_log.h"
 #include "esp_loader_io.h"
 #include "esp_loader.h"
 #include "loader_utils.h"
 
-#define BIN_HEADER_SIZE    0x8
-#define BIN_HEADER_EXT_SIZE 0x18
-// Maximum block sized for RAM and Flash writes, respectively.
-#define ESP_RAM_BLOCK               0x1800
+static const char *TAG = "loader_utils";
 
 // Only bootloader addresses vary by chip
 // DO NOT specify array size - let compiler determine it from initializers
@@ -67,36 +56,36 @@ esp_loader_error_t connect_to_target(uint32_t higher_transmission_rate)
 
     esp_loader_error_t err = esp_loader_connect(&connect_config);
     if (err != ESP_LOADER_SUCCESS) {
-        printf("Cannot connect to target. Error: %s\n", get_error_string(err));
+        ESP_LOGE(TAG, "Cannot connect to target. Error: %s", get_error_string(err));
 
         if (err == ESP_LOADER_ERROR_TIMEOUT) {
-            printf("Check if the host and the target are properly connected.\n");
+            ESP_LOGW(TAG, "Check if the host and the target are properly connected.");
         } else if (err == ESP_LOADER_ERROR_INVALID_TARGET) {
-            printf("You could be using an unsupported chip, or chip revision.\n");
+            ESP_LOGW(TAG, "You could be using an unsupported chip, or chip revision.");
         } else if (err == ESP_LOADER_ERROR_INVALID_RESPONSE) {
-            printf("Try lowering the transmission rate or using shorter wires to connect the host and the target.\n");
+            ESP_LOGW(TAG, "Try lowering the transmission rate or using shorter wires to connect the host and the target.");
         }
 
         return err;
     }
-    printf("Connected to target\n");
+    ESP_LOGI(TAG, "Connected to target");
 
 #if (defined SERIAL_FLASHER_INTERFACE_UART) || (defined SERIAL_FLASHER_INTERFACE_USB)
     if (higher_transmission_rate && esp_loader_get_target() != ESP8266_CHIP) {
         err = esp_loader_change_transmission_rate(higher_transmission_rate);
         if (err == ESP_LOADER_ERROR_UNSUPPORTED_FUNC) {
-            printf("ESP8266 does not support change transmission rate command.");
+            ESP_LOGE(TAG, "ESP8266 does not support change transmission rate command.");
             return err;
         } else if (err != ESP_LOADER_SUCCESS) {
-            printf("Unable to change transmission rate on target.");
+            ESP_LOGE(TAG, "Unable to change transmission rate on target.");
             return err;
         } else {
             err = loader_port_change_transmission_rate(higher_transmission_rate);
             if (err != ESP_LOADER_SUCCESS) {
-                printf("Unable to change transmission rate.");
+                ESP_LOGE(TAG, "Unable to change transmission rate.");
                 return err;
             }
-            printf("Transmission rate changed.\n");
+            ESP_LOGI(TAG, "Transmission rate changed.");
         }
     }
 #endif /* SERIAL_FLASHER_INTERFACE_UART || SERIAL_FLASHER_INTERFACE_USB */

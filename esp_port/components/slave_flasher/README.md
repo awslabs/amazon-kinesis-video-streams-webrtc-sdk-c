@@ -24,13 +24,23 @@ This example uses the **UART interface**. For detailed interface information and
 
 **ESP32-P4-Function-EV-Board Pin Assignment:**
 
-Default Configuration:
+Default Configuration: (External connection required)
 
 | ESP32 (host) | Espressif SoC (target) |
 | :----------: | :--------------------: |
 |     IO20     |          BOOT          |
 |     IO22     |          RX0           |
 |     IO21     |          TX0           |
+
+**ESP32-P4-Core-Board Pin Assignment:**
+
+(Internally connected)
+
+| ESP32 (host) | Espressif SoC (target) |
+| :----------: | :--------------------: |
+|     IO47     |          BOOT          |
+|     IO46     |          RX0           |
+|     IO45     |          TX0           |
 
 ## Prepare Target Firmware
 
