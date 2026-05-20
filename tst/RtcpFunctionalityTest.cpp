@@ -509,6 +509,75 @@ TEST_F(RtcpFunctionalityTest, updateTwccHashTableIntPromotionCase) {
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
+// Verifies correct duration calculation when the previous packet (seqNum - 1)
+// exists in the hash table but has a NULL pointer value.
+// Hash table should never have a NULL entry so this is not expected.
+//
+// Hash table state:
+//   key 4 -> NULL    (previous packet before range, simulates unexpected state)
+//   key 5 -> pkt{localTime=1000}  (start of range)
+//   key 6 -> pkt{localTime=2000}
+//   key 7 -> pkt{localTime=3000}  (end of range)
+//
+// Expected behavior:
+//   1. seqNum=5: hashTableGet(4) succeeds but returns NULL
+//                -> fallback uses seqNum=5's packet -> localStartTimeKvs = 1000
+//   2. seqNum=7: last packet processed -> localEndTimeKvs = 3000
+//   3. duration = 3000 - 1000 = 2000
+TEST_F(RtcpFunctionalityTest, updateTwccHashTableNullPrevPacket)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    RtcConfiguration config{};
+    UINT64 receivedBytes = 0, receivedPackets = 0, sentBytes = 0, sentPackets = 0;
+    INT64 duration = 0;
+    PTwccRtpPacketInfo pTwccRtpPacketInfo = NULL;
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+
+    PHashTable pTwccRtpPktInfosHashTable = pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable;
+
+    // Set range to iterate: seqNums 5 through 7
+    pKvsPeerConnection->pTwccManager->prevReportedBaseSeqNum = 5;
+    pKvsPeerConnection->pTwccManager->lastReportedSeqNum = 7;
+
+    // Simulate a NULL entry at seqNum 4 (the previous packet before the range).
+    // This exercises the case where hashTableGet(seqNum-1) succeeds but the
+    // stored pointer is NULL, requiring the fallback to determine localStartTimeKvs.
+    EXPECT_EQ(STATUS_SUCCESS, hashTableUpsert(pTwccRtpPktInfosHashTable, 4, (UINT64) NULL));
+
+    // Insert real packets at seqNums 5, 6, 7 with increasing timestamps.
+    pTwccRtpPacketInfo = (PTwccRtpPacketInfo) MEMCALLOC(1, SIZEOF(TwccRtpPacketInfo));
+    pTwccRtpPacketInfo->localTimeKvs = 1000;
+    pTwccRtpPacketInfo->remoteTimeKvs = 2000;
+    pTwccRtpPacketInfo->packetSize = 50;
+    EXPECT_EQ(STATUS_SUCCESS, hashTableUpsert(pTwccRtpPktInfosHashTable, 5, (UINT64) pTwccRtpPacketInfo));
+
+    pTwccRtpPacketInfo = (PTwccRtpPacketInfo) MEMCALLOC(1, SIZEOF(TwccRtpPacketInfo));
+    pTwccRtpPacketInfo->localTimeKvs = 2000;
+    pTwccRtpPacketInfo->remoteTimeKvs = 3000;
+    pTwccRtpPacketInfo->packetSize = 100;
+    EXPECT_EQ(STATUS_SUCCESS, hashTableUpsert(pTwccRtpPktInfosHashTable, 6, (UINT64) pTwccRtpPacketInfo));
+
+    pTwccRtpPacketInfo = (PTwccRtpPacketInfo) MEMCALLOC(1, SIZEOF(TwccRtpPacketInfo));
+    pTwccRtpPacketInfo->localTimeKvs = 3000;
+    pTwccRtpPacketInfo->remoteTimeKvs = 4000;
+    pTwccRtpPacketInfo->packetSize = 150;
+    EXPECT_EQ(STATUS_SUCCESS, hashTableUpsert(pTwccRtpPktInfosHashTable, 7, (UINT64) pTwccRtpPacketInfo));
+
+    // duration should be localEndTimeKvs(3000) - localStartTimeKvs(1000) = 2000
+    EXPECT_EQ(STATUS_SUCCESS, updateTwccHashTable(pKvsPeerConnection->pTwccManager, &duration,
+                                                  &receivedBytes, &receivedPackets,
+                                                  &sentBytes, &sentPackets));
+
+    EXPECT_EQ(2000, duration);
+    EXPECT_EQ(300, receivedBytes);
+    EXPECT_EQ(3, receivedPackets);
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
 // ---- TWCC Trendline and API Tests ----
 
 TEST_F(RtcpFunctionalityTest, computeTwccTrendline_stableNetwork)
