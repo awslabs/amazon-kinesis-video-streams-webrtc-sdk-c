@@ -215,6 +215,28 @@ CleanUp:
     return retStatus;
 }
 
+STATUS transceiverSetFmtp(PRtcRtpTransceiver pRtcRtpTransceiver, PCHAR fmtp)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;
+
+    CHK(pKvsRtpTransceiver != NULL, STATUS_NULL_ARG);
+
+    if (fmtp == NULL || fmtp[0] == '\0') {
+        pKvsRtpTransceiver->fmtpOverride[0] = '\0';
+    } else {
+        CHK(STRLEN(fmtp) <= MAX_SDP_ATTRIBUTE_VALUE_LENGTH, STATUS_INVALID_ARG_LEN);
+        STRNCPY(pKvsRtpTransceiver->fmtpOverride, fmtp, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
+        pKvsRtpTransceiver->fmtpOverride[MAX_SDP_ATTRIBUTE_VALUE_LENGTH] = '\0';
+    }
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
 STATUS transceiverOnPictureLoss(PRtcRtpTransceiver pRtcRtpTransceiver, UINT64 customData, RtcOnPictureLoss onPictureLoss)
 {
     ENTERS();
