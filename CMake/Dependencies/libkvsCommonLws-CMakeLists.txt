@@ -4,9 +4,16 @@ project(libkvsCommonLws-download NONE)
 
 include(ExternalProject)
 
+if (PRODUCER_C_VERSION_OVERRIDE)
+  set(KVSPRODUCERC_GIT_TAG "${PRODUCER_C_VERSION_OVERRIDE}")
+  message(WARNING "Override Producer-C to a custom version: ${KVSPRODUCERC_GIT_TAG}")
+else()
+  set(KVSPRODUCERC_GIT_TAG "v1.6.4")
+endif()
+
 ExternalProject_Add(libkvsCommonLws-download
     GIT_REPOSITORY    https://github.com/awslabs/amazon-kinesis-video-streams-producer-c.git
-    GIT_TAG           v1.6.1
+    GIT_TAG           ${KVSPRODUCERC_GIT_TAG}
     GIT_PROGRESS      TRUE
     GIT_SHALLOW       TRUE
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
@@ -24,6 +31,8 @@ ExternalProject_Add(libkvsCommonLws-download
       -DKVS_DEFAULT_STACK_SIZE=${KVS_DEFAULT_STACK_SIZE}
       -DCMAKE_C_FLAGS=-D_GNU_SOURCE\ ${CMAKE_C_FLAGS}
       -DBUILD_STATIC=${BUILD_STATIC}
+      -DPARALLEL_BUILD=${PARALLEL_BUILD}
+      -DPIC_VERSION_OVERRIDE=${PIC_VERSION_OVERRIDE}
     BUILD_ALWAYS      TRUE
     TEST_COMMAND      ""
 )
