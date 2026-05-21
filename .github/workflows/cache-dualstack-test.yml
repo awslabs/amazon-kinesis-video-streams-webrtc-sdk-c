@@ -71,7 +71,7 @@ jobs:
       - name: Build repository
         run: |
           mkdir build && cd build
-          cmake .. -DBUILD_SAMPLE=ON
+          cmake .. -DBUILD_SAMPLE=ON -DPARALLEL_BUILD=ON
           make -j
 
       - name: Test 1 - Run sample with dual-stack endpoints enabled
