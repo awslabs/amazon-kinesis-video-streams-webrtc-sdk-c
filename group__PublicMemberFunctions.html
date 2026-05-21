@@ -238,7 +238,7 @@ Functions</h2></td></tr>
 <tr class="memdesc:gae6d8d80d47699c5494de1dc3d455b1f4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a message through a Signaling client.  <br /></td></tr>
 <tr class="separator:gae6d8d80d47699c5494de1dc3d455b1f4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga7eaf3f2bccf8675a3c5bd7c387c806c4" id="r_ga7eaf3f2bccf8675a3c5bd7c387c806c4"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga7eaf3f2bccf8675a3c5bd7c387c806c4">freeSignalingMessagePayload</a> (<a class="el" href="group__PublicStructures.html#gab457c08a409bf69c9b820ca390f83689">PSignalingMessage</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">pMessage</a>)</td></tr>
-<tr class="memdesc:ga7eaf3f2bccf8675a3c5bd7c387c806c4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free the <a class="el" href="structSignalingMessage.html" title="When PREFER_DYNAMIC_ALLOCS is enabled, use dynamic allocation for signaling payload and URL buffers....">SignalingMessage</a> payload.  <br /></td></tr>
+<tr class="memdesc:ga7eaf3f2bccf8675a3c5bd7c387c806c4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free the <a class="el" href="structSignalingMessage.html" title="When PREFER_DYNAMIC_ALLOCS is enabled, use dynamic allocation for the signaling payload buffer....">SignalingMessage</a> payload.  <br /></td></tr>
 <tr class="separator:ga7eaf3f2bccf8675a3c5bd7c387c806c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga22f59c80e99e533e5e1d78d52145eb7c" id="r_ga22f59c80e99e533e5e1d78d52145eb7c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga22f59c80e99e533e5e1d78d52145eb7c">signalingClientGetIceConfigInfoCount</a> (<a class="el" href="group__StatusCodes.html#ga1a31b45408a80e1064d39d578bd3b751">SIGNALING_CLIENT_HANDLE</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUINT32</a>)</td></tr>
 <tr class="memdesc:ga22f59c80e99e533e5e1d78d52145eb7c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the retrieved ICE configuration information object count.  <br /></td></tr>
@@ -2138,15 +2138,15 @@ Here is the call graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p>Free the <a class="el" href="structSignalingMessage.html" title="When PREFER_DYNAMIC_ALLOCS is enabled, use dynamic allocation for signaling payload and URL buffers....">SignalingMessage</a> payload. </p>
+<p>Free the <a class="el" href="structSignalingMessage.html" title="When PREFER_DYNAMIC_ALLOCS is enabled, use dynamic allocation for the signaling payload buffer....">SignalingMessage</a> payload. </p>
 <p>Symmetric helper for releasing whatever resources the payload uses. Behaviour depends on the build mode:</p><ul>
 <li><code>PREFER_DYNAMIC_ALLOCS=ON</code> (DYNAMIC_SIGNALING_PAYLOAD): the SDK allocated the receive-side payload inside the parser via its own allocator. This helper frees it through the same allocator. Calling <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d" title="Will use the default &quot;sendrecv&quot; after initialization.">free()</a> / application-side <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d" title="Will use the default &quot;sendrecv&quot; after initialization.">MEMFREE()</a> is unsafe in shared-library builds (mismatched allocator) and in test builds (instrumented-allocator header mismatch).</li>
-<li><code>PREFER_DYNAMIC_ALLOCS=OFF</code> (default): the payload is an inline array inside <a class="el" href="structSignalingMessage.html" title="When PREFER_DYNAMIC_ALLOCS is enabled, use dynamic allocation for signaling payload and URL buffers....">SignalingMessage</a> and there's nothing to free; the call is a no-op. Safe to invoke unconditionally so callers don't need their own <code>#ifdef</code>.</li>
+<li><code>PREFER_DYNAMIC_ALLOCS=OFF</code> (default): the payload is an inline array inside <a class="el" href="structSignalingMessage.html" title="When PREFER_DYNAMIC_ALLOCS is enabled, use dynamic allocation for the signaling payload buffer....">SignalingMessage</a> and there's nothing to free; the call is a no-op. Safe to invoke unconditionally so callers don't need their own <code>#ifdef</code>.</li>
 </ul>
 <p>Safe to call with a NULL pMessage.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in,out]</td><td class="paramname">pMessage</td><td><a class="el" href="structSignalingMessage.html" title="When PREFER_DYNAMIC_ALLOCS is enabled, use dynamic allocation for signaling payload and URL buffers....">SignalingMessage</a> whose payload should be released. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">pMessage</td><td><a class="el" href="structSignalingMessage.html" title="When PREFER_DYNAMIC_ALLOCS is enabled, use dynamic allocation for the signaling payload buffer....">SignalingMessage</a> whose payload should be released. </td></tr>
   </table>
   </dd>
 </dl>
@@ -4446,7 +4446,7 @@ Here is the call graph for this function:</div>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Thu May 21 2026 16:31:18 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Thu May 21 2026 19:43:22 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>
