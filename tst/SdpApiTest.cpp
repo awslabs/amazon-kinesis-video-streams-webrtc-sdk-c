@@ -647,7 +647,8 @@ a=rtpmap:102 H264/90000
         EXPECT_EQ(setRemoteDescription(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
         EXPECT_EQ(TRUE, canTrickleIceCandidates(pRtcPeerConnection).value);
         EXPECT_EQ(createAnswer(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
-        EXPECT_PRED_FORMAT2(testing::IsNotSubstring, "fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
+        // SDK now advertises its own H264 fmtp on offer and answer regardless of what the peer sent.
+        EXPECT_PRED_FORMAT2(testing::IsSubstring, "fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
                             rtcSessionDescriptionInit.sdp);
 
         closePeerConnection(pRtcPeerConnection);
@@ -2069,7 +2070,7 @@ a=mid:2
 a=sctp-port:5000
 a=max-message-size:262144
 )",
-    "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e015",
+    "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
 };
 
 SdpMatch offer_1v1a1d_Chrome_Linux = SdpMatch{
@@ -2478,7 +2479,7 @@ a=setup:actpass
 a=sctp-port:5000
 a=max-message-size:1073741823
 )",
-    "profile-level-id=42e01f;level-asymmetry-allowed=1;packetization-mode=1",
+    "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
 };
 
 SdpMatch offer_1v1a1d_Firefox_Mac = SdpMatch{
@@ -2571,7 +2572,7 @@ a=setup:actpass
 a=sctp-port:5000
 a=max-message-size:1073741823
 )",
-    "profile-level-id=42e01f;level-asymmetry-allowed=1;packetization-mode=1",
+    "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
 };
 
 SdpMatch offer_1v1a1d_Chromium_Linux = SdpMatch{
