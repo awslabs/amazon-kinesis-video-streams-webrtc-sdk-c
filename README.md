@@ -167,6 +167,7 @@ You can pass the following options to `cmake ..`:
 * `-DENABLE_KVS_THREADPOOL` -- Enable the KVS threadpool which is off by default.
 * `-DENABLE_STATS_CALCULATION_CONTROL` -- Enable the runtime control of ICE agent stats calculations.
 * `-DINCREASE_PRECISION_TIMING_LOGS` -- Default ON. ON=Use 2 decimals in PROFILE-logs timing. OFF=Truncates down to whole ms.
+* `-DPARALLEL_BUILD` -- Build dependencies with multiple cores. OFF by default. Disabled on Windows.
 
 These options get propagated to [PIC](https://github.com/awslabs/amazon-kinesis-video-streams-pic):
 * `-DKVS_STACK_SIZE` -- Default stack size for threads created using THREAD_CREATE(), in bytes.
@@ -521,8 +522,8 @@ freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
 Build the samples using IoT Core credentials mode:
 
 ```shell
-cmake .. -DIOT_CORE_ENABLE_CREDENTIALS=ON
-make
+cmake .. -DIOT_CORE_ENABLE_CREDENTIALS=ON -DPARALLEL_BUILD=ON
+make -j
 ```
 
 Set the environment variables for IoT Core credentials:

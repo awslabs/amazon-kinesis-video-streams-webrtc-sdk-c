@@ -57,7 +57,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DBUILD_TEST=ON -DADDRESS_SANITIZER=ON
+          cmake .. -DBUILD_TEST=ON -DADDRESS_SANITIZER=ON -DPARALLEL_BUILD=ON
           make -j
 
       - name: Run tests
@@ -103,7 +103,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DBUILD_TEST=ON -DUNDEFINED_BEHAVIOR_SANITIZER=ON
+          cmake .. -DBUILD_TEST=ON -DUNDEFINED_BEHAVIOR_SANITIZER=ON -DPARALLEL_BUILD=ON
           make -j
 
       - name: Run tests
@@ -165,7 +165,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DBUILD_TEST=ON -DTHREAD_SANITIZER=ON
+          cmake .. -DBUILD_TEST=ON -DTHREAD_SANITIZER=ON -DPARALLEL_BUILD=ON
           make -j
 
       - name: Configure AWS Credentials
