@@ -1568,6 +1568,9 @@ typedef struct {
  * @brief When PREFER_DYNAMIC_ALLOCS is enabled, use dynamic allocation for the
  * signaling payload buffer. Reduces peak memory usage on constrained platforms.
  * (Signaling API URL / paramsJson buffers are always dynamic now.)
+ *
+ * It changes the layout of SignalingMessage, so the application must be built with the same
+ * PREFER_DYNAMIC_ALLOCS setting as the SDK.
  */
 #if PREFER_DYNAMIC_ALLOCS
 #define DYNAMIC_SIGNALING_PAYLOAD 1
@@ -1726,6 +1729,10 @@ typedef struct {
  *
  * NOTE: Returning non-success status will terminate the internal event loop and will force
  * the state machinery to roll back to the state corresponding to the type of status returned.
+ *
+ * NOTE: The message is valid only until the callback returns; with PREFER_DYNAMIC_ALLOCS the SDK
+ * then frees its payload. To keep the message, copy the payload as well: a struct copy shares the
+ * payload pointer. Calling freeSignalingMessagePayload() on it inside the callback is safe.
  *
  * @param - UINT64 - Custom data passed in to the signaling client
  * @param - PReceivedSignalingMessage - Pointer to the received message
@@ -2483,6 +2490,13 @@ PUBLIC_API STATUS signalingClientSendMessageSync(SIGNALING_CLIENT_HANDLE, PSigna
  *    inside SignalingMessage and there's nothing to free; the call is a
  *    no-op. Safe to invoke unconditionally so callers don't need their own
  *    `#ifdef`.
+ *
+ * Call this on every SignalingMessage the SDK populates — including on
+ * failure paths. The SDK zeros the message struct before parsing, so the
+ * call is safe even when nothing was allocated; but if parsing fails after
+ * the payload has been allocated, skipping this call leaks that buffer.
+ * Treat it like a destructor that pairs with any SDK call which fills in
+ * a SignalingMessage / ReceivedSignalingMessage out-param.
  *
  * Safe to call with a NULL pMessage.
  *
