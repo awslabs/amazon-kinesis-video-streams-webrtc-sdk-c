@@ -1091,8 +1091,8 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
     }
 
     // Allocate memory for paramsJson sized to the actual protocol string we'll write.
-    paramsJsonLen = SNPRINTF(NULL, 0, GET_CHANNEL_ENDPOINT_PARAM_JSON_TEMPLATE, pSignalingClient->channelDescription.channelArn,
-                             protocols, getStringFromChannelRoleType(pSignalingClient->pChannelInfo->channelRoleType));
+    paramsJsonLen = SNPRINTF(NULL, 0, GET_CHANNEL_ENDPOINT_PARAM_JSON_TEMPLATE, pSignalingClient->channelDescription.channelArn, protocols,
+                             getStringFromChannelRoleType(pSignalingClient->pChannelInfo->channelRoleType));
     paramsJsonLen += 1; // +1 for the NULL terminator
     paramsJson = (PCHAR) MEMALLOC(paramsJsonLen);
     CHK(paramsJson != NULL, STATUS_NOT_ENOUGH_MEMORY);
@@ -1102,8 +1102,8 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
     STRCAT(url, GET_SIGNALING_CHANNEL_ENDPOINT_API_POSTFIX);
 
     // Prepare the json params for the call
-    SNPRINTF(paramsJson, paramsJsonLen, GET_CHANNEL_ENDPOINT_PARAM_JSON_TEMPLATE, pSignalingClient->channelDescription.channelArn,
-             protocols, getStringFromChannelRoleType(pSignalingClient->pChannelInfo->channelRoleType));
+    SNPRINTF(paramsJson, paramsJsonLen, GET_CHANNEL_ENDPOINT_PARAM_JSON_TEMPLATE, pSignalingClient->channelDescription.channelArn, protocols,
+             getStringFromChannelRoleType(pSignalingClient->pChannelInfo->channelRoleType));
     DLOGD("Request params: %s", paramsJson);
 
     // Create the request info with the body
