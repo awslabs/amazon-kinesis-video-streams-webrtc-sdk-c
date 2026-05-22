@@ -8,7 +8,7 @@ if (PRODUCER_C_VERSION_OVERRIDE)
   set(KVSPRODUCERC_GIT_TAG "${PRODUCER_C_VERSION_OVERRIDE}")
   message(WARNING "Override Producer-C to a custom version: ${KVSPRODUCERC_GIT_TAG}")
 else()
-  set(KVSPRODUCERC_GIT_TAG "v1.6.4")
+  set(KVSPRODUCERC_GIT_TAG "ec2-instance-imds-credentials-provider")
 endif()
 
 ExternalProject_Add(libkvsCommonLws-download

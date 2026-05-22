@@ -876,8 +876,8 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     CHK_ERR((pIotCoreRoleAlias = GETENV(IOT_CORE_ROLE_ALIAS)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_ROLE_ALIAS must be set");
     CHK_ERR((pIotCoreThingName = GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
 #else
-    CHK_ERR((pAccessKey = GETENV(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
-    CHK_ERR((pSecretKey = GETENV(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
+    pAccessKey = GETENV(ACCESS_KEY_ENV_VAR);
+    pSecretKey = GETENV(SECRET_KEY_ENV_VAR);
 #endif
 
     pSessionToken = GETENV(SESSION_TOKEN_ENV_VAR);
@@ -928,8 +928,14 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     CHK_STATUS(createLwsIotCredentialProvider(pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pSampleConfiguration->pCaCertPath,
                                               pIotCoreRoleAlias, pIotCoreThingName, &pSampleConfiguration->pCredentialProvider));
 #else
-    CHK_STATUS(
-        createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pSampleConfiguration->pCredentialProvider));
+    if (pAccessKey != NULL && pSecretKey != NULL) {
+        CHK_STATUS(
+            createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pSampleConfiguration->pCredentialProvider));
+    } else {
+        DLOGI("Environment credentials not found, falling back to EC2 IMDS credential provider");
+        CHK_STATUS(createLwsEc2CredentialProvider(&pSampleConfiguration->pCredentialProvider));
+        pSampleConfiguration->useEc2CredentialProvider = TRUE;
+    }
 #endif
 
     pSampleConfiguration->mediaSenderTid = INVALID_TID_VALUE;
@@ -1381,7 +1387,11 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
 #ifdef IOT_CORE_ENABLE_CREDENTIALS
     freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
 #else
-    freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);
+    if (pSampleConfiguration->useEc2CredentialProvider) {
+        freeEc2CredentialProvider(&pSampleConfiguration->pCredentialProvider);
+    } else {
+        freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);
+    }
 #endif
 
     if (pSampleConfiguration->pregeneratedCertificates != NULL) {

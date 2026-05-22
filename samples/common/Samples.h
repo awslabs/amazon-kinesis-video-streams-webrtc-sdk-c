@@ -200,6 +200,7 @@ struct __SampleConfiguration {
     PStackQueue pregeneratedCertificates; // Holds the pre-generated certificates
     UINT32 pregenerateCertificatesMax;    // Max certificates to have pre-generated and ready to use on standby
 
+    BOOL useEc2CredentialProvider;
     PCHAR rtspUri;
     UINT32 logLevel;
     BOOL enableTwcc;
