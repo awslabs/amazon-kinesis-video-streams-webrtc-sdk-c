@@ -403,7 +403,7 @@ STATUS updateTwccHashTable(PTwccManager pTwccManager, PINT64 duration, PUINT64 r
                            PUINT64 sentPackets)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    UINT64 localStartTimeKvs, localEndTimeKvs = 0;
+    UINT64 localStartTimeKvs = TWCC_PACKET_UNITIALIZED_TIME, localEndTimeKvs = TWCC_PACKET_UNITIALIZED_TIME;
     UINT16 baseSeqNum = 0;
     BOOL localStartTimeRecorded = FALSE;
     UINT64 twccPktValue = 0;

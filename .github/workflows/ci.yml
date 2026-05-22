@@ -77,13 +77,13 @@ jobs:
         compiler: [ gcc, clang ]
         config:
           - name: Shared OpenSSL
-            cmake_flags: "-DBUILD_TEST=ON"
+            cmake_flags: "-DBUILD_TEST=ON -DPARALLEL_BUILD=ON"
           - name: Static OpenSSL
-            cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=ON"
+            cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=ON -DPARALLEL_BUILD=ON"
           - name: Shared MbedTLS
-            cmake_flags: "-DBUILD_TEST=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
+            cmake_flags: "-DBUILD_TEST=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DPARALLEL_BUILD=ON"
           - name: Static MbedTLS
-            cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
+            cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DPARALLEL_BUILD=ON"
           - name: Shared OpenSSL System Deps
             # Tests disabled (due to dependency issues): 
             # - GCC: Homebrew's libgtest is built with
@@ -91,7 +91,7 @@ jobs:
             #   (std::__cxx11:: ABI), causing linking errors.
             # - GCC/CLang: Homebrew's OpenSSL 3.x is incompatible with SDK requirement (1.1.1x) 
             #   which causes certain test failure (HMAC() returns NULL)
-            cmake_flags: "-DBUILD_TEST=OFF -DBUILD_DEPENDENCIES=OFF"
+            cmake_flags: "-DBUILD_TEST=OFF -DBUILD_DEPENDENCIES=OFF -DPARALLEL_BUILD=ON"
             system_deps: true
       fail-fast: false
 
@@ -222,7 +222,7 @@ jobs:
       - name: Build Repository
         run: |
           mkdir build && cd build
-          cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE
+          cmake .. -DBUILD_STATIC_LIBS=TRUE -DBUILD_TEST=TRUE -DPARALLEL_BUILD=ON
           make -j
 
   mbedtls-ubuntu-gcc-4-4:
@@ -261,7 +261,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DBUILD_TEST=ON -DENABLE_AWS_SDK_IN_TESTS=OFF -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DBUILD_OLD_MBEDTLS_VERSION=ON
+          cmake .. -DBUILD_TEST=ON -DENABLE_AWS_SDK_IN_TESTS=OFF -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DBUILD_OLD_MBEDTLS_VERSION=ON -DPARALLEL_BUILD=ON
           make -j
 
       - name: Configure AWS Credentials
@@ -357,7 +357,7 @@ jobs:
             BUILD_TEST_FLAG="-DBUILD_TEST=OFF"
           fi
 
-          cmake .. ${BUILD_TEST_FLAG} -DENABLE_AWS_SDK_IN_TESTS=OFF ${{ matrix.build-configuration.cmake-args }}
+          cmake .. ${BUILD_TEST_FLAG} -DENABLE_AWS_SDK_IN_TESTS=OFF -DPARALLEL_BUILD=ON ${{ matrix.build-configuration.cmake-args }}
           make -j
           if [[ "${BUILD_TEST_FLAG}" == "-DBUILD_TEST=ON" ]]; then
             file ./tst/webrtc_client_test
@@ -487,7 +487,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DBUILD_TEST=ON -DENABLE_STATS_CALCULATION_CONTROL=ON -DENABLE_AWS_SDK_IN_TESTS=OFF
+          cmake .. -DBUILD_TEST=ON -DENABLE_STATS_CALCULATION_CONTROL=ON -DENABLE_AWS_SDK_IN_TESTS=OFF -DPARALLEL_BUILD=ON
           make -j
 
       - name: Run tests

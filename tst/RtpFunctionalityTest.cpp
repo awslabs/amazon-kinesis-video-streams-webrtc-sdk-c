@@ -660,6 +660,7 @@ TEST_F(RtpFunctionalityTest, writeFrameNullArgs)
 }
 
 TEST_F(RtpFunctionalityTest, createPayloadForH265NullNalusWithNonNullBuffer)
+TEST_F(RtpFunctionalityTest, createPayloadForH264NullNalusWithNonNullBuffer)
 {
     BYTE payloadBuffer[100];
     UINT32 payloadLength = 0xDEADBEEF;
@@ -673,6 +674,11 @@ TEST_F(RtpFunctionalityTest, createPayloadForH265NullNalusWithNonNullBuffer)
     EXPECT_EQ(0, payloadLength);
     EXPECT_EQ(0, payloadSubLenSize);
 }
+              createPayloadForH264(DEFAULT_MTU_SIZE_BYTES, NULL, 100, payloadBuffer, &payloadLength, payloadSubLength, &payloadSubLenSize));
+    EXPECT_EQ(0u, payloadLength);
+    EXPECT_EQ(0u, payloadSubLenSize);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

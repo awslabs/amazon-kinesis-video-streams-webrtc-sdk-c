@@ -50,7 +50,7 @@ jobs:
         run: |
           mkdir build 
           cd build
-          cmake .. -DCODE_COVERAGE=ON -DBUILD_TEST=ON
+          cmake .. -DCODE_COVERAGE=ON -DBUILD_TEST=ON -DPARALLEL_BUILD=ON
           make -j
 
       - name: Configure AWS Credentials

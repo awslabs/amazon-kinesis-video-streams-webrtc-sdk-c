@@ -43,7 +43,7 @@ jobs:
       - name: Build repository
         run: |
           mkdir build && cd build
-          cmake .. -DBUILD_SAMPLE=ON
+          cmake .. -DBUILD_SAMPLE=ON -DPARALLEL_BUILD=ON
           make -j
 
       - name: Provision AWS resources with storage enabled

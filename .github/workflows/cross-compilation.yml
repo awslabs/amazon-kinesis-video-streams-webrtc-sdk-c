@@ -95,6 +95,7 @@ jobs:
           
           cmake .. -DBUILD_TEST=ON \
             -DENABLE_AWS_SDK_IN_TESTS=OFF \
+            -DPARALLEL_BUILD=ON \
             ${{ matrix.build-type.cmake_flags }} \
             ${{ matrix.crypto.cmake_flags }} \
             ${{ matrix.compiler.cmake_flags }} \

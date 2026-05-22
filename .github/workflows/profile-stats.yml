@@ -61,7 +61,7 @@ jobs:
       - name: Build
         run: |
           mkdir -p build && cd build
-          cmake .. -DBUILD_SAMPLE=ON
+          cmake .. -DBUILD_SAMPLE=ON -DPARALLEL_BUILD=ON
           make -j
 
       - name: Setup Signaling Channel
