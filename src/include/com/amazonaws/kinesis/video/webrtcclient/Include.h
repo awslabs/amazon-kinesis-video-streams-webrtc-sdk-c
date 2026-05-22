@@ -2400,6 +2400,13 @@ PUBLIC_API STATUS signalingClientSendMessageSync(SIGNALING_CLIENT_HANDLE, PSigna
  *    no-op. Safe to invoke unconditionally so callers don't need their own
  *    `#ifdef`.
  *
+ * Call this on every SignalingMessage the SDK populates — including on
+ * failure paths. The SDK zeros the message struct before parsing, so the
+ * call is safe even when nothing was allocated; but if parsing fails after
+ * the payload has been allocated, skipping this call leaks that buffer.
+ * Treat it like a destructor that pairs with any SDK call which fills in
+ * a SignalingMessage / ReceivedSignalingMessage out-param.
+ *
  * Safe to call with a NULL pMessage.
  *
  * @param[in,out] pMessage SignalingMessage whose payload should be released.
