@@ -2,6 +2,16 @@ cmake_minimum_required(VERSION 3.6.3)
 
 project(libsrtp-download LANGUAGES C)
 
+# Pick the libsrtp tag based on USE_LIBSRTP3. The 2.x default tracks what the
+# SDK has been pinning for years; the 3.x path follows cisco/libsrtp main where
+# the project was renamed to libsrtp3 and gained PSA Crypto / mbedTLS 4 support
+# via PR #782. No v3.0.0 release tag exists yet — bump the SHA when one lands.
+if(USE_LIBSRTP3)
+  set(LIBSRTP_GIT_TAG "6e23ad8d971209e152ef4aa5349be9969e108d14")
+else()
+  set(LIBSRTP_GIT_TAG "bd0f27ec0e299ad101a396dde3f7c90d48efc8fc")
+endif()
+
 SET(CONFIGURE_COMMAND "")
 
 # There is known bug in libsrtp where cross compiling using configure on ARM fails. Do not
@@ -9,7 +19,11 @@ SET(CONFIGURE_COMMAND "")
 # Check https://github.com/cisco/libsrtp/pull/496
 
 
-if(BUILD_LIBSRTP_DESTINATION_PLATFORM STREQUAL BUILD_LIBSRTP_HOST_PLATFORM)
+# libsrtp 3.x uses CMake as its canonical build system; the autotools path
+# still exists but its `cipher_driver` test binary fails to link on some
+# platforms. Skip the configure step when USE_LIBSRTP3=ON so we fall through
+# to ExternalProject_Add's CMake build.
+if(NOT USE_LIBSRTP3 AND BUILD_LIBSRTP_DESTINATION_PLATFORM STREQUAL BUILD_LIBSRTP_HOST_PLATFORM)
 
   if(UNIX OR APPLE)
 
@@ -57,7 +71,7 @@ message(STATUS "CONFIGURE_COMMAND is ${CONFIGURE_COMMAND}")
 include(ExternalProject)
 ExternalProject_Add(project_libsrtp
     GIT_REPOSITORY    https://github.com/cisco/libsrtp.git
-    GIT_TAG           bd0f27ec0e299ad101a396dde3f7c90d48efc8fc
+    GIT_TAG           ${LIBSRTP_GIT_TAG}
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
     GIT_PROGRESS      TRUE
     CMAKE_ARGS        -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
@@ -65,6 +79,7 @@ ExternalProject_Add(project_libsrtp
                       -DENABLE_OPENSSL=${LIBSRTP_ENABLE_OPENSSL}
                       -DBUILD_SHARED_LIBS=${LIBSRTP_SHARED_LIBS}
                       -DOPENSSL_ROOT_DIR=${OPEN_SRC_INSTALL_PREFIX}
+                      -DLIBSRTP_TEST_APPS=OFF
     CONFIGURE_COMMAND ${CONFIGURE_COMMAND}
     TEST_COMMAND      ""
 )

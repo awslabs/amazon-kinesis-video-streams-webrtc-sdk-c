@@ -46,7 +46,11 @@ extern "C" {
 #include <mbedtls/md5.h>
 #endif
 
+#ifdef USE_LIBSRTP3
+#include <srtp3/srtp.h>
+#else
 #include <srtp2/srtp.h>
+#endif
 
 // INET/INET6 MUST be defined before usrsctp
 // If removed will cause corruption that is hard to determine at runtime
