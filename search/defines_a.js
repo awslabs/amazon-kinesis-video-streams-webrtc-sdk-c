@@ -21,7 +21,9 @@ var searchData=
   ['kvs_5fice_5fshort_5fcheck_5fdelay_18',['KVS_ICE_SHORT_CHECK_DELAY',['../IceAgent_8h.html#a86d522198ae2ec7539657cd5800ac0d7',1,'IceAgent.h']]],
   ['kvs_5fice_5fstate_5fready_5ftimer_5fpolling_5finterval_19',['KVS_ICE_STATE_READY_TIMER_POLLING_INTERVAL',['../IceAgent_8h.html#a6dbed5b5730aa94b933c55734e26f204',1,'IceAgent.h']]],
   ['kvs_5fice_5fturn_5fconnection_5fshutdown_5ftimeout_20',['KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT',['../IceAgent_8h.html#aacbd45afe7886201e6956f77f1ff4c3c',1,'IceAgent.h']]],
-  ['kvs_5fip_5faddress_5fstring_5fbuffer_5flen_21',['KVS_IP_ADDRESS_STRING_BUFFER_LEN',['../Network_8h.html#a9400d9f9a322862055b22eddee6991f1',1,'Network.h']]],
-  ['kvs_5fmax_5fipv4_5faddress_5fstring_5flen_22',['KVS_MAX_IPV4_ADDRESS_STRING_LEN',['../Network_8h.html#a6cceacf108d35e150e8cfed0d13ac573',1,'Network.h']]],
-  ['kvs_5fsocket_5fin_5fprogress_23',['KVS_SOCKET_IN_PROGRESS',['../Network_8h.html#a9016a95a850f7cf5d080c391b3c2ffec',1,'Network.h']]]
+  ['kvs_5fip_5faddress_5fport_5fstring_5fbuffer_5flen_21',['KVS_IP_ADDRESS_PORT_STRING_BUFFER_LEN',['../Network_8h.html#a43d3449e44d48b4c7ce4734717913300',1,'Network.h']]],
+  ['kvs_5fip_5faddress_5fstring_5fbuffer_5flen_22',['KVS_IP_ADDRESS_STRING_BUFFER_LEN',['../Network_8h.html#a9400d9f9a322862055b22eddee6991f1',1,'Network.h']]],
+  ['kvs_5fipv6_5faddress_5fdecorator_5fstr_5flen_23',['KVS_IPV6_ADDRESS_DECORATOR_STR_LEN',['../Network_8h.html#a28bff7271c42194e3ad82b6c790777a5',1,'Network.h']]],
+  ['kvs_5fmax_5fipv4_5faddress_5fstring_5flen_24',['KVS_MAX_IPV4_ADDRESS_STRING_LEN',['../Network_8h.html#a6cceacf108d35e150e8cfed0d13ac573',1,'Network.h']]],
+  ['kvs_5fsocket_5fin_5fprogress_25',['KVS_SOCKET_IN_PROGRESS',['../Network_8h.html#a9016a95a850f7cf5d080c391b3c2ffec',1,'Network.h']]]
 ];

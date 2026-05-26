@@ -8,6 +8,8 @@ var searchData=
   ['turnconnectioncallbacks_5',['TurnConnectionCallbacks',['../structTurnConnectionCallbacks.html',1,'']]],
   ['turnpeer_6',['TurnPeer',['../structTurnPeer.html',1,'']]],
   ['turnprofilediagnostics_7',['TurnProfileDiagnostics',['../structTurnProfileDiagnostics.html',1,'']]],
-  ['twccmanager_8',['TwccManager',['../structTwccManager.html',1,'']]],
-  ['twccrtppacketinfo_9',['TwccRtpPacketInfo',['../structTwccRtpPacketInfo.html',1,'']]]
+  ['twcccongestionstate_8',['TwccCongestionState',['../structTwccCongestionState.html',1,'']]],
+  ['twccfeedback_9',['TwccFeedback',['../structTwccFeedback.html',1,'']]],
+  ['twccmanager_10',['TwccManager',['../structTwccManager.html',1,'']]],
+  ['twccrtppacketinfo_11',['TwccRtpPacketInfo',['../structTwccRtpPacketInfo.html',1,'']]]
 ];
