@@ -659,6 +659,36 @@ TEST_F(RtpFunctionalityTest, writeFrameNullArgs)
     EXPECT_EQ(STATUS_NULL_ARG, writeFrame(NULL, NULL));
 }
 
+TEST_F(RtpFunctionalityTest, createPayloadForH264NullNalusWithNonNullBuffer)
+{
+    BYTE payloadBuffer[100];
+    UINT32 payloadLength = 0xDEADBEEF;
+    UINT32 payloadSubLenSize = 0xDEADBEEF;
+    UINT32 payloadSubLength[10];
+
+    // nalus is NULL but payloadBuffer is non-NULL (sizeCalculationOnly = FALSE).
+    // Should return STATUS_NULL_ARG and zero out the output parameters.
+    EXPECT_EQ(STATUS_NULL_ARG,
+              createPayloadForH264(DEFAULT_MTU_SIZE_BYTES, NULL, 100, payloadBuffer, &payloadLength, payloadSubLength, &payloadSubLenSize));
+    EXPECT_EQ(0u, payloadLength);
+    EXPECT_EQ(0u, payloadSubLenSize);
+}
+
+TEST_F(RtpFunctionalityTest, createPayloadForH265NullNalusWithNonNullBuffer)
+{
+    BYTE payloadBuffer[100];
+    UINT32 payloadLength = 0xDEADBEEF;
+    UINT32 payloadSubLenSize = 0xDEADBEEF;
+    UINT32 payloadSubLength[10];
+
+    // nalus is NULL but payloadBuffer is non-NULL (sizeCalculationOnly = FALSE).
+    // Should return STATUS_NULL_ARG and zero out the output parameters.
+    EXPECT_EQ(STATUS_NULL_ARG,
+              createPayloadForH265(DEFAULT_MTU_SIZE_BYTES, NULL, 100, payloadBuffer, &payloadLength, payloadSubLength, &payloadSubLenSize));
+    EXPECT_EQ(0u, payloadLength);
+    EXPECT_EQ(0u, payloadSubLenSize);
+}
+  
 TEST_F(RtpFunctionalityTest, createPayloadForVP8NullDataWithNonNullBuffer)
 {
     BYTE payloadBuffer[100];
@@ -670,8 +700,8 @@ TEST_F(RtpFunctionalityTest, createPayloadForVP8NullDataWithNonNullBuffer)
     // Should return STATUS_NULL_ARG and zero out the output parameters.
     EXPECT_EQ(STATUS_NULL_ARG,
               createPayloadForVP8(DEFAULT_MTU_SIZE_BYTES, NULL, 100, payloadBuffer, &payloadLength, payloadSubLength, &payloadSubLenSize));
-    EXPECT_EQ(0, payloadLength);
-    EXPECT_EQ(0, payloadSubLenSize);
+    EXPECT_EQ(0u, payloadLength);
+    EXPECT_EQ(0u, payloadSubLenSize);
 }
 
 } // namespace webrtcclient

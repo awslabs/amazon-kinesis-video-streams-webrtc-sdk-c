@@ -2167,6 +2167,23 @@ PUBLIC_API STATUS transceiverOnBandwidthEstimation(PRtcRtpTransceiver, UINT64, R
 PUBLIC_API STATUS transceiverOnPictureLoss(PRtcRtpTransceiver, UINT64, RtcOnPictureLoss);
 
 /**
+ * @brief Override the H264 fmtp string advertised in SDP offers and answers for this transceiver.
+ *
+ * By default the SDK advertises a Baseline-profile fmtp (DEFAULT_H264_FMTP). Use this to pin a
+ * different fmtp (for example, a different profile-level-id) when the local encoder/decoder
+ * requires it. Pass NULL or an empty string to clear the override and fall back to the default.
+ *
+ * Only applied to H264 (RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE);
+ * ignored for other codecs.
+ *
+ * @param[in] PRtcRtpTransceiver Transceiver returned from addTransceiver()
+ * @param[in] PCHAR Null-terminated fmtp string (without the "a=fmtp:<pt> " prefix), or NULL to clear
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS transceiverSetFmtp(PRtcRtpTransceiver, PCHAR);
+
+/**
  * @brief Frees the previously created transceiver object
  *
  * This method is currently a no-op as Transceivers are freed when freePeerConnection is called

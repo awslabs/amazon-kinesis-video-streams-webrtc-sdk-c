@@ -275,11 +275,11 @@ STATUS discoverNatBehavior(PCHAR stunServer, NAT_BEHAVIOR* pNatMappingBehavior, 
     PKvsIpAddress pSelectedLocalInterface = NULL;
     PConnectionListener pConnectionListener = NULL;
 
-    CHK(stunServer != NULL && pNatMappingBehavior != NULL && pNatFilteringBehavior != NULL, STATUS_NULL_ARG);
-    CHK(!IS_EMPTY_STRING(stunServer), STATUS_INVALID_ARG);
-
     MEMSET(&iceServerStun, 0x00, SIZEOF(IceServer));
     MEMSET(&customData, 0x00, SIZEOF(NatTestData));
+
+    CHK(stunServer != NULL && pNatMappingBehavior != NULL && pNatFilteringBehavior != NULL, STATUS_NULL_ARG);
+    CHK(!IS_EMPTY_STRING(stunServer), STATUS_INVALID_ARG);
     cvar = CVAR_CREATE();
     lock = MUTEX_CREATE(FALSE);
     CHK_STATUS(parseIceServer(&iceServerStun, stunServer, NULL, NULL));

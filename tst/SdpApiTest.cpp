@@ -647,7 +647,8 @@ a=rtpmap:102 H264/90000
         EXPECT_EQ(setRemoteDescription(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
         EXPECT_EQ(TRUE, canTrickleIceCandidates(pRtcPeerConnection).value);
         EXPECT_EQ(createAnswer(pRtcPeerConnection, &rtcSessionDescriptionInit), STATUS_SUCCESS);
-        EXPECT_PRED_FORMAT2(testing::IsNotSubstring, "fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
+        // SDK now advertises its own H264 fmtp on offer and answer regardless of what the peer sent.
+        EXPECT_PRED_FORMAT2(testing::IsSubstring, "fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
                             rtcSessionDescriptionInit.sdp);
 
         closePeerConnection(pRtcPeerConnection);
@@ -2069,7 +2070,7 @@ a=mid:2
 a=sctp-port:5000
 a=max-message-size:262144
 )",
-    "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e015",
+    "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
 };
 
 SdpMatch offer_1v1a1d_Chrome_Linux = SdpMatch{
@@ -2478,7 +2479,7 @@ a=setup:actpass
 a=sctp-port:5000
 a=max-message-size:1073741823
 )",
-    "profile-level-id=42e01f;level-asymmetry-allowed=1;packetization-mode=1",
+    "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
 };
 
 SdpMatch offer_1v1a1d_Firefox_Mac = SdpMatch{
@@ -2571,7 +2572,7 @@ a=setup:actpass
 a=sctp-port:5000
 a=max-message-size:1073741823
 )",
-    "profile-level-id=42e01f;level-asymmetry-allowed=1;packetization-mode=1",
+    "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
 };
 
 SdpMatch offer_1v1a1d_Chromium_Linux = SdpMatch{
@@ -3973,6 +3974,49 @@ a=extmap:5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extension
 
         closePeerConnection(pRtcPeerConnection);
         freePeerConnection(&pRtcPeerConnection);
+    });
+}
+
+// Parse invalid codec type
+TEST_F(SdpApiTest, setRemoteDescription_MlineWithNoPayloadTypes)
+{
+    // m=audio line has no payload types after "UDP/TLS/RTP/SAVPF"; only 3 tokens before the codec list
+    // It's missing payload type parameter at the end of the line
+    CHAR offer[] = R"(v=0
+o=- 123456 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=msid-semantic: WMS
+m=audio 9 UDP/TLS/RTP/SAVPF
+c=IN IP4 0.0.0.0
+a=mid:0
+a=ice-ufrag:abcd
+a=ice-pwd:abcdefghijklmnopqrstuvwx
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+a=setup:actpass
+a=rtcp-mux
+a=recvonly
+)";
+
+    assertLFAndCRLF(offer, ARRAY_SIZE(offer) - 1, [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+        RtcSessionDescriptionInit answerSdp{};
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_OPUS));
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        // createAnswer triggers findTransceiversByRemoteDescription which would crash on NULL codecs
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
     });
 }
 
