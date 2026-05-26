@@ -7,6 +7,14 @@ CONFIG_IDF_EXPERIMENTAL_FEATURES=y
 CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
 
 #
+# Partition Table — P4 uses the rmaker-style OTA layout, 8 MB flash.
+# Base esp32/esp32s3 builds keep the 4 MB partitions.csv.
+#
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.8mb.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.8mb.csv"
+CONFIG_PARTITION_TABLE_OFFSET=0xC000
+
+#
 # ESP System Settings
 #
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=360

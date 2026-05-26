@@ -88,10 +88,34 @@ void on_webrtc_bridge_msg_received(const void *data, int len);
 /* Function pointer for the message handler */
 static webrtc_bridge_msg_cb_t message_handler = NULL;
 
+/* Per-cmd_id dispatch table for binary commands */
+static webrtc_bridge_binary_cb_t s_binary_handlers[256] = {0};
+
 /* Register message handler function */
 void webrtc_bridge_register_handler(webrtc_bridge_msg_cb_t handler)
 {
     message_handler = handler;
+}
+
+void webrtc_bridge_register_binary_handler(uint8_t cmd_id, webrtc_bridge_binary_cb_t cb)
+{
+    s_binary_handlers[cmd_id] = cb;
+}
+
+void webrtc_bridge_send_binary_cmd(uint8_t cmd_id, const uint8_t *data, size_t len)
+{
+    /* Frame: [cmd_id][payload...] — bridge's existing chunker handles arbitrary length */
+    char *buf = (char *)malloc(len + 1);
+    if (!buf) {
+        ESP_LOGE(TAG, "OOM allocating %zu bytes for binary cmd 0x%02x", len + 1, cmd_id);
+        return;
+    }
+    buf[0] = (char)cmd_id;
+    if (len > 0 && data != NULL) {
+        memcpy(buf + 1, data, len);
+    }
+    /* webrtc_bridge_send_message takes ownership of buf and frees it after sending */
+    webrtc_bridge_send_message(buf, (int)(len + 1));
 }
 
 #if CONFIG_ESP_WEBRTC_BRIDGE_HOSTED
@@ -105,12 +129,8 @@ static void handle_on_message_received(void *priv_data)
 {
     received_msg_t *received_msg = (received_msg_t *) priv_data;
 
-    // Use the registered handler if available, otherwise use the default
-    if (message_handler) {
-        message_handler((const void *)received_msg->buf, received_msg->data_size);
-    } else {
-        on_webrtc_bridge_msg_received((void *) received_msg->buf, received_msg->data_size);
-    }
+    /* Centralize through the multiplexer so binary cmd_ids get routed properly */
+    on_webrtc_bridge_msg_received((void *) received_msg->buf, received_msg->data_size);
 
     /* Done! Free the buffer now */
     free(received_msg->buf);
@@ -291,11 +311,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         break;
     case MQTT_EVENT_DATA:
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
-        if (message_handler) {
-            message_handler(event->data, event->data_len);
-        } else {
-            on_webrtc_bridge_msg_received((void *) event->data, event->data_len);
-        }
+        on_webrtc_bridge_msg_received((void *) event->data, event->data_len);
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
@@ -316,7 +332,22 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 // Default implementation for when no handler is registered
 void on_webrtc_bridge_msg_received(const void *data, int len)
 {
-    /* Forward the received WebRTC message to the registered handler */
+    if (len <= 0 || data == NULL) {
+        ESP_LOGW(TAG, "Empty bridge message received (len: %d)", len);
+        return;
+    }
+
+    /* Multiplex: JSON signaling messages start with '{' or '['; binary cmds carry
+     * cmd_id as the first byte. Falls back to the legacy handler for JSON. */
+    uint8_t first = ((const uint8_t *)data)[0];
+    if (first != '{' && first != '[' && s_binary_handlers[first] != NULL) {
+        ESP_LOGD(TAG, "Dispatching binary cmd 0x%02x (payload %d bytes)", first, len - 1);
+        s_binary_handlers[first]((uint8_t)first,
+                                 (const uint8_t *)data + 1,
+                                 (size_t)(len - 1));
+        return;
+    }
+
     if (message_handler) {
         ESP_LOGD(TAG, "Forwarding WebRTC message to registered handler (len: %d)", len);
         message_handler((const char *) data, len);

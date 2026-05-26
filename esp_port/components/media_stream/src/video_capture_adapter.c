@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2025-2026 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -10,11 +10,32 @@
 
 #include <string.h>
 #include <stdbool.h>
+#include <inttypes.h>
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "esp_heap_caps.h"
 #include "video_capture.h"
 #include "H264FrameGrabber.h"
 #include "MJPEGFrameGrabber.h"
+
+#if CONFIG_IDF_TARGET_ESP32P4
+#include "driver/jpeg_encode.h"
+#include "esp_video_if.h"
+#include "esp_cache.h"
+#include "esp_imgfx_color_convert.h"
+
+/* Extern declarations for P4 snapshot interceptor functions */
+extern esp_err_t esp32p4_snapshot_intercept_frame(uint8_t *buf, size_t buf_size,
+                                                   size_t *len, uint16_t *width,
+                                                   uint16_t *height,
+                                                   video_frame_pixformat_t *pixfmt,
+                                                   uint32_t timeout_ms);
+extern esp_err_t esp32p4_snapshot_direct_grab(uint8_t *buf, size_t buf_size,
+                                               size_t *len, uint16_t *width,
+                                               uint16_t *height,
+                                               video_frame_pixformat_t *pixfmt,
+                                               uint32_t timeout_ms);
+#endif
 
 static const char *TAG = "video_capture_adapter";
 
@@ -220,3 +241,271 @@ esp_err_t video_capture_deinit(video_capture_handle_t handle)
     free(ctx);
     return ESP_OK;
 }
+
+/* -------------------------------------------------------------------------- */
+/*  JPEG Snapshot                                                             */
+/* -------------------------------------------------------------------------- */
+
+#if CONFIG_IDF_TARGET_ESP32P4
+
+/**
+ * Convert O_UYY_E_VYY (ESP32-P4 ISP native YUV420) to RGB565 using esp_image_effects.
+ *
+ * The ESP32-P4 ISP/camera outputs YUV420 in O_UYY_E_VYY format (semi-packed):
+ *   Odd lines:  U Y Y U Y Y ...
+ *   Even lines: V Y Y V Y Y ...
+ * This is NOT standard I420 planar (YYYY...UU...VV).
+ *
+ * P4 chip rev < 3 JPEG HW encoder lacks native YUV420 support, so we convert
+ * to RGB565 and encode with JPEG_ENCODE_IN_FORMAT_RGB565 instead.
+ */
+#if CONFIG_ESP_REV_MIN_FULL < 300
+static esp_err_t convert_yuv420_to_rgb565(const uint8_t *yuv_buf, size_t yuv_len,
+                                          uint16_t width, uint16_t height,
+                                          uint8_t **rgb_out, size_t *rgb_len)
+{
+    size_t expected_yuv = (size_t)width * height * 3 / 2;
+    size_t out_size = (size_t)width * height * 2;
+
+    if (yuv_len < expected_yuv) {
+        ESP_LOGE(TAG, "YUV buffer too small: %zu < %zu", yuv_len, expected_yuv);
+        return ESP_ERR_INVALID_SIZE;
+    }
+
+    uint8_t *out = heap_caps_aligned_alloc(64, out_size, MALLOC_CAP_SPIRAM);
+    if (!out) {
+        ESP_LOGE(TAG, "Failed to alloc RGB565 buffer (%zu bytes)", out_size);
+        return ESP_ERR_NO_MEM;
+    }
+
+    esp_imgfx_color_convert_cfg_t cfg = {
+        .in_res = { .width = width, .height = height },
+        .in_pixel_fmt = ESP_IMGFX_PIXEL_FMT_O_UYY_E_VYY,
+        .out_pixel_fmt = ESP_IMGFX_PIXEL_FMT_RGB565_LE,
+        .color_space_std = ESP_IMGFX_COLOR_SPACE_STD_BT709,
+    };
+
+    esp_imgfx_color_convert_handle_t cvt = NULL;
+    esp_imgfx_err_t err = esp_imgfx_color_convert_open(&cfg, &cvt);
+    if (err != ESP_IMGFX_ERR_OK || !cvt) {
+        ESP_LOGE(TAG, "esp_imgfx_color_convert_open failed: %d", err);
+        free(out);
+        return ESP_FAIL;
+    }
+
+    esp_imgfx_data_t in_data = { .data = (uint8_t *)yuv_buf, .data_len = yuv_len };
+    esp_imgfx_data_t out_data = { .data = out, .data_len = out_size };
+
+    err = esp_imgfx_color_convert_process(cvt, &in_data, &out_data);
+    esp_imgfx_color_convert_close(cvt);
+
+    if (err != ESP_IMGFX_ERR_OK) {
+        ESP_LOGE(TAG, "esp_imgfx_color_convert_process failed: %d", err);
+        free(out);
+        return ESP_FAIL;
+    }
+
+    *rgb_out = out;
+    *rgb_len = out_size;
+    return ESP_OK;
+}
+#endif
+
+/**
+ * One-shot JPEG encode: creates a HW JPEG encoder, encodes one frame, and
+ * deletes the encoder. Suitable for infrequent snapshot captures.
+ *
+ * @param yuv_buf     Input YUV420 buffer (passed directly to HW encoder)
+ * @param yuv_len     Length of the input buffer
+ * @param width       Image width
+ * @param height      Image height
+ * @param quality     JPEG quality (1-100)
+ * @param jpeg_out    Pointer to store allocated JPEG buffer (caller frees)
+ * @param jpeg_len    Pointer to store JPEG data length
+ * @return ESP_OK on success
+ */
+static esp_err_t jpeg_one_shot_encode(uint8_t *yuv_buf, size_t yuv_len,
+                                      uint16_t width, uint16_t height,
+                                      uint8_t quality,
+                                      uint8_t **jpeg_out, size_t *jpeg_len)
+{
+    if (!yuv_buf || !jpeg_out || !jpeg_len || width == 0 || height == 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    uint8_t *conv_buf = NULL;
+    uint8_t *out_buf = NULL;
+    jpeg_encoder_handle_t encoder = NULL;
+    esp_err_t ret;
+
+    /* Determine encoder input buffer and format based on chip revision */
+    uint8_t *enc_src = yuv_buf;
+    size_t enc_src_len = yuv_len;
+    jpeg_enc_input_format_t src_type;
+    jpeg_down_sampling_type_t sub_sample;
+
+#if CONFIG_ESP_REV_MIN_FULL < 300
+    /* P4 rev < 3: HW encoder lacks YUV420 support.
+     * Camera outputs O_UYY_E_VYY format (ISP native YUV420).
+     * Convert O_UYY_E_VYY → RGB565 via esp_image_effects, then encode as RGB565. */
+    size_t conv_len = 0;
+    ret = convert_yuv420_to_rgb565(yuv_buf, yuv_len, width, height, &conv_buf, &conv_len);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "O_UYY_E_VYY→RGB565 conversion failed: %s", esp_err_to_name(ret));
+        goto cleanup;
+    }
+    enc_src = conv_buf;
+    enc_src_len = conv_len;
+    src_type = JPEG_ENCODE_IN_FORMAT_RGB565;
+    sub_sample = JPEG_DOWN_SAMPLING_YUV422;
+    ESP_LOGI(TAG, "Converted O_UYY_E_VYY (%zu bytes) → RGB565 (%zu bytes)", yuv_len, conv_len);
+#else
+    /* P4 rev >= 3: HW encoder supports YUV420 natively */
+    src_type = JPEG_ENCODE_IN_FORMAT_YUV420;
+    sub_sample = JPEG_DOWN_SAMPLING_YUV420;
+#endif
+
+    /* Create a temporary JPEG encoder engine */
+    jpeg_encode_engine_cfg_t enc_cfg = {
+        .intr_priority = 0,
+        .timeout_ms = 3000,
+    };
+    ret = jpeg_new_encoder_engine(&enc_cfg, &encoder);
+    if (ret != ESP_OK || !encoder) {
+        ESP_LOGE(TAG, "Failed to create JPEG encoder engine: %s", esp_err_to_name(ret));
+        goto cleanup;
+    }
+
+    /* Allocate output buffer via JPEG allocator (ensures DMA2D-compatible memory) */
+    size_t out_buf_size = 0;
+    jpeg_encode_memory_alloc_cfg_t out_mem_cfg = {
+        .buffer_direction = JPEG_DEC_ALLOC_OUTPUT_BUFFER,
+    };
+    out_buf = (uint8_t *) jpeg_alloc_encoder_mem(width * height, &out_mem_cfg, &out_buf_size);
+    if (!out_buf) {
+        ESP_LOGE(TAG, "Failed to allocate JPEG output buffer");
+        ret = ESP_ERR_NO_MEM;
+        goto cleanup;
+    }
+
+    /* Configure and encode */
+    jpeg_encode_cfg_t config = {
+        .width = width,
+        .height = height,
+        .src_type = src_type,
+        .sub_sample = sub_sample,
+        .image_quality = quality,
+    };
+
+    uint32_t out_len = 0;
+    ret = jpeg_encoder_process(encoder, &config, enc_src, enc_src_len,
+                               out_buf, out_buf_size, &out_len);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "JPEG encoding failed: %s", esp_err_to_name(ret));
+        goto cleanup;
+    }
+
+    *jpeg_out = out_buf;
+    *jpeg_len = (size_t)out_len;
+    out_buf = NULL;  /* Ownership transferred to caller */
+
+    ESP_LOGI(TAG, "JPEG snapshot encoded: %" PRIu16 "x%" PRIu16 " quality=%" PRIu8 " size=%" PRIu32,
+             width, height, quality, out_len);
+
+cleanup:
+    if (encoder) {
+        jpeg_del_encoder_engine(encoder);
+    }
+    free(conv_buf);
+    free(out_buf);
+    return ret;
+}
+
+esp_err_t video_capture_get_snapshot(uint8_t **jpeg_buf, size_t *jpeg_len,
+                                     uint8_t quality, uint32_t timeout_ms)
+{
+    if (!jpeg_buf || !jpeg_len) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    *jpeg_buf = NULL;
+    *jpeg_len = 0;
+
+    if (quality == 0 || quality > 100) {
+        quality = 80;  /* Default quality */
+    }
+
+    esp_err_t ret;
+    uint16_t width = 0, height = 0;
+    size_t raw_len = 0;
+    video_frame_pixformat_t pixfmt = PIXFMT_YUV420;
+
+    /* Allocate a raw frame buffer large enough for the maximum expected resolution.
+     * YUV420 = 1.5 bytes/pixel. For 1920x1080 that's ~3.1 MB. */
+    size_t raw_buf_size = 1920 * 1080 * 3 / 2;  /* Max expected YUV420 frame size */
+    uint8_t *raw_buf = heap_caps_aligned_calloc(64, 1, raw_buf_size, MALLOC_CAP_SPIRAM);
+    if (!raw_buf) {
+        ESP_LOGE(TAG, "Failed to allocate raw frame buffer for snapshot");
+        return ESP_ERR_NO_MEM;
+    }
+
+    if (h264_encoder_is_running()) {
+        /* Path 1: Encoder is running - intercept a frame from the pipeline */
+        ESP_LOGI(TAG, "Snapshot: intercepting frame from active encoder pipeline");
+        ret = esp32p4_snapshot_intercept_frame(raw_buf, raw_buf_size,
+                                               &raw_len, &width, &height,
+                                               &pixfmt, timeout_ms);
+    } else {
+        /* Path 2: Encoder is NOT running - directly grab from camera */
+        ESP_LOGI(TAG, "Snapshot: directly grabbing frame from camera");
+        ret = esp32p4_snapshot_direct_grab(raw_buf, raw_buf_size,
+                                           &raw_len, &width, &height,
+                                           &pixfmt, timeout_ms);
+    }
+
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to capture raw frame for snapshot: %s", esp_err_to_name(ret));
+        free(raw_buf);
+        return ret;
+    }
+
+    ESP_LOGI(TAG, "Raw frame captured: %" PRIu16 "x%" PRIu16 " len=%zu pixfmt=%d", width, height, raw_len, pixfmt);
+
+    /* JPEG-encode the raw frame */
+    ret = jpeg_one_shot_encode(raw_buf, raw_len, width, height, quality,
+                               jpeg_buf, jpeg_len);
+
+    /* Free the raw frame buffer */
+    free(raw_buf);
+
+    return ret;
+}
+
+void video_capture_snapshot_free(uint8_t *jpeg_buf)
+{
+    if (jpeg_buf) {
+        free(jpeg_buf);
+    }
+}
+
+#else /* !CONFIG_IDF_TARGET_ESP32P4 */
+
+esp_err_t video_capture_get_snapshot(uint8_t **jpeg_buf, size_t *jpeg_len,
+                                     uint8_t quality, uint32_t timeout_ms)
+{
+    (void)quality;
+    (void)timeout_ms;
+    if (jpeg_buf) *jpeg_buf = NULL;
+    if (jpeg_len) *jpeg_len = 0;
+    ESP_LOGW(TAG, "JPEG snapshot not supported on this target");
+    return ESP_ERR_NOT_SUPPORTED;
+}
+
+void video_capture_snapshot_free(uint8_t *jpeg_buf)
+{
+    if (jpeg_buf) {
+        free(jpeg_buf);
+    }
+}
+
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */

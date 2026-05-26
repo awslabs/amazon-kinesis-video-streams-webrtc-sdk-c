@@ -252,6 +252,23 @@ typedef struct {
 
 static esp32p4_encoder_data_t s_p4_enc_data = {0};
 
+/* -------------------------------------------------------------------------- */
+/*  Snapshot interceptor state                                                */
+/* -------------------------------------------------------------------------- */
+
+typedef struct {
+    volatile bool requested;            /* Set by snapshot API, cleared by encoder task */
+    SemaphoreHandle_t done;             /* Signaled when raw frame is copied */
+    uint8_t *buffer;                    /* Destination buffer (caller-allocated) */
+    size_t buffer_size;                 /* Allocated buffer size */
+    size_t frame_len;                   /* Actual copied frame length */
+    uint16_t width;                     /* Frame width */
+    uint16_t height;                    /* Frame height */
+    video_frame_pixformat_t pixfmt;     /* Pixel format of captured frame */
+} snapshot_intercept_t;
+
+static snapshot_intercept_t s_snapshot = {0};
+
 #define QUEUE_RECEIVE_WAIT_MS  CONFIG_VIDEO_QUEUE_RECEIVE_WAIT_MS
 #define QUEUE_SEND_WAIT_MS     CONFIG_VIDEO_QUEUE_SEND_WAIT_MS
 
@@ -280,12 +297,50 @@ static void video_encoder_task(void *arg)
             ESP_LOGD(TAG, "Video encoder resumed");
         }
 
+        video_frame_preprocess_fn_t frame_preprocess_fn = (video_frame_preprocess_fn_t) arg;
 #if USE_ESP_VIDEO_IF
         // Get raw frame
         video_fb_t *raw_frame = esp_video_if_get_frame();
         if (!raw_frame) {
             vTaskDelay(pdMS_TO_TICKS(QUEUE_RECEIVE_WAIT_MS));
             continue;
+        }
+
+        // Snapshot interceptor: if a snapshot is requested, copy the raw frame
+        if (s_snapshot.requested && s_snapshot.buffer) {
+            video_resolution_t snap_res = {0};
+            esp_video_if_get_resolution(&snap_res);
+
+            size_t copy_len = (raw_frame->len <= s_snapshot.buffer_size)
+                              ? raw_frame->len : s_snapshot.buffer_size;
+            memcpy(s_snapshot.buffer, raw_frame->buf, copy_len);
+            s_snapshot.frame_len = copy_len;
+            s_snapshot.width = snap_res.width;
+            s_snapshot.height = snap_res.height;
+            s_snapshot.pixfmt = PIXFMT_YUV420;
+            s_snapshot.requested = false;
+
+            if (s_snapshot.done) {
+                xSemaphoreGive(s_snapshot.done);
+            }
+        }
+
+        // This assumes frame is YUV420
+        if (frame_preprocess_fn)
+        {
+            video_resolution_t resolution;
+            esp_err_t err = esp_video_if_get_resolution(&resolution);
+            if (err == ESP_OK) {
+                video_frame_raw_t frame = {
+                    .len = raw_frame->len,
+                    .buffer = raw_frame->buf,
+                    .height = resolution.height,
+                    .width = resolution.width,
+                    .pixfmt = PIXFMT_YUV420,
+                };
+
+                frame_preprocess_fn(frame);
+            }
         }
 
         // Encode the raw frame
@@ -344,7 +399,7 @@ static void video_encoder_task(void *arg)
     ESP_LOGE(TAG, "Video encoder task unexpectedly exited!");
 }
 
-void esp32p4_frame_grabber_init(void)
+void esp32p4_frame_grabber_init(video_frame_preprocess_fn_t frame_preprocess_fn)
 {
     // Singleton pattern: encoder task remains, but check if esp_video_if needs reinitialization
     if (s_p4_enc_data.encoder_initialized) {
@@ -458,7 +513,7 @@ void esp32p4_frame_grabber_init(void)
 
     s_p4_enc_data.running = false;  // Start in stopped state
     s_p4_enc_data.encoder_task_handle = xTaskCreateStatic(video_encoder_task, "video_encoder", ENC_TASK_STACK_SIZE,
-                                                          NULL, ENC_TASK_PRIO, s_p4_enc_data.task_stack, s_p4_enc_data.task_buffer);
+                                                          frame_preprocess_fn, ENC_TASK_PRIO, s_p4_enc_data.task_stack, s_p4_enc_data.task_buffer);
 
     if (s_p4_enc_data.encoder_task_handle == NULL) {
         ESP_LOGE(TAG, "failed to create encoder task!");
@@ -571,4 +626,188 @@ esp_err_t esp32p4_frame_grabber_deinit(void)
 #endif
     return ESP_OK;
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Snapshot interceptor API                                                  */
+/* -------------------------------------------------------------------------- */
+
+bool esp32p4_is_encoder_running(void)
+{
+    return s_p4_enc_data.running;
+}
+
+bool esp32p4_is_encoder_initialized(void)
+{
+    return s_p4_enc_data.encoder_initialized;
+}
+
+#if USE_ESP_VIDEO_IF
+/**
+ * Intercept the next raw frame from the encoder task.
+ * The caller provides a pre-allocated buffer. The encoder task copies the next
+ * raw frame into it and signals completion via a semaphore.
+ *
+ * @param buf[out]        Pointer to store the raw frame buffer (caller-allocated, SPIRAM)
+ * @param len[out]        Pointer to store the actual frame length
+ * @param width[out]      Pointer to store frame width
+ * @param height[out]     Pointer to store frame height
+ * @param pixfmt[out]     Pointer to store pixel format
+ * @param timeout_ms      Maximum wait time in milliseconds
+ * @return ESP_OK on success, ESP_ERR_TIMEOUT on timeout
+ */
+esp_err_t esp32p4_snapshot_intercept_frame(uint8_t *buf, size_t buf_size,
+                                           size_t *len, uint16_t *width,
+                                           uint16_t *height,
+                                           video_frame_pixformat_t *pixfmt,
+                                           uint32_t timeout_ms)
+{
+    if (!buf || !len || !width || !height || buf_size == 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if (!s_p4_enc_data.running) {
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    /* Reject overlapping requests: a second caller would clobber buffer/buffer_size
+     * before the encoder task copies the frame for the first one. */
+    if (s_snapshot.requested) {
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    /* Create the done semaphore if not yet created */
+    if (!s_snapshot.done) {
+        s_snapshot.done = xSemaphoreCreateBinary();
+        if (!s_snapshot.done) {
+            return ESP_ERR_NO_MEM;
+        }
+    }
+
+    /* Prepare the snapshot request */
+    s_snapshot.buffer = buf;
+    s_snapshot.buffer_size = buf_size;
+    s_snapshot.frame_len = 0;
+    s_snapshot.width = 0;
+    s_snapshot.height = 0;
+    s_snapshot.requested = true;  /* Trigger the interceptor in encoder task */
+
+    /* Wait for the encoder task to copy a frame */
+    if (xSemaphoreTake(s_snapshot.done, pdMS_TO_TICKS(timeout_ms)) != pdTRUE) {
+        s_snapshot.requested = false;
+        ESP_LOGE(TAG, "Snapshot intercept timed out");
+        return ESP_ERR_TIMEOUT;
+    }
+
+    *len = s_snapshot.frame_len;
+    *width = s_snapshot.width;
+    *height = s_snapshot.height;
+    if (pixfmt) {
+        *pixfmt = s_snapshot.pixfmt;
+    }
+
+    return ESP_OK;
+}
+
+/**
+ * Directly grab a raw frame from the camera when the encoder task is NOT running.
+ * This is safe only when the encoder task is paused (not consuming frames).
+ *
+ * @param buf[out]        Pre-allocated buffer for the raw frame
+ * @param buf_size        Size of the buffer
+ * @param len[out]        Actual frame length
+ * @param width[out]      Frame width
+ * @param height[out]     Frame height
+ * @param pixfmt[out]     Pixel format
+ * @param timeout_ms      Maximum wait time
+ * @return ESP_OK on success
+ */
+esp_err_t esp32p4_snapshot_direct_grab(uint8_t *buf, size_t buf_size,
+                                       size_t *len, uint16_t *width,
+                                       uint16_t *height,
+                                       video_frame_pixformat_t *pixfmt,
+                                       uint32_t timeout_ms)
+{
+    if (!buf || !len || !width || !height || buf_size == 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    bool need_init = false;
+    bool need_start = false;
+
+    /* If esp_video_if is not initialized, temporarily init it */
+    if (!s_p4_enc_data.encoder_initialized) {
+        /* Full initialization needed (chip, clock, video interface) */
+        init_chip();
+        init_clock();
+        esp_err_t ret = esp_video_if_init();
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to init video interface for snapshot: %s", esp_err_to_name(ret));
+            return ret;
+        }
+        need_init = true;
+        need_start = true;
+    } else {
+        /* Camera is initialized but encoder might be paused.
+         * esp_video_if might have been deinitialized (streaming stopped).
+         * Reinit to restart streaming if needed. */
+        esp_err_t ret = esp_video_if_init();
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to reinit video interface for snapshot: %s", esp_err_to_name(ret));
+            return ret;
+        }
+        need_start = true;
+    }
+
+    /* Discard initial frames after STREAMON to let sensor/ISP settle
+     * (exposure, white balance). Without this the first frame is often
+     * noisy and produces an abnormally large JPEG. */
+    if (need_start) {
+        const int warmup_frames = 10;
+        for (int i = 0; i < warmup_frames; i++) {
+            video_fb_t *discard = esp_video_if_get_frame();
+            if (discard) {
+                esp_video_if_release_frame(discard);
+            }
+        }
+        ESP_LOGD(TAG, "Discarded %d warmup frames", warmup_frames);
+    }
+
+    /* Get one raw frame */
+    video_fb_t *raw_frame = esp_video_if_get_frame();
+    if (!raw_frame) {
+        ESP_LOGE(TAG, "Failed to get raw frame for snapshot");
+        if (need_init) {
+            esp_video_if_deinit();
+        }
+        return ESP_ERR_NOT_FOUND;
+    }
+
+    /* Copy frame data */
+    size_t copy_len = (raw_frame->len <= buf_size) ? raw_frame->len : buf_size;
+    memcpy(buf, raw_frame->buf, copy_len);
+
+    video_resolution_t resolution = {0};
+    esp_video_if_get_resolution(&resolution);
+
+    *len = copy_len;
+    *width = resolution.width;
+    *height = resolution.height;
+    if (pixfmt) {
+        *pixfmt = PIXFMT_YUV420;
+    }
+
+    /* Release the raw frame back to the driver */
+    esp_video_if_release_frame(raw_frame);
+
+    /* Stop streaming so the next snapshot can cleanly restart */
+    esp_video_if_stop();
+
+    if (need_init) {
+        esp_video_if_deinit();
+    }
+
+    return ESP_OK;
+}
+#endif /* USE_ESP_VIDEO_IF */
+
 #endif

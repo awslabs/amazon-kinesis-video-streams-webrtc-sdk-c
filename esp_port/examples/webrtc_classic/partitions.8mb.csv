@@ -1,6 +1,8 @@
 # Name,           Type,  SubType,   Offset,    Size,      Flags
 # 8 MB flash, OTA + secure-cert + fctry — rmaker style.
+# Selected via the P4 overlay; base ESP32/S3 builds keep the 4 MB partitions.csv.
 # Partition table itself at 0xC000 (CONFIG_PARTITION_TABLE_OFFSET).
+# Kept in sync with esp_port/examples/streaming_only/partitions.csv.
 esp_secure_cert,  0x3F,  ,          0xD000,    0x2000,    encrypted
 nvs_key,          data,  nvs_keys,  0xF000,    0x1000,    encrypted
 nvs,              data,  nvs,       0x10000,   0x6000,

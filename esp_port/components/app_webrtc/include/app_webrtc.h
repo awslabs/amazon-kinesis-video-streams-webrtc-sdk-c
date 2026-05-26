@@ -111,7 +111,7 @@ int32_t app_webrtc_register_event_callback(app_webrtc_event_callback_t callback,
  */
 typedef struct {
     // Essential - what you MUST provide
-    webrtc_signaling_client_if_t *signaling_client_if;      //!< Signaling client interface implementation
+    const webrtc_signaling_client_if_t *signaling_client_if; //!< Signaling client interface implementation
     void *signaling_cfg;                                    //!< Signaling-specific configuration (opaque pointer)
 
     // Peer connection interface (optional - auto-detected if NULL)
