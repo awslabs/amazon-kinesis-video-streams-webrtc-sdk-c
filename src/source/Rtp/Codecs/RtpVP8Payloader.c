@@ -12,9 +12,10 @@ STATUS createPayloadForVP8(UINT32 mtu, PBYTE pData, UINT32 dataLen, PBYTE payloa
     UINT32 payloadRemaining = dataLen, payloadLenConsumed = 0;
     PBYTE currentData = pData;
 
+    MEMSET(&payloadArray, 0, SIZEOF(payloadArray));
+
     CHK(pData != NULL && pPayloadSubLenSize != NULL && pPayloadLength != NULL && (sizeCalculationOnly || pPayloadSubLength != NULL), STATUS_NULL_ARG);
 
-    MEMSET(&payloadArray, 0, SIZEOF(payloadArray));
     payloadArray.payloadBuffer = payloadBuffer;
 
     while (payloadRemaining > 0) {
