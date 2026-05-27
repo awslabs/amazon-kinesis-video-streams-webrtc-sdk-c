@@ -116,72 +116,51 @@ Collaboration diagram for Callbacks:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="nested-classes" name="nested-classes"></a>
 Classes</h2></td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structTwccFeedback.html">TwccFeedback</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Per-packet feedback from a TWCC report.  <a href="structTwccFeedback.html#details">More...</a><br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structTwccCongestionState.html">TwccCongestionState</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Congestion state output from the trendline estimator.  <a href="structTwccCongestionState.html#details">More...</a><br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structCongestionCtx.html">CongestionCtx</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Context provided to the bandwidth controller callback.  <a href="structCongestionCtx.html#details">More...</a><br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____RtcDataChannel.html">__RtcDataChannel</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcDataChannel represents a bi-directional data channel between two peers.  <a href="struct____RtcDataChannel.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="typedef-members" name="typedef-members"></a>
 Typedefs</h2></td></tr>
-<tr class="memitem:ga6269176a5be7e2e91fec6b067f7b9c5b" id="r_ga6269176a5be7e2e91fec6b067f7b9c5b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga6269176a5be7e2e91fec6b067f7b9c5b">RtcOnFrame</a>) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PFrame</a>)</td></tr>
+<tr class="memitem:ga6269176a5be7e2e91fec6b067f7b9c5b" id="r_ga6269176a5be7e2e91fec6b067f7b9c5b"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga6269176a5be7e2e91fec6b067f7b9c5b">RtcOnFrame</a>) (UINT64, PFrame)</td></tr>
 <tr class="memdesc:ga6269176a5be7e2e91fec6b067f7b9c5b"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnFrame is fired everytime a frame is received from the remote peer. It is available via the RtpRec.  <br /></td></tr>
 <tr class="separator:ga6269176a5be7e2e91fec6b067f7b9c5b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaf77d88f0ced976d3628f86b79ba0b868" id="r_gaf77d88f0ced976d3628f86b79ba0b868"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#gaf77d88f0ced976d3628f86b79ba0b868">RtcOnBandwidthEstimation</a>) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">DOUBLE</a>)</td></tr>
+<tr class="memitem:gaf77d88f0ced976d3628f86b79ba0b868" id="r_gaf77d88f0ced976d3628f86b79ba0b868"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#gaf77d88f0ced976d3628f86b79ba0b868">RtcOnBandwidthEstimation</a>) (UINT64, DOUBLE)</td></tr>
 <tr class="memdesc:gaf77d88f0ced976d3628f86b79ba0b868"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnBandwidthEstimation is fired everytime a bandwidth estimation value is computed. This will be fired for receiver side estimation.  <br /></td></tr>
 <tr class="separator:gaf77d88f0ced976d3628f86b79ba0b868"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga31935aba346c035df91b7771e62ad3bc" id="r_ga31935aba346c035df91b7771e62ad3bc"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga31935aba346c035df91b7771e62ad3bc">RtcOnSenderBandwidthEstimation</a>) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>)</td></tr>
+<tr class="memitem:ga31935aba346c035df91b7771e62ad3bc" id="r_ga31935aba346c035df91b7771e62ad3bc"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga31935aba346c035df91b7771e62ad3bc">RtcOnSenderBandwidthEstimation</a>) (UINT64, UINT32, UINT32, UINT32, UINT32, UINT64)</td></tr>
 <tr class="memdesc:ga31935aba346c035df91b7771e62ad3bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnSenderBandwidthEstimation is fired everytime a bandwidth estimation value is computed by sender. This is an estimate of ALL packets sent across all transceivers. See <a href="https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01">https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01</a> for more details.  <br /></td></tr>
 <tr class="separator:ga31935aba346c035df91b7771e62ad3bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga0d7cc825077695ad693e425f83e47620" id="r_ga0d7cc825077695ad693e425f83e47620"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">struct</a> <a class="el" href="structTwccFeedback.html">TwccFeedback</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga0d7cc825077695ad693e425f83e47620">PTwccFeedback</a></td></tr>
-<tr class="separator:ga0d7cc825077695ad693e425f83e47620"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga92f007aef5c229500ce65775cf013b29" id="r_ga92f007aef5c229500ce65775cf013b29"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">struct</a> <a class="el" href="structTwccCongestionState.html">TwccCongestionState</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga92f007aef5c229500ce65775cf013b29">PTwccCongestionState</a></td></tr>
-<tr class="separator:ga92f007aef5c229500ce65775cf013b29"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaefc8d58809c767ac7c6418c8f69dec0a" id="r_gaefc8d58809c767ac7c6418c8f69dec0a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">struct</a> <a class="el" href="structCongestionCtx.html">CongestionCtx</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#gaefc8d58809c767ac7c6418c8f69dec0a">PCongestionCtx</a></td></tr>
-<tr class="separator:gaefc8d58809c767ac7c6418c8f69dec0a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga92d619bd4ed3d0a6a9a1d30a54916d39" id="r_ga92d619bd4ed3d0a6a9a1d30a54916d39"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga92d619bd4ed3d0a6a9a1d30a54916d39">RtcOnTwccFeedbackReceived</a>) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#ga0d7cc825077695ad693e425f83e47620">PTwccFeedback</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>, <a class="el" href="group__Callbacks.html#ga92f007aef5c229500ce65775cf013b29">PTwccCongestionState</a>)</td></tr>
-<tr class="memdesc:ga92d619bd4ed3d0a6a9a1d30a54916d39"><td class="mdescLeft">&#160;</td><td class="mdescRight">Called when new TWCC feedback is available from the remote peer. Updates the current network congestion state with latest data. The SDK provides a default implementation; set a custom callback to override.  <br /></td></tr>
-<tr class="separator:ga92d619bd4ed3d0a6a9a1d30a54916d39"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga183d2c9b124e7591b37a6a6478926d52" id="r_ga183d2c9b124e7591b37a6a6478926d52"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga183d2c9b124e7591b37a6a6478926d52">RtcOnPeerCongestionFeedback</a>) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#gaefc8d58809c767ac7c6418c8f69dec0a">PCongestionCtx</a>)</td></tr>
-<tr class="memdesc:ga183d2c9b124e7591b37a6a6478926d52"><td class="mdescLeft">&#160;</td><td class="mdescRight">Called when the SDK has computed congestion context from TWCC feedback. The application uses this to make bandwidth decisions and adjust encoder parameters.  <br /></td></tr>
-<tr class="separator:ga183d2c9b124e7591b37a6a6478926d52"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gac7f4225ac2545664aabdc88d0b58e329" id="r_gac7f4225ac2545664aabdc88d0b58e329"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#gac7f4225ac2545664aabdc88d0b58e329">RtcOnPictureLoss</a>) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>)</td></tr>
+<tr class="memitem:gac7f4225ac2545664aabdc88d0b58e329" id="r_gac7f4225ac2545664aabdc88d0b58e329"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#gac7f4225ac2545664aabdc88d0b58e329">RtcOnPictureLoss</a>) (UINT64)</td></tr>
 <tr class="memdesc:gac7f4225ac2545664aabdc88d0b58e329"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnPictureLoss is fired everytime a Picture Loss Indication (PLI) feedback message is received. Receiving such message normally indicates that you sent a video frame which receiver could not decode. It may happen either because of packet loss or for any other reason. Generating an intra frame (aka keyframe, aka I-frame) in response to such message is considered a good strategy.  <br /></td></tr>
 <tr class="separator:gac7f4225ac2545664aabdc88d0b58e329"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaa6f47a9f98e9103afc97434dd3a5cd8c" id="r_gaa6f47a9f98e9103afc97434dd3a5cd8c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">struct</a> <a class="el" href="struct____RtcDataChannel.html">__RtcDataChannel</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#gaa6f47a9f98e9103afc97434dd3a5cd8c">RtcDataChannel</a></td></tr>
+<tr class="memitem:gaa6f47a9f98e9103afc97434dd3a5cd8c" id="r_gaa6f47a9f98e9103afc97434dd3a5cd8c"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct____RtcDataChannel.html">__RtcDataChannel</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#gaa6f47a9f98e9103afc97434dd3a5cd8c">RtcDataChannel</a></td></tr>
 <tr class="memdesc:gaa6f47a9f98e9103afc97434dd3a5cd8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcDataChannel represents a bi-directional data channel between two peers.  <br /></td></tr>
 <tr class="separator:gaa6f47a9f98e9103afc97434dd3a5cd8c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga2be6b5f6da1b3a0471ad7b4443b90779" id="r_ga2be6b5f6da1b3a0471ad7b4443b90779"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">struct</a> <a class="el" href="struct____RtcDataChannel.html">__RtcDataChannel</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a></td></tr>
+<tr class="memitem:ga2be6b5f6da1b3a0471ad7b4443b90779" id="r_ga2be6b5f6da1b3a0471ad7b4443b90779"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct____RtcDataChannel.html">__RtcDataChannel</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a></td></tr>
 <tr class="separator:ga2be6b5f6da1b3a0471ad7b4443b90779"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga19016a711a2550a8544e6c86c7f45d0f" id="r_ga19016a711a2550a8544e6c86c7f45d0f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga19016a711a2550a8544e6c86c7f45d0f">RtcOnMessage</a>) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#ga2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">BOOL</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PBYTE</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>)</td></tr>
+<tr class="memitem:ga19016a711a2550a8544e6c86c7f45d0f" id="r_ga19016a711a2550a8544e6c86c7f45d0f"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga19016a711a2550a8544e6c86c7f45d0f">RtcOnMessage</a>) (UINT64, <a class="el" href="group__Callbacks.html#ga2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>, BOOL, PBYTE, UINT32)</td></tr>
 <tr class="memdesc:ga19016a711a2550a8544e6c86c7f45d0f"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnMessage is fired when a message is received for the DataChannel.  <br /></td></tr>
 <tr class="separator:ga19016a711a2550a8544e6c86c7f45d0f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga0c9cbf4449a44e9a3847be0ef53b22a8" id="r_ga0c9cbf4449a44e9a3847be0ef53b22a8"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga0c9cbf4449a44e9a3847be0ef53b22a8">RtcOnOpen</a>) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#ga2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>)</td></tr>
+<tr class="memitem:ga0c9cbf4449a44e9a3847be0ef53b22a8" id="r_ga0c9cbf4449a44e9a3847be0ef53b22a8"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga0c9cbf4449a44e9a3847be0ef53b22a8">RtcOnOpen</a>) (UINT64, <a class="el" href="group__Callbacks.html#ga2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>)</td></tr>
 <tr class="separator:ga0c9cbf4449a44e9a3847be0ef53b22a8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga264cd66b2d9905c3085cab6f3faf650b" id="r_ga264cd66b2d9905c3085cab6f3faf650b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga264cd66b2d9905c3085cab6f3faf650b">RtcOnDataChannel</a>) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#ga2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>)</td></tr>
+<tr class="memitem:ga264cd66b2d9905c3085cab6f3faf650b" id="r_ga264cd66b2d9905c3085cab6f3faf650b"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga264cd66b2d9905c3085cab6f3faf650b">RtcOnDataChannel</a>) (UINT64, <a class="el" href="group__Callbacks.html#ga2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>)</td></tr>
 <tr class="memdesc:ga264cd66b2d9905c3085cab6f3faf650b"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnDataChannel is fired when the remote PeerConnection creates a new DataChannel.  <br /></td></tr>
 <tr class="separator:ga264cd66b2d9905c3085cab6f3faf650b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gabad4874074cecf3de44c82498437355a" id="r_gabad4874074cecf3de44c82498437355a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#gabad4874074cecf3de44c82498437355a">RtcOnIceCandidate</a>) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PCHAR</a>)</td></tr>
+<tr class="memitem:gabad4874074cecf3de44c82498437355a" id="r_gabad4874074cecf3de44c82498437355a"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#gabad4874074cecf3de44c82498437355a">RtcOnIceCandidate</a>) (UINT64, PCHAR)</td></tr>
 <tr class="memdesc:gabad4874074cecf3de44c82498437355a"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnIceCandidate is fired when new iceCandidate is found. if PCHAR is NULL then candidate gathering is done.  <br /></td></tr>
 <tr class="separator:gabad4874074cecf3de44c82498437355a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gac5ca9698d23bb785c59e148b1f438244" id="r_gac5ca9698d23bb785c59e148b1f438244"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">BOOL</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#gac5ca9698d23bb785c59e148b1f438244">IceSetInterfaceFilterFunc</a>) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PCHAR</a>)</td></tr>
+<tr class="memitem:gac5ca9698d23bb785c59e148b1f438244" id="r_gac5ca9698d23bb785c59e148b1f438244"><td class="memItemLeft" align="right" valign="top">typedef BOOL(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#gac5ca9698d23bb785c59e148b1f438244">IceSetInterfaceFilterFunc</a>) (UINT64, PCHAR)</td></tr>
 <tr class="memdesc:gac5ca9698d23bb785c59e148b1f438244"><td class="mdescLeft">&#160;</td><td class="mdescRight">IceSetInterfaceFilterFunc is fired when a callback function to filter network interfaces is assigned. The callback function is expected to check for specific interface names to be whitelisted/blacklisted.  <br /></td></tr>
 <tr class="separator:gac5ca9698d23bb785c59e148b1f438244"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gad3f715dac4dd4d756e1728a37fb46eb9" id="r_gad3f715dac4dd4d756e1728a37fb46eb9"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#gad3f715dac4dd4d756e1728a37fb46eb9">RtcOnConnectionStateChange</a>) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__PublicEnums.html#ga1a8485527953d22957465fb016c44bec">RTC_PEER_CONNECTION_STATE</a>)</td></tr>
+<tr class="memitem:gad3f715dac4dd4d756e1728a37fb46eb9" id="r_gad3f715dac4dd4d756e1728a37fb46eb9"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#gad3f715dac4dd4d756e1728a37fb46eb9">RtcOnConnectionStateChange</a>) (UINT64, <a class="el" href="group__PublicEnums.html#ga1a8485527953d22957465fb016c44bec">RTC_PEER_CONNECTION_STATE</a>)</td></tr>
 <tr class="memdesc:gad3f715dac4dd4d756e1728a37fb46eb9"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnConnectionStateChange is fired to report a change in peer connection state.  <br /></td></tr>
 <tr class="separator:gad3f715dac4dd4d756e1728a37fb46eb9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga1fc095ba30b81713c3fed9a275355b2c" id="r_ga1fc095ba30b81713c3fed9a275355b2c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga1fc095ba30b81713c3fed9a275355b2c">SignalingClientMessageReceivedFunc</a>) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__PublicStructures.html#gaac73733daa2b6ccb68ce4fefa48e60fa">PReceivedSignalingMessage</a>)</td></tr>
+<tr class="memitem:ga1fc095ba30b81713c3fed9a275355b2c" id="r_ga1fc095ba30b81713c3fed9a275355b2c"><td class="memItemLeft" align="right" valign="top">typedef STATUS(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga1fc095ba30b81713c3fed9a275355b2c">SignalingClientMessageReceivedFunc</a>) (UINT64, <a class="el" href="group__PublicStructures.html#gaac73733daa2b6ccb68ce4fefa48e60fa">PReceivedSignalingMessage</a>)</td></tr>
 <tr class="separator:ga1fc095ba30b81713c3fed9a275355b2c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga0d69d0e35a1bddfa483f288ec208546c" id="r_ga0d69d0e35a1bddfa483f288ec208546c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga0d69d0e35a1bddfa483f288ec208546c">SignalingClientErrorReportFunc</a>) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PCHAR</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>)</td></tr>
+<tr class="memitem:ga0d69d0e35a1bddfa483f288ec208546c" id="r_ga0d69d0e35a1bddfa483f288ec208546c"><td class="memItemLeft" align="right" valign="top">typedef STATUS(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga0d69d0e35a1bddfa483f288ec208546c">SignalingClientErrorReportFunc</a>) (UINT64, STATUS, PCHAR, UINT32)</td></tr>
 <tr class="separator:ga0d69d0e35a1bddfa483f288ec208546c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaa5fb7b1ff5dcfe5208a314eef9f3045a" id="r_gaa5fb7b1ff5dcfe5208a314eef9f3045a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#gaa5fb7b1ff5dcfe5208a314eef9f3045a">SignalingClientStateChangedFunc</a>) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__PublicEnums.html#ga647050ade80304e5c5e55d76831d984d">SIGNALING_CLIENT_STATE</a>)</td></tr>
+<tr class="memitem:gaa5fb7b1ff5dcfe5208a314eef9f3045a" id="r_gaa5fb7b1ff5dcfe5208a314eef9f3045a"><td class="memItemLeft" align="right" valign="top">typedef STATUS(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#gaa5fb7b1ff5dcfe5208a314eef9f3045a">SignalingClientStateChangedFunc</a>) (UINT64, <a class="el" href="group__PublicEnums.html#ga647050ade80304e5c5e55d76831d984d">SIGNALING_CLIENT_STATE</a>)</td></tr>
 <tr class="separator:gaa5fb7b1ff5dcfe5208a314eef9f3045a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
@@ -194,26 +173,12 @@ Typedefs</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">BOOL</a>(* IceSetInterfaceFilterFunc) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PCHAR</a>)</td>
+          <td class="memname">typedef BOOL(* IceSetInterfaceFilterFunc) (UINT64, PCHAR)</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 <p>IceSetInterfaceFilterFunc is fired when a callback function to filter network interfaces is assigned. The callback function is expected to check for specific interface names to be whitelisted/blacklisted. </p>
-
-</div>
-</div>
-<a id="gaefc8d58809c767ac7c6418c8f69dec0a" name="gaefc8d58809c767ac7c6418c8f69dec0a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gaefc8d58809c767ac7c6418c8f69dec0a">&#9670;&#160;</a></span>PCongestionCtx</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a>  <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">struct</a> <a class="el" href="structCongestionCtx.html">CongestionCtx</a> * <a class="el" href="group__Callbacks.html#gaefc8d58809c767ac7c6418c8f69dec0a">PCongestionCtx</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
 
 </div>
 </div>
@@ -224,35 +189,7 @@ Typedefs</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">struct</a> <a class="el" href="struct____RtcDataChannel.html">__RtcDataChannel</a> * <a class="el" href="group__Callbacks.html#ga2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="ga92f007aef5c229500ce65775cf013b29" name="ga92f007aef5c229500ce65775cf013b29"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga92f007aef5c229500ce65775cf013b29">&#9670;&#160;</a></span>PTwccCongestionState</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a>  <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">struct</a> <a class="el" href="structTwccCongestionState.html">TwccCongestionState</a> * <a class="el" href="group__Callbacks.html#ga92f007aef5c229500ce65775cf013b29">PTwccCongestionState</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="ga0d7cc825077695ad693e425f83e47620" name="ga0d7cc825077695ad693e425f83e47620"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga0d7cc825077695ad693e425f83e47620">&#9670;&#160;</a></span>PTwccFeedback</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a>  <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">struct</a> <a class="el" href="structTwccFeedback.html">TwccFeedback</a> * <a class="el" href="group__Callbacks.html#ga0d7cc825077695ad693e425f83e47620">PTwccFeedback</a></td>
+          <td class="memname">typedef struct <a class="el" href="struct____RtcDataChannel.html">__RtcDataChannel</a> * <a class="el" href="group__Callbacks.html#ga2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -266,7 +203,7 @@ Typedefs</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">struct</a> <a class="el" href="struct____RtcDataChannel.html">__RtcDataChannel</a> <a class="el" href="group__Callbacks.html#gaa6f47a9f98e9103afc97434dd3a5cd8c">RtcDataChannel</a></td>
+          <td class="memname">typedef struct <a class="el" href="struct____RtcDataChannel.html">__RtcDataChannel</a> <a class="el" href="group__Callbacks.html#gaa6f47a9f98e9103afc97434dd3a5cd8c">RtcDataChannel</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -283,7 +220,7 @@ Typedefs</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>(* RtcOnBandwidthEstimation) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">DOUBLE</a>)</td>
+          <td class="memname">typedef VOID(* RtcOnBandwidthEstimation) (UINT64, DOUBLE)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -300,7 +237,7 @@ Typedefs</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>(* RtcOnConnectionStateChange) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__PublicEnums.html#ga1a8485527953d22957465fb016c44bec">RTC_PEER_CONNECTION_STATE</a>)</td>
+          <td class="memname">typedef VOID(* RtcOnConnectionStateChange) (UINT64, <a class="el" href="group__PublicEnums.html#ga1a8485527953d22957465fb016c44bec">RTC_PEER_CONNECTION_STATE</a>)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -317,7 +254,7 @@ Typedefs</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>(* RtcOnDataChannel) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#ga2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>)</td>
+          <td class="memname">typedef VOID(* RtcOnDataChannel) (UINT64, <a class="el" href="group__Callbacks.html#ga2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -334,7 +271,7 @@ Typedefs</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>(* RtcOnFrame) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PFrame</a>)</td>
+          <td class="memname">typedef VOID(* RtcOnFrame) (UINT64, PFrame)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -351,7 +288,7 @@ Typedefs</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>(* RtcOnIceCandidate) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PCHAR</a>)</td>
+          <td class="memname">typedef VOID(* RtcOnIceCandidate) (UINT64, PCHAR)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -368,7 +305,7 @@ Typedefs</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>(* RtcOnMessage) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#ga2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">BOOL</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PBYTE</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>)</td>
+          <td class="memname">typedef VOID(* RtcOnMessage) (UINT64, <a class="el" href="group__Callbacks.html#ga2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>, BOOL, PBYTE, UINT32)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -385,35 +322,12 @@ Typedefs</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>(* RtcOnOpen) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#ga2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>)</td>
+          <td class="memname">typedef VOID(* RtcOnOpen) (UINT64, <a class="el" href="group__Callbacks.html#ga2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>)</td>
         </tr>
       </table>
 </div><div class="memdoc">
 <p>RtcOnOpen is fired when the DataChannel has opened</p>
 <p>Reference: <a href="https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-onopen">https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-onopen</a> </p>
-
-</div>
-</div>
-<a id="ga183d2c9b124e7591b37a6a6478926d52" name="ga183d2c9b124e7591b37a6a6478926d52"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga183d2c9b124e7591b37a6a6478926d52">&#9670;&#160;</a></span>RtcOnPeerCongestionFeedback</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>(* RtcOnPeerCongestionFeedback) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#gaefc8d58809c767ac7c6418c8f69dec0a">PCongestionCtx</a>)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Called when the SDK has computed congestion context from TWCC feedback. The application uses this to make bandwidth decisions and adjust encoder parameters. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">UINT64</td><td>customData - User customData </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">PCongestionCtx</td><td>congestionContext - latest feedback context </td></tr>
-  </table>
-  </dd>
-</dl>
 
 </div>
 </div>
@@ -424,7 +338,7 @@ Typedefs</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>(* RtcOnPictureLoss) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>)</td>
+          <td class="memname">typedef VOID(* RtcOnPictureLoss) (UINT64)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -441,7 +355,7 @@ Typedefs</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>(* RtcOnSenderBandwidthEstimation) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>)</td>
+          <td class="memname">typedef VOID(* RtcOnSenderBandwidthEstimation) (UINT64, UINT32, UINT32, UINT32, UINT32, UINT64)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -462,32 +376,6 @@ Typedefs</h2></td></tr>
 
 </div>
 </div>
-<a id="ga92d619bd4ed3d0a6a9a1d30a54916d39" name="ga92d619bd4ed3d0a6a9a1d30a54916d39"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga92d619bd4ed3d0a6a9a1d30a54916d39">&#9670;&#160;</a></span>RtcOnTwccFeedbackReceived</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>(* RtcOnTwccFeedbackReceived) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#ga0d7cc825077695ad693e425f83e47620">PTwccFeedback</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>, <a class="el" href="group__Callbacks.html#ga92f007aef5c229500ce65775cf013b29">PTwccCongestionState</a>)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Called when new TWCC feedback is available from the remote peer. Updates the current network congestion state with latest data. The SDK provides a default implementation; set a custom callback to override. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">UINT64</td><td>customData - User customData </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">PTwccFeedback</td><td>twccFeedbackList - batch of per-packet feedback </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">UINT32</td><td>twccFeedbackListLen - length of the list </td></tr>
-    <tr><td class="paramdir">[in,out]</td><td class="paramname">PTwccCongestionState</td><td>pCongestionState - congestion state to update</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>STATUS code of the execution. STATUS_SUCCESS on success </dd></dl>
-
-</div>
-</div>
 <a id="ga0d69d0e35a1bddfa483f288ec208546c" name="ga0d69d0e35a1bddfa483f288ec208546c"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga0d69d0e35a1bddfa483f288ec208546c">&#9670;&#160;</a></span>SignalingClientErrorReportFunc</h2>
 
@@ -495,7 +383,7 @@ Typedefs</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>(* SignalingClientErrorReportFunc) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PCHAR</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>)</td>
+          <td class="memname">typedef STATUS(* SignalingClientErrorReportFunc) (UINT64, STATUS, PCHAR, UINT32)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -522,7 +410,7 @@ Typedefs</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>(* SignalingClientMessageReceivedFunc) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__PublicStructures.html#gaac73733daa2b6ccb68ce4fefa48e60fa">PReceivedSignalingMessage</a>)</td>
+          <td class="memname">typedef STATUS(* SignalingClientMessageReceivedFunc) (UINT64, <a class="el" href="group__PublicStructures.html#gaac73733daa2b6ccb68ce4fefa48e60fa">PReceivedSignalingMessage</a>)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -546,7 +434,7 @@ Typedefs</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>(* SignalingClientStateChangedFunc) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__PublicEnums.html#ga647050ade80304e5c5e55d76831d984d">SIGNALING_CLIENT_STATE</a>)</td>
+          <td class="memname">typedef STATUS(* SignalingClientStateChangedFunc) (UINT64, <a class="el" href="group__PublicEnums.html#ga647050ade80304e5c5e55d76831d984d">SIGNALING_CLIENT_STATE</a>)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -569,7 +457,7 @@ Typedefs</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Wed May 27 2026 07:03:15 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Wed May 27 2026 15:49:52 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>
