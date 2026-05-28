@@ -1910,7 +1910,7 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
             if (tokens[0].type != JSMN_OBJECT) {
                 STRCPY(errorMessage, "Invalid JSON received, please send a valid json as the SDK is operating in datachannel-benchmarking mode");
                 retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) errorMessage, STRLEN(errorMessage));
-                DLOGE("%s", errorMessage);
+                DLOGE("onDataChannelMessage(): %s. Status code 0x%08x", errorMessage, retStatus);
                 retStatus = STATUS_INVALID_API_CALL_RETURN_JSON;
                 goto CleanUp;
             }
