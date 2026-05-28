@@ -1547,12 +1547,8 @@ STATUS joinStorageSessionLws(PSignalingClient pSignalingClient, UINT64 time)
     CHAR url[MAX_URI_CHAR_LEN + 1];
     CHAR paramsJson[MAX_JSON_PARAMETER_STRING_LEN];
     PLwsCallInfo pLwsCallInfo = NULL;
-    PCHAR pResponseStr;
-    UINT32 resultLen;
 
-    UNUSED_PARAM(pResponseStr);
     UNUSED_PARAM(pLwsCallInfo);
-    UNUSED_PARAM(resultLen);
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->channelEndpointWebrtc[0] != '\0', STATUS_INTERNAL_ERROR);
 
@@ -1594,8 +1590,6 @@ STATUS joinStorageSessionLws(PSignalingClient pSignalingClient, UINT64 time)
 
     // Set the service call result
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) pLwsCallInfo->callInfo.callResult);
-    pResponseStr = pLwsCallInfo->callInfo.responseData;
-    resultLen = pLwsCallInfo->callInfo.responseDataLen;
 
     // Early return if we have a non-success result
     CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK, STATUS_SIGNALING_LWS_CALL_FAILED);
