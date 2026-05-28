@@ -700,8 +700,10 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
             case STUN_ATTRIBUTE_TYPE_ERROR_CODE:
                 attributeSize = SIZEOF(StunAttributeErrorCode);
 
-                // Validate the size of the length against the max value of error phrase
-                CHK(stunAttributeHeader.length <= STUN_MAX_ERROR_PHRASE_LEN, STATUS_STUN_INVALID_ERROR_CODE_ATTRIBUTE_LENGTH);
+                // Validate the size of the length against the min and max value of error phrase
+                CHK(stunAttributeHeader.length >= STUN_ERROR_CODE_PACKET_ERROR_PHRASE_OFFSET &&
+                        stunAttributeHeader.length <= STUN_MAX_ERROR_PHRASE_LEN,
+                    STATUS_STUN_INVALID_ERROR_CODE_ATTRIBUTE_LENGTH);
                 CHK(!fingerprintFound && !messaageIntegrityFound, STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY);
 
                 // Add the length of the string itself
@@ -950,9 +952,11 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
                 pStunAttributeErrorCode->errorPhrase = (PCHAR) (pStunAttributeErrorCode + 1);
 
                 // Copy the padded error phrase
-                MEMCPY(pStunAttributeErrorCode->errorPhrase,
-                       ((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN + STUN_ERROR_CODE_PACKET_ERROR_PHRASE_OFFSET),
-                       pStunAttributeErrorCode->paddedLength - STUN_ERROR_CODE_PACKET_ERROR_PHRASE_OFFSET);
+                if (pStunAttributeErrorCode->paddedLength >= STUN_ERROR_CODE_PACKET_ERROR_PHRASE_OFFSET) {
+                    MEMCPY(pStunAttributeErrorCode->errorPhrase,
+                           ((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN + STUN_ERROR_CODE_PACKET_ERROR_PHRASE_OFFSET),
+                           pStunAttributeErrorCode->paddedLength - STUN_ERROR_CODE_PACKET_ERROR_PHRASE_OFFSET);
+                }
                 attributeSize = SIZEOF(StunAttributeErrorCode) + pStunAttributeErrorCode->paddedLength;
 
                 break;
