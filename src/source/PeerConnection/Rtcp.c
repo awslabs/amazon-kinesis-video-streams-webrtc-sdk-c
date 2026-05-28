@@ -84,17 +84,16 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
     STATUS retStatus = STATUS_SUCCESS;
     PKvsRtpTransceiver pTransceiver = NULL;
     DOUBLE fractionLost;
-    UINT32 rttPropDelayMsec = 0, rttPropDelay, delaySinceLastSR, lastSR, interarrivalJitter, extHiSeqNumReceived, cumulativeLost, senderSSRC, ssrc1;
+    UINT32 rttPropDelayMsec = 0, rttPropDelay, delaySinceLastSR, lastSR, ssrc1;
+#ifdef LOG_STREAMING
+    UINT32 interarrivalJitter, extHiSeqNumReceived, cumulativeLost, senderSSRC;
+#endif
     UINT64 currentTimeNTP = convertTimestampToNTP(GETTIME());
 
     UNUSED_PARAM(rttPropDelayMsec);
     UNUSED_PARAM(rttPropDelay);
     UNUSED_PARAM(delaySinceLastSR);
     UNUSED_PARAM(lastSR);
-    UNUSED_PARAM(interarrivalJitter);
-    UNUSED_PARAM(extHiSeqNumReceived);
-    UNUSED_PARAM(cumulativeLost);
-    UNUSED_PARAM(senderSSRC);
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
     // https://tools.ietf.org/html/rfc3550#section-6.4.2
@@ -103,7 +102,9 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
         return STATUS_SUCCESS;
     }
 
+#ifdef LOG_STREAMING
     senderSSRC = getUnalignedInt32BigEndian(pRtcpPacket->payload);
+#endif
     ssrc1 = getUnalignedInt32BigEndian(pRtcpPacket->payload + 4);
 
     if (STATUS_FAILED(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, ssrc1))) {
@@ -111,9 +112,11 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
         return STATUS_SUCCESS; // not really an error ?
     }
     fractionLost = pRtcpPacket->payload[8] / 255.0;
+#ifdef LOG_STREAMING
     cumulativeLost = ((UINT32) getUnalignedInt32BigEndian(pRtcpPacket->payload + 8)) & 0x00ffffffu;
     extHiSeqNumReceived = getUnalignedInt32BigEndian(pRtcpPacket->payload + 12);
     interarrivalJitter = getUnalignedInt32BigEndian(pRtcpPacket->payload + 16);
+#endif
     lastSR = getUnalignedInt32BigEndian(pRtcpPacket->payload + 20);
     delaySinceLastSR = getUnalignedInt32BigEndian(pRtcpPacket->payload + 24);
 
