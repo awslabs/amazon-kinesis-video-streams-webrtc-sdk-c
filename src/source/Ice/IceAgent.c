@@ -2711,11 +2711,13 @@ STATUS incomingDataHandler(UINT64 customData, PSocketConnection pSocketConnectio
         // release lock early
 
         MUTEX_UNLOCK(pIceAgent->lock);
-        locked = FALSE;
+        // Not currently used since inboundPacketFn returns VOID. No jumps to CleanUp.
+        // locked = FALSE;
         pIceAgent->iceAgentCallbacks.inboundPacketFn(pIceAgent->iceAgentCallbacks.customData, pBuffer, bufferLen);
 
         MUTEX_LOCK(pIceAgent->lock);
-        locked = TRUE;
+        // Not currently used since inboundPacketFn returns VOID. No jumps to CleanUp.
+        // locked = TRUE;
         addrLen = IS_IPV4_ADDR(pSrc) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
         if (pIceAgent->pDataSendingIceCandidatePair != NULL &&
             pIceAgent->pDataSendingIceCandidatePair->local->pSocketConnection == pSocketConnection &&
