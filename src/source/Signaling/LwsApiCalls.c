@@ -1507,6 +1507,8 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
     // Check whether we are connected and reset the result
     if (ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
+    } else {
+        DLOGW("Signaling connect returned result %u, connection not established", callResult);
     }
 
     MUTEX_UNLOCK(pSignalingClient->connectedLock);
