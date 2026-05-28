@@ -1882,7 +1882,7 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
     if (pSampleStreamingSession == NULL) {
         STRCPY(errorMessage, "Could not generate stats since the streaming session is NULL");
         retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) errorMessage, STRLEN(errorMessage));
-        DLOGE("%s", errorMessage);
+        DLOGE("onDataChannelMessage(): %s. Status code 0x%08x", errorMessage, retStatus);
         goto CleanUp;
     }
 
@@ -1890,7 +1890,7 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
     if (pSampleConfiguration == NULL) {
         STRCPY(errorMessage, "Could not generate stats since the sample configuration is NULL");
         retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) errorMessage, STRLEN(errorMessage));
-        DLOGE("%s", errorMessage);
+        DLOGE("onDataChannelMessage(): %s. Status code 0x%08x", errorMessage, retStatus);
         goto CleanUp;
     }
 
@@ -2009,17 +2009,17 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
                 retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pSampleStreamingSession->pSignalingClientMetricsMessage,
                                             STRLEN(pSampleStreamingSession->pSignalingClientMetricsMessage));
                 if (STATUS_FAILED(retStatus)) {
-                    DLOGW("onDataChannelMessage(): Couldn't send signaling metrics to the viewer. Status code 0x%08x", retStatus);
+                    DLOGE("onDataChannelMessage(): Couldn't send signaling metrics to the viewer. Status code 0x%08x", retStatus);
                 }
                 retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pSampleStreamingSession->pPeerConnectionMetricsMessage,
                                             STRLEN(pSampleStreamingSession->pPeerConnectionMetricsMessage));
                 if (STATUS_FAILED(retStatus)) {
-                    DLOGW("onDataChannelMessage(): Couldn't send peer-connection metrics to the viewer. Status code 0x%08x", retStatus);
+                    DLOGE("onDataChannelMessage(): Couldn't send peer-connection metrics to the viewer. Status code 0x%08x", retStatus);
                 }
                 retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pSampleStreamingSession->pIceAgentMetricsMessage,
                                             STRLEN(pSampleStreamingSession->pIceAgentMetricsMessage));
                 if (STATUS_FAILED(retStatus)) {
-                    DLOGW("onDataChannelMessage(): Couldn't send ice-agent metrics to the viewer. Status code 0x%08x", retStatus);
+                    DLOGE("onDataChannelMessage(): Couldn't send ice-agent metrics to the viewer. Status code 0x%08x", retStatus);
                 }
             }
         } else {
