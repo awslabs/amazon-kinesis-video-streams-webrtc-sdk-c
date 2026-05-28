@@ -509,8 +509,8 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
             // Advance the current position
             pCurrentBufferPosition += encodedLen;
 
-            // Decrement the remaining size
-            remaining -= encodedLen;
+            // Note: not decrementing remaining here because fingerprint is always the last attribute.
+            // If new attributes are added after fingerprint, add: remaining -= encodedLen;
         } else {
             packetSize += encodedLen;
         }
