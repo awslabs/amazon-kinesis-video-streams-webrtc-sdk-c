@@ -1884,7 +1884,11 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
     if (pSampleStreamingSession == NULL) {
         STRCPY(errorMessage, "Could not generate stats since the streaming session is NULL");
         retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) errorMessage, STRLEN(errorMessage));
-        DLOGE("%s", errorMessage);
+        if (STATUS_FAILED(retStatus)) {
+            DLOGE("onDataChannelMessage(): %s. Status code 0x%08x", errorMessage, retStatus);
+        } else {
+            DLOGE("onDataChannelMessage(): %s", errorMessage);
+        }
         goto CleanUp;
     }
 
@@ -1892,7 +1896,11 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
     if (pSampleConfiguration == NULL) {
         STRCPY(errorMessage, "Could not generate stats since the sample configuration is NULL");
         retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) errorMessage, STRLEN(errorMessage));
-        DLOGE("%s", errorMessage);
+        if (STATUS_FAILED(retStatus)) {
+            DLOGE("onDataChannelMessage(): %s. Status code 0x%08x", errorMessage, retStatus);
+        } else {
+            DLOGE("onDataChannelMessage(): %s", errorMessage);
+        }
         goto CleanUp;
     }
 
@@ -1912,7 +1920,11 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
             if (tokens[0].type != JSMN_OBJECT) {
                 STRCPY(errorMessage, "Invalid JSON received, please send a valid json as the SDK is operating in datachannel-benchmarking mode");
                 retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) errorMessage, STRLEN(errorMessage));
-                DLOGE("%s", errorMessage);
+                if (STATUS_FAILED(retStatus)) {
+                    DLOGE("onDataChannelMessage(): %s. Status code 0x%08x", errorMessage, retStatus);
+                } else {
+                    DLOGE("onDataChannelMessage(): %s", errorMessage);
+                }
                 retStatus = STATUS_INVALID_API_CALL_RETURN_JSON;
                 goto CleanUp;
             }
@@ -2010,10 +2022,19 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
 
                 retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pSampleStreamingSession->pSignalingClientMetricsMessage,
                                             STRLEN(pSampleStreamingSession->pSignalingClientMetricsMessage));
+                if (STATUS_FAILED(retStatus)) {
+                    DLOGE("onDataChannelMessage(): Couldn't send signaling metrics to the viewer. Status code 0x%08x", retStatus);
+                }
                 retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pSampleStreamingSession->pPeerConnectionMetricsMessage,
                                             STRLEN(pSampleStreamingSession->pPeerConnectionMetricsMessage));
+                if (STATUS_FAILED(retStatus)) {
+                    DLOGE("onDataChannelMessage(): Couldn't send peer-connection metrics to the viewer. Status code 0x%08x", retStatus);
+                }
                 retStatus = dataChannelSend(pDataChannel, FALSE, (PBYTE) pSampleStreamingSession->pIceAgentMetricsMessage,
                                             STRLEN(pSampleStreamingSession->pIceAgentMetricsMessage));
+                if (STATUS_FAILED(retStatus)) {
+                    DLOGE("onDataChannelMessage(): Couldn't send ice-agent metrics to the viewer. Status code 0x%08x", retStatus);
+                }
             }
         } else {
             DLOGI("DataChannel string message: %.*s\n", pMessageLen, pMessage);
