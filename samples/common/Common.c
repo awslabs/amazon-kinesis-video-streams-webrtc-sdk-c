@@ -886,13 +886,15 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
         pSessionToken = NULL;
     }
 
-    if (!IS_NULL_OR_EMPTY_STRING((pMaxLogFiles = GETENV(MAX_NUM_LOG_FILES_ENV_VAR)))) {
+    pMaxLogFiles = GETENV(MAX_NUM_LOG_FILES_ENV_VAR);
+    if (!IS_NULL_OR_EMPTY_STRING(pMaxLogFiles)) {
         CHK_STATUS_ERR(STRTOUI32(pMaxLogFiles, NULL, 10, &numLogFiles), STATUS_INVALID_ARG, "Failed to parse max number of log files: %s",
                        pMaxLogFiles);
         CHK_ERR(CHECK_IN_RANGE(numLogFiles, 1, 100), STATUS_INVALID_ARG, "MaxLogFiles must be in range: [1, 100], was: %d", numLogFiles);
     }
 
-    if (!IS_NULL_OR_EMPTY_STRING((pLogFileDir = GETENV(LOG_FILE_DIR)))) {
+    pLogFileDir = GETENV(LOG_FILE_DIR);
+    if (!IS_NULL_OR_EMPTY_STRING(pLogFileDir)) {
         pLogFilesDir = pLogFileDir;
     }
 

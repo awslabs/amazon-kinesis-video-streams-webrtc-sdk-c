@@ -59,7 +59,7 @@ PVOID sendVideoPacketsFromDisk(PVOID args)
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
     RtcEncoderStats encoderStats;
     Frame frame;
-    UINT32 fileIndex = 0, frameSize;
+    UINT32 fileIndex = 0, frameSize = 0;
     CHAR filePath[MAX_PATH_LEN + 1];
     STATUS status;
     UINT32 i;
@@ -140,7 +140,7 @@ PVOID sendAudioPacketsFromDisk(PVOID args)
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
     Frame frame;
-    UINT32 fileIndex = 0, frameSize;
+    UINT32 fileIndex = 0, frameSize = 0;
     CHAR filePath[MAX_PATH_LEN + 1];
     UINT32 i;
     STATUS status;
