@@ -169,6 +169,8 @@ STATUS createPayloadFromNaluH265(UINT32 mtu, PBYTE nalu, UINT32 naluLength, PPay
 
             MEMCPY(pPayload, nalu, naluLength);
             pPayloadArray->payloadSubLength[payloadSubLenSize - 1] = naluLength;
+            // Note: not incrementing pPayload here because single NALU is the only payload in this branch.
+            // If additional payloads are appended after this, add: pPayload += naluLength;
         }
     } else {
         // Fragmentation units: https://www.rfc-editor.org/rfc/rfc7798.html#section-4.4.3

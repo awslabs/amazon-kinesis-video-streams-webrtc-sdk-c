@@ -743,6 +743,8 @@ STATUS iceAgentStartAgent(PIceAgent pIceAgent, PCHAR remoteUsername, PCHAR remot
         STATUS_INVALID_ARG);
 
     MUTEX_LOCK(pIceAgent->lock);
+    // Not currently used since no jumps to CleanUp between lock/unlock.
+    // locked = TRUE;
 
     ATOMIC_STORE_BOOL(&pIceAgent->remoteCredentialReceived, TRUE);
     /* role should not change during ice restart. */
@@ -758,6 +760,8 @@ STATUS iceAgentStartAgent(PIceAgent pIceAgent, PCHAR remoteUsername, PCHAR remot
     SNPRINTF(pIceAgent->combinedUserName, ARRAY_SIZE(pIceAgent->combinedUserName), "%s:%s", pIceAgent->remoteUsername, pIceAgent->localUsername);
 
     MUTEX_UNLOCK(pIceAgent->lock);
+    // Not currently used since no jumps to CleanUp between lock/unlock.
+    // locked = FALSE;
 
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle, KVS_ICE_DEFAULT_TIMER_START_DELAY,
                                   pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval, iceAgentStateTransitionTimerCallback,
@@ -2377,6 +2381,8 @@ STATUS iceAgentConnectedStateSetup(PIceAgent pIceAgent)
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     if (pIceAgent->pDataSendingIceCandidatePair != NULL) {
         MUTEX_LOCK(pIceAgent->lock);
+        // Not currently used since no jumps to CleanUp between lock/unlock.
+        // locked = TRUE;
 
         /* at this point ice restart is complete */
         ATOMIC_STORE_BOOL(&pIceAgent->restart, FALSE);
@@ -2384,6 +2390,8 @@ STATUS iceAgentConnectedStateSetup(PIceAgent pIceAgent)
         pIceAgent->pDataSendingIceCandidatePair = NULL;
 
         MUTEX_UNLOCK(pIceAgent->lock);
+        // Not currently used since no jumps to CleanUp between lock/unlock.
+        // locked = FALSE;
 
         /* If pDataSendingIceCandidatePair is not NULL, then it must be the data sending pair before ice restart.
          * Free its resource here since not there is a new connected pair to replace it. */
