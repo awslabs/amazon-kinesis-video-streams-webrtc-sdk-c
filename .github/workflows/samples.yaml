@@ -240,3 +240,105 @@ jobs:
             exit 1
           fi
           echo "✅ No definite or indirect memory leaks detected."
+
+  ubuntu-docker-sample-checks:
+    name: docker-${{ matrix.runner.id }} - Samples (build_deps=${{ matrix.build-dependencies }})
+    runs-on: ubuntu-latest
+    container: ${{ matrix.runner.docker }}
+    timeout-minutes: 30
+    env:
+      AWS_KVS_LOG_LEVEL: 1
+      KVS_ICE_TRANSPORT_POLICY: relay
+      DEBIAN_FRONTEND: noninteractive
+    strategy:
+      matrix:
+        runner:
+          - id: ubuntu-20.04
+            docker: public.ecr.aws/ubuntu/ubuntu:20.04_stable
+          - id: ubuntu-22.04
+            docker: public.ecr.aws/ubuntu/ubuntu:22.04_stable
+          - id: ubuntu-24.04
+            docker: public.ecr.aws/ubuntu/ubuntu:24.04_stable
+        build-dependencies: ["ON", "OFF"]
+      fail-fast: false
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y git cmake build-essential pkg-config
+          if [ "${{ matrix.build-dependencies }}" = "OFF" ]; then
+            apt-get install -y libssl-dev libsrtp2-dev libusrsctp-dev
+          fi
+
+      - name: Clone repository
+        uses: actions/checkout@v6
+
+      - name: Build repository (static frames)
+        run: |
+          mkdir build && cd build
+          cmake .. -DBUILD_DEPENDENCIES=${{ matrix.build-dependencies }} -DBUILD_WEBSOCKETS=ON -DPARALLEL_BUILD=ON
+          make -j
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Install AWS CLI
+        run: |
+          apt-get install -y curl unzip
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip -q awscliv2.zip
+          ./aws/install
+
+      - name: Run static frames sample (policy=all)
+        env:
+          KVS_ICE_TRANSPORT_POLICY: all
+        run: |
+          CHANNEL="ScaryTestChannel-docker-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-all"
+          ./scripts/prepare-channel.sh "$CHANNEL"
+          ./scripts/run-static-sample.sh "$CHANNEL"
+
+      - name: Run static frames sample (policy=relay)
+        run: |
+          CHANNEL="ScaryTestChannel-docker-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-relay"
+          ./scripts/prepare-channel.sh "$CHANNEL"
+          ./scripts/run-static-sample.sh "$CHANNEL"
+
+      - name: Install GStreamer dependencies
+        run: |
+          apt-get install -y \
+            libgstreamer1.0-dev \
+            libgstreamer-plugins-base1.0-dev \
+            gstreamer1.0-plugins-good \
+            gstreamer1.0-plugins-bad \
+            gstreamer1.0-plugins-ugly \
+            gstreamer1.0-libav \
+            gstreamer1.0-tools
+
+      - name: Build repository (GStreamer)
+        run: |
+          rm -rf build open-source
+          mkdir build && cd build
+          cmake .. -DBUILD_DEPENDENCIES=${{ matrix.build-dependencies }} -DBUILD_WEBSOCKETS=ON -DPARALLEL_BUILD=ON
+          make -j
+
+      - name: Run GStreamer testsrc sample (policy=all)
+        env:
+          KVS_ICE_TRANSPORT_POLICY: all
+        run: |
+          CHANNEL="ScaryTestChannel-gst-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-all"
+          ./scripts/prepare-channel.sh "$CHANNEL"
+          ./scripts/run-gst-sample.sh "$CHANNEL"
+
+      - name: Run GStreamer testsrc sample (policy=relay)
+        run: |
+          CHANNEL="ScaryTestChannel-gst-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-relay"
+          ./scripts/prepare-channel.sh "$CHANNEL"
+          ./scripts/run-gst-sample.sh "$CHANNEL"
