@@ -1184,7 +1184,6 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->twccLock)) {
         if (twccLocked) {
             MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
-            twccLocked = FALSE;
         }
         MUTEX_FREE(pKvsPeerConnection->twccLock);
         pKvsPeerConnection->twccLock = INVALID_MUTEX_VALUE;

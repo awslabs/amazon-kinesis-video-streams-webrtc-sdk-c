@@ -171,7 +171,6 @@ STATUS createPayloadFromNalu(UINT32 mtu, PBYTE nalu, UINT32 naluLength, PPayload
             // Single NALU https://tools.ietf.org/html/rfc6184#section-5.6
             MEMCPY(pPayload, nalu, naluLength);
             pPayloadArray->payloadSubLength[payloadSubLenSize - 1] = naluLength;
-            pPayload += pPayloadArray->payloadSubLength[payloadSubLenSize - 1];
         }
     } else {
         // FU-A https://tools.ietf.org/html/rfc6184#section-5.8
