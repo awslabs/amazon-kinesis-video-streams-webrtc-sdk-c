@@ -32,8 +32,6 @@ TEST_F(DataChannelApiTest, createDataChannel_Disconnected)
     freePeerConnection(&pPeerConnection);
 }
 
-extern "C" STATUS handleDcepPacket(PSctpSession pSctpSession, UINT32 streamId, PBYTE data, SIZE_T length);
-
 TEST_F(DataChannelApiTest, handleDcepPacket_RejectsOversizedLabelLength)
 {
     /** Construct a minimal DCEP DataChannelOpen packet (13 bytes total):
