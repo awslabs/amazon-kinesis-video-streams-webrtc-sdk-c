@@ -75,6 +75,7 @@ STATUS freeSctpSession(PSctpSession*);
 STATUS putSctpPacket(PSctpSession, PBYTE, UINT32);
 STATUS sctpSessionWriteMessage(PSctpSession, UINT32, BOOL, PBYTE, UINT32);
 STATUS sctpSessionWriteDcep(PSctpSession, UINT32, PCHAR, UINT32, PRtcDataChannelInit);
+STATUS handleDcepPacket(PSctpSession, UINT32, PBYTE, SIZE_T);
 
 // Callbacks used by usrsctp
 INT32 onSctpOutboundPacket(PVOID, PVOID, ULONG, UINT8, UINT8);

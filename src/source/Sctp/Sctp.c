@@ -319,7 +319,7 @@ STATUS handleDcepPacket(PSctpSession pSctpSession, UINT32 streamId, PBYTE data, 
     putInt16((PINT16) &labelLength, labelLength);
     putInt16((PINT16) &protocolLength, protocolLength);
 
-    CHK((labelLength + protocolLength + SCTP_DCEP_HEADER_LENGTH) >= length, STATUS_SCTP_INVALID_DCEP_PACKET);
+    CHK((labelLength + protocolLength + SCTP_DCEP_HEADER_LENGTH) <= length, STATUS_SCTP_INVALID_DCEP_PACKET);
 
     CHK(SCTP_MAX_ALLOWABLE_PACKET_LENGTH >= length, STATUS_SCTP_INVALID_DCEP_PACKET);
 
