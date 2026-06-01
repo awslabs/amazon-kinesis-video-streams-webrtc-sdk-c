@@ -524,21 +524,21 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
     } else if (!isStunServer) {
         // Try to parse the address from the TURN server hostname.
 
-        if (useDualStackMode) {
-            DLOGD("Attempting to parse dual-stack IP addresses from TURN server hostname: %s", hostname);
-
-            retStatus = getDualStackIpAddrFromDnsHostname(hostname, ipv4Addr, ipv6Addr, hostnameLen, ARRAY_SIZE(ipv4Addr), ARRAY_SIZE(ipv6Addr));
-            if (retStatus == STATUS_SUCCESS) {
-                DLOGD("Parsed dual-stack IP addresses from TURN server hostname: IPv4 %s, IPv6 %s", ipv4Addr, ipv6Addr);
-            }
-        } else {
-            DLOGD("Attempting to parse IP address from legacy TURN server hostname: %s", hostname);
-
-            retStatus = getIpAddrFromDnsHostname(hostname, addr, hostnameLen, addrLen);
-            if (retStatus == STATUS_SUCCESS) {
-                DLOGD("Parsed IP address from legacy TURN server hostname: %s", addr);
-            }
-        }
+//        if (useDualStackMode) {
+//            DLOGD("Attempting to parse dual-stack IP addresses from TURN server hostname: %s", hostname);
+//
+//            retStatus = getDualStackIpAddrFromDnsHostname(hostname, ipv4Addr, ipv6Addr, hostnameLen, ARRAY_SIZE(ipv4Addr), ARRAY_SIZE(ipv6Addr));
+//            if (retStatus == STATUS_SUCCESS) {
+//                DLOGD("Parsed dual-stack IP addresses from TURN server hostname: IPv4 %s, IPv6 %s", ipv4Addr, ipv6Addr);
+//            }
+//        } else {
+//            DLOGD("Attempting to parse IP address from legacy TURN server hostname: %s", hostname);
+//
+//            retStatus = getIpAddrFromDnsHostname(hostname, addr, hostnameLen, addrLen);
+//            if (retStatus == STATUS_SUCCESS) {
+//                DLOGD("Parsed IP address from legacy TURN server hostname: %s", addr);
+//            }
+//        }
     }
 
     wasAddressParseSuccessful = isIpAddr(addr, STRLEN(addr)) || (isIpAddr(ipv4Addr, STRLEN(ipv4Addr)) && isIpAddr(ipv6Addr, STRLEN(ipv6Addr)));
