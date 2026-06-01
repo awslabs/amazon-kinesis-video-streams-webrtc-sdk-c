@@ -226,10 +226,12 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
                 recvDelta = MIN_INT16;
                 switch (statusSymbol) {
                     case TWCC_STATUS_SYMBOL_SMALLDELTA:
+                        CHK(recvOffset < pRtcpPacket->payloadLength, STATUS_RTCP_INPUT_PARTIAL_PACKET);
                         recvDelta = (INT16) pRtcpPacket->payload[recvOffset];
                         recvOffset++;
                         break;
                     case TWCC_STATUS_SYMBOL_LARGEDELTA:
+                        CHK(recvOffset + 1 < pRtcpPacket->payloadLength, STATUS_RTCP_INPUT_PARTIAL_PACKET);
                         recvDelta = getUnalignedInt16BigEndian(pRtcpPacket->payload + recvOffset);
                         recvOffset += 2;
                         break;
@@ -275,10 +277,12 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
                 recvDelta = MIN_INT16;
                 switch (statusSymbol) {
                     case TWCC_STATUS_SYMBOL_SMALLDELTA:
+                        CHK(recvOffset < pRtcpPacket->payloadLength, STATUS_RTCP_INPUT_PARTIAL_PACKET);
                         recvDelta = (INT16) pRtcpPacket->payload[recvOffset];
                         recvOffset++;
                         break;
                     case TWCC_STATUS_SYMBOL_LARGEDELTA:
+                        CHK(recvOffset + 1 < pRtcpPacket->payloadLength, STATUS_RTCP_INPUT_PARTIAL_PACKET);
                         recvDelta = getUnalignedInt16BigEndian(pRtcpPacket->payload + recvOffset);
                         recvOffset += 2;
                         break;
