@@ -240,6 +240,7 @@ STATUS depayH265FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNal
     payloadHeaderType = (pRawPacket[0] >> 1) & 0x3F;
 
     if (payloadHeaderType == H265_FU_TYPE_ID) {
+        CHK(packetLength > H265_FU_HEADER_SIZE, STATUS_RTP_INPUT_PACKET_TOO_SMALL);
         isStartingPacket = (pRawPacket[2] & 0x80) != 0;
         headerSize = H265_FU_HEADER_SIZE;
         naluLength -= headerSize;
