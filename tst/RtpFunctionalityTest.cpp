@@ -646,6 +646,163 @@ TEST_F(RtpFunctionalityTest, twccPayload)
     EXPECT_EQ(0, ptr[3]);
 }
 
+TEST_F(RtpFunctionalityTest, writeFrameNullArgs)
+{
+    Frame frame;
+    RtcRtpTransceiver transceiver;
+
+    MEMSET(&frame, 0x00, SIZEOF(Frame));
+    MEMSET(&transceiver, 0x00, SIZEOF(RtcRtpTransceiver));
+
+    EXPECT_EQ(STATUS_NULL_ARG, writeFrame(NULL, &frame));
+    EXPECT_EQ(STATUS_NULL_ARG, writeFrame(&transceiver, NULL));
+    EXPECT_EQ(STATUS_NULL_ARG, writeFrame(NULL, NULL));
+}
+
+TEST_F(RtpFunctionalityTest, createPayloadForH264NullNalusWithNonNullBuffer)
+{
+    BYTE payloadBuffer[100];
+    UINT32 payloadLength = 0xDEADBEEF;
+    UINT32 payloadSubLenSize = 0xDEADBEEF;
+    UINT32 payloadSubLength[10];
+
+    // nalus is NULL but payloadBuffer is non-NULL (sizeCalculationOnly = FALSE).
+    // Should return STATUS_NULL_ARG and zero out the output parameters.
+    EXPECT_EQ(STATUS_NULL_ARG,
+              createPayloadForH264(DEFAULT_MTU_SIZE_BYTES, NULL, 100, payloadBuffer, &payloadLength, payloadSubLength, &payloadSubLenSize));
+    EXPECT_EQ(0u, payloadLength);
+    EXPECT_EQ(0u, payloadSubLenSize);
+}
+
+TEST_F(RtpFunctionalityTest, createPayloadForH265NullNalusWithNonNullBuffer)
+{
+    BYTE payloadBuffer[100];
+    UINT32 payloadLength = 0xDEADBEEF;
+    UINT32 payloadSubLenSize = 0xDEADBEEF;
+    UINT32 payloadSubLength[10];
+
+    // nalus is NULL but payloadBuffer is non-NULL (sizeCalculationOnly = FALSE).
+    // Should return STATUS_NULL_ARG and zero out the output parameters.
+    EXPECT_EQ(STATUS_NULL_ARG,
+              createPayloadForH265(DEFAULT_MTU_SIZE_BYTES, NULL, 100, payloadBuffer, &payloadLength, payloadSubLength, &payloadSubLenSize));
+    EXPECT_EQ(0u, payloadLength);
+    EXPECT_EQ(0u, payloadSubLenSize);
+}
+  
+TEST_F(RtpFunctionalityTest, createPayloadForVP8NullDataWithNonNullBuffer)
+{
+    BYTE payloadBuffer[100];
+    UINT32 payloadLength = 0xDEADBEEF;
+    UINT32 payloadSubLenSize = 0xDEADBEEF;
+    UINT32 payloadSubLength[10];
+
+    // pData is NULL but payloadBuffer is non-NULL (sizeCalculationOnly = FALSE).
+    // Should return STATUS_NULL_ARG and zero out the output parameters.
+    EXPECT_EQ(STATUS_NULL_ARG,
+              createPayloadForVP8(DEFAULT_MTU_SIZE_BYTES, NULL, 100, payloadBuffer, &payloadLength, payloadSubLength, &payloadSubLenSize));
+    EXPECT_EQ(0u, payloadLength);
+    EXPECT_EQ(0u, payloadSubLenSize);
+}
+
+TEST_F(RtpFunctionalityTest, testDepayH264StapBPacket)
+{
+    /** Construct a valid STAP-B packet:
+     * Byte 0: NAL indicator with type 25 (STAP-B)
+     * Bytes 1-2: DON (Decoding Order Number)
+     * Bytes 3-4: sub-NAL size (big-endian)
+     * Bytes 5+: sub-NAL data
+    */
+    BYTE stapBPacket[] = {
+        0x19,       // type=25 (STAP_B_INDICATOR)
+        0x00, 0x01, // DON = 1
+        0x00, 0x03, // sub-NAL size = 3
+        0x67, 0x42, 0x00, // sub-NAL data (3 bytes)
+        0x00, 0x02, // second sub-NAL size = 2
+        0xAA, 0xBB  // second sub-NAL data (2 bytes)
+    };
+    UINT32 packetLength = SIZEOF(stapBPacket);
+    UINT32 naluLength = 0;
+    BOOL isStart = FALSE;
+
+    // Size calculation pass (pNaluData = NULL)
+    EXPECT_EQ(STATUS_SUCCESS, depayH264FromRtpPayload(stapBPacket, packetLength, NULL, &naluLength, &isStart));
+    EXPECT_TRUE(isStart);
+    // Expected: start4ByteCode(4) + 3 + start4ByteCode(4) + 2 = 13
+    EXPECT_EQ(13u, naluLength);
+
+    // Copy pass - allocate exact buffer based on size
+    BYTE outputBuffer[13];
+    UINT32 outputLen = SIZEOF(outputBuffer);
+    EXPECT_EQ(STATUS_SUCCESS, depayH264FromRtpPayload(stapBPacket, packetLength, outputBuffer, &outputLen, &isStart));
+    EXPECT_EQ(13u, outputLen);
+
+    // Verify first sub-NAL has start code prefix
+    EXPECT_EQ(0x00, outputBuffer[0]);
+    EXPECT_EQ(0x00, outputBuffer[1]);
+    EXPECT_EQ(0x00, outputBuffer[2]);
+    EXPECT_EQ(0x01, outputBuffer[3]);
+    // Verify first sub-NAL data
+    EXPECT_EQ(0x67, outputBuffer[4]);
+    EXPECT_EQ(0x42, outputBuffer[5]);
+    EXPECT_EQ(0x00, outputBuffer[6]);
+    // Verify second sub-NAL has start code prefix
+    EXPECT_EQ(0x00, outputBuffer[7]);
+    EXPECT_EQ(0x00, outputBuffer[8]);
+    EXPECT_EQ(0x00, outputBuffer[9]);
+    EXPECT_EQ(0x01, outputBuffer[10]);
+    // Verify second sub-NAL data
+    EXPECT_EQ(0xAA, outputBuffer[11]);
+    EXPECT_EQ(0xBB, outputBuffer[12]);
+}
+
+TEST_F(RtpFunctionalityTest, testDepayH264StapAPacket)
+{
+    /** Construct a valid STAP-A packet:
+     * Byte 0: NAL indicator with type 24 (STAP-A)
+     * No DON field (this is what differentiates STAP-A from STAP-B)
+     * Bytes 1-2: sub-NAL size (big-endian)
+     * Bytes 3+: sub-NAL data
+     */
+    BYTE stapAPacket[] = {
+        0x18,       // NAL header: type=24 (STAP_A_INDICATOR)
+        0x00, 0x03, // first sub-NAL size = 3
+        0x67, 0x42, 0x00, // first sub-NAL data (3 bytes, fake SPS)
+        0x00, 0x02, // second sub-NAL size = 2
+        0xCC, 0xDD  // second sub-NAL data (2 bytes)
+    };
+    UINT32 packetLength = SIZEOF(stapAPacket);
+    UINT32 naluLength = 0;
+    BOOL isStart = FALSE;
+
+    // Size calculation pass (pNaluData = NULL)
+    EXPECT_EQ(STATUS_SUCCESS, depayH264FromRtpPayload(stapAPacket, packetLength, NULL, &naluLength, &isStart));
+    EXPECT_TRUE(isStart);
+    // Expected: start4ByteCode(4) + 3 + start4ByteCode(4) + 2 = 13
+    EXPECT_EQ(13u, naluLength);
+
+    // Copy pass - allocate exact buffer based on size
+    BYTE outputBuffer[13];
+    UINT32 outputLen = SIZEOF(outputBuffer);
+    EXPECT_EQ(STATUS_SUCCESS, depayH264FromRtpPayload(stapAPacket, packetLength, outputBuffer, &outputLen, &isStart));
+    EXPECT_EQ(13u, outputLen);
+
+    // Verify first sub-NAL: start code + data
+    EXPECT_EQ(0x00, outputBuffer[0]);
+    EXPECT_EQ(0x00, outputBuffer[1]);
+    EXPECT_EQ(0x00, outputBuffer[2]);
+    EXPECT_EQ(0x01, outputBuffer[3]);
+    EXPECT_EQ(0x67, outputBuffer[4]);
+    EXPECT_EQ(0x42, outputBuffer[5]);
+    EXPECT_EQ(0x00, outputBuffer[6]);
+    // Verify second sub-NAL: start code + data
+    EXPECT_EQ(0x00, outputBuffer[7]);
+    EXPECT_EQ(0x00, outputBuffer[8]);
+    EXPECT_EQ(0x00, outputBuffer[9]);
+    EXPECT_EQ(0x01, outputBuffer[10]);
+    EXPECT_EQ(0xCC, outputBuffer[11]);
+    EXPECT_EQ(0xDD, outputBuffer[12]);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
