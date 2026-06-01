@@ -338,7 +338,7 @@ STATUS depayH264FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNal
             break;
         case STAP_B_INDICATOR:
             naluLength = 0;
-            pCurPtr = pRawPacket + STAP_A_HEADER_SIZE;
+            pCurPtr = pRawPacket + STAP_B_HEADER_SIZE;
             do {
                 subNaluSize = getUnalignedInt16BigEndian(pCurPtr);
                 pCurPtr += SIZEOF(UINT16);
