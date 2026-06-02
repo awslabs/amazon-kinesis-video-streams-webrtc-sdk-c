@@ -1536,6 +1536,7 @@ STATUS deserializeRtcIceCandidateInit(PCHAR pJson, UINT32 jsonLen, PRtcIceCandid
 
     for (i = 1; i < (tokenCount - 1); i += 2) {
         if (STRNCMP(CANDIDATE_KEY, pJson + tokens[i].start, ARRAY_SIZE(CANDIDATE_KEY) - 1) == 0) {
+            CHK((tokens[i + 1].end - tokens[i + 1].start) <= MAX_ICE_CANDIDATE_INIT_CANDIDATE_LEN, STATUS_ICE_CANDIDATE_INIT_MALFORMED);
             STRNCPY(pRtcIceCandidateInit->candidate, pJson + tokens[i + 1].start, (tokens[i + 1].end - tokens[i + 1].start));
         }
     }

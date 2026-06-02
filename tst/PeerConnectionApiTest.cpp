@@ -33,6 +33,17 @@ TEST_F(PeerConnectionApiTest, deserializeRtcIceCandidateInit)
     auto validCandidate2 = "{candidate: \"candidate: 1 2 3\", \"sdpMid\": 0}";
     EXPECT_EQ(deserializeRtcIceCandidateInit((PCHAR) validCandidate2, STRLEN(validCandidate2), &rtcIceCandidateInit), STATUS_SUCCESS);
     EXPECT_STREQ(rtcIceCandidateInit.candidate, "candidate: 1 2 3");
+
+    std::string oversizedCandidate = "{candidate: \"";
+    oversizedCandidate += std::string(MAX_ICE_CANDIDATE_INIT_CANDIDATE_LEN + 10, 'A');
+    oversizedCandidate += "\"}";
+    EXPECT_EQ(deserializeRtcIceCandidateInit((PCHAR) oversizedCandidate.c_str(), STRLEN(oversizedCandidate.c_str()), &rtcIceCandidateInit),
+              STATUS_ICE_CANDIDATE_INIT_MALFORMED);
+
+    std::string maxLengthCandidate = "{candidate: \"";
+    maxLengthCandidate += std::string(MAX_ICE_CANDIDATE_INIT_CANDIDATE_LEN, 'B');
+    maxLengthCandidate += "\"}";
+    EXPECT_EQ(deserializeRtcIceCandidateInit((PCHAR) maxLengthCandidate.c_str(), STRLEN(maxLengthCandidate.c_str()), &rtcIceCandidateInit), STATUS_SUCCESS);
 }
 
 TEST_F(PeerConnectionApiTest, serializeSessionDescriptionInit)
