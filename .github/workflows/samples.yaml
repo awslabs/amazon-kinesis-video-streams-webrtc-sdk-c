@@ -301,13 +301,13 @@ jobs:
         env:
           KVS_ICE_TRANSPORT_POLICY: all
         run: |
-          CHANNEL="ScaryTestChannel-docker-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-all"
+          CHANNEL="ScaryTestChannel-docker-static-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-all"
           ./scripts/prepare-channel.sh "$CHANNEL"
           ./scripts/run-static-sample.sh "$CHANNEL"
 
       - name: Run static frames sample (policy=relay)
         run: |
-          CHANNEL="ScaryTestChannel-docker-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-relay"
+          CHANNEL="ScaryTestChannel-docker-static-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-relay"
           ./scripts/prepare-channel.sh "$CHANNEL"
           ./scripts/run-static-sample.sh "$CHANNEL"
 
@@ -333,12 +333,12 @@ jobs:
         env:
           KVS_ICE_TRANSPORT_POLICY: all
         run: |
-          CHANNEL="ScaryTestChannel-gst-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-all"
+          CHANNEL="ScaryTestChannel-docker-gst-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-all"
           ./scripts/prepare-channel.sh "$CHANNEL"
           ./scripts/run-gst-sample.sh "$CHANNEL"
 
       - name: Run GStreamer testsrc sample (policy=relay)
         run: |
-          CHANNEL="ScaryTestChannel-gst-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-relay"
+          CHANNEL="ScaryTestChannel-docker-gst-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-relay"
           ./scripts/prepare-channel.sh "$CHANNEL"
           ./scripts/run-gst-sample.sh "$CHANNEL"
