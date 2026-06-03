@@ -199,6 +199,10 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
     baseSeqNum = getUnalignedInt16BigEndian(pRtcpPacket->payload + 8);
     pTwccManager->prevReportedBaseSeqNum = baseSeqNum;
     packetStatusCount = TWCC_PACKET_STATUS_COUNT(pRtcpPacket->payload);
+
+    // Empty report, nothing to parse
+    CHK(packetStatusCount > 0, STATUS_SUCCESS);
+
     referenceTime = (pRtcpPacket->payload[12] << 16) | (pRtcpPacket->payload[13] << 8) | (pRtcpPacket->payload[14] & 0xff);
     referenceTime = KVS_CONVERT_TIMESCALE(referenceTime * 64, MILLISECONDS_PER_SECOND, HUNDREDS_OF_NANOS_IN_A_SECOND);
     // TODO: handle lost twcc report packets
@@ -514,6 +518,14 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
         UINT64 twccPktVal = 0;
         PTwccRtpPacketInfo pPktInfo = NULL;
         UINT16 reportLen = (UINT16) (pTwccManager->lastReportedSeqNum - pTwccManager->prevReportedBaseSeqNum + 1);
+        UINT16 packetStatusCount = TWCC_PACKET_STATUS_COUNT(pRtcpPacket->payload);
+
+        // Skip callback for empty reports
+        // Also cap reportLen to packetStatusCount to bound the allocation size
+        CHK(packetStatusCount > 0, STATUS_SUCCESS);
+        if (reportLen > packetStatusCount) {
+            reportLen = packetStatusCount;
+        }
 
         MEMSET(&congestionState, 0, SIZEOF(congestionState));
         pFeedbackList = (PTwccFeedback) MEMALLOC(reportLen * SIZEOF(TwccFeedback));

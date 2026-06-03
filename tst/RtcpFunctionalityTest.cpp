@@ -1019,6 +1019,217 @@ TEST_F(RtcpFunctionalityTest, onTwccFeedbackReceived_callbackErrorNoDeadlock)
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
+// Verify that a TWCC packet with packetStatusCount=0 does not invoke the custom
+// feedback callback
+TEST_F(RtcpFunctionalityTest, twccZeroPacketStatusCountDoesNotInvokeCallback)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    RtcConfiguration config{};
+    RtcpPacket rtcpPacket{};
+    RtpPacket rtpPacket{};
+    UINT32 extpayload;
+    UINT32 callbackInvocations = 0;
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+
+    // Set custom TWCC feedback callback that counts invocations
+    auto twccCallback = [](UINT64 customData, PTwccFeedback pFeedback, UINT32 feedbackCount, PTwccCongestionState pState) -> STATUS {
+        UNUSED_PARAM(pFeedback);
+        UNUSED_PARAM(feedbackCount);
+        (*(PUINT32) customData)++;
+        pState->delayTrend = 0.0;
+        return STATUS_SUCCESS;
+    };
+    EXPECT_EQ(STATUS_SUCCESS, setOnTwccFeedbackReceived(pRtcPeerConnection, (UINT64) &callbackInvocations, twccCallback));
+
+    // Send a few packets so TWCC manager has state
+    for (UINT16 i = 100; i < 110; i++) {
+        rtpPacket.header.extension = TRUE;
+        rtpPacket.header.extensionProfile = TWCC_EXT_PROFILE;
+        rtpPacket.header.extensionLength = SIZEOF(UINT32);
+        extpayload = TWCC_PAYLOAD(parseExtId(TWCC_EXT_URL), i);
+        rtpPacket.header.extensionPayload = (PBYTE) &extpayload;
+        EXPECT_EQ(STATUS_SUCCESS, twccManagerOnPacketSent(pKvsPeerConnection, &rtpPacket));
+    }
+
+    // Craft a TWCC feedback packet with packetStatusCount = 0 but a non-zero baseSeqNum.
+    BYTE payload[16] = {0};
+    payload[0] = 0x44; payload[1] = 0x87; payload[2] = 0xA9; payload[3] = 0xE7;
+    payload[4] = 0x54; payload[5] = 0xB3; payload[6] = 0xE6; payload[7] = 0xFD;
+    // baseSeqNum = 500
+    payload[8] = 0x01; payload[9] = 0xF4;
+    // packetStatusCount = 0
+    payload[10] = 0x00; payload[11] = 0x00;
+    // referenceTime + fb pkt count
+    payload[12] = 0x14; payload[13] = 0x7A; payload[14] = 0x00; payload[15] = 0x01;
+
+    rtcpPacket.header.packetLength = SIZEOF(payload) / 4;
+    rtcpPacket.header.packetType = RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK;
+    rtcpPacket.header.receptionReportCount = RTCP_FEEDBACK_MESSAGE_TYPE_APPLICATION_LAYER_FEEDBACK;
+    rtcpPacket.payload = payload;
+    rtcpPacket.payloadLength = SIZEOF(payload);
+
+    // onRtcpTwccPacket should NOT invoke the callback for a zero-count report.
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection));
+    EXPECT_EQ(0u, callbackInvocations);
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
+// Verify that after a valid TWCC report, a subsequent zero-count report does NOT
+// trigger the callback
+TEST_F(RtcpFunctionalityTest, twccZeroStatusCountAfterValidReportNoSpuriousCallback)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    RtcConfiguration config{};
+    RtcpPacket rtcpPacket{};
+    RtpPacket rtpPacket{};
+    UINT32 extpayload;
+    UINT32 callbackInvocations = 0;
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+
+    // Set custom TWCC feedback callback
+    auto twccCallback = [](UINT64 customData, PTwccFeedback pFeedback, UINT32 feedbackCount, PTwccCongestionState pState) -> STATUS {
+        UNUSED_PARAM(pFeedback);
+        UNUSED_PARAM(feedbackCount);
+        (*(PUINT32) customData)++;
+        pState->delayTrend = 0.0;
+        return STATUS_SUCCESS;
+    };
+    EXPECT_EQ(STATUS_SUCCESS, setOnTwccFeedbackReceived(pRtcPeerConnection, (UINT64) &callbackInvocations, twccCallback));
+
+    // Send packets with seqNum 0..4
+    for (UINT16 i = 0; i < 5; i++) {
+        rtpPacket.header.extension = TRUE;
+        rtpPacket.header.extensionProfile = TWCC_EXT_PROFILE;
+        rtpPacket.header.extensionLength = SIZEOF(UINT32);
+        extpayload = TWCC_PAYLOAD(parseExtId(TWCC_EXT_URL), i);
+        rtpPacket.header.extensionPayload = (PBYTE) &extpayload;
+        EXPECT_EQ(STATUS_SUCCESS, twccManagerOnPacketSent(pKvsPeerConnection, &rtpPacket));
+    }
+
+    // First: a valid TWCC report for baseSeqNum=0, count=2, all received
+    BYTE validPayload[20] = {0};
+    validPayload[0] = 0x44; validPayload[1] = 0x87; validPayload[2] = 0xA9; validPayload[3] = 0xE7;
+    validPayload[4] = 0x54; validPayload[5] = 0xB3; validPayload[6] = 0xE6; validPayload[7] = 0xFD;
+    validPayload[8] = 0x00; validPayload[9] = 0x00;  // baseSeqNum = 0
+    validPayload[10] = 0x00; validPayload[11] = 0x02; // packetStatusCount = 2
+    validPayload[12] = 0x14; validPayload[13] = 0x79; validPayload[14] = 0x72;
+    validPayload[15] = 0x00;
+    // Run-length chunk: status=1 (small delta), length=2
+    validPayload[16] = 0x20; validPayload[17] = 0x02;
+    // Two small deltas
+    validPayload[18] = 0xBC; validPayload[19] = 0x00;
+
+    rtcpPacket.header.packetLength = SIZEOF(validPayload) / 4;
+    rtcpPacket.header.packetType = RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK;
+    rtcpPacket.header.receptionReportCount = RTCP_FEEDBACK_MESSAGE_TYPE_APPLICATION_LAYER_FEEDBACK;
+    rtcpPacket.payload = validPayload;
+    rtcpPacket.payloadLength = SIZEOF(validPayload);
+
+    // Valid report should invoke the callback exactly once
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection));
+    EXPECT_EQ(1u, callbackInvocations);
+
+    // Now: zero-count TWCC report with baseSeqNum=60000
+    BYTE emptyPayload[16] = {0};
+    emptyPayload[0] = 0x44; emptyPayload[1] = 0x87; emptyPayload[2] = 0xA9; emptyPayload[3] = 0xE7;
+    emptyPayload[4] = 0x54; emptyPayload[5] = 0xB3; emptyPayload[6] = 0xE6; emptyPayload[7] = 0xFD;
+    emptyPayload[8] = 0xEA; emptyPayload[9] = 0x60;  // baseSeqNum = 60000
+    emptyPayload[10] = 0x00; emptyPayload[11] = 0x00; // packetStatusCount = 0
+    emptyPayload[12] = 0x14; emptyPayload[13] = 0x7A; emptyPayload[14] = 0x00;
+    emptyPayload[15] = 0x02;
+
+    rtcpPacket.payload = emptyPayload;
+    rtcpPacket.payloadLength = SIZEOF(emptyPayload);
+    rtcpPacket.header.packetLength = SIZEOF(emptyPayload) / 4;
+
+    // Zero-count report should NOT invoke the callback again.
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection));
+    EXPECT_EQ(1u, callbackInvocations);
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
+// Verify that a legitimate TWCC report spanning the UINT16 wraparound boundary
+// (e.g., seqNums 65534..1) works correctly and invokes the callback with proper data.
+TEST_F(RtcpFunctionalityTest, twccSeqNumWraparoundInvokesCallbackCorrectly)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    RtcConfiguration config{};
+    RtcpPacket rtcpPacket{};
+    RtpPacket rtpPacket{};
+    UINT32 extpayload;
+
+    struct CallbackCtx {
+        UINT32 invocations;
+        UINT32 feedbackCount;
+    } cbCtx = {0, 0};
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+
+    // Custom callback that tracks invocations and feedbackCount
+    auto twccCallback = [](UINT64 customData, PTwccFeedback pFeedback, UINT32 feedbackCount, PTwccCongestionState pState) -> STATUS {
+        UNUSED_PARAM(pFeedback);
+        auto* ctx = (CallbackCtx*) customData;
+        ctx->invocations++;
+        ctx->feedbackCount = feedbackCount;
+        pState->delayTrend = 0.0;
+        return STATUS_SUCCESS;
+    };
+    EXPECT_EQ(STATUS_SUCCESS, setOnTwccFeedbackReceived(pRtcPeerConnection, (UINT64) &cbCtx, twccCallback));
+
+    // Send packets with seqNums 65534, 65535, 0, 1 (wrapping around UINT16 boundary)
+    UINT16 seqNums[] = {65534, 65535, 0, 1};
+    for (int i = 0; i < 4; i++) {
+        rtpPacket.header.extension = TRUE;
+        rtpPacket.header.extensionProfile = TWCC_EXT_PROFILE;
+        rtpPacket.header.extensionLength = SIZEOF(UINT32);
+        extpayload = TWCC_PAYLOAD(parseExtId(TWCC_EXT_URL), seqNums[i]);
+        rtpPacket.header.extensionPayload = (PBYTE) &extpayload;
+        EXPECT_EQ(STATUS_SUCCESS, twccManagerOnPacketSent(pKvsPeerConnection, &rtpPacket));
+    }
+
+    // Craft a TWCC feedback packet: baseSeqNum=65534, packetStatusCount=4, all received
+    BYTE payload[22] = {0};
+    // SSRC fields (arbitrary)
+    payload[0] = 0x44; payload[1] = 0x87; payload[2] = 0xA9; payload[3] = 0xE7;
+    payload[4] = 0x54; payload[5] = 0xB3; payload[6] = 0xE6; payload[7] = 0xFD;
+    // baseSeqNum = 65534 (0xFFFE)
+    payload[8] = 0xFF; payload[9] = 0xFE;
+    // packetStatusCount = 4
+    payload[10] = 0x00; payload[11] = 0x04;
+    // referenceTime
+    payload[12] = 0x14; payload[13] = 0x79; payload[14] = 0x72;
+    // fb pkt count
+    payload[15] = 0x01;
+    // Run-length chunk: status=1 (small delta), length=4 -> 0x2004
+    payload[16] = 0x20; payload[17] = 0x04;
+    // Four small deltas (1 byte each): 10, 10, 10, 10
+    payload[18] = 0x0A; payload[19] = 0x0A; payload[20] = 0x0A; payload[21] = 0x0A;
+
+    rtcpPacket.header.packetLength = SIZEOF(payload) / 4;
+    rtcpPacket.header.packetType = RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK;
+    rtcpPacket.header.receptionReportCount = RTCP_FEEDBACK_MESSAGE_TYPE_APPLICATION_LAYER_FEEDBACK;
+    rtcpPacket.payload = payload;
+    rtcpPacket.payloadLength = SIZEOF(payload);
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection));
+
+    // Callback should have been invoked exactly once with all 4 packets reported
+    EXPECT_EQ(1u, cbCtx.invocations);
+    EXPECT_EQ(4u, cbCtx.feedbackCount);
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
