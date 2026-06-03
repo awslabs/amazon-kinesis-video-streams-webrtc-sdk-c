@@ -13,6 +13,7 @@ ExternalProject_Add(project_libusrsctp
                       -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                       "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -fPIC"
                       -Dsctp_werror=0
+                      -Dsctp_build_programs=0
     BUILD_ALWAYS      TRUE
     TEST_COMMAND      ""
 )
