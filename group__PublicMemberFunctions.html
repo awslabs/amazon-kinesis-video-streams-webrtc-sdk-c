@@ -130,6 +130,12 @@ Functions</h2></td></tr>
 <tr class="memitem:ga3ce2483c1d6b864dd0dab6b3bb749915" id="r_ga3ce2483c1d6b864dd0dab6b3bb749915"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga3ce2483c1d6b864dd0dab6b3bb749915">peerConnectionOnSenderBandwidthEstimation</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#ga31935aba346c035df91b7771e62ad3bc">RtcOnSenderBandwidthEstimation</a>)</td></tr>
 <tr class="memdesc:ga3ce2483c1d6b864dd0dab6b3bb749915"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set a callback for transport-wide sender bandwidth estimation results.  <br /></td></tr>
 <tr class="separator:ga3ce2483c1d6b864dd0dab6b3bb749915"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf24b6c1b2d5fa637b47b10759849514d" id="r_gaf24b6c1b2d5fa637b47b10759849514d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#gaf24b6c1b2d5fa637b47b10759849514d">setOnTwccFeedbackReceived</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#ga92d619bd4ed3d0a6a9a1d30a54916d39">RtcOnTwccFeedbackReceived</a>)</td></tr>
+<tr class="memdesc:gaf24b6c1b2d5fa637b47b10759849514d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Configure a custom TWCC feedback received callback. When TWCC feedback arrives from the remote peer, this callback is invoked to update the congestion state. If not set, the SDK uses a default EMA-smoothed least-squares trendline estimator.  <br /></td></tr>
+<tr class="separator:gaf24b6c1b2d5fa637b47b10759849514d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga478a28d6a238cdccb013c72956311438" id="r_ga478a28d6a238cdccb013c72956311438"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga478a28d6a238cdccb013c72956311438">setOnPeerCongestionFeedbackFn</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#ga183d2c9b124e7591b37a6a6478926d52">RtcOnPeerCongestionFeedback</a>)</td></tr>
+<tr class="memdesc:ga478a28d6a238cdccb013c72956311438"><td class="mdescLeft">&#160;</td><td class="mdescRight">Configure a callback invoked when the SDK has congestion context ready for the application. The application uses this to adjust encoder bitrate or other media parameters.  <br /></td></tr>
+<tr class="separator:ga478a28d6a238cdccb013c72956311438"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga41afed748235c04e38fa7481e421055d" id="r_ga41afed748235c04e38fa7481e421055d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga41afed748235c04e38fa7481e421055d">peerConnectionOnDataChannel</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#ga264cd66b2d9905c3085cab6f3faf650b">RtcOnDataChannel</a>)</td></tr>
 <tr class="separator:ga41afed748235c04e38fa7481e421055d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gae937526652e3287c3e2dd9bee74ea799" id="r_gae937526652e3287c3e2dd9bee74ea799"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#gae937526652e3287c3e2dd9bee74ea799">peerConnectionOnConnectionStateChange</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#gad3f715dac4dd4d756e1728a37fb46eb9">RtcOnConnectionStateChange</a>)</td></tr>
@@ -168,6 +174,9 @@ Functions</h2></td></tr>
 <tr class="memitem:ga9babad6ea2bc9bb97279c7034697375a" id="r_ga9babad6ea2bc9bb97279c7034697375a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga9babad6ea2bc9bb97279c7034697375a">closePeerConnection</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>)</td></tr>
 <tr class="memdesc:ga9babad6ea2bc9bb97279c7034697375a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Close the underlying DTLS session and IceAgent connection. Trigger RtcOnConnectionStateChange to RTC_PEER_CONNECTION_STATE_CLOSED.  <br /></td></tr>
 <tr class="separator:ga9babad6ea2bc9bb97279c7034697375a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga25744b27b8c99ea48af74d6747c949f0" id="r_ga25744b27b8c99ea48af74d6747c949f0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga25744b27b8c99ea48af74d6747c949f0">peerConnectionUpdateIceServers</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="group__PublicStructures.html#ga3dac633294f8d8a99f3edaa2a193f808">PRtcIceServer</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>)</td></tr>
+<tr class="memdesc:ga25744b27b8c99ea48af74d6747c949f0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Dynamically update the ICE servers for an existing peer connection.  <br /></td></tr>
+<tr class="separator:ga25744b27b8c99ea48af74d6747c949f0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga5b89dc2e301e35f30330c57bc1361dcb" id="r_ga5b89dc2e301e35f30330c57bc1361dcb"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga5b89dc2e301e35f30330c57bc1361dcb">addTransceiver</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="group__PublicStructures.html#ga7b5ee097cf66780a017592c4cf712773">PRtcMediaStreamTrack</a>, <a class="el" href="group__PublicStructures.html#ga403f9b55f053a068d56e8aa51c0bc739">PRtcRtpTransceiverInit</a>, <a class="el" href="group__PublicStructures.html#ga575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a> *)</td></tr>
 <tr class="memdesc:ga5b89dc2e301e35f30330c57bc1361dcb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a new <a class="el" href="structRtcRtpTransceiver.html" title="The RTCRtpTransceiver represents a combination of an RTCRtpSender and an RTCRtpReceiver that share a ...">RtcRtpTransceiver</a> and add it to the set of transceivers.  <br /></td></tr>
 <tr class="separator:ga5b89dc2e301e35f30330c57bc1361dcb"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -180,6 +189,9 @@ Functions</h2></td></tr>
 <tr class="memitem:ga934a685bb5d0fb3d547fcd7e828b7566" id="r_ga934a685bb5d0fb3d547fcd7e828b7566"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga934a685bb5d0fb3d547fcd7e828b7566">transceiverOnPictureLoss</a> (<a class="el" href="group__PublicStructures.html#ga575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#gac7f4225ac2545664aabdc88d0b58e329">RtcOnPictureLoss</a>)</td></tr>
 <tr class="memdesc:ga934a685bb5d0fb3d547fcd7e828b7566"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set a callback for picture loss packet (PLI)  <br /></td></tr>
 <tr class="separator:ga934a685bb5d0fb3d547fcd7e828b7566"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga13f0a8efdd5bd707d9c51091a4eedc06" id="r_ga13f0a8efdd5bd707d9c51091a4eedc06"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga13f0a8efdd5bd707d9c51091a4eedc06">transceiverSetFmtp</a> (<a class="el" href="group__PublicStructures.html#ga575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PCHAR</a>)</td></tr>
+<tr class="memdesc:ga13f0a8efdd5bd707d9c51091a4eedc06"><td class="mdescLeft">&#160;</td><td class="mdescRight">Override the H264 fmtp string advertised in SDP offers and answers for this transceiver.  <br /></td></tr>
+<tr class="separator:ga13f0a8efdd5bd707d9c51091a4eedc06"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga10479b49a6df2035fd1549809e11d9f5" id="r_ga10479b49a6df2035fd1549809e11d9f5"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga10479b49a6df2035fd1549809e11d9f5">freeTransceiver</a> (<a class="el" href="group__PublicStructures.html#ga575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a> *)</td></tr>
 <tr class="memdesc:ga10479b49a6df2035fd1549809e11d9f5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Frees the previously created transceiver object.  <br /></td></tr>
 <tr class="separator:ga10479b49a6df2035fd1549809e11d9f5"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1045,117 +1057,116 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="group__PublicMemberFunctions_gada972c66438c7e7c82e1db0cfe2b2640_cgraph.png" border="0" usemap="#agroup__PublicMemberFunctions_gada972c66438c7e7c82e1db0cfe2b2640_cgraph" alt=""/></div>
 <map name="agroup__PublicMemberFunctions_gada972c66438c7e7c82e1db0cfe2b2640_cgraph" id="agroup__PublicMemberFunctions_gada972c66438c7e7c82e1db0cfe2b2640_cgraph">
-<area shape="rect" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,872,171,898"/>
-<area shape="rect" href="ConnectionListener_8c.html#a24660cc58fb5a9b154011e3a4092819b" title=" " alt="" coords="231,58,419,83"/>
-<area shape="poly" title=" " alt="" coords="88,871,102,743,129,536,147,425,168,320,191,232,216,168,232,144,252,122,291,89,295,93,255,126,236,147,221,170,196,233,173,322,152,426,134,537,107,744,93,872"/>
-<area shape="rect" href="Dtls__openssl_8c.html#ac40bba1019de3e73a9006b12c9dc4eaa" title=" " alt="" coords="520,626,659,651"/>
-<area shape="poly" title=" " alt="" coords="98,870,146,818,180,787,217,760,290,721,367,691,441,668,506,651,508,656,442,673,368,696,292,726,220,764,183,791,150,822,102,874"/>
-<area shape="rect" href="IceAgent_8c.html#af2fe29241b2d4ab4997fe04c41534578" title=" " alt="" coords="265,182,385,207"/>
-<area shape="poly" title=" " alt="" coords="90,871,136,698,173,571,216,440,266,315,309,219,314,221,271,317,221,442,178,572,141,700,95,873"/>
-<area shape="rect" href="Dtls_8c.html#a8b1d124e37f661b01ee5924e188a3f0b" title=" " alt="" coords="221,922,430,947"/>
-<area shape="poly" title=" " alt="" coords="150,895,251,916,250,921,149,900"/>
-<area shape="rect" href="Dtls_8c.html#a61b25e14613d4c213fb135aa61d470c7" title=" " alt="" coords="227,971,424,996"/>
-<area shape="poly" title=" " alt="" coords="109,895,158,926,220,957,242,965,241,970,218,962,155,931,106,900"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="250,454,401,479"/>
-<area shape="poly" title=" " alt="" coords="94,871,308,490,312,492,99,873"/>
-<area shape="rect" href="PeerConnection_8c.html#ad6b6bbcdb7fe1c2959acfdaa64f04e48" title=" " alt="" coords="236,1020,415,1046"/>
-<area shape="poly" title=" " alt="" coords="101,896,148,950,182,981,220,1007,234,1013,232,1018,217,1011,178,985,144,954,97,899"/>
-<area shape="rect" href="PeerConnection_8c.html#a8623356d515aabe66d493018cc61c1f3" title=" " alt="" coords="241,1070,410,1095"/>
-<area shape="poly" title=" " alt="" coords="97,897,114,929,140,973,176,1018,220,1056,230,1062,228,1066,217,1060,172,1022,136,976,109,932,93,899"/>
-<area shape="rect" href="PeerConnection_8c.html#aa0ee0298b690c7461c019e5e70217b37" title=" " alt="" coords="252,823,399,848"/>
-<area shape="poly" title=" " alt="" coords="149,870,250,848,251,854,150,875"/>
-<area shape="rect" href="PeerConnection_8c.html#a0a0385b5afef472a439ff5d8d8d7c1a0" title=" " alt="" coords="219,774,432,799"/>
-<area shape="poly" title=" " alt="" coords="106,870,155,840,218,809,244,800,246,805,220,814,158,844,109,874"/>
-<area shape="rect" href="PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="259,872,391,898"/>
-<area shape="poly" title=" " alt="" coords="171,882,246,882,246,888,171,888"/>
-<area shape="rect" href="PeerConnection_8c.html#a3eda037f96c4d95b9c17774243ba3291" title=" " alt="" coords="232,1119,419,1144"/>
-<area shape="poly" title=" " alt="" coords="95,897,109,938,134,995,171,1055,194,1082,220,1105,228,1110,225,1115,217,1110,190,1086,166,1058,129,998,104,940,90,899"/>
-<area shape="rect" href="PeerConnection_8c.html#a75fa932f0d317465ffdd4682def8077c" title=" " alt="" coords="254,1168,397,1194"/>
-<area shape="poly" title=" " alt="" coords="94,897,105,946,127,1016,144,1054,165,1091,190,1125,220,1155,242,1167,240,1172,217,1159,186,1129,160,1094,139,1056,122,1018,100,947,89,898"/>
-<area shape="rect" href="ConnectionListener_8c.html#a49f4d889996cb555ffe78ecf4584ec1a" title=" " alt="" coords="785,106,959,131"/>
-<area shape="poly" title=" " alt="" coords="356,55,412,35,479,18,541,8,590,3,639,6,699,18,742,33,782,53,846,95,843,100,779,58,740,38,698,23,638,11,590,9,542,14,481,23,414,40,357,60"/>
-<area shape="rect" href="Dtls__openssl_8c.html#af3bfcfebc77d873de4356b748060a048" title=" " alt="" coords="799,823,945,848"/>
-<area shape="poly" title=" " alt="" coords="660,641,681,649,700,662,716,680,723,699,725,738,727,775,734,793,748,810,766,821,786,829,784,834,764,826,745,814,730,795,722,776,720,738,718,701,711,683,697,666,679,653,658,646"/>
-<area shape="rect" href="Dtls__mbedtls_8c.html#a24148bce2d380255e05ceef8d2da4d7d" title=" " alt="" coords="787,724,957,750"/>
-<area shape="poly" title=" " alt="" coords="660,646,700,661,716,674,725,687,733,699,748,711,775,722,773,727,745,715,730,703,720,690,712,677,697,666,658,651"/>
-<area shape="rect" href="Dtls__mbedtls_8c.html#aeb739e880d3edc3d95e7135805114f13" title=" " alt="" coords="783,774,961,799"/>
-<area shape="poly" title=" " alt="" coords="660,642,681,650,700,661,712,674,719,687,725,713,731,738,737,749,748,760,771,773,768,777,745,764,733,752,726,740,720,714,714,689,708,677,697,666,679,654,658,647"/>
-<area shape="rect" href="Dtls__openssl_8c.html#a451c48525b0c0a8919a880d6834c1f7f" title=" " alt="" coords="783,330,961,355"/>
-<area shape="poly" title=" " alt="" coords="658,633,679,625,697,612,718,583,725,552,725,522,720,490,715,459,714,427,723,395,745,364,768,349,771,353,749,368,727,397,719,427,720,458,725,489,730,521,731,553,722,585,701,616,682,630,660,638"/>
-<area shape="rect" href="Dtls__openssl_8c.html#ac06177551160b2bf5e5e8b764a6bd253" title=" " alt="" coords="1045,304,1209,330"/>
-<area shape="poly" title=" " alt="" coords="658,633,679,625,697,612,711,594,720,576,728,539,725,501,716,462,708,424,706,386,717,349,728,332,745,315,784,290,827,274,872,267,919,266,965,270,1008,278,1080,297,1079,302,1007,283,964,275,919,271,873,272,828,279,786,294,748,319,732,335,722,352,712,387,714,423,721,461,730,500,733,539,725,578,715,597,701,616,682,630,660,638"/>
-<area shape="rect" href="IOBuffer_8c.html#ab546267bacecbe0c2c65a2286df9dfc4" title=" " alt="" coords="814,379,930,404"/>
-<area shape="poly" title=" " alt="" coords="658,632,679,625,697,612,714,589,722,565,722,540,720,515,717,489,718,464,726,438,745,414,771,397,800,389,801,394,773,402,748,417,731,441,723,465,722,489,725,514,728,540,727,566,719,591,701,616,682,629,660,637"/>
-<area shape="rect" href="Dtls__openssl_8c.html#a0ae93fa40ae5eb21cc9186f822c6029e" title=" " alt="" coords="831,428,913,454"/>
-<area shape="poly" title=" " alt="" coords="658,632,679,624,697,612,711,595,718,577,720,539,722,501,729,481,745,463,761,452,779,444,816,437,817,442,781,449,764,456,748,467,734,484,727,502,725,539,723,578,716,598,700,616,681,629,660,637"/>
-<area shape="rect" href="Dtls__openssl_8c.html#a9f7171c14a422c26d110d5c44d9c6a05" title=" " alt="" coords="820,478,924,503"/>
-<area shape="poly" title=" " alt="" coords="658,630,679,623,697,612,708,601,714,589,720,563,726,537,733,524,745,512,774,497,806,489,807,494,776,502,748,516,737,527,731,539,725,565,719,591,712,604,700,616,681,628,660,635"/>
-<area shape="rect" href="Dtls__mbedtls_8c.html#aa884d968f928d7c4d9e4a45441cef269" title=" " alt="" coords="781,527,963,552"/>
-<area shape="poly" title=" " alt="" coords="658,627,697,612,712,600,720,588,730,575,745,563,766,553,768,558,748,567,734,579,725,591,716,604,700,617,660,632"/>
-<area shape="rect" href="Dtls__openssl_8c.html#a6d9a65b31959016f66ef3374374c73c8" title=" " alt="" coords="747,576,997,602"/>
-<area shape="poly" title=" " alt="" coords="658,624,784,601,785,607,659,629"/>
-<area shape="rect" href="Dtls_8c.html#abdb647933c7ddcbdcc5470e66fdc0353" title=" " alt="" coords="775,626,969,651"/>
-<area shape="poly" title=" " alt="" coords="659,636,761,636,761,641,659,641"/>
-<area shape="rect" href="Dtls__mbedtls_8c.html#aa1b6a668704b0b7ddf99be1f7977b8ba" title=" " alt="" coords="810,675,934,700"/>
-<area shape="poly" title=" " alt="" coords="659,648,797,672,796,677,658,653"/>
-<area shape="rect" href="Dtls__openssl_8c.html#a7098126d6dad351545fc6aea9afc2668" title=" " alt="" coords="799,872,945,898"/>
-<area shape="poly" title=" " alt="" coords="660,640,681,648,701,662,719,687,727,712,727,738,725,763,722,788,723,812,731,836,749,859,766,871,786,879,784,884,763,876,745,863,726,838,718,813,717,788,720,762,722,737,721,713,714,689,697,665,679,653,658,645"/>
-<area shape="poly" title=" " alt="" coords="961,331,1031,324,1032,329,962,336"/>
-<area shape="rect" href="Stun_8c.html#a82bd20e19952bf247d16b639fc091a34" title=" " alt="" coords="522,132,657,158"/>
-<area shape="poly" title=" " alt="" coords="385,180,508,157,508,163,386,186"/>
-<area shape="rect" href="IceUtils_8c.html#a253397f5ac2ab54ecf549f88096ed942" title=" " alt="" coords="498,182,681,207"/>
-<area shape="poly" title=" " alt="" coords="386,192,484,192,484,197,386,197"/>
-<area shape="rect" href="IceAgent_8c.html#a767c2a29e3bfba0aa45872d26b41a6f4" title=" " alt="" coords="537,280,642,306"/>
-<area shape="poly" title=" " alt="" coords="351,205,409,235,481,265,524,278,523,283,479,270,407,239,348,209"/>
-<area shape="rect" href="IceAgent_8c.html#a1cfd588b7d18304d6feb6e32417a508f" title=" " alt="" coords="498,231,681,256"/>
-<area shape="poly" title=" " alt="" coords="386,203,508,226,507,231,385,208"/>
-<area shape="rect" href="IceAgent_8c.html#a6bcfd3644a9038357b400059ed0d3a97" title=" " alt="" coords="480,34,699,59"/>
-<area shape="poly" title=" " alt="" coords="337,179,394,125,434,94,479,68,496,61,498,66,481,73,437,98,397,129,340,183"/>
-<area shape="rect" href="IceUtils_8c.html#a833304d5c66c3dfef87036727631628f" title=" " alt="" coords="530,83,649,108"/>
-<area shape="poly" title=" " alt="" coords="348,179,406,148,479,117,516,106,517,112,481,122,408,153,350,184"/>
-<area shape="poly" title=" " alt="" coords="642,283,670,276,697,265,744,237,786,202,849,139,853,143,790,206,747,241,700,270,672,281,643,289"/>
-<area shape="poly" title=" " alt="" coords="334,452,389,386,431,347,479,314,522,299,524,304,481,319,434,351,393,389,338,455"/>
-<area shape="rect" href="Dtls__openssl_8c.html#aa1b6a668704b0b7ddf99be1f7977b8ba" title=" " alt="" coords="527,330,651,355"/>
-<area shape="poly" title=" " alt="" coords="341,451,399,408,438,384,479,364,513,352,515,357,481,369,440,389,402,413,344,455"/>
-<area shape="rect" href="PeerConnection_8c.html#a196fe6dcc68e9dcb121b490c5eaddac8" title=" " alt="" coords="532,379,647,404"/>
-<area shape="poly" title=" " alt="" coords="361,451,479,413,518,403,519,408,481,418,362,456"/>
-<area shape="rect" href="Rtp_8c.html#ac43cec8875bbd05633d9a31bff472efc" title=" " alt="" coords="505,428,673,454"/>
-<area shape="poly" title=" " alt="" coords="401,456,491,448,492,453,401,462"/>
-<area shape="rect" href="Sctp_8c.html#a7b4902e766599101f22b2f3ae12c3dd9" title=" " alt="" coords="526,478,653,503"/>
-<area shape="poly" title=" " alt="" coords="401,470,513,481,512,486,401,476"/>
-<area shape="rect" href="SrtpSession_8c.html#a2aee174624da64c0e3d5d7638cd8b196" title=" " alt="" coords="527,527,651,552"/>
-<area shape="poly" title=" " alt="" coords="366,476,481,512,518,521,516,526,479,517,364,482"/>
-<area shape="rect" href="IceAgent_8c.html#a0240b9dcf5654427458c2fdda5a2da29" title=" " alt="" coords="518,576,661,602"/>
-<area shape="poly" title=" " alt="" coords="344,477,402,519,440,542,481,562,505,571,504,576,479,567,438,547,399,523,341,481"/>
-<area shape="rect" href="IceAgent_8c.html#a23515725a875e5a1b44e90f2b36f2dd2" title=" " alt="" coords="513,1119,666,1144"/>
-<area shape="poly" title=" " alt="" coords="394,1092,507,1114,506,1119,393,1098"/>
-<area shape="rect" href="PeerConnection_8c.html#ab091080eb78ee92ae0529bdd743468a0" title=" " alt="" coords="487,872,692,898"/>
-<area shape="poly" title=" " alt="" coords="394,846,507,867,506,872,393,851"/>
-<area shape="poly" title=" " alt="" coords="403,796,433,809,449,822,458,835,467,847,481,859,495,865,493,870,479,863,463,851,454,838,445,825,431,814,401,801"/>
-<area shape="rect" href="Dtls__openssl_8c.html#aecbeba286633c5eef67e69f59e1d9b7f" title=" " alt="" coords="498,823,681,848"/>
-<area shape="poly" title=" " alt="" coords="394,796,507,818,506,823,393,802"/>
-<area shape="rect" href="Dtls__openssl_8c.html#a0872f720df900a4176081befd72bedf4" title=" " alt="" coords="526,675,653,700"/>
-<area shape="poly" title=" " alt="" coords="348,771,407,741,479,710,512,701,513,706,481,715,409,746,351,776"/>
-<area shape="rect" href="PeerConnection_8c.html#a2866c8ee0d8506fb54885976750bac71" title=" " alt="" coords="503,724,675,750"/>
-<area shape="poly" title=" " alt="" coords="393,771,506,750,507,755,394,776"/>
-<area shape="rect" href="ThreadPoolContext_8c.html#a699e80c90be085434e9270138225e5de" title=" " alt="" coords="502,774,677,799"/>
-<area shape="poly" title=" " alt="" coords="432,784,488,784,488,789,432,789"/>
-<area shape="poly" title=" " alt="" coords="681,833,785,833,785,838,681,838"/>
-<area shape="poly" title=" " alt="" coords="663,846,785,867,784,872,662,851"/>
-<area shape="poly" title=" " alt="" coords="654,690,678,698,700,711,712,723,719,736,725,762,731,787,737,798,748,809,766,820,786,827,784,832,764,825,745,814,733,802,726,789,720,763,714,738,708,726,697,715,676,703,652,695"/>
-<area shape="poly" title=" " alt="" coords="654,689,679,697,700,711,716,729,723,749,725,787,727,824,734,842,748,859,766,871,786,878,784,883,764,875,745,863,730,845,722,826,720,787,718,750,711,732,697,715,676,701,652,694"/>
-<area shape="poly" title=" " alt="" coords="392,882,473,882,473,888,392,888"/>
-<area shape="poly" title=" " alt="" coords="391,870,507,848,508,853,392,875"/>
-<area shape="rect" href="PeerConnection_8c.html#a8550d4c65dc37cbff20ac6179ba1a59b" title=" " alt="" coords="539,971,639,996"/>
-<area shape="poly" title=" " alt="" coords="393,892,433,908,449,920,458,933,467,946,481,957,527,974,525,979,479,962,463,950,454,936,445,924,431,913,391,897"/>
-<area shape="rect" href="SrtpSession_8c.html#afe512a0cab224a349acd9e358c39ff0e" title=" " alt="" coords="516,1020,663,1046"/>
-<area shape="poly" title=" " alt="" coords="392,889,414,896,434,908,446,920,453,933,459,959,464,984,471,996,482,1007,504,1019,502,1024,478,1011,466,999,459,986,453,960,448,935,441,924,430,912,412,901,391,894"/>
-<area shape="rect" href="Dtls__openssl_8c.html#a929cb0f439a6b6353f741b841d095da3" title=" " alt="" coords="495,922,683,947"/>
-<area shape="poly" title=" " alt="" coords="392,895,508,916,507,922,391,900"/>
-<area shape="rect" href="Rtcp_8c.html#aaaf444db910596fed5abe9a8518b68f1" title=" " alt="" coords="535,1070,644,1095"/>
-<area shape="poly" title=" " alt="" coords="392,887,414,895,434,908,449,927,456,946,459,984,461,1021,468,1039,482,1056,501,1068,522,1076,521,1081,498,1073,478,1060,463,1042,455,1023,453,985,451,947,444,929,430,912,412,900,390,892"/>
-<area shape="poly" title=" " alt="" coords="671,919,697,908,712,896,720,884,730,871,745,859,784,843,786,848,748,863,734,875,725,887,716,900,700,912,673,924"/>
-<area shape="poly" title=" " alt="" coords="662,919,784,897,785,903,663,924"/>
+<area shape="rect" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,623,171,649"/>
+<area shape="rect" href="ConnectionListener_8c.html#a24660cc58fb5a9b154011e3a4092819b" title=" " alt="" coords="231,35,419,61"/>
+<area shape="poly" title=" " alt="" coords="86,623,88,540,93,477,103,406,119,330,142,252,174,177,217,108,243,82,274,64,276,69,246,87,221,111,179,179,147,254,124,331,108,407,99,478,94,540,92,623"/>
+<area shape="rect" href="Dtls__openssl_8c.html#ac40bba1019de3e73a9006b12c9dc4eaa" title=" " alt="" coords="256,122,395,147"/>
+<area shape="poly" title=" " alt="" coords="88,623,99,559,122,459,160,343,186,285,216,231,253,187,292,154,296,158,257,191,221,234,191,287,165,345,127,460,104,560,94,624"/>
+<area shape="rect" href="IceAgent_8c.html#af2fe29241b2d4ab4997fe04c41534578" title=" " alt="" coords="265,245,385,270"/>
+<area shape="poly" title=" " alt="" coords="95,622,307,281,311,283,100,624"/>
+<area shape="rect" href="Dtls_8c.html#a8b1d124e37f661b01ee5924e188a3f0b" title=" " alt="" coords="221,450,430,475"/>
+<area shape="poly" title=" " alt="" coords="94,622,140,556,175,517,217,485,229,478,232,483,220,489,179,521,144,559,99,625"/>
+<area shape="rect" href="Dtls_8c.html#a61b25e14613d4c213fb135aa61d470c7" title=" " alt="" coords="227,499,424,525"/>
+<area shape="poly" title=" " alt="" coords="100,621,149,578,182,554,218,534,236,526,238,531,220,539,185,558,152,582,104,625"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="250,549,401,574"/>
+<area shape="poly" title=" " alt="" coords="129,621,271,576,272,581,130,626"/>
+<area shape="rect" href="PeerConnection_8c.html#ad6b6bbcdb7fe1c2959acfdaa64f04e48" title=" " alt="" coords="236,623,415,649"/>
+<area shape="poly" title=" " alt="" coords="171,633,222,633,222,639,171,639"/>
+<area shape="rect" href="PeerConnection_8c.html#a8623356d515aabe66d493018cc61c1f3" title=" " alt="" coords="241,685,410,710"/>
+<area shape="poly" title=" " alt="" coords="139,646,263,679,262,684,137,651"/>
+<area shape="rect" href="PeerConnection_8c.html#aa0ee0298b690c7461c019e5e70217b37" title=" " alt="" coords="252,914,399,939"/>
+<area shape="poly" title=" " alt="" coords="97,648,142,738,178,796,221,850,255,881,291,905,288,909,252,885,217,854,173,799,137,740,92,650"/>
+<area shape="rect" href="PeerConnection_8c.html#a0a0385b5afef472a439ff5d8d8d7c1a0" title=" " alt="" coords="219,815,432,841"/>
+<area shape="poly" title=" " alt="" coords="107,647,299,804,296,809,103,651"/>
+<area shape="rect" href="PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="259,1011,391,1037"/>
+<area shape="poly" title=" " alt="" coords="94,648,107,700,131,778,169,867,193,910,221,949,252,979,287,1002,284,1007,249,983,217,953,188,912,164,869,126,780,102,702,89,649"/>
+<area shape="rect" href="PeerConnection_8c.html#a3eda037f96c4d95b9c17774243ba3291" title=" " alt="" coords="232,1061,419,1086"/>
+<area shape="poly" title=" " alt="" coords="92,649,95,719,100,769,111,826,126,886,149,944,180,999,221,1046,227,1052,224,1056,217,1050,176,1002,144,947,121,887,105,827,95,770,89,719,86,649"/>
+<area shape="rect" href="PeerConnection_8c.html#a75fa932f0d317465ffdd4682def8077c" title=" " alt="" coords="254,1307,397,1333"/>
+<area shape="poly" title=" " alt="" coords="95,648,138,828,176,961,221,1096,269,1208,313,1294,308,1297,265,1210,216,1098,171,963,133,829,89,649"/>
+<area shape="rect" href="ConnectionListener_8c.html#a49f4d889996cb555ffe78ecf4584ec1a" title=" " alt="" coords="747,194,920,219"/>
+<area shape="poly" title=" " alt="" coords="365,33,431,16,517,4,563,3,610,6,656,16,700,32,723,46,744,63,779,103,806,145,824,180,819,183,801,148,775,106,740,67,720,50,698,37,655,21,610,12,563,8,517,10,432,21,366,38"/>
+<area shape="rect" href="Network_8c.html#a8c64aed52ea980830d0f9db66fc93e1b" title=" " alt="" coords="1197,383,1295,409"/>
+<area shape="poly" title=" " alt="" coords="886,217,921,228,1031,274,1137,328,1215,374,1212,378,1135,333,1029,278,919,233,884,222"/>
+<area shape="rect" href="Network_8c.html#ac1e27be5d1de7a987f26d081e5d98234" title=" " alt="" coords="1003,194,1101,219"/>
+<area shape="poly" title=" " alt="" coords="920,204,989,204,989,209,920,209"/>
+<area shape="rect" href="Dtls__mbedtls_8c.html#a1c75688dc5d8d3130894b0d1aaf1f60b" title=" " alt="" coords="480,47,699,73"/>
+<area shape="poly" title=" " alt="" coords="361,120,479,82,512,73,513,78,481,87,362,125"/>
+<area shape="rect" href="Stun_8c.html#a82bd20e19952bf247d16b639fc091a34" title=" " alt="" coords="522,195,657,221"/>
+<area shape="poly" title=" " alt="" coords="385,244,508,221,508,226,386,249"/>
+<area shape="rect" href="IceUtils_8c.html#a253397f5ac2ab54ecf549f88096ed942" title=" " alt="" coords="498,245,681,270"/>
+<area shape="poly" title=" " alt="" coords="386,255,484,255,484,260,386,260"/>
+<area shape="rect" href="IceAgent_8c.html#a767c2a29e3bfba0aa45872d26b41a6f4" title=" " alt="" coords="537,343,642,369"/>
+<area shape="poly" title=" " alt="" coords="351,268,409,298,481,328,524,341,523,346,479,333,407,303,348,273"/>
+<area shape="rect" href="IceAgent_8c.html#a1cfd588b7d18304d6feb6e32417a508f" title=" " alt="" coords="498,294,681,319"/>
+<area shape="poly" title=" " alt="" coords="386,266,508,289,507,294,385,271"/>
+<area shape="rect" href="IceAgent_8c.html#a6bcfd3644a9038357b400059ed0d3a97" title=" " alt="" coords="480,97,699,122"/>
+<area shape="poly" title=" " alt="" coords="337,243,394,188,434,157,479,131,496,124,498,129,481,136,437,162,397,192,340,247"/>
+<area shape="rect" href="IceUtils_8c.html#a833304d5c66c3dfef87036727631628f" title=" " alt="" coords="530,146,649,171"/>
+<area shape="poly" title=" " alt="" coords="348,242,406,211,479,180,516,170,517,175,481,185,408,216,350,247"/>
+<area shape="rect" href="Stun_8c.html#a2ac5f96729bf2bfce45f59c72db4ff43" title=" " alt="" coords="774,243,893,269"/>
+<area shape="poly" title=" " alt="" coords="655,218,761,239,760,244,654,223"/>
+<area shape="poly" title=" " alt="" coords="641,351,671,343,697,329,708,317,715,306,720,280,726,255,733,241,745,229,751,224,755,228,748,233,738,244,731,256,726,282,720,308,712,321,700,333,673,348,643,356"/>
+<area shape="poly" title=" " alt="" coords="642,348,670,340,697,328,712,317,721,304,730,291,745,278,760,270,762,275,748,282,734,294,725,307,716,320,700,333,672,345,643,353"/>
+<area shape="rect" href="IceAgent_8c.html#a76f0508cf719814537ce707e3f524407" title=" " alt="" coords="755,293,912,318"/>
+<area shape="poly" title=" " alt="" coords="642,343,757,318,758,324,643,348"/>
+<area shape="rect" href="IceUtils_8c.html#aed9b171e0c60584515c04c5dd47dd112" title=" " alt="" coords="968,343,1136,369"/>
+<area shape="poly" title=" " alt="" coords="642,353,954,353,954,359,642,359"/>
+<area shape="rect" href="SocketConnection_8c.html#aeea1e134b1c24f7138c4784b9b146e6b" title=" " alt="" coords="970,419,1134,445"/>
+<area shape="poly" title=" " alt="" coords="643,359,672,366,700,378,716,391,724,405,733,418,748,428,806,446,867,452,927,451,979,444,980,450,927,456,867,457,805,451,746,433,729,422,720,408,712,394,697,382,670,371,642,364"/>
+<area shape="rect" href="TurnConnection_8c.html#aae1ee157e839fde1869e664af4424c6a" title=" " alt="" coords="759,394,907,419"/>
+<area shape="poly" title=" " alt="" coords="643,364,758,389,757,394,642,370"/>
+<area shape="poly" title=" " alt="" coords="890,316,984,338,983,343,889,321"/>
+<area shape="poly" title=" " alt="" coords="1120,417,1183,405,1184,410,1121,422"/>
+<area shape="rect" href="Dtls__openssl_8c.html#aa1b6a668704b0b7ddf99be1f7977b8ba" title=" " alt="" coords="1184,457,1308,482"/>
+<area shape="poly" title=" " alt="" coords="1119,442,1171,452,1170,458,1118,447"/>
+<area shape="poly" title=" " alt="" coords="889,391,983,369,984,374,890,397"/>
+<area shape="poly" title=" " alt="" coords="908,413,957,418,956,424,907,418"/>
+<area shape="poly" title=" " alt="" coords="400,552,416,544,430,534,445,516,452,497,453,458,455,418,462,398,478,378,499,365,522,357,523,362,501,369,482,382,467,400,460,419,459,458,457,498,449,518,434,538,419,549,402,556"/>
+<area shape="poly" title=" " alt="" coords="401,553,698,525,1170,475,1170,481,699,531,401,558"/>
+<area shape="rect" href="PeerConnection_8c.html#a196fe6dcc68e9dcb121b490c5eaddac8" title=" " alt="" coords="532,593,647,618"/>
+<area shape="poly" title=" " alt="" coords="401,571,519,591,518,596,400,577"/>
+<area shape="rect" href="Rtp_8c.html#ac43cec8875bbd05633d9a31bff472efc" title=" " alt="" coords="505,642,673,667"/>
+<area shape="poly" title=" " alt="" coords="355,572,481,627,512,636,511,641,479,632,353,577"/>
+<area shape="rect" href="Sctp_8c.html#a7b4902e766599101f22b2f3ae12c3dd9" title=" " alt="" coords="526,393,653,418"/>
+<area shape="poly" title=" " alt="" coords="400,550,430,534,442,522,448,509,453,482,459,454,466,441,478,427,512,410,514,415,482,432,470,444,464,456,459,483,453,511,446,525,434,538,402,555"/>
+<area shape="rect" href="SrtpSession_8c.html#a2aee174624da64c0e3d5d7638cd8b196" title=" " alt="" coords="527,442,651,467"/>
+<area shape="poly" title=" " alt="" coords="400,547,431,534,445,521,454,506,462,491,479,477,513,462,515,467,481,481,467,494,458,509,449,524,433,538,402,552"/>
+<area shape="rect" href="IceAgent_8c.html#a0240b9dcf5654427458c2fdda5a2da29" title=" " alt="" coords="518,491,661,517"/>
+<area shape="poly" title=" " alt="" coords="384,546,516,517,518,522,385,551"/>
+<area shape="rect" href="IceAgent_8c.html#a23515725a875e5a1b44e90f2b36f2dd2" title=" " alt="" coords="513,691,666,717"/>
+<area shape="poly" title=" " alt="" coords="410,697,499,699,499,705,410,702"/>
+<area shape="rect" href="PeerConnection_8c.html#ab091080eb78ee92ae0529bdd743468a0" title=" " alt="" coords="487,938,692,963"/>
+<area shape="poly" title=" " alt="" coords="399,931,473,938,473,943,399,936"/>
+<area shape="poly" title=" " alt="" coords="344,839,403,880,441,903,481,923,506,932,504,937,479,928,438,908,400,885,341,843"/>
+<area shape="rect" href="Dtls__openssl_8c.html#aecbeba286633c5eef67e69f59e1d9b7f" title=" " alt="" coords="498,889,681,914"/>
+<area shape="poly" title=" " alt="" coords="366,838,481,874,518,883,516,888,479,879,364,843"/>
+<area shape="rect" href="Dtls__openssl_8c.html#a0872f720df900a4176081befd72bedf4" title=" " alt="" coords="526,839,653,865"/>
+<area shape="poly" title=" " alt="" coords="432,835,512,842,512,848,432,840"/>
+<area shape="rect" href="PeerConnection_8c.html#a2866c8ee0d8506fb54885976750bac71" title=" " alt="" coords="503,741,675,766"/>
+<area shape="poly" title=" " alt="" coords="361,813,479,775,512,767,513,772,481,780,362,818"/>
+<area shape="rect" href="ThreadPoolContext_8c.html#a699e80c90be085434e9270138225e5de" title=" " alt="" coords="502,790,677,815"/>
+<area shape="poly" title=" " alt="" coords="432,815,488,810,488,815,432,821"/>
+<area shape="poly" title=" " alt="" coords="362,1009,479,972,512,964,513,969,481,977,364,1014"/>
+<area shape="poly" title=" " alt="" coords="343,1009,413,962,479,923,500,915,502,920,481,928,416,966,346,1013"/>
+<area shape="rect" href="PeerConnection_8c.html#a8550d4c65dc37cbff20ac6179ba1a59b" title=" " alt="" coords="539,1135,639,1161"/>
+<area shape="poly" title=" " alt="" coords="393,1028,414,1035,434,1046,451,1065,459,1084,466,1103,482,1121,503,1132,527,1139,525,1145,501,1137,478,1125,461,1106,454,1086,446,1068,430,1050,412,1040,391,1033"/>
+<area shape="rect" href="SrtpSession_8c.html#afe512a0cab224a349acd9e358c39ff0e" title=" " alt="" coords="516,1185,663,1210"/>
+<area shape="poly" title=" " alt="" coords="392,1026,414,1034,434,1046,447,1061,455,1078,459,1110,463,1141,469,1156,482,1170,505,1184,502,1189,478,1174,465,1159,457,1143,453,1110,450,1079,443,1064,430,1050,412,1038,391,1031"/>
+<area shape="rect" href="Dtls__openssl_8c.html#a929cb0f439a6b6353f741b841d095da3" title=" " alt="" coords="495,1234,683,1259"/>
+<area shape="poly" title=" " alt="" coords="393,1025,414,1033,434,1046,451,1068,458,1090,459,1135,459,1178,466,1199,482,1220,488,1225,485,1229,478,1223,461,1202,454,1179,453,1135,453,1091,446,1070,430,1050,412,1038,391,1030"/>
+<area shape="rect" href="Rtcp_8c.html#aaaf444db910596fed5abe9a8518b68f1" title=" " alt="" coords="535,987,644,1013"/>
+<area shape="poly" title=" " alt="" coords="391,1015,521,1004,521,1009,392,1021"/>
+<area shape="rect" href="Sctp_8c.html#a9d53411b7863f771c3f8cff564423440" title=" " alt="" coords="533,1037,646,1062"/>
+<area shape="poly" title=" " alt="" coords="392,1028,519,1040,518,1045,391,1033"/>
+<area shape="rect" href="PeerConnection_8c.html#ac7dfeca3237caae871b6cd2e0e50c73e" title=" " alt="" coords="495,1086,683,1111"/>
+<area shape="poly" title=" " alt="" coords="392,1034,433,1046,457,1058,481,1071,509,1080,508,1085,479,1076,455,1063,431,1051,391,1039"/>
+<area shape="rect" href="PeerConnection_8c.html#a238f88868aca090e6df3157964aff17c" title=" " alt="" coords="538,1283,641,1309"/>
+<area shape="poly" title=" " alt="" coords="396,1311,524,1299,524,1305,397,1316"/>
+<area shape="rect" href="PeerConnection_8c.html#a28a02578e79fc2032fe9ff8a036d57a5" title=" " alt="" coords="497,1333,682,1358"/>
+<area shape="poly" title=" " alt="" coords="397,1324,483,1333,483,1338,396,1330"/>
+<area shape="rect" href="PeerConnection_8c.html#a74a1c0c3f6d5146d04b8d133ac9369cb" title=" " alt="" coords="503,1382,676,1407"/>
+<area shape="poly" title=" " alt="" coords="362,1330,481,1368,513,1376,512,1382,479,1373,361,1335"/>
 </map>
 </div>
 
@@ -2748,6 +2759,181 @@ Here is the call graph for this function:</div>
 
 </div>
 </div>
+<a id="ga25744b27b8c99ea48af74d6747c949f0" name="ga25744b27b8c99ea48af74d6747c949f0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga25744b27b8c99ea48af74d6747c949f0">&#9670;&#160;</a></span>peerConnectionUpdateIceServers()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a> peerConnectionUpdateIceServers </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>&#160;</td>
+          <td class="paramname"><em>pPeerConnection</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__PublicStructures.html#ga3dac633294f8d8a99f3edaa2a193f808">PRtcIceServer</a>&#160;</td>
+          <td class="paramname"><em>pIceServers</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>&#160;</td>
+          <td class="paramname"><em>iceServersCount</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Dynamically update the ICE servers for an existing peer connection. </p>
+<p>This function allows adding new ICE servers to an already created peer connection. New TURN servers will have relay candidates created automatically, enabling progressive ICE server delivery for improved connection establishment performance.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">PRtcPeerConnection</td><td>Initialized <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a> </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">PRtcIceServer</td><td>Array of new ICE servers to add </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">UINT32</td><td>Number of ICE servers in the array</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>STATUS code of the execution. STATUS_SUCCESS on success </dd></dl>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__PublicMemberFunctions_ga25744b27b8c99ea48af74d6747c949f0_cgraph.png" border="0" usemap="#agroup__PublicMemberFunctions_ga25744b27b8c99ea48af74d6747c949f0_cgraph" alt=""/></div>
+<map name="agroup__PublicMemberFunctions_ga25744b27b8c99ea48af74d6747c949f0_cgraph" id="agroup__PublicMemberFunctions_ga25744b27b8c99ea48af74d6747c949f0_cgraph">
+<area shape="rect" title="Dynamically update the ICE servers for an existing peer connection." alt="" coords="5,715,244,740"/>
+<area shape="rect" href="IceAgent_8c.html#a74a49bdd9df7c624389e575b95764a61" title=" " alt="" coords="292,715,464,740"/>
+<area shape="poly" title=" " alt="" coords="244,725,278,725,278,730,244,730"/>
+<area shape="rect" href="IceAgent_8c.html#a280d0eaca18dc63b38f215030511a500" title=" " alt="" coords="512,372,715,397"/>
+<area shape="poly" title=" " alt="" coords="386,713,593,407,598,410,390,716"/>
+<area shape="rect" href="IceUtils_8c.html#a833304d5c66c3dfef87036727631628f" title=" " alt="" coords="1101,888,1220,913"/>
+<area shape="poly" title=" " alt="" coords="437,737,1089,882,1088,888,436,743"/>
+<area shape="rect" href="IceAgent_8c.html#a59fb161f9a724412e557db0531d15cb9" title=" " alt="" coords="788,247,980,272"/>
+<area shape="poly" title=" " alt="" coords="628,370,684,326,722,302,762,282,787,273,789,278,764,287,724,307,687,331,631,374"/>
+<area shape="rect" href="ConnectionListener_8c.html#ac634ad15c50810bf36f61e6d3eb6f00d" title=" " alt="" coords="763,296,1005,321"/>
+<area shape="poly" title=" " alt="" coords="656,369,762,338,820,322,821,327,763,343,657,374"/>
+<area shape="rect" href="SocketConnection_8c.html#a5dd11b0d4a90925f1f6019984576125a" title=" " alt="" coords="1071,215,1250,240"/>
+<area shape="poly" title=" " alt="" coords="715,382,781,378,855,369,931,354,1004,332,1042,314,1077,291,1134,247,1137,251,1081,296,1045,318,1006,336,932,359,856,374,781,383,715,387"/>
+<area shape="rect" href="TurnConnection_8c.html#a5ed58367d574c776c707421f5b8523b0" title=" " alt="" coords="803,397,965,423"/>
+<area shape="poly" title=" " alt="" coords="715,391,789,398,789,404,715,397"/>
+<area shape="rect" href="PeerConnection_8c.html#ad6b6bbcdb7fe1c2959acfdaa64f04e48" title=" " alt="" coords="795,447,973,472"/>
+<area shape="poly" title=" " alt="" coords="649,395,763,433,799,441,797,446,762,438,647,400"/>
+<area shape="rect" href="IceAgent_8c.html#ac6d7992fc8ddf1009332e5f72ec42cff" title=" " alt="" coords="775,500,993,525"/>
+<area shape="poly" title=" " alt="" coords="631,395,687,438,724,462,764,482,797,494,795,499,762,487,722,467,684,443,628,400"/>
+<area shape="rect" href="TurnConnection_8c.html#a4f67b773202384cba95d1390981aa127" title=" " alt="" coords="1073,693,1248,719"/>
+<area shape="poly" title=" " alt="" coords="626,396,681,461,720,500,764,536,851,587,943,630,1030,663,1102,687,1100,692,1028,668,941,635,849,592,761,540,717,504,677,465,622,399"/>
+<area shape="rect" href="TurnConnection_8c.html#a5b98aaf2a1b05b95f8cb088cf29aac54" title=" " alt="" coords="808,76,960,101"/>
+<area shape="poly" title=" " alt="" coords="620,370,675,289,716,236,761,184,807,142,851,107,854,112,810,146,765,188,720,239,680,292,625,373"/>
+<area shape="rect" href="IceAgent_8c.html#a484a080e7ea429250a7258ac375b678f" title=" " alt="" coords="816,197,952,223"/>
+<area shape="poly" title=" " alt="" coords="621,370,675,304,715,265,761,233,801,218,803,223,764,238,718,269,678,308,625,373"/>
+<area shape="rect" href="Network_8c.html#ab3ab2228bda4eb3452e7dcff085f78d1" title=" " alt="" coords="1667,107,1773,132"/>
+<area shape="poly" title=" " alt="" coords="1179,212,1237,177,1275,158,1315,143,1406,124,1497,115,1583,112,1653,113,1653,118,1583,117,1498,120,1406,130,1317,149,1277,163,1240,181,1181,217"/>
+<area shape="rect" href="SocketConnection_8c.html#aeea1e134b1c24f7138c4784b9b146e6b" title=" " alt="" coords="1359,272,1523,297"/>
+<area shape="poly" title=" " alt="" coords="1224,237,1317,257,1365,267,1364,272,1315,262,1223,243"/>
+<area shape="rect" href="Network_8c.html#afaa547109e09c5a34437553b7258e818" title=" " alt="" coords="1669,512,1771,537"/>
+<area shape="poly" title=" " alt="" coords="1177,239,1254,315,1317,372,1352,387,1383,395,1440,400,1498,403,1531,410,1568,422,1604,440,1639,461,1695,501,1691,505,1636,465,1601,444,1566,427,1529,415,1497,409,1440,405,1382,401,1351,392,1315,376,1250,319,1173,242"/>
+<area shape="rect" href="Network_8c.html#a4f29c6a3a39d3d89eb7e05a3fa461ca1" title=" " alt="" coords="1395,157,1488,183"/>
+<area shape="poly" title=" " alt="" coords="1223,212,1315,193,1381,179,1382,185,1317,198,1224,217"/>
+<area shape="rect" href="Network_8c.html#aa99495dceea7ec8f4bfaa84b3f981db9" title=" " alt="" coords="1661,57,1779,83"/>
+<area shape="poly" title=" " alt="" coords="1172,212,1230,160,1270,132,1315,109,1402,83,1492,69,1576,63,1647,63,1647,69,1576,69,1492,74,1403,88,1317,114,1273,136,1233,164,1176,216"/>
+<area shape="rect" href="Network_8c.html#a4946ffd5e8761a38b4fc7bb253c1491a" title=" " alt="" coords="1902,83,2009,108"/>
+<area shape="poly" title=" " alt="" coords="1773,111,1888,99,1889,105,1774,117"/>
+<area shape="rect" href="Network_8c.html#a3179b58589909af6767082bb0a81aa62" title=" " alt="" coords="1899,145,2011,171"/>
+<area shape="poly" title=" " alt="" coords="1774,125,1886,144,1885,149,1773,131"/>
+<area shape="rect" href="Network_8c.html#a8c64aed52ea980830d0f9db66fc93e1b" title=" " alt="" coords="1671,257,1769,283"/>
+<area shape="poly" title=" " alt="" coords="1523,278,1657,271,1657,276,1524,283"/>
+<area shape="rect" href="Dtls__openssl_8c.html#aa1b6a668704b0b7ddf99be1f7977b8ba" title=" " alt="" coords="1658,356,1782,381"/>
+<area shape="poly" title=" " alt="" coords="1524,293,1568,308,1583,316,1592,325,1616,342,1646,353,1644,358,1613,347,1589,329,1579,320,1566,312,1523,299"/>
+<area shape="rect" href="Tls__openssl_8c.html#aa94c64c8b1c8378f85d7081459ec9425" title=" " alt="" coords="1661,307,1779,332"/>
+<area shape="poly" title=" " alt="" coords="1524,292,1648,308,1647,313,1523,297"/>
+<area shape="poly" title=" " alt="" coords="1524,288,1547,296,1568,308,1588,327,1597,347,1604,368,1617,393,1661,451,1701,500,1697,503,1656,455,1612,395,1599,370,1592,349,1583,330,1565,312,1545,301,1523,293"/>
+<area shape="poly" title=" " alt="" coords="1769,266,1798,258,1824,244,1836,231,1843,218,1848,191,1853,162,1860,147,1871,132,1900,112,1903,116,1875,136,1865,150,1858,164,1853,192,1848,220,1840,234,1827,248,1800,263,1770,271"/>
+<area shape="poly" title=" " alt="" coords="1769,260,1824,244,1881,212,1927,177,1930,182,1884,216,1826,248,1770,265"/>
+<area shape="rect" href="Dtls__mbedtls_8c.html#aa6d608da9c875fbfccf37bd3e716e836" title=" " alt="" coords="1873,381,2037,407"/>
+<area shape="poly" title=" " alt="" coords="1783,373,1860,381,1859,386,1782,378"/>
+<area shape="rect" href="IOBuffer_8c.html#a716982d27f4e9cf43d6737555e684289" title=" " alt="" coords="1905,332,2006,357"/>
+<area shape="poly" title=" " alt="" coords="1782,360,1891,348,1891,354,1783,365"/>
+<area shape="poly" title=" " alt="" coords="1779,323,1891,335,1891,340,1779,328"/>
+<area shape="rect" href="Tls__mbedtls_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="1879,283,2031,308"/>
+<area shape="poly" title=" " alt="" coords="1779,311,1865,302,1866,307,1779,316"/>
+<area shape="poly" title=" " alt="" coords="1453,155,1479,129,1517,97,1563,66,1614,42,1672,27,1719,25,1767,31,1826,42,1875,56,1918,74,1916,79,1873,61,1825,47,1766,36,1719,30,1673,33,1616,47,1565,70,1520,101,1482,133,1456,159"/>
+<area shape="poly" title=" " alt="" coords="1488,166,1885,157,1886,162,1488,172"/>
+<area shape="poly" title=" " alt="" coords="1489,165,1530,172,1551,181,1568,193,1588,217,1599,241,1603,264,1603,288,1602,337,1606,364,1617,393,1635,424,1656,453,1697,500,1693,504,1652,456,1630,427,1612,395,1601,365,1597,338,1598,288,1597,265,1594,242,1584,220,1565,197,1548,185,1529,177,1488,171"/>
+<area shape="poly" title=" " alt="" coords="1779,74,1889,86,1888,91,1779,79"/>
+<area shape="poly" title=" " alt="" coords="1780,79,1826,93,1851,105,1875,118,1914,137,1912,142,1872,123,1848,110,1824,98,1778,84"/>
+<area shape="rect" href="TurnConnection_8c.html#aae1ee157e839fde1869e664af4424c6a" title=" " alt="" coords="1087,444,1235,469"/>
+<area shape="poly" title=" " alt="" coords="960,420,1073,439,1072,445,959,425"/>
+<area shape="rect" href="TurnConnection_8c.html#a698303b7a8700fad5ea9c49b6ce03f92" title=" " alt="" coords="1079,345,1242,371"/>
+<area shape="poly" title=" " alt="" coords="952,395,1079,371,1080,376,953,400"/>
+<area shape="rect" href="TurnConnection_8c.html#a0412df9eeccb0d3084100fee6c5a0741" title=" " alt="" coords="1072,395,1249,420"/>
+<area shape="poly" title=" " alt="" coords="966,407,1058,406,1058,411,966,412"/>
+<area shape="poly" title=" " alt="" coords="1234,448,1251,441,1266,431,1279,417,1285,402,1289,371,1293,339,1301,323,1314,308,1345,291,1348,295,1318,312,1305,326,1298,340,1294,371,1290,403,1283,419,1270,435,1254,445,1236,453"/>
+<area shape="rect" href="ConnectionListener_8c.html#aadef069d7cf4137e975a3d91c8a46400" title=" " alt="" coords="1342,207,1541,247"/>
+<area shape="poly" title=" " alt="" coords="1234,449,1251,441,1266,431,1282,411,1289,390,1290,347,1290,303,1298,281,1314,259,1329,247,1332,251,1318,263,1302,283,1295,304,1295,347,1294,391,1287,413,1270,435,1254,446,1236,453"/>
+<area shape="rect" href="IceUtils_8c.html#aed9b171e0c60584515c04c5dd47dd112" title=" " alt="" coords="1357,615,1525,640"/>
+<area shape="poly" title=" " alt="" coords="1236,467,1270,487,1282,501,1289,517,1294,546,1299,575,1305,588,1318,601,1345,616,1343,621,1314,605,1301,591,1294,577,1289,547,1284,518,1278,504,1266,491,1234,472"/>
+<area shape="rect" href="TurnConnection_8c.html#aad130b1edfa1b039733e0595c43ffd39" title=" " alt="" coords="1326,437,1557,477"/>
+<area shape="poly" title=" " alt="" coords="1235,454,1312,454,1312,459,1235,459"/>
+<area shape="rect" href="SocketConnection_8c.html#ae1067d81a0037b1cb7e2275d55b554a4" title=" " alt="" coords="1629,208,1811,233"/>
+<area shape="poly" title=" " alt="" coords="1541,222,1616,220,1616,226,1541,228"/>
+<area shape="rect" href="Stun_8c.html#a2ac5f96729bf2bfce45f59c72db4ff43" title=" " alt="" coords="1661,564,1779,589"/>
+<area shape="poly" title=" " alt="" coords="1545,474,1568,487,1584,502,1593,518,1601,533,1616,548,1648,563,1646,567,1613,552,1597,537,1588,521,1580,505,1565,491,1543,479"/>
+<area shape="rect" href="IceAgent_8c.html#a97079f5f6e61ff478f94f9934af5eec0" title=" " alt="" coords="1079,500,1243,525"/>
+<area shape="poly" title=" " alt="" coords="993,510,1065,510,1065,515,993,515"/>
+<area shape="rect" href="TurnConnection_8c.html#a8a64d1bd035e1d61ccadb5a22a7d1281" title=" " alt="" coords="1055,557,1267,597"/>
+<area shape="poly" title=" " alt="" coords="941,523,1060,551,1059,556,940,528"/>
+<area shape="rect" href="IceAgent_8c.html#a6c1328530aa9bf24d4e8869be7334567" title=" " alt="" coords="1373,664,1510,689"/>
+<area shape="poly" title=" " alt="" coords="1236,523,1270,543,1282,556,1289,571,1294,599,1299,626,1306,638,1318,651,1338,663,1360,670,1359,675,1335,667,1314,655,1302,642,1294,628,1289,600,1284,572,1277,559,1266,547,1233,528"/>
+<area shape="rect" href="SocketConnection_8c.html#a7b59a8edcc8ca526852417511b116dd7" title=" " alt="" coords="1341,322,1542,362"/>
+<area shape="poly" title=" " alt="" coords="1227,498,1267,480,1282,467,1291,453,1300,439,1314,423,1352,393,1390,367,1393,372,1355,397,1318,427,1304,442,1295,456,1286,470,1269,484,1230,502"/>
+<area shape="poly" title=" " alt="" coords="1510,672,1539,665,1565,651,1576,639,1583,628,1588,603,1594,576,1601,563,1613,551,1633,538,1654,530,1656,535,1635,543,1616,555,1605,566,1599,578,1594,604,1588,630,1581,643,1568,655,1541,670,1511,677"/>
+<area shape="poly" title=" " alt="" coords="1510,664,1566,650,1630,623,1685,594,1687,599,1632,628,1568,655,1511,670"/>
+<area shape="rect" href="Network_8c.html#a05d12502235a4a9313ba49cdfc4487a4" title=" " alt="" coords="1653,733,1787,759"/>
+<area shape="poly" title=" " alt="" coords="1510,687,1567,699,1665,727,1664,732,1566,705,1509,692"/>
+<area shape="poly" title=" " alt="" coords="1543,349,1644,359,1644,364,1542,354"/>
+<area shape="poly" title=" " alt="" coords="1542,331,1648,322,1648,328,1543,336"/>
+<area shape="rect" href="TurnConnection_8c.html#a469ffb6f5621fc4161cbfb2e8dbe1c3f" title=" " alt="" coords="1316,713,1567,739"/>
+<area shape="poly" title=" " alt="" coords="1182,595,1239,648,1276,676,1317,700,1335,707,1333,712,1315,704,1274,681,1236,652,1178,599"/>
+<area shape="rect" href="TurnConnection_8c.html#ac7590c1bfdb16e75113b2d4f6bebd2a6" title=" " alt="" coords="1343,565,1539,591"/>
+<area shape="poly" title=" " alt="" coords="1267,575,1330,575,1330,580,1267,580"/>
+<area shape="rect" href="TurnConnection_8c.html#aaec43f30cc20102b0d073b4fff07d8b6" title=" " alt="" coords="1343,501,1539,541"/>
+<area shape="poly" title=" " alt="" coords="1261,554,1329,540,1330,545,1262,559"/>
+<area shape="poly" title=" " alt="" coords="1508,563,1655,534,1656,540,1509,568"/>
+<area shape="poly" title=" " alt="" coords="1540,575,1647,574,1647,580,1540,580"/>
+<area shape="poly" title=" " alt="" coords="1540,519,1655,521,1655,526,1540,525"/>
+<area shape="poly" title=" " alt="" coords="1540,538,1648,560,1647,565,1539,543"/>
+<area shape="poly" title=" " alt="" coords="1194,691,1315,650,1355,640,1357,645,1317,655,1195,696"/>
+<area shape="rect" href="IceUtils_8c.html#a253397f5ac2ab54ecf549f88096ed942" title=" " alt="" coords="1350,763,1533,788"/>
+<area shape="poly" title=" " alt="" coords="1202,716,1317,749,1355,757,1354,763,1315,754,1201,721"/>
+<area shape="rect" href="TurnConnection_8c.html#a9554f30fbafbccca935277837ee1b2dc" title=" " alt="" coords="1334,812,1549,837"/>
+<area shape="poly" title=" " alt="" coords="1180,717,1239,757,1277,780,1317,798,1341,806,1339,811,1315,803,1274,784,1236,762,1177,721"/>
+<area shape="poly" title=" " alt="" coords="1518,809,1566,798,1674,761,1676,766,1567,803,1519,815"/>
+<area shape="rect" href="TurnConnection_8c.html#af01ecc35132ec796882b5cfca6c25e0c" title=" " alt="" coords="1053,41,1268,67"/>
+<area shape="poly" title=" " alt="" coords="960,77,1045,66,1046,71,961,82"/>
+<area shape="rect" href="TurnConnectionStateMachine_8c.html#aaecdea4c04ee23b7aac3f5b63578d3e0" title=" " alt="" coords="1322,5,1561,31"/>
+<area shape="poly" title=" " alt="" coords="1260,39,1328,30,1329,35,1260,44"/>
+<area shape="poly" title=" " alt="" coords="1220,899,1310,898,1413,891,1506,875,1541,863,1565,848,1580,831,1590,814,1600,778,1598,742,1591,704,1583,666,1580,628,1588,589,1598,570,1613,551,1632,536,1654,527,1656,532,1634,541,1617,555,1603,573,1593,591,1586,628,1588,666,1596,703,1603,741,1605,779,1595,816,1584,834,1568,852,1543,868,1507,880,1413,896,1310,903,1220,904"/>
+<area shape="rect" href="Network_8c.html#a0d71e1c27b8edd976050cd6310473f4c" title=" " alt="" coords="1364,913,1519,939"/>
+<area shape="poly" title=" " alt="" coords="1221,903,1351,915,1350,920,1220,909"/>
+<area shape="rect" href="Network_8c.html#a742422827e4fbd13aa34322bd5394851" title=" " alt="" coords="1683,968,1757,993"/>
+<area shape="poly" title=" " alt="" coords="1194,911,1251,931,1317,949,1414,964,1511,973,1669,978,1669,984,1510,978,1413,969,1315,954,1249,936,1192,916"/>
+<area shape="poly" title=" " alt="" coords="1518,918,1544,908,1565,892,1581,871,1591,850,1600,808,1597,766,1588,724,1579,681,1576,638,1585,595,1596,573,1613,551,1632,536,1654,527,1656,532,1634,541,1617,555,1601,576,1590,596,1581,639,1584,681,1593,723,1603,766,1606,809,1596,852,1585,874,1569,896,1546,913,1520,923"/>
+<area shape="rect" href="Network_8c.html#a3603905bcdd27fa193f89b2e3597eac2" title=" " alt="" coords="1615,903,1825,943"/>
+<area shape="poly" title=" " alt="" coords="1519,923,1601,922,1601,927,1519,928"/>
+<area shape="rect" href="Network_8c.html#a86a24b8a9ad2f8e2497e0d058ef43a20" title=" " alt="" coords="1615,853,1825,879"/>
+<area shape="poly" title=" " alt="" coords="1501,911,1647,879,1648,884,1502,916"/>
+<area shape="poly" title=" " alt="" coords="1507,936,1670,968,1669,973,1506,941"/>
+</map>
+</div>
+
+</div>
+</div>
 <a id="gade9fcbb056cb321f33890c1cf1222e64" name="gade9fcbb056cb321f33890c1cf1222e64"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#gade9fcbb056cb321f33890c1cf1222e64">&#9670;&#160;</a></span>restartIce()</h2>
 
@@ -3141,6 +3327,96 @@ Here is the call graph for this function:</div>
 <area shape="poly" title=" " alt="" coords="877,1095,1082,1131,1170,1148,1212,1160,1224,1171,1231,1182,1238,1206,1244,1229,1260,1251,1282,1264,1280,1269,1257,1255,1239,1231,1233,1207,1226,1185,1220,1174,1209,1164,1168,1153,1081,1136,876,1100"/>
 </map>
 </div>
+
+</div>
+</div>
+<a id="ga478a28d6a238cdccb013c72956311438" name="ga478a28d6a238cdccb013c72956311438"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga478a28d6a238cdccb013c72956311438">&#9670;&#160;</a></span>setOnPeerCongestionFeedbackFn()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a> setOnPeerCongestionFeedbackFn </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>&#160;</td>
+          <td class="paramname"><em>pPeerConnection</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>&#160;</td>
+          <td class="paramname"><em>customData</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__Callbacks.html#ga183d2c9b124e7591b37a6a6478926d52">RtcOnPeerCongestionFeedback</a>&#160;</td>
+          <td class="paramname"><em>onPeerCongestionFeedback</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Configure a callback invoked when the SDK has congestion context ready for the application. The application uses this to adjust encoder bitrate or other media parameters. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">PRtcPeerConnection</td><td>Initialized <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a> </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">UINT64</td><td>User customData that will be passed along when the callback is called </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">RtcOnPeerCongestionFeedback</td><td>User callback</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>STATUS code of the execution. STATUS_SUCCESS on success </dd></dl>
+
+</div>
+</div>
+<a id="gaf24b6c1b2d5fa637b47b10759849514d" name="gaf24b6c1b2d5fa637b47b10759849514d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaf24b6c1b2d5fa637b47b10759849514d">&#9670;&#160;</a></span>setOnTwccFeedbackReceived()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a> setOnTwccFeedbackReceived </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>&#160;</td>
+          <td class="paramname"><em>pPeerConnection</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>&#160;</td>
+          <td class="paramname"><em>customData</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__Callbacks.html#ga92d619bd4ed3d0a6a9a1d30a54916d39">RtcOnTwccFeedbackReceived</a>&#160;</td>
+          <td class="paramname"><em>onTwccFbReceived</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Configure a custom TWCC feedback received callback. When TWCC feedback arrives from the remote peer, this callback is invoked to update the congestion state. If not set, the SDK uses a default EMA-smoothed least-squares trendline estimator. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">PRtcPeerConnection</td><td>Initialized <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a> </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">UINT64</td><td>User customData that will be passed along when the callback is called </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">RtcOnTwccFeedbackReceived</td><td>User callback</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>STATUS code of the execution. STATUS_SUCCESS on success </dd></dl>
 
 </div>
 </div>
@@ -3954,6 +4230,46 @@ Here is the call graph for this function:</div>
 
 </div>
 </div>
+<a id="ga13f0a8efdd5bd707d9c51091a4eedc06" name="ga13f0a8efdd5bd707d9c51091a4eedc06"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga13f0a8efdd5bd707d9c51091a4eedc06">&#9670;&#160;</a></span>transceiverSetFmtp()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a> transceiverSetFmtp </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__PublicStructures.html#ga575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a>&#160;</td>
+          <td class="paramname"><em>pRtcRtpTransceiver</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PCHAR</a>&#160;</td>
+          <td class="paramname"><em>fmtp</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Override the H264 fmtp string advertised in SDP offers and answers for this transceiver. </p>
+<p>By default the SDK advertises a Baseline-profile fmtp (DEFAULT_H264_FMTP). Use this to pin a different fmtp (for example, a different profile-level-id) when the local encoder/decoder requires it. Pass NULL or an empty string to clear the override and fall back to the default.</p>
+<p>Only applied to H264 (RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE); ignored for other codecs.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">PRtcRtpTransceiver</td><td>Transceiver returned from <a class="el" href="group__PublicMemberFunctions.html#ga5b89dc2e301e35f30330c57bc1361dcb" title="Create a new RtcRtpTransceiver and add it to the set of transceivers.">addTransceiver()</a> </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">PCHAR</td><td>Null-terminated fmtp string (without the "a=fmtp:&lt;pt&gt; " prefix), or NULL to clear</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>STATUS code of the execution. STATUS_SUCCESS on success </dd></dl>
+
+</div>
+</div>
 <a id="gaba8d6226887ac3b7c24ec3a5f686e5c5" name="gaba8d6226887ac3b7c24ec3a5f686e5c5"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#gaba8d6226887ac3b7c24ec3a5f686e5c5">&#9670;&#160;</a></span>updateEncoderStats()</h2>
 
@@ -4117,7 +4433,7 @@ Here is the call graph for this function:</div>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Wed Jun 3 2026 05:06:32 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Wed Jun 3 2026 06:07:33 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>
