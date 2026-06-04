@@ -201,7 +201,10 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
     packetStatusCount = TWCC_PACKET_STATUS_COUNT(pRtcpPacket->payload);
 
     // Empty report, nothing to parse
-    CHK(packetStatusCount > 0, STATUS_SUCCESS);
+    if (packetStatusCount == 0u) {
+        DLOGD("Received empty TWCC packet");
+        CHK(FALSE, STATUS_SUCCESS);
+    }
 
     referenceTime = (pRtcpPacket->payload[12] << 16) | (pRtcpPacket->payload[13] << 8) | (pRtcpPacket->payload[14] & 0xff);
     referenceTime = KVS_CONVERT_TIMESCALE(referenceTime * 64, MILLISECONDS_PER_SECOND, HUNDREDS_OF_NANOS_IN_A_SECOND);
