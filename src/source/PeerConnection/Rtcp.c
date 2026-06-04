@@ -524,6 +524,7 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
         // Also cap reportLen to packetStatusCount to bound the allocation size
         CHK(packetStatusCount > 0, STATUS_SUCCESS);
         if (reportLen > packetStatusCount) {
+            DLOGD("Malformed TWCC packet: reportLen %u exceeds packetStatusCount %u", reportLen, packetStatusCount);
             reportLen = packetStatusCount;
         }
 
@@ -532,6 +533,11 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
         CHK(pFeedbackList != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
         for (seqNum = pTwccManager->prevReportedBaseSeqNum; seqNum != (UINT16) (pTwccManager->lastReportedSeqNum + 1); seqNum++) {
+            // Malformed packet: run-length in chunk exceeds packetStatusCount
+            if (feedbackCount >= reportLen) {
+                DLOGD("Malformed TWCC packet: feedback list full at seqNum %u, stopping early (reportLen %u)", seqNum, reportLen);
+                break;
+            }
             if (STATUS_SUCCEEDED(hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, seqNum, &twccPktVal))) {
                 pPktInfo = (PTwccRtpPacketInfo) twccPktVal;
                 if (pPktInfo != NULL && pPktInfo->remoteTimeKvs != TWCC_PACKET_LOST_TIME && pPktInfo->remoteTimeKvs != TWCC_PACKET_UNITIALIZED_TIME) {

@@ -1230,6 +1230,93 @@ TEST_F(RtcpFunctionalityTest, twccSeqNumWraparoundInvokesCallbackCorrectly)
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
+// Verify that a malformed TWCC packet where the run-length chunk exceeds
+// packetStatusCount does not cause a buffer overflow in the feedback list.
+// The crafted packet claims packetStatusCount=2 but has a run-length chunk of 10,
+// causing parseRtcpTwccPacket to set lastReportedSeqNum far beyond what
+// packetStatusCount indicates. Without the bounds check, the feedback loop would
+// write past the allocated buffer.
+TEST_F(RtcpFunctionalityTest, twccMalformedRunLengthExceedsStatusCountNoCrash)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    RtcConfiguration config{};
+    RtcpPacket rtcpPacket{};
+    RtpPacket rtpPacket{};
+    UINT32 extpayload;
+
+    struct CallbackCtx {
+        UINT32 invocations;
+        UINT32 feedbackCount;
+    } cbCtx = {0, 0};
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+
+    auto twccCallback = [](UINT64 customData, PTwccFeedback pFeedback, UINT32 feedbackCount, PTwccCongestionState pState) -> STATUS {
+        UNUSED_PARAM(pFeedback);
+        auto* ctx = (CallbackCtx*) customData;
+        ctx->invocations++;
+        ctx->feedbackCount = feedbackCount;
+        pState->delayTrend = 0.0;
+        return STATUS_SUCCESS;
+    };
+    EXPECT_EQ(STATUS_SUCCESS, setOnTwccFeedbackReceived(pRtcPeerConnection, (UINT64) &cbCtx, twccCallback));
+
+    // Send 10 packets with seqNums 0..9 so they exist in the hash table
+    for (UINT16 i = 0; i < 10; i++) {
+        rtpPacket.header.extension = TRUE;
+        rtpPacket.header.extensionProfile = TWCC_EXT_PROFILE;
+        rtpPacket.header.extensionLength = SIZEOF(UINT32);
+        extpayload = TWCC_PAYLOAD(parseExtId(TWCC_EXT_URL), i);
+        rtpPacket.header.extensionPayload = (PBYTE) &extpayload;
+        EXPECT_EQ(STATUS_SUCCESS, twccManagerOnPacketSent(pKvsPeerConnection, &rtpPacket));
+    }
+
+    // Craft a malformed TWCC feedback packet:
+    //   baseSeqNum = 0
+    //   packetStatusCount = 2  (claims only 2 packets)
+    //   But the run-length chunk says 10 (small delta, run=10)
+    //   Followed by 10 small delta values
+    // This causes parseRtcpTwccPacket to advance lastReportedSeqNum to 9,
+    // creating a range of 10 while the allocation is only for 2 elements.
+    BYTE payload[28] = {0};
+    // SSRC of sender
+    payload[0] = 0x44; payload[1] = 0x87; payload[2] = 0xA9; payload[3] = 0xE7;
+    // SSRC of media source
+    payload[4] = 0x54; payload[5] = 0xB3; payload[6] = 0xE6; payload[7] = 0xFD;
+    // baseSeqNum = 0
+    payload[8] = 0x00; payload[9] = 0x00;
+    // packetStatusCount = 2 (the lie - actually 10 packets in the chunk)
+    payload[10] = 0x00; payload[11] = 0x02;
+    // referenceTime (3 bytes) + fb pkt count (1 byte)
+    payload[12] = 0x14; payload[13] = 0x79; payload[14] = 0x72; payload[15] = 0x01;
+    // Run-length chunk: bit 15=0 (run-length), status=01 (small delta), run length=10
+    // Format: 0|SS|RRRRRRRRRRRRR -> 0|01|0000000001010 = 0x200A
+    payload[16] = 0x20; payload[17] = 0x0A;
+    // 10 small delta values (1 byte each): all 10 (= 2.5ms each in TWCC ticks)
+    payload[18] = 0x0A; payload[19] = 0x0A; payload[20] = 0x0A; payload[21] = 0x0A;
+    payload[22] = 0x0A; payload[23] = 0x0A; payload[24] = 0x0A; payload[25] = 0x0A;
+    payload[26] = 0x0A; payload[27] = 0x0A;
+
+    rtcpPacket.header.packetLength = SIZEOF(payload) / 4;
+    rtcpPacket.header.packetType = RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK;
+    rtcpPacket.header.receptionReportCount = RTCP_FEEDBACK_MESSAGE_TYPE_APPLICATION_LAYER_FEEDBACK;
+    rtcpPacket.payload = payload;
+    rtcpPacket.payloadLength = SIZEOF(payload);
+
+    // Without the feedbackCount < reportLen guard, this would overflow the buffer.
+    // With the fix, it should complete without crashing.
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection));
+
+    // Callback should have been invoked
+    EXPECT_EQ(1u, cbCtx.invocations);
+    // feedbackCount should be capped at packetStatusCount (2), not the full 10
+    EXPECT_LE(cbCtx.feedbackCount, 2u);
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
