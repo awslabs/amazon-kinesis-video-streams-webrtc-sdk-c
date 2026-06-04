@@ -577,30 +577,9 @@ channelInfo.cachingPolicy = CACHE_POLICY;
 
 ## TWCC support
 
-Transport Wide Congestion Control (TWCC) is a mechanism in WebRTC designed to enhance the performance and reliability of real-time communication over the internet. TWCC addresses the challenges of network congestion by providing detailed feedback on the transport of packets across the network, enabling adaptive bitrate control and optimization of media streams in real-time. This feedback mechanism is crucial for maintaining high-quality audio and video communication, as it allows senders to adjust their transmission strategies based on comprehensive information about packet losses, delays, and jitter experienced across the entire transport path.
+TWCC (Transport-Wide Congestion Control) enables adaptive bitrate control by monitoring packet delivery timing across the network. It is enabled by default in the SDK samples via `pSampleConfiguration->enableTwcc = TRUE`.
 
-The importance of TWCC in WebRTC lies in its ability to ensure efficient use of available network bandwidth while minimizing the negative impacts of network congestion. By monitoring the delivery of packets across the network, TWCC helps identify bottlenecks and adjust the media transmission rates accordingly. This dynamic approach to congestion control is essential for preventing degradation in call quality, such as pixelation, stuttering, or drops in audio and video streams, especially in environments with fluctuating network conditions.
-
-To learn more about TWCC, check [TWCC spec](https://datatracker.ietf.org/doc/html/draft-holmer-rmcat-transport-wide-cc-extensions-01)
-
-### Enabling TWCC support
-
-TWCC is enabled by default in the SDK samples (via `pSampleConfiguration->enableTwcc`) flag. In order to disable it, set this flag to `FALSE`.
-
-```c
-pSampleConfiguration->enableTwcc = FALSE;
-```
-
-If not using the samples directly, 2 things need to be done to set up Twcc:
-1. Set the `disableSenderSideBandwidthEstimation` to `FALSE`:
-```c
-configuration.kvsRtcConfiguration.disableSenderSideBandwidthEstimation = FALSE;
-```
-2. Set the callback that will have the business logic to modify the bitrate based on packet loss information. The callback can be set using `peerConnectionOnSenderBandwidthEstimation()`:
-```c
-CHK_STATUS(peerConnectionOnSenderBandwidthEstimation(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession,
-                                                     sampleSenderBandwidthEstimationHandler));
-```
+For full details, including how to configure it, override the estimator or bitrate logic, and troubleshoot, see [docs/TWCC.md](docs/TWCC.md).
 
 ## Use Pre-generated Certificates
 The certificate generating function ([createCertificateAndKey](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/Dtls__openssl_8c.html#a451c48525b0c0a8919a880d6834c1f7f)) in createDtlsSession() can take between 5 - 15 seconds in low performance embedded devices, it is called for every peer connection creation when KVS WebRTC receives an offer. To avoid this extra start-up latency, certificate can be pre-generated and passed into the PeerConnectionConfiguration when offer comes.
@@ -776,6 +755,9 @@ To help support this issue, please share the following details to `kinesis-video
 All Public APIs are documented in our [Include.h](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/blob/main/src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h), we also generate a [Doxygen](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-c/) each commit for easier navigation.
 
 See the [Status code reference](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/wiki/WebRTC-Status-Code-Reference) wiki page.
+
+Additional guides:
+- [TWCC (Transport-Wide Congestion Control)](docs/TWCC.md) — bandwidth estimation, bitrate adaptation, and troubleshooting
 
 Refer to [related](#related) for more about WebRTC and KVS.
 
