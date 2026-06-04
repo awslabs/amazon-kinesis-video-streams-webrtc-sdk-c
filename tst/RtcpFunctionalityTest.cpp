@@ -1156,6 +1156,88 @@ TEST_F(RtcpFunctionalityTest, twccZeroStatusCountAfterValidReportNoSpuriousCallb
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
+// Verify that zero packetStatusCount skips ALL callbacks: onTwccFeedbackReceived,
+// onPeerCongestionFeedback, and onSenderBandwidthEstimation.
+TEST_F(RtcpFunctionalityTest, twccZeroPacketStatusCountSkipsAllCallbacks)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    RtcConfiguration config{};
+    RtcpPacket rtcpPacket{};
+    RtpPacket rtpPacket{};
+    UINT32 extpayload;
+
+    struct CallbackCounters {
+        UINT32 twccFeedback;
+        UINT32 congestionFeedback;
+        UINT32 bweCallback;
+    } counters = {0, 0, 0};
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+
+    // Set all three callbacks
+    auto twccCallback = [](UINT64 customData, PTwccFeedback pFeedback, UINT32 feedbackCount, PTwccCongestionState pState) -> STATUS {
+        UNUSED_PARAM(pFeedback);
+        UNUSED_PARAM(feedbackCount);
+        ((CallbackCounters*) customData)->twccFeedback++;
+        pState->delayTrend = 0.0;
+        return STATUS_SUCCESS;
+    };
+    EXPECT_EQ(STATUS_SUCCESS, setOnTwccFeedbackReceived(pRtcPeerConnection, (UINT64) &counters, twccCallback));
+
+    auto congestionCallback = [](UINT64 customData, PCongestionCtx pCtx) -> STATUS {
+        UNUSED_PARAM(pCtx);
+        ((CallbackCounters*) customData)->congestionFeedback++;
+        return STATUS_SUCCESS;
+    };
+    EXPECT_EQ(STATUS_SUCCESS, setOnPeerCongestionFeedbackFn(pRtcPeerConnection, (UINT64) &counters, congestionCallback));
+
+    auto bweCallback = [](UINT64 customData, UINT32 sentBytes, UINT32 receivedBytes, UINT32 sentPackets, UINT32 receivedPackets,
+                          UINT64 duration) -> VOID {
+        UNUSED_PARAM(sentBytes);
+        UNUSED_PARAM(receivedBytes);
+        UNUSED_PARAM(sentPackets);
+        UNUSED_PARAM(receivedPackets);
+        UNUSED_PARAM(duration);
+        ((CallbackCounters*) customData)->bweCallback++;
+    };
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnSenderBandwidthEstimation(pRtcPeerConnection, (UINT64) &counters, bweCallback));
+
+    // Send packets so TWCC manager has state
+    for (UINT16 i = 0; i < 10; i++) {
+        rtpPacket.header.extension = TRUE;
+        rtpPacket.header.extensionProfile = TWCC_EXT_PROFILE;
+        rtpPacket.header.extensionLength = SIZEOF(UINT32);
+        extpayload = TWCC_PAYLOAD(parseExtId(TWCC_EXT_URL), i);
+        rtpPacket.header.extensionPayload = (PBYTE) &extpayload;
+        EXPECT_EQ(STATUS_SUCCESS, twccManagerOnPacketSent(pKvsPeerConnection, &rtpPacket));
+    }
+
+    // Craft a TWCC feedback packet with packetStatusCount = 0
+    BYTE payload[16] = {0};
+    payload[0] = 0x44; payload[1] = 0x87; payload[2] = 0xA9; payload[3] = 0xE7;
+    payload[4] = 0x54; payload[5] = 0xB3; payload[6] = 0xE6; payload[7] = 0xFD;
+    payload[8] = 0x00; payload[9] = 0x00;  // baseSeqNum = 0
+    payload[10] = 0x00; payload[11] = 0x00; // packetStatusCount = 0
+    payload[12] = 0x14; payload[13] = 0x7A; payload[14] = 0x00; payload[15] = 0x01;
+
+    rtcpPacket.header.packetLength = SIZEOF(payload) / 4;
+    rtcpPacket.header.packetType = RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK;
+    rtcpPacket.header.receptionReportCount = RTCP_FEEDBACK_MESSAGE_TYPE_APPLICATION_LAYER_FEEDBACK;
+    rtcpPacket.payload = payload;
+    rtcpPacket.payloadLength = SIZEOF(payload);
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection));
+
+    // None of the callbacks should have been invoked
+    EXPECT_EQ(0u, counters.twccFeedback);
+    EXPECT_EQ(0u, counters.congestionFeedback);
+    EXPECT_EQ(0u, counters.bweCallback);
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
 // Verify that a legitimate TWCC report spanning the UINT16 wraparound boundary
 // (e.g., seqNums 65534..1) works correctly and invokes the callback with proper data.
 TEST_F(RtcpFunctionalityTest, twccSeqNumWraparoundInvokesCallbackCorrectly)

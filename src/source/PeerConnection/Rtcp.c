@@ -511,6 +511,12 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     pTwccManager = pKvsPeerConnection->pTwccManager;
     CHK_STATUS(parseRtcpTwccPacket(pRtcpPacket, pTwccManager));
 
+    // Skip empty reports - nothing useful for any estimator path
+    if (TWCC_PACKET_STATUS_COUNT(pRtcpPacket->payload) == 0) {
+        DLOGD("Malformed TWCC packet: packetStatusCount is 0, skipping");
+        CHK(FALSE, STATUS_SUCCESS);
+    }
+
     // Compute trendline
     if (pKvsPeerConnection->onTwccFeedbackReceived != NULL) {
         // Custom estimator callback, build feedback list from this TWCC report
@@ -523,9 +529,7 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
         UINT16 reportLen = (UINT16) (pTwccManager->lastReportedSeqNum - pTwccManager->prevReportedBaseSeqNum + 1);
         UINT16 packetStatusCount = TWCC_PACKET_STATUS_COUNT(pRtcpPacket->payload);
 
-        // Skip callback for empty reports
-        // Also cap reportLen to packetStatusCount to bound the allocation size
-        CHK(packetStatusCount > 0, STATUS_SUCCESS);
+        // Cap reportLen to packetStatusCount to bound the allocation size
         if (reportLen > packetStatusCount) {
             DLOGD("Malformed TWCC packet: reportLen %u exceeds packetStatusCount %u", reportLen, packetStatusCount);
             reportLen = packetStatusCount;
