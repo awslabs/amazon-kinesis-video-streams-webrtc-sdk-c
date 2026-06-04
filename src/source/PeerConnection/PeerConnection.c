@@ -1372,14 +1372,19 @@ CleanUp:
 UINT32 parseExtId(PCHAR extmapValue)
 {
     ENTERS();
-    UINT32 extid = 0;
-    if (extmapValue == NULL && STRCHR(extmapValue, ' ') == NULL) {
-        LEAVES();
-        return 0;
-    }
-    if (STATUS_FAILED(STRTOUI32(extmapValue, STRCHR(extmapValue, ' '), 10, &extid))) {
-        LEAVES();
-        return 0;
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 extid;
+
+    CHK(extmapValue != NULL, STATUS_NULL_ARG);
+    CHK(STRCHR(extmapValue, ' ') != NULL, STATUS_INVALID_ARG);
+
+    CHK_STATUS(STRTOUI32(extmapValue, STRCHR(extmapValue, ' '), 10, &extid));
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+
+    if (STATUS_FAILED(retStatus)) {
+        extid = 0;
     }
 
     LEAVES();
