@@ -1536,6 +1536,19 @@ TEST_F(PeerConnectionFunctionalityTest, twccHeaderOnlyOnEnabledTransceivers)
     freePeerConnection(&answerPc);
 }
 
+TEST_F(PeerConnectionFunctionalityTest, parseExtIdHandlesNull)
+{
+    // NULL input must return 0
+    EXPECT_EQ(0u, parseExtId(NULL));
+
+    // String without a space should return 0
+    EXPECT_EQ(0u, parseExtId((PCHAR) "noSpace"));
+
+    // Valid extmap value: "$number $url"
+    EXPECT_EQ(5u, parseExtId((PCHAR) "5 http://example.com"));
+    EXPECT_EQ(12u, parseExtId((PCHAR) "12 urn:ietf:params"));
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
