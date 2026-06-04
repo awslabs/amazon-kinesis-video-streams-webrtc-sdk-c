@@ -323,7 +323,9 @@ static void parseTwcc(const std::string& hex, const uint32_t expectedReceived, c
 
     rtcpPacket.header.packetLength = payloadLen / 4;
     rtcpPacket.payload = payload;
-    rtcpPacket.payloadLength = payloadLen;
+    // Use the full buffer size as payloadLength so the parser can safely read
+    // trailing zero bytes that act as zero-value deltas (matching RTCP padding behavior)
+    rtcpPacket.payloadLength = SIZEOF(payload);
 
     EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
     pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
@@ -1058,8 +1060,37 @@ TEST_F(RtcpFunctionalityTest, parseRtcpTwccPacketRejectsTruncatedDeltas)
     pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
     EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnSenderBandwidthEstimation(pRtcPeerConnection, 0, testBwHandler));
 
-    // Check that the parser rejects the packet with partial data error
-    EXPECT_EQ(STATUS_RTCP_INPUT_PARTIAL_PACKET, parseRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection->pTwccManager));
+    // The parser should gracefully stop when it runs out of delta bytes
+    // rather than returning an error. It processes what it can.
+    EXPECT_EQ(STATUS_SUCCESS, parseRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection->pTwccManager));
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
+TEST_F(RtcpFunctionalityTest, parseRtcpTwccPacketRejectsShortPayload)
+{
+    PRtcPeerConnection pRtcPeerConnection = nullptr;
+    PKvsPeerConnection pKvsPeerConnection;
+    RtcConfiguration config{};
+    RtcpPacket rtcpPacket{};
+    BYTE payload[16] = {0};
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+
+    rtcpPacket.payload = payload;
+
+    rtcpPacket.payloadLength = 0;
+    EXPECT_EQ(STATUS_RTCP_INPUT_PACKET_TOO_SMALL, parseRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection->pTwccManager));
+
+    rtcpPacket.payloadLength = 10;
+    EXPECT_EQ(STATUS_RTCP_INPUT_PACKET_TOO_SMALL, parseRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection->pTwccManager));
+
+    rtcpPacket.payloadLength = 15;
+    EXPECT_EQ(STATUS_RTCP_INPUT_PACKET_TOO_SMALL, parseRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection->pTwccManager));
+
+    rtcpPacket.payloadLength = 16;
+    EXPECT_EQ(STATUS_SUCCESS, parseRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection->pTwccManager));
 
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
