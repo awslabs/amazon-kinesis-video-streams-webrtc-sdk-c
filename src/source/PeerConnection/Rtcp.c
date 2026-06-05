@@ -188,6 +188,7 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
     PTwccRtpPacketInfo pTwccPacket = NULL;
     UINT64 twccPktValue = 0;
     CHK(pTwccManager != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
+    CHK(pRtcpPacket->payloadLength >= TWCC_FB_PAYLOAD_MIN_LEN, STATUS_RTCP_INPUT_PACKET_TOO_SMALL);
 
     baseSeqNum = getUnalignedInt16BigEndian(pRtcpPacket->payload + 8);
     pTwccManager->prevReportedBaseSeqNum = baseSeqNum;
@@ -219,10 +220,18 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
                 recvDelta = MIN_INT16;
                 switch (statusSymbol) {
                     case TWCC_STATUS_SYMBOL_SMALLDELTA:
+                        if (recvOffset >= pRtcpPacket->payloadLength) {
+                            packetsRemaining = 0;
+                            break;
+                        }
                         recvDelta = (INT16) pRtcpPacket->payload[recvOffset];
                         recvOffset++;
                         break;
                     case TWCC_STATUS_SYMBOL_LARGEDELTA:
+                        if (recvOffset + 1 >= pRtcpPacket->payloadLength) {
+                            packetsRemaining = 0;
+                            break;
+                        }
                         recvDelta = getUnalignedInt16BigEndian(pRtcpPacket->payload + recvOffset);
                         recvOffset += 2;
                         break;
@@ -240,6 +249,9 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
                         break;
                     default:
                         DLOGD("runLength unhandled statusSymbol %u", statusSymbol);
+                }
+                if (packetsRemaining == 0) {
+                    break;
                 }
                 if (recvDelta != MIN_INT16) {
                     referenceTime += KVS_CONVERT_TIMESCALE(recvDelta, TWCC_TICKS_PER_SECOND, HUNDREDS_OF_NANOS_IN_A_SECOND);
@@ -268,10 +280,18 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
                 recvDelta = MIN_INT16;
                 switch (statusSymbol) {
                     case TWCC_STATUS_SYMBOL_SMALLDELTA:
+                        if (recvOffset >= pRtcpPacket->payloadLength) {
+                            packetsRemaining = 0;
+                            break;
+                        }
                         recvDelta = (INT16) pRtcpPacket->payload[recvOffset];
                         recvOffset++;
                         break;
                     case TWCC_STATUS_SYMBOL_LARGEDELTA:
+                        if (recvOffset + 1 >= pRtcpPacket->payloadLength) {
+                            packetsRemaining = 0;
+                            break;
+                        }
                         recvDelta = getUnalignedInt16BigEndian(pRtcpPacket->payload + recvOffset);
                         recvOffset += 2;
                         break;
@@ -289,6 +309,9 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
                         break;
                     default:
                         DLOGD("statusVector unhandled statusSymbol %u", statusSymbol);
+                }
+                if (packetsRemaining == 0) {
+                    break;
                 }
                 if (recvDelta != MIN_INT16) {
                     referenceTime += KVS_CONVERT_TIMESCALE(recvDelta, TWCC_TICKS_PER_SECOND, HUNDREDS_OF_NANOS_IN_A_SECOND);

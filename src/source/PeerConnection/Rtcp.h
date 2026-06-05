@@ -23,6 +23,9 @@ STATUS updateTwccHashTable(PTwccManager, PINT64, PUINT64, PUINT64, PUINT64, PUIN
 #define TWCC_PACKET_UNITIALIZED_TIME 0
 #define TWCC_ESTIMATOR_TIME_WINDOW   (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
+// Minimum payload length for a TWCC feedback packet (two SSRCs + base seq + status count + ref time + fb pkt count)
+#define TWCC_FB_PAYLOAD_MIN_LEN 16
+
 typedef enum {
     TWCC_STATUS_SYMBOL_NOTRECEIVED = 0,
     TWCC_STATUS_SYMBOL_SMALLDELTA,
