@@ -84,6 +84,8 @@ jobs:
             cmake_flags: "-DBUILD_TEST=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DPARALLEL_BUILD=ON"
           - name: Static MbedTLS
             cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DPARALLEL_BUILD=ON"
+          - name: Shared MbedTLS libsrtp3
+            cmake_flags: "-DBUILD_TEST=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DUSE_LIBSRTP3=ON -DPARALLEL_BUILD=ON"
           - name: Shared OpenSSL System Deps
             # Tests disabled (due to dependency issues): 
             # - GCC: Homebrew's libgtest is built with

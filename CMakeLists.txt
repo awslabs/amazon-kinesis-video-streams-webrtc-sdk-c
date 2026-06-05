@@ -21,6 +21,7 @@ option(BUILD_STATIC_LIBS "Build all libraries statically. (This includes third-p
 
 option(BUILD_WEBSOCKETS "Build libwebsockets from source" ${BUILD_DEPENDENCIES})
 option(BUILD_SRTP "Build libsrtp from source" ${BUILD_DEPENDENCIES})
+option(USE_LIBSRTP3 "Build/link against libsrtp 3.x (default: 2.x). Required for mbedTLS 4." OFF)
 option(BUILD_USRSCTP "Build libusrsctp from source" ${BUILD_DEPENDENCIES})
 
 option(BUILD_OPENSSL_PLATFORM "If buildng OpenSSL what is the target platform" OFF)
@@ -163,6 +164,10 @@ if (INCREASE_PRECISION_TIMING_LOGS)
   add_definitions(-DINCREASE_PRECISION_TIMING_LOGS)
 endif()
 
+if (USE_LIBSRTP3)
+  add_definitions(-DUSE_LIBSRTP3)
+endif()
+
 if(USE_OPENSSL)
   add_definitions(-DKVS_USE_OPENSSL)
 elseif(USE_MBEDTLS)
@@ -266,7 +271,7 @@ if(BUILD_DEPENDENCIES OR BUILD_WEBSOCKETS OR BUILD_SRTP OR BUILD_USRSCTP)
   endif()
 
   if(BUILD_SRTP)
-    message(STATUS "Building libsrtp from source")
+    message(STATUS "Building libsrtp from source (USE_LIBSRTP3=${USE_LIBSRTP3})")
     set(BUILD_ARGS
         -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
@@ -275,6 +280,7 @@ if(BUILD_DEPENDENCIES OR BUILD_WEBSOCKETS OR BUILD_SRTP OR BUILD_USRSCTP)
         -DBUILD_LIBSRTP_DESTINATION_PLATFORM=${BUILD_LIBSRTP_DESTINATION_PLATFORM}
         -DUSE_OPENSSL=${USE_OPENSSL}
         -DUSE_MBEDTLS=${USE_MBEDTLS}
+        -DUSE_LIBSRTP3=${USE_LIBSRTP3}
         -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
     build_dependency(srtp ${BUILD_ARGS})
   endif()
@@ -331,17 +337,25 @@ else()
   set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${MBEDTLS_INCLUDE_DIRS})
 endif()
 
+if(USE_LIBSRTP3)
+  set(SRTP_LIB_NAME srtp3)
+  set(SRTP_PKG_NAME libsrtp3)
+else()
+  set(SRTP_LIB_NAME srtp2)
+  set(SRTP_PKG_NAME libsrtp2)
+endif()
+
 if (BUILD_SRTP)
-  find_library(SRTP_LIBRARIES srtp2 REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
+  find_library(SRTP_LIBRARIES ${SRTP_LIB_NAME} REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
 
   if (LINK_PROFILER)
     find_library(GPERFTOOLS_MALLOC_LIBRARIES tcmalloc REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
     find_library(GPERFTOOLS_PROFILER_LIBRARIES profiler REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
   endif()
 else()
-  pkg_check_modules(LIBSRTP libsrtp2)
+  pkg_check_modules(LIBSRTP ${SRTP_PKG_NAME})
   if(NOT LIBSRTP_FOUND)
-    message(FATAL_ERROR "libsrtp2 not found. Install it using system package manager(e.g. 'sudo apt-get install libsrtp2-dev') or enable -DBUILD_SRTP=ON to build from source.")
+    message(FATAL_ERROR "${SRTP_PKG_NAME} not found. Install it using system package manager(e.g. 'sudo apt-get install ${SRTP_PKG_NAME}-dev') or enable -DBUILD_SRTP=ON to build from source.")
   endif()
   set(SRTP_LIBRARIES ${LIBSRTP_LIBRARIES})
   if (LINK_PROFILER)

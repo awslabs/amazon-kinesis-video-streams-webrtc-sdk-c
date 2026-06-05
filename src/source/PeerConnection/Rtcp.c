@@ -200,6 +200,13 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
     baseSeqNum = getUnalignedInt16BigEndian(pRtcpPacket->payload + 8);
     pTwccManager->prevReportedBaseSeqNum = baseSeqNum;
     packetStatusCount = TWCC_PACKET_STATUS_COUNT(pRtcpPacket->payload);
+
+    // Empty report, nothing to parse
+    if (packetStatusCount == 0u) {
+        DLOGD("Received empty TWCC packet");
+        CHK(FALSE, STATUS_SUCCESS);
+    }
+
     referenceTime = (pRtcpPacket->payload[12] << 16) | (pRtcpPacket->payload[13] << 8) | (pRtcpPacket->payload[14] & 0xff);
     referenceTime = KVS_CONVERT_TIMESCALE(referenceTime * 64, MILLISECONDS_PER_SECOND, HUNDREDS_OF_NANOS_IN_A_SECOND);
     // TODO: handle lost twcc report packets
@@ -527,6 +534,12 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     pTwccManager = pKvsPeerConnection->pTwccManager;
     CHK_STATUS(parseRtcpTwccPacket(pRtcpPacket, pTwccManager));
 
+    // Skip empty reports - nothing useful for any estimator path
+    if (TWCC_PACKET_STATUS_COUNT(pRtcpPacket->payload) == 0) {
+        DLOGD("Malformed TWCC packet: packetStatusCount is 0, skipping");
+        CHK(FALSE, STATUS_SUCCESS);
+    }
+
     // Compute trendline
     if (pKvsPeerConnection->onTwccFeedbackReceived != NULL) {
         // Custom estimator callback, build feedback list from this TWCC report
@@ -537,12 +550,24 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
         UINT64 twccPktVal = 0;
         PTwccRtpPacketInfo pPktInfo = NULL;
         UINT16 reportLen = (UINT16) (pTwccManager->lastReportedSeqNum - pTwccManager->prevReportedBaseSeqNum + 1);
+        UINT16 packetStatusCount = TWCC_PACKET_STATUS_COUNT(pRtcpPacket->payload);
+
+        // Cap reportLen to packetStatusCount to bound the allocation size
+        if (reportLen > packetStatusCount) {
+            DLOGD("Malformed TWCC packet: reportLen %u exceeds packetStatusCount %u", reportLen, packetStatusCount);
+            reportLen = packetStatusCount;
+        }
 
         MEMSET(&congestionState, 0, SIZEOF(congestionState));
         pFeedbackList = (PTwccFeedback) MEMALLOC(reportLen * SIZEOF(TwccFeedback));
         CHK(pFeedbackList != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
         for (seqNum = pTwccManager->prevReportedBaseSeqNum; seqNum != (UINT16) (pTwccManager->lastReportedSeqNum + 1); seqNum++) {
+            // Malformed packet: run-length in chunk exceeds packetStatusCount
+            if (feedbackCount >= reportLen) {
+                DLOGD("Malformed TWCC packet: feedback list full at seqNum %u, stopping early (reportLen %u)", seqNum, reportLen);
+                break;
+            }
             if (STATUS_SUCCEEDED(hashTableGet(pTwccManager->pTwccRtpPktInfosHashTable, seqNum, &twccPktVal))) {
                 pPktInfo = (PTwccRtpPacketInfo) twccPktVal;
                 if (pPktInfo != NULL && pPktInfo->remoteTimeKvs != TWCC_PACKET_LOST_TIME && pPktInfo->remoteTimeKvs != TWCC_PACKET_UNITIALIZED_TIME) {
