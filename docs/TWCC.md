@@ -289,6 +289,8 @@ When both signals indicate congestion, the **minimum** (most aggressive) factor 
 
 #### Increasing bitrate (network is clear)
 
+Feel free to modify the values in the `sampleOnPeerCongestionFeedback` to your use case and application requirements.
+
 | Condition | Video step | Audio step |
 |-----------|:----------:|:----------:|
 | Both loss AND delay clear | +MAX_VIDEO/40 per interval | +MAX_AUDIO/20 per interval |
@@ -296,6 +298,32 @@ When both signals indicate congestion, the **minimum** (most aggressive) factor 
 | Both neutral (not congested, not clear) | Hold (no change) | Hold (no change) |
 
 </details>
+
+### Bitrate bounds (CLAMP)
+
+After every AIMD decision, the resulting bitrate is clamped to a `[min, max]` range so the encoder never receives an unreasonably low or high target:
+
+```c
+// Equivalent to: CLAMP(bitrate, min, max)
+videoBitrate = MAX(MIN(videoBitrate, MAX_VIDEO_BITRATE_KBPS), MIN_VIDEO_BITRATE_KBPS);
+audioBitrate = MAX(MIN(audioBitrate, MAX_AUDIO_BITRATE_BPS), MIN_AUDIO_BITRATE_BPS);
+```
+
+The defaults are defined in `samples/common/Samples.h`, you can customize them to your application requirements.
+
+| Constant                 | Default value | Unit | Notes                                      |
+|--------------------------|:-------------:|------|--------------------------------------------|
+| `MIN_VIDEO_BITRATE_KBPS` |      384      | kbps | Floor - prevents unwatchable video quality |
+| `MAX_VIDEO_BITRATE_KBPS` |     2500      | kbps | Ceiling - caps bandwidth usage             |
+| `MIN_AUDIO_BITRATE_BPS`  |     4000      | bps  | Floor - preserves intelligible audio       |
+| `MAX_AUDIO_BITRATE_BPS`  |    128000     | bps  | Ceiling - caps audio bandwidth             |
+
+**Why it matters:**
+- The **min** prevents the controller from spiraling down to near-zero during transient congestion. Without it, recovery takes a long time since additive increase climbs slowly.
+- The **max** caps bandwidth usage to protect other traffic sharing the link, and prevents overshooting what the encoder or resolution can usefully consume.
+
+> [!TIP]
+> If your min and max are equal (or nearly equal), the AIMD controller effectively becomes fixed-rate - the clamp overrides every adjustment. This is a common cause of "callbacks fire but bitrate doesn't change" (see [Troubleshooting](#bitrate-not-changing-despite-callbacks-firing)).
 
 ### How the GStreamer sample applies the new bitrate
 
