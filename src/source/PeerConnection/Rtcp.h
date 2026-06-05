@@ -55,6 +55,8 @@ STATUS computeTwccTrendline(PTwccManager, PDOUBLE, PDOUBLE);
 // Max packet age in the TWCC hash table. If feedback is not received within this
 // window, the entry is evicted. Entries are also evicted once we receive feedback.
 #define TWCC_ESTIMATOR_TIME_WINDOW (4 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+// Minimum payload length for a TWCC feedback packet (two SSRCs + base seq + status count + ref time + fb pkt count)
+#define TWCC_FB_PAYLOAD_MIN_LEN 16
 
 // Trendline estimation parameters
 #define TWCC_TRENDLINE_SMOOTHING_FACTOR 0.2
