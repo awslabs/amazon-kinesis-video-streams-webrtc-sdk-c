@@ -116,6 +116,15 @@ Collaboration diagram for Callbacks:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="nested-classes" name="nested-classes"></a>
 Classes</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structTwccFeedback.html">TwccFeedback</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Per-packet feedback from a TWCC report.  <a href="structTwccFeedback.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structTwccCongestionState.html">TwccCongestionState</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Congestion state output from the trendline estimator.  <a href="structTwccCongestionState.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structCongestionCtx.html">CongestionCtx</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Context provided to the bandwidth controller callback.  <a href="structCongestionCtx.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct____RtcDataChannel.html">__RtcDataChannel</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcDataChannel represents a bi-directional data channel between two peers.  <a href="struct____RtcDataChannel.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -131,6 +140,18 @@ Typedefs</h2></td></tr>
 <tr class="memitem:ga31935aba346c035df91b7771e62ad3bc" id="r_ga31935aba346c035df91b7771e62ad3bc"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga31935aba346c035df91b7771e62ad3bc">RtcOnSenderBandwidthEstimation</a>) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>)</td></tr>
 <tr class="memdesc:ga31935aba346c035df91b7771e62ad3bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnSenderBandwidthEstimation is fired everytime a bandwidth estimation value is computed by sender. This is an estimate of ALL packets sent across all transceivers. See <a href="https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01">https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01</a> for more details.  <br /></td></tr>
 <tr class="separator:ga31935aba346c035df91b7771e62ad3bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga0d7cc825077695ad693e425f83e47620" id="r_ga0d7cc825077695ad693e425f83e47620"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">struct</a> <a class="el" href="structTwccFeedback.html">TwccFeedback</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga0d7cc825077695ad693e425f83e47620">PTwccFeedback</a></td></tr>
+<tr class="separator:ga0d7cc825077695ad693e425f83e47620"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga92f007aef5c229500ce65775cf013b29" id="r_ga92f007aef5c229500ce65775cf013b29"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">struct</a> <a class="el" href="structTwccCongestionState.html">TwccCongestionState</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga92f007aef5c229500ce65775cf013b29">PTwccCongestionState</a></td></tr>
+<tr class="separator:ga92f007aef5c229500ce65775cf013b29"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaefc8d58809c767ac7c6418c8f69dec0a" id="r_gaefc8d58809c767ac7c6418c8f69dec0a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">struct</a> <a class="el" href="structCongestionCtx.html">CongestionCtx</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#gaefc8d58809c767ac7c6418c8f69dec0a">PCongestionCtx</a></td></tr>
+<tr class="separator:gaefc8d58809c767ac7c6418c8f69dec0a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga92d619bd4ed3d0a6a9a1d30a54916d39" id="r_ga92d619bd4ed3d0a6a9a1d30a54916d39"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga92d619bd4ed3d0a6a9a1d30a54916d39">RtcOnTwccFeedbackReceived</a>) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#ga0d7cc825077695ad693e425f83e47620">PTwccFeedback</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>, <a class="el" href="group__Callbacks.html#ga92f007aef5c229500ce65775cf013b29">PTwccCongestionState</a>)</td></tr>
+<tr class="memdesc:ga92d619bd4ed3d0a6a9a1d30a54916d39"><td class="mdescLeft">&#160;</td><td class="mdescRight">Called when new TWCC feedback is available from the remote peer. Updates the current network congestion state with latest data. The SDK provides a default implementation; set a custom callback to override.  <br /></td></tr>
+<tr class="separator:ga92d619bd4ed3d0a6a9a1d30a54916d39"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga183d2c9b124e7591b37a6a6478926d52" id="r_ga183d2c9b124e7591b37a6a6478926d52"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga183d2c9b124e7591b37a6a6478926d52">RtcOnPeerCongestionFeedback</a>) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#gaefc8d58809c767ac7c6418c8f69dec0a">PCongestionCtx</a>)</td></tr>
+<tr class="memdesc:ga183d2c9b124e7591b37a6a6478926d52"><td class="mdescLeft">&#160;</td><td class="mdescRight">Called when the SDK has computed congestion context from TWCC feedback. The application uses this to make bandwidth decisions and adjust encoder parameters.  <br /></td></tr>
+<tr class="separator:ga183d2c9b124e7591b37a6a6478926d52"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gac7f4225ac2545664aabdc88d0b58e329" id="r_gac7f4225ac2545664aabdc88d0b58e329"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#gac7f4225ac2545664aabdc88d0b58e329">RtcOnPictureLoss</a>) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>)</td></tr>
 <tr class="memdesc:gac7f4225ac2545664aabdc88d0b58e329"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnPictureLoss is fired everytime a Picture Loss Indication (PLI) feedback message is received. Receiving such message normally indicates that you sent a video frame which receiver could not decode. It may happen either because of packet loss or for any other reason. Generating an intra frame (aka keyframe, aka I-frame) in response to such message is considered a good strategy.  <br /></td></tr>
 <tr class="separator:gac7f4225ac2545664aabdc88d0b58e329"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -182,6 +203,20 @@ Typedefs</h2></td></tr>
 
 </div>
 </div>
+<a id="gaefc8d58809c767ac7c6418c8f69dec0a" name="gaefc8d58809c767ac7c6418c8f69dec0a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaefc8d58809c767ac7c6418c8f69dec0a">&#9670;&#160;</a></span>PCongestionCtx</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a>  <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">struct</a> <a class="el" href="structCongestionCtx.html">CongestionCtx</a> * <a class="el" href="group__Callbacks.html#gaefc8d58809c767ac7c6418c8f69dec0a">PCongestionCtx</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="ga2be6b5f6da1b3a0471ad7b4443b90779" name="ga2be6b5f6da1b3a0471ad7b4443b90779"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga2be6b5f6da1b3a0471ad7b4443b90779">&#9670;&#160;</a></span>PRtcDataChannel</h2>
 
@@ -190,6 +225,34 @@ Typedefs</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">struct</a> <a class="el" href="struct____RtcDataChannel.html">__RtcDataChannel</a> * <a class="el" href="group__Callbacks.html#ga2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ga92f007aef5c229500ce65775cf013b29" name="ga92f007aef5c229500ce65775cf013b29"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga92f007aef5c229500ce65775cf013b29">&#9670;&#160;</a></span>PTwccCongestionState</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a>  <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">struct</a> <a class="el" href="structTwccCongestionState.html">TwccCongestionState</a> * <a class="el" href="group__Callbacks.html#ga92f007aef5c229500ce65775cf013b29">PTwccCongestionState</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ga0d7cc825077695ad693e425f83e47620" name="ga0d7cc825077695ad693e425f83e47620"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga0d7cc825077695ad693e425f83e47620">&#9670;&#160;</a></span>PTwccFeedback</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a>  <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">struct</a> <a class="el" href="structTwccFeedback.html">TwccFeedback</a> * <a class="el" href="group__Callbacks.html#ga0d7cc825077695ad693e425f83e47620">PTwccFeedback</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -331,6 +394,29 @@ Typedefs</h2></td></tr>
 
 </div>
 </div>
+<a id="ga183d2c9b124e7591b37a6a6478926d52" name="ga183d2c9b124e7591b37a6a6478926d52"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga183d2c9b124e7591b37a6a6478926d52">&#9670;&#160;</a></span>RtcOnPeerCongestionFeedback</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>(* RtcOnPeerCongestionFeedback) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#gaefc8d58809c767ac7c6418c8f69dec0a">PCongestionCtx</a>)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Called when the SDK has computed congestion context from TWCC feedback. The application uses this to make bandwidth decisions and adjust encoder parameters. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">UINT64</td><td>customData - User customData </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">PCongestionCtx</td><td>congestionContext - latest feedback context </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="gac7f4225ac2545664aabdc88d0b58e329" name="gac7f4225ac2545664aabdc88d0b58e329"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#gac7f4225ac2545664aabdc88d0b58e329">&#9670;&#160;</a></span>RtcOnPictureLoss</h2>
 
@@ -373,6 +459,32 @@ Typedefs</h2></td></tr>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="ga92d619bd4ed3d0a6a9a1d30a54916d39" name="ga92d619bd4ed3d0a6a9a1d30a54916d39"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga92d619bd4ed3d0a6a9a1d30a54916d39">&#9670;&#160;</a></span>RtcOnTwccFeedbackReceived</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>(* RtcOnTwccFeedbackReceived) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#ga0d7cc825077695ad693e425f83e47620">PTwccFeedback</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>, <a class="el" href="group__Callbacks.html#ga92f007aef5c229500ce65775cf013b29">PTwccCongestionState</a>)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Called when new TWCC feedback is available from the remote peer. Updates the current network congestion state with latest data. The SDK provides a default implementation; set a custom callback to override. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">UINT64</td><td>customData - User customData </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">PTwccFeedback</td><td>twccFeedbackList - batch of per-packet feedback </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">UINT32</td><td>twccFeedbackListLen - length of the list </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">PTwccCongestionState</td><td>pCongestionState - congestion state to update</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>STATUS code of the execution. STATUS_SUCCESS on success </dd></dl>
 
 </div>
 </div>
@@ -457,7 +569,7 @@ Typedefs</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Mon Jun 8 2026 19:51:05 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Mon Jun 8 2026 20:34:13 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>
