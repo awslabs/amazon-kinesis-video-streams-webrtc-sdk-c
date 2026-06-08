@@ -54,9 +54,8 @@ var searchData=
   ['isoffer_51',['isOffer',['../structKvsPeerConnection.html#a716fded94deff769039161a9cdc8c2da',1,'KvsPeerConnection']]],
   ['ispointtopoint_52',['isPointToPoint',['../structKvsIpAddress.html#a689083fb604580cf58e604d8353465d0',1,'KvsIpAddress']]],
   ['isremote_53',['isRemote',['../structIceCandidate.html#a477071bd3d02ebc13c3a52e9fcc1b217',1,'IceCandidate']]],
-  ['issctpinitialized_54',['isSctpInitialized',['../structSctpContext.html#af6f6f57dbfeb3dd56cc701087227cc7d',1,'SctpContext']]],
-  ['issecure_55',['isSecure',['../structIceServer.html#aadd8fe6f60e92d4b61859915c753feb4',1,'IceServer']]],
-  ['isshutdown_56',['isShutdown',['../struct____DtlsSession.html#af38d3087b813c0ea223f1bbc5e07d413',1,'__DtlsSession']]],
-  ['isstarted_57',['isStarted',['../struct____DtlsSession.html#a1cb36831f553e63f197514d474dd995e',1,'__DtlsSession']]],
-  ['isturn_58',['isTurn',['../structIceServer.html#a80bf963a9b0cdf91f6bfd713766a5ffc',1,'IceServer']]]
+  ['issecure_54',['isSecure',['../structIceServer.html#aadd8fe6f60e92d4b61859915c753feb4',1,'IceServer']]],
+  ['isshutdown_55',['isShutdown',['../struct____DtlsSession.html#af38d3087b813c0ea223f1bbc5e07d413',1,'__DtlsSession']]],
+  ['isstarted_56',['isStarted',['../struct____DtlsSession.html#a1cb36831f553e63f197514d474dd995e',1,'__DtlsSession']]],
+  ['isturn_57',['isTurn',['../structIceServer.html#a80bf963a9b0cdf91f6bfd713766a5ffc',1,'IceServer']]]
 ];
