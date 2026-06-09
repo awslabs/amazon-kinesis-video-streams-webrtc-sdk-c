@@ -55,5 +55,6 @@ var searchData=
   ['twcc_5fstatusvector_5fsmask_52',['TWCC_STATUSVECTOR_SMASK',['../Rtcp_8h.html#a52911adfa831297765397816d19a82b4',1,'Rtcp.h']]],
   ['twcc_5fstatusvector_5fssize_53',['TWCC_STATUSVECTOR_SSIZE',['../Rtcp_8h.html#a89b552478196a161443c9c9a199b7096',1,'Rtcp.h']]],
   ['twcc_5fstatusvector_5fstatus_54',['TWCC_STATUSVECTOR_STATUS',['../Rtcp_8h.html#a005850c9fa3a6f716b8b8f4c636aee5c',1,'Rtcp.h']]],
-  ['twcc_5fticks_5fper_5fsecond_55',['TWCC_TICKS_PER_SECOND',['../Rtcp_8h.html#a35a3766b346d4eedfe456afd64084ac1',1,'Rtcp.h']]]
+  ['twcc_5fticks_5fper_5fsecond_55',['TWCC_TICKS_PER_SECOND',['../Rtcp_8h.html#a35a3766b346d4eedfe456afd64084ac1',1,'Rtcp.h']]],
+  ['twcc_5ftrendline_5fsmoothing_5ffactor_56',['TWCC_TRENDLINE_SMOOTHING_FACTOR',['../Rtcp_8h.html#a41dbb8bbb3a87d7c9e335b12249ac53a',1,'Rtcp.h']]]
 ];
