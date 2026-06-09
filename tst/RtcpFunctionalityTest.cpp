@@ -1475,6 +1475,81 @@ TEST_F(RtcpFunctionalityTest, parseRtcpTwccPacketRejectsShortPayload)
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
+TEST_F(RtcpFunctionalityTest, parseRtcpTwccPacketClampsOversizedPacketStatusCount)
+{
+    // Verify that the feedback list is bounded to TWCC_MAX_PACKET_STATUS_COUNT.
+    // Without the fix, reportLen = 2049 and the callback receives 2049 items.
+    // With the fix, it's capped to 2048.
+    const UINT16 OVERSIZED_COUNT = TWCC_MAX_PACKET_STATUS_COUNT + 1; // 2049
+    const UINT16 BASE_SEQ = 0;
+
+    PRtcPeerConnection pRtcPeerConnection = nullptr;
+    PKvsPeerConnection pKvsPeerConnection = nullptr;
+    RtcConfiguration config{};
+    RtpPacket rtpPacket{};
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnSenderBandwidthEstimation(pRtcPeerConnection, 0, testBwHandler));
+
+    TwccCallbackCtx ctx{};
+    ctx.delayTrendToReturn = 0.5;
+    EXPECT_EQ(STATUS_SUCCESS, setOnTwccFeedbackReceived(pRtcPeerConnection, (UINT64) &ctx, testTwccFeedbackCallback));
+
+    // Pre-populate the hash table with OVERSIZED_COUNT sent packets
+    BYTE extBuf[4];
+    for (UINT16 i = 0; i < OVERSIZED_COUNT; i++) {
+        MEMSET(&rtpPacket, 0, SIZEOF(RtpPacket));
+        rtpPacket.header.extension = TRUE;
+        rtpPacket.header.extensionProfile = TWCC_EXT_PROFILE;
+        rtpPacket.header.extensionLength = SIZEOF(UINT32);
+        UINT16 twsn = BASE_SEQ + i;
+        UINT32 extpayload = TWCC_PAYLOAD(parseExtId(TWCC_EXT_URL), twsn);
+        MEMCPY(extBuf, &extpayload, SIZEOF(UINT32));
+        rtpPacket.header.extensionPayload = extBuf;
+        rtpPacket.payloadLength = 100;
+        rtpPacket.payload = extBuf;
+        EXPECT_EQ(STATUS_SUCCESS, twccManagerOnPacketSent(pKvsPeerConnection, &rtpPacket));
+    }
+
+    // Build TWCC feedback payload:
+    //   16 bytes header + 2 bytes run-length chunk + OVERSIZED_COUNT delta bytes
+    const UINT32 payloadSize = 16 + 2 + OVERSIZED_COUNT;
+    std::vector<BYTE> twccPayload(payloadSize, 0);
+
+    // Bytes 8-9: base sequence number
+    twccPayload[8] = (BYTE) (BASE_SEQ >> 8);
+    twccPayload[9] = (BYTE) (BASE_SEQ & 0xFF);
+    // Bytes 10-11: packet status count = OVERSIZED_COUNT (2049)
+    twccPayload[10] = (BYTE) (OVERSIZED_COUNT >> 8);
+    twccPayload[11] = (BYTE) (OVERSIZED_COUNT & 0xFF);
+    // Bytes 12-14: reference time = 1
+    twccPayload[14] = 0x01;
+    // Byte 15: fb packet count
+    twccPayload[15] = 0x01;
+    // Bytes 16-17: run-length chunk (SMALLDELTA, count=OVERSIZED_COUNT)
+    UINT16 runLenChunk = (0x01 << 13) | OVERSIZED_COUNT;
+    twccPayload[16] = (BYTE) (runLenChunk >> 8);
+    twccPayload[17] = (BYTE) (runLenChunk & 0xFF);
+    // Delta bytes: 1 tick (250us) each
+    for (UINT32 i = 0; i < OVERSIZED_COUNT; i++) {
+        twccPayload[18 + i] = 0x01;
+    }
+
+    RtcpPacket rtcpPacket{};
+    rtcpPacket.payload = twccPayload.data();
+    rtcpPacket.payloadLength = payloadSize;
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection));
+
+    EXPECT_EQ(1u, ctx.callCount);
+    // Key assertion: without the fix feedbackCount would be 2049, with it <= 2048
+    EXPECT_LE(ctx.feedbackCount, (UINT32) TWCC_MAX_PACKET_STATUS_COUNT);
+
+    SAFE_MEMFREE(ctx.pCapturedList);
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
