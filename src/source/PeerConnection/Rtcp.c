@@ -580,6 +580,11 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
             }
         }
 
+        // Save seq range before unlocking — another thread could call parseRtcpTwccPacket
+        // during the callback and overwrite these fields.
+        UINT16 savedPrevBaseSeqNum = pTwccManager->prevReportedBaseSeqNum;
+        UINT16 savedLastSeqNum = pTwccManager->lastReportedSeqNum;
+
         MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
         locked = FALSE;
 
@@ -590,6 +595,12 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
         CHK_STATUS(retStatus);
         MUTEX_LOCK(pKvsPeerConnection->twccLock);
         locked = TRUE;
+
+        // Restore the seq range for this report so updateTwccHashTable operates
+        // on the correct range even if another TWCC report was parsed concurrently.
+        pTwccManager->prevReportedBaseSeqNum = savedPrevBaseSeqNum;
+        pTwccManager->lastReportedSeqNum = savedLastSeqNum;
+
         delayTrend = congestionState.delayTrend;
     } else {
         // Default trendline estimator
