@@ -6,13 +6,12 @@ namespace kinesis {
 namespace video {
 namespace webrtcclient {
 
-#define NUMBER_OF_FRAME_FILES 403
+#define NUMBER_OF_FRAME_FILES      403
 #define NUMBER_OF_H265_FRAME_FILES 1500
-#define DEFAULT_FPS_VALUE     25
+#define DEFAULT_FPS_VALUE          25
 BYTE start4ByteCode[] = {0x00, 0x00, 0x00, 0x01};
 
-class RtpFunctionalityTest : public WebRtcClientTestBase {
-};
+class RtpFunctionalityTest : public WebRtcClientTestBase {};
 
 TEST_F(RtpFunctionalityTest, packetUnderflow)
 {
@@ -109,7 +108,9 @@ TEST_F(RtpFunctionalityTest, marshallUnmarshallH264Data)
         }
 
         fileIndex = fileIndex % NUMBER_OF_FRAME_FILES + 1;
-        EXPECT_EQ(STATUS_SUCCESS, readFrameData((PBYTE) payload, (PUINT32) &payloadLen, fileIndex, (PCHAR) "../samples/h264SampleFrames", RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
+        EXPECT_EQ(STATUS_SUCCESS,
+                  readFrameData((PBYTE) payload, (PUINT32) &payloadLen, fileIndex, (PCHAR) "../samples/h264SampleFrames",
+                                RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
 
         // First call for payload size and sub payload length size
         EXPECT_EQ(STATUS_SUCCESS,
@@ -139,7 +140,7 @@ TEST_F(RtpFunctionalityTest, marshallUnmarshallH264Data)
         EXPECT_LT(0, payloadArray.payloadSubLenSize);
         pPacketList = (PRtpPacket) MEMALLOC(payloadArray.payloadSubLenSize * SIZEOF(RtpPacket));
 
-        constructRtpPackets(&payloadArray, 96, seqNum, (UINT32)((curTime - startTimeStamp) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND), 0x1234ABCD,
+        constructRtpPackets(&payloadArray, 96, seqNum, (UINT32) ((curTime - startTimeStamp) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND), 0x1234ABCD,
                             pPacketList, payloadArray.payloadSubLenSize);
 
         seqNum = GET_UINT16_SEQ_NUM(seqNum + payloadArray.payloadSubLenSize);
@@ -188,7 +189,9 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH264Frame)
     payloadArray.payloadSubLength = NULL;
 
     for (fileIndex = 1; fileIndex <= NUMBER_OF_FRAME_FILES; fileIndex++) {
-        EXPECT_EQ(STATUS_SUCCESS, readFrameData((PBYTE) payload, (PUINT32) &payloadLen, fileIndex, (PCHAR) "../samples/h264SampleFrames", RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
+        EXPECT_EQ(STATUS_SUCCESS,
+                  readFrameData((PBYTE) payload, (PUINT32) &payloadLen, fileIndex, (PCHAR) "../samples/h264SampleFrames",
+                                RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
 
         // First call for payload size and sub payload length size
         EXPECT_EQ(STATUS_SUCCESS,
@@ -285,7 +288,8 @@ TEST_F(RtpFunctionalityTest, packingUnpackingVerifySameH265Frame)
     payloadArray.payloadSubLength = NULL;
 
     for (fileIndex = 1; fileIndex <= NUMBER_OF_H265_FRAME_FILES; fileIndex++) {
-        EXPECT_EQ(STATUS_SUCCESS, readFrameData((PBYTE) payload, (PUINT32) &payloadLen, fileIndex, (PCHAR) "../samples/h265SampleFrames", RTC_CODEC_H265));
+        EXPECT_EQ(STATUS_SUCCESS,
+                  readFrameData((PBYTE) payload, (PUINT32) &payloadLen, fileIndex, (PCHAR) "../samples/h265SampleFrames", RTC_CODEC_H265));
 
         // First call for payload size and sub payload length size
         EXPECT_EQ(STATUS_SUCCESS,
@@ -422,9 +426,9 @@ TEST_F(RtpFunctionalityTest, packingEmptyOpusFrameReturnsZeroSubLenSize)
     payloadArray.payloadLength = 0;
     payloadArray.payloadSubLenSize = 0;
 
-    EXPECT_EQ(STATUS_SUCCESS,
-              createPayloadForOpus(DEFAULT_MTU_SIZE_BYTES, (PBYTE) &payload, 0, NULL, &payloadArray.payloadLength, NULL,
-                                   &payloadArray.payloadSubLenSize));
+    EXPECT_EQ(
+        STATUS_SUCCESS,
+        createPayloadForOpus(DEFAULT_MTU_SIZE_BYTES, (PBYTE) &payload, 0, NULL, &payloadArray.payloadLength, NULL, &payloadArray.payloadSubLenSize));
     EXPECT_EQ(0, payloadArray.payloadLength);
     EXPECT_EQ(0, payloadArray.payloadSubLenSize);
 }
@@ -574,7 +578,7 @@ TEST_F(RtpFunctionalityTest, validNaluParse)
 {
     BYTE data[] = {0x00, 0x00, 0x00, 0x01, 0x00, 0x02};
     UINT32 startIndex = 0, naluLength = 0;
-    
+
     EXPECT_EQ(STATUS_SUCCESS, getNextNaluLength(data, 6, &startIndex, &naluLength));
     EXPECT_EQ(4, startIndex);
     EXPECT_EQ(2, naluLength);
@@ -644,6 +648,163 @@ TEST_F(RtpFunctionalityTest, twccPayload)
     EXPECT_EQ(1, (ptr[0] & 0xfu));
     EXPECT_EQ(420, seqNum);
     EXPECT_EQ(0, ptr[3]);
+}
+
+TEST_F(RtpFunctionalityTest, testDepayH264StapBPacket)
+{
+    /** Construct a valid STAP-B packet:
+     * Byte 0: NAL indicator with type 25 (STAP-B)
+     * Bytes 1-2: DON (Decoding Order Number)
+     * Bytes 3-4: sub-NAL size (big-endian)
+     * Bytes 5+: sub-NAL data
+     */
+    BYTE stapBPacket[] = {
+        0x19,             // type=25 (STAP_B_INDICATOR)
+        0x00, 0x01,       // DON = 1
+        0x00, 0x03,       // sub-NAL size = 3
+        0x67, 0x42, 0x00, // sub-NAL data (3 bytes)
+        0x00, 0x02,       // second sub-NAL size = 2
+        0xAA, 0xBB        // second sub-NAL data (2 bytes)
+    };
+    UINT32 packetLength = SIZEOF(stapBPacket);
+    UINT32 naluLength = 0;
+    BOOL isStart = FALSE;
+
+    // Size calculation pass (pNaluData = NULL)
+    EXPECT_EQ(STATUS_SUCCESS, depayH264FromRtpPayload(stapBPacket, packetLength, NULL, &naluLength, &isStart));
+    EXPECT_TRUE(isStart);
+    // Expected: start4ByteCode(4) + 3 + start4ByteCode(4) + 2 = 13
+    EXPECT_EQ(13u, naluLength);
+
+    // Copy pass - allocate exact buffer based on size
+    BYTE outputBuffer[13];
+    UINT32 outputLen = SIZEOF(outputBuffer);
+    EXPECT_EQ(STATUS_SUCCESS, depayH264FromRtpPayload(stapBPacket, packetLength, outputBuffer, &outputLen, &isStart));
+    EXPECT_EQ(13u, outputLen);
+
+    // Verify first sub-NAL has start code prefix
+    EXPECT_EQ(0x00, outputBuffer[0]);
+    EXPECT_EQ(0x00, outputBuffer[1]);
+    EXPECT_EQ(0x00, outputBuffer[2]);
+    EXPECT_EQ(0x01, outputBuffer[3]);
+    // Verify first sub-NAL data
+    EXPECT_EQ(0x67, outputBuffer[4]);
+    EXPECT_EQ(0x42, outputBuffer[5]);
+    EXPECT_EQ(0x00, outputBuffer[6]);
+    // Verify second sub-NAL has start code prefix
+    EXPECT_EQ(0x00, outputBuffer[7]);
+    EXPECT_EQ(0x00, outputBuffer[8]);
+    EXPECT_EQ(0x00, outputBuffer[9]);
+    EXPECT_EQ(0x01, outputBuffer[10]);
+    // Verify second sub-NAL data
+    EXPECT_EQ(0xAA, outputBuffer[11]);
+    EXPECT_EQ(0xBB, outputBuffer[12]);
+}
+
+TEST_F(RtpFunctionalityTest, testDepayH264StapAPacket)
+{
+    /** Construct a valid STAP-A packet:
+     * Byte 0: NAL indicator with type 24 (STAP-A)
+     * No DON field (this is what differentiates STAP-A from STAP-B)
+     * Bytes 1-2: sub-NAL size (big-endian)
+     * Bytes 3+: sub-NAL data
+     */
+    BYTE stapAPacket[] = {
+        0x18,             // NAL header: type=24 (STAP_A_INDICATOR)
+        0x00, 0x03,       // first sub-NAL size = 3
+        0x67, 0x42, 0x00, // first sub-NAL data (3 bytes, fake SPS)
+        0x00, 0x02,       // second sub-NAL size = 2
+        0xCC, 0xDD        // second sub-NAL data (2 bytes)
+    };
+    UINT32 packetLength = SIZEOF(stapAPacket);
+    UINT32 naluLength = 0;
+    BOOL isStart = FALSE;
+
+    // Size calculation pass (pNaluData = NULL)
+    EXPECT_EQ(STATUS_SUCCESS, depayH264FromRtpPayload(stapAPacket, packetLength, NULL, &naluLength, &isStart));
+    EXPECT_TRUE(isStart);
+    // Expected: start4ByteCode(4) + 3 + start4ByteCode(4) + 2 = 13
+    EXPECT_EQ(13u, naluLength);
+
+    // Copy pass - allocate exact buffer based on size
+    BYTE outputBuffer[13];
+    UINT32 outputLen = SIZEOF(outputBuffer);
+    EXPECT_EQ(STATUS_SUCCESS, depayH264FromRtpPayload(stapAPacket, packetLength, outputBuffer, &outputLen, &isStart));
+    EXPECT_EQ(13u, outputLen);
+
+    // Verify first sub-NAL: start code + data
+    EXPECT_EQ(0x00, outputBuffer[0]);
+    EXPECT_EQ(0x00, outputBuffer[1]);
+    EXPECT_EQ(0x00, outputBuffer[2]);
+    EXPECT_EQ(0x01, outputBuffer[3]);
+    EXPECT_EQ(0x67, outputBuffer[4]);
+    EXPECT_EQ(0x42, outputBuffer[5]);
+    EXPECT_EQ(0x00, outputBuffer[6]);
+    // Verify second sub-NAL: start code + data
+    EXPECT_EQ(0x00, outputBuffer[7]);
+    EXPECT_EQ(0x00, outputBuffer[8]);
+    EXPECT_EQ(0x00, outputBuffer[9]);
+    EXPECT_EQ(0x01, outputBuffer[10]);
+    EXPECT_EQ(0xCC, outputBuffer[11]);
+    EXPECT_EQ(0xDD, outputBuffer[12]);
+}
+
+TEST_F(RtpFunctionalityTest, depayH264FuARejectsTooSmallPacket)
+{
+    /** Construct an H.264 FU-A packet (RFC 3984 Section 5.8):
+     *  Byte 0: FU Indicator — [F|NRI|Type]
+     *    0x7C = 0b0_11_11100 → F=0, NRI=3, Type=28 (FU_A_INDICATOR)
+     *  Byte 1: FU Header — [S|E|R|Type]
+     *    0x85 = 0b1_0_0_00101 → S=1 (start), E=0, R=0, Type=5 (IDR)
+     *  Bytes 2+: NAL fragment payload (absent in these test packets)
+     *
+     *  FU_A_HEADER_SIZE = 2 (indicator + FU header)
+     *  A valid FU-A packet must have packetLength > 2 (at least 1 byte of payload)
+     */
+
+    // 1-byte packet: only the FU indicator, no FU header or payload
+    BYTE fuAPacket[] = {0x7C};
+    UINT32 naluLength = 0;
+    BOOL isStart = FALSE;
+
+    EXPECT_EQ(STATUS_RTP_INPUT_PACKET_TOO_SMALL, depayH264FromRtpPayload(fuAPacket, SIZEOF(fuAPacket), NULL, &naluLength, &isStart));
+    EXPECT_EQ(0u, naluLength);
+
+    // 2-byte packet: FU indicator + FU header, but no payload (exactly FU_A_HEADER_SIZE)
+    BYTE fuAPacket2[] = {0x7C, 0x85};
+    naluLength = 0;
+    EXPECT_EQ(STATUS_RTP_INPUT_PACKET_TOO_SMALL, depayH264FromRtpPayload(fuAPacket2, SIZEOF(fuAPacket2), NULL, &naluLength, &isStart));
+    EXPECT_EQ(0u, naluLength);
+}
+
+TEST_F(RtpFunctionalityTest, depayH265FuRejectsTooSmallPacket)
+{
+    /** Construct an H.265 FU packet (RFC 7798 Section 4.4.3):
+     *  Bytes 0-1: PayloadHdr — [F|Type|LayerId|TID]
+     *    Type is bits [1..6] of byte 0: (byte0 >> 1) & 0x3F
+     *    0x62 = 0b0_1100010_... → Type = (0x62 >> 1) & 0x3F = 49 (H265_FU_TYPE_ID)
+     *    0x01 = LayerId/TID byte
+     *  Byte 2: FU Header — [S|E|FuType]
+     *    0x80 = 0b1_0_100000 → S=1 (start), E=0, FuType=32
+     *  Bytes 3+: NAL fragment payload (absent in these test packets)
+     *
+     *  H265_FU_HEADER_SIZE = 3 (2-byte PayloadHdr + 1-byte FU header)
+     *  A valid H.265 FU packet must have packetLength > 3 (at least 1 byte of payload)
+     */
+
+    // 2-byte packet: only PayloadHdr, no FU header or payload
+    BYTE fuH265Packet[] = {0x62, 0x01};
+    UINT32 naluLength = 0;
+    BOOL isStart = FALSE;
+
+    EXPECT_EQ(STATUS_RTP_INPUT_PACKET_TOO_SMALL, depayH265FromRtpPayload(fuH265Packet, SIZEOF(fuH265Packet), NULL, &naluLength, &isStart));
+    EXPECT_EQ(0u, naluLength);
+
+    // 3-byte packet: PayloadHdr + FU header, but no payload (exactly H265_FU_HEADER_SIZE)
+    BYTE fuH265Packet2[] = {0x62, 0x01, 0x80};
+    naluLength = 0;
+    EXPECT_EQ(STATUS_RTP_INPUT_PACKET_TOO_SMALL, depayH265FromRtpPayload(fuH265Packet2, SIZEOF(fuH265Packet2), NULL, &naluLength, &isStart));
+    EXPECT_EQ(0u, naluLength);
 }
 
 } // namespace webrtcclient

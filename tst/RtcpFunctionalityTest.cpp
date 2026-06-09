@@ -295,8 +295,8 @@ TEST_F(RtcpFunctionalityTest, onpli)
     freePeerConnection(&pRtcPeerConnection);
 }
 
-static void testBwHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPacketsCnt, UINT32 rxPacketsCnt,
-                                                   UINT64 duration) {
+static void testBwHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPacketsCnt, UINT32 rxPacketsCnt, UINT64 duration)
+{
     UNUSED_PARAM(customData);
     UNUSED_PARAM(txBytes);
     UNUSED_PARAM(rxBytes);
@@ -323,18 +323,18 @@ static void parseTwcc(const std::string& hex, const uint32_t expectedReceived, c
 
     rtcpPacket.header.packetLength = payloadLen / 4;
     rtcpPacket.payload = payload;
-    rtcpPacket.payloadLength = payloadLen;
-
+    // Use the full buffer size as payloadLength so the parser can safely read
+    // trailing zero bytes that act as zero-value deltas (matching RTCP padding behavior)
+    rtcpPacket.payloadLength = SIZEOF(payload);
 
     EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
     pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
-    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnSenderBandwidthEstimation(pRtcPeerConnection, 0,
-                                                                        testBwHandler));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnSenderBandwidthEstimation(pRtcPeerConnection, 0, testBwHandler));
 
     UINT16 baseSeqNum = getUnalignedInt16BigEndian(rtcpPacket.payload + 8);
     UINT16 pktCount = TWCC_PACKET_STATUS_COUNT(rtcpPacket.payload);
 
-    for(i = baseSeqNum; i < baseSeqNum + pktCount; i++) {
+    for (i = baseSeqNum; i < baseSeqNum + pktCount; i++) {
         rtpPacket.header.extension = TRUE;
         rtpPacket.header.extensionProfile = TWCC_EXT_PROFILE;
         rtpPacket.header.extensionLength = SIZEOF(UINT32);
@@ -346,10 +346,10 @@ static void parseTwcc(const std::string& hex, const uint32_t expectedReceived, c
 
     EXPECT_EQ(STATUS_SUCCESS, parseRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection->pTwccManager));
 
-    for(i = 0; i < MAX_UINT16; i++) {
-        if(STATUS_SUCCEEDED(hashTableGet(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, i, &value))) {
+    for (i = 0; i < MAX_UINT16; i++) {
+        if (STATUS_SUCCEEDED(hashTableGet(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, i, &value))) {
             PTwccRtpPacketInfo tempTwccRtpPktInfo = (PTwccRtpPacketInfo) value;
-            if(tempTwccRtpPktInfo->remoteTimeKvs == TWCC_PACKET_LOST_TIME) {
+            if (tempTwccRtpPktInfo->remoteTimeKvs == TWCC_PACKET_LOST_TIME) {
                 lost++;
             } else if (tempTwccRtpPktInfo->remoteTimeKvs != TWCC_PACKET_UNITIALIZED_TIME) {
                 received++;
@@ -426,19 +426,17 @@ TEST_F(RtcpFunctionalityTest, updateTwccHashTableTest)
 
     // Grab the hash table.
     pTwccRtpPktInfosHashTable = pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable;
- 
+
     pKvsPeerConnection->pTwccManager->prevReportedBaseSeqNum = lowerBound;
     pKvsPeerConnection->pTwccManager->lastReportedSeqNum = upperBound + 10;
 
     // Breakup the packet indexes to be across the max int overflow.
-    for (i = lowerBound; i <= UINT16_MAX && i != 0 ; i++)
-    {
+    for (i = lowerBound; i <= UINT16_MAX && i != 0; i++) {
         pTwccRtpPacketInfo = (PTwccRtpPacketInfo) MEMCALLOC(1, SIZEOF(TwccRtpPacketInfo));
         EXPECT_EQ(STATUS_SUCCESS, hashTableUpsert(pTwccRtpPktInfosHashTable, i, (UINT64) pTwccRtpPacketInfo));
         hashTableInsertionCount++;
     }
-    for (i = 0; i < upperBound; i++)
-    {
+    for (i = 0; i < upperBound; i++) {
         pTwccRtpPacketInfo = (PTwccRtpPacketInfo) MEMCALLOC(1, SIZEOF(TwccRtpPacketInfo));
         EXPECT_EQ(STATUS_SUCCESS, hashTableUpsert(pTwccRtpPktInfosHashTable, i, (UINT64) pTwccRtpPacketInfo));
         hashTableInsertionCount++;
@@ -451,27 +449,29 @@ TEST_F(RtcpFunctionalityTest, updateTwccHashTableTest)
 
     // Validate hash table size after and before updating (onRtcpTwccPacket case).
     EXPECT_EQ(hashTableInsertionCount, pTwccRtpPktInfosHashTable->itemCount);
-    EXPECT_EQ(STATUS_SUCCESS, updateTwccHashTable(pKvsPeerConnection->pTwccManager, &duration, &receivedBytes, &receivedPackets, &sentBytes, &sentPackets));
+    EXPECT_EQ(STATUS_SUCCESS,
+              updateTwccHashTable(pKvsPeerConnection->pTwccManager, &duration, &receivedBytes, &receivedPackets, &sentBytes, &sentPackets));
     EXPECT_EQ(0, pTwccRtpPktInfosHashTable->itemCount);
 
     hashTableInsertionCount = 0;
     pTwccRtpPacketInfo = NULL;
-    for (i = 0; i <= upperBound; i++)
-    {
+    for (i = 0; i <= upperBound; i++) {
         EXPECT_EQ(STATUS_SUCCESS, hashTableUpsert(pTwccRtpPktInfosHashTable, i, (UINT64) pTwccRtpPacketInfo));
         hashTableInsertionCount++;
     }
     EXPECT_EQ(hashTableInsertionCount, pTwccRtpPktInfosHashTable->itemCount);
-    EXPECT_EQ(STATUS_SUCCESS, updateTwccHashTable(pKvsPeerConnection->pTwccManager, &duration, &receivedBytes, &receivedPackets, &sentBytes, &sentPackets));
+    EXPECT_EQ(STATUS_SUCCESS,
+              updateTwccHashTable(pKvsPeerConnection->pTwccManager, &duration, &receivedBytes, &receivedPackets, &sentBytes, &sentPackets));
     EXPECT_EQ(0, pTwccRtpPktInfosHashTable->itemCount);
-    
+
     MUTEX_LOCK(pKvsPeerConnection->twccLock);
     MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
 
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
-TEST_F(RtcpFunctionalityTest, updateTwccHashTableIntPromotionCase) {
+TEST_F(RtcpFunctionalityTest, updateTwccHashTableIntPromotionCase)
+{
     PRtcPeerConnection pRtcPeerConnection = NULL;
     PKvsPeerConnection pKvsPeerConnection = NULL;
     RtcConfiguration config{};
@@ -497,14 +497,90 @@ TEST_F(RtcpFunctionalityTest, updateTwccHashTableIntPromotionCase) {
 
     // Even though pTwccManager->lastReportedSeqNum is a UINT16, (pTwccManager->lastReportedSeqNum + 1) can get
     // promoted to an int (32) when pTwccManager->lastReportedSeqNum == UINT16_MAX
-    EXPECT_EQ(STATUS_SUCCESS, updateTwccHashTable(pKvsPeerConnection->pTwccManager, &duration,
-                                                  &receivedBytes, &receivedPackets,
-                                                  &sentBytes, &sentPackets));
+    EXPECT_EQ(STATUS_SUCCESS,
+              updateTwccHashTable(pKvsPeerConnection->pTwccManager, &duration, &receivedBytes, &receivedPackets, &sentBytes, &sentPackets));
 
-    EXPECT_EQ(0, pTwccRtpPktInfosHashTable->itemCount);  // Ensure the table is cleared again
+    EXPECT_EQ(0, pTwccRtpPktInfosHashTable->itemCount); // Ensure the table is cleared again
 
     MUTEX_LOCK(pKvsPeerConnection->twccLock);
     MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
+TEST_F(RtcpFunctionalityTest, parseRtcpTwccPacketRejectsTruncatedDeltas)
+{
+    /** Construct a TWCC feedback packet where packetStatusCount claims more
+     *  received packets than recv-delta bytes present in the payload.
+     *
+     *  TWCC feedback layout (RFC draft-holmer-rmcat-transport-wide-cc):
+     *    Bytes 0-7:   SSRC of sender + SSRC of media source
+     *    Bytes 8-9:   base sequence number
+     *    Bytes 10-11: packet status count
+     *    Bytes 12-14: reference time (24 bits)
+     *    Byte 15:     feedback packet count
+     *    Bytes 16+:   packet status chunks (2 bytes each)
+     *    After chunks: recv-delta values (1 or 2 bytes each)
+     *
+     *  This packet claims packetStatusCount=100 with a single run-length chunk
+     *  marking all as SMALLDELTA (1 byte each), but only provides 2 delta bytes.
+     */
+    BYTE twccPayload[] = {
+        0x00, 0x00, 0x00, 0x01, // SSRC sender
+        0x00, 0x00, 0x00, 0x02, // SSRC media
+        0x00, 0x01,             // base seq = 1
+        0x00, 0x64,             // packetStatusCount = 100
+        0x00, 0x00, 0x01,       // reference time = 1
+        0x01,                   // fb pkt count = 1
+        0x20, 0x64,             // run-length chunk: status=SMALLDELTA(1), count=100
+        0x0A, 0x0B,             // only 2 recv-delta bytes (need 100)
+    };
+
+    RtcpPacket rtcpPacket;
+    MEMSET(&rtcpPacket, 0, SIZEOF(RtcpPacket));
+    rtcpPacket.payload = twccPayload;
+    rtcpPacket.payloadLength = SIZEOF(twccPayload);
+
+    RtcConfiguration config;
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    MEMSET(&config, 0, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnSenderBandwidthEstimation(pRtcPeerConnection, 0, testBwHandler));
+
+    // The parser should gracefully stop when it runs out of delta bytes
+    // rather than returning an error. It processes what it can.
+    EXPECT_EQ(STATUS_SUCCESS, parseRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection->pTwccManager));
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
+TEST_F(RtcpFunctionalityTest, parseRtcpTwccPacketRejectsShortPayload)
+{
+    PRtcPeerConnection pRtcPeerConnection = nullptr;
+    PKvsPeerConnection pKvsPeerConnection;
+    RtcConfiguration config{};
+    RtcpPacket rtcpPacket{};
+    BYTE payload[16] = {0};
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+
+    rtcpPacket.payload = payload;
+
+    rtcpPacket.payloadLength = 0;
+    EXPECT_EQ(STATUS_RTCP_INPUT_PACKET_TOO_SMALL, parseRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection->pTwccManager));
+
+    rtcpPacket.payloadLength = 10;
+    EXPECT_EQ(STATUS_RTCP_INPUT_PACKET_TOO_SMALL, parseRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection->pTwccManager));
+
+    rtcpPacket.payloadLength = 15;
+    EXPECT_EQ(STATUS_RTCP_INPUT_PACKET_TOO_SMALL, parseRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection->pTwccManager));
+
+    rtcpPacket.payloadLength = 16;
+    EXPECT_EQ(STATUS_SUCCESS, parseRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection->pTwccManager));
 
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }

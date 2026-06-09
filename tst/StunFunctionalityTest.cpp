@@ -6,8 +6,7 @@ namespace kinesis {
 namespace video {
 namespace webrtcclient {
 
-class StunFunctionalityTest : public WebRtcClientTestBase {
-};
+class StunFunctionalityTest : public WebRtcClientTestBase {};
 
 #define TEST_STUN_PASSWORD (PCHAR) "bf1f29259cea581c873248d4ae73b30f"
 
@@ -691,6 +690,46 @@ TEST_F(StunFunctionalityTest, deserializeStunErrorCode)
     EXPECT_EQ(0, STRCMP(pStunAttributeErrorCode->errorPhrase, "Forbidden IP"));
 
     EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+}
+
+TEST_F(StunFunctionalityTest, errorCodeZeroLengthUnderflowTest)
+{
+    PStunPacket pStunPacket = NULL;
+
+    /** STUN Binding Request with a single ERROR_CODE attribute whose length = 0.
+     *  Layout:
+     *   [0..1]   0x0001  BINDING_REQUEST
+     *   [2..3]   0x0008  message length (8 bytes of attributes follow the header)
+     *   [4..7]   0x2112A442  magic cookie
+     *   [8..19]  transaction ID (arbitrary)
+     *   [20..21] 0x0009  ERROR_CODE attribute type
+     *   [22..23] 0x0000  attribute length = 0 (incorrect length)
+     *   [24..27] 0x00000000  padding
+     */
+    BYTE malformedPacket[] = {0x00, 0x01, 0x00, 0x08, 0x21, 0x12, 0xA4, 0x42, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
+                              0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x00, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+    // The parser should reject the packet with an invalid length error.
+    EXPECT_EQ(STATUS_STUN_INVALID_ERROR_CODE_ATTRIBUTE_LENGTH,
+              deserializeStunPacket(malformedPacket, SIZEOF(malformedPacket), NULL, 0, &pStunPacket));
+    EXPECT_EQ(NULL, pStunPacket);
+}
+
+TEST_F(StunFunctionalityTest, errorCodeTooShortLengthUnderflowTest)
+{
+    PStunPacket pStunPacket = NULL;
+
+    // ERROR_CODE with length=3: paddedLength = ROUND_UP(3,4) = 4
+    BYTE malformedPacket[] = {
+        0x00, 0x01, 0x00, 0x08, 0x21, 0x12, 0xA4, 0x42, 0x01, 0x02, 0x03, 0x04,
+        0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x00, 0x09, 0x00, 0x03, // ERROR_CODE, length=3
+        0x00, 0x00, 0x00, 0x00                                                  // padding (required for 4-byte alignment)
+    };
+
+    // The parser should reject the packet with an invalid length error.
+    EXPECT_EQ(STATUS_STUN_INVALID_ERROR_CODE_ATTRIBUTE_LENGTH,
+              deserializeStunPacket(malformedPacket, SIZEOF(malformedPacket), NULL, 0, &pStunPacket));
+    EXPECT_EQ(NULL, pStunPacket);
 }
 
 } // namespace webrtcclient

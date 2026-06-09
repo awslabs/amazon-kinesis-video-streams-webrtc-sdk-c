@@ -247,6 +247,7 @@ STATUS depayH264FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNal
     switch (indicator) {
         case FU_A_INDICATOR:
             // FU-A indicator
+            CHK(packetLength > FU_A_HEADER_SIZE, STATUS_RTP_INPUT_PACKET_TOO_SMALL);
             naluRefIdc = *pCurPtr & 0x60;
             pCurPtr++;
             naluType = *pCurPtr & 0x1f;
@@ -259,7 +260,8 @@ STATUS depayH264FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNal
             break;
         case FU_B_INDICATOR:
             // FU-B indicator
-            naluLength = packetLength - FU_A_HEADER_SIZE + 1;
+            CHK(packetLength > FU_B_HEADER_SIZE, STATUS_RTP_INPUT_PACKET_TOO_SMALL);
+            naluLength = packetLength - FU_B_HEADER_SIZE + 1;
             break;
         case STAP_A_INDICATOR:
             pCurPtr += STAP_A_HEADER_SIZE;
@@ -336,7 +338,7 @@ STATUS depayH264FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNal
             break;
         case STAP_B_INDICATOR:
             naluLength = 0;
-            pCurPtr = pRawPacket + STAP_A_HEADER_SIZE;
+            pCurPtr = pRawPacket + STAP_B_HEADER_SIZE;
             do {
                 subNaluSize = getUnalignedInt16BigEndian(pCurPtr);
                 pCurPtr += SIZEOF(UINT16);
