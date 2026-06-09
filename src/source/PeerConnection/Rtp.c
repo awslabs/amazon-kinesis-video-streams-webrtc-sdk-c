@@ -295,6 +295,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     UINT64 randomRtpTimeoffset = 0; // TODO: spec requires random rtp time offset
     UINT64 rtpTimestamp = 0;
     UINT64 now = GETTIME();
+    BOOL verbose = (GET_LOGGER_LOG_LEVEL() == LOG_LEVEL_VERBOSE);
 
     // stats updates
     DOUBLE fps = 0.0;
@@ -304,7 +305,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
 
     // temp vars :(
     UINT64 tmpFrames, tmpTime;
-    UINT16 twsn;
+    UINT16 twsn, firstSeqNum, lastSeqNum;
     UINT32 extpayload;
     STATUS sendStatus;
 
@@ -380,6 +381,10 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
 
     CHK_STATUS(constructRtpPackets(pPayloadArray, pKvsRtpTransceiver->sender.payloadType, pKvsRtpTransceiver->sender.sequenceNumber, rtpTimestamp,
                                    pKvsRtpTransceiver->sender.ssrc, pPacketList, pPayloadArray->payloadSubLenSize));
+
+    firstSeqNum = pKvsRtpTransceiver->sender.sequenceNumber;
+    lastSeqNum = GET_UINT16_SEQ_NUM(pKvsRtpTransceiver->sender.sequenceNumber + pPayloadArray->payloadSubLenSize - 1);
+
     pKvsRtpTransceiver->sender.sequenceNumber = GET_UINT16_SEQ_NUM(pKvsRtpTransceiver->sender.sequenceNumber + pPayloadArray->payloadSubLenSize);
 
     bufferAfterEncrypt = (pKvsRtpTransceiver->sender.payloadType == pKvsRtpTransceiver->sender.rtxPayloadType);
@@ -436,6 +441,23 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
         headerBytesSent += headerLen;
 
         SAFE_MEMFREE(rawPacket);
+    }
+
+    if (verbose) {
+        // track: video/audio
+        // pts: presentation timestamp
+        // rtpTs: RTP timestamp
+        // size: raw frame size
+        // rtpPayload: total RTP payload after packetization, but before serialization
+        // wireSize: total bytes sent on the wire (RTP headers + payload + SRTP overhead)
+        // seqNums: RTP sequence number range of packetized frame
+        // keyFrame: "yes"/"no"/"N/A" (N/A for audio)
+        DLOGV("debug frame info: track=%s, pts=%" PRIu64 ", rtpTs=%" PRIu64 ", size=%uB, rtpPayload=%uB, wireSize=%uB, seqNums=%u-%u, keyFrame=%s",
+              MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind ? "video" : "audio", pFrame->presentationTs, rtpTimestamp,
+              pFrame->size, pPayloadArray->payloadLength, bytesSent + headerBytesSent, firstSeqNum, lastSeqNum,
+              MEDIA_STREAM_TRACK_KIND_VIDEO != pKvsRtpTransceiver->sender.track.kind ? "N/A"
+                  : CHECK_FRAME_FLAG_KEY_FRAME(pFrame->flags)                        ? "yes"
+                                                                                     : "no");
     }
 
     if (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind) {
