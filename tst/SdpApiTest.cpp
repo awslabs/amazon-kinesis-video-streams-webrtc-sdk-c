@@ -1888,12 +1888,12 @@ TEST_F(SdpApiTest, deserializeSessionDescription_MediaTitleTruncatedAtMaxLength)
     EXPECT_EQ(STRLEN(sessionDescription.mediaDescriptions[0].mediaTitle), (UINT32) MAX_SDP_MEDIA_TITLE_LENGTH);
 }
 
-// Scenario 1 (no-colon path): Single attribute with 20000-byte name (all 'A's).
+// Scenario 1 (no-colon path): Single attribute with 20000-byte name (smaller than 25k buffer limit).
 // SDP fed to parser:
 //   v=0
 //   a=AAAA...AAAA    (20000 'A's as the attribute name, no colon, no value)
-// This attribute name far exceeds attributeName[33]. Verify truncation to MAX_SDP_ATTRIBUTE_NAME_LENGTH.
-TEST_F(SdpApiTest, deserializeSessionDescription_OversizedAttributeNameTruncated)
+// Verify truncation to MAX_SDP_ATTRIBUTE_NAME_LENGTH.
+TEST_F(SdpApiTest, deserializeSessionDescription_OversizedAttributeNameTruncated_UnderMax)
 {
     const UINT32 overflowSize = 20000;
     std::string longName(overflowSize, 'A');
@@ -1913,15 +1913,14 @@ TEST_F(SdpApiTest, deserializeSessionDescription_OversizedAttributeNameTruncated
     EXPECT_EQ('\0', sessionDescription.sdpAttributes[0].attributeName[MAX_SDP_ATTRIBUTE_NAME_LENGTH]);
 }
 
-// Scenario 2 (no-colon path): Two valid short attributes FIRST, then one 20000-byte overflow attribute.
+// Scenario 2 (no-colon path): Two valid short attributes FIRST, then one 20000-byte overflow (under 25k limit).
 // SDP fed to parser:
 //   v=0
 //   a=group:BUNDLE 0 1
 //   a=ice-lite
 //   a=AAAA...AAAA    (20000 'A's as the attribute name at slot index 2)
-// The overflow lands at slot index 2. Verify prior attributes at index 0 and 1 are not
-// corrupted by the oversized write, and the overflow attribute itself is truncated.
-TEST_F(SdpApiTest, deserializeSessionDescription_OversizedAttributeAfterValidOnesDoesNotCorrupt)
+// Verify prior attributes at index 0 and 1 are intact, overflow attribute is truncated.
+TEST_F(SdpApiTest, deserializeSessionDescription_OversizedAttributeAfterValidOnesDoesNotCorrupt_UnderMax)
 {
     const UINT32 overflowSize = 20000;
     std::string longName(overflowSize, 'A');
@@ -1930,6 +1929,185 @@ TEST_F(SdpApiTest, deserializeSessionDescription_OversizedAttributeAfterValidOne
                          "a=ice-lite\n"
                          "a=" + longName + "\n";
     ASSERT_LT(sdpStr.size(), (size_t) MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescription(&sessionDescription, (PCHAR) sdpStr.c_str()));
+
+    EXPECT_EQ(sessionDescription.sessionAttributesCount, 3);
+
+    EXPECT_STREQ(sessionDescription.sdpAttributes[0].attributeName, "group");
+    EXPECT_STREQ(sessionDescription.sdpAttributes[0].attributeValue, "BUNDLE 0 1");
+    EXPECT_STREQ(sessionDescription.sdpAttributes[1].attributeName, "ice-lite");
+
+    EXPECT_EQ(STRLEN(sessionDescription.sdpAttributes[2].attributeName), (UINT32) MAX_SDP_ATTRIBUTE_NAME_LENGTH);
+    EXPECT_EQ('\0', sessionDescription.sdpAttributes[2].attributeName[MAX_SDP_ATTRIBUTE_NAME_LENGTH]);
+}
+
+// Scenario 3 (no-colon path): One 20000-byte overflow attribute FIRST, then two valid attributes (under 25k limit).
+// SDP fed to parser:
+//   v=0
+//   a=AAAA...AAAA            (20000 'A's as the attribute name at slot index 0)
+//   a=fingerprint:sha-256 AB:CD:EF
+//   a=setup:actpass
+// Verifies that normal attributes written after the oversized one are parsed correctly.
+TEST_F(SdpApiTest, deserializeSessionDescription_ValidAttributesAfterOversizedOneParsedCorrectly_UnderMax)
+{
+    const UINT32 overflowSize = 20000;
+    std::string longName(overflowSize, 'A');
+    std::string sdpStr = "v=0\n"
+                         "a=" + longName + "\n"
+                         "a=fingerprint:sha-256 AB:CD:EF\n"
+                         "a=setup:actpass\n";
+    ASSERT_LT(sdpStr.size(), (size_t) MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescription(&sessionDescription, (PCHAR) sdpStr.c_str()));
+
+    EXPECT_EQ(sessionDescription.sessionAttributesCount, 3);
+
+    EXPECT_EQ(STRLEN(sessionDescription.sdpAttributes[0].attributeName), (UINT32) MAX_SDP_ATTRIBUTE_NAME_LENGTH);
+
+    EXPECT_STREQ(sessionDescription.sdpAttributes[1].attributeName, "fingerprint");
+    EXPECT_STREQ(sessionDescription.sdpAttributes[1].attributeValue, "sha-256 AB:CD:EF");
+    EXPECT_STREQ(sessionDescription.sdpAttributes[2].attributeName, "setup");
+    EXPECT_STREQ(sessionDescription.sdpAttributes[2].attributeValue, "actpass");
+}
+
+// Scenario 1 (colon path): Single attribute with 10000-byte name followed by ":BBBBB" (under 25k limit).
+// SDP fed to parser:
+//   v=0
+//   a=AAAA...AAAA:BBBBB    (10000 'A's as attribute name, "BBBBB" as value)
+// Exercises the colon-splitting branch. Verify name is truncated and value is parsed.
+TEST_F(SdpApiTest, deserializeSessionDescription_OversizedAttrNameColonPath_UnderMax)
+{
+    const UINT32 overflowSize = 10000;
+    std::string longName(overflowSize, 'A');
+    std::string sdpStr = "v=0\na=" + longName + ":BBBBB\n";
+    ASSERT_LT(sdpStr.size(), (size_t) MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescription(&sessionDescription, (PCHAR) sdpStr.c_str()));
+
+    EXPECT_EQ(sessionDescription.sessionAttributesCount, 1);
+    EXPECT_EQ(STRLEN(sessionDescription.sdpAttributes[0].attributeName), (UINT32) MAX_SDP_ATTRIBUTE_NAME_LENGTH);
+    EXPECT_EQ('\0', sessionDescription.sdpAttributes[0].attributeName[MAX_SDP_ATTRIBUTE_NAME_LENGTH]);
+
+    for (UINT32 i = 0; i < MAX_SDP_ATTRIBUTE_NAME_LENGTH; i++) {
+        EXPECT_EQ('A', sessionDescription.sdpAttributes[0].attributeName[i]);
+    }
+    EXPECT_STREQ(sessionDescription.sdpAttributes[0].attributeValue, "BBBBB");
+}
+
+// Scenario 2 (colon path): Two valid attributes FIRST, then 10000-byte overflow with colon (under 25k limit).
+// SDP fed to parser:
+//   v=0
+//   a=group:BUNDLE 0 1
+//   a=ice-lite
+//   a=AAAA...AAAA:BBBBB    (10000 'A's as attribute name at slot index 2)
+// Verify prior attributes intact, overflow truncated, value "BBBBB" parsed correctly.
+TEST_F(SdpApiTest, deserializeSessionDescription_OversizedAttributeWithColonAfterValidOnesDoesNotCorrupt_UnderMax)
+{
+    const UINT32 overflowSize = 10000;
+    std::string longName(overflowSize, 'A');
+    std::string sdpStr = "v=0\n"
+                         "a=group:BUNDLE 0 1\n"
+                         "a=ice-lite\n"
+                         "a=" + longName + ":BBBBB\n";
+    ASSERT_LT(sdpStr.size(), (size_t) MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescription(&sessionDescription, (PCHAR) sdpStr.c_str()));
+
+    EXPECT_EQ(sessionDescription.sessionAttributesCount, 3);
+
+    EXPECT_STREQ(sessionDescription.sdpAttributes[0].attributeName, "group");
+    EXPECT_STREQ(sessionDescription.sdpAttributes[0].attributeValue, "BUNDLE 0 1");
+    EXPECT_STREQ(sessionDescription.sdpAttributes[1].attributeName, "ice-lite");
+
+    EXPECT_EQ(STRLEN(sessionDescription.sdpAttributes[2].attributeName), (UINT32) MAX_SDP_ATTRIBUTE_NAME_LENGTH);
+    EXPECT_EQ('\0', sessionDescription.sdpAttributes[2].attributeName[MAX_SDP_ATTRIBUTE_NAME_LENGTH]);
+    EXPECT_STREQ(sessionDescription.sdpAttributes[2].attributeValue, "BBBBB");
+}
+
+// Scenario 3 (colon path): One 10000-byte overflow with colon FIRST, then two valid attributes (under 25k limit).
+// SDP fed to parser:
+//   v=0
+//   a=AAAA...AAAA:BBBBB            (10000 'A's as attribute name at slot index 0)
+//   a=fingerprint:sha-256 AB:CD:EF
+//   a=setup:actpass
+// Verifies valid attributes after the oversized one are parsed correctly.
+TEST_F(SdpApiTest, deserializeSessionDescription_ValidAttributesAfterOversizedWithColonParsedCorrectly_UnderMax)
+{
+    const UINT32 overflowSize = 10000;
+    std::string longName(overflowSize, 'A');
+    std::string sdpStr = "v=0\n"
+                         "a=" + longName + ":BBBBB\n"
+                         "a=fingerprint:sha-256 AB:CD:EF\n"
+                         "a=setup:actpass\n";
+    ASSERT_LT(sdpStr.size(), (size_t) MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescription(&sessionDescription, (PCHAR) sdpStr.c_str()));
+
+    EXPECT_EQ(sessionDescription.sessionAttributesCount, 3);
+
+    EXPECT_EQ(STRLEN(sessionDescription.sdpAttributes[0].attributeName), (UINT32) MAX_SDP_ATTRIBUTE_NAME_LENGTH);
+    EXPECT_STREQ(sessionDescription.sdpAttributes[0].attributeValue, "BBBBB");
+
+    EXPECT_STREQ(sessionDescription.sdpAttributes[1].attributeName, "fingerprint");
+    EXPECT_STREQ(sessionDescription.sdpAttributes[1].attributeValue, "sha-256 AB:CD:EF");
+    EXPECT_STREQ(sessionDescription.sdpAttributes[2].attributeName, "setup");
+    EXPECT_STREQ(sessionDescription.sdpAttributes[2].attributeValue, "actpass");
+}
+
+// Scenario 1 (no-colon path): Single attribute with name exceeding MAX_SESSION_DESCRIPTION_INIT_SDP_LEN.
+// SDP fed to parser:
+//   v=0
+//   a=AAAA...AAAA    (25000+ 'A's as the attribute name, no colon, no value)
+// The SDP itself is larger than the 25k buffer limit. Verify the parser still truncates
+// attributeName to MAX_SDP_ATTRIBUTE_NAME_LENGTH without overflow.
+TEST_F(SdpApiTest, deserializeSessionDescription_OversizedAttributeNameTruncated)
+{
+    const UINT32 overflowSize = MAX_SESSION_DESCRIPTION_INIT_SDP_LEN + 100;
+    std::string longName(overflowSize, 'A');
+    std::string sdpStr = "v=0\na=" + longName + "\n";
+    ASSERT_GT(sdpStr.size(), (size_t) MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescription(&sessionDescription, (PCHAR) sdpStr.c_str()));
+
+    EXPECT_EQ(sessionDescription.sessionAttributesCount, 1);
+    EXPECT_EQ(STRLEN(sessionDescription.sdpAttributes[0].attributeName), (UINT32) MAX_SDP_ATTRIBUTE_NAME_LENGTH);
+
+    for (UINT32 i = 0; i < MAX_SDP_ATTRIBUTE_NAME_LENGTH; i++) {
+        EXPECT_EQ('A', sessionDescription.sdpAttributes[0].attributeName[i]);
+    }
+    EXPECT_EQ('\0', sessionDescription.sdpAttributes[0].attributeName[MAX_SDP_ATTRIBUTE_NAME_LENGTH]);
+}
+
+// Scenario 2 (no-colon path): Two valid short attributes FIRST, then one 25k+ overflow attribute.
+// SDP fed to parser:
+//   v=0
+//   a=group:BUNDLE 0 1
+//   a=ice-lite
+//   a=AAAA...AAAA    (25000+ 'A's as the attribute name at slot index 2)
+// The overflow lands at slot index 2. Verify prior attributes at index 0 and 1 are not
+// corrupted by the oversized write, and the overflow attribute itself is truncated.
+TEST_F(SdpApiTest, deserializeSessionDescription_OversizedAttributeAfterValidOnesDoesNotCorrupt)
+{
+    const UINT32 overflowSize = MAX_SESSION_DESCRIPTION_INIT_SDP_LEN + 100;
+    std::string longName(overflowSize, 'A');
+    std::string sdpStr = "v=0\n"
+                         "a=group:BUNDLE 0 1\n"
+                         "a=ice-lite\n"
+                         "a=" + longName + "\n";
+    ASSERT_GT(sdpStr.size(), (size_t) MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
 
     SessionDescription sessionDescription;
     MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
@@ -1947,23 +2125,23 @@ TEST_F(SdpApiTest, deserializeSessionDescription_OversizedAttributeAfterValidOne
     EXPECT_EQ('\0', sessionDescription.sdpAttributes[2].attributeName[MAX_SDP_ATTRIBUTE_NAME_LENGTH]);
 }
 
-// Scenario 3 (no-colon path): One 20000-byte overflow attribute FIRST, then two valid attributes after.
+// Scenario 3 (no-colon path): One 25k+ overflow attribute FIRST, then two valid attributes after.
 // SDP fed to parser:
 //   v=0
-//   a=AAAA...AAAA            (20000 'A's as the attribute name at slot index 0)
+//   a=AAAA...AAAA            (25000+ 'A's as the attribute name at slot index 0)
 //   a=fingerprint:sha-256 AB:CD:EF
 //   a=setup:actpass
 // Verifies that normal attributes written after the oversized one read back correctly
 // and are not corrupted by the prior overflow being written into slot 0.
 TEST_F(SdpApiTest, deserializeSessionDescription_ValidAttributesAfterOversizedOneParsedCorrectly)
 {
-    const UINT32 overflowSize = 20000;
+    const UINT32 overflowSize = MAX_SESSION_DESCRIPTION_INIT_SDP_LEN + 100;
     std::string longName(overflowSize, 'A');
     std::string sdpStr = "v=0\n"
                          "a=" + longName + "\n"
                          "a=fingerprint:sha-256 AB:CD:EF\n"
                          "a=setup:actpass\n";
-    ASSERT_LT(sdpStr.size(), (size_t) MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+    ASSERT_GT(sdpStr.size(), (size_t) MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
 
     SessionDescription sessionDescription;
     MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
@@ -2072,6 +2250,106 @@ TEST_F(SdpApiTest, deserializeSessionDescription_ValidAttributesAfterOversizedWi
     EXPECT_STREQ(sessionDescription.sdpAttributes[0].attributeValue, "BBBBB");
 
     // Subsequent attributes must be parsed correctly and not corrupted
+    EXPECT_STREQ(sessionDescription.sdpAttributes[1].attributeName, "fingerprint");
+    EXPECT_STREQ(sessionDescription.sdpAttributes[1].attributeValue, "sha-256 AB:CD:EF");
+    EXPECT_STREQ(sessionDescription.sdpAttributes[2].attributeName, "setup");
+    EXPECT_STREQ(sessionDescription.sdpAttributes[2].attributeValue, "actpass");
+}
+
+// Scenario 1 (colon path, over max): 25k 'A's before the colon, 25k 'B's after.
+// SDP fed to parser:
+//   v=0
+//   a=AAAA...AAAA:BBBB...BBBB    (25000 'A's as name, 25000 'B's as value)
+// Total SDP exceeds MAX_SESSION_DESCRIPTION_INIT_SDP_LEN. Exercises the colon-splitting
+// branch with both name and value exceeding their respective buffer sizes.
+TEST_F(SdpApiTest, deserializeSessionDescription_OversizedAttrNameColonPath_OverMax)
+{
+    const UINT32 nameSize = MAX_SESSION_DESCRIPTION_INIT_SDP_LEN;
+    const UINT32 valueSize = MAX_SESSION_DESCRIPTION_INIT_SDP_LEN;
+    std::string longName(nameSize, 'A');
+    std::string longValue(valueSize, 'B');
+    std::string sdpStr = "v=0\na=" + longName + ":" + longValue + "\n";
+    ASSERT_GT(sdpStr.size(), (size_t) MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescription(&sessionDescription, (PCHAR) sdpStr.c_str()));
+
+    EXPECT_EQ(sessionDescription.sessionAttributesCount, 1);
+    EXPECT_EQ(STRLEN(sessionDescription.sdpAttributes[0].attributeName), (UINT32) MAX_SDP_ATTRIBUTE_NAME_LENGTH);
+    EXPECT_EQ('\0', sessionDescription.sdpAttributes[0].attributeName[MAX_SDP_ATTRIBUTE_NAME_LENGTH]);
+
+    for (UINT32 i = 0; i < MAX_SDP_ATTRIBUTE_NAME_LENGTH; i++) {
+        EXPECT_EQ('A', sessionDescription.sdpAttributes[0].attributeName[i]);
+    }
+    EXPECT_EQ(STRLEN(sessionDescription.sdpAttributes[0].attributeValue), (UINT32) MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
+    for (UINT32 i = 0; i < MAX_SDP_ATTRIBUTE_VALUE_LENGTH; i++) {
+        EXPECT_EQ('B', sessionDescription.sdpAttributes[0].attributeValue[i]);
+    }
+}
+
+// Scenario 2 (colon path, over max): Two valid attributes, then 25k:25k overflow.
+// SDP fed to parser:
+//   v=0
+//   a=group:BUNDLE 0 1
+//   a=ice-lite
+//   a=AAAA...AAAA:BBBB...BBBB    (25000 'A's name, 25000 'B's value at slot index 2)
+// Verify prior attributes intact, name and value both truncated to their max lengths.
+TEST_F(SdpApiTest, deserializeSessionDescription_OversizedAttributeWithColonAfterValidOnesDoesNotCorrupt_OverMax)
+{
+    const UINT32 nameSize = MAX_SESSION_DESCRIPTION_INIT_SDP_LEN;
+    const UINT32 valueSize = MAX_SESSION_DESCRIPTION_INIT_SDP_LEN;
+    std::string longName(nameSize, 'A');
+    std::string longValue(valueSize, 'B');
+    std::string sdpStr = "v=0\n"
+                         "a=group:BUNDLE 0 1\n"
+                         "a=ice-lite\n"
+                         "a=" + longName + ":" + longValue + "\n";
+    ASSERT_GT(sdpStr.size(), (size_t) MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescription(&sessionDescription, (PCHAR) sdpStr.c_str()));
+
+    EXPECT_EQ(sessionDescription.sessionAttributesCount, 3);
+
+    EXPECT_STREQ(sessionDescription.sdpAttributes[0].attributeName, "group");
+    EXPECT_STREQ(sessionDescription.sdpAttributes[0].attributeValue, "BUNDLE 0 1");
+    EXPECT_STREQ(sessionDescription.sdpAttributes[1].attributeName, "ice-lite");
+
+    EXPECT_EQ(STRLEN(sessionDescription.sdpAttributes[2].attributeName), (UINT32) MAX_SDP_ATTRIBUTE_NAME_LENGTH);
+    EXPECT_EQ('\0', sessionDescription.sdpAttributes[2].attributeName[MAX_SDP_ATTRIBUTE_NAME_LENGTH]);
+    EXPECT_EQ(STRLEN(sessionDescription.sdpAttributes[2].attributeValue), (UINT32) MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
+}
+
+// Scenario 3 (colon path, over max): 25k:25k overflow FIRST, then two valid attributes after.
+// SDP fed to parser:
+//   v=0
+//   a=AAAA...AAAA:BBBB...BBBB            (25000 'A's name, 25000 'B's value at slot index 0)
+//   a=fingerprint:sha-256 AB:CD:EF
+//   a=setup:actpass
+// Verifies valid attributes after the oversized one are parsed correctly.
+TEST_F(SdpApiTest, deserializeSessionDescription_ValidAttributesAfterOversizedWithColonParsedCorrectly_OverMax)
+{
+    const UINT32 nameSize = MAX_SESSION_DESCRIPTION_INIT_SDP_LEN;
+    const UINT32 valueSize = MAX_SESSION_DESCRIPTION_INIT_SDP_LEN;
+    std::string longName(nameSize, 'A');
+    std::string longValue(valueSize, 'B');
+    std::string sdpStr = "v=0\n"
+                         "a=" + longName + ":" + longValue + "\n"
+                         "a=fingerprint:sha-256 AB:CD:EF\n"
+                         "a=setup:actpass\n";
+    ASSERT_GT(sdpStr.size(), (size_t) MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescription(&sessionDescription, (PCHAR) sdpStr.c_str()));
+
+    EXPECT_EQ(sessionDescription.sessionAttributesCount, 3);
+
+    EXPECT_EQ(STRLEN(sessionDescription.sdpAttributes[0].attributeName), (UINT32) MAX_SDP_ATTRIBUTE_NAME_LENGTH);
+    EXPECT_EQ(STRLEN(sessionDescription.sdpAttributes[0].attributeValue), (UINT32) MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
+
     EXPECT_STREQ(sessionDescription.sdpAttributes[1].attributeName, "fingerprint");
     EXPECT_STREQ(sessionDescription.sdpAttributes[1].attributeValue, "sha-256 AB:CD:EF");
     EXPECT_STREQ(sessionDescription.sdpAttributes[2].attributeName, "setup");
@@ -3137,51 +3415,6 @@ TEST_F(SdpApiTest, addTransceiverUnknownCodecId_returnsStatusNotImplemented)
 
     closePeerConnection(offerPc);
     freePeerConnection(&offerPc);
-}
-
-// Attribute name and value on colon path must be truncated to their max lengths
-TEST_F(SdpApiTest, deserializeSessionDescription_AttributeKeyValuesTruncated)
-{
-    // Try constructing 1 longer than max
-    std::string longName(MAX_SDP_ATTRIBUTE_NAME_LENGTH + 1, 'A');
-    std::string longValue(MAX_SDP_ATTRIBUTE_VALUE_LENGTH + 1, 'V');
-
-    std::string sessionSdp = "v=0\n"
-                             "o=- 1 1 IN IP4 127.0.0.1\n"
-                             "s=test\n"
-                             "t=0 0\n"
-                             "a=" + longName + ":" + longValue + "\n";
-    std::string mediaSdp =
-        "v=0\n"
-        "o=- 1 1 IN IP4 127.0.0.1\n"
-        "s=test\n"
-        "t=0 0\n"
-        "m=video 9 UDP/TLS/RTP/SAVPF 96\n"
-        "a=" + longName + ":" + longValue + "\n";
-
-    assertLFAndCRLF((PCHAR) sessionSdp.c_str(), (INT32) sessionSdp.size(), [&](PCHAR sdp) {
-        SessionDescription sessionDescription;
-        MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
-        EXPECT_EQ(deserializeSessionDescription(&sessionDescription, sdp), STATUS_SUCCESS);
-        EXPECT_EQ(sessionDescription.sessionAttributesCount, 1);
-        EXPECT_EQ(STRLEN(sessionDescription.sdpAttributes[0].attributeName), MAX_SDP_ATTRIBUTE_NAME_LENGTH);
-        EXPECT_EQ(STRNCMP(sessionDescription.sdpAttributes[0].attributeName, longName.c_str(), MAX_SDP_ATTRIBUTE_NAME_LENGTH), 0);
-        EXPECT_EQ(STRLEN(sessionDescription.sdpAttributes[0].attributeValue), MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
-        EXPECT_EQ(STRNCMP(sessionDescription.sdpAttributes[0].attributeValue, longValue.c_str(), MAX_SDP_ATTRIBUTE_VALUE_LENGTH), 0);
-    });
-
-    assertLFAndCRLF((PCHAR) mediaSdp.c_str(), (INT32) mediaSdp.size(), [&](PCHAR sdp) {
-        SessionDescription sessionDescription;
-        MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
-        EXPECT_EQ(deserializeSessionDescription(&sessionDescription, sdp), STATUS_SUCCESS);
-        EXPECT_EQ(sessionDescription.mediaCount, 1);
-        EXPECT_EQ(sessionDescription.mediaDescriptions[0].mediaAttributesCount, 1);
-        EXPECT_EQ(STRLEN(sessionDescription.mediaDescriptions[0].sdpAttributes[0].attributeName), MAX_SDP_ATTRIBUTE_NAME_LENGTH);
-        EXPECT_EQ(STRNCMP(sessionDescription.mediaDescriptions[0].sdpAttributes[0].attributeName, longName.c_str(), MAX_SDP_ATTRIBUTE_NAME_LENGTH), 0);
-        EXPECT_EQ(STRLEN(sessionDescription.mediaDescriptions[0].sdpAttributes[0].attributeValue), MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
-        EXPECT_EQ(STRNCMP(sessionDescription.mediaDescriptions[0].sdpAttributes[0].attributeValue, longValue.c_str(), MAX_SDP_ATTRIBUTE_VALUE_LENGTH),
-                  0);
-    });
 }
 
 class IntersectTransceiverDirectionE2ETest : public SdpApiTest,
