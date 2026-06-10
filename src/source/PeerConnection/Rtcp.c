@@ -594,7 +594,10 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
         MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
         locked = FALSE;
 
-        // Invoke custom callback to perform the calculation
+        // Invoke custom callback outside the lock to avoid deadlock if the callback calls back into the SDK.
+        // Safe because RTCP is processed on a single receive thread (connectionListenerReceiveDataRoutine),
+        // so parseRtcpTwccPacket cannot run concurrently. If RTCP processing becomes multi-threaded,
+        // the lock/unlock/relock pattern here and around updateTwccHashTable below must be revisited.
         retStatus = pKvsPeerConnection->onTwccFeedbackReceived(pKvsPeerConnection->onTwccFeedbackReceivedCustomData, pFeedbackList, feedbackCount,
                                                                &congestionState);
         SAFE_MEMFREE(pFeedbackList);
