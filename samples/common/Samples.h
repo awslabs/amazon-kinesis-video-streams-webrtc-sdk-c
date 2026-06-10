@@ -104,7 +104,7 @@ extern "C" {
 #define MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE 736 // strlen(SIGNALING_CLIENT_METRICS_JSON_TEMPLATE) + 20 * 10
 #define MAX_ICE_AGENT_METRICS_MESSAGE_SIZE        113 // strlen(ICE_AGENT_METRICS_JSON_TEMPLATE) + 20 * 2
 
-#define TWCC_BITRATE_ADJUSTMENT_INTERVAL_MS 250 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
+#define TWCC_BITRATE_ADJUSTMENT_INTERVAL_MS (250 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 #define MIN_VIDEO_BITRATE_KBPS              384    // Unit kilobits/sec. Value could change based on codec.
 #define MAX_VIDEO_BITRATE_KBPS              2500   // Unit kilobits/sec. Value could change based on codec.
 #define MIN_AUDIO_BITRATE_BPS               4000   // Unit bits/sec. Value could change based on codec.
