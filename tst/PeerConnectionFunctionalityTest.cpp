@@ -820,6 +820,75 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
     EXPECT_EQ(ATOMIC_LOAD(&seenVideo), 1);
 }
 
+// Both peers stream video simultaneously from separate threads while each also
+// receives the other's stream. iceAgentSendPacket releases pIceAgent->lock around
+// the actual packet send (so TX is not serialized behind RX/connectivity-check work
+// that holds the same coarse lock); this test exercises that send path concurrently
+// with RX on each agent. Asserts every send succeeds and both directions deliver
+// frames. Run under ThreadSanitizer to verify the lock-release window is race-free.
+TEST_F(PeerConnectionFunctionalityTest, bidirectionalConcurrentMediaSend)
+{
+    auto const frameBufferSize = 200000;
+    auto const iterations = 300;
+
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack;
+    PRtcRtpTransceiver offerVideoTransceiver, answerVideoTransceiver;
+    SIZE_T seenVideoAtAnswer = 0, seenVideoAtOffer = 0;
+    SIZE_T offerSendFailed = 0, answerSendFailed = 0;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    // Video track on both peers -> sendrecv both directions.
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+
+    auto onFrameHandler = [](UINT64 customData, PFrame pFrame) -> void {
+        UNUSED_PARAM(pFrame);
+        ATOMIC_STORE((PSIZE_T) customData, 1);
+    };
+    EXPECT_EQ(transceiverOnFrame(answerVideoTransceiver, (UINT64) &seenVideoAtAnswer, onFrameHandler), STATUS_SUCCESS);
+    EXPECT_EQ(transceiverOnFrame(offerVideoTransceiver, (UINT64) &seenVideoAtOffer, onFrameHandler), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    auto sender = [frameBufferSize, iterations](PRtcRtpTransceiver transceiver, PSIZE_T pFailed) {
+        Frame videoFrame;
+        MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
+        videoFrame.frameData = (PBYTE) MEMALLOC(frameBufferSize);
+        videoFrame.size = TEST_VIDEO_FRAME_SIZE;
+        MEMSET(videoFrame.frameData, 0x11, videoFrame.size);
+        for (auto i = 0; i < iterations; i++) {
+            if (writeFrame(transceiver, &videoFrame) != STATUS_SUCCESS) {
+                ATOMIC_STORE(pFailed, 1);
+            }
+            videoFrame.presentationTs += (HUNDREDS_OF_NANOS_IN_A_SECOND / 25);
+            THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        }
+        MEMFREE(videoFrame.frameData);
+    };
+
+    std::thread offerSender(sender, offerVideoTransceiver, &offerSendFailed);
+    std::thread answerSender(sender, answerVideoTransceiver, &answerSendFailed);
+    offerSender.join();
+    answerSender.join();
+
+    EXPECT_EQ(ATOMIC_LOAD(&offerSendFailed), 0);
+    EXPECT_EQ(ATOMIC_LOAD(&answerSendFailed), 0);
+    EXPECT_EQ(ATOMIC_LOAD(&seenVideoAtAnswer), 1);
+    EXPECT_EQ(ATOMIC_LOAD(&seenVideoAtOffer), 1);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
 // Same test as exchangeMedia, but assert that if one side is RSA DTLS and Key Extraction works
 TEST_F(PeerConnectionFunctionalityTest, exchangeMediaRSA)
 {
