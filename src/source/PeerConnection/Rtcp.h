@@ -55,6 +55,11 @@ STATUS computeTwccTrendline(PTwccManager, PDOUBLE, PDOUBLE);
 // Max packet age in the TWCC hash table. If feedback is not received within this
 // window, the entry is evicted. Entries are also evicted once we receive feedback.
 #define TWCC_ESTIMATOR_TIME_WINDOW (4 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+// Hard upper bound on packets reported in a single TWCC feedback to prevent
+// too large allocations via crafted packetStatusCount (UINT16 field).
+// 2048 is well above any legitimate report (~270 pkts/sec at typical rates)
+// while capping allocation to ~45 KB instead of ~1.4 MB at UINT16 max.
+#define TWCC_MAX_PACKET_STATUS_COUNT 2048
 // Minimum payload length for a TWCC feedback packet (two SSRCs + base seq + status count + ref time + fb pkt count)
 #define TWCC_FB_PAYLOAD_MIN_LEN 16
 

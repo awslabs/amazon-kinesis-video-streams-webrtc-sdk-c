@@ -207,6 +207,11 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
         CHK(FALSE, STATUS_SUCCESS);
     }
 
+    if (packetStatusCount > TWCC_MAX_PACKET_STATUS_COUNT) {
+        DLOGD("Malformed TWCC packet: packetStatusCount %u exceeds max %u, clamping", packetStatusCount, TWCC_MAX_PACKET_STATUS_COUNT);
+        packetStatusCount = TWCC_MAX_PACKET_STATUS_COUNT;
+    }
+
     referenceTime = (pRtcpPacket->payload[12] << 16) | (pRtcpPacket->payload[13] << 8) | (pRtcpPacket->payload[14] & 0xff);
     referenceTime = KVS_CONVERT_TIMESCALE(referenceTime * 64, MILLISECONDS_PER_SECOND, HUNDREDS_OF_NANOS_IN_A_SECOND);
     // TODO: handle lost twcc report packets
@@ -551,6 +556,12 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
         PTwccRtpPacketInfo pPktInfo = NULL;
         UINT16 reportLen = (UINT16) (pTwccManager->lastReportedSeqNum - pTwccManager->prevReportedBaseSeqNum + 1);
         UINT16 packetStatusCount = TWCC_PACKET_STATUS_COUNT(pRtcpPacket->payload);
+
+        // Hard cap to prevent attacker-controlled allocation via crafted TWCC packets
+        if (packetStatusCount > TWCC_MAX_PACKET_STATUS_COUNT) {
+            DLOGD("Malformed TWCC packet: packetStatusCount %u exceeds max %u", packetStatusCount, TWCC_MAX_PACKET_STATUS_COUNT);
+            packetStatusCount = TWCC_MAX_PACKET_STATUS_COUNT;
+        }
 
         // Cap reportLen to packetStatusCount to bound the allocation size
         if (reportLen > packetStatusCount) {
