@@ -63,7 +63,7 @@ var searchData=
   ['twccextid_60',['twccExtId',['../structKvsPeerConnection.html#ae67d5d26809c5cb022ac12c19523b1de',1,'KvsPeerConnection']]],
   ['twcclock_61',['twccLock',['../structKvsPeerConnection.html#a88974e9c4a3fde628ee1b203d2a7e0a8',1,'KvsPeerConnection']]],
   ['twccseqnum_62',['twccSeqNum',['../group__StatusCodes.html#ga9a9eea90eaad8f50fc0a51483bb7b6fe',1,'TwccFeedback']]],
-  ['txbytes_63',['txBytes',['../group__StatusCodes.html#gaf3acdde4029c1fbd3d19502147ecd5bf',1,'CongestionCtx']]],
-  ['txpackets_64',['txPackets',['../group__StatusCodes.html#gae840ffa275d0392f0ecca273a13d640f',1,'CongestionCtx']]],
+  ['txbytes_63',['txBytes',['../group__StatusCodes.html#gaf6875a1a10a78980b64911cc18c69b83',1,'CongestionCtx']]],
+  ['txpackets_64',['txPackets',['../group__StatusCodes.html#gad972331b0c9a62895bd1213a64c2361c',1,'CongestionCtx']]],
   ['type_65',['type',['../group__StatusCodes.html#ga66e8134ccd2c83b700bbf4e8e6649a6f',1,'RtcSessionDescriptionInit::type'],['../structjsmntok__t.html#ac03dbd6b83cbcd979eb64702d5b9943e',1,'jsmntok_t::type'],['../structStunAttributeHeader.html#a22b99796f78a25ebe68797500f4330e6',1,'StunAttributeHeader::type']]]
 ];
