@@ -2527,6 +2527,25 @@ PUBLIC_API STATUS createRtcCertificate(PRtcCertificate*);
  */
 PUBLIC_API STATUS freeRtcCertificate(PRtcCertificate);
 
+/**
+ * @brief Initialize the CA certificate cache by reading the cert file once into memory.
+ * Call this once at application startup before creating signaling clients or peer connections.
+ * NOT THREAD SAFE - must be called before spawning worker threads.
+ *
+ * @param[in] pCaCertPath Path to the CA certificate PEM file
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS initCaCertCache(PCHAR);
+
+/**
+ * @brief Free the CA certificate cache.
+ * NOT THREAD SAFE - call once at application shutdown after all connections are closed.
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS deinitCaCertCache(VOID);
+
 /*!@} */
 #ifdef __cplusplus
 }
