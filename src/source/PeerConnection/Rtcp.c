@@ -623,10 +623,10 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
         // Invoke the new congestion feedback callback if set
         if (pKvsPeerConnection->onPeerCongestionFeedback != NULL) {
             CongestionCtx ctx;
-            ctx.txBytes = (UINT32) sentBytes;
-            ctx.rxBytes = (UINT32) receivedBytes;
-            ctx.txPackets = (UINT32) sentPackets;
-            ctx.rxPackets = (UINT32) receivedPackets;
+            ctx.txBytes = sentBytes;
+            ctx.rxBytes = receivedBytes;
+            ctx.txPackets = sentPackets;
+            ctx.rxPackets = receivedPackets;
             ctx.duration = (UINT64) duration;
             ctx.congestionState.delayTrend = delayTrend;
             CHK_LOG_ERR(pKvsPeerConnection->onPeerCongestionFeedback(pKvsPeerConnection->onPeerCongestionFeedbackCustomData, &ctx));

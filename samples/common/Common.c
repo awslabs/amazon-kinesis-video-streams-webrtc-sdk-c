@@ -679,9 +679,9 @@ STATUS sampleOnPeerCongestionFeedback(UINT64 customData, PCongestionCtx pCongest
 
     UINT64 videoBitrate, audioBitrate;
     UINT64 currentTimeMs, timeDiff;
-    UINT32 txPacketsCnt = pCongestionCtx->txPackets;
-    UINT32 rxPacketsCnt = pCongestionCtx->rxPackets;
-    UINT32 lostPacketsCnt = txPacketsCnt > rxPacketsCnt ? txPacketsCnt - rxPacketsCnt : 0;
+    UINT64 txPacketsCnt = pCongestionCtx->txPackets;
+    UINT64 rxPacketsCnt = pCongestionCtx->rxPackets;
+    UINT64 lostPacketsCnt = txPacketsCnt > rxPacketsCnt ? txPacketsCnt - rxPacketsCnt : 0;
     DOUBLE percentLost = (DOUBLE) ((txPacketsCnt > 0) ? (lostPacketsCnt * 100 / txPacketsCnt) : 0.0);
     DOUBLE delayTrendMs = pCongestionCtx->congestionState.delayTrend;
 

@@ -1226,10 +1226,10 @@ typedef struct {
  * @brief Context provided to the bandwidth controller callback.
  */
 typedef struct {
-    UINT32 txBytes;                      //!< Bytes sent over the transport
-    UINT32 rxBytes;                      //!< Bytes reported as received
-    UINT32 txPackets;                    //!< Packets sent over the transport
-    UINT32 rxPackets;                    //!< Packets reported as received
+    UINT64 txBytes;                      //!< Bytes sent over the transport
+    UINT64 rxBytes;                      //!< Bytes reported as received
+    UINT64 txPackets;                    //!< Packets sent over the transport
+    UINT64 rxPackets;                    //!< Packets reported as received
     UINT64 duration;                     //!< Time window for this feedback (hundreds of nanos)
     TwccCongestionState congestionState; //!< Current congestion state
 } CongestionCtx, *PCongestionCtx;
