@@ -2164,13 +2164,21 @@ STATUS setOnTwccFeedbackReceived(PRtcPeerConnection pPeerConnection, UINT64 cust
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
+    BOOL locked = FALSE;
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+    CHK_ERR(IS_VALID_MUTEX_VALUE(pKvsPeerConnection->twccLock), STATUS_INVALID_OPERATION,
+            "TWCC is not enabled; enable sender-side bandwidth estimation to use this callback");
 
+    MUTEX_LOCK(pKvsPeerConnection->twccLock);
+    locked = TRUE;
     pKvsPeerConnection->onTwccFeedbackReceivedCustomData = customData;
     pKvsPeerConnection->onTwccFeedbackReceived = onTwccFbReceived;
 
 CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
+    }
     CHK_LOG_ERR(retStatus);
 
     LEAVES();
@@ -2182,13 +2190,21 @@ STATUS setOnPeerCongestionFeedbackFn(PRtcPeerConnection pPeerConnection, UINT64 
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
+    BOOL locked = FALSE;
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+    CHK_ERR(IS_VALID_MUTEX_VALUE(pKvsPeerConnection->twccLock), STATUS_INVALID_OPERATION,
+            "TWCC is not enabled; enable sender-side bandwidth estimation to use this callback");
 
+    MUTEX_LOCK(pKvsPeerConnection->twccLock);
+    locked = TRUE;
     pKvsPeerConnection->onPeerCongestionFeedbackCustomData = customData;
     pKvsPeerConnection->onPeerCongestionFeedback = onPeerCongestionFeedback;
 
 CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
+    }
     CHK_LOG_ERR(retStatus);
 
     LEAVES();
