@@ -591,6 +591,74 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_DataChannelMetricsTest)
     freePeerConnection(&answerPc);
 }
 
+TEST_F(DataChannelFunctionalityTest, dataChannelOpen_OversizedNameIsRejected)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection pPeerConnection = NULL;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    UINT32 oversizedLen = MAX_DATA_CHANNEL_NAME_LEN + 100;
+    BYTE oversizedName[MAX_DATA_CHANNEL_NAME_LEN + 100];
+    volatile SIZE_T onDataChannelCount = 0;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(oversizedName, 'A', oversizedLen);
+
+    EXPECT_EQ(createPeerConnection(&configuration, &pPeerConnection), STATUS_SUCCESS);
+    pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
+
+    auto onDataChannelCb = [](UINT64 customData, PRtcDataChannel pRtcDataChannel) {
+        UNUSED_PARAM(pRtcDataChannel);
+        ATOMIC_INCREMENT((PSIZE_T) customData);
+    };
+
+    EXPECT_EQ(peerConnectionOnDataChannel(pPeerConnection, (UINT64) &onDataChannelCount, onDataChannelCb), STATUS_SUCCESS);
+
+    onSctpSessionDataChannelOpen((UINT64) pKvsPeerConnection, 0, oversizedName, oversizedLen);
+
+    EXPECT_EQ(ATOMIC_LOAD(&onDataChannelCount), 0);
+
+    UINT64 hashValue = 0;
+    EXPECT_NE(hashTableGet(pKvsPeerConnection->pDataChannels, 0, &hashValue), STATUS_SUCCESS);
+
+    freePeerConnection(&pPeerConnection);
+}
+
+TEST_F(DataChannelFunctionalityTest, dataChannelOpen_NormalNameIsPreserved)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection pPeerConnection = NULL;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    const CHAR normalName[] = "my-data-channel";
+    UINT32 nameLen = STRLEN(normalName);
+    volatile SIZE_T onDataChannelCount = 0;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &pPeerConnection), STATUS_SUCCESS);
+    pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
+
+    auto onDataChannelCb = [](UINT64 customData, PRtcDataChannel pRtcDataChannel) {
+        UNUSED_PARAM(pRtcDataChannel);
+        ATOMIC_INCREMENT((PSIZE_T) customData);
+    };
+
+    EXPECT_EQ(peerConnectionOnDataChannel(pPeerConnection, (UINT64) &onDataChannelCount, onDataChannelCb), STATUS_SUCCESS);
+
+    onSctpSessionDataChannelOpen((UINT64) pKvsPeerConnection, 0, (PBYTE) normalName, nameLen);
+
+    EXPECT_EQ(ATOMIC_LOAD(&onDataChannelCount), 1);
+
+    UINT64 hashValue = 0;
+    EXPECT_EQ(hashTableGet(pKvsPeerConnection->pDataChannels, 0, &hashValue), STATUS_SUCCESS);
+    PKvsDataChannel pKvsDataChannel = (PKvsDataChannel) hashValue;
+
+    EXPECT_EQ(STRLEN(pKvsDataChannel->dataChannel.name), nameLen);
+    EXPECT_EQ(STRNCMP(pKvsDataChannel->dataChannel.name, normalName, nameLen), 0);
+    EXPECT_EQ(STRNCMP(pKvsDataChannel->rtcDataChannelDiagnostics.label, normalName, nameLen), 0);
+
+    freePeerConnection(&pPeerConnection);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
