@@ -641,27 +641,21 @@ VOID onSctpSessionDataChannelOpen(UINT64 customData, UINT32 channelId, PBYTE pNa
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
     PKvsDataChannel pKvsDataChannel = NULL;
-    UINT32 copyLen = 0;
 
     CHK(pKvsPeerConnection != NULL && pKvsPeerConnection->onDataChannel != NULL, STATUS_NULL_ARG);
+    CHK(nameLen <= MAX_DATA_CHANNEL_NAME_LEN, STATUS_INVALID_ARG);
 
     pKvsDataChannel = (PKvsDataChannel) MEMCALLOC(1, SIZEOF(KvsDataChannel));
     CHK(pKvsDataChannel != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
-    // Cap copy length to destination buffer size to prevent heap overflow
-    copyLen = MIN(nameLen, MAX_DATA_CHANNEL_NAME_LEN);
-    STRNCPY(pKvsDataChannel->dataChannel.name, (PCHAR) pName, copyLen);
-    pKvsDataChannel->dataChannel.name[copyLen] = '\0';
+    STRNCPY(pKvsDataChannel->dataChannel.name, (PCHAR) pName, nameLen);
     pKvsDataChannel->dataChannel.id = channelId;
     pKvsDataChannel->pRtcPeerConnection = (PRtcPeerConnection) pKvsPeerConnection;
     pKvsDataChannel->channelId = channelId;
 
-    // Set the data channel parameters when data channel is created by peer
     pKvsDataChannel->rtcDataChannelDiagnostics.dataChannelIdentifier = channelId;
     pKvsDataChannel->rtcDataChannelDiagnostics.state = RTC_DATA_CHANNEL_STATE_OPEN;
-    copyLen = MIN(nameLen, MAX_STATS_STRING_LENGTH);
-    STRNCPY(pKvsDataChannel->rtcDataChannelDiagnostics.label, (PCHAR) pName, copyLen);
-    pKvsDataChannel->rtcDataChannelDiagnostics.label[copyLen] = '\0';
+    STRNCPY(pKvsDataChannel->rtcDataChannelDiagnostics.label, (PCHAR) pName, nameLen);
     CHK_STATUS(hashTablePut(pKvsPeerConnection->pDataChannels, channelId, (UINT64) pKvsDataChannel));
     pKvsPeerConnection->onDataChannel(pKvsPeerConnection->onDataChannelCustomData, &(pKvsDataChannel->dataChannel));
 

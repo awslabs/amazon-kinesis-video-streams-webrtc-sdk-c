@@ -591,7 +591,7 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_DataChannelMetricsTest)
     freePeerConnection(&answerPc);
 }
 
-TEST_F(DataChannelFunctionalityTest, dataChannelOpen_OversizedNameIsTruncated)
+TEST_F(DataChannelFunctionalityTest, dataChannelOpen_OversizedNameIsRejected)
 {
     RtcConfiguration configuration;
     PRtcPeerConnection pPeerConnection = NULL;
@@ -615,16 +615,10 @@ TEST_F(DataChannelFunctionalityTest, dataChannelOpen_OversizedNameIsTruncated)
 
     onSctpSessionDataChannelOpen((UINT64) pKvsPeerConnection, 0, oversizedName, oversizedLen);
 
-    EXPECT_EQ(ATOMIC_LOAD(&onDataChannelCount), 1);
+    EXPECT_EQ(ATOMIC_LOAD(&onDataChannelCount), 0);
 
     UINT64 hashValue = 0;
-    EXPECT_EQ(hashTableGet(pKvsPeerConnection->pDataChannels, 0, &hashValue), STATUS_SUCCESS);
-    PKvsDataChannel pKvsDataChannel = (PKvsDataChannel) hashValue;
-
-    EXPECT_EQ(STRLEN(pKvsDataChannel->dataChannel.name), MAX_DATA_CHANNEL_NAME_LEN);
-    EXPECT_EQ(pKvsDataChannel->dataChannel.name[MAX_DATA_CHANNEL_NAME_LEN], '\0');
-    EXPECT_EQ(STRLEN(pKvsDataChannel->rtcDataChannelDiagnostics.label), MAX_STATS_STRING_LENGTH);
-    EXPECT_EQ(pKvsDataChannel->rtcDataChannelDiagnostics.label[MAX_STATS_STRING_LENGTH], '\0');
+    EXPECT_NE(hashTableGet(pKvsPeerConnection->pDataChannels, 0, &hashValue), STATUS_SUCCESS);
 
     freePeerConnection(&pPeerConnection);
 }
