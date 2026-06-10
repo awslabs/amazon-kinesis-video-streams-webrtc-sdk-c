@@ -602,6 +602,10 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
         MUTEX_LOCK(pKvsPeerConnection->twccLock);
         locked = TRUE;
         delayTrend = congestionState.delayTrend;
+        if (!isfinite(delayTrend)) {
+            DLOGW("Custom TWCC callback returned non-finite delayTrend (%.4f), resetting to 0", delayTrend);
+            delayTrend = 0.0;
+        }
     } else {
         // Default trendline estimator
         CHK_STATUS(computeTwccTrendline(pTwccManager, &delayTrend, &queueDelay));

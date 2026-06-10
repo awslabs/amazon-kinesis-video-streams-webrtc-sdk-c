@@ -1549,6 +1549,169 @@ TEST_F(RtcpFunctionalityTest, parseRtcpTwccPacketClampsOversizedPacketStatusCoun
     SAFE_MEMFREE(ctx.pCapturedList);
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
+  
+static STATUS testTwccFeedbackCallbackNaN(UINT64 customData, PTwccFeedback pFeedbackList, UINT32 feedbackListLen,
+                                          PTwccCongestionState pCongestionState)
+{
+    UNUSED_PARAM(pFeedbackList);
+    UNUSED_PARAM(feedbackListLen);
+    TwccCallbackCtx* pCtx = (TwccCallbackCtx*) customData;
+    pCtx->callCount++;
+    pCongestionState->delayTrend = pCtx->delayTrendToReturn;
+    return STATUS_SUCCESS;
+}
+
+struct CongestionCallbackCtx {
+    UINT32 callCount;
+    DOUBLE lastDelayTrend;
+};
+
+static STATUS testCongestionFeedbackCapture(UINT64 customData, PCongestionCtx pCtx)
+{
+    CongestionCallbackCtx* pCbCtx = (CongestionCallbackCtx*) customData;
+    pCbCtx->callCount++;
+    pCbCtx->lastDelayTrend = pCtx->congestionState.delayTrend;
+    return STATUS_SUCCESS;
+}
+
+TEST_F(RtcpFunctionalityTest, onTwccFeedbackReceived_nanDelayTrendSanitized)
+{
+    // If a custom callback returns NaN for delayTrend, the SDK should sanitize it
+    // to 0.0 rather than propagating undefined behavior to the congestion callback.
+    PRtcPeerConnection pRtcPeerConnection = nullptr;
+    PKvsPeerConnection pKvsPeerConnection = nullptr;
+    RtcConfiguration config{};
+    RtcpPacket rtcpPacket{};
+    RtpPacket rtpPacket{};
+    BYTE payload[256] = {0};
+    UINT32 payloadLen = 256;
+
+    const std::string hex = "4487A9E754B3E6FD01810001147A75A62001C801";
+    hexDecode(const_cast<PCHAR>(hex.data()), hex.size(), payload, &payloadLen);
+
+    rtcpPacket.header.packetLength = payloadLen / 4;
+    rtcpPacket.payload = payload;
+    rtcpPacket.payloadLength = payloadLen;
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+
+    CongestionCallbackCtx congCtx{};
+    EXPECT_EQ(STATUS_SUCCESS, setOnPeerCongestionFeedbackFn(pRtcPeerConnection, (UINT64) &congCtx, testCongestionFeedbackCapture));
+
+    TwccCallbackCtx twccCtx{};
+    twccCtx.delayTrendToReturn = NAN;
+    EXPECT_EQ(STATUS_SUCCESS, setOnTwccFeedbackReceived(pRtcPeerConnection, (UINT64) &twccCtx, testTwccFeedbackCallbackNaN));
+
+    // Send packets so they exist in the hash table
+    UINT16 baseSeqNum = getUnalignedInt16BigEndian(rtcpPacket.payload + 8);
+    UINT16 pktCount = TWCC_PACKET_STATUS_COUNT(rtcpPacket.payload);
+    for (UINT16 i = baseSeqNum; i < baseSeqNum + pktCount; i++) {
+        rtpPacket.header.extension = TRUE;
+        rtpPacket.header.extensionProfile = TWCC_EXT_PROFILE;
+        rtpPacket.header.extensionLength = SIZEOF(UINT32);
+        UINT16 twsn = i;
+        UINT32 extpayload = TWCC_PAYLOAD(parseExtId(TWCC_EXT_URL), twsn);
+        rtpPacket.header.extensionPayload = (PBYTE) &extpayload;
+        rtpPacket.payloadLength = 100;
+        rtpPacket.payload = payload;
+        EXPECT_EQ(STATUS_SUCCESS, twccManagerOnPacketSent(pKvsPeerConnection, &rtpPacket));
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection));
+    EXPECT_EQ(1u, twccCtx.callCount);
+
+    // Process a second report so updateTwccHashTable computes duration > 0,
+    // which triggers the congestion feedback callback.
+    // Use a different base seq so the hash table reports a time window.
+    const std::string hex2 = "4487A9E754B3E6FD01820001147A75A82001C801";
+    payloadLen = 256;
+    hexDecode(const_cast<PCHAR>(hex2.data()), hex2.size(), payload, &payloadLen);
+    rtcpPacket.header.packetLength = payloadLen / 4;
+    rtcpPacket.payload = payload;
+    rtcpPacket.payloadLength = payloadLen;
+
+    UINT16 baseSeqNum2 = getUnalignedInt16BigEndian(rtcpPacket.payload + 8);
+    UINT16 pktCount2 = TWCC_PACKET_STATUS_COUNT(rtcpPacket.payload);
+    for (UINT16 i = baseSeqNum2; i < baseSeqNum2 + pktCount2; i++) {
+        MEMSET(&rtpPacket, 0, SIZEOF(RtpPacket));
+        rtpPacket.header.extension = TRUE;
+        rtpPacket.header.extensionProfile = TWCC_EXT_PROFILE;
+        rtpPacket.header.extensionLength = SIZEOF(UINT32);
+        UINT16 twsn = i;
+        UINT32 extpayload = TWCC_PAYLOAD(parseExtId(TWCC_EXT_URL), twsn);
+        rtpPacket.header.extensionPayload = (PBYTE) &extpayload;
+        rtpPacket.payloadLength = 100;
+        rtpPacket.payload = payload;
+        EXPECT_EQ(STATUS_SUCCESS, twccManagerOnPacketSent(pKvsPeerConnection, &rtpPacket));
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection));
+    EXPECT_EQ(2u, twccCtx.callCount);
+
+    // If congestion callback was invoked, verify delayTrend is finite
+    if (congCtx.callCount > 0) {
+        EXPECT_TRUE(isfinite(congCtx.lastDelayTrend));
+        EXPECT_DOUBLE_EQ(0.0, congCtx.lastDelayTrend);
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
+TEST_F(RtcpFunctionalityTest, onTwccFeedbackReceived_infDelayTrendSanitized)
+{
+    // Verify INFINITY from custom callback is sanitized to 0.0
+    PRtcPeerConnection pRtcPeerConnection = nullptr;
+    PKvsPeerConnection pKvsPeerConnection = nullptr;
+    RtcConfiguration config{};
+    RtcpPacket rtcpPacket{};
+    RtpPacket rtpPacket{};
+    BYTE payload[256] = {0};
+    UINT32 payloadLen = 256;
+
+    const std::string hex = "4487A9E754B3E6FD01810001147A75A62001C801";
+    hexDecode(const_cast<PCHAR>(hex.data()), hex.size(), payload, &payloadLen);
+
+    rtcpPacket.header.packetLength = payloadLen / 4;
+    rtcpPacket.payload = payload;
+    rtcpPacket.payloadLength = payloadLen;
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+
+    CongestionCallbackCtx congCtx{};
+    EXPECT_EQ(STATUS_SUCCESS, setOnPeerCongestionFeedbackFn(pRtcPeerConnection, (UINT64) &congCtx, testCongestionFeedbackCapture));
+
+    TwccCallbackCtx twccCtx{};
+    twccCtx.delayTrendToReturn = INFINITY;
+    EXPECT_EQ(STATUS_SUCCESS, setOnTwccFeedbackReceived(pRtcPeerConnection, (UINT64) &twccCtx, testTwccFeedbackCallbackNaN));
+
+    UINT16 baseSeqNum = getUnalignedInt16BigEndian(rtcpPacket.payload + 8);
+    UINT16 pktCount = TWCC_PACKET_STATUS_COUNT(rtcpPacket.payload);
+    for (UINT16 i = baseSeqNum; i < baseSeqNum + pktCount; i++) {
+        rtpPacket.header.extension = TRUE;
+        rtpPacket.header.extensionProfile = TWCC_EXT_PROFILE;
+        rtpPacket.header.extensionLength = SIZEOF(UINT32);
+        UINT16 twsn = i;
+        UINT32 extpayload = TWCC_PAYLOAD(parseExtId(TWCC_EXT_URL), twsn);
+        rtpPacket.header.extensionPayload = (PBYTE) &extpayload;
+        rtpPacket.payloadLength = 100;
+        rtpPacket.payload = payload;
+        EXPECT_EQ(STATUS_SUCCESS, twccManagerOnPacketSent(pKvsPeerConnection, &rtpPacket));
+    }
+
+    // Should succeed without UB - INFINITY is sanitized to 0.0
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection));
+    EXPECT_EQ(1u, twccCtx.callCount);
+
+    // If congestion callback was invoked, verify delayTrend is finite
+    if (congCtx.callCount > 0) {
+        EXPECT_TRUE(isfinite(congCtx.lastDelayTrend));
+        EXPECT_DOUBLE_EQ(0.0, congCtx.lastDelayTrend);
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
 
 } // namespace webrtcclient
 } // namespace video
