@@ -526,6 +526,7 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     UINT64 sentPackets = 0, receivedPackets = 0;
     INT64 duration = 0;
     DOUBLE delayTrend = 0.0, queueDelay = 0.0;
+    PTwccFeedback pFeedbackList = NULL;
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
     // Skip TWCC parsing if no callback is set to consume the results
@@ -549,7 +550,6 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     if (pKvsPeerConnection->onTwccFeedbackReceived != NULL) {
         // Custom estimator callback, build feedback list from this TWCC report
         TwccCongestionState congestionState;
-        PTwccFeedback pFeedbackList = NULL;
         UINT32 feedbackCount = 0;
         UINT16 seqNum;
         UINT64 twccPktVal = 0;
@@ -641,6 +641,7 @@ STATUS onRtcpTwccPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
+    SAFE_MEMFREE(pFeedbackList);
     if (locked) {
         MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
     }
