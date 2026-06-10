@@ -192,7 +192,7 @@ PVOID mediaSenderRoutine(PVOID customData)
     }
 
     if (pSampleConfiguration->audioSenderTid != INVALID_TID_VALUE) {
-        DLOGE("Wait audio thread join");
+        DLOGD("Wait audio thread join");
         THREAD_JOIN(pSampleConfiguration->audioSenderTid, NULL);
     }
 
