@@ -54,8 +54,11 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
             if (pSampleConfiguration->enableIceStats) {
                 CHK_LOG_ERR(logSelectedIceCandidatesInformation(pSampleStreamingSession));
             }
+            logIceCandidateSummary(pSampleStreamingSession);
             break;
         case RTC_PEER_CONNECTION_STATE_FAILED:
+            DLOGW("p2p connection failed");
+            logIceCandidateSummary(pSampleStreamingSession);
             // explicit fallthrough
         case RTC_PEER_CONNECTION_STATE_CLOSED:
             // explicit fallthrough
@@ -132,6 +135,46 @@ STATUS logSelectedIceCandidatesInformation(PSampleStreamingSession pSampleStream
 CleanUp:
     LEAVES();
     return retStatus;
+}
+
+VOID updateIceCandidateCount(PCHAR candidateStr, PIceCandidateCount pCount)
+{
+    if (candidateStr == NULL || pCount == NULL) {
+        return;
+    }
+
+    PCHAR pTyp = STRSTR(candidateStr, "typ ");
+    if (pTyp == NULL) {
+        return;
+    }
+    pTyp += 4;
+
+    if (STRNCMP(pTyp, "host", 4) == 0) {
+        pCount->host++;
+    } else if (STRNCMP(pTyp, "srflx", 5) == 0) {
+        pCount->srflx++;
+    } else if (STRNCMP(pTyp, "prflx", 5) == 0) {
+        pCount->prflx++;
+    } else if (STRNCMP(pTyp, "relay", 5) == 0) {
+        pCount->relay++;
+    }
+}
+
+VOID logIceCandidateSummary(PSampleStreamingSession pSampleStreamingSession)
+{
+    if (pSampleStreamingSession == NULL) {
+        return;
+    }
+
+    PIceCandidateCount pLocal = &pSampleStreamingSession->localCandidateCount;
+    PIceCandidateCount pRemote = &pSampleStreamingSession->remoteCandidateCount;
+
+    DLOGI("ICE candidate summary - local: %u host, %u srflx, %u prflx, %u relay (total %u); "
+          "remote: %u host, %u srflx, %u prflx, %u relay (total %u)",
+          pLocal->host, pLocal->srflx, pLocal->prflx, pLocal->relay,
+          pLocal->host + pLocal->srflx + pLocal->prflx + pLocal->relay,
+          pRemote->host, pRemote->srflx, pRemote->prflx, pRemote->relay,
+          pRemote->host + pRemote->srflx + pRemote->prflx + pRemote->relay);
 }
 
 STATUS handleAnswer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSession pSampleStreamingSession, PSignalingMessage pSignalingMessage)
@@ -323,6 +366,10 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
     SignalingMessage message = {0};
 
     CHK(pSampleStreamingSession != NULL, STATUS_NULL_ARG);
+
+    if (candidateJson != NULL) {
+        updateIceCandidateCount(candidateJson, &pSampleStreamingSession->localCandidateCount);
+    }
 
     if (candidateJson == NULL) {
         DLOGD("ice candidate gathering finished");
@@ -790,6 +837,7 @@ STATUS handleRemoteCandidate(PSampleStreamingSession pSampleStreamingSession, PS
 
     CHK_STATUS(deserializeRtcIceCandidateInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, &iceCandidate));
     CHK_STATUS(addIceCandidate(pSampleStreamingSession->pPeerConnection, iceCandidate.candidate));
+    updateIceCandidateCount(iceCandidate.candidate, &pSampleStreamingSession->remoteCandidateCount);
 
 CleanUp:
 

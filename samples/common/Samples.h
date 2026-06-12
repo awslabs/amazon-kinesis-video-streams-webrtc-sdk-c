@@ -142,6 +142,13 @@ typedef struct {
     UINT64 prevTs;
 } RtcMetricsHistory, *PRtcMetricsHistory;
 
+typedef struct {
+    UINT32 host;
+    UINT32 srflx;
+    UINT32 prflx;
+    UINT32 relay;
+} IceCandidateCount, *PIceCandidateCount;
+
 struct __SampleConfiguration {
     volatile ATOMIC_BOOL appTerminateFlag;
     volatile ATOMIC_BOOL interrupted;
@@ -262,6 +269,8 @@ struct __SampleStreamingSession {
     UINT64 offerReceiveTime;
     PeerConnectionMetrics peerConnectionMetrics;
     KvsIceAgentMetrics iceMetrics;
+    IceCandidateCount localCandidateCount;
+    IceCandidateCount remoteCandidateCount;
     CHAR pPeerConnectionMetricsMessage[MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE];
     CHAR pSignalingClientMetricsMessage[MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE];
     CHAR pIceAgentMetricsMessage[MAX_ICE_AGENT_METRICS_MESSAGE_SIZE];
@@ -302,6 +311,8 @@ VOID onConnectionStateChange(UINT64, RTC_PEER_CONNECTION_STATE);
 STATUS sessionCleanupWait(PSampleConfiguration);
 STATUS logSignalingClientStats(PSignalingClientMetrics);
 STATUS logSelectedIceCandidatesInformation(PSampleStreamingSession);
+VOID logIceCandidateSummary(PSampleStreamingSession);
+VOID updateIceCandidateCount(PCHAR, PIceCandidateCount);
 STATUS logStartUpLatency(PSampleConfiguration);
 STATUS createMessageQueue(UINT64, PPendingMessageQueue*);
 STATUS freeMessageQueue(PPendingMessageQueue);
