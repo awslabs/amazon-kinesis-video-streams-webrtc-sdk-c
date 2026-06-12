@@ -171,10 +171,8 @@ VOID logIceCandidateSummary(PSampleStreamingSession pSampleStreamingSession)
 
     DLOGI("ICE candidate summary - local: %u host, %u srflx, %u prflx, %u relay (total %u); "
           "remote: %u host, %u srflx, %u prflx, %u relay (total %u)",
-          pLocal->host, pLocal->srflx, pLocal->prflx, pLocal->relay,
-          pLocal->host + pLocal->srflx + pLocal->prflx + pLocal->relay,
-          pRemote->host, pRemote->srflx, pRemote->prflx, pRemote->relay,
-          pRemote->host + pRemote->srflx + pRemote->prflx + pRemote->relay);
+          pLocal->host, pLocal->srflx, pLocal->prflx, pLocal->relay, pLocal->host + pLocal->srflx + pLocal->prflx + pLocal->relay, pRemote->host,
+          pRemote->srflx, pRemote->prflx, pRemote->relay, pRemote->host + pRemote->srflx + pRemote->prflx + pRemote->relay);
 }
 
 STATUS handleAnswer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSession pSampleStreamingSession, PSignalingMessage pSignalingMessage)
