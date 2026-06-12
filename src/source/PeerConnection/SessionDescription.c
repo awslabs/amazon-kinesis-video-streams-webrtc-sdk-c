@@ -1511,8 +1511,8 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
             MEMSET(&track, 0x00, SIZEOF(RtcMediaStreamTrack));
             track.kind = streamKind;
             track.codec = RTC_CODEC_UNKNOWN;
-            STRCPY(track.streamId, "fakeStream");
-            STRCPY(track.trackId, "fakeTrack");
+            SNPRINTF(track.streamId, SIZEOF(track.streamId), "fakeStream%u", currentMedia);
+            SNPRINTF(track.trackId, SIZEOF(track.trackId), "fakeTrack%u", currentMedia);
             pRtcMediaStreamTrack = &track;
             CHK_STATUS(createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE, pKvsPeerConnection, (UINT32) RAND(), (UINT32) RAND(),
                                                pRtcMediaStreamTrack, NULL, RTC_CODEC_UNKNOWN, &pKvsRtpFakeTransceiver));
