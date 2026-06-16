@@ -176,7 +176,7 @@ These options get propagated to [PIC](https://github.com/awslabs/amazon-kinesis-
 * `-DKVS_STACK_SIZE` -- Default stack size for threads created using THREAD_CREATE(), in bytes.
 
 Buffer configuration:
-* `-DKVS_SDP_BUFFER_SIZE` -- Maximum signaling message size in bytes (on-wire, including base64-encoded payload). Range: 10000–40000. Default: 18750. The decoded SDP buffer is automatically derived. See [docs/SDP_BUFFER_SIZE.md](docs/SDP_BUFFER_SIZE.md) for details.
+* `-DKVS_SIGNALING_MESSAGE_LEN` -- Maximum signaling message size in bytes (on-wire, including base64-encoded payload). Range: 10000–40000. Default: 18750. The decoded SDP buffer is automatically derived. See [docs/SDP_BUFFER_SIZE.md](docs/SDP_BUFFER_SIZE.md) for details.
 
 To clean up the `open-source` and `build` folders from previous build, use `cmake --build . --target clean` from the `build` folder
 

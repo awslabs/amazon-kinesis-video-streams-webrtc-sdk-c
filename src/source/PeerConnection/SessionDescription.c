@@ -115,7 +115,7 @@ STATUS deserializeSessionDescriptionInit(PCHAR sessionDescriptionJSON, UINT32 se
         } else if (STRNCMP(SDP_KEY, sessionDescriptionJSON + tokens[i].start, ARRAY_SIZE(SDP_KEY) - 1) == 0) {
             if ((tokens[i + 1].end - tokens[i + 1].start) > MAX_SESSION_DESCRIPTION_INIT_SDP_LEN) {
                 DLOGE("Received SDP size (%d bytes) exceeds configured MAX_SESSION_DESCRIPTION_INIT_SDP_LEN (%d bytes). "
-                      "Increase KVS_SDP_BUFFER_SIZE in CMake to accommodate larger SDPs.",
+                      "Increase KVS_SIGNALING_MESSAGE_LEN in CMake to accommodate larger SDPs.",
                       tokens[i + 1].end - tokens[i + 1].start, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
             }
             CHK((tokens[i + 1].end - tokens[i + 1].start) <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN,

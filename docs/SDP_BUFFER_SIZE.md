@@ -4,9 +4,17 @@
 
 When two WebRTC peers connect through the KVS Signaling service, they exchange Session Description Protocol (SDP) messages that describe their media capabilities (codecs, tracks, ICE candidates, etc.). These messages travel through the signaling channel as base64-encoded payloads inside a JSON envelope.
 
+The same signaling message buffer is also used for ICE candidate messages, though these are typically much smaller and unlikely to exceed the default limits.
+
 The SDK uses fixed-size buffers to hold these messages at each stage of the pipeline. By default, these are sized for typical use cases. If your application produces larger SDPs (e.g. many media tracks, or many candidates), you may need to increase the buffer. If you're on a memory-constrained embedded device with predictable SDP shapes, you may want to reduce it.
 
 This document explains how the buffers relate, how to configure them, and how to diagnose size-related failures.
+
+### KVS Signaling API reference
+- https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/async-message-reception-api.html
+- https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/SendSdpOffer.html
+- https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/SendSdpAnswer.html
+- https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/SendIceCandidate.html
 
 ---
 
@@ -24,7 +32,7 @@ When the SDK receives a signaling message (e.g., an SDP offer from a remote peer
                                  │ WebSocket frame
                                  ▼
 ┌───────────────────────────────────────────────────────────────────────────┐
-│  Step 1. LWS_MESSAGE_BUFFER_SIZE (WebSocket receive buffer)                    │
+│  Step 1. LWS_MESSAGE_BUFFER_SIZE (WebSocket receive buffer)               │
 │                                                                           │
 │  Holds (accumulates) the raw WebSocket frames as they arrive.             │
 │  Emits a callback when the entire message arrives.                        │
@@ -66,20 +74,20 @@ When the SDK receives a signaling message (e.g., an SDP offer from a remote peer
 │  m=audio 9 UDP/TLS/RTP/SAVPF 111 ...                                      │
 │  ...                                                                      │
 │                                                                           │
-│  Size: KVS_SDP_BUFFER_SIZE (default 25000 bytes)                          │
+│  Size: KVS_SIGNALING_MESSAGE_LEN (default 25000 bytes)                    │
 │  This is the ONE value you configure. Everything else derives from it.    │
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Step 1: WebSocket receive buffer (`LWS_MESSAGE_BUFFER_SIZE`)
 
-The first buffer that incoming data hits. It accumulates WebSocket frame fragments from the signaling service into a single contiguous message. The content at this stage is the **full JSON envelope** from the service — including `messageType`, `senderClientId`, and the base64-encoded `messagePayload` field.
+The first buffer that incoming data hits. It accumulates WebSocket frame fragments from the signaling service into a single contiguous message. The content at this stage is the **full JSON envelope** from the service - including `messageType`, `senderClientId`, and the base64-encoded `messagePayload` field.
 
 If the incoming frame exceeds this buffer, the SDK rejects it with `STATUS_SIGNALING_RECEIVED_MESSAGE_LARGER_THAN_MAX_DATA_LEN` and logs the size mismatch.
 
 ### Step 2: Signaling message buffer (`MAX_SIGNALING_MESSAGE_LEN`)
 
-After the JSON envelope is parsed, the `messagePayload` field is extracted into `SignalingMessage.payload[]`. At this stage the content is **still base64-encoded** — it's the raw `messagePayload` string from the signaling service JSON.
+After the JSON envelope is parsed, the `messagePayload` field is extracted into `SignalingMessage.payload[]`. At this stage the content is **still base64-encoded** - it's the raw `messagePayload` string from the signaling service JSON.
 
 The size is derived as `(MAX_SESSION_DESCRIPTION_INIT_SDP_LEN * 4/3) + 1024`. The `4/3` factor accounts for base64 encoding expansion (3 raw bytes become 4 base64 characters). The `1024` accounts for the inner JSON keys (`{"type":"offer","sdp":"..."}`) that wrap the SDP inside the payload.
 
@@ -91,25 +99,25 @@ If the decoded SDP exceeds this size, the SDK rejects it with `STATUS_SESSION_DE
 
 ### Size relationship
 
-All three buffers are derived from a single knob (`KVS_SDP_BUFFER_SIZE`), which represents the **on-wire signaling message size** (Step 2):
+All three buffers are derived from a single knob (`KVS_SIGNALING_MESSAGE_LEN`), which represents the **on-wire signaling message size** (Step 2):
 
-| Step   | Buffer                                 | Default   | With `KVS_SDP_BUFFER_SIZE`           | What it holds                                |
-|:------:|----------------------------------------|-----------|--------------------------------------|----------------------------------------------|
-|   1    | `LWS_MESSAGE_BUFFER_SIZE`              | ~18766    | `KVS_SDP_BUFFER_SIZE + alignment`    | Full WebSocket frame (JSON envelope)         |
-|   2    | `MAX_SIGNALING_MESSAGE_LEN`            | 18750     | `KVS_SDP_BUFFER_SIZE`                | Base64-encoded payload + inner JSON overhead |
-|   3    | `MAX_SESSION_DESCRIPTION_INIT_SDP_LEN` | 25000     | `(KVS_SDP_BUFFER_SIZE - 1024) * 3/4` | Decoded SDP text                             |
+| Step   | Buffer                                 | Default   | With `KVS_SIGNALING_MESSAGE_LEN`           | What it holds                                |
+|:------:|----------------------------------------|-----------|--------------------------------------------|----------------------------------------------|
+|   1    | `LWS_MESSAGE_BUFFER_SIZE`              | ~18766    | `KVS_SIGNALING_MESSAGE_LEN + alignment`    | Full WebSocket frame (JSON envelope)         |
+|   2    | `MAX_SIGNALING_MESSAGE_LEN`            | 18750     | `KVS_SIGNALING_MESSAGE_LEN`                | Base64-encoded payload + inner JSON overhead |
+|   3    | `MAX_SESSION_DESCRIPTION_INIT_SDP_LEN` | 25000     | `(KVS_SIGNALING_MESSAGE_LEN - 1024) * 3/4` | Decoded SDP text                             |
 
-You set `KVS_SDP_BUFFER_SIZE` which directly controls the signaling message size (Step 2). Step 3 is derived downward (accounting for base64 decoding), and Step 1 is derived upward (adding alignment).
+You set `KVS_SIGNALING_MESSAGE_LEN` which directly controls the signaling message size (Step 2). Step 3 is derived downward (accounting for base64 decoding), and Step 1 is derived upward (adding alignment).
 
 > [!NOTE]
-> The legacy defaults (18750/25000) don't follow the formula. The signaling buffer is too small to deliver a full 25 KB SDP. The effective decoded SDP limit with defaults is ~13 KB. Setting `KVS_SDP_BUFFER_SIZE` fixes this by properly coordinating both values.
+> The legacy defaults (18750/25000) don't follow the formula. The signaling buffer is too small to deliver a full 25 KB SDP. The effective decoded SDP limit with defaults is ~13 KB. Setting `KVS_SIGNALING_MESSAGE_LEN` fixes this by properly coordinating both values.
 
 ---
 
 ## Configuration
 
 The value you set is the **signaling message size**: the on-wire message including base64-encoded payload.
-The SDK derives the decoded SDP buffer from it: `decoded_sdp_limit = (KVS_SDP_BUFFER_SIZE - 1024) * 3/4`.
+The SDK derives the decoded SDP buffer from it: `decoded_sdp_limit = (KVS_SIGNALING_MESSAGE_LEN - 1024) * 3/4`.
 
 Also see: https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/SendSdpOffer.html
 
@@ -120,7 +128,7 @@ Also see: https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devgu
 cmake ..
 
 # Maximum
-cmake .. -DKVS_SDP_BUFFER_SIZE=40000
+cmake .. -DKVS_SIGNALING_MESSAGE_LEN=40000
 ```
 
 | Parameter  | Value                                        |
@@ -147,8 +155,8 @@ cmake .. -DKVS_SDP_BUFFER_SIZE=40000
 ### Stack impact
 
 `RtcSessionDescriptionInit` contains a `CHAR sdp[MAX_SESSION_DESCRIPTION_INIT_SDP_LEN + 1]` field and is stack-allocated.
-Increasing `KVS_SDP_BUFFER_SIZE` increases this derived value and thus stack pressure at each call site.
-`SignalingMessage` also grows (its `payload[]` is sized to `KVS_SDP_BUFFER_SIZE + 1`). If you increase significantly, verify your thread stack size can accommodate it:
+Increasing `KVS_SIGNALING_MESSAGE_LEN` increases this derived value and thus stack pressure at each call site.
+`SignalingMessage` also grows (its `payload[]` is sized to `KVS_SIGNALING_MESSAGE_LEN + 1`). If you increase significantly, verify your thread stack size can accommodate it:
 
 ```bash
 # Check system default stack size
@@ -167,8 +175,8 @@ Enable ERROR level logs to see rejection messages.
 
 | Log message | What it means | What to do                                                                              |
 |-------------|---------------|-----------------------------------------------------------------------------------------|
-| `Received SDP size (X bytes) exceeds configured MAX_SESSION_DESCRIPTION_INIT_SDP_LEN (Y bytes). Increase KVS_SDP_BUFFER_SIZE in CMake to accommodate larger SDPs.` | A remote peer sent an SDP that doesn't fit in the decoded buffer. | Rebuild with `-DKVS_SDP_BUFFER_SIZE=<value larger than X>`                              |
-| `Signaling message size (X bytes so far) exceeds receive buffer (Y bytes). Increase KVS_SDP_BUFFER_SIZE in CMake to accommodate larger messages.` | The raw WebSocket frame from the signaling service doesn't fit in the LWS receive buffer. | Same fix: increase `KVS_SDP_BUFFER_SIZE`. The LWS buffer derives from it automatically. |
+| `Received SDP size (X bytes) exceeds configured MAX_SESSION_DESCRIPTION_INIT_SDP_LEN (Y bytes). Increase KVS_SIGNALING_MESSAGE_LEN in CMake to accommodate larger SDPs.` | A remote peer sent an SDP that doesn't fit in the decoded buffer. | Rebuild with `-DKVS_SIGNALING_MESSAGE_LEN=<value larger than X>`                              |
+| `Signaling message size (X bytes so far) exceeds receive buffer (Y bytes). Increase KVS_SIGNALING_MESSAGE_LEN in CMake to accommodate larger messages.` | The raw WebSocket frame from the signaling service doesn't fit in the LWS receive buffer. | Same fix: increase `KVS_SIGNALING_MESSAGE_LEN`. The LWS buffer derives from it automatically. |
 
 ### Relevant status codes
 
@@ -182,23 +190,23 @@ Enable ERROR level logs to see rejection messages.
 
 ### Related defines
 
-| Define                                 | Location        | Description                                                 |
-|----------------------------------------|-----------------|-------------------------------------------------------------|
-| `KVS_SDP_BUFFER_SIZE`                  | CMake variable  | The single configuration point (signaling message size)     |
-| `LWS_MESSAGE_BUFFER_SIZE`              | `LwsApiCalls.h` | WebSocket receive buffer (derived from signaling len)       |
-| `MAX_SIGNALING_MESSAGE_LEN`            | `Include.h`     | Signaling message buffer (= `KVS_SDP_BUFFER_SIZE` or 18750) |
-| `MAX_SESSION_DESCRIPTION_INIT_SDP_LEN` | `Include.h`     | Decoded SDP buffer (derived from signaling len, or 25000)   |
+| Define                                 | Location        | Description                                                       |
+|----------------------------------------|-----------------|-------------------------------------------------------------------|
+| `KVS_SIGNALING_MESSAGE_LEN`            | CMake variable  | The single configuration point (signaling message size)           |
+| `LWS_MESSAGE_BUFFER_SIZE`              | `LwsApiCalls.h` | WebSocket receive buffer (derived from signaling len)             |
+| `MAX_SIGNALING_MESSAGE_LEN`            | `Include.h`     | Signaling message buffer (= `KVS_SIGNALING_MESSAGE_LEN` or 18750) |
+| `MAX_SESSION_DESCRIPTION_INIT_SDP_LEN` | `Include.h`     | Decoded SDP buffer (derived from signaling len, or 25000)         |
 
 ### Struct fields sized by these defines
 
 ```c
 typedef struct {
     SDP_TYPE type;
-    CHAR sdp[MAX_SESSION_DESCRIPTION_INIT_SDP_LEN + 1];  // ← derived from KVS_SDP_BUFFER_SIZE
+    CHAR sdp[MAX_SESSION_DESCRIPTION_INIT_SDP_LEN + 1];  // ← derived from KVS_SIGNALING_MESSAGE_LEN
 } RtcSessionDescriptionInit;
 
 typedef struct {
     // ...
-    CHAR payload[MAX_SIGNALING_MESSAGE_LEN + 1];  // ← set by KVS_SDP_BUFFER_SIZE
+    CHAR payload[MAX_SIGNALING_MESSAGE_LEN + 1];  // ← set by KVS_SIGNALING_MESSAGE_LEN
 } SignalingMessage;
 ```
