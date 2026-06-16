@@ -175,6 +175,9 @@ You can pass the following options to `cmake ..`:
 These options get propagated to [PIC](https://github.com/awslabs/amazon-kinesis-video-streams-pic):
 * `-DKVS_STACK_SIZE` -- Default stack size for threads created using THREAD_CREATE(), in bytes.
 
+Buffer configuration:
+* `-DKVS_SDP_BUFFER_SIZE` -- Maximum signaling message size in bytes (on-wire, including base64-encoded payload). Range: 10000–40000. Default: 18750. The decoded SDP buffer is automatically derived. See [docs/SDP_BUFFER_SIZE.md](docs/SDP_BUFFER_SIZE.md) for details.
+
 To clean up the `open-source` and `build` folders from previous build, use `cmake --build . --target clean` from the `build` folder
 
 For windows builds, you will have to include additional flags for libwebsockets CMake. Add the following flags to your cmake command, or edit the CMake file in ./CMake/Dependencies/libwebsockets-CMakeLists.txt with the following:

@@ -645,9 +645,18 @@ extern "C" {
 #define MAX_MESSAGE_DESCRIPTION_LEN 1024
 
 /**
- * Maximum length of SDP member in RtcSessionDescriptionInit
+ * Maximum length of SDP member in RtcSessionDescriptionInit.
+ *
+ * When KVS_SDP_BUFFER_SIZE is set via CMake, it specifies the maximum signaling
+ * message size (on-wire). The decoded SDP buffer is derived from it:
+ * (KVS_SDP_BUFFER_SIZE - 1024) * 3/4, accounting for base64 overhead and JSON
+ * envelope. When not set, defaults preserve backward compatibility (25000/18750).
  */
+#ifdef KVS_SDP_BUFFER_SIZE
+#define MAX_SESSION_DESCRIPTION_INIT_SDP_LEN ((KVS_SDP_BUFFER_SIZE - 1024) * 3 / 4)
+#else
 #define MAX_SESSION_DESCRIPTION_INIT_SDP_LEN 25000
+#endif
 
 /**
  * Maximum length of a MediaStream's ID
@@ -680,9 +689,18 @@ extern "C" {
 #define MAX_DATA_CHANNEL_PROTOCOL_LEN 255
 
 /**
- * Maximum length of signaling message
+ * Maximum length of signaling message.
+ *
+ * When KVS_SDP_BUFFER_SIZE is set, this equals KVS_SDP_BUFFER_SIZE directly
+ * (the user-configured value represents this on-wire signaling message size).
+ * When not set, preserves the legacy default of 18750 for backward compatibility.
+ * Do not override independently; set KVS_SDP_BUFFER_SIZE instead.
  */
+#ifdef KVS_SDP_BUFFER_SIZE
+#define MAX_SIGNALING_MESSAGE_LEN KVS_SDP_BUFFER_SIZE
+#else
 #define MAX_SIGNALING_MESSAGE_LEN 18750
+#endif
 /*!@} */
 
 /////////////////////////////////////////////////////

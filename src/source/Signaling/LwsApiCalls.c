@@ -452,6 +452,11 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
             }
 
             // Store the data in the buffer
+            if (pLwsCallInfo->receiveBufferSize + (UINT32) dataSize + LWS_PRE > SIZEOF(pLwsCallInfo->receiveBuffer)) {
+                DLOGE("Signaling message size (%u bytes so far) exceeds receive buffer (%u bytes). "
+                      "Increase KVS_SDP_BUFFER_SIZE in CMake to accommodate larger messages.",
+                      pLwsCallInfo->receiveBufferSize + (UINT32) dataSize, (UINT32) SIZEOF(pLwsCallInfo->receiveBuffer) - LWS_PRE);
+            }
             CHK(pLwsCallInfo->receiveBufferSize + (UINT32) dataSize + LWS_PRE <= SIZEOF(pLwsCallInfo->receiveBuffer),
                 STATUS_SIGNALING_RECEIVED_MESSAGE_LARGER_THAN_MAX_DATA_LEN);
             MEMCPY(&pLwsCallInfo->receiveBuffer[LWS_PRE + pLwsCallInfo->receiveBufferSize], pDataIn, dataSize);
