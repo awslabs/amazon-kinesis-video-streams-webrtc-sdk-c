@@ -147,6 +147,29 @@ TEST_F(RtcpFunctionalityTest, rtcpNackListCompound)
     EXPECT_EQ(compoundBuffer[1], 3327);
 }
 
+TEST_F(RtcpFunctionalityTest, rtcpNackListGetSmallBuffer)
+{
+    UINT32 senderSsrc = 0, receiverSsrc = 0;
+
+    // 8-byte SSRC header + one FCI: PID 0x0ca8, BLP 0x0004 (bit 2 set -> one extra seq num).
+    BYTE singleBLP[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0xa8, 0x00, 0x04};
+
+    // Buffer sized for exactly one element; the packet yields two.
+    const UINT32 capacity = 1;
+    UINT32 ssrcListLen = capacity;
+    PUINT16 pSeqList = (PUINT16) MEMALLOC(SIZEOF(UINT16) * capacity);
+    ASSERT_TRUE(pSeqList != NULL);
+
+    // Only pSeqList[0] is written; the second sequence number is counted but not stored.
+    EXPECT_EQ(STATUS_SUCCESS, rtcpNackListGet(singleBLP, SIZEOF(singleBLP), &senderSsrc, &receiverSsrc, pSeqList, &ssrcListLen));
+
+    // The reported count still reflects the true number of sequence numbers in the packet.
+    EXPECT_EQ(2, ssrcListLen);
+    EXPECT_EQ(3240, pSeqList[0]);
+
+    SAFE_MEMFREE(pSeqList);
+}
+
 TEST_F(RtcpFunctionalityTest, onRtcpPacketCompoundNack)
 {
     PRtpPacket pRtpPacket = nullptr;
