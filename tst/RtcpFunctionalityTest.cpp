@@ -1398,6 +1398,46 @@ TEST_F(RtcpFunctionalityTest, twccMalformedRunLengthExceedsStatusCountNoCrash)
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
+TEST_F(RtcpFunctionalityTest, parseRtcpTwccPacketRejectsTruncatedChunks)
+{
+    PRtcPeerConnection pRtcPeerConnection = nullptr;
+    PKvsPeerConnection pKvsPeerConnection = nullptr;
+    RtcConfiguration config{};
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnSenderBandwidthEstimation(pRtcPeerConnection, 0, testBwHandler));
+
+    // TWCC feedback payload layout (offsets into payload):
+    //   [0..3]   sender SSRC
+    //   [4..7]   media source SSRC
+    //   [8..9]   base sequence number
+    //   [10..11] packet status count  <-- lied: claims 0x4000 packets
+    //   [12..14] reference time, [15] feedback packet count
+    //   [16..]   status chunks (only ONE run-length chunk supplied here)
+    // The single run-length chunk encodes NOTRECEIVED for a large run, so the decode loop's
+    // packetsRemaining stays > 0 after the one present chunk is consumed.
+    const UINT32 payloadLen = 18; // 16-byte header + exactly one 2-byte chunk
+    PBYTE pHeapPayload = (PBYTE) MEMCALLOC(1, payloadLen);
+    ASSERT_TRUE(pHeapPayload != NULL);
+
+    putInt16((PINT16) (pHeapPayload + 8), 0x0000);  // base seq num
+    putInt16((PINT16) (pHeapPayload + 10), 0x4000); // packet status count (huge, lies)
+    // One run-length chunk: top bit 0 (run length), status NOTRECEIVED, run length covering many.
+    putInt16((PINT16) (pHeapPayload + 16), (INT16) 0x1FFF);
+
+    RtcpPacket rtcpPacket{};
+    rtcpPacket.payload = pHeapPayload;
+    rtcpPacket.payloadLength = payloadLen;
+    rtcpPacket.header.packetLength = payloadLen / 4;
+
+    // The walk is bounded by payloadLength and the call completes without over-reading.
+    EXPECT_EQ(STATUS_SUCCESS, parseRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection->pTwccManager));
+
+    SAFE_MEMFREE(pHeapPayload);
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
 TEST_F(RtcpFunctionalityTest, parseRtcpTwccPacketRejectsTruncatedDeltas)
 {
     /** Construct a TWCC feedback packet where packetStatusCount claims more
