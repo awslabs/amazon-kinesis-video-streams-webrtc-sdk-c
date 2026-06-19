@@ -197,6 +197,35 @@ TEST_F(StunApiTest, deserializeTrailingDataAttributeOverread)
     SAFE_MEMFREE(pHeapPacket);
 }
 
+TEST_F(StunApiTest, deserializeAddressAttributeFamilyOverread)
+{
+    // 20-byte STUN header + one 4-byte attribute header = 24 bytes; no value bytes follow.
+    const UINT16 messageLength = STUN_ATTRIBUTE_HEADER_LEN;    // 4 -> header check passes: 24 >= 4 + 20
+    const UINT32 packetSize = STUN_HEADER_LEN + messageLength; // 24
+
+    PBYTE pHeapPacket = (PBYTE) MEMCALLOC(1, packetSize);
+    ASSERT_TRUE(pHeapPacket != NULL);
+
+    // STUN header
+    putInt16((PINT16) (pHeapPacket + 0), STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS);
+    putInt16((PINT16) (pHeapPacket + STUN_HEADER_TYPE_LEN), messageLength);
+    putInt32((PINT32) (pHeapPacket + STUN_HEADER_TYPE_LEN + STUN_HEADER_DATA_LEN), STUN_HEADER_MAGIC_COOKIE);
+    // transaction id (bytes 8-19) left as zeroes
+
+    // Address-type attribute header at offset 20; declared length 0, so no family/port bytes present.
+    putInt16((PINT16) (pHeapPacket + STUN_HEADER_LEN), STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS);
+    putInt16((PINT16) (pHeapPacket + STUN_HEADER_LEN + STUN_ATTRIBUTE_HEADER_TYPE_LEN), 0);
+
+    PStunPacket pStunPacket = NULL;
+
+    // Should rejected because the family bytes fall outside the buffer.
+    EXPECT_EQ(STATUS_STUN_ATTRIBUTE_LENGTH_EXCEEDED_BUFFER_SIZE,
+              deserializeStunPacket(pHeapPacket, packetSize, NULL, 0, &pStunPacket));
+    EXPECT_TRUE(pStunPacket == NULL);
+
+    SAFE_MEMFREE(pHeapPacket);
+}
+
 TEST_F(StunApiTest, packageIpValidityTests)
 {
     KvsIpAddress address;

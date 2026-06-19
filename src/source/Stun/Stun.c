@@ -629,6 +629,14 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
 
                 // Cast, swap and get the size
                 pStunAttributeAddress = (PStunAttributeAddress) pStunAttributeHeader;
+
+                // The address family field is read here, before the length is validated below, so it
+                // must be bounded against the received buffer independently. An attribute declaring
+                // length 0 at the buffer tail passes the generic header-fit guard above (padded value
+                // is 0) yet still has no family bytes present; reading them would over-read the buffer.
+                CHK((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN + STUN_ATTRIBUTE_ADDRESS_FAMILY_LEN <= pStunBuffer + bufferSize,
+                    STATUS_STUN_ATTRIBUTE_LENGTH_EXCEEDED_BUFFER_SIZE);
+
                 ipFamily = (UINT16) getInt16(pStunAttributeAddress->address.family) & (UINT16) 0x00ff;
 
                 // Address family and the port
