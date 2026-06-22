@@ -54,15 +54,18 @@ STATUS rtcpNackListGet(PBYTE pPayload, UINT32 payloadLen, PUINT32 pSenderSsrc, P
         currentSequenceNumber = getInt16(*(PUINT16) (pPayload + i));
         BLP = getInt16(*(PUINT16) (pPayload + i + 2));
 
-        // If pSsrcList is not NULL and we have space push and increment
-        if (pSequenceNumberList != NULL && sequenceNumberCount <= *pSequenceNumberListLen) {
+        // If pSsrcList is not NULL and we have space push and increment. The guard must be a strict
+        // "less than": sequenceNumberCount is the index about to be written, and the caller-supplied
+        // buffer holds exactly *pSequenceNumberListLen elements (valid indices 0..len-1). Using "<="
+        // here would write sequenceNumberList[*pSequenceNumberListLen], one element past the end.
+        if (pSequenceNumberList != NULL && sequenceNumberCount < *pSequenceNumberListLen) {
             pSequenceNumberList[sequenceNumberCount] = currentSequenceNumber;
         }
         sequenceNumberCount++;
 
         for (j = 0; j < 16; j++) {
             if ((BLP & (1 << j)) >> j) {
-                if (pSequenceNumberList != NULL && sequenceNumberCount <= *pSequenceNumberListLen) {
+                if (pSequenceNumberList != NULL && sequenceNumberCount < *pSequenceNumberListLen) {
                     pSequenceNumberList[sequenceNumberCount] = (currentSequenceNumber + j + 1);
                 }
                 sequenceNumberCount++;

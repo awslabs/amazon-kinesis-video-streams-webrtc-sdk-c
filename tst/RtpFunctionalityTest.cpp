@@ -25,6 +25,37 @@ TEST_F(RtpFunctionalityTest, packetUnderflow)
     }
 }
 
+TEST_F(RtpFunctionalityTest, extensionHeaderBounds)
+{
+    RtpPacket rtpPacket;
+    MEMSET(&rtpPacket, 0x00, SIZEOF(RtpPacket));
+
+    // Case 1: extension bit set, but the packet is only the 12-byte fixed header -- the 4-byte
+    // extension header itself does not fit. byte[0] = 0x90: version 2, extension bit set, 0 CSRCs.
+    {
+        const UINT32 packetLength = 12;
+        PBYTE pHeapPacket = (PBYTE) MEMCALLOC(1, packetLength);
+        ASSERT_TRUE(pHeapPacket != NULL);
+        pHeapPacket[0] = 0x90;
+        EXPECT_EQ(STATUS_RTP_INPUT_PACKET_TOO_SMALL, setRtpPacketFromBytes(pHeapPacket, packetLength, &rtpPacket));
+        SAFE_MEMFREE(pHeapPacket);
+    }
+
+    // Case 2: extension header present and in-bounds, but it declares more payload than is present.
+    // The declared extension length word is 0x00FF (-> 0x00FF * 4 = 1020 bytes), far beyond the
+    // 4 bytes that actually follow the extension header.
+    {
+        const UINT32 packetLength = 20; // 12-byte header + 4-byte ext header + 4 ext bytes
+        PBYTE pHeapPacket = (PBYTE) MEMCALLOC(1, packetLength);
+        ASSERT_TRUE(pHeapPacket != NULL);
+        pHeapPacket[0] = 0x90;                                 // extension bit set, 0 CSRCs
+        putInt16((PINT16) (pHeapPacket + 12), (INT16) 0xBEDE); // extension profile
+        putInt16((PINT16) (pHeapPacket + 14), (INT16) 0x00FF); // declared length (words) -> 1020 bytes
+        EXPECT_EQ(STATUS_RTP_INPUT_PACKET_TOO_SMALL, setRtpPacketFromBytes(pHeapPacket, packetLength, &rtpPacket));
+        SAFE_MEMFREE(pHeapPacket);
+    }
+}
+
 TEST_F(RtpFunctionalityTest, marshallUnmarshallGettingSameData)
 {
     BYTE payload[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05};
