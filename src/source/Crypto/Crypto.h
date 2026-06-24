@@ -23,9 +23,9 @@ extern "C" {
 #define KVS_SSL_GET_PEER_CERTIFICATE(ssl) SSL_get_peer_certificate(ssl)
 #endif
 
-#define KVS_RSA_F4                  RSA_F4
-#define KVS_MD5_DIGEST_LENGTH       MD5_DIGEST_LENGTH
-#define KVS_SHA1_DIGEST_LENGTH      SHA_DIGEST_LENGTH
+#define KVS_RSA_F4             RSA_F4
+#define KVS_MD5_DIGEST_LENGTH  MD5_DIGEST_LENGTH
+#define KVS_SHA1_DIGEST_LENGTH SHA_DIGEST_LENGTH
 
 /* MD5 one-shot: MD5() removed in OpenSSL 3.x, use EVP_Q_digest */
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
@@ -36,7 +36,7 @@ extern "C" {
 
 /* HMAC one-shot: HMAC() removed in OpenSSL 3.x, use EVP_MAC API */
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
-#define KVS_SHA1_HMAC(k, klen, m, mlen, ob, plen)                                                                                                   \
+#define KVS_SHA1_HMAC(k, klen, m, mlen, ob, plen)                                                                                                    \
     do {                                                                                                                                             \
         EVP_MAC* _mac = EVP_MAC_fetch(NULL, "HMAC", NULL);                                                                                           \
         EVP_MAC_CTX* _ctx = (_mac != NULL) ? EVP_MAC_CTX_new(_mac) : NULL;                                                                           \
