@@ -2690,10 +2690,20 @@ STATUS incomingRelayedDataHandler(UINT64 customData, PSocketConnection pSocketCo
     STATUS retStatus = STATUS_SUCCESS;
     PIceCandidate pRelayedCandidate = (PIceCandidate) customData;
     // this should be more than enough. Usually the number of channel data in each tcp message is around 4
+#ifdef PREFER_DYNAMIC_ALLOCS
+    // ~16 KB: too large for the small thread stacks of constrained platforms
+    PTurnChannelData turnChannelData = NULL;
+#else
     TurnChannelData turnChannelData[DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE] = {0};
-    UINT32 turnChannelDataCount = ARRAY_SIZE(turnChannelData), i = 0;
+#endif
+    UINT32 turnChannelDataCount = DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE, i = 0;
 
     CHK(pRelayedCandidate != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
+
+#ifdef PREFER_DYNAMIC_ALLOCS
+    CHK(NULL != (turnChannelData = (PTurnChannelData) MEMCALLOC(DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE, SIZEOF(TurnChannelData))),
+        STATUS_NOT_ENOUGH_MEMORY);
+#endif
 
     CHK_STATUS(turnConnectionIncomingDataHandler(pRelayedCandidate->pTurnConnection, pBuffer, bufferLen, pSrc, pDest, turnChannelData,
                                                  &turnChannelDataCount));
@@ -2703,6 +2713,9 @@ STATUS incomingRelayedDataHandler(UINT64 customData, PSocketConnection pSocketCo
     }
 
 CleanUp:
+#ifdef PREFER_DYNAMIC_ALLOCS
+    SAFE_MEMFREE(turnChannelData);
+#endif
     CHK_LOG_ERR(retStatus);
 
     return retStatus;
