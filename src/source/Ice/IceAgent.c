@@ -2676,11 +2676,18 @@ STATUS incomingRelayedDataHandler(UINT64 customData, PSocketConnection pSocketCo
 {
     STATUS retStatus = STATUS_SUCCESS;
     PIceCandidate pRelayedCandidate = (PIceCandidate) customData;
-    // this should be more than enough. Usually the number of channel data in each tcp message is around 4
-    TurnChannelData turnChannelData[DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE] = {0};
-    UINT32 turnChannelDataCount = ARRAY_SIZE(turnChannelData), i = 0;
+    // Usually the number of channel data items per TCP message is ~4, but the
+    // buffer is sized for the worst case (DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE).
+    // At 512 entries that is ~16 KB — far too large for the stack, and it
+    // overflows constrained worker-thread stacks (e.g. the ICE timer-queue
+    // executor) when this handler runs on them. Allocate it on the heap.
+    PTurnChannelData turnChannelData = NULL;
+    UINT32 turnChannelDataCount = DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE, i = 0;
 
     CHK(pRelayedCandidate != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
+
+    CHK(NULL != (turnChannelData = (PTurnChannelData) MEMCALLOC(DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE, SIZEOF(TurnChannelData))),
+        STATUS_NOT_ENOUGH_MEMORY);
 
     CHK_STATUS(turnConnectionIncomingDataHandler(pRelayedCandidate->pTurnConnection, pBuffer, bufferLen, pSrc, pDest, turnChannelData,
                                                  &turnChannelDataCount));
@@ -2690,6 +2697,7 @@ STATUS incomingRelayedDataHandler(UINT64 customData, PSocketConnection pSocketCo
     }
 
 CleanUp:
+    SAFE_MEMFREE(turnChannelData);
     CHK_LOG_ERR(retStatus);
 
     return retStatus;
