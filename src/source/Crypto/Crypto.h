@@ -38,7 +38,7 @@ extern "C" {
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
 STATUS kvsSha1Hmac(const PBYTE pKey, size_t keyLen, const PBYTE pMessage, size_t messageLen, PBYTE pOutput, PUINT32 pOutputLen);
 #define KVS_SHA1_HMAC(k, klen, m, mlen, ob, plen)                                                                                                    \
-    CHK_STATUS(kvsSha1Hmac((const PBYTE)(k), (size_t)(klen), (const PBYTE)(m), (size_t)(mlen), (ob), (plen)));
+    CHK_STATUS(kvsSha1Hmac((const PBYTE)(k), (size_t) (klen), (const PBYTE)(m), (size_t) (mlen), (ob), (plen)));
 #else
 #define KVS_SHA1_HMAC(k, klen, m, mlen, ob, plen)                                                                                                    \
     CHK(NULL != HMAC(EVP_sha1(), (k), (INT32) (klen), (m), (mlen), (ob), (plen)), STATUS_HMAC_GENERATION_ERROR);
