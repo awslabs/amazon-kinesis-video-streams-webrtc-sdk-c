@@ -34,24 +34,11 @@ extern "C" {
 #define KVS_MD5_DIGEST(m, mlen, ob) MD5((m), (mlen), (ob));
 #endif
 
-/* HMAC one-shot: HMAC() removed in OpenSSL 3.x, use EVP_MAC API */
+/* HMAC one-shot: HMAC() deprecated in OpenSSL 3.x, use kvsSha1Hmac() function with proper cleanup */
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
+STATUS kvsSha1Hmac(const PBYTE pKey, size_t keyLen, const PBYTE pMessage, size_t messageLen, PBYTE pOutput, PUINT32 pOutputLen);
 #define KVS_SHA1_HMAC(k, klen, m, mlen, ob, plen)                                                                                                    \
-    do {                                                                                                                                             \
-        EVP_MAC* _mac = EVP_MAC_fetch(NULL, "HMAC", NULL);                                                                                           \
-        EVP_MAC_CTX* _ctx = (_mac != NULL) ? EVP_MAC_CTX_new(_mac) : NULL;                                                                           \
-        OSSL_PARAM _params[2];                                                                                                                       \
-        size_t _outlen = 0;                                                                                                                          \
-        _params[0] = OSSL_PARAM_construct_utf8_string("digest", "SHA1", 0);                                                                          \
-        _params[1] = OSSL_PARAM_construct_end();                                                                                                     \
-        CHK(_mac != NULL && _ctx != NULL, STATUS_HMAC_GENERATION_ERROR);                                                                             \
-        CHK(EVP_MAC_init(_ctx, (k), (klen), _params) == 1, STATUS_HMAC_GENERATION_ERROR);                                                            \
-        CHK(EVP_MAC_update(_ctx, (m), (mlen)) == 1, STATUS_HMAC_GENERATION_ERROR);                                                                   \
-        CHK(EVP_MAC_final(_ctx, (ob), &_outlen, EVP_MAX_MD_SIZE) == 1, STATUS_HMAC_GENERATION_ERROR);                                                \
-        *(plen) = (UINT32) _outlen;                                                                                                                  \
-        EVP_MAC_CTX_free(_ctx);                                                                                                                      \
-        EVP_MAC_free(_mac);                                                                                                                          \
-    } while (0);
+    CHK_STATUS(kvsSha1Hmac((const PBYTE)(k), (size_t)(klen), (const PBYTE)(m), (size_t)(mlen), (ob), (plen)));
 #else
 #define KVS_SHA1_HMAC(k, klen, m, mlen, ob, plen)                                                                                                    \
     CHK(NULL != HMAC(EVP_sha1(), (k), (INT32) (klen), (m), (mlen), (ob), (plen)), STATUS_HMAC_GENERATION_ERROR);

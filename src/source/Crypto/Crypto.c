@@ -1,6 +1,62 @@
 #define LOG_CLASS "Crypto"
 #include "../Include_i.h"
 
+#if defined(KVS_USE_OPENSSL) && OPENSSL_VERSION_NUMBER >= 0x30000000L
+STATUS kvsSha1Hmac(const PBYTE pKey, size_t keyLen, const PBYTE pMessage, size_t messageLen, PBYTE pOutput, PUINT32 pOutputLen)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    EVP_MAC* pMac = NULL;
+    EVP_MAC_CTX* pCtx = NULL;
+    OSSL_PARAM params[2];
+    size_t outLen = 0;
+    UINT64 sslErr;
+
+    CHK(pKey != NULL && pMessage != NULL && pOutput != NULL && pOutputLen != NULL, STATUS_NULL_ARG);
+
+    params[0] = OSSL_PARAM_construct_utf8_string("digest", "SHA1", 0);
+    params[1] = OSSL_PARAM_construct_end();
+
+    if ((pMac = EVP_MAC_fetch(NULL, "HMAC", NULL)) == NULL) {
+        LOG_OPENSSL_ERROR("EVP_MAC_fetch");
+        retStatus = STATUS_HMAC_GENERATION_ERROR;
+        goto CleanUp;
+    }
+    if ((pCtx = EVP_MAC_CTX_new(pMac)) == NULL) {
+        LOG_OPENSSL_ERROR("EVP_MAC_CTX_new");
+        retStatus = STATUS_HMAC_GENERATION_ERROR;
+        goto CleanUp;
+    }
+    if (EVP_MAC_init(pCtx, pKey, keyLen, params) != 1) {
+        LOG_OPENSSL_ERROR("EVP_MAC_init");
+        retStatus = STATUS_HMAC_GENERATION_ERROR;
+        goto CleanUp;
+    }
+    if (EVP_MAC_update(pCtx, pMessage, messageLen) != 1) {
+        LOG_OPENSSL_ERROR("EVP_MAC_update");
+        retStatus = STATUS_HMAC_GENERATION_ERROR;
+        goto CleanUp;
+    }
+    if (EVP_MAC_final(pCtx, pOutput, &outLen, EVP_MAX_MD_SIZE) != 1) {
+        LOG_OPENSSL_ERROR("EVP_MAC_final");
+        retStatus = STATUS_HMAC_GENERATION_ERROR;
+        goto CleanUp;
+    }
+    *pOutputLen = (UINT32) outLen;
+
+CleanUp:
+    if (pCtx != NULL) {
+        EVP_MAC_CTX_free(pCtx);
+    }
+    if (pMac != NULL) {
+        EVP_MAC_free(pMac);
+    }
+
+    LEAVES();
+    return retStatus;
+}
+#endif
+
 STATUS createRtcCertificate(PRtcCertificate* ppRtcCertificate)
 {
     ENTERS();
