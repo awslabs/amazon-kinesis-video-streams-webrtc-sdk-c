@@ -589,7 +589,15 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
     pStunAttributeHeader = pStunAttributes;
     allocationSize = SIZEOF(StunPacket);
     while ((PBYTE) pStunAttributeHeader < (PBYTE) pStunAttributes + messageLength) {
-        // Copy/Swap tne attribute header
+        // Guard the 4-byte attribute header read itself: the loop condition only guarantees the
+        // cursor is before the end of the declared message, not that a full header fits within the
+        // bytes actually received, so a cursor near the buffer tail would over-read the type/length
+        // fields below. The bound is the physical buffer (pStunBuffer + bufferSize) rather than the
+        // declared message length because some senders understate messageLength while still placing
+        // valid attributes within the received buffer.
+        CHK((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN <= pStunBuffer + bufferSize, STATUS_STUN_ATTRIBUTE_LENGTH_EXCEEDED_BUFFER_SIZE);
+
+        // Copy/Swap the attribute header
         stunAttributeHeader.type = (STUN_ATTRIBUTE_TYPE) getInt16(*(PUINT16) pStunAttributeHeader);
         stunAttributeHeader.length = (UINT16) getInt16(*(PUINT16) ((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_TYPE_LEN));
 
@@ -598,6 +606,14 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
 
         // Calculate the padded size
         paddedLength = (UINT16) ROUND_UP(stunAttributeHeader.length, 4);
+
+        // Ensure the entire attribute (header + padded value) fits within the bytes actually received.
+        // Without this, an attribute may declare a value length far larger than the bytes present,
+        // causing the per-attribute value copies in the second pass to read past the recv buffer.
+        // The rounded length is computed in 32 bits to avoid the UINT16 wrap that would otherwise turn
+        // lengths near 0xFFFF into a small value and bypass this check.
+        CHK((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN + ROUND_UP((UINT32) stunAttributeHeader.length, 4) <= pStunBuffer + bufferSize,
+            STATUS_STUN_ATTRIBUTE_LENGTH_EXCEEDED_BUFFER_SIZE);
 
         // Check the type, get the allocation size and validate the length for each attribute
         switch (stunAttributeHeader.type) {
@@ -613,6 +629,14 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
 
                 // Cast, swap and get the size
                 pStunAttributeAddress = (PStunAttributeAddress) pStunAttributeHeader;
+
+                // The address family field is read here, before the length is validated below, so it
+                // must be bounded against the received buffer independently. An attribute declaring
+                // length 0 at the buffer tail passes the generic header-fit guard above (padded value
+                // is 0) yet still has no family bytes present; reading them would over-read the buffer.
+                CHK((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN + STUN_ATTRIBUTE_ADDRESS_FAMILY_LEN <= pStunBuffer + bufferSize,
+                    STATUS_STUN_ATTRIBUTE_LENGTH_EXCEEDED_BUFFER_SIZE);
+
                 ipFamily = (UINT16) getInt16(pStunAttributeAddress->address.family) & (UINT16) 0x00ff;
 
                 // Address family and the port
