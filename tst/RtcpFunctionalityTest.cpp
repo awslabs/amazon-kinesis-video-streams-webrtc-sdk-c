@@ -1461,6 +1461,55 @@ TEST_F(RtcpFunctionalityTest, parseRtcpTwccPacketRejectsTruncatedChunks)
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
+TEST_F(RtcpFunctionalityTest, parseRtcpTwccPacketSecondWalkChunkOverread)
+{
+    // Uses packetStatusCount=200 (below the 2048 clamp) with a
+    // single run-length chunk using reserved status symbol 3. The reserved symbol
+    // hits the switch default case — no recv-delta is consumed — so the chunk's
+    // run length (5) only decrements packetsRemaining by 5. After one chunk,
+    // packetsRemaining is 195 and chunkOffset advances past the payload. Without
+    // the chunkOffset < payloadLength guard on the second walk, the next iteration
+    // reads a chunk 2 bytes past the payload.
+
+    PRtcPeerConnection pRtcPeerConnection = nullptr;
+    PKvsPeerConnection pKvsPeerConnection = nullptr;
+    RtcConfiguration config{};
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnSenderBandwidthEstimation(pRtcPeerConnection, 0, testBwHandler));
+
+    // TWCC payload: 16-byte header + ONE 2-byte chunk = 18 bytes total.
+    // packetStatusCount = 200 (fits under 2048, no clamp).
+    // Chunk = 0x6005: run-length (bit15=0), status symbol=3 (bits14:13), run length=5 (bits12:0).
+    // Symbol 3 is reserved — the switch default case runs, no delta consumed,
+    // packetsRemaining decremented by 5 only → 195 remain after this single chunk.
+    const UINT32 payloadLen = 18;
+    PBYTE pHeapPayload = (PBYTE) MEMCALLOC(1, payloadLen);
+    ASSERT_TRUE(pHeapPayload != NULL);
+
+    // base sequence number at offset 8
+    putInt16((PINT16) (pHeapPayload + 8), 0x0001);
+    // packetStatusCount at offset 10 = 200 (below clamp threshold)
+    putInt16((PINT16) (pHeapPayload + 10), (INT16) 200);
+    // Single run-length chunk at offset 16: symbol=3 (reserved), runLength=5
+    // Binary: 0 11 0000000000101 = 0x6005
+    pHeapPayload[16] = 0x60;
+    pHeapPayload[17] = 0x05;
+
+    RtcpPacket rtcpPacket{};
+    rtcpPacket.payload = pHeapPayload;
+    rtcpPacket.payloadLength = payloadLen;
+    rtcpPacket.header.packetLength = payloadLen / 4;
+
+    // The second walk's chunkOffset < payloadLength guard stops the loop
+    // before reading past the payload. The call completes without over-reading.
+    EXPECT_EQ(STATUS_SUCCESS, parseRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection->pTwccManager));
+
+    SAFE_MEMFREE(pHeapPayload);
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
 TEST_F(RtcpFunctionalityTest, parseRtcpTwccPacketRejectsTruncatedDeltas)
 {
     /** Construct a TWCC feedback packet where packetStatusCount claims more
