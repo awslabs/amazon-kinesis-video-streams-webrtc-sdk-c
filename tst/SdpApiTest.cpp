@@ -1037,6 +1037,222 @@ a=ssrc:331864867 msid:2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84 757d07a0-892a-46e7-a1
 }
 
 
+// When multiple remote media sections map to fake transceivers, each should get a unique
+// stream/track ID (e.g. fakeStream0/fakeTrack0, fakeStream1/fakeTrack1), no collisions.
+TEST_F(SdpApiTest, fakeTransceiverUniqueIds_noDuplicateStreamTrackIds)
+{
+    auto offer = std::string(R"(v=0
+o=- 2414510623331460048 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0 1
+a=extmap-allow-mixed
+a=msid-semantic: WMS 2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84
+m=video 9 UDP/TLS/RTP/SAVPF 200
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 37:C4:5C:9C:C9:DA:56:22:47:1F:8C:93:E1:A1:51:A8:15:94:78:1D:89:26:69:44:65:6C:C3:83:96:10:32:43
+a=setup:actpass
+a=mid:0
+a=sendrecv
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:200 unsupportedCodec/90000
+a=ssrc:111111111 cname:test
+a=ssrc:111111111 msid:stream1 track1
+m=audio 9 UDP/TLS/RTP/SAVPF 201
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 37:C4:5C:9C:C9:DA:56:22:47:1F:8C:93:E1:A1:51:A8:15:94:78:1D:89:26:69:44:65:6C:C3:83:96:10:32:43
+a=setup:actpass
+a=mid:1
+a=sendrecv
+a=rtcp-mux
+a=rtpmap:201 unsupportedAudioCodec/48000/2
+a=ssrc:222222222 cname:test
+a=ssrc:222222222 msid:stream2 track2
+)");
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+        RtcSessionDescriptionInit answerSdp{};
+
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, (PCHAR) sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+        std::string answerStr(answerSdp.sdp);
+
+        // Each fake transceiver should get a unique index-suffixed ID.
+        // Media section 0 -> fakeStream0/fakeTrack0, media section 1 -> fakeStream1/fakeTrack1
+        EXPECT_NE(std::string::npos, answerStr.find("fakeStream0"));
+        EXPECT_NE(std::string::npos, answerStr.find("fakeTrack0"));
+        EXPECT_NE(std::string::npos, answerStr.find("fakeStream1"));
+        EXPECT_NE(std::string::npos, answerStr.find("fakeTrack1"));
+
+        // Verify there's no un-indexed "fakeStream " (without a digit suffix) which would indicate collision
+        // The pattern "fakeStream " (with trailing space) would be the msid format: "fakeStream fakeTrack"
+        EXPECT_EQ(std::string::npos, answerStr.find("fakeStream fakeTrack"));
+
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    });
+}
+
+// 4 unsupported video m-lines + 1 supported audio m-line (matched by a local transceiver).
+// Only the 4 video sections should produce fake transceivers with unique indexed IDs.
+// The audio section should match normally and not produce a fake transceiver.
+TEST_F(SdpApiTest, fakeTransceiverUniqueIds_fourVideoOneSupportedAudio)
+{
+    auto offer = std::string(R"(v=0
+o=- 2414510623331460048 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0 1 2 3 4
+a=extmap-allow-mixed
+a=msid-semantic: WMS teststream
+m=video 9 UDP/TLS/RTP/SAVPF 200
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 37:C4:5C:9C:C9:DA:56:22:47:1F:8C:93:E1:A1:51:A8:15:94:78:1D:89:26:69:44:65:6C:C3:83:96:10:32:43
+a=setup:actpass
+a=mid:0
+a=sendrecv
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:200 unsupportedVideoCodecA/90000
+a=ssrc:111111111 cname:test
+a=ssrc:111111111 msid:teststream track0
+m=video 9 UDP/TLS/RTP/SAVPF 201
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 37:C4:5C:9C:C9:DA:56:22:47:1F:8C:93:E1:A1:51:A8:15:94:78:1D:89:26:69:44:65:6C:C3:83:96:10:32:43
+a=setup:actpass
+a=mid:1
+a=sendrecv
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:201 unsupportedVideoCodecB/90000
+a=ssrc:222222222 cname:test
+a=ssrc:222222222 msid:teststream track1
+m=video 9 UDP/TLS/RTP/SAVPF 202
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 37:C4:5C:9C:C9:DA:56:22:47:1F:8C:93:E1:A1:51:A8:15:94:78:1D:89:26:69:44:65:6C:C3:83:96:10:32:43
+a=setup:actpass
+a=mid:2
+a=sendrecv
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:202 unsupportedVideoCodecC/90000
+a=ssrc:333333333 cname:test
+a=ssrc:333333333 msid:teststream track2
+m=video 9 UDP/TLS/RTP/SAVPF 203
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 37:C4:5C:9C:C9:DA:56:22:47:1F:8C:93:E1:A1:51:A8:15:94:78:1D:89:26:69:44:65:6C:C3:83:96:10:32:43
+a=setup:actpass
+a=mid:3
+a=sendrecv
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:203 unsupportedVideoCodecD/90000
+a=ssrc:444444444 cname:test
+a=ssrc:444444444 msid:teststream track3
+m=audio 9 UDP/TLS/RTP/SAVPF 111
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 37:C4:5C:9C:C9:DA:56:22:47:1F:8C:93:E1:A1:51:A8:15:94:78:1D:89:26:69:44:65:6C:C3:83:96:10:32:43
+a=setup:actpass
+a=mid:4
+a=sendrecv
+a=rtcp-mux
+a=rtpmap:111 opus/48000/2
+a=ssrc:555555555 cname:test
+a=ssrc:555555555 msid:teststream track4
+)");
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcMediaStreamTrack audioTrack{};
+        PRtcRtpTransceiver transceiver = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+        RtcSessionDescriptionInit answerSdp{};
+
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+
+        audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+        audioTrack.codec = RTC_CODEC_OPUS;
+        STRNCPY(audioTrack.streamId, "myAudioStream", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(audioTrack.trackId, "myAudioTrack", MAX_MEDIA_STREAM_TRACK_ID_LEN);
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, (PCHAR) sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_OPUS));
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &audioTrack, nullptr, &transceiver));
+
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+        std::string answerStr(answerSdp.sdp);
+
+        // The 4 unsupported video m-lines (indices 0-3) should each produce a unique fake transceiver
+        EXPECT_NE(std::string::npos, answerStr.find("fakeStream0"));
+        EXPECT_NE(std::string::npos, answerStr.find("fakeTrack0"));
+        EXPECT_NE(std::string::npos, answerStr.find("fakeStream1"));
+        EXPECT_NE(std::string::npos, answerStr.find("fakeTrack1"));
+        EXPECT_NE(std::string::npos, answerStr.find("fakeStream2"));
+        EXPECT_NE(std::string::npos, answerStr.find("fakeTrack2"));
+        EXPECT_NE(std::string::npos, answerStr.find("fakeStream3"));
+        EXPECT_NE(std::string::npos, answerStr.find("fakeTrack3"));
+
+        // The audio m-line (index 4) matched a real transceiver, so no fakeStream4/fakeTrack4
+        EXPECT_EQ(std::string::npos, answerStr.find("fakeStream4"));
+        EXPECT_EQ(std::string::npos, answerStr.find("fakeTrack4"));
+
+        // The real audio transceiver's stream ID should be present
+        EXPECT_NE(std::string::npos, answerStr.find("myAudioStream"));
+
+        // No un-indexed collision
+        EXPECT_EQ(std::string::npos, answerStr.find("fakeStream fakeTrack"));
+
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    });
+}
+
 // if offer (remote) contains video m-line only then answer (local) should contain video m-line only
 // even if local side has other transceivers, i.e. audio
 TEST_F(SdpApiTest, offerMediaMultipleDirections_validateAnswerCorrectMatchingDirections)
