@@ -86,6 +86,8 @@ jobs:
             cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DPARALLEL_BUILD=ON"
           - name: Shared MbedTLS libsrtp3
             cmake_flags: "-DBUILD_TEST=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DUSE_LIBSRTP3=ON -DPARALLEL_BUILD=ON"
+          - name: Shared OpenSSL3 from source
+            cmake_flags: "-DBUILD_TEST=ON -DUSE_OPENSSL3=ON -DPARALLEL_BUILD=ON"
           - name: Shared OpenSSL System Deps
             # Tests disabled (due to dependency issues): 
             # - GCC: Homebrew's libgtest is built with
@@ -295,6 +297,8 @@ jobs:
             cmake-args: "-DUSE_OPENSSL=ON -DUSE_MBEDTLS=OFF"
           - name: lws
             cmake-args: "-DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
+          - name: openssl3
+            cmake-args: "-DUSE_OPENSSL3=ON -DUSE_MBEDTLS=OFF"
           - name: system-deps-openssl
             # build libwebsockets from source as apt versions are not compatible
             cmake-args: "-DBUILD_DEPENDENCIES=OFF -DBUILD_WEBSOCKETS=ON -DUSE_OPENSSL=ON -DUSE_MBEDTLS=OFF"

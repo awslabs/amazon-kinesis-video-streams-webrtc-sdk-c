@@ -79,7 +79,7 @@ STATUS tlsSessionStartWithHostname(PTlsSession pTlsSession, BOOL isServer, PCHAR
     // across backends, but this implementation does not use it for hostname verification or SNI.
     UNUSED_PARAM(hostname);
 
-    pTlsSession->pSslCtx = SSL_CTX_new(SSLv23_method());
+    pTlsSession->pSslCtx = SSL_CTX_new(TLS_method());
     CHK(pTlsSession->pSslCtx != NULL, STATUS_SSL_CTX_CREATION_FAILED);
 
     SSL_CTX_set_read_ahead(pTlsSession->pSslCtx, 1);
