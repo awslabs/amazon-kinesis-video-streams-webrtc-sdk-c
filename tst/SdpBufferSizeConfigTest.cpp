@@ -81,8 +81,8 @@ TEST_F(SdpBufferSizeConfigTest, parseSignalingMessage_MessageExceedsMaxLen)
     EXPECT_EQ(STATUS_INVALID_API_CALL_RETURN_JSON, status);
 }
 
-// Test Case: Message at signaling limit boundary should be accepted for parsing (valid JSON required for full parse)
-TEST_F(SdpBufferSizeConfigTest, parseSignalingMessage_MessageAtExactLimit)
+// Test Case: A valid signaling message within limits should be accepted for parsing
+TEST_F(SdpBufferSizeConfigTest, parseSignalingMessage_ValidMessageWithinLimit)
 {
     ReceivedSignalingMessage receivedMessage;
 
@@ -192,6 +192,24 @@ TEST_F(SdpBufferSizeConfigTest, serializeSessionDescriptionInit_FitsInSignalingB
     // Fill with a valid SDP that uses some space
     const char* sdp = "v=0\r\no=- 123 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n";
     STRNCPY(sessionDescInit.sdp, sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+    CHAR outputBuffer[MAX_SIGNALING_MESSAGE_LEN + 1];
+    UINT32 outputLen = MAX_SIGNALING_MESSAGE_LEN + 1;
+
+    STATUS status = serializeSessionDescriptionInit(&sessionDescInit, outputBuffer, &outputLen);
+    EXPECT_EQ(STATUS_SUCCESS, status);
+    EXPECT_TRUE(outputLen <= MAX_SIGNALING_MESSAGE_LEN);
+}
+
+// Test Case: Serialize an SDP offer sized to MAX_SESSION_DESCRIPTION_INIT_SDP_LEN
+TEST_F(SdpBufferSizeConfigTest, serializeSessionDescriptionInit_MaxSizeSdp)
+{
+    RtcSessionDescriptionInit sessionDescInit;
+    MEMSET(&sessionDescInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
+
+    sessionDescInit.type = SDP_TYPE_OFFER;
+    MEMSET(sessionDescInit.sdp, 'a', MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+    sessionDescInit.sdp[MAX_SESSION_DESCRIPTION_INIT_SDP_LEN] = '\0';
 
     CHAR outputBuffer[MAX_SIGNALING_MESSAGE_LEN + 1];
     UINT32 outputLen = MAX_SIGNALING_MESSAGE_LEN + 1;
