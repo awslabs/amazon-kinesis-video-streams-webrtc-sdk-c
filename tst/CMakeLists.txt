@@ -48,3 +48,10 @@ target_link_libraries(webrtc_client_test
     kvspicUtils
     ${GTEST_LIBNAME}
     ${AWS_SDK_TEST_LIBS})
+
+# SessionDescription is ~140 KB per media slot (256 attributes x 546 bytes each).
+# At MAX_SDP_SESSION_MEDIA_COUNT=6, a single stack-allocated SessionDescription is ~984 KB,
+# which exceeds the Windows default stack size of 1 MB. Set to 2 MB (2097152 bytes).
+if(MSVC)
+    target_link_options(webrtc_client_test PRIVATE /STACK:2097152)
+endif()
