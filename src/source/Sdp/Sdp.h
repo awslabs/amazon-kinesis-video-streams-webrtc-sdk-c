@@ -96,12 +96,20 @@ extern "C" {
 
 #define MAX_SDP_SESSION_TIME_DESCRIPTION_COUNT 2
 #define MAX_SDP_SESSION_TIMEZONE_COUNT         2
+
 /**
  * https://tools.ietf.org/html/rfc4566#section-5.14
  *
- * reserving enough for audio, video, text, application and message for now
+ * When data channels are enabled (ENABLE_DATA_CHANNEL), the SDK automatically
+ * adds an m=application line, consuming one slot. The remaining slots are
+ * available for user-added audio/video transceivers.
  */
-#define MAX_SDP_SESSION_MEDIA_COUNT   5
+#ifdef ENABLE_DATA_CHANNEL
+#define MAX_SDP_SESSION_MEDIA_COUNT 6
+#else
+#define MAX_SDP_SESSION_MEDIA_COUNT 5
+#endif
+
 #define MAX_SDP_MEDIA_BANDWIDTH_COUNT 2
 
 #define MAX_SDP_ATTRIBUTES_COUNT 256
