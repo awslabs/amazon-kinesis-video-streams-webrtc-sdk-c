@@ -896,6 +896,48 @@ TEST_F(RtpFunctionalityTest, depayH265FuRejectsTooSmallPacket)
     EXPECT_EQ(0u, naluLength);
 }
 
+// VP8 depayloader must reject packets too short for their declared descriptor fields.
+TEST_F(RtpFunctionalityTest, depayVP8RejectsTruncatedDescriptor)
+{
+    UINT32 vp8Length = 0;
+    BOOL isStart = FALSE;
+
+    // 1 byte with extension bit set — needs at least 2 bytes for extended control
+    BYTE pkt1[] = {0x81};
+    EXPECT_EQ(STATUS_RTP_INPUT_PACKET_TOO_SMALL,
+              depayVP8FromRtpPayload(pkt1, SIZEOF(pkt1), NULL, &vp8Length, &isStart));
+    EXPECT_EQ(0u, vp8Length);
+
+    // 2 bytes: extension=1, PictureID=1, TL0PICIDX=1, TID=0, KEYIDX=1
+    // Needs bytes at offsets 2,3,4 — only 2 available
+    BYTE pkt2[] = {0x81, 0xD9};
+    vp8Length = 0;
+    EXPECT_EQ(STATUS_RTP_INPUT_PACKET_TOO_SMALL,
+              depayVP8FromRtpPayload(pkt2, SIZEOF(pkt2), NULL, &vp8Length, &isStart));
+    EXPECT_EQ(0u, vp8Length);
+
+    // Extension + PictureID(16-bit) declared but only 3 bytes available
+    // Byte 0: 0x90 (ext=1), Byte 1: 0x80 (PID=1), Byte 2: 0x80 (M=1 → 16-bit PID)
+    BYTE pkt3[] = {0x90, 0x80, 0x80};
+    vp8Length = 0;
+    EXPECT_EQ(STATUS_RTP_INPUT_PACKET_TOO_SMALL,
+              depayVP8FromRtpPayload(pkt3, SIZEOF(pkt3), NULL, &vp8Length, &isStart));
+    EXPECT_EQ(0u, vp8Length);
+}
+
+// VP8 depayloader should succeed on a well-formed minimal packet
+TEST_F(RtpFunctionalityTest, depayVP8AcceptsValidMinimalPacket)
+{
+    UINT32 vp8Length = 0;
+    BOOL isStart = FALSE;
+
+    // No extension: 1 byte descriptor + payload
+    BYTE pkt[] = {0x10, 0xAA, 0xBB, 0xCC};
+    EXPECT_EQ(STATUS_SUCCESS,
+              depayVP8FromRtpPayload(pkt, SIZEOF(pkt), NULL, &vp8Length, &isStart));
+    EXPECT_EQ(3u, vp8Length);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
