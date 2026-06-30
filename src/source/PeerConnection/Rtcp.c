@@ -715,7 +715,7 @@ STATUS onRtcpRembPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConn
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 ssrcList[MAX_UINT8] = {0};
     DOUBLE maximumBitRate = 0;
-    UINT8 ssrcListLen;
+    UINT8 ssrcListLen = MAX_UINT8;
     UINT32 i;
     PKvsRtpTransceiver pTransceiver = NULL;
 

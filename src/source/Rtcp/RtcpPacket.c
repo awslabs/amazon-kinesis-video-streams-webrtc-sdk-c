@@ -107,7 +107,8 @@ CleanUp:
  *     payloadLen       - Total length of payload
  *     pMaximumBitRate  - REMB Value
  *     pSsrcList        - buffer to write list of SSRCes into.
- *     pSsrcListLen     - destination PUINT32 to store the count of SSRCes from the incoming REMB.
+ *     pSsrcListLen     - on input: capacity of pSsrcList (max SSRCs to write).
+ *                        on output: actual count of SSRCs parsed from the REMB packet.
  */
 STATUS rembValueGet(PBYTE pPayload, UINT32 payloadLen, PDOUBLE pMaximumBitRate, PUINT32 pSsrcList, PUINT8 pSsrcListLen)
 {
@@ -129,6 +130,7 @@ STATUS rembValueGet(PBYTE pPayload, UINT32 payloadLen, PDOUBLE pMaximumBitRate, 
 
     // Only populate SSRC list if caller requests
     ssrcListLen = pPayload[RTCP_PACKET_REMB_IDENTIFIER_OFFSET + SIZEOF(UINT32)];
+    CHK(ssrcListLen <= *pSsrcListLen, STATUS_BUFFER_TOO_SMALL);
     CHK(payloadLen >= RTCP_PACKET_REMB_MIN_SIZE + (ssrcListLen * SIZEOF(UINT32)), STATUS_RTCP_INPUT_REMB_INVALID);
 
     for (i = 0; i < ssrcListLen; i++) {

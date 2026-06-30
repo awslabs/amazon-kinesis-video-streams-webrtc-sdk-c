@@ -248,11 +248,12 @@ TEST_F(RtcpFunctionalityTest, rembValueGet)
                                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     EXPECT_EQ(STATUS_RTCP_INPUT_REMB_INVALID, isRembPacket(bufferNoUniqueIdentifier, SIZEOF(bufferNoUniqueIdentifier)));
 
-    UINT8 ssrcListLen = 0;
+    UINT8 ssrcListLen = 5;
     DOUBLE maximumBitRate = 0;
     UINT32 ssrcList[5];
 
     BYTE singleSSRC[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x52, 0x45, 0x4d, 0x42, 0x01, 0x12, 0x76, 0x28, 0x6c, 0x76, 0xe8, 0x55};
+    ssrcListLen = 5;
     EXPECT_EQ(STATUS_SUCCESS, rembValueGet(singleSSRC, SIZEOF(singleSSRC), &maximumBitRate, ssrcList, &ssrcListLen));
     EXPECT_EQ(ssrcListLen, 1);
     EXPECT_EQ(maximumBitRate, 2581120.0);
@@ -260,6 +261,7 @@ TEST_F(RtcpFunctionalityTest, rembValueGet)
 
     BYTE multipleSSRC[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x52, 0x45, 0x4d, 0x42,
                            0x02, 0x12, 0x76, 0x28, 0x6c, 0x76, 0xe8, 0x55, 0x42, 0x42, 0x42, 0x42};
+    ssrcListLen = 5;
     EXPECT_EQ(STATUS_SUCCESS, rembValueGet(multipleSSRC, SIZEOF(multipleSSRC), &maximumBitRate, ssrcList, &ssrcListLen));
     EXPECT_EQ(ssrcListLen, 2);
     EXPECT_EQ(maximumBitRate, 2581120.0);
@@ -268,7 +270,29 @@ TEST_F(RtcpFunctionalityTest, rembValueGet)
 
     BYTE invalidSSRCLength[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x52, 0x45,
                                 0x4d, 0x42, 0xFF, 0x12, 0x76, 0x28, 0x6c, 0x76, 0xe8, 0x55};
-    EXPECT_EQ(STATUS_RTCP_INPUT_REMB_INVALID, rembValueGet(invalidSSRCLength, SIZEOF(invalidSSRCLength), &maximumBitRate, ssrcList, &ssrcListLen));
+    ssrcListLen = 5;
+    EXPECT_EQ(STATUS_BUFFER_TOO_SMALL, rembValueGet(invalidSSRCLength, SIZEOF(invalidSSRCLength), &maximumBitRate, ssrcList, &ssrcListLen));
+}
+
+// rembValueGet must reject packets claiming more SSRCs than the output buffer can hold
+TEST_F(RtcpFunctionalityTest, rembValueGetRejectsBufferOverflow)
+{
+    DOUBLE maximumBitRate = 0;
+    UINT32 ssrcList[2]; // capacity = 2
+    UINT8 ssrcListLen = 2;
+
+    // REMB packet claiming 5 SSRCs but our buffer only holds 2
+    // Offsets: [0-7]=padding, [8-11]="REMB", [12]=ssrcCount=5, [13-15]=bitrate, [16+]=5 SSRCs
+    BYTE rembWith5Ssrcs[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                             0x52, 0x45, 0x4d, 0x42,
+                             0x05, 0x12, 0x76, 0x28,
+                             0x11, 0x11, 0x11, 0x11,
+                             0x22, 0x22, 0x22, 0x22,
+                             0x33, 0x33, 0x33, 0x33,
+                             0x44, 0x44, 0x44, 0x44,
+                             0x55, 0x55, 0x55, 0x55};
+
+    EXPECT_EQ(STATUS_BUFFER_TOO_SMALL, rembValueGet(rembWith5Ssrcs, SIZEOF(rembWith5Ssrcs), &maximumBitRate, ssrcList, &ssrcListLen));
 }
 
 TEST_F(RtcpFunctionalityTest, onRtcpRembCalled)
