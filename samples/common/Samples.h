@@ -23,6 +23,7 @@ extern "C" {
 #define DEFAULT_AUDIO_OPUS_SAMPLE_RATE_HZ        48000
 #define DEFAULT_AUDIO_OPUS_BITS_PER_SAMPLE       16
 #define DEFAULT_MAX_CONCURRENT_STREAMING_SESSION 10
+#define MAX_VIDEO_TRACK_COUNT                   4
 
 #define AUDIO_CODEC_NAME_ALAW  "alaw"
 #define AUDIO_CODEC_NAME_MULAW "mulaw"
@@ -243,7 +244,8 @@ struct __SampleStreamingSession {
     volatile SIZE_T frameIndex;
     volatile SIZE_T correlationIdPostFix;
     PRtcPeerConnection pPeerConnection;
-    PRtcRtpTransceiver pVideoRtcRtpTransceiver;
+    PRtcRtpTransceiver pVideoRtcRtpTransceiver[MAX_VIDEO_TRACK_COUNT];
+    UINT32 videoTrackCount;
     PRtcRtpTransceiver pAudioRtcRtpTransceiver;
     RtcSessionDescriptionInit answerSessionDescriptionInit;
     PSampleConfiguration pSampleConfiguration;
@@ -315,6 +317,7 @@ STATUS checkSampleFramesExist(RTC_CODEC);
 STATUS addSendrecvVideoAndAudioTransceivers(PSampleConfiguration, PSampleStreamingSession);
 STATUS addSendOnlyVideoRecvOnlyAudioTransceivers(PSampleConfiguration, PSampleStreamingSession);
 STATUS addSendOnlyVideoSendrecvAudioTransceivers(PSampleConfiguration, PSampleStreamingSession);
+STATUS addMultiVideoSendrecvAudioTransceivers(PSampleConfiguration, PSampleStreamingSession);
 
 #ifdef __cplusplus
 }

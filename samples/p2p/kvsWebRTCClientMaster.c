@@ -52,6 +52,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     pSampleConfiguration->onDataChannel = onDataChannel;
 #endif
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
+    pSampleConfiguration->addTransceiversCallback = addMultiVideoSendrecvAudioTransceivers;
     DLOGI("[KVS Master] Finished setting handlers");
 
     // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.
@@ -116,9 +117,13 @@ CleanUp:
 PVOID sampleReceiveAudioVideoFrame(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
+    UINT32 trackIdx;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) args;
     CHK_ERR(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "[KVS Master] Streaming session is NULL");
-    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleVideoFrameHandler));
+    for (trackIdx = 0; trackIdx < pSampleStreamingSession->videoTrackCount; ++trackIdx) {
+        CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver[trackIdx], (UINT64) pSampleStreamingSession,
+                                      sampleVideoFrameHandler));
+    }
     CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleAudioFrameHandler));
 
 CleanUp:

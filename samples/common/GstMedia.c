@@ -95,7 +95,7 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
                         MUTEX_UNLOCK(pSampleStreamingSession->twccMetadata.updateLock);
                     }
                 }
-                pRtcRtpTransceiver = pSampleStreamingSession->pVideoRtcRtpTransceiver;
+                pRtcRtpTransceiver = pSampleStreamingSession->pVideoRtcRtpTransceiver[0];
                 frame.presentationTs = pSampleStreamingSession->videoTimestamp;
                 frame.decodingTs = frame.presentationTs;
                 pSampleStreamingSession->videoTimestamp += SAMPLE_VIDEO_FRAME_DURATION; // assume video fps is 25

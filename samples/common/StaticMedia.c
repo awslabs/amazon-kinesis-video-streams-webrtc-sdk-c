@@ -58,77 +58,101 @@ PVOID sendVideoPacketsFromDisk(PVOID args)
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
     RtcEncoderStats encoderStats;
-    Frame frame;
-    UINT32 fileIndex = 0, frameSize = 0;
+    Frame frame[MAX_VIDEO_TRACK_COUNT];
+    UINT32 fileIndex[MAX_VIDEO_TRACK_COUNT];
+    UINT32 frameSize;
+    PBYTE pFrameBuffers[MAX_VIDEO_TRACK_COUNT];
+    UINT32 frameBufferSizes[MAX_VIDEO_TRACK_COUNT];
     CHAR filePath[MAX_PATH_LEN + 1];
     STATUS status;
-    UINT32 i;
+    UINT32 i, trackIdx;
     UINT64 startTime, lastFrameTime, elapsed;
+    BOOL usePerTrackDirs = FALSE;
+
     MEMSET(&encoderStats, 0x00, SIZEOF(RtcEncoderStats));
+    MEMSET(fileIndex, 0x00, SIZEOF(fileIndex));
+    MEMSET(pFrameBuffers, 0x00, SIZEOF(pFrameBuffers));
+    MEMSET(frameBufferSizes, 0x00, SIZEOF(frameBufferSizes));
+    MEMSET(frame, 0x00, SIZEOF(frame));
     CHK_ERR(pSampleConfiguration != NULL, STATUS_NULL_ARG, "[KVS Master] Streaming session is NULL");
 
-    frame.presentationTs = 0;
+    if (pSampleConfiguration->videoCodec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
+        UINT32 dummySize = 0;
+        STATUS checkStatus = readFrameFromDisk(NULL, &dummySize, "./h264SampleFrames_track0/frame-0001.h264");
+        usePerTrackDirs = (checkStatus == STATUS_SUCCESS);
+    }
+
+    if (usePerTrackDirs) {
+        DLOGI("[KVS Master] Using per-track frame directories (h264SampleFrames_track0..3)");
+    } else {
+        DLOGI("[KVS Master] Using single frame directory for all tracks");
+    }
+
     startTime = GETTIME();
     lastFrameTime = startTime;
 
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
-        if (pSampleConfiguration->videoCodec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
-            fileIndex = fileIndex % NUMBER_OF_H264_FRAME_FILES + 1;
-            SNPRINTF(filePath, MAX_PATH_LEN, "./h264SampleFrames/frame-%04d.h264", fileIndex);
-        } else if (pSampleConfiguration->videoCodec == RTC_CODEC_H265) {
-            fileIndex = fileIndex % NUMBER_OF_H265_FRAME_FILES + 1;
-            SNPRINTF(filePath, MAX_PATH_LEN, "./h265SampleFrames/frame-%04d.h265", fileIndex);
+        for (trackIdx = 0; trackIdx < MAX_VIDEO_TRACK_COUNT; trackIdx++) {
+            if (pSampleConfiguration->videoCodec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
+                fileIndex[trackIdx] = fileIndex[trackIdx] % NUMBER_OF_H264_FRAME_FILES + 1;
+                if (usePerTrackDirs) {
+                    SNPRINTF(filePath, MAX_PATH_LEN, "./h264SampleFrames_track%u/frame-%04d.h264", trackIdx, fileIndex[trackIdx]);
+                } else {
+                    SNPRINTF(filePath, MAX_PATH_LEN, "./h264SampleFrames/frame-%04d.h264", fileIndex[trackIdx]);
+                }
+            } else if (pSampleConfiguration->videoCodec == RTC_CODEC_H265) {
+                fileIndex[trackIdx] = fileIndex[trackIdx] % NUMBER_OF_H265_FRAME_FILES + 1;
+                SNPRINTF(filePath, MAX_PATH_LEN, "./h265SampleFrames/frame-%04d.h265", fileIndex[trackIdx]);
+            }
+
+            frameSize = 0;
+            CHK_STATUS(readFrameFromDisk(NULL, &frameSize, filePath));
+
+            if (frameSize > frameBufferSizes[trackIdx]) {
+                pFrameBuffers[trackIdx] = (PBYTE) MEMREALLOC(pFrameBuffers[trackIdx], frameSize);
+                CHK_ERR(pFrameBuffers[trackIdx] != NULL, STATUS_NOT_ENOUGH_MEMORY, "[KVS Master] Failed to allocate video frame buffer for track %u",
+                         trackIdx);
+                frameBufferSizes[trackIdx] = frameSize;
+            }
+
+            frame[trackIdx].frameData = pFrameBuffers[trackIdx];
+            frame[trackIdx].size = frameSize;
+            CHK_STATUS(readFrameFromDisk(frame[trackIdx].frameData, &frameSize, filePath));
+            frame[trackIdx].presentationTs += SAMPLE_VIDEO_FRAME_DURATION;
         }
 
-        CHK_STATUS(readFrameFromDisk(NULL, &frameSize, filePath));
-
-        // Re-alloc if needed
-        if (frameSize > pSampleConfiguration->videoBufferSize) {
-            pSampleConfiguration->pVideoFrameBuffer = (PBYTE) MEMREALLOC(pSampleConfiguration->pVideoFrameBuffer, frameSize);
-            CHK_ERR(pSampleConfiguration->pVideoFrameBuffer != NULL, STATUS_NOT_ENOUGH_MEMORY, "[KVS Master] Failed to allocate video frame buffer");
-            pSampleConfiguration->videoBufferSize = frameSize;
-        }
-
-        frame.frameData = pSampleConfiguration->pVideoFrameBuffer;
-        frame.size = frameSize;
-
-        CHK_STATUS(readFrameFromDisk(frame.frameData, &frameSize, filePath));
-
-        // based on bitrate of samples/h264SampleFrames/frame-*
         encoderStats.width = 640;
         encoderStats.height = 480;
         encoderStats.targetBitrate = 262000;
-        frame.presentationTs += SAMPLE_VIDEO_FRAME_DURATION;
+
         MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
         for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
-            status = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &frame);
-            if (pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame && status == STATUS_SUCCESS) {
-                PROFILE_WITH_START_TIME(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, "Time to first frame");
-                pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame = FALSE;
-            }
-            encoderStats.encodeTimeMsec = 4; // update encode time to an arbitrary number to demonstrate stats update
-            updateEncoderStats(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver, &encoderStats);
-            if (status != STATUS_SRTP_NOT_READY_YET) {
-                if (status != STATUS_SUCCESS) {
-                    DLOGV("writeFrame() failed with 0x%08x", status);
+            for (trackIdx = 0; trackIdx < pSampleConfiguration->sampleStreamingSessionList[i]->videoTrackCount; ++trackIdx) {
+                status = writeFrame(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver[trackIdx], &frame[trackIdx]);
+                if (trackIdx == 0 && pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame && status == STATUS_SUCCESS) {
+                    PROFILE_WITH_START_TIME(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, "Time to first frame");
+                    pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame = FALSE;
                 }
-            } else {
-                // Reset file index to ensure first frame sent upon SRTP ready is a key frame.
-                fileIndex = 0;
+                encoderStats.encodeTimeMsec = 4;
+                updateEncoderStats(pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver[trackIdx], &encoderStats);
+                if (status == STATUS_SRTP_NOT_READY_YET) {
+                    fileIndex[trackIdx] = 0;
+                } else if (status != STATUS_SUCCESS) {
+                    DLOGV("writeFrame() failed with 0x%08x for track %u", status, trackIdx);
+                }
             }
         }
         MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
 
-        // Adjust sleep in the case the sleep itself and writeFrame take longer than expected. Since sleep makes sure that the thread
-        // will be paused at least until the given amount, we can assume that there's no too early frame scenario.
-        // Also, it's very unlikely to have a delay greater than SAMPLE_VIDEO_FRAME_DURATION, so the logic assumes that this is always
-        // true for simplicity.
         elapsed = lastFrameTime - startTime;
         THREAD_SLEEP(SAMPLE_VIDEO_FRAME_DURATION - elapsed % SAMPLE_VIDEO_FRAME_DURATION);
         lastFrameTime = GETTIME();
     }
 
 CleanUp:
+    for (trackIdx = 0; trackIdx < MAX_VIDEO_TRACK_COUNT; trackIdx++) {
+        SAFE_MEMFREE(pFrameBuffers[trackIdx]);
+    }
     DLOGI("Closing video thread");
     CHK_LOG_ERR(retStatus);
 
@@ -203,7 +227,12 @@ STATUS checkSampleFramesExist(RTC_CODEC codec)
 
     switch (codec) {
         case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
-            CHK_STATUS(readFrameFromDisk(NULL, &frameSize, "./h264SampleFrames/frame-0001.h264"));
+            retStatus = readFrameFromDisk(NULL, &frameSize, "./h264SampleFrames/frame-0001.h264");
+            if (STATUS_FAILED(retStatus)) {
+                frameSize = 0;
+                retStatus = readFrameFromDisk(NULL, &frameSize, "./h264SampleFrames_track0/frame-0001.h264");
+            }
+            CHK_STATUS(retStatus);
             DLOGI("Checked H264 sample video frame availability....available");
             break;
         case RTC_CODEC_H265:

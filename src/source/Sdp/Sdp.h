@@ -101,7 +101,7 @@ extern "C" {
  *
  * reserving enough for audio, video, text, application and message for now
  */
-#define MAX_SDP_SESSION_MEDIA_COUNT   5
+#define MAX_SDP_SESSION_MEDIA_COUNT   10
 #define MAX_SDP_MEDIA_BANDWIDTH_COUNT 2
 
 #define MAX_SDP_ATTRIBUTES_COUNT 256

@@ -120,7 +120,7 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
     // It is advised to modify the pipeline and the caps as per the source of the media. Customers can also modify this pipeline to
     // use any other sinks instead of `filesink` like `autovideosink` and `autoaudiosink`. The existing pipelines are not complex enough to
     // change caps and properties dynamically, more complex logic may be needed to support the same.
-    switch (pSampleStreamingSession->pVideoRtcRtpTransceiver->receiver.track.codec) {
+    switch (pSampleStreamingSession->pVideoRtcRtpTransceiver[0]->receiver.track.codec) {
         case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
             videoDescription = "appsrc name=appsrc-video ! queue ! h264parse ! queue ! matroskamux name=mux ! queue ! filesink location=video.mkv";
             videocaps = gst_caps_new_simple("video/x-h264", "stream-format", G_TYPE_STRING, "byte-stream", "alignment", G_TYPE_STRING, "au",
@@ -167,7 +167,7 @@ PVOID receiveGstreamerAudioVideo(PVOID args)
 
     appsrcVideo = gst_bin_get_by_name(GST_BIN(pipeline), "appsrc-video");
     CHK_ERR(appsrcVideo != NULL, STATUS_INTERNAL_ERROR, "[KVS GStreamer %s] Cannot find appsrc video", roleType);
-    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) appsrcVideo, onGstVideoFrameReady));
+    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver[0], (UINT64) appsrcVideo, onGstVideoFrameReady));
     if (videocaps != NULL) {
         g_object_set(G_OBJECT(appsrcVideo), "caps", videocaps, NULL);
         gst_caps_unref(videocaps);

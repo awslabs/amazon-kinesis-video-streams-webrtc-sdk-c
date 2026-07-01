@@ -106,7 +106,7 @@ PVOID sampleReceiveAudioVideoFrame(PVOID args)
     STATUS retStatus = STATUS_SUCCESS;
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) args;
     CHK_ERR(pSampleStreamingSession != NULL, STATUS_NULL_ARG, "[%s] Streaming session is NULL", SAMPLE_NAME);
-    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleVideoFrameHandler));
+    CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pVideoRtcRtpTransceiver[0], (UINT64) pSampleStreamingSession, sampleVideoFrameHandler));
     CHK_STATUS(transceiverOnFrame(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession, sampleAudioFrameHandler));
 
 CleanUp:
