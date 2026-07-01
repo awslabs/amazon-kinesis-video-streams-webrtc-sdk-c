@@ -752,42 +752,40 @@ a=rtpmap:111 opus/48000/2
 a=fmtp:111 minptime=10;useinbandfec=1
 a=rtcp-fb:111 nack)";
 
-TEST_F(SdpApiTest, maxVideoTracksWithSameCodec)
+static std::string buildSdpWithMediaCount(UINT32 mediaCount)
 {
-    auto buildSdp = [](UINT32 mediaCount) {
-        auto sdp = std::string("v=0\r\n"
-                               "o=- 481034601 1588366671 IN IP4 0.0.0.0\r\n"
-                               "s=-\r\n"
-                               "t=0 0\r\n"
-                               "a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5\r\n"
-                               "a=group:BUNDLE");
-        for (UINT32 i = 0; i < mediaCount; i++) {
-            sdp += " " + std::to_string(i);
-        }
+    auto sdp = std::string("v=0\r\n"
+                           "o=- 481034601 1588366671 IN IP4 0.0.0.0\r\n"
+                           "s=-\r\n"
+                           "t=0 0\r\n"
+                           "a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5\r\n"
+                           "a=group:BUNDLE");
+    for (UINT32 i = 0; i < mediaCount; i++) {
+        sdp += " " + std::to_string(i);
+    }
+    sdp += "\r\n";
+    for (UINT32 i = 0; i < mediaCount; i++) {
+        sdp += sdpvideo;
         sdp += "\r\n";
-        for (UINT32 i = 0; i < mediaCount; i++) {
-            sdp += sdpvideo;
-            sdp += "\r\n";
-        }
-        return sdp;
-    };
-
-    // Build an SDP with exactly MAX_SDP_SESSION_MEDIA_COUNT media lines - should succeed
-    auto offerAtLimit = buildSdp(MAX_SDP_SESSION_MEDIA_COUNT);
-    {
-        SessionDescription sessionDescription;
-        MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
-        EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescription(&sessionDescription, (PCHAR) offerAtLimit.c_str()));
-        EXPECT_EQ(sessionDescription.mediaCount, MAX_SDP_SESSION_MEDIA_COUNT);
     }
+    return sdp;
+}
 
-    // Build an SDP with MAX_SDP_SESSION_MEDIA_COUNT + 1 media lines - should fail
-    auto offerOverLimit = buildSdp(MAX_SDP_SESSION_MEDIA_COUNT + 1);
-    {
-        SessionDescription sessionDescription;
-        MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
-        EXPECT_EQ(STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT, deserializeSessionDescription(&sessionDescription, (PCHAR) offerOverLimit.c_str()));
-    }
+TEST_F(SdpApiTest, maxVideoTracksWithSameCodec_AtLimit)
+{
+    auto offer = buildSdpWithMediaCount(MAX_SDP_SESSION_MEDIA_COUNT);
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescription(&sessionDescription, (PCHAR) offer.c_str()));
+    EXPECT_EQ(sessionDescription.mediaCount, MAX_SDP_SESSION_MEDIA_COUNT);
+}
+
+TEST_F(SdpApiTest, maxVideoTracksWithSameCodec_OverLimit)
+{
+    auto offer = buildSdpWithMediaCount(MAX_SDP_SESSION_MEDIA_COUNT + 1);
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT, deserializeSessionDescription(&sessionDescription, (PCHAR) offer.c_str()));
 }
 
 // if offer is recvonly answer must be sendonly
