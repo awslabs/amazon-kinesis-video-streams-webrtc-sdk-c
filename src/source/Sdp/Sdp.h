@@ -100,13 +100,15 @@ extern "C" {
 /**
  * https://tools.ietf.org/html/rfc4566#section-5.14
  *
- * When data channels are enabled (ENABLE_DATA_CHANNEL), the SDK automatically
- * adds an m=application line, consuming one slot. The remaining slots are
- * available for user-added audio/video transceivers.
+ * Maximum number of m= lines (media sections) in an SDP. This limit applies
+ * to all media slots: user-added audio/video transceivers, fake transceivers
+ * (created for unmatched remote m-lines), and the data channel m=application
+ * line (when ENABLE_DATA_CHANNEL is on).
+ *
+ * Override at build time via CMake: -DMAX_SDP_SESSION_MEDIA_COUNT=N
+ * See docs/SDP_MEDIA_COUNT.md for sizing guidance and stack implications.
  */
-#ifdef ENABLE_DATA_CHANNEL
-#define MAX_SDP_SESSION_MEDIA_COUNT 6
-#else
+#ifndef MAX_SDP_SESSION_MEDIA_COUNT
 #define MAX_SDP_SESSION_MEDIA_COUNT 5
 #endif
 

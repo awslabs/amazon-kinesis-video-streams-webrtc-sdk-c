@@ -37,6 +37,20 @@ option(BUILD_OLD_MBEDTLS_VERSION "Use MbedTLS version 2.28.8." OFF)
 option(INCREASE_PRECISION_TIMING_LOGS "PROFILE-level timing logs have 2 decimals of milliseconds (otherwise truncated to whole millisecond)" ON)
 option(PARALLEL_BUILD "Build dependencies with parallel flag" OFF)
 
+# Tuning
+set(MAX_SDP_SESSION_MEDIA_COUNT "5" CACHE STRING "Maximum number of SDP media sections (m= lines). Range: 1-6. Each slot adds ~140 KB to stack-allocated SessionDescription. See docs/SDP_MEDIA_COUNT.md.")
+if (NOT "${MAX_SDP_SESSION_MEDIA_COUNT}" STREQUAL "5")
+  message(STATUS "MAX_SDP_SESSION_MEDIA_COUNT overridden to ${MAX_SDP_SESSION_MEDIA_COUNT} (default: 5)")
+endif()
+if (MAX_SDP_SESSION_MEDIA_COUNT LESS 1)
+  message(FATAL_ERROR "MAX_SDP_SESSION_MEDIA_COUNT=${MAX_SDP_SESSION_MEDIA_COUNT} is below the minimum of 1.")
+endif()
+if (MAX_SDP_SESSION_MEDIA_COUNT GREATER 6)
+  message(FATAL_ERROR "MAX_SDP_SESSION_MEDIA_COUNT=${MAX_SDP_SESSION_MEDIA_COUNT} exceeds the maximum of 6. "
+    "The KVS TURN relay hard-limits bandwidth to 5 Mbps, which cannot sustain more than 6 concurrent media streams. "
+    "See docs/SDP_MEDIA_COUNT.md for details.")
+endif()
+
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
 option(BUILD_BENCHMARK "Build the benchmark tree." OFF)
@@ -436,6 +450,10 @@ endif()
 
 # Uncomment below line for very verbose logging
 # add_definitions(-DLOG_STREAMING)
+
+if (NOT "${MAX_SDP_SESSION_MEDIA_COUNT}" STREQUAL "5")
+  add_definitions(-DMAX_SDP_SESSION_MEDIA_COUNT=${MAX_SDP_SESSION_MEDIA_COUNT})
+endif()
 
 if (ENABLE_DATA_CHANNEL)
   add_definitions(-DENABLE_DATA_CHANNEL)

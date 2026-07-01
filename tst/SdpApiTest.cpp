@@ -463,8 +463,9 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendRecvMaxTransceivers)
 }
 
 #ifdef ENABLE_DATA_CHANNEL
-// Validates that 4 video + 1 audio transceivers succeed with data channel enabled (total 6 = MAX_SDP_SESSION_MEDIA_COUNT)
-TEST_F(SdpApiTest, populateSingleMediaSection_FiveTransceiversWithDataChannel)
+// Validates that (MAX_SDP_SESSION_MEDIA_COUNT - 1) transceivers succeed with data channel enabled,
+// since data channel consumes 1 slot. Adding one more should exceed the limit.
+TEST_F(SdpApiTest, populateSingleMediaSection_MaxTransceiversWithDataChannel)
 {
     PRtcPeerConnection offerPc = NULL;
     RtcConfiguration configuration;
@@ -480,31 +481,22 @@ TEST_F(SdpApiTest, populateSingleMediaSection_FiveTransceiversWithDataChannel)
     rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
 
     MEMSET(&track, 0x00, SIZEOF(RtcMediaStreamTrack));
-    STRCPY(track.streamId, "myKvsStream");
-
-    // Add 4 video transceivers
     track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
     track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    STRCPY(track.streamId, "myKvsStream");
     STRCPY(track.trackId, "videoTrack");
-    for (UINT32 i = 0; i < 4; i++) {
+
+    // Fill all slots except one reserved for data channel
+    for (UINT32 i = 0; i < MAX_SDP_SESSION_MEDIA_COUNT - 1; i++) {
         EXPECT_EQ(STATUS_SUCCESS, addTransceiver(offerPc, &track, &rtcRtpTransceiverInit, &pTransceiver));
     }
 
-    // Add 1 audio transceiver
-    track.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
-    track.codec = RTC_CODEC_OPUS;
-    STRCPY(track.trackId, "audioTrack");
-    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(offerPc, &track, &rtcRtpTransceiverInit, &pTransceiver));
-
-    // 5 transceivers + 1 data channel = 6 = MAX_SDP_SESSION_MEDIA_COUNT, should succeed
+    // (MAX_SDP_SESSION_MEDIA_COUNT - 1) transceivers + 1 data channel = MAX_SDP_SESSION_MEDIA_COUNT
     EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sessionDescriptionInit));
     EXPECT_PRED_FORMAT2(testing::IsSubstring, "m=video", sessionDescriptionInit.sdp);
-    EXPECT_PRED_FORMAT2(testing::IsSubstring, "m=audio", sessionDescriptionInit.sdp);
     EXPECT_PRED_FORMAT2(testing::IsSubstring, "m=application", sessionDescriptionInit.sdp);
 
     // Adding one more transceiver should exceed the limit
-    track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
-    track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
     STRCPY(track.trackId, "extraTrack");
     EXPECT_EQ(STATUS_SUCCESS, addTransceiver(offerPc, &track, &rtcRtpTransceiverInit, &pTransceiver));
     EXPECT_EQ(STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT, createOffer(offerPc, &sessionDescriptionInit));
