@@ -676,6 +676,281 @@ TEST_F(SignalingApiTest, signalingClientCreateWithClientInfoVariations)
     THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
+// Shared state for end-to-end payload delivery verification
+static struct {
+    volatile ATOMIC_BOOL received;
+    MUTEX lock;
+    UINT32 payloadLen;
+    CHAR payload[MAX_SIGNALING_MESSAGE_LEN + 1];
+} gReceivedPayload;
+
+STATUS e2eMessageReceivedCallback(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage)
+{
+    UNUSED_PARAM(customData);
+    MUTEX_LOCK(gReceivedPayload.lock);
+    gReceivedPayload.payloadLen = pReceivedSignalingMessage->signalingMessage.payloadLen;
+    MEMCPY(gReceivedPayload.payload, pReceivedSignalingMessage->signalingMessage.payload,
+           pReceivedSignalingMessage->signalingMessage.payloadLen);
+    gReceivedPayload.payload[pReceivedSignalingMessage->signalingMessage.payloadLen] = '\0';
+    MUTEX_UNLOCK(gReceivedPayload.lock);
+    ATOMIC_STORE_BOOL(&gReceivedPayload.received, TRUE);
+    return STATUS_SUCCESS;
+}
+
+// End-to-end test: viewer sends a large payload to master, master verifies
+// the full payload is received without truncation.
+// Requires valid AWS credentials.
+//
+// Run with: --gtest_filter="SignalingApiTest.verifyLargePayloadDeliveredWithoutTruncation"
+TEST_F(SignalingApiTest, verifyLargePayloadDeliveredWithoutTruncation)
+{
+    if (!mAccessKeyIdSet) {
+        GTEST_SKIP() << "Skipping: AWS credentials not set";
+    }
+
+    // --- Set up master ---
+    SignalingClientCallbacks masterCallbacks;
+    masterCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+    masterCallbacks.customData = (UINT64) this;
+    masterCallbacks.messageReceivedFn = e2eMessageReceivedCallback;
+    masterCallbacks.errorReportFn = NULL;
+    masterCallbacks.stateChangeFn = NULL;
+    masterCallbacks.getCurrentTimeFn = NULL;
+
+    SignalingClientInfo masterClientInfo;
+    MEMSET(&masterClientInfo, 0x00, SIZEOF(SignalingClientInfo));
+    masterClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    masterClientInfo.loggingLevel = LOG_LEVEL_WARN;
+    masterClientInfo.cacheFilePath = NULL;
+    masterClientInfo.signalingClientCreationMaxRetryAttempts = 0;
+    STRCPY(masterClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+
+    ChannelInfo masterChannelInfo;
+    MEMSET(&masterChannelInfo, 0x00, SIZEOF(ChannelInfo));
+    masterChannelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    masterChannelInfo.pChannelName = mChannelName;
+    masterChannelInfo.pKmsKeyId = NULL;
+    masterChannelInfo.tagCount = 0;
+    masterChannelInfo.pTags = NULL;
+    masterChannelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+    masterChannelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+    masterChannelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
+    masterChannelInfo.retry = TRUE;
+    masterChannelInfo.reconnect = TRUE;
+    masterChannelInfo.pCertPath = mCaCertPath;
+    masterChannelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+
+    SIGNALING_CLIENT_HANDLE masterHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
+    EXPECT_EQ(STATUS_SUCCESS,
+              createSignalingClientSync(&masterClientInfo, &masterChannelInfo, &masterCallbacks,
+                                        (PAwsCredentialProvider) mTestCredentialProvider, &masterHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientFetchSync(masterHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(masterHandle));
+
+    // --- Set up viewer ---
+    SignalingClientCallbacks viewerCallbacks;
+    viewerCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+    viewerCallbacks.customData = 0;
+    viewerCallbacks.messageReceivedFn = NULL;
+    viewerCallbacks.errorReportFn = NULL;
+    viewerCallbacks.stateChangeFn = NULL;
+    viewerCallbacks.getCurrentTimeFn = NULL;
+
+    SignalingClientInfo viewerClientInfo;
+    MEMSET(&viewerClientInfo, 0x00, SIZEOF(SignalingClientInfo));
+    viewerClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    viewerClientInfo.loggingLevel = LOG_LEVEL_WARN;
+    viewerClientInfo.cacheFilePath = NULL;
+    viewerClientInfo.signalingClientCreationMaxRetryAttempts = 0;
+    STRCPY(viewerClientInfo.clientId, TEST_SIGNALING_VIEWER_CLIENT_ID);
+
+    ChannelInfo viewerChannelInfo;
+    MEMSET(&viewerChannelInfo, 0x00, SIZEOF(ChannelInfo));
+    viewerChannelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    viewerChannelInfo.pChannelName = mChannelName;
+    viewerChannelInfo.pKmsKeyId = NULL;
+    viewerChannelInfo.tagCount = 0;
+    viewerChannelInfo.pTags = NULL;
+    viewerChannelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+    viewerChannelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_VIEWER;
+    viewerChannelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
+    viewerChannelInfo.retry = TRUE;
+    viewerChannelInfo.reconnect = TRUE;
+    viewerChannelInfo.pCertPath = mCaCertPath;
+    viewerChannelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+
+    SIGNALING_CLIENT_HANDLE viewerHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
+    EXPECT_EQ(STATUS_SUCCESS,
+              createSignalingClientSync(&viewerClientInfo, &viewerChannelInfo, &viewerCallbacks,
+                                        (PAwsCredentialProvider) mTestCredentialProvider, &viewerHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientFetchSync(viewerHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(viewerHandle));
+
+    // Let connections stabilize
+    THREAD_SLEEP(1 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    // --- Send a large payload from viewer to master ---
+    // Use a payload size that exercises the buffer well (10000 bytes with known pattern)
+    const UINT32 testPayloadSize = 10000;
+    SignalingMessage message;
+    MEMSET(&message, 0x00, SIZEOF(SignalingMessage));
+    message.version = SIGNALING_MESSAGE_CURRENT_VERSION;
+    message.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
+    STRCPY(message.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+
+    // Fill with a recognizable pattern: repeating "ABCDEFGH" so we can detect truncation/corruption
+    for (UINT32 i = 0; i < testPayloadSize; i++) {
+        message.payload[i] = 'A' + (i % 8);
+    }
+    message.payload[testPayloadSize] = '\0';
+    message.payloadLen = testPayloadSize;
+
+    // Also test with max-length correlationId and clientId to account for envelope overhead
+    MEMSET(message.correlationId, 'C', MAX_CORRELATION_ID_LEN);
+    message.correlationId[MAX_CORRELATION_ID_LEN] = '\0';
+
+    // Reset receive state
+    gReceivedPayload.lock = MUTEX_CREATE(TRUE);
+    ATOMIC_STORE_BOOL(&gReceivedPayload.received, FALSE);
+    gReceivedPayload.payloadLen = 0;
+
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(viewerHandle, &message));
+
+    // Wait for the master to receive the message (up to 5 seconds)
+    UINT64 timeout = 5 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    UINT64 elapsed = 0;
+    UINT64 sleepInterval = 100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    while (!ATOMIC_LOAD_BOOL(&gReceivedPayload.received) && elapsed < timeout) {
+        THREAD_SLEEP(sleepInterval);
+        elapsed += sleepInterval;
+    }
+
+    // --- Verify no truncation ---
+    ASSERT_TRUE(ATOMIC_LOAD_BOOL(&gReceivedPayload.received)) << "Master did not receive the message within 5 seconds";
+
+    MUTEX_LOCK(gReceivedPayload.lock);
+    UINT32 receivedLen = gReceivedPayload.payloadLen;
+    EXPECT_EQ(testPayloadSize, receivedLen)
+        << "Payload was truncated! Expected " << testPayloadSize << " bytes, got " << receivedLen;
+
+    // Verify content integrity byte-by-byte
+    BOOL contentMatch = TRUE;
+    UINT32 mismatchPos = 0;
+    for (UINT32 i = 0; i < testPayloadSize && i < receivedLen; i++) {
+        if (gReceivedPayload.payload[i] != ('A' + (i % 8))) {
+            contentMatch = FALSE;
+            mismatchPos = i;
+            break;
+        }
+    }
+    EXPECT_TRUE(contentMatch) << "Payload content mismatch at byte " << mismatchPos
+                              << ": expected '" << (char)('A' + (mismatchPos % 8))
+                              << "', got '" << gReceivedPayload.payload[mismatchPos] << "'";
+    MUTEX_UNLOCK(gReceivedPayload.lock);
+
+    printf("\n[E2E RESULT] Sent %u bytes, received %u bytes. %s\n\n",
+           testPayloadSize, receivedLen,
+           (testPayloadSize == receivedLen && contentMatch) ? "NO TRUNCATION" : "TRUNCATION DETECTED");
+
+    // Cleanup
+    MUTEX_FREE(gReceivedPayload.lock);
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(masterHandle), 0);
+    freeSignalingClient(&viewerHandle);
+    freeSignalingClient(&masterHandle);
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+}
+
+// Integration test that probes the KVS signaling service to find the maximum
+// accepted payload size. This sends increasingly larger messages via binary search
+// to discover the service-side limit. Requires valid AWS credentials.
+//
+// Run with: --gtest_filter="SignalingApiTest.probeMaxSignalingMessageSize"
+// Set env: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION
+TEST_F(SignalingApiTest, probeMaxSignalingMessageSize)
+{
+    if (!mAccessKeyIdSet) {
+        GTEST_SKIP() << "Skipping: AWS credentials not set";
+    }
+
+    initializeSignalingClient();
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
+
+    SignalingMessage signalingMessage;
+    MEMSET(&signalingMessage, 0x00, SIZEOF(SignalingMessage));
+    signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
+    signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
+    // Use max-length peerClientId and correlationId to account for worst-case envelope
+    MEMSET(signalingMessage.peerClientId, 'P', MAX_SIGNALING_CLIENT_ID_LEN);
+    signalingMessage.peerClientId[MAX_SIGNALING_CLIENT_ID_LEN] = '\0';
+    MEMSET(signalingMessage.correlationId, 'C', MAX_CORRELATION_ID_LEN);
+    signalingMessage.correlationId[MAX_CORRELATION_ID_LEN] = '\0';
+
+    // Binary search between low (known good) and high (known bad)
+    UINT32 low = 100;
+    UINT32 high = MAX_SIGNALING_MESSAGE_LEN;
+    UINT32 mid;
+    UINT32 maxAccepted = 0;
+    STATUS status;
+
+    // First, verify baseline works
+    MEMSET(signalingMessage.payload, 'A', low);
+    signalingMessage.payload[low] = '\0';
+    signalingMessage.payloadLen = low;
+    status = signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage);
+    ASSERT_EQ(STATUS_SUCCESS, status) << "Baseline send of " << low << " bytes failed";
+
+    // Find the upper bound where sends start failing
+    // Start by checking if MAX_SIGNALING_MESSAGE_LEN works
+    UINT32 testSize = MAX_SIGNALING_MESSAGE_LEN > MAX_SESSION_DESCRIPTION_INIT_SDP_LEN
+                          ? MAX_SESSION_DESCRIPTION_INIT_SDP_LEN
+                          : MAX_SIGNALING_MESSAGE_LEN;
+
+    MEMSET(signalingMessage.payload, 'A', testSize);
+    signalingMessage.payload[testSize] = '\0';
+    signalingMessage.payloadLen = testSize;
+    status = signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage);
+    if (status == STATUS_SUCCESS) {
+        // Everything up to the SDK max works
+        printf("\n[PROBE] Service accepts payload of %u bytes (SDK maximum). "
+               "Service limit is >= SDK limit.\n",
+               testSize);
+        maxAccepted = testSize;
+    } else {
+        // Binary search for the actual limit
+        high = testSize;
+        printf("\n[PROBE] Service rejected payload of %u bytes. Binary searching...\n", high);
+
+        while (low + 1 < high) {
+            mid = (low + high) / 2;
+
+            MEMSET(signalingMessage.payload, 'A', mid);
+            signalingMessage.payload[mid] = '\0';
+            signalingMessage.payloadLen = mid;
+            status = signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage);
+
+            if (status == STATUS_SUCCESS) {
+                low = mid;
+                printf("[PROBE]   %u bytes: ACCEPTED\n", mid);
+            } else {
+                high = mid;
+                printf("[PROBE]   %u bytes: REJECTED (status: 0x%08x)\n", mid, status);
+            }
+
+            // Small delay to avoid throttling
+            THREAD_SLEEP(200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        }
+        maxAccepted = low;
+    }
+
+    printf("\n[PROBE RESULT] Maximum accepted signaling payload size: %u bytes\n", maxAccepted);
+    printf("[PROBE RESULT] This is the raw payload size BEFORE base64 encoding.\n");
+    printf("[PROBE RESULT] After base64, the on-wire size is approximately: %u bytes\n", maxAccepted * 4 / 3);
+    printf("\n");
+
+    deinitializeSignalingClient();
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
