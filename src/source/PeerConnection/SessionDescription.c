@@ -113,8 +113,13 @@ STATUS deserializeSessionDescriptionInit(PCHAR sessionDescriptionJSON, UINT32 se
                 CHK(FALSE, STATUS_SESSION_DESCRIPTION_INIT_INVALID_TYPE);
             }
         } else if (STRNCMP(SDP_KEY, sessionDescriptionJSON + tokens[i].start, ARRAY_SIZE(SDP_KEY) - 1) == 0) {
-            CHK((tokens[i + 1].end - tokens[i + 1].start) <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN,
-                STATUS_SESSION_DESCRIPTION_INIT_MAX_SDP_LEN_EXCEEDED);
+            UINT32 sdpTokenLen = tokens[i + 1].end - tokens[i + 1].start;
+            if (sdpTokenLen > MAX_SESSION_DESCRIPTION_INIT_SDP_LEN) {
+                DLOGE("Received SDP size (%u bytes) exceeds configured MAX_SESSION_DESCRIPTION_INIT_SDP_LEN (%u bytes). "
+                      "Increase KVS_SIGNALING_MESSAGE_LEN in CMake to accommodate larger SDPs.",
+                      sdpTokenLen, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+                CHK(FALSE, STATUS_SESSION_DESCRIPTION_INIT_MAX_SDP_LEN_EXCEEDED);
+            }
             curr = sessionDescriptionJSON + tokens[i + 1].start;
             tail = sessionDescriptionJSON + tokens[i + 1].end;
             j = 0;
