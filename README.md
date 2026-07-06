@@ -379,6 +379,28 @@ To run:
 Allowed audio-codec: opus (default codec if nothing is specified)
 Allowed video-codec: h264 (default codec if nothing is specified), h265
 
+##### Sample: kvsWebrtcClientMaster4Video1Audio
+This application sends 4 H264 video tracks and 1 Opus audio track over a single PeerConnection using static sample frames. Each video track is a separate RTP transceiver, allowing the viewer to receive 4 independent video streams simultaneously over a single KVS Signaling Channel.
+
+> [!Note]
+> The SDP must accommodate 6 media sections (4 video + 1 audio + 1 data channel when built with `-DENABLE_DATA_CHANNEL=ON`). Configure the build accordingly for larger SDP sizes:
+> ```shell
+> cmake .. -DMAX_SDP_SESSION_MEDIA_COUNT=6 -DKVS_SIGNALING_MESSAGE_LEN=40000
+> ```
+> Without the proper configuration, the SDP offer will be rejected and the connection will not be established.
+
+By default, all 4 tracks send the same frames from `h264SampleFrames/`. To send **unique** frames per track (recommended for testing), generate per-track frame sets using the provided script. It requires GStreamer to be installed.
+```shell
+cd build/samples
+../../scripts/generate_multi_track_frames.sh
+```
+The sample auto-detects the `h264SampleFrames_track0/` through `h264SampleFrames_track3/` directories at runtime and prints a warning with instructions if they are not found.
+
+To run:
+```shell
+./samples/kvsWebrtcClientMaster4Video1Audio <channelName>
+```
+
 #### WebRTC Storage (ingest) samples
 
 ##### Sample: kvsWebrtcStorageAudioVideoMaster and kvsWebrtcStorageVideoOnlyMaster

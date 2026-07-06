@@ -1,0 +1,256 @@
+#include "../common/Samples.h"
+#include "../common/StaticMedia.h"
+
+extern PSampleConfiguration gSampleConfiguration;
+
+#define NUM_VIDEO_TRACKS 4
+
+typedef struct {
+    PRtcRtpTransceiver pVideoRtcRtpTransceivers[NUM_VIDEO_TRACKS];
+} MultiTrackStreamingSession, *PMultiTrackStreamingSession;
+
+static MultiTrackStreamingSession gMultiTrackSessions[DEFAULT_MAX_CONCURRENT_STREAMING_SESSION];
+
+STATUS addFourVideoTransceivers(PSampleConfiguration pSampleConfiguration, PSampleStreamingSession pSampleStreamingSession)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    RtcRtpTransceiverInit videoRtpTransceiverInit;
+    RtcMediaStreamTrack videoTrack;
+    UINT32 i;
+    CHAR trackId[MAX_MEDIA_STREAM_TRACK_ID_LEN + 1];
+    CHAR streamId[MAX_MEDIA_STREAM_TRACK_ID_LEN + 1];
+
+    CHK(pSampleConfiguration != NULL && pSampleStreamingSession != NULL, STATUS_NULL_ARG);
+
+    UINT32 sessionIndex = pSampleConfiguration->streamingSessionCount;
+    CHK(sessionIndex < DEFAULT_MAX_CONCURRENT_STREAMING_SESSION, STATUS_INVALID_OPERATION);
+
+    for (i = 0; i < NUM_VIDEO_TRACKS; i++) {
+        MEMSET(&videoTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+        videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        videoTrack.codec = pSampleConfiguration->videoCodec;
+        videoRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+
+        SNPRINTF(streamId, MAX_MEDIA_STREAM_TRACK_ID_LEN, "myKvsVideoStream%u", i);
+        SNPRINTF(trackId, MAX_MEDIA_STREAM_TRACK_ID_LEN, "myVideoTrack%u", i);
+        STRCPY(videoTrack.streamId, streamId);
+        STRCPY(videoTrack.trackId, trackId);
+
+        CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &videoTrack, &videoRtpTransceiverInit,
+                                  &gMultiTrackSessions[sessionIndex].pVideoRtcRtpTransceivers[i]));
+
+        CHK_STATUS(configureTransceiverRollingBuffer(gMultiTrackSessions[sessionIndex].pVideoRtcRtpTransceivers[i], &videoTrack,
+                                                     pSampleConfiguration->videoRollingBufferDurationSec,
+                                                     pSampleConfiguration->videoRollingBufferBitratebps));
+
+        CHK_STATUS(transceiverOnBandwidthEstimation(gMultiTrackSessions[sessionIndex].pVideoRtcRtpTransceivers[i],
+                                                    (UINT64) pSampleStreamingSession, sampleBandwidthEstimationHandler));
+    }
+
+    pSampleStreamingSession->pVideoRtcRtpTransceiver = gMultiTrackSessions[sessionIndex].pVideoRtcRtpTransceivers[0];
+
+    RtcRtpTransceiverInit audioRtpTransceiverInit;
+    RtcMediaStreamTrack audioTrack;
+    MEMSET(&audioTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+    audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+    audioTrack.codec = pSampleConfiguration->audioCodec;
+    audioRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+    STRCPY(audioTrack.streamId, "myKvsAudioStream");
+    STRCPY(audioTrack.trackId, "myAudioTrack");
+
+    CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &audioTrack, &audioRtpTransceiverInit,
+                              &pSampleStreamingSession->pAudioRtcRtpTransceiver));
+
+    CHK_STATUS(configureTransceiverRollingBuffer(pSampleStreamingSession->pAudioRtcRtpTransceiver, &audioTrack,
+                                                 pSampleConfiguration->audioRollingBufferDurationSec,
+                                                 pSampleConfiguration->audioRollingBufferBitratebps));
+
+    CHK_STATUS(transceiverOnBandwidthEstimation(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession,
+                                                sampleBandwidthEstimationHandler));
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+    LEAVES();
+    return retStatus;
+}
+
+PVOID sendFourVideoPacketsFromDisk(PVOID args)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
+    Frame frame[NUM_VIDEO_TRACKS];
+    UINT32 fileIndex[NUM_VIDEO_TRACKS];
+    UINT32 frameSize;
+    PBYTE pFrameBuffers[NUM_VIDEO_TRACKS];
+    UINT32 frameBufferSizes[NUM_VIDEO_TRACKS];
+    CHAR filePath[MAX_PATH_LEN + 1];
+    STATUS status;
+    UINT32 i, trackIdx;
+    UINT64 startTime, lastFrameTime, elapsed;
+    BOOL usePerTrackDirs = FALSE;
+
+    MEMSET(fileIndex, 0x00, SIZEOF(fileIndex));
+    MEMSET(pFrameBuffers, 0x00, SIZEOF(pFrameBuffers));
+    MEMSET(frameBufferSizes, 0x00, SIZEOF(frameBufferSizes));
+    MEMSET(frame, 0x00, SIZEOF(frame));
+    CHK_ERR(pSampleConfiguration != NULL, STATUS_NULL_ARG, "[KVS Master] Streaming session is NULL");
+
+    {
+        UINT32 dummySize = 0;
+        STATUS checkStatus = readFrameFromDisk(NULL, &dummySize, "./h264SampleFrames_track0/frame-0001.h264");
+        usePerTrackDirs = (checkStatus == STATUS_SUCCESS);
+    }
+
+    if (usePerTrackDirs) {
+        DLOGI("[KVS Master] Using per-track frame directories (h264SampleFrames_track0..3)");
+    } else {
+        DLOGW("[KVS Master] Per-track frame directories not found. Sending the same frames on all 4 tracks.");
+        DLOGW("[KVS Master] To generate unique frames per track, run from the build/samples/ directory:");
+        DLOGW("[KVS Master]   ../../scripts/generate_multi_track_frames.sh");
+    }
+
+    startTime = GETTIME();
+    lastFrameTime = startTime;
+
+    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
+        for (trackIdx = 0; trackIdx < NUM_VIDEO_TRACKS; trackIdx++) {
+            fileIndex[trackIdx] = fileIndex[trackIdx] % NUMBER_OF_H264_FRAME_FILES + 1;
+            if (usePerTrackDirs) {
+                SNPRINTF(filePath, MAX_PATH_LEN, "./h264SampleFrames_track%u/frame-%04d.h264", trackIdx, fileIndex[trackIdx]);
+            } else {
+                SNPRINTF(filePath, MAX_PATH_LEN, "./h264SampleFrames/frame-%04d.h264", fileIndex[trackIdx]);
+            }
+
+            frameSize = 0;
+            CHK_STATUS(readFrameFromDisk(NULL, &frameSize, filePath));
+
+            if (frameSize > frameBufferSizes[trackIdx]) {
+                pFrameBuffers[trackIdx] = (PBYTE) MEMREALLOC(pFrameBuffers[trackIdx], frameSize);
+                CHK_ERR(pFrameBuffers[trackIdx] != NULL, STATUS_NOT_ENOUGH_MEMORY,
+                        "[KVS Master] Failed to allocate video frame buffer for track %u", trackIdx);
+                frameBufferSizes[trackIdx] = frameSize;
+            }
+
+            frame[trackIdx].frameData = pFrameBuffers[trackIdx];
+            frame[trackIdx].size = frameSize;
+            CHK_STATUS(readFrameFromDisk(frame[trackIdx].frameData, &frameSize, filePath));
+            frame[trackIdx].presentationTs += SAMPLE_VIDEO_FRAME_DURATION;
+        }
+
+        MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
+        for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+            for (trackIdx = 0; trackIdx < NUM_VIDEO_TRACKS; trackIdx++) {
+                status = writeFrame(gMultiTrackSessions[i].pVideoRtcRtpTransceivers[trackIdx], &frame[trackIdx]);
+                if (trackIdx == 0 && pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame && status == STATUS_SUCCESS) {
+                    PROFILE_WITH_START_TIME(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, "Time to first frame");
+                    pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame = FALSE;
+                }
+                if (status == STATUS_SRTP_NOT_READY_YET) {
+                    fileIndex[trackIdx] = 0;
+                } else if (status != STATUS_SUCCESS) {
+                    DLOGV("writeFrame() for track %u failed with 0x%08x", trackIdx, status);
+                }
+            }
+        }
+        MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
+
+        elapsed = lastFrameTime - startTime;
+        THREAD_SLEEP(SAMPLE_VIDEO_FRAME_DURATION - elapsed % SAMPLE_VIDEO_FRAME_DURATION);
+        lastFrameTime = GETTIME();
+    }
+
+CleanUp:
+    for (trackIdx = 0; trackIdx < NUM_VIDEO_TRACKS; trackIdx++) {
+        SAFE_MEMFREE(pFrameBuffers[trackIdx]);
+    }
+    DLOGI("Closing video thread");
+    CHK_LOG_ERR(retStatus);
+    return (PVOID) (ULONG_PTR) retStatus;
+}
+
+INT32 main(INT32 argc, CHAR* argv[])
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleConfiguration pSampleConfiguration = NULL;
+    PCHAR pChannelName;
+    SignalingClientMetrics signalingClientMetrics;
+    signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
+
+    SET_INSTRUMENTED_ALLOCATORS();
+    UINT32 logLevel = setLogLevel();
+
+#ifndef _WIN32
+    signal(SIGINT, sigintHandler);
+#endif
+
+#ifdef IOT_CORE_ENABLE_CREDENTIALS
+    CHK_ERR((pChannelName = argc > 1 ? argv[1] : GETENV(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION,
+            "AWS_IOT_CORE_THING_NAME must be set");
+#else
+    pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
+#endif
+
+    CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
+
+    CHK_STATUS(useStaticFramePresets(pSampleConfiguration, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
+    CHK_STATUS(useStaticFramePresets(pSampleConfiguration, RTC_CODEC_OPUS));
+    pSampleConfiguration->videoSource = sendFourVideoPacketsFromDisk;
+
+#ifdef ENABLE_DATA_CHANNEL
+    pSampleConfiguration->onDataChannel = onDataChannel;
+#endif
+    pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
+    pSampleConfiguration->addTransceiversCallback = addFourVideoTransceivers;
+    DLOGI("[KVS Master] Finished setting up four video track handlers");
+
+    CHK_STATUS(initKvsWebRtc());
+    DLOGI("[KVS Master] KVS WebRTC initialization completed successfully");
+
+    PROFILE_CALL_WITH_START_END_T_OBJ(
+        retStatus = initSignaling(pSampleConfiguration, SAMPLE_MASTER_CLIENT_ID), pSampleConfiguration->signalingClientMetrics.signalingStartTime,
+        pSampleConfiguration->signalingClientMetrics.signalingEndTime, pSampleConfiguration->signalingClientMetrics.signalingCallTime,
+        "Initialize signaling client and connect to the signaling channel");
+
+    DLOGI("[KVS Master] Channel %s set up done ", pChannelName);
+
+    CHK_STATUS(sessionCleanupWait(pSampleConfiguration));
+    DLOGI("[KVS Master] Streaming session terminated");
+
+CleanUp:
+
+    if (retStatus != STATUS_SUCCESS) {
+        DLOGE("[KVS Master] Terminated with status code 0x%08x", retStatus);
+    }
+
+    DLOGI("[KVS Master] Cleaning up....");
+    if (pSampleConfiguration != NULL) {
+        ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, TRUE);
+
+        if (pSampleConfiguration->mediaSenderTid != INVALID_TID_VALUE) {
+            THREAD_JOIN(pSampleConfiguration->mediaSenderTid, NULL);
+        }
+
+        retStatus = signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &signalingClientMetrics);
+        if (retStatus == STATUS_SUCCESS) {
+            logSignalingClientStats(&signalingClientMetrics);
+        } else {
+            DLOGE("[KVS Master] signalingClientGetMetrics() operation returned status code: 0x%08x", retStatus);
+        }
+        retStatus = freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
+        if (retStatus != STATUS_SUCCESS) {
+            DLOGE("[KVS Master] freeSignalingClient(): operation returned status code: 0x%08x", retStatus);
+        }
+
+        retStatus = freeSampleConfiguration(&pSampleConfiguration);
+        if (retStatus != STATUS_SUCCESS) {
+            DLOGE("[KVS Master] freeSampleConfiguration(): operation returned status code: 0x%08x", retStatus);
+        }
+    }
+    DLOGI("[KVS Master] Cleanup done");
+    CHK_LOG_ERR(retStatus);
+
+    RESET_INSTRUMENTED_ALLOCATORS();
+
+    return STATUS_FAILED(retStatus) ? EXIT_FAILURE : EXIT_SUCCESS;
+}
