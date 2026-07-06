@@ -264,7 +264,15 @@ STATUS depayH264FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNal
         case FU_B_INDICATOR:
             // FU-B indicator
             CHK(packetLength > FU_B_HEADER_SIZE, STATUS_RTP_INPUT_PACKET_TOO_SMALL);
-            naluLength = packetLength - FU_B_HEADER_SIZE + 1;
+            naluRefIdc = *pCurPtr & 0x60;
+            pCurPtr++;
+            naluType = *pCurPtr & 0x1f;
+            isStartingPacket = (*pCurPtr & (1 << 7)) != 0;
+            if (isStartingPacket) {
+                naluLength = packetLength - FU_B_HEADER_SIZE + 1;
+            } else {
+                naluLength = packetLength - FU_B_HEADER_SIZE;
+            }
             break;
         case STAP_A_INDICATOR:
             pCurPtr += STAP_A_HEADER_SIZE;
