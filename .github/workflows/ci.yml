@@ -86,6 +86,8 @@ jobs:
             cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DPARALLEL_BUILD=ON"
           - name: Shared MbedTLS libsrtp3
             cmake_flags: "-DBUILD_TEST=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DUSE_LIBSRTP3=ON -DPARALLEL_BUILD=ON"
+          - name: Shared OpenSSL3 from source
+            cmake_flags: "-DBUILD_TEST=ON -DUSE_OPENSSL3=ON -DPARALLEL_BUILD=ON"
           - name: Shared OpenSSL System Deps
             # Tests disabled (due to dependency issues): 
             # - GCC: Homebrew's libgtest is built with
@@ -295,6 +297,8 @@ jobs:
             cmake-args: "-DUSE_OPENSSL=ON -DUSE_MBEDTLS=OFF"
           - name: lws
             cmake-args: "-DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
+          - name: openssl3
+            cmake-args: "-DUSE_OPENSSL3=ON -DUSE_MBEDTLS=OFF"
           - name: system-deps-openssl
             # build libwebsockets from source as apt versions are not compatible
             cmake-args: "-DBUILD_DEPENDENCIES=OFF -DBUILD_WEBSOCKETS=ON -DUSE_OPENSSL=ON -DUSE_MBEDTLS=OFF"
@@ -496,6 +500,96 @@ jobs:
         working-directory: ./build
         run: |
           ./tst/webrtc_client_test --gtest_filter="*MetricsApiTest*"
+
+  sdp-buffer-size-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2.2.0
+        with:
+          cmake-version: '3.x'
+
+      - name: Reject below minimum (KVS_SIGNALING_MESSAGE_LEN=5000)
+        run: |
+          mkdir build-below-min && cd build-below-min
+          set +e
+          output=$(cmake .. -DKVS_SIGNALING_MESSAGE_LEN=5000 -DBUILD_SAMPLE=OFF -DBUILD_TEST=OFF 2>&1)
+          exit_code=$?
+          set -e
+          echo "$output"
+          if [ $exit_code -eq 0 ]; then
+            echo "ERROR: CMake should have failed for KVS_SIGNALING_MESSAGE_LEN=5000"
+            exit 1
+          fi
+          echo "$output" | grep -q "must be at least 10000 bytes"
+
+      - name: Reject above maximum (KVS_SIGNALING_MESSAGE_LEN=50000)
+        run: |
+          mkdir build-above-max && cd build-above-max
+          set +e
+          output=$(cmake .. -DKVS_SIGNALING_MESSAGE_LEN=50000 -DBUILD_SAMPLE=OFF -DBUILD_TEST=OFF 2>&1)
+          exit_code=$?
+          set -e
+          echo "$output"
+          if [ $exit_code -eq 0 ]; then
+            echo "ERROR: CMake should have failed for KVS_SIGNALING_MESSAGE_LEN=50000"
+            exit 1
+          fi
+          echo "$output" | grep -q "must not exceed 40000 bytes"
+
+      - name: Reject non-numeric (KVS_SIGNALING_MESSAGE_LEN=abc)
+        run: |
+          mkdir build-non-numeric && cd build-non-numeric
+          set +e
+          output=$(cmake .. -DKVS_SIGNALING_MESSAGE_LEN=abc -DBUILD_SAMPLE=OFF -DBUILD_TEST=OFF 2>&1)
+          exit_code=$?
+          set -e
+          echo "$output"
+          if [ $exit_code -eq 0 ]; then
+            echo "ERROR: CMake should have failed for KVS_SIGNALING_MESSAGE_LEN=abc"
+            exit 1
+          fi
+          echo "$output" | grep -q "must be a positive numeric value"
+
+      - name: Reject negative (KVS_SIGNALING_MESSAGE_LEN=-1)
+        run: |
+          mkdir build-negative && cd build-negative
+          set +e
+          output=$(cmake .. -DKVS_SIGNALING_MESSAGE_LEN=-1 -DBUILD_SAMPLE=OFF -DBUILD_TEST=OFF 2>&1)
+          exit_code=$?
+          set -e
+          echo "$output"
+          if [ $exit_code -eq 0 ]; then
+            echo "ERROR: CMake should have failed for KVS_SIGNALING_MESSAGE_LEN=-1"
+            exit 1
+          fi
+          echo "$output" | grep -q "must be a positive numeric value"
+
+      - name: Accept valid values
+        run: |
+          mkdir build-valid && cd build-valid
+          # Test that validation passes (check for status message, not full configure success)
+          output=$(cmake .. -DKVS_SIGNALING_MESSAGE_LEN=10000 -DBUILD_SAMPLE=OFF -DBUILD_TEST=OFF 2>&1 || true)
+          echo "$output"
+          echo "$output" | grep -q "Setting signaling message buffer to: 10000 bytes"
+
+          rm -rf *
+          output=$(cmake .. -DKVS_SIGNALING_MESSAGE_LEN=40000 -DBUILD_SAMPLE=OFF -DBUILD_TEST=OFF 2>&1 || true)
+          echo "$output"
+          echo "$output" | grep -q "Setting signaling message buffer to: 40000 bytes"
+
+          rm -rf *
+          output=$(cmake .. -DBUILD_SAMPLE=OFF -DBUILD_TEST=OFF 2>&1 || true)
+          echo "$output"
+          echo "$output" | grep -q "Signaling message buffer using default"
 
   stack-size-check:
     runs-on: ubuntu-latest

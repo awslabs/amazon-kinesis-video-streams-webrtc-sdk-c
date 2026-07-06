@@ -299,6 +299,7 @@ extern "C" {
 #define STATUS_STUN_INVALID_ICE_CONTROL_ATTRIBUTE_LENGTH           STATUS_STUN_BASE + 0x00000017
 #define STATUS_STUN_INVALID_CHANNEL_NUMBER_ATTRIBUTE_LENGTH        STATUS_STUN_BASE + 0x00000018
 #define STATUS_STUN_INVALID_CHANGE_REQUEST_ATTRIBUTE_LENGTH        STATUS_STUN_BASE + 0x00000019
+#define STATUS_STUN_ATTRIBUTE_LENGTH_EXCEEDED_BUFFER_SIZE          STATUS_STUN_BASE + 0x0000001A
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -645,9 +646,18 @@ extern "C" {
 #define MAX_MESSAGE_DESCRIPTION_LEN 1024
 
 /**
- * Maximum length of SDP member in RtcSessionDescriptionInit
+ * Maximum length of SDP member in RtcSessionDescriptionInit.
+ *
+ * When KVS_SIGNALING_MESSAGE_LEN is set via CMake, it specifies the maximum signaling
+ * message size (on-wire). The decoded SDP buffer is derived from it:
+ * (KVS_SIGNALING_MESSAGE_LEN - 1024) * 3/4, accounting for base64 overhead and JSON
+ * envelope. When not set, defaults preserve backward compatibility (25000/18750).
  */
+#ifdef KVS_SIGNALING_MESSAGE_LEN
+#define MAX_SESSION_DESCRIPTION_INIT_SDP_LEN ((KVS_SIGNALING_MESSAGE_LEN - 1024) * 3 / 4)
+#else
 #define MAX_SESSION_DESCRIPTION_INIT_SDP_LEN 25000
+#endif
 
 /**
  * Maximum length of a MediaStream's ID
@@ -680,9 +690,18 @@ extern "C" {
 #define MAX_DATA_CHANNEL_PROTOCOL_LEN 255
 
 /**
- * Maximum length of signaling message
+ * Maximum length of signaling message.
+ *
+ * When KVS_SIGNALING_MESSAGE_LEN is set, this equals KVS_SIGNALING_MESSAGE_LEN directly
+ * (the user-configured value represents this on-wire signaling message size).
+ * When not set, preserves the legacy default of 18750 for backward compatibility.
+ * Do not override independently; set KVS_SIGNALING_MESSAGE_LEN instead.
  */
+#ifdef KVS_SIGNALING_MESSAGE_LEN
+#define MAX_SIGNALING_MESSAGE_LEN KVS_SIGNALING_MESSAGE_LEN
+#else
 #define MAX_SIGNALING_MESSAGE_LEN 18750
+#endif
 /*!@} */
 
 /////////////////////////////////////////////////////

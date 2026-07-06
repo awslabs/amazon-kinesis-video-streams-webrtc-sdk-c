@@ -128,6 +128,104 @@ TEST_F(StunApiTest, deserializeValidityTests)
     EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
 }
 
+TEST_F(StunApiTest, deserializeAttributeLengthOverflowNoOverread)
+{
+    // 20-byte STUN header + one 4-byte attribute header = 24 bytes total.
+    //   bytes 0-1 : message type (BINDING_REQUEST 0x0001)
+    //   bytes 2-3 : message length = 4 (exactly the one attribute header we include, so the
+    //               "bufferSize >= messageLength + STUN_HEADER_LEN" header check passes: 24 >= 4 + 20,
+    //               and the attribute walk is entered)
+    //   bytes 4-7 : magic cookie 0x2112A442
+    //   bytes 8-19: transaction id
+    //   bytes 20-21: attribute type = DATA (0x0013)
+    //   bytes 22-23: attribute length = 0xFFCC (65484) -- lies; no value bytes actually follow
+    const UINT32 packetSize = 24;
+    PBYTE pHeapPacket = (PBYTE) MEMALLOC(packetSize);
+    ASSERT_TRUE(pHeapPacket != NULL);
+
+    BYTE stunDataOverflow[packetSize] = {0x00, 0x01, 0x00, 0x04, 0x21, 0x12, 0xa4, 0x42, 0x00, 0x11, 0x22, 0x33,
+                                         0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0x00, 0x13, 0xff, 0xcc};
+    MEMCPY(pHeapPacket, stunDataOverflow, packetSize);
+
+    PStunPacket pStunPacket = NULL;
+
+    // The sizing pass rejects the attribute because header + padded value extends past the
+    // bytes actually received (the recv buffer).
+    EXPECT_EQ(STATUS_STUN_ATTRIBUTE_LENGTH_EXCEEDED_BUFFER_SIZE,
+              deserializeStunPacket(pHeapPacket, packetSize, NULL, 0, &pStunPacket));
+    EXPECT_TRUE(pStunPacket == NULL);
+
+    SAFE_MEMFREE(pHeapPacket);
+}
+
+TEST_F(StunApiTest, deserializeTrailingDataAttributeOverread)
+{
+    const UINT16 fillerValueLen = 200; // <= STUN_MAX_USERNAME_LEN (512), so the USERNAME filler is valid
+    const UINT16 dataAttrLen = 65532;  // ROUND_UP(65532, 4) == 65532, the largest non-wrapping value
+
+    // Layout: STUN header | USERNAME header | USERNAME value | DATA header   (DATA value is absent)
+    const UINT16 messageLength = STUN_ATTRIBUTE_HEADER_LEN + fillerValueLen + STUN_ATTRIBUTE_HEADER_LEN;
+    const UINT32 packetSize = STUN_HEADER_LEN + messageLength;
+    const UINT32 dataHeaderOffset = STUN_HEADER_LEN + STUN_ATTRIBUTE_HEADER_LEN + fillerValueLen;
+
+    PBYTE pHeapPacket = (PBYTE) MEMCALLOC(1, packetSize);
+    ASSERT_TRUE(pHeapPacket != NULL);
+
+    // STUN header
+    putInt16((PINT16) (pHeapPacket + 0), STUN_PACKET_TYPE_BINDING_REQUEST);
+    putInt16((PINT16) (pHeapPacket + STUN_HEADER_TYPE_LEN), messageLength);
+    putInt32((PINT32) (pHeapPacket + STUN_HEADER_TYPE_LEN + STUN_HEADER_DATA_LEN), STUN_HEADER_MAGIC_COOKIE);
+    // transaction id (bytes 8-19) left as zeroes
+
+    // USERNAME filler header at offset 20 (value bytes 24..223 are present and zeroed)
+    putInt16((PINT16) (pHeapPacket + STUN_HEADER_LEN), STUN_ATTRIBUTE_TYPE_USERNAME);
+    putInt16((PINT16) (pHeapPacket + STUN_HEADER_LEN + STUN_ATTRIBUTE_HEADER_TYPE_LEN), fillerValueLen);
+
+    // Trailing DATA attribute header at the very end of the datagram; its value is NOT present
+    putInt16((PINT16) (pHeapPacket + dataHeaderOffset), STUN_ATTRIBUTE_TYPE_DATA);
+    putInt16((PINT16) (pHeapPacket + dataHeaderOffset + STUN_ATTRIBUTE_HEADER_TYPE_LEN), dataAttrLen);
+
+    PStunPacket pStunPacket = NULL;
+
+    // The sizing pass rejects the DATA attribute because its header + padded value
+    // extends past the received buffer -- and it does so on the second attribute, after the
+    // USERNAME attribute has already validated cleanly.
+    EXPECT_EQ(STATUS_STUN_ATTRIBUTE_LENGTH_EXCEEDED_BUFFER_SIZE,
+              deserializeStunPacket(pHeapPacket, packetSize, NULL, 0, &pStunPacket));
+    EXPECT_TRUE(pStunPacket == NULL);
+
+    SAFE_MEMFREE(pHeapPacket);
+}
+
+TEST_F(StunApiTest, deserializeAddressAttributeFamilyOverread)
+{
+    // 20-byte STUN header + one 4-byte attribute header = 24 bytes; no value bytes follow.
+    const UINT16 messageLength = STUN_ATTRIBUTE_HEADER_LEN;    // 4 -> header check passes: 24 >= 4 + 20
+    const UINT32 packetSize = STUN_HEADER_LEN + messageLength; // 24
+
+    PBYTE pHeapPacket = (PBYTE) MEMCALLOC(1, packetSize);
+    ASSERT_TRUE(pHeapPacket != NULL);
+
+    // STUN header
+    putInt16((PINT16) (pHeapPacket + 0), STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS);
+    putInt16((PINT16) (pHeapPacket + STUN_HEADER_TYPE_LEN), messageLength);
+    putInt32((PINT32) (pHeapPacket + STUN_HEADER_TYPE_LEN + STUN_HEADER_DATA_LEN), STUN_HEADER_MAGIC_COOKIE);
+    // transaction id (bytes 8-19) left as zeroes
+
+    // Address-type attribute header at offset 20; declared length 0, so no family/port bytes present.
+    putInt16((PINT16) (pHeapPacket + STUN_HEADER_LEN), STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS);
+    putInt16((PINT16) (pHeapPacket + STUN_HEADER_LEN + STUN_ATTRIBUTE_HEADER_TYPE_LEN), 0);
+
+    PStunPacket pStunPacket = NULL;
+
+    // Should rejected because the family bytes fall outside the buffer.
+    EXPECT_EQ(STATUS_STUN_ATTRIBUTE_LENGTH_EXCEEDED_BUFFER_SIZE,
+              deserializeStunPacket(pHeapPacket, packetSize, NULL, 0, &pStunPacket));
+    EXPECT_TRUE(pStunPacket == NULL);
+
+    SAFE_MEMFREE(pHeapPacket);
+}
+
 TEST_F(StunApiTest, packageIpValidityTests)
 {
     KvsIpAddress address;

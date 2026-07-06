@@ -197,11 +197,18 @@ STATUS setRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket pR
     }
 
     if (extension) {
+        // The 4-byte extension header (profile + length) must fit in what remains of the packet
+        // before it is read, otherwise the two getInt16 reads below run past the buffer.
+        CHK(packetLength >= currOffset + 2 * SIZEOF(UINT16), STATUS_RTP_INPUT_PACKET_TOO_SMALL);
         extensionProfile = getInt16(*(PUINT16) (rawPacket + currOffset));
         currOffset += SIZEOF(UINT16);
         extensionLength = getInt16(*(PUINT16) (rawPacket + currOffset)) * 4;
         currOffset += SIZEOF(UINT16);
         extensionPayload = (PBYTE) (rawPacket + currOffset);
+        // The declared extension payload must also fit. Without this the extension would claim more
+        // bytes than are present, and the trailing "packetLength - currOffset" passed as the payload
+        // length below would underflow into a huge UINT32.
+        CHK(packetLength >= currOffset + extensionLength, STATUS_RTP_INPUT_PACKET_TOO_SMALL);
         currOffset += extensionLength;
     }
 

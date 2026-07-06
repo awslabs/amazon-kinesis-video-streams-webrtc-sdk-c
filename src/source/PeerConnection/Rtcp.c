@@ -231,7 +231,11 @@ STATUS parseRtcpTwccPacket(PRtcpPacket pRtcpPacket, PTwccManager pTwccManager)
     chunkOffset = 16;
     packetSeqNum = baseSeqNum;
     packetsRemaining = packetStatusCount;
-    while (packetsRemaining > 0) {
+    // Mirror the bound from the sizing walk above: a malicious feedback packet can declare a large
+    // packetStatusCount while supplying only a few status chunks, leaving packetsRemaining > 0 after
+    // the chunks are exhausted. Without the chunkOffset < payloadLength guard this second walk would
+    // read packet chunks past the end of the payload.
+    while (packetsRemaining > 0 && chunkOffset < pRtcpPacket->payloadLength) {
         packetChunk = getUnalignedInt16BigEndian(pRtcpPacket->payload + chunkOffset);
         statusSymbol = TWCC_RUNLEN_STATUS_SYMBOL(packetChunk);
         if (IS_TWCC_RUNLEN(packetChunk)) {

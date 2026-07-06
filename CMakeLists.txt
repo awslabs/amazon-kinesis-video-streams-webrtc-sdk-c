@@ -5,12 +5,13 @@ include(CheckIncludeFiles)
 include(CheckFunctionExists)
 
 # The version MUST be updated before every release
-project(KinesisVideoWebRTCClient VERSION 1.19.0 LANGUAGES C)
+project(KinesisVideoWebRTCClient VERSION 1.19.1 LANGUAGES C)
 
 # User Flags
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
 option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from source" ON)
 option(USE_OPENSSL "Use openssl as crypto library" ON)
+option(USE_OPENSSL3 "Build/use OpenSSL 3.x (default: 1.1.1x). Auto-detected when using system OpenSSL 3.x." OFF)
 option(USE_MBEDTLS "Use mbedtls as crypto library" OFF)
 option(BUILD_STATIC_LIBS "Build all libraries statically. (This includes third-party libraries.)" OFF)
 
@@ -77,6 +78,25 @@ else()
     set(KVS_DEFAULT_STACK_SIZE ${KVS_STACK_SIZE})
   else()
     message(FATAL_ERROR "KVS_STACK_SIZE must be a numeric value, but got: ${KVS_STACK_SIZE}")
+  endif()
+endif()
+
+if(NOT KVS_SIGNALING_MESSAGE_LEN OR KVS_SIGNALING_MESSAGE_LEN STREQUAL "")
+  message(STATUS "Signaling message buffer using default (MAX_SIGNALING_MESSAGE_LEN = 18750 bytes)")
+else()
+  string(REGEX MATCH "^[0-9]+$" IS_KVS_SIGNALING_MESSAGE_LEN_A_NUMBER "${KVS_SIGNALING_MESSAGE_LEN}")
+  if(IS_KVS_SIGNALING_MESSAGE_LEN_A_NUMBER)
+    if(KVS_SIGNALING_MESSAGE_LEN LESS 10000)
+      message(FATAL_ERROR "KVS_SIGNALING_MESSAGE_LEN must be at least 10000 bytes, but got: ${KVS_SIGNALING_MESSAGE_LEN}")
+    elseif(KVS_SIGNALING_MESSAGE_LEN GREATER 40000)
+      message(FATAL_ERROR "KVS_SIGNALING_MESSAGE_LEN must not exceed 40000 bytes, but got: ${KVS_SIGNALING_MESSAGE_LEN}")
+    else()
+      math(EXPR SDP_DECODED_SIZE "(${KVS_SIGNALING_MESSAGE_LEN} - 1024) * 3 / 4")
+      message(STATUS "Setting signaling message buffer to: ${KVS_SIGNALING_MESSAGE_LEN} bytes (decoded SDP limit: ${SDP_DECODED_SIZE} bytes)")
+      add_definitions(-DKVS_SIGNALING_MESSAGE_LEN=${KVS_SIGNALING_MESSAGE_LEN})
+    endif()
+  else()
+    message(FATAL_ERROR "KVS_SIGNALING_MESSAGE_LEN must be a positive numeric value, but got: ${KVS_SIGNALING_MESSAGE_LEN}")
   endif()
 endif()
 
@@ -215,7 +235,8 @@ if(BUILD_DEPENDENCIES OR BUILD_WEBSOCKETS OR BUILD_SRTP OR BUILD_USRSCTP)
       set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
                      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                      -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM}
-                     -DOPENSSL_EXTRA=${OPENSSL_EXTRA})
+                     -DOPENSSL_EXTRA=${OPENSSL_EXTRA}
+                     -DUSE_OPENSSL3=${USE_OPENSSL3})
       build_dependency(openssl ${BUILD_ARGS})
       set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
     elseif(USE_MBEDTLS)
@@ -225,12 +246,34 @@ if(BUILD_DEPENDENCIES OR BUILD_WEBSOCKETS OR BUILD_SRTP OR BUILD_USRSCTP)
                       "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
         build_dependency(mbedtls ${BUILD_ARGS})
     endif()
+
+    if(BUILD_TEST)
+      build_dependency(gtest)
+
+      if(ENABLE_AWS_SDK_IN_TESTS)
+        build_dependency(awscpp)
+      endif()
+
+    endif()
+
+    if(BUILD_BENCHMARK)
+      build_dependency(benchmark)
+    endif()
+
+    if (LINK_PROFILER)
+      build_dependency(gperftools)
+    endif()
   endif()
 
   # Find SSL libraries (needed by libwebsockets build args)
   if (USE_OPENSSL)
     find_package(OpenSSL REQUIRED)
     set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
+
+    # Ensure downstream dependency builds (autotools and cmake) can find OpenSSL.
+    # OpenSSL 3.x installs to lib64/ on some platforms; we add both lib/ and lib64/
+    # pkgconfig paths so pkg-config based builds (e.g. libsrtp) work correctly.
+    set(ENV{PKG_CONFIG_PATH} "${OPEN_SRC_INSTALL_PREFIX}/lib64/pkgconfig:${OPEN_SRC_INSTALL_PREFIX}/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
   else()
     find_package(MbedTLS REQUIRED)
     set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${MBEDTLS_INCLUDE_DIRS})
@@ -292,23 +335,6 @@ if(BUILD_DEPENDENCIES OR BUILD_WEBSOCKETS OR BUILD_SRTP OR BUILD_USRSCTP)
         -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
     build_dependency(usrsctp ${BUILD_ARGS})
   endif()
-
-  if(BUILD_TEST)
-    build_dependency(gtest)
-
-    if(ENABLE_AWS_SDK_IN_TESTS)
-      build_dependency(awscpp)
-    endif()
-
-  endif()
-
-  if(BUILD_BENCHMARK)
-    build_dependency(benchmark)
-  endif()
-
-  if (LINK_PROFILER)
-    build_dependency(gperftools)
-  endif()
   message(STATUS "Finished building dependencies.")
 endif()
 
@@ -332,6 +358,14 @@ find_package(PkgConfig REQUIRED)
 if (USE_OPENSSL)
   find_package(OpenSSL REQUIRED)
   set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
+
+  # Auto-detect OpenSSL 3.x from system when not already set
+  if(NOT USE_OPENSSL3)
+    if(OPENSSL_VERSION VERSION_GREATER_EQUAL "3.0.0")
+      message(STATUS "Auto-detected system OpenSSL ${OPENSSL_VERSION} (>= 3.0). Enabling USE_OPENSSL3.")
+      set(USE_OPENSSL3 ON)
+    endif()
+  endif()
 else()
   find_package(MbedTLS REQUIRED)
   set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${MBEDTLS_INCLUDE_DIRS})
@@ -575,6 +609,7 @@ if(BUILD_TEST)
     find_package(ZLIB REQUIRED)
   endif()
   add_subdirectory(tst)
+
 endif()
 
 if(BUILD_BENCHMARK)
@@ -585,4 +620,3 @@ get_directory_property(clean_files ADDITIONAL_CLEAN_FILES)
 list(APPEND clean_files "${OPEN_SRC_INSTALL_PREFIX}")
 list(APPEND clean_files "${CMAKE_CURRENT_SOURCE_DIR}/build")
 set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES "${clean_files}")
-

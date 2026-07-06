@@ -25,6 +25,37 @@ TEST_F(RtpFunctionalityTest, packetUnderflow)
     }
 }
 
+TEST_F(RtpFunctionalityTest, extensionHeaderBounds)
+{
+    RtpPacket rtpPacket;
+    MEMSET(&rtpPacket, 0x00, SIZEOF(RtpPacket));
+
+    // Case 1: extension bit set, but the packet is only the 12-byte fixed header -- the 4-byte
+    // extension header itself does not fit. byte[0] = 0x90: version 2, extension bit set, 0 CSRCs.
+    {
+        const UINT32 packetLength = 12;
+        PBYTE pHeapPacket = (PBYTE) MEMCALLOC(1, packetLength);
+        ASSERT_TRUE(pHeapPacket != NULL);
+        pHeapPacket[0] = 0x90;
+        EXPECT_EQ(STATUS_RTP_INPUT_PACKET_TOO_SMALL, setRtpPacketFromBytes(pHeapPacket, packetLength, &rtpPacket));
+        SAFE_MEMFREE(pHeapPacket);
+    }
+
+    // Case 2: extension header present and in-bounds, but it declares more payload than is present.
+    // The declared extension length word is 0x00FF (-> 0x00FF * 4 = 1020 bytes), far beyond the
+    // 4 bytes that actually follow the extension header.
+    {
+        const UINT32 packetLength = 20; // 12-byte header + 4-byte ext header + 4 ext bytes
+        PBYTE pHeapPacket = (PBYTE) MEMCALLOC(1, packetLength);
+        ASSERT_TRUE(pHeapPacket != NULL);
+        pHeapPacket[0] = 0x90;                                 // extension bit set, 0 CSRCs
+        putInt16((PINT16) (pHeapPacket + 12), (INT16) 0xBEDE); // extension profile
+        putInt16((PINT16) (pHeapPacket + 14), (INT16) 0x00FF); // declared length (words) -> 1020 bytes
+        EXPECT_EQ(STATUS_RTP_INPUT_PACKET_TOO_SMALL, setRtpPacketFromBytes(pHeapPacket, packetLength, &rtpPacket));
+        SAFE_MEMFREE(pHeapPacket);
+    }
+}
+
 TEST_F(RtpFunctionalityTest, marshallUnmarshallGettingSameData)
 {
     BYTE payload[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05};
@@ -863,6 +894,95 @@ TEST_F(RtpFunctionalityTest, depayH265FuRejectsTooSmallPacket)
     naluLength = 0;
     EXPECT_EQ(STATUS_RTP_INPUT_PACKET_TOO_SMALL, depayH265FromRtpPayload(fuH265Packet2, SIZEOF(fuH265Packet2), NULL, &naluLength, &isStart));
     EXPECT_EQ(0u, naluLength);
+}
+
+// Test that STAP-A packets with subNaluSize larger than remaining packet data
+// are rejected rather than causing an out-of-bounds read.
+TEST_F(RtpFunctionalityTest, depayH264StapARejectsOversizedSubNalu)
+{
+    UINT32 naluLength = 0;
+    BOOL isStart = FALSE;
+
+    // Crafted STAP-A: indicator=0x78 (type 24), subNaluSize=0x6742 (26434)
+    // but packet is only 26 bytes total. The subNaluSize exceeds available data.
+    BYTE stapAPacket[] = {0x78, 0x67, 0x42, 0xe0, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                          0x00, 0x00, 0x00, 0x09, 0x68, 0xce, 0x38, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+    // Size calculation pass should fail
+    EXPECT_EQ(STATUS_RTP_INPUT_PACKET_TOO_SMALL,
+              depayH264FromRtpPayload(stapAPacket, SIZEOF(stapAPacket), NULL, &naluLength, &isStart));
+    EXPECT_EQ(0u, naluLength);
+}
+
+// Test that STAP-A with only the indicator byte (no room for size field) is rejected
+TEST_F(RtpFunctionalityTest, depayH264StapARejectsTruncatedPacket)
+{
+    UINT32 naluLength = 0;
+    BOOL isStart = FALSE;
+
+    // Only indicator byte, no size field
+    BYTE stapAPacket[] = {0x78};
+
+    EXPECT_EQ(STATUS_RTP_INPUT_PACKET_TOO_SMALL,
+              depayH264FromRtpPayload(stapAPacket, SIZEOF(stapAPacket), NULL, &naluLength, &isStart));
+    EXPECT_EQ(0u, naluLength);
+}
+
+// Test that STAP-B with oversized subNaluSize is rejected
+TEST_F(RtpFunctionalityTest, depayH264StapBRejectsOversizedSubNalu)
+{
+    UINT32 naluLength = 0;
+    BOOL isStart = FALSE;
+
+    // STAP-B indicator (type 25 = 0x19 | 0x60 for NRI), 2-byte DON, then large subNaluSize
+    // indicator=0x79, DON=0x0001, subNaluSize=0xFFFF (65535) but packet is tiny
+    BYTE stapBPacket[] = {0x79, 0x00, 0x01, 0xFF, 0xFF, 0x00, 0x00};
+
+    EXPECT_EQ(STATUS_RTP_INPUT_PACKET_TOO_SMALL,
+              depayH264FromRtpPayload(stapBPacket, SIZEOF(stapBPacket), NULL, &naluLength, &isStart));
+    EXPECT_EQ(0u, naluLength);
+}
+
+// VP8 depayloader must reject packets too short for their declared descriptor fields.
+TEST_F(RtpFunctionalityTest, depayVP8RejectsTruncatedDescriptor)
+{
+    UINT32 vp8Length = 0;
+    BOOL isStart = FALSE;
+
+    // 1 byte with extension bit set — needs at least 2 bytes for extended control
+    BYTE pkt1[] = {0x81};
+    EXPECT_EQ(STATUS_RTP_INPUT_PACKET_TOO_SMALL,
+              depayVP8FromRtpPayload(pkt1, SIZEOF(pkt1), NULL, &vp8Length, &isStart));
+    EXPECT_EQ(0u, vp8Length);
+
+    // 2 bytes: extension=1, PictureID=1, TL0PICIDX=1, TID=0, KEYIDX=1
+    // Needs bytes at offsets 2,3,4 — only 2 available
+    BYTE pkt2[] = {0x81, 0xD9};
+    vp8Length = 0;
+    EXPECT_EQ(STATUS_RTP_INPUT_PACKET_TOO_SMALL,
+              depayVP8FromRtpPayload(pkt2, SIZEOF(pkt2), NULL, &vp8Length, &isStart));
+    EXPECT_EQ(0u, vp8Length);
+
+    // Extension + PictureID(16-bit) declared but only 3 bytes available
+    // Byte 0: 0x90 (ext=1), Byte 1: 0x80 (PID=1), Byte 2: 0x80 (M=1 → 16-bit PID)
+    BYTE pkt3[] = {0x90, 0x80, 0x80};
+    vp8Length = 0;
+    EXPECT_EQ(STATUS_RTP_INPUT_PACKET_TOO_SMALL,
+              depayVP8FromRtpPayload(pkt3, SIZEOF(pkt3), NULL, &vp8Length, &isStart));
+    EXPECT_EQ(0u, vp8Length);
+}
+
+// VP8 depayloader should succeed on a well-formed minimal packet
+TEST_F(RtpFunctionalityTest, depayVP8AcceptsValidMinimalPacket)
+{
+    UINT32 vp8Length = 0;
+    BOOL isStart = FALSE;
+
+    // No extension: 1 byte descriptor + payload
+    BYTE pkt[] = {0x10, 0xAA, 0xBB, 0xCC};
+    EXPECT_EQ(STATUS_SUCCESS,
+              depayVP8FromRtpPayload(pkt, SIZEOF(pkt), NULL, &vp8Length, &isStart));
+    EXPECT_EQ(3u, vp8Length);
 }
 
 } // namespace webrtcclient
