@@ -495,6 +495,77 @@ TEST_F(IceFunctionalityTest, IceAgentAddRemoteCandidateUnitTest)
     EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.localCandidates));
 }
 
+TEST_F(IceFunctionalityTest, IceAgentGatherCandidateTimerCallbackReportsLocalCandidatesInBatches)
+{
+    typedef struct {
+        std::vector<std::string> list;
+    } CandidateList;
+
+    IceAgent iceAgent;
+    IceCandidate localCandidates[KVS_ICE_MAX_NEW_LOCAL_CANDIDATES_TO_REPORT_AT_ONCE + 2];
+    CandidateList candidateList;
+    UINT32 i;
+
+    MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
+    MEMSET(localCandidates, 0x00, SIZEOF(localCandidates));
+
+    auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
+        CandidateList* candidateList1 = (CandidateList*) customData;
+        candidateList1->list.push_back(candidateStr != NULL ? std::string(candidateStr) : std::string(""));
+    };
+
+    iceAgent.lock = MUTEX_CREATE(TRUE);
+    iceAgent.iceAgentCallbacks.customData = (UINT64) &candidateList;
+    iceAgent.iceAgentCallbacks.newLocalCandidateFn = onICECandidateHdlr;
+    iceAgent.candidateGatheringStartTime = GETTIME();
+    iceAgent.candidateGatheringEndTime = 0;
+    iceAgent.iceCandidateGatheringTimerTask = 1;
+    ATOMIC_STORE_BOOL(&iceAgent.addedRelayCandidate, TRUE);
+    ATOMIC_STORE_BOOL(&iceAgent.candidateGatheringFinished, FALSE);
+    ATOMIC_STORE_BOOL(&iceAgent.stopGathering, FALSE);
+    ASSERT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.localCandidates));
+
+    for (i = 0; i < ARRAY_SIZE(localCandidates); ++i) {
+        localCandidates[i].iceCandidateType = ICE_CANDIDATE_TYPE_HOST;
+        localCandidates[i].state = ICE_CANDIDATE_STATE_VALID;
+        localCandidates[i].foundation = i + 1;
+        localCandidates[i].priority = ICE_PRIORITY_HOST_CANDIDATE_TYPE_PREFERENCE;
+        localCandidates[i].remoteProtocol = KVS_SOCKET_PROTOCOL_UDP;
+        localCandidates[i].ipAddress.family = KVS_IP_FAMILY_TYPE_IPV4;
+        localCandidates[i].ipAddress.address[0] = 127;
+        localCandidates[i].ipAddress.address[3] = (BYTE) (i + 1);
+        localCandidates[i].ipAddress.port = htons(10000 + i);
+        SNPRINTF(localCandidates[i].id, ARRAY_SIZE(localCandidates[i].id), "cand%03u", i);
+        ASSERT_EQ(STATUS_SUCCESS, doubleListInsertItemTail(iceAgent.localCandidates, (UINT64) &localCandidates[i]));
+    }
+
+    ASSERT_EQ(STATUS_SUCCESS, iceAgentGatherCandidateTimerCallback(0, 1, (UINT64) &iceAgent));
+    ASSERT_EQ(KVS_ICE_MAX_NEW_LOCAL_CANDIDATES_TO_REPORT_AT_ONCE, candidateList.list.size());
+    EXPECT_FALSE(ATOMIC_LOAD_BOOL(&iceAgent.candidateGatheringFinished));
+    EXPECT_NE(MAX_UINT32, iceAgent.iceCandidateGatheringTimerTask);
+
+    for (i = 0; i < KVS_ICE_MAX_NEW_LOCAL_CANDIDATES_TO_REPORT_AT_ONCE; ++i) {
+        EXPECT_TRUE(localCandidates[i].reported);
+    }
+    for (; i < ARRAY_SIZE(localCandidates); ++i) {
+        EXPECT_FALSE(localCandidates[i].reported);
+    }
+
+    ASSERT_EQ(STATUS_TIMER_QUEUE_STOP_SCHEDULING, iceAgentGatherCandidateTimerCallback(0, 2, (UINT64) &iceAgent));
+    ASSERT_EQ(ARRAY_SIZE(localCandidates) + 1, candidateList.list.size());
+    ASSERT_TRUE(candidateList.list.back().empty());
+    EXPECT_TRUE(ATOMIC_LOAD_BOOL(&iceAgent.candidateGatheringFinished));
+    EXPECT_EQ(MAX_UINT32, iceAgent.iceCandidateGatheringTimerTask);
+
+    for (i = 0; i < ARRAY_SIZE(localCandidates); ++i) {
+        EXPECT_TRUE(localCandidates[i].reported);
+    }
+
+    MUTEX_FREE(iceAgent.lock);
+    EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.localCandidates, FALSE));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.localCandidates));
+}
+
 TEST_F(IceFunctionalityTest, IceAgentFindCandidateWithIpUnitTest)
 {
     DoubleList candidateList;
