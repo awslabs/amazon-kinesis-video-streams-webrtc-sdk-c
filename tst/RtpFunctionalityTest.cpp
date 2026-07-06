@@ -896,6 +896,53 @@ TEST_F(RtpFunctionalityTest, depayH265FuRejectsTooSmallPacket)
     EXPECT_EQ(0u, naluLength);
 }
 
+// Test that STAP-A packets with subNaluSize larger than remaining packet data
+// are rejected rather than causing an out-of-bounds read.
+TEST_F(RtpFunctionalityTest, depayH264StapARejectsOversizedSubNalu)
+{
+    UINT32 naluLength = 0;
+    BOOL isStart = FALSE;
+
+    // Crafted STAP-A: indicator=0x78 (type 24), subNaluSize=0x6742 (26434)
+    // but packet is only 26 bytes total. The subNaluSize exceeds available data.
+    BYTE stapAPacket[] = {0x78, 0x67, 0x42, 0xe0, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                          0x00, 0x00, 0x00, 0x09, 0x68, 0xce, 0x38, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+    // Size calculation pass should fail
+    EXPECT_EQ(STATUS_RTP_INPUT_PACKET_TOO_SMALL,
+              depayH264FromRtpPayload(stapAPacket, SIZEOF(stapAPacket), NULL, &naluLength, &isStart));
+    EXPECT_EQ(0u, naluLength);
+}
+
+// Test that STAP-A with only the indicator byte (no room for size field) is rejected
+TEST_F(RtpFunctionalityTest, depayH264StapARejectsTruncatedPacket)
+{
+    UINT32 naluLength = 0;
+    BOOL isStart = FALSE;
+
+    // Only indicator byte, no size field
+    BYTE stapAPacket[] = {0x78};
+
+    EXPECT_EQ(STATUS_RTP_INPUT_PACKET_TOO_SMALL,
+              depayH264FromRtpPayload(stapAPacket, SIZEOF(stapAPacket), NULL, &naluLength, &isStart));
+    EXPECT_EQ(0u, naluLength);
+}
+
+// Test that STAP-B with oversized subNaluSize is rejected
+TEST_F(RtpFunctionalityTest, depayH264StapBRejectsOversizedSubNalu)
+{
+    UINT32 naluLength = 0;
+    BOOL isStart = FALSE;
+
+    // STAP-B indicator (type 25 = 0x19 | 0x60 for NRI), 2-byte DON, then large subNaluSize
+    // indicator=0x79, DON=0x0001, subNaluSize=0xFFFF (65535) but packet is tiny
+    BYTE stapBPacket[] = {0x79, 0x00, 0x01, 0xFF, 0xFF, 0x00, 0x00};
+
+    EXPECT_EQ(STATUS_RTP_INPUT_PACKET_TOO_SMALL,
+              depayH264FromRtpPayload(stapBPacket, SIZEOF(stapBPacket), NULL, &naluLength, &isStart));
+    EXPECT_EQ(0u, naluLength);
+}
+
 // VP8 depayloader must reject packets too short for their declared descriptor fields.
 TEST_F(RtpFunctionalityTest, depayVP8RejectsTruncatedDescriptor)
 {
