@@ -44,8 +44,8 @@ STATUS addFourVideoTransceivers(PSampleConfiguration pSampleConfiguration, PSamp
                                                      pSampleConfiguration->videoRollingBufferDurationSec,
                                                      pSampleConfiguration->videoRollingBufferBitratebps));
 
-        CHK_STATUS(transceiverOnBandwidthEstimation(gMultiTrackSessions[sessionIndex].pVideoRtcRtpTransceivers[i],
-                                                    (UINT64) pSampleStreamingSession, sampleBandwidthEstimationHandler));
+        CHK_STATUS(transceiverOnBandwidthEstimation(gMultiTrackSessions[sessionIndex].pVideoRtcRtpTransceivers[i], (UINT64) pSampleStreamingSession,
+                                                    sampleBandwidthEstimationHandler));
     }
 
     pSampleStreamingSession->pVideoRtcRtpTransceiver = gMultiTrackSessions[sessionIndex].pVideoRtcRtpTransceivers[0];
@@ -127,8 +127,8 @@ PVOID sendFourVideoPacketsFromDisk(PVOID args)
 
             if (frameSize > frameBufferSizes[trackIdx]) {
                 pFrameBuffers[trackIdx] = (PBYTE) MEMREALLOC(pFrameBuffers[trackIdx], frameSize);
-                CHK_ERR(pFrameBuffers[trackIdx] != NULL, STATUS_NOT_ENOUGH_MEMORY,
-                        "[KVS Master] Failed to allocate video frame buffer for track %u", trackIdx);
+                CHK_ERR(pFrameBuffers[trackIdx] != NULL, STATUS_NOT_ENOUGH_MEMORY, "[KVS Master] Failed to allocate video frame buffer for track %u",
+                        trackIdx);
                 frameBufferSizes[trackIdx] = frameSize;
             }
 
