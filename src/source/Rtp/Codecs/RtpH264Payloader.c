@@ -268,26 +268,26 @@ STATUS depayH264FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNal
             break;
         case STAP_A_INDICATOR:
             pCurPtr += STAP_A_HEADER_SIZE;
-            CHK(pCurPtr + SIZEOF(UINT16) <= pRawPacket + packetLength, STATUS_RTP_INPUT_PACKET_TOO_SMALL);
+            CHK(SIZEOF(UINT16) <= (UINT32) (pRawPacket + packetLength - pCurPtr), STATUS_RTP_INPUT_PACKET_TOO_SMALL);
             do {
                 subNaluSize = getUnalignedInt16BigEndian(pCurPtr);
                 pCurPtr += SIZEOF(UINT16);
-                CHK(pCurPtr + subNaluSize <= pRawPacket + packetLength, STATUS_RTP_INPUT_PACKET_TOO_SMALL);
+                CHK(subNaluSize <= (UINT32) (pRawPacket + packetLength - pCurPtr), STATUS_RTP_INPUT_PACKET_TOO_SMALL);
                 naluLength += subNaluSize + SIZEOF(start4ByteCode);
                 pCurPtr += subNaluSize;
-            } while (subNaluSize > 0 && pCurPtr + SIZEOF(UINT16) <= pRawPacket + packetLength);
+            } while (subNaluSize > 0 && SIZEOF(UINT16) <= (UINT32) (pRawPacket + packetLength - pCurPtr));
             isStartingPacket = TRUE;
             break;
         case STAP_B_INDICATOR:
+            CHK(packetLength >= STAP_B_HEADER_SIZE + SIZEOF(UINT16), STATUS_RTP_INPUT_PACKET_TOO_SMALL);
             pCurPtr += STAP_B_HEADER_SIZE;
-            CHK(pCurPtr + SIZEOF(UINT16) <= pRawPacket + packetLength, STATUS_RTP_INPUT_PACKET_TOO_SMALL);
             do {
                 subNaluSize = getUnalignedInt16BigEndian(pCurPtr);
                 pCurPtr += SIZEOF(UINT16);
-                CHK(pCurPtr + subNaluSize <= pRawPacket + packetLength, STATUS_RTP_INPUT_PACKET_TOO_SMALL);
+                CHK(subNaluSize <= (UINT32) (pRawPacket + packetLength - pCurPtr), STATUS_RTP_INPUT_PACKET_TOO_SMALL);
                 naluLength += subNaluSize + SIZEOF(start4ByteCode);
                 pCurPtr += subNaluSize;
-            } while (subNaluSize > 0 && pCurPtr + SIZEOF(UINT16) <= pRawPacket + packetLength);
+            } while (subNaluSize > 0 && SIZEOF(UINT16) <= (UINT32) (pRawPacket + packetLength - pCurPtr));
             isStartingPacket = TRUE;
             break;
         default:
@@ -334,14 +334,14 @@ STATUS depayH264FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNal
             do {
                 subNaluSize = getUnalignedInt16BigEndian(pCurPtr);
                 pCurPtr += SIZEOF(UINT16);
-                CHK(pCurPtr + subNaluSize <= pRawPacket + packetLength, STATUS_RTP_INPUT_PACKET_TOO_SMALL);
+                CHK(subNaluSize <= (UINT32) (pRawPacket + packetLength - pCurPtr), STATUS_RTP_INPUT_PACKET_TOO_SMALL);
                 MEMCPY(pNaluData, start4ByteCode, SIZEOF(start4ByteCode));
                 pNaluData += SIZEOF(start4ByteCode);
                 MEMCPY(pNaluData, pCurPtr, subNaluSize);
                 pCurPtr += subNaluSize;
                 pNaluData += subNaluSize;
                 naluLength += SIZEOF(start4ByteCode) + subNaluSize;
-            } while (subNaluSize > 0 && pCurPtr + SIZEOF(UINT16) <= pRawPacket + packetLength);
+            } while (subNaluSize > 0 && SIZEOF(UINT16) <= (UINT32) (pRawPacket + packetLength - pCurPtr));
             DLOGS("STAP_A_INDICATOR starting packet %d len %d", isStartingPacket, naluLength);
             break;
         case STAP_B_INDICATOR:
@@ -350,14 +350,14 @@ STATUS depayH264FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNal
             do {
                 subNaluSize = getUnalignedInt16BigEndian(pCurPtr);
                 pCurPtr += SIZEOF(UINT16);
-                CHK(pCurPtr + subNaluSize <= pRawPacket + packetLength, STATUS_RTP_INPUT_PACKET_TOO_SMALL);
+                CHK(subNaluSize <= (UINT32) (pRawPacket + packetLength - pCurPtr), STATUS_RTP_INPUT_PACKET_TOO_SMALL);
                 MEMCPY(pNaluData, start4ByteCode, SIZEOF(start4ByteCode));
                 pNaluData += SIZEOF(start4ByteCode);
                 MEMCPY(pNaluData, pCurPtr, subNaluSize);
                 pCurPtr += subNaluSize;
                 pNaluData += subNaluSize;
                 naluLength += SIZEOF(start4ByteCode) + subNaluSize;
-            } while (subNaluSize > 0 && pCurPtr + SIZEOF(UINT16) <= pRawPacket + packetLength);
+            } while (subNaluSize > 0 && SIZEOF(UINT16) <= (UINT32) (pRawPacket + packetLength - pCurPtr));
             DLOGS("STAP_B_INDICATOR starting packet %d len %d", isStartingPacket, naluLength);
             break;
         default:
