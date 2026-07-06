@@ -896,6 +896,64 @@ TEST_F(RtpFunctionalityTest, depayH265FuRejectsTooSmallPacket)
     EXPECT_EQ(0u, naluLength);
 }
 
+// FU-B non-starting packet must not over-read source buffer.
+// naluLength should be packetLength - FU_B_HEADER_SIZE (not +1) for continuation packets.
+TEST_F(RtpFunctionalityTest, depayH264FuBNonStartNoOverread)
+{
+    UINT32 naluLength = 0;
+    BOOL isStart = FALSE;
+
+    // Crash input from fuzzer: FU-B indicator (0xdd & 0x1F = 0x1D = 29),
+    // FU header byte 0x7c has start bit = 0 (non-starting packet).
+    // 12 bytes total. Without fix, naluLength = 12 - 4 + 1 = 9, but only 8 bytes
+    // are available after the 4-byte header → OOB read.
+    BYTE fuBPacket[] = {0xdd, 0x7c, 0x85, 0x7c, 0x05, 0x00, 0x7c, 0x85, 0x00, 0x00, 0x00, 0x4c};
+
+    // Size calculation: should be 8 (not 9)
+    EXPECT_EQ(STATUS_SUCCESS, depayH264FromRtpPayload(fuBPacket, SIZEOF(fuBPacket), NULL, &naluLength, &isStart));
+    EXPECT_FALSE(isStart);
+    EXPECT_EQ(8u, naluLength);
+
+    // Copy pass: should succeed without OOB
+    BYTE output[8];
+    UINT32 outputLen = SIZEOF(output);
+    EXPECT_EQ(STATUS_SUCCESS, depayH264FromRtpPayload(fuBPacket, SIZEOF(fuBPacket), output, &outputLen, &isStart));
+    EXPECT_EQ(8u, outputLen);
+}
+
+// FU-B starting packet should produce naluLength = packetLength - FU_B_HEADER_SIZE + 1
+TEST_F(RtpFunctionalityTest, depayH264FuBStartingPacket)
+{
+    UINT32 naluLength = 0;
+    BOOL isStart = FALSE;
+
+    // FU-B with start bit set: indicator=0x1D|0x60=0x7D, FU header=0x85 (S=1, type=5)
+    // DON=0x00 0x01, payload=0xAA 0xBB 0xCC
+    BYTE fuBStart[] = {0x7d, 0x85, 0x00, 0x01, 0xAA, 0xBB, 0xCC};
+
+    // naluLength = 7 - 4 + 1 = 4 (3 payload bytes + 1 reconstructed NAL byte)
+    // Plus start4ByteCode: total = 4 + 4 = 8
+    EXPECT_EQ(STATUS_SUCCESS, depayH264FromRtpPayload(fuBStart, SIZEOF(fuBStart), NULL, &naluLength, &isStart));
+    EXPECT_TRUE(isStart);
+    EXPECT_EQ(8u, naluLength);
+
+    // Copy pass
+    BYTE output[8];
+    UINT32 outputLen = SIZEOF(output);
+    EXPECT_EQ(STATUS_SUCCESS, depayH264FromRtpPayload(fuBStart, SIZEOF(fuBStart), output, &outputLen, &isStart));
+    // First 4 bytes: start code
+    EXPECT_EQ(0x00, output[0]);
+    EXPECT_EQ(0x00, output[1]);
+    EXPECT_EQ(0x00, output[2]);
+    EXPECT_EQ(0x01, output[3]);
+    // Byte 4: reconstructed NAL (naluRefIdc | naluType = 0x60 | 0x05 = 0x65)
+    EXPECT_EQ(0x65, output[4]);
+    // Bytes 5-7: payload
+    EXPECT_EQ(0xAA, output[5]);
+    EXPECT_EQ(0xBB, output[6]);
+    EXPECT_EQ(0xCC, output[7]);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
