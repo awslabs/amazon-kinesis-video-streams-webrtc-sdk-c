@@ -71,6 +71,7 @@ STATUS depayVP8FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pVp8D
     payloadDescriptorLength++;
 
     if (haveExtendedControlBits) {
+        CHK(payloadDescriptorLength < packetLength, STATUS_RTP_INPUT_PACKET_TOO_SMALL);
         havePictureID = (pRawPacket[payloadDescriptorLength] & 0x80) >> 7;
         haveTL0PICIDX = (pRawPacket[payloadDescriptorLength] & 0x40) >> 6;
         haveTID = (pRawPacket[payloadDescriptorLength] & 0x20) >> 5;
@@ -79,6 +80,7 @@ STATUS depayVP8FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pVp8D
     }
 
     if (havePictureID) {
+        CHK(payloadDescriptorLength < packetLength, STATUS_RTP_INPUT_PACKET_TOO_SMALL);
         if ((pRawPacket[payloadDescriptorLength] & 0x80) > 0) { // PID is 16bit
             payloadDescriptorLength += 2;
         } else {
@@ -87,13 +89,16 @@ STATUS depayVP8FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pVp8D
     }
 
     if (haveTL0PICIDX == 1) {
+        CHK(payloadDescriptorLength < packetLength, STATUS_RTP_INPUT_PACKET_TOO_SMALL);
         payloadDescriptorLength++;
     }
 
     if (haveTID || haveKEYIDX == 1) {
+        CHK(payloadDescriptorLength < packetLength, STATUS_RTP_INPUT_PACKET_TOO_SMALL);
         payloadDescriptorLength++;
     }
 
+    CHK(payloadDescriptorLength <= packetLength, STATUS_RTP_INPUT_PACKET_TOO_SMALL);
     vp8Length -= payloadDescriptorLength;
     CHK(!sizeCalculationOnly, retStatus);
 
