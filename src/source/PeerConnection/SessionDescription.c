@@ -1061,7 +1061,9 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
             pCurNode = pCurNode->pNext;
             pKvsRtpTransceiver = (PKvsRtpTransceiver) data;
             if (pKvsRtpTransceiver != NULL) {
-                CHK(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
+                CHK_ERR(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT,
+                        "Exceeded max media count while creating offer. Max: %u, current: %u", MAX_SDP_SESSION_MEDIA_COUNT,
+                        pLocalSessionDescription->mediaCount);
                 // If generating answer, need to check if Local Description is present in remote -- if not, we don't need to create a local
                 // description for it or else our Answer will have an extra m-line, for offer the local is the offer itself, don't care about remote
                 CHK_STATUS(populateSingleMediaSection(
@@ -1090,7 +1092,9 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
             pCurNode = pCurNode->pNext;
             pKvsRtpTransceiver = (PKvsRtpTransceiver) data;
             if (pKvsRtpTransceiver != NULL) {
-                CHK(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
+                CHK_ERR(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT,
+                        "Exceeded max media count while creating answer. Max: %u, current: %u", MAX_SDP_SESSION_MEDIA_COUNT,
+                        pLocalSessionDescription->mediaCount);
                 if (isPresentInRemote(pKvsRtpTransceiver, pRemoteSessionDescription)) {
                     if (pKvsRtpTransceiver->sender.track.codec == RTC_CODEC_UNKNOWN) {
                         CHK_STATUS(populateSingleMediaSection(pKvsPeerConnection, pKvsRtpTransceiver,
@@ -1117,7 +1121,9 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
     }
 
     if (ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpIsEnabled)) {
-        CHK(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
+        CHK_ERR(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT,
+                "Exceeded max media count while adding data channel. Max: %u, current: %u", MAX_SDP_SESSION_MEDIA_COUNT,
+                pLocalSessionDescription->mediaCount);
         CHK_STATUS(populateSessionDescriptionDataChannel(pKvsPeerConnection,
                                                          &(pLocalSessionDescription->mediaDescriptions[pLocalSessionDescription->mediaCount]),
                                                          certificateFingerprint, pLocalSessionDescription->mediaCount, pDtlsRole));

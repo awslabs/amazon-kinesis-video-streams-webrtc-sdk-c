@@ -5,7 +5,8 @@ STATUS parseMediaName(PSessionDescription pSessionDescription, PCHAR pch, UINT32
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    CHK(pSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
+    CHK_ERR(pSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT,
+            "Exceeded max media count. Max: %u, current: %u", MAX_SDP_SESSION_MEDIA_COUNT, pSessionDescription->mediaCount);
 
     STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount].mediaName, (pch + SDP_ATTRIBUTE_LENGTH),
             MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));

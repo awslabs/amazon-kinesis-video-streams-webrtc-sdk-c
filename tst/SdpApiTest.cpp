@@ -462,6 +462,50 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendRecvMaxTransceivers)
     freePeerConnection(&offerPc);
 }
 
+#ifdef ENABLE_DATA_CHANNEL
+// Validates that (MAX_SDP_SESSION_MEDIA_COUNT - 1) transceivers succeed with data channel enabled,
+// since data channel consumes 1 slot. Adding one more should exceed the limit.
+TEST_F(SdpApiTest, populateSingleMediaSection_MaxTransceiversWithDataChannel)
+{
+    PRtcPeerConnection offerPc = NULL;
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit sessionDescriptionInit;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+
+    RtcMediaStreamTrack track;
+    PRtcRtpTransceiver pTransceiver;
+    RtcRtpTransceiverInit rtcRtpTransceiverInit;
+    rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+
+    MEMSET(&track, 0x00, SIZEOF(RtcMediaStreamTrack));
+    track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    STRCPY(track.streamId, "myKvsStream");
+    STRCPY(track.trackId, "videoTrack");
+
+    // Fill all slots except one reserved for data channel
+    for (UINT32 i = 0; i < MAX_SDP_SESSION_MEDIA_COUNT - 1; i++) {
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(offerPc, &track, &rtcRtpTransceiverInit, &pTransceiver));
+    }
+
+    // (MAX_SDP_SESSION_MEDIA_COUNT - 1) transceivers + 1 data channel = MAX_SDP_SESSION_MEDIA_COUNT
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sessionDescriptionInit));
+    EXPECT_PRED_FORMAT2(testing::IsSubstring, "m=video", sessionDescriptionInit.sdp);
+    EXPECT_PRED_FORMAT2(testing::IsSubstring, "m=application", sessionDescriptionInit.sdp);
+
+    // Adding one more transceiver should exceed the limit
+    STRCPY(track.trackId, "extraTrack");
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(offerPc, &track, &rtcRtpTransceiverInit, &pTransceiver));
+    EXPECT_EQ(STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT, createOffer(offerPc, &sessionDescriptionInit));
+
+    closePeerConnection(offerPc);
+    freePeerConnection(&offerPc);
+}
+#endif
+
 TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendOnly)
 {
     PRtcPeerConnection offerPc = NULL;
@@ -708,34 +752,40 @@ a=rtpmap:111 opus/48000/2
 a=fmtp:111 minptime=10;useinbandfec=1
 a=rtcp-fb:111 nack)";
 
-TEST_F(SdpApiTest, threeVideoTracksWithSameCodec)
+static std::string buildSdpWithMediaCount(UINT32 mediaCount)
 {
-    auto offer3 = std::string(R"(v=0
-o=- 481034601 1588366671 IN IP4 0.0.0.0
-s=-
-t=0 0
-a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
-a=group:BUNDLE 0 1 2 3
-)");
-    offer3 += sdpdata;
-    offer3 += "\n";
-    offer3 += sdpvideo;
-    offer3 += "\n";
-    offer3 += sdpvideo;
-    offer3 += "\n";
-    offer3 += sdpvideo;
-    offer3 += "\n";
-    offer3 += sdpvideo;
-    offer3 += "\n";
-    offer3 += sdpvideo;
-    offer3 += "\n";
+    auto sdp = std::string("v=0\r\n"
+                           "o=- 481034601 1588366671 IN IP4 0.0.0.0\r\n"
+                           "s=-\r\n"
+                           "t=0 0\r\n"
+                           "a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5\r\n"
+                           "a=group:BUNDLE");
+    for (UINT32 i = 0; i < mediaCount; i++) {
+        sdp += " " + std::to_string(i);
+    }
+    sdp += "\r\n";
+    for (UINT32 i = 0; i < mediaCount; i++) {
+        sdp += sdpvideo;
+        sdp += "\r\n";
+    }
+    return sdp;
+}
 
-    assertLFAndCRLF((PCHAR) offer3.c_str(), offer3.size(), [](PCHAR sdp) {
-        SessionDescription sessionDescription;
-        MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
-        // as log as Sdp.h  MAX_SDP_SESSION_MEDIA_COUNT 5 this should fail instead of overwriting memory
-        EXPECT_EQ(STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT, deserializeSessionDescription(&sessionDescription, (PCHAR) sdp));
-    });
+TEST_F(SdpApiTest, maxVideoTracksWithSameCodec_AtLimit)
+{
+    auto offer = buildSdpWithMediaCount(MAX_SDP_SESSION_MEDIA_COUNT);
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescription(&sessionDescription, (PCHAR) offer.c_str()));
+    EXPECT_EQ(sessionDescription.mediaCount, MAX_SDP_SESSION_MEDIA_COUNT);
+}
+
+TEST_F(SdpApiTest, maxVideoTracksWithSameCodec_OverLimit)
+{
+    auto offer = buildSdpWithMediaCount(MAX_SDP_SESSION_MEDIA_COUNT + 1);
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT, deserializeSessionDescription(&sessionDescription, (PCHAR) offer.c_str()));
 }
 
 // if offer is recvonly answer must be sendonly
@@ -1015,6 +1065,9 @@ a=ssrc:331864867 msid:2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84 757d07a0-892a-46e7-a1
         EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
     });
 
+    // Add more media lines to exceed MAX_SDP_SESSION_MEDIA_COUNT
+    offerBase += unsupportedAudioSdp;
+    offerBase += "\n";
     offerBase += unsupportedAudioSdp;
     offerBase += "\n";
 
