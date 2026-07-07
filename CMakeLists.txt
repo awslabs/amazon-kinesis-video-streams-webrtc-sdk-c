@@ -39,6 +39,9 @@ option(PARALLEL_BUILD "Build dependencies with parallel flag" OFF)
 
 # Tuning
 set(MAX_SDP_SESSION_MEDIA_COUNT "5" CACHE STRING "Maximum number of SDP media sections (m= lines). Range: 1-6. Each slot adds ~140 KB to stack-allocated SessionDescription. See docs/SDP_MEDIA_COUNT.md.")
+if (NOT "${MAX_SDP_SESSION_MEDIA_COUNT}" MATCHES "^[0-9]+$")
+  message(FATAL_ERROR "MAX_SDP_SESSION_MEDIA_COUNT must be a number, got '${MAX_SDP_SESSION_MEDIA_COUNT}'.")
+endif()
 if (NOT "${MAX_SDP_SESSION_MEDIA_COUNT}" STREQUAL "5")
   message(STATUS "MAX_SDP_SESSION_MEDIA_COUNT overridden to ${MAX_SDP_SESSION_MEDIA_COUNT} (default: 5)")
 endif()
