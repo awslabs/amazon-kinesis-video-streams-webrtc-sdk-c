@@ -9,7 +9,12 @@ typedef struct {
     PRtcRtpTransceiver pVideoRtcRtpTransceivers[NUM_VIDEO_TRACKS];
 } MultiTrackStreamingSession, *PMultiTrackStreamingSession;
 
-static MultiTrackStreamingSession gMultiTrackSessions[DEFAULT_MAX_CONCURRENT_STREAMING_SESSION];
+static VOID onMultiTrackSessionShutdown(UINT64 customData, PSampleStreamingSession pSampleStreamingSession)
+{
+    UNUSED_PARAM(pSampleStreamingSession);
+    PMultiTrackStreamingSession pMultiTrackSession = (PMultiTrackStreamingSession) customData;
+    SAFE_MEMFREE(pMultiTrackSession);
+}
 
 STATUS addFourVideoTransceivers(PSampleConfiguration pSampleConfiguration, PSampleStreamingSession pSampleStreamingSession)
 {
@@ -20,11 +25,12 @@ STATUS addFourVideoTransceivers(PSampleConfiguration pSampleConfiguration, PSamp
     UINT32 i;
     CHAR trackId[MAX_MEDIA_STREAM_TRACK_ID_LEN + 1];
     CHAR streamId[MAX_MEDIA_STREAM_TRACK_ID_LEN + 1];
+    PMultiTrackStreamingSession pMultiTrackSession = NULL;
 
     CHK(pSampleConfiguration != NULL && pSampleStreamingSession != NULL, STATUS_NULL_ARG);
 
-    UINT32 sessionIndex = pSampleConfiguration->streamingSessionCount;
-    CHK(sessionIndex < DEFAULT_MAX_CONCURRENT_STREAMING_SESSION, STATUS_INVALID_OPERATION);
+    pMultiTrackSession = (PMultiTrackStreamingSession) MEMCALLOC(1, SIZEOF(MultiTrackStreamingSession));
+    CHK(pMultiTrackSession != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
     for (i = 0; i < NUM_VIDEO_TRACKS; i++) {
         MEMSET(&videoTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
@@ -38,17 +44,19 @@ STATUS addFourVideoTransceivers(PSampleConfiguration pSampleConfiguration, PSamp
         STRCPY(videoTrack.trackId, trackId);
 
         CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &videoTrack, &videoRtpTransceiverInit,
-                                  &gMultiTrackSessions[sessionIndex].pVideoRtcRtpTransceivers[i]));
+                                  &pMultiTrackSession->pVideoRtcRtpTransceivers[i]));
 
-        CHK_STATUS(configureTransceiverRollingBuffer(gMultiTrackSessions[sessionIndex].pVideoRtcRtpTransceivers[i], &videoTrack,
+        CHK_STATUS(configureTransceiverRollingBuffer(pMultiTrackSession->pVideoRtcRtpTransceivers[i], &videoTrack,
                                                      pSampleConfiguration->videoRollingBufferDurationSec,
                                                      pSampleConfiguration->videoRollingBufferBitratebps));
 
-        CHK_STATUS(transceiverOnBandwidthEstimation(gMultiTrackSessions[sessionIndex].pVideoRtcRtpTransceivers[i], (UINT64) pSampleStreamingSession,
+        CHK_STATUS(transceiverOnBandwidthEstimation(pMultiTrackSession->pVideoRtcRtpTransceivers[i], (UINT64) pSampleStreamingSession,
                                                     sampleBandwidthEstimationHandler));
     }
 
-    pSampleStreamingSession->pVideoRtcRtpTransceiver = gMultiTrackSessions[sessionIndex].pVideoRtcRtpTransceivers[0];
+    pSampleStreamingSession->pVideoRtcRtpTransceiver = pMultiTrackSession->pVideoRtcRtpTransceivers[0];
+
+    CHK_STATUS(streamingSessionOnShutdown(pSampleStreamingSession, (UINT64) pMultiTrackSession, onMultiTrackSessionShutdown));
 
     RtcRtpTransceiverInit audioRtpTransceiverInit;
     RtcMediaStreamTrack audioTrack;
@@ -69,7 +77,12 @@ STATUS addFourVideoTransceivers(PSampleConfiguration pSampleConfiguration, PSamp
     CHK_STATUS(transceiverOnBandwidthEstimation(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession,
                                                 sampleBandwidthEstimationHandler));
 
+    DLOGI("[KVS Master] Successfully added %u video transceivers and 1 audio transceiver", NUM_VIDEO_TRACKS);
+
 CleanUp:
+    if (STATUS_FAILED(retStatus)) {
+        SAFE_MEMFREE(pMultiTrackSession);
+    }
     CHK_LOG_ERR(retStatus);
     LEAVES();
     return retStatus;
@@ -89,7 +102,9 @@ PVOID sendFourVideoPacketsFromDisk(PVOID args)
     UINT32 i, trackIdx;
     UINT64 startTime, lastFrameTime, elapsed;
     BOOL usePerTrackDirs = FALSE;
+    BOOL trackSentFirstFrame[NUM_VIDEO_TRACKS];
 
+    MEMSET(trackSentFirstFrame, 0x00, SIZEOF(trackSentFirstFrame));
     MEMSET(fileIndex, 0x00, SIZEOF(fileIndex));
     MEMSET(pFrameBuffers, 0x00, SIZEOF(pFrameBuffers));
     MEMSET(frameBufferSizes, 0x00, SIZEOF(frameBufferSizes));
@@ -140,13 +155,21 @@ PVOID sendFourVideoPacketsFromDisk(PVOID args)
 
         MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
         for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+            PMultiTrackStreamingSession pMultiTrackSession =
+                (PMultiTrackStreamingSession) pSampleConfiguration->sampleStreamingSessionList[i]->shutdownCallbackCustomData;
+            if (pMultiTrackSession == NULL) {
+                continue;
+            }
             for (trackIdx = 0; trackIdx < NUM_VIDEO_TRACKS; trackIdx++) {
-                status = writeFrame(gMultiTrackSessions[i].pVideoRtcRtpTransceivers[trackIdx], &frame[trackIdx]);
+                status = writeFrame(pMultiTrackSession->pVideoRtcRtpTransceivers[trackIdx], &frame[trackIdx]);
                 if (trackIdx == 0 && pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame && status == STATUS_SUCCESS) {
                     PROFILE_WITH_START_TIME(pSampleConfiguration->sampleStreamingSessionList[i]->offerReceiveTime, "Time to first frame");
                     pSampleConfiguration->sampleStreamingSessionList[i]->firstFrame = FALSE;
                 }
-                if (status == STATUS_SRTP_NOT_READY_YET) {
+                if (status == STATUS_SUCCESS && !trackSentFirstFrame[trackIdx]) {
+                    DLOGI("[KVS Master] First frame sent on video track %u", trackIdx);
+                    trackSentFirstFrame[trackIdx] = TRUE;
+                } else if (status == STATUS_SRTP_NOT_READY_YET) {
                     fileIndex[trackIdx] = 0;
                 } else if (status != STATUS_SUCCESS) {
                     DLOGV("writeFrame() for track %u failed with 0x%08x", trackIdx, status);
