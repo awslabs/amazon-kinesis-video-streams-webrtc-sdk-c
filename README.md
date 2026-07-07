@@ -145,6 +145,7 @@ You can pass the following options to `cmake ..`:
 * `-DBUILD_SAMPLE` -- Build the sample executables. ON by default.
 * `-DIOT_CORE_ENABLE_CREDENTIALS` -- Build the sample applications using IoT credentials. OFF by default.
 * `-DENABLE_DATA_CHANNEL` -- Build SDK & samples with data channel. ON by default.
+* `-DMAX_SDP_SESSION_MEDIA_COUNT=N` -- Maximum number of SDP media sections (m= lines). Default: 5. Each slot adds ~140 KB to the stack-allocated `SessionDescription` struct. See [docs/SDP_MEDIA_COUNT.md](docs/SDP_MEDIA_COUNT.md) for details on what counts toward this limit and stack sizing guidance.
 * `-DBUILD_STATIC_LIBS` -- Build all KVS WebRTC and third-party libraries as static libraries. Default: OFF (shared build).
 * `-DADD_MUCLIBC`  -- Add -muclibc c flag
 * `-DBUILD_DEPENDENCIES` -- Whether or not to build depending libraries from source. ON by default.

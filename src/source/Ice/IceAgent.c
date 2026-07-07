@@ -1808,7 +1808,7 @@ STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, 
     IceCandidate newLocalCandidates[KVS_ICE_MAX_NEW_LOCAL_CANDIDATES_TO_REPORT_AT_ONCE];
     UINT32 newLocalCandidateCount = 0;
     PIceAgent pIceAgent = (PIceAgent) customData;
-    BOOL locked = FALSE, stopScheduling = FALSE;
+    BOOL locked = FALSE, stopScheduling = FALSE, moreNewLocalCandidates = FALSE;
     PDoubleListNode pCurNode = NULL;
     UINT64 data;
     PIceCandidate pIceCandidate = NULL;
@@ -1842,11 +1842,15 @@ STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, 
         // If the candidate has moved to valid state, then we can report it and start creating pairs with
         // srflx candidates.
         else if (pIceCandidate->state == ICE_CANDIDATE_STATE_VALID && !pIceCandidate->reported) {
-            newLocalCandidates[newLocalCandidateCount++] = *pIceCandidate;
-            pIceCandidate->reported = TRUE;
+            if (newLocalCandidateCount < ARRAY_SIZE(newLocalCandidates)) {
+                newLocalCandidates[newLocalCandidateCount++] = *pIceCandidate;
+                pIceCandidate->reported = TRUE;
 
-            if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE) {
-                CHK_STATUS(createIceCandidatePairs(pIceAgent, pIceCandidate, FALSE));
+                if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE) {
+                    CHK_STATUS(createIceCandidatePairs(pIceAgent, pIceCandidate, FALSE));
+                }
+            } else {
+                moreNewLocalCandidates = TRUE;
             }
         }
     }
@@ -1860,11 +1864,15 @@ STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, 
     if (ATOMIC_LOAD_BOOL(&pIceAgent->stopGathering) ||
         (totalCandidateCount > 0 && pendingCandidateCount == 0 && ATOMIC_LOAD_BOOL(&pIceAgent->addedRelayCandidate)) ||
         currentTime >= pIceAgent->candidateGatheringEndTime) {
-        DLOGI("Candidate gathering completed.");
-        PROFILE_WITH_START_END_TIME_OBJ(pIceAgent->candidateGatheringStartTime, pIceAgent->candidateGatheringProcessEndTime,
-                                        pIceAgent->iceAgentProfileDiagnostics.candidateGatheringTime, "Candidate gathering time");
-        stopScheduling = TRUE;
-        pIceAgent->iceCandidateGatheringTimerTask = MAX_UINT32;
+        if (moreNewLocalCandidates) {
+            DLOGD("Deferring candidate gathering completion while there are new local candidates to report.");
+        } else {
+            DLOGI("Candidate gathering completed.");
+            PROFILE_WITH_START_END_TIME_OBJ(pIceAgent->candidateGatheringStartTime, pIceAgent->candidateGatheringProcessEndTime,
+                                            pIceAgent->iceAgentProfileDiagnostics.candidateGatheringTime, "Candidate gathering time");
+            stopScheduling = TRUE;
+            pIceAgent->iceCandidateGatheringTimerTask = MAX_UINT32;
+        }
     }
 
     MUTEX_UNLOCK(pIceAgent->lock);
