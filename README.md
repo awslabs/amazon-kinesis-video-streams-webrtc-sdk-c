@@ -230,7 +230,7 @@ If your system has some compatible dependencies but not others, you can selectiv
 
 To just build libwebsockets from source and use system package for others
 ```shell
-cmake .. -DBUILD_DEPENDENCIES=OFF -DBUILD_WEBSOCKETS=ON -DUSE_OPENSSL=ON
+cmake .. -DBUILD_DEPENDENCIES=OFF -DBUILD_WEBSOCKETS=ON -DUSE_OPENSSL=ON 
 ```
 
 To build everything from source except libusrsctp (use system package):
