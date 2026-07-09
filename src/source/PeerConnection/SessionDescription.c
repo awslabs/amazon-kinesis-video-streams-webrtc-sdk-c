@@ -57,10 +57,10 @@ STATUS serializeSessionDescriptionInit(PRtcSessionDescriptionInit pSessionDescri
         }
 
         if (sessionDescriptionJSON == NULL) {
-            amountWritten = SNPRINTF(NULL, 0, "%*.*s%s", lineLen, lineLen, curr, SESSION_DESCRIPTION_INIT_LINE_ENDING);
+            amountWritten = SNPRINTF(NULL, 0, "%*.*s%s", (int) lineLen, (int) lineLen, curr, SESSION_DESCRIPTION_INIT_LINE_ENDING);
         } else {
-            amountWritten = SNPRINTF(sessionDescriptionJSON + *sessionDescriptionJSONLen, inputSize - *sessionDescriptionJSONLen, "%*.*s%s", lineLen,
-                                     lineLen, curr, SESSION_DESCRIPTION_INIT_LINE_ENDING);
+            amountWritten = SNPRINTF(sessionDescriptionJSON + *sessionDescriptionJSONLen, inputSize - *sessionDescriptionJSONLen, "%*.*s%s",
+                                     (int) lineLen, (int) lineLen, curr, SESSION_DESCRIPTION_INIT_LINE_ENDING);
         }
         CHK(sessionDescriptionJSON == NULL || ((inputSize - *sessionDescriptionJSONLen) >= amountWritten), STATUS_BUFFER_TOO_SMALL);
 
@@ -421,7 +421,7 @@ CleanUp:
 BOOL readHexValue(PCHAR input, PCHAR prefix, PUINT32 value)
 {
     PCHAR substr = STRSTR(input, prefix);
-    if (substr != NULL && SSCANF(substr + STRLEN(prefix), "%x", value) == 1) {
+    if (substr != NULL && SSCANF(substr + STRLEN(prefix), "%" SCNx32, value) == 1) {
         return TRUE;
     }
     return FALSE;
@@ -549,7 +549,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
 
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc-group");
         amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "FID %u %u",
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "FID %" PRIu32 " %" PRIu32,
                                  pKvsRtpTransceiver->sender.ssrc, pKvsRtpTransceiver->sender.rtxSsrc);
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc-grp value (with rtx) could not be written");
         attributeCount++;
@@ -564,28 +564,28 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
     amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u cname:%s",
+                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32 " cname:%s",
                              pKvsRtpTransceiver->sender.ssrc, pKvsPeerConnection->localCNAME);
     CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc cname could not be written");
     attributeCount++;
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
     amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u msid:%s %s",
+                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32 " msid:%s %s",
                              pKvsRtpTransceiver->sender.ssrc, pRtcMediaStreamTrack->streamId, pRtcMediaStreamTrack->trackId);
     CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc msid could not be written");
     attributeCount++;
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
     amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u mslabel:%s",
+                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32 " mslabel:%s",
                              pKvsRtpTransceiver->sender.ssrc, pRtcMediaStreamTrack->streamId);
     CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc mslabel could not be written");
     attributeCount++;
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
     amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u label:%s",
+                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32 " label:%s",
                              pKvsRtpTransceiver->sender.ssrc, pRtcMediaStreamTrack->trackId);
     CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc label could not be written");
     attributeCount++;
@@ -593,28 +593,28 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     if (containRtx) {
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
         amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u cname:%s",
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32 " cname:%s",
                                  pKvsRtpTransceiver->sender.rtxSsrc, pKvsPeerConnection->localCNAME);
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc cname (with rtx) could not be written");
         attributeCount++;
 
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
         amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u msid:%s %sRTX",
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32 " msid:%s %sRTX",
                                  pKvsRtpTransceiver->sender.rtxSsrc, pRtcMediaStreamTrack->streamId, pRtcMediaStreamTrack->trackId);
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc msid (with rtx) could not be written");
         attributeCount++;
 
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
         amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u mslabel:%sRTX",
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32 " mslabel:%sRTX",
                                  pKvsRtpTransceiver->sender.rtxSsrc, pRtcMediaStreamTrack->streamId);
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc mslabel (with rtx) could not be written");
         attributeCount++;
 
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
         amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u label:%sRTX",
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32 " label:%sRTX",
                                  pKvsRtpTransceiver->sender.rtxSsrc, pRtcMediaStreamTrack->trackId);
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc label (with rtx) could not be written");
         attributeCount++;
@@ -668,7 +668,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Mid exists, but remote SDP value could not be written");
     } else {
         amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%d", mediaSectionId);
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32, mediaSectionId);
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full media section Id could not be written");
     }
     attributeCount++;
@@ -894,14 +894,14 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
     amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u cname:%s",
+                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32 " cname:%s",
                              pKvsRtpTransceiver->sender.ssrc, pKvsPeerConnection->localCNAME);
     CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full transceiver ssrc cname could not be written");
     attributeCount++;
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
     amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u msid:%s %s",
+                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32 " msid:%s %s",
                              pKvsRtpTransceiver->sender.ssrc, pRtcMediaStreamTrack->streamId, pRtcMediaStreamTrack->trackId);
     CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full transceiver ssrc msid could not be written");
     attributeCount++;
@@ -980,7 +980,7 @@ STATUS populateSessionDescriptionDataChannel(PKvsPeerConnection pKvsPeerConnecti
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "mid");
     amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%d", mediaSectionId);
+                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32, mediaSectionId);
     CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full data channel mid media section could not be written");
     attributeCount++;
 
@@ -1203,7 +1203,7 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessio
         for (curr = (pLocalSessionDescription->sdpAttributes[0].attributeValue + ARRAY_SIZE(BUNDLE_KEY) - 1), i = 0;
              i < pLocalSessionDescription->mediaCount; i++) {
             sizeRemaining = MAX_SDP_ATTRIBUTE_VALUE_LENGTH - (curr - pLocalSessionDescription->sdpAttributes[0].attributeValue);
-            charsCopied = SNPRINTF(curr, sizeRemaining, " %d", i);
+            charsCopied = SNPRINTF(curr, sizeRemaining, " %" PRIu32, i);
 
             CHK(charsCopied > 0 && (UINT32) charsCopied < sizeRemaining, STATUS_BUFFER_TOO_SMALL);
 
