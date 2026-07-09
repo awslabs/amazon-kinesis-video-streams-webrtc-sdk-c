@@ -1085,6 +1085,20 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
         // if an m-line does not have a corresponding transceiver created by the user, we create a fake transceiver
         CHK_STATUS(findTransceiversByRemoteDescription(pKvsPeerConnection, pRemoteSessionDescription, pUnknownCodecPayloadTypesTable,
                                                        pUnknownCodecRtpmapTable));
+
+        {
+            UINT32 localTransceiverCount = 0, answerTransceiverCount = 0;
+            doubleListGetNodeCount(pKvsPeerConnection->pTransceivers, &localTransceiverCount);
+            doubleListGetNodeCount(pKvsPeerConnection->pAnswerTransceivers, &answerTransceiverCount);
+            if (localTransceiverCount > answerTransceiverCount) {
+                DLOGW("Only %u of %u local transceivers matched remote offer m-lines (%u media). "
+                      "%u transceivers will not be negotiated. "
+                      "Ensure the remote peer's offer includes a matching number of m-lines (e.g. addTransceiver() calls).",
+                      answerTransceiverCount, localTransceiverCount, pRemoteSessionDescription->mediaCount,
+                      localTransceiverCount - answerTransceiverCount);
+            }
+        }
+
         // pAnswerTransceivers contains transceivers created by the user as well as fake transceivers
         CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pAnswerTransceivers, &pCurNode));
         while (pCurNode != NULL) {
@@ -1518,6 +1532,8 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
 
         // if we have not found a transceiver for an m-line or if the codec is unsupported, got to this section to generate a fake transceiver
         if (!foundMediaSectionWithCodec && (streamKind == MEDIA_STREAM_TRACK_KIND_AUDIO || streamKind == MEDIA_STREAM_TRACK_KIND_VIDEO)) {
+            DLOGW("No matching local transceiver for remote %s m-line %u, responding with inactive direction",
+                  streamKind == MEDIA_STREAM_TRACK_KIND_AUDIO ? "audio" : "video", currentMedia);
             MEMSET(&track, 0x00, SIZEOF(RtcMediaStreamTrack));
             track.kind = streamKind;
             track.codec = RTC_CODEC_UNKNOWN;
