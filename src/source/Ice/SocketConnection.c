@@ -535,10 +535,28 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
     }
 
     while (socketWriteAttempt < MAX_SOCKET_WRITE_RETRY && bytesWritten < bufLen) {
+#ifdef FAULT_INJECT_TURN_EAGAIN
+        if (pDestIp != NULL && pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_UDP && pDestIp->port == (UINT16) getInt16((INT16) 443)) {
+            result = -1;
+            errno = EAGAIN;
+        } else {
+            result = sendto(pSocketConnection->localSocket, buf + bytesWritten, bufLen - bytesWritten, NO_SIGNAL_SEND, destAddr, addrLen);
+        }
+#else
         result = sendto(pSocketConnection->localSocket, buf + bytesWritten, bufLen - bytesWritten, NO_SIGNAL_SEND, destAddr, addrLen);
+#endif
         if (result < 0) {
             errorNum = getErrorCode();
             if (errorNum == EAGAIN || errorNum == EWOULDBLOCK) {
+#ifdef FAULT_INJECT_TURN_EAGAIN
+                if (pDestIp != NULL && pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_UDP &&
+                    pDestIp->port == (UINT16) getInt16((INT16) 443)) {
+                    DLOGE("poll() timed out");
+                    THREAD_SLEEP(SOCKET_SEND_RETRY_TIMEOUT_MILLI_SECOND * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+                    socketWriteAttempt++;
+                    continue;
+                }
+#endif
                 MEMSET(&wfds, 0x00, SIZEOF(struct pollfd));
                 wfds.fd = pSocketConnection->localSocket;
                 wfds.events = POLLOUT;

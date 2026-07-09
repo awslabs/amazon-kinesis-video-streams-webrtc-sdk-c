@@ -37,6 +37,7 @@ option(ENABLE_STATS_CALCULATION_CONTROL "Enable support for runtime control of i
 option(BUILD_OLD_MBEDTLS_VERSION "Use MbedTLS version 2.28.8." OFF)
 option(INCREASE_PRECISION_TIMING_LOGS "PROFILE-level timing logs have 2 decimals of milliseconds (otherwise truncated to whole millisecond)" ON)
 option(PARALLEL_BUILD "Build dependencies with parallel flag" OFF)
+option(FAULT_INJECT_TURN_EAGAIN "Inject EAGAIN on UDP sends to port 443 (TURN) to test ICE resilience" OFF)
 
 # Tuning
 set(MAX_SDP_SESSION_MEDIA_COUNT "5" CACHE STRING "Maximum number of SDP media sections (m= lines). Range: 1-6. Each slot adds ~140 KB to stack-allocated SessionDescription. See docs/SDP_MEDIA_COUNT.md.")
@@ -191,6 +192,10 @@ add_definitions(-DCMAKE_DETECTED_CACERT_PATH)
 
 if (ENABLE_KVS_THREADPOOL)
   add_definitions(-DENABLE_KVS_THREADPOOL)
+endif()
+
+if (FAULT_INJECT_TURN_EAGAIN)
+  add_definitions(-DFAULT_INJECT_TURN_EAGAIN)
 endif()
 
 if (ENABLE_STATS_CALCULATION_CONTROL)
