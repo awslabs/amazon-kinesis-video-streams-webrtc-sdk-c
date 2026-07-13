@@ -188,20 +188,32 @@ static esp_err_t queue_all_buffers(v4l2_src_t *v4l2)
     }
 
     for (int i = 0; i < BUFFER_COUNT; i++) {
-        v4l2->v4l2_buf[i].type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        v4l2->v4l2_buf[i].memory = USE_V4L2_USERPTR ? V4L2_MEMORY_USERPTR : V4L2_MEMORY_MMAP;
-        v4l2->v4l2_buf[i].index = i;
+        /* Rebuild the descriptor from scratch. Reusing the struct left over
+         * from the previous session's last DQBUF would carry stale fields
+         * (flags such as DONE/ERROR, bytesused, sequence, timestamp) into the
+         * requeue; the driver's queue accounting then diverges from the DMA
+         * engine — STREAMON succeeds but DQBUF never delivers a frame (black
+         * video on the second and later sessions). The backing memory
+         * (cap_buffer[]/buffer_size[]) is kept — only bookkeeping is reset. */
+        struct v4l2_buffer buf;
+        memset(&buf, 0, sizeof(buf));
+        buf.type   = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        buf.memory = USE_V4L2_USERPTR ? V4L2_MEMORY_USERPTR : V4L2_MEMORY_MMAP;
+        buf.index  = i;
+
         v4l2->fb_used[i] = false;
 
         if (USE_V4L2_USERPTR) {
-            v4l2->v4l2_buf[i].m.userptr = (unsigned long)v4l2->cap_buffer[i];
-            v4l2->v4l2_buf[i].length = v4l2->buffer_size[i];  /* Restore from saved size */
             if (v4l2->buffer_size[i] == 0) {
                 ESP_LOGE(TAG, "USERPTR buffer size not set for buffer %d", i);
                 return ESP_FAIL;
             }
-            v4l2->v4l2_buf[i].bytesused = 0;
+            buf.m.userptr  = (unsigned long)v4l2->cap_buffer[i];
+            buf.length     = v4l2->buffer_size[i];  /* Restore from saved size */
+            buf.bytesused  = 0;
         }
+
+        v4l2->v4l2_buf[i] = buf;
 
         if (ioctl(v4l2->cap_fd, VIDIOC_QBUF, &v4l2->v4l2_buf[i]) < 0) {
             ESP_LOGE(TAG, "Failed to requeue buffer %d, errno: %d", i, errno);
@@ -352,21 +364,29 @@ esp_err_t esp_video_if_deinit(void)
         return ESP_OK;
     }
 
-    ESP_LOGD(TAG, "Deinitializing camera hardware (keeping buffers for reuse)");
+    ESP_LOGD(TAG, "Deinitializing camera hardware (keeping fd open and buffers for reuse)");
 
-    // Stop streaming first (stops frame capture and reduces power consumption)
+    /* Stop streaming only. We deliberately keep the fd OPEN and the USERPTR
+     * buffers allocated across sessions:
+     *
+     *  - Keeping the buffers avoids re-allocating the large aligned PSRAM
+     *    blocks every session (heap fragmentation — the point of this change).
+     *  - Keeping the fd open avoids the close()/reopen()+REQBUFS dance, which
+     *    tears down and rebuilds the driver's device + sensor state. That
+     *    close/reopen cycle is unreliable across sessions: STREAMON succeeds
+     *    but DQBUF never delivers a frame (black video). A persistent fd with
+     *    a plain STREAMOFF -> (requeue) -> STREAMON is the canonical V4L2
+     *    stop/start and restarts cleanly every time.
+     *
+     * esp_video_if_stop() does the STREAMOFF; STREAMOFF returns every buffer
+     * to the dequeued state so the next start can QBUF them all again. */
     esp_video_if_stop();
 
 #if USE_V4L2_USERPTR
-    /* For USERPTR: Close fd to power down hardware, but keep buffer memory */
-    if (g_v4l2->cap_fd >= 0) {
-        close(g_v4l2->cap_fd);
-        g_v4l2->cap_fd = -1;
-        ESP_LOGD(TAG, "Closed camera fd (hardware powered down, USERPTR buffers retained)");
-    }
-#else
-    /* For MMAP: Keep fd open so buffers remain valid */
-    ESP_LOGD(TAG, "Kept fd open (MMAP buffers remain valid)");
+    /* Allow any concurrent DQBUF ioctl to finish unwinding after STREAMOFF
+     * before the caller proceeds; without this, tearing down state while
+     * DQBUF is still returning can crash. */
+    vTaskDelay(pdMS_TO_TICKS(50));
 #endif
 
     return ESP_OK;
