@@ -205,6 +205,14 @@ static esp_err_t queue_all_buffers(v4l2_src_t *v4l2)
 
         if (ioctl(v4l2->cap_fd, VIDIOC_QBUF, &v4l2->v4l2_buf[i]) < 0) {
             ESP_LOGE(TAG, "Failed to requeue buffer %d, errno: %d", i, errno);
+            /* Buffers 0..i-1 are already queued to the driver. Flush them with
+             * STREAMOFF (legal before STREAMON; returns every queued buffer to
+             * the dequeued state) so the driver is not left half-queued and a
+             * later start attempt begins from a clean queue. */
+            int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            if (i > 0 && ioctl(v4l2->cap_fd, VIDIOC_STREAMOFF, &type) < 0) {
+                ESP_LOGE(TAG, "STREAMOFF after partial queue failed, errno: %d (full re-init required)", errno);
+            }
             return ESP_FAIL;
         }
     }
@@ -226,6 +234,15 @@ static video_fb_t *video_fb_get_cb(void *cb_ctx)
             int ret = ioctl(v4l2->cap_fd, VIDIOC_DQBUF, &buf);
             if (ret != 0) {
                 ESP_LOGE(TAG, "failed to receive video frame ret %d", ret);
+                return NULL;
+            }
+
+            /* Guard the driver-supplied index before it touches fb_used[] /
+             * cap_buffer[] / v4l2_buf[] (all sized BUFFER_COUNT): a buggy or
+             * racing driver returning an unexpected index must not become an
+             * out-of-bounds write. */
+            if (buf.index >= BUFFER_COUNT) {
+                ESP_LOGE(TAG, "DQBUF returned out-of-range buffer index %u", (unsigned) buf.index);
                 return NULL;
             }
 
