@@ -17,6 +17,13 @@ dependencies:
 
   espressif/esp_audio_codec:
     version: "*"
+    matches:
+      # esp_audio_codec 2.6.0's P4 opus_xcorr_kernel_4_opt uses instructions that
+      # fault on P4 rev < 3 silicon (not runtime-guarded upstream). Cap below 2.6.0
+      # for rev < 3; the else clause keeps the latest everywhere else.
+      - if: 'target == "esp32p4" && $CONFIG{ESP32P4_REV_MIN_FULL} < 300'
+        version: "<2.6.0"
+      - if: 'target != "esp32p4" || $CONFIG{ESP32P4_REV_MIN_FULL} >= 300'
 
   espressif/esp_codec_dev:
     version: "*"

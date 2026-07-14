@@ -37,11 +37,14 @@ esp_err_t esp_video_if_init(void);
 esp_err_t esp_video_if_stop(void);
 
 /**
- * @brief Deinitialize the video interface and release camera hardware
+ * @brief Deinitialize the video interface while retaining mmap buffers
  *
- * This function fully deinitializes the camera hardware, closes the device,
- * and frees all resources. Should be called when camera is no longer needed
- * to save power and address security concerns.
+ * This function stops streaming but keeps the mmap buffers and fd open so the next
+ * init/start cycle can reuse them without reallocation. The camera hardware may
+ * remain powered because the fd stays open.
+ *
+ * For a full cleanup (free buffers, close fd, release resources), call
+ * esp_video_if_cleanup().
  *
  * @return esp_err_t ESP_OK on success, otherwise an error code
  */
@@ -78,3 +81,14 @@ void esp_video_if_release_frame(video_fb_t *fb);
  *  - ESP_ERR_INVALID_STATE: Video interface not initialized
  */
 esp_err_t esp_video_if_get_resolution(video_resolution_t *resolution);
+
+/**
+ * @brief Cleanup mapped buffers and close camera fd
+ *
+ * This function explicitly frees mapped buffers and closes the camera file
+ * descriptor. After this, a subsequent esp_video_if_init/start cycle will
+ * reallocate buffers.
+ *
+ * @return esp_err_t ESP_OK on success, otherwise an error code
+ */
+esp_err_t esp_video_if_cleanup(void);
