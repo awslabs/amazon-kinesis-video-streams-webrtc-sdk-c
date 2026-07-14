@@ -639,7 +639,24 @@ static esp_err_t configure_camera_format(v4l2_src_t *v4l2, uint32_t pixelformat)
         }
     }
 
-    ESP_LOGE(TAG, "Failed to set any supported format. Check the camera resolution in menuconfig");
+    /* None of the requested/fallback resolutions could be set. Rather than treating
+     * this as fatal, fall back to whatever format the sensor is already in: query it
+     * with VIDIOC_G_FMT, adopt it as the current resolution, warn, and continue. Some
+     * sensors reject S_FMT but still deliver a usable current format. */
+    struct v4l2_format current_format = {0};
+    current_format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    if (ioctl(v4l2->cap_fd, VIDIOC_G_FMT, &current_format) == 0) {
+        g_current_resolution.width = current_format.fmt.pix.width;
+        g_current_resolution.height = current_format.fmt.pix.height;
+        g_current_resolution.fps = g_desired_resolution.fps ? g_desired_resolution.fps : 30;
+        ESP_LOGW(TAG,
+                 "Could not set any requested resolution; using the sensor's current format %dx%d "
+                 "(check the camera resolution in menuconfig if this is unexpected)",
+                 (int) g_current_resolution.width, (int) g_current_resolution.height);
+        return ESP_OK;
+    }
+
+    ESP_LOGE(TAG, "Failed to set any supported format and could not query the current one (errno %d)", errno);
     return ESP_FAIL;
 }
 
