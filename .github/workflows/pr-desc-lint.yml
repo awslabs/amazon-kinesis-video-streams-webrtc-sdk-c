@@ -25,8 +25,9 @@ jobs:
       - name: Check PR Description
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          pr_link="https://github.com/${GITHUB_REPOSITORY}/pull/${{ github.event.pull_request.number }}"
+          pr_link="https://github.com/${GITHUB_REPOSITORY}/pull/${PR_NUMBER}"
           
           echo "$pr_link"
           
