@@ -328,9 +328,10 @@ After executing `make` you will have sample applications in your `build/samples`
 ##### Sample: kvsWebrtcClientMaster
 This application sends sample H264/Opus frames (path: `/samples/h264SampleFrames` and `/samples/opusSampleFrames`) via WebRTC. It also accepts incoming audio, if enabled in the browser. When checked in the browser, it prints the metadata of the received audio packets in your terminal. To run:
 ```shell
-./samples/kvsWebrtcClientMaster <channelName> <audio-codec> <video-codec>
+./samples/kvsWebrtcClientMaster <channelName> <mediaType> <audio-codec> <video-codec>
 ```
 
+Allowed mediaType: audio-video (default if nothing is specified), video-only
 Allowed audio-codec: opus (default codec if nothing is specified)
 Allowed video-codec: h264 (default codec if nothing is specified), h265
 
