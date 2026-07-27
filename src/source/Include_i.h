@@ -35,15 +35,50 @@ extern "C" {
 #include <openssl/sha.h>
 #include <openssl/ssl.h>
 #elif KVS_USE_MBEDTLS
+/* mbedTLS 4 moved legacy entropy/CTR-DRBG/hash/RSA/ECP/bignum headers under
+ * mbedtls/private/ and gates their prototypes behind
+ * MBEDTLS_DECLARE_PRIVATE_IDENTIFIERS. The symbols still ship in libmbedcrypto,
+ * so we declare the macro before mbedtls/ssl.h to re-expose them across all
+ * includes below. Note: the mbedtls/private/ headers are explicitly unsupported upstream
+ * and may break across v4.x point releases. TODO: migrate to PSA Crypto APIs
+ * (psa_crypto_init + psa_generate_random + psa_hash_compute + psa_mac_compute)
+ * in a follow-up so we can drop this opt-out. */
+/* Nested guard: a bare __has_include(...) in an #if is a syntax error on
+ * pre-C23 / older compilers (e.g. GCC < 5) — the && does not stop the parse.
+ * #ifdef __has_include is safe everywhere; only use the operator when present. */
+#ifdef __has_include
+#if __has_include(<mbedtls/build_info.h>)
+#include <mbedtls/build_info.h>
+#else
+#include <mbedtls/version.h>
+#endif
+#else
+#include <mbedtls/version.h>
+#endif
+#if defined(MBEDTLS_VERSION_NUMBER) && MBEDTLS_VERSION_MAJOR >= 4
+#define MBEDTLS_DECLARE_PRIVATE_IDENTIFIERS
+#endif
 #include <mbedtls/ssl.h>
+#include <mbedtls/error.h>
+#if defined(MBEDTLS_VERSION_NUMBER) && MBEDTLS_VERSION_MAJOR >= 4
+#include <mbedtls/private/entropy.h>
+#include <mbedtls/private/ctr_drbg.h>
+#include <mbedtls/private/sha256.h>
+#include <mbedtls/private/md5.h>
+#include <mbedtls/md.h>
+#include <mbedtls/pk.h>
+#include <mbedtls/private/rsa.h>
+#include <mbedtls/private/ecp.h>
+#include <mbedtls/private/bignum.h>
+#else
 #include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
-#include <mbedtls/error.h>
 #if MBEDTLS_VERSION_NUMBER < 0x03000000
 #include <mbedtls/certs.h>
 #endif
 #include <mbedtls/sha256.h>
 #include <mbedtls/md5.h>
+#endif
 #endif
 
 #ifdef USE_LIBSRTP3

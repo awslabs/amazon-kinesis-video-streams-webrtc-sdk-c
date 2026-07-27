@@ -78,7 +78,16 @@ typedef enum {
 #define KVS_RSA_F4             0x10001L
 #define KVS_MD5_DIGEST_LENGTH  16
 #define KVS_SHA1_DIGEST_LENGTH 20
-#if MBEDTLS_VERSION_NUMBER >= 0x03000000
+#if MBEDTLS_VERSION_MAJOR >= 4
+/* TF-PSA-Crypto 1.0 (mbedTLS 4) removed the legacy MBEDTLS_MD5_C module and the
+ * one-shot mbedtls_md5(); MD5 is reachable only through PSA (PSA_WANT_ALG_MD5). */
+#define KVS_MD5_DIGEST(m, mlen, ob)                                                                                                                  \
+    do {                                                                                                                                             \
+        size_t _kvsMd5Len = 0;                                                                                                                       \
+        (void) psa_crypto_init();                                                                                                                    \
+        (void) psa_hash_compute(PSA_ALG_MD5, (const unsigned char*) (m), (mlen), (unsigned char*) (ob), KVS_MD5_DIGEST_LENGTH, &_kvsMd5Len);         \
+    } while (0);
+#elif MBEDTLS_VERSION_NUMBER >= 0x03000000
 #define KVS_MD5_DIGEST(m, mlen, ob) mbedtls_md5((m), (mlen), (ob));
 #else
 #define KVS_MD5_DIGEST(m, mlen, ob) mbedtls_md5_ret((m), (mlen), (ob));
@@ -86,9 +95,19 @@ typedef enum {
 #define KVS_SHA1_HMAC(k, klen, m, mlen, ob, plen)                                                                                                    \
     CHK(0 == mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA1), (k), (klen), (m), (mlen), (ob)), STATUS_HMAC_GENERATION_ERROR);             \
     *(plen) = mbedtls_md_get_size(mbedtls_md_info_from_type(MBEDTLS_MD_SHA1));
+#if MBEDTLS_VERSION_MAJOR >= 4
+/* PSA Crypto must be initialised before any psa_* call. psa_crypto_init() is
+ * idempotent; calling it once from the SDK init path avoids the per-session
+ * race on builds without MBEDTLS_THREADING_C. */
+#define KVS_CRYPTO_INIT()                                                                                                                            \
+    do {                                                                                                                                             \
+        (void) psa_crypto_init();                                                                                                                    \
+    } while (0)
+#else
 #define KVS_CRYPTO_INIT()                                                                                                                            \
     do {                                                                                                                                             \
     } while (0)
+#endif
 #define LOG_MBEDTLS_ERROR(s, ret)                                                                                                                    \
     do {                                                                                                                                             \
         CHAR __mbedtlsErr[1024];                                                                                                                     \
