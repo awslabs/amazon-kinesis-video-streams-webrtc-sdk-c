@@ -26,7 +26,15 @@ PRIVATE_API STATUS readCACertificate(PCHAR pCaCertPath, PBYTE* ppCaCertBuf, PUIN
     CHK_STATUS(readFile(pCaCertPath, FALSE, cert_buf, &cert_len));
 
     *ppCaCertBuf = cert_buf;
+#ifdef KVS_USE_MBEDTLS
+    // mbedTLS's x509 parser treats the buffer as PEM only when buf[len-1]=='\0',
+    // i.e. buflen must include the NUL terminator (per mbedtls_x509_crt_parse);
+    // otherwise it tries DER and fails with MBEDTLS_ERR_X509_INVALID_FORMAT. The
+    // OpenSSL path expects the content length, so leave it unchanged there.
+    *pCaCertBufLen = (UINT32) cert_len + 1;
+#else
     *pCaCertBufLen = (UINT32) cert_len;
+#endif
     cert_buf = NULL; // So that it is not freed by SAFE_MEMFREE
 
 CleanUp:
@@ -154,6 +162,12 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
 
     MEMSET(&creationInfo, 0x00, SIZEOF(struct lws_context_creation_info));
     creationInfo.options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
+#ifdef LWS_SERVER_OPTION_H2_JUST_FIX_WINDOW_UPDATE_OVERFLOW
+    // KVS resource endpoints negotiate HTTP/2 and advertise a flow-control window
+    // that overshoots the RFC 7540 max (2^31-1) by one; lws rejects it and the
+    // GetIceServerConfig call fails. This option clamps the overshoot instead.
+    creationInfo.options |= LWS_SERVER_OPTION_H2_JUST_FIX_WINDOW_UPDATE_OVERFLOW;
+#endif
     creationInfo.port = CONTEXT_PORT_NO_LISTEN;
     creationInfo.protocols = pProtocols;
     creationInfo.timeout_secs = SIGNALING_SERVICE_API_CALL_TIMEOUT_IN_SECONDS;
@@ -162,7 +176,14 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK_STATUS(readCACertificate(pChannelInfo->pCertPath, &caCertBuf, &caCertBufLen));
     creationInfo.client_ssl_ca_mem = caCertBuf;
     creationInfo.client_ssl_ca_mem_len = caCertBufLen;
+#ifdef KVS_USE_MBEDTLS4
+    // The mbedTLS 4 build pulls a mainline libwebsockets whose mbedTLS backend
+    // rejects the OpenSSL cipher-category alias "HIGH" and fails vhost creation.
+    // NULL selects mbedTLS's defaults. (v3.x lws tolerates the string.)
+    creationInfo.client_ssl_cipher_list = NULL;
+#else
     creationInfo.client_ssl_cipher_list = "HIGH:!PSK:!RSP:!eNULL:!aNULL:!RC4:!MD5:!DES:!3DES:!aDH:!kDH:!DSS";
+#endif
     creationInfo.ka_time = SIGNALING_SERVICE_TCP_KEEPALIVE_IN_SECONDS;
     creationInfo.ka_probes = SIGNALING_SERVICE_TCP_KEEPALIVE_PROBE_COUNT;
     creationInfo.ka_interval = SIGNALING_SERVICE_TCP_KEEPALIVE_PROBE_INTERVAL_IN_SECONDS;
