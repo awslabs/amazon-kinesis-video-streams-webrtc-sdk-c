@@ -88,6 +88,8 @@ jobs:
             cmake_flags: "-DBUILD_TEST=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DUSE_LIBSRTP3=ON -DPARALLEL_BUILD=ON"
           - name: Shared OpenSSL3 from source
             cmake_flags: "-DBUILD_TEST=ON -DUSE_OPENSSL3=ON -DPARALLEL_BUILD=ON"
+          - name: Shared MbedTLS libsrtp3 mbedTLS4
+            cmake_flags: "-DBUILD_TEST=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DUSE_LIBSRTP3=ON -DUSE_MBEDTLS4=ON -DPARALLEL_BUILD=ON"
           - name: Shared OpenSSL System Deps
             # Tests disabled (due to dependency issues): 
             # - GCC: Homebrew's libgtest is built with
@@ -130,6 +132,18 @@ jobs:
         if: ${{ matrix.config.system_deps }}
         run: |
           brew install srtp libusrsctp libwebsockets googletest
+
+      # The mbedTLS 4 build fetches libwebsockets from a mainline SHA whose
+      # codegen step imports jsonschema; the v4.3.10 release path does not.
+      - name: Set up Python (libwebsockets mainline codegen)
+        if: ${{ contains(matrix.config.cmake_flags, 'USE_MBEDTLS4') }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install jsonschema + jinja2
+        if: ${{ contains(matrix.config.cmake_flags, 'USE_MBEDTLS4') }}
+        run: pip install jsonschema jinja2
 
       - name: Configure and build ${{ matrix.config.name }}
         run: |
