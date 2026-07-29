@@ -1978,6 +1978,177 @@ TEST_F(PeerConnectionFunctionalityTest, renegotiateDirectionChangeOnly)
     freePeerConnection(&answerPc);
 }
 
+
+// Re-negotiation while a writeFrame loop is running on another thread for the
+// SAME session: direction flips to INACTIVE and back mid-stream. writeFrame
+// must never crash or touch freed state (the rolling buffer/retransmitter are
+// reused across renegotiations, not reallocated), and it becomes a no-op
+// (returning success) while the direction excludes sending.
+TEST_F(PeerConnectionFunctionalityTest, renegotiateWhileStreamingFrames)
+{
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit sdp;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack;
+    PRtcRtpTransceiver offerVideoTransceiver = NULL, answerVideoTransceiver = NULL;
+    PKvsRtpTransceiver pOfferKvsTransceiver = NULL;
+    SIZE_T stopFrames = FALSE;
+    BYTE frameData[128];
+    Frame frame;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(frameData, 0x11, SIZEOF(frameData));
+    MEMSET(&frame, 0x00, SIZEOF(Frame));
+    frame.frameData = frameData;
+    frame.size = SIZEOF(frameData);
+    frame.presentationTs = 0;
+    frame.flags = FRAME_FLAG_KEY_FRAME;
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    this->lock.lock();
+    for (auto& th : this->threads)
+        th.join();
+    this->threads.clear();
+    this->noNewThreads = FALSE;
+    this->lock.unlock();
+
+    // Frame hammer on the offerer's video sender.
+    std::thread frameWorker([&]() {
+        Frame localFrame = frame;
+        while (!ATOMIC_LOAD_BOOL(&stopFrames)) {
+            EXPECT_EQ(STATUS_SUCCESS, writeFrame(offerVideoTransceiver, &localFrame));
+            localFrame.presentationTs += (HUNDREDS_OF_NANOS_IN_A_SECOND / 25);
+            THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        }
+    });
+
+    pOfferKvsTransceiver = (PKvsRtpTransceiver) offerVideoTransceiver;
+
+    // Several full renegotiation cycles while frames are being written.
+    for (int round = 0; round < 4; round++) {
+        BOOL pause = (round % 2 == 0);
+        pOfferKvsTransceiver->transceiver.direction = pause ? RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE : RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+
+        EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sdp));
+        EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(offerPc, &sdp));
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(answerPc, &sdp));
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(answerPc, &sdp));
+        EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(answerPc, &sdp));
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(offerPc, &sdp));
+
+        THREAD_SLEEP(200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+
+    ATOMIC_STORE_BOOL(&stopFrames, TRUE);
+    frameWorker.join();
+
+    // The connection must have survived all cycles. Renegotiation bounces the
+    // connection state transiently, so poll for it to settle back to CONNECTED
+    // rather than asserting the instantaneous value.
+    BOOL reconnected = FALSE;
+    for (int waitMs = 0; waitMs < 15000 && !reconnected; waitMs += 100) {
+        reconnected = (((PKvsPeerConnection) offerPc)->connectionState == RTC_PEER_CONNECTION_STATE_CONNECTED);
+        if (!reconnected) {
+            THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        }
+    }
+    EXPECT_TRUE(reconnected) << "connection did not settle back to CONNECTED after renegotiations under streaming";
+
+    this->lock.lock();
+    for (auto& th : this->threads)
+        th.join();
+    this->threads.clear();
+    this->noNewThreads = TRUE;
+    this->lock.unlock();
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+// Two independent sessions renegotiating CONCURRENTLY from separate threads
+// (the SDK-level analog of two viewers re-offering to the same master at
+// once): no crashes, no cross-session interference, both stay connected.
+TEST_F(PeerConnectionFunctionalityTest, concurrentRenegotiationAcrossSessions)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc[2] = {NULL, NULL}, answerPc[2] = {NULL, NULL};
+    RtcMediaStreamTrack offerTrack[2], answerTrack[2];
+    PRtcRtpTransceiver offerTransceiver[2] = {NULL, NULL}, answerTransceiver[2] = {NULL, NULL};
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    for (int i = 0; i < 2; i++) {
+        EXPECT_EQ(createPeerConnection(&configuration, &offerPc[i]), STATUS_SUCCESS);
+        EXPECT_EQ(createPeerConnection(&configuration, &answerPc[i]), STATUS_SUCCESS);
+        addTrackToPeerConnection(offerPc[i], &offerTrack[i], &offerTransceiver[i], RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+        addTrackToPeerConnection(answerPc[i], &answerTrack[i], &answerTransceiver[i], RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+        EXPECT_EQ(connectTwoPeers(offerPc[i], answerPc[i]), TRUE);
+    }
+
+    this->lock.lock();
+    for (auto& th : this->threads)
+        th.join();
+    this->threads.clear();
+    this->noNewThreads = FALSE;
+    this->lock.unlock();
+
+    auto renegotiateWorker = [](PRtcPeerConnection offer, PRtcPeerConnection answer, PRtcRtpTransceiver transceiver) {
+        for (int round = 0; round < 4; round++) {
+            RtcSessionDescriptionInit sdp{};
+            PKvsRtpTransceiver pKvs = (PKvsRtpTransceiver) transceiver;
+            pKvs->transceiver.direction = (round % 2 == 0) ? RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY : RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+            EXPECT_EQ(STATUS_SUCCESS, createOffer(offer, &sdp));
+            EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(offer, &sdp));
+            EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(answer, &sdp));
+            EXPECT_EQ(STATUS_SUCCESS, createAnswer(answer, &sdp));
+            EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(answer, &sdp));
+            EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(offer, &sdp));
+            THREAD_SLEEP(50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        }
+    };
+
+    std::thread session0(renegotiateWorker, offerPc[0], answerPc[0], offerTransceiver[0]);
+    std::thread session1(renegotiateWorker, offerPc[1], answerPc[1], offerTransceiver[1]);
+    session0.join();
+    session1.join();
+
+    // Same transient-state consideration as above: poll for both sessions to
+    // settle back to CONNECTED after their concurrent renegotiation storms.
+    for (int i = 0; i < 2; i++) {
+        BOOL reconnected = FALSE;
+        for (int waitMs = 0; waitMs < 15000 && !reconnected; waitMs += 100) {
+            reconnected = (((PKvsPeerConnection) offerPc[i])->connectionState == RTC_PEER_CONNECTION_STATE_CONNECTED);
+            if (!reconnected) {
+                THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+            }
+        }
+        EXPECT_TRUE(reconnected) << "session " << i << " did not settle back to CONNECTED after concurrent renegotiations";
+    }
+
+    this->lock.lock();
+    for (auto& th : this->threads)
+        th.join();
+    this->threads.clear();
+    this->noNewThreads = TRUE;
+    this->lock.unlock();
+
+    for (int i = 0; i < 2; i++) {
+        closePeerConnection(offerPc[i]);
+        closePeerConnection(answerPc[i]);
+        freePeerConnection(&offerPc[i]);
+        freePeerConnection(&answerPc[i]);
+    }
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
