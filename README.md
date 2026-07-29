@@ -126,10 +126,13 @@ $env:Path += ';C:\webrtc\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre
 
 These would be applicable if the SDK is being linked with system dependencies instead of building from source by the SDK.
 `libmbedtls`: `>= 2.25.0 & < 4.x.x`
-`libopenssl`: `= 1.1.1x`
+`libopenssl`: `= 1.1.1x` or `>= 3.0.0`
 `libsrtp2` : `<= 2.5.0`
 `libusrsctp` : `<= 0.9.5.0`
 `libwebsockets` : `>= 4.2.0`
+
+> [!NOTE]
+> OpenSSL 3.x support was added in v1.20.0. The SDK still builds against 1.1.1t by default (OpenSSL 1.1.1 reached End-of-Life in September 2023). Enable 3.x by passing `-DUSE_OPENSSL3=ON`; when linking against a system OpenSSL that is already >= 3.0, the flag is auto-enabled. See [Building against OpenSSL 3.x](#building-against-openssl-3x) for details.
 
 #### Cross-Compilation
 
@@ -152,6 +155,7 @@ You can pass the following options to `cmake ..`:
 * `-DBUILD_WEBSOCKETS` -- Build libwebsockets from source. Defaults to value of BUILD_DEPENDENCIES.
 * `-DBUILD_SRTP` -- Build libsrtp from source. Defaults to value of BUILD_DEPENDENCIES.
 * `-DUSE_LIBSRTP3` -- Build and link against libsrtp 3.x (cisco/libsrtp `main`, renamed to `libsrtp3`) instead of the long-standing 2.x default. OFF by default. The 3.x line adds PSA Crypto / mbedTLS 4 support but introduces public API breaks (opaque `srtp_policy_t`, separate src/dst buffers on `srtp_protect`/`srtp_unprotect`, separate master key + salt) — these are handled internally by the SDK. Use this if your platform requires mbedTLS 4 (e.g. ESP-IDF v6).
+* `-DUSE_OPENSSL3` -- Build and link against OpenSSL 3.x (git tag `openssl-3.5.7`) instead of the default 1.1.1t (`OpenSSL_1_1_1t`). OFF by default. When linking against a system OpenSSL that is already >= 3.0, this flag is auto-enabled. The mbedTLS path is unaffected. See [Building against OpenSSL 3.x](#building-against-openssl-3x) for usage.
 * `-DBUILD_USRSCTP` -- Build libusrsctp from source. Defaults to value of BUILD_DEPENDENCIES.
 * `-DBUILD_OPENSSL_PLATFORM` -- If building OpenSSL what is the target platform
 * `-DBUILD_LIBSRTP_HOST_PLATFORM` -- If building LibSRTP what is the current platform
@@ -242,6 +246,39 @@ Available per-dependency flags:
 * `-DBUILD_WEBSOCKETS=ON/OFF` -- Build libwebsockets from source (default: same as BUILD_DEPENDENCIES)
 * `-DBUILD_SRTP=ON/OFF` -- Build libsrtp from source (default: same as BUILD_DEPENDENCIES)
 * `-DBUILD_USRSCTP=ON/OFF` -- Build libusrsctp from source (default: same as BUILD_DEPENDENCIES)
+
+### Building against OpenSSL 3.x
+
+Starting with v1.20.0, the SDK builds and runs against OpenSSL 3.x in addition to the existing 1.1.1t and 1.0.2 paths. OpenSSL 1.1.1 reached End-of-Life in September 2023 and no longer receives security patches, so we recommend moving to 3.x on new deployments. All 3.x code paths sit behind `#if OPENSSL_VERSION_NUMBER >= 0x30000000L` guards and the existing 1.1.1t, 1.0.2 and the mbedTLS path is code paths are unaffected.
+
+Build OpenSSL 3.x from source alongside the SDK:
+
+```shell
+cmake .. -DBUILD_DEPENDENCIES=ON -DUSE_OPENSSL=ON -DUSE_OPENSSL3=ON
+```
+
+This builds openssl version 3.5.7 using git tag `openssl-3.5.7` for the OpenSSL ExternalProject and defines `-DKVS_USE_OPENSSL3` so the crypto layer compiles against the 3.x APIs.
+
+Link against a system-installed OpenSSL 3.x (skip building deps):
+
+```shell
+cmake .. -DBUILD_DEPENDENCIES=OFF -DUSE_OPENSSL=ON
+```
+
+When the system OpenSSL is >= 3.0, `USE_OPENSSL3` is auto-enabled and `-DKVS_USE_OPENSSL3` is defined, you do not need to pass `-DUSE_OPENSSL3=ON` explicitly. Look for this in the CMake output:
+
+```
+-- Auto-detected system OpenSSL 3.x.x (>= 3.0). Enabling USE_OPENSSL3.
+```
+
+> [!CAUTION]
+> System-installed `libwebsockets` and `libsrtp` packages are typically linked against whichever OpenSSL major version shipped with the distro. Mixing an OpenSSL 3.x SDK build with system libwebsockets/libsrtp linked against OpenSSL 1.1.x (or vice versa) can produce linker errors or subtle runtime failures. If you hit this, rebuild libwebsockets and libsrtp from source with `-DBUILD_DEPENDENCIES=ON` (or `-DBUILD_WEBSOCKETS=ON -DBUILD_SRTP=ON`) so they are compiled against the same OpenSSL you selected.
+
+> [!TIP]
+> If you are unsure, recommendation is to enable SDK to build dependencies using `-DBUILD_DEPENDENCIES=ON`
+
+> [!NOTE]
+> `-DUSE_OPENSSL3` has no effect when `-DUSE_MBEDTLS=ON`, the mbedTLS crypto path does not depend on OpenSSL.
 
 ## Run
 ### Setup your environment with your AWS account credentials and AWS region:
