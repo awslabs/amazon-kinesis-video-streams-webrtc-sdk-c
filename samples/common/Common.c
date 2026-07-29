@@ -1132,6 +1132,69 @@ CleanUp:
     return retStatus;
 }
 
+// Log remote-inbound RTP stats for one transceiver. These stats are populated from RTCP receiver
+// reports sent by the remote peer (the media service in a storage session, or a viewer in a P2P session).
+static VOID logRemoteInboundStatsForTransceiver(PRtcPeerConnection pPeerConnection, PRtcRtpTransceiver pTransceiver, PCHAR streamName)
+{
+    RtcStats rtcStats;
+
+    if (pTransceiver == NULL) {
+        return;
+    }
+
+    rtcStats.requestedTypeOfStats = RTC_STATS_TYPE_REMOTE_INBOUND_RTP;
+    if (STATUS_SUCCEEDED(rtcPeerConnectionGetMetrics(pPeerConnection, pTransceiver, &rtcStats))) {
+        DLOGV("[remote-inbound %s] reportsReceived=%" PRIu64 " fractionLost=%.3f roundTripTime=%" PRIu64 " ms totalRoundTripTime=%" PRIu64
+              " rttMeasurements=%" PRIu64,
+              streamName, rtcStats.rtcStatsObject.remoteInboundRtpStreamStats.reportsReceived,
+              rtcStats.rtcStatsObject.remoteInboundRtpStreamStats.fractionLost, rtcStats.rtcStatsObject.remoteInboundRtpStreamStats.roundTripTime,
+              rtcStats.rtcStatsObject.remoteInboundRtpStreamStats.totalRoundTripTime,
+              rtcStats.rtcStatsObject.remoteInboundRtpStreamStats.roundTripTimeMeasurements);
+    }
+}
+
+// Thread routine that logs remote-inbound RTP stats for all streaming sessions every 10 seconds.
+// The stats are logged at VERBOSE level; callers should skip creating this thread when the configured
+// log level filters VERBOSE out. Runs until pSampleConfiguration->appTerminateFlag is set.
+PVOID getPeriodicRemoteInboundStats(PVOID args)
+{
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
+    PSampleStreamingSession pSampleStreamingSession;
+    UINT32 i, sleepCounter = 0;
+
+    CHK_LOG_ERR(pSampleConfiguration != NULL ? STATUS_SUCCESS : STATUS_NULL_ARG);
+    if (pSampleConfiguration == NULL) {
+        return NULL;
+    }
+
+    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
+        // Log stats every 10 seconds, but sleep in 1-second slices so the thread notices
+        // appTerminateFlag within ~1 second instead of stalling shutdown for up to 10 seconds
+        // (the sample joins this thread during cleanup).
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+        if (++sleepCounter < 10) {
+            continue;
+        }
+        sleepCounter = 0;
+
+        // Use trylock to avoid contending with session setup/teardown; on failure we simply skip
+        // this cycle. Stats are cumulative SDK counters, so nothing is lost by skipping a read.
+        if (!MUTEX_TRYLOCK(pSampleConfiguration->sampleConfigurationObjLock)) {
+            continue;
+        }
+        for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+            pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[i];
+            logRemoteInboundStatsForTransceiver(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pVideoRtcRtpTransceiver,
+                                                (PCHAR) "VIDEO");
+            logRemoteInboundStatsForTransceiver(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pAudioRtcRtpTransceiver,
+                                                (PCHAR) "AUDIO");
+        }
+        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    }
+
+    return NULL;
+}
+
 STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     UNUSED_PARAM(timerId);

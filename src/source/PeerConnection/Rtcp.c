@@ -118,12 +118,19 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
         lastSR = getUnalignedInt32BigEndian(pRtcpPacket->payload + reportBlockOffset + 16);
         delaySinceLastSR = getUnalignedInt32BigEndian(pRtcpPacket->payload + reportBlockOffset + 20);
 
-        DLOGI("RTCP inbound: RECEIVER_REPORT block %u/%u - senderSSRC=%u ssrc=%u fractionLost=%.3f cumulativeLost=%u extHiSeq=%u jitter=%u "
+        DLOGV("RTCP inbound: RECEIVER_REPORT block %u/%u - senderSSRC=%u ssrc=%u fractionLost=%.3f cumulativeLost=%u extHiSeq=%u jitter=%u "
               "lsr=%u dlsr=%u",
               i + 1, reportBlockCount, senderSSRC, ssrc, fractionLost, cumulativeLost, extHiSeqNumReceived, interarrivalJitter, lastSR,
               delaySinceLastSR);
 
-        rttPropDelayMsec = 0;
+        MUTEX_LOCK(pTransceiver->statsLock);
+        pTransceiver->remoteInboundStats.reportsReceived++;
+        if (fractionLost > -1.0) {
+            pTransceiver->remoteInboundStats.fractionLost = fractionLost;
+        }
+        // Only update RTT stats when the block carries a valid LSR; per Stats.h, roundTripTimeMeasurements
+        // counts report blocks "that contain a valid round trip time". A block with lastSR == 0 (the remote
+        // peer has not received a sender report yet) provides no RTT measurement.
         if (lastSR != 0) {
             // https://tools.ietf.org/html/rfc3550#section-6.4.1
             //      Source SSRC_n can compute the round-trip propagation delay to
@@ -134,16 +141,11 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
             rttPropDelay = MID_NTP(currentTimeNTP) - lastSR - delaySinceLastSR;
             rttPropDelayMsec = KVS_CONVERT_TIMESCALE(rttPropDelay, DLSR_TIMESCALE, 1000);
             DLOGS("RTCP_PACKET_TYPE_RECEIVER_REPORT rttPropDelay %u msec", rttPropDelayMsec);
-        }
 
-        MUTEX_LOCK(pTransceiver->statsLock);
-        pTransceiver->remoteInboundStats.reportsReceived++;
-        if (fractionLost > -1.0) {
-            pTransceiver->remoteInboundStats.fractionLost = fractionLost;
+            pTransceiver->remoteInboundStats.roundTripTimeMeasurements++;
+            pTransceiver->remoteInboundStats.totalRoundTripTime += rttPropDelayMsec;
+            pTransceiver->remoteInboundStats.roundTripTime = rttPropDelayMsec;
         }
-        pTransceiver->remoteInboundStats.roundTripTimeMeasurements++;
-        pTransceiver->remoteInboundStats.totalRoundTripTime += rttPropDelayMsec;
-        pTransceiver->remoteInboundStats.roundTripTime = rttPropDelayMsec;
         MUTEX_UNLOCK(pTransceiver->statsLock);
     }
 
@@ -665,8 +667,8 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
     while (currentOffset < buffLen) {
         CHK_STATUS(setRtcpPacketFromBytes(pBuff + currentOffset, buffLen - currentOffset, &rtcpPacket));
 
-        // Debug: log every RTCP packet received from the remote peer (200=SR, 201=RR, 202=SDES, 205=RTPFB/NACK/TWCC, 206=PSFB/PLI/REMB)
-        DLOGI("RTCP inbound: packetType=%u fmt/rc=%u payloadLength=%u (compound offset %u/%u)", rtcpPacket.header.packetType,
+        // Log every RTCP packet received from the remote peer (200=SR, 201=RR, 202=SDES, 205=RTPFB/NACK/TWCC, 206=PSFB/PLI/REMB)
+        DLOGV("RTCP inbound: packetType=%u fmt/rc=%u payloadLength=%u (compound offset %u/%u)", rtcpPacket.header.packetType,
               rtcpPacket.header.receptionReportCount, rtcpPacket.payloadLength, currentOffset, buffLen);
 
         switch (rtcpPacket.header.packetType) {
