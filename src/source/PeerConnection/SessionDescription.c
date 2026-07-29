@@ -1108,16 +1108,40 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
             }
         }
 
-        // pAnswerTransceivers contains transceivers created by the user as well as fake transceivers
+        // Emit the answer's m-lines in the REMOTE offer's m-line order (RFC 3264:
+        // the answer MUST mirror the offer's m-line order — strict peers such as
+        // browsers reject a reordered answer with "The order of m-lines in answer
+        // doesn't match order in offer"). pAnswerTransceivers holds one entry per
+        // remote MEDIA m-line in offer order (user transceivers matched by
+        // findTransceiversByRemoteDescription, fake transceivers for the rest),
+        // so we interleave: an application m-line emits the datachannel section
+        // at the offer's position; every other m-line consumes the next answer
+        // transceiver. A media m-line arriving AFTER the datachannel (e.g.
+        // Chrome's addTrack() on a connection that already has a datachannel)
+        // is thereby answered in place instead of being reordered around it.
         CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pAnswerTransceivers, &pCurNode));
-        while (pCurNode != NULL) {
+        for (UINT32 remoteIdx = 0; remoteIdx < pRemoteSessionDescription->mediaCount; remoteIdx++) {
+            CHK_ERR(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT,
+                    "Exceeded max media count while creating answer. Max: %u, current: %u", MAX_SDP_SESSION_MEDIA_COUNT,
+                    pLocalSessionDescription->mediaCount);
+
+            if (STRNCMP(pRemoteSessionDescription->mediaDescriptions[remoteIdx].mediaName, "application", ARRAY_SIZE("application") - 1) == 0) {
+                if (ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpIsEnabled)) {
+                    CHK_STATUS(populateSessionDescriptionDataChannel(
+                        pKvsPeerConnection, &(pLocalSessionDescription->mediaDescriptions[pLocalSessionDescription->mediaCount]),
+                        certificateFingerprint, pLocalSessionDescription->mediaCount, pDtlsRole));
+                    pLocalSessionDescription->mediaCount++;
+                }
+                continue;
+            }
+
+            if (pCurNode == NULL) {
+                break;
+            }
             CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
             pCurNode = pCurNode->pNext;
             pKvsRtpTransceiver = (PKvsRtpTransceiver) data;
             if (pKvsRtpTransceiver != NULL) {
-                CHK_ERR(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT,
-                        "Exceeded max media count while creating answer. Max: %u, current: %u", MAX_SDP_SESSION_MEDIA_COUNT,
-                        pLocalSessionDescription->mediaCount);
                 if (isPresentInRemote(pKvsRtpTransceiver, pRemoteSessionDescription)) {
                     if (pKvsRtpTransceiver->sender.track.codec == RTC_CODEC_UNKNOWN) {
                         CHK_STATUS(populateSingleMediaSection(pKvsPeerConnection, pKvsRtpTransceiver,
@@ -1143,7 +1167,10 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
         }
     }
 
-    if (ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpIsEnabled)) {
+    // Offers place the datachannel m-line last, after all media m-lines. Answers
+    // emit it at the offer's application position (above) instead — an answer
+    // must never introduce an m-line the offer did not have.
+    if (pKvsPeerConnection->isOffer && ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpIsEnabled)) {
         CHK_ERR(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT,
                 "Exceeded max media count while adding data channel. Max: %u, current: %u", MAX_SDP_SESSION_MEDIA_COUNT,
                 pLocalSessionDescription->mediaCount);
