@@ -87,6 +87,12 @@ typedef struct {
 
     // Caller-supplied fmtp override (H264 only). Empty string means "use the default".
     CHAR fmtpOverride[MAX_SDP_ATTRIBUTE_VALUE_LENGTH + 1];
+
+    // The direction the application configured at addTransceiver() time. Re-negotiation
+    // intersects the remote offer against THIS, not against the previously-negotiated
+    // transceiver.direction — otherwise a narrowed direction (e.g. the peer paused our
+    // track with a sendonly offer) could never widen again when the peer re-enables it.
+    RTC_RTP_TRANSCEIVER_DIRECTION configuredDirection;
 } KvsRtpTransceiver, *PKvsRtpTransceiver;
 
 STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION, PKvsPeerConnection, UINT32, UINT32, PRtcMediaStreamTrack, PJitterBuffer, RTC_CODEC,
