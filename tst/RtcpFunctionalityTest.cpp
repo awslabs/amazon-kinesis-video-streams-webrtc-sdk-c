@@ -321,6 +321,42 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketMultiBlockReceiverReportUnknownSsrc)
     freePeerConnection(&pRtcPeerConnection);
 }
 
+// An RR with more than RTCP_PACKET_RECEIVER_REPORT_MAX_BLOCKS (2) report blocks is capped: only the
+// first 2 blocks are processed, the rest are ignored.
+TEST_F(RtcpFunctionalityTest, onRtcpPacketMultiBlockReceiverReportCappedBlockCount)
+{
+    // RC=3, length 0x0013 (19 words -> 76-byte payload): senderSSRC + 3 report blocks
+    auto hexpacket = (PCHAR) "83C90013"
+                             "01020304"
+                             "111111110400000000000100000000640000000000000000"
+                             "222222220800000000000200000000C80000000000000000"
+                             "333333330C000000000003000000012C0000000000000000";
+    BYTE rawpacket[96] = {0};
+    UINT32 rawpacketSize = 96;
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize));
+
+    initTransceiver(0x11111111);
+    auto secondTransceiver = addTransceiver(0x22222222);
+    auto thirdTransceiver = addTransceiver(0x33333333);
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+
+    RtcRemoteInboundRtpStreamStats stats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &stats));
+    EXPECT_EQ(1, stats.reportsReceived);
+
+    RtcRemoteInboundRtpStreamStats secondStats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, secondTransceiver, &secondStats));
+    EXPECT_EQ(1, secondStats.reportsReceived);
+
+    // Third block exceeds the cap and must not be processed
+    RtcRemoteInboundRtpStreamStats thirdStats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, thirdTransceiver, &thirdStats));
+    EXPECT_EQ(0, thirdStats.reportsReceived);
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
 // An RR with zero report blocks (the standard initial RTCP packet sent before any media has been
 // received) must be accepted as a no-op.
 TEST_F(RtcpFunctionalityTest, onRtcpPacketReceiverReportZeroBlocks)

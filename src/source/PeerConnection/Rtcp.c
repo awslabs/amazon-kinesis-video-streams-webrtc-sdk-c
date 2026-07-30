@@ -94,6 +94,10 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
     // A receiver report contains the sender SSRC followed by receptionReportCount report blocks. The media
     // storage backend reports on all streams (audio + video) in a single RR, so all blocks must be processed.
     reportBlockCount = pRtcpPacket->header.receptionReportCount;
+    if (reportBlockCount > RTCP_PACKET_RECEIVER_REPORT_MAX_BLOCKS) {
+        DLOGW("Receiver report contains %u report blocks, processing only the first %u", reportBlockCount, RTCP_PACKET_RECEIVER_REPORT_MAX_BLOCKS);
+        reportBlockCount = RTCP_PACKET_RECEIVER_REPORT_MAX_BLOCKS;
+    }
     if (pRtcpPacket->payloadLength < SIZEOF(UINT32) + (UINT32) reportBlockCount * RTCP_PACKET_RECEIVER_REPORT_BLOCK_LEN) {
         DLOGW("Malformed receiver report: payloadLength %u too small for %u report block(s)", pRtcpPacket->payloadLength, reportBlockCount);
         return STATUS_SUCCESS;

@@ -29,6 +29,9 @@ extern "C" {
 #define RTCP_PACKET_SENDER_REPORT_MINLEN      24
 #define RTCP_PACKET_RECEIVER_REPORT_BLOCK_LEN 24
 #define RTCP_PACKET_RECEIVER_REPORT_MINLEN    4 + RTCP_PACKET_RECEIVER_REPORT_BLOCK_LEN
+// Maximum receiver report blocks processed per RR. The SDK negotiates at most one audio and one
+// video stream per peer connection, so report blocks beyond 2 reference no known transceiver.
+#define RTCP_PACKET_RECEIVER_REPORT_MAX_BLOCKS 2
 
 // https://tools.ietf.org/html/rfc3550#section-4
 // If the participant has not yet sent an RTCP packet (the variable
