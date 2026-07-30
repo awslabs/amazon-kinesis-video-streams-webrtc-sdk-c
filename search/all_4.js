@@ -164,7 +164,7 @@ var searchData=
   ['dtlscipher_161',['dtlsCipher',['../structRtcTransportStats.html#aa4665f3c96d174312aba49a9c49e9c24',1,'RtcTransportStats']]],
   ['dtlsfillpseudorandombits_162',['dtlsfillpseudorandombits',['../Dtls_8h.html#a1bf8b97ae0076266a976d0a46a9bd2aa',1,'dtlsFillPseudoRandomBits(PBYTE, UINT32):&#160;Dtls.c'],['../Dtls_8c.html#a8a3ff1abce99340169948c609dc4259a',1,'dtlsFillPseudoRandomBits(PBYTE pBuf, UINT32 bufSize):&#160;Dtls.c']]],
   ['dtlsgeneratecertificatefingerprints_163',['dtlsGenerateCertificateFingerprints',['../Dtls__openssl_8c.html#a6d9a65b31959016f66ef3374374c73c8',1,'Dtls_openssl.c']]],
-  ['dtlsisserver_164',['dtlsIsServer',['../structKvsPeerConnection.html#aabb99d6a68d82bae5ad01d80b93331a1',1,'KvsPeerConnection']]],
+  ['dtlsisserver_164',['dtlsIsServer',['../structKvsPeerConnection.html#ae4fc8deb5eab83b01a863bf66c126a4d',1,'KvsPeerConnection']]],
   ['dtlskeyingmaterial_165',['DtlsKeyingMaterial',['../structDtlsKeyingMaterial.html',1,'']]],
   ['dtlssession_166',['DtlsSession',['../Dtls_8h.html#adc09b0be4b5523e162a62e8d59e5e2e9',1,'Dtls.h']]],
   ['dtlssessioncallbacks_167',['dtlssessioncallbacks',['../struct____DtlsSession.html#af671819aab0aa28f0702308ea1a09e7e',1,'__DtlsSession::dtlsSessionCallbacks'],['../structDtlsSessionCallbacks.html',1,'DtlsSessionCallbacks']]],
