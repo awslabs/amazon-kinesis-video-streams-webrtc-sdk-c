@@ -1978,7 +1978,6 @@ TEST_F(PeerConnectionFunctionalityTest, renegotiateDirectionChangeOnly)
     freePeerConnection(&answerPc);
 }
 
-
 // Re-negotiation while a writeFrame loop is running on another thread for the
 // SAME session: direction flips to INACTIVE and back mid-stream. writeFrame
 // must never crash or touch freed state (the rolling buffer/retransmitter are
@@ -1995,6 +1994,9 @@ TEST_F(PeerConnectionFunctionalityTest, renegotiateWhileStreamingFrames)
     SIZE_T stopFrames = FALSE;
     BYTE frameData[128];
     Frame frame;
+    // Live state mirror fed by the public state-change callback: reading
+    // pKvsPeerConnection->connectionState directly would race the SDK's writer.
+    std::atomic<UINT64> offerState{RTC_PEER_CONNECTION_STATE_NONE};
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
     MEMSET(frameData, 0x11, SIZEOF(frameData));
@@ -2011,6 +2013,13 @@ TEST_F(PeerConnectionFunctionalityTest, renegotiateWhileStreamingFrames)
     addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
 
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    // connectTwoPeers verified CONNECTED; from here on track transitions via the callback.
+    offerState = RTC_PEER_CONNECTION_STATE_CONNECTED;
+    EXPECT_EQ(STATUS_SUCCESS,
+              peerConnectionOnConnectionStateChange(offerPc, (UINT64) &offerState, [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) {
+                  ((std::atomic<UINT64>*) customData)->store((UINT64) newState);
+              }));
 
     this->lock.lock();
     for (auto& th : this->threads)
@@ -2054,7 +2063,7 @@ TEST_F(PeerConnectionFunctionalityTest, renegotiateWhileStreamingFrames)
     // rather than asserting the instantaneous value.
     BOOL reconnected = FALSE;
     for (int waitMs = 0; waitMs < 15000 && !reconnected; waitMs += 100) {
-        reconnected = (((PKvsPeerConnection) offerPc)->connectionState == RTC_PEER_CONNECTION_STATE_CONNECTED);
+        reconnected = (offerState.load() == RTC_PEER_CONNECTION_STATE_CONNECTED);
         if (!reconnected) {
             THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
         }
@@ -2083,6 +2092,9 @@ TEST_F(PeerConnectionFunctionalityTest, concurrentRenegotiationAcrossSessions)
     PRtcPeerConnection offerPc[2] = {NULL, NULL}, answerPc[2] = {NULL, NULL};
     RtcMediaStreamTrack offerTrack[2], answerTrack[2];
     PRtcRtpTransceiver offerTransceiver[2] = {NULL, NULL}, answerTransceiver[2] = {NULL, NULL};
+    // Live state mirrors fed by the public state-change callback: reading
+    // pKvsPeerConnection->connectionState directly would race the SDK's writer.
+    std::atomic<UINT64> offerState[2] = {{RTC_PEER_CONNECTION_STATE_NONE}, {RTC_PEER_CONNECTION_STATE_NONE}};
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
@@ -2092,6 +2104,14 @@ TEST_F(PeerConnectionFunctionalityTest, concurrentRenegotiationAcrossSessions)
         addTrackToPeerConnection(offerPc[i], &offerTrack[i], &offerTransceiver[i], RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
         addTrackToPeerConnection(answerPc[i], &answerTrack[i], &answerTransceiver[i], RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
         EXPECT_EQ(connectTwoPeers(offerPc[i], answerPc[i]), TRUE);
+
+        // connectTwoPeers verified CONNECTED; from here on track transitions via the callback.
+        offerState[i] = RTC_PEER_CONNECTION_STATE_CONNECTED;
+        EXPECT_EQ(
+            STATUS_SUCCESS,
+            peerConnectionOnConnectionStateChange(offerPc[i], (UINT64) &offerState[i], [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) {
+                ((std::atomic<UINT64>*) customData)->store((UINT64) newState);
+            }));
     }
 
     this->lock.lock();
@@ -2126,7 +2146,7 @@ TEST_F(PeerConnectionFunctionalityTest, concurrentRenegotiationAcrossSessions)
     for (int i = 0; i < 2; i++) {
         BOOL reconnected = FALSE;
         for (int waitMs = 0; waitMs < 15000 && !reconnected; waitMs += 100) {
-            reconnected = (((PKvsPeerConnection) offerPc[i])->connectionState == RTC_PEER_CONNECTION_STATE_CONNECTED);
+            reconnected = (offerState[i].load() == RTC_PEER_CONNECTION_STATE_CONNECTED);
             if (!reconnected) {
                 THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
             }

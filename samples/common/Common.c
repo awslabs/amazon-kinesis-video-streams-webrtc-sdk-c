@@ -1550,6 +1550,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
     BOOL peerConnectionFound = FALSE, locked = FALSE, startStats = FALSE, freeStreamingSession = FALSE;
     UINT32 clientIdHash;
+    UINT32 idx = 0;
     UINT64 hashValue = 0;
     PPendingMessageQueue pPendingMessageQueue = NULL;
     PSampleStreamingSession pSampleStreamingSession = NULL;
@@ -1601,8 +1602,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 
                 // Remove old session from session list and free it
                 MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
-                UINT32 idx = 0;
-                for (; idx < pSampleConfiguration->streamingSessionCount; ++idx) {
+                for (idx = 0; idx < pSampleConfiguration->streamingSessionCount; ++idx) {
                     if (pSampleConfiguration->sampleStreamingSessionList[idx] == pSampleStreamingSession) {
                         pSampleConfiguration->streamingSessionCount--;
                         pSampleConfiguration->sampleStreamingSessionList[idx] =

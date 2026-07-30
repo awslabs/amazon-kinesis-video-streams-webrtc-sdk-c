@@ -352,6 +352,10 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
             if (hashTableGet(rtxTable, pKvsRtpTransceiver->sender.track.codec, &data) == STATUS_SUCCESS) {
                 pKvsRtpTransceiver->sender.rtxPayloadType = (UINT8) data;
             }
+
+            // Publish to the atomic snapshot read by the media/RTCP threads (see Rtp.h).
+            ATOMIC_STORE(&pKvsRtpTransceiver->atomicSenderPayloadTypes,
+                         KVS_RTP_TRANSCEIVER_PACK_PAYLOAD_TYPES(pKvsRtpTransceiver->sender.payloadType, pKvsRtpTransceiver->sender.rtxPayloadType));
         }
 
         if (pKvsRtpTransceiver != NULL) {
@@ -1060,6 +1064,7 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
     PHashTable pUnknownCodecPayloadTypesTable = NULL, pUnknownCodecRtpmapTable = NULL;
     UINT32 unknownCodecHashTableKey = 0;
     UINT32 unknownHashTableBucketCount = 0;
+    UINT32 remoteIdx = 0;
 
     CHK_STATUS(dtlsSessionGetLocalCertificateFingerprint(pKvsPeerConnection->pDtlsSession, certificateFingerprint, CERTIFICATE_FINGERPRINT_LENGTH));
     if (pKvsPeerConnection->isOffer) {
@@ -1120,7 +1125,7 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
         // Chrome's addTrack() on a connection that already has a datachannel)
         // is thereby answered in place instead of being reordered around it.
         CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pAnswerTransceivers, &pCurNode));
-        for (UINT32 remoteIdx = 0; remoteIdx < pRemoteSessionDescription->mediaCount; remoteIdx++) {
+        for (remoteIdx = 0; remoteIdx < pRemoteSessionDescription->mediaCount; remoteIdx++) {
             CHK_ERR(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT,
                     "Exceeded max media count while creating answer. Max: %u, current: %u", MAX_SDP_SESSION_MEDIA_COUNT,
                     pLocalSessionDescription->mediaCount);
@@ -1204,9 +1209,23 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessio
     PCHAR curr = NULL;
     UINT32 i, sizeRemaining;
     INT32 charsCopied;
+    PDoubleListNode pCurNode = NULL;
+    UINT64 item = 0;
+    PKvsRtpTransceiver pKvsRtpTransceiver = NULL;
 
     CHK(pKvsPeerConnection != NULL && pLocalSessionDescription != NULL, STATUS_NULL_ARG);
     CHK(pKvsPeerConnection->isOffer || pRemoteSessionDescription != NULL, STATUS_NULL_ARG);
+
+    // Publish any direct application writes to transceiver.direction (the documented way to
+    // pause/resume a track before re-negotiating) to the atomic snapshot the media path reads.
+    // This runs on the negotiation thread, so the plain-field read here does not race the app.
+    CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceivers, &pCurNode));
+    while (pCurNode != NULL) {
+        CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
+        pKvsRtpTransceiver = (PKvsRtpTransceiver) item;
+        ATOMIC_STORE(&pKvsRtpTransceiver->atomicDirection, (SIZE_T) pKvsRtpTransceiver->transceiver.direction);
+        pCurNode = pCurNode->pNext;
+    }
 
     CHK_STATUS(populateSessionDescriptionMedia(pKvsPeerConnection, pRemoteSessionDescription, pLocalSessionDescription));
     MEMSET(bundleValue, 0, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
@@ -1465,6 +1484,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
     RtcMediaStreamTrack track;
     PDoubleListNode pCurNode = NULL;
     UINT64 item = 0;
+    UINT32 avMlineCount = 0, answerTransceiverCount = 0;
 
     // Clean up pFakeTransceivers and pAnswerTransceivers from any previous offer/answer exchange.
     // This is needed to support re-negotiation where findTransceiversByRemoteDescription is called
@@ -1646,7 +1666,6 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
     // Validate that the number of audio/video m-lines matches the answer transceiver count.
     // By construction, findTransceiversByRemoteDescription creates one entry in pAnswerTransceivers
     // per audio/video m-line (either a real match or a fake). A mismatch indicates a bug.
-    UINT32 avMlineCount = 0, answerTransceiverCount = 0;
     for (currentMedia = 0; currentMedia < pRemoteSessionDescription->mediaCount; currentMedia++) {
         attributeValue = pRemoteSessionDescription->mediaDescriptions[currentMedia].mediaName;
         if ((end = STRCHR(attributeValue, ' ')) != NULL) {
@@ -1688,6 +1707,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
             // back, dropping the app's `a=recvonly`.
             pKvsRtpTransceiver->transceiver.direction =
                 intersectTransceiverDirection(pKvsRtpTransceiver->configuredDirection, getRemoteDirectionFromMediaDescription(pMediaDescription));
+            ATOMIC_STORE(&pKvsRtpTransceiver->atomicDirection, (SIZE_T) pKvsRtpTransceiver->transceiver.direction);
         }
         pCurNode = pCurNode->pNext;
     }
@@ -1701,6 +1721,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
         CHK_STATUS(hashTableContains(pSeenTransceivers, (UINT64) pKvsRtpTransceiver, &inSeenTransceivers));
         if (!inSeenTransceivers && isActiveDirection(pKvsRtpTransceiver->transceiver.direction)) {
             pKvsRtpTransceiver->transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE;
+            ATOMIC_STORE(&pKvsRtpTransceiver->atomicDirection, (SIZE_T) RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE);
         }
         pCurNode = pCurNode->pNext;
     }

@@ -31,6 +31,7 @@ STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, PKvsPeer
     pKvsRtpTransceiver->transceiver.receiver.track.kind = pRtcMediaStreamTrack->kind;
     pKvsRtpTransceiver->transceiver.direction = direction;
     pKvsRtpTransceiver->configuredDirection = direction;
+    ATOMIC_STORE(&pKvsRtpTransceiver->atomicDirection, (SIZE_T) direction);
 
     pKvsRtpTransceiver->outboundStats.sent.rtpStream.ssrc = ssrc;
     STRNCPY(pKvsRtpTransceiver->outboundStats.sent.rtpStream.kind, pRtcMediaStreamTrack->kind == MEDIA_STREAM_TRACK_KIND_AUDIO ? "audio" : "video",
@@ -309,13 +310,23 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     UINT16 twsn, firstSeqNum, lastSeqNum;
     UINT32 extpayload;
     STATUS sendStatus;
+    RTC_RTP_TRANSCEIVER_DIRECTION direction;
+    SIZE_T packedPayloadTypes;
+    UINT8 payloadType, rtxPayloadType;
 
     CHK(pRtcRtpTransceiver != NULL && pFrame != NULL, STATUS_NULL_ARG);
     pKvsPeerConnection = pKvsRtpTransceiver->pKvsPeerConnection;
-    if (pKvsRtpTransceiver->transceiver.direction == RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE ||
-        pKvsRtpTransceiver->transceiver.direction == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY) {
+    // Read the atomic snapshot, NOT transceiver.direction: re-negotiation rewrites the
+    // field from the signaling thread while this runs on the media thread.
+    direction = (RTC_RTP_TRANSCEIVER_DIRECTION) ATOMIC_LOAD(&pKvsRtpTransceiver->atomicDirection);
+    if (direction == RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE || direction == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY) {
         return STATUS_SUCCESS;
     }
+    // Same rationale as the direction read above: re-negotiation rewrites the sender
+    // payload types, so take one consistent snapshot for the whole frame.
+    packedPayloadTypes = ATOMIC_LOAD(&pKvsRtpTransceiver->atomicSenderPayloadTypes);
+    payloadType = KVS_RTP_TRANSCEIVER_UNPACK_PAYLOAD_TYPE(packedPayloadTypes);
+    rtxPayloadType = KVS_RTP_TRANSCEIVER_UNPACK_RTX_PAYLOAD_TYPE(packedPayloadTypes);
     pPayloadArray = &(pKvsRtpTransceiver->sender.payloadArray);
     if (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind) {
         frames++;
@@ -384,7 +395,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
                               &(pPayloadArray->payloadLength), pPayloadArray->payloadSubLength, &(pPayloadArray->payloadSubLenSize)));
     pPacketList = (PRtpPacket) MEMALLOC(pPayloadArray->payloadSubLenSize * SIZEOF(RtpPacket));
 
-    CHK_STATUS(constructRtpPackets(pPayloadArray, pKvsRtpTransceiver->sender.payloadType, pKvsRtpTransceiver->sender.sequenceNumber, rtpTimestamp,
+    CHK_STATUS(constructRtpPackets(pPayloadArray, payloadType, pKvsRtpTransceiver->sender.sequenceNumber, rtpTimestamp,
                                    pKvsRtpTransceiver->sender.ssrc, pPacketList, pPayloadArray->payloadSubLenSize));
 
     firstSeqNum = pKvsRtpTransceiver->sender.sequenceNumber;
@@ -392,7 +403,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
 
     pKvsRtpTransceiver->sender.sequenceNumber = GET_UINT16_SEQ_NUM(pKvsRtpTransceiver->sender.sequenceNumber + pPayloadArray->payloadSubLenSize);
 
-    bufferAfterEncrypt = (pKvsRtpTransceiver->sender.payloadType == pKvsRtpTransceiver->sender.rtxPayloadType);
+    bufferAfterEncrypt = (payloadType == rtxPayloadType);
     for (i = 0; i < pPayloadArray->payloadSubLenSize; i++) {
         pRtpPacket = pPacketList + i;
         if (pKvsRtpTransceiver->twccEnabled) {

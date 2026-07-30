@@ -68,9 +68,10 @@ STATUS allocateSrtp(PKvsPeerConnection pKvsPeerConnection)
     MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
     locked = TRUE;
 
-    CHK_STATUS(initSrtpSession(pKvsPeerConnection->dtlsIsServer ? dtlsKeyingMaterial.clientWriteKey : dtlsKeyingMaterial.serverWriteKey,
-                               pKvsPeerConnection->dtlsIsServer ? dtlsKeyingMaterial.serverWriteKey : dtlsKeyingMaterial.clientWriteKey,
-                               dtlsKeyingMaterial.srtpProfile, &(pKvsPeerConnection->pSrtpSession)));
+    CHK_STATUS(
+        initSrtpSession(ATOMIC_LOAD_BOOL(&pKvsPeerConnection->dtlsIsServer) ? dtlsKeyingMaterial.clientWriteKey : dtlsKeyingMaterial.serverWriteKey,
+                        ATOMIC_LOAD_BOOL(&pKvsPeerConnection->dtlsIsServer) ? dtlsKeyingMaterial.serverWriteKey : dtlsKeyingMaterial.clientWriteKey,
+                        dtlsKeyingMaterial.srtpProfile, &(pKvsPeerConnection->pSrtpSession)));
 
 CleanUp:
     if (locked) {
@@ -115,7 +116,7 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     PKvsDataChannel pKvsDataChannel = NULL;
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
-    currentDataChannelId = (pKvsPeerConnection->dtlsIsServer) ? 1 : 0;
+    currentDataChannelId = ATOMIC_LOAD_BOOL(&pKvsPeerConnection->dtlsIsServer) ? 1 : 0;
 
     // Re-sort DataChannel hashmap using proper streamIds if we are offerer or answerer
     data.currentDataChannelId = currentDataChannelId;
@@ -470,7 +471,7 @@ PVOID dtlsSessionStartThread(PVOID args)
     ENTERS();
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) args;
     if (pKvsPeerConnection != NULL) {
-        dtlsSessionHandshakeInThread(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->dtlsIsServer);
+        dtlsSessionHandshakeInThread(pKvsPeerConnection->pDtlsSession, ATOMIC_LOAD_BOOL(&pKvsPeerConnection->dtlsIsServer));
     } else {
         DLOGE("Peer connection object NULL, cannot start DTLS handshake");
     }
@@ -537,7 +538,7 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
 #if defined(ENABLE_KVS_THREADPOOL) && defined(KVS_USE_OPENSSL)
             CHK_STATUS(threadpoolContextPush(dtlsSessionStartThread, (PVOID) pKvsPeerConnection));
 #else
-            CHK_STATUS(dtlsSessionStart(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->dtlsIsServer));
+            CHK_STATUS(dtlsSessionStart(pKvsPeerConnection->pDtlsSession, ATOMIC_LOAD_BOOL(&pKvsPeerConnection->dtlsIsServer)));
 #endif
         }
     }
@@ -562,10 +563,13 @@ VOID onNewIceLocalCandidate(UINT64 customData, PCHAR candidateSdpStr)
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
     CHK(candidateSdpStr == NULL || STRLEN(candidateSdpStr) < MAX_SDP_ATTRIBUTE_VALUE_LENGTH, STATUS_INVALID_ARG);
-    CHK(pKvsPeerConnection->onIceCandidate != NULL, retStatus); // do nothing if onIceCandidate is not implemented
 
     MUTEX_LOCK(pKvsPeerConnection->peerConnectionObjLock);
     locked = TRUE;
+
+    // Checked under the lock: peerConnectionOnIceCandidate can (re)register the handler
+    // concurrently with candidate gathering.
+    CHK(pKvsPeerConnection->onIceCandidate != NULL, retStatus); // do nothing if onIceCandidate is not implemented
 
     if (candidateSdpStr != NULL) {
         strCompleteLen = SNPRINTF(jsonStrBuffer, ARRAY_SIZE(jsonStrBuffer), ICE_CANDIDATE_JSON_TEMPLATE, candidateSdpStr);
@@ -746,8 +750,12 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
     DLOGS("rtcpReportsCallback %" PRIu64 " ssrc: %u rtxssrc: %u", currentTime, ssrc, pKvsRtpTransceiver->sender.rtxSsrc);
 
     // check if ice agent is connected, reschedule in 200msec if not
-    ready = pKvsPeerConnection->pSrtpSession != NULL &&
-        currentTime - pKvsRtpTransceiver->sender.firstFrameWallClockTime >= 2500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    // pSrtpSession is written under pSrtpSessionLock when DTLS completes (allocateSrtp),
+    // which can happen concurrently with this timer callback.
+    MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
+    ready = pKvsPeerConnection->pSrtpSession != NULL;
+    MUTEX_UNLOCK(pKvsPeerConnection->pSrtpSessionLock);
+    ready = ready && currentTime - pKvsRtpTransceiver->sender.firstFrameWallClockTime >= 2500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
     if (!ready) {
         DLOGD("sender report no frames sent %u", ssrc);
     } else {
@@ -1404,11 +1412,19 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     UINT32 i, j;
     PSessionDescription pSessionDescription;
     BOOL remoteHasTwccExtmap = FALSE, remoteHasTwccRtcpFb = FALSE;
+    BOOL dtlsHandshakeDone = FALSE;
     UINT16 remoteTwccExtId = 0;
 
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
 
     CHK(pPeerConnection != NULL && pSessionDescriptionInit != NULL, STATUS_NULL_ARG);
+
+    /* The DTLS role is fixed for the lifetime of the connection (RFC 8842): once the handshake
+     * has completed, a re-negotiation setRemoteDescription must not rewrite dtlsIsServer — the
+     * DTLS/ICE threads read it concurrently, and flipping the role mid-session would be wrong. */
+    if (pKvsPeerConnection->pDtlsSession != NULL) {
+        CHK_STATUS(dtlsSessionIsInitFinished(pKvsPeerConnection->pDtlsSession, &dtlsHandshakeDone));
+    }
 
     // In master mode, this should be freed once `createAnswer` is invoked for the session.
     // In viewer mode, this should be freed once `setRemoteDescription` is completed for the session.
@@ -1419,7 +1435,9 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     pSessionDescription = pKvsPeerConnection->pRemoteSessionDescription;
     CHK(pSessionDescription != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
-    pKvsPeerConnection->dtlsIsServer = FALSE;
+    if (!dtlsHandshakeDone) {
+        ATOMIC_STORE_BOOL(&pKvsPeerConnection->dtlsIsServer, FALSE);
+    }
     /* Assume cant trickle at first */
     NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, FALSE);
 
@@ -1448,11 +1466,11 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
                 DLOGV("Ignoring unsupported session-level fingerprint algorithm: %.*s", algoLen,
                       pSessionDescription->sdpAttributes[i].attributeValue);
             }
-        } else if (pKvsPeerConnection->isOffer && STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "setup") == 0) {
+        } else if (pKvsPeerConnection->isOffer && !dtlsHandshakeDone && STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "setup") == 0) {
             // possible values are actpass, passive and active. If the incoming SDP has active, it indicates it is taking up a client role
             // In case of actpass and passive, the other peer is taking up a server role and is waiting for incoming connection
             // Reference: https://www.rfc-editor.org/rfc/rfc4572#section-6.2
-            pKvsPeerConnection->dtlsIsServer = STRCMP(pSessionDescription->sdpAttributes[i].attributeValue, "active") == 0;
+            ATOMIC_STORE_BOOL(&pKvsPeerConnection->dtlsIsServer, STRCMP(pSessionDescription->sdpAttributes[i].attributeValue, "active") == 0);
         } else if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "ice-options") == 0 &&
                    STRSTR(pSessionDescription->sdpAttributes[i].attributeValue, "trickle") != NULL) {
             NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, TRUE);
@@ -1492,9 +1510,10 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
                     DLOGV("Ignoring unsupported media-level fingerprint algorithm: %.*s", algoLen,
                           pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue);
                 }
-            } else if (pKvsPeerConnection->isOffer &&
+            } else if (pKvsPeerConnection->isOffer && !dtlsHandshakeDone &&
                        STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "setup") == 0) {
-                pKvsPeerConnection->dtlsIsServer = STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, "active") == 0;
+                ATOMIC_STORE_BOOL(&pKvsPeerConnection->dtlsIsServer,
+                                  STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, "active") == 0);
             } else if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "ice-options") == 0 &&
                        STRSTR(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, "trickle") != NULL) {
                 NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, TRUE);
