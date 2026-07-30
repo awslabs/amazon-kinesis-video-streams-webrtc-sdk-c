@@ -775,7 +775,8 @@ STATUS sampleOnPeerCongestionFeedback(UINT64 customData, PCongestionCtx pCongest
 
     pSampleStreamingSession->twccMetadata.lastAdjustmentTimeMs = currentTimeMs;
 
-    DLOGD("BWE: pktLoss=%.2f%% delayTrend=%.4f ms factor=%.2f | video=%llu kbps audio=%llu bps | tx: %u bytes %u pkts, rx: %u bytes %u pkts",
+    DLOGD("BWE: pktLoss=%.2f%% delayTrend=%.4f ms factor=%.2f | video=%" PRIu64 " kbps audio=%" PRIu64 " bps | tx: %" PRIu64 " bytes %" PRIu64
+          " pkts, rx: %" PRIu64 " bytes %" PRIu64 " pkts",
           pSampleStreamingSession->twccMetadata.averagePacketLoss, delayTrendMs, factor, videoBitrate, audioBitrate, pCongestionCtx->txBytes,
           txPacketsCnt, pCongestionCtx->rxBytes, rxPacketsCnt);
 
