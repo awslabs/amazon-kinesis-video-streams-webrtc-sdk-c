@@ -9,6 +9,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 frameSize;
+    TID statsTid = INVALID_TID_VALUE;
     PSampleConfiguration pSampleConfiguration = NULL;
     PCHAR pChannelName;
     SignalingClientMetrics signalingClientMetrics;
@@ -53,6 +54,12 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     DLOGI("[%s] Channel %s set up done ", SAMPLE_NAME, pChannelName);
 
+    // Periodically log remote-inbound RTP stats. The thread only produces VERBOSE-level logs, so skip
+    // creating it (and its memory overhead) unless the configured log level is VERBOSE.
+    if (logLevel == LOG_LEVEL_VERBOSE) {
+        THREAD_CREATE(&statsTid, getPeriodicRemoteInboundStats, (PVOID) pSampleConfiguration);
+    }
+
     // Checking for termination
     CHK_STATUS(sessionCleanupWait(pSampleConfiguration));
     DLOGI("[%s] Streaming session terminated", SAMPLE_NAME);
@@ -70,6 +77,10 @@ CleanUp:
 
         if (pSampleConfiguration->mediaSenderTid != INVALID_TID_VALUE) {
             THREAD_JOIN(pSampleConfiguration->mediaSenderTid, NULL);
+        }
+
+        if (statsTid != INVALID_TID_VALUE) {
+            THREAD_JOIN(statsTid, NULL);
         }
 
         retStatus = signalingClientGetMetrics(pSampleConfiguration->signalingClientHandle, &signalingClientMetrics);

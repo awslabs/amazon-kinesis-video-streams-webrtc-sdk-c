@@ -229,6 +229,37 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketCompoundSenderReport)
     freePeerConnection(&pRtcPeerConnection);
 }
 
+// Single-block RR with LSR == 0, matching what the media storage backend sends for a video-only
+// ingestion session before it has received a sender report. reportsReceived/fractionLost must be
+// populated but no RTT measurement recorded (Stats.h: roundTripTimeMeasurements counts blocks with
+// a valid round trip time). Complements onRtcpPacketCompoundSenderReport, which covers the
+// single-block valid-LSR path.
+TEST_F(RtcpFunctionalityTest, onRtcpPacketSingleBlockReceiverReportNoLsr)
+{
+    // 81 C9 0007 | senderSSRC 01020304
+    // block1: ssrc 11111111, fractionLost 04, cumLost 000000, extHiSeq 0000003F, jitter 0000006B, lsr 0, dlsr 0
+    auto hexpacket = (PCHAR) "81C90007"
+                             "01020304"
+                             "11111111040000000000003F0000006B0000000000000000";
+    BYTE rawpacket[36] = {0};
+    UINT32 rawpacketSize = 36;
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize));
+
+    initTransceiver(0x11111111);
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+
+    RtcRemoteInboundRtpStreamStats stats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &stats));
+    EXPECT_EQ(1, stats.reportsReceived);
+    EXPECT_EQ(4.0 / 255.0, stats.fractionLost);
+    EXPECT_EQ(0, stats.roundTripTimeMeasurements);
+    EXPECT_EQ(0, stats.totalRoundTripTime);
+    EXPECT_EQ(0, stats.roundTripTime);
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
 // RR with two report blocks (video + audio SSRC), as sent by the media storage backend during ingestion.
 // Both transceivers' stats must be populated from a single RR. LSR is 0 in both blocks, so no RTT
 // measurements should be recorded (Stats.h: roundTripTimeMeasurements counts blocks with a valid RTT).
