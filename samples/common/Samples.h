@@ -110,6 +110,29 @@ extern "C" {
 #define MIN_AUDIO_BITRATE_BPS               4000   // Unit bits/sec. Value could change based on codec.
 #define MAX_AUDIO_BITRATE_BPS               128000 // Unit bits/sec. Value could change based on codec.
 
+// Sample bitrate controller policy (see sampleOnPeerCongestionFeedback). Tuned for a normal, healthy
+// network where packet loss is a reliable congestion signal. Applications should tune these to their needs.
+//
+// Packet loss (EMA, percent; higher = worse):
+#define TWCC_LOSS_SEVERE_THRESHOLD_PCT    10.0 // above this, apply the steeper loss decrease
+#define TWCC_LOSS_CONGESTED_THRESHOLD_PCT 5.0  // above this, loss counts as congestion -> decrease
+#define TWCC_LOSS_CLEAR_THRESHOLD_PCT     2.0  // at/below this, loss is clear -> allow increase
+// Delay trend (ms; higher = worse):
+#define TWCC_DELAY_SEVERE_THRESHOLD_MS    5.0    // above this, apply the steepest delay decrease
+#define TWCC_DELAY_HIGH_THRESHOLD_MS      1.0    // above this, apply the higher delay decrease
+#define TWCC_DELAY_CONGESTED_THRESHOLD_MS 0.5    // above this, apply slight decrease
+#define TWCC_DELAY_CLEAR_THRESHOLD_MS     (-0.1) // below this, delay is clear -> allow increase
+// Multiplicative decrease factors (new bitrate = current * factor):
+#define TWCC_LOSS_SEVERE_FACTOR     0.7
+#define TWCC_LOSS_CONGESTED_FACTOR  0.85
+#define TWCC_DELAY_SEVERE_FACTOR    0.5
+#define TWCC_DELAY_HIGH_FACTOR      0.7
+#define TWCC_DELAY_CONGESTED_FACTOR 0.95
+// Additive increase steps (step = MAX_*_BITRATE / divisor):
+#define TWCC_VIDEO_INCREASE_STEP_DIVISOR      40 // fast increase (loss AND delay clear)
+#define TWCC_VIDEO_INCREASE_STEP_SLOW_DIVISOR 80 // slow increase (loss OR delay clear)
+#define TWCC_AUDIO_INCREASE_STEP_DIVISOR      20
+
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
     SAMPLE_STREAMING_AUDIO_VIDEO,

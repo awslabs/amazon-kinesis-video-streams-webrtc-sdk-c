@@ -700,59 +700,69 @@ STATUS sampleOnPeerCongestionFeedback(UINT64 customData, PCongestionCtx pCongest
     audioBitrate = pSampleStreamingSession->twccMetadata.currentAudioBitrate;
 
     // Combine loss-based and delay-based signals for bandwidth decision
-    BOOL lossCongested = pSampleStreamingSession->twccMetadata.averagePacketLoss > 5.0;
-    BOOL delayCongested = delayTrendMs > 0.5;
-    BOOL lossClear = pSampleStreamingSession->twccMetadata.averagePacketLoss <= 2.0;
-    BOOL delayClear = delayTrendMs < -0.1;
+    DOUBLE averagePacketLoss = pSampleStreamingSession->twccMetadata.averagePacketLoss;
+    BOOL lossCongested = averagePacketLoss > TWCC_LOSS_CONGESTED_THRESHOLD_PCT;
+    BOOL delayCongested = delayTrendMs > TWCC_DELAY_CONGESTED_THRESHOLD_MS;
+    BOOL lossClear = averagePacketLoss <= TWCC_LOSS_CLEAR_THRESHOLD_PCT;
+    BOOL delayClear = delayTrendMs < TWCC_DELAY_CLEAR_THRESHOLD_MS;
 
     /*
      * Multiplicative decrease factors (combined, take the minimum):
      *
-     *   averagePacketLoss (EMA) | lossFactor
-     *   ------------------------+-----------
-     *   > 10.0%                 | 0.70
-     *   > 5.0% and <= 10.0%     | 0.85
-     *   <= 5.0%                 | 1.00
+     *   averagePacketLoss (EMA)                            | lossFactor
+     *   ---------------------------------------------------+-----------
+     *   > TWCC_LOSS_SEVERE_THRESHOLD_PCT                    | TWCC_LOSS_SEVERE_FACTOR
+     *   > TWCC_LOSS_CONGESTED_THRESHOLD_PCT and <= severe   | TWCC_LOSS_CONGESTED_FACTOR
+     *   <= TWCC_LOSS_CONGESTED_THRESHOLD_PCT                | 1.00
      *
-     *   delayTrendMs (smoothed) | delayFactor
-     *   ------------------------+------------
-     *   > 5.0                   | 0.50
-     *   > 1.0 and <= 5.0        | 0.70
-     *   > 0.5 and <= 1.0        | 0.95
-     *   <= 0.5                  | 1.00
+     *   delayTrendMs (smoothed)                            | delayFactor
+     *   ---------------------------------------------------+------------
+     *   > TWCC_DELAY_SEVERE_THRESHOLD_MS                    | TWCC_DELAY_SEVERE_FACTOR
+     *   > TWCC_DELAY_HIGH_THRESHOLD_MS and <= severe        | TWCC_DELAY_HIGH_FACTOR
+     *   > TWCC_DELAY_CONGESTED_THRESHOLD_MS and <= high     | TWCC_DELAY_CONGESTED_FACTOR
+     *   <= TWCC_DELAY_CONGESTED_THRESHOLD_MS                | 1.00
      *
      *   Additive increase (when not congested):
-     *   condition                | video step          | audio step
-     *   -------------------------+---------------------+---------------------
-     *   lossClear AND delayClear | +MAX_VIDEO/40       | +MAX_AUDIO/20
-     *   lossClear OR delayClear  | +MAX_VIDEO/80       | +MAX_AUDIO/20
-     *   both neutral             | hold                | hold
+     *   condition                | video step                          | audio step
+     *   -------------------------+-------------------------------------+---------------------
+     *   lossClear AND delayClear | +MAX_VIDEO/INCREASE_STEP_DIVISOR     | +MAX_AUDIO/AUDIO_STEP
+     *   lossClear OR delayClear  | +MAX_VIDEO/INCREASE_STEP_SLOW_DIVISOR| +MAX_AUDIO/AUDIO_STEP
+     *   both neutral             | hold                                | hold
      */
     DOUBLE factor = 1.0;
+    const CHAR* action = "HOLD";
+    const CHAR* reason = "loss and delay neutral";
     if (lossCongested || delayCongested) {
         // Multiplicative decrease
         DOUBLE lossFactor = 1.0;
         DOUBLE delayFactor = 1.0;
-        if (pSampleStreamingSession->twccMetadata.averagePacketLoss > 10.0) {
-            lossFactor = 0.7;
+        if (averagePacketLoss > TWCC_LOSS_SEVERE_THRESHOLD_PCT) {
+            lossFactor = TWCC_LOSS_SEVERE_FACTOR;
         } else if (lossCongested) {
-            lossFactor = 0.85;
+            lossFactor = TWCC_LOSS_CONGESTED_FACTOR;
         }
-        if (delayTrendMs > 5.0) {
-            delayFactor = 0.5;
-        } else if (delayTrendMs > 1.0) {
-            delayFactor = 0.7;
+        if (delayTrendMs > TWCC_DELAY_SEVERE_THRESHOLD_MS) {
+            delayFactor = TWCC_DELAY_SEVERE_FACTOR;
+        } else if (delayTrendMs > TWCC_DELAY_HIGH_THRESHOLD_MS) {
+            delayFactor = TWCC_DELAY_HIGH_FACTOR;
         } else if (delayCongested) {
-            delayFactor = 0.95;
+            delayFactor = TWCC_DELAY_CONGESTED_FACTOR;
         }
         factor = MIN(lossFactor, delayFactor);
+        action = "DECREASE";
+        // Attribute the decrease to whichever signal was more pessimistic
+        reason = (lossFactor <= delayFactor) ? "packet loss above congested threshold" : "delay trend above congested threshold";
     } else if (lossClear && delayClear) {
         // Additive increase: fixed step relative to max
-        videoBitrate = MIN(videoBitrate + MAX_VIDEO_BITRATE_KBPS / 40, MAX_VIDEO_BITRATE_KBPS);
+        videoBitrate = MIN(videoBitrate + MAX_VIDEO_BITRATE_KBPS / TWCC_VIDEO_INCREASE_STEP_DIVISOR, MAX_VIDEO_BITRATE_KBPS);
         factor = 0; // signal that we used additive increase
+        action = "INCREASE";
+        reason = "loss and delay both clear";
     } else if (lossClear || delayClear) {
-        videoBitrate = MIN(videoBitrate + MAX_VIDEO_BITRATE_KBPS / 80, MAX_VIDEO_BITRATE_KBPS);
+        videoBitrate = MIN(videoBitrate + MAX_VIDEO_BITRATE_KBPS / TWCC_VIDEO_INCREASE_STEP_SLOW_DIVISOR, MAX_VIDEO_BITRATE_KBPS);
         factor = 0;
+        action = "INCREASE (slow)";
+        reason = lossClear ? "loss clear, delay neutral" : "delay clear, loss neutral";
     }
     // else: both neutral -> hold (factor = 1.0, no change)
 
@@ -765,9 +775,15 @@ STATUS sampleOnPeerCongestionFeedback(UINT64 customData, PCongestionCtx pCongest
         audioBitrate = (UINT64) MAX(MIN(audioBitrate * factor, MAX_AUDIO_BITRATE_BPS), MIN_AUDIO_BITRATE_BPS);
     } else {
         // Additive increase for audio
-        audioBitrate = MIN(audioBitrate + MAX_AUDIO_BITRATE_BPS / 20, MAX_AUDIO_BITRATE_BPS);
+        audioBitrate = MIN(audioBitrate + MAX_AUDIO_BITRATE_BPS / TWCC_AUDIO_INCREASE_STEP_DIVISOR, MAX_AUDIO_BITRATE_BPS);
         audioBitrate = (UINT64) MAX(audioBitrate, MIN_AUDIO_BITRATE_BPS);
     }
+
+    // Effective multiplier actually applied to video (new/current), so the log reads consistently:
+    // <1.0 = decrease, >1.0 = increase, 1.0 = hold. Unlike the internal decision factor, this reflects
+    // the additive increases too (they are relative to MAX, so the true ratio depends on the current bitrate).
+    UINT64 prevVideoBitrate = pSampleStreamingSession->twccMetadata.currentVideoBitrate;
+    DOUBLE appliedFactor = (prevVideoBitrate > 0) ? ((DOUBLE) videoBitrate / (DOUBLE) prevVideoBitrate) : 1.0;
 
     pSampleStreamingSession->twccMetadata.newVideoBitrate = videoBitrate;
     pSampleStreamingSession->twccMetadata.newAudioBitrate = audioBitrate;
@@ -775,9 +791,11 @@ STATUS sampleOnPeerCongestionFeedback(UINT64 customData, PCongestionCtx pCongest
 
     pSampleStreamingSession->twccMetadata.lastAdjustmentTimeMs = currentTimeMs;
 
-    DLOGD("BWE: pktLoss=%.2f%% delayTrend=%.4f ms factor=%.2f | video=%llu kbps audio=%llu bps | tx: %u bytes %u pkts, rx: %u bytes %u pkts",
-          pSampleStreamingSession->twccMetadata.averagePacketLoss, delayTrendMs, factor, videoBitrate, audioBitrate, pCongestionCtx->txBytes,
-          txPacketsCnt, pCongestionCtx->rxBytes, rxPacketsCnt);
+    DLOGD("BWE: %s (%s) | pktLoss=%.2f%% (congested>%.1f%% clear<=%.1f%%) delayTrend=%.4f ms (congested>%.1f clear<%.1f) factor=%.2f | "
+          "video=%llu kbps audio=%llu bps | tx: %u bytes %u pkts, rx: %u bytes %u pkts",
+          action, reason, averagePacketLoss, (DOUBLE) TWCC_LOSS_CONGESTED_THRESHOLD_PCT, (DOUBLE) TWCC_LOSS_CLEAR_THRESHOLD_PCT, delayTrendMs,
+          (DOUBLE) TWCC_DELAY_CONGESTED_THRESHOLD_MS, (DOUBLE) TWCC_DELAY_CLEAR_THRESHOLD_MS, appliedFactor, videoBitrate, audioBitrate,
+          pCongestionCtx->txBytes, txPacketsCnt, pCongestionCtx->rxBytes, rxPacketsCnt);
 
     return STATUS_SUCCESS;
 }

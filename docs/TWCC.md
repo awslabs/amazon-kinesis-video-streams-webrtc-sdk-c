@@ -275,27 +275,27 @@ When congestion is detected, the controller **multiplicatively decreases** the b
 
 #### Decreasing bitrate (congestion detected)
 
-When either signal indicates congestion, the more severe the congestion, the larger the cut:
+When either signal indicates congestion, the more severe the congestion, the larger the cut. Each threshold and each reduction factor is a named constant in `samples/common/Samples.h` — edit the constant listed in the row to tune that step.
 
-| Condition                             | Reduction factor  | Example: 2000 kbps →   |
-|---------------------------------------|:-----------------:|-----------------------:|
-| Delay trend > 5.0 ms (severe queuing) |       0.50        |              1000 kbps |
-| Delay trend > 1.0 ms                  |       0.70        |              1400 kbps |
-| Loss > 10%                            |       0.70        |              1400 kbps |
-| Delay trend > 0.5 ms (mild)           |       0.95        |              1900 kbps |
-| Loss > 5%                             |       0.85        |              1700 kbps |
+| Condition (threshold constant)                                    | Reduction factor (constant)          | Example: 2000 kbps → |
+|-------------------------------------------------------------------|--------------------------------------|---------------------:|
+| Delay trend > 5.0 ms — severe queuing (`TWCC_DELAY_SEVERE_THRESHOLD_MS`)   | 0.50 (`TWCC_DELAY_SEVERE_FACTOR`)    |            1000 kbps |
+| Delay trend > 1.0 ms (`TWCC_DELAY_HIGH_THRESHOLD_MS`)                       | 0.70 (`TWCC_DELAY_HIGH_FACTOR`)      |            1400 kbps |
+| Loss > 10% (`TWCC_LOSS_SEVERE_THRESHOLD_PCT`)                              | 0.70 (`TWCC_LOSS_SEVERE_FACTOR`)     |            1400 kbps |
+| Delay trend > 0.5 ms — mild (`TWCC_DELAY_CONGESTED_THRESHOLD_MS`)          | 0.95 (`TWCC_DELAY_CONGESTED_FACTOR`) |            1900 kbps |
+| Loss > 5% (`TWCC_LOSS_CONGESTED_THRESHOLD_PCT`)                            | 0.85 (`TWCC_LOSS_CONGESTED_FACTOR`)  |            1700 kbps |
 
 When both signals indicate congestion, the **minimum** (most aggressive) factor wins.
 
 #### Increasing bitrate (network is clear)
 
-Feel free to modify the values in the `sampleOnPeerCongestionFeedback` to your use case and application requirements.
+A signal counts as "clear" when loss is below `TWCC_LOSS_CLEAR_THRESHOLD_PCT` (2.0%) and the delay trend is below `TWCC_DELAY_CLEAR_THRESHOLD_MS` (-0.1 ms). Feel free to modify the values in `sampleOnPeerCongestionFeedback` to your use case and application requirements — each step size is derived from the max-bitrate limit divided by a named constant in `samples/common/Samples.h`.
 
-| Condition | Video step | Audio step |
-|-----------|:----------:|:----------:|
-| Both loss AND delay clear | +MAX_VIDEO/40 per interval | +MAX_AUDIO/20 per interval |
-| Only one signal clear | +MAX_VIDEO/80 per interval | +MAX_AUDIO/20 per interval |
-| Both neutral (not congested, not clear) | Hold (no change) | Hold (no change) |
+| Condition                               | Video step (constant)                                             | Audio step (constant)                                          |
+|-----------------------------------------|-------------------------------------------------------------------|----------------------------------------------------------------|
+| Both loss AND delay clear               | `MAX_VIDEO_BITRATE_KBPS / TWCC_VIDEO_INCREASE_STEP_DIVISOR` (÷40)  | `MAX_AUDIO_BITRATE_BPS / TWCC_AUDIO_INCREASE_STEP_DIVISOR` (÷20) |
+| Only one signal clear                   | `MAX_VIDEO_BITRATE_KBPS / TWCC_VIDEO_INCREASE_STEP_SLOW_DIVISOR` (÷80) | `MAX_AUDIO_BITRATE_BPS / TWCC_AUDIO_INCREASE_STEP_DIVISOR` (÷20) |
+| Both neutral (not congested, not clear) | Hold (no change)                                                  | Hold (no change)                                               |
 
 </details>
 
@@ -324,6 +324,47 @@ The defaults are defined in `samples/common/Samples.h`, you can customize them t
 
 > [!TIP]
 > If your min and max are equal (or nearly equal), the AIMD controller effectively becomes fixed-rate - the clamp overrides every adjustment. This is a common cause of "callbacks fire but bitrate doesn't change" (see [Troubleshooting](#bitrate-not-changing-despite-callbacks-firing)).
+
+### Tuning the controller
+
+All the numbers the controller uses to make its decisions live in one place: `samples/common/Samples.h`, in the block of `TWCC_*` `#define`s. They are plain constants with no hidden dependencies, so it is safe to change them, rebuild, and re-run the sample to see the effect. Below is what each knob does and which way to turn it.
+
+**Loss thresholds** — how much packet loss the controller tolerates before it reacts.
+
+| Constant | Default | What it controls | Effect of increasing it |
+|----------|:-------:|------------------|-------------------------|
+| `TWCC_LOSS_CONGESTED_THRESHOLD_PCT` | `5.0` % | Loss above this counts as congestion and triggers a bitrate cut | Tolerates more packet loss before lowering quality |
+| `TWCC_LOSS_SEVERE_THRESHOLD_PCT` | `10.0` % | Loss above this triggers the steeper cut | Requires even higher loss before the big cut kicks in |
+| `TWCC_LOSS_CLEAR_THRESHOLD_PCT` | `2.0` % | Loss at or below this is "clear" and allows the bitrate to ramp back up | Lets the controller keep raising bitrate even when some loss is present |
+
+**Delay thresholds** — how sensitive the controller is to queuing delay (the network-congestion signal).
+
+| Constant | Default | What it controls | Effect of increasing it |
+|----------|:-------:|------------------|-------------------------|
+| `TWCC_DELAY_CONGESTED_THRESHOLD_MS` | `0.5` ms | Delay trend above this counts as congestion and triggers a cut | Tolerates more queuing delay before reacting |
+| `TWCC_DELAY_HIGH_THRESHOLD_MS` | `1.0` ms | Delay trend above this triggers a bigger cut | Requires more delay before the bigger cut |
+| `TWCC_DELAY_SEVERE_THRESHOLD_MS` | `5.0` ms | Delay trend above this triggers the steepest cut | Requires more delay before the steepest cut |
+| `TWCC_DELAY_CLEAR_THRESHOLD_MS` | `-0.1` ms | Delay trend below this is "clear" and allows ramp up | Makes it easier to treat conditions as clear and ramp up |
+
+**Decrease factors** — how hard the bitrate is cut when congestion is detected (the bitrate is multiplied by these, so smaller = more aggressive cut).
+
+| Constant | Default | What it controls | Effect of increasing it |
+|----------|:-------:|------------------|-------------------------|
+| `TWCC_LOSS_SEVERE_FACTOR` | `0.7` | Multiplier applied when loss is severe | Gentler cut on severe loss (keeps more bitrate) |
+| `TWCC_LOSS_CONGESTED_FACTOR` | `0.85` | Multiplier applied when loss is congested | Gentler cut on moderate loss |
+| `TWCC_DELAY_SEVERE_FACTOR` | `0.5` | Multiplier applied on severe delay | Gentler cut on severe delay |
+| `TWCC_DELAY_HIGH_FACTOR` | `0.7` | Multiplier applied on high delay | Gentler cut on high delay |
+| `TWCC_DELAY_CONGESTED_FACTOR` | `0.95` | Multiplier applied on mild delay | Gentler cut on mild delay |
+
+**Increase steps** — how quickly the bitrate climbs back when things are clear. The step is `MAX_*_BITRATE_KBPS / divisor`, so a **bigger divisor means a smaller step** (slower ramp up).
+
+| Constant | Default | What it controls | Effect of increasing it |
+|----------|:-------:|------------------|-------------------------|
+| `TWCC_VIDEO_INCREASE_STEP_DIVISOR` | `40` | Video ramp-up step when both loss and delay are clear | Smaller steps, slower ramp up |
+| `TWCC_VIDEO_INCREASE_STEP_SLOW_DIVISOR` | `80` | Video ramp-up step when only one signal is clear | Smaller steps, even slower ramp up |
+| `TWCC_AUDIO_INCREASE_STEP_DIVISOR` | `20` | Audio ramp-up step | Smaller steps, slower audio ramp up |
+
+The defaults are tuned for a normal, healthy network where packet loss is a reliable congestion signal. Adjust them in small steps, rebuild, and watch the [BWE log line](#reading-the-bwe-log-line) to confirm the controller behaves the way you expect for your device and network.
 
 ### How the GStreamer sample applies the new bitrate
 
@@ -420,9 +461,29 @@ Set log level to `DEBUG` to see TWCC diagnostics. Key messages to look for:
 | `TWCC disabled by local configuration`                           | `enableTwcc` is FALSE or pTwccManager wasn't created.                                                                    |
 | `TWCC not advertised by remote (extmap=X, rtcp-fb=Y)`            | Remote SDP missing one or both required attributes.                                                                      |
 | `TWCC trendline: delayTrend=X ms queueDelay=Y ms (n=Z)`          | Built-in estimator output. Positive delayTrend = congestion.                                                             |
-| `BWE: pktLoss=X% delayTrend=Y ms factor=Z`                       | Sample AIMD controller made a bitrate decision. Shows current loss, delay trend, scaling factor, and resulting bitrates. |
+| `BWE: <ACTION> (<reason>) \| pktLoss=X% (congested>.. clear<=..) delayTrend=Y ms (congested>.. clear<..) factor=Z \| video=.. audio=.. \| tx/rx ..` | Sample AIMD controller made a bitrate decision. Leads with the `<ACTION>` it took (`INCREASE`, `INCREASE (slow)`, `DECREASE`, or `HOLD`) and a plain-English `<reason>`. Each signal prints its active thresholds inline, so you can see at a glance whether the measured loss/delay crossed the congested or clear line. `factor` is the actual multiplier applied (new bitrate ÷ previous): `<1.0` decreased, `>1.0` increased, `1.0` held. Ends with the resulting `video`/`audio` bitrates and the tx/rx byte and packet counts for the window. See [Reading the BWE log line](#reading-the-bwe-log-line) below. |
 | `Malformed TWCC packet: packetStatusCount is 0, skipping`        | Received an empty feedback report (harmless, just skipped).                                                              |
 | `Malformed TWCC packet: reportLen X exceeds packetStatusCount Y` | Possible bug in remote peer's TWCC implementation; SDK clamps safely.                                                    |
 | `Number of TWCC info packets in memory: N`                       | Logged on cleanup. Large values may indicate feedback wasn't arriving (packets accumulated without being reported).      |
 
 </details>
+
+### Reading the BWE log line
+
+When the sample AIMD controller runs, it logs one line per decision. Here is a real example from a Raspberry Pi on a congested link:
+
+```
+BWE: DECREASE (packet loss above congested threshold) | pktLoss=77.76% (congested>5.0% clear<=2.0%) delayTrend=2.5922 ms (congested>0.5 clear<-0.1) factor=0.70 | video=384 kbps audio=4000 bps | tx: 125000 bytes 110 pkts, rx: 28000 bytes 24 pkts
+```
+
+Read it left to right:
+
+- **`DECREASE`** — the action taken. One of `INCREASE`, `INCREASE (slow)`, `DECREASE`, or `HOLD`.
+- **`(packet loss above congested threshold)`** — plain-English reason for that action (e.g. "delay trend above congested threshold", "loss and delay both clear", "loss clear, delay neutral", "loss and delay neutral").
+- **`pktLoss=77.76% (congested>5.0% clear<=2.0%)`** — measured loss, with the active thresholds inline. Here 77.76% is far above the 5.0% congested line, so loss is the culprit — this is exactly what to look for when video is stuck at the floor.
+- **`delayTrend=2.5922 ms (congested>0.5 clear<-0.1)`** — measured delay trend (positive = queue building), again with its thresholds inline. Above 0.5 ms means delay is also flagged as congested.
+- **`factor=0.70`** — the actual multiplier applied (new bitrate ÷ previous). `<1.0` = decreased, `>1.0` = increased, `1.0` = held. So `0.70` means the bitrate was cut to 70% of its previous value.
+- **`video=384 kbps audio=4000 bps`** — the resulting bitrates after this decision (here video hit its floor).
+- **`tx: ... rx: ...`** — bytes and packets sent (tx) and acknowledged via feedback (rx) for this measurement window.
+
+In this example the takeaway is clear at a glance: loss (77.76%) blew past the 5% congested threshold, so the controller chose `DECREASE` and video bottomed out at its minimum. Compare each measured value against its inline threshold to understand why the bitrate went up, down, or held.
