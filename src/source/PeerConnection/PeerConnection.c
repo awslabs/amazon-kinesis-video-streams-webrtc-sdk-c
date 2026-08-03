@@ -1454,8 +1454,17 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
             if (STRNCMP(pSessionDescription->sdpAttributes[i].attributeValue, DTLS_FINGERPRINT_SHA256_PREFIX, DTLS_FINGERPRINT_SHA256_PREFIX_LEN) ==
                 0) {
                 DLOGV("Found SHA-256 session-level fingerprint");
-                STRNCPY(pKvsPeerConnection->remoteCertificateFingerprint,
-                        pSessionDescription->sdpAttributes[i].attributeValue + DTLS_FINGERPRINT_SHA256_PREFIX_LEN, CERTIFICATE_FINGERPRINT_LENGTH);
+                /* The remote DTLS certificate fingerprint is immutable for the lifetime of the
+                 * connection (RFC 8842): copy it once, on the first setRemoteDescription while the
+                 * buffer is still empty, and never on a re-negotiation. The DTLS thread reads this
+                 * buffer via strcmp while verifying; gating on dtlsHandshakeDone still races that read
+                 * (the handshake can finish between the snapshot above and this copy), whereas the
+                 * emptiness check writes exactly once — before DTLS exists — and skips thereafter. */
+                if (IS_EMPTY_STRING(pKvsPeerConnection->remoteCertificateFingerprint)) {
+                    STRNCPY(pKvsPeerConnection->remoteCertificateFingerprint,
+                            pSessionDescription->sdpAttributes[i].attributeValue + DTLS_FINGERPRINT_SHA256_PREFIX_LEN,
+                            CERTIFICATE_FINGERPRINT_LENGTH);
+                }
             } else {
                 // Log just the algorithm name (everything up to the first space) — the hex hash that follows
                 // is long and adds nothing to the diagnostic. Drop this `else` branch once the SDK supports
@@ -1499,9 +1508,12 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
                 if (STRNCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, DTLS_FINGERPRINT_SHA256_PREFIX,
                             DTLS_FINGERPRINT_SHA256_PREFIX_LEN) == 0) {
                     DLOGV("Found SHA-256 media-level fingerprint");
-                    STRNCPY(pKvsPeerConnection->remoteCertificateFingerprint,
-                            pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue + DTLS_FINGERPRINT_SHA256_PREFIX_LEN,
-                            CERTIFICATE_FINGERPRINT_LENGTH);
+                    // Write-once, same rationale as the session-level copy above.
+                    if (IS_EMPTY_STRING(pKvsPeerConnection->remoteCertificateFingerprint)) {
+                        STRNCPY(pKvsPeerConnection->remoteCertificateFingerprint,
+                                pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue + DTLS_FINGERPRINT_SHA256_PREFIX_LEN,
+                                CERTIFICATE_FINGERPRINT_LENGTH);
+                    }
                 } else {
                     // Drop this `else` branch once the SDK supports the other hash algorithms.
                     PCHAR space = STRCHR(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, ' ');

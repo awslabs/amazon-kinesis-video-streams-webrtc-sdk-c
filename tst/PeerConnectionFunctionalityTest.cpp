@@ -1996,7 +1996,8 @@ TEST_F(PeerConnectionFunctionalityTest, renegotiateWhileStreamingFrames)
     Frame frame;
     // Live state mirror fed by the public state-change callback: reading
     // pKvsPeerConnection->connectionState directly would race the SDK's writer.
-    std::atomic<UINT64> offerState{RTC_PEER_CONNECTION_STATE_NONE};
+    // SIZE_T (not a 64-bit type) so 32-bit targets do not need libatomic.
+    volatile SIZE_T offerState = RTC_PEER_CONNECTION_STATE_NONE;
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
     MEMSET(frameData, 0x11, SIZEOF(frameData));
@@ -2015,10 +2016,10 @@ TEST_F(PeerConnectionFunctionalityTest, renegotiateWhileStreamingFrames)
     EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
     // connectTwoPeers verified CONNECTED; from here on track transitions via the callback.
-    offerState = RTC_PEER_CONNECTION_STATE_CONNECTED;
+    ATOMIC_STORE(&offerState, (SIZE_T) RTC_PEER_CONNECTION_STATE_CONNECTED);
     EXPECT_EQ(STATUS_SUCCESS,
               peerConnectionOnConnectionStateChange(offerPc, (UINT64) &offerState, [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) {
-                  ((std::atomic<UINT64>*) customData)->store((UINT64) newState);
+                  ATOMIC_STORE((PSIZE_T) customData, (SIZE_T) newState);
               }));
 
     this->lock.lock();
@@ -2063,7 +2064,7 @@ TEST_F(PeerConnectionFunctionalityTest, renegotiateWhileStreamingFrames)
     // rather than asserting the instantaneous value.
     BOOL reconnected = FALSE;
     for (int waitMs = 0; waitMs < 15000 && !reconnected; waitMs += 100) {
-        reconnected = (offerState.load() == RTC_PEER_CONNECTION_STATE_CONNECTED);
+        reconnected = (ATOMIC_LOAD(&offerState) == (SIZE_T) RTC_PEER_CONNECTION_STATE_CONNECTED);
         if (!reconnected) {
             THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
         }
@@ -2094,7 +2095,8 @@ TEST_F(PeerConnectionFunctionalityTest, concurrentRenegotiationAcrossSessions)
     PRtcRtpTransceiver offerTransceiver[2] = {NULL, NULL}, answerTransceiver[2] = {NULL, NULL};
     // Live state mirrors fed by the public state-change callback: reading
     // pKvsPeerConnection->connectionState directly would race the SDK's writer.
-    std::atomic<UINT64> offerState[2] = {{RTC_PEER_CONNECTION_STATE_NONE}, {RTC_PEER_CONNECTION_STATE_NONE}};
+    // SIZE_T (not a 64-bit type) so 32-bit targets do not need libatomic.
+    volatile SIZE_T offerState[2] = {RTC_PEER_CONNECTION_STATE_NONE, RTC_PEER_CONNECTION_STATE_NONE};
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
@@ -2106,11 +2108,11 @@ TEST_F(PeerConnectionFunctionalityTest, concurrentRenegotiationAcrossSessions)
         EXPECT_EQ(connectTwoPeers(offerPc[i], answerPc[i]), TRUE);
 
         // connectTwoPeers verified CONNECTED; from here on track transitions via the callback.
-        offerState[i] = RTC_PEER_CONNECTION_STATE_CONNECTED;
+        ATOMIC_STORE(&offerState[i], (SIZE_T) RTC_PEER_CONNECTION_STATE_CONNECTED);
         EXPECT_EQ(
             STATUS_SUCCESS,
             peerConnectionOnConnectionStateChange(offerPc[i], (UINT64) &offerState[i], [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) {
-                ((std::atomic<UINT64>*) customData)->store((UINT64) newState);
+                ATOMIC_STORE((PSIZE_T) customData, (SIZE_T) newState);
             }));
     }
 
@@ -2146,7 +2148,7 @@ TEST_F(PeerConnectionFunctionalityTest, concurrentRenegotiationAcrossSessions)
     for (int i = 0; i < 2; i++) {
         BOOL reconnected = FALSE;
         for (int waitMs = 0; waitMs < 15000 && !reconnected; waitMs += 100) {
-            reconnected = (offerState[i].load() == RTC_PEER_CONNECTION_STATE_CONNECTED);
+            reconnected = (ATOMIC_LOAD(&offerState[i]) == (SIZE_T) RTC_PEER_CONNECTION_STATE_CONNECTED);
             if (!reconnected) {
                 THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
             }
