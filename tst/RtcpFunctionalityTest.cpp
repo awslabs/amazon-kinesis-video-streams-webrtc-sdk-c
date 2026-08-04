@@ -352,38 +352,41 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketMultiBlockReceiverReportUnknownSsrc)
     freePeerConnection(&pRtcPeerConnection);
 }
 
-// An RR with more than RTCP_PACKET_RECEIVER_REPORT_MAX_BLOCKS (2) report blocks is capped: only the
-// first 2 blocks are processed, the rest are ignored.
+// An RR with more than RTCP_PACKET_RECEIVER_REPORT_MAX_BLOCKS (= MAX_SDP_SESSION_MEDIA_COUNT)
+// report blocks is capped: only the first RTCP_PACKET_RECEIVER_REPORT_MAX_BLOCKS blocks are
+// processed, the rest are ignored. Assertions are keyed off the constant so the test stays valid
+// for any configured MAX_SDP_SESSION_MEDIA_COUNT (1-6).
 TEST_F(RtcpFunctionalityTest, onRtcpPacketMultiBlockReceiverReportCappedBlockCount)
 {
-    // RC=3, length 0x0013 (19 words -> 76-byte payload): senderSSRC + 3 report blocks
-    auto hexpacket = (PCHAR) "83C90013"
+    constexpr UINT32 packetBlockCount = 6;
+    // RC=6, length 0x0025 (37 words -> 148-byte payload): senderSSRC + 6 report blocks
+    auto hexpacket = (PCHAR) "86C90025"
                              "01020304"
                              "111111110400000000000100000000640000000000000000"
-                             "222222220800000000000200000000C80000000000000000"
-                             "333333330C000000000003000000012C0000000000000000";
-    BYTE rawpacket[96] = {0};
-    UINT32 rawpacketSize = 96;
+                             "222222220400000000000100000000640000000000000000"
+                             "333333330400000000000100000000640000000000000000"
+                             "444444440400000000000100000000640000000000000000"
+                             "555555550400000000000100000000640000000000000000"
+                             "666666660400000000000100000000640000000000000000";
+    BYTE rawpacket[160] = {0};
+    UINT32 rawpacketSize = 160;
     EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize));
 
+    PRtcRtpTransceiver transceivers[packetBlockCount];
     initTransceiver(0x11111111);
-    auto secondTransceiver = addTransceiver(0x22222222);
-    auto thirdTransceiver = addTransceiver(0x33333333);
+    transceivers[0] = pRtcRtpTransceiver;
+    for (UINT32 i = 1; i < packetBlockCount; i++) {
+        transceivers[i] = addTransceiver(0x11111111 * (i + 1));
+    }
 
     EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
 
-    RtcRemoteInboundRtpStreamStats stats{};
-    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &stats));
-    EXPECT_EQ(1, stats.reportsReceived);
-
-    RtcRemoteInboundRtpStreamStats secondStats{};
-    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, secondTransceiver, &secondStats));
-    EXPECT_EQ(1, secondStats.reportsReceived);
-
-    // Third block exceeds the cap and must not be processed
-    RtcRemoteInboundRtpStreamStats thirdStats{};
-    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, thirdTransceiver, &thirdStats));
-    EXPECT_EQ(0, thirdStats.reportsReceived);
+    for (UINT32 i = 0; i < packetBlockCount; i++) {
+        RtcRemoteInboundRtpStreamStats stats{};
+        EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, transceivers[i], &stats));
+        UINT64 expected = (i < RTCP_PACKET_RECEIVER_REPORT_MAX_BLOCKS) ? 1 : 0;
+        EXPECT_EQ(expected, stats.reportsReceived) << "block index " << i;
+    }
 
     freePeerConnection(&pRtcPeerConnection);
 }
