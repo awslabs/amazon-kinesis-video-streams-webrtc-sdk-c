@@ -166,6 +166,7 @@ struct __SampleConfiguration {
     TID mediaSenderTid;
     TID audioSenderTid;
     TID videoSenderTid;
+    TID remoteInboundStatsTid;
     TIMER_QUEUE_HANDLE timerQueueHandle;
     UINT32 iceCandidatePairStatsTimerId;
     SampleStreamingMediaType mediaType;
@@ -276,6 +277,7 @@ PVOID sendGstreamerAudioVideo(PVOID);
 PVOID sampleReceiveAudioVideoFrame(PVOID);
 PVOID getPeriodicIceCandidatePairStats(PVOID);
 PVOID getPeriodicRemoteInboundStats(PVOID);
+STATUS startPeriodicRemoteInboundStats(PSampleConfiguration);
 STATUS getIceCandidatePairStatsCallback(UINT32, UINT64, UINT64);
 STATUS pregenerateCertTimerCallback(UINT32, UINT64, UINT64);
 STATUS createSampleConfiguration(PCHAR, SIGNALING_CHANNEL_ROLE_TYPE, BOOL, BOOL, UINT32, PSampleConfiguration*);

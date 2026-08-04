@@ -984,6 +984,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->clientInfo.cacheFilePath = NULL; // Use the default path
     pSampleConfiguration->clientInfo.signalingClientCreationMaxRetryAttempts = CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE;
     pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
+    pSampleConfiguration->remoteInboundStatsTid = INVALID_TID_VALUE;
     pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
     pSampleConfiguration->signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
 
@@ -1195,6 +1196,23 @@ PVOID getPeriodicRemoteInboundStats(PVOID args)
     return NULL;
 }
 
+// Start the periodic remote-inbound stats thread for a sample. The thread only produces
+// VERBOSE-level logs, so it is only created (and its memory spent) when the configured log
+// level is VERBOSE. Joined automatically in freeSampleConfiguration.
+STATUS startPeriodicRemoteInboundStats(PSampleConfiguration pSampleConfiguration)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
+    CHK(pSampleConfiguration->clientInfo.loggingLevel == LOG_LEVEL_VERBOSE, STATUS_SUCCESS);
+    CHK(pSampleConfiguration->remoteInboundStatsTid == INVALID_TID_VALUE, STATUS_SUCCESS);
+
+    CHK_STATUS(THREAD_CREATE(&pSampleConfiguration->remoteInboundStatsTid, getPeriodicRemoteInboundStats, (PVOID) pSampleConfiguration));
+
+CleanUp:
+    return retStatus;
+}
+
 STATUS getIceCandidatePairStatsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     UNUSED_PARAM(timerId);
@@ -1383,6 +1401,14 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         }
 
         timerQueueFree(&pSampleConfiguration->timerQueueHandle);
+    }
+
+    if (pSampleConfiguration->remoteInboundStatsTid != INVALID_TID_VALUE) {
+        // The stats thread exits when appTerminateFlag is set; set it here as well since not all
+        // samples set it before freeing the configuration
+        ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, TRUE);
+        THREAD_JOIN(pSampleConfiguration->remoteInboundStatsTid, NULL);
+        pSampleConfiguration->remoteInboundStatsTid = INVALID_TID_VALUE;
     }
 
     if (pSampleConfiguration->pPendingSignalingMessageForRemoteClient != NULL) {

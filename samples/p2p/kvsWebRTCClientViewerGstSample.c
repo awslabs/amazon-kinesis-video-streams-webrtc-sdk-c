@@ -175,6 +175,9 @@ INT32 main(INT32 argc, CHAR* argv[])
     DLOGI("[KVS Gstreamer Viewer] Data Channel open now...");
 #endif
 
+    // Periodically log remote-inbound RTP stats (VERBOSE log level only)
+    CHK_STATUS(startPeriodicRemoteInboundStats(pSampleConfiguration));
+
     // Block until interrupted
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted) && !ATOMIC_LOAD_BOOL(&pSampleStreamingSession->terminateFlag)) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
