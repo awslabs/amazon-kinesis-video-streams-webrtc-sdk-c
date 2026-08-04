@@ -418,7 +418,7 @@ Allowed audio-codec: opus (default codec if nothing is specified)
 Allowed video-codec: h264 (default codec if nothing is specified), h265
 
 ##### Sample: kvsWebrtcClientMaster4Video1Audio
-This application sends 4 H264 video tracks and 1 Opus audio track over a single PeerConnection using static sample frames. Each video track is a separate RTP transceiver, allowing the viewer to receive 4 independent video streams simultaneously over a single KVS Signaling Channel.
+This application sends 4 video tracks and 1 Opus audio track over a single PeerConnection using static sample frames. Each video track is a separate RTP transceiver, allowing the viewer to receive 4 independent video streams simultaneously over a single KVS Signaling Channel.
 
 > [!Note]
 > The SDP must accommodate 6 media sections (4 video + 1 audio + 1 data channel when built with `-DENABLE_DATA_CHANNEL=ON`). Configure the build accordingly for larger SDP sizes:
@@ -427,17 +427,20 @@ This application sends 4 H264 video tracks and 1 Opus audio track over a single 
 > ```
 > Without the proper configuration, the SDP offer will be rejected and the connection will not be established.
 
-By default, all 4 tracks send the same frames from `h264SampleFrames/`. To send **unique** frames per track (recommended for testing), generate per-track frame sets using the provided script. It requires GStreamer to be installed.
+By default, all 4 tracks send the same frames from `h264SampleFrames/` (or `h265SampleFrames/` when h265 is selected). To send **unique** frames per track (recommended for testing), generate per-track frame sets using the provided script. It requires GStreamer to be installed. Pass the codec to match the one you run the sample with (defaults to `h264`):
 ```shell
 cd build/samples
-../../scripts/generate_multi_track_frames.sh
+../../scripts/generate_multi_track_frames.sh          # h264 (default)
+../../scripts/generate_multi_track_frames.sh h265     # h265
 ```
-The sample auto-detects the `h264SampleFrames_track0/` through `h264SampleFrames_track3/` directories at runtime and prints a warning with instructions if they are not found.
+The sample auto-detects the `<codec>SampleFrames_track0/` through `<codec>SampleFrames_track3/` directories at runtime and prints a warning with instructions if they are not found.
 
 To run:
 ```shell
-./samples/kvsWebrtcClientMaster4Video1Audio <channelName>
+./samples/kvsWebrtcClientMaster4Video1Audio <channelName> <video-codec>
 ```
+
+Allowed video-codec: h264 (default codec if nothing is specified), h265
 
 #### WebRTC Storage (ingest) samples
 
