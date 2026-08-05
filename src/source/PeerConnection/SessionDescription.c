@@ -325,6 +325,36 @@ CleanUp:
     return retStatus;
 }
 
+// Map the media codec to its RTX-table key.
+// The rtxTable is keyed by the RTX codec enum (RTC_RTX_CODEC_*), which does NOT share the same
+// numbering as the media codec enum (RTC_CODEC_*): e.g. H265 is RTC_CODEC_H265 (7) but
+// RTC_RTX_CODEC_H265 (3), and VP8 is RTC_CODEC_VP8 (3) but RTC_RTX_CODEC_VP8 (2).
+STATUS getRtxCodecKeyForCodec(RTC_CODEC codec, PUINT64 pRtxCodecKey)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pRtxCodecKey != NULL, STATUS_NULL_ARG);
+
+    switch (codec) {
+        case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
+            *pRtxCodecKey = RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+            break;
+        case RTC_CODEC_VP8:
+            *pRtxCodecKey = RTC_RTX_CODEC_VP8;
+            break;
+        case RTC_CODEC_H265:
+            *pRtxCodecKey = RTC_RTX_CODEC_H265;
+            break;
+        default:
+            CHK_ERR(FALSE, STATUS_SESSION_DESCRIPTION_CODEC_NOT_MAPPED_TO_RTX, "No RTX codec mapping for codec %u", codec);
+    }
+
+CleanUp:
+    LEAVES();
+    return retStatus;
+}
+
 STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PDoubleList pTransceivers)
 {
     ENTERS();
@@ -332,6 +362,7 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
     PDoubleListNode pCurNode = NULL;
     PKvsRtpTransceiver pKvsRtpTransceiver;
     UINT64 data;
+    UINT64 rtxCodecKey;
 
     // Loop over Transceivers and set the payloadType (which what we got from the other side)
     // If a codec we want to send wasn't supported by the other return an error
@@ -348,9 +379,23 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
             pKvsRtpTransceiver->sender.payloadType = (UINT8) data;
             pKvsRtpTransceiver->sender.rtxPayloadType = (UINT8) data;
 
-            // NACKs may have distinct PayloadTypes, look in the rtxTable and check. Otherwise NACKs will just be re-sending the same seqnum
-            if (hashTableGet(rtxTable, pKvsRtpTransceiver->sender.track.codec, &data) == STATUS_SUCCESS) {
+            // Get the PayloadTypes from the rtxTable for the NACK.
+            // If it's not in the table, will do a plain resend (same seqnum).
+            if (pKvsRtpTransceiver->sender.track.kind == MEDIA_STREAM_TRACK_KIND_VIDEO &&
+                getRtxCodecKeyForCodec(pKvsRtpTransceiver->sender.track.codec, &rtxCodecKey) == STATUS_SUCCESS &&
+                hashTableGet(rtxTable, rtxCodecKey, &data) == STATUS_SUCCESS) {
                 pKvsRtpTransceiver->sender.rtxPayloadType = (UINT8) data;
+            }
+
+            // Emit once per negotiation, whether RTX was resolved for this codec. When rtxPayloadType
+            // stays equal to payloadType, retransmissions on NACK fall back to a plain resend on the original SSRC/PT
+            // instead of being sent as RTX packets.
+            if (pKvsRtpTransceiver->sender.rtxPayloadType != pKvsRtpTransceiver->sender.payloadType) {
+                DLOGD("RTX negotiated for codec %u: payloadType %u, rtxPayloadType %u", pKvsRtpTransceiver->sender.track.codec,
+                      pKvsRtpTransceiver->sender.payloadType, pKvsRtpTransceiver->sender.rtxPayloadType);
+            } else {
+                DLOGW("RTX not resolved for codec %u (no matching rtx/apt in remote SDP); NACKs will fall back to plain resend on payloadType %u",
+                      pKvsRtpTransceiver->sender.track.codec, pKvsRtpTransceiver->sender.payloadType);
             }
         }
 

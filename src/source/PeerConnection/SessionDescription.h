@@ -91,6 +91,7 @@ extern "C" {
 STATUS setPayloadTypesFromOffer(PHashTable, PHashTable, PSessionDescription);
 STATUS setPayloadTypesForOffer(PHashTable);
 
+STATUS getRtxCodecKeyForCodec(RTC_CODEC, PUINT64);
 STATUS setTransceiverPayloadTypes(PHashTable, PHashTable, PDoubleList);
 STATUS populateSessionDescription(PKvsPeerConnection, PSessionDescription, PSessionDescription);
 RTC_RTP_TRANSCEIVER_DIRECTION intersectTransceiverDirection(RTC_RTP_TRANSCEIVER_DIRECTION, RTC_RTP_TRANSCEIVER_DIRECTION);
