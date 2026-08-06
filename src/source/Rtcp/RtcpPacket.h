@@ -31,7 +31,7 @@ extern "C" {
 // No longer used by the SDK: receiver report length is now validated dynamically against the
 // report block count (4 + RC * RTCP_PACKET_RECEIVER_REPORT_BLOCK_LEN in onRtcpReceiverReport).
 // Kept for backward compatibility with any external consumers of this header.
-#define RTCP_PACKET_RECEIVER_REPORT_MINLEN    4 + RTCP_PACKET_RECEIVER_REPORT_BLOCK_LEN
+#define RTCP_PACKET_RECEIVER_REPORT_MINLEN 4 + RTCP_PACKET_RECEIVER_REPORT_BLOCK_LEN
 // Maximum receiver report blocks processed per RR, keyed to the maximum number of media streams
 // a peer connection can negotiate (configurable via -DMAX_SDP_SESSION_MEDIA_COUNT). Report blocks
 // beyond the negotiated stream count cannot reference a known transceiver. The RC header field is
