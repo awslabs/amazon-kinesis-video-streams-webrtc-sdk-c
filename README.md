@@ -429,9 +429,9 @@ This application sends 4 video tracks and 1 Opus audio track over a single PeerC
 
 By default, all 4 tracks send the same frames from `h264SampleFrames/` (or `h265SampleFrames/` when h265 is selected). To send **unique** frames per track (recommended for testing), generate per-track frame sets using the provided script. It requires GStreamer to be installed. Pass the codec to match the one you run the sample with (defaults to `h264`):
 ```shell
-cd build/samples
-../../scripts/generate_multi_track_frames.sh          # h264 (default)
-../../scripts/generate_multi_track_frames.sh h265     # h265
+cd build
+../scripts/generate_multi_track_frames.sh          # h264 (default)
+../scripts/generate_multi_track_frames.sh h265     # h265
 ```
 The sample auto-detects the `<codec>SampleFrames_track0/` through `<codec>SampleFrames_track3/` directories at runtime and prints a warning with instructions if they are not found.
 
