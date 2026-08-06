@@ -435,6 +435,9 @@ cd build/samples
 ```
 The sample auto-detects the `<codec>SampleFrames_track0/` through `<codec>SampleFrames_track3/` directories at runtime and prints a warning with instructions if they are not found.
 
+> [!Tip]
+> If H.265 video freezes after the first frame in the viewer (while audio keeps playing), or you need to inspect the generated frames, see [docs/TROUBLESHOOTING_H265_FRAMES.md](docs/TROUBLESHOOTING_H265_FRAMES.md).
+
 To run:
 ```shell
 ./samples/kvsWebrtcClientMaster4Video1Audio <channelName> <video-codec>
@@ -478,14 +481,22 @@ To address this issue, users need to adapt the pipeline to utilize components ca
 
 #### Sample: Generating sample frames
 
+The `h264parse`/`h265parse` element with `config-interval=-1` re-inserts the
+parameter sets (SPS/PPS, plus VPS for H.265) before every keyframe so each keyframe
+is a self-contained access unit the WebRTC decoder can recover from. This is
+required for H.265: `x265enc` does not repeat parameter sets on keyframes, so
+without it the stream plays one keyframe and then freezes in the viewer. See
+[docs/TROUBLESHOOTING_H265_FRAMES.md](docs/TROUBLESHOOTING_H265_FRAMES.md) for
+details.
+
 ##### H264
 ```shell
-gst-launch-1.0 videotestsrc pattern=ball num-buffers=1500 ! timeoverlay ! videoconvert ! video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! queue ! x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! multifilesink location="frame-%04d.h264" index=1
+gst-launch-1.0 videotestsrc pattern=ball num-buffers=1500 ! timeoverlay ! videoconvert ! video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! queue ! x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency key-int-max=25 ! h264parse config-interval=-1 ! video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! multifilesink location="frame-%04d.h264" index=1
 ```
 
 ##### H265
 ```shell
-gst-launch-1.0 videotestsrc pattern=ball num-buffers=1500 ! timeoverlay ! videoconvert ! video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! queue ! x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! multifilesink location="frame-%04d.h265" index=1
+gst-launch-1.0 videotestsrc pattern=ball num-buffers=1500 ! timeoverlay ! videoconvert ! video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! queue ! x265enc speed-preset=veryfast bitrate=512 tune=zerolatency key-int-max=25 option-string=bframes=0 ! h265parse config-interval=-1 ! video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! multifilesink location="frame-%04d.h265" index=1
 ```
 
 ##### Opus
@@ -824,6 +835,7 @@ See the [Status code reference](https://github.com/awslabs/amazon-kinesis-video-
 
 Additional guides:
 - [TWCC (Transport-Wide Congestion Control)](docs/TWCC.md) — bandwidth estimation, bitrate adaptation, and troubleshooting
+- [Troubleshooting H.265 sample frames](docs/TROUBLESHOOTING_H265_FRAMES.md) — inspecting NAL units, diagnosing freeze-after-first-frame, regenerating frames
 
 Refer to [related](#related) for more about WebRTC and KVS.
 
