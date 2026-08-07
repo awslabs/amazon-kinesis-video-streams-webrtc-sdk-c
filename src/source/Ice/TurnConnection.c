@@ -95,9 +95,11 @@ STATUS createTurnConnection(PIceServer pTurnServer, TIMER_QUEUE_HANDLE timerQueu
     pTurnConnection->dataTransferMode = dataTransferMode;
     pTurnConnection->protocol = protocol;
     pTurnConnection->relayAddressReported = FALSE;
+    pTurnConnection->authTransactionIdSet = FALSE;
     pTurnConnection->pControlChannel = pTurnSocket;
 
     ATOMIC_STORE_BOOL(&pTurnConnection->stopTurnConnection, FALSE);
+    ATOMIC_STORE_BOOL(&pTurnConnection->credentialsRejected, FALSE);
     ATOMIC_STORE_BOOL(&pTurnConnection->hasAllocation, FALSE);
     ATOMIC_STORE_BOOL(&pTurnConnection->shutdownComplete, FALSE);
 
@@ -473,6 +475,31 @@ STATUS turnConnectionHandleStunError(PTurnConnection pTurnConnection, PBYTE pBuf
 
     switch (pStunAttributeErrorCode->errorCode) {
         case STUN_ERROR_UNAUTHORIZED:
+            // TURN reuses 401 for two distinct meanings: the initial nonce challenge (in response to our
+            // unauthenticated Allocate) and a credential rejection (in response to an Allocate we signed with
+            // MESSAGE-INTEGRITY). Since the transport is UDP, a stale/duplicated challenge response can also
+            // arrive after we have already authenticated. Correlate by transaction id to tell them apart.
+            if (pTurnConnection->authTransactionIdSet &&
+                MEMCMP(pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET, pTurnConnection->authTransactionId, STUN_TRANSACTION_ID_LEN) == 0) {
+                // 401 for the request we authenticated: the credentials are being rejected. The long term key
+                // does not change between retransmits, so retrying is futile. Flag it and let the state machine
+                // timer fail fast rather than retransmitting until the allocation timeout.
+                if (!ATOMIC_LOAD_BOOL(&pTurnConnection->credentialsRejected)) {
+                    DLOGE("TURN server rejected credentials for server %s (username %s). Error Code: %u, Error detail: %s",
+                          pTurnConnection->turnServer.url, pTurnConnection->turnServer.username, pStunAttributeErrorCode->errorCode,
+                          pStunAttributeErrorCode->errorPhrase);
+                    ATOMIC_STORE_BOOL(&pTurnConnection->credentialsRejected, TRUE);
+                }
+                break;
+            }
+
+            if (pTurnConnection->credentialObtained) {
+                // We already consumed a nonce challenge and this 401 does not match our authenticated request,
+                // so it is a stale/duplicated challenge for a superseded request. Ignore it.
+                DLOGD("Ignoring stale 401 Unauthorized response (nonce challenge already processed).");
+                break;
+            }
+
             CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_NONCE, &pStunAttr));
             CHK_WARN(pStunAttr != NULL, retStatus, "No Nonce attribute found in Allocate Error response. Dropping Packet");
             pStunAttributeNonce = (PStunAttributeNonce) pStunAttr;
