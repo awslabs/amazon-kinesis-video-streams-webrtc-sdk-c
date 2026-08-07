@@ -237,6 +237,10 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     DLOGI("[KVS Master] Channel %s set up done ", pChannelName);
 
+    // Periodically log remote-inbound RTP stats (VERBOSE log level only). Note: covers the first
+    // video transceiver and the audio transceiver exposed on the streaming session struct.
+    CHK_STATUS(startPeriodicRemoteInboundStats(pSampleConfiguration));
+
     CHK_STATUS(sessionCleanupWait(pSampleConfiguration));
     DLOGI("[KVS Master] Streaming session terminated");
 
