@@ -49,37 +49,13 @@ CleanUp:
     return retStatus;
 }
 
-// TODO better sender report handling https://tools.ietf.org/html/rfc3550#section-6.4.1
-static STATUS onRtcpSenderReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    UINT32 senderSSRC;
-    PKvsRtpTransceiver pTransceiver = NULL;
-
-    CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
-
-    if (pRtcpPacket->payloadLength != RTCP_PACKET_SENDER_REPORT_MINLEN) {
-        // TODO: handle sender report containing receiver report blocks
-        return STATUS_SUCCESS;
-    }
-
-    senderSSRC = getUnalignedInt32BigEndian(pRtcpPacket->payload);
-    if (STATUS_SUCCEEDED(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, senderSSRC))) {
-        UINT64 ntpTime = getUnalignedInt64BigEndian(pRtcpPacket->payload + 4);
-        UINT32 rtpTs = getUnalignedInt32BigEndian(pRtcpPacket->payload + 12);
-        UINT32 packetCnt = getUnalignedInt32BigEndian(pRtcpPacket->payload + 16);
-        UINT32 octetCnt = getUnalignedInt32BigEndian(pRtcpPacket->payload + 20);
-        DLOGV("RTCP_PACKET_TYPE_SENDER_REPORT %d %" PRIu64 " rtpTs: %u %u pkts %u bytes", senderSSRC, ntpTime, rtpTs, packetCnt, octetCnt);
-    } else {
-        DLOGW("Received sender report for non existing ssrc: %u", senderSSRC);
-    }
-
-CleanUp:
-
-    return retStatus;
-}
-
-static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
+// Parses the reception report blocks carried in a receiver report or a sender report and updates
+// remoteInboundStats on the transceiver matching each block's source SSRC.
+// https://tools.ietf.org/html/rfc3550#section-6.4.1 (SR), https://tools.ietf.org/html/rfc3550#section-6.4.2 (RR)
+// The block format is identical in both packet types; only the offset of the first block differs:
+//   RR: 4 bytes  (after the sender SSRC)
+//   SR: 24 bytes (after the sender SSRC and the 20-byte sender info section)
+static STATUS parseRtcpReceptionReportBlocks(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection, UINT32 firstReportBlockOffset)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PKvsRtpTransceiver pTransceiver = NULL;
@@ -90,28 +66,29 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
     UINT8 reportBlockCount, i;
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
-    // https://tools.ietf.org/html/rfc3550#section-6.4.2
-    // A receiver report contains the sender SSRC followed by receptionReportCount report blocks. The media
-    // storage backend reports on all streams (audio + video) in a single RR, so all blocks must be processed.
+
+    // The report contains receptionReportCount report blocks. The media storage backend reports on
+    // all streams (audio + video) in a single packet, so all blocks must be processed.
     reportBlockCount = pRtcpPacket->header.receptionReportCount;
     if (reportBlockCount > RTCP_PACKET_RECEIVER_REPORT_MAX_BLOCKS) {
-        DLOGW("Receiver report contains %u report blocks, processing only the first %u", reportBlockCount, RTCP_PACKET_RECEIVER_REPORT_MAX_BLOCKS);
+        DLOGW("Report contains %u report blocks, processing only the first %u", reportBlockCount, RTCP_PACKET_RECEIVER_REPORT_MAX_BLOCKS);
         reportBlockCount = RTCP_PACKET_RECEIVER_REPORT_MAX_BLOCKS;
     }
-    if (pRtcpPacket->payloadLength < SIZEOF(UINT32) + (UINT32) reportBlockCount * RTCP_PACKET_RECEIVER_REPORT_BLOCK_LEN) {
-        DLOGW("Malformed receiver report: payloadLength %u too small for %u report block(s)", pRtcpPacket->payloadLength, reportBlockCount);
+    if (pRtcpPacket->payloadLength < firstReportBlockOffset + (UINT32) reportBlockCount * RTCP_PACKET_RECEIVER_REPORT_BLOCK_LEN) {
+        DLOGW("Malformed report: payloadLength %u too small for %u report block(s) at offset %u", pRtcpPacket->payloadLength, reportBlockCount,
+              firstReportBlockOffset);
         return STATUS_SUCCESS;
     }
 
     senderSSRC = getUnalignedInt32BigEndian(pRtcpPacket->payload);
 
     for (i = 0; i < reportBlockCount; i++) {
-        reportBlockOffset = SIZEOF(UINT32) + i * RTCP_PACKET_RECEIVER_REPORT_BLOCK_LEN;
+        reportBlockOffset = firstReportBlockOffset + i * RTCP_PACKET_RECEIVER_REPORT_BLOCK_LEN;
         ssrc = getUnalignedInt32BigEndian(pRtcpPacket->payload + reportBlockOffset);
 
         pTransceiver = NULL;
         if (STATUS_FAILED(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, ssrc))) {
-            DLOGW("Received receiver report for non existing ssrc: %u", ssrc);
+            DLOGW("Received reception report for non existing ssrc: %u", ssrc);
             continue;
         }
 
@@ -122,7 +99,7 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
         lastSR = getUnalignedInt32BigEndian(pRtcpPacket->payload + reportBlockOffset + 16);
         delaySinceLastSR = getUnalignedInt32BigEndian(pRtcpPacket->payload + reportBlockOffset + 20);
 
-        DLOGV("RTCP inbound: RECEIVER_REPORT block %u/%u - senderSSRC=%u ssrc=%u fractionLost=%.3f cumulativeLost=%u extHiSeq=%u jitter=%u "
+        DLOGV("RTCP inbound: reception report block %u/%u - senderSSRC=%u ssrc=%u fractionLost=%.3f cumulativeLost=%u extHiSeq=%u jitter=%u "
               "lsr=%u dlsr=%u",
               i + 1, reportBlockCount, senderSSRC, ssrc, fractionLost, cumulativeLost, extHiSeqNumReceived, interarrivalJitter, lastSR,
               delaySinceLastSR);
@@ -144,7 +121,7 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
             //      leave the round-trip propagation delay as (A - LSR - DLSR).
             rttPropDelay = MID_NTP(currentTimeNTP) - lastSR - delaySinceLastSR;
             rttPropDelayMsec = KVS_CONVERT_TIMESCALE(rttPropDelay, DLSR_TIMESCALE, 1000);
-            DLOGS("RTCP_PACKET_TYPE_RECEIVER_REPORT rttPropDelay %u msec", rttPropDelayMsec);
+            DLOGS("RTCP reception report rttPropDelay %u msec", rttPropDelayMsec);
 
             pTransceiver->remoteInboundStats.roundTripTimeMeasurements++;
             pTransceiver->remoteInboundStats.totalRoundTripTime += rttPropDelayMsec;
@@ -156,6 +133,47 @@ static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection p
 CleanUp:
 
     return retStatus;
+}
+
+static STATUS onRtcpSenderReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 senderSSRC;
+    PKvsRtpTransceiver pTransceiver = NULL;
+
+    CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
+
+    // https://tools.ietf.org/html/rfc3550#section-6.4.1
+    if (pRtcpPacket->payloadLength < RTCP_PACKET_SENDER_REPORT_MINLEN) {
+        DLOGW("Malformed sender report: payloadLength %u too small", pRtcpPacket->payloadLength);
+        return STATUS_SUCCESS;
+    }
+
+    senderSSRC = getUnalignedInt32BigEndian(pRtcpPacket->payload);
+    if (STATUS_SUCCEEDED(findTransceiverBySsrc(pKvsPeerConnection, &pTransceiver, senderSSRC))) {
+        UINT64 ntpTime = getUnalignedInt64BigEndian(pRtcpPacket->payload + 4);
+        UINT32 rtpTs = getUnalignedInt32BigEndian(pRtcpPacket->payload + 12);
+        UINT32 packetCnt = getUnalignedInt32BigEndian(pRtcpPacket->payload + 16);
+        UINT32 octetCnt = getUnalignedInt32BigEndian(pRtcpPacket->payload + 20);
+        DLOGV("RTCP_PACKET_TYPE_SENDER_REPORT %d %" PRIu64 " rtpTs: %u %u pkts %u bytes", senderSSRC, ntpTime, rtpTs, packetCnt, octetCnt);
+    } else {
+        DLOGW("Received sender report for non existing ssrc: %u", senderSSRC);
+    }
+
+    // A remote peer that both sends and receives embeds its reception report blocks in the SR after
+    // the sender info instead of sending a separate RR (RFC 3550 section 6.4.1). The media storage
+    // backend does this as soon as it starts sending media; process the blocks exactly like RR blocks.
+    CHK_STATUS(parseRtcpReceptionReportBlocks(pRtcpPacket, pKvsPeerConnection, RTCP_PACKET_SENDER_REPORT_MINLEN));
+
+CleanUp:
+
+    return retStatus;
+}
+
+static STATUS onRtcpReceiverReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
+{
+    // https://tools.ietf.org/html/rfc3550#section-6.4.2
+    return parseRtcpReceptionReportBlocks(pRtcpPacket, pKvsPeerConnection, SIZEOF(UINT32));
 }
 
 // After this function executes, the twccManager saves the indexes of the packets
