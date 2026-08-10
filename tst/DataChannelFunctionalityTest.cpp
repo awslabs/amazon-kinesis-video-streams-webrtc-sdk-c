@@ -97,6 +97,105 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_Disconnected)
     ASSERT_EQ(1u, remoteOpen.channels.at("Answer PeerConnection"));
 }
 
+// When a message drops from a data channel, the connection should retry it
+TEST_F(DataChannelFunctionalityTest, createDataChannel_RecoverFromDroppedMessage)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    // "offer" creates a data channel, answer just listens on it
+    PRtcDataChannel pOfferDataChannel = nullptr;
+    SIZE_T datachannelRemoteOpenCount = 0, msgCount = 0;
+    struct OnOpenHandle {
+        PSIZE_T datachannelRemoteOpenCount;
+        PSIZE_T msgCount;
+    };
+    OnOpenHandle onOpenHandle{&datachannelRemoteOpenCount, &msgCount};
+    // These variables need to be static so the lambda that uses them does not need to capture since lambdas with captures cannot
+    // be converted to function pointers
+    static bool dropNextMessage{false};
+    static std::mutex dropMessageMutex{};
+    static IceInboundPacketFunc iceInboundPacketCallback = nullptr;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    // Override the ice agent inbound packet callback to allow us to drop messages and simulate a flaky connection
+    iceInboundPacketCallback = ((PKvsPeerConnection) answerPc)->pIceAgent->iceAgentCallbacks.inboundPacketFn;
+    dropNextMessage = false; // do not drop any messages yet
+    // Override the ice agent inbound packet callback to drop the first message, simulating
+    // a peer that has stopped communicating without closing the connection
+    const auto dropFirstInboundMessage = [](UINT64 customData, PBYTE pBuffer, UINT32 bufferLen) {
+        std::lock_guard<std::mutex> lock{dropMessageMutex};
+        if (dropNextMessage) {
+            dropNextMessage = false;
+            return;
+        }
+
+        iceInboundPacketCallback(customData, pBuffer, bufferLen);
+    };
+    ((PKvsPeerConnection) answerPc)->pIceAgent->iceAgentCallbacks.inboundPacketFn = dropFirstInboundMessage;
+
+    // Needs to be static so onDataChannel can use it without capture
+    static auto dataChannelOnMessageCallback = [](UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMsg, UINT32 pMsgLen) {
+        UNUSED_PARAM(pDataChannel);
+        UNUSED_PARAM(isBinary);
+        DLOGD("onDataChannelMessage '%s'", pMsg);
+        if (STRNCMP((PCHAR) pMsg, TEST_DATA_CHANNEL_MESSAGE, pMsgLen) == 0) {
+            ATOMIC_INCREMENT((PSIZE_T) customData);
+        }
+    };
+
+    auto onDataChannel = [](UINT64 customData, PRtcDataChannel pRtcDataChannel) {
+        auto handle = reinterpret_cast<OnOpenHandle*>(customData);
+        ATOMIC_INCREMENT(handle->datachannelRemoteOpenCount);
+        DLOGD("onDataChannel '%s'", pRtcDataChannel->name);
+        // attach listener
+        EXPECT_EQ(dataChannelOnMessage(pRtcDataChannel, (UINT64) handle->msgCount, dataChannelOnMessageCallback), STATUS_SUCCESS);
+        // send a message to ensure the channel is working
+        dataChannelSend(pRtcDataChannel, FALSE, (PBYTE) TEST_DATA_CHANNEL_MESSAGE, STRLEN(TEST_DATA_CHANNEL_MESSAGE));
+    };
+
+    // Answer peer listens for data channels becoming available on which to attach the listener
+    EXPECT_EQ(peerConnectionOnDataChannel(answerPc, (UINT64) &onOpenHandle, onDataChannel), STATUS_SUCCESS);
+    // Create a DataChannel from the offer to the answer peer
+    EXPECT_EQ(createDataChannel(offerPc, (PCHAR) "Offer PeerConnection", nullptr, &pOfferDataChannel), STATUS_SUCCESS);
+    // Register listener on this side to ensure the channel is working before we simulate the failure
+    EXPECT_EQ(dataChannelOnMessage(pOfferDataChannel, (UINT64) &msgCount, dataChannelOnMessageCallback), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    // Busy wait until DataChannel connects
+    for (auto i = 0; i <= 100 && (ATOMIC_LOAD(&datachannelRemoteOpenCount) + ATOMIC_LOAD(&msgCount)) != 2; i++) {
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
+
+    // Assert that channels are open and messages are received before testing the dropped message edge case
+    ASSERT_EQ(ATOMIC_LOAD(&datachannelRemoteOpenCount), 1);
+    ASSERT_EQ(ATOMIC_LOAD(&msgCount), 1);
+
+    // set up the ice agent to drop the next message, simulating a flaky connection
+    {
+        std::lock_guard<std::mutex> lock{dropMessageMutex};
+        dropNextMessage = true;
+    }
+
+    // send a message that will be dropped
+    dataChannelSend(pOfferDataChannel, FALSE, (PBYTE) TEST_DATA_CHANNEL_MESSAGE, STRLEN(TEST_DATA_CHANNEL_MESSAGE));
+
+    // busy wait for the message to be resent after being dropped
+    for (auto i = 0; i <= 100 && ATOMIC_LOAD(&msgCount) != 2; i++) {
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
+
+    closePeerConnection(offerPc);
+    freePeerConnection(&offerPc);
+    closePeerConnection(answerPc);
+    freePeerConnection(&answerPc);
+
+    ASSERT_EQ(ATOMIC_LOAD(&msgCount), 2); // message should eventually make it through
+}
+
 TEST_F(DataChannelFunctionalityTest, dataChannelSendRecvMessageAfterDtlsCompleted)
 {
     RtcConfiguration configuration;
