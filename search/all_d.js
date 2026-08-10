@@ -108,7 +108,7 @@ var searchData=
   ['media_5fstream_5ftrack_5fkind_105',['MEDIA_STREAM_TRACK_KIND',['../group__PublicEnums.html#ga95e09412d389145d792d2f61ef558537',1,'Include.h']]],
   ['media_5fstream_5ftrack_5fkind_5faudio_106',['MEDIA_STREAM_TRACK_KIND_AUDIO',['../group__PublicEnums.html#gga95e09412d389145d792d2f61ef558537ada0afa1718febc2d9390e2b29c3049b2',1,'Include.h']]],
   ['media_5fstream_5ftrack_5fkind_5fvideo_107',['MEDIA_STREAM_TRACK_KIND_VIDEO',['../group__PublicEnums.html#gga95e09412d389145d792d2f61ef558537a41a2db29d4b86fd4eccfccf14821238f',1,'Include.h']]],
-  ['mediaattributescount_108',['mediaAttributesCount',['../structSdpMediaDescription.html#a722e1f01e2ff260967bfae1f7c89826b',1,'SdpMediaDescription']]],
+  ['mediaattributescount_108',['mediaAttributesCount',['../structSdpMediaDescription.html#a05e9f83d2e6239bc80547b7b3375e88c',1,'SdpMediaDescription']]],
   ['mediabandwidthcount_109',['mediaBandwidthCount',['../structSdpMediaDescription.html#a1149270c3e33333224673c7b2ef21e29',1,'SdpMediaDescription']]],
   ['mediacount_110',['mediaCount',['../structSessionDescription.html#a03e50673ccf4076d1ea1f2fdc7378e01',1,'SessionDescription']]],
   ['mediadescriptions_111',['mediaDescriptions',['../structSessionDescription.html#a5306fa6906062cfd96c4e935e3f0bf59',1,'SessionDescription']]],
