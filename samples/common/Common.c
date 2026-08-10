@@ -1548,7 +1548,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
-    BOOL peerConnectionFound = FALSE, locked = FALSE, startStats = FALSE, freeStreamingSession = FALSE;
+    BOOL peerConnectionFound = FALSE, locked = FALSE, startStats = FALSE, freeStreamingSession = FALSE, sessionUnlinked = FALSE;
     UINT32 clientIdHash;
     UINT32 idx = 0;
     UINT64 hashValue = 0;
@@ -1597,22 +1597,29 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
                  * Clean up the old session and fall through to create a new one. */
                 DLOGI("Session replacement: replacing terminated session for peer %s", pReceivedSignalingMessage->signalingMessage.peerClientId);
 
-                // Remove old session from hash table
-                CHK_STATUS(hashTableRemove(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash));
-
-                // Remove old session from session list and free it
+                // Unlink from both the list and the hash table before freeing, as sessionCleanupWait() does.
                 MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
+                sessionUnlinked = FALSE;
                 for (idx = 0; idx < pSampleConfiguration->streamingSessionCount; ++idx) {
                     if (pSampleConfiguration->sampleStreamingSessionList[idx] == pSampleStreamingSession) {
                         pSampleConfiguration->streamingSessionCount--;
                         pSampleConfiguration->sampleStreamingSessionList[idx] =
                             pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount];
+                        sessionUnlinked = TRUE;
                         break;
                     }
                 }
+                // Not CHK_STATUS: the session is unlinked above, so bailing out here would leak it.
+                CHK_LOG_ERR(hashTableRemove(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash));
                 MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
 
-                freeSampleStreamingSession(&pSampleStreamingSession);
+                // Unreachable today: both are only written under sampleConfigurationObjLock, held here.
+                if (!sessionUnlinked) {
+                    DLOGW("Session replacement: session for peer %s was not in the streaming session list",
+                          pReceivedSignalingMessage->signalingMessage.peerClientId);
+                }
+
+                CHK_LOG_ERR(freeSampleStreamingSession(&pSampleStreamingSession));
                 pSampleStreamingSession = NULL;
                 // Fall through to create a new session below
             }

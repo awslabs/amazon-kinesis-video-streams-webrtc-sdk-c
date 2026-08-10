@@ -187,6 +187,8 @@ struct __SampleConfiguration {
     BOOL enableSendingMetricsToViewerViaDc;
     BOOL enableFileLogging;
     UINT64 customData;
+    // Media threads walk this list while the signaling thread adds/removes sessions. Iterate and
+    // mutate under streamingSessionListReadLock; free a removed session only after unlocking.
     PSampleStreamingSession sampleStreamingSessionList[DEFAULT_MAX_CONCURRENT_STREAMING_SESSION];
     UINT32 streamingSessionCount;
     MUTEX streamingSessionListReadLock;
