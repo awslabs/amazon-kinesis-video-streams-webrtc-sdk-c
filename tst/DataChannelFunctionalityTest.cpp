@@ -196,6 +196,139 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_RecoverFromDroppedMessage
     ASSERT_EQ(ATOMIC_LOAD(&msgCount), 2); // message should eventually make it through
 }
 
+// Fill the SCTP send buffer (by dropping all inbound to the peer so nothing is SACKed), then
+// verify the buffered data drains and is delivered once the "network" recovers. This reproduces
+// the exact failure mode described in PR #2319: with the send buffer full and no inbound packets,
+// only the periodic SCTP timer can advance retransmission and clear the stall.
+TEST_F(DataChannelFunctionalityTest, createDataChannel_RecoverFromFullSendBuffer)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    // "offer" creates a data channel and sends on it, "answer" just listens
+    PRtcDataChannel pOfferDataChannel = nullptr;
+    SIZE_T datachannelRemoteOpenCount = 0, answerMsgCount = 0;
+    struct OnOpenHandle {
+        PSIZE_T datachannelRemoteOpenCount;
+        PSIZE_T answerMsgCount;
+    };
+    OnOpenHandle onOpenHandle{&datachannelRemoteOpenCount, &answerMsgCount};
+
+    // Static so the capture-less lambdas (which are converted to function pointers) can reach them
+    static bool dropAllInbound{false};
+    static std::mutex dropMessageMutex{};
+    static IceInboundPacketFunc iceInboundPacketCallback = nullptr;
+    // Sub-MTU payload (fits in a single SCTP data chunk, no fragmentation). Sent repeatedly with
+    // no draining, this fills the send buffer after a few hundred sends.
+    static const UINT32 BIG_MSG_LEN = 1000;
+    static BYTE bigMsg[BIG_MSG_LEN];
+    MEMSET(bigMsg, 'A', BIG_MSG_LEN);
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    // Override the answer's ICE inbound callback so we can drop ALL inbound packets on demand,
+    // simulating a peer that has stopped acknowledging without tearing down the connection
+    iceInboundPacketCallback = ((PKvsPeerConnection) answerPc)->pIceAgent->iceAgentCallbacks.inboundPacketFn;
+    dropAllInbound = false;
+    const auto maybeDropInbound = [](UINT64 customData, PBYTE pBuffer, UINT32 bufferLen) {
+        {
+            std::lock_guard<std::mutex> lock{dropMessageMutex};
+            if (dropAllInbound) {
+                return; // drop everything: the answer never SACKs, so the offer's send buffer fills
+            }
+        }
+        iceInboundPacketCallback(customData, pBuffer, bufferLen);
+    };
+    ((PKvsPeerConnection) answerPc)->pIceAgent->iceAgentCallbacks.inboundPacketFn = maybeDropInbound;
+
+    // Answer counts every message it receives
+    static auto answerOnMessage = [](UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMsg, UINT32 pMsgLen) {
+        UNUSED_PARAM(pDataChannel);
+        UNUSED_PARAM(isBinary);
+        UNUSED_PARAM(pMsg);
+        UNUSED_PARAM(pMsgLen);
+        ATOMIC_INCREMENT((PSIZE_T) customData);
+    };
+
+    auto onDataChannel = [](UINT64 customData, PRtcDataChannel pRtcDataChannel) {
+        auto handle = reinterpret_cast<OnOpenHandle*>(customData);
+        ATOMIC_INCREMENT(handle->datachannelRemoteOpenCount);
+        DLOGD("onDataChannel '%s'", pRtcDataChannel->name);
+        // attach listener; the answer does not send anything back
+        EXPECT_EQ(dataChannelOnMessage(pRtcDataChannel, (UINT64) handle->answerMsgCount, answerOnMessage), STATUS_SUCCESS);
+    };
+
+    EXPECT_EQ(peerConnectionOnDataChannel(answerPc, (UINT64) &onOpenHandle, onDataChannel), STATUS_SUCCESS);
+    EXPECT_EQ(createDataChannel(offerPc, (PCHAR) "Offer PeerConnection", nullptr, &pOfferDataChannel), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    // Busy wait until the DataChannel is open on the answer side
+    for (auto i = 0; i <= 100 && ATOMIC_LOAD(&datachannelRemoteOpenCount) != 1; i++) {
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
+    ASSERT_EQ(ATOMIC_LOAD(&datachannelRemoteOpenCount), 1);
+
+    // Confirm the channel works end to end before injecting the fault
+    EXPECT_EQ(dataChannelSend(pOfferDataChannel, TRUE, bigMsg, BIG_MSG_LEN), STATUS_SUCCESS);
+    for (auto i = 0; i <= 100 && ATOMIC_LOAD(&answerMsgCount) != 1; i++) {
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
+    ASSERT_EQ(ATOMIC_LOAD(&answerMsgCount), 1);
+    SIZE_T baselineMsgCount = ATOMIC_LOAD(&answerMsgCount);
+
+    // Fault: drop ALL inbound to the answer so nothing the offer sends is ever acknowledged
+    {
+        std::lock_guard<std::mutex> lock{dropMessageMutex};
+        dropAllInbound = true;
+    }
+
+    // Send until the SCTP send buffer is full. On a non-blocking socket usrsctp_sendv returns < 0
+    // once the buffer fills, which surfaces as STATUS_SCTP_SENDV_FAILED. This is the concrete,
+    // observable proof that the send buffer actually filled up.
+    UINT32 enqueued = 0;
+    BOOL sendBufferFull = FALSE;
+    for (UINT32 i = 0; i < 5000; i++) {
+        STATUS sendStatus = dataChannelSend(pOfferDataChannel, TRUE, bigMsg, BIG_MSG_LEN);
+        if (sendStatus == STATUS_SUCCESS) {
+            enqueued++;
+        } else {
+            DLOGI("Send buffer full after %u enqueued messages (status 0x%08x)", enqueued, sendStatus);
+            sendBufferFull = TRUE;
+            break;
+        }
+    }
+    // VALIDATION: the send buffer must have actually filled up for this test to be meaningful
+    ASSERT_TRUE(sendBufferFull) << "send buffer never filled; test precondition not met";
+    ASSERT_GT(enqueued, 0u);
+
+    // While the fault is active, none of the buffered data can reach the answer
+    THREAD_SLEEP(2 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    ASSERT_EQ(ATOMIC_LOAD(&answerMsgCount), baselineMsgCount) << "data should not flow while all inbound is dropped";
+
+    // Network recovers: stop dropping. From here only the periodic SCTP timer can drive the
+    // retransmission of the buffered data, since the answer sends nothing on its own.
+    {
+        std::lock_guard<std::mutex> lock{dropMessageMutex};
+        dropAllInbound = false;
+    }
+
+    // Busy wait for all enqueued messages to drain through to the answer
+    SIZE_T expected = baselineMsgCount + enqueued;
+    for (auto i = 0; i <= 100 && ATOMIC_LOAD(&answerMsgCount) < expected; i++) {
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
+
+    closePeerConnection(offerPc);
+    freePeerConnection(&offerPc);
+    closePeerConnection(answerPc);
+    freePeerConnection(&answerPc);
+
+    // The stalled, buffered data should have fully recovered once the network came back
+    ASSERT_EQ(ATOMIC_LOAD(&answerMsgCount), expected);
+}
+
 TEST_F(DataChannelFunctionalityTest, dataChannelSendRecvMessageAfterDtlsCompleted)
 {
     RtcConfiguration configuration;
