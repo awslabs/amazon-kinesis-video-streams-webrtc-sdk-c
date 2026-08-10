@@ -364,7 +364,14 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
             // threads may be actively using these buffers, so freeing and recreating them
             // would cause a use-after-free race condition. The existing buffers remain valid.
             if (pKvsRtpTransceiver->sender.packetBuffer != NULL && pKvsRtpTransceiver->sender.retransmitter != NULL) {
-                DLOGD("Re-negotiation: reusing existing rolling buffer and retransmitter for transceiver");
+                // A codec change mid-session is not negotiated today; the buffer keeps its old
+                // sizing (re-allocating it is the UAF above), so log rather than fail.
+                if (pKvsRtpTransceiver->rollingBufferCodec != pKvsRtpTransceiver->sender.track.codec) {
+                    DLOGW("Re-negotiation: transceiver codec changed (%" PRIu32 " -> %" PRIu32 ")", (UINT32) pKvsRtpTransceiver->rollingBufferCodec,
+                          (UINT32) pKvsRtpTransceiver->sender.track.codec);
+                } else {
+                    DLOGD("Re-negotiation: reusing existing rolling buffer and retransmitter for transceiver");
+                }
                 continue;
             }
 
@@ -383,6 +390,9 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
             DLOGI("The rolling buffer is configured to store %" PRIu64 " packets", rollingBufferCapacity);
             CHK_STATUS(createRtpRollingBuffer(rollingBufferCapacity, &pKvsRtpTransceiver->sender.packetBuffer));
             CHK_STATUS(createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
+
+            // Remember what the capacity was sized for, so a re-negotiation can spot a codec change.
+            pKvsRtpTransceiver->rollingBufferCodec = pKvsRtpTransceiver->sender.track.codec;
         }
     }
 
@@ -1437,7 +1447,7 @@ static BOOL isActiveDirection(RTC_RTP_TRANSCEIVER_DIRECTION direction)
 // Returns the remote m-line's declared direction (raw, from the remote's perspective);
 // INACTIVE if the m-line has no direction attribute. No inversion here on purpose:
 // intersectTransceiverDirection() does the send<->recv crossover between local and remote.
-static RTC_RTP_TRANSCEIVER_DIRECTION getRemoteDirectionFromMediaDescription(PSdpMediaDescription pMediaDescription)
+static RTC_RTP_TRANSCEIVER_DIRECTION parseRemoteDirectionFromMediaDescription(PSdpMediaDescription pMediaDescription)
 {
     UINT32 i;
     RTC_RTP_TRANSCEIVER_DIRECTION remoteDirection;
@@ -1706,7 +1716,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
             // local transceiver paired with a sendrecv offer would advertise sendrecv
             // back, dropping the app's `a=recvonly`.
             pKvsRtpTransceiver->transceiver.direction =
-                intersectTransceiverDirection(pKvsRtpTransceiver->configuredDirection, getRemoteDirectionFromMediaDescription(pMediaDescription));
+                intersectTransceiverDirection(pKvsRtpTransceiver->configuredDirection, parseRemoteDirectionFromMediaDescription(pMediaDescription));
             ATOMIC_STORE(&pKvsRtpTransceiver->atomicDirection, (SIZE_T) pKvsRtpTransceiver->transceiver.direction);
         }
         pCurNode = pCurNode->pNext;

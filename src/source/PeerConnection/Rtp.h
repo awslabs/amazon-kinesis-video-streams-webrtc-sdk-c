@@ -106,6 +106,10 @@ typedef struct {
     // (setTransceiverPayloadTypes, signaling thread) rewrites the payload types while
     // writeFrame (media thread) and the retransmitter (RTCP thread) read them.
     volatile SIZE_T atomicSenderPayloadTypes;
+
+    // Codec the sender's rolling buffer capacity was sized for. Re-negotiation reuses the
+    // buffer rather than re-allocating it, so this is how a codec change is detected.
+    RTC_CODEC rollingBufferCodec;
 } KvsRtpTransceiver, *PKvsRtpTransceiver;
 
 #define KVS_RTP_TRANSCEIVER_PACK_PAYLOAD_TYPES(payloadType, rtxPayloadType) ((SIZE_T) ((((UINT32) (payloadType)) << 8) | (UINT32) (rtxPayloadType)))
