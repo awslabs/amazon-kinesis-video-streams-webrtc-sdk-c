@@ -538,10 +538,6 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
         pSampleStreamingSession->twccMetadata.updateLock = MUTEX_CREATE(TRUE);
     }
 
-    // Flag to enable/disable SDK calculations of selected ice server, local, remote and candidate pair stats.
-    // Note: enableIceStats only has an effect if compiler flag ENABLE_STATS_CALCULATION_CONTROL is defined.
-    pSampleConfiguration->enableIceStats = FALSE;
-
     CHK_STATUS(initializePeerConnection(pSampleConfiguration, &pSampleStreamingSession->pPeerConnection));
     CHK_STATUS(peerConnectionOnIceCandidate(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession, onIceCandidateHandler));
     CHK_STATUS(
@@ -1549,6 +1545,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
     BOOL peerConnectionFound = FALSE, locked = FALSE, startStats = FALSE, freeStreamingSession = FALSE, sessionUnlinked = FALSE;
+    BOOL enableIceStats = FALSE;
     UINT32 clientIdHash;
     UINT32 idx = 0;
     UINT64 hashValue = 0;
@@ -1725,10 +1722,13 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
             break;
     }
 
+    // Snapshot under the lock: handlers for two offers run on separate threads.
+    enableIceStats = pSampleConfiguration->enableIceStats;
+
     MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
     locked = FALSE;
 
-    if (pSampleConfiguration->enableIceStats && startStats &&
+    if (enableIceStats && startStats &&
         STATUS_FAILED(retStatus = timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, SAMPLE_STATS_DURATION, SAMPLE_STATS_DURATION,
                                                      getIceCandidatePairStatsCallback, (UINT64) pSampleConfiguration,
                                                      &pSampleConfiguration->iceCandidatePairStatsTimerId))) {
