@@ -379,23 +379,26 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
             pKvsRtpTransceiver->sender.payloadType = (UINT8) data;
             pKvsRtpTransceiver->sender.rtxPayloadType = (UINT8) data;
 
-            // Get the PayloadTypes from the rtxTable for the NACK.
-            // If it's not in the table, will do a plain resend (same seqnum).
-            if (pKvsRtpTransceiver->sender.track.kind == MEDIA_STREAM_TRACK_KIND_VIDEO &&
-                getRtxCodecKeyForCodec(pKvsRtpTransceiver->sender.track.codec, &rtxCodecKey) == STATUS_SUCCESS &&
-                hashTableGet(rtxTable, rtxCodecKey, &data) == STATUS_SUCCESS) {
-                pKvsRtpTransceiver->sender.rtxPayloadType = (UINT8) data;
-            }
+            // RTX is video-only (H.264/H.265/VP8). Audio (Opus/G.711) never negotiates RTX - the same as browsers -
+            // so skip the RTX lookup and its logging for audio to avoid a misleading "RTX not resolved" warning.
+            if (pKvsRtpTransceiver->sender.track.kind == MEDIA_STREAM_TRACK_KIND_VIDEO) {
+                // Get the PayloadTypes from the rtxTable for the NACK.
+                // If it's not in the table, will do a plain resend (same seqnum).
+                if (getRtxCodecKeyForCodec(pKvsRtpTransceiver->sender.track.codec, &rtxCodecKey) == STATUS_SUCCESS &&
+                    hashTableGet(rtxTable, rtxCodecKey, &data) == STATUS_SUCCESS) {
+                    pKvsRtpTransceiver->sender.rtxPayloadType = (UINT8) data;
+                }
 
-            // Emit once per negotiation, whether RTX was resolved for this codec. When rtxPayloadType
-            // stays equal to payloadType, retransmissions on NACK fall back to a plain resend on the original SSRC/PT
-            // instead of being sent as RTX packets.
-            if (pKvsRtpTransceiver->sender.rtxPayloadType != pKvsRtpTransceiver->sender.payloadType) {
-                DLOGD("RTX negotiated for codec %u: payloadType %u, rtxPayloadType %u", pKvsRtpTransceiver->sender.track.codec,
-                      pKvsRtpTransceiver->sender.payloadType, pKvsRtpTransceiver->sender.rtxPayloadType);
-            } else {
-                DLOGW("RTX not resolved for codec %u (no matching rtx/apt in remote SDP); NACKs will fall back to plain resend on payloadType %u",
-                      pKvsRtpTransceiver->sender.track.codec, pKvsRtpTransceiver->sender.payloadType);
+                // Emit once per negotiation, whether RTX was resolved for this codec. When rtxPayloadType
+                // stays equal to payloadType, retransmissions on NACK fall back to a plain resend on the original SSRC/PT
+                // instead of being sent as RTX packets.
+                if (pKvsRtpTransceiver->sender.rtxPayloadType != pKvsRtpTransceiver->sender.payloadType) {
+                    DLOGD("RTX negotiated for codec %u: payloadType %u, rtxPayloadType %u", pKvsRtpTransceiver->sender.track.codec,
+                          pKvsRtpTransceiver->sender.payloadType, pKvsRtpTransceiver->sender.rtxPayloadType);
+                } else {
+                    DLOGW("RTX not resolved for codec %u (no matching rtx/apt in remote SDP); NACKs will fall back to plain resend on payloadType %u",
+                          pKvsRtpTransceiver->sender.track.codec, pKvsRtpTransceiver->sender.payloadType);
+                }
             }
         }
 
