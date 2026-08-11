@@ -88,9 +88,9 @@ Video-only RTX here reflects the same choice every major WebRTC implementation m
 Quick reference - what to grep for and what it tells you:
 
 | Log line (substring) | Source | Level | What it means                                                                                                       |
-|----------------------|--------|-------|---------------------------------------------------------------------------------------------------------------------|
-| `RTX negotiated for codec` | `setTransceiverPayloadTypes()` | INFO | RTX resolved for this codec - retransmits will be RFC 4588 RTX packets. Good.                                       |
-| `RTX not resolved for codec` | `setTransceiverPayloadTypes()` | **WARN** | RTX did **not** resolve - NACKs will be answered with plain resends. First line to investigate if you expected RTX. |
+|----------------------|--------|------|---------------------------------------------------------------------------------------------------------------------|
+| `RTX negotiated for codec` | `setTransceiverPayloadTypes()` | DEBUG | RTX resolved for this codec - retransmits will be RFC 4588 RTX packets. Good.                                       |
+| `RTX not resolved for codec` | `setTransceiverPayloadTypes()` | WARN | RTX did **not** resolve - NACKs will be answered with plain resends. First line to investigate if you expected RTX. |
 | `Resent packet ssrc ... seq ... succeeded` | `resendPacketOnNack()` | VERBOSE | A retransmission was sent.                                                                                          |
 | `Retransmit fallback (no RTX)` | `resendPacketOnNack()` | VERBOSE | This retransmit took the plain-resend branch (RTX not negotiated for the codec).                                    |
 | `Retransmit STATUS_ROLLING_BUFFER_NOT_IN_RANGE` | `resendPacketOnNack()` | VERBOSE | NACKed packet already aged out of the rolling buffer - buffer too small for the path RTT/loss.                      |
