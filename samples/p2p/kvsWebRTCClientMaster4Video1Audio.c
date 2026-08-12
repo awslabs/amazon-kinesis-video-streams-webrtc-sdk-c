@@ -135,9 +135,9 @@ PVOID sendFourVideoPacketsFromDisk(PVOID args)
     if (usePerTrackDirs) {
         DLOGI("[KVS Master] Using per-track frame directories (%s_track0..3)", codecDir);
     } else {
-        DLOGW("[KVS Master] Per-track frame directories not found. Sending the same frames on all 4 tracks.");
+        DLOGW("[KVS Master] Per-track %s frame directories not found. Sending the same frames on all 4 tracks.", codecExt);
         DLOGW("[KVS Master] To generate unique frames per track, run from the build/samples/ directory:");
-        DLOGW("[KVS Master]   ../../scripts/generate_multi_track_frames.sh");
+        DLOGW("[KVS Master]   ../../scripts/generate_multi_track_frames.sh %s", codecExt);
     }
 
     startTime = GETTIME();

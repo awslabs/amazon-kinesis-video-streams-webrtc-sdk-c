@@ -23,11 +23,18 @@ set -e
 
 CODEC="${1:-h264}"
 
+PATTERNS=("ball" "smpte" "snow" "circular")
+NUM_BUFFERS=1500
+WIDTH=1280
+HEIGHT=720
+FPS=25
+BITRATE=512
+
 case "${CODEC}" in
     h264)
         DIR_PREFIX="h264SampleFrames"
         EXT="h264"
-        ENCODER="x264enc bframes=0 speed-preset=veryfast bitrate=${BITRATE:-512} byte-stream=TRUE tune=zerolatency key-int-max=25"
+        ENCODER="x264enc bframes=0 speed-preset=veryfast bitrate=${BITRATE} byte-stream=TRUE tune=zerolatency key-int-max=25"
         # config-interval=-1 repeats SPS/PPS before every keyframe so each keyframe
         # is a self-contained access unit the WebRTC decoder can recover from.
         PARSER="h264parse config-interval=-1"
@@ -36,7 +43,7 @@ case "${CODEC}" in
     h265)
         DIR_PREFIX="h265SampleFrames"
         EXT="h265"
-        ENCODER="x265enc speed-preset=veryfast tune=zerolatency key-int-max=25 option-string=bframes=0"
+        ENCODER="x265enc speed-preset=veryfast tune=zerolatency key-int-max=25 bitrate=${BITRATE} option-string=bframes=0"
         # config-interval=-1 repeats VPS/SPS/PPS before every keyframe so each keyframe
         # is a self-contained access unit the WebRTC decoder can recover from.
         PARSER="h265parse config-interval=-1"
@@ -47,13 +54,6 @@ case "${CODEC}" in
         exit 1
         ;;
 esac
-
-PATTERNS=("ball" "smpte" "snow" "circular")
-NUM_BUFFERS=1500
-WIDTH=1280
-HEIGHT=720
-FPS=25
-BITRATE=512
 
 echo "Generating ${CODEC} frames..."
 echo "Working directory: $(pwd)"
