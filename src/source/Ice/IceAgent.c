@@ -221,6 +221,12 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
         CHK_LOG_ERR(freeConnectionListener(&pIceAgent->pConnectionListener));
     }
 
+    // Sockets detached after nomination that the state timer did not get to free
+    for (i = 0; i < pIceAgent->unusedSocketCount; i++) {
+        CHK_LOG_ERR(freeSocketConnection(&pIceAgent->unusedSockets[i]));
+    }
+    pIceAgent->unusedSocketCount = 0;
+
     if (pIceAgent->localCandidates != NULL) {
         CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
         while (pCurNode != NULL) {
@@ -982,8 +988,10 @@ STATUS iceAgentShutdown(PIceAgent pIceAgent)
         pCurNode = pCurNode->pNext;
 
         if (pLocalCandidate->iceCandidateType != ICE_CANDIDATE_TYPE_RELAYED) {
-            /* close socket so ice doesnt receive any more data */
-            CHK_STATUS(socketConnectionClosed(pLocalCandidate->pSocketConnection));
+            /* close socket so ice doesnt receive any more data. NULL once freed after nomination. */
+            if (pLocalCandidate->pSocketConnection != NULL) {
+                CHK_STATUS(socketConnectionClosed(pLocalCandidate->pSocketConnection));
+            }
         } else {
             CHK_STATUS(turnConnectionShutdown(pLocalCandidate->pTurnConnection, 0));
             turnConnections[turnConnectionCount++] = pLocalCandidate->pTurnConnection;
@@ -1111,8 +1119,11 @@ STATUS iceAgentRestart(PIceAgent pIceAgent, PCHAR localIceUfrag, PCHAR localIceP
     for (i = 0; i < localCandidateCount; ++i) {
         if (pIceAgent->pDataSendingIceCandidatePair == NULL || localCandidates[i] != pIceAgent->pDataSendingIceCandidatePair->local) {
             if (localCandidates[i]->iceCandidateType != ICE_CANDIDATE_TYPE_RELAYED) {
-                CHK_STATUS(connectionListenerRemoveConnection(pIceAgent->pConnectionListener, localCandidates[i]->pSocketConnection));
-                CHK_STATUS(freeSocketConnection(&localCandidates[i]->pSocketConnection));
+                // NULL once freed after nomination
+                if (localCandidates[i]->pSocketConnection != NULL) {
+                    CHK_STATUS(connectionListenerRemoveConnection(pIceAgent->pConnectionListener, localCandidates[i]->pSocketConnection));
+                    CHK_STATUS(freeSocketConnection(&localCandidates[i]->pSocketConnection));
+                }
             } else {
                 CHK_STATUS(freeTurnConnection(&localCandidates[i]->pTurnConnection));
             }
@@ -1585,6 +1596,9 @@ STATUS iceAgentStateTransitionTimerCallback(UINT32 timerId, UINT64 currentTime, 
     // Drive the state machine
     CHK_STATUS(stepIceAgentStateMachine(pIceAgent));
 
+    // Outside the agent lock, which the state machine holds while stepping
+    CHK_LOG_ERR(iceAgentFreeUnusedSockets(pIceAgent));
+
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
@@ -1592,6 +1606,45 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
     }
+
+    return retStatus;
+}
+
+STATUS iceAgentFreeUnusedSockets(PIceAgent pIceAgent)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSocketConnection sockets[ARRAY_SIZE(pIceAgent->unusedSockets)];
+    UINT32 count = 0, busyCount = 0, i;
+
+    CHK(pIceAgent != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pIceAgent->lock);
+    count = pIceAgent->unusedSocketCount;
+    MEMCPY(sockets, pIceAgent->unusedSockets, count * SIZEOF(PSocketConnection));
+    pIceAgent->unusedSocketCount = 0;
+    MUTEX_UNLOCK(pIceAgent->lock);
+
+    // Not under the agent lock, which a listener callback on the socket may be waiting for.
+    // Once removed, the listener does not pick the socket up again, so it is free to release when
+    // not inUse; otherwise keep it for the next tick rather than let freeSocketConnection time out.
+    for (i = 0; i < count; i++) {
+        CHK_LOG_ERR(connectionListenerRemoveConnection(pIceAgent->pConnectionListener, sockets[i]));
+        if (ATOMIC_LOAD_BOOL(&sockets[i]->inUse)) {
+            sockets[busyCount++] = sockets[i];
+        } else {
+            CHK_LOG_ERR(freeSocketConnection(&sockets[i]));
+        }
+    }
+
+    if (busyCount > 0) {
+        MUTEX_LOCK(pIceAgent->lock);
+        for (i = 0; i < busyCount && pIceAgent->unusedSocketCount < ARRAY_SIZE(pIceAgent->unusedSockets); i++) {
+            pIceAgent->unusedSockets[pIceAgent->unusedSocketCount++] = sockets[i];
+        }
+        MUTEX_UNLOCK(pIceAgent->lock);
+    }
+
+CleanUp:
 
     return retStatus;
 }
@@ -2508,6 +2561,8 @@ STATUS iceAgentReadyStateSetup(PIceAgent pIceAgent)
     PIceCandidatePair pIceCandidatePair = NULL;
     BOOL locked = FALSE;
     PIceCandidate pIceCandidate = NULL;
+    BOOL freeSockets = FALSE, nominatedPair = FALSE;
+    PDoubleListNode pPairNode = NULL;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
@@ -2552,6 +2607,36 @@ STATUS iceAgentReadyStateSetup(PIceAgent pIceAgent)
     /* no state timeout for ready state */
     pIceAgent->stateEndTime = INVALID_TIMESTAMP_VALUE;
 
+    /* Detach the sockets of the host and srflx candidates that are not selected and are not the local
+     * candidate of a nominated pair: with aggressive nomination the peer may have selected another
+     * nominated pair and keeps sending on it. iceAgentFreeUnusedSockets frees them once the agent lock is released.
+     * Relays are freed by executeReadyIceAgentState once their allocation is released. Skip if
+     * shutdown or restart already owns the candidates. */
+    freeSockets = !ATOMIC_LOAD_BOOL(&pIceAgent->shutdown) && !ATOMIC_LOAD_BOOL(&pIceAgent->restart);
+    CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
+    while (freeSockets && pCurNode != NULL && pIceAgent->unusedSocketCount < ARRAY_SIZE(pIceAgent->unusedSockets)) {
+        pIceCandidate = (PIceCandidate) pCurNode->data;
+        pCurNode = pCurNode->pNext;
+
+        if (pIceCandidate == pIceAgent->pDataSendingIceCandidatePair->local || pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED ||
+            pIceCandidate->pSocketConnection == NULL) {
+            continue;
+        }
+
+        nominatedPair = FALSE;
+        CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pPairNode));
+        while (pPairNode != NULL && !nominatedPair) {
+            pIceCandidatePair = (PIceCandidatePair) pPairNode->data;
+            pPairNode = pPairNode->pNext;
+            nominatedPair = pIceCandidatePair->local == pIceCandidate && pIceCandidatePair->nominated;
+        }
+
+        if (!nominatedPair) {
+            pIceAgent->unusedSockets[pIceAgent->unusedSocketCount++] = pIceCandidate->pSocketConnection;
+            pIceCandidate->pSocketConnection = NULL;
+        }
+    }
+
     /* shutdown turn allocations that are not needed. Invalidate not selected local ice candidates. */
     DLOGD("Freeing Turn allocations that are not selected. Total turn allocation count %u", pIceAgent->relayCandidateCount);
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
@@ -2587,6 +2672,7 @@ CleanUp:
 
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
+        locked = FALSE;
     }
 
     if (STATUS_FAILED(retStatus)) {
