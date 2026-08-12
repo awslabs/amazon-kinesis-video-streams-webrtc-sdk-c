@@ -109,6 +109,7 @@ $(document).ready(function(){initNavTree('globals_c.html',''); initResizable(); 
 <li>checkAndCorrectForClockSkew()&#160;:&#160;<a class="el" href="LwsApiCalls_8c.html#a2c096b44f492ff215fe5e9e23abf0e0d">LwsApiCalls.c</a></li>
 <li>checkTurnPeerConnections()&#160;:&#160;<a class="el" href="TurnConnection_8c.html#ad50e5f6b533c62c8b5297a6bf3615f29">TurnConnection.c</a>, <a class="el" href="TurnConnection_8h.html#aa6ea1632a7ca8da73705a7cb9ba85120">TurnConnection.h</a></li>
 <li>CHK_LOG_ERR_NV&#160;:&#160;<a class="el" href="group__StatusCodes.html#ga39137beaf587d297125406df4bd48b55">Include.h</a></li>
+<li>cleanupSctpContext()&#160;:&#160;<a class="el" href="Sctp_8c.html#a333039baa8ebcb69b22c44ca38bd4fba">Sctp.c</a></li>
 <li>cleanupWebRtcClientInstance()&#160;:&#160;<a class="el" href="PeerConnection_8c.html#abbb3bf23f9e3d392a0bfef3e44dd8b14">PeerConnection.c</a></li>
 <li>CLOSE_SOCKET_IF_CANT_RETRY&#160;:&#160;<a class="el" href="SocketConnection_8h.html#a440d3ff5cb61162ff247abcf617c5ee1">SocketConnection.h</a></li>
 <li>closePeerConnection()&#160;:&#160;<a class="el" href="group__PublicMemberFunctions.html#ga9babad6ea2bc9bb97279c7034697375a">Include.h</a>, <a class="el" href="group__PublicMemberFunctions.html#ga9babad6ea2bc9bb97279c7034697375a">PeerConnection.c</a></li>
@@ -116,11 +117,11 @@ $(document).ready(function(){initNavTree('globals_c.html',''); initResizable(); 
 <li>CODEC_HASH_TABLE_BUCKET_COUNT&#160;:&#160;<a class="el" href="PeerConnection_8h.html#a15a20e6b29d7a3ab5af1bee5ba8cc5e2">PeerConnection.h</a></li>
 <li>CODEC_HASH_TABLE_BUCKET_LENGTH&#160;:&#160;<a class="el" href="PeerConnection_8h.html#a2285baf450dcb102c456632b4c004598">PeerConnection.h</a></li>
 <li>CODEC_RTPMAP_PAYLOAD_TYPES_HASH_TABLE_BUCKET_LENGTH&#160;:&#160;<a class="el" href="SessionDescription_8h.html#a75a9c9ab976b37df5e59e31d070d23fe">SessionDescription.h</a></li>
-<li>computeCandidatePairPriority()&#160;:&#160;<a class="el" href="IceAgent_8c.html#aea82ec5c31f92655c535153ae0c9ed85">IceAgent.c</a>, <a class="el" href="IceAgent_8h.html#a310353b6a6ec17871308316b8c67bd90">IceAgent.h</a></li>
+<li>computeCandidatePairPriority()&#160;:&#160;<a class="el" href="IceAgent_8h.html#a310353b6a6ec17871308316b8c67bd90">IceAgent.h</a>, <a class="el" href="IceAgent_8c.html#aea82ec5c31f92655c535153ae0c9ed85">IceAgent.c</a></li>
 <li>computeCandidatePriority()&#160;:&#160;<a class="el" href="IceAgent_8c.html#a59fb161f9a724412e557db0531d15cb9">IceAgent.c</a>, <a class="el" href="IceAgent_8h.html#a699e942cc74cad6a53bbd6c100966088">IceAgent.h</a></li>
 <li>computeTwccTrendline()&#160;:&#160;<a class="el" href="Rtcp_8c.html#a3ce002467bb711bf8bbedad78c6e338e">Rtcp.c</a>, <a class="el" href="Rtcp_8h.html#a9efcd7a181a54d5f0470f5ff35c68d07">Rtcp.h</a></li>
 <li>configureLwsLogging()&#160;:&#160;<a class="el" href="LwsApiCalls_8c.html#a96fad4e77cdc42460cf75aff4eb33d7a">LwsApiCalls.c</a>, <a class="el" href="LwsApiCalls_8h.html#a96fad4e77cdc42460cf75aff4eb33d7a">LwsApiCalls.h</a></li>
-<li>configureRetryStrategyForSignalingStateMachine()&#160;:&#160;<a class="el" href="Signaling_8c.html#a1807a5760e822b687c60dec226885839">Signaling.c</a>, <a class="el" href="Signaling_8h.html#a2dc8e38118e0eaea04454dd3dfb7d51d">Signaling.h</a></li>
+<li>configureRetryStrategyForSignalingStateMachine()&#160;:&#160;<a class="el" href="Signaling_8h.html#a2dc8e38118e0eaea04454dd3dfb7d51d">Signaling.h</a>, <a class="el" href="Signaling_8c.html#a1807a5760e822b687c60dec226885839">Signaling.c</a></li>
 <li>configureSctpSocket()&#160;:&#160;<a class="el" href="Sctp_8c.html#a55eca852bfcd8b72d9a2429a23d39886">Sctp.c</a></li>
 <li>configureTransceiverRollingBuffer()&#160;:&#160;<a class="el" href="group__PublicMemberFunctions.html#gaad489bae7042ed76c8e26a213f7d9c0e">Include.h</a>, <a class="el" href="group__PublicMemberFunctions.html#gaad489bae7042ed76c8e26a213f7d9c0e">PeerConnection.c</a></li>
 <li>CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION&#160;:&#160;<a class="el" href="ConnectionListener_8h.html#ab3b552e6573c384bcd8e0da39992f964">ConnectionListener.h</a></li>
@@ -172,12 +173,13 @@ $(document).ready(function(){initNavTree('globals_c.html',''); initResizable(); 
 <li>createPeerConnection()&#160;:&#160;<a class="el" href="group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640">Include.h</a>, <a class="el" href="group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640">PeerConnection.c</a></li>
 <li>createRetransmitter()&#160;:&#160;<a class="el" href="Retransmitter_8c.html#aaad5339168322ac5d7c1cc017fbe982d">Retransmitter.c</a>, <a class="el" href="Retransmitter_8h.html#a914b34c96ccaeb9dc71e07ddec0fc446">Retransmitter.h</a></li>
 <li>createRetryStrategyForCreatingSignalingClient()&#160;:&#160;<a class="el" href="Client_8c.html#a55d8c9bc065aa63039bec826644f59fb">Client.c</a></li>
-<li>createRollingBuffer()&#160;:&#160;<a class="el" href="RollingBuffer_8h.html#a3b183a89ddc114030f4dc1066c16267f">RollingBuffer.h</a>, <a class="el" href="RollingBuffer_8c.html#a50736e98819371a7188a350107a4b072">RollingBuffer.c</a></li>
-<li>createRtcCertificate()&#160;:&#160;<a class="el" href="group__PublicMemberFunctions.html#ga626872eca33a639a1af1903798e9be15">Crypto.c</a>, <a class="el" href="group__PublicMemberFunctions.html#ga626872eca33a639a1af1903798e9be15">Include.h</a></li>
+<li>createRollingBuffer()&#160;:&#160;<a class="el" href="RollingBuffer_8c.html#a50736e98819371a7188a350107a4b072">RollingBuffer.c</a>, <a class="el" href="RollingBuffer_8h.html#a3b183a89ddc114030f4dc1066c16267f">RollingBuffer.h</a></li>
+<li>createRtcCertificate()&#160;:&#160;<a class="el" href="group__PublicMemberFunctions.html#ga626872eca33a639a1af1903798e9be15">Include.h</a>, <a class="el" href="group__PublicMemberFunctions.html#ga626872eca33a639a1af1903798e9be15">Crypto.c</a></li>
 <li>createRtpPacket()&#160;:&#160;<a class="el" href="RtpPacket_8c.html#a295cd0e7e89e3530a018c08ed17c0896">RtpPacket.c</a>, <a class="el" href="RtpPacket_8h.html#ac21d4ad4a7c296da7b846ac42d76970e">RtpPacket.h</a></li>
 <li>createRtpPacketFromBytes()&#160;:&#160;<a class="el" href="RtpPacket_8c.html#a14ddfcfb8e5d665343585881c1aeac65">RtpPacket.c</a>, <a class="el" href="RtpPacket_8h.html#afc40293a4b300bddb28486d08c150857">RtpPacket.h</a></li>
 <li>createRtpRollingBuffer()&#160;:&#160;<a class="el" href="RtpRollingBuffer_8c.html#ab547d56aacb2300e966ecf2257455aa8">RtpRollingBuffer.c</a>, <a class="el" href="RtpRollingBuffer_8h.html#aa54b8dd8691f2ddaba185cd13d445736">RtpRollingBuffer.h</a></li>
-<li>createSctpSession()&#160;:&#160;<a class="el" href="Sctp_8h.html#a28c451f4393777e23235a56d002484e2">Sctp.h</a>, <a class="el" href="Sctp_8c.html#aa85f15d7ff49da06d2cb9bf6287338bd">Sctp.c</a></li>
+<li>createSctpContext()&#160;:&#160;<a class="el" href="Sctp_8c.html#a2d8011c57d326ca425ef291c19510761">Sctp.c</a></li>
+<li>createSctpSession()&#160;:&#160;<a class="el" href="Sctp_8h.html#a391655f64df63accdb9de0604f01f863">Sctp.h</a>, <a class="el" href="Sctp_8c.html#a9ee2c9d19e43ca73a978a4fcd778c5b0">Sctp.c</a></li>
 <li>createSignalingClientSync()&#160;:&#160;<a class="el" href="group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e">Include.h</a>, <a class="el" href="group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e">Client.c</a></li>
 <li>createSignalingSync()&#160;:&#160;<a class="el" href="Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a">Signaling.c</a>, <a class="el" href="Signaling_8h.html#a26907340bcd88230be1b23ace9d19e68">Signaling.h</a></li>
 <li>createSocket()&#160;:&#160;<a class="el" href="Network_8c.html#ab3ab2228bda4eb3452e7dcff085f78d1">Network.c</a>, <a class="el" href="Network_8h.html#a822ca40073be3fbf777d063373efcf59">Network.h</a></li>
@@ -201,7 +203,7 @@ $(document).ready(function(){initNavTree('globals_c.html',''); initResizable(); 
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Wed Aug 12 2026 15:10:57 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Wed Aug 12 2026 15:31:09 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>
