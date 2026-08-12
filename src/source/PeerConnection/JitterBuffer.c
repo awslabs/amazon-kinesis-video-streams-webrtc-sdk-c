@@ -454,7 +454,12 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOO
         }
     }
 
-    CHK_STATUS(jitterBufferInternalParse(pJitterBuffer, FALSE));
+    // Best-effort: the packet is now owned by the jitter buffer, so a parse failure
+    // must not be returned (the caller would free it -> double free). Log and continue.
+    status = jitterBufferInternalParse(pJitterBuffer, FALSE);
+    if (STATUS_FAILED(status)) {
+        DLOGW("jitterBufferInternalParse failed with 0x%08x", status);
+    }
 
 CleanUp:
 
