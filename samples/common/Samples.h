@@ -311,6 +311,7 @@ STATUS getPendingMessageQueueForHash(PStackQueue, UINT64, BOOL, PPendingMessageQ
 STATUS initSignaling(PSampleConfiguration, PCHAR);
 BOOL sampleFilterNetworkInterfaces(UINT64, PCHAR);
 UINT32 setLogLevel();
+VOID logSampleInvocation(INT32, CHAR*[]);
 STATUS checkSampleFramesExist(RTC_CODEC);
 STATUS addSendrecvVideoAndAudioTransceivers(PSampleConfiguration, PSampleStreamingSession);
 STATUS addSendOnlyVideoRecvOnlyAudioTransceivers(PSampleConfiguration, PSampleStreamingSession);
