@@ -607,6 +607,10 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     connectInfo.path = path;
     connectInfo.host = connectInfo.address;
     connectInfo.method = pVerb;
+    // The REST/WSS plumbing here is HTTP/1.1-only. lws v5 offers "h2,http/1.1" by
+    // default and the per-channel endpoints negotiate h2, then reject the request
+    // (HTML 400 on JoinStorageSession/GetIceServerConfig), so pin ALPN to http/1.1.
+    connectInfo.alpn = "http/1.1";
     connectInfo.protocol = ((struct lws_protocols*) pCallInfo->pSignalingClient->signalingProtocols[pCallInfo->protocolIndex])->name;
     connectInfo.pwsi = &clientLws;
 
