@@ -335,6 +335,11 @@ STATUS executeAllocationTurnState(UINT64 customData, UINT64 time)
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
 
+    // The server rejected the credentials we signed our Allocate with (401 matching our authenticated
+    // request). The long term key does not change between retransmits, so retrying would just yield the
+    // same 401. Fail fast with a specific status instead of retransmitting until the allocation timeout.
+    CHK(!ATOMIC_LOAD_BOOL(&pTurnConnection->credentialsRejected), STATUS_TURN_CONNECTION_CREDENTIALS_REJECTED);
+
     currentTime = GETTIME();
     if (pTurnConnection->state != TURN_STATE_ALLOCATION) {
         DLOGV("Updated turn allocation request credential after receiving 401");
@@ -347,6 +352,9 @@ STATUS executeAllocationTurnState(UINT64 customData, UINT64 time)
         CHK_STATUS(turnConnectionPackageTurnAllocationRequest(
             pTurnConnection->turnServer.username, pTurnConnection->turnRealm, pTurnConnection->turnNonce, pTurnConnection->nonceLen,
             DEFAULT_TURN_ALLOCATION_LIFETIME_SECONDS, &pTurnConnection->pTurnPacket, pTurnConnection->ipFamilyType));
+        // Remember the transaction id of this authenticated request so we can correlate a 401 rejection to it.
+        MEMCPY(pTurnConnection->authTransactionId, pTurnConnection->pTurnPacket->header.transactionId, STUN_TRANSACTION_ID_LEN);
+        pTurnConnection->authTransactionIdSet = TRUE;
         pTurnConnection->state = TURN_STATE_ALLOCATION;
     } else {
         CHK(currentTime <= pTurnConnection->stateTimeoutTime, STATUS_TURN_CONNECTION_ALLOCATION_FAILED);

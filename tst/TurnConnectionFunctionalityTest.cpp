@@ -78,6 +78,74 @@ class TurnConnectionFunctionalityTest : public WebRtcClientTestBase {
         EXPECT_EQ(STATUS_SUCCESS, connectionListenerStart(pConnectionListener));
     }
 
+    // Same as initializeTestTurnConnection, but corrupts the TURN credential before creating the
+    // turn connection so the TURN server rejects the authenticated Allocate with 401 UNAUTHORIZED.
+    VOID initializeTestTurnConnectionWithBadCredential()
+    {
+        UINT32 i, j, iceConfigCount, uriCount;
+        IceServer iceServers[MAX_ICE_SERVERS_COUNT];
+        PIceServer pTurnServer = NULL;
+        KvsIpAddress localIpInterfaces[MAX_LOCAL_NETWORK_INTERFACE_COUNT];
+        UINT32 localIpInterfaceCount = ARRAY_SIZE(localIpInterfaces);
+        PKvsIpAddress pTurnSocketAddr = NULL;
+        PSocketConnection pTurnSocket = NULL;
+
+        ASSERT_EQ(STATUS_SUCCESS, initializeSignalingClient());
+
+        EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(mSignalingClientHandle, &iceConfigCount));
+
+        for (uriCount = 0, i = 0; i < iceConfigCount; i++) {
+            EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfo(mSignalingClientHandle, i, &pIceConfigInfo));
+            for (j = 0; j < pIceConfigInfo->uriCount; j++) {
+                iceServers[uriCount].setIpFn = NULL;
+                EXPECT_EQ(STATUS_SUCCESS,
+                          parseIceServer(&iceServers[uriCount++], pIceConfigInfo->uris[j], pIceConfigInfo->userName, pIceConfigInfo->password));
+            }
+        }
+
+        for (i = 0; i < uriCount && pTurnServer == NULL; ++i) {
+            if (iceServers[i].isTurn) {
+                pTurnServer = &iceServers[i];
+            }
+        }
+
+        EXPECT_TRUE(pTurnServer != NULL);
+
+        // Corrupt the credential: keep a valid username so the server issues a nonce/realm challenge,
+        // but make the password wrong so the authenticated Allocate is rejected with 401 UNAUTHORIZED.
+        STRCPY(pTurnServer->credential, "this-is-an-invalid-turn-credential");
+
+        EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+        EXPECT_EQ(STATUS_SUCCESS, createConnectionListener(&pConnectionListener));
+
+        EXPECT_EQ(STATUS_SUCCESS, getLocalhostIpAddresses(localIpInterfaces, &localIpInterfaceCount, NULL, 0));
+        for (i = 0; i < localIpInterfaceCount; ++i) {
+            if (localIpInterfaces[i].family == pTurnServer->ipAddresses.ipv4Address.family && (pTurnSocketAddr == NULL || localIpInterfaces[i].isPointToPoint)) {
+                pTurnSocketAddr = &localIpInterfaces[i];
+            }
+        }
+
+        auto onDataHandler = [](UINT64 customData, PSocketConnection pSocketConnection, PBYTE pBuffer, UINT32 bufferLen, PKvsIpAddress pSrc,
+                                PKvsIpAddress pDest) -> STATUS {
+            UNUSED_PARAM(pSocketConnection);
+            TurnConnectionFunctionalityTest* pTestBase = (TurnConnectionFunctionalityTest*) customData;
+            pTestBase->turnChannelDataCount = ARRAY_SIZE(pTestBase->turnChannelData);
+            EXPECT_EQ(STATUS_SUCCESS,
+                      turnConnectionIncomingDataHandler(pTestBase->pTurnConnection, pBuffer, bufferLen, pSrc, pDest, pTestBase->turnChannelData,
+                                                        &pTestBase->turnChannelDataCount));
+
+            return STATUS_SUCCESS;
+        };
+        EXPECT_EQ(STATUS_SUCCESS,
+                  createSocketConnection((KVS_IP_FAMILY_TYPE) pTurnServer->ipAddresses.ipv4Address.family, KVS_ICE_DEFAULT_TURN_PROTOCOL, NULL,
+                                         &pTurnServer->ipAddresses.ipv4Address, (UINT64) this, onDataHandler, 0, &pTurnSocket));
+        EXPECT_EQ(STATUS_SUCCESS, connectionListenerAddConnection(pConnectionListener, pTurnSocket));
+        ASSERT_EQ(STATUS_SUCCESS,
+                  createTurnConnection(pTurnServer, timerQueueHandle, TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL, KVS_ICE_DEFAULT_TURN_PROTOCOL,
+                                       NULL, pTurnSocket, pConnectionListener, KVS_IP_FAMILY_TYPE_IPV4, &pTurnConnection));
+        EXPECT_EQ(STATUS_SUCCESS, connectionListenerStart(pConnectionListener));
+    }
+
     VOID freeTestTurnConnection()
     {
         EXPECT_TRUE(pTurnConnection != NULL);
@@ -203,6 +271,66 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionRefreshPermissionTest)
     MUTEX_LOCK(pTurnConnection->lock);
     EXPECT_GE(pTurnConnection->allocationExpirationTime, GETTIME());
     MUTEX_UNLOCK(pTurnConnection->lock);
+
+    freeTestTurnConnection();
+}
+
+/*
+ * Regression test for the TURN 401 handling. With a stale/invalid TURN credential the server rejects the
+ * authenticated Allocate with 401 UNAUTHORIZED. The connection must never reach READY, and rather than
+ * retransmitting until the 5s allocation timeout it must fail fast (correlating the 401 to our authenticated
+ * request by transaction id) with the specific STATUS_TURN_CONNECTION_CREDENTIALS_REJECTED status.
+ */
+TEST_F(TurnConnectionFunctionalityTest, turnConnectionBadCredentialFailsFast)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    BOOL turnReady = FALSE, turnFailed = FALSE;
+    KvsIpAddress turnPeerAddr;
+    UINT64 startTime, elapsed;
+    // Bound well under the 5s allocation timeout: fail-fast should trip within a couple of timer ticks.
+    UINT64 failFastBudget = 3 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    // Overall wait can exceed the allocation timeout so a regression (loop-until-timeout) is still observed.
+    UINT64 timeout = GETTIME() + 20 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+
+    initializeTestTurnConnectionWithBadCredential();
+
+    turnPeerAddr.port = (UINT16) getInt16(8080);
+    turnPeerAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
+    turnPeerAddr.isPointToPoint = FALSE;
+    /* random peer 77.1.1.1, we are not actually sending anything to it. */
+    turnPeerAddr.address[0] = 0x4d;
+    turnPeerAddr.address[1] = 0x01;
+    turnPeerAddr.address[2] = 0x01;
+    turnPeerAddr.address[3] = 0x01;
+
+    EXPECT_EQ(STATUS_SUCCESS, turnConnectionAddPeer(pTurnConnection, &turnPeerAddr));
+    startTime = GETTIME();
+    EXPECT_EQ(STATUS_SUCCESS, turnConnectionStart(pTurnConnection));
+
+    while (!turnReady && !turnFailed && GETTIME() < timeout) {
+        THREAD_SLEEP(50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        MUTEX_LOCK(pTurnConnection->lock);
+        if (pTurnConnection->state == TURN_STATE_READY) {
+            turnReady = TRUE;
+        } else if (pTurnConnection->state == TURN_STATE_FAILED) {
+            turnFailed = TRUE;
+        }
+        MUTEX_UNLOCK(pTurnConnection->lock);
+    }
+    elapsed = GETTIME() - startTime;
+
+    // With a bad credential we must never become ready.
+    EXPECT_FALSE(turnReady);
+    // We must fail, and with the specific credential-rejection status (not a generic allocation timeout).
+    EXPECT_TRUE(turnFailed);
+    MUTEX_LOCK(pTurnConnection->lock);
+    EXPECT_EQ(STATUS_TURN_CONNECTION_CREDENTIALS_REJECTED, pTurnConnection->errorStatus);
+    MUTEX_UNLOCK(pTurnConnection->lock);
+    // And it must happen fast, well before the allocation timeout would have expired.
+    EXPECT_LT(elapsed, failFastBudget);
 
     freeTestTurnConnection();
 }
