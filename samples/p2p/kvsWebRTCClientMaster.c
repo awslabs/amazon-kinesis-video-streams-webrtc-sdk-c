@@ -16,6 +16,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     SET_INSTRUMENTED_ALLOCATORS();
     UINT32 logLevel = setLogLevel();
+    logSampleInvocation(argc, argv);
 
 #ifndef _WIN32
     signal(SIGINT, sigintHandler);
@@ -30,6 +31,19 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
 
+    pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
+    if (argc > 2) {
+        if (!STRCMP(argv[2], "video-only")) {
+            pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
+            DLOGI("[KVS Master] Streaming video only");
+        } else if (!STRCMP(argv[2], "audio-video")) {
+            pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
+            DLOGI("[KVS Master] Streaming audio and video");
+        } else {
+            DLOGW("[KVS Master] Unrecognized streaming type. Defaulting to audio-video");
+        }
+    }
+
     if (argc > 3) {
         if (!STRCMP(argv[3], AUDIO_CODEC_NAME_OPUS)) {
             audioCodec = RTC_CODEC_OPUS;
@@ -39,8 +53,9 @@ INT32 main(INT32 argc, CHAR* argv[])
     if (argc > 4) {
         if (!STRCMP(argv[4], VIDEO_CODEC_NAME_H265)) {
             videoCodec = RTC_CODEC_H265;
+            DLOGI("[KVS Master] Using H265 frames");
         } else {
-            DLOGI("[KVS Master] Defaulting to H264 as the specified codec's sample frames may not be available");
+            DLOGW("[KVS Master] Defaulting to H264 as the specified codec's sample frames may not be available");
         }
     }
 
@@ -51,7 +66,6 @@ INT32 main(INT32 argc, CHAR* argv[])
 #ifdef ENABLE_DATA_CHANNEL
     pSampleConfiguration->onDataChannel = onDataChannel;
 #endif
-    pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
     DLOGI("[KVS Master] Finished setting handlers");
 
     // Initialize KVS WebRTC. This must be done before anything else, and must only be done once.

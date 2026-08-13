@@ -218,6 +218,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     SET_INSTRUMENTED_ALLOCATORS();
     UINT32 logLevel = setLogLevel();
+    logSampleInvocation(argc, argv);
 
 #ifndef _WIN32
     signal(SIGINT, sigintHandler);

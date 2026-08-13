@@ -24,6 +24,18 @@ UINT32 setLogLevel()
     return logLevel;
 }
 
+VOID logSampleInvocation(INT32 argc, CHAR* argv[])
+{
+    INT32 i;
+    // Log the exact command line used to launch the sample. This makes it unambiguous from the
+    // logs alone which sample binary and arguments were run (e.g. static-frame vs. GStreamer
+    // source), which is otherwise easy to misattribute when triaging.
+    DLOGI("Sample invocation: argc=%d", argc);
+    for (i = 0; i < argc; i++) {
+        DLOGI("  argv[%d]: %s", i, argv[i] != NULL ? argv[i] : "(null)");
+    }
+}
+
 STATUS signalingCallFailed(STATUS status)
 {
     return (STATUS_SIGNALING_GET_TOKEN_CALL_FAILED == status || STATUS_SIGNALING_DESCRIBE_CALL_FAILED == status ||

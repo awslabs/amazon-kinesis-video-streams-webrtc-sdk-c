@@ -133,7 +133,7 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     sctpSessionCallbacks.dataChannelMessageFunc = onSctpSessionDataChannelMessage;
     sctpSessionCallbacks.dataChannelOpenFunc = onSctpSessionDataChannelOpen;
     sctpSessionCallbacks.customData = (UINT64) pKvsPeerConnection;
-    CHK_STATUS(createSctpSession(&sctpSessionCallbacks, &(pKvsPeerConnection->pSctpSession)));
+    CHK_STATUS(createSctpSession(&sctpSessionCallbacks, pKvsPeerConnection->timerQueueHandle, &(pKvsPeerConnection->pSctpSession)));
 
     for (; currentDataChannelId < data.currentDataChannelId; currentDataChannelId += 2) {
         pKvsDataChannel = NULL;
