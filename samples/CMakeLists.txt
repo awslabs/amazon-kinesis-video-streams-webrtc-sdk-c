@@ -84,6 +84,13 @@ add_executable(
 target_link_libraries(kvsWebrtcClientMaster_4Video_1Audio kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets)
 
 add_executable(
+  kvsWebrtcClientMaster_4Video_0Audio
+        common/Common.c
+        common/StaticMedia.c
+        p2p/multi-track/master_4video_0audio.c)
+target_link_libraries(kvsWebrtcClientMaster_4Video_0Audio kvsWebrtcClient kvsWebrtcSignalingClient ${EXTRA_DEPS} kvsCommonLws kvspicUtils websockets)
+
+add_executable(
         discoverNatBehavior
         discoverNatBehavior.c)
 target_link_libraries(discoverNatBehavior kvsWebrtcClient ${EXTRA_DEPS})
@@ -164,7 +171,7 @@ if(GST_FOUND)
   )
 endif()
 
-install(TARGETS kvsWebrtcClientMaster kvsWebrtcClientViewer kvsWebrtcClientMaster_4Video_1Audio discoverNatBehavior
+install(TARGETS kvsWebrtcClientMaster kvsWebrtcClientViewer kvsWebrtcClientMaster_4Video_1Audio kvsWebrtcClientMaster_4Video_0Audio discoverNatBehavior
   RUNTIME DESTINATION bin
 )
 

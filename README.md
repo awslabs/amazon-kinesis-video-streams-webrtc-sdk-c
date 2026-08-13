@@ -446,6 +446,24 @@ To run:
 
 Allowed video-codec: h264 (default codec if nothing is specified), h265
 
+##### Sample: kvsWebrtcClientMaster_4Video_0Audio
+This is the video-only variant of `kvsWebrtcClientMaster_4Video_1Audio`. It sends 4 video tracks (no audio track) over a single PeerConnection using static sample frames. Each video track is a separate RTP transceiver, allowing the viewer to receive 4 independent video streams simultaneously over a single KVS Signaling Channel.
+
+> [!Note]
+> The SDP must accommodate 5 media sections (4 video + 1 data channel when built with `-DENABLE_DATA_CHANNEL=ON`), which fits the default `-DMAX_SDP_SESSION_MEDIA_COUNT=5`. If the offer is rejected, configure the build for a larger SDP:
+> ```shell
+> cmake .. -DMAX_SDP_SESSION_MEDIA_COUNT=5 -DKVS_SIGNALING_MESSAGE_LEN=40000
+> ```
+
+Per-track frames are generated the same way as the audio+video sample above (see `generate_multi_track_frames.sh`); the same `<codec>SampleFrames_track0/` through `<codec>SampleFrames_track3/` directories are used.
+
+To run:
+```shell
+./samples/kvsWebrtcClientMaster_4Video_0Audio <channelName> <video-codec>
+```
+
+Allowed video-codec: h264 (default codec if nothing is specified), h265
+
 #### WebRTC Storage (ingest) samples
 
 ##### Sample: kvsWebrtcStorageAudioVideoMaster and kvsWebrtcStorageVideoOnlyMaster
