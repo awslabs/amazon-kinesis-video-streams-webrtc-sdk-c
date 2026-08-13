@@ -1137,20 +1137,25 @@ CleanUp:
 // reports sent by the remote peer (the media service in a storage session, or a viewer in a P2P session).
 static VOID logRemoteInboundStatsForTransceiver(PRtcPeerConnection pPeerConnection, PRtcRtpTransceiver pTransceiver, PCHAR streamName)
 {
+    STATUS retStatus = STATUS_SUCCESS;
     RtcStats rtcStats;
+    MEMSET(&rtcStats, 0x00, SIZEOF(RtcStats));
 
-    if (pTransceiver == NULL) {
+    if (pPeerConnection == NULL || pTransceiver == NULL) {
         return;
     }
 
     rtcStats.requestedTypeOfStats = RTC_STATS_TYPE_REMOTE_INBOUND_RTP;
-    if (STATUS_SUCCEEDED(rtcPeerConnectionGetMetrics(pPeerConnection, pTransceiver, &rtcStats))) {
+    retStatus = rtcPeerConnectionGetMetrics(pPeerConnection, pTransceiver, &rtcStats);
+    if (STATUS_SUCCEEDED(retStatus)) {
         DLOGV("[remote-inbound %s] reportsReceived=%" PRIu64 " fractionLost=%.3f roundTripTime=%" PRIu64 " ms totalRoundTripTime=%" PRIu64
               " rttMeasurements=%" PRIu64,
               streamName, rtcStats.rtcStatsObject.remoteInboundRtpStreamStats.reportsReceived,
               rtcStats.rtcStatsObject.remoteInboundRtpStreamStats.fractionLost, rtcStats.rtcStatsObject.remoteInboundRtpStreamStats.roundTripTime,
               rtcStats.rtcStatsObject.remoteInboundRtpStreamStats.totalRoundTripTime,
               rtcStats.rtcStatsObject.remoteInboundRtpStreamStats.roundTripTimeMeasurements);
+    } else {
+        DLOGW("[remote-inbound %s] rtcPeerConnectionGetMetrics() failed with 0x%08x", streamName, retStatus);
     }
 }
 
@@ -1165,6 +1170,13 @@ PVOID getPeriodicRemoteInboundStats(PVOID args)
 
     CHK_LOG_ERR(pSampleConfiguration != NULL ? STATUS_SUCCESS : STATUS_NULL_ARG);
     if (pSampleConfiguration == NULL) {
+        return NULL;
+    }
+
+    // This thread only emits VERBOSE-level logs. Creation is already gated on the configured log
+    // level, but double-check the runtime logger level so the thread exits immediately (instead of
+    // waking every second for nothing) if verbose logs are filtered out.
+    if (GET_LOGGER_LOG_LEVEL() > LOG_LEVEL_VERBOSE) {
         return NULL;
     }
 
@@ -1183,8 +1195,15 @@ PVOID getPeriodicRemoteInboundStats(PVOID args)
         if (!MUTEX_TRYLOCK(pSampleConfiguration->sampleConfigurationObjLock)) {
             continue;
         }
-        for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+        // Clamp to the array capacity as a defensive bound; streamingSessionCount should never
+        // exceed it, but the array access below must not depend on that invariant.
+        for (i = 0; i < MIN(pSampleConfiguration->streamingSessionCount, DEFAULT_MAX_CONCURRENT_STREAMING_SESSION); ++i) {
             pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[i];
+            // Skip slots that are mid-teardown; the session pointer can be cleared while we hold
+            // only a trylock'd config lock.
+            if (pSampleStreamingSession == NULL) {
+                continue;
+            }
             logRemoteInboundStatsForTransceiver(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pVideoRtcRtpTransceiver,
                                                 (PCHAR) "VIDEO");
             logRemoteInboundStatsForTransceiver(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pAudioRtcRtpTransceiver,
