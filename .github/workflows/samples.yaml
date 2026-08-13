@@ -91,7 +91,7 @@ jobs:
         run: |
           set +e
           cd build/samples
-          ./kvsWebrtcClientMaster4Video1Audio ${{ env.CHANNEL_NAME }} > master.log 2>&1 &
+          ./kvsWebrtcClientMaster_4Video_1Audio ${{ env.CHANNEL_NAME }} > master.log 2>&1 &
           MASTER_PID=$!
           sleep 10
           ./kvsWebrtcClientViewer ${{ env.CHANNEL_NAME }} > viewer.log 2>&1 &

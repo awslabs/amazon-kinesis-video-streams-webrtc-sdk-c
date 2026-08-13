@@ -1,5 +1,5 @@
-#include "../common/Samples.h"
-#include "../common/StaticMedia.h"
+#include "../../common/Samples.h"
+#include "../../common/StaticMedia.h"
 
 extern PSampleConfiguration gSampleConfiguration;
 
@@ -16,7 +16,7 @@ static VOID onMultiTrackSessionShutdown(UINT64 customData, PSampleStreamingSessi
     SAFE_MEMFREE(pMultiTrackSession);
 }
 
-STATUS addFourVideoTransceivers(PSampleConfiguration pSampleConfiguration, PSampleStreamingSession pSampleStreamingSession)
+STATUS addFourVideoOneAudioTransceivers(PSampleConfiguration pSampleConfiguration, PSampleStreamingSession pSampleStreamingSession)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -103,6 +103,9 @@ PVOID sendFourVideoPacketsFromDisk(PVOID args)
     UINT64 startTime, lastFrameTime, elapsed;
     BOOL usePerTrackDirs = FALSE;
     BOOL trackSentFirstFrame[NUM_VIDEO_TRACKS];
+    PCHAR codecDir;
+    PCHAR codecExt;
+    UINT32 numFrameFiles;
 
     MEMSET(trackSentFirstFrame, 0x00, SIZEOF(trackSentFirstFrame));
     MEMSET(fileIndex, 0x00, SIZEOF(fileIndex));
@@ -111,18 +114,30 @@ PVOID sendFourVideoPacketsFromDisk(PVOID args)
     MEMSET(frame, 0x00, SIZEOF(frame));
     CHK_ERR(pSampleConfiguration != NULL, STATUS_NULL_ARG, "[KVS Master] Streaming session is NULL");
 
+    if (pSampleConfiguration->videoCodec == RTC_CODEC_H265) {
+        codecDir = "h265SampleFrames";
+        codecExt = "h265";
+        numFrameFiles = NUMBER_OF_H265_FRAME_FILES;
+    } else {
+        codecDir = "h264SampleFrames";
+        codecExt = "h264";
+        numFrameFiles = NUMBER_OF_H264_FRAME_FILES;
+    }
+
     {
         UINT32 dummySize = 0;
-        STATUS checkStatus = readFrameFromDisk(NULL, &dummySize, "./h264SampleFrames_track0/frame-0001.h264");
+        STATUS checkStatus;
+        SNPRINTF(filePath, MAX_PATH_LEN, "./%s_track0/frame-0001.%s", codecDir, codecExt);
+        checkStatus = readFrameFromDisk(NULL, &dummySize, filePath);
         usePerTrackDirs = (checkStatus == STATUS_SUCCESS);
     }
 
     if (usePerTrackDirs) {
-        DLOGI("[KVS Master] Using per-track frame directories (h264SampleFrames_track0..3)");
+        DLOGI("[KVS Master] Using per-track frame directories (%s_track0..3)", codecDir);
     } else {
-        DLOGW("[KVS Master] Per-track frame directories not found. Sending the same frames on all 4 tracks.");
+        DLOGW("[KVS Master] Per-track %s frame directories not found. Sending the same frames on all 4 tracks.", codecExt);
         DLOGW("[KVS Master] To generate unique frames per track, run from the build/samples/ directory:");
-        DLOGW("[KVS Master]   ../../scripts/generate_multi_track_frames.sh");
+        DLOGW("[KVS Master]   ../../scripts/generate_multi_track_frames.sh %s", codecExt);
     }
 
     startTime = GETTIME();
@@ -130,11 +145,11 @@ PVOID sendFourVideoPacketsFromDisk(PVOID args)
 
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
         for (trackIdx = 0; trackIdx < NUM_VIDEO_TRACKS; trackIdx++) {
-            fileIndex[trackIdx] = fileIndex[trackIdx] % NUMBER_OF_H264_FRAME_FILES + 1;
+            fileIndex[trackIdx] = fileIndex[trackIdx] % numFrameFiles + 1;
             if (usePerTrackDirs) {
-                SNPRINTF(filePath, MAX_PATH_LEN, "./h264SampleFrames_track%u/frame-%04d.h264", trackIdx, fileIndex[trackIdx]);
+                SNPRINTF(filePath, MAX_PATH_LEN, "./%s_track%u/frame-%04d.%s", codecDir, trackIdx, fileIndex[trackIdx], codecExt);
             } else {
-                SNPRINTF(filePath, MAX_PATH_LEN, "./h264SampleFrames/frame-%04d.h264", fileIndex[trackIdx]);
+                SNPRINTF(filePath, MAX_PATH_LEN, "./%s/frame-%04d.%s", codecDir, fileIndex[trackIdx], codecExt);
             }
 
             frameSize = 0;
@@ -199,6 +214,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     PCHAR pChannelName;
     SignalingClientMetrics signalingClientMetrics;
     signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
+    RTC_CODEC videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
 
     SET_INSTRUMENTED_ALLOCATORS();
     UINT32 logLevel = setLogLevel();
@@ -217,7 +233,15 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     CHK_STATUS(createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, logLevel, &pSampleConfiguration));
 
-    CHK_STATUS(useStaticFramePresets(pSampleConfiguration, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
+    if (argc > 2) {
+        if (!STRCMP(argv[2], VIDEO_CODEC_NAME_H265)) {
+            videoCodec = RTC_CODEC_H265;
+        } else {
+            DLOGI("[KVS Master] Defaulting to H264 as the specified codec's sample frames may not be available");
+        }
+    }
+
+    CHK_STATUS(useStaticFramePresets(pSampleConfiguration, videoCodec));
     CHK_STATUS(useStaticFramePresets(pSampleConfiguration, RTC_CODEC_OPUS));
     pSampleConfiguration->videoSource = sendFourVideoPacketsFromDisk;
 
@@ -225,7 +249,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     pSampleConfiguration->onDataChannel = onDataChannel;
 #endif
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
-    pSampleConfiguration->addTransceiversCallback = addFourVideoTransceivers;
+    pSampleConfiguration->addTransceiversCallback = addFourVideoOneAudioTransceivers;
     DLOGI("[KVS Master] Finished setting up four video track handlers");
 
     CHK_STATUS(initKvsWebRtc());
