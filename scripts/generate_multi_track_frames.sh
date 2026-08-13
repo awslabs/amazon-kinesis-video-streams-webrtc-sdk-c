@@ -9,15 +9,15 @@
 #
 # Usage: Run from the build/ directory:
 #   cd build && ../scripts/generate_multi_track_frames.sh [h264|h265]
-#   ./samples/kvsWebrtcClientMaster4Video1Audio <channelName> [h264|h265]
+#   ./samples/kvsWebrtcClientMaster_4Video_1Audio <channelName> [h264|h265]
 #
 # Usage: Run from the build/samples/ directory:
 #   cd build/samples/ && ../../scripts/generate_multi_track_frames.sh [h264|h265]
-#   ./kvsWebrtcClientMaster4Video1Audio <channelName> [h264|h265]
+#   ./kvsWebrtcClientMaster_4Video_1Audio <channelName> [h264|h265]
 #
 # The optional codec argument (default h264) controls which encoder is used and
 # which per-track directories (h264SampleFrames_trackN / h265SampleFrames_trackN)
-# are produced. It must match the codec passed to kvsWebrtcClientMaster4Video1Audio.
+# are produced. It must match the codec passed to kvsWebrtcClientMaster_4Video_1Audio.
 
 set -e
 

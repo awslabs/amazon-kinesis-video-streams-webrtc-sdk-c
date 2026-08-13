@@ -417,7 +417,7 @@ To run:
 Allowed audio-codec: opus (default codec if nothing is specified)
 Allowed video-codec: h264 (default codec if nothing is specified), h265
 
-##### Sample: kvsWebrtcClientMaster4Video1Audio
+##### Sample: kvsWebrtcClientMaster_4Video_1Audio
 This application sends 4 video tracks and 1 Opus audio track over a single PeerConnection using static sample frames. Each video track is a separate RTP transceiver, allowing the viewer to receive 4 independent video streams simultaneously over a single KVS Signaling Channel.
 
 > [!Note]
@@ -440,7 +440,7 @@ The sample auto-detects the `<codec>SampleFrames_track0/` through `<codec>Sample
 
 To run:
 ```shell
-./samples/kvsWebrtcClientMaster4Video1Audio <channelName> <video-codec>
+./samples/kvsWebrtcClientMaster_4Video_1Audio <channelName> <video-codec>
 ```
 
 Allowed video-codec: h264 (default codec if nothing is specified), h265

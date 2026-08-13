@@ -1,5 +1,5 @@
-#include "../common/Samples.h"
-#include "../common/StaticMedia.h"
+#include "../../common/Samples.h"
+#include "../../common/StaticMedia.h"
 
 extern PSampleConfiguration gSampleConfiguration;
 
@@ -16,7 +16,7 @@ static VOID onMultiTrackSessionShutdown(UINT64 customData, PSampleStreamingSessi
     SAFE_MEMFREE(pMultiTrackSession);
 }
 
-STATUS addFourVideoTransceivers(PSampleConfiguration pSampleConfiguration, PSampleStreamingSession pSampleStreamingSession)
+STATUS addFourVideoOneAudioTransceivers(PSampleConfiguration pSampleConfiguration, PSampleStreamingSession pSampleStreamingSession)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -248,7 +248,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     pSampleConfiguration->onDataChannel = onDataChannel;
 #endif
     pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
-    pSampleConfiguration->addTransceiversCallback = addFourVideoTransceivers;
+    pSampleConfiguration->addTransceiversCallback = addFourVideoOneAudioTransceivers;
     DLOGI("[KVS Master] Finished setting up four video track handlers");
 
     CHK_STATUS(initKvsWebRtc());
