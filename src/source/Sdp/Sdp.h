@@ -187,7 +187,9 @@ typedef struct {
 
     SdpAttributes sdpAttributes[MAX_SDP_ATTRIBUTES_COUNT];
 
-    UINT8 mediaAttributesCount;
+    // Must be able to represent MAX_SDP_ATTRIBUTES_COUNT. With a narrower type the bounds check in parseMediaAttributes() can never fail
+    // and the counter wraps to 0, silently overwriting the attributes already parsed for this media section.
+    UINT16 mediaAttributesCount;
 
     UINT8 mediaBandwidthCount;
 } SdpMediaDescription, *PSdpMediaDescription;

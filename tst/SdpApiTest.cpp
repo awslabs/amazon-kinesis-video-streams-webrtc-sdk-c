@@ -173,6 +173,35 @@ TEST_F(SdpApiTest, deserializeSessionDescription_PhoneNumberTruncatedAtMaxLength
     EXPECT_EQ(STRLEN(sessionDescription.phoneNumber), (UINT32) MAX_SDP_SESSION_PHONE_NUMBER_LENGTH);
 }
 
+TEST_F(SdpApiTest, deserializeSessionDescription_MediaAttributesAtMaxCount)
+{
+    // "a=mid" plus (MAX_SDP_ATTRIBUTES_COUNT - 1) filler attributes fills the media section exactly to capacity.
+    std::string sdpStr = "v=0\nm=video 9 UDP/TLS/RTP/SAVPF 96\na=mid:1\n";
+    for (UINT32 i = 1; i < MAX_SDP_ATTRIBUTES_COUNT; i++) {
+        sdpStr += "a=rtcp-fb:" + std::to_string(i) + " rrtr\n";
+    }
+
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescription(&sessionDescription, (PCHAR) sdpStr.c_str()));
+    EXPECT_EQ(sessionDescription.mediaDescriptions[0].mediaAttributesCount, (UINT32) MAX_SDP_ATTRIBUTES_COUNT);
+    EXPECT_STREQ(sessionDescription.mediaDescriptions[0].sdpAttributes[0].attributeName, "mid");
+}
+
+TEST_F(SdpApiTest, deserializeSessionDescription_MediaAttributesExceedingMaxCountIsRejected)
+{
+    // One attribute more than the media section can hold must be reported instead of wrapping the counter back onto index 0.
+    std::string sdpStr = "v=0\nm=video 9 UDP/TLS/RTP/SAVPF 96\na=mid:1\n";
+    for (UINT32 i = 1; i <= MAX_SDP_ATTRIBUTES_COUNT; i++) {
+        sdpStr += "a=rtcp-fb:" + std::to_string(i) + " rrtr\n";
+    }
+
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED, deserializeSessionDescription(&sessionDescription, (PCHAR) sdpStr.c_str()));
+    EXPECT_STREQ(sessionDescription.mediaDescriptions[0].sdpAttributes[0].attributeName, "mid");
+}
+
 auto populate_session_description = [](PSessionDescription pSessionDescription) {
     MEMSET(pSessionDescription, 0x00, SIZEOF(SessionDescription));
 
