@@ -521,6 +521,115 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketReceiverReportMalformedBlockCount)
     freePeerConnection(&pRtcPeerConnection);
 }
 
+// fractionLost boundary values: 0x00 must map to exactly 0.0 and 0xFF to exactly 255/255 = 1.0
+// (the field is an 8-bit fixed-point fraction, computed as N / 255.0).
+TEST_F(RtcpFunctionalityTest, onRtcpPacketReceiverReportFractionLostBoundaries)
+{
+    initTransceiver(0x11111111);
+
+    // fractionLost = 0x00 (no loss)
+    auto hexpacketZero = (PCHAR) "81C90007"
+                                 "01020304"
+                                 "111111110000000000000100000000640000000000000000";
+    BYTE rawpacket[64] = {0};
+    UINT32 rawpacketSize = 64;
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacketZero, strlen(hexpacketZero), rawpacket, &rawpacketSize));
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+
+    RtcRemoteInboundRtpStreamStats stats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &stats));
+    EXPECT_EQ(1, stats.reportsReceived);
+    EXPECT_EQ(0.0, stats.fractionLost);
+
+    // fractionLost = 0xFF (maximum representable loss fraction)
+    auto hexpacketMax = (PCHAR) "81C90007"
+                                "01020304"
+                                "11111111FF00000000000100000000640000000000000000";
+    rawpacketSize = 64;
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacketMax, strlen(hexpacketMax), rawpacket, &rawpacketSize));
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &stats));
+    EXPECT_EQ(2, stats.reportsReceived);
+    EXPECT_EQ(255.0 / 255.0, stats.fractionLost);
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+// RTT accuracy: build the report block's lsr/dlsr from the current clock so the expected RTT is
+// deterministic. With lsr = MID_NTP(now) - dlsr - X, the computed RTT must be X (in DLSR_TIMESCALE
+// units, converted to ms), plus however long the test takes between packet construction and
+// parsing - hence the tolerance window.
+TEST_F(RtcpFunctionalityTest, onRtcpPacketReceiverReportRoundTripTimeAccuracy)
+{
+    constexpr UINT32 expectedRttMsec = 500;
+    constexpr UINT32 toleranceMsec = 200; // generous upper bound for test execution time between GETTIME() calls
+
+    initTransceiver(0x11111111);
+
+    // Header: RC=1, PT=201, length 7 words; payload: senderSSRC + one report block
+    BYTE rawpacket[64] = {0};
+    UINT32 rawpacketSize = 64;
+    auto hexpacket = (PCHAR) "81C90007"
+                             "01020304"
+                             "111111110400000000000100000000640000000000000000";
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize));
+
+    // Overwrite lsr/dlsr (offsets within payload block: 16 and 20; +8 for the RTCP header and
+    // sender SSRC preceding the block in the raw packet: header(4) + senderSSRC(4) + blockSSRC-relative offsets)
+    UINT64 currentTimeNTP = convertTimestampToNTP(GETTIME());
+    UINT32 dlsr = 65536; // 1 second in DLSR_TIMESCALE (1/65536s) units
+    UINT32 expectedRttDlsrUnits = KVS_CONVERT_TIMESCALE(expectedRttMsec, 1000, DLSR_TIMESCALE);
+    UINT32 lsr = MID_NTP(currentTimeNTP) - dlsr - expectedRttDlsrUnits;
+    putUnalignedInt32BigEndian(rawpacket + 4 /* header */ + 4 /* senderSSRC */ + 16, lsr);
+    putUnalignedInt32BigEndian(rawpacket + 4 /* header */ + 4 /* senderSSRC */ + 20, dlsr);
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+
+    RtcRemoteInboundRtpStreamStats stats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &stats));
+    EXPECT_EQ(1, stats.reportsReceived);
+    EXPECT_EQ(1, stats.roundTripTimeMeasurements);
+    EXPECT_GE(stats.roundTripTime, expectedRttMsec);
+    EXPECT_LT(stats.roundTripTime, expectedRttMsec + toleranceMsec);
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+// reportsReceived must accumulate across successive receiver reports for the same SSRC, and
+// fractionLost must reflect the most recent report.
+TEST_F(RtcpFunctionalityTest, onRtcpPacketReceiverReportCumulativeAcrossPackets)
+{
+    initTransceiver(0x11111111);
+
+    auto hexpacketFirst = (PCHAR) "81C90007"
+                                  "01020304"
+                                  "111111110400000000000100000000640000000000000000";
+    auto hexpacketSecond = (PCHAR) "81C90007"
+                                   "01020304"
+                                   "111111110800000000000200000000C80000000000000000";
+    BYTE rawpacket[64] = {0};
+    UINT32 rawpacketSize = 64;
+
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacketFirst, strlen(hexpacketFirst), rawpacket, &rawpacketSize));
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+
+    RtcRemoteInboundRtpStreamStats stats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &stats));
+    EXPECT_EQ(1, stats.reportsReceived);
+    EXPECT_EQ(4.0 / 255.0, stats.fractionLost);
+
+    rawpacketSize = 64;
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacketSecond, strlen(hexpacketSecond), rawpacket, &rawpacketSize));
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &stats));
+    EXPECT_EQ(2, stats.reportsReceived);
+    EXPECT_EQ(8.0 / 255.0, stats.fractionLost);
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
 TEST_F(RtcpFunctionalityTest, rembValueGet)
 {
     BYTE rawRtcpPacket[] = {0x8f, 0xce, 0x00, 0x05, 0x61, 0x7a, 0x37, 0x43, 0x00, 0x00, 0x00, 0x00,
