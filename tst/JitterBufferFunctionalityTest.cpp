@@ -9,6 +9,95 @@ namespace webrtcclient {
 class JitterBufferFunctionalityTest : public WebRtcClientTestBase {
 };
 
+static STATUS reproFrameReadyFunc(UINT64, UINT16, UINT16, UINT32)
+{
+    return STATUS_SUCCESS;
+}
+
+static STATUS reproFrameDroppedFunc(UINT64, UINT16, UINT16, UINT32)
+{
+    return STATUS_SUCCESS;
+}
+
+// Fails the depay for a "corrupt" packet (first byte 0xEE) to force the parse-failure
+// path inside jitterBufferPush().
+static STATUS reproDepayRtpFunc(PBYTE payload, UINT32 payloadLength, PBYTE outBuffer, PUINT32 pBufferSize, PBOOL pIsStart)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 bufferSize = 0;
+    BOOL sizeCalculationOnly = (outBuffer == NULL);
+
+    CHK(payload != NULL && pBufferSize != NULL, STATUS_NULL_ARG);
+    CHK(payloadLength > 0, retStatus);
+    CHK(payload[0] != 0xEE, STATUS_INVALID_ARG);
+
+    bufferSize = payloadLength;
+    CHK(!sizeCalculationOnly, retStatus);
+    CHK(payloadLength <= *pBufferSize, STATUS_BUFFER_TOO_SMALL);
+    MEMCPY(outBuffer, payload, payloadLength);
+
+CleanUp:
+    if (STATUS_FAILED(retStatus) && sizeCalculationOnly) {
+        bufferSize = 0;
+    }
+    if (pBufferSize != NULL) {
+        *pBufferSize = bufferSize;
+    }
+    if (pIsStart != NULL && payload != NULL && payloadLength > 0) {
+        *pIsStart = (payload[payloadLength] != 0);
+    }
+    return retStatus;
+}
+
+static PRtpPacket reproMakePacket(UINT16 seqNum, UINT32 timestamp, UINT8 firstByte, BOOL isStart)
+{
+    PRtpPacket pRtpPacket = NULL;
+    PBYTE payload = (PBYTE) MEMALLOC(2);
+
+    payload[0] = firstByte;
+    payload[1] = isStart ? 1 : 0;
+    EXPECT_EQ(STATUS_SUCCESS,
+              createRtpPacket(2, FALSE, FALSE, 0, FALSE, 96, seqNum, timestamp, 0x1234ABCD, NULL, 0, 0, NULL, payload, 1, &pRtpPacket));
+    pRtpPacket->pRawPacket = pRtpPacket->payload;
+    return pRtpPacket;
+}
+
+// jitterBufferPush() inserts the packet into the hash table before it parses. If the
+// parse fails, push must not return an error, or sendPacketToRtpReceiver() frees a
+// packet the buffer still owns and a later drop frees it again.
+TEST_F(JitterBufferFunctionalityTest, pushErrorPathDoesNotDoubleFreePacket)
+{
+    PJitterBuffer jitterBuffer = NULL;
+    BOOL ownedByJitterBuffer;
+
+    EXPECT_EQ(STATUS_SUCCESS,
+              createJitterBuffer(reproFrameReadyFunc, reproFrameDroppedFunc, reproDepayRtpFunc, DEFAULT_JITTER_BUFFER_MAX_LATENCY,
+                                 TEST_JITTER_BUFFER_CLOCK_RATE, (UINT64) this, &jitterBuffer));
+
+    PRtpPacket p0 = reproMakePacket(0, 100, 0x01, TRUE);
+    ownedByJitterBuffer = STATUS_SUCCEEDED(jitterBufferPush(jitterBuffer, p0, NULL));
+    if (!ownedByJitterBuffer) {
+        freeRtpPacket(&p0);
+    }
+
+    PRtpPacket p1 = reproMakePacket(1, 200, 0x02, TRUE);
+    ownedByJitterBuffer = STATUS_SUCCEEDED(jitterBufferPush(jitterBuffer, p1, NULL));
+    if (!ownedByJitterBuffer) {
+        freeRtpPacket(&p1);
+    }
+
+    PRtpPacket pPoison = reproMakePacket(2, 300, 0xEE, TRUE);
+    ownedByJitterBuffer = STATUS_SUCCEEDED(jitterBufferPush(jitterBuffer, pPoison, NULL));
+
+    // Mirror sendPacketToRtpReceiver(): free only when push failed.
+    if (!ownedByJitterBuffer) {
+        freeRtpPacket(&pPoison);
+    }
+
+    jitterBufferDropBufferData(jitterBuffer, 2, 2, 300);
+    freeJitterBuffer(&jitterBuffer);
+}
+
 // Also works as closeBufferWithSingleContinousPacket
 TEST_F(JitterBufferFunctionalityTest, continousPacketsComeInOrder)
 {

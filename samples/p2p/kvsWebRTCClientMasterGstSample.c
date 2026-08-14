@@ -13,6 +13,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     SET_INSTRUMENTED_ALLOCATORS();
     UINT32 logLevel = setLogLevel();
+    logSampleInvocation(argc, argv);
 
     signal(SIGINT, sigintHandler);
 
@@ -107,6 +108,9 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     CHK_STATUS(initSignaling(pSampleConfiguration, SAMPLE_MASTER_CLIENT_ID));
     DLOGI("[KVS GStreamer Master] Channel %s set up done ", pChannelName);
+
+    // Periodically log remote-inbound RTP stats (VERBOSE log level only)
+    CHK_STATUS(startPeriodicRemoteInboundStats(pSampleConfiguration));
 
     // Checking for termination
     CHK_STATUS(sessionCleanupWait(pSampleConfiguration));

@@ -93,6 +93,10 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
 
         if (pRtpPacket != NULL) {
             if (payloadType == rtxPayloadType) {
+                // RTX was not negotiated for this codec: fall back to resending the original packet as-is on the
+                // original SSRC/PT (not RFC 4588 RTX). See setTransceiverPayloadTypes() for the negotiation-time log.
+                DLOGS("Retransmit fallback (no RTX) for ssrc %lu seq %lu pt %u", pRtpPacket->header.ssrc, pRtpPacket->header.sequenceNumber,
+                      payloadType);
                 retStatus = iceAgentSendPacket(pKvsPeerConnection->pIceAgent, pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength);
             } else {
                 CHK_STATUS(constructRetransmitRtpPacketFromBytes(pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength,

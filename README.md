@@ -365,9 +365,10 @@ After executing `make` you will have sample applications in your `build/samples`
 ##### Sample: kvsWebrtcClientMaster
 This application sends sample H264/Opus frames (path: `/samples/h264SampleFrames` and `/samples/opusSampleFrames`) via WebRTC. It also accepts incoming audio, if enabled in the browser. When checked in the browser, it prints the metadata of the received audio packets in your terminal. To run:
 ```shell
-./samples/kvsWebrtcClientMaster <channelName> <audio-codec> <video-codec>
+./samples/kvsWebrtcClientMaster <channelName> <mediaType> <audio-codec> <video-codec>
 ```
 
+Allowed mediaType: audio-video (default if nothing is specified), video-only
 Allowed audio-codec: opus (default codec if nothing is specified)
 Allowed video-codec: h264 (default codec if nothing is specified), h265
 
@@ -417,8 +418,8 @@ To run:
 Allowed audio-codec: opus (default codec if nothing is specified)
 Allowed video-codec: h264 (default codec if nothing is specified), h265
 
-##### Sample: kvsWebrtcClientMaster4Video1Audio
-This application sends 4 H264 video tracks and 1 Opus audio track over a single PeerConnection using static sample frames. Each video track is a separate RTP transceiver, allowing the viewer to receive 4 independent video streams simultaneously over a single KVS Signaling Channel.
+##### Sample: kvsWebrtcClientMaster_4Video_1Audio
+This application sends 4 video tracks and 1 Opus audio track over a single PeerConnection using static sample frames. Each video track is a separate RTP transceiver, allowing the viewer to receive 4 independent video streams simultaneously over a single KVS Signaling Channel.
 
 > [!Note]
 > The SDP must accommodate 6 media sections (4 video + 1 audio + 1 data channel when built with `-DENABLE_DATA_CHANNEL=ON`). Configure the build accordingly for larger SDP sizes:
@@ -427,17 +428,41 @@ This application sends 4 H264 video tracks and 1 Opus audio track over a single 
 > ```
 > Without the proper configuration, the SDP offer will be rejected and the connection will not be established.
 
-By default, all 4 tracks send the same frames from `h264SampleFrames/`. To send **unique** frames per track (recommended for testing), generate per-track frame sets using the provided script. It requires GStreamer to be installed.
+By default, all 4 tracks send the same frames from `h264SampleFrames/` (or `h265SampleFrames/` when h265 is selected). To send **unique** frames per track (recommended for testing), generate per-track frame sets using the provided script. It requires GStreamer to be installed. Pass the codec to match the one you run the sample with (defaults to `h264`):
 ```shell
-cd build/samples
-../../scripts/generate_multi_track_frames.sh
+cd build
+../scripts/generate_multi_track_frames.sh          # h264 (default)
+../scripts/generate_multi_track_frames.sh h265     # h265
 ```
-The sample auto-detects the `h264SampleFrames_track0/` through `h264SampleFrames_track3/` directories at runtime and prints a warning with instructions if they are not found.
+The sample auto-detects the `<codec>SampleFrames_track0/` through `<codec>SampleFrames_track3/` directories at runtime and prints a warning with instructions if they are not found.
+
+> [!Tip]
+> If H.265 video freezes after the first frame in the viewer (while audio keeps playing), or you need to inspect the generated frames, see [docs/TROUBLESHOOTING_H265_FRAMES.md](docs/TROUBLESHOOTING_H265_FRAMES.md).
 
 To run:
 ```shell
-./samples/kvsWebrtcClientMaster4Video1Audio <channelName>
+./samples/kvsWebrtcClientMaster_4Video_1Audio <channelName> <video-codec>
 ```
+
+Allowed video-codec: h264 (default codec if nothing is specified), h265
+
+##### Sample: kvsWebrtcClientMaster_4Video_0Audio
+This is the video-only variant of `kvsWebrtcClientMaster_4Video_1Audio`. It sends 4 video tracks (no audio track) over a single PeerConnection using static sample frames. Each video track is a separate RTP transceiver, allowing the viewer to receive 4 independent video streams simultaneously over a single KVS Signaling Channel.
+
+> [!Note]
+> The SDP must accommodate 5 media sections (4 video + 1 data channel when built with `-DENABLE_DATA_CHANNEL=ON`), which fits the default `-DMAX_SDP_SESSION_MEDIA_COUNT=5`. If the offer is rejected, configure the build for a larger SDP:
+> ```shell
+> cmake .. -DMAX_SDP_SESSION_MEDIA_COUNT=5 -DKVS_SIGNALING_MESSAGE_LEN=40000
+> ```
+
+Per-track frames are generated the same way as the audio+video sample above (see `generate_multi_track_frames.sh`); the same `<codec>SampleFrames_track0/` through `<codec>SampleFrames_track3/` directories are used.
+
+To run:
+```shell
+./samples/kvsWebrtcClientMaster_4Video_0Audio <channelName> <video-codec>
+```
+
+Allowed video-codec: h264 (default codec if nothing is specified), h265
 
 #### WebRTC Storage (ingest) samples
 
@@ -475,14 +500,22 @@ To address this issue, users need to adapt the pipeline to utilize components ca
 
 #### Sample: Generating sample frames
 
+The `h264parse`/`h265parse` element with `config-interval=-1` re-inserts the
+parameter sets (SPS/PPS, plus VPS for H.265) before every keyframe so each keyframe
+is a self-contained access unit the WebRTC decoder can recover from. This is
+required for H.265: `x265enc` does not repeat parameter sets on keyframes, so
+without it the stream plays one keyframe and then freezes in the viewer. See
+[docs/TROUBLESHOOTING_H265_FRAMES.md](docs/TROUBLESHOOTING_H265_FRAMES.md) for
+details.
+
 ##### H264
 ```shell
-gst-launch-1.0 videotestsrc pattern=ball num-buffers=1500 ! timeoverlay ! videoconvert ! video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! queue ! x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! multifilesink location="frame-%04d.h264" index=1
+gst-launch-1.0 videotestsrc pattern=ball num-buffers=1500 ! timeoverlay ! videoconvert ! video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! queue ! x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency key-int-max=25 ! h264parse config-interval=-1 ! video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! multifilesink location="frame-%04d.h264" index=1
 ```
 
 ##### H265
 ```shell
-gst-launch-1.0 videotestsrc pattern=ball num-buffers=1500 ! timeoverlay ! videoconvert ! video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! queue ! x265enc speed-preset=veryfast bitrate=512 tune=zerolatency ! video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! multifilesink location="frame-%04d.h265" index=1
+gst-launch-1.0 videotestsrc pattern=ball num-buffers=1500 ! timeoverlay ! videoconvert ! video/x-raw,format=I420,width=1280,height=720,framerate=25/1 ! queue ! x265enc speed-preset=veryfast bitrate=512 tune=zerolatency key-int-max=25 option-string=bframes=0 ! h265parse config-interval=-1 ! video/x-h265,stream-format=byte-stream,alignment=au,profile=main ! multifilesink location="frame-%04d.h265" index=1
 ```
 
 ##### Opus
@@ -821,6 +854,7 @@ See the [Status code reference](https://github.com/awslabs/amazon-kinesis-video-
 
 Additional guides:
 - [TWCC (Transport-Wide Congestion Control)](docs/TWCC.md) — bandwidth estimation, bitrate adaptation, and troubleshooting
+- [Troubleshooting H.265 sample frames](docs/TROUBLESHOOTING_H265_FRAMES.md) — inspecting NAL units, diagnosing freeze-after-first-frame, regenerating frames
 
 Refer to [related](#related) for more about WebRTC and KVS.
 

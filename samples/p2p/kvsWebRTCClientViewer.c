@@ -47,6 +47,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     SET_INSTRUMENTED_ALLOCATORS();
     UINT32 logLevel = setLogLevel();
+    logSampleInvocation(argc, argv);
 
 #ifndef _WIN32
     signal(SIGINT, sigintHandler);
@@ -168,6 +169,9 @@ INT32 main(INT32 argc, CHAR* argv[])
     CHK_STATUS(dataChannelOnOpen(pDataChannel, (UINT64) &datachannelLocalOpenCount, dataChannelOnOpenCallback));
     DLOGI("[KVS Viewer] Data Channel open now...");
 #endif
+
+    // Periodically log remote-inbound RTP stats (VERBOSE log level only)
+    CHK_STATUS(startPeriodicRemoteInboundStats(pSampleConfiguration));
 
     // Block until interrupted
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->interrupted) && !ATOMIC_LOAD_BOOL(&pSampleStreamingSession->terminateFlag)) {

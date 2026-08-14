@@ -18,6 +18,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     SET_INSTRUMENTED_ALLOCATORS();
     UINT32 logLevel = setLogLevel();
+    logSampleInvocation(argc, argv);
 
 #ifndef _WIN32
     signal(SIGINT, sigintHandler);
@@ -52,6 +53,9 @@ INT32 main(INT32 argc, CHAR* argv[])
         "Initialize signaling client and connect to the signaling channel");
 
     DLOGI("[%s] Channel %s set up done ", SAMPLE_NAME, pChannelName);
+
+    // Periodically log remote-inbound RTP stats (VERBOSE log level only)
+    CHK_STATUS(startPeriodicRemoteInboundStats(pSampleConfiguration));
 
     // Checking for termination
     CHK_STATUS(sessionCleanupWait(pSampleConfiguration));

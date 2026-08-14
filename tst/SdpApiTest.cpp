@@ -174,6 +174,35 @@ TEST_F(SdpApiTest, deserializeSessionDescription_PhoneNumberTruncatedAtMaxLength
     EXPECT_EQ(STRLEN(sessionDescription.phoneNumber), (UINT32) MAX_SDP_SESSION_PHONE_NUMBER_LENGTH);
 }
 
+TEST_F(SdpApiTest, deserializeSessionDescription_MediaAttributesAtMaxCount)
+{
+    // "a=mid" plus (MAX_SDP_ATTRIBUTES_COUNT - 1) filler attributes fills the media section exactly to capacity.
+    std::string sdpStr = "v=0\nm=video 9 UDP/TLS/RTP/SAVPF 96\na=mid:1\n";
+    for (UINT32 i = 1; i < MAX_SDP_ATTRIBUTES_COUNT; i++) {
+        sdpStr += "a=rtcp-fb:" + std::to_string(i) + " rrtr\n";
+    }
+
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescription(&sessionDescription, (PCHAR) sdpStr.c_str()));
+    EXPECT_EQ(sessionDescription.mediaDescriptions[0].mediaAttributesCount, (UINT32) MAX_SDP_ATTRIBUTES_COUNT);
+    EXPECT_STREQ(sessionDescription.mediaDescriptions[0].sdpAttributes[0].attributeName, "mid");
+}
+
+TEST_F(SdpApiTest, deserializeSessionDescription_MediaAttributesExceedingMaxCountIsRejected)
+{
+    // One attribute more than the media section can hold must be reported instead of wrapping the counter back onto index 0.
+    std::string sdpStr = "v=0\nm=video 9 UDP/TLS/RTP/SAVPF 96\na=mid:1\n";
+    for (UINT32 i = 1; i <= MAX_SDP_ATTRIBUTES_COUNT; i++) {
+        sdpStr += "a=rtcp-fb:" + std::to_string(i) + " rrtr\n";
+    }
+
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED, deserializeSessionDescription(&sessionDescription, (PCHAR) sdpStr.c_str()));
+    EXPECT_STREQ(sessionDescription.mediaDescriptions[0].sdpAttributes[0].attributeName, "mid");
+}
+
 auto populate_session_description = [](PSessionDescription pSessionDescription) {
     MEMSET(pSessionDescription, 0x00, SIZEOF(SessionDescription));
 
@@ -301,6 +330,7 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_NoRtxType)
     KvsRtpTransceiver transceiver;
     MEMSET(&transceiver, 0x00, SIZEOF(KvsRtpTransceiver));
     transceiver.sender.track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    transceiver.sender.track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
     transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     transceiver.sender.packetBuffer = NULL;
     transceiver.sender.retransmitter = NULL;
@@ -332,6 +362,7 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType)
     KvsRtpTransceiver transceiver;
     MEMSET(&transceiver, 0x00, SIZEOF(KvsRtpTransceiver));
     transceiver.sender.track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    transceiver.sender.track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
     transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     transceiver.sender.packetBuffer = NULL;
     transceiver.sender.retransmitter = NULL;
@@ -354,6 +385,40 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType)
     doubleListFree(pTransceivers);
 }
 
+// VP8 is affected by the same media-codec vs RTX-codec enum mismatch (RTC_CODEC_VP8 = 3, RTC_RTX_CODEC_VP8 = 2).
+// The rtxTable is keyed by RTC_RTX_CODEC_VP8; setTransceiverPayloadTypes() must map to it and resolve rtxPayloadType.
+TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType_VP8)
+{
+    PHashTable pCodecTable;
+    PHashTable pRtxTable;
+    PDoubleList pTransceivers;
+    KvsRtpTransceiver transceiver;
+    MEMSET(&transceiver, 0x00, SIZEOF(KvsRtpTransceiver));
+    transceiver.sender.track.codec = RTC_CODEC_VP8;
+    transceiver.sender.track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    transceiver.sender.packetBuffer = NULL;
+    transceiver.sender.retransmitter = NULL;
+    EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pCodecTable));
+    EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pCodecTable, RTC_CODEC_VP8, 1));
+    EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pRtxTable));
+    EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pRtxTable, RTC_RTX_CODEC_VP8, 2));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&pTransceivers));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(pTransceivers, (UINT64)(&transceiver)));
+    EXPECT_EQ(STATUS_SUCCESS, setTransceiverPayloadTypes(pCodecTable, pRtxTable, pTransceivers));
+    EXPECT_EQ(1, transceiver.sender.payloadType);
+    // rtxPayloadType must resolve to the distinct value (2), not stay equal to payloadType (which would mean plain resend).
+    EXPECT_EQ(2, transceiver.sender.rtxPayloadType);
+    EXPECT_NE((PRtpRollingBuffer) NULL, transceiver.sender.packetBuffer);
+    EXPECT_NE((PRetransmitter) NULL, transceiver.sender.retransmitter);
+    hashTableFree(pCodecTable);
+    hashTableFree(pRtxTable);
+    freeRollingBufferConfig(transceiver.pRollingBufferConfig);
+    freeRtpRollingBuffer(&transceiver.sender.packetBuffer);
+    freeRetransmitter(&transceiver.sender.retransmitter);
+    doubleListFree(pTransceivers);
+}
+
 TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType_H265)
 {
     PHashTable pCodecTable;
@@ -362,17 +427,24 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType_H265)
     KvsRtpTransceiver transceiver;
     MEMSET(&transceiver, 0x00, SIZEOF(KvsRtpTransceiver));
     transceiver.sender.track.codec = RTC_CODEC_H265;
+    transceiver.sender.track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
     transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     transceiver.sender.packetBuffer = NULL;
     transceiver.sender.retransmitter = NULL;
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pCodecTable));
     EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pCodecTable, RTC_CODEC_H265, 1));
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pRtxTable));
-    EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pRtxTable, RTC_CODEC_H265, 2));
+    // The rtxTable must be keyed by the RTX-codec enum (RTC_RTX_CODEC_H265), NOT the media-codec enum
+    // (RTC_CODEC_H265) — the two enums have different numbering (H265: 7 vs 3). This mirrors how the
+    // production code populates the table in setPayloadTypesFromOffer(). A prior version of this test
+    // seeded RTC_CODEC_H265 here, which masked a bug where setTransceiverPayloadTypes() looked the table
+    // up with the wrong key and silently fell back to plain resend for H265.
+    EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pRtxTable, RTC_RTX_CODEC_H265, 2));
     EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&pTransceivers));
     EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(pTransceivers, (UINT64)(&transceiver)));
     EXPECT_EQ(STATUS_SUCCESS, setTransceiverPayloadTypes(pCodecTable, pRtxTable, pTransceivers));
     EXPECT_EQ(1, transceiver.sender.payloadType);
+    // RTX must resolve to the distinct payload type (2), i.e. rtxPayloadType != payloadType.
     EXPECT_EQ(2, transceiver.sender.rtxPayloadType);
     EXPECT_NE((PRtpRollingBuffer) NULL, transceiver.sender.packetBuffer);
     EXPECT_NE((PRetransmitter) NULL, transceiver.sender.retransmitter);
@@ -4358,6 +4430,80 @@ a=ssrc:9876543210 cname:testCname
 
         // Should NOT contain the default PT 127 for H265
         EXPECT_EQ(std::string::npos, answer.find("a=rtpmap:127 H265/90000"));
+
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    });
+}
+
+// End-to-end regression guard for the RTX-table key mismatch (media-codec RTC_CODEC_* vs RTX-codec
+// RTC_RTX_CODEC_*). This drives the full negotiation (setPayloadTypesFromOffer populates the tables,
+// setTransceiverPayloadTypes consumes them) and asserts the SENDER's runtime rtxPayloadType actually
+// resolved to the negotiated RTX PT — i.e. rtxPayloadType != payloadType. If they were equal,
+// resendPacketOnNack() would take the non-compliant plain-resend branch instead of sending RTX.
+// Pre-fix this failed for H265 (looked up RTC_CODEC_H265=7 in a table keyed by RTC_RTX_CODEC_H265=3).
+TEST_F(SdpApiTest, setTransceiverPayloadTypes_H265RtxResolvedEndToEnd)
+{
+    auto offer = std::string(R"(v=0
+o=- 481034601 1588366671 IN IP4 0.0.0.0
+s=-
+t=0 0
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+a=group:BUNDLE 0
+m=video 9 UDP/TLS/RTP/SAVPF 51 52
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 37:C4:5C:9C:C9:DA:56:22:47:1F:8C:93:E1:A1:51:A8:15:94:78:1D:89:26:69:44:65:6C:C3:83:96:10:32:43
+a=setup:actpass
+a=mid:0
+a=sendrecv
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:51 H265/90000
+a=fmtp:51 level-id=180;profile-id=2;tier-flag=0
+a=rtcp-fb:51 nack
+a=rtcp-fb:51 nack pli
+a=rtpmap:52 rtx/90000
+a=fmtp:52 apt=51
+a=ssrc-group:FID 1234567890 9876543210
+a=ssrc:1234567890 cname:testCname
+a=ssrc:9876543210 cname:testCname
+)");
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcMediaStreamTrack track{};
+        PRtcRtpTransceiver transceiver = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+        RtcSessionDescriptionInit answerSdp{};
+
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+
+        track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        track.codec = RTC_CODEC_H265;
+        STRNCPY(track.streamId, "myVideoStream", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track.trackId, "myVideoTrack", MAX_MEDIA_STREAM_TRACK_ID_LEN);
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H265));
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track, nullptr, &transceiver));
+
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+        // The negotiated sender payload types drive resendPacketOnNack(); reach into the transceiver and
+        // confirm RTX actually resolved to a distinct PT (52 from the offer), not a fallback to the media PT.
+        PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) transceiver;
+        EXPECT_EQ(51, pKvsRtpTransceiver->sender.payloadType);
+        EXPECT_EQ(52, pKvsRtpTransceiver->sender.rtxPayloadType);
+        EXPECT_NE(pKvsRtpTransceiver->sender.payloadType, pKvsRtpTransceiver->sender.rtxPayloadType);
 
         closePeerConnection(pRtcPeerConnection);
         EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));

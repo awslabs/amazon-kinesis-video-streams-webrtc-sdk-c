@@ -1,6 +1,87 @@
 #define LOG_CLASS "SCTP"
 #include "../Include_i.h"
 
+PSctpContext acquireSctpContext()
+{
+    ENTERS();
+    static SctpContext s = {.lastTickTime = 0, .isSctpInitialized = FALSE, .contextRefCnt = 0, .sctpContextLock = INVALID_MUTEX_VALUE};
+    ATOMIC_INCREMENT(&s.contextRefCnt);
+    LEAVES();
+    return &s;
+}
+
+VOID releaseSctpContext(PSctpContext pSctpContext)
+{
+    ENTERS();
+    ATOMIC_DECREMENT(&pSctpContext->contextRefCnt);
+    LEAVES();
+}
+
+// Initializes SCTP context, in particular the lastTickTime used for timer handling
+STATUS createSctpContext()
+{
+    ENTERS();
+    PSctpContext pSctpContext = acquireSctpContext();
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
+
+    CHK_WARN(!ATOMIC_LOAD_BOOL(&pSctpContext->isSctpInitialized), retStatus, "SCTP context already initialized, nothing to do");
+    CHK_ERR(!IS_VALID_MUTEX_VALUE(pSctpContext->sctpContextLock), retStatus, "Mutex seems to have been created already");
+
+    pSctpContext->sctpContextLock = MUTEX_CREATE(TRUE);
+    CHK_ERR(IS_VALID_MUTEX_VALUE(pSctpContext->sctpContextLock), STATUS_NULL_ARG, "Mutex creation failed");
+    MUTEX_LOCK(pSctpContext->sctpContextLock);
+    locked = TRUE;
+    pSctpContext->lastTickTime = GETTIME();
+    ATOMIC_STORE_BOOL(&pSctpContext->isSctpInitialized, TRUE);
+    DLOGI("Initialized SCTP context instance");
+
+CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pSctpContext->sctpContextLock);
+    }
+    releaseSctpContext(pSctpContext);
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS cleanupSctpContext()
+{
+    ENTERS();
+    UINT64 shutdownTimeout;
+    STATUS retStatus = STATUS_SUCCESS;
+
+    PSctpContext pSctpContext = acquireSctpContext();
+
+    DLOGD("Releasing SCTP context instance from cleanupSctpContext");
+    releaseSctpContext(pSctpContext);
+
+    CHK_WARN(ATOMIC_LOAD_BOOL(&pSctpContext->isSctpInitialized), STATUS_INVALID_OPERATION, "SCTP context not initialized, nothing to clean up");
+
+    ATOMIC_STORE_BOOL(&pSctpContext->isSctpInitialized, FALSE);
+
+    shutdownTimeout = GETTIME() + SCTP_CONTEXT_REFERENCE_WAIT_TIMEOUT;
+    while (ATOMIC_LOAD(&pSctpContext->contextRefCnt) > 0 && GETTIME() < shutdownTimeout) {
+        DLOGV("Waiting on all references to be returned...%d", pSctpContext->contextRefCnt);
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+
+    if (IS_VALID_MUTEX_VALUE(pSctpContext->sctpContextLock)) {
+        MUTEX_FREE(pSctpContext->sctpContextLock);
+        pSctpContext->sctpContextLock = INVALID_MUTEX_VALUE;
+    }
+
+    DLOGI("Destroyed SCTP context");
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
+}
+
 STATUS initSctpAddrConn(PSctpSession pSctpSession, struct sockaddr_conn* sconn)
 {
     ENTERS();
@@ -50,6 +131,11 @@ STATUS configureSctpSocket(struct socket* socket)
     initmsg.sinit_max_instreams = 300;
     CHK(usrsctp_setsockopt(socket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, SIZEOF(struct sctp_initmsg)) == 0, STATUS_SCTP_SESSION_SETUP_FAILED);
 
+    struct sctp_rtoinfo rtoinfo;
+    MEMSET(&rtoinfo, 0, SIZEOF(struct sctp_rtoinfo));
+    rtoinfo.srto_max = SCTP_RTO_MAX;
+    CHK(usrsctp_setsockopt(socket, IPPROTO_SCTP, SCTP_RTOINFO, &rtoinfo, SIZEOF(rtoinfo)) == 0, STATUS_SCTP_SESSION_SETUP_FAILED);
+
 CleanUp:
     LEAVES();
     return retStatus;
@@ -57,6 +143,7 @@ CleanUp:
 
 STATUS initSctpSession()
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
     usrsctp_init_nothreads(0, &onSctpOutboundPacket, NULL);
@@ -64,6 +151,12 @@ STATUS initSctpSession()
     // Disable Explicit Congestion Notification
     usrsctp_sysctl_set_sctp_ecn_enable(0);
 
+    CHK_STATUS(createSctpContext());
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
     return retStatus;
 }
 
@@ -73,15 +166,18 @@ VOID deinitSctpSession()
     while (usrsctp_finish() != 0) {
         THREAD_SLEEP(DEFAULT_USRSCTP_TEARDOWN_POLLING_INTERVAL);
     }
+
+    cleanupSctpContext();
 }
 
-STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, PSctpSession* ppSctpSession)
+STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, PSctpSession* ppSctpSession)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSctpSession pSctpSession = NULL;
     struct sockaddr_conn localConn, remoteConn;
     struct sctp_paddrparams params;
+    struct sctp_assocparams assocParams;
     INT32 connectStatus = 0;
 
     CHK(ppSctpSession != NULL && pSctpSessionCallbacks != NULL, STATUS_NULL_ARG);
@@ -92,12 +188,17 @@ STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, PSctpSessi
     MEMSET(&params, 0x00, SIZEOF(struct sctp_paddrparams));
     MEMSET(&localConn, 0x00, SIZEOF(struct sockaddr_conn));
     MEMSET(&remoteConn, 0x00, SIZEOF(struct sockaddr_conn));
+    MEMSET(&assocParams, 0x00, SIZEOF(struct sctp_assocparams));
 
     ATOMIC_STORE(&pSctpSession->shutdownStatus, SCTP_SESSION_ACTIVE);
     pSctpSession->sctpSessionCallbacks = *pSctpSessionCallbacks;
 
     CHK_STATUS(initSctpAddrConn(pSctpSession, &localConn));
     CHK_STATUS(initSctpAddrConn(pSctpSession, &remoteConn));
+
+    // call the timer callback now to reset the last tick time for this session while ensuring that other sessions'
+    // queued timer tasks are correctly advanced
+    sctpTimerCallback(0, GETTIME(), (UINT64) pSctpSession);
 
     CHK((pSctpSession->socket = usrsctp_socket(AF_CONN, SOCK_STREAM, IPPROTO_SCTP, onSctpInboundPacket, NULL, 0, pSctpSession)) != NULL,
         STATUS_SCTP_SESSION_SETUP_FAILED);
@@ -112,8 +213,17 @@ STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, PSctpSessi
     memcpy(&params.spp_address, &remoteConn, SIZEOF(remoteConn));
     params.spp_flags = SPP_PMTUD_DISABLE;
     params.spp_pathmtu = SCTP_MTU;
+    params.spp_pathmaxrxt = SCTP_MAX_PATH_RETRANSMITS;
     CHK(usrsctp_setsockopt(pSctpSession->socket, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, &params, SIZEOF(params)) == 0,
         STATUS_SCTP_SESSION_SETUP_FAILED);
+
+    assocParams.sasoc_asocmaxrxt = SCTP_MAX_ASSOCIATION_RETRANSMITS;
+    CHK(usrsctp_setsockopt(pSctpSession->socket, IPPROTO_SCTP, SCTP_ASSOCINFO, &assocParams, SIZEOF(assocParams)) == 0,
+        STATUS_SCTP_SESSION_SETUP_FAILED);
+
+    pSctpSession->timerQueueHandle = timerQueueHandle;
+    CHK_STATUS(timerQueueAddTimer(pSctpSession->timerQueueHandle, SCTP_TIMER_START_DELAY, SCTP_TIMER_INTERVAL, sctpTimerCallback,
+                                  (UINT64) pSctpSession, &pSctpSession->timerTaskId));
 
 CleanUp:
     if (STATUS_FAILED(retStatus)) {
@@ -138,6 +248,11 @@ STATUS freeSctpSession(PSctpSession* ppSctpSession)
     pSctpSession = *ppSctpSession;
 
     CHK(pSctpSession != NULL, retStatus);
+
+    // Cancel the periodic timer before shutting down the socket
+    if (IS_VALID_TIMER_QUEUE_HANDLE(pSctpSession->timerQueueHandle)) {
+        timerQueueCancelTimer(pSctpSession->timerQueueHandle, pSctpSession->timerTaskId, (UINT64) pSctpSession);
+    }
 
     usrsctp_deregister_address(pSctpSession);
     /* handle issue mentioned here: https://github.com/sctplab/usrsctp/issues/147
@@ -297,6 +412,35 @@ STATUS putSctpPacket(PSctpSession pSctpSession, PBYTE buf, UINT32 bufLen)
     usrsctp_conninput(pSctpSession, buf, bufLen, 0);
 
     LEAVES();
+    return retStatus;
+}
+
+STATUS sctpTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 customData)
+{
+    UNUSED_PARAM(timerID);
+    STATUS retStatus = STATUS_SUCCESS;
+    PSctpSession pSctpSession = (PSctpSession) customData;
+    UINT64 elapsedMs;
+    BOOL locked = FALSE;
+    PSctpContext pSctpContext = acquireSctpContext();
+    CHK_WARN(ATOMIC_LOAD_BOOL(&pSctpContext->isSctpInitialized), STATUS_NULL_ARG, "SCTP context not initialized, cannot run timer callback");
+
+    CHK(pSctpSession != NULL, STATUS_NULL_ARG);
+    CHK(ATOMIC_LOAD(&pSctpSession->shutdownStatus) == SCTP_SESSION_ACTIVE, retStatus);
+    MUTEX_LOCK(pSctpContext->sctpContextLock);
+    locked = TRUE;
+
+    elapsedMs = (currentTime - pSctpContext->lastTickTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    pSctpContext->lastTickTime = currentTime;
+    usrsctp_handle_timers((UINT32) elapsedMs);
+
+CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pSctpContext->sctpContextLock);
+    }
+    releaseSctpContext(pSctpContext);
+    CHK_LOG_ERR(retStatus);
+
     return retStatus;
 }
 
