@@ -89,7 +89,10 @@ typedef struct {
 
     PIceAgent pIceAgent;
     PDtlsSession pDtlsSession;
-    BOOL dtlsIsServer;
+    // Atomic: written by setRemoteDescription (signaling thread) and read when the DTLS
+    // handshake starts (ICE timer / threadpool thread). A re-negotiation setRemoteDescription
+    // can overlap those reads, so plain BOOL access would race.
+    volatile ATOMIC_BOOL dtlsIsServer;
 
     MUTEX pSrtpSessionLock;
     PSrtpSession pSrtpSession;

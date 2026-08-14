@@ -52,6 +52,8 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
     STATUS tmpStatus = STATUS_SUCCESS;
     PRtpPacket pRtpPacket = NULL, pRtxRtpPacket = NULL;
     PRetransmitter pRetransmitter = NULL;
+    SIZE_T packedPayloadTypes;
+    UINT8 payloadType, rtxPayloadType;
     // stats
     UINT32 retransmittedPacketsSent = 0, retransmittedBytesSent = 0, nackCount = 0;
 
@@ -72,6 +74,12 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
     CHK_ERR(pRetransmitter != NULL, STATUS_INVALID_OPERATION,
             "Sender re-transmitter is not created successfully for an existing ssrcs: senderSsrc %lu receiverSsrc %lu", senderSsrc, receiverSsrc);
 
+    // Re-negotiation (signaling thread) rewrites the sender payload types while this runs on
+    // the RTCP thread; take one consistent snapshot (see Rtp.h).
+    packedPayloadTypes = ATOMIC_LOAD(&pSenderTranceiver->atomicSenderPayloadTypes);
+    payloadType = KVS_RTP_TRANSCEIVER_UNPACK_PAYLOAD_TYPE(packedPayloadTypes);
+    rtxPayloadType = KVS_RTP_TRANSCEIVER_UNPACK_RTX_PAYLOAD_TYPE(packedPayloadTypes);
+
     filledLen = pRetransmitter->seqNumListLen;
     CHK_STATUS(rtcpNackListGet(pRtcpPacket->payload, pRtcpPacket->payloadLength, &senderSsrc, &receiverSsrc, pRetransmitter->sequenceNumberList,
                                &filledLen));
@@ -84,16 +92,16 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
         CHK(retStatus == STATUS_SUCCESS, retStatus);
 
         if (pRtpPacket != NULL) {
-            if (pSenderTranceiver->sender.payloadType == pSenderTranceiver->sender.rtxPayloadType) {
+            if (payloadType == rtxPayloadType) {
                 // RTX was not negotiated for this codec: fall back to resending the original packet as-is on the
                 // original SSRC/PT (not RFC 4588 RTX). See setTransceiverPayloadTypes() for the negotiation-time log.
                 DLOGS("Retransmit fallback (no RTX) for ssrc %lu seq %lu pt %u", pRtpPacket->header.ssrc, pRtpPacket->header.sequenceNumber,
-                      pSenderTranceiver->sender.payloadType);
+                      payloadType);
                 retStatus = iceAgentSendPacket(pKvsPeerConnection->pIceAgent, pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength);
             } else {
-                CHK_STATUS(constructRetransmitRtpPacketFromBytes(
-                    pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength, pSenderTranceiver->sender.rtxSequenceNumber,
-                    pSenderTranceiver->sender.rtxPayloadType, pSenderTranceiver->sender.rtxSsrc, &pRtxRtpPacket));
+                CHK_STATUS(constructRetransmitRtpPacketFromBytes(pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength,
+                                                                 pSenderTranceiver->sender.rtxSequenceNumber, rtxPayloadType,
+                                                                 pSenderTranceiver->sender.rtxSsrc, &pRtxRtpPacket));
                 pSenderTranceiver->sender.rtxSequenceNumber++;
                 retStatus = writeRtpPacket(pKvsPeerConnection, pRtxRtpPacket);
             }

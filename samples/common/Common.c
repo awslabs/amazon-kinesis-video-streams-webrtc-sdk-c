@@ -348,7 +348,7 @@ STATUS respondWithAnswer(PSampleStreamingSession pSampleStreamingSession)
     message.payloadLen = (UINT32) STRLEN(message.payload);
     // SNPRINTF appends null terminator, so we do not manually add it
     SNPRINTF(message.correlationId, MAX_CORRELATION_ID_LEN, "%" PRIu64 "_%" PRIu64, GETTIME(),
-             ATOMIC_INCREMENT(&pSampleStreamingSession->correlationIdPostFix));
+             (UINT64) ATOMIC_INCREMENT(&pSampleStreamingSession->correlationIdPostFix));
     DLOGD("Responding With Answer With correlationId: %s", message.correlationId);
     CHK_STATUS(sendSignalingMessage(pSampleStreamingSession, &message));
 
@@ -594,10 +594,6 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     if (pSampleConfiguration->enableTwcc) {
         pSampleStreamingSession->twccMetadata.updateLock = MUTEX_CREATE(TRUE);
     }
-
-    // Flag to enable/disable SDK calculations of selected ice server, local, remote and candidate pair stats.
-    // Note: enableIceStats only has an effect if compiler flag ENABLE_STATS_CALCULATION_CONTROL is defined.
-    pSampleConfiguration->enableIceStats = FALSE;
 
     CHK_STATUS(initializePeerConnection(pSampleConfiguration, &pSampleStreamingSession->pPeerConnection));
     CHK_STATUS(peerConnectionOnIceCandidate(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession, onIceCandidateHandler));
@@ -1714,8 +1710,10 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
-    BOOL peerConnectionFound = FALSE, locked = FALSE, startStats = FALSE, freeStreamingSession = FALSE;
+    BOOL peerConnectionFound = FALSE, locked = FALSE, startStats = FALSE, freeStreamingSession = FALSE, sessionUnlinked = FALSE;
+    BOOL enableIceStats = FALSE;
     UINT32 clientIdHash;
+    UINT32 idx = 0;
     UINT64 hashValue = 0;
     PPendingMessageQueue pPendingMessageQueue = NULL;
     PSampleStreamingSession pSampleStreamingSession = NULL;
@@ -1736,9 +1734,58 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 
     switch (pReceivedSignalingMessage->signalingMessage.messageType) {
         case SIGNALING_MESSAGE_TYPE_OFFER:
-            // Check if we already have an ongoing master session with the same peer
-            CHK_ERR(!peerConnectionFound, STATUS_INVALID_OPERATION, "Peer connection %s is in progress",
-                    pReceivedSignalingMessage->signalingMessage.peerClientId);
+            if (peerConnectionFound) {
+                /*
+                 * Re-offer / re-negotiation handling: a second offer arrived from the same client_id.
+                 * Decide between true re-negotiation (reuse existing PeerConnection) and session
+                 * replacement (tear down old, create new) based on the session's terminate flag.
+                 *
+                 * Note: WebRTC ingestion (media-storage) mode does not support re-negotiation today —
+                 * a second offer there is the JoinStorageSession retry-with-new-ICE path, which expects
+                 * a fresh PeerConnection. Gate re-negotiation on p2p mode (!useMediaStorage) and let the
+                 * ingestion case fall through to session replacement below.
+                 */
+                if (!ATOMIC_LOAD_BOOL(&pSampleStreamingSession->terminateFlag) && !pSampleConfiguration->channelInfo.useMediaStorage) {
+                    /* True re-negotiation: connection is still active. Re-use existing PeerConnection
+                     * and process the new offer on it. DTLS/SRTP stay alive, ICE restarts only if
+                     * the remote ICE credentials changed. */
+                    DLOGI("Re-negotiation: processing re-offer from peer %s on existing connection",
+                          pReceivedSignalingMessage->signalingMessage.peerClientId);
+                    CHK_STATUS(handleOffer(pSampleConfiguration, pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
+                    startStats = pSampleConfiguration->iceCandidatePairStatsTimerId == MAX_UINT32;
+                    break;
+                }
+
+                /* Session replacement: the old connection is terminated (DISCONNECTED/FAILED/CLOSED).
+                 * Clean up the old session and fall through to create a new one. */
+                DLOGI("Session replacement: replacing terminated session for peer %s", pReceivedSignalingMessage->signalingMessage.peerClientId);
+
+                // Unlink from both the list and the hash table before freeing, as sessionCleanupWait() does.
+                MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
+                sessionUnlinked = FALSE;
+                for (idx = 0; idx < pSampleConfiguration->streamingSessionCount; ++idx) {
+                    if (pSampleConfiguration->sampleStreamingSessionList[idx] == pSampleStreamingSession) {
+                        pSampleConfiguration->streamingSessionCount--;
+                        pSampleConfiguration->sampleStreamingSessionList[idx] =
+                            pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount];
+                        sessionUnlinked = TRUE;
+                        break;
+                    }
+                }
+                // Not CHK_STATUS: the session is unlinked above, so bailing out here would leak it.
+                CHK_LOG_ERR(hashTableRemove(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash));
+                MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
+
+                // Unreachable today: both are only written under sampleConfigurationObjLock, held here.
+                if (!sessionUnlinked) {
+                    DLOGW("Session replacement: session for peer %s was not in the streaming session list",
+                          pReceivedSignalingMessage->signalingMessage.peerClientId);
+                }
+
+                CHK_LOG_ERR(freeSampleStreamingSession(&pSampleStreamingSession));
+                pSampleStreamingSession = NULL;
+                // Fall through to create a new session below
+            }
 
             /*
              * Create new streaming session for each offer, then insert the client id and streaming session into
@@ -1841,10 +1888,13 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
             break;
     }
 
+    // Snapshot under the lock: handlers for two offers run on separate threads.
+    enableIceStats = pSampleConfiguration->enableIceStats;
+
     MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
     locked = FALSE;
 
-    if (pSampleConfiguration->enableIceStats && startStats &&
+    if (enableIceStats && startStats &&
         STATUS_FAILED(retStatus = timerQueueAddTimer(pSampleConfiguration->timerQueueHandle, SAMPLE_STATS_DURATION, SAMPLE_STATS_DURATION,
                                                      getIceCandidatePairStatsCallback, (UINT64) pSampleConfiguration,
                                                      &pSampleConfiguration->iceCandidatePairStatsTimerId))) {
@@ -2116,7 +2166,7 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
                         STRNCPY(dataChannelMessage.firstMessageFromMasterTs, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
                     } else {
                         // if this timestamp was not assigned during the previous message session, add it now
-                        SNPRINTF(dataChannelMessage.firstMessageFromMasterTs, 20, "%llu", GETTIME() / 10000);
+                        SNPRINTF(dataChannelMessage.firstMessageFromMasterTs, 20, "%" PRIu64, (UINT64) (GETTIME() / 10000));
                         break;
                     }
                 } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "secondMessageFromViewerTs")) {
@@ -2132,7 +2182,7 @@ VOID onDataChannelMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL 
                         STRNCPY(dataChannelMessage.secondMessageFromMasterTs, json + tokens[i + 1].start, tokens[i + 1].end - tokens[i + 1].start);
                     } else {
                         // if this timestamp was not assigned during the previous message session, add it now
-                        SNPRINTF(dataChannelMessage.secondMessageFromMasterTs, 20, "%llu", GETTIME() / 10000);
+                        SNPRINTF(dataChannelMessage.secondMessageFromMasterTs, 20, "%" PRIu64, (UINT64) (GETTIME() / 10000));
                         break;
                     }
                 } else if (compareJsonString(json, &tokens[i], JSMN_STRING, (PCHAR) "lastMessageFromViewerTs")) {

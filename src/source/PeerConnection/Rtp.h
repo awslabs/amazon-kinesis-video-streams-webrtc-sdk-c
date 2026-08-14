@@ -87,7 +87,34 @@ typedef struct {
 
     // Caller-supplied fmtp override (H264 only). Empty string means "use the default".
     CHAR fmtpOverride[MAX_SDP_ATTRIBUTE_VALUE_LENGTH + 1];
+
+    // The direction the application configured at addTransceiver() time. Re-negotiation
+    // intersects the remote offer against THIS, not against the previously-negotiated
+    // transceiver.direction — otherwise a narrowed direction (e.g. the peer paused our
+    // track with a sendonly offer) could never widen again when the peer re-enables it.
+    RTC_RTP_TRANSCEIVER_DIRECTION configuredDirection;
+
+    // Lock-free snapshot of transceiver.direction for the media path. writeFrame() runs on
+    // the application's media thread while re-negotiation (signaling thread) or the
+    // application itself rewrites transceiver.direction, so the media path must not read
+    // the plain field. Updated wherever the SDK writes transceiver.direction, and re-synced
+    // from the field in createOffer/createAnswer to publish direct application writes.
+    volatile SIZE_T atomicDirection;
+
+    // Lock-free snapshot of (sender.payloadType << 8) | sender.rtxPayloadType, packed so
+    // readers get a consistent pair. Same rationale as atomicDirection: re-negotiation
+    // (setTransceiverPayloadTypes, signaling thread) rewrites the payload types while
+    // writeFrame (media thread) and the retransmitter (RTCP thread) read them.
+    volatile SIZE_T atomicSenderPayloadTypes;
+
+    // Codec the sender's rolling buffer capacity was sized for. Re-negotiation reuses the
+    // buffer rather than re-allocating it, so this is how a codec change is detected.
+    RTC_CODEC rollingBufferCodec;
 } KvsRtpTransceiver, *PKvsRtpTransceiver;
+
+#define KVS_RTP_TRANSCEIVER_PACK_PAYLOAD_TYPES(payloadType, rtxPayloadType) ((SIZE_T) ((((UINT32) (payloadType)) << 8) | (UINT32) (rtxPayloadType)))
+#define KVS_RTP_TRANSCEIVER_UNPACK_PAYLOAD_TYPE(packed)                     ((UINT8) ((packed) >> 8))
+#define KVS_RTP_TRANSCEIVER_UNPACK_RTX_PAYLOAD_TYPE(packed)                 ((UINT8) ((packed) & 0xFF))
 
 STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION, PKvsPeerConnection, UINT32, UINT32, PRtcMediaStreamTrack, PJitterBuffer, RTC_CODEC,
                                PKvsRtpTransceiver*);

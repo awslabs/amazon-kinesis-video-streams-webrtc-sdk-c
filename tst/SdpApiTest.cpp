@@ -2,6 +2,7 @@
 #include <sstream>
 #include <tuple>
 #include <regex>
+#include <vector>
 
 #include "WebRTCClientTestFixture.h"
 
@@ -4713,6 +4714,239 @@ a=ssrc:9876543210 cname:testCname
         closePeerConnection(pRtcPeerConnection);
         EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
     });
+}
+
+// ---------------------------------------------------------------------------
+// Renegotiation answer-shape tests.
+//
+// These encode two failures seen live against browser (Chrome) offerers,
+// which C-SDK-to-C-SDK tests can never produce (the SDK's own serializer
+// always emits media m-lines before the datachannel, and both sides share
+// the same list-order convention):
+//  1. A re-offer carrying a NEW media m-line AFTER the datachannel m-line
+//     (Chrome appends when addTrack() follows datachannel creation). The
+//     answer must mirror the offer's m-line count and order exactly, or a
+//     strict RFC 3264 peer rejects it with "the order of m-lines in answer
+//     doesn't match order in offer".
+//  2. Repeated direction-flip re-offers must keep the answer shape stable
+//     (m-line count and mid order) round after round: the original
+//     pAnswerTransceivers accumulation bug duplicated every m-line per
+//     exchange.
+// ---------------------------------------------------------------------------
+
+// Parses an SDP blob and appends one "<kind>:<mid>:<direction>" entry per
+// m-line, e.g. "audio:0:sendonly". Missing mid/direction become "?".
+static void getMLineShape(PCHAR pSdp, std::vector<std::string>& shape)
+{
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescription(&sessionDescription, pSdp));
+    for (UINT32 i = 0; i < sessionDescription.mediaCount; i++) {
+        std::string kind(sessionDescription.mediaDescriptions[i].mediaName);
+        kind = kind.substr(0, kind.find(' '));
+        std::string mid = "?", direction = "?";
+        for (UINT32 j = 0; j < sessionDescription.mediaDescriptions[i].mediaAttributesCount; j++) {
+            std::string name(sessionDescription.mediaDescriptions[i].sdpAttributes[j].attributeName);
+            if (name == "mid") {
+                mid = sessionDescription.mediaDescriptions[i].sdpAttributes[j].attributeValue;
+            } else if (name == "sendrecv" || name == "sendonly" || name == "recvonly" || name == "inactive") {
+                direction = name;
+            }
+        }
+        shape.push_back(kind + ":" + mid + ":" + direction);
+    }
+}
+
+static const char* REOFFER_TEST_SESSION_HEADER = R"(v=0
+o=- 8330580876802930272 %u IN IP4 127.0.0.1
+s=-
+t=0 0
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+a=group:BUNDLE %s
+a=msid-semantic: WMS myStream
+)";
+
+static std::string reofferMLineAudio(const char* direction)
+{
+    return std::string(R"(m=audio 9 UDP/TLS/RTP/SAVPF 111
+c=IN IP4 127.0.0.1
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:V/Tk
+a=ice-pwd:Kz4OIcMjZ4mEiMC0mKItiVUI
+a=ice-options:trickle
+a=setup:actpass
+a=mid:0
+a=)") + direction +
+        R"(
+a=rtcp-mux
+a=rtpmap:111 opus/48000/2
+a=fmtp:111 minptime=10;useinbandfec=1
+)";
+}
+
+static std::string reofferMLineVideo(const char* mid, const char* direction, const char* msid)
+{
+    std::string s = std::string(R"(m=video 9 UDP/TLS/RTP/SAVPF 109
+c=IN IP4 127.0.0.1
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:V/Tk
+a=ice-pwd:Kz4OIcMjZ4mEiMC0mKItiVUI
+a=ice-options:trickle
+a=setup:actpass
+a=mid:)") +
+        mid + "\n";
+    if (msid != NULL) {
+        s += std::string("a=msid:myStream ") + msid + "\n";
+    }
+    s += std::string("a=") + direction + R"(
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:109 H264/90000
+a=fmtp:109 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f
+)";
+    return s;
+}
+
+static const char* REOFFER_MLINE_DATA = R"(m=application 9 UDP/DTLS/SCTP webrtc-datachannel
+c=IN IP4 127.0.0.1
+a=ice-ufrag:V/Tk
+a=ice-pwd:Kz4OIcMjZ4mEiMC0mKItiVUI
+a=ice-options:trickle
+a=setup:actpass
+a=mid:2
+a=sctp-port:5000
+)";
+
+TEST_F(SdpApiTest, reOfferWithMediaAfterDataChannelAnswerMirrorsMLineOrder)
+{
+    RtcConfiguration configuration{};
+    PRtcPeerConnection pRtcPeerConnection = nullptr;
+    RtcMediaStreamTrack audioTrack{}, videoTrack{};
+    PRtcRtpTransceiver audioTransceiver = nullptr, videoTransceiver = nullptr;
+    RtcSessionDescriptionInit offerSdp{};
+    RtcSessionDescriptionInit answerSdp{};
+    CHAR sessionHeader[512];
+
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+
+    audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+    audioTrack.codec = RTC_CODEC_OPUS;
+    STRNCPY(audioTrack.streamId, "myStream", MAX_MEDIA_STREAM_ID_LEN);
+    STRNCPY(audioTrack.trackId, "audioTrack", MAX_MEDIA_STREAM_TRACK_ID_LEN);
+    videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    STRNCPY(videoTrack.streamId, "myStream", MAX_MEDIA_STREAM_ID_LEN);
+    STRNCPY(videoTrack.trackId, "videoTrack", MAX_MEDIA_STREAM_TRACK_ID_LEN);
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_OPUS));
+    EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &audioTrack, nullptr, &audioTransceiver));
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &videoTrack, nullptr, &videoTransceiver));
+
+    // Initial browser-shaped offer: audio(0), video(1), application(2)
+    SNPRINTF(sessionHeader, SIZEOF(sessionHeader), REOFFER_TEST_SESSION_HEADER, 2, "0 1 2");
+    std::string offer = std::string(sessionHeader) + reofferMLineAudio("sendrecv") + reofferMLineVideo("1", "recvonly", NULL) + REOFFER_MLINE_DATA;
+    offerSdp.type = SDP_TYPE_OFFER;
+    STRNCPY(offerSdp.sdp, offer.c_str(), MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+    EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+    std::vector<std::string> offerShape, answerShape;
+    getMLineShape(offerSdp.sdp, offerShape);
+    getMLineShape(answerSdp.sdp, answerShape);
+    ASSERT_EQ(offerShape.size(), answerShape.size()) << "answer must mirror the offer's m-line count";
+
+    // Re-offer: Chrome appends a NEW video m-line AFTER the datachannel
+    // (addTrack on a connection that already has a datachannel).
+    SNPRINTF(sessionHeader, SIZEOF(sessionHeader), REOFFER_TEST_SESSION_HEADER, 3, "0 1 2 3");
+    std::string reoffer = std::string(sessionHeader) + reofferMLineAudio("sendrecv") + reofferMLineVideo("1", "recvonly", NULL) + REOFFER_MLINE_DATA +
+        reofferMLineVideo("3", "sendonly", "browserCamTrack");
+    MEMSET(&offerSdp, 0x00, SIZEOF(offerSdp));
+    offerSdp.type = SDP_TYPE_OFFER;
+    STRNCPY(offerSdp.sdp, reoffer.c_str(), MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+    MEMSET(&answerSdp, 0x00, SIZEOF(answerSdp));
+    EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+    offerShape.clear();
+    answerShape.clear();
+    getMLineShape(offerSdp.sdp, offerShape);
+    getMLineShape(answerSdp.sdp, answerShape);
+
+    ASSERT_EQ(offerShape.size(), answerShape.size()) << "answer must mirror the re-offer's m-line count";
+    for (size_t i = 0; i < offerShape.size(); i++) {
+        std::string offerKind = offerShape[i].substr(0, offerShape[i].find(':'));
+        std::string offerMid = offerShape[i].substr(offerShape[i].find(':') + 1);
+        offerMid = offerMid.substr(0, offerMid.find(':'));
+        std::string answerKind = answerShape[i].substr(0, answerShape[i].find(':'));
+        std::string answerMid = answerShape[i].substr(answerShape[i].find(':') + 1);
+        answerMid = answerMid.substr(0, answerMid.find(':'));
+        EXPECT_EQ(offerKind, answerKind) << "m-line " << i << " kind must match offer order (offer=" << offerShape[i] << " answer=" << answerShape[i]
+                                         << ")";
+        EXPECT_EQ(offerMid, answerMid) << "m-line " << i << " mid must match offer order (offer=" << offerShape[i] << " answer=" << answerShape[i]
+                                       << ")";
+        if (answerKind != "application") {
+            EXPECT_NE("?", answerShape[i].substr(answerShape[i].rfind(':') + 1)) << "media m-line " << i << " must carry a direction attribute";
+        }
+    }
+
+    closePeerConnection(pRtcPeerConnection);
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
+TEST_F(SdpApiTest, answerShapeStableAcrossRepeatedDirectionFlipReOffers)
+{
+    RtcConfiguration configuration{};
+    PRtcPeerConnection pRtcPeerConnection = nullptr;
+    RtcMediaStreamTrack audioTrack{}, videoTrack{};
+    PRtcRtpTransceiver audioTransceiver = nullptr, videoTransceiver = nullptr;
+    CHAR sessionHeader[512];
+
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+
+    audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+    audioTrack.codec = RTC_CODEC_OPUS;
+    STRNCPY(audioTrack.streamId, "myStream", MAX_MEDIA_STREAM_ID_LEN);
+    STRNCPY(audioTrack.trackId, "audioTrack", MAX_MEDIA_STREAM_TRACK_ID_LEN);
+    videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    STRNCPY(videoTrack.streamId, "myStream", MAX_MEDIA_STREAM_ID_LEN);
+    STRNCPY(videoTrack.trackId, "videoTrack", MAX_MEDIA_STREAM_TRACK_ID_LEN);
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_OPUS));
+    EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &audioTrack, nullptr, &audioTransceiver));
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &videoTrack, nullptr, &videoTransceiver));
+
+    // Alternate pause (inactive) / resume (recvonly) of audio across re-offers,
+    // as a browser viewer's pause/resume buttons produce. Every answer must
+    // keep exactly the offered m-line set — no accumulation, no reordering —
+    // and mirror the flipped direction.
+    for (int round = 0; round < 6; round++) {
+        BOOL paused = (round % 2 == 1);
+        RtcSessionDescriptionInit offerSdp{};
+        RtcSessionDescriptionInit answerSdp{};
+        SNPRINTF(sessionHeader, SIZEOF(sessionHeader), REOFFER_TEST_SESSION_HEADER, 2 + round, "0 1");
+        std::string offer =
+            std::string(sessionHeader) + reofferMLineAudio(paused ? "inactive" : "recvonly") + reofferMLineVideo("1", "recvonly", NULL);
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, offer.c_str(), MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+        std::vector<std::string> answerShape;
+        getMLineShape(answerSdp.sdp, answerShape);
+        ASSERT_EQ(2u, answerShape.size()) << "round " << round << ": answer must have exactly the 2 offered m-lines";
+        EXPECT_EQ(0u, answerShape[0].find("audio:0:")) << "round " << round << ": first m-line must stay audio mid 0 (got " << answerShape[0] << ")";
+        EXPECT_EQ(0u, answerShape[1].find("video:1:")) << "round " << round << ": second m-line must stay video mid 1 (got " << answerShape[1] << ")";
+        EXPECT_EQ(std::string(paused ? "inactive" : "sendonly"), answerShape[0].substr(answerShape[0].rfind(':') + 1))
+            << "round " << round << ": audio answer direction must mirror the flip";
+    }
+
+    closePeerConnection(pRtcPeerConnection);
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
 } // namespace webrtcclient
