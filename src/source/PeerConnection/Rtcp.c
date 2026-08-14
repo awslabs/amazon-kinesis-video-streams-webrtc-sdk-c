@@ -65,7 +65,12 @@ static STATUS parseRtcpReceptionReportBlocks(PRtcpPacket pRtcpPacket, PKvsPeerCo
     UINT32 reportBlockOffset;
     UINT8 reportBlockCount, i;
 
-    CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
+    CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL && pRtcpPacket->payload != NULL, STATUS_NULL_ARG);
+
+    // firstReportBlockOffset must be the byte offset of the first report block within the payload:
+    // SIZEOF(UINT32) for RR (after the sender SSRC), RTCP_PACKET_SENDER_REPORT_MINLEN for SR (after
+    // the sender SSRC and the sender info section).
+    CHK(firstReportBlockOffset >= SIZEOF(UINT32) && firstReportBlockOffset <= RTCP_PACKET_SENDER_REPORT_MINLEN, STATUS_INVALID_ARG);
 
     // The report contains receptionReportCount report blocks. The media storage backend reports on
     // all streams (audio + video) in a single packet, so all blocks must be processed.
@@ -77,7 +82,8 @@ static STATUS parseRtcpReceptionReportBlocks(PRtcpPacket pRtcpPacket, PKvsPeerCo
     if (pRtcpPacket->payloadLength < firstReportBlockOffset + (UINT32) reportBlockCount * RTCP_PACKET_RECEIVER_REPORT_BLOCK_LEN) {
         DLOGW("Malformed report: payloadLength %u too small for %u report block(s) at offset %u", pRtcpPacket->payloadLength, reportBlockCount,
               firstReportBlockOffset);
-        return STATUS_SUCCESS;
+        // Drop the malformed packet without failing the session; route through CleanUp per the KVS idiom.
+        CHK(FALSE, STATUS_SUCCESS);
     }
 
     senderSSRC = getUnalignedInt32BigEndian(pRtcpPacket->payload);
@@ -132,6 +138,8 @@ static STATUS parseRtcpReceptionReportBlocks(PRtcpPacket pRtcpPacket, PKvsPeerCo
 
 CleanUp:
 
+    CHK_LOG_ERR(retStatus);
+
     return retStatus;
 }
 
@@ -141,12 +149,13 @@ static STATUS onRtcpSenderReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKv
     UINT32 senderSSRC;
     PKvsRtpTransceiver pTransceiver = NULL;
 
-    CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
+    CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL && pRtcpPacket->payload != NULL, STATUS_NULL_ARG);
 
     // https://tools.ietf.org/html/rfc3550#section-6.4.1
     if (pRtcpPacket->payloadLength < RTCP_PACKET_SENDER_REPORT_MINLEN) {
         DLOGW("Malformed sender report: payloadLength %u too small", pRtcpPacket->payloadLength);
-        return STATUS_SUCCESS;
+        // Drop the malformed packet without failing the session; route through CleanUp per the KVS idiom.
+        CHK(FALSE, STATUS_SUCCESS);
     }
 
     senderSSRC = getUnalignedInt32BigEndian(pRtcpPacket->payload);
@@ -166,6 +175,8 @@ static STATUS onRtcpSenderReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKv
     CHK_STATUS(parseRtcpReceptionReportBlocks(pRtcpPacket, pKvsPeerConnection, RTCP_PACKET_SENDER_REPORT_MINLEN));
 
 CleanUp:
+
+    CHK_LOG_ERR(retStatus);
 
     return retStatus;
 }
