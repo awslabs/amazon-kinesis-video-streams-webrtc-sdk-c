@@ -79,6 +79,9 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     DLOGI("[KVS Master] Channel %s set up done ", pChannelName);
 
+    // Periodically log remote-inbound RTP stats (VERBOSE log level only)
+    CHK_STATUS(startPeriodicRemoteInboundStats(pSampleConfiguration));
+
     // Checking for termination
     CHK_STATUS(sessionCleanupWait(pSampleConfiguration));
     DLOGI("[KVS Master] Streaming session terminated");

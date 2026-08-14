@@ -1042,6 +1042,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pSampleConfiguration->clientInfo.cacheFilePath = NULL; // Use the default path
     pSampleConfiguration->clientInfo.signalingClientCreationMaxRetryAttempts = CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE;
     pSampleConfiguration->iceCandidatePairStatsTimerId = MAX_UINT32;
+    pSampleConfiguration->remoteInboundStatsTid = INVALID_TID_VALUE;
     pSampleConfiguration->pregenerateCertTimerId = MAX_UINT32;
     pSampleConfiguration->signalingClientMetrics.version = SIGNALING_CLIENT_METRICS_CURRENT_VERSION;
 
@@ -1187,6 +1188,105 @@ STATUS logSignalingClientStats(PSignalingClientMetrics pSignalingClientMetrics)
     DLOGD("API call retry count: %d", pSignalingClientMetrics->signalingClientStats.apiCallRetryCount);
 CleanUp:
     LEAVES();
+    return retStatus;
+}
+
+// Log remote-inbound RTP stats for one transceiver. These stats are populated from RTCP receiver
+// reports sent by the remote peer (the media service in a storage session, or a viewer in a P2P session).
+static VOID logRemoteInboundStatsForTransceiver(PRtcPeerConnection pPeerConnection, PRtcRtpTransceiver pTransceiver, PCHAR streamName)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    RtcStats rtcStats;
+    MEMSET(&rtcStats, 0x00, SIZEOF(RtcStats));
+
+    if (pPeerConnection == NULL || pTransceiver == NULL) {
+        return;
+    }
+
+    rtcStats.requestedTypeOfStats = RTC_STATS_TYPE_REMOTE_INBOUND_RTP;
+    retStatus = rtcPeerConnectionGetMetrics(pPeerConnection, pTransceiver, &rtcStats);
+    if (STATUS_SUCCEEDED(retStatus)) {
+        DLOGV("[remote-inbound %s] reportsReceived=%" PRIu64 " fractionLost=%.3f roundTripTime=%" PRIu64 " ms totalRoundTripTime=%" PRIu64
+              " rttMeasurements=%" PRIu64,
+              streamName, rtcStats.rtcStatsObject.remoteInboundRtpStreamStats.reportsReceived,
+              rtcStats.rtcStatsObject.remoteInboundRtpStreamStats.fractionLost, rtcStats.rtcStatsObject.remoteInboundRtpStreamStats.roundTripTime,
+              rtcStats.rtcStatsObject.remoteInboundRtpStreamStats.totalRoundTripTime,
+              rtcStats.rtcStatsObject.remoteInboundRtpStreamStats.roundTripTimeMeasurements);
+    } else {
+        DLOGW("[remote-inbound %s] rtcPeerConnectionGetMetrics() failed with 0x%08x", streamName, retStatus);
+    }
+}
+
+// Thread routine that logs remote-inbound RTP stats for all streaming sessions every 10 seconds.
+// The stats are logged at VERBOSE level; callers should skip creating this thread when the configured
+// log level filters VERBOSE out. Runs until pSampleConfiguration->appTerminateFlag is set.
+PVOID getPeriodicRemoteInboundStats(PVOID args)
+{
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
+    PSampleStreamingSession pSampleStreamingSession;
+    UINT32 i, sleepCounter = 0;
+
+    CHK_LOG_ERR(pSampleConfiguration != NULL ? STATUS_SUCCESS : STATUS_NULL_ARG);
+    if (pSampleConfiguration == NULL) {
+        return NULL;
+    }
+
+    // This thread only emits VERBOSE-level logs. Creation is already gated on the configured log
+    // level, but double-check the runtime logger level so the thread exits immediately (instead of
+    // waking every second for nothing) if verbose logs are filtered out.
+    if (GET_LOGGER_LOG_LEVEL() > LOG_LEVEL_VERBOSE) {
+        return NULL;
+    }
+
+    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
+        // Log stats every 10 seconds, but sleep in 1-second slices so the thread notices
+        // appTerminateFlag within ~1 second instead of stalling shutdown for up to 10 seconds
+        // (the sample joins this thread during cleanup).
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+        if (++sleepCounter < 10) {
+            continue;
+        }
+        sleepCounter = 0;
+
+        // Use trylock to avoid contending with session setup/teardown; on failure we simply skip
+        // this cycle. Stats are cumulative SDK counters, so nothing is lost by skipping a read.
+        if (!MUTEX_TRYLOCK(pSampleConfiguration->sampleConfigurationObjLock)) {
+            continue;
+        }
+        // Clamp to the array capacity as a defensive bound; streamingSessionCount should never
+        // exceed it, but the array access below must not depend on that invariant.
+        for (i = 0; i < MIN(pSampleConfiguration->streamingSessionCount, DEFAULT_MAX_CONCURRENT_STREAMING_SESSION); ++i) {
+            pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[i];
+            // Skip slots that are mid-teardown; the session pointer can be cleared while we hold
+            // only a trylock'd config lock.
+            if (pSampleStreamingSession == NULL) {
+                continue;
+            }
+            logRemoteInboundStatsForTransceiver(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pVideoRtcRtpTransceiver,
+                                                (PCHAR) "VIDEO");
+            logRemoteInboundStatsForTransceiver(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pAudioRtcRtpTransceiver,
+                                                (PCHAR) "AUDIO");
+        }
+        MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    }
+
+    return NULL;
+}
+
+// Start the periodic remote-inbound stats thread for a sample. The thread only produces
+// VERBOSE-level logs, so it is only created (and its memory spent) when the configured log
+// level is VERBOSE. Joined automatically in freeSampleConfiguration.
+STATUS startPeriodicRemoteInboundStats(PSampleConfiguration pSampleConfiguration)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
+    CHK(pSampleConfiguration->clientInfo.loggingLevel == LOG_LEVEL_VERBOSE, STATUS_SUCCESS);
+    CHK(pSampleConfiguration->remoteInboundStatsTid == INVALID_TID_VALUE, STATUS_SUCCESS);
+
+    CHK_STATUS(THREAD_CREATE(&pSampleConfiguration->remoteInboundStatsTid, getPeriodicRemoteInboundStats, (PVOID) pSampleConfiguration));
+
+CleanUp:
     return retStatus;
 }
 
@@ -1378,6 +1478,14 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         }
 
         timerQueueFree(&pSampleConfiguration->timerQueueHandle);
+    }
+
+    if (pSampleConfiguration->remoteInboundStatsTid != INVALID_TID_VALUE) {
+        // The stats thread exits when appTerminateFlag is set; set it here as well since not all
+        // samples set it before freeing the configuration
+        ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, TRUE);
+        THREAD_JOIN(pSampleConfiguration->remoteInboundStatsTid, NULL);
+        pSampleConfiguration->remoteInboundStatsTid = INVALID_TID_VALUE;
     }
 
     if (pSampleConfiguration->pPendingSignalingMessageForRemoteClient != NULL) {

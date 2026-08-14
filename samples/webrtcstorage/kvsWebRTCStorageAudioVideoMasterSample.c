@@ -56,6 +56,9 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     DLOGI("[%s] Channel %s set up done ", SAMPLE_NAME, pChannelName);
 
+    // Periodically log remote-inbound RTP stats (VERBOSE log level only)
+    CHK_STATUS(startPeriodicRemoteInboundStats(pSampleConfiguration));
+
     // Checking for termination
     CHK_STATUS(sessionCleanupWait(pSampleConfiguration));
     DLOGI("[%s] Streaming session terminated", SAMPLE_NAME);
