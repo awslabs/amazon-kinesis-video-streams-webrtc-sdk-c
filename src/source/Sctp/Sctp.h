@@ -27,6 +27,20 @@ extern "C" {
 
 #define DEFAULT_USRSCTP_TEARDOWN_POLLING_INTERVAL (10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
+#define SCTP_TIMER_INTERVAL    (100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define SCTP_TIMER_START_DELAY (100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+
+#define SCTP_CONTEXT_REFERENCE_WAIT_TIMEOUT (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+
+// Values taken from defaults suggested by RFC 9260 spec: https://www.ietf.org/rfc/rfc9260.pdf
+
+// Max retransmits along a given single path. Typical default is 5
+#define SCTP_MAX_PATH_RETRANSMITS 5
+// Max retransmits across all paths for an endpoint association. Typical default is double max path retransmits
+#define SCTP_MAX_ASSOCIATION_RETRANSMITS 10
+// Retransmission timeout. Typical default is 60 seconds
+#define SCTP_RTO_MAX 60000
+
 enum { SCTP_PPID_DCEP = 50, SCTP_PPID_STRING = 51, SCTP_PPID_BINARY = 53, SCTP_PPID_STRING_EMPTY = 56, SCTP_PPID_BINARY_EMPTY = 57 };
 
 enum {
@@ -52,6 +66,15 @@ typedef VOID (*SctpSessionDataChannelOpenFunc)(UINT64, UINT32, PBYTE, UINT32);
 // Argument is ChannelID and Message + Len
 typedef VOID (*SctpSessionDataChannelMessageFunc)(UINT64, UINT32, BOOL, PBYTE, UINT32);
 
+/// Singleton context for SCTP global state
+typedef struct SctpContext {
+    // last time the periodic usrsctp timers were called
+    UINT64 lastTickTime;
+    volatile ATOMIC_BOOL isSctpInitialized;
+    SIZE_T contextRefCnt;
+    MUTEX sctpContextLock;
+} SctpContext, *PSctpContext;
+
 typedef struct {
     UINT64 customData;
     SctpSessionOutboundPacketFunc outboundPacketFunc;
@@ -66,11 +89,13 @@ typedef struct {
     BYTE packet[SCTP_MAX_ALLOWABLE_PACKET_LENGTH];
     UINT32 packetSize;
     SctpSessionCallbacks sctpSessionCallbacks;
+    TIMER_QUEUE_HANDLE timerQueueHandle;
+    UINT32 timerTaskId;
 } SctpSession, *PSctpSession;
 
 STATUS initSctpSession();
 VOID deinitSctpSession();
-STATUS createSctpSession(PSctpSessionCallbacks, PSctpSession*);
+STATUS createSctpSession(PSctpSessionCallbacks, TIMER_QUEUE_HANDLE, PSctpSession*);
 STATUS freeSctpSession(PSctpSession*);
 STATUS putSctpPacket(PSctpSession, PBYTE, UINT32);
 STATUS sctpSessionWriteMessage(PSctpSession, UINT32, BOOL, PBYTE, UINT32);
@@ -80,6 +105,8 @@ STATUS handleDcepPacket(PSctpSession, UINT32, PBYTE, SIZE_T);
 // Callbacks used by usrsctp
 INT32 onSctpOutboundPacket(PVOID, PVOID, ULONG, UINT8, UINT8);
 INT32 onSctpInboundPacket(struct socket*, union sctp_sockstore, PVOID, ULONG, struct sctp_rcvinfo, INT32, PVOID);
+// Callback to drive periodic SCTP timers
+STATUS sctpTimerCallback(UINT32, UINT64, UINT64);
 
 #ifdef __cplusplus
 }

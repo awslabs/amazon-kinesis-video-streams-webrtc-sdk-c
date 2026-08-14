@@ -24,6 +24,18 @@ UINT32 setLogLevel()
     return logLevel;
 }
 
+VOID logSampleInvocation(INT32 argc, CHAR* argv[])
+{
+    INT32 i;
+    // Log the exact command line used to launch the sample. This makes it unambiguous from the
+    // logs alone which sample binary and arguments were run (e.g. static-frame vs. GStreamer
+    // source), which is otherwise easy to misattribute when triaging.
+    DLOGI("Sample invocation: argc=%d", argc);
+    for (i = 0; i < argc; i++) {
+        DLOGI("  argv[%d]: %s", i, argv[i] != NULL ? argv[i] : "(null)");
+    }
+}
+
 STATUS signalingCallFailed(STATUS status)
 {
     return (STATUS_SIGNALING_GET_TOKEN_CALL_FAILED == status || STATUS_SIGNALING_DESCRIBE_CALL_FAILED == status ||
@@ -54,8 +66,11 @@ VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newSta
             if (pSampleConfiguration->enableIceStats) {
                 CHK_LOG_ERR(logSelectedIceCandidatesInformation(pSampleStreamingSession));
             }
+            logIceCandidateSummary(pSampleStreamingSession);
             break;
         case RTC_PEER_CONNECTION_STATE_FAILED:
+            DLOGW("p2p connection failed");
+            logIceCandidateSummary(pSampleStreamingSession);
             // explicit fallthrough
         case RTC_PEER_CONNECTION_STATE_CLOSED:
             // explicit fallthrough
@@ -132,6 +147,44 @@ STATUS logSelectedIceCandidatesInformation(PSampleStreamingSession pSampleStream
 CleanUp:
     LEAVES();
     return retStatus;
+}
+
+VOID updateIceCandidateCount(PCHAR candidateStr, PIceCandidateCount pCount)
+{
+    if (candidateStr == NULL || pCount == NULL) {
+        return;
+    }
+
+    PCHAR pTyp = STRSTR(candidateStr, "typ ");
+    if (pTyp == NULL) {
+        return;
+    }
+    pTyp += 4;
+
+    if (STRNCMP(pTyp, "host", 4) == 0) {
+        pCount->host++;
+    } else if (STRNCMP(pTyp, "srflx", 5) == 0) {
+        pCount->srflx++;
+    } else if (STRNCMP(pTyp, "prflx", 5) == 0) {
+        pCount->prflx++;
+    } else if (STRNCMP(pTyp, "relay", 5) == 0) {
+        pCount->relay++;
+    }
+}
+
+VOID logIceCandidateSummary(PSampleStreamingSession pSampleStreamingSession)
+{
+    if (pSampleStreamingSession == NULL) {
+        return;
+    }
+
+    PIceCandidateCount pLocal = &pSampleStreamingSession->localCandidateCount;
+    PIceCandidateCount pRemote = &pSampleStreamingSession->remoteCandidateCount;
+
+    DLOGI("ICE candidate summary - local: %u host, %u srflx, %u prflx, %u relay (total %u); "
+          "remote: %u host, %u srflx, %u prflx, %u relay (total %u)",
+          pLocal->host, pLocal->srflx, pLocal->prflx, pLocal->relay, pLocal->host + pLocal->srflx + pLocal->prflx + pLocal->relay, pRemote->host,
+          pRemote->srflx, pRemote->prflx, pRemote->relay, pRemote->host + pRemote->srflx + pRemote->prflx + pRemote->relay);
 }
 
 STATUS handleAnswer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSession pSampleStreamingSession, PSignalingMessage pSignalingMessage)
@@ -323,6 +376,10 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
     SignalingMessage message = {0};
 
     CHK(pSampleStreamingSession != NULL, STATUS_NULL_ARG);
+
+    if (candidateJson != NULL) {
+        updateIceCandidateCount(candidateJson, &pSampleStreamingSession->localCandidateCount);
+    }
 
     if (candidateJson == NULL) {
         DLOGD("ice candidate gathering finished");
@@ -790,6 +847,7 @@ STATUS handleRemoteCandidate(PSampleStreamingSession pSampleStreamingSession, PS
 
     CHK_STATUS(deserializeRtcIceCandidateInit(pSignalingMessage->payload, pSignalingMessage->payloadLen, &iceCandidate));
     CHK_STATUS(addIceCandidate(pSampleStreamingSession->pPeerConnection, iceCandidate.candidate));
+    updateIceCandidateCount(iceCandidate.candidate, &pSampleStreamingSession->remoteCandidateCount);
 
 CleanUp:
 
@@ -1137,20 +1195,25 @@ CleanUp:
 // reports sent by the remote peer (the media service in a storage session, or a viewer in a P2P session).
 static VOID logRemoteInboundStatsForTransceiver(PRtcPeerConnection pPeerConnection, PRtcRtpTransceiver pTransceiver, PCHAR streamName)
 {
+    STATUS retStatus = STATUS_SUCCESS;
     RtcStats rtcStats;
+    MEMSET(&rtcStats, 0x00, SIZEOF(RtcStats));
 
-    if (pTransceiver == NULL) {
+    if (pPeerConnection == NULL || pTransceiver == NULL) {
         return;
     }
 
     rtcStats.requestedTypeOfStats = RTC_STATS_TYPE_REMOTE_INBOUND_RTP;
-    if (STATUS_SUCCEEDED(rtcPeerConnectionGetMetrics(pPeerConnection, pTransceiver, &rtcStats))) {
+    retStatus = rtcPeerConnectionGetMetrics(pPeerConnection, pTransceiver, &rtcStats);
+    if (STATUS_SUCCEEDED(retStatus)) {
         DLOGV("[remote-inbound %s] reportsReceived=%" PRIu64 " fractionLost=%.3f roundTripTime=%" PRIu64 " ms totalRoundTripTime=%" PRIu64
               " rttMeasurements=%" PRIu64,
               streamName, rtcStats.rtcStatsObject.remoteInboundRtpStreamStats.reportsReceived,
               rtcStats.rtcStatsObject.remoteInboundRtpStreamStats.fractionLost, rtcStats.rtcStatsObject.remoteInboundRtpStreamStats.roundTripTime,
               rtcStats.rtcStatsObject.remoteInboundRtpStreamStats.totalRoundTripTime,
               rtcStats.rtcStatsObject.remoteInboundRtpStreamStats.roundTripTimeMeasurements);
+    } else {
+        DLOGW("[remote-inbound %s] rtcPeerConnectionGetMetrics() failed with 0x%08x", streamName, retStatus);
     }
 }
 
@@ -1165,6 +1228,13 @@ PVOID getPeriodicRemoteInboundStats(PVOID args)
 
     CHK_LOG_ERR(pSampleConfiguration != NULL ? STATUS_SUCCESS : STATUS_NULL_ARG);
     if (pSampleConfiguration == NULL) {
+        return NULL;
+    }
+
+    // This thread only emits VERBOSE-level logs. Creation is already gated on the configured log
+    // level, but double-check the runtime logger level so the thread exits immediately (instead of
+    // waking every second for nothing) if verbose logs are filtered out.
+    if (GET_LOGGER_LOG_LEVEL() > LOG_LEVEL_VERBOSE) {
         return NULL;
     }
 
@@ -1183,8 +1253,15 @@ PVOID getPeriodicRemoteInboundStats(PVOID args)
         if (!MUTEX_TRYLOCK(pSampleConfiguration->sampleConfigurationObjLock)) {
             continue;
         }
-        for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+        // Clamp to the array capacity as a defensive bound; streamingSessionCount should never
+        // exceed it, but the array access below must not depend on that invariant.
+        for (i = 0; i < MIN(pSampleConfiguration->streamingSessionCount, DEFAULT_MAX_CONCURRENT_STREAMING_SESSION); ++i) {
             pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[i];
+            // Skip slots that are mid-teardown; the session pointer can be cleared while we hold
+            // only a trylock'd config lock.
+            if (pSampleStreamingSession == NULL) {
+                continue;
+            }
             logRemoteInboundStatsForTransceiver(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pVideoRtcRtpTransceiver,
                                                 (PCHAR) "VIDEO");
             logRemoteInboundStatsForTransceiver(pSampleStreamingSession->pPeerConnection, pSampleStreamingSession->pAudioRtcRtpTransceiver,
