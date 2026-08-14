@@ -246,7 +246,8 @@ INT32 lwsHttpCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn,
             DLOGD("Sending the body %.*s, size %d", pRequestInfo->bodySize, pRequestInfo->body, pRequestInfo->bodySize);
             MEMCPY(pBuffer, pRequestInfo->body, pRequestInfo->bodySize);
 
-            size = lws_write((struct lws*) wsi, (PBYTE) pBuffer, (SIZE_T) pRequestInfo->bodySize, LWS_WRITE_TEXT);
+            // HTTP body must use LWS_WRITE_HTTP; the h2 role drops LWS_WRITE_TEXT (http/1.1 tolerated it).
+            size = lws_write((struct lws*) wsi, (PBYTE) pBuffer, (SIZE_T) pRequestInfo->bodySize, LWS_WRITE_HTTP);
 
             if (size != (INT32) pRequestInfo->bodySize) {
                 DLOGW("Failed to write out the body of POST request entirely. Expected to write %d, wrote %d", pRequestInfo->bodySize, size);
@@ -606,6 +607,10 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     connectInfo.path = path;
     connectInfo.host = connectInfo.address;
     connectInfo.method = pVerb;
+    // The REST/WSS plumbing here is HTTP/1.1-only. lws v5 offers "h2,http/1.1" by
+    // default and the per-channel endpoints negotiate h2, then reject the request
+    // (HTML 400 on JoinStorageSession/GetIceServerConfig), so pin ALPN to http/1.1.
+    connectInfo.alpn = "http/1.1";
     connectInfo.protocol = ((struct lws_protocols*) pCallInfo->pSignalingClient->signalingProtocols[pCallInfo->protocolIndex])->name;
     connectInfo.pwsi = &clientLws;
 

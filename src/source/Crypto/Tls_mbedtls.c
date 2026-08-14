@@ -157,7 +157,11 @@ STATUS tlsSessionStartWithHostname(PTlsSession pTlsSession, BOOL isServer, PCHAR
         mbedtls_ssl_conf_authmode(&pTlsSession->sslCtxConfig, MBEDTLS_SSL_VERIFY_OPTIONAL);
     }
 
+#if !MBEDTLS_V4_OR_LATER
+    /* mbedTLS 4 removes mbedtls_ssl_conf_rng() — PSA Crypto provides the RNG
+     * internally once psa_crypto_init() has run, so no explicit binding is needed. */
     mbedtls_ssl_conf_rng(&pTlsSession->sslCtxConfig, mbedtls_ctr_drbg_random, &pTlsSession->ctrDrbg);
+#endif
     CHK(mbedtls_ssl_setup(&pTlsSession->sslCtx, &pTlsSession->sslCtxConfig) == 0, STATUS_SSL_CTX_CREATION_FAILED);
 
     // Set the hostname for certificate verification (for mbedTLS 3.x compatibility)
@@ -227,8 +231,10 @@ STATUS tlsSessionProcessPacket(PTlsSession pTlsSession, PBYTE pData, UINT32 buff
     }
 #if MBEDTLS_BEFORE_V3
     if (pTlsSession->sslCtx.state == MBEDTLS_SSL_HANDSHAKE_OVER) {
-#else
+#elif MBEDTLS_VERSION_NUMBER < 0x03040000
     if (pTlsSession->sslCtx.MBEDTLS_PRIVATE(state) == MBEDTLS_SSL_HANDSHAKE_OVER) {
+#else
+    if (mbedtls_ssl_is_handshake_over(&pTlsSession->sslCtx) != 0) {
 #endif
         tlsSessionChangeState(pTlsSession, TLS_SESSION_STATE_CONNECTED);
     }

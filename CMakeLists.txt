@@ -23,6 +23,7 @@ option(BUILD_STATIC_LIBS "Build all libraries statically. (This includes third-p
 option(BUILD_WEBSOCKETS "Build libwebsockets from source" ${BUILD_DEPENDENCIES})
 option(BUILD_SRTP "Build libsrtp from source" ${BUILD_DEPENDENCIES})
 option(USE_LIBSRTP3 "Build/link against libsrtp 3.x (default: 2.x). Required for mbedTLS 4." OFF)
+option(USE_MBEDTLS4 "Build/link against mbedTLS 4.x (default: 3.x). Implies USE_LIBSRTP3." OFF)
 option(BUILD_USRSCTP "Build libusrsctp from source" ${BUILD_DEPENDENCIES})
 
 option(BUILD_OPENSSL_PLATFORM "If buildng OpenSSL what is the target platform" OFF)
@@ -217,6 +218,20 @@ if (INCREASE_PRECISION_TIMING_LOGS)
   add_definitions(-DINCREASE_PRECISION_TIMING_LOGS)
 endif()
 
+if(USE_MBEDTLS4)
+  if(NOT USE_MBEDTLS)
+    message(FATAL_ERROR "USE_MBEDTLS4=ON requires USE_MBEDTLS=ON.")
+  endif()
+  if(BUILD_OLD_MBEDTLS_VERSION)
+    message(FATAL_ERROR "USE_MBEDTLS4=ON is incompatible with BUILD_OLD_MBEDTLS_VERSION=ON.")
+  endif()
+  if(NOT USE_LIBSRTP3)
+    message(STATUS "USE_MBEDTLS4=ON implies USE_LIBSRTP3=ON; promoting.")
+    set(USE_LIBSRTP3 ON CACHE BOOL "Forced by USE_MBEDTLS4" FORCE)
+  endif()
+  add_definitions(-DKVS_USE_MBEDTLS4)
+endif()
+
 if (USE_LIBSRTP3)
   add_definitions(-DUSE_LIBSRTP3)
 endif()
@@ -276,8 +291,35 @@ if(BUILD_DEPENDENCIES OR BUILD_WEBSOCKETS OR BUILD_SRTP OR BUILD_USRSCTP)
       set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
                      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                      -DBUILD_OLD_MBEDTLS_VERSION=${BUILD_OLD_MBEDTLS_VERSION}
+                     -DUSE_MBEDTLS4=${USE_MBEDTLS4}
                       "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
         build_dependency(mbedtls ${BUILD_ARGS})
+
+        # mbedTLS 4 relocated entropy/CTR-DRBG/hash headers under mbedtls/private/
+        # and gates their prototypes behind MBEDTLS_DECLARE_PRIVATE_IDENTIFIERS.
+        # External consumers (kvsCommonLws, libwebsockets) include the v3 paths
+        # unconditionally — drop tiny forwarding shims at the legacy locations.
+        if (USE_MBEDTLS4)
+          set(MBEDTLS_V3_SHIM_HEADERS entropy ctr_drbg sha256 sha1 sha512 md5)
+          set(MBEDTLS_V3_SHIM_DIR ${OPEN_SRC_INSTALL_PREFIX}/include/mbedtls)
+          file(MAKE_DIRECTORY ${MBEDTLS_V3_SHIM_DIR})
+          foreach(_hdr ${MBEDTLS_V3_SHIM_HEADERS})
+            # The <limits.h>/<stdint.h> prelude restores transitive includes
+            # that mbedTLS 3.x headers brought in via x509 / asn1 chains;
+            # consumers like kvsCommonLws rely on ULONG_MAX being defined
+            # after #include <mbedtls/sha256.h>.
+            file(WRITE ${MBEDTLS_V3_SHIM_DIR}/${_hdr}.h
+"#ifndef KVS_MBEDTLS_V3_SHIM_${_hdr}_H\n\
+#define KVS_MBEDTLS_V3_SHIM_${_hdr}_H\n\
+#include <limits.h>\n\
+#include <stdint.h>\n\
+#ifndef MBEDTLS_DECLARE_PRIVATE_IDENTIFIERS\n\
+#define MBEDTLS_DECLARE_PRIVATE_IDENTIFIERS\n\
+#endif\n\
+#include <mbedtls/private/${_hdr}.h>\n\
+#endif\n")
+          endforeach()
+        endif()
     endif()
 
     if(BUILD_TEST)
@@ -325,6 +367,7 @@ if(BUILD_DEPENDENCIES OR BUILD_WEBSOCKETS OR BUILD_SRTP OR BUILD_USRSCTP)
                     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                     -DUSE_OPENSSL=${USE_OPENSSL}
                     -DUSE_MBEDTLS=${USE_MBEDTLS}
+                    -DUSE_MBEDTLS4=${USE_MBEDTLS4}
                     -DLWS_EXT_PTHREAD_INCLUDE_DIR=${EXT_PTHREAD_INCLUDE_DIR}
                     -DLWS_EXT_PTHREAD_LIBRARIES=${EXT_PTHREAD_LIBRARIES}
                     -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIRS}
@@ -336,6 +379,7 @@ if(BUILD_DEPENDENCIES OR BUILD_WEBSOCKETS OR BUILD_SRTP OR BUILD_USRSCTP)
                     -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
                     -DUSE_OPENSSL=${USE_OPENSSL}
                     -DUSE_MBEDTLS=${USE_MBEDTLS}
+                    -DUSE_MBEDTLS4=${USE_MBEDTLS4}
                     -DLWS_OPENSSL_CRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}
                     -DLWS_OPENSSL_SSL_LIBRARY=${OPENSSL_SSL_LIBRARY}
                     -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIR}

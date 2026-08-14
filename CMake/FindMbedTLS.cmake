@@ -4,13 +4,22 @@ find_library(MBEDTLS_LIBRARY mbedtls)
 find_library(MBEDX509_LIBRARY mbedx509)
 find_library(MBEDCRYPTO_LIBRARY mbedcrypto)
 
+# mbedTLS 4.x splits the PSA Crypto implementation into its own library
+# (libtfpsacrypto). libmbedcrypto remains as a thin wrapper but the actual
+# psa_* symbols live in tfpsacrypto, so we must link it when present.
+# mbedTLS 3.x and 2.x installs do not ship this library; the find is best-effort.
+find_library(MBEDTFPSACRYPTO_LIBRARY tfpsacrypto)
+
 set(MBEDTLS_LIBRARIES "${MBEDTLS_LIBRARY}" "${MBEDX509_LIBRARY}" "${MBEDCRYPTO_LIBRARY}")
+if(MBEDTFPSACRYPTO_LIBRARY)
+    list(APPEND MBEDTLS_LIBRARIES "${MBEDTFPSACRYPTO_LIBRARY}")
+endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(MbedTLS DEFAULT_MSG
     MBEDTLS_LIBRARY MBEDTLS_INCLUDE_DIRS MBEDX509_LIBRARY MBEDCRYPTO_LIBRARY)
 
-mark_as_advanced(MBEDTLS_INCLUDE_DIRS MBEDTLS_LIBRARY MBEDX509_LIBRARY MBEDCRYPTO_LIBRARY)
+mark_as_advanced(MBEDTLS_INCLUDE_DIRS MBEDTLS_LIBRARY MBEDX509_LIBRARY MBEDCRYPTO_LIBRARY MBEDTFPSACRYPTO_LIBRARY)
 
 if(NOT TARGET MbedTLS)
 	message("in mbedtls ${MBEDTLS_LIBRARY}")

@@ -19,7 +19,21 @@ extern "C" {
 #undef MBEDTLS_ECP_DP_SECP224K1_ENABLED
 #undef MBEDTLS_ECP_DP_SECP256K1_ENABLED
 
+// The mbedTLS 4 build links a mainline libwebsockets whose TLS layer calls
+// mbedtls_ssl_get_alpn_protocol() unconditionally. This user-config is applied
+// to the mbedTLS build itself, so undef'ing ALPN there breaks the lws link.
+// Keep it stripped only on mbedTLS < 4 (paired with the v4.3.10 lws that
+// doesn't reference ALPN). Gate on the version macro, which build_info.h
+// defines before including this user config.
+#if MBEDTLS_VERSION_MAJOR < 4
 #undef MBEDTLS_SSL_ALPN
+#else
+// mbedTLS 4 drops PEM/Base64 from its defaults; PEM CA bundles (the AWS root
+// cert lws parses via client_ssl_ca_mem) need them, or x509 parse returns
+// MBEDTLS_ERR_X509_INVALID_FORMAT. mbedTLS 3.x already enables these.
+#define MBEDTLS_PEM_PARSE_C
+#define MBEDTLS_BASE64_C
+#endif
 
 /**
  * \def MBEDTLS_ENTROPY_HARDWARE_ALT

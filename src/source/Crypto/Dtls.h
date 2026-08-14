@@ -245,11 +245,13 @@ INT32 dtlsSessionGetTimerCallback(PVOID);
 INT32 dtlsSessionKeyDerivationCallback(PVOID, const unsigned char*, const unsigned char*, ULONG, ULONG, ULONG,
                                        const unsigned char[MAX_DTLS_RANDOM_BYTES_LEN], const unsigned char[MAX_DTLS_RANDOM_BYTES_LEN],
                                        mbedtls_tls_prf_types);
-#else
+#elif !MBEDTLS_V4_OR_LATER
 VOID dtlsSessionKeyDerivationCallback(PVOID customData, mbedtls_ssl_key_export_type secret_type, const unsigned char* pMasterSecret,
                                       size_t pMasterSecretLen, const unsigned char clientRandom[MAX_DTLS_RANDOM_BYTES_LEN],
                                       const unsigned char serverRandom[MAX_DTLS_RANDOM_BYTES_LEN], mbedtls_tls_prf_types tlsProfile);
 #endif
+/* mbedTLS 4 uses mbedtls_ssl_export_keying_material() in dtlsSessionPopulateKeyingMaterial(),
+ * so no key-derivation callback is needed. */
 
 #else
 #error "A Crypto implementation is required."

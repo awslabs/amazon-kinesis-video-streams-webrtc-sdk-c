@@ -274,11 +274,17 @@ TEST_F(PeerConnectionFunctionalityTest, sendDataWithClosedSocketConnectionWithHo
     //   6. When ICE agent state changes to FAILED, the PeerConnection will be notified and change its state to FAILED as well
     //   7. Verify that we the counter for RTC_PEER_CONNECTION_STATE_FAILED is not 0
     addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
-    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    // ASSERT, not EXPECT: the fault injection below dereferences ICE agent state that only exists
+    // once the peers connected. Continuing after a failed connect crashes the whole test binary.
+    ASSERT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
     pOfferPcImpl = (PKvsPeerConnection) offerPc;
     pIceAgent = pOfferPcImpl->pIceAgent;
     MUTEX_LOCK(pIceAgent->lock);
+    if (pIceAgent->pDataSendingIceCandidatePair == NULL) {
+        MUTEX_UNLOCK(pIceAgent->lock);
+        FAIL() << "no data sending ICE candidate pair after a successful connect";
+    }
     pLocalCandidate = pIceAgent->pDataSendingIceCandidatePair->local;
 
     if (pLocalCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
@@ -338,11 +344,17 @@ TEST_F(PeerConnectionFunctionalityTest, sendDataWithClosedSocketConnectionWithFo
     //   6. When ICE agent state changes to FAILED, the PeerConnection will be notified and change its state to FAILED as well
     //   7. Verify that we the counter for RTC_PEER_CONNECTION_STATE_FAILED is not 0
     addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
-    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    // ASSERT, not EXPECT: the fault injection below dereferences ICE agent state that only exists
+    // once the peers connected. Continuing after a failed connect crashes the whole test binary.
+    ASSERT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
     pOfferPcImpl = (PKvsPeerConnection) offerPc;
     pIceAgent = pOfferPcImpl->pIceAgent;
     MUTEX_LOCK(pIceAgent->lock);
+    if (pIceAgent->pDataSendingIceCandidatePair == NULL) {
+        MUTEX_UNLOCK(pIceAgent->lock);
+        FAIL() << "no data sending ICE candidate pair after a successful connect";
+    }
     pLocalCandidate = pIceAgent->pDataSendingIceCandidatePair->local;
 
     if (pLocalCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {

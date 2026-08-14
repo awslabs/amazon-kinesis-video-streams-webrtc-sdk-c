@@ -23,11 +23,31 @@ if (WIN32)
   set(LWS_OPENSSL_LIBRARIES ${LWS_OPENSSL_LIBRARIES})
 endif()
 
+# libwebsockets revision. mbedTLS 4 needs v5.0.0 (first release tag carrying the
+# mbedtls4 migration); every other build (OpenSSL, mbedTLS 3.x) keeps the v4.3.10
+# release tag it has always used.
+if (USE_MBEDTLS4)
+    # v5.0.0 also carries the parallel-connect fds cleanup fix (upstream #3633),
+    # so no build-time patch is needed anymore. "README.md" skips cloning the
+    # qifs submodule (QUIC test data; unused, QUIC/HTTP3 are off below).
+    set(LWS_GIT_TAG        v5.0.0)
+    set(LWS_GIT_SHALLOW    TRUE)
+    set(LWS_GIT_SUBMODULES "README.md")
+    set(LWS_PATCH_ARGS     "")
+else()
+    set(LWS_GIT_TAG        v4.3.10)
+    set(LWS_GIT_SHALLOW    TRUE)
+    set(LWS_GIT_SUBMODULES "")
+    set(LWS_PATCH_ARGS     "")
+endif()
+
 ExternalProject_Add(project_libwebsockets
     GIT_REPOSITORY    https://github.com/warmcat/libwebsockets.git
-    GIT_TAG           v4.3.10
+    GIT_TAG           ${LWS_GIT_TAG}
     GIT_PROGRESS      TRUE
-    GIT_SHALLOW       TRUE
+    GIT_SHALLOW       ${LWS_GIT_SHALLOW}
+    GIT_SUBMODULES    "${LWS_GIT_SUBMODULES}"
+    ${LWS_PATCH_ARGS}
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
     LIST_SEPARATOR    |
     CMAKE_ARGS
@@ -37,6 +57,8 @@ ExternalProject_Add(project_libwebsockets
         -DOPENSSL_ROOT_DIR=${OPENSSL_DIR}
         -DDISABLE_WERROR=ON
         -DLWS_WITH_HTTP2=1
+        -DLWS_ROLE_QUIC=OFF
+        -DLWS_WITH_HTTP3=OFF
         -DLWS_HAVE_HMAC_CTX_new=1
         -DLWS_HAVE_SSL_EXTRA_CHAIN_CERTS=1
         -DLWS_HAVE_OPENSSL_ECDH_H=1
