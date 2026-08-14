@@ -131,6 +131,19 @@ struct __TurnConnection {
     BOOL credentialObtained;
     BOOL relayAddressReported;
 
+    // Transaction id of the authenticated Allocate request (the one we signed with MESSAGE-INTEGRITY).
+    // Used to correlate incoming 401 responses: a 401 matching this id is a genuine credential rejection,
+    // whereas a 401 for any other (e.g. duplicated/late unauthenticated) request must be ignored. This is
+    // required because TURN reuses 401 for both the initial nonce challenge and credential rejection, and
+    // UDP allows stale challenge responses to arrive after we have already authenticated.
+    // Note: retransmits of the authenticated Allocate reuse the same packet, hence the same transaction id,
+    // so a single stored id correctly matches the 401 for any of those retransmits.
+    BYTE authTransactionId[STUN_TRANSACTION_ID_LEN];
+    BOOL authTransactionIdSet;
+    // Set by the receive path when the server rejects our authenticated credentials; read by the state
+    // machine timer to fail fast instead of retransmitting until the allocation timeout.
+    volatile ATOMIC_BOOL credentialsRejected;
+
     PSocketConnection pControlChannel;
 
     TurnPeer turnPeerList[DEFAULT_TURN_MAX_PEER_COUNT];
