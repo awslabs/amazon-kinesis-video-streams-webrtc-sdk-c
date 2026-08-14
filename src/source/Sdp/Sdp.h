@@ -106,7 +106,7 @@ extern "C" {
  * line (when ENABLE_DATA_CHANNEL is on).
  *
  * Override at build time via CMake: -DMAX_SDP_SESSION_MEDIA_COUNT=N
- * See docs/SDP_MEDIA_COUNT.md for sizing guidance and stack implications.
+ * See docs/SDP_LIMITS.md for sizing guidance and stack implications.
  */
 #ifndef MAX_SDP_SESSION_MEDIA_COUNT
 #define MAX_SDP_SESSION_MEDIA_COUNT 5
@@ -114,7 +114,18 @@ extern "C" {
 
 #define MAX_SDP_MEDIA_BANDWIDTH_COUNT 2
 
+/**
+ * Maximum number of a= attributes stored per SDP section. Applies both to session-level attributes and to each
+ * media section's attributes. Modern browser offers keep growing this count (e.g. per-payload-type RTCP feedback
+ * such as RFC 8888 congestion control feedback), so recvonly offers that advertise every decodable codec can
+ * approach or exceed the default.
+ *
+ * Override at build time via CMake: -DMAX_SDP_ATTRIBUTES_COUNT=N
+ * See docs/SDP_LIMITS.md for sizing guidance and memory implications.
+ */
+#ifndef MAX_SDP_ATTRIBUTES_COUNT
 #define MAX_SDP_ATTRIBUTES_COUNT 256
+#endif
 
 /*
  * c=<nettype> <addrtype> <connection-address>

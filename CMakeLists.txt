@@ -39,7 +39,7 @@ option(INCREASE_PRECISION_TIMING_LOGS "PROFILE-level timing logs have 2 decimals
 option(PARALLEL_BUILD "Build dependencies with parallel flag" OFF)
 
 # Tuning
-set(MAX_SDP_SESSION_MEDIA_COUNT "5" CACHE STRING "Maximum number of SDP media sections (m= lines). Range: 1-6. Each slot adds ~140 KB to stack-allocated SessionDescription. See docs/SDP_MEDIA_COUNT.md.")
+set(MAX_SDP_SESSION_MEDIA_COUNT "5" CACHE STRING "Maximum number of SDP media sections (m= lines). Range: 1-6. Each slot adds ~140 KB to stack-allocated SessionDescription. See docs/SDP_LIMITS.md.")
 if (NOT "${MAX_SDP_SESSION_MEDIA_COUNT}" MATCHES "^[0-9]+$")
   message(FATAL_ERROR "MAX_SDP_SESSION_MEDIA_COUNT must be a number, got '${MAX_SDP_SESSION_MEDIA_COUNT}'.")
 endif()
@@ -52,7 +52,23 @@ endif()
 if (MAX_SDP_SESSION_MEDIA_COUNT GREATER 6)
   message(FATAL_ERROR "MAX_SDP_SESSION_MEDIA_COUNT=${MAX_SDP_SESSION_MEDIA_COUNT} exceeds the maximum of 6. "
     "The KVS TURN relay hard-limits bandwidth to 5 Mbps, which cannot sustain more than 6 concurrent media streams. "
-    "See docs/SDP_MEDIA_COUNT.md for details.")
+    "See docs/SDP_LIMITS.md for details.")
+endif()
+
+set(MAX_SDP_ATTRIBUTES_COUNT "256" CACHE STRING "Maximum number of a= attributes per SDP section. Range: 32-2048. Each slot adds ~546 bytes to every attribute array in the (heap-allocated) SessionDescription. See docs/SDP_LIMITS.md.")
+if (NOT "${MAX_SDP_ATTRIBUTES_COUNT}" MATCHES "^[0-9]+$")
+  message(FATAL_ERROR "MAX_SDP_ATTRIBUTES_COUNT must be a number, got '${MAX_SDP_ATTRIBUTES_COUNT}'.")
+endif()
+if (NOT "${MAX_SDP_ATTRIBUTES_COUNT}" STREQUAL "256")
+  message(STATUS "MAX_SDP_ATTRIBUTES_COUNT overridden to ${MAX_SDP_ATTRIBUTES_COUNT} (default: 256)")
+endif()
+if (MAX_SDP_ATTRIBUTES_COUNT LESS 32)
+  message(FATAL_ERROR "MAX_SDP_ATTRIBUTES_COUNT=${MAX_SDP_ATTRIBUTES_COUNT} is below the minimum of 32. See docs/SDP_LIMITS.md for details.")
+endif()
+if (MAX_SDP_ATTRIBUTES_COUNT GREATER 2048)
+  message(FATAL_ERROR "MAX_SDP_ATTRIBUTES_COUNT=${MAX_SDP_ATTRIBUTES_COUNT} exceeds the maximum of 2048. "
+    "The parser's attribute counters are 16-bit and each slot is large (~546 bytes x every section); a value this high "
+    "indicates a misconfiguration. See docs/SDP_LIMITS.md for details.")
 endif()
 
 # Developer Flags
@@ -490,6 +506,10 @@ endif()
 
 if (NOT "${MAX_SDP_SESSION_MEDIA_COUNT}" STREQUAL "5")
   add_definitions(-DMAX_SDP_SESSION_MEDIA_COUNT=${MAX_SDP_SESSION_MEDIA_COUNT})
+endif()
+
+if (NOT "${MAX_SDP_ATTRIBUTES_COUNT}" STREQUAL "256")
+  add_definitions(-DMAX_SDP_ATTRIBUTES_COUNT=${MAX_SDP_ATTRIBUTES_COUNT})
 endif()
 
 if (ENABLE_DATA_CHANNEL)
