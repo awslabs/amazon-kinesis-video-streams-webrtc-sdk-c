@@ -26,7 +26,12 @@ extern "C" {
 #define RTCP_PACKET_REMB_IDENTIFIER_OFFSET 8
 #define RTCP_PACKET_REMB_MANTISSA_BITMASK  0x3FFFF
 
-#define RTCP_PACKET_SENDER_REPORT_MINLEN      24
+// Minimum sender report payload: sender SSRC (4) + NTP timestamp (8) + RTP timestamp (4) +
+// sender's packet count (4) + sender's octet count (4) = 24 bytes (RFC 3550 section 6.4.1).
+// Reception report blocks, when present, follow this fixed-size sender info section.
+#define RTCP_PACKET_SENDER_REPORT_MINLEN 24
+// Each reception report block: source SSRC (4) + fraction lost (1) + cumulative lost (3) +
+// extended highest seq (4) + interarrival jitter (4) + LSR (4) + DLSR (4) = 24 bytes.
 #define RTCP_PACKET_RECEIVER_REPORT_BLOCK_LEN 24
 // No longer used by the SDK: receiver report length is now validated dynamically against the
 // report block count (4 + RC * RTCP_PACKET_RECEIVER_REPORT_BLOCK_LEN in onRtcpReceiverReport).
