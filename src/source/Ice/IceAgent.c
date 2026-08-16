@@ -2503,6 +2503,8 @@ STATUS iceAgentReadyStateSetup(PIceAgent pIceAgent)
     PIceCandidatePair pIceCandidatePair = NULL;
     BOOL locked = FALSE;
     PIceCandidate pIceCandidate = NULL;
+    PIceCandidate freeSocketCandidates[KVS_ICE_MAX_LOCAL_CANDIDATE_COUNT];
+    UINT32 freeSocketCandidateCount = 0, freeIdx = 0;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
@@ -2554,11 +2556,16 @@ STATUS iceAgentReadyStateSetup(PIceAgent pIceAgent)
         pIceCandidate = (PIceCandidate) pCurNode->data;
         pCurNode = pCurNode->pNext;
 
-        if (pIceCandidate != pIceAgent->pDataSendingIceCandidatePair->local) {
+        if (pIceCandidate != pIceAgent->pDataSendingIceCandidatePair->local && pIceCandidate->state != ICE_CANDIDATE_STATE_INVALID) {
             if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
                 CHK_STATUS(turnConnectionShutdown(pIceCandidate->pTurnConnection, 0));
             }
             pIceCandidate->state = ICE_CANDIDATE_STATE_INVALID;
+            // Its socket is still open (only the candidate was invalidated).
+            // Collect it and free it in CleanUp, after pIceAgent->lock is dropped.
+            if (freeSocketCandidateCount < KVS_ICE_MAX_LOCAL_CANDIDATE_COUNT) {
+                freeSocketCandidates[freeSocketCandidateCount++] = pIceCandidate;
+            }
         }
     }
     CHK_STATUS(iceAgentInvalidateCandidatePair(pIceAgent));
@@ -2582,6 +2589,23 @@ CleanUp:
 
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
+        locked = FALSE;
+    }
+
+    // Free the collected candidates' sockets here, outside pIceAgent->lock
+    // (connectionListenerRemoveConnection must not run under it). The structs stay
+    // in localCandidates and are freed at teardown; the frees are NULL-safe, so
+    // NULLing the pointers here avoids a double-free.
+    for (freeIdx = 0; freeIdx < freeSocketCandidateCount; ++freeIdx) {
+        pIceCandidate = freeSocketCandidates[freeIdx];
+        if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
+            if (pIceCandidate->pTurnConnection != NULL) {
+                CHK_LOG_ERR(freeTurnConnection(&pIceCandidate->pTurnConnection));
+            }
+        } else if (pIceCandidate->pSocketConnection != NULL) {
+            CHK_LOG_ERR(connectionListenerRemoveConnection(pIceAgent->pConnectionListener, pIceCandidate->pSocketConnection));
+            CHK_LOG_ERR(freeSocketConnection(&pIceCandidate->pSocketConnection));
+        }
     }
 
     if (STATUS_FAILED(retStatus)) {
