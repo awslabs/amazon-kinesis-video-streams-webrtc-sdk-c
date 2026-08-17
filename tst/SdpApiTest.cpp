@@ -2,6 +2,7 @@
 #include <sstream>
 #include <tuple>
 #include <regex>
+#include <vector>
 
 #include "WebRTCClientTestFixture.h"
 
@@ -173,6 +174,35 @@ TEST_F(SdpApiTest, deserializeSessionDescription_PhoneNumberTruncatedAtMaxLength
     EXPECT_EQ(STRLEN(sessionDescription.phoneNumber), (UINT32) MAX_SDP_SESSION_PHONE_NUMBER_LENGTH);
 }
 
+TEST_F(SdpApiTest, deserializeSessionDescription_MediaAttributesAtMaxCount)
+{
+    // "a=mid" plus (MAX_SDP_ATTRIBUTES_COUNT - 1) filler attributes fills the media section exactly to capacity.
+    std::string sdpStr = "v=0\nm=video 9 UDP/TLS/RTP/SAVPF 96\na=mid:1\n";
+    for (UINT32 i = 1; i < MAX_SDP_ATTRIBUTES_COUNT; i++) {
+        sdpStr += "a=rtcp-fb:" + std::to_string(i) + " rrtr\n";
+    }
+
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescription(&sessionDescription, (PCHAR) sdpStr.c_str()));
+    EXPECT_EQ(sessionDescription.mediaDescriptions[0].mediaAttributesCount, (UINT32) MAX_SDP_ATTRIBUTES_COUNT);
+    EXPECT_STREQ(sessionDescription.mediaDescriptions[0].sdpAttributes[0].attributeName, "mid");
+}
+
+TEST_F(SdpApiTest, deserializeSessionDescription_MediaAttributesExceedingMaxCountIsRejected)
+{
+    // One attribute more than the media section can hold must be reported instead of wrapping the counter back onto index 0.
+    std::string sdpStr = "v=0\nm=video 9 UDP/TLS/RTP/SAVPF 96\na=mid:1\n";
+    for (UINT32 i = 1; i <= MAX_SDP_ATTRIBUTES_COUNT; i++) {
+        sdpStr += "a=rtcp-fb:" + std::to_string(i) + " rrtr\n";
+    }
+
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED, deserializeSessionDescription(&sessionDescription, (PCHAR) sdpStr.c_str()));
+    EXPECT_STREQ(sessionDescription.mediaDescriptions[0].sdpAttributes[0].attributeName, "mid");
+}
+
 auto populate_session_description = [](PSessionDescription pSessionDescription) {
     MEMSET(pSessionDescription, 0x00, SIZEOF(SessionDescription));
 
@@ -300,6 +330,7 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_NoRtxType)
     KvsRtpTransceiver transceiver;
     MEMSET(&transceiver, 0x00, SIZEOF(KvsRtpTransceiver));
     transceiver.sender.track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    transceiver.sender.track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
     transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     transceiver.sender.packetBuffer = NULL;
     transceiver.sender.retransmitter = NULL;
@@ -331,6 +362,7 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType)
     KvsRtpTransceiver transceiver;
     MEMSET(&transceiver, 0x00, SIZEOF(KvsRtpTransceiver));
     transceiver.sender.track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    transceiver.sender.track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
     transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     transceiver.sender.packetBuffer = NULL;
     transceiver.sender.retransmitter = NULL;
@@ -353,6 +385,40 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType)
     doubleListFree(pTransceivers);
 }
 
+// VP8 is affected by the same media-codec vs RTX-codec enum mismatch (RTC_CODEC_VP8 = 3, RTC_RTX_CODEC_VP8 = 2).
+// The rtxTable is keyed by RTC_RTX_CODEC_VP8; setTransceiverPayloadTypes() must map to it and resolve rtxPayloadType.
+TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType_VP8)
+{
+    PHashTable pCodecTable;
+    PHashTable pRtxTable;
+    PDoubleList pTransceivers;
+    KvsRtpTransceiver transceiver;
+    MEMSET(&transceiver, 0x00, SIZEOF(KvsRtpTransceiver));
+    transceiver.sender.track.codec = RTC_CODEC_VP8;
+    transceiver.sender.track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    transceiver.sender.packetBuffer = NULL;
+    transceiver.sender.retransmitter = NULL;
+    EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pCodecTable));
+    EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pCodecTable, RTC_CODEC_VP8, 1));
+    EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pRtxTable));
+    EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pRtxTable, RTC_RTX_CODEC_VP8, 2));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&pTransceivers));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(pTransceivers, (UINT64)(&transceiver)));
+    EXPECT_EQ(STATUS_SUCCESS, setTransceiverPayloadTypes(pCodecTable, pRtxTable, pTransceivers));
+    EXPECT_EQ(1, transceiver.sender.payloadType);
+    // rtxPayloadType must resolve to the distinct value (2), not stay equal to payloadType (which would mean plain resend).
+    EXPECT_EQ(2, transceiver.sender.rtxPayloadType);
+    EXPECT_NE((PRtpRollingBuffer) NULL, transceiver.sender.packetBuffer);
+    EXPECT_NE((PRetransmitter) NULL, transceiver.sender.retransmitter);
+    hashTableFree(pCodecTable);
+    hashTableFree(pRtxTable);
+    freeRollingBufferConfig(transceiver.pRollingBufferConfig);
+    freeRtpRollingBuffer(&transceiver.sender.packetBuffer);
+    freeRetransmitter(&transceiver.sender.retransmitter);
+    doubleListFree(pTransceivers);
+}
+
 TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType_H265)
 {
     PHashTable pCodecTable;
@@ -361,17 +427,24 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType_H265)
     KvsRtpTransceiver transceiver;
     MEMSET(&transceiver, 0x00, SIZEOF(KvsRtpTransceiver));
     transceiver.sender.track.codec = RTC_CODEC_H265;
+    transceiver.sender.track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
     transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     transceiver.sender.packetBuffer = NULL;
     transceiver.sender.retransmitter = NULL;
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pCodecTable));
     EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pCodecTable, RTC_CODEC_H265, 1));
     EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pRtxTable));
-    EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pRtxTable, RTC_CODEC_H265, 2));
+    // The rtxTable must be keyed by the RTX-codec enum (RTC_RTX_CODEC_H265), NOT the media-codec enum
+    // (RTC_CODEC_H265) — the two enums have different numbering (H265: 7 vs 3). This mirrors how the
+    // production code populates the table in setPayloadTypesFromOffer(). A prior version of this test
+    // seeded RTC_CODEC_H265 here, which masked a bug where setTransceiverPayloadTypes() looked the table
+    // up with the wrong key and silently fell back to plain resend for H265.
+    EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pRtxTable, RTC_RTX_CODEC_H265, 2));
     EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&pTransceivers));
     EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(pTransceivers, (UINT64)(&transceiver)));
     EXPECT_EQ(STATUS_SUCCESS, setTransceiverPayloadTypes(pCodecTable, pRtxTable, pTransceivers));
     EXPECT_EQ(1, transceiver.sender.payloadType);
+    // RTX must resolve to the distinct payload type (2), i.e. rtxPayloadType != payloadType.
     EXPECT_EQ(2, transceiver.sender.rtxPayloadType);
     EXPECT_NE((PRtpRollingBuffer) NULL, transceiver.sender.packetBuffer);
     EXPECT_NE((PRetransmitter) NULL, transceiver.sender.retransmitter);
@@ -461,6 +534,50 @@ TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendRecvMaxTransceivers)
     closePeerConnection(offerPc);
     freePeerConnection(&offerPc);
 }
+
+#ifdef ENABLE_DATA_CHANNEL
+// Validates that (MAX_SDP_SESSION_MEDIA_COUNT - 1) transceivers succeed with data channel enabled,
+// since data channel consumes 1 slot. Adding one more should exceed the limit.
+TEST_F(SdpApiTest, populateSingleMediaSection_MaxTransceiversWithDataChannel)
+{
+    PRtcPeerConnection offerPc = NULL;
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit sessionDescriptionInit;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+
+    RtcMediaStreamTrack track;
+    PRtcRtpTransceiver pTransceiver;
+    RtcRtpTransceiverInit rtcRtpTransceiverInit;
+    rtcRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+
+    MEMSET(&track, 0x00, SIZEOF(RtcMediaStreamTrack));
+    track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    STRCPY(track.streamId, "myKvsStream");
+    STRCPY(track.trackId, "videoTrack");
+
+    // Fill all slots except one reserved for data channel
+    for (UINT32 i = 0; i < MAX_SDP_SESSION_MEDIA_COUNT - 1; i++) {
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(offerPc, &track, &rtcRtpTransceiverInit, &pTransceiver));
+    }
+
+    // (MAX_SDP_SESSION_MEDIA_COUNT - 1) transceivers + 1 data channel = MAX_SDP_SESSION_MEDIA_COUNT
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sessionDescriptionInit));
+    EXPECT_PRED_FORMAT2(testing::IsSubstring, "m=video", sessionDescriptionInit.sdp);
+    EXPECT_PRED_FORMAT2(testing::IsSubstring, "m=application", sessionDescriptionInit.sdp);
+
+    // Adding one more transceiver should exceed the limit
+    STRCPY(track.trackId, "extraTrack");
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(offerPc, &track, &rtcRtpTransceiverInit, &pTransceiver));
+    EXPECT_EQ(STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT, createOffer(offerPc, &sessionDescriptionInit));
+
+    closePeerConnection(offerPc);
+    freePeerConnection(&offerPc);
+}
+#endif
 
 TEST_F(SdpApiTest, populateSingleMediaSection_TestTxSendOnly)
 {
@@ -708,34 +825,40 @@ a=rtpmap:111 opus/48000/2
 a=fmtp:111 minptime=10;useinbandfec=1
 a=rtcp-fb:111 nack)";
 
-TEST_F(SdpApiTest, threeVideoTracksWithSameCodec)
+static std::string buildSdpWithMediaCount(UINT32 mediaCount)
 {
-    auto offer3 = std::string(R"(v=0
-o=- 481034601 1588366671 IN IP4 0.0.0.0
-s=-
-t=0 0
-a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
-a=group:BUNDLE 0 1 2 3
-)");
-    offer3 += sdpdata;
-    offer3 += "\n";
-    offer3 += sdpvideo;
-    offer3 += "\n";
-    offer3 += sdpvideo;
-    offer3 += "\n";
-    offer3 += sdpvideo;
-    offer3 += "\n";
-    offer3 += sdpvideo;
-    offer3 += "\n";
-    offer3 += sdpvideo;
-    offer3 += "\n";
+    auto sdp = std::string("v=0\r\n"
+                           "o=- 481034601 1588366671 IN IP4 0.0.0.0\r\n"
+                           "s=-\r\n"
+                           "t=0 0\r\n"
+                           "a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5\r\n"
+                           "a=group:BUNDLE");
+    for (UINT32 i = 0; i < mediaCount; i++) {
+        sdp += " " + std::to_string(i);
+    }
+    sdp += "\r\n";
+    for (UINT32 i = 0; i < mediaCount; i++) {
+        sdp += sdpvideo;
+        sdp += "\r\n";
+    }
+    return sdp;
+}
 
-    assertLFAndCRLF((PCHAR) offer3.c_str(), offer3.size(), [](PCHAR sdp) {
-        SessionDescription sessionDescription;
-        MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
-        // as log as Sdp.h  MAX_SDP_SESSION_MEDIA_COUNT 5 this should fail instead of overwriting memory
-        EXPECT_EQ(STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT, deserializeSessionDescription(&sessionDescription, (PCHAR) sdp));
-    });
+TEST_F(SdpApiTest, maxVideoTracksWithSameCodec_AtLimit)
+{
+    auto offer = buildSdpWithMediaCount(MAX_SDP_SESSION_MEDIA_COUNT);
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescription(&sessionDescription, (PCHAR) offer.c_str()));
+    EXPECT_EQ(sessionDescription.mediaCount, MAX_SDP_SESSION_MEDIA_COUNT);
+}
+
+TEST_F(SdpApiTest, maxVideoTracksWithSameCodec_OverLimit)
+{
+    auto offer = buildSdpWithMediaCount(MAX_SDP_SESSION_MEDIA_COUNT + 1);
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT, deserializeSessionDescription(&sessionDescription, (PCHAR) offer.c_str()));
 }
 
 // if offer is recvonly answer must be sendonly
@@ -1015,6 +1138,9 @@ a=ssrc:331864867 msid:2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84 757d07a0-892a-46e7-a1
         EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
     });
 
+    // Add more media lines to exceed MAX_SDP_SESSION_MEDIA_COUNT
+    offerBase += unsupportedAudioSdp;
+    offerBase += "\n";
     offerBase += unsupportedAudioSdp;
     offerBase += "\n";
 
@@ -1036,6 +1162,222 @@ a=ssrc:331864867 msid:2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84 757d07a0-892a-46e7-a1
     });
 }
 
+
+// When multiple remote media sections map to fake transceivers, each should get a unique
+// stream/track ID (e.g. fakeStream0/fakeTrack0, fakeStream1/fakeTrack1), no collisions.
+TEST_F(SdpApiTest, fakeTransceiverUniqueIds_noDuplicateStreamTrackIds)
+{
+    auto offer = std::string(R"(v=0
+o=- 2414510623331460048 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0 1
+a=extmap-allow-mixed
+a=msid-semantic: WMS 2e3ca9ff-0c7e-4b9d-9471-2ce80de74b84
+m=video 9 UDP/TLS/RTP/SAVPF 200
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 37:C4:5C:9C:C9:DA:56:22:47:1F:8C:93:E1:A1:51:A8:15:94:78:1D:89:26:69:44:65:6C:C3:83:96:10:32:43
+a=setup:actpass
+a=mid:0
+a=sendrecv
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:200 unsupportedCodec/90000
+a=ssrc:111111111 cname:test
+a=ssrc:111111111 msid:stream1 track1
+m=audio 9 UDP/TLS/RTP/SAVPF 201
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 37:C4:5C:9C:C9:DA:56:22:47:1F:8C:93:E1:A1:51:A8:15:94:78:1D:89:26:69:44:65:6C:C3:83:96:10:32:43
+a=setup:actpass
+a=mid:1
+a=sendrecv
+a=rtcp-mux
+a=rtpmap:201 unsupportedAudioCodec/48000/2
+a=ssrc:222222222 cname:test
+a=ssrc:222222222 msid:stream2 track2
+)");
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+        RtcSessionDescriptionInit answerSdp{};
+
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, (PCHAR) sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+        std::string answerStr(answerSdp.sdp);
+
+        // Each fake transceiver should get a unique index-suffixed ID.
+        // Media section 0 -> fakeStream0/fakeTrack0, media section 1 -> fakeStream1/fakeTrack1
+        EXPECT_NE(std::string::npos, answerStr.find("fakeStream0"));
+        EXPECT_NE(std::string::npos, answerStr.find("fakeTrack0"));
+        EXPECT_NE(std::string::npos, answerStr.find("fakeStream1"));
+        EXPECT_NE(std::string::npos, answerStr.find("fakeTrack1"));
+
+        // Verify there's no un-indexed "fakeStream " (without a digit suffix) which would indicate collision
+        // The pattern "fakeStream " (with trailing space) would be the msid format: "fakeStream fakeTrack"
+        EXPECT_EQ(std::string::npos, answerStr.find("fakeStream fakeTrack"));
+
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    });
+}
+
+// 4 unsupported video m-lines + 1 supported audio m-line (matched by a local transceiver).
+// Only the 4 video sections should produce fake transceivers with unique indexed IDs.
+// The audio section should match normally and not produce a fake transceiver.
+TEST_F(SdpApiTest, fakeTransceiverUniqueIds_fourVideoOneSupportedAudio)
+{
+    auto offer = std::string(R"(v=0
+o=- 2414510623331460048 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0 1 2 3 4
+a=extmap-allow-mixed
+a=msid-semantic: WMS teststream
+m=video 9 UDP/TLS/RTP/SAVPF 200
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 37:C4:5C:9C:C9:DA:56:22:47:1F:8C:93:E1:A1:51:A8:15:94:78:1D:89:26:69:44:65:6C:C3:83:96:10:32:43
+a=setup:actpass
+a=mid:0
+a=sendrecv
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:200 unsupportedVideoCodecA/90000
+a=ssrc:111111111 cname:test
+a=ssrc:111111111 msid:teststream track0
+m=video 9 UDP/TLS/RTP/SAVPF 201
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 37:C4:5C:9C:C9:DA:56:22:47:1F:8C:93:E1:A1:51:A8:15:94:78:1D:89:26:69:44:65:6C:C3:83:96:10:32:43
+a=setup:actpass
+a=mid:1
+a=sendrecv
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:201 unsupportedVideoCodecB/90000
+a=ssrc:222222222 cname:test
+a=ssrc:222222222 msid:teststream track1
+m=video 9 UDP/TLS/RTP/SAVPF 202
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 37:C4:5C:9C:C9:DA:56:22:47:1F:8C:93:E1:A1:51:A8:15:94:78:1D:89:26:69:44:65:6C:C3:83:96:10:32:43
+a=setup:actpass
+a=mid:2
+a=sendrecv
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:202 unsupportedVideoCodecC/90000
+a=ssrc:333333333 cname:test
+a=ssrc:333333333 msid:teststream track2
+m=video 9 UDP/TLS/RTP/SAVPF 203
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 37:C4:5C:9C:C9:DA:56:22:47:1F:8C:93:E1:A1:51:A8:15:94:78:1D:89:26:69:44:65:6C:C3:83:96:10:32:43
+a=setup:actpass
+a=mid:3
+a=sendrecv
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:203 unsupportedVideoCodecD/90000
+a=ssrc:444444444 cname:test
+a=ssrc:444444444 msid:teststream track3
+m=audio 9 UDP/TLS/RTP/SAVPF 111
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 37:C4:5C:9C:C9:DA:56:22:47:1F:8C:93:E1:A1:51:A8:15:94:78:1D:89:26:69:44:65:6C:C3:83:96:10:32:43
+a=setup:actpass
+a=mid:4
+a=sendrecv
+a=rtcp-mux
+a=rtpmap:111 opus/48000/2
+a=ssrc:555555555 cname:test
+a=ssrc:555555555 msid:teststream track4
+)");
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcMediaStreamTrack audioTrack{};
+        PRtcRtpTransceiver transceiver = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+        RtcSessionDescriptionInit answerSdp{};
+
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+
+        audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+        audioTrack.codec = RTC_CODEC_OPUS;
+        STRNCPY(audioTrack.streamId, "myAudioStream", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(audioTrack.trackId, "myAudioTrack", MAX_MEDIA_STREAM_TRACK_ID_LEN);
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, (PCHAR) sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_OPUS));
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &audioTrack, nullptr, &transceiver));
+
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+        std::string answerStr(answerSdp.sdp);
+
+        // The 4 unsupported video m-lines (indices 0-3) should each produce a unique fake transceiver
+        EXPECT_NE(std::string::npos, answerStr.find("fakeStream0"));
+        EXPECT_NE(std::string::npos, answerStr.find("fakeTrack0"));
+        EXPECT_NE(std::string::npos, answerStr.find("fakeStream1"));
+        EXPECT_NE(std::string::npos, answerStr.find("fakeTrack1"));
+        EXPECT_NE(std::string::npos, answerStr.find("fakeStream2"));
+        EXPECT_NE(std::string::npos, answerStr.find("fakeTrack2"));
+        EXPECT_NE(std::string::npos, answerStr.find("fakeStream3"));
+        EXPECT_NE(std::string::npos, answerStr.find("fakeTrack3"));
+
+        // The audio m-line (index 4) matched a real transceiver, so no fakeStream4/fakeTrack4
+        EXPECT_EQ(std::string::npos, answerStr.find("fakeStream4"));
+        EXPECT_EQ(std::string::npos, answerStr.find("fakeTrack4"));
+
+        // The real audio transceiver's stream ID should be present
+        EXPECT_NE(std::string::npos, answerStr.find("myAudioStream"));
+
+        // No un-indexed collision
+        EXPECT_EQ(std::string::npos, answerStr.find("fakeStream fakeTrack"));
+
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    });
+}
 
 // if offer (remote) contains video m-line only then answer (local) should contain video m-line only
 // even if local side has other transceivers, i.e. audio
@@ -4018,6 +4360,593 @@ a=recvonly
         closePeerConnection(pRtcPeerConnection);
         EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
     });
+}
+
+// Verify that setPayloadTypesFromOffer correctly parses RTX fmtp attributes
+// and stores the RTX payload type for H265 when the offer uses a non-default PT
+TEST_F(SdpApiTest, setPayloadTypesFromOffer_H265RtxParsedFromOffer)
+{
+    auto offer = std::string(R"(v=0
+o=- 481034601 1588366671 IN IP4 0.0.0.0
+s=-
+t=0 0
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+a=group:BUNDLE 0
+m=video 9 UDP/TLS/RTP/SAVPF 51 52
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 37:C4:5C:9C:C9:DA:56:22:47:1F:8C:93:E1:A1:51:A8:15:94:78:1D:89:26:69:44:65:6C:C3:83:96:10:32:43
+a=setup:actpass
+a=mid:0
+a=sendrecv
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:51 H265/90000
+a=fmtp:51 level-id=180;profile-id=2;tier-flag=0
+a=rtcp-fb:51 nack
+a=rtcp-fb:51 nack pli
+a=rtpmap:52 rtx/90000
+a=fmtp:52 apt=51
+a=ssrc-group:FID 1234567890 9876543210
+a=ssrc:1234567890 cname:testCname
+a=ssrc:9876543210 cname:testCname
+)");
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcMediaStreamTrack track{};
+        PRtcRtpTransceiver transceiver = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+        RtcSessionDescriptionInit answerSdp{};
+
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+
+        track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        track.codec = RTC_CODEC_H265;
+        STRNCPY(track.streamId, "myVideoStream", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track.trackId, "myVideoTrack", MAX_MEDIA_STREAM_TRACK_ID_LEN);
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H265));
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track, nullptr, &transceiver));
+
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+        std::string answer(answerSdp.sdp);
+
+        // The answer should use PT 51 from the offer, not the default 127
+        EXPECT_NE(std::string::npos, answer.find("m=video 9 UDP/TLS/RTP/SAVPF 51 52"));
+        EXPECT_NE(std::string::npos, answer.find("a=rtpmap:51 H265/90000"));
+        EXPECT_NE(std::string::npos, answer.find("a=rtpmap:52 rtx/90000"));
+        EXPECT_NE(std::string::npos, answer.find("a=fmtp:52 apt=51"));
+
+        // Should NOT contain the default PT 127 for H265
+        EXPECT_EQ(std::string::npos, answer.find("a=rtpmap:127 H265/90000"));
+
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    });
+}
+
+// End-to-end regression guard for the RTX-table key mismatch (media-codec RTC_CODEC_* vs RTX-codec
+// RTC_RTX_CODEC_*). This drives the full negotiation (setPayloadTypesFromOffer populates the tables,
+// setTransceiverPayloadTypes consumes them) and asserts the SENDER's runtime rtxPayloadType actually
+// resolved to the negotiated RTX PT — i.e. rtxPayloadType != payloadType. If they were equal,
+// resendPacketOnNack() would take the non-compliant plain-resend branch instead of sending RTX.
+// Pre-fix this failed for H265 (looked up RTC_CODEC_H265=7 in a table keyed by RTC_RTX_CODEC_H265=3).
+TEST_F(SdpApiTest, setTransceiverPayloadTypes_H265RtxResolvedEndToEnd)
+{
+    auto offer = std::string(R"(v=0
+o=- 481034601 1588366671 IN IP4 0.0.0.0
+s=-
+t=0 0
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+a=group:BUNDLE 0
+m=video 9 UDP/TLS/RTP/SAVPF 51 52
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 37:C4:5C:9C:C9:DA:56:22:47:1F:8C:93:E1:A1:51:A8:15:94:78:1D:89:26:69:44:65:6C:C3:83:96:10:32:43
+a=setup:actpass
+a=mid:0
+a=sendrecv
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:51 H265/90000
+a=fmtp:51 level-id=180;profile-id=2;tier-flag=0
+a=rtcp-fb:51 nack
+a=rtcp-fb:51 nack pli
+a=rtpmap:52 rtx/90000
+a=fmtp:52 apt=51
+a=ssrc-group:FID 1234567890 9876543210
+a=ssrc:1234567890 cname:testCname
+a=ssrc:9876543210 cname:testCname
+)");
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcMediaStreamTrack track{};
+        PRtcRtpTransceiver transceiver = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+        RtcSessionDescriptionInit answerSdp{};
+
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+
+        track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        track.codec = RTC_CODEC_H265;
+        STRNCPY(track.streamId, "myVideoStream", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track.trackId, "myVideoTrack", MAX_MEDIA_STREAM_TRACK_ID_LEN);
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H265));
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track, nullptr, &transceiver));
+
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+        // The negotiated sender payload types drive resendPacketOnNack(); reach into the transceiver and
+        // confirm RTX actually resolved to a distinct PT (52 from the offer), not a fallback to the media PT.
+        PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) transceiver;
+        EXPECT_EQ(51, pKvsRtpTransceiver->sender.payloadType);
+        EXPECT_EQ(52, pKvsRtpTransceiver->sender.rtxPayloadType);
+        EXPECT_NE(pKvsRtpTransceiver->sender.payloadType, pKvsRtpTransceiver->sender.rtxPayloadType);
+
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    });
+}
+
+// Verify RTX parsing works for H264 with non-default PTs in the offer
+TEST_F(SdpApiTest, setPayloadTypesFromOffer_H264RtxParsedFromOffer)
+{
+    auto offer = std::string(R"(v=0
+o=- 481034601 1588366671 IN IP4 0.0.0.0
+s=-
+t=0 0
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+a=group:BUNDLE 0
+m=video 9 UDP/TLS/RTP/SAVPF 102 103
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 37:C4:5C:9C:C9:DA:56:22:47:1F:8C:93:E1:A1:51:A8:15:94:78:1D:89:26:69:44:65:6C:C3:83:96:10:32:43
+a=setup:actpass
+a=mid:0
+a=sendrecv
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:102 H264/90000
+a=fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f
+a=rtcp-fb:102 nack
+a=rtcp-fb:102 nack pli
+a=rtpmap:103 rtx/90000
+a=fmtp:103 apt=102
+a=ssrc-group:FID 1234567890 9876543210
+a=ssrc:1234567890 cname:testCname
+a=ssrc:9876543210 cname:testCname
+)");
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcMediaStreamTrack track{};
+        PRtcRtpTransceiver transceiver = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+        RtcSessionDescriptionInit answerSdp{};
+
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+
+        track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+        STRNCPY(track.streamId, "myVideoStream", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track.trackId, "myVideoTrack", MAX_MEDIA_STREAM_TRACK_ID_LEN);
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track, nullptr, &transceiver));
+
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+        std::string answer(answerSdp.sdp);
+
+        // The answer should use PT 102/103 from the offer
+        EXPECT_NE(std::string::npos, answer.find("m=video 9 UDP/TLS/RTP/SAVPF 102 103"));
+        EXPECT_NE(std::string::npos, answer.find("a=rtpmap:102 H264/90000"));
+        EXPECT_NE(std::string::npos, answer.find("a=rtpmap:103 rtx/90000"));
+        EXPECT_NE(std::string::npos, answer.find("a=fmtp:103 apt=102"));
+
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    });
+}
+
+// Verify that when the offer has no RTX for H265, the answer also omits RTX
+TEST_F(SdpApiTest, setPayloadTypesFromOffer_H265NoRtxInOffer)
+{
+    auto offer = std::string(R"(v=0
+o=- 481034601 1588366671 IN IP4 0.0.0.0
+s=-
+t=0 0
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+a=group:BUNDLE 0
+m=video 9 UDP/TLS/RTP/SAVPF 51
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 37:C4:5C:9C:C9:DA:56:22:47:1F:8C:93:E1:A1:51:A8:15:94:78:1D:89:26:69:44:65:6C:C3:83:96:10:32:43
+a=setup:actpass
+a=mid:0
+a=sendrecv
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:51 H265/90000
+a=fmtp:51 level-id=180;profile-id=2;tier-flag=0
+a=rtcp-fb:51 nack
+a=rtcp-fb:51 nack pli
+a=ssrc:1234567890 cname:testCname
+)");
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcMediaStreamTrack track{};
+        PRtcRtpTransceiver transceiver = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+        RtcSessionDescriptionInit answerSdp{};
+
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+
+        track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        track.codec = RTC_CODEC_H265;
+        STRNCPY(track.streamId, "myVideoStream", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track.trackId, "myVideoTrack", MAX_MEDIA_STREAM_TRACK_ID_LEN);
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H265));
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track, nullptr, &transceiver));
+
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+        std::string answer(answerSdp.sdp);
+
+        // The answer should use PT 51 from the offer (not default 127)
+        EXPECT_NE(std::string::npos, answer.find("m=video 9 UDP/TLS/RTP/SAVPF 51"));
+        EXPECT_NE(std::string::npos, answer.find("a=rtpmap:51 H265/90000"));
+
+        // No RTX should be present since the offer didn't include it
+        EXPECT_EQ(std::string::npos, answer.find("rtx/90000"));
+
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    });
+}
+
+// Verify RTX works for VP8 with non-default PTs
+TEST_F(SdpApiTest, setPayloadTypesFromOffer_VP8RtxParsedFromOffer)
+{
+    auto offer = std::string(R"(v=0
+o=- 481034601 1588366671 IN IP4 0.0.0.0
+s=-
+t=0 0
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+a=group:BUNDLE 0
+m=video 9 UDP/TLS/RTP/SAVPF 96 97
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:tEm4
+a=ice-pwd:MHYra0wZc3cAECKFPlnoRpon
+a=ice-options:trickle
+a=fingerprint:sha-256 37:C4:5C:9C:C9:DA:56:22:47:1F:8C:93:E1:A1:51:A8:15:94:78:1D:89:26:69:44:65:6C:C3:83:96:10:32:43
+a=setup:actpass
+a=mid:0
+a=sendrecv
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:96 VP8/90000
+a=rtcp-fb:96 nack
+a=rtcp-fb:96 nack pli
+a=rtpmap:97 rtx/90000
+a=fmtp:97 apt=96
+a=ssrc-group:FID 1234567890 9876543210
+a=ssrc:1234567890 cname:testCname
+a=ssrc:9876543210 cname:testCname
+)");
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcMediaStreamTrack track{};
+        PRtcRtpTransceiver transceiver = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+        RtcSessionDescriptionInit answerSdp{};
+
+        SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+
+        track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        track.codec = RTC_CODEC_VP8;
+        STRNCPY(track.streamId, "myVideoStream", MAX_MEDIA_STREAM_ID_LEN);
+        STRNCPY(track.trackId, "myVideoTrack", MAX_MEDIA_STREAM_TRACK_ID_LEN);
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_VP8));
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track, nullptr, &transceiver));
+
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+        std::string answer(answerSdp.sdp);
+
+        // The answer should include both the primary and RTX PTs from the offer
+        EXPECT_NE(std::string::npos, answer.find("m=video 9 UDP/TLS/RTP/SAVPF 96 97"));
+        EXPECT_NE(std::string::npos, answer.find("a=rtpmap:96 VP8/90000"));
+        EXPECT_NE(std::string::npos, answer.find("a=rtpmap:97 rtx/90000"));
+        EXPECT_NE(std::string::npos, answer.find("a=fmtp:97 apt=96"));
+
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Renegotiation answer-shape tests.
+//
+// These encode two failures seen live against browser (Chrome) offerers,
+// which C-SDK-to-C-SDK tests can never produce (the SDK's own serializer
+// always emits media m-lines before the datachannel, and both sides share
+// the same list-order convention):
+//  1. A re-offer carrying a NEW media m-line AFTER the datachannel m-line
+//     (Chrome appends when addTrack() follows datachannel creation). The
+//     answer must mirror the offer's m-line count and order exactly, or a
+//     strict RFC 3264 peer rejects it with "the order of m-lines in answer
+//     doesn't match order in offer".
+//  2. Repeated direction-flip re-offers must keep the answer shape stable
+//     (m-line count and mid order) round after round: the original
+//     pAnswerTransceivers accumulation bug duplicated every m-line per
+//     exchange.
+// ---------------------------------------------------------------------------
+
+// Parses an SDP blob and appends one "<kind>:<mid>:<direction>" entry per
+// m-line, e.g. "audio:0:sendonly". Missing mid/direction become "?".
+static void getMLineShape(PCHAR pSdp, std::vector<std::string>& shape)
+{
+    SessionDescription sessionDescription;
+    MEMSET(&sessionDescription, 0x00, SIZEOF(SessionDescription));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescription(&sessionDescription, pSdp));
+    for (UINT32 i = 0; i < sessionDescription.mediaCount; i++) {
+        std::string kind(sessionDescription.mediaDescriptions[i].mediaName);
+        kind = kind.substr(0, kind.find(' '));
+        std::string mid = "?", direction = "?";
+        for (UINT32 j = 0; j < sessionDescription.mediaDescriptions[i].mediaAttributesCount; j++) {
+            std::string name(sessionDescription.mediaDescriptions[i].sdpAttributes[j].attributeName);
+            if (name == "mid") {
+                mid = sessionDescription.mediaDescriptions[i].sdpAttributes[j].attributeValue;
+            } else if (name == "sendrecv" || name == "sendonly" || name == "recvonly" || name == "inactive") {
+                direction = name;
+            }
+        }
+        shape.push_back(kind + ":" + mid + ":" + direction);
+    }
+}
+
+static const char* REOFFER_TEST_SESSION_HEADER = R"(v=0
+o=- 8330580876802930272 %u IN IP4 127.0.0.1
+s=-
+t=0 0
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+a=group:BUNDLE %s
+a=msid-semantic: WMS myStream
+)";
+
+static std::string reofferMLineAudio(const char* direction)
+{
+    return std::string(R"(m=audio 9 UDP/TLS/RTP/SAVPF 111
+c=IN IP4 127.0.0.1
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:V/Tk
+a=ice-pwd:Kz4OIcMjZ4mEiMC0mKItiVUI
+a=ice-options:trickle
+a=setup:actpass
+a=mid:0
+a=)") + direction +
+        R"(
+a=rtcp-mux
+a=rtpmap:111 opus/48000/2
+a=fmtp:111 minptime=10;useinbandfec=1
+)";
+}
+
+static std::string reofferMLineVideo(const char* mid, const char* direction, const char* msid)
+{
+    std::string s = std::string(R"(m=video 9 UDP/TLS/RTP/SAVPF 109
+c=IN IP4 127.0.0.1
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:V/Tk
+a=ice-pwd:Kz4OIcMjZ4mEiMC0mKItiVUI
+a=ice-options:trickle
+a=setup:actpass
+a=mid:)") +
+        mid + "\n";
+    if (msid != NULL) {
+        s += std::string("a=msid:myStream ") + msid + "\n";
+    }
+    s += std::string("a=") + direction + R"(
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:109 H264/90000
+a=fmtp:109 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f
+)";
+    return s;
+}
+
+static const char* REOFFER_MLINE_DATA = R"(m=application 9 UDP/DTLS/SCTP webrtc-datachannel
+c=IN IP4 127.0.0.1
+a=ice-ufrag:V/Tk
+a=ice-pwd:Kz4OIcMjZ4mEiMC0mKItiVUI
+a=ice-options:trickle
+a=setup:actpass
+a=mid:2
+a=sctp-port:5000
+)";
+
+TEST_F(SdpApiTest, reOfferWithMediaAfterDataChannelAnswerMirrorsMLineOrder)
+{
+    RtcConfiguration configuration{};
+    PRtcPeerConnection pRtcPeerConnection = nullptr;
+    RtcMediaStreamTrack audioTrack{}, videoTrack{};
+    PRtcRtpTransceiver audioTransceiver = nullptr, videoTransceiver = nullptr;
+    RtcSessionDescriptionInit offerSdp{};
+    RtcSessionDescriptionInit answerSdp{};
+    CHAR sessionHeader[512];
+
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+
+    audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+    audioTrack.codec = RTC_CODEC_OPUS;
+    STRNCPY(audioTrack.streamId, "myStream", MAX_MEDIA_STREAM_ID_LEN);
+    STRNCPY(audioTrack.trackId, "audioTrack", MAX_MEDIA_STREAM_TRACK_ID_LEN);
+    videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    STRNCPY(videoTrack.streamId, "myStream", MAX_MEDIA_STREAM_ID_LEN);
+    STRNCPY(videoTrack.trackId, "videoTrack", MAX_MEDIA_STREAM_TRACK_ID_LEN);
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_OPUS));
+    EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &audioTrack, nullptr, &audioTransceiver));
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &videoTrack, nullptr, &videoTransceiver));
+
+    // Initial browser-shaped offer: audio(0), video(1), application(2)
+    SNPRINTF(sessionHeader, SIZEOF(sessionHeader), REOFFER_TEST_SESSION_HEADER, 2, "0 1 2");
+    std::string offer = std::string(sessionHeader) + reofferMLineAudio("sendrecv") + reofferMLineVideo("1", "recvonly", NULL) + REOFFER_MLINE_DATA;
+    offerSdp.type = SDP_TYPE_OFFER;
+    STRNCPY(offerSdp.sdp, offer.c_str(), MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+    EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+    std::vector<std::string> offerShape, answerShape;
+    getMLineShape(offerSdp.sdp, offerShape);
+    getMLineShape(answerSdp.sdp, answerShape);
+    ASSERT_EQ(offerShape.size(), answerShape.size()) << "answer must mirror the offer's m-line count";
+
+    // Re-offer: Chrome appends a NEW video m-line AFTER the datachannel
+    // (addTrack on a connection that already has a datachannel).
+    SNPRINTF(sessionHeader, SIZEOF(sessionHeader), REOFFER_TEST_SESSION_HEADER, 3, "0 1 2 3");
+    std::string reoffer = std::string(sessionHeader) + reofferMLineAudio("sendrecv") + reofferMLineVideo("1", "recvonly", NULL) + REOFFER_MLINE_DATA +
+        reofferMLineVideo("3", "sendonly", "browserCamTrack");
+    MEMSET(&offerSdp, 0x00, SIZEOF(offerSdp));
+    offerSdp.type = SDP_TYPE_OFFER;
+    STRNCPY(offerSdp.sdp, reoffer.c_str(), MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+    MEMSET(&answerSdp, 0x00, SIZEOF(answerSdp));
+    EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+    offerShape.clear();
+    answerShape.clear();
+    getMLineShape(offerSdp.sdp, offerShape);
+    getMLineShape(answerSdp.sdp, answerShape);
+
+    ASSERT_EQ(offerShape.size(), answerShape.size()) << "answer must mirror the re-offer's m-line count";
+    for (size_t i = 0; i < offerShape.size(); i++) {
+        std::string offerKind = offerShape[i].substr(0, offerShape[i].find(':'));
+        std::string offerMid = offerShape[i].substr(offerShape[i].find(':') + 1);
+        offerMid = offerMid.substr(0, offerMid.find(':'));
+        std::string answerKind = answerShape[i].substr(0, answerShape[i].find(':'));
+        std::string answerMid = answerShape[i].substr(answerShape[i].find(':') + 1);
+        answerMid = answerMid.substr(0, answerMid.find(':'));
+        EXPECT_EQ(offerKind, answerKind) << "m-line " << i << " kind must match offer order (offer=" << offerShape[i] << " answer=" << answerShape[i]
+                                         << ")";
+        EXPECT_EQ(offerMid, answerMid) << "m-line " << i << " mid must match offer order (offer=" << offerShape[i] << " answer=" << answerShape[i]
+                                       << ")";
+        if (answerKind != "application") {
+            EXPECT_NE("?", answerShape[i].substr(answerShape[i].rfind(':') + 1)) << "media m-line " << i << " must carry a direction attribute";
+        }
+    }
+
+    closePeerConnection(pRtcPeerConnection);
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
+TEST_F(SdpApiTest, answerShapeStableAcrossRepeatedDirectionFlipReOffers)
+{
+    RtcConfiguration configuration{};
+    PRtcPeerConnection pRtcPeerConnection = nullptr;
+    RtcMediaStreamTrack audioTrack{}, videoTrack{};
+    PRtcRtpTransceiver audioTransceiver = nullptr, videoTransceiver = nullptr;
+    CHAR sessionHeader[512];
+
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, KINESIS_VIDEO_STUN_URL, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+
+    audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+    audioTrack.codec = RTC_CODEC_OPUS;
+    STRNCPY(audioTrack.streamId, "myStream", MAX_MEDIA_STREAM_ID_LEN);
+    STRNCPY(audioTrack.trackId, "audioTrack", MAX_MEDIA_STREAM_TRACK_ID_LEN);
+    videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    STRNCPY(videoTrack.streamId, "myStream", MAX_MEDIA_STREAM_ID_LEN);
+    STRNCPY(videoTrack.trackId, "videoTrack", MAX_MEDIA_STREAM_TRACK_ID_LEN);
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_OPUS));
+    EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &audioTrack, nullptr, &audioTransceiver));
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &videoTrack, nullptr, &videoTransceiver));
+
+    // Alternate pause (inactive) / resume (recvonly) of audio across re-offers,
+    // as a browser viewer's pause/resume buttons produce. Every answer must
+    // keep exactly the offered m-line set — no accumulation, no reordering —
+    // and mirror the flipped direction.
+    for (int round = 0; round < 6; round++) {
+        BOOL paused = (round % 2 == 1);
+        RtcSessionDescriptionInit offerSdp{};
+        RtcSessionDescriptionInit answerSdp{};
+        SNPRINTF(sessionHeader, SIZEOF(sessionHeader), REOFFER_TEST_SESSION_HEADER, 2 + round, "0 1");
+        std::string offer =
+            std::string(sessionHeader) + reofferMLineAudio(paused ? "inactive" : "recvonly") + reofferMLineVideo("1", "recvonly", NULL);
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, offer.c_str(), MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+        std::vector<std::string> answerShape;
+        getMLineShape(answerSdp.sdp, answerShape);
+        ASSERT_EQ(2u, answerShape.size()) << "round " << round << ": answer must have exactly the 2 offered m-lines";
+        EXPECT_EQ(0u, answerShape[0].find("audio:0:")) << "round " << round << ": first m-line must stay audio mid 0 (got " << answerShape[0] << ")";
+        EXPECT_EQ(0u, answerShape[1].find("video:1:")) << "round " << round << ": second m-line must stay video mid 1 (got " << answerShape[1] << ")";
+        EXPECT_EQ(std::string(paused ? "inactive" : "sendonly"), answerShape[0].substr(answerShape[0].rfind(':') + 1))
+            << "round " << round << ": audio answer direction must mirror the flip";
+    }
+
+    closePeerConnection(pRtcPeerConnection);
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
 } // namespace webrtcclient

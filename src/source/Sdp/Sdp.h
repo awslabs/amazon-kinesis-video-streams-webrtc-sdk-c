@@ -96,15 +96,36 @@ extern "C" {
 
 #define MAX_SDP_SESSION_TIME_DESCRIPTION_COUNT 2
 #define MAX_SDP_SESSION_TIMEZONE_COUNT         2
+
 /**
  * https://tools.ietf.org/html/rfc4566#section-5.14
  *
- * reserving enough for audio, video, text, application and message for now
+ * Maximum number of m= lines (media sections) in an SDP. This limit applies
+ * to all media slots: user-added audio/video transceivers, fake transceivers
+ * (created for unmatched remote m-lines), and the data channel m=application
+ * line (when ENABLE_DATA_CHANNEL is on).
+ *
+ * Override at build time via CMake: -DMAX_SDP_SESSION_MEDIA_COUNT=N
+ * See docs/SDP_LIMITS.md for sizing guidance and stack implications.
  */
-#define MAX_SDP_SESSION_MEDIA_COUNT   5
+#ifndef MAX_SDP_SESSION_MEDIA_COUNT
+#define MAX_SDP_SESSION_MEDIA_COUNT 5
+#endif
+
 #define MAX_SDP_MEDIA_BANDWIDTH_COUNT 2
 
+/**
+ * Maximum number of a= attributes stored per SDP section. Applies both to session-level attributes and to each
+ * media section's attributes. Modern browser offers keep growing this count (e.g. per-payload-type RTCP feedback
+ * such as RFC 8888 congestion control feedback), so recvonly offers that advertise every decodable codec can
+ * approach or exceed the default.
+ *
+ * Override at build time via CMake: -DMAX_SDP_ATTRIBUTES_COUNT=N
+ * See docs/SDP_LIMITS.md for sizing guidance and memory implications.
+ */
+#ifndef MAX_SDP_ATTRIBUTES_COUNT
 #define MAX_SDP_ATTRIBUTES_COUNT 256
+#endif
 
 /*
  * c=<nettype> <addrtype> <connection-address>
@@ -177,7 +198,9 @@ typedef struct {
 
     SdpAttributes sdpAttributes[MAX_SDP_ATTRIBUTES_COUNT];
 
-    UINT8 mediaAttributesCount;
+    // Must be able to represent MAX_SDP_ATTRIBUTES_COUNT. With a narrower type the bounds check in parseMediaAttributes() can never fail
+    // and the counter wraps to 0, silently overwriting the attributes already parsed for this media section.
+    UINT16 mediaAttributesCount;
 
     UINT8 mediaBandwidthCount;
 } SdpMediaDescription, *PSdpMediaDescription;

@@ -120,10 +120,25 @@ STATUS tlsSessionChangeState(PTlsSession, TLS_SESSION_STATE);
 #ifdef KVS_USE_OPENSSL
 INT32 tlsSessionCertificateVerifyCallback(INT32, X509_STORE_CTX*);
 #elif KVS_USE_MBEDTLS
-#if defined(MBEDTLS_VERSION_NUMBER)
-#define MBEDTLS_BEFORE_V3 (MBEDTLS_VERSION_NUMBER < 0x03000000)
+/* mbedTLS 3.0 introduced <mbedtls/build_info.h>; 2.x ships only <mbedtls/version.h>.
+ * Nested guard: old preprocessors (GCC < 5) parse the whole #if line even when
+ * defined(__has_include) is false, so __has_include(...) must not appear on the
+ * same line as the defined() check. */
+#ifdef __has_include
+#if __has_include(<mbedtls/build_info.h>)
+#include <mbedtls/build_info.h>
 #else
-#define MBEDTLS_BEFORE_V3 (1) /* default to before v3 */
+#include <mbedtls/version.h>
+#endif
+#else
+#include <mbedtls/version.h>
+#endif
+#if defined(MBEDTLS_VERSION_NUMBER)
+#define MBEDTLS_BEFORE_V3   (MBEDTLS_VERSION_NUMBER < 0x03000000)
+#define MBEDTLS_V4_OR_LATER (MBEDTLS_VERSION_MAJOR >= 4)
+#else
+#define MBEDTLS_BEFORE_V3   (1) /* default to before v3 */
+#define MBEDTLS_V4_OR_LATER (0)
 #endif
 // following are required callbacks for mbedtls
 // NOTE: const is not a pure C qualifier, they're here because there's no way to type cast

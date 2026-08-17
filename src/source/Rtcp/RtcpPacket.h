@@ -26,9 +26,22 @@ extern "C" {
 #define RTCP_PACKET_REMB_IDENTIFIER_OFFSET 8
 #define RTCP_PACKET_REMB_MANTISSA_BITMASK  0x3FFFF
 
-#define RTCP_PACKET_SENDER_REPORT_MINLEN      24
+// Minimum sender report payload: sender SSRC (4) + NTP timestamp (8) + RTP timestamp (4) +
+// sender's packet count (4) + sender's octet count (4) = 24 bytes (RFC 3550 section 6.4.1).
+// Reception report blocks, when present, follow this fixed-size sender info section.
+#define RTCP_PACKET_SENDER_REPORT_MINLEN 24
+// Each reception report block: source SSRC (4) + fraction lost (1) + cumulative lost (3) +
+// extended highest seq (4) + interarrival jitter (4) + LSR (4) + DLSR (4) = 24 bytes.
 #define RTCP_PACKET_RECEIVER_REPORT_BLOCK_LEN 24
-#define RTCP_PACKET_RECEIVER_REPORT_MINLEN    4 + RTCP_PACKET_RECEIVER_REPORT_BLOCK_LEN
+// No longer used by the SDK: receiver report length is now validated dynamically against the
+// report block count (4 + RC * RTCP_PACKET_RECEIVER_REPORT_BLOCK_LEN in onRtcpReceiverReport).
+// Kept for backward compatibility with any external consumers of this header.
+#define RTCP_PACKET_RECEIVER_REPORT_MINLEN 4 + RTCP_PACKET_RECEIVER_REPORT_BLOCK_LEN
+// Maximum receiver report blocks processed per RR, keyed to the maximum number of media streams
+// a peer connection can negotiate (configurable via -DMAX_SDP_SESSION_MEDIA_COUNT). Report blocks
+// beyond the negotiated stream count cannot reference a known transceiver. The RC header field is
+// 5 bits, so the protocol-level ceiling is 31 regardless.
+#define RTCP_PACKET_RECEIVER_REPORT_MAX_BLOCKS MAX_SDP_SESSION_MEDIA_COUNT
 
 // https://tools.ietf.org/html/rfc3550#section-4
 // If the participant has not yet sent an RTCP packet (the variable

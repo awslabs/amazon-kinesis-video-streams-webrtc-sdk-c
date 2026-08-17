@@ -431,6 +431,8 @@ CleanUp:
     LEAVES();
 }
 #endif
+/* mbedTLS 4: SRTP keying material pulled via mbedtls_ssl_export_keying_material()
+ * post-handshake; no key-derivation callback needed. */
 
 STATUS dtlsSessionHandshakeInThread(PDtlsSession pDtlsSession, BOOL isServer)
 {
@@ -465,7 +467,10 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
     // Do not use it when production-style server certificate validation is required.
     mbedtls_ssl_conf_authmode(&pDtlsSession->sslCtxConfig, MBEDTLS_SSL_VERIFY_OPTIONAL);
     CHK_STATUS(dtlsSessionConfigureRemoteCertificateValidation(pDtlsSession));
+#if !MBEDTLS_V4_OR_LATER
+    /* mbedTLS 4 removes mbedtls_ssl_conf_rng() — PSA Crypto handles RNG internally. */
     mbedtls_ssl_conf_rng(&pDtlsSession->sslCtxConfig, mbedtls_ctr_drbg_random, &pDtlsSession->ctrDrbg);
+#endif
 
     for (i = 0; i < pDtlsSession->certificateCount; i++) {
         pCertInfo = pDtlsSession->certificates + i;
@@ -484,6 +489,15 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
     CHK_STATUS(dtlsSessionConfigureExpectedServerHostname(pDtlsSession, isServer));
 
 #if !MBEDTLS_BEFORE_V3
+    /* Register a key-export callback to capture the master secret + client/server
+     * randoms at handshake time, then derive SRTP keying material post-handshake
+     * with mbedtls_ssl_tls_prf(). This path is used for both mbedTLS 3.x and 4.x.
+     *
+     * We deliberately do NOT use the post-handshake mbedtls_ssl_export_keying_material()
+     * for DTLS: mbedTLS defers promoting ssl->transform (it keeps the last flight
+     * buffered) while already reporting the handshake as over, so the exporter reads
+     * a NULL ssl->transform->randbytes and crashes. The callback+tls_prf path avoids
+     * that by capturing the material during the handshake. */
     mbedtls_ssl_set_export_keys_cb(&pDtlsSession->sslCtx, dtlsSessionKeyDerivationCallback, pDtlsSession);
 #endif
     mbedtls_ssl_set_timer_cb(&pDtlsSession->sslCtx, &pDtlsSession->transmissionTimer, dtlsSessionSetTimerCallback, dtlsSessionGetTimerCallback);
@@ -564,8 +578,10 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
 
 #if MBEDTLS_BEFORE_V3
     if (pDtlsSession->sslCtx.state == MBEDTLS_SSL_HANDSHAKE_OVER) {
-#else
+#elif MBEDTLS_VERSION_NUMBER < 0x03040000
     if (pDtlsSession->sslCtx.MBEDTLS_PRIVATE(state) == MBEDTLS_SSL_HANDSHAKE_OVER) {
+#else
+    if (mbedtls_ssl_is_handshake_over(&pDtlsSession->sslCtx) != 0) {
 #endif
         CHK_STATUS(dtlsSessionCheckRemoteCertificateVerification(pDtlsSession));
         CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CONNECTED));
@@ -681,16 +697,16 @@ STATUS dtlsSessionPopulateKeyingMaterial(PDtlsSession pDtlsSession, PDtlsKeyingM
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 offset = 0;
     BOOL locked = FALSE;
-    PTlsKeys pKeys;
     BYTE keyingMaterialBuffer[MAX_SRTP_MASTER_KEY_LEN * 2 + MAX_SRTP_SALT_KEY_LEN * 2];
     mbedtls_dtls_srtp_info negotiatedSRTPProfile;
+    PTlsKeys pKeys;
 
     CHK(pDtlsSession != NULL && pDtlsKeyingMaterial != NULL, STATUS_NULL_ARG);
-    pKeys = &pDtlsSession->tlsKeys;
 
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
 
+    pKeys = &pDtlsSession->tlsKeys;
     CHK(mbedtls_ssl_tls_prf(pKeys->tlsProfile, pKeys->masterSecret, ARRAY_SIZE(pKeys->masterSecret), KEYING_EXTRACTOR_LABEL, pKeys->randBytes,
                             ARRAY_SIZE(pKeys->randBytes), keyingMaterialBuffer, ARRAY_SIZE(keyingMaterialBuffer)) == 0,
         STATUS_INTERNAL_ERROR);
@@ -769,10 +785,14 @@ STATUS copyCertificateAndKey(mbedtls_x509_crt* pCert, mbedtls_pk_context* pKey, 
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL initialized = FALSE;
+#if !MBEDTLS_V4_OR_LATER
     mbedtls_ecp_keypair *pSrcECP, *pDstECP;
+#endif
 
     CHK(pCert != NULL && pKey != NULL && pDst != NULL, STATUS_NULL_ARG);
-#if MBEDTLS_BEFORE_V3
+#if MBEDTLS_BEFORE_V3 || MBEDTLS_V4_OR_LATER
+    /* v2.x and v4 use the 2-arg signature; only v3.2..v3.6 takes (f_rng, p_rng). */
+    UNUSED_PARAM(pCtrDrbg);
     CHK(mbedtls_pk_check_pair(&pCert->pk, pKey) == 0, STATUS_CERTIFICATE_GENERATION_FAILED);
 #else
     CHK(mbedtls_pk_check_pair(&pCert->pk, pKey, mbedtls_ctr_drbg_random, pCtrDrbg) == 0, STATUS_CERTIFICATE_GENERATION_FAILED);
@@ -783,6 +803,42 @@ STATUS copyCertificateAndKey(mbedtls_x509_crt* pCert, mbedtls_pk_context* pKey, 
     initialized = TRUE;
 
     CHK(mbedtls_x509_crt_parse_der(&pDst->cert, pCert->raw.p, pCert->raw.len) == 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+
+#if MBEDTLS_V4_OR_LATER
+    /* Clone via PSA: import the source pk into a fresh PSA key, then wrap that
+     * key id into the destination pk_context. */
+    {
+        psa_status_t psaStatus;
+        psa_key_attributes_t attr = PSA_KEY_ATTRIBUTES_INIT;
+        mbedtls_svc_key_id_t newKeyId = MBEDTLS_SVC_KEY_ID_INIT;
+        BOOL keyWrapped = FALSE;
+
+        CHK(psa_crypto_init() == PSA_SUCCESS, STATUS_CERTIFICATE_GENERATION_FAILED);
+        /* mbedtls_pk_get_psa_attributes takes a SINGLE usage enum (its internal
+         * switch rejects OR'd flags with PK_TYPE_MISMATCH) and itself adds
+         * EXPORT|COPY. Derive from SIGN_HASH, then add SIGN_MESSAGE so the clone
+         * matches createCertificateAndKey's policy (v3 prehash + v1.3 message).
+         * The source key must permit export for mbedtls_pk_import_into_psa;
+         * SDK-generated keys set PSA_KEY_USAGE_EXPORT — a caller-provided key
+         * without it will fail here. */
+        if (mbedtls_pk_get_psa_attributes(pKey, PSA_KEY_USAGE_SIGN_HASH, &attr) != 0) {
+            DLOGE("mbedtls_pk_get_psa_attributes failed; the source key may lack PSA_KEY_USAGE_EXPORT");
+            CHK(FALSE, STATUS_CERTIFICATE_GENERATION_FAILED);
+        }
+        psa_set_key_usage_flags(&attr, psa_get_key_usage_flags(&attr) | PSA_KEY_USAGE_SIGN_MESSAGE);
+        psaStatus = mbedtls_pk_import_into_psa(pKey, &attr, &newKeyId);
+        if (psaStatus != 0) {
+            DLOGE("mbedtls_pk_import_into_psa failed (status %d); source key likely lacks PSA_KEY_USAGE_EXPORT", (int) psaStatus);
+            CHK(FALSE, STATUS_CERTIFICATE_GENERATION_FAILED);
+        }
+        if (mbedtls_pk_wrap_psa(&pDst->privateKey, newKeyId) != 0) {
+            (void) psa_destroy_key(newKeyId);
+            CHK(FALSE, STATUS_CERTIFICATE_GENERATION_FAILED);
+        }
+        keyWrapped = TRUE;
+        (void) keyWrapped; /* lifecycle invariant: pk_free destroys the wrapped key */
+    }
+#else
 #if MBEDTLS_BEFORE_V3
     CHK(mbedtls_pk_setup(&pDst->privateKey, pKey->pk_info) == 0, STATUS_CERTIFICATE_GENERATION_FAILED);
 #else
@@ -811,6 +867,7 @@ STATUS copyCertificateAndKey(mbedtls_x509_crt* pCert, mbedtls_pk_context* pKey, 
         default:
             CHK(FALSE, STATUS_CERTIFICATE_GENERATION_FAILED);
     }
+#endif /* MBEDTLS_V4_OR_LATER */
 
 CleanUp:
 
@@ -851,6 +908,115 @@ int mbedtls_x509write_crt_set_serial(mbedtls_x509write_cert* ctx, const mbedtls_
  * If generateRSACertificate is true, RSA is going to be used for the key generation. Otherwise, ECDSA is going to be used.
  * certificateBits is only being used when generateRSACertificate is true.
  */
+#if MBEDTLS_V4_OR_LATER
+/* mbedTLS 4 drops the public mbedtls_pk_setup() + MBEDTLS_PK_* / mbedtls_rsa_gen_key /
+ * mbedtls_ecp_gen_key / mbedtls_ctr_drbg_seed / mbedtls_x509write_crt_set_serial(mpi)
+ * surface. Key material now lives behind PSA Crypto; the pk_context wraps a PSA key id
+ * via mbedtls_pk_wrap_psa(). RNG for x509write_crt_der is taken from PSA's internal RNG. */
+STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificate, mbedtls_x509_crt* pCert, mbedtls_pk_context* pKey)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL initialized = FALSE;
+    PCHAR pCertBuf = NULL;
+    CHAR notBeforeBuf[MBEDTLS_X509_RFC5280_UTC_TIME_LEN + 1], notAfterBuf[MBEDTLS_X509_RFC5280_UTC_TIME_LEN + 1];
+    UINT64 now, notAfter;
+    UINT32 written;
+    INT32 len;
+    mbedtls_x509write_cert* pWriteCert = NULL;
+    BYTE certSn[DTLS_CERT_MAX_SERIAL_NUM_SIZE];
+    psa_status_t psaStatus;
+    psa_key_attributes_t keyAttr = PSA_KEY_ATTRIBUTES_INIT;
+    mbedtls_svc_key_id_t keyId = MBEDTLS_SVC_KEY_ID_INIT;
+    BOOL keyWrapped = FALSE;
+
+    CHK(pCert != NULL && pKey != NULL, STATUS_NULL_ARG);
+    CHK(NULL != (pCertBuf = (PCHAR) MEMALLOC(GENERATED_CERTIFICATE_MAX_SIZE)), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pWriteCert = (mbedtls_x509write_cert*) MEMALLOC(SIZEOF(mbedtls_x509write_cert))), STATUS_NOT_ENOUGH_MEMORY);
+    CHK_STATUS(dtlsFillPseudoRandomBits(certSn, SIZEOF(certSn)));
+
+    CHK((psaStatus = psa_crypto_init()) == PSA_SUCCESS, STATUS_CERTIFICATE_GENERATION_FAILED);
+
+    mbedtls_x509write_crt_init(pWriteCert);
+    mbedtls_x509_crt_init(pCert);
+    mbedtls_pk_init(pKey);
+    initialized = TRUE;
+
+    /* SIGN_HASH + SIGN_MESSAGE covers both v3 prehash and v1.3 message-signing.
+     * EXPORT is required so this key can be cloned into each DTLS session via
+     * copyCertificateAndKey() -> mbedtls_pk_import_into_psa(): apps that
+     * pre-generate a cert (createRtcCertificate) and pass it back in
+     * RtcConfiguration hit that path, and without EXPORT the clone fails. */
+    if (generateRSACertificate) {
+        psa_set_key_type(&keyAttr, PSA_KEY_TYPE_RSA_KEY_PAIR);
+        psa_set_key_bits(&keyAttr, (size_t) certificateBits);
+        psa_set_key_usage_flags(&keyAttr, PSA_KEY_USAGE_SIGN_HASH | PSA_KEY_USAGE_SIGN_MESSAGE | PSA_KEY_USAGE_EXPORT);
+        psa_set_key_algorithm(&keyAttr, PSA_ALG_RSA_PKCS1V15_SIGN(PSA_ALG_ANY_HASH));
+    } else {
+        psa_set_key_type(&keyAttr, PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1));
+        psa_set_key_bits(&keyAttr, 256);
+        psa_set_key_usage_flags(&keyAttr, PSA_KEY_USAGE_SIGN_HASH | PSA_KEY_USAGE_SIGN_MESSAGE | PSA_KEY_USAGE_EXPORT);
+        /* MBEDTLS_PK_ALG_ECDSA resolves to deterministic ECDSA when available
+         * (the v4 default for TLS); set the enrollment alg to plain ECDSA so
+         * the key matches both flavours during ssl_pick_cert. */
+        psa_set_key_algorithm(&keyAttr, MBEDTLS_PK_ALG_ECDSA(PSA_ALG_ANY_HASH));
+        psa_set_key_enrollment_algorithm(&keyAttr, PSA_ALG_ECDSA(PSA_ALG_ANY_HASH));
+    }
+    if ((psaStatus = psa_generate_key(&keyAttr, &keyId)) != PSA_SUCCESS) {
+        DLOGE("psa_generate_key failed (status %d)", (int) psaStatus);
+        CHK(FALSE, STATUS_CERTIFICATE_GENERATION_FAILED);
+    }
+    if (mbedtls_pk_wrap_psa(pKey, keyId) != 0) {
+        DLOGE("mbedtls_pk_wrap_psa failed");
+        CHK(FALSE, STATUS_CERTIFICATE_GENERATION_FAILED);
+    }
+    keyWrapped = TRUE; /* pKey now owns keyId; freeCertificateAndKey will destroy it */
+
+    now = GETTIME();
+    CHK(generateTimestampStr(now, "%Y%m%d%H%M%S", notBeforeBuf, SIZEOF(notBeforeBuf), &written) == STATUS_SUCCESS,
+        STATUS_CERTIFICATE_GENERATION_FAILED);
+    notAfter = now + GENERATED_CERTIFICATE_DAYS * HUNDREDS_OF_NANOS_IN_A_DAY;
+    CHK(generateTimestampStr(notAfter, "%Y%m%d%H%M%S", notAfterBuf, SIZEOF(notAfterBuf), &written) == STATUS_SUCCESS,
+        STATUS_CERTIFICATE_GENERATION_FAILED);
+
+    CHK(mbedtls_x509write_crt_set_serial_raw(pWriteCert, certSn, SIZEOF(certSn)) == 0 &&
+            mbedtls_x509write_crt_set_validity(pWriteCert, notBeforeBuf, notAfterBuf) == 0 &&
+            mbedtls_x509write_crt_set_subject_name(pWriteCert, "O=" GENERATED_CERTIFICATE_NAME ",CN=" GENERATED_CERTIFICATE_NAME) == 0 &&
+            mbedtls_x509write_crt_set_issuer_name(pWriteCert, "O=" GENERATED_CERTIFICATE_NAME ",CN=" GENERATED_CERTIFICATE_NAME) == 0,
+        STATUS_CERTIFICATE_GENERATION_FAILED);
+    mbedtls_x509write_crt_set_version(pWriteCert, MBEDTLS_X509_CRT_VERSION_3);
+    mbedtls_x509write_crt_set_subject_key(pWriteCert, pKey);
+    mbedtls_x509write_crt_set_issuer_key(pWriteCert, pKey);
+    /* SHA-1 is deprecated in v4; switch the self-signed cert digest to SHA-256. */
+    mbedtls_x509write_crt_set_md_alg(pWriteCert, MBEDTLS_MD_SHA256);
+
+    MEMSET(pCertBuf, 0, GENERATED_CERTIFICATE_MAX_SIZE);
+    /* v4 mbedtls_x509write_crt_der takes (ctx, buf, size) only — no RNG callback. */
+    len = mbedtls_x509write_crt_der(pWriteCert, (unsigned char*) pCertBuf, GENERATED_CERTIFICATE_MAX_SIZE);
+    if (len < 0) {
+        DLOGE("mbedtls_x509write_crt_der failed (ret %d)", (int) len);
+        CHK(FALSE, STATUS_CERTIFICATE_GENERATION_FAILED);
+    }
+
+    CHK(mbedtls_x509_crt_parse_der(pCert, (PVOID) (pCertBuf + GENERATED_CERTIFICATE_MAX_SIZE - len), len) == 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+
+CleanUp:
+    if (initialized) {
+        mbedtls_x509write_crt_free(pWriteCert);
+        if (STATUS_FAILED(retStatus)) {
+            if (!keyWrapped) {
+                /* PSA key generated but not wrapped — destroy it manually. */
+                (void) psa_destroy_key(keyId);
+            }
+            freeCertificateAndKey(pCert, pKey);
+        }
+    }
+    SAFE_MEMFREE(pCertBuf);
+    SAFE_MEMFREE(pWriteCert);
+    LEAVES();
+    return retStatus;
+}
+#else
 STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificate, mbedtls_x509_crt* pCert, mbedtls_pk_context* pKey)
 {
     ENTERS();
@@ -949,6 +1115,7 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+#endif
 
 STATUS freeCertificateAndKey(mbedtls_x509_crt* pCert, mbedtls_pk_context* pKey)
 {

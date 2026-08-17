@@ -83,7 +83,7 @@ STATUS dtlsSessionCheckRemoteCertificateVerification(PDtlsSession pDtlsSession)
     CHK(pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER, retStatus);
     verifyResult = SSL_get_verify_result(pDtlsSession->pSsl);
     CHK(!ATOMIC_LOAD_BOOL(&pDtlsSession->remoteCertVerificationFailed), STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
-    CHK((pRemoteCertificate = SSL_get_peer_certificate(pDtlsSession->pSsl)) != NULL, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
+    CHK((pRemoteCertificate = KVS_SSL_GET_PEER_CERTIFICATE(pDtlsSession->pSsl)) != NULL, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
     CHK(verifyResult == X509_V_OK, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
     DLOGD("DTLS strict server certificate verification passed for %s using CA bundle %s", pDtlsSession->pExpectedServerHostname, KVS_CA_CERT_PATH);
 
@@ -205,35 +205,53 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    BIGNUM* pBne = NULL;
-    RSA* pRsa = NULL;
     X509_NAME* pX509Name = NULL;
-    UINT32 eccGroup = 0;
-    EC_KEY* eccKey = NULL;
     UINT64 certSn;
 
     CHK(ppCert != NULL && ppPkey != NULL, STATUS_NULL_ARG);
-    CHK((*ppPkey = EVP_PKEY_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
     CHK_STATUS(dtlsFillPseudoRandomBits((PBYTE) &certSn, SIZEOF(UINT64)));
 
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    /* OpenSSL 3.x: use EVP_PKEY_Q_keygen for key generation */
     if (generateRSACertificate) {
-        CHK((pBne = BN_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
-        CHK(BN_set_word(pBne, KVS_RSA_F4) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
-
-        CHK((pRsa = RSA_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
-        CHK(RSA_generate_key_ex(pRsa, certificateBits, pBne, NULL) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
-        CHK((EVP_PKEY_assign_RSA(*ppPkey, pRsa)) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
-        pRsa = NULL;
+        *ppPkey = EVP_PKEY_Q_keygen(NULL, NULL, "RSA", (size_t) certificateBits);
     } else {
-        CHK((eccGroup = OBJ_txt2nid("prime256v1")) != NID_undef, STATUS_CERTIFICATE_GENERATION_FAILED);
-        CHK((eccKey = EC_KEY_new_by_curve_name(eccGroup)) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
-
-        // void, never fails
-        EC_KEY_set_asn1_flag(eccKey, OPENSSL_EC_NAMED_CURVE);
-
-        CHK(EC_KEY_generate_key(eccKey) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
-        CHK(EVP_PKEY_assign_EC_KEY(*ppPkey, eccKey) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+        *ppPkey = EVP_PKEY_Q_keygen(NULL, NULL, "EC", "prime256v1");
     }
+    CHK(*ppPkey != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
+#else
+    /* OpenSSL 1.1.x: use legacy RSA/EC_KEY APIs */
+    {
+        BIGNUM* pBne = NULL;
+        RSA* pRsa = NULL;
+        EC_KEY* eccKey = NULL;
+        UINT32 eccGroup = 0;
+
+        CHK((*ppPkey = EVP_PKEY_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
+
+        if (generateRSACertificate) {
+            CHK((pBne = BN_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
+            CHK(BN_set_word(pBne, KVS_RSA_F4) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+            CHK((pRsa = RSA_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
+            CHK(RSA_generate_key_ex(pRsa, certificateBits, pBne, NULL) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+            CHK((EVP_PKEY_assign_RSA(*ppPkey, pRsa)) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+            pRsa = NULL; /* ownership transferred to pPkey */
+        } else {
+            CHK((eccGroup = OBJ_txt2nid("prime256v1")) != NID_undef, STATUS_CERTIFICATE_GENERATION_FAILED);
+            CHK((eccKey = EC_KEY_new_by_curve_name(eccGroup)) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
+            EC_KEY_set_asn1_flag(eccKey, OPENSSL_EC_NAMED_CURVE);
+            CHK(EC_KEY_generate_key(eccKey) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+            CHK(EVP_PKEY_assign_EC_KEY(*ppPkey, eccKey) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+        }
+
+        if (pBne != NULL) {
+            BN_free(pBne);
+        }
+        if (STATUS_FAILED(retStatus) && pRsa != NULL) {
+            RSA_free(pRsa);
+        }
+    }
+#endif
 
     CHK((*ppCert = X509_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
     X509_set_version(*ppCert, 2);
@@ -250,14 +268,7 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     CHK(X509_sign(*ppCert, *ppPkey, EVP_sha1()) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
 
 CleanUp:
-    if (pBne != NULL) {
-        BN_free(pBne);
-    }
-
     if (STATUS_FAILED(retStatus)) {
-        if (pRsa != NULL) {
-            RSA_free(pRsa);
-        }
         freeCertificateAndKey(ppCert, ppPkey);
     }
 
@@ -295,12 +306,13 @@ STATUS createSslCtx(PDtlsSessionCertificateInfo pCertificates, UINT32 certCount,
     CHK(pSslCtx != NULL, STATUS_SSL_CTX_CREATION_FAILED);
 
     // Version greater than or equal to 1.0.2
-#if (OPENSSL_VERSION_NUMBER >= 0x10002000L)
+#if (OPENSSL_VERSION_NUMBER >= 0x10002000L) && (OPENSSL_VERSION_NUMBER < 0x30000000L)
     SSL_CTX_set_ecdh_auto(pSslCtx, TRUE);
-#else
+#elif (OPENSSL_VERSION_NUMBER < 0x10002000L)
     CHK((ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1)) != NULL, STATUS_SSL_CTX_CREATION_FAILED);
     CHK(SSL_CTX_set_tmp_ecdh(pSslCtx, ecdh) == 1, STATUS_SSL_CTX_CREATION_FAILED);
 #endif
+    // On OpenSSL 3.x, ECDH is always auto-negotiated — no call needed.
 
     SSL_CTX_set_verify(pSslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, dtlsCertificateVerifyCallback);
     CHK(SSL_CTX_set_tlsext_use_srtp(pSslCtx, "SRTP_AES128_CM_SHA1_32:SRTP_AES128_CM_SHA1_80") == 0, STATUS_SSL_CTX_CREATION_FAILED);
@@ -1031,7 +1043,7 @@ STATUS dtlsSessionVerifyRemoteCertificateFingerprint(PDtlsSession pDtlsSession, 
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
 
-    CHK((pRemoteCertificate = SSL_get_peer_certificate(pDtlsSession->pSsl)) != NULL, STATUS_INTERNAL_ERROR);
+    CHK((pRemoteCertificate = KVS_SSL_GET_PEER_CERTIFICATE(pDtlsSession->pSsl)) != NULL, STATUS_INTERNAL_ERROR);
     CHK_STATUS(dtlsCertificateFingerprint(pRemoteCertificate, actualFingerprint));
 
     CHK(STRCMP(pExpectedFingerprint, actualFingerprint) == 0, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);

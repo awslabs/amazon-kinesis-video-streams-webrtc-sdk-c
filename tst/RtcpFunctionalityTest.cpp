@@ -229,6 +229,407 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketCompoundSenderReport)
     freePeerConnection(&pRtcPeerConnection);
 }
 
+// Single-block RR with LSR == 0, matching what the media storage backend sends for a video-only
+// ingestion session before it has received a sender report. reportsReceived/fractionLost must be
+// populated but no RTT measurement recorded (Stats.h: roundTripTimeMeasurements counts blocks with
+// a valid round trip time). Complements onRtcpPacketCompoundSenderReport, which covers the
+// single-block valid-LSR path.
+TEST_F(RtcpFunctionalityTest, onRtcpPacketSingleBlockReceiverReportNoLsr)
+{
+    // 81 C9 0007 | senderSSRC 01020304
+    // block1: ssrc 11111111, fractionLost 04, cumLost 000000, extHiSeq 0000003F, jitter 0000006B, lsr 0, dlsr 0
+    auto hexpacket = (PCHAR) "81C90007"
+                             "01020304"
+                             "11111111040000000000003F0000006B0000000000000000";
+    BYTE rawpacket[36] = {0};
+    UINT32 rawpacketSize = 36;
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize));
+
+    initTransceiver(0x11111111);
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+
+    RtcRemoteInboundRtpStreamStats stats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &stats));
+    EXPECT_EQ(1, stats.reportsReceived);
+    EXPECT_EQ(4.0 / 255.0, stats.fractionLost);
+    EXPECT_EQ(0, stats.roundTripTimeMeasurements);
+    EXPECT_EQ(0, stats.totalRoundTripTime);
+    EXPECT_EQ(0, stats.roundTripTime);
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+// SR with one embedded reception report block, as sent by a remote peer that both sends and
+// receives (RFC 3550 section 6.4.1) - observed live from the media storage backend once it starts
+// sending media (type=200, rc=1, payload 48 = 24-byte sender info + 24-byte block). The embedded
+// block must update remoteInboundStats exactly like an RR block.
+TEST_F(RtcpFunctionalityTest, onRtcpPacketSenderReportWithEmbeddedReportBlock)
+{
+    // 81 C8 000C | senderSSRC 01020304 | ntp 8B + rtpTs 4B + pktCnt 4B + octetCnt 4B (sender info)
+    // block: ssrc 11111111, fractionLost 04, cumLost 000000, extHiSeq 00000100, jitter 00000064, lsr 01020304, dlsr 00000001
+    auto hexpacket = (PCHAR) "81C8000C"
+                             "01020304"
+                             "0000000000000000000000000000000000000000"
+                             "111111110400000000000100000000640102030400000001";
+    BYTE rawpacket[64] = {0};
+    UINT32 rawpacketSize = 64;
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize));
+
+    initTransceiver(0x11111111);
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+
+    RtcRemoteInboundRtpStreamStats stats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &stats));
+    EXPECT_EQ(1, stats.reportsReceived);
+    EXPECT_EQ(4.0 / 255.0, stats.fractionLost);
+    EXPECT_EQ(1, stats.roundTripTimeMeasurements);
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+// SR with two embedded reception report blocks (audio + video): both transceivers' stats must be
+// updated from a single SR.
+TEST_F(RtcpFunctionalityTest, onRtcpPacketSenderReportWithTwoEmbeddedReportBlocks)
+{
+    // 82 C8 0012 | senderSSRC + sender info | block1 ssrc 11111111 lsr=0 | block2 ssrc 22222222 lsr=0
+    auto hexpacket = (PCHAR) "82C80012"
+                             "01020304"
+                             "0000000000000000000000000000000000000000"
+                             "111111110400000000000100000000640000000000000000"
+                             "222222220800000000000200000000C80000000000000000";
+    BYTE rawpacket[96] = {0};
+    UINT32 rawpacketSize = 96;
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize));
+
+    initTransceiver(0x11111111);
+    auto audioTransceiver = addTransceiver(0x22222222);
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+
+    RtcRemoteInboundRtpStreamStats videoStats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &videoStats));
+    EXPECT_EQ(1, videoStats.reportsReceived);
+    EXPECT_EQ(4.0 / 255.0, videoStats.fractionLost);
+    EXPECT_EQ(0, videoStats.roundTripTimeMeasurements);
+
+    RtcRemoteInboundRtpStreamStats audioStats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, audioTransceiver, &audioStats));
+    EXPECT_EQ(1, audioStats.reportsReceived);
+    EXPECT_EQ(8.0 / 255.0, audioStats.fractionLost);
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+// A malformed SR claiming 2 report blocks but carrying only one must be dropped by the length
+// validation without reading out of bounds or updating stats.
+TEST_F(RtcpFunctionalityTest, onRtcpPacketSenderReportMalformedBlockCount)
+{
+    // rc=2 but length (12 words -> 48-byte payload) only fits sender info + one block
+    auto hexpacket = (PCHAR) "82C8000C"
+                             "01020304"
+                             "0000000000000000000000000000000000000000"
+                             "111111110400000000000100000000640000000000000000";
+    BYTE rawpacket[64] = {0};
+    UINT32 rawpacketSize = 64;
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize));
+
+    initTransceiver(0x11111111);
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+
+    RtcRemoteInboundRtpStreamStats stats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &stats));
+    EXPECT_EQ(0, stats.reportsReceived);
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+// RR with two report blocks (video + audio SSRC), as sent by the media storage backend during ingestion.
+// Both transceivers' stats must be populated from a single RR. LSR is 0 in both blocks, so no RTT
+// measurements should be recorded (Stats.h: roundTripTimeMeasurements counts blocks with a valid RTT).
+TEST_F(RtcpFunctionalityTest, onRtcpPacketMultiBlockReceiverReport)
+{
+    // 82 C9 000D | senderSSRC 01020304
+    // block1: ssrc 11111111, fractionLost 04, cumLost 000000, extHiSeq 00000100, jitter 00000064, lsr 0, dlsr 0
+    // block2: ssrc 22222222, fractionLost 08, cumLost 000000, extHiSeq 00000200, jitter 000000C8, lsr 0, dlsr 0
+    auto hexpacket = (PCHAR) "82C9000D"
+                             "01020304"
+                             "111111110400000000000100000000640000000000000000"
+                             "222222220800000000000200000000C80000000000000000";
+    BYTE rawpacket[64] = {0};
+    UINT32 rawpacketSize = 64;
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize));
+
+    initTransceiver(0x11111111);                       // video
+    auto audioTransceiver = addTransceiver(0x22222222); // audio
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+
+    RtcRemoteInboundRtpStreamStats videoStats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &videoStats));
+    EXPECT_EQ(1, videoStats.reportsReceived);
+    EXPECT_EQ(4.0 / 255.0, videoStats.fractionLost);
+    EXPECT_EQ(0, videoStats.roundTripTimeMeasurements);
+    EXPECT_EQ(0, videoStats.totalRoundTripTime);
+    EXPECT_EQ(0, videoStats.roundTripTime);
+
+    RtcRemoteInboundRtpStreamStats audioStats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, audioTransceiver, &audioStats));
+    EXPECT_EQ(1, audioStats.reportsReceived);
+    EXPECT_EQ(8.0 / 255.0, audioStats.fractionLost);
+    EXPECT_EQ(0, audioStats.roundTripTimeMeasurements);
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+// RR with two report blocks that both carry a non-zero LSR: each block must record an RTT measurement.
+TEST_F(RtcpFunctionalityTest, onRtcpPacketMultiBlockReceiverReportWithRtt)
+{
+    auto hexpacket = (PCHAR) "82C9000D"
+                             "01020304"
+                             "111111110400000000000100000000640102030400000001"
+                             "222222220800000000000200000000C80102030400000001";
+    BYTE rawpacket[64] = {0};
+    UINT32 rawpacketSize = 64;
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize));
+
+    initTransceiver(0x11111111);
+    auto audioTransceiver = addTransceiver(0x22222222);
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+
+    RtcRemoteInboundRtpStreamStats videoStats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &videoStats));
+    EXPECT_EQ(1, videoStats.reportsReceived);
+    EXPECT_EQ(1, videoStats.roundTripTimeMeasurements);
+
+    RtcRemoteInboundRtpStreamStats audioStats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, audioTransceiver, &audioStats));
+    EXPECT_EQ(1, audioStats.reportsReceived);
+    EXPECT_EQ(1, audioStats.roundTripTimeMeasurements);
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+// A report block for an unknown SSRC is skipped without aborting the packet: the remaining
+// blocks must still be processed.
+TEST_F(RtcpFunctionalityTest, onRtcpPacketMultiBlockReceiverReportUnknownSsrc)
+{
+    // block1 references SSRC DEADBEEF which no transceiver owns; block2 is valid
+    auto hexpacket = (PCHAR) "82C9000D"
+                             "01020304"
+                             "DEADBEEF0400000000000100000000640000000000000000"
+                             "222222220800000000000200000000C80000000000000000";
+    BYTE rawpacket[64] = {0};
+    UINT32 rawpacketSize = 64;
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize));
+
+    initTransceiver(0x22222222);
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+
+    RtcRemoteInboundRtpStreamStats stats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &stats));
+    EXPECT_EQ(1, stats.reportsReceived);
+    EXPECT_EQ(8.0 / 255.0, stats.fractionLost);
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+// An RR with more than RTCP_PACKET_RECEIVER_REPORT_MAX_BLOCKS (= MAX_SDP_SESSION_MEDIA_COUNT)
+// report blocks is capped: only the first RTCP_PACKET_RECEIVER_REPORT_MAX_BLOCKS blocks are
+// processed, the rest are ignored. Assertions are keyed off the constant so the test stays valid
+// for any configured MAX_SDP_SESSION_MEDIA_COUNT (1-6).
+TEST_F(RtcpFunctionalityTest, onRtcpPacketMultiBlockReceiverReportCappedBlockCount)
+{
+    constexpr UINT32 packetBlockCount = 6;
+    // RC=6, length 0x0025 (37 words -> 148-byte payload): senderSSRC + 6 report blocks
+    auto hexpacket = (PCHAR) "86C90025"
+                             "01020304"
+                             "111111110400000000000100000000640000000000000000"
+                             "222222220400000000000100000000640000000000000000"
+                             "333333330400000000000100000000640000000000000000"
+                             "444444440400000000000100000000640000000000000000"
+                             "555555550400000000000100000000640000000000000000"
+                             "666666660400000000000100000000640000000000000000";
+    BYTE rawpacket[160] = {0};
+    UINT32 rawpacketSize = 160;
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize));
+
+    PRtcRtpTransceiver transceivers[packetBlockCount];
+    initTransceiver(0x11111111);
+    transceivers[0] = pRtcRtpTransceiver;
+    for (UINT32 i = 1; i < packetBlockCount; i++) {
+        transceivers[i] = addTransceiver(0x11111111 * (i + 1));
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+
+    for (UINT32 i = 0; i < packetBlockCount; i++) {
+        RtcRemoteInboundRtpStreamStats stats{};
+        EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, transceivers[i], &stats));
+        UINT64 expected = (i < RTCP_PACKET_RECEIVER_REPORT_MAX_BLOCKS) ? 1 : 0;
+        EXPECT_EQ(expected, stats.reportsReceived) << "block index " << i;
+    }
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+// An RR with zero report blocks (the standard initial RTCP packet sent before any media has been
+// received) must be accepted as a no-op.
+TEST_F(RtcpFunctionalityTest, onRtcpPacketReceiverReportZeroBlocks)
+{
+    auto hexpacket = (PCHAR) "80C9000101020304";
+    BYTE rawpacket[16] = {0};
+    UINT32 rawpacketSize = 16;
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize));
+
+    initTransceiver(0x11111111);
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+
+    RtcRemoteInboundRtpStreamStats stats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &stats));
+    EXPECT_EQ(0, stats.reportsReceived);
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+// A malformed RR whose header claims 2 report blocks but whose payload only carries 1 must be
+// dropped without reading out of bounds and without updating any stats.
+TEST_F(RtcpFunctionalityTest, onRtcpPacketReceiverReportMalformedBlockCount)
+{
+    // RC=2 but the length field (7 words -> 28-byte payload) only carries the sender SSRC plus one
+    // 24-byte block; parsing 2 blocks would need 52 bytes and must be rejected up front
+    auto hexpacket = (PCHAR) "82C90007"
+                             "01020304"
+                             "111111110400000000000100000000640000000000000000";
+    BYTE rawpacket[64] = {0};
+    UINT32 rawpacketSize = 64;
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize));
+
+    initTransceiver(0x11111111);
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+
+    RtcRemoteInboundRtpStreamStats stats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &stats));
+    EXPECT_EQ(0, stats.reportsReceived);
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+// fractionLost boundary values: 0x00 must map to exactly 0.0 and 0xFF to exactly 255/255 = 1.0
+// (the field is an 8-bit fixed-point fraction, computed as N / 255.0).
+TEST_F(RtcpFunctionalityTest, onRtcpPacketReceiverReportFractionLostBoundaries)
+{
+    initTransceiver(0x11111111);
+
+    // fractionLost = 0x00 (no loss)
+    auto hexpacketZero = (PCHAR) "81C90007"
+                                 "01020304"
+                                 "111111110000000000000100000000640000000000000000";
+    BYTE rawpacket[64] = {0};
+    UINT32 rawpacketSize = 64;
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacketZero, strlen(hexpacketZero), rawpacket, &rawpacketSize));
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+
+    RtcRemoteInboundRtpStreamStats stats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &stats));
+    EXPECT_EQ(1, stats.reportsReceived);
+    EXPECT_EQ(0.0, stats.fractionLost);
+
+    // fractionLost = 0xFF (maximum representable loss fraction)
+    auto hexpacketMax = (PCHAR) "81C90007"
+                                "01020304"
+                                "11111111FF00000000000100000000640000000000000000";
+    rawpacketSize = 64;
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacketMax, strlen(hexpacketMax), rawpacket, &rawpacketSize));
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &stats));
+    EXPECT_EQ(2, stats.reportsReceived);
+    EXPECT_EQ(255.0 / 255.0, stats.fractionLost);
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+// RTT accuracy: build the report block's lsr/dlsr from the current clock so the expected RTT is
+// deterministic. With lsr = MID_NTP(now) - dlsr - X, the computed RTT must be X (in DLSR_TIMESCALE
+// units, converted to ms), plus however long the test takes between packet construction and
+// parsing - hence the tolerance window.
+TEST_F(RtcpFunctionalityTest, onRtcpPacketReceiverReportRoundTripTimeAccuracy)
+{
+    constexpr UINT32 expectedRttMsec = 500;
+    constexpr UINT32 toleranceMsec = 200; // generous upper bound for test execution time between GETTIME() calls
+
+    initTransceiver(0x11111111);
+
+    // Header: RC=1, PT=201, length 7 words; payload: senderSSRC + one report block
+    BYTE rawpacket[64] = {0};
+    UINT32 rawpacketSize = 64;
+    auto hexpacket = (PCHAR) "81C90007"
+                             "01020304"
+                             "111111110400000000000100000000640000000000000000";
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacket, strlen(hexpacket), rawpacket, &rawpacketSize));
+
+    // Overwrite lsr/dlsr (offsets within payload block: 16 and 20; +8 for the RTCP header and
+    // sender SSRC preceding the block in the raw packet: header(4) + senderSSRC(4) + blockSSRC-relative offsets)
+    UINT64 currentTimeNTP = convertTimestampToNTP(GETTIME());
+    UINT32 dlsr = 65536; // 1 second in DLSR_TIMESCALE (1/65536s) units
+    UINT32 expectedRttDlsrUnits = KVS_CONVERT_TIMESCALE(expectedRttMsec, 1000, DLSR_TIMESCALE);
+    UINT32 lsr = MID_NTP(currentTimeNTP) - dlsr - expectedRttDlsrUnits;
+    putUnalignedInt32BigEndian(rawpacket + 4 /* header */ + 4 /* senderSSRC */ + 16, lsr);
+    putUnalignedInt32BigEndian(rawpacket + 4 /* header */ + 4 /* senderSSRC */ + 20, dlsr);
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+
+    RtcRemoteInboundRtpStreamStats stats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &stats));
+    EXPECT_EQ(1, stats.reportsReceived);
+    EXPECT_EQ(1, stats.roundTripTimeMeasurements);
+    EXPECT_GE(stats.roundTripTime, expectedRttMsec);
+    EXPECT_LT(stats.roundTripTime, expectedRttMsec + toleranceMsec);
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+// reportsReceived must accumulate across successive receiver reports for the same SSRC, and
+// fractionLost must reflect the most recent report.
+TEST_F(RtcpFunctionalityTest, onRtcpPacketReceiverReportCumulativeAcrossPackets)
+{
+    initTransceiver(0x11111111);
+
+    auto hexpacketFirst = (PCHAR) "81C90007"
+                                  "01020304"
+                                  "111111110400000000000100000000640000000000000000";
+    auto hexpacketSecond = (PCHAR) "81C90007"
+                                   "01020304"
+                                   "111111110800000000000200000000C80000000000000000";
+    BYTE rawpacket[64] = {0};
+    UINT32 rawpacketSize = 64;
+
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacketFirst, strlen(hexpacketFirst), rawpacket, &rawpacketSize));
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+
+    RtcRemoteInboundRtpStreamStats stats{};
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &stats));
+    EXPECT_EQ(1, stats.reportsReceived);
+    EXPECT_EQ(4.0 / 255.0, stats.fractionLost);
+
+    rawpacketSize = 64;
+    EXPECT_EQ(STATUS_SUCCESS, hexDecode(hexpacketSecond, strlen(hexpacketSecond), rawpacket, &rawpacketSize));
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, rawpacket, rawpacketSize));
+
+    EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &stats));
+    EXPECT_EQ(2, stats.reportsReceived);
+    EXPECT_EQ(8.0 / 255.0, stats.fractionLost);
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
 TEST_F(RtcpFunctionalityTest, rembValueGet)
 {
     BYTE rawRtcpPacket[] = {0x8f, 0xce, 0x00, 0x05, 0x61, 0x7a, 0x37, 0x43, 0x00, 0x00, 0x00, 0x00,
@@ -1455,6 +1856,55 @@ TEST_F(RtcpFunctionalityTest, parseRtcpTwccPacketRejectsTruncatedChunks)
     rtcpPacket.header.packetLength = payloadLen / 4;
 
     // The walk is bounded by payloadLength and the call completes without over-reading.
+    EXPECT_EQ(STATUS_SUCCESS, parseRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection->pTwccManager));
+
+    SAFE_MEMFREE(pHeapPayload);
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
+TEST_F(RtcpFunctionalityTest, parseRtcpTwccPacketSecondWalkChunkOverread)
+{
+    // Uses packetStatusCount=200 (below the 2048 clamp) with a
+    // single run-length chunk using reserved status symbol 3. The reserved symbol
+    // hits the switch default case — no recv-delta is consumed — so the chunk's
+    // run length (5) only decrements packetsRemaining by 5. After one chunk,
+    // packetsRemaining is 195 and chunkOffset advances past the payload. Without
+    // the chunkOffset < payloadLength guard on the second walk, the next iteration
+    // reads a chunk 2 bytes past the payload.
+
+    PRtcPeerConnection pRtcPeerConnection = nullptr;
+    PKvsPeerConnection pKvsPeerConnection = nullptr;
+    RtcConfiguration config{};
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnSenderBandwidthEstimation(pRtcPeerConnection, 0, testBwHandler));
+
+    // TWCC payload: 16-byte header + ONE 2-byte chunk = 18 bytes total.
+    // packetStatusCount = 200 (fits under 2048, no clamp).
+    // Chunk = 0x6005: run-length (bit15=0), status symbol=3 (bits14:13), run length=5 (bits12:0).
+    // Symbol 3 is reserved — the switch default case runs, no delta consumed,
+    // packetsRemaining decremented by 5 only → 195 remain after this single chunk.
+    const UINT32 payloadLen = 18;
+    PBYTE pHeapPayload = (PBYTE) MEMCALLOC(1, payloadLen);
+    ASSERT_TRUE(pHeapPayload != NULL);
+
+    // base sequence number at offset 8
+    putInt16((PINT16) (pHeapPayload + 8), 0x0001);
+    // packetStatusCount at offset 10 = 200 (below clamp threshold)
+    putInt16((PINT16) (pHeapPayload + 10), (INT16) 200);
+    // Single run-length chunk at offset 16: symbol=3 (reserved), runLength=5
+    // Binary: 0 11 0000000000101 = 0x6005
+    pHeapPayload[16] = 0x60;
+    pHeapPayload[17] = 0x05;
+
+    RtcpPacket rtcpPacket{};
+    rtcpPacket.payload = pHeapPayload;
+    rtcpPacket.payloadLength = payloadLen;
+    rtcpPacket.header.packetLength = payloadLen / 4;
+
+    // The second walk's chunkOffset < payloadLength guard stops the loop
+    // before reading past the payload. The call completes without over-reading.
     EXPECT_EQ(STATUS_SUCCESS, parseRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection->pTwccManager));
 
     SAFE_MEMFREE(pHeapPayload);

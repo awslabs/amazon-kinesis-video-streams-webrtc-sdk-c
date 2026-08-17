@@ -38,6 +38,8 @@ if(NOT USE_LIBSRTP3 AND BUILD_LIBSRTP_DESTINATION_PLATFORM STREQUAL BUILD_LIBSRT
 
     if (USE_OPENSSL)
       SET(CONFIGURE_COMMAND ${CONFIGURE_COMMAND} --prefix=${OPEN_SRC_INSTALL_PREFIX} --enable-openssl --with-openssl-dir=${OPENSSL_DIR})
+      # OpenSSL 3.x may install .pc files to lib64/pkgconfig; ensure pkg-config can find them
+      SET(CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env PKG_CONFIG_PATH=${OPEN_SRC_INSTALL_PREFIX}/lib64/pkgconfig:${OPEN_SRC_INSTALL_PREFIX}/lib/pkgconfig ${CONFIGURE_COMMAND})
     else()
       SET(CONFIGURE_COMMAND ${CONFIGURE_COMMAND} --prefix=${OPEN_SRC_INSTALL_PREFIX})
     endif()

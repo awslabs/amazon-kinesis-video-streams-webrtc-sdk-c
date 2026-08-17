@@ -79,10 +79,12 @@ TEST_F(DtlsApiTest, createCertificateAndKey_Returns_Success)
 #if MBEDTLS_BEFORE_V3
     EXPECT_NE(key.pk_ctx, nullptr);
     EXPECT_NE(key.pk_info, nullptr);
-#else
+#elif MBEDTLS_VERSION_MAJOR < 4
     EXPECT_NE(key.MBEDTLS_PRIVATE(pk_ctx), nullptr);
     EXPECT_NE(key.MBEDTLS_PRIVATE(pk_info), nullptr);
 #endif
+    /* mbedTLS 4 makes mbedtls_pk_context fully opaque (PSA-backed); the
+     * cert.raw.p / cert.raw.len checks above already validate cert gen. */
 
     EXPECT_EQ(freeCertificateAndKey(&cert, &key), STATUS_SUCCESS);
     EXPECT_EQ(cert.raw.p, nullptr);
@@ -90,7 +92,7 @@ TEST_F(DtlsApiTest, createCertificateAndKey_Returns_Success)
 #if MBEDTLS_BEFORE_V3
     EXPECT_EQ(key.pk_ctx, nullptr);
     EXPECT_EQ(key.pk_info, nullptr);
-#else
+#elif MBEDTLS_VERSION_MAJOR < 4
     EXPECT_EQ(key.MBEDTLS_PRIVATE(pk_ctx), nullptr);
     EXPECT_EQ(key.MBEDTLS_PRIVATE(pk_info), nullptr);
 #endif

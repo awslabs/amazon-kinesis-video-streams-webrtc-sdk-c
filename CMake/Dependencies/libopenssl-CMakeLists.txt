@@ -2,6 +2,16 @@ cmake_minimum_required(VERSION 3.6.3)
 
 project(libopenssl-download LANGUAGES C)
 
+# Select OpenSSL version based on USE_OPENSSL3 flag.
+# OpenSSL 3.x uses a different tag format: "openssl-X.Y.Z" vs "OpenSSL_X_Y_Zp"
+if(USE_OPENSSL3)
+  set(OPENSSL_GIT_TAG "openssl-3.5.7")
+else()
+  set(OPENSSL_GIT_TAG "OpenSSL_1_1_1t")
+endif()
+
+message(STATUS "Building OpenSSL from source: ${OPENSSL_GIT_TAG}")
+
 if (WIN32)
   find_program(MAKE_EXE NAMES nmake)
   SET(CONFIGURE_COMMAND perl ${CMAKE_CURRENT_BINARY_DIR}/build/src/project_libopenssl/Configure VC-WIN64A no-asm --prefix=${OPEN_SRC_INSTALL_PREFIX} --openssldir=${OPEN_SRC_INSTALL_PREFIX})
@@ -39,7 +49,7 @@ message(STATUS "INSTALL_COMMAND is ${MAKE_EXE} install_sw")
 include(ExternalProject)
 ExternalProject_Add(project_libopenssl
     GIT_REPOSITORY    https://github.com/openssl/openssl.git
-    GIT_TAG           OpenSSL_1_1_1t
+    GIT_TAG           ${OPENSSL_GIT_TAG}
     GIT_PROGRESS      TRUE
     GIT_SHALLOW       TRUE
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build

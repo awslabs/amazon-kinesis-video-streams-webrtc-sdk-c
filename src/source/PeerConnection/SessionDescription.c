@@ -57,10 +57,10 @@ STATUS serializeSessionDescriptionInit(PRtcSessionDescriptionInit pSessionDescri
         }
 
         if (sessionDescriptionJSON == NULL) {
-            amountWritten = SNPRINTF(NULL, 0, "%*.*s%s", lineLen, lineLen, curr, SESSION_DESCRIPTION_INIT_LINE_ENDING);
+            amountWritten = SNPRINTF(NULL, 0, "%*.*s%s", (int) lineLen, (int) lineLen, curr, SESSION_DESCRIPTION_INIT_LINE_ENDING);
         } else {
-            amountWritten = SNPRINTF(sessionDescriptionJSON + *sessionDescriptionJSONLen, inputSize - *sessionDescriptionJSONLen, "%*.*s%s", lineLen,
-                                     lineLen, curr, SESSION_DESCRIPTION_INIT_LINE_ENDING);
+            amountWritten = SNPRINTF(sessionDescriptionJSON + *sessionDescriptionJSONLen, inputSize - *sessionDescriptionJSONLen, "%*.*s%s",
+                                     (int) lineLen, (int) lineLen, curr, SESSION_DESCRIPTION_INIT_LINE_ENDING);
         }
         CHK(sessionDescriptionJSON == NULL || ((inputSize - *sessionDescriptionJSONLen) >= amountWritten), STATUS_BUFFER_TOO_SMALL);
 
@@ -113,8 +113,13 @@ STATUS deserializeSessionDescriptionInit(PCHAR sessionDescriptionJSON, UINT32 se
                 CHK(FALSE, STATUS_SESSION_DESCRIPTION_INIT_INVALID_TYPE);
             }
         } else if (STRNCMP(SDP_KEY, sessionDescriptionJSON + tokens[i].start, ARRAY_SIZE(SDP_KEY) - 1) == 0) {
-            CHK((tokens[i + 1].end - tokens[i + 1].start) <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN,
-                STATUS_SESSION_DESCRIPTION_INIT_MAX_SDP_LEN_EXCEEDED);
+            UINT32 sdpTokenLen = tokens[i + 1].end - tokens[i + 1].start;
+            if (sdpTokenLen > MAX_SESSION_DESCRIPTION_INIT_SDP_LEN) {
+                DLOGE("Received SDP size (%u bytes) exceeds configured MAX_SESSION_DESCRIPTION_INIT_SDP_LEN (%u bytes). "
+                      "Increase KVS_SIGNALING_MESSAGE_LEN in CMake to accommodate larger SDPs.",
+                      sdpTokenLen, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+                CHK(FALSE, STATUS_SESSION_DESCRIPTION_INIT_MAX_SDP_LEN_EXCEEDED);
+            }
             curr = sessionDescriptionJSON + tokens[i + 1].start;
             tail = sessionDescriptionJSON + tokens[i + 1].end;
             j = 0;
@@ -188,7 +193,7 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSdpMediaDescription pMediaDescription = NULL;
-    UINT8 currentAttribute;
+    UINT16 currentAttribute;
     UINT16 currentMedia;
     PCHAR attributeValue, end;
     UINT64 parsedPayloadType, hashmapPayloadType, fmtpVal, aptVal;
@@ -273,9 +278,9 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
 
             if ((end = STRSTR(attributeValue, RTX_CODEC_VALUE)) != NULL) {
                 CHK_STATUS(STRTOUI64(end + STRLEN(RTX_CODEC_VALUE), NULL, 10, &parsedPayloadType));
-                if ((end = STRSTR(attributeValue, FMTP_VALUE)) != NULL) {
-                    CHK_STATUS(STRTOUI64(end + STRLEN(FMTP_VALUE), NULL, 10, &fmtpVal));
-                    aptFmtpVals[aptFmtpValCount++] = (UINT32) ((fmtpVal << 8u) & parsedPayloadType);
+                if ((end = STRCHR(attributeValue, ' ')) != NULL) {
+                    CHK_STATUS(STRTOUI64(attributeValue, end, 10, &fmtpVal));
+                    aptFmtpVals[aptFmtpValCount++] = (UINT32) ((fmtpVal << 8u) | parsedPayloadType);
                 }
             }
         }
@@ -320,6 +325,36 @@ CleanUp:
     return retStatus;
 }
 
+// Map the media codec to its RTX-table key.
+// The rtxTable is keyed by the RTX codec enum (RTC_RTX_CODEC_*), which does NOT share the same
+// numbering as the media codec enum (RTC_CODEC_*): e.g. H265 is RTC_CODEC_H265 (7) but
+// RTC_RTX_CODEC_H265 (3), and VP8 is RTC_CODEC_VP8 (3) but RTC_RTX_CODEC_VP8 (2).
+STATUS getRtxCodecKeyForCodec(RTC_CODEC codec, PUINT64 pRtxCodecKey)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pRtxCodecKey != NULL, STATUS_NULL_ARG);
+
+    switch (codec) {
+        case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
+            *pRtxCodecKey = RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+            break;
+        case RTC_CODEC_VP8:
+            *pRtxCodecKey = RTC_RTX_CODEC_VP8;
+            break;
+        case RTC_CODEC_H265:
+            *pRtxCodecKey = RTC_RTX_CODEC_H265;
+            break;
+        default:
+            CHK_ERR(FALSE, STATUS_SESSION_DESCRIPTION_CODEC_NOT_MAPPED_TO_RTX, "No RTX codec mapping for codec %u", codec);
+    }
+
+CleanUp:
+    LEAVES();
+    return retStatus;
+}
+
 STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PDoubleList pTransceivers)
 {
     ENTERS();
@@ -327,6 +362,7 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
     PDoubleListNode pCurNode = NULL;
     PKvsRtpTransceiver pKvsRtpTransceiver;
     UINT64 data;
+    UINT64 rtxCodecKey;
 
     // Loop over Transceivers and set the payloadType (which what we got from the other side)
     // If a codec we want to send wasn't supported by the other return an error
@@ -343,13 +379,50 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
             pKvsRtpTransceiver->sender.payloadType = (UINT8) data;
             pKvsRtpTransceiver->sender.rtxPayloadType = (UINT8) data;
 
-            // NACKs may have distinct PayloadTypes, look in the rtxTable and check. Otherwise NACKs will just be re-sending the same seqnum
-            if (hashTableGet(rtxTable, pKvsRtpTransceiver->sender.track.codec, &data) == STATUS_SUCCESS) {
-                pKvsRtpTransceiver->sender.rtxPayloadType = (UINT8) data;
+            // RTX is video-only (H.264/H.265/VP8). Audio (Opus/G.711) never negotiates RTX - the same as browsers -
+            // so skip the RTX lookup and its logging for audio to avoid a misleading "RTX not resolved" warning.
+            if (pKvsRtpTransceiver->sender.track.kind == MEDIA_STREAM_TRACK_KIND_VIDEO) {
+                // Get the PayloadTypes from the rtxTable for the NACK.
+                // If it's not in the table, will do a plain resend (same seqnum).
+                if (getRtxCodecKeyForCodec(pKvsRtpTransceiver->sender.track.codec, &rtxCodecKey) == STATUS_SUCCESS &&
+                    hashTableGet(rtxTable, rtxCodecKey, &data) == STATUS_SUCCESS) {
+                    pKvsRtpTransceiver->sender.rtxPayloadType = (UINT8) data;
+                }
+
+                // Emit once per negotiation, whether RTX was resolved for this codec. When rtxPayloadType
+                // stays equal to payloadType, retransmissions on NACK fall back to a plain resend on the original SSRC/PT
+                // instead of being sent as RTX packets.
+                if (pKvsRtpTransceiver->sender.rtxPayloadType != pKvsRtpTransceiver->sender.payloadType) {
+                    DLOGD("RTX negotiated for codec %u: payloadType %u, rtxPayloadType %u", pKvsRtpTransceiver->sender.track.codec,
+                          pKvsRtpTransceiver->sender.payloadType, pKvsRtpTransceiver->sender.rtxPayloadType);
+                } else {
+                    DLOGW("RTX not resolved for codec %u (no matching rtx/apt in remote SDP); NACKs will fall back to plain resend on payloadType %u",
+                          pKvsRtpTransceiver->sender.track.codec, pKvsRtpTransceiver->sender.payloadType);
+                }
             }
+
+            // Publish to the atomic snapshot read by the media/RTCP threads (see Rtp.h).
+            ATOMIC_STORE(&pKvsRtpTransceiver->atomicSenderPayloadTypes,
+                         KVS_RTP_TRANSCEIVER_PACK_PAYLOAD_TYPES(pKvsRtpTransceiver->sender.payloadType, pKvsRtpTransceiver->sender.rtxPayloadType));
         }
 
         if (pKvsRtpTransceiver != NULL) {
+            // Skip transceivers that already have rolling buffer and retransmitter allocated
+            // (from a previous offer/answer exchange). During re-negotiation, media sender
+            // threads may be actively using these buffers, so freeing and recreating them
+            // would cause a use-after-free race condition. The existing buffers remain valid.
+            if (pKvsRtpTransceiver->sender.packetBuffer != NULL && pKvsRtpTransceiver->sender.retransmitter != NULL) {
+                // A codec change mid-session is not negotiated today; the buffer keeps its old
+                // sizing (re-allocating it is the UAF above), so log rather than fail.
+                if (pKvsRtpTransceiver->rollingBufferCodec != pKvsRtpTransceiver->sender.track.codec) {
+                    DLOGW("Re-negotiation: transceiver codec changed (%" PRIu32 " -> %" PRIu32 ")", (UINT32) pKvsRtpTransceiver->rollingBufferCodec,
+                          (UINT32) pKvsRtpTransceiver->sender.track.codec);
+                } else {
+                    DLOGD("Re-negotiation: reusing existing rolling buffer and retransmitter for transceiver");
+                }
+                continue;
+            }
+
             if (pKvsRtpTransceiver->pRollingBufferConfig == NULL) {
                 // Passing in 0,0. The default values will be set up since application has not set up rolling buffer config with the
                 // configureTransceiverRollingBuffer() call
@@ -365,6 +438,9 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
             DLOGI("The rolling buffer is configured to store %" PRIu64 " packets", rollingBufferCapacity);
             CHK_STATUS(createRtpRollingBuffer(rollingBufferCapacity, &pKvsRtpTransceiver->sender.packetBuffer));
             CHK_STATUS(createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
+
+            // Remember what the capacity was sized for, so a re-negotiation can spot a codec change.
+            pKvsRtpTransceiver->rollingBufferCodec = pKvsRtpTransceiver->sender.track.codec;
         }
     }
 
@@ -416,7 +492,7 @@ CleanUp:
 BOOL readHexValue(PCHAR input, PCHAR prefix, PUINT32 value)
 {
     PCHAR substr = STRSTR(input, prefix);
-    if (substr != NULL && SSCANF(substr + STRLEN(prefix), "%x", value) == 1) {
+    if (substr != NULL && SSCANF(substr + STRLEN(prefix), "%" SCNx32, value) == 1) {
         return TRUE;
     }
     return FALSE;
@@ -510,7 +586,6 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
             retStatus = hashTableGet(pKvsPeerConnection->pRtxTable, RTC_RTX_CODEC_VP8, &rtxPayloadType);
         } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_H265) {
             retStatus = hashTableGet(pKvsPeerConnection->pRtxTable, RTC_RTX_CODEC_H265, &rtxPayloadType);
-            payloadType = DEFAULT_PAYLOAD_H265;
         } else {
             retStatus = STATUS_HASH_KEY_NOT_PRESENT;
         }
@@ -545,7 +620,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
 
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc-group");
         amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "FID %u %u",
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "FID %" PRIu32 " %" PRIu32,
                                  pKvsRtpTransceiver->sender.ssrc, pKvsRtpTransceiver->sender.rtxSsrc);
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc-grp value (with rtx) could not be written");
         attributeCount++;
@@ -560,28 +635,28 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
     amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u cname:%s",
+                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32 " cname:%s",
                              pKvsRtpTransceiver->sender.ssrc, pKvsPeerConnection->localCNAME);
     CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc cname could not be written");
     attributeCount++;
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
     amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u msid:%s %s",
+                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32 " msid:%s %s",
                              pKvsRtpTransceiver->sender.ssrc, pRtcMediaStreamTrack->streamId, pRtcMediaStreamTrack->trackId);
     CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc msid could not be written");
     attributeCount++;
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
     amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u mslabel:%s",
+                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32 " mslabel:%s",
                              pKvsRtpTransceiver->sender.ssrc, pRtcMediaStreamTrack->streamId);
     CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc mslabel could not be written");
     attributeCount++;
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
     amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u label:%s",
+                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32 " label:%s",
                              pKvsRtpTransceiver->sender.ssrc, pRtcMediaStreamTrack->trackId);
     CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc label could not be written");
     attributeCount++;
@@ -589,28 +664,28 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     if (containRtx) {
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
         amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u cname:%s",
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32 " cname:%s",
                                  pKvsRtpTransceiver->sender.rtxSsrc, pKvsPeerConnection->localCNAME);
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc cname (with rtx) could not be written");
         attributeCount++;
 
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
         amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u msid:%s %sRTX",
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32 " msid:%s %sRTX",
                                  pKvsRtpTransceiver->sender.rtxSsrc, pRtcMediaStreamTrack->streamId, pRtcMediaStreamTrack->trackId);
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc msid (with rtx) could not be written");
         attributeCount++;
 
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
         amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u mslabel:%sRTX",
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32 " mslabel:%sRTX",
                                  pKvsRtpTransceiver->sender.rtxSsrc, pRtcMediaStreamTrack->streamId);
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc mslabel (with rtx) could not be written");
         attributeCount++;
 
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
         amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u label:%sRTX",
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32 " label:%sRTX",
                                  pKvsRtpTransceiver->sender.rtxSsrc, pRtcMediaStreamTrack->trackId);
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full ssrc label (with rtx) could not be written");
         attributeCount++;
@@ -664,7 +739,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Mid exists, but remote SDP value could not be written");
     } else {
         amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%d", mediaSectionId);
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32, mediaSectionId);
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full media section Id could not be written");
     }
     attributeCount++;
@@ -890,14 +965,14 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
     amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u cname:%s",
+                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32 " cname:%s",
                              pKvsRtpTransceiver->sender.ssrc, pKvsPeerConnection->localCNAME);
     CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full transceiver ssrc cname could not be written");
     attributeCount++;
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
     amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%u msid:%s %s",
+                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32 " msid:%s %s",
                              pKvsRtpTransceiver->sender.ssrc, pRtcMediaStreamTrack->streamId, pRtcMediaStreamTrack->trackId);
     CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full transceiver ssrc msid could not be written");
     attributeCount++;
@@ -976,7 +1051,7 @@ STATUS populateSessionDescriptionDataChannel(PKvsPeerConnection pKvsPeerConnecti
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "mid");
     amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%d", mediaSectionId);
+                             SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRIu32, mediaSectionId);
     CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full data channel mid media section could not be written");
     attributeCount++;
 
@@ -1047,6 +1122,7 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
     PHashTable pUnknownCodecPayloadTypesTable = NULL, pUnknownCodecRtpmapTable = NULL;
     UINT32 unknownCodecHashTableKey = 0;
     UINT32 unknownHashTableBucketCount = 0;
+    UINT32 remoteIdx = 0;
 
     CHK_STATUS(dtlsSessionGetLocalCertificateFingerprint(pKvsPeerConnection->pDtlsSession, certificateFingerprint, CERTIFICATE_FINGERPRINT_LENGTH));
     if (pKvsPeerConnection->isOffer) {
@@ -1057,7 +1133,9 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
             pCurNode = pCurNode->pNext;
             pKvsRtpTransceiver = (PKvsRtpTransceiver) data;
             if (pKvsRtpTransceiver != NULL) {
-                CHK(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
+                CHK_ERR(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT,
+                        "Exceeded max media count while creating offer. Max: %u, current: %u", MAX_SDP_SESSION_MEDIA_COUNT,
+                        pLocalSessionDescription->mediaCount);
                 // If generating answer, need to check if Local Description is present in remote -- if not, we don't need to create a local
                 // description for it or else our Answer will have an extra m-line, for offer the local is the offer itself, don't care about remote
                 CHK_STATUS(populateSingleMediaSection(
@@ -1079,14 +1157,54 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
         // if an m-line does not have a corresponding transceiver created by the user, we create a fake transceiver
         CHK_STATUS(findTransceiversByRemoteDescription(pKvsPeerConnection, pRemoteSessionDescription, pUnknownCodecPayloadTypesTable,
                                                        pUnknownCodecRtpmapTable));
-        // pAnswerTransceivers contains transceivers created by the user as well as fake transceivers
+
+        {
+            UINT32 localTransceiverCount = 0, answerTransceiverCount = 0;
+            doubleListGetNodeCount(pKvsPeerConnection->pTransceivers, &localTransceiverCount);
+            doubleListGetNodeCount(pKvsPeerConnection->pAnswerTransceivers, &answerTransceiverCount);
+            if (localTransceiverCount > answerTransceiverCount) {
+                DLOGW("Only %u of %u local transceivers matched remote offer m-lines (%u media). "
+                      "%u transceivers will not be negotiated. "
+                      "Ensure the remote peer's offer includes a matching number of m-lines (e.g. addTransceiver() calls).",
+                      answerTransceiverCount, localTransceiverCount, pRemoteSessionDescription->mediaCount,
+                      localTransceiverCount - answerTransceiverCount);
+            }
+        }
+
+        // Emit the answer's m-lines in the REMOTE offer's m-line order (RFC 3264:
+        // the answer MUST mirror the offer's m-line order — strict peers such as
+        // browsers reject a reordered answer with "The order of m-lines in answer
+        // doesn't match order in offer"). pAnswerTransceivers holds one entry per
+        // remote MEDIA m-line in offer order (user transceivers matched by
+        // findTransceiversByRemoteDescription, fake transceivers for the rest),
+        // so we interleave: an application m-line emits the datachannel section
+        // at the offer's position; every other m-line consumes the next answer
+        // transceiver. A media m-line arriving AFTER the datachannel (e.g.
+        // Chrome's addTrack() on a connection that already has a datachannel)
+        // is thereby answered in place instead of being reordered around it.
         CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pAnswerTransceivers, &pCurNode));
-        while (pCurNode != NULL) {
+        for (remoteIdx = 0; remoteIdx < pRemoteSessionDescription->mediaCount; remoteIdx++) {
+            CHK_ERR(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT,
+                    "Exceeded max media count while creating answer. Max: %u, current: %u", MAX_SDP_SESSION_MEDIA_COUNT,
+                    pLocalSessionDescription->mediaCount);
+
+            if (STRNCMP(pRemoteSessionDescription->mediaDescriptions[remoteIdx].mediaName, "application", ARRAY_SIZE("application") - 1) == 0) {
+                if (ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpIsEnabled)) {
+                    CHK_STATUS(populateSessionDescriptionDataChannel(
+                        pKvsPeerConnection, &(pLocalSessionDescription->mediaDescriptions[pLocalSessionDescription->mediaCount]),
+                        certificateFingerprint, pLocalSessionDescription->mediaCount, pDtlsRole));
+                    pLocalSessionDescription->mediaCount++;
+                }
+                continue;
+            }
+
+            if (pCurNode == NULL) {
+                break;
+            }
             CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
             pCurNode = pCurNode->pNext;
             pKvsRtpTransceiver = (PKvsRtpTransceiver) data;
             if (pKvsRtpTransceiver != NULL) {
-                CHK(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
                 if (isPresentInRemote(pKvsRtpTransceiver, pRemoteSessionDescription)) {
                     if (pKvsRtpTransceiver->sender.track.codec == RTC_CODEC_UNKNOWN) {
                         CHK_STATUS(populateSingleMediaSection(pKvsPeerConnection, pKvsRtpTransceiver,
@@ -1112,8 +1230,13 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
         }
     }
 
-    if (ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpIsEnabled)) {
-        CHK(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
+    // Offers place the datachannel m-line last, after all media m-lines. Answers
+    // emit it at the offer's application position (above) instead — an answer
+    // must never introduce an m-line the offer did not have.
+    if (pKvsPeerConnection->isOffer && ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpIsEnabled)) {
+        CHK_ERR(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT,
+                "Exceeded max media count while adding data channel. Max: %u, current: %u", MAX_SDP_SESSION_MEDIA_COUNT,
+                pLocalSessionDescription->mediaCount);
         CHK_STATUS(populateSessionDescriptionDataChannel(pKvsPeerConnection,
                                                          &(pLocalSessionDescription->mediaDescriptions[pLocalSessionDescription->mediaCount]),
                                                          certificateFingerprint, pLocalSessionDescription->mediaCount, pDtlsRole));
@@ -1144,9 +1267,23 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessio
     PCHAR curr = NULL;
     UINT32 i, sizeRemaining;
     INT32 charsCopied;
+    PDoubleListNode pCurNode = NULL;
+    UINT64 item = 0;
+    PKvsRtpTransceiver pKvsRtpTransceiver = NULL;
 
     CHK(pKvsPeerConnection != NULL && pLocalSessionDescription != NULL, STATUS_NULL_ARG);
     CHK(pKvsPeerConnection->isOffer || pRemoteSessionDescription != NULL, STATUS_NULL_ARG);
+
+    // Publish any direct application writes to transceiver.direction (the documented way to
+    // pause/resume a track before re-negotiating) to the atomic snapshot the media path reads.
+    // This runs on the negotiation thread, so the plain-field read here does not race the app.
+    CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceivers, &pCurNode));
+    while (pCurNode != NULL) {
+        CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
+        pKvsRtpTransceiver = (PKvsRtpTransceiver) item;
+        ATOMIC_STORE(&pKvsRtpTransceiver->atomicDirection, (SIZE_T) pKvsRtpTransceiver->transceiver.direction);
+        pCurNode = pCurNode->pNext;
+    }
 
     CHK_STATUS(populateSessionDescriptionMedia(pKvsPeerConnection, pRemoteSessionDescription, pLocalSessionDescription));
     MEMSET(bundleValue, 0, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
@@ -1193,7 +1330,7 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessio
         for (curr = (pLocalSessionDescription->sdpAttributes[0].attributeValue + ARRAY_SIZE(BUNDLE_KEY) - 1), i = 0;
              i < pLocalSessionDescription->mediaCount; i++) {
             sizeRemaining = MAX_SDP_ATTRIBUTE_VALUE_LENGTH - (curr - pLocalSessionDescription->sdpAttributes[0].attributeValue);
-            charsCopied = SNPRINTF(curr, sizeRemaining, " %d", i);
+            charsCopied = SNPRINTF(curr, sizeRemaining, " %" PRIu32, i);
 
             CHK(charsCopied > 0 && (UINT32) charsCopied < sizeRemaining, STATUS_BUFFER_TOO_SMALL);
 
@@ -1346,6 +1483,35 @@ CleanUp:
     return retStatus;
 }
 
+// Returns TRUE if the direction is an active (non-INACTIVE, non-STOPPED) media direction.
+static BOOL isActiveDirection(RTC_RTP_TRANSCEIVER_DIRECTION direction)
+{
+    return direction == RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV || direction == RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY ||
+        direction == RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
+}
+
+// Parse remote offer media direction and return our perspective (e.g. remote sendonly -> we recvonly).
+// Used when applying remote offer to update transceiver directions for re-negotiation.
+// Returns the remote m-line's declared direction (raw, from the remote's perspective);
+// INACTIVE if the m-line has no direction attribute. No inversion here on purpose:
+// intersectTransceiverDirection() does the send<->recv crossover between local and remote.
+static RTC_RTP_TRANSCEIVER_DIRECTION parseRemoteDirectionFromMediaDescription(PSdpMediaDescription pMediaDescription)
+{
+    UINT32 i;
+    RTC_RTP_TRANSCEIVER_DIRECTION remoteDirection;
+
+    if (pMediaDescription == NULL) {
+        return RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE;
+    }
+    for (i = 0; i < pMediaDescription->mediaAttributesCount; i++) {
+        if (STATUS_SUCCEEDED(parseTransceiverDirection(pMediaDescription->sdpAttributes[i].attributeName, &remoteDirection)) &&
+            remoteDirection != RTC_RTP_TRANSCEIVER_DIRECTION_UNINITIALIZED) {
+            return remoteDirection;
+        }
+    }
+    return RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE;
+}
+
 // primarily used for creating a list of transceivers corresponding to each media m-line to respond to an offer with an answer
 // This function generates the pAnswerTransceivers list which contains transceivers corresponding to each m-line in correct order
 // To generate this list, it traverses over each m-line, first checks if it has a user-created transceiver present using findCodecInTransceivers
@@ -1366,13 +1532,30 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
     PCHAR attributeValue, end, codecs = NULL;
     PCHAR rtpMapValue = NULL;
     CHAR firstCodec[MAX_PAYLOAD_TYPE_LENGTH];
-    BOOL supportCodec, foundMediaSectionWithCodec, containsPayloadType = FALSE, containsRtpMap = FALSE;
+    BOOL supportCodec, foundMediaSectionWithCodec;
+    BOOL containsPayloadType = FALSE, containsRtpMap = FALSE, inSeenTransceivers = FALSE;
     PHashTable pSeenTransceivers;
     RTC_CODEC rtcCodec;
     MEDIA_STREAM_TRACK_KIND streamKind;
-    PKvsRtpTransceiver pKvsRtpFakeTransceiver = NULL;
+    PKvsRtpTransceiver pKvsRtpFakeTransceiver = NULL, pKvsRtpTransceiver = NULL;
     PRtcMediaStreamTrack pRtcMediaStreamTrack;
     RtcMediaStreamTrack track;
+    PDoubleListNode pCurNode = NULL;
+    UINT64 item = 0;
+    UINT32 avMlineCount = 0, answerTransceiverCount = 0;
+
+    // Clean up pFakeTransceivers and pAnswerTransceivers from any previous offer/answer exchange.
+    // This is needed to support re-negotiation where findTransceiversByRemoteDescription is called
+    // again on an already-connected PeerConnection. Without this, the lists would accumulate
+    // duplicate entries from each successive offer.
+    CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pFakeTransceivers, &pCurNode));
+    while (pCurNode != NULL) {
+        CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
+        CHK_STATUS(freeKvsRtpTransceiver((PKvsRtpTransceiver*) &item));
+        pCurNode = pCurNode->pNext;
+    }
+    CHK_STATUS(doubleListClear(pKvsPeerConnection->pFakeTransceivers, FALSE));
+    CHK_STATUS(doubleListClear(pKvsPeerConnection->pAnswerTransceivers, FALSE));
 
     // pSeenTranceivers is populated only with codec types supported by the SDK. And if already populated, it is not added again.
     // Hence, it is sufficient if the hash table count is set to minimum or required transceivers
@@ -1508,11 +1691,13 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
 
         // if we have not found a transceiver for an m-line or if the codec is unsupported, got to this section to generate a fake transceiver
         if (!foundMediaSectionWithCodec && (streamKind == MEDIA_STREAM_TRACK_KIND_AUDIO || streamKind == MEDIA_STREAM_TRACK_KIND_VIDEO)) {
+            DLOGW("No matching local transceiver for remote %s m-line %u, responding with inactive direction",
+                  streamKind == MEDIA_STREAM_TRACK_KIND_AUDIO ? "audio" : "video", currentMedia);
             MEMSET(&track, 0x00, SIZEOF(RtcMediaStreamTrack));
             track.kind = streamKind;
             track.codec = RTC_CODEC_UNKNOWN;
-            STRCPY(track.streamId, "fakeStream");
-            STRCPY(track.trackId, "fakeTrack");
+            SNPRINTF(track.streamId, SIZEOF(track.streamId), "fakeStream%" PRIu32, currentMedia);
+            SNPRINTF(track.trackId, SIZEOF(track.trackId), "fakeTrack%" PRIu32, currentMedia);
             pRtcMediaStreamTrack = &track;
             CHK_STATUS(createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE, pKvsPeerConnection, (UINT32) RAND(), (UINT32) RAND(),
                                                pRtcMediaStreamTrack, NULL, RTC_CODEC_UNKNOWN, &pKvsRtpFakeTransceiver));
@@ -1534,6 +1719,69 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
                 containsRtpMap = FALSE;
             }
         }
+    }
+
+    // Validate that the number of audio/video m-lines matches the answer transceiver count.
+    // By construction, findTransceiversByRemoteDescription creates one entry in pAnswerTransceivers
+    // per audio/video m-line (either a real match or a fake). A mismatch indicates a bug.
+    for (currentMedia = 0; currentMedia < pRemoteSessionDescription->mediaCount; currentMedia++) {
+        attributeValue = pRemoteSessionDescription->mediaDescriptions[currentMedia].mediaName;
+        if ((end = STRCHR(attributeValue, ' ')) != NULL) {
+            tokenLen = (UINT32) (end - attributeValue);
+        } else {
+            tokenLen = (UINT32) STRLEN(attributeValue);
+        }
+        if (STRNCMP(MEDIA_SECTION_AUDIO_VALUE, attributeValue, tokenLen) == 0 || STRNCMP(MEDIA_SECTION_VIDEO_VALUE, attributeValue, tokenLen) == 0) {
+            avMlineCount++;
+        }
+    }
+    CHK_STATUS(doubleListGetNodeCount(pKvsPeerConnection->pAnswerTransceivers, &answerTransceiverCount));
+    if (avMlineCount != answerTransceiverCount) {
+        DLOGV("Audio/video m-line count (%u) does not match answer transceiver count (%u)", avMlineCount, answerTransceiverCount);
+    }
+
+    // Set each real transceiver's direction from the remote offer (re-negotiation: track re-added restores direction).
+    // Walk pAnswerTransceivers in lockstep with remote audio/video m-lines.
+    // Skip fake transceivers (not in pSeenTransceivers) — they must stay INACTIVE.
+    CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pAnswerTransceivers, &pCurNode));
+    for (currentMedia = 0; currentMedia < pRemoteSessionDescription->mediaCount && pCurNode != NULL; currentMedia++) {
+        pMediaDescription = &(pRemoteSessionDescription->mediaDescriptions[currentMedia]);
+        attributeValue = pMediaDescription->mediaName;
+        if ((end = STRCHR(attributeValue, ' ')) != NULL) {
+            tokenLen = (UINT32) (end - attributeValue);
+        } else {
+            tokenLen = (UINT32) STRLEN(attributeValue);
+        }
+        if (STRNCMP(MEDIA_SECTION_AUDIO_VALUE, attributeValue, tokenLen) != 0 && STRNCMP(MEDIA_SECTION_VIDEO_VALUE, attributeValue, tokenLen) != 0) {
+            continue;
+        }
+        CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
+        pKvsRtpTransceiver = (PKvsRtpTransceiver) item;
+        CHK_STATUS(hashTableContains(pSeenTransceivers, (UINT64) pKvsRtpTransceiver, &inSeenTransceivers));
+        if (inSeenTransceivers) {
+            // Intersect: keep the app's explicit local intent (e.g. SENDONLY) when the
+            // remote offer is more permissive (e.g. SENDRECV). Without this, a recvonly
+            // local transceiver paired with a sendrecv offer would advertise sendrecv
+            // back, dropping the app's `a=recvonly`.
+            pKvsRtpTransceiver->transceiver.direction =
+                intersectTransceiverDirection(pKvsRtpTransceiver->configuredDirection, parseRemoteDirectionFromMediaDescription(pMediaDescription));
+            ATOMIC_STORE(&pKvsRtpTransceiver->atomicDirection, (SIZE_T) pKvsRtpTransceiver->transceiver.direction);
+        }
+        pCurNode = pCurNode->pNext;
+    }
+
+    // Mark transceivers that have no matching remote m-line as INACTIVE (track removed in offer).
+    // Applies to send-capable (SENDRECV, SENDONLY) and recv-only (RECVONLY) so both sides reflect removal.
+    CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceivers, &pCurNode));
+    while (pCurNode != NULL) {
+        CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
+        pKvsRtpTransceiver = (PKvsRtpTransceiver) item;
+        CHK_STATUS(hashTableContains(pSeenTransceivers, (UINT64) pKvsRtpTransceiver, &inSeenTransceivers));
+        if (!inSeenTransceivers && isActiveDirection(pKvsRtpTransceiver->transceiver.direction)) {
+            pKvsRtpTransceiver->transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE;
+            ATOMIC_STORE(&pKvsRtpTransceiver->atomicDirection, (SIZE_T) RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE);
+        }
+        pCurNode = pCurNode->pNext;
     }
 
 CleanUp:

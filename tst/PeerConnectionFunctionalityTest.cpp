@@ -43,14 +43,15 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
     EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
 
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
-        PPeerContainer container = (PPeerContainer)customData;
+        PPeerContainer container = (PPeerContainer) customData;
         if (candidateStr != NULL) {
             container->client->lock.lock();
-            if(!container->client->noNewThreads) {
+            if (!container->client->noNewThreads) {
                 container->client->threads.push_back(std::thread(
                     [container](std::string candidate) {
                         RtcIceCandidateInit iceCandidate;
-                        EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
+                        EXPECT_EQ(STATUS_SUCCESS,
+                                  deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
                         EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) container->pc, iceCandidate.candidate));
                     },
                     std::string(candidateStr)));
@@ -99,8 +100,9 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
     EXPECT_EQ(2, connectedCount);
 
     this->lock.lock();
-    //join all threads before leaving
-    for (auto& th : this->threads) th.join();
+    // join all threads before leaving
+    for (auto& th : this->threads)
+        th.join();
 
     this->threads.clear();
     this->noNewThreads = TRUE;
@@ -272,11 +274,17 @@ TEST_F(PeerConnectionFunctionalityTest, sendDataWithClosedSocketConnectionWithHo
     //   6. When ICE agent state changes to FAILED, the PeerConnection will be notified and change its state to FAILED as well
     //   7. Verify that we the counter for RTC_PEER_CONNECTION_STATE_FAILED is not 0
     addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
-    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    // ASSERT, not EXPECT: the fault injection below dereferences ICE agent state that only exists
+    // once the peers connected. Continuing after a failed connect crashes the whole test binary.
+    ASSERT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
     pOfferPcImpl = (PKvsPeerConnection) offerPc;
     pIceAgent = pOfferPcImpl->pIceAgent;
     MUTEX_LOCK(pIceAgent->lock);
+    if (pIceAgent->pDataSendingIceCandidatePair == NULL) {
+        MUTEX_UNLOCK(pIceAgent->lock);
+        FAIL() << "no data sending ICE candidate pair after a successful connect";
+    }
     pLocalCandidate = pIceAgent->pDataSendingIceCandidatePair->local;
 
     if (pLocalCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
@@ -336,11 +344,17 @@ TEST_F(PeerConnectionFunctionalityTest, sendDataWithClosedSocketConnectionWithFo
     //   6. When ICE agent state changes to FAILED, the PeerConnection will be notified and change its state to FAILED as well
     //   7. Verify that we the counter for RTC_PEER_CONNECTION_STATE_FAILED is not 0
     addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
-    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    // ASSERT, not EXPECT: the fault injection below dereferences ICE agent state that only exists
+    // once the peers connected. Continuing after a failed connect crashes the whole test binary.
+    ASSERT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
 
     pOfferPcImpl = (PKvsPeerConnection) offerPc;
     pIceAgent = pOfferPcImpl->pIceAgent;
     MUTEX_LOCK(pIceAgent->lock);
+    if (pIceAgent->pDataSendingIceCandidatePair == NULL) {
+        MUTEX_UNLOCK(pIceAgent->lock);
+        FAIL() << "no data sending ICE candidate pair after a successful connect";
+    }
     pLocalCandidate = pIceAgent->pDataSendingIceCandidatePair->local;
 
     if (pLocalCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
@@ -652,14 +666,15 @@ TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
     addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
 
     auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
-        PPeerContainer container = (PPeerContainer)customData;
+        PPeerContainer container = (PPeerContainer) customData;
         if (candidateStr != NULL) {
             container->client->lock.lock();
-            if(!container->client->noNewThreads) {
+            if (!container->client->noNewThreads) {
                 container->client->threads.push_back(std::thread(
                     [container](std::string candidate) {
                         RtcIceCandidateInit iceCandidate;
-                        EXPECT_EQ(STATUS_SUCCESS, deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
+                        EXPECT_EQ(STATUS_SUCCESS,
+                                  deserializeRtcIceCandidateInit((PCHAR) candidate.c_str(), STRLEN(candidate.c_str()), &iceCandidate));
                         EXPECT_EQ(STATUS_SUCCESS, addIceCandidate((PRtcPeerConnection) container->pc, iceCandidate.candidate));
                     },
                     std::string(candidateStr)));
@@ -726,7 +741,8 @@ TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
     }
 
     this->lock.lock();
-    for (auto& th : this->threads) th.join();
+    for (auto& th : this->threads)
+        th.join();
 
     this->threads.clear();
     this->noNewThreads = TRUE;
@@ -1547,6 +1563,624 @@ TEST_F(PeerConnectionFunctionalityTest, parseExtIdHandlesNull)
     // Valid extmap value: "$number $url"
     EXPECT_EQ(5u, parseExtId((PCHAR) "5 http://example.com"));
     EXPECT_EQ(12u, parseExtId((PCHAR) "12 urn:ietf:params"));
+}
+
+TEST_F(PeerConnectionFunctionalityTest, renegotiateWithSameIceCredentials)
+{
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit sdp;
+    SIZE_T connectedCount = 0;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    // Initial connection
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    // Reset state change counts for re-negotiation tracking
+    MEMSET(this->stateChangeCount, 0, SIZEOF(SIZE_T) * RTC_PEER_CONNECTION_TOTAL_STATE_COUNT);
+
+    // Stop ICE candidate forwarding threads before re-negotiation
+    this->lock.lock();
+    for (auto& th : this->threads)
+        th.join();
+    this->threads.clear();
+    this->noNewThreads = FALSE;
+    this->lock.unlock();
+
+    // Re-negotiation: create a new offer/answer on the same PeerConnections.
+    // ICE credentials remain the same, so ICE should stay as-is (no restart).
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(offerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(answerPc, &sdp));
+
+    EXPECT_EQ(STATUS_SUCCESS, createAnswer(answerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(answerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(offerPc, &sdp));
+
+    // Give some time for state to settle. Since ICE is already connected and
+    // credentials did not change, connection should remain stable.
+    THREAD_SLEEP(2 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    // The connection should not have transitioned to FAILED
+    EXPECT_EQ(0, ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_FAILED]));
+
+    // Verify no transceivers accumulated (this test has no tracks)
+    UINT32 transceiverCount = 0;
+    PKvsPeerConnection pOfferPcImpl = (PKvsPeerConnection) offerPc;
+    PKvsPeerConnection pAnswerPcImpl = (PKvsPeerConnection) answerPc;
+
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pOfferPcImpl->pTransceivers, &transceiverCount));
+    EXPECT_EQ(0u, transceiverCount) << "Offerer should have no transceivers (no tracks added)";
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pOfferPcImpl->pFakeTransceivers, &transceiverCount));
+    EXPECT_EQ(0u, transceiverCount) << "Offerer should have no fake transceivers";
+
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pAnswerPcImpl->pTransceivers, &transceiverCount));
+    EXPECT_EQ(0u, transceiverCount) << "Answerer should have no transceivers (no tracks added)";
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pAnswerPcImpl->pFakeTransceivers, &transceiverCount));
+    EXPECT_EQ(0u, transceiverCount) << "Answerer should have no fake transceivers";
+
+    this->lock.lock();
+    for (auto& th : this->threads)
+        th.join();
+    this->threads.clear();
+    this->noNewThreads = TRUE;
+    this->lock.unlock();
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+// Re-negotiation test with ICE restart: perform a second offer/answer exchange
+// with new ICE credentials, triggering a full ICE restart.
+TEST_F(PeerConnectionFunctionalityTest, renegotiateWithIceRestart)
+{
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit sdp;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PKvsPeerConnection pOfferPcImpl = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    // Initial connection
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    // Reset state change counts for re-negotiation tracking
+    MEMSET(this->stateChangeCount, 0, SIZEOF(SIZE_T) * RTC_PEER_CONNECTION_TOTAL_STATE_COUNT);
+
+    // Stop ICE candidate forwarding threads before re-negotiation
+    this->lock.lock();
+    for (auto& th : this->threads)
+        th.join();
+    this->threads.clear();
+    this->noNewThreads = FALSE;
+    this->lock.unlock();
+
+    // Regenerate local ICE credentials on the offerer to force an ICE restart
+    // on the answerer when it processes setRemoteDescription.
+    pOfferPcImpl = (PKvsPeerConnection) offerPc;
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(pOfferPcImpl->localIceUfrag, LOCAL_ICE_UFRAG_LEN));
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(pOfferPcImpl->localIcePwd, LOCAL_ICE_PWD_LEN));
+
+    // Re-negotiation with new ICE credentials (ICE restart)
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(offerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(answerPc, &sdp));
+
+    EXPECT_EQ(STATUS_SUCCESS, createAnswer(answerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(answerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(offerPc, &sdp));
+
+    // Wait for ICE to re-establish connection after restart
+    for (auto i = 0; i <= 100 && ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) < 1; i++) {
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+    }
+
+    // Verify connection was re-established (at least one side reached CONNECTED)
+    EXPECT_GE(ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]), (SIZE_T) 1);
+
+    this->lock.lock();
+    for (auto& th : this->threads)
+        th.join();
+    this->threads.clear();
+    this->noNewThreads = TRUE;
+    this->lock.unlock();
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+// Re-negotiation test: connect with one video track, then add an audio track
+// and perform re-negotiation. Verify the offer/answer exchange succeeds.
+TEST_F(PeerConnectionFunctionalityTest, renegotiateWithNewTransceiver)
+{
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit sdp;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, offerAudioTrack, answerAudioTrack;
+    PRtcRtpTransceiver offerVideoTransceiver = NULL, offerAudioTransceiver = NULL, answerAudioTransceiver = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    // Add initial video track to the offerer and also register OPUS on both PCs
+    // upfront (before connectTwoPeers) so we can add audio transceivers later.
+    // addSupportedCodec uses hashTablePut which fails on duplicate keys, and
+    // setPayloadTypesForOffer (called during createOffer) will upsert all default
+    // codecs. Registering OPUS here avoids the duplicate-key error later.
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(offerPc, RTC_CODEC_OPUS));
+    EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(answerPc, RTC_CODEC_OPUS));
+
+    // Initial connection with one video track
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    // Reset state change counts for re-negotiation tracking
+    MEMSET(this->stateChangeCount, 0, SIZEOF(SIZE_T) * RTC_PEER_CONNECTION_TOTAL_STATE_COUNT);
+
+    // Stop ICE candidate forwarding threads before re-negotiation
+    this->lock.lock();
+    for (auto& th : this->threads)
+        th.join();
+    this->threads.clear();
+    this->noNewThreads = FALSE;
+    this->lock.unlock();
+
+    // Add audio transceivers for re-negotiation. The OPUS codec is already
+    // registered in both PCs (from addSupportedCodec above), so we only
+    // need to add the transceivers directly.
+    MEMSET(&offerAudioTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+    offerAudioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+    offerAudioTrack.codec = RTC_CODEC_OPUS;
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(offerAudioTrack.streamId, MAX_MEDIA_STREAM_ID_LEN));
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(offerAudioTrack.trackId, MAX_MEDIA_STREAM_ID_LEN));
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(offerPc, &offerAudioTrack, NULL, &offerAudioTransceiver));
+
+    MEMSET(&answerAudioTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+    answerAudioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+    answerAudioTrack.codec = RTC_CODEC_OPUS;
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(answerAudioTrack.streamId, MAX_MEDIA_STREAM_ID_LEN));
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(answerAudioTrack.trackId, MAX_MEDIA_STREAM_ID_LEN));
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(answerPc, &answerAudioTrack, NULL, &answerAudioTransceiver));
+
+    // Re-negotiation: create new offer with the added audio track
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(offerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(answerPc, &sdp));
+
+    EXPECT_EQ(STATUS_SUCCESS, createAnswer(answerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(answerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(offerPc, &sdp));
+
+    // Verify the SDP contains both video and audio tracks
+    std::string answerSdp(sdp.sdp);
+    EXPECT_NE(std::string::npos, answerSdp.find("m=video"));
+    EXPECT_NE(std::string::npos, answerSdp.find("m=audio"));
+
+    // Give some time for state to settle
+    THREAD_SLEEP(2 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    // Connection should not have failed
+    EXPECT_EQ(0, ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_FAILED]));
+
+    // Verify no old/extra transceivers accumulated in the lists
+    UINT32 transceiverCount = 0;
+    PKvsPeerConnection pOfferPcImpl = (PKvsPeerConnection) offerPc;
+    PKvsPeerConnection pAnswerPcImpl = (PKvsPeerConnection) answerPc;
+
+    // Offerer: 2 user transceivers (video + audio), no fake transceivers
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pOfferPcImpl->pTransceivers, &transceiverCount));
+    EXPECT_EQ(2u, transceiverCount) << "Offerer should have exactly 2 transceivers (video + audio)";
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pOfferPcImpl->pFakeTransceivers, &transceiverCount));
+    EXPECT_EQ(0u, transceiverCount) << "Offerer should have no fake transceivers";
+
+    // Answerer: 1 user transceiver (audio) + 1 fake (for video m-line matched by answerer)
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pAnswerPcImpl->pTransceivers, &transceiverCount));
+    EXPECT_EQ(1u, transceiverCount) << "Answerer should have 1 user transceiver (audio)";
+
+    this->lock.lock();
+    for (auto& th : this->threads)
+        th.join();
+    this->threads.clear();
+    this->noNewThreads = TRUE;
+    this->lock.unlock();
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+// Re-negotiation test: new offer with track removed. Connect with video+audio, then receive an offer
+// that has only audio. Verify the video transceiver is marked INACTIVE and writeFrame no-sends on it.
+TEST_F(PeerConnectionFunctionalityTest, renegotiateWithTrackRemoved)
+{
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit sdp;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL, offerAudioOnlyPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, offerAudioTrack, answerVideoTrack, answerAudioTrack, audioOnlyTrack;
+    PRtcRtpTransceiver offerVideoTransceiver = NULL, offerAudioTransceiver = NULL;
+    PRtcRtpTransceiver answerVideoTransceiver = NULL, answerAudioTransceiver = NULL, audioOnlyTransceiver = NULL;
+    Frame frame;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(offerPc, &offerAudioTrack, &offerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerAudioTrack, &answerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    this->lock.lock();
+    for (auto& th : this->threads)
+        th.join();
+    this->threads.clear();
+    this->noNewThreads = FALSE;
+    this->lock.unlock();
+
+    // Create a peer connection with only audio to simulate "remote sent new offer with video track removed".
+    // Use addTransceiver directly to avoid addSupportedCodec duplicate (new PC may already have default codecs).
+    EXPECT_EQ(createPeerConnection(&configuration, &offerAudioOnlyPc), STATUS_SUCCESS);
+    MEMSET(&audioOnlyTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+    audioOnlyTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+    audioOnlyTrack.codec = RTC_CODEC_OPUS;
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(audioOnlyTrack.streamId, MAX_MEDIA_STREAM_ID_LEN));
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(audioOnlyTrack.trackId, MAX_MEDIA_STREAM_ID_LEN));
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(offerAudioOnlyPc, &audioOnlyTrack, NULL, &audioOnlyTransceiver));
+
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerAudioOnlyPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(offerAudioOnlyPc, &sdp));
+
+    std::string offerSdp(sdp.sdp);
+    EXPECT_NE(std::string::npos, offerSdp.find("m=audio"));
+    EXPECT_EQ(std::string::npos, offerSdp.find("m=video")) << "Offer must contain only audio for this test";
+
+    // Answerer receives the new offer (only audio). Its video transceiver should be marked INACTIVE.
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(answerPc, &sdp));
+
+    EXPECT_EQ(RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE, answerVideoTransceiver->direction)
+        << "Video transceiver should be INACTIVE after remote offer removed video m-line";
+
+    EXPECT_NE(RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE, answerAudioTransceiver->direction)
+        << "Audio transceiver should still be active (sendonly/recvonly/sendrecv)";
+
+    // writeFrame on the INACTIVE video transceiver should return success without sending
+    MEMSET(&frame, 0x00, SIZEOF(Frame));
+    frame.size = 0;
+    frame.presentationTs = GETTIME();
+    EXPECT_EQ(STATUS_SUCCESS, writeFrame(answerVideoTransceiver, &frame));
+
+    EXPECT_EQ(STATUS_SUCCESS, createAnswer(answerPc, &sdp));
+    std::string answerSdp(sdp.sdp);
+    EXPECT_NE(std::string::npos, answerSdp.find("m=audio"));
+    EXPECT_EQ(std::string::npos, answerSdp.find("m=video")) << "Answer should have only audio m-line";
+
+    // Verify no old/extra transceivers accumulated in the lists
+    UINT32 transceiverCount = 0;
+    PKvsPeerConnection pAnswerPcImpl = (PKvsPeerConnection) answerPc;
+
+    // Answerer started with 2 user transceivers (video + audio). After re-negotiation
+    // with track removed, the count should remain 2 (video is marked INACTIVE, not deleted).
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pAnswerPcImpl->pTransceivers, &transceiverCount));
+    EXPECT_EQ(2u, transceiverCount) << "Answerer should still have 2 user transceivers (video is INACTIVE, not removed)";
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pAnswerPcImpl->pFakeTransceivers, &transceiverCount));
+    EXPECT_EQ(0u, transceiverCount) << "Answerer should have no fake transceivers";
+
+    this->lock.lock();
+    for (auto& th : this->threads)
+        th.join();
+    this->threads.clear();
+    this->noNewThreads = TRUE;
+    this->lock.unlock();
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    closePeerConnection(offerAudioOnlyPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+    freePeerConnection(&offerAudioOnlyPc);
+}
+
+// Re-negotiation test: direction-only change without track removal.
+// Connect with video sendrecv, then receive an offer where video is recvonly.
+// Verify transceiver direction updates to sendonly and is NOT marked INACTIVE.
+TEST_F(PeerConnectionFunctionalityTest, renegotiateDirectionChangeOnly)
+{
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit sdp;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack;
+    PRtcRtpTransceiver offerVideoTransceiver = NULL, answerVideoTransceiver = NULL;
+    PKvsRtpTransceiver pOfferKvsTransceiver = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+
+    // Initial connection with video sendrecv
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    this->lock.lock();
+    for (auto& th : this->threads)
+        th.join();
+    this->threads.clear();
+    this->noNewThreads = FALSE;
+    this->lock.unlock();
+
+    // Change offerer's video transceiver direction to recvonly before re-offer
+    pOfferKvsTransceiver = (PKvsRtpTransceiver) offerVideoTransceiver;
+    pOfferKvsTransceiver->transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
+
+    // Re-negotiation with direction change only
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(offerPc, &sdp));
+
+    // Verify the offer SDP contains recvonly
+    std::string offerSdp(sdp.sdp);
+    EXPECT_NE(std::string::npos, offerSdp.find("a=recvonly"));
+
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(answerPc, &sdp));
+
+    // Answerer's direction should be sendonly (mirror of remote recvonly), NOT inactive
+    EXPECT_EQ(RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY, answerVideoTransceiver->direction)
+        << "Answerer video transceiver should be sendonly (mirror of remote recvonly)";
+
+    EXPECT_EQ(STATUS_SUCCESS, createAnswer(answerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(answerPc, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(offerPc, &sdp));
+
+    // Verify answer SDP contains sendonly (mirror of recvonly)
+    std::string answerSdp(sdp.sdp);
+    EXPECT_NE(std::string::npos, answerSdp.find("m=video"));
+
+    THREAD_SLEEP(2 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    // Verify no old/extra transceivers accumulated in the lists
+    UINT32 transceiverCount = 0;
+    PKvsPeerConnection pOfferPcImpl = (PKvsPeerConnection) offerPc;
+    PKvsPeerConnection pAnswerPcImpl = (PKvsPeerConnection) answerPc;
+
+    // Offerer: 1 user transceiver (video with changed direction), no fake transceivers
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pOfferPcImpl->pTransceivers, &transceiverCount));
+    EXPECT_EQ(1u, transceiverCount) << "Offerer should have exactly 1 transceiver after direction change";
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pOfferPcImpl->pFakeTransceivers, &transceiverCount));
+    EXPECT_EQ(0u, transceiverCount) << "Offerer should have no fake transceivers";
+
+    // Answerer: 1 user transceiver (video), no fake transceivers
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pAnswerPcImpl->pTransceivers, &transceiverCount));
+    EXPECT_EQ(1u, transceiverCount) << "Answerer should have exactly 1 transceiver after direction change";
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pAnswerPcImpl->pFakeTransceivers, &transceiverCount));
+    EXPECT_EQ(0u, transceiverCount) << "Answerer should have no fake transceivers";
+
+    this->lock.lock();
+    for (auto& th : this->threads)
+        th.join();
+    this->threads.clear();
+    this->noNewThreads = TRUE;
+    this->lock.unlock();
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+// Re-negotiation while a writeFrame loop is running on another thread for the
+// SAME session: direction flips to INACTIVE and back mid-stream. writeFrame
+// must never crash or touch freed state (the rolling buffer/retransmitter are
+// reused across renegotiations, not reallocated), and it becomes a no-op
+// (returning success) while the direction excludes sending.
+TEST_F(PeerConnectionFunctionalityTest, renegotiateWhileStreamingFrames)
+{
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit sdp;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack;
+    PRtcRtpTransceiver offerVideoTransceiver = NULL, answerVideoTransceiver = NULL;
+    PKvsRtpTransceiver pOfferKvsTransceiver = NULL;
+    SIZE_T stopFrames = FALSE;
+    BYTE frameData[128];
+    Frame frame;
+    // Live state mirror fed by the public state-change callback: reading
+    // pKvsPeerConnection->connectionState directly would race the SDK's writer.
+    // SIZE_T (not a 64-bit type) so 32-bit targets do not need libatomic.
+    volatile SIZE_T offerState = RTC_PEER_CONNECTION_STATE_NONE;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(frameData, 0x11, SIZEOF(frameData));
+    MEMSET(&frame, 0x00, SIZEOF(Frame));
+    frame.frameData = frameData;
+    frame.size = SIZEOF(frameData);
+    frame.presentationTs = 0;
+    frame.flags = FRAME_FLAG_KEY_FRAME;
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    // connectTwoPeers verified CONNECTED; from here on track transitions via the callback.
+    ATOMIC_STORE(&offerState, (SIZE_T) RTC_PEER_CONNECTION_STATE_CONNECTED);
+    EXPECT_EQ(STATUS_SUCCESS,
+              peerConnectionOnConnectionStateChange(offerPc, (UINT64) &offerState, [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) {
+                  ATOMIC_STORE((PSIZE_T) customData, (SIZE_T) newState);
+              }));
+
+    this->lock.lock();
+    for (auto& th : this->threads)
+        th.join();
+    this->threads.clear();
+    this->noNewThreads = FALSE;
+    this->lock.unlock();
+
+    // Frame hammer on the offerer's video sender.
+    std::thread frameWorker([&]() {
+        Frame localFrame = frame;
+        while (!ATOMIC_LOAD_BOOL(&stopFrames)) {
+            EXPECT_EQ(STATUS_SUCCESS, writeFrame(offerVideoTransceiver, &localFrame));
+            localFrame.presentationTs += (HUNDREDS_OF_NANOS_IN_A_SECOND / 25);
+            THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        }
+    });
+
+    pOfferKvsTransceiver = (PKvsRtpTransceiver) offerVideoTransceiver;
+
+    // Several full renegotiation cycles while frames are being written.
+    for (int round = 0; round < 4; round++) {
+        BOOL pause = (round % 2 == 0);
+        pOfferKvsTransceiver->transceiver.direction = pause ? RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE : RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+
+        EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sdp));
+        EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(offerPc, &sdp));
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(answerPc, &sdp));
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(answerPc, &sdp));
+        EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(answerPc, &sdp));
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(offerPc, &sdp));
+
+        THREAD_SLEEP(200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+
+    ATOMIC_STORE_BOOL(&stopFrames, TRUE);
+    frameWorker.join();
+
+    // The connection must have survived all cycles. Renegotiation bounces the
+    // connection state transiently, so poll for it to settle back to CONNECTED
+    // rather than asserting the instantaneous value.
+    BOOL reconnected = FALSE;
+    for (int waitMs = 0; waitMs < 15000 && !reconnected; waitMs += 100) {
+        reconnected = (ATOMIC_LOAD(&offerState) == (SIZE_T) RTC_PEER_CONNECTION_STATE_CONNECTED);
+        if (!reconnected) {
+            THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        }
+    }
+    EXPECT_TRUE(reconnected) << "connection did not settle back to CONNECTED after renegotiations under streaming";
+
+    this->lock.lock();
+    for (auto& th : this->threads)
+        th.join();
+    this->threads.clear();
+    this->noNewThreads = TRUE;
+    this->lock.unlock();
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+// Two independent sessions renegotiating CONCURRENTLY from separate threads
+// (the SDK-level analog of two viewers re-offering to the same master at
+// once): no crashes, no cross-session interference, both stay connected.
+TEST_F(PeerConnectionFunctionalityTest, concurrentRenegotiationAcrossSessions)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc[2] = {NULL, NULL}, answerPc[2] = {NULL, NULL};
+    RtcMediaStreamTrack offerTrack[2], answerTrack[2];
+    PRtcRtpTransceiver offerTransceiver[2] = {NULL, NULL}, answerTransceiver[2] = {NULL, NULL};
+    // Live state mirrors fed by the public state-change callback: reading
+    // pKvsPeerConnection->connectionState directly would race the SDK's writer.
+    // SIZE_T (not a 64-bit type) so 32-bit targets do not need libatomic.
+    volatile SIZE_T offerState[2] = {RTC_PEER_CONNECTION_STATE_NONE, RTC_PEER_CONNECTION_STATE_NONE};
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    for (int i = 0; i < 2; i++) {
+        EXPECT_EQ(createPeerConnection(&configuration, &offerPc[i]), STATUS_SUCCESS);
+        EXPECT_EQ(createPeerConnection(&configuration, &answerPc[i]), STATUS_SUCCESS);
+        addTrackToPeerConnection(offerPc[i], &offerTrack[i], &offerTransceiver[i], RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+        addTrackToPeerConnection(answerPc[i], &answerTrack[i], &answerTransceiver[i], RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+        EXPECT_EQ(connectTwoPeers(offerPc[i], answerPc[i]), TRUE);
+
+        // connectTwoPeers verified CONNECTED; from here on track transitions via the callback.
+        ATOMIC_STORE(&offerState[i], (SIZE_T) RTC_PEER_CONNECTION_STATE_CONNECTED);
+        EXPECT_EQ(
+            STATUS_SUCCESS,
+            peerConnectionOnConnectionStateChange(offerPc[i], (UINT64) &offerState[i], [](UINT64 customData, RTC_PEER_CONNECTION_STATE newState) {
+                ATOMIC_STORE((PSIZE_T) customData, (SIZE_T) newState);
+            }));
+    }
+
+    this->lock.lock();
+    for (auto& th : this->threads)
+        th.join();
+    this->threads.clear();
+    this->noNewThreads = FALSE;
+    this->lock.unlock();
+
+    auto renegotiateWorker = [](PRtcPeerConnection offer, PRtcPeerConnection answer, PRtcRtpTransceiver transceiver) {
+        for (int round = 0; round < 4; round++) {
+            RtcSessionDescriptionInit sdp{};
+            PKvsRtpTransceiver pKvs = (PKvsRtpTransceiver) transceiver;
+            pKvs->transceiver.direction = (round % 2 == 0) ? RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY : RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+            EXPECT_EQ(STATUS_SUCCESS, createOffer(offer, &sdp));
+            EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(offer, &sdp));
+            EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(answer, &sdp));
+            EXPECT_EQ(STATUS_SUCCESS, createAnswer(answer, &sdp));
+            EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(answer, &sdp));
+            EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(offer, &sdp));
+            THREAD_SLEEP(50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        }
+    };
+
+    std::thread session0(renegotiateWorker, offerPc[0], answerPc[0], offerTransceiver[0]);
+    std::thread session1(renegotiateWorker, offerPc[1], answerPc[1], offerTransceiver[1]);
+    session0.join();
+    session1.join();
+
+    // Same transient-state consideration as above: poll for both sessions to
+    // settle back to CONNECTED after their concurrent renegotiation storms.
+    for (int i = 0; i < 2; i++) {
+        BOOL reconnected = FALSE;
+        for (int waitMs = 0; waitMs < 15000 && !reconnected; waitMs += 100) {
+            reconnected = (ATOMIC_LOAD(&offerState[i]) == (SIZE_T) RTC_PEER_CONNECTION_STATE_CONNECTED);
+            if (!reconnected) {
+                THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+            }
+        }
+        EXPECT_TRUE(reconnected) << "session " << i << " did not settle back to CONNECTED after concurrent renegotiations";
+    }
+
+    this->lock.lock();
+    for (auto& th : this->threads)
+        th.join();
+    this->threads.clear();
+    this->noNewThreads = TRUE;
+    this->lock.unlock();
+
+    for (int i = 0; i < 2; i++) {
+        closePeerConnection(offerPc[i]);
+        closePeerConnection(answerPc[i]);
+        freePeerConnection(&offerPc[i]);
+        freePeerConnection(&answerPc[i]);
+    }
 }
 
 } // namespace webrtcclient

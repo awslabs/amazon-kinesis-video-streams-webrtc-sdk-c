@@ -59,6 +59,138 @@ jobs:
         run: |
           ./scripts/check-sample.sh
 
+  sample-check-4video1audio:
+    runs-on: ubuntu-latest
+    env:
+      AWS_KVS_LOG_LEVEL: 2
+      CHANNEL_NAME: SampleChannel4Video1Audio
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2.2.0
+        with:
+          cmake-version: '3.x'
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Build repository
+        run: |
+          mkdir build && cd build
+          cmake .. -DMAX_SDP_SESSION_MEDIA_COUNT=6 -DKVS_SIGNALING_MESSAGE_LEN=40000 -DPARALLEL_BUILD=ON
+          make -j
+      - name: Prepare signaling channel
+        run: |
+          ./scripts/prepare-channel.sh ${{ env.CHANNEL_NAME }}
+      - name: Run 4 video 1 audio master sample
+        run: |
+          set +e
+          cd build/samples
+          ./kvsWebrtcClientMaster_4Video_1Audio ${{ env.CHANNEL_NAME }} > master.log 2>&1 &
+          MASTER_PID=$!
+          sleep 10
+          ./kvsWebrtcClientViewer ${{ env.CHANNEL_NAME }} > viewer.log 2>&1 &
+          VIEWER_PID=$!
+          sleep 20
+          kill -s INT $VIEWER_PID 2>/dev/null
+          sleep 5
+          kill -s INT $MASTER_PID 2>/dev/null
+          sleep 10
+          kill -9 $MASTER_PID $VIEWER_PID 2>/dev/null
+          wait $VIEWER_PID 2>/dev/null
+          wait $MASTER_PID 2>/dev/null
+          set -e
+          if ! grep -q "Successfully added 4 video transceivers" master.log; then
+            echo "FAILURE: 4 video transceivers were not added"
+            cat master.log
+            exit 1
+          fi
+          if ! grep -q "New connection state 3" master.log; then
+            echo "FAILURE: PeerConnection was not established"
+            cat master.log
+            cat viewer.log
+            exit 1
+          fi
+          for t in 0 1 2 3; do
+            if ! grep -q "First frame sent on video track $t" master.log; then
+              echo "FAILURE: No frames sent on video track $t"
+              cat master.log
+              exit 1
+            fi
+          done
+          echo "SUCCESS: 4Video1Audio sample - 4 transceivers added, PeerConnection established, frames sent on all 4 video tracks"
+
+  sample-check-4video0audio:
+    runs-on: ubuntu-latest
+    env:
+      AWS_KVS_LOG_LEVEL: 2
+      CHANNEL_NAME: SampleChannel4Video0Audio
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2.2.0
+        with:
+          cmake-version: '3.x'
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Build repository
+        run: |
+          mkdir build && cd build
+          cmake .. -DMAX_SDP_SESSION_MEDIA_COUNT=5 -DKVS_SIGNALING_MESSAGE_LEN=40000 -DPARALLEL_BUILD=ON
+          make -j
+      - name: Prepare signaling channel
+        run: |
+          ./scripts/prepare-channel.sh ${{ env.CHANNEL_NAME }}
+      - name: Run 4 video 0 audio master sample
+        run: |
+          set +e
+          cd build/samples
+          ./kvsWebrtcClientMaster_4Video_0Audio ${{ env.CHANNEL_NAME }} > master.log 2>&1 &
+          MASTER_PID=$!
+          sleep 10
+          ./kvsWebrtcClientViewer ${{ env.CHANNEL_NAME }} > viewer.log 2>&1 &
+          VIEWER_PID=$!
+          sleep 20
+          kill -s INT $VIEWER_PID 2>/dev/null
+          sleep 5
+          kill -s INT $MASTER_PID 2>/dev/null
+          sleep 10
+          kill -9 $MASTER_PID $VIEWER_PID 2>/dev/null
+          wait $VIEWER_PID 2>/dev/null
+          wait $MASTER_PID 2>/dev/null
+          set -e
+          if ! grep -q "Successfully added 4 video transceivers" master.log; then
+            echo "FAILURE: 4 video transceivers were not added"
+            cat master.log
+            exit 1
+          fi
+          if ! grep -q "New connection state 3" master.log; then
+            echo "FAILURE: PeerConnection was not established"
+            cat master.log
+            cat viewer.log
+            exit 1
+          fi
+          for t in 0 1 2 3; do
+            if ! grep -q "First frame sent on video track $t" master.log; then
+              echo "FAILURE: No frames sent on video track $t"
+              cat master.log
+              exit 1
+            fi
+          done
+          echo "SUCCESS: 4Video0Audio sample - 4 transceivers added, PeerConnection established, frames sent on all 4 video tracks"
+
   sample-check-no-data-channel:
     runs-on: ubuntu-latest
     env:
