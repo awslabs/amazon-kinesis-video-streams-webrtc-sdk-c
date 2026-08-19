@@ -376,7 +376,7 @@ STATUS fromCreatePermissionTurnState(UINT64 customData, PUINT64 pState)
     STATUS retStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = (PTurnConnection) customData;
     UINT64 state = TURN_STATE_CREATE_PERMISSION, currentTime;
-    UINT32 channelWithPermissionCount = 0, i = 0;
+    UINT32 channelWithPermissionCount = 0, failedPeerCount = 0, i = 0;
     BOOL locked = FALSE;
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
@@ -399,6 +399,8 @@ STATUS fromCreatePermissionTurnState(UINT64 customData, PUINT64 pState)
         if (pTurnConnection->turnPeerList[i].connectionState == TURN_PEER_CONN_STATE_BIND_CHANNEL ||
             pTurnConnection->turnPeerList[i].connectionState == TURN_PEER_CONN_STATE_READY) {
             channelWithPermissionCount++;
+        } else if (pTurnConnection->turnPeerList[i].connectionState == TURN_PEER_CONN_STATE_FAILED) {
+            failedPeerCount++;
         }
     }
 
@@ -408,7 +410,7 @@ STATUS fromCreatePermissionTurnState(UINT64 customData, PUINT64 pState)
         CHK(FALSE, retStatus);
     }
 
-    if (currentTime > pTurnConnection->stateTimeoutTime || channelWithPermissionCount == pTurnConnection->turnPeerCount) {
+    if (currentTime > pTurnConnection->stateTimeoutTime || channelWithPermissionCount + failedPeerCount == pTurnConnection->turnPeerCount) {
         CHK(channelWithPermissionCount > 0, STATUS_TURN_CONNECTION_FAILED_TO_CREATE_PERMISSION);
 
         // go to next state if we have at least one ready peer
@@ -501,7 +503,7 @@ STATUS fromBindChannelTurnState(UINT64 customData, PUINT64 pState)
     UINT64 state = TURN_STATE_BIND_CHANNEL;
     UINT64 currentTime;
     BOOL locked = FALSE;
-    UINT32 readyPeerCount = 0, i = 0;
+    UINT32 readyPeerCount = 0, failedPeerCount = 0, i = 0;
 
     CHK(pTurnConnection != NULL && pState != NULL, STATUS_NULL_ARG);
 
@@ -517,9 +519,11 @@ STATUS fromBindChannelTurnState(UINT64 customData, PUINT64 pState)
     for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
         if (pTurnConnection->turnPeerList[i].connectionState == TURN_PEER_CONN_STATE_READY) {
             readyPeerCount++;
+        } else if (pTurnConnection->turnPeerList[i].connectionState == TURN_PEER_CONN_STATE_FAILED) {
+            failedPeerCount++;
         }
     }
-    if (currentTime > pTurnConnection->stateTimeoutTime || readyPeerCount == pTurnConnection->turnPeerCount) {
+    if (currentTime > pTurnConnection->stateTimeoutTime || readyPeerCount + failedPeerCount == pTurnConnection->turnPeerCount) {
         CHK(readyPeerCount > 0, STATUS_TURN_CONNECTION_FAILED_TO_BIND_CHANNEL);
         // go to next state if we have at least one ready peer
         state = TURN_STATE_READY;
