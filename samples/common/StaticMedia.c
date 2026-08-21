@@ -72,6 +72,17 @@ PVOID sendVideoPacketsFromDisk(PVOID args)
     lastFrameTime = startTime;
 
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
+        // Idle-pause: skip disk I/O when no viewers are connected
+        if (pSampleConfiguration->streamingSessionCount == 0) {
+            THREAD_SLEEP(SAMPLE_VIDEO_FRAME_DURATION);
+            // Reset so first frame sent on reconnect is a key frame
+            fileIndex = 0;
+            startTime = GETTIME();
+            lastFrameTime = startTime;
+            frame.presentationTs = 0;
+            continue;
+        }
+
         if (pSampleConfiguration->videoCodec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
             fileIndex = fileIndex % NUMBER_OF_H264_FRAME_FILES + 1;
             SNPRINTF(filePath, MAX_PATH_LEN, "./h264SampleFrames/frame-%04d.h264", fileIndex);
@@ -149,6 +160,14 @@ PVOID sendAudioPacketsFromDisk(PVOID args)
     frame.presentationTs = 0;
 
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
+        // Idle-pause: skip disk I/O when no viewers are connected
+        if (pSampleConfiguration->streamingSessionCount == 0) {
+            THREAD_SLEEP(SAMPLE_AUDIO_FRAME_DURATION);
+            fileIndex = 0;
+            frame.presentationTs = 0;
+            continue;
+        }
+
         fileIndex = fileIndex % NUMBER_OF_OPUS_FRAME_FILES + 1;
 
         if (pSampleConfiguration->audioCodec == RTC_CODEC_OPUS) {
