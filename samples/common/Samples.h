@@ -58,6 +58,18 @@ extern "C" {
 
 #define SAMPLE_PENDING_MESSAGE_CLEANUP_DURATION (20 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
+// Viewer-relayed TURN credentials: master uses TURN servers sent by the viewer via signaling.
+// Set KVS_USE_VIEWER_TURN_CREDENTIALS=BLOCK (wait up to 1s) or NO_BLOCK (immediate check).
+#define VIEWER_TURN_CREDENTIAL_ENV_VAR        ((PCHAR) "KVS_USE_VIEWER_TURN_CREDENTIALS")
+#define VIEWER_TURN_CREDENTIAL_PAYLOAD_MARKER "{\"turnServers\""
+#define VIEWER_TURN_CREDENTIAL_TIMEOUT        (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+
+typedef enum {
+    VIEWER_TURN_MODE_OFF = 0,
+    VIEWER_TURN_MODE_BLOCK = 1,
+    VIEWER_TURN_MODE_NO_BLOCK = 2,
+} ViewerTurnMode;
+
 #define CA_CERT_PEM_FILE_EXTENSION ".pem"
 
 #define FILE_LOGGING_BUFFER_SIZE        (10 * 1024)
@@ -217,6 +229,14 @@ struct __SampleConfiguration {
     BOOL enableTwcc;
     BOOL enableIceStats;
 
+    // Viewer-relayed TURN credentials
+    ViewerTurnMode viewerTurnMode;                     // OFF, BLOCK, or NO_BLOCK
+    volatile ATOMIC_BOOL viewerTurnCredentialsReceived; // Set when TURN creds arrive from viewer
+    MUTEX viewerTurnLock;
+    CVAR viewerTurnCvar;
+    IceConfigInfo viewerIceConfigs[MAX_ICE_CONFIG_COUNT];
+    UINT32 viewerIceConfigCount;
+
     AddTransceiversCallback addTransceiversCallback;
 };
 
@@ -327,6 +347,8 @@ STATUS submitPendingIceCandidate(PPendingMessageQueue, PSampleStreamingSession);
 STATUS removeExpiredMessageQueues(PStackQueue);
 STATUS getPendingMessageQueueForHash(PStackQueue, UINT64, BOOL, PPendingMessageQueue*);
 STATUS initSignaling(PSampleConfiguration, PCHAR);
+STATUS handleViewerRelayedTurnCredentials(PSampleConfiguration, PSignalingMessage);
+STATUS parseViewerTurnCredentialPayload(PCHAR, UINT32, PIceConfigInfo, PUINT32);
 BOOL sampleFilterNetworkInterfaces(UINT64, PCHAR);
 UINT32 setLogLevel();
 VOID logSampleInvocation(INT32, CHAR*[]);
