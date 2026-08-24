@@ -164,6 +164,39 @@ static inline BOOL IS_IPV6_ADDR(const PKvsIpAddress pAddress)
     return pAddress != NULL && pAddress->family == KVS_IP_FAMILY_TYPE_IPV6;
 }
 
+// Returns TRUE for non-routable IPv4 addresses that a public TURN server (e.g. the KVS
+// TURN service) refuses to create a permission for, responding with "403 Forbidden IP".
+// Covered ranges (address bytes are in network byte order): 10.0.0.0/8, 172.16.0.0/12 and
+// 192.168.0.0/16 (RFC1918 private), 127.0.0.0/8 (loopback), 169.254.0.0/16 (RFC3927
+// link-local). IPv6 addresses return FALSE. NOTE: assumes the TURN server cannot relay to
+// private/link-local peers, which holds for the KVS TURN service; an on-prem TURN server
+// inside a private network may legitimately relay to these and would need this relaxed.
+static inline BOOL IS_NON_ROUTABLE_ADDR(const PKvsIpAddress pAddress)
+{
+    // Only IPv4 ranges are classified here (IS_IPV4_ADDR also handles the NULL check).
+    if (!IS_IPV4_ADDR(pAddress)) {
+        return FALSE;
+    }
+
+    if (pAddress->address[0] == 127) {
+        return TRUE; // 127.0.0.0/8 loopback
+    }
+    if (pAddress->address[0] == 10) {
+        return TRUE; // 10.0.0.0/8 private
+    }
+    if (pAddress->address[0] == 172 && pAddress->address[1] >= 16 && pAddress->address[1] <= 31) {
+        return TRUE; // 172.16.0.0/12 private
+    }
+    if (pAddress->address[0] == 192 && pAddress->address[1] == 168) {
+        return TRUE; // 192.168.0.0/16 private
+    }
+    if (pAddress->address[0] == 169 && pAddress->address[1] == 254) {
+        return TRUE; // 169.254.0.0/16 link-local
+    }
+
+    return FALSE;
+}
+
 // Used for ensuring alignment
 #define ALIGN_UP_TO_MACHINE_WORD(x) ROUND_UP((x), SIZEOF(SIZE_T))
 
