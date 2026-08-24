@@ -164,34 +164,96 @@ static inline BOOL IS_IPV6_ADDR(const PKvsIpAddress pAddress)
     return pAddress != NULL && pAddress->family == KVS_IP_FAMILY_TYPE_IPV6;
 }
 
-// Returns TRUE for non-routable IPv4 addresses that a public TURN server (e.g. the KVS
-// TURN service) refuses to create a permission for, responding with "403 Forbidden IP".
-// Covered ranges (address bytes are in network byte order): 10.0.0.0/8, 172.16.0.0/12 and
-// 192.168.0.0/16 (RFC1918 private), 127.0.0.0/8 (loopback), 169.254.0.0/16 (RFC3927
-// link-local). IPv6 addresses return FALSE. NOTE: assumes the TURN server cannot relay to
-// private/link-local peers, which holds for the KVS TURN service; an on-prem TURN server
-// inside a private network may legitimately relay to these and would need this relaxed.
+// Returns TRUE for IP addresses that are not globally reachable, per the IANA Special-Purpose
+// Address Registries (RFC 6890 and the RFCs noted per range). A public TURN server (e.g. the
+// KVS TURN service) cannot relay to these and rejects CreatePermission for them with
+// "403 Forbidden IP". Address bytes are in network byte order. Both IPv4 and IPv6 are covered.
 static inline BOOL IS_NON_ROUTABLE_ADDR(const PKvsIpAddress pAddress)
 {
-    // Only IPv4 ranges are classified here (IS_IPV4_ADDR also handles the NULL check).
+    BYTE b0, b1, b2;
+
+    if (pAddress == NULL) {
+        return FALSE;
+    }
+
+    // IPv6 non-globally-reachable ranges (address is 16 bytes, network byte order).
+    if (IS_IPV6_ADDR(pAddress)) {
+        PBYTE a = pAddress->address;
+        UINT32 i;
+        BOOL allZeroButLast = TRUE;
+
+        if (a[0] == 0xfe && (a[1] & 0xc0) == 0x80) {
+            return TRUE; // fe80::/10       link-local unicast (RFC 4291)
+        }
+        if ((a[0] & 0xfe) == 0xfc) {
+            return TRUE; // fc00::/7        unique local address / ULA (RFC 4193)
+        }
+        if (a[0] == 0x20 && a[1] == 0x01 && a[2] == 0x0d && a[3] == 0xb8) {
+            return TRUE; // 2001:db8::/32   documentation (RFC 3849)
+        }
+        for (i = 0; i < 15; ++i) {
+            if (a[i] != 0) {
+                allZeroButLast = FALSE;
+                break;
+            }
+        }
+        if (allZeroButLast && (a[15] == 0 || a[15] == 1)) {
+            return TRUE; // ::/128 unspecified and ::1/128 loopback (RFC 4291)
+        }
+
+        return FALSE;
+    }
+
+    // Only IPv4 ranges remain (IS_IPV4_ADDR also handles the NULL check).
     if (!IS_IPV4_ADDR(pAddress)) {
         return FALSE;
     }
 
-    if (pAddress->address[0] == 127) {
-        return TRUE; // 127.0.0.0/8 loopback
+    b0 = pAddress->address[0];
+    b1 = pAddress->address[1];
+    b2 = pAddress->address[2];
+
+    if (b0 == 0) {
+        return TRUE; // 0.0.0.0/8        "this host on this network" (RFC 1122)
     }
-    if (pAddress->address[0] == 10) {
-        return TRUE; // 10.0.0.0/8 private
+    if (b0 == 10) {
+        return TRUE; // 10.0.0.0/8       private-use (RFC 1918)
     }
-    if (pAddress->address[0] == 172 && pAddress->address[1] >= 16 && pAddress->address[1] <= 31) {
-        return TRUE; // 172.16.0.0/12 private
+    if (b0 == 100 && b1 >= 64 && b1 <= 127) {
+        return TRUE; // 100.64.0.0/10    shared address space / CGNAT (RFC 6598)
     }
-    if (pAddress->address[0] == 192 && pAddress->address[1] == 168) {
-        return TRUE; // 192.168.0.0/16 private
+    if (b0 == 127) {
+        return TRUE; // 127.0.0.0/8      loopback (RFC 1122)
     }
-    if (pAddress->address[0] == 169 && pAddress->address[1] == 254) {
-        return TRUE; // 169.254.0.0/16 link-local
+    if (b0 == 169 && b1 == 254) {
+        return TRUE; // 169.254.0.0/16   link-local (RFC 3927)
+    }
+    if (b0 == 172 && b1 >= 16 && b1 <= 31) {
+        return TRUE; // 172.16.0.0/12    private-use (RFC 1918)
+    }
+    if (b0 == 192 && b1 == 0 && b2 == 0) {
+        return TRUE; // 192.0.0.0/24     IETF protocol assignments (RFC 6890)
+    }
+    if (b0 == 192 && b1 == 0 && b2 == 2) {
+        return TRUE; // 192.0.2.0/24     documentation TEST-NET-1 (RFC 5737)
+    }
+    if (b0 == 192 && b1 == 88 && b2 == 99) {
+        return TRUE; // 192.88.99.0/24   6to4 relay anycast, deprecated (RFC 7526)
+    }
+    if (b0 == 192 && b1 == 168) {
+        return TRUE; // 192.168.0.0/16   private-use (RFC 1918)
+    }
+    if (b0 == 198 && (b1 == 18 || b1 == 19)) {
+        return TRUE; // 198.18.0.0/15    benchmarking (RFC 2544)
+    }
+    if (b0 == 198 && b1 == 51 && b2 == 100) {
+        return TRUE; // 198.51.100.0/24  documentation TEST-NET-2 (RFC 5737)
+    }
+    if (b0 == 203 && b1 == 0 && b2 == 113) {
+        return TRUE; // 203.0.113.0/24   documentation TEST-NET-3 (RFC 5737)
+    }
+    if (b0 >= 240) {
+        return TRUE; // 240.0.0.0/4      reserved / future use, incl. 255.255.255.255 (RFC 1112)
     }
 
     return FALSE;
