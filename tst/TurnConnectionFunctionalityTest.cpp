@@ -184,6 +184,60 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionReceiveRelayedAddress)
 }
 
 /*
+ * turnConnectionAddPeer should skip non-routable peer addresses (which a public TURN server would
+ * reject with 403 Forbidden IP): the peer is not added, turnPeerCount is unchanged, and the
+ * diagnostic counter is bumped. Routable peers are added normally, and setting
+ * disableTurnPeerAddressFilter turns the filter off so non-routable peers are added too.
+ */
+TEST_F(TurnConnectionFunctionalityTest, turnConnectionFiltersNonRoutablePeers)
+{
+    if (!mAccessKeyIdSet) {
+        return;
+    }
+
+    KvsIpAddress nonRoutablePeer; // 192.168.1.1 (RFC 1918 private)
+    KvsIpAddress routablePeer;    // 77.1.1.1 (public)
+
+    initializeTestTurnConnection();
+
+    MEMSET(&nonRoutablePeer, 0x00, SIZEOF(KvsIpAddress));
+    nonRoutablePeer.family = KVS_IP_FAMILY_TYPE_IPV4;
+    nonRoutablePeer.port = (UINT16) getInt16(8080);
+    nonRoutablePeer.address[0] = 192;
+    nonRoutablePeer.address[1] = 168;
+    nonRoutablePeer.address[2] = 1;
+    nonRoutablePeer.address[3] = 1;
+
+    MEMSET(&routablePeer, 0x00, SIZEOF(KvsIpAddress));
+    routablePeer.family = KVS_IP_FAMILY_TYPE_IPV4;
+    routablePeer.port = (UINT16) getInt16(8080);
+    routablePeer.address[0] = 0x4d; // 77.1.1.1
+    routablePeer.address[1] = 0x01;
+    routablePeer.address[2] = 0x01;
+    routablePeer.address[3] = 0x01;
+
+    // Filter enabled by default: non-routable peer is skipped (successful no-op), not added,
+    // and the diagnostic counter is incremented.
+    EXPECT_EQ(STATUS_SUCCESS, turnConnectionAddPeer(pTurnConnection, &nonRoutablePeer));
+    EXPECT_EQ((UINT32) 0, pTurnConnection->turnPeerCount);
+    EXPECT_EQ((UINT32) 1, pTurnConnection->nonRoutablePeersFiltered);
+
+    // A routable peer is added normally.
+    EXPECT_EQ(STATUS_SUCCESS, turnConnectionAddPeer(pTurnConnection, &routablePeer));
+    EXPECT_EQ((UINT32) 1, pTurnConnection->turnPeerCount);
+    EXPECT_EQ((UINT32) 1, pTurnConnection->nonRoutablePeersFiltered);
+
+    // With the filter disabled (e.g. an on-prem/LAN TURN that relays to private peers), the
+    // non-routable peer is added and the counter does not change.
+    pTurnConnection->disableTurnPeerAddressFilter = TRUE;
+    EXPECT_EQ(STATUS_SUCCESS, turnConnectionAddPeer(pTurnConnection, &nonRoutablePeer));
+    EXPECT_EQ((UINT32) 2, pTurnConnection->turnPeerCount);
+    EXPECT_EQ((UINT32) 1, pTurnConnection->nonRoutablePeersFiltered);
+
+    freeTestTurnConnection();
+}
+
+/*
  * Given a valid turn endpoint and credentials, turnConnection should successfully allocate,
  * create permission, and create channel. Then manually trigger permission refresh and allocation refresh
  */
