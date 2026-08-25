@@ -200,11 +200,11 @@ struct __TurnConnection {
     // When FALSE (default), turnConnectionAddPeer skips non-routable peer addresses that a public
     // TURN server would reject with 403 Forbidden IP. Set TRUE (via KvsRtcConfiguration) for TURN
     // servers that legitimately relay to private/link-local peers (e.g. on-prem/LAN deployments).
-    BOOL disableTurnPeerAddressFilter;
+    BOOL disableNonRoutablePeersFilterForRelay;
 
     // Diagnostic counter: number of peers skipped by the non-routable address filter on this
     // TURN connection. Surfaced in logs so an operator can tell when a relay path was removed.
-    UINT32 nonRoutablePeersFiltered;
+    UINT32 nonRoutablePeersFilteredCount;
 
     KVS_IP_FAMILY_TYPE ipFamilyType;
 };

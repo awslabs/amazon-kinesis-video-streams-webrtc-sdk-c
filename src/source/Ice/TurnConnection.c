@@ -767,14 +767,14 @@ STATUS turnConnectionAddPeer(PTurnConnection pTurnConnection, PKvsIpAddress pPee
      * them with 403 Forbidden IP, which otherwise stalls the state machine waiting on a
      * permission/channel bind that can never succeed. The candidate itself is untouched, so it
      * can still be used for direct (host/srflx) pairing when a non-relay path exists. This is
-     * skipped when disableTurnPeerAddressFilter is set, for TURN servers that relay to private
+     * skipped when disableNonRoutablePeersFilterForRelay is set, for TURN servers that relay to private
      * peers. The running filtered-peer count is logged at INFO so an operator can see when a
      * relay path is removed. */
-    if (!pTurnConnection->disableTurnPeerAddressFilter && IS_NON_ROUTABLE_ADDR(pPeerAddress)) {
-        pTurnConnection->nonRoutablePeersFiltered++;
+    if (!pTurnConnection->disableNonRoutablePeersFilterForRelay && IS_NON_ROUTABLE_ADDR(pPeerAddress)) {
+        pTurnConnection->nonRoutablePeersFilteredCount++;
         DLOGI("Skipping TURN permission for non-routable peer (%u filtered so far on this TURN connection; "
               "TURN server would reject with 403 Forbidden IP)",
-              pTurnConnection->nonRoutablePeersFiltered);
+              pTurnConnection->nonRoutablePeersFilteredCount);
         CHK(FALSE, retStatus); // retStatus == STATUS_SUCCESS: treat as a successful no-op
     }
 

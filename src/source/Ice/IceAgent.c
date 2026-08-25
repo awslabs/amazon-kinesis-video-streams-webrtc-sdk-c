@@ -2221,7 +2221,7 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
     pNewCandidate->pIceAgent = pIceAgent;
     pNewCandidate->pTurnConnection = pTurnConnection;
     // Propagate the non-routable peer filter policy so turnConnectionAddPeer can honor it.
-    pTurnConnection->disableTurnPeerAddressFilter = pIceAgent->kvsRtcConfiguration.disableTurnPeerAddressFilter;
+    pTurnConnection->disableNonRoutablePeersFilterForRelay = pIceAgent->kvsRtcConfiguration.disableNonRoutablePeersFilterForRelay;
 
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;

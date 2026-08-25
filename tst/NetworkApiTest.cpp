@@ -338,6 +338,7 @@ TEST_F(NetworkApiTest, IsNonRoutableAddrIpv6RoutableAndBoundaries)
     setKvsV6Addr(&addr, 0xfe, 0xc0, 0, 0, 1);          EXPECT_FALSE(IS_NON_ROUTABLE_ADDR(&addr)); // fec0:: (outside fe80/10 and fc00/7)
     setKvsV6Addr(&addr, 0xfe, 0x7f, 0, 0, 1);          EXPECT_FALSE(IS_NON_ROUTABLE_ADDR(&addr)); // fe7f:: (just below fe80/10)
     setKvsV6Addr(&addr, 0xfe, 0x00, 0, 0, 1);          EXPECT_FALSE(IS_NON_ROUTABLE_ADDR(&addr)); // fe00:: (not ULA, not link-local)
+    setKvsV6Addr(&addr, 0, 0, 0, 0, 2);                EXPECT_FALSE(IS_NON_ROUTABLE_ADDR(&addr)); // ::2 is neither :: (unspecified) nor ::1 (loopback)
 }
 
 } // namespace webrtcclient

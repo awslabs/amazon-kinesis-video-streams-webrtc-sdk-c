@@ -187,7 +187,7 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionReceiveRelayedAddress)
  * turnConnectionAddPeer should skip non-routable peer addresses (which a public TURN server would
  * reject with 403 Forbidden IP): the peer is not added, turnPeerCount is unchanged, and the
  * diagnostic counter is bumped. Routable peers are added normally, and setting
- * disableTurnPeerAddressFilter turns the filter off so non-routable peers are added too.
+ * disableNonRoutablePeersFilterForRelay turns the filter off so non-routable peers are added too.
  */
 TEST_F(TurnConnectionFunctionalityTest, turnConnectionFiltersNonRoutablePeers)
 {
@@ -220,19 +220,19 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionFiltersNonRoutablePeers)
     // and the diagnostic counter is incremented.
     EXPECT_EQ(STATUS_SUCCESS, turnConnectionAddPeer(pTurnConnection, &nonRoutablePeer));
     EXPECT_EQ((UINT32) 0, pTurnConnection->turnPeerCount);
-    EXPECT_EQ((UINT32) 1, pTurnConnection->nonRoutablePeersFiltered);
+    EXPECT_EQ((UINT32) 1, pTurnConnection->nonRoutablePeersFilteredCount);
 
     // A routable peer is added normally.
     EXPECT_EQ(STATUS_SUCCESS, turnConnectionAddPeer(pTurnConnection, &routablePeer));
     EXPECT_EQ((UINT32) 1, pTurnConnection->turnPeerCount);
-    EXPECT_EQ((UINT32) 1, pTurnConnection->nonRoutablePeersFiltered);
+    EXPECT_EQ((UINT32) 1, pTurnConnection->nonRoutablePeersFilteredCount);
 
     // With the filter disabled (e.g. an on-prem/LAN TURN that relays to private peers), the
     // non-routable peer is added and the counter does not change.
-    pTurnConnection->disableTurnPeerAddressFilter = TRUE;
+    pTurnConnection->disableNonRoutablePeersFilterForRelay = TRUE;
     EXPECT_EQ(STATUS_SUCCESS, turnConnectionAddPeer(pTurnConnection, &nonRoutablePeer));
     EXPECT_EQ((UINT32) 2, pTurnConnection->turnPeerCount);
-    EXPECT_EQ((UINT32) 1, pTurnConnection->nonRoutablePeersFiltered);
+    EXPECT_EQ((UINT32) 1, pTurnConnection->nonRoutablePeersFilteredCount);
 
     freeTestTurnConnection();
 }
