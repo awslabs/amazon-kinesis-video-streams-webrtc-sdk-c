@@ -1123,6 +1123,166 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionCallMultipleTurnSendDataIn
     freeTestTurnConnection();
 }
 
+// ---------------------------------------------------------------------------
+// Unit tests for #2386/#2387: advance the TURN state machine when every peer
+// is on a terminal side (ready OR failed), instead of waiting out the full
+// per-state timeout for a peer the TURN server has already rejected.
+//
+// A peer rejected by the TURN server (e.g. 403 Forbidden IP for a non-routable
+// address) is marked TURN_PEER_CONN_STATE_FAILED but kept in turnPeerList.
+// Before #2387, fromCreatePermissionTurnState()/fromBindChannelTurnState() only
+// advanced early when the ready-side count == turnPeerCount, so a single failed
+// peer forced the machine to wait the full 5s CREATE_PERMISSION + 5s BIND_CHANNEL
+// timeout (~10s to READY). #2387 also counts FAILED peers as terminal, so the
+// machine advances as soon as every peer is either ready or failed - while still
+// requiring at least one ready peer, otherwise it fails.
+//
+// from*TurnState() are pure evaluators: they only read
+// state/turnPeerCount/turnPeerList[].connectionState/stateTimeoutTime and write
+// *pState. So we drive them directly against a hand-built TurnConnection with no
+// network, no signaling, and no credentials (these tests always run in CI).
+// ---------------------------------------------------------------------------
+
+// Build a minimal TurnConnection sufficient to exercise the from*TurnState evaluators.
+// stateTimeoutTime is set far in the future so the tests exercise the peer-count path
+// (the #2387 change) rather than the timeout fallback.
+static PTurnConnection buildStateEvalTurnConnection(UINT64 state)
+{
+    PTurnConnection pTurnConnection = (PTurnConnection) MEMCALLOC(1, SIZEOF(TurnConnection));
+    EXPECT_TRUE(pTurnConnection != NULL);
+    pTurnConnection->lock = MUTEX_CREATE(TRUE);
+    pTurnConnection->state = state;
+    pTurnConnection->stateTimeoutTime = GETTIME() + 100 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    pTurnConnection->turnPeerCount = 0;
+    return pTurnConnection;
+}
+
+// Append a peer in the given connection state to turnPeerList.
+static VOID addTurnPeerInState(PTurnConnection pTurnConnection, TURN_PEER_CONNECTION_STATE peerState)
+{
+    UINT32 i = pTurnConnection->turnPeerCount++;
+    pTurnConnection->turnPeerList[i].connectionState = peerState;
+}
+
+static VOID freeStateEvalTurnConnection(PTurnConnection pTurnConnection)
+{
+    if (pTurnConnection != NULL) {
+        if (IS_VALID_MUTEX_VALUE(pTurnConnection->lock)) {
+            MUTEX_FREE(pTurnConnection->lock);
+        }
+        MEMFREE(pTurnConnection);
+    }
+}
+
+// CREATE_PERMISSION: one ready + one failed peer must advance to BIND_CHANNEL without
+// waiting for the timeout. This is the core #2387 regression - pre-fix this stalled.
+TEST_F(TurnConnectionFunctionalityTest, fromCreatePermissionAdvancesWhenReadyAndFailedPeers)
+{
+    UINT64 nextState = 0;
+    PTurnConnection pTurnConnection = buildStateEvalTurnConnection(TURN_STATE_CREATE_PERMISSION);
+
+    addTurnPeerInState(pTurnConnection, TURN_PEER_CONN_STATE_READY);
+    addTurnPeerInState(pTurnConnection, TURN_PEER_CONN_STATE_FAILED);
+
+    EXPECT_EQ(STATUS_SUCCESS, fromCreatePermissionTurnState((UINT64) pTurnConnection, &nextState));
+    EXPECT_EQ(TURN_STATE_BIND_CHANNEL, nextState);
+
+    freeStateEvalTurnConnection(pTurnConnection);
+}
+
+// CREATE_PERMISSION: all peers ready (no failures) still advances - baseline behavior
+// that must be preserved by the #2387 change.
+TEST_F(TurnConnectionFunctionalityTest, fromCreatePermissionAdvancesWhenAllPeersReady)
+{
+    UINT64 nextState = 0;
+    PTurnConnection pTurnConnection = buildStateEvalTurnConnection(TURN_STATE_CREATE_PERMISSION);
+
+    addTurnPeerInState(pTurnConnection, TURN_PEER_CONN_STATE_READY);
+    addTurnPeerInState(pTurnConnection, TURN_PEER_CONN_STATE_BIND_CHANNEL);
+
+    EXPECT_EQ(STATUS_SUCCESS, fromCreatePermissionTurnState((UINT64) pTurnConnection, &nextState));
+    EXPECT_EQ(TURN_STATE_BIND_CHANNEL, nextState);
+
+    freeStateEvalTurnConnection(pTurnConnection);
+}
+
+// CREATE_PERMISSION: every peer failed (none ready) must NOT advance - it fails with the
+// specific create-permission status, since a relay with zero usable peers is useless.
+TEST_F(TurnConnectionFunctionalityTest, fromCreatePermissionFailsWhenAllPeersFailed)
+{
+    UINT64 nextState = 0;
+    PTurnConnection pTurnConnection = buildStateEvalTurnConnection(TURN_STATE_CREATE_PERMISSION);
+
+    addTurnPeerInState(pTurnConnection, TURN_PEER_CONN_STATE_FAILED);
+    addTurnPeerInState(pTurnConnection, TURN_PEER_CONN_STATE_FAILED);
+
+    EXPECT_EQ(STATUS_TURN_CONNECTION_FAILED_TO_CREATE_PERMISSION, fromCreatePermissionTurnState((UINT64) pTurnConnection, &nextState));
+
+    freeStateEvalTurnConnection(pTurnConnection);
+}
+
+// CREATE_PERMISSION: a peer still pending (neither ready nor failed) with the timeout not yet
+// reached must keep the machine in CREATE_PERMISSION - #2387 must not advance prematurely.
+TEST_F(TurnConnectionFunctionalityTest, fromCreatePermissionWaitsWhilePeerPending)
+{
+    UINT64 nextState = 0;
+    PTurnConnection pTurnConnection = buildStateEvalTurnConnection(TURN_STATE_CREATE_PERMISSION);
+
+    addTurnPeerInState(pTurnConnection, TURN_PEER_CONN_STATE_READY);
+    addTurnPeerInState(pTurnConnection, TURN_PEER_CONN_STATE_CREATE_PERMISSION);
+
+    EXPECT_EQ(STATUS_SUCCESS, fromCreatePermissionTurnState((UINT64) pTurnConnection, &nextState));
+    EXPECT_EQ(TURN_STATE_CREATE_PERMISSION, nextState);
+
+    freeStateEvalTurnConnection(pTurnConnection);
+}
+
+// BIND_CHANNEL: one ready + one failed peer must advance to READY without waiting for the
+// timeout - the BIND_CHANNEL half of the #2387 fix.
+TEST_F(TurnConnectionFunctionalityTest, fromBindChannelAdvancesWhenReadyAndFailedPeers)
+{
+    UINT64 nextState = 0;
+    PTurnConnection pTurnConnection = buildStateEvalTurnConnection(TURN_STATE_BIND_CHANNEL);
+
+    addTurnPeerInState(pTurnConnection, TURN_PEER_CONN_STATE_READY);
+    addTurnPeerInState(pTurnConnection, TURN_PEER_CONN_STATE_FAILED);
+
+    EXPECT_EQ(STATUS_SUCCESS, fromBindChannelTurnState((UINT64) pTurnConnection, &nextState));
+    EXPECT_EQ(TURN_STATE_READY, nextState);
+
+    freeStateEvalTurnConnection(pTurnConnection);
+}
+
+// BIND_CHANNEL: every peer failed (none ready) must NOT advance - it fails with the specific
+// bind-channel status.
+TEST_F(TurnConnectionFunctionalityTest, fromBindChannelFailsWhenAllPeersFailed)
+{
+    UINT64 nextState = 0;
+    PTurnConnection pTurnConnection = buildStateEvalTurnConnection(TURN_STATE_BIND_CHANNEL);
+
+    addTurnPeerInState(pTurnConnection, TURN_PEER_CONN_STATE_FAILED);
+
+    EXPECT_EQ(STATUS_TURN_CONNECTION_FAILED_TO_BIND_CHANNEL, fromBindChannelTurnState((UINT64) pTurnConnection, &nextState));
+
+    freeStateEvalTurnConnection(pTurnConnection);
+}
+
+// BIND_CHANNEL: a peer still binding (not yet ready/failed) with the timeout not reached must
+// keep the machine in BIND_CHANNEL - no premature advance.
+TEST_F(TurnConnectionFunctionalityTest, fromBindChannelWaitsWhilePeerPending)
+{
+    UINT64 nextState = 0;
+    PTurnConnection pTurnConnection = buildStateEvalTurnConnection(TURN_STATE_BIND_CHANNEL);
+
+    addTurnPeerInState(pTurnConnection, TURN_PEER_CONN_STATE_READY);
+    addTurnPeerInState(pTurnConnection, TURN_PEER_CONN_STATE_BIND_CHANNEL);
+
+    EXPECT_EQ(STATUS_SUCCESS, fromBindChannelTurnState((UINT64) pTurnConnection, &nextState));
+    EXPECT_EQ(TURN_STATE_BIND_CHANNEL, nextState);
+
+    freeStateEvalTurnConnection(pTurnConnection);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
