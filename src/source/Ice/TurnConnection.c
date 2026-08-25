@@ -763,6 +763,21 @@ STATUS turnConnectionAddPeer(PTurnConnection pTurnConnection, PKvsIpAddress pPee
 
     CHK(pTurnConnection != NULL && pPeerAddress != NULL, STATUS_NULL_ARG);
 
+    /* Skip non-routable peers up front: a public TURN server would reject CreatePermission for
+     * them with 403 Forbidden IP, which otherwise stalls the state machine waiting on a
+     * permission/channel bind that can never succeed. The candidate itself is untouched, so it
+     * can still be used for direct (host/srflx) pairing when a non-relay path exists. This is
+     * skipped when disableNonRoutablePeersFilterForRelay is set, for TURN servers that relay to private
+     * peers. The running filtered-peer count is logged at INFO so an operator can see when a
+     * relay path is removed. */
+    if (!pTurnConnection->disableNonRoutablePeersFilterForRelay && IS_NON_ROUTABLE_ADDR(pPeerAddress)) {
+        pTurnConnection->nonRoutablePeersFilteredCount++;
+        DLOGI("Skipping TURN permission for non-routable peer (%u filtered so far on this TURN connection; "
+              "TURN server would reject with 403 Forbidden IP)",
+              pTurnConnection->nonRoutablePeersFilteredCount);
+        CHK(FALSE, retStatus); // retStatus == STATUS_SUCCESS: treat as a successful no-op
+    }
+
     if (pTurnConnection->ipFamilyType == KVS_IP_FAMILY_TYPE_IPV4) {
         CHK_WARN(IS_IPV4_ADDR(pPeerAddress), STATUS_INVALID_ARG, "Dropping IPv6 peer for IPv4 TURN connection.");
     } else if (pTurnConnection->ipFamilyType == KVS_IP_FAMILY_TYPE_IPV6) {

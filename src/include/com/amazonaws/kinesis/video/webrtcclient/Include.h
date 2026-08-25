@@ -1472,6 +1472,11 @@ typedef struct {
     BOOL enableIceStats; //!< Control whether ICE agent stats are to be calculated. ENABLE_STATS_CALCULATION_CONTROL compiler flag must be defined
                          //!< to use this member, else stats are enabled by default.
 #endif
+    BOOL disableNonRoutablePeersFilterForRelay; //!< By default the SDK does not create TURN permissions for non-routable peer addresses
+                                                //!< (RFC 1918 private, RFC 6598 CGNAT, loopback, RFC 3927 link-local, etc.), because a public
+                                                //!< TURN server such as the KVS TURN service rejects them with 403 Forbidden IP. Set this to TRUE
+                                                //!< if you use a TURN server that legitimately relays to such addresses (e.g. an on-prem/LAN TURN),
+                                                //!< so those peers are not filtered. Filtering is enabled by default (this flag defaults to FALSE).
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
 
 /**
