@@ -1177,6 +1177,159 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionCallMultipleTurnSendDataIn
     freeTestTurnConnection();
 }
 
+// ---------------------------------------------------------------------------
+// Injection / stress tests for the non-routable peer filter (issue #2386, PR #2388).
+//
+// A flood of local / non-routable peer candidates must be absorbed cheaply. Each is rejected by
+// turnConnectionAddPeer at O(1) -- before the lock, the duplicate scan and the transaction-id-store
+// allocation -- so it never enters turnPeerList and never produces a CreatePermission that the TURN
+// server would reject with 403 Forbidden IP, and so cannot stall the state machine until the
+// ~5s-per-state timeout. These are pure logic (no network / credentials), so they are not gated on
+// mAccessKeyIdSet and always run. Exhaustive per-range coverage of the classifier itself lives in
+// NetworkApiTest.IsNonRoutableAddr*; here the focus is scale and behaviour under a flood.
+
+// Allocates a minimal TurnConnection usable by turnConnectionAddPeer and the state-machine
+// predicates. stateTimeoutTime is pushed far into the future so advance decisions reflect
+// peer-state counting, not a timeout fallthrough.
+static PTurnConnection allocStressTestTurnConnection()
+{
+    PTurnConnection pTurnConnection = (PTurnConnection) MEMCALLOC(1, SIZEOF(TurnConnection));
+    EXPECT_TRUE(pTurnConnection != NULL);
+    if (pTurnConnection != NULL) {
+        pTurnConnection->lock = MUTEX_CREATE(FALSE);
+        pTurnConnection->state = TURN_STATE_CREATE_PERMISSION;
+        pTurnConnection->stateTimeoutTime = GETTIME() + 100 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+        pTurnConnection->ipFamilyType = KVS_IP_FAMILY_TYPE_IPV4;
+        pTurnConnection->disableNonRoutablePeersFilterForRelay = FALSE; // filter on (default)
+    }
+    return pTurnConnection;
+}
+
+// Frees a stress-test TurnConnection, including any transaction-id stores held by peers that were
+// actually added (so CI sanitizer builds do not flag a leak).
+static VOID freeStressTestTurnConnection(PTurnConnection pTurnConnection)
+{
+    if (pTurnConnection != NULL) {
+        for (UINT32 i = 0; i < pTurnConnection->turnPeerCount; ++i) {
+            if (pTurnConnection->turnPeerList[i].pTransactionIdStore != NULL) {
+                freeTransactionIdStore(&pTurnConnection->turnPeerList[i].pTransactionIdStore);
+            }
+        }
+        MUTEX_FREE(pTurnConnection->lock);
+        MEMFREE(pTurnConnection);
+    }
+}
+
+// Flooding turnConnectionAddPeer with a huge number of DISTINCT non-routable IPv4 addresses must be
+// absorbed at O(1) each: none enter the peer list, all are counted as filtered, and the whole flood
+// finishes in a tiny fraction of even a single ~5s per-state timeout.
+TEST_F(TurnConnectionFunctionalityTest, turnConnectionFiltersDistinctNonRoutableFloodFast)
+{
+    const UINT32 floodCount = 500000; // all distinct within 10.0.0.0/8 (16.7M addresses)
+
+    PTurnConnection pTurnConnection = allocStressTestTurnConnection();
+    ASSERT_TRUE(pTurnConnection != NULL);
+
+    KvsIpAddress peer;
+    MEMSET(&peer, 0x00, SIZEOF(KvsIpAddress));
+    peer.family = KVS_IP_FAMILY_TYPE_IPV4;
+    peer.port = (UINT16) getInt16(8080);
+    peer.address[0] = 10; // 10.0.0.0/8 private
+
+    // The filter logs at INFO on every skip; silence it during the flood so the timing reflects the
+    // filter cost, not 500k log writes. The fixture restores the level for the next test.
+    SET_LOGGER_LOG_LEVEL(LOG_LEVEL_WARN);
+
+    BOOL allFiltered = TRUE;
+    UINT64 startTime = GETTIME();
+    for (UINT32 i = 0; i < floodCount; ++i) {
+        // Pack i across the low three octets so every address is unique: 10.a.b.c.
+        peer.address[1] = (BYTE) (i >> 16);
+        peer.address[2] = (BYTE) (i >> 8);
+        peer.address[3] = (BYTE) i;
+        // A filtered peer is a successful no-op; accumulate instead of asserting 500k times so the
+        // timed region reflects only the filter cost.
+        allFiltered = (BOOL) (allFiltered && (turnConnectionAddPeer(pTurnConnection, &peer) == STATUS_SUCCESS));
+    }
+    UINT64 floodElapsed = GETTIME() - startTime;
+
+    SET_LOGGER_LOG_LEVEL(mLogLevel);
+
+    EXPECT_TRUE(allFiltered);
+    // None of the flood entered the peer list; every one was counted as filtered.
+    EXPECT_EQ((UINT32) 0, pTurnConnection->turnPeerCount);
+    EXPECT_EQ(floodCount, pTurnConnection->nonRoutablePeersFilteredCount);
+
+    // "Finishes fast": half a million distinct non-routable peers absorbed in well under a single
+    // ~5s per-state timeout. Bounded generously to stay robust under CI sanitizer builds while still
+    // catching a regression to a per-peer network / allocation path.
+    EXPECT_LT(floodElapsed, 3 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    freeStressTestTurnConnection(pTurnConnection);
+}
+
+// A flood of non-routable peers interleaved with a few genuinely routable ones must not crowd out or
+// delay the real peers: only the routable peers are added, and the state machine's advance condition
+// is satisfiable immediately once they succeed -- it never waits on the doomed non-routable peers.
+TEST_F(TurnConnectionFunctionalityTest, turnConnectionFloodDoesNotDelayRoutablePeers)
+{
+    const UINT32 floodCount = 100000;
+    const UINT32 routableCount = 3; // stays under DEFAULT_TURN_MAX_PEER_COUNT
+
+    PTurnConnection pTurnConnection = allocStressTestTurnConnection();
+    ASSERT_TRUE(pTurnConnection != NULL);
+
+    KvsIpAddress peer;
+    MEMSET(&peer, 0x00, SIZEOF(KvsIpAddress));
+    peer.family = KVS_IP_FAMILY_TYPE_IPV4;
+    peer.port = (UINT16) getInt16(8080);
+
+    SET_LOGGER_LOG_LEVEL(LOG_LEVEL_WARN);
+
+    BOOL allOk = TRUE;
+    UINT32 routableAdded = 0;
+    UINT64 startTime = GETTIME();
+    for (UINT32 i = 0; i < floodCount; ++i) {
+        // Every (floodCount / routableCount)-th peer is a distinct public/routable address; the rest
+        // are distinct non-routable 10/8 addresses.
+        if (routableAdded < routableCount && (i % (floodCount / routableCount)) == 0) {
+            peer.address[0] = 77; // 77.0.0.0/8 is public/routable
+            peer.address[1] = 0x01;
+            peer.address[2] = 0x01;
+            peer.address[3] = (BYTE) (routableAdded + 1); // 77.1.1.1, 77.1.1.2, 77.1.1.3
+            allOk = (BOOL) (allOk && (turnConnectionAddPeer(pTurnConnection, &peer) == STATUS_SUCCESS));
+            routableAdded++;
+        } else {
+            peer.address[0] = 10; // 10.0.0.0/8 private
+            peer.address[1] = (BYTE) (i >> 16);
+            peer.address[2] = (BYTE) (i >> 8);
+            peer.address[3] = (BYTE) i;
+            allOk = (BOOL) (allOk && (turnConnectionAddPeer(pTurnConnection, &peer) == STATUS_SUCCESS));
+        }
+    }
+    UINT64 floodElapsed = GETTIME() - startTime;
+
+    SET_LOGGER_LOG_LEVEL(mLogLevel);
+
+    EXPECT_TRUE(allOk);
+    // Only the routable peers were added; every non-routable one was filtered.
+    EXPECT_EQ(routableCount, pTurnConnection->turnPeerCount);
+    EXPECT_EQ(floodCount - routableCount, pTurnConnection->nonRoutablePeersFilteredCount);
+
+    // Once the routable peers succeed, the advance condition (all peers accounted for) is met with a
+    // tiny peer set -- the flood never inflated turnPeerCount, so there is nothing doomed to wait on.
+    for (UINT32 i = 0; i < pTurnConnection->turnPeerCount; ++i) {
+        pTurnConnection->turnPeerList[i].connectionState = TURN_PEER_CONN_STATE_READY;
+    }
+    UINT64 nextState = TURN_STATE_NONE;
+    EXPECT_EQ(STATUS_SUCCESS, fromCreatePermissionTurnState((UINT64) pTurnConnection, &nextState));
+    EXPECT_EQ(TURN_STATE_BIND_CHANNEL, nextState);
+
+    EXPECT_LT(floodElapsed, 2 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    freeStressTestTurnConnection(pTurnConnection);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
