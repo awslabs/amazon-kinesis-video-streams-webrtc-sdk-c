@@ -371,8 +371,6 @@ Variables</h2></td></tr>
 <tr class="separator:gaf2df4757883088eda1d2947e740dfa3c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gac4007f0d6df9197aa8d44a3ff6200db1" id="r_gac4007f0d6df9197aa8d44a3ff6200db1"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">BOOL</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#gac4007f0d6df9197aa8d44a3ff6200db1">KvsRtcConfiguration::disableSenderSideBandwidthEstimation</a></td></tr>
 <tr class="separator:gac4007f0d6df9197aa8d44a3ff6200db1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga259ca892dd0f8fa2ac36f517e0cd6c21" id="r_ga259ca892dd0f8fa2ac36f517e0cd6c21"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">BOOL</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga259ca892dd0f8fa2ac36f517e0cd6c21">KvsRtcConfiguration::disableNonRoutablePeersFilterForRelay</a></td></tr>
-<tr class="separator:ga259ca892dd0f8fa2ac36f517e0cd6c21"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga5088878594e4eab3d1b5010960fc15a5" id="r_ga5088878594e4eab3d1b5010960fc15a5"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#ga9447d6f4c97788d32853140452659f70">ICE_TRANSPORT_POLICY</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__StatusCodes.html#ga5088878594e4eab3d1b5010960fc15a5">RtcConfiguration::iceTransportPolicy</a></td></tr>
 <tr class="memdesc:ga5088878594e4eab3d1b5010960fc15a5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indicates which candidates the ICE Agent is allowed to use.  <br /></td></tr>
 <tr class="separator:ga5088878594e4eab3d1b5010960fc15a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1444,21 +1442,6 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Transceiver direction - SENDONLY, RECVONLY, SENDRECV. </p>
-
-</div>
-</div>
-<a id="ga259ca892dd0f8fa2ac36f517e0cd6c21" name="ga259ca892dd0f8fa2ac36f517e0cd6c21"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga259ca892dd0f8fa2ac36f517e0cd6c21">&#9670;&#160;</a></span>disableNonRoutablePeersFilterForRelay</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">BOOL</a> KvsRtcConfiguration::disableNonRoutablePeersFilterForRelay</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>By default the SDK does not create TURN permissions for non-routable peer addresses (RFC 1918 private, RFC 6598 CGNAT, loopback, RFC 3927 link-local, etc.), because a public TURN server such as the KVS TURN service rejects them with 403 Forbidden IP. Set this to TRUE if you use a TURN server that legitimately relays to such addresses (e.g. an on-prem/LAN TURN), so those peers are not filtered. Filtering is enabled by default (this flag defaults to FALSE). </p>
 
 </div>
 </div>
@@ -3356,7 +3339,7 @@ Variables</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Tue Sep 1 2026 04:29:25 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Tue Sep 1 2026 06:31:40 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>
