@@ -23,7 +23,9 @@ STATUS parseSessionAttributes(PSessionDescription pSessionDescription, PCHAR pch
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR search;
 
-    CHK(pSessionDescription->sessionAttributesCount < MAX_SDP_ATTRIBUTES_COUNT, STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED);
+    CHK_ERR(pSessionDescription->sessionAttributesCount < MAX_SDP_ATTRIBUTES_COUNT, STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED,
+            "Session-level SDP attribute count exceeded the MAX_SDP_ATTRIBUTES_COUNT limit of %u. Raise it in CMake to accept this SDP.",
+            MAX_SDP_ATTRIBUTES_COUNT);
 
     if ((search = STRNCHR(pch, lineLen, ':')) == NULL) {
         STRNCPY(pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeName, pch + SDP_ATTRIBUTE_LENGTH,
@@ -52,7 +54,10 @@ STATUS parseMediaAttributes(PSessionDescription pSessionDescription, PCHAR pch, 
 
     currentMediaAttributesCount = pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].mediaAttributesCount;
 
-    CHK(currentMediaAttributesCount < MAX_SDP_ATTRIBUTES_COUNT, STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED);
+    CHK_ERR(currentMediaAttributesCount < MAX_SDP_ATTRIBUTES_COUNT, STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED,
+            "SDP attribute count in media section %u exceeded the MAX_SDP_ATTRIBUTES_COUNT limit of %u. Raise it in CMake, or reduce the codecs "
+            "the remote peer offers.",
+            (UINT32) (pSessionDescription->mediaCount - 1), MAX_SDP_ATTRIBUTES_COUNT);
 
     if ((search = STRNCHR(pch, lineLen, ':')) == NULL) {
         STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].sdpAttributes[currentMediaAttributesCount].attributeName,
