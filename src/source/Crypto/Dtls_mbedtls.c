@@ -1047,6 +1047,8 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
 #if MBEDTLS_HAS_ENTROPY
     mbedtls_entropy_context* pEntropy = NULL;
     mbedtls_ctr_drbg_context* pCtrDrbg = NULL;
+#else
+    psa_status_t psaStatus;
 #endif
     /* RNG handed to key generation and certificate signing below. */
     int (*fRng)(void*, unsigned char*, size_t);
@@ -1080,7 +1082,12 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     fRng = mbedtls_ctr_drbg_random;
     pRng = pCtrDrbg;
 #else
-    /* PSA is the RNG; KVS_CRYPTO_INIT() in initKvsWebRtc() has initialised it. */
+    /* PSA is the RNG. Idempotent; guards against callers reaching here before
+     * initKvsWebRtc() has run KVS_CRYPTO_INIT(). */
+    if ((psaStatus = psa_crypto_init()) != PSA_SUCCESS) {
+        DLOGE("psa_crypto_init failed (status %d)", (int) psaStatus);
+    }
+    CHK(psaStatus == PSA_SUCCESS, STATUS_CERTIFICATE_GENERATION_FAILED);
     fRng = mbedtls_psa_get_random;
     pRng = MBEDTLS_PSA_RANDOM_STATE;
 #endif
