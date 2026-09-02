@@ -79,6 +79,21 @@ extern "C" {
 #include <mbedtls/sha256.h>
 #include <mbedtls/md5.h>
 #endif
+
+/* Randomness source. A build that supplies randomness through a PSA driver
+ * (MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG, the default on ESP-IDF v6 targets) compiles the
+ * entropy module out, and is permitted to drop CTR-DRBG with it, so
+ * mbedtls_entropy_* / mbedtls_ctr_drbg_* do not exist at link time. Such builds take
+ * their RNG from PSA instead. This is a build-configuration question rather than a
+ * version one: stock mbedTLS 4 still ships both modules. */
+#if defined(MBEDTLS_ENTROPY_C) && defined(MBEDTLS_CTR_DRBG_C)
+#define MBEDTLS_HAS_ENTROPY (1)
+#elif defined(MBEDTLS_PSA_CRYPTO_CLIENT) || defined(MBEDTLS_PSA_CRYPTO_C)
+#define MBEDTLS_HAS_ENTROPY (0)
+#include <mbedtls/psa_util.h>
+#else
+#error "mbedTLS must provide either the entropy and CTR-DRBG modules or PSA Crypto for randomness"
+#endif
 #endif
 
 #ifdef USE_LIBSRTP3

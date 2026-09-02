@@ -95,10 +95,11 @@ typedef enum {
 #define KVS_SHA1_HMAC(k, klen, m, mlen, ob, plen)                                                                                                    \
     CHK(0 == mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA1), (k), (klen), (m), (mlen), (ob)), STATUS_HMAC_GENERATION_ERROR);             \
     *(plen) = mbedtls_md_get_size(mbedtls_md_info_from_type(MBEDTLS_MD_SHA1));
-#if MBEDTLS_VERSION_MAJOR >= 4
+#if MBEDTLS_VERSION_MAJOR >= 4 || !MBEDTLS_HAS_ENTROPY
 /* PSA Crypto must be initialised before any psa_* call. psa_crypto_init() is
  * idempotent; calling it once from the SDK init path avoids the per-session
- * race on builds without MBEDTLS_THREADING_C. */
+ * race on builds without MBEDTLS_THREADING_C. Entropy-less builds source their
+ * randomness from PSA on every mbedTLS version, so they need this too. */
 #define KVS_CRYPTO_INIT()                                                                                                                            \
     do {                                                                                                                                             \
         (void) psa_crypto_init();                                                                                                                    \

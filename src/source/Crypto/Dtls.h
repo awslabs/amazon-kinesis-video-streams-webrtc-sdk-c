@@ -124,6 +124,13 @@ typedef struct {
 #error "A Crypto implementation is required."
 #endif
 
+/* Entropy-less builds have no DRBG to hand out; callers fall back to PSA. */
+#if MBEDTLS_HAS_ENTROPY
+#define KVS_MBEDTLS_DRBG(pSession) (&(pSession)->ctrDrbg)
+#else
+#define KVS_MBEDTLS_DRBG(pSession) (NULL)
+#endif
+
 typedef struct __DtlsSession DtlsSession, *PDtlsSession;
 struct __DtlsSession {
     volatile ATOMIC_BOOL isStarted;
@@ -157,8 +164,10 @@ struct __DtlsSession {
     TlsKeys tlsKeys;
     PIOBuffer pReadBuffer;
 
+#if MBEDTLS_HAS_ENTROPY
     mbedtls_entropy_context entropy;
     mbedtls_ctr_drbg_context ctrDrbg;
+#endif
     mbedtls_ssl_config sslCtxConfig;
     mbedtls_ssl_context sslCtx;
     mbedtls_x509_crt trustedCaCert;

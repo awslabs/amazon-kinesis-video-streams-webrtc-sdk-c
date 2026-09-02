@@ -168,13 +168,19 @@ STATUS createDtlsSessionWithOptions(PDtlsSessionCallbacks pDtlsSessionCallbacks,
     CHK(pDtlsSession != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
     // initialize mbedtls stuff with sane values
+#if MBEDTLS_HAS_ENTROPY
     mbedtls_entropy_init(&pDtlsSession->entropy);
     mbedtls_ctr_drbg_init(&pDtlsSession->ctrDrbg);
+#endif
     mbedtls_ssl_config_init(&pDtlsSession->sslCtxConfig);
     mbedtls_ssl_init(&pDtlsSession->sslCtx);
     mbedtls_x509_crt_init(&pDtlsSession->trustedCaCert);
+#if MBEDTLS_HAS_ENTROPY
     mbedtls_ctr_drbg_set_prediction_resistance(&pDtlsSession->ctrDrbg, MBEDTLS_CTR_DRBG_PR_ON);
     CHK(mbedtls_ctr_drbg_seed(&pDtlsSession->ctrDrbg, mbedtls_entropy_func, &pDtlsSession->entropy, NULL, 0) == 0, STATUS_CREATE_SSL_FAILED);
+#endif
+    /* Without the entropy module there is no DRBG to seed: PSA is the RNG, and
+     * KVS_CRYPTO_INIT() in initKvsWebRtc() has already initialised it. */
 
     CHK_STATUS(createIOBuffer(DEFAULT_MTU_SIZE_BYTES, &pDtlsSession->pReadBuffer));
     pDtlsSession->timerQueueHandle = timerQueueHandle;
@@ -195,7 +201,7 @@ STATUS createDtlsSessionWithOptions(PDtlsSessionCallbacks pDtlsSessionCallbacks,
         for (i = 0; i < certCount; i++) {
             CHK_STATUS(copyCertificateAndKey((mbedtls_x509_crt*) pRtcCertificates[i].pCertificate,
                                              (mbedtls_pk_context*) pRtcCertificates[i].pPrivateKey, &pDtlsSession->certificates[i],
-                                             &pDtlsSession->ctrDrbg));
+                                             KVS_MBEDTLS_DRBG(pDtlsSession)));
             // in case of a failure in between, we'll only free up to current position
             pDtlsSession->certificateCount++;
         }
@@ -242,8 +248,10 @@ STATUS freeDtlsSession(PDtlsSession* ppDtlsSession)
         freeCertificateAndKey(&pCertInfo->cert, &pCertInfo->privateKey);
     }
     mbedtls_x509_crt_free(&pDtlsSession->trustedCaCert);
+#if MBEDTLS_HAS_ENTROPY
     mbedtls_entropy_free(&pDtlsSession->entropy);
     mbedtls_ctr_drbg_free(&pDtlsSession->ctrDrbg);
+#endif
     mbedtls_ssl_config_free(&pDtlsSession->sslCtxConfig);
     mbedtls_ssl_free(&pDtlsSession->sslCtx);
 
@@ -469,7 +477,11 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
     CHK_STATUS(dtlsSessionConfigureRemoteCertificateValidation(pDtlsSession));
 #if !MBEDTLS_V4_OR_LATER
     /* mbedTLS 4 removes mbedtls_ssl_conf_rng() — PSA Crypto handles RNG internally. */
+#if MBEDTLS_HAS_ENTROPY
     mbedtls_ssl_conf_rng(&pDtlsSession->sslCtxConfig, mbedtls_ctr_drbg_random, &pDtlsSession->ctrDrbg);
+#else
+    mbedtls_ssl_conf_rng(&pDtlsSession->sslCtxConfig, mbedtls_psa_get_random, MBEDTLS_PSA_RANDOM_STATE);
+#endif
 #endif
 
     for (i = 0; i < pDtlsSession->certificateCount; i++) {
@@ -795,7 +807,12 @@ STATUS copyCertificateAndKey(mbedtls_x509_crt* pCert, mbedtls_pk_context* pKey, 
     UNUSED_PARAM(pCtrDrbg);
     CHK(mbedtls_pk_check_pair(&pCert->pk, pKey) == 0, STATUS_CERTIFICATE_GENERATION_FAILED);
 #else
+#if MBEDTLS_HAS_ENTROPY
     CHK(mbedtls_pk_check_pair(&pCert->pk, pKey, mbedtls_ctr_drbg_random, pCtrDrbg) == 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+#else
+    UNUSED_PARAM(pCtrDrbg);
+    CHK(mbedtls_pk_check_pair(&pCert->pk, pKey, mbedtls_psa_get_random, MBEDTLS_PSA_RANDOM_STATE) == 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+#endif
 #endif
 
     mbedtls_x509_crt_init(&pDst->cert);
@@ -1027,8 +1044,15 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     UINT64 now, notAfter;
     UINT32 written;
     INT32 len;
+#if MBEDTLS_HAS_ENTROPY
     mbedtls_entropy_context* pEntropy = NULL;
     mbedtls_ctr_drbg_context* pCtrDrbg = NULL;
+#else
+    psa_status_t psaStatus;
+#endif
+    /* RNG handed to key generation and certificate signing below. */
+    int (*fRng)(void*, unsigned char*, size_t);
+    void* pRng;
     mbedtls_mpi serial;
     mbedtls_x509write_cert* pWriteCert = NULL;
     BYTE certSn[DTLS_CERT_MAX_SERIAL_NUM_SIZE];
@@ -1036,29 +1060,46 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     CHK(pCert != NULL && pKey != NULL, STATUS_NULL_ARG);
 
     CHK(NULL != (pCertBuf = (PCHAR) MEMALLOC(GENERATED_CERTIFICATE_MAX_SIZE)), STATUS_NOT_ENOUGH_MEMORY);
+#if MBEDTLS_HAS_ENTROPY
     CHK(NULL != (pEntropy = (mbedtls_entropy_context*) MEMALLOC(SIZEOF(mbedtls_entropy_context))), STATUS_NOT_ENOUGH_MEMORY);
     CHK(NULL != (pCtrDrbg = (mbedtls_ctr_drbg_context*) MEMALLOC(SIZEOF(mbedtls_ctr_drbg_context))), STATUS_NOT_ENOUGH_MEMORY);
+#endif
     CHK(NULL != (pWriteCert = (mbedtls_x509write_cert*) MEMALLOC(SIZEOF(mbedtls_x509write_cert))), STATUS_NOT_ENOUGH_MEMORY);
     CHK_STATUS(dtlsFillPseudoRandomBits(certSn, SIZEOF(certSn)));
 
     // initialize to sane values
+#if MBEDTLS_HAS_ENTROPY
     mbedtls_entropy_init(pEntropy);
     mbedtls_ctr_drbg_init(pCtrDrbg);
+#endif
     mbedtls_mpi_init(&serial);
     mbedtls_x509write_crt_init(pWriteCert);
     mbedtls_x509_crt_init(pCert);
     mbedtls_pk_init(pKey);
     initialized = TRUE;
+#if MBEDTLS_HAS_ENTROPY
     CHK(mbedtls_ctr_drbg_seed(pCtrDrbg, mbedtls_entropy_func, pEntropy, NULL, 0) == 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+    fRng = mbedtls_ctr_drbg_random;
+    pRng = pCtrDrbg;
+#else
+    /* PSA is the RNG. Idempotent; guards against callers reaching here before
+     * initKvsWebRtc() has run KVS_CRYPTO_INIT(). */
+    if ((psaStatus = psa_crypto_init()) != PSA_SUCCESS) {
+        DLOGE("psa_crypto_init failed (status %d)", (int) psaStatus);
+    }
+    CHK(psaStatus == PSA_SUCCESS, STATUS_CERTIFICATE_GENERATION_FAILED);
+    fRng = mbedtls_psa_get_random;
+    pRng = MBEDTLS_PSA_RANDOM_STATE;
+#endif
 
     // generate a key
     if (generateRSACertificate) {
         CHK(mbedtls_pk_setup(pKey, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA)) == 0 &&
-                mbedtls_rsa_gen_key(mbedtls_pk_rsa(*pKey), mbedtls_ctr_drbg_random, pCtrDrbg, certificateBits, KVS_RSA_F4) == 0,
+                mbedtls_rsa_gen_key(mbedtls_pk_rsa(*pKey), fRng, pRng, certificateBits, KVS_RSA_F4) == 0,
             STATUS_CERTIFICATE_GENERATION_FAILED);
     } else {
         CHK(mbedtls_pk_setup(pKey, mbedtls_pk_info_from_type(MBEDTLS_PK_ECKEY)) == 0 &&
-                mbedtls_ecp_gen_key(MBEDTLS_ECP_DP_SECP256R1, mbedtls_pk_ec(*pKey), mbedtls_ctr_drbg_random, pCtrDrbg) == 0,
+                mbedtls_ecp_gen_key(MBEDTLS_ECP_DP_SECP256R1, mbedtls_pk_ec(*pKey), fRng, pRng) == 0,
             STATUS_CERTIFICATE_GENERATION_FAILED);
     }
 
@@ -1084,7 +1125,7 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     mbedtls_x509write_crt_set_md_alg(pWriteCert, MBEDTLS_MD_SHA1);
 
     MEMSET(pCertBuf, 0, GENERATED_CERTIFICATE_MAX_SIZE);
-    len = mbedtls_x509write_crt_der(pWriteCert, (PVOID) pCertBuf, GENERATED_CERTIFICATE_MAX_SIZE, mbedtls_ctr_drbg_random, pCtrDrbg);
+    len = mbedtls_x509write_crt_der(pWriteCert, (PVOID) pCertBuf, GENERATED_CERTIFICATE_MAX_SIZE, fRng, pRng);
     CHK(len >= 0, STATUS_CERTIFICATE_GENERATION_FAILED);
 
     // mbedtls_x509write_crt_der starts writing from behind, so we need to use the return len
@@ -1101,16 +1142,20 @@ CleanUp:
     if (initialized) {
         mbedtls_x509write_crt_free(pWriteCert);
         mbedtls_mpi_free(&serial);
+#if MBEDTLS_HAS_ENTROPY
         mbedtls_ctr_drbg_free(pCtrDrbg);
         mbedtls_entropy_free(pEntropy);
+#endif
 
         if (STATUS_FAILED(retStatus)) {
             freeCertificateAndKey(pCert, pKey);
         }
     }
     SAFE_MEMFREE(pCertBuf);
+#if MBEDTLS_HAS_ENTROPY
     SAFE_MEMFREE(pEntropy);
     SAFE_MEMFREE(pCtrDrbg);
+#endif
     SAFE_MEMFREE(pWriteCert);
     LEAVES();
     return retStatus;
