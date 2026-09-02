@@ -589,7 +589,7 @@ Because `Master` and `Viewer` are connection-initiation roles rather than privil
 The following are not supported deployments. In each case the SDK's authentication and payload-integrity assumptions no longer hold, and responsibility shifts to the application or operator:
 
 1. **Non-KVS signaling.** The SDK is designed to be used with the KVS Signaling Service, which provides TLS and SigV4 authentication on every signaling message. If you substitute your own signaling implementation, authentication and authorization of peers becomes your application's responsibility, not the SDK's.
-2. **A modified or non-standard sender in place of the SDK.** The SDK constructs protocol payloads (SDP, ICE/STUN, RTP, RTCP, SCTP/DCEP) in conformance with the negotiated WebRTC configuration and the relevant RFCs. A peer that replaces the SDK's send path, or hand-crafts protocol messages at the application layer, can emit payloads that lie outside those specifications, which is outside the supported model.
+2. **A modified or non-standard sender in place of the SDK.** The SDK constructs protocol payloads (SDP, ICE/STUN, RTP, RTCP, SCTP/DCEP) in conformance with the negotiated WebRTC configuration and the relevant RFCs. A peer that replaces the SDK's send path, hand-crafts protocol messages at the application layer or emits payloads that lie outside those specifications, is outside the supported model.
 
 ### Operational recommendations
 
