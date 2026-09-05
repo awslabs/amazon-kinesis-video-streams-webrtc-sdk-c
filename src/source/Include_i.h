@@ -63,8 +63,6 @@ extern "C" {
 #if defined(MBEDTLS_VERSION_NUMBER) && MBEDTLS_VERSION_MAJOR >= 4
 #include <mbedtls/private/entropy.h>
 #include <mbedtls/private/ctr_drbg.h>
-#include <mbedtls/private/sha256.h>
-#include <mbedtls/private/md5.h>
 #include <mbedtls/md.h>
 #include <mbedtls/pk.h>
 #include <mbedtls/private/rsa.h>
@@ -76,8 +74,7 @@ extern "C" {
 #if MBEDTLS_VERSION_NUMBER < 0x03000000
 #include <mbedtls/certs.h>
 #endif
-#include <mbedtls/sha256.h>
-#include <mbedtls/md5.h>
+#include <mbedtls/md.h>
 #endif
 #endif
 
