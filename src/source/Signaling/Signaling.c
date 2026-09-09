@@ -193,6 +193,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     ATOMIC_STORE_BOOL(&pSignalingClient->shutdown, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->deleting, FALSE);
+    ATOMIC_STORE(&pSignalingClient->receiveWorkerCount, 0);
     ATOMIC_STORE_BOOL(&pSignalingClient->deleted, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->serviceLockContention, FALSE);
 
@@ -221,6 +222,11 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
 
     pSignalingClient->stateLock = MUTEX_CREATE(TRUE);
     CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->stateLock), STATUS_INVALID_OPERATION);
+
+    pSignalingClient->receiveWorkerLock = MUTEX_CREATE(FALSE);
+    CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->receiveWorkerLock), STATUS_INVALID_OPERATION);
+    pSignalingClient->receiveWorkerCvar = CVAR_CREATE();
+    CHK(IS_VALID_CVAR_VALUE(pSignalingClient->receiveWorkerCvar), STATUS_INVALID_OPERATION);
 
     pSignalingClient->messageQueueLock = MUTEX_CREATE(TRUE);
     CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->messageQueueLock), STATUS_INVALID_OPERATION);
@@ -374,6 +380,14 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
         MUTEX_FREE(pSignalingClient->offerSendReceiveTimeLock);
     }
 
+    if (IS_VALID_CVAR_VALUE(pSignalingClient->receiveWorkerCvar)) {
+        CVAR_FREE(pSignalingClient->receiveWorkerCvar);
+    }
+
+    if (IS_VALID_MUTEX_VALUE(pSignalingClient->receiveWorkerLock)) {
+        MUTEX_FREE(pSignalingClient->receiveWorkerLock);
+    }
+
     uninitializeThreadTracker(&pSignalingClient->reconnecterTracker);
     uninitializeThreadTracker(&pSignalingClient->listenerTracker);
 
@@ -508,6 +522,21 @@ STATUS terminateOngoingOperations(PSignalingClient pSignalingClient)
             MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
             DLOGW("Late reconnect thread spawn detected, re-waiting...");
         }
+
+        // Wait for all in-flight receive workers to finish. These are
+        // fire-and-forget threads spawned per-message in receiveLwsMessage();
+        // each increments receiveWorkerCount before detach and decrements on
+        // exit. Freeing pSignalingClient while one is still running is a
+        // use-after-free, so block until the count drains to zero.
+        MUTEX_LOCK(pSignalingClient->receiveWorkerLock);
+        while (ATOMIC_LOAD(&pSignalingClient->receiveWorkerCount) > 0) {
+            if (STATUS_FAILED(CVAR_WAIT(pSignalingClient->receiveWorkerCvar, pSignalingClient->receiveWorkerLock,
+                                        SIGNALING_CLIENT_SHUTDOWN_TIMEOUT))) {
+                DLOGW("Receive workers still in-flight (count: %llu), retrying...",
+                      (UINT64) ATOMIC_LOAD(&pSignalingClient->receiveWorkerCount));
+            }
+        }
+        MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
     } else {
         // Non-free callers (fetchSync, disconnectSync, deleteSync): shutdown
         // is FALSE so the reconnect thread may legitimately keep running or

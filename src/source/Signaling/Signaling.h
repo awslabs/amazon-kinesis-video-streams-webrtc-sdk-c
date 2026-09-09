@@ -343,6 +343,14 @@ typedef struct {
     // Restarted thread handler
     ThreadTracker reconnecterTracker;
 
+    // In-flight receive worker count. Incremented in receiveLwsMessage() after a
+    // successful THREAD_CREATE/threadpoolContextPush and decremented in
+    // receiveLwsMessageWrapper() on exit. terminateOngoingOperations() waits for
+    // this to reach zero on the shutdown path before the client can be freed.
+    volatile SIZE_T receiveWorkerCount;
+    MUTEX receiveWorkerLock;
+    CVAR receiveWorkerCvar;
+
     // Generic websocket context - can be used by any implementation
     PVOID pWebsocketContext;
 

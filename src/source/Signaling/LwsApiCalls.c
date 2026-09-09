@@ -2277,9 +2277,15 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
 #ifdef ENABLE_KVS_THREADPOOL
     // This would fail if threadpool was not created
     CHK_STATUS(threadpoolContextPush(receiveLwsMessageWrapper, pSignalingMessageWrapper));
+    // Count this in-flight worker; the wrapper decrements on exit. Incremented
+    // only after a successful push so the wrapper is guaranteed to run.
+    ATOMIC_INCREMENT(&pSignalingClient->receiveWorkerCount);
 #else
     // Issue the callback on a separate thread
     CHK_STATUS(THREAD_CREATE(&receivedTid, receiveLwsMessageWrapper, (PVOID) pSignalingMessageWrapper));
+    // Count this in-flight worker (after successful create, before detach) so
+    // terminateOngoingOperations() can wait for it before the client is freed.
+    ATOMIC_INCREMENT(&pSignalingClient->receiveWorkerCount);
     CHK_STATUS(THREAD_DETACH(receivedTid));
 #endif
 
@@ -2466,6 +2472,13 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 
     SAFE_MEMFREE(pSignalingMessageWrapper);
+
+    // Decrement the in-flight worker counter and wake any shutdown waiter in
+    // terminateOngoingOperations() that is blocked on receiveWorkerCount == 0.
+    if (pSignalingClient != NULL) {
+        ATOMIC_DECREMENT(&pSignalingClient->receiveWorkerCount);
+        CVAR_BROADCAST(pSignalingClient->receiveWorkerCvar);
+    }
 
     return (PVOID) (ULONG_PTR) retStatus;
 }
