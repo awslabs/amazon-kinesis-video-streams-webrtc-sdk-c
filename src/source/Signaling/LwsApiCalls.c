@@ -2318,7 +2318,6 @@ CleanUp:
             retStatus = pSignalingClient->signalingClientCallbacks.errorReportFn(pSignalingClient->signalingClientCallbacks.customData, retStatus,
                                                                                  pMessage, messageLen);
         }
-
     }
 
     if (!receiveWorkerScheduled) {
