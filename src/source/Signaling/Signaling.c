@@ -454,14 +454,66 @@ STATUS terminateOngoingOperations(PSignalingClient pSignalingClient)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    BOOL shuttingDown;
+    UINT32 waitAttempts = 0;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // Terminate the listener thread if alive
     terminateLwsListenerLoop(pSignalingClient);
 
-    // Await for the reconnect thread to exit
-    awaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);
+    shuttingDown = ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown);
+
+    if (shuttingDown) {
+        // freeSignaling path: we are about to free memory, so we MUST wait
+        // until the reconnect thread is fully done.  Poke the LWS event loop
+        // so lwsCompleteSync sees the shutdown flag and exits promptly.
+        if (pSignalingClient->pWebsocketContext != NULL) {
+            lws_cancel_service((struct lws_context*) pSignalingClient->pWebsocketContext);
+        }
+
+        // The WSS callback spawns reconnectHandler under lwsServiceLock, so
+        // after the cvar wait reports terminated==TRUE we acquire the same
+        // lock and re-verify.  This closes the TOCTOU where the callback
+        // reads shutdown==FALSE and spawns a thread between our shutdown=TRUE
+        // store and the wait.
+        while (TRUE) {
+            while (!ATOMIC_LOAD_BOOL(&pSignalingClient->reconnecterTracker.terminated)) {
+                retStatus = awaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);
+                if (STATUS_FAILED(retStatus)) {
+                    waitAttempts++;
+                    retStatus = STATUS_SUCCESS;
+                    if (waitAttempts >= SIGNALING_SHUTDOWN_MAX_WAIT_ATTEMPTS) {
+                        DLOGE("Reconnect thread still alive after %u attempts (~%u s). "
+                              "Possible getaddrinfo hang. Will keep waiting — UAF is worse than a stall.",
+                              waitAttempts, waitAttempts * (2 + SIGNALING_SERVICE_API_CALL_TIMEOUT_IN_SECONDS));
+                        waitAttempts = 0;
+                    } else {
+                        DLOGW("Reconnect thread still alive after timeout (attempt %u/%u), retrying wait...",
+                              waitAttempts, SIGNALING_SHUTDOWN_MAX_WAIT_ATTEMPTS);
+                    }
+                    if (pSignalingClient->pWebsocketContext != NULL) {
+                        lws_cancel_service((struct lws_context*) pSignalingClient->pWebsocketContext);
+                    }
+                }
+            }
+
+            // Re-verify under the spawn lock — if a late spawn just set
+            // terminated=FALSE we will see it and loop again.
+            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+            if (ATOMIC_LOAD_BOOL(&pSignalingClient->reconnecterTracker.terminated)) {
+                MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
+                break;
+            }
+            MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
+            DLOGW("Late reconnect thread spawn detected, re-waiting...");
+        }
+    } else {
+        // Non-free callers (fetchSync, disconnectSync, deleteSync): shutdown
+        // is FALSE so the reconnect thread may legitimately keep running or
+        // respawn.  Use the original bounded wait — best-effort quiesce.
+        awaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);
+    }
 
 CleanUp:
 

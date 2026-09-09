@@ -67,17 +67,16 @@ INT32 lwsHttpCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn,
             pLwsCallInfo->callInfo.pRequestInfo != NULL && pLwsCallInfo->protocolIndex == PROTOCOL_INDEX_HTTPS,
         retStatus);
 
+    pSignalingClient = pLwsCallInfo->pSignalingClient;
+    pRequestInfo = pLwsCallInfo->callInfo.pRequestInfo;
+    nowTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
+
     // Quick check whether we need to exit
     if (ATOMIC_LOAD(&pLwsCallInfo->cancelService)) {
         retValue = 1;
         ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
         CHK(FALSE, retStatus);
     }
-
-    pSignalingClient = pLwsCallInfo->pSignalingClient;
-    nowTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
-
-    pRequestInfo = pLwsCallInfo->callInfo.pRequestInfo;
     pBuffer = pLwsCallInfo->buffer + LWS_PRE;
 
     MUTEX_LOCK(pSignalingClient->lwsServiceLock);
@@ -646,7 +645,8 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
 
     // Indicate that we are trying to acquire the lock
     ATOMIC_STORE_BOOL(&pCallInfo->pSignalingClient->serviceLockContention, TRUE);
-    while (iterate && pCallInfo->pSignalingClient->currentWsi[PROTOCOL_INDEX_WSS] != NULL) {
+    while (iterate && pCallInfo->pSignalingClient->currentWsi[PROTOCOL_INDEX_WSS] != NULL &&
+           !ATOMIC_LOAD_BOOL(&pCallInfo->pSignalingClient->shutdown)) {
         if (!MUTEX_TRYLOCK(pCallInfo->pSignalingClient->lwsServiceLock)) {
             // Wake up the event loop
             CHK_STATUS(wakeLwsServiceEventLoop(pCallInfo->pSignalingClient, PROTOCOL_INDEX_WSS));
@@ -656,6 +656,9 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
         }
     }
     ATOMIC_STORE_BOOL(&pCallInfo->pSignalingClient->serviceLockContention, FALSE);
+
+    // Bail out if shutdown was requested while we were waiting for the lock
+    CHK(!ATOMIC_LOAD_BOOL(&pCallInfo->pSignalingClient->shutdown), STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Now we should be running with a lock
     CHK(NULL != (pCallInfo->pSignalingClient->currentWsi[pCallInfo->protocolIndex] = lws_client_connect_via_info(&connectInfo)),
@@ -669,7 +672,8 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     serializerLocked = FALSE;
 
     while (retVal >= 0 && !gInterruptedFlagBySignalHandler && pCallInfo->callInfo.pRequestInfo != NULL &&
-           !ATOMIC_LOAD_BOOL(&pCallInfo->callInfo.pRequestInfo->terminating)) {
+           !ATOMIC_LOAD_BOOL(&pCallInfo->callInfo.pRequestInfo->terminating) &&
+           !ATOMIC_LOAD_BOOL(&pCallInfo->pSignalingClient->shutdown)) {
         if (!MUTEX_TRYLOCK(pCallInfo->pSignalingClient->lwsServiceLock)) {
             THREAD_SLEEP(LWS_SERVICE_LOOP_ITERATION_WAIT);
         } else {

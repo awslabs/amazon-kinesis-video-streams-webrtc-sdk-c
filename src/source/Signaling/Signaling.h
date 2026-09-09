@@ -23,6 +23,12 @@ extern "C" {
 // Termination timeout
 #define SIGNALING_CLIENT_SHUTDOWN_TIMEOUT ((2 + SIGNALING_SERVICE_API_CALL_TIMEOUT_IN_SECONDS) * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
+// Maximum number of wait attempts in the shutdown path before giving up.
+// Each attempt waits up to SIGNALING_CLIENT_SHUTDOWN_TIMEOUT (9 s), so
+// the hard ceiling is roughly SIGNALING_SHUTDOWN_MAX_WAIT_ATTEMPTS * 9 s.
+// Exceeding this emits DLOGE but does NOT free — a diagnosable hang beats a UAF.
+#define SIGNALING_SHUTDOWN_MAX_WAIT_ATTEMPTS 10
+
 // Signaling client state literal definitions
 #define SIGNALING_CLIENT_STATE_UNKNOWN_STR                "Unknown"
 #define SIGNALING_CLIENT_STATE_NEW_STR                    "New"
