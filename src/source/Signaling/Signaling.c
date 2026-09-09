@@ -74,6 +74,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
 
     // Allocate enough storage
     CHK(NULL != (pSignalingClient = (PSignalingClient) MEMCALLOC(1, SIZEOF(SignalingClient))), STATUS_NOT_ENOUGH_MEMORY);
+    ATOMIC_STORE(&pSignalingClient->refCount, 1);
 
     // Initialize the listener and restart thread trackers
     CHK_STATUS(initializeThreadTracker(&pSignalingClient->listenerTracker));
@@ -212,6 +213,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK(IS_VALID_CVAR_VALUE(pSignalingClient->receiveCvar), STATUS_INVALID_OPERATION);
     pSignalingClient->receiveLock = MUTEX_CREATE(FALSE);
     CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->receiveLock), STATUS_INVALID_OPERATION);
+    pSignalingClient->receiveCallbackLock = MUTEX_CREATE(TRUE);
+    CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->receiveCallbackLock), STATUS_INVALID_OPERATION);
     pSignalingClient->jssWaitCvar = CVAR_CREATE();
     CHK(IS_VALID_CVAR_VALUE(pSignalingClient->jssWaitCvar), STATUS_INVALID_OPERATION);
     pSignalingClient->jssWaitLock = MUTEX_CREATE(FALSE);
@@ -283,21 +286,8 @@ CleanUp:
     return retStatus;
 }
 
-STATUS freeSignaling(PSignalingClient* ppSignalingClient)
+static VOID destroySignalingClient(PSignalingClient pSignalingClient)
 {
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    PSignalingClient pSignalingClient;
-
-    CHK(ppSignalingClient != NULL, STATUS_NULL_ARG);
-
-    pSignalingClient = *ppSignalingClient;
-    CHK(pSignalingClient != NULL, retStatus);
-
-    ATOMIC_STORE_BOOL(&pSignalingClient->shutdown, TRUE);
-
-    terminateOngoingOperations(pSignalingClient);
-
     if (pSignalingClient->pWebsocketContext != NULL) {
         MUTEX_LOCK(pSignalingClient->lwsServiceLock);
         lws_context_destroy((struct lws_context*) pSignalingClient->pWebsocketContext);
@@ -336,6 +326,10 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
 
     if (IS_VALID_MUTEX_VALUE(pSignalingClient->receiveLock)) {
         MUTEX_FREE(pSignalingClient->receiveLock);
+    }
+
+    if (IS_VALID_MUTEX_VALUE(pSignalingClient->receiveCallbackLock)) {
+        MUTEX_FREE(pSignalingClient->receiveCallbackLock);
     }
 
     if (IS_VALID_CVAR_VALUE(pSignalingClient->receiveCvar)) {
@@ -378,11 +372,48 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
     uninitializeThreadTracker(&pSignalingClient->listenerTracker);
 
     MEMFREE(pSignalingClient);
+}
+
+VOID acquireSignalingClient(PSignalingClient pSignalingClient)
+{
+    if (pSignalingClient != NULL) {
+        ATOMIC_INCREMENT(&pSignalingClient->refCount);
+    }
+}
+
+VOID releaseSignalingClient(PSignalingClient pSignalingClient)
+{
+    // ATOMIC_DECREMENT returns the value before decrementing.
+    if (pSignalingClient != NULL && ATOMIC_DECREMENT(&pSignalingClient->refCount) == 1) {
+        destroySignalingClient(pSignalingClient);
+    }
+}
+
+STATUS freeSignaling(PSignalingClient* ppSignalingClient)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PSignalingClient pSignalingClient;
+
+    CHK(ppSignalingClient != NULL, STATUS_NULL_ARG);
+
+    pSignalingClient = *ppSignalingClient;
+    CHK(pSignalingClient != NULL, retStatus);
+
+    if (IS_VALID_MUTEX_VALUE(pSignalingClient->receiveCallbackLock)) {
+        MUTEX_LOCK(pSignalingClient->receiveCallbackLock);
+        ATOMIC_STORE_BOOL(&pSignalingClient->shutdown, TRUE);
+        MUTEX_UNLOCK(pSignalingClient->receiveCallbackLock);
+    } else {
+        ATOMIC_STORE_BOOL(&pSignalingClient->shutdown, TRUE);
+    }
+
+    terminateOngoingOperations(pSignalingClient);
 
     *ppSignalingClient = NULL;
+    releaseSignalingClient(pSignalingClient);
 
 CleanUp:
-
     LEAVES();
     return retStatus;
 }
