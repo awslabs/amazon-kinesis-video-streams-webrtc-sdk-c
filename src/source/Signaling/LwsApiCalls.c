@@ -322,6 +322,10 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
 
     CHK_STATUS(configureLwsLogging(loggerGetLogLevel()));
 
+    // pLwsCallInfo may be NULL here: lwsCompleteSync() clears the wsi's opaque_user_data
+    // on exit so that a callback delivered later by lws_context_destroy() (during
+    // freeSignaling teardown) does not dereference the already-freed LwsCallInfo. A NULL
+    // here is an expected teardown state, not an error - bail out quietly.
     CHK(pLwsCallInfo != NULL && pLwsCallInfo->pSignalingClient != NULL && pLwsCallInfo->pSignalingClient->pOngoingCallInfo != NULL &&
             pLwsCallInfo->pSignalingClient->pWebsocketContext != NULL &&
             pLwsCallInfo->pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL && pLwsCallInfo->protocolIndex == PROTOCOL_INDEX_WSS,
@@ -690,6 +694,17 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
 
     // Clear the wsi on exit
     MUTEX_LOCK(pCallInfo->pSignalingClient->lwsSerializerLock);
+    // Sever the wsi -> LwsCallInfo back-pointer before this call info can be freed.
+    // The WSS listener frees pOngoingCallInfo as soon as this thread returns, and
+    // freeSignaling() later calls lws_context_destroy(), which delivers a final
+    // CLIENT_CLOSED callback on any still-open wsi. If opaque_user_data still points
+    // at the (now freed) LwsCallInfo, lwsWssCallbackRoutine()/lwsHttpCallbackRoutine()
+    // fetch it via lws_get_opaque_user_data() and dereference freed memory ->
+    // heap-use-after-free. Clearing it here makes that late callback bail at its
+    // NULL guard instead. Done under lwsSerializerLock while the wsi handle is valid.
+    if (pCallInfo->pSignalingClient->currentWsi[pCallInfo->protocolIndex] != NULL) {
+        lws_set_opaque_user_data((struct lws*) pCallInfo->pSignalingClient->currentWsi[pCallInfo->protocolIndex], NULL);
+    }
     pCallInfo->pSignalingClient->currentWsi[pCallInfo->protocolIndex] = NULL;
     MUTEX_UNLOCK(pCallInfo->pSignalingClient->lwsSerializerLock);
 
