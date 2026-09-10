@@ -1989,6 +1989,15 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
              * all of them.
              */
 
+            // Reset viewer-relayed TURN credentials so the new session waits for
+            // fresh creds from the new viewer instead of reusing stale ones from
+            // a previous session (whose TURN allocations are likely expired).
+            if (pSampleConfiguration->viewerTurnMode != VIEWER_TURN_MODE_OFF) {
+                ATOMIC_STORE_BOOL(&pSampleConfiguration->viewerTurnCredentialsReceived, FALSE);
+                pSampleConfiguration->viewerIceConfigCount = 0;
+                DLOGD("[Viewer-TURN] Reset credentials for new session");
+            }
+
             if (pSampleConfiguration->streamingSessionCount == ARRAY_SIZE(pSampleConfiguration->sampleStreamingSessionList)) {
                 DLOGW("Max simultaneous streaming session count reached.");
 
