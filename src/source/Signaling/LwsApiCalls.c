@@ -361,8 +361,10 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
                 // Handle re-connection in a reconnect handler thread. Set the terminated indicator before the thread
                 // creation and the thread itself will reset it. NOTE: Need to check for a failure and reset.
                 ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, FALSE);
+                acquireSignalingClient(pSignalingClient);
                 retStatus = THREAD_CREATE(&pSignalingClient->reconnecterTracker.threadId, reconnectHandler, (PVOID) pSignalingClient);
                 if (STATUS_FAILED(retStatus)) {
+                    releaseSignalingClient(pSignalingClient);
                     ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, TRUE);
                     CHK(FALSE, retStatus);
                 }
@@ -407,8 +409,10 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
                 // Handle re-connection in a reconnect handler thread. Set the terminated indicator before the thread
                 // creation and the thread itself will reset it. NOTE: Need to check for a failure and reset.
                 ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, FALSE);
+                acquireSignalingClient(pSignalingClient);
                 retStatus = THREAD_CREATE(&pSignalingClient->reconnecterTracker.threadId, reconnectHandler, (PVOID) pSignalingClient);
                 if (STATUS_FAILED(retStatus)) {
+                    releaseSignalingClient(pSignalingClient);
                     ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, TRUE);
                     CHK(FALSE, retStatus);
                 }
@@ -1504,7 +1508,12 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
 
     // The actual connection will be handled in a separate thread
     // Start the request/response thread
-    CHK_STATUS(THREAD_CREATE(&pSignalingClient->listenerTracker.threadId, lwsListenerHandler, (PVOID) pLwsCallInfo));
+    acquireSignalingClient(pSignalingClient);
+    retStatus = THREAD_CREATE(&pSignalingClient->listenerTracker.threadId, lwsListenerHandler, (PVOID) pLwsCallInfo);
+    if (STATUS_FAILED(retStatus)) {
+        releaseSignalingClient(pSignalingClient);
+    }
+    CHK_STATUS(retStatus);
     CHK_STATUS(THREAD_DETACH(pSignalingClient->listenerTracker.threadId));
 
     timeout = (pSignalingClient->clientInfo.connectTimeout != 0) ? pSignalingClient->clientInfo.connectTimeout : SIGNALING_CONNECT_TIMEOUT;
@@ -1808,6 +1817,8 @@ CleanUp:
         MUTEX_UNLOCK(pSignalingClient->listenerTracker.lock);
     }
 
+    releaseSignalingClient(pSignalingClient);
+
     LEAVES();
     return (PVOID) (ULONG_PTR) retStatus;
 }
@@ -1859,6 +1870,8 @@ CleanUp:
         // Notify the listeners to unlock
         CVAR_BROADCAST(pSignalingClient->reconnecterTracker.await);
     }
+
+    releaseSignalingClient(pSignalingClient);
 
     LEAVES();
     return (PVOID) (ULONG_PTR) retStatus;
@@ -2167,8 +2180,12 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 i, strLen;
     PSignalingMessageWrapper pSignalingMessageWrapper = NULL;
+#ifndef ENABLE_KVS_THREADPOOL
     TID receivedTid = INVALID_TID_VALUE;
+#endif
     PSignalingMessage pOngoingMessage;
+    BOOL receiveWorkerReferenceAcquired = FALSE;
+    BOOL receiveWorkerScheduled = FALSE;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -2270,12 +2287,24 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     DLOGD("Client received message of type: %s",
           getMessageTypeInString(pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType));
 
+    CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), retStatus);
+    acquireSignalingClient(pSignalingClient);
+    receiveWorkerReferenceAcquired = TRUE;
+
 #ifdef ENABLE_KVS_THREADPOOL
     // This would fail if threadpool was not created
-    CHK_STATUS(threadpoolContextPush(receiveLwsMessageWrapper, pSignalingMessageWrapper));
+    retStatus = threadpoolContextPush(receiveLwsMessageWrapper, pSignalingMessageWrapper);
+    if (STATUS_SUCCEEDED(retStatus)) {
+        receiveWorkerScheduled = TRUE;
+    }
+    CHK_STATUS(retStatus);
 #else
     // Issue the callback on a separate thread
-    CHK_STATUS(THREAD_CREATE(&receivedTid, receiveLwsMessageWrapper, (PVOID) pSignalingMessageWrapper));
+    retStatus = THREAD_CREATE(&receivedTid, receiveLwsMessageWrapper, (PVOID) pSignalingMessageWrapper);
+    if (STATUS_SUCCEEDED(retStatus)) {
+        receiveWorkerScheduled = TRUE;
+    }
+    CHK_STATUS(retStatus);
     CHK_STATUS(THREAD_DETACH(receivedTid));
 #endif
 
@@ -2289,12 +2318,12 @@ CleanUp:
             retStatus = pSignalingClient->signalingClientCallbacks.errorReportFn(pSignalingClient->signalingClientCallbacks.customData, retStatus,
                                                                                  pMessage, messageLen);
         }
+    }
 
-        // Kill the receive thread on error
-        if (IS_VALID_TID_VALUE(receivedTid)) {
-            THREAD_CANCEL(receivedTid);
+    if (!receiveWorkerScheduled) {
+        if (receiveWorkerReferenceAcquired) {
+            releaseSignalingClient(pSignalingClient);
         }
-
         SAFE_MEMFREE(pSignalingMessageWrapper);
     }
 
@@ -2420,6 +2449,9 @@ PVOID receiveLwsMessageWrapper(PVOID args)
     PSignalingMessageWrapper pSignalingMessageWrapper = (PSignalingMessageWrapper) args;
     PSignalingClient pSignalingClient = NULL;
     SIGNALING_MESSAGE_TYPE messageType = SIGNALING_MESSAGE_TYPE_UNKNOWN;
+    SignalingApiCallHookFunc receiveMessagePreHookFn = NULL, receiveMessagePreCallbackHookFn = NULL, receiveMessagePostHookFn = NULL;
+    UINT64 hookCustomData = 0;
+    BOOL receiveCallbackLocked = FALSE;
 
     CHK(pSignalingMessageWrapper != NULL, STATUS_NULL_ARG);
 
@@ -2428,6 +2460,17 @@ PVOID receiveLwsMessageWrapper(PVOID args)
     pSignalingClient = pSignalingMessageWrapper->pSignalingClient;
 
     CHK(pSignalingClient != NULL, STATUS_INTERNAL_ERROR);
+
+    receiveMessagePreHookFn = pSignalingClient->clientInfo.receiveMessagePreHookFn;
+    receiveMessagePreCallbackHookFn = pSignalingClient->clientInfo.receiveMessagePreCallbackHookFn;
+    receiveMessagePostHookFn = pSignalingClient->clientInfo.receiveMessagePostHookFn;
+    hookCustomData = pSignalingClient->clientInfo.hookCustomData;
+
+    if (receiveMessagePreHookFn != NULL) {
+        CHK_STATUS(receiveMessagePreHookFn(hookCustomData));
+    }
+
+    CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), retStatus);
 
     // Updating the diagnostics info before calling the client callback
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfMessagesReceived);
@@ -2452,8 +2495,15 @@ PVOID receiveLwsMessageWrapper(PVOID args)
                                     "Offer Sent to Answer Received time");
         MUTEX_UNLOCK(pSignalingClient->offerSendReceiveTimeLock);
     }
-    // Calling client receive message callback if specified
-    if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
+    if (receiveMessagePreCallbackHookFn != NULL) {
+        CHK_STATUS(receiveMessagePreCallbackHookFn(hookCustomData));
+    }
+
+    MUTEX_LOCK(pSignalingClient->receiveCallbackLock);
+    receiveCallbackLocked = TRUE;
+
+    // Calling client receive message callback if specified and shutdown has not started
+    if (!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown) && pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.messageReceivedFn(pSignalingClient->signalingClientCallbacks.customData,
                                                                                 &pSignalingMessageWrapper->receivedSignalingMessage));
     }
@@ -2461,7 +2511,16 @@ PVOID receiveLwsMessageWrapper(PVOID args)
 CleanUp:
     CHK_LOG_ERR(retStatus);
 
+    if (receiveCallbackLocked) {
+        MUTEX_UNLOCK(pSignalingClient->receiveCallbackLock);
+    }
+
     SAFE_MEMFREE(pSignalingMessageWrapper);
+    releaseSignalingClient(pSignalingClient);
+
+    if (receiveMessagePostHookFn != NULL) {
+        CHK_LOG_ERR(receiveMessagePostHookFn(hookCustomData));
+    }
 
     return (PVOID) (ULONG_PTR) retStatus;
 }

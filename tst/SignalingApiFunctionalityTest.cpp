@@ -1,4 +1,5 @@
 #include "SignalingApiFunctionalityTest.h"
+#include <condition_variable>
 
 namespace com {
 namespace amazonaws {
@@ -6,8 +7,107 @@ namespace kinesis {
 namespace video {
 namespace webrtcclient {
 
+struct ReceiveMessageHookContext {
+    std::mutex lock;
+    std::condition_variable condition;
+    BOOL workerEntered = FALSE;
+    BOOL workerMayProceed = FALSE;
+    BOOL workerFinished = FALSE;
+    BOOL freeClientInCallback = FALSE;
+    UINT32 callbackCount = 0;
+    STATUS freeStatus = STATUS_SUCCESS;
+    PSignalingClient pSignalingClient = NULL;
+};
 
+STATUS receiveMessagePreHook(UINT64 customData)
+{
+    ReceiveMessageHookContext* pContext = (ReceiveMessageHookContext*) customData;
+    std::unique_lock<std::mutex> lock(pContext->lock);
 
+    pContext->workerEntered = TRUE;
+    pContext->condition.notify_all();
+    pContext->condition.wait(lock, [pContext] { return pContext->workerMayProceed; });
+
+    return STATUS_SUCCESS;
+}
+
+STATUS receiveMessagePostHook(UINT64 customData)
+{
+    ReceiveMessageHookContext* pContext = (ReceiveMessageHookContext*) customData;
+    std::lock_guard<std::mutex> lock(pContext->lock);
+
+    pContext->workerFinished = TRUE;
+    pContext->condition.notify_all();
+
+    return STATUS_SUCCESS;
+}
+
+STATUS receiveMessageCallback(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage)
+{
+    ReceiveMessageHookContext* pContext = (ReceiveMessageHookContext*) customData;
+    BOOL freeClientInCallback;
+
+    UNUSED_PARAM(pReceivedSignalingMessage);
+    {
+        std::lock_guard<std::mutex> lock(pContext->lock);
+        pContext->callbackCount++;
+        freeClientInCallback = pContext->freeClientInCallback;
+    }
+
+    if (freeClientInCallback) {
+        pContext->freeStatus = freeSignaling(&pContext->pSignalingClient);
+    }
+
+    return STATUS_SUCCESS;
+}
+
+STATUS createReceiveMessageTestClient(PCHAR channelName, PCHAR region, PCHAR certPath, UINT32 logLevel, ReceiveMessageHookContext* pHookContext,
+                                      SignalingApiCallHookFunc receiveMessagePreHookFn,
+                                      SignalingApiCallHookFunc receiveMessagePreCallbackHookFn, PAwsCredentialProvider* ppCredentialProvider,
+                                      PSignalingClient* ppSignalingClient)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    SignalingClientInfoInternal clientInfoInternal;
+    SignalingClientCallbacks signalingClientCallbacks;
+    ChannelInfo channelInfo;
+
+    MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
+    clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    clientInfoInternal.signalingClientInfo.loggingLevel = logLevel;
+    STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    clientInfoInternal.hookCustomData = (UINT64) pHookContext;
+    clientInfoInternal.receiveMessagePreHookFn = receiveMessagePreHookFn;
+    clientInfoInternal.receiveMessagePreCallbackHookFn = receiveMessagePreCallbackHookFn;
+    clientInfoInternal.receiveMessagePostHookFn = receiveMessagePostHook;
+
+    MEMSET(&signalingClientCallbacks, 0x00, SIZEOF(SignalingClientCallbacks));
+    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+    signalingClientCallbacks.customData = (UINT64) pHookContext;
+    signalingClientCallbacks.messageReceivedFn = receiveMessageCallback;
+
+    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
+    channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    channelInfo.pChannelName = channelName;
+    channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+    channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
+    channelInfo.retry = TRUE;
+    channelInfo.reconnect = TRUE;
+    channelInfo.pRegion = region;
+    channelInfo.pCertPath = certPath;
+    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+
+    CHK_STATUS(createStaticCredentialProvider((PCHAR) "accessKey", 0, (PCHAR) "secretKey", 0, NULL, 0, MAX_UINT64, ppCredentialProvider));
+    CHK_STATUS(createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, *ppCredentialProvider, ppSignalingClient));
+
+CleanUp:
+    if (STATUS_FAILED(retStatus)) {
+        freeSignaling(ppSignalingClient);
+        freeStaticCredentialProvider(ppCredentialProvider);
+    }
+
+    return retStatus;
+}
 
 SignalingApiFunctionalityTest::SignalingApiFunctionalityTest() : pActiveClient(NULL)
 {
@@ -214,6 +314,101 @@ VOID setupSignalingStateMachineRetryStrategyCallbacks(PSignalingClientInfo pSign
 ////////////////////////////////////////////////////////////////////
 // Functionality Tests
 ////////////////////////////////////////////////////////////////////
+TEST_F(SignalingApiFunctionalityTest, receiveMessageWorkerDoesNotAccessFreedClient)
+{
+    const std::string jsonMessage = R"({
+        "messageType": "ICE_CANDIDATE",
+        "senderClientId": "ClientA",
+        "messagePayload": "SGVsbG8="
+    })";
+    ReceiveMessageHookContext hookContext;
+    PAwsCredentialProvider pCredentialProvider = NULL;
+    PSignalingClient pSignalingClient = NULL;
+    PSignalingClient pSignalingClientRaw = NULL;
+    STATUS status;
+
+    status = createReceiveMessageTestClient(mChannelName, mRegion, mCaCertPath, mLogLevel, &hookContext, NULL, receiveMessagePreHook,
+                                            &pCredentialProvider, &pSignalingClient);
+    ASSERT_EQ(STATUS_SUCCESS, status);
+    ASSERT_NE((PSignalingClient) NULL, pSignalingClient);
+    pSignalingClientRaw = pSignalingClient;
+
+    status = receiveLwsMessage(pSignalingClient, (PCHAR) jsonMessage.c_str(), (UINT32) jsonMessage.length());
+    if (STATUS_FAILED(status)) {
+        freeSignaling(&pSignalingClient);
+        freeStaticCredentialProvider(&pCredentialProvider);
+    }
+    ASSERT_EQ(STATUS_SUCCESS, status);
+
+    {
+        std::unique_lock<std::mutex> lock(hookContext.lock);
+        hookContext.condition.wait(lock, [&hookContext] { return hookContext.workerEntered != FALSE; });
+    }
+    EXPECT_EQ(2U, ATOMIC_LOAD(&pSignalingClientRaw->refCount));
+
+    status = freeSignaling(&pSignalingClient);
+    EXPECT_EQ(1U, ATOMIC_LOAD(&pSignalingClientRaw->refCount));
+
+    {
+        std::lock_guard<std::mutex> lock(hookContext.lock);
+        hookContext.workerMayProceed = TRUE;
+        hookContext.condition.notify_all();
+    }
+
+    {
+        std::unique_lock<std::mutex> lock(hookContext.lock);
+        hookContext.condition.wait(lock, [&hookContext] { return hookContext.workerFinished != FALSE; });
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, status);
+    EXPECT_EQ((PSignalingClient) NULL, pSignalingClient);
+    EXPECT_EQ(0U, hookContext.callbackCount);
+
+    if (pSignalingClient != NULL) {
+        freeSignaling(&pSignalingClient);
+    }
+    freeStaticCredentialProvider(&pCredentialProvider);
+}
+
+TEST_F(SignalingApiFunctionalityTest, receiveMessageCallbackCanFreeClient)
+{
+    const std::string jsonMessage = R"({
+        "messageType": "ICE_CANDIDATE",
+        "senderClientId": "ClientA",
+        "messagePayload": "SGVsbG8="
+    })";
+    ReceiveMessageHookContext hookContext;
+    PAwsCredentialProvider pCredentialProvider = NULL;
+    STATUS status;
+
+    hookContext.freeClientInCallback = TRUE;
+    status = createReceiveMessageTestClient(mChannelName, mRegion, mCaCertPath, mLogLevel, &hookContext, NULL, NULL, &pCredentialProvider,
+                                            &hookContext.pSignalingClient);
+    ASSERT_EQ(STATUS_SUCCESS, status);
+    ASSERT_NE((PSignalingClient) NULL, hookContext.pSignalingClient);
+
+    status = receiveLwsMessage(hookContext.pSignalingClient, (PCHAR) jsonMessage.c_str(), (UINT32) jsonMessage.length());
+    if (STATUS_FAILED(status)) {
+        freeSignaling(&hookContext.pSignalingClient);
+        freeStaticCredentialProvider(&pCredentialProvider);
+    }
+    ASSERT_EQ(STATUS_SUCCESS, status);
+
+    {
+        std::unique_lock<std::mutex> lock(hookContext.lock);
+        hookContext.condition.wait(lock, [&hookContext] { return hookContext.workerFinished != FALSE; });
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, hookContext.freeStatus);
+    EXPECT_EQ((PSignalingClient) NULL, hookContext.pSignalingClient);
+    EXPECT_EQ(1U, hookContext.callbackCount);
+
+    if (hookContext.pSignalingClient != NULL) {
+        freeSignaling(&hookContext.pSignalingClient);
+    }
+    freeStaticCredentialProvider(&pCredentialProvider);
+}
+
 TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
 {
     if (!mAccessKeyIdSet) {
