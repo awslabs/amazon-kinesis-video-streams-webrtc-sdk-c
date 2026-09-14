@@ -1,4 +1,3 @@
-
 #include "WebRTCClientTestFixture.h"
 
 // The parseViewerTurnCredentialPayload function lives in samples/common/Common.c.
