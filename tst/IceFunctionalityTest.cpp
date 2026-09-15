@@ -947,6 +947,59 @@ TEST_F(IceFunctionalityTest, IceAgentGovCloudStunsCandidateGatheringTest)
     EXPECT_EQ(STATUS_SUCCESS, freeIceAgent(&pIceAgent));
     EXPECT_EQ(STATUS_SUCCESS, timerQueueFree(&timerQueueHandle));
 }
+// The controlling agent must not enter ICE_AGENT_STATE_READY until the peer has acknowledged the
+// USE_CANDIDATE request. iceAgentNominateCandidatePair() nominates a pair that is already in
+// ICE_CANDIDATE_PAIR_STATE_SUCCEEDED -- it is chosen precisely because the pre-nomination connectivity
+// checks passed -- so gating on nominated && SUCCEEDED alone is satisfied the instant nomination begins.
+// The agent would then leave ICE_AGENT_STATE_NOMINATING on the next state machine tick, which stops the
+// per-tick resend in executeNominatingIceAgentState() and makes a single lost USE_CANDIDATE packet
+// unrecoverable: the ice-lite peer never selects a pair and eventually closes the connection.
+TEST_F(IceFunctionalityTest, IceAgentNominationRequiresAcknowledgementUnitTest)
+{
+    IceAgent iceAgent;
+    PIceCandidatePair pIceCandidatePair = NULL;
+    UINT64 state = 0;
+
+    MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
+    iceAgent.lock = MUTEX_CREATE(TRUE);
+    EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.iceCandidatePairs));
+
+    pIceCandidatePair = (PIceCandidatePair) MEMCALLOC(1, SIZEOF(IceCandidatePair));
+    ASSERT_TRUE(pIceCandidatePair != NULL);
+    // the state the pair is left in by iceAgentNominateCandidatePair()
+    pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_SUCCEEDED;
+    pIceCandidatePair->nominated = TRUE;
+    pIceCandidatePair->nominationAcked = FALSE;
+    EXPECT_EQ(STATUS_SUCCESS, createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT, &pIceCandidatePair->pTransactionIdStore));
+    EXPECT_EQ(STATUS_SUCCESS, insertIceCandidatePair(iceAgent.iceCandidatePairs, pIceCandidatePair));
+
+    // 1. nomination sent but not acknowledged, still within the nomination timeout: stay in NOMINATING so
+    //    that executeNominatingIceAgentState() keeps resending the USE_CANDIDATE request.
+    iceAgent.stateEndTime = GETTIME() + KVS_ICE_CANDIDATE_NOMINATION_TIMEOUT;
+    state = 0;
+    EXPECT_EQ(STATUS_SUCCESS, fromNominatingIceAgentState((UINT64) &iceAgent, &state));
+    EXPECT_EQ(ICE_AGENT_STATE_NOMINATING, state);
+
+    // 2. the peer answers the USE_CANDIDATE request: now the agent may proceed.
+    pIceCandidatePair->nominationAcked = TRUE;
+    state = 0;
+    EXPECT_EQ(STATUS_SUCCESS, fromNominatingIceAgentState((UINT64) &iceAgent, &state));
+    EXPECT_EQ(ICE_AGENT_STATE_READY, state);
+
+    // 3. never acknowledged and the nomination timeout has expired: fail rather than hang.
+    pIceCandidatePair->nominationAcked = FALSE;
+    iceAgent.stateEndTime = GETTIME() - 1;
+    state = 0;
+    EXPECT_EQ(STATUS_SUCCESS, fromNominatingIceAgentState((UINT64) &iceAgent, &state));
+    EXPECT_EQ(ICE_AGENT_STATE_FAILED, state);
+    EXPECT_EQ(STATUS_ICE_FAILED_TO_NOMINATE_CANDIDATE_PAIR, iceAgent.iceAgentStatus);
+
+    CHK_LOG_ERR(freeIceCandidatePair(&pIceCandidatePair));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.iceCandidatePairs, FALSE));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.iceCandidatePairs));
+    MUTEX_FREE(iceAgent.lock);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
