@@ -2627,6 +2627,9 @@ STATUS iceAgentNominateCandidatePair(PIceAgent pIceAgent)
     CHK(pNominatedCandidatePair != NULL, STATUS_ICE_FAILED_TO_NOMINATE_CANDIDATE_PAIR);
 
     pNominatedCandidatePair->nominated = TRUE;
+    // The nomination has to be proven by a fresh binding response. The pair is SUCCEEDED at this point only
+    // because the pre-nomination connectivity checks passed, which says nothing about the USE_CANDIDATE request.
+    pNominatedCandidatePair->nominationAcked = FALSE;
 
     // reset transaction id list to ignore future connectivity check response.
     transactionIdStoreClear(pNominatedCandidatePair->pTransactionIdStore);
@@ -3001,6 +3004,13 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 // we have a peer reflexive local candidate
                 CHK_STATUS(iceAgentCheckPeerReflexiveCandidate(pIceAgent, &pStunAttributeAddress->address, pIceCandidatePair->local->priority, FALSE,
                                                                pSocketConnection));
+            }
+
+            // Reaching here means the response matched this pair's transaction id store, which
+            // iceAgentNominateCandidatePair() cleared at nomination time. So while the agent is nominating, any
+            // response that gets this far is a response to a USE_CANDIDATE request.
+            if (pIceCandidatePair->nominated) {
+                pIceCandidatePair->nominationAcked = TRUE;
             }
 
             if (pIceCandidatePair->state != ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
