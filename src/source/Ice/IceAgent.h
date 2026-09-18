@@ -174,6 +174,18 @@ typedef struct {
     PIceCandidate local;
     PIceCandidate remote;
     BOOL nominated;
+    //!< TRUE only once a STUN Binding Response to the USE_CANDIDATE request has been received for this pair.
+    //!< Distinguishes "we sent the nomination" from "the peer acknowledged it". Without it the agent can enter
+    //!< ICE_AGENT_STATE_READY on a SUCCEEDED state earned by the pre-nomination connectivity checks, which also
+    //!< stops the per-tick resend in executeNominatingIceAgentState() and makes a lost USE_CANDIDATE terminal.
+    //!< For the controlling agent this is set only when a Binding Response whose transaction id matches
+    //!< nominationTransactionId arrives; for the controlled agent it is set when the peer's USE_CANDIDATE
+    //!< request is accepted, since that role never sends a nomination of its own.
+    BOOL nominationAcked;
+    //!< Transaction id of the most recent USE_CANDIDATE Binding Request sent for this pair (controlling role
+    //!< only). Matching a Binding Response against it proves the peer acknowledged the nomination, rather than
+    //!< inferring it from the transaction id store which can contain stale or unrelated ids.
+    BYTE nominationTransactionId[STUN_TRANSACTION_ID_LEN];
     BOOL firstStunRequest;
     UINT64 priority;
     ICE_CANDIDATE_PAIR_STATE state;

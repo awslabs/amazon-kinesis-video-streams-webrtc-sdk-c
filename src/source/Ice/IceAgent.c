@@ -1932,6 +1932,10 @@ STATUS iceAgentSendCandidateNomination(PIceAgent pIceAgent)
 
         if (pIceCandidatePair->nominated) {
             CHK_STATUS(iceCandidatePairCheckConnection(pIceAgent->pBindingRequest, pIceAgent, pIceCandidatePair));
+            // iceCandidatePairCheckConnection() generated a fresh transaction id for this USE_CANDIDATE request.
+            // Record it so the response handler can prove the peer acknowledged this specific nomination, instead
+            // of relying on the transaction id store which can contain stale or unrelated ids.
+            MEMCPY(pIceCandidatePair->nominationTransactionId, pIceAgent->pBindingRequest->header.transactionId, STUN_TRANSACTION_ID_LEN);
         }
     }
 
@@ -2629,6 +2633,12 @@ STATUS iceAgentNominateCandidatePair(PIceAgent pIceAgent)
     CHK(pNominatedCandidatePair != NULL, STATUS_ICE_FAILED_TO_NOMINATE_CANDIDATE_PAIR);
 
     pNominatedCandidatePair->nominated = TRUE;
+    // The nomination has to be proven by a fresh binding response. The pair is SUCCEEDED at this point only
+    // because the pre-nomination connectivity checks passed, which says nothing about the USE_CANDIDATE request.
+    // Clear both the ack flag and the tracked transaction id; the id is populated by iceAgentSendCandidateNomination()
+    // each time a USE_CANDIDATE request is (re)sent, and the ack is only granted when a response matches it.
+    pNominatedCandidatePair->nominationAcked = FALSE;
+    MEMSET(pNominatedCandidatePair->nominationTransactionId, 0x00, STUN_TRANSACTION_ID_LEN);
 
     // reset transaction id list to ignore future connectivity check response.
     transactionIdStoreClear(pNominatedCandidatePair->pTransactionIdStore);
@@ -2869,6 +2879,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                           iceAgentGetCandidateTypeStr(pIceCandidatePair->local->iceCandidateType), pIceCandidatePair->local->id,
                           pIceCandidatePair->remote->id);
                     pIceCandidatePair->nominated = TRUE;
+                    pIceCandidatePair->nominationAcked = TRUE;
                 }
             }
 
@@ -3003,6 +3014,16 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 // we have a peer reflexive local candidate
                 CHK_STATUS(iceAgentCheckPeerReflexiveCandidate(pIceAgent, &pStunAttributeAddress->address, pIceCandidatePair->local->priority, FALSE,
                                                                pSocketConnection));
+            }
+
+            // The nomination is acknowledged only by a response whose transaction id matches the USE_CANDIDATE
+            // request we recorded in iceAgentSendCandidateNomination(). Matching the id explicitly proves this is
+            // a response to the nomination rather than to a stray pre-nomination connectivity check. The controlled
+            // agent never sends a nomination and sets nominationAcked when it accepts the peer's USE_CANDIDATE
+            // request, so its all-zero nominationTransactionId is intentionally not matched here.
+            if (pIceCandidatePair->nominated &&
+                MEMCMP(pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET, pIceCandidatePair->nominationTransactionId, STUN_TRANSACTION_ID_LEN) == 0) {
+                pIceCandidatePair->nominationAcked = TRUE;
             }
 
             if (pIceCandidatePair->state != ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {

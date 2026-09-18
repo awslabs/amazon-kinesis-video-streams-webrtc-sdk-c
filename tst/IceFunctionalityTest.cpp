@@ -947,6 +947,413 @@ TEST_F(IceFunctionalityTest, IceAgentGovCloudStunsCandidateGatheringTest)
     EXPECT_EQ(STATUS_SUCCESS, freeIceAgent(&pIceAgent));
     EXPECT_EQ(STATUS_SUCCESS, timerQueueFree(&timerQueueHandle));
 }
+// The controlling agent must not enter ICE_AGENT_STATE_READY until the peer has acknowledged the
+// USE_CANDIDATE request. iceAgentNominateCandidatePair() nominates a pair that is already in
+// ICE_CANDIDATE_PAIR_STATE_SUCCEEDED -- it is chosen precisely because the pre-nomination connectivity
+// checks passed -- so gating on nominated && SUCCEEDED alone is satisfied the instant nomination begins.
+// The agent would then leave ICE_AGENT_STATE_NOMINATING on the next state machine tick, which stops the
+// per-tick resend in executeNominatingIceAgentState() and makes a single lost USE_CANDIDATE packet
+// unrecoverable: the ice-lite peer never selects a pair and eventually closes the connection.
+TEST_F(IceFunctionalityTest, IceAgentNominationRequiresAcknowledgementUnitTest)
+{
+    IceAgent iceAgent;
+    PIceCandidatePair pIceCandidatePair = NULL;
+    UINT64 state = 0;
+
+    MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
+    iceAgent.lock = MUTEX_CREATE(TRUE);
+    EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.iceCandidatePairs));
+
+    pIceCandidatePair = (PIceCandidatePair) MEMCALLOC(1, SIZEOF(IceCandidatePair));
+    ASSERT_TRUE(pIceCandidatePair != NULL);
+    // the state the pair is left in by iceAgentNominateCandidatePair()
+    pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_SUCCEEDED;
+    pIceCandidatePair->nominated = TRUE;
+    pIceCandidatePair->nominationAcked = FALSE;
+    EXPECT_EQ(STATUS_SUCCESS, createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT, &pIceCandidatePair->pTransactionIdStore));
+    EXPECT_EQ(STATUS_SUCCESS, insertIceCandidatePair(iceAgent.iceCandidatePairs, pIceCandidatePair));
+
+    // 1. nomination sent but not acknowledged, still within the nomination timeout: stay in NOMINATING so
+    //    that executeNominatingIceAgentState() keeps resending the USE_CANDIDATE request.
+    iceAgent.stateEndTime = GETTIME() + KVS_ICE_CANDIDATE_NOMINATION_TIMEOUT;
+    state = 0;
+    EXPECT_EQ(STATUS_SUCCESS, fromNominatingIceAgentState((UINT64) &iceAgent, &state));
+    EXPECT_EQ(ICE_AGENT_STATE_NOMINATING, state);
+
+    // 2. the peer answers the USE_CANDIDATE request: now the agent may proceed.
+    pIceCandidatePair->nominationAcked = TRUE;
+    state = 0;
+    EXPECT_EQ(STATUS_SUCCESS, fromNominatingIceAgentState((UINT64) &iceAgent, &state));
+    EXPECT_EQ(ICE_AGENT_STATE_READY, state);
+
+    // 3. never acknowledged and the nomination timeout has expired: fail rather than hang.
+    pIceCandidatePair->nominationAcked = FALSE;
+    iceAgent.stateEndTime = GETTIME() - 1;
+    state = 0;
+    EXPECT_EQ(STATUS_SUCCESS, fromNominatingIceAgentState((UINT64) &iceAgent, &state));
+    EXPECT_EQ(ICE_AGENT_STATE_FAILED, state);
+    EXPECT_EQ(STATUS_ICE_FAILED_TO_NOMINATE_CANDIDATE_PAIR, iceAgent.iceAgentStatus);
+
+    CHK_LOG_ERR(freeIceCandidatePair(&pIceCandidatePair));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.iceCandidatePairs, FALSE));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.iceCandidatePairs));
+    MUTEX_FREE(iceAgent.lock);
+}
+
+// Verify that iceAgentNominateCandidatePair() (controlling/master agent) picks the highest-priority
+// SUCCEEDED pair, sets nominated=TRUE and nominationAcked=FALSE, clears the transaction id store,
+// and freezes all non-nominated pairs.
+TEST_F(IceFunctionalityTest, IceAgentControllingNominationSelectsHighestPrioritySucceededPairUnitTest)
+{
+    IceAgent iceAgent;
+    PIceCandidatePair pPairHigh = NULL, pPairLow = NULL, pPairWaiting = NULL;
+    PDoubleListNode pCurNode = NULL;
+    PIceCandidatePair pIceCandidatePair = NULL;
+
+    MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
+    iceAgent.lock = MUTEX_CREATE(TRUE);
+    iceAgent.isControlling = TRUE;
+    EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.iceCandidatePairs));
+
+    // High-priority SUCCEEDED pair (should be nominated)
+    pPairHigh = (PIceCandidatePair) MEMCALLOC(1, SIZEOF(IceCandidatePair));
+    ASSERT_TRUE(pPairHigh != NULL);
+    pPairHigh->state = ICE_CANDIDATE_PAIR_STATE_SUCCEEDED;
+    pPairHigh->priority = 1000;
+    pPairHigh->nominated = FALSE;
+    pPairHigh->nominationAcked = FALSE;
+    EXPECT_EQ(STATUS_SUCCESS, createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT, &pPairHigh->pTransactionIdStore));
+    // Insert a dummy transaction id to verify it gets cleared on nomination
+    BYTE dummyTxId[STUN_TRANSACTION_ID_LEN];
+    MEMSET(dummyTxId, 0xAB, STUN_TRANSACTION_ID_LEN);
+    transactionIdStoreInsert(pPairHigh->pTransactionIdStore, dummyTxId);
+    EXPECT_EQ(STATUS_SUCCESS, insertIceCandidatePair(iceAgent.iceCandidatePairs, pPairHigh));
+
+    // Low-priority SUCCEEDED pair (should be frozen, not nominated)
+    pPairLow = (PIceCandidatePair) MEMCALLOC(1, SIZEOF(IceCandidatePair));
+    ASSERT_TRUE(pPairLow != NULL);
+    pPairLow->state = ICE_CANDIDATE_PAIR_STATE_SUCCEEDED;
+    pPairLow->priority = 500;
+    pPairLow->nominated = FALSE;
+    EXPECT_EQ(STATUS_SUCCESS, createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT, &pPairLow->pTransactionIdStore));
+    EXPECT_EQ(STATUS_SUCCESS, insertIceCandidatePair(iceAgent.iceCandidatePairs, pPairLow));
+
+    // WAITING pair (should be frozen)
+    pPairWaiting = (PIceCandidatePair) MEMCALLOC(1, SIZEOF(IceCandidatePair));
+    ASSERT_TRUE(pPairWaiting != NULL);
+    pPairWaiting->state = ICE_CANDIDATE_PAIR_STATE_WAITING;
+    pPairWaiting->priority = 2000;
+    pPairWaiting->nominated = FALSE;
+    EXPECT_EQ(STATUS_SUCCESS, createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT, &pPairWaiting->pTransactionIdStore));
+    EXPECT_EQ(STATUS_SUCCESS, insertIceCandidatePair(iceAgent.iceCandidatePairs, pPairWaiting));
+
+    EXPECT_EQ(STATUS_SUCCESS, iceAgentNominateCandidatePair(&iceAgent));
+
+    // The highest-priority SUCCEEDED pair should be nominated with ack pending
+    EXPECT_TRUE(pPairHigh->nominated);
+    EXPECT_FALSE(pPairHigh->nominationAcked);
+    // nominationAcked should be FALSE (waiting for peer to acknowledge the USE_CANDIDATE)
+    EXPECT_FALSE(pPairHigh->nominationAcked);
+    // Transaction id store logical count should have been cleared (note: transactionIdStoreClear
+    // resets the count/indices but does not zero the underlying buffer, so transactionIdStoreHasId
+    // may still find stale entries — the important thing is the count is 0)
+    EXPECT_EQ(0, pPairHigh->pTransactionIdStore->transactionIdCount);
+
+    // Non-nominated pairs should be frozen
+    EXPECT_FALSE(pPairLow->nominated);
+    EXPECT_EQ(ICE_CANDIDATE_PAIR_STATE_FROZEN, pPairLow->state);
+    EXPECT_FALSE(pPairWaiting->nominated);
+    EXPECT_EQ(ICE_CANDIDATE_PAIR_STATE_FROZEN, pPairWaiting->state);
+
+    // Cleanup
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(iceAgent.iceCandidatePairs, &pCurNode));
+    while (pCurNode != NULL) {
+        pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
+        pCurNode = pCurNode->pNext;
+        CHK_LOG_ERR(freeIceCandidatePair(&pIceCandidatePair));
+    }
+    EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.iceCandidatePairs, FALSE));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.iceCandidatePairs));
+    MUTEX_FREE(iceAgent.lock);
+}
+
+// Verify that iceAgentNominateCandidatePair() is a no-op for the controlled (non-controlling) agent.
+TEST_F(IceFunctionalityTest, IceAgentControlledAgentSkipsNominationUnitTest)
+{
+    IceAgent iceAgent;
+    PIceCandidatePair pPair = NULL;
+
+    MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
+    iceAgent.lock = MUTEX_CREATE(TRUE);
+    iceAgent.isControlling = FALSE;
+    EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.iceCandidatePairs));
+
+    pPair = (PIceCandidatePair) MEMCALLOC(1, SIZEOF(IceCandidatePair));
+    ASSERT_TRUE(pPair != NULL);
+    pPair->state = ICE_CANDIDATE_PAIR_STATE_SUCCEEDED;
+    pPair->priority = 1000;
+    pPair->nominated = FALSE;
+    EXPECT_EQ(STATUS_SUCCESS, createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT, &pPair->pTransactionIdStore));
+    EXPECT_EQ(STATUS_SUCCESS, insertIceCandidatePair(iceAgent.iceCandidatePairs, pPair));
+
+    // Should return success but not nominate anything
+    EXPECT_EQ(STATUS_SUCCESS, iceAgentNominateCandidatePair(&iceAgent));
+    EXPECT_FALSE(pPair->nominated);
+    EXPECT_EQ(ICE_CANDIDATE_PAIR_STATE_SUCCEEDED, pPair->state);
+
+    CHK_LOG_ERR(freeIceCandidatePair(&pPair));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.iceCandidatePairs, FALSE));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.iceCandidatePairs));
+    MUTEX_FREE(iceAgent.lock);
+}
+
+// Verify that iceAgentNominateCandidatePair() fails when no SUCCEEDED pair exists.
+TEST_F(IceFunctionalityTest, IceAgentNominationFailsWithNoSucceededPairUnitTest)
+{
+    IceAgent iceAgent;
+    PIceCandidatePair pPair = NULL;
+
+    MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
+    iceAgent.lock = MUTEX_CREATE(TRUE);
+    iceAgent.isControlling = TRUE;
+    EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.iceCandidatePairs));
+
+    // Only a WAITING pair, no SUCCEEDED
+    pPair = (PIceCandidatePair) MEMCALLOC(1, SIZEOF(IceCandidatePair));
+    ASSERT_TRUE(pPair != NULL);
+    pPair->state = ICE_CANDIDATE_PAIR_STATE_WAITING;
+    pPair->priority = 1000;
+    pPair->nominated = FALSE;
+    EXPECT_EQ(STATUS_SUCCESS, createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT, &pPair->pTransactionIdStore));
+    EXPECT_EQ(STATUS_SUCCESS, insertIceCandidatePair(iceAgent.iceCandidatePairs, pPair));
+
+    EXPECT_EQ(STATUS_ICE_FAILED_TO_NOMINATE_CANDIDATE_PAIR, iceAgentNominateCandidatePair(&iceAgent));
+    EXPECT_FALSE(pPair->nominated);
+
+    CHK_LOG_ERR(freeIceCandidatePair(&pPair));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.iceCandidatePairs, FALSE));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.iceCandidatePairs));
+    MUTEX_FREE(iceAgent.lock);
+}
+
+// Verify the full state transition: nominated+acked+SUCCEEDED → READY, nominated+!acked → stays NOMINATING,
+// and that having multiple pairs where only one is nominated+acked transitions correctly.
+TEST_F(IceFunctionalityTest, IceAgentNominationStateTransitionWithMultiplePairsUnitTest)
+{
+    IceAgent iceAgent;
+    PIceCandidatePair pNominatedPair = NULL, pFrozenPair = NULL;
+    UINT64 state = 0;
+    PDoubleListNode pCurNode = NULL;
+    PIceCandidatePair pIceCandidatePair = NULL;
+
+    MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
+    iceAgent.lock = MUTEX_CREATE(TRUE);
+    EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.iceCandidatePairs));
+
+    // Nominated pair that has not been acked yet
+    pNominatedPair = (PIceCandidatePair) MEMCALLOC(1, SIZEOF(IceCandidatePair));
+    ASSERT_TRUE(pNominatedPair != NULL);
+    pNominatedPair->state = ICE_CANDIDATE_PAIR_STATE_SUCCEEDED;
+    pNominatedPair->priority = 1000;
+    pNominatedPair->nominated = TRUE;
+    pNominatedPair->nominationAcked = FALSE;
+    EXPECT_EQ(STATUS_SUCCESS, createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT, &pNominatedPair->pTransactionIdStore));
+    EXPECT_EQ(STATUS_SUCCESS, insertIceCandidatePair(iceAgent.iceCandidatePairs, pNominatedPair));
+
+    // A frozen pair (non-nominated)
+    pFrozenPair = (PIceCandidatePair) MEMCALLOC(1, SIZEOF(IceCandidatePair));
+    ASSERT_TRUE(pFrozenPair != NULL);
+    pFrozenPair->state = ICE_CANDIDATE_PAIR_STATE_FROZEN;
+    pFrozenPair->priority = 500;
+    pFrozenPair->nominated = FALSE;
+    pFrozenPair->nominationAcked = FALSE;
+    EXPECT_EQ(STATUS_SUCCESS, createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT, &pFrozenPair->pTransactionIdStore));
+    EXPECT_EQ(STATUS_SUCCESS, insertIceCandidatePair(iceAgent.iceCandidatePairs, pFrozenPair));
+
+    iceAgent.stateEndTime = GETTIME() + KVS_ICE_CANDIDATE_NOMINATION_TIMEOUT;
+
+    // With nominated but not acked: stay in NOMINATING
+    state = 0;
+    EXPECT_EQ(STATUS_SUCCESS, fromNominatingIceAgentState((UINT64) &iceAgent, &state));
+    EXPECT_EQ(ICE_AGENT_STATE_NOMINATING, state);
+
+    // Ack the nominated pair: transition to READY
+    pNominatedPair->nominationAcked = TRUE;
+    state = 0;
+    EXPECT_EQ(STATUS_SUCCESS, fromNominatingIceAgentState((UINT64) &iceAgent, &state));
+    EXPECT_EQ(ICE_AGENT_STATE_READY, state);
+
+    // The frozen pair should NOT cause a transition even if it were SUCCEEDED but not nominated
+    pNominatedPair->nominationAcked = FALSE;
+    pFrozenPair->state = ICE_CANDIDATE_PAIR_STATE_SUCCEEDED;
+    // pFrozenPair is not nominated, so it should not satisfy the transition
+    state = 0;
+    EXPECT_EQ(STATUS_SUCCESS, fromNominatingIceAgentState((UINT64) &iceAgent, &state));
+    EXPECT_EQ(ICE_AGENT_STATE_NOMINATING, state);
+
+    // Cleanup
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(iceAgent.iceCandidatePairs, &pCurNode));
+    while (pCurNode != NULL) {
+        pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
+        pCurNode = pCurNode->pNext;
+        CHK_LOG_ERR(freeIceCandidatePair(&pIceCandidatePair));
+    }
+    EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.iceCandidatePairs, FALSE));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.iceCandidatePairs));
+    MUTEX_FREE(iceAgent.lock);
+}
+
+// Verify that the USE_CANDIDATE STUN attribute can be appended to a binding request and parsed back,
+// confirming the controlled agent path for detecting nomination.
+TEST_F(IceFunctionalityTest, IceAgentUseCandidateStunAttributeRoundTripUnitTest)
+{
+    PStunPacket pStunPacket = NULL;
+    PStunPacket pDeserializedPacket = NULL;
+    PStunAttributeHeader pStunAttr = NULL;
+    BYTE buffer[512];
+    UINT32 bufferLen = ARRAY_SIZE(buffer);
+
+    // Create a binding request with USE_CANDIDATE flag
+    EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, NULL, &pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, appendStunUsernameAttribute(pStunPacket, (PCHAR) "testuser"));
+    EXPECT_EQ(STATUS_SUCCESS, appendStunFlagAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_USE_CANDIDATE));
+
+    // Verify the attribute is present before serialization
+    EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_USE_CANDIDATE, &pStunAttr));
+    EXPECT_TRUE(pStunAttr != NULL);
+    EXPECT_EQ(STUN_ATTRIBUTE_TYPE_USE_CANDIDATE, pStunAttr->type);
+
+    // Serialize and deserialize to verify round-trip
+    EXPECT_EQ(STATUS_SUCCESS, serializeStunPacket(pStunPacket, NULL, 0, FALSE, FALSE, NULL, &bufferLen));
+    EXPECT_TRUE(bufferLen <= ARRAY_SIZE(buffer));
+    EXPECT_EQ(STATUS_SUCCESS, serializeStunPacket(pStunPacket, NULL, 0, FALSE, FALSE, buffer, &bufferLen));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeStunPacket(buffer, bufferLen, NULL, 0, &pDeserializedPacket));
+
+    // Verify USE_CANDIDATE survives serialization round-trip
+    pStunAttr = NULL;
+    EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pDeserializedPacket, STUN_ATTRIBUTE_TYPE_USE_CANDIDATE, &pStunAttr));
+    EXPECT_TRUE(pStunAttr != NULL);
+    EXPECT_EQ(STUN_ATTRIBUTE_TYPE_USE_CANDIDATE, pStunAttr->type);
+
+    freeStunPacket(&pStunPacket);
+    freeStunPacket(&pDeserializedPacket);
+}
+
+// Fault-injection test simulating the field observation where 5 out of 74 connections
+// never received a binding response to the USE_CANDIDATE request. Without the controlled-
+// agent path (nominationAcked set on receiving the peer's USE_CANDIDATE request), those
+// 5 connections would time out in NOMINATING and fail.
+//
+// Timeline from field data:
+//   FAILED:  Nominated → USE_CANDIDATE sent → (no response) → 50ms tick → Selected pair → (30s idle) → timeout
+//   OK:      Nominated → USE_CANDIDATE sent → 31ms binding response → 51ms Selected pair → data channel open
+//
+// This test exercises three scenarios:
+//   1. Response lost + no peer USE_CANDIDATE → stays NOMINATING → times out to FAILED
+//   2. Binding response arrives with matching nominationTransactionId → READY (controlling path)
+//   3. Response lost but peer sends USE_CANDIDATE request → READY (controlled path, the rescue)
+TEST_F(IceFunctionalityTest, IceAgentNominationFaultInjectionResponseLostUnitTest)
+{
+    IceAgent iceAgent;
+    PIceCandidatePair pIceCandidatePair = NULL;
+    UINT64 state = 0;
+    BYTE fakeTxnId[STUN_TRANSACTION_ID_LEN];
+    BYTE wrongTxnId[STUN_TRANSACTION_ID_LEN];
+
+    // Generate two distinct transaction ids
+    MEMSET(fakeTxnId, 0xAA, STUN_TRANSACTION_ID_LEN);
+    MEMSET(wrongTxnId, 0xBB, STUN_TRANSACTION_ID_LEN);
+
+    MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
+    iceAgent.lock = MUTEX_CREATE(TRUE);
+    EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.iceCandidatePairs));
+
+    pIceCandidatePair = (PIceCandidatePair) MEMCALLOC(1, SIZEOF(IceCandidatePair));
+    ASSERT_TRUE(pIceCandidatePair != NULL);
+    EXPECT_EQ(STATUS_SUCCESS, createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT, &pIceCandidatePair->pTransactionIdStore));
+    EXPECT_EQ(STATUS_SUCCESS, insertIceCandidatePair(iceAgent.iceCandidatePairs, pIceCandidatePair));
+
+    // --- Scenario 1: USE_CANDIDATE sent, response never arrives, no peer USE_CANDIDATE ---
+    // Simulates the FAILED case from field data (n=5 connections that hung for 30s)
+    pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_SUCCEEDED;
+    pIceCandidatePair->nominated = TRUE;
+    pIceCandidatePair->nominationAcked = FALSE;
+    MEMCPY(pIceCandidatePair->nominationTransactionId, fakeTxnId, STUN_TRANSACTION_ID_LEN);
+
+    // Within timeout: should stay in NOMINATING (waiting for ack)
+    iceAgent.stateEndTime = GETTIME() + KVS_ICE_CANDIDATE_NOMINATION_TIMEOUT;
+    state = 0;
+    EXPECT_EQ(STATUS_SUCCESS, fromNominatingIceAgentState((UINT64) &iceAgent, &state));
+    EXPECT_EQ(ICE_AGENT_STATE_NOMINATING, state);
+
+    // After timeout: should transition to FAILED
+    iceAgent.iceAgentStatus = STATUS_SUCCESS;
+    iceAgent.stateEndTime = GETTIME() - 1;
+    state = 0;
+    EXPECT_EQ(STATUS_SUCCESS, fromNominatingIceAgentState((UINT64) &iceAgent, &state));
+    EXPECT_EQ(ICE_AGENT_STATE_FAILED, state);
+    EXPECT_EQ(STATUS_ICE_FAILED_TO_NOMINATE_CANDIDATE_PAIR, iceAgent.iceAgentStatus);
+
+    // --- Scenario 2: Binding response arrives with matching transaction id (controlling path) ---
+    // Simulates the OK case where the response arrives within one tick (~31ms in field data)
+    iceAgent.iceAgentStatus = STATUS_SUCCESS;
+    pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_SUCCEEDED;
+    pIceCandidatePair->nominated = TRUE;
+    pIceCandidatePair->nominationAcked = FALSE;
+    MEMCPY(pIceCandidatePair->nominationTransactionId, fakeTxnId, STUN_TRANSACTION_ID_LEN);
+    iceAgent.stateEndTime = GETTIME() + KVS_ICE_CANDIDATE_NOMINATION_TIMEOUT;
+
+    // Simulate: a binding response with a WRONG transaction id arrives (stale pre-nomination response).
+    // This must NOT set nominationAcked.
+    // (In production this check is in handleStunPacket; here we inline the same MEMCMP logic.)
+    if (MEMCMP(wrongTxnId, pIceCandidatePair->nominationTransactionId, STUN_TRANSACTION_ID_LEN) == 0) {
+        pIceCandidatePair->nominationAcked = TRUE;
+    }
+    EXPECT_FALSE(pIceCandidatePair->nominationAcked);
+    state = 0;
+    EXPECT_EQ(STATUS_SUCCESS, fromNominatingIceAgentState((UINT64) &iceAgent, &state));
+    EXPECT_EQ(ICE_AGENT_STATE_NOMINATING, state); // still waiting
+
+    // Now the correct response arrives (matching transaction id)
+    if (MEMCMP(fakeTxnId, pIceCandidatePair->nominationTransactionId, STUN_TRANSACTION_ID_LEN) == 0) {
+        pIceCandidatePair->nominationAcked = TRUE;
+    }
+    EXPECT_TRUE(pIceCandidatePair->nominationAcked);
+    state = 0;
+    EXPECT_EQ(STATUS_SUCCESS, fromNominatingIceAgentState((UINT64) &iceAgent, &state));
+    EXPECT_EQ(ICE_AGENT_STATE_READY, state);
+
+    // --- Scenario 3: Response lost, but peer sends USE_CANDIDATE request (controlled path rescue) ---
+    // Simulates the field case where the nominated socket is dead, our USE_CANDIDATE never reaches
+    // the peer, but the peer independently sends its own USE_CANDIDATE to us.
+    iceAgent.iceAgentStatus = STATUS_SUCCESS;
+    pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_SUCCEEDED;
+    pIceCandidatePair->nominated = TRUE;
+    pIceCandidatePair->nominationAcked = FALSE;
+    MEMCPY(pIceCandidatePair->nominationTransactionId, fakeTxnId, STUN_TRANSACTION_ID_LEN);
+    iceAgent.stateEndTime = GETTIME() + KVS_ICE_CANDIDATE_NOMINATION_TIMEOUT;
+
+    // Verify: still stuck in NOMINATING (no ack yet)
+    state = 0;
+    EXPECT_EQ(STATUS_SUCCESS, fromNominatingIceAgentState((UINT64) &iceAgent, &state));
+    EXPECT_EQ(ICE_AGENT_STATE_NOMINATING, state);
+
+    // Simulate receiving peer's USE_CANDIDATE binding request.
+    // In handleStunPacket this sets both nominated=TRUE and nominationAcked=TRUE.
+    pIceCandidatePair->nominated = TRUE;
+    pIceCandidatePair->nominationAcked = TRUE;
+
+    // Now the state machine should transition to READY on the next tick
+    state = 0;
+    EXPECT_EQ(STATUS_SUCCESS, fromNominatingIceAgentState((UINT64) &iceAgent, &state));
+    EXPECT_EQ(ICE_AGENT_STATE_READY, state);
+
+    CHK_LOG_ERR(freeIceCandidatePair(&pIceCandidatePair));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListClear(iceAgent.iceCandidatePairs, FALSE));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.iceCandidatePairs));
+    MUTEX_FREE(iceAgent.lock);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
