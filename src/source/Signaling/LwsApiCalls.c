@@ -673,6 +673,14 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
         if (!MUTEX_TRYLOCK(pCallInfo->pSignalingClient->lwsServiceLock)) {
             THREAD_SLEEP(LWS_SERVICE_LOOP_ITERATION_WAIT);
         } else {
+            // Check if there is pending send data and request a WRITEABLE
+            // callback from within the service thread where it is safe.
+            if (pCallInfo->pSignalingClient->pOngoingCallInfo != NULL &&
+                ATOMIC_LOAD(&pCallInfo->pSignalingClient->pOngoingCallInfo->sendBufferSize) !=
+                    ATOMIC_LOAD(&pCallInfo->pSignalingClient->pOngoingCallInfo->sendOffset) &&
+                pCallInfo->pSignalingClient->currentWsi[PROTOCOL_INDEX_WSS] != NULL) {
+                lws_callback_on_writable(pCallInfo->pSignalingClient->currentWsi[PROTOCOL_INDEX_WSS]);
+            }
             retVal = lws_service(pContext, 0);
             MUTEX_UNLOCK(pCallInfo->pSignalingClient->lwsServiceLock);
 
@@ -2474,9 +2482,13 @@ STATUS wakeLwsServiceEventLoop(PSignalingClient pSignalingClient, UINT32 protoco
     // Early exit in case we don't need to do anything
     CHK(pSignalingClient != NULL && pSignalingClient->pWebsocketContext != NULL, retStatus);
 
-    if (pSignalingClient->currentWsi[protocolIndex] != NULL) {
-        lws_callback_on_writable(pSignalingClient->currentWsi[protocolIndex]);
-    }
+    // lws_callback_on_writable() is not thread-safe when called from a
+    // different thread than the one running lws_service().  Use the
+    // thread-safe lws_cancel_service() to wake the service loop; the
+    // resulting LWS_CALLBACK_EVENT_WAIT_CANCELLED callback (handled in
+    // lwsWssCallbackRoutine) calls lws_callback_on_writable() from
+    // within the service thread where it is safe.
+    lws_cancel_service((struct lws_context*) pSignalingClient->pWebsocketContext);
 
 CleanUp:
 

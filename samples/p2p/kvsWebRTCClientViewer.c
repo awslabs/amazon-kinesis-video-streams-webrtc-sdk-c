@@ -41,7 +41,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     PSampleStreamingSession pSampleStreamingSession = NULL;
     RTC_CODEC audioCodec = RTC_CODEC_OPUS;
     RTC_CODEC videoCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
-    BOOL locked = FALSE;
+    BOOL locked = FALSE, sendLocked = FALSE;
     PCHAR pChannelName;
     CHAR clientId[256];
 
@@ -153,9 +153,14 @@ INT32 main(INT32 argc, CHAR* argv[])
     message.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(message.peerClientId, SAMPLE_MASTER_CLIENT_ID);
     message.payloadLen = (buffLen / SIZEOF(CHAR)) - 1;
-    message.correlationId[0] = '\0';
+    SNPRINTF(message.correlationId, MAX_CORRELATION_ID_LEN, "%" PRIu64 "_%" PRIu64, GETTIME(),
+             (UINT64) ATOMIC_INCREMENT(&pSampleStreamingSession->correlationIdPostFix));
 
+    MUTEX_LOCK(pSampleConfiguration->signalingSendMessageLock);
+    sendLocked = TRUE;
     CHK_STATUS(signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, &message));
+    MUTEX_UNLOCK(pSampleConfiguration->signalingSendMessageLock);
+    sendLocked = FALSE;
 #ifdef ENABLE_DATA_CHANNEL
     PRtcDataChannel pDataChannel = NULL;
     PRtcPeerConnection pPeerConnection = pSampleStreamingSession->pPeerConnection;
@@ -188,6 +193,10 @@ CleanUp:
 
     if (locked) {
         MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    }
+
+    if (sendLocked) {
+        MUTEX_UNLOCK(pSampleConfiguration->signalingSendMessageLock);
     }
 
     if (pSampleConfiguration->enableFileLogging) {
