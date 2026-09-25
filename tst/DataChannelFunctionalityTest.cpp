@@ -406,6 +406,7 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_PartialReliabilityUnorder
     PRtcDataChannel pOfferDataChannel = nullptr, pAnswerDataChannel = nullptr;
     SIZE_T datachannelLocalOpenCount = 0, msgCount = 0;
     RtcDataChannelInit rtcDataChannelInit;
+    MEMSET(&rtcDataChannelInit, 0x00, SIZEOF(RtcDataChannelInit));
     PSctpSession pSctpSession = NULL;
     PKvsDataChannel pKvsDataChannel = NULL;
     RemoteOpen remoteOpen{};
@@ -491,6 +492,7 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_PartialReliabilityUnOrder
     PRtcDataChannel pOfferDataChannel = nullptr, pAnswerDataChannel = nullptr;
     SIZE_T datachannelLocalOpenCount = 0, msgCount = 0;
     RtcDataChannelInit rtcDataChannelInit;
+    MEMSET(&rtcDataChannelInit, 0x00, SIZEOF(RtcDataChannelInit));
     PSctpSession pSctpSession = NULL;
     PKvsDataChannel pKvsDataChannel = NULL;
     RemoteOpen remoteOpen{};
@@ -577,6 +579,7 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_PartialReliabilityOrdered
     PRtcDataChannel pOfferDataChannel = nullptr, pAnswerDataChannel = nullptr;
     SIZE_T datachannelLocalOpenCount = 0, msgCount = 0;
     RtcDataChannelInit rtcDataChannelInit;
+    MEMSET(&rtcDataChannelInit, 0x00, SIZEOF(RtcDataChannelInit));
     PSctpSession pSctpSession = NULL;
     PKvsDataChannel pKvsDataChannel = NULL;
     RemoteOpen remoteOpen{};
@@ -663,6 +666,7 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_PartialReliabilityOrdered
     PRtcDataChannel pOfferDataChannel = nullptr, pAnswerDataChannel = nullptr;
     SIZE_T datachannelLocalOpenCount = 0, msgCount = 0;
     RtcDataChannelInit rtcDataChannelInit;
+    MEMSET(&rtcDataChannelInit, 0x00, SIZEOF(RtcDataChannelInit));
     PSctpSession pSctpSession = NULL;
     PKvsDataChannel pKvsDataChannel = NULL;
     RemoteOpen remoteOpen{};
@@ -889,6 +893,176 @@ TEST_F(DataChannelFunctionalityTest, dataChannelOpen_NormalNameIsPreserved)
     EXPECT_EQ(STRNCMP(pKvsDataChannel->rtcDataChannelDiagnostics.label, normalName, nameLen), 0);
 
     freePeerConnection(&pPeerConnection);
+}
+
+struct NegotiatedCounters {
+    volatile SIZE_T open = 0;
+    volatile SIZE_T msg = 0;
+    volatile SIZE_T remoteOpen = 0;
+};
+
+static VOID negotiatedOnOpen(UINT64 customData, PRtcDataChannel pDataChannel)
+{
+    UNUSED_PARAM(pDataChannel);
+    ATOMIC_INCREMENT((PSIZE_T) & ((NegotiatedCounters*) customData)->open);
+}
+
+static VOID negotiatedOnMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMsg, UINT32 pMsgLen)
+{
+    UNUSED_PARAM(pDataChannel);
+    UNUSED_PARAM(isBinary);
+    if (pMsgLen == STRLEN(TEST_DATA_CHANNEL_MESSAGE) && STRNCMP((PCHAR) pMsg, TEST_DATA_CHANNEL_MESSAGE, pMsgLen) == 0) {
+        ATOMIC_INCREMENT((PSIZE_T) & ((NegotiatedCounters*) customData)->msg);
+    }
+}
+
+static VOID negotiatedOnRemoteDataChannel(UINT64 customData, PRtcDataChannel pRtcDataChannel)
+{
+    UNUSED_PARAM(pRtcDataChannel);
+    ATOMIC_INCREMENT((PSIZE_T) & ((NegotiatedCounters*) customData)->remoteOpen);
+}
+
+static VOID initNegotiated(PRtcDataChannelInit pInit, UINT16 id)
+{
+    MEMSET(pInit, 0x00, SIZEOF(RtcDataChannelInit));
+    pInit->ordered = TRUE;
+    NULLABLE_SET_EMPTY(pInit->maxPacketLifeTime);
+    NULLABLE_SET_EMPTY(pInit->maxRetransmits);
+    pInit->negotiated = TRUE;
+    NULLABLE_SET_VALUE(pInit->id, id);
+}
+
+TEST_F(DataChannelFunctionalityTest, createDataChannel_NegotiatedRequiresId)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection pc = NULL;
+    PRtcDataChannel pDc = NULL;
+    RtcDataChannelInit init;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    EXPECT_EQ(createPeerConnection(&configuration, &pc), STATUS_SUCCESS);
+    initNegotiated(&init, 3);
+    NULLABLE_SET_EMPTY(init.id);
+    EXPECT_EQ(STATUS_INVALID_ARG, createDataChannel(pc, (PCHAR) "negotiated", &init, &pDc));
+    freePeerConnection(&pc);
+}
+
+// Negotiated channels (RFC 8832 section 5) created before signaling open on both sides without DCEP, keep their id,
+// and coexist with an in-band channel.
+TEST_F(DataChannelFunctionalityTest, createDataChannel_NegotiatedBeforeConnect)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PRtcDataChannel pOfferNeg = NULL, pAnswerNeg = NULL, pOfferInband = NULL;
+    RtcDataChannelInit init;
+    NegotiatedCounters offer, answer, inband;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+    EXPECT_EQ(peerConnectionOnDataChannel(offerPc, (UINT64) &offer, negotiatedOnRemoteDataChannel), STATUS_SUCCESS);
+    EXPECT_EQ(peerConnectionOnDataChannel(answerPc, (UINT64) &answer, negotiatedOnRemoteDataChannel), STATUS_SUCCESS);
+
+    // id 0 would also be the first in-band id of the DTLS client; the in-band channel must be moved out of its way
+    initNegotiated(&init, 0);
+    EXPECT_EQ(createDataChannel(offerPc, (PCHAR) "negotiated", &init, &pOfferNeg), STATUS_SUCCESS);
+    initNegotiated(&init, 0);
+    EXPECT_EQ(createDataChannel(answerPc, (PCHAR) "negotiated", &init, &pAnswerNeg), STATUS_SUCCESS);
+    EXPECT_EQ(createDataChannel(offerPc, (PCHAR) "inband", NULL, &pOfferInband), STATUS_SUCCESS);
+
+    EXPECT_EQ(dataChannelOnOpen(pOfferNeg, (UINT64) &offer, negotiatedOnOpen), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelOnOpen(pAnswerNeg, (UINT64) &answer, negotiatedOnOpen), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelOnOpen(pOfferInband, (UINT64) &inband, negotiatedOnOpen), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelOnMessage(pOfferNeg, (UINT64) &offer, negotiatedOnMessage), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelOnMessage(pAnswerNeg, (UINT64) &answer, negotiatedOnMessage), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    for (auto i = 0; i <= 100 && (ATOMIC_LOAD(&offer.open) + ATOMIC_LOAD(&answer.open) + ATOMIC_LOAD(&inband.open) != 3 || ATOMIC_LOAD(&answer.remoteOpen) != 1); i++) {
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    EXPECT_EQ(1, ATOMIC_LOAD(&offer.open));
+    EXPECT_EQ(1, ATOMIC_LOAD(&answer.open));
+    EXPECT_EQ(1, ATOMIC_LOAD(&inband.open));
+    EXPECT_EQ(0, pOfferNeg->id);
+    EXPECT_EQ(0, pAnswerNeg->id);
+    EXPECT_NE(0, pOfferInband->id);
+
+    EXPECT_EQ(dataChannelSend(pOfferNeg, FALSE, (PBYTE) TEST_DATA_CHANNEL_MESSAGE, STRLEN(TEST_DATA_CHANNEL_MESSAGE)), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelSend(pAnswerNeg, FALSE, (PBYTE) TEST_DATA_CHANNEL_MESSAGE, STRLEN(TEST_DATA_CHANNEL_MESSAGE)), STATUS_SUCCESS);
+    for (auto i = 0; i <= 50 && ATOMIC_LOAD(&offer.msg) + ATOMIC_LOAD(&answer.msg) != 2; i++) {
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    EXPECT_EQ(1, ATOMIC_LOAD(&offer.msg));
+    EXPECT_EQ(1, ATOMIC_LOAD(&answer.msg));
+    // Only the in-band channel is announced to the remote; the negotiated one sends no DATA_CHANNEL_OPEN
+    EXPECT_EQ(1, ATOMIC_LOAD(&answer.remoteOpen));
+    EXPECT_EQ(0, ATOMIC_LOAD(&offer.remoteOpen));
+}
+
+// A negotiated channel can be added once the SCTP association is up (e.g. an SFU handing out the stream id later);
+// dataChannelOnOpen fires right away. In-band channels are still rejected at that point.
+TEST_F(DataChannelFunctionalityTest, createDataChannel_NegotiatedAfterConnect)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PRtcDataChannel pOfferNeg = NULL, pAnswerNeg = NULL, pOfferInband = NULL, pDc = NULL;
+    RtcDataChannelInit init;
+    NegotiatedCounters offer, answer, inband;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+    EXPECT_EQ(peerConnectionOnDataChannel(offerPc, (UINT64) &offer, negotiatedOnRemoteDataChannel), STATUS_SUCCESS);
+    EXPECT_EQ(peerConnectionOnDataChannel(answerPc, (UINT64) &answer, negotiatedOnRemoteDataChannel), STATUS_SUCCESS);
+    EXPECT_EQ(createDataChannel(offerPc, (PCHAR) "inband", NULL, &pOfferInband), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelOnOpen(pOfferInband, (UINT64) &inband, negotiatedOnOpen), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    for (auto i = 0; i <= 100 && (ATOMIC_LOAD(&inband.open) != 1 || ATOMIC_LOAD(&answer.remoteOpen) != 1); i++) {
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    ASSERT_EQ(1, ATOMIC_LOAD(&answer.remoteOpen));
+
+    initNegotiated(&init, 20);
+    EXPECT_EQ(createDataChannel(offerPc, (PCHAR) "late", &init, &pOfferNeg), STATUS_SUCCESS);
+    initNegotiated(&init, 20);
+    EXPECT_EQ(createDataChannel(answerPc, (PCHAR) "late", &init, &pAnswerNeg), STATUS_SUCCESS);
+    EXPECT_EQ(20, pOfferNeg->id);
+
+    // duplicate stream id and late in-band channel are refused
+    initNegotiated(&init, 20);
+    EXPECT_EQ(STATUS_INVALID_ARG, createDataChannel(offerPc, (PCHAR) "dup", &init, &pDc));
+    EXPECT_EQ(STATUS_INVALID_OPERATION, createDataChannel(offerPc, (PCHAR) "late-inband", NULL, &pDc));
+
+    EXPECT_EQ(dataChannelOnOpen(pOfferNeg, (UINT64) &offer, negotiatedOnOpen), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelOnOpen(pAnswerNeg, (UINT64) &answer, negotiatedOnOpen), STATUS_SUCCESS);
+    EXPECT_EQ(1, ATOMIC_LOAD(&offer.open));
+    EXPECT_EQ(1, ATOMIC_LOAD(&answer.open));
+    EXPECT_EQ(dataChannelOnMessage(pOfferNeg, (UINT64) &offer, negotiatedOnMessage), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelOnMessage(pAnswerNeg, (UINT64) &answer, negotiatedOnMessage), STATUS_SUCCESS);
+
+    EXPECT_EQ(dataChannelSend(pOfferNeg, FALSE, (PBYTE) TEST_DATA_CHANNEL_MESSAGE, STRLEN(TEST_DATA_CHANNEL_MESSAGE)), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelSend(pAnswerNeg, FALSE, (PBYTE) TEST_DATA_CHANNEL_MESSAGE, STRLEN(TEST_DATA_CHANNEL_MESSAGE)), STATUS_SUCCESS);
+    for (auto i = 0; i <= 50 && ATOMIC_LOAD(&offer.msg) + ATOMIC_LOAD(&answer.msg) != 2; i++) {
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    EXPECT_EQ(1, ATOMIC_LOAD(&offer.msg));
+    EXPECT_EQ(1, ATOMIC_LOAD(&answer.msg));
+    EXPECT_EQ(0, ATOMIC_LOAD(&offer.remoteOpen));
+    EXPECT_EQ(1, ATOMIC_LOAD(&answer.remoteOpen));
 }
 
 } // namespace webrtcclient
