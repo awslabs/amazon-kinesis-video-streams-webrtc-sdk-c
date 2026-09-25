@@ -1860,9 +1860,8 @@ STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, 
         CHK_STATUS(iceAgentSendSrflxCandidateRequest(pIceAgent));
     }
     /* stop scheduling if there is a nominated candidate pair (in cases where the pair does not have relay, which is set via stopGathering flag), no
-     * more pending candidate and relay candidates are added or if timeout is reached. */
-    if (ATOMIC_LOAD_BOOL(&pIceAgent->stopGathering) ||
-        (totalCandidateCount > 0 && pendingCandidateCount == 0 && ATOMIC_LOAD_BOOL(&pIceAgent->addedRelayCandidate)) ||
+     * more pending candidate (relay candidates are created before gathering starts and stay NEW until allocated) or if timeout is reached. */
+    if (ATOMIC_LOAD_BOOL(&pIceAgent->stopGathering) || (totalCandidateCount > 0 && pendingCandidateCount == 0) ||
         currentTime >= pIceAgent->candidateGatheringEndTime) {
         if (moreNewLocalCandidates) {
             DLOGD("Deferring candidate gathering completion while there are new local candidates to report.");
