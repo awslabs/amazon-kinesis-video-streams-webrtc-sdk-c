@@ -175,6 +175,7 @@ typedef struct {
     UINT32 currentDataChannelId;
     PKvsPeerConnection pKvsPeerConnection;
     PHashTable unkeyedDataChannels;
+    BOOL negotiatedPass; //!< TRUE while keying negotiated channels by their explicit id, FALSE while assigning in-band ids
 } AllocateSctpSortDataChannelsData, *PAllocateSctpSortDataChannelsData;
 
 typedef struct {
