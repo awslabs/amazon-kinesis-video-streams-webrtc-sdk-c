@@ -860,6 +860,17 @@ Let us look into when each of these could be changed:
 
 Set `iceServersFinal` when every STUN/TURN server is passed at creation and `peerConnectionUpdateIceServers` is never called. Gathering then ends as soon as every candidate resolves instead of waiting for `iceLocalCandidateGatheringTimeout`, which helps non-trickle offers and answers. With the flag set, `peerConnectionUpdateIceServers` returns `STATUS_ICE_SERVERS_FINAL`.
 
+### Data channels
+
+`createDataChannel()` takes an optional `RtcDataChannelInit`. Zero the whole structure (`MEMSET`) before setting its fields: `negotiated` is honoured, so a structure left uninitialised can select a negotiated channel, which sends no DCEP `DATA_CHANNEL_OPEN` and so never appears on the remote side.
+
+* **In-band channels** (`negotiated = FALSE`, the default) are announced to the peer with a DCEP `DATA_CHANNEL_OPEN` and get their stream id from the DTLS role ([RFC 8832](https://datatracker.ietf.org/doc/html/rfc8832)). They must be created before the SCTP association is established.
+* **Negotiated channels** (`negotiated = TRUE` and an `id` from 0 to 299) are agreed outside the SDK, for example by an SFU. Both peers create the channel with the same `id`, before or after the association. One created after the association is open straight away.
+
+Each channel sends with its own `ordered`, `maxRetransmits` and `maxPacketLifeTime`; a remote in-band channel uses the values its `DATA_CHANNEL_OPEN` announced. `maxRetransmits` takes precedence over `maxPacketLifeTime`.
+
+Messages that arrive before `dataChannelOnMessage()` is set, which can happen on a negotiated channel created on a live association, are held (up to 64 messages or 64 KB) and delivered in order from the thread that calls `dataChannelOnMessage()`.
+
 ### Enable ICE agent stats
 
 The SDK calculates 4 different stats:

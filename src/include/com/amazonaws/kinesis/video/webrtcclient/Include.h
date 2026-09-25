@@ -1778,6 +1778,9 @@ typedef struct {
  * @brief RtcDataChannelInit dictionary used to configure properties of the
  * underlying channel such as data reliability
  *
+ * Zero the whole structure (MEMSET) before setting fields. negotiated is honoured, so a structure left
+ * uninitialised can select a negotiated channel that sends no DCEP DATA_CHANNEL_OPEN.
+ *
  * Reference: https://www.w3.org/TR/webrtc/#dom-rtcdatachannelinit
  */
 typedef struct {
@@ -1788,7 +1791,10 @@ typedef struct {
     NullableUint16 maxRetransmits;                    //!< Control number of times a channel retransmits data if not delivered successfully
     CHAR protocol[MAX_DATA_CHANNEL_PROTOCOL_LEN + 1]; //!< Sub protocol name for the channel
     BOOL negotiated;                                  //!< If set to true, it is up to the application to negotiate the channel and create an
-                                                      //!< RTCDataChannel object with the same id as the other peer.
+                                                      //!< RTCDataChannel object with the same id as the other peer. No DCEP DATA_CHANNEL_OPEN
+                                                      //!< is sent for a negotiated channel, and it may be created before or after the SCTP
+                                                      //!< association is established.
+    NullableUint16 id;                                //!< SCTP stream id. Required when negotiated is TRUE, ignored otherwise.
 } RtcDataChannelInit, *PRtcDataChannelInit;
 /*!@} */
 
@@ -2308,7 +2314,9 @@ PUBLIC_API STATUS addIceCandidate(PRtcPeerConnection, PCHAR);
  *
  * NOTE: The RtcDataChannelInit dictionary can be used to configure properties of the underlying
  * channel such as data reliability.
- * NOTE: Data channel can be created only after signaling for now
+ * NOTE: A channel that uses in-band negotiation (DCEP) can only be created before the SCTP association is
+ * established. A negotiated channel (RtcDataChannelInit.negotiated = TRUE with an id) can be created at any
+ * time; created after the association, it is open immediately and its onOpen callback fires on registration.
  *
  * Reference: https://www.w3.org/TR/webrtc/#methods-11
  *
