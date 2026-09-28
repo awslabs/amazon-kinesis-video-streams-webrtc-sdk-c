@@ -1025,6 +1025,74 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_NegotiatedBeforeConnect)
     EXPECT_EQ(0, ATOMIC_LOAD(&offer.remoteOpen));
 }
 
+// Context for an onOpen callback that creates a second negotiated channel on the same peer connection.
+struct ReentrantOpen {
+    PRtcPeerConnection pc;
+    PRtcDataChannel pSecond;
+    STATUS createStatus;
+    volatile SIZE_T firstOpen;
+    volatile SIZE_T secondOpen;
+};
+
+static VOID reentrantSecondOnOpen(UINT64 customData, PRtcDataChannel pDataChannel)
+{
+    UNUSED_PARAM(pDataChannel);
+    ATOMIC_INCREMENT(&((ReentrantOpen*) customData)->secondOpen);
+}
+
+static VOID reentrantFirstOnOpen(UINT64 customData, PRtcDataChannel pDataChannel)
+{
+    ReentrantOpen* ctx = (ReentrantOpen*) customData;
+    RtcDataChannelInit init;
+
+    UNUSED_PARAM(pDataChannel);
+    ATOMIC_INCREMENT(&ctx->firstOpen);
+    // Runs while the association is being set up; the channel table must not be locked or iterated here
+    initNegotiated(&init, 4);
+    ctx->createStatus = createDataChannel(ctx->pc, (PCHAR) "second", &init, &ctx->pSecond);
+    if (STATUS_SUCCEEDED(ctx->createStatus)) {
+        dataChannelOnOpen(ctx->pSecond, customData, reentrantSecondOnOpen);
+    }
+}
+
+// onOpen is called outside the peer connection's data channel lock: a callback that creates another channel
+// neither deadlocks nor modifies the table while it is being walked.
+TEST_F(DataChannelFunctionalityTest, createDataChannel_FromOnOpenCallback)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PRtcDataChannel pOfferNeg = NULL, pAnswerNeg = NULL;
+    RtcDataChannelInit init;
+    ReentrantOpen ctx{};
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+    ctx.pc = offerPc;
+    ctx.createStatus = STATUS_INTERNAL_ERROR;
+
+    initNegotiated(&init, 0);
+    EXPECT_EQ(createDataChannel(offerPc, (PCHAR) "first", &init, &pOfferNeg), STATUS_SUCCESS);
+    initNegotiated(&init, 0);
+    EXPECT_EQ(createDataChannel(answerPc, (PCHAR) "first", &init, &pAnswerNeg), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelOnOpen(pOfferNeg, (UINT64) &ctx, reentrantFirstOnOpen), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    for (auto i = 0; i <= 100 && (ATOMIC_LOAD(&ctx.firstOpen) != 1 || ATOMIC_LOAD(&ctx.secondOpen) != 1); i++) {
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    EXPECT_EQ(1, ATOMIC_LOAD(&ctx.firstOpen));
+    EXPECT_EQ(STATUS_SUCCESS, ctx.createStatus);
+    EXPECT_EQ(1, ATOMIC_LOAD(&ctx.secondOpen));
+    ASSERT_NE(nullptr, ctx.pSecond);
+    EXPECT_EQ(4, ctx.pSecond->id);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
 // A negotiated channel can be added once the SCTP association is up (e.g. an SFU handing out the stream id later);
 // dataChannelOnOpen fires right away. In-band channels are still rejected at that point.
 TEST_F(DataChannelFunctionalityTest, createDataChannel_NegotiatedAfterConnect)

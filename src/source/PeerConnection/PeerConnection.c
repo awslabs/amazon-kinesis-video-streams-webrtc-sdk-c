@@ -123,30 +123,52 @@ CleanUp:
     return retStatus;
 }
 
-STATUS allocateSctpOpenDataChannelCallback(UINT64 customData, PHashEntry pHashEntry)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
-    PKvsDataChannel pKvsDataChannel = (PKvsDataChannel) pHashEntry->value;
+typedef struct {
+    PKvsDataChannel* pChannels;
+    UINT32 count;
+    UINT32 capacity;
+} AllocateSctpChannelList;
 
-    CHK(pKvsPeerConnection != NULL && pKvsDataChannel != NULL, STATUS_NULL_ARG);
+static STATUS allocateSctpCollectDataChannelCallback(UINT64 customData, PHashEntry pHashEntry)
+{
+    AllocateSctpChannelList* pList = (AllocateSctpChannelList*) customData;
+
+    if (pList->count < pList->capacity) {
+        pList->pChannels[pList->count++] = (PKvsDataChannel) pHashEntry->value;
+    }
+    return STATUS_SUCCESS;
+}
+
+// Announce (DCEP, in-band channels only) and open one channel. Runs without dataChannelsLock: it writes to
+// the SCTP association and calls the application's onOpen, which may call back into the peer connection.
+static STATUS allocateSctpOpenDataChannel(PKvsPeerConnection pKvsPeerConnection, PKvsDataChannel pKvsDataChannel)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL fire = FALSE;
+    RtcOnOpen onOpen = NULL;
+    UINT64 onOpenCustomData = 0;
 
     // Negotiated channels are opened by the application on both sides; only in-band channels announce themselves
     if (!pKvsDataChannel->rtcDataChannelInit.negotiated) {
         CHK_STATUS(sctpSessionWriteDcep(pKvsPeerConnection->pSctpSession, pKvsDataChannel->channelId, pKvsDataChannel->dataChannel.name,
                                         STRLEN(pKvsDataChannel->dataChannel.name), &pKvsDataChannel->rtcDataChannelInit));
     }
+
+    MUTEX_LOCK(pKvsPeerConnection->dataChannelsLock);
     pKvsDataChannel->rtcDataChannelDiagnostics.state = RTC_DATA_CHANNEL_STATE_OPEN;
-    if (pKvsDataChannel->onOpen != NULL && !pKvsDataChannel->openFired) {
+    fire = pKvsDataChannel->onOpen != NULL && !pKvsDataChannel->openFired;
+    if (fire) {
         pKvsDataChannel->openFired = TRUE;
-        pKvsDataChannel->onOpen(pKvsDataChannel->onOpenCustomData, &pKvsDataChannel->dataChannel);
+        onOpen = pKvsDataChannel->onOpen;
+        onOpenCustomData = pKvsDataChannel->onOpenCustomData;
+    }
+    MUTEX_UNLOCK(pKvsPeerConnection->dataChannelsLock);
+
+    if (fire) {
+        onOpen(onOpenCustomData, &pKvsDataChannel->dataChannel);
     }
 
 CleanUp:
-    CHK_LOG_ERR(retStatus);
-
-    LEAVES();
     return retStatus;
 }
 
@@ -159,6 +181,10 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
 
     BOOL locked = FALSE;
     PHashTable pKeyed = NULL;
+    AllocateSctpChannelList list;
+    UINT32 i;
+
+    MEMSET(&list, 0x00, SIZEOF(list));
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
     data.unkeyedDataChannels = NULL;
@@ -189,9 +215,22 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     sctpSessionCallbacks.customData = (UINT64) pKvsPeerConnection;
     CHK_STATUS(createSctpSession(&sctpSessionCallbacks, pKvsPeerConnection->timerQueueHandle, &(pKvsPeerConnection->pSctpSession)));
 
-    CHK_STATUS(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, (UINT64) pKvsPeerConnection, allocateSctpOpenDataChannelCallback));
+    // Snapshot the channels to open; they are announced and opened once the lock is released (channels are
+    // only freed with the peer connection, so the pointers stay valid)
+    CHK_STATUS(hashTableGetCount(pKvsPeerConnection->pDataChannels, &list.capacity));
+    if (list.capacity > 0) {
+        CHK((list.pChannels = (PKvsDataChannel*) MEMCALLOC(list.capacity, SIZEOF(PKvsDataChannel))) != NULL, STATUS_NOT_ENOUGH_MEMORY);
+        CHK_STATUS(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, (UINT64) &list, allocateSctpCollectDataChannelCallback));
+    }
+    MUTEX_UNLOCK(pKvsPeerConnection->dataChannelsLock);
+    locked = FALSE;
+
+    for (i = 0; i < list.count; i++) {
+        CHK_LOG_ERR(allocateSctpOpenDataChannel(pKvsPeerConnection, list.pChannels[i]));
+    }
 
 CleanUp:
+    SAFE_MEMFREE(list.pChannels);
     // Re-keying failed half way: every channel is still in the unkeyed table, which goes back so
     // freePeerConnection frees each channel once
     if (data.unkeyedDataChannels != NULL && pKvsPeerConnection != NULL) {
