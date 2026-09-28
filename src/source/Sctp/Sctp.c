@@ -127,8 +127,8 @@ STATUS configureSctpSocket(struct socket* socket)
 
     struct sctp_initmsg initmsg;
     MEMSET(&initmsg, 0, SIZEOF(struct sctp_initmsg));
-    initmsg.sinit_num_ostreams = 300;
-    initmsg.sinit_max_instreams = 300;
+    initmsg.sinit_num_ostreams = SCTP_MAX_STREAMS;
+    initmsg.sinit_max_instreams = SCTP_MAX_STREAMS;
     CHK(usrsctp_setsockopt(socket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, SIZEOF(struct sctp_initmsg)) == 0, STATUS_SCTP_SESSION_SETUP_FAILED);
 
     struct sctp_rtoinfo rtoinfo;

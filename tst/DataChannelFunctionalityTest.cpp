@@ -947,6 +947,25 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_NegotiatedRequiresId)
     freePeerConnection(&pc);
 }
 
+TEST_F(DataChannelFunctionalityTest, createDataChannel_NegotiatedIdChecks)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection pc = NULL;
+    PRtcDataChannel pDc = NULL, pDc2 = NULL;
+    RtcDataChannelInit init;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    EXPECT_EQ(createPeerConnection(&configuration, &pc), STATUS_SUCCESS);
+    // Outside the streams the association negotiates
+    initNegotiated(&init, SCTP_MAX_STREAMS);
+    EXPECT_EQ(STATUS_INVALID_ARG, createDataChannel(pc, (PCHAR) "too-high", &init, &pDc));
+    // The same negotiated id twice before the association exists
+    initNegotiated(&init, 7);
+    EXPECT_EQ(STATUS_SUCCESS, createDataChannel(pc, (PCHAR) "first", &init, &pDc));
+    EXPECT_EQ(STATUS_INVALID_ARG, createDataChannel(pc, (PCHAR) "duplicate", &init, &pDc2));
+    freePeerConnection(&pc);
+}
+
 // Negotiated channels (RFC 8832 section 5) created before signaling open on both sides without DCEP, keep their id,
 // and coexist with an in-band channel.
 TEST_F(DataChannelFunctionalityTest, createDataChannel_NegotiatedBeforeConnect)

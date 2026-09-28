@@ -7,6 +7,23 @@ STATUS connectLocalDataChannel()
     return STATUS_SUCCESS;
 }
 
+typedef struct {
+    UINT16 id;
+    BOOL taken;
+} NegotiatedIdLookup;
+
+// Is a negotiated id already claimed by a channel created before the association?
+static STATUS findNegotiatedIdCallback(UINT64 customData, PHashEntry pHashEntry)
+{
+    NegotiatedIdLookup* pLookup = (NegotiatedIdLookup*) customData;
+    PKvsDataChannel pKvsDataChannel = (PKvsDataChannel) pHashEntry->value;
+
+    if (pKvsDataChannel != NULL && pKvsDataChannel->rtcDataChannelInit.negotiated && pKvsDataChannel->rtcDataChannelInit.id.value == pLookup->id) {
+        pLookup->taken = TRUE;
+    }
+    return STATUS_SUCCESS;
+}
+
 STATUS createDataChannel(PRtcPeerConnection pPeerConnection, PCHAR pDataChannelName, PRtcDataChannelInit pRtcDataChannelInit,
                          PRtcDataChannel* ppRtcDataChannel)
 {
@@ -14,14 +31,21 @@ STATUS createDataChannel(PRtcPeerConnection pPeerConnection, PCHAR pDataChannelN
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
     UINT32 channelId = 0;
-    BOOL negotiated = FALSE, exists = FALSE;
+    BOOL negotiated = FALSE, exists = FALSE, locked = FALSE;
     PKvsDataChannel pKvsDataChannel = NULL;
+    NegotiatedIdLookup lookup;
 
     CHK(pKvsPeerConnection != NULL && pDataChannelName != NULL && ppRtcDataChannel != NULL, STATUS_NULL_ARG);
 
     negotiated = (pRtcDataChannelInit != NULL && pRtcDataChannelInit->negotiated);
     // A negotiated channel (RFC 8832 section 5, "externally negotiated") carries no DCEP and needs an explicit stream id
     CHK(!negotiated || !NULLABLE_CHECK_EMPTY(pRtcDataChannelInit->id), STATUS_INVALID_ARG);
+    // ...within the streams the association negotiates
+    CHK(!negotiated || pRtcDataChannelInit->id.value < SCTP_MAX_STREAMS, STATUS_INVALID_ARG);
+
+    // The SCTP thread uses the table (and allocateSctp swaps it) while the application creates channels
+    MUTEX_LOCK(pKvsPeerConnection->dataChannelsLock);
+    locked = TRUE;
 
     // In-band (DCEP) channels can only be created before the SCTP association exists, because the stream ids are
     // assigned and the DATA_CHANNEL_OPEN messages sent when the association is set up. Negotiated channels bring
@@ -52,6 +76,12 @@ STATUS createDataChannel(PRtcPeerConnection pPeerConnection, PCHAR pDataChannelN
         pKvsDataChannel->channelId = channelId;
         pKvsDataChannel->rtcDataChannelDiagnostics.state = RTC_DATA_CHANNEL_STATE_OPEN;
     } else {
+        if (negotiated) {
+            lookup.id = pRtcDataChannelInit->id.value;
+            lookup.taken = FALSE;
+            CHK_STATUS(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, (UINT64) &lookup, findNegotiatedIdCallback));
+            CHK(!lookup.taken, STATUS_INVALID_ARG);
+        }
         // Before the association exists the table is keyed by creation order; allocateSctp re-keys it by stream id
         CHK_STATUS(hashTableGetCount(pKvsPeerConnection->pDataChannels, &channelId));
         pKvsDataChannel->rtcDataChannelDiagnostics.state = RTC_DATA_CHANNEL_STATE_CONNECTING;
@@ -61,6 +91,9 @@ STATUS createDataChannel(PRtcPeerConnection pPeerConnection, PCHAR pDataChannelN
     CHK_STATUS(hashTablePut(pKvsPeerConnection->pDataChannels, channelId, (UINT64) pKvsDataChannel));
 
 CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pKvsPeerConnection->dataChannelsLock);
+    }
     if (STATUS_SUCCEEDED(retStatus)) {
         *ppRtcDataChannel = (PRtcDataChannel) pKvsDataChannel;
     } else {
@@ -111,15 +144,23 @@ STATUS dataChannelOnOpen(PRtcDataChannel pRtcDataChannel, UINT64 customData, Rtc
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsDataChannel pKvsDataChannel = (PKvsDataChannel) pRtcDataChannel;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    BOOL fire = FALSE;
 
     CHK(pKvsDataChannel != NULL && rtcOnOpen != NULL, STATUS_NULL_ARG);
+    pKvsPeerConnection = (PKvsPeerConnection) pKvsDataChannel->pRtcPeerConnection;
 
+    MUTEX_LOCK(pKvsPeerConnection->dataChannelsLock);
     pKvsDataChannel->onOpen = rtcOnOpen;
     pKvsDataChannel->onOpenCustomData = customData;
-
-    // A negotiated channel created on an established association is already open; the callback is
-    // registered after createDataChannel returns, so deliver the open event now.
-    if (pKvsDataChannel->rtcDataChannelDiagnostics.state == RTC_DATA_CHANNEL_STATE_OPEN) {
+    // A channel that is already open (a negotiated one created on an established association, or a
+    // remote one) gets its open event now: the callback is registered after the channel exists.
+    fire = pKvsDataChannel->rtcDataChannelDiagnostics.state == RTC_DATA_CHANNEL_STATE_OPEN && !pKvsDataChannel->openFired;
+    if (fire) {
+        pKvsDataChannel->openFired = TRUE;
+    }
+    MUTEX_UNLOCK(pKvsPeerConnection->dataChannelsLock);
+    if (fire) {
         rtcOnOpen(customData, &pKvsDataChannel->dataChannel);
     }
 
