@@ -676,8 +676,7 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     serializerLocked = FALSE;
 
     while (retVal >= 0 && !gInterruptedFlagBySignalHandler && pCallInfo->callInfo.pRequestInfo != NULL &&
-           !ATOMIC_LOAD_BOOL(&pCallInfo->callInfo.pRequestInfo->terminating) &&
-           !ATOMIC_LOAD_BOOL(&pCallInfo->pSignalingClient->shutdown)) {
+           !ATOMIC_LOAD_BOOL(&pCallInfo->callInfo.pRequestInfo->terminating) && !ATOMIC_LOAD_BOOL(&pCallInfo->pSignalingClient->shutdown)) {
         if (!MUTEX_TRYLOCK(pCallInfo->pSignalingClient->lwsServiceLock)) {
             THREAD_SLEEP(LWS_SERVICE_LOOP_ITERATION_WAIT);
         } else {

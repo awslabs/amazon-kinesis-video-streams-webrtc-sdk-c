@@ -503,8 +503,8 @@ STATUS terminateOngoingOperations(PSignalingClient pSignalingClient)
                               waitAttempts, waitAttempts * (2 + SIGNALING_SERVICE_API_CALL_TIMEOUT_IN_SECONDS));
                         waitAttempts = 0;
                     } else {
-                        DLOGW("Reconnect thread still alive after timeout (attempt %u/%u), retrying wait...",
-                              waitAttempts, SIGNALING_SHUTDOWN_MAX_WAIT_ATTEMPTS);
+                        DLOGW("Reconnect thread still alive after timeout (attempt %u/%u), retrying wait...", waitAttempts,
+                              SIGNALING_SHUTDOWN_MAX_WAIT_ATTEMPTS);
                     }
                     if (pSignalingClient->pWebsocketContext != NULL) {
                         lws_cancel_service((struct lws_context*) pSignalingClient->pWebsocketContext);
@@ -530,10 +530,9 @@ STATUS terminateOngoingOperations(PSignalingClient pSignalingClient)
         // use-after-free, so block until the count drains to zero.
         MUTEX_LOCK(pSignalingClient->receiveWorkerLock);
         while (ATOMIC_LOAD(&pSignalingClient->receiveWorkerCount) > 0) {
-            if (STATUS_FAILED(CVAR_WAIT(pSignalingClient->receiveWorkerCvar, pSignalingClient->receiveWorkerLock,
-                                        SIGNALING_CLIENT_SHUTDOWN_TIMEOUT))) {
-                DLOGW("Receive workers still in-flight (count: %llu), retrying...",
-                      (UINT64) ATOMIC_LOAD(&pSignalingClient->receiveWorkerCount));
+            if (STATUS_FAILED(
+                    CVAR_WAIT(pSignalingClient->receiveWorkerCvar, pSignalingClient->receiveWorkerLock, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT))) {
+                DLOGW("Receive workers still in-flight (count: %llu), retrying...", (UINT64) ATOMIC_LOAD(&pSignalingClient->receiveWorkerCount));
             }
         }
         MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
