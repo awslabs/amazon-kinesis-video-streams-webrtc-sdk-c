@@ -10,6 +10,7 @@ extern "C" {
 STATUS onRtcpPacket(PKvsPeerConnection, PBYTE, UINT32);
 STATUS onRtcpRembPacket(PRtcpPacket, PKvsPeerConnection);
 STATUS onRtcpPLIPacket(PRtcpPacket, PKvsPeerConnection);
+STATUS createRtcpPLIPacket(PBYTE, UINT32, UINT32);
 STATUS parseRtcpTwccPacket(PRtcpPacket, PTwccManager);
 STATUS onRtcpTwccPacket(PRtcpPacket, PKvsPeerConnection);
 STATUS updateTwccHashTable(PTwccManager, PINT64, PUINT64, PUINT64, PUINT64, PUINT64);
@@ -44,6 +45,9 @@ STATUS updateTwccHashTable(PTwccManager, PINT64, PUINT64, PUINT64, PUINT64, PUIN
  * @param[out] pQueueDelay   Total accumulated delay variation in ms over the window
  */
 STATUS computeTwccTrendline(PTwccManager, PDOUBLE, PDOUBLE);
+
+// https://tools.ietf.org/html/rfc4585#section-6.3.1: header, sender SSRC, media SSRC, no FCI
+#define RTCP_PLI_PACKET_LEN (RTCP_PACKET_HEADER_LEN + 2 * SIZEOF(UINT32))
 
 // https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
 // Deltas are represented as multiples of 250us:
