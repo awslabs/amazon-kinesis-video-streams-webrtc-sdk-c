@@ -337,6 +337,9 @@ STATUS iceAgentAddIceServers(PIceAgent pIceAgent, PRtcIceServer pIceServers, UIN
     CHK(!ATOMIC_LOAD_BOOL(&pIceAgent->shutdown), STATUS_INVALID_OPERATION);
 
     DLOGI("Adding %u new ICE servers to existing agent", iceServersCount);
+    if (pIceAgent->kvsRtcConfiguration.iceServersFinal) {
+        DLOGW("iceServersFinal is set but ICE servers are being added: candidates from them are not reported once gathering has completed");
+    }
 
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
@@ -1859,9 +1862,11 @@ STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, 
     if (pendingSrflxCandidateCount > 0) {
         CHK_STATUS(iceAgentSendSrflxCandidateRequest(pIceAgent));
     }
-    /* stop scheduling if there is a nominated candidate pair (in cases where the pair does not have relay, which is set via stopGathering flag), no
-     * more pending candidate (relay candidates are created before gathering starts and stay NEW until allocated) or if timeout is reached. */
-    if (ATOMIC_LOAD_BOOL(&pIceAgent->stopGathering) || (totalCandidateCount > 0 && pendingCandidateCount == 0) ||
+    /* stop scheduling if there is a nominated candidate pair (in cases where the pair does not have relay, which is set via stopGathering flag), if
+     * the ICE servers are final and no candidate is pending (relay candidates are created before gathering starts and stay NEW until
+     * allocated; servers added later through iceAgentAddIceServers would come too late), or if timeout is reached. */
+    if (ATOMIC_LOAD_BOOL(&pIceAgent->stopGathering) ||
+        (pIceAgent->kvsRtcConfiguration.iceServersFinal && totalCandidateCount > 0 && pendingCandidateCount == 0) ||
         currentTime >= pIceAgent->candidateGatheringEndTime) {
         if (moreNewLocalCandidates) {
             DLOGD("Deferring candidate gathering completion while there are new local candidates to report.");

@@ -568,7 +568,7 @@ TEST_F(IceFunctionalityTest, IceAgentGatherCandidateTimerCallbackReportsLocalCan
 
 // Helper for the gathering-completion tests below: every local candidate is already VALID and the gathering
 // deadline is far in the future, so the only way the callback can finish is the early-completion path.
-static VOID runGatherCompletionScenario(BOOL withTurnServer, PBOOL pFinished, STATUS* pStatus)
+static VOID runGatherCompletionScenario(BOOL iceServersFinal, BOOL withTurnServer, PBOOL pFinished, STATUS* pStatus)
 {
     IceAgent* pIceAgent = (IceAgent*) MEMCALLOC(1, SIZEOF(IceAgent));
     IceCandidate localCandidates[2];
@@ -582,6 +582,7 @@ static VOID runGatherCompletionScenario(BOOL withTurnServer, PBOOL pFinished, ST
     ATOMIC_STORE_BOOL(&pIceAgent->addedRelayCandidate, FALSE);
     ATOMIC_STORE_BOOL(&pIceAgent->candidateGatheringFinished, FALSE);
     ATOMIC_STORE_BOOL(&pIceAgent->stopGathering, FALSE);
+    pIceAgent->kvsRtcConfiguration.iceServersFinal = iceServersFinal;
     if (withTurnServer) {
         pIceAgent->iceServersCount = 1;
         pIceAgent->iceServers[0].isTurn = TRUE;
@@ -610,7 +611,7 @@ TEST_F(IceFunctionalityTest, IceAgentGatherCandidateTimerCallbackCompletesEarlyW
 {
     BOOL finished = FALSE;
     STATUS status = STATUS_SUCCESS;
-    runGatherCompletionScenario(FALSE, &finished, &status);
+    runGatherCompletionScenario(TRUE, FALSE, &finished, &status);
     EXPECT_EQ(STATUS_TIMER_QUEUE_STOP_SCHEDULING, status);
     EXPECT_TRUE(finished);
 }
@@ -619,9 +620,25 @@ TEST_F(IceFunctionalityTest, IceAgentGatherCandidateTimerCallbackCompletesEarlyW
 {
     BOOL finished = FALSE;
     STATUS status = STATUS_SUCCESS;
-    runGatherCompletionScenario(TRUE, &finished, &status);
+    runGatherCompletionScenario(TRUE, TRUE, &finished, &status);
     EXPECT_EQ(STATUS_TIMER_QUEUE_STOP_SCHEDULING, status);
     EXPECT_TRUE(finished);
+}
+
+// Without iceServersFinal the application may still add TURN servers, so gathering stays open until the timeout
+// (or a nomination) even though every current candidate has resolved.
+TEST_F(IceFunctionalityTest, IceAgentGatherCandidateTimerCallbackWaitsWhenIceServersNotFinal)
+{
+    BOOL finished = TRUE;
+    STATUS status = STATUS_SUCCESS;
+    runGatherCompletionScenario(FALSE, FALSE, &finished, &status);
+    EXPECT_EQ(STATUS_SUCCESS, status);
+    EXPECT_FALSE(finished);
+
+    finished = TRUE;
+    runGatherCompletionScenario(FALSE, TRUE, &finished, &status);
+    EXPECT_EQ(STATUS_SUCCESS, status);
+    EXPECT_FALSE(finished);
 }
 
 TEST_F(IceFunctionalityTest, IceAgentFindCandidateWithIpUnitTest)
