@@ -402,6 +402,7 @@ extern "C" {
 #define STATUS_TURN_CONNECTION_GET_CREDENTIALS_FAILED                      STATUS_ICE_BASE + 0x0000002c
 #define STATUS_FAILED_TO_INIT_RELAY_CANDIDATES                             STATUS_ICE_BASE + 0x0000002d
 #define STATUS_TURN_CONNECTION_CREDENTIALS_REJECTED                        STATUS_ICE_BASE + 0x0000002e
+#define STATUS_ICE_SERVERS_FINAL                                           STATUS_ICE_BASE + 0x0000002f
 
 /*!@} */
 
@@ -1477,6 +1478,11 @@ typedef struct {
                                                 //!< TURN server such as the KVS TURN service rejects them with 403 Forbidden IP. Set this to TRUE
                                                 //!< if you use a TURN server that legitimately relays to such addresses (e.g. an on-prem/LAN TURN),
                                                 //!< so those peers are not filtered. Filtering is enabled by default (this flag defaults to FALSE).
+    BOOL iceServersFinal;                       //!< Set to TRUE when the ICE servers passed at creation are all there will be (no later
+                                                //!< peerConnectionUpdateIceServers call). Candidate gathering then completes as soon as every local
+                                                //!< candidate has resolved instead of running to iceLocalCandidateGatheringTimeout. Defaults to
+                                                //!< FALSE, which keeps gathering open for TURN servers added later. When TRUE,
+                                                //!< peerConnectionUpdateIceServers returns STATUS_ICE_SERVERS_FINAL.
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
 
 /**
@@ -2136,12 +2142,13 @@ PUBLIC_API STATUS closePeerConnection(PRtcPeerConnection);
  * This function allows adding new ICE servers to an already created peer connection.
  * New TURN servers will have relay candidates created automatically, enabling
  * progressive ICE server delivery for improved connection establishment performance.
+ * Not allowed when KvsRtcConfiguration.iceServersFinal was set at creation.
  *
  * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
  * @param[in] PRtcIceServer Array of new ICE servers to add
  * @param[in] UINT32 Number of ICE servers in the array
  *
- * @return STATUS code of the execution. STATUS_SUCCESS on success
+ * @return STATUS code of the execution. STATUS_SUCCESS on success, STATUS_ICE_SERVERS_FINAL if iceServersFinal is set
  */
 PUBLIC_API STATUS peerConnectionUpdateIceServers(PRtcPeerConnection, PRtcIceServer, UINT32);
 

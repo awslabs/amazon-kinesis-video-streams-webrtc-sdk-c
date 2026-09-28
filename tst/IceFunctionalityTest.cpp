@@ -568,7 +568,7 @@ TEST_F(IceFunctionalityTest, IceAgentGatherCandidateTimerCallbackReportsLocalCan
 
 // Helper for the gathering-completion tests below: every local candidate is already VALID and the gathering
 // deadline is far in the future, so the only way the callback can finish is the early-completion path.
-static VOID runGatherCompletionScenario(BOOL withTurnServer, PBOOL pFinished, STATUS* pStatus)
+static VOID runGatherCompletionScenario(BOOL iceServersFinal, PBOOL pFinished, STATUS* pStatus)
 {
     IceAgent* pIceAgent = (IceAgent*) MEMCALLOC(1, SIZEOF(IceAgent));
     IceCandidate localCandidates[2];
@@ -582,16 +582,11 @@ static VOID runGatherCompletionScenario(BOOL withTurnServer, PBOOL pFinished, ST
     ATOMIC_STORE_BOOL(&pIceAgent->addedRelayCandidate, FALSE);
     ATOMIC_STORE_BOOL(&pIceAgent->candidateGatheringFinished, FALSE);
     ATOMIC_STORE_BOOL(&pIceAgent->stopGathering, FALSE);
-    if (withTurnServer) {
-        pIceAgent->iceServersCount = 1;
-        pIceAgent->iceServers[0].isTurn = TRUE;
-    }
+    pIceAgent->kvsRtcConfiguration.iceServersFinal = iceServersFinal;
     EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&pIceAgent->localCandidates));
 
     for (i = 0; i < ARRAY_SIZE(localCandidates); ++i) {
-        // host + srflx, or host + (already allocated) relay when a TURN server is configured
-        localCandidates[i].iceCandidateType =
-            i == 0 ? ICE_CANDIDATE_TYPE_HOST : (withTurnServer ? ICE_CANDIDATE_TYPE_RELAYED : ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE);
+        localCandidates[i].iceCandidateType = i == 0 ? ICE_CANDIDATE_TYPE_HOST : ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE;
         localCandidates[i].state = ICE_CANDIDATE_STATE_VALID;
         localCandidates[i].reported = TRUE;
         EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemTail(pIceAgent->localCandidates, (UINT64) &localCandidates[i]));
@@ -610,18 +605,57 @@ TEST_F(IceFunctionalityTest, IceAgentGatherCandidateTimerCallbackCompletesEarlyW
 {
     BOOL finished = FALSE;
     STATUS status = STATUS_SUCCESS;
-    runGatherCompletionScenario(FALSE, &finished, &status);
+    runGatherCompletionScenario(TRUE, &finished, &status);
     EXPECT_EQ(STATUS_TIMER_QUEUE_STOP_SCHEDULING, status);
     EXPECT_TRUE(finished);
 }
 
-TEST_F(IceFunctionalityTest, IceAgentGatherCandidateTimerCallbackCompletesEarlyWithTurnServerOnceRelayIsValid)
+// With iceServersFinal set, a relay candidate whose allocation has not finished yet (still NEW) must keep gathering open.
+TEST_F(IceFunctionalityTest, IceAgentGatherCandidateTimerCallbackWaitsForPendingRelayWhenIceServersFinal)
 {
-    BOOL finished = FALSE;
+    IceAgent* pIceAgent = (IceAgent*) MEMCALLOC(1, SIZEOF(IceAgent));
+    IceCandidate localCandidates[2];
+
+    MEMSET(localCandidates, 0x00, SIZEOF(localCandidates));
+    pIceAgent->lock = MUTEX_CREATE(TRUE);
+    pIceAgent->candidateGatheringStartTime = GETTIME();
+    pIceAgent->candidateGatheringEndTime = GETTIME() + 60 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    pIceAgent->iceCandidateGatheringTimerTask = 1;
+    pIceAgent->kvsRtcConfiguration.iceServersFinal = TRUE;
+    EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&pIceAgent->localCandidates));
+
+    localCandidates[0].iceCandidateType = ICE_CANDIDATE_TYPE_HOST;
+    localCandidates[0].state = ICE_CANDIDATE_STATE_VALID;
+    localCandidates[0].reported = TRUE;
+    localCandidates[1].iceCandidateType = ICE_CANDIDATE_TYPE_RELAYED;
+    localCandidates[1].state = ICE_CANDIDATE_STATE_NEW;
+    EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemTail(pIceAgent->localCandidates, (UINT64) &localCandidates[0]));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemTail(pIceAgent->localCandidates, (UINT64) &localCandidates[1]));
+
+    EXPECT_EQ(STATUS_SUCCESS, iceAgentGatherCandidateTimerCallback(0, GETTIME(), (UINT64) pIceAgent));
+    EXPECT_FALSE(ATOMIC_LOAD_BOOL(&pIceAgent->candidateGatheringFinished));
+
+    // The allocation succeeds: the relay candidate is reported and gathering completes on that tick.
+    localCandidates[1].state = ICE_CANDIDATE_STATE_VALID;
+    EXPECT_EQ(STATUS_TIMER_QUEUE_STOP_SCHEDULING, iceAgentGatherCandidateTimerCallback(0, GETTIME(), (UINT64) pIceAgent));
+    EXPECT_TRUE(ATOMIC_LOAD_BOOL(&pIceAgent->candidateGatheringFinished));
+    EXPECT_TRUE(localCandidates[1].reported);
+
+    MUTEX_FREE(pIceAgent->lock);
+    EXPECT_EQ(STATUS_SUCCESS, doubleListClear(pIceAgent->localCandidates, FALSE));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListFree(pIceAgent->localCandidates));
+    MEMFREE(pIceAgent);
+}
+
+// Without iceServersFinal the application may still add TURN servers, so gathering stays open until the timeout
+// (or a nomination) even though every current candidate has resolved.
+TEST_F(IceFunctionalityTest, IceAgentGatherCandidateTimerCallbackWaitsWhenIceServersNotFinal)
+{
+    BOOL finished = TRUE;
     STATUS status = STATUS_SUCCESS;
-    runGatherCompletionScenario(TRUE, &finished, &status);
-    EXPECT_EQ(STATUS_TIMER_QUEUE_STOP_SCHEDULING, status);
-    EXPECT_TRUE(finished);
+    runGatherCompletionScenario(FALSE, &finished, &status);
+    EXPECT_EQ(STATUS_SUCCESS, status);
+    EXPECT_FALSE(finished);
 }
 
 TEST_F(IceFunctionalityTest, IceAgentFindCandidateWithIpUnitTest)
