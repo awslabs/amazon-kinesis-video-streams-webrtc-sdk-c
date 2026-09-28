@@ -2193,6 +2193,17 @@ PUBLIC_API STATUS transceiverOnBandwidthEstimation(PRtcRtpTransceiver, UINT64, R
 PUBLIC_API STATUS transceiverOnPictureLoss(PRtcRtpTransceiver, UINT64, RtcOnPictureLoss);
 
 /**
+ * @brief Send a Picture Loss Indication (PLI) to ask the remote sender for a new keyframe
+ *
+ * Reference: https://tools.ietf.org/html/rfc4585#section-6.3.1
+ *
+ * @param[in] PRtcRtpTransceiver Transceiver that receives the remote video
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success, STATUS_SRTP_NOT_READY_YET before DTLS completes
+ */
+PUBLIC_API STATUS transceiverSendPictureLoss(PRtcRtpTransceiver);
+
+/**
  * @brief Override the H264 fmtp string advertised in SDP offers and answers for this transceiver.
  *
  * By default the SDK advertises a Baseline-profile fmtp (DEFAULT_H264_FMTP). Use this to pin a

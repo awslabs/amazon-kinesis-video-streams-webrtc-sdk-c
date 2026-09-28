@@ -526,7 +526,7 @@ typedef struct {
 
     UINT32 nackCount; //!< TODO Count the total number of Negative ACKnowledgement (NACK) packets sent by this receiver.
     UINT32 firCount;  //!< TODO Only valid for video. Count the total number of Full Intra Request (FIR) packets sent by this receiver.
-    UINT32 pliCount;  //!< TODO Only valid for video. Count the total number of Picture Loss Indication (PLI) packets sent by this receiver.
+    UINT32 pliCount;  //!< Only valid for video. Count the total number of Picture Loss Indication (PLI) packets sent by this receiver.
     UINT32 sliCount;  //!< TODO Only valid for video. Count the total number of Slice Loss Indication (SLI) packets sent by this receiver.
     DOMHighResTimeStamp estimatedPlayoutTimestamp; //!< TODO This is the estimated playout time of this receiver's track.
     DOUBLE jitterBufferDelay; //!< TODO It is the sum of the time, in seconds, each audio sample or video frame takes from the time it is received and
