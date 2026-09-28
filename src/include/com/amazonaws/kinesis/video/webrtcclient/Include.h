@@ -1784,7 +1784,7 @@ typedef struct {
                                                       //!< RTCDataChannel object with the same id as the other peer. No DCEP DATA_CHANNEL_OPEN
                                                       //!< is sent for a negotiated channel, and it may be created before or after the SCTP
                                                       //!< association is established.
-    NullableUint16 id;                                //!< SCTP stream id. Required when negotiated is TRUE, ignored otherwise.
+    NullableUint16 id;                                //!< SCTP stream id, 0-299. Required when negotiated is TRUE, ignored otherwise.
 } RtcDataChannelInit, *PRtcDataChannelInit;
 /*!@} */
 
@@ -2315,6 +2315,10 @@ PUBLIC_API STATUS dataChannelOnMessage(PRtcDataChannel, UINT64, RtcOnMessage);
 
 /**
  * @brief Set a callback for data channel open
+ *
+ * For a channel that is already open (a negotiated channel created on an established
+ * association, or a remote channel), the callback runs before this function returns.
+ * It runs once per channel.
  *
  * @param[in] PRtcDataChannel Data channel struct created by createDataChannel()
  * @param[in] UINT64 User customData that will be passed along when RtcOnOpen is called
