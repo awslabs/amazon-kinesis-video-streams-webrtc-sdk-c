@@ -23,6 +23,27 @@ TEST_F(DtlsApiTest, createCertificateAndKey_Returns_Success)
     EXPECT_EQ(pKey, nullptr);
 }
 
+// Validates that KVS_X509_GETM_NOTBEFORE / KVS_X509_GETM_NOTAFTER macros
+// produce a certificate whose notBefore and notAfter fields are set.
+TEST_F(DtlsApiTest, createCertificateAndKey_ValidatesTimeFields)
+{
+    X509* pCert = NULL;
+    EVP_PKEY* pKey = NULL;
+
+    EXPECT_EQ(createCertificateAndKey(GENERATED_CERTIFICATE_BITS, FALSE, &pCert, &pKey), STATUS_SUCCESS);
+    ASSERT_NE(pCert, nullptr);
+
+    const ASN1_TIME* pNotBefore = X509_get0_notBefore(pCert);
+    const ASN1_TIME* pNotAfter = X509_get0_notAfter(pCert);
+    EXPECT_NE(pNotBefore, nullptr);
+    EXPECT_NE(pNotAfter, nullptr);
+
+    // notBefore must be strictly before notAfter
+    EXPECT_LT(ASN1_TIME_compare(pNotBefore, pNotAfter), 0);
+
+    EXPECT_EQ(freeCertificateAndKey(&pCert, &pKey), STATUS_SUCCESS);
+}
+
 TEST_F(DtlsApiTest, dtlsSessionIsInitFinished_Null_Check)
 {
     PDtlsSession pClient = NULL;
