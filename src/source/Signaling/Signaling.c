@@ -514,6 +514,14 @@ STATUS terminateOngoingOperations(PSignalingClient pSignalingClient)
 
             // Re-verify under the spawn lock — if a late spawn just set
             // terminated=FALSE we will see it and loop again.
+            //
+            // freeSignaling() is also reached from the createSignalingSync
+            // failure path, where the client may be only partially
+            // constructed and lwsServiceLock not yet created. No WSS callback
+            // can exist in that state, so there is nothing to re-verify.
+            if (!IS_VALID_MUTEX_VALUE(pSignalingClient->lwsServiceLock)) {
+                break;
+            }
             MUTEX_LOCK(pSignalingClient->lwsServiceLock);
             if (ATOMIC_LOAD_BOOL(&pSignalingClient->reconnecterTracker.terminated)) {
                 MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
@@ -528,14 +536,18 @@ STATUS terminateOngoingOperations(PSignalingClient pSignalingClient)
         // each increments receiveWorkerCount before detach and decrements on
         // exit. Freeing pSignalingClient while one is still running is a
         // use-after-free, so block until the count drains to zero.
-        MUTEX_LOCK(pSignalingClient->receiveWorkerLock);
-        while (ATOMIC_LOAD(&pSignalingClient->receiveWorkerCount) > 0) {
-            if (STATUS_FAILED(
-                    CVAR_WAIT(pSignalingClient->receiveWorkerCvar, pSignalingClient->receiveWorkerLock, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT))) {
-                DLOGW("Receive workers still in-flight (count: %llu), retrying...", (UINT64) ATOMIC_LOAD(&pSignalingClient->receiveWorkerCount));
+        // Skip when the lock/cvar were never created (partial construction):
+        // no receive worker can have been spawned without them.
+        if (IS_VALID_MUTEX_VALUE(pSignalingClient->receiveWorkerLock) && IS_VALID_CVAR_VALUE(pSignalingClient->receiveWorkerCvar)) {
+            MUTEX_LOCK(pSignalingClient->receiveWorkerLock);
+            while (ATOMIC_LOAD(&pSignalingClient->receiveWorkerCount) > 0) {
+                if (STATUS_FAILED(
+                        CVAR_WAIT(pSignalingClient->receiveWorkerCvar, pSignalingClient->receiveWorkerLock, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT))) {
+                    DLOGW("Receive workers still in-flight (count: %llu), retrying...", (UINT64) ATOMIC_LOAD(&pSignalingClient->receiveWorkerCount));
+                }
             }
+            MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
         }
-        MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
     } else {
         // Non-free callers (fetchSync, disconnectSync, deleteSync): shutdown
         // is FALSE so the reconnect thread may legitimately keep running or

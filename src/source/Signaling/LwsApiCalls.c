@@ -2288,18 +2288,27 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     DLOGD("Client received message of type: %s",
           getMessageTypeInString(pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType));
 
+    // Count this in-flight worker BEFORE handing it off; the wrapper decrements
+    // on exit. Incrementing after the create/push would let a fast worker run
+    // to completion and decrement first, transiently wrapping the counter and
+    // stalling the shutdown drain in terminateOngoingOperations(). If the
+    // hand-off fails the wrapper never runs, so undo the increment here.
+    ATOMIC_INCREMENT(&pSignalingClient->receiveWorkerCount);
 #ifdef ENABLE_KVS_THREADPOOL
     // This would fail if threadpool was not created
-    CHK_STATUS(threadpoolContextPush(receiveLwsMessageWrapper, pSignalingMessageWrapper));
-    // Count this in-flight worker; the wrapper decrements on exit. Incremented
-    // only after a successful push so the wrapper is guaranteed to run.
-    ATOMIC_INCREMENT(&pSignalingClient->receiveWorkerCount);
+    retStatus = threadpoolContextPush(receiveLwsMessageWrapper, pSignalingMessageWrapper);
 #else
     // Issue the callback on a separate thread
-    CHK_STATUS(THREAD_CREATE(&receivedTid, receiveLwsMessageWrapper, (PVOID) pSignalingMessageWrapper));
-    // Count this in-flight worker (after successful create, before detach) so
-    // terminateOngoingOperations() can wait for it before the client is freed.
-    ATOMIC_INCREMENT(&pSignalingClient->receiveWorkerCount);
+    retStatus = THREAD_CREATE(&receivedTid, receiveLwsMessageWrapper, (PVOID) pSignalingMessageWrapper);
+#endif
+    if (STATUS_FAILED(retStatus)) {
+        MUTEX_LOCK(pSignalingClient->receiveWorkerLock);
+        ATOMIC_DECREMENT(&pSignalingClient->receiveWorkerCount);
+        CVAR_BROADCAST(pSignalingClient->receiveWorkerCvar);
+        MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
+        CHK(FALSE, retStatus);
+    }
+#ifndef ENABLE_KVS_THREADPOOL
     CHK_STATUS(THREAD_DETACH(receivedTid));
 #endif
 
@@ -2489,9 +2498,18 @@ CleanUp:
 
     // Decrement the in-flight worker counter and wake any shutdown waiter in
     // terminateOngoingOperations() that is blocked on receiveWorkerCount == 0.
+    // Both must happen under receiveWorkerLock: the waiter re-checks the count
+    // while holding the lock, so it can only observe 0 after we have released
+    // it, i.e. after the broadcast has completed. Without the lock the waiter
+    // could see 0, return, and free/destroy the cvar while this thread is still
+    // inside CVAR_BROADCAST (TSAN: pthread_cond_destroy vs pthread_cond_broadcast).
+    // Holding the lock also closes the lost-wakeup window where the broadcast
+    // fires between the waiter's count check and its CVAR_WAIT.
     if (pSignalingClient != NULL) {
+        MUTEX_LOCK(pSignalingClient->receiveWorkerLock);
         ATOMIC_DECREMENT(&pSignalingClient->receiveWorkerCount);
         CVAR_BROADCAST(pSignalingClient->receiveWorkerCvar);
+        MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
     }
 
     return (PVOID) (ULONG_PTR) retStatus;
