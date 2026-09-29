@@ -256,8 +256,8 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     CHK((*ppCert = X509_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
     X509_set_version(*ppCert, 2);
     ASN1_INTEGER_set_uint64(X509_get_serialNumber(*ppCert), certSn);
-    X509_gmtime_adj(X509_get_notBefore(*ppCert), -1 * GENERATED_CERTIFICATE_DAYS * SECONDS_IN_A_DAY);
-    X509_gmtime_adj(X509_get_notAfter(*ppCert), GENERATED_CERTIFICATE_DAYS * SECONDS_IN_A_DAY);
+    X509_gmtime_adj(KVS_X509_GETM_NOTBEFORE(*ppCert), -1 * GENERATED_CERTIFICATE_DAYS * SECONDS_IN_A_DAY);
+    X509_gmtime_adj(KVS_X509_GETM_NOTAFTER(*ppCert), GENERATED_CERTIFICATE_DAYS * SECONDS_IN_A_DAY);
     CHK(X509_set_pubkey(*ppCert, *ppPkey) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
 
     CHK((pX509Name = X509_get_subject_name(*ppCert)) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
