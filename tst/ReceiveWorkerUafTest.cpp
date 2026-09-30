@@ -221,6 +221,58 @@ TEST_F(ReceiveWorkerUafTest, receiveWorkerCountDrainsToZeroAfterWorkersComplete)
     freeStaticCredentialProvider(&pCredentialProvider);
 }
 
+struct FakeReconnectContext {
+    PSignalingClient pSignalingClient = NULL;
+    std::atomic<bool> published{false};
+    std::atomic<bool> releasedLock{false};
+};
+
+// Mimics reconnectHandler()'s exit: publish terminated and broadcast while holding reconnecterTracker.lock, but
+// linger inside the lock so the gap between "terminated is TRUE" and "thread is done with pSignalingClient" is wide.
+static PVOID fakeReconnectExitHoldingTrackerLock(PVOID args)
+{
+    FakeReconnectContext* pCtx = (FakeReconnectContext*) args;
+    PSignalingClient pSignalingClient = pCtx->pSignalingClient;
+
+    MUTEX_LOCK(pSignalingClient->reconnecterTracker.lock);
+    ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, TRUE);
+    pCtx->published.store(true);
+    THREAD_SLEEP(200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    CVAR_BROADCAST(pSignalingClient->reconnecterTracker.await);
+    pCtx->releasedLock.store(true);
+    MUTEX_UNLOCK(pSignalingClient->reconnecterTracker.lock);
+    return NULL;
+}
+
+// terminated == TRUE alone does not mean the reconnect thread has stopped touching pSignalingClient. freeSignaling()
+// must synchronize on reconnecterTracker.lock before freeing; otherwise the thread's broadcast/unlock is a UAF.
+TEST_F(ReceiveWorkerUafTest, freeSignalingWaitsForReconnectThreadToReleaseTrackerLock)
+{
+    BlockingCallbackContext callbackCtx;
+    FakeReconnectContext ctx;
+    PAwsCredentialProvider pCredentialProvider = NULL;
+    PSignalingClient pSignalingClient = NULL;
+    TID threadId;
+
+    ASSERT_EQ(STATUS_SUCCESS,
+              createOfflineSignalingClient(mChannelName, mRegion, mCaCertPath, mLogLevel, (UINT64) &callbackCtx, &pCredentialProvider,
+                                           &pSignalingClient));
+    ASSERT_NE((PSignalingClient) NULL, pSignalingClient);
+    ctx.pSignalingClient = pSignalingClient;
+
+    ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, FALSE);
+    ASSERT_EQ(STATUS_SUCCESS, THREAD_CREATE(&threadId, fakeReconnectExitHoldingTrackerLock, (PVOID) &ctx));
+    ASSERT_EQ(STATUS_SUCCESS, THREAD_DETACH(threadId));
+    while (!ctx.published.load()) {
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+
+    // terminated is already TRUE here, but the fake thread still holds the tracker lock.
+    EXPECT_EQ(STATUS_SUCCESS, freeSignaling(&pSignalingClient));
+    EXPECT_TRUE(ctx.releasedLock.load()) << "freeSignaling() returned while the reconnect thread still held reconnecterTracker.lock";
+    freeStaticCredentialProvider(&pCredentialProvider);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

@@ -492,23 +492,22 @@ STATUS terminateOngoingOperations(PSignalingClient pSignalingClient)
         // reads shutdown==FALSE and spawns a thread between our shutdown=TRUE
         // store and the wait.
         while (TRUE) {
-            while (!ATOMIC_LOAD_BOOL(&pSignalingClient->reconnecterTracker.terminated)) {
-                retStatus = awaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);
-                if (STATUS_FAILED(retStatus)) {
-                    waitAttempts++;
-                    retStatus = STATUS_SUCCESS;
-                    if (waitAttempts >= SIGNALING_SHUTDOWN_MAX_WAIT_ATTEMPTS) {
-                        DLOGE("Reconnect thread still alive after %u attempts (~%u s). "
-                              "Possible getaddrinfo hang. Will keep waiting — UAF is worse than a stall.",
-                              waitAttempts, waitAttempts * (2 + SIGNALING_SERVICE_API_CALL_TIMEOUT_IN_SECONDS));
-                        waitAttempts = 0;
-                    } else {
-                        DLOGW("Reconnect thread still alive after timeout (attempt %u/%u), retrying wait...", waitAttempts,
-                              SIGNALING_SHUTDOWN_MAX_WAIT_ATTEMPTS);
-                    }
-                    if (pSignalingClient->pWebsocketContext != NULL) {
-                        lws_cancel_service((struct lws_context*) pSignalingClient->pWebsocketContext);
-                    }
+            // Always go through awaitForThreadTermination(), even if terminated is already TRUE: the reconnect
+            // thread sets terminated and broadcasts while holding reconnecterTracker.lock, so acquiring that lock
+            // here guarantees the thread has finished touching pSignalingClient before we free it.
+            while (STATUS_FAILED(awaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT))) {
+                waitAttempts++;
+                if (waitAttempts >= SIGNALING_SHUTDOWN_MAX_WAIT_ATTEMPTS) {
+                    DLOGE("Reconnect thread still alive after %u attempts (~%u s). "
+                          "Possible getaddrinfo hang. Will keep waiting — UAF is worse than a stall.",
+                          waitAttempts, waitAttempts * (2 + SIGNALING_SERVICE_API_CALL_TIMEOUT_IN_SECONDS));
+                    waitAttempts = 0;
+                } else {
+                    DLOGW("Reconnect thread still alive after timeout (attempt %u/%u), retrying wait...", waitAttempts,
+                          SIGNALING_SHUTDOWN_MAX_WAIT_ATTEMPTS);
+                }
+                if (pSignalingClient->pWebsocketContext != NULL) {
+                    lws_cancel_service((struct lws_context*) pSignalingClient->pWebsocketContext);
                 }
             }
 
@@ -525,6 +524,9 @@ STATUS terminateOngoingOperations(PSignalingClient pSignalingClient)
             MUTEX_LOCK(pSignalingClient->lwsServiceLock);
             if (ATOMIC_LOAD_BOOL(&pSignalingClient->reconnecterTracker.terminated)) {
                 MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
+                // A late thread may have both started and finished since the wait above. It published terminated
+                // under reconnecterTracker.lock, so pass through that lock once more before freeing.
+                awaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);
                 break;
             }
             MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);

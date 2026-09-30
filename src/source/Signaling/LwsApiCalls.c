@@ -1872,10 +1872,12 @@ CleanUp:
             }
         }
 
+        // Publish termination and notify under the tracker lock. The shutdown path in terminateOngoingOperations()
+        // acquires this lock before freeing, so the unlock below is this thread's last access to pSignalingClient.
+        MUTEX_LOCK(pSignalingClient->reconnecterTracker.lock);
         ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, TRUE);
-
-        // Notify the listeners to unlock
         CVAR_BROADCAST(pSignalingClient->reconnecterTracker.await);
+        MUTEX_UNLOCK(pSignalingClient->reconnecterTracker.lock);
     }
 
     LEAVES();
