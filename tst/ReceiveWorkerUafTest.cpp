@@ -67,7 +67,8 @@ static STATUS blockingMessageReceivedFn(UINT64 customData, PReceivedSignalingMes
 // Builds a signaling client without touching the network. createSignalingSync()
 // only drives the state machine to GET_TOKEN, which the static provider serves locally.
 static STATUS createOfflineSignalingClient(PCHAR channelName, PCHAR region, PCHAR certPath, UINT32 logLevel, UINT64 callbackCustomData,
-                                           PAwsCredentialProvider* ppCredentialProvider, PSignalingClient* ppSignalingClient)
+                                           PAwsCredentialProvider* ppCredentialProvider, PSignalingClient* ppSignalingClient,
+                                           SignalingClientMessageReceivedFunc messageReceivedFn = blockingMessageReceivedFn)
 {
     STATUS retStatus = STATUS_SUCCESS;
     SignalingClientInfoInternal clientInfoInternal;
@@ -82,7 +83,7 @@ static STATUS createOfflineSignalingClient(PCHAR channelName, PCHAR region, PCHA
     MEMSET(&signalingClientCallbacks, 0x00, SIZEOF(SignalingClientCallbacks));
     signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
     signalingClientCallbacks.customData = callbackCustomData;
-    signalingClientCallbacks.messageReceivedFn = blockingMessageReceivedFn;
+    signalingClientCallbacks.messageReceivedFn = messageReceivedFn;
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
     channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
@@ -107,6 +108,60 @@ CleanUp:
 
     return retStatus;
 }
+
+struct FreeFromCallbackContext {
+    std::mutex lock;
+    std::condition_variable cv;
+    PSignalingClient pSignalingClient = NULL;
+    bool done = false;
+    STATUS freeStatus = STATUS_SUCCESS;
+};
+
+// messageReceivedFn that tries to free the signaling client from inside the callback.
+static STATUS freeFromCallbackMessageReceivedFn(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage)
+{
+    UNUSED_PARAM(pReceivedSignalingMessage);
+    FreeFromCallbackContext* pCtx = (FreeFromCallbackContext*) customData;
+    PSignalingClient pSignalingClient = pCtx->pSignalingClient;
+    STATUS status = freeSignaling(&pSignalingClient);
+
+    std::lock_guard<std::mutex> guard(pCtx->lock);
+    pCtx->freeStatus = status;
+    pCtx->done = true;
+    pCtx->cv.notify_all();
+    return STATUS_SUCCESS;
+}
+
+// freeSignaling() waits for every receive worker to exit, so calling it from messageReceivedFn would wait on
+// itself forever. It must refuse with STATUS_INVALID_OPERATION and leave the client intact instead.
+TEST_F(ReceiveWorkerUafTest, freeSignalingFromReceiveCallbackIsRejected)
+{
+    FreeFromCallbackContext ctx;
+    PAwsCredentialProvider pCredentialProvider = NULL;
+    PSignalingClient pSignalingClient = NULL;
+
+    ASSERT_EQ(STATUS_SUCCESS,
+              createOfflineSignalingClient(mChannelName, mRegion, mCaCertPath, mLogLevel, (UINT64) &ctx, &pCredentialProvider, &pSignalingClient,
+                                           freeFromCallbackMessageReceivedFn));
+    ASSERT_NE((PSignalingClient) NULL, pSignalingClient);
+    ctx.pSignalingClient = pSignalingClient;
+
+    ASSERT_EQ(STATUS_SUCCESS, receiveLwsMessage(pSignalingClient, (PCHAR) kIceCandidateMessage, ARRAY_SIZE(kIceCandidateMessage)));
+
+    {
+        std::unique_lock<std::mutex> guard(ctx.lock);
+        ASSERT_TRUE(ctx.cv.wait_for(guard, std::chrono::seconds(5), [&ctx] { return ctx.done; }))
+            << "freeSignaling() called from messageReceivedFn did not return (self-wait deadlock)";
+    }
+    EXPECT_EQ(STATUS_INVALID_OPERATION, ctx.freeStatus);
+
+    // The client must still be usable and freeable from a non-signaling thread.
+    EXPECT_FALSE(ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown));
+    EXPECT_EQ(STATUS_SUCCESS, freeSignaling(&pSignalingClient));
+    EXPECT_EQ((PSignalingClient) NULL, pSignalingClient);
+    freeStaticCredentialProvider(&pCredentialProvider);
+}
+
 
 // N receive workers are parked inside the application callback. freeSignaling()
 // must:

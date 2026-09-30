@@ -185,6 +185,15 @@ typedef struct {
 /**
  * Internal structure tracking various parameters for diagnostics and metrics/stats
  */
+/**
+ * Stack-allocated marker linked into SignalingClient::pActiveReceiveWorkers by a receive worker for the
+ * duration of receiveLwsMessageWrapper(), so freeSignaling() can detect being called from a receive callback.
+ */
+typedef struct __ReceiveWorkerNode {
+    TID tid;
+    struct __ReceiveWorkerNode* pNext;
+} ReceiveWorkerNode, *PReceiveWorkerNode;
+
 typedef struct {
     volatile SIZE_T numberOfMessagesSent;
     volatile SIZE_T numberOfMessagesReceived;
@@ -350,6 +359,13 @@ typedef struct {
     volatile SIZE_T receiveWorkerCount;
     MUTEX receiveWorkerLock;
     CVAR receiveWorkerCvar;
+
+    // Receive workers currently executing receiveLwsMessageWrapper(). Protected by receiveWorkerLock.
+    PReceiveWorkerNode pActiveReceiveWorkers;
+
+    // Thread id of the most recently started reconnectHandler(). Only meaningful while
+    // reconnecterTracker.terminated is FALSE, so a stale or recycled id never matches.
+    volatile SIZE_T reconnectThreadTid;
 
     // Generic websocket context - can be used by any implementation
     PVOID pWebsocketContext;

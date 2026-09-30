@@ -194,6 +194,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->deleting, FALSE);
     ATOMIC_STORE(&pSignalingClient->receiveWorkerCount, 0);
+    ATOMIC_STORE(&pSignalingClient->reconnectThreadTid, 0);
+    pSignalingClient->pActiveReceiveWorkers = NULL;
     ATOMIC_STORE_BOOL(&pSignalingClient->deleted, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->serviceLockContention, FALSE);
 
@@ -289,6 +291,31 @@ CleanUp:
     return retStatus;
 }
 
+// Returns TRUE if the calling thread is this client's running reconnect thread or one of its receive workers.
+// freeSignaling() waits for those threads to exit, so it must not be called from one of them: it would wait on
+// itself forever.
+static BOOL isSignalingOwnedThread(PSignalingClient pSignalingClient)
+{
+    TID tid = GETTID();
+    BOOL found = FALSE;
+    PReceiveWorkerNode pNode;
+
+    if (!ATOMIC_LOAD_BOOL(&pSignalingClient->reconnecterTracker.terminated) &&
+        (SIZE_T) ATOMIC_LOAD(&pSignalingClient->reconnectThreadTid) == (SIZE_T) tid) {
+        return TRUE;
+    }
+
+    if (IS_VALID_MUTEX_VALUE(pSignalingClient->receiveWorkerLock)) {
+        MUTEX_LOCK(pSignalingClient->receiveWorkerLock);
+        for (pNode = pSignalingClient->pActiveReceiveWorkers; pNode != NULL && !found; pNode = pNode->pNext) {
+            found = (pNode->tid == tid);
+        }
+        MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
+    }
+
+    return found;
+}
+
 STATUS freeSignaling(PSignalingClient* ppSignalingClient)
 {
     ENTERS();
@@ -299,6 +326,9 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
 
     pSignalingClient = *ppSignalingClient;
     CHK(pSignalingClient != NULL, retStatus);
+
+    CHK_ERR(!isSignalingOwnedThread(pSignalingClient), STATUS_INVALID_OPERATION,
+            "freeSignalingClient() must not be called from a signaling callback (message, state change or error callback)");
 
     ATOMIC_STORE_BOOL(&pSignalingClient->shutdown, TRUE);
 

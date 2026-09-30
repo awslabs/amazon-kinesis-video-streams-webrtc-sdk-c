@@ -2377,6 +2377,9 @@ PUBLIC_API STATUS createSignalingClientSync(PSignalingClientInfo, PChannelInfo, 
  * @brief Frees the Signaling client object
  *
  * NOTE: The call is idempotent.
+ * NOTE: Blocks until the signaling client's internal threads have exited. Must not be called from a signaling
+ *       callback (messageReceivedFn, stateChangeFn or errorReportFn); doing so returns STATUS_INVALID_OPERATION
+ *       and leaves the handle valid.
  *
  * @param[in,out/opt] PSIGNALING_CLIENT_HANDLE Signaling client handle to free
  *

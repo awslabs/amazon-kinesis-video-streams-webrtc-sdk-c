@@ -1840,6 +1840,9 @@ PVOID reconnectHandler(PVOID args)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
+    // Record our tid so freeSignaling() can refuse to run from a callback on this thread
+    ATOMIC_STORE(&pSignalingClient->reconnectThreadTid, (SIZE_T) GETTID());
+
     // Await for the listener to clear
     MUTEX_LOCK(pSignalingClient->listenerTracker.lock);
     MUTEX_UNLOCK(pSignalingClient->listenerTracker.lock);
@@ -2455,6 +2458,8 @@ PVOID receiveLwsMessageWrapper(PVOID args)
     PSignalingMessageWrapper pSignalingMessageWrapper = (PSignalingMessageWrapper) args;
     PSignalingClient pSignalingClient = NULL;
     SIGNALING_MESSAGE_TYPE messageType = SIGNALING_MESSAGE_TYPE_UNKNOWN;
+    ReceiveWorkerNode workerNode;
+    PReceiveWorkerNode* ppNode;
 
     CHK(pSignalingMessageWrapper != NULL, STATUS_NULL_ARG);
 
@@ -2463,6 +2468,13 @@ PVOID receiveLwsMessageWrapper(PVOID args)
     pSignalingClient = pSignalingMessageWrapper->pSignalingClient;
 
     CHK(pSignalingClient != NULL, STATUS_INTERNAL_ERROR);
+
+    // Register this worker so freeSignaling() can detect being called from messageReceivedFn on this thread
+    workerNode.tid = GETTID();
+    MUTEX_LOCK(pSignalingClient->receiveWorkerLock);
+    workerNode.pNext = pSignalingClient->pActiveReceiveWorkers;
+    pSignalingClient->pActiveReceiveWorkers = &workerNode;
+    MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
 
     // Updating the diagnostics info before calling the client callback
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfMessagesReceived);
@@ -2509,6 +2521,12 @@ CleanUp:
     // fires between the waiter's count check and its CVAR_WAIT.
     if (pSignalingClient != NULL) {
         MUTEX_LOCK(pSignalingClient->receiveWorkerLock);
+        for (ppNode = &pSignalingClient->pActiveReceiveWorkers; *ppNode != NULL; ppNode = &(*ppNode)->pNext) {
+            if (*ppNode == &workerNode) {
+                *ppNode = workerNode.pNext;
+                break;
+            }
+        }
         ATOMIC_DECREMENT(&pSignalingClient->receiveWorkerCount);
         CVAR_BROADCAST(pSignalingClient->receiveWorkerCvar);
         MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
