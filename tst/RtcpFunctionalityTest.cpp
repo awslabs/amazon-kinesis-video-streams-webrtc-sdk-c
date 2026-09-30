@@ -719,6 +719,37 @@ TEST_F(RtcpFunctionalityTest, onpli)
     freePeerConnection(&pRtcPeerConnection);
 }
 
+TEST_F(RtcpFunctionalityTest, createRtcpPLIPacket)
+{
+    BYTE expected[] = {0x81, 0xCE, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x1D, 0xC8, 0x69, 0x91};
+    BYTE rawPacket[RTCP_PLI_PACKET_LEN] = {0};
+    RtcpPacket rtcpPacket{};
+
+    EXPECT_EQ(STATUS_NULL_ARG, createRtcpPLIPacket(nullptr, 1, 0x1DC86991));
+    EXPECT_EQ(STATUS_SUCCESS, createRtcpPLIPacket(rawPacket, 1, 0x1DC86991));
+    EXPECT_EQ(0, MEMCMP(expected, rawPacket, SIZEOF(expected)));
+
+    EXPECT_EQ(STATUS_SUCCESS, setRtcpPacketFromBytes(rawPacket, SIZEOF(rawPacket), &rtcpPacket));
+    EXPECT_EQ(RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK, rtcpPacket.header.packetType);
+    EXPECT_EQ(RTCP_PSFB_PLI, rtcpPacket.header.receptionReportCount);
+}
+
+TEST_F(RtcpFunctionalityTest, transceiverSendPictureLossNotReady)
+{
+    RtcInboundRtpStreamStats stats{};
+    this->initTransceiver(1);
+
+    EXPECT_EQ(STATUS_NULL_ARG, transceiverSendPictureLoss(nullptr));
+    EXPECT_EQ(STATUS_INVALID_OPERATION, transceiverSendPictureLoss(pRtcRtpTransceiver));
+
+    pKvsRtpTransceiver->jitterBufferSsrc = 0x1DC86991;
+    EXPECT_EQ(STATUS_SRTP_NOT_READY_YET, transceiverSendPictureLoss(pRtcRtpTransceiver));
+
+    EXPECT_EQ(STATUS_SUCCESS, getRtpInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &stats));
+    EXPECT_EQ(0, stats.pliCount);
+    freePeerConnection(&pRtcPeerConnection);
+}
+
 static void testBwHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPacketsCnt, UINT32 rxPacketsCnt, UINT64 duration)
 {
     UNUSED_PARAM(customData);

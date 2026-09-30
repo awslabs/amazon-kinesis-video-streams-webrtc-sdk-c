@@ -804,3 +804,56 @@ CleanUp:
 
     return retStatus;
 }
+
+STATUS createRtcpPLIPacket(PBYTE pRawPacket, UINT32 senderSsrc, UINT32 mediaSsrc)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pRawPacket != NULL, STATUS_NULL_ARG);
+
+    pRawPacket[0] = (RTCP_PACKET_VERSION_VAL << 6) | RTCP_PSFB_PLI;
+    pRawPacket[RTCP_PACKET_TYPE_OFFSET] = RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK;
+    putUnalignedInt16BigEndian(pRawPacket + RTCP_PACKET_LEN_OFFSET, (RTCP_PLI_PACKET_LEN / RTCP_PACKET_LEN_WORD_SIZE) - 1);
+    putUnalignedInt32BigEndian(pRawPacket + RTCP_PACKET_HEADER_LEN, senderSsrc);
+    putUnalignedInt32BigEndian(pRawPacket + RTCP_PACKET_HEADER_LEN + SIZEOF(UINT32), mediaSsrc);
+
+CleanUp:
+
+    return retStatus;
+}
+
+STATUS transceiverSendPictureLoss(PRtcRtpTransceiver pRtcRtpTransceiver)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    BOOL locked = FALSE;
+    UINT32 packetLen = RTCP_PLI_PACKET_LEN;
+    // srtp_protect_rtcp() writes the auth tag and SRTCP trailer after the packet
+    BYTE rawPacket[RTCP_PLI_PACKET_LEN + SRTP_AUTH_TAG_OVERHEAD + SRTP_MAX_TRAILER_LEN + 4] = {0};
+
+    CHK(pKvsRtpTransceiver != NULL && pKvsRtpTransceiver->pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+    pKvsPeerConnection = pKvsRtpTransceiver->pKvsPeerConnection;
+    CHK_ERR(pKvsRtpTransceiver->jitterBufferSsrc != 0, STATUS_INVALID_OPERATION, "No remote SSRC to send a PLI to");
+
+    CHK_STATUS(createRtcpPLIPacket(rawPacket, pKvsRtpTransceiver->sender.ssrc, pKvsRtpTransceiver->jitterBufferSsrc));
+
+    MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
+    locked = TRUE;
+    CHK(pKvsPeerConnection->pSrtpSession != NULL, STATUS_SRTP_NOT_READY_YET);
+    CHK_STATUS(encryptRtcpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, (PINT32) &packetLen));
+    CHK_STATUS(iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, packetLen));
+
+    MUTEX_LOCK(pKvsRtpTransceiver->statsLock);
+    pKvsRtpTransceiver->inboundStats.pliCount++;
+    MUTEX_UNLOCK(pKvsRtpTransceiver->statsLock);
+
+CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pKvsPeerConnection->pSrtpSessionLock);
+    }
+
+    LEAVES();
+    return retStatus;
+}
