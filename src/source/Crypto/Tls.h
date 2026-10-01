@@ -42,8 +42,10 @@ struct __TlsSession {
 
     mbedtls_ssl_context sslCtx;
     mbedtls_ssl_config sslCtxConfig;
+#if MBEDTLS_HAS_ENTROPY
     mbedtls_entropy_context entropy;
     mbedtls_ctr_drbg_context ctrDrbg;
+#endif
     mbedtls_x509_crt cacert;
 #else
 #error "A Crypto implementation is required."
