@@ -2180,8 +2180,6 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     CHK(turnServerIpFamily != KVS_IP_FAMILY_TYPE_NOT_SET, STATUS_INVALID_ARG);
 
-    /* we dont support TURN on DTLS yet. */
-    CHK(protocol != KVS_SOCKET_PROTOCOL_UDP || !pIceAgent->iceServers[iceServerIndex].isSecure, retStatus);
     CHK_WARN(pIceAgent->relayCandidateCount < KVS_ICE_MAX_RELAY_CANDIDATE_COUNT, retStatus,
              "Cannot create more relay candidate because max count of %u is reached", KVS_ICE_MAX_RELAY_CANDIDATE_COUNT);
 

@@ -270,9 +270,12 @@ STATUS executeGetCredentialsTurnState(UINT64 customData, UINT64 time)
         /* Start receiving data for TLS handshake */
         ATOMIC_STORE_BOOL(&pTurnConnection->pControlChannel->receiveData, TRUE);
 
-        /* We dont support DTLS and TCP, so only options are TCP/TLS and UDP. */
+        /* TCP is wrapped in TLS, secure UDP (turns: with ?transport=udp) in DTLS. */
         /* TODO: add plain TCP once it becomes available. */
         if (pTurnConnection->protocol == KVS_SOCKET_PROTOCOL_TCP && pTurnConnection->pControlChannel->pTlsSession == NULL) {
+            CHK_STATUS(socketConnectionInitSecureConnection(pTurnConnection->pControlChannel, FALSE, pTurnConnection->timerQueueHandle));
+        } else if (pTurnConnection->protocol == KVS_SOCKET_PROTOCOL_UDP && pTurnConnection->turnServer.isSecure &&
+                   pTurnConnection->pControlChannel->pDtlsSession == NULL) {
             CHK_STATUS(socketConnectionInitSecureConnection(pTurnConnection->pControlChannel, FALSE, pTurnConnection->timerQueueHandle));
         }
         pTurnConnection->state = TURN_STATE_GET_CREDENTIALS;
