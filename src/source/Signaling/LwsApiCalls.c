@@ -1841,7 +1841,7 @@ PVOID reconnectHandler(PVOID args)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // Record our tid so freeSignaling() can refuse to run from a callback on this thread
-    ATOMIC_STORE(&pSignalingClient->reconnectThreadTid, (SIZE_T) GETTID());
+    ATOMIC_STORE(&pSignalingClient->reconnectThreadTid, SIGNALING_CURRENT_THREAD_ID());
 
     // Await for the listener to clear
     MUTEX_LOCK(pSignalingClient->listenerTracker.lock);
@@ -2470,7 +2470,7 @@ PVOID receiveLwsMessageWrapper(PVOID args)
     CHK(pSignalingClient != NULL, STATUS_INTERNAL_ERROR);
 
     // Register this worker so freeSignaling() can detect being called from messageReceivedFn on this thread
-    workerNode.tid = GETTID();
+    workerNode.tid = SIGNALING_CURRENT_THREAD_ID();
     MUTEX_LOCK(pSignalingClient->receiveWorkerLock);
     workerNode.pNext = pSignalingClient->pActiveReceiveWorkers;
     pSignalingClient->pActiveReceiveWorkers = &workerNode;

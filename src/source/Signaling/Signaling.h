@@ -186,11 +186,23 @@ typedef struct {
  * Internal structure tracking various parameters for diagnostics and metrics/stats
  */
 /**
+ * Identity of the calling thread, used only to detect freeSignaling() being called from one of the
+ * signaling client's own threads. GETTID() is not usable for this on Windows: kvspic implements it
+ * as GetCurrentThread(), which returns the same pseudo-handle on every thread. GetCurrentThreadId()
+ * is unique among live threads; on POSIX GETTID() is pthread_self(), which already is.
+ */
+#if defined _WIN32 || defined _WIN64 || defined __CYGWIN__
+#define SIGNALING_CURRENT_THREAD_ID() ((SIZE_T) GetCurrentThreadId())
+#else
+#define SIGNALING_CURRENT_THREAD_ID() ((SIZE_T) GETTID())
+#endif
+
+/**
  * Stack-allocated marker linked into SignalingClient::pActiveReceiveWorkers by a receive worker for the
  * duration of receiveLwsMessageWrapper(), so freeSignaling() can detect being called from a receive callback.
  */
 typedef struct __ReceiveWorkerNode {
-    TID tid;
+    SIZE_T tid;
     struct __ReceiveWorkerNode* pNext;
 } ReceiveWorkerNode, *PReceiveWorkerNode;
 

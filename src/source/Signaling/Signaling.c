@@ -296,12 +296,11 @@ CleanUp:
 // itself forever.
 static BOOL isSignalingOwnedThread(PSignalingClient pSignalingClient)
 {
-    TID tid = GETTID();
+    SIZE_T tid = SIGNALING_CURRENT_THREAD_ID();
     BOOL found = FALSE;
     PReceiveWorkerNode pNode;
 
-    if (!ATOMIC_LOAD_BOOL(&pSignalingClient->reconnecterTracker.terminated) &&
-        (SIZE_T) ATOMIC_LOAD(&pSignalingClient->reconnectThreadTid) == (SIZE_T) tid) {
+    if (!ATOMIC_LOAD_BOOL(&pSignalingClient->reconnecterTracker.terminated) && (SIZE_T) ATOMIC_LOAD(&pSignalingClient->reconnectThreadTid) == tid) {
         return TRUE;
     }
 
