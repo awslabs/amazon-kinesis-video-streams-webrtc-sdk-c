@@ -23,6 +23,12 @@ extern "C" {
 // Termination timeout
 #define SIGNALING_CLIENT_SHUTDOWN_TIMEOUT ((2 + SIGNALING_SERVICE_API_CALL_TIMEOUT_IN_SECONDS) * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
+// Maximum number of wait attempts in the shutdown path before giving up.
+// Each attempt waits up to SIGNALING_CLIENT_SHUTDOWN_TIMEOUT (9 s), so
+// the hard ceiling is roughly SIGNALING_SHUTDOWN_MAX_WAIT_ATTEMPTS * 9 s.
+// Exceeding this emits DLOGE but does NOT free — a diagnosable hang beats a UAF.
+#define SIGNALING_SHUTDOWN_MAX_WAIT_ATTEMPTS 10
+
 // Signaling client state literal definitions
 #define SIGNALING_CLIENT_STATE_UNKNOWN_STR                "Unknown"
 #define SIGNALING_CLIENT_STATE_NEW_STR                    "New"
@@ -179,6 +185,27 @@ typedef struct {
 /**
  * Internal structure tracking various parameters for diagnostics and metrics/stats
  */
+/**
+ * Identity of the calling thread, used only to detect freeSignaling() being called from one of the
+ * signaling client's own threads. GETTID() is not usable for this on Windows: kvspic implements it
+ * as GetCurrentThread(), which returns the same pseudo-handle on every thread. GetCurrentThreadId()
+ * is unique among live threads; on POSIX GETTID() is pthread_self(), which already is.
+ */
+#if defined _WIN32 || defined _WIN64 || defined __CYGWIN__
+#define SIGNALING_CURRENT_THREAD_ID() ((SIZE_T) GetCurrentThreadId())
+#else
+#define SIGNALING_CURRENT_THREAD_ID() ((SIZE_T) GETTID())
+#endif
+
+/**
+ * Stack-allocated marker linked into SignalingClient::pActiveReceiveWorkers by a receive worker for the
+ * duration of receiveLwsMessageWrapper(), so freeSignaling() can detect being called from a receive callback.
+ */
+typedef struct __ReceiveWorkerNode {
+    SIZE_T tid;
+    struct __ReceiveWorkerNode* pNext;
+} ReceiveWorkerNode, *PReceiveWorkerNode;
+
 typedef struct {
     volatile SIZE_T numberOfMessagesSent;
     volatile SIZE_T numberOfMessagesReceived;
@@ -336,6 +363,21 @@ typedef struct {
 
     // Restarted thread handler
     ThreadTracker reconnecterTracker;
+
+    // In-flight receive worker count. Incremented in receiveLwsMessage() after a
+    // successful THREAD_CREATE/threadpoolContextPush and decremented in
+    // receiveLwsMessageWrapper() on exit. terminateOngoingOperations() waits for
+    // this to reach zero on the shutdown path before the client can be freed.
+    volatile SIZE_T receiveWorkerCount;
+    MUTEX receiveWorkerLock;
+    CVAR receiveWorkerCvar;
+
+    // Receive workers currently executing receiveLwsMessageWrapper(). Protected by receiveWorkerLock.
+    PReceiveWorkerNode pActiveReceiveWorkers;
+
+    // Thread id of the most recently started reconnectHandler(). Only meaningful while
+    // reconnecterTracker.terminated is FALSE, so a stale or recycled id never matches.
+    volatile SIZE_T reconnectThreadTid;
 
     // Generic websocket context - can be used by any implementation
     PVOID pWebsocketContext;

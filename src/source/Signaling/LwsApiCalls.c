@@ -67,17 +67,16 @@ INT32 lwsHttpCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn,
             pLwsCallInfo->callInfo.pRequestInfo != NULL && pLwsCallInfo->protocolIndex == PROTOCOL_INDEX_HTTPS,
         retStatus);
 
+    pSignalingClient = pLwsCallInfo->pSignalingClient;
+    pRequestInfo = pLwsCallInfo->callInfo.pRequestInfo;
+    nowTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
+
     // Quick check whether we need to exit
     if (ATOMIC_LOAD(&pLwsCallInfo->cancelService)) {
         retValue = 1;
         ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
         CHK(FALSE, retStatus);
     }
-
-    pSignalingClient = pLwsCallInfo->pSignalingClient;
-    nowTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
-
-    pRequestInfo = pLwsCallInfo->callInfo.pRequestInfo;
     pBuffer = pLwsCallInfo->buffer + LWS_PRE;
 
     MUTEX_LOCK(pSignalingClient->lwsServiceLock);
@@ -323,6 +322,10 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
 
     CHK_STATUS(configureLwsLogging(loggerGetLogLevel()));
 
+    // pLwsCallInfo may be NULL here: lwsCompleteSync() clears the wsi's opaque_user_data
+    // on exit so that a callback delivered later by lws_context_destroy() (during
+    // freeSignaling teardown) does not dereference the already-freed LwsCallInfo. A NULL
+    // here is an expected teardown state, not an error - bail out quietly.
     CHK(pLwsCallInfo != NULL && pLwsCallInfo->pSignalingClient != NULL && pLwsCallInfo->pSignalingClient->pOngoingCallInfo != NULL &&
             pLwsCallInfo->pSignalingClient->pWebsocketContext != NULL &&
             pLwsCallInfo->pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL && pLwsCallInfo->protocolIndex == PROTOCOL_INDEX_WSS,
@@ -646,7 +649,8 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
 
     // Indicate that we are trying to acquire the lock
     ATOMIC_STORE_BOOL(&pCallInfo->pSignalingClient->serviceLockContention, TRUE);
-    while (iterate && pCallInfo->pSignalingClient->currentWsi[PROTOCOL_INDEX_WSS] != NULL) {
+    while (iterate && pCallInfo->pSignalingClient->currentWsi[PROTOCOL_INDEX_WSS] != NULL &&
+           !ATOMIC_LOAD_BOOL(&pCallInfo->pSignalingClient->shutdown)) {
         if (!MUTEX_TRYLOCK(pCallInfo->pSignalingClient->lwsServiceLock)) {
             // Wake up the event loop
             CHK_STATUS(wakeLwsServiceEventLoop(pCallInfo->pSignalingClient, PROTOCOL_INDEX_WSS));
@@ -656,6 +660,9 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
         }
     }
     ATOMIC_STORE_BOOL(&pCallInfo->pSignalingClient->serviceLockContention, FALSE);
+
+    // Bail out if shutdown was requested while we were waiting for the lock
+    CHK(!ATOMIC_LOAD_BOOL(&pCallInfo->pSignalingClient->shutdown), STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Now we should be running with a lock
     CHK(NULL != (pCallInfo->pSignalingClient->currentWsi[pCallInfo->protocolIndex] = lws_client_connect_via_info(&connectInfo)),
@@ -669,7 +676,7 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     serializerLocked = FALSE;
 
     while (retVal >= 0 && !gInterruptedFlagBySignalHandler && pCallInfo->callInfo.pRequestInfo != NULL &&
-           !ATOMIC_LOAD_BOOL(&pCallInfo->callInfo.pRequestInfo->terminating)) {
+           !ATOMIC_LOAD_BOOL(&pCallInfo->callInfo.pRequestInfo->terminating) && !ATOMIC_LOAD_BOOL(&pCallInfo->pSignalingClient->shutdown)) {
         if (!MUTEX_TRYLOCK(pCallInfo->pSignalingClient->lwsServiceLock)) {
             THREAD_SLEEP(LWS_SERVICE_LOOP_ITERATION_WAIT);
         } else {
@@ -686,6 +693,17 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
 
     // Clear the wsi on exit
     MUTEX_LOCK(pCallInfo->pSignalingClient->lwsSerializerLock);
+    // Sever the wsi -> LwsCallInfo back-pointer before this call info can be freed.
+    // The WSS listener frees pOngoingCallInfo as soon as this thread returns, and
+    // freeSignaling() later calls lws_context_destroy(), which delivers a final
+    // CLIENT_CLOSED callback on any still-open wsi. If opaque_user_data still points
+    // at the (now freed) LwsCallInfo, lwsWssCallbackRoutine()/lwsHttpCallbackRoutine()
+    // fetch it via lws_get_opaque_user_data() and dereference freed memory ->
+    // heap-use-after-free. Clearing it here makes that late callback bail at its
+    // NULL guard instead. Done under lwsSerializerLock while the wsi handle is valid.
+    if (pCallInfo->pSignalingClient->currentWsi[pCallInfo->protocolIndex] != NULL) {
+        lws_set_opaque_user_data((struct lws*) pCallInfo->pSignalingClient->currentWsi[pCallInfo->protocolIndex], NULL);
+    }
     pCallInfo->pSignalingClient->currentWsi[pCallInfo->protocolIndex] = NULL;
     MUTEX_UNLOCK(pCallInfo->pSignalingClient->lwsSerializerLock);
 
@@ -1822,6 +1840,9 @@ PVOID reconnectHandler(PVOID args)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
+    // Record our tid so freeSignaling() can refuse to run from a callback on this thread
+    ATOMIC_STORE(&pSignalingClient->reconnectThreadTid, SIGNALING_CURRENT_THREAD_ID());
+
     // Await for the listener to clear
     MUTEX_LOCK(pSignalingClient->listenerTracker.lock);
     MUTEX_UNLOCK(pSignalingClient->listenerTracker.lock);
@@ -1854,10 +1875,12 @@ CleanUp:
             }
         }
 
+        // Publish termination and notify under the tracker lock. The shutdown path in terminateOngoingOperations()
+        // acquires this lock before freeing, so the unlock below is this thread's last access to pSignalingClient.
+        MUTEX_LOCK(pSignalingClient->reconnecterTracker.lock);
         ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, TRUE);
-
-        // Notify the listeners to unlock
         CVAR_BROADCAST(pSignalingClient->reconnecterTracker.await);
+        MUTEX_UNLOCK(pSignalingClient->reconnecterTracker.lock);
     }
 
     LEAVES();
@@ -2270,12 +2293,27 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     DLOGD("Client received message of type: %s",
           getMessageTypeInString(pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType));
 
+    // Count this in-flight worker BEFORE handing it off; the wrapper decrements
+    // on exit. Incrementing after the create/push would let a fast worker run
+    // to completion and decrement first, transiently wrapping the counter and
+    // stalling the shutdown drain in terminateOngoingOperations(). If the
+    // hand-off fails the wrapper never runs, so undo the increment here.
+    ATOMIC_INCREMENT(&pSignalingClient->receiveWorkerCount);
 #ifdef ENABLE_KVS_THREADPOOL
     // This would fail if threadpool was not created
-    CHK_STATUS(threadpoolContextPush(receiveLwsMessageWrapper, pSignalingMessageWrapper));
+    retStatus = threadpoolContextPush(receiveLwsMessageWrapper, pSignalingMessageWrapper);
 #else
     // Issue the callback on a separate thread
-    CHK_STATUS(THREAD_CREATE(&receivedTid, receiveLwsMessageWrapper, (PVOID) pSignalingMessageWrapper));
+    retStatus = THREAD_CREATE(&receivedTid, receiveLwsMessageWrapper, (PVOID) pSignalingMessageWrapper);
+#endif
+    if (STATUS_FAILED(retStatus)) {
+        MUTEX_LOCK(pSignalingClient->receiveWorkerLock);
+        ATOMIC_DECREMENT(&pSignalingClient->receiveWorkerCount);
+        CVAR_BROADCAST(pSignalingClient->receiveWorkerCvar);
+        MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
+        CHK(FALSE, retStatus);
+    }
+#ifndef ENABLE_KVS_THREADPOOL
     CHK_STATUS(THREAD_DETACH(receivedTid));
 #endif
 
@@ -2420,6 +2458,8 @@ PVOID receiveLwsMessageWrapper(PVOID args)
     PSignalingMessageWrapper pSignalingMessageWrapper = (PSignalingMessageWrapper) args;
     PSignalingClient pSignalingClient = NULL;
     SIGNALING_MESSAGE_TYPE messageType = SIGNALING_MESSAGE_TYPE_UNKNOWN;
+    ReceiveWorkerNode workerNode;
+    PReceiveWorkerNode* ppNode;
 
     CHK(pSignalingMessageWrapper != NULL, STATUS_NULL_ARG);
 
@@ -2428,6 +2468,13 @@ PVOID receiveLwsMessageWrapper(PVOID args)
     pSignalingClient = pSignalingMessageWrapper->pSignalingClient;
 
     CHK(pSignalingClient != NULL, STATUS_INTERNAL_ERROR);
+
+    // Register this worker so freeSignaling() can detect being called from messageReceivedFn on this thread
+    workerNode.tid = SIGNALING_CURRENT_THREAD_ID();
+    MUTEX_LOCK(pSignalingClient->receiveWorkerLock);
+    workerNode.pNext = pSignalingClient->pActiveReceiveWorkers;
+    pSignalingClient->pActiveReceiveWorkers = &workerNode;
+    MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
 
     // Updating the diagnostics info before calling the client callback
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfMessagesReceived);
@@ -2462,6 +2509,28 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 
     SAFE_MEMFREE(pSignalingMessageWrapper);
+
+    // Decrement the in-flight worker counter and wake any shutdown waiter in
+    // terminateOngoingOperations() that is blocked on receiveWorkerCount == 0.
+    // Both must happen under receiveWorkerLock: the waiter re-checks the count
+    // while holding the lock, so it can only observe 0 after we have released
+    // it, i.e. after the broadcast has completed. Without the lock the waiter
+    // could see 0, return, and free/destroy the cvar while this thread is still
+    // inside CVAR_BROADCAST (TSAN: pthread_cond_destroy vs pthread_cond_broadcast).
+    // Holding the lock also closes the lost-wakeup window where the broadcast
+    // fires between the waiter's count check and its CVAR_WAIT.
+    if (pSignalingClient != NULL) {
+        MUTEX_LOCK(pSignalingClient->receiveWorkerLock);
+        for (ppNode = &pSignalingClient->pActiveReceiveWorkers; *ppNode != NULL; ppNode = &(*ppNode)->pNext) {
+            if (*ppNode == &workerNode) {
+                *ppNode = workerNode.pNext;
+                break;
+            }
+        }
+        ATOMIC_DECREMENT(&pSignalingClient->receiveWorkerCount);
+        CVAR_BROADCAST(pSignalingClient->receiveWorkerCvar);
+        MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
+    }
 
     return (PVOID) (ULONG_PTR) retStatus;
 }
