@@ -1147,11 +1147,9 @@ STATUS dtlsCertificateFingerprint(mbedtls_x509_crt* pCert, PCHAR pBuff)
     pMdInfo = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
     CHK(pMdInfo != NULL, STATUS_INTERNAL_ERROR);
 
-#if MBEDTLS_BEFORE_V3
-    sslRet = mbedtls_sha256_ret(pCert->raw.p, pCert->raw.len, fingerprint, 0);
-#else
-    sslRet = mbedtls_sha256(pCert->raw.p, pCert->raw.len, fingerprint, 0);
-#endif
+    /* Go through the generic message-digest layer rather than the SHA-256 module
+     * directly. */
+    sslRet = mbedtls_md(pMdInfo, pCert->raw.p, pCert->raw.len, fingerprint);
     CHK(sslRet == 0, STATUS_INTERNAL_ERROR);
 
     size = mbedtls_md_get_size(pMdInfo);
