@@ -74,6 +74,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
 
     // Allocate enough storage
     CHK(NULL != (pSignalingClient = (PSignalingClient) MEMCALLOC(1, SIZEOF(SignalingClient))), STATUS_NOT_ENOUGH_MEMORY);
+    ATOMIC_STORE(&pSignalingClient->refCount, 1);
 
     // Initialize the listener and restart thread trackers
     CHK_STATUS(initializeThreadTracker(&pSignalingClient->listenerTracker));
@@ -283,21 +284,8 @@ CleanUp:
     return retStatus;
 }
 
-STATUS freeSignaling(PSignalingClient* ppSignalingClient)
+static VOID destroySignalingClient(PSignalingClient pSignalingClient)
 {
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    PSignalingClient pSignalingClient;
-
-    CHK(ppSignalingClient != NULL, STATUS_NULL_ARG);
-
-    pSignalingClient = *ppSignalingClient;
-    CHK(pSignalingClient != NULL, retStatus);
-
-    ATOMIC_STORE_BOOL(&pSignalingClient->shutdown, TRUE);
-
-    terminateOngoingOperations(pSignalingClient);
-
     if (pSignalingClient->pWebsocketContext != NULL) {
         MUTEX_LOCK(pSignalingClient->lwsServiceLock);
         lws_context_destroy((struct lws_context*) pSignalingClient->pWebsocketContext);
@@ -378,11 +366,53 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
     uninitializeThreadTracker(&pSignalingClient->listenerTracker);
 
     MEMFREE(pSignalingClient);
+}
+
+VOID acquireSignalingClient(PSignalingClient pSignalingClient)
+{
+    if (pSignalingClient != NULL) {
+        ATOMIC_INCREMENT(&pSignalingClient->refCount);
+    }
+}
+
+SIZE_T releaseSignalingClient(PSignalingClient pSignalingClient)
+{
+    SIZE_T remainingRefCount = 0;
+
+    // ATOMIC_DECREMENT returns the value before decrementing.
+    if (pSignalingClient != NULL) {
+        remainingRefCount = ATOMIC_DECREMENT(&pSignalingClient->refCount) - 1;
+        if (remainingRefCount == 0) {
+            destroySignalingClient(pSignalingClient);
+        }
+    }
+
+    return remainingRefCount;
+}
+
+STATUS freeSignaling(PSignalingClient* ppSignalingClient)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    SIZE_T remainingRefCount;
+    PSignalingClient pSignalingClient;
+
+    CHK(ppSignalingClient != NULL, STATUS_NULL_ARG);
+
+    pSignalingClient = *ppSignalingClient;
+    CHK(pSignalingClient != NULL, retStatus);
+
+    ATOMIC_STORE_BOOL(&pSignalingClient->shutdown, TRUE);
+
+    CHK_LOG_ERR(terminateOngoingOperations(pSignalingClient));
 
     *ppSignalingClient = NULL;
+    remainingRefCount = releaseSignalingClient(pSignalingClient);
+    if (remainingRefCount != 0) {
+        DLOGW("Signaling client destruction deferred; %u async reference(s) outstanding", (UINT32) remainingRefCount);
+    }
 
 CleanUp:
-
     LEAVES();
     return retStatus;
 }
@@ -458,10 +488,10 @@ STATUS terminateOngoingOperations(PSignalingClient pSignalingClient)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // Terminate the listener thread if alive
-    terminateLwsListenerLoop(pSignalingClient);
+    CHK_LOG_ERR(terminateLwsListenerLoop(pSignalingClient));
 
     // Await for the reconnect thread to exit
-    awaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);
+    CHK_LOG_ERR(awaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT));
 
 CleanUp:
 

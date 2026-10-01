@@ -17,13 +17,19 @@ extern "C" {
 typedef struct {
     PThreadpool pThreadpool;
     BOOL isInitialized;
+    BOOL shuttingDown;
     MUTEX threadpoolContextLock;
+    volatile SIZE_T outstandingTaskCount;
 } ThreadPoolContext, *PThreadPoolContext;
 
+PThreadPoolContext getReceiveThreadContextInstance();
 PUBLIC_API STATUS createThreadPoolContext();
 PUBLIC_API STATUS getThreadPoolContext(PThreadPoolContext);
 PUBLIC_API STATUS threadpoolContextPush(startRoutine, PVOID);
 PUBLIC_API STATUS destroyThreadPoolContext();
+PUBLIC_API STATUS createReceiveThreadPoolContext();
+PUBLIC_API STATUS receiveThreadpoolContextPush(startRoutine, PVOID);
+PUBLIC_API STATUS destroyReceiveThreadPoolContext();
 
 #ifdef __cplusplus
 }
