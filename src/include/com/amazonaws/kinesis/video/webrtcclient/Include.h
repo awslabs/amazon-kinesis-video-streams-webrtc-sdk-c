@@ -402,6 +402,7 @@ extern "C" {
 #define STATUS_TURN_CONNECTION_GET_CREDENTIALS_FAILED                      STATUS_ICE_BASE + 0x0000002c
 #define STATUS_FAILED_TO_INIT_RELAY_CANDIDATES                             STATUS_ICE_BASE + 0x0000002d
 #define STATUS_TURN_CONNECTION_CREDENTIALS_REJECTED                        STATUS_ICE_BASE + 0x0000002e
+#define STATUS_ICE_NO_TCP_TURN_SERVER_AVAILABLE                            STATUS_ICE_BASE + 0x0000002f
 
 /*!@} */
 
@@ -1050,6 +1051,25 @@ typedef enum {
 } ICE_TRANSPORT_POLICY;
 
 /**
+ * @brief ICE_TRANSPORT_PROTOCOL_POLICY restricts which transport protocol the ICE Agent may open local sockets with.
+ *
+ * This is a KVS-specific extension; the W3C RTCConfiguration has no equivalent. It is set through
+ * KvsRtcConfiguration::iceTransportProtocolPolicy.
+ */
+typedef enum {
+    ICE_TRANSPORT_PROTOCOL_POLICY_ALL = 0, //!< Default. Host and server reflexive candidates are gathered over UDP, and relay
+                                           //!< candidates are gathered over every transport the TURN URL allows (UDP, TCP or both).
+
+    ICE_TRANSPORT_PROTOCOL_POLICY_TCP_ONLY = 1, //!< The ICE Agent opens no UDP sockets. Host and server reflexive candidates are
+                                                //!< skipped (they are UDP only) and only TURN over TCP relay candidates are gathered,
+                                                //!< so this implies ICE_TRANSPORT_POLICY_RELAY. TURN URLs that only allow
+                                                //!< ?transport=udp are ignored; if no TURN URL allows TCP, candidate gathering fails
+                                                //!< with STATUS_ICE_NO_TCP_TURN_SERVER_AVAILABLE. TURN over TCP is always wrapped
+                                                //!< in TLS. Note that per RFC 5766 the TURN server still relays to the remote peer
+                                                //!< over UDP; this policy controls the protocols used by the local device only.
+} ICE_TRANSPORT_PROTOCOL_POLICY;
+
+/**
  * @brief RTC_RTP_TRANSCEIVER_DIRECTION indicates direction of a transceiver
  *
  * Reference: https://www.w3.org/TR/webrtc/#dom-rtcrtptransceiverdirection
@@ -1477,6 +1497,10 @@ typedef struct {
                                                 //!< TURN server such as the KVS TURN service rejects them with 403 Forbidden IP. Set this to TRUE
                                                 //!< if you use a TURN server that legitimately relays to such addresses (e.g. an on-prem/LAN TURN),
                                                 //!< so those peers are not filtered. Filtering is enabled by default (this flag defaults to FALSE).
+    ICE_TRANSPORT_PROTOCOL_POLICY iceTransportProtocolPolicy; //!< Restricts the transport protocol of the sockets the ICE Agent opens.
+                                                              //!< Defaults to ICE_TRANSPORT_PROTOCOL_POLICY_ALL (0). Set to
+                                                              //!< ICE_TRANSPORT_PROTOCOL_POLICY_TCP_ONLY to avoid UDP entirely on the local
+                                                              //!< device; see ICE_TRANSPORT_PROTOCOL_POLICY for the implications.
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
 
 /**

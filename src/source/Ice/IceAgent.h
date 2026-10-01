@@ -441,6 +441,12 @@ STATUS iceAgentInitHostCandidate(PIceAgent);
 STATUS iceAgentInitSrflxCandidate(PIceAgent);
 STATUS iceAgentInitRelayCandidates(PIceAgent);
 STATUS iceAgentInitRelayCandidate(PIceAgent, UINT32, KVS_SOCKET_PROTOCOL, KVS_IP_FAMILY_TYPE);
+/**
+ * Whether a relay candidate over the given protocol should be created for the given ICE (TURN) server, taking
+ * both the server URL transport (?transport=udp / ?transport=tcp / unspecified) and the agent's
+ * iceTransportProtocolPolicy into account.
+ */
+BOOL iceAgentIsRelayProtocolAllowed(PIceAgent, PIceServer, KVS_SOCKET_PROTOCOL);
 
 STATUS iceAgentCheckConnectionStateSetup(PIceAgent);
 STATUS iceAgentConnectedStateSetup(PIceAgent);

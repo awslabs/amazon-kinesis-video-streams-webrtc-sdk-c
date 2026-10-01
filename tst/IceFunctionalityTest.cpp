@@ -947,6 +947,220 @@ TEST_F(IceFunctionalityTest, IceAgentGovCloudStunsCandidateGatheringTest)
     EXPECT_EQ(STATUS_SUCCESS, freeIceAgent(&pIceAgent));
     EXPECT_EQ(STATUS_SUCCESS, timerQueueFree(&timerQueueHandle));
 }
+
+// iceAgentIsRelayProtocolAllowed combines the TURN URL transport with the TCP-only transport protocol policy.
+TEST_F(IceFunctionalityTest, IceAgentIsRelayProtocolAllowedTest)
+{
+    IceAgent iceAgent;
+    IceServer iceServer;
+
+    MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
+    MEMSET(&iceServer, 0x00, SIZEOF(IceServer));
+    iceServer.isTurn = TRUE;
+
+    EXPECT_FALSE(iceAgentIsRelayProtocolAllowed(NULL, &iceServer, KVS_SOCKET_PROTOCOL_UDP));
+    EXPECT_FALSE(iceAgentIsRelayProtocolAllowed(&iceAgent, NULL, KVS_SOCKET_PROTOCOL_UDP));
+
+    // Default policy: the URL transport alone decides. No ?transport= means both.
+    iceAgent.kvsRtcConfiguration.iceTransportProtocolPolicy = ICE_TRANSPORT_PROTOCOL_POLICY_ALL;
+    iceServer.transport = KVS_SOCKET_PROTOCOL_NONE;
+    EXPECT_TRUE(iceAgentIsRelayProtocolAllowed(&iceAgent, &iceServer, KVS_SOCKET_PROTOCOL_UDP));
+    EXPECT_TRUE(iceAgentIsRelayProtocolAllowed(&iceAgent, &iceServer, KVS_SOCKET_PROTOCOL_TCP));
+    iceServer.transport = KVS_SOCKET_PROTOCOL_UDP;
+    EXPECT_TRUE(iceAgentIsRelayProtocolAllowed(&iceAgent, &iceServer, KVS_SOCKET_PROTOCOL_UDP));
+    EXPECT_FALSE(iceAgentIsRelayProtocolAllowed(&iceAgent, &iceServer, KVS_SOCKET_PROTOCOL_TCP));
+    iceServer.transport = KVS_SOCKET_PROTOCOL_TCP;
+    EXPECT_FALSE(iceAgentIsRelayProtocolAllowed(&iceAgent, &iceServer, KVS_SOCKET_PROTOCOL_UDP));
+    EXPECT_TRUE(iceAgentIsRelayProtocolAllowed(&iceAgent, &iceServer, KVS_SOCKET_PROTOCOL_TCP));
+
+    // TCP-only policy: UDP is never allowed, regardless of what the URL permits.
+    iceAgent.kvsRtcConfiguration.iceTransportProtocolPolicy = ICE_TRANSPORT_PROTOCOL_POLICY_TCP_ONLY;
+    iceServer.transport = KVS_SOCKET_PROTOCOL_NONE;
+    EXPECT_FALSE(iceAgentIsRelayProtocolAllowed(&iceAgent, &iceServer, KVS_SOCKET_PROTOCOL_UDP));
+    EXPECT_TRUE(iceAgentIsRelayProtocolAllowed(&iceAgent, &iceServer, KVS_SOCKET_PROTOCOL_TCP));
+    iceServer.transport = KVS_SOCKET_PROTOCOL_UDP;
+    EXPECT_FALSE(iceAgentIsRelayProtocolAllowed(&iceAgent, &iceServer, KVS_SOCKET_PROTOCOL_UDP));
+    EXPECT_FALSE(iceAgentIsRelayProtocolAllowed(&iceAgent, &iceServer, KVS_SOCKET_PROTOCOL_TCP));
+    iceServer.transport = KVS_SOCKET_PROTOCOL_TCP;
+    EXPECT_FALSE(iceAgentIsRelayProtocolAllowed(&iceAgent, &iceServer, KVS_SOCKET_PROTOCOL_UDP));
+    EXPECT_TRUE(iceAgentIsRelayProtocolAllowed(&iceAgent, &iceServer, KVS_SOCKET_PROTOCOL_TCP));
+}
+
+TEST_F(IceFunctionalityTest, IceAgentValidateKvsRtcConfigRejectsUnknownTransportProtocolPolicy)
+{
+    KvsRtcConfiguration kvsRtcConfiguration;
+
+    MEMSET(&kvsRtcConfiguration, 0x00, SIZEOF(KvsRtcConfiguration));
+    EXPECT_EQ(STATUS_SUCCESS, iceAgentValidateKvsRtcConfig(&kvsRtcConfiguration));
+
+    kvsRtcConfiguration.iceTransportProtocolPolicy = ICE_TRANSPORT_PROTOCOL_POLICY_TCP_ONLY;
+    EXPECT_EQ(STATUS_SUCCESS, iceAgentValidateKvsRtcConfig(&kvsRtcConfiguration));
+
+    kvsRtcConfiguration.iceTransportProtocolPolicy = (ICE_TRANSPORT_PROTOCOL_POLICY) 42;
+    EXPECT_EQ(STATUS_INVALID_ARG, iceAgentValidateKvsRtcConfig(&kvsRtcConfiguration));
+}
+
+// A TCP-only agent must (1) force the relay transport policy so no UDP host/srflx socket is opened and (2) fail
+// gathering explicitly when the only TURN server is UDP-only, instead of timing out with no candidates.
+// Uses an IP-literal loopback TURN URL, so no network or credentials are needed.
+TEST_F(IceFunctionalityTest, IceAgentTcpOnlyPolicyForcesRelayAndRejectsUdpOnlyTurn)
+{
+    PIceAgent pIceAgent = NULL;
+    CHAR localIceUfrag[LOCAL_ICE_UFRAG_LEN + 1];
+    CHAR localIcePwd[LOCAL_ICE_PWD_LEN + 1];
+    RtcConfiguration configuration;
+    IceAgentCallbacks iceAgentCallbacks;
+    PConnectionListener pConnectionListener = NULL;
+    TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+    UINT32 localCandidateCount = 0;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(localIceUfrag, 0x00, SIZEOF(localIceUfrag));
+    MEMSET(localIcePwd, 0x00, SIZEOF(localIcePwd));
+    MEMSET(&iceAgentCallbacks, 0x00, SIZEOF(IceAgentCallbacks));
+
+    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
+    configuration.kvsRtcConfiguration.iceTransportProtocolPolicy = ICE_TRANSPORT_PROTOCOL_POLICY_TCP_ONLY;
+    STRCPY(configuration.iceServers[0].urls, "stun:127.0.0.1:3478");
+    STRCPY(configuration.iceServers[1].urls, "turn:127.0.0.1:3478?transport=udp");
+    STRCPY(configuration.iceServers[1].username, "username");
+    STRCPY(configuration.iceServers[1].credential, "password");
+
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(localIceUfrag, LOCAL_ICE_UFRAG_LEN));
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(localIcePwd, LOCAL_ICE_PWD_LEN));
+    EXPECT_EQ(STATUS_SUCCESS, createConnectionListener(&pConnectionListener));
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+    ASSERT_EQ(STATUS_SUCCESS,
+              createIceAgent(localIceUfrag, localIcePwd, &iceAgentCallbacks, &configuration, timerQueueHandle, pConnectionListener, &pIceAgent));
+
+    // TCP only implies relay only.
+    EXPECT_EQ(ICE_TRANSPORT_POLICY_RELAY, pIceAgent->iceTransportPolicy);
+    EXPECT_EQ(ICE_TRANSPORT_PROTOCOL_POLICY_TCP_ONLY, pIceAgent->kvsRtcConfiguration.iceTransportProtocolPolicy);
+
+    // The only TURN server is UDP-only, so there is nothing a TCP-only agent can gather.
+    EXPECT_EQ(STATUS_ICE_NO_TCP_TURN_SERVER_AVAILABLE, iceAgentStartGathering(pIceAgent));
+    EXPECT_EQ(STATUS_ICE_NO_TCP_TURN_SERVER_AVAILABLE, pIceAgent->iceAgentStatus);
+
+    // No host, srflx or relay candidate (and therefore no UDP socket) was created.
+    MUTEX_LOCK(pIceAgent->lock);
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pIceAgent->localCandidates, &localCandidateCount));
+    MUTEX_UNLOCK(pIceAgent->lock);
+    EXPECT_EQ(0, localCandidateCount);
+
+    EXPECT_EQ(STATUS_SUCCESS, iceAgentShutdown(pIceAgent));
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueShutdown(timerQueueHandle));
+    EXPECT_EQ(STATUS_SUCCESS, freeIceAgent(&pIceAgent));
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueFree(&timerQueueHandle));
+}
+
+// With real KVS ICE servers (turn:?transport=udp, turns:?transport=udp, turns:?transport=tcp) a TCP-only agent must
+// end up with relay candidates only, every one of them on a TCP TURN control channel.
+TEST_F(IceFunctionalityTest, IceAgentTcpOnlyCandidateGatheringTest)
+{
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
+
+    typedef struct {
+        std::vector<std::string> list;
+        std::mutex lock;
+    } CandidateList;
+
+    PIceAgent pIceAgent = NULL;
+    CHAR localIceUfrag[LOCAL_ICE_UFRAG_LEN + 1];
+    CHAR localIcePwd[LOCAL_ICE_PWD_LEN + 1];
+    RtcConfiguration configuration;
+    IceAgentCallbacks iceAgentCallbacks;
+    PConnectionListener pConnectionListener = NULL;
+    TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+    BOOL foundHostCandidate = FALSE, foundSrflxCandidate = FALSE, foundRelayCandidate = FALSE;
+    CandidateList candidateList;
+    PDoubleListNode pCurNode = NULL;
+    UINT64 data;
+    PIceCandidate pLocalCandidate = NULL;
+    UINT32 localCandidateCount = 0, udpTurnCount = 0, nonRelayCount = 0;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(localIceUfrag, 0x00, SIZEOF(localIceUfrag));
+    MEMSET(localIcePwd, 0x00, SIZEOF(localIcePwd));
+    MEMSET(&iceAgentCallbacks, 0x00, SIZEOF(IceAgentCallbacks));
+
+    initializeSignalingClient();
+    getIceServers(&configuration);
+
+    // Deliberately leave the standard (W3C) policy at ALL: the TCP-only protocol policy must override it to relay.
+    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
+    configuration.kvsRtcConfiguration.iceTransportProtocolPolicy = ICE_TRANSPORT_PROTOCOL_POLICY_TCP_ONLY;
+
+    auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
+        CandidateList* candidateList1 = (CandidateList*) customData;
+        std::lock_guard<std::mutex> lock(candidateList1->lock);
+        candidateList1->list.push_back(candidateStr != NULL ? std::string(candidateStr) : std::string(""));
+    };
+
+    iceAgentCallbacks.customData = (UINT64) &candidateList;
+    iceAgentCallbacks.newLocalCandidateFn = onICECandidateHdlr;
+
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(localIceUfrag, LOCAL_ICE_UFRAG_LEN));
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(localIcePwd, LOCAL_ICE_PWD_LEN));
+    EXPECT_EQ(STATUS_SUCCESS, createConnectionListener(&pConnectionListener));
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+    ASSERT_EQ(STATUS_SUCCESS,
+              createIceAgent(localIceUfrag, localIcePwd, &iceAgentCallbacks, &configuration, timerQueueHandle, pConnectionListener, &pIceAgent));
+
+    EXPECT_EQ(ICE_TRANSPORT_POLICY_RELAY, pIceAgent->iceTransportPolicy);
+    EXPECT_EQ(STATUS_SUCCESS, iceAgentStartGathering(pIceAgent));
+
+    THREAD_SLEEP(KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT + 2 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    {
+        std::lock_guard<std::mutex> lock(candidateList.lock);
+        EXPECT_FALSE(candidateList.list.empty());
+        if (!candidateList.list.empty()) {
+            EXPECT_TRUE(candidateList.list.back().empty());
+
+            for (std::vector<std::string>::iterator it = candidateList.list.begin(); it != candidateList.list.end(); ++it) {
+                std::string candidateStr = *it;
+                if (candidateStr.find(std::string(SDP_CANDIDATE_TYPE_HOST)) != std::string::npos) {
+                    foundHostCandidate = TRUE;
+                } else if (candidateStr.find(std::string(SDP_CANDIDATE_TYPE_SERFLX)) != std::string::npos) {
+                    foundSrflxCandidate = TRUE;
+                } else if (candidateStr.find(std::string(SDP_CANDIDATE_TYPE_RELAY)) != std::string::npos) {
+                    foundRelayCandidate = TRUE;
+                }
+            }
+        }
+    }
+
+    EXPECT_FALSE(foundHostCandidate);
+    EXPECT_FALSE(foundSrflxCandidate);
+    EXPECT_TRUE(foundRelayCandidate);
+
+    // Every local candidate must be a relay candidate whose TURN control channel is TCP.
+    MUTEX_LOCK(pIceAgent->lock);
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeCount(pIceAgent->localCandidates, &localCandidateCount));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
+    while (pCurNode != NULL) {
+        EXPECT_EQ(STATUS_SUCCESS, doubleListGetNodeData(pCurNode, &data));
+        pCurNode = pCurNode->pNext;
+        pLocalCandidate = (PIceCandidate) data;
+        if (pLocalCandidate->iceCandidateType != ICE_CANDIDATE_TYPE_RELAYED) {
+            nonRelayCount++;
+        } else if (pLocalCandidate->pTurnConnection == NULL || pLocalCandidate->pTurnConnection->protocol != KVS_SOCKET_PROTOCOL_TCP) {
+            udpTurnCount++;
+        }
+    }
+    MUTEX_UNLOCK(pIceAgent->lock);
+
+    EXPECT_GT(localCandidateCount, 0);
+    EXPECT_EQ(0, nonRelayCount);
+    EXPECT_EQ(0, udpTurnCount);
+
+    EXPECT_EQ(STATUS_SUCCESS, iceAgentShutdown(pIceAgent));
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueShutdown(timerQueueHandle));
+    EXPECT_EQ(STATUS_SUCCESS, freeIceAgent(&pIceAgent));
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueFree(&timerQueueHandle));
+
+    deinitializeSignalingClient();
+}
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

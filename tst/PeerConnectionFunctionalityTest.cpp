@@ -242,6 +242,63 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersForcedTURN)
     deinitializeSignalingClient();
 }
 
+// Assert that two PeerConnections restricted to TCP-only ICE transport (TURN over TCP/TLS relay candidates only)
+// can connect to each other and that the selected pair on each side really is on a TCP TURN control channel.
+TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersTcpOnly)
+{
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
+
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PRtcPeerConnection peers[2];
+    PKvsPeerConnection pPcImpl;
+    PIceAgent pIceAgent;
+    PIceCandidate pLocalCandidate;
+    UINT32 i;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    // Leave the W3C policy at ALL on purpose; the TCP-only protocol policy must force relay by itself.
+    configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
+    configuration.kvsRtcConfiguration.iceTransportProtocolPolicy = ICE_TRANSPORT_PROTOCOL_POLICY_TCP_ONLY;
+
+    initializeSignalingClient();
+    getIceServers(&configuration);
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    ASSERT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    peers[0] = offerPc;
+    peers[1] = answerPc;
+    for (i = 0; i < ARRAY_SIZE(peers); i++) {
+        pPcImpl = (PKvsPeerConnection) peers[i];
+        pIceAgent = pPcImpl->pIceAgent;
+        MUTEX_LOCK(pIceAgent->lock);
+        EXPECT_EQ(ICE_TRANSPORT_POLICY_RELAY, pIceAgent->iceTransportPolicy);
+        if (pIceAgent->pDataSendingIceCandidatePair != NULL && pIceAgent->pDataSendingIceCandidatePair->local != NULL) {
+            pLocalCandidate = pIceAgent->pDataSendingIceCandidatePair->local;
+            EXPECT_EQ(ICE_CANDIDATE_TYPE_RELAYED, pLocalCandidate->iceCandidateType);
+            if (pLocalCandidate->pTurnConnection != NULL) {
+                EXPECT_EQ(KVS_SOCKET_PROTOCOL_TCP, pLocalCandidate->pTurnConnection->protocol);
+            } else {
+                ADD_FAILURE() << "relay candidate without TURN connection on peer " << i;
+            }
+        } else {
+            ADD_FAILURE() << "no data sending ICE candidate pair on peer " << i;
+        }
+        MUTEX_UNLOCK(pIceAgent->lock);
+    }
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    deinitializeSignalingClient();
+}
+
 TEST_F(PeerConnectionFunctionalityTest, sendDataWithClosedSocketConnectionWithHostAndStun)
 {
     ASSERT_EQ(TRUE, mAccessKeyIdSet);

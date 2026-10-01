@@ -61,6 +61,16 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
     pIceAgent->kvsRtcConfiguration = pRtcConfiguration->kvsRtcConfiguration;
     CHK_STATUS(iceAgentValidateKvsRtcConfig(&pIceAgent->kvsRtcConfiguration));
 
+    /* Host and srflx candidates are UDP only, so a TCP-only transport protocol policy can only be satisfied
+     * by TURN over TCP relay candidates. Force the relay policy so no UDP socket is ever opened. */
+    if (pIceAgent->kvsRtcConfiguration.iceTransportProtocolPolicy == ICE_TRANSPORT_PROTOCOL_POLICY_TCP_ONLY &&
+        pIceAgent->iceTransportPolicy != ICE_TRANSPORT_POLICY_RELAY) {
+        DLOGW("ICE transport protocol policy is TCP only; overriding ICE transport policy %u with relay so that no host or srflx "
+              "(UDP) candidates are gathered",
+              pIceAgent->iceTransportPolicy);
+        pIceAgent->iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
+    }
+
     if (pIceAgentCallbacks != NULL) {
         pIceAgent->iceAgentCallbacks = *pIceAgentCallbacks;
     }
@@ -399,17 +409,23 @@ STATUS iceAgentAddIceServers(PIceAgent pIceAgent, PRtcIceServer pIceServers, UIN
     isIPv4TurnDisabled = isEnvVarEnabled(DISABLE_IPV4_TURN_ENV_VAR);
     for (i = originalCount; i < pIceAgent->iceServersCount; i++) {
         if (pIceAgent->iceServers[i].isTurn) {
+            if (pIceAgent->kvsRtcConfiguration.iceTransportProtocolPolicy == ICE_TRANSPORT_PROTOCOL_POLICY_TCP_ONLY &&
+                pIceAgent->iceServers[i].transport == KVS_SOCKET_PROTOCOL_UDP) {
+                DLOGI("Skipping new TURN server %u (%s): it only allows UDP transport but the ICE transport protocol policy is TCP only", i,
+                      pIceAgent->iceServers[i].url);
+                continue;
+            }
             newTurnCount++;
             DLOGI("Initializing relay candidates for new TURN server: %s", pIceAgent->iceServers[i].url);
 
             if (!isIPv6TurnDisabled && pIceAgent->iceServers[i].ipAddresses.ipv6Address.family != KVS_IP_FAMILY_TYPE_NOT_SET) {
-                if (pIceAgent->iceServers[i].transport == KVS_SOCKET_PROTOCOL_UDP || pIceAgent->iceServers[i].transport == KVS_SOCKET_PROTOCOL_NONE) {
+                if (iceAgentIsRelayProtocolAllowed(pIceAgent, &pIceAgent->iceServers[i], KVS_SOCKET_PROTOCOL_UDP)) {
                     if (iceAgentInitRelayCandidate(pIceAgent, i, KVS_SOCKET_PROTOCOL_UDP, KVS_IP_FAMILY_TYPE_IPV6) != STATUS_SUCCESS) {
                         DLOGW("Failed to initialize IPv6 UDP relay candidate for server %u", i);
                     }
                 }
 
-                if (pIceAgent->iceServers[i].transport == KVS_SOCKET_PROTOCOL_TCP || pIceAgent->iceServers[i].transport == KVS_SOCKET_PROTOCOL_NONE) {
+                if (iceAgentIsRelayProtocolAllowed(pIceAgent, &pIceAgent->iceServers[i], KVS_SOCKET_PROTOCOL_TCP)) {
                     if (iceAgentInitRelayCandidate(pIceAgent, i, KVS_SOCKET_PROTOCOL_TCP, KVS_IP_FAMILY_TYPE_IPV6) != STATUS_SUCCESS) {
                         DLOGW("Failed to initialize IPv6 TCP relay candidate for server %u", i);
                     }
@@ -417,13 +433,13 @@ STATUS iceAgentAddIceServers(PIceAgent pIceAgent, PRtcIceServer pIceServers, UIN
             }
 
             if (!isIPv4TurnDisabled && pIceAgent->iceServers[i].ipAddresses.ipv4Address.family != KVS_IP_FAMILY_TYPE_NOT_SET) {
-                if (pIceAgent->iceServers[i].transport == KVS_SOCKET_PROTOCOL_UDP || pIceAgent->iceServers[i].transport == KVS_SOCKET_PROTOCOL_NONE) {
+                if (iceAgentIsRelayProtocolAllowed(pIceAgent, &pIceAgent->iceServers[i], KVS_SOCKET_PROTOCOL_UDP)) {
                     if (iceAgentInitRelayCandidate(pIceAgent, i, KVS_SOCKET_PROTOCOL_UDP, KVS_IP_FAMILY_TYPE_IPV4) != STATUS_SUCCESS) {
                         DLOGW("Failed to initialize IPv4 UDP relay candidate for server %u", i);
                     }
                 }
 
-                if (pIceAgent->iceServers[i].transport == KVS_SOCKET_PROTOCOL_TCP || pIceAgent->iceServers[i].transport == KVS_SOCKET_PROTOCOL_NONE) {
+                if (iceAgentIsRelayProtocolAllowed(pIceAgent, &pIceAgent->iceServers[i], KVS_SOCKET_PROTOCOL_TCP)) {
                     if (iceAgentInitRelayCandidate(pIceAgent, i, KVS_SOCKET_PROTOCOL_TCP, KVS_IP_FAMILY_TYPE_IPV4) != STATUS_SUCCESS) {
                         DLOGW("Failed to initialize IPv4 TCP relay candidate for server %u", i);
                     }
@@ -466,14 +482,20 @@ STATUS iceAgentValidateKvsRtcConfig(PKvsRtcConfiguration pKvsRtcConfiguration)
         pKvsRtcConfiguration->iceConnectionCheckPollingInterval = KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL;
     }
 
+    CHK_ERR(pKvsRtcConfiguration->iceTransportProtocolPolicy == ICE_TRANSPORT_PROTOCOL_POLICY_ALL ||
+                pKvsRtcConfiguration->iceTransportProtocolPolicy == ICE_TRANSPORT_PROTOCOL_POLICY_TCP_ONLY,
+            STATUS_INVALID_ARG, "Invalid iceTransportProtocolPolicy %u", pKvsRtcConfiguration->iceTransportProtocolPolicy);
+
     DLOGI("\n\ticeLocalCandidateGatheringTimeout: %u ms"
           "\n\ticeConnectionCheckTimeout: %u ms"
           "\n\ticeCandidateNominationTimeout: %u ms"
-          "\n\ticeConnectionCheckPollingInterval: %u ms",
+          "\n\ticeConnectionCheckPollingInterval: %u ms"
+          "\n\ticeTransportProtocolPolicy: %s",
           pKvsRtcConfiguration->iceLocalCandidateGatheringTimeout / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
           pKvsRtcConfiguration->iceConnectionCheckTimeout / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
           pKvsRtcConfiguration->iceCandidateNominationTimeout / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-          pKvsRtcConfiguration->iceConnectionCheckPollingInterval / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+          pKvsRtcConfiguration->iceConnectionCheckPollingInterval / HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+          pKvsRtcConfiguration->iceTransportProtocolPolicy == ICE_TRANSPORT_PROTOCOL_POLICY_TCP_ONLY ? "tcp-only" : "all");
 
 CleanUp:
 
@@ -2070,11 +2092,28 @@ CleanUp:
     return retStatus;
 }
 
+BOOL iceAgentIsRelayProtocolAllowed(PIceAgent pIceAgent, PIceServer pIceServer, KVS_SOCKET_PROTOCOL protocol)
+{
+    if (pIceAgent == NULL || pIceServer == NULL) {
+        return FALSE;
+    }
+
+    /* Under the TCP-only transport protocol policy the agent must never open a UDP socket. */
+    if (pIceAgent->kvsRtcConfiguration.iceTransportProtocolPolicy == ICE_TRANSPORT_PROTOCOL_POLICY_TCP_ONLY && protocol != KVS_SOCKET_PROTOCOL_TCP) {
+        return FALSE;
+    }
+
+    /* A URL without ?transport= (KVS_SOCKET_PROTOCOL_NONE) allows both UDP and TCP. */
+    return pIceServer->transport == protocol || pIceServer->transport == KVS_SOCKET_PROTOCOL_NONE;
+}
+
 STATUS iceAgentInitRelayCandidates(PIceAgent pIceAgent)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    UINT32 j;
+    UINT32 j, usableTurnServerCount = 0;
     UINT64 startTime = 0;
+    PIceServer pIceServer = NULL;
+    BOOL tcpOnly = FALSE;
 
     BOOL wasARelayCandidateInitialized = FALSE;
 
@@ -2082,13 +2121,23 @@ STATUS iceAgentInitRelayCandidates(PIceAgent pIceAgent)
     BOOL isIPv4TurnDisabled = isEnvVarEnabled(DISABLE_IPV4_TURN_ENV_VAR);
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
-    for (j = 0; j < pIceAgent->iceServersCount; j++) {
-        if (pIceAgent->iceServers[j].isTurn) {
-            DLOGD("Initializing TURN relay candidates for ICE server %u with IPv4 family %u and IPv6 family (if available) %u", j,
-                  pIceAgent->iceServers[j].ipAddresses.ipv4Address.family, pIceAgent->iceServers[j].ipAddresses.ipv6Address.family);
+    tcpOnly = (pIceAgent->kvsRtcConfiguration.iceTransportProtocolPolicy == ICE_TRANSPORT_PROTOCOL_POLICY_TCP_ONLY);
 
-            if (!isIPv6TurnDisabled && pIceAgent->iceServers[j].ipAddresses.ipv6Address.family != KVS_IP_FAMILY_TYPE_NOT_SET) {
-                if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_UDP || pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
+    for (j = 0; j < pIceAgent->iceServersCount; j++) {
+        pIceServer = &pIceAgent->iceServers[j];
+        if (pIceServer->isTurn) {
+            if (tcpOnly && pIceServer->transport == KVS_SOCKET_PROTOCOL_UDP) {
+                DLOGI("Skipping TURN server %u (%s): it only allows UDP transport but the ICE transport protocol policy is TCP only", j,
+                      pIceServer->url);
+                continue;
+            }
+            usableTurnServerCount++;
+
+            DLOGD("Initializing TURN relay candidates for ICE server %u with IPv4 family %u and IPv6 family (if available) %u", j,
+                  pIceServer->ipAddresses.ipv4Address.family, pIceServer->ipAddresses.ipv6Address.family);
+
+            if (!isIPv6TurnDisabled && pIceServer->ipAddresses.ipv6Address.family != KVS_IP_FAMILY_TYPE_NOT_SET) {
+                if (iceAgentIsRelayProtocolAllowed(pIceAgent, pIceServer, KVS_SOCKET_PROTOCOL_UDP)) {
                     DLOGD("Initializing an IPv6 TURN UDP relay candidate...");
                     startTime = GETTIME();
                     if (iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_UDP, KVS_IP_FAMILY_TYPE_IPV6) == STATUS_SUCCESS) {
@@ -2098,7 +2147,7 @@ STATUS iceAgentInitRelayCandidates(PIceAgent pIceAgent)
                           (GETTIME() - startTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
                 }
 
-                if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_TCP || pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
+                if (iceAgentIsRelayProtocolAllowed(pIceAgent, pIceServer, KVS_SOCKET_PROTOCOL_TCP)) {
                     DLOGD("Initializing an IPv6 TURN TCP relay candidate...");
                     startTime = GETTIME();
                     if (iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_TCP, KVS_IP_FAMILY_TYPE_IPV6) == STATUS_SUCCESS) {
@@ -2109,8 +2158,8 @@ STATUS iceAgentInitRelayCandidates(PIceAgent pIceAgent)
                 }
             }
 
-            if (!isIPv4TurnDisabled && pIceAgent->iceServers[j].ipAddresses.ipv4Address.family != KVS_IP_FAMILY_TYPE_NOT_SET) {
-                if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_UDP || pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
+            if (!isIPv4TurnDisabled && pIceServer->ipAddresses.ipv4Address.family != KVS_IP_FAMILY_TYPE_NOT_SET) {
+                if (iceAgentIsRelayProtocolAllowed(pIceAgent, pIceServer, KVS_SOCKET_PROTOCOL_UDP)) {
                     DLOGD("Initializing an IPv4 TURN UDP relay candidate...");
                     startTime = GETTIME();
                     if (iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_UDP, KVS_IP_FAMILY_TYPE_IPV4) == STATUS_SUCCESS) {
@@ -2120,7 +2169,7 @@ STATUS iceAgentInitRelayCandidates(PIceAgent pIceAgent)
                           (GETTIME() - startTime) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
                 }
 
-                if (pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_TCP || pIceAgent->iceServers[j].transport == KVS_SOCKET_PROTOCOL_NONE) {
+                if (iceAgentIsRelayProtocolAllowed(pIceAgent, pIceServer, KVS_SOCKET_PROTOCOL_TCP)) {
                     DLOGD("Initializing an IPv4 TURN TCP relay candidate...");
                     startTime = GETTIME();
                     if (iceAgentInitRelayCandidate(pIceAgent, j, KVS_SOCKET_PROTOCOL_TCP, KVS_IP_FAMILY_TYPE_IPV4) == STATUS_SUCCESS) {
@@ -2135,6 +2184,12 @@ STATUS iceAgentInitRelayCandidates(PIceAgent pIceAgent)
                     "No relay candidate could be initialized for ICE server %u", j);
         }
     }
+
+    /* With the TCP-only policy host and srflx gathering is skipped, so a TCP-capable TURN server is the only way to
+     * ever get a candidate. Fail loudly instead of letting ICE time out with an empty candidate list. */
+    CHK_ERR(!tcpOnly || usableTurnServerCount > 0, STATUS_ICE_NO_TCP_TURN_SERVER_AVAILABLE,
+            "ICE transport protocol policy is TCP only but no TURN server allowing TCP transport (turn:/turns: with ?transport=tcp or no "
+            "transport parameter) was configured");
 
 CleanUp:
 

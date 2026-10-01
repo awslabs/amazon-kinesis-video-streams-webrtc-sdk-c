@@ -419,7 +419,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     PIceConfigInfo pIceConfigInfo;
     UINT64 data;
     PRtcCertificate pRtcCertificate = NULL;
-    PCHAR pIceTransportPolicy;
+    PCHAR pIceTransportPolicy, pIceTransportProtocol;
 
     CHK(pSampleConfiguration != NULL && ppRtcPeerConnection != NULL, STATUS_NULL_ARG);
 
@@ -436,6 +436,23 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     } else {
         configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
         DLOGI("ICE transport policy: all");
+    }
+
+    // Set the ICE transport protocol policy from environment variable or default to ALL (UDP and TCP).
+    // "tcp" makes the SDK avoid UDP entirely on this device: only TURN over TCP (TLS) relay candidates are gathered,
+    // which also implies the relay ICE transport policy. See ICE_TRANSPORT_PROTOCOL_POLICY in Include.h.
+    pIceTransportProtocol = GETENV(ICE_TRANSPORT_PROTOCOL_ENV_VAR);
+    if (!IS_NULL_OR_EMPTY_STRING(pIceTransportProtocol) && STRCMPI(pIceTransportProtocol, "tcp") == 0) {
+        configuration.kvsRtcConfiguration.iceTransportProtocolPolicy = ICE_TRANSPORT_PROTOCOL_POLICY_TCP_ONLY;
+        if (configuration.iceTransportPolicy != ICE_TRANSPORT_POLICY_RELAY) {
+            DLOGI("ICE transport protocol: tcp only, overriding ICE transport policy to relay");
+            configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_RELAY;
+        } else {
+            DLOGI("ICE transport protocol: tcp only");
+        }
+    } else {
+        configuration.kvsRtcConfiguration.iceTransportProtocolPolicy = ICE_TRANSPORT_PROTOCOL_POLICY_ALL;
+        DLOGI("ICE transport protocol: all");
     }
 
 #ifdef ENABLE_STATS_CALCULATION_CONTROL
