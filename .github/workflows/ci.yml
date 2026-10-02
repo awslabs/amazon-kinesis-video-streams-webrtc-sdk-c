@@ -313,6 +313,8 @@ jobs:
             cmake-args: "-DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
           - name: openssl3
             cmake-args: "-DUSE_OPENSSL3=ON -DUSE_MBEDTLS=OFF"
+          - name: openssl1.1.1-from-source
+            cmake-args: "-DBUILD_DEPENDENCIES=ON -DUSE_OPENSSL=ON -DUSE_MBEDTLS=OFF"
           - name: system-deps-openssl
             # build libwebsockets from source as apt versions are not compatible
             cmake-args: "-DBUILD_DEPENDENCIES=OFF -DBUILD_WEBSOCKETS=ON -DUSE_OPENSSL=ON -DUSE_MBEDTLS=OFF"
