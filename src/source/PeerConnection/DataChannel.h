@@ -24,6 +24,7 @@ typedef struct {
 
     UINT64 onOpenCustomData;
     RtcOnOpen onOpen;
+    BOOL openFired; // onOpen delivered (it can be due both from allocateSctp and from dataChannelOnOpen)
 } KvsDataChannel, *PKvsDataChannel;
 
 #ifdef __cplusplus

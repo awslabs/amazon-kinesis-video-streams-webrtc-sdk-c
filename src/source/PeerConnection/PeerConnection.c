@@ -90,13 +90,58 @@ STATUS allocateSctpSortDataChannelsDataCallback(UINT64 customData, PHashEntry pH
     STATUS retStatus = STATUS_SUCCESS;
     PAllocateSctpSortDataChannelsData data = (PAllocateSctpSortDataChannelsData) customData;
     PKvsDataChannel pKvsDataChannel = (PKvsDataChannel) pHashEntry->value;
+    BOOL exists = FALSE;
 
     CHK(customData != 0, STATUS_NULL_ARG);
 
-    pKvsDataChannel->channelId = data->currentDataChannelId;
+    // Two passes over the creation-ordered table: negotiated channels first, keyed by the id the application
+    // chose, then in-band channels on the even/odd ids of our DTLS role, skipping any id a negotiated channel took.
+    if (data->negotiatedPass) {
+        CHK(pKvsDataChannel->rtcDataChannelInit.negotiated, STATUS_SUCCESS);
+        pKvsDataChannel->channelId = pKvsDataChannel->rtcDataChannelInit.id.value;
+        CHK_STATUS(hashTableContains(data->pKvsPeerConnection->pDataChannels, pKvsDataChannel->channelId, &exists));
+        CHK(!exists, STATUS_INVALID_ARG);
+    } else {
+        CHK(!pKvsDataChannel->rtcDataChannelInit.negotiated, STATUS_SUCCESS);
+        do {
+            CHK_STATUS(hashTableContains(data->pKvsPeerConnection->pDataChannels, data->currentDataChannelId, &exists));
+            if (exists) {
+                data->currentDataChannelId += 2;
+            }
+        } while (exists);
+        pKvsDataChannel->channelId = data->currentDataChannelId;
+        data->currentDataChannelId += 2;
+    }
+    pKvsDataChannel->dataChannel.id = pKvsDataChannel->channelId;
+    pKvsDataChannel->rtcDataChannelDiagnostics.dataChannelIdentifier = pKvsDataChannel->channelId;
     CHK_STATUS(hashTablePut(data->pKvsPeerConnection->pDataChannels, pKvsDataChannel->channelId, (UINT64) pKvsDataChannel));
 
-    data->currentDataChannelId += 2;
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS allocateSctpOpenDataChannelCallback(UINT64 customData, PHashEntry pHashEntry)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
+    PKvsDataChannel pKvsDataChannel = (PKvsDataChannel) pHashEntry->value;
+
+    CHK(pKvsPeerConnection != NULL && pKvsDataChannel != NULL, STATUS_NULL_ARG);
+
+    // Negotiated channels are opened by the application on both sides; only in-band channels announce themselves
+    if (!pKvsDataChannel->rtcDataChannelInit.negotiated) {
+        CHK_STATUS(sctpSessionWriteDcep(pKvsPeerConnection->pSctpSession, pKvsDataChannel->channelId, pKvsDataChannel->dataChannel.name,
+                                        STRLEN(pKvsDataChannel->dataChannel.name), &pKvsDataChannel->rtcDataChannelInit));
+    }
+    pKvsDataChannel->rtcDataChannelDiagnostics.state = RTC_DATA_CHANNEL_STATE_OPEN;
+    if (pKvsDataChannel->onOpen != NULL && !pKvsDataChannel->openFired) {
+        pKvsDataChannel->openFired = TRUE;
+        pKvsDataChannel->onOpen(pKvsDataChannel->onOpenCustomData, &pKvsDataChannel->dataChannel);
+    }
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
@@ -111,23 +156,31 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     STATUS retStatus = STATUS_SUCCESS;
     SctpSessionCallbacks sctpSessionCallbacks;
     AllocateSctpSortDataChannelsData data;
-    UINT32 currentDataChannelId = 0;
-    UINT64 hashValue = 0;
-    PKvsDataChannel pKvsDataChannel = NULL;
+
+    BOOL locked = FALSE;
+    PHashTable pKeyed = NULL;
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
-    currentDataChannelId = ATOMIC_LOAD_BOOL(&pKvsPeerConnection->dtlsIsServer) ? 1 : 0;
+    data.unkeyedDataChannels = NULL;
+    MUTEX_LOCK(pKvsPeerConnection->dataChannelsLock);
+    locked = TRUE;
 
-    // Re-sort DataChannel hashmap using proper streamIds if we are offerer or answerer
-    data.currentDataChannelId = currentDataChannelId;
+    // Re-key the DataChannel hashmap by stream id: negotiated channels keep the id the application chose,
+    // in-band channels get the even (DTLS client) or odd (DTLS server) ids, RFC 8832 section 6.
+    data.currentDataChannelId = ATOMIC_LOAD_BOOL(&pKvsPeerConnection->dtlsIsServer) ? 1 : 0;
     data.pKvsPeerConnection = pKvsPeerConnection;
     data.unkeyedDataChannels = pKvsPeerConnection->pDataChannels;
-    CHK_STATUS(hashTableCreateWithParams(CODEC_HASH_TABLE_BUCKET_COUNT, CODEC_HASH_TABLE_BUCKET_LENGTH, &pKvsPeerConnection->pDataChannels));
+    CHK_STATUS(hashTableCreateWithParams(CODEC_HASH_TABLE_BUCKET_COUNT, CODEC_HASH_TABLE_BUCKET_LENGTH, &pKeyed));
+    pKvsPeerConnection->pDataChannels = pKeyed;
+    data.negotiatedPass = TRUE;
+    CHK_STATUS(hashTableIterateEntries(data.unkeyedDataChannels, (UINT64) &data, allocateSctpSortDataChannelsDataCallback));
+    data.negotiatedPass = FALSE;
     CHK_STATUS(hashTableIterateEntries(data.unkeyedDataChannels, (UINT64) &data, allocateSctpSortDataChannelsDataCallback));
 
-    // Free unkeyed DataChannels
+    // Free unkeyed DataChannels (the channels themselves now live in the keyed table)
     CHK_LOG_ERR(hashTableClear(data.unkeyedDataChannels));
     CHK_LOG_ERR(hashTableFree(data.unkeyedDataChannels));
+    data.unkeyedDataChannels = NULL;
 
     // Create the SCTP Session
     sctpSessionCallbacks.outboundPacketFunc = onSctpSessionOutboundPacket;
@@ -136,28 +189,20 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     sctpSessionCallbacks.customData = (UINT64) pKvsPeerConnection;
     CHK_STATUS(createSctpSession(&sctpSessionCallbacks, pKvsPeerConnection->timerQueueHandle, &(pKvsPeerConnection->pSctpSession)));
 
-    for (; currentDataChannelId < data.currentDataChannelId; currentDataChannelId += 2) {
-        pKvsDataChannel = NULL;
-        retStatus = hashTableGet(pKvsPeerConnection->pDataChannels, currentDataChannelId, &hashValue);
-        pKvsDataChannel = (PKvsDataChannel) hashValue;
-        if (retStatus == STATUS_SUCCESS || retStatus == STATUS_HASH_KEY_NOT_PRESENT) {
-            retStatus = STATUS_SUCCESS;
-        } else {
-            CHK(FALSE, retStatus);
-        }
-        CHK(pKvsDataChannel != NULL, STATUS_INTERNAL_ERROR);
-        CHK_STATUS(sctpSessionWriteDcep(pKvsPeerConnection->pSctpSession, currentDataChannelId, pKvsDataChannel->dataChannel.name,
-                                        STRLEN(pKvsDataChannel->dataChannel.name), &pKvsDataChannel->rtcDataChannelInit));
-        pKvsDataChannel->rtcDataChannelDiagnostics.state = RTC_DATA_CHANNEL_STATE_OPEN;
-        if (STATUS_FAILED(hashTableUpsert(pKvsPeerConnection->pDataChannels, currentDataChannelId, (UINT64) pKvsDataChannel))) {
-            DLOGW("Failed to update entry in hash table with recent changes to data channel");
-        }
-        if (pKvsDataChannel->onOpen != NULL) {
-            pKvsDataChannel->onOpen(pKvsDataChannel->onOpenCustomData, &pKvsDataChannel->dataChannel);
-        }
-    }
+    CHK_STATUS(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, (UINT64) pKvsPeerConnection, allocateSctpOpenDataChannelCallback));
 
 CleanUp:
+    // Re-keying failed half way: every channel is still in the unkeyed table, which goes back so
+    // freePeerConnection frees each channel once
+    if (data.unkeyedDataChannels != NULL && pKvsPeerConnection != NULL) {
+        if (pKeyed != NULL) {
+            hashTableFree(pKeyed);
+        }
+        pKvsPeerConnection->pDataChannels = data.unkeyedDataChannels;
+    }
+    if (locked) {
+        MUTEX_UNLOCK(pKvsPeerConnection->dataChannelsLock);
+    }
     CHK_LOG_ERR(retStatus);
 
     LEAVES();
@@ -618,19 +663,22 @@ VOID onSctpSessionDataChannelMessage(UINT64 customData, UINT32 channelId, BOOL i
 
     CHK(pKvsPeerConnection != NULL, STATUS_INTERNAL_ERROR);
 
+    MUTEX_LOCK(pKvsPeerConnection->dataChannelsLock);
     retStatus = hashTableGet(pKvsPeerConnection->pDataChannels, channelId, &hashValue);
     pKvsDataChannel = (PKvsDataChannel) hashValue;
     if (retStatus == STATUS_SUCCESS || retStatus == STATUS_HASH_KEY_NOT_PRESENT) {
         retStatus = STATUS_SUCCESS;
-    } else {
-        CHK(FALSE, retStatus);
     }
+    if (STATUS_SUCCEEDED(retStatus) && pKvsDataChannel != NULL) {
+        pKvsDataChannel->rtcDataChannelDiagnostics.messagesReceived++;
+        pKvsDataChannel->rtcDataChannelDiagnostics.bytesReceived += pMessageLen;
+        if (STATUS_FAILED(hashTableUpsert(pKvsPeerConnection->pDataChannels, channelId, (UINT64) pKvsDataChannel))) {
+            DLOGW("Failed to update entry in hash table with recent changes to data channel");
+        }
+    }
+    MUTEX_UNLOCK(pKvsPeerConnection->dataChannelsLock);
+    CHK_STATUS(retStatus);
     CHK(pKvsDataChannel != NULL && pKvsDataChannel->onMessage != NULL, STATUS_INTERNAL_ERROR);
-    pKvsDataChannel->rtcDataChannelDiagnostics.messagesReceived++;
-    pKvsDataChannel->rtcDataChannelDiagnostics.bytesReceived += pMessageLen;
-    if (STATUS_FAILED(hashTableUpsert(pKvsPeerConnection->pDataChannels, channelId, (UINT64) pKvsDataChannel))) {
-        DLOGW("Failed to update entry in hash table with recent changes to data channel");
-    }
     pKvsDataChannel->onMessage(pKvsDataChannel->onMessageCustomData, &pKvsDataChannel->dataChannel, isBinary, pMessage, pMessageLen);
 
 CleanUp:
@@ -660,7 +708,10 @@ VOID onSctpSessionDataChannelOpen(UINT64 customData, UINT32 channelId, PBYTE pNa
     pKvsDataChannel->rtcDataChannelDiagnostics.dataChannelIdentifier = channelId;
     pKvsDataChannel->rtcDataChannelDiagnostics.state = RTC_DATA_CHANNEL_STATE_OPEN;
     STRNCPY(pKvsDataChannel->rtcDataChannelDiagnostics.label, (PCHAR) pName, nameLen);
-    CHK_STATUS(hashTablePut(pKvsPeerConnection->pDataChannels, channelId, (UINT64) pKvsDataChannel));
+    MUTEX_LOCK(pKvsPeerConnection->dataChannelsLock);
+    retStatus = hashTablePut(pKvsPeerConnection->pDataChannels, channelId, (UINT64) pKvsDataChannel);
+    MUTEX_UNLOCK(pKvsPeerConnection->dataChannelsLock);
+    CHK_STATUS(retStatus);
     pKvsPeerConnection->onDataChannel(pKvsPeerConnection->onDataChannelCustomData, &(pKvsDataChannel->dataChannel));
 
 CleanUp:
@@ -1040,6 +1091,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
 
     pKvsPeerConnection->pSrtpSessionLock = MUTEX_CREATE(TRUE);
     pKvsPeerConnection->peerConnectionObjLock = MUTEX_CREATE(FALSE);
+    pKvsPeerConnection->dataChannelsLock = MUTEX_CREATE(TRUE);
     pKvsPeerConnection->connectionState = RTC_PEER_CONNECTION_STATE_NONE;
     pKvsPeerConnection->MTU = pConfiguration->kvsRtcConfiguration.maximumTransmissionUnit == 0
         ? DEFAULT_MTU_SIZE_BYTES
@@ -1151,8 +1203,15 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     }
 
     // Free DataChannels
+    if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->dataChannelsLock)) {
+        MUTEX_LOCK(pKvsPeerConnection->dataChannelsLock);
+    }
     CHK_LOG_ERR(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, 0, freeHashEntry));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pDataChannels));
+    pKvsPeerConnection->pDataChannels = NULL;
+    if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->dataChannelsLock)) {
+        MUTEX_UNLOCK(pKvsPeerConnection->dataChannelsLock);
+    }
 
     // free rest of structs
     CHK_LOG_ERR(freeSrtpSession(&pKvsPeerConnection->pSrtpSession));
@@ -1171,6 +1230,9 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
 
     if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->peerConnectionObjLock)) {
         MUTEX_FREE(pKvsPeerConnection->peerConnectionObjLock);
+    }
+    if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->dataChannelsLock)) {
+        MUTEX_FREE(pKvsPeerConnection->dataChannelsLock);
     }
 
     if (IS_VALID_TIMER_QUEUE_HANDLE(pKvsPeerConnection->timerQueueHandle)) {
