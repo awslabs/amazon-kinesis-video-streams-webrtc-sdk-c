@@ -876,7 +876,7 @@ Here is the call graph for this function:</div>
 </div><div class="memdoc">
 
 <p>createDataChannel creates a new RtcDataChannel object with the given label. </p>
-<p>NOTE: The <a class="el" href="structRtcDataChannelInit.html" title="RtcDataChannelInit dictionary used to configure properties of the underlying channel such as data rel...">RtcDataChannelInit</a> dictionary can be used to configure properties of the underlying channel such as data reliability. NOTE: A channel that uses in-band negotiation (DCEP) can only be created before the SCTP association is established. A negotiated channel (<a class="el" href="group__StatusCodes.html#ga8c67966c06b4163b51f21392ca5dc654">RtcDataChannelInit.negotiated</a> = TRUE with an id) can be created at any time; created after the association, it is open immediately and its onOpen callback fires on registration.</p>
+<p>NOTE: The <a class="el" href="structRtcDataChannelInit.html" title="RtcDataChannelInit dictionary used to configure properties of the underlying channel such as data rel...">RtcDataChannelInit</a> dictionary can be used to configure properties of the underlying channel such as data reliability. NOTE: Data channel can be created only after signaling for now</p>
 <p>Reference: <a href="https://www.w3.org/TR/webrtc/#methods-11">https://www.w3.org/TR/webrtc/#methods-11</a></p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -1460,7 +1460,6 @@ Here is the call graph for this function:</div>
 </div><div class="memdoc">
 
 <p>Set a callback for data channel open. </p>
-<p>For a channel that is already open (a negotiated channel created on an established association, or a remote channel), the callback runs before this function returns. It runs once per channel.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">PRtcDataChannel</td><td>Data channel struct created by <a class="el" href="group__PublicMemberFunctions.html#ga70b9d70f77fae56f1a2f223cb3054416" title="createDataChannel creates a new RtcDataChannel object with the given label.">createDataChannel()</a> </td></tr>
@@ -4452,7 +4451,7 @@ Here is the call graph for this function:</div>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Fri Oct 2 2026 15:21:51 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Fri Oct 2 2026 15:33:55 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>
