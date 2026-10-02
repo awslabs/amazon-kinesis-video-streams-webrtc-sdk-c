@@ -174,6 +174,11 @@ typedef struct {
     PIceCandidate local;
     PIceCandidate remote;
     BOOL nominated;
+    //!< TRUE only once a STUN Binding Response to the USE_CANDIDATE request has been received for this pair.
+    //!< Distinguishes "we sent the nomination" from "the peer acknowledged it". Without it the agent can enter
+    //!< ICE_AGENT_STATE_READY on a SUCCEEDED state earned by the pre-nomination connectivity checks, which also
+    //!< stops the per-tick resend in executeNominatingIceAgentState() and makes a lost USE_CANDIDATE terminal.
+    BOOL nominationAcked;
     BOOL firstStunRequest;
     UINT64 priority;
     ICE_CANDIDATE_PAIR_STATE state;
