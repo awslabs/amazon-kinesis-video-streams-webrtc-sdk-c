@@ -717,7 +717,12 @@ VOID onSctpSessionDataChannelMessage(UINT64 customData, UINT32 channelId, BOOL i
     }
     MUTEX_UNLOCK(pKvsPeerConnection->dataChannelsLock);
     CHK_STATUS(retStatus);
-    CHK(pKvsDataChannel != NULL && pKvsDataChannel->onMessage != NULL, STATUS_INTERNAL_ERROR);
+    // A negotiated channel created on a live association is OPEN before the application sets onMessage
+    if (pKvsDataChannel != NULL && pKvsDataChannel->onMessage == NULL) {
+        DLOGW("Message on data channel %u before its onMessage callback was set; dropped", channelId);
+        CHK(FALSE, STATUS_SUCCESS);
+    }
+    CHK(pKvsDataChannel != NULL, STATUS_INTERNAL_ERROR);
     pKvsDataChannel->onMessage(pKvsDataChannel->onMessageCustomData, &pKvsDataChannel->dataChannel, isBinary, pMessage, pMessageLen);
 
 CleanUp:
