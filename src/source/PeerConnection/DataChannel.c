@@ -122,16 +122,126 @@ CleanUp:
     return retStatus;
 }
 
+// Hold a message while the channel has no onMessage, or while held messages are still being delivered,
+// so that messages reach the application in the order they arrived. Caller holds dataChannelsLock.
+BOOL dataChannelQueueMessageIfPending(PKvsDataChannel pKvsDataChannel, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
+{
+    PDataChannelPendingMessage pPending = NULL;
+
+    if (pKvsDataChannel->onMessage != NULL && !pKvsDataChannel->deliveringPending && pKvsDataChannel->pPendingHead == NULL) {
+        return FALSE;
+    }
+
+    if (pKvsDataChannel->pendingCount >= DATA_CHANNEL_MAX_PENDING_MESSAGES ||
+        pKvsDataChannel->pendingBytes + pMessageLen > DATA_CHANNEL_MAX_PENDING_BYTES ||
+        (pPending = (PDataChannelPendingMessage) MEMALLOC(SIZEOF(DataChannelPendingMessage) + pMessageLen)) == NULL) {
+        DLOGW("Data channel %" PRIu32 " has no onMessage callback yet and its queue is full; message dropped", pKvsDataChannel->channelId);
+        return TRUE;
+    }
+
+    pPending->pNext = NULL;
+    pPending->isBinary = isBinary;
+    pPending->length = pMessageLen;
+    MEMCPY((PBYTE) (pPending + 1), pMessage, pMessageLen);
+    if (pKvsDataChannel->pPendingTail == NULL) {
+        pKvsDataChannel->pPendingHead = pPending;
+    } else {
+        pKvsDataChannel->pPendingTail->pNext = pPending;
+    }
+    pKvsDataChannel->pPendingTail = pPending;
+    pKvsDataChannel->pendingCount++;
+    pKvsDataChannel->pendingBytes += pMessageLen;
+
+    return TRUE;
+}
+
+// Caller holds dataChannelsLock
+VOID dataChannelFreePendingMessages(PKvsDataChannel pKvsDataChannel)
+{
+    PDataChannelPendingMessage pPending = pKvsDataChannel->pPendingHead, pNext = NULL;
+
+    while (pPending != NULL) {
+        pNext = pPending->pNext;
+        MEMFREE(pPending);
+        pPending = pNext;
+    }
+    pKvsDataChannel->pPendingHead = NULL;
+    pKvsDataChannel->pPendingTail = NULL;
+    pKvsDataChannel->pendingCount = 0;
+    pKvsDataChannel->pendingBytes = 0;
+}
+
+STATUS freeDataChannelHashEntry(UINT64 customData, PHashEntry pHashEntry)
+{
+    PKvsDataChannel pKvsDataChannel = (PKvsDataChannel) pHashEntry->value;
+
+    UNUSED_PARAM(customData);
+    if (pKvsDataChannel != NULL) {
+        dataChannelFreePendingMessages(pKvsDataChannel);
+        MEMFREE(pKvsDataChannel);
+    }
+
+    return STATUS_SUCCESS;
+}
+
+// Hand held messages to onMessage, oldest first, outside the lock. Only one caller delivers at a time
+// (deliveringPending), and messages arriving meanwhile queue behind the ones being delivered.
+static VOID dataChannelDeliverPendingMessages(PKvsPeerConnection pKvsPeerConnection, PKvsDataChannel pKvsDataChannel)
+{
+    PDataChannelPendingMessage pPending = NULL;
+    RtcOnMessage onMessage = NULL;
+    UINT64 onMessageCustomData = 0;
+
+    for (;;) {
+        MUTEX_LOCK(pKvsPeerConnection->dataChannelsLock);
+        pPending = pKvsDataChannel->pPendingHead;
+        if (pPending == NULL) {
+            pKvsDataChannel->deliveringPending = FALSE;
+        } else {
+            pKvsDataChannel->pPendingHead = pPending->pNext;
+            if (pKvsDataChannel->pPendingHead == NULL) {
+                pKvsDataChannel->pPendingTail = NULL;
+            }
+            pKvsDataChannel->pendingCount--;
+            pKvsDataChannel->pendingBytes -= pPending->length;
+        }
+        onMessage = pKvsDataChannel->onMessage;
+        onMessageCustomData = pKvsDataChannel->onMessageCustomData;
+        MUTEX_UNLOCK(pKvsPeerConnection->dataChannelsLock);
+
+        if (pPending == NULL) {
+            break;
+        }
+        onMessage(onMessageCustomData, &pKvsDataChannel->dataChannel, pPending->isBinary, (PBYTE) (pPending + 1), pPending->length);
+        MEMFREE(pPending);
+    }
+}
+
 STATUS dataChannelOnMessage(PRtcDataChannel pRtcDataChannel, UINT64 customData, RtcOnMessage rtcOnMessage)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsDataChannel pKvsDataChannel = (PKvsDataChannel) pRtcDataChannel;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    BOOL deliver = FALSE;
 
     CHK(pKvsDataChannel != NULL && rtcOnMessage != NULL, STATUS_NULL_ARG);
+    pKvsPeerConnection = (PKvsPeerConnection) pKvsDataChannel->pRtcPeerConnection;
 
+    // The SCTP thread reads the callback and its custom data together, under the same lock
+    MUTEX_LOCK(pKvsPeerConnection->dataChannelsLock);
     pKvsDataChannel->onMessage = rtcOnMessage;
     pKvsDataChannel->onMessageCustomData = customData;
+    deliver = pKvsDataChannel->pPendingHead != NULL && !pKvsDataChannel->deliveringPending;
+    if (deliver) {
+        pKvsDataChannel->deliveringPending = TRUE;
+    }
+    MUTEX_UNLOCK(pKvsPeerConnection->dataChannelsLock);
+
+    // Messages that arrived before the callback was set are delivered now, from this thread
+    if (deliver) {
+        dataChannelDeliverPendingMessages(pKvsPeerConnection, pKvsDataChannel);
+    }
 
 CleanUp:
 

@@ -699,6 +699,9 @@ VOID onSctpSessionDataChannelMessage(UINT64 customData, UINT32 channelId, BOOL i
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
     PKvsDataChannel pKvsDataChannel = NULL;
     UINT64 hashValue = 0;
+    BOOL queued = FALSE;
+    RtcOnMessage onMessage = NULL;
+    UINT64 onMessageCustomData = 0;
 
     CHK(pKvsPeerConnection != NULL, STATUS_INTERNAL_ERROR);
 
@@ -714,11 +717,16 @@ VOID onSctpSessionDataChannelMessage(UINT64 customData, UINT32 channelId, BOOL i
         if (STATUS_FAILED(hashTableUpsert(pKvsPeerConnection->pDataChannels, channelId, (UINT64) pKvsDataChannel))) {
             DLOGW("Failed to update entry in hash table with recent changes to data channel");
         }
+        // A negotiated channel created on a live association is OPEN before the application sets onMessage
+        queued = dataChannelQueueMessageIfPending(pKvsDataChannel, isBinary, pMessage, pMessageLen);
+        onMessage = pKvsDataChannel->onMessage;
+        onMessageCustomData = pKvsDataChannel->onMessageCustomData;
     }
     MUTEX_UNLOCK(pKvsPeerConnection->dataChannelsLock);
     CHK_STATUS(retStatus);
-    CHK(pKvsDataChannel != NULL && pKvsDataChannel->onMessage != NULL, STATUS_INTERNAL_ERROR);
-    pKvsDataChannel->onMessage(pKvsDataChannel->onMessageCustomData, &pKvsDataChannel->dataChannel, isBinary, pMessage, pMessageLen);
+    CHK(!queued, STATUS_SUCCESS);
+    CHK(pKvsDataChannel != NULL, STATUS_INTERNAL_ERROR);
+    onMessage(onMessageCustomData, &pKvsDataChannel->dataChannel, isBinary, pMessage, pMessageLen);
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
@@ -1245,7 +1253,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->dataChannelsLock)) {
         MUTEX_LOCK(pKvsPeerConnection->dataChannelsLock);
     }
-    CHK_LOG_ERR(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, 0, freeHashEntry));
+    CHK_LOG_ERR(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, 0, freeDataChannelHashEntry));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pDataChannels));
     pKvsPeerConnection->pDataChannels = NULL;
     if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->dataChannelsLock)) {

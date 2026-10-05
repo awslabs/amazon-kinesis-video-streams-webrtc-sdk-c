@@ -1152,6 +1152,153 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_NegotiatedAfterConnect)
     EXPECT_EQ(1, ATOMIC_LOAD(&answer.remoteOpen));
 }
 
+struct ReceivedMessages {
+    std::mutex lock;
+    std::vector<std::string> messages;
+};
+
+static VOID recordMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMsg, UINT32 pMsgLen)
+{
+    ReceivedMessages* pReceived = (ReceivedMessages*) customData;
+    UNUSED_PARAM(pDataChannel);
+    UNUSED_PARAM(isBinary);
+    std::lock_guard<std::mutex> guard(pReceived->lock);
+    pReceived->messages.emplace_back((PCHAR) pMsg, pMsgLen);
+}
+
+// Reads a channel's counters the way the SCTP thread writes them, under the data channel lock
+static UINT32 heldMessages(PRtcPeerConnection pPc, PKvsDataChannel pKvsDataChannel, PUINT32 pReceived)
+{
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPc;
+    UINT32 held;
+
+    MUTEX_LOCK(pKvsPeerConnection->dataChannelsLock);
+    held = pKvsDataChannel->pendingCount;
+    *pReceived = pKvsDataChannel->rtcDataChannelDiagnostics.messagesReceived;
+    MUTEX_UNLOCK(pKvsPeerConnection->dataChannelsLock);
+    return held;
+}
+
+static SIZE_T receivedCount(ReceivedMessages* pReceived)
+{
+    std::lock_guard<std::mutex> guard(pReceived->lock);
+    return pReceived->messages.size();
+}
+
+// A negotiated channel created on a live association is open before its onMessage is set. Messages the peer
+// sends in that gap are held and delivered, in order, once the callback is set, followed by later ones.
+TEST_F(DataChannelFunctionalityTest, createDataChannel_NegotiatedAfterConnectHoldsEarlyMessages)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PRtcDataChannel pOfferInband = NULL, pOfferNeg = NULL, pAnswerNeg = NULL;
+    RtcDataChannelInit init;
+    NegotiatedCounters offer, answer, inband;
+    ReceivedMessages received;
+    const UINT32 earlyCount = 10;
+    UINT32 i;
+    CHAR message[32];
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+    EXPECT_EQ(peerConnectionOnDataChannel(offerPc, (UINT64) &offer, negotiatedOnRemoteDataChannel), STATUS_SUCCESS);
+    EXPECT_EQ(peerConnectionOnDataChannel(answerPc, (UINT64) &answer, negotiatedOnRemoteDataChannel), STATUS_SUCCESS);
+    EXPECT_EQ(createDataChannel(offerPc, (PCHAR) "inband", NULL, &pOfferInband), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelOnOpen(pOfferInband, (UINT64) &inband, negotiatedOnOpen), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    for (i = 0; i <= 100 && (ATOMIC_LOAD(&inband.open) != 1 || ATOMIC_LOAD(&answer.remoteOpen) != 1); i++) {
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    ASSERT_EQ(1, ATOMIC_LOAD(&answer.remoteOpen));
+
+    // The receiving side exists first but has no onMessage yet; the sender writes straight away
+    initNegotiated(&init, 30);
+    EXPECT_EQ(createDataChannel(offerPc, (PCHAR) "late", &init, &pOfferNeg), STATUS_SUCCESS);
+    initNegotiated(&init, 30);
+    EXPECT_EQ(createDataChannel(answerPc, (PCHAR) "late", &init, &pAnswerNeg), STATUS_SUCCESS);
+    for (i = 0; i < earlyCount; i++) {
+        SNPRINTF(message, SIZEOF(message), "early-%u", i);
+        EXPECT_EQ(dataChannelSend(pAnswerNeg, FALSE, (PBYTE) message, (UINT32) STRLEN(message)), STATUS_SUCCESS);
+    }
+
+    // Give them time to arrive and be held
+    THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
+    EXPECT_EQ(0, receivedCount(&received));
+
+    // The held messages are delivered from this call, before it returns
+    EXPECT_EQ(dataChannelOnMessage(pOfferNeg, (UINT64) &received, recordMessage), STATUS_SUCCESS);
+    EXPECT_EQ(earlyCount, receivedCount(&received));
+
+    EXPECT_EQ(dataChannelSend(pAnswerNeg, FALSE, (PBYTE) "later", 5), STATUS_SUCCESS);
+    for (i = 0; i <= 50 && receivedCount(&received) != earlyCount + 1; i++) {
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    ASSERT_EQ(earlyCount + 1, received.messages.size());
+    for (i = 0; i < earlyCount; i++) {
+        SNPRINTF(message, SIZEOF(message), "early-%u", i);
+        EXPECT_EQ(std::string(message), received.messages[i]);
+    }
+    EXPECT_EQ(std::string("later"), received.messages[earlyCount]);
+}
+
+// Messages still held when the peer connection is freed are released with it (checked by the leak tools)
+TEST_F(DataChannelFunctionalityTest, createDataChannel_HeldMessagesFreedWithPeerConnection)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PRtcDataChannel pOfferInband = NULL, pOfferNeg = NULL, pAnswerNeg = NULL;
+    RtcDataChannelInit init;
+    NegotiatedCounters offer, answer, inband;
+    PKvsDataChannel pKvsDataChannel = NULL;
+    UINT32 i, received = 0, held = 0;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+    EXPECT_EQ(peerConnectionOnDataChannel(offerPc, (UINT64) &offer, negotiatedOnRemoteDataChannel), STATUS_SUCCESS);
+    EXPECT_EQ(peerConnectionOnDataChannel(answerPc, (UINT64) &answer, negotiatedOnRemoteDataChannel), STATUS_SUCCESS);
+    EXPECT_EQ(createDataChannel(offerPc, (PCHAR) "inband", NULL, &pOfferInband), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelOnOpen(pOfferInband, (UINT64) &inband, negotiatedOnOpen), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    for (i = 0; i <= 100 && (ATOMIC_LOAD(&inband.open) != 1 || ATOMIC_LOAD(&answer.remoteOpen) != 1); i++) {
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    ASSERT_EQ(1, ATOMIC_LOAD(&answer.remoteOpen));
+
+    initNegotiated(&init, 31);
+    EXPECT_EQ(createDataChannel(offerPc, (PCHAR) "held", &init, &pOfferNeg), STATUS_SUCCESS);
+    initNegotiated(&init, 31);
+    EXPECT_EQ(createDataChannel(answerPc, (PCHAR) "held", &init, &pAnswerNeg), STATUS_SUCCESS);
+    // More than the queue holds: the rest are dropped with a warning
+    for (i = 0; i < DATA_CHANNEL_MAX_PENDING_MESSAGES + 5; i++) {
+        EXPECT_EQ(dataChannelSend(pAnswerNeg, FALSE, (PBYTE) TEST_DATA_CHANNEL_MESSAGE, STRLEN(TEST_DATA_CHANNEL_MESSAGE)), STATUS_SUCCESS);
+    }
+    pKvsDataChannel = (PKvsDataChannel) pOfferNeg;
+    for (i = 0; i <= 50; i++) {
+        held = heldMessages(offerPc, pKvsDataChannel, &received);
+        if (received >= DATA_CHANNEL_MAX_PENDING_MESSAGES + 5) {
+            break;
+        }
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    EXPECT_EQ(DATA_CHANNEL_MAX_PENDING_MESSAGES + 5, received);
+    EXPECT_EQ(DATA_CHANNEL_MAX_PENDING_MESSAGES, held);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

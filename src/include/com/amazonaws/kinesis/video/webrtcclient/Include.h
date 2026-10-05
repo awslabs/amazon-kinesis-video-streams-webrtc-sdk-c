@@ -2332,6 +2332,10 @@ PUBLIC_API STATUS createDataChannel(PRtcPeerConnection, PCHAR, PRtcDataChannelIn
 /**
  * @brief Set a callback for data channel message
  *
+ * Messages that arrive before the callback is set (for example on a negotiated channel created after the
+ * SCTP association is established) are held, up to 64 messages or 64 KB, and delivered in order from the
+ * thread that calls this function, before it returns. Later messages are delivered from the SCTP thread.
+ *
  * @param[in] PRtcDataChannel Data channel struct created by createDataChannel()
  * @param[in] UINT64 User customData that will be passed along when RtcOnMessage is called
  * @param[in] RtcOnMessage User RtcOnMessage callback
