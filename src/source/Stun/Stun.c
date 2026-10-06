@@ -1086,7 +1086,8 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
                 break;
 
             default:
-                // Skip over the unknown attributes
+                // Unknown attributes were not counted in the first pass, so give the slot back for the next known one
+                i--;
                 break;
         }
 
