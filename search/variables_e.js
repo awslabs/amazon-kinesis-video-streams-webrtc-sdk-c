@@ -31,11 +31,10 @@ var searchData=
   ['onsenderbandwidthestimationcustomdata_28',['onSenderBandwidthEstimationCustomData',['../structKvsPeerConnection.html#ab621eb2b3442366ba2dff74270fe994b',1,'KvsPeerConnection']]],
   ['ontwccfeedbackreceived_29',['onTwccFeedbackReceived',['../structKvsPeerConnection.html#a06026190b502b1783fea8ad424c89839',1,'KvsPeerConnection']]],
   ['ontwccfeedbackreceivedcustomdata_30',['onTwccFeedbackReceivedCustomData',['../structKvsPeerConnection.html#aef74b0f711c90aa2ec0fd003b0843b44',1,'KvsPeerConnection']]],
-  ['openfired_31',['openFired',['../structKvsDataChannel.html#a6e329af7aa01db0a10093d9aa829f91c',1,'KvsDataChannel']]],
-  ['ordered_32',['ordered',['../group__StatusCodes.html#gad83e032fdce8d6ff6d75aea373f6e085',1,'RtcDataChannelInit']]],
-  ['outboundpacketfn_33',['outboundpacketfn',['../structDtlsSessionCallbacks.html#a0c4a19dd28c96de513c236f9a94fa66c',1,'DtlsSessionCallbacks::outboundPacketFn'],['../structTlsSessionCallbacks.html#afe9709e2b97c1ca56fa7c316cffde9ee',1,'TlsSessionCallbacks::outboundPacketFn']]],
-  ['outboundpacketfncustomdata_34',['outboundpacketfncustomdata',['../structDtlsSessionCallbacks.html#abc23bd28a8bb393fa396e88915829619',1,'DtlsSessionCallbacks::outBoundPacketFnCustomData'],['../structTlsSessionCallbacks.html#a4b671a50680a7643e391c39dc91cf5c3',1,'TlsSessionCallbacks::outBoundPacketFnCustomData']]],
-  ['outboundpacketfunc_35',['outboundPacketFunc',['../structSctpSessionCallbacks.html#a6337fee004b60e8d70ef8db7c476a21b',1,'SctpSessionCallbacks']]],
-  ['outboundrtpstreamstats_36',['outboundRtpStreamStats',['../structRtcStatsObject.html#a49d60490881d349beb2a8cfddda9572a',1,'RtcStatsObject']]],
-  ['outboundstats_37',['outboundStats',['../structKvsRtpTransceiver.html#a785a5966f3a2277c3c2fbdfd48008e15',1,'KvsRtpTransceiver']]]
+  ['ordered_31',['ordered',['../group__StatusCodes.html#gad83e032fdce8d6ff6d75aea373f6e085',1,'RtcDataChannelInit']]],
+  ['outboundpacketfn_32',['outboundpacketfn',['../structDtlsSessionCallbacks.html#a0c4a19dd28c96de513c236f9a94fa66c',1,'DtlsSessionCallbacks::outboundPacketFn'],['../structTlsSessionCallbacks.html#afe9709e2b97c1ca56fa7c316cffde9ee',1,'TlsSessionCallbacks::outboundPacketFn']]],
+  ['outboundpacketfncustomdata_33',['outboundpacketfncustomdata',['../structDtlsSessionCallbacks.html#abc23bd28a8bb393fa396e88915829619',1,'DtlsSessionCallbacks::outBoundPacketFnCustomData'],['../structTlsSessionCallbacks.html#a4b671a50680a7643e391c39dc91cf5c3',1,'TlsSessionCallbacks::outBoundPacketFnCustomData']]],
+  ['outboundpacketfunc_34',['outboundPacketFunc',['../structSctpSessionCallbacks.html#a6337fee004b60e8d70ef8db7c476a21b',1,'SctpSessionCallbacks']]],
+  ['outboundrtpstreamstats_35',['outboundRtpStreamStats',['../structRtcStatsObject.html#a49d60490881d349beb2a8cfddda9572a',1,'RtcStatsObject']]],
+  ['outboundstats_36',['outboundStats',['../structKvsRtpTransceiver.html#a785a5966f3a2277c3c2fbdfd48008e15',1,'KvsRtpTransceiver']]]
 ];
