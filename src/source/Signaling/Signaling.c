@@ -176,10 +176,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     CHK_STATUS(readCACertificate(pChannelInfo->pCertPath, &caCertBuf, &caCertBufLen));
     creationInfo.client_ssl_ca_mem = caCertBuf;
     creationInfo.client_ssl_ca_mem_len = caCertBufLen;
-#ifdef KVS_USE_MBEDTLS4
-    // The mbedTLS 4 build pulls a mainline libwebsockets whose mbedTLS backend
-    // rejects the OpenSSL cipher-category alias "HIGH" and fails vhost creation.
-    // NULL selects mbedTLS's defaults. (v3.x lws tolerates the string.)
+#ifdef KVS_USE_MBEDTLS
+    // lws's mbedTLS backend can't map OpenSSL selectors; newer lws fails a selector-only list, older lws ignored it.
     creationInfo.client_ssl_cipher_list = NULL;
 #else
     creationInfo.client_ssl_cipher_list = "HIGH:!PSK:!RSP:!eNULL:!aNULL:!RC4:!MD5:!DES:!3DES:!aDH:!kDH:!DSS";
