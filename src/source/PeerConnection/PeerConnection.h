@@ -210,6 +210,13 @@ UINT32 parseExtId(PCHAR);
 // visible for testing only
 VOID onIceConnectionStateChange(UINT64, UINT64);
 
+// STUN server address pre-resolution (initKvsWebRtc) handed to new peer connections
+PWebRtcClientContext getWebRtcClientInstance();
+VOID releaseHoldOnInstance(PWebRtcClientContext);
+STATUS createWebRtcClientInstance();
+STATUS cleanupWebRtcClientInstance();
+STATUS onSetStunServerIp(UINT64, PCHAR, PDualKvsIpAddresses);
+
 #ifdef __cplusplus
 }
 #endif

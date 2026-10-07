@@ -272,6 +272,79 @@ TEST_F(PeerConnectionApiTest, peerConnectionUpdateIceServersDuplicate)
     freePeerConnection(&pRtcPeerConnection);
 }
 
+TEST_F(PeerConnectionApiTest, onSetStunServerIpCopiesCompleteAddress)
+{
+    PWebRtcClientContext pWebRtcClientContext;
+    PStunIpAddrContext pStunIpAddrCtx;
+    StunIpAddrContext savedCtx;
+    DualKvsIpAddresses ipAddresses;
+    const BYTE ipv4[IPV4_ADDRESS_LENGTH] = {203, 0, 113, 7};
+    const BYTE ipv6[IPV6_ADDRESS_LENGTH] = {0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x42};
+    BOOL createdHere = FALSE, resolverDone = FALSE;
+    UINT32 i;
+
+    // The client instance is only created by initKvsWebRtc() when ENABLE_KVS_THREADPOOL is on
+    pWebRtcClientContext = getWebRtcClientInstance();
+    if (!ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized)) {
+        releaseHoldOnInstance(pWebRtcClientContext);
+        ASSERT_EQ(STATUS_SUCCESS, createWebRtcClientInstance());
+        createdHere = TRUE;
+        pWebRtcClientContext = getWebRtcClientInstance();
+    }
+    ASSERT_TRUE(ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized));
+    pStunIpAddrCtx = pWebRtcClientContext->pStunIpAddrCtx;
+    ASSERT_TRUE(pStunIpAddrCtx != NULL);
+
+    // Wait for the startup STUN resolution thread; it sets startTime when done
+    for (i = 0; i < 1000 && !createdHere && !resolverDone; i++) {
+        MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
+        resolverDone = (pStunIpAddrCtx->startTime != 0);
+        MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
+        if (!resolverDone) {
+            THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        }
+    }
+
+    MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
+    savedCtx = *pStunIpAddrCtx;
+    STRCPY(pStunIpAddrCtx->hostname, "stun.test.invalid");
+    MEMSET(&pStunIpAddrCtx->kvsIpAddresses, 0x00, SIZEOF(DualKvsIpAddresses));
+    pStunIpAddrCtx->kvsIpAddresses.ipv4Address.family = KVS_IP_FAMILY_TYPE_IPV4;
+    pStunIpAddrCtx->kvsIpAddresses.ipv4Address.port = 3478;
+    MEMCPY(pStunIpAddrCtx->kvsIpAddresses.ipv4Address.address, ipv4, IPV4_ADDRESS_LENGTH);
+    pStunIpAddrCtx->kvsIpAddresses.ipv6Address.family = KVS_IP_FAMILY_TYPE_IPV6;
+    pStunIpAddrCtx->kvsIpAddresses.ipv6Address.port = 3479;
+    MEMCPY(pStunIpAddrCtx->kvsIpAddresses.ipv6Address.address, ipv6, IPV6_ADDRESS_LENGTH);
+    pStunIpAddrCtx->isIpInitialized = TRUE;
+    pStunIpAddrCtx->startTime = GETTIME();
+    pStunIpAddrCtx->expirationDuration = 2 * HUNDREDS_OF_NANOS_IN_AN_HOUR;
+    MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
+
+    MEMSET(&ipAddresses, 0x00, SIZEOF(ipAddresses));
+    EXPECT_EQ(STATUS_SUCCESS, onSetStunServerIp(0, (PCHAR) "stun.test.invalid", &ipAddresses));
+
+    EXPECT_EQ(KVS_IP_FAMILY_TYPE_IPV4, ipAddresses.ipv4Address.family);
+    EXPECT_EQ(3478, ipAddresses.ipv4Address.port);
+    EXPECT_EQ(0, MEMCMP(ipAddresses.ipv4Address.address, ipv4, IPV4_ADDRESS_LENGTH));
+    EXPECT_EQ(KVS_IP_FAMILY_TYPE_IPV6, ipAddresses.ipv6Address.family);
+    EXPECT_EQ(3479, ipAddresses.ipv6Address.port);
+    EXPECT_EQ(0, MEMCMP(ipAddresses.ipv6Address.address, ipv6, IPV6_ADDRESS_LENGTH));
+
+    // Different URL than the cached hostname
+    MEMSET(&ipAddresses, 0x00, SIZEOF(ipAddresses));
+    EXPECT_EQ(STATUS_PEERCONNECTION_EARLY_DNS_RESOLUTION_FAILED, onSetStunServerIp(0, (PCHAR) "stun.other.invalid", &ipAddresses));
+    EXPECT_EQ(KVS_IP_FAMILY_TYPE_NOT_SET, ipAddresses.ipv4Address.family);
+
+    MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
+    *pStunIpAddrCtx = savedCtx;
+    MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
+    releaseHoldOnInstance(pWebRtcClientContext);
+
+    if (createdHere) {
+        EXPECT_EQ(STATUS_SUCCESS, cleanupWebRtcClientInstance());
+    }
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
