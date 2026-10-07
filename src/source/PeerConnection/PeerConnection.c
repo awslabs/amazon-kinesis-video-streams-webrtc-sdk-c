@@ -892,10 +892,8 @@ STATUS onSetStunServerIp(UINT64 customData, PCHAR url, PDualKvsIpAddresses pIpAd
                 pWebRtcClientContext->pStunIpAddrCtx->startTime = 0;
                 CHK_ERR(getStunAddr(pWebRtcClientContext->pStunIpAddrCtx) == STATUS_SUCCESS, retStatus, "Failed to resolve after cache expiry");
             }
-            MEMCPY(pIpAddresses->ipv4Address.address, &pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv4Address,
-                   SIZEOF(pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv4Address));
-            MEMCPY(pIpAddresses->ipv6Address.address, &pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv6Address,
-                   SIZEOF(pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv6Address));
+            pIpAddresses->ipv4Address = pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv4Address;
+            pIpAddresses->ipv6Address = pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv6Address;
         } else {
             DLOGE("Initialization failed");
         }

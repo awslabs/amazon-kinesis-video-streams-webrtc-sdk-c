@@ -2183,6 +2183,136 @@ TEST_F(PeerConnectionFunctionalityTest, concurrentRenegotiationAcrossSessions)
     }
 }
 
+// Regression test for: onSetStunServerIp() must copy the full KvsIpAddress
+// (including .family and .port) into the output DualKvsIpAddresses struct.
+//
+// Only builds with ENABLE_KVS_THREADPOOL=ON are affected: that is the only
+// Forward-declare internal C functions that have no header declaration.
+extern "C" {
+    PWebRtcClientContext getWebRtcClientInstance();
+    VOID releaseHoldOnInstance(PWebRtcClientContext);
+    STATUS onSetStunServerIp(UINT64, PCHAR, PDualKvsIpAddresses);
+}
+
+// Helper: RAII guard that releases the singleton reference count so an
+// early ASSERT_TRUE return never leaves the ref count elevated (which
+// would hang cleanupWebRtcClientInstance during TearDown).
+struct CtxRefGuard {
+    PWebRtcClientContext p;
+    explicit CtxRefGuard(PWebRtcClientContext ctx) : p(ctx) {}
+    ~CtxRefGuard() { if (p) releaseHoldOnInstance(p); }
+};
+
+// Offline regression test: injects a synthetic cached address into the
+// singleton and verifies onSetStunServerIp copies the full struct
+// (including .family) — no DNS or network required.
+TEST_F(PeerConnectionFunctionalityTest, onSetStunServerIpCopiesAddressFamily)
+{
+#ifdef ENABLE_KVS_THREADPOOL
+    PWebRtcClientContext pCtx = getWebRtcClientInstance();
+    CtxRefGuard guard(pCtx);
+    ASSERT_TRUE(ATOMIC_LOAD_BOOL(&pCtx->isContextInitialized));
+
+    // Poll isIpInitialized under the lock (written by the background resolver).
+    BOOL initialized = FALSE;
+    for (int i = 0; i < 100; i++) {
+        MUTEX_LOCK(pCtx->stunCtxlock);
+        initialized = pCtx->pStunIpAddrCtx->isIpInitialized;
+        MUTEX_UNLOCK(pCtx->stunCtxlock);
+        if (initialized) break;
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    // If DNS failed (no network), seed the cache ourselves.
+    if (!initialized) {
+        MUTEX_LOCK(pCtx->stunCtxlock);
+        MEMSET(&pCtx->pStunIpAddrCtx->kvsIpAddresses, 0, SIZEOF(pCtx->pStunIpAddrCtx->kvsIpAddresses));
+        pCtx->pStunIpAddrCtx->kvsIpAddresses.ipv4Address.family = KVS_IP_FAMILY_TYPE_IPV4;
+        pCtx->pStunIpAddrCtx->kvsIpAddresses.ipv4Address.address[0] = 192;
+        pCtx->pStunIpAddrCtx->kvsIpAddresses.ipv4Address.address[1] = 0;
+        pCtx->pStunIpAddrCtx->kvsIpAddresses.ipv4Address.address[2] = 2;
+        pCtx->pStunIpAddrCtx->kvsIpAddresses.ipv4Address.address[3] = 1;
+        pCtx->pStunIpAddrCtx->isIpInitialized = TRUE;
+        pCtx->pStunIpAddrCtx->startTime = GETTIME();
+        pCtx->pStunIpAddrCtx->expirationDuration = HUNDREDS_OF_NANOS_IN_AN_HOUR;
+        MUTEX_UNLOCK(pCtx->stunCtxlock);
+    }
+
+    // Snapshot hostname and expected addresses under the lock.
+    CHAR hostname[MAX_ICE_CONFIG_URI_LEN + 1];
+    DualKvsIpAddresses expected;
+    MUTEX_LOCK(pCtx->stunCtxlock);
+    STRNCPY(hostname, pCtx->pStunIpAddrCtx->hostname, MAX_ICE_CONFIG_URI_LEN);
+    hostname[MAX_ICE_CONFIG_URI_LEN] = '\0';
+    expected = pCtx->pStunIpAddrCtx->kvsIpAddresses;
+    MUTEX_UNLOCK(pCtx->stunCtxlock);
+
+    DualKvsIpAddresses result;
+    MEMSET(&result, 0x00, SIZEOF(result));
+
+    EXPECT_EQ(STATUS_SUCCESS, onSetStunServerIp(0, hostname, &result));
+
+    // The critical assertion: .family must match the cached value.
+    // Before the fix it was always 0 (NOT_SET) because MEMCPY targeted
+    // .address instead of the whole struct.
+    EXPECT_EQ(expected.ipv4Address.family, result.ipv4Address.family)
+        << "onSetStunServerIp must copy the address family into the output struct";
+    EXPECT_EQ(0, MEMCMP(expected.ipv4Address.address,
+                        result.ipv4Address.address, IPV4_ADDRESS_LENGTH))
+        << "IPv4 address bytes must match the cached value";
+#else
+    GTEST_SKIP() << "onSetStunServerIp is only used with ENABLE_KVS_THREADPOOL=ON";
+#endif
+}
+
+// Network-based test: exercises the full path including real DNS resolution.
+// Skipped when the background resolver fails (no network / IPv6-only host).
+TEST_F(PeerConnectionFunctionalityTest, onSetStunServerIpCopiesAddressFamilyWithLiveDns)
+{
+#ifdef ENABLE_KVS_THREADPOOL
+    PWebRtcClientContext pCtx = getWebRtcClientInstance();
+    CtxRefGuard guard(pCtx);
+    ASSERT_TRUE(ATOMIC_LOAD_BOOL(&pCtx->isContextInitialized));
+
+    // Poll isIpInitialized under the lock.
+    BOOL initialized = FALSE;
+    for (int i = 0; i < 100; i++) {
+        MUTEX_LOCK(pCtx->stunCtxlock);
+        initialized = pCtx->pStunIpAddrCtx->isIpInitialized;
+        MUTEX_UNLOCK(pCtx->stunCtxlock);
+        if (initialized) break;
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    if (!initialized) {
+        GTEST_SKIP() << "Background STUN resolution failed (no network?); skipping live DNS test";
+    }
+
+    // Snapshot hostname and expected addresses under the lock.
+    CHAR hostname[MAX_ICE_CONFIG_URI_LEN + 1];
+    DualKvsIpAddresses cached;
+    MUTEX_LOCK(pCtx->stunCtxlock);
+    STRNCPY(hostname, pCtx->pStunIpAddrCtx->hostname, MAX_ICE_CONFIG_URI_LEN);
+    hostname[MAX_ICE_CONFIG_URI_LEN] = '\0';
+    cached = pCtx->pStunIpAddrCtx->kvsIpAddresses;
+    MUTEX_UNLOCK(pCtx->stunCtxlock);
+
+    DualKvsIpAddresses result;
+    MEMSET(&result, 0x00, SIZEOF(result));
+    EXPECT_EQ(STATUS_SUCCESS, onSetStunServerIp(0, hostname, &result));
+
+    // Check whichever family the resolver actually returned.
+    if (cached.ipv4Address.family == KVS_IP_FAMILY_TYPE_IPV4) {
+        EXPECT_EQ(KVS_IP_FAMILY_TYPE_IPV4, result.ipv4Address.family);
+        EXPECT_EQ(0, MEMCMP(cached.ipv4Address.address, result.ipv4Address.address, IPV4_ADDRESS_LENGTH));
+    }
+    if (cached.ipv6Address.family == KVS_IP_FAMILY_TYPE_IPV6) {
+        EXPECT_EQ(KVS_IP_FAMILY_TYPE_IPV6, result.ipv6Address.family);
+        EXPECT_EQ(0, MEMCMP(cached.ipv6Address.address, result.ipv6Address.address, IPV6_ADDRESS_LENGTH));
+    }
+#else
+    GTEST_SKIP() << "onSetStunServerIp is only used with ENABLE_KVS_THREADPOOL=ON";
+#endif
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
