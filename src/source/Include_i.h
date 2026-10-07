@@ -76,6 +76,11 @@ extern "C" {
 #endif
 #include <mbedtls/md.h>
 #endif
+
+// Only mbedTLS 4 can take the RNG from PSA; before it the sessions seed their own CTR-DRBG from the entropy module
+#if MBEDTLS_VERSION_MAJOR < 4 && !(defined(MBEDTLS_ENTROPY_C) && defined(MBEDTLS_CTR_DRBG_C))
+#error "Building without MBEDTLS_ENTROPY_C/MBEDTLS_CTR_DRBG_C requires mbedTLS 4"
+#endif
 #endif
 
 #ifdef USE_LIBSRTP3
