@@ -1,6 +1,22 @@
 #include "GstMedia.h"
 
+// How often the sender thread checks for viewers and pipeline errors
+#define GST_PIPELINE_POLL_INTERVAL_MS 100
+
 GstElement* senderPipeline = NULL;
+
+static UINT32 getStreamingSessionCount(PSampleConfiguration pSampleConfiguration)
+{
+    UINT32 count;
+
+    // Read under sampleConfigurationObjLock rather than streamingSessionListReadLock: the signaling thread holds it
+    // across a session replacement, so the count never transiently reads 0 while a viewer is being swapped.
+    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    count = pSampleConfiguration->streamingSessionCount;
+    MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+
+    return count;
+}
 
 GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
 {
@@ -151,6 +167,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     GError* gError = NULL;
     gchar* gDebug = NULL;
     GstStateChangeReturn stateChangeStatus = GST_STATE_CHANGE_SUCCESS;
+    BOOL pipelinePlaying = FALSE;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
 
     CHK_ERR(pSampleConfiguration != NULL, STATUS_NULL_ARG, "[KVS Gstreamer Master] Streaming session is NULL");
@@ -324,13 +341,36 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     if (appsinkAudio != NULL) {
         g_signal_connect(appsinkAudio, "new-sample", G_CALLBACK(on_new_sample_audio), (gpointer) pSampleConfiguration);
     }
-    stateChangeStatus = gst_element_set_state(senderPipeline, GST_STATE_PLAYING);
-    DLOGD("[KVS GStreamer Master] State change null->playing returned status: %d", stateChangeStatus);
-    CHK_ERR(stateChangeStatus != GST_STATE_CHANGE_FAILURE, STATUS_FORMAT_ERROR, "State change to PLAYING failed!");
-
-    /* block until error or EOS */
+    /*
+     * Run the pipeline only while at least one viewer is connected. Going to NULL releases the capture device,
+     * encoder and any accelerator so other processes can use them; the same pipeline is set back to PLAYING when
+     * the next viewer connects. The thread itself stays alive until app termination, pipeline error or EOS.
+     */
     bus = gst_element_get_bus(senderPipeline);
-    msg = gst_bus_timed_pop_filtered(bus, GST_CLOCK_TIME_NONE, GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
+    while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
+        if (!pipelinePlaying) {
+            if (getStreamingSessionCount(pSampleConfiguration) == 0) {
+                THREAD_SLEEP(GST_PIPELINE_POLL_INTERVAL_MS * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+                continue;
+            }
+            stateChangeStatus = gst_element_set_state(senderPipeline, GST_STATE_PLAYING);
+            DLOGD("[KVS GStreamer Master] State change null->playing returned status: %d", stateChangeStatus);
+            CHK_ERR(stateChangeStatus != GST_STATE_CHANGE_FAILURE, STATUS_FORMAT_ERROR, "State change to PLAYING failed!");
+            pipelinePlaying = TRUE;
+        }
+
+        msg = gst_bus_timed_pop_filtered(bus, GST_PIPELINE_POLL_INTERVAL_MS * GST_MSECOND, GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
+        if (msg != NULL) {
+            break;
+        }
+
+        if (getStreamingSessionCount(pSampleConfiguration) == 0) {
+            DLOGI("[KVS GStreamer Master] No viewers connected, stopping the media pipeline");
+            stateChangeStatus = gst_element_set_state(senderPipeline, GST_STATE_NULL);
+            CHK_ERR(stateChangeStatus != GST_STATE_CHANGE_FAILURE, STATUS_INVALID_OPERATION, "State change to NULL failed!");
+            pipelinePlaying = FALSE;
+        }
+    }
 
 CleanUp:
     if (gError != NULL) {
