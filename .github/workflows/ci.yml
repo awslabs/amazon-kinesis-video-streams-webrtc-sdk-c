@@ -397,6 +397,65 @@ jobs:
         run: |
           ./tst/webrtc_client_test
 
+  # mbedTLS 4 built with an external PSA RNG, so MBEDTLS_ENTROPY_C and the entropy module are
+  # compiled out (the ESP-IDF v6 configuration). Guards that the SDK takes its randomness from
+  # PSA alone on mbedTLS 4 and never references the entropy or CTR-DRBG APIs again.
+  mbedtls4-no-entropy:
+    needs: cleanup-old-resources
+    runs-on: ubuntu-latest
+    container:
+      image: public.ecr.aws/ubuntu/ubuntu:22.04_stable
+
+    permissions:
+      id-token: write
+      contents: read
+
+    name: Ubuntu 22.04-gcc-mbedtls4-no-entropy
+    timeout-minutes: 60
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y git cmake build-essential pkg-config file binutils python3 python3-jinja2 python3-jsonschema
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2.2.0
+        with:
+          cmake-version: '3.x'
+
+      - name: Build repository
+        shell: bash
+        run: |
+          mkdir build && cd build
+          cmake .. -DBUILD_TEST=ON -DENABLE_AWS_SDK_IN_TESTS=OFF -DBUILD_SAMPLE=OFF -DPARALLEL_BUILD=ON \
+            -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DUSE_MBEDTLS4=ON -DKVS_TEST_MBEDTLS4_NO_ENTROPY=ON
+          make -j
+          file ./tst/webrtc_client_test
+
+      - name: Check the SDK references no entropy or CTR-DRBG symbols
+        shell: bash
+        working-directory: ./build
+        run: |
+          if nm -D --undefined-only libkvsWebrtcClient.so | grep -E 'mbedtls_(entropy|ctr_drbg)_'; then
+            echo "libkvsWebrtcClient.so still needs the mbedTLS entropy module"
+            exit 1
+          fi
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Run tests
+        working-directory: ./build
+        run: |
+          ./tst/webrtc_client_test
+
   windows-msvc-openssl:
     needs: cleanup-old-resources
     runs-on: windows-2022
