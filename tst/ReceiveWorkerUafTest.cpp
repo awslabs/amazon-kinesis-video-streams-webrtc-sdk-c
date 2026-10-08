@@ -136,30 +136,35 @@ static STATUS freeFromCallbackMessageReceivedFn(UINT64 customData, PReceivedSign
 // itself forever. It must refuse with STATUS_INVALID_OPERATION and leave the client intact instead.
 TEST_F(ReceiveWorkerUafTest, freeSignalingFromReceiveCallbackIsRejected)
 {
-    FreeFromCallbackContext ctx;
+    // Heap-allocated: if the callback never reports back, the worker may still write to this context after the
+    // test body returns, so on that path it (and the client) is leaked on purpose rather than destroyed underneath
+    // a live thread and corrupting a later test.
+    FreeFromCallbackContext* pCtx = new FreeFromCallbackContext();
     PAwsCredentialProvider pCredentialProvider = NULL;
     PSignalingClient pSignalingClient = NULL;
+    bool done;
 
     ASSERT_EQ(STATUS_SUCCESS,
-              createOfflineSignalingClient(mChannelName, mRegion, mCaCertPath, mLogLevel, (UINT64) &ctx, &pCredentialProvider, &pSignalingClient,
+              createOfflineSignalingClient(mChannelName, mRegion, mCaCertPath, mLogLevel, (UINT64) pCtx, &pCredentialProvider, &pSignalingClient,
                                            freeFromCallbackMessageReceivedFn));
     ASSERT_NE((PSignalingClient) NULL, pSignalingClient);
-    ctx.pSignalingClient = pSignalingClient;
+    pCtx->pSignalingClient = pSignalingClient;
 
     ASSERT_EQ(STATUS_SUCCESS, receiveLwsMessage(pSignalingClient, (PCHAR) kIceCandidateMessage, ARRAY_SIZE(kIceCandidateMessage)));
 
     {
-        std::unique_lock<std::mutex> guard(ctx.lock);
-        ASSERT_TRUE(ctx.cv.wait_for(guard, std::chrono::seconds(5), [&ctx] { return ctx.done; }))
-            << "freeSignaling() called from messageReceivedFn did not return (self-wait deadlock)";
+        std::unique_lock<std::mutex> guard(pCtx->lock);
+        done = pCtx->cv.wait_for(guard, std::chrono::seconds(5), [pCtx] { return pCtx->done; });
     }
-    EXPECT_EQ(STATUS_INVALID_OPERATION, ctx.freeStatus);
+    ASSERT_TRUE(done) << "freeSignaling() called from messageReceivedFn did not return (self-wait deadlock); leaking the client and context";
+    EXPECT_EQ(STATUS_INVALID_OPERATION, pCtx->freeStatus);
 
     // The client must still be usable and freeable from a non-signaling thread.
     EXPECT_FALSE(ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown));
     EXPECT_EQ(STATUS_SUCCESS, freeSignaling(&pSignalingClient));
     EXPECT_EQ((PSignalingClient) NULL, pSignalingClient);
     freeStaticCredentialProvider(&pCredentialProvider);
+    delete pCtx;
 }
 
 
@@ -186,10 +191,12 @@ TEST_F(ReceiveWorkerUafTest, freeSignalingWaitsForAllInFlightReceiveWorkers)
         ASSERT_EQ(STATUS_SUCCESS, receiveLwsMessage(pSignalingClient, (PCHAR) kIceCandidateMessage, ARRAY_SIZE(kIceCandidateMessage)));
     }
 
-    // Wait until every worker is parked inside the callback.
+    // Wait until every worker is parked inside the callback. EXPECT, not ASSERT: on a slow host the rest of this
+    // test must still run, because it is what releases the workers and frees the client. Returning early here would
+    // destroy ctx under detached workers that are blocked on its condition variable.
     {
         std::unique_lock<std::mutex> guard(ctx.lock);
-        ASSERT_TRUE(ctx.cv.wait_for(guard, std::chrono::seconds(5), [&ctx] { return ctx.entered == kReceiveWorkerCount; }))
+        EXPECT_TRUE(ctx.cv.wait_for(guard, std::chrono::seconds(5), [&ctx] { return ctx.entered == kReceiveWorkerCount; }))
             << "Only " << ctx.entered << " of " << kReceiveWorkerCount << " receive workers entered the callback";
     }
 
@@ -251,10 +258,10 @@ TEST_F(ReceiveWorkerUafTest, receiveWorkerCountDrainsToZeroAfterWorkersComplete)
         ASSERT_EQ(STATUS_SUCCESS, receiveLwsMessage(pSignalingClient, (PCHAR) kIceCandidateMessage, ARRAY_SIZE(kIceCandidateMessage)));
     }
 
-    // Wait for all callbacks to finish.
+    // Wait for all callbacks to finish. EXPECT so the client below is always freed.
     {
         std::unique_lock<std::mutex> guard(ctx.lock);
-        ASSERT_TRUE(ctx.cv.wait_for(guard, std::chrono::seconds(5), [&ctx] { return ctx.finished == kReceiveWorkerCount; }))
+        EXPECT_TRUE(ctx.cv.wait_for(guard, std::chrono::seconds(5), [&ctx] { return ctx.finished == kReceiveWorkerCount; }))
             << "Only " << ctx.finished << " of " << kReceiveWorkerCount << " receive callbacks completed";
     }
 
@@ -276,6 +283,75 @@ TEST_F(ReceiveWorkerUafTest, receiveWorkerCountDrainsToZeroAfterWorkersComplete)
     freeStaticCredentialProvider(&pCredentialProvider);
 }
 
+// Counter stress: many short-lived workers in quick succession. A worker that runs to completion before the
+// spawner has counted it would decrement first and wrap the SIZE_T counter to its maximum until the late increment
+// brings it back; a shutdown drain that samples the counter in that window waits for a phantom worker. The wrap is
+// transient, so a watcher samples the counter throughout dispatch: it must never exceed the number of messages
+// sent (a wrapped value reads as SIZE_T max). Eight parked workers cannot hit that window; a thousand fast ones
+// give it a chance, and the watcher reliably catches the wrap once the window is a millisecond or more wide.
+TEST_F(ReceiveWorkerUafTest, receiveWorkerCountSurvivesManyShortLivedWorkers)
+{
+    static const UINT32 kStressMessageCount = 1000;
+    struct CountingContext {
+        std::atomic<UINT32> finished{0};
+    };
+    CountingContext* pCtx = new CountingContext(); // leaked only if a worker is still alive at the end
+    PAwsCredentialProvider pCredentialProvider = NULL;
+    PSignalingClient pSignalingClient = NULL;
+    std::atomic<bool> stopWatching{false};
+    std::atomic<SIZE_T> maxObserved{0};
+    UINT64 beforeFree, elapsedMs;
+    UINT32 i, attempts = 0;
+
+    auto countingMessageReceivedFn = [](UINT64 customData, PReceivedSignalingMessage) -> STATUS {
+        ((CountingContext*) customData)->finished.fetch_add(1);
+        return STATUS_SUCCESS;
+    };
+
+    ASSERT_EQ(STATUS_SUCCESS,
+              createOfflineSignalingClient(mChannelName, mRegion, mCaCertPath, mLogLevel, (UINT64) pCtx, &pCredentialProvider, &pSignalingClient,
+                                           countingMessageReceivedFn));
+    ASSERT_NE((PSignalingClient) NULL, pSignalingClient);
+
+    std::thread watcher([&] {
+        while (!stopWatching.load()) {
+            SIZE_T count = ATOMIC_LOAD(&pSignalingClient->receiveWorkerCount);
+            SIZE_T seen = maxObserved.load();
+            while (count > seen && !maxObserved.compare_exchange_weak(seen, count)) {
+            }
+            std::this_thread::yield();
+        }
+    });
+
+    for (i = 0; i < kStressMessageCount; i++) {
+        ASSERT_EQ(STATUS_SUCCESS, receiveLwsMessage(pSignalingClient, (PCHAR) kIceCandidateMessage, ARRAY_SIZE(kIceCandidateMessage)));
+    }
+
+    // Every callback must run, and the counter must settle at exactly zero (not wrap, not leak).
+    while ((pCtx->finished.load() < kStressMessageCount || ATOMIC_LOAD(&pSignalingClient->receiveWorkerCount) != 0) && attempts++ < 500) {
+        THREAD_SLEEP(20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    stopWatching = true;
+    watcher.join();
+
+    EXPECT_EQ(kStressMessageCount, pCtx->finished.load());
+    EXPECT_EQ((SIZE_T) 0, ATOMIC_LOAD(&pSignalingClient->receiveWorkerCount))
+        << "receiveWorkerCount is " << ATOMIC_LOAD(&pSignalingClient->receiveWorkerCount) << " after " << kStressMessageCount << " workers completed";
+    EXPECT_LE(maxObserved.load(), (SIZE_T) kStressMessageCount)
+        << "receiveWorkerCount read " << maxObserved.load() << " during dispatch: a worker decremented before it was counted (wrap)";
+
+    beforeFree = GETTIME();
+    EXPECT_EQ(STATUS_SUCCESS, freeSignaling(&pSignalingClient));
+    elapsedMs = (GETTIME() - beforeFree) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    EXPECT_LT(elapsedMs, 2000) << "freeSignaling took " << elapsedMs << " ms after all workers completed; the counter is likely stuck > 0";
+    EXPECT_EQ((PSignalingClient) NULL, pSignalingClient);
+
+    freeStaticCredentialProvider(&pCredentialProvider);
+    if (pCtx->finished.load() == kStressMessageCount) {
+        delete pCtx;
+    }
+}
+
 struct FakeReconnectContext {
     PSignalingClient pSignalingClient = NULL;
     std::atomic<bool> published{false};
@@ -290,6 +366,8 @@ static PVOID fakeReconnectExitHoldingTrackerLock(PVOID args)
     PSignalingClient pSignalingClient = pCtx->pSignalingClient;
 
     MUTEX_LOCK(pSignalingClient->reconnecterTracker.lock);
+    // Same bookkeeping as reconnectThreadExited(): this is the only reconnect thread, so it publishes terminated.
+    pSignalingClient->reconnectThreadCount--;
     ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, TRUE);
     pCtx->published.store(true);
     THREAD_SLEEP(200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
@@ -315,7 +393,11 @@ TEST_F(ReceiveWorkerUafTest, freeSignalingWaitsForReconnectThreadToReleaseTracke
     ASSERT_NE((PSignalingClient) NULL, pSignalingClient);
     ctx.pSignalingClient = pSignalingClient;
 
+    // Same bookkeeping as startReconnectHandler(): count the thread and clear terminated under the tracker lock.
+    MUTEX_LOCK(pSignalingClient->reconnecterTracker.lock);
+    pSignalingClient->reconnectThreadCount++;
     ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, FALSE);
+    MUTEX_UNLOCK(pSignalingClient->reconnecterTracker.lock);
     ASSERT_EQ(STATUS_SUCCESS, THREAD_CREATE(&threadId, fakeReconnectExitHoldingTrackerLock, (PVOID) &ctx));
     ASSERT_EQ(STATUS_SUCCESS, THREAD_DETACH(threadId));
     while (!ctx.published.load()) {

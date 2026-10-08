@@ -42,12 +42,15 @@ static PVOID fakeStuckReconnectHandler(PVOID args)
         elapsed += sleepInterval;
     }
 
-    // Mimic reconnectHandler's CleanUp: set terminated and broadcast.
-    // Take the tracker lock so awaitForThreadTermination() cannot observe
-    // terminated=TRUE, return, and let the client be freed while we are still
-    // inside CVAR_BROADCAST on its cvar.
+    // Mimic reconnectHandler's CleanUp (reconnectThreadExited()): drop the live
+    // count and, as the last thread, publish terminated and broadcast under the
+    // tracker lock. Taking the lock means awaitForThreadTermination() cannot
+    // observe terminated=TRUE, return, and let the client be freed while we are
+    // still inside CVAR_BROADCAST on its cvar.
     MUTEX_LOCK(pSignalingClient->reconnecterTracker.lock);
-    ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, TRUE);
+    if (--pSignalingClient->reconnectThreadCount == 0) {
+        ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, TRUE);
+    }
     CVAR_BROADCAST(pSignalingClient->reconnecterTracker.await);
     MUTEX_UNLOCK(pSignalingClient->reconnecterTracker.lock);
 
@@ -62,7 +65,11 @@ static void startFakeReconnectThread(FakeReconnectArgs* pArgs, PSignalingClient 
     ATOMIC_STORE_BOOL(&pArgs->started, FALSE);
     ATOMIC_STORE_BOOL(&pArgs->stopRequested, FALSE);
 
+    // Same bookkeeping as startReconnectHandler(): count the thread and clear terminated under the tracker lock.
+    MUTEX_LOCK(pSignalingClient->reconnecterTracker.lock);
+    pSignalingClient->reconnectThreadCount++;
     ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, FALSE);
+    MUTEX_UNLOCK(pSignalingClient->reconnecterTracker.lock);
 
     ASSERT_EQ(STATUS_SUCCESS, THREAD_CREATE(pThreadId, fakeStuckReconnectHandler, (PVOID) pArgs));
 
@@ -91,17 +98,18 @@ TEST_F(ReconnectUafTest, freeSignalingWaitsForStuckReconnectThread)
     ASSERT_TRUE(ATOMIC_LOAD_BOOL(&pSignalingClient->reconnecterTracker.terminated));
 
     // Simulate a stuck reconnect thread: set terminated=FALSE and spawn
-    // a thread that sleeps for 12s (longer than SIGNALING_CLIENT_SHUTDOWN_TIMEOUT = 9s)
+    // a thread that sleeps for 20s (more than two SIGNALING_CLIENT_SHUTDOWN_TIMEOUT
+    // periods of 9s, so the wait loop has to log and retry at least twice)
     // before setting terminated=TRUE.
     FakeReconnectArgs fakeArgs;
     TID threadId;
-    startFakeReconnectThread(&fakeArgs, pSignalingClient, 12, &threadId);
+    startFakeReconnectThread(&fakeArgs, pSignalingClient, 20, &threadId);
 
     // Record the time before free
     UINT64 beforeFree = GETTIME();
 
     // This calls freeSignaling → terminateOngoingOperations.
-    // With the patch: blocks until fake thread sets terminated=TRUE (~12s)
+    // With the patch: blocks until fake thread sets terminated=TRUE (~20s)
     // Without the patch: returns after 9s timeout, then frees memory → UAF
     deleteChannelLws(pSignalingClient, 0);
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&mSignalingClientHandle));
@@ -109,11 +117,12 @@ TEST_F(ReconnectUafTest, freeSignalingWaitsForStuckReconnectThread)
     UINT64 afterFree = GETTIME();
     UINT64 elapsedMs = (afterFree - beforeFree) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
 
-    // The fake thread stalls for 12s. freeSignaling must have waited at least
-    // that long (minus some tolerance for scheduling). If it returned in <10s,
-    // the patch is not working — it gave up and freed while the thread was alive.
-    EXPECT_GE(elapsedMs, 11000) << "freeSignaling returned too early (" << elapsedMs
-                                << " ms) — it did not wait for the reconnect thread. "
+    // The fake thread stalls for 20s. freeSignaling must have waited at least
+    // that long (minus some tolerance for scheduling). If it returned in <18s,
+    // the patch is not working — it gave up after one or two timeouts and freed
+    // while the thread was alive.
+    EXPECT_GE(elapsedMs, 19000) << "freeSignaling returned too early (" << elapsedMs
+                                << " ms) — it did not keep waiting for the reconnect thread. "
                                    "This would be a use-after-free on the unpatched code.";
 
     // If we get here without crashing, the patch is working correctly.
