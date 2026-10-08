@@ -195,6 +195,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     ATOMIC_STORE_BOOL(&pSignalingClient->deleting, FALSE);
     ATOMIC_STORE(&pSignalingClient->receiveWorkerCount, 0);
     ATOMIC_STORE(&pSignalingClient->reconnectThreadTid, 0);
+    pSignalingClient->reconnectThreadCount = 0;
     ATOMIC_STORE(&pSignalingClient->listenerThreadTid, 0);
     pSignalingClient->pActiveReceiveWorkers = NULL;
     ATOMIC_STORE_BOOL(&pSignalingClient->deleted, FALSE);
@@ -505,7 +506,7 @@ STATUS terminateOngoingOperations(PSignalingClient pSignalingClient)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL shuttingDown;
-    UINT64 waitStart = GETTIME();
+    UINT64 waitStart;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -521,6 +522,7 @@ STATUS terminateOngoingOperations(PSignalingClient pSignalingClient)
         if (pSignalingClient->pWebsocketContext != NULL) {
             lws_cancel_service((struct lws_context*) pSignalingClient->pWebsocketContext);
         }
+        waitStart = GETTIME();
 
         // The WSS callback spawns reconnectHandler under lwsServiceLock, so
         // after the cvar wait reports terminated==TRUE we acquire the same

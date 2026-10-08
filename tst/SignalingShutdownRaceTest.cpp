@@ -26,9 +26,8 @@ namespace webrtcclient {
 // thread, WSS listener, receive workers) and lws callbacks. Each scenario reproduced a use-after-free, a hang or a
 // wrong rejection before the corresponding fix and must pass now. All tests run offline unless noted: nothing
 // listens on 127.0.0.1:443 (the SDK hard-codes port 443), so every HTTPS/WSS call the state machine makes fails
-// fast. Two tests are kept DISABLED_ as executable documentation of application-side patterns the SDK cannot fix
-// (freeing while holding a lock a callback takes; freeing from stateChangeFn on the caller's own thread). Run them
-// with --gtest_also_run_disabled_tests to see the behaviour.
+// fast. One test is kept DISABLED_ as executable documentation of an application-side pattern the SDK cannot detect
+// (freeing from stateChangeFn on the caller's own thread); run it with --gtest_also_run_disabled_tests.
 class SignalingShutdownRaceTest : public WebRtcClientTestBase {};
 
 static const CHAR kShutdownRaceIceCandidateMessage[] = "{\n"
@@ -116,13 +115,6 @@ CleanUp:
     }
 
     return retStatus;
-}
-
-// Spawns reconnectHandler() through the same entry point the LWS_CALLBACK_CLIENT_CLOSED /
-// CLIENT_CONNECTION_ERROR handlers use, so the tracker bookkeeping under test is the SDK's own.
-static STATUS spawnReconnectLikeWssCallback(PSignalingClient pSignalingClient)
-{
-    return startReconnectHandler(pSignalingClient);
 }
 
 static UINT32 liveReconnectThreads(PSignalingClient pSignalingClient)
@@ -259,21 +251,19 @@ TEST_F(SignalingShutdownRaceTest, httpsCallDoesNotWriteToFreedWsiOnNormalComplet
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Application holds a lock across free that its message callback also takes: freeSignaling() waits with no
-// time limit for in-flight messageReceivedFn calls. The SDK's own
-// sample calls freeSignalingClient() while holding the lock its message callback takes, so the two deadlock:
-//   samples/common/Common.c:1587  sessionCleanupWait(): MUTEX_LOCK(sampleConfigurationObjLock)
-//   samples/common/Common.c:1637  ... freeSignalingClient(&signalingClientHandle)       (recreate path)
-//   samples/common/Common.c:1724  signalingMessageReceived(): MUTEX_LOCK(sampleConfigurationObjLock)
-// A plain MUTEX_LOCK in the callback would hang this test forever, so the callback gives up after
-// kAppLockTimeoutSeconds. If freeSignaling() only returns because the callback gave up, it is the deadlock.
-//
-// DISABLED_: this is an application pattern, not an SDK defect. freeSignaling() must wait for the callback (the
-// alternative is the use-after-free this PR fixes), so the fix is on the caller's side: do not hold a lock across
-// freeSignalingClient() that a signaling callback also takes (see the Include.h note). The sample's recreate path
-// was fixed accordingly. The test is kept as documentation of the pattern and fails by design.
+// Application holds a lock across free that its message callback also takes. freeSignaling() waits with no time
+// limit for in-flight messageReceivedFn calls, so if the caller holds a lock the callback needs, free can only
+// return once the callback gives up on that lock. The SDK's own sample used to do exactly this on its recreate path:
+//   sessionCleanupWait():       MUTEX_LOCK(sampleConfigurationObjLock) ... freeSignalingClient()   (recreate path)
+//   signalingMessageReceived(): MUTEX_LOCK(sampleConfigurationObjLock)
+// A plain MUTEX_LOCK in the callback would hang forever (that is the deadlock an application sees), so here the
+// callback gives up after kAppLockTimeoutSeconds. The test asserts the SDK side of the contract: free does NOT
+// return early and free the client under the blocked callback; it returns only after the callback has finished,
+// i.e. after it gave up. Returning any sooner would be the use-after-free this file guards against. The
+// application side of the contract is documented in Include.h: do not hold a lock across freeSignalingClient()
+// that a signaling callback also takes. The sample's recreate path was fixed accordingly.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static const UINT32 kAppLockTimeoutSeconds = 20;
+static const UINT32 kAppLockTimeoutSeconds = 5;
 
 struct AppLockContext {
     std::timed_mutex appLock; // stands in for sampleConfigurationObjLock
@@ -295,7 +285,7 @@ static STATUS appLockingMessageReceivedFn(UINT64 customData, PReceivedSignalingM
     return STATUS_SUCCESS;
 }
 
-TEST_F(SignalingShutdownRaceTest, DISABLED_freeWhileHoldingLockTakenByMessageCallbackDeadlocks)
+TEST_F(SignalingShutdownRaceTest, freeWaitsForCallbackBlockedOnApplicationLock)
 {
     AppLockContext ctx;
     ShutdownRaceClientOptions options;
@@ -321,8 +311,9 @@ TEST_F(SignalingShutdownRaceTest, DISABLED_freeWhileHoldingLockTakenByMessageCal
     ctx.appLock.unlock();
 
     EXPECT_EQ(STATUS_SUCCESS, freeStatus);
-    EXPECT_FALSE(gaveUp) << "freeSignaling() blocked for " << elapsedMs << " ms and only returned because the callback gave up on the app lock after "
-                         << kAppLockTimeoutSeconds << " s. With the sample's plain MUTEX_LOCK it never returns.";
+    EXPECT_TRUE(gaveUp) << "freeSignaling() returned after " << elapsedMs << " ms while messageReceivedFn was still blocked on the application lock";
+    EXPECT_GE(elapsedMs, (UINT64) kAppLockTimeoutSeconds * 1000 - 500)
+        << "freeSignaling() returned after " << elapsedMs << " ms, before the blocked callback could have finished";
     freeStaticCredentialProvider(&pCredentialProvider);
 }
 
@@ -331,8 +322,8 @@ TEST_F(SignalingShutdownRaceTest, DISABLED_freeWhileHoldingLockTakenByMessageCal
 // freeSignalingClient() is called from errorReportFn,
 // but isSignalingOwnedThread() only knows the reconnect thread and receive workers. errorReportFn also fires on
 // the WSS listener thread: lwsListenerHandler() holds listenerTracker.lock across lwsCompleteSync()
-// (LwsApiCalls.c:1791-1826), lws_service() on that thread delivers CLIENT_RECEIVE -> receiveLwsMessage() (:471), and a
-// malformed message makes receiveLwsMessage() call errorReportFn on that same thread (LwsApiCalls.c:2327).
+// for its whole life, lws_service() on that thread delivers CLIENT_RECEIVE -> receiveLwsMessage(), and a malformed
+// message makes receiveLwsMessage() call errorReportFn on that same thread.
 //
 // The emulated listener below sets up exactly that lock state and then makes the real receiveLwsMessage() call.
 // freeSignaling() -> terminateLwsListenerLoop() -> awaitForThreadTermination(&listenerTracker) re-locks the
@@ -422,14 +413,15 @@ TEST_F(SignalingShutdownRaceTest, freeFromErrorReportFnOnListenerThreadIsRejecte
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // free from stateChangeFn on the caller's own thread: stateChangeFn runs on the application's own thread inside signalingClientFetchSync() /
-// signalingClientConnectSync() (the state machine is iterated on the caller's thread, StateMachine.c:118). Calling
+// signalingClientConnectSync() (signalingStateMachineIterator() runs on the caller's thread). Calling
 // freeSignalingClient() from there is not rejected; it frees the state machine, stateLock and the client while
 // executeDescribeSignalingState() is still running on this stack.
 //
 // DISABLED_: the caller's own thread cannot be told apart from any other application thread by a thread-id check,
 // so this case is documented in Include.h rather than detected (stateChangeFn / errorReportFn invoked inside a
-// signaling API call must not free the client). Under ASan this test aborts with heap-use-after-free in
-// signalingFetchSync(), which is the documented consequence. Kept as documentation; fails by design.
+// signaling API call must not free the client). The free returns STATUS_SUCCESS and the API call then runs on
+// freed memory; under ASan the process aborts with heap-use-after-free inside signalingFetchSync() before the
+// assertions below are reached. Kept, disabled, as executable documentation of that consequence.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct StateChangeFreeContext {
     PSignalingClient pSignalingClient = NULL;
@@ -467,12 +459,12 @@ TEST_F(SignalingShutdownRaceTest, DISABLED_freeFromStateChangeFnOnCallerThreadIs
     ctx.pSignalingClient = pSignalingClient;
     ctx.armed = true;
 
-    // On the PR branch ASan aborts inside this call with heap-use-after-free on the freed client.
+    // Under ASan this call aborts with heap-use-after-free on the client freed by the callback.
     signalingFetchSync(pSignalingClient);
 
+    // Not reached under ASan. Without it, documents that the free was accepted (undetected) and the client is gone.
     EXPECT_TRUE(ctx.freeCalled.load());
-    EXPECT_EQ(STATUS_INVALID_OPERATION, ctx.freeStatus.load());
-    EXPECT_EQ(STATUS_SUCCESS, freeSignaling(&pSignalingClient));
+    EXPECT_EQ(STATUS_SUCCESS, ctx.freeStatus.load());
     freeStaticCredentialProvider(&pCredentialProvider);
 #endif
 }
@@ -484,7 +476,7 @@ TEST_F(SignalingShutdownRaceTest, DISABLED_freeFromStateChangeFnOnCallerThreadIs
 //
 // Both threads are the real reconnectHandler(), spawned the way the WSS callback spawns them. Each one fails its
 // reconnect (127.0.0.1 refuses) and parks in errorReportFn, which reconnectHandler() calls from its CleanUp just
-// before publishing terminated (LwsApiCalls.c:1873-1883). Releasing only the first thread shows the tracker
+// before publishing terminated. Releasing only the first thread shows the tracker
 // reporting "no reconnect thread" while the second is still inside reconnectHandler().
 //
 // Real-world trigger: reconnect thread A is still running (e.g. JOIN_SESSION after CONNECTED with media storage
@@ -535,11 +527,11 @@ TEST_F(SignalingShutdownRaceTest, freeWaitsForSecondReconnectThreadAfterFirstExi
     ASSERT_EQ(STATUS_SUCCESS, createShutdownRaceClient(mChannelName, mRegion, mCaCertPath, mLogLevel, options, &pCredentialProvider, &pSignalingClient));
 
     // Reconnect thread A
-    ASSERT_EQ(STATUS_SUCCESS, spawnReconnectLikeWssCallback(pSignalingClient));
+    ASSERT_EQ(STATUS_SUCCESS, startReconnectHandler(pSignalingClient));
     ASSERT_TRUE(waitFor([pCtx] { return pCtx->parked[0].load(); }, 10000));
 
     // Reconnect thread B, spawned while A is still inside reconnectHandler()
-    ASSERT_EQ(STATUS_SUCCESS, spawnReconnectLikeWssCallback(pSignalingClient));
+    ASSERT_EQ(STATUS_SUCCESS, startReconnectHandler(pSignalingClient));
     ASSERT_TRUE(waitFor([pCtx] { return pCtx->parked[1].load(); }, 10000));
 
     // A finishes. With the fix it only decrements the live count; terminated must stay FALSE while B is alive.
@@ -554,7 +546,7 @@ TEST_F(SignalingShutdownRaceTest, freeWaitsForSecondReconnectThreadAfterFirstExi
     startAsyncFree(pAsyncFree);
     freeReturned = waitFor([pAsyncFree] { return pAsyncFree->done.load(); }, 3000);
     EXPECT_FALSE(freeReturned) << "freeSignaling() returned and freed the client while reconnect thread B was still running. When B resumes, it "
-                                  "locks reconnecterTracker.lock in freed memory (LwsApiCalls.c:1880).";
+                                  "locks reconnecterTracker.lock in freed memory.";
 
     if (freeReturned) {
         if (releaseAfterFreeRequested()) {
@@ -577,8 +569,8 @@ TEST_F(SignalingShutdownRaceTest, freeWaitsForSecondReconnectThreadAfterFirstExi
 // freed.
 //
 // The test plays a thread inside lws_service(): lwsWssCallbackRoutine() holds lwsServiceLock when it calls
-// receiveLwsMessage() (LwsApiCalls.c:344, :471). freeSignaling() takes lwsServiceLock right after the drain
-// (Signaling.c:337), so holding it pins free between "drain saw 0" and lws_context_destroy().
+// receiveLwsMessage(). freeSignaling() takes lwsServiceLock right after the drain (for lws_context_destroy()),
+// so holding it pins free between "drain saw 0" and lws_context_destroy().
 //
 // Reachability: something must still be inside lws_service() at that point, e.g. a listener that outlived the
 // bounded 9 s listener wait in terminateConnectionWithStatus(), or a listener started by the reconnect thread during the shutdown wait.
@@ -723,7 +715,7 @@ TEST_F(SignalingShutdownRaceTest, freeFromThreadWithRecycledReconnectTidIsAccept
     ctx.pSignalingClient = pSignalingClient;
 
     // A real reconnect thread runs and exits (its reconnect fails fast offline, so errorReportFn records its id).
-    ASSERT_EQ(STATUS_SUCCESS, spawnReconnectLikeWssCallback(pSignalingClient));
+    ASSERT_EQ(STATUS_SUCCESS, startReconnectHandler(pSignalingClient));
     ASSERT_TRUE(waitFor([pSignalingClient] { return ATOMIC_LOAD_BOOL(&pSignalingClient->reconnecterTracker.terminated) == TRUE; }, 10000));
     THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     ASSERT_NE((SIZE_T) 0, ctx.reconnectTid.load());

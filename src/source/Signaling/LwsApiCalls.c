@@ -1780,6 +1780,7 @@ PVOID lwsListenerHandler(PVOID args)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PLwsCallInfo pLwsCallInfo = (PLwsCallInfo) args;
+    PLwsCallInfo pOngoingCallInfo = NULL;
     PSignalingClient pSignalingClient = NULL;
     BOOL locked = FALSE;
 
@@ -1812,18 +1813,14 @@ CleanUp:
         // Detach the call info under lwsServiceLock before freeing it. Every lws callback runs inside some
         // thread's lws_service() call, which holds lwsServiceLock, and lwsWssCallbackRoutine() loads
         // pOngoingCallInfo at entry; taking the lock here means no callback can be mid-flight with the old
-        // pointer when it is freed, and a later callback finds NULL and bails.
-        if (IS_VALID_MUTEX_VALUE(pSignalingClient->lwsServiceLock)) {
-            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
-            pLwsCallInfo = pSignalingClient->pOngoingCallInfo;
-            pSignalingClient->pOngoingCallInfo = NULL;
-            MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
-        } else {
-            pLwsCallInfo = pSignalingClient->pOngoingCallInfo;
-            pSignalingClient->pOngoingCallInfo = NULL;
-        }
-        if (pLwsCallInfo != NULL) {
-            freeLwsCallInfo(&pLwsCallInfo);
+        // pointer when it is freed, and a later callback finds NULL and bails. (The lock always exists here:
+        // a listener is only ever started by the state machine, after createSignalingSync() created it.)
+        MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+        pOngoingCallInfo = pSignalingClient->pOngoingCallInfo;
+        pSignalingClient->pOngoingCallInfo = NULL;
+        MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
+        if (pOngoingCallInfo != NULL) {
+            freeLwsCallInfo(&pOngoingCallInfo);
         }
 
         // Clear the id before publishing termination so a recycled thread id can never be mistaken for a live listener
@@ -1887,7 +1884,10 @@ STATUS startReconnectHandler(PSignalingClient pSignalingClient)
         CHK(FALSE, retStatus);
     }
 
-    CHK_STATUS(THREAD_DETACH(pSignalingClient->reconnecterTracker.threadId));
+    // The thread exists and is counted from here on; a detach failure must not be reported as a failed spawn.
+    if (STATUS_FAILED(THREAD_DETACH(pSignalingClient->reconnecterTracker.threadId))) {
+        DLOGW("Failed to detach the reconnect thread; it will run to completion unjoined");
+    }
 
 CleanUp:
 
