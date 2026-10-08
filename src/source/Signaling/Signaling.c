@@ -505,7 +505,7 @@ STATUS terminateOngoingOperations(PSignalingClient pSignalingClient)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL shuttingDown;
-    UINT32 waitAttempts = 0;
+    UINT64 waitStart = GETTIME();
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -538,16 +538,8 @@ STATUS terminateOngoingOperations(PSignalingClient pSignalingClient)
             // thread sets terminated and broadcasts while holding reconnecterTracker.lock, so acquiring that lock
             // here guarantees the thread has finished touching pSignalingClient before we free it.
             while (STATUS_FAILED(awaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT))) {
-                waitAttempts++;
-                if (waitAttempts >= SIGNALING_SHUTDOWN_MAX_WAIT_ATTEMPTS) {
-                    DLOGE("Reconnect thread still alive after %u attempts (~%u s). "
-                          "Possible getaddrinfo hang. Will keep waiting — UAF is worse than a stall.",
-                          waitAttempts, waitAttempts * (2 + SIGNALING_SERVICE_API_CALL_TIMEOUT_IN_SECONDS));
-                    waitAttempts = 0;
-                } else {
-                    DLOGW("Reconnect thread still alive after timeout (attempt %u/%u), retrying wait...", waitAttempts,
-                          SIGNALING_SHUTDOWN_MAX_WAIT_ATTEMPTS);
-                }
+                DLOGW("Reconnect thread still alive after %" PRIu64 " s (possible getaddrinfo hang); not freeing the client while it runs",
+                      (UINT64) ((GETTIME() - waitStart) / HUNDREDS_OF_NANOS_IN_A_SECOND));
                 if (pSignalingClient->pWebsocketContext != NULL) {
                     lws_cancel_service((struct lws_context*) pSignalingClient->pWebsocketContext);
                 }
@@ -604,7 +596,8 @@ STATUS terminateOngoingOperations(PSignalingClient pSignalingClient)
             while (ATOMIC_LOAD(&pSignalingClient->receiveWorkerCount) > 0) {
                 if (STATUS_FAILED(
                         CVAR_WAIT(pSignalingClient->receiveWorkerCvar, pSignalingClient->receiveWorkerLock, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT))) {
-                    DLOGW("Receive workers still in-flight (count: %llu), retrying...", (UINT64) ATOMIC_LOAD(&pSignalingClient->receiveWorkerCount));
+                    DLOGW("Receive workers still in-flight (count: %" PRIu64 "), retrying...",
+                          (UINT64) ATOMIC_LOAD(&pSignalingClient->receiveWorkerCount));
                 }
             }
             MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);

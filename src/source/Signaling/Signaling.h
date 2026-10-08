@@ -23,12 +23,6 @@ extern "C" {
 // Termination timeout
 #define SIGNALING_CLIENT_SHUTDOWN_TIMEOUT ((2 + SIGNALING_SERVICE_API_CALL_TIMEOUT_IN_SECONDS) * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
-// Maximum number of wait attempts in the shutdown path before giving up.
-// Each attempt waits up to SIGNALING_CLIENT_SHUTDOWN_TIMEOUT (9 s), so
-// the hard ceiling is roughly SIGNALING_SHUTDOWN_MAX_WAIT_ATTEMPTS * 9 s.
-// Exceeding this emits DLOGE but does NOT free — a diagnosable hang beats a UAF.
-#define SIGNALING_SHUTDOWN_MAX_WAIT_ATTEMPTS 10
-
 // Signaling client state literal definitions
 #define SIGNALING_CLIENT_STATE_UNKNOWN_STR                "Unknown"
 #define SIGNALING_CLIENT_STATE_NEW_STR                    "New"
@@ -364,10 +358,12 @@ typedef struct {
     // Restarted thread handler
     ThreadTracker reconnecterTracker;
 
-    // In-flight receive worker count. Incremented in receiveLwsMessage() after a
-    // successful THREAD_CREATE/threadpoolContextPush and decremented in
-    // receiveLwsMessageWrapper() on exit. terminateOngoingOperations() waits for
-    // this to reach zero on the shutdown path before the client can be freed.
+    // In-flight receive worker count. Incremented in receiveLwsMessage() BEFORE the
+    // THREAD_CREATE/threadpoolContextPush (and rolled back if that fails), under
+    // receiveWorkerLock together with the shutdown check; decremented in
+    // receiveLwsMessageWrapper() on exit. Incrementing after the hand-off would let
+    // a fast worker decrement first and wrap the counter. terminateOngoingOperations()
+    // waits for this to reach zero on the shutdown path before the client can be freed.
     volatile SIZE_T receiveWorkerCount;
     MUTEX receiveWorkerLock;
     CVAR receiveWorkerCvar;
