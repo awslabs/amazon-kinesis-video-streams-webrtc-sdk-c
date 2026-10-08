@@ -445,6 +445,15 @@ jobs:
             exit 1
           fi
 
+      - name: Check nothing links OpenSSL
+        shell: bash
+        working-directory: ./build
+        run: |
+          if ldd libkvsWebrtcClient.so ../open-source/lib/libsrtp3.so | grep -E 'lib(ssl|crypto)\.so'; then
+            echo "an mbedTLS-only build linked OpenSSL"
+            exit 1
+          fi
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
