@@ -1793,7 +1793,9 @@ PVOID lwsListenerHandler(PVOID args)
     MUTEX_LOCK(pSignalingClient->connectedLock);
     MUTEX_UNLOCK(pSignalingClient->connectedLock);
 
-    // Mark as started
+    // Record our tid so freeSignaling() can refuse to run from a callback on this thread, then mark as started.
+    // Order matters: the id must be visible before terminated flips to FALSE, which is what enables the check.
+    ATOMIC_STORE(&pSignalingClient->listenerThreadTid, SIGNALING_CURRENT_THREAD_ID());
     ATOMIC_STORE_BOOL(&pSignalingClient->listenerTracker.terminated, FALSE);
 
     // Make a blocking call
@@ -1811,6 +1813,8 @@ CleanUp:
             freeLwsCallInfo(&pSignalingClient->pOngoingCallInfo);
         }
 
+        // Clear the id before publishing termination so a recycled thread id can never be mistaken for a live listener
+        ATOMIC_STORE(&pSignalingClient->listenerThreadTid, 0);
         ATOMIC_STORE_BOOL(&pSignalingClient->listenerTracker.terminated, TRUE);
 
         // Trigger the cvar

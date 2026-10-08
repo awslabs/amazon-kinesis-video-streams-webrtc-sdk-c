@@ -387,6 +387,11 @@ typedef struct {
     // reconnecterTracker.terminated is published only when this drops to zero.
     UINT32 reconnectThreadCount;
 
+    // Thread id of the running lwsListenerHandler(). Only meaningful while
+    // listenerTracker.terminated is FALSE; reset to 0 before the listener publishes
+    // its termination. Written only by the listener thread itself.
+    volatile SIZE_T listenerThreadTid;
+
     // Generic websocket context - can be used by any implementation
     PVOID pWebsocketContext;
 

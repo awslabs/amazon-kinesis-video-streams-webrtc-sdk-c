@@ -195,6 +195,7 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     ATOMIC_STORE_BOOL(&pSignalingClient->deleting, FALSE);
     ATOMIC_STORE(&pSignalingClient->receiveWorkerCount, 0);
     ATOMIC_STORE(&pSignalingClient->reconnectThreadTid, 0);
+    ATOMIC_STORE(&pSignalingClient->listenerThreadTid, 0);
     pSignalingClient->pActiveReceiveWorkers = NULL;
     ATOMIC_STORE_BOOL(&pSignalingClient->deleted, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->serviceLockContention, FALSE);
@@ -291,9 +292,11 @@ CleanUp:
     return retStatus;
 }
 
-// Returns TRUE if the calling thread is this client's running reconnect thread or one of its receive workers.
-// freeSignaling() waits for those threads to exit, so it must not be called from one of them: it would wait on
-// itself forever.
+// Returns TRUE if the calling thread is this client's running reconnect thread, its WSS listener thread or one of
+// its receive workers. freeSignaling() waits for those threads to exit (and re-locks listenerTracker.lock, which the
+// listener holds for its whole life), so it must not be called from one of them: it would wait on itself forever.
+// errorReportFn and stateChangeFn can run on any of the three (the listener delivers them from receiveLwsMessage()
+// on a malformed message or a failed worker spawn, and from GO_AWAY / RECONNECT_ICE handling).
 static BOOL isSignalingOwnedThread(PSignalingClient pSignalingClient)
 {
     SIZE_T tid = SIGNALING_CURRENT_THREAD_ID();
@@ -301,6 +304,10 @@ static BOOL isSignalingOwnedThread(PSignalingClient pSignalingClient)
     PReceiveWorkerNode pNode;
 
     if (!ATOMIC_LOAD_BOOL(&pSignalingClient->reconnecterTracker.terminated) && (SIZE_T) ATOMIC_LOAD(&pSignalingClient->reconnectThreadTid) == tid) {
+        return TRUE;
+    }
+
+    if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) && (SIZE_T) ATOMIC_LOAD(&pSignalingClient->listenerThreadTid) == tid) {
         return TRUE;
     }
 
