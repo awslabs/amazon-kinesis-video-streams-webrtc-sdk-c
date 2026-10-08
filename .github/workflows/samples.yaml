@@ -281,6 +281,110 @@ jobs:
             exit 1
           fi
 
+  # Regression check for #2408: with ENABLE_KVS_THREADPOOL=ON the STUN server address comes from the cache filled by
+  # the pre-resolution task instead of a synchronous DNS lookup. A broken copy out of that cache left the address
+  # family unset and no srflx candidate was ever gathered, so every cross-network session fell back to TURN.
+  # This job runs the samples in that configuration and requires both processes to gather srflx candidates.
+  sample-check-threadpool-srflx:
+    runs-on: ubuntu-latest
+    env:
+      # INFO level: "Initializing an IPv4 STUN srflx candidate" is logged at INFO
+      AWS_KVS_LOG_LEVEL: 3
+    timeout-minutes: 30
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2.2.0
+        with:
+          cmake-version: '3.x'
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Build repository with thread pool enabled
+        run: |
+          mkdir build && cd build
+          cmake .. -DENABLE_KVS_THREADPOOL=ON -DPARALLEL_BUILD=ON
+          make -j
+      - name: Sample check for srflx gathering with pre-resolved STUN address
+        run: |
+          cd build/samples
+          ./kvsWebrtcClientMaster SampleChannelThreadpoolSrflx > master.log 2>&1 &
+          MASTER_PID=$!
+          # Long enough for the master's STUN pre-resolution task to finish before the viewer's offer arrives;
+          # an offer that arrives earlier takes the synchronous-resolution fallback and would not exercise the cache path.
+          sleep 15
+          ./kvsWebrtcClientViewer SampleChannelThreadpoolSrflx > viewer.log 2>&1 &
+          VIEWER_PID=$!
+          sleep 15
+
+          # Interrupt after 30s, and kill 15s later for safety
+          bash -c "sleep 30 && kill -s INT $MASTER_PID $VIEWER_PID" &
+          bash -c "sleep 45 && kill -9 $MASTER_PID $VIEWER_PID" &
+          wait $MASTER_PID
+          MASTER_EXIT=$?
+          wait $VIEWER_PID
+          VIEWER_EXIT=$?
+
+          if [ $MASTER_EXIT -ne 0 ] || [ $VIEWER_EXIT -ne 0 ]; then
+            echo "Sample execution failed. Master exit code: $MASTER_EXIT, Viewer exit code: $VIEWER_EXIT"
+            cat master.log
+            cat viewer.log
+            exit 1
+          fi
+
+          FAILED=0
+          for LOG in master.log viewer.log; do
+            # 1. The binary really is a thread pool build
+            if ! grep -q "KVS WebRtc library using thread pool" "$LOG"; then
+              echo "FAILURE ($LOG): thread pool was not enabled in this build"
+              FAILED=1
+            fi
+            # 2. The pre-resolution task ran. Note this line is printed on every outcome of the task, including the
+            #    early-DNS fallback, so it only proves the task executed; checks 3 and 4 establish which path was taken.
+            if ! grep -q "STUN DNS resolution time taken" "$LOG"; then
+              echo "FAILURE ($LOG): STUN DNS pre-resolution task did not run"
+              FAILED=1
+            fi
+            # 3. The ICE agent got the STUN address from the cache: "Initialized successfully" is only logged by
+            #    onSetStunServerIp() on a cache hit.
+            if ! grep -q "Initialized successfully" "$LOG"; then
+              echo "FAILURE ($LOG): STUN address was not served from the pre-resolved cache"
+              FAILED=1
+            fi
+            # 4. ...and did not take the synchronous-resolution fallback, which would gather srflx without exercising
+            #    the code path this job exists to cover.
+            if grep -q "Request already received to get the URL before resolution could even start" "$LOG"; then
+              echo "FAILURE ($LOG): peer connection was created before pre-resolution finished; fallback path taken"
+              FAILED=1
+            fi
+            # 5. srflx candidates were gathered from that pre-resolved address
+            SRFLX_COUNT=$(grep -c "Initializing an IPv4 STUN srflx candidate" "$LOG" || true)
+            if [ "$SRFLX_COUNT" -eq 0 ]; then
+              echo "FAILURE ($LOG): no srflx candidate was gathered (#2408)"
+              FAILED=1
+            else
+              echo "$LOG: $SRFLX_COUNT srflx candidate(s) gathered"
+            fi
+            # 6. The warning added for #2408 must not fire: it means a STUN server had no resolved address
+            if grep -q "has no resolved address (family not set)" "$LOG"; then
+              echo "FAILURE ($LOG): STUN server address family was not set"
+              FAILED=1
+            fi
+          done
+
+          if [ $FAILED -ne 0 ]; then
+            cat master.log
+            cat viewer.log
+            exit 1
+          fi
+          echo "SUCCESS: srflx candidates gathered with ENABLE_KVS_THREADPOOL=ON via pre-resolved STUN address"
+
   valgrind-check:
     runs-on: ubuntu-latest
     timeout-minutes: 20
