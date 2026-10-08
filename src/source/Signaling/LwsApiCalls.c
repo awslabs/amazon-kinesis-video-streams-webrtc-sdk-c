@@ -2351,7 +2351,22 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     // to completion and decrement first, transiently wrapping the counter and
     // stalling the shutdown drain in terminateOngoingOperations(). If the
     // hand-off fails the wrapper never runs, so undo the increment here.
+    //
+    // The shutdown check and the increment share one receiveWorkerLock critical
+    // section with the drain in terminateOngoingOperations(): freeSignaling()
+    // stores shutdown=TRUE before the drain takes that lock, so a message that
+    // arrives after the drain has seen zero finds shutdown set here and is dropped
+    // instead of starting a worker that would outlive the client.
+    MUTEX_LOCK(pSignalingClient->receiveWorkerLock);
+    if (ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown)) {
+        MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
+        DLOGD("Dropping received message of type %s: signaling client is shutting down",
+              getMessageTypeInString(pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType));
+        SAFE_MEMFREE(pSignalingMessageWrapper);
+        CHK(FALSE, retStatus);
+    }
     ATOMIC_INCREMENT(&pSignalingClient->receiveWorkerCount);
+    MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
 #ifdef ENABLE_KVS_THREADPOOL
     // This would fail if threadpool was not created
     retStatus = threadpoolContextPush(receiveLwsMessageWrapper, pSignalingMessageWrapper);
