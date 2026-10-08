@@ -700,10 +700,23 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     // at the (now freed) LwsCallInfo, lwsWssCallbackRoutine()/lwsHttpCallbackRoutine()
     // fetch it via lws_get_opaque_user_data() and dereference freed memory ->
     // heap-use-after-free. Clearing it here makes that late callback bail at its
-    // NULL guard instead. Done under lwsSerializerLock while the wsi handle is valid.
-    if (pCallInfo->pSignalingClient->currentWsi[pCallInfo->protocolIndex] != NULL) {
+    // NULL guard instead.
+    //
+    // Only a wsi that is still open may be touched. terminating is set exclusively
+    // from lws callbacks (CONNECTION_ERROR, CLOSED_CLIENT_HTTP, CLIENT_CLOSED, or a
+    // callback returning non-zero) after which lws closes and frees this wsi inside
+    // the same lws_service() call, so terminating == TRUE here means the wsi is
+    // already gone and writing to it would be a write-after-free. terminating == FALSE
+    // means the loop left on shutdown, the interrupt flag or a service error and the
+    // wsi is still open - the only case the clear is for. lwsServiceLock is held so
+    // no other lws_service() caller can close the wsi between the check and the write
+    // (lock order lwsSerializerLock -> lwsServiceLock, same as the acquire loop above).
+    MUTEX_LOCK(pCallInfo->pSignalingClient->lwsServiceLock);
+    if (pCallInfo->callInfo.pRequestInfo != NULL && !ATOMIC_LOAD_BOOL(&pCallInfo->callInfo.pRequestInfo->terminating) &&
+        pCallInfo->pSignalingClient->currentWsi[pCallInfo->protocolIndex] != NULL) {
         lws_set_opaque_user_data((struct lws*) pCallInfo->pSignalingClient->currentWsi[pCallInfo->protocolIndex], NULL);
     }
+    MUTEX_UNLOCK(pCallInfo->pSignalingClient->lwsServiceLock);
     pCallInfo->pSignalingClient->currentWsi[pCallInfo->protocolIndex] = NULL;
     MUTEX_UNLOCK(pCallInfo->pSignalingClient->lwsSerializerLock);
 
