@@ -527,7 +527,13 @@ STATUS terminateOngoingOperations(PSignalingClient pSignalingClient)
         // lock and re-verify.  This closes the TOCTOU where the callback
         // reads shutdown==FALSE and spawns a thread between our shutdown=TRUE
         // store and the wait.
-        while (TRUE) {
+        //
+        // freeSignaling() is also reached from the createSignalingSync()
+        // failure path with a partially constructed client. If the tracker's
+        // own lock or cvar was never created, no reconnect thread can ever
+        // have been spawned, and waiting on the half-built tracker would spin
+        // forever (CVAR_WAIT on an invalid cvar fails on every pass).
+        while (IS_VALID_MUTEX_VALUE(pSignalingClient->reconnecterTracker.lock) && IS_VALID_CVAR_VALUE(pSignalingClient->reconnecterTracker.await)) {
             // Always go through awaitForThreadTermination(), even if terminated is already TRUE: the reconnect
             // thread sets terminated and broadcasts while holding reconnecterTracker.lock, so acquiring that lock
             // here guarantees the thread has finished touching pSignalingClient before we free it.
@@ -550,10 +556,9 @@ STATUS terminateOngoingOperations(PSignalingClient pSignalingClient)
             // Re-verify under the spawn lock — if a late spawn just set
             // terminated=FALSE we will see it and loop again.
             //
-            // freeSignaling() is also reached from the createSignalingSync
-            // failure path, where the client may be only partially
-            // constructed and lwsServiceLock not yet created. No WSS callback
-            // can exist in that state, so there is nothing to re-verify.
+            // lwsServiceLock is created after the trackers; if it does not
+            // exist yet no WSS callback can exist either, so there is nothing
+            // to re-verify.
             if (!IS_VALID_MUTEX_VALUE(pSignalingClient->lwsServiceLock)) {
                 break;
             }
@@ -567,6 +572,24 @@ STATUS terminateOngoingOperations(PSignalingClient pSignalingClient)
             }
             MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
             DLOGW("Late reconnect thread spawn detected, re-waiting...");
+        }
+
+        // The reconnect thread can start a new listener (connectSignalingChannelLws())
+        // right up to its exit, and the terminateLwsListenerLoop() at the top of this
+        // function ran before the reconnect wait, so a listener started during that
+        // wait was not seen by it. Nothing can create a listener once no reconnect
+        // thread is left, so stop and wait for one more time here. The listener holds
+        // listenerTracker.lock for its whole life and awaitForThreadTermination() takes
+        // that lock, so returning from it means the listener is past its last access
+        // to pSignalingClient. Unbounded for the same reason as the reconnect wait.
+        if (IS_VALID_MUTEX_VALUE(pSignalingClient->listenerTracker.lock) && IS_VALID_CVAR_VALUE(pSignalingClient->listenerTracker.await)) {
+            terminateLwsListenerLoop(pSignalingClient);
+            while (STATUS_FAILED(awaitForThreadTermination(&pSignalingClient->listenerTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT))) {
+                DLOGW("Listener thread still alive after timeout, retrying wait...");
+                if (pSignalingClient->pWebsocketContext != NULL) {
+                    lws_cancel_service((struct lws_context*) pSignalingClient->pWebsocketContext);
+                }
+            }
         }
 
         // Wait for all in-flight receive workers to finish. These are
@@ -1108,6 +1131,9 @@ STATUS initializeThreadTracker(PThreadTracker pThreadTracker)
     STATUS retStatus = STATUS_SUCCESS;
     CHK(pThreadTracker != NULL, STATUS_NULL_ARG);
 
+    // Mark "no thread running" before anything that can fail: freeSignaling() on the createSignalingSync()
+    // failure path must never read a half-initialized tracker as a live thread and wait for it.
+    ATOMIC_STORE_BOOL(&pThreadTracker->terminated, TRUE);
     pThreadTracker->threadId = INVALID_TID_VALUE;
 
     pThreadTracker->lock = MUTEX_CREATE(FALSE);
@@ -1115,8 +1141,6 @@ STATUS initializeThreadTracker(PThreadTracker pThreadTracker)
 
     pThreadTracker->await = CVAR_CREATE();
     CHK(IS_VALID_CVAR_VALUE(pThreadTracker->await), STATUS_INVALID_OPERATION);
-
-    ATOMIC_STORE_BOOL(&pThreadTracker->terminated, TRUE);
 
 CleanUp:
     return retStatus;

@@ -1809,8 +1809,21 @@ CleanUp:
 
     // Set the tid to invalid as we are exiting
     if (pSignalingClient != NULL) {
-        if (pSignalingClient->pOngoingCallInfo != NULL) {
-            freeLwsCallInfo(&pSignalingClient->pOngoingCallInfo);
+        // Detach the call info under lwsServiceLock before freeing it. Every lws callback runs inside some
+        // thread's lws_service() call, which holds lwsServiceLock, and lwsWssCallbackRoutine() loads
+        // pOngoingCallInfo at entry; taking the lock here means no callback can be mid-flight with the old
+        // pointer when it is freed, and a later callback finds NULL and bails.
+        if (IS_VALID_MUTEX_VALUE(pSignalingClient->lwsServiceLock)) {
+            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+            pLwsCallInfo = pSignalingClient->pOngoingCallInfo;
+            pSignalingClient->pOngoingCallInfo = NULL;
+            MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
+        } else {
+            pLwsCallInfo = pSignalingClient->pOngoingCallInfo;
+            pSignalingClient->pOngoingCallInfo = NULL;
+        }
+        if (pLwsCallInfo != NULL) {
+            freeLwsCallInfo(&pLwsCallInfo);
         }
 
         // Clear the id before publishing termination so a recycled thread id can never be mistaken for a live listener
@@ -2243,7 +2256,9 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 i, strLen;
     PSignalingMessageWrapper pSignalingMessageWrapper = NULL;
+#ifndef ENABLE_KVS_THREADPOOL
     TID receivedTid = INVALID_TID_VALUE;
+#endif
     PSignalingMessage pOngoingMessage;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
@@ -2381,8 +2396,15 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
         MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
         CHK(FALSE, retStatus);
     }
+
+    // From here on the worker owns the wrapper (it frees it on exit) and its own count decrement. Nothing below
+    // may free the wrapper or cancel the thread: cancelling a counted worker would leave receiveWorkerCount
+    // (and the active-worker list) permanently off by one and stall every later shutdown drain.
+    pSignalingMessageWrapper = NULL;
 #ifndef ENABLE_KVS_THREADPOOL
-    CHK_STATUS(THREAD_DETACH(receivedTid));
+    if (STATUS_FAILED(THREAD_DETACH(receivedTid))) {
+        DLOGW("Failed to detach the receive worker thread; it will run to completion unjoined");
+    }
 #endif
 
 CleanUp:
@@ -2396,11 +2418,7 @@ CleanUp:
                                                                                  pMessage, messageLen);
         }
 
-        // Kill the receive thread on error
-        if (IS_VALID_TID_VALUE(receivedTid)) {
-            THREAD_CANCEL(receivedTid);
-        }
-
+        // Only reached before the worker was created; afterwards the wrapper pointer is NULL and the worker frees it.
         SAFE_MEMFREE(pSignalingMessageWrapper);
     }
 
