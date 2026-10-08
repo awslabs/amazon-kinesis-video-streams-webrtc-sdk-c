@@ -377,7 +377,15 @@ typedef struct {
 
     // Thread id of the most recently started reconnectHandler(). Only meaningful while
     // reconnecterTracker.terminated is FALSE, so a stale or recycled id never matches.
+    // Written under reconnecterTracker.lock; reset to 0 when the last reconnect thread exits.
     volatile SIZE_T reconnectThreadTid;
+
+    // Number of reconnectHandler() threads currently alive. Protected by
+    // reconnecterTracker.lock. Two can overlap: the WSS callback spawns a new one
+    // when the connection drops again while the previous one is still finishing
+    // (e.g. in JOIN_SESSION after CONNECTED, or in its CleanUp).
+    // reconnecterTracker.terminated is published only when this drops to zero.
+    UINT32 reconnectThreadCount;
 
     // Generic websocket context - can be used by any implementation
     PVOID pWebsocketContext;
