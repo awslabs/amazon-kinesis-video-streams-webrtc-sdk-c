@@ -4,14 +4,14 @@
 
 #if defined(__has_feature)
 #if __has_feature(address_sanitizer)
-#define PR_REVIEW_ASAN 1
+#define SIGNALING_SHUTDOWN_TEST_ASAN 1
 #endif
 #endif
 #if defined(__SANITIZE_ADDRESS__)
-#define PR_REVIEW_ASAN 1
+#define SIGNALING_SHUTDOWN_TEST_ASAN 1
 #endif
 
-#ifdef PR_REVIEW_ASAN
+#ifdef SIGNALING_SHUTDOWN_TEST_ASAN
 #include <sanitizer/asan_interface.h>
 #include <libwebsockets.h>
 #endif
@@ -22,23 +22,24 @@ namespace kinesis {
 namespace video {
 namespace webrtcclient {
 
-// Regression tests for the shutdown-path findings from the review of PR #2401 (findings numbered as in that
-// review). Each one reproduced a failure on the pre-fix branch and must pass now. All tests run offline unless
-// noted: nothing listens on 127.0.0.1:443 (the SDK hard-codes port 443), so every HTTPS/WSS call the state machine
-// makes fails fast. Two tests are kept DISABLED_ as executable documentation of application-side patterns the SDK
-// cannot fix (finding 2: freeing while holding a lock a callback takes; finding 3b: freeing from stateChangeFn on
-// the caller's own thread). Run them with --gtest_also_run_disabled_tests to see the behaviour.
-class PrReviewFindingsTest : public WebRtcClientTestBase {};
+// Regression tests for races between freeSignalingClient() and the signaling client's own threads (reconnect
+// thread, WSS listener, receive workers) and lws callbacks. Each scenario reproduced a use-after-free, a hang or a
+// wrong rejection before the corresponding fix and must pass now. All tests run offline unless noted: nothing
+// listens on 127.0.0.1:443 (the SDK hard-codes port 443), so every HTTPS/WSS call the state machine makes fails
+// fast. Two tests are kept DISABLED_ as executable documentation of application-side patterns the SDK cannot fix
+// (freeing while holding a lock a callback takes; freeing from stateChangeFn on the caller's own thread). Run them
+// with --gtest_also_run_disabled_tests to see the behaviour.
+class SignalingShutdownRaceTest : public WebRtcClientTestBase {};
 
-static const CHAR kReviewIceCandidateMessage[] = "{\n"
+static const CHAR kShutdownRaceIceCandidateMessage[] = "{\n"
                                                  "    \"messageType\": \"ICE_CANDIDATE\",\n"
                                                  "    \"senderClientId\": \"ClientA\",\n"
                                                  "    \"messagePayload\": \"SGVsbG8=\"\n"
                                                  "}";
 
-static const CHAR kReviewMalformedMessage[] = "{ this is not a signaling message";
+static const CHAR kShutdownRaceMalformedMessage[] = "{ this is not a signaling message";
 
-#define REVIEW_POLL_INTERVAL (5 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define SHUTDOWN_RACE_POLL_INTERVAL (5 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
 // Polls pred every 5 ms until it returns true or timeoutMs elapses.
 template <typename Pred> static bool waitFor(Pred pred, UINT32 timeoutMs)
@@ -48,7 +49,7 @@ template <typename Pred> static bool waitFor(Pred pred, UINT32 timeoutMs)
         if (GETTIME() > deadline) {
             return false;
         }
-        THREAD_SLEEP(REVIEW_POLL_INTERVAL);
+        THREAD_SLEEP(SHUTDOWN_RACE_POLL_INTERVAL);
     }
     return true;
 }
@@ -60,7 +61,7 @@ static STATUS noopMessageReceivedFn(UINT64 customData, PReceivedSignalingMessage
     return STATUS_SUCCESS;
 }
 
-struct ReviewClientOptions {
+struct ShutdownRaceClientOptions {
     UINT64 customData = 0;
     SignalingClientMessageReceivedFunc messageReceivedFn = noopMessageReceivedFn;
     SignalingClientStateChangedFunc stateChangeFn = NULL;
@@ -71,7 +72,7 @@ struct ReviewClientOptions {
 
 // Same shape as createOfflineSignalingClient() in ReceiveWorkerUafTest.cpp: createSignalingSync() only drives the
 // state machine to GET_TOKEN, which the static credential provider serves locally.
-static STATUS createReviewClient(PCHAR channelName, PCHAR region, PCHAR certPath, UINT32 logLevel, const ReviewClientOptions& options,
+static STATUS createShutdownRaceClient(PCHAR channelName, PCHAR region, PCHAR certPath, UINT32 logLevel, const ShutdownRaceClientOptions& options,
                                  PAwsCredentialProvider* ppCredentialProvider, PSignalingClient* ppSignalingClient)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -150,7 +151,8 @@ static void startAsyncFree(AsyncFree* pAsyncFree)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Finding 1: lwsCompleteSync() calls lws_set_opaque_user_data() on a wsi that lws has already freed.
+// HTTPS call exit vs. a wsi lws has already freed: lwsCompleteSync()'s exit block must not call
+// lws_set_opaque_user_data() on a wsi that lws freed inside the service loop.
 //
 // Every normal HTTPS completion (or connection error) sets terminating=TRUE from the CLOSED_CLIENT_HTTP /
 // CLIENT_CONNECTION_ERROR callback, and lws frees the wsi right after that callback, inside the same lws_service()
@@ -181,9 +183,9 @@ static void watchHttpsWsi(HttpsWsiWatcher* pWatcher)
     }
 }
 
-static void runFinding1(PCHAR channelName, PCHAR region, PCHAR certPath, UINT32 logLevel, PCHAR pControlPlaneUrl)
+static void runHttpsWsiWriteAfterFreeProbe(PCHAR channelName, PCHAR region, PCHAR certPath, UINT32 logLevel, PCHAR pControlPlaneUrl)
 {
-#ifndef PR_REVIEW_ASAN
+#ifndef SIGNALING_SHUTDOWN_TEST_ASAN
     UNUSED_PARAM(channelName);
     UNUSED_PARAM(region);
     UNUSED_PARAM(certPath);
@@ -191,7 +193,7 @@ static void runFinding1(PCHAR channelName, PCHAR region, PCHAR certPath, UINT32 
     UNUSED_PARAM(pControlPlaneUrl);
     GTEST_SKIP() << "Needs an AddressSanitizer build (-DADDRESS_SANITIZER=ON) to tell whether the wsi was freed";
 #else
-    ReviewClientOptions options;
+    ShutdownRaceClientOptions options;
     PAwsCredentialProvider pCredentialProvider = NULL;
     PSignalingClient pSignalingClient = NULL;
     HttpsWsiWatcher watcher;
@@ -199,7 +201,7 @@ static void runFinding1(PCHAR channelName, PCHAR region, PCHAR certPath, UINT32 
     PVOID wsi;
 
     options.pControlPlaneUrl = pControlPlaneUrl;
-    ASSERT_EQ(STATUS_SUCCESS, createReviewClient(channelName, region, certPath, logLevel, options, &pCredentialProvider, &pSignalingClient));
+    ASSERT_EQ(STATUS_SUCCESS, createShutdownRaceClient(channelName, region, certPath, logLevel, options, &pCredentialProvider, &pSignalingClient));
 
     watcher.pSignalingClient = pSignalingClient;
     std::thread watcherThread(watchHttpsWsi, &watcher);
@@ -218,7 +220,7 @@ static void runFinding1(PCHAR channelName, PCHAR region, PCHAR certPath, UINT32 
         GTEST_SKIP() << "No HTTPS wsi was observed during the call; the write-after-free probe does not apply to this run";
     }
 
-    // Precondition, not the finding: lws frees the wsi inside lws_service() on the close callback, i.e. before
+    // Precondition, not the property under test: lws frees the wsi inside lws_service() on the close callback, i.e. before
     // lwsCompleteSync()'s exit block runs. If this ever stops holding the probe below is not applicable.
     bool freedInsideServiceLoop = __asan_address_is_poisoned(wsi) != 0;
     if (!freedInsideServiceLoop) {
@@ -228,7 +230,7 @@ static void runFinding1(PCHAR channelName, PCHAR region, PCHAR certPath, UINT32 
     }
     __asan_describe_address(wsi);
 
-    // The finding: the exit block must not write into that freed wsi. ASan keeps freed blocks poisoned in its
+    // The property under test: the exit block must not write into that freed wsi. ASan keeps freed blocks poisoned in its
     // quarantine without reusing or scribbling them, so the wsi still holds whatever was last written to it.
     // lws stored the LwsCallInfo pointer in a.opaque_user_data at connect and never clears it on close; the
     // unfixed exit block overwrote it with NULL after the free. lws is not ASan-instrumented, so reading the
@@ -244,20 +246,21 @@ static void runFinding1(PCHAR channelName, PCHAR region, PCHAR certPath, UINT32 
 }
 
 // Offline: the connection to 127.0.0.1:443 is refused, so lws delivers CLIENT_CONNECTION_ERROR and frees the wsi.
-TEST_F(PrReviewFindingsTest, finding01_wsiFreedBeforeOpaqueClear_connectionRefused)
+TEST_F(SignalingShutdownRaceTest, httpsCallDoesNotWriteToFreedWsiOnConnectionRefused)
 {
-    runFinding1(mChannelName, mRegion, mCaCertPath, mLogLevel, (PCHAR) "https://127.0.0.1");
+    runHttpsWsiWriteAfterFreeProbe(mChannelName, mRegion, mCaCertPath, mLogLevel, (PCHAR) "https://127.0.0.1");
 }
 
 // Needs network access, not credentials: the fake keys get a 403 from the real endpoint. That is a normal HTTP
 // completion (CLOSED_CLIENT_HTTP), which is the path every successful API call takes.
-TEST_F(PrReviewFindingsTest, finding01_wsiFreedBeforeOpaqueClear_normalCompletion)
+TEST_F(SignalingShutdownRaceTest, httpsCallDoesNotWriteToFreedWsiOnNormalCompletion)
 {
-    runFinding1(mChannelName, mRegion, mCaCertPath, mLogLevel, NULL);
+    runHttpsWsiWriteAfterFreeProbe(mChannelName, mRegion, mCaCertPath, mLogLevel, NULL);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Finding 2: freeSignaling() now waits with no time limit for in-flight messageReceivedFn calls. The SDK's own
+// Application holds a lock across free that its message callback also takes: freeSignaling() waits with no
+// time limit for in-flight messageReceivedFn calls. The SDK's own
 // sample calls freeSignalingClient() while holding the lock its message callback takes, so the two deadlock:
 //   samples/common/Common.c:1587  sessionCleanupWait(): MUTEX_LOCK(sampleConfigurationObjLock)
 //   samples/common/Common.c:1637  ... freeSignalingClient(&signalingClientHandle)       (recreate path)
@@ -292,10 +295,10 @@ static STATUS appLockingMessageReceivedFn(UINT64 customData, PReceivedSignalingM
     return STATUS_SUCCESS;
 }
 
-TEST_F(PrReviewFindingsTest, DISABLED_finding02_freeDeadlocksWhenCallerHoldsLockTakenByMessageCallback)
+TEST_F(SignalingShutdownRaceTest, DISABLED_freeWhileHoldingLockTakenByMessageCallbackDeadlocks)
 {
     AppLockContext ctx;
-    ReviewClientOptions options;
+    ShutdownRaceClientOptions options;
     PAwsCredentialProvider pCredentialProvider = NULL;
     PSignalingClient pSignalingClient = NULL;
     UINT64 start, elapsedMs;
@@ -304,11 +307,11 @@ TEST_F(PrReviewFindingsTest, DISABLED_finding02_freeDeadlocksWhenCallerHoldsLock
 
     options.customData = (UINT64) &ctx;
     options.messageReceivedFn = appLockingMessageReceivedFn;
-    ASSERT_EQ(STATUS_SUCCESS, createReviewClient(mChannelName, mRegion, mCaCertPath, mLogLevel, options, &pCredentialProvider, &pSignalingClient));
+    ASSERT_EQ(STATUS_SUCCESS, createShutdownRaceClient(mChannelName, mRegion, mCaCertPath, mLogLevel, options, &pCredentialProvider, &pSignalingClient));
 
     // Like sessionCleanupWait(): hold the app lock, then free the client.
     ctx.appLock.lock();
-    ASSERT_EQ(STATUS_SUCCESS, receiveLwsMessage(pSignalingClient, (PCHAR) kReviewIceCandidateMessage, ARRAY_SIZE(kReviewIceCandidateMessage)));
+    ASSERT_EQ(STATUS_SUCCESS, receiveLwsMessage(pSignalingClient, (PCHAR) kShutdownRaceIceCandidateMessage, ARRAY_SIZE(kShutdownRaceIceCandidateMessage)));
     ASSERT_TRUE(waitFor([&ctx] { return ctx.callbackEntered.load(); }, 5000));
 
     start = GETTIME();
@@ -324,7 +327,8 @@ TEST_F(PrReviewFindingsTest, DISABLED_finding02_freeDeadlocksWhenCallerHoldsLock
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Finding 3a: Include.h promises STATUS_INVALID_OPERATION when freeSignalingClient() is called from errorReportFn,
+// free from errorReportFn on the WSS listener thread: Include.h promises STATUS_INVALID_OPERATION when
+// freeSignalingClient() is called from errorReportFn,
 // but isSignalingOwnedThread() only knows the reconnect thread and receive workers. errorReportFn also fires on
 // the WSS listener thread: lwsListenerHandler() holds listenerTracker.lock across lwsCompleteSync()
 // (LwsApiCalls.c:1791-1826), lws_service() on that thread delivers CLIENT_RECEIVE -> receiveLwsMessage() (:471), and a
@@ -365,7 +369,7 @@ static void emulatedListenerThread(ListenerErrorContext* pCtx)
     ATOMIC_STORE_BOOL(&pSignalingClient->listenerTracker.terminated, FALSE);
 
     // lws_service() -> lwsWssCallbackRoutine(LWS_CALLBACK_CLIENT_RECEIVE) -> receiveLwsMessage()
-    receiveLwsMessage(pSignalingClient, (PCHAR) kReviewMalformedMessage, ARRAY_SIZE(kReviewMalformedMessage));
+    receiveLwsMessage(pSignalingClient, (PCHAR) kShutdownRaceMalformedMessage, ARRAY_SIZE(kShutdownRaceMalformedMessage));
 
     if (pCtx->freeStatus.load() == STATUS_SUCCESS) {
         // The client was freed underneath this "listener"; do not touch it.
@@ -379,17 +383,17 @@ static void emulatedListenerThread(ListenerErrorContext* pCtx)
     MUTEX_UNLOCK(pSignalingClient->listenerTracker.lock);
 }
 
-TEST_F(PrReviewFindingsTest, finding03a_freeFromErrorReportFnOnListenerThreadIsNotRejected)
+TEST_F(SignalingShutdownRaceTest, freeFromErrorReportFnOnListenerThreadIsRejected)
 {
     // Leaked on purpose if the listener thread deadlocks.
     ListenerErrorContext* pCtx = new ListenerErrorContext();
-    ReviewClientOptions options;
+    ShutdownRaceClientOptions options;
     PAwsCredentialProvider pCredentialProvider = NULL;
     PSignalingClient pSignalingClient = NULL;
 
     options.customData = (UINT64) pCtx;
     options.errorReportFn = freeFromErrorReportFn;
-    ASSERT_EQ(STATUS_SUCCESS, createReviewClient(mChannelName, mRegion, mCaCertPath, mLogLevel, options, &pCredentialProvider, &pSignalingClient));
+    ASSERT_EQ(STATUS_SUCCESS, createShutdownRaceClient(mChannelName, mRegion, mCaCertPath, mLogLevel, options, &pCredentialProvider, &pSignalingClient));
     pCtx->pSignalingClient = pSignalingClient;
 
     // A live listener always has an ongoing call info; terminateLwsListenerLoop() only acts when it is set.
@@ -417,7 +421,7 @@ TEST_F(PrReviewFindingsTest, finding03a_freeFromErrorReportFnOnListenerThreadIsN
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Finding 3b: stateChangeFn runs on the application's own thread inside signalingClientFetchSync() /
+// free from stateChangeFn on the caller's own thread: stateChangeFn runs on the application's own thread inside signalingClientFetchSync() /
 // signalingClientConnectSync() (the state machine is iterated on the caller's thread, StateMachine.c:118). Calling
 // freeSignalingClient() from there is not rejected; it frees the state machine, stateLock and the client while
 // executeDescribeSignalingState() is still running on this stack.
@@ -447,19 +451,19 @@ static STATUS freeOnDescribeStateChangeFn(UINT64 customData, SIGNALING_CLIENT_ST
     return STATUS_SUCCESS;
 }
 
-TEST_F(PrReviewFindingsTest, DISABLED_finding03b_freeFromStateChangeFnOnAppThreadIsNotRejected)
+TEST_F(SignalingShutdownRaceTest, DISABLED_freeFromStateChangeFnOnCallerThreadIsUndetected)
 {
-#ifndef PR_REVIEW_ASAN
+#ifndef SIGNALING_SHUTDOWN_TEST_ASAN
     GTEST_SKIP() << "Frees the client underneath signalingFetchSync(); only safe to run under AddressSanitizer";
 #else
     StateChangeFreeContext ctx;
-    ReviewClientOptions options;
+    ShutdownRaceClientOptions options;
     PAwsCredentialProvider pCredentialProvider = NULL;
     PSignalingClient pSignalingClient = NULL;
 
     options.customData = (UINT64) &ctx;
     options.stateChangeFn = freeOnDescribeStateChangeFn;
-    ASSERT_EQ(STATUS_SUCCESS, createReviewClient(mChannelName, mRegion, mCaCertPath, mLogLevel, options, &pCredentialProvider, &pSignalingClient));
+    ASSERT_EQ(STATUS_SUCCESS, createShutdownRaceClient(mChannelName, mRegion, mCaCertPath, mLogLevel, options, &pCredentialProvider, &pSignalingClient));
     ctx.pSignalingClient = pSignalingClient;
     ctx.armed = true;
 
@@ -474,7 +478,8 @@ TEST_F(PrReviewFindingsTest, DISABLED_finding03b_freeFromStateChangeFnOnAppThrea
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Finding 4: reconnecterTracker is one boolean, but two reconnect threads can be alive at once. Whichever exits
+// Two overlapping reconnect threads: reconnecterTracker.terminated is one boolean, but two reconnect threads
+// can be alive at once. Whichever exits
 // first stores terminated=TRUE, and freeSignaling() then frees the client under the one still running.
 //
 // Both threads are the real reconnectHandler(), spawned the way the WSS callback spawns them. Each one fails its
@@ -502,32 +507,32 @@ static STATUS parkingErrorReportFn(UINT64 customData, STATUS status, PCHAR msg, 
     if (idx < 2) {
         pCtx->parked[idx] = true;
         while (!pCtx->release[idx].load()) {
-            THREAD_SLEEP(REVIEW_POLL_INTERVAL);
+            THREAD_SLEEP(SHUTDOWN_RACE_POLL_INTERVAL);
         }
     }
     return STATUS_SUCCESS;
 }
 
-// Set PR_REVIEW_RELEASE_AFTER_FREE=1 under ASan to let a parked thread run on the freed client and get the report.
+// Set KVS_TEST_RELEASE_PARKED_THREAD_AFTER_FREE=1 under ASan to let a parked thread run on the freed client and get the report.
 // Otherwise such threads stay parked forever so they never touch freed memory.
 static bool releaseAfterFreeRequested()
 {
-    return getenv("PR_REVIEW_RELEASE_AFTER_FREE") != NULL;
+    return getenv("KVS_TEST_RELEASE_PARKED_THREAD_AFTER_FREE") != NULL;
 }
 
-TEST_F(PrReviewFindingsTest, finding04_secondReconnectThreadUntrackedOnceFirstExits)
+TEST_F(SignalingShutdownRaceTest, freeWaitsForSecondReconnectThreadAfterFirstExits)
 {
     // Leaked on purpose when thread B is left parked on a freed client.
     ReconnectParkingContext* pCtx = new ReconnectParkingContext();
     AsyncFree* pAsyncFree = new AsyncFree();
-    ReviewClientOptions options;
+    ShutdownRaceClientOptions options;
     PAwsCredentialProvider pCredentialProvider = NULL;
     PSignalingClient pSignalingClient = NULL;
     bool freeReturned;
 
     options.customData = (UINT64) pCtx;
     options.errorReportFn = parkingErrorReportFn;
-    ASSERT_EQ(STATUS_SUCCESS, createReviewClient(mChannelName, mRegion, mCaCertPath, mLogLevel, options, &pCredentialProvider, &pSignalingClient));
+    ASSERT_EQ(STATUS_SUCCESS, createShutdownRaceClient(mChannelName, mRegion, mCaCertPath, mLogLevel, options, &pCredentialProvider, &pSignalingClient));
 
     // Reconnect thread A
     ASSERT_EQ(STATUS_SUCCESS, spawnReconnectLikeWssCallback(pSignalingClient));
@@ -566,7 +571,8 @@ TEST_F(PrReviewFindingsTest, finding04_secondReconnectThreadUntrackedOnceFirstEx
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Finding 8: receiveLwsMessage() counts and spawns a worker without checking shutdown. A CLIENT_RECEIVE delivered
+// Message delivered after the shutdown drain: receiveLwsMessage() used to count and spawn a worker without
+// checking shutdown. A CLIENT_RECEIVE delivered
 // after the drain in terminateOngoingOperations() saw zero starts a worker that keeps running after the client is
 // freed.
 //
@@ -575,7 +581,7 @@ TEST_F(PrReviewFindingsTest, finding04_secondReconnectThreadUntrackedOnceFirstEx
 // (Signaling.c:337), so holding it pins free between "drain saw 0" and lws_context_destroy().
 //
 // Reachability: something must still be inside lws_service() at that point, e.g. a listener that outlived the
-// bounded 9 s listener wait in terminateConnectionWithStatus(), or the late listener from finding 5.
+// bounded 9 s listener wait in terminateConnectionWithStatus(), or a listener started by the reconnect thread during the shutdown wait.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct LateReceiveContext {
     std::atomic<UINT32> entered{0};
@@ -593,7 +599,7 @@ static STATUS lateReceiveMessageReceivedFn(UINT64 customData, PReceivedSignaling
     if (pCtx->entered.fetch_add(1) == 0) {
         // First worker: keeps the shutdown drain waiting until the test releases it.
         while (!pCtx->releaseFirst.load()) {
-            THREAD_SLEEP(REVIEW_POLL_INTERVAL);
+            THREAD_SLEEP(SHUTDOWN_RACE_POLL_INTERVAL);
         }
         return STATUS_SUCCESS;
     }
@@ -610,11 +616,11 @@ static STATUS lateReceiveMessageReceivedFn(UINT64 customData, PReceivedSignaling
     return STATUS_SUCCESS;
 }
 
-TEST_F(PrReviewFindingsTest, finding08_receiveAfterDrainSpawnsWorkerOnFreedClient)
+TEST_F(SignalingShutdownRaceTest, messageReceivedAfterShutdownDrainDoesNotSpawnWorker)
 {
     // Leaked on purpose: the second worker may be left parked.
     LateReceiveContext* pCtx = new LateReceiveContext();
-    ReviewClientOptions options;
+    ShutdownRaceClientOptions options;
     PAwsCredentialProvider pCredentialProvider = NULL;
     PSignalingClient pSignalingClient = NULL;
     STATUS lateReceiveStatus;
@@ -622,10 +628,10 @@ TEST_F(PrReviewFindingsTest, finding08_receiveAfterDrainSpawnsWorkerOnFreedClien
     pCtx->pAsyncFree = new AsyncFree();
     options.customData = (UINT64) pCtx;
     options.messageReceivedFn = lateReceiveMessageReceivedFn;
-    ASSERT_EQ(STATUS_SUCCESS, createReviewClient(mChannelName, mRegion, mCaCertPath, mLogLevel, options, &pCredentialProvider, &pSignalingClient));
+    ASSERT_EQ(STATUS_SUCCESS, createShutdownRaceClient(mChannelName, mRegion, mCaCertPath, mLogLevel, options, &pCredentialProvider, &pSignalingClient));
 
     // Worker 1 holds the drain open.
-    ASSERT_EQ(STATUS_SUCCESS, receiveLwsMessage(pSignalingClient, (PCHAR) kReviewIceCandidateMessage, ARRAY_SIZE(kReviewIceCandidateMessage)));
+    ASSERT_EQ(STATUS_SUCCESS, receiveLwsMessage(pSignalingClient, (PCHAR) kShutdownRaceIceCandidateMessage, ARRAY_SIZE(kShutdownRaceIceCandidateMessage)));
     ASSERT_TRUE(waitFor([pCtx] { return pCtx->entered.load() == 1; }, 5000));
 
     pCtx->pAsyncFree->pSignalingClient = pSignalingClient;
@@ -642,7 +648,7 @@ TEST_F(PrReviewFindingsTest, finding08_receiveAfterDrainSpawnsWorkerOnFreedClien
     EXPECT_FALSE(pCtx->pAsyncFree->done.load());
 
     // A CLIENT_RECEIVE delivered now
-    lateReceiveStatus = receiveLwsMessage(pSignalingClient, (PCHAR) kReviewIceCandidateMessage, ARRAY_SIZE(kReviewIceCandidateMessage));
+    lateReceiveStatus = receiveLwsMessage(pSignalingClient, (PCHAR) kShutdownRaceIceCandidateMessage, ARRAY_SIZE(kShutdownRaceIceCandidateMessage));
     MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
 
     EXPECT_TRUE(waitFor([pCtx] { return pCtx->pAsyncFree->done.load(); }, 10000));
@@ -657,7 +663,7 @@ TEST_F(PrReviewFindingsTest, finding08_receiveAfterDrainSpawnsWorkerOnFreedClien
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Finding 10: reconnectThreadTid used to keep the id of the last reconnect thread after it exited, and pthreads
+// Recycled reconnect thread id: reconnectThreadTid used to keep the id of the last reconnect thread after it exited, and pthreads
 // recycles ids of exited threads. While the WSS callback was spawning the next reconnect thread (terminated=FALSE
 // but the new thread not yet at its first statement), an unrelated app thread that had inherited the old id was
 // told it was calling from a signaling callback.
@@ -702,10 +708,10 @@ static PVOID tidReuseCandidate(PVOID args)
     return NULL;
 }
 
-TEST_F(PrReviewFindingsTest, finding10_appThreadWithRecycledReconnectTidIsRejected)
+TEST_F(SignalingShutdownRaceTest, freeFromThreadWithRecycledReconnectTidIsAccepted)
 {
     TidReuseContext ctx;
-    ReviewClientOptions options;
+    ShutdownRaceClientOptions options;
     PAwsCredentialProvider pCredentialProvider = NULL;
     PSignalingClient pSignalingClient = NULL;
     TID candidate;
@@ -713,7 +719,7 @@ TEST_F(PrReviewFindingsTest, finding10_appThreadWithRecycledReconnectTidIsReject
 
     options.customData = (UINT64) &ctx;
     options.errorReportFn = recordTidErrorReportFn;
-    ASSERT_EQ(STATUS_SUCCESS, createReviewClient(mChannelName, mRegion, mCaCertPath, mLogLevel, options, &pCredentialProvider, &pSignalingClient));
+    ASSERT_EQ(STATUS_SUCCESS, createShutdownRaceClient(mChannelName, mRegion, mCaCertPath, mLogLevel, options, &pCredentialProvider, &pSignalingClient));
     ctx.pSignalingClient = pSignalingClient;
 
     // A real reconnect thread runs and exits (its reconnect fails fast offline, so errorReportFn records its id).
