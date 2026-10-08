@@ -56,6 +56,8 @@ export AWS_KVS_LOG_LEVEL="$LOG_LEVEL"
 STDBUF=""
 if command -v stdbuf > /dev/null 2>&1; then
     STDBUF="stdbuf -oL"
+elif command -v gstdbuf > /dev/null 2>&1; then
+    STDBUF="gstdbuf -oL" # Homebrew coreutils on macOS
 else
     echo "WARNING: stdbuf not found, log assertions may lag behind the process"
 fi
@@ -181,6 +183,27 @@ stop_viewer() {
     fi
 }
 
+# diagnose_viewer <name>: printed when a viewer's capture is not decodable. The usual cause is that the viewer never
+# received a key frame: the one emitted when the pipeline (re)started was dropped because the viewer's SRTP session was
+# not ready yet, or the viewer joined a running pipeline, and the sample waited for the encoder's next periodic key frame.
+diagnose_viewer() {
+    local name=$1 frames max_size
+    echo "--- diagnostics for $name ---"
+    echo "master: pipeline starts=$(count_in master.log "$PIPELINE_STARTED") stops=$(count_in master.log "$PIPELINE_STOPPED")" \
+        "frames dropped before SRTP ready=$(count_in master.log "SRTP not ready yet")" \
+        "key frame requests=$(count_in master.log "Requesting a key frame")"
+    echo "master timeline:"
+    grep -E -- "$PIPELINE_STARTED|$PIPELINE_STOPPED|SRTP not ready yet|Time to first frame|Requesting a key frame|$SESSION_FREED" master.log |
+        cut -c1-160 | tail -n 40
+    frames=$(count_in "$name/viewer.log" "Video frame size")
+    max_size=$(grep -o 'Video frame size: [0-9]*' "$name/viewer.log" 2>/dev/null | awk '{ if ($4 > m) m = $4 } END { print m + 0 }')
+    echo "$name: $frames video frames received, largest frame $max_size bytes" \
+        "(a 720p key frame is tens of KB; if every frame is small the viewer only received delta frames)"
+    echo "$name errors:"
+    grep -E 'ERROR|Error received' "$name/viewer.log" | cut -c1-160 | tail -n 5
+    echo "--- end diagnostics for $name ---"
+}
+
 # check_decodable <name>: skipped for a viewer that did not exit cleanly (its mkv is not finalized)
 check_decodable() {
     local name=$1
@@ -191,12 +214,14 @@ check_decodable() {
             ;;
     esac
     if [ ! -s "$name/video.mkv" ]; then
+        diagnose_viewer "$name"
         fail "$name/video.mkv was not generated or is empty"
     fi
     if gst-launch-1.0 filesrc location="$name/video.mkv" ! matroskademux ! decodebin ! fakesink > "$name/decode.log" 2>&1; then
         echo "SUCCESS: $name/video.mkv decoded successfully ($(stat -c%s "$name/video.mkv" 2>/dev/null || stat -f%z "$name/video.mkv") bytes)"
     else
         cat "$name/decode.log"
+        diagnose_viewer "$name"
         fail "$name/video.mkv could not be decoded"
     fi
 }

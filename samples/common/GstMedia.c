@@ -23,6 +23,7 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
     GstBuffer* buffer;
     STATUS retStatus = STATUS_SUCCESS;
     BOOL isDroppable, delta;
+    BOOL requestKeyFrame = FALSE;
     GstFlowReturn ret = GST_FLOW_OK;
     GstSample* sample = NULL;
     GstMapInfo info;
@@ -124,11 +125,28 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
             } else if (status == STATUS_SUCCESS && pSampleStreamingSession->firstFrame) {
                 PROFILE_WITH_START_TIME(pSampleStreamingSession->offerReceiveTime, "Time to first frame");
                 pSampleStreamingSession->firstFrame = FALSE;
+                if (trackid != DEFAULT_AUDIO_TRACK_ID && (frame.flags & FRAME_FLAG_KEY_FRAME) == 0) {
+                    requestKeyFrame = TRUE;
+                }
             } else if (status == STATUS_SRTP_NOT_READY_YET) {
                 DLOGI("[KVS GStreamer Master] SRTP not ready yet, dropping frame");
             }
         }
         MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
+
+        /*
+         * The first video frame a new viewer received was not a key frame: either it joined a pipeline that was already
+         * running, or the key frame emitted when the pipeline (re)started was dropped because the viewer's SRTP session
+         * was not ready yet. Without this the viewer cannot decode anything until the encoder's next periodic key frame
+         * (10 s with the x264enc defaults used by the sample pipelines). Ask the encoder for one now; all_headers=TRUE
+         * makes it emit SPS/PPS with it.
+         */
+        if (requestKeyFrame) {
+            DLOGI("[KVS GStreamer Master] Requesting a key frame for a newly connected viewer");
+            if (!gst_element_send_event(sink, gst_video_event_new_upstream_force_key_unit(GST_CLOCK_TIME_NONE, TRUE, 0))) {
+                DLOGD("[KVS GStreamer Master] Key frame request was not handled by the pipeline");
+            }
+        }
     }
 
 CleanUp:
