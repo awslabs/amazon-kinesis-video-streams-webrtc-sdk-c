@@ -610,12 +610,13 @@ static STATUS lateReceiveMessageReceivedFn(UINT64 customData, PReceivedSignaling
 
 TEST_F(SignalingShutdownRaceTest, messageReceivedAfterShutdownDrainDoesNotSpawnWorker)
 {
-    // Leaked on purpose: the second worker may be left parked.
+    // Leaked on purpose only on the failure path, where the second worker may be left parked on the freed client.
     LateReceiveContext* pCtx = new LateReceiveContext();
     ShutdownRaceClientOptions options;
     PAwsCredentialProvider pCredentialProvider = NULL;
     PSignalingClient pSignalingClient = NULL;
     STATUS lateReceiveStatus;
+    bool freeReturned;
 
     pCtx->pAsyncFree = new AsyncFree();
     options.customData = (UINT64) pCtx;
@@ -643,7 +644,8 @@ TEST_F(SignalingShutdownRaceTest, messageReceivedAfterShutdownDrainDoesNotSpawnW
     lateReceiveStatus = receiveLwsMessage(pSignalingClient, (PCHAR) kShutdownRaceIceCandidateMessage, ARRAY_SIZE(kShutdownRaceIceCandidateMessage));
     MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
 
-    EXPECT_TRUE(waitFor([pCtx] { return pCtx->pAsyncFree->done.load(); }, 10000));
+    freeReturned = waitFor([pCtx] { return pCtx->pAsyncFree->done.load(); }, 10000);
+    EXPECT_TRUE(freeReturned);
     // Give the late worker time to observe free's return.
     waitFor([pCtx] { return pCtx->secondStillRunningAfterFree.load(); }, 2000);
 
@@ -652,6 +654,12 @@ TEST_F(SignalingShutdownRaceTest, messageReceivedAfterShutdownDrainDoesNotSpawnW
     EXPECT_FALSE(pCtx->secondStillRunningAfterFree.load())
         << "freeSignaling() returned while that worker was still running; on exit it locks receiveWorkerLock in freed memory";
     freeStaticCredentialProvider(&pCredentialProvider);
+
+    // Pass path: free has returned and no second worker was ever spawned, so nothing can still reference the context.
+    if (freeReturned && !pCtx->secondRanDuringShutdown.load()) {
+        delete pCtx->pAsyncFree;
+        delete pCtx;
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
