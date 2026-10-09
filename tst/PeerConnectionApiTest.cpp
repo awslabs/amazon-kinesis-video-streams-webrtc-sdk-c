@@ -412,6 +412,123 @@ TEST_F(PeerConnectionApiTest, threadpoolContextPush_AfterDestroyReturnsInvalidOp
 }
 #endif
 
+// F1: When the startup STUN DNS lookup failed (isIpInitialized=FALSE),
+// onSetStunServerIp must return EARLY_DNS_RESOLUTION_FAILED so parseIceServer
+// falls back to synchronous DNS instead of silently proceeding with no address.
+TEST_F(PeerConnectionApiTest, onSetStunServerIp_EmptyCacheFallsBack)
+{
+    PWebRtcClientContext pWebRtcClientContext;
+    PStunIpAddrContext pStunIpAddrCtx;
+    StunIpAddrContext savedCtx;
+    DualKvsIpAddresses ipAddresses;
+    BOOL createdHere = FALSE, resolverDone = FALSE;
+    UINT32 i;
+
+    pWebRtcClientContext = getWebRtcClientInstance();
+    if (!ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized)) {
+        releaseHoldOnInstance(pWebRtcClientContext);
+        ASSERT_EQ(STATUS_SUCCESS, createWebRtcClientInstance());
+        createdHere = TRUE;
+        pWebRtcClientContext = getWebRtcClientInstance();
+    }
+    ASSERT_TRUE(ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized));
+    pStunIpAddrCtx = pWebRtcClientContext->pStunIpAddrCtx;
+    ASSERT_TRUE(pStunIpAddrCtx != NULL);
+
+    // Wait for any in-flight resolver
+    for (i = 0; i < 1000 && !createdHere && !resolverDone; i++) {
+        MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
+        resolverDone = (pStunIpAddrCtx->startTime != 0);
+        MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
+        if (!resolverDone) {
+            THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        }
+    }
+
+    // Save and seed a cache where hostname matches but isIpInitialized is FALSE
+    // (simulates a failed startup DNS lookup)
+    MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
+    savedCtx = *pStunIpAddrCtx;
+    STRCPY(pStunIpAddrCtx->hostname, "stun.test.invalid");
+    MEMSET(&pStunIpAddrCtx->kvsIpAddresses, 0x00, SIZEOF(DualKvsIpAddresses));
+    pStunIpAddrCtx->isIpInitialized = FALSE;
+    pStunIpAddrCtx->startTime = GETTIME();
+    pStunIpAddrCtx->expirationDuration = 2 * HUNDREDS_OF_NANOS_IN_AN_HOUR;
+    MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
+
+    MEMSET(&ipAddresses, 0x00, SIZEOF(ipAddresses));
+    // Must return EARLY_DNS_RESOLUTION_FAILED so parseIceServer falls back
+    EXPECT_EQ(STATUS_PEERCONNECTION_EARLY_DNS_RESOLUTION_FAILED,
+              onSetStunServerIp(0, (PCHAR) "stun.test.invalid", &ipAddresses));
+    // No address should have been copied
+    EXPECT_EQ(KVS_IP_FAMILY_TYPE_NOT_SET, ipAddresses.ipv4Address.family);
+
+    // Restore
+    MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
+    *pStunIpAddrCtx = savedCtx;
+    MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
+    releaseHoldOnInstance(pWebRtcClientContext);
+
+    if (createdHere) {
+        EXPECT_EQ(STATUS_SUCCESS, cleanupWebRtcClientInstance());
+    }
+}
+
+// F1: When the 2-hour cache refresh fails, onSetStunServerIp must return
+// EARLY_DNS_RESOLUTION_FAILED so parseIceServer falls back to synchronous DNS.
+TEST_F(PeerConnectionApiTest, onSetStunServerIp_ExpiredCacheRefreshFailureFallsBack)
+{
+    PWebRtcClientContext pWebRtcClientContext;
+    PStunIpAddrContext pStunIpAddrCtx;
+    StunIpAddrContext savedCtx;
+    DualKvsIpAddresses ipAddresses;
+    BOOL createdHere = FALSE, resolverDone = FALSE;
+    UINT32 i;
+
+    pWebRtcClientContext = getWebRtcClientInstance();
+    if (!ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized)) {
+        releaseHoldOnInstance(pWebRtcClientContext);
+        ASSERT_EQ(STATUS_SUCCESS, createWebRtcClientInstance());
+        createdHere = TRUE;
+        pWebRtcClientContext = getWebRtcClientInstance();
+    }
+    ASSERT_TRUE(ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized));
+    pStunIpAddrCtx = pWebRtcClientContext->pStunIpAddrCtx;
+    ASSERT_TRUE(pStunIpAddrCtx != NULL);
+
+    for (i = 0; i < 1000 && !createdHere && !resolverDone; i++) {
+        MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
+        resolverDone = (pStunIpAddrCtx->startTime != 0);
+        MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
+        if (!resolverDone) {
+            THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        }
+    }
+
+    // Seed a cache that is initialized but expired, with an unresolvable hostname
+    // so getStunAddr will fail during refresh
+    MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
+    savedCtx = *pStunIpAddrCtx;
+    STRCPY(pStunIpAddrCtx->hostname, "this-host-does-not-exist.invalid");
+    pStunIpAddrCtx->isIpInitialized = TRUE;
+    pStunIpAddrCtx->startTime = 1; // far in the past
+    pStunIpAddrCtx->expirationDuration = 0; // already expired
+    MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
+
+    MEMSET(&ipAddresses, 0x00, SIZEOF(ipAddresses));
+    EXPECT_EQ(STATUS_PEERCONNECTION_EARLY_DNS_RESOLUTION_FAILED,
+              onSetStunServerIp(0, (PCHAR) "this-host-does-not-exist.invalid", &ipAddresses));
+
+    MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
+    *pStunIpAddrCtx = savedCtx;
+    MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
+    releaseHoldOnInstance(pWebRtcClientContext);
+
+    if (createdHere) {
+        EXPECT_EQ(STATUS_SUCCESS, cleanupWebRtcClientInstance());
+    }
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

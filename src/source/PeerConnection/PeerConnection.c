@@ -910,16 +910,20 @@ STATUS onSetStunServerIp(UINT64 customData, PCHAR url, PDualKvsIpAddresses pIpAd
             DLOGI("Initialized successfully");
             if (currentTime > (pWebRtcClientContext->pStunIpAddrCtx->startTime + pWebRtcClientContext->pStunIpAddrCtx->expirationDuration)) {
                 DLOGI("Expired...need to refresh STUN address");
-                // Reset start time
                 pWebRtcClientContext->pStunIpAddrCtx->startTime = 0;
-                CHK_ERR(getStunAddr(pWebRtcClientContext->pStunIpAddrCtx) == STATUS_SUCCESS, retStatus, "Failed to resolve after cache expiry");
+                if (getStunAddr(pWebRtcClientContext->pStunIpAddrCtx) != STATUS_SUCCESS) {
+                    DLOGW("Failed to refresh STUN address after cache expiry, falling back to synchronous DNS");
+                    retStatus = STATUS_PEERCONNECTION_EARLY_DNS_RESOLUTION_FAILED;
+                    CHK(FALSE, retStatus);
+                }
             }
             MEMCPY(&pIpAddresses->ipv4Address, &pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv4Address,
                    SIZEOF(pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv4Address));
             MEMCPY(&pIpAddresses->ipv6Address, &pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv6Address,
                    SIZEOF(pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv6Address));
         } else {
-            DLOGE("Initialization failed");
+            DLOGW("STUN cache not populated (startup DNS failed), falling back to synchronous DNS");
+            retStatus = STATUS_PEERCONNECTION_EARLY_DNS_RESOLUTION_FAILED;
         }
     }
 CleanUp:
