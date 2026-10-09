@@ -253,6 +253,10 @@ PVOID lwsListenerHandler(PVOID);
 // Retry thread
 PVOID reconnectHandler(PVOID);
 
+// Starts a detached reconnectHandler() thread and accounts for it in reconnecterTracker.
+// Called from the WSS callback with lwsServiceLock held.
+STATUS startReconnectHandler(PSignalingClient);
+
 // LWS callback routine
 INT32 lwsHttpCallbackRoutine(PVOID, INT32, PVOID, PVOID, size_t);
 INT32 lwsWssCallbackRoutine(PVOID, INT32, PVOID, PVOID, size_t);

@@ -191,6 +191,11 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     ATOMIC_STORE_BOOL(&pSignalingClient->shutdown, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->deleting, FALSE);
+    ATOMIC_STORE(&pSignalingClient->receiveWorkerCount, 0);
+    ATOMIC_STORE(&pSignalingClient->reconnectThreadTid, 0);
+    pSignalingClient->reconnectThreadCount = 0;
+    ATOMIC_STORE(&pSignalingClient->listenerThreadTid, 0);
+    pSignalingClient->pActiveReceiveWorkers = NULL;
     ATOMIC_STORE_BOOL(&pSignalingClient->deleted, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->serviceLockContention, FALSE);
 
@@ -219,6 +224,11 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
 
     pSignalingClient->stateLock = MUTEX_CREATE(TRUE);
     CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->stateLock), STATUS_INVALID_OPERATION);
+
+    pSignalingClient->receiveWorkerLock = MUTEX_CREATE(FALSE);
+    CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->receiveWorkerLock), STATUS_INVALID_OPERATION);
+    pSignalingClient->receiveWorkerCvar = CVAR_CREATE();
+    CHK(IS_VALID_CVAR_VALUE(pSignalingClient->receiveWorkerCvar), STATUS_INVALID_OPERATION);
 
     pSignalingClient->messageQueueLock = MUTEX_CREATE(TRUE);
     CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->messageQueueLock), STATUS_INVALID_OPERATION);
@@ -281,6 +291,36 @@ CleanUp:
     return retStatus;
 }
 
+// Returns TRUE if the calling thread is this client's running reconnect thread, its WSS listener thread or one of
+// its receive workers. freeSignaling() waits for those threads to exit (and re-locks listenerTracker.lock, which the
+// listener holds for its whole life), so it must not be called from one of them: it would wait on itself forever.
+// errorReportFn and stateChangeFn can run on any of the three (the listener delivers them from receiveLwsMessage()
+// on a malformed message or a failed worker spawn, and from GO_AWAY / RECONNECT_ICE handling).
+static BOOL isSignalingOwnedThread(PSignalingClient pSignalingClient)
+{
+    SIZE_T tid = SIGNALING_CURRENT_THREAD_ID();
+    BOOL found = FALSE;
+    PReceiveWorkerNode pNode;
+
+    if (!ATOMIC_LOAD_BOOL(&pSignalingClient->reconnecterTracker.terminated) && (SIZE_T) ATOMIC_LOAD(&pSignalingClient->reconnectThreadTid) == tid) {
+        return TRUE;
+    }
+
+    if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) && (SIZE_T) ATOMIC_LOAD(&pSignalingClient->listenerThreadTid) == tid) {
+        return TRUE;
+    }
+
+    if (IS_VALID_MUTEX_VALUE(pSignalingClient->receiveWorkerLock)) {
+        MUTEX_LOCK(pSignalingClient->receiveWorkerLock);
+        for (pNode = pSignalingClient->pActiveReceiveWorkers; pNode != NULL && !found; pNode = pNode->pNext) {
+            found = (pNode->tid == tid);
+        }
+        MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
+    }
+
+    return found;
+}
+
 STATUS freeSignaling(PSignalingClient* ppSignalingClient)
 {
     ENTERS();
@@ -291,6 +331,9 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
 
     pSignalingClient = *ppSignalingClient;
     CHK(pSignalingClient != NULL, retStatus);
+
+    CHK_ERR(!isSignalingOwnedThread(pSignalingClient), STATUS_INVALID_OPERATION,
+            "freeSignalingClient() must not be called from a signaling callback (message, state change or error callback)");
 
     ATOMIC_STORE_BOOL(&pSignalingClient->shutdown, TRUE);
 
@@ -370,6 +413,14 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
 
     if (IS_VALID_MUTEX_VALUE(pSignalingClient->offerSendReceiveTimeLock)) {
         MUTEX_FREE(pSignalingClient->offerSendReceiveTimeLock);
+    }
+
+    if (IS_VALID_CVAR_VALUE(pSignalingClient->receiveWorkerCvar)) {
+        CVAR_FREE(pSignalingClient->receiveWorkerCvar);
+    }
+
+    if (IS_VALID_MUTEX_VALUE(pSignalingClient->receiveWorkerLock)) {
+        MUTEX_FREE(pSignalingClient->receiveWorkerLock);
     }
 
     uninitializeThreadTracker(&pSignalingClient->reconnecterTracker);
@@ -452,14 +503,111 @@ STATUS terminateOngoingOperations(PSignalingClient pSignalingClient)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    BOOL shuttingDown;
+    UINT64 waitStart;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // Terminate the listener thread if alive
     terminateLwsListenerLoop(pSignalingClient);
 
-    // Await for the reconnect thread to exit
-    awaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);
+    shuttingDown = ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown);
+
+    if (shuttingDown) {
+        // freeSignaling path: we are about to free memory, so we MUST wait
+        // until the reconnect thread is fully done.  Poke the LWS event loop
+        // so lwsCompleteSync sees the shutdown flag and exits promptly.
+        if (pSignalingClient->pWebsocketContext != NULL) {
+            lws_cancel_service((struct lws_context*) pSignalingClient->pWebsocketContext);
+        }
+        waitStart = GETTIME();
+
+        // The WSS callback spawns reconnectHandler under lwsServiceLock, so
+        // after the cvar wait reports terminated==TRUE we acquire the same
+        // lock and re-verify.  This closes the TOCTOU where the callback
+        // reads shutdown==FALSE and spawns a thread between our shutdown=TRUE
+        // store and the wait.
+        //
+        // freeSignaling() is also reached from the createSignalingSync()
+        // failure path with a partially constructed client. If the tracker's
+        // own lock or cvar was never created, no reconnect thread can ever
+        // have been spawned, and waiting on the half-built tracker would spin
+        // forever (CVAR_WAIT on an invalid cvar fails on every pass).
+        while (IS_VALID_MUTEX_VALUE(pSignalingClient->reconnecterTracker.lock) && IS_VALID_CVAR_VALUE(pSignalingClient->reconnecterTracker.await)) {
+            // Always go through awaitForThreadTermination(), even if terminated is already TRUE: the reconnect
+            // thread sets terminated and broadcasts while holding reconnecterTracker.lock, so acquiring that lock
+            // here guarantees the thread has finished touching pSignalingClient before we free it.
+            while (STATUS_FAILED(awaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT))) {
+                DLOGW("Reconnect thread still alive after %" PRIu64 " s (possible getaddrinfo hang); not freeing the client while it runs",
+                      (UINT64) ((GETTIME() - waitStart) / HUNDREDS_OF_NANOS_IN_A_SECOND));
+                if (pSignalingClient->pWebsocketContext != NULL) {
+                    lws_cancel_service((struct lws_context*) pSignalingClient->pWebsocketContext);
+                }
+            }
+
+            // Re-verify under the spawn lock — if a late spawn just set
+            // terminated=FALSE we will see it and loop again.
+            //
+            // lwsServiceLock is created after the trackers; if it does not
+            // exist yet no WSS callback can exist either, so there is nothing
+            // to re-verify.
+            if (!IS_VALID_MUTEX_VALUE(pSignalingClient->lwsServiceLock)) {
+                break;
+            }
+            MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+            if (ATOMIC_LOAD_BOOL(&pSignalingClient->reconnecterTracker.terminated)) {
+                MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
+                // A late thread may have both started and finished since the wait above. It published terminated
+                // under reconnecterTracker.lock, so pass through that lock once more before freeing.
+                awaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);
+                break;
+            }
+            MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
+            DLOGW("Late reconnect thread spawn detected, re-waiting...");
+        }
+
+        // The reconnect thread can start a new listener (connectSignalingChannelLws())
+        // right up to its exit, and the terminateLwsListenerLoop() at the top of this
+        // function ran before the reconnect wait, so a listener started during that
+        // wait was not seen by it. Nothing can create a listener once no reconnect
+        // thread is left, so stop and wait for one more time here. The listener holds
+        // listenerTracker.lock for its whole life and awaitForThreadTermination() takes
+        // that lock, so returning from it means the listener is past its last access
+        // to pSignalingClient. Unbounded for the same reason as the reconnect wait.
+        if (IS_VALID_MUTEX_VALUE(pSignalingClient->listenerTracker.lock) && IS_VALID_CVAR_VALUE(pSignalingClient->listenerTracker.await)) {
+            terminateLwsListenerLoop(pSignalingClient);
+            while (STATUS_FAILED(awaitForThreadTermination(&pSignalingClient->listenerTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT))) {
+                DLOGW("Listener thread still alive after timeout, retrying wait...");
+                if (pSignalingClient->pWebsocketContext != NULL) {
+                    lws_cancel_service((struct lws_context*) pSignalingClient->pWebsocketContext);
+                }
+            }
+        }
+
+        // Wait for all in-flight receive workers to finish. These are
+        // fire-and-forget threads spawned per-message in receiveLwsMessage();
+        // each increments receiveWorkerCount before detach and decrements on
+        // exit. Freeing pSignalingClient while one is still running is a
+        // use-after-free, so block until the count drains to zero.
+        // Skip when the lock/cvar were never created (partial construction):
+        // no receive worker can have been spawned without them.
+        if (IS_VALID_MUTEX_VALUE(pSignalingClient->receiveWorkerLock) && IS_VALID_CVAR_VALUE(pSignalingClient->receiveWorkerCvar)) {
+            MUTEX_LOCK(pSignalingClient->receiveWorkerLock);
+            while (ATOMIC_LOAD(&pSignalingClient->receiveWorkerCount) > 0) {
+                if (STATUS_FAILED(
+                        CVAR_WAIT(pSignalingClient->receiveWorkerCvar, pSignalingClient->receiveWorkerLock, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT))) {
+                    DLOGW("Receive workers still in-flight (count: %" PRIu64 "), retrying...",
+                          (UINT64) ATOMIC_LOAD(&pSignalingClient->receiveWorkerCount));
+                }
+            }
+            MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
+        }
+    } else {
+        // Non-free callers (fetchSync, disconnectSync, deleteSync): shutdown
+        // is FALSE so the reconnect thread may legitimately keep running or
+        // respawn.  Use the original bounded wait — best-effort quiesce.
+        awaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);
+    }
 
 CleanUp:
 
@@ -976,6 +1124,9 @@ STATUS initializeThreadTracker(PThreadTracker pThreadTracker)
     STATUS retStatus = STATUS_SUCCESS;
     CHK(pThreadTracker != NULL, STATUS_NULL_ARG);
 
+    // Mark "no thread running" before anything that can fail: freeSignaling() on the createSignalingSync()
+    // failure path must never read a half-initialized tracker as a live thread and wait for it.
+    ATOMIC_STORE_BOOL(&pThreadTracker->terminated, TRUE);
     pThreadTracker->threadId = INVALID_TID_VALUE;
 
     pThreadTracker->lock = MUTEX_CREATE(FALSE);
@@ -983,8 +1134,6 @@ STATUS initializeThreadTracker(PThreadTracker pThreadTracker)
 
     pThreadTracker->await = CVAR_CREATE();
     CHK(IS_VALID_CVAR_VALUE(pThreadTracker->await), STATUS_INVALID_OPERATION);
-
-    ATOMIC_STORE_BOOL(&pThreadTracker->terminated, TRUE);
 
 CleanUp:
     return retStatus;

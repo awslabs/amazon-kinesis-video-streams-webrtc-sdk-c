@@ -1634,7 +1634,15 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                 ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
             } else if (signalingCallFailed(retStatus)) {
                 printf("[KVS Common] recreating Signaling Client\n");
+                // freeSignalingClient() waits for in-flight signaling callbacks to return, and
+                // signalingMessageReceived() takes sampleConfigurationObjLock. Holding the lock
+                // across the free would deadlock with a message that is being delivered, so
+                // release it for the duration of the free and take it back before recreating.
+                MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+                sampleConfigurationObjLockLocked = FALSE;
                 freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
+                MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+                sampleConfigurationObjLockLocked = TRUE;
                 createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
                                           &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
                                           &pSampleConfiguration->signalingClientHandle);

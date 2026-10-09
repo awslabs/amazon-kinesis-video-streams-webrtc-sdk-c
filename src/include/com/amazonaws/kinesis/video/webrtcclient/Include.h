@@ -2377,6 +2377,18 @@ PUBLIC_API STATUS createSignalingClientSync(PSignalingClientInfo, PChannelInfo, 
  * @brief Frees the Signaling client object
  *
  * NOTE: The call is idempotent.
+ * NOTE: Blocks until the signaling client's internal threads (reconnect, WSS listener, receive workers) have
+ *       exited, which includes any of their in-flight callbacks. It may take longer to return while a reconnect
+ *       attempt is in progress.
+ * NOTE: Must not be called from a signaling callback. A call from messageReceivedFn, or from stateChangeFn /
+ *       errorReportFn while they run on one of the SDK's internal threads, is detected and returns
+ *       STATUS_INVALID_OPERATION, leaving the handle valid. stateChangeFn and errorReportFn can also be
+ *       invoked on the application's own thread from inside a signaling API call (for example
+ *       signalingClientFetchSync() or signalingClientConnectSync()); such a call cannot be detected and must
+ *       not free the client either, since the API call is still using it. Free the client from a thread that
+ *       is not inside a signaling callback or API call.
+ * NOTE: Because the call waits for in-flight callbacks, do not hold a lock across it that one of your signaling
+ *       callbacks also acquires; the two would deadlock.
  *
  * @param[in,out/opt] PSIGNALING_CLIENT_HANDLE Signaling client handle to free
  *
