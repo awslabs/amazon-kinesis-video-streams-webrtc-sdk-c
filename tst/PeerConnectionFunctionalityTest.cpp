@@ -1,5 +1,13 @@
 #include "WebRTCClientTestFixture.h"
 
+extern "C" {
+    PWebRtcClientContext getWebRtcClientInstance();
+    VOID releaseHoldOnInstance(PWebRtcClientContext);
+    STATUS createWebRtcClientInstance();
+    STATUS cleanupWebRtcClientInstance();
+    STATUS onSetStunServerIp(UINT64, PCHAR, PDualKvsIpAddresses);
+}
+
 namespace com {
 namespace amazonaws {
 namespace kinesis {
@@ -2180,6 +2188,68 @@ TEST_F(PeerConnectionFunctionalityTest, concurrentRenegotiationAcrossSessions)
         closePeerConnection(answerPc[i]);
         freePeerConnection(&offerPc[i]);
         freePeerConnection(&answerPc[i]);
+    }
+}
+
+// Verify that onSetStunServerIp re-arms startTime after refreshing an expired cache entry.
+// Before the fix, startTime stayed 0 after expiry, causing every subsequent call to
+// perform a blocking getaddrinfo instead of reusing the cached address.
+TEST_F(PeerConnectionFunctionalityTest, stunCacheRearmStartTimeAfterExpiry)
+{
+    PWebRtcClientContext pCtx = getWebRtcClientInstance();
+    BOOL contextWasInitialized = ATOMIC_LOAD_BOOL(&pCtx->isContextInitialized);
+    BOOL needCleanup = FALSE;
+
+    // If the singleton is not already initialized (no threadpool build), set it up manually
+    if (!contextWasInitialized) {
+        releaseHoldOnInstance(pCtx); // undo the ref from getWebRtcClientInstance
+        ASSERT_EQ(STATUS_SUCCESS, createWebRtcClientInstance());
+        pCtx = getWebRtcClientInstance();
+        needCleanup = TRUE;
+    }
+
+    // Build the real KVS STUN hostname: stun.kinesisvideo.<region>.amazonaws.com
+    CHAR stunHostname[MAX_ICE_CONFIG_URI_LEN + 1];
+    SNPRINTF(stunHostname, SIZEOF(stunHostname), KINESIS_VIDEO_STUN_URL_WITHOUT_PORT, TEST_DEFAULT_REGION, TEST_DEFAULT_STUN_URL_POSTFIX);
+
+    MUTEX_LOCK(pCtx->stunCtxlock);
+
+    STRCPY(pCtx->pStunIpAddrCtx->hostname, stunHostname);
+    pCtx->pStunIpAddrCtx->isIpInitialized = TRUE;
+    pCtx->pStunIpAddrCtx->expirationDuration = 0; // force immediate expiry
+    pCtx->pStunIpAddrCtx->startTime = 1;           // non-zero so the expiry check triggers
+    pCtx->pStunIpAddrCtx->status = STATUS_SUCCESS;
+
+    MUTEX_UNLOCK(pCtx->stunCtxlock);
+
+    DualKvsIpAddresses ipAddresses;
+    MEMSET(&ipAddresses, 0, SIZEOF(ipAddresses));
+
+    // Call onSetStunServerIp with the matching hostname — cache is expired, so it will
+    // call getStunAddr on the real KVS STUN DNS and should re-arm startTime afterward.
+    EXPECT_EQ(STATUS_SUCCESS, onSetStunServerIp(0, pCtx->pStunIpAddrCtx->hostname, &ipAddresses));
+
+    MUTEX_LOCK(pCtx->stunCtxlock);
+
+    // The fix: startTime must be non-zero after a successful refresh
+    EXPECT_NE(0u, pCtx->pStunIpAddrCtx->startTime)
+        << "startTime must be re-armed after a successful STUN address refresh on cache expiry";
+
+    // Verify the resolved address was actually copied into the output struct
+    EXPECT_EQ(KVS_IP_FAMILY_TYPE_IPV4, pCtx->pStunIpAddrCtx->kvsIpAddresses.ipv4Address.family)
+        << "getStunAddr must have resolved an IPv4 address for the KVS STUN server";
+
+    // Log the resolved STUN IP so it is visible in test output
+    CHAR addrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN + 1] = {'\0'};
+    getIpAddrStr(&pCtx->pStunIpAddrCtx->kvsIpAddresses.ipv4Address, addrStr, ARRAY_SIZE(addrStr));
+    DLOGI("Resolved STUN address for %s: %s", stunHostname, addrStr);
+
+    MUTEX_UNLOCK(pCtx->stunCtxlock);
+
+    releaseHoldOnInstance(pCtx);
+
+    if (needCleanup) {
+        cleanupWebRtcClientInstance();
     }
 }
 
