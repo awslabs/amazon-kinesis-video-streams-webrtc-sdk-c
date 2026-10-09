@@ -156,6 +156,13 @@ These would be applicable if the SDK is being linked with system dependencies in
 > for this. If you supply your own `RtcCertificate`, its PSA key must also permit
 > export, or `copyCertificateAndKey()` fails with `STATUS_CERTIFICATE_GENERATION_FAILED`.
 
+> **mbedTLS 4 note — builds without the entropy module:** on mbedTLS 4 the SDK takes its
+> randomness only from PSA, so it also builds when TF-PSA-Crypto supplies the RNG through a
+> driver (`MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG`, which compiles `MBEDTLS_ENTROPY_C` out; the
+> default on ESP-IDF v6). The application then provides `mbedtls_psa_external_get_random()`.
+> mbedTLS 2.x and 3.x need `MBEDTLS_ENTROPY_C` and `MBEDTLS_CTR_DRBG_C`; building them without
+> either stops with an `#error`.
+
 > [!NOTE]
 > OpenSSL 3.x support was added in v1.20.0. The SDK still builds against 1.1.1t by default (OpenSSL 1.1.1 reached End-of-Life in September 2023). Enable 3.x by passing `-DUSE_OPENSSL3=ON`; when linking against a system OpenSSL that is already >= 3.0, the flag is auto-enabled. See [Building against OpenSSL 3.x](#building-against-openssl-3x) for details.
 
