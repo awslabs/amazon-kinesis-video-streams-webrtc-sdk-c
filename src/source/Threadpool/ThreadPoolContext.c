@@ -24,11 +24,13 @@ STATUS createThreadPoolContext()
         maxThreads = THREADPOOL_MAX_THREADS;
     }
 
-    CHK_ERR(!IS_VALID_MUTEX_VALUE(pThreadPoolContext->threadpoolContextLock), STATUS_INVALID_OPERATION, "Mutex seems to have been created already");
+    // The mutex is process-lifetime: created once, never freed. This eliminates
+    // the TOCTOU race where threadpoolContextPush checks IS_VALID_MUTEX_VALUE
+    // and then destroyThreadPoolContext frees the mutex before the lock.
+    if (!IS_VALID_MUTEX_VALUE(pThreadPoolContext->threadpoolContextLock)) {
+        pThreadPoolContext->threadpoolContextLock = MUTEX_CREATE(FALSE);
+    }
 
-    pThreadPoolContext->threadpoolContextLock = MUTEX_CREATE(FALSE);
-    // Protecting this section to ensure we are not pushing threads / destroying the pool
-    // when it is being created.
     MUTEX_LOCK(pThreadPoolContext->threadpoolContextLock);
     locked = TRUE;
     CHK_WARN(!pThreadPoolContext->isInitialized, retStatus, "Threadpool already set up. Nothing to do");
@@ -48,8 +50,10 @@ STATUS threadpoolContextPush(startRoutine fn, PVOID customData)
     BOOL locked = FALSE;
     PThreadPoolContext pThreadPoolContext = getThreadContextInstance();
 
-    // Protecting this section to ensure we are destroying the pool
-    // when it is being used.
+    // The mutex is process-lifetime (never freed), so if it is invalid,
+    // createThreadPoolContext was never called in this process.
+    CHK_ERR(IS_VALID_MUTEX_VALUE(pThreadPoolContext->threadpoolContextLock), STATUS_INVALID_OPERATION, "Threadpool context never initialized");
+
     MUTEX_LOCK(pThreadPoolContext->threadpoolContextLock);
     locked = TRUE;
     CHK_ERR(pThreadPoolContext->isInitialized, STATUS_INVALID_OPERATION, "Threadpool not initialized yet");
@@ -68,27 +72,22 @@ STATUS destroyThreadPoolContext()
     BOOL locked = FALSE;
     PThreadPoolContext pThreadPoolContext = getThreadContextInstance();
 
-    // Ensure we do not destroy the pool if threads are still being pushed
+    CHK_ERR(IS_VALID_MUTEX_VALUE(pThreadPoolContext->threadpoolContextLock), STATUS_INVALID_OPERATION,
+            "Threadpool context never initialized, nothing to destroy");
+
     MUTEX_LOCK(pThreadPoolContext->threadpoolContextLock);
     locked = TRUE;
     CHK_WARN(pThreadPoolContext->isInitialized, STATUS_INVALID_OPERATION, "Threadpool not initialized yet, nothing to destroy");
     CHK_WARN(pThreadPoolContext->pThreadpool != NULL, STATUS_NULL_ARG, "Destroying threadpool without setting up");
     threadpoolFree(pThreadPoolContext->pThreadpool);
 
-    // All members of the static instance **MUST** be reset after destruction to allow for
-    // the static object to be re-created after destruction (more relevant for unit tests)
+    // Reset pool state but keep the mutex alive — it is process-lifetime so
+    // concurrent threadpoolContextPush callers always have a valid lock.
     pThreadPoolContext->pThreadpool = NULL;
     pThreadPoolContext->isInitialized = FALSE;
 CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pThreadPoolContext->threadpoolContextLock);
-    }
-    if (IS_VALID_MUTEX_VALUE(pThreadPoolContext->threadpoolContextLock)) {
-        MUTEX_FREE(pThreadPoolContext->threadpoolContextLock);
-
-        // Important to reset, specifically in case of unit tests where initKvsWebRtc() and
-        // deinitKvsWebRtc() is invoked before and after every test suite
-        pThreadPoolContext->threadpoolContextLock = INVALID_MUTEX_VALUE;
     }
     return retStatus;
 };

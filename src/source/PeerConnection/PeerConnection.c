@@ -2200,13 +2200,13 @@ STATUS peerConnectionGetMetrics(PRtcPeerConnection pPeerConnection, PPeerConnect
         pPeerConnectionMetrics->version = PEER_CONNECTION_METRICS_CURRENT_VERSION;
     }
 #ifdef ENABLE_KVS_THREADPOOL
-    MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
-    if (pWebRtcClientContext->isContextInitialized) {
-        if (pWebRtcClientContext->pStunIpAddrCtx->isIpInitialized) {
+    if (IS_VALID_MUTEX_VALUE(pWebRtcClientContext->stunCtxlock) && ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized)) {
+        MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
+        if (pWebRtcClientContext->pStunIpAddrCtx != NULL && pWebRtcClientContext->pStunIpAddrCtx->isIpInitialized) {
             pPeerConnectionMetrics->peerConnectionStats.stunDnsResolutionTime = pWebRtcClientContext->pStunIpAddrCtx->stunDnsResolutionTime;
         }
+        MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
     }
-    MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
 #endif
 
     pPeerConnectionMetrics->peerConnectionStats.peerConnectionCreationTime = pKvsPeerConnection->peerConnectionDiagnostics.peerConnectionCreationTime;

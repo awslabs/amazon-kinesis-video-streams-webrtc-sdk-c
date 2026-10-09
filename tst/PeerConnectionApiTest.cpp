@@ -395,6 +395,23 @@ TEST_F(PeerConnectionApiTest, dtlsSessionStartThread_NullArgs)
 }
 #endif
 
+// C2: threadpoolContextPush must return STATUS_INVALID_OPERATION when the pool
+// has been destroyed. The mutex is process-lifetime so push safely locks it,
+// sees isInitialized == FALSE, and returns without UB.
+#ifdef ENABLE_KVS_THREADPOOL
+TEST_F(PeerConnectionApiTest, threadpoolContextPush_AfterDestroyReturnsInvalidOp)
+{
+    // The test fixture calls initKvsWebRtc() in SetUp which creates the pool.
+    EXPECT_EQ(STATUS_SUCCESS, destroyThreadPoolContext());
+
+    // Push after destroy locks the (still-valid) mutex, sees !isInitialized
+    EXPECT_EQ(STATUS_INVALID_OPERATION, threadpoolContextPush(NULL, NULL));
+
+    // Re-create so the fixture teardown (deinitKvsWebRtc) succeeds
+    EXPECT_EQ(STATUS_SUCCESS, createThreadPoolContext());
+}
+#endif
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
