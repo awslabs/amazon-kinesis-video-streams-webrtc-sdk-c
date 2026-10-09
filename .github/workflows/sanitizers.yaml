@@ -65,6 +65,56 @@ jobs:
         run: |
           ./tst/webrtc_client_test
 
+  # Same as address-sanitizer but with ENABLE_KVS_THREADPOOL=ON. The pre-resolved STUN address path, the
+  # thread pool itself and the pool-dispatched DTLS handshake only exist in this configuration, so the
+  # default-OFF job above never exercises them (#2408 was an 8-byte out-of-bounds write on that path).
+  address-sanitizer-threadpool:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+
+    env:
+      ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=1
+      LSAN_OPTIONS: suppressions=../tst/suppressions/LSAN.supp
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install clang
+
+          # AWS SDK CPP dependencies (for tests)
+          sudo apt-get -y install zlib1g-dev libcurl4-openssl-dev
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2.2.0
+        with:
+          cmake-version: '3.x'
+
+      - name: Build repository
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DBUILD_TEST=ON -DADDRESS_SANITIZER=ON -DENABLE_KVS_THREADPOOL=ON -DPARALLEL_BUILD=ON
+          make -j
+
+      - name: Run tests
+        working-directory: ./build
+        run: |
+          ./tst/webrtc_client_test
+
   undefined-behavior-sanitizer:
     runs-on: ubuntu-22.04
     timeout-minutes: 60

@@ -1960,6 +1960,7 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
     UINT32 j, srflxCount = 0;
     BOOL locked = FALSE;
     PIceCandidate srflxCandidates[KVS_ICE_MAX_LOCAL_CANDIDATE_COUNT];
+    BOOL noAddressWarned[MAX_ICE_SERVERS_COUNT] = {FALSE};
     PKvsIpAddress pStunServerAddress = NULL;
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
@@ -1985,9 +1986,12 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
                     continue;
                 }
 
-                if (!pIceServer->isTurn &&
-                    (pIceServer->ipAddresses.ipv4Address.family == pCandidate->ipAddress.family ||
-                     pIceServer->ipAddresses.ipv6Address.family == pCandidate->ipAddress.family)) {
+                if (pIceServer->isTurn) {
+                    continue;
+                }
+
+                if (pIceServer->ipAddresses.ipv4Address.family == pCandidate->ipAddress.family ||
+                    pIceServer->ipAddresses.ipv6Address.family == pCandidate->ipAddress.family) {
                     CHK((pNewCandidate = (PIceCandidate) MEMCALLOC(1, SIZEOF(IceCandidate))) != NULL, STATUS_NOT_ENOUGH_MEMORY);
                     generateJSONSafeString(pNewCandidate->id, ARRAY_SIZE(pNewCandidate->id));
                     pNewCandidate->isRemote = FALSE;
@@ -2006,6 +2010,19 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
                     srflxCandidates[srflxCount++] = pNewCandidate;
 
                     pNewCandidate = NULL;
+                } else if (pIceServer->ipAddresses.ipv4Address.family == KVS_IP_FAMILY_TYPE_NOT_SET &&
+                           pIceServer->ipAddresses.ipv6Address.family == KVS_IP_FAMILY_TYPE_NOT_SET) {
+                    // The STUN server has no resolved address at all, so no srflx candidate can be gathered from it.
+                    // This used to fail silently (#2408) and leave the session with host and relay candidates only.
+                    // Warn once per server rather than once per host candidate.
+                    if (!noAddressWarned[j]) {
+                        noAddressWarned[j] = TRUE;
+                        DLOGW("Skipping srflx candidate generation: STUN server %s has no resolved address (family not set)", pIceServer->url);
+                    }
+                } else {
+                    // Expected on dual-stack hosts, e.g. an IPv6 host candidate with an IPv4-only STUN server.
+                    DLOGD("Skipping srflx candidate generation for host candidate %s (family %u): STUN server %s has no address of that family",
+                          pCandidate->id, pCandidate->ipAddress.family, pIceServer->url);
                 }
             }
         }
