@@ -345,6 +345,56 @@ TEST_F(PeerConnectionApiTest, onSetStunServerIpCopiesCompleteAddress)
     }
 }
 
+#if defined(KVS_USE_OPENSSL) && defined(ENABLE_KVS_THREADPOOL)
+// C1: Verify dtlsSessionStartThread uses DtlsSessionStartArgs (not raw peer connection)
+// and properly acquires/releases the DTLS session refcount.
+TEST_F(PeerConnectionApiTest, dtlsSessionStartThread_HoldsRefOnDtlsSession)
+{
+    DtlsSessionCallbacks callbacks;
+    PDtlsSession pDtlsSession = NULL;
+    TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+
+    MEMSET(&callbacks, 0, SIZEOF(callbacks));
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+    EXPECT_EQ(STATUS_SUCCESS, createDtlsSession(&callbacks, timerQueueHandle, 0, FALSE, NULL, &pDtlsSession));
+    ASSERT_NE(pDtlsSession, nullptr);
+
+    // Baseline: refcount should be 0
+    EXPECT_EQ(0, ATOMIC_LOAD(&pDtlsSession->objRefCount));
+
+    // Mark the session as shutting down so dtlsSessionHandshakeInThread bails
+    // at its isCleanUp check instead of driving SSL_do_handshake (which would
+    // call the NULL outboundPacketFn and segfault).
+    ATOMIC_STORE_BOOL(&pDtlsSession->isCleanUp, TRUE);
+
+    PDtlsSessionStartArgs pArgs = (PDtlsSessionStartArgs) MEMCALLOC(1, SIZEOF(DtlsSessionStartArgs));
+    ASSERT_NE(pArgs, nullptr);
+    pArgs->pDtlsSession = pDtlsSession;
+    pArgs->isServer = FALSE;
+    acquireDtlsSession(pDtlsSession);
+    EXPECT_EQ(1, ATOMIC_LOAD(&pDtlsSession->objRefCount));
+
+    // The handshake aborts immediately (isCleanUp), but the task must still
+    // release the ref that was acquired before the push.
+    dtlsSessionStartThread((PVOID) pArgs);
+    // pArgs is freed inside dtlsSessionStartThread
+
+    EXPECT_EQ(0, ATOMIC_LOAD(&pDtlsSession->objRefCount));
+
+    // Reset so freeDtlsSession doesn't spin forever
+    ATOMIC_STORE_BOOL(&pDtlsSession->isCleanUp, FALSE);
+    freeDtlsSession(&pDtlsSession);
+    timerQueueFree(&timerQueueHandle);
+}
+
+// C1: Verify NULL args are handled gracefully
+TEST_F(PeerConnectionApiTest, dtlsSessionStartThread_NullArgs)
+{
+    // Should not crash
+    EXPECT_EQ(NULL, dtlsSessionStartThread(NULL));
+}
+#endif
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

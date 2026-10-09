@@ -466,19 +466,28 @@ CleanUp:
     return retStatus;
 }
 
+#if defined(ENABLE_KVS_THREADPOOL) && defined(KVS_USE_OPENSSL)
 PVOID dtlsSessionStartThread(PVOID args)
 {
     ENTERS();
-    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) args;
-    if (pKvsPeerConnection != NULL) {
-        dtlsSessionHandshakeInThread(pKvsPeerConnection->pDtlsSession, ATOMIC_LOAD_BOOL(&pKvsPeerConnection->dtlsIsServer));
+    PDtlsSessionStartArgs pStartArgs = (PDtlsSessionStartArgs) args;
+    if (pStartArgs != NULL) {
+        if (pStartArgs->pDtlsSession != NULL) {
+            dtlsSessionHandshakeInThread(pStartArgs->pDtlsSession, pStartArgs->isServer);
+            // Release the ref that was acquired before pushing to the threadpool
+            releaseDtlsSession(pStartArgs->pDtlsSession);
+        } else {
+            DLOGE("DTLS session NULL in threadpool task, cannot start handshake");
+        }
+        MEMFREE(pStartArgs);
     } else {
-        DLOGE("Peer connection object NULL, cannot start DTLS handshake");
+        DLOGE("DTLS start args NULL, cannot start DTLS handshake");
     }
 
     LEAVES();
     return NULL;
 }
+#endif
 
 VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
 {
@@ -536,7 +545,20 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
             //
             // Reference: https://w3c.github.io/webrtc-pc/#rtcpeerconnectionstate-enum
 #if defined(ENABLE_KVS_THREADPOOL) && defined(KVS_USE_OPENSSL)
-            CHK_STATUS(threadpoolContextPush(dtlsSessionStartThread, (PVOID) pKvsPeerConnection));
+            {
+                PDtlsSessionStartArgs pDtlsStartArgs = (PDtlsSessionStartArgs) MEMCALLOC(1, SIZEOF(DtlsSessionStartArgs));
+                CHK(pDtlsStartArgs != NULL, STATUS_NOT_ENOUGH_MEMORY);
+                pDtlsStartArgs->pDtlsSession = pKvsPeerConnection->pDtlsSession;
+                pDtlsStartArgs->isServer = ATOMIC_LOAD_BOOL(&pKvsPeerConnection->dtlsIsServer);
+                // Acquire a ref on the DTLS session so it stays alive until the task completes
+                acquireDtlsSession(pDtlsStartArgs->pDtlsSession);
+                retStatus = threadpoolContextPush(dtlsSessionStartThread, (PVOID) pDtlsStartArgs);
+                if (STATUS_FAILED(retStatus)) {
+                    releaseDtlsSession(pDtlsStartArgs->pDtlsSession);
+                    MEMFREE(pDtlsStartArgs);
+                    CHK(FALSE, retStatus);
+                }
+            }
 #else
             CHK_STATUS(dtlsSessionStart(pKvsPeerConnection->pDtlsSession, ATOMIC_LOAD_BOOL(&pKvsPeerConnection->dtlsIsServer)));
 #endif

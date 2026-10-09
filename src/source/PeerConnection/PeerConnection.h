@@ -217,6 +217,19 @@ STATUS createWebRtcClientInstance();
 STATUS cleanupWebRtcClientInstance();
 STATUS onSetStunServerIp(UINT64, PCHAR, PDualKvsIpAddresses);
 
+#if defined(ENABLE_KVS_THREADPOOL) && defined(KVS_USE_OPENSSL)
+// Arguments for the DTLS handshake threadpool task.
+// Captures the DTLS session pointer and role so the task does not
+// dereference the peer connection (which may be freed by then).
+typedef struct {
+    PDtlsSession pDtlsSession;
+    BOOL isServer;
+} DtlsSessionStartArgs, *PDtlsSessionStartArgs;
+
+// Visible for testing
+PVOID dtlsSessionStartThread(PVOID);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

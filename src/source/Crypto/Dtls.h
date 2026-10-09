@@ -220,6 +220,8 @@ STATUS dtlsSessionCopyOptions(PDtlsSession, PDtlsSessionOptions);
 STATUS dtlsFillPseudoRandomBits(PBYTE, UINT32);
 
 #ifdef KVS_USE_OPENSSL
+VOID acquireDtlsSession(PDtlsSession);
+VOID releaseDtlsSession(PDtlsSession);
 STATUS dtlsCheckOutgoingDataBuffer(PDtlsSession);
 STATUS dtlsCertificateFingerprint(X509*, PCHAR);
 STATUS dtlsGenerateCertificateFingerprints(PDtlsSession, PDtlsSessionCertificateInfo);
