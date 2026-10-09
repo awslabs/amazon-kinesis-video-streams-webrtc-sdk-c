@@ -474,3 +474,54 @@ jobs:
           CHANNEL="ScaryTestChannel-docker-gst-${{ matrix.runner.id }}-${{ matrix.build-dependencies }}-relay"
           ./scripts/prepare-channel.sh "$CHANNEL"
           ./scripts/run-gst-sample.sh "$CHANNEL"
+
+  gst-idle-pipeline-check:
+    name: GStreamer idle pipeline check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      AWS_KVS_LOG_LEVEL: 1
+      KVS_ICE_TRANSPORT_POLICY: all
+      DEBIAN_FRONTEND: noninteractive
+
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake build-essential pkg-config \
+            libssl-dev libsrtp2-dev libusrsctp-dev \
+            libgstreamer1.0-dev \
+            libgstreamer-plugins-base1.0-dev \
+            gstreamer1.0-plugins-good \
+            gstreamer1.0-plugins-bad \
+            gstreamer1.0-plugins-ugly \
+            gstreamer1.0-libav \
+            gstreamer1.0-tools
+
+      - name: Build repository (GStreamer samples)
+        run: |
+          mkdir build && cd build
+          cmake .. -DBUILD_DEPENDENCIES=OFF -DBUILD_WEBSOCKETS=ON -DPARALLEL_BUILD=ON
+          make -j
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Exercises the sender pipeline's idle behaviour: stop after the last viewer leaves,
+      # restart for the next viewer, keep running while a viewer remains, clean SIGINT exit.
+      - name: Run GStreamer idle pipeline sample
+        run: |
+          CHANNEL="ScaryTestChannel-gst-idle-ubuntu-latest"
+          ./scripts/prepare-channel.sh "$CHANNEL"
+          ./scripts/run-gst-idle-sample.sh "$CHANNEL"

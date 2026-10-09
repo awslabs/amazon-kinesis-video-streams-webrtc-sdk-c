@@ -10,6 +10,7 @@ extern "C" {
 #include "Samples.h"
 #include <gst/gst.h>
 #include <gst/app/gstappsink.h>
+#include <gst/video/video.h>
 
 GstFlowReturn on_new_sample(GstElement*, gpointer, UINT64);
 GstFlowReturn on_new_sample_video(GstElement*, gpointer);
