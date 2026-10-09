@@ -1477,6 +1477,10 @@ typedef struct {
                                                 //!< TURN server such as the KVS TURN service rejects them with 403 Forbidden IP. Set this to TRUE
                                                 //!< if you use a TURN server that legitimately relays to such addresses (e.g. an on-prem/LAN TURN),
                                                 //!< so those peers are not filtered. Filtering is enabled by default (this flag defaults to FALSE).
+    BOOL iceServersFinal;                       //!< Set to TRUE when the ICE servers passed at creation are all there will be (no later
+                                                //!< peerConnectionUpdateIceServers call). Candidate gathering then completes as soon as every local
+                                                //!< candidate has resolved instead of running to iceLocalCandidateGatheringTimeout. Defaults to
+                                                //!< FALSE, which keeps gathering open for TURN servers added later.
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
 
 /**
