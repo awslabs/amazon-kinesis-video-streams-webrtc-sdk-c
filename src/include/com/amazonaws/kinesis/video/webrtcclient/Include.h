@@ -403,6 +403,7 @@ extern "C" {
 #define STATUS_FAILED_TO_INIT_RELAY_CANDIDATES                             STATUS_ICE_BASE + 0x0000002d
 #define STATUS_TURN_CONNECTION_CREDENTIALS_REJECTED                        STATUS_ICE_BASE + 0x0000002e
 #define STATUS_ICE_SERVERS_FINAL                                           STATUS_ICE_BASE + 0x0000002f
+#define STATUS_ICE_CONSENT_EXPIRED                                         STATUS_ICE_BASE + 0x00000030
 
 /*!@} */
 
