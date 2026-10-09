@@ -196,7 +196,7 @@ You can pass the following options to `cmake ..`:
 * `-DCMAKE_BUILD_TYPE` -- Build Release/Debug libraries. By default, the SDK generates Release build. The standard options are listed [here](https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#default-and-custom-configurations)
 * `-DLINK_PROFILER` -- Link with gperftools (available profiler options are listed [here](https://github.com/gperftools/gperftools))
 * `-DPKG_CONFIG_EXECUTABLE` -- Set pkg config path. This might be required to find gstreamer's pkg config specifically on Windows.
-* `-DENABLE_KVS_THREADPOOL` -- Enable the KVS threadpool which is off by default.
+* `-DENABLE_KVS_THREADPOOL` -- Enable the KVS threadpool which is off by default. See [docs/THREADPOOL.md](docs/THREADPOOL.md) for sizing guidance.
 * `-DENABLE_STATS_CALCULATION_CONTROL` -- Enable the runtime control of ICE agent stats calculations.
 * `-DINCREASE_PRECISION_TIMING_LOGS` -- Default ON. ON=Use 2 decimals in PROFILE-logs timing. OFF=Truncates down to whole ms.
 * `-DPRODUCER_C_VERSION_OVERRIDE` -- Override KVS Producer-C version (git tag).

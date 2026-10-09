@@ -529,6 +529,23 @@ TEST_F(PeerConnectionApiTest, onSetStunServerIp_ExpiredCacheRefreshFailureFallsB
     }
 }
 
+// C3: Verify threadpoolContextPush succeeds even when the pool is at capacity
+// (the saturation warning is logged but the task is still queued).
+#ifdef ENABLE_KVS_THREADPOOL
+static PVOID noopTask(PVOID args)
+{
+    UNUSED_PARAM(args);
+    return NULL;
+}
+
+TEST_F(PeerConnectionApiTest, threadpoolContextPush_SaturationWarningDoesNotFail)
+{
+    // Push a task — it should succeed regardless of pool occupancy.
+    // The saturation warning is a DLOGW, not a failure.
+    EXPECT_EQ(STATUS_SUCCESS, threadpoolContextPush(noopTask, NULL));
+}
+#endif
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

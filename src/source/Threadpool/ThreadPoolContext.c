@@ -48,6 +48,7 @@ STATUS threadpoolContextPush(startRoutine fn, PVOID customData)
 {
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
+    UINT32 threadCount = 0;
     PThreadPoolContext pThreadPoolContext = getThreadContextInstance();
 
     // The mutex is process-lifetime (never freed), so if it is invalid,
@@ -58,6 +59,31 @@ STATUS threadpoolContextPush(startRoutine fn, PVOID customData)
     locked = TRUE;
     CHK_ERR(pThreadPoolContext->isInitialized, STATUS_INVALID_OPERATION, "Threadpool not initialized yet");
     CHK_ERR(pThreadPoolContext->pThreadpool != NULL, STATUS_NULL_ARG, "Threadpool object is NULL");
+
+    // Warn when the pool is near saturation, rate-limited to once per 30 s.
+    // All task types (DTLS handshakes, signaling callbacks, STUN resolution)
+    // share this pool. See docs/THREADPOOL.md for sizing guidance.
+    if (STATUS_SUCCEEDED(threadpoolTotalThreadCount(pThreadPoolContext->pThreadpool, &threadCount))) {
+        static UINT64 lastSaturationWarningTime = 0;
+        PCHAR pMaxThreads;
+        UINT32 maxThreads;
+        UINT64 now;
+        if (NULL == (pMaxThreads = GETENV(WEBRTC_THREADPOOL_MAX_THREADS_ENV_VAR)) ||
+            STATUS_SUCCESS != STRTOUI32(pMaxThreads, NULL, 10, &maxThreads)) {
+            maxThreads = THREADPOOL_MAX_THREADS;
+        }
+        if (threadCount >= maxThreads) {
+            now = GETTIME();
+            if (now >= lastSaturationWarningTime + 30 * HUNDREDS_OF_NANOS_IN_A_SECOND) {
+                DLOGW("Thread pool at capacity (%u/%u). Tasks will queue. "
+                      "Consider increasing AWS_KVS_WEBRTC_THREADPOOL_MAX_THREADS. "
+                      "See docs/THREADPOOL.md for sizing guidance.",
+                      threadCount, maxThreads);
+                lastSaturationWarningTime = now;
+            }
+        }
+    }
+
     CHK_STATUS(threadpoolPush(pThreadPoolContext->pThreadpool, fn, customData));
 CleanUp:
     if (locked) {
