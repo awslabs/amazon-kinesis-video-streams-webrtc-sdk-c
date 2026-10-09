@@ -28,6 +28,90 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
     freePeerConnection(&answerPc);
 }
 
+// Consent freshness (RFC 7675): once connected, each side keeps sending binding requests on the pair in use and gets
+// answers. An ICE-lite peer sends no checks of its own and may end the session when these stop.
+TEST_F(PeerConnectionFunctionalityTest, consentChecksOnceConnected)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PIceAgent pIceAgents[2];
+    PRtcIceCandidatePairDiagnostics pDiagnostics;
+    UINT64 sent[2], answered[2];
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    ASSERT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    pIceAgents[0] = ((PKvsPeerConnection) offerPc)->pIceAgent;
+    pIceAgents[1] = ((PKvsPeerConnection) answerPc)->pIceAgent;
+
+    for (int i = 0; i < 2; i++) {
+        MUTEX_LOCK(pIceAgents[i]->lock);
+        ASSERT_TRUE(pIceAgents[i]->pDataSendingIceCandidatePair != NULL);
+        pDiagnostics = pIceAgents[i]->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics;
+        sent[i] = pDiagnostics->requestsSent;
+        answered[i] = pDiagnostics->responsesReceived;
+        MUTEX_UNLOCK(pIceAgents[i]->lock);
+    }
+
+    THREAD_SLEEP(2 * KVS_ICE_CONSENT_CHECK_INTERVAL + 2 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    for (int i = 0; i < 2; i++) {
+        MUTEX_LOCK(pIceAgents[i]->lock);
+        pDiagnostics = pIceAgents[i]->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics;
+        EXPECT_GE(pDiagnostics->requestsSent, sent[i] + 2) << (i == 0 ? "offerer" : "answerer");
+        EXPECT_GE(pDiagnostics->responsesReceived, answered[i] + 2) << (i == 0 ? "offerer" : "answerer");
+        MUTEX_UNLOCK(pIceAgents[i]->lock);
+    }
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+// Consent lost: no authenticated answer on the pair in use for KVS_ICE_CONSENT_EXPIRY reports a disconnection at the
+// next check, then fails ICE without waiting for a recovery
+TEST_F(PeerConnectionFunctionalityTest, consentExpiryFailsIce)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PIceAgent pIceAgent;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    ASSERT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    pIceAgent = ((PKvsPeerConnection) offerPc)->pIceAgent;
+
+    MUTEX_LOCK(pIceAgent->lock);
+    pIceAgent->lastConsentTime = GETTIME() - KVS_ICE_CONSENT_EXPIRY;
+    MUTEX_UNLOCK(pIceAgent->lock);
+
+    for (auto i = 0; i <= 100 && ATOMIC_LOAD(&stateChangeCount[RTC_PEER_CONNECTION_STATE_FAILED]) == 0; i++) {
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+
+    // Reported like any other disconnection first, as applications expect
+    EXPECT_TRUE(ATOMIC_LOAD(&stateChangeCount[RTC_PEER_CONNECTION_STATE_DISCONNECTED]) == 1);
+    EXPECT_TRUE(ATOMIC_LOAD(&stateChangeCount[RTC_PEER_CONNECTION_STATE_FAILED]) == 1);
+    MUTEX_LOCK(pIceAgent->lock);
+    EXPECT_EQ(STATUS_ICE_CONSENT_EXPIRED, pIceAgent->iceAgentStatus);
+    EXPECT_EQ(ICE_AGENT_STATE_FAILED, pIceAgent->iceAgentState);
+    MUTEX_UNLOCK(pIceAgent->lock);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
 {
     RtcConfiguration configuration;
