@@ -1535,7 +1535,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
     CHAR firstCodec[MAX_PAYLOAD_TYPE_LENGTH];
     BOOL supportCodec, foundMediaSectionWithCodec;
     BOOL containsPayloadType = FALSE, containsRtpMap = FALSE, inSeenTransceivers = FALSE;
-    PHashTable pSeenTransceivers;
+    PHashTable pSeenTransceivers = NULL;
     RTC_CODEC rtcCodec;
     MEDIA_STREAM_TRACK_KIND streamKind;
     PKvsRtpTransceiver pKvsRtpFakeTransceiver = NULL, pKvsRtpTransceiver = NULL;
