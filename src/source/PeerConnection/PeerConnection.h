@@ -117,6 +117,7 @@ typedef struct {
     CHAR remoteCertificateFingerprint[CERTIFICATE_FINGERPRINT_LENGTH + 1];
 
     MUTEX peerConnectionObjLock;
+    MUTEX dataChannelsLock; // guards pDataChannels (app threads create channels while the SCTP thread uses the table)
 
     // If the local session description is an SDP offer.
     // (TRUE = viewer mode, FALSE = master mode)
@@ -175,6 +176,7 @@ typedef struct {
     UINT32 currentDataChannelId;
     PKvsPeerConnection pKvsPeerConnection;
     PHashTable unkeyedDataChannels;
+    BOOL negotiatedPass; //!< TRUE while keying negotiated channels by their explicit id, FALSE while assigning in-band ids
 } AllocateSctpSortDataChannelsData, *PAllocateSctpSortDataChannelsData;
 
 typedef struct {
