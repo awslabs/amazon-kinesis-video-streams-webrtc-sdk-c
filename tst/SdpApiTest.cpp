@@ -4395,6 +4395,111 @@ a=recvonly
     });
 }
 
+TEST_F(SdpApiTest, setRemoteDescription_RejectsOversizedFirstPayloadType)
+{
+    std::string offer = R"(v=0
+o=- 123456 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+m=video 9 UDP/TLS/RTP/SAVPF )";
+    offer += std::string(MAX_SDP_MEDIA_NAME_LENGTH - STRLEN("video 9 UDP/TLS/RTP/SAVPF "), '1');
+    offer += R"(
+a=ice-ufrag:abcd
+a=ice-pwd:abcdefghijklmnopqrstuvwx
+a=setup:actpass
+)";
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+        EXPECT_EQ(STATUS_SESSION_DESCRIPTION_INVALID_SESSION_DESCRIPTION, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    });
+}
+
+TEST_F(SdpApiTest, setRemoteDescription_RejectsExcessiveRtxMappings)
+{
+    std::string offer = R"(v=0
+o=- 123456 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+m=video 9 UDP/TLS/RTP/SAVPF 65 66
+a=ice-ufrag:abcd
+a=ice-pwd:abcdefghijklmnopqrstuvwx
+a=setup:actpass
+)";
+    for (UINT32 i = 0; i <= MAX_SDP_FMTP_VALUES; ++i) {
+        offer += "a=fmtp:65 apt=66\n";
+    }
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+        EXPECT_EQ(STATUS_SESSION_DESCRIPTION_INVALID_SESSION_DESCRIPTION, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    });
+}
+
+TEST_F(SdpApiTest, createAnswer_RejectsMaximumLengthMid)
+{
+    std::string offer = R"(v=0
+o=- 123456 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+m=audio 9 UDP/TLS/RTP/SAVPF 111
+)";
+    offer += "a=mid:" + std::string(MAX_SDP_ATTRIBUTE_VALUE_LENGTH, 'A') + "\n";
+    offer += R"(a=ice-ufrag:abcd
+a=ice-pwd:abcdefghijklmnopqrstuvwx
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+a=setup:actpass
+a=rtpmap:111 opus/48000/2
+)";
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        PRtcRtpTransceiver pTransceiver = nullptr;
+        RtcMediaStreamTrack track{};
+        RtcSessionDescriptionInit offerSdp{};
+        RtcSessionDescriptionInit answerSdp{};
+
+        track.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
+        track.codec = RTC_CODEC_OPUS;
+        STRCPY(track.streamId, "stream");
+        STRCPY(track.trackId, "track");
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_OPUS));
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track, nullptr, &pTransceiver));
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(STATUS_BUFFER_TOO_SMALL, createAnswer(pRtcPeerConnection, &answerSdp));
+
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    });
+}
+
 // Verify that setPayloadTypesFromOffer correctly parses RTX fmtp attributes
 // and stores the RTX payload type for H265 when the offer uses a non-default PT
 TEST_F(SdpApiTest, setPayloadTypesFromOffer_H265RtxParsedFromOffer)

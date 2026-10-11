@@ -280,6 +280,7 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
                 CHK_STATUS(STRTOUI64(end + STRLEN(RTX_CODEC_VALUE), NULL, 10, &parsedPayloadType));
                 if ((end = STRCHR(attributeValue, ' ')) != NULL) {
                     CHK_STATUS(STRTOUI64(attributeValue, end, 10, &fmtpVal));
+                    CHK(aptFmtpValCount < ARRAY_SIZE(aptFmtpVals), STATUS_SESSION_DESCRIPTION_INVALID_SESSION_DESCRIPTION);
                     aptFmtpVals[aptFmtpValCount++] = (UINT32) ((fmtpVal << 8u) | parsedPayloadType);
                 }
             }
@@ -724,6 +725,9 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         // check all session attribute lines to see if a line with mid is present. If it is present, copy its content and break
         for (i = 0; i < pRemoteSessionDescription->mediaDescriptions[mediaSectionId].mediaAttributesCount; i++) {
             if (STRCMP(pRemoteSessionDescription->mediaDescriptions[mediaSectionId].sdpAttributes[i].attributeName, MID_KEY) == 0) {
+                CHK(STRLEN(pRemoteSessionDescription->mediaDescriptions[mediaSectionId].sdpAttributes[i].attributeValue) <
+                        ARRAY_SIZE(remoteSdpAttributeValue),
+                    STATUS_BUFFER_TOO_SMALL);
                 STRCPY(remoteSdpAttributeValue, pRemoteSessionDescription->mediaDescriptions[mediaSectionId].sdpAttributes[i].attributeValue);
                 break;
             }
@@ -1645,7 +1649,9 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
         } else {
             tokenLen = STRLEN(codecs);
         }
+        CHK(tokenLen < ARRAY_SIZE(firstCodec), STATUS_SESSION_DESCRIPTION_INVALID_SESSION_DESCRIPTION);
         STRNCPY(firstCodec, codecs, tokenLen);
+        firstCodec[tokenLen] = '\0';
 
         // in case a supported codec was not found from the payload types, check the rtpmaps in the a-lines for that particular m-line
         for (currentAttribute = 0; currentAttribute < pMediaDescription->mediaAttributesCount && !foundMediaSectionWithCodec; currentAttribute++) {
