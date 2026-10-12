@@ -805,17 +805,19 @@ CleanUp:
     return retStatus;
 }
 
-STATUS createRtcpPLIPacket(PBYTE pRawPacket, UINT32 senderSsrc, UINT32 mediaSsrc)
+STATUS createRtcpPLIPacket(UINT32 senderSsrc, UINT32 mediaSsrc, PBYTE pRawPacket, PUINT32 pPacketLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
 
-    CHK(pRawPacket != NULL, STATUS_NULL_ARG);
+    CHK(pRawPacket != NULL && pPacketLen != NULL, STATUS_NULL_ARG);
+    CHK(*pPacketLen >= RTCP_PLI_PACKET_LEN, STATUS_BUFFER_TOO_SMALL);
 
     pRawPacket[0] = (RTCP_PACKET_VERSION_VAL << 6) | RTCP_PSFB_PLI;
     pRawPacket[RTCP_PACKET_TYPE_OFFSET] = RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK;
     putUnalignedInt16BigEndian(pRawPacket + RTCP_PACKET_LEN_OFFSET, (RTCP_PLI_PACKET_LEN / RTCP_PACKET_LEN_WORD_SIZE) - 1);
     putUnalignedInt32BigEndian(pRawPacket + RTCP_PACKET_HEADER_LEN, senderSsrc);
     putUnalignedInt32BigEndian(pRawPacket + RTCP_PACKET_HEADER_LEN + SIZEOF(UINT32), mediaSsrc);
+    *pPacketLen = RTCP_PLI_PACKET_LEN;
 
 CleanUp:
 
@@ -829,15 +831,18 @@ STATUS transceiverSendPictureLoss(PRtcRtpTransceiver pRtcRtpTransceiver)
     PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;
     PKvsPeerConnection pKvsPeerConnection = NULL;
     BOOL locked = FALSE;
-    UINT32 packetLen = RTCP_PLI_PACKET_LEN;
-    // srtp_protect_rtcp() writes the auth tag and SRTCP trailer after the packet
-    BYTE rawPacket[RTCP_PLI_PACKET_LEN + SRTP_AUTH_TAG_OVERHEAD + SRTP_MAX_TRAILER_LEN + 4] = {0};
+    // srtp_protect_rtcp() needs a 32-bit aligned packet, and writes the auth tag and SRTCP trailer after it
+    ALIGN_4 BYTE rawPacket[RTCP_PLI_PACKET_LEN + SRTP_AUTH_TAG_OVERHEAD + SRTP_MAX_TRAILER_LEN + 4] = {0};
+    UINT32 packetLen = SIZEOF(rawPacket);
 
     CHK(pKvsRtpTransceiver != NULL && pKvsRtpTransceiver->pKvsPeerConnection != NULL, STATUS_NULL_ARG);
     pKvsPeerConnection = pKvsRtpTransceiver->pKvsPeerConnection;
+    CHK_ERR(pKvsRtpTransceiver->transceiver.receiver.track.kind == MEDIA_STREAM_TRACK_KIND_VIDEO, STATUS_INVALID_ARG,
+            "PLI needs a video transceiver");
     CHK_ERR(pKvsRtpTransceiver->jitterBufferSsrc != 0, STATUS_INVALID_OPERATION, "No remote SSRC to send a PLI to");
+    CHK_ERR(pKvsRtpTransceiver->pliEnabled, STATUS_RTCP_PLI_NOT_NEGOTIATED, "Remote did not negotiate PLI (a=rtcp-fb nack pli)");
 
-    CHK_STATUS(createRtcpPLIPacket(rawPacket, pKvsRtpTransceiver->sender.ssrc, pKvsRtpTransceiver->jitterBufferSsrc));
+    CHK_STATUS(createRtcpPLIPacket(pKvsRtpTransceiver->sender.ssrc, pKvsRtpTransceiver->jitterBufferSsrc, rawPacket, &packetLen));
 
     MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
     locked = TRUE;

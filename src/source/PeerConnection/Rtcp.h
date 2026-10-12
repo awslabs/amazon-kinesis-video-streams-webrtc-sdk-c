@@ -10,7 +10,7 @@ extern "C" {
 STATUS onRtcpPacket(PKvsPeerConnection, PBYTE, UINT32);
 STATUS onRtcpRembPacket(PRtcpPacket, PKvsPeerConnection);
 STATUS onRtcpPLIPacket(PRtcpPacket, PKvsPeerConnection);
-STATUS createRtcpPLIPacket(PBYTE, UINT32, UINT32);
+STATUS createRtcpPLIPacket(UINT32, UINT32, PBYTE, PUINT32);
 STATUS parseRtcpTwccPacket(PRtcpPacket, PTwccManager);
 STATUS onRtcpTwccPacket(PRtcpPacket, PKvsPeerConnection);
 STATUS updateTwccHashTable(PTwccManager, PINT64, PUINT64, PUINT64, PUINT64, PUINT64);
