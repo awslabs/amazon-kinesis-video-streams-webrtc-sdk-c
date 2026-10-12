@@ -556,6 +556,7 @@ extern "C" {
 #define STATUS_RTCP_INPUT_PARTIAL_PACKET         STATUS_RTCP_BASE + 0x00000006
 #define STATUS_RTCP_INPUT_REMB_TOO_SMALL         STATUS_RTCP_BASE + 0x00000007
 #define STATUS_RTCP_INPUT_REMB_INVALID           STATUS_RTCP_BASE + 0x00000008
+#define STATUS_RTCP_PLI_NOT_NEGOTIATED           STATUS_RTCP_BASE + 0x00000009
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -2191,6 +2192,22 @@ PUBLIC_API STATUS transceiverOnBandwidthEstimation(PRtcRtpTransceiver, UINT64, R
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS transceiverOnPictureLoss(PRtcRtpTransceiver, UINT64, RtcOnPictureLoss);
+
+/**
+ * @brief Send a Picture Loss Indication (PLI) to ask the remote sender for a new keyframe
+ *
+ * Reference: https://tools.ietf.org/html/rfc4585#section-6.3.1
+ *
+ * @param[in] PRtcRtpTransceiver Video transceiver that receives the remote video
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success.
+ *         STATUS_INVALID_ARG if the transceiver is not a video transceiver.
+ *         STATUS_INVALID_OPERATION if the remote SSRC is not known yet, i.e. before the remote description is set.
+ *         STATUS_RTCP_PLI_NOT_NEGOTIATED if the remote description does not list "a=rtcp-fb:<payload type> nack pli"
+ *         for this transceiver (RFC 4585 section 4.2).
+ *         STATUS_SRTP_NOT_READY_YET before DTLS completes.
+ */
+PUBLIC_API STATUS transceiverSendPictureLoss(PRtcRtpTransceiver);
 
 /**
  * @brief Override the H264 fmtp string advertised in SDP offers and answers for this transceiver.
