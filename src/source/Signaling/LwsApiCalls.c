@@ -1845,21 +1845,28 @@ CleanUp:
 // Accounts for one reconnectHandler() thread ending (or failing to start). Publishes
 // reconnecterTracker.terminated only when the last one is gone, so freeSignaling()'s wait in
 // terminateOngoingOperations() cannot be satisfied by one thread exiting while another is
-// still inside reconnectHandler(). For the same reason the recorded thread id is cleared when
-// no reconnect thread is left, so a recycled id can never match an unrelated caller later.
+// still inside reconnectHandler(). The exiting thread's node (NULL when the thread never
+// started) is unlinked in the same critical section, so isSignalingOwnedThread() stops
+// matching its id the moment it is no longer counted.
 //
 // Called from the WSS callback under lwsServiceLock on a spawn failure, and from the exiting
 // reconnect thread itself, in which case the unlock below is that thread's last access to
 // pSignalingClient: the shutdown path acquires this same lock before freeing.
-static VOID reconnectThreadExited(PSignalingClient pSignalingClient, SIZE_T exitingTid)
+static VOID reconnectThreadExited(PSignalingClient pSignalingClient, PSignalingThreadNode pExitingNode)
 {
+    PSignalingThreadNode* ppNode;
+
     MUTEX_LOCK(pSignalingClient->reconnecterTracker.lock);
+    if (pExitingNode != NULL) {
+        for (ppNode = &pSignalingClient->pActiveReconnectThreads; *ppNode != NULL; ppNode = &(*ppNode)->pNext) {
+            if (*ppNode == pExitingNode) {
+                *ppNode = pExitingNode->pNext;
+                break;
+            }
+        }
+    }
     if (--pSignalingClient->reconnectThreadCount == 0) {
-        ATOMIC_STORE(&pSignalingClient->reconnectThreadTid, 0);
         ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, TRUE);
-    } else if (exitingTid != 0 && (SIZE_T) ATOMIC_LOAD(&pSignalingClient->reconnectThreadTid) == exitingTid) {
-        // A newer reconnect thread exists but has not recorded its own id yet; do not leave ours behind.
-        ATOMIC_STORE(&pSignalingClient->reconnectThreadTid, 0);
     }
     CVAR_BROADCAST(pSignalingClient->reconnecterTracker.await);
     MUTEX_UNLOCK(pSignalingClient->reconnecterTracker.lock);
@@ -1880,7 +1887,7 @@ STATUS startReconnectHandler(PSignalingClient pSignalingClient)
 
     retStatus = THREAD_CREATE(&pSignalingClient->reconnecterTracker.threadId, reconnectHandler, (PVOID) pSignalingClient);
     if (STATUS_FAILED(retStatus)) {
-        reconnectThreadExited(pSignalingClient, 0);
+        reconnectThreadExited(pSignalingClient, NULL);
         CHK(FALSE, retStatus);
     }
 
@@ -1900,15 +1907,17 @@ PVOID reconnectHandler(PVOID args)
     STATUS retStatus = STATUS_SUCCESS;
     CHAR reconnectErrMsg[SIGNALING_MAX_ERROR_MESSAGE_LEN + 1];
     UINT32 reconnectErrLen;
-    SIZE_T tid = SIGNALING_CURRENT_THREAD_ID();
+    SignalingThreadNode threadNode;
     PSignalingClient pSignalingClient = (PSignalingClient) args;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
-    // Record our tid so freeSignaling() can refuse to run from a callback on this thread. Under the tracker
-    // lock so it is ordered against a previous reconnect thread clearing its own id in reconnectThreadExited().
+    // Register this thread so freeSignaling() can refuse to run from a callback on it, for as long as it runs.
+    // The node lives on this stack and is unlinked in reconnectThreadExited() before the function returns.
+    threadNode.tid = SIGNALING_CURRENT_THREAD_ID();
     MUTEX_LOCK(pSignalingClient->reconnecterTracker.lock);
-    ATOMIC_STORE(&pSignalingClient->reconnectThreadTid, tid);
+    threadNode.pNext = pSignalingClient->pActiveReconnectThreads;
+    pSignalingClient->pActiveReconnectThreads = &threadNode;
     MUTEX_UNLOCK(pSignalingClient->reconnecterTracker.lock);
 
     // Await for the listener to clear
@@ -1943,10 +1952,10 @@ CleanUp:
             }
         }
 
-        // Publish termination and notify under the tracker lock (only when no other reconnect thread is alive).
-        // The shutdown path in terminateOngoingOperations() acquires this lock before freeing, so the unlock
-        // inside reconnectThreadExited() is this thread's last access to pSignalingClient.
-        reconnectThreadExited(pSignalingClient, tid);
+        // Unlink our node, publish termination and notify under the tracker lock (only when no other reconnect
+        // thread is alive). The shutdown path in terminateOngoingOperations() acquires this lock before freeing,
+        // so the unlock inside reconnectThreadExited() is this thread's last access to pSignalingClient.
+        reconnectThreadExited(pSignalingClient, &threadNode);
     }
 
     LEAVES();
@@ -2544,8 +2553,8 @@ PVOID receiveLwsMessageWrapper(PVOID args)
     PSignalingMessageWrapper pSignalingMessageWrapper = (PSignalingMessageWrapper) args;
     PSignalingClient pSignalingClient = NULL;
     SIGNALING_MESSAGE_TYPE messageType = SIGNALING_MESSAGE_TYPE_UNKNOWN;
-    ReceiveWorkerNode workerNode;
-    PReceiveWorkerNode* ppNode;
+    SignalingThreadNode workerNode;
+    PSignalingThreadNode* ppNode;
 
     CHK(pSignalingMessageWrapper != NULL, STATUS_NULL_ARG);
 

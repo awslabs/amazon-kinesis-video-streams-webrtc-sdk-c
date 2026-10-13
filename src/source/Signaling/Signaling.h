@@ -192,13 +192,14 @@ typedef struct {
 #endif
 
 /**
- * Stack-allocated marker linked into SignalingClient::pActiveReceiveWorkers by a receive worker for the
- * duration of receiveLwsMessageWrapper(), so freeSignaling() can detect being called from a receive callback.
+ * Stack-allocated marker a signaling-owned thread links into one of the SignalingClient lists for as long as it
+ * runs (pActiveReceiveWorkers for receiveLwsMessageWrapper(), pActiveReconnectThreads for reconnectHandler()),
+ * so freeSignaling() can detect being called from a callback on that thread.
  */
-typedef struct __ReceiveWorkerNode {
+typedef struct __SignalingThreadNode {
     SIZE_T tid;
-    struct __ReceiveWorkerNode* pNext;
-} ReceiveWorkerNode, *PReceiveWorkerNode;
+    struct __SignalingThreadNode* pNext;
+} SignalingThreadNode, *PSignalingThreadNode;
 
 typedef struct {
     volatile SIZE_T numberOfMessagesSent;
@@ -369,12 +370,7 @@ typedef struct {
     CVAR receiveWorkerCvar;
 
     // Receive workers currently executing receiveLwsMessageWrapper(). Protected by receiveWorkerLock.
-    PReceiveWorkerNode pActiveReceiveWorkers;
-
-    // Thread id of the most recently started reconnectHandler(). Only meaningful while
-    // reconnecterTracker.terminated is FALSE, so a stale or recycled id never matches.
-    // Written under reconnecterTracker.lock; reset to 0 when the last reconnect thread exits.
-    volatile SIZE_T reconnectThreadTid;
+    PSignalingThreadNode pActiveReceiveWorkers;
 
     // Number of reconnectHandler() threads currently alive. Protected by
     // reconnecterTracker.lock. Two can overlap: the WSS callback spawns a new one
@@ -382,6 +378,14 @@ typedef struct {
     // (e.g. in JOIN_SESSION after CONNECTED, or in its CleanUp).
     // reconnecterTracker.terminated is published only when this drops to zero.
     UINT32 reconnectThreadCount;
+
+    // Every reconnectHandler() thread currently running, one node per thread, linked by the thread itself on
+    // entry and unlinked on exit. Protected by reconnecterTracker.lock. A single "latest thread id" slot is not
+    // enough: while two reconnect threads overlap, the older one still runs stateChangeFn / errorReportFn, and a
+    // freeSignalingClient() call from there has to be recognised as well or it waits for its own thread.
+    // Counted threads that have not reached their prologue yet are absent from the list, which is fine: a thread
+    // that has not started cannot be inside a callback.
+    PSignalingThreadNode pActiveReconnectThreads;
 
     // Thread id of the running lwsListenerHandler(). Only meaningful while
     // listenerTracker.terminated is FALSE; reset to 0 before the listener publishes

@@ -563,6 +563,110 @@ TEST_F(SignalingShutdownRaceTest, freeWaitsForSecondReconnectThreadAfterFirstExi
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// free from errorReportFn on the older of two live reconnect threads: the free-from-callback check used to compare
+// the caller against the id of the most recently started reconnect thread only. While two reconnect threads overlap
+// (see the previous test), the older one still delivers stateChangeFn / errorReportFn. A free from there passed the
+// check, set shutdown and then waited in terminateOngoingOperations() for the reconnect thread count to reach zero,
+// which includes the caller itself: freeSignalingClient() never returned.
+//
+// Every live reconnect thread is now registered, so the call must be rejected immediately and leave the client
+// running. Same setup as above: both threads are the real reconnectHandler(), parked in errorReportFn; thread A is
+// released first and calls freeSignaling() from inside that callback while B is still parked.
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+struct OlderReconnectThreadFreeContext {
+    PSignalingClient pSignalingClient = NULL;
+    std::atomic<UINT32> arrivals{0};
+    std::atomic<bool> parked[2] = {{false}, {false}};
+    std::atomic<bool> release[2] = {{false}, {false}};
+    std::atomic<bool> freeReturned{false};
+    std::atomic<STATUS> freeStatus{STATUS_SUCCESS};
+};
+
+static STATUS freeFromOlderReconnectThreadErrorReportFn(UINT64 customData, STATUS status, PCHAR msg, UINT32 msgLen)
+{
+    UNUSED_PARAM(status);
+    UNUSED_PARAM(msg);
+    UNUSED_PARAM(msgLen);
+    OlderReconnectThreadFreeContext* pCtx = (OlderReconnectThreadFreeContext*) customData;
+    PSignalingClient pSignalingClient = pCtx->pSignalingClient;
+    UINT32 idx = pCtx->arrivals.fetch_add(1);
+
+    if (idx >= 2) {
+        return STATUS_SUCCESS;
+    }
+
+    pCtx->parked[idx] = true;
+    while (!pCtx->release[idx].load()) {
+        THREAD_SLEEP(SHUTDOWN_RACE_POLL_INTERVAL);
+    }
+
+    if (idx == 0) {
+        // Thread A, the older reconnect thread, frees from its own callback while thread B is alive.
+        pCtx->freeStatus = freeSignaling(&pSignalingClient);
+        pCtx->freeReturned = true;
+
+        // Should the free ever succeed, this thread's own reconnectHandler() epilogue would run on freed memory;
+        // park for good instead so the test can report it.
+        while (pCtx->freeStatus.load() == STATUS_SUCCESS) {
+            THREAD_SLEEP(SHUTDOWN_RACE_POLL_INTERVAL);
+        }
+    }
+    return STATUS_SUCCESS;
+}
+
+TEST_F(SignalingShutdownRaceTest, freeFromErrorReportFnOnOlderReconnectThreadIsRejected)
+{
+    // Leaked on purpose when the free never returns: thread A is then blocked inside freeSignaling() and B stays parked.
+    OlderReconnectThreadFreeContext* pCtx = new OlderReconnectThreadFreeContext();
+    ShutdownRaceClientOptions options;
+    PAwsCredentialProvider pCredentialProvider = NULL;
+    PSignalingClient pSignalingClient = NULL;
+    bool freeReturned;
+
+    options.customData = (UINT64) pCtx;
+    options.errorReportFn = freeFromOlderReconnectThreadErrorReportFn;
+    ASSERT_EQ(STATUS_SUCCESS, createShutdownRaceClient(mChannelName, mRegion, mCaCertPath, mLogLevel, options, &pCredentialProvider, &pSignalingClient));
+    pCtx->pSignalingClient = pSignalingClient;
+
+    // Reconnect thread A
+    ASSERT_EQ(STATUS_SUCCESS, startReconnectHandler(pSignalingClient));
+    ASSERT_TRUE(waitFor([pCtx] { return pCtx->parked[0].load(); }, 10000));
+
+    // Reconnect thread B, spawned while A is still inside reconnectHandler()
+    ASSERT_EQ(STATUS_SUCCESS, startReconnectHandler(pSignalingClient));
+    ASSERT_TRUE(waitFor([pCtx] { return pCtx->parked[1].load(); }, 10000));
+    ASSERT_EQ((UINT32) 2, liveReconnectThreads(pSignalingClient));
+
+    // A calls freeSignalingClient() from errorReportFn while B is alive.
+    pCtx->release[0] = true;
+    freeReturned = waitFor([pCtx] { return pCtx->freeReturned.load(); }, 3000);
+    EXPECT_TRUE(freeReturned) << "freeSignalingClient() called from errorReportFn on the older of two live reconnect threads never returned: the "
+                                 "caller was not recognised as a reconnect thread, so the free waits for its own thread to exit";
+    if (!freeReturned) {
+        return;
+    }
+
+    EXPECT_EQ(STATUS_INVALID_OPERATION, pCtx->freeStatus.load()) << "Include.h documents STATUS_INVALID_OPERATION for this call";
+    if (pCtx->freeStatus.load() == STATUS_SUCCESS) {
+        // The client is gone and thread A is parked on it; nothing left to clean up safely.
+        freeStaticCredentialProvider(&pCredentialProvider);
+        return;
+    }
+    EXPECT_FALSE(ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown)) << "a rejected free must leave the client running";
+
+    // A leaves its callback and exits; B is still parked and keeps the client alive.
+    ASSERT_TRUE(waitFor([pSignalingClient] { return liveReconnectThreads(pSignalingClient) <= 1; }, 5000));
+    EXPECT_FALSE(ATOMIC_LOAD_BOOL(&pSignalingClient->reconnecterTracker.terminated));
+
+    // Release B, then free from an ordinary thread once no reconnect thread is left.
+    pCtx->release[1] = true;
+    ASSERT_TRUE(waitFor([pSignalingClient] { return ATOMIC_LOAD_BOOL(&pSignalingClient->reconnecterTracker.terminated) == TRUE; }, 5000));
+    EXPECT_EQ(STATUS_SUCCESS, freeSignaling(&pSignalingClient));
+    freeStaticCredentialProvider(&pCredentialProvider);
+    delete pCtx;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Message delivered after the shutdown drain: receiveLwsMessage() used to count and spawn a worker without
 // checking shutdown. A CLIENT_RECEIVE delivered
 // after the drain in terminateOngoingOperations() saw zero starts a worker that keeps running after the client is
@@ -663,14 +767,15 @@ TEST_F(SignalingShutdownRaceTest, messageReceivedAfterShutdownDrainDoesNotSpawnW
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Recycled reconnect thread id: reconnectThreadTid used to keep the id of the last reconnect thread after it exited, and pthreads
+// Recycled reconnect thread id: the client used to keep the id of the last reconnect thread after it exited, and pthreads
 // recycles ids of exited threads. While the WSS callback was spawning the next reconnect thread (terminated=FALSE
 // but the new thread not yet at its first statement), an unrelated app thread that had inherited the old id was
 // told it was calling from a signaling callback.
 //
-// The fix clears the slot when the last reconnect thread exits, so (a) the slot must read 0 after the thread is
-// gone and (b) an app thread with the recycled id must be able to free the client while a new reconnect thread is
-// starting up. The exited thread's id is captured from inside errorReportFn, which runs on that thread.
+// Each reconnect thread now registers itself in pActiveReconnectThreads only while it runs, so (a) the list must be
+// empty after the thread is gone and (b) an app thread with the recycled id must be able to free the client while a
+// new reconnect thread is starting up. The exited thread's id is captured from inside errorReportFn, which runs on
+// that thread.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct TidReuseContext {
     PSignalingClient pSignalingClient = NULL;
@@ -728,8 +833,8 @@ TEST_F(SignalingShutdownRaceTest, freeFromThreadWithRecycledReconnectTidIsAccept
     THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     ASSERT_NE((SIZE_T) 0, ctx.reconnectTid.load());
 
-    EXPECT_EQ((SIZE_T) 0, (SIZE_T) ATOMIC_LOAD(&pSignalingClient->reconnectThreadTid))
-        << "reconnectThreadTid still holds the id of a reconnect thread that has exited";
+    EXPECT_EQ((PSignalingThreadNode) NULL, pSignalingClient->pActiveReconnectThreads)
+        << "pActiveReconnectThreads still lists a reconnect thread that has exited";
 
     for (attempts = 0; attempts < 100 && !ctx.reused; attempts++) {
         ASSERT_EQ(STATUS_SUCCESS, THREAD_CREATE(&candidate, tidReuseCandidate, (PVOID) &ctx));

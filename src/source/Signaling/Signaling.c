@@ -194,8 +194,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->deleting, FALSE);
     ATOMIC_STORE(&pSignalingClient->receiveWorkerCount, 0);
-    ATOMIC_STORE(&pSignalingClient->reconnectThreadTid, 0);
     pSignalingClient->reconnectThreadCount = 0;
+    pSignalingClient->pActiveReconnectThreads = NULL;
     ATOMIC_STORE(&pSignalingClient->listenerThreadTid, 0);
     pSignalingClient->pActiveReceiveWorkers = NULL;
     ATOMIC_STORE_BOOL(&pSignalingClient->deleted, FALSE);
@@ -293,26 +293,33 @@ CleanUp:
     return retStatus;
 }
 
-// Returns TRUE if the calling thread is this client's running reconnect thread, its WSS listener thread or one of
-// its receive workers. freeSignaling() waits for those threads to exit (and re-locks listenerTracker.lock, which the
-// listener holds for its whole life), so it must not be called from one of them: it would wait on itself forever.
-// errorReportFn and stateChangeFn can run on any of the three (the listener delivers them from receiveLwsMessage()
-// on a malformed message or a failed worker spawn, and from GO_AWAY / RECONNECT_ICE handling).
+// Reports whether the calling thread is one of the signaling client's own threads: a reconnect thread, the WSS
+// listener or a receive worker. Every such thread registers itself for exactly as long as it runs (a node in
+// pActiveReconnectThreads / pActiveReceiveWorkers, or listenerThreadTid), so an id recycled by the OS after a
+// thread exited can never match. freeSignaling() waits for those threads to exit (and re-locks
+// listenerTracker.lock, which the listener holds for its whole life), so it must not be called from one of them:
+// it would wait on itself forever. errorReportFn and stateChangeFn can run on any of the three (the listener
+// delivers them from receiveLwsMessage() on a malformed message or a failed worker spawn, and from GO_AWAY /
+// RECONNECT_ICE handling), and an older reconnect thread keeps delivering them while a newer one already runs.
 static BOOL isSignalingOwnedThread(PSignalingClient pSignalingClient)
 {
     SIZE_T tid = SIGNALING_CURRENT_THREAD_ID();
     BOOL found = FALSE;
-    PReceiveWorkerNode pNode;
-
-    if (!ATOMIC_LOAD_BOOL(&pSignalingClient->reconnecterTracker.terminated) && (SIZE_T) ATOMIC_LOAD(&pSignalingClient->reconnectThreadTid) == tid) {
-        return TRUE;
-    }
+    PSignalingThreadNode pNode;
 
     if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) && (SIZE_T) ATOMIC_LOAD(&pSignalingClient->listenerThreadTid) == tid) {
         return TRUE;
     }
 
-    if (IS_VALID_MUTEX_VALUE(pSignalingClient->receiveWorkerLock)) {
+    if (IS_VALID_MUTEX_VALUE(pSignalingClient->reconnecterTracker.lock)) {
+        MUTEX_LOCK(pSignalingClient->reconnecterTracker.lock);
+        for (pNode = pSignalingClient->pActiveReconnectThreads; pNode != NULL && !found; pNode = pNode->pNext) {
+            found = (pNode->tid == tid);
+        }
+        MUTEX_UNLOCK(pSignalingClient->reconnecterTracker.lock);
+    }
+
+    if (!found && IS_VALID_MUTEX_VALUE(pSignalingClient->receiveWorkerLock)) {
         MUTEX_LOCK(pSignalingClient->receiveWorkerLock);
         for (pNode = pSignalingClient->pActiveReceiveWorkers; pNode != NULL && !found; pNode = pNode->pNext) {
             found = (pNode->tid == tid);
