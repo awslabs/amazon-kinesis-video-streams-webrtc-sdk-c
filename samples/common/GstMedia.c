@@ -145,8 +145,10 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
          * The first video frame a new viewer received was not a key frame: either it joined a pipeline that was already
          * running, or the key frame emitted when the pipeline (re)started was dropped because the viewer's SRTP session
          * was not ready yet. Without this the viewer cannot decode anything until the encoder's next periodic key frame
-         * (10 s with the x264enc defaults used by the sample pipelines). Ask the encoder for one now; all_headers=TRUE
-         * makes it emit SPS/PPS with it.
+         * (10 s with the x264enc defaults used by the sample pipelines). Ask the encoder for one now. Whether the key
+         * frame carries the parameter sets a late viewer also needs depends on the encoder: x264enc emits SPS/PPS with
+         * every key frame when all_headers=TRUE; x265enc emits VPS/SPS/PPS only once at stream start, so an H.265
+         * viewer that missed the first key frame still cannot decode after a forced one.
          */
         if (requestKeyFrame) {
             DLOGI("[KVS GStreamer Master] Requesting a key frame for a newly connected viewer");
