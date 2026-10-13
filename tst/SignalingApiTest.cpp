@@ -909,6 +909,10 @@ TEST_F(SignalingApiTest, probeMaxSignalingMessageSize)
 
     SignalingMessage signalingMessage;
     MEMSET(&signalingMessage, 0x00, SIZEOF(SignalingMessage));
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    ASSERT_TRUE(signalingMessage.payload != NULL);
+#endif
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     // Use max-length peerClientId and correlationId to account for worst-case envelope
@@ -979,6 +983,9 @@ TEST_F(SignalingApiTest, probeMaxSignalingMessageSize)
     printf("[PROBE RESULT] After base64, the on-wire size is approximately: %u bytes\n", maxAccepted * 4 / 3);
     printf("\n");
 
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
     deinitializeSignalingClient();
     THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
