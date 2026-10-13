@@ -272,6 +272,61 @@ TEST_F(PeerConnectionApiTest, peerConnectionUpdateIceServersDuplicate)
     freePeerConnection(&pRtcPeerConnection);
 }
 
+// With iceServersFinal set, no ICE servers may be added later: the call is rejected before anything changes.
+TEST_F(PeerConnectionApiTest, peerConnectionUpdateIceServersRejectedWhenIceServersFinal)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    RtcConfiguration configuration;
+    RtcIceServer iceServers[1];
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(iceServers, 0x00, SIZEOF(iceServers));
+    configuration.kvsRtcConfiguration.iceServersFinal = TRUE;
+    SNPRINTF(iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, "turn:127.0.0.1:3478?transport=udp");
+    STRCPY(iceServers[0].username, "user");
+    STRCPY(iceServers[0].credential, "pass");
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_ICE_SERVERS_FINAL, peerConnectionUpdateIceServers(pRtcPeerConnection, iceServers, 1));
+    EXPECT_EQ(0, ((PKvsPeerConnection) pRtcPeerConnection)->pIceAgent->iceServersCount);
+
+    closePeerConnection(pRtcPeerConnection);
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+// Host candidates only, with the gathering timeout far away: with iceServersFinal set, gathering must end long before it.
+TEST_F(PeerConnectionApiTest, iceServersFinalCompletesGatheringBeforeTimeout)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit offer;
+    std::atomic<bool> gatheringDone(false);
+    UINT64 deadline;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&offer, 0x00, SIZEOF(offer));
+    configuration.kvsRtcConfiguration.iceLocalCandidateGatheringTimeout = 60 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    configuration.kvsRtcConfiguration.iceServersFinal = TRUE;
+
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(pRtcPeerConnection, (UINT64) &gatheringDone, [](UINT64 customData, PCHAR candidate) {
+                  if (candidate == NULL) {
+                      ((std::atomic<bool>*) customData)->store(true);
+                  }
+              }));
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(pRtcPeerConnection, &offer));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(pRtcPeerConnection, &offer));
+
+    deadline = GETTIME() + 5 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    while (!gatheringDone && GETTIME() < deadline) {
+        THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    EXPECT_TRUE(gatheringDone);
+
+    closePeerConnection(pRtcPeerConnection);
+    freePeerConnection(&pRtcPeerConnection);
+}
+
 TEST_F(PeerConnectionApiTest, onSetStunServerIpCopiesCompleteAddress)
 {
     PWebRtcClientContext pWebRtcClientContext;

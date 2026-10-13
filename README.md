@@ -858,6 +858,8 @@ Let us look into when each of these could be changed:
 3. `iceConnectionCheckTimeout`: It is useful to increase this timeout in unstable/slow network where the packet exchange takes time and hence the binding request/response. Essentially, increasing it will allow atleast one candidate pair to be tried for nomination by the other peer. 
 4. `iceConnectionCheckPollingInterval`: This value is set to a default of 50 ms per [spec](https://datatracker.ietf.org/doc/html/rfc8445#section-14.2). Changing this would change the frequency of connectivity checks and essentially, the ICE state machine transitions. Decreasing the value could help in faster connection establishment in a reliable high performant network setting with good system resources. Increasing the value could help in reducing the network load, however, the connection establishment could slow down. Unless there is a strong reasoning, it is **NOT** recommended to deviate from spec/default.
 
+Set `iceServersFinal` when every STUN/TURN server is passed at creation and `peerConnectionUpdateIceServers` is never called. Gathering then ends as soon as every candidate resolves instead of waiting for `iceLocalCandidateGatheringTimeout`, which helps non-trickle offers and answers. With the flag set, `peerConnectionUpdateIceServers` returns `STATUS_ICE_SERVERS_FINAL`.
+
 ### Enable ICE agent stats
 
 The SDK calculates 4 different stats:
