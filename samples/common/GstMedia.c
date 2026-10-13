@@ -193,6 +193,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     gchar* gDebug = NULL;
     GstStateChangeReturn stateChangeStatus = GST_STATE_CHANGE_SUCCESS;
     BOOL pipelinePlaying = FALSE;
+    BOOL stopWhenIdle = TRUE;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
 
     CHK_ERR(pSampleConfiguration != NULL, STATUS_NULL_ARG, "[KVS Gstreamer Master] Streaming session is NULL");
@@ -370,11 +371,21 @@ PVOID sendGstreamerAudioVideo(PVOID args)
      * Run the pipeline only while at least one viewer is connected. Going to NULL releases the capture device,
      * encoder and any accelerator so other processes can use them; the same pipeline is set back to PLAYING when
      * the next viewer connects. The thread itself stays alive until app termination, pipeline error or EOS.
+     *
+     * Exception: the RTSP pipelines start with uridecodebin, whose source pads only appear once the stream is
+     * running. gst_parse_launch() links such a pad the first time it appears and then drops its pad-added handler,
+     * so the pads uridecodebin creates again after NULL -> PLAYING are never linked and the pipeline fails with
+     * not-linked. Keep those pipelines running while idle instead; nothing is held locally that another process
+     * would need, the camera belongs to the RTSP server.
      */
+    stopWhenIdle = (pSampleConfiguration->srcType != RTSP_SOURCE);
+    if (!stopWhenIdle) {
+        DLOGI("[KVS GStreamer Master] RTSP source: the media pipeline keeps running while no viewers are connected");
+    }
     bus = gst_element_get_bus(senderPipeline);
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
         if (!pipelinePlaying) {
-            if (getStreamingSessionCount(pSampleConfiguration) == 0) {
+            if (stopWhenIdle && getStreamingSessionCount(pSampleConfiguration) == 0) {
                 THREAD_SLEEP(GST_PIPELINE_POLL_INTERVAL_MS * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
                 continue;
             }
@@ -389,7 +400,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
             break;
         }
 
-        if (getStreamingSessionCount(pSampleConfiguration) == 0) {
+        if (stopWhenIdle && getStreamingSessionCount(pSampleConfiguration) == 0) {
             DLOGI("[KVS GStreamer Master] No viewers connected, stopping the media pipeline");
             stateChangeStatus = gst_element_set_state(senderPipeline, GST_STATE_NULL);
             CHK_ERR(stateChangeStatus != GST_STATE_CHANGE_FAILURE, STATUS_INVALID_OPERATION, "State change to NULL failed!");
