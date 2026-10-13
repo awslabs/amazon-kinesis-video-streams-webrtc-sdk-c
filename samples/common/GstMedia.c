@@ -125,11 +125,18 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
             } else if (status == STATUS_SUCCESS && pSampleStreamingSession->firstFrame) {
                 PROFILE_WITH_START_TIME(pSampleStreamingSession->offerReceiveTime, "Time to first frame");
                 pSampleStreamingSession->firstFrame = FALSE;
-                if (trackid != DEFAULT_AUDIO_TRACK_ID && (frame.flags & FRAME_FLAG_KEY_FRAME) == 0) {
-                    requestKeyFrame = TRUE;
-                }
             } else if (status == STATUS_SRTP_NOT_READY_YET) {
                 DLOGI("[KVS GStreamer Master] SRTP not ready yet, dropping frame");
+            }
+            /*
+             * Tracked separately from firstFrame: in audio-video mode the session's first delivered frame is usually
+             * audio, and an audio frame says nothing about whether the viewer has a video key frame yet.
+             */
+            if (status == STATUS_SUCCESS && trackid == DEFAULT_VIDEO_TRACK_ID && pSampleStreamingSession->firstVideoFrame) {
+                pSampleStreamingSession->firstVideoFrame = FALSE;
+                if ((frame.flags & FRAME_FLAG_KEY_FRAME) == 0) {
+                    requestKeyFrame = TRUE;
+                }
             }
         }
         MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);

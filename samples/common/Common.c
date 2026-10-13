@@ -565,6 +565,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
 
     pSampleStreamingSession = (PSampleStreamingSession) MEMCALLOC(1, SIZEOF(SampleStreamingSession));
     pSampleStreamingSession->firstFrame = TRUE;
+    pSampleStreamingSession->firstVideoFrame = TRUE;
     pSampleStreamingSession->offerReceiveTime = GETTIME();
     CHK(pSampleStreamingSession != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
