@@ -301,8 +301,21 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
     PSignalingClient pSignalingClient = NULL;
     SIZE_T offset, bufferSize;
     BOOL connected, locked = FALSE;
+    UINT32 i;
 
     DLOGV("WSS callback with reason %d", reason);
+
+    // Sent to every protocol on a fake wsi after lws_cancel_service(), from the service thread
+    if (reason == LWS_CALLBACK_EVENT_WAIT_CANCELLED) {
+        pSignalingClient = (PSignalingClient) lws_context_user(lws_get_context((struct lws*) wsi));
+        CHK(pSignalingClient != NULL, retStatus);
+        for (i = 0; i < LWS_PROTOCOL_COUNT; i++) {
+            if (ATOMIC_EXCHANGE_BOOL(&pSignalingClient->writableRequested[i], FALSE) && pSignalingClient->currentWsi[i] != NULL) {
+                lws_callback_on_writable((struct lws*) pSignalingClient->currentWsi[i]);
+            }
+        }
+        CHK(FALSE, retStatus);
+    }
 
     // Early check before accessing custom field to see if we are interested in the message
     switch (reason) {
@@ -648,8 +661,9 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     ATOMIC_STORE_BOOL(&pCallInfo->pSignalingClient->serviceLockContention, TRUE);
     while (iterate && pCallInfo->pSignalingClient->currentWsi[PROTOCOL_INDEX_WSS] != NULL) {
         if (!MUTEX_TRYLOCK(pCallInfo->pSignalingClient->lwsServiceLock)) {
-            // Wake up the event loop
+            // Wake up the event loop, then give it time to release the lock
             CHK_STATUS(wakeLwsServiceEventLoop(pCallInfo->pSignalingClient, PROTOCOL_INDEX_WSS));
+            THREAD_SLEEP(LWS_SERVICE_LOOP_ITERATION_WAIT);
         } else {
             locked = TRUE;
             iterate = FALSE;
@@ -2474,8 +2488,11 @@ STATUS wakeLwsServiceEventLoop(PSignalingClient pSignalingClient, UINT32 protoco
     // Early exit in case we don't need to do anything
     CHK(pSignalingClient != NULL && pSignalingClient->pWebsocketContext != NULL, retStatus);
 
+    // lws_cancel_service() is the only lws call that is safe from a foreign thread. The service
+    // thread then requests the write itself on LWS_CALLBACK_EVENT_WAIT_CANCELLED.
     if (pSignalingClient->currentWsi[protocolIndex] != NULL) {
-        lws_callback_on_writable(pSignalingClient->currentWsi[protocolIndex]);
+        ATOMIC_STORE_BOOL(&pSignalingClient->writableRequested[protocolIndex], TRUE);
+        lws_cancel_service(pSignalingClient->pWebsocketContext);
     }
 
 CleanUp:

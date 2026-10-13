@@ -170,6 +170,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
 #endif
     creationInfo.port = CONTEXT_PORT_NO_LISTEN;
     creationInfo.protocols = pProtocols;
+    // Read back on LWS_CALLBACK_EVENT_WAIT_CANCELLED, which carries no per-connection data
+    creationInfo.user = pSignalingClient;
     creationInfo.timeout_secs = SIGNALING_SERVICE_API_CALL_TIMEOUT_IN_SECONDS;
     creationInfo.gid = -1;
     creationInfo.uid = -1;

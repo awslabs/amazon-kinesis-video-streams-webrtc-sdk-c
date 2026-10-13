@@ -347,6 +347,9 @@ typedef struct {
     // Generic websocket connection objects - can be used by any implementation
     PVOID currentWsi[LWS_PROTOCOL_COUNT];
 
+    // Set by wakeLwsServiceEventLoop(), consumed by the service thread on LWS_CALLBACK_EVENT_WAIT_CANCELLED
+    volatile ATOMIC_BOOL writableRequested[LWS_PROTOCOL_COUNT];
+
     // List of the ongoing messages
     PStackQueue pMessageQueue;
 
