@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <thread>
 
 #include "WebRTCClientTestFixture.h"
 
@@ -1039,6 +1040,30 @@ TEST_F(IceFunctionalityTest, IceAgentGovCloudStunsCandidateGatheringTest)
     EXPECT_EQ(STATUS_SUCCESS, freeIceAgent(&pIceAgent));
     EXPECT_EQ(STATUS_SUCCESS, timerQueueFree(&timerQueueHandle));
 }
+
+// The restart and free paths wait in iceAgentWaitForSendsInFlight before freeing the old pair's
+// socket, so a send still running outside the agent lock finishes first.
+TEST_F(IceFunctionalityTest, iceAgentWaitForSendsInFlightBlocksUntilSendsFinish)
+{
+    IceAgent iceAgent;
+    UINT64 start;
+
+    MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
+    ATOMIC_STORE(&iceAgent.sendsInFlight, 1);
+
+    start = GETTIME();
+    std::thread sender([&iceAgent]() {
+        THREAD_SLEEP(200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        ATOMIC_DECREMENT(&iceAgent.sendsInFlight);
+    });
+
+    iceAgentWaitForSendsInFlight(&iceAgent);
+
+    EXPECT_GE(GETTIME() - start, 200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    EXPECT_EQ(0, ATOMIC_LOAD(&iceAgent.sendsInFlight));
+    sender.join();
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
