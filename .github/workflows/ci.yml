@@ -314,7 +314,8 @@ jobs:
           - name: openssl3
             cmake-args: "-DUSE_OPENSSL3=ON -DUSE_MBEDTLS=OFF"
           # ENABLE_KVS_THREADPOOL also enables early STUN DNS resolution and pool-dispatched DTLS handshakes.
-          # cross-compilation.yml only compiles this configuration; this entry is the one that runs the tests under it.
+          # cross-compilation.yml only compiles this configuration; this entry (and address-sanitizer-threadpool
+          # in sanitizers.yaml) runs the tests under it.
           - name: threadpool-openssl
             cmake-args: "-DENABLE_KVS_THREADPOOL=ON -DUSE_OPENSSL=ON -DUSE_MBEDTLS=OFF"
           - name: system-deps-openssl

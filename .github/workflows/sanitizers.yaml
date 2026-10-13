@@ -67,7 +67,9 @@ jobs:
 
   # Same as address-sanitizer but with ENABLE_KVS_THREADPOOL=ON. The pre-resolved STUN address path, the
   # thread pool itself and the pool-dispatched DTLS handshake only exist in this configuration, so the
-  # default-OFF job above never exercises them (#2408 was an 8-byte out-of-bounds write on that path).
+  # default-OFF job above never exercises them. (Note: ASan alone would not have caught #2408 on the real
+  # path; that overrun stayed inside the heap-allocated IceAgent. This job is for the other thread-pool-only
+  # code; the srflx regression itself is covered by the gtest and sample job added alongside it.)
   address-sanitizer-threadpool:
     runs-on: ubuntu-22.04
     timeout-minutes: 60

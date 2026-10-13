@@ -2022,7 +2022,7 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
                 } else {
                     // Expected on dual-stack hosts, e.g. an IPv6 host candidate with an IPv4-only STUN server.
                     DLOGD("Skipping srflx candidate generation for host candidate %s (family %u): STUN server %s has no address of that family",
-                          pCandidate->id, pCandidate->ipAddress.family, pIceServer->url);
+                          pCandidate->id, (UINT32) pCandidate->ipAddress.family, pIceServer->url);
                 }
             }
         }

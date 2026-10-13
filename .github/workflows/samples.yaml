@@ -259,10 +259,10 @@ jobs:
           # Interrupt after 30s, and kill 15s later for safety
           bash -c "sleep 30 && kill -s INT $MASTER_PID $VIEWER_PID" &
           bash -c "sleep 45 && kill -9 $MASTER_PID $VIEWER_PID" &
-          wait $MASTER_PID
-          MASTER_EXIT=$?
-          wait $VIEWER_PID
-          VIEWER_EXIT=$?
+          # Steps run under bash -e, so a bare `wait $PID` on a non-zero exit would abort the step
+          # before the exit codes and logs below are printed. Capture the status instead.
+          MASTER_EXIT=0; wait $MASTER_PID || MASTER_EXIT=$?
+          VIEWER_EXIT=0; wait $VIEWER_PID || VIEWER_EXIT=$?
 
           if [ $MASTER_EXIT -ne 0 ] || [ $VIEWER_EXIT -ne 0 ]; then
             echo "Sample execution failed. Master exit code: $MASTER_EXIT, Viewer exit code: $VIEWER_EXIT"
@@ -326,10 +326,10 @@ jobs:
           # Interrupt after 30s, and kill 15s later for safety
           bash -c "sleep 30 && kill -s INT $MASTER_PID $VIEWER_PID" &
           bash -c "sleep 45 && kill -9 $MASTER_PID $VIEWER_PID" &
-          wait $MASTER_PID
-          MASTER_EXIT=$?
-          wait $VIEWER_PID
-          VIEWER_EXIT=$?
+          # Steps run under bash -e, so a bare `wait $PID` on a non-zero exit would abort the step
+          # before the exit codes and logs below are printed. Capture the status instead.
+          MASTER_EXIT=0; wait $MASTER_PID || MASTER_EXIT=$?
+          VIEWER_EXIT=0; wait $VIEWER_PID || VIEWER_EXIT=$?
 
           if [ $MASTER_EXIT -ne 0 ] || [ $VIEWER_EXIT -ne 0 ]; then
             echo "Sample execution failed. Master exit code: $MASTER_EXIT, Viewer exit code: $VIEWER_EXIT"
