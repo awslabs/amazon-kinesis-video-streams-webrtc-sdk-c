@@ -4,7 +4,10 @@
 # idle behaviour of the sender pipeline in samples/common/GstMedia.c:
 #   1. The pipeline is stopped once the last viewer disconnects
 #      (log: "No viewers connected, stopping the media pipeline") and the master keeps running
-#   2. The pipeline is restarted for the next viewer, which receives decodable video
+#   2. The pipeline is restarted for the next viewer, which receives decodable video. Repeated
+#      RECONNECT_CYCLES times: a reconnecting viewer only gets a decodable stream if the sample
+#      replaces the key frame dropped during its SRTP setup, and in audio-video mode whether the
+#      audio or the video track reaches the viewer first is a coin toss per connection.
 #   3. The pipeline keeps running while at least one viewer is still connected
 #   4. The master exits cleanly on SIGINT while the pipeline is stopped (zero viewers)
 #   5. The master exits cleanly on SIGINT when no viewer ever connected
@@ -12,6 +15,8 @@
 # Usage: ./run-gst-idle-sample.sh <channel-name>
 #
 # Environment:
+#   KVS_GST_MEDIA_MODE       - video-only (default) or audio-video; passed to the master and the viewers
+#   KVS_GST_RECONNECT_CYCLES - number of stop/restart cycles in scenario 2. Defaults to 2.
 #   KVS_ICE_TRANSPORT_POLICY - ICE policy for master and viewers (not asserted on by this script)
 #   AWS_KVS_LOG_LEVEL        - must be 1 (VERBOSE): the viewer frame logs this script relies on
 #                              are VERBOSE. Defaults to 1.
@@ -35,6 +40,8 @@ SESSION_FREED="Freeing streaming session"
 MASTER_READY="set up done"
 THREAD_EXITED="Media sender thread exited gracefully"
 MASTER_ERRORS="Received error from GStreamer|State change to PLAYING failed|State change to NULL failed|Pipeline error"
+# Logged by the viewer's h264parse/h265parse when the stream ended without one decodable frame, i.e. no key frame
+VIEWER_NO_VALID_FRAMES="No valid frames found before end of stream"
 
 # Timeouts (seconds)
 READY_TIMEOUT=60      # master signaling setup
@@ -51,6 +58,27 @@ if [ "$LOG_LEVEL" -gt 1 ]; then
 fi
 export AWS_KVS_LOG_LEVEL="$LOG_LEVEL"
 
+MEDIA_MODE="${KVS_GST_MEDIA_MODE:-video-only}"
+case "$MEDIA_MODE" in
+    video-only | audio-video) ;;
+    *)
+        echo "FAILURE: KVS_GST_MEDIA_MODE must be video-only or audio-video, got $MEDIA_MODE"
+        exit 1
+        ;;
+esac
+RECONNECT_CYCLES="${KVS_GST_RECONNECT_CYCLES:-2}"
+if ! [ "$RECONNECT_CYCLES" -ge 1 ] 2>/dev/null; then
+    echo "FAILURE: KVS_GST_RECONNECT_CYCLES must be a positive integer, got $RECONNECT_CYCLES"
+    exit 1
+fi
+# viewer-1 (scenario 1), viewer-2..viewer-(1+RECONNECT_CYCLES) (scenario 2), one late joiner (scenario 3)
+LAST_RECONNECT_VIEWER="viewer-$((RECONNECT_CYCLES + 1))"
+LATE_VIEWER="viewer-$((RECONNECT_CYCLES + 2))"
+VIEWER_NAMES=""
+for i in $(seq 1 $((RECONNECT_CYCLES + 2))); do
+    VIEWER_NAMES="$VIEWER_NAMES viewer-$i"
+done
+
 # The sample logger is unflushed stdio; when stdout is a file the last 4 KB only appear on the
 # next write or at exit. Line-buffer it so the log can be asserted on while the process runs.
 STDBUF=""
@@ -64,7 +92,7 @@ fi
 
 cd "$SAMPLES_DIR" || exit 1
 rm -f .SignalingCache_* master.log master-no-viewer.log
-rm -rf viewer-1 viewer-2 viewer-3
+rm -rf viewer-[0-9]*
 
 MASTER_PID=""
 SOFT_FAILURES=0
@@ -88,7 +116,7 @@ dump_logs() {
     cat master.log 2>/dev/null || echo "(no master.log)"
     echo "=== Master Log (no viewer run) ==="
     cat master-no-viewer.log 2>/dev/null || echo "(no master-no-viewer.log)"
-    for v in viewer-1 viewer-2 viewer-3; do
+    for v in $VIEWER_NAMES; do
         echo "=== $v Log (tail) ==="
         tail -n 100 "$v/viewer.log" 2>/dev/null || echo "(no $v/viewer.log)"
     done
@@ -149,23 +177,27 @@ stop_process() {
 # start_master <log-file>: sets MASTER_PID
 start_master() {
     local logfile=$1
-    $STDBUF "$MASTER_BIN" "$CHANNEL_NAME" video-only testsrc > "$logfile" 2>&1 &
+    $STDBUF "$MASTER_BIN" "$CHANNEL_NAME" "$MEDIA_MODE" testsrc > "$logfile" 2>&1 &
     MASTER_PID=$!
     wait_for_count "$logfile" "$MASTER_READY" 1 "$READY_TIMEOUT" ||
         fail "master did not finish signaling setup within ${READY_TIMEOUT}s"
-    log "master started (pid $MASTER_PID)"
+    log "master started in $MEDIA_MODE mode (pid $MASTER_PID)"
 }
 
 # start_viewer <name>: runs the viewer in ./<name>/, sets VIEWER_PID, waits for first frames
 start_viewer() {
     local name=$1
     mkdir -p "$name"
-    (cd "$name" && exec $STDBUF "$VIEWER_BIN" "$CHANNEL_NAME" video-only) > "$name/viewer.log" 2>&1 &
+    (cd "$name" && exec $STDBUF "$VIEWER_BIN" "$CHANNEL_NAME" "$MEDIA_MODE") > "$name/viewer.log" 2>&1 &
     VIEWER_PID=$!
     VIEWER_PIDS="$VIEWER_PIDS $VIEWER_PID"
     wait_for_count "$name/viewer.log" "Video frame size" "$MIN_FRAMES" "$FRAMES_TIMEOUT" ||
         fail "$name did not receive $MIN_FRAMES video frames within ${FRAMES_TIMEOUT}s"
-    log "$name connected and receiving video (pid $VIEWER_PID)"
+    if [ "$MEDIA_MODE" = "audio-video" ]; then
+        wait_for_count "$name/viewer.log" "Audio frame size" "$MIN_FRAMES" "$FRAMES_TIMEOUT" ||
+            fail "$name did not receive $MIN_FRAMES audio frames within ${FRAMES_TIMEOUT}s"
+    fi
+    log "$name connected and receiving media (pid $VIEWER_PID)"
 }
 
 # stop_viewer <pid> <name>: a viewer that does not shut down cleanly is a soft failure; the
@@ -204,9 +236,14 @@ diagnose_viewer() {
     echo "--- end diagnostics for $name ---"
 }
 
-# check_decodable <name>: skipped for a viewer that did not exit cleanly (its mkv is not finalized)
+# check_decodable <name>: the decode step is skipped for a viewer that did not exit cleanly (its mkv is not
+# finalized), but a viewer whose parser never saw a decodable frame fails regardless of how it exited
 check_decodable() {
     local name=$1
+    if grep -q -- "$VIEWER_NO_VALID_FRAMES" "$name/viewer.log"; then
+        diagnose_viewer "$name"
+        fail "$name received video frames but none was decodable (no key frame)"
+    fi
     case " $UNCLEAN_VIEWERS " in
         *" $name "*)
             echo "WARNING: skipping decode check for $name (did not exit cleanly)"
@@ -217,7 +254,8 @@ check_decodable() {
         diagnose_viewer "$name"
         fail "$name/video.mkv was not generated or is empty"
     fi
-    if gst-launch-1.0 filesrc location="$name/video.mkv" ! matroskademux ! decodebin ! fakesink > "$name/decode.log" 2>&1; then
+    # demux.video_0 pins the check to the video track; in audio-video mode the mkv also carries opus
+    if gst-launch-1.0 filesrc location="$name/video.mkv" ! matroskademux name=demux demux.video_0 ! decodebin ! fakesink > "$name/decode.log" 2>&1; then
         echo "SUCCESS: $name/video.mkv decoded successfully ($(stat -c%s "$name/video.mkv" 2>/dev/null || stat -f%z "$name/video.mkv") bytes)"
     else
         cat "$name/decode.log"
@@ -248,41 +286,53 @@ assert_master_alive "after the last viewer disconnected"
 echo "SUCCESS: pipeline stopped after the last viewer disconnected, master still running"
 
 ###############################################################################
-# 2. Pipeline restarts for the next viewer
+# 2. Pipeline restarts for the next viewer (RECONNECT_CYCLES times)
 ###############################################################################
-log "Scenario 2: pipeline restarts for the next viewer"
-start_viewer viewer-2
-VIEWER_2_PID=$VIEWER_PID
+log "Scenario 2: pipeline restarts for the next viewer ($RECONNECT_CYCLES cycles)"
+for cycle in $(seq 1 "$RECONNECT_CYCLES"); do
+    name="viewer-$((cycle + 1))"
+    start_viewer "$name"
+    RECONNECT_VIEWER_PID=$VIEWER_PID
 
-[ "$(count_in master.log "$PIPELINE_STARTED")" -ge 2 ] || fail "pipeline was not restarted for the next viewer"
-echo "SUCCESS: pipeline restarted and the new viewer receives video"
+    [ "$(count_in master.log "$PIPELINE_STARTED")" -ge $((cycle + 1)) ] || fail "pipeline was not restarted for $name"
+    echo "SUCCESS: pipeline restarted and $name receives video (cycle $cycle)"
+
+    # The last reconnecting viewer stays connected for scenario 3
+    if [ "$cycle" -lt "$RECONNECT_CYCLES" ]; then
+        stop_viewer "$RECONNECT_VIEWER_PID" "$name"
+        wait_for_count master.log "$PIPELINE_STOPPED" $((cycle + 1)) "$STOP_TIMEOUT" ||
+            fail "pipeline was not stopped within ${STOP_TIMEOUT}s after $name disconnected"
+        assert_master_alive "after $name disconnected"
+    fi
+done
 
 ###############################################################################
 # 3. Pipeline keeps running while another viewer is still connected
 ###############################################################################
 log "Scenario 3: pipeline keeps running while another viewer is still connected"
-start_viewer viewer-3
-VIEWER_3_PID=$VIEWER_PID
+start_viewer "$LATE_VIEWER"
+LATE_VIEWER_PID=$VIEWER_PID
 
 STOPS_BEFORE=$(count_in master.log "$PIPELINE_STOPPED")
 FREED_BEFORE=$(count_in master.log "$SESSION_FREED")
-stop_viewer "$VIEWER_2_PID" viewer-2
+stop_viewer "$RECONNECT_VIEWER_PID" "$LAST_RECONNECT_VIEWER"
 wait_for_count master.log "$SESSION_FREED" $((FREED_BEFORE + 1)) "$STOP_TIMEOUT" ||
     fail "master did not free the departed viewer's session within ${STOP_TIMEOUT}s"
-FRAMES_BEFORE=$(count_in viewer-3/viewer.log "Video frame size")
+FRAMES_BEFORE=$(count_in "$LATE_VIEWER/viewer.log" "Video frame size")
 sleep "$SETTLE_SECONDS"
 STOPS_AFTER=$(count_in master.log "$PIPELINE_STOPPED")
-FRAMES_AFTER=$(count_in viewer-3/viewer.log "Video frame size")
+FRAMES_AFTER=$(count_in "$LATE_VIEWER/viewer.log" "Video frame size")
 
-[ "$STOPS_AFTER" -eq "$STOPS_BEFORE" ] || fail "pipeline was stopped while viewer-3 was still connected"
-[ "$FRAMES_AFTER" -gt "$FRAMES_BEFORE" ] || fail "viewer-3 stopped receiving video after viewer-2 left ($FRAMES_BEFORE -> $FRAMES_AFTER frames)"
+[ "$STOPS_AFTER" -eq "$STOPS_BEFORE" ] || fail "pipeline was stopped while $LATE_VIEWER was still connected"
+[ "$FRAMES_AFTER" -gt "$FRAMES_BEFORE" ] ||
+    fail "$LATE_VIEWER stopped receiving video after $LAST_RECONNECT_VIEWER left ($FRAMES_BEFORE -> $FRAMES_AFTER frames)"
 assert_master_alive "after one of two viewers disconnected"
 echo "SUCCESS: pipeline kept running for the remaining viewer ($FRAMES_BEFORE -> $FRAMES_AFTER frames)"
 
-stop_viewer "$VIEWER_3_PID" viewer-3
+stop_viewer "$LATE_VIEWER_PID" "$LATE_VIEWER"
 wait_for_count master.log "$PIPELINE_STOPPED" $((STOPS_BEFORE + 1)) "$STOP_TIMEOUT" ||
-    fail "pipeline was not stopped within ${STOP_TIMEOUT}s after the last viewer disconnected (second cycle)"
-assert_master_alive "after the second stop"
+    fail "pipeline was not stopped within ${STOP_TIMEOUT}s after the last viewer disconnected (final cycle)"
+assert_master_alive "after the final stop"
 echo "SUCCESS: pipeline stopped again after the last viewer disconnected"
 
 ###############################################################################
@@ -296,17 +346,18 @@ grep -q -- "$THREAD_EXITED" master.log || fail "media sender thread did not repo
 MASTER_PID=""
 echo "SUCCESS: master exited cleanly with the pipeline stopped"
 
-# Whole-run checks on the master log
+# Whole-run checks on the master log: one start/stop for viewer-1 plus one per reconnect cycle
+EXPECTED_CYCLES=$((RECONNECT_CYCLES + 1))
 STARTS=$(count_in master.log "$PIPELINE_STARTED")
 STOPS=$(count_in master.log "$PIPELINE_STOPPED")
-[ "$STARTS" -eq 2 ] || fail "expected the pipeline to start exactly twice, saw $STARTS"
-[ "$STOPS" -eq 2 ] || fail "expected the pipeline to stop exactly twice, saw $STOPS"
+[ "$STARTS" -eq "$EXPECTED_CYCLES" ] || fail "expected the pipeline to start exactly $EXPECTED_CYCLES times, saw $STARTS"
+[ "$STOPS" -eq "$EXPECTED_CYCLES" ] || fail "expected the pipeline to stop exactly $EXPECTED_CYCLES times, saw $STOPS"
 if grep -E -- "$MASTER_ERRORS" master.log; then
     fail "master log contains GStreamer/state-change errors"
 fi
 echo "SUCCESS: pipeline started $STARTS times and stopped $STOPS times with no GStreamer errors"
 
-for v in viewer-1 viewer-2 viewer-3; do
+for v in $VIEWER_NAMES; do
     check_decodable "$v"
 done
 
@@ -327,4 +378,4 @@ if [ "$SOFT_FAILURES" -ne 0 ]; then
     fail "$SOFT_FAILURES viewer(s) did not shut down cleanly (see WARNING lines above); all master-side checks passed"
 fi
 
-echo "SUCCESS: GStreamer idle pipeline sample completed on channel $CHANNEL_NAME"
+echo "SUCCESS: GStreamer idle pipeline sample ($MEDIA_MODE, $RECONNECT_CYCLES reconnect cycles) completed on channel $CHANNEL_NAME"
