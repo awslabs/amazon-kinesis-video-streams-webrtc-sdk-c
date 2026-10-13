@@ -205,6 +205,8 @@ struct __IceAgent {
     volatile ATOMIC_BOOL processStun;
     volatile ATOMIC_BOOL addedRelayCandidate;
     volatile ATOMIC_BOOL stopGathering;
+    // Sends running outside the agent lock (iceAgentSendPacket)
+    volatile SIZE_T sendsInFlight;
 
     CHAR localUsername[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
     CHAR localPassword[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
@@ -364,6 +366,7 @@ STATUS iceCandidateSerialize(PIceCandidate, PCHAR, PUINT32);
  * @return - STATUS - status of execution
  */
 STATUS iceAgentSendPacket(PIceAgent, PBYTE, UINT32);
+VOID iceAgentWaitForSendsInFlight(PIceAgent);
 
 /**
  * gather local IP addresses and create a udp port. If port creation succeeded then create a new candidate

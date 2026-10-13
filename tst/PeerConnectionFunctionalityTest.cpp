@@ -905,6 +905,65 @@ TEST_F(PeerConnectionFunctionalityTest, bidirectionalConcurrentMediaSend)
     freePeerConnection(&answerPc);
 }
 
+// Both peers keep sending while the offerer restarts ICE. Each restart frees the old pair's socket
+// while sends that picked that pair may still be running outside the agent lock; run it under a
+// sanitizer to catch a send on the freed socket.
+TEST_F(PeerConnectionFunctionalityTest, iceRestartWhileSendingMedia)
+{
+    auto const frameBufferSize = 200000;
+    auto const restarts = 3;
+
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack;
+    PRtcRtpTransceiver offerVideoTransceiver, answerVideoTransceiver;
+    ATOMIC_BOOL stopSending = FALSE;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+
+    ASSERT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    auto sender = [frameBufferSize, &stopSending](PRtcRtpTransceiver transceiver) {
+        Frame videoFrame;
+        MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
+        videoFrame.frameData = (PBYTE) MEMALLOC(frameBufferSize);
+        videoFrame.size = TEST_VIDEO_FRAME_SIZE;
+        MEMSET(videoFrame.frameData, 0x11, videoFrame.size);
+        while (!ATOMIC_LOAD_BOOL(&stopSending)) {
+            // Sends fail or are dropped while the pair is being replaced
+            writeFrame(transceiver, &videoFrame);
+            videoFrame.presentationTs += (HUNDREDS_OF_NANOS_IN_A_SECOND / 25);
+            THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        }
+        MEMFREE(videoFrame.frameData);
+    };
+
+    std::thread offerSender(sender, offerVideoTransceiver);
+    std::thread answerSender(sender, answerVideoTransceiver);
+
+    for (auto i = 0; i < restarts; i++) {
+        EXPECT_EQ(restartIce(offerPc), STATUS_SUCCESS);
+        MEMSET(&stateChangeCount, 0x00, SIZEOF(stateChangeCount));
+        EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    }
+
+    ATOMIC_STORE_BOOL(&stopSending, TRUE);
+    offerSender.join();
+    answerSender.join();
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
 // Same test as exchangeMedia, but assert that if one side is RSA DTLS and Key Extraction works
 TEST_F(PeerConnectionFunctionalityTest, exchangeMediaRSA)
 {
