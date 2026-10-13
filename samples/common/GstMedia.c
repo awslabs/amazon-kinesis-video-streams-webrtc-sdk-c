@@ -392,7 +392,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
                 continue;
             }
             stateChangeStatus = gst_element_set_state(senderPipeline, GST_STATE_PLAYING);
-            DLOGD("[KVS GStreamer Master] State change null->playing returned status: %d", stateChangeStatus);
+            DLOGI("[KVS GStreamer Master] State change null->playing returned status: %d", stateChangeStatus);
             CHK_ERR(stateChangeStatus != GST_STATE_CHANGE_FAILURE, STATUS_FORMAT_ERROR, "State change to PLAYING failed!");
             pipelinePlaying = TRUE;
         }

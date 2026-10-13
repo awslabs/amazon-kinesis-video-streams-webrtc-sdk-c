@@ -14,7 +14,7 @@
 # Environment:
 #   KVS_ICE_TRANSPORT_POLICY - ICE policy for master and viewers (not asserted on by this script)
 #   AWS_KVS_LOG_LEVEL        - must be 1 (VERBOSE): the viewer frame logs this script relies on
-#                              are VERBOSE and the pipeline state logs are DEBUG. Defaults to 1.
+#                              are VERBOSE. Defaults to 1.
 #
 # Each viewer runs in its own sub-directory because kvsWebrtcClientViewerGstSample writes
 # video.mkv relative to the working directory.
