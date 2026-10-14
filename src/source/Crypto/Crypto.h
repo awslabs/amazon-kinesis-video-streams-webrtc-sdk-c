@@ -23,6 +23,18 @@ extern "C" {
 #define KVS_SSL_GET_PEER_CERTIFICATE(ssl) SSL_get_peer_certificate(ssl)
 #endif
 
+/*
+ * X509_get_notBefore/X509_get_notAfter are deprecated 1.1.0 aliases that were removed in 4.0.
+ * The X509_getm_* variants return the mutable ASN1_TIME* that X509_gmtime_adj() needs and exist since 1.1.0.
+ */
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+#define KVS_X509_GETM_NOTBEFORE(cert) X509_getm_notBefore(cert)
+#define KVS_X509_GETM_NOTAFTER(cert)  X509_getm_notAfter(cert)
+#else
+#define KVS_X509_GETM_NOTBEFORE(cert) X509_get_notBefore(cert)
+#define KVS_X509_GETM_NOTAFTER(cert)  X509_get_notAfter(cert)
+#endif
+
 #define KVS_RSA_F4             RSA_F4
 #define KVS_MD5_DIGEST_LENGTH  MD5_DIGEST_LENGTH
 #define KVS_SHA1_DIGEST_LENGTH SHA_DIGEST_LENGTH
