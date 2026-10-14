@@ -32,6 +32,55 @@ TEST_F(DataChannelApiTest, createDataChannel_Disconnected)
     freePeerConnection(&pPeerConnection);
 }
 
+static VOID countOnOpen(UINT64 customData, PRtcDataChannel pDataChannel)
+{
+    UNUSED_PARAM(pDataChannel);
+    ATOMIC_INCREMENT((volatile SIZE_T*) customData);
+}
+
+static VOID ignoreMessage(UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMsg, UINT32 pMsgLen)
+{
+    UNUSED_PARAM(customData);
+    UNUSED_PARAM(pDataChannel);
+    UNUSED_PARAM(isBinary);
+    UNUSED_PARAM(pMsg);
+    UNUSED_PARAM(pMsgLen);
+}
+
+// Before the association, the callbacks are stored with the channel and onOpen waits for the association
+TEST_F(DataChannelApiTest, createDataChannelWithCallbacks_Disconnected)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection pPeerConnection = nullptr;
+    PRtcDataChannel pDataChannel = nullptr;
+    PKvsDataChannel pKvsDataChannel = nullptr;
+    volatile SIZE_T opened = 0;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    EXPECT_EQ(createPeerConnection(&configuration, &pPeerConnection), STATUS_SUCCESS);
+
+    EXPECT_EQ(createDataChannelWithCallbacks(pPeerConnection, (PCHAR) "dc", nullptr, (UINT64) &opened, ignoreMessage, countOnOpen, &pDataChannel),
+              STATUS_SUCCESS);
+    pKvsDataChannel = (PKvsDataChannel) pDataChannel;
+    EXPECT_EQ((RtcOnMessage) ignoreMessage, pKvsDataChannel->onMessage);
+    EXPECT_EQ((RtcOnOpen) countOnOpen, pKvsDataChannel->onOpen);
+    EXPECT_EQ((UINT64) &opened, pKvsDataChannel->onMessageCustomData);
+    EXPECT_EQ((UINT64) &opened, pKvsDataChannel->onOpenCustomData);
+    EXPECT_EQ(0, ATOMIC_LOAD(&opened));
+
+    // Both callbacks are optional
+    EXPECT_EQ(createDataChannelWithCallbacks(pPeerConnection, (PCHAR) "dc2", nullptr, 0, nullptr, nullptr, &pDataChannel), STATUS_SUCCESS);
+    EXPECT_EQ(nullptr, ((PKvsDataChannel) pDataChannel)->onMessage);
+
+    EXPECT_EQ(createDataChannelWithCallbacks(nullptr, (PCHAR) "dc", nullptr, 0, ignoreMessage, countOnOpen, &pDataChannel), STATUS_NULL_ARG);
+    EXPECT_EQ(createDataChannelWithCallbacks(pPeerConnection, nullptr, nullptr, 0, ignoreMessage, countOnOpen, &pDataChannel), STATUS_NULL_ARG);
+    EXPECT_EQ(createDataChannelWithCallbacks(pPeerConnection, (PCHAR) "dc", nullptr, 0, ignoreMessage, countOnOpen, nullptr), STATUS_NULL_ARG);
+
+    closePeerConnection(pPeerConnection);
+    freePeerConnection(&pPeerConnection);
+    EXPECT_EQ(0, ATOMIC_LOAD(&opened));
+}
+
 TEST_F(DataChannelApiTest, handleDcepPacket_RejectsOversizedLabelLength)
 {
     /** Construct a minimal DCEP DataChannelOpen packet (13 bytes total):

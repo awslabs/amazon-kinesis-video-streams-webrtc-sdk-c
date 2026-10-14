@@ -699,7 +699,6 @@ VOID onSctpSessionDataChannelMessage(UINT64 customData, UINT32 channelId, BOOL i
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
     PKvsDataChannel pKvsDataChannel = NULL;
     UINT64 hashValue = 0;
-    BOOL queued = FALSE;
     RtcOnMessage onMessage = NULL;
     UINT64 onMessageCustomData = 0;
 
@@ -714,18 +713,19 @@ VOID onSctpSessionDataChannelMessage(UINT64 customData, UINT32 channelId, BOOL i
     if (STATUS_SUCCEEDED(retStatus) && pKvsDataChannel != NULL) {
         pKvsDataChannel->rtcDataChannelDiagnostics.messagesReceived++;
         pKvsDataChannel->rtcDataChannelDiagnostics.bytesReceived += pMessageLen;
-        if (STATUS_FAILED(hashTableUpsert(pKvsPeerConnection->pDataChannels, channelId, (UINT64) pKvsDataChannel))) {
-            DLOGW("Failed to update entry in hash table with recent changes to data channel");
-        }
-        // A negotiated channel created on a live association is OPEN before the application sets onMessage
-        queued = dataChannelQueueMessageIfPending(pKvsDataChannel, isBinary, pMessage, pMessageLen);
         onMessage = pKvsDataChannel->onMessage;
         onMessageCustomData = pKvsDataChannel->onMessageCustomData;
     }
     MUTEX_UNLOCK(pKvsPeerConnection->dataChannelsLock);
     CHK_STATUS(retStatus);
-    CHK(!queued, STATUS_SUCCESS);
     CHK(pKvsDataChannel != NULL, STATUS_INTERNAL_ERROR);
+    if (onMessage == NULL) {
+        // Created without callbacks: a peer can send before dataChannelOnMessage is called
+        DLOGW("Data channel %" PRIu32 " has no onMessage callback; message dropped. Use createDataChannelWithCallbacks to "
+              "receive from the first message",
+              channelId);
+        CHK(FALSE, STATUS_SUCCESS);
+    }
     onMessage(onMessageCustomData, &pKvsDataChannel->dataChannel, isBinary, pMessage, pMessageLen);
 
 CleanUp:

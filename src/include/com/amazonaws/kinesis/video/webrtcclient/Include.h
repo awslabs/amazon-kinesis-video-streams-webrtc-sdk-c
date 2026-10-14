@@ -2317,6 +2317,8 @@ PUBLIC_API STATUS addIceCandidate(PRtcPeerConnection, PCHAR);
  * NOTE: A channel that uses in-band negotiation (DCEP) can only be created before the SCTP association is
  * established. A negotiated channel (RtcDataChannelInit.negotiated = TRUE with an id) can be created at any
  * time; created after the association, it is open immediately and its onOpen callback fires on registration.
+ * Such a channel can receive before dataChannelOnMessage() is called, and those messages are dropped: create it
+ * with createDataChannelWithCallbacks() instead.
  *
  * Reference: https://www.w3.org/TR/webrtc/#methods-11
  *
@@ -2330,11 +2332,31 @@ PUBLIC_API STATUS addIceCandidate(PRtcPeerConnection, PCHAR);
 PUBLIC_API STATUS createDataChannel(PRtcPeerConnection, PCHAR, PRtcDataChannelInit, PRtcDataChannel*);
 
 /**
+ * @brief createDataChannelWithCallbacks is createDataChannel() with the message and open callbacks set as the
+ * channel is created, so that it receives from the first message.
+ *
+ * Use it for a negotiated channel created after the SCTP association is established: that channel is open as
+ * soon as it exists, and the peer may send on it right away. Its onOpen callback runs before this function
+ * returns. For other channels, it is the same as createDataChannel() followed by dataChannelOnMessage() and
+ * dataChannelOnOpen().
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in] PCHAR Data channel Name
+ * @param[in] PRtcDataChannelInit Allowed to be NULL/defines underlying channel properties
+ * @param[in] UINT64 User customData passed to both callbacks
+ * @param[in] RtcOnMessage Message callback; allowed to be NULL
+ * @param[in] RtcOnOpen Open callback; allowed to be NULL
+ * @param[out] PRtcDataChannel* Created data channel with supplied channel name
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS createDataChannelWithCallbacks(PRtcPeerConnection, PCHAR, PRtcDataChannelInit, UINT64, RtcOnMessage, RtcOnOpen, PRtcDataChannel*);
+
+/**
  * @brief Set a callback for data channel message
  *
- * Messages that arrive before the callback is set (for example on a negotiated channel created after the
- * SCTP association is established) are held, up to 64 messages or 64 KB, and delivered in order from the
- * thread that calls this function, before it returns. Later messages are delivered from the SCTP thread.
+ * Messages that arrive before the callback is set are dropped. A negotiated channel created after the SCTP
+ * association is established can receive as soon as it exists: create it with createDataChannelWithCallbacks().
  *
  * @param[in] PRtcDataChannel Data channel struct created by createDataChannel()
  * @param[in] UINT64 User customData that will be passed along when RtcOnMessage is called
