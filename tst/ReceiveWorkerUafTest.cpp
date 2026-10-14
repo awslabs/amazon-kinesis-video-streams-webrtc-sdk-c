@@ -133,7 +133,7 @@ static STATUS freeFromCallbackMessageReceivedFn(UINT64 customData, PReceivedSign
 }
 
 // freeSignaling() waits for every receive worker to exit, so calling it from messageReceivedFn would wait on
-// itself forever. It must refuse with STATUS_INVALID_OPERATION and leave the client intact instead.
+// itself forever. It must refuse with STATUS_SIGNALING_FREE_FROM_CALLBACK and leave the client intact instead.
 TEST_F(ReceiveWorkerUafTest, freeSignalingFromReceiveCallbackIsRejected)
 {
     // Heap-allocated: if the callback never reports back, the worker may still write to this context after the
@@ -157,7 +157,7 @@ TEST_F(ReceiveWorkerUafTest, freeSignalingFromReceiveCallbackIsRejected)
         done = pCtx->cv.wait_for(guard, std::chrono::seconds(5), [pCtx] { return pCtx->done; });
     }
     ASSERT_TRUE(done) << "freeSignaling() called from messageReceivedFn did not return (self-wait deadlock); leaking the client and context";
-    EXPECT_EQ(STATUS_INVALID_OPERATION, pCtx->freeStatus);
+    EXPECT_EQ(STATUS_SIGNALING_FREE_FROM_CALLBACK, pCtx->freeStatus);
 
     // The client must still be usable and freeable from a non-signaling thread.
     EXPECT_FALSE(ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown));

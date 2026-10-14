@@ -424,7 +424,7 @@ TEST_F(SignalingShutdownRaceTest, freeWaitsForCallbackBlockedOnApplicationLock)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// free from errorReportFn on the WSS listener thread: Include.h promises STATUS_INVALID_OPERATION when
+// free from errorReportFn on the WSS listener thread: Include.h promises STATUS_SIGNALING_FREE_FROM_CALLBACK when
 // freeSignalingClient() is called from errorReportFn,
 // but isSignalingOwnedThread() only knows the reconnect thread and receive workers. errorReportFn also fires on
 // the WSS listener thread: lwsListenerHandler() holds listenerTracker.lock across lwsCompleteSync()
@@ -505,7 +505,7 @@ TEST_F(SignalingShutdownRaceTest, freeFromErrorReportFnOnListenerThreadIsRejecte
     EXPECT_TRUE(returned) << "freeSignalingClient() called from errorReportFn on the listener thread never returned: it is waiting on "
                              "listenerTracker.lock, which that same thread holds (self-deadlock)";
     if (returned) {
-        EXPECT_EQ(STATUS_INVALID_OPERATION, pCtx->freeStatus.load()) << "Include.h documents STATUS_INVALID_OPERATION for this call";
+        EXPECT_EQ(STATUS_SIGNALING_FREE_FROM_CALLBACK, pCtx->freeStatus.load()) << "Include.h documents STATUS_SIGNALING_FREE_FROM_CALLBACK for this call";
         if (pCtx->freeStatus.load() != STATUS_SUCCESS) {
             THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
             MEMFREE(pSignalingClient->pOngoingCallInfo);
@@ -752,7 +752,7 @@ TEST_F(SignalingShutdownRaceTest, freeFromErrorReportFnOnOlderReconnectThreadIsR
         return;
     }
 
-    EXPECT_EQ(STATUS_INVALID_OPERATION, pCtx->freeStatus.load()) << "Include.h documents STATUS_INVALID_OPERATION for this call";
+    EXPECT_EQ(STATUS_SIGNALING_FREE_FROM_CALLBACK, pCtx->freeStatus.load()) << "Include.h documents STATUS_SIGNALING_FREE_FROM_CALLBACK for this call";
     if (pCtx->freeStatus.load() == STATUS_SUCCESS) {
         // The client is gone and thread A is parked on it; nothing left to clean up safely.
         freeStaticCredentialProvider(&pCredentialProvider);
@@ -953,7 +953,7 @@ TEST_F(SignalingShutdownRaceTest, freeFromThreadWithRecycledReconnectTidIsAccept
     }
 
     DLOGI("Thread id reused after %u thread(s)", attempts);
-    EXPECT_NE(STATUS_INVALID_OPERATION, ctx.freeStatus)
+    EXPECT_NE(STATUS_SIGNALING_FREE_FROM_CALLBACK, ctx.freeStatus)
         << "freeSignalingClient() from an ordinary app thread was rejected because the thread inherited the id of an exited reconnect thread";
     EXPECT_EQ(STATUS_SUCCESS, ctx.freeStatus);
     EXPECT_TRUE(ctx.freed);

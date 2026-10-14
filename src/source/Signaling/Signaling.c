@@ -341,8 +341,8 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
     pSignalingClient = *ppSignalingClient;
     CHK(pSignalingClient != NULL, retStatus);
 
-    CHK_ERR(!isSignalingOwnedThread(pSignalingClient), STATUS_INVALID_OPERATION,
-            "freeSignalingClient() must not be called from a signaling callback (message, state change or error callback)");
+    CHK_ERR(!isSignalingOwnedThread(pSignalingClient), STATUS_SIGNALING_FREE_FROM_CALLBACK,
+            "freeSignalingClient() must not be called from a signaling callback (message, state change or error); client left running");
 
     ATOMIC_STORE_BOOL(&pSignalingClient->shutdown, TRUE);
 

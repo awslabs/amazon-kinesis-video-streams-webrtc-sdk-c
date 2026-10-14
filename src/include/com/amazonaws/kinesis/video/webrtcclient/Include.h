@@ -506,6 +506,7 @@ extern "C" {
 #define STATUS_SIGNALING_JOIN_SESSION_CALL_FAILED                  STATUS_SIGNALING_BASE + 0x0000004a
 #define STATUS_SIGNALING_JOIN_SESSION_CONNECTED_FAILED             STATUS_SIGNALING_BASE + 0x0000004b
 #define STATUS_SIGNALING_DESCRIBE_MEDIA_CALL_FAILED                STATUS_SIGNALING_BASE + 0x0000004c
+#define STATUS_SIGNALING_FREE_FROM_CALLBACK                        STATUS_SIGNALING_BASE + 0x0000004d
 
 /*!@} */
 
@@ -2382,7 +2383,7 @@ PUBLIC_API STATUS createSignalingClientSync(PSignalingClientInfo, PChannelInfo, 
  *       attempt is in progress.
  * NOTE: Must not be called from a signaling callback. A call from messageReceivedFn, or from stateChangeFn /
  *       errorReportFn while they run on one of the SDK's internal threads, is detected and returns
- *       STATUS_INVALID_OPERATION, leaving the handle valid. stateChangeFn and errorReportFn can also be
+ *       STATUS_SIGNALING_FREE_FROM_CALLBACK, leaving the handle valid. stateChangeFn and errorReportFn can also be
  *       invoked on the application's own thread from inside a signaling API call (for example
  *       signalingClientFetchSync() or signalingClientConnectSync()); such a call cannot be detected and must
  *       not free the client either, since the API call is still using it. Free the client from a thread that
