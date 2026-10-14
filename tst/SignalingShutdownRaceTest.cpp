@@ -268,7 +268,12 @@ TEST_F(SignalingShutdownRaceTest, httpsCallDoesNotWriteToFreedWsiOnNormalComplet
 // call to 127.0.0.1 is refused at once, so everything the call takes beyond a few milliseconds is time spent waiting
 // for that lock.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-static const UINT32 kHttpsCompletionBudgetMs = 2000;
+// The maximum EXTRA latency the exit block's lock contention may add over a contention-free call.
+// The absolute call time is dominated by the connect to 127.0.0.1, which is refused immediately on
+// Linux/macOS but takes ~8 s on the Windows runner (the loopback refusal is not reported at once).
+// So the test measures a contention-free baseline first and asserts only on the difference, never on
+// an absolute wall-clock time.
+static const UINT32 kHttpsContentionBudgetMs = 2000;
 
 struct ParkedServiceLoopContext {
     PSignalingClient pSignalingClient = NULL;
@@ -331,6 +336,15 @@ TEST_F(SignalingShutdownRaceTest, httpsCallCompletesWhileListenerIsParkedInLwsSe
     ASSERT_EQ(STATUS_SUCCESS, createShutdownRaceClient(mChannelName, mRegion, mCaCertPath, mLogLevel, options, &pCredentialProvider, &pSignalingClient));
     ctx.pSignalingClient = pSignalingClient;
 
+    // Baseline: one describeChannelLws() with no parked thread holding lwsServiceLock. This measures only
+    // the platform's connect-to-127.0.0.1 time (immediate on Linux/macOS, ~8 s on the Windows runner).
+    // currentWsi[PROTOCOL_INDEX_HTTPS] is cleared on return (LwsApiCalls.c lwsCompleteSync exit block), so
+    // the client is ready for the contended call below. The contended call's connect costs the same, so the
+    // difference between the two isolates the latency the lock contention adds.
+    UINT64 baselineStart = GETTIME();
+    (void) describeChannelLws(pSignalingClient, GETTIME());
+    UINT32 baselineMs = (UINT32) ((GETTIME() - baselineStart) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+
     std::thread serviceLoop(parkedServiceLoopThread, &ctx);
     ASSERT_TRUE(waitFor([&ctx] { return ctx.holdingLock.load(); }, 5000));
 
@@ -339,7 +353,10 @@ TEST_F(SignalingShutdownRaceTest, httpsCallCompletesWhileListenerIsParkedInLwsSe
     if (waitFor([pSignalingClient] { return httpsWsiExists(pSignalingClient); }, 5000)) {
         ctx.httpsWsiCreated = true;
     }
-    bool returned = waitFor([&ctx] { return ctx.describeReturned.load(); }, 3 * kHttpsCompletionBudgetMs);
+    // With the fix the contended call returns in about baselineMs; without it, it stalls on the blocking lock
+    // until this wait gives up. The window is the baseline plus a generous multiple of the budget so the
+    // negative control (old blocking exit block) clearly overshoots the budget rather than landing on its edge.
+    bool returned = waitFor([&ctx] { return ctx.describeReturned.load(); }, baselineMs + 3 * kHttpsContentionBudgetMs);
 
     // Let the parked thread out of lws_service() whether or not the call came back on its own.
     ctx.stop = true;
@@ -347,11 +364,15 @@ TEST_F(SignalingShutdownRaceTest, httpsCallCompletesWhileListenerIsParkedInLwsSe
     serviceLoop.join();
     describe.join();
 
-    DLOGI("describeChannelLws returned 0x%08x after %u ms", ctx.describeStatus.load(), ctx.describeDurationMs.load());
+    UINT32 contendedMs = ctx.describeDurationMs.load();
+    UINT32 extraMs = contendedMs > baselineMs ? contendedMs - baselineMs : 0;
+    DLOGI("describeChannelLws returned 0x%08x after %u ms (baseline %u ms, extra %u ms)", ctx.describeStatus.load(), contendedMs,
+          baselineMs, extraMs);
     EXPECT_TRUE(ctx.serviced.load()) << "the parked thread never entered lws_service(); the scenario was not exercised";
     EXPECT_TRUE(returned) << "describeChannelLws() did not return while another thread sat in lws_service() holding lwsServiceLock";
-    EXPECT_LT(ctx.describeDurationMs.load(), kHttpsCompletionBudgetMs)
-        << "the HTTPS call waited for the parked lws_service() call to return instead of waking it";
+    EXPECT_LT(extraMs, kHttpsContentionBudgetMs)
+        << "the HTTPS call waited for the parked lws_service() call to return instead of waking it (contended " << contendedMs
+        << " ms vs baseline " << baselineMs << " ms)";
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignaling(&pSignalingClient));
     freeStaticCredentialProvider(&pCredentialProvider);
@@ -940,7 +961,15 @@ TEST_F(SignalingShutdownRaceTest, freeFromThreadWithRecycledReconnectTidIsAccept
     THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     ASSERT_NE((SIZE_T) 0, ctx.reconnectTid.load());
 
-    EXPECT_EQ((PSignalingThreadNode) NULL, pSignalingClient->pActiveReconnectThreads)
+    // Read under the tracker lock the SDK writes pActiveReconnectThreads under (reconnectThreadExited()).
+    // The reconnect thread has exited and the sleep above orders this read after it in wall-clock time,
+    // but ThreadSanitizer does not treat a sleep as a synchronization edge, so an unlocked read here is a
+    // reported data race against that locked write.
+    PSignalingThreadNode pActiveReconnect;
+    MUTEX_LOCK(pSignalingClient->reconnecterTracker.lock);
+    pActiveReconnect = pSignalingClient->pActiveReconnectThreads;
+    MUTEX_UNLOCK(pSignalingClient->reconnecterTracker.lock);
+    EXPECT_EQ((PSignalingThreadNode) NULL, pActiveReconnect)
         << "pActiveReconnectThreads still lists a reconnect thread that has exited";
 
     for (attempts = 0; attempts < 100 && !ctx.reused; attempts++) {
