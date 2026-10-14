@@ -13,8 +13,8 @@
 
 #ifdef SIGNALING_SHUTDOWN_TEST_ASAN
 #include <sanitizer/asan_interface.h>
-#include <libwebsockets.h>
 #endif
+#include <libwebsockets.h>
 
 namespace com {
 namespace amazonaws {
@@ -248,6 +248,112 @@ TEST_F(SignalingShutdownRaceTest, httpsCallDoesNotWriteToFreedWsiOnConnectionRef
 TEST_F(SignalingShutdownRaceTest, httpsCallDoesNotWriteToFreedWsiOnNormalCompletion)
 {
     runHttpsWsiWriteAfterFreeProbe(mChannelName, mRegion, mCaCertPath, mLogLevel, NULL);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// HTTPS call completing while the WSS listener is parked in lws_service(): the listener holds lwsServiceLock across
+// every lws_service() call, and on an idle connection that call only returns on the next lws timer (the validity
+// ping, 10 s apart). lwsCompleteSync()'s exit block needs lwsServiceLock to clear the wsi's opaque pointer; taking
+// it with a blocking lock made every HTTPS call made while the listener was idle (an ICE server refresh, for
+// example) take up to a ping interval to return. The acquire loop at the top of the same function already avoids
+// this by trying the lock and waking the event loop; the exit block must do the same.
+//
+// The thread below does what lwsListenerHandler() does with the lock: it runs the real lws_service() on the client's
+// context under lwsServiceLock, releasing it between calls and yielding when an HTTPS caller signals contention. It
+// takes the lock before the HTTPS call starts but enters lws_service() only once that call has created its wsi: with
+// no WSS connection, lwsCompleteSync() runs lws_client_connect_via_info() without lwsServiceLock, and lws is not
+// thread-safe, so the two must not overlap (a real listener always has a WSS wsi, which makes the HTTPS caller take
+// the lock first). The test body watches currentWsi[HTTPS] under lwsSerializerLock, the lock its writer holds, and
+// signals the parked thread. With nothing else connected, lws_service() blocks until something wakes it. The HTTPS
+// call to 127.0.0.1 is refused at once, so everything the call takes beyond a few milliseconds is time spent waiting
+// for that lock.
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+static const UINT32 kHttpsCompletionBudgetMs = 2000;
+
+struct ParkedServiceLoopContext {
+    PSignalingClient pSignalingClient = NULL;
+    std::atomic<bool> holdingLock{false};
+    std::atomic<bool> httpsWsiCreated{false};
+    std::atomic<bool> serviced{false};
+    std::atomic<bool> stop{false};
+    std::atomic<bool> describeReturned{false};
+    std::atomic<STATUS> describeStatus{STATUS_SUCCESS};
+    std::atomic<UINT64> describeDurationMs{0};
+};
+
+static void parkedServiceLoopThread(ParkedServiceLoopContext* pCtx)
+{
+    PSignalingClient pSignalingClient = pCtx->pSignalingClient;
+    struct lws_context* pContext = (struct lws_context*) pSignalingClient->pWebsocketContext;
+
+    MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+    pCtx->holdingLock = true;
+    while (!pCtx->stop.load() && !pCtx->httpsWsiCreated.load()) {
+        THREAD_SLEEP(SHUTDOWN_RACE_POLL_INTERVAL);
+    }
+    while (!pCtx->stop.load()) {
+        lws_service(pContext, 0);
+        pCtx->serviced = true;
+        MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
+        if (ATOMIC_LOAD_BOOL(&pSignalingClient->serviceLockContention)) {
+            THREAD_SLEEP(LWS_SERVICE_LOOP_ITERATION_WAIT);
+        }
+        MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+    }
+    MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
+}
+
+static void describeChannelThread(ParkedServiceLoopContext* pCtx)
+{
+    UINT64 start = GETTIME();
+    pCtx->describeStatus = describeChannelLws(pCtx->pSignalingClient, GETTIME());
+    pCtx->describeDurationMs = (GETTIME() - start) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    pCtx->describeReturned = true;
+}
+
+static bool httpsWsiExists(PSignalingClient pSignalingClient)
+{
+    bool exists;
+    MUTEX_LOCK(pSignalingClient->lwsSerializerLock);
+    exists = (pSignalingClient->currentWsi[PROTOCOL_INDEX_HTTPS] != NULL);
+    MUTEX_UNLOCK(pSignalingClient->lwsSerializerLock);
+    return exists;
+}
+
+TEST_F(SignalingShutdownRaceTest, httpsCallCompletesWhileListenerIsParkedInLwsService)
+{
+    ParkedServiceLoopContext ctx;
+    ShutdownRaceClientOptions options;
+    PAwsCredentialProvider pCredentialProvider = NULL;
+    PSignalingClient pSignalingClient = NULL;
+
+    ASSERT_EQ(STATUS_SUCCESS, createShutdownRaceClient(mChannelName, mRegion, mCaCertPath, mLogLevel, options, &pCredentialProvider, &pSignalingClient));
+    ctx.pSignalingClient = pSignalingClient;
+
+    std::thread serviceLoop(parkedServiceLoopThread, &ctx);
+    ASSERT_TRUE(waitFor([&ctx] { return ctx.holdingLock.load(); }, 5000));
+
+    std::thread describe(describeChannelThread, &ctx);
+    // The call cannot finish until the parked thread services it, so this wait is bounded by the connect itself.
+    if (waitFor([pSignalingClient] { return httpsWsiExists(pSignalingClient); }, 5000)) {
+        ctx.httpsWsiCreated = true;
+    }
+    bool returned = waitFor([&ctx] { return ctx.describeReturned.load(); }, 3 * kHttpsCompletionBudgetMs);
+
+    // Let the parked thread out of lws_service() whether or not the call came back on its own.
+    ctx.stop = true;
+    lws_cancel_service((struct lws_context*) pSignalingClient->pWebsocketContext);
+    serviceLoop.join();
+    describe.join();
+
+    DLOGI("describeChannelLws returned 0x%08x after %llu ms", ctx.describeStatus.load(), (unsigned long long) ctx.describeDurationMs.load());
+    EXPECT_TRUE(ctx.serviced.load()) << "the parked thread never entered lws_service(); the scenario was not exercised";
+    EXPECT_TRUE(returned) << "describeChannelLws() did not return while another thread sat in lws_service() holding lwsServiceLock";
+    EXPECT_LT(ctx.describeDurationMs.load(), (UINT64) kHttpsCompletionBudgetMs)
+        << "the HTTPS call waited for the parked lws_service() call to return instead of waking it";
+
+    EXPECT_EQ(STATUS_SUCCESS, freeSignaling(&pSignalingClient));
+    freeStaticCredentialProvider(&pCredentialProvider);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

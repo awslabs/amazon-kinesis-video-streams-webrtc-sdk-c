@@ -676,8 +676,8 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
         }
     }
 
-    // Clear the wsi on exit
-    MUTEX_LOCK(pCallInfo->pSignalingClient->lwsSerializerLock);
+    // Clear the wsi on exit.
+    //
     // Sever the wsi -> LwsCallInfo back-pointer before this call info can be freed.
     // The WSS listener frees pOngoingCallInfo as soon as this thread returns, and
     // freeSignaling() later calls lws_context_destroy(), which delivers a final
@@ -694,9 +694,28 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     // already gone and writing to it would be a write-after-free. terminating == FALSE
     // means the loop left on shutdown, the interrupt flag or a service error and the
     // wsi is still open - the only case the clear is for. lwsServiceLock is held so
-    // no other lws_service() caller can close the wsi between the check and the write
-    // (lock order lwsSerializerLock -> lwsServiceLock, same as the acquire loop above).
-    MUTEX_LOCK(pCallInfo->pSignalingClient->lwsServiceLock);
+    // no other lws_service() caller can close the wsi between the check and the write.
+    //
+    // lwsSerializerLock stays held for the whole block, as in the acquire loop above:
+    // every reader of currentWsi[] holds it, including the acquire loop's wake path,
+    // which passes currentWsi[WSS] to lws_callback_on_writable(). Releasing it before
+    // currentWsi is cleared would let that path pick up a wsi lws has already freed.
+    //
+    // lwsServiceLock is never taken by blocking here. The WSS listener holds it across
+    // each lws_service() call, which on an idle connection only returns on the next lws
+    // timer (the validity ping, SIGNALING_SERVICE_WSS_PING_PONG_INTERVAL_IN_SECONDS apart),
+    // so a blocking lock would delay the completion of every HTTPS call made while the
+    // listener is idle by up to that long. Try the lock instead and wake the thread that
+    // holds it out of lws_service() until it is free; lws_cancel_service() is the lws
+    // primitive that may be called from another thread for that purpose. The contention
+    // flag makes the woken thread yield before re-locking (see the service loop above).
+    MUTEX_LOCK(pCallInfo->pSignalingClient->lwsSerializerLock);
+    ATOMIC_STORE_BOOL(&pCallInfo->pSignalingClient->serviceLockContention, TRUE);
+    while (!MUTEX_TRYLOCK(pCallInfo->pSignalingClient->lwsServiceLock)) {
+        lws_cancel_service(pContext);
+        THREAD_SLEEP(LWS_SERVICE_LOCK_RETRY_WAIT);
+    }
+    ATOMIC_STORE_BOOL(&pCallInfo->pSignalingClient->serviceLockContention, FALSE);
     if (pCallInfo->callInfo.pRequestInfo != NULL && !ATOMIC_LOAD_BOOL(&pCallInfo->callInfo.pRequestInfo->terminating) &&
         pCallInfo->pSignalingClient->currentWsi[pCallInfo->protocolIndex] != NULL) {
         lws_set_opaque_user_data((struct lws*) pCallInfo->pSignalingClient->currentWsi[pCallInfo->protocolIndex], NULL);

@@ -184,6 +184,10 @@ extern "C" {
 // Service loop iteration wait time when there is an already servicing thread
 #define LWS_SERVICE_LOOP_ITERATION_WAIT (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
+// Wait between attempts to take lwsServiceLock in lwsCompleteSync()'s exit block after waking the
+// thread that holds it out of lws_service(); short, so the completion is not delayed noticeably
+#define LWS_SERVICE_LOCK_RETRY_WAIT (1 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+
 // Check for the stale credentials
 #define CHECK_SIGNALING_CREDENTIALS_EXPIRATION(p)                                                                                                    \
     do {                                                                                                                                             \
