@@ -81,6 +81,47 @@ TEST_F(DataChannelApiTest, createDataChannelWithCallbacks_Disconnected)
     EXPECT_EQ(0, ATOMIC_LOAD(&opened));
 }
 
+// A negotiated channel has the application's id, and its stats are found by it, before the association too
+TEST_F(DataChannelApiTest, createDataChannel_NegotiatedIdBeforeAssociation)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection pPeerConnection = nullptr;
+    PRtcDataChannel pInband = nullptr, pNegotiated = nullptr;
+    RtcDataChannelInit init;
+    RtcStats stats;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    EXPECT_EQ(createPeerConnection(&configuration, &pPeerConnection), STATUS_SUCCESS);
+
+    EXPECT_EQ(createDataChannel(pPeerConnection, (PCHAR) "inband", nullptr, &pInband), STATUS_SUCCESS);
+    MEMSET(&init, 0x00, SIZEOF(init));
+    init.ordered = TRUE;
+    init.negotiated = TRUE;
+    NULLABLE_SET_EMPTY(init.maxRetransmits);
+    NULLABLE_SET_EMPTY(init.maxPacketLifeTime);
+    NULLABLE_SET_VALUE(init.id, 5);
+    EXPECT_EQ(createDataChannel(pPeerConnection, (PCHAR) "negotiated", &init, &pNegotiated), STATUS_SUCCESS);
+    EXPECT_EQ(5, pNegotiated->id);
+
+    MEMSET(&stats, 0x00, SIZEOF(stats));
+    stats.requestedTypeOfStats = RTC_STATS_TYPE_DATA_CHANNEL;
+    stats.rtcStatsObject.rtcDataChannelStats.dataChannelIdentifier = 5;
+    EXPECT_EQ(STATUS_SUCCESS, rtcPeerConnectionGetMetrics(pPeerConnection, nullptr, &stats));
+    EXPECT_STREQ("negotiated", stats.rtcStatsObject.rtcDataChannelStats.label);
+    EXPECT_EQ(RTC_DATA_CHANNEL_STATE_CONNECTING, stats.rtcStatsObject.rtcDataChannelStats.state);
+
+    // The in-band channel has no stream id yet; it is still found by its creation-order identifier
+    stats.rtcStatsObject.rtcDataChannelStats.dataChannelIdentifier = pInband->id;
+    EXPECT_EQ(STATUS_SUCCESS, rtcPeerConnectionGetMetrics(pPeerConnection, nullptr, &stats));
+    EXPECT_STREQ("inband", stats.rtcStatsObject.rtcDataChannelStats.label);
+
+    stats.rtcStatsObject.rtcDataChannelStats.dataChannelIdentifier = 9;
+    EXPECT_EQ(STATUS_HASH_KEY_NOT_PRESENT, rtcPeerConnectionGetMetrics(pPeerConnection, nullptr, &stats));
+
+    closePeerConnection(pPeerConnection);
+    freePeerConnection(&pPeerConnection);
+}
+
 TEST_F(DataChannelApiTest, handleDcepPacket_RejectsOversizedLabelLength)
 {
     /** Construct a minimal DCEP DataChannelOpen packet (13 bytes total):

@@ -92,8 +92,10 @@ STATUS createDataChannelWithCallbacks(PRtcPeerConnection pPeerConnection, PCHAR 
         CHK_STATUS(hashTableGetCount(pKvsPeerConnection->pDataChannels, &channelId));
         pKvsDataChannel->rtcDataChannelDiagnostics.state = RTC_DATA_CHANNEL_STATE_CONNECTING;
     }
-    pKvsDataChannel->rtcDataChannelDiagnostics.dataChannelIdentifier = channelId;
-    pKvsDataChannel->dataChannel.id = channelId;
+    // A negotiated channel's id is the application's from the start; channelId stays the table key, which before
+    // the association is the creation order
+    pKvsDataChannel->rtcDataChannelDiagnostics.dataChannelIdentifier = negotiated ? pRtcDataChannelInit->id.value : channelId;
+    pKvsDataChannel->dataChannel.id = pKvsDataChannel->rtcDataChannelDiagnostics.dataChannelIdentifier;
     // Set before the channel is routable, so no message on it can arrive ahead of its callback
     pKvsDataChannel->onMessage = rtcOnMessage;
     pKvsDataChannel->onMessageCustomData = customData;

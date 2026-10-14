@@ -1359,6 +1359,68 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_NoOnMessageHoldsNothing)
     EXPECT_EQ(std::string("later"), received.messages[0]);
 }
 
+// Stats read a channel while the SCTP thread updates it and the application adds channels to the table.
+// The race this guards against is reported by ThreadSanitizer; here the counts must simply add up.
+TEST_F(DataChannelFunctionalityTest, getDataChannelStats_WhileReceivingAndCreating)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PRtcDataChannel pOfferNeg = NULL, pAnswerNeg = NULL, pDc = NULL;
+    RtcDataChannelInit init;
+    NegotiatedCounters offer, answer, inband;
+    CallbackReceiver receiver;
+    const UINT32 count = 200;
+    std::atomic<bool> stop(false);
+    std::atomic<UINT32> polls(0), lastReceived(0);
+    UINT32 i;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+    ASSERT_TRUE(connectWithAssociation(this, offerPc, answerPc, &offer, &answer, &inband));
+
+    initNegotiated(&init, 40);
+    EXPECT_EQ(createDataChannelWithCallbacks(offerPc, (PCHAR) "stats", &init, (UINT64) &receiver, receiverOnMessage, NULL, &pOfferNeg),
+              STATUS_SUCCESS);
+    initNegotiated(&init, 40);
+    EXPECT_EQ(createDataChannel(answerPc, (PCHAR) "stats", &init, &pAnswerNeg), STATUS_SUCCESS);
+
+    std::thread poller([&]() {
+        RtcStats stats;
+        while (!stop.load()) {
+            MEMSET(&stats, 0x00, SIZEOF(stats));
+            stats.requestedTypeOfStats = RTC_STATS_TYPE_DATA_CHANNEL;
+            stats.rtcStatsObject.rtcDataChannelStats.dataChannelIdentifier = 40;
+            if (rtcPeerConnectionGetMetrics(offerPc, NULL, &stats) == STATUS_SUCCESS) {
+                lastReceived.store(stats.rtcStatsObject.rtcDataChannelStats.messagesReceived);
+            }
+            polls++;
+        }
+    });
+
+    for (i = 0; i < count; i++) {
+        EXPECT_EQ(dataChannelSend(pAnswerNeg, FALSE, (PBYTE) TEST_DATA_CHANNEL_MESSAGE, STRLEN(TEST_DATA_CHANNEL_MESSAGE)), STATUS_SUCCESS);
+        if (i % 20 == 0) {
+            initNegotiated(&init, (UINT16) (100 + i / 20));
+            EXPECT_EQ(createDataChannel(offerPc, (PCHAR) "extra", &init, &pDc), STATUS_SUCCESS);
+        }
+    }
+    for (i = 0; i <= 50 && (receivedCount(&receiver.received) != count || lastReceived.load() != count); i++) {
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    stop.store(true);
+    poller.join();
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    EXPECT_GT(polls.load(), 0u);
+    EXPECT_EQ(count, receiver.received.messages.size());
+    EXPECT_EQ(count, lastReceived.load());
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
