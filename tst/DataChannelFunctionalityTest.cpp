@@ -1505,6 +1505,60 @@ TEST_F(DataChannelFunctionalityTest, inbandDataChannel_OnTakenStreamIdIsNotAckno
     freePeerConnection(&answerPc);
 }
 
+// An in-band channel whose DATA_CHANNEL_OPEN cannot be sent is closed, and onOpen never fires for it; the other
+// channels open. One parity of the SCTP_MAX_STREAMS stream ids holds SCTP_MAX_STREAMS / 2 in-band channels, so
+// the ones past it get an id the association does not have, and their OPEN fails.
+TEST_F(DataChannelFunctionalityTest, inbandDataChannel_FailedOpenIsClosed)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PRtcDataChannel pDataChannels[SCTP_MAX_STREAMS / 2 + 2];
+    NegotiatedCounters offer, answer, opened;
+    RtcStats stats;
+    UINT32 i, openCount = 0, closedCount = 0;
+    const UINT32 total = ARRAY_SIZE(pDataChannels);
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+    EXPECT_EQ(peerConnectionOnDataChannel(offerPc, (UINT64) &offer, negotiatedOnRemoteDataChannel), STATUS_SUCCESS);
+    EXPECT_EQ(peerConnectionOnDataChannel(answerPc, (UINT64) &answer, negotiatedOnRemoteDataChannel), STATUS_SUCCESS);
+    for (i = 0; i < total; i++) {
+        EXPECT_EQ(createDataChannelWithCallbacks(offerPc, (PCHAR) "many", NULL, (UINT64) &opened, NULL, negotiatedOnOpen, &pDataChannels[i]),
+                  STATUS_SUCCESS);
+    }
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    for (i = 0; i <= 100 && ATOMIC_LOAD(&opened.open) < SCTP_MAX_STREAMS / 2; i++) {
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    THREAD_SLEEP(500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+
+    for (i = 0; i < total; i++) {
+        MEMSET(&stats, 0x00, SIZEOF(stats));
+        stats.requestedTypeOfStats = RTC_STATS_TYPE_DATA_CHANNEL;
+        stats.rtcStatsObject.rtcDataChannelStats.dataChannelIdentifier = pDataChannels[i]->id;
+        EXPECT_EQ(STATUS_SUCCESS, rtcPeerConnectionGetMetrics(offerPc, NULL, &stats));
+        if (pDataChannels[i]->id < SCTP_MAX_STREAMS) {
+            EXPECT_EQ(RTC_DATA_CHANNEL_STATE_OPEN, stats.rtcStatsObject.rtcDataChannelStats.state);
+            openCount++;
+        } else {
+            EXPECT_EQ(RTC_DATA_CHANNEL_STATE_CLOSED, stats.rtcStatsObject.rtcDataChannelStats.state);
+            EXPECT_FALSE(ATOMIC_LOAD_BOOL(&((PKvsDataChannel) pDataChannels[i])->awaitingDcepAck));
+            closedCount++;
+        }
+    }
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    EXPECT_EQ(SCTP_MAX_STREAMS / 2, openCount);
+    EXPECT_EQ(2, closedCount);
+    EXPECT_EQ(SCTP_MAX_STREAMS / 2, ATOMIC_LOAD(&opened.open));
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

@@ -170,6 +170,15 @@ static STATUS allocateSctpOpenDataChannel(PKvsPeerConnection pKvsPeerConnection,
     }
 
 CleanUp:
+    if (STATUS_FAILED(retStatus)) {
+        // The peer never heard of the channel: it is closed rather than left connecting, and onOpen never fires
+        DLOGE("Failed to open data channel \"%s\" on stream %" PRIu32 " with 0x%08" PRIx32 "; it is closed", pKvsDataChannel->dataChannel.name,
+              pKvsDataChannel->channelId, retStatus);
+        ATOMIC_STORE_BOOL(&pKvsDataChannel->awaitingDcepAck, FALSE);
+        MUTEX_LOCK(pKvsPeerConnection->dataChannelsLock);
+        pKvsDataChannel->rtcDataChannelDiagnostics.state = RTC_DATA_CHANNEL_STATE_CLOSED;
+        MUTEX_UNLOCK(pKvsPeerConnection->dataChannelsLock);
+    }
     return retStatus;
 }
 
@@ -227,8 +236,9 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     MUTEX_UNLOCK(pKvsPeerConnection->dataChannelsLock);
     locked = FALSE;
 
+    // A channel that fails to open is closed and the others still open; the association itself is up
     for (i = 0; i < list.count; i++) {
-        CHK_LOG_ERR(allocateSctpOpenDataChannel(pKvsPeerConnection, list.pChannels[i]));
+        allocateSctpOpenDataChannel(pKvsPeerConnection, list.pChannels[i]);
     }
 
 CleanUp:
