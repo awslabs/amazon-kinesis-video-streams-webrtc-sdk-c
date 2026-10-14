@@ -1954,6 +1954,7 @@ STATUS initKvsWebRtc(VOID)
     DLOGI("KVS WebRtc library using thread pool");
     CHK_STATUS(createWebRtcClientInstance());
     CHK_STATUS(createThreadPoolContext());
+    CHK_STATUS(createReceiveThreadPoolContext());
     // The thread pool enables early STUN resolution. Resolve the managed STUN hostname in the background so later
     // ICE setup can reuse cached IPv4 and IPv6 addresses for the default STUN server.
     CHK_STATUS(threadpoolContextPush(resolveStunIceServerIp, NULL));
@@ -2019,12 +2020,15 @@ STATUS deinitKvsWebRtc(VOID)
     STATUS retStatus = STATUS_SUCCESS;
     CHK(ATOMIC_LOAD_BOOL(&gKvsWebRtcInitialized), retStatus);
 
+#ifdef ENABLE_KVS_THREADPOOL
+    destroyReceiveThreadPoolContext();
+#endif
+
 #ifdef ENABLE_DATA_CHANNEL
     deinitSctpSession();
 #endif
 
     srtp_shutdown();
-
 #ifdef ENABLE_KVS_THREADPOOL
     cleanupWebRtcClientInstance();
     destroyThreadPoolContext();

@@ -160,6 +160,9 @@ typedef struct {
     SignalingApiCallHookFunc describeMediaStorageConfPostHookFn;
     SignalingApiCallHookFunc deletePreHookFn;
     SignalingApiCallHookFunc deletePostHookFn;
+    SignalingApiCallHookFunc receiveMessagePreHookFn;
+    SignalingApiCallHookFunc receiveMessagePreCallbackHookFn;
+    SignalingApiCallHookFunc receiveMessagePostHookFn;
 
     // Retry strategy used for signaling state machine
     KvsRetryStrategy signalingStateMachineRetryStrategy;
@@ -258,6 +261,9 @@ typedef struct {
     volatile ATOMIC_BOOL serviceLockContention;
 
     volatile ATOMIC_BOOL offerReceived;
+
+    // One owner reference plus references held by listener, reconnect, and receive worker threads
+    volatile SIZE_T refCount;
 
     // Stored Client info
     SignalingClientInfoInternal clientInfo;
@@ -393,6 +399,8 @@ typedef struct {
 
 STATUS createSignalingSync(PSignalingClientInfoInternal, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider, PSignalingClient*);
 STATUS freeSignaling(PSignalingClient*);
+VOID acquireSignalingClient(PSignalingClient);
+SIZE_T releaseSignalingClient(PSignalingClient);
 
 STATUS signalingSendMessageSync(PSignalingClient, PSignalingMessage);
 STATUS signalingGetIceConfigInfoCount(PSignalingClient, PUINT32);
