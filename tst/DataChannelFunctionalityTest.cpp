@@ -1359,7 +1359,7 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_NoOnMessageHoldsNothing)
     EXPECT_EQ(std::string("later"), received.messages[0]);
 }
 
-// Stats read a channel while the SCTP thread updates it and the application adds channels to the table.
+// Stats read a channel while the SCTP thread and dataChannelSend update it and the application adds channels to the table.
 // The race this guards against is reported by ThreadSanitizer; here the counts must simply add up.
 TEST_F(DataChannelFunctionalityTest, getDataChannelStats_WhileReceivingAndCreating)
 {
@@ -1371,7 +1371,7 @@ TEST_F(DataChannelFunctionalityTest, getDataChannelStats_WhileReceivingAndCreati
     CallbackReceiver receiver;
     const UINT32 count = 200;
     std::atomic<bool> stop(false);
-    std::atomic<UINT32> polls(0), lastReceived(0);
+    std::atomic<UINT32> polls(0), lastReceived(0), lastSent(0);
     UINT32 i;
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
@@ -1394,6 +1394,13 @@ TEST_F(DataChannelFunctionalityTest, getDataChannelStats_WhileReceivingAndCreati
             if (rtcPeerConnectionGetMetrics(offerPc, NULL, &stats) == STATUS_SUCCESS) {
                 lastReceived.store(stats.rtcStatsObject.rtcDataChannelStats.messagesReceived);
             }
+            // and the sending side, whose counters dataChannelSend updates on this test's main thread
+            MEMSET(&stats, 0x00, SIZEOF(stats));
+            stats.requestedTypeOfStats = RTC_STATS_TYPE_DATA_CHANNEL;
+            stats.rtcStatsObject.rtcDataChannelStats.dataChannelIdentifier = 40;
+            if (rtcPeerConnectionGetMetrics(answerPc, NULL, &stats) == STATUS_SUCCESS) {
+                lastSent.store(stats.rtcStatsObject.rtcDataChannelStats.messagesSent);
+            }
             polls++;
         }
     });
@@ -1405,7 +1412,7 @@ TEST_F(DataChannelFunctionalityTest, getDataChannelStats_WhileReceivingAndCreati
             EXPECT_EQ(createDataChannel(offerPc, (PCHAR) "extra", &init, &pDc), STATUS_SUCCESS);
         }
     }
-    for (i = 0; i <= 50 && (receivedCount(&receiver.received) != count || lastReceived.load() != count); i++) {
+    for (i = 0; i <= 50 && (receivedCount(&receiver.received) != count || lastReceived.load() != count || lastSent.load() != count); i++) {
         THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     }
     stop.store(true);
@@ -1419,6 +1426,7 @@ TEST_F(DataChannelFunctionalityTest, getDataChannelStats_WhileReceivingAndCreati
     EXPECT_GT(polls.load(), 0u);
     EXPECT_EQ(count, receiver.received.messages.size());
     EXPECT_EQ(count, lastReceived.load());
+    EXPECT_EQ(count, lastSent.load());
 }
 
 // An in-band channel sends ordered from its DATA_CHANNEL_OPEN until the peer's DATA_CHANNEL_ACK, which arrives

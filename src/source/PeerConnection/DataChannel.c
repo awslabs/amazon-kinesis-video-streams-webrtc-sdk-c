@@ -128,15 +128,20 @@ STATUS dataChannelSend(PRtcDataChannel pRtcDataChannel, BOOL isBinary, PBYTE pMe
     STATUS retStatus = STATUS_SUCCESS;
     PSctpSession pSctpSession = NULL;
     PKvsDataChannel pKvsDataChannel = (PKvsDataChannel) pRtcDataChannel;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
 
     CHK(pKvsDataChannel != NULL && pMessage != NULL, STATUS_NULL_ARG);
 
-    pSctpSession = ((PKvsPeerConnection) pKvsDataChannel->pRtcPeerConnection)->pSctpSession;
+    pKvsPeerConnection = (PKvsPeerConnection) pKvsDataChannel->pRtcPeerConnection;
+    pSctpSession = pKvsPeerConnection->pSctpSession;
 
     CHK_STATUS(sctpSessionWriteMessage(pSctpSession, pKvsDataChannel->channelId, isBinary, pMessage, pMessageLen,
                                        &pKvsDataChannel->rtcDataChannelInit, ATOMIC_LOAD_BOOL(&pKvsDataChannel->awaitingDcepAck)));
+    // getDataChannelStats reads the counters under this lock
+    MUTEX_LOCK(pKvsPeerConnection->dataChannelsLock);
     pKvsDataChannel->rtcDataChannelDiagnostics.messagesSent++;
     pKvsDataChannel->rtcDataChannelDiagnostics.bytesSent += pMessageLen;
+    MUTEX_UNLOCK(pKvsPeerConnection->dataChannelsLock);
 CleanUp:
 
     return retStatus;
