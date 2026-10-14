@@ -278,7 +278,8 @@ struct ParkedServiceLoopContext {
     std::atomic<bool> stop{false};
     std::atomic<bool> describeReturned{false};
     std::atomic<STATUS> describeStatus{STATUS_SUCCESS};
-    std::atomic<UINT64> describeDurationMs{0};
+    // 32-bit on purpose: a 64-bit atomic needs libatomic on 32-bit MIPS, which the test binary does not link
+    std::atomic<UINT32> describeDurationMs{0};
 };
 
 static void parkedServiceLoopThread(ParkedServiceLoopContext* pCtx)
@@ -307,7 +308,7 @@ static void describeChannelThread(ParkedServiceLoopContext* pCtx)
 {
     UINT64 start = GETTIME();
     pCtx->describeStatus = describeChannelLws(pCtx->pSignalingClient, GETTIME());
-    pCtx->describeDurationMs = (GETTIME() - start) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    pCtx->describeDurationMs = (UINT32) ((GETTIME() - start) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     pCtx->describeReturned = true;
 }
 
@@ -346,10 +347,10 @@ TEST_F(SignalingShutdownRaceTest, httpsCallCompletesWhileListenerIsParkedInLwsSe
     serviceLoop.join();
     describe.join();
 
-    DLOGI("describeChannelLws returned 0x%08x after %llu ms", ctx.describeStatus.load(), (unsigned long long) ctx.describeDurationMs.load());
+    DLOGI("describeChannelLws returned 0x%08x after %u ms", ctx.describeStatus.load(), ctx.describeDurationMs.load());
     EXPECT_TRUE(ctx.serviced.load()) << "the parked thread never entered lws_service(); the scenario was not exercised";
     EXPECT_TRUE(returned) << "describeChannelLws() did not return while another thread sat in lws_service() holding lwsServiceLock";
-    EXPECT_LT(ctx.describeDurationMs.load(), (UINT64) kHttpsCompletionBudgetMs)
+    EXPECT_LT(ctx.describeDurationMs.load(), kHttpsCompletionBudgetMs)
         << "the HTTPS call waited for the parked lws_service() call to return instead of waking it";
 
     EXPECT_EQ(STATUS_SUCCESS, freeSignaling(&pSignalingClient));
