@@ -60,8 +60,8 @@ typedef enum {
 typedef VOID (*SctpSessionOutboundPacketFunc)(UINT64, PBYTE, UINT32);
 
 // Callback that is fired when SCTP has a new DataChannel
-// Argument is ChannelID and ChannelName + Len
-typedef VOID (*SctpSessionDataChannelOpenFunc)(UINT64, UINT32, PBYTE, UINT32, PRtcDataChannelInit);
+// Argument is ChannelID and ChannelName + Len. A failure means the channel was not taken: no DATA_CHANNEL_ACK is sent
+typedef STATUS (*SctpSessionDataChannelOpenFunc)(UINT64, UINT32, PBYTE, UINT32, PRtcDataChannelInit);
 
 // Callback that is fired when SCTP has a DataChannel Message.
 // Argument is ChannelID and Message + Len

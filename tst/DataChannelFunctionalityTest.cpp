@@ -1464,6 +1464,47 @@ TEST_F(DataChannelFunctionalityTest, inbandDataChannel_OrderedUntilDataChannelAc
     freePeerConnection(&answerPc);
 }
 
+// A peer's in-band channel on a stream id that a local negotiated channel already uses is not taken, and it is
+// not acknowledged (RFC 8832 section 6). The answerer takes both possible ids, whichever DTLS role it gets.
+TEST_F(DataChannelFunctionalityTest, inbandDataChannel_OnTakenStreamIdIsNotAcknowledged)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PRtcDataChannel pInband = NULL, pDc = NULL;
+    RtcDataChannelInit init;
+    NegotiatedCounters offer, answer, inband;
+    UINT32 i;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+    EXPECT_EQ(peerConnectionOnDataChannel(offerPc, (UINT64) &offer, negotiatedOnRemoteDataChannel), STATUS_SUCCESS);
+    EXPECT_EQ(peerConnectionOnDataChannel(answerPc, (UINT64) &answer, negotiatedOnRemoteDataChannel), STATUS_SUCCESS);
+    initNegotiated(&init, 0);
+    EXPECT_EQ(createDataChannel(answerPc, (PCHAR) "taken-0", &init, &pDc), STATUS_SUCCESS);
+    initNegotiated(&init, 1);
+    EXPECT_EQ(createDataChannel(answerPc, (PCHAR) "taken-1", &init, &pDc), STATUS_SUCCESS);
+    EXPECT_EQ(createDataChannel(offerPc, (PCHAR) "inband", NULL, &pInband), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelOnOpen(pInband, (UINT64) &inband, negotiatedOnOpen), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    for (i = 0; i <= 100 && ATOMIC_LOAD(&inband.open) != 1; i++) {
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    EXPECT_EQ(1, ATOMIC_LOAD(&inband.open));
+    EXPECT_TRUE(pInband->id == 0 || pInband->id == 1);
+    // Long enough for the OPEN to arrive and an ACK, had one been sent, to come back
+    THREAD_SLEEP(2 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    EXPECT_EQ(0, ATOMIC_LOAD(&answer.remoteOpen));
+    EXPECT_TRUE(ATOMIC_LOAD_BOOL(&((PKvsDataChannel) pInband)->awaitingDcepAck));
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

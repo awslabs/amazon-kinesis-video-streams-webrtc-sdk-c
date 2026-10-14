@@ -753,14 +753,16 @@ VOID onSctpSessionDataChannelAck(UINT64 customData, UINT32 channelId)
     MUTEX_UNLOCK(pKvsPeerConnection->dataChannelsLock);
 }
 
-VOID onSctpSessionDataChannelOpen(UINT64 customData, UINT32 channelId, PBYTE pName, UINT32 nameLen, PRtcDataChannelInit pRtcDataChannelInit)
+STATUS onSctpSessionDataChannelOpen(UINT64 customData, UINT32 channelId, PBYTE pName, UINT32 nameLen, PRtcDataChannelInit pRtcDataChannelInit)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
     PKvsDataChannel pKvsDataChannel = NULL;
 
-    CHK(pKvsPeerConnection != NULL && pKvsPeerConnection->onDataChannel != NULL && pRtcDataChannelInit != NULL, STATUS_NULL_ARG);
+    CHK(pKvsPeerConnection != NULL && pRtcDataChannelInit != NULL, STATUS_NULL_ARG);
+    // No onDataChannel: the application takes no remote channels, and the peer is acknowledged as before
+    CHK(pKvsPeerConnection->onDataChannel != NULL, STATUS_SUCCESS);
     CHK(nameLen <= MAX_DATA_CHANNEL_NAME_LEN, STATUS_INVALID_ARG);
 
     pKvsDataChannel = (PKvsDataChannel) MEMCALLOC(1, SIZEOF(KvsDataChannel));
@@ -779,6 +781,11 @@ VOID onSctpSessionDataChannelOpen(UINT64 customData, UINT32 channelId, PBYTE pNa
     MUTEX_LOCK(pKvsPeerConnection->dataChannelsLock);
     retStatus = hashTablePut(pKvsPeerConnection->pDataChannels, channelId, (UINT64) pKvsDataChannel);
     MUTEX_UNLOCK(pKvsPeerConnection->dataChannelsLock);
+    if (retStatus == STATUS_HASH_KEY_ALREADY_PRESENT) {
+        // The stream is in use, by a local negotiated channel or an earlier OPEN. The peer is not acknowledged; closing
+        // its channel needs a stream reset, which is not supported, so its messages on the stream still reach the channel there.
+        DLOGE("Peer opened data channel on stream %" PRIu32 ", which is already in use; not acknowledged", channelId);
+    }
     CHK_STATUS(retStatus);
     pKvsPeerConnection->onDataChannel(pKvsPeerConnection->onDataChannelCustomData, &(pKvsDataChannel->dataChannel));
 
@@ -789,6 +796,7 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 
     LEAVES();
+    return retStatus;
 }
 
 VOID onDtlsOutboundPacket(UINT64 customData, PBYTE pBuffer, UINT32 bufferLen)

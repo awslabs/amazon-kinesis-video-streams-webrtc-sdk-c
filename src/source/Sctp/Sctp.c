@@ -506,6 +506,12 @@ STATUS handleDcepPacket(PSctpSession pSctpSession, UINT32 streamId, PBYTE data, 
 
     CHK(SCTP_MAX_ALLOWABLE_PACKET_LENGTH >= length, STATUS_SCTP_INVALID_DCEP_PACKET);
 
+    // Take the channel first: one the receiver cannot open (its stream id is in use, say) MUST NOT be
+    // acknowledged, RFC 8832 section 6
+    dcepParseChannelParameters(data, &rtcDataChannelInit);
+    CHK_STATUS(pSctpSession->sctpSessionCallbacks.dataChannelOpenFunc(pSctpSession->sctpSessionCallbacks.customData, streamId,
+                                                                      data + SCTP_DCEP_HEADER_LENGTH, labelLength, &rtcDataChannelInit));
+
     // Send DATA_CHANNEL_ACK (RFC 8832 Section 5.2) back on the same stream
     // https://datatracker.ietf.org/doc/html/rfc8832#name-data_channel_ack-message
     //   0                   1                   2                   3
@@ -520,10 +526,6 @@ STATUS handleDcepPacket(PSctpSession pSctpSession, UINT32 streamId, PBYTE data, 
 
     DLOGD("Sending DATA_CHANNEL_ACK back to same stream (%u)", streamId);
     CHK(usrsctp_sendv(pSctpSession->socket, &ackPacket, 1, NULL, 0, &ackSpa, SIZEOF(ackSpa), SCTP_SENDV_SPA, 0) > 0, STATUS_SCTP_SENDV_FAILED);
-
-    dcepParseChannelParameters(data, &rtcDataChannelInit);
-    pSctpSession->sctpSessionCallbacks.dataChannelOpenFunc(pSctpSession->sctpSessionCallbacks.customData, streamId, data + SCTP_DCEP_HEADER_LENGTH,
-                                                           labelLength, &rtcDataChannelInit);
 
 CleanUp:
 
