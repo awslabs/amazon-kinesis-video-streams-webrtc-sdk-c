@@ -150,6 +150,7 @@ static STATUS allocateSctpOpenDataChannel(PKvsPeerConnection pKvsPeerConnection,
 
     // Negotiated channels are opened by the application on both sides; only in-band channels announce themselves
     if (!pKvsDataChannel->rtcDataChannelInit.negotiated) {
+        ATOMIC_STORE_BOOL(&pKvsDataChannel->awaitingDcepAck, TRUE);
         CHK_STATUS(sctpSessionWriteDcep(pKvsPeerConnection->pSctpSession, pKvsDataChannel->channelId, pKvsDataChannel->dataChannel.name,
                                         STRLEN(pKvsDataChannel->dataChannel.name), &pKvsDataChannel->rtcDataChannelInit));
     }
@@ -212,6 +213,7 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     sctpSessionCallbacks.outboundPacketFunc = onSctpSessionOutboundPacket;
     sctpSessionCallbacks.dataChannelMessageFunc = onSctpSessionDataChannelMessage;
     sctpSessionCallbacks.dataChannelOpenFunc = onSctpSessionDataChannelOpen;
+    sctpSessionCallbacks.dataChannelAckFunc = onSctpSessionDataChannelAck;
     sctpSessionCallbacks.customData = (UINT64) pKvsPeerConnection;
     CHK_STATUS(createSctpSession(&sctpSessionCallbacks, pKvsPeerConnection->timerQueueHandle, &(pKvsPeerConnection->pSctpSession)));
 
@@ -711,6 +713,8 @@ VOID onSctpSessionDataChannelMessage(UINT64 customData, UINT32 channelId, BOOL i
         retStatus = STATUS_SUCCESS;
     }
     if (STATUS_SUCCEEDED(retStatus) && pKvsDataChannel != NULL) {
+        // Any message on the stream lifts the ordered-until-ACK rule, as the ACK does
+        ATOMIC_STORE_BOOL(&pKvsDataChannel->awaitingDcepAck, FALSE);
         pKvsDataChannel->rtcDataChannelDiagnostics.messagesReceived++;
         pKvsDataChannel->rtcDataChannelDiagnostics.bytesReceived += pMessageLen;
         onMessage = pKvsDataChannel->onMessage;
@@ -732,6 +736,21 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 
     LEAVES();
+}
+
+VOID onSctpSessionDataChannelAck(UINT64 customData, UINT32 channelId)
+{
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
+    UINT64 hashValue = 0;
+
+    if (pKvsPeerConnection == NULL) {
+        return;
+    }
+    MUTEX_LOCK(pKvsPeerConnection->dataChannelsLock);
+    if (hashTableGet(pKvsPeerConnection->pDataChannels, channelId, &hashValue) == STATUS_SUCCESS && hashValue != 0) {
+        ATOMIC_STORE_BOOL(&((PKvsDataChannel) hashValue)->awaitingDcepAck, FALSE);
+    }
+    MUTEX_UNLOCK(pKvsPeerConnection->dataChannelsLock);
 }
 
 VOID onSctpSessionDataChannelOpen(UINT64 customData, UINT32 channelId, PBYTE pName, UINT32 nameLen, PRtcDataChannelInit pRtcDataChannelInit)

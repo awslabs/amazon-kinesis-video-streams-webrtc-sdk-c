@@ -67,6 +67,9 @@ typedef VOID (*SctpSessionDataChannelOpenFunc)(UINT64, UINT32, PBYTE, UINT32, PR
 // Argument is ChannelID and Message + Len
 typedef VOID (*SctpSessionDataChannelMessageFunc)(UINT64, UINT32, BOOL, PBYTE, UINT32);
 
+// Callback that is fired when SCTP receives a DATA_CHANNEL_ACK. Argument is ChannelID
+typedef VOID (*SctpSessionDataChannelAckFunc)(UINT64, UINT32);
+
 /// Singleton context for SCTP global state
 typedef struct SctpContext {
     // last time the periodic usrsctp timers were called
@@ -81,6 +84,7 @@ typedef struct {
     SctpSessionOutboundPacketFunc outboundPacketFunc;
     SctpSessionDataChannelOpenFunc dataChannelOpenFunc;
     SctpSessionDataChannelMessageFunc dataChannelMessageFunc;
+    SctpSessionDataChannelAckFunc dataChannelAckFunc;
 } SctpSessionCallbacks, *PSctpSessionCallbacks;
 
 typedef struct {
@@ -99,8 +103,9 @@ VOID deinitSctpSession();
 STATUS createSctpSession(PSctpSessionCallbacks, TIMER_QUEUE_HANDLE, PSctpSession*);
 STATUS freeSctpSession(PSctpSession*);
 STATUS putSctpPacket(PSctpSession, PBYTE, UINT32);
-STATUS sctpSessionWriteMessage(PSctpSession, UINT32, BOOL, PBYTE, UINT32, PRtcDataChannelInit);
-VOID sctpSessionSetSendInfo(struct sctp_sendv_spa*, UINT32, BOOL, PRtcDataChannelInit);
+// The last BOOL sends ordered whatever the channel's setting: an in-band channel until its DATA_CHANNEL_ACK, RFC 8832 section 6
+STATUS sctpSessionWriteMessage(PSctpSession, UINT32, BOOL, PBYTE, UINT32, PRtcDataChannelInit, BOOL);
+VOID sctpSessionSetSendInfo(struct sctp_sendv_spa*, UINT32, BOOL, PRtcDataChannelInit, BOOL);
 VOID dcepParseChannelParameters(PBYTE, PRtcDataChannelInit);
 STATUS sctpSessionWriteDcep(PSctpSession, UINT32, PCHAR, UINT32, PRtcDataChannelInit);
 STATUS handleDcepPacket(PSctpSession, UINT32, PBYTE, SIZE_T);

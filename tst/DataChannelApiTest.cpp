@@ -152,7 +152,7 @@ TEST_F(DataChannelApiTest, sctpSessionSetSendInfo_UsesTheChannelSettings)
     RtcDataChannelInit init;
 
     // no settings: reliable and ordered
-    sctpSessionSetSendInfo(&spa, 7, TRUE, NULL);
+    sctpSessionSetSendInfo(&spa, 7, TRUE, NULL, FALSE);
     EXPECT_EQ(7, spa.sendv_sndinfo.snd_sid);
     EXPECT_EQ(SCTP_SEND_SNDINFO_VALID, spa.sendv_flags);
     EXPECT_EQ(0, spa.sendv_sndinfo.snd_flags);
@@ -161,13 +161,13 @@ TEST_F(DataChannelApiTest, sctpSessionSetSendInfo_UsesTheChannelSettings)
     init.ordered = TRUE;
     NULLABLE_SET_EMPTY(init.maxRetransmits);
     NULLABLE_SET_EMPTY(init.maxPacketLifeTime);
-    sctpSessionSetSendInfo(&spa, 1, FALSE, &init);
+    sctpSessionSetSendInfo(&spa, 1, FALSE, &init, FALSE);
     EXPECT_EQ(SCTP_SEND_SNDINFO_VALID, spa.sendv_flags);
     EXPECT_EQ(0, spa.sendv_sndinfo.snd_flags);
 
     init.ordered = FALSE;
     NULLABLE_SET_VALUE(init.maxRetransmits, 3);
-    sctpSessionSetSendInfo(&spa, 1, FALSE, &init);
+    sctpSessionSetSendInfo(&spa, 1, FALSE, &init, FALSE);
     EXPECT_EQ(SCTP_UNORDERED, spa.sendv_sndinfo.snd_flags);
     EXPECT_EQ(SCTP_SEND_SNDINFO_VALID | SCTP_SEND_PRINFO_VALID, spa.sendv_flags);
     EXPECT_EQ(SCTP_PR_SCTP_RTX, spa.sendv_prinfo.pr_policy);
@@ -175,15 +175,58 @@ TEST_F(DataChannelApiTest, sctpSessionSetSendInfo_UsesTheChannelSettings)
 
     // maxRetransmits wins over maxPacketLifeTime, as in the DATA_CHANNEL_OPEN
     NULLABLE_SET_VALUE(init.maxPacketLifeTime, 500);
-    sctpSessionSetSendInfo(&spa, 1, FALSE, &init);
+    sctpSessionSetSendInfo(&spa, 1, FALSE, &init, FALSE);
     EXPECT_EQ(SCTP_PR_SCTP_RTX, spa.sendv_prinfo.pr_policy);
 
     init.ordered = TRUE;
     NULLABLE_SET_EMPTY(init.maxRetransmits);
-    sctpSessionSetSendInfo(&spa, 1, FALSE, &init);
+    sctpSessionSetSendInfo(&spa, 1, FALSE, &init, FALSE);
     EXPECT_EQ(0, spa.sendv_sndinfo.snd_flags);
     EXPECT_EQ(SCTP_PR_SCTP_TTL, spa.sendv_prinfo.pr_policy);
     EXPECT_EQ(500, spa.sendv_prinfo.pr_value);
+
+    // Until its DATA_CHANNEL_ACK, an unordered in-band channel sends ordered but keeps its reliability (RFC 8832 section 6)
+    init.ordered = FALSE;
+    sctpSessionSetSendInfo(&spa, 1, FALSE, &init, TRUE);
+    EXPECT_EQ(0, spa.sendv_sndinfo.snd_flags);
+    EXPECT_EQ(SCTP_SEND_SNDINFO_VALID | SCTP_SEND_PRINFO_VALID, spa.sendv_flags);
+    EXPECT_EQ(SCTP_PR_SCTP_TTL, spa.sendv_prinfo.pr_policy);
+    sctpSessionSetSendInfo(&spa, 1, FALSE, &init, FALSE);
+    EXPECT_EQ(SCTP_UNORDERED, spa.sendv_sndinfo.snd_flags);
+}
+
+struct AckSeen {
+    UINT32 calls = 0;
+    UINT32 streamId = 0;
+};
+
+static VOID recordAck(UINT64 customData, UINT32 streamId)
+{
+    AckSeen* pSeen = (AckSeen*) customData;
+    pSeen->calls++;
+    pSeen->streamId = streamId;
+}
+
+// A DATA_CHANNEL_ACK is passed on with its stream id; it opens nothing and sends nothing back
+TEST_F(DataChannelApiTest, handleDcepPacket_PassesOnDataChannelAck)
+{
+    BYTE ack[] = {DCEP_DATA_CHANNEL_ACK};
+    SctpSession sctpSession;
+    AckSeen seen;
+
+    MEMSET(&sctpSession, 0, SIZEOF(SctpSession));
+    sctpSession.socket = (struct socket*) 0x1; // never written to: an ACK is not answered
+    sctpSession.sctpSessionCallbacks.customData = (UINT64) &seen;
+    sctpSession.sctpSessionCallbacks.dataChannelAckFunc = recordAck;
+
+    EXPECT_EQ(STATUS_SUCCESS, handleDcepPacket(&sctpSession, 7, ack, SIZEOF(ack)));
+    EXPECT_EQ(1, seen.calls);
+    EXPECT_EQ(7, seen.streamId);
+
+    // No callback set: ignored
+    sctpSession.sctpSessionCallbacks.dataChannelAckFunc = NULL;
+    EXPECT_EQ(STATUS_SUCCESS, handleDcepPacket(&sctpSession, 7, ack, SIZEOF(ack)));
+    EXPECT_EQ(1, seen.calls);
 }
 
 // A remote channel takes its settings from the channel type and reliability parameter of its DATA_CHANNEL_OPEN

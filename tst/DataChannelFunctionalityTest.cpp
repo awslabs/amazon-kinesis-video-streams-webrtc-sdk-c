@@ -487,7 +487,7 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_PartialReliabilityUnorder
 
     // The offerer sends with its own settings; the answerer's copy of the channel learned them from the DCEP
     pKvsDataChannel = (PKvsDataChannel) pOfferDataChannel;
-    sctpSessionSetSendInfo(&spa, pKvsDataChannel->channelId, FALSE, &pKvsDataChannel->rtcDataChannelInit);
+    sctpSessionSetSendInfo(&spa, pKvsDataChannel->channelId, FALSE, &pKvsDataChannel->rtcDataChannelInit, FALSE);
     ASSERT_EQ(spa.sendv_sndinfo.snd_flags, SCTP_UNORDERED);
     ASSERT_EQ(spa.sendv_flags & SCTP_SEND_PRINFO_VALID, (UINT32) SCTP_SEND_PRINFO_VALID);
     ASSERT_EQ(spa.sendv_prinfo.pr_policy, SCTP_PR_SCTP_TTL);
@@ -581,7 +581,7 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_PartialReliabilityUnOrder
 
     // The offerer sends with its own settings; the answerer's copy of the channel learned them from the DCEP
     pKvsDataChannel = (PKvsDataChannel) pOfferDataChannel;
-    sctpSessionSetSendInfo(&spa, pKvsDataChannel->channelId, FALSE, &pKvsDataChannel->rtcDataChannelInit);
+    sctpSessionSetSendInfo(&spa, pKvsDataChannel->channelId, FALSE, &pKvsDataChannel->rtcDataChannelInit, FALSE);
     ASSERT_EQ(spa.sendv_sndinfo.snd_flags, SCTP_UNORDERED);
     ASSERT_EQ(spa.sendv_flags & SCTP_SEND_PRINFO_VALID, (UINT32) SCTP_SEND_PRINFO_VALID);
     ASSERT_EQ(spa.sendv_prinfo.pr_policy, SCTP_PR_SCTP_RTX);
@@ -675,7 +675,7 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_PartialReliabilityOrdered
 
     // The offerer sends with its own settings; the answerer's copy of the channel learned them from the DCEP
     pKvsDataChannel = (PKvsDataChannel) pOfferDataChannel;
-    sctpSessionSetSendInfo(&spa, pKvsDataChannel->channelId, FALSE, &pKvsDataChannel->rtcDataChannelInit);
+    sctpSessionSetSendInfo(&spa, pKvsDataChannel->channelId, FALSE, &pKvsDataChannel->rtcDataChannelInit, FALSE);
     ASSERT_NE(spa.sendv_sndinfo.snd_flags, SCTP_UNORDERED);
     ASSERT_EQ(spa.sendv_flags & SCTP_SEND_PRINFO_VALID, (UINT32) SCTP_SEND_PRINFO_VALID);
     ASSERT_EQ(spa.sendv_prinfo.pr_policy, SCTP_PR_SCTP_TTL);
@@ -768,7 +768,7 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_PartialReliabilityOrdered
     closePeerConnection(answerPc);
     // The offerer sends with its own settings; the answerer's copy of the channel learned them from the DCEP
     pKvsDataChannel = (PKvsDataChannel) pOfferDataChannel;
-    sctpSessionSetSendInfo(&spa, pKvsDataChannel->channelId, FALSE, &pKvsDataChannel->rtcDataChannelInit);
+    sctpSessionSetSendInfo(&spa, pKvsDataChannel->channelId, FALSE, &pKvsDataChannel->rtcDataChannelInit, FALSE);
     ASSERT_NE(spa.sendv_sndinfo.snd_flags, SCTP_UNORDERED);
     ASSERT_EQ(spa.sendv_flags & SCTP_SEND_PRINFO_VALID, (UINT32) SCTP_SEND_PRINFO_VALID);
     ASSERT_EQ(spa.sendv_prinfo.pr_policy, SCTP_PR_SCTP_RTX);
@@ -1244,7 +1244,7 @@ static UINT32 messagesReceived(PRtcPeerConnection pPc, PRtcDataChannel pDataChan
     return received;
 }
 
-// Connect two peers and wait for the SCTP association, set up by one in-band channel
+// Connect two peers and wait for the SCTP association, set up by one in-band channel (the peer may have others)
 static BOOL connectWithAssociation(WebRtcClientTestBase* pTest, PRtcPeerConnection offerPc, PRtcPeerConnection answerPc, NegotiatedCounters* pOffer,
                                    NegotiatedCounters* pAnswer, NegotiatedCounters* pInband)
 {
@@ -1257,10 +1257,10 @@ static BOOL connectWithAssociation(WebRtcClientTestBase* pTest, PRtcPeerConnecti
         dataChannelOnOpen(pOfferInband, (UINT64) pInband, negotiatedOnOpen) != STATUS_SUCCESS || !pTest->connectTwoPeers(offerPc, answerPc)) {
         return FALSE;
     }
-    for (i = 0; i <= 100 && (ATOMIC_LOAD(&pInband->open) != 1 || ATOMIC_LOAD(&pAnswer->remoteOpen) != 1); i++) {
+    for (i = 0; i <= 100 && (ATOMIC_LOAD(&pInband->open) != 1 || ATOMIC_LOAD(&pAnswer->remoteOpen) < 1); i++) {
         THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     }
-    return ATOMIC_LOAD(&pAnswer->remoteOpen) == 1;
+    return ATOMIC_LOAD(&pAnswer->remoteOpen) >= 1;
 }
 
 // A negotiated channel created on a live association with its callbacks receives every message, in order,
@@ -1419,6 +1419,49 @@ TEST_F(DataChannelFunctionalityTest, getDataChannelStats_WhileReceivingAndCreati
     EXPECT_GT(polls.load(), 0u);
     EXPECT_EQ(count, receiver.received.messages.size());
     EXPECT_EQ(count, lastReceived.load());
+}
+
+// An in-band channel sends ordered from its DATA_CHANNEL_OPEN until the peer's DATA_CHANNEL_ACK, which arrives
+// once the peer has the channel; a negotiated channel and the peer's copy never wait
+TEST_F(DataChannelFunctionalityTest, inbandDataChannel_OrderedUntilDataChannelAck)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PRtcDataChannel pUnordered = NULL, pOfferNeg = NULL;
+    PKvsDataChannel pRemote = NULL;
+    RtcDataChannelInit init;
+    NegotiatedCounters offer, answer, inband;
+    UINT32 i;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+    MEMSET(&init, 0x00, SIZEOF(init));
+    init.ordered = FALSE;
+    NULLABLE_SET_EMPTY(init.maxRetransmits);
+    NULLABLE_SET_EMPTY(init.maxPacketLifeTime);
+    NULLABLE_SET_EMPTY(init.id);
+    EXPECT_EQ(createDataChannel(offerPc, (PCHAR) "unordered", &init, &pUnordered), STATUS_SUCCESS);
+    initNegotiated(&init, 50);
+    EXPECT_EQ(createDataChannel(offerPc, (PCHAR) "negotiated", &init, &pOfferNeg), STATUS_SUCCESS);
+    EXPECT_FALSE(ATOMIC_LOAD_BOOL(&((PKvsDataChannel) pUnordered)->awaitingDcepAck));
+
+    // connectWithAssociation adds one more in-band channel and waits for the peer to have it
+    ASSERT_TRUE(connectWithAssociation(this, offerPc, answerPc, &offer, &answer, &inband));
+    for (i = 0; i <= 50 && ATOMIC_LOAD_BOOL(&((PKvsDataChannel) pUnordered)->awaitingDcepAck); i++) {
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    EXPECT_FALSE(ATOMIC_LOAD_BOOL(&((PKvsDataChannel) pUnordered)->awaitingDcepAck));
+    EXPECT_FALSE(ATOMIC_LOAD_BOOL(&((PKvsDataChannel) pOfferNeg)->awaitingDcepAck));
+    MUTEX_LOCK(((PKvsPeerConnection) answerPc)->dataChannelsLock);
+    pRemote = remoteDataChannel(answerPc, pUnordered);
+    EXPECT_TRUE(pRemote != NULL && !ATOMIC_LOAD_BOOL(&pRemote->awaitingDcepAck));
+    MUTEX_UNLOCK(((PKvsPeerConnection) answerPc)->dataChannelsLock);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
 }
 
 } // namespace webrtcclient

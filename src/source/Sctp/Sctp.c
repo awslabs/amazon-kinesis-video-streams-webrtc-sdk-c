@@ -281,7 +281,7 @@ CleanUp:
 }
 
 // Send parameters for one message on a channel, from that channel's own ordering and reliability settings
-VOID sctpSessionSetSendInfo(struct sctp_sendv_spa* pSpa, UINT32 streamId, BOOL isBinary, PRtcDataChannelInit pRtcDataChannelInit)
+VOID sctpSessionSetSendInfo(struct sctp_sendv_spa* pSpa, UINT32 streamId, BOOL isBinary, PRtcDataChannelInit pRtcDataChannelInit, BOOL forceOrdered)
 {
     MEMSET(pSpa, 0x00, SIZEOF(struct sctp_sendv_spa));
 
@@ -292,7 +292,7 @@ VOID sctpSessionSetSendInfo(struct sctp_sendv_spa* pSpa, UINT32 streamId, BOOL i
     if (pRtcDataChannelInit == NULL) {
         return;
     }
-    if (!pRtcDataChannelInit->ordered) {
+    if (!pRtcDataChannelInit->ordered && !forceOrdered) {
         pSpa->sendv_sndinfo.snd_flags |= SCTP_UNORDERED;
     }
     // Same precedence as the DATA_CHANNEL_OPEN this channel announces; usrsctp ignores sendv_prinfo without PRINFO_VALID
@@ -308,7 +308,7 @@ VOID sctpSessionSetSendInfo(struct sctp_sendv_spa* pSpa, UINT32 streamId, BOOL i
 }
 
 STATUS sctpSessionWriteMessage(PSctpSession pSctpSession, UINT32 streamId, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen,
-                               PRtcDataChannelInit pRtcDataChannelInit)
+                               PRtcDataChannelInit pRtcDataChannelInit, BOOL forceOrdered)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -316,7 +316,7 @@ STATUS sctpSessionWriteMessage(PSctpSession pSctpSession, UINT32 streamId, BOOL 
 
     CHK(pSctpSession != NULL && pMessage != NULL, STATUS_NULL_ARG);
 
-    sctpSessionSetSendInfo(&spa, streamId, isBinary, pRtcDataChannelInit);
+    sctpSessionSetSendInfo(&spa, streamId, isBinary, pRtcDataChannelInit, forceOrdered);
     CHK(usrsctp_sendv(pSctpSession->socket, pMessage, pMessageLen, NULL, 0, &spa, SIZEOF(spa), SCTP_SENDV_SPA, 0) > 0, STATUS_SCTP_SENDV_FAILED);
 
 CleanUp:
@@ -485,6 +485,14 @@ STATUS handleDcepPacket(PSctpSession pSctpSession, UINT32 streamId, PBYTE data, 
     RtcDataChannelInit rtcDataChannelInit;
 
     CHK(pSctpSession != NULL && pSctpSession->socket != NULL && data != NULL, STATUS_NULL_ARG);
+
+    // The peer acknowledged a channel we opened in-band: it may now send unordered
+    if (length >= 1 && data[0] == DCEP_DATA_CHANNEL_ACK) {
+        if (pSctpSession->sctpSessionCallbacks.dataChannelAckFunc != NULL) {
+            pSctpSession->sctpSessionCallbacks.dataChannelAckFunc(pSctpSession->sctpSessionCallbacks.customData, streamId);
+        }
+        CHK(FALSE, STATUS_SUCCESS);
+    }
 
     // Assert that is DCEP of type DataChannelOpen
     CHK(length > SCTP_DCEP_HEADER_LENGTH && data[0] == DCEP_DATA_CHANNEL_OPEN, STATUS_SUCCESS);
