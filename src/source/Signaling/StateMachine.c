@@ -85,6 +85,15 @@ STATUS defaultSignalingStateTransitionHook(UINT64 customData /* customData shoul
     pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     CHK(pSignalingClient != NULL && stateTransitionWaitTime != NULL, STATUS_NULL_ARG);
 
+    // No backoff when the last response told us the clock skew correction to re-sign with
+    if (ATOMIC_EXCHANGE_BOOL(&pSignalingClient->clockSkewRetryPending, FALSE)) {
+        *stateTransitionWaitTime = 0;
+        CHK(FALSE, retStatus);
+    }
+
+    // Any other transition starts a new API call, which gets its own immediate clock skew retries
+    ATOMIC_STORE(&pSignalingClient->clockSkewRetryCount, 0);
+
     pSignalingStateMachineRetryStrategy = &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategy);
     pSignalingStateMachineRetryStrategyCallbacks = &(pSignalingClient->clientInfo.signalingStateMachineRetryStrategyCallbacks);
 
@@ -133,7 +142,9 @@ STATUS signalingStateMachineIterator(PSignalingClient pSignalingClient, UINT64 e
         CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), retStatus);
 
         if (STATUS_FAILED(retStatus)) {
-            CHK(pSignalingClient->pChannelInfo->retry, retStatus);
+            // A request rejected only because it was signed with a stale clock skew correction is retried
+            // in place once, even when retries are disabled
+            CHK(pSignalingClient->pChannelInfo->retry || ATOMIC_LOAD_BOOL(&pSignalingClient->clockSkewRetryPending), retStatus);
             for (i = 0; i < SIGNALING_STATE_MACHINE_STATE_COUNT; i++) {
                 CHK(retStatus != SIGNALING_STATE_MACHINE_STATES[i].status, SIGNALING_STATE_MACHINE_STATES[i].status);
             }
@@ -825,6 +836,12 @@ STATUS fromConnectSignalingState(UINT64 customData, PUINT64 pState)
         case SERVICE_CALL_GATEWAY_TIMEOUT:
             // Attempt to get a new endpoint
             state = SIGNALING_STATE_GET_ENDPOINT;
+            break;
+
+        case SERVICE_CALL_SIGNATURE_EXPIRED:
+        case SERVICE_CALL_SIGNATURE_NOT_YET_CURRENT:
+            // The upgrade was rejected only for a stale clock skew correction, connect again with the new one
+            state = SIGNALING_STATE_CONNECT;
             break;
 
         default:
