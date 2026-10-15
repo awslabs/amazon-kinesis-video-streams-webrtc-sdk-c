@@ -135,8 +135,8 @@ TEST_F(ReconnectUafTest, freeSignalingWaitsForStuckReconnectThread)
 }
 
 // Test: non-free callers (fetchSync, disconnectSync) should NOT block
-// indefinitely when a reconnect thread is alive. They use the bounded
-// wait path since shutdown=FALSE.
+// indefinitely when a reconnect thread is alive. They always use the
+// bounded wait path; only freeSignaling() asks for the unbounded one.
 TEST_F(ReconnectUafTest, nonFreeCallersUseBoundedWait)
 {
     if (!mAccessKeyIdSet) {
@@ -158,7 +158,7 @@ TEST_F(ReconnectUafTest, nonFreeCallersUseBoundedWait)
 
     UINT64 beforeFetch = GETTIME();
 
-    // fetchSync calls terminateOngoingOperations with shutdown=FALSE.
+    // fetchSync calls terminateOngoingOperations() as a non-free caller.
     // It should use the bounded wait and return within ~9s (SIGNALING_CLIENT_SHUTDOWN_TIMEOUT),
     // NOT block for 30s waiting for the fake thread.
     signalingClientFetchSync(mSignalingClientHandle);
