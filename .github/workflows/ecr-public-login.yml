@@ -1,0 +1,90 @@
+name: ECR Public login token
+
+# Reusable workflow: mints a short-lived public.ecr.aws authorization token so
+# that `container:` jobs pull their base image as an authenticated client.
+#
+# Why: anonymous pulls from public.ecr.aws are rate-limited per source IP, and
+# GitHub-hosted runners share a small pool of egress IPs with every other
+# GitHub Actions user. A single push to this repository pulls the Ubuntu base
+# image ~30 times, so matrix jobs regularly fail at "Initialize containers"
+# with `toomanyrequests: Data limit exceeded`. Authenticated pulls are counted
+# against the AWS account that minted the token instead.
+#
+# How to use from another workflow:
+#
+#   jobs:
+#     ecr-login:
+#       uses: ./.github/workflows/ecr-public-login.yml
+#       permissions:
+#         id-token: write
+#         contents: read
+#       secrets: inherit
+#
+#     my-job:
+#       needs: ecr-login
+#       runs-on: ubuntu-latest
+#       container:
+#         image: public.ecr.aws/ubuntu/ubuntu:22.04_stable
+#         credentials:
+#           username: ${{ needs.ecr-login.outputs.username }}
+#           password: ${{ needs.ecr-login.outputs.password }}
+#
+# Both `permissions: id-token: write` and `secrets: inherit` on the caller are
+# mandatory; without them the OIDC exchange fails silently and every job falls
+# back to an anonymous pull.
+
+on:
+  workflow_call:
+    outputs:
+      username:
+        description: "Registry username for public.ecr.aws; empty when no AWS credentials are available (e.g. pull requests from forks)"
+        value: ${{ jobs.login.outputs.username }}
+      password:
+        description: "12 h public.ecr.aws authorization token; empty when no AWS credentials are available"
+        value: ${{ jobs.login.outputs.password }}
+
+jobs:
+  login:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      username: ${{ steps.token.outputs.username }}
+      password: ${{ steps.token.outputs.password }}
+
+    steps:
+      - name: Configure AWS credentials
+        id: aws
+        # Pull requests from forks cannot mint an OIDC token, so this step fails
+        # there. Keep the job green with empty outputs; the runner then skips
+        # `docker login` and pulls anonymously, exactly as before this workflow.
+        continue-on-error: true
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          # public.ecr.aws authenticates only through us-east-1.
+          aws-region: us-east-1
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+
+      - name: Get ECR Public token
+        id: token
+        if: steps.aws.outcome == 'success'
+        run: |
+          # The token is deliberately NOT registered with ::add-mask::. GitHub
+          # drops any job output whose value matches a masked secret ("Skip
+          # output since it may contain secret"), and `container.credentials`
+          # needs the raw value before any step of the consuming job runs.
+          # The token only lets its holder pull *public* images against this
+          # account's quota for 12 hours; the CI role has no ECR push rights.
+          # Never echo it in a step.
+          TOKEN=$(aws ecr-public get-login-password --region us-east-1)
+          {
+            echo "username=AWS"
+            echo "password=$TOKEN"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Report anonymous fallback
+        if: steps.aws.outcome != 'success'
+        run: |
+          echo "::warning title=ECR Public login skipped::No AWS credentials available (fork PR or OIDC misconfiguration); container jobs will pull public.ecr.aws images anonymously and may hit the per-IP pull quota."
