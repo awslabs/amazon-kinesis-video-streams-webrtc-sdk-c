@@ -114,11 +114,12 @@ CleanUp:
 }
 
 STATUS constructRetransmitRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, UINT16 sequenceNum, UINT8 payloadType, UINT32 ssrc,
-                                             PRtpPacket* ppRtpPacket)
+                                             UINT32 twccExtPayload, PRtpPacket* ppRtpPacket)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PBYTE pPayload = NULL;
+    UINT32 rtxTwccExtPayload = twccExtPayload;
     PRtpPacket pRtpPacket = (PRtpPacket) MEMALLOC(SIZEOF(RtpPacket));
 
     CHK(pRtpPacket != NULL, STATUS_NOT_ENOUGH_MEMORY);
@@ -137,10 +138,24 @@ STATUS constructRetransmitRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLengt
     pRtpPacket->header.padding = FALSE;
     pRtpPacket->pRawPacket = NULL;
 
+    // RFC 4588 section 8.4: the retransmission gets a new RTP header. The original transport wide
+    // sequence number must not be reused, since every packet on the wire needs a unique one for
+    // congestion control to interpret the feedback. Point the extension at the caller supplied
+    // replacement before serializing; a zero payload means the caller has no TWCC number to assign.
+    if (rtxTwccExtPayload != 0 && pRtpPacket->header.extension && pRtpPacket->header.extensionProfile == TWCC_EXT_PROFILE &&
+        pRtpPacket->header.extensionLength == SIZEOF(UINT32)) {
+        pRtpPacket->header.extensionPayload = (PBYTE) &rtxTwccExtPayload;
+    }
+
     CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, NULL, &pRtpPacket->rawPacketLength));
     CHK(NULL != (pRtpPacket->pRawPacket = (PBYTE) MEMALLOC(pRtpPacket->rawPacketLength)), STATUS_NOT_ENOUGH_MEMORY);
     CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, pRtpPacket->pRawPacket, &pRtpPacket->rawPacketLength));
     pRtpPacket->payload = pRtpPacket->pRawPacket + RTP_GET_RAW_PACKET_SIZE(pRtpPacket) - pRtpPacket->payloadLength;
+    // Repoint the extension into the serialized packet: it still refers to the caller's rawPacket
+    // (or to rtxTwccExtPayload above, which lives on this stack frame) and would dangle otherwise.
+    if (pRtpPacket->header.extension) {
+        pRtpPacket->header.extensionPayload = pRtpPacket->pRawPacket + RTP_HEADER_LEN(pRtpPacket) - pRtpPacket->header.extensionLength;
+    }
 
 CleanUp:
     SAFE_MEMFREE(pPayload);
