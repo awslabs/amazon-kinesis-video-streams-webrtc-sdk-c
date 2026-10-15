@@ -162,11 +162,13 @@ TEST_F(RtcpFunctionalityTest, rtcpNackListGetSmallBuffer)
     PUINT16 pSeqList = (PUINT16) MEMALLOC(SIZEOF(UINT16) * capacity);
     ASSERT_TRUE(pSeqList != NULL);
 
-    // Only pSeqList[0] is written; the second sequence number is counted but not stored.
+    // Only pSeqList[0] is written; the second sequence number is dropped.
     EXPECT_EQ(STATUS_SUCCESS, rtcpNackListGet(singleBLP, SIZEOF(singleBLP), &senderSsrc, &receiverSsrc, pSeqList, &ssrcListLen));
 
-    // The reported count still reflects the true number of sequence numbers in the packet.
-    EXPECT_EQ(2, ssrcListLen);
+    // The reported count is capped at the capacity, so it only ever covers entries that were actually
+    // written. Callers use it as the length of the list, so a count larger than the buffer would make
+    // them read past the end of the array.
+    EXPECT_EQ(capacity, ssrcListLen);
     EXPECT_EQ(3240, pSeqList[0]);
 
     SAFE_MEMFREE(pSeqList);

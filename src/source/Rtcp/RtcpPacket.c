@@ -43,9 +43,16 @@ STATUS rtcpNackListGet(PBYTE pPayload, UINT32 payloadLen, PUINT32 pSenderSsrc, P
     UINT16 currentSequenceNumber;
     UINT16 sequenceNumberCount = 0, BLP;
     UINT32 i = RTCP_NACK_LIST_LEN;
+    UINT32 maxSequenceNumberCount = 0;
+    BOOL truncated = FALSE;
 
     CHK(pPayload != NULL && pSequenceNumberListLen != NULL && pSenderSsrc != NULL && pReceiverSsrc != NULL, STATUS_NULL_ARG);
     CHK(payloadLen >= RTCP_NACK_LIST_LEN && (payloadLen % 4 == 0), STATUS_RTCP_INPUT_NACK_LIST_INVALID);
+
+    // Capacity of pSequenceNumberList, captured before it is overwritten with the output count.
+    // Only meaningful when a list is supplied: with a NULL list the caller is asking for the total
+    // count so it can size the buffer, so no capping is applied in that case.
+    maxSequenceNumberCount = *pSequenceNumberListLen;
 
     *pSenderSsrc = getInt32(*(PUINT32) pPayload);
     *pReceiverSsrc = getInt32(*(PUINT32) (pPayload + 4));
@@ -56,26 +63,48 @@ STATUS rtcpNackListGet(PBYTE pPayload, UINT32 payloadLen, PUINT32 pSenderSsrc, P
 
         // If pSsrcList is not NULL and we have space push and increment. The guard must be a strict
         // "less than": sequenceNumberCount is the index about to be written, and the caller-supplied
-        // buffer holds exactly *pSequenceNumberListLen elements (valid indices 0..len-1). Using "<="
-        // here would write sequenceNumberList[*pSequenceNumberListLen], one element past the end.
-        if (pSequenceNumberList != NULL && sequenceNumberCount < *pSequenceNumberListLen) {
+        // buffer holds exactly maxSequenceNumberCount elements (valid indices 0..len-1). Using "<="
+        // here would write sequenceNumberList[maxSequenceNumberCount], one element past the end.
+        if (pSequenceNumberList != NULL && sequenceNumberCount < maxSequenceNumberCount) {
             pSequenceNumberList[sequenceNumberCount] = currentSequenceNumber;
+            sequenceNumberCount++;
+        } else if (pSequenceNumberList == NULL) {
+            sequenceNumberCount++;
+        } else {
+            // Stop counting once the buffer is full: the returned count is used by callers as the
+            // number of valid entries in the list, so counting past the capacity would make them read
+            // uninitialized memory past the end of the array.
+            truncated = TRUE;
+            break;
         }
-        sequenceNumberCount++;
 
         for (j = 0; j < 16; j++) {
             if ((BLP & (1 << j)) >> j) {
-                if (pSequenceNumberList != NULL && sequenceNumberCount < *pSequenceNumberListLen) {
+                if (pSequenceNumberList != NULL && sequenceNumberCount < maxSequenceNumberCount) {
                     pSequenceNumberList[sequenceNumberCount] = (currentSequenceNumber + j + 1);
+                    sequenceNumberCount++;
+                } else if (pSequenceNumberList == NULL) {
+                    sequenceNumberCount++;
+                } else {
+                    truncated = TRUE;
+                    break;
                 }
-                sequenceNumberCount++;
             }
+        }
+
+        if (truncated) {
+            break;
         }
     }
 
 CleanUp:
     if (STATUS_SUCCEEDED(retStatus)) {
+        // When a list was supplied this is the number of entries actually written, never more than
+        // the capacity the caller passed in, so it is always safe to use as a length.
         *pSequenceNumberListLen = sequenceNumberCount;
+        if (truncated) {
+            DLOGW("NACK list exceeds the %u entry buffer, ignoring the remaining sequence numbers", maxSequenceNumberCount);
+        }
     }
 
     LEAVES();
