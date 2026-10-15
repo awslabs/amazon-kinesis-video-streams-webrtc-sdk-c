@@ -693,6 +693,7 @@ CleanUp:
 STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 buffLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
+    STATUS subPacketStatus = STATUS_SUCCESS;
     RtcpPacket rtcpPacket;
     UINT32 currentOffset = 0;
 
@@ -704,15 +705,18 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
         DLOGV("RTCP inbound: packetType=%u fmt/rc=%u payloadLength=%u (compound offset %u/%u)", rtcpPacket.header.packetType,
               rtcpPacket.header.receptionReportCount, rtcpPacket.payloadLength, currentOffset, buffLen);
 
+        // Individual handler failures must not abandon the remaining sub-packets. RTCP is usually
+        // compound (e.g. RR + NACK + TWCC in one datagram), and bailing out here would drop the
+        // congestion control feedback that follows a failed NACK.
         switch (rtcpPacket.header.packetType) {
             case RTCP_PACKET_TYPE_FIR:
-                CHK_STATUS(onRtcpFIRPacket(&rtcpPacket, pKvsPeerConnection));
+                subPacketStatus = onRtcpFIRPacket(&rtcpPacket, pKvsPeerConnection);
                 break;
             case RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK:
                 if (rtcpPacket.header.receptionReportCount == RTCP_FEEDBACK_MESSAGE_TYPE_NACK) {
-                    CHK_STATUS(resendPacketOnNack(&rtcpPacket, pKvsPeerConnection));
+                    subPacketStatus = resendPacketOnNack(&rtcpPacket, pKvsPeerConnection);
                 } else if (rtcpPacket.header.receptionReportCount == RTCP_FEEDBACK_MESSAGE_TYPE_APPLICATION_LAYER_FEEDBACK) {
-                    CHK_STATUS(onRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection));
+                    subPacketStatus = onRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection);
                 } else {
                     DLOGW("unhandled RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK %d", rtcpPacket.header.receptionReportCount);
                 }
@@ -720,20 +724,20 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
             case RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK:
                 if (rtcpPacket.header.receptionReportCount == RTCP_FEEDBACK_MESSAGE_TYPE_APPLICATION_LAYER_FEEDBACK &&
                     isRembPacket(rtcpPacket.payload, rtcpPacket.payloadLength) == STATUS_SUCCESS) {
-                    CHK_STATUS(onRtcpRembPacket(&rtcpPacket, pKvsPeerConnection));
+                    subPacketStatus = onRtcpRembPacket(&rtcpPacket, pKvsPeerConnection);
                 } else if (rtcpPacket.header.receptionReportCount == RTCP_PSFB_PLI) {
-                    CHK_STATUS(onRtcpPLIPacket(&rtcpPacket, pKvsPeerConnection));
+                    subPacketStatus = onRtcpPLIPacket(&rtcpPacket, pKvsPeerConnection);
                 } else if (rtcpPacket.header.receptionReportCount == RTCP_PSFB_SLI) {
-                    CHK_STATUS(onRtcpSLIPacket(&rtcpPacket, pKvsPeerConnection));
+                    subPacketStatus = onRtcpSLIPacket(&rtcpPacket, pKvsPeerConnection);
                 } else {
                     DLOGW("unhandled packet type RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK %d", rtcpPacket.header.receptionReportCount);
                 }
                 break;
             case RTCP_PACKET_TYPE_SENDER_REPORT:
-                CHK_STATUS(onRtcpSenderReport(&rtcpPacket, pKvsPeerConnection));
+                subPacketStatus = onRtcpSenderReport(&rtcpPacket, pKvsPeerConnection);
                 break;
             case RTCP_PACKET_TYPE_RECEIVER_REPORT:
-                CHK_STATUS(onRtcpReceiverReport(&rtcpPacket, pKvsPeerConnection));
+                subPacketStatus = onRtcpReceiverReport(&rtcpPacket, pKvsPeerConnection);
                 break;
             case RTCP_PACKET_TYPE_SOURCE_DESCRIPTION:
                 DLOGV("unhandled packet type RTCP_PACKET_TYPE_SOURCE_DESCRIPTION");
@@ -741,6 +745,12 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
             default:
                 DLOGW("unhandled packet type %d", rtcpPacket.header.packetType);
                 break;
+        }
+
+        if (STATUS_FAILED(subPacketStatus)) {
+            DLOGW("Failed to handle RTCP packet type %d with 0x%08x, continuing with the rest of the compound packet", rtcpPacket.header.packetType,
+                  subPacketStatus);
+            subPacketStatus = STATUS_SUCCESS;
         }
 
         currentOffset += (rtcpPacket.payloadLength + RTCP_PACKET_HEADER_LEN);
