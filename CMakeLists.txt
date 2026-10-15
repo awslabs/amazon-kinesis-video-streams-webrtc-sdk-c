@@ -39,6 +39,7 @@ option(ENABLE_STATS_CALCULATION_CONTROL "Enable support for runtime control of i
 option(BUILD_OLD_MBEDTLS_VERSION "Use MbedTLS version 2.28.8." OFF)
 option(INCREASE_PRECISION_TIMING_LOGS "PROFILE-level timing logs have 2 decimals of milliseconds (otherwise truncated to whole millisecond)" ON)
 option(PARALLEL_BUILD "Build dependencies with parallel flag" OFF)
+option(PREFER_DYNAMIC_ALLOCS "Prefer dynamic allocations for signalingpayloads and URLs" OFF)
 
 # Tuning
 set(MAX_SDP_SESSION_MEDIA_COUNT "5" CACHE STRING "Maximum number of SDP media sections (m= lines). Range: 1-6. Each slot adds ~140 KB to stack-allocated SessionDescription. See docs/SDP_LIMITS.md.")
@@ -239,6 +240,10 @@ endif()
 
 if (USE_LIBSRTP3)
   add_definitions(-DUSE_LIBSRTP3)
+endif()
+
+if (PREFER_DYNAMIC_ALLOCS)
+  add_definitions(-DPREFER_DYNAMIC_ALLOCS=1)
 endif()
 
 if(USE_OPENSSL)
