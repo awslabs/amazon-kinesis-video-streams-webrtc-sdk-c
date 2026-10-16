@@ -387,6 +387,8 @@ STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PD
                 if (getRtxCodecKeyForCodec(pKvsRtpTransceiver->sender.track.codec, &rtxCodecKey) == STATUS_SUCCESS &&
                     hashTableGet(rtxTable, rtxCodecKey, &data) == STATUS_SUCCESS) {
                     pKvsRtpTransceiver->sender.rtxPayloadType = (UINT8) data;
+                    // RFC 3550 recommends starting the sequence number of a new stream at a random value
+                    pKvsRtpTransceiver->sender.rtxSequenceNumber = (UINT16) (RAND() % (MAX_UINT16 + 1));
                 }
 
                 // Emit once per negotiation, whether RTX was resolved for this codec. When rtxPayloadType
