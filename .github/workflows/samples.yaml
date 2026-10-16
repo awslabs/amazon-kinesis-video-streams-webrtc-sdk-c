@@ -12,6 +12,13 @@ on:
       - main
 
 jobs:
+  ecr-login:
+    uses: ./.github/workflows/ecr-public-login.yml
+    permissions:
+      id-token: write
+      contents: read
+    secrets: inherit
+
   sample-check:
     runs-on: ubuntu-latest
     env:
@@ -479,8 +486,13 @@ jobs:
 
   ubuntu-docker-sample-checks:
     name: docker-${{ matrix.runner.id }} - Samples (build_deps=${{ matrix.build-dependencies }})
+    needs: ecr-login
     runs-on: ubuntu-latest
-    container: ${{ matrix.runner.docker }}
+    container:
+      image: ${{ matrix.runner.docker }}
+      # Authenticated pull; see ecr-public-login.yml. `{}` (no token on fork PRs,
+      # or a token minted in an earlier run attempt) skips `docker login`.
+      credentials: ${{ fromJSON(needs.ecr-login.outputs.attempt == github.run_attempt && needs.ecr-login.outputs.credentials || '{}') }}
     timeout-minutes: 30
     env:
       AWS_KVS_LOG_LEVEL: 1
