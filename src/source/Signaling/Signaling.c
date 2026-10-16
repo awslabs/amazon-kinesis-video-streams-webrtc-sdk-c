@@ -344,7 +344,7 @@ STATUS freeSignaling(PSignalingClient* ppSignalingClient)
 
     ATOMIC_STORE_BOOL(&pSignalingClient->shutdown, TRUE);
 
-    terminateOngoingOperations(pSignalingClient);
+    terminateOngoingOperations(pSignalingClient, TRUE);
 
     if (pSignalingClient->pWebsocketContext != NULL) {
         MUTEX_LOCK(pSignalingClient->lwsServiceLock);
@@ -506,11 +506,10 @@ CleanUp:
     return retStatus;
 }
 
-STATUS terminateOngoingOperations(PSignalingClient pSignalingClient)
+STATUS terminateOngoingOperations(PSignalingClient pSignalingClient, BOOL waitForAllThreads)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL shuttingDown;
     UINT64 waitStart;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
@@ -518,9 +517,12 @@ STATUS terminateOngoingOperations(PSignalingClient pSignalingClient)
     // Terminate the listener thread if alive
     terminateLwsListenerLoop(pSignalingClient);
 
-    shuttingDown = ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown);
-
-    if (shuttingDown) {
+    // Branch on what the caller asked for, not on pSignalingClient->shutdown. The flag is global: once
+    // freeSignaling() has set it, a fetch/disconnect/delete issued from a signaling callback on an SDK thread
+    // would otherwise take the unbounded path below and wait for its own thread to exit, while freeSignaling()
+    // waits for that same thread. Neither would return. Those calls refuse once shutdown is set, but one can pass
+    // its check just before freeSignaling() sets the flag and still arrive here; this parameter covers that window.
+    if (waitForAllThreads) {
         // freeSignaling path: we are about to free memory, so we MUST wait
         // until the reconnect thread is fully done.  Poke the LWS event loop
         // so lwsCompleteSync sees the shutdown flag and exits promptly.
@@ -610,9 +612,9 @@ STATUS terminateOngoingOperations(PSignalingClient pSignalingClient)
             MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
         }
     } else {
-        // Non-free callers (fetchSync, disconnectSync, deleteSync): shutdown
-        // is FALSE so the reconnect thread may legitimately keep running or
-        // respawn.  Use the original bounded wait — best-effort quiesce.
+        // Non-free callers (fetchSync, disconnectSync, deleteSync): the client stays alive after this call, so
+        // the reconnect thread may legitimately keep running or respawn. Use the original bounded wait — a
+        // best-effort quiesce that returns even if the caller is itself the reconnect thread.
         awaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);
     }
 
@@ -715,9 +717,13 @@ STATUS signalingFetchSync(PSignalingClient pSignalingClient)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
+    // Another thread is inside freeSignaling(); the client is about to disappear and freeSignaling() may be
+    // waiting for the very thread making this call (a signaling callback). Return instead of waiting.
+    CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), STATUS_SIGNALING_FREE_IN_PROGRESS);
+
     // Check if we are already not connected
     if (ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
-        CHK_STATUS(terminateOngoingOperations(pSignalingClient));
+        CHK_STATUS(terminateOngoingOperations(pSignalingClient, FALSE));
     }
 
     // move to the fromGetToken() so we can move to the necessary step
@@ -790,10 +796,13 @@ STATUS signalingDisconnectSync(PSignalingClient pSignalingClient)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
+    // Another thread is inside freeSignaling(); see signalingFetchSync().
+    CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), STATUS_SIGNALING_FREE_IN_PROGRESS);
+
     // Check if we are already not connected
     CHK(ATOMIC_LOAD_BOOL(&pSignalingClient->connected), retStatus);
 
-    CHK_STATUS(terminateOngoingOperations(pSignalingClient));
+    CHK_STATUS(terminateOngoingOperations(pSignalingClient, FALSE));
 
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
 
@@ -818,10 +827,14 @@ STATUS signalingDeleteSync(PSignalingClient pSignalingClient)
     // Check if we are already deleting
     CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->deleted), retStatus);
 
+    // Another thread is inside freeSignaling(); see signalingFetchSync(). Checked before the deleting flag and
+    // the state machine are touched so the refusal leaves the client exactly as freeSignaling() expects it.
+    CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), STATUS_SIGNALING_FREE_IN_PROGRESS);
+
     // Mark as being deleted
     ATOMIC_STORE_BOOL(&pSignalingClient->deleting, TRUE);
 
-    CHK_STATUS(terminateOngoingOperations(pSignalingClient));
+    CHK_STATUS(terminateOngoingOperations(pSignalingClient, FALSE));
 
     // Set the state directly
     setStateMachineCurrentState(pSignalingClient->pStateMachine, SIGNALING_STATE_DELETE);
