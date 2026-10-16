@@ -1779,6 +1779,9 @@ typedef struct {
  * @brief RtcDataChannelInit dictionary used to configure properties of the
  * underlying channel such as data reliability
  *
+ * Zero the whole structure (MEMSET) before setting fields. negotiated is honoured, so a structure left
+ * uninitialised can select a negotiated channel that sends no DCEP DATA_CHANNEL_OPEN.
+ *
  * Reference: https://www.w3.org/TR/webrtc/#dom-rtcdatachannelinit
  */
 typedef struct {
@@ -1789,7 +1792,10 @@ typedef struct {
     NullableUint16 maxRetransmits;                    //!< Control number of times a channel retransmits data if not delivered successfully
     CHAR protocol[MAX_DATA_CHANNEL_PROTOCOL_LEN + 1]; //!< Sub protocol name for the channel
     BOOL negotiated;                                  //!< If set to true, it is up to the application to negotiate the channel and create an
-                                                      //!< RTCDataChannel object with the same id as the other peer.
+                                                      //!< RTCDataChannel object with the same id as the other peer. No DCEP DATA_CHANNEL_OPEN
+                                                      //!< is sent for a negotiated channel, and it may be created before or after the SCTP
+                                                      //!< association is established.
+    NullableUint16 id;                                //!< SCTP stream id, 0-299. Required when negotiated is TRUE, ignored otherwise.
 } RtcDataChannelInit, *PRtcDataChannelInit;
 /*!@} */
 
@@ -2309,7 +2315,11 @@ PUBLIC_API STATUS addIceCandidate(PRtcPeerConnection, PCHAR);
  *
  * NOTE: The RtcDataChannelInit dictionary can be used to configure properties of the underlying
  * channel such as data reliability.
- * NOTE: Data channel can be created only after signaling for now
+ * NOTE: A channel that uses in-band negotiation (DCEP) can only be created before the SCTP association is
+ * established. A negotiated channel (RtcDataChannelInit.negotiated = TRUE with an id) can be created at any
+ * time; created after the association, it is open immediately and its onOpen callback fires on registration.
+ * Such a channel can receive before dataChannelOnMessage() is called, and those messages are dropped: create it
+ * with createDataChannelWithCallbacks() instead.
  *
  * Reference: https://www.w3.org/TR/webrtc/#methods-11
  *
@@ -2323,7 +2333,31 @@ PUBLIC_API STATUS addIceCandidate(PRtcPeerConnection, PCHAR);
 PUBLIC_API STATUS createDataChannel(PRtcPeerConnection, PCHAR, PRtcDataChannelInit, PRtcDataChannel*);
 
 /**
+ * @brief createDataChannelWithCallbacks is createDataChannel() with the message and open callbacks set as the
+ * channel is created, so that it receives from the first message.
+ *
+ * Use it for a negotiated channel created after the SCTP association is established: that channel is open as
+ * soon as it exists, and the peer may send on it right away. Its onOpen callback runs before this function
+ * returns. For other channels, it is the same as createDataChannel() followed by dataChannelOnMessage() and
+ * dataChannelOnOpen().
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in] PCHAR Data channel Name
+ * @param[in] PRtcDataChannelInit Allowed to be NULL/defines underlying channel properties
+ * @param[in] UINT64 User customData passed to both callbacks
+ * @param[in] RtcOnMessage Message callback; allowed to be NULL
+ * @param[in] RtcOnOpen Open callback; allowed to be NULL
+ * @param[out] PRtcDataChannel* Created data channel with supplied channel name
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS createDataChannelWithCallbacks(PRtcPeerConnection, PCHAR, PRtcDataChannelInit, UINT64, RtcOnMessage, RtcOnOpen, PRtcDataChannel*);
+
+/**
  * @brief Set a callback for data channel message
+ *
+ * Messages that arrive before the callback is set are dropped. A negotiated channel created after the SCTP
+ * association is established can receive as soon as it exists: create it with createDataChannelWithCallbacks().
  *
  * @param[in] PRtcDataChannel Data channel struct created by createDataChannel()
  * @param[in] UINT64 User customData that will be passed along when RtcOnMessage is called
@@ -2335,6 +2369,10 @@ PUBLIC_API STATUS dataChannelOnMessage(PRtcDataChannel, UINT64, RtcOnMessage);
 
 /**
  * @brief Set a callback for data channel open
+ *
+ * For a channel that is already open (a negotiated channel created on an established
+ * association, or a remote channel), the callback runs before this function returns.
+ * It runs once per channel.
  *
  * @param[in] PRtcDataChannel Data channel struct created by createDataChannel()
  * @param[in] UINT64 User customData that will be passed along when RtcOnOpen is called
