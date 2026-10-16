@@ -40,15 +40,28 @@ if (USE_MBEDTLS4)
   list(APPEND MBEDTLS_EXTRA_CMAKE_ARGS -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
 endif()
 
-# Test only: an external PSA RNG instead of the entropy module (MBEDTLS_ENTROPY_C is derived
-# from it in TF-PSA-Crypto). Patched into the source so the installed headers carry it too.
-set(MBEDTLS_PATCH_COMMAND "")
-if (KVS_TEST_MBEDTLS4_NO_ENTROPY)
+# The SDK calls PSA from several threads (each peer's DTLS and SRTP), so the PSA key store needs
+# MBEDTLS_THREADING_C, which TF-PSA-Crypto leaves off by default. Patched into the source so the
+# installed headers carry it too.
+set(_psa_config_cmds "")
+if (USE_MBEDTLS4)
   find_package(Python3 REQUIRED COMPONENTS Interpreter)
-  set(_psa_config tf-psa-crypto/scripts/config.py -f tf-psa-crypto/include/psa/crypto_config.h)
-  set(MBEDTLS_PATCH_COMMAND PATCH_COMMAND
-      ${Python3_EXECUTABLE} ${_psa_config} set MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG
-      COMMAND ${Python3_EXECUTABLE} ${_psa_config} unset MBEDTLS_PSA_BUILTIN_GET_ENTROPY)
+  set(_psa_config ${Python3_EXECUTABLE} tf-psa-crypto/scripts/config.py -f tf-psa-crypto/include/psa/crypto_config.h)
+  if (NOT WIN32)
+    list(APPEND _psa_config_cmds COMMAND ${_psa_config} set MBEDTLS_THREADING_C
+                                 COMMAND ${_psa_config} set MBEDTLS_THREADING_PTHREAD)
+  endif()
+  # Test only: an external PSA RNG instead of the entropy module (MBEDTLS_ENTROPY_C is derived from it)
+  if (KVS_TEST_MBEDTLS4_NO_ENTROPY)
+    list(APPEND _psa_config_cmds COMMAND ${_psa_config} set MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG
+                                 COMMAND ${_psa_config} unset MBEDTLS_PSA_BUILTIN_GET_ENTROPY)
+  endif()
+endif()
+set(MBEDTLS_PATCH_COMMAND "")
+if (_psa_config_cmds)
+  # PATCH_COMMAND takes the first command bare; the rest follow as COMMAND ...
+  list(REMOVE_AT _psa_config_cmds 0)
+  set(MBEDTLS_PATCH_COMMAND PATCH_COMMAND ${_psa_config_cmds})
 endif()
 
 ExternalProject_Add(
