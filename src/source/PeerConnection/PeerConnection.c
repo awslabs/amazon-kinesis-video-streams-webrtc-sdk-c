@@ -2105,6 +2105,8 @@ STATUS twccManagerOnPacketSent(PKvsPeerConnection pKvsPeerConnection, PRtpPacket
     BOOL locked = FALSE;
     UINT16 seqNum = 0;
     PTwccRtpPacketInfo pTwccRtpPktInfo = NULL;
+    PTwccRtpPacketInfo pStaleTwccRtpPktInfo = NULL;
+    UINT64 staleTwccPktInfoValue = 0;
 
     CHK(pKvsPeerConnection != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
     // Skip TWCC tracking if no callback is set to consume the results
@@ -2123,6 +2125,15 @@ STATUS twccManagerOnPacketSent(PKvsPeerConnection pKvsPeerConnection, PRtpPacket
     pTwccRtpPktInfo->localTimeKvs = pRtpPacket->sentTime;
     pTwccRtpPktInfo->remoteTimeKvs = TWCC_PACKET_LOST_TIME;
     seqNum = TWCC_SEQNUM(pRtpPacket->header.extensionPayload);
+
+    // hashTableUpsert overwrites the stored pointer without freeing it, so free any existing entry
+    // first. A seqNum that is still in the table is reported again when a NACKed packet is
+    // retransmitted, and when the transport wide sequence number wraps every 65536 packets onto an
+    // entry the rolling window has not evicted. Each of those would otherwise leak one TwccRtpPacketInfo.
+    if (STATUS_SUCCEEDED(hashTableGet(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, seqNum, &staleTwccPktInfoValue))) {
+        pStaleTwccRtpPktInfo = (PTwccRtpPacketInfo) staleTwccPktInfoValue;
+        SAFE_MEMFREE(pStaleTwccRtpPktInfo);
+    }
     CHK_STATUS(hashTableUpsert(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, seqNum, (UINT64) pTwccRtpPktInfo));
 
     // Ensure twccRollingWindowDeletion is run in a guarded section

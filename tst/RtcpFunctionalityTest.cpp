@@ -1028,6 +1028,46 @@ TEST_F(RtcpFunctionalityTest, twccParsePacketTest)
     parseTwcc("4487A9E754B3E6FD040200E4147C9F81202700B7E6649000000000000000000004000000000008000018000000001", 43, 185);
 }
 
+TEST_F(RtcpFunctionalityTest, twccManagerOnPacketSentReusedSeqNum)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    RtcConfiguration config{};
+    RtpPacket rtpPacket{};
+    PTwccRtpPacketInfo pTwccRtpPacketInfo = NULL;
+    UINT64 value = 0;
+    UINT16 twsn = 100;
+    UINT32 extpayload = TWCC_PAYLOAD(parseExtId(TWCC_EXT_URL), twsn);
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnSenderBandwidthEstimation(pRtcPeerConnection, 0, testBwHandler));
+
+    rtpPacket.header.extension = TRUE;
+    rtpPacket.header.extensionProfile = TWCC_EXT_PROFILE;
+    rtpPacket.header.extensionLength = SIZEOF(UINT32);
+    rtpPacket.header.extensionPayload = (PBYTE) &extpayload;
+    rtpPacket.payloadLength = 100;
+    rtpPacket.sentTime = HUNDREDS_OF_NANOS_IN_A_SECOND;
+    EXPECT_EQ(STATUS_SUCCESS, twccManagerOnPacketSent(pKvsPeerConnection, &rtpPacket));
+
+    // Send the same transport wide sequence number again while the first entry is still inside the
+    // rolling window, as a NACK retransmission does. The stale entry has to be freed rather than
+    // overwritten; an overwritten entry is reported as a leak when the fixture resets its allocators.
+    rtpPacket.payloadLength = 200;
+    rtpPacket.sentTime = 2 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    EXPECT_EQ(STATUS_SUCCESS, twccManagerOnPacketSent(pKvsPeerConnection, &rtpPacket));
+
+    EXPECT_EQ(1, pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable->itemCount);
+    EXPECT_EQ(STATUS_SUCCESS, hashTableGet(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, twsn, &value));
+    pTwccRtpPacketInfo = (PTwccRtpPacketInfo) value;
+    ASSERT_NE(nullptr, pTwccRtpPacketInfo);
+    EXPECT_EQ(200, pTwccRtpPacketInfo->packetSize);
+    EXPECT_EQ(2 * HUNDREDS_OF_NANOS_IN_A_SECOND, pTwccRtpPacketInfo->localTimeKvs);
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
 TEST_F(RtcpFunctionalityTest, updateTwccHashTableTest)
 {
     PRtcPeerConnection pRtcPeerConnection = NULL;
