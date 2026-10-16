@@ -25,23 +25,28 @@ name: ECR Public login token
 #       runs-on: ubuntu-latest
 #       container:
 #         image: public.ecr.aws/ubuntu/ubuntu:22.04_stable
-#         credentials:
-#           username: ${{ needs.ecr-login.outputs.username }}
-#           password: ${{ needs.ecr-login.outputs.password }}
+#         credentials: ${{ fromJSON(needs.ecr-login.outputs.attempt == github.run_attempt && needs.ecr-login.outputs.credentials || '{}') }}
 #
-# Both `permissions: id-token: write` and `secrets: inherit` on the caller are
-# mandatory; without them the OIDC exchange fails silently and every job falls
-# back to an anonymous pull.
+# Pass `credentials` as one mapping, `{}` when there is no token: the runner
+# rejects an empty username or password ("Unexpected value ''") before the
+# container starts. "Re-run failed jobs" does not re-run this workflow, so a
+# re-run job would get the first attempt's token, which expires after 12 h; the
+# attempt check makes those re-runs pull anonymously. "Re-run all jobs" mints a
+# fresh token.
+#
+# Without `permissions: id-token: write` on the calling job the run fails at
+# startup. Without `secrets: inherit` the role ARN is empty, the OIDC step
+# fails, and every job pulls anonymously.
 
 on:
   workflow_call:
     outputs:
-      username:
-        description: "Registry username for public.ecr.aws; empty when no AWS credentials are available (e.g. pull requests from forks)"
-        value: ${{ jobs.login.outputs.username }}
-      password:
-        description: "12 h public.ecr.aws authorization token; empty when no AWS credentials are available"
-        value: ${{ jobs.login.outputs.password }}
+      credentials:
+        description: "JSON {username, password} for container.credentials; unset when no token was minted (e.g. pull requests from forks)"
+        value: ${{ jobs.login.outputs.credentials }}
+      attempt:
+        description: "github.run_attempt in which the token was minted"
+        value: ${{ jobs.login.outputs.attempt }}
 
 jobs:
   login:
@@ -51,15 +56,16 @@ jobs:
       id-token: write
       contents: read
     outputs:
-      username: ${{ steps.token.outputs.username }}
-      password: ${{ steps.token.outputs.password }}
+      credentials: ${{ steps.token.outputs.credentials }}
+      attempt: ${{ github.run_attempt }}
 
     steps:
       - name: Configure AWS credentials
         id: aws
         # Pull requests from forks cannot mint an OIDC token, so this step fails
-        # there. Keep the job green with empty outputs; the runner then skips
-        # `docker login` and pulls anonymously, exactly as before this workflow.
+        # there. Keep the job green with no credentials output; consumers then
+        # pass `{}` and the runner pulls anonymously, exactly as before this
+        # workflow.
         continue-on-error: true
         uses: aws-actions/configure-aws-credentials@v6
         with:
@@ -70,6 +76,9 @@ jobs:
       - name: Get ECR Public token
         id: token
         if: steps.aws.outcome == 'success'
+        # A failed token request also falls back to an anonymous pull, instead
+        # of failing this job and skipping every job that needs it.
+        continue-on-error: true
         run: |
           # The token is deliberately NOT registered with ::add-mask::. GitHub
           # drops any job output whose value matches a masked secret ("Skip
@@ -77,14 +86,13 @@ jobs:
           # needs the raw value before any step of the consuming job runs.
           # The token only lets its holder pull *public* images against this
           # account's quota for 12 hours; the CI role has no ECR push rights.
-          # Never echo it in a step.
+          # Never echo it in a step. Debug logging prints it anyway: here as
+          # "Set output credentials = ...", and in every consuming job while
+          # the runner evaluates `container:`.
           TOKEN=$(aws ecr-public get-login-password --region us-east-1)
-          {
-            echo "username=AWS"
-            echo "password=$TOKEN"
-          } >> "$GITHUB_OUTPUT"
+          echo "credentials={\"username\":\"AWS\",\"password\":\"$TOKEN\"}" >> "$GITHUB_OUTPUT"
 
       - name: Report anonymous fallback
-        if: steps.aws.outcome != 'success'
+        if: steps.token.outcome != 'success'
         run: |
-          echo "::warning title=ECR Public login skipped::No AWS credentials available (fork PR or OIDC misconfiguration); container jobs will pull public.ecr.aws images anonymously and may hit the per-IP pull quota."
+          echo "::warning title=ECR Public login skipped::No ECR Public token (fork PR, OIDC misconfiguration, or a failed token request); container jobs will pull public.ecr.aws images anonymously and may hit the per-IP pull quota."
