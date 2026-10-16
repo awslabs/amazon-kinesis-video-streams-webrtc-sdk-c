@@ -1,4 +1,5 @@
 #include "WebRTCClientTestFixture.h"
+#include <vector>
 
 namespace com {
 namespace amazonaws {
@@ -1146,6 +1147,324 @@ TEST_F(JitterBufferFunctionalityTest, outOfOrderFirstFrame)
     }
 
     clearJitterBufferForTest();
+}
+
+// Records the timestamps and sizes of the frames a jitter buffer delivers and drops
+struct FrameSizeLimitEvents {
+    PJitterBuffer pJitterBuffer = NULL;
+    std::vector<UINT32> readyTimestamps;
+    std::vector<UINT32> readySizes;
+    std::vector<UINT32> droppedTimestamps;
+};
+
+static STATUS frameSizeLimitFrameReady(UINT64 customData, UINT16 startIndex, UINT16 endIndex, UINT32 frameSize)
+{
+    UNUSED_PARAM(endIndex);
+    FrameSizeLimitEvents* pEvents = (FrameSizeLimitEvents*) customData;
+    UINT64 hashValue = 0;
+    UINT32 timestamp = MAX_UINT32;
+
+    if (STATUS_SUCCEEDED(hashTableGet(pEvents->pJitterBuffer->pPkgBufferHashTable, startIndex, &hashValue)) && hashValue != 0) {
+        timestamp = ((PRtpPacket) hashValue)->header.timestamp;
+    }
+    pEvents->readyTimestamps.push_back(timestamp);
+    pEvents->readySizes.push_back(frameSize);
+    return STATUS_SUCCESS;
+}
+
+static STATUS frameSizeLimitFrameDropped(UINT64 customData, UINT16 startIndex, UINT16 endIndex, UINT32 timestamp)
+{
+    UNUSED_PARAM(startIndex);
+    UNUSED_PARAM(endIndex);
+    ((FrameSizeLimitEvents*) customData)->droppedTimestamps.push_back(timestamp);
+    return STATUS_SUCCESS;
+}
+
+// Two packets of HALF_MAX_INBOUND_FRAME_SIZE are exactly MAX_INBOUND_FRAME_SIZE_BYTES. Two packets of HALF_MAX_INBOUND_FRAME_SIZE + 1 are over it.
+#define HALF_MAX_INBOUND_FRAME_SIZE (MAX_INBOUND_FRAME_SIZE_BYTES / 2)
+
+static void createFrameSizeLimitJitterBuffer(FrameSizeLimitEvents& events)
+{
+    ASSERT_EQ(STATUS_SUCCESS,
+              createJitterBuffer(frameSizeLimitFrameReady, frameSizeLimitFrameDropped, reproDepayRtpFunc, DEFAULT_JITTER_BUFFER_MAX_LATENCY,
+                                 TEST_JITTER_BUFFER_CLOCK_RATE, (UINT64) &events, &events.pJitterBuffer));
+}
+
+// Pushes a packet with payloadLength bytes and returns whether the jitter buffer discarded it
+static BOOL pushFrameSizeLimitPacket(FrameSizeLimitEvents& events, UINT16 sequenceNumber, UINT32 timestamp, UINT32 payloadLength, BOOL isStart)
+{
+    PRtpPacket pRtpPacket = NULL;
+    PBYTE payload = (PBYTE) MEMALLOC(payloadLength + 1);
+    BOOL discarded = FALSE;
+
+    MEMSET(payload, 0xAB, payloadLength);
+    payload[payloadLength] = isStart ? 1 : 0;
+    EXPECT_EQ(STATUS_SUCCESS,
+              createRtpPacket(2, FALSE, FALSE, 0, FALSE, 96, sequenceNumber, timestamp, 0x1234ABCD, NULL, 0, 0, NULL, payload, payloadLength,
+                              &pRtpPacket));
+    pRtpPacket->pRawPacket = payload;
+    EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(events.pJitterBuffer, pRtpPacket, &discarded));
+    return discarded;
+}
+
+// Once a frame is over MAX_INBOUND_FRAME_SIZE_BYTES, its remaining packets are discarded and it is dropped when the next frame arrives.
+// Later frames are delivered. A frame of exactly MAX_INBOUND_FRAME_SIZE_BYTES is delivered.
+TEST_F(JitterBufferFunctionalityTest, packetsOfFrameLargerThanMaxInboundFrameSizeAreDiscarded)
+{
+    FrameSizeLimitEvents events;
+    createFrameSizeLimitJitterBuffer(events);
+
+    EXPECT_FALSE(pushFrameSizeLimitPacket(events, 0, 100, HALF_MAX_INBOUND_FRAME_SIZE + 1, TRUE)); // A: over the limit at the second packet
+    EXPECT_FALSE(pushFrameSizeLimitPacket(events, 1, 100, HALF_MAX_INBOUND_FRAME_SIZE + 1, FALSE));
+    EXPECT_TRUE(pushFrameSizeLimitPacket(events, 2, 100, 1, FALSE));
+    EXPECT_TRUE(events.droppedTimestamps.empty());
+
+    EXPECT_FALSE(pushFrameSizeLimitPacket(events, 3, 200, MAX_INBOUND_FRAME_SIZE_BYTES, TRUE)); // B: exactly the limit. A is dropped.
+    EXPECT_EQ(std::vector<UINT32>({100}), events.droppedTimestamps);
+
+    EXPECT_FALSE(pushFrameSizeLimitPacket(events, 4, 300, 1, TRUE)); // C: B is delivered
+    EXPECT_EQ(std::vector<UINT32>({200}), events.readyTimestamps);
+    EXPECT_EQ(std::vector<UINT32>({MAX_INBOUND_FRAME_SIZE_BYTES}), events.readySizes);
+    EXPECT_EQ(std::vector<UINT32>({100}), events.droppedTimestamps);
+
+    freeJitterBuffer(&events.pJitterBuffer);
+}
+
+// An oversized frame behind an incomplete frame is dropped as soon as the earlier frame is delivered, without waiting for the latency timeout
+TEST_F(JitterBufferFunctionalityTest, frameLargerThanMaxInboundFrameSizeBehindIncompleteFrameIsDroppedWithoutWaiting)
+{
+    FrameSizeLimitEvents events;
+    createFrameSizeLimitJitterBuffer(events);
+
+    pushFrameSizeLimitPacket(events, 0, 100, 1, TRUE); // A, sequence number 1 is late
+    pushFrameSizeLimitPacket(events, 2, 100, 1, FALSE);
+    pushFrameSizeLimitPacket(events, 3, 200, HALF_MAX_INBOUND_FRAME_SIZE + 1, TRUE); // B: over the limit while A is the earliest frame
+    EXPECT_FALSE(pushFrameSizeLimitPacket(events, 4, 200, HALF_MAX_INBOUND_FRAME_SIZE + 1, FALSE));
+    EXPECT_TRUE(pushFrameSizeLimitPacket(events, 5, 200, 1, FALSE));
+    pushFrameSizeLimitPacket(events, 6, 300, 1, TRUE); // C
+    EXPECT_TRUE(events.readyTimestamps.empty());
+    EXPECT_TRUE(events.droppedTimestamps.empty());
+
+    // A's late packet completes A. A is delivered and B is dropped in the same push.
+    pushFrameSizeLimitPacket(events, 1, 100, 1, FALSE);
+    EXPECT_EQ(std::vector<UINT32>({100}), events.readyTimestamps);
+    EXPECT_EQ(std::vector<UINT32>({200}), events.droppedTimestamps);
+
+    pushFrameSizeLimitPacket(events, 7, 400, 1, TRUE); // D: C is delivered
+    EXPECT_EQ(std::vector<UINT32>({100, 300}), events.readyTimestamps);
+    EXPECT_EQ(std::vector<UINT32>({200}), events.droppedTimestamps);
+
+    freeJitterBuffer(&events.pJitterBuffer);
+}
+
+// Consecutive oversized frames behind an incomplete frame are all dropped as soon as the earlier frame is delivered
+TEST_F(JitterBufferFunctionalityTest, consecutiveFramesLargerThanMaxInboundFrameSizeAreDroppedWithoutWaiting)
+{
+    FrameSizeLimitEvents events;
+    createFrameSizeLimitJitterBuffer(events);
+
+    pushFrameSizeLimitPacket(events, 0, 100, 1, TRUE);                               // A, sequence number 1 is late
+    pushFrameSizeLimitPacket(events, 2, 200, HALF_MAX_INBOUND_FRAME_SIZE + 1, TRUE); // B: over the limit at the second packet
+    pushFrameSizeLimitPacket(events, 3, 200, HALF_MAX_INBOUND_FRAME_SIZE + 1, FALSE);
+    EXPECT_TRUE(pushFrameSizeLimitPacket(events, 4, 200, 1, FALSE));
+    pushFrameSizeLimitPacket(events, 5, 300, HALF_MAX_INBOUND_FRAME_SIZE + 1, TRUE); // C: over the limit at the second packet
+    pushFrameSizeLimitPacket(events, 6, 300, HALF_MAX_INBOUND_FRAME_SIZE + 1, FALSE);
+    EXPECT_TRUE(pushFrameSizeLimitPacket(events, 7, 300, 1, FALSE));
+    pushFrameSizeLimitPacket(events, 8, 400, 1, TRUE); // D
+
+    // A's late packet completes A. A is delivered and B and C are dropped in the same push.
+    pushFrameSizeLimitPacket(events, 1, 100, 1, FALSE);
+    EXPECT_EQ(std::vector<UINT32>({100}), events.readyTimestamps);
+    EXPECT_EQ(std::vector<UINT32>({200, 300}), events.droppedTimestamps);
+
+    pushFrameSizeLimitPacket(events, 9, 500, 1, TRUE); // E: D is delivered
+    EXPECT_EQ(std::vector<UINT32>({100, 400}), events.readyTimestamps);
+
+    freeJitterBuffer(&events.pJitterBuffer);
+}
+
+// A packet of an oversized frame that arrives after the next frame has started is dropped with the oversized frame
+TEST_F(JitterBufferFunctionalityTest, latePacketOfFrameLargerThanMaxInboundFrameSizeIsDroppedWithIt)
+{
+    FrameSizeLimitEvents events;
+    createFrameSizeLimitJitterBuffer(events);
+
+    pushFrameSizeLimitPacket(events, 0, 100, 1, TRUE);                               // A, sequence number 1 is late
+    pushFrameSizeLimitPacket(events, 2, 200, HALF_MAX_INBOUND_FRAME_SIZE + 1, TRUE); // B: over the limit at the second packet
+    pushFrameSizeLimitPacket(events, 3, 200, HALF_MAX_INBOUND_FRAME_SIZE + 1, FALSE);
+    pushFrameSizeLimitPacket(events, 5, 300, 1, TRUE);  // C arrives before B's last packet
+    pushFrameSizeLimitPacket(events, 4, 200, 1, FALSE); // B's last packet
+
+    // A's late packet completes A. A is delivered and B is dropped once, with its last packet.
+    pushFrameSizeLimitPacket(events, 1, 100, 1, FALSE);
+    pushFrameSizeLimitPacket(events, 6, 400, 1, TRUE); // D: C is delivered
+    EXPECT_EQ(std::vector<UINT32>({100, 300}), events.readyTimestamps);
+    EXPECT_EQ(std::vector<UINT32>({200}), events.droppedTimestamps);
+
+    freeJitterBuffer(&events.pJitterBuffer);
+}
+
+// An oversized frame just before the RTP timestamp wraps is dropped, and the frames after the wrap are delivered
+TEST_F(JitterBufferFunctionalityTest, frameLargerThanMaxInboundFrameSizeBeforeTimestampWrapIsDropped)
+{
+    FrameSizeLimitEvents events;
+    UINT32 discardedCount = 0;
+    UINT16 i;
+    createFrameSizeLimitJitterBuffer(events);
+
+    pushFrameSizeLimitPacket(events, 10, 0xFFFFFF00, HALF_MAX_INBOUND_FRAME_SIZE + 1, TRUE); // A: over the limit at the second packet
+    EXPECT_FALSE(pushFrameSizeLimitPacket(events, 11, 0xFFFFFF00, HALF_MAX_INBOUND_FRAME_SIZE + 1, FALSE));
+    for (i = 0; i < 20; i++) { // frames after the wrap, one packet each
+        discardedCount += pushFrameSizeLimitPacket(events, 12 + i, 100 + 100 * i, 1, TRUE) ? 1 : 0;
+    }
+    EXPECT_EQ(0, discardedCount);
+    EXPECT_EQ(std::vector<UINT32>({0xFFFFFF00}), events.droppedTimestamps);
+    EXPECT_EQ(19, events.readyTimestamps.size());
+
+    freeJitterBuffer(&events.pJitterBuffer);
+}
+
+// An oversized frame that is still in the buffer when it is closed is dropped, not delivered
+TEST_F(JitterBufferFunctionalityTest, frameLargerThanMaxInboundFrameSizeIsDroppedWhenBufferIsClosed)
+{
+    FrameSizeLimitEvents events;
+    createFrameSizeLimitJitterBuffer(events);
+
+    pushFrameSizeLimitPacket(events, 0, 100, HALF_MAX_INBOUND_FRAME_SIZE + 1, TRUE); // A: over the limit at the second packet
+    pushFrameSizeLimitPacket(events, 1, 100, HALF_MAX_INBOUND_FRAME_SIZE + 1, FALSE);
+    freeJitterBuffer(&events.pJitterBuffer);
+
+    EXPECT_TRUE(events.readyTimestamps.empty());
+    EXPECT_EQ(std::vector<UINT32>({100}), events.droppedTimestamps);
+}
+
+// A late packet of an earlier frame in the middle of a frame does not restart the frame's byte count
+TEST_F(JitterBufferFunctionalityTest, latePacketOfEarlierFrameDoesNotResetFrameSize)
+{
+    FrameSizeLimitEvents events;
+    createFrameSizeLimitJitterBuffer(events);
+
+    pushFrameSizeLimitPacket(events, 10, 3000, 1, TRUE); // A
+    pushFrameSizeLimitPacket(events, 11, 3100, HALF_MAX_INBOUND_FRAME_SIZE, TRUE); // B: exactly the limit after two packets. A is delivered.
+    pushFrameSizeLimitPacket(events, 12, 3100, HALF_MAX_INBOUND_FRAME_SIZE, FALSE);
+    EXPECT_TRUE(pushFrameSizeLimitPacket(events, 5, 50, 1, TRUE)); // late packet of an earlier frame, outside the latency tolerance
+    EXPECT_FALSE(pushFrameSizeLimitPacket(events, 13, 3100, HALF_MAX_INBOUND_FRAME_SIZE, FALSE)); // B is over the limit
+    EXPECT_TRUE(pushFrameSizeLimitPacket(events, 14, 3100, HALF_MAX_INBOUND_FRAME_SIZE, FALSE));
+    pushFrameSizeLimitPacket(events, 15, 3200, 1, TRUE); // C: B is dropped
+    EXPECT_EQ(std::vector<UINT32>({3000}), events.readyTimestamps);
+    EXPECT_EQ(std::vector<UINT32>({3100}), events.droppedTimestamps);
+
+    freeJitterBuffer(&events.pJitterBuffer);
+}
+
+// A duplicate of a packet that is already buffered is not counted again
+TEST_F(JitterBufferFunctionalityTest, duplicatePacketIsNotCountedTowardsMaxInboundFrameSize)
+{
+    FrameSizeLimitEvents events;
+    createFrameSizeLimitJitterBuffer(events);
+
+    pushFrameSizeLimitPacket(events, 0, 100, 1, TRUE);                           // A
+    pushFrameSizeLimitPacket(events, 1, 200, HALF_MAX_INBOUND_FRAME_SIZE, TRUE); // B: exactly the limit in two packets
+    pushFrameSizeLimitPacket(events, 1, 200, HALF_MAX_INBOUND_FRAME_SIZE, TRUE); // duplicate of B's first packet
+    pushFrameSizeLimitPacket(events, 2, 200, HALF_MAX_INBOUND_FRAME_SIZE, FALSE);
+    pushFrameSizeLimitPacket(events, 3, 300, 1, TRUE); // C: B is delivered
+    EXPECT_EQ(std::vector<UINT32>({100, 200}), events.readyTimestamps);
+    EXPECT_TRUE(events.droppedTimestamps.empty());
+
+    freeJitterBuffer(&events.pJitterBuffer);
+}
+
+// An oversized frame whose buffered packets have no gap is dropped, not delivered
+TEST_F(JitterBufferFunctionalityTest, frameLargerThanMaxInboundFrameSizeWithoutGapIsDropped)
+{
+    FrameSizeLimitEvents events;
+    createFrameSizeLimitJitterBuffer(events);
+
+    pushFrameSizeLimitPacket(events, 1, 200, HALF_MAX_INBOUND_FRAME_SIZE, TRUE); // B: exactly the limit after two packets
+    pushFrameSizeLimitPacket(events, 2, 200, HALF_MAX_INBOUND_FRAME_SIZE, FALSE);
+    pushFrameSizeLimitPacket(events, 0, 200, 1, TRUE); // B's first packet arrives last and takes it over the limit
+    pushFrameSizeLimitPacket(events, 3, 300, 1, TRUE); // C: B is dropped
+    EXPECT_TRUE(events.readyTimestamps.empty());
+    EXPECT_EQ(std::vector<UINT32>({200}), events.droppedTimestamps);
+
+    freeJitterBuffer(&events.pJitterBuffer);
+}
+
+// A late RTP packet that arrives after an oversized frame crosses the threshold fills its gap, so the frame is rejected without waiting
+TEST_F(JitterBufferFunctionalityTest, latePacketBeforeCrossingPacketFillsItsGap)
+{
+    FrameSizeLimitEvents events;
+    createFrameSizeLimitJitterBuffer(events);
+
+    pushFrameSizeLimitPacket(events, 0, 100, 1, TRUE);                           // A
+    pushFrameSizeLimitPacket(events, 1, 200, HALF_MAX_INBOUND_FRAME_SIZE, TRUE); // B, sequence number 2 is late
+    pushFrameSizeLimitPacket(events, 3, 200, HALF_MAX_INBOUND_FRAME_SIZE, FALSE);
+    pushFrameSizeLimitPacket(events, 4, 200, 1, FALSE);              // B crosses the threshold
+    EXPECT_FALSE(pushFrameSizeLimitPacket(events, 2, 200, 1, FALSE)); // B's late RTP packet is kept
+    pushFrameSizeLimitPacket(events, 5, 300, 1, TRUE);               // C: B is rejected
+    EXPECT_EQ(std::vector<UINT32>({100}), events.readyTimestamps);
+    EXPECT_EQ(std::vector<UINT32>({200}), events.droppedTimestamps);
+
+    freeJitterBuffer(&events.pJitterBuffer);
+}
+
+// The limit applies to the depayloaded frame, the size that writeFrame() checks. An H.264 frame of exactly MAX_OUTBOUND_FRAME_SIZE_BYTES,
+// packetized as writeFrame() does, is delivered with MAX_INBOUND_FRAME_SIZE_BYTES even though its RTP payloads add FU-A headers.
+TEST_F(JitterBufferFunctionalityTest, h264FrameOfMaxOutboundFrameSizeIsDelivered)
+{
+    FrameSizeLimitEvents events;
+    UINT32 frameSize = MAX_OUTBOUND_FRAME_SIZE_BYTES, payloadLength = 0, packetCount = 0, i, offset = 0;
+    PBYTE pFrame = (PBYTE) MEMALLOC(frameSize);
+    PBYTE pPayloads = NULL, payload;
+    PUINT32 pPacketLengths = NULL;
+    PRtpPacket pRtpPacket;
+
+    ASSERT_NE(nullptr, pFrame);
+    MEMSET(pFrame, 0xAB, frameSize);
+    pFrame[0] = 0x00;
+    pFrame[1] = 0x00;
+    pFrame[2] = 0x00;
+    pFrame[3] = 0x01;
+    pFrame[4] = 0x65; // IDR slice
+
+    ASSERT_EQ(STATUS_SUCCESS, createPayloadForH264(DEFAULT_MTU_SIZE_BYTES, pFrame, frameSize, NULL, &payloadLength, NULL, &packetCount));
+    pPayloads = (PBYTE) MEMALLOC(payloadLength);
+    pPacketLengths = (PUINT32) MEMALLOC(packetCount * SIZEOF(UINT32));
+    ASSERT_EQ(STATUS_SUCCESS,
+              createPayloadForH264(DEFAULT_MTU_SIZE_BYTES, pFrame, frameSize, pPayloads, &payloadLength, pPacketLengths, &packetCount));
+    EXPECT_GT(payloadLength, MAX_INBOUND_FRAME_SIZE_BYTES);
+
+    ASSERT_EQ(STATUS_SUCCESS,
+              createJitterBuffer(frameSizeLimitFrameReady, frameSizeLimitFrameDropped, depayH264FromRtpPayload, DEFAULT_JITTER_BUFFER_MAX_LATENCY,
+                                 VIDEO_CLOCKRATE, (UINT64) &events, &events.pJitterBuffer));
+
+    // The frame, then a one-packet frame so the first one is delivered
+    for (i = 0; i <= packetCount; i++) {
+        pRtpPacket = NULL;
+        if (i < packetCount) {
+            payload = (PBYTE) MEMALLOC(pPacketLengths[i]);
+            MEMCPY(payload, pPayloads + offset, pPacketLengths[i]);
+            offset += pPacketLengths[i];
+            ASSERT_EQ(STATUS_SUCCESS,
+                      createRtpPacket(2, FALSE, FALSE, 0, FALSE, 96, (UINT16) i, 90000, 0x1234ABCD, NULL, 0, 0, NULL, payload, pPacketLengths[i],
+                                      &pRtpPacket));
+        } else {
+            payload = (PBYTE) MEMALLOC(2);
+            payload[0] = 0x41; // non-IDR slice
+            payload[1] = 0xAB;
+            ASSERT_EQ(STATUS_SUCCESS,
+                      createRtpPacket(2, FALSE, FALSE, 0, FALSE, 96, (UINT16) i, 93000, 0x1234ABCD, NULL, 0, 0, NULL, payload, 2, &pRtpPacket));
+        }
+        pRtpPacket->pRawPacket = payload;
+        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(events.pJitterBuffer, pRtpPacket, NULL));
+    }
+    EXPECT_EQ(std::vector<UINT32>({frameSize}), events.readySizes);
+    EXPECT_TRUE(events.droppedTimestamps.empty());
+
+    freeJitterBuffer(&events.pJitterBuffer);
+    MEMFREE(pFrame);
+    MEMFREE(pPayloads);
+    MEMFREE(pPacketLengths);
 }
 
 TEST_F(JitterBufferFunctionalityTest, latePacketsOfAlreadyDroppedFrame)

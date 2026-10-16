@@ -277,13 +277,61 @@ TEST_F(PeerConnectionApiTest, writeFrameRejectsFramesLargerThanMaximumOutboundFr
     EXPECT_EQ(STATUS_SRTP_NOT_READY_YET, writeFrame(pTransceiver, &frame));
     frame.size = MAX_OUTBOUND_FRAME_SIZE_BYTES + 1;
     encodedBytesTarget = ((PKvsRtpTransceiver) pTransceiver)->outboundStats.totalEncodedBytesTarget;
-    EXPECT_EQ(STATUS_RTP_FRAME_TOO_LARGE, writeFrame(pTransceiver, &frame));
+    EXPECT_EQ(STATUS_RTP_OUTBOUND_FRAME_TOO_LARGE, writeFrame(pTransceiver, &frame));
     // A rejected frame is not counted in the outbound stats
     EXPECT_EQ(encodedBytesTarget, ((PKvsRtpTransceiver) pTransceiver)->outboundStats.totalEncodedBytesTarget);
     closePeerConnection(pRtcPeerConnection);
     freePeerConnection(&pRtcPeerConnection);
 
     MEMFREE(pData);
+}
+
+// A received frame over the jitter buffer's maximum frame size is dropped and counted in the inbound stats
+TEST_F(PeerConnectionApiTest, receivedFrameLargerThanMaximumInboundFrameSizeIsCountedAsDropped)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    PRtcRtpTransceiver pTransceiver = NULL;
+    PKvsRtpTransceiver pKvsRtpTransceiver;
+    RtcConfiguration configuration;
+    RtcMediaStreamTrack track;
+    PRtpPacket pRtpPacket;
+    PBYTE payload;
+    // Two single NAL unit packets at timestamp 1000, over MAX_INBOUND_FRAME_SIZE_BYTES together once depayloaded with their start codes,
+    // then one at timestamp 4000
+    UINT16 sequenceNumbers[] = {0, 1, 2};
+    UINT32 timestamps[] = {1000, 1000, 4000};
+    BYTE naluHeaders[] = {0x65, 0x65, 0x41};
+    UINT32 payloadLengths[] = {MAX_INBOUND_FRAME_SIZE_BYTES / 2, MAX_INBOUND_FRAME_SIZE_BYTES / 2, 5};
+    UINT32 i;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&track, 0x00, SIZEOF(RtcMediaStreamTrack));
+    track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    STRCPY(track.streamId, "myKvsVideoStream");
+    STRCPY(track.trackId, "myTrack");
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, track.codec));
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track, NULL, &pTransceiver));
+    pKvsRtpTransceiver = (PKvsRtpTransceiver) pTransceiver;
+
+    for (i = 0; i < ARRAY_SIZE(sequenceNumbers); i++) {
+        pRtpPacket = NULL;
+        payload = (PBYTE) MEMCALLOC(1, payloadLengths[i]);
+        payload[0] = naluHeaders[i];
+        EXPECT_EQ(STATUS_SUCCESS,
+                  createRtpPacket(2, FALSE, FALSE, 0, FALSE, 96, sequenceNumbers[i], timestamps[i], 0x1234ABCD, NULL, 0, 0, NULL, payload,
+                                  payloadLengths[i], &pRtpPacket));
+        pRtpPacket->pRawPacket = payload;
+        pRtpPacket->receivedTime = GETTIME();
+        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(pKvsRtpTransceiver->pJitterBuffer, pRtpPacket, NULL));
+    }
+    EXPECT_EQ(1, pKvsRtpTransceiver->inboundStats.received.framesDropped);
+    EXPECT_EQ(0, pKvsRtpTransceiver->inboundStats.framesReceived);
+
+    closePeerConnection(pRtcPeerConnection);
+    freePeerConnection(&pRtcPeerConnection);
 }
 
 TEST_F(PeerConnectionApiTest, peerConnectionUpdateIceServersDuplicate)
