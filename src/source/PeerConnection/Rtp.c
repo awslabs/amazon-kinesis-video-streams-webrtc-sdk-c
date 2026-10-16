@@ -316,6 +316,12 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
 
     CHK(pRtcRtpTransceiver != NULL && pFrame != NULL, STATUS_NULL_ARG);
     pKvsPeerConnection = pKvsRtpTransceiver->pKvsPeerConnection;
+    // Reject oversized frames up front, before stats are updated. Receivers cannot reassemble a frame with more packets than they
+    // buffer (libwebrtc: 2048 packets).
+    if (pFrame->size > MAX_OUTBOUND_FRAME_SIZE_BYTES) {
+        DLOGE("Frame size %u exceeds the maximum outbound frame size %u", pFrame->size, MAX_OUTBOUND_FRAME_SIZE_BYTES);
+        return STATUS_RTP_FRAME_TOO_LARGE;
+    }
     // Read the atomic snapshot, NOT transceiver.direction: re-negotiation rewrites the
     // field from the signaling thread while this runs on the media thread.
     direction = (RTC_RTP_TRANSCEIVER_DIRECTION) ATOMIC_LOAD(&pKvsRtpTransceiver->atomicDirection);

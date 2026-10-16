@@ -928,6 +928,7 @@ See the [Status code reference](https://github.com/awslabs/amazon-kinesis-video-
 Additional guides:
 - [TWCC (Transport-Wide Congestion Control)](docs/TWCC.md) — bandwidth estimation, bitrate adaptation, and troubleshooting
 - [Troubleshooting H.265 sample frames](docs/TROUBLESHOOTING_H265_FRAMES.md) — inspecting NAL units, diagnosing freeze-after-first-frame, regenerating frames
+- [Frame size limits](docs/FRAME_SIZE_LIMITS.md) — maximum frame size for `writeFrame()`, the `STATUS_RTP_FRAME_TOO_LARGE` error, and what to send over a data channel instead
 
 Refer to [related](#related) for more about WebRTC and KVS.
 
