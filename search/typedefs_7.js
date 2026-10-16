@@ -9,7 +9,6 @@ var searchData=
   ['signalingclienterrorreportfunc_6',['SignalingClientErrorReportFunc',['../group__Callbacks.html#ga0d69d0e35a1bddfa483f288ec208546c',1,'Include.h']]],
   ['signalingclientmessagereceivedfunc_7',['SignalingClientMessageReceivedFunc',['../group__Callbacks.html#ga1fc095ba30b81713c3fed9a275355b2c',1,'Include.h']]],
   ['signalingclientstatechangedfunc_8',['SignalingClientStateChangedFunc',['../group__Callbacks.html#gaa5fb7b1ff5dcfe5208a314eef9f3045a',1,'Include.h']]],
-  ['signalingthreadnode_9',['SignalingThreadNode',['../Signaling_8h.html#a8ad748d3c842f63863336ae04b6eb1c0',1,'Signaling.h']]],
-  ['socketconnection_10',['SocketConnection',['../SocketConnection_8h.html#a61d238037c92b97d0ed1cfae2c6440d6',1,'SocketConnection.h']]],
-  ['srtpsession_11',['SrtpSession',['../SrtpSession_8h.html#af24eaa8b6b9a2b48bf8c70c784d94ba0',1,'SrtpSession.h']]]
+  ['socketconnection_9',['SocketConnection',['../SocketConnection_8h.html#a61d238037c92b97d0ed1cfae2c6440d6',1,'SocketConnection.h']]],
+  ['srtpsession_10',['SrtpSession',['../SrtpSession_8h.html#af24eaa8b6b9a2b48bf8c70c784d94ba0',1,'SrtpSession.h']]]
 ];
