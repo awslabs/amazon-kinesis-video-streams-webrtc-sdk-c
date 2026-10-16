@@ -98,7 +98,7 @@ RTC_RTP_TRANSCEIVER_DIRECTION intersectTransceiverDirection(RTC_RTP_TRANSCEIVER_
 RTC_RTP_TRANSCEIVER_DIRECTION parseTransceiverDirection(PCHAR, RTC_RTP_TRANSCEIVER_DIRECTION*);
 STATUS writeTransceiverDirection(PCHAR, UINT32, RTC_RTP_TRANSCEIVER_DIRECTION);
 STATUS findTransceiversByRemoteDescription(PKvsPeerConnection, PSessionDescription, PHashTable, PHashTable);
-STATUS setReceiversSsrc(PSessionDescription, PDoubleList);
+STATUS setReceiversSsrc(PSessionDescription, PDoubleList, PHashTable);
 PCHAR fmtpForPayloadType(UINT64, PSessionDescription);
 UINT64 getH264FmtpScore(PCHAR);
 

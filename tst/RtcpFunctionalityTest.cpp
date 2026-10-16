@@ -1,4 +1,5 @@
 #include "WebRTCClientTestFixture.h"
+#include <functional>
 
 namespace com {
 namespace amazonaws {
@@ -27,6 +28,7 @@ class RtcpFunctionalityTest : public WebRtcClientTestBase {
     {
         RtcMediaStreamTrack track{};
         track.codec = RTC_CODEC_VP8;
+        track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
         PRtcRtpTransceiver out = nullptr;
         EXPECT_EQ(STATUS_SUCCESS, ::addTransceiver(pRtcPeerConnection, &track, nullptr, &out));
         ((PKvsRtpTransceiver) out)->sender.ssrc = ssrc;
@@ -717,6 +719,203 @@ TEST_F(RtcpFunctionalityTest, onpli)
     EXPECT_EQ(STATUS_SUCCESS, getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats));
     EXPECT_EQ(1, stats.pliCount);
     freePeerConnection(&pRtcPeerConnection);
+}
+
+TEST_F(RtcpFunctionalityTest, createRtcpPLIPacket)
+{
+    BYTE expected[] = {0x81, 0xCE, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x1D, 0xC8, 0x69, 0x91};
+    BYTE untouched[RTCP_PLI_PACKET_LEN + 4];
+    BYTE rawPacket[RTCP_PLI_PACKET_LEN + 4];
+    UINT32 packetLen = 0;
+    RtcpPacket rtcpPacket{};
+
+    MEMSET(untouched, 0xAA, SIZEOF(untouched));
+    MEMCPY(rawPacket, untouched, SIZEOF(rawPacket));
+
+    packetLen = SIZEOF(rawPacket);
+    EXPECT_EQ(STATUS_NULL_ARG, createRtcpPLIPacket(1, 0x1DC86991, nullptr, &packetLen));
+    EXPECT_EQ(STATUS_NULL_ARG, createRtcpPLIPacket(1, 0x1DC86991, rawPacket, nullptr));
+
+    // A buffer one byte too small must be rejected without writing to it
+    packetLen = RTCP_PLI_PACKET_LEN - 1;
+    EXPECT_EQ(STATUS_BUFFER_TOO_SMALL, createRtcpPLIPacket(1, 0x1DC86991, rawPacket, &packetLen));
+    EXPECT_EQ(RTCP_PLI_PACKET_LEN - 1, packetLen);
+    EXPECT_EQ(0, MEMCMP(untouched, rawPacket, SIZEOF(rawPacket)));
+
+    // A larger buffer is fine: only the PLI is written, and the length is set to the PLI size
+    packetLen = SIZEOF(rawPacket);
+    EXPECT_EQ(STATUS_SUCCESS, createRtcpPLIPacket(1, 0x1DC86991, rawPacket, &packetLen));
+    EXPECT_EQ(RTCP_PLI_PACKET_LEN, packetLen);
+    EXPECT_EQ(0, MEMCMP(expected, rawPacket, SIZEOF(expected)));
+    EXPECT_EQ(0, MEMCMP(untouched + RTCP_PLI_PACKET_LEN, rawPacket + RTCP_PLI_PACKET_LEN, SIZEOF(rawPacket) - RTCP_PLI_PACKET_LEN));
+
+    EXPECT_EQ(STATUS_SUCCESS, setRtcpPacketFromBytes(rawPacket, packetLen, &rtcpPacket));
+    EXPECT_EQ(RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK, rtcpPacket.header.packetType);
+    EXPECT_EQ(RTCP_PSFB_PLI, rtcpPacket.header.receptionReportCount);
+}
+
+TEST_F(RtcpFunctionalityTest, transceiverSendPictureLossNotReady)
+{
+    RtcInboundRtpStreamStats stats{};
+    this->initTransceiver(1);
+
+    EXPECT_EQ(STATUS_NULL_ARG, transceiverSendPictureLoss(nullptr));
+    EXPECT_EQ(STATUS_INVALID_OPERATION, transceiverSendPictureLoss(pRtcRtpTransceiver));
+
+    pKvsRtpTransceiver->jitterBufferSsrc = 0x1DC86991;
+    EXPECT_EQ(STATUS_RTCP_PLI_NOT_NEGOTIATED, transceiverSendPictureLoss(pRtcRtpTransceiver));
+
+    pKvsRtpTransceiver->pliEnabled = TRUE;
+    EXPECT_EQ(STATUS_SRTP_NOT_READY_YET, transceiverSendPictureLoss(pRtcRtpTransceiver));
+
+    EXPECT_EQ(STATUS_SUCCESS, getRtpInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &stats));
+    EXPECT_EQ(0, stats.pliCount);
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+TEST_F(RtcpFunctionalityTest, transceiverSendPictureLossReachesRemoteSender)
+{
+    RtcConfiguration configuration{};
+    PRtcPeerConnection offerPc = nullptr, answerPc = nullptr;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack;
+    PRtcRtpTransceiver offerVideoTransceiver = nullptr, answerVideoTransceiver = nullptr;
+    SIZE_T pliReceived = 0;
+    RtcInboundRtpStreamStats inboundStats{};
+    RtcOutboundRtpStreamStats outboundStats{};
+
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &offerPc));
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &answerPc));
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    // A viewer only receives video, so its transceiver is recvonly
+    ((PKvsRtpTransceiver) answerVideoTransceiver)->transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
+
+    auto onPictureLoss = [](UINT64 customData) -> void { ATOMIC_INCREMENT((PSIZE_T) customData); };
+    EXPECT_EQ(STATUS_SUCCESS, transceiverOnPictureLoss(offerVideoTransceiver, (UINT64) &pliReceived, onPictureLoss));
+    ASSERT_TRUE(connectTwoPeers(offerPc, answerPc));
+
+    // The answerer receives the offerer's video, so it asks the offerer for a keyframe
+    EXPECT_EQ(STATUS_SUCCESS, transceiverSendPictureLoss(answerVideoTransceiver));
+    for (UINT32 i = 0; i < 100 && ATOMIC_LOAD(&pliReceived) == 0; i++) {
+        THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    EXPECT_EQ(1, ATOMIC_LOAD(&pliReceived));
+
+    EXPECT_EQ(STATUS_SUCCESS, getRtpInboundStats(answerPc, answerVideoTransceiver, &inboundStats));
+    EXPECT_EQ(1, inboundStats.pliCount);
+    EXPECT_EQ(STATUS_SUCCESS, getRtpOutboundStats(offerPc, offerVideoTransceiver, &outboundStats));
+    EXPECT_EQ(1, outboundStats.pliCount);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+TEST_F(RtcpFunctionalityTest, transceiverSendPictureLossAudioTransceiver)
+{
+    RtcConfiguration configuration{};
+    PRtcPeerConnection offerPc = nullptr, answerPc = nullptr;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack, offerAudioTrack, answerAudioTrack;
+    PRtcRtpTransceiver offerVideoTransceiver = nullptr, answerVideoTransceiver = nullptr, offerAudioTransceiver = nullptr,
+                       answerAudioTransceiver = nullptr;
+    SIZE_T pliReceived = 0;
+    RtcInboundRtpStreamStats inboundStats{};
+
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &offerPc));
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &answerPc));
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(offerPc, &offerAudioTrack, &offerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerAudioTrack, &answerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
+
+    auto onPictureLoss = [](UINT64 customData) -> void { ATOMIC_INCREMENT((PSIZE_T) customData); };
+    EXPECT_EQ(STATUS_SUCCESS, transceiverOnPictureLoss(offerAudioTransceiver, (UINT64) &pliReceived, onPictureLoss));
+    ASSERT_TRUE(connectTwoPeers(offerPc, answerPc));
+
+    // A PLI only applies to video (RFC 4585 section 6.3.1), so an audio transceiver must be rejected
+    EXPECT_EQ(STATUS_INVALID_ARG, transceiverSendPictureLoss(answerAudioTransceiver));
+    THREAD_SLEEP(500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    EXPECT_EQ(0, ATOMIC_LOAD(&pliReceived));
+    EXPECT_EQ(STATUS_SUCCESS, getRtpInboundStats(answerPc, answerAudioTransceiver, &inboundStats));
+    EXPECT_EQ(0, inboundStats.pliCount);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+TEST_F(RtcpFunctionalityTest, transceiverSendPictureLossNeedsNegotiatedPli)
+{
+    const std::string vp8PliLine = "a=rtcp-fb:" + std::to_string(DEFAULT_PAYLOAD_VP8) + " nack pli" + SDP_LINE_SEPARATOR;
+    const std::string h264PliLine = "a=rtcp-fb:" + std::to_string(DEFAULT_PAYLOAD_H264) + " nack pli" + SDP_LINE_SEPARATOR;
+    const RTC_CODEC h264 = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    auto replaceLine = [](std::string& sdp, const std::string& from, const std::string& to) {
+        SIZE_T pos = sdp.find(from);
+        ASSERT_NE(std::string::npos, pos) << from;
+        sdp.replace(pos, from.size(), to);
+    };
+    // Sets the edited offer on the answerer and returns transceiverSendPictureLoss() there; without DTLS a negotiated PLI stops at
+    // STATUS_SRTP_NOT_READY_YET
+    auto sendPictureLossAfterOffer = [this](RTC_CODEC codec, RTC_RTP_TRANSCEIVER_DIRECTION answerDirection,
+                                            const std::function<void(std::string&)>& editOffer) -> STATUS {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection offerPc = nullptr, answerPc = nullptr;
+        RtcMediaStreamTrack offerTrack, answerTrack;
+        PRtcRtpTransceiver offerTransceiver = nullptr, answerTransceiver = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+        STATUS sendStatus;
+        std::string sdp;
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &offerPc));
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &answerPc));
+        addTrackToPeerConnection(offerPc, &offerTrack, &offerTransceiver, codec, MEDIA_STREAM_TRACK_KIND_VIDEO);
+        addTrackToPeerConnection(answerPc, &answerTrack, &answerTransceiver, codec, MEDIA_STREAM_TRACK_KIND_VIDEO);
+        ((PKvsRtpTransceiver) answerTransceiver)->transceiver.direction = answerDirection;
+
+        EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &offerSdp));
+        EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(offerPc, &offerSdp));
+        sdp = offerSdp.sdp;
+        editOffer(sdp);
+        STRNCPY(offerSdp.sdp, sdp.c_str(), MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(answerPc, &offerSdp));
+        sendStatus = transceiverSendPictureLoss(answerTransceiver);
+
+        closePeerConnection(offerPc);
+        closePeerConnection(answerPc);
+        freePeerConnection(&offerPc);
+        freePeerConnection(&answerPc);
+        return sendStatus;
+    };
+    const RTC_RTP_TRANSCEIVER_DIRECTION sendRecv = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    const RTC_RTP_TRANSCEIVER_DIRECTION recvOnly = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
+
+    // The SDK's own offer lists "nack pli" for VP8 and H264
+    EXPECT_EQ(STATUS_SRTP_NOT_READY_YET, sendPictureLossAfterOffer(RTC_CODEC_VP8, sendRecv, [](std::string&) {}));
+    EXPECT_EQ(STATUS_SRTP_NOT_READY_YET, sendPictureLossAfterOffer(h264, sendRecv, [](std::string&) {}));
+
+    // A recvonly transceiver has no sender payload type, but PLI is still negotiated for its codec
+    EXPECT_EQ(STATUS_SRTP_NOT_READY_YET, sendPictureLossAfterOffer(RTC_CODEC_VP8, recvOnly, [](std::string&) {}));
+    EXPECT_EQ(STATUS_SRTP_NOT_READY_YET, sendPictureLossAfterOffer(h264, recvOnly, [](std::string&) {}));
+
+    // A remote that does not list "nack pli" must not be sent a PLI (RFC 4585 section 4.2)
+    EXPECT_EQ(STATUS_RTCP_PLI_NOT_NEGOTIATED,
+              sendPictureLossAfterOffer(RTC_CODEC_VP8, sendRecv, [&](std::string& sdp) { replaceLine(sdp, vp8PliLine, ""); }));
+    EXPECT_EQ(STATUS_RTCP_PLI_NOT_NEGOTIATED,
+              sendPictureLossAfterOffer(h264, sendRecv, [&](std::string& sdp) { replaceLine(sdp, h264PliLine, ""); }));
+    EXPECT_EQ(STATUS_RTCP_PLI_NOT_NEGOTIATED,
+              sendPictureLossAfterOffer(RTC_CODEC_VP8, recvOnly, [&](std::string& sdp) { replaceLine(sdp, vp8PliLine, ""); }));
+
+    // "nack pli" for a different payload type does not count
+    EXPECT_EQ(STATUS_RTCP_PLI_NOT_NEGOTIATED, sendPictureLossAfterOffer(RTC_CODEC_VP8, sendRecv, [&](std::string& sdp) {
+                  replaceLine(sdp, vp8PliLine, "a=rtcp-fb:" + std::to_string(DEFAULT_PAYLOAD_VP8 + 1) + " nack pli" + SDP_LINE_SEPARATOR);
+              }));
+
+    // The "*" wildcard covers every payload type
+    EXPECT_EQ(STATUS_SRTP_NOT_READY_YET, sendPictureLossAfterOffer(RTC_CODEC_VP8, sendRecv, [&](std::string& sdp) {
+                  replaceLine(sdp, vp8PliLine, std::string("a=rtcp-fb:* nack pli") + SDP_LINE_SEPARATOR);
+              }));
 }
 
 static void testBwHandler(UINT64 customData, UINT32 txBytes, UINT32 rxBytes, UINT32 txPacketsCnt, UINT32 rxPacketsCnt, UINT64 duration)

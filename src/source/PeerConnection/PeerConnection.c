@@ -892,9 +892,9 @@ STATUS onSetStunServerIp(UINT64 customData, PCHAR url, PDualKvsIpAddresses pIpAd
                 pWebRtcClientContext->pStunIpAddrCtx->startTime = 0;
                 CHK_ERR(getStunAddr(pWebRtcClientContext->pStunIpAddrCtx) == STATUS_SUCCESS, retStatus, "Failed to resolve after cache expiry");
             }
-            MEMCPY(pIpAddresses->ipv4Address.address, &pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv4Address,
+            MEMCPY(&pIpAddresses->ipv4Address, &pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv4Address,
                    SIZEOF(pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv4Address));
-            MEMCPY(pIpAddresses->ipv6Address.address, &pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv6Address,
+            MEMCPY(&pIpAddresses->ipv6Address, &pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv6Address,
                    SIZEOF(pWebRtcClientContext->pStunIpAddrCtx->kvsIpAddresses.ipv6Address));
         } else {
             DLOGE("Initialization failed");
@@ -1581,7 +1581,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
         CHK_STATUS(setPayloadTypesFromOffer(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pSessionDescription));
     }
     CHK_STATUS(setTransceiverPayloadTypes(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pKvsPeerConnection->pTransceivers));
-    CHK_STATUS(setReceiversSsrc(pSessionDescription, pKvsPeerConnection->pTransceivers));
+    CHK_STATUS(setReceiversSsrc(pSessionDescription, pKvsPeerConnection->pTransceivers, pKvsPeerConnection->pCodecTable));
 
     /* Apply remote offer to transceiver directions (e.g. mark removed tracks INACTIVE) so the app sees updated state before createAnswer. */
     if (!pKvsPeerConnection->isOffer) {

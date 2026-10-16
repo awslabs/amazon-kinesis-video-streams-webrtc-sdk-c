@@ -156,6 +156,13 @@ These would be applicable if the SDK is being linked with system dependencies in
 > for this. If you supply your own `RtcCertificate`, its PSA key must also permit
 > export, or `copyCertificateAndKey()` fails with `STATUS_CERTIFICATE_GENERATION_FAILED`.
 
+> **mbedTLS 4 note — builds without the entropy module:** on mbedTLS 4 the SDK takes its
+> randomness only from PSA, so it also builds when TF-PSA-Crypto supplies the RNG through a
+> driver (`MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG`, which compiles `MBEDTLS_ENTROPY_C` out; the
+> default on ESP-IDF v6). The application then provides `mbedtls_psa_external_get_random()`.
+> mbedTLS 2.x and 3.x need `MBEDTLS_ENTROPY_C` and `MBEDTLS_CTR_DRBG_C`; building them without
+> either stops with an `#error`.
+
 > [!NOTE]
 > OpenSSL 3.x support was added in v1.20.0. The SDK still builds against 1.1.1t by default (OpenSSL 1.1.1 reached End-of-Life in September 2023). Enable 3.x by passing `-DUSE_OPENSSL3=ON`; when linking against a system OpenSSL that is already >= 3.0, the flag is auto-enabled. See [Building against OpenSSL 3.x](#building-against-openssl-3x) for details.
 
@@ -562,6 +569,44 @@ If using the WebRTC SDK Test Page, set the following values using the same AWS c
   
 Then choose Start Viewer to start live video streaming of the sample H264/Opus frames.
 
+## Supported architecture
+
+The SDK is built for peer-to-peer WebRTC sessions where **both peers use an Amazon Kinesis Video Streams WebRTC SDK** and **all signaling is brokered by the Amazon Kinesis Video Streams Signaling Service**.
+
+![Intended deployment architecture: two peers running KVS WebRTC SDK, both authenticated to the KVS Signaling Service, exchanging encrypted media over P2P](docs/images/kvs-deployment-model.svg)
+
+A typical deployment pairs the **C SDK on the master side** (IoT camera, embedded Linux device, or other C/C++ application) with the **[JS SDK](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-js/) on the viewer side** (browser or web application). The [Android SDK](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-android/) and [iOS SDK](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-ios/) are equally supported as viewers, and all combinations interoperate over the same signaling channel. For an end-to-end walkthrough of the service-side flow, see [How Amazon Kinesis Video Streams with WebRTC Works](https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-how-it-works.html).
+
+You can validate a C SDK master against the JS SDK using the hosted [WebRTC SDK Test Page](https://awslabs.github.io/amazon-kinesis-video-streams-webrtc-sdk-js/examples/index.html) — see [Viewing Master Samples](#viewing-master-samples).
+
+### Both peers are AWS-authenticated
+
+No message is relayed between peers unless both have authenticated to the KVS Signaling Service. The service is a WebSocket API whose connection is authorized exclusively with AWS SigV4 credentials:
+
+* A peer must hold IAM credentials authorized for [`kinesisvideo:ConnectAsMaster`](https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/ConnectAsMaster.html) or [`kinesisvideo:ConnectAsViewer`](https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/ConnectAsViewer.html) on the **specific channel ARN** before any SDP or ICE message is forwarded to the other peer.
+* Endpoint discovery ([`GetSignalingChannelEndpoint`](https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_GetSignalingChannelEndpoint.html), [`DescribeSignalingChannel`](https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_DescribeSignalingChannel.html)) and TURN credential issuance ([`GetIceServerConfig`](https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_signaling_GetIceServerConfig.html)) are separately IAM-authorized.
+* All signaling traffic is carried over TLS (WSS).
+
+See [Control access to Amazon Kinesis Video Streams with WebRTC resources with IAM](https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-how-iam.html) for policy examples, and [Security in Kinesis Video Streams with WebRTC](https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-security.html) for the broader security model.
+
+Because `Master` and `Viewer` are connection-initiation roles rather than privilege tiers, both peers in a session are equally privileged and mutually trusted by design. In the intended deployment, the signaling channel and both peers are resources owned by the same AWS account.
+
+### Configurations outside the supported model
+
+The following are not supported deployments. In each case the SDK's authentication and payload-integrity assumptions no longer hold, and responsibility shifts to the application or operator:
+
+1. **Non-KVS signaling.** The SDK is designed to be used with the KVS Signaling Service, which provides TLS and SigV4 authentication on every signaling message. If you substitute your own signaling implementation, authentication and authorization of peers becomes your application's responsibility, not the SDK's.
+2. **A modified or non-standard sender in place of the SDK.** The SDK constructs protocol payloads (SDP, ICE/STUN, RTP, RTCP, SCTP/DCEP) in conformance with the negotiated WebRTC configuration and the relevant RFCs. A peer that replaces the SDK's send path, hand-crafts protocol messages at the application layer or emits payloads that lie outside those specifications, is outside the supported model.
+
+### Operational recommendations
+
+* Scope IAM policies to specific channel ARNs rather than `Resource: "*"`. Grant `ConnectAsMaster` and `ConnectAsViewer` only to the principals that need them.
+* Network topology and perimeter controls (NAT, firewall, or equivalent) are a customer responsibility under the [AWS Shared Responsibility Model](https://aws.amazon.com/compliance/shared-responsibility-model/). ICE binds media sockets to each of the host's network interfaces, so deployments should not expose the media stack on a publicly routable interface unless the surrounding controls explicitly permit it.
+* Use [IoT credentials](#setup-iot) rather than long-lived static keys on edge devices.
+* Rotate DTLS certificates per peer connection — see [Use Pre-generated Certificates](#use-pre-generated-certificates).
+* Track releases and upgrade promptly; security fixes are called out in the [release notes](https://github.com/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/releases).
+
+
 ## Memory optimization switches
 
 Starting with v1.11.0, the SDK provides some knobs to optimize memory usage to tailor to platform needs and resources
@@ -812,6 +857,8 @@ Let us look into when each of these could be changed:
 2. `iceLocalCandidateGatheringTimeout`: Say the host candidates would not work and srflx/relay candidates need to be tried. Due to poor network, it is anticipated the candidates are gathered slowly and the application does not want to spend more than 20 seconds on this step. The goal is to try all possible candidate pairs. Increasing the timeout helps in giving some more time to gather more potential candidates to try for connection. Also note, this parameter increase would not make a difference in the situation unless `iceCandidateNominationTimeout` > `iceLocalCandidateGatheringTimeout` since nomination step should also be given time to work with the new candidates
 3. `iceConnectionCheckTimeout`: It is useful to increase this timeout in unstable/slow network where the packet exchange takes time and hence the binding request/response. Essentially, increasing it will allow atleast one candidate pair to be tried for nomination by the other peer. 
 4. `iceConnectionCheckPollingInterval`: This value is set to a default of 50 ms per [spec](https://datatracker.ietf.org/doc/html/rfc8445#section-14.2). Changing this would change the frequency of connectivity checks and essentially, the ICE state machine transitions. Decreasing the value could help in faster connection establishment in a reliable high performant network setting with good system resources. Increasing the value could help in reducing the network load, however, the connection establishment could slow down. Unless there is a strong reasoning, it is **NOT** recommended to deviate from spec/default.
+
+Set `iceServersFinal` when every STUN/TURN server is passed at creation and `peerConnectionUpdateIceServers` is never called. Gathering then ends as soon as every candidate resolves instead of waiting for `iceLocalCandidateGatheringTimeout`, which helps non-trickle offers and answers. With the flag set, `peerConnectionUpdateIceServers` returns `STATUS_ICE_SERVERS_FINAL`.
 
 ### Enable ICE agent stats
 

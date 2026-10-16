@@ -51,12 +51,16 @@ STATUS createTlsSession(PTlsSessionCallbacks pCallbacks, PTlsSession* ppTlsSessi
     pTlsSession->state = TLS_SESSION_STATE_NEW;
 
     // initialize mbedtls stuff with sane values
+#if MBEDTLS_VERSION_MAJOR < 4
     mbedtls_entropy_init(&pTlsSession->entropy);
     mbedtls_ctr_drbg_init(&pTlsSession->ctrDrbg);
+#endif
     mbedtls_x509_crt_init(&pTlsSession->cacert);
     mbedtls_ssl_config_init(&pTlsSession->sslCtxConfig);
     mbedtls_ssl_init(&pTlsSession->sslCtx);
+#if MBEDTLS_VERSION_MAJOR < 4
     CHK(mbedtls_ctr_drbg_seed(&pTlsSession->ctrDrbg, mbedtls_entropy_func, &pTlsSession->entropy, NULL, 0) == 0, STATUS_CREATE_SSL_FAILED);
+#endif
 
     CHK_STATUS(readAndParseCACertificate(pTlsSession));
 
@@ -85,8 +89,10 @@ STATUS freeTlsSession(PTlsSession* ppTlsSession)
     pTlsSession = *ppTlsSession;
     CHK(pTlsSession != NULL, retStatus);
 
+#if MBEDTLS_VERSION_MAJOR < 4
     mbedtls_entropy_free(&pTlsSession->entropy);
     mbedtls_ctr_drbg_free(&pTlsSession->ctrDrbg);
+#endif
     mbedtls_x509_crt_free(&pTlsSession->cacert);
     mbedtls_ssl_config_free(&pTlsSession->sslCtxConfig);
     mbedtls_ssl_free(&pTlsSession->sslCtx);

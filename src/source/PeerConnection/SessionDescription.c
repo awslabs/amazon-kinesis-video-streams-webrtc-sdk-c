@@ -549,12 +549,12 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    UINT64 payloadType, rtxPayloadType;
+    UINT64 payloadType, rtxPayloadType, rtpMapValue;
     BOOL containRtx = FALSE;
     BOOL directionFound = FALSE;
     UINT32 i, remoteAttributeCount, attributeCount = 0;
     PSdpMediaDescription pSdpMediaDescriptionRemote;
-    PCHAR currentFmtp = NULL, rtpMapValue = NULL;
+    PCHAR currentFmtp = NULL, rtpMapValueChar = NULL;
     CHAR remoteSdpAttributeValue[MAX_SDP_ATTRIBUTE_VALUE_LENGTH];
     INT32 amountWritten = 0;
 
@@ -878,6 +878,12 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full VP8 rtpmap could not be written");
         attributeCount++;
 
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp-fb");
+        amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
+                                 SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " nack pli", payloadType);
+        CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full VP8 rtcp-fb nack-pli value could not be written");
+        attributeCount++;
+
         if (containRtx) {
             CHK_STATUS(hashTableGet(pKvsPeerConnection->pRtxTable, RTC_RTX_CODEC_VP8, &rtxPayloadType));
             STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
@@ -954,11 +960,12 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
             attributeCount++;
         }
     } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_UNKNOWN) {
-        CHK_STATUS(hashTableGet(pUnknownCodecRtpmapTable, unknownCodecHashTableKey, (PUINT64) &rtpMapValue));
+        CHK_STATUS(hashTableGet(pUnknownCodecRtpmapTable, unknownCodecHashTableKey, &rtpMapValue));
+        rtpMapValueChar = (PCHAR) rtpMapValue;
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtpmap");
         amountWritten =
             SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
-                     SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " %s", payloadType, rtpMapValue);
+                     SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%" PRId64 " %s", payloadType, rtpMapValueChar);
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full Unknown rtpmap could not be written");
         attributeCount++;
     }
@@ -1534,7 +1541,7 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
     CHAR firstCodec[MAX_PAYLOAD_TYPE_LENGTH];
     BOOL supportCodec, foundMediaSectionWithCodec;
     BOOL containsPayloadType = FALSE, containsRtpMap = FALSE, inSeenTransceivers = FALSE;
-    PHashTable pSeenTransceivers;
+    PHashTable pSeenTransceivers = NULL;
     RTC_CODEC rtcCodec;
     MEDIA_STREAM_TRACK_KIND streamKind;
     PKvsRtpTransceiver pKvsRtpFakeTransceiver = NULL, pKvsRtpTransceiver = NULL;
@@ -1824,13 +1831,36 @@ CleanUp:
     return retStatus;
 }
 
-STATUS setReceiversSsrc(PSessionDescription pRemoteSessionDescription, PDoubleList pTransceivers)
+// Whether the m-line lists "a=rtcp-fb:<payloadType> <feedback>" or "a=rtcp-fb:* <feedback>" (RFC 4585 section 4.2)
+static BOOL mediaHasRtcpFeedback(PSdpMediaDescription pMediaDescription, UINT64 payloadType, PCHAR feedback)
+{
+    UINT32 i, rtcpFbPayloadType;
+    PCHAR value, end;
+
+    for (i = 0; i < pMediaDescription->mediaAttributesCount; i++) {
+        if (STRCMP(pMediaDescription->sdpAttributes[i].attributeName, "rtcp-fb") != 0) {
+            continue;
+        }
+        value = pMediaDescription->sdpAttributes[i].attributeValue;
+        if ((end = STRCHR(value, ' ')) == NULL || STRCMP(end + 1, feedback) != 0) {
+            continue;
+        }
+        if ((end - value == 1 && value[0] == '*') ||
+            (STATUS_SUCCEEDED(STRTOUI32(value, end, 10, &rtcpFbPayloadType)) && rtcpFbPayloadType == payloadType)) {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+STATUS setReceiversSsrc(PSessionDescription pRemoteSessionDescription, PDoubleList pTransceivers, PHashTable codecTable)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSdpMediaDescription pMediaDescription = NULL;
     BOOL foundSsrc, isVideoMediaSection, isAudioMediaSection, isAudioCodec, isVideoCodec;
     UINT32 currentAttribute, currentMedia, ssrc;
-    UINT64 data;
+    UINT64 data, payloadType;
     PDoubleListNode pCurNode = NULL;
     PKvsRtpTransceiver pKvsRtpTransceiver;
     RTC_CODEC codec;
@@ -1872,6 +1902,9 @@ STATUS setReceiversSsrc(PSessionDescription pRemoteSessionDescription, PDoubleLi
                         STRNCPY(pKvsRtpTransceiver->inboundStats.received.rtpStream.kind,
                                 pKvsRtpTransceiver->transceiver.receiver.track.kind == MEDIA_STREAM_TRACK_KIND_VIDEO ? "video" : "audio",
                                 ARRAY_SIZE(pKvsRtpTransceiver->inboundStats.received.rtpStream.kind));
+                        // Look up the payload type by codec, because sender.payloadType stays unset on a recvonly transceiver
+                        pKvsRtpTransceiver->pliEnabled = STATUS_SUCCEEDED(hashTableGet(codecTable, codec, &payloadType)) &&
+                            mediaHasRtcpFeedback(pMediaDescription, payloadType, "nack pli");
 
                         pCurNode = NULL;
                     } else {

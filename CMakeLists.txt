@@ -24,6 +24,7 @@ option(BUILD_WEBSOCKETS "Build libwebsockets from source" ${BUILD_DEPENDENCIES})
 option(BUILD_SRTP "Build libsrtp from source" ${BUILD_DEPENDENCIES})
 option(USE_LIBSRTP3 "Build/link against libsrtp 3.x (default: 2.x). Required for mbedTLS 4." OFF)
 option(USE_MBEDTLS4 "Build/link against mbedTLS 4.x (default: 3.x). Implies USE_LIBSRTP3." OFF)
+option(KVS_TEST_MBEDTLS4_NO_ENTROPY "Test only: build mbedTLS 4 with an external PSA RNG and no entropy module" OFF)
 option(BUILD_USRSCTP "Build libusrsctp from source" ${BUILD_DEPENDENCIES})
 
 option(BUILD_OPENSSL_PLATFORM "If buildng OpenSSL what is the target platform" OFF)
@@ -232,6 +233,10 @@ if(USE_MBEDTLS4)
   add_definitions(-DKVS_USE_MBEDTLS4)
 endif()
 
+if(KVS_TEST_MBEDTLS4_NO_ENTROPY AND NOT USE_MBEDTLS4)
+  message(FATAL_ERROR "KVS_TEST_MBEDTLS4_NO_ENTROPY=ON requires USE_MBEDTLS4=ON.")
+endif()
+
 if (USE_LIBSRTP3)
   add_definitions(-DUSE_LIBSRTP3)
 endif()
@@ -292,6 +297,7 @@ if(BUILD_DEPENDENCIES OR BUILD_WEBSOCKETS OR BUILD_SRTP OR BUILD_USRSCTP)
                      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                      -DBUILD_OLD_MBEDTLS_VERSION=${BUILD_OLD_MBEDTLS_VERSION}
                      -DUSE_MBEDTLS4=${USE_MBEDTLS4}
+                     -DKVS_TEST_MBEDTLS4_NO_ENTROPY=${KVS_TEST_MBEDTLS4_NO_ENTROPY}
                       "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
         build_dependency(mbedtls ${BUILD_ARGS})
 

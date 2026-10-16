@@ -40,6 +40,17 @@ if (USE_MBEDTLS4)
   list(APPEND MBEDTLS_EXTRA_CMAKE_ARGS -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
 endif()
 
+# Test only: an external PSA RNG instead of the entropy module (MBEDTLS_ENTROPY_C is derived
+# from it in TF-PSA-Crypto). Patched into the source so the installed headers carry it too.
+set(MBEDTLS_PATCH_COMMAND "")
+if (KVS_TEST_MBEDTLS4_NO_ENTROPY)
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  set(_psa_config tf-psa-crypto/scripts/config.py -f tf-psa-crypto/include/psa/crypto_config.h)
+  set(MBEDTLS_PATCH_COMMAND PATCH_COMMAND
+      ${Python3_EXECUTABLE} ${_psa_config} set MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG
+      COMMAND ${Python3_EXECUTABLE} ${_psa_config} unset MBEDTLS_PSA_BUILTIN_GET_ENTROPY)
+endif()
+
 ExternalProject_Add(
   project_libmbedtls
   GIT_REPOSITORY  https://github.com/Mbed-TLS/mbedtls.git
@@ -47,6 +58,7 @@ ExternalProject_Add(
   GIT_PROGRESS    TRUE
   GIT_SHALLOW     TRUE
   PREFIX          ${CMAKE_CURRENT_BINARY_DIR}/build
+  ${MBEDTLS_PATCH_COMMAND}
   CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}
     -DUSE_SHARED_MBEDTLS_LIBRARY=${BUILD_SHARED}

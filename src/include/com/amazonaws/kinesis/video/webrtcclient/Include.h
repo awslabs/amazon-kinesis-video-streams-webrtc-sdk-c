@@ -402,6 +402,7 @@ extern "C" {
 #define STATUS_TURN_CONNECTION_GET_CREDENTIALS_FAILED                      STATUS_ICE_BASE + 0x0000002c
 #define STATUS_FAILED_TO_INIT_RELAY_CANDIDATES                             STATUS_ICE_BASE + 0x0000002d
 #define STATUS_TURN_CONNECTION_CREDENTIALS_REJECTED                        STATUS_ICE_BASE + 0x0000002e
+#define STATUS_ICE_SERVERS_FINAL                                           STATUS_ICE_BASE + 0x0000002f
 
 /*!@} */
 
@@ -506,6 +507,7 @@ extern "C" {
 #define STATUS_SIGNALING_JOIN_SESSION_CALL_FAILED                  STATUS_SIGNALING_BASE + 0x0000004a
 #define STATUS_SIGNALING_JOIN_SESSION_CONNECTED_FAILED             STATUS_SIGNALING_BASE + 0x0000004b
 #define STATUS_SIGNALING_DESCRIBE_MEDIA_CALL_FAILED                STATUS_SIGNALING_BASE + 0x0000004c
+#define STATUS_SIGNALING_FREE_FROM_CALLBACK                        STATUS_SIGNALING_BASE + 0x0000004d
 
 /*!@} */
 
@@ -556,6 +558,7 @@ extern "C" {
 #define STATUS_RTCP_INPUT_PARTIAL_PACKET         STATUS_RTCP_BASE + 0x00000006
 #define STATUS_RTCP_INPUT_REMB_TOO_SMALL         STATUS_RTCP_BASE + 0x00000007
 #define STATUS_RTCP_INPUT_REMB_INVALID           STATUS_RTCP_BASE + 0x00000008
+#define STATUS_RTCP_PLI_NOT_NEGOTIATED           STATUS_RTCP_BASE + 0x00000009
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -1472,6 +1475,16 @@ typedef struct {
     BOOL enableIceStats; //!< Control whether ICE agent stats are to be calculated. ENABLE_STATS_CALCULATION_CONTROL compiler flag must be defined
                          //!< to use this member, else stats are enabled by default.
 #endif
+    BOOL disableNonRoutablePeersFilterForRelay; //!< By default the SDK does not create TURN permissions for non-routable peer addresses
+                                                //!< (RFC 1918 private, RFC 6598 CGNAT, loopback, RFC 3927 link-local, etc.), because a public
+                                                //!< TURN server such as the KVS TURN service rejects them with 403 Forbidden IP. Set this to TRUE
+                                                //!< if you use a TURN server that legitimately relays to such addresses (e.g. an on-prem/LAN TURN),
+                                                //!< so those peers are not filtered. Filtering is enabled by default (this flag defaults to FALSE).
+    BOOL iceServersFinal;                       //!< Set to TRUE when the ICE servers passed at creation are all there will be (no later
+                                                //!< peerConnectionUpdateIceServers call). Candidate gathering then completes as soon as every local
+                                                //!< candidate has resolved instead of running to iceLocalCandidateGatheringTimeout. Defaults to
+                                                //!< FALSE, which keeps gathering open for TURN servers added later. When TRUE,
+                                                //!< peerConnectionUpdateIceServers returns STATUS_ICE_SERVERS_FINAL.
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
 
 /**
@@ -2131,12 +2144,13 @@ PUBLIC_API STATUS closePeerConnection(PRtcPeerConnection);
  * This function allows adding new ICE servers to an already created peer connection.
  * New TURN servers will have relay candidates created automatically, enabling
  * progressive ICE server delivery for improved connection establishment performance.
+ * Not allowed when KvsRtcConfiguration.iceServersFinal was set at creation.
  *
  * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
  * @param[in] PRtcIceServer Array of new ICE servers to add
  * @param[in] UINT32 Number of ICE servers in the array
  *
- * @return STATUS code of the execution. STATUS_SUCCESS on success
+ * @return STATUS code of the execution. STATUS_SUCCESS on success, STATUS_ICE_SERVERS_FINAL if iceServersFinal is set
  */
 PUBLIC_API STATUS peerConnectionUpdateIceServers(PRtcPeerConnection, PRtcIceServer, UINT32);
 
@@ -2186,6 +2200,22 @@ PUBLIC_API STATUS transceiverOnBandwidthEstimation(PRtcRtpTransceiver, UINT64, R
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS transceiverOnPictureLoss(PRtcRtpTransceiver, UINT64, RtcOnPictureLoss);
+
+/**
+ * @brief Send a Picture Loss Indication (PLI) to ask the remote sender for a new keyframe
+ *
+ * Reference: https://tools.ietf.org/html/rfc4585#section-6.3.1
+ *
+ * @param[in] PRtcRtpTransceiver Video transceiver that receives the remote video
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success.
+ *         STATUS_INVALID_ARG if the transceiver is not a video transceiver.
+ *         STATUS_INVALID_OPERATION if the remote SSRC is not known yet, i.e. before the remote description is set.
+ *         STATUS_RTCP_PLI_NOT_NEGOTIATED if the remote description does not list "a=rtcp-fb:<payload type> nack pli"
+ *         for this transceiver (RFC 4585 section 4.2).
+ *         STATUS_SRTP_NOT_READY_YET before DTLS completes.
+ */
+PUBLIC_API STATUS transceiverSendPictureLoss(PRtcRtpTransceiver);
 
 /**
  * @brief Override the H264 fmtp string advertised in SDP offers and answers for this transceiver.
@@ -2372,6 +2402,18 @@ PUBLIC_API STATUS createSignalingClientSync(PSignalingClientInfo, PChannelInfo, 
  * @brief Frees the Signaling client object
  *
  * NOTE: The call is idempotent.
+ * NOTE: Blocks until the signaling client's internal threads (reconnect, WSS listener, receive workers) have
+ *       exited, which includes any of their in-flight callbacks. It may take longer to return while a reconnect
+ *       attempt is in progress.
+ * NOTE: Must not be called from a signaling callback. A call from messageReceivedFn, or from stateChangeFn /
+ *       errorReportFn while they run on one of the SDK's internal threads, is detected and returns
+ *       STATUS_SIGNALING_FREE_FROM_CALLBACK, leaving the handle valid. stateChangeFn and errorReportFn can also be
+ *       invoked on the application's own thread from inside a signaling API call (for example
+ *       signalingClientFetchSync() or signalingClientConnectSync()); such a call cannot be detected and must
+ *       not free the client either, since the API call is still using it. Free the client from a thread that
+ *       is not inside a signaling callback or API call.
+ * NOTE: Because the call waits for in-flight callbacks, do not hold a lock across it that one of your signaling
+ *       callbacks also acquires; the two would deadlock.
  *
  * @param[in,out/opt] PSIGNALING_CLIENT_HANDLE Signaling client handle to free
  *
