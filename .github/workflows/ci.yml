@@ -16,6 +16,13 @@ env:
   DEBIAN_FRONTEND: noninteractive
 
 jobs:
+  ecr-login:
+    uses: ./.github/workflows/ecr-public-login.yml
+    permissions:
+      id-token: write
+      contents: read
+    secrets: inherit
+
   check-aws-credentials:
     runs-on: ubuntu-latest
     permissions:
@@ -244,13 +251,17 @@ jobs:
           make -j
 
   mbedtls-ubuntu-gcc-4-4:
-    needs: cleanup-old-resources
+    needs: [cleanup-old-resources, ecr-login]
     permissions:
       id-token: write
       contents: read
 
     runs-on: ubuntu-latest
-    container: public.ecr.aws/ubuntu/ubuntu:20.04_stable
+    container:
+      image: public.ecr.aws/ubuntu/ubuntu:20.04_stable
+      # Authenticated pull; see ecr-public-login.yml. `{}` (no token on fork PRs,
+      # or a token minted in an earlier run attempt) skips `docker login`.
+      credentials: ${{ fromJSON(needs.ecr-login.outputs.attempt == github.run_attempt && needs.ecr-login.outputs.credentials || '{}') }}
     timeout-minutes: 60
 
     env:
@@ -294,7 +305,7 @@ jobs:
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
 
   ubuntu:
-    needs: cleanup-old-resources
+    needs: [cleanup-old-resources, ecr-login]
     strategy:
       matrix:
         container:
@@ -327,6 +338,9 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ${{ matrix.container.image }}
+      # Authenticated pull; see ecr-public-login.yml. `{}` (no token on fork PRs,
+      # or a token minted in an earlier run attempt) skips `docker login`.
+      credentials: ${{ fromJSON(needs.ecr-login.outputs.attempt == github.run_attempt && needs.ecr-login.outputs.credentials || '{}') }}
 
     permissions:
       id-token: write
@@ -406,10 +420,13 @@ jobs:
   # compiled out (the ESP-IDF v6 configuration). Guards that the SDK takes its randomness from
   # PSA alone on mbedTLS 4 and never references the entropy or CTR-DRBG APIs again.
   mbedtls4-no-entropy:
-    needs: cleanup-old-resources
+    needs: [cleanup-old-resources, ecr-login]
     runs-on: ubuntu-latest
     container:
       image: public.ecr.aws/ubuntu/ubuntu:22.04_stable
+      # Authenticated pull; see ecr-public-login.yml. `{}` (no token on fork PRs,
+      # or a token minted in an earlier run attempt) skips `docker login`.
+      credentials: ${{ fromJSON(needs.ecr-login.outputs.attempt == github.run_attempt && needs.ecr-login.outputs.credentials || '{}') }}
 
     permissions:
       id-token: write
