@@ -420,6 +420,23 @@ typedef struct {
     // Internal diagnostics object
     SignalingDiagnostics diagnostics;
 
+    // Clock skew correction applied to every signed request, HTTPS and WSS alike: the most recent server
+    // Date minus device time, or 0 when within MIN_CLOCK_SKEW_TIME_TO_CORRECT. Protected by diagnosticsLock.
+    INT64 clockSkewCorrection;
+
+    // Correction the last signed request used. Signed requests are serialized by the state machine's
+    // stateLock, so this always belongs to the request whose response is being processed.
+    // Protected by diagnosticsLock.
+    INT64 appliedClockSkewCorrection;
+
+    // Set when the last request was rejected for its timestamp and re-signing it with the newly measured
+    // correction can succeed, so the state machine retries the same state without backoff.
+    volatile ATOMIC_BOOL clockSkewRetryPending;
+
+    // Immediate clock skew retries the current API call has used, at most MAX_CLOCK_SKEW_RETRIES_PER_CALL.
+    // Reset on every state transition except those retries.
+    volatile SIZE_T clockSkewRetryCount;
+
     // Tracking when was the Last time the APIs were called
     UINT64 describeTime;
     UINT64 createTime;

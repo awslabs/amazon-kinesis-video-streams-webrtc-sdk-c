@@ -148,6 +148,9 @@ extern "C" {
 
 #define MIN_CLOCK_SKEW_TIME_TO_CORRECT (5 * HUNDREDS_OF_NANOS_IN_A_MINUTE)
 
+// Immediate (no backoff) re-signed retries each API call gets after a clock skew rejection
+#define MAX_CLOCK_SKEW_RETRIES_PER_CALL 1
+
 // Defining max bloat size per item in the JSON template
 #define ICE_SERVER_INFO_TEMPLATE_BLOAT_SIZE 128
 
@@ -221,6 +224,9 @@ struct __LwsCallInfo {
     // Call info object
     CallInfo callInfo;
 
+    // Whether the response Date shows the request was signed with a correction that re-signing can fix
+    BOOL clockSkewCorrectable;
+
     // Back reference to the signaling client
     PSignalingClient pSignalingClient;
 
@@ -267,6 +273,10 @@ INT32 lwsWssCallbackRoutine(PVOID, INT32, PVOID, PVOID, size_t);
 
 BOOL isCallResultSignatureExpired(PCallInfo);
 BOOL isCallResultSignatureNotYetCurrent(PCallInfo);
+
+// Clock skew correction shared by the HTTPS and WSS requests
+INT64 recordClockSkewCorrection(PSignalingClient, UINT64, UINT64);
+SERVICE_CALL_RESULT getWssUpgradeFailureResult(PSignalingClient, PVOID);
 
 STATUS describeChannelLws(PSignalingClient, UINT64);
 STATUS createChannelLws(PSignalingClient, UINT64);

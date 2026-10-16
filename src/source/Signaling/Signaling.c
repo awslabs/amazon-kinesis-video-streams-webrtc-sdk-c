@@ -198,6 +198,8 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     pSignalingClient->pActiveReceiveWorkers = NULL;
     ATOMIC_STORE_BOOL(&pSignalingClient->deleted, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->serviceLockContention, FALSE);
+    ATOMIC_STORE_BOOL(&pSignalingClient->clockSkewRetryPending, FALSE);
+    ATOMIC_STORE(&pSignalingClient->clockSkewRetryCount, 0);
 
     // Add to the signal handler
     // signal(SIGINT, lwsSignalHandler);
