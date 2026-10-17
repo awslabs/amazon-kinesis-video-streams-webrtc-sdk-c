@@ -249,6 +249,43 @@ TEST_F(PeerConnectionApiTest, peerConnectionUpdateIceServersSuccess)
     freePeerConnection(&pRtcPeerConnection);
 }
 
+TEST_F(PeerConnectionApiTest, writeFrameRejectsFramesLargerThanMaximumOutboundFrameSize)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    PRtcRtpTransceiver pTransceiver = NULL;
+    RtcConfiguration configuration;
+    RtcMediaStreamTrack track;
+    Frame frame;
+    UINT64 encodedBytesTarget;
+    PBYTE pData = (PBYTE) MEMCALLOC(1, MAX_OUTBOUND_FRAME_SIZE_BYTES + 1);
+    ASSERT_NE(nullptr, pData);
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&track, 0x00, SIZEOF(RtcMediaStreamTrack));
+    MEMSET(&frame, 0x00, SIZEOF(Frame));
+    track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    STRCPY(track.streamId, "myKvsVideoStream");
+    STRCPY(track.trackId, "myTrack");
+    frame.frameData = pData;
+
+    // MAX_OUTBOUND_FRAME_SIZE_BYTES is accepted by the size check (not connected, so SRTP is not ready), one byte more is rejected.
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, track.codec));
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track, NULL, &pTransceiver));
+    frame.size = MAX_OUTBOUND_FRAME_SIZE_BYTES;
+    EXPECT_EQ(STATUS_SRTP_NOT_READY_YET, writeFrame(pTransceiver, &frame));
+    frame.size = MAX_OUTBOUND_FRAME_SIZE_BYTES + 1;
+    encodedBytesTarget = ((PKvsRtpTransceiver) pTransceiver)->outboundStats.totalEncodedBytesTarget;
+    EXPECT_EQ(STATUS_RTP_FRAME_TOO_LARGE, writeFrame(pTransceiver, &frame));
+    // A rejected frame is not counted in the outbound stats
+    EXPECT_EQ(encodedBytesTarget, ((PKvsRtpTransceiver) pTransceiver)->outboundStats.totalEncodedBytesTarget);
+    closePeerConnection(pRtcPeerConnection);
+    freePeerConnection(&pRtcPeerConnection);
+
+    MEMFREE(pData);
+}
+
 TEST_F(PeerConnectionApiTest, peerConnectionUpdateIceServersDuplicate)
 {
     PRtcPeerConnection pRtcPeerConnection = NULL;
