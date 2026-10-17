@@ -436,6 +436,7 @@ extern "C" {
 #define STATUS_RTP_INPUT_MTU_TOO_SMALL    STATUS_RTP_BASE + 0x00000002
 #define STATUS_RTP_INVALID_NALU           STATUS_RTP_BASE + 0x00000003
 #define STATUS_RTP_INVALID_EXTENSION_LEN  STATUS_RTP_BASE + 0x00000004
+#define STATUS_RTP_FRAME_TOO_LARGE        STATUS_RTP_BASE + 0x00000005
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -896,6 +897,16 @@ extern "C" {
 #define SIGNALING_DEFAULT_MESSAGE_TTL_VALUE (60 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 #define SIGNALING_JOIN_STORAGE_SESSION_WAIT_TIMEOUT (6 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+
+/**
+ * Upper bound in bytes on a single media frame passed to writeFrame(). This is a safeguard for the sending device during
+ * media transmission, not an RTP limit. writeFrame() packetizes, encrypts and sends the whole frame while holding the SRTP
+ * session lock. The per-transceiver payload buffer also grows to the largest frame seen and keeps that size. Larger frames
+ * are rejected with STATUS_RTP_FRAME_TOO_LARGE and nothing is sent.
+ * Receivers can have a lower limit: libwebrtc browsers reassemble at most 2048 packets per frame (about 2.4 MB at the
+ * default MTU). See docs/FRAME_SIZE_LIMITS.md.
+ */
+#define MAX_OUTBOUND_FRAME_SIZE_BYTES (5 * 1024 * 1024)
 
 /**
  * Default jitter buffer tolerated latency, frame will be dropped if it is out of window
@@ -2278,7 +2289,8 @@ PUBLIC_API STATUS addSupportedCodec(PRtcPeerConnection, RTC_CODEC);
  * @param[in] PRtcRtpTransceiver Configured and connected RtcRtpTransceiver to send media
  * @param[in] PFrame Frame of media that will be sent
  *
- * @return STATUS code of the execution. STATUS_SUCCESS on success
+ * @return STATUS code of the execution. STATUS_SUCCESS on success. STATUS_RTP_FRAME_TOO_LARGE if the frame is larger than
+ *         MAX_OUTBOUND_FRAME_SIZE_BYTES; nothing is sent.
  */
 PUBLIC_API STATUS writeFrame(PRtcRtpTransceiver, PFrame);
 
