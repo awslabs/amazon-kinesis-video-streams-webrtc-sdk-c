@@ -316,8 +316,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
 
     CHK(pRtcRtpTransceiver != NULL && pFrame != NULL, STATUS_NULL_ARG);
     pKvsPeerConnection = pKvsRtpTransceiver->pKvsPeerConnection;
-    // Reject oversized frames up front, before stats are updated. Receivers cannot reassemble a frame with more packets than they
-    // buffer (libwebrtc: 2048 packets).
+    // Upper bound on the media path to protect the device. Reject before any stats, sequence numbers or send buffers change.
     if (pFrame->size > MAX_OUTBOUND_FRAME_SIZE_BYTES) {
         DLOGE("Frame size %u exceeds the maximum outbound frame size %u", pFrame->size, MAX_OUTBOUND_FRAME_SIZE_BYTES);
         return STATUS_RTP_FRAME_TOO_LARGE;

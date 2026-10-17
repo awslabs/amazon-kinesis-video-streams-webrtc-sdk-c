@@ -899,9 +899,12 @@ extern "C" {
 #define SIGNALING_JOIN_STORAGE_SESSION_WAIT_TIMEOUT (6 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 /**
- * Maximum size in bytes of a single media frame that writeFrame() will send. Larger frames are rejected with STATUS_RTP_FRAME_TOO_LARGE.
- * Browsers built on libwebrtc buffer at most 2048 packets per frame (about 2.4 MB at the default MTU). Keep frames smaller if browsers are viewers.
- * See docs/FRAME_SIZE_LIMITS.md.
+ * Upper bound in bytes on a single media frame passed to writeFrame(). This is a safeguard for the sending device during
+ * media transmission, not an RTP limit. writeFrame() packetizes, encrypts and sends the whole frame while holding the SRTP
+ * session lock. The per-transceiver payload buffer also grows to the largest frame seen and keeps that size. Larger frames
+ * are rejected with STATUS_RTP_FRAME_TOO_LARGE and nothing is sent.
+ * Receivers can have a lower limit: libwebrtc browsers reassemble at most 2048 packets per frame (about 2.4 MB at the
+ * default MTU). See docs/FRAME_SIZE_LIMITS.md.
  */
 #define MAX_OUTBOUND_FRAME_SIZE_BYTES (5 * 1024 * 1024)
 
