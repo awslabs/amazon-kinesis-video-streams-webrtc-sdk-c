@@ -141,6 +141,7 @@ $(document).ready(function(){initNavTree('globals_type.html',''); initResizable(
 <li>PChannelInfo&#160;:&#160;<a class="el" href="group__PublicStructures.html#gab1a88feab2cf5a556a90170eb434910a">Include.h</a></li>
 <li>PCongestionCtx&#160;:&#160;<a class="el" href="group__Callbacks.html#gaefc8d58809c767ac7c6418c8f69dec0a">Include.h</a></li>
 <li>PConnectionListener&#160;:&#160;<a class="el" href="ConnectionListener_8h.html#a0d299b301c660a1c1b31e3bd2111b01d">ConnectionListener.h</a></li>
+<li>PDataChannelStatsLookup&#160;:&#160;<a class="el" href="Metrics_8c.html#a3a578866172511cbd015ad5bfafcdaee">Metrics.c</a></li>
 <li>PDscpPacketsSentRecord&#160;:&#160;<a class="el" href="group__StatsStructures.html#ga7540403bae7393d7da52dcc72e3cc847">Stats.h</a></li>
 <li>PDtlsKeyingMaterial&#160;:&#160;<a class="el" href="Dtls_8h.html#a8f247128416a316b95f2360f477e099c">Dtls.h</a></li>
 <li>PDtlsSession&#160;:&#160;<a class="el" href="Dtls_8h.html#a26ca7dadcdec16a8584b8a97811cb2f6">Dtls.h</a></li>
@@ -236,7 +237,6 @@ $(document).ready(function(){initNavTree('globals_type.html',''); initResizable(
 <li>PSignalingFileCacheEntry&#160;:&#160;<a class="el" href="FileCache_8h.html#a5fd683d0ee71fbe6dac53f328493e891">FileCache.h</a></li>
 <li>PSignalingMessage&#160;:&#160;<a class="el" href="group__PublicStructures.html#gab457c08a409bf69c9b820ca390f83689">Include.h</a></li>
 <li>PSignalingMessageWrapper&#160;:&#160;<a class="el" href="LwsApiCalls_8h.html#a4a0d69d777d85e44968fdd272834598b">LwsApiCalls.h</a></li>
-<li>PSignalingThreadNode&#160;:&#160;<a class="el" href="Signaling_8h.html#a8962d8ff7252afe7b47cc79f1a3104af">Signaling.h</a></li>
 <li>PSocketConnection&#160;:&#160;<a class="el" href="SocketConnection_8h.html#ad5b788d64cad378ee27989e81d2868a1">SocketConnection.h</a></li>
 <li>PSrtpSession&#160;:&#160;<a class="el" href="SrtpSession_8h.html#a0f0ff2158010dffd2587d86dae92584b">SrtpSession.h</a></li>
 <li>PStunAttributeAddress&#160;:&#160;<a class="el" href="Stun_8h.html#a50e4eb2622ae6f80c5528669be78a79f">Stun.h</a></li>
@@ -299,15 +299,15 @@ $(document).ready(function(){initNavTree('globals_type.html',''); initResizable(
 
 <h3><a id="index_s" name="index_s"></a>- s -</h3><ul>
 <li>SctpContext&#160;:&#160;<a class="el" href="Sctp_8h.html#a1d4fc18a82656503486db3c552d97867">Sctp.h</a></li>
+<li>SctpSessionDataChannelAckFunc&#160;:&#160;<a class="el" href="Sctp_8h.html#adb32b9eb54c41b6c16e56de4580a5b64">Sctp.h</a></li>
 <li>SctpSessionDataChannelMessageFunc&#160;:&#160;<a class="el" href="Sctp_8h.html#a2a84eb6cead2b69ad0f126be8089bb8d">Sctp.h</a></li>
-<li>SctpSessionDataChannelOpenFunc&#160;:&#160;<a class="el" href="Sctp_8h.html#aae17c3adf351ea2d300ba15f61026665">Sctp.h</a></li>
+<li>SctpSessionDataChannelOpenFunc&#160;:&#160;<a class="el" href="Sctp_8h.html#a87a644de1669cb56f71574bac3ac1395">Sctp.h</a></li>
 <li>SctpSessionOutboundPacketFunc&#160;:&#160;<a class="el" href="Sctp_8h.html#a3efccba1f0638eb34da93bf431101e84">Sctp.h</a></li>
 <li>SIGNALING_CLIENT_HANDLE&#160;:&#160;<a class="el" href="group__StatusCodes.html#ga1a31b45408a80e1064d39d578bd3b751">Include.h</a></li>
 <li>SignalingApiCallHookFunc&#160;:&#160;<a class="el" href="Signaling_8h.html#a9c220065335d693bf8cafd3e4ea5bc05">Signaling.h</a></li>
 <li>SignalingClientErrorReportFunc&#160;:&#160;<a class="el" href="group__Callbacks.html#ga0d69d0e35a1bddfa483f288ec208546c">Include.h</a></li>
 <li>SignalingClientMessageReceivedFunc&#160;:&#160;<a class="el" href="group__Callbacks.html#ga1fc095ba30b81713c3fed9a275355b2c">Include.h</a></li>
 <li>SignalingClientStateChangedFunc&#160;:&#160;<a class="el" href="group__Callbacks.html#gaa5fb7b1ff5dcfe5208a314eef9f3045a">Include.h</a></li>
-<li>SignalingThreadNode&#160;:&#160;<a class="el" href="Signaling_8h.html#a8ad748d3c842f63863336ae04b6eb1c0">Signaling.h</a></li>
 <li>SocketConnection&#160;:&#160;<a class="el" href="SocketConnection_8h.html#a61d238037c92b97d0ed1cfae2c6440d6">SocketConnection.h</a></li>
 <li>SrtpSession&#160;:&#160;<a class="el" href="SrtpSession_8h.html#af24eaa8b6b9a2b48bf8c70c784d94ba0">SrtpSession.h</a></li>
 </ul>
@@ -325,7 +325,7 @@ $(document).ready(function(){initNavTree('globals_type.html',''); initResizable(
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Sat Oct 17 2026 02:20:14 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Sun Oct 18 2026 04:44:02 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>
