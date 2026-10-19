@@ -56,7 +56,11 @@ jobs:
       id-token: write
       contents: read
     outputs:
-      credentials: ${{ steps.token.outputs.credentials }}
+      # One JSON mapping, so consumers can substitute `{}` when it is unset (the
+      # runner rejects an empty username or password). Assembled here from the
+      # action's outputs rather than in a run step, so the token never passes
+      # through a shell.
+      credentials: ${{ steps.token.outcome == 'success' && format('{{"username":"{0}","password":"{1}"}}', steps.token.outputs.docker_username_public_ecr_aws, steps.token.outputs.docker_password_public_ecr_aws) || '' }}
       attempt: ${{ github.run_attempt }}
 
     steps:
@@ -79,18 +83,15 @@ jobs:
         # A failed token request also falls back to an anonymous pull, instead
         # of failing this job and skipping every job that needs it.
         continue-on-error: true
-        run: |
-          # The token is deliberately NOT registered with ::add-mask::. GitHub
-          # drops any job output whose value matches a masked secret ("Skip
-          # output since it may contain secret"), and `container.credentials`
-          # needs the raw value before any step of the consuming job runs.
-          # The token only lets its holder pull *public* images against this
-          # account's quota for 12 hours; the CI role has no ECR push rights.
-          # Never echo it in a step. Debug logging prints it anyway: here as
-          # "Set output credentials = ...", and in every consuming job while
-          # the runner evaluates `container:`.
-          TOKEN=$(aws ecr-public get-login-password --region us-east-1)
-          echo "credentials={\"username\":\"AWS\",\"password\":\"$TOKEN\"}" >> "$GITHUB_OUTPUT"
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: public
+          # The password has to reach the consuming jobs' `container.credentials`
+          # as a job output, and GitHub drops masked values from job outputs; see
+          # the "Docker Credentials" section of the action's README. The token
+          # only lets its holder pull public images against this account's quota
+          # for 12 hours, and the CI role has no ECR push rights.
+          mask-password: 'false'
 
       - name: Report anonymous fallback
         if: steps.token.outcome != 'success'
