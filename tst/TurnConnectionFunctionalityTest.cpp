@@ -1189,9 +1189,10 @@ TEST_F(TurnConnectionFunctionalityTest, turnConnectionCallMultipleTurnSendDataIn
 // is accounted for, as long as at least one peer actually succeeded.
 //
 // These exercise the pure transition predicates directly, with no network or
-// credentials, so they always run (no mAccessKeyIdSet gate). stateTimeoutTime is
-// pushed far into the future so each assertion reflects peer-state counting, not
-// a timeout fallthrough.
+// credentials, so they always run (no mAccessKeyIdSet gate). The per-state
+// timeout is disabled (stateTimeoutTime = MAX_UINT64) so each assertion reflects
+// peer-state counting, not a timeout fallthrough. Nothing here sleeps or waits:
+// each test is a handful of synchronous predicate calls.
 
 static PTurnConnection buildTurnConnectionWithPeers(UINT64 currentState, const TURN_PEER_CONNECTION_STATE* pStates, UINT32 peerCount)
 {
@@ -1199,8 +1200,9 @@ static PTurnConnection buildTurnConnectionWithPeers(UINT64 currentState, const T
     EXPECT_TRUE(pTurnConnection != NULL);
     pTurnConnection->lock = MUTEX_CREATE(FALSE);
     pTurnConnection->state = currentState;
-    // Far in the future so the timeout branch never fires during these tests.
-    pTurnConnection->stateTimeoutTime = GETTIME() + 100 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    // Disable the per-state timeout. The transition predicates only compare GETTIME() against
+    // stateTimeoutTime with '>', so MAX_UINT64 guarantees the timeout branch is never taken.
+    pTurnConnection->stateTimeoutTime = MAX_UINT64;
     pTurnConnection->turnPeerCount = peerCount;
     for (UINT32 i = 0; i < peerCount; ++i) {
         pTurnConnection->turnPeerList[i].connectionState = pStates[i];
@@ -1225,14 +1227,18 @@ TEST_F(TurnConnectionFunctionalityTest, fromCreatePermissionAdvancesPastFailedPe
 
     UINT64 nextState = TURN_STATE_NONE;
     EXPECT_EQ(STATUS_SUCCESS, fromCreatePermissionTurnState((UINT64) pTurnConnection, &nextState));
-    EXPECT_EQ(TURN_STATE_BIND_CHANNEL, nextState);
+    EXPECT_EQ(TURN_STATE_BIND_CHANNEL, nextState)
+        << "CREATE_PERMISSION did not advance with peers {READY, FAILED}. FAILED peers must count toward the "
+           "advance condition (#2386 / #2387); otherwise the state machine stalls until the 5s timeout.";
 
     // A peer still mid-permission (BIND_CHANNEL) also counts as "with permission".
     states[0] = TURN_PEER_CONN_STATE_BIND_CHANNEL;
     pTurnConnection->turnPeerList[0].connectionState = TURN_PEER_CONN_STATE_BIND_CHANNEL;
     nextState = TURN_STATE_NONE;
     EXPECT_EQ(STATUS_SUCCESS, fromCreatePermissionTurnState((UINT64) pTurnConnection, &nextState));
-    EXPECT_EQ(TURN_STATE_BIND_CHANNEL, nextState);
+    EXPECT_EQ(TURN_STATE_BIND_CHANNEL, nextState)
+        << "CREATE_PERMISSION did not advance with peers {BIND_CHANNEL, FAILED}. A peer already in BIND_CHANNEL "
+           "has its permission and must count as succeeded.";
 
     freeUnitTestTurnConnection(pTurnConnection);
 }
@@ -1246,7 +1252,9 @@ TEST_F(TurnConnectionFunctionalityTest, fromCreatePermissionWaitsForPendingPeer)
 
     UINT64 nextState = TURN_STATE_NONE;
     EXPECT_EQ(STATUS_SUCCESS, fromCreatePermissionTurnState((UINT64) pTurnConnection, &nextState));
-    EXPECT_EQ(TURN_STATE_CREATE_PERMISSION, nextState);
+    EXPECT_EQ(TURN_STATE_CREATE_PERMISSION, nextState)
+        << "CREATE_PERMISSION advanced while a peer was still pending (CREATE_PERMISSION) and the timeout "
+           "had not elapsed. Counting FAILED peers must not cause a premature transition.";
 
     freeUnitTestTurnConnection(pTurnConnection);
 }
@@ -1259,7 +1267,8 @@ TEST_F(TurnConnectionFunctionalityTest, fromCreatePermissionFailsWhenAllPeersFai
     PTurnConnection pTurnConnection = buildTurnConnectionWithPeers(TURN_STATE_CREATE_PERMISSION, states, ARRAY_SIZE(states));
 
     UINT64 nextState = TURN_STATE_NONE;
-    EXPECT_EQ(STATUS_TURN_CONNECTION_FAILED_TO_CREATE_PERMISSION, fromCreatePermissionTurnState((UINT64) pTurnConnection, &nextState));
+    EXPECT_EQ(STATUS_TURN_CONNECTION_FAILED_TO_CREATE_PERMISSION, fromCreatePermissionTurnState((UINT64) pTurnConnection, &nextState))
+        << "CREATE_PERMISSION did not fail fast when every peer is FAILED; there is no peer left to relay to.";
 
     freeUnitTestTurnConnection(pTurnConnection);
 }
@@ -1273,7 +1282,8 @@ TEST_F(TurnConnectionFunctionalityTest, fromBindChannelAdvancesPastFailedPeer)
 
     UINT64 nextState = TURN_STATE_NONE;
     EXPECT_EQ(STATUS_SUCCESS, fromBindChannelTurnState((UINT64) pTurnConnection, &nextState));
-    EXPECT_EQ(TURN_STATE_READY, nextState);
+    EXPECT_EQ(TURN_STATE_READY, nextState) << "BIND_CHANNEL did not advance with peers {READY, FAILED}. FAILED peers must count toward the "
+                                              "advance condition (#2386 / #2387); otherwise the state machine stalls until the 5s timeout.";
 
     freeUnitTestTurnConnection(pTurnConnection);
 }
@@ -1287,7 +1297,8 @@ TEST_F(TurnConnectionFunctionalityTest, fromBindChannelWaitsForPendingPeer)
 
     UINT64 nextState = TURN_STATE_NONE;
     EXPECT_EQ(STATUS_SUCCESS, fromBindChannelTurnState((UINT64) pTurnConnection, &nextState));
-    EXPECT_EQ(TURN_STATE_BIND_CHANNEL, nextState);
+    EXPECT_EQ(TURN_STATE_BIND_CHANNEL, nextState)
+        << "BIND_CHANNEL advanced while a peer was still binding its channel and the timeout had not elapsed.";
 
     freeUnitTestTurnConnection(pTurnConnection);
 }
@@ -1299,7 +1310,8 @@ TEST_F(TurnConnectionFunctionalityTest, fromBindChannelFailsWhenAllPeersFailed)
     PTurnConnection pTurnConnection = buildTurnConnectionWithPeers(TURN_STATE_BIND_CHANNEL, states, ARRAY_SIZE(states));
 
     UINT64 nextState = TURN_STATE_NONE;
-    EXPECT_EQ(STATUS_TURN_CONNECTION_FAILED_TO_BIND_CHANNEL, fromBindChannelTurnState((UINT64) pTurnConnection, &nextState));
+    EXPECT_EQ(STATUS_TURN_CONNECTION_FAILED_TO_BIND_CHANNEL, fromBindChannelTurnState((UINT64) pTurnConnection, &nextState))
+        << "BIND_CHANNEL did not fail fast when every peer is FAILED; there is no peer left to relay to.";
 
     freeUnitTestTurnConnection(pTurnConnection);
 }
