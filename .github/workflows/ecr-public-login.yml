@@ -1,16 +1,11 @@
 name: ECR Public login token
 
-# Reusable workflow: mints a short-lived public.ecr.aws authorization token so
-# that `container:` jobs pull their base image as an authenticated client.
+# Reusable workflow: logs in to public.ecr.aws so `container:` jobs pull their
+# image as an authenticated client instead of sharing the anonymous per-IP
+# limit with other GitHub users. `container:` pulls before any step runs, so the
+# login has to be an earlier job.
 #
-# Why: anonymous pulls from public.ecr.aws are rate-limited per source IP, and
-# GitHub-hosted runners share a small pool of egress IPs with every other
-# GitHub Actions user. A single push to this repository pulls the Ubuntu base
-# image ~30 times, so matrix jobs regularly fail at "Initialize containers"
-# with `toomanyrequests: Data limit exceeded`. Authenticated pulls are counted
-# against the AWS account that minted the token instead.
-#
-# How to use from another workflow:
+# Usage:
 #
 #   jobs:
 #     ecr-login:
@@ -22,21 +17,12 @@ name: ECR Public login token
 #
 #     my-job:
 #       needs: ecr-login
-#       runs-on: ubuntu-latest
 #       container:
 #         image: public.ecr.aws/ubuntu/ubuntu:22.04_stable
 #         credentials: ${{ fromJSON(needs.ecr-login.outputs.attempt == github.run_attempt && needs.ecr-login.outputs.credentials || '{}') }}
 #
-# Pass `credentials` as one mapping, `{}` when there is no token: the runner
-# rejects an empty username or password ("Unexpected value ''") before the
-# container starts. "Re-run failed jobs" does not re-run this workflow, so a
-# re-run job would get the first attempt's token, which expires after 12 h; the
-# attempt check makes those re-runs pull anonymously. "Re-run all jobs" mints a
-# fresh token.
-#
-# Without `permissions: id-token: write` on the calling job the run fails at
-# startup. Without `secrets: inherit` the role ARN is empty, the OIDC step
-# fails, and every job pulls anonymously.
+# Without a login (fork PRs, "Re-run failed jobs"), `credentials` is `{}` and
+# the job pulls anonymously, as before.
 
 on:
   workflow_call:
@@ -56,20 +42,14 @@ jobs:
       id-token: write
       contents: read
     outputs:
-      # One JSON mapping, so consumers can substitute `{}` when it is unset (the
-      # runner rejects an empty username or password). Assembled here from the
-      # action's outputs rather than in a run step, so the token never passes
-      # through a shell.
+      # One mapping, so callers can fall back to `{}`.
       credentials: ${{ steps.token.outcome == 'success' && format('{{"username":"{0}","password":"{1}"}}', steps.token.outputs.docker_username_public_ecr_aws, steps.token.outputs.docker_password_public_ecr_aws) || '' }}
       attempt: ${{ github.run_attempt }}
 
     steps:
       - name: Configure AWS credentials
         id: aws
-        # Pull requests from forks cannot mint an OIDC token, so this step fails
-        # there. Keep the job green with no credentials output; consumers then
-        # pass `{}` and the runner pulls anonymously, exactly as before this
-        # workflow.
+        # Fails on fork PRs (no OIDC token). Callers then pull anonymously.
         continue-on-error: true
         uses: aws-actions/configure-aws-credentials@v6
         with:
@@ -80,17 +60,12 @@ jobs:
       - name: Get ECR Public token
         id: token
         if: steps.aws.outcome == 'success'
-        # A failed token request also falls back to an anonymous pull, instead
-        # of failing this job and skipping every job that needs it.
         continue-on-error: true
         uses: aws-actions/amazon-ecr-login@v2
         with:
           registry-type: public
-          # The password has to reach the consuming jobs' `container.credentials`
-          # as a job output, and GitHub drops masked values from job outputs; see
-          # the "Docker Credentials" section of the action's README. The token
-          # only lets its holder pull public images against this account's quota
-          # for 12 hours, and the CI role has no ECR push rights.
+          # Following the README's recommendation for using the credentials in
+          # other jobs: https://github.com/aws-actions/amazon-ecr-login#docker-credentials
           mask-password: 'false'
 
       - name: Report anonymous fallback

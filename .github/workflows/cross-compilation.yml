@@ -80,8 +80,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ${{ matrix.compiler.runner }}
-      # Authenticated pull; see ecr-public-login.yml. `{}` (no token on fork PRs,
-      # or a token minted in an earlier run attempt) skips `docker login`.
+      # Authenticated pull; see ecr-public-login.yml.
       credentials: ${{ fromJSON(needs.ecr-login.outputs.attempt == github.run_attempt && needs.ecr-login.outputs.credentials || '{}') }}
 
     name: ${{ matrix.compiler.name }}, ${{ matrix.build-type.name }}, ${{ matrix.crypto.name }}, ${{ matrix.threadpool.name }}
