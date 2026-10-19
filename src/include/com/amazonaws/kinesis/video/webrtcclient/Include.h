@@ -2405,7 +2405,8 @@ PUBLIC_API STATUS createSignalingClientSync(PSignalingClientInfo, PChannelInfo, 
  * NOTE: The call is idempotent.
  * NOTE: Blocks until the signaling client's internal threads (reconnect, WSS listener, receive workers) have
  *       exited, which includes any of their in-flight callbacks. It may take longer to return while a reconnect
- *       attempt is in progress.
+ *       attempt is in progress. A received message whose worker had not yet reached messageReceivedFn when this
+ *       call started is dropped rather than delivered during the free.
  * NOTE: Must not be called from a signaling callback. A call from messageReceivedFn, or from stateChangeFn /
  *       errorReportFn while they run on one of the SDK's internal threads, is detected and returns
  *       STATUS_SIGNALING_FREE_FROM_CALLBACK, leaving the handle valid. stateChangeFn and errorReportFn can also be

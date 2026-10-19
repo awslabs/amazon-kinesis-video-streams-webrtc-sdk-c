@@ -161,6 +161,12 @@ typedef struct {
     SignalingApiCallHookFunc deletePreHookFn;
     SignalingApiCallHookFunc deletePostHookFn;
 
+    // Receive-worker ingestion points. The pre-callback hook runs on the worker thread right before
+    // messageReceivedFn would be invoked; the post hook runs after the worker has unregistered itself and
+    // released the client, so it must not touch pSignalingClient (freeSignaling() may already have freed it).
+    SignalingApiCallHookFunc receiveMessagePreCallbackHookFn;
+    SignalingApiCallHookFunc receiveMessagePostHookFn;
+
     // Retry strategy used for signaling state machine
     KvsRetryStrategy signalingStateMachineRetryStrategy;
     KvsRetryStrategyCallbacks signalingStateMachineRetryStrategyCallbacks;

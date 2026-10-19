@@ -615,7 +615,10 @@ STATUS terminateOngoingOperations(PSignalingClient pSignalingClient, BOOL waitFo
         // Non-free callers (fetchSync, disconnectSync, deleteSync): the client stays alive after this call, so
         // the reconnect thread may legitimately keep running or respawn. Use the original bounded wait — a
         // best-effort quiesce that returns even if the caller is itself the reconnect thread.
-        awaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);
+        if (STATUS_FAILED(awaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT))) {
+            DLOGW("Reconnect thread still alive after %" PRIu64 " s; continuing, the client stays alive after this call",
+                  (UINT64) (SIGNALING_CLIENT_SHUTDOWN_TIMEOUT / HUNDREDS_OF_NANOS_IN_A_SECOND));
+        }
     }
 
 CleanUp:

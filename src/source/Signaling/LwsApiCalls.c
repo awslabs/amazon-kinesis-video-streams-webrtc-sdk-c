@@ -2574,6 +2574,8 @@ PVOID receiveLwsMessageWrapper(PVOID args)
     SIGNALING_MESSAGE_TYPE messageType = SIGNALING_MESSAGE_TYPE_UNKNOWN;
     SignalingThreadNode workerNode;
     PSignalingThreadNode* ppNode;
+    SignalingApiCallHookFunc receiveMessagePreCallbackHookFn = NULL, receiveMessagePostHookFn = NULL;
+    UINT64 hookCustomData = 0;
 
     CHK(pSignalingMessageWrapper != NULL, STATUS_NULL_ARG);
 
@@ -2582,6 +2584,12 @@ PVOID receiveLwsMessageWrapper(PVOID args)
     pSignalingClient = pSignalingMessageWrapper->pSignalingClient;
 
     CHK(pSignalingClient != NULL, STATUS_INTERNAL_ERROR);
+
+    // Copy the hooks out now: the post hook runs after this worker has released the client, when
+    // freeSignaling() may already have freed it.
+    receiveMessagePreCallbackHookFn = pSignalingClient->clientInfo.receiveMessagePreCallbackHookFn;
+    receiveMessagePostHookFn = pSignalingClient->clientInfo.receiveMessagePostHookFn;
+    hookCustomData = pSignalingClient->clientInfo.hookCustomData;
 
     // Register this worker so freeSignaling() can detect being called from messageReceivedFn on this thread
     workerNode.tid = SIGNALING_CURRENT_THREAD_ID();
@@ -2613,8 +2621,16 @@ PVOID receiveLwsMessageWrapper(PVOID args)
                                     "Offer Sent to Answer Received time");
         MUTEX_UNLOCK(pSignalingClient->offerSendReceiveTimeLock);
     }
-    // Calling client receive message callback if specified
-    if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
+    if (receiveMessagePreCallbackHookFn != NULL) {
+        CHK_STATUS(receiveMessagePreCallbackHookFn(hookCustomData));
+    }
+
+    // Calling client receive message callback if specified and the client is not being freed. A worker that was
+    // dispatched before freeSignalingClient() set shutdown is still counted and waited for, but the application
+    // has already asked for the client to go away, so its message is dropped rather than delivered mid-free.
+    if (ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown)) {
+        DLOGD("Dropping received message of type %s: signaling client is shutting down", getMessageTypeInString(messageType));
+    } else if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.messageReceivedFn(pSignalingClient->signalingClientCallbacks.customData,
                                                                                 &pSignalingMessageWrapper->receivedSignalingMessage));
     }
@@ -2644,6 +2660,11 @@ CleanUp:
         ATOMIC_DECREMENT(&pSignalingClient->receiveWorkerCount);
         CVAR_BROADCAST(pSignalingClient->receiveWorkerCvar);
         MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
+    }
+
+    // The client may be gone from here on; only the copied hook pointer is used.
+    if (receiveMessagePostHookFn != NULL) {
+        CHK_LOG_ERR(receiveMessagePostHookFn(hookCustomData));
     }
 
     return (PVOID) (ULONG_PTR) retStatus;

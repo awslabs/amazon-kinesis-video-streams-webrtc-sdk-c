@@ -661,6 +661,107 @@ TEST_F(ReceiveWorkerUafTest, apiQuiesceDoesNotWaitForReceiveWorkersOnceShutdownI
     freeStaticCredentialProvider(&pCredentialProvider);
 }
 
+// Ported from PR #2397 (receiveMessageWorkerDoesNotAccessFreedClient) and adapted to the wait-based lifetime model:
+// a worker that was dispatched before freeSignalingClient() but has not yet reached messageReceivedFn must still be
+// waited for, and its message must not be delivered to the application once the free has started.
+struct ParkedWorkerHookContext {
+    std::mutex lock;
+    std::condition_variable cv;
+    bool workerAtCallbackGate = false;
+    bool release = false;
+    bool workerExited = false;
+    std::atomic<UINT32> callbackCount{0};
+    std::atomic<bool> freeFinished{false};
+    // Set by the worker's post hook if freeSignaling() had already returned while the worker was still running.
+    std::atomic<bool> freeReturnedBeforeWorkerExited{false};
+};
+
+// receiveMessagePreCallbackHookFn: park the worker right before the SDK decides whether to invoke messageReceivedFn.
+static STATUS parkReceiveWorkerBeforeCallbackHook(UINT64 customData)
+{
+    ParkedWorkerHookContext* pCtx = (ParkedWorkerHookContext*) customData;
+    std::unique_lock<std::mutex> guard(pCtx->lock);
+    pCtx->workerAtCallbackGate = true;
+    pCtx->cv.notify_all();
+    pCtx->cv.wait(guard, [pCtx] { return pCtx->release; });
+    return STATUS_SUCCESS;
+}
+
+// receiveMessagePostHookFn: runs after the worker has released the client, so it only touches the test context.
+static STATUS receiveWorkerExitedHook(UINT64 customData)
+{
+    ParkedWorkerHookContext* pCtx = (ParkedWorkerHookContext*) customData;
+    if (pCtx->freeFinished.load()) {
+        pCtx->freeReturnedBeforeWorkerExited.store(true);
+    }
+    std::lock_guard<std::mutex> guard(pCtx->lock);
+    pCtx->workerExited = true;
+    pCtx->cv.notify_all();
+    return STATUS_SUCCESS;
+}
+
+static STATUS countingMessageReceivedFn(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage)
+{
+    UNUSED_PARAM(pReceivedSignalingMessage);
+    ((ParkedWorkerHookContext*) customData)->callbackCount.fetch_add(1);
+    return STATUS_SUCCESS;
+}
+
+TEST_F(ReceiveWorkerUafTest, receiveWorkerDoesNotDeliverMessageOnceFreeHasStarted)
+{
+    ParkedWorkerHookContext ctx;
+    PAwsCredentialProvider pCredentialProvider = NULL;
+    PSignalingClient pSignalingClient = NULL;
+    STATUS freeStatus = STATUS_SUCCESS;
+
+    ASSERT_EQ(STATUS_SUCCESS,
+              createOfflineSignalingClient(mChannelName, mRegion, mCaCertPath, mLogLevel, (UINT64) &ctx, &pCredentialProvider, &pSignalingClient,
+                                           countingMessageReceivedFn));
+    ASSERT_NE((PSignalingClient) NULL, pSignalingClient);
+
+    // The worker reads these when it starts, so setting them after create but before the first message is enough.
+    pSignalingClient->clientInfo.hookCustomData = (UINT64) &ctx;
+    pSignalingClient->clientInfo.receiveMessagePreCallbackHookFn = parkReceiveWorkerBeforeCallbackHook;
+    pSignalingClient->clientInfo.receiveMessagePostHookFn = receiveWorkerExitedHook;
+
+    // One worker, parked at the callback gate: counted, but messageReceivedFn has not run.
+    ASSERT_EQ(STATUS_SUCCESS, receiveLwsMessage(pSignalingClient, (PCHAR) kIceCandidateMessage, ARRAY_SIZE(kIceCandidateMessage)));
+    {
+        std::unique_lock<std::mutex> guard(ctx.lock);
+        ASSERT_TRUE(ctx.cv.wait_for(guard, std::chrono::seconds(5), [&ctx] { return ctx.workerAtCallbackGate; }))
+            << "receive worker never reached the pre-callback hook";
+    }
+    EXPECT_EQ((SIZE_T) 1, ATOMIC_LOAD(&pSignalingClient->receiveWorkerCount));
+    EXPECT_EQ(0U, ctx.callbackCount.load());
+
+    // Free from the application thread while the worker is parked. It must block until the worker exits.
+    std::thread freeThread([&] {
+        freeStatus = freeSignaling(&pSignalingClient);
+        ctx.freeFinished.store(true);
+    });
+    THREAD_SLEEP(200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    EXPECT_FALSE(ctx.freeFinished.load()) << "freeSignaling returned while a counted receive worker was still parked before its callback";
+
+    // Release the worker. shutdown is already set, so the SDK must skip messageReceivedFn and let the worker exit.
+    {
+        std::lock_guard<std::mutex> guard(ctx.lock);
+        ctx.release = true;
+        ctx.cv.notify_all();
+    }
+    {
+        std::unique_lock<std::mutex> guard(ctx.lock);
+        EXPECT_TRUE(ctx.cv.wait_for(guard, std::chrono::seconds(5), [&ctx] { return ctx.workerExited; })) << "receive worker did not exit";
+    }
+    freeThread.join();
+
+    EXPECT_EQ(STATUS_SUCCESS, freeStatus);
+    EXPECT_EQ((PSignalingClient) NULL, pSignalingClient);
+    EXPECT_EQ(0U, ctx.callbackCount.load()) << "messageReceivedFn was invoked after freeSignalingClient() had started";
+    EXPECT_FALSE(ctx.freeReturnedBeforeWorkerExited.load()) << "freeSignaling returned before the receive worker had exited";
+
+    freeStaticCredentialProvider(&pCredentialProvider);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
