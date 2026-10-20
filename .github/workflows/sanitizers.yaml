@@ -18,6 +18,13 @@ env:
   CXX: clang++
 
 jobs:
+  ecr-login:
+    uses: ./.github/workflows/ecr-public-login.yml
+    permissions:
+      id-token: write
+      contents: read
+    secrets: inherit
+
   address-sanitizer:
     runs-on: ubuntu-22.04
     timeout-minutes: 60
@@ -186,9 +193,13 @@ jobs:
   #         timeout --signal=SIGABRT 60m build/tst/webrtc_client_test
 
   thread-sanitizer:
+    needs: ecr-login
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    container: public.ecr.aws/ubuntu/ubuntu:20.04_stable
+    container:
+      image: public.ecr.aws/ubuntu/ubuntu:20.04_stable
+      # Authenticated pull; see ecr-public-login.yml.
+      credentials: ${{ fromJSON(needs.ecr-login.outputs.attempt == github.run_attempt && needs.ecr-login.outputs.credentials || '{}') }}
 
     env:
       TSAN_OPTIONS: second_deadlock_stack=1:halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp

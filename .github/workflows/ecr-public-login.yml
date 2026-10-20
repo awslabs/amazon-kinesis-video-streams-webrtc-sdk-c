@@ -1,0 +1,74 @@
+name: ECR Public login token
+
+# Reusable workflow: logs in to public.ecr.aws so `container:` jobs pull their
+# image as an authenticated client instead of sharing the anonymous per-IP
+# limit with other GitHub users. `container:` pulls before any step runs, so the
+# login has to be an earlier job.
+#
+# Usage:
+#
+#   jobs:
+#     ecr-login:
+#       uses: ./.github/workflows/ecr-public-login.yml
+#       permissions:
+#         id-token: write
+#         contents: read
+#       secrets: inherit
+#
+#     my-job:
+#       needs: ecr-login
+#       container:
+#         image: public.ecr.aws/ubuntu/ubuntu:22.04_stable
+#         credentials: ${{ fromJSON(needs.ecr-login.outputs.attempt == github.run_attempt && needs.ecr-login.outputs.credentials || '{}') }}
+#
+# Without a login (fork PRs, "Re-run failed jobs"), `credentials` is `{}` and
+# the job pulls anonymously, as before.
+
+on:
+  workflow_call:
+    outputs:
+      credentials:
+        description: "JSON {username, password} for container.credentials; unset when no token was minted (e.g. pull requests from forks)"
+        value: ${{ jobs.login.outputs.credentials }}
+      attempt:
+        description: "github.run_attempt in which the token was minted"
+        value: ${{ jobs.login.outputs.attempt }}
+
+jobs:
+  login:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      # One mapping, so callers can fall back to `{}`.
+      credentials: ${{ steps.token.outcome == 'success' && format('{{"username":"{0}","password":"{1}"}}', steps.token.outputs.docker_username_public_ecr_aws, steps.token.outputs.docker_password_public_ecr_aws) || '' }}
+      attempt: ${{ github.run_attempt }}
+
+    steps:
+      - name: Configure AWS credentials
+        id: aws
+        # Fails on fork PRs (no OIDC token). Callers then pull anonymously.
+        continue-on-error: true
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          # public.ecr.aws authenticates only through us-east-1.
+          aws-region: us-east-1
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+
+      - name: Get ECR Public token
+        id: token
+        if: steps.aws.outcome == 'success'
+        continue-on-error: true
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: public
+          # Following the README's recommendation for using the credentials in
+          # other jobs: https://github.com/aws-actions/amazon-ecr-login#docker-credentials
+          mask-password: 'false'
+
+      - name: Report anonymous fallback
+        if: steps.token.outcome != 'success'
+        run: |
+          echo "::warning title=ECR Public login skipped::No ECR Public token (fork PR, OIDC misconfiguration, or a failed token request); container jobs will pull public.ecr.aws images anonymously and may hit the per-IP pull quota."

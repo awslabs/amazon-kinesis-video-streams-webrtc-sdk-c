@@ -14,7 +14,15 @@ permissions:
   contents: read
 
 jobs:
+  ecr-login:
+    uses: ./.github/workflows/ecr-public-login.yml
+    permissions:
+      id-token: write
+      contents: read
+    secrets: inherit
+
   linux-cross-compilation:
+    needs: ecr-login
     timeout-minutes: 15
 
     strategy:
@@ -71,7 +79,9 @@ jobs:
 
     runs-on: ubuntu-latest
     container:
-      image:  ${{ matrix.compiler.runner }}
+      image: ${{ matrix.compiler.runner }}
+      # Authenticated pull; see ecr-public-login.yml.
+      credentials: ${{ fromJSON(needs.ecr-login.outputs.attempt == github.run_attempt && needs.ecr-login.outputs.credentials || '{}') }}
 
     name: ${{ matrix.compiler.name }}, ${{ matrix.build-type.name }}, ${{ matrix.crypto.name }}, ${{ matrix.threadpool.name }}
 
