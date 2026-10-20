@@ -654,8 +654,8 @@ TEST_F(ReceiveWorkerUafTest, apiQuiesceDoesNotWaitForReceiveWorkersOnceShutdownI
         quiesceReturned.store(true);
     });
     // The bounded path has nothing to wait for here (no listener, reconnecterTracker.terminated is TRUE from
-    // construction), so it returns in milliseconds; 2 s is far above that and far below the 9 s a wrongly-selected
-    // CVAR_WAIT on receiveWorkerCount would take before its first retry.
+    // construction), so it returns in milliseconds; 2 s is far above that. A wrongly-selected unbounded wait on
+    // receiveWorkerCount would not return at all until the parked worker is released below.
     for (UINT32 i = 0; i < 200 && !quiesceReturned.load(); i++) {
         THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
     }

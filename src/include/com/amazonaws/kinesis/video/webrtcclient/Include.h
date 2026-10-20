@@ -2471,8 +2471,8 @@ PUBLIC_API STATUS signalingClientGetIceConfigInfo(SIGNALING_CLIENT_HANDLE, UINT3
  * NOTE: Returns STATUS_SIGNALING_FREE_IN_PROGRESS, without waiting for the SDK's threads, when called from a
  *       signaling callback that runs on one of the SDK's internal threads while freeSignalingClient() runs on
  *       another thread. A call that had already passed that check when freeSignalingClient() started waits a
- *       bounded time for the reconnect thread and may return another status. From any other thread the call must
- *       not overlap freeSignalingClient(): the client can be freed while it runs.
+ *       bounded time for the listener and reconnect threads and may return another status. From any other thread
+ *       the call must not overlap freeSignalingClient(): the client can be freed while it runs.
  *
  * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
  *
@@ -2497,8 +2497,8 @@ PUBLIC_API STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE);
  * NOTE: Returns STATUS_SIGNALING_FREE_IN_PROGRESS, without waiting for the SDK's threads, when called from a
  *       signaling callback that runs on one of the SDK's internal threads while freeSignalingClient() runs on
  *       another thread. A call that had already passed that check when freeSignalingClient() started waits a
- *       bounded time for the reconnect thread and may return another status. From any other thread the call must
- *       not overlap freeSignalingClient(): the client can be freed while it runs.
+ *       bounded time for the listener and reconnect threads and may return another status. From any other thread
+ *       the call must not overlap freeSignalingClient(): the client can be freed while it runs.
  *
  * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
  *
@@ -2541,9 +2541,9 @@ PUBLIC_API STATUS signalingClientGetStateString(SIGNALING_CLIENT_STATE, PCHAR*);
  * NOTE: Returns STATUS_SIGNALING_FREE_IN_PROGRESS, without waiting for the SDK's threads and without touching the
  *       state machine, when called from a signaling callback that runs on one of the SDK's internal threads while
  *       freeSignalingClient() runs on another thread. A call that had already passed that check when
- *       freeSignalingClient() started waits a bounded time for the reconnect thread and may return another status.
- *       From any other thread the call must not overlap freeSignalingClient(): the client can be freed while it
- *       runs.
+ *       freeSignalingClient() started waits a bounded time for the listener and reconnect threads and may return
+ *       another status. From any other thread the call must not overlap freeSignalingClient(): the client can be
+ *       freed while it runs.
  *
  * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
  *
