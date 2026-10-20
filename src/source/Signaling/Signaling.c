@@ -517,11 +517,8 @@ STATUS terminateOngoingOperations(PSignalingClient pSignalingClient, BOOL waitFo
     // Terminate the listener thread if alive
     terminateLwsListenerLoop(pSignalingClient);
 
-    // Branch on what the caller asked for, not on pSignalingClient->shutdown. The flag is global: once
-    // freeSignaling() has set it, a fetch/disconnect/delete issued from a signaling callback on an SDK thread
-    // would otherwise take the unbounded path below and wait for its own thread to exit, while freeSignaling()
-    // waits for that same thread. Neither would return. Those calls refuse once shutdown is set, but one can pass
-    // its check just before freeSignaling() sets the flag and still arrive here; this parameter covers that window.
+    // Branch on what the caller asked for, not on pSignalingClient->shutdown; see the declaration in Signaling.h
+    // for why a non-free caller must never take the unbounded path even when shutdown is already set.
     if (waitForAllThreads) {
         // freeSignaling path: we are about to free memory, so we MUST wait
         // until the reconnect thread is fully done.  Poke the LWS event loop
@@ -722,7 +719,8 @@ STATUS signalingFetchSync(PSignalingClient pSignalingClient)
 
     // Another thread is inside freeSignaling(); the client is about to disappear and freeSignaling() may be
     // waiting for the very thread making this call (a signaling callback). Return instead of waiting.
-    CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), STATUS_SIGNALING_FREE_IN_PROGRESS);
+    CHK_WARN(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), STATUS_SIGNALING_FREE_IN_PROGRESS,
+             "signalingClientFetchSync() refused: freeSignalingClient() is running on another thread");
 
     // Check if we are already not connected
     if (ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
@@ -748,7 +746,10 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         resetStateMachineRetryCount(pSignalingClient->pStateMachine);
     }
-    CHK_LOG_ERR(retStatus);
+    // An expected outcome during freeSignalingClient(), already logged at WARN above.
+    if (retStatus != STATUS_SIGNALING_FREE_IN_PROGRESS) {
+        CHK_LOG_ERR(retStatus);
+    }
     LEAVES();
     return retStatus;
 }
@@ -800,7 +801,8 @@ STATUS signalingDisconnectSync(PSignalingClient pSignalingClient)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // Another thread is inside freeSignaling(); see signalingFetchSync().
-    CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), STATUS_SIGNALING_FREE_IN_PROGRESS);
+    CHK_WARN(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), STATUS_SIGNALING_FREE_IN_PROGRESS,
+             "signalingClientDisconnectSync() refused: freeSignalingClient() is running on another thread");
 
     // Check if we are already not connected
     CHK(ATOMIC_LOAD_BOOL(&pSignalingClient->connected), retStatus);
@@ -814,7 +816,10 @@ STATUS signalingDisconnectSync(PSignalingClient pSignalingClient)
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    // An expected outcome during freeSignalingClient(), already logged at WARN above.
+    if (retStatus != STATUS_SIGNALING_FREE_IN_PROGRESS) {
+        CHK_LOG_ERR(retStatus);
+    }
 
     LEAVES();
     return retStatus;
@@ -832,7 +837,8 @@ STATUS signalingDeleteSync(PSignalingClient pSignalingClient)
 
     // Another thread is inside freeSignaling(); see signalingFetchSync(). Checked before the deleting flag and
     // the state machine are touched so the refusal leaves the client exactly as freeSignaling() expects it.
-    CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), STATUS_SIGNALING_FREE_IN_PROGRESS);
+    CHK_WARN(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), STATUS_SIGNALING_FREE_IN_PROGRESS,
+             "signalingClientDeleteSync() refused: freeSignalingClient() is running on another thread");
 
     // Mark as being deleted
     ATOMIC_STORE_BOOL(&pSignalingClient->deleting, TRUE);
@@ -847,7 +853,10 @@ STATUS signalingDeleteSync(PSignalingClient pSignalingClient)
 
 CleanUp:
 
-    CHK_LOG_ERR(retStatus);
+    // An expected outcome during freeSignalingClient(), already logged at WARN above.
+    if (retStatus != STATUS_SIGNALING_FREE_IN_PROGRESS) {
+        CHK_LOG_ERR(retStatus);
+    }
 
     LEAVES();
     return retStatus;
