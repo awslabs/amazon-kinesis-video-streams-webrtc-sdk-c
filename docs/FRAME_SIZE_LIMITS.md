@@ -9,7 +9,7 @@ The KVS WebRTC C library is a full WebRTC stack. It limits the size of a single 
 | Direction | Define | Value | What happens to a larger frame | Error | Stats |
 |-----------|--------|-------|--------------------------------|-------|-------|
 | Outbound | `MAX_OUTBOUND_FRAME_SIZE_BYTES` | 5 MiB (5,242,880 bytes) | `writeFrame()` rejects it. Nothing is sent. | `writeFrame()` returns `STATUS_RTP_OUTBOUND_FRAME_TOO_LARGE` (`0x5c000005`) | None |
-| Inbound | `MAX_INBOUND_FRAME_SIZE_BYTES` | 5 MiB (5,242,880 bytes) | The peer connection rejects it and continues with the next frame. | WARN log with `STATUS_RTP_INBOUND_FRAME_TOO_LARGE` (`0x5c000006`) | `received.framesDropped` |
+| Inbound | `MAX_INBOUND_FRAME_SIZE_BYTES` | 5 MiB (5,242,880 bytes) | The peer connection rejects it and continues with the next frame. | WARN log with `STATUS_RTP_INBOUND_FRAME_TOO_LARGE` (`0x5c000006`) | `received.framesDropped`, and its discarded RTP packets in `received.packetsDiscarded` |
 
 Both limits are defined in [Include.h](../src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h).
 
@@ -48,10 +48,10 @@ Real video frames, including 4K keyframes, are far below 5 MiB.
 
 ### Behavior
 
-The peer connection measures a received frame at the size it would deliver to the application. That size includes a 4-byte start code before each H.264/H.265 NAL unit. If a frame is larger than `MAX_INBOUND_FRAME_SIZE_BYTES`, the peer connection:
+The peer connection measures a received frame at the size it would deliver to the application. That size includes a 4-byte start code before each H.264/H.265 NAL unit. So a frame sent with 3-byte start codes is measured one byte per NAL unit larger here than the size `writeFrame()` checked. If a frame is larger than `MAX_INBOUND_FRAME_SIZE_BYTES`, the peer connection:
 
 - logs a warning when the frame crosses the threshold: `Rejecting frame with timestamp <timestamp>: larger than the maximum inbound frame size 5242880 (0x5c000006)`,
-- rejects the whole frame, so the application's `transceiverOnFrame()` callback is not called for it,
+- rejects the whole frame, so the callback set with `transceiverOnFrame()` is not called for it,
 - counts it in `received.framesDropped` in the inbound RTP stats.
 
 Later frames are delivered as usual. A frame of exactly `MAX_INBOUND_FRAME_SIZE_BYTES` is delivered.
@@ -71,35 +71,18 @@ This section explains how a peer connection receives video. Each transceiver of 
 - Each RTP packet carries a sequence number and the frame's timestamp in RTP timestamp units. All RTP packets of a frame share the same RTP timestamp.
 - On the network, an RTP packet can be lost, delayed, reordered or duplicated.
 
-With VERBOSE logging (`AWS_KVS_LOG_LEVEL=1` in the samples), `writeFrame()` logs one line for each frame it sends:
-
-```
-2026-10-17 08:14:59.730 VERBOSE writeFrame(): debug frame info: track=video, pts=13200000, rtpTs=118799, size=706B, rtpPayload=690B, wireSize=840B, seqNums=168-172, keyFrame=no
-```
-
-| Field        | Meaning                                                                                                        |
-|--------------|----------------------------------------------------------------------------------------------------------------|
-| `pts`        | Presentation timestamp passed to `writeFrame()`, in 100 ns units                                               |
-| `rtpTs`      | The same time in RTP timestamp units (90 kHz for video)                                                        |
-| `size`       | Frame size passed to `writeFrame()`                                                                            |
-| `rtpPayload` | Total RTP payload after packetization. H.264/H.265 start codes are removed and RTP fragment headers are added. |
-| `wireSize`   | Bytes sent on the wire: RTP headers, payload and SRTP overhead                                                 |
-| `seqNums`    | Sequence numbers of the frame's RTP packets                                                                    |
-
-In this example, the 706-byte frame was sent as 5 RTP packets (sequence numbers 168 to 172). The H.264 sender gives each NAL unit that fits in an RTP packet its own RTP packet, so this frame had 5 NAL units.
-
 ### What the jitter buffer does
 
 - The jitter buffer stores each RTP packet as it arrives, keyed by sequence number.
 - It puts the RTP packets back in order and groups them into frames by RTP timestamp.
-- A frame is complete when none of its RTP packets are missing and the first RTP packet of the next frame arrives. Once a frame is complete, the jitter buffer delivers it to the application through `onFrameReadyFunc()`.
+- A frame is complete when none of its RTP packets are missing and the first RTP packet of the next frame arrives. Once a frame is complete, the jitter buffer delivers it to the application through the callback set with `transceiverOnFrame()`.
 
 ```mermaid
 flowchart LR
     A["Sender: frame split<br/>into RTP packets"] --> B["Network: RTP packets can be lost,<br/>delayed, reordered or duplicated"]
     B --> C["Jitter buffer: stores RTP packets<br/>and puts them back in order"]
-    C -- "Frame complete" --> D["onFrameReadyFunc()<br/>frame to the app"]
-    C -- "Evicted, or too large" --> E["onFrameDroppedFunc()<br/>counted in received.framesDropped"]
+    C -- "Frame complete" --> D["Frame delivered to the app<br/>(transceiverOnFrame() callback)"]
+    C -- "Evicted, or too large" --> E["Frame dropped<br/>counted in received.framesDropped"]
 ```
 
 #### Late frames
@@ -118,7 +101,7 @@ flowchart LR
 Here, the *threshold* is `MAX_INBOUND_FRAME_SIZE_BYTES`.
 
 - **Problem:** a frame's size is only known as its RTP packets arrive. Once a frame crosses the threshold, push discards the frame's newer RTP packets. Parse only sees the RTP packets left in the buffer, and those can look like a complete frame, or like a frame waiting for a lost or late RTP packet. Parse must tell the oversized frame apart from both, so that it rejects the frame instead of delivering it or waiting for eviction.
-- **Solution:** push keeps the one RTP packet that crosses the threshold. That RTP packet puts the frame's stored size past the threshold. Parse adds up each frame's stored size (`curFrameSize`) and rejects a frame whose size is past the threshold. No extra state is needed.
+- **Solution:** push keeps the one RTP packet that crosses the threshold. That RTP packet puts the frame's stored size past the threshold. Parse adds up each frame's stored size (`curFrameSize`). When a frame's size is past the threshold, parse skips the frame's missing sequence numbers and rejects the frame when it reaches the first RTP packet of the next frame. No extra state is needed.
 - **Late RTP packets:** push keeps late RTP packets of the frame, so they fill their gaps. RTP packets that arrive after the first RTP packet of the next frame are not counted. So a frame that only goes past the threshold through those RTP packets is rejected without the warning. If an RTP packet before the crossing point is lost, the frame waits for eviction like any incomplete frame.
 - **Bound:** a frame larger than `MAX_INBOUND_FRAME_SIZE_BYTES` is never delivered. The jitter buffer holds at most the threshold, plus one RTP packet, plus the frame's reordered RTP packets, before it rejects the frame.
 
@@ -164,8 +147,6 @@ flowchart TD
     N --> A
 ```
 
-An oversized frame is missing the sequence numbers of its discarded RTP packets. Parse skips those missing sequence numbers. When parse reaches the first RTP packet of the next frame, it rejects the oversized frame.
-
 ## Troubleshooting
 
 ### Video stops at the viewer
@@ -193,9 +174,28 @@ If it appears, see [If a frame is rejected](#if-a-frame-is-rejected).
 
 For other causes of a freeze, see [Debugging from the receiver](TROUBLESHOOTING_H265_FRAMES.md#debugging-from-the-receiver-chrome).
 
+### Log each frame the sender sends
+
+With VERBOSE logging (`AWS_KVS_LOG_LEVEL=1` in the samples), `writeFrame()` logs one line for each frame it sends:
+
+```
+2026-10-17 08:14:59.730 VERBOSE writeFrame(): debug frame info: track=video, pts=13200000, rtpTs=118799, size=706B, rtpPayload=690B, wireSize=840B, seqNums=168-172, keyFrame=no
+```
+
+| Field        | Meaning                                                                                                        |
+|--------------|----------------------------------------------------------------------------------------------------------------|
+| `pts`        | Presentation timestamp passed to `writeFrame()`, in 100 ns units                                               |
+| `rtpTs`      | The same time in RTP timestamp units (90 kHz for video)                                                        |
+| `size`       | Frame size passed to `writeFrame()`                                                                            |
+| `rtpPayload` | Total RTP payload after packetization. H.264/H.265 start codes are removed and RTP fragment headers are added. |
+| `wireSize`   | Bytes sent on the wire: RTP headers, payload and SRTP overhead                                                 |
+| `seqNums`    | Sequence numbers of the frame's RTP packets                                                                    |
+
+In this example, the 706-byte frame was sent as 5 RTP packets (sequence numbers 168 to 172). The H.264 sender gives each NAL unit that fits in an RTP packet its own RTP packet, so this frame had 5 NAL units.
+
 ### Inspect RTP packets with Wireshark
 
-Use [Wireshark](https://www.wireshark.org/) to inspect the RTP packets on the network. SRTP encrypts the payload but not the RTP header, so each RTP packet's sequence number and RTP timestamp are readable. Check that the sequence numbers match the `seqNums` range in the `writeFrame()` log. On the receiver, missing sequence numbers, duplicates or reordering come from the network.
+Use [Wireshark](https://www.wireshark.org/) to inspect the RTP packets on the network. SRTP encrypts the payload but not the RTP header, so each RTP packet's sequence number and RTP timestamp are readable. Check that the sequence numbers match the `seqNums` range in the [`writeFrame()` log](#log-each-frame-the-sender-sends). On the receiver, missing sequence numbers, duplicates or reordering come from the network.
 
 If Wireshark shows the RTP packets as plain UDP, enable the `rtp_udp` protocol in **Analyze > Enabled Protocols**.
 

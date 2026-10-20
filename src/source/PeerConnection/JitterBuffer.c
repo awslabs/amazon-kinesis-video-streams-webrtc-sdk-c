@@ -553,7 +553,7 @@ STATUS jitterBufferInternalParse(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
             isFrameDataContinuous = FALSE;
             // if the max latency has not been reached, or the buffer is not being closed, exit parse when a missing entry is found.
             // curFrameSize is the size of the earliest frame's packets so far. Once it is over MAX_INBOUND_FRAME_SIZE_BYTES, the missing
-            // entries are the frame's discarded packets, so keep going and drop the frame at the next frame.
+            // entries are treated as the frame's discarded packets, so keep going and drop the frame at the next frame.
             CHK(pJitterBuffer->headTimestamp < earliestAllowedTimestamp || bufferClosed || curFrameSize > MAX_INBOUND_FRAME_SIZE_BYTES, retStatus);
         } else {
             lastNonNullIndex = index;

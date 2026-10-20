@@ -1364,10 +1364,11 @@ TEST_F(JitterBufferFunctionalityTest, duplicatePacketIsNotCountedTowardsMaxInbou
     createFrameSizeLimitJitterBuffer(events);
 
     pushFrameSizeLimitPacket(events, 0, 100, 1, TRUE);                           // A
-    pushFrameSizeLimitPacket(events, 1, 200, HALF_MAX_INBOUND_FRAME_SIZE, TRUE); // B: exactly the limit in two packets
+    pushFrameSizeLimitPacket(events, 1, 200, HALF_MAX_INBOUND_FRAME_SIZE, TRUE); // B: exactly the limit in three packets
     pushFrameSizeLimitPacket(events, 1, 200, HALF_MAX_INBOUND_FRAME_SIZE, TRUE); // duplicate of B's first packet
-    pushFrameSizeLimitPacket(events, 2, 200, HALF_MAX_INBOUND_FRAME_SIZE, FALSE);
-    pushFrameSizeLimitPacket(events, 3, 300, 1, TRUE); // C: B is delivered
+    pushFrameSizeLimitPacket(events, 2, 200, HALF_MAX_INBOUND_FRAME_SIZE - 1, FALSE);
+    EXPECT_FALSE(pushFrameSizeLimitPacket(events, 3, 200, 1, FALSE)); // kept, because the duplicate is not counted
+    pushFrameSizeLimitPacket(events, 4, 300, 1, TRUE);                // C: B is delivered
     EXPECT_EQ(std::vector<UINT32>({100, 200}), events.readyTimestamps);
     EXPECT_TRUE(events.droppedTimestamps.empty());
 
@@ -1408,7 +1409,7 @@ TEST_F(JitterBufferFunctionalityTest, latePacketBeforeCrossingPacketFillsItsGap)
     freeJitterBuffer(&events.pJitterBuffer);
 }
 
-// The limit applies to the depayloaded frame, the size that writeFrame() checks. An H.264 frame of exactly MAX_OUTBOUND_FRAME_SIZE_BYTES,
+// The limit applies to the depayloaded frame. An H.264 frame of exactly MAX_OUTBOUND_FRAME_SIZE_BYTES with a 4-byte start code,
 // packetized as writeFrame() does, is delivered with MAX_INBOUND_FRAME_SIZE_BYTES even though its RTP payloads add FU-A headers.
 TEST_F(JitterBufferFunctionalityTest, h264FrameOfMaxOutboundFrameSizeIsDelivered)
 {
