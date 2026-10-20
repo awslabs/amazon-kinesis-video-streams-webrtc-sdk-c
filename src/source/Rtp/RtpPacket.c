@@ -88,7 +88,9 @@ STATUS createRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    PRtpPacket pRtpPacket = (PRtpPacket) MEMALLOC(SIZEOF(RtpPacket));
+    // MEMCALLOC so sentTime/receivedTime start at 0 instead of holding garbage: rolling buffer copies
+    // are created here and their timestamps are only assigned once the packet is actually sent.
+    PRtpPacket pRtpPacket = (PRtpPacket) MEMCALLOC(1, SIZEOF(RtpPacket));
     CHK(pRtpPacket != NULL, STATUS_NOT_ENOUGH_MEMORY);
     pRtpPacket->pRawPacket = rawPacket;
     pRtpPacket->rawPacketLength = packetLength;
@@ -119,7 +121,9 @@ STATUS constructRetransmitRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLengt
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PBYTE pPayload = NULL;
-    PRtpPacket pRtpPacket = (PRtpPacket) MEMALLOC(SIZEOF(RtpPacket));
+    // MEMCALLOC so pRawPacket is NULL if setRtpPacketFromBytes below fails: the CleanUp path does
+    // SAFE_MEMFREE(pRtpPacket->pRawPacket) before pRawPacket is assigned at the end of this function.
+    PRtpPacket pRtpPacket = (PRtpPacket) MEMCALLOC(1, SIZEOF(RtpPacket));
 
     CHK(pRtpPacket != NULL, STATUS_NOT_ENOUGH_MEMORY);
     CHK_STATUS(setRtpPacketFromBytes(rawPacket, packetLength, pRtpPacket));
