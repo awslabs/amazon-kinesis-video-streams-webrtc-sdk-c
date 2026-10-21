@@ -769,8 +769,17 @@ STATUS onSctpSessionDataChannelOpen(UINT64 customData, UINT32 channelId, PBYTE p
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
     PKvsDataChannel pKvsDataChannel = NULL;
+    BOOL exists = FALSE;
 
     CHK(pKvsPeerConnection != NULL && pRtcDataChannelInit != NULL, STATUS_NULL_ARG);
+    // A stream already in use, by a local negotiated channel or an earlier OPEN, is not acknowledged, whether or not the
+    // application takes remote channels. Closing the peer's channel needs a stream reset, which is not supported.
+    MUTEX_LOCK(pKvsPeerConnection->dataChannelsLock);
+    retStatus = hashTableContains(pKvsPeerConnection->pDataChannels, channelId, &exists);
+    MUTEX_UNLOCK(pKvsPeerConnection->dataChannelsLock);
+    CHK_STATUS(retStatus);
+    CHK_ERR(!exists, STATUS_HASH_KEY_ALREADY_PRESENT, "Peer opened data channel on stream %" PRIu32 ", which is already in use; not acknowledged",
+            channelId);
     // No onDataChannel: the application takes no remote channels, and the peer is acknowledged as before
     CHK(pKvsPeerConnection->onDataChannel != NULL, STATUS_SUCCESS);
     CHK(nameLen <= MAX_DATA_CHANNEL_NAME_LEN, STATUS_INVALID_ARG);
@@ -792,8 +801,7 @@ STATUS onSctpSessionDataChannelOpen(UINT64 customData, UINT32 channelId, PBYTE p
     retStatus = hashTablePut(pKvsPeerConnection->pDataChannels, channelId, (UINT64) pKvsDataChannel);
     MUTEX_UNLOCK(pKvsPeerConnection->dataChannelsLock);
     if (retStatus == STATUS_HASH_KEY_ALREADY_PRESENT) {
-        // The stream is in use, by a local negotiated channel or an earlier OPEN. The peer is not acknowledged; closing
-        // its channel needs a stream reset, which is not supported, so its messages on the stream still reach the channel there.
+        // A negotiated channel created on this id since the check above
         DLOGE("Peer opened data channel on stream %" PRIu32 ", which is already in use; not acknowledged", channelId);
     }
     CHK_STATUS(retStatus);

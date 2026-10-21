@@ -1513,6 +1513,42 @@ TEST_F(DataChannelFunctionalityTest, inbandDataChannel_OnTakenStreamIdIsNotAckno
     freePeerConnection(&answerPc);
 }
 
+// A peer's in-band channel on a stream id that a local negotiated channel uses is not acknowledged, also when the
+// application has no onDataChannel (RFC 8832 section 6)
+TEST_F(DataChannelFunctionalityTest, inbandDataChannel_OnTakenStreamIdWithoutOnDataChannelIsNotAcknowledged)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PRtcDataChannel pInband = NULL, pDc = NULL;
+    RtcDataChannelInit init;
+    NegotiatedCounters inband;
+    UINT32 i;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+    initNegotiated(&init, 0);
+    EXPECT_EQ(createDataChannel(answerPc, (PCHAR) "taken-0", &init, &pDc), STATUS_SUCCESS);
+    initNegotiated(&init, 1);
+    EXPECT_EQ(createDataChannel(answerPc, (PCHAR) "taken-1", &init, &pDc), STATUS_SUCCESS);
+    EXPECT_EQ(createDataChannel(offerPc, (PCHAR) "inband", NULL, &pInband), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelOnOpen(pInband, (UINT64) &inband, negotiatedOnOpen), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    for (i = 0; i <= 100 && ATOMIC_LOAD(&inband.open) != 1; i++) {
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    EXPECT_EQ(1, ATOMIC_LOAD(&inband.open));
+    // Long enough for the OPEN to arrive and an ACK, had one been sent, to come back
+    THREAD_SLEEP(2 * HUNDREDS_OF_NANOS_IN_A_SECOND);
+    EXPECT_TRUE(ATOMIC_LOAD_BOOL(&((PKvsDataChannel) pInband)->awaitingDcepAck));
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
 // An in-band channel whose DATA_CHANNEL_OPEN cannot be sent is closed, and onOpen never fires for it; the other
 // channels open. One parity of the SCTP_MAX_STREAMS stream ids holds SCTP_MAX_STREAMS / 2 in-band channels, so
 // the ones past it get an id the association does not have, and their OPEN fails.
