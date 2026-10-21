@@ -1212,6 +1212,10 @@ typedef enum {
  * @brief RtcOnFrame is fired everytime a frame is received from
  * the remote peer. It is available via the RtpRec
  *
+ * The frame's presentationTs and decodingTs are its RTP timestamp converted to 100ns units, the units
+ * writeFrame() expects, so the frame can be forwarded to another transceiver unchanged. They start at the
+ * remote sender's random RTP timestamp offset and wrap around together with the RTP timestamp.
+ *
  * NOTE: RtcOnFrame is a KVS specific method
  */
 typedef VOID (*RtcOnFrame)(UINT64, PFrame);

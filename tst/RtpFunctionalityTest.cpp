@@ -1053,6 +1053,33 @@ TEST_F(RtpFunctionalityTest, depayH264FuBStartingPacket)
     EXPECT_EQ(0xCC, output[7]);
 }
 
+// A received frame's timestamp must convert back to the RTP timestamp it came from, so forwarding a frame to
+// writeFrame() reproduces the original timing
+TEST_F(RtpFunctionalityTest, rtpTimestampRoundTripsThroughFrameTimestamp)
+{
+    const UINT64 clockRates[] = {VIDEO_CLOCKRATE, OPUS_CLOCKRATE, PCM_CLOCKRATE};
+    const UINT64 maxRtpTimestamp = MAX_UINT32;
+    UINT64 rtpTimestamp, mismatches;
+
+    for (UINT64 clockRate : clockRates) {
+        // One second of RTP ticks is one second of 100ns units
+        EXPECT_EQ(HUNDREDS_OF_NANOS_IN_A_SECOND + 1, CONVERT_RTP_TO_TIMESTAMP(clockRate, clockRate));
+
+        mismatches = 0;
+        // Every value near both ends of the range, and an odd stride across the rest of it
+        for (rtpTimestamp = 0; rtpTimestamp < 200000; rtpTimestamp++) {
+            mismatches += CONVERT_TIMESTAMP_TO_RTP(clockRate, CONVERT_RTP_TO_TIMESTAMP(clockRate, rtpTimestamp)) != rtpTimestamp;
+        }
+        for (rtpTimestamp = maxRtpTimestamp - 200000; rtpTimestamp <= maxRtpTimestamp; rtpTimestamp++) {
+            mismatches += CONVERT_TIMESTAMP_TO_RTP(clockRate, CONVERT_RTP_TO_TIMESTAMP(clockRate, rtpTimestamp)) != rtpTimestamp;
+        }
+        for (rtpTimestamp = 0; rtpTimestamp <= maxRtpTimestamp; rtpTimestamp += 997) {
+            mismatches += CONVERT_TIMESTAMP_TO_RTP(clockRate, CONVERT_RTP_TO_TIMESTAMP(clockRate, rtpTimestamp)) != rtpTimestamp;
+        }
+        EXPECT_EQ(0, mismatches) << "clock rate " << clockRate;
+    }
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

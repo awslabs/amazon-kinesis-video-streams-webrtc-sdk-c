@@ -511,7 +511,10 @@ STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, U
     CHK(frameSize == filledSize, STATUS_INVALID_ARG_LEN);
 
     frame.version = FRAME_CURRENT_VERSION;
-    frame.decodingTs = pPacket->header.timestamp * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    // The RTP timestamp counts ticks of the codec clock. Frame timestamps are in 100ns units, the units writeFrame()
+    // takes, so a received frame can be written to another transceiver as is. Like the RTP timestamp it comes from,
+    // the value wraps around (every ~13 hours for 90kHz video); writeFrame() wraps it back identically.
+    frame.decodingTs = CONVERT_RTP_TO_TIMESTAMP(pTransceiver->pJitterBuffer->clockRate, pPacket->header.timestamp);
     frame.presentationTs = frame.decodingTs;
     frame.frameData = pTransceiver->peerFrameBuffer;
     frame.size = frameSize;

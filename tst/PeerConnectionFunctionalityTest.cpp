@@ -892,6 +892,85 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMediaRSA)
     EXPECT_EQ(ATOMIC_LOAD(&seenVideo), 1);
 }
 
+// Assert that received frames carry the timestamps they were sent with, in the same 100ns units writeFrame() takes
+TEST_F(PeerConnectionFunctionalityTest, receivedFrameTimestampsMatchSentTimestamps)
+{
+    struct Received {
+        UINT64 presentationTs[10];
+        SIZE_T count;
+    };
+
+    const UINT32 frameCount = ARRAY_SIZE(Received::presentationTs);
+    const UINT64 baseTs = HUNDREDS_OF_NANOS_IN_A_SECOND;
+    const UINT64 videoFrameDuration = HUNDREDS_OF_NANOS_IN_A_SECOND / 25, audioFrameDuration = HUNDREDS_OF_NANOS_IN_A_SECOND / 50;
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack, offerAudioTrack, answerAudioTrack;
+    PRtcRtpTransceiver offerVideoTransceiver, answerVideoTransceiver, offerAudioTransceiver, answerAudioTransceiver;
+    Received receivedVideo{}, receivedAudio{};
+    BYTE frameData[1];
+    Frame frame;
+    UINT32 i;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&frame, 0x00, SIZEOF(Frame));
+    frame.frameData = frameData;
+    frame.size = SIZEOF(frameData);
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(offerPc, &offerAudioTrack, &offerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerAudioTrack, &answerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
+
+    // Each frame's single byte is its index
+    auto onFrameHandler = [](UINT64 customData, PFrame pFrame) -> void {
+        Received* pReceived = (Received*) customData;
+        if (pFrame->size == 1 && pFrame->frameData[0] < ARRAY_SIZE(pReceived->presentationTs)) {
+            pReceived->presentationTs[pFrame->frameData[0]] = pFrame->presentationTs;
+            ATOMIC_INCREMENT(&pReceived->count);
+        }
+    };
+    EXPECT_EQ(transceiverOnFrame(answerVideoTransceiver, (UINT64) &receivedVideo, onFrameHandler), STATUS_SUCCESS);
+    EXPECT_EQ(transceiverOnFrame(answerAudioTransceiver, (UINT64) &receivedAudio, onFrameHandler), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    for (i = 0; i < frameCount; i++) {
+        frameData[0] = (BYTE) i;
+        frame.presentationTs = baseTs + i * videoFrameDuration;
+        EXPECT_EQ(STATUS_SUCCESS, writeFrame(offerVideoTransceiver, &frame));
+        frame.presentationTs = baseTs + i * audioFrameDuration;
+        EXPECT_EQ(STATUS_SUCCESS, writeFrame(offerAudioTransceiver, &frame));
+        THREAD_SLEEP(audioFrameDuration);
+    }
+
+    // The jitter buffer holds on to the last frame until the next one arrives
+    for (auto j = 0; j <= 1000 && (ATOMIC_LOAD(&receivedVideo.count) < frameCount - 1 || ATOMIC_LOAD(&receivedAudio.count) < frameCount - 1); j++) {
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    EXPECT_LE(frameCount - 1, receivedVideo.count);
+    EXPECT_LE(frameCount - 1, receivedAudio.count);
+    // writeFrame() truncates to whole RTP ticks, so a received timestamp may be up to one tick earlier than the sent one
+    for (i = 0; i < frameCount - 1; i++) {
+        EXPECT_NEAR((DOUBLE) (baseTs + i * videoFrameDuration), (DOUBLE) receivedVideo.presentationTs[i],
+                    (DOUBLE) HUNDREDS_OF_NANOS_IN_A_SECOND / VIDEO_CLOCKRATE + 1)
+            << "video frame " << i;
+        EXPECT_NEAR((DOUBLE) (baseTs + i * audioFrameDuration), (DOUBLE) receivedAudio.presentationTs[i],
+                    (DOUBLE) HUNDREDS_OF_NANOS_IN_A_SECOND / OPUS_CLOCKRATE + 1)
+            << "audio frame " << i;
+    }
+}
+
 TEST_F(PeerConnectionFunctionalityTest, iceRestartTest)
 {
     RtcConfiguration configuration;

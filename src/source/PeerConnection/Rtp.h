@@ -126,6 +126,9 @@ STATUS freeKvsRtpTransceiver(PKvsRtpTransceiver*);
 STATUS kvsRtpTransceiverSetJitterBuffer(PKvsRtpTransceiver, PJitterBuffer);
 
 #define CONVERT_TIMESTAMP_TO_RTP(clockRate, pts) ((UINT64) ((DOUBLE) (pts) * ((DOUBLE) (clockRate) / HUNDREDS_OF_NANOS_IN_A_SECOND)))
+// Inverse of CONVERT_TIMESTAMP_TO_RTP. The extra 100ns keeps the floating point truncation in CONVERT_TIMESTAMP_TO_RTP
+// from landing one tick short, so the result converts back to exactly the same RTP timestamp.
+#define CONVERT_RTP_TO_TIMESTAMP(clockRate, rtpTimestamp) (((UINT64) (rtpTimestamp) * HUNDREDS_OF_NANOS_IN_A_SECOND) / (clockRate) + 1)
 
 STATUS writeRtpPacket(PKvsPeerConnection pKvsPeerConnection, PRtpPacket pRtpPacket);
 
