@@ -1292,7 +1292,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->dataChannelsLock)) {
         MUTEX_LOCK(pKvsPeerConnection->dataChannelsLock);
     }
-    CHK_LOG_ERR(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, 0, freeDataChannelHashEntry));
+    CHK_LOG_ERR(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, 0, freeHashEntry));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pDataChannels));
     pKvsPeerConnection->pDataChannels = NULL;
     if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->dataChannelsLock)) {

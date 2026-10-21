@@ -147,18 +147,6 @@ CleanUp:
     return retStatus;
 }
 
-STATUS freeDataChannelHashEntry(UINT64 customData, PHashEntry pHashEntry)
-{
-    PKvsDataChannel pKvsDataChannel = (PKvsDataChannel) pHashEntry->value;
-
-    UNUSED_PARAM(customData);
-    if (pKvsDataChannel != NULL) {
-        MEMFREE(pKvsDataChannel);
-    }
-
-    return STATUS_SUCCESS;
-}
-
 STATUS dataChannelOnMessage(PRtcDataChannel pRtcDataChannel, UINT64 customData, RtcOnMessage rtcOnMessage)
 {
     ENTERS();

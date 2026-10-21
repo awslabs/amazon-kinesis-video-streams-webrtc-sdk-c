@@ -30,8 +30,6 @@ typedef struct {
     volatile ATOMIC_BOOL awaitingDcepAck;
 } KvsDataChannel, *PKvsDataChannel;
 
-STATUS freeDataChannelHashEntry(UINT64, PHashEntry);
-
 #ifdef __cplusplus
 }
 #endif
