@@ -1402,6 +1402,8 @@ TEST_F(DataChannelFunctionalityTest, getDataChannelStats_WhileReceivingAndCreati
                 lastSent.store(stats.rtcStatsObject.rtcDataChannelStats.messagesSent);
             }
             polls++;
+            // Still thousands of reads while the messages are in flight, without flooding a verbose retry's log
+            THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MICROSECOND);
         }
     });
 
