@@ -38,6 +38,7 @@ INT32 lwsHttpCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn,
     time_t td;
     SIZE_T len;
     UINT64 nowTime, clockSkew = 0;
+    INT64 signingError;
     PStateMachineState pStateMachineState;
     BOOL skewMapContains = FALSE;
 
@@ -141,6 +142,9 @@ INT32 lwsHttpCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn,
                         // So we should no longer be correcting for a clock skew, remove this item from the map
                         hashTableRemove(pSignalingClient->diagnostics.pEndpointToClockSkewHashMap, pStateMachineState->state);
                     }
+
+                    signingError = recordClockSkewCorrection(pSignalingClient, serverTime, nowTime);
+                    pLwsCallInfo->clockSkewCorrectable = ABS(signingError) > MIN_CLOCK_SKEW_TIME_TO_CORRECT;
                 }
             }
 
@@ -173,6 +177,14 @@ INT32 lwsHttpCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn,
                         } else if (isCallResultSignatureNotYetCurrent(&pLwsCallInfo->callInfo)) {
                             // server time is ahead
                             pLwsCallInfo->callInfo.callResult = SERVICE_CALL_SIGNATURE_NOT_YET_CURRENT;
+                        }
+
+                        if ((pLwsCallInfo->callInfo.callResult == SERVICE_CALL_SIGNATURE_EXPIRED ||
+                             pLwsCallInfo->callInfo.callResult == SERVICE_CALL_SIGNATURE_NOT_YET_CURRENT) &&
+                            pLwsCallInfo->clockSkewCorrectable &&
+                            ATOMIC_INCREMENT(&pSignalingClient->clockSkewRetryCount) < MAX_CLOCK_SKEW_RETRIES_PER_CALL) {
+                            // Re-signing with the correction measured from this response can succeed, retry this same state
+                            ATOMIC_STORE_BOOL(&pSignalingClient->clockSkewRetryPending, TRUE);
                         }
                     }
                 } else {
@@ -300,6 +312,7 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
     PSignalingClient pSignalingClient = NULL;
     SIZE_T offset, bufferSize;
     BOOL connected, locked = FALSE;
+    SERVICE_CALL_RESULT callResult;
 
     DLOGV("WSS callback with reason %d", reason);
 
@@ -350,7 +363,8 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
             DLOGW("Client connection failed. Connection error string: %s", pCurPtr);
             STRNCPY(pLwsCallInfo->callInfo.errorBuffer, pCurPtr, CALL_INFO_ERROR_BUFFER_LEN);
 
-            // TODO: Attempt to get more meaningful service return code
+            // A rejected upgrade still has its response headers attached at this point
+            callResult = getWssUpgradeFailureResult(pSignalingClient, wsi);
 
             ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
             connected = ATOMIC_EXCHANGE_BOOL(&pSignalingClient->connected, FALSE);
@@ -358,7 +372,7 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
             CVAR_BROADCAST(pSignalingClient->receiveCvar);
             CVAR_BROADCAST(pSignalingClient->sendCvar);
             ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_UNKNOWN);
-            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
+            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) callResult);
 
             if (connected && !ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown)) {
                 // Handle re-connection in a reconnect handler thread
@@ -753,36 +767,100 @@ BOOL isCallResultSignatureNotYetCurrent(PCallInfo pCallInfo)
     return (STRNSTR(pCallInfo->responseData, "Signature not yet current", pCallInfo->responseDataLen) != NULL);
 }
 
+/**
+ * Records the clock skew measured from a response Date header as the correction for all later requests.
+ * The measurement is always against the raw device time, so a device clock that gets fixed resets it to 0.
+ *
+ * Returns how far off the signing time of the last signed request was. Beyond
+ * MIN_CLOCK_SKEW_TIME_TO_CORRECT, re-signing that request with the new correction can succeed.
+ */
+INT64 recordClockSkewCorrection(PSignalingClient pSignalingClient, UINT64 serverTime, UINT64 nowTime)
+{
+    INT64 measured = (INT64) serverTime - (INT64) nowTime;
+    INT64 signingError;
+
+    MUTEX_LOCK(pSignalingClient->diagnosticsLock);
+    pSignalingClient->clockSkewCorrection = ABS(measured) > MIN_CLOCK_SKEW_TIME_TO_CORRECT ? measured : 0;
+    signingError = measured - pSignalingClient->appliedClockSkewCorrection;
+    MUTEX_UNLOCK(pSignalingClient->diagnosticsLock);
+
+    return signingError;
+}
+
 STATUS checkAndCorrectForClockSkew(PSignalingClient pSignalingClient, PRequestInfo pRequestInfo)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    INT64 correction;
+    UINT64 magnitude;
 
-    PStateMachineState pStateMachineState;
-    PHashTable pClockSkewMap;
-    UINT64 clockSkewOffset;
-    CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
+    CHK(pSignalingClient != NULL && pRequestInfo != NULL, STATUS_NULL_ARG);
 
-    pClockSkewMap = pSignalingClient->diagnostics.pEndpointToClockSkewHashMap;
+    // A new request supersedes a retry the previous one asked for
+    ATOMIC_STORE_BOOL(&pSignalingClient->clockSkewRetryPending, FALSE);
 
-    CHK_STATUS(hashTableGet(pClockSkewMap, pStateMachineState->state, &clockSkewOffset));
+    MUTEX_LOCK(pSignalingClient->diagnosticsLock);
+    correction = pSignalingClient->clockSkewCorrection;
+    pSignalingClient->appliedClockSkewCorrection = correction;
+    MUTEX_UNLOCK(pSignalingClient->diagnosticsLock);
 
-    // if we made it here that means there is clock skew
-    if (clockSkewOffset & ((UINT64) (1ULL << 63))) {
-        clockSkewOffset ^= ((UINT64) (1ULL << 63));
-        DLOGV("Detected device time is AHEAD of server time!");
-        pRequestInfo->currentTime -= clockSkewOffset;
-    } else {
-        DLOGV("Detected server time is AHEAD of device time!");
-        pRequestInfo->currentTime += clockSkewOffset;
-    }
+    CHK(correction != 0, retStatus);
 
-    DLOGW("Clockskew corrected!");
+    pRequestInfo->currentTime = (UINT64) ((INT64) pRequestInfo->currentTime + correction);
+    magnitude = (UINT64) ABS(correction);
+    DLOGW("Clockskew corrected! Device time is %s server time by %" PRIu64 " ms", correction < 0 ? "AHEAD of" : "BEHIND",
+          magnitude / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 
 CleanUp:
 
     LEAVES();
     return retStatus;
+}
+
+/**
+ * Maps a failed WSS upgrade to a service call result. lws keeps the response headers attached until after
+ * the connection error callback, so a 401/403 can be checked against its Date header: when the upgrade was
+ * signed with a stale clock skew correction, the measured one is recorded and the connect is retried in place.
+ */
+SERVICE_CALL_RESULT getWssUpgradeFailureResult(PSignalingClient pSignalingClient, PVOID wsi)
+{
+    SERVICE_CALL_RESULT httpResult;
+    CHAR dateHdrBuffer[MAX_DATE_HEADER_BUFFER_LENGTH + 1];
+    UINT64 nowTime, serverTime, magnitude;
+    INT64 measured, signingError;
+    INT32 httpStatus, len;
+    time_t td = 0;
+
+    nowTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
+
+    // Zero when the connection failed before any HTTP response, e.g. on DNS or TLS errors
+    httpStatus = lws_http_client_http_response((struct lws*) wsi);
+    httpResult = getServiceCallResultFromHttpStatus((UINT32) httpStatus);
+    if (httpResult != SERVICE_CALL_FORBIDDEN && httpResult != SERVICE_CALL_NOT_AUTHORIZED) {
+        return SERVICE_CALL_UNKNOWN;
+    }
+
+    len = lws_hdr_copy((struct lws*) wsi, &dateHdrBuffer[0], MAX_DATE_HEADER_BUFFER_LENGTH, WSI_TOKEN_HTTP_DATE);
+    if (len <= 0 || 0 != lws_http_date_parse_unix(&dateHdrBuffer[0], (size_t) len, &td)) {
+        DLOGW("WSS upgrade rejected with HTTP %d", httpStatus);
+        return httpResult;
+    }
+
+    serverTime = ((UINT64) td) * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    measured = (INT64) serverTime - (INT64) nowTime;
+    magnitude = (UINT64) ABS(measured);
+    DLOGW("WSS upgrade rejected with HTTP %d. Device time is %s server time by %" PRIu64 " s", httpStatus, measured < 0 ? "AHEAD of" : "BEHIND",
+          magnitude / HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    signingError = recordClockSkewCorrection(pSignalingClient, serverTime, nowTime);
+    if (ABS(signingError) <= MIN_CLOCK_SKEW_TIME_TO_CORRECT ||
+        ATOMIC_INCREMENT(&pSignalingClient->clockSkewRetryCount) >= MAX_CLOCK_SKEW_RETRIES_PER_CALL) {
+        return httpResult;
+    }
+
+    // Re-signing with the correction measured from this response can succeed, retry the connect in place
+    ATOMIC_STORE_BOOL(&pSignalingClient->clockSkewRetryPending, TRUE);
+    return signingError > 0 ? SERVICE_CALL_SIGNATURE_EXPIRED : SERVICE_CALL_SIGNATURE_NOT_YET_CURRENT;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1523,6 +1601,14 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
     // Override the POST with GET
     pRequestInfo->verb = HTTP_REQUEST_VERB_GET;
+
+    if (pSignalingClient->signalingClientCallbacks.getCurrentTimeFn != NULL) {
+        pRequestInfo->currentTime =
+            pSignalingClient->signalingClientCallbacks.getCurrentTimeFn(pSignalingClient->signalingClientCallbacks.customData);
+    }
+
+    // The upgrade URL is presigned, so it needs the same clock skew correction as the HTTPS calls
+    checkAndCorrectForClockSkew(pSignalingClient, pRequestInfo);
 
     CHK_STATUS(createLwsCallInfo(pSignalingClient, pRequestInfo, PROTOCOL_INDEX_WSS, &pLwsCallInfo));
 
