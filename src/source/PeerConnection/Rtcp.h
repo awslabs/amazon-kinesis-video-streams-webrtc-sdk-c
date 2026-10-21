@@ -56,6 +56,24 @@ STATUS computeTwccTrendline(PTwccManager, PDOUBLE, PDOUBLE);
 #define RTCP_PLI_MIN_INTERVAL (500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 #endif
 
+// Sequence number jumps that count as a gap or as late packets rather than a restarted sequence
+// https://tools.ietf.org/html/rfc3550#appendix-A.1
+#define RTP_MAX_DROPOUT  3000
+#define RTP_MAX_MISORDER 100
+
+/**
+ * @brief Accounts for a received RTP packet in the statistics receiver reports are computed from.
+ *        Must be called with the transceiver's statsLock held.
+ */
+VOID updateRtpReceptionStats(PRtpReceptionStats, UINT16);
+
+/**
+ * @brief Sends a receiver report for the transceiver's inbound stream, followed by a REMB if a maximum receive bitrate
+ *        is set, once every RTCP_RECEIVER_REPORT_INTERVAL (or right away when the bitrate changed).
+ *        Does nothing before the first packet of the stream arrives.
+ */
+STATUS sendRtcpReceiverFeedback(PKvsRtpTransceiver, UINT64);
+
 // https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
 // Deltas are represented as multiples of 250us:
 #define TWCC_TICKS_PER_SECOND        (1000000LL / 250)

@@ -334,7 +334,8 @@ STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuf
     UINT32 ssrc;
     PRtpPacket pRtpPacket = NULL;
     PBYTE pPayload = NULL;
-    BOOL ownedByJitterBuffer = FALSE, discarded = FALSE;
+    BOOL ownedByJitterBuffer = FALSE, discarded = FALSE, sequenceNumberReceived = FALSE;
+    UINT16 sequenceNumber = 0;
     UINT64 packetsReceived = 0, packetsFailedDecryption = 0, lastPacketReceivedTimestamp = 0, headerBytesReceived = 0, bytesReceived = 0,
            packetsDiscarded = 0;
     INT64 arrival, r_ts, transit, delta;
@@ -380,6 +381,9 @@ STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuf
             headerBytesReceived += RTP_HEADER_LEN(pRtpPacket);
             bytesReceived += pRtpPacket->rawPacketLength - RTP_HEADER_LEN(pRtpPacket);
 
+            // The jitter buffer may free the packet
+            sequenceNumber = pRtpPacket->header.sequenceNumber;
+            sequenceNumberReceived = TRUE;
             CHK_STATUS(jitterBufferPush(pTransceiver->pJitterBuffer, pRtpPacket, &discarded));
             if (discarded) {
                 packetsDiscarded++;
@@ -403,6 +407,10 @@ CleanUp:
         pTransceiver->inboundStats.bytesReceived += bytesReceived;
         pTransceiver->inboundStats.received.jitter = pTransceiver->pJitterBuffer->jitter / pTransceiver->pJitterBuffer->clockRate;
         pTransceiver->inboundStats.received.packetsDiscarded += packetsDiscarded;
+        if (sequenceNumberReceived) {
+            updateRtpReceptionStats(&pTransceiver->receptionStats, sequenceNumber);
+            pTransceiver->receptionStats.jitter = (UINT32) pTransceiver->pJitterBuffer->jitter;
+        }
         MUTEX_UNLOCK(pTransceiver->statsLock);
     }
     if (!ownedByJitterBuffer) {
@@ -960,6 +968,9 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
         CHK_STATUS(encryptRtcpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, (PINT32) &packetLen));
         CHK_STATUS(iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, packetLen));
     }
+
+    // Receiver reports for the inbound stream go out on their own, slower schedule
+    CHK_LOG_ERR(sendRtcpReceiverFeedback(pKvsRtpTransceiver, currentTime));
 
     delay = 100 + (RAND() % 200);
     DLOGS("next sender report %u in %" PRIu64 " msec", ssrc, delay);

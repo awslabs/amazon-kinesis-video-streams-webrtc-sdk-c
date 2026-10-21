@@ -49,6 +49,14 @@ extern "C" {
 // is set to 5 seconds.
 #define RTCP_FIRST_REPORT_DELAY (3 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
+// Receiver report with a single report block: header (4) + SSRC of packet sender (4) + report block (24)
+#define RTCP_PACKET_RECEIVER_REPORT_LEN (RTCP_PACKET_HEADER_LEN + SIZEOF(UINT32) + RTCP_PACKET_RECEIVER_REPORT_BLOCK_LEN)
+// REMB for a single SSRC: header (4) + SSRC of packet sender (4) + SSRC of media source (4) + 'REMB' (4) +
+// SSRC count, exponent and mantissa (4) + SSRC (4) https://datatracker.ietf.org/doc/html/draft-alvestrand-rmcat-remb-03
+#define RTCP_PACKET_REMB_LEN 24
+// How often receiver reports (and REMB) are sent for an inbound stream
+#define RTCP_RECEIVER_REPORT_INTERVAL (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+
 typedef enum {
     RTCP_PACKET_TYPE_FIR = 192, // https://tools.ietf.org/html/rfc2032#section-5.2.1
     RTCP_PACKET_TYPE_SENDER_REPORT = 200,
@@ -93,6 +101,8 @@ STATUS setRtcpPacketFromBytes(PBYTE, UINT32, PRtcpPacket);
 STATUS rtcpNackListGet(PBYTE, UINT32, PUINT32, PUINT32, PUINT16, PUINT32);
 STATUS rembValueGet(PBYTE, UINT32, PDOUBLE, PUINT32, PUINT8);
 STATUS isRembPacket(PBYTE, UINT32);
+// Writes a REMB packet announcing UINT64 bits per second for the media SSRC into a buffer of at least RTCP_PACKET_REMB_LEN bytes
+STATUS createRembPacket(PBYTE, UINT32, UINT32, UINT64);
 
 #define NTP_OFFSET    2208988800ULL
 #define NTP_TIMESCALE 4294967296ULL

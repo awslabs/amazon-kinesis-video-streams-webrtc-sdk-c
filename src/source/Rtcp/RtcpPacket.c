@@ -170,6 +170,45 @@ CleanUp:
     return retStatus;
 }
 
+/**
+ * Write a REMB packet
+ *
+ * Parameters:
+ *     pPacket          - buffer of at least RTCP_PACKET_REMB_LEN bytes
+ *     senderSsrc       - SSRC of the packet sender
+ *     mediaSsrc        - SSRC of the stream the bitrate applies to
+ *     maximumBitRate   - bits per second
+ */
+STATUS createRembPacket(PBYTE pPacket, UINT32 senderSsrc, UINT32 mediaSsrc, UINT64 maximumBitRate)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    const BYTE rembUniqueIdentifier[] = {0x52, 0x45, 0x4d, 0x42};
+    UINT64 mantissa = maximumBitRate;
+    UINT8 exponent = 0;
+
+    CHK(pPacket != NULL, STATUS_NULL_ARG);
+
+    // The bitrate is mantissa * 2^exponent with an 18 bit mantissa and a 6 bit exponent
+    while (mantissa > RTCP_PACKET_REMB_MANTISSA_BITMASK) {
+        mantissa >>= 1;
+        exponent++;
+    }
+
+    pPacket[0] = (RTCP_PACKET_VERSION_VAL << 6) | RTCP_FEEDBACK_MESSAGE_TYPE_APPLICATION_LAYER_FEEDBACK;
+    pPacket[RTCP_PACKET_TYPE_OFFSET] = RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK;
+    putUnalignedInt16BigEndian(pPacket + RTCP_PACKET_LEN_OFFSET, (RTCP_PACKET_REMB_LEN / RTCP_PACKET_LEN_WORD_SIZE) - 1);
+    putUnalignedInt32BigEndian(pPacket + 4, senderSsrc);
+    // The media source SSRC is unused; the SSRCs the bitrate applies to follow the bitrate
+    putUnalignedInt32BigEndian(pPacket + 8, 0);
+    MEMCPY(pPacket + 12, rembUniqueIdentifier, SIZEOF(rembUniqueIdentifier));
+    putUnalignedInt32BigEndian(pPacket + 16, (1u << 24) | ((UINT32) exponent << 18) | (UINT32) mantissa);
+    putUnalignedInt32BigEndian(pPacket + 20, mediaSsrc);
+
+CleanUp:
+
+    return retStatus;
+}
+
 // converts 100ns precision time to ntp time
 UINT64 convertTimestampToNTP(UINT64 time100ns)
 {

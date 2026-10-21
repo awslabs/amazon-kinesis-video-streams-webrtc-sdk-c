@@ -165,6 +165,13 @@ static STATUS onRtcpSenderReport(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKv
         UINT32 packetCnt = getUnalignedInt32BigEndian(pRtcpPacket->payload + 16);
         UINT32 octetCnt = getUnalignedInt32BigEndian(pRtcpPacket->payload + 20);
         DLOGV("RTCP_PACKET_TYPE_SENDER_REPORT %d %" PRIu64 " rtpTs: %u %u pkts %u bytes", senderSSRC, ntpTime, rtpTs, packetCnt, octetCnt);
+        if (pTransceiver->jitterBufferSsrc == senderSSRC) {
+            // Echoed in the receiver reports for the stream so that its sender can compute the round trip time
+            MUTEX_LOCK(pTransceiver->statsLock);
+            pTransceiver->receptionStats.lastSenderReport = (UINT32) ((ntpTime >> 16U) & 0xffffffffULL);
+            pTransceiver->receptionStats.lastSenderReportTime = GETTIME();
+            MUTEX_UNLOCK(pTransceiver->statsLock);
+        }
     } else {
         DLOGW("Received sender report for non existing ssrc: %u", senderSSRC);
     }
@@ -758,6 +765,121 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
+
+    return retStatus;
+}
+
+VOID updateRtpReceptionStats(PRtpReceptionStats pStats, UINT16 sequenceNumber)
+{
+    UINT16 delta;
+
+    if (!pStats->started) {
+        pStats->started = TRUE;
+        pStats->baseSequenceNumber = sequenceNumber;
+        pStats->maxSequenceNumber = sequenceNumber;
+    } else {
+        delta = (UINT16) (sequenceNumber - pStats->maxSequenceNumber);
+        if (delta < RTP_MAX_DROPOUT) {
+            // In order, possibly after a gap
+            if (sequenceNumber < pStats->maxSequenceNumber) {
+                pStats->cycles += (UINT32) MAX_UINT16 + 1;
+            }
+            pStats->maxSequenceNumber = sequenceNumber;
+        } else if (delta <= (UINT16) ((UINT32) MAX_UINT16 + 1 - RTP_MAX_MISORDER)) {
+            // The sender restarted its sequence. Unlike appendix A.1, start over on the first such packet
+            // instead of waiting for a consecutive second one to confirm it.
+            pStats->baseSequenceNumber = sequenceNumber;
+            pStats->maxSequenceNumber = sequenceNumber;
+            pStats->cycles = 0;
+            pStats->received = 0;
+            pStats->expectedPrior = 0;
+            pStats->receivedPrior = 0;
+        }
+        // Otherwise a duplicate or late packet, which only counts as received
+    }
+    pStats->received++;
+}
+
+STATUS sendRtcpReceiverFeedback(PKvsRtpTransceiver pTransceiver, UINT64 now)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    PRtpReceptionStats pStats = NULL;
+    BOOL statsLocked = FALSE, srtpLocked = FALSE;
+    UINT64 extendedMaxSequenceNumber, expected, expectedInterval, receivedInterval, maxBitrate;
+    INT64 lost, lostInterval;
+    UINT32 ssrc, fractionLost = 0, jitter, lastSenderReport = 0, delaySinceLastSenderReport = 0;
+    INT32 packetLen = RTCP_PACKET_RECEIVER_REPORT_LEN;
+    // srtp_protect_rtcp() in encryptRtcpPacket() assumes memory availability to write 10 bytes of authentication tag and
+    // SRTP_MAX_TRAILER_LEN + 4 following the actual rtcp Packet payload
+    BYTE rawPacket[RTCP_PACKET_RECEIVER_REPORT_LEN + RTCP_PACKET_REMB_LEN + SRTP_AUTH_TAG_OVERHEAD + SRTP_MAX_TRAILER_LEN + 4];
+
+    CHK(pTransceiver != NULL && pTransceiver->pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+    pKvsPeerConnection = pTransceiver->pKvsPeerConnection;
+    pStats = &pTransceiver->receptionStats;
+    ssrc = pTransceiver->jitterBufferSsrc;
+
+    MUTEX_LOCK(pTransceiver->statsLock);
+    statsLocked = TRUE;
+    CHK(pStats->started && ssrc != 0, retStatus);
+    CHK(now - pStats->lastReportTime >= RTCP_RECEIVER_REPORT_INTERVAL || pStats->maxBitrate != pStats->sentMaxBitrate, retStatus);
+
+    // https://tools.ietf.org/html/rfc3550#appendix-A.3
+    extendedMaxSequenceNumber = (UINT64) pStats->cycles + pStats->maxSequenceNumber;
+    expected = extendedMaxSequenceNumber - pStats->baseSequenceNumber + 1;
+    // Cumulative number of packets lost is a 24 bit signed value
+    lost = MIN(MAX((INT64) expected - (INT64) pStats->received, -0x800000), 0x7fffff);
+    expectedInterval = expected - pStats->expectedPrior;
+    receivedInterval = pStats->received - pStats->receivedPrior;
+    lostInterval = (INT64) expectedInterval - (INT64) receivedInterval;
+    if (expectedInterval != 0 && lostInterval > 0) {
+        fractionLost = MIN((UINT32) ((lostInterval << 8) / expectedInterval), 255);
+    }
+    pStats->expectedPrior = expected;
+    pStats->receivedPrior = pStats->received;
+    jitter = pStats->jitter;
+    if (pStats->lastSenderReportTime != 0 && now > pStats->lastSenderReportTime) {
+        lastSenderReport = pStats->lastSenderReport;
+        // In units of 1/65536 seconds
+        delaySinceLastSenderReport =
+            (UINT32) KVS_CONVERT_TIMESCALE((now - pStats->lastSenderReportTime), HUNDREDS_OF_NANOS_IN_A_SECOND, DLSR_TIMESCALE);
+    }
+    maxBitrate = pStats->maxBitrate;
+    pStats->lastReportTime = now;
+    pStats->sentMaxBitrate = maxBitrate;
+    MUTEX_UNLOCK(pTransceiver->statsLock);
+    statsLocked = FALSE;
+
+    // https://tools.ietf.org/html/rfc3550#section-6.4.2 with one report block
+    rawPacket[0] = (RTCP_PACKET_VERSION_VAL << 6) | 1;
+    rawPacket[RTCP_PACKET_TYPE_OFFSET] = RTCP_PACKET_TYPE_RECEIVER_REPORT;
+    putUnalignedInt16BigEndian(rawPacket + RTCP_PACKET_LEN_OFFSET, (RTCP_PACKET_RECEIVER_REPORT_LEN / RTCP_PACKET_LEN_WORD_SIZE) - 1);
+    putUnalignedInt32BigEndian(rawPacket + 4, pTransceiver->sender.ssrc);
+    putUnalignedInt32BigEndian(rawPacket + 8, ssrc);
+    putUnalignedInt32BigEndian(rawPacket + 12, (fractionLost << 24) | ((UINT32) lost & 0x00ffffffu));
+    putUnalignedInt32BigEndian(rawPacket + 16, (UINT32) extendedMaxSequenceNumber);
+    putUnalignedInt32BigEndian(rawPacket + 20, jitter);
+    putUnalignedInt32BigEndian(rawPacket + 24, lastSenderReport);
+    putUnalignedInt32BigEndian(rawPacket + 28, delaySinceLastSenderReport);
+    if (maxBitrate != 0) {
+        CHK_STATUS(createRembPacket(rawPacket + packetLen, pTransceiver->sender.ssrc, ssrc, maxBitrate));
+        packetLen += RTCP_PACKET_REMB_LEN;
+    }
+
+    MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
+    srtpLocked = TRUE;
+    CHK(pKvsPeerConnection->pSrtpSession != NULL, STATUS_SRTP_NOT_READY_YET);
+    CHK_STATUS(encryptRtcpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, &packetLen));
+    CHK_STATUS(iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, (UINT32) packetLen));
+    DLOGV("Sent receiver report for ssrc %u: fraction lost %u, lost %" PRId64 ", REMB %" PRIu64, ssrc, fractionLost, lost, maxBitrate);
+
+CleanUp:
+    if (statsLocked) {
+        MUTEX_UNLOCK(pTransceiver->statsLock);
+    }
+    if (srtpLocked) {
+        MUTEX_UNLOCK(pKvsPeerConnection->pSrtpSessionLock);
+    }
 
     return retStatus;
 }

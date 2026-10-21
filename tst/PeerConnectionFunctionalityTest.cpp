@@ -1717,6 +1717,73 @@ TEST_F(PeerConnectionFunctionalityTest, parseExtIdHandlesNull)
     EXPECT_EQ(12u, parseExtId((PCHAR) "12 urn:ietf:params"));
 }
 
+// Assert that a receiver sends receiver reports for the stream it receives, with round trip time information once it
+// got a sender report, and REMB with the bitrate set by transceiverSetMaxReceiveBitrate()
+TEST_F(PeerConnectionFunctionalityTest, receiverSendsReceiverReportsAndRemb)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack;
+    PRtcRtpTransceiver offerVideoTransceiver, answerVideoTransceiver;
+    RtcRemoteInboundRtpStreamStats remoteInboundStats{};
+    SIZE_T announcedBitrate = 0;
+    BYTE frameData[1] = {0};
+    Frame videoFrame;
+    UINT64 deadline;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
+    videoFrame.frameData = frameData;
+    videoFrame.size = SIZEOF(frameData);
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+
+    auto onBandwidthEstimationHandler = [](UINT64 customData, DOUBLE maximumBitrate) -> void {
+        ATOMIC_STORE((PSIZE_T) customData, (SIZE_T) maximumBitrate);
+    };
+    EXPECT_EQ(STATUS_SUCCESS, transceiverOnBandwidthEstimation(offerVideoTransceiver, (UINT64) &announcedBitrate, onBandwidthEstimationHandler));
+    EXPECT_EQ(STATUS_NULL_ARG, transceiverSetMaxReceiveBitrate(NULL, 1500000));
+    EXPECT_EQ(STATUS_SUCCESS, transceiverSetMaxReceiveBitrate(answerVideoTransceiver, 1500000));
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    // The offer sends its first sender report 2.5 seconds after its first frame, and the answer echoes it in its next
+    // receiver report
+    deadline = GETTIME() + 8 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    while (
+        GETTIME() < deadline &&
+        (ATOMIC_LOAD(&announcedBitrate) != 1500000 || remoteInboundStats.reportsReceived == 0 || remoteInboundStats.roundTripTimeMeasurements == 0)) {
+        EXPECT_EQ(STATUS_SUCCESS, writeFrame(offerVideoTransceiver, &videoFrame));
+        videoFrame.presentationTs += HUNDREDS_OF_NANOS_IN_A_SECOND / 25;
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND / 25);
+        EXPECT_EQ(STATUS_SUCCESS, getRtpRemoteInboundStats(offerPc, offerVideoTransceiver, &remoteInboundStats));
+    }
+    EXPECT_EQ(1500000, ATOMIC_LOAD(&announcedBitrate));
+    EXPECT_LT(0, remoteInboundStats.reportsReceived);
+    EXPECT_LT(0, remoteInboundStats.roundTripTimeMeasurements);
+    EXPECT_EQ(0.0, remoteInboundStats.fractionLost);
+    // Loopback
+    EXPECT_GT(1000u, remoteInboundStats.roundTripTime);
+
+    // A new bitrate is sent with the next RTCP report instead of waiting for the next receiver report
+    EXPECT_EQ(STATUS_SUCCESS, transceiverSetMaxReceiveBitrate(answerVideoTransceiver, 800000));
+    deadline = GETTIME() + HUNDREDS_OF_NANOS_IN_A_SECOND / 2;
+    while (GETTIME() < deadline && ATOMIC_LOAD(&announcedBitrate) != 800000) {
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    EXPECT_EQ(800000, ATOMIC_LOAD(&announcedBitrate));
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
 TEST_F(PeerConnectionFunctionalityTest, renegotiateWithSameIceCredentials)
 {
     RtcConfiguration configuration;

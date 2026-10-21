@@ -26,6 +26,23 @@ extern "C" {
 // Huge frames, by definition, are frames that have an encoded size at least 2.5 times the average size of the frames.
 #define HUGE_FRAME_MULTIPLIER 2.5
 
+// Reception statistics behind the receiver reports for an inbound stream https://tools.ietf.org/html/rfc3550#appendix-A.3
+typedef struct {
+    BOOL started;
+    UINT16 maxSequenceNumber;
+    UINT32 cycles; // sequence number wraparounds, shifted left by 16
+    UINT32 baseSequenceNumber;
+    UINT64 received;
+    UINT64 expectedPrior;
+    UINT64 receivedPrior;
+    UINT32 jitter;               // interarrival jitter in timestamp units
+    UINT32 lastSenderReport;     // middle 32 bits of the NTP timestamp in the last sender report received
+    UINT64 lastSenderReportTime; // when that sender report was received, 100ns precision
+    UINT64 lastReportTime;       // when the last receiver report was sent, 100ns precision
+    UINT64 maxBitrate;           // REMB to send with the receiver reports in bits per second, 0 for none
+    UINT64 sentMaxBitrate;       // REMB sent with the last receiver report
+} RtpReceptionStats, *PRtpReceptionStats;
+
 typedef struct {
     UINT8 payloadType;
     UINT8 rtxPayloadType;
@@ -82,6 +99,7 @@ typedef struct {
     RtcOutboundRtpStreamStats outboundStats;
     RtcRemoteInboundRtpStreamStats remoteInboundStats;
     RtcInboundRtpStreamStats inboundStats;
+    RtpReceptionStats receptionStats; // protected by statsLock
 
     BOOL twccEnabled; // whether TWCC was negotiated for this transceiver's m-line
     BOOL pliEnabled;  // whether the remote m-line lists "nack pli" for this transceiver's payload type

@@ -2662,6 +2662,69 @@ TEST_F(RtcpFunctionalityTest, onTwccFeedbackReceived_infDelayTrendSanitized)
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
+// The REMB packets the SDK sends must decode to the bitrate they were created with, within the mantissa's precision
+TEST_F(RtcpFunctionalityTest, createRembPacketRoundTrips)
+{
+    const UINT64 bitrates[] = {0, 1, 262143, 262144, 800000, 1500000, 2500000, 50000000, 1000000000};
+    BYTE packet[RTCP_PACKET_REMB_LEN];
+    RtcpPacket rtcpPacket;
+    UINT32 ssrcList[MAX_UINT8];
+    UINT8 ssrcListLen = 0;
+    DOUBLE maximumBitRate = 0;
+
+    EXPECT_EQ(STATUS_NULL_ARG, createRembPacket(NULL, 1, 2, 1000));
+
+    for (UINT64 bitrate : bitrates) {
+        EXPECT_EQ(STATUS_SUCCESS, createRembPacket(packet, 0x11111111, 0x22222222, bitrate));
+        EXPECT_EQ(STATUS_SUCCESS, setRtcpPacketFromBytes(packet, SIZEOF(packet), &rtcpPacket));
+        EXPECT_EQ(RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK, rtcpPacket.header.packetType);
+        EXPECT_EQ(RTCP_FEEDBACK_MESSAGE_TYPE_APPLICATION_LAYER_FEEDBACK, rtcpPacket.header.receptionReportCount);
+        EXPECT_EQ(SIZEOF(packet) - RTCP_PACKET_HEADER_LEN, rtcpPacket.payloadLength);
+        EXPECT_EQ(STATUS_SUCCESS, isRembPacket(rtcpPacket.payload, rtcpPacket.payloadLength));
+        EXPECT_EQ(STATUS_SUCCESS, rembValueGet(rtcpPacket.payload, rtcpPacket.payloadLength, &maximumBitRate, ssrcList, &ssrcListLen));
+        ASSERT_EQ(1, ssrcListLen);
+        EXPECT_EQ(0x22222222, ssrcList[0]);
+        // Dropping low bits to fit the 18 bit mantissa loses less than 2^-17 of the value
+        EXPECT_LE(maximumBitRate, (DOUBLE) bitrate);
+        EXPECT_GE(maximumBitRate, (DOUBLE) bitrate * (1 - 1.0 / (1 << 17)));
+    }
+}
+
+TEST_F(RtcpFunctionalityTest, updateRtpReceptionStatsCountsLossWrapAndRestart)
+{
+    RtpReceptionStats stats{};
+    UINT16 sequenceNumber;
+
+    // In order, then a gap of two lost packets (10, 11), a late packet and a duplicate
+    for (sequenceNumber = 5; sequenceNumber < 10; sequenceNumber++) {
+        updateRtpReceptionStats(&stats, sequenceNumber);
+    }
+    updateRtpReceptionStats(&stats, 12);
+    updateRtpReceptionStats(&stats, 8);
+    updateRtpReceptionStats(&stats, 12);
+    EXPECT_EQ(5, stats.baseSequenceNumber);
+    EXPECT_EQ(12, stats.maxSequenceNumber);
+    EXPECT_EQ(0, stats.cycles);
+    EXPECT_EQ(8, stats.received);
+
+    // Wrapping around counts a cycle
+    stats = RtpReceptionStats{};
+    updateRtpReceptionStats(&stats, 65534);
+    updateRtpReceptionStats(&stats, 65535);
+    updateRtpReceptionStats(&stats, 0);
+    updateRtpReceptionStats(&stats, 1);
+    EXPECT_EQ(65536, stats.cycles);
+    EXPECT_EQ(1, stats.maxSequenceNumber);
+    EXPECT_EQ(4, stats.received);
+
+    // A jump far beyond any plausible loss restarts the counts
+    updateRtpReceptionStats(&stats, 30000);
+    EXPECT_EQ(30000, stats.baseSequenceNumber);
+    EXPECT_EQ(30000, stats.maxSequenceNumber);
+    EXPECT_EQ(0, stats.cycles);
+    EXPECT_EQ(1, stats.received);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

@@ -2225,6 +2225,25 @@ PUBLIC_API STATUS transceiverOnFrame(PRtcRtpTransceiver, UINT64, RtcOnFrame);
 PUBLIC_API STATUS transceiverOnBandwidthEstimation(PRtcRtpTransceiver, UINT64, RtcOnBandwidthEstimation);
 
 /**
+ * @brief Tell the remote peer the highest bitrate to send the stream received on this transceiver at
+ *
+ * The SDK sends an RTCP receiver report for every received stream about once a second. With a maximum bitrate set,
+ * each one is followed by a REMB (Receiver Estimated Maximum Bitrate,
+ * https://datatracker.ietf.org/doc/html/draft-alvestrand-rmcat-remb-03) carrying it, and a change is sent right away.
+ * Browsers limit the bitrate they send the stream at to the REMB value. The SDK does not estimate the bandwidth of
+ * received streams itself, so the application picks the value, for example the lowest bandwidth estimate among the
+ * peers it forwards the stream to.
+ *
+ * NOTE: transceiverSetMaxReceiveBitrate is a KVS specific method
+ *
+ * @param[in] PRtcRtpTransceiver Populated RtcRtpTransceiver struct
+ * @param[in] UINT64 Maximum bitrate in bits per second, 0 to stop sending REMB
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS transceiverSetMaxReceiveBitrate(PRtcRtpTransceiver, UINT64);
+
+/**
  * @brief Set a callback for picture loss packet (PLI)
  *
  * @param[in] PRtcRtpTransceiver Populated RtcRtpTransceiver struct

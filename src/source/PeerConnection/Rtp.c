@@ -217,6 +217,24 @@ CleanUp:
     return retStatus;
 }
 
+STATUS transceiverSetMaxReceiveBitrate(PRtcRtpTransceiver pRtcRtpTransceiver, UINT64 maxBitrate)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;
+
+    CHK(pKvsRtpTransceiver != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pKvsRtpTransceiver->statsLock);
+    pKvsRtpTransceiver->receptionStats.maxBitrate = maxBitrate;
+    MUTEX_UNLOCK(pKvsRtpTransceiver->statsLock);
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
 STATUS transceiverSetFmtp(PRtcRtpTransceiver pRtcRtpTransceiver, PCHAR fmtp)
 {
     ENTERS();
