@@ -40,8 +40,8 @@ STATUS rtcpNackListGet(PBYTE pPayload, UINT32 payloadLen, PUINT32 pSenderSsrc, P
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     INT32 j;
-    UINT16 currentSequenceNumber;
-    UINT16 sequenceNumberCount = 0, BLP;
+    UINT16 currentSequenceNumber, BLP;
+    UINT32 sequenceNumberCount = 0;
     UINT32 i = RTCP_NACK_LIST_LEN;
     UINT32 maxSequenceNumberCount = 0;
     BOOL truncated = FALSE;
@@ -61,34 +61,30 @@ STATUS rtcpNackListGet(PBYTE pPayload, UINT32 payloadLen, PUINT32 pSenderSsrc, P
         currentSequenceNumber = getInt16(*(PUINT16) (pPayload + i));
         BLP = getInt16(*(PUINT16) (pPayload + i + 2));
 
-        // If pSsrcList is not NULL and we have space push and increment. The guard must be a strict
-        // "less than": sequenceNumberCount is the index about to be written, and the caller-supplied
-        // buffer holds exactly maxSequenceNumberCount elements (valid indices 0..len-1). Using "<="
-        // here would write sequenceNumberList[maxSequenceNumberCount], one element past the end.
-        if (pSequenceNumberList != NULL && sequenceNumberCount < maxSequenceNumberCount) {
+        // If pSequenceNumberList is not NULL, push while there is space. sequenceNumberCount is the index
+        // about to be written and the buffer holds exactly maxSequenceNumberCount elements (valid indices
+        // 0..len-1). Once it is full, stop counting: the returned count is used by callers as the number
+        // of valid entries in the list, so counting past the capacity would make them read past the end
+        // of the array.
+        if (pSequenceNumberList != NULL) {
+            if (sequenceNumberCount >= maxSequenceNumberCount) {
+                truncated = TRUE;
+                break;
+            }
             pSequenceNumberList[sequenceNumberCount] = currentSequenceNumber;
-            sequenceNumberCount++;
-        } else if (pSequenceNumberList == NULL) {
-            sequenceNumberCount++;
-        } else {
-            // Stop counting once the buffer is full: the returned count is used by callers as the
-            // number of valid entries in the list, so counting past the capacity would make them read
-            // uninitialized memory past the end of the array.
-            truncated = TRUE;
-            break;
         }
+        sequenceNumberCount++;
 
         for (j = 0; j < 16; j++) {
             if ((BLP & (1 << j)) >> j) {
-                if (pSequenceNumberList != NULL && sequenceNumberCount < maxSequenceNumberCount) {
+                if (pSequenceNumberList != NULL) {
+                    if (sequenceNumberCount >= maxSequenceNumberCount) {
+                        truncated = TRUE;
+                        break;
+                    }
                     pSequenceNumberList[sequenceNumberCount] = (currentSequenceNumber + j + 1);
-                    sequenceNumberCount++;
-                } else if (pSequenceNumberList == NULL) {
-                    sequenceNumberCount++;
-                } else {
-                    truncated = TRUE;
-                    break;
                 }
+                sequenceNumberCount++;
             }
         }
 
