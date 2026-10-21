@@ -1,0 +1,13 @@
+diff --git a/lib/core-net/pollfd.c b/lib/core-net/pollfd.c
+index dea85ae..933220e 100644
+--- a/lib/core-net/pollfd.c
++++ b/lib/core-net/pollfd.c
+@@ -71,7 +71,7 @@ _lws_change_pollfd(struct lws *wsi, int _and, int _or, struct lws_pollargs *pa)
+ 
+ 	assert(wsi->position_in_fds_table < (int)pt->fds_count);
+ 
+-#if !defined(LWS_WITH_EVENT_LIBS)
++#if !defined(LWS_WITH_EVENT_LIBS) && 0 /* KVS_TEST_LWS_NO_FOREIGN_THREAD_POLLFD */
+ 	/*
+ 	 * This only applies when we use the default poll() event loop.
+ 	 *

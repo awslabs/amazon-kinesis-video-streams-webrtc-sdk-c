@@ -300,6 +300,8 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
     THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
+// Fails only when lws lacks its foreign-thread pollfd fallback: lws v5.0.0+ on FreeRTOS and Windows, or a build
+// with -DKVS_TEST_LWS_NO_FOREIGN_THREAD_POLLFD=ON. Other builds pass with or without the lws_cancel_service() wake.
 TEST_F(SignalingApiTest, signalingSendMessageSyncAfterIdleIsNotDelayed)
 {
     ASSERT_EQ(TRUE, mAccessKeyIdSet);
