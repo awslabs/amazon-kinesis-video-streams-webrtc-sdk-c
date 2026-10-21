@@ -305,7 +305,8 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
 
     DLOGV("WSS callback with reason %d", reason);
 
-    // Sent to every protocol on a fake wsi after lws_cancel_service(), from the service thread
+    // Sent to every protocol on a fake wsi after lws_cancel_service(), from the service thread.
+    // This path must return 0. A non-zero return makes lws close its cancel pipe, and every later wake is lost.
     if (reason == LWS_CALLBACK_EVENT_WAIT_CANCELLED) {
         pSignalingClient = (PSignalingClient) lws_context_user(lws_get_context((struct lws*) wsi));
         CHK(pSignalingClient != NULL, retStatus);
