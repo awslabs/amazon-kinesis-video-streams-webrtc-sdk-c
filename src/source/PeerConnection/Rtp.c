@@ -319,7 +319,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     // Upper bound on the media path to protect the device. Reject before any stats, sequence numbers or send buffers change.
     if (pFrame->size > MAX_OUTBOUND_FRAME_SIZE_BYTES) {
         DLOGE("Frame size %u exceeds the maximum outbound frame size %u", pFrame->size, MAX_OUTBOUND_FRAME_SIZE_BYTES);
-        return STATUS_RTP_FRAME_TOO_LARGE;
+        return STATUS_RTP_OUTBOUND_FRAME_TOO_LARGE;
     }
     // Read the atomic snapshot, NOT transceiver.direction: re-negotiation rewrites the
     // field from the signaling thread while this runs on the media thread.

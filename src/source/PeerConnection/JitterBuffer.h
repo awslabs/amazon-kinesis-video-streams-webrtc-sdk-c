@@ -37,6 +37,9 @@ typedef struct {
     UINT64 maxLatency;
     UINT64 customData;
     UINT32 clockRate;
+    // Used by jitterBufferPush() to enforce MAX_INBOUND_FRAME_SIZE_BYTES: the newest frame's timestamp and its depayloaded bytes so far
+    UINT32 frameTimestamp;
+    UINT32 frameBytes;
     BOOL started;
     BOOL firstFrameProcessed;
     BOOL sequenceNumberOverflowState;
