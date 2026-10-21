@@ -538,6 +538,7 @@ extern "C" {
 #define STATUS_SCTP_SESSION_SETUP_FAILED STATUS_SCTP_BASE + 0x00000001
 #define STATUS_SCTP_INVALID_DCEP_PACKET  STATUS_SCTP_BASE + 0x00000002
 #define STATUS_SCTP_SENDV_FAILED         STATUS_SCTP_BASE + 0x00000003
+#define STATUS_SCTP_STREAM_ID_IN_USE     STATUS_SCTP_BASE + 0x00000004
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -2327,7 +2328,9 @@ PUBLIC_API STATUS addIceCandidate(PRtcPeerConnection, PCHAR);
  * @param[in] PRtcDataChannelInit Allowed to be NULL/defines underlying channel properties
  * @param[out] PRtcDataChannel* Created data channel with supplied channel name
  *
- * @return STATUS code of the execution. STATUS_SUCCESS on success
+ * @return STATUS code of the execution. STATUS_SUCCESS on success. STATUS_INVALID_ARG when negotiated is TRUE and id is
+ * empty or not below 300. STATUS_SCTP_STREAM_ID_IN_USE when another data channel already uses the id.
+ * STATUS_INVALID_OPERATION when an in-band channel is created after the SCTP association is established.
  */
 PUBLIC_API STATUS createDataChannel(PRtcPeerConnection, PCHAR, PRtcDataChannelInit, PRtcDataChannel*);
 
@@ -2348,7 +2351,9 @@ PUBLIC_API STATUS createDataChannel(PRtcPeerConnection, PCHAR, PRtcDataChannelIn
  * @param[in] RtcOnOpen Open callback; allowed to be NULL
  * @param[out] PRtcDataChannel* Created data channel with supplied channel name
  *
- * @return STATUS code of the execution. STATUS_SUCCESS on success
+ * @return STATUS code of the execution. STATUS_SUCCESS on success. STATUS_INVALID_ARG when negotiated is TRUE and id is
+ * empty or not below 300. STATUS_SCTP_STREAM_ID_IN_USE when another data channel already uses the id.
+ * STATUS_INVALID_OPERATION when an in-band channel is created after the SCTP association is established.
  */
 PUBLIC_API STATUS createDataChannelWithCallbacks(PRtcPeerConnection, PCHAR, PRtcDataChannelInit, UINT64, RtcOnMessage, RtcOnOpen, PRtcDataChannel*);
 

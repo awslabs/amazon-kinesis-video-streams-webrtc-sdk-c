@@ -1005,7 +1005,7 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_NegotiatedIdChecks)
     // The same negotiated id twice before the association exists
     initNegotiated(&init, 7);
     EXPECT_EQ(STATUS_SUCCESS, createDataChannel(pc, (PCHAR) "first", &init, &pDc));
-    EXPECT_EQ(STATUS_INVALID_ARG, createDataChannel(pc, (PCHAR) "duplicate", &init, &pDc2));
+    EXPECT_EQ(STATUS_SCTP_STREAM_ID_IN_USE, createDataChannel(pc, (PCHAR) "duplicate", &init, &pDc2));
     freePeerConnection(&pc);
 }
 
@@ -1168,7 +1168,7 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_NegotiatedAfterConnect)
 
     // duplicate stream id and late in-band channel are refused
     initNegotiated(&init, 20);
-    EXPECT_EQ(STATUS_INVALID_ARG, createDataChannel(offerPc, (PCHAR) "dup", &init, &pDc));
+    EXPECT_EQ(STATUS_SCTP_STREAM_ID_IN_USE, createDataChannel(offerPc, (PCHAR) "dup", &init, &pDc));
     EXPECT_EQ(STATUS_INVALID_OPERATION, createDataChannel(offerPc, (PCHAR) "late-inband", NULL, &pDc));
 
     EXPECT_EQ(dataChannelOnOpen(pOfferNeg, (UINT64) &offer, negotiatedOnOpen), STATUS_SUCCESS);

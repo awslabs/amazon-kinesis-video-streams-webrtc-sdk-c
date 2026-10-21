@@ -78,7 +78,7 @@ STATUS createDataChannelWithCallbacks(PRtcPeerConnection pPeerConnection, PCHAR 
         // Negotiated channel on an established association: the stream is usable right away
         channelId = pRtcDataChannelInit->id.value;
         CHK_STATUS(hashTableContains(pKvsPeerConnection->pDataChannels, channelId, &exists));
-        CHK(!exists, STATUS_INVALID_ARG);
+        CHK(!exists, STATUS_SCTP_STREAM_ID_IN_USE);
         pKvsDataChannel->channelId = channelId;
         pKvsDataChannel->rtcDataChannelDiagnostics.state = RTC_DATA_CHANNEL_STATE_OPEN;
     } else {
@@ -86,7 +86,7 @@ STATUS createDataChannelWithCallbacks(PRtcPeerConnection pPeerConnection, PCHAR 
             lookup.id = pRtcDataChannelInit->id.value;
             lookup.taken = FALSE;
             CHK_STATUS(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, (UINT64) &lookup, findNegotiatedIdCallback));
-            CHK(!lookup.taken, STATUS_INVALID_ARG);
+            CHK(!lookup.taken, STATUS_SCTP_STREAM_ID_IN_USE);
         }
         // Before the association exists the table is keyed by creation order; allocateSctp re-keys it by stream id
         CHK_STATUS(hashTableGetCount(pKvsPeerConnection->pDataChannels, &channelId));
