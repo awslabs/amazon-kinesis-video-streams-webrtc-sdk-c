@@ -121,3 +121,9 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+
+BOOL isVP8KeyFrame(PBYTE pFrame, UINT32 frameSize)
+{
+    return pFrame != NULL && frameSize >= VP8_KEY_FRAME_HEADER_SIZE && (pFrame[0] & 0x01) == 0 && pFrame[3] == 0x9d && pFrame[4] == 0x01 &&
+        pFrame[5] == 0x2a;
+}

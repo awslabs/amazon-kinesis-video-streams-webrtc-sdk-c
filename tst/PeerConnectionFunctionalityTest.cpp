@@ -764,6 +764,79 @@ TEST_F(PeerConnectionFunctionalityTest, noLostFramesAfterConnected)
     EXPECT_EQ(ATOMIC_LOAD_BOOL(&seenFirstFrame), TRUE);
 }
 
+// Assert that received H264 frames are flagged as key frames exactly when they are IDR pictures
+TEST_F(PeerConnectionFunctionalityTest, receivedFramesFlagKeyFrames)
+{
+    struct Received {
+        SIZE_T frames;
+        SIZE_T keyFrames;
+        BOOL firstFrameIsKeyFrame;
+    };
+
+    // The sample stream has an IDR picture every 25 frames: frames 1 and 26 here
+    const UINT32 frameCount = 30;
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack;
+    PRtcRtpTransceiver offerVideoTransceiver, answerVideoTransceiver;
+    Received received{};
+    Frame videoFrame;
+    UINT32 i;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
+    videoFrame.frameData = (PBYTE) MEMALLOC(200000);
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver,
+                             RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver,
+                             RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, MEDIA_STREAM_TRACK_KIND_VIDEO);
+
+    auto onFrameHandler = [](UINT64 customData, PFrame pFrame) -> void {
+        Received* pReceived = (Received*) customData;
+        if (CHECK_FRAME_FLAG_KEY_FRAME(pFrame->flags)) {
+            if (ATOMIC_LOAD(&pReceived->frames) == 0) {
+                pReceived->firstFrameIsKeyFrame = TRUE;
+            }
+            ATOMIC_INCREMENT(&pReceived->keyFrames);
+        }
+        ATOMIC_INCREMENT(&pReceived->frames);
+    };
+    EXPECT_EQ(transceiverOnFrame(answerVideoTransceiver, (UINT64) &received, onFrameHandler), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    for (i = 1; i <= frameCount; i++) {
+        videoFrame.size = 200000;
+        EXPECT_EQ(STATUS_SUCCESS,
+                  readFrameData(videoFrame.frameData, &videoFrame.size, i, (PCHAR) "../samples/h264SampleFrames",
+                                RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
+        EXPECT_EQ(STATUS_SUCCESS, writeFrame(offerVideoTransceiver, &videoFrame));
+        videoFrame.presentationTs += HUNDREDS_OF_NANOS_IN_A_SECOND / 25;
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND / 100);
+    }
+
+    // The jitter buffer holds on to the last frame until the next one arrives
+    for (auto j = 0; j <= 1000 && ATOMIC_LOAD(&received.frames) < frameCount - 1; j++) {
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    MEMFREE(videoFrame.frameData);
+
+    EXPECT_LE(frameCount - 1, received.frames);
+    EXPECT_TRUE(received.firstFrameIsKeyFrame);
+    EXPECT_EQ(2, received.keyFrames);
+}
+
 // Assert that two PeerConnections can connect and then send media until the receiver gets both audio/video
 TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
 {

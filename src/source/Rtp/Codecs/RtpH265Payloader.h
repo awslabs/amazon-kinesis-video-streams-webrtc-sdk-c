@@ -13,6 +13,13 @@ extern "C" {
 #define H265_FU_HEADER_SIZE 3
 #define H265_FU_TYPE_ID     49
 
+// NALU types 0-31 are coded slices, of which 16-23 belong to IRAP (BLA, IDR, CRA) pictures that decoding can start at
+// https://www.rfc-editor.org/rfc/rfc7798.html#section-1.1.4
+#define H265_NALU_TYPE(naluHeader) (((naluHeader) >> 1) & 0x3F)
+#define H265_NALU_TYPE_IRAP_MIN    16
+#define H265_NALU_TYPE_IRAP_MAX    23
+#define H265_NALU_TYPE_VCL_MAX     31
+
 // https://www.rfc-editor.org/rfc/rfc7798.html#section-4.4.3
 
 /*
@@ -34,6 +41,8 @@ STATUS createPayloadForH265(UINT32, PBYTE, UINT32, PBYTE, PUINT32, PUINT32, PUIN
 STATUS getNextNaluLengthH265(PBYTE, UINT32, PUINT32, PUINT32);
 STATUS createPayloadFromNaluH265(UINT32, PBYTE, UINT32, PPayloadArray, PUINT32, PUINT32);
 STATUS depayH265FromRtpPayload(PBYTE, UINT32, PBYTE, PUINT32, PBOOL);
+// Whether an Annex-B access unit is an IRAP picture
+BOOL isH265KeyFrame(PBYTE, UINT32);
 
 #ifdef __cplusplus
 }

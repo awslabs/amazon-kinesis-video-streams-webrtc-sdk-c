@@ -393,3 +393,23 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+
+BOOL isH264KeyFrame(PBYTE pFrame, UINT32 frameSize)
+{
+    BOOL keyFrame = FALSE, sliceFound = FALSE;
+    UINT32 i;
+    UINT8 naluType;
+
+    // Walk the start codes up to the first slice. Only short non-VCL NALUs (parameter sets, SEI, access unit
+    // delimiter) can precede it, so the slice data itself is never scanned.
+    for (i = 0; pFrame != NULL && !sliceFound && i + 3 < frameSize; i++) {
+        if (pFrame[i] == 0x00 && pFrame[i + 1] == 0x00 && pFrame[i + 2] == 0x01) {
+            naluType = pFrame[i + 3] & NAL_TYPE_MASK;
+            sliceFound = naluType >= H264_NALU_TYPE_SLICE && naluType <= H264_NALU_TYPE_IDR;
+            keyFrame = naluType == H264_NALU_TYPE_IDR;
+            i += 3;
+        }
+    }
+
+    return keyFrame;
+}

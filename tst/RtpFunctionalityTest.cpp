@@ -953,6 +953,85 @@ TEST_F(RtpFunctionalityTest, depayH264StapBRejectsOversizedSubNalu)
     EXPECT_EQ(0u, naluLength);
 }
 
+TEST_F(RtpFunctionalityTest, isH264KeyFrameDetectsIdrSlices)
+{
+    BYTE idr[] = {0x00, 0x00, 0x00, 0x01, 0x65, 0x88, 0x84};
+    BYTE parameterSetsThenIdr[] = {0x00, 0x00, 0x00, 0x01, 0x67, 0x42, 0x00, 0x1f, 0x00, 0x00,
+                                   0x01, 0x68, 0xce, 0x3c, 0x80, 0x00, 0x00, 0x01, 0x65, 0x88};
+    BYTE nonIdr[] = {0x00, 0x00, 0x00, 0x01, 0x41, 0x9a, 0x00};
+    // A non-IDR slice decides the frame, an IDR NALU later in the frame doesn't
+    BYTE nonIdrThenIdr[] = {0x00, 0x00, 0x01, 0x41, 0x9a, 0x00, 0x00, 0x01, 0x65, 0x88};
+    BYTE parameterSetsOnly[] = {0x00, 0x00, 0x00, 0x01, 0x67, 0x42, 0x00, 0x1f, 0x00, 0x00, 0x00, 0x01, 0x68, 0xce, 0x3c, 0x80};
+    BYTE startCodeOnly[] = {0x00, 0x00, 0x00, 0x01};
+    PBYTE payload = (PBYTE) MEMALLOC(200000);
+    UINT32 payloadLen, fileIndex;
+
+    EXPECT_TRUE(isH264KeyFrame(idr, SIZEOF(idr)));
+    EXPECT_TRUE(isH264KeyFrame(parameterSetsThenIdr, SIZEOF(parameterSetsThenIdr)));
+    EXPECT_FALSE(isH264KeyFrame(nonIdr, SIZEOF(nonIdr)));
+    EXPECT_FALSE(isH264KeyFrame(nonIdrThenIdr, SIZEOF(nonIdrThenIdr)));
+    EXPECT_FALSE(isH264KeyFrame(parameterSetsOnly, SIZEOF(parameterSetsOnly)));
+    EXPECT_FALSE(isH264KeyFrame(startCodeOnly, SIZEOF(startCodeOnly)));
+    EXPECT_FALSE(isH264KeyFrame(idr, 4));
+    EXPECT_FALSE(isH264KeyFrame(NULL, SIZEOF(idr)));
+
+    // The sample stream has an IDR picture every 25 frames
+    for (fileIndex = 1; fileIndex <= 100; fileIndex++) {
+        payloadLen = 200000;
+        ASSERT_EQ(STATUS_SUCCESS,
+                  readFrameData(payload, &payloadLen, fileIndex, (PCHAR) "../samples/h264SampleFrames",
+                                RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
+        EXPECT_EQ((fileIndex - 1) % 25 == 0, isH264KeyFrame(payload, payloadLen)) << "frame " << fileIndex;
+    }
+
+    MEMFREE(payload);
+}
+
+TEST_F(RtpFunctionalityTest, isH265KeyFrameDetectsIrapSlices)
+{
+    // VPS, SPS, PPS, then an IDR_N_LP slice (NALU type 20)
+    BYTE parameterSetsThenIdr[] = {0x00, 0x00, 0x00, 0x01, 0x40, 0x01, 0x0c, 0x00, 0x00, 0x00, 0x01, 0x42, 0x01, 0x01,
+                                   0x00, 0x00, 0x00, 0x01, 0x44, 0x01, 0xc1, 0x00, 0x00, 0x00, 0x01, 0x28, 0x01, 0xaf};
+    // CRA (NALU type 21)
+    BYTE cra[] = {0x00, 0x00, 0x01, 0x2a, 0x01, 0xaf};
+    // TRAIL_R (NALU type 1)
+    BYTE trailing[] = {0x00, 0x00, 0x00, 0x01, 0x02, 0x01, 0xd0};
+    BYTE parameterSetsOnly[] = {0x00, 0x00, 0x00, 0x01, 0x40, 0x01, 0x0c, 0x00, 0x00, 0x00, 0x01, 0x42, 0x01, 0x01};
+    PBYTE payload = (PBYTE) MEMALLOC(200000);
+    UINT32 payloadLen, fileIndex;
+
+    EXPECT_TRUE(isH265KeyFrame(parameterSetsThenIdr, SIZEOF(parameterSetsThenIdr)));
+    EXPECT_TRUE(isH265KeyFrame(cra, SIZEOF(cra)));
+    EXPECT_FALSE(isH265KeyFrame(trailing, SIZEOF(trailing)));
+    EXPECT_FALSE(isH265KeyFrame(parameterSetsOnly, SIZEOF(parameterSetsOnly)));
+    EXPECT_FALSE(isH265KeyFrame(cra, 3));
+    EXPECT_FALSE(isH265KeyFrame(NULL, SIZEOF(cra)));
+
+    // The sample stream has an IDR picture every 250 frames
+    for (fileIndex = 1; fileIndex <= 260; fileIndex++) {
+        payloadLen = 200000;
+        ASSERT_EQ(STATUS_SUCCESS, readFrameData(payload, &payloadLen, fileIndex, (PCHAR) "../samples/h265SampleFrames", RTC_CODEC_H265));
+        EXPECT_EQ((fileIndex - 1) % 250 == 0, isH265KeyFrame(payload, payloadLen)) << "frame " << fileIndex;
+    }
+
+    MEMFREE(payload);
+}
+
+TEST_F(RtpFunctionalityTest, isVP8KeyFrameChecksFrameTagAndStartCode)
+{
+    // Frame tag with the key frame bit (0) cleared, start code, 640x480
+    BYTE keyFrame[] = {0x50, 0x42, 0x00, 0x9d, 0x01, 0x2a, 0x80, 0x02, 0xe0, 0x01, 0x00};
+    BYTE interFrame[] = {0x51, 0x42, 0x00, 0x9d, 0x01, 0x2a, 0x80, 0x02, 0xe0, 0x01, 0x00};
+    BYTE badStartCode[] = {0x50, 0x42, 0x00, 0x9d, 0x01, 0x2b, 0x80, 0x02, 0xe0, 0x01, 0x00};
+
+    EXPECT_TRUE(isVP8KeyFrame(keyFrame, SIZEOF(keyFrame)));
+    EXPECT_TRUE(isVP8KeyFrame(keyFrame, VP8_KEY_FRAME_HEADER_SIZE));
+    EXPECT_FALSE(isVP8KeyFrame(interFrame, SIZEOF(interFrame)));
+    EXPECT_FALSE(isVP8KeyFrame(badStartCode, SIZEOF(badStartCode)));
+    EXPECT_FALSE(isVP8KeyFrame(keyFrame, VP8_KEY_FRAME_HEADER_SIZE - 1));
+    EXPECT_FALSE(isVP8KeyFrame(NULL, SIZEOF(keyFrame)));
+}
+
 // VP8 depayloader must reject packets too short for their declared descriptor fields.
 TEST_F(RtpFunctionalityTest, depayVP8RejectsTruncatedDescriptor)
 {

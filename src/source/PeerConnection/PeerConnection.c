@@ -478,6 +478,7 @@ STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, U
     Frame frame;
     UINT64 hashValue;
     UINT32 filledSize = 0, index;
+    BOOL keyFrame = FALSE;
 
     CHK(pTransceiver != NULL, STATUS_NULL_ARG);
 
@@ -520,7 +521,23 @@ STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, U
     frame.size = frameSize;
     frame.duration = 0;
     frame.index = index;
-    // TODO: Fill frame flag and track id and index if we need to, currently those are not used by RtcRtpTransceiver
+    // Lets the application tell where a decoder (or a peer the frames are forwarded to) can start decoding
+    switch (pTransceiver->transceiver.receiver.track.codec) {
+        case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
+            keyFrame = isH264KeyFrame(frame.frameData, frame.size);
+            break;
+        case RTC_CODEC_H265:
+            keyFrame = isH265KeyFrame(frame.frameData, frame.size);
+            break;
+        case RTC_CODEC_VP8:
+            keyFrame = isVP8KeyFrame(frame.frameData, frame.size);
+            break;
+        default:
+            // Audio frames are not flagged
+            break;
+    }
+    frame.flags = keyFrame ? FRAME_FLAG_KEY_FRAME : FRAME_FLAG_NONE;
+    // TODO: Fill track id if we need to, currently it is not used by RtcRtpTransceiver
     if (pTransceiver->onFrame != NULL) {
         pTransceiver->onFrame(pTransceiver->onFrameCustomData, &frame);
     }

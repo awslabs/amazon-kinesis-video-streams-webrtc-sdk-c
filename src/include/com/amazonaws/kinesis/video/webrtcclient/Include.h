@@ -2202,6 +2202,9 @@ PUBLIC_API STATUS addTransceiver(PRtcPeerConnection, PRtcMediaStreamTrack, PRtcR
 /**
  * @brief Set a callback for transceiver frame
  *
+ * Received video frames that decoding can start at (H264 IDR, H265 IRAP and VP8 key frames)
+ * have FRAME_FLAG_KEY_FRAME set in their flags.
+ *
  * @param[in] PRtcRtpTransceiver Populated RtcRtpTransceiver struct
  * @param[in] UINT64 User customData that will be passed along when RtcOnFrame is called
  * @param[in] RtcOnFrame User RtcOnFrame callback
