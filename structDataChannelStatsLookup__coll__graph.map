@@ -1,0 +1,15 @@
+<map id="DataChannelStatsLookup" name="DataChannelStatsLookup">
+<area shape="rect" id="Node000001" title=" " alt="" coords="231,708,409,773"/>
+<area shape="rect" id="Node000002" href="$structKvsDataChannel.html" title=" " alt="" coords="228,500,412,645"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="323,646,323,692,317,692,317,646"/>
+<area shape="rect" id="Node000003" href="$struct____RtcDataChannel.html" title="RtcDataChannel represents a bi&#45;directional data channel between two peers." alt="" coords="5,253,139,338"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="75,338,78,370,85,407,97,442,117,474,137,495,161,513,214,540,211,545,158,518,134,499,113,478,92,445,79,408,72,371,69,338"/>
+<area shape="rect" id="Node000004" href="$structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer&#45;to&#45;peer communications with ano..." alt="" coords="163,263,301,328"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="227,329,218,398,221,437,231,475,235,485,230,487,225,477,215,438,213,398,221,328"/>
+<area shape="rect" id="Node000005" href="$structRtcDataChannelInit.html" title="RtcDataChannelInit dictionary used to configure properties of the underlying channel such as data rel..." alt="" coords="334,243,474,348"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="406,349,399,411,383,477,379,486,374,484,377,475,394,410,400,348"/>
+<area shape="rect" id="Node000006" href="$structNullableUint16.html" title="Custom data type to allow setting UINT16 data type to NULL since C does not support setting basic dat..." alt="" coords="349,5,459,91"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="407,91,407,226,401,226,401,91"/>
+<area shape="rect" id="Node000007" href="$structRtcDataChannelStats.html" title=" " alt="" coords="498,183,667,408"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="571,409,557,445,535,478,512,500,486,519,429,546,427,542,483,514,509,496,531,474,552,443,566,407"/>
+</map>

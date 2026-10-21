@@ -1,5 +1,7 @@
 <map id="dataChannelSend" name="dataChannelSend">
 <area shape="rect" id="Node000001" title="Send data via the PRtcDataChannel." alt="" coords="5,5,141,31"/>
-<area shape="rect" id="Node000002" href="$Sctp_8c.html#a334c503681d0e0165ba34a472b49feb9" title=" " alt="" coords="189,5,381,31"/>
+<area shape="rect" id="Node000002" href="$Sctp_8c.html#a8d677382e8cf3b85a9c544d021d14b8e" title=" " alt="" coords="189,5,381,31"/>
 <area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="141,15,176,15,176,21,141,21"/>
+<area shape="rect" id="Node000003" href="$Sctp_8c.html#a1dea61e8f31184c0862bffb92ed89eb6" title=" " alt="" coords="429,5,607,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="382,15,415,15,415,21,382,21"/>
 </map>
