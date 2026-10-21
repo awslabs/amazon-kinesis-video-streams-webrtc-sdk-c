@@ -149,6 +149,8 @@ Macros</h2></td></tr>
 <tr class="separator:ga9b0684aeecff11aa73d31b5655993532"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga145850583a23defd123ebcf63ed07053" id="r_ga145850583a23defd123ebcf63ed07053"><td class="memItemLeft" align="right" valign="top">#<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">define</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Timeouts.html#ga145850583a23defd123ebcf63ed07053">MAX_OUTBOUND_FRAME_SIZE_BYTES</a>&#160;&#160;&#160;(5 * 1024 * 1024)</td></tr>
 <tr class="separator:ga145850583a23defd123ebcf63ed07053"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga08589a1b67099e5f572a5f48bca9f777" id="r_ga08589a1b67099e5f572a5f48bca9f777"><td class="memItemLeft" align="right" valign="top">#<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">define</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Timeouts.html#ga08589a1b67099e5f572a5f48bca9f777">MAX_INBOUND_FRAME_SIZE_BYTES</a>&#160;&#160;&#160;(5 * 1024 * 1024)</td></tr>
+<tr class="separator:ga08589a1b67099e5f572a5f48bca9f777"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga68734a4d3e800489c25681de0f08259e" id="r_ga68734a4d3e800489c25681de0f08259e"><td class="memItemLeft" align="right" valign="top">#<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">define</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Timeouts.html#ga68734a4d3e800489c25681de0f08259e">DEFAULT_JITTER_BUFFER_MAX_LATENCY</a>&#160;&#160;&#160;(2000L * <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">HUNDREDS_OF_NANOS_IN_A_MILLISECOND</a>)</td></tr>
 <tr class="separator:ga68734a4d3e800489c25681de0f08259e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -200,6 +202,21 @@ Macros</h2></td></tr>
 
 </div>
 </div>
+<a id="ga08589a1b67099e5f572a5f48bca9f777" name="ga08589a1b67099e5f572a5f48bca9f777"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga08589a1b67099e5f572a5f48bca9f777">&#9670;&#160;</a></span>MAX_INBOUND_FRAME_SIZE_BYTES</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">define</a> MAX_INBOUND_FRAME_SIZE_BYTES&#160;&#160;&#160;(5 * 1024 * 1024)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Upper bound in bytes on a single media frame reassembled from received packets. This is a safeguard for the receiving device, not an RTP limit. The jitter buffer keeps every packet of a frame until the frame is complete, and the per-transceiver frame buffer grows to the largest frame received and keeps that size. Larger frames are rejected and the stream continues with the next frame. Crossing the limit is logged with STATUS_RTP_INBOUND_FRAME_TOO_LARGE; no API returns it. See docs/FRAME_SIZE_LIMITS.md. </p>
+
+</div>
+</div>
 <a id="ga145850583a23defd123ebcf63ed07053" name="ga145850583a23defd123ebcf63ed07053"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga145850583a23defd123ebcf63ed07053">&#9670;&#160;</a></span>MAX_OUTBOUND_FRAME_SIZE_BYTES</h2>
 
@@ -211,7 +228,7 @@ Macros</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Upper bound in bytes on a single media frame passed to <a class="el" href="group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver.">writeFrame()</a>. This is a safeguard for the sending device during media transmission, not an RTP limit. <a class="el" href="group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver.">writeFrame()</a> packetizes, encrypts and sends the whole frame while holding the SRTP session lock. The per-transceiver payload buffer also grows to the largest frame seen and keeps that size. Larger frames are rejected with STATUS_RTP_FRAME_TOO_LARGE and nothing is sent. Receivers can have a lower limit: libwebrtc browsers reassemble at most 2048 packets per frame (about 2.4 MB at the default MTU). See docs/FRAME_SIZE_LIMITS.md. </p>
+<p>Upper bound in bytes on a single media frame passed to <a class="el" href="group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver.">writeFrame()</a>. This is a safeguard for the sending device during media transmission, not an RTP limit. <a class="el" href="group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver.">writeFrame()</a> packetizes, encrypts and sends the whole frame while holding the SRTP session lock. The per-transceiver payload buffer also grows to the largest frame seen and keeps that size. Larger frames are rejected with STATUS_RTP_OUTBOUND_FRAME_TOO_LARGE and nothing is sent. Receivers can have a lower limit: libwebrtc browsers reassemble at most 2048 packets per frame (about 2.4 MB at the default MTU). See docs/FRAME_SIZE_LIMITS.md. </p>
 
 </div>
 </div>
@@ -429,7 +446,7 @@ Macros</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Tue Oct 20 2026 01:22:32 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Wed Oct 21 2026 00:16:51 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>
