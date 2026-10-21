@@ -268,11 +268,11 @@ STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection pRtcPeerConnection, PRtcRt
             break;
         case RTC_STATS_TYPE_LOCAL_CANDIDATE:
             CHK_STATUS(getIceCandidateStats(pRtcPeerConnection, FALSE, &pRtcMetrics->rtcStatsObject.localIceCandidateStats));
-            DLOGD("ICE local candidate Stats requested at %" PRIu64, pRtcMetrics->timestamp);
+            DLOGV("ICE local candidate Stats requested at %" PRIu64, pRtcMetrics->timestamp);
             break;
         case RTC_STATS_TYPE_REMOTE_CANDIDATE:
             CHK_STATUS(getIceCandidateStats(pRtcPeerConnection, TRUE, &pRtcMetrics->rtcStatsObject.remoteIceCandidateStats));
-            DLOGD("ICE remote candidate Stats requested at %" PRIu64, pRtcMetrics->timestamp);
+            DLOGV("ICE remote candidate Stats requested at %" PRIu64, pRtcMetrics->timestamp);
             break;
         case RTC_STATS_TYPE_TRANSPORT:
             CHK_STATUS(getTransportStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.transportStats));
@@ -288,12 +288,12 @@ STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection pRtcPeerConnection, PRtcRt
             break;
         case RTC_STATS_TYPE_ICE_SERVER:
             CHK_STATUS(getIceServerStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.iceServerStats));
-            DLOGD("ICE Server Stats requested at %" PRIu64, pRtcMetrics->timestamp);
+            DLOGV("ICE Server Stats requested at %" PRIu64, pRtcMetrics->timestamp);
             break;
         case RTC_STATS_TYPE_DATA_CHANNEL:
             pRtcMetrics->timestamp = GETTIME();
             CHK_STATUS(getDataChannelStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.rtcDataChannelStats));
-            DLOGD("RTC Data Channel Stats requested at %" PRIu64, pRtcMetrics->timestamp);
+            DLOGV("RTC Data Channel Stats requested at %" PRIu64, pRtcMetrics->timestamp);
             break;
         case RTC_STATS_TYPE_CERTIFICATE:
         case RTC_STATS_TYPE_CSRC:
