@@ -25,6 +25,8 @@ STATUS createJitterBuffer(FrameReadyFunc onFrameReadyFunc, FrameDroppedFunc onFr
     pJitterBuffer->onFrameDroppedFn = onFrameDroppedFunc;
     pJitterBuffer->depayPayloadFn = depayRtpPayloadFunc;
     pJitterBuffer->clockRate = clockRate;
+    pJitterBuffer->frameTimestamp = 0;
+    pJitterBuffer->frameBytes = 0;
 
     pJitterBuffer->maxLatency = maxLatency;
     if (pJitterBuffer->maxLatency == 0) {
@@ -397,6 +399,8 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOO
     STATUS retStatus = STATUS_SUCCESS, status = STATUS_SUCCESS;
     UINT64 hashValue = 0;
     PRtpPacket pCurPacket = NULL;
+    UINT32 depaySize = 0;
+    BOOL frameTooLarge = FALSE, alreadyBuffered = FALSE;
 
     CHK(pJitterBuffer != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
 
@@ -423,8 +427,39 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOO
         DLOGS("Entered timestamp overflow state");
     }
 
-    // is the packet within the accepted latency range, if so, add it to the hashtable
-    if (withinLatencyTolerance(pJitterBuffer, pRtpPacket)) {
+    // Upper bound on the receive path to protect the device. A frame's size is not known until all its packets arrive, so its depayloaded
+    // bytes are counted as they arrive:
+    // - Only the newest frame is counted. The count restarts when the newest packet (the tail) has a new timestamp. Late packets of other
+    //   frames and duplicates are not counted.
+    // - Once a frame crosses the threshold (MAX_INBOUND_FRAME_SIZE_BYTES), the frame's newer RTP packets are discarded. What remains in the
+    //   buffer could look like a complete frame, or like a frame waiting for a lost or late RTP packet. To tell them apart without extra
+    //   state, the RTP packet that crosses the threshold is kept. It puts the frame's buffered size past the threshold, and
+    //   jitterBufferInternalParse() checks that size to drop the frame once it is the earliest frame.
+    // - Late RTP packets of the frame are kept but not counted, so they fill their gaps and the frame is not left waiting for eviction. A
+    //   lost RTP packet before the crossing point still leaves the frame waiting for eviction, like any incomplete frame.
+    // - The frame is never delivered. At most the threshold, plus one RTP packet, plus its reordered RTP packets, is buffered.
+    // See "How the jitter buffer works" in docs/FRAME_SIZE_LIMITS.md for flow diagrams.
+    if (pRtpPacket->header.timestamp != pJitterBuffer->frameTimestamp && pRtpPacket->header.sequenceNumber == pJitterBuffer->tailSequenceNumber) {
+        pJitterBuffer->frameTimestamp = pRtpPacket->header.timestamp;
+        pJitterBuffer->frameBytes = 0;
+    }
+    frameTooLarge = pRtpPacket->header.timestamp == pJitterBuffer->frameTimestamp && pJitterBuffer->frameBytes > MAX_INBOUND_FRAME_SIZE_BYTES &&
+        pRtpPacket->header.sequenceNumber == pJitterBuffer->tailSequenceNumber;
+    if (pRtpPacket->header.timestamp == pJitterBuffer->frameTimestamp && pJitterBuffer->frameBytes <= MAX_INBOUND_FRAME_SIZE_BYTES &&
+        STATUS_SUCCEEDED(hashTableContains(pJitterBuffer->pPkgBufferHashTable, pRtpPacket->header.sequenceNumber, &alreadyBuffered)) &&
+        !alreadyBuffered) {
+        if (STATUS_FAILED(pJitterBuffer->depayPayloadFn(pRtpPacket->payload, pRtpPacket->payloadLength, NULL, &depaySize, NULL))) {
+            depaySize = pRtpPacket->payloadLength;
+        }
+        pJitterBuffer->frameBytes += depaySize;
+        if (pJitterBuffer->frameBytes > MAX_INBOUND_FRAME_SIZE_BYTES) {
+            DLOGW("Rejecting frame with timestamp %u: larger than the maximum inbound frame size %u (0x%08x)", pRtpPacket->header.timestamp,
+                  MAX_INBOUND_FRAME_SIZE_BYTES, STATUS_RTP_INBOUND_FRAME_TOO_LARGE);
+        }
+    }
+
+    // is the packet within the accepted latency range and its frame not already past the threshold, if so, add it to the hashtable
+    if (!frameTooLarge && withinLatencyTolerance(pJitterBuffer, pRtpPacket)) {
         status = hashTableGet(pJitterBuffer->pPkgBufferHashTable, pRtpPacket->header.sequenceNumber, &hashValue);
         pCurPacket = (PRtpPacket) hashValue;
         if (STATUS_SUCCEEDED(status) && pCurPacket != NULL) {
@@ -507,6 +542,7 @@ STATUS jitterBufferInternalParse(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
      * 1. the buffer is being closed
      * 2. The time between the most recently pushed RTP packet and oldest stored packet has surpassed the
      *    maximum allowed latency
+     *A Frame is also dropped when its buffered packets are over MAX_INBOUND_FRAME_SIZE_BYTES (see jitterBufferPush()).
      *
      *The buffer is parsed in order of sequence numbers. It is important to note that if the Frame ready
      *conditions have been met from dropping an earlier frame, then it will be processed.
@@ -515,8 +551,10 @@ STATUS jitterBufferInternalParse(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
         CHK_STATUS(hashTableContains(pJitterBuffer->pPkgBufferHashTable, index, &hasEntry));
         if (!hasEntry) {
             isFrameDataContinuous = FALSE;
-            // if the max latency has not been reached, or the buffer is not being closed, exit parse when a missing entry is found
-            CHK(pJitterBuffer->headTimestamp < earliestAllowedTimestamp || bufferClosed, retStatus);
+            // if the max latency has not been reached, or the buffer is not being closed, exit parse when a missing entry is found.
+            // curFrameSize is the size of the earliest frame's packets so far. Once it is over MAX_INBOUND_FRAME_SIZE_BYTES, the missing
+            // entries are treated as the frame's discarded packets, so keep going and drop the frame at the next frame.
+            CHK(pJitterBuffer->headTimestamp < earliestAllowedTimestamp || bufferClosed || curFrameSize > MAX_INBOUND_FRAME_SIZE_BYTES, retStatus);
         } else {
             lastNonNullIndex = index;
             retStatus = hashTableGet(pJitterBuffer->pPkgBufferHashTable, index, &hashValue);
@@ -531,8 +569,8 @@ STATUS jitterBufferInternalParse(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
             curTimestamp = pCurPacket->header.timestamp;
             // new timestamp on an RTP packet means new frame
             if (curTimestamp != pJitterBuffer->headTimestamp) {
-                // was previous frame complete? Deliver it
-                if (containStartForEarliestFrame && isFrameDataContinuous) {
+                // was previous frame complete and within MAX_INBOUND_FRAME_SIZE_BYTES? Deliver it
+                if (containStartForEarliestFrame && isFrameDataContinuous && curFrameSize <= MAX_INBOUND_FRAME_SIZE_BYTES) {
                     // Decrement the index because this is an inclusive end parser, and we don't want to include the current index in the processed
                     // frame.
                     CHK_STATUS(pJitterBuffer->onFrameReadyFn(pJitterBuffer->customData, startDropIndex, UINT16_DEC(index), curFrameSize));
@@ -541,8 +579,8 @@ STATUS jitterBufferInternalParse(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
                     startDropIndex = index;
                     containStartForEarliestFrame = FALSE;
                 }
-                // are we forcibly clearing out the buffer? if so drop the contents of incomplete frame
-                else if (pJitterBuffer->headTimestamp < earliestAllowedTimestamp || bufferClosed) {
+                // are we forcibly clearing out the buffer, or is the frame too large? if so drop the contents of the frame
+                else if (pJitterBuffer->headTimestamp < earliestAllowedTimestamp || bufferClosed || curFrameSize > MAX_INBOUND_FRAME_SIZE_BYTES) {
                     // do not CHK_STATUS of onFrameDropped because we need to clear the jitter buffer no matter what else happens.
                     pJitterBuffer->onFrameDroppedFn(pJitterBuffer->customData, startDropIndex, UINT16_DEC(index), pJitterBuffer->headTimestamp);
                     CHK_STATUS(jitterBufferDropBufferData(pJitterBuffer, startDropIndex, UINT16_DEC(index), curTimestamp));
@@ -582,8 +620,8 @@ STATUS jitterBufferInternalParse(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
             }
         }
 
-        // There is no NULL between startIndex and lastNonNullIndex
-        if (UINT16_DEC(index) == lastNonNullIndex) {
+        // There is no NULL between startIndex and lastNonNullIndex, and the frame is not too large
+        if (UINT16_DEC(index) == lastNonNullIndex && curFrameSize <= MAX_INBOUND_FRAME_SIZE_BYTES) {
             CHK_STATUS(pJitterBuffer->onFrameReadyFn(pJitterBuffer->customData, startDropIndex, lastNonNullIndex, curFrameSize));
             CHK_STATUS(jitterBufferDropBufferData(pJitterBuffer, startDropIndex, lastNonNullIndex, pJitterBuffer->headTimestamp));
         } else {
