@@ -416,8 +416,9 @@ TEST_F(ReceiveWorkerUafTest, freeSignalingWaitsForReconnectThreadToReleaseTracke
 // The SDK thread waits until freeSignaling() has started on the test's free thread (shutdown == TRUE), then calls
 // the public APIs that share terminateOngoingOperations() with freeSignaling(). Before the fix those calls read
 // shutdown == TRUE, took the unbounded wait meant for freeSignaling(), and waited for their own thread to exit while
-// freeSignaling() waited for the same thread: neither returned. They must now return
-// STATUS_SIGNALING_FREE_IN_PROGRESS at once, and freeSignaling() must then complete.
+// freeSignaling() waited for the same thread: neither returned. They must now return at once, delete and fetch with
+// STATUS_SIGNALING_FREE_IN_PROGRESS and disconnect with STATUS_SUCCESS (the free disconnects the client), and
+// freeSignaling() must then complete.
 static const UINT64 kFreeStartWaitTimeout = 5 * HUNDREDS_OF_NANOS_IN_A_SECOND;
 static const std::chrono::seconds kApiDuringFreeBudget(10);
 
@@ -452,7 +453,8 @@ static BOOL waitForFreeToStart(PSignalingClient pSignalingClient)
 }
 
 // Runs on the SDK thread. deleteSync first: it is the one call that always reaches terminateOngoingOperations(), so
-// it is the call that hung before the fix. fetchSync and disconnectSync are checked afterwards for the same status.
+// it is the call that hung before the fix. fetchSync is checked afterwards for the same status, disconnectSync for
+// STATUS_SUCCESS.
 static void callApisDuringFree(ApiDuringFreeContext* pCtx)
 {
     PSignalingClient pSignalingClient = pCtx->pSignalingClient;
@@ -507,7 +509,7 @@ static void expectApiCallsAndFreeToReturn(ApiDuringFreeContext* pCtx, std::threa
     EXPECT_TRUE(pCtx->freeStarted) << "freeSignaling() never set shutdown; the API calls were not attempted";
     EXPECT_EQ(STATUS_SIGNALING_FREE_IN_PROGRESS, pCtx->deleteStatus);
     EXPECT_EQ(STATUS_SIGNALING_FREE_IN_PROGRESS, pCtx->fetchStatus);
-    EXPECT_EQ(STATUS_SIGNALING_FREE_IN_PROGRESS, pCtx->disconnectStatus);
+    EXPECT_EQ(STATUS_SUCCESS, pCtx->disconnectStatus) << "disconnect during a free is a no-op: the free disconnects the client";
     EXPECT_EQ(STATUS_SUCCESS, pCtx->freeStatus);
 
     freeStaticCredentialProvider(ppCredentialProvider);

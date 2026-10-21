@@ -2494,11 +2494,12 @@ PUBLIC_API STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE);
 /**
  * @brief Disconnects the signaling client.
  *
- * NOTE: Returns STATUS_SIGNALING_FREE_IN_PROGRESS, without waiting for the SDK's threads, when called from a
- *       signaling callback that runs on one of the SDK's internal threads while freeSignalingClient() runs on
- *       another thread. A call that had already passed that check when freeSignalingClient() started waits a
- *       bounded time for the listener and reconnect threads and may return another status. From any other thread
- *       the call must not overlap freeSignalingClient(): the client can be freed while it runs.
+ * NOTE: Returns STATUS_SUCCESS, without waiting for the SDK's threads, when called from a signaling callback that
+ *       runs on one of the SDK's internal threads while freeSignalingClient() runs on another thread:
+ *       freeSignalingClient() disconnects the client. A call that had already passed that check when
+ *       freeSignalingClient() started waits a bounded time for the listener and reconnect threads and may return
+ *       another status. From any other thread the call must not overlap freeSignalingClient(): the client can be
+ *       freed while it runs.
  *
  * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
  *

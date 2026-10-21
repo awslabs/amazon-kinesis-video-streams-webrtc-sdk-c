@@ -800,9 +800,10 @@ STATUS signalingDisconnectSync(PSignalingClient pSignalingClient)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
-    // Another thread is inside freeSignaling(); see signalingFetchSync().
-    CHK_WARN(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), STATUS_SIGNALING_FREE_IN_PROGRESS,
-             "signalingClientDisconnectSync() refused: freeSignalingClient() is running on another thread");
+    // Another thread is inside freeSignaling(), which disconnects the client anyway. Return success without waiting,
+    // as for a client that is not connected; see signalingFetchSync() for why this call must not wait.
+    CHK_WARN(!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown), STATUS_SUCCESS,
+             "signalingClientDisconnectSync() skipped: freeSignalingClient() is running on another thread and disconnects the client");
 
     // Check if we are already not connected
     CHK(ATOMIC_LOAD_BOOL(&pSignalingClient->connected), retStatus);
@@ -816,10 +817,7 @@ STATUS signalingDisconnectSync(PSignalingClient pSignalingClient)
 
 CleanUp:
 
-    // An expected outcome during freeSignalingClient(), already logged at WARN above.
-    if (retStatus != STATUS_SIGNALING_FREE_IN_PROGRESS) {
-        CHK_LOG_ERR(retStatus);
-    }
+    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
