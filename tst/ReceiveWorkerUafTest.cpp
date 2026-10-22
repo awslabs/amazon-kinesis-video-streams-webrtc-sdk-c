@@ -419,8 +419,12 @@ TEST_F(ReceiveWorkerUafTest, freeSignalingWaitsForReconnectThreadToReleaseTracke
 // freeSignaling() waited for the same thread: neither returned. They must now return at once, delete and fetch with
 // STATUS_SIGNALING_FREE_IN_PROGRESS and disconnect with STATUS_SUCCESS (the free disconnects the client), and
 // freeSignaling() must then complete.
+//
+// The budget must stay below SIGNALING_CLIENT_SHUTDOWN_TIMEOUT (9 s). A disconnect whose shutdown check is missing
+// no longer hangs: it takes the bounded wait in terminateOngoingOperations() instead, which on the reconnect-thread
+// variant is the full 9 s. A budget above that would let the regression pass. The passing case takes about 0.5 s.
 static const UINT64 kFreeStartWaitTimeout = 5 * HUNDREDS_OF_NANOS_IN_A_SECOND;
-static const std::chrono::seconds kApiDuringFreeBudget(10);
+static const std::chrono::seconds kApiDuringFreeBudget(5);
 
 struct ApiDuringFreeContext {
     std::mutex lock;
@@ -455,6 +459,11 @@ static BOOL waitForFreeToStart(PSignalingClient pSignalingClient)
 // Runs on the SDK thread. deleteSync first: it is the one call that always reaches terminateOngoingOperations(), so
 // it is the call that hung before the fix. fetchSync is checked afterwards for the same status, disconnectSync for
 // STATUS_SUCCESS.
+//
+// The offline client is never connected, and disconnectSync's existing not-connected check also returns
+// STATUS_SUCCESS. Mark the client connected first so that only the shutdown check can produce the early success;
+// without it, disconnect reaches the bounded wait in terminateOngoingOperations(). Nothing in the free path reads
+// or clears connected on an offline client: terminateLwsListenerLoop() does nothing while pOngoingCallInfo is NULL.
 static void callApisDuringFree(ApiDuringFreeContext* pCtx)
 {
     PSignalingClient pSignalingClient = pCtx->pSignalingClient;
@@ -463,6 +472,7 @@ static void callApisDuringFree(ApiDuringFreeContext* pCtx)
     STATUS deleteStatus = STATUS_SUCCESS, fetchStatus = STATUS_SUCCESS, disconnectStatus = STATUS_SUCCESS;
 
     if (freeStarted) {
+        ATOMIC_STORE_BOOL(&pSignalingClient->connected, TRUE);
         deleteStatus = signalingClientDeleteSync(handle);
         fetchStatus = signalingClientFetchSync(handle);
         disconnectStatus = signalingClientDisconnectSync(handle);
@@ -622,11 +632,12 @@ TEST_F(ReceiveWorkerUafTest, apiCallFromReconnectThreadDuringFreeReturnsFreeInPr
     expectApiCallsAndFreeToReturn(pCtx, freeThread, &pCredentialProvider);
 }
 
-// The two tests above refuse at the API entry, before terminateOngoingOperations() runs, so they never reach the
-// wait-selection with shutdown already set. This one does: it is what a fetch/disconnect/delete sees when it passed
-// its own shutdown check an instant before freeSignaling() set the flag. The non-free quiesce must still take the
-// bounded path and must not wait for the parked receive worker; selecting the path from the flag instead of the
-// caller would wait for receiveWorkerCount == 0 here.
+// The two tests above return at the API entry (fetch and delete refuse, disconnect reports success), before
+// terminateOngoingOperations() runs, so they never reach the wait-selection with shutdown already set. This one
+// does: it is what a fetch/disconnect/delete sees when it passed its own shutdown check an instant before
+// freeSignaling() set the flag. The non-free quiesce must still take the bounded path and must not wait for the
+// parked receive worker; selecting the path from the flag instead of the caller would wait for
+// receiveWorkerCount == 0 here.
 TEST_F(ReceiveWorkerUafTest, apiQuiesceDoesNotWaitForReceiveWorkersOnceShutdownIsSet)
 {
     BlockingCallbackContext ctx;

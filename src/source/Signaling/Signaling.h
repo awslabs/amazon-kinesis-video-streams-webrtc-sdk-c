@@ -479,9 +479,10 @@ STATUS uninitializeThreadTracker(PThreadTracker);
 // waitForAllThreads: TRUE only from freeSignaling(). Blocks until every SDK-owned thread (reconnect, listener,
 // receive workers) has exited because the client is about to be freed. All other callers pass FALSE and get the
 // bounded best-effort quiesce, even when another thread has already set shutdown: that caller may itself be one of
-// the threads freeSignaling() is waiting for, and the unbounded wait would then wait on itself. The callers refuse
-// once shutdown is set, but one can pass its check just before freeSignaling() sets the flag and still arrive here;
-// the parameter, not the flag, decides the wait so that window cannot turn into a self-wait.
+// the threads freeSignaling() is waiting for, and the unbounded wait would then wait on itself. The callers return at
+// their entry once shutdown is set (fetch and delete refuse, disconnect reports success), but one can pass its check
+// just before freeSignaling() sets the flag and still arrive here; the parameter, not the flag, decides the wait so
+// that window cannot turn into a self-wait.
 STATUS terminateOngoingOperations(PSignalingClient, BOOL waitForAllThreads);
 
 STATUS describeChannel(PSignalingClient, UINT64);
