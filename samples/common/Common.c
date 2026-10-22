@@ -722,116 +722,96 @@ VOID sampleBandwidthEstimationHandler(UINT64 customData, DOUBLE maximumBitrate)
     DLOGV("received bitrate suggestion: %f", maximumBitrate);
 }
 
+static BOOL sampleBitrateOutsideDeadband(UINT64 target, UINT64 current)
+{
+    UINT64 diff = target > current ? target - current : current - target;
+    return current == 0 || diff * 100 >= current * TWCC_ENCODER_DEADBAND_PERCENT;
+}
+
 // Congestion feedback callback: SDK invokes this when TWCC feedback arrives.
-// Combines loss-based and delay-based signals to adjust encoder bitrate.
+// Combines loss-based and delay-based signals to adjust encoder bitrate with a gentle AIMD:
+// congestion must persist before a cut, cuts are capped at 15% per interval (30% under severe loss)
+// and never go below 85% of the measured throughput, increases are ~5%/s and pause after a cut.
 STATUS sampleOnPeerCongestionFeedback(UINT64 customData, PCongestionCtx pCongestionCtx)
 {
     PSampleStreamingSession pSampleStreamingSession = (PSampleStreamingSession) customData;
+    PTwccMetadata pTwccMetadata;
+    UINT64 now, videoBitrate, audioBitrate, lostPacketsCnt;
+    DOUBLE percentLost, delayTrendMs, rxKbps, stepKbps;
+    BOOL congested, severe;
+
     if (pSampleStreamingSession == NULL || pCongestionCtx == NULL) {
         return STATUS_NULL_ARG;
     }
+    pTwccMetadata = &pSampleStreamingSession->twccMetadata;
+    now = GETTIME();
 
-    UINT64 videoBitrate, audioBitrate;
-    UINT64 currentTimeMs, timeDiff;
-    UINT64 txPacketsCnt = pCongestionCtx->txPackets;
-    UINT64 rxPacketsCnt = pCongestionCtx->rxPackets;
-    UINT64 lostPacketsCnt = txPacketsCnt > rxPacketsCnt ? txPacketsCnt - rxPacketsCnt : 0;
-    DOUBLE percentLost = (DOUBLE) ((txPacketsCnt > 0) ? (lostPacketsCnt * 100 / txPacketsCnt) : 0.0);
-    DOUBLE delayTrendMs = pCongestionCtx->congestionState.delayTrend;
+    lostPacketsCnt = pCongestionCtx->txPackets > pCongestionCtx->rxPackets ? pCongestionCtx->txPackets - pCongestionCtx->rxPackets : 0;
+    percentLost = pCongestionCtx->txPackets > 0 ? (DOUBLE) lostPacketsCnt * 100.0 / (DOUBLE) pCongestionCtx->txPackets : 0.0;
+    delayTrendMs = pCongestionCtx->congestionState.delayTrend;
 
-    // Calculate packet loss (EMA smoothed)
-    pSampleStreamingSession->twccMetadata.averagePacketLoss =
-        EMA_ACCUMULATOR_GET_NEXT(pSampleStreamingSession->twccMetadata.averagePacketLoss, ((DOUBLE) percentLost));
+    // Evaluate on every feedback so congestion persistence is measured in time, but act at most once per interval below
+    pTwccMetadata->averagePacketLoss = EMA_ACCUMULATOR_GET_NEXT(pTwccMetadata->averagePacketLoss, percentLost);
+    congested = pTwccMetadata->averagePacketLoss > TWCC_LOSS_CONGESTED_PERCENT || delayTrendMs > TWCC_DELAY_CONGESTED_MS;
+    if (!congested) {
+        pTwccMetadata->congestedSince = 0;
+    } else if (pTwccMetadata->congestedSince == 0) {
+        pTwccMetadata->congestedSince = now;
+    }
 
-    currentTimeMs = GETTIME();
-    timeDiff = currentTimeMs - pSampleStreamingSession->twccMetadata.lastAdjustmentTimeMs;
-    if (timeDiff < TWCC_BITRATE_ADJUSTMENT_INTERVAL_MS) {
+    if (now - pTwccMetadata->lastAdjustmentTimeMs < TWCC_BITRATE_ADJUSTMENT_INTERVAL_MS) {
         return STATUS_SUCCESS;
     }
 
-    MUTEX_LOCK(pSampleStreamingSession->twccMetadata.updateLock);
-    videoBitrate = pSampleStreamingSession->twccMetadata.currentVideoBitrate;
-    audioBitrate = pSampleStreamingSession->twccMetadata.currentAudioBitrate;
-
-    // Combine loss-based and delay-based signals for bandwidth decision
-    BOOL lossCongested = pSampleStreamingSession->twccMetadata.averagePacketLoss > 5.0;
-    BOOL delayCongested = delayTrendMs > 0.5;
-    BOOL lossClear = pSampleStreamingSession->twccMetadata.averagePacketLoss <= 2.0;
-    BOOL delayClear = delayTrendMs < -0.1;
-
-    /*
-     * Multiplicative decrease factors (combined, take the minimum):
-     *
-     *   averagePacketLoss (EMA) | lossFactor
-     *   ------------------------+-----------
-     *   > 10.0%                 | 0.70
-     *   > 5.0% and <= 10.0%     | 0.85
-     *   <= 5.0%                 | 1.00
-     *
-     *   delayTrendMs (smoothed) | delayFactor
-     *   ------------------------+------------
-     *   > 5.0                   | 0.50
-     *   > 1.0 and <= 5.0        | 0.70
-     *   > 0.5 and <= 1.0        | 0.95
-     *   <= 0.5                  | 1.00
-     *
-     *   Additive increase (when not congested):
-     *   condition                | video step          | audio step
-     *   -------------------------+---------------------+---------------------
-     *   lossClear AND delayClear | +MAX_VIDEO/40       | +MAX_AUDIO/20
-     *   lossClear OR delayClear  | +MAX_VIDEO/80       | +MAX_AUDIO/20
-     *   both neutral             | hold                | hold
-     */
-    DOUBLE factor = 1.0;
-    if (lossCongested || delayCongested) {
-        // Multiplicative decrease
-        DOUBLE lossFactor = 1.0;
-        DOUBLE delayFactor = 1.0;
-        if (pSampleStreamingSession->twccMetadata.averagePacketLoss > 10.0) {
-            lossFactor = 0.7;
-        } else if (lossCongested) {
-            lossFactor = 0.85;
-        }
-        if (delayTrendMs > 5.0) {
-            delayFactor = 0.5;
-        } else if (delayTrendMs > 1.0) {
-            delayFactor = 0.7;
-        } else if (delayCongested) {
-            delayFactor = 0.95;
-        }
-        factor = MIN(lossFactor, delayFactor);
-    } else if (lossClear && delayClear) {
-        // Additive increase: fixed step relative to max
-        videoBitrate = MIN(videoBitrate + MAX_VIDEO_BITRATE_KBPS / 40, MAX_VIDEO_BITRATE_KBPS);
-        factor = 0; // signal that we used additive increase
-    } else if (lossClear || delayClear) {
-        videoBitrate = MIN(videoBitrate + MAX_VIDEO_BITRATE_KBPS / 80, MAX_VIDEO_BITRATE_KBPS);
-        factor = 0;
+    MUTEX_LOCK(pTwccMetadata->updateLock);
+    // The encoder reports its bitrate once frames are flowing, nothing to adjust from before that
+    if (pTwccMetadata->currentVideoBitrate == 0) {
+        MUTEX_UNLOCK(pTwccMetadata->updateLock);
+        return STATUS_SUCCESS;
     }
-    // else: both neutral -> hold (factor = 1.0, no change)
-
-    if (factor > 0) {
-        videoBitrate = (UINT64) MAX(MIN(videoBitrate * factor, MAX_VIDEO_BITRATE_KBPS), MIN_VIDEO_BITRATE_KBPS);
-    } else {
-        videoBitrate = (UINT64) MAX(videoBitrate, MIN_VIDEO_BITRATE_KBPS);
+    if (pTwccMetadata->targetVideoBitrate == 0) {
+        pTwccMetadata->targetVideoBitrate = pTwccMetadata->currentVideoBitrate;
+        pTwccMetadata->targetAudioBitrate = pTwccMetadata->currentAudioBitrate;
     }
-    if (factor > 0) {
-        audioBitrate = (UINT64) MAX(MIN(audioBitrate * factor, MAX_AUDIO_BITRATE_BPS), MIN_AUDIO_BITRATE_BPS);
-    } else {
-        // Additive increase for audio
-        audioBitrate = MIN(audioBitrate + MAX_AUDIO_BITRATE_BPS / 20, MAX_AUDIO_BITRATE_BPS);
-        audioBitrate = (UINT64) MAX(audioBitrate, MIN_AUDIO_BITRATE_BPS);
+    videoBitrate = pTwccMetadata->targetVideoBitrate;
+    audioBitrate = pTwccMetadata->targetAudioBitrate;
+
+    if (pTwccMetadata->congestedSince != 0 && now - pTwccMetadata->congestedSince >= TWCC_CONGESTION_PERSIST_TIME) {
+        // Cut by one step, but not below 85% of what the receiver actually got, and never above the current target.
+        // rxBytes covers audio, video and RTP/SRTP overhead, so rxKbps slightly overstates the video throughput
+        severe = pTwccMetadata->averagePacketLoss > TWCC_LOSS_SEVERE_PERCENT;
+        rxKbps = pCongestionCtx->duration > 0
+            ? (DOUBLE) pCongestionCtx->rxBytes * 8.0 * HUNDREDS_OF_NANOS_IN_A_SECOND / (DOUBLE) pCongestionCtx->duration / 1000.0
+            : 0.0;
+        stepKbps = (DOUBLE) videoBitrate * (severe ? TWCC_SEVERE_DECREASE_FACTOR : TWCC_DECREASE_FACTOR);
+        videoBitrate = (UINT64) MAX(MIN((DOUBLE) videoBitrate, MAX(stepKbps, TWCC_DECREASE_FACTOR * rxKbps)), (DOUBLE) MIN_VIDEO_BITRATE_KBPS);
+        audioBitrate = (UINT64) MAX((DOUBLE) audioBitrate * TWCC_DECREASE_FACTOR, (DOUBLE) MIN_AUDIO_BITRATE_BPS);
+        pTwccMetadata->lastDecreaseTime = now;
+        // Require congestion to persist again before the next cut
+        pTwccMetadata->congestedSince = now;
+    } else if (!congested && now - pTwccMetadata->lastDecreaseTime >= TWCC_HOLD_AFTER_DECREASE) {
+        videoBitrate = (UINT64) MIN((DOUBLE) videoBitrate * TWCC_INCREASE_FACTOR, (DOUBLE) MAX_VIDEO_BITRATE_KBPS);
+        audioBitrate = (UINT64) MIN((DOUBLE) audioBitrate * TWCC_INCREASE_FACTOR, (DOUBLE) MAX_AUDIO_BITRATE_BPS);
     }
+    // else: congestion not yet persistent, or holding after a cut -> keep the target
 
-    pSampleStreamingSession->twccMetadata.newVideoBitrate = videoBitrate;
-    pSampleStreamingSession->twccMetadata.newAudioBitrate = audioBitrate;
-    MUTEX_UNLOCK(pSampleStreamingSession->twccMetadata.updateLock);
+    pTwccMetadata->targetVideoBitrate = videoBitrate;
+    pTwccMetadata->targetAudioBitrate = audioBitrate;
+    // GstMedia.c applies newVideoBitrate/newAudioBitrate on the next frame when they are non-zero
+    if (sampleBitrateOutsideDeadband(videoBitrate, pTwccMetadata->currentVideoBitrate)) {
+        pTwccMetadata->newVideoBitrate = videoBitrate;
+    }
+    if (sampleBitrateOutsideDeadband(audioBitrate, pTwccMetadata->currentAudioBitrate)) {
+        pTwccMetadata->newAudioBitrate = audioBitrate;
+    }
+    MUTEX_UNLOCK(pTwccMetadata->updateLock);
 
-    pSampleStreamingSession->twccMetadata.lastAdjustmentTimeMs = currentTimeMs;
+    pTwccMetadata->lastAdjustmentTimeMs = now;
 
-    DLOGD("BWE: pktLoss=%.2f%% delayTrend=%.4f ms factor=%.2f | video=%llu kbps audio=%llu bps | tx: %u bytes %u pkts, rx: %u bytes %u pkts",
-          pSampleStreamingSession->twccMetadata.averagePacketLoss, delayTrendMs, factor, videoBitrate, audioBitrate, pCongestionCtx->txBytes,
-          txPacketsCnt, pCongestionCtx->rxBytes, rxPacketsCnt);
+    DLOGD("BWE: pktLoss=%.2f%% delayTrend=%.4f ms congested=%s | target video=%" PRIu64 " kbps audio=%" PRIu64 " bps | tx: %" PRIu64 " bytes %" PRIu64
+          " pkts, rx: %" PRIu64 " bytes %" PRIu64 " pkts",
+          pTwccMetadata->averagePacketLoss, delayTrendMs, congested ? "yes" : "no", videoBitrate, audioBitrate, pCongestionCtx->txBytes,
+          pCongestionCtx->txPackets, pCongestionCtx->rxBytes, pCongestionCtx->rxPackets);
 
     return STATUS_SUCCESS;
 }

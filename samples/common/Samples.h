@@ -106,11 +106,23 @@ extern "C" {
 #define MAX_SIGNALING_CLIENT_METRICS_MESSAGE_SIZE 736 // strlen(SIGNALING_CLIENT_METRICS_JSON_TEMPLATE) + 20 * 10
 #define MAX_ICE_AGENT_METRICS_MESSAGE_SIZE        113 // strlen(ICE_AGENT_METRICS_JSON_TEMPLATE) + 20 * 2
 
-#define TWCC_BITRATE_ADJUSTMENT_INTERVAL_MS (250 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define TWCC_BITRATE_ADJUSTMENT_INTERVAL_MS (1000 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 #define MIN_VIDEO_BITRATE_KBPS              384    // Unit kilobits/sec. Value could change based on codec.
 #define MAX_VIDEO_BITRATE_KBPS              2500   // Unit kilobits/sec. Value could change based on codec.
 #define MIN_AUDIO_BITRATE_BPS               4000   // Unit bits/sec. Value could change based on codec.
 #define MAX_AUDIO_BITRATE_BPS               128000 // Unit bits/sec. Value could change based on codec.
+
+// Bandwidth controller tuning for sampleOnPeerCongestionFeedback. The handler acts at most once per
+// TWCC_BITRATE_ADJUSTMENT_INTERVAL_MS. Times are in GETTIME() units (100 ns).
+#define TWCC_CONGESTION_PERSIST_TIME  (500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) // Congestion must last this long before a cut
+#define TWCC_HOLD_AFTER_DECREASE      (3 * HUNDREDS_OF_NANOS_IN_A_SECOND)        // No increases for this long after a cut
+#define TWCC_LOSS_CONGESTED_PERCENT   5.0                                        // Smoothed loss above this is congestion
+#define TWCC_LOSS_SEVERE_PERCENT      10.0                                       // Smoothed loss above this allows the larger cut
+#define TWCC_DELAY_CONGESTED_MS       1.0                                        // Delay trend above this is congestion
+#define TWCC_DECREASE_FACTOR          0.85                                       // Largest normal cut per interval
+#define TWCC_SEVERE_DECREASE_FACTOR   0.7                                        // Cut per interval under severe loss
+#define TWCC_INCREASE_FACTOR          1.05                                       // Increase per interval (~5%/s)
+#define TWCC_ENCODER_DEADBAND_PERCENT 5                                          // Don't reconfigure the encoder for smaller changes
 
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
@@ -245,6 +257,10 @@ typedef struct {
     UINT64 newVideoBitrate;
     UINT64 newAudioBitrate;
     DOUBLE averagePacketLoss;
+    UINT64 targetVideoBitrate; // kbps. Running target, keeps accumulating while changes are under the deadband
+    UINT64 targetAudioBitrate; // bps
+    UINT64 congestedSince;     // GETTIME() when the current congestion started, 0 when not congested
+    UINT64 lastDecreaseTime;   // GETTIME() of the last cut
 } TwccMetadata, *PTwccMetadata;
 
 struct __SampleStreamingSession {
