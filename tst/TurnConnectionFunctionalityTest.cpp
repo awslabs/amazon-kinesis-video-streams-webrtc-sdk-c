@@ -1231,8 +1231,7 @@ TEST_F(TurnConnectionFunctionalityTest, fromCreatePermissionAdvancesPastFailedPe
         << "CREATE_PERMISSION did not advance with peers {READY, FAILED}. FAILED peers must count toward the "
            "advance condition (#2386 / #2387); otherwise the state machine stalls until the 5s timeout.";
 
-    // A peer still mid-permission (BIND_CHANNEL) also counts as "with permission".
-    states[0] = TURN_PEER_CONN_STATE_BIND_CHANNEL;
+    // A peer in BIND_CHANNEL already has its permission, so it also counts as "with permission".
     pTurnConnection->turnPeerList[0].connectionState = TURN_PEER_CONN_STATE_BIND_CHANNEL;
     nextState = TURN_STATE_NONE;
     EXPECT_EQ(STATUS_SUCCESS, fromCreatePermissionTurnState((UINT64) pTurnConnection, &nextState));
