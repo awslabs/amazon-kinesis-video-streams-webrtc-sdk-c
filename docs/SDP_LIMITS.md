@@ -1,6 +1,6 @@
 # SDP Limits and Buffer Sizing
 
-The KVS WebRTC-C SDK uses fixed-size buffers and arrays to receive, hold, and parse SDP messages. These dimensions are made configurable at compile-time. This document consolidates them, so they are easy to find and compare. Use <kbd>Ctrl</kbd>+<kbd>F</kbd> for the CMake variable or error you are chasing.
+The KVS WebRTC-C library uses fixed-size buffers and arrays to receive, hold, and parse SDP messages. These dimensions are made configurable at compile-time. This document consolidates them, so they are easy to find and compare. Use <kbd>Ctrl</kbd>+<kbd>F</kbd> for the CMake variable or error you are looking for.
 
 ## Summary
 
@@ -13,7 +13,7 @@ The KVS WebRTC-C SDK uses fixed-size buffers and arrays to receive, hold, and pa
 
 The two buffer-size rows are **not independent knobs**. Both are driven by the single `KVS_SIGNALING_MESSAGE_LEN` value: you set the on-wire signaling size, and the decoded SDP buffer is derived downward from it (accounting for base64 decoding). See [Buffer Size](#3-sdp-buffer-size-kvs_signaling_message_len).
 
-\* If `KVS_SIGNALING_MESSAGE_LEN` is not set, the SDK uses legacy defaults (signaling buffer 18750, decoded SDP buffer 25000) that do not follow the derivation formula.
+\* If `KVS_SIGNALING_MESSAGE_LEN` is not set, the library uses legacy defaults (signaling buffer 18750, decoded SDP buffer 25000) that do not follow the derivation formula.
 
 When diagnosing a rejection, match the *error code* to the right limit above.
 
