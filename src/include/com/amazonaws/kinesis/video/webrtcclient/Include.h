@@ -527,6 +527,7 @@ extern "C" {
 #define STATUS_PEERCONNECTION_CODEC_INVALID                            STATUS_PEERCONNECTION_BASE + 0x00000002
 #define STATUS_PEERCONNECTION_CODEC_MAX_EXCEEDED                       STATUS_PEERCONNECTION_BASE + 0x00000003
 #define STATUS_PEERCONNECTION_EARLY_DNS_RESOLUTION_FAILED              STATUS_PEERCONNECTION_BASE + 0x00000004
+#define STATUS_PEERCONNECTION_PACER_QUEUE_FULL                         STATUS_PEERCONNECTION_BASE + 0x00000005
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -810,6 +811,16 @@ extern "C" {
  * maximum number of server URIs plus single STUN (1)
  */
 #define MAX_ICE_SERVERS_COUNT (MAX_ICE_CONFIG_COUNT * MAX_ICE_CONFIG_URI_COUNT + 1)
+
+/**
+ * Default pacing rate as a multiple of the measured video send rate. See KvsRtcConfiguration.pacingFactor
+ */
+#define PACER_DEFAULT_PACING_FACTOR 2.5
+
+/**
+ * Default longest time a packet waits in the pacer. See KvsRtcConfiguration.pacerMaxQueueDelayMs
+ */
+#define PACER_DEFAULT_MAX_QUEUE_DELAY_MS 250
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -1505,6 +1516,14 @@ typedef struct {
                                                 //!< candidate has resolved instead of running to iceLocalCandidateGatheringTimeout. Defaults to
                                                 //!< FALSE, which keeps gathering open for TURN servers added later. When TRUE,
                                                 //!< peerConnectionUpdateIceServers returns STATUS_ICE_SERVERS_FINAL.
+    BOOL enablePacer;                           //!< Pace outgoing video RTP packets instead of sending all of a frame's packets back-to-back.
+                                                //!< A keyframe is then spread over tens of milliseconds, so it doesn't overflow small uplink
+                                                //!< buffers and the TWCC delay trend doesn't read the burst as congestion. Audio and
+                                                //!< retransmissions are not paced. Defaults to FALSE.
+    DOUBLE pacingFactor;                        //!< Pacing rate as a multiple of the measured video send rate, used when enablePacer is TRUE.
+                                                //!< Must be 0 or at least 1.0. 0 uses PACER_DEFAULT_PACING_FACTOR.
+    UINT32 pacerMaxQueueDelayMs;                //!< Longest a packet should wait in the pacer. The pacer speeds up to drain its queue within
+                                                //!< this time. 0 uses PACER_DEFAULT_MAX_QUEUE_DELAY_MS.
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
 
 /**

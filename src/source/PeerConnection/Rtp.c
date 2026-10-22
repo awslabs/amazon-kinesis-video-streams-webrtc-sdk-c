@@ -288,7 +288,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = NULL;
     PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;
-    BOOL locked = FALSE, bufferAfterEncrypt = FALSE;
+    BOOL locked = FALSE, bufferAfterEncrypt = FALSE, paced = FALSE;
     PRtpPacket pPacketList = NULL, pRtpPacket = NULL;
     UINT32 i = 0, packetLen = 0, headerLen = 0, allocSize;
     PBYTE rawPacket = NULL;
@@ -308,7 +308,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     // temp vars :(
     UINT64 tmpFrames, tmpTime;
     UINT16 twsn, firstSeqNum, lastSeqNum;
-    UINT32 extpayload;
+    UINT32 extpayload = 0;
     STATUS sendStatus;
     RTC_RTP_TRANSCEIVER_DIRECTION direction;
     SIZE_T packedPayloadTypes;
@@ -409,6 +409,8 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     pKvsRtpTransceiver->sender.sequenceNumber = GET_UINT16_SEQ_NUM(pKvsRtpTransceiver->sender.sequenceNumber + pPayloadArray->payloadSubLenSize);
 
     bufferAfterEncrypt = (payloadType == rtxPayloadType);
+    // Video goes through the pacer when it is enabled; audio is small and latency sensitive, so it is always sent directly
+    paced = pKvsPeerConnection->pPacer != NULL && MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind;
     for (i = 0; i < pPayloadArray->payloadSubLenSize; i++) {
         pRtpPacket = pPacketList + i;
         if (pKvsRtpTransceiver->twccEnabled) {
@@ -434,15 +436,21 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
         }
 
         CHK_STATUS(encryptRtpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, (PINT32) &packetLen));
-        sendStatus = iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, packetLen);
-        if (sendStatus == STATUS_SEND_DATA_FAILED) {
+        if (paced) {
+            // The pacer copies the encrypted packet, sends it from its timer and records the TWCC send time then
+            sendStatus = pacerEnqueuePacket(pKvsPeerConnection->pPacer, rawPacket, packetLen, pKvsRtpTransceiver->twccEnabled, extpayload,
+                                            pRtpPacket->payloadLength, now);
+        } else {
+            sendStatus = iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, packetLen);
+        }
+        if (sendStatus == STATUS_SEND_DATA_FAILED || sendStatus == STATUS_PEERCONNECTION_PACER_QUEUE_FULL) {
             packetsDiscardedOnSend++;
             bytesDiscardedOnSend += packetLen - headerLen;
             // TODO is frame considered discarded when at least one of its packets is discarded or all of its packets discarded?
             framesDiscardedOnSend = 1;
             SAFE_MEMFREE(rawPacket);
             continue;
-        } else if (sendStatus == STATUS_SUCCESS && pKvsRtpTransceiver->twccEnabled) {
+        } else if (sendStatus == STATUS_SUCCESS && pKvsRtpTransceiver->twccEnabled && !paced) {
             pRtpPacket->sentTime = GETTIME();
             twccManagerOnPacketSent(pKvsPeerConnection, pRtpPacket);
         }

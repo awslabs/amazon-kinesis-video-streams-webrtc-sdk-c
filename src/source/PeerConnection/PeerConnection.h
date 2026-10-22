@@ -156,6 +156,12 @@ typedef struct {
     BOOL remoteTwccOfferedPerMedia[MAX_SDP_SESSION_MEDIA_COUNT]; // tracks which remote m-lines offered TWCC extmap
     MUTEX twccLock;
     PTwccManager pTwccManager;
+    // Paces outgoing video packets when KvsRtcConfiguration.enablePacer is set, NULL otherwise
+    PPacer pPacer;
+    // The pacer runs on its own timer queue (its own thread): a send that blocks on a full socket buffer
+    // then only delays pacing, not the ICE, DTLS and RTCP timers on timerQueueHandle
+    TIMER_QUEUE_HANDLE pacerTimerQueueHandle;
+    UINT32 pacerTimerId;
     RtcOnSenderBandwidthEstimation onSenderBandwidthEstimation;
     UINT64 onSenderBandwidthEstimationCustomData;
 

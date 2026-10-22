@@ -836,6 +836,68 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
     EXPECT_EQ(ATOMIC_LOAD(&seenVideo), 1);
 }
 
+// Same as exchangeMedia, but the sender paces its video packets, so each ~100-packet frame goes out over several timer ticks
+TEST_F(PeerConnectionFunctionalityTest, exchangeMediaWithPacer)
+{
+    auto const frameBufferSize = 200000;
+
+    RtcConfiguration offerConfiguration, answerConfiguration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack;
+    PRtcRtpTransceiver offerVideoTransceiver, answerVideoTransceiver;
+    SIZE_T framesReceived = 0;
+    Frame videoFrame;
+    PPacer pPacer;
+
+    MEMSET(&offerConfiguration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&answerConfiguration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
+    offerConfiguration.kvsRtcConfiguration.enablePacer = TRUE;
+
+    videoFrame.frameData = (PBYTE) MEMALLOC(frameBufferSize);
+    videoFrame.size = TEST_VIDEO_FRAME_SIZE;
+    MEMSET(videoFrame.frameData, 0x11, videoFrame.size);
+
+    EXPECT_EQ(createPeerConnection(&offerConfiguration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&answerConfiguration, &answerPc), STATUS_SUCCESS);
+    pPacer = reinterpret_cast<PKvsPeerConnection>(offerPc)->pPacer;
+    ASSERT_TRUE(pPacer != NULL);
+
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+
+    auto onFrameHandler = [](UINT64 customData, PFrame pFrame) -> void {
+        UNUSED_PARAM(pFrame);
+        ATOMIC_INCREMENT((PSIZE_T) customData);
+    };
+    EXPECT_EQ(transceiverOnFrame(answerVideoTransceiver, (UINT64) &framesReceived, onFrameHandler), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    // A frame is only delivered once all of its paced packets have arrived
+    for (auto i = 0; i <= 1000 && ATOMIC_LOAD(&framesReceived) < 2; i++) {
+        EXPECT_EQ(writeFrame(offerVideoTransceiver, &videoFrame), STATUS_SUCCESS);
+        videoFrame.presentationTs += (HUNDREDS_OF_NANOS_IN_A_SECOND / 25);
+
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND / 25);
+    }
+    EXPECT_LE(2, ATOMIC_LOAD(&framesReceived));
+
+    // The queue drains once the sender stops writing
+    for (auto i = 0; i < 100 && pPacer->queuedPackets > 0; i++) {
+        THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    EXPECT_EQ(0U, pPacer->queuedPackets);
+
+    MEMFREE(videoFrame.frameData);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
 // Same test as exchangeMedia, but assert that if one side is RSA DTLS and Key Extraction works
 TEST_F(PeerConnectionFunctionalityTest, exchangeMediaRSA)
 {

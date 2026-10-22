@@ -305,6 +305,7 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #include "Rtcp/RollingBuffer.h"
 #include "Rtcp/RtpRollingBuffer.h"
 #include "PeerConnection/JitterBuffer.h"
+#include "PeerConnection/Pacer.h"
 #include "PeerConnection/PeerConnection.h"
 #include "PeerConnection/Retransmitter.h"
 #include "PeerConnection/SessionDescription.h"

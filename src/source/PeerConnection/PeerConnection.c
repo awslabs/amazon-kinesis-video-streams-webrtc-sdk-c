@@ -996,6 +996,66 @@ PVOID resolveStunIceServerIp(PVOID args)
     return NULL;
 }
 
+static STATUS pacerSendPacket(UINT64 customData, PBYTE pPacket, UINT32 packetLen)
+{
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
+
+    return iceAgentSendPacket(pKvsPeerConnection->pIceAgent, pPacket, packetLen);
+}
+
+// Records the TWCC send time when the pacer actually sends the packet, not when writeFrame queued it
+static VOID pacerOnPacketSent(UINT64 customData, UINT32 twccExtPayload, UINT32 payloadLength, UINT64 sentTime)
+{
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
+    RtpPacket rtpPacket;
+
+    MEMSET(&rtpPacket, 0x00, SIZEOF(RtpPacket));
+    rtpPacket.header.extensionProfile = TWCC_EXT_PROFILE;
+    rtpPacket.header.extensionPayload = (PBYTE) &twccExtPayload;
+    rtpPacket.payloadLength = payloadLength;
+    rtpPacket.sentTime = sentTime;
+    twccManagerOnPacketSent(pKvsPeerConnection, &rtpPacket);
+}
+
+static STATUS pacerTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
+{
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
+    UNUSED_PARAM(timerId);
+    UNUSED_PARAM(currentTime);
+
+    return pacerProcess(pKvsPeerConnection->pPacer, GETTIME());
+}
+
+static STATUS createPeerConnectionPacer(PKvsPeerConnection pKvsPeerConnection, PKvsRtcConfiguration pKvsRtcConfiguration)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PacerConfig pacerConfig;
+
+    CHK(pKvsRtcConfiguration->pacingFactor == 0 || pKvsRtcConfiguration->pacingFactor >= 1.0, STATUS_INVALID_ARG);
+
+    MEMSET(&pacerConfig, 0x00, SIZEOF(PacerConfig));
+    pacerConfig.pacingFactor = pKvsRtcConfiguration->pacingFactor == 0 ? PACER_DEFAULT_PACING_FACTOR : pKvsRtcConfiguration->pacingFactor;
+    pacerConfig.minPacingRateBps = PACER_MIN_PACING_RATE_BPS;
+    pacerConfig.maxQueueDelay =
+        (UINT64) (pKvsRtcConfiguration->pacerMaxQueueDelayMs == 0 ? PACER_DEFAULT_MAX_QUEUE_DELAY_MS : pKvsRtcConfiguration->pacerMaxQueueDelayMs) *
+        HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    pacerConfig.maxQueuePackets = PACER_MAX_QUEUE_PACKETS;
+
+    CHK_STATUS(createPacer(&pacerConfig, pacerSendPacket, pacerOnPacketSent, (UINT64) pKvsPeerConnection, &pKvsPeerConnection->pPacer));
+    // A dedicated timer queue, because iceAgentSendPacket can block for up to MAX_SOCKET_WRITE_RETRY * SOCKET_SEND_RETRY_TIMEOUT_MILLI_SECOND
+    // when the socket buffer is full, and that must not hold up the peer connection's other timers
+    CHK_STATUS(timerQueueCreate(&pKvsPeerConnection->pacerTimerQueueHandle));
+    CHK_STATUS(timerQueueAddTimer(pKvsPeerConnection->pacerTimerQueueHandle, PACER_PROCESS_INTERVAL, PACER_PROCESS_INTERVAL, pacerTimerCallback,
+                                  (UINT64) pKvsPeerConnection, &pKvsPeerConnection->pacerTimerId));
+    DLOGI("Video pacing enabled: pacing factor %.2f, max queue delay %" PRIu64 " ms", pacerConfig.pacingFactor,
+          pacerConfig.maxQueueDelay / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+
+CleanUp:
+    LEAVES();
+    return retStatus;
+}
+
 STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection* ppPeerConnection)
 {
     ENTERS();
@@ -1070,6 +1130,10 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
                                              &pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable));
     }
 
+    if (pConfiguration->kvsRtcConfiguration.enablePacer) {
+        CHK_STATUS(createPeerConnectionPacer(pKvsPeerConnection, &pConfiguration->kvsRtcConfiguration));
+    }
+
     *ppPeerConnection = (PRtcPeerConnection) pKvsPeerConnection;
 
 CleanUp:
@@ -1126,6 +1190,13 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     if (IS_VALID_TIMER_QUEUE_HANDLE(pKvsPeerConnection->timerQueueHandle)) {
         timerQueueShutdown(pKvsPeerConnection->timerQueueHandle);
     }
+
+    // Stop the pacer's own timer queue (this waits for a send in progress) so packets still queued are dropped here
+    if (IS_VALID_TIMER_QUEUE_HANDLE(pKvsPeerConnection->pacerTimerQueueHandle)) {
+        timerQueueShutdown(pKvsPeerConnection->pacerTimerQueueHandle);
+        timerQueueFree(&pKvsPeerConnection->pacerTimerQueueHandle);
+    }
+    CHK_LOG_ERR(freePacer(&pKvsPeerConnection->pPacer));
 
     /* Free structs that have their own thread. SCTP has threads created by SCTP library. IceAgent has the
      * connectionListener thread. Free SCTP first so it wont try to send anything through ICE. */

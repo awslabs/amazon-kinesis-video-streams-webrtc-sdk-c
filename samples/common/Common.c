@@ -419,7 +419,7 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     PIceConfigInfo pIceConfigInfo;
     UINT64 data;
     PRtcCertificate pRtcCertificate = NULL;
-    PCHAR pIceTransportPolicy;
+    PCHAR pIceTransportPolicy, pEnablePacer;
 
     CHK(pSampleConfiguration != NULL && ppRtcPeerConnection != NULL, STATUS_NULL_ARG);
 
@@ -436,6 +436,13 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
     } else {
         configuration.iceTransportPolicy = ICE_TRANSPORT_POLICY_ALL;
         DLOGI("ICE transport policy: all");
+    }
+
+    // Pace outgoing video packets when KVS_ENABLE_PACER is set to 1 or true
+    pEnablePacer = GETENV(ENABLE_PACER_ENV_VAR);
+    if (!IS_NULL_OR_EMPTY_STRING(pEnablePacer) && (STRCMPI(pEnablePacer, "1") == 0 || STRCMPI(pEnablePacer, "true") == 0)) {
+        configuration.kvsRtcConfiguration.enablePacer = TRUE;
+        DLOGI("Video pacing: enabled");
     }
 
 #ifdef ENABLE_STATS_CALCULATION_CONTROL
