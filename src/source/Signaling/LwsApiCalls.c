@@ -2628,8 +2628,16 @@ PVOID receiveLwsMessageWrapper(PVOID args)
                                     "Offer Sent to Answer Received time");
         MUTEX_UNLOCK(pSignalingClient->offerSendReceiveTimeLock);
     }
-    // Calling client receive message callback if specified
-    if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
+    if (pSignalingClient->clientInfo.receiveMessagePreCallbackHookFn != NULL) {
+        CHK_STATUS(pSignalingClient->clientInfo.receiveMessagePreCallbackHookFn(pSignalingClient->clientInfo.hookCustomData));
+    }
+
+    // Calling client receive message callback if specified and the client is not being freed. A worker that was
+    // dispatched before freeSignalingClient() set shutdown is still counted and waited for, but the application
+    // has already asked for the client to go away, so its message is dropped rather than delivered mid-free.
+    if (ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown)) {
+        DLOGD("Dropping received message of type %s: signaling client is shutting down", getMessageTypeInString(messageType));
+    } else if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.messageReceivedFn(pSignalingClient->signalingClientCallbacks.customData,
                                                                                 &pSignalingMessageWrapper->receivedSignalingMessage));
     }

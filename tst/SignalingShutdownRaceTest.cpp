@@ -815,9 +815,11 @@ struct LateReceiveContext {
     std::atomic<bool> secondStillRunningAfterFree{false};
 };
 
-static STATUS lateReceiveMessageReceivedFn(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage)
+// Installed as receiveMessagePreCallbackHookFn rather than messageReceivedFn: the hook runs on every receive worker
+// before the worker's own shutdown check, so a worker spawned after the drain is observed even though the SDK
+// drops its message instead of invoking messageReceivedFn.
+static STATUS lateReceiveWorkerHook(UINT64 customData)
 {
-    UNUSED_PARAM(pReceivedSignalingMessage);
     LateReceiveContext* pCtx = (LateReceiveContext*) customData;
 
     if (pCtx->entered.fetch_add(1) == 0) {
@@ -851,9 +853,9 @@ TEST_F(SignalingShutdownRaceTest, messageReceivedAfterShutdownDrainDoesNotSpawnW
     bool freeReturned;
 
     pCtx->pAsyncFree = new AsyncFree();
-    options.customData = (UINT64) pCtx;
-    options.messageReceivedFn = lateReceiveMessageReceivedFn;
     ASSERT_EQ(STATUS_SUCCESS, createShutdownRaceClient(mChannelName, mRegion, mCaCertPath, mLogLevel, options, &pCredentialProvider, &pSignalingClient));
+    pSignalingClient->clientInfo.hookCustomData = (UINT64) pCtx;
+    pSignalingClient->clientInfo.receiveMessagePreCallbackHookFn = lateReceiveWorkerHook;
 
     // Worker 1 holds the drain open.
     ASSERT_EQ(STATUS_SUCCESS, receiveLwsMessage(pSignalingClient, (PCHAR) kShutdownRaceIceCandidateMessage, ARRAY_SIZE(kShutdownRaceIceCandidateMessage)));

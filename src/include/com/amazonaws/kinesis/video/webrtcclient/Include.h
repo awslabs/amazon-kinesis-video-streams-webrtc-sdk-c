@@ -510,6 +510,7 @@ extern "C" {
 #define STATUS_SIGNALING_JOIN_SESSION_CONNECTED_FAILED             STATUS_SIGNALING_BASE + 0x0000004b
 #define STATUS_SIGNALING_DESCRIBE_MEDIA_CALL_FAILED                STATUS_SIGNALING_BASE + 0x0000004c
 #define STATUS_SIGNALING_FREE_FROM_CALLBACK                        STATUS_SIGNALING_BASE + 0x0000004d
+#define STATUS_SIGNALING_FREE_IN_PROGRESS                          STATUS_SIGNALING_BASE + 0x0000004e
 
 /*!@} */
 
@@ -2468,7 +2469,9 @@ PUBLIC_API STATUS createSignalingClientSync(PSignalingClientInfo, PChannelInfo, 
  * NOTE: The call is idempotent.
  * NOTE: Blocks until the signaling client's internal threads (reconnect, WSS listener, receive workers) have
  *       exited, which includes any of their in-flight callbacks. It may take longer to return while a reconnect
- *       attempt is in progress.
+ *       attempt is in progress. A received message whose worker had not yet started invoking messageReceivedFn
+ *       when this call began is dropped rather than delivered during the free; a worker already inside
+ *       messageReceivedFn completes it, and this call waits for it.
  * NOTE: Must not be called from a signaling callback. A call from messageReceivedFn, or from stateChangeFn /
  *       errorReportFn while they run on one of the SDK's internal threads, is detected and returns
  *       STATUS_SIGNALING_FREE_FROM_CALLBACK, leaving the handle valid. stateChangeFn and errorReportFn can also be
@@ -2529,6 +2532,12 @@ PUBLIC_API STATUS signalingClientGetIceConfigInfo(SIGNALING_CLIENT_HANDLE, UINT3
  * @brief Fetches all assets needed to ready the state machine before attempting to connect.
  *        Can also be used to reallocate missing / expired assets before reconnecting.
  *
+ * NOTE: Returns STATUS_SIGNALING_FREE_IN_PROGRESS, without waiting for the SDK's threads, when called from a
+ *       signaling callback that runs on one of the SDK's internal threads while freeSignalingClient() runs on
+ *       another thread. A call that had already passed that check when freeSignalingClient() started waits a
+ *       bounded time for the listener and reconnect threads and may return another status. From any other thread
+ *       the call must not overlap freeSignalingClient(): the client can be freed while it runs.
+ *
  * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
@@ -2548,6 +2557,13 @@ PUBLIC_API STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE);
 
 /**
  * @brief Disconnects the signaling client.
+ *
+ * NOTE: Returns STATUS_SUCCESS, without waiting for the SDK's threads, when called from a signaling callback that
+ *       runs on one of the SDK's internal threads while freeSignalingClient() runs on another thread:
+ *       freeSignalingClient() disconnects the client. A call that had already passed that check when
+ *       freeSignalingClient() started waits a bounded time for the listener and reconnect threads and may return
+ *       another status. From any other thread the call must not overlap freeSignalingClient(): the client can be
+ *       freed while it runs.
  *
  * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
  *
@@ -2586,6 +2602,13 @@ PUBLIC_API STATUS signalingClientGetStateString(SIGNALING_CLIENT_STATE, PCHAR*);
  * NOTE: The call transitions the signaling client state machine to a terminal state
  * even if the call fails. The proper handling on success and on an error is to
  * free the signaling client.
+ *
+ * NOTE: Returns STATUS_SIGNALING_FREE_IN_PROGRESS, without waiting for the SDK's threads and without touching the
+ *       state machine, when called from a signaling callback that runs on one of the SDK's internal threads while
+ *       freeSignalingClient() runs on another thread. A call that had already passed that check when
+ *       freeSignalingClient() started waits a bounded time for the listener and reconnect threads and may return
+ *       another status. From any other thread the call must not overlap freeSignalingClient(): the client can be
+ *       freed while it runs.
  *
  * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
  *
