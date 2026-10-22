@@ -219,6 +219,9 @@ Functions</h2></td></tr>
 <tr class="memitem:ga70b9d70f77fae56f1a2f223cb3054416" id="r_ga70b9d70f77fae56f1a2f223cb3054416"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga70b9d70f77fae56f1a2f223cb3054416">createDataChannel</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PCHAR</a>, <a class="el" href="group__PublicStructures.html#gab970e0095d779c18c106620eac5fbbc6">PRtcDataChannelInit</a>, <a class="el" href="group__Callbacks.html#ga2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a> *)</td></tr>
 <tr class="memdesc:ga70b9d70f77fae56f1a2f223cb3054416"><td class="mdescLeft">&#160;</td><td class="mdescRight">createDataChannel creates a new RtcDataChannel object with the given label.  <br /></td></tr>
 <tr class="separator:ga70b9d70f77fae56f1a2f223cb3054416"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga29e9ceb5f3c23a1c1ae922fc4c214107" id="r_ga29e9ceb5f3c23a1c1ae922fc4c214107"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga29e9ceb5f3c23a1c1ae922fc4c214107">createDataChannelWithCallbacks</a> (<a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PCHAR</a>, <a class="el" href="group__PublicStructures.html#gab970e0095d779c18c106620eac5fbbc6">PRtcDataChannelInit</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#ga19016a711a2550a8544e6c86c7f45d0f">RtcOnMessage</a>, <a class="el" href="group__Callbacks.html#ga0c9cbf4449a44e9a3847be0ef53b22a8">RtcOnOpen</a>, <a class="el" href="group__Callbacks.html#ga2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a> *)</td></tr>
+<tr class="memdesc:ga29e9ceb5f3c23a1c1ae922fc4c214107"><td class="mdescLeft">&#160;</td><td class="mdescRight">createDataChannelWithCallbacks is <a class="el" href="group__PublicMemberFunctions.html#ga70b9d70f77fae56f1a2f223cb3054416" title="createDataChannel creates a new RtcDataChannel object with the given label.">createDataChannel()</a> with the message and open callbacks set as the channel is created, so that it receives from the first message.  <br /></td></tr>
+<tr class="separator:ga29e9ceb5f3c23a1c1ae922fc4c214107"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga92ed55e9b079e7b9a12812d7530b2595" id="r_ga92ed55e9b079e7b9a12812d7530b2595"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga92ed55e9b079e7b9a12812d7530b2595">dataChannelOnMessage</a> (<a class="el" href="group__Callbacks.html#ga2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#ga19016a711a2550a8544e6c86c7f45d0f">RtcOnMessage</a>)</td></tr>
 <tr class="memdesc:ga92ed55e9b079e7b9a12812d7530b2595"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set a callback for data channel message.  <br /></td></tr>
 <tr class="separator:ga92ed55e9b079e7b9a12812d7530b2595"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -879,7 +882,7 @@ Here is the call graph for this function:</div>
 </div><div class="memdoc">
 
 <p>createDataChannel creates a new RtcDataChannel object with the given label. </p>
-<p>NOTE: The <a class="el" href="structRtcDataChannelInit.html" title="RtcDataChannelInit dictionary used to configure properties of the underlying channel such as data rel...">RtcDataChannelInit</a> dictionary can be used to configure properties of the underlying channel such as data reliability. NOTE: Data channel can be created only after signaling for now</p>
+<p>NOTE: The <a class="el" href="structRtcDataChannelInit.html" title="RtcDataChannelInit dictionary used to configure properties of the underlying channel such as data rel...">RtcDataChannelInit</a> dictionary can be used to configure properties of the underlying channel such as data reliability. NOTE: A channel that uses in-band negotiation (DCEP) can only be created before the SCTP association is established. A negotiated channel (<a class="el" href="group__StatusCodes.html#ga8c67966c06b4163b51f21392ca5dc654">RtcDataChannelInit.negotiated</a> = TRUE with an id) can be created at any time; created after the association, it is open immediately and its onOpen callback fires on registration. Such a channel can receive before <a class="el" href="group__PublicMemberFunctions.html#ga92ed55e9b079e7b9a12812d7530b2595" title="Set a callback for data channel message.">dataChannelOnMessage()</a> is called, and those messages are dropped: create it with <a class="el" href="group__PublicMemberFunctions.html#ga29e9ceb5f3c23a1c1ae922fc4c214107" title="createDataChannelWithCallbacks is createDataChannel() with the message and open callbacks set as the ...">createDataChannelWithCallbacks()</a> instead.</p>
 <p>Reference: <a href="https://www.w3.org/TR/webrtc/#methods-11">https://www.w3.org/TR/webrtc/#methods-11</a></p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -890,7 +893,101 @@ Here is the call graph for this function:</div>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>STATUS code of the execution. STATUS_SUCCESS on success </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>STATUS code of the execution. STATUS_SUCCESS on success. STATUS_INVALID_ARG when negotiated is TRUE and id is empty or not below 300. STATUS_SCTP_STREAM_ID_IN_USE when another data channel already uses the id. STATUS_INVALID_OPERATION when an in-band channel is created after the SCTP association is established. </dd></dl>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__PublicMemberFunctions_ga70b9d70f77fae56f1a2f223cb3054416_cgraph.png" border="0" usemap="#agroup__PublicMemberFunctions_ga70b9d70f77fae56f1a2f223cb3054416_cgraph" alt=""/></div>
+<map name="agroup__PublicMemberFunctions_ga70b9d70f77fae56f1a2f223cb3054416_cgraph" id="agroup__PublicMemberFunctions_ga70b9d70f77fae56f1a2f223cb3054416_cgraph">
+<area shape="rect" title="createDataChannel creates a new RtcDataChannel object with the given label." alt="" coords="5,5,152,31"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga29e9ceb5f3c23a1c1ae922fc4c214107" title="createDataChannelWithCallbacks is createDataChannel() with the message and open callbacks set as the ..." alt="" coords="200,5,440,31"/>
+<area shape="poly" title=" " alt="" coords="152,15,186,15,186,21,152,21"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga29e9ceb5f3c23a1c1ae922fc4c214107" name="ga29e9ceb5f3c23a1c1ae922fc4c214107"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga29e9ceb5f3c23a1c1ae922fc4c214107">&#9670;&#160;</a></span>createDataChannelWithCallbacks()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a> createDataChannelWithCallbacks </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__PublicStructures.html#ga70b3d75a41ee6e4999be2934451c956a">PRtcPeerConnection</a>&#160;</td>
+          <td class="paramname"><em>pPeerConnection</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PCHAR</a>&#160;</td>
+          <td class="paramname"><em>pDataChannelName</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__PublicStructures.html#gab970e0095d779c18c106620eac5fbbc6">PRtcDataChannelInit</a>&#160;</td>
+          <td class="paramname"><em>pRtcDataChannelInit</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>&#160;</td>
+          <td class="paramname"><em>customData</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__Callbacks.html#ga19016a711a2550a8544e6c86c7f45d0f">RtcOnMessage</a>&#160;</td>
+          <td class="paramname"><em>rtcOnMessage</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__Callbacks.html#ga0c9cbf4449a44e9a3847be0ef53b22a8">RtcOnOpen</a>&#160;</td>
+          <td class="paramname"><em>rtcOnOpen</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__Callbacks.html#ga2be6b5f6da1b3a0471ad7b4443b90779">PRtcDataChannel</a> *&#160;</td>
+          <td class="paramname"><em>ppRtcDataChannel</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>createDataChannelWithCallbacks is <a class="el" href="group__PublicMemberFunctions.html#ga70b9d70f77fae56f1a2f223cb3054416" title="createDataChannel creates a new RtcDataChannel object with the given label.">createDataChannel()</a> with the message and open callbacks set as the channel is created, so that it receives from the first message. </p>
+<p>Use it for a negotiated channel created after the SCTP association is established: that channel is open as soon as it exists, and the peer may send on it right away. Its onOpen callback runs before this function returns. For other channels, it is the same as <a class="el" href="group__PublicMemberFunctions.html#ga70b9d70f77fae56f1a2f223cb3054416" title="createDataChannel creates a new RtcDataChannel object with the given label.">createDataChannel()</a> followed by <a class="el" href="group__PublicMemberFunctions.html#ga92ed55e9b079e7b9a12812d7530b2595" title="Set a callback for data channel message.">dataChannelOnMessage()</a> and <a class="el" href="group__PublicMemberFunctions.html#ga324f46d98cbdeaf9385590a4be190551" title="Set a callback for data channel open.">dataChannelOnOpen()</a>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">PRtcPeerConnection</td><td>Initialized <a class="el" href="structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer-to-peer communications with ano...">RtcPeerConnection</a> </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">PCHAR</td><td>Data channel Name </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">PRtcDataChannelInit</td><td>Allowed to be NULL/defines underlying channel properties </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">UINT64</td><td>User customData passed to both callbacks </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">RtcOnMessage</td><td>Message callback; allowed to be NULL </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">RtcOnOpen</td><td>Open callback; allowed to be NULL </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">PRtcDataChannel*</td><td>Created data channel with supplied channel name</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>STATUS code of the execution. STATUS_SUCCESS on success. STATUS_INVALID_ARG when negotiated is TRUE and id is empty or not below 300. STATUS_SCTP_STREAM_ID_IN_USE when another data channel already uses the id. STATUS_INVALID_OPERATION when an in-band channel is created after the SCTP association is established. </dd></dl>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__PublicMemberFunctions_ga29e9ceb5f3c23a1c1ae922fc4c214107_icgraph.png" border="0" usemap="#agroup__PublicMemberFunctions_ga29e9ceb5f3c23a1c1ae922fc4c214107_icgraph" alt=""/></div>
+<map name="agroup__PublicMemberFunctions_ga29e9ceb5f3c23a1c1ae922fc4c214107_icgraph" id="agroup__PublicMemberFunctions_ga29e9ceb5f3c23a1c1ae922fc4c214107_icgraph">
+<area shape="rect" title="createDataChannelWithCallbacks is createDataChannel() with the message and open callbacks set as the ..." alt="" coords="200,5,440,31"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga70b9d70f77fae56f1a2f223cb3054416" title="createDataChannel creates a new RtcDataChannel object with the given label." alt="" coords="5,5,152,31"/>
+<area shape="poly" title=" " alt="" coords="186,21,152,21,152,15,186,15"/>
+</map>
+</div>
 
 </div>
 </div>
@@ -1420,6 +1517,7 @@ Here is the call graph for this function:</div>
 </div><div class="memdoc">
 
 <p>Set a callback for data channel message. </p>
+<p>Messages that arrive before the callback is set are dropped. A negotiated channel created after the SCTP association is established can receive as soon as it exists: create it with <a class="el" href="group__PublicMemberFunctions.html#ga29e9ceb5f3c23a1c1ae922fc4c214107" title="createDataChannelWithCallbacks is createDataChannel() with the message and open callbacks set as the ...">createDataChannelWithCallbacks()</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">PRtcDataChannel</td><td>Data channel struct created by <a class="el" href="group__PublicMemberFunctions.html#ga70b9d70f77fae56f1a2f223cb3054416" title="createDataChannel creates a new RtcDataChannel object with the given label.">createDataChannel()</a> </td></tr>
@@ -1465,6 +1563,7 @@ Here is the call graph for this function:</div>
 </div><div class="memdoc">
 
 <p>Set a callback for data channel open. </p>
+<p>For a channel that is already open (a negotiated channel created on an established association, or a remote channel), the callback runs before this function returns. It runs once per channel.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">PRtcDataChannel</td><td>Data channel struct created by <a class="el" href="group__PublicMemberFunctions.html#ga70b9d70f77fae56f1a2f223cb3054416" title="createDataChannel creates a new RtcDataChannel object with the given label.">createDataChannel()</a> </td></tr>
@@ -1533,8 +1632,10 @@ Here is the call graph for this function:</div>
 <div class="center"><img src="group__PublicMemberFunctions_ga12ab55171a0f53ec8e248e2d193d6bd0_cgraph.png" border="0" usemap="#agroup__PublicMemberFunctions_ga12ab55171a0f53ec8e248e2d193d6bd0_cgraph" alt=""/></div>
 <map name="agroup__PublicMemberFunctions_ga12ab55171a0f53ec8e248e2d193d6bd0_cgraph" id="agroup__PublicMemberFunctions_ga12ab55171a0f53ec8e248e2d193d6bd0_cgraph">
 <area shape="rect" title="Send data via the PRtcDataChannel." alt="" coords="5,5,141,31"/>
-<area shape="rect" href="Sctp_8c.html#a334c503681d0e0165ba34a472b49feb9" title=" " alt="" coords="189,5,381,31"/>
+<area shape="rect" href="Sctp_8c.html#a8d677382e8cf3b85a9c544d021d14b8e" title=" " alt="" coords="189,5,381,31"/>
 <area shape="poly" title=" " alt="" coords="141,15,176,15,176,21,141,21"/>
+<area shape="rect" href="Sctp_8c.html#a1dea61e8f31184c0862bffb92ed89eb6" title=" " alt="" coords="429,5,607,31"/>
+<area shape="poly" title=" " alt="" coords="382,15,415,15,415,21,382,21"/>
 </map>
 </div>
 
@@ -4530,7 +4631,7 @@ Here is the call graph for this function:</div>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Thu Oct 22 2026 05:12:13 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Thu Oct 22 2026 17:52:06 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>
