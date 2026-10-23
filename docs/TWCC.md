@@ -72,9 +72,9 @@ TWCC is enabled by default in the library (`KvsRtcConfiguration.disableSenderSid
 
 | Goal                                | What to do                                                                                                                        |
 |-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
-| Adapt the bitrate to the network    | Register `setOnPeerCongestionFeedbackFn()` and change the encoder bitrate in your callback. The samples do this.                  |
+| Adapt the bitrate to the network    | Register `setOnPeerCongestionFeedbackFn()`, compute a bitrate in your callback, and apply it to the encoder. The samples do this. |
 | Send at a constant bitrate          | Register no callback. If the remote peer supports TWCC, TWCC stays active, and the library skips parsing the feedback.            |
-| Turn TWCC off                       | Set `disableSenderSideBandwidthEstimation = TRUE`. The library then does not negotiate TWCC, even if the remote peer supports it. |
+| Turn TWCC off                       | Set `disableSenderSideBandwidthEstimation = TRUE` and register no callback. The library then does not negotiate TWCC.             |
 
 The samples adapt the bitrate by default:
 
@@ -87,7 +87,7 @@ pSampleConfiguration->enableTwcc = TRUE;
 setOnPeerCongestionFeedbackFn(pPeerConnection, (UINT64) pSampleStreamingSession, sampleOnPeerCongestionFeedback);
 ```
 
-The sample's `enableTwcc` flag only controls the callback and the bitrate changes. The sample leaves `disableSenderSideBandwidthEstimation` at its default, FALSE.
+The sample's `enableTwcc` flag only controls the callback and the bitrate changes. The sample leaves `disableSenderSideBandwidthEstimation` at its default, FALSE. To turn TWCC off in a sample, set `disableSenderSideBandwidthEstimation = TRUE` and `enableTwcc = FALSE`.
 
 > [!NOTE]
 > Only the **GStreamer samples** (`kvsWebrtcClientMasterGstSample`, `kvsWebrtcStorageAudioVideoMasterGstSample`, and others) apply the new bitrate to an encoder (see [How the GStreamer sample applies the new bitrate](#how-the-gstreamer-sample-applies-the-new-bitrate)). The other samples, such as `kvsWebrtcClientMaster`, send pre-encoded frames from files. They have no encoder to adjust, so their bitrate stays constant.
@@ -146,7 +146,7 @@ The library provides three callback registration points, ordered from most commo
 | Callback                                    | When to use                                                                                                     | What you receive                                                                                                                                                               |
 |---------------------------------------------|-----------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `setOnPeerCongestionFeedbackFn`             | To adjust the bitrate based on network conditions.                                                              | `CongestionCtx` containing tx/rx bytes, tx/rx packet counts, the measurement duration, and `delayTrend` in ms per RTP packet (positive means queuing delay is growing).        |
-| `setOnTwccFeedbackReceived`                 | To replace the library's built-in delay estimator (EMA-smoothed OLS linear regression) with your own algorithm. | Per-packet `TwccFeedback` array (send time, receive time, packet size for each RTP packet) and a `TwccCongestionState` struct where you write back your computed `delayTrend`. |
+| `setOnTwccFeedbackReceived`                 | To replace the library's built-in delay estimator (EMA-smoothed OLS linear regression) with your own algorithm. | `TwccFeedback` array (send time, receive time, payload size of each received RTP packet) and a `TwccCongestionState` struct where you write back your computed `delayTrend`.   |
 | `peerConnectionOnSenderBandwidthEstimation` | Older callback. Use it if you only need throughput counts, without the delay trend.                             | tx/rx bytes, tx/rx packet counts, and the measurement duration                                                                                                                 |
 
 REMB is separate from TWCC. If the receiver sends REMB, the library passes the receiver's maximum bitrate to the callback set with `transceiverOnBandwidthEstimation()`.
@@ -406,7 +406,7 @@ a=rtcp-fb:<payload-type> transport-cc
 | No RTP packets sent yet               | The remote peer sends feedback only after it receives RTP packets. Check that `writeFrame()` succeeds.                                                                                                                                                                           |
 | Remote peer not sending RTCP feedback | Capture the traffic with Wireshark or tcpdump, and look for incoming RTCP packets with PT 205, FMT 15 on the same port as RTP (see [Inspect RTP and RTCP with Wireshark](SENDING_MEDIA.md#inspect-rtp-and-rtcp-with-wireshark)). Some peers send feedback at long intervals. |
 | Callback not registered               | Register `setOnPeerCongestionFeedbackFn()` (or the older `peerConnectionOnSenderBandwidthEstimation()`) after creating the peer connection and before the connection starts.                                                                                                     |
-| Duration is zero                      | The library invokes the congestion callbacks only when the measurement window (`duration`) is greater than zero. `duration` is the time between sending the first and the last RTP packet in the report, so it is zero for a report that covers one RTP packet.                  |
+| Duration is zero                      | The library invokes the congestion callbacks only when the measurement window (`duration`) is greater than zero. `duration` is the time between sending the first and the last RTP packet in the report, so it can be zero for a report that covers one RTP packet.              |
 
 ### Bitrate not changing despite callbacks firing
 
@@ -434,7 +434,7 @@ Set the log level to `DEBUG` (`AWS_KVS_LOG_LEVEL=2` in the samples) to see the T
 | `TWCC trendline: delayTrend=X ms queueDelay=Y ms (n=Z)`          | Output of the built-in estimator. `delayTrend` is in ms per RTP packet. A positive value means queuing delay is growing. `queueDelay` is the accumulated delay over the report.                                              |
 | `BWE: pktLoss=X% delayTrend=Y ms factor=Z`                       | The sample AIMD controller made a bitrate decision. Shows the smoothed loss, the delay trend, the factor (0 for an additive increase), the resulting bitrates, and the byte and RTP packet counts.                           |
 | `Malformed TWCC packet: packetStatusCount is 0, skipping`        | The library received an empty feedback report and skipped it.                                                                                                                                                                |
-| `Malformed TWCC packet: reportLen X exceeds packetStatusCount Y` | The report's sequence number range is longer than its packet status count. The library limits the report to the packet status count.                                                                                         |
+| `Malformed TWCC packet: reportLen X exceeds packetStatusCount Y` | The report's sequence number range is longer than its packet status count. The library limits the report to the packet status count. Logged only when you override the estimator.                                            |
 | `Number of TWCC info packets in memory: N`                       | Logged at INFO when the peer connection is freed. `N` counts the RTP packets that the library still tracked for TWCC: those sent in the last 4 seconds (`TWCC_ESTIMATOR_TIME_WINDOW`) that no feedback reported as received. |
 
 </details>
@@ -453,7 +453,7 @@ OLS fits a straight line through a set of points. Of all possible lines, it choo
 slope = (n × Σxy − Σx × Σy) / (n × Σx² − (Σx)²)
 ```
 
-In the trendline estimator, each point is one RTP packet in a TWCC report. x is the RTP packet's index in the report (0, 1, 2, ...), and y is the accumulated delay in ms. The slope is therefore in ms per RTP packet.
+In the trendline estimator, each point is one received RTP packet in a TWCC report, from the second one on. x is the point's index (0, 1, 2, ...), and y is the accumulated delay in ms. The slope is therefore in ms per RTP packet.
 
 In the example, the library sends RTP packets 10 ms apart, and they arrive 10, 10, 11, 12, and 14 ms apart. The delay variations are 0, 0, 1, 2, and 4 ms, so the accumulated delays are 0, 0, 1, 3, and 7 ms:
 
@@ -484,4 +484,4 @@ smoothed = alpha × raw_slope + (1 − alpha) × previous_smoothed
 |       2 |                            1.7 | 0.2 × 1.7 + 0.8 × 0.34 = 0.61 |
 |       3 |                            1.7 | 0.2 × 1.7 + 0.8 × 0.61 = 0.83 |
 
-A single report with a high slope moves `delayTrend` by only 20% of that slope, so short bursts of jitter have little effect, while a sustained trend builds up over a few reports. In the sample AIMD controller, which treats a delay trend above 0.5 as congestion, report 1 (0.34) does not trigger a decrease, and report 2 (0.61) does.
+A single report with a high slope moves `delayTrend` by only 20% of that slope, so short bursts of jitter have little effect, while a sustained trend builds up over a few reports. In the sample AIMD controller, which treats a delay trend above 0.5 as congestion, report 1 (0.34) is below that threshold, and report 2 (0.61) is above it.

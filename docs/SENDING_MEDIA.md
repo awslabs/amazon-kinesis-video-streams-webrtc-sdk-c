@@ -20,7 +20,7 @@ Here, a *frame* is one encoded media frame, such as one H.264 access unit or one
 Sending video takes four steps:
 
 1. Configure the encoder when you initialize it: codec and output format, frame rate, keyframe interval, resolution, and bitrate (see [Encoder settings](#encoder-settings)).
-2. Add one transceiver for the track when you set up the peer connection.
+2. Register the codec with `addSupportedCodec()` and add one transceiver for the track when you set up the peer connection.
 3. Wait until the peer connection is connected. The KVS library can encrypt media only after the DTLS handshake completes. To get the first frame out quickly, start the capture and the encoder in parallel with the connection setup, for example when the remote peer's offer arrives.
 4. For each encoded frame, fill in a `Frame` and call `writeFrame()`.
 
@@ -33,12 +33,13 @@ RtcRtpTransceiverInit videoInit;
 PRtcRtpTransceiver pVideoTransceiver = NULL;
 
 MEMSET(&videoTrack, 0x00, SIZEOF(RtcMediaStreamTrack));
+MEMSET(&videoInit, 0x00, SIZEOF(RtcRtpTransceiverInit));
 videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
 videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
 STRCPY(videoTrack.streamId, "myKvsVideoStream");
 STRCPY(videoTrack.trackId, "myVideoTrack");
-// Options for the new transceiver, like RTCRtpTransceiverInit in the W3C WebRTC API. Passing NULL means SENDRECV.
 videoInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
+addSupportedCodec(pPeerConnection, videoTrack.codec);
 addTransceiver(pPeerConnection, &videoTrack, &videoInit, &pVideoTransceiver);
 
 // 3. Start sending once the peer connection reports RTC_PEER_CONNECTION_STATE_CONNECTED
@@ -60,10 +61,13 @@ STATUS status = writeFrame(pVideoTransceiver, &frame);
 VOID onConnectionStateChange(UINT64 customData, RTC_PEER_CONNECTION_STATE newState)
 {
     if (newState == RTC_PEER_CONNECTION_STATE_CONNECTED) {
-        // Ask the already running encoder for a keyframe, and start presentationTs at 0 with it
+        // Return quickly: signal the thread that sends frames, for example with a condition variable.
+        // Do not block this thread.
     }
 }
 ```
+
+`addSupportedCodec()` adds a codec to the codecs that the peer connection can negotiate. When the device answers an offer, the peer connection takes the payload type of each registered codec from the offer, and each transceiver sends its RTP packets with the payload type of its codec. If a transceiver's codec is not registered, `setRemoteDescription()` and `createAnswer()` can return `STATUS_HASH_KEY_NOT_PRESENT` (`0x40100001`).
 
 A peer connection has one connection state callback. If your code already registers one, as the samples do, add the check to it.
 
@@ -127,12 +131,15 @@ The GStreamer samples in `samples/common/GstMedia.c` set some of these on `x264e
 
 ### Timestamp guidelines
 
-The KVS library sends each frame's timestamp as given. Receivers expect the RTP timestamps of each track to increase monotonically and linearly with time ([RFC 3550, section 5.1](https://datatracker.ietf.org/doc/html/rfc3550#section-5.1)), so set `presentationTs` as follows:
+The KVS library sends each frame's timestamp as given. Each RTP timestamp carries the frame's sampling instant, from a clock that increases monotonically and linearly with time ([RFC 3550, section 5.1](https://datatracker.ietf.org/doc/html/rfc3550#section-5.1)). Set `presentationTs` as follows:
 
 - **Start at 0** with the first frame that the library sends on the track (see [Send audio and video together](#send-audio-and-video-together)).
 - **Increase it with every frame**, and call `writeFrame()` in that order.
 - **Advance it at real time**, by the time between captures. For example, add `HUNDREDS_OF_NANOS_IN_A_SECOND / 30` (333,333) per frame at 30 frames per second, or `20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND` (200,000) per 20 ms Opus frame.
 - **Give each frame its own timestamp.** Two frames of a track with the same `presentationTs` get the same RTP timestamp. Receivers group RTP packets into frames by RTP timestamp, so a receiver can treat the two frames as one. To keep the NAL units of one video frame together, pass them all in one `writeFrame()` call.
+
+> [!NOTE]
+> If you have used the KVS Producer SDK: the library has no absolute time mode, and unlike the Producer SDK's relative mode (`absoluteFragmentTimes = FALSE`), it does not subtract the first frame's timestamp. Each track should start at 0.
 
 #### Where the timestamp comes from
 
@@ -153,12 +160,12 @@ Receivers schedule playout from the RTP timestamps and the arrival times of the 
 | Condition                                                | Result                                                          | Action                                                                                                                                     |
 |----------------------------------------------------------|-----------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
 | The transceiver or the frame is NULL                     | Returns `STATUS_NULL_ARG`                                       | Pass the transceiver from `addTransceiver()` and a filled-in `Frame`.                                                                      |
-| The frame is larger than `MAX_OUTBOUND_FRAME_SIZE_BYTES` | Returns `STATUS_RTP_OUTBOUND_FRAME_TOO_LARGE` and sends nothing | Keep frames below 5 MiB, for example by lowering the encoder bitrate or the keyframe size (see [Frame Size Limits](FRAME_SIZE_LIMITS.md)). |
-| The transceiver direction is `INACTIVE` or `RECVONLY`    | Returns `STATUS_SUCCESS` and sends nothing                      | Add the transceiver with `SENDONLY` or `SENDRECV`, and check that the remote peer's SDP lets this side send.                               |
+| The frame is larger than `MAX_OUTBOUND_FRAME_SIZE_BYTES` | Returns `STATUS_RTP_OUTBOUND_FRAME_TOO_LARGE` and sends nothing | Keep frames within 5 MiB, for example by lowering the bitrate or the keyframe size (see [Frame Size Limits](FRAME_SIZE_LIMITS.md)).        |
+| The transceiver direction is `INACTIVE` or `RECVONLY`    | Returns `STATUS_SUCCESS` and sends nothing                      | Add the transceiver with `SENDONLY` or `SENDRECV`, and check that the remote peer's SDP includes the codec and lets this side send.        |
 | DTLS has not completed, so SRTP is not ready             | Returns `STATUS_SRTP_NOT_READY_YET` and sends nothing           | Start sending only after the peer connection reports `RTC_PEER_CONNECTION_STATE_CONNECTED`, beginning with a keyframe.                     |
 | An H.264 or H.265 frame does not start with a start code | Returns `STATUS_RTP_INVALID_NALU` and sends nothing             | Configure the encoder for Annex B output. Encoders that output length-prefixed NAL units (AVCC) need a conversion to Annex B first.        |
 
-An unsupported codec is rejected earlier: `addTransceiver()` returns `STATUS_NOT_IMPLEMENTED` for it. The supported codecs are H.264, H.265, VP8, Opus, and G.711 (PCMU, PCMA).
+An unsupported codec is rejected earlier: `addTransceiver()` returns `STATUS_NOT_IMPLEMENTED` for it. The supported codecs are H.264, H.265, VP8, Opus, and G.711 (PCMU, PCMA). A supported codec that is not registered with `addSupportedCodec()` can be rejected when the device answers an offer: `setRemoteDescription()` returns `STATUS_HASH_KEY_NOT_PRESENT` (see [Send video: a minimal example](#send-video-a-minimal-example)).
 
 If all checks pass, the KVS library sends the frame and returns `STATUS_SUCCESS`. Frames that return `STATUS_SRTP_NOT_READY_YET` are not sent, so the first frame that the library sends is the first one after DTLS completes. That frame needs to be a keyframe, so that the receiver can start decoding.
 
@@ -167,7 +174,7 @@ If all checks pass, the KVS library sends the frame and returns `STATUS_SUCCESS`
 
 ## Send audio and video together
 
-To send audio as well, add a second transceiver with `kind = MEDIA_STREAM_TRACK_KIND_AUDIO` and an audio codec, such as `RTC_CODEC_OPUS`, and call `writeFrame()` on it for each audio frame. Compared with video only, two tracks add the following:
+To send audio as well, register an audio codec, such as `RTC_CODEC_OPUS`, with `addSupportedCodec()`, and add a second transceiver with that codec and `kind = MEDIA_STREAM_TRACK_KIND_AUDIO`. Then call `writeFrame()` on the audio transceiver for each audio frame. Compared with video only, two tracks add the following:
 
 - **Two independent tracks.** Each transceiver has its own SSRC, its own sequence numbers, its own RTP clock (90,000 Hz for video, 48,000 Hz for Opus), and its own sender reports. The KVS library never compares the timestamps of different tracks.
 - **Different frame rates.** Audio frames typically arrive every 20 ms and video frames every 33 or 40 ms. Each Opus frame fits in one RTP packet, and a video frame often needs several.
@@ -175,10 +182,7 @@ To send audio as well, add a second transceiver with `kind = MEDIA_STREAM_TRACK_
 - **One media stream.** Give both tracks the same `streamId`, as the samples do. The library writes it into the SDP `msid` attribute, which tells the receiver that the two tracks belong to one media stream, so that a browser can synchronize them.
 - **Audio/video synchronization.** The receiver lines the tracks up using RTCP sender reports. Each sender report maps the track's RTP time to the device's wall-clock time, counted from the moment the library sent the track's first frame (see [Sender reports](#sender-reports)).
 
-The library times each track's sender reports from the moment it sends that track's first frame. As a result, audio and video line up when **the first frame that the library sends on each track carries the same `presentationTs`, ideally 0**. The receiver can line the tracks up once their sender reports arrive, about 2.5 seconds after each track's first frame. Two ways to achieve this:
-
-- Start each track at `presentationTs` 0 once the peer connection is connected, even if one track starts later than the other.
-- Take both tracks' timestamps from one clock, and start both tracks at the same time.
+The library times each track's sender reports from the moment it sends that track's first frame. As a result, audio and video line up when the first frame that the library sends on each track carries the same `presentationTs`. The receiver can line the tracks up once their sender reports arrive, about 2.5 seconds after each track's first frame. **Each track should start at `presentationTs` 0** once the peer connection is connected, even if one track starts later than the other.
 
 Because of this timing, two situations offset the tracks:
 
@@ -220,7 +224,7 @@ flowchart LR
 |-----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
 | Frame timestamps            | Sets `presentationTs` from its capture clock                                                                                                                                                                        | Converts `presentationTs` to RTP clock units without adjusting it                                                    |
 | Audio/video synchronization | Gives the tracks timestamps that line up (see [Send audio and video together](#send-audio-and-video-together))                                                                                                      | Sends a sender report for each track                                                                                 |
-| Frame content               | Encodes the media and passes one complete frame per `writeFrame()` call                                                                                                                                             | Splits the frame into RTP packets that fit the MTU, without changing the encoded data                                |
+| Frame content               | Encodes the media and passes one complete frame per `writeFrame()` call                                                                                                                                             | Splits the frame into RTP packets, without changing the encoded data                                                 |
 | Frame order and timing      | Calls `writeFrame()` in decoding order, as frames come out of the encoder                                                                                                                                           | Sends the frame's RTP packets immediately, in the order of the calls                                                 |
 | Keyframes                   | Chooses the keyframe interval and sends a keyframe at the start. Answering keyframe requests (PLI): with a short keyframe interval, such as 0.5 to 1 second, the application can wait for the next natural interval | Reports keyframe requests through `transceiverOnPictureLoss()`                                                       |
 | Bitrate                     | Decides whether to adapt the bitrate: it can follow the bandwidth callbacks (adaptive or dynamic bitrate) or keep a constant bitrate                                                                                | Reports TWCC and REMB feedback through the bandwidth callbacks, if registered (see [TWCC](TWCC.md))                  |
@@ -267,7 +271,7 @@ The packetizer splits a frame so that each RTP payload is at most the MTU, which
 
 ### How the RTP packets are sent
 
-For each RTP packet of the frame, `writeFrame()` stores a copy in the transceiver's rolling buffer for retransmission, encrypts it with SRTP, and hands it to the ICE agent.
+For each RTP packet of the frame, `writeFrame()` encrypts it with SRTP and hands it to the ICE agent. The transceiver's rolling buffer keeps a copy for retransmission.
 
 If the socket fails to send an RTP packet, the ICE agent logs `iceUtilsSendData failed`, counts the RTP packet in `packetsDiscardedOnSend` in the candidate pair stats (`RTC_STATS_TYPE_CANDIDATE_PAIR`), and the library continues with the rest of the frame. `writeFrame()` still returns `STATUS_SUCCESS`, and the receiver sees the RTP packet as lost.
 
@@ -281,7 +285,7 @@ The peer connection computes the RTP time in a sender report from the time elaps
 senderReportRtpTime = (now - timeOfFirstFrameSent) × clockRate / 10,000,000
 ```
 
-The receiver therefore places each frame at the time the track's first frame was sent plus the frame's `presentationTs`. This is why the first frame sent on each track should carry the same `presentationTs`, ideally 0 (see [Send audio and video together](#send-audio-and-video-together)).
+The receiver therefore places each frame at the time the track's first frame was sent plus the frame's `presentationTs`. This is why each track should start at `presentationTs` 0 (see [Send audio and video together](#send-audio-and-video-together)).
 
 ## Network factors
 
@@ -357,6 +361,7 @@ Use [Wireshark](https://www.wireshark.org/) to look at the RTP packets on the ne
 | Audio and video drift apart over time                                                       | The `pts` steps of both tracks against the device clock                                                                                                                                                                                                                                                                                                                                                                    | A track's timestamps run faster or slower than the device clock                                                                                                                                                                                       |
 | Two frames play as one, or the receiver reports a corrupt frame                             | Repeated `pts` values in the [per-frame log](#log-each-frame-the-sender-sends)                                                                                                                                                                                                                                                                                                                                             | Two frames of a track have the same `presentationTs` (see [Timestamp guidelines](#timestamp-guidelines))                                                                                                                                              |
 | Video freezes until the next keyframe after packet loss                                     | `pliCount` in the outbound RTP stats, the remote SDP for `nack`, and the keyframe interval                                                                                                                                                                                                                                                                                                                                 | The receiver did not negotiate NACK, and the keyframe interval is long                                                                                                                                                                                |
+| `setRemoteDescription()` returns `STATUS_HASH_KEY_NOT_PRESENT`                              | `addSupportedCodec()` calls                                                                                                                                                                                                                                                                                                                                                                                                | A transceiver's codec is not registered with `addSupportedCodec()` (see [Send video: a minimal example](#send-video-a-minimal-example))                                                                                                               |
 | `writeFrame()` returns `STATUS_SRTP_NOT_READY_YET`                                          | Connection state                                                                                                                                                                                                                                                                                                                                                                                                           | Expected during connection setup: the library does not send frames until DTLS completes                                                                                                                                                               |
 | `writeFrame()` returns `STATUS_RTP_OUTBOUND_FRAME_TOO_LARGE`                                | Frame size                                                                                                                                                                                                                                                                                                                                                                                                                 | See [Frame Size Limits](FRAME_SIZE_LIMITS.md)                                                                                                                                                                                                         |
 
