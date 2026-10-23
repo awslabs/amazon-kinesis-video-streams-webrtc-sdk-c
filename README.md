@@ -942,6 +942,7 @@ Additional guides:
 - [TWCC (Transport-Wide Congestion Control)](docs/TWCC.md) — bandwidth estimation, bitrate adaptation, and troubleshooting
 - [Troubleshooting H.265 sample frames](docs/TROUBLESHOOTING_H265_FRAMES.md) — inspecting NAL units, diagnosing freeze-after-first-frame, regenerating frames
 - [Frame size limits](docs/FRAME_SIZE_LIMITS.md) — maximum sent and received frame sizes, their status codes, and what to send over a data channel instead
+- [Sending media](docs/SENDING_MEDIA.md) — calling `writeFrame()`, timestamps, packetization, receiver feedback, and troubleshooting
 
 Refer to [related](#related) for more about WebRTC and KVS.
 
