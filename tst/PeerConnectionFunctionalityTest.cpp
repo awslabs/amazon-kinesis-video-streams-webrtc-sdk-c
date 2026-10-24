@@ -952,6 +952,69 @@ TEST_F(PeerConnectionFunctionalityTest, iceRestartTestForcedTurn)
     deinitializeSignalingClient();
 }
 
+// Count the non-relay local candidates that still hold a socket, once the agent is ready and the
+// sockets detached on nomination have been freed.
+static UINT32 openHostSocketsWhenReady(PRtcPeerConnection pPeerConnection)
+{
+    PIceAgent pIceAgent = ((PKvsPeerConnection) pPeerConnection)->pIceAgent;
+    PDoubleListNode pCurNode = NULL;
+    PIceCandidate pIceCandidate = NULL;
+    UINT32 count = 0, pending = 1, i;
+
+    for (i = 0; i < 500 && pending != 0; i++) {
+        MUTEX_LOCK(pIceAgent->lock);
+        pending = (pIceAgent->iceAgentState == ICE_AGENT_STATE_READY) ? pIceAgent->unusedSocketCount : 1;
+        MUTEX_UNLOCK(pIceAgent->lock);
+        if (pending != 0) {
+            THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        }
+    }
+
+    MUTEX_LOCK(pIceAgent->lock);
+    EXPECT_EQ(0, pIceAgent->unusedSocketCount);
+    doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode);
+    while (pCurNode != NULL) {
+        pIceCandidate = (PIceCandidate) pCurNode->data;
+        pCurNode = pCurNode->pNext;
+        if (pIceCandidate->iceCandidateType != ICE_CANDIDATE_TYPE_RELAYED && pIceCandidate->pSocketConnection != NULL) {
+            count++;
+        }
+    }
+    MUTEX_UNLOCK(pIceAgent->lock);
+
+    return count;
+}
+
+// After nomination only the selected local candidate keeps its socket, across an ICE restart, and
+// closing still takes both peers to CLOSED.
+TEST_F(PeerConnectionFunctionalityTest, unselectedLocalSocketsFreedAfterNomination)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    ASSERT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    EXPECT_EQ(1, openHostSocketsWhenReady(offerPc));
+    EXPECT_EQ(1, openHostSocketsWhenReady(answerPc));
+
+    EXPECT_EQ(restartIce(offerPc), STATUS_SUCCESS);
+    MEMSET(&stateChangeCount, 0x00, SIZEOF(stateChangeCount));
+    ASSERT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    EXPECT_EQ(1, openHostSocketsWhenReady(offerPc));
+    EXPECT_EQ(1, openHostSocketsWhenReady(answerPc));
+
+    closePeerConnection(offerPc);
+    EXPECT_EQ(ATOMIC_LOAD(&stateChangeCount[RTC_PEER_CONNECTION_STATE_CLOSED]), 2);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
 TEST_F(PeerConnectionFunctionalityTest, peerConnectionOfferCloseConnection)
 {
     RtcConfiguration configuration;
