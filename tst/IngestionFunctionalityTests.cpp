@@ -492,6 +492,10 @@ TEST_F(IngestionFunctionalityTest, iceReconnectEmulationWithJoinSession)
 
     // Check that we are connected and can send a message
     SignalingMessage signalingMessage;
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    ASSERT_TRUE(signalingMessage.payload != NULL);
+#endif
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
@@ -502,6 +506,9 @@ TEST_F(IngestionFunctionalityTest, iceReconnectEmulationWithJoinSession)
 
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
 
     // Validate the hook counts, caching is disabled in this test, but reconnect should move to
     // Get Ice Server config
@@ -645,6 +652,10 @@ TEST_F(IngestionFunctionalityTest, iceServerConfigRefreshNotConnectedJoinSession
 
     // Check that we are connected and can send a message
     SignalingMessage signalingMessage;
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    ASSERT_TRUE(signalingMessage.payload != NULL);
+#endif
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
@@ -654,6 +665,9 @@ TEST_F(IngestionFunctionalityTest, iceServerConfigRefreshNotConnectedJoinSession
     signalingMessage.correlationId[0] = '\0';
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
 
     UnlinkAndDeleteStreamAndChannel(mediaConfigurationInfo);
 
@@ -788,6 +802,10 @@ TEST_F(IngestionFunctionalityTest, iceServerConfigRefreshConnectedJoinSessionWit
 
     // Check that we are connected and can send a message
     SignalingMessage signalingMessage;
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    ASSERT_TRUE(signalingMessage.payload != NULL);
+#endif
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
@@ -797,6 +815,9 @@ TEST_F(IngestionFunctionalityTest, iceServerConfigRefreshConnectedJoinSessionWit
     signalingMessage.correlationId[0] = '\0';
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
 
     UnlinkAndDeleteStreamAndChannel(mediaConfigurationInfo);
 
