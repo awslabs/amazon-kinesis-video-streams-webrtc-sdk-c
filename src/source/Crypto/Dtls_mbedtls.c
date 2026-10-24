@@ -469,6 +469,9 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
     CHK(mbedtls_ssl_config_defaults(&pDtlsSession->sslCtxConfig, isServer ? MBEDTLS_SSL_IS_SERVER : MBEDTLS_SSL_IS_CLIENT,
                                     MBEDTLS_SSL_TRANSPORT_DATAGRAM, MBEDTLS_SSL_PRESET_DEFAULT) == 0,
         STATUS_CREATE_SSL_FAILED);
+    if (pDtlsSession->pCipherSuites != NULL) {
+        mbedtls_ssl_conf_ciphersuites(&pDtlsSession->sslCtxConfig, pDtlsSession->pCipherSuites);
+    }
     // Relaxed mode is only intended for peer DTLS flows that verify identity later via SDP fingerprint.
     // Do not use it when production-style server certificate validation is required.
     mbedtls_ssl_conf_authmode(&pDtlsSession->sslCtxConfig, MBEDTLS_SSL_VERIFY_OPTIONAL);

@@ -170,6 +170,8 @@ struct __DtlsSession {
 #endif
     mbedtls_ssl_config sslCtxConfig;
     mbedtls_ssl_context sslCtx;
+    // Zero-terminated list of the cipher suites to offer, set by tests to force one; NULL offers the mbedTLS defaults
+    const int* pCipherSuites;
     mbedtls_x509_crt trustedCaCert;
     DtlsSessionCertificateInfo certificates[MAX_RTCCONFIGURATION_CERTIFICATES];
 #else
