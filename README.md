@@ -182,6 +182,7 @@ You can pass the following options to `cmake ..`:
 * `-DENABLE_DATA_CHANNEL` -- Build SDK & samples with data channel. ON by default.
 * `-DMAX_SDP_SESSION_MEDIA_COUNT=N` -- Maximum number of SDP media sections (m= lines). Default: 5. Each slot adds ~140 KB to the stack-allocated `SessionDescription` struct. See [docs/SDP_LIMITS.md](docs/SDP_LIMITS.md) for details on what counts toward this limit and stack sizing guidance.
 * `-DMAX_SDP_ATTRIBUTES_COUNT=N` -- Maximum number of `a=` attributes per SDP section (session-level and each media section). Default: 256. Raise it (e.g. 320) to interoperate with browsers that send large recvonly offers. See [docs/SDP_LIMITS.md](docs/SDP_LIMITS.md) for sizing guidance and memory implications.
+* `-DMAX_OUTBOUND_DATA_CHANNEL_MESSAGE_SIZE_BYTES=N` -- Largest data channel message this side can send in a single message. Default: 65536. Range: 2048-262144. Test that the other side can receive that size.
 * `-DBUILD_STATIC_LIBS` -- Build all KVS WebRTC and third-party libraries as static libraries. Default: OFF (shared build).
 * `-DADD_MUCLIBC`  -- Add -muclibc c flag
 * `-DBUILD_DEPENDENCIES` -- Whether or not to build depending libraries from source. ON by default.

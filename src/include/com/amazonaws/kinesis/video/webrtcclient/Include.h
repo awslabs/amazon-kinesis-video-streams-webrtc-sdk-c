@@ -537,11 +537,12 @@ extern "C" {
  * WEBRTC SCTP related codes. Values are derived from STATUS_SCTP_BASE (0x5f000000)
  *  @{
  */
-#define STATUS_SCTP_BASE                 STATUS_PEERCONNECTION_BASE + 0x01000000
-#define STATUS_SCTP_SESSION_SETUP_FAILED STATUS_SCTP_BASE + 0x00000001
-#define STATUS_SCTP_INVALID_DCEP_PACKET  STATUS_SCTP_BASE + 0x00000002
-#define STATUS_SCTP_SENDV_FAILED         STATUS_SCTP_BASE + 0x00000003
-#define STATUS_SCTP_STREAM_ID_IN_USE     STATUS_SCTP_BASE + 0x00000004
+#define STATUS_SCTP_BASE                       STATUS_PEERCONNECTION_BASE + 0x01000000
+#define STATUS_SCTP_SESSION_SETUP_FAILED       STATUS_SCTP_BASE + 0x00000001
+#define STATUS_SCTP_INVALID_DCEP_PACKET        STATUS_SCTP_BASE + 0x00000002
+#define STATUS_SCTP_SENDV_FAILED               STATUS_SCTP_BASE + 0x00000003
+#define STATUS_SCTP_STREAM_ID_IN_USE           STATUS_SCTP_BASE + 0x00000004
+#define STATUS_SCTP_OUTBOUND_MESSAGE_TOO_LARGE STATUS_SCTP_BASE + 0x00000005
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -696,6 +697,15 @@ extern "C" {
  * Maximum length of DataChannel Protocol
  */
 #define MAX_DATA_CHANNEL_PROTOCOL_LEN 255
+
+/**
+ * Largest data channel message this side can send in a single message. dataChannelSend() rejects a larger message with
+ * STATUS_SCTP_OUTBOUND_MESSAGE_TOO_LARGE. Set it with the CMake option -DMAX_OUTBOUND_DATA_CHANNEL_MESSAGE_SIZE_BYTES=N
+ * (2048-262144), and test that the other side can receive that size.
+ */
+#ifndef MAX_OUTBOUND_DATA_CHANNEL_MESSAGE_SIZE_BYTES
+#define MAX_OUTBOUND_DATA_CHANNEL_MESSAGE_SIZE_BYTES (64 * 1024)
+#endif
 
 /**
  * Maximum length of signaling message.
@@ -2411,6 +2421,10 @@ PUBLIC_API STATUS dataChannelOnOpen(PRtcDataChannel, UINT64, RtcOnOpen);
 /**
  * @brief Send data via the PRtcDataChannel
  *
+ * Each call sends one message. For a single message of up to MAX_OUTBOUND_DATA_CHANNEL_MESSAGE_SIZE_BYTES, you do not
+ * need to split the message. Otherwise, split it into messages of up to MAX_OUTBOUND_DATA_CHANNEL_MESSAGE_SIZE_BYTES, and
+ * reassemble them on the other side.
+ *
  * Reference: https://www.w3.org/TR/webrtc/#dfn-send
  *
  * @param[in] PRtcDataChannel Configured and connected PRtcDataChannel
@@ -2418,7 +2432,8 @@ PUBLIC_API STATUS dataChannelOnOpen(PRtcDataChannel, UINT64, RtcOnOpen);
  * @param[in] PBYTE Data that you wish to send
  * @param[in] UINT32 Length of the PBYTE you wish to send
  *
- * @return STATUS code of the execution. STATUS_SUCCESS on success
+ * @return STATUS code of the execution. STATUS_SUCCESS on success. STATUS_SCTP_OUTBOUND_MESSAGE_TOO_LARGE if the message is
+ *         larger than MAX_OUTBOUND_DATA_CHANNEL_MESSAGE_SIZE_BYTES; nothing is sent.
  *
  */
 PUBLIC_API STATUS dataChannelSend(PRtcDataChannel, BOOL, PBYTE, UINT32);
