@@ -211,6 +211,9 @@ STATUS dtlsSessionPopulateKeyingMaterial(PDtlsSession, PDtlsKeyingMaterial);
 STATUS dtlsSessionGetLocalCertificateFingerprint(PDtlsSession, PCHAR, UINT32);
 STATUS dtlsSessionVerifyRemoteCertificateFingerprint(PDtlsSession, PCHAR);
 STATUS dtlsSessionPutApplicationData(PDtlsSession, PBYTE, INT32);
+// Largest application data, in bytes, that dtlsSessionPutApplicationData() sends in one DTLS record with the negotiated
+// cipher suite. Call it once the handshake is finished.
+STATUS dtlsSessionGetMaxRecordPayloadSize(PDtlsSession, PUINT32);
 STATUS dtlsSessionShutdown(PDtlsSession);
 
 STATUS dtlsSessionOnOutBoundData(PDtlsSession, UINT64, DtlsSessionOutboundPacketFunc);

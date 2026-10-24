@@ -536,6 +536,36 @@ CleanUp:
     return retStatus;
 }
 
+STATUS dtlsSessionGetMaxRecordPayloadSize(PDtlsSession pDtlsSession, PUINT32 pSize)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
+    INT32 recordExpansion;
+
+    CHK(pDtlsSession != NULL && pSize != NULL, STATUS_NULL_ARG);
+    MUTEX_LOCK(pDtlsSession->sslLock);
+    locked = TRUE;
+    CHK(pDtlsSession->state == RTC_DTLS_TRANSPORT_STATE_CONNECTED, STATUS_INVALID_OPERATION);
+
+    // Subtract the record overhead of the negotiated cipher suite from the MTU set in dtlsSessionStart().
+    // mbedtls_ssl_get_max_out_record_payload() is not used: until the peer's first application data arrives, it can still
+    // apply the smaller MTU that mbedTLS falls back to when it retransmits the handshake.
+    recordExpansion = mbedtls_ssl_get_record_expansion(&pDtlsSession->sslCtx);
+    CHK_ERR(recordExpansion > 0 && recordExpansion < DEFAULT_MTU_SIZE_BYTES, STATUS_INTERNAL_ERROR, "mbedtls_ssl_get_record_expansion returned %d",
+            recordExpansion);
+    *pSize = (UINT32) MIN(DEFAULT_MTU_SIZE_BYTES - recordExpansion, MBEDTLS_SSL_OUT_CONTENT_LEN);
+    DLOGD("DTLS cipher suite %s carries up to %u bytes of application data per record", mbedtls_ssl_get_ciphersuite(&pDtlsSession->sslCtx), *pSize);
+
+CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pDtlsSession->sslLock);
+    }
+
+    LEAVES();
+    return retStatus;
+}
+
 STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 pDataLen)
 {
     ENTERS();
