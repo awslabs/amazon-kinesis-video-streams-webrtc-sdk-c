@@ -488,10 +488,12 @@ jobs:
   # fallback on FreeRTOS and Windows, which have no CI job. Guards that the signaling client
   # wakes the lws service thread in a way that works without it.
   lws-no-foreign-thread-pollfd:
-    needs: cleanup-old-resources
+    needs: [cleanup-old-resources, ecr-login]
     runs-on: ubuntu-latest
     container:
       image: public.ecr.aws/ubuntu/ubuntu:22.04_stable
+      # Authenticated pull; see ecr-public-login.yml.
+      credentials: ${{ fromJSON(needs.ecr-login.outputs.attempt == github.run_attempt && needs.ecr-login.outputs.credentials || '{}') }}
 
     permissions:
       id-token: write
