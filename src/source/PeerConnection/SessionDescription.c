@@ -280,7 +280,9 @@ STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSes
                 CHK_STATUS(STRTOUI64(end + STRLEN(RTX_CODEC_VALUE), NULL, 10, &parsedPayloadType));
                 if ((end = STRCHR(attributeValue, ' ')) != NULL) {
                     CHK_STATUS(STRTOUI64(attributeValue, end, 10, &fmtpVal));
-                    CHK(aptFmtpValCount < ARRAY_SIZE(aptFmtpVals), STATUS_SESSION_DESCRIPTION_INVALID_SESSION_DESCRIPTION);
+                    CHK_ERR(aptFmtpValCount < ARRAY_SIZE(aptFmtpVals), STATUS_SESSION_DESCRIPTION_RTX_MAPPING_MAX_EXCEEDED,
+                            "Media section %u has more than %u RTX apt mappings", currentMedia, (UINT32) ARRAY_SIZE(aptFmtpVals));
+                    DLOGV("Found RTX payload type %" PRIu64 " with apt %" PRIu64 " in media section %u", fmtpVal, parsedPayloadType, currentMedia);
                     aptFmtpVals[aptFmtpValCount++] = (UINT32) ((fmtpVal << 8u) | parsedPayloadType);
                 }
             }
@@ -725,10 +727,14 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         // check all session attribute lines to see if a line with mid is present. If it is present, copy its content and break
         for (i = 0; i < pRemoteSessionDescription->mediaDescriptions[mediaSectionId].mediaAttributesCount; i++) {
             if (STRCMP(pRemoteSessionDescription->mediaDescriptions[mediaSectionId].sdpAttributes[i].attributeName, MID_KEY) == 0) {
-                CHK(STRLEN(pRemoteSessionDescription->mediaDescriptions[mediaSectionId].sdpAttributes[i].attributeValue) <
-                        ARRAY_SIZE(remoteSdpAttributeValue),
-                    STATUS_BUFFER_TOO_SMALL);
+                // The SDP parser truncates attribute values to MAX_SDP_ATTRIBUTE_VALUE_LENGTH characters,
+                // so a mid of that length may have been truncated. Reject it as well.
+                CHK_ERR(STRLEN(pRemoteSessionDescription->mediaDescriptions[mediaSectionId].sdpAttributes[i].attributeValue) <
+                            ARRAY_SIZE(remoteSdpAttributeValue),
+                        STATUS_SESSION_DESCRIPTION_MID_TOO_LONG, "Remote mid in media section %u is longer than %u characters", mediaSectionId,
+                        (UINT32) ARRAY_SIZE(remoteSdpAttributeValue) - 1);
                 STRCPY(remoteSdpAttributeValue, pRemoteSessionDescription->mediaDescriptions[mediaSectionId].sdpAttributes[i].attributeValue);
+                DLOGV("Using remote mid %s for media section %u", remoteSdpAttributeValue, mediaSectionId);
                 break;
             }
         }
@@ -737,7 +743,6 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     // check if we already have a value for the "mid" session attribute from remote description. If we have it, we use it.
     // If we don't have it, we loop over, create and add them
     if (STRLEN(remoteSdpAttributeValue) > 0) {
-        CHK(STRLEN(remoteSdpAttributeValue) < MAX_SDP_ATTRIBUTE_VALUE_LENGTH, STATUS_BUFFER_TOO_SMALL);
         amountWritten = SNPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue,
                                  SIZEOF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue), "%s", remoteSdpAttributeValue);
         CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Mid exists, but remote SDP value could not be written");
@@ -1649,9 +1654,12 @@ STATUS findTransceiversByRemoteDescription(PKvsPeerConnection pKvsPeerConnection
         } else {
             tokenLen = STRLEN(codecs);
         }
-        CHK(tokenLen < ARRAY_SIZE(firstCodec), STATUS_SESSION_DESCRIPTION_INVALID_SESSION_DESCRIPTION);
+        CHK_ERR(tokenLen < ARRAY_SIZE(firstCodec), STATUS_SESSION_DESCRIPTION_PAYLOAD_TYPE_TOO_LONG,
+                "First payload type in m-line %u is %u characters long, the maximum is %u", currentMedia, tokenLen,
+                (UINT32) ARRAY_SIZE(firstCodec) - 1);
         STRNCPY(firstCodec, codecs, tokenLen);
         firstCodec[tokenLen] = '\0';
+        DLOGV("First payload type in m-line %u is %s", currentMedia, firstCodec);
 
         // in case a supported codec was not found from the payload types, check the rtpmaps in the a-lines for that particular m-line
         for (currentAttribute = 0; currentAttribute < pMediaDescription->mediaAttributesCount && !foundMediaSectionWithCodec; currentAttribute++) {
