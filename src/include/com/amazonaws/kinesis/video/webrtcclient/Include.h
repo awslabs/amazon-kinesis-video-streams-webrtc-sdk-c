@@ -2233,6 +2233,13 @@ PUBLIC_API STATUS transceiverOnPictureLoss(PRtcRtpTransceiver, UINT64, RtcOnPict
  *
  * Reference: https://tools.ietf.org/html/rfc4585#section-6.3.1
  *
+ * Use it when a new consumer of the received stream (for example, a subscriber that a forwarding server is about to
+ * relay the stream to) needs a keyframe to start decoding. The SDK also sends a PLI on its own whenever the jitter
+ * buffer drops an incomplete video frame.
+ *
+ * Requests within RTCP_PLI_MIN_INTERVAL (500 ms by default) of the previous PLI for the same stream are coalesced into
+ * it: they return STATUS_SUCCESS without sending another packet, since the sender is already answering with a keyframe.
+ *
  * @param[in] PRtcRtpTransceiver Video transceiver that receives the remote video
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success.

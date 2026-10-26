@@ -555,6 +555,14 @@ STATUS onFrameDroppedFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex,
     pTransceiver->inboundStats.received.fullFramesLost++;
     MUTEX_UNLOCK(pTransceiver->statsLock);
 
+    // Video frames after the dropped one reference it and can't be decoded until the next keyframe, so ask the sender
+    // for one now rather than waiting for its next periodic keyframe. Not while closing: freeing the peer connection
+    // shuts ICE down before draining the jitter buffer, which reports its incomplete frames as dropped.
+    if (pTransceiver->transceiver.receiver.track.kind == MEDIA_STREAM_TRACK_KIND_VIDEO && pTransceiver->pliEnabled &&
+        pTransceiver->pKvsPeerConnection->pIceAgent != NULL && !ATOMIC_LOAD_BOOL(&pTransceiver->pKvsPeerConnection->pIceAgent->shutdown)) {
+        CHK_LOG_ERR(transceiverSendPictureLoss((PRtcRtpTransceiver) pTransceiver));
+    }
+
 CleanUp:
     CHK_LOG_ERR(retStatus);
 

@@ -1,5 +1,6 @@
 #include "WebRTCClientTestFixture.h"
 #include <functional>
+#include <thread>
 
 namespace com {
 namespace amazonaws {
@@ -855,6 +856,152 @@ TEST_F(RtcpFunctionalityTest, transceiverSendPictureLossReachesRemoteSender)
     EXPECT_EQ(1, inboundStats.pliCount);
     EXPECT_EQ(STATUS_SUCCESS, getRtpOutboundStats(offerPc, offerVideoTransceiver, &outboundStats));
     EXPECT_EQ(1, outboundStats.pliCount);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+// Requests within RTCP_PLI_MIN_INTERVAL of the previous PLI are coalesced into it
+TEST_F(RtcpFunctionalityTest, transceiverSendPictureLossCoalescesRequests)
+{
+    RtcConfiguration configuration{};
+    PRtcPeerConnection offerPc = nullptr, answerPc = nullptr;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack;
+    PRtcRtpTransceiver offerVideoTransceiver = nullptr, answerVideoTransceiver = nullptr;
+    SIZE_T pliReceived = 0;
+    RtcInboundRtpStreamStats inboundStats{};
+    RtcOutboundRtpStreamStats outboundStats{};
+
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &offerPc));
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &answerPc));
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+
+    auto onPictureLoss = [](UINT64 customData) -> void { ATOMIC_INCREMENT((PSIZE_T) customData); };
+    EXPECT_EQ(STATUS_SUCCESS, transceiverOnPictureLoss(offerVideoTransceiver, (UINT64) &pliReceived, onPictureLoss));
+    ASSERT_TRUE(connectTwoPeers(offerPc, answerPc));
+
+    EXPECT_EQ(STATUS_SUCCESS, transceiverSendPictureLoss(answerVideoTransceiver));
+    for (UINT32 i = 0; i < 100 && ATOMIC_LOAD(&pliReceived) == 0; i++) {
+        THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    EXPECT_EQ(1, ATOMIC_LOAD(&pliReceived));
+
+    // Coalesced into the PLI that was just sent
+    EXPECT_EQ(STATUS_SUCCESS, transceiverSendPictureLoss(answerVideoTransceiver));
+    EXPECT_EQ(STATUS_SUCCESS, getRtpInboundStats(answerPc, answerVideoTransceiver, &inboundStats));
+    EXPECT_EQ(1, inboundStats.pliCount);
+
+    THREAD_SLEEP(RTCP_PLI_MIN_INTERVAL);
+    EXPECT_EQ(STATUS_SUCCESS, transceiverSendPictureLoss(answerVideoTransceiver));
+    for (UINT32 i = 0; i < 100 && ATOMIC_LOAD(&pliReceived) < 2; i++) {
+        THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    EXPECT_EQ(2, ATOMIC_LOAD(&pliReceived));
+    EXPECT_EQ(STATUS_SUCCESS, getRtpInboundStats(answerPc, answerVideoTransceiver, &inboundStats));
+    EXPECT_EQ(2, inboundStats.pliCount);
+    EXPECT_EQ(STATUS_SUCCESS, getRtpOutboundStats(offerPc, offerVideoTransceiver, &outboundStats));
+    EXPECT_EQ(2, outboundStats.pliCount);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+// A request that waits for the SRTP lock while another thread sends a PLI is coalesced into that PLI, as when a
+// forwarding server relays a subscriber's PLI while the SDK asks for a keyframe for a dropped frame
+TEST_F(RtcpFunctionalityTest, transceiverSendPictureLossWaitingForLockIsCoalesced)
+{
+    RtcConfiguration configuration{};
+    PRtcPeerConnection offerPc = nullptr, answerPc = nullptr;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack;
+    PRtcRtpTransceiver offerVideoTransceiver = nullptr, answerVideoTransceiver = nullptr;
+    SIZE_T pliReceived = 0;
+    RtcInboundRtpStreamStats inboundStats{};
+
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &offerPc));
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &answerPc));
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+
+    auto onPictureLoss = [](UINT64 customData) -> void { ATOMIC_INCREMENT((PSIZE_T) customData); };
+    EXPECT_EQ(STATUS_SUCCESS, transceiverOnPictureLoss(offerVideoTransceiver, (UINT64) &pliReceived, onPictureLoss));
+    ASSERT_TRUE(connectTwoPeers(offerPc, answerPc));
+
+    // Hold the lock the PLI sender takes so that the request waits for it, and record a PLI as sent by another thread
+    // in the meantime
+    PKvsPeerConnection pAnswerPc = (PKvsPeerConnection) answerPc;
+    MUTEX_LOCK(pAnswerPc->pSrtpSessionLock);
+    std::thread requester([answerVideoTransceiver]() { EXPECT_EQ(STATUS_SUCCESS, transceiverSendPictureLoss(answerVideoTransceiver)); });
+    THREAD_SLEEP(50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    ((PKvsRtpTransceiver) answerVideoTransceiver)->lastPliSentTime = GETTIME();
+    MUTEX_UNLOCK(pAnswerPc->pSrtpSessionLock);
+    requester.join();
+
+    // Nothing was sent: the request came within RTCP_PLI_MIN_INTERVAL of the other PLI
+    EXPECT_EQ(STATUS_SUCCESS, getRtpInboundStats(answerPc, answerVideoTransceiver, &inboundStats));
+    EXPECT_EQ(0, inboundStats.pliCount);
+    THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    EXPECT_EQ(0, ATOMIC_LOAD(&pliReceived));
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+// The receiver asks the sender for a keyframe as soon as its jitter buffer drops an incomplete video frame
+TEST_F(RtcpFunctionalityTest, droppedVideoFrameSendsPictureLoss)
+{
+    RtcConfiguration configuration{};
+    PRtcPeerConnection offerPc = nullptr, answerPc = nullptr;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack;
+    PRtcRtpTransceiver offerVideoTransceiver = nullptr, answerVideoTransceiver = nullptr;
+    PKvsRtpTransceiver pAnswerTransceiver;
+    SIZE_T pliReceived = 0;
+    UINT32 timestamp = 1000;
+    RtcInboundRtpStreamStats inboundStats{};
+
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &offerPc));
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &answerPc));
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+
+    auto onPictureLoss = [](UINT64 customData) -> void { ATOMIC_INCREMENT((PSIZE_T) customData); };
+    EXPECT_EQ(STATUS_SUCCESS, transceiverOnPictureLoss(offerVideoTransceiver, (UINT64) &pliReceived, onPictureLoss));
+    ASSERT_TRUE(connectTwoPeers(offerPc, answerPc));
+
+    pAnswerTransceiver = (PKvsRtpTransceiver) answerVideoTransceiver;
+    auto makeVp8Packet = [pAnswerTransceiver](UINT16 sequenceNumber, UINT32 rtpTimestamp) -> PRtpPacket {
+        PRtpPacket pRtpPacket = nullptr;
+        PBYTE payload = (PBYTE) MEMALLOC(2);
+        payload[0] = VP8_PAYLOAD_DESCRIPTOR_START_OF_PARTITION_VALUE;
+        payload[1] = 0xAA;
+        EXPECT_EQ(STATUS_SUCCESS,
+                  createRtpPacket(2, FALSE, FALSE, 0, FALSE, 96, sequenceNumber, rtpTimestamp, pAnswerTransceiver->jitterBufferSsrc, nullptr, 0, 0,
+                                  nullptr, payload, 2, &pRtpPacket));
+        pRtpPacket->pRawPacket = payload;
+        pRtpPacket->receivedTime = GETTIME();
+        return pRtpPacket;
+    };
+
+    // The offerer sends no media, so these are the only packets in the answerer's jitter buffer. Packet 101 of the first
+    // frame never arrives, and a packet past the maximum latency forces the incomplete frame out as dropped.
+    EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(pAnswerTransceiver->pJitterBuffer, makeVp8Packet(100, timestamp), nullptr));
+    EXPECT_EQ(STATUS_SUCCESS,
+              jitterBufferPush(pAnswerTransceiver->pJitterBuffer,
+                               makeVp8Packet(102, timestamp + (UINT32) pAnswerTransceiver->pJitterBuffer->maxLatency + 1), nullptr));
+
+    for (UINT32 i = 0; i < 100 && ATOMIC_LOAD(&pliReceived) == 0; i++) {
+        THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    EXPECT_EQ(1, ATOMIC_LOAD(&pliReceived));
+    EXPECT_EQ(STATUS_SUCCESS, getRtpInboundStats(answerPc, answerVideoTransceiver, &inboundStats));
+    EXPECT_EQ(1, inboundStats.received.framesDropped);
+    EXPECT_EQ(1, inboundStats.pliCount);
 
     closePeerConnection(offerPc);
     closePeerConnection(answerPc);

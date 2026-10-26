@@ -49,6 +49,13 @@ STATUS computeTwccTrendline(PTwccManager, PDOUBLE, PDOUBLE);
 // https://tools.ietf.org/html/rfc4585#section-6.3.1: header, sender SSRC, media SSRC, no FCI
 #define RTCP_PLI_PACKET_LEN (RTCP_PACKET_HEADER_LEN + 2 * SIZEOF(UINT32))
 
+// Minimum time between two PLIs sent for the same inbound stream. Requests made sooner are coalesced into the previous
+// one, which the remote sender is already answering with a keyframe, so that loss bursts or many simultaneous requests
+// don't make it send a keyframe each.
+#ifndef RTCP_PLI_MIN_INTERVAL
+#define RTCP_PLI_MIN_INTERVAL (500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#endif
+
 // https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
 // Deltas are represented as multiples of 250us:
 #define TWCC_TICKS_PER_SECOND        (1000000LL / 250)

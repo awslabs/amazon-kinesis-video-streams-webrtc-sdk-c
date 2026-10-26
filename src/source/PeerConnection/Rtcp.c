@@ -841,6 +841,7 @@ STATUS transceiverSendPictureLoss(PRtcRtpTransceiver pRtcRtpTransceiver)
     PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;
     PKvsPeerConnection pKvsPeerConnection = NULL;
     BOOL locked = FALSE;
+    UINT64 now;
     // srtp_protect_rtcp() needs a 32-bit aligned packet, and writes the auth tag and SRTCP trailer after it
     ALIGN_4 BYTE rawPacket[RTCP_PLI_PACKET_LEN + SRTP_AUTH_TAG_OVERHEAD + SRTP_MAX_TRAILER_LEN + 4] = {0};
     UINT32 packetLen = SIZEOF(rawPacket);
@@ -857,8 +858,13 @@ STATUS transceiverSendPictureLoss(PRtcRtpTransceiver pRtcRtpTransceiver)
     MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
     locked = TRUE;
     CHK(pKvsPeerConnection->pSrtpSession != NULL, STATUS_SRTP_NOT_READY_YET);
+    // Read under the lock: a time taken before it could be older than a PLI another thread sent while this one waited
+    now = GETTIME();
+    // Coalesced into the previous PLI
+    CHK(now - pKvsRtpTransceiver->lastPliSentTime >= RTCP_PLI_MIN_INTERVAL, retStatus);
     CHK_STATUS(encryptRtcpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, (PINT32) &packetLen));
     CHK_STATUS(iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, packetLen));
+    pKvsRtpTransceiver->lastPliSentTime = now;
 
     MUTEX_LOCK(pKvsRtpTransceiver->statsLock);
     pKvsRtpTransceiver->inboundStats.pliCount++;
