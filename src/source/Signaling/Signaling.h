@@ -161,6 +161,9 @@ typedef struct {
     SignalingApiCallHookFunc deletePreHookFn;
     SignalingApiCallHookFunc deletePostHookFn;
 
+    // Runs on the receive worker right before messageReceivedFn would be invoked.
+    SignalingApiCallHookFunc receiveMessagePreCallbackHookFn;
+
     // Retry strategy used for signaling state machine
     KvsRetryStrategy signalingStateMachineRetryStrategy;
     KvsRetryStrategyCallbacks signalingStateMachineRetryStrategyCallbacks;
@@ -476,7 +479,14 @@ STATUS awaitForThreadTermination(PThreadTracker, UINT64);
 STATUS initializeThreadTracker(PThreadTracker);
 STATUS uninitializeThreadTracker(PThreadTracker);
 
-STATUS terminateOngoingOperations(PSignalingClient);
+// waitForAllThreads: TRUE only from freeSignaling(). Blocks until every SDK-owned thread (reconnect, listener,
+// receive workers) has exited because the client is about to be freed. All other callers pass FALSE and get the
+// bounded best-effort quiesce, even when another thread has already set shutdown: that caller may itself be one of
+// the threads freeSignaling() is waiting for, and the unbounded wait would then wait on itself. The callers return at
+// their entry once shutdown is set (fetch and delete refuse, disconnect reports success), but one can pass its check
+// just before freeSignaling() sets the flag and still arrive here; the parameter, not the flag, decides the wait so
+// that window cannot turn into a self-wait.
+STATUS terminateOngoingOperations(PSignalingClient, BOOL waitForAllThreads);
 
 STATUS describeChannel(PSignalingClient, UINT64);
 STATUS createChannel(PSignalingClient, UINT64);

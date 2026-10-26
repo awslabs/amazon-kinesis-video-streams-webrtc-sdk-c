@@ -207,12 +207,16 @@ STATUS signalingClientFetchSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
     startTime = GETTIME();
     while (TRUE) {
         retStatus = signalingFetchSync(pSignalingClient);
-        // NOTE: This will retry on all status codes except SUCCESS.
+        // NOTE: This will retry on all status codes except SUCCESS and STATUS_SIGNALING_FREE_IN_PROGRESS.
         // This includes status codes for bad arguments, internal non-recoverable errors etc.
         // Retrying on non-recoverable errors is useless, but it is quite complex to segregate recoverable
         // and non-recoverable errors at this layer. So to simplify, we would retry on all non-success status codes.
         // It is the application's responsibility to fix any validation/null-arg/bad configuration type errors.
-        CHK(retStatus != STATUS_SUCCESS, retStatus);
+        //
+        // STATUS_SIGNALING_FREE_IN_PROGRESS is final: freeSignalingClient() is running on another thread and may be
+        // waiting for this very thread (a signaling callback) to exit. Sleeping through the back-off schedule here
+        // would hold freeSignalingClient() for the whole schedule.
+        CHK(retStatus != STATUS_SUCCESS && retStatus != STATUS_SIGNALING_FREE_IN_PROGRESS, retStatus);
 
         DLOGE("Create Signaling Sync API returned [0x%08x]  %u\n", retStatus, signalingClientCreationMaxRetryCount);
         if (signalingClientCreationMaxRetryCount <= 0) {
