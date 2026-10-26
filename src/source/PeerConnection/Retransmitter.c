@@ -51,7 +51,7 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
     UINT64 item, index;
     UINT32 rtxTwccExtPayload = 0;
     STATUS tmpStatus = STATUS_SUCCESS;
-    PRtpPacket pRtpPacket = NULL, pRtxRtpPacket = NULL;
+    PRtpPacket pRtpPacket = NULL, pRtxRtpPacket = NULL, pSentPacket = NULL;
     PRetransmitter pRetransmitter = NULL;
     SIZE_T packedPayloadTypes;
     UINT8 payloadType, rtxPayloadType;
@@ -114,27 +114,14 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
                 pSenderTranceiver->sender.rtxSequenceNumber++;
                 retStatus = writeRtpPacket(pKvsPeerConnection, pRtxRtpPacket);
             }
-            // resendPacket
+            // resendPacket. Stats and TWCC use the packet that went out: the RTX packet, or the original on the fallback path.
+            pSentPacket = (pRtxRtpPacket != NULL) ? pRtxRtpPacket : pRtpPacket;
             if (STATUS_SUCCEEDED(retStatus)) {
-                pRtpPacket->sentTime = GETTIME();
+                pSentPacket->sentTime = GETTIME();
                 retransmittedPacketsSent++;
-                // Count the bytes actually retransmitted: the RTX packet carries the 2 byte OSN
-                // header on top of the original payload.
-                if (pRtxRtpPacket != NULL) {
-                    retransmittedBytesSent += pRtxRtpPacket->rawPacketLength - RTP_HEADER_LEN(pRtxRtpPacket);
-                } else {
-                    retransmittedBytesSent += pRtpPacket->rawPacketLength - RTP_HEADER_LEN(pRtpPacket);
-                }
+                retransmittedBytesSent += pSentPacket->rawPacketLength - RTP_HEADER_LEN(pSentPacket);
                 DLOGV("Resent packet ssrc %lu seq %lu succeeded", pRtpPacket->header.ssrc, pRtpPacket->header.sequenceNumber);
-                // Report the packet that actually went out: on the RTX path it carries the freshly
-                // allocated transport wide sequence number, and its own sentTime must be set for the
-                // TWCC delta calculation to be based on the retransmission rather than the original.
-                if (pRtxRtpPacket != NULL) {
-                    pRtxRtpPacket->sentTime = pRtpPacket->sentTime;
-                    twccManagerOnPacketSent(pKvsPeerConnection, pRtxRtpPacket);
-                } else {
-                    twccManagerOnPacketSent(pKvsPeerConnection, pRtpPacket);
-                }
+                twccManagerOnPacketSent(pKvsPeerConnection, pSentPacket);
             } else {
                 DLOGV("Resent packet ssrc %lu seq %lu failed 0x%08x", pRtpPacket->header.ssrc, pRtpPacket->header.sequenceNumber, retStatus);
             }

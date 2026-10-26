@@ -2233,7 +2233,7 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketNackRtxUsesRtxPacketForTwccAndStats)
     BYTE payload[10] = {0};
     UINT32 extPayload = TWCC_PAYLOAD(1u, 100u);
     PRtpPacket pRtpPacket = nullptr;
-    UINT64 value = 0;
+    UINT64 value = 0, timeBeforeNack = 0, timeAfterNack = 0;
     RtcOutboundRtpStreamStats stats{};
 
     initTransceiver(44000);
@@ -2261,7 +2261,9 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketNackRtxUsesRtxPacketForTwccAndStats)
     ASSERT_EQ(STATUS_SUCCESS, createBytesFromRtpPacket(pRtpPacket, pRtpPacket->pRawPacket, &pRtpPacket->rawPacketLength));
     ASSERT_EQ(STATUS_SUCCESS, rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
 
+    timeBeforeNack = GETTIME();
     ASSERT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, nackPacket, SIZEOF(nackPacket)));
+    timeAfterNack = GETTIME();
 
     EXPECT_EQ(STATUS_SUCCESS, getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats));
     EXPECT_EQ(1, stats.retransmittedPacketsSent);
@@ -2276,6 +2278,9 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketNackRtxUsesRtxPacketForTwccAndStats)
     EXPECT_EQ(STATUS_SUCCESS, hashTableGet(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, 101, &value));
     if (value != 0) {
         EXPECT_EQ(SIZEOF(payload) + SIZEOF(UINT16), ((PTwccRtpPacketInfo) value)->packetSize);
+        // The record carries the retransmission's own send time.
+        EXPECT_GE(((PTwccRtpPacketInfo) value)->localTimeKvs, timeBeforeNack);
+        EXPECT_LE(((PTwccRtpPacketInfo) value)->localTimeKvs, timeAfterNack);
     }
     MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
     EXPECT_EQ(102, ATOMIC_LOAD(&pKvsPeerConnection->transportWideSequenceNumber));

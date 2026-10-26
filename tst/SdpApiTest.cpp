@@ -385,6 +385,39 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType)
     doubleListFree(pTransceivers);
 }
 
+// A renegotiation runs setTransceiverPayloadTypes() again. The RTX stream keeps its SSRC, so its
+// sequence number must continue (RFC 4588 section 4).
+TEST_F(SdpApiTest, setTransceiverPayloadTypes_KeepsRtxSequenceNumber)
+{
+    PHashTable pCodecTable;
+    PHashTable pRtxTable;
+    PDoubleList pTransceivers;
+    KvsRtpTransceiver transceiver;
+    MEMSET(&transceiver, 0x00, SIZEOF(KvsRtpTransceiver));
+    transceiver.sender.track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    transceiver.sender.track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    transceiver.sender.rtxSequenceNumber = 1234;
+    EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pCodecTable));
+    EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pCodecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, 1));
+    EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pRtxTable));
+    EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pRtxTable, RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, 2));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&pTransceivers));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(pTransceivers, (UINT64) (&transceiver)));
+
+    EXPECT_EQ(STATUS_SUCCESS, setTransceiverPayloadTypes(pCodecTable, pRtxTable, pTransceivers));
+    EXPECT_EQ(1234, transceiver.sender.rtxSequenceNumber);
+    EXPECT_EQ(STATUS_SUCCESS, setTransceiverPayloadTypes(pCodecTable, pRtxTable, pTransceivers));
+    EXPECT_EQ(1234, transceiver.sender.rtxSequenceNumber);
+
+    hashTableFree(pCodecTable);
+    hashTableFree(pRtxTable);
+    freeRollingBufferConfig(transceiver.pRollingBufferConfig);
+    freeRtpRollingBuffer(&transceiver.sender.packetBuffer);
+    freeRetransmitter(&transceiver.sender.retransmitter);
+    doubleListFree(pTransceivers);
+}
+
 // VP8 is affected by the same media-codec vs RTX-codec enum mismatch (RTC_CODEC_VP8 = 3, RTC_RTX_CODEC_VP8 = 2).
 // The rtxTable is keyed by RTC_RTX_CODEC_VP8; setTransceiverPayloadTypes() must map to it and resolve rtxPayloadType.
 TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType_VP8)

@@ -138,9 +138,9 @@ STATUS constructRetransmitRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLengt
     pRtpPacket->header.padding = FALSE;
     pRtpPacket->pRawPacket = NULL;
 
-    // RFC 4588 section 8.4: the retransmission gets a new RTP header. The original transport wide
-    // sequence number must not be reused, since every packet on the wire needs a unique one for
-    // congestion control to interpret the feedback. Point the extension at the caller supplied
+    // RFC 4588 section 4: the retransmission is a new packet on the RTX stream. The transport wide
+    // sequence number is incremented for every packet sent (draft-holmer-rmcat-transport-wide-cc-extensions-01
+    // section 2.2), so the original number must not be reused. Point the extension at the caller supplied
     // replacement before serializing; a zero payload means the caller has no TWCC number to assign.
     if (rtxTwccExtPayload != 0 && pRtpPacket->header.extension && pRtpPacket->header.extensionProfile == TWCC_EXT_PROFILE &&
         pRtpPacket->header.extensionLength == SIZEOF(UINT32)) {
