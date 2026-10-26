@@ -402,6 +402,7 @@ extern "C" {
 #define STATUS_TURN_CONNECTION_GET_CREDENTIALS_FAILED                      STATUS_ICE_BASE + 0x0000002c
 #define STATUS_FAILED_TO_INIT_RELAY_CANDIDATES                             STATUS_ICE_BASE + 0x0000002d
 #define STATUS_TURN_CONNECTION_CREDENTIALS_REJECTED                        STATUS_ICE_BASE + 0x0000002e
+#define STATUS_ICE_SERVERS_FINAL                                           STATUS_ICE_BASE + 0x0000002f
 
 /*!@} */
 
@@ -430,11 +431,13 @@ extern "C" {
  * WEBRTC RTP related codes. Values are derived from STATUS_RTP_BASE (0x5c000000)
  *  @{
  */
-#define STATUS_RTP_BASE                   STATUS_SRTP_BASE + 0x01000000
-#define STATUS_RTP_INPUT_PACKET_TOO_SMALL STATUS_RTP_BASE + 0x00000001
-#define STATUS_RTP_INPUT_MTU_TOO_SMALL    STATUS_RTP_BASE + 0x00000002
-#define STATUS_RTP_INVALID_NALU           STATUS_RTP_BASE + 0x00000003
-#define STATUS_RTP_INVALID_EXTENSION_LEN  STATUS_RTP_BASE + 0x00000004
+#define STATUS_RTP_BASE                     STATUS_SRTP_BASE + 0x01000000
+#define STATUS_RTP_INPUT_PACKET_TOO_SMALL   STATUS_RTP_BASE + 0x00000001
+#define STATUS_RTP_INPUT_MTU_TOO_SMALL      STATUS_RTP_BASE + 0x00000002
+#define STATUS_RTP_INVALID_NALU             STATUS_RTP_BASE + 0x00000003
+#define STATUS_RTP_INVALID_EXTENSION_LEN    STATUS_RTP_BASE + 0x00000004
+#define STATUS_RTP_OUTBOUND_FRAME_TOO_LARGE STATUS_RTP_BASE + 0x00000005
+#define STATUS_RTP_INBOUND_FRAME_TOO_LARGE  STATUS_RTP_BASE + 0x00000006
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -506,6 +509,8 @@ extern "C" {
 #define STATUS_SIGNALING_JOIN_SESSION_CALL_FAILED                  STATUS_SIGNALING_BASE + 0x0000004a
 #define STATUS_SIGNALING_JOIN_SESSION_CONNECTED_FAILED             STATUS_SIGNALING_BASE + 0x0000004b
 #define STATUS_SIGNALING_DESCRIBE_MEDIA_CALL_FAILED                STATUS_SIGNALING_BASE + 0x0000004c
+#define STATUS_SIGNALING_FREE_FROM_CALLBACK                        STATUS_SIGNALING_BASE + 0x0000004d
+#define STATUS_SIGNALING_FREE_IN_PROGRESS                          STATUS_SIGNALING_BASE + 0x0000004e
 
 /*!@} */
 
@@ -537,6 +542,7 @@ extern "C" {
 #define STATUS_SCTP_SESSION_SETUP_FAILED STATUS_SCTP_BASE + 0x00000001
 #define STATUS_SCTP_INVALID_DCEP_PACKET  STATUS_SCTP_BASE + 0x00000002
 #define STATUS_SCTP_SENDV_FAILED         STATUS_SCTP_BASE + 0x00000003
+#define STATUS_SCTP_STREAM_ID_IN_USE     STATUS_SCTP_BASE + 0x00000004
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -556,6 +562,7 @@ extern "C" {
 #define STATUS_RTCP_INPUT_PARTIAL_PACKET         STATUS_RTCP_BASE + 0x00000006
 #define STATUS_RTCP_INPUT_REMB_TOO_SMALL         STATUS_RTCP_BASE + 0x00000007
 #define STATUS_RTCP_INPUT_REMB_INVALID           STATUS_RTCP_BASE + 0x00000008
+#define STATUS_RTCP_PLI_NOT_NEGOTIATED           STATUS_RTCP_BASE + 0x00000009
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -893,6 +900,24 @@ extern "C" {
 #define SIGNALING_DEFAULT_MESSAGE_TTL_VALUE (60 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 #define SIGNALING_JOIN_STORAGE_SESSION_WAIT_TIMEOUT (6 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+
+/**
+ * Upper bound in bytes on a single media frame passed to writeFrame(). This is a safeguard for the sending device during
+ * media transmission, not an RTP limit. writeFrame() packetizes, encrypts and sends the whole frame while holding the SRTP
+ * session lock. The per-transceiver payload buffer also grows to the largest frame seen and keeps that size. Larger frames
+ * are rejected with STATUS_RTP_OUTBOUND_FRAME_TOO_LARGE and nothing is sent.
+ * Receivers can have a lower limit: libwebrtc browsers reassemble at most 2048 packets per frame (about 2.4 MB at the
+ * default MTU). See docs/FRAME_SIZE_LIMITS.md.
+ */
+#define MAX_OUTBOUND_FRAME_SIZE_BYTES (5 * 1024 * 1024)
+
+/**
+ * Upper bound in bytes on a single media frame reassembled from received packets. This is a safeguard for the receiving device,
+ * not an RTP limit. The jitter buffer keeps every packet of a frame until the frame is complete, and the per-transceiver frame
+ * buffer grows to the largest frame received and keeps that size. Larger frames are rejected and the stream continues with the
+ * next frame. Crossing the limit is logged with STATUS_RTP_INBOUND_FRAME_TOO_LARGE; no API returns it. See docs/FRAME_SIZE_LIMITS.md.
+ */
+#define MAX_INBOUND_FRAME_SIZE_BYTES (5 * 1024 * 1024)
 
 /**
  * Default jitter buffer tolerated latency, frame will be dropped if it is out of window
@@ -1472,6 +1497,16 @@ typedef struct {
     BOOL enableIceStats; //!< Control whether ICE agent stats are to be calculated. ENABLE_STATS_CALCULATION_CONTROL compiler flag must be defined
                          //!< to use this member, else stats are enabled by default.
 #endif
+    BOOL disableNonRoutablePeersFilterForRelay; //!< By default the SDK does not create TURN permissions for non-routable peer addresses
+                                                //!< (RFC 1918 private, RFC 6598 CGNAT, loopback, RFC 3927 link-local, etc.), because a public
+                                                //!< TURN server such as the KVS TURN service rejects them with 403 Forbidden IP. Set this to TRUE
+                                                //!< if you use a TURN server that legitimately relays to such addresses (e.g. an on-prem/LAN TURN),
+                                                //!< so those peers are not filtered. Filtering is enabled by default (this flag defaults to FALSE).
+    BOOL iceServersFinal;                       //!< Set to TRUE when the ICE servers passed at creation are all there will be (no later
+                                                //!< peerConnectionUpdateIceServers call). Candidate gathering then completes as soon as every local
+                                                //!< candidate has resolved instead of running to iceLocalCandidateGatheringTimeout. Defaults to
+                                                //!< FALSE, which keeps gathering open for TURN servers added later. When TRUE,
+                                                //!< peerConnectionUpdateIceServers returns STATUS_ICE_SERVERS_FINAL.
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
 
 /**
@@ -1766,6 +1801,9 @@ typedef struct {
  * @brief RtcDataChannelInit dictionary used to configure properties of the
  * underlying channel such as data reliability
  *
+ * Zero the whole structure (MEMSET) before setting fields. negotiated is honoured, so a structure left
+ * uninitialised can select a negotiated channel that sends no DCEP DATA_CHANNEL_OPEN.
+ *
  * Reference: https://www.w3.org/TR/webrtc/#dom-rtcdatachannelinit
  */
 typedef struct {
@@ -1776,7 +1814,10 @@ typedef struct {
     NullableUint16 maxRetransmits;                    //!< Control number of times a channel retransmits data if not delivered successfully
     CHAR protocol[MAX_DATA_CHANNEL_PROTOCOL_LEN + 1]; //!< Sub protocol name for the channel
     BOOL negotiated;                                  //!< If set to true, it is up to the application to negotiate the channel and create an
-                                                      //!< RTCDataChannel object with the same id as the other peer.
+                                                      //!< RTCDataChannel object with the same id as the other peer. No DCEP DATA_CHANNEL_OPEN
+                                                      //!< is sent for a negotiated channel, and it may be created before or after the SCTP
+                                                      //!< association is established.
+    NullableUint16 id;                                //!< SCTP stream id, 0-299. Required when negotiated is TRUE, ignored otherwise.
 } RtcDataChannelInit, *PRtcDataChannelInit;
 /*!@} */
 
@@ -2131,12 +2172,13 @@ PUBLIC_API STATUS closePeerConnection(PRtcPeerConnection);
  * This function allows adding new ICE servers to an already created peer connection.
  * New TURN servers will have relay candidates created automatically, enabling
  * progressive ICE server delivery for improved connection establishment performance.
+ * Not allowed when KvsRtcConfiguration.iceServersFinal was set at creation.
  *
  * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
  * @param[in] PRtcIceServer Array of new ICE servers to add
  * @param[in] UINT32 Number of ICE servers in the array
  *
- * @return STATUS code of the execution. STATUS_SUCCESS on success
+ * @return STATUS code of the execution. STATUS_SUCCESS on success, STATUS_ICE_SERVERS_FINAL if iceServersFinal is set
  */
 PUBLIC_API STATUS peerConnectionUpdateIceServers(PRtcPeerConnection, PRtcIceServer, UINT32);
 
@@ -2186,6 +2228,22 @@ PUBLIC_API STATUS transceiverOnBandwidthEstimation(PRtcRtpTransceiver, UINT64, R
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS transceiverOnPictureLoss(PRtcRtpTransceiver, UINT64, RtcOnPictureLoss);
+
+/**
+ * @brief Send a Picture Loss Indication (PLI) to ask the remote sender for a new keyframe
+ *
+ * Reference: https://tools.ietf.org/html/rfc4585#section-6.3.1
+ *
+ * @param[in] PRtcRtpTransceiver Video transceiver that receives the remote video
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success.
+ *         STATUS_INVALID_ARG if the transceiver is not a video transceiver.
+ *         STATUS_INVALID_OPERATION if the remote SSRC is not known yet, i.e. before the remote description is set.
+ *         STATUS_RTCP_PLI_NOT_NEGOTIATED if the remote description does not list "a=rtcp-fb:<payload type> nack pli"
+ *         for this transceiver (RFC 4585 section 4.2).
+ *         STATUS_SRTP_NOT_READY_YET before DTLS completes.
+ */
+PUBLIC_API STATUS transceiverSendPictureLoss(PRtcRtpTransceiver);
 
 /**
  * @brief Override the H264 fmtp string advertised in SDP offers and answers for this transceiver.
@@ -2248,7 +2306,8 @@ PUBLIC_API STATUS addSupportedCodec(PRtcPeerConnection, RTC_CODEC);
  * @param[in] PRtcRtpTransceiver Configured and connected RtcRtpTransceiver to send media
  * @param[in] PFrame Frame of media that will be sent
  *
- * @return STATUS code of the execution. STATUS_SUCCESS on success
+ * @return STATUS code of the execution. STATUS_SUCCESS on success. STATUS_RTP_OUTBOUND_FRAME_TOO_LARGE if the frame is larger than
+ *         MAX_OUTBOUND_FRAME_SIZE_BYTES; nothing is sent.
  */
 PUBLIC_API STATUS writeFrame(PRtcRtpTransceiver, PFrame);
 
@@ -2279,7 +2338,11 @@ PUBLIC_API STATUS addIceCandidate(PRtcPeerConnection, PCHAR);
  *
  * NOTE: The RtcDataChannelInit dictionary can be used to configure properties of the underlying
  * channel such as data reliability.
- * NOTE: Data channel can be created only after signaling for now
+ * NOTE: A channel that uses in-band negotiation (DCEP) can only be created before the SCTP association is
+ * established. A negotiated channel (RtcDataChannelInit.negotiated = TRUE with an id) can be created at any
+ * time; created after the association, it is open immediately and its onOpen callback fires on registration.
+ * Such a channel can receive before dataChannelOnMessage() is called, and those messages are dropped: create it
+ * with createDataChannelWithCallbacks() instead.
  *
  * Reference: https://www.w3.org/TR/webrtc/#methods-11
  *
@@ -2288,12 +2351,40 @@ PUBLIC_API STATUS addIceCandidate(PRtcPeerConnection, PCHAR);
  * @param[in] PRtcDataChannelInit Allowed to be NULL/defines underlying channel properties
  * @param[out] PRtcDataChannel* Created data channel with supplied channel name
  *
- * @return STATUS code of the execution. STATUS_SUCCESS on success
+ * @return STATUS code of the execution. STATUS_SUCCESS on success. STATUS_INVALID_ARG when negotiated is TRUE and id is
+ * empty or not below 300. STATUS_SCTP_STREAM_ID_IN_USE when another data channel already uses the id.
+ * STATUS_INVALID_OPERATION when an in-band channel is created after the SCTP association is established.
  */
 PUBLIC_API STATUS createDataChannel(PRtcPeerConnection, PCHAR, PRtcDataChannelInit, PRtcDataChannel*);
 
 /**
+ * @brief createDataChannelWithCallbacks is createDataChannel() with the message and open callbacks set as the
+ * channel is created, so that it receives from the first message.
+ *
+ * Use it for a negotiated channel created after the SCTP association is established: that channel is open as
+ * soon as it exists, and the peer may send on it right away. Its onOpen callback runs before this function
+ * returns. For other channels, it is the same as createDataChannel() followed by dataChannelOnMessage() and
+ * dataChannelOnOpen().
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in] PCHAR Data channel Name
+ * @param[in] PRtcDataChannelInit Allowed to be NULL/defines underlying channel properties
+ * @param[in] UINT64 User customData passed to both callbacks
+ * @param[in] RtcOnMessage Message callback; allowed to be NULL
+ * @param[in] RtcOnOpen Open callback; allowed to be NULL
+ * @param[out] PRtcDataChannel* Created data channel with supplied channel name
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success. STATUS_INVALID_ARG when negotiated is TRUE and id is
+ * empty or not below 300. STATUS_SCTP_STREAM_ID_IN_USE when another data channel already uses the id.
+ * STATUS_INVALID_OPERATION when an in-band channel is created after the SCTP association is established.
+ */
+PUBLIC_API STATUS createDataChannelWithCallbacks(PRtcPeerConnection, PCHAR, PRtcDataChannelInit, UINT64, RtcOnMessage, RtcOnOpen, PRtcDataChannel*);
+
+/**
  * @brief Set a callback for data channel message
+ *
+ * Messages that arrive before the callback is set are dropped. A negotiated channel created after the SCTP
+ * association is established can receive as soon as it exists: create it with createDataChannelWithCallbacks().
  *
  * @param[in] PRtcDataChannel Data channel struct created by createDataChannel()
  * @param[in] UINT64 User customData that will be passed along when RtcOnMessage is called
@@ -2305,6 +2396,10 @@ PUBLIC_API STATUS dataChannelOnMessage(PRtcDataChannel, UINT64, RtcOnMessage);
 
 /**
  * @brief Set a callback for data channel open
+ *
+ * For a channel that is already open (a negotiated channel created on an established
+ * association, or a remote channel), the callback runs before this function returns.
+ * It runs once per channel.
  *
  * @param[in] PRtcDataChannel Data channel struct created by createDataChannel()
  * @param[in] UINT64 User customData that will be passed along when RtcOnOpen is called
@@ -2372,6 +2467,20 @@ PUBLIC_API STATUS createSignalingClientSync(PSignalingClientInfo, PChannelInfo, 
  * @brief Frees the Signaling client object
  *
  * NOTE: The call is idempotent.
+ * NOTE: Blocks until the signaling client's internal threads (reconnect, WSS listener, receive workers) have
+ *       exited, which includes any of their in-flight callbacks. It may take longer to return while a reconnect
+ *       attempt is in progress. A received message whose worker had not yet started invoking messageReceivedFn
+ *       when this call began is dropped rather than delivered during the free; a worker already inside
+ *       messageReceivedFn completes it, and this call waits for it.
+ * NOTE: Must not be called from a signaling callback. A call from messageReceivedFn, or from stateChangeFn /
+ *       errorReportFn while they run on one of the SDK's internal threads, is detected and returns
+ *       STATUS_SIGNALING_FREE_FROM_CALLBACK, leaving the handle valid. stateChangeFn and errorReportFn can also be
+ *       invoked on the application's own thread from inside a signaling API call (for example
+ *       signalingClientFetchSync() or signalingClientConnectSync()); such a call cannot be detected and must
+ *       not free the client either, since the API call is still using it. Free the client from a thread that
+ *       is not inside a signaling callback or API call.
+ * NOTE: Because the call waits for in-flight callbacks, do not hold a lock across it that one of your signaling
+ *       callbacks also acquires; the two would deadlock.
  *
  * @param[in,out/opt] PSIGNALING_CLIENT_HANDLE Signaling client handle to free
  *
@@ -2423,6 +2532,12 @@ PUBLIC_API STATUS signalingClientGetIceConfigInfo(SIGNALING_CLIENT_HANDLE, UINT3
  * @brief Fetches all assets needed to ready the state machine before attempting to connect.
  *        Can also be used to reallocate missing / expired assets before reconnecting.
  *
+ * NOTE: Returns STATUS_SIGNALING_FREE_IN_PROGRESS, without waiting for the SDK's threads, when called from a
+ *       signaling callback that runs on one of the SDK's internal threads while freeSignalingClient() runs on
+ *       another thread. A call that had already passed that check when freeSignalingClient() started waits a
+ *       bounded time for the listener and reconnect threads and may return another status. From any other thread
+ *       the call must not overlap freeSignalingClient(): the client can be freed while it runs.
+ *
  * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
@@ -2442,6 +2557,13 @@ PUBLIC_API STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE);
 
 /**
  * @brief Disconnects the signaling client.
+ *
+ * NOTE: Returns STATUS_SUCCESS, without waiting for the SDK's threads, when called from a signaling callback that
+ *       runs on one of the SDK's internal threads while freeSignalingClient() runs on another thread:
+ *       freeSignalingClient() disconnects the client. A call that had already passed that check when
+ *       freeSignalingClient() started waits a bounded time for the listener and reconnect threads and may return
+ *       another status. From any other thread the call must not overlap freeSignalingClient(): the client can be
+ *       freed while it runs.
  *
  * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
  *
@@ -2480,6 +2602,13 @@ PUBLIC_API STATUS signalingClientGetStateString(SIGNALING_CLIENT_STATE, PCHAR*);
  * NOTE: The call transitions the signaling client state machine to a terminal state
  * even if the call fails. The proper handling on success and on an error is to
  * free the signaling client.
+ *
+ * NOTE: Returns STATUS_SIGNALING_FREE_IN_PROGRESS, without waiting for the SDK's threads and without touching the
+ *       state machine, when called from a signaling callback that runs on one of the SDK's internal threads while
+ *       freeSignalingClient() runs on another thread. A call that had already passed that check when
+ *       freeSignalingClient() started waits a bounded time for the listener and reconnect threads and may return
+ *       another status. From any other thread the call must not overlap freeSignalingClient(): the client can be
+ *       freed while it runs.
  *
  * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
  *

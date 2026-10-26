@@ -16,3 +16,4 @@ venv/
 
 .SignalingCache_v*
 .kiro/
+.claude/

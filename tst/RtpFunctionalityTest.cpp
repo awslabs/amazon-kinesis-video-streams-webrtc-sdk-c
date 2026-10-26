@@ -25,6 +25,16 @@ TEST_F(RtpFunctionalityTest, packetUnderflow)
     }
 }
 
+// Parsing fails before pRawPacket is assigned; the CleanUp path must not free an uninitialized pointer.
+TEST_F(RtpFunctionalityTest, constructRetransmitRtpPacketFromBytesTooSmall)
+{
+    BYTE rawPacket[MIN_HEADER_LENGTH - 1] = {0x80};
+    PRtpPacket pRtpPacket = NULL;
+
+    EXPECT_EQ(STATUS_RTP_INPUT_PACKET_TOO_SMALL, constructRetransmitRtpPacketFromBytes(rawPacket, SIZEOF(rawPacket), 1, 97, 0x1234ABCD, 0, &pRtpPacket));
+    EXPECT_TRUE(pRtpPacket == NULL);
+}
+
 TEST_F(RtpFunctionalityTest, extensionHeaderBounds)
 {
     RtpPacket rtpPacket;

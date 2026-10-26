@@ -428,8 +428,9 @@ typedef struct {
     INT64 packetsLost; //!< TODO Total number of RTP packets lost for this SSRC. Calculated as defined in [RFC3550] section 6.4.1. Note that because
                        //!< of how this is estimated, it can be negative if more packets are received than sent.
     DOUBLE jitter;     //!< Packet Jitter measured in seconds for this SSRC. Calculated as defined in section 6.4.1. of [RFC3550].
-    UINT64 packetsDiscarded; //!< The cumulative number of RTP packets discarded by the jitter buffer due to late or early-arrival, i.e., these
-                             //!< packets are not played out. RTP packets discarded due to packet duplication are not reported in this metric
+    UINT64 packetsDiscarded; //!< The cumulative number of RTP packets discarded by the jitter buffer due to late or early-arrival, or because
+                             //!< they belong to a frame larger than MAX_INBOUND_FRAME_SIZE_BYTES, i.e., these packets are not played out.
+                             //!< RTP packets discarded due to packet duplication are not reported in this metric
                              //!< [XRBLOCK-STATS]. Calculated as defined in [RFC7002] section 3.2 and Appendix A.a.
     UINT64 packetsRepaired; //!< TODO The cumulative number of lost RTP packets repaired after applying an error-resilience mechanism [XRBLOCK-STATS].
     UINT64 burstPacketsLost;      //!< TODO The cumulative number of RTP packets lost during loss bursts, Appendix A (c) of [RFC6958].
@@ -526,7 +527,7 @@ typedef struct {
 
     UINT32 nackCount; //!< TODO Count the total number of Negative ACKnowledgement (NACK) packets sent by this receiver.
     UINT32 firCount;  //!< TODO Only valid for video. Count the total number of Full Intra Request (FIR) packets sent by this receiver.
-    UINT32 pliCount;  //!< TODO Only valid for video. Count the total number of Picture Loss Indication (PLI) packets sent by this receiver.
+    UINT32 pliCount;  //!< Only valid for video. Count the total number of Picture Loss Indication (PLI) packets sent by this receiver.
     UINT32 sliCount;  //!< TODO Only valid for video. Count the total number of Slice Loss Indication (SLI) packets sent by this receiver.
     DOMHighResTimeStamp estimatedPlayoutTimestamp; //!< TODO This is the estimated playout time of this receiver's track.
     DOUBLE jitterBufferDelay; //!< TODO It is the sum of the time, in seconds, each audio sample or video frame takes from the time it is received and

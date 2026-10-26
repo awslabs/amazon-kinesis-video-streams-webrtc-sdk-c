@@ -249,6 +249,91 @@ TEST_F(PeerConnectionApiTest, peerConnectionUpdateIceServersSuccess)
     freePeerConnection(&pRtcPeerConnection);
 }
 
+TEST_F(PeerConnectionApiTest, writeFrameRejectsFramesLargerThanMaximumOutboundFrameSize)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    PRtcRtpTransceiver pTransceiver = NULL;
+    RtcConfiguration configuration;
+    RtcMediaStreamTrack track;
+    Frame frame;
+    UINT64 encodedBytesTarget;
+    PBYTE pData = (PBYTE) MEMCALLOC(1, MAX_OUTBOUND_FRAME_SIZE_BYTES + 1);
+    ASSERT_NE(nullptr, pData);
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&track, 0x00, SIZEOF(RtcMediaStreamTrack));
+    MEMSET(&frame, 0x00, SIZEOF(Frame));
+    track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    STRCPY(track.streamId, "myKvsVideoStream");
+    STRCPY(track.trackId, "myTrack");
+    frame.frameData = pData;
+
+    // MAX_OUTBOUND_FRAME_SIZE_BYTES is accepted by the size check (not connected, so SRTP is not ready), one byte more is rejected.
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, track.codec));
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track, NULL, &pTransceiver));
+    frame.size = MAX_OUTBOUND_FRAME_SIZE_BYTES;
+    EXPECT_EQ(STATUS_SRTP_NOT_READY_YET, writeFrame(pTransceiver, &frame));
+    frame.size = MAX_OUTBOUND_FRAME_SIZE_BYTES + 1;
+    encodedBytesTarget = ((PKvsRtpTransceiver) pTransceiver)->outboundStats.totalEncodedBytesTarget;
+    EXPECT_EQ(STATUS_RTP_OUTBOUND_FRAME_TOO_LARGE, writeFrame(pTransceiver, &frame));
+    // A rejected frame is not counted in the outbound stats
+    EXPECT_EQ(encodedBytesTarget, ((PKvsRtpTransceiver) pTransceiver)->outboundStats.totalEncodedBytesTarget);
+    closePeerConnection(pRtcPeerConnection);
+    freePeerConnection(&pRtcPeerConnection);
+
+    MEMFREE(pData);
+}
+
+// A received frame over the jitter buffer's maximum frame size is dropped and counted in the inbound stats
+TEST_F(PeerConnectionApiTest, receivedFrameLargerThanMaximumInboundFrameSizeIsCountedAsDropped)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    PRtcRtpTransceiver pTransceiver = NULL;
+    PKvsRtpTransceiver pKvsRtpTransceiver;
+    RtcConfiguration configuration;
+    RtcMediaStreamTrack track;
+    PRtpPacket pRtpPacket;
+    PBYTE payload;
+    // Two single NAL unit packets at timestamp 1000, over MAX_INBOUND_FRAME_SIZE_BYTES together once depayloaded with their start codes,
+    // then one at timestamp 4000
+    UINT16 sequenceNumbers[] = {0, 1, 2};
+    UINT32 timestamps[] = {1000, 1000, 4000};
+    BYTE naluHeaders[] = {0x65, 0x65, 0x41};
+    UINT32 payloadLengths[] = {MAX_INBOUND_FRAME_SIZE_BYTES / 2, MAX_INBOUND_FRAME_SIZE_BYTES / 2, 5};
+    UINT32 i;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&track, 0x00, SIZEOF(RtcMediaStreamTrack));
+    track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    STRCPY(track.streamId, "myKvsVideoStream");
+    STRCPY(track.trackId, "myTrack");
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, track.codec));
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track, NULL, &pTransceiver));
+    pKvsRtpTransceiver = (PKvsRtpTransceiver) pTransceiver;
+
+    for (i = 0; i < ARRAY_SIZE(sequenceNumbers); i++) {
+        pRtpPacket = NULL;
+        payload = (PBYTE) MEMCALLOC(1, payloadLengths[i]);
+        payload[0] = naluHeaders[i];
+        EXPECT_EQ(STATUS_SUCCESS,
+                  createRtpPacket(2, FALSE, FALSE, 0, FALSE, 96, sequenceNumbers[i], timestamps[i], 0x1234ABCD, NULL, 0, 0, NULL, payload,
+                                  payloadLengths[i], &pRtpPacket));
+        pRtpPacket->pRawPacket = payload;
+        pRtpPacket->receivedTime = GETTIME();
+        EXPECT_EQ(STATUS_SUCCESS, jitterBufferPush(pKvsRtpTransceiver->pJitterBuffer, pRtpPacket, NULL));
+    }
+    EXPECT_EQ(1, pKvsRtpTransceiver->inboundStats.received.framesDropped);
+    EXPECT_EQ(0, pKvsRtpTransceiver->inboundStats.framesReceived);
+
+    closePeerConnection(pRtcPeerConnection);
+    freePeerConnection(&pRtcPeerConnection);
+}
+
 TEST_F(PeerConnectionApiTest, peerConnectionUpdateIceServersDuplicate)
 {
     PRtcPeerConnection pRtcPeerConnection = NULL;
@@ -270,6 +355,134 @@ TEST_F(PeerConnectionApiTest, peerConnectionUpdateIceServersDuplicate)
 
     closePeerConnection(pRtcPeerConnection);
     freePeerConnection(&pRtcPeerConnection);
+}
+
+// With iceServersFinal set, no ICE servers may be added later: the call is rejected before anything changes.
+TEST_F(PeerConnectionApiTest, peerConnectionUpdateIceServersRejectedWhenIceServersFinal)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    RtcConfiguration configuration;
+    RtcIceServer iceServers[1];
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(iceServers, 0x00, SIZEOF(iceServers));
+    configuration.kvsRtcConfiguration.iceServersFinal = TRUE;
+    SNPRINTF(iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, "turn:127.0.0.1:3478?transport=udp");
+    STRCPY(iceServers[0].username, "user");
+    STRCPY(iceServers[0].credential, "pass");
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_ICE_SERVERS_FINAL, peerConnectionUpdateIceServers(pRtcPeerConnection, iceServers, 1));
+    EXPECT_EQ(0, ((PKvsPeerConnection) pRtcPeerConnection)->pIceAgent->iceServersCount);
+
+    closePeerConnection(pRtcPeerConnection);
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+// Host candidates only, with the gathering timeout far away: with iceServersFinal set, gathering must end long before it.
+TEST_F(PeerConnectionApiTest, iceServersFinalCompletesGatheringBeforeTimeout)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit offer;
+    std::atomic<bool> gatheringDone(false);
+    UINT64 deadline;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&offer, 0x00, SIZEOF(offer));
+    configuration.kvsRtcConfiguration.iceLocalCandidateGatheringTimeout = 60 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    configuration.kvsRtcConfiguration.iceServersFinal = TRUE;
+
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(pRtcPeerConnection, (UINT64) &gatheringDone, [](UINT64 customData, PCHAR candidate) {
+                  if (candidate == NULL) {
+                      ((std::atomic<bool>*) customData)->store(true);
+                  }
+              }));
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(pRtcPeerConnection, &offer));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(pRtcPeerConnection, &offer));
+
+    deadline = GETTIME() + 5 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    while (!gatheringDone && GETTIME() < deadline) {
+        THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    EXPECT_TRUE(gatheringDone);
+
+    closePeerConnection(pRtcPeerConnection);
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+TEST_F(PeerConnectionApiTest, onSetStunServerIpCopiesCompleteAddress)
+{
+    PWebRtcClientContext pWebRtcClientContext;
+    PStunIpAddrContext pStunIpAddrCtx;
+    StunIpAddrContext savedCtx;
+    DualKvsIpAddresses ipAddresses;
+    const BYTE ipv4[IPV4_ADDRESS_LENGTH] = {203, 0, 113, 7};
+    const BYTE ipv6[IPV6_ADDRESS_LENGTH] = {0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x42};
+    BOOL createdHere = FALSE, resolverDone = FALSE;
+    UINT32 i;
+
+    // The client instance is only created by initKvsWebRtc() when ENABLE_KVS_THREADPOOL is on
+    pWebRtcClientContext = getWebRtcClientInstance();
+    if (!ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized)) {
+        releaseHoldOnInstance(pWebRtcClientContext);
+        ASSERT_EQ(STATUS_SUCCESS, createWebRtcClientInstance());
+        createdHere = TRUE;
+        pWebRtcClientContext = getWebRtcClientInstance();
+    }
+    ASSERT_TRUE(ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized));
+    pStunIpAddrCtx = pWebRtcClientContext->pStunIpAddrCtx;
+    ASSERT_TRUE(pStunIpAddrCtx != NULL);
+
+    // Wait for the startup STUN resolution thread; it sets startTime when done
+    for (i = 0; i < 1000 && !createdHere && !resolverDone; i++) {
+        MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
+        resolverDone = (pStunIpAddrCtx->startTime != 0);
+        MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
+        if (!resolverDone) {
+            THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        }
+    }
+
+    MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
+    savedCtx = *pStunIpAddrCtx;
+    STRCPY(pStunIpAddrCtx->hostname, "stun.test.invalid");
+    MEMSET(&pStunIpAddrCtx->kvsIpAddresses, 0x00, SIZEOF(DualKvsIpAddresses));
+    pStunIpAddrCtx->kvsIpAddresses.ipv4Address.family = KVS_IP_FAMILY_TYPE_IPV4;
+    pStunIpAddrCtx->kvsIpAddresses.ipv4Address.port = 3478;
+    MEMCPY(pStunIpAddrCtx->kvsIpAddresses.ipv4Address.address, ipv4, IPV4_ADDRESS_LENGTH);
+    pStunIpAddrCtx->kvsIpAddresses.ipv6Address.family = KVS_IP_FAMILY_TYPE_IPV6;
+    pStunIpAddrCtx->kvsIpAddresses.ipv6Address.port = 3479;
+    MEMCPY(pStunIpAddrCtx->kvsIpAddresses.ipv6Address.address, ipv6, IPV6_ADDRESS_LENGTH);
+    pStunIpAddrCtx->isIpInitialized = TRUE;
+    pStunIpAddrCtx->startTime = GETTIME();
+    pStunIpAddrCtx->expirationDuration = 2 * HUNDREDS_OF_NANOS_IN_AN_HOUR;
+    MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
+
+    MEMSET(&ipAddresses, 0x00, SIZEOF(ipAddresses));
+    EXPECT_EQ(STATUS_SUCCESS, onSetStunServerIp(0, (PCHAR) "stun.test.invalid", &ipAddresses));
+
+    EXPECT_EQ(KVS_IP_FAMILY_TYPE_IPV4, ipAddresses.ipv4Address.family);
+    EXPECT_EQ(3478, ipAddresses.ipv4Address.port);
+    EXPECT_EQ(0, MEMCMP(ipAddresses.ipv4Address.address, ipv4, IPV4_ADDRESS_LENGTH));
+    EXPECT_EQ(KVS_IP_FAMILY_TYPE_IPV6, ipAddresses.ipv6Address.family);
+    EXPECT_EQ(3479, ipAddresses.ipv6Address.port);
+    EXPECT_EQ(0, MEMCMP(ipAddresses.ipv6Address.address, ipv6, IPV6_ADDRESS_LENGTH));
+
+    // Different URL than the cached hostname
+    MEMSET(&ipAddresses, 0x00, SIZEOF(ipAddresses));
+    EXPECT_EQ(STATUS_PEERCONNECTION_EARLY_DNS_RESOLUTION_FAILED, onSetStunServerIp(0, (PCHAR) "stun.other.invalid", &ipAddresses));
+    EXPECT_EQ(KVS_IP_FAMILY_TYPE_NOT_SET, ipAddresses.ipv4Address.family);
+
+    MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
+    *pStunIpAddrCtx = savedCtx;
+    MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
+    releaseHoldOnInstance(pWebRtcClientContext);
+
+    if (createdHere) {
+        EXPECT_EQ(STATUS_SUCCESS, cleanupWebRtcClientInstance());
+    }
 }
 
 } // namespace webrtcclient

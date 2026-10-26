@@ -36,6 +36,11 @@ if(ENABLE_AWS_SDK_IN_TESTS)
   set(AWS_SDK_TEST_LIBS ${AWSSDK_LINK_LIBRARIES})
 endif()
 
+if(KVS_TEST_MBEDTLS4_NO_ENTROPY)
+  # PsaExternalRng.cpp supplies mbedtls_psa_external_get_random()
+  add_definitions(-DKVS_TEST_MBEDTLS4_NO_ENTROPY)
+endif()
+
 file(GLOB WEBRTC_CLIENT_TEST_SOURCE_FILES "*.cpp" )
 
 add_executable(webrtc_client_test ${WEBRTC_CLIENT_TEST_SOURCE_FILES} SignalingApiFunctionalityTest.h)

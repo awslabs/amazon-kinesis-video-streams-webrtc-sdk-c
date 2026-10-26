@@ -161,6 +161,9 @@ typedef struct {
     SignalingApiCallHookFunc deletePreHookFn;
     SignalingApiCallHookFunc deletePostHookFn;
 
+    // Runs on the receive worker right before messageReceivedFn would be invoked.
+    SignalingApiCallHookFunc receiveMessagePreCallbackHookFn;
+
     // Retry strategy used for signaling state machine
     KvsRetryStrategy signalingStateMachineRetryStrategy;
     KvsRetryStrategyCallbacks signalingStateMachineRetryStrategyCallbacks;
@@ -179,6 +182,28 @@ typedef struct {
 /**
  * Internal structure tracking various parameters for diagnostics and metrics/stats
  */
+/**
+ * Identity of the calling thread, used only to detect freeSignaling() being called from one of the
+ * signaling client's own threads. GETTID() is not usable for this on Windows: kvspic implements it
+ * as GetCurrentThread(), which returns the same pseudo-handle on every thread. GetCurrentThreadId()
+ * is unique among live threads; on POSIX GETTID() is pthread_self(), which already is.
+ */
+#if defined _WIN32 || defined _WIN64 || defined __CYGWIN__
+#define SIGNALING_CURRENT_THREAD_ID() ((SIZE_T) GetCurrentThreadId())
+#else
+#define SIGNALING_CURRENT_THREAD_ID() ((SIZE_T) GETTID())
+#endif
+
+/**
+ * Stack-allocated marker a signaling-owned thread links into one of the SignalingClient lists for as long as it
+ * runs (pActiveReceiveWorkers for receiveLwsMessageWrapper(), pActiveReconnectThreads for reconnectHandler()),
+ * so freeSignaling() can detect being called from a callback on that thread.
+ */
+typedef struct __SignalingThreadNode {
+    SIZE_T tid;
+    struct __SignalingThreadNode* pNext;
+} SignalingThreadNode, *PSignalingThreadNode;
+
 typedef struct {
     volatile SIZE_T numberOfMessagesSent;
     volatile SIZE_T numberOfMessagesReceived;
@@ -337,6 +362,39 @@ typedef struct {
     // Restarted thread handler
     ThreadTracker reconnecterTracker;
 
+    // In-flight receive worker count. Incremented in receiveLwsMessage() BEFORE the
+    // THREAD_CREATE/threadpoolContextPush (and rolled back if that fails), under
+    // receiveWorkerLock together with the shutdown check; decremented in
+    // receiveLwsMessageWrapper() on exit. Incrementing after the hand-off would let
+    // a fast worker decrement first and wrap the counter. terminateOngoingOperations()
+    // waits for this to reach zero on the shutdown path before the client can be freed.
+    volatile SIZE_T receiveWorkerCount;
+    MUTEX receiveWorkerLock;
+    CVAR receiveWorkerCvar;
+
+    // Receive workers currently executing receiveLwsMessageWrapper(). Protected by receiveWorkerLock.
+    PSignalingThreadNode pActiveReceiveWorkers;
+
+    // Number of reconnectHandler() threads currently alive. Protected by
+    // reconnecterTracker.lock. Two can overlap: the WSS callback spawns a new one
+    // when the connection drops again while the previous one is still finishing
+    // (e.g. in JOIN_SESSION after CONNECTED, or in its CleanUp).
+    // reconnecterTracker.terminated is published only when this drops to zero.
+    UINT32 reconnectThreadCount;
+
+    // Every reconnectHandler() thread currently running, one node per thread, linked by the thread itself on
+    // entry and unlinked on exit. Protected by reconnecterTracker.lock. A single "latest thread id" slot is not
+    // enough: while two reconnect threads overlap, the older one still runs stateChangeFn / errorReportFn, and a
+    // freeSignalingClient() call from there has to be recognised as well or it waits for its own thread.
+    // Counted threads that have not reached their prologue yet are absent from the list, which is fine: a thread
+    // that has not started cannot be inside a callback.
+    PSignalingThreadNode pActiveReconnectThreads;
+
+    // Thread id of the running lwsListenerHandler(). Only meaningful while
+    // listenerTracker.terminated is FALSE; reset to 0 before the listener publishes
+    // its termination. Written only by the listener thread itself.
+    volatile SIZE_T listenerThreadTid;
+
     // Generic websocket context - can be used by any implementation
     PVOID pWebsocketContext;
 
@@ -346,6 +404,9 @@ typedef struct {
 
     // Generic websocket connection objects - can be used by any implementation
     PVOID currentWsi[LWS_PROTOCOL_COUNT];
+
+    // Set by wakeLwsServiceEventLoop(), consumed by the service thread on LWS_CALLBACK_EVENT_WAIT_CANCELLED
+    volatile ATOMIC_BOOL writableRequested[LWS_PROTOCOL_COUNT];
 
     // List of the ongoing messages
     PStackQueue pMessageQueue;
@@ -418,7 +479,14 @@ STATUS awaitForThreadTermination(PThreadTracker, UINT64);
 STATUS initializeThreadTracker(PThreadTracker);
 STATUS uninitializeThreadTracker(PThreadTracker);
 
-STATUS terminateOngoingOperations(PSignalingClient);
+// waitForAllThreads: TRUE only from freeSignaling(). Blocks until every SDK-owned thread (reconnect, listener,
+// receive workers) has exited because the client is about to be freed. All other callers pass FALSE and get the
+// bounded best-effort quiesce, even when another thread has already set shutdown: that caller may itself be one of
+// the threads freeSignaling() is waiting for, and the unbounded wait would then wait on itself. The callers return at
+// their entry once shutdown is set (fetch and delete refuse, disconnect reports success), but one can pass its check
+// just before freeSignaling() sets the flag and still arrive here; the parameter, not the flag, decides the wait so
+// that window cannot turn into a self-wait.
+STATUS terminateOngoingOperations(PSignalingClient, BOOL waitForAllThreads);
 
 STATUS describeChannel(PSignalingClient, UINT64);
 STATUS createChannel(PSignalingClient, UINT64);

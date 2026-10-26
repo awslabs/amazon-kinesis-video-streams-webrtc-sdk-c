@@ -120,6 +120,13 @@ typedef struct {
     BYTE randBytes[2 * MAX_DTLS_RANDOM_BYTES_LEN];
     mbedtls_tls_prf_types tlsProfile;
 } TlsKeys, *PTlsKeys;
+
+// mbedTLS 4 takes its RNG from PSA, so sessions keep no DRBG of their own
+#if MBEDTLS_VERSION_MAJOR < 4
+#define KVS_MBEDTLS_DRBG(pSession) (&(pSession)->ctrDrbg)
+#else
+#define KVS_MBEDTLS_DRBG(pSession) (NULL)
+#endif
 #else
 #error "A Crypto implementation is required."
 #endif
@@ -157,8 +164,10 @@ struct __DtlsSession {
     TlsKeys tlsKeys;
     PIOBuffer pReadBuffer;
 
+#if MBEDTLS_VERSION_MAJOR < 4
     mbedtls_entropy_context entropy;
     mbedtls_ctr_drbg_context ctrDrbg;
+#endif
     mbedtls_ssl_config sslCtxConfig;
     mbedtls_ssl_context sslCtx;
     mbedtls_x509_crt trustedCaCert;

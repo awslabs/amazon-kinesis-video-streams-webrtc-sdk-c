@@ -24,6 +24,10 @@ typedef struct {
 
     UINT64 onOpenCustomData;
     RtcOnOpen onOpen;
+    BOOL openFired; // onOpen delivered (it can be due both from allocateSctp and from dataChannelOnOpen)
+    // In-band channel whose DATA_CHANNEL_OPEN went out and nothing has come back on its stream yet: its messages
+    // go ordered, RFC 8832 section 6
+    volatile ATOMIC_BOOL awaitingDcepAck;
 } KvsDataChannel, *PKvsDataChannel;
 
 #ifdef __cplusplus

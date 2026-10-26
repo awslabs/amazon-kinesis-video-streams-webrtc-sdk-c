@@ -63,8 +63,10 @@ endif()
 
 if (USE_OPENSSL)
   set(LIBSRTP_ENABLE_OPENSSL ON)
+  set(LIBSRTP_CRYPTO_LIBRARY openssl)
 else()
   set(LIBSRTP_ENABLE_OPENSSL OFF)
+  set(LIBSRTP_CRYPTO_LIBRARY internal)
 endif()
 
 message(STATUS "CONFIGURE_COMMAND is ${CONFIGURE_COMMAND}")
@@ -79,6 +81,7 @@ ExternalProject_Add(project_libsrtp
     CMAKE_ARGS        -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
                       -DCMAKE_INSTALL_PREFIX:STRING=${OPEN_SRC_INSTALL_PREFIX}
                       -DENABLE_OPENSSL=${LIBSRTP_ENABLE_OPENSSL}
+                      -DCRYPTO_LIBRARY=${LIBSRTP_CRYPTO_LIBRARY}
                       -DBUILD_SHARED_LIBS=${LIBSRTP_SHARED_LIBS}
                       -DOPENSSL_ROOT_DIR=${OPEN_SRC_INSTALL_PREFIX}
                       -DLIBSRTP_TEST_APPS=OFF
