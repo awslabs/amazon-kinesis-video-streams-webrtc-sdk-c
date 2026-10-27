@@ -313,8 +313,22 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
     SIZE_T offset, bufferSize;
     BOOL connected, locked = FALSE;
     SERVICE_CALL_RESULT callResult;
+    UINT32 i;
 
     DLOGV("WSS callback with reason %d", reason);
+
+    // Sent to every protocol on a fake wsi after lws_cancel_service(), from the service thread.
+    // This path must return 0. A non-zero return makes lws close its cancel pipe, and every later wake is lost.
+    if (reason == LWS_CALLBACK_EVENT_WAIT_CANCELLED) {
+        pSignalingClient = (PSignalingClient) lws_context_user(lws_get_context((struct lws*) wsi));
+        CHK(pSignalingClient != NULL, retStatus);
+        for (i = 0; i < LWS_PROTOCOL_COUNT; i++) {
+            if (ATOMIC_EXCHANGE_BOOL(&pSignalingClient->writableRequested[i], FALSE) && pSignalingClient->currentWsi[i] != NULL) {
+                lws_callback_on_writable((struct lws*) pSignalingClient->currentWsi[i]);
+            }
+        }
+        CHK(FALSE, retStatus);
+    }
 
     // Early check before accessing custom field to see if we are interested in the message
     switch (reason) {
@@ -651,8 +665,9 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     while (iterate && pCallInfo->pSignalingClient->currentWsi[PROTOCOL_INDEX_WSS] != NULL &&
            !ATOMIC_LOAD_BOOL(&pCallInfo->pSignalingClient->shutdown)) {
         if (!MUTEX_TRYLOCK(pCallInfo->pSignalingClient->lwsServiceLock)) {
-            // Wake up the event loop
+            // Wake up the event loop, then give it time to release the lock
             CHK_STATUS(wakeLwsServiceEventLoop(pCallInfo->pSignalingClient, PROTOCOL_INDEX_WSS));
+            THREAD_SLEEP(LWS_SERVICE_LOOP_ITERATION_WAIT);
         } else {
             locked = TRUE;
             iterate = FALSE;
@@ -2699,8 +2714,16 @@ PVOID receiveLwsMessageWrapper(PVOID args)
                                     "Offer Sent to Answer Received time");
         MUTEX_UNLOCK(pSignalingClient->offerSendReceiveTimeLock);
     }
-    // Calling client receive message callback if specified
-    if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
+    if (pSignalingClient->clientInfo.receiveMessagePreCallbackHookFn != NULL) {
+        CHK_STATUS(pSignalingClient->clientInfo.receiveMessagePreCallbackHookFn(pSignalingClient->clientInfo.hookCustomData));
+    }
+
+    // Calling client receive message callback if specified and the client is not being freed. A worker that was
+    // dispatched before freeSignalingClient() set shutdown is still counted and waited for, but the application
+    // has already asked for the client to go away, so its message is dropped rather than delivered mid-free.
+    if (ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown)) {
+        DLOGD("Dropping received message of type %s: signaling client is shutting down", getMessageTypeInString(messageType));
+    } else if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.messageReceivedFn(pSignalingClient->signalingClientCallbacks.customData,
                                                                                 &pSignalingMessageWrapper->receivedSignalingMessage));
     }
@@ -2743,8 +2766,11 @@ STATUS wakeLwsServiceEventLoop(PSignalingClient pSignalingClient, UINT32 protoco
     // Early exit in case we don't need to do anything
     CHK(pSignalingClient != NULL && pSignalingClient->pWebsocketContext != NULL, retStatus);
 
+    // lws_cancel_service() is the only lws call that is safe from a foreign thread. The service
+    // thread then requests the write itself on LWS_CALLBACK_EVENT_WAIT_CANCELLED.
     if (pSignalingClient->currentWsi[protocolIndex] != NULL) {
-        lws_callback_on_writable(pSignalingClient->currentWsi[protocolIndex]);
+        ATOMIC_STORE_BOOL(&pSignalingClient->writableRequested[protocolIndex], TRUE);
+        lws_cancel_service(pSignalingClient->pWebsocketContext);
     }
 
 CleanUp:

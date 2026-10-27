@@ -16,6 +16,13 @@ env:
   DEBIAN_FRONTEND: noninteractive
 
 jobs:
+  ecr-login:
+    uses: ./.github/workflows/ecr-public-login.yml
+    permissions:
+      id-token: write
+      contents: read
+    secrets: inherit
+
   check-aws-credentials:
     runs-on: ubuntu-latest
     permissions:
@@ -244,13 +251,16 @@ jobs:
           make -j
 
   mbedtls-ubuntu-gcc-4-4:
-    needs: cleanup-old-resources
+    needs: [cleanup-old-resources, ecr-login]
     permissions:
       id-token: write
       contents: read
 
     runs-on: ubuntu-latest
-    container: public.ecr.aws/ubuntu/ubuntu:20.04_stable
+    container:
+      image: public.ecr.aws/ubuntu/ubuntu:20.04_stable
+      # Authenticated pull; see ecr-public-login.yml.
+      credentials: ${{ fromJSON(needs.ecr-login.outputs.attempt == github.run_attempt && needs.ecr-login.outputs.credentials || '{}') }}
     timeout-minutes: 60
 
     env:
@@ -294,7 +304,7 @@ jobs:
           timeout --signal=SIGABRT 60m ./tst/webrtc_client_test
 
   ubuntu:
-    needs: cleanup-old-resources
+    needs: [cleanup-old-resources, ecr-login]
     strategy:
       matrix:
         container:
@@ -327,6 +337,8 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ${{ matrix.container.image }}
+      # Authenticated pull; see ecr-public-login.yml.
+      credentials: ${{ fromJSON(needs.ecr-login.outputs.attempt == github.run_attempt && needs.ecr-login.outputs.credentials || '{}') }}
 
     permissions:
       id-token: write
@@ -406,10 +418,12 @@ jobs:
   # compiled out (the ESP-IDF v6 configuration). Guards that the SDK takes its randomness from
   # PSA alone on mbedTLS 4 and never references the entropy or CTR-DRBG APIs again.
   mbedtls4-no-entropy:
-    needs: cleanup-old-resources
+    needs: [cleanup-old-resources, ecr-login]
     runs-on: ubuntu-latest
     container:
       image: public.ecr.aws/ubuntu/ubuntu:22.04_stable
+      # Authenticated pull; see ecr-public-login.yml.
+      credentials: ${{ fromJSON(needs.ecr-login.outputs.attempt == github.run_attempt && needs.ecr-login.outputs.credentials || '{}') }}
 
     permissions:
       id-token: write
@@ -469,6 +483,55 @@ jobs:
         working-directory: ./build
         run: |
           ./tst/webrtc_client_test
+
+  # libwebsockets built without its foreign-thread pollfd fallback. lws v5.0.0 drops that
+  # fallback on FreeRTOS and Windows, which have no CI job. Guards that the signaling client
+  # wakes the lws service thread in a way that works without it.
+  lws-no-foreign-thread-pollfd:
+    needs: cleanup-old-resources
+    runs-on: ubuntu-latest
+    container:
+      image: public.ecr.aws/ubuntu/ubuntu:22.04_stable
+
+    permissions:
+      id-token: write
+      contents: read
+
+    name: Ubuntu 22.04-gcc-lws-no-foreign-thread-pollfd
+    timeout-minutes: 60
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y git cmake build-essential pkg-config
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2.2.0
+        with:
+          cmake-version: '3.x'
+
+      - name: Build repository
+        shell: bash
+        run: |
+          mkdir build && cd build
+          cmake .. -DBUILD_TEST=ON -DENABLE_AWS_SDK_IN_TESTS=OFF -DBUILD_SAMPLE=OFF -DPARALLEL_BUILD=ON \
+            -DKVS_TEST_LWS_NO_FOREIGN_THREAD_POLLFD=ON
+          make -j
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Run tests
+        working-directory: ./build
+        run: |
+          ./tst/webrtc_client_test --gtest_filter='SignalingApiTest.*'
 
   windows-msvc-openssl:
     needs: cleanup-old-resources

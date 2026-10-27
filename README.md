@@ -860,6 +860,19 @@ Let us look into when each of these could be changed:
 
 Set `iceServersFinal` when every STUN/TURN server is passed at creation and `peerConnectionUpdateIceServers` is never called. Gathering then ends as soon as every candidate resolves instead of waiting for `iceLocalCandidateGatheringTimeout`, which helps non-trickle offers and answers. With the flag set, `peerConnectionUpdateIceServers` returns `STATUS_ICE_SERVERS_FINAL`.
 
+### Data channels
+
+`createDataChannel()` takes an optional `RtcDataChannelInit`. Zero the whole structure (`MEMSET`) before setting its fields: `negotiated` is honoured, so a structure left uninitialised can select a negotiated channel, which sends no DCEP `DATA_CHANNEL_OPEN` and so never appears on the remote side.
+
+* **In-band channels** (`negotiated = FALSE`, the default) are announced to the peer with a DCEP `DATA_CHANNEL_OPEN` and get their stream id from the DTLS role ([RFC 8832](https://datatracker.ietf.org/doc/html/rfc8832)). They must be created before the SCTP association is established.
+* **Negotiated channels** (`negotiated = TRUE` and an `id` from 0 to 299) are agreed outside the SDK, for example by an SFU. Both peers create the channel with the same `id`, before or after the association. One created after the association is open straight away.
+
+Each channel sends with its own `ordered`, `maxRetransmits` and `maxPacketLifeTime`; a remote in-band channel uses the values its `DATA_CHANNEL_OPEN` announced. `maxRetransmits` takes precedence over `maxPacketLifeTime`. An unordered in-band channel sends ordered until the peer's `DATA_CHANNEL_ACK` (or any message from the peer on it) arrives, as RFC 8832 requires.
+
+Messages that arrive on a channel with no `onMessage` callback are dropped. A negotiated channel created on a live association can receive as soon as it exists, so create it with `createDataChannelWithCallbacks()`, which sets `onMessage` and `onOpen` before the channel can receive; its `onOpen` runs before the call returns.
+
+A peer's in-band channel on a stream id that a local negotiated channel already uses is not acknowledged. The SDK cannot reset the stream to close it, so pick negotiated ids that the peer's in-band channels will not use: those get even ids when the peer is the DTLS client, and odd ids when it is the DTLS server.
+
 ### Enable ICE agent stats
 
 The SDK calculates 4 different stats:
@@ -928,6 +941,8 @@ See the [Status code reference](https://github.com/awslabs/amazon-kinesis-video-
 Additional guides:
 - [TWCC (Transport-Wide Congestion Control)](docs/TWCC.md) — bandwidth estimation, bitrate adaptation, and troubleshooting
 - [Troubleshooting H.265 sample frames](docs/TROUBLESHOOTING_H265_FRAMES.md) — inspecting NAL units, diagnosing freeze-after-first-frame, regenerating frames
+- [Frame size limits](docs/FRAME_SIZE_LIMITS.md) — maximum sent and received frame sizes, their status codes, and what to send over a data channel instead
+- [Sending media](docs/SENDING_MEDIA.md) — calling `writeFrame()`, timestamps, packetization, receiver feedback, and troubleshooting
 
 Refer to [related](#related) for more about WebRTC and KVS.
 
