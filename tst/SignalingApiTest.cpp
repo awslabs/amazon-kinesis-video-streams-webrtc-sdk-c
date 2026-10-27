@@ -208,6 +208,10 @@ TEST_F(SignalingApiTest, signalingSendMessageSync)
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(signalingMessage.payload != NULL);
+#endif
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -237,6 +241,10 @@ TEST_F(SignalingApiTest, signalingSendMessageSync)
     // No peer id no correlation id
     signalingMessage.correlationId[0] = '\0';
     EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
 
     deinitializeSignalingClient();
     //wait for threads of threadpool to close
@@ -273,6 +281,10 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(signalingMessage.payload != NULL);
+#endif
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -292,6 +304,10 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
     // No peer id no correlation id
     signalingMessage.correlationId[0] = '\0';
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
 
     deinitializeSignalingClient();
 
@@ -376,11 +392,19 @@ TEST_F(SignalingApiTest, signalingClientDeleteSync)
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(signalingMessage.payload != NULL);
+#endif
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
     signalingMessage.correlationId[0] = '\0';
     EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
 
     deinitializeSignalingClient();
     //wait for threads of threadpool to close
@@ -538,6 +562,10 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(signalingMessage.payload != NULL);
+#endif
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -574,6 +602,10 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_NE(0, metrics.signalingClientStats.connectionDuration);
     EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);
     EXPECT_NE(0, metrics.signalingClientStats.dpApiCallLatency);
+
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
 
     deinitializeSignalingClient();
 }
@@ -914,6 +946,10 @@ TEST_F(SignalingApiTest, probeMaxSignalingMessageSize)
 
     SignalingMessage signalingMessage;
     MEMSET(&signalingMessage, 0x00, SIZEOF(SignalingMessage));
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    ASSERT_TRUE(signalingMessage.payload != NULL);
+#endif
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     // Use max-length peerClientId and correlationId to account for worst-case envelope
@@ -984,6 +1020,9 @@ TEST_F(SignalingApiTest, probeMaxSignalingMessageSize)
     printf("[PROBE RESULT] After base64, the on-wire size is approximately: %u bytes\n", maxAccepted * 4 / 3);
     printf("\n");
 
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
     deinitializeSignalingClient();
     THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
