@@ -100,10 +100,8 @@ STATUS tlsSessionStartWithHostname(PTlsSession pTlsSession, BOOL isServer, PCHAR
      * break media for peers behind symmetric NAT. The warning is logged inside
      * awsLcConfigureTlsGroups.
      */
-    if (STATUS_FAILED(awsLcConfigureTlsGroups(pTlsSession->pSslCtx, TRUE))) {
+    if (STATUS_FAILED(awsLcConfigureTlsGroups(pTlsSession->pSslCtx))) {
         DLOGW("Failed to configure post-quantum groups on the TURNS TLS context; continuing with AWS-LC defaults");
-    } else {
-        awsLcSetPqcConfigured(TRUE);
     }
 #endif
 

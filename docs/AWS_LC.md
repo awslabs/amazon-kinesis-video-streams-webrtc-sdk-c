@@ -76,23 +76,13 @@ AWS-LC FIPS mode: ENABLED (AWS-LC FIPS, module version 5)
 Post-quantum key exchange: offered (X25519MLKEM768, 0x11ec) on the TLS 1.3 connections to AWS (control plane HTTPS, signaling WSS, TURNS); DTLS-SRTP media path is DTLS 1.2 and remains classical
 ```
 
-Set `AWS_KVS_LOG_LEVEL=3` or lower to see these lines. The default is `4`, which is `WARN`.
+Set `AWS_KVS_LOG_LEVEL=2` or lower to see all three lines. The first two log at `INFO`, the post-quantum line at `DEBUG`. The default level is `4`, which is `WARN`.
 
 The first line reports two versions. "headers" is the AWS-LC version the SDK compiled against. "loaded library reports" is the version string inside the libcrypto the process loaded. The two differ when the loader finds a stale or system libcrypto ahead of the intended AWS-LC.
 
-### Did a given connection negotiate ML-KEM?
+The third line reports what the SDK offers. It does not report what any handshake negotiated. The peer has to support ML-KEM too, and a peer without it still negotiates a classical group.
 
-Offering the group is not the same as negotiating it. The peer has to support the group too. The SDK logs the outcome of every TLS 1.3 handshake it completes, labelled by connection.
-
-```
-PQC[signaling WSS]: TLSv1.3 offered=X25519MLKEM768(configured) negotiated=X25519MLKEM768 (0x11ec) POST-QUANTUM
-PQC[control-plane DescribeSignalingChannel]: TLSv1.3 offered=X25519MLKEM768(configured) negotiated=X25519MLKEM768 (0x11ec) POST-QUANTUM
-PQC[TURNS]: TLSv1.3 offered=X25519MLKEM768(configured) negotiated=X25519 (0x001d) CLASSICAL - peer did not accept ML-KEM
-```
-
-A `CLASSICAL` line means the peer has not enabled ML-KEM. The SDK offered the group and the peer declined it. That is not a misconfiguration. `POST-QUANTUM` lines log at `INFO` and `CLASSICAL` lines at `WARN`.
-
-To inspect an endpoint's server side without the SDK, build the `bssl` tool with `-DBUILD_TOOL=ON` in the AWS-LC build, or run `openssl s_client` from OpenSSL 3.5 or later.
+To see the group a connection actually used, inspect the server side directly. Build the `bssl` tool with `-DBUILD_TOOL=ON` in the AWS-LC build, or run `openssl s_client` from OpenSSL 3.5 or later.
 
 ### Confirming a FIPS operation ran inside the boundary
 

@@ -125,11 +125,9 @@ VOID awsLcLogCryptoBackend(VOID)
      * client context the SDK creates. This line reports that the group is
      * available and offered, not that any handshake negotiated it: the DTLS
      * media path is DTLS 1.2, which has no ML-KEM at all, and a peer without
-     * ML-KEM still negotiates a classical group. The per-handshake
-     * "PQC[...]" lines from awsLcRecordNegotiatedGroup() report what each
-     * connection actually settled on.
+     * ML-KEM still negotiates a classical group.
      */
-    DLOGI("Post-quantum key exchange: offered (X25519MLKEM768, 0x%04x) on the TLS 1.3 connections to AWS "
+    DLOGD("Post-quantum key exchange: offered (X25519MLKEM768, 0x%04x) on the TLS 1.3 connections to AWS "
           "(control plane HTTPS, signaling WSS, TURNS); DTLS-SRTP media path is DTLS 1.2 and remains classical",
           SSL_GROUP_X25519_MLKEM768);
 }

@@ -62,13 +62,10 @@ extern "C" {
  * takes NIDs and exists on both AWS-LC mainline and the fips-* branches, whereas
  * the codepoint-based SSL_CTX_set1_group_ids is mainline-only.
  *
- * The classical groups are retained as fallbacks so a server that does not yet
- * offer ML-KEM still completes a handshake instead of failing closed.
+ * The classical groups trail ML-KEM in the same list, so a server that does not
+ * yet offer ML-KEM still completes a handshake instead of failing closed.
  */
 #define KVS_AWS_LC_PQC_GROUPS {NID_X25519MLKEM768, NID_X25519, NID_X9_62_prime256v1, NID_secp384r1}
-
-/* Groups used when PQC is explicitly disabled at runtime. */
-#define KVS_AWS_LC_CLASSICAL_GROUPS {NID_X25519, NID_X9_62_prime256v1, NID_secp384r1}
 
 /*
  * FIPS builds are selected at compile time (-DFIPS=1 when building AWS-LC);
@@ -84,9 +81,8 @@ extern "C" {
  * which only kvsWebrtcClient compiles. */
 VOID awsLcLogCryptoBackend(VOID);
 
-/* awsLcConfigureTlsGroups() and awsLcRecordNegotiatedGroup() are static inline
- * in AwsLcPqc.h, included below: both SDK libraries need them and they are
- * separate link targets. */
+/* awsLcConfigureTlsGroups() is static inline in AwsLcPqc.h, included below:
+ * both SDK libraries need it and they are separate link targets. */
 #endif /* KVS_USE_AWS_LC */
 
 /*

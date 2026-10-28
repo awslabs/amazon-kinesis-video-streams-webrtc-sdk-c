@@ -21,44 +21,6 @@ VOID lwsSignalHandler(INT32 signal)
     gInterruptedFlagBySignalHandler = TRUE;
 }
 
-#ifdef KVS_USE_AWS_LC
-/**
- * Map a signaling request URL to a human-readable label for the PQC log line, so
- * each TLS handshake is attributable to the API that caused it.
- *
- * Lives here rather than in the crypto layer because the *_API_POSTFIX macros
- * are signaling-specific.
- */
-static PCHAR lwsPqcApiLabel(PCHAR pUrl)
-{
-    if (IS_NULL_OR_EMPTY_STRING(pUrl)) {
-        return (PCHAR) "https";
-    }
-
-    /* DescribeMediaStorageConfiguration is checked before DescribeSignalingChannel
-     * so the shorter name does not shadow it. */
-    if (STRSTR(pUrl, DESCRIBE_MEDIA_STORAGE_CONF_API_POSTFIX) != NULL) {
-        return (PCHAR) "control-plane DescribeMediaStorageConfiguration";
-    } else if (STRSTR(pUrl, UPDATE_MEDIA_STORAGE_CONF_API_POSTFIX) != NULL) {
-        return (PCHAR) "control-plane UpdateMediaStorageConfiguration";
-    } else if (STRSTR(pUrl, DESCRIBE_SIGNALING_CHANNEL_API_POSTFIX) != NULL) {
-        return (PCHAR) "control-plane DescribeSignalingChannel";
-    } else if (STRSTR(pUrl, CREATE_SIGNALING_CHANNEL_API_POSTFIX) != NULL) {
-        return (PCHAR) "control-plane CreateSignalingChannel";
-    } else if (STRSTR(pUrl, GET_SIGNALING_CHANNEL_ENDPOINT_API_POSTFIX) != NULL) {
-        return (PCHAR) "control-plane GetSignalingChannelEndpoint";
-    } else if (STRSTR(pUrl, DELETE_SIGNALING_CHANNEL_API_POSTFIX) != NULL) {
-        return (PCHAR) "control-plane DeleteSignalingChannel";
-    } else if (STRSTR(pUrl, GET_ICE_CONFIG_API_POSTFIX) != NULL) {
-        return (PCHAR) "data-plane GetIceServerConfig";
-    } else if (STRSTR(pUrl, JOIN_STORAGE_SESSION_API_POSTFIX) != NULL) {
-        return (PCHAR) "data-plane JoinStorageSession";
-    }
-
-    return (PCHAR) "https";
-}
-#endif
-
 #ifdef KVS_USE_OPENSSL
 /**
  * Add every certificate in the configured CA file to the libwebsockets client trust store.
@@ -190,16 +152,10 @@ INT32 lwsHttpCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn,
          * This is where the post-quantum group list gets applied to the libwebsockets
          * client context. Without it the context would silently inherit AWS-LC's
          * defaults, which happen to lead with X25519MLKEM768 today but are not a
-         * contract. Configuring explicitly makes the offer deterministic and means
-         * the log line below can state what was offered rather than guess.
+         * contract. Configuring explicitly makes the offer deterministic.
          */
-        if (STATUS_FAILED(awsLcConfigureTlsGroups((SSL_CTX*) user, TRUE))) {
+        if (STATUS_FAILED(awsLcConfigureTlsGroups((SSL_CTX*) user))) {
             DLOGW("Failed to configure post-quantum groups on the libwebsockets client context; continuing with AWS-LC defaults");
-        } else {
-            // Record success so the per-handshake log lines can report what was
-            // actually offered instead of asserting it. One vhost/SSL_CTX is
-            // shared by both protocols, so this covers HTTPS and WSS alike.
-            awsLcSetPqcConfigured(TRUE);
         }
 #endif
         return 0;
@@ -267,13 +223,6 @@ INT32 lwsHttpCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn,
         case LWS_CALLBACK_ESTABLISHED_CLIENT_HTTP:
             status = lws_http_client_http_response((struct lws*) wsi);
             getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState);
-
-#ifdef KVS_USE_AWS_LC
-            // TLS is complete by the time the HTTP response is available, so the
-            // negotiated group is final here. Labelled per API so control-plane
-            // and data-plane calls are distinguishable in the log.
-            awsLcRecordNegotiatedGroup((SSL*) lws_get_ssl((struct lws*) wsi), pLwsCallInfo->pPqcApiLabel);
-#endif
 
             DLOGD("Connected with server response: %d", status);
             pLwsCallInfo->callInfo.callResult = getServiceCallResultFromHttpStatus((UINT32) status);
@@ -576,13 +525,6 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
         case LWS_CALLBACK_CLIENT_ESTABLISHED:
             DLOGD("Connection established");
 
-#ifdef KVS_USE_AWS_LC
-            // The WebSocket upgrade has completed, so the TLS handshake beneath it
-            // is final. This is the long-lived signaling connection (ConnectAsMaster
-            // / ConnectAsViewer).
-            awsLcRecordNegotiatedGroup((SSL*) lws_get_ssl((struct lws*) wsi), (PCHAR) "signaling WSS");
-#endif
-
             // Set the call result to succeeded
             ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
             ATOMIC_STORE_BOOL(&pSignalingClient->connected, TRUE);
@@ -783,11 +725,6 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     connectInfo.context = pContext;
     connectInfo.ssl_connection = LCCSCF_USE_SSL;
     connectInfo.port = SIGNALING_DEFAULT_SSL_PORT;
-
-#ifdef KVS_USE_AWS_LC
-    // Capture this before the in-place host termination below destroys the path.
-    pCallInfo->pPqcApiLabel = lwsPqcApiLabel(pCallInfo->callInfo.pRequestInfo->url);
-#endif
 
     CHK_STATUS(getRequestHost(pCallInfo->callInfo.pRequestInfo->url, &pHostStart, &pHostEnd));
     CHK(pHostEnd == NULL || *pHostEnd == '/' || *pHostEnd == '?', STATUS_INTERNAL_ERROR);
