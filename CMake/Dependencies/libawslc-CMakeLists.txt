@@ -1,0 +1,139 @@
+cmake_minimum_required(VERSION 3.6.3)
+
+project(libawslc-download LANGUAGES C CXX)
+
+include(ExternalProject)
+
+# AWS-LC revision.
+#
+# Two independent lines exist and they are NOT interchangeable:
+#
+#   * mainline (vX.Y.Z tags)  - newest features, no FIPS validation.
+#   * fips-<date> branches    - the source that was submitted to an accredited
+#                               CMVP lab. FIPS certificates are issued against
+#                               these, never against mainline.
+#
+# ML-KEM (X25519MLKEM768, RFC 10024) is present in both lines: mainline has it
+# outright, and AWS-LC-FIPS 3.0 was the first cryptographic library to include
+# ML-KEM in a FIPS 140-3 validation. The FIPS branch below is >= 3.x, so
+# selecting USE_AWS_LC_FIPS does not cost you post-quantum key exchange.
+#
+# Override either with -DAWS_LC_GIT_TAG=<tag-or-branch>.
+if (NOT AWS_LC_GIT_TAG OR AWS_LC_GIT_TAG STREQUAL "")
+  if (USE_AWS_LC_FIPS)
+    set(AWS_LC_GIT_TAG "fips-2025-09-12-lts")
+    # FIPS branches are long-lived branches, not tags: a shallow clone of a
+    # branch tip is fine, but it is not reproducible across re-clones the way a
+    # tag is. Pin AWS_LC_GIT_TAG to a SHA for reproducible/audited builds.
+    set(AWS_LC_GIT_SHALLOW FALSE)
+  else()
+    set(AWS_LC_GIT_TAG "v5.9.0")
+    set(AWS_LC_GIT_SHALLOW TRUE)
+  endif()
+else()
+  # A caller-supplied ref may be a SHA, which GIT_SHALLOW cannot fetch.
+  set(AWS_LC_GIT_SHALLOW FALSE)
+endif()
+
+if (BUILD_STATIC_LIBS)
+  set(AWS_LC_SHARED OFF)
+else()
+  set(AWS_LC_SHARED ON)
+endif()
+
+# ---------------------------------------------------------------------------
+# Build tooling
+#
+# AWS-LC uses Perl to generate its optimised assembly and Go for code
+# generation plus its test suite. Both are OPTIONAL for a normal build (the
+# library falls back to portable C, which is materially slower) but MANDATORY
+# for a FIPS build - AWS-LC's own CMakeLists raises
+# "Building AWS-LC for FIPS requires Go and Perl" otherwise.
+# ---------------------------------------------------------------------------
+find_program(AWS_LC_GO_EXECUTABLE NAMES go)
+find_program(AWS_LC_PERL_EXECUTABLE NAMES perl)
+
+if (USE_AWS_LC_FIPS)
+  if (NOT AWS_LC_GO_EXECUTABLE)
+    message(FATAL_ERROR
+      "USE_AWS_LC_FIPS=ON requires Go on PATH (AWS-LC refuses to configure a "
+      "FIPS build without it). Install Go >= 1.20, or drop to a non-FIPS "
+      "AWS-LC build with -DUSE_AWS_LC_FIPS=OFF.")
+  endif()
+  if (NOT AWS_LC_PERL_EXECUTABLE)
+    message(FATAL_ERROR
+      "USE_AWS_LC_FIPS=ON requires Perl on PATH (AWS-LC refuses to configure a "
+      "FIPS build without it). Install Perl, or drop to a non-FIPS AWS-LC "
+      "build with -DUSE_AWS_LC_FIPS=OFF.")
+  endif()
+  set(AWS_LC_DISABLE_GO OFF)
+  set(AWS_LC_DISABLE_PERL OFF)
+else()
+  # Degrade gracefully rather than failing the build on hosts without the
+  # optional toolchain.
+  if (AWS_LC_GO_EXECUTABLE)
+    set(AWS_LC_DISABLE_GO OFF)
+  else()
+    message(STATUS "AWS-LC: Go not found, building with -DDISABLE_GO=ON")
+    set(AWS_LC_DISABLE_GO ON)
+  endif()
+  if (AWS_LC_PERL_EXECUTABLE)
+    set(AWS_LC_DISABLE_PERL OFF)
+  else()
+    message(STATUS
+      "AWS-LC: Perl not found, building with -DDISABLE_PERL=ON. "
+      "The optimised assembly backends will be replaced by portable C, which "
+      "is significantly slower for AES/SHA/EC.")
+    set(AWS_LC_DISABLE_PERL ON)
+  endif()
+endif()
+
+set(AWS_LC_BUILD_ARGS
+    -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}
+    -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+    -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
+    -DBUILD_SHARED_LIBS=${AWS_LC_SHARED}
+    -DBUILD_TESTING=OFF
+    -DBUILD_TOOL=OFF
+    -DBUILD_LIBSSL=ON
+    -DDISABLE_GO=${AWS_LC_DISABLE_GO}
+    -DDISABLE_PERL=${AWS_LC_DISABLE_PERL}
+    # Keep the install layout byte-for-byte OpenSSL-compatible:
+    # lib/libssl.*, lib/libcrypto.*, include/openssl/*.h. ENABLE_DIST_PKG would
+    # rename the libraries and relocate headers to include/aws-lc/, which every
+    # downstream consumer here (libwebsockets, libsrtp, kvsCommonLws) would then
+    # fail to find.
+    -DENABLE_DIST_PKG=OFF
+)
+
+if (USE_AWS_LC_FIPS)
+  list(APPEND AWS_LC_BUILD_ARGS -DFIPS=1)
+endif()
+
+# Cross-compilation: hand the toolchain through untouched. AWS-LC uses standard
+# CMake cross-compilation, so it needs no equivalent of OpenSSL's
+# BUILD_OPENSSL_PLATFORM triplet.
+if (CMAKE_TOOLCHAIN_FILE)
+  list(APPEND AWS_LC_BUILD_ARGS -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
+endif()
+
+if (DEFINED CMAKE_OSX_SYSROOT AND NOT CMAKE_OSX_SYSROOT STREQUAL "")
+  list(APPEND AWS_LC_BUILD_ARGS -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT})
+endif()
+
+if (DEFINED CMAKE_OSX_ARCHITECTURES AND NOT CMAKE_OSX_ARCHITECTURES STREQUAL "")
+  list(APPEND AWS_LC_BUILD_ARGS -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES})
+endif()
+
+message(STATUS "AWS-LC ref: ${AWS_LC_GIT_TAG} (FIPS=${USE_AWS_LC_FIPS}, shared=${AWS_LC_SHARED})")
+
+ExternalProject_Add(project_libawslc
+    GIT_REPOSITORY    https://github.com/aws/aws-lc.git
+    GIT_TAG           ${AWS_LC_GIT_TAG}
+    GIT_PROGRESS      TRUE
+    GIT_SHALLOW       ${AWS_LC_GIT_SHALLOW}
+    PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
+    LIST_SEPARATOR    |
+    CMAKE_ARGS        ${AWS_LC_BUILD_ARGS}
+    TEST_COMMAND      ""
+)

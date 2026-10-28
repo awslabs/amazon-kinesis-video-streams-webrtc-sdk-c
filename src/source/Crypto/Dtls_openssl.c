@@ -239,7 +239,14 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
         } else {
             CHK((eccGroup = OBJ_txt2nid("prime256v1")) != NID_undef, STATUS_CERTIFICATE_GENERATION_FAILED);
             CHK((eccKey = EC_KEY_new_by_curve_name(eccGroup)) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
+#ifndef KVS_USE_AWS_LC
+            /* AWS-LC declares EC_KEY_set_asn1_flag OPENSSL_DEPRECATED and
+             * documents it as a no-op, because AWS-LC only ever supports
+             * OPENSSL_EC_NAMED_CURVE - which is exactly what this call requests.
+             * Skipping it keeps the encoding identical while allowing AWS-LC
+             * builds to compile under -DCOMPILER_WARNINGS=ON (-Wall -Werror). */
             EC_KEY_set_asn1_flag(eccKey, OPENSSL_EC_NAMED_CURVE);
+#endif
             CHK(EC_KEY_generate_key(eccKey) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
             CHK(EVP_PKEY_assign_EC_KEY(*ppPkey, eccKey) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
         }
@@ -256,8 +263,8 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     CHK((*ppCert = X509_new()) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);
     X509_set_version(*ppCert, 2);
     ASN1_INTEGER_set_uint64(X509_get_serialNumber(*ppCert), certSn);
-    X509_gmtime_adj(X509_get_notBefore(*ppCert), -1 * GENERATED_CERTIFICATE_DAYS * SECONDS_IN_A_DAY);
-    X509_gmtime_adj(X509_get_notAfter(*ppCert), GENERATED_CERTIFICATE_DAYS * SECONDS_IN_A_DAY);
+    X509_gmtime_adj(KVS_X509_GET_NOT_BEFORE(*ppCert), -1 * GENERATED_CERTIFICATE_DAYS * SECONDS_IN_A_DAY);
+    X509_gmtime_adj(KVS_X509_GET_NOT_AFTER(*ppCert), GENERATED_CERTIFICATE_DAYS * SECONDS_IN_A_DAY);
     CHK(X509_set_pubkey(*ppCert, *ppPkey) != 0, STATUS_CERTIFICATE_GENERATION_FAILED);
 
     CHK((pX509Name = X509_get_subject_name(*ppCert)) != NULL, STATUS_CERTIFICATE_GENERATION_FAILED);

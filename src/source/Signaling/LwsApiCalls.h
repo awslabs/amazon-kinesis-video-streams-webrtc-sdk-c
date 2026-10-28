@@ -214,6 +214,16 @@ struct __LwsCallInfo {
     // Protocol index
     UINT32 protocolIndex;
 
+#ifdef KVS_USE_AWS_LC
+    // Human-readable API label for the PQC handshake log line, captured in
+    // lwsCompleteSync BEFORE it NUL-terminates the host inside
+    // pRequestInfo->url. That truncation destroys the path, so the label cannot
+    // be recovered from the URL by the time the connection-established callback
+    // runs. Always points at a string literal, so no ownership or lifetime
+    // concerns.
+    PCHAR pPqcApiLabel;
+#endif
+
     // Call info object
     CallInfo callInfo;
 

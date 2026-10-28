@@ -8,6 +8,10 @@
 #include "Signaling.h"
 #include "LwsApiCalls.h"
 
+#ifdef KVS_USE_OPENSSL
+#include <openssl/pem.h>
+#endif
+
 #define WEBRTC_SCHEME_NAME "webrtc"
 
 static BOOL gInterruptedFlagBySignalHandler;
@@ -16,6 +20,124 @@ VOID lwsSignalHandler(INT32 signal)
     UNUSED_PARAM(signal);
     gInterruptedFlagBySignalHandler = TRUE;
 }
+
+#ifdef KVS_USE_AWS_LC
+/**
+ * Map a signaling request URL to a human-readable label for the PQC log line, so
+ * each TLS handshake is attributable to the API that caused it.
+ *
+ * Lives here rather than in the crypto layer because the *_API_POSTFIX macros
+ * are signaling-specific.
+ */
+static PCHAR lwsPqcApiLabel(PCHAR pUrl)
+{
+    if (IS_NULL_OR_EMPTY_STRING(pUrl)) {
+        return (PCHAR) "https";
+    }
+
+    /* DescribeMediaStorageConfiguration is checked before DescribeSignalingChannel
+     * so the shorter name does not shadow it. */
+    if (STRSTR(pUrl, DESCRIBE_MEDIA_STORAGE_CONF_API_POSTFIX) != NULL) {
+        return (PCHAR) "control-plane DescribeMediaStorageConfiguration";
+    } else if (STRSTR(pUrl, UPDATE_MEDIA_STORAGE_CONF_API_POSTFIX) != NULL) {
+        return (PCHAR) "control-plane UpdateMediaStorageConfiguration";
+    } else if (STRSTR(pUrl, DESCRIBE_SIGNALING_CHANNEL_API_POSTFIX) != NULL) {
+        return (PCHAR) "control-plane DescribeSignalingChannel";
+    } else if (STRSTR(pUrl, CREATE_SIGNALING_CHANNEL_API_POSTFIX) != NULL) {
+        return (PCHAR) "control-plane CreateSignalingChannel";
+    } else if (STRSTR(pUrl, GET_SIGNALING_CHANNEL_ENDPOINT_API_POSTFIX) != NULL) {
+        return (PCHAR) "control-plane GetSignalingChannelEndpoint";
+    } else if (STRSTR(pUrl, DELETE_SIGNALING_CHANNEL_API_POSTFIX) != NULL) {
+        return (PCHAR) "control-plane DeleteSignalingChannel";
+    } else if (STRSTR(pUrl, GET_ICE_CONFIG_API_POSTFIX) != NULL) {
+        return (PCHAR) "data-plane GetIceServerConfig";
+    } else if (STRSTR(pUrl, JOIN_STORAGE_SESSION_API_POSTFIX) != NULL) {
+        return (PCHAR) "data-plane JoinStorageSession";
+    }
+
+    return (PCHAR) "https";
+}
+#endif
+
+#ifdef KVS_USE_OPENSSL
+/**
+ * Add every certificate in the configured CA file to the libwebsockets client trust store.
+ *
+ * libwebsockets is handed the CA file as client_ssl_ca_mem (Signaling.c), and on the
+ * OpenSSL/AWS-LC backend lws 4.x decodes only the FIRST PEM block of that buffer: it
+ * runs one d2i_X509, builds a fresh X509_STORE holding that single cert, and installs it
+ * with SSL_CTX_set_cert_store (lib/tls/openssl/openssl-client.c). Any further
+ * certificates in the file are silently ignored. That is invisible against production,
+ * where every KVS host chains to the same public root, but breaks as soon as the control
+ * plane and the per-channel endpoints chain to different roots, e.g. a pre-production
+ * control plane behind an internal CA whose r-/m-/v- hosts still use a public one.
+ *
+ * This runs from LWS_CALLBACK_OPENSSL_LOAD_EXTRA_CLIENT_VERIFY_CERTS, which lws raises
+ * right after installing that one-cert store, and adds the rest of the file to it. The
+ * store lws installed has already discarded any OS trust anchors, so the effective trust
+ * set stays exactly "the certificates in pCertPath", only now all of them.
+ *
+ * Failures are logged and swallowed: the first certificate is already trusted, so the
+ * worst case is the pre-existing single-cert behavior.
+ */
+static VOID lwsLoadCaBundle(SSL_CTX* pSslCtx, PCHAR pCertPath)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PBYTE pCertBuf = NULL;
+    UINT64 certLen = 0;
+    BIO* pBio = NULL;
+    X509* pCert = NULL;
+    X509_STORE* pStore = NULL;
+    UINT32 added = 0, seen = 0;
+
+    CHK(pSslCtx != NULL && !IS_NULL_OR_EMPTY_STRING(pCertPath), STATUS_NULL_ARG);
+
+    pStore = SSL_CTX_get_cert_store(pSslCtx);
+    CHK(pStore != NULL, STATUS_INVALID_OPERATION);
+
+    CHK_STATUS(readFile(pCertPath, FALSE, NULL, &certLen));
+    CHK(certLen > 0 && certLen <= MAX_UINT32, STATUS_INVALID_CERT_PATH_LENGTH);
+    pCertBuf = (PBYTE) MEMALLOC(certLen);
+    CHK(pCertBuf != NULL, STATUS_NOT_ENOUGH_MEMORY);
+    CHK_STATUS(readFile(pCertPath, FALSE, pCertBuf, &certLen));
+
+    pBio = BIO_new_mem_buf(pCertBuf, (int) certLen);
+    CHK(pBio != NULL, STATUS_NOT_ENOUGH_MEMORY);
+
+    while ((pCert = PEM_read_bio_X509(pBio, NULL, NULL, NULL)) != NULL) {
+        seen++;
+        // Duplicates of the certificate lws already loaded are expected and harmless;
+        // both OpenSSL 1.1+ and AWS-LC return success for an exact duplicate.
+        if (X509_STORE_add_cert(pStore, pCert) == 1) {
+            added++;
+        } else {
+            DLOGW("Certificate %u in %s could not be added to the TLS trust store", seen, pCertPath);
+        }
+        X509_free(pCert);
+        pCert = NULL;
+    }
+    // PEM_read_bio_X509 sets PEM_R_NO_START_LINE when it runs off the end of the buffer.
+    // That is the normal loop exit, not an error worth surfacing.
+    ERR_clear_error();
+
+    if (seen > 1) {
+        DLOGI("Loaded %u of %u certificates from %s into the signaling TLS trust store", added, seen, pCertPath);
+    } else {
+        DLOGD("CA file %s holds a single certificate; nothing beyond what libwebsockets already loaded", pCertPath);
+    }
+
+CleanUp:
+
+    if (STATUS_FAILED(retStatus)) {
+        DLOGW("Could not load additional CA certificates from %s (0x%08x); continuing with the first certificate only", pCertPath, retStatus);
+    }
+
+    if (pBio != NULL) {
+        BIO_free(pBio);
+    }
+    SAFE_MEMFREE(pCertBuf);
+}
+#endif
 
 INT32 lwsHttpCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, size_t dataSize)
 {
@@ -42,6 +164,46 @@ INT32 lwsHttpCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn,
     BOOL skewMapContains = FALSE;
 
     DLOGV("HTTPS callback with reason %d", reason);
+
+#ifdef KVS_USE_OPENSSL
+    /*
+     * Handled before the filter below and before the opaque-user-data lookup:
+     * libwebsockets raises this while building the client SSL_CTX, at which point
+     * no wsi user data exists yet. `user` is the SSL_CTX per the lws docs, and
+     * `wsi` is a stub whose only guarantee is that lws_get_context() works.
+     * The context user pointer is the signaling client (Signaling.c sets it).
+     */
+    if (reason == LWS_CALLBACK_OPENSSL_LOAD_EXTRA_CLIENT_VERIFY_CERTS && user != NULL) {
+        if (wsi != NULL) {
+            pSignalingClient = (PSignalingClient) lws_context_user(lws_get_context((struct lws*) wsi));
+        }
+        if (pSignalingClient != NULL && pSignalingClient->pChannelInfo != NULL) {
+            lwsLoadCaBundle((SSL_CTX*) user, pSignalingClient->pChannelInfo->pCertPath);
+        } else {
+            DLOGW("Signaling client not reachable from the libwebsockets context; only the first CA certificate will be trusted");
+        }
+        pSignalingClient = NULL;
+
+#ifdef KVS_USE_AWS_LC
+        /*
+         * This is where the post-quantum group list gets applied to the libwebsockets
+         * client context. Without it the context would silently inherit AWS-LC's
+         * defaults, which happen to lead with X25519MLKEM768 today but are not a
+         * contract. Configuring explicitly makes the offer deterministic and means
+         * the log line below can state what was offered rather than guess.
+         */
+        if (STATUS_FAILED(awsLcConfigureTlsGroups((SSL_CTX*) user, TRUE))) {
+            DLOGW("Failed to configure post-quantum groups on the libwebsockets client context; continuing with AWS-LC defaults");
+        } else {
+            // Record success so the per-handshake log lines can report what was
+            // actually offered instead of asserting it. One vhost/SSL_CTX is
+            // shared by both protocols, so this covers HTTPS and WSS alike.
+            awsLcSetPqcConfigured(TRUE);
+        }
+#endif
+        return 0;
+    }
+#endif
 
     // Early check before accessing the custom data field to see if we are interested in processing the message
     switch (reason) {
@@ -105,6 +267,13 @@ INT32 lwsHttpCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn,
         case LWS_CALLBACK_ESTABLISHED_CLIENT_HTTP:
             status = lws_http_client_http_response((struct lws*) wsi);
             getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState);
+
+#ifdef KVS_USE_AWS_LC
+            // TLS is complete by the time the HTTP response is available, so the
+            // negotiated group is final here. Labelled per API so control-plane
+            // and data-plane calls are distinguishable in the log.
+            awsLcRecordNegotiatedGroup((SSL*) lws_get_ssl((struct lws*) wsi), pLwsCallInfo->pPqcApiLabel);
+#endif
 
             DLOGD("Connected with server response: %d", status);
             pLwsCallInfo->callInfo.callResult = getServiceCallResultFromHttpStatus((UINT32) status);
@@ -304,6 +473,15 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
 
     DLOGV("WSS callback with reason %d", reason);
 
+    // NOTE: there is deliberately no LWS_CALLBACK_OPENSSL_LOAD_EXTRA_CLIENT_VERIFY_CERTS
+    // handler here. libwebsockets raises that callback on protocols[0] only
+    // (lws_context_init_client_ssl in lib/tls/tls-client.c calls
+    // vhost->protocols[0].callback directly), and PROTOCOL_INDEX_HTTPS is 0, so it
+    // always lands in lwsHttpCallbackRoutine. Verified by instrumenting both
+    // routines: the hook fires exactly once, in the HTTPS routine. The SDK creates
+    // a single lws context with one vhost, so HTTPS and WSS share one client
+    // SSL_CTX and the group list configured there covers this connection too.
+
     // Early check before accessing custom field to see if we are interested in the message
     switch (reason) {
         case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
@@ -374,6 +552,13 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
 
         case LWS_CALLBACK_CLIENT_ESTABLISHED:
             DLOGD("Connection established");
+
+#ifdef KVS_USE_AWS_LC
+            // The WebSocket upgrade has completed, so the TLS handshake beneath it
+            // is final. This is the long-lived signaling connection (ConnectAsMaster
+            // / ConnectAsViewer).
+            awsLcRecordNegotiatedGroup((SSL*) lws_get_ssl((struct lws*) wsi), (PCHAR) "signaling WSS");
+#endif
 
             // Set the call result to succeeded
             ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
@@ -582,6 +767,11 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     connectInfo.context = pContext;
     connectInfo.ssl_connection = LCCSCF_USE_SSL;
     connectInfo.port = SIGNALING_DEFAULT_SSL_PORT;
+
+#ifdef KVS_USE_AWS_LC
+    // Capture this before the in-place host termination below destroys the path.
+    pCallInfo->pPqcApiLabel = lwsPqcApiLabel(pCallInfo->callInfo.pRequestInfo->url);
+#endif
 
     CHK_STATUS(getRequestHost(pCallInfo->callInfo.pRequestInfo->url, &pHostStart, &pHostEnd));
     CHK(pHostEnd == NULL || *pHostEnd == '/' || *pHostEnd == '?', STATUS_INTERNAL_ERROR);

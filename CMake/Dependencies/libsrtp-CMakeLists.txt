@@ -61,6 +61,10 @@ else()
   set(LIBSRTP_SHARED_LIBS ON)
 endif()
 
+# USE_OPENSSL arrives as "the backend presents the OpenSSL API", so it is
+# already ON for AWS-LC. libsrtp only uses the EVP AES/HMAC interfaces, which
+# AWS-LC implements, and resolves them through OPENSSL_ROOT_DIR / pkg-config at
+# the shared install prefix.
 if (USE_OPENSSL)
   set(LIBSRTP_ENABLE_OPENSSL ON)
 else()

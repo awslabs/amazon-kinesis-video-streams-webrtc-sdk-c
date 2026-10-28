@@ -1946,6 +1946,12 @@ STATUS initKvsWebRtc(VOID)
     KVS_CRYPTO_INIT();
     LOG_GIT_HASH();
 
+#ifdef KVS_USE_AWS_LC
+    /* Emit the crypto backend banner (version, FIPS state, PQC availability)
+     * once, after crypto init so FIPS self-tests have already run. */
+    awsLcLogCryptoBackend();
+#endif
+
     SET_INSTRUMENTED_ALLOCATORS();
 #ifdef ENABLE_DATA_CHANNEL
     CHK_STATUS(initSctpSession());
