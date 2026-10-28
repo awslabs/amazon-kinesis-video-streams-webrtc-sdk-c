@@ -693,6 +693,7 @@ CleanUp:
 STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 buffLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
+    STATUS subPacketStatus = STATUS_SUCCESS;
     RtcpPacket rtcpPacket;
     UINT32 currentOffset = 0;
 
@@ -704,15 +705,18 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
         DLOGV("RTCP inbound: packetType=%u fmt/rc=%u payloadLength=%u (compound offset %u/%u)", rtcpPacket.header.packetType,
               rtcpPacket.header.receptionReportCount, rtcpPacket.payloadLength, currentOffset, buffLen);
 
+        // Individual handler failures must not abandon the remaining sub-packets. RTCP is usually
+        // compound (e.g. RR + NACK + TWCC in one datagram), and bailing out here would drop the
+        // congestion control feedback that follows a failed NACK.
         switch (rtcpPacket.header.packetType) {
             case RTCP_PACKET_TYPE_FIR:
-                CHK_STATUS(onRtcpFIRPacket(&rtcpPacket, pKvsPeerConnection));
+                subPacketStatus = onRtcpFIRPacket(&rtcpPacket, pKvsPeerConnection);
                 break;
             case RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK:
                 if (rtcpPacket.header.receptionReportCount == RTCP_FEEDBACK_MESSAGE_TYPE_NACK) {
-                    CHK_STATUS(resendPacketOnNack(&rtcpPacket, pKvsPeerConnection));
+                    subPacketStatus = resendPacketOnNack(&rtcpPacket, pKvsPeerConnection);
                 } else if (rtcpPacket.header.receptionReportCount == RTCP_FEEDBACK_MESSAGE_TYPE_APPLICATION_LAYER_FEEDBACK) {
-                    CHK_STATUS(onRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection));
+                    subPacketStatus = onRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection);
                 } else {
                     DLOGW("unhandled RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK %d", rtcpPacket.header.receptionReportCount);
                 }
@@ -720,20 +724,20 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
             case RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK:
                 if (rtcpPacket.header.receptionReportCount == RTCP_FEEDBACK_MESSAGE_TYPE_APPLICATION_LAYER_FEEDBACK &&
                     isRembPacket(rtcpPacket.payload, rtcpPacket.payloadLength) == STATUS_SUCCESS) {
-                    CHK_STATUS(onRtcpRembPacket(&rtcpPacket, pKvsPeerConnection));
+                    subPacketStatus = onRtcpRembPacket(&rtcpPacket, pKvsPeerConnection);
                 } else if (rtcpPacket.header.receptionReportCount == RTCP_PSFB_PLI) {
-                    CHK_STATUS(onRtcpPLIPacket(&rtcpPacket, pKvsPeerConnection));
+                    subPacketStatus = onRtcpPLIPacket(&rtcpPacket, pKvsPeerConnection);
                 } else if (rtcpPacket.header.receptionReportCount == RTCP_PSFB_SLI) {
-                    CHK_STATUS(onRtcpSLIPacket(&rtcpPacket, pKvsPeerConnection));
+                    subPacketStatus = onRtcpSLIPacket(&rtcpPacket, pKvsPeerConnection);
                 } else {
                     DLOGW("unhandled packet type RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK %d", rtcpPacket.header.receptionReportCount);
                 }
                 break;
             case RTCP_PACKET_TYPE_SENDER_REPORT:
-                CHK_STATUS(onRtcpSenderReport(&rtcpPacket, pKvsPeerConnection));
+                subPacketStatus = onRtcpSenderReport(&rtcpPacket, pKvsPeerConnection);
                 break;
             case RTCP_PACKET_TYPE_RECEIVER_REPORT:
-                CHK_STATUS(onRtcpReceiverReport(&rtcpPacket, pKvsPeerConnection));
+                subPacketStatus = onRtcpReceiverReport(&rtcpPacket, pKvsPeerConnection);
                 break;
             case RTCP_PACKET_TYPE_SOURCE_DESCRIPTION:
                 DLOGV("unhandled packet type RTCP_PACKET_TYPE_SOURCE_DESCRIPTION");
@@ -741,6 +745,12 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
             default:
                 DLOGW("unhandled packet type %d", rtcpPacket.header.packetType);
                 break;
+        }
+
+        if (STATUS_FAILED(subPacketStatus)) {
+            DLOGW("Failed to handle RTCP packet type %d with 0x%08x, continuing with the rest of the compound packet", rtcpPacket.header.packetType,
+                  subPacketStatus);
+            subPacketStatus = STATUS_SUCCESS;
         }
 
         currentOffset += (rtcpPacket.payloadLength + RTCP_PACKET_HEADER_LEN);
@@ -802,5 +812,63 @@ STATUS onRtcpPLIPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConne
 
 CleanUp:
 
+    return retStatus;
+}
+
+STATUS createRtcpPLIPacket(UINT32 senderSsrc, UINT32 mediaSsrc, PBYTE pRawPacket, PUINT32 pPacketLen)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pRawPacket != NULL && pPacketLen != NULL, STATUS_NULL_ARG);
+    CHK(*pPacketLen >= RTCP_PLI_PACKET_LEN, STATUS_BUFFER_TOO_SMALL);
+
+    pRawPacket[0] = (RTCP_PACKET_VERSION_VAL << 6) | RTCP_PSFB_PLI;
+    pRawPacket[RTCP_PACKET_TYPE_OFFSET] = RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK;
+    putUnalignedInt16BigEndian(pRawPacket + RTCP_PACKET_LEN_OFFSET, (RTCP_PLI_PACKET_LEN / RTCP_PACKET_LEN_WORD_SIZE) - 1);
+    putUnalignedInt32BigEndian(pRawPacket + RTCP_PACKET_HEADER_LEN, senderSsrc);
+    putUnalignedInt32BigEndian(pRawPacket + RTCP_PACKET_HEADER_LEN + SIZEOF(UINT32), mediaSsrc);
+    *pPacketLen = RTCP_PLI_PACKET_LEN;
+
+CleanUp:
+
+    return retStatus;
+}
+
+STATUS transceiverSendPictureLoss(PRtcRtpTransceiver pRtcRtpTransceiver)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    BOOL locked = FALSE;
+    // srtp_protect_rtcp() needs a 32-bit aligned packet, and writes the auth tag and SRTCP trailer after it
+    ALIGN_4 BYTE rawPacket[RTCP_PLI_PACKET_LEN + SRTP_AUTH_TAG_OVERHEAD + SRTP_MAX_TRAILER_LEN + 4] = {0};
+    UINT32 packetLen = SIZEOF(rawPacket);
+
+    CHK(pKvsRtpTransceiver != NULL && pKvsRtpTransceiver->pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+    pKvsPeerConnection = pKvsRtpTransceiver->pKvsPeerConnection;
+    CHK_ERR(pKvsRtpTransceiver->transceiver.receiver.track.kind == MEDIA_STREAM_TRACK_KIND_VIDEO, STATUS_INVALID_ARG,
+            "PLI needs a video transceiver");
+    CHK_ERR(pKvsRtpTransceiver->jitterBufferSsrc != 0, STATUS_INVALID_OPERATION, "No remote SSRC to send a PLI to");
+    CHK_ERR(pKvsRtpTransceiver->pliEnabled, STATUS_RTCP_PLI_NOT_NEGOTIATED, "Remote did not negotiate PLI (a=rtcp-fb nack pli)");
+
+    CHK_STATUS(createRtcpPLIPacket(pKvsRtpTransceiver->sender.ssrc, pKvsRtpTransceiver->jitterBufferSsrc, rawPacket, &packetLen));
+
+    MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
+    locked = TRUE;
+    CHK(pKvsPeerConnection->pSrtpSession != NULL, STATUS_SRTP_NOT_READY_YET);
+    CHK_STATUS(encryptRtcpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, (PINT32) &packetLen));
+    CHK_STATUS(iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, packetLen));
+
+    MUTEX_LOCK(pKvsRtpTransceiver->statsLock);
+    pKvsRtpTransceiver->inboundStats.pliCount++;
+    MUTEX_UNLOCK(pKvsRtpTransceiver->statsLock);
+
+CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pKvsPeerConnection->pSrtpSessionLock);
+    }
+
+    LEAVES();
     return retStatus;
 }

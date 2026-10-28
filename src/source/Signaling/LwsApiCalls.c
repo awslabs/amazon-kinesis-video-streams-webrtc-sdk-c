@@ -160,6 +160,7 @@ INT32 lwsHttpCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn,
     time_t td;
     SIZE_T len;
     UINT64 nowTime, clockSkew = 0;
+    INT64 signingError;
     PStateMachineState pStateMachineState;
     BOOL skewMapContains = FALSE;
 
@@ -229,17 +230,16 @@ INT32 lwsHttpCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn,
             pLwsCallInfo->callInfo.pRequestInfo != NULL && pLwsCallInfo->protocolIndex == PROTOCOL_INDEX_HTTPS,
         retStatus);
 
+    pSignalingClient = pLwsCallInfo->pSignalingClient;
+    pRequestInfo = pLwsCallInfo->callInfo.pRequestInfo;
+    nowTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
+
     // Quick check whether we need to exit
     if (ATOMIC_LOAD(&pLwsCallInfo->cancelService)) {
         retValue = 1;
         ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
         CHK(FALSE, retStatus);
     }
-
-    pSignalingClient = pLwsCallInfo->pSignalingClient;
-    nowTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
-
-    pRequestInfo = pLwsCallInfo->callInfo.pRequestInfo;
     pBuffer = pLwsCallInfo->buffer + LWS_PRE;
 
     MUTEX_LOCK(pSignalingClient->lwsServiceLock);
@@ -311,6 +311,9 @@ INT32 lwsHttpCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn,
                         // So we should no longer be correcting for a clock skew, remove this item from the map
                         hashTableRemove(pSignalingClient->diagnostics.pEndpointToClockSkewHashMap, pStateMachineState->state);
                     }
+
+                    signingError = recordClockSkewCorrection(pSignalingClient, serverTime, nowTime);
+                    pLwsCallInfo->clockSkewCorrectable = ABS(signingError) > MIN_CLOCK_SKEW_TIME_TO_CORRECT;
                 }
             }
 
@@ -343,6 +346,14 @@ INT32 lwsHttpCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn,
                         } else if (isCallResultSignatureNotYetCurrent(&pLwsCallInfo->callInfo)) {
                             // server time is ahead
                             pLwsCallInfo->callInfo.callResult = SERVICE_CALL_SIGNATURE_NOT_YET_CURRENT;
+                        }
+
+                        if ((pLwsCallInfo->callInfo.callResult == SERVICE_CALL_SIGNATURE_EXPIRED ||
+                             pLwsCallInfo->callInfo.callResult == SERVICE_CALL_SIGNATURE_NOT_YET_CURRENT) &&
+                            pLwsCallInfo->clockSkewCorrectable &&
+                            ATOMIC_INCREMENT(&pSignalingClient->clockSkewRetryCount) < MAX_CLOCK_SKEW_RETRIES_PER_CALL) {
+                            // Re-signing with the correction measured from this response can succeed, retry this same state
+                            ATOMIC_STORE_BOOL(&pSignalingClient->clockSkewRetryPending, TRUE);
                         }
                     }
                 } else {
@@ -470,6 +481,8 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
     PSignalingClient pSignalingClient = NULL;
     SIZE_T offset, bufferSize;
     BOOL connected, locked = FALSE;
+    SERVICE_CALL_RESULT callResult;
+    UINT32 i;
 
     DLOGV("WSS callback with reason %d", reason);
 
@@ -481,6 +494,19 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
     // routines: the hook fires exactly once, in the HTTPS routine. The SDK creates
     // a single lws context with one vhost, so HTTPS and WSS share one client
     // SSL_CTX and the group list configured there covers this connection too.
+
+    // Sent to every protocol on a fake wsi after lws_cancel_service(), from the service thread.
+    // This path must return 0. A non-zero return makes lws close its cancel pipe, and every later wake is lost.
+    if (reason == LWS_CALLBACK_EVENT_WAIT_CANCELLED) {
+        pSignalingClient = (PSignalingClient) lws_context_user(lws_get_context((struct lws*) wsi));
+        CHK(pSignalingClient != NULL, retStatus);
+        for (i = 0; i < LWS_PROTOCOL_COUNT; i++) {
+            if (ATOMIC_EXCHANGE_BOOL(&pSignalingClient->writableRequested[i], FALSE) && pSignalingClient->currentWsi[i] != NULL) {
+                lws_callback_on_writable((struct lws*) pSignalingClient->currentWsi[i]);
+            }
+        }
+        CHK(FALSE, retStatus);
+    }
 
     // Early check before accessing custom field to see if we are interested in the message
     switch (reason) {
@@ -501,6 +527,10 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
 
     CHK_STATUS(configureLwsLogging(loggerGetLogLevel()));
 
+    // pLwsCallInfo may be NULL here: lwsCompleteSync() clears the wsi's opaque_user_data
+    // on exit so that a callback delivered later by lws_context_destroy() (during
+    // freeSignaling teardown) does not dereference the already-freed LwsCallInfo. A NULL
+    // here is an expected teardown state, not an error - bail out quietly.
     CHK(pLwsCallInfo != NULL && pLwsCallInfo->pSignalingClient != NULL && pLwsCallInfo->pSignalingClient->pOngoingCallInfo != NULL &&
             pLwsCallInfo->pSignalingClient->pWebsocketContext != NULL &&
             pLwsCallInfo->pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL && pLwsCallInfo->protocolIndex == PROTOCOL_INDEX_WSS,
@@ -525,7 +555,8 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
             DLOGW("Client connection failed. Connection error string: %s", pCurPtr);
             STRNCPY(pLwsCallInfo->callInfo.errorBuffer, pCurPtr, CALL_INFO_ERROR_BUFFER_LEN);
 
-            // TODO: Attempt to get more meaningful service return code
+            // A rejected upgrade still has its response headers attached at this point
+            callResult = getWssUpgradeFailureResult(pSignalingClient, wsi);
 
             ATOMIC_STORE_BOOL(&pRequestInfo->terminating, TRUE);
             connected = ATOMIC_EXCHANGE_BOOL(&pSignalingClient->connected, FALSE);
@@ -533,19 +564,11 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
             CVAR_BROADCAST(pSignalingClient->receiveCvar);
             CVAR_BROADCAST(pSignalingClient->sendCvar);
             ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_UNKNOWN);
-            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
+            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) callResult);
 
             if (connected && !ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown)) {
-                // Handle re-connection in a reconnect handler thread. Set the terminated indicator before the thread
-                // creation and the thread itself will reset it. NOTE: Need to check for a failure and reset.
-                ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, FALSE);
-                retStatus = THREAD_CREATE(&pSignalingClient->reconnecterTracker.threadId, reconnectHandler, (PVOID) pSignalingClient);
-                if (STATUS_FAILED(retStatus)) {
-                    ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, TRUE);
-                    CHK(FALSE, retStatus);
-                }
-
-                CHK_STATUS(THREAD_DETACH(pSignalingClient->reconnecterTracker.threadId));
+                // Handle re-connection in a reconnect handler thread
+                CHK_STATUS(startReconnectHandler(pSignalingClient));
             }
 
             break;
@@ -589,15 +612,8 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
                 // Set the result failed
                 ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
 
-                // Handle re-connection in a reconnect handler thread. Set the terminated indicator before the thread
-                // creation and the thread itself will reset it. NOTE: Need to check for a failure and reset.
-                ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, FALSE);
-                retStatus = THREAD_CREATE(&pSignalingClient->reconnecterTracker.threadId, reconnectHandler, (PVOID) pSignalingClient);
-                if (STATUS_FAILED(retStatus)) {
-                    ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, TRUE);
-                    CHK(FALSE, retStatus);
-                }
-                CHK_STATUS(THREAD_DETACH(pSignalingClient->reconnecterTracker.threadId));
+                // Handle re-connection in a reconnect handler thread
+                CHK_STATUS(startReconnectHandler(pSignalingClient));
             }
 
             break;
@@ -836,16 +852,21 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
 
     // Indicate that we are trying to acquire the lock
     ATOMIC_STORE_BOOL(&pCallInfo->pSignalingClient->serviceLockContention, TRUE);
-    while (iterate && pCallInfo->pSignalingClient->currentWsi[PROTOCOL_INDEX_WSS] != NULL) {
+    while (iterate && pCallInfo->pSignalingClient->currentWsi[PROTOCOL_INDEX_WSS] != NULL &&
+           !ATOMIC_LOAD_BOOL(&pCallInfo->pSignalingClient->shutdown)) {
         if (!MUTEX_TRYLOCK(pCallInfo->pSignalingClient->lwsServiceLock)) {
-            // Wake up the event loop
+            // Wake up the event loop, then give it time to release the lock
             CHK_STATUS(wakeLwsServiceEventLoop(pCallInfo->pSignalingClient, PROTOCOL_INDEX_WSS));
+            THREAD_SLEEP(LWS_SERVICE_LOOP_ITERATION_WAIT);
         } else {
             locked = TRUE;
             iterate = FALSE;
         }
     }
     ATOMIC_STORE_BOOL(&pCallInfo->pSignalingClient->serviceLockContention, FALSE);
+
+    // Bail out if shutdown was requested while we were waiting for the lock
+    CHK(!ATOMIC_LOAD_BOOL(&pCallInfo->pSignalingClient->shutdown), STATUS_SIGNALING_LWS_CALL_FAILED);
 
     // Now we should be running with a lock
     CHK(NULL != (pCallInfo->pSignalingClient->currentWsi[pCallInfo->protocolIndex] = lws_client_connect_via_info(&connectInfo)),
@@ -859,7 +880,7 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     serializerLocked = FALSE;
 
     while (retVal >= 0 && !gInterruptedFlagBySignalHandler && pCallInfo->callInfo.pRequestInfo != NULL &&
-           !ATOMIC_LOAD_BOOL(&pCallInfo->callInfo.pRequestInfo->terminating)) {
+           !ATOMIC_LOAD_BOOL(&pCallInfo->callInfo.pRequestInfo->terminating) && !ATOMIC_LOAD_BOOL(&pCallInfo->pSignalingClient->shutdown)) {
         if (!MUTEX_TRYLOCK(pCallInfo->pSignalingClient->lwsServiceLock)) {
             THREAD_SLEEP(LWS_SERVICE_LOOP_ITERATION_WAIT);
         } else {
@@ -874,8 +895,51 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
         }
     }
 
-    // Clear the wsi on exit
+    // Clear the wsi on exit.
+    //
+    // Sever the wsi -> LwsCallInfo back-pointer before this call info can be freed.
+    // The WSS listener frees pOngoingCallInfo as soon as this thread returns, and
+    // freeSignaling() later calls lws_context_destroy(), which delivers a final
+    // CLIENT_CLOSED callback on any still-open wsi. If opaque_user_data still points
+    // at the (now freed) LwsCallInfo, lwsWssCallbackRoutine()/lwsHttpCallbackRoutine()
+    // fetch it via lws_get_opaque_user_data() and dereference freed memory ->
+    // heap-use-after-free. Clearing it here makes that late callback bail at its
+    // NULL guard instead.
+    //
+    // Only a wsi that is still open may be touched. terminating is set exclusively
+    // from lws callbacks (CONNECTION_ERROR, CLOSED_CLIENT_HTTP, CLIENT_CLOSED, or a
+    // callback returning non-zero) after which lws closes and frees this wsi inside
+    // the same lws_service() call, so terminating == TRUE here means the wsi is
+    // already gone and writing to it would be a write-after-free. terminating == FALSE
+    // means the loop left on shutdown, the interrupt flag or a service error and the
+    // wsi is still open - the only case the clear is for. lwsServiceLock is held so
+    // no other lws_service() caller can close the wsi between the check and the write.
+    //
+    // lwsSerializerLock stays held for the whole block, as in the acquire loop above:
+    // every reader of currentWsi[] holds it, including the acquire loop's wake path,
+    // which passes currentWsi[WSS] to lws_callback_on_writable(). Releasing it before
+    // currentWsi is cleared would let that path pick up a wsi lws has already freed.
+    //
+    // lwsServiceLock is never taken by blocking here. The WSS listener holds it across
+    // each lws_service() call, which on an idle connection only returns on the next lws
+    // timer (the validity ping, SIGNALING_SERVICE_WSS_PING_PONG_INTERVAL_IN_SECONDS apart),
+    // so a blocking lock would delay the completion of every HTTPS call made while the
+    // listener is idle by up to that long. Try the lock instead and wake the thread that
+    // holds it out of lws_service() until it is free; lws_cancel_service() is the lws
+    // primitive that may be called from another thread for that purpose. The contention
+    // flag makes the woken thread yield before re-locking (see the service loop above).
     MUTEX_LOCK(pCallInfo->pSignalingClient->lwsSerializerLock);
+    ATOMIC_STORE_BOOL(&pCallInfo->pSignalingClient->serviceLockContention, TRUE);
+    while (!MUTEX_TRYLOCK(pCallInfo->pSignalingClient->lwsServiceLock)) {
+        lws_cancel_service(pContext);
+        THREAD_SLEEP(LWS_SERVICE_LOCK_RETRY_WAIT);
+    }
+    ATOMIC_STORE_BOOL(&pCallInfo->pSignalingClient->serviceLockContention, FALSE);
+    if (pCallInfo->callInfo.pRequestInfo != NULL && !ATOMIC_LOAD_BOOL(&pCallInfo->callInfo.pRequestInfo->terminating) &&
+        pCallInfo->pSignalingClient->currentWsi[pCallInfo->protocolIndex] != NULL) {
+        lws_set_opaque_user_data((struct lws*) pCallInfo->pSignalingClient->currentWsi[pCallInfo->protocolIndex], NULL);
+    }
+    MUTEX_UNLOCK(pCallInfo->pSignalingClient->lwsServiceLock);
     pCallInfo->pSignalingClient->currentWsi[pCallInfo->protocolIndex] = NULL;
     MUTEX_UNLOCK(pCallInfo->pSignalingClient->lwsSerializerLock);
 
@@ -908,36 +972,100 @@ BOOL isCallResultSignatureNotYetCurrent(PCallInfo pCallInfo)
     return (STRNSTR(pCallInfo->responseData, "Signature not yet current", pCallInfo->responseDataLen) != NULL);
 }
 
+/**
+ * Records the clock skew measured from a response Date header as the correction for all later requests.
+ * The measurement is always against the raw device time, so a device clock that gets fixed resets it to 0.
+ *
+ * Returns how far off the signing time of the last signed request was. Beyond
+ * MIN_CLOCK_SKEW_TIME_TO_CORRECT, re-signing that request with the new correction can succeed.
+ */
+INT64 recordClockSkewCorrection(PSignalingClient pSignalingClient, UINT64 serverTime, UINT64 nowTime)
+{
+    INT64 measured = (INT64) serverTime - (INT64) nowTime;
+    INT64 signingError;
+
+    MUTEX_LOCK(pSignalingClient->diagnosticsLock);
+    pSignalingClient->clockSkewCorrection = ABS(measured) > MIN_CLOCK_SKEW_TIME_TO_CORRECT ? measured : 0;
+    signingError = measured - pSignalingClient->appliedClockSkewCorrection;
+    MUTEX_UNLOCK(pSignalingClient->diagnosticsLock);
+
+    return signingError;
+}
+
 STATUS checkAndCorrectForClockSkew(PSignalingClient pSignalingClient, PRequestInfo pRequestInfo)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    INT64 correction;
+    UINT64 magnitude;
 
-    PStateMachineState pStateMachineState;
-    PHashTable pClockSkewMap;
-    UINT64 clockSkewOffset;
-    CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
+    CHK(pSignalingClient != NULL && pRequestInfo != NULL, STATUS_NULL_ARG);
 
-    pClockSkewMap = pSignalingClient->diagnostics.pEndpointToClockSkewHashMap;
+    // A new request supersedes a retry the previous one asked for
+    ATOMIC_STORE_BOOL(&pSignalingClient->clockSkewRetryPending, FALSE);
 
-    CHK_STATUS(hashTableGet(pClockSkewMap, pStateMachineState->state, &clockSkewOffset));
+    MUTEX_LOCK(pSignalingClient->diagnosticsLock);
+    correction = pSignalingClient->clockSkewCorrection;
+    pSignalingClient->appliedClockSkewCorrection = correction;
+    MUTEX_UNLOCK(pSignalingClient->diagnosticsLock);
 
-    // if we made it here that means there is clock skew
-    if (clockSkewOffset & ((UINT64) (1ULL << 63))) {
-        clockSkewOffset ^= ((UINT64) (1ULL << 63));
-        DLOGV("Detected device time is AHEAD of server time!");
-        pRequestInfo->currentTime -= clockSkewOffset;
-    } else {
-        DLOGV("Detected server time is AHEAD of device time!");
-        pRequestInfo->currentTime += clockSkewOffset;
-    }
+    CHK(correction != 0, retStatus);
 
-    DLOGW("Clockskew corrected!");
+    pRequestInfo->currentTime = (UINT64) ((INT64) pRequestInfo->currentTime + correction);
+    magnitude = (UINT64) ABS(correction);
+    DLOGW("Clockskew corrected! Device time is %s server time by %" PRIu64 " ms", correction < 0 ? "AHEAD of" : "BEHIND",
+          magnitude / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 
 CleanUp:
 
     LEAVES();
     return retStatus;
+}
+
+/**
+ * Maps a failed WSS upgrade to a service call result. lws keeps the response headers attached until after
+ * the connection error callback, so a 401/403 can be checked against its Date header: when the upgrade was
+ * signed with a stale clock skew correction, the measured one is recorded and the connect is retried in place.
+ */
+SERVICE_CALL_RESULT getWssUpgradeFailureResult(PSignalingClient pSignalingClient, PVOID wsi)
+{
+    SERVICE_CALL_RESULT httpResult;
+    CHAR dateHdrBuffer[MAX_DATE_HEADER_BUFFER_LENGTH + 1];
+    UINT64 nowTime, serverTime, magnitude;
+    INT64 measured, signingError;
+    INT32 httpStatus, len;
+    time_t td = 0;
+
+    nowTime = SIGNALING_GET_CURRENT_TIME(pSignalingClient);
+
+    // Zero when the connection failed before any HTTP response, e.g. on DNS or TLS errors
+    httpStatus = lws_http_client_http_response((struct lws*) wsi);
+    httpResult = getServiceCallResultFromHttpStatus((UINT32) httpStatus);
+    if (httpResult != SERVICE_CALL_FORBIDDEN && httpResult != SERVICE_CALL_NOT_AUTHORIZED) {
+        return SERVICE_CALL_UNKNOWN;
+    }
+
+    len = lws_hdr_copy((struct lws*) wsi, &dateHdrBuffer[0], MAX_DATE_HEADER_BUFFER_LENGTH, WSI_TOKEN_HTTP_DATE);
+    if (len <= 0 || 0 != lws_http_date_parse_unix(&dateHdrBuffer[0], (size_t) len, &td)) {
+        DLOGW("WSS upgrade rejected with HTTP %d", httpStatus);
+        return httpResult;
+    }
+
+    serverTime = ((UINT64) td) * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    measured = (INT64) serverTime - (INT64) nowTime;
+    magnitude = (UINT64) ABS(measured);
+    DLOGW("WSS upgrade rejected with HTTP %d. Device time is %s server time by %" PRIu64 " s", httpStatus, measured < 0 ? "AHEAD of" : "BEHIND",
+          magnitude / HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    signingError = recordClockSkewCorrection(pSignalingClient, serverTime, nowTime);
+    if (ABS(signingError) <= MIN_CLOCK_SKEW_TIME_TO_CORRECT ||
+        ATOMIC_INCREMENT(&pSignalingClient->clockSkewRetryCount) >= MAX_CLOCK_SKEW_RETRIES_PER_CALL) {
+        return httpResult;
+    }
+
+    // Re-signing with the correction measured from this response can succeed, retry the connect in place
+    ATOMIC_STORE_BOOL(&pSignalingClient->clockSkewRetryPending, TRUE);
+    return signingError > 0 ? SERVICE_CALL_SIGNATURE_EXPIRED : SERVICE_CALL_SIGNATURE_NOT_YET_CURRENT;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1679,6 +1807,14 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
     // Override the POST with GET
     pRequestInfo->verb = HTTP_REQUEST_VERB_GET;
 
+    if (pSignalingClient->signalingClientCallbacks.getCurrentTimeFn != NULL) {
+        pRequestInfo->currentTime =
+            pSignalingClient->signalingClientCallbacks.getCurrentTimeFn(pSignalingClient->signalingClientCallbacks.customData);
+    }
+
+    // The upgrade URL is presigned, so it needs the same clock skew correction as the HTTPS calls
+    checkAndCorrectForClockSkew(pSignalingClient, pRequestInfo);
+
     CHK_STATUS(createLwsCallInfo(pSignalingClient, pRequestInfo, PROTOCOL_INDEX_WSS, &pLwsCallInfo));
 
     // Store the info
@@ -1954,6 +2090,7 @@ PVOID lwsListenerHandler(PVOID args)
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PLwsCallInfo pLwsCallInfo = (PLwsCallInfo) args;
+    PLwsCallInfo pOngoingCallInfo = NULL;
     PSignalingClient pSignalingClient = NULL;
     BOOL locked = FALSE;
 
@@ -1967,7 +2104,9 @@ PVOID lwsListenerHandler(PVOID args)
     MUTEX_LOCK(pSignalingClient->connectedLock);
     MUTEX_UNLOCK(pSignalingClient->connectedLock);
 
-    // Mark as started
+    // Record our tid so freeSignaling() can refuse to run from a callback on this thread, then mark as started.
+    // Order matters: the id must be visible before terminated flips to FALSE, which is what enables the check.
+    ATOMIC_STORE(&pSignalingClient->listenerThreadTid, SIGNALING_CURRENT_THREAD_ID());
     ATOMIC_STORE_BOOL(&pSignalingClient->listenerTracker.terminated, FALSE);
 
     // Make a blocking call
@@ -1981,10 +2120,21 @@ CleanUp:
 
     // Set the tid to invalid as we are exiting
     if (pSignalingClient != NULL) {
-        if (pSignalingClient->pOngoingCallInfo != NULL) {
-            freeLwsCallInfo(&pSignalingClient->pOngoingCallInfo);
+        // Detach the call info under lwsServiceLock before freeing it. Every lws callback runs inside some
+        // thread's lws_service() call, which holds lwsServiceLock, and lwsWssCallbackRoutine() loads
+        // pOngoingCallInfo at entry; taking the lock here means no callback can be mid-flight with the old
+        // pointer when it is freed, and a later callback finds NULL and bails. (The lock always exists here:
+        // a listener is only ever started by the state machine, after createSignalingSync() created it.)
+        MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+        pOngoingCallInfo = pSignalingClient->pOngoingCallInfo;
+        pSignalingClient->pOngoingCallInfo = NULL;
+        MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
+        if (pOngoingCallInfo != NULL) {
+            freeLwsCallInfo(&pOngoingCallInfo);
         }
 
+        // Clear the id before publishing termination so a recycled thread id can never be mistaken for a live listener
+        ATOMIC_STORE(&pSignalingClient->listenerThreadTid, 0);
         ATOMIC_STORE_BOOL(&pSignalingClient->listenerTracker.terminated, TRUE);
 
         // Trigger the cvar
@@ -2002,15 +2152,83 @@ CleanUp:
     return (PVOID) (ULONG_PTR) retStatus;
 }
 
+// Accounts for one reconnectHandler() thread ending (or failing to start). Publishes
+// reconnecterTracker.terminated only when the last one is gone, so freeSignaling()'s wait in
+// terminateOngoingOperations() cannot be satisfied by one thread exiting while another is
+// still inside reconnectHandler(). The exiting thread's node (NULL when the thread never
+// started) is unlinked in the same critical section, so isSignalingOwnedThread() stops
+// matching its id the moment it is no longer counted.
+//
+// Called from the WSS callback under lwsServiceLock on a spawn failure, and from the exiting
+// reconnect thread itself, in which case the unlock below is that thread's last access to
+// pSignalingClient: the shutdown path acquires this same lock before freeing.
+static VOID reconnectThreadExited(PSignalingClient pSignalingClient, PSignalingThreadNode pExitingNode)
+{
+    PSignalingThreadNode* ppNode;
+
+    MUTEX_LOCK(pSignalingClient->reconnecterTracker.lock);
+    if (pExitingNode != NULL) {
+        for (ppNode = &pSignalingClient->pActiveReconnectThreads; *ppNode != NULL; ppNode = &(*ppNode)->pNext) {
+            if (*ppNode == pExitingNode) {
+                *ppNode = pExitingNode->pNext;
+                break;
+            }
+        }
+    }
+    if (--pSignalingClient->reconnectThreadCount == 0) {
+        ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, TRUE);
+    }
+    CVAR_BROADCAST(pSignalingClient->reconnecterTracker.await);
+    MUTEX_UNLOCK(pSignalingClient->reconnecterTracker.lock);
+}
+
+STATUS startReconnectHandler(PSignalingClient pSignalingClient)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    // Count the thread and clear the terminated indicator before creating it, under the tracker lock so a
+    // concurrent exit of a previous reconnect thread cannot publish terminated=TRUE in between.
+    MUTEX_LOCK(pSignalingClient->reconnecterTracker.lock);
+    pSignalingClient->reconnectThreadCount++;
+    ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, FALSE);
+    MUTEX_UNLOCK(pSignalingClient->reconnecterTracker.lock);
+
+    retStatus = THREAD_CREATE(&pSignalingClient->reconnecterTracker.threadId, reconnectHandler, (PVOID) pSignalingClient);
+    if (STATUS_FAILED(retStatus)) {
+        reconnectThreadExited(pSignalingClient, NULL);
+        CHK(FALSE, retStatus);
+    }
+
+    // The thread exists and is counted from here on; a detach failure must not be reported as a failed spawn.
+    if (STATUS_FAILED(THREAD_DETACH(pSignalingClient->reconnecterTracker.threadId))) {
+        DLOGW("Failed to detach the reconnect thread; it will run to completion unjoined");
+    }
+
+CleanUp:
+
+    return retStatus;
+}
+
 PVOID reconnectHandler(PVOID args)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     CHAR reconnectErrMsg[SIGNALING_MAX_ERROR_MESSAGE_LEN + 1];
     UINT32 reconnectErrLen;
+    SignalingThreadNode threadNode;
     PSignalingClient pSignalingClient = (PSignalingClient) args;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    // Register this thread so freeSignaling() can refuse to run from a callback on it, for as long as it runs.
+    // The node lives on this stack and is unlinked in reconnectThreadExited() before the function returns.
+    threadNode.tid = SIGNALING_CURRENT_THREAD_ID();
+    MUTEX_LOCK(pSignalingClient->reconnecterTracker.lock);
+    threadNode.pNext = pSignalingClient->pActiveReconnectThreads;
+    pSignalingClient->pActiveReconnectThreads = &threadNode;
+    MUTEX_UNLOCK(pSignalingClient->reconnecterTracker.lock);
 
     // Await for the listener to clear
     MUTEX_LOCK(pSignalingClient->listenerTracker.lock);
@@ -2044,10 +2262,10 @@ CleanUp:
             }
         }
 
-        ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, TRUE);
-
-        // Notify the listeners to unlock
-        CVAR_BROADCAST(pSignalingClient->reconnecterTracker.await);
+        // Unlink our node, publish termination and notify under the tracker lock (only when no other reconnect
+        // thread is alive). The shutdown path in terminateOngoingOperations() acquires this lock before freeing,
+        // so the unlock inside reconnectThreadExited() is this thread's last access to pSignalingClient.
+        reconnectThreadExited(pSignalingClient, &threadNode);
     }
 
     LEAVES();
@@ -2357,7 +2575,9 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 i, strLen;
     PSignalingMessageWrapper pSignalingMessageWrapper = NULL;
+#ifndef ENABLE_KVS_THREADPOOL
     TID receivedTid = INVALID_TID_VALUE;
+#endif
     PSignalingMessage pOngoingMessage;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
@@ -2460,13 +2680,50 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     DLOGD("Client received message of type: %s",
           getMessageTypeInString(pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType));
 
+    // Count this in-flight worker BEFORE handing it off; the wrapper decrements
+    // on exit. Incrementing after the create/push would let a fast worker run
+    // to completion and decrement first, transiently wrapping the counter and
+    // stalling the shutdown drain in terminateOngoingOperations(). If the
+    // hand-off fails the wrapper never runs, so undo the increment here.
+    //
+    // The shutdown check and the increment share one receiveWorkerLock critical
+    // section with the drain in terminateOngoingOperations(): freeSignaling()
+    // stores shutdown=TRUE before the drain takes that lock, so a message that
+    // arrives after the drain has seen zero finds shutdown set here and is dropped
+    // instead of starting a worker that would outlive the client.
+    MUTEX_LOCK(pSignalingClient->receiveWorkerLock);
+    if (ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown)) {
+        MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
+        DLOGD("Dropping received message of type %s: signaling client is shutting down",
+              getMessageTypeInString(pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType));
+        SAFE_MEMFREE(pSignalingMessageWrapper);
+        CHK(FALSE, retStatus);
+    }
+    ATOMIC_INCREMENT(&pSignalingClient->receiveWorkerCount);
+    MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
 #ifdef ENABLE_KVS_THREADPOOL
     // This would fail if threadpool was not created
-    CHK_STATUS(threadpoolContextPush(receiveLwsMessageWrapper, pSignalingMessageWrapper));
+    retStatus = threadpoolContextPush(receiveLwsMessageWrapper, pSignalingMessageWrapper);
 #else
     // Issue the callback on a separate thread
-    CHK_STATUS(THREAD_CREATE(&receivedTid, receiveLwsMessageWrapper, (PVOID) pSignalingMessageWrapper));
-    CHK_STATUS(THREAD_DETACH(receivedTid));
+    retStatus = THREAD_CREATE(&receivedTid, receiveLwsMessageWrapper, (PVOID) pSignalingMessageWrapper);
+#endif
+    if (STATUS_FAILED(retStatus)) {
+        MUTEX_LOCK(pSignalingClient->receiveWorkerLock);
+        ATOMIC_DECREMENT(&pSignalingClient->receiveWorkerCount);
+        CVAR_BROADCAST(pSignalingClient->receiveWorkerCvar);
+        MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
+        CHK(FALSE, retStatus);
+    }
+
+    // From here on the worker owns the wrapper (it frees it on exit) and its own count decrement. Nothing below
+    // may free the wrapper or cancel the thread: cancelling a counted worker would leave receiveWorkerCount
+    // (and the active-worker list) permanently off by one and stall every later shutdown drain.
+    pSignalingMessageWrapper = NULL;
+#ifndef ENABLE_KVS_THREADPOOL
+    if (STATUS_FAILED(THREAD_DETACH(receivedTid))) {
+        DLOGW("Failed to detach the receive worker thread; it will run to completion unjoined");
+    }
 #endif
 
 CleanUp:
@@ -2480,11 +2737,7 @@ CleanUp:
                                                                                  pMessage, messageLen);
         }
 
-        // Kill the receive thread on error
-        if (IS_VALID_TID_VALUE(receivedTid)) {
-            THREAD_CANCEL(receivedTid);
-        }
-
+        // Only reached before the worker was created; afterwards the wrapper pointer is NULL and the worker frees it.
         SAFE_MEMFREE(pSignalingMessageWrapper);
     }
 
@@ -2610,6 +2863,8 @@ PVOID receiveLwsMessageWrapper(PVOID args)
     PSignalingMessageWrapper pSignalingMessageWrapper = (PSignalingMessageWrapper) args;
     PSignalingClient pSignalingClient = NULL;
     SIGNALING_MESSAGE_TYPE messageType = SIGNALING_MESSAGE_TYPE_UNKNOWN;
+    SignalingThreadNode workerNode;
+    PSignalingThreadNode* ppNode;
 
     CHK(pSignalingMessageWrapper != NULL, STATUS_NULL_ARG);
 
@@ -2618,6 +2873,13 @@ PVOID receiveLwsMessageWrapper(PVOID args)
     pSignalingClient = pSignalingMessageWrapper->pSignalingClient;
 
     CHK(pSignalingClient != NULL, STATUS_INTERNAL_ERROR);
+
+    // Register this worker so freeSignaling() can detect being called from messageReceivedFn on this thread
+    workerNode.tid = SIGNALING_CURRENT_THREAD_ID();
+    MUTEX_LOCK(pSignalingClient->receiveWorkerLock);
+    workerNode.pNext = pSignalingClient->pActiveReceiveWorkers;
+    pSignalingClient->pActiveReceiveWorkers = &workerNode;
+    MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
 
     // Updating the diagnostics info before calling the client callback
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfMessagesReceived);
@@ -2642,8 +2904,16 @@ PVOID receiveLwsMessageWrapper(PVOID args)
                                     "Offer Sent to Answer Received time");
         MUTEX_UNLOCK(pSignalingClient->offerSendReceiveTimeLock);
     }
-    // Calling client receive message callback if specified
-    if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
+    if (pSignalingClient->clientInfo.receiveMessagePreCallbackHookFn != NULL) {
+        CHK_STATUS(pSignalingClient->clientInfo.receiveMessagePreCallbackHookFn(pSignalingClient->clientInfo.hookCustomData));
+    }
+
+    // Calling client receive message callback if specified and the client is not being freed. A worker that was
+    // dispatched before freeSignalingClient() set shutdown is still counted and waited for, but the application
+    // has already asked for the client to go away, so its message is dropped rather than delivered mid-free.
+    if (ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown)) {
+        DLOGD("Dropping received message of type %s: signaling client is shutting down", getMessageTypeInString(messageType));
+    } else if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.messageReceivedFn(pSignalingClient->signalingClientCallbacks.customData,
                                                                                 &pSignalingMessageWrapper->receivedSignalingMessage));
     }
@@ -2652,6 +2922,28 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 
     SAFE_MEMFREE(pSignalingMessageWrapper);
+
+    // Decrement the in-flight worker counter and wake any shutdown waiter in
+    // terminateOngoingOperations() that is blocked on receiveWorkerCount == 0.
+    // Both must happen under receiveWorkerLock: the waiter re-checks the count
+    // while holding the lock, so it can only observe 0 after we have released
+    // it, i.e. after the broadcast has completed. Without the lock the waiter
+    // could see 0, return, and free/destroy the cvar while this thread is still
+    // inside CVAR_BROADCAST (TSAN: pthread_cond_destroy vs pthread_cond_broadcast).
+    // Holding the lock also closes the lost-wakeup window where the broadcast
+    // fires between the waiter's count check and its CVAR_WAIT.
+    if (pSignalingClient != NULL) {
+        MUTEX_LOCK(pSignalingClient->receiveWorkerLock);
+        for (ppNode = &pSignalingClient->pActiveReceiveWorkers; *ppNode != NULL; ppNode = &(*ppNode)->pNext) {
+            if (*ppNode == &workerNode) {
+                *ppNode = workerNode.pNext;
+                break;
+            }
+        }
+        ATOMIC_DECREMENT(&pSignalingClient->receiveWorkerCount);
+        CVAR_BROADCAST(pSignalingClient->receiveWorkerCvar);
+        MUTEX_UNLOCK(pSignalingClient->receiveWorkerLock);
+    }
 
     return (PVOID) (ULONG_PTR) retStatus;
 }
@@ -2664,8 +2956,11 @@ STATUS wakeLwsServiceEventLoop(PSignalingClient pSignalingClient, UINT32 protoco
     // Early exit in case we don't need to do anything
     CHK(pSignalingClient != NULL && pSignalingClient->pWebsocketContext != NULL, retStatus);
 
+    // lws_cancel_service() is the only lws call that is safe from a foreign thread. The service
+    // thread then requests the write itself on LWS_CALLBACK_EVENT_WAIT_CANCELLED.
     if (pSignalingClient->currentWsi[protocolIndex] != NULL) {
-        lws_callback_on_writable(pSignalingClient->currentWsi[protocolIndex]);
+        ATOMIC_STORE_BOOL(&pSignalingClient->writableRequested[protocolIndex], TRUE);
+        lws_cancel_service(pSignalingClient->pWebsocketContext);
     }
 
 CleanUp:

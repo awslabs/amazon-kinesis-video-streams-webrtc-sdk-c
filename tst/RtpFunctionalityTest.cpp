@@ -25,6 +25,16 @@ TEST_F(RtpFunctionalityTest, packetUnderflow)
     }
 }
 
+// Parsing fails before pRawPacket is assigned; the CleanUp path must not free an uninitialized pointer.
+TEST_F(RtpFunctionalityTest, constructRetransmitRtpPacketFromBytesTooSmall)
+{
+    BYTE rawPacket[MIN_HEADER_LENGTH - 1] = {0x80};
+    PRtpPacket pRtpPacket = NULL;
+
+    EXPECT_EQ(STATUS_RTP_INPUT_PACKET_TOO_SMALL, constructRetransmitRtpPacketFromBytes(rawPacket, SIZEOF(rawPacket), 1, 97, 0x1234ABCD, 0, &pRtpPacket));
+    EXPECT_TRUE(pRtpPacket == NULL);
+}
+
 TEST_F(RtpFunctionalityTest, extensionHeaderBounds)
 {
     RtpPacket rtpPacket;
@@ -1042,6 +1052,72 @@ TEST_F(RtpFunctionalityTest, depayH264FuBStartingPacket)
     EXPECT_EQ(0xBB, output[6]);
     EXPECT_EQ(0xCC, output[7]);
 }
+
+static PRtpPacket createTwccRtpPacket(UINT16 seqNum, UINT16 twccSeqNum, PUINT32 pExtPayload)
+{
+    BYTE payload[10] = {0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19};
+    PRtpPacket pRtpPacket = NULL;
+
+    *pExtPayload = TWCC_PAYLOAD(1u, twccSeqNum);
+    EXPECT_EQ(STATUS_SUCCESS,
+              createRtpPacket(2, FALSE, TRUE, 0, FALSE, 96, seqNum, 100, 0x1234ABCD, NULL, TWCC_EXT_PROFILE, SIZEOF(UINT32), (PBYTE) pExtPayload,
+                              payload, SIZEOF(payload), &pRtpPacket));
+    EXPECT_EQ(STATUS_SUCCESS, createBytesFromRtpPacket(pRtpPacket, NULL, &pRtpPacket->rawPacketLength));
+    pRtpPacket->pRawPacket = (PBYTE) MEMALLOC(pRtpPacket->rawPacketLength);
+    EXPECT_EQ(STATUS_SUCCESS, createBytesFromRtpPacket(pRtpPacket, pRtpPacket->pRawPacket, &pRtpPacket->rawPacketLength));
+    return pRtpPacket;
+}
+
+TEST_F(RtpFunctionalityTest, constructRetransmitRtpPacketReplacesTwccSequenceNumber)
+{
+    UINT32 extPayload = 0;
+    PRtpPacket pOriginal = createTwccRtpPacket(42, 100, &extPayload);
+    PRtpPacket pRtx = NULL, pParsed = NULL;
+
+    ASSERT_EQ(STATUS_SUCCESS,
+              constructRetransmitRtpPacketFromBytes(pOriginal->pRawPacket, pOriginal->rawPacketLength, 7, 97, 0xABCD1234, TWCC_PAYLOAD(1u, 200u),
+                                                    &pRtx));
+
+    // The RTX packet must carry its own transport wide sequence number, and its in-memory header must
+    // point into its own serialized buffer.
+    EXPECT_EQ(200, TWCC_SEQNUM(pRtx->header.extensionPayload));
+    EXPECT_GE(pRtx->header.extensionPayload, pRtx->pRawPacket);
+    EXPECT_LT(pRtx->header.extensionPayload, pRtx->pRawPacket + pRtx->rawPacketLength);
+
+    // Same on the wire.
+    ASSERT_EQ(STATUS_SUCCESS, createRtpPacketFromBytes(pRtx->pRawPacket, pRtx->rawPacketLength, &pParsed));
+    EXPECT_EQ(7, pParsed->header.sequenceNumber);
+    EXPECT_EQ(97, pParsed->header.payloadType);
+    EXPECT_EQ(0xABCD1234, pParsed->header.ssrc);
+    EXPECT_EQ(200, TWCC_SEQNUM(pParsed->header.extensionPayload));
+    EXPECT_EQ(42, getUnalignedInt16BigEndian(pParsed->payload)); // OSN
+
+    // The original packet is untouched.
+    EXPECT_EQ(100, TWCC_SEQNUM(pOriginal->pRawPacket + RTP_HEADER_LEN(pOriginal) - pOriginal->header.extensionLength));
+
+    pParsed->pRawPacket = NULL;
+    freeRtpPacket(&pParsed);
+    freeRtpPacket(&pRtx);
+    freeRtpPacket(&pOriginal);
+}
+
+TEST_F(RtpFunctionalityTest, constructRetransmitRtpPacketKeepsExtensionWithoutTwccPayload)
+{
+    UINT32 extPayload = 0;
+    PRtpPacket pOriginal = createTwccRtpPacket(42, 100, &extPayload);
+    PRtpPacket pRtx = NULL;
+
+    ASSERT_EQ(STATUS_SUCCESS,
+              constructRetransmitRtpPacketFromBytes(pOriginal->pRawPacket, pOriginal->rawPacketLength, 7, 97, 0xABCD1234, 0, &pRtx));
+
+    EXPECT_EQ(100, TWCC_SEQNUM(pRtx->header.extensionPayload));
+    EXPECT_GE(pRtx->header.extensionPayload, pRtx->pRawPacket);
+    EXPECT_LT(pRtx->header.extensionPayload, pRtx->pRawPacket + pRtx->rawPacketLength);
+
+    freeRtpPacket(&pRtx);
+    freeRtpPacket(&pOriginal);
+}
+
 
 } // namespace webrtcclient
 } // namespace video

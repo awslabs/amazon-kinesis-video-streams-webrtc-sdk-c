@@ -385,6 +385,39 @@ TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType)
     doubleListFree(pTransceivers);
 }
 
+// A renegotiation runs setTransceiverPayloadTypes() again. The RTX stream keeps its SSRC, so its
+// sequence number must continue (RFC 4588 section 4).
+TEST_F(SdpApiTest, setTransceiverPayloadTypes_KeepsRtxSequenceNumber)
+{
+    PHashTable pCodecTable;
+    PHashTable pRtxTable;
+    PDoubleList pTransceivers;
+    KvsRtpTransceiver transceiver;
+    MEMSET(&transceiver, 0x00, SIZEOF(KvsRtpTransceiver));
+    transceiver.sender.track.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
+    transceiver.sender.track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+    transceiver.transceiver.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    transceiver.sender.rtxSequenceNumber = 1234;
+    EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pCodecTable));
+    EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pCodecTable, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, 1));
+    EXPECT_EQ(STATUS_SUCCESS, hashTableCreate(&pRtxTable));
+    EXPECT_EQ(STATUS_SUCCESS, hashTablePut(pRtxTable, RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE, 2));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&pTransceivers));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(pTransceivers, (UINT64) (&transceiver)));
+
+    EXPECT_EQ(STATUS_SUCCESS, setTransceiverPayloadTypes(pCodecTable, pRtxTable, pTransceivers));
+    EXPECT_EQ(1234, transceiver.sender.rtxSequenceNumber);
+    EXPECT_EQ(STATUS_SUCCESS, setTransceiverPayloadTypes(pCodecTable, pRtxTable, pTransceivers));
+    EXPECT_EQ(1234, transceiver.sender.rtxSequenceNumber);
+
+    hashTableFree(pCodecTable);
+    hashTableFree(pRtxTable);
+    freeRollingBufferConfig(transceiver.pRollingBufferConfig);
+    freeRtpRollingBuffer(&transceiver.sender.packetBuffer);
+    freeRetransmitter(&transceiver.sender.retransmitter);
+    doubleListFree(pTransceivers);
+}
+
 // VP8 is affected by the same media-codec vs RTX-codec enum mismatch (RTC_CODEC_VP8 = 3, RTC_RTX_CODEC_VP8 = 2).
 // The rtxTable is keyed by RTC_RTX_CODEC_VP8; setTransceiverPayloadTypes() must map to it and resolve rtxPayloadType.
 TEST_F(SdpApiTest, setTransceiverPayloadTypes_HasRtxType_VP8)
@@ -4947,6 +4980,63 @@ TEST_F(SdpApiTest, answerShapeStableAcrossRepeatedDirectionFlipReOffers)
 
     closePeerConnection(pRtcPeerConnection);
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
+TEST_F(SdpApiTest, populateSingleMediaSection_ProcessUnknownCodecDoesntCorruptAdjacentValues)
+{
+    // Offer: contains unknown codec
+    CHAR remoteSessionDescription[] = R"(v=0
+o=- 7732334361409071710 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=msid-semantic: WMS
+m=video 16485 UDP/TLS/RTP/SAVPF 96
+c=IN IP4 205.251.233.176
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:9YRc
+a=ice-pwd:/ELMEiczRSsx2OEi2ynq+TbZ
+a=ice-options:trickle
+a=fingerprint:sha-256 51:04:F9:20:45:5C:9D:85:AF:D7:AF:FB:2B:F8:DB:24:66:7B:6A:E3:E3:EF:EC:72:93:6E:01:B8:C9:53:A6:31
+a=setup:actpass
+a=mid:1
+a=recvonly
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:96 H266/90000
+)";
+
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit sessionDescriptionInit;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+
+    STRCPY(sessionDescriptionInit.sdp, remoteSessionDescription);
+    sessionDescriptionInit.type = SDP_TYPE_OFFER;
+
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &sessionDescriptionInit));
+
+    RtcSessionDescriptionInit answerSessionDescriptionInit;
+    EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSessionDescriptionInit));
+
+    // When constructing an answer for unsupported codec, it will contain an ssrc with id/name "fake"
+    // Verify the answer SDP has correct payload type (96, not 0xffffffff/4294967295)
+    // When unknown codecs are processed, the payload type (adjacent) should not get corrupted
+    EXPECT_TRUE(STRSTR(answerSessionDescriptionInit.sdp, "rtpmap:96") != NULL);
+    EXPECT_TRUE(STRSTR(answerSessionDescriptionInit.sdp, "fake") != NULL);
+
+    // Ensure we don't have any corrupted values in the answer
+    EXPECT_TRUE(STRSTR(answerSessionDescriptionInit.sdp, "4294967295") == NULL);
+    EXPECT_TRUE(STRSTR(answerSessionDescriptionInit.sdp, "ff") == NULL);
+
+    // Check that we actually processed the value
+    EXPECT_TRUE(STRSTR(answerSessionDescriptionInit.sdp, "H266") != NULL);
+
+    closePeerConnection(pRtcPeerConnection);
+    freePeerConnection(&pRtcPeerConnection);
 }
 
 } // namespace webrtcclient

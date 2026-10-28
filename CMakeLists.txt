@@ -27,6 +27,8 @@ option(BUILD_WEBSOCKETS "Build libwebsockets from source" ${BUILD_DEPENDENCIES})
 option(BUILD_SRTP "Build libsrtp from source" ${BUILD_DEPENDENCIES})
 option(USE_LIBSRTP3 "Build/link against libsrtp 3.x (default: 2.x). Required for mbedTLS 4." OFF)
 option(USE_MBEDTLS4 "Build/link against mbedTLS 4.x (default: 3.x). Implies USE_LIBSRTP3." OFF)
+option(KVS_TEST_MBEDTLS4_NO_ENTROPY "Test only: build mbedTLS 4 with an external PSA RNG and no entropy module" OFF)
+option(KVS_TEST_LWS_NO_FOREIGN_THREAD_POLLFD "Test only: build libwebsockets without its foreign-thread pollfd fallback, as lws v5 does on FreeRTOS and Windows" OFF)
 option(BUILD_USRSCTP "Build libusrsctp from source" ${BUILD_DEPENDENCIES})
 
 option(BUILD_OPENSSL_PLATFORM "If buildng OpenSSL what is the target platform" OFF)
@@ -235,6 +237,14 @@ if(USE_MBEDTLS4)
   add_definitions(-DKVS_USE_MBEDTLS4)
 endif()
 
+if(KVS_TEST_MBEDTLS4_NO_ENTROPY AND NOT USE_MBEDTLS4)
+  message(FATAL_ERROR "KVS_TEST_MBEDTLS4_NO_ENTROPY=ON requires USE_MBEDTLS4=ON.")
+endif()
+
+if(KVS_TEST_LWS_NO_FOREIGN_THREAD_POLLFD AND USE_MBEDTLS4)
+  message(FATAL_ERROR "KVS_TEST_LWS_NO_FOREIGN_THREAD_POLLFD=ON requires libwebsockets v4.3.10 (USE_MBEDTLS4=OFF).")
+endif()
+
 if (USE_LIBSRTP3)
   add_definitions(-DUSE_LIBSRTP3)
 endif()
@@ -389,6 +399,7 @@ if(BUILD_DEPENDENCIES OR BUILD_WEBSOCKETS OR BUILD_SRTP OR BUILD_USRSCTP)
                      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                      -DBUILD_OLD_MBEDTLS_VERSION=${BUILD_OLD_MBEDTLS_VERSION}
                      -DUSE_MBEDTLS4=${USE_MBEDTLS4}
+                     -DKVS_TEST_MBEDTLS4_NO_ENTROPY=${KVS_TEST_MBEDTLS4_NO_ENTROPY}
                       "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -std=c99")
         build_dependency(mbedtls ${BUILD_ARGS})
 
@@ -484,6 +495,7 @@ if(BUILD_DEPENDENCIES OR BUILD_WEBSOCKETS OR BUILD_SRTP OR BUILD_USRSCTP)
                     -DLWS_EXT_PTHREAD_LIBRARIES=${EXT_PTHREAD_LIBRARIES}
                     -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIRS}
                     -DLWS_OPENSSL_LIBRARIES=${OPENSSL_LIBRARIES_ALT_SEP}
+                    -DKVS_TEST_LWS_NO_FOREIGN_THREAD_POLLFD=${KVS_TEST_LWS_NO_FOREIGN_THREAD_POLLFD}
                     -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
     else()
       set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
@@ -497,6 +509,7 @@ if(BUILD_DEPENDENCIES OR BUILD_WEBSOCKETS OR BUILD_SRTP OR BUILD_USRSCTP)
                     -DLWS_OPENSSL_INCLUDE_DIRS=${OPENSSL_INCLUDE_DIR}
                     -DLWS_MBEDTLS_INCLUDE_DIRS=${MBEDTLS_INCLUDE_DIRS}
                     -DLWS_MBEDTLS_LIBRARIES=${MBEDTLS_LIBRARIES_ALT_SEP}
+                    -DKVS_TEST_LWS_NO_FOREIGN_THREAD_POLLFD=${KVS_TEST_LWS_NO_FOREIGN_THREAD_POLLFD}
                     -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
     endif()
     build_dependency(websockets ${BUILD_ARGS})

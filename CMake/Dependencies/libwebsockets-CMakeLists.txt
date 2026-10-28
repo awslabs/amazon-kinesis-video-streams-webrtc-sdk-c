@@ -69,6 +69,11 @@ else()
     set(LWS_GIT_SHALLOW    TRUE)
     set(LWS_GIT_SUBMODULES "")
     set(LWS_PATCH_ARGS     "")
+    # Test only: compile out the foreign-thread pollfd fallback, as v5.0.0 does on FreeRTOS and
+    # Windows. Lets CI catch a signaling wake that only works because of that fallback.
+    if (KVS_TEST_LWS_NO_FOREIGN_THREAD_POLLFD)
+        set(LWS_PATCH_ARGS PATCH_COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_LIST_DIR}/libwebsockets-test-no-foreign-thread-pollfd.patch)
+    endif()
 endif()
 
 ExternalProject_Add(project_libwebsockets

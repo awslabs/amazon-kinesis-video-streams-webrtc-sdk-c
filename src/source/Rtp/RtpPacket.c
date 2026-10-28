@@ -88,7 +88,9 @@ STATUS createRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    PRtpPacket pRtpPacket = (PRtpPacket) MEMALLOC(SIZEOF(RtpPacket));
+    // MEMCALLOC so sentTime/receivedTime start at 0 instead of holding garbage: rolling buffer copies
+    // are created here and their timestamps are only assigned once the packet is actually sent.
+    PRtpPacket pRtpPacket = (PRtpPacket) MEMCALLOC(1, SIZEOF(RtpPacket));
     CHK(pRtpPacket != NULL, STATUS_NOT_ENOUGH_MEMORY);
     pRtpPacket->pRawPacket = rawPacket;
     pRtpPacket->rawPacketLength = packetLength;
@@ -114,12 +116,15 @@ CleanUp:
 }
 
 STATUS constructRetransmitRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, UINT16 sequenceNum, UINT8 payloadType, UINT32 ssrc,
-                                             PRtpPacket* ppRtpPacket)
+                                             UINT32 twccExtPayload, PRtpPacket* ppRtpPacket)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PBYTE pPayload = NULL;
-    PRtpPacket pRtpPacket = (PRtpPacket) MEMALLOC(SIZEOF(RtpPacket));
+    UINT32 rtxTwccExtPayload = twccExtPayload;
+    // MEMCALLOC so pRawPacket is NULL if setRtpPacketFromBytes below fails: the CleanUp path does
+    // SAFE_MEMFREE(pRtpPacket->pRawPacket) before pRawPacket is assigned at the end of this function.
+    PRtpPacket pRtpPacket = (PRtpPacket) MEMCALLOC(1, SIZEOF(RtpPacket));
 
     CHK(pRtpPacket != NULL, STATUS_NOT_ENOUGH_MEMORY);
     CHK_STATUS(setRtpPacketFromBytes(rawPacket, packetLength, pRtpPacket));
@@ -137,10 +142,24 @@ STATUS constructRetransmitRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLengt
     pRtpPacket->header.padding = FALSE;
     pRtpPacket->pRawPacket = NULL;
 
+    // RFC 4588 section 4: the retransmission is a new packet on the RTX stream. The transport wide
+    // sequence number is incremented for every packet sent (draft-holmer-rmcat-transport-wide-cc-extensions-01
+    // section 2.2), so the original number must not be reused. Point the extension at the caller supplied
+    // replacement before serializing; a zero payload means the caller has no TWCC number to assign.
+    if (rtxTwccExtPayload != 0 && pRtpPacket->header.extension && pRtpPacket->header.extensionProfile == TWCC_EXT_PROFILE &&
+        pRtpPacket->header.extensionLength == SIZEOF(UINT32)) {
+        pRtpPacket->header.extensionPayload = (PBYTE) &rtxTwccExtPayload;
+    }
+
     CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, NULL, &pRtpPacket->rawPacketLength));
     CHK(NULL != (pRtpPacket->pRawPacket = (PBYTE) MEMALLOC(pRtpPacket->rawPacketLength)), STATUS_NOT_ENOUGH_MEMORY);
     CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, pRtpPacket->pRawPacket, &pRtpPacket->rawPacketLength));
     pRtpPacket->payload = pRtpPacket->pRawPacket + RTP_GET_RAW_PACKET_SIZE(pRtpPacket) - pRtpPacket->payloadLength;
+    // Repoint the extension into the serialized packet: it still refers to the caller's rawPacket
+    // (or to rtxTwccExtPayload above, which lives on this stack frame) and would dangle otherwise.
+    if (pRtpPacket->header.extension) {
+        pRtpPacket->header.extensionPayload = pRtpPacket->pRawPacket + RTP_HEADER_LEN(pRtpPacket) - pRtpPacket->header.extensionLength;
+    }
 
 CleanUp:
     SAFE_MEMFREE(pPayload);

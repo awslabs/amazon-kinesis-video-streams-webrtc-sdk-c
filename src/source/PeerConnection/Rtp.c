@@ -23,6 +23,9 @@ STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, PKvsPeer
     pKvsRtpTransceiver->statsLock = MUTEX_CREATE(FALSE);
     pKvsRtpTransceiver->sender.ssrc = ssrc;
     pKvsRtpTransceiver->sender.rtxSsrc = rtxSsrc;
+    // RFC 3550 section 5.1: start the RTX sequence number at a random value. Set it once, with rtxSsrc,
+    // so a renegotiation does not restart it (RFC 4588 section 4).
+    pKvsRtpTransceiver->sender.rtxSequenceNumber = (UINT16) RAND();
     pKvsRtpTransceiver->sender.track = *pRtcMediaStreamTrack;
     pKvsRtpTransceiver->sender.packetBuffer = NULL;
     pKvsRtpTransceiver->sender.retransmitter = NULL;
@@ -316,6 +319,11 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
 
     CHK(pRtcRtpTransceiver != NULL && pFrame != NULL, STATUS_NULL_ARG);
     pKvsPeerConnection = pKvsRtpTransceiver->pKvsPeerConnection;
+    // Upper bound on the media path to protect the device. Reject before any stats, sequence numbers or send buffers change.
+    if (pFrame->size > MAX_OUTBOUND_FRAME_SIZE_BYTES) {
+        DLOGE("Frame size %u exceeds the maximum outbound frame size %u", pFrame->size, MAX_OUTBOUND_FRAME_SIZE_BYTES);
+        return STATUS_RTP_OUTBOUND_FRAME_TOO_LARGE;
+    }
     // Read the atomic snapshot, NOT transceiver.direction: re-negotiation rewrites the
     // field from the signaling thread while this runs on the media thread.
     direction = (RTC_RTP_TRANSCEIVER_DIRECTION) ATOMIC_LOAD(&pKvsRtpTransceiver->atomicDirection);

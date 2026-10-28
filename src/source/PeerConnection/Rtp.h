@@ -84,6 +84,7 @@ typedef struct {
     RtcInboundRtpStreamStats inboundStats;
 
     BOOL twccEnabled; // whether TWCC was negotiated for this transceiver's m-line
+    BOOL pliEnabled;  // whether the remote m-line lists "nack pli" for this transceiver's payload type
 
     // Caller-supplied fmtp override (H264 only). Empty string means "use the default".
     CHAR fmtpOverride[MAX_SDP_ATTRIBUTE_VALUE_LENGTH + 1];

@@ -148,6 +148,9 @@ extern "C" {
 
 #define MIN_CLOCK_SKEW_TIME_TO_CORRECT (5 * HUNDREDS_OF_NANOS_IN_A_MINUTE)
 
+// Immediate (no backoff) re-signed retries each API call gets after a clock skew rejection
+#define MAX_CLOCK_SKEW_RETRIES_PER_CALL 1
+
 // Defining max bloat size per item in the JSON template
 #define ICE_SERVER_INFO_TEMPLATE_BLOAT_SIZE 128
 
@@ -183,6 +186,10 @@ extern "C" {
 
 // Service loop iteration wait time when there is an already servicing thread
 #define LWS_SERVICE_LOOP_ITERATION_WAIT (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+
+// Wait between attempts to take lwsServiceLock in lwsCompleteSync()'s exit block after waking the
+// thread that holds it out of lws_service(); short, so the completion is not delayed noticeably
+#define LWS_SERVICE_LOCK_RETRY_WAIT (1 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
 // Check for the stale credentials
 #define CHECK_SIGNALING_CREDENTIALS_EXPIRATION(p)                                                                                                    \
@@ -227,6 +234,9 @@ struct __LwsCallInfo {
     // Call info object
     CallInfo callInfo;
 
+    // Whether the response Date shows the request was signed with a correction that re-signing can fix
+    BOOL clockSkewCorrectable;
+
     // Back reference to the signaling client
     PSignalingClient pSignalingClient;
 
@@ -263,12 +273,20 @@ PVOID lwsListenerHandler(PVOID);
 // Retry thread
 PVOID reconnectHandler(PVOID);
 
+// Starts a detached reconnectHandler() thread and accounts for it in reconnecterTracker.
+// Called from the WSS callback with lwsServiceLock held.
+STATUS startReconnectHandler(PSignalingClient);
+
 // LWS callback routine
 INT32 lwsHttpCallbackRoutine(PVOID, INT32, PVOID, PVOID, size_t);
 INT32 lwsWssCallbackRoutine(PVOID, INT32, PVOID, PVOID, size_t);
 
 BOOL isCallResultSignatureExpired(PCallInfo);
 BOOL isCallResultSignatureNotYetCurrent(PCallInfo);
+
+// Clock skew correction shared by the HTTPS and WSS requests
+INT64 recordClockSkewCorrection(PSignalingClient, UINT64, UINT64);
+SERVICE_CALL_RESULT getWssUpgradeFailureResult(PSignalingClient, PVOID);
 
 STATUS describeChannelLws(PSignalingClient, UINT64);
 STATUS createChannelLws(PSignalingClient, UINT64);

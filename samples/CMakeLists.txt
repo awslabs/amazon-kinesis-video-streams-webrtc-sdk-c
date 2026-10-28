@@ -36,15 +36,16 @@ if(GST_FOUND)
 
   pkg_check_modules(GLIB2 REQUIRED glib-2.0)
   pkg_check_modules(GST_APP REQUIRED gstreamer-app-1.0)
+  pkg_check_modules(GST_VIDEO REQUIRED gstreamer-video-1.0)
   pkg_check_modules(GOBJ2 REQUIRED gobject-2.0)
   message("gstreamer found. Will build gstreamer samples")
 
   set(OPEN_SRC_INCLUDE_DIRS
       ${OPEN_SRC_INCLUDE_DIRS} ${GLIB2_INCLUDE_DIRS} ${GST_INCLUDE_DIRS}
-      ${GST_APP_INCLUDE_DIRS} ${GOBJ2_INCLUDE_DIRS})
+      ${GST_APP_INCLUDE_DIRS} ${GST_VIDEO_INCLUDE_DIRS} ${GOBJ2_INCLUDE_DIRS})
 
   set(GST_SAMPLE_LIBRARIES ${GLIB2_LIBRARIES} ${GST_LIBRARIES}
-                           ${GST_APP_LIBRARIES} ${GOBJ2_LIBRARIES} ${Intl})
+                           ${GST_APP_LIBRARIES} ${GST_VIDEO_LIBRARIES} ${GOBJ2_LIBRARIES} ${Intl})
 
   link_directories(${GLIB2_LIBRARY_DIRS})
   link_directories(${GST_LIBRARY_DIRS})

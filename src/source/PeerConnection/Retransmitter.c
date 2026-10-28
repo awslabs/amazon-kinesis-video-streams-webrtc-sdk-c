@@ -49,8 +49,9 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
     UINT32 filledLen = 0, validIndexListLen = 0;
     PKvsRtpTransceiver pSenderTranceiver = NULL;
     UINT64 item, index;
+    UINT32 rtxTwccExtPayload = 0;
     STATUS tmpStatus = STATUS_SUCCESS;
-    PRtpPacket pRtpPacket = NULL, pRtxRtpPacket = NULL;
+    PRtpPacket pRtpPacket = NULL, pRtxRtpPacket = NULL, pSentPacket = NULL;
     PRetransmitter pRetransmitter = NULL;
     SIZE_T packedPayloadTypes;
     UINT8 payloadType, rtxPayloadType;
@@ -99,25 +100,33 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
                       payloadType);
                 retStatus = iceAgentSendPacket(pKvsPeerConnection->pIceAgent, pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength);
             } else {
+                // Allocate a fresh transport wide sequence number for the retransmission instead of
+                // letting it inherit the original packet's. Only do so when the original carries the
+                // TWCC extension: a number taken here but never sent would be reported as lost.
+                rtxTwccExtPayload = 0;
+                if (pKvsPeerConnection->twccExtId != 0 && pRtpPacket->header.extension && pRtpPacket->header.extensionProfile == TWCC_EXT_PROFILE) {
+                    rtxTwccExtPayload =
+                        TWCC_PAYLOAD(pKvsPeerConnection->twccExtId, (UINT16) ATOMIC_INCREMENT(&pKvsPeerConnection->transportWideSequenceNumber));
+                }
                 CHK_STATUS(constructRetransmitRtpPacketFromBytes(pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength,
                                                                  pSenderTranceiver->sender.rtxSequenceNumber, rtxPayloadType,
-                                                                 pSenderTranceiver->sender.rtxSsrc, &pRtxRtpPacket));
+                                                                 pSenderTranceiver->sender.rtxSsrc, rtxTwccExtPayload, &pRtxRtpPacket));
                 pSenderTranceiver->sender.rtxSequenceNumber++;
                 retStatus = writeRtpPacket(pKvsPeerConnection, pRtxRtpPacket);
             }
-            // resendPacket
+            // resendPacket. Stats and TWCC use the packet that went out: the RTX packet, or the original on the fallback path.
+            pSentPacket = (pRtxRtpPacket != NULL) ? pRtxRtpPacket : pRtpPacket;
             if (STATUS_SUCCEEDED(retStatus)) {
-                pRtpPacket->sentTime = GETTIME();
+                pSentPacket->sentTime = GETTIME();
                 retransmittedPacketsSent++;
-                retransmittedBytesSent += pRtpPacket->rawPacketLength - RTP_HEADER_LEN(pRtpPacket);
+                retransmittedBytesSent += pSentPacket->rawPacketLength - RTP_HEADER_LEN(pSentPacket);
                 DLOGV("Resent packet ssrc %lu seq %lu succeeded", pRtpPacket->header.ssrc, pRtpPacket->header.sequenceNumber);
-                twccManagerOnPacketSent(pKvsPeerConnection, pRtpPacket);
+                twccManagerOnPacketSent(pKvsPeerConnection, pSentPacket);
             } else {
                 DLOGV("Resent packet ssrc %lu seq %lu failed 0x%08x", pRtpPacket->header.ssrc, pRtpPacket->header.sequenceNumber, retStatus);
             }
             // putBackPacketToRollingBuffer
-            retStatus =
-                rollingBufferInsertData(pSenderTranceiver->sender.packetBuffer->pRollingBuffer, pRetransmitter->sequenceNumberList[index], item);
+            retStatus = rollingBufferInsertData(pSenderTranceiver->sender.packetBuffer->pRollingBuffer, pRetransmitter->validIndexList[index], item);
             CHK(retStatus == STATUS_SUCCESS || retStatus == STATUS_ROLLING_BUFFER_NOT_IN_RANGE, retStatus);
 
             // free the packet if it is not in the valid range any more

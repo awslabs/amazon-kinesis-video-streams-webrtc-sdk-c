@@ -335,6 +335,8 @@ STATUS iceAgentAddIceServers(PIceAgent pIceAgent, PRtcIceServer pIceServers, UIN
     CHK(pIceAgent != NULL && pIceServers != NULL, STATUS_NULL_ARG);
     CHK(iceServersCount > 0, STATUS_INVALID_ARG);
     CHK(!ATOMIC_LOAD_BOOL(&pIceAgent->shutdown), STATUS_INVALID_OPERATION);
+    CHK_ERR(!pIceAgent->kvsRtcConfiguration.iceServersFinal, STATUS_ICE_SERVERS_FINAL,
+            "Cannot add ICE servers: iceServersFinal was set when the peer connection was created");
 
     DLOGI("Adding %u new ICE servers to existing agent", iceServersCount);
 
@@ -1859,10 +1861,11 @@ STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, 
     if (pendingSrflxCandidateCount > 0) {
         CHK_STATUS(iceAgentSendSrflxCandidateRequest(pIceAgent));
     }
-    /* stop scheduling if there is a nominated candidate pair (in cases where the pair does not have relay, which is set via stopGathering flag), no
-     * more pending candidate and relay candidates are added or if timeout is reached. */
+    /* stop scheduling if there is a nominated candidate pair (in cases where the pair does not have relay, which is set via stopGathering flag), if
+     * the ICE servers are final and no candidate is pending (relay candidates are created before gathering starts and stay NEW until
+     * allocated; servers added later through iceAgentAddIceServers would come too late), or if timeout is reached. */
     if (ATOMIC_LOAD_BOOL(&pIceAgent->stopGathering) ||
-        (totalCandidateCount > 0 && pendingCandidateCount == 0 && ATOMIC_LOAD_BOOL(&pIceAgent->addedRelayCandidate)) ||
+        (pIceAgent->kvsRtcConfiguration.iceServersFinal && totalCandidateCount > 0 && pendingCandidateCount == 0) ||
         currentTime >= pIceAgent->candidateGatheringEndTime) {
         if (moreNewLocalCandidates) {
             DLOGD("Deferring candidate gathering completion while there are new local candidates to report.");
@@ -1960,6 +1963,7 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
     UINT32 j, srflxCount = 0;
     BOOL locked = FALSE;
     PIceCandidate srflxCandidates[KVS_ICE_MAX_LOCAL_CANDIDATE_COUNT];
+    BOOL noAddressWarned[MAX_ICE_SERVERS_COUNT] = {FALSE};
     PKvsIpAddress pStunServerAddress = NULL;
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
@@ -1985,9 +1989,12 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
                     continue;
                 }
 
-                if (!pIceServer->isTurn &&
-                    (pIceServer->ipAddresses.ipv4Address.family == pCandidate->ipAddress.family ||
-                     pIceServer->ipAddresses.ipv6Address.family == pCandidate->ipAddress.family)) {
+                if (pIceServer->isTurn) {
+                    continue;
+                }
+
+                if (pIceServer->ipAddresses.ipv4Address.family == pCandidate->ipAddress.family ||
+                    pIceServer->ipAddresses.ipv6Address.family == pCandidate->ipAddress.family) {
                     CHK((pNewCandidate = (PIceCandidate) MEMCALLOC(1, SIZEOF(IceCandidate))) != NULL, STATUS_NOT_ENOUGH_MEMORY);
                     generateJSONSafeString(pNewCandidate->id, ARRAY_SIZE(pNewCandidate->id));
                     pNewCandidate->isRemote = FALSE;
@@ -2006,6 +2013,19 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
                     srflxCandidates[srflxCount++] = pNewCandidate;
 
                     pNewCandidate = NULL;
+                } else if (pIceServer->ipAddresses.ipv4Address.family == KVS_IP_FAMILY_TYPE_NOT_SET &&
+                           pIceServer->ipAddresses.ipv6Address.family == KVS_IP_FAMILY_TYPE_NOT_SET) {
+                    // The STUN server has no resolved address at all, so no srflx candidate can be gathered from it.
+                    // This used to fail silently (#2408) and leave the session with host and relay candidates only.
+                    // Warn once per server rather than once per host candidate.
+                    if (!noAddressWarned[j]) {
+                        noAddressWarned[j] = TRUE;
+                        DLOGW("Skipping srflx candidate generation: STUN server %s has no resolved address (family not set)", pIceServer->url);
+                    }
+                } else {
+                    // Expected on dual-stack hosts, e.g. an IPv6 host candidate with an IPv4-only STUN server.
+                    DLOGD("Skipping srflx candidate generation for host candidate %s (family %u): STUN server %s has no address of that family",
+                          pCandidate->id, (UINT32) pCandidate->ipAddress.family, pIceServer->url);
                 }
             }
         }

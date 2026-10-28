@@ -2183,6 +2183,160 @@ TEST_F(PeerConnectionFunctionalityTest, concurrentRenegotiationAcrossSessions)
     }
 }
 
+#ifdef ENABLE_KVS_THREADPOOL
+// TRUE once the startup STUN resolution task has run to completion, whether or not it resolved an address.
+// resolveStunIceServerIp() sets startTime after both its success and failure branches; status is set to
+// EARLY_DNS_RESOLUTION_FAILED instead if a setStunServerIpFn request arrived before the task ran.
+// Caller must hold stunCtxlock.
+static BOOL stunPreResolutionFinished(PStunIpAddrContext pStunIpAddrCtx)
+{
+    return pStunIpAddrCtx->startTime != 0 || pStunIpAddrCtx->status == STATUS_PEERCONNECTION_EARLY_DNS_RESOLUTION_FAILED;
+}
+
+// Regression test for #2408.
+//
+// With ENABLE_KVS_THREADPOOL on, initKvsWebRtc() pre-resolves the default STUN hostname on a pool thread and
+// createPeerConnection() installs onSetStunServerIp() as the ICE agent's setStunServerIpFn, so parseIceServer() copies
+// the STUN server address out of that cache instead of calling getIpWithHostName(). A broken copy left the server's
+// address family unset and iceAgentInitSrflxCandidate() silently gathered no srflx candidates.
+//
+// IceFunctionalityTest's gathering tests call createIceAgent() with a zeroed IceAgentCallbacks, so they never take the
+// callback path and passed on the broken code. This test goes through the public peer connection API and pins the
+// STUN URL to the hostname the pre-resolver cached, so the cache path is the one exercised, then asserts that host,
+// srflx and relay candidates are all produced.
+TEST_F(PeerConnectionFunctionalityTest, gatherAllCandidateTypesWithPreResolvedStunAddress)
+{
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
+
+    // Poll every 10 ms for up to 10 s for the pre-resolution task
+    const UINT32 preResolvePollIntervalMs = 10;
+    const UINT32 maxPreResolvePolls = 1000;
+    // Poll every 100 ms for the agent's own srflx/relay gathering timeout plus 5 s of slack
+    const UINT32 gatherPollIntervalMs = 100;
+    const UINT32 maxGatherPolls = (KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT + 5 * HUNDREDS_OF_NANOS_IN_A_SECOND) /
+        (gatherPollIntervalMs * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+
+    typedef struct {
+        std::vector<std::string> list;
+        std::mutex lock;
+        volatile ATOMIC_BOOL done;
+    } CandidateList;
+
+    // Releases the hold taken by getWebRtcClientInstance() on every exit path. Without it a failed ASSERT below would
+    // leak the reference and TearDown's cleanupWebRtcClientInstance() would spin forever waiting for the refcount.
+    struct ClientInstanceHold {
+        PWebRtcClientContext ctx;
+        ~ClientInstanceHold()
+        {
+            if (ctx != NULL) {
+                releaseHoldOnInstance(ctx);
+            }
+        }
+    };
+
+    // TearDown() does not free the signaling client, so release it on every exit path including a failed ASSERT.
+    struct SignalingClientGuard {
+        PeerConnectionFunctionalityTest* pTest;
+        ~SignalingClientGuard()
+        {
+            pTest->deinitializeSignalingClient();
+        }
+    };
+
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit sdp;
+    PRtcPeerConnection pPeerConnection = NULL;
+    CandidateList candidateList;
+    CHAR preResolvedHostname[MAX_ICE_CONFIG_URI_LEN + 1] = {'\0'};
+    BOOL preResolved = FALSE, resolutionFinished = FALSE, foundHostCandidate = FALSE, foundSrflxCandidate = FALSE, foundRelayCandidate = FALSE;
+    UINT32 i;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&sdp, 0x00, SIZEOF(RtcSessionDescriptionInit));
+    ATOMIC_STORE_BOOL(&candidateList.done, FALSE);
+
+    // 1. Wait for the pre-resolution task started by initKvsWebRtc() to finish. If a peer connection is created before
+    //    that, onSetStunServerIp() returns EARLY_DNS_RESOLUTION_FAILED and parseIceServer() falls back to synchronous
+    //    resolution, which would make this test pass without exercising the cache path.
+    {
+        ClientInstanceHold hold{getWebRtcClientInstance()};
+        ASSERT_TRUE(ATOMIC_LOAD_BOOL(&hold.ctx->isContextInitialized));
+        ASSERT_TRUE(hold.ctx->pStunIpAddrCtx != NULL);
+
+        for (i = 0; i < maxPreResolvePolls && !resolutionFinished; i++) {
+            MUTEX_LOCK(hold.ctx->stunCtxlock);
+            resolutionFinished = stunPreResolutionFinished(hold.ctx->pStunIpAddrCtx);
+            preResolved = hold.ctx->pStunIpAddrCtx->isIpInitialized;
+            if (preResolved) {
+                STRNCPY(preResolvedHostname, hold.ctx->pStunIpAddrCtx->hostname, MAX_ICE_CONFIG_URI_LEN);
+            }
+            MUTEX_UNLOCK(hold.ctx->stunCtxlock);
+            if (!resolutionFinished) {
+                THREAD_SLEEP(preResolvePollIntervalMs * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+            }
+        }
+    }
+    ASSERT_TRUE(preResolved) << "STUN pre-resolution did not complete successfully; cannot exercise the pre-resolved address path";
+    ASSERT_NE('\0', preResolvedHostname[0]);
+
+    // 2. ICE servers from signaling (STUN + TURN). Override the STUN URL with the hostname the pre-resolver cached so
+    //    the STRCMP in onSetStunServerIp() matches and the cached address is used. The scheme is irrelevant to that
+    //    match (parseIceServer() strips it before calling the callback); "stun:" is correct for the commercial
+    //    partitions this test runs in, while GovCloud/ISO regions would use "stuns:".
+    initializeSignalingClient();
+    SignalingClientGuard signalingGuard{this};
+    getIceServers(&configuration);
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, "stun:%s:443", preResolvedHostname);
+
+    // 3. Gather through the public API: createPeerConnection() installs onSetStunServerIp as setStunServerIpFn.
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pPeerConnection));
+
+    auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
+        CandidateList* pCandidateList = (CandidateList*) customData;
+        std::lock_guard<std::mutex> lock(pCandidateList->lock);
+        if (candidateStr != NULL) {
+            pCandidateList->list.push_back(std::string(candidateStr));
+        } else {
+            // NULL marks the end of gathering
+            ATOMIC_STORE_BOOL(&pCandidateList->done, TRUE);
+        }
+    };
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(pPeerConnection, (UINT64) &candidateList, onICECandidateHdlr));
+
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(pPeerConnection, &sdp));
+    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(pPeerConnection, &sdp));
+
+    // 4. Wait for gathering to complete
+    for (i = 0; i < maxGatherPolls && !ATOMIC_LOAD_BOOL(&candidateList.done); i++) {
+        THREAD_SLEEP(gatherPollIntervalMs * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    EXPECT_TRUE(ATOMIC_LOAD_BOOL(&candidateList.done)) << "ICE gathering did not complete in time";
+
+    // 5. Every candidate type must be present
+    {
+        std::lock_guard<std::mutex> lock(candidateList.lock);
+        for (std::vector<std::string>::iterator it = candidateList.list.begin(); it != candidateList.list.end(); ++it) {
+            if (it->find(std::string(SDP_CANDIDATE_TYPE_HOST)) != std::string::npos) {
+                foundHostCandidate = TRUE;
+            } else if (it->find(std::string(SDP_CANDIDATE_TYPE_SERFLX)) != std::string::npos) {
+                foundSrflxCandidate = TRUE;
+            } else if (it->find(std::string(SDP_CANDIDATE_TYPE_RELAY)) != std::string::npos) {
+                foundRelayCandidate = TRUE;
+            }
+        }
+    }
+    EXPECT_TRUE(foundHostCandidate) << "no host candidate gathered";
+    EXPECT_TRUE(foundSrflxCandidate) << "no srflx candidate gathered from pre-resolved STUN server " << preResolvedHostname << " (#2408)";
+    EXPECT_TRUE(foundRelayCandidate) << "no relay candidate gathered";
+
+    // Detach the handler before tearing down so no callback fires into a destroyed CandidateList
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnIceCandidate(pPeerConnection, (UINT64) 0, [](UINT64, PCHAR) -> void {}));
+    closePeerConnection(pPeerConnection);
+    freePeerConnection(&pPeerConnection);
+    // signalingGuard releases the signaling client here
+}
+#endif // ENABLE_KVS_THREADPOOL
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
