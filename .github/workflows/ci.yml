@@ -90,6 +90,15 @@ jobs:
             cmake_flags: "-DBUILD_TEST=ON -DUSE_OPENSSL3=ON -DPARALLEL_BUILD=ON"
           - name: Shared MbedTLS libsrtp3 mbedTLS4
             cmake_flags: "-DBUILD_TEST=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DUSE_LIBSRTP3=ON -DUSE_MBEDTLS4=ON -DPARALLEL_BUILD=ON"
+          - name: Shared AWS-LC
+            cmake_flags: "-DBUILD_TEST=ON -DUSE_AWS_LC=ON -DPARALLEL_BUILD=ON"
+          - name: Static AWS-LC
+            cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=ON -DUSE_AWS_LC=ON -DPARALLEL_BUILD=ON"
+          # AWS-LC static FIPS builds are Linux-only (AWS-LC raises
+          # "Static FIPS build of AWS-LC is supported only on Linux"), so macOS
+          # exercises the shared FIPS path only. The Linux matrix covers static FIPS.
+          - name: Shared AWS-LC FIPS
+            cmake_flags: "-DBUILD_TEST=ON -DUSE_AWS_LC=ON -DUSE_AWS_LC_FIPS=ON -DPARALLEL_BUILD=ON"
           - name: Shared OpenSSL System Deps
             # Tests disabled (due to dependency issues): 
             # - GCC: Homebrew's libgtest is built with
@@ -144,6 +153,16 @@ jobs:
       - name: Install jsonschema + jinja2
         if: ${{ contains(matrix.config.cmake_flags, 'USE_MBEDTLS4') }}
         run: pip install jsonschema jinja2
+
+      # AWS-LC hard-requires Go and Perl for a FIPS build and refuses to
+      # configure without them. Perl ships with the macOS runners; Go does not.
+      # Non-FIPS AWS-LC builds degrade gracefully (portable C instead of
+      # optimised assembly) so they do not need this step.
+      - name: Set up Go (AWS-LC FIPS)
+        if: ${{ contains(matrix.config.cmake_flags, 'USE_AWS_LC_FIPS') }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
 
       - name: Configure and build ${{ matrix.config.name }}
         run: |
@@ -313,6 +332,18 @@ jobs:
             cmake-args: "-DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
           - name: openssl3
             cmake-args: "-DUSE_OPENSSL3=ON -DUSE_MBEDTLS=OFF"
+          - name: aws-lc
+            cmake-args: "-DUSE_AWS_LC=ON"
+          - name: aws-lc-static
+            cmake-args: "-DUSE_AWS_LC=ON -DBUILD_STATIC_LIBS=ON"
+          # Linux is the only platform where AWS-LC supports a static FIPS build,
+          # so this combination is covered here and nowhere else.
+          - name: aws-lc-fips-static
+            cmake-args: "-DUSE_AWS_LC=ON -DUSE_AWS_LC_FIPS=ON -DBUILD_STATIC_LIBS=ON"
+            needs_go: true
+          - name: aws-lc-fips-shared
+            cmake-args: "-DUSE_AWS_LC=ON -DUSE_AWS_LC_FIPS=ON"
+            needs_go: true
           - name: system-deps-openssl
             # build libwebsockets from source as apt versions are not compatible
             cmake-args: "-DBUILD_DEPENDENCIES=OFF -DBUILD_WEBSOCKETS=ON -DUSE_OPENSSL=ON -DUSE_MBEDTLS=OFF"
@@ -364,6 +395,20 @@ jobs:
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
           cmake-version: '3.x'
+
+      # AWS-LC refuses to configure a FIPS build without Go and Perl. The bare
+      # ubuntu images carry neither. Non-FIPS AWS-LC builds only lose the
+      # optimised assembly without Perl, so install it for every AWS-LC config
+      # to keep them representative of a real deployment.
+      - name: Install Perl and NASM (AWS-LC)
+        if: ${{ contains(matrix.build-configuration.cmake-args, 'USE_AWS_LC') }}
+        run: apt-get install -y perl nasm
+
+      - name: Set up Go (AWS-LC FIPS)
+        if: ${{ matrix.build-configuration.needs_go }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
 
       - name: Build repository
         shell: bash
