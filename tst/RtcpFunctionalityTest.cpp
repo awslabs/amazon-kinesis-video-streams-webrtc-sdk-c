@@ -2515,6 +2515,102 @@ TEST_F(RtcpFunctionalityTest, onTwccFeedbackReceived_infDelayTrendSanitized)
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
+TEST_F(RtcpFunctionalityTest, onRtcpPacketNackRtxUsesRtxPacketForTwccAndStats)
+{
+    // NACK for seq 0 on media ssrc 44000
+    BYTE nackPacket[] = {0x81, 0xcd, 0x00, 0x03, 0x2c, 0xd1, 0xa0, 0xde, 0x00, 0x00, 0xab, 0xe0, 0x00, 0x00, 0x00, 0x00};
+    BYTE payload[10] = {0};
+    UINT32 extPayload = TWCC_PAYLOAD(1u, 100u);
+    PRtpPacket pRtpPacket = nullptr;
+    UINT64 value = 0, timeBeforeNack = 0, timeAfterNack = 0;
+    RtcOutboundRtpStreamStats stats{};
+
+    initTransceiver(44000);
+    pKvsPeerConnection->twccExtId = 1;
+    // The original packet went out with 100; the counter holds the next number to hand out.
+    ATOMIC_STORE(&pKvsPeerConnection->transportWideSequenceNumber, 101);
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnSenderBandwidthEstimation(pRtcPeerConnection, 0, testBwHandler));
+
+    pKvsRtpTransceiver->sender.payloadType = 96;
+    pKvsRtpTransceiver->sender.rtxPayloadType = 97;
+    pKvsRtpTransceiver->sender.rtxSsrc = 55000;
+    pKvsRtpTransceiver->sender.rtxSequenceNumber = 500;
+    ATOMIC_STORE(&pKvsRtpTransceiver->atomicSenderPayloadTypes, KVS_RTP_TRANSCEIVER_PACK_PAYLOAD_TYPES(96, 97));
+
+    ASSERT_EQ(STATUS_SUCCESS,
+              createRtpRollingBuffer(DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS * DEFAULT_EXPECTED_VIDEO_BIT_RATE / 8 / DEFAULT_MTU_SIZE_BYTES,
+                                     &pKvsRtpTransceiver->sender.packetBuffer));
+    ASSERT_EQ(STATUS_SUCCESS,
+              createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
+    ASSERT_EQ(STATUS_SUCCESS,
+              createRtpPacket(2, FALSE, TRUE, 0, FALSE, 96, 0, 100, 44000, NULL, TWCC_EXT_PROFILE, SIZEOF(UINT32), (PBYTE) &extPayload, payload,
+                              SIZEOF(payload), &pRtpPacket));
+    ASSERT_EQ(STATUS_SUCCESS, createBytesFromRtpPacket(pRtpPacket, NULL, &pRtpPacket->rawPacketLength));
+    ASSERT_NE(nullptr, pRtpPacket->pRawPacket = (PBYTE) MEMALLOC(pRtpPacket->rawPacketLength));
+    ASSERT_EQ(STATUS_SUCCESS, createBytesFromRtpPacket(pRtpPacket, pRtpPacket->pRawPacket, &pRtpPacket->rawPacketLength));
+    ASSERT_EQ(STATUS_SUCCESS, rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
+
+    timeBeforeNack = GETTIME();
+    ASSERT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, nackPacket, SIZEOF(nackPacket)));
+    timeAfterNack = GETTIME();
+
+    EXPECT_EQ(STATUS_SUCCESS, getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats));
+    EXPECT_EQ(1, stats.retransmittedPacketsSent);
+    // payload + 2 byte OSN header
+    EXPECT_EQ(SIZEOF(payload) + SIZEOF(UINT16), stats.retransmittedBytesSent);
+    EXPECT_EQ(501, pKvsRtpTransceiver->sender.rtxSequenceNumber);
+
+    // The retransmission is tracked under a fresh transport wide sequence number, with the size of the RTX payload,
+    // instead of overwriting the record of the original packet.
+    MUTEX_LOCK(pKvsPeerConnection->twccLock);
+    EXPECT_EQ(STATUS_HASH_KEY_NOT_PRESENT, hashTableGet(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, 100, &value));
+    EXPECT_EQ(STATUS_SUCCESS, hashTableGet(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, 101, &value));
+    if (value != 0) {
+        EXPECT_EQ(SIZEOF(payload) + SIZEOF(UINT16), ((PTwccRtpPacketInfo) value)->packetSize);
+        // The record carries the retransmission's own send time.
+        EXPECT_GE(((PTwccRtpPacketInfo) value)->localTimeKvs, timeBeforeNack);
+        EXPECT_LE(((PTwccRtpPacketInfo) value)->localTimeKvs, timeAfterNack);
+    }
+    MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
+    EXPECT_EQ(102, ATOMIC_LOAD(&pKvsPeerConnection->transportWideSequenceNumber));
+
+    freePeerConnection(&pRtcPeerConnection);
+    freeRtpPacket(&pRtpPacket);
+}
+
+TEST_F(RtcpFunctionalityTest, onRtcpPacketNackRtxWithoutTwccExtensionKeepsTwccSequenceNumber)
+{
+    // NACK for seq 0 on media ssrc 44000
+    BYTE nackPacket[] = {0x81, 0xcd, 0x00, 0x03, 0x2c, 0xd1, 0xa0, 0xde, 0x00, 0x00, 0xab, 0xe0, 0x00, 0x00, 0x00, 0x00};
+    PRtpPacket pRtpPacket = nullptr;
+    RtcOutboundRtpStreamStats stats{};
+
+    initTransceiver(44000);
+    pKvsPeerConnection->twccExtId = 1;
+    ATOMIC_STORE(&pKvsPeerConnection->transportWideSequenceNumber, 101);
+    pKvsRtpTransceiver->sender.rtxSsrc = 55000;
+    ATOMIC_STORE(&pKvsRtpTransceiver->atomicSenderPayloadTypes, KVS_RTP_TRANSCEIVER_PACK_PAYLOAD_TYPES(96, 97));
+
+    ASSERT_EQ(STATUS_SUCCESS,
+              createRtpRollingBuffer(DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS * DEFAULT_EXPECTED_VIDEO_BIT_RATE / 8 / DEFAULT_MTU_SIZE_BYTES,
+                                     &pKvsRtpTransceiver->sender.packetBuffer));
+    ASSERT_EQ(STATUS_SUCCESS,
+              createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
+    ASSERT_EQ(STATUS_SUCCESS, createRtpPacketWithSeqNum(0, &pRtpPacket)); // no header extension
+    ASSERT_EQ(STATUS_SUCCESS, rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
+
+    ASSERT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, nackPacket, SIZEOF(nackPacket)));
+
+    EXPECT_EQ(STATUS_SUCCESS, getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats));
+    EXPECT_EQ(1, stats.retransmittedPacketsSent);
+    // No transport wide sequence number is consumed for a packet that does not carry the extension
+    EXPECT_EQ(101, ATOMIC_LOAD(&pKvsPeerConnection->transportWideSequenceNumber));
+
+    freePeerConnection(&pRtcPeerConnection);
+    freeRtpPacket(&pRtpPacket);
+}
+
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

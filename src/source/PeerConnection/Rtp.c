@@ -23,6 +23,9 @@ STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, PKvsPeer
     pKvsRtpTransceiver->statsLock = MUTEX_CREATE(FALSE);
     pKvsRtpTransceiver->sender.ssrc = ssrc;
     pKvsRtpTransceiver->sender.rtxSsrc = rtxSsrc;
+    // RFC 3550 section 5.1: start the RTX sequence number at a random value. Set it once, with rtxSsrc,
+    // so a renegotiation does not restart it (RFC 4588 section 4).
+    pKvsRtpTransceiver->sender.rtxSequenceNumber = (UINT16) RAND();
     pKvsRtpTransceiver->sender.track = *pRtcMediaStreamTrack;
     pKvsRtpTransceiver->sender.packetBuffer = NULL;
     pKvsRtpTransceiver->sender.retransmitter = NULL;
