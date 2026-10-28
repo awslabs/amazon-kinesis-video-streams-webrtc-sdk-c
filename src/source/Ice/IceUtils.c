@@ -209,6 +209,9 @@ STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 pa
         case STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS:
             DLOGD("Sending BINDING_RESPONSE_SUCCESS on socket id: %d to %s", pSocketConnection->localSocket, ipAddrStr);
             break;
+        case STUN_PACKET_TYPE_BINDING_RESPONSE_ERROR:
+            DLOGD("Sending BINDING_RESPONSE_ERROR on socket id: %d to %s", pSocketConnection->localSocket, ipAddrStr);
+            break;
         default:
             break;
     }
