@@ -1161,7 +1161,8 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
             }
         }
     } else {
-        pDtlsRole = DTLS_ROLE_ACTIVE;
+        // DTLS client unless the offer took that role (a=setup:active)
+        pDtlsRole = ATOMIC_LOAD_BOOL(&pKvsPeerConnection->dtlsIsServer) ? DTLS_ROLE_PASSIVE : DTLS_ROLE_ACTIVE;
         unknownHashTableBucketCount =
             pRemoteSessionDescription->mediaCount < MIN_HASH_BUCKET_COUNT ? MIN_HASH_BUCKET_COUNT : pRemoteSessionDescription->mediaCount;
         CHK_STATUS(hashTableCreateWithParams(unknownHashTableBucketCount, CODEC_RTPMAP_PAYLOAD_TYPES_HASH_TABLE_BUCKET_LENGTH,

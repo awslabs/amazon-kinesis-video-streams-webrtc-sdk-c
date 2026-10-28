@@ -56,6 +56,10 @@ class WebRtcClientTestBase : public ::testing::Test {
     std::string offerIceUfragOverride;
     // How long connectTwoPeers waits for both peers to connect
     UINT32 connectTimeoutSeconds = 100;
+    // connectTwoPeers rewrites the offer's a=setup:actpass to this role, as a browser may
+    std::string offerSetupRole;
+    // The answer connectTwoPeers produced last
+    std::string lastAnswerSdp;
 
     WebRtcClientTestBase();
 

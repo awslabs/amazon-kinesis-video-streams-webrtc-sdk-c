@@ -235,6 +235,13 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
         }
         STRNCPY(sdp.sdp, offerSdp.c_str(), MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
     }
+    if (!this->offerSetupRole.empty()) {
+        std::string offerSdp(sdp.sdp), from("a=setup:actpass"), to("a=setup:" + this->offerSetupRole);
+        for (size_t pos = offerSdp.find(from); pos != std::string::npos; pos = offerSdp.find(from, pos + to.size())) {
+            offerSdp.replace(pos, from.size(), to);
+        }
+        STRNCPY(sdp.sdp, offerSdp.c_str(), MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+    }
     EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(answerPc, &sdp));
 
     // Validate the cert fingerprint if we are asked to do so
@@ -243,6 +250,7 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
     }
 
     EXPECT_EQ(STATUS_SUCCESS, createAnswer(answerPc, &sdp));
+    this->lastAnswerSdp = sdp.sdp;
     EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(answerPc, &sdp));
     EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(offerPc, &sdp));
 

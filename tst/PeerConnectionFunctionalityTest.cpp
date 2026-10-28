@@ -61,6 +61,37 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWrongRemoteUfragFails)
     freePeerConnection(&answerPc);
 }
 
+// An offer that is not actpass gets the other DTLS role in the answer (RFC 8842 section 5.3), as a browser that asks to be
+// DTLS client needs
+TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersNonActpassOffer)
+{
+    struct {
+        std::string offerRole, answerRole;
+        BOOL answererIsServer;
+    } cases[] = {{"active", "passive", TRUE}, {"passive", "active", FALSE}};
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    for (auto& c : cases) {
+        MEMSET(stateChangeCount, 0x00, SIZEOF(stateChangeCount));
+        EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+        EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+        offerSetupRole = c.offerRole;
+        EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE) << "offer with a=setup:" << c.offerRole;
+        EXPECT_NE(std::string::npos, lastAnswerSdp.find("a=setup:" + c.answerRole));
+        EXPECT_EQ(std::string::npos, lastAnswerSdp.find("a=setup:" + c.offerRole));
+        EXPECT_EQ(c.answererIsServer, ATOMIC_LOAD_BOOL(&((PKvsPeerConnection) answerPc)->dtlsIsServer));
+        EXPECT_EQ((BOOL) !c.answererIsServer, ATOMIC_LOAD_BOOL(&((PKvsPeerConnection) offerPc)->dtlsIsServer));
+
+        closePeerConnection(offerPc);
+        closePeerConnection(answerPc);
+        freePeerConnection(&offerPc);
+        freePeerConnection(&answerPc);
+    }
+}
+
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
 {
     RtcConfiguration configuration;

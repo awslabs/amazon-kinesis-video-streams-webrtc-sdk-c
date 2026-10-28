@@ -1644,9 +1644,10 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
                 DLOGV("Ignoring unsupported session-level fingerprint algorithm: %.*s", algoLen,
                       pSessionDescription->sdpAttributes[i].attributeValue);
             }
-        } else if (pKvsPeerConnection->isOffer && !dtlsHandshakeDone && STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "setup") == 0) {
+        } else if (!dtlsHandshakeDone && STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "setup") == 0) {
             // possible values are actpass, passive and active. If the incoming SDP has active, it indicates it is taking up a client role
-            // In case of actpass and passive, the other peer is taking up a server role and is waiting for incoming connection
+            // In case of actpass and passive, the other peer is taking up a server role and is waiting for incoming connection.
+            // This holds for an offer as for an answer: an offer that is not actpass gets the opposite role in the answer.
             // Reference: https://www.rfc-editor.org/rfc/rfc4572#section-6.2
             ATOMIC_STORE_BOOL(&pKvsPeerConnection->dtlsIsServer, STRCMP(pSessionDescription->sdpAttributes[i].attributeValue, "active") == 0);
         } else if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "ice-options") == 0 &&
@@ -1691,8 +1692,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
                     DLOGV("Ignoring unsupported media-level fingerprint algorithm: %.*s", algoLen,
                           pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue);
                 }
-            } else if (pKvsPeerConnection->isOffer && !dtlsHandshakeDone &&
-                       STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "setup") == 0) {
+            } else if (!dtlsHandshakeDone && STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "setup") == 0) {
                 ATOMIC_STORE_BOOL(&pKvsPeerConnection->dtlsIsServer,
                                   STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, "active") == 0);
             } else if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "ice-options") == 0 &&
