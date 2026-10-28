@@ -1117,6 +1117,43 @@ CleanUp:
     return retStatus;
 }
 
+STATUS getStunUsernameAndIntegrity(PBYTE pStunBuffer, UINT32 bufferSize, PCHAR* ppUsername, PUINT16 pUsernameLen, PBOOL pHasMessageIntegrity)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PBYTE pAttribute, pEnd;
+    UINT16 messageLength, type, length = 0;
+
+    CHK(pStunBuffer != NULL && ppUsername != NULL && pUsernameLen != NULL && pHasMessageIntegrity != NULL, STATUS_NULL_ARG);
+    *ppUsername = NULL;
+    *pUsernameLen = 0;
+    *pHasMessageIntegrity = FALSE;
+    CHK(bufferSize >= STUN_HEADER_LEN, STATUS_INVALID_ARG);
+
+    messageLength = (UINT16) getInt16(*(PUINT16) (pStunBuffer + STUN_HEADER_TYPE_LEN));
+    CHK(bufferSize >= messageLength + STUN_HEADER_LEN, STATUS_INVALID_ARG);
+    pEnd = pStunBuffer + STUN_HEADER_LEN + messageLength;
+
+    // Stop at MESSAGE-INTEGRITY: later attributes aren't covered by it
+    for (pAttribute = pStunBuffer + STUN_HEADER_LEN; pAttribute < pEnd && !*pHasMessageIntegrity;
+         pAttribute += STUN_ATTRIBUTE_HEADER_LEN + ROUND_UP(length, 4)) {
+        CHK(pAttribute + STUN_ATTRIBUTE_HEADER_LEN <= pEnd, STATUS_STUN_ATTRIBUTE_LENGTH_EXCEEDED_BUFFER_SIZE);
+        type = (UINT16) getInt16(*(PUINT16) pAttribute);
+        length = (UINT16) getInt16(*(PUINT16) (pAttribute + STUN_ATTRIBUTE_HEADER_TYPE_LEN));
+        CHK(pAttribute + STUN_ATTRIBUTE_HEADER_LEN + length <= pEnd, STATUS_STUN_ATTRIBUTE_LENGTH_EXCEEDED_BUFFER_SIZE);
+
+        if (type == STUN_ATTRIBUTE_TYPE_USERNAME && *ppUsername == NULL) {
+            *ppUsername = (PCHAR) (pAttribute + STUN_ATTRIBUTE_HEADER_LEN);
+            *pUsernameLen = length;
+        } else if (type == STUN_ATTRIBUTE_TYPE_MESSAGE_INTEGRITY) {
+            *pHasMessageIntegrity = TRUE;
+        }
+    }
+
+CleanUp:
+
+    return retStatus;
+}
+
 STATUS freeStunPacket(PStunPacket* ppStunPacket)
 {
     ENTERS();
