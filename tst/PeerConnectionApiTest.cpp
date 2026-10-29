@@ -140,6 +140,43 @@ TEST_F(PeerConnectionApiTest, deserializeSessionDescriptionInit)
     EXPECT_EQ(rtcSessionDescriptionInit.type, SDP_TYPE_OFFER);
 }
 
+// Nested values are skipped whole wherever they are.
+TEST_F(PeerConnectionApiTest, deserializeSessionDescriptionInitSkipsNestedValues)
+{
+    RtcSessionDescriptionInit rtcSessionDescriptionInit;
+    std::string iceServerList = R"("IceServerList":[{"Uris":["turn:1.2.3.4:443?transport=udp","turn:1.2.3.4:443?transport=tcp"],)"
+                                R"("Username":"1789497913:id","Password":"pw","Ttl":300}])";
+
+    // Every position, with "type" or "sdp" first, and with an even and an odd number of tokens in the nested value.
+    for (const std::string& nested :
+         {iceServerList, std::string(R"("extra":{"a":[1,2,3]})"), std::string(R"("extra":[{}])"), std::string(R"("extra":[1,2])")}) {
+        for (const std::string& json :
+             {"{" + nested + R"(,"type":"offer","sdp":"KVS\r\nSDP\r\n"})", R"({"type":"offer",)" + nested + R"(,"sdp":"KVS\r\nSDP\r\n"})",
+              R"({"type":"offer","sdp":"KVS\r\nSDP\r\n",)" + nested + "}", "{" + nested + R"(,"sdp":"KVS\r\nSDP\r\n","type":"offer"})",
+              R"({"sdp":"KVS\r\nSDP\r\n",)" + nested + R"(,"type":"offer"})", R"({"sdp":"KVS\r\nSDP\r\n","type":"offer",)" + nested + "}"}) {
+            EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescriptionInit((PCHAR) json.c_str(), (UINT32) json.length(), &rtcSessionDescriptionInit))
+                << json;
+            EXPECT_STREQ("KVS\r\nSDP\r\n", rtcSessionDescriptionInit.sdp) << json;
+            EXPECT_EQ(SDP_TYPE_OFFER, rtcSessionDescriptionInit.type) << json;
+        }
+    }
+
+    // Keys inside a nested value are not the object's own.
+    std::string json = R"({"type":"offer","sdp":"KVS\r\nSDP\r\n","extra":{"type":"answer","sdp":"Other\r\n"}})";
+    EXPECT_EQ(STATUS_SUCCESS, deserializeSessionDescriptionInit((PCHAR) json.c_str(), (UINT32) json.length(), &rtcSessionDescriptionInit));
+    EXPECT_STREQ("KVS\r\nSDP\r\n", rtcSessionDescriptionInit.sdp);
+    EXPECT_EQ(SDP_TYPE_OFFER, rtcSessionDescriptionInit.type);
+
+    json = R"({"type":"offer","extra":{"sdp":"KVS\r\nSDP\r\n"}})";
+    EXPECT_EQ(STATUS_SESSION_DESCRIPTION_INIT_MISSING_SDP,
+              deserializeSessionDescriptionInit((PCHAR) json.c_str(), (UINT32) json.length(), &rtcSessionDescriptionInit));
+
+    // Nor are those of a second object after the first.
+    json = R"({"sdp":"KVS\r\nSDP\r\n"}{"type":"offer"})";
+    EXPECT_EQ(STATUS_SESSION_DESCRIPTION_INIT_MISSING_TYPE,
+              deserializeSessionDescriptionInit((PCHAR) json.c_str(), (UINT32) json.length(), &rtcSessionDescriptionInit));
+}
+
 TEST_F(PeerConnectionApiTest, fmtpForPayloadType)
 {
     auto rawSessionDescription = R"(v=0
