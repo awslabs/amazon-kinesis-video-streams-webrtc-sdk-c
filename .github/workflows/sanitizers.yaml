@@ -124,6 +124,67 @@ jobs:
         run: |
           ./tst/webrtc_client_test
 
+  # Same as address-sanitizer but on the AWS-LC backend. The branch adds code the
+  # default-OpenSSL jobs above never compile: the AWS-LC group configuration and
+  # the multi-certificate CA bundle loader, which allocates a buffer and parses
+  # PEM in a loop. Nothing in the functional suite feeds it a multi-cert CA file,
+  # so ASan is the only thing watching those allocations.
+  #
+  # Non-FIPS on purpose. A FIPS build disables AWS-LC's module integrity check
+  # under a sanitizer, which voids the validation, so CMake refuses the
+  # combination outright.
+  address-sanitizer-aws-lc:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+
+    env:
+      ASAN_OPTIONS: detect_odr_violation=0:detect_leaks=1
+      LSAN_OPTIONS: suppressions=../tst/suppressions/LSAN.supp
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install clang
+
+          # AWS SDK CPP dependencies (for tests)
+          sudo apt-get -y install zlib1g-dev libcurl4-openssl-dev
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2.2.0
+        with:
+          cmake-version: '3.x'
+
+      - name: Build repository
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DBUILD_TEST=ON -DUSE_AWS_LC=ON -DADDRESS_SANITIZER=ON -DPARALLEL_BUILD=ON
+          make -j
+
+      - name: Check the AWS-LC backend
+        # A sanitizer build that quietly linked a system OpenSSL would run the
+        # suite clean and prove nothing about AWS-LC.
+        run: ./scripts/check-awslc.sh build
+
+      - name: Run tests
+        working-directory: ./build
+        run: |
+          ./tst/webrtc_client_test
+
   undefined-behavior-sanitizer:
     runs-on: ubuntu-22.04
     timeout-minutes: 60
