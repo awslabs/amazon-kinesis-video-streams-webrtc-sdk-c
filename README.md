@@ -910,6 +910,8 @@ export KVS_DISABLE_IPV6_TURN=ON
 
 **Note:** `KVS_DISABLE_IPV6_TURN` is only applicable when running in dual-stack mode.
 
+### TURN servers supplied by the viewer application
+As an application-side optimization, the viewer can send the camera (master) a set of TURN servers in its SDP offer. See [docs/VIEWER_SUPPLIED_TURN_SERVERS.md](docs/VIEWER_SUPPLIED_TURN_SERVERS.md).
 
 ## Troubleshooting WebRTC Storage
 
@@ -943,6 +945,7 @@ Additional guides:
 - [Troubleshooting H.265 sample frames](docs/TROUBLESHOOTING_H265_FRAMES.md) — inspecting NAL units, diagnosing freeze-after-first-frame, regenerating frames
 - [Frame size limits](docs/FRAME_SIZE_LIMITS.md) — maximum sent and received frame sizes, their status codes, and what to send over a data channel instead
 - [Sending media](docs/SENDING_MEDIA.md) — calling `writeFrame()`, timestamps, packetization, receiver feedback, and troubleshooting
+- [Viewer-supplied TURN servers](docs/VIEWER_SUPPLIED_TURN_SERVERS.md) — sending the camera (master) TURN servers in the SDP offer
 
 Refer to [related](#related) for more about WebRTC and KVS.
 

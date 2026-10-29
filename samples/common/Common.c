@@ -410,7 +410,110 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 }
 
-STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcPeerConnection* ppRtcPeerConnection)
+/**
+ * Reads the TURN servers the viewer supplied in its SDP offer, if any. See SAMPLE_VIEWER_ICE_SERVER_LIST_KEY.
+ *
+ * Only the first set is read, as the master uses one set of its own configuration. No servers are returned when the
+ * offer has none, when they cannot be read, or when their credentials expire within the grace period, and the caller
+ * then uses its own ICE configuration.
+ *
+ * @param[in] offerPayload The offer's message payload, already base64-decoded by the signaling client.
+ * @param[in] offerPayloadLen Length of offerPayload.
+ * @param[out] pIceServers Where to write the TURN servers, one per URI. Zeroed when none are returned.
+ * @param[in] maxIceServers How many entries pIceServers has room for.
+ * @param[out] pIceServerCount How many were written.
+ *
+ * @return STATUS_SUCCESS unless an argument is NULL, whether or not the offer held usable servers.
+ */
+STATUS getTurnServersFromOffer(PCHAR offerPayload, UINT32 offerPayloadLen, PRtcIceServer pIceServers, UINT32 maxIceServers, PUINT32 pIceServerCount)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    jsmn_parser parser;
+    jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
+    INT32 tokenCount, i, j, nextKey, setEnd;
+    UINT32 uriCount = 0, len;
+    CHAR userName[MAX_ICE_CONFIG_USER_NAME_BUFFER_LEN] = {0};
+    CHAR password[MAX_ICE_CONFIG_CREDENTIAL_BUFFER_LEN] = {0};
+    PCHAR pExpiryEnd;
+    UINT64 expirySeconds, nowSeconds;
+
+    CHK(offerPayload != NULL && pIceServers != NULL && pIceServerCount != NULL, STATUS_NULL_ARG);
+    *pIceServerCount = 0;
+
+    jsmn_init(&parser);
+    tokenCount = jsmn_parse(&parser, offerPayload, offerPayloadLen, tokens, ARRAY_SIZE(tokens));
+    CHK(tokenCount > 1 && tokens[0].type == JSMN_OBJECT, retStatus);
+
+    // Look for IceServerList among the offer's own keys, skipping each value whole as deserializeSessionDescriptionInit() does.
+    for (i = 1; i + 1 < tokenCount && tokens[i].start < tokens[0].end; i = nextKey) {
+        for (nextKey = i + 2; nextKey < tokenCount && tokens[nextKey].start < tokens[i + 1].end; nextKey++) {
+        }
+        if (compareJsonString(offerPayload, &tokens[i], JSMN_STRING, (PCHAR) SAMPLE_VIEWER_ICE_SERVER_LIST_KEY)) {
+            break;
+        }
+    }
+
+    CHK(i + 1 < tokenCount && tokens[i].start < tokens[0].end, retStatus);
+    CHK_WARN(tokens[i + 1].type == JSMN_ARRAY && tokens[i + 1].size > 0 && tokens[i + 2].type == JSMN_OBJECT, retStatus,
+             "The offer's %s is not a list of ICE server objects", SAMPLE_VIEWER_ICE_SERVER_LIST_KEY);
+
+    // The keys of the first set. Values are copied as they appear in the JSON, as parseIceConfigResponse() does.
+    setEnd = tokens[i + 2].end;
+    for (i += 3; i + 1 < tokenCount && tokens[i].start < setEnd; i = nextKey) {
+        for (nextKey = i + 2; nextKey < tokenCount && tokens[nextKey].start < tokens[i + 1].end; nextKey++) {
+        }
+        len = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
+        if (compareJsonString(offerPayload, &tokens[i], JSMN_STRING, (PCHAR) SAMPLE_VIEWER_ICE_SERVER_URIS_KEY)) {
+            for (j = i + 2; j < nextKey && uriCount < maxIceServers; j++) {
+                len = (UINT32) (tokens[j].end - tokens[j].start);
+                if (tokens[j].type == JSMN_STRING && len > 0 && len <= MAX_ICE_CONFIG_URI_LEN) {
+                    SNPRINTF(pIceServers[uriCount++].urls, MAX_ICE_CONFIG_URI_BUFFER_LEN, "%.*s", len, offerPayload + tokens[j].start);
+                }
+            }
+        } else if (compareJsonString(offerPayload, &tokens[i], JSMN_STRING, (PCHAR) SAMPLE_VIEWER_ICE_SERVER_USERNAME_KEY) &&
+                   len <= MAX_ICE_CONFIG_USER_NAME_LEN) {
+            SNPRINTF(userName, SIZEOF(userName), "%.*s", len, offerPayload + tokens[i + 1].start);
+        } else if (compareJsonString(offerPayload, &tokens[i], JSMN_STRING, (PCHAR) SAMPLE_VIEWER_ICE_SERVER_PASSWORD_KEY) &&
+                   len <= MAX_ICE_CONFIG_CREDENTIAL_LEN) {
+            SNPRINTF(password, SIZEOF(password), "%.*s", len, offerPayload + tokens[i + 1].start);
+        }
+    }
+
+    CHK_WARN(uriCount > 0 && userName[0] != '\0' && password[0] != '\0', retStatus,
+             "The viewer-supplied TURN servers are incomplete: %u URI(s), username %s, password %s", uriCount,
+             userName[0] == '\0' ? "missing" : "present", password[0] == '\0' ? "missing" : "present");
+
+    // KVS TURN usernames are "<expiry in seconds since the epoch>:<id>". The offer may have waited in a queue, or the
+    // viewer may have reused older credentials, so check them as the signaling client checks its own.
+    nowSeconds = GETTIME() / HUNDREDS_OF_NANOS_IN_A_SECOND;
+    pExpiryEnd = STRCHR(userName, ':');
+    if (pExpiryEnd != NULL && STATUS_SUCCEEDED(STRTOUI64(userName, pExpiryEnd, 10, &expirySeconds))) {
+        CHK_WARN(expirySeconds > nowSeconds + SAMPLE_VIEWER_ICE_SERVER_EXPIRY_GRACE_PERIOD / HUNDREDS_OF_NANOS_IN_A_SECOND, retStatus,
+                 "The viewer-supplied TURN credentials expire at %" PRIu64 ", within the grace period of this master's clock (%" PRIu64 ")",
+                 expirySeconds, nowSeconds);
+        DLOGD("The viewer-supplied TURN credentials expire in %" PRIu64 " s", expirySeconds - nowSeconds);
+    }
+
+    // One set's credentials cover all of its URIs.
+    for (j = 0; j < (INT32) uriCount; j++) {
+        STRNCPY(pIceServers[j].username, userName, MAX_ICE_CONFIG_USER_NAME_BUFFER_LEN);
+        STRNCPY(pIceServers[j].credential, password, MAX_ICE_CONFIG_CREDENTIAL_BUFFER_LEN);
+        DLOGD("Viewer-supplied TURN server %d urls: %s", j + 1, pIceServers[j].urls);
+    }
+    *pIceServerCount = uriCount;
+
+CleanUp:
+
+    // Leave nothing behind for the caller's own ICE configuration to mix with.
+    if (pIceServers != NULL && pIceServerCount != NULL && *pIceServerCount == 0) {
+        MEMSET(pIceServers, 0x00, maxIceServers * SIZEOF(RtcIceServer));
+    }
+
+    return retStatus;
+}
+
+STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PSignalingMessage pOfferSignalingMessage,
+                                PRtcPeerConnection* ppRtcPeerConnection)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -468,7 +571,17 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
                  : KINESIS_VIDEO_STUN_URL,
              pSampleConfiguration->channelInfo.pRegion, pKinesisVideoStunUrlPostFix);
 
-    if (pSampleConfiguration->useTurn) {
+    // Prefer the TURN servers the viewer sent with its offer, which spares this master a GetIceServerConfig call (or a
+    // refresh of its cached result) on the way to answering. Written from index 1, after the STUN server.
+    if (pSampleConfiguration->useTurn && pSampleConfiguration->useViewerTurnServers && pOfferSignalingMessage != NULL) {
+        CHK_STATUS(getTurnServersFromOffer(pOfferSignalingMessage->payload, pOfferSignalingMessage->payloadLen, &configuration.iceServers[1],
+                                           MAX_ICE_CONFIG_URI_COUNT, &uriCount));
+        if (uriCount > 0) {
+            DLOGI("Using the %u TURN server URI(s) the viewer supplied in the offer, skipping GetIceServerConfig", uriCount);
+        }
+    }
+
+    if (pSampleConfiguration->useTurn && uriCount == 0) {
         // Set the URIs from the configuration
         CHK_STATUS(signalingClientGetIceConfigInfoCount(pSampleConfiguration->signalingClientHandle, &iceConfigCount));
 
@@ -553,8 +666,12 @@ CleanUp:
     return retStatus;
 }
 
-STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, PCHAR peerId, BOOL isMaster,
-                                    PSampleStreamingSession* ppSampleStreamingSession)
+/**
+ * @param[in] pOfferSignalingMessage The offer that opened this session, or NULL. Passed on so that the TURN servers a
+ * viewer can supply in it are known before the peer connection is created.
+ */
+STATUS createSampleStreamingSessionWithOffer(PSampleConfiguration pSampleConfiguration, PCHAR peerId, BOOL isMaster,
+                                             PSignalingMessage pOfferSignalingMessage, PSampleStreamingSession* ppSampleStreamingSession)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleStreamingSession pSampleStreamingSession = NULL;
@@ -596,7 +713,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
         pSampleStreamingSession->twccMetadata.updateLock = MUTEX_CREATE(TRUE);
     }
 
-    CHK_STATUS(initializePeerConnection(pSampleConfiguration, &pSampleStreamingSession->pPeerConnection));
+    CHK_STATUS(initializePeerConnection(pSampleConfiguration, pOfferSignalingMessage, &pSampleStreamingSession->pPeerConnection));
     CHK_STATUS(peerConnectionOnIceCandidate(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession, onIceCandidateHandler));
     CHK_STATUS(
         peerConnectionOnConnectionStateChange(pSampleStreamingSession->pPeerConnection, (UINT64) pSampleStreamingSession, onConnectionStateChange));
@@ -629,6 +746,12 @@ CleanUp:
     }
 
     return retStatus;
+}
+
+STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, PCHAR peerId, BOOL isMaster,
+                                    PSampleStreamingSession* ppSampleStreamingSession)
+{
+    return createSampleStreamingSessionWithOffer(pSampleConfiguration, peerId, isMaster, NULL, ppSampleStreamingSession);
 }
 
 STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSession)
@@ -1045,6 +1168,9 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 
     // Flag to enable/disable TWCC
     pSampleConfiguration->enableTwcc = TRUE;
+
+    // Flag to enable/disable using the TURN servers a viewer sends in its SDP offer
+    pSampleConfiguration->useViewerTurnServers = TRUE;
 
     ATOMIC_STORE_BOOL(&pSampleConfiguration->interrupted, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, FALSE);
@@ -1743,6 +1869,7 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 
     switch (pReceivedSignalingMessage->signalingMessage.messageType) {
         case SIGNALING_MESSAGE_TYPE_OFFER:
+            DLOGI("Received offer from peer %s", pReceivedSignalingMessage->signalingMessage.peerClientId);
             if (peerConnectionFound) {
                 /*
                  * Re-offer / re-negotiation handling: a second offer arrived from the same client_id.
@@ -1814,8 +1941,9 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 
                 CHK(FALSE, retStatus);
             }
-            CHK_STATUS(createSampleStreamingSession(pSampleConfiguration, pReceivedSignalingMessage->signalingMessage.peerClientId, TRUE,
-                                                    &pSampleStreamingSession));
+            // The offer goes along, for the TURN servers the viewer may have supplied in it.
+            CHK_STATUS(createSampleStreamingSessionWithOffer(pSampleConfiguration, pReceivedSignalingMessage->signalingMessage.peerClientId, TRUE,
+                                                             &pReceivedSignalingMessage->signalingMessage, &pSampleStreamingSession));
             freeStreamingSession = TRUE;
             CHK_STATUS(handleOffer(pSampleConfiguration, pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
             CHK_STATUS(hashTablePut(pSampleConfiguration->pRtcPeerConnectionForRemoteClient, clientIdHash, (UINT64) pSampleStreamingSession));
