@@ -195,6 +195,13 @@ jobs:
           make -j$(sysctl -n hw.ncpu)
         shell: bash
 
+      - name: Check the AWS-LC backend
+        # Offline: confirms the build linked AWS-LC rather than a system OpenSSL,
+        # and that AWS-LC accepts the SDK's post-quantum group list. No network.
+        if: ${{ contains(matrix.config.cmake_flags, 'USE_AWS_LC') }}
+        run: ./scripts/check-awslc.sh build
+        shell: bash
+
       - name: Run tests
         if: ${{ !matrix.config.system_deps }}
         working-directory: ./build
@@ -451,6 +458,13 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Check the AWS-LC backend
+        # Offline: confirms the build linked AWS-LC rather than a system OpenSSL,
+        # and that AWS-LC accepts the SDK's post-quantum group list. No network,
+        # so it runs on the build-only container too.
+        if: ${{ contains(matrix.build-configuration.cmake-args, 'USE_AWS_LC') }}
+        run: ./scripts/check-awslc.sh build
 
       - name: Run tests
         # Don't run all the tests multiple times for each configuration (duplicate)
