@@ -86,9 +86,14 @@ if [ -z "$TSHARK" ]; then
     exit 1
 fi
 
-# Capture interface and privilege. Wireshark's installer puts the user in the
-# access_bpf group on macOS, and CI runners allow sudo, so try the unprivileged
-# path first and only escalate when the kernel refuses.
+# Capture interface and privilege. Opening a capture needs root or CAP_NET_RAW.
+# Prefer a non-interactive sudo, which CI runners allow. Fall back to an
+# unprivileged capture, which works on macOS once Wireshark's installer has put
+# the user in the access_bpf group.
+#
+# tcpdump -D only lists interfaces. On a GitHub runner it succeeds while the
+# capture itself is still refused with "Operation not permitted", so it cannot
+# be used to decide whether sudo is needed.
 #
 # -i any is deliberately not the macOS default: there it needs root and captures
 # nothing without it, so fall back to the default-route interface instead.
@@ -103,15 +108,13 @@ if [ -z "$PQC_IFACE" ]; then
 fi
 
 SUDO=""
-if ! tcpdump -D > /dev/null 2>&1; then
-    if sudo -n true > /dev/null 2>&1; then
-        SUDO="sudo"
-    else
-        echo "FAIL: cannot open a capture device, and sudo needs a password."
-        echo "      Either run this with sudo, or on macOS join the access_bpf group"
-        echo "      (the Wireshark installer offers this). Check with: id -Gn | grep access_bpf"
-        exit 1
-    fi
+if sudo -n true > /dev/null 2>&1; then
+    SUDO="sudo"
+elif ! tcpdump -D > /dev/null 2>&1; then
+    echo "FAIL: cannot open a capture device, and sudo needs a password."
+    echo "      Either run this with sudo, or on macOS join the access_bpf group"
+    echo "      (the Wireshark installer offers this). Check with: id -Gn | grep access_bpf"
+    exit 1
 fi
 
 TCPDUMP_PID=""

@@ -189,8 +189,12 @@ int main(void)
 }
 EOF
 
+    # -lpthread and -ldl come after -lcrypto because a static libcrypto.a calls
+    # pthread_rwlock_* from CRYPTO_MUTEX and resolves nothing itself. glibc 2.34
+    # moved pthread into libc, so omitting them still links on Ubuntu 22.04 and
+    # fails on 20.04. macOS carries pthread in libSystem and ignores both flags.
     if "${CC:-cc}" "$WORK/probe.c" -o "$WORK/probe" \
-        -I"$PREFIX/include" -L"$PREFIX/lib" -L"$PREFIX/lib64" -lssl -lcrypto \
+        -I"$PREFIX/include" -L"$PREFIX/lib" -L"$PREFIX/lib64" -lssl -lcrypto -lpthread -ldl \
         -Wl,-rpath,"$PREFIX/lib" -Wl,-rpath,"$PREFIX/lib64" 2> "$WORK/probe.err"; then
         if out="$("$WORK/probe" 2>&1)"; then
             echo "$out" | sed 's/^/        /'

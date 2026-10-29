@@ -172,7 +172,16 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DBUILD_TEST=ON -DUSE_AWS_LC=ON -DADDRESS_SANITIZER=ON -DPARALLEL_BUILD=ON
+          # ENABLE_AWS_SDK_IN_TESTS=OFF matches every AWS-LC job in ci.yml.
+          # With it ON, the test binary links the AWS C++ SDK, whose CurlHttpClient
+          # uses the system libcurl built against the system OpenSSL. Both that
+          # libcrypto and AWS-LC's then live in one process, and the loader binds
+          # libcurl's CRYPTO_get_ex_new_index into AWS-LC, whose CRYPTO_STATIC_MUTEX
+          # is laid out differently. Aws::InitAPI then dies in pthread_rwlock_wrlock
+          # on a lock AWS-LC never initialised. The default OpenSSL sanitizer jobs
+          # survive the same mixing because both libraries are OpenSSL.
+          cmake .. -DBUILD_TEST=ON -DUSE_AWS_LC=ON -DADDRESS_SANITIZER=ON \
+            -DENABLE_AWS_SDK_IN_TESTS=OFF -DPARALLEL_BUILD=ON
           make -j
 
       - name: Check the AWS-LC backend

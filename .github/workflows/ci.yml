@@ -115,6 +115,26 @@ jobs:
             #   which causes certain test failure (HMAC() returns NULL)
             cmake_flags: "-DBUILD_TEST=OFF -DBUILD_DEPENDENCIES=OFF -DPARALLEL_BUILD=ON"
             system_deps: true
+        # AWS-LC does not build with gcc on macOS, so clang covers AWS-LC there.
+        # Two separate upstream failures, both inside AWS-LC's own build:
+        #   - gcc-14 rejects the Apple blocks syntax in the system MDItem.h,
+        #     which third_party/jitterentropy includes.
+        #   - AWS-LC passes --noexecstack when assembling its .S files, and the
+        #     clang that drives them rejects that argument.
+        # Every clang AWS-LC config on both macOS runners passes.
+        exclude:
+          - compiler: gcc
+            config:
+              name: Shared AWS-LC
+              cmake_flags: "-DBUILD_TEST=ON -DUSE_AWS_LC=ON -DPARALLEL_BUILD=ON"
+          - compiler: gcc
+            config:
+              name: Static AWS-LC
+              cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=ON -DUSE_AWS_LC=ON -DPARALLEL_BUILD=ON"
+          - compiler: gcc
+            config:
+              name: Shared AWS-LC FIPS
+              cmake_flags: "-DBUILD_TEST=ON -DUSE_AWS_LC=ON -DUSE_AWS_LC_FIPS=ON -DPARALLEL_BUILD=ON"
       fail-fast: false
 
     permissions:
