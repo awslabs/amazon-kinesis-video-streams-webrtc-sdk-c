@@ -1,9 +1,9 @@
 # AWS-LC Backend (Post-Quantum and FIPS)
 
-AWS-LC is a third crypto backend, next to OpenSSL and mbedTLS. It adds two things the other two do not provide in this SDK.
+AWS-LC is a third crypto backend, next to OpenSSL and mbedTLS. It adds two things.
 
-- Post-quantum TLS 1.3 key exchange, using the `X25519MLKEM768` hybrid group ([RFC 10024](https://www.rfc-editor.org/rfc/rfc10024.txt), IANA codepoint `0x11EC`). The group combines X25519 ECDHE with ML-KEM-768 ([FIPS 203](https://csrc.nist.gov/pubs/fips/203/final)).
-- FIPS 140-3 validated cryptography, when you build with `USE_AWS_LC_FIPS=ON`.
+- Post-quantum TLS 1.3 key exchange, using the `X25519MLKEM768` hybrid group ([RFC 10024](https://www.rfc-editor.org/rfc/rfc10024.txt), IANA codepoint `0x11EC`). The group combines X25519 ECDHE with ML-KEM-768 ([FIPS 203](https://csrc.nist.gov/pubs/fips/203/final)). OpenSSL 3.5 and later also offer this group by default.
+- FIPS 140-3 validated cryptography, when you build with `USE_AWS_LC_FIPS=ON`. No other backend in this SDK provides it.
 
 The backend is opt-in. Both options default to `OFF`, so a build that does not pass them links the same OpenSSL as before.
 
@@ -22,6 +22,8 @@ make -j$(nproc)
 ```
 
 `-DUSE_AWS_LC=ON` supersedes the default `USE_OPENSSL=ON`. You do not need to pass `-DUSE_OPENSSL=OFF`. `-DUSE_AWS_LC_FIPS=ON` turns on `USE_AWS_LC` as well. CMake rejects AWS-LC together with mbedTLS, and together with `USE_OPENSSL3`.
+
+The SDK is tested with AWS-LC on Linux and macOS. It is not tested on Windows yet.
 
 ### Options
 
@@ -49,7 +51,7 @@ FIPS behaves differently. AWS-LC refuses to configure a FIPS build without Go an
 
 AWS-LC imposes these, not this SDK.
 
-| Build | Linux | macOS | Windows |
+| Build | Linux | macOS | Windows (not tested) |
 |---|---|---|---|
 | Static FIPS (`-DBUILD_STATIC_LIBS=ON`) | yes | no | no |
 | Shared FIPS | yes | yes | yes (no Debug) |
@@ -100,11 +102,11 @@ One trap. In a non-FIPS build, `CALL_SERVICE_AND_CHECK_APPROVED` always sets `AW
 
 ## Coverage and limits
 
-### What post-quantum key exchange covers
+### Where the SDK offers post-quantum key exchange
 
-Every TLS 1.3 connection the SDK opens to AWS. Two TLS stacks carry them.
+The SDK offers X25519MLKEM768 on every TLS 1.3 connection it opens to AWS. A connection is post-quantum only when the endpoint selects it. Two TLS stacks carry these connections.
 
-| Path | TLS stack | Covered |
+| Path | TLS stack | SDK offers ML-KEM |
 |---|---|---|
 | Control plane (`DescribeSignalingChannel`, `CreateSignalingChannel`, `GetSignalingChannelEndpoint`, `DeleteSignalingChannel`, `DescribeMediaStorageConfiguration`) | libwebsockets | yes |
 | `GetIceServerConfig`, `JoinStorageSession` | libwebsockets | yes |

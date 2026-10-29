@@ -175,10 +175,6 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     creationInfo.timeout_secs = SIGNALING_SERVICE_API_CALL_TIMEOUT_IN_SECONDS;
     creationInfo.gid = -1;
     creationInfo.uid = -1;
-    // Reachable from lws callbacks via lws_context_user(lws_get_context(wsi)). Needed by the
-    // LWS_CALLBACK_OPENSSL_LOAD_EXTRA_CLIENT_VERIFY_CERTS handler, which fires during
-    // lws_create_context() before any wsi user data exists.
-    creationInfo.user = pSignalingClient;
     CHK_STATUS(readCACertificate(pChannelInfo->pCertPath, &caCertBuf, &caCertBufLen));
     creationInfo.client_ssl_ca_mem = caCertBuf;
     creationInfo.client_ssl_ca_mem_len = caCertBufLen;

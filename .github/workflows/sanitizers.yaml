@@ -124,11 +124,9 @@ jobs:
         run: |
           ./tst/webrtc_client_test
 
-  # Same as address-sanitizer but on the AWS-LC backend. The branch adds code the
-  # default-OpenSSL jobs above never compile: the AWS-LC group configuration and
-  # the multi-certificate CA bundle loader, which allocates a buffer and parses
-  # PEM in a loop. Nothing in the functional suite feeds it a multi-cert CA file,
-  # so ASan is the only thing watching those allocations.
+  # Same as address-sanitizer but on the AWS-LC backend, so ASan also covers the
+  # AWS-LC-only code that the default-OpenSSL jobs above never compile.
+  # CryptoBackendTest in the suite checks that the loaded libcrypto is AWS-LC.
   #
   # Non-FIPS on purpose. A FIPS build disables AWS-LC's module integrity check
   # under a sanitizer, which voids the validation, so CMake refuses the
@@ -184,11 +182,6 @@ jobs:
             -DENABLE_AWS_SDK_IN_TESTS=OFF -DPARALLEL_BUILD=ON
           make -j
 
-      - name: Check the AWS-LC backend
-        # A sanitizer build that quietly linked a system OpenSSL would run the
-        # suite clean and prove nothing about AWS-LC.
-        run: ./scripts/check-awslc.sh build
-
       - name: Run tests
         working-directory: ./build
         run: |
@@ -233,6 +226,57 @@ jobs:
           mkdir build
           cd build
           cmake .. -DBUILD_TEST=ON -DUNDEFINED_BEHAVIOR_SANITIZER=ON -DPARALLEL_BUILD=ON
+          make -j
+
+      - name: Run tests
+        working-directory: ./build
+        run: |
+          ./tst/webrtc_client_test
+
+  # Same as undefined-behavior-sanitizer but on the AWS-LC backend. The tests
+  # are built without the AWS C++ SDK for the reason given in
+  # address-sanitizer-aws-lc. CryptoBackendTest in the suite checks that the
+  # loaded libcrypto is AWS-LC.
+  undefined-behavior-sanitizer-aws-lc:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+
+    env:
+      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install clang
+
+          # AWS SDK CPP dependencies (for tests)
+          sudo apt-get -y install zlib1g-dev libcurl4-openssl-dev
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2.2.0
+        with:
+          cmake-version: '3.x'
+
+      - name: Build repository
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DBUILD_TEST=ON -DUSE_AWS_LC=ON -DUNDEFINED_BEHAVIOR_SANITIZER=ON \
+            -DENABLE_AWS_SDK_IN_TESTS=OFF -DPARALLEL_BUILD=ON
           make -j
 
       - name: Run tests
@@ -299,6 +343,60 @@ jobs:
           mkdir build
           cd build
           cmake .. -DBUILD_TEST=ON -DTHREAD_SANITIZER=ON -DPARALLEL_BUILD=ON
+          make -j
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Run tests
+        working-directory: ./build
+        run: |
+          ./tst/webrtc_client_test
+
+  # Same as thread-sanitizer but on the AWS-LC backend. The tests are built
+  # without the AWS C++ SDK for the reason given in address-sanitizer-aws-lc.
+  # CryptoBackendTest in the suite checks that the loaded libcrypto is AWS-LC.
+  thread-sanitizer-aws-lc:
+    needs: ecr-login
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    container:
+      image: public.ecr.aws/ubuntu/ubuntu:20.04_stable
+      # Authenticated pull; see ecr-public-login.yml.
+      credentials: ${{ fromJSON(needs.ecr-login.outputs.attempt == github.run_attempt && needs.ecr-login.outputs.credentials || '{}') }}
+
+    env:
+      TSAN_OPTIONS: second_deadlock_stack=1:halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get -y install clang cmake build-essential git pkg-config
+
+          # AWS SDK CPP dependencies (for tests)
+          apt-get -y install zlib1g-dev libcurl4-openssl-dev
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2.2.0
+        with:
+          cmake-version: '3.x'
+
+      - name: Build repository
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DBUILD_TEST=ON -DUSE_AWS_LC=ON -DTHREAD_SANITIZER=ON \
+            -DENABLE_AWS_SDK_IN_TESTS=OFF -DPARALLEL_BUILD=ON
           make -j
 
       - name: Configure AWS Credentials

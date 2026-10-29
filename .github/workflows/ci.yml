@@ -215,13 +215,6 @@ jobs:
           make -j$(sysctl -n hw.ncpu)
         shell: bash
 
-      - name: Check the AWS-LC backend
-        # Offline: confirms the build linked AWS-LC rather than a system OpenSSL,
-        # and that AWS-LC accepts the SDK's post-quantum group list. No network.
-        if: ${{ contains(matrix.config.cmake_flags, 'USE_AWS_LC') }}
-        run: ./scripts/check-awslc.sh build
-        shell: bash
-
       - name: Run tests
         if: ${{ !matrix.config.system_deps }}
         working-directory: ./build
@@ -480,11 +473,11 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Check the AWS-LC backend
-        # Offline: confirms the build linked AWS-LC rather than a system OpenSSL,
-        # and that AWS-LC accepts the SDK's post-quantum group list. No network,
-        # so it runs on the build-only container too.
-        if: ${{ contains(matrix.build-configuration.cmake-args, 'USE_AWS_LC') }}
-        run: ./scripts/check-awslc.sh build
+        # The suite does not run on the build-only container, so run the offline
+        # backend tests on their own there. Where the suite runs, it includes them.
+        if: ${{ contains(matrix.build-configuration.cmake-args, 'USE_AWS_LC') && matrix.container.test != 'ON' }}
+        working-directory: ./build
+        run: ./tst/webrtc_client_test --gtest_filter='CryptoBackendTest.*'
 
       - name: Run tests
         # Don't run all the tests multiple times for each configuration (duplicate)
@@ -861,20 +854,24 @@ jobs:
             exit 1
           fi
 
-  # Strict post-quantum gate against the live service. Runs the real master and
-  # viewer samples under a packet capture and asserts that every TLS 1.3
-  # handshake to a KVS host negotiated X25519MLKEM768.
+  # Strict post-quantum gate against the live service. Runs the two client
+  # samples and the storage sample under a packet capture and asserts that every
+  # TLS 1.3 handshake to a KVS host negotiated X25519MLKEM768, except the hosts
+  # below.
+  #
+  # TODO: Gate the GetIceServerConfig (r-), signaling WSS (m-, v-) and storage
+  # session (JoinStorageSession) hosts once the service supports ML-KEM on them.
+  # See NOT_GATED_PREFIXES and STORAGE_HOST in scripts/check-pqc.sh.
   #
   # This is the only check that observes a real handshake. Everything else is a
-  # library self-report or a probe linking the same AWS-LC, and the SDK carries no
-  # diagnostic code for this on purpose: in TLS 1.3 the ServerHello names the
-  # selected group in cleartext, so tshark reads it off the wire.
+  # unit test inside the test binary, and the SDK carries no diagnostic code for
+  # this on purpose: in TLS 1.3 the ServerHello names the selected group in
+  # cleartext, so tshark reads it off the wire.
   #
   # It is strict, so a service-side rollout step can turn it red without any code
   # change here. When that happens, read the failing host in the output before
-  # touching the SDK: scripts/check-awslc.sh says whether the SDK still offers
-  # ML-KEM, which separates an SDK regression from an endpoint that stopped
-  # accepting it.
+  # touching the SDK. The offers the output lists for each host separate an SDK
+  # regression from an endpoint that stopped accepting ML-KEM.
   aws-lc-pqc-handshake:
     needs: cleanup-old-resources
     runs-on: ubuntu-latest
@@ -883,6 +880,11 @@ jobs:
     env:
       AWS_KVS_LOG_LEVEL: 2
       CHANNEL_NAME: SampleChannelAwsLcPqc
+      # A separate channel with media storage on, for JoinStorageSession. It is
+      # not shared with storage-samples.yml, so the two jobs never contend for
+      # the single sending peer a channel allows.
+      STORAGE_CHANNEL_NAME: SampleChannelAwsLcPqcStorage
+      STORAGE_STREAM_NAME: SampleStreamAwsLcPqcStorage
 
     permissions:
       id-token: write
@@ -908,11 +910,13 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DUSE_AWS_LC=ON -DBUILD_TEST=OFF -DPARALLEL_BUILD=ON
+          cmake .. -DUSE_AWS_LC=ON -DBUILD_TEST=ON -DENABLE_AWS_SDK_IN_TESTS=OFF -DPARALLEL_BUILD=ON
           make -j$(nproc)
 
       - name: Check the AWS-LC backend
-        run: ./scripts/check-awslc.sh build
+        # Offline backend tests only. The capture below is this job's real check.
+        working-directory: ./build
+        run: ./tst/webrtc_client_test --gtest_filter='CryptoBackendTest.*'
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -923,5 +927,21 @@ jobs:
       - name: Prepare signaling channel
         run: ./scripts/prepare-channel.sh ${{ env.CHANNEL_NAME }}
 
+      - name: Prepare storage channel and stream
+        run: |
+          if ! aws kinesisvideo describe-stream --stream-name "$STORAGE_STREAM_NAME" > /dev/null 2>&1; then
+            aws kinesisvideo create-stream --stream-name "$STORAGE_STREAM_NAME" --data-retention-in-hours 1
+          fi
+          ./scripts/prepare-channel.sh "$STORAGE_CHANNEL_NAME"
+
+          CHANNEL_ARN=$(aws kinesisvideo describe-signaling-channel --channel-name "$STORAGE_CHANNEL_NAME" --query 'ChannelInfo.ChannelARN' --output text)
+          STREAM_ARN=$(aws kinesisvideo describe-stream --stream-name "$STORAGE_STREAM_NAME" --query 'StreamInfo.StreamARN' --output text)
+          STATUS=$(aws kinesisvideo describe-media-storage-configuration --channel-arn "$CHANNEL_ARN" --query 'MediaStorageConfiguration.Status' --output text)
+          if [ "$STATUS" != "ENABLED" ]; then
+            aws kinesisvideo update-media-storage-configuration \
+              --channel-arn "$CHANNEL_ARN" \
+              --media-storage-configuration Status=ENABLED,StreamARN="$STREAM_ARN"
+          fi
+
       - name: Check the negotiated key exchange group
-        run: ./scripts/check-pqc.sh ${{ env.CHANNEL_NAME }} build
+        run: ./scripts/check-pqc.sh ${{ env.CHANNEL_NAME }} build ${{ env.STORAGE_CHANNEL_NAME }}

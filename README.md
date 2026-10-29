@@ -127,7 +127,7 @@ $env:Path += ';C:\webrtc\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre
 These would be applicable if the SDK is being linked with system dependencies instead of building from source by the SDK.
 `libmbedtls`: `>= 2.25.0` (default: 3.6.x — see mbedTLS build matrix below)
 `libopenssl`: `= 1.1.1x` or `>= 3.0.0`
-`aws-lc`: `>= 1.30.0` (only when `-DUSE_AWS_LC=ON`; default built from source is `v5.9.0`)
+`aws-lc`: `>= 1.36.0` (only when `-DUSE_AWS_LC=ON`; default built from source is `v5.9.0`)
 `libsrtp2` : `<= 2.5.0`
 `libusrsctp` : `<= 0.9.5.0`
 `libwebsockets` : `>= 4.2.0`
@@ -172,12 +172,12 @@ These would be applicable if the SDK is being linked with system dependencies in
 | Backend | Flag | Post-quantum TLS 1.3 | FIPS 140-3 |
 |---|---|---|---|
 | OpenSSL 1.1.1t | (default) | no | no |
-| OpenSSL 3.x | `-DUSE_OPENSSL3=ON` | no | no |
+| OpenSSL 3.x | `-DUSE_OPENSSL3=ON` | 3.5 and later, by default | no |
 | mbedTLS | `-DUSE_MBEDTLS=ON` | no | no |
 | **AWS-LC** | `-DUSE_AWS_LC=ON` | **yes** (`X25519MLKEM768`) | `-DUSE_AWS_LC_FIPS=ON` |
 
 > [!NOTE]
-> AWS-LC is the only backend offering post-quantum key exchange or FIPS-validated crypto. It covers the TLS 1.3 connections to AWS: the control plane HTTPS calls, the signaling channel over WSS, and TURN over TLS. It does not cover the peer-to-peer DTLS-SRTP media path, which is DTLS 1.2 and has no ML-KEM. See [docs/AWS_LC.md](docs/AWS_LC.md) for build instructions, the full coverage matrix, and how to confirm a build.
+> AWS-LC is the only backend the SDK can build with FIPS 140-3 validated crypto. AWS-LC and OpenSSL 3.5 or later both offer post-quantum key exchange. The SDK offers it on the TLS 1.3 connections to AWS: the control plane HTTPS calls, the signaling channel over WSS, and TURN over TLS. A connection is post-quantum only when the endpoint also selects ML-KEM. The peer-to-peer DTLS-SRTP media path is DTLS 1.2 and has no ML-KEM. AWS-LC is not tested on Windows yet. See [docs/AWS_LC.md](docs/AWS_LC.md) for build instructions, which connections offer ML-KEM, and how to confirm a build.
 
 #### Cross-Compilation
 
