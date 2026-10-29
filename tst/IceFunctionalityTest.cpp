@@ -1,4 +1,8 @@
 #include <algorithm>
+#include <atomic>
+#include <map>
+#include <mutex>
+#include <thread>
 
 #include "WebRTCClientTestFixture.h"
 
@@ -1038,6 +1042,199 @@ TEST_F(IceFunctionalityTest, IceAgentGovCloudStunsCandidateGatheringTest)
     EXPECT_EQ(STATUS_SUCCESS, timerQueueShutdown(timerQueueHandle));
     EXPECT_EQ(STATUS_SUCCESS, freeIceAgent(&pIceAgent));
     EXPECT_EQ(STATUS_SUCCESS, timerQueueFree(&timerQueueHandle));
+}
+
+// Local STUN server that answers the first binding request from each source only after a delay.
+typedef struct {
+    KvsIpAddress srcAddr;
+    BYTE firstTransactionId[STUN_TRANSACTION_ID_LEN];
+    UINT32 requestCount;
+    BOOL sameTransactionId;
+    UINT64 firstRequestTime;
+    BOOL replied;
+} SlowStunSource;
+
+typedef struct {
+    std::mutex lock;
+    std::map<std::string, SlowStunSource> sources;
+} SlowStunServer;
+
+static STATUS slowStunServerOnData(UINT64 customData, PSocketConnection pSocketConnection, PBYTE pBuffer, UINT32 bufferLen, PKvsIpAddress pSrc,
+                                   PKvsIpAddress pDest)
+{
+    UNUSED_PARAM(pSocketConnection);
+    UNUSED_PARAM(pDest);
+    SlowStunServer* pServer = (SlowStunServer*) customData;
+    CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+
+    if (pSrc == NULL || bufferLen < STUN_HEADER_LEN || getInt16(*(PINT16) pBuffer) != STUN_PACKET_TYPE_BINDING_REQUEST) {
+        return STATUS_SUCCESS;
+    }
+
+    getIpAddrStr(pSrc, ipAddrStr, ARRAY_SIZE(ipAddrStr));
+    std::string key = std::string(ipAddrStr) + ":" + std::to_string((UINT16) getInt16(pSrc->port));
+
+    std::lock_guard<std::mutex> lock(pServer->lock);
+    std::map<std::string, SlowStunSource>::iterator it = pServer->sources.find(key);
+    if (it == pServer->sources.end()) {
+        SlowStunSource source;
+        MEMSET(&source, 0x00, SIZEOF(SlowStunSource));
+        source.srcAddr = *pSrc;
+        MEMCPY(source.firstTransactionId, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET, STUN_TRANSACTION_ID_LEN);
+        source.requestCount = 1;
+        source.sameTransactionId = TRUE;
+        source.firstRequestTime = GETTIME();
+        pServer->sources[key] = source;
+    } else {
+        it->second.requestCount++;
+        if (MEMCMP(it->second.firstTransactionId, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET, STUN_TRANSACTION_ID_LEN) != 0) {
+            it->second.sameTransactionId = FALSE;
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
+// A STUN reply that arrives after many re-sends of the binding request must still resolve the srflx candidate.
+TEST_F(IceFunctionalityTest, srflxCandidateResolvedWhenStunReplyOutlastsRetransmits)
+{
+    typedef struct {
+        std::vector<std::string> list;
+        std::mutex lock;
+    } CandidateList;
+
+    // Longer than 20 re-sends at the 50 ms gathering interval
+    const UINT64 replyDelay = 1500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+    KvsIpAddress localAddresses[MAX_LOCAL_NETWORK_INTERFACE_COUNT];
+    UINT32 localAddressCount = ARRAY_SIZE(localAddresses), i;
+    KvsIpAddress serverAddr;
+    CHAR serverIpStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
+    PSocketConnection pServerSocket = NULL;
+    PConnectionListener pServerListener = NULL;
+    SlowStunServer server;
+    std::atomic<bool> stopReplier(false);
+    PIceAgent pIceAgent = NULL;
+    CHAR localIceUfrag[LOCAL_ICE_UFRAG_LEN + 1];
+    CHAR localIcePwd[LOCAL_ICE_PWD_LEN + 1];
+    RtcConfiguration configuration;
+    IceAgentCallbacks iceAgentCallbacks;
+    PConnectionListener pConnectionListener = NULL;
+    TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+    CandidateList candidateList;
+    BOOL gatheringDone = FALSE, foundSrflxCandidate = FALSE;
+    UINT64 deadline;
+
+    // The server listens on a local non-loopback IPv4 address, so the host-candidate sockets can reach it.
+    MEMSET(&serverAddr, 0x00, SIZEOF(KvsIpAddress));
+    EXPECT_EQ(STATUS_SUCCESS, getLocalhostIpAddresses(localAddresses, &localAddressCount, NULL, 0));
+    for (i = 0; i < localAddressCount; i++) {
+        if (IS_IPV4_ADDR(&localAddresses[i])) {
+            serverAddr = localAddresses[i];
+            break;
+        }
+    }
+    if (serverAddr.family != KVS_IP_FAMILY_TYPE_IPV4) {
+        GTEST_SKIP() << "No local IPv4 interface";
+    }
+    serverAddr.port = 0;
+
+    EXPECT_EQ(STATUS_SUCCESS, createConnectionListener(&pServerListener));
+    EXPECT_EQ(STATUS_SUCCESS, connectionListenerStart(pServerListener));
+    ASSERT_EQ(STATUS_SUCCESS,
+              createSocketConnection(KVS_IP_FAMILY_TYPE_IPV4, KVS_SOCKET_PROTOCOL_UDP, &serverAddr, NULL, (UINT64) &server, slowStunServerOnData, 0,
+                                     &pServerSocket));
+    ATOMIC_STORE_BOOL(&pServerSocket->receiveData, TRUE);
+    EXPECT_EQ(STATUS_SUCCESS, connectionListenerAddConnection(pServerListener, pServerSocket));
+
+    std::thread replier([&]() {
+        BYTE replyBuffer[STUN_PACKET_ALLOCATION_SIZE];
+        UINT32 replyLen;
+        PStunPacket pReply = NULL;
+
+        while (!stopReplier.load()) {
+            THREAD_SLEEP(20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+            std::lock_guard<std::mutex> lock(server.lock);
+            for (std::map<std::string, SlowStunSource>::iterator it = server.sources.begin(); it != server.sources.end(); ++it) {
+                SlowStunSource& source = it->second;
+                if (source.replied || GETTIME() < source.firstRequestTime + replyDelay) {
+                    continue;
+                }
+                // Answer the first request: its transaction ID is the one the client must still recognize.
+                replyLen = ARRAY_SIZE(replyBuffer);
+                EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS, source.firstTransactionId, &pReply));
+                EXPECT_EQ(STATUS_SUCCESS, appendStunAddressAttribute(pReply, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, &source.srcAddr));
+                EXPECT_EQ(STATUS_SUCCESS, iceUtilsPackageStunPacket(pReply, NULL, 0, replyBuffer, &replyLen));
+                EXPECT_EQ(STATUS_SUCCESS, socketConnectionSendData(pServerSocket, replyBuffer, replyLen, &source.srcAddr));
+                EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pReply));
+                source.replied = TRUE;
+            }
+        }
+    });
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&iceAgentCallbacks, 0x00, SIZEOF(IceAgentCallbacks));
+    MEMSET(localIceUfrag, 0x00, SIZEOF(localIceUfrag));
+    MEMSET(localIcePwd, 0x00, SIZEOF(localIcePwd));
+
+    getIpAddrStr(&serverAddr, serverIpStr, ARRAY_SIZE(serverIpStr));
+    SNPRINTF(configuration.iceServers[0].urls, MAX_ICE_CONFIG_URI_LEN, "stun:%s:%u", serverIpStr, (UINT16) getInt16(pServerSocket->hostIpAddr.port));
+    // Lets gathering end as soon as every srflx candidate is resolved
+    configuration.kvsRtcConfiguration.iceServersFinal = TRUE;
+
+    auto onICECandidateHdlr = [](UINT64 customData, PCHAR candidateStr) -> void {
+        CandidateList* candidateList1 = (CandidateList*) customData;
+        std::lock_guard<std::mutex> lock(candidateList1->lock);
+        candidateList1->list.push_back(candidateStr != NULL ? std::string(candidateStr) : std::string(""));
+    };
+    iceAgentCallbacks.customData = (UINT64) &candidateList;
+    iceAgentCallbacks.newLocalCandidateFn = onICECandidateHdlr;
+
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(localIceUfrag, LOCAL_ICE_UFRAG_LEN));
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(localIcePwd, LOCAL_ICE_PWD_LEN));
+    EXPECT_EQ(STATUS_SUCCESS, createConnectionListener(&pConnectionListener));
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+    EXPECT_EQ(STATUS_SUCCESS,
+              createIceAgent(localIceUfrag, localIcePwd, &iceAgentCallbacks, &configuration, timerQueueHandle, pConnectionListener, &pIceAgent));
+    EXPECT_EQ(STATUS_SUCCESS, iceAgentStartGathering(pIceAgent));
+
+    // Gathering ends early once every srflx candidate is resolved, and at the timeout otherwise.
+    deadline = GETTIME() + KVS_ICE_GATHER_REFLEXIVE_AND_RELAYED_CANDIDATE_TIMEOUT + 2 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    while (!gatheringDone && GETTIME() < deadline) {
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        std::lock_guard<std::mutex> lock(candidateList.lock);
+        gatheringDone = !candidateList.list.empty() && candidateList.list.back().empty();
+    }
+    EXPECT_TRUE(gatheringDone);
+
+    {
+        std::lock_guard<std::mutex> lock(candidateList.lock);
+        for (std::vector<std::string>::iterator it = candidateList.list.begin(); it != candidateList.list.end(); ++it) {
+            if (it->find(std::string(SDP_CANDIDATE_TYPE_SERFLX)) != std::string::npos) {
+                foundSrflxCandidate = TRUE;
+            }
+        }
+    }
+    EXPECT_TRUE(foundSrflxCandidate);
+
+    {
+        std::lock_guard<std::mutex> lock(server.lock);
+        EXPECT_FALSE(server.sources.empty());
+        for (std::map<std::string, SlowStunSource>::iterator it = server.sources.begin(); it != server.sources.end(); ++it) {
+            // The request was re-sent while waiting, and every re-send kept the first transaction ID.
+            EXPECT_GT(it->second.requestCount, 1u) << it->first;
+            EXPECT_TRUE(it->second.sameTransactionId) << it->first;
+        }
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, iceAgentShutdown(pIceAgent));
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueShutdown(timerQueueHandle));
+    EXPECT_EQ(STATUS_SUCCESS, freeIceAgent(&pIceAgent));
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueFree(&timerQueueHandle));
+
+    stopReplier.store(true);
+    replier.join();
+    EXPECT_EQ(STATUS_SUCCESS, freeConnectionListener(&pServerListener));
+    EXPECT_EQ(STATUS_SUCCESS, freeSocketConnection(&pServerSocket));
 }
 } // namespace webrtcclient
 } // namespace video
