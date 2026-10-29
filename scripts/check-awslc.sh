@@ -59,16 +59,25 @@ echo " AWS-LC backend check (offline)"
 echo "=============================================================="
 echo "build dir : $BUILD_DIR"
 
-# Locate the AWS-LC the build actually links, not whatever is on the system.
+# Locate the AWS-LC this build links. CMakeCache is authoritative and final: a
+# build may install its dependencies outside the default prefix (a FIPS build
+# next to a non-FIPS one is the normal case), and falling back to a conventional
+# location would check a different library than the one this build uses. That
+# silently passes a default OpenSSL build whenever an AWS-LC prefix happens to
+# sit in the repo, which is the opposite of what this script is for.
 PREFIX=""
-for cand in "$REPO_ROOT/open-source" "$BUILD_DIR/../open-source"; do
-    if [ -f "$cand/include/openssl/base.h" ]; then
-        PREFIX="$(cd "$cand" && pwd)"
-        break
-    fi
-done
-if [ -z "$PREFIX" ] && [ -f "$BUILD_DIR/CMakeCache.txt" ]; then
+PREFIX_FROM_CACHE=0
+if [ -f "$BUILD_DIR/CMakeCache.txt" ]; then
     PREFIX="$(grep -m1 '^OPEN_SRC_INSTALL_PREFIX' "$BUILD_DIR/CMakeCache.txt" | cut -d= -f2-)"
+    [ -n "$PREFIX" ] && PREFIX_FROM_CACHE=1
+fi
+if [ "$PREFIX_FROM_CACHE" -eq 0 ]; then
+    for cand in "$REPO_ROOT/open-source" "$BUILD_DIR/../open-source"; do
+        if [ -f "$cand/include/openssl/base.h" ]; then
+            PREFIX="$(cd "$cand" && pwd)"
+            break
+        fi
+    done
 fi
 echo "AWS-LC    : ${PREFIX:-<not found>}"
 
@@ -86,9 +95,21 @@ echo
 echo "[1/2] The build is linked against AWS-LC"
 # --------------------------------------------------------------------------
 if [ -z "$PREFIX" ] || [ ! -f "$PREFIX/include/openssl/base.h" ]; then
-    no "no AWS-LC headers found; was this configured with -DUSE_AWS_LC=ON?"
+    no "no AWS-LC headers at ${PREFIX:-<no prefix>}; was this configured with -DUSE_AWS_LC=ON?"
+    # Without the right library nothing below can mean anything, and reporting
+    # PASS on checks run against some other prefix would be worse than stopping.
+    echo
+    echo "=============================================================="
+    echo " $pass passed, $fail failed, $skip skipped"
+    echo "=============================================================="
+    exit 1
 elif ! grep -q "OPENSSL_IS_AWSLC" "$PREFIX/include/openssl/base.h"; then
     no "$PREFIX holds OpenSSL, not AWS-LC (OPENSSL_IS_AWSLC absent)"
+    echo
+    echo "=============================================================="
+    echo " $pass passed, $fail failed, $skip skipped"
+    echo "=============================================================="
+    exit 1
 else
     ver="$(grep -m1 'AWSLC_VERSION_NUMBER_STRING' "$PREFIX/include/openssl/base.h" | sed 's/.*"\(.*\)".*/\1/')"
     ok "AWS-LC ${ver:-unknown} headers in the dependency prefix (OPENSSL_IS_AWSLC present)"

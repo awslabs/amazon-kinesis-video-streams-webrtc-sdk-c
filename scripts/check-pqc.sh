@@ -86,6 +86,34 @@ if [ -z "$TSHARK" ]; then
     exit 1
 fi
 
+# Capture interface and privilege. Wireshark's installer puts the user in the
+# access_bpf group on macOS, and CI runners allow sudo, so try the unprivileged
+# path first and only escalate when the kernel refuses.
+#
+# -i any is deliberately not the macOS default: there it needs root and captures
+# nothing without it, so fall back to the default-route interface instead.
+PQC_IFACE="${PQC_IFACE:-}"
+if [ -z "$PQC_IFACE" ]; then
+    if [ "$(uname -s)" = "Darwin" ]; then
+        PQC_IFACE="$(route -n get default 2>/dev/null | awk '/interface:/{print $2}')"
+        PQC_IFACE="${PQC_IFACE:-en0}"
+    else
+        PQC_IFACE="any"
+    fi
+fi
+
+SUDO=""
+if ! tcpdump -D > /dev/null 2>&1; then
+    if sudo -n true > /dev/null 2>&1; then
+        SUDO="sudo"
+    else
+        echo "FAIL: cannot open a capture device, and sudo needs a password."
+        echo "      Either run this with sudo, or on macOS join the access_bpf group"
+        echo "      (the Wireshark installer offers this). Check with: id -Gn | grep access_bpf"
+        exit 1
+    fi
+fi
+
 TCPDUMP_PID=""
 MASTER_PID=""
 VIEWER_PID=""
@@ -93,7 +121,7 @@ VIEWER_PID=""
 cleanup() {
     [ -n "$VIEWER_PID" ] && kill -9 "$VIEWER_PID" 2> /dev/null
     [ -n "$MASTER_PID" ] && kill -9 "$MASTER_PID" 2> /dev/null
-    [ -n "$TCPDUMP_PID" ] && sudo kill -INT "$TCPDUMP_PID" 2> /dev/null
+    [ -n "$TCPDUMP_PID" ] && $SUDO kill -INT "$TCPDUMP_PID" 2> /dev/null
     wait 2> /dev/null
     rm -rf "$WORK"
 }
@@ -102,12 +130,12 @@ trap cleanup EXIT
 # --------------------------------------------------------------------------
 echo "[1/3] Capturing while the samples run"
 # --------------------------------------------------------------------------
-# -i any needs root here, which tcpdump already does. The BPF filter runs in the
-# kernel, so unrelated traffic never reaches the file.
-sudo tcpdump -i any -s 0 -w "$PCAP" 'tcp port 443' > "$WORK/tcpdump.log" 2>&1 &
+echo "  interface: $PQC_IFACE${SUDO:+ (via sudo)}"
+# The BPF filter runs in the kernel, so unrelated traffic never reaches the file.
+$SUDO tcpdump -i "$PQC_IFACE" -s 0 -w "$PCAP" 'tcp port 443' > "$WORK/tcpdump.log" 2>&1 &
 TCPDUMP_PID=$!
 sleep 3
-if ! sudo kill -0 "$TCPDUMP_PID" 2> /dev/null; then
+if ! kill -0 "$TCPDUMP_PID" 2> /dev/null; then
     echo "FAIL: tcpdump did not start"
     cat "$WORK/tcpdump.log"
     exit 1
@@ -135,10 +163,10 @@ VIEWER_PID=""
 MASTER_PID=""
 
 # tcpdump buffers; SIGINT makes it flush and close the file.
-sudo kill -INT "$TCPDUMP_PID" 2> /dev/null
+$SUDO kill -INT "$TCPDUMP_PID" 2> /dev/null
 TCPDUMP_PID=""
 sleep 2
-sudo chmod a+r "$PCAP" 2> /dev/null
+$SUDO chmod a+r "$PCAP" 2> /dev/null
 
 if [ ! -s "$PCAP" ]; then
     echo "FAIL: no capture file was written"
