@@ -207,6 +207,9 @@ struct __IceAgent {
     volatile ATOMIC_BOOL stopGathering;
     // Sends running outside the agent lock (iceAgentSendPacket)
     volatile SIZE_T sendsInFlight;
+    // Sockets of local candidates not selected, freed outside the agent lock (iceAgentFreeUnusedSockets)
+    PSocketConnection unusedSockets[KVS_ICE_MAX_LOCAL_CANDIDATE_COUNT];
+    UINT32 unusedSocketCount;
 
     CHAR localUsername[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
     CHAR localPassword[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
@@ -367,6 +370,7 @@ STATUS iceCandidateSerialize(PIceCandidate, PCHAR, PUINT32);
  */
 STATUS iceAgentSendPacket(PIceAgent, PBYTE, UINT32);
 VOID iceAgentWaitForSendsInFlight(PIceAgent);
+STATUS iceAgentFreeUnusedSockets(PIceAgent);
 
 /**
  * gather local IP addresses and create a udp port. If port creation succeeded then create a new candidate
