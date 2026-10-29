@@ -85,7 +85,6 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
     pIceAgent->pConnectionListener = pConnectionListener;
     pIceAgent->pDataSendingIceCandidatePair = NULL;
     pIceAgent->iceAgentState = ICE_AGENT_STATE_NEW;
-    CHK_STATUS(createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT, &pIceAgent->pStunBindingRequestTransactionIdStore));
 
     pIceAgent->relayCandidateCount = 0;
 
@@ -300,10 +299,6 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
 
     if (pIceAgent->pBindingRequest != NULL) {
         freeStunPacket(&pIceAgent->pBindingRequest);
-    }
-
-    if (pIceAgent->pStunBindingRequestTransactionIdStore != NULL) {
-        freeTransactionIdStore(&pIceAgent->pStunBindingRequestTransactionIdStore);
     }
 
     CHK_LOG_ERR(hashTableFree(pIceAgent->requestTimestampDiagnostics));
@@ -1141,8 +1136,6 @@ STATUS iceAgentRestart(PIceAgent pIceAgent, PCHAR localIceUfrag, PCHAR localIceP
     pIceAgent->detectedDisconnection = FALSE;
     pIceAgent->disconnectionGracePeriodEndTime = INVALID_TIMESTAMP_VALUE;
 
-    transactionIdStoreClear(pIceAgent->pStunBindingRequestTransactionIdStore);
-
     STRNCPY(pIceAgent->localUsername, localIceUfrag, MAX_ICE_CONFIG_USER_NAME_LEN);
     STRNCPY(pIceAgent->localPassword, localIcePwd, MAX_ICE_CONFIG_CREDENTIAL_LEN);
 
@@ -1608,6 +1601,7 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
     PStunPacket pBindingRequest = NULL;
     UINT64 checkSum = 0;
     PKvsIpAddress pStunServerAddr = NULL;
+    BOOL requestSent = FALSE;
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
     // Assume holding pIceAgent->lock
@@ -1671,17 +1665,18 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
                     CHK_ERR(pStunServerAddr != NULL, STATUS_INVALID_ARG, "No IP-family-compatible STUN server address found for candidate %s",
                             pCandidate->id);
 
-                    // update transactionId
-                    CHK_STATUS(
-                        iceUtilsGenerateTransactionId(pBindingRequest->header.transactionId, ARRAY_SIZE(pBindingRequest->header.transactionId)));
-
-                    transactionIdStoreInsert(pIceAgent->pStunBindingRequestTransactionIdStore, pBindingRequest->header.transactionId);
+                    // A re-send keeps the candidate's transaction ID, so a reply to any earlier send still matches (RFC 5389 7.2.1)
+                    MEMCPY(pBindingRequest->header.transactionId, pCandidate->srflxTransactionId, STUN_TRANSACTION_ID_LEN);
                     checkSum = COMPUTE_CRC32(pBindingRequest->header.transactionId, ARRAY_SIZE(pBindingRequest->header.transactionId));
 
                     CHK_STATUS(iceAgentSendStunPacket(pBindingRequest, NULL, 0, pIceAgent, pCandidate, pStunServerAddr));
                     if (pIceAgent->pRtcIceServerDiagnostics[pCandidate->iceServerIndex] != NULL) {
                         pIceAgent->pRtcIceServerDiagnostics[pCandidate->iceServerIndex]->totalRequestsSent++;
-                        CHK_STATUS(hashTableUpsert(pIceAgent->requestTimestampDiagnostics, checkSum, GETTIME()));
+                        // Round trip time is measured from the first send
+                        CHK_STATUS(hashTableContains(pIceAgent->requestTimestampDiagnostics, checkSum, &requestSent));
+                        if (!requestSent) {
+                            CHK_STATUS(hashTableUpsert(pIceAgent->requestTimestampDiagnostics, checkSum, GETTIME()));
+                        }
                     }
                     break;
 
@@ -2004,6 +1999,7 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
                     pNewCandidate->iceCandidateType = ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE;
                     pNewCandidate->state = ICE_CANDIDATE_STATE_NEW;
                     pNewCandidate->iceServerIndex = j;
+                    CHK_STATUS(iceUtilsGenerateTransactionId(pNewCandidate->srflxTransactionId, ARRAY_SIZE(pNewCandidate->srflxTransactionId)));
                     pNewCandidate->foundation = pIceAgent->foundationCounter++; // we dont generate candidates that have the same foundation.
                     pNewCandidate->priority = computeCandidatePriority(pNewCandidate);
 
@@ -2913,10 +2909,10 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             connectivityCheckResponsesReceived++;
             checkSum = COMPUTE_CRC32(pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET, STUN_TRANSACTION_ID_LEN);
             // check if Binding Response is for finding srflx candidate
-            if (transactionIdStoreHasId(pIceAgent->pStunBindingRequestTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET)) {
-                CHK_STATUS(findCandidateWithSocketConnection(pSocketConnection, pIceAgent->localCandidates, &pIceCandidate));
-                CHK_WARN(pIceCandidate != NULL, retStatus, "Local candidate with socket %d not found. Dropping STUN binding success response",
-                         pSocketConnection->localSocket);
+            CHK_STATUS(findCandidateWithSocketConnection(pSocketConnection, pIceAgent->localCandidates, &pIceCandidate));
+            if (pIceCandidate != NULL && pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE &&
+                pIceCandidate->state == ICE_CANDIDATE_STATE_NEW &&
+                MEMCMP(pIceCandidate->srflxTransactionId, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET, STUN_TRANSACTION_ID_LEN) == 0) {
                 CHK_WARN(pIceCandidate->iceServerIndex < pIceAgent->iceServersCount, retStatus,
                          "Invalid ice server index %u for candidate %s. Dropping STUN binding success response", pIceCandidate->iceServerIndex,
                          pIceCandidate->id);
@@ -2948,12 +2944,9 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                     *ppSocketConnectionToShutdown = pIceCandidate->pSocketConnection;
                 }
 
-                // Remove from the transaction id store as we no longer are awaiting for the bind response
-                transactionIdStoreRemove(pIceAgent->pStunBindingRequestTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET);
                 CHK(FALSE, retStatus);
             }
 
-            CHK_STATUS(findCandidateWithSocketConnection(pSocketConnection, pIceAgent->localCandidates, &pIceCandidate));
             if (pIceCandidate != NULL && pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE) {
                 CHK_WARN(pIceCandidate->iceServerIndex < pIceAgent->iceServersCount, retStatus,
                          "Invalid ice server index %u for candidate %s. Dropping STUN binding success response", pIceCandidate->iceServerIndex,
