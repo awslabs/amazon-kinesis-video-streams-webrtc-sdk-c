@@ -836,6 +836,134 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMedia)
     EXPECT_EQ(ATOMIC_LOAD(&seenVideo), 1);
 }
 
+// Both peers stream video simultaneously from separate threads while each also
+// receives the other's stream. iceAgentSendPacket releases pIceAgent->lock around
+// the actual packet send (so TX is not serialized behind RX/connectivity-check work
+// that holds the same coarse lock); this test exercises that send path concurrently
+// with RX on each agent. Asserts every send succeeds and both directions deliver
+// frames. Run under ThreadSanitizer to verify the lock-release window is race-free.
+TEST_F(PeerConnectionFunctionalityTest, bidirectionalConcurrentMediaSend)
+{
+    auto const frameBufferSize = 200000;
+    auto const iterations = 300;
+
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack;
+    PRtcRtpTransceiver offerVideoTransceiver, answerVideoTransceiver;
+    SIZE_T seenVideoAtAnswer = 0, seenVideoAtOffer = 0;
+    SIZE_T offerSendFailed = 0, answerSendFailed = 0;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    // Video track on both peers -> sendrecv both directions.
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+
+    auto onFrameHandler = [](UINT64 customData, PFrame pFrame) -> void {
+        UNUSED_PARAM(pFrame);
+        ATOMIC_STORE((PSIZE_T) customData, 1);
+    };
+    EXPECT_EQ(transceiverOnFrame(answerVideoTransceiver, (UINT64) &seenVideoAtAnswer, onFrameHandler), STATUS_SUCCESS);
+    EXPECT_EQ(transceiverOnFrame(offerVideoTransceiver, (UINT64) &seenVideoAtOffer, onFrameHandler), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    auto sender = [frameBufferSize, iterations](PRtcRtpTransceiver transceiver, PSIZE_T pFailed) {
+        Frame videoFrame;
+        MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
+        videoFrame.frameData = (PBYTE) MEMALLOC(frameBufferSize);
+        videoFrame.size = TEST_VIDEO_FRAME_SIZE;
+        MEMSET(videoFrame.frameData, 0x11, videoFrame.size);
+        for (auto i = 0; i < iterations; i++) {
+            if (writeFrame(transceiver, &videoFrame) != STATUS_SUCCESS) {
+                ATOMIC_STORE(pFailed, 1);
+            }
+            videoFrame.presentationTs += (HUNDREDS_OF_NANOS_IN_A_SECOND / 25);
+            THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        }
+        MEMFREE(videoFrame.frameData);
+    };
+
+    std::thread offerSender(sender, offerVideoTransceiver, &offerSendFailed);
+    std::thread answerSender(sender, answerVideoTransceiver, &answerSendFailed);
+    offerSender.join();
+    answerSender.join();
+
+    EXPECT_EQ(ATOMIC_LOAD(&offerSendFailed), 0);
+    EXPECT_EQ(ATOMIC_LOAD(&answerSendFailed), 0);
+    EXPECT_EQ(ATOMIC_LOAD(&seenVideoAtAnswer), 1);
+    EXPECT_EQ(ATOMIC_LOAD(&seenVideoAtOffer), 1);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+// Both peers keep sending while the offerer restarts ICE. Each restart frees the old pair's socket
+// while sends that picked that pair may still be running outside the agent lock; run it under a
+// sanitizer to catch a send on the freed socket.
+TEST_F(PeerConnectionFunctionalityTest, iceRestartWhileSendingMedia)
+{
+    auto const frameBufferSize = 200000;
+    auto const restarts = 3;
+
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcMediaStreamTrack offerVideoTrack, answerVideoTrack;
+    PRtcRtpTransceiver offerVideoTransceiver, answerVideoTransceiver;
+    ATOMIC_BOOL stopSending = FALSE;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    addTrackToPeerConnection(offerPc, &offerVideoTrack, &offerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+    addTrackToPeerConnection(answerPc, &answerVideoTrack, &answerVideoTransceiver, RTC_CODEC_VP8, MEDIA_STREAM_TRACK_KIND_VIDEO);
+
+    ASSERT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    auto sender = [frameBufferSize, &stopSending](PRtcRtpTransceiver transceiver) {
+        Frame videoFrame;
+        MEMSET(&videoFrame, 0x00, SIZEOF(Frame));
+        videoFrame.frameData = (PBYTE) MEMALLOC(frameBufferSize);
+        videoFrame.size = TEST_VIDEO_FRAME_SIZE;
+        MEMSET(videoFrame.frameData, 0x11, videoFrame.size);
+        while (!ATOMIC_LOAD_BOOL(&stopSending)) {
+            // Sends fail or are dropped while the pair is being replaced
+            writeFrame(transceiver, &videoFrame);
+            videoFrame.presentationTs += (HUNDREDS_OF_NANOS_IN_A_SECOND / 25);
+            THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        }
+        MEMFREE(videoFrame.frameData);
+    };
+
+    std::thread offerSender(sender, offerVideoTransceiver);
+    std::thread answerSender(sender, answerVideoTransceiver);
+
+    for (auto i = 0; i < restarts; i++) {
+        EXPECT_EQ(restartIce(offerPc), STATUS_SUCCESS);
+        MEMSET(&stateChangeCount, 0x00, SIZEOF(stateChangeCount));
+        EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    }
+
+    ATOMIC_STORE_BOOL(&stopSending, TRUE);
+    offerSender.join();
+    answerSender.join();
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
 // Same test as exchangeMedia, but assert that if one side is RSA DTLS and Key Extraction works
 TEST_F(PeerConnectionFunctionalityTest, exchangeMediaRSA)
 {
@@ -950,6 +1078,69 @@ TEST_F(PeerConnectionFunctionalityTest, iceRestartTestForcedTurn)
     freePeerConnection(&answerPc);
 
     deinitializeSignalingClient();
+}
+
+// Count the non-relay local candidates that still hold a socket, once the agent is ready and the
+// sockets detached on nomination have been freed.
+static UINT32 openHostSocketsWhenReady(PRtcPeerConnection pPeerConnection)
+{
+    PIceAgent pIceAgent = ((PKvsPeerConnection) pPeerConnection)->pIceAgent;
+    PDoubleListNode pCurNode = NULL;
+    PIceCandidate pIceCandidate = NULL;
+    UINT32 count = 0, pending = 1, i;
+
+    for (i = 0; i < 500 && pending != 0; i++) {
+        MUTEX_LOCK(pIceAgent->lock);
+        pending = (pIceAgent->iceAgentState == ICE_AGENT_STATE_READY) ? pIceAgent->unusedSocketCount : 1;
+        MUTEX_UNLOCK(pIceAgent->lock);
+        if (pending != 0) {
+            THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        }
+    }
+
+    MUTEX_LOCK(pIceAgent->lock);
+    EXPECT_EQ(0, pIceAgent->unusedSocketCount);
+    doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode);
+    while (pCurNode != NULL) {
+        pIceCandidate = (PIceCandidate) pCurNode->data;
+        pCurNode = pCurNode->pNext;
+        if (pIceCandidate->iceCandidateType != ICE_CANDIDATE_TYPE_RELAYED && pIceCandidate->pSocketConnection != NULL) {
+            count++;
+        }
+    }
+    MUTEX_UNLOCK(pIceAgent->lock);
+
+    return count;
+}
+
+// After nomination only the selected local candidate keeps its socket, across an ICE restart, and
+// closing still takes both peers to CLOSED.
+TEST_F(PeerConnectionFunctionalityTest, unselectedLocalSocketsFreedAfterNomination)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    ASSERT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    EXPECT_EQ(1, openHostSocketsWhenReady(offerPc));
+    EXPECT_EQ(1, openHostSocketsWhenReady(answerPc));
+
+    EXPECT_EQ(restartIce(offerPc), STATUS_SUCCESS);
+    MEMSET(&stateChangeCount, 0x00, SIZEOF(stateChangeCount));
+    ASSERT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    EXPECT_EQ(1, openHostSocketsWhenReady(offerPc));
+    EXPECT_EQ(1, openHostSocketsWhenReady(answerPc));
+
+    closePeerConnection(offerPc);
+    EXPECT_EQ(ATOMIC_LOAD(&stateChangeCount[RTC_PEER_CONNECTION_STATE_CLOSED]), 2);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
 }
 
 TEST_F(PeerConnectionFunctionalityTest, peerConnectionOfferCloseConnection)
