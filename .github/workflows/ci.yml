@@ -840,3 +840,68 @@ jobs:
             echo "$CMAKE_LOGS"
             exit 1
           fi
+
+  # Strict post-quantum gate against the live service. Runs the real master and
+  # viewer samples under a packet capture and asserts that every TLS 1.3
+  # handshake to a KVS host negotiated X25519MLKEM768.
+  #
+  # This is the only check that observes a real handshake. Everything else is a
+  # library self-report or a probe linking the same AWS-LC, and the SDK carries no
+  # diagnostic code for this on purpose: in TLS 1.3 the ServerHello names the
+  # selected group in cleartext, so tshark reads it off the wire.
+  #
+  # It is strict, so a service-side rollout step can turn it red without any code
+  # change here. When that happens, read the failing host in the output before
+  # touching the SDK: scripts/check-awslc.sh says whether the SDK still offers
+  # ML-KEM, which separates an SDK regression from an endpoint that stopped
+  # accepting it.
+  aws-lc-pqc-handshake:
+    needs: cleanup-old-resources
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      AWS_KVS_LOG_LEVEL: 2
+      CHANNEL_NAME: SampleChannelAwsLcPqc
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2.2.0
+        with:
+          cmake-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          # tshark unattended: suppress the dumpcap-for-non-root prompt.
+          echo "wireshark-common wireshark-common/install-setuid boolean false" | sudo debconf-set-selections
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -y install tshark tcpdump
+
+      - name: Build repository
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DUSE_AWS_LC=ON -DBUILD_TEST=OFF -DPARALLEL_BUILD=ON
+          make -j$(nproc)
+
+      - name: Check the AWS-LC backend
+        run: ./scripts/check-awslc.sh build
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Prepare signaling channel
+        run: ./scripts/prepare-channel.sh ${{ env.CHANNEL_NAME }}
+
+      - name: Check the negotiated key exchange group
+        run: ./scripts/check-pqc.sh ${{ env.CHANNEL_NAME }} build
