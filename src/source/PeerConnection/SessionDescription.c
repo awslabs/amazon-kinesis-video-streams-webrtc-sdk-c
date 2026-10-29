@@ -91,7 +91,7 @@ STATUS deserializeSessionDescriptionInit(PCHAR sessionDescriptionJSON, UINT32 se
     STATUS retStatus = STATUS_SUCCESS;
     jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
     jsmn_parser parser;
-    INT32 i, j, tokenCount, lineLen;
+    INT32 i, j, nextKey, tokenCount, lineLen;
     PCHAR curr, next, tail;
 
     CHK(pSessionDescriptionInit != NULL && sessionDescriptionJSON != NULL, STATUS_NULL_ARG);
@@ -103,7 +103,12 @@ STATUS deserializeSessionDescriptionInit(PCHAR sessionDescriptionJSON, UINT32 se
     CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
     CHK(tokens[0].type == JSMN_OBJECT, STATUS_SESSION_DESCRIPTION_INIT_NOT_OBJECT);
 
-    for (i = 1; i < tokenCount; i += 2) {
+    // The object's own keys only. Each value is skipped whole, so a nested value is not read as keys and values of the
+    // object, wherever it is.
+    for (i = 1; i + 1 < tokenCount && tokens[i].start < tokens[0].end; i = nextKey) {
+        for (nextKey = i + 2; nextKey < tokenCount && tokens[nextKey].start < tokens[i + 1].end; nextKey++) {
+        }
+
         if (STRNCMP(SDP_TYPE_KEY, sessionDescriptionJSON + tokens[i].start, ARRAY_SIZE(SDP_TYPE_KEY) - 1) == 0) {
             if (STRNCMP(SDP_OFFER_VALUE, sessionDescriptionJSON + tokens[i + 1].start, ARRAY_SIZE(SDP_OFFER_VALUE) - 1) == 0) {
                 pSessionDescriptionInit->type = SDP_TYPE_OFFER;
