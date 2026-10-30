@@ -554,7 +554,9 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
 
     CHK_STATUS(beginHandshakeProcess(pDtlsSession, isServer, &sslRet));
     pDtlsSession->dtlsSessionStartTime = GETTIME();
-    CHK_STATUS(timerQueueAddTimer(pDtlsSession->timerQueueHandle, DTLS_SESSION_TIMER_START_DELAY, DTLS_TRANSMISSION_INTERVAL,
+    // A client sends its ClientHello right away rather than on the first timer tick
+    CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
+    CHK_STATUS(timerQueueAddTimer(pDtlsSession->timerQueueHandle, DTLS_TRANSMISSION_INTERVAL, DTLS_TRANSMISSION_INTERVAL,
                                   dtlsTransmissionTimerCallback, (UINT64) pDtlsSession, &pDtlsSession->timerId));
 CleanUp:
     CHK_LOG_ERR(retStatus);
