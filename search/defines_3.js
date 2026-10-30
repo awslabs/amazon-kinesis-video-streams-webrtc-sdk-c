@@ -59,5 +59,6 @@ var searchData=
   ['dtls_5fmbedtls_5ferror_5fstring_5fbuffer_5fsize_56',['DTLS_MBEDTLS_ERROR_STRING_BUFFER_SIZE',['../Dtls__mbedtls_8c.html#a42a28a9bb2cc5d974782d2b574aabd08',1,'Dtls_mbedtls.c']]],
   ['dtls_5frole_5factive_57',['DTLS_ROLE_ACTIVE',['../SessionDescription_8h.html#a841a33383262e24583ce672cdc17c078',1,'SessionDescription.h']]],
   ['dtls_5frole_5factpass_58',['DTLS_ROLE_ACTPASS',['../SessionDescription_8h.html#ae18c1c7b040daf630353bdc9121ee9f6',1,'SessionDescription.h']]],
-  ['dtls_5ftransmission_5finterval_59',['DTLS_TRANSMISSION_INTERVAL',['../Dtls_8h.html#a3cf5ecd0269eae37a1b66d460835f7de',1,'Dtls.h']]]
+  ['dtls_5fsession_5ftimer_5fstart_5fdelay_59',['DTLS_SESSION_TIMER_START_DELAY',['../Dtls_8h.html#a47dcf553b8ea91cf54d17063b966c731',1,'Dtls.h']]],
+  ['dtls_5ftransmission_5finterval_60',['DTLS_TRANSMISSION_INTERVAL',['../Dtls_8h.html#a3cf5ecd0269eae37a1b66d460835f7de',1,'Dtls.h']]]
 ];
