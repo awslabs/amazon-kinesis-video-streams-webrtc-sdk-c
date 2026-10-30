@@ -286,6 +286,7 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #include "Ice/SocketConnection.h"
 #include "Ice/ConnectionListener.h"
 #include "Stun/Stun.h"
+#include "Ice/DtlsInStun.h"
 #include "Ice/IceUtils.h"
 #include "Sdp/Sdp.h"
 #include "Ice/IceAgent.h"

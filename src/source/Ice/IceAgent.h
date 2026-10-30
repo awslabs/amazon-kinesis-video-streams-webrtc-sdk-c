@@ -205,6 +205,8 @@ struct __IceAgent {
     volatile ATOMIC_BOOL shutdown;
     volatile ATOMIC_BOOL restart;
     volatile ATOMIC_BOOL processStun;
+    // Counts ICE restarts, under lock: a STUN packet handled across an unlocked step checks that no restart came between
+    UINT32 restartCount;
     volatile ATOMIC_BOOL addedRelayCandidate;
     volatile ATOMIC_BOOL stopGathering;
 
@@ -274,6 +276,11 @@ struct __IceAgent {
     UINT64 candidateGatheringStartTime;
     UINT64 candidateGatheringProcessEndTime;
     UINT64 iceAgentStartTime;
+
+    // SPED: the DTLS handshake embedded in connectivity checks. NULL unless enabled.
+    PDtlsInStun pDtlsInStun;
+    // An embedded DTLS packet on its way to the DTLS session; only the connection listener thread uses it
+    PBYTE pEmbeddedDtlsPacket;
 };
 
 //////////////////////////////////////////////
@@ -363,6 +370,40 @@ STATUS iceCandidateSerialize(PIceCandidate, PCHAR, PUINT32);
  * @return - STATUS - status of execution
  */
 STATUS iceAgentSendPacket(PIceAgent, PBYTE, UINT32);
+
+/**
+ * Lets the agent embed the DTLS handshake in its connectivity checks (SPED, draft-uberti-tsvwg-warp section 4.2).
+ * Creates pIceAgent->pDtlsInStun, which the caller starts and feeds.
+ *
+ * @param - PIceAgent - IN - IceAgent object
+ *
+ * @return - STATUS - status of execution
+ */
+STATUS iceAgentEnableDtlsInStun(PIceAgent);
+
+/**
+ * SPED: largest STUN message to grow with DTLS-in-STUN attributes: the DTLS path MTU, less the TURN framing when relayed
+ *
+ * @param - PIceCandidate - IN - local candidate the message goes out from
+ *
+ * @return - UINT32 - size in bytes, MESSAGE-INTEGRITY and FINGERPRINT included
+ */
+UINT32 iceAgentDtlsInStunBudget(PIceCandidate);
+
+/**
+ * SPED: processes the DTLS-in-STUN attributes of an authenticated check from the peer, or of a response to one of ours.
+ * A DTLS packet the peer embedded is left in pIceAgent->pEmbeddedDtlsPacket. Caller holds pIceAgent->lock.
+ *
+ * @param - PIceAgent - IN - IceAgent object
+ * @param - PBYTE - IN - the STUN message
+ * @param - UINT32 - IN - its size
+ * @param - PSocketConnection - IN - socket it came in on
+ * @param - PKvsIpAddress - IN - where it came from
+ * @param - PUINT32 - OUT - length of the embedded DTLS packet, 0 if none
+ *
+ * @return - STATUS - status of execution
+ */
+STATUS iceAgentProcessDtlsInStun(PIceAgent, PBYTE, UINT32, PSocketConnection, PKvsIpAddress, PUINT32);
 
 /**
  * gather local IP addresses and create a udp port. If port creation succeeded then create a new candidate

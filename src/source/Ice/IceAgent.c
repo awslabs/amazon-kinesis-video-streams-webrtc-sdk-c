@@ -336,6 +336,9 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
         freeStunPacket(&pIceAgent->pBindingRequest);
     }
 
+    freeDtlsInStun(&pIceAgent->pDtlsInStun);
+    SAFE_MEMFREE(pIceAgent->pEmbeddedDtlsPacket);
+
     CHK_LOG_ERR(hashTableFree(pIceAgent->requestTimestampDiagnostics));
     SAFE_MEMFREE(pIceAgent->pRtcSelectedLocalIceCandidateDiagnostics);
     SAFE_MEMFREE(pIceAgent->pRtcSelectedRemoteIceCandidateDiagnostics);
@@ -856,6 +859,31 @@ CleanUp:
     return retStatus;
 }
 
+STATUS iceAgentEnableDtlsInStun(PIceAgent pIceAgent)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
+
+    CHK(pIceAgent != NULL, STATUS_NULL_ARG);
+    MUTEX_LOCK(pIceAgent->lock);
+    locked = TRUE;
+    CHK(pIceAgent->pDtlsInStun == NULL, retStatus);
+    CHK(NULL != (pIceAgent->pEmbeddedDtlsPacket = (PBYTE) MEMALLOC(DTLS_IN_STUN_MAX_PACKET_SIZE)), STATUS_NOT_ENOUGH_MEMORY);
+    CHK_STATUS(createDtlsInStun(&pIceAgent->pDtlsInStun));
+
+CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pIceAgent->lock);
+    }
+
+    return retStatus;
+}
+
+UINT32 iceAgentDtlsInStunBudget(PIceCandidate pLocalCandidate)
+{
+    return DEFAULT_MTU_SIZE_BYTES - (pLocalCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED ? STUN_SEND_INDICATION_OVERHEAD_SIZE : 0);
+}
+
 STATUS iceAgentSendPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -1097,6 +1125,11 @@ STATUS iceAgentRestart(PIceAgent pIceAgent, PCHAR localIceUfrag, PCHAR localIceP
     /* do not process anymore stun messages because it may need to access resources like iceCandidiate which we are
      * about to free */
     ATOMIC_STORE_BOOL(&pIceAgent->processStun, FALSE);
+    pIceAgent->restartCount++;
+    // SPED only carries the first DTLS handshake
+    if (pIceAgent->pDtlsInStun != NULL) {
+        CHK_STATUS(dtlsInStunStop(pIceAgent->pDtlsInStun));
+    }
     pIceAgent->iceAgentStatus = STATUS_SUCCESS;
     pIceAgent->lastDataReceivedTime = INVALID_TIMESTAMP_VALUE;
     pIceAgent->relayCandidateCount = 0;
@@ -1494,9 +1527,10 @@ STATUS iceCandidatePairCheckConnection(PStunPacket pStunBindingRequest, PIceAgen
 {
     STATUS retStatus = STATUS_SUCCESS;
     PStunAttributePriority pStunAttributePriority = NULL;
-    UINT32 checkSum = 0;
+    UINT32 checkSum = 0, baseAttributesCount = 0;
 
     CHK(pStunBindingRequest != NULL && pIceAgent != NULL && pIceCandidatePair != NULL, STATUS_NULL_ARG);
+    baseAttributesCount = pStunBindingRequest->attributesCount;
     CHK(pIceCandidatePair->local != NULL && pIceCandidatePair->remote != NULL, STATUS_NULL_ARG);
     CHK_STATUS(getStunAttribute(pStunBindingRequest, STUN_ATTRIBUTE_TYPE_PRIORITY, (PStunAttributeHeader*) &pStunAttributePriority));
 
@@ -1525,6 +1559,12 @@ STATUS iceCandidatePairCheckConnection(PStunPacket pStunBindingRequest, PIceAgen
         pIceAgent->pRtcIceServerDiagnostics[pIceCandidatePair->local->iceServerIndex]->totalRequestsSent++;
     }
 
+    // SPED: the check also carries DTLS, best effort
+    if (pIceAgent->pDtlsInStun != NULL) {
+        CHK_LOG_ERR(
+            dtlsInStunAppendAttributes(pIceAgent->pDtlsInStun, pStunBindingRequest, iceAgentDtlsInStunBudget(pIceCandidatePair->local), TRUE));
+    }
+
     CHK_STATUS(iceAgentSendStunPacket(pStunBindingRequest, (PBYTE) pIceAgent->remotePassword,
                                       (UINT32) STRLEN(pIceAgent->remotePassword) * SIZEOF(CHAR), pIceAgent, pIceCandidatePair->local,
                                       &pIceCandidatePair->remote->ipAddress));
@@ -1534,6 +1574,11 @@ STATUS iceCandidatePairCheckConnection(PStunPacket pStunBindingRequest, PIceAgen
         pIceCandidatePair->pRtcIceCandidatePairDiagnostics->requestsSent++;
     }
 CleanUp:
+
+    // The request is reused for the next check, which carries its own SPED attributes
+    if (pStunBindingRequest != NULL && pStunBindingRequest->attributesCount > baseAttributesCount) {
+        truncateStunAttributes(pStunBindingRequest, baseAttributesCount);
+    }
 
     CHK_LOG_ERR(retStatus);
 
@@ -2769,6 +2814,46 @@ CleanUp:
     return retStatus;
 }
 
+STATUS iceAgentProcessDtlsInStun(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PSocketConnection pSocketConnection, PKvsIpAddress pSrcAddr,
+                                 PUINT32 pEmbeddedLen)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PStunPacket pStunPacket = NULL;
+    PIceCandidatePair pIceCandidatePair = NULL;
+    PStunAttributeHeader pIntegrity = NULL;
+    UINT16 stunPacketType;
+
+    *pEmbeddedLen = 0;
+    CHK(bufferLen >= STUN_HEADER_LEN && dtlsInStunIsActive(pIceAgent->pDtlsInStun), retStatus);
+
+    // Only an authenticated message may hand anything to DTLS. A failure here is handleStunPacket's to report.
+    stunPacketType = (UINT16) getInt16(*((PUINT16) pBuffer));
+    if (stunPacketType == STUN_PACKET_TYPE_BINDING_REQUEST) {
+        // As handleStunPacket authenticates it: MESSAGE-INTEGRITY and USERNAME present, for the local ufrag, verified
+        CHK(STATUS_SUCCEEDED(iceAgentDeserializeBindingRequest(pBuffer, bufferLen, pIceAgent->localUsername, pIceAgent->localPassword, &pStunPacket)),
+            retStatus);
+    } else if (stunPacketType == STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS) {
+        // Only responses to our checks on the pair, not those of STUN servers
+        CHK_STATUS(findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(pIceAgent, pSocketConnection, pSrcAddr, TRUE, &pIceCandidatePair));
+        CHK(pIceCandidatePair != NULL && transactionIdStoreHasId(pIceCandidatePair->pTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET),
+            retStatus);
+        CHK(STATUS_SUCCEEDED(deserializeStunPacket(pBuffer, bufferLen, (PBYTE) pIceAgent->remotePassword,
+                                                   (UINT32) STRLEN(pIceAgent->remotePassword) * SIZEOF(CHAR), &pStunPacket)),
+            retStatus);
+        // deserializeStunPacket verifies MESSAGE-INTEGRITY when there is one; a response must have it (RFC 8489 section 9.1.4)
+        CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_MESSAGE_INTEGRITY, &pIntegrity));
+        CHK(pIntegrity != NULL, retStatus);
+    } else {
+        CHK(FALSE, retStatus);
+    }
+    CHK_STATUS(dtlsInStunOnStunMessage(pIceAgent->pDtlsInStun, pStunPacket, pIceAgent->pEmbeddedDtlsPacket, pEmbeddedLen));
+
+CleanUp:
+    freeStunPacket(&pStunPacket);
+
+    return retStatus;
+}
+
 STATUS incomingDataHandler(UINT64 customData, PSocketConnection pSocketConnection, PBYTE pBuffer, UINT32 bufferLen, PKvsIpAddress pSrc,
                            PKvsIpAddress pDest)
 {
@@ -2776,7 +2861,7 @@ STATUS incomingDataHandler(UINT64 customData, PSocketConnection pSocketConnectio
     PIceAgent pIceAgent = (PIceAgent) customData;
     PSocketConnection pSocketConnectionToShutdown = NULL;
     BOOL locked = FALSE;
-    UINT32 addrLen = 0;
+    UINT32 addrLen = 0, embeddedLen = 0, restartCount;
     CHK(pIceAgent != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
 
     MUTEX_LOCK(pIceAgent->lock);
@@ -2810,6 +2895,21 @@ STATUS incomingDataHandler(UINT64 customData, PSocketConnection pSocketConnectio
             }
         }
     } else {
+        // SPED: give an embedded DTLS packet to the DTLS session before answering, so the answer carries the DTLS reply.
+        // DTLS runs without the ICE lock, which DTLS output takes after its own lock.
+        if (ATOMIC_LOAD_BOOL(&pIceAgent->processStun) && pIceAgent->pDtlsInStun != NULL && pIceAgent->iceAgentCallbacks.inboundPacketFn != NULL) {
+            CHK_LOG_ERR(iceAgentProcessDtlsInStun(pIceAgent, pBuffer, bufferLen, pSocketConnection, pSrc, &embeddedLen));
+            if (embeddedLen > 0) {
+                restartCount = pIceAgent->restartCount;
+                MUTEX_UNLOCK(pIceAgent->lock);
+                pIceAgent->iceAgentCallbacks.inboundPacketFn(pIceAgent->iceAgentCallbacks.customData, pIceAgent->pEmbeddedDtlsPacket, embeddedLen);
+                MUTEX_LOCK(pIceAgent->lock);
+                // An ICE restart meanwhile may have freed the socket and candidates of this packet, even if it is over
+                CHK(restartCount == pIceAgent->restartCount, retStatus);
+            }
+        }
+
+        // An ICE restart may have stopped STUN processing meanwhile
         if (ATOMIC_LOAD_BOOL(&pIceAgent->processStun)) {
             CHK_STATUS(handleStunPacket(pIceAgent, pBuffer, bufferLen, pSocketConnection, pSrc, pDest, &pSocketConnectionToShutdown));
             MUTEX_UNLOCK(pIceAgent->lock);
@@ -3024,6 +3124,10 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
 
             CHK_STATUS(findCandidateWithSocketConnection(pSocketConnection, pIceAgent->localCandidates, &pIceCandidate));
             CHK_WARN(pIceCandidate != NULL, retStatus, "Could not find local candidate to send STUN response");
+            // SPED: the response also carries DTLS, best effort. The request was authenticated above.
+            if (pIceAgent->pDtlsInStun != NULL) {
+                CHK_LOG_ERR(dtlsInStunAppendAttributes(pIceAgent->pDtlsInStun, pStunResponse, iceAgentDtlsInStunBudget(pIceCandidate), TRUE));
+            }
             CHK_STATUS(iceAgentSendStunPacket(pStunResponse, (PBYTE) pIceAgent->localPassword,
                                               (UINT32) STRLEN(pIceAgent->localPassword) * SIZEOF(CHAR), pIceAgent, pIceCandidate, pSrcAddr));
 
