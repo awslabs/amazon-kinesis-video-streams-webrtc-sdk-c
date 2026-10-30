@@ -33,6 +33,21 @@ CleanUp:
     return retStatus;
 }
 
+STATUS dtlsSessionOnHandshakeFlight(PDtlsSession pDtlsSession, UINT64 customData, DtlsSessionOnHandshakeFlight callbackFn)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pDtlsSession != NULL && callbackFn != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pDtlsSession->sslLock);
+    pDtlsSession->dtlsSessionCallbacks.handshakeFlightFn = callbackFn;
+    pDtlsSession->dtlsSessionCallbacks.handshakeFlightFnCustomData = customData;
+    MUTEX_UNLOCK(pDtlsSession->sslLock);
+
+CleanUp:
+    return retStatus;
+}
+
 STATUS dtlsValidateRtcCertificates(PRtcCertificate pRtcCertificates, PUINT32 pCount)
 {
     ENTERS();
@@ -65,6 +80,22 @@ BOOL dtlsPacketIsClientHello(PBYTE pData, UINT32 dataLen)
     // 0). The OpenSSL backend, for one, sends its ClientHello as two records in one datagram.
     return pData != NULL && dataLen >= DTLS_CLIENT_HELLO_MIN_LEN && pData[0] == 22 && pData[1] == 0xFE && pData[3] == 0 && pData[4] == 0 &&
         pData[13] == 1 && pData[19] == 0 && pData[20] == 0 && pData[21] == 0;
+}
+
+UINT32 dtlsPacketHandshakeSeq(PBYTE pData, UINT32 dataLen)
+{
+    if (pData == NULL || dataLen < DTLS_CLIENT_HELLO_MIN_LEN || pData[0] != 22 || pData[3] != 0 || pData[4] != 0) {
+        return 0;
+    }
+    return (((UINT32) pData[17] << 8) | pData[18]) + 1;
+}
+
+BOOL dtlsSessionFlightRepeats(PDtlsSession pDtlsSession, BOOL stateUnchanged)
+{
+    BOOL repeats = stateUnchanged && (pDtlsSession->flightFirstSeq == 0 || pDtlsSession->flightFirstSeq == pDtlsSession->lastFlightFirstSeq);
+
+    pDtlsSession->lastFlightFirstSeq = pDtlsSession->flightFirstSeq;
+    return repeats;
 }
 
 STATUS dtlsSessionKeepEarlyClientHello(PDtlsSession pDtlsSession, PBYTE pData, UINT32 dataLen)
