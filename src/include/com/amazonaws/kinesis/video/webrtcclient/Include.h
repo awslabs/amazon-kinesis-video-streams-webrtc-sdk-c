@@ -1527,6 +1527,10 @@ typedef struct {
                                                 //!< candidate has resolved instead of running to iceLocalCandidateGatheringTimeout. Defaults to
                                                 //!< FALSE, which keeps gathering open for TURN servers added later. When TRUE,
                                                 //!< peerConnectionUpdateIceServers returns STATUS_ICE_SERVERS_FINAL.
+    BOOL enableSctpSnap;                        //!< Exchange the SCTP INIT chunks in the SDP (a=sctp-init) when the peer supports it too (SNAP,
+                                                //!< draft-uberti-tsvwg-warp section 4.1), so data channels open two round trips sooner.
+                                                //!< Needs a usrsctp with SNAP (USRSCTP_HAS_SNAP), as BUILD_USRSCTP builds it; with another
+                                                //!< usrsctp it is ignored with a warning. Off by default.
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
 
 /**

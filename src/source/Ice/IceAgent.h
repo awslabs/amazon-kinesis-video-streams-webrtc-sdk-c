@@ -365,6 +365,16 @@ STATUS iceCandidateSerialize(PIceCandidate, PCHAR, PUINT32);
 STATUS iceAgentSendPacket(PIceAgent, PBYTE, UINT32);
 
 /**
+ * The round trip ICE measured: the selected pair's, or before there is one the shortest any successful check saw.
+ *
+ * @param - PIceAgent - IN - IceAgent object
+ * @param - PUINT64 - OUT - round trip time in 100ns units, 0 if nothing was measured yet
+ *
+ * @return - STATUS - status of execution
+ */
+STATUS iceAgentGetRoundTripTime(PIceAgent, PUINT64);
+
+/**
  * gather local IP addresses and create a udp port. If port creation succeeded then create a new candidate
  * and store it in localCandidates. Ips that are already a local candidate will not be added again.
  *

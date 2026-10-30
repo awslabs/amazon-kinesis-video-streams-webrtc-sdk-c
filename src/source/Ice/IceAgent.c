@@ -821,6 +821,42 @@ CleanUp:
     return retStatus;
 }
 
+STATUS iceAgentGetRoundTripTime(PIceAgent pIceAgent, PUINT64 pRoundTripTime)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
+    PDoubleListNode pCurNode = NULL;
+    PIceCandidatePair pIceCandidatePair;
+    UINT64 data;
+
+    CHK(pIceAgent != NULL && pRoundTripTime != NULL, STATUS_NULL_ARG);
+    *pRoundTripTime = 0;
+    MUTEX_LOCK(pIceAgent->lock);
+    locked = TRUE;
+
+    if (pIceAgent->pDataSendingIceCandidatePair != NULL && pIceAgent->pDataSendingIceCandidatePair->roundTripTime != 0) {
+        *pRoundTripTime = pIceAgent->pDataSendingIceCandidatePair->roundTripTime;
+    } else {
+        CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
+        while (pCurNode != NULL) {
+            CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
+            pCurNode = pCurNode->pNext;
+            pIceCandidatePair = (PIceCandidatePair) data;
+            if (pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_SUCCEEDED && pIceCandidatePair->roundTripTime != 0 &&
+                (*pRoundTripTime == 0 || pIceCandidatePair->roundTripTime < *pRoundTripTime)) {
+                *pRoundTripTime = pIceCandidatePair->roundTripTime;
+            }
+        }
+    }
+
+CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pIceAgent->lock);
+    }
+
+    return retStatus;
+}
+
 STATUS iceAgentSendPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen)
 {
     STATUS retStatus = STATUS_SUCCESS;

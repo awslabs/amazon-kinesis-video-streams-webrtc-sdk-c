@@ -1068,6 +1068,13 @@ STATUS populateSessionDescriptionDataChannel(PKvsPeerConnection pKvsPeerConnecti
     CHK_ERR(amountWritten > 0, STATUS_INTERNAL_ERROR, "Full data channel sctp-port could not be written");
     attributeCount++;
 
+    // SNAP: the INIT chunk, in place of the SCTP handshake
+    if (pKvsPeerConnection->localSctpInit[0] != '\0') {
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "sctp-init");
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, pKvsPeerConnection->localSctpInit);
+        attributeCount++;
+    }
+
     pSdpMediaDescription->mediaAttributesCount = attributeCount;
 
 CleanUp:

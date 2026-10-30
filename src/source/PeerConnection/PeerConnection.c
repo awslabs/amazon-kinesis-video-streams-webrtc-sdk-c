@@ -182,14 +182,43 @@ CleanUp:
     return retStatus;
 }
 
+static VOID getSctpSessionCallbacks(PKvsPeerConnection pKvsPeerConnection, PSctpSessionCallbacks pSctpSessionCallbacks)
+{
+    pSctpSessionCallbacks->outboundPacketFunc = onSctpSessionOutboundPacket;
+    pSctpSessionCallbacks->dataChannelMessageFunc = onSctpSessionDataChannelMessage;
+    pSctpSessionCallbacks->dataChannelOpenFunc = onSctpSessionDataChannelOpen;
+    pSctpSessionCallbacks->dataChannelAckFunc = onSctpSessionDataChannelAck;
+    pSctpSessionCallbacks->customData = (UINT64) pKvsPeerConnection;
+}
+
+// SNAP: the SCTP session exists before the descriptions, as its INIT chunk goes in a=sctp-init
+static STATUS prepareSnapSctpSession(PKvsPeerConnection pKvsPeerConnection)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    SctpSessionCallbacks sctpSessionCallbacks;
+    BYTE init[SCTP_SNAP_MAX_INIT_SIZE];
+    UINT32 initLen = 0, encodedLen = SIZEOF(pKvsPeerConnection->localSctpInit);
+
+    CHK(pKvsPeerConnection->pSctpSession == NULL, retStatus);
+    getSctpSessionCallbacks(pKvsPeerConnection, &sctpSessionCallbacks);
+    CHK_STATUS(
+        createSctpSessionWithSnap(&sctpSessionCallbacks, pKvsPeerConnection->timerQueueHandle, init, &initLen, &pKvsPeerConnection->pSctpSession));
+    CHK_STATUS(base64Encode(init, initLen, pKvsPeerConnection->localSctpInit, &encodedLen));
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+
+    return retStatus;
+}
+
 STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
 {
     ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
+    STATUS retStatus = STATUS_SUCCESS, snapStatus;
     SctpSessionCallbacks sctpSessionCallbacks;
     AllocateSctpSortDataChannelsData data;
-
-    BOOL locked = FALSE;
+    UINT64 roundTripTime = 0;
+    BOOL locked = FALSE, snapEstablish = FALSE;
     PHashTable pKeyed = NULL;
     AllocateSctpChannelList list;
     UINT32 i;
@@ -218,13 +247,19 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     CHK_LOG_ERR(hashTableFree(data.unkeyedDataChannels));
     data.unkeyedDataChannels = NULL;
 
-    // Create the SCTP Session
-    sctpSessionCallbacks.outboundPacketFunc = onSctpSessionOutboundPacket;
-    sctpSessionCallbacks.dataChannelMessageFunc = onSctpSessionDataChannelMessage;
-    sctpSessionCallbacks.dataChannelOpenFunc = onSctpSessionDataChannelOpen;
-    sctpSessionCallbacks.dataChannelAckFunc = onSctpSessionDataChannelAck;
-    sctpSessionCallbacks.customData = (UINT64) pKvsPeerConnection;
-    CHK_STATUS(createSctpSession(&sctpSessionCallbacks, pKvsPeerConnection->timerQueueHandle, &(pKvsPeerConnection->pSctpSession)));
+    // Create the SCTP Session, unless SNAP did already. Its INIT went in the SDP: open the association from the peer's,
+    // or fall back to the handshake when the peer had none. This must precede any SCTP packet of the peer.
+    if (pKvsPeerConnection->pSctpSession == NULL) {
+        getSctpSessionCallbacks(pKvsPeerConnection, &sctpSessionCallbacks);
+        CHK_STATUS(createSctpSession(&sctpSessionCallbacks, pKvsPeerConnection->timerQueueHandle, &(pKvsPeerConnection->pSctpSession)));
+    } else if (pKvsPeerConnection->remoteSctpInitLen > 0) {
+        // Opened after the channels below: what their onOpen sends then leaves with the DCEP OPEN in one packet
+        snapEstablish = TRUE;
+    } else {
+        CHK_STATUS(sctpSessionSnapSendInit(pKvsPeerConnection->pSctpSession));
+    }
+    // Under dataChannelsLock: a channel created from now on sees the keyed table
+    ATOMIC_STORE_BOOL(&pKvsPeerConnection->sctpStarted, TRUE);
 
     // Snapshot the channels to open; they are announced and opened once the lock is released (channels are
     // only freed with the peer connection, so the pointers stay valid)
@@ -239,6 +274,19 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     // A channel that fails to open is closed and the others still open; the association itself is up
     for (i = 0; i < list.count; i++) {
         allocateSctpOpenDataChannel(pKvsPeerConnection, list.pChannels[i]);
+    }
+
+    if (snapEstablish) {
+        // No INIT exchange measures the round trip: ICE's stands in for it
+        CHK_LOG_ERR(iceAgentGetRoundTripTime(pKvsPeerConnection->pIceAgent, &roundTripTime));
+        snapStatus = sctpSessionSnapEstablish(pKvsPeerConnection->pSctpSession, pKvsPeerConnection->remoteSctpInit,
+                                              pKvsPeerConnection->remoteSctpInitLen, roundTripTime);
+        if (STATUS_FAILED(snapStatus)) {
+            // The channels are open and their first messages queued: when usrsctp refused the peer's INIT but kept the
+            // association prepared, the handshake carries them instead, as with a peer without SNAP
+            DLOGW("Falling back to the SCTP handshake, the peer's INIT did not open the association: 0x%08x", snapStatus);
+            CHK_STATUS(sctpSessionSnapSendInit(pKvsPeerConnection->pSctpSession));
+        }
     }
 
 CleanUp:
@@ -293,7 +341,7 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
 
 #ifdef ENABLE_DATA_CHANNEL
             if (ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpIsEnabled)) {
-                if (pKvsPeerConnection->pSctpSession == NULL) {
+                if (!ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpStarted)) {
                     CHK_STATUS(allocateSctp(pKvsPeerConnection));
                 }
 
@@ -1213,6 +1261,16 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
 
     NULLABLE_SET_EMPTY(pKvsPeerConnection->canTrickleIce);
 
+#ifdef ENABLE_DATA_CHANNEL
+    if (pConfiguration->kvsRtcConfiguration.enableSctpSnap) {
+        if (sctpSnapSupported()) {
+            pKvsPeerConnection->snapEnabled = TRUE;
+        } else {
+            DLOGW("SNAP needs a usrsctp with usrsctp_snap_prepare, continuing without it");
+        }
+    }
+#endif
+
     if (!pConfiguration->kvsRtcConfiguration.disableSenderSideBandwidthEstimation) {
         pKvsPeerConnection->twccLock = MUTEX_CREATE(TRUE);
         pKvsPeerConnection->pTwccManager = (PTwccManager) MEMCALLOC(1, SIZEOF(TwccManager));
@@ -1565,6 +1623,31 @@ CleanUp:
     return extid;
 }
 
+#ifdef ENABLE_DATA_CHANNEL
+// SNAP: takes the INIT chunk out of an a=sctp-init of the application m-line. A malformed one fails the description.
+static STATUS readRemoteSctpInit(PKvsPeerConnection pKvsPeerConnection, PSdpMediaDescription pMediaDescription)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 i, initLen;
+
+    pKvsPeerConnection->remoteSctpInitLen = 0;
+    for (i = 0; i < pMediaDescription->mediaAttributesCount; i++) {
+        if (STRCMP(pMediaDescription->sdpAttributes[i].attributeName, "sctp-init") == 0) {
+            initLen = SIZEOF(pKvsPeerConnection->remoteSctpInit);
+            CHK_ERR(STATUS_SUCCEEDED(base64Decode(pMediaDescription->sdpAttributes[i].attributeValue,
+                                                  (UINT32) STRLEN(pMediaDescription->sdpAttributes[i].attributeValue),
+                                                  pKvsPeerConnection->remoteSctpInit, &initLen)) &&
+                        sctpSnapInitIsValid(pKvsPeerConnection->remoteSctpInit, initLen),
+                    STATUS_SCTP_INVALID_SNAP_INIT, "Invalid a=sctp-init in the remote description");
+            pKvsPeerConnection->remoteSctpInitLen = initLen;
+        }
+    }
+
+CleanUp:
+    return retStatus;
+}
+#endif
+
 STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionInit pSessionDescriptionInit)
 {
     ENTERS();
@@ -1652,6 +1735,10 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
         if (STRNCMP(pSessionDescription->mediaDescriptions[i].mediaName, "application", SIZEOF("application") - 1) == 0) {
             if (!pKvsPeerConnection->isOffer && !ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpIsEnabled)) {
                 ATOMIC_STORE_BOOL(&pKvsPeerConnection->sctpIsEnabled, TRUE);
+            }
+            // SNAP: the peer's INIT chunk, settled once the association is started
+            if (pKvsPeerConnection->snapEnabled && !ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpStarted)) {
+                CHK_STATUS(readRemoteSctpInit(pKvsPeerConnection, &pSessionDescription->mediaDescriptions[i]));
             }
         }
 #endif
@@ -1805,6 +1892,10 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
 
 #ifdef ENABLE_DATA_CHANNEL
     ATOMIC_STORE_BOOL(&pKvsPeerConnection->sctpIsEnabled, TRUE);
+    // SNAP: our INIT goes in the offer
+    if (pKvsPeerConnection->snapEnabled) {
+        CHK_STATUS(prepareSnapSctpSession(pKvsPeerConnection));
+    }
 #endif
 
     CHK_STATUS(setPayloadTypesForOffer(pKvsPeerConnection->pCodecTable));
@@ -1836,6 +1927,13 @@ STATUS createAnswer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIn
 
     pSessionDescriptionInit->type = SDP_TYPE_ANSWER;
     pKvsPeerConnection->isOffer = FALSE;
+
+#ifdef ENABLE_DATA_CHANNEL
+    // SNAP: answered with our INIT when the offer had one
+    if (pKvsPeerConnection->snapEnabled && pKvsPeerConnection->remoteSctpInitLen > 0 && ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpIsEnabled)) {
+        CHK_STATUS(prepareSnapSctpSession(pKvsPeerConnection));
+    }
+#endif
 
     CHK_STATUS(peerConnectionGetCurrentLocalDescription(pPeerConnection, pSessionDescriptionInit));
     // If embedded SDK acts as the master
