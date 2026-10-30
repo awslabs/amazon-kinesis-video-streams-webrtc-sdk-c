@@ -20,6 +20,9 @@ extern "C" {
 #define SCTP_DCEP_LABEL_OFFSET           12
 #define SCTP_MAX_ALLOWABLE_PACKET_LENGTH (SCTP_DCEP_HEADER_LENGTH + MAX_DATA_CHANNEL_NAME_LEN + MAX_DATA_CHANNEL_PROTOCOL_LEN + 2)
 
+// Largest SCTP INIT chunk exchanged out-of-band for SNAP (draft-uberti-tsvwg-warp, section 4.1)
+#define SCTP_SNAP_MAX_INIT_SIZE 512
+
 #define SCTP_SESSION_ACTIVE             0
 #define SCTP_SESSION_SHUTDOWN_INITIATED 1
 #define SCTP_SESSION_SHUTDOWN_COMPLETED 2
@@ -96,11 +99,43 @@ typedef struct {
     SctpSessionCallbacks sctpSessionCallbacks;
     TIMER_QUEUE_HANDLE timerQueueHandle;
     UINT32 timerTaskId;
+    // SNAP: the INIT went out-of-band instead of to the peer
+    BOOL snapPrepared;
+    // The association is up (SCTP_COMM_UP)
+    volatile ATOMIC_BOOL established;
 } SctpSession, *PSctpSession;
 
 STATUS initSctpSession();
 VOID deinitSctpSession();
 STATUS createSctpSession(PSctpSessionCallbacks, TIMER_QUEUE_HANDLE, PSctpSession*);
+
+/**
+ * SNAP (draft-uberti-tsvwg-warp, section 4.1): whether the SCTP stack can exchange its INIT out-of-band.
+ */
+BOOL sctpSnapSupported();
+
+/**
+ * SNAP: creates the session without starting the SCTP handshake and returns the INIT chunk it would have sent, for
+ * the peer to get out-of-band (a=sctp-init). Once the lower layer is up, sctpSessionSnapEstablish() opens the
+ * association with the INIT of the peer, or sctpSessionSnapSendInit() falls back to the handshake. Both succeed when
+ * the peer's INIT came over the wire first and was answered, as that handshake opens the association.
+ * No INIT exchange measures the round trip, so sctpSessionSnapEstablish() takes the lower layer's (ICE's) as the
+ * association's first measurement, in 100ns units, or 0 to start from RTO.Initial (3 s).
+ *
+ * @param PSctpSessionCallbacks - callbacks
+ * @param TIMER_QUEUE_HANDLE - timer queue
+ * @param PBYTE - OUT: buffer of SCTP_SNAP_MAX_INIT_SIZE for the INIT chunk
+ * @param PUINT32 - OUT: its length
+ * @param PSctpSession* - OUT: the session
+ */
+STATUS createSctpSessionWithSnap(PSctpSessionCallbacks, TIMER_QUEUE_HANDLE, PBYTE, PUINT32, PSctpSession*);
+STATUS sctpSessionSnapEstablish(PSctpSession, PBYTE, UINT32, UINT64);
+STATUS sctpSessionSnapSendInit(PSctpSession);
+
+/**
+ * SNAP: whether the bytes are an INIT chunk the association can be opened with, as checked for an INIT-ACK
+ */
+BOOL sctpSnapInitIsValid(PBYTE, UINT32);
 STATUS freeSctpSession(PSctpSession*);
 STATUS putSctpPacket(PSctpSession, PBYTE, UINT32);
 // The last BOOL sends ordered whatever the channel's setting: an in-band channel until its DATA_CHANNEL_ACK, RFC 8832 section 6
