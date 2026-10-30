@@ -103,6 +103,15 @@ jobs:
             cmake_flags: "-DBUILD_TEST=ON -DUSE_OPENSSL3=ON -DPARALLEL_BUILD=ON"
           - name: Shared MbedTLS libsrtp3 mbedTLS4
             cmake_flags: "-DBUILD_TEST=ON -DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON -DUSE_LIBSRTP3=ON -DUSE_MBEDTLS4=ON -DPARALLEL_BUILD=ON"
+          - name: Shared AWS-LC
+            cmake_flags: "-DBUILD_TEST=ON -DUSE_AWS_LC=ON -DPARALLEL_BUILD=ON"
+          - name: Static AWS-LC
+            cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=ON -DUSE_AWS_LC=ON -DPARALLEL_BUILD=ON"
+          # AWS-LC static FIPS builds are Linux-only (AWS-LC raises
+          # "Static FIPS build of AWS-LC is supported only on Linux"), so macOS
+          # exercises the shared FIPS path only. The Linux matrix covers static FIPS.
+          - name: Shared AWS-LC FIPS
+            cmake_flags: "-DBUILD_TEST=ON -DUSE_AWS_LC=ON -DUSE_AWS_LC_FIPS=ON -DPARALLEL_BUILD=ON"
           - name: Shared OpenSSL System Deps
             # Tests disabled (due to dependency issues): 
             # - GCC: Homebrew's libgtest is built with
@@ -112,6 +121,26 @@ jobs:
             #   which causes certain test failure (HMAC() returns NULL)
             cmake_flags: "-DBUILD_TEST=OFF -DBUILD_DEPENDENCIES=OFF -DPARALLEL_BUILD=ON"
             system_deps: true
+        # AWS-LC does not build with gcc on macOS, so clang covers AWS-LC there.
+        # Two separate upstream failures, both inside AWS-LC's own build:
+        #   - gcc-14 rejects the Apple blocks syntax in the system MDItem.h,
+        #     which third_party/jitterentropy includes.
+        #   - AWS-LC passes --noexecstack when assembling its .S files, and the
+        #     clang that drives them rejects that argument.
+        # Every clang AWS-LC config on both macOS runners passes.
+        exclude:
+          - compiler: gcc
+            config:
+              name: Shared AWS-LC
+              cmake_flags: "-DBUILD_TEST=ON -DUSE_AWS_LC=ON -DPARALLEL_BUILD=ON"
+          - compiler: gcc
+            config:
+              name: Static AWS-LC
+              cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=ON -DUSE_AWS_LC=ON -DPARALLEL_BUILD=ON"
+          - compiler: gcc
+            config:
+              name: Shared AWS-LC FIPS
+              cmake_flags: "-DBUILD_TEST=ON -DUSE_AWS_LC=ON -DUSE_AWS_LC_FIPS=ON -DPARALLEL_BUILD=ON"
       fail-fast: false
 
     permissions:
@@ -157,6 +186,16 @@ jobs:
       - name: Install jsonschema + jinja2
         if: ${{ contains(matrix.config.cmake_flags, 'USE_MBEDTLS4') }}
         run: pip install jsonschema jinja2
+
+      # AWS-LC hard-requires Go and Perl for a FIPS build and refuses to
+      # configure without them. Perl ships with the macOS runners; Go does not.
+      # Non-FIPS AWS-LC builds degrade gracefully (portable C instead of
+      # optimised assembly) so they do not need this step.
+      - name: Set up Go (AWS-LC FIPS)
+        if: ${{ contains(matrix.config.cmake_flags, 'USE_AWS_LC_FIPS') }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
 
       - name: Configure and build ${{ matrix.config.name }}
         run: |
@@ -329,6 +368,18 @@ jobs:
             cmake-args: "-DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
           - name: openssl3
             cmake-args: "-DUSE_OPENSSL3=ON -DUSE_MBEDTLS=OFF"
+          - name: aws-lc
+            cmake-args: "-DUSE_AWS_LC=ON"
+          - name: aws-lc-static
+            cmake-args: "-DUSE_AWS_LC=ON -DBUILD_STATIC_LIBS=ON"
+          # Linux is the only platform where AWS-LC supports a static FIPS build,
+          # so this combination is covered here and nowhere else.
+          - name: aws-lc-fips-static
+            cmake-args: "-DUSE_AWS_LC=ON -DUSE_AWS_LC_FIPS=ON -DBUILD_STATIC_LIBS=ON"
+            needs_go: true
+          - name: aws-lc-fips-shared
+            cmake-args: "-DUSE_AWS_LC=ON -DUSE_AWS_LC_FIPS=ON"
+            needs_go: true
           # ENABLE_KVS_THREADPOOL also enables early STUN DNS resolution and pool-dispatched DTLS handshakes.
           # cross-compilation.yml only compiles this configuration; this entry (and address-sanitizer-threadpool
           # in sanitizers.yaml) runs the tests under it.
@@ -388,6 +439,20 @@ jobs:
         with:
           cmake-version: '3.x'
 
+      # AWS-LC refuses to configure a FIPS build without Go and Perl. The bare
+      # ubuntu images carry neither. Non-FIPS AWS-LC builds only lose the
+      # optimised assembly without Perl, so install it for every AWS-LC config
+      # to keep them representative of a real deployment.
+      - name: Install Perl and NASM (AWS-LC)
+        if: ${{ contains(matrix.build-configuration.cmake-args, 'USE_AWS_LC') }}
+        run: apt-get install -y perl nasm
+
+      - name: Set up Go (AWS-LC FIPS)
+        if: ${{ matrix.build-configuration.needs_go }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
       - name: Build repository
         shell: bash
         run: |
@@ -412,6 +477,13 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Check the AWS-LC backend
+        # The suite does not run on the build-only container, so run the offline
+        # backend tests on their own there. Where the suite runs, it includes them.
+        if: ${{ contains(matrix.build-configuration.cmake-args, 'USE_AWS_LC') && matrix.container.test != 'ON' }}
+        working-directory: ./build
+        run: ./tst/webrtc_client_test --gtest_filter='CryptoBackendTest.*'
 
       - name: Run tests
         # Don't run all the tests multiple times for each configuration (duplicate)
@@ -787,3 +859,95 @@ jobs:
             echo "$CMAKE_LOGS"
             exit 1
           fi
+
+  # Strict post-quantum gate against the live service. Runs the two client
+  # samples and the storage sample under a packet capture and asserts that every
+  # TLS 1.3 handshake to a KVS host negotiated X25519MLKEM768, except the hosts
+  # below.
+  #
+  # TODO: Gate the GetIceServerConfig (r-), signaling WSS (m-, v-) and storage
+  # session (JoinStorageSession) hosts once the service supports ML-KEM on them.
+  # See NOT_GATED_PREFIXES and STORAGE_HOST in scripts/check-pqc.sh.
+  #
+  # This is the only check that observes a real handshake. Everything else is a
+  # unit test inside the test binary, and the SDK carries no diagnostic code for
+  # this on purpose: in TLS 1.3 the ServerHello names the selected group in
+  # cleartext, so tshark reads it off the wire.
+  #
+  # It is strict, so a service-side rollout step can turn it red without any code
+  # change here. When that happens, read the failing host in the output before
+  # touching the SDK. The offers the output lists for each host separate an SDK
+  # regression from an endpoint that stopped accepting ML-KEM.
+  aws-lc-pqc-handshake:
+    needs: cleanup-old-resources
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      AWS_KVS_LOG_LEVEL: 2
+      CHANNEL_NAME: SampleChannelAwsLcPqc
+      # A separate channel with media storage on, for JoinStorageSession. It is
+      # not shared with storage-samples.yml, so the two jobs never contend for
+      # the single sending peer a channel allows.
+      STORAGE_CHANNEL_NAME: SampleChannelAwsLcPqcStorage
+      STORAGE_STREAM_NAME: SampleStreamAwsLcPqcStorage
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2.2.0
+        with:
+          cmake-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          # tshark unattended: suppress the dumpcap-for-non-root prompt.
+          echo "wireshark-common wireshark-common/install-setuid boolean false" | sudo debconf-set-selections
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -y install tshark tcpdump
+
+      - name: Build repository
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DUSE_AWS_LC=ON -DBUILD_TEST=ON -DENABLE_AWS_SDK_IN_TESTS=OFF -DPARALLEL_BUILD=ON
+          make -j$(nproc)
+
+      - name: Check the AWS-LC backend
+        # Offline backend tests only. The capture below is this job's real check.
+        working-directory: ./build
+        run: ./tst/webrtc_client_test --gtest_filter='CryptoBackendTest.*'
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Prepare signaling channel
+        run: ./scripts/prepare-channel.sh ${{ env.CHANNEL_NAME }}
+
+      - name: Prepare storage channel and stream
+        run: |
+          if ! aws kinesisvideo describe-stream --stream-name "$STORAGE_STREAM_NAME" > /dev/null 2>&1; then
+            aws kinesisvideo create-stream --stream-name "$STORAGE_STREAM_NAME" --data-retention-in-hours 1
+          fi
+          ./scripts/prepare-channel.sh "$STORAGE_CHANNEL_NAME"
+
+          CHANNEL_ARN=$(aws kinesisvideo describe-signaling-channel --channel-name "$STORAGE_CHANNEL_NAME" --query 'ChannelInfo.ChannelARN' --output text)
+          STREAM_ARN=$(aws kinesisvideo describe-stream --stream-name "$STORAGE_STREAM_NAME" --query 'StreamInfo.StreamARN' --output text)
+          STATUS=$(aws kinesisvideo describe-media-storage-configuration --channel-arn "$CHANNEL_ARN" --query 'MediaStorageConfiguration.Status' --output text)
+          if [ "$STATUS" != "ENABLED" ]; then
+            aws kinesisvideo update-media-storage-configuration \
+              --channel-arn "$CHANNEL_ARN" \
+              --media-storage-configuration Status=ENABLED,StreamARN="$STREAM_ARN"
+          fi
+
+      - name: Check the negotiated key exchange group
+        run: ./scripts/check-pqc.sh ${{ env.CHANNEL_NAME }} build ${{ env.STORAGE_CHANNEL_NAME }}

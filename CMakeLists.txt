@@ -13,6 +13,9 @@ option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from sour
 option(USE_OPENSSL "Use openssl as crypto library" ON)
 option(USE_OPENSSL3 "Build/use OpenSSL 3.x (default: 1.1.1x). Auto-detected when using system OpenSSL 3.x." OFF)
 option(USE_MBEDTLS "Use mbedtls as crypto library" OFF)
+option(USE_AWS_LC "Use AWS-LC as crypto library. Provides post-quantum TLS 1.3 key exchange (ML-KEM) and, with USE_AWS_LC_FIPS, FIPS 140-3 validated crypto." OFF)
+option(USE_AWS_LC_FIPS "Build AWS-LC in FIPS mode (-DFIPS=1). Implies USE_AWS_LC. Requires Go and Perl; Linux-only for static builds." OFF)
+set(AWS_LC_GIT_TAG "" CACHE STRING "Override the AWS-LC git ref. Defaults to a mainline tag, or a fips-<date> branch when USE_AWS_LC_FIPS=ON.")
 option(BUILD_STATIC_LIBS "Build all libraries statically. (This includes third-party libraries.)" OFF)
 
 # Per-dependency build control. Each defaults to BUILD_DEPENDENCIES.
@@ -246,7 +249,82 @@ if (USE_LIBSRTP3)
   add_definitions(-DUSE_LIBSRTP3)
 endif()
 
-if(USE_OPENSSL)
+# ---------------------------------------------------------------------------
+# AWS-LC backend selection
+#
+# AWS-LC is API-compatible with OpenSSL 1.1.1 (it reports
+# OPENSSL_VERSION_NUMBER 0x1010107f and ships include/openssl/*.h), so the SDK
+# reuses the existing *_openssl.c crypto implementations verbatim rather than
+# forking them. Two defines are therefore emitted together:
+#
+#   KVS_USE_OPENSSL  - "compile against the OpenSSL API surface". Selects the
+#                      *_openssl.c sources and all existing OpenSSL code paths.
+#   KVS_USE_AWS_LC   - "that surface is AWS-LC". Gates the additions AWS-LC
+#                      uniquely enables: ML-KEM group configuration and FIPS
+#                      status reporting.
+#
+# This is deliberate. Defining KVS_USE_AWS_LC alone would require editing every
+# existing `#ifdef KVS_USE_OPENSSL` site across src/ and tst/ and would fork the
+# DTLS/TLS implementations, for no benefit: the API is the same. Mutual
+# exclusion is enforced at the CMake option level, which is where it matters.
+# ---------------------------------------------------------------------------
+if(USE_AWS_LC_FIPS AND NOT USE_AWS_LC)
+  message(STATUS "USE_AWS_LC_FIPS=ON implies USE_AWS_LC=ON; promoting.")
+  set(USE_AWS_LC ON CACHE BOOL "Forced by USE_AWS_LC_FIPS" FORCE)
+endif()
+
+if(USE_AWS_LC)
+  if(USE_MBEDTLS)
+    message(FATAL_ERROR "USE_AWS_LC=ON is mutually exclusive with USE_MBEDTLS=ON.")
+  endif()
+  # USE_OPENSSL defaults to ON, so treat an AWS-LC request as superseding it
+  # instead of failing out of the box. Same pattern as USE_MBEDTLS4 promoting
+  # USE_LIBSRTP3 above.
+  if(USE_OPENSSL)
+    message(STATUS "USE_AWS_LC=ON supersedes USE_OPENSSL; disabling USE_OPENSSL.")
+    set(USE_OPENSSL OFF CACHE BOOL "Superseded by USE_AWS_LC" FORCE)
+  endif()
+  if(USE_OPENSSL3)
+    message(FATAL_ERROR "USE_OPENSSL3=ON is meaningless with USE_AWS_LC=ON. AWS-LC presents the OpenSSL 1.1.1 API, not 3.x.")
+  endif()
+
+  # FIPS platform constraints, mirrored from AWS-LC's own CMakeLists so the
+  # failure surfaces here with an actionable message instead of deep inside the
+  # ExternalProject build.
+  if(USE_AWS_LC_FIPS)
+    if(APPLE AND BUILD_STATIC_LIBS)
+      message(FATAL_ERROR
+        "AWS-LC static FIPS builds are supported only on Linux. On macOS use a "
+        "shared FIPS build (-DBUILD_STATIC_LIBS=OFF) or drop -DUSE_AWS_LC_FIPS=ON.")
+    endif()
+    if(WIN32 AND BUILD_STATIC_LIBS)
+      message(FATAL_ERROR
+        "AWS-LC static FIPS builds are supported only on Linux. On Windows use a "
+        "shared FIPS build (-DBUILD_STATIC_LIBS=OFF) or drop -DUSE_AWS_LC_FIPS=ON.")
+    endif()
+    if(ADDRESS_SANITIZER OR MEMORY_SANITIZER)
+      message(FATAL_ERROR
+        "AWS-LC disables its FIPS integrity check under ASan/MSan, so the build "
+        "would not be FIPS-validated. Drop -DUSE_AWS_LC_FIPS=ON for sanitizer builds.")
+    endif()
+  endif()
+endif()
+
+# TRUE when the crypto backend presents the OpenSSL API (real OpenSSL or
+# AWS-LC). Dependencies that only distinguish "OpenSSL vs mbedTLS" key off this.
+if(USE_OPENSSL OR USE_AWS_LC)
+  set(USE_OPENSSL_API ON)
+else()
+  set(USE_OPENSSL_API OFF)
+endif()
+
+if(USE_AWS_LC)
+  add_definitions(-DKVS_USE_OPENSSL)
+  add_definitions(-DKVS_USE_AWS_LC)
+  if(USE_AWS_LC_FIPS)
+    add_definitions(-DKVS_USE_AWS_LC_FIPS)
+  endif()
+elseif(USE_OPENSSL)
   add_definitions(-DKVS_USE_OPENSSL)
 elseif(USE_MBEDTLS)
   add_definitions(-DKVS_USE_MBEDTLS)
@@ -279,11 +357,15 @@ if(BUILD_DEPENDENCIES OR BUILD_WEBSOCKETS OR BUILD_SRTP OR BUILD_USRSCTP)
 
   message(STATUS "Begin building dependencies.")
 
-  set(SSL_OPTIONS USE_OPENSSL USE_MBEDTLS)
+  set(SSL_OPTIONS USE_OPENSSL USE_MBEDTLS USE_AWS_LC)
   count_true(ENABLED_SSL_OPTION_COUNT ${SSL_OPTIONS})
 
   if(ENABLED_SSL_OPTION_COUNT GREATER "1")
     message(FATAL_ERROR "Only one of ${SSL_OPTIONS} can be enabled")
+  endif()
+
+  if(ENABLED_SSL_OPTION_COUNT EQUAL "0")
+    message(FATAL_ERROR "One of ${SSL_OPTIONS} must be enabled")
   endif()
 
   # OpenSSL/mbedTLS is built from source only when BUILD_DEPENDENCIES is fully ON.
@@ -297,6 +379,21 @@ if(BUILD_DEPENDENCIES OR BUILD_WEBSOCKETS OR BUILD_SRTP OR BUILD_USRSCTP)
                      -DUSE_OPENSSL3=${USE_OPENSSL3})
       build_dependency(openssl ${BUILD_ARGS})
       set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
+    elseif(USE_AWS_LC)
+      set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+                     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                     -DUSE_AWS_LC_FIPS=${USE_AWS_LC_FIPS}
+                     -DAWS_LC_GIT_TAG=${AWS_LC_GIT_TAG}
+                     -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
+                     -DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT}
+                     -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+                     "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}")
+      build_dependency(awslc ${BUILD_ARGS})
+      # AWS-LC installs at the same prefix and with the same names as OpenSSL,
+      # so downstream dependency builds that only know about OPENSSL_ROOT_DIR
+      # (libwebsockets, libsrtp) work unchanged.
+      set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
+      set(AWSLC_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
     elseif(USE_MBEDTLS)
       set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
                      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
@@ -352,7 +449,14 @@ if(BUILD_DEPENDENCIES OR BUILD_WEBSOCKETS OR BUILD_SRTP OR BUILD_USRSCTP)
   endif()
 
   # Find SSL libraries (needed by libwebsockets build args)
-  if (USE_OPENSSL)
+  if (USE_AWS_LC)
+    find_package(AWSLC REQUIRED)
+    set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${AWSLC_INCLUDE_DIR})
+
+    # AWS-LC installs libcrypto.pc / libssl.pc, so pkg-config based dependency
+    # builds (libsrtp's autotools path) resolve it exactly as they do OpenSSL.
+    set(ENV{PKG_CONFIG_PATH} "${OPEN_SRC_INSTALL_PREFIX}/lib64/pkgconfig:${OPEN_SRC_INSTALL_PREFIX}/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
+  elseif (USE_OPENSSL)
     find_package(OpenSSL REQUIRED)
     set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
 
@@ -370,13 +474,21 @@ if(BUILD_DEPENDENCIES OR BUILD_WEBSOCKETS OR BUILD_SRTP OR BUILD_USRSCTP)
     message(STATUS "Building libwebsockets from source")
     if(WIN32)
       set(OPENSSL_INCLUDE_DIRS "${OPEN_SRC_INSTALL_PREFIX}/include/")
-      set(OPENSSL_CRYPTO_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libcrypto.lib")
-      set(OPENSSL_SSL_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libssl.lib")
+      if(USE_AWS_LC)
+        # AWS-LC's MSVC build emits ssl.lib / crypto.lib, not the libssl.lib /
+        # libcrypto.lib that OpenSSL's Perl-driven build produces. Use whatever
+        # FindAWSLC actually resolved instead of hardcoding a name.
+        set(OPENSSL_CRYPTO_LIBRARY "${AWSLC_CRYPTO_LIBRARY}")
+        set(OPENSSL_SSL_LIBRARY "${AWSLC_SSL_LIBRARY}")
+      else()
+        set(OPENSSL_CRYPTO_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libcrypto.lib")
+        set(OPENSSL_SSL_LIBRARY "${OPEN_SRC_INSTALL_PREFIX}/lib/libssl.lib")
+      endif()
       set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
       string(REPLACE ";" "|" OPENSSL_LIBRARIES_ALT_SEP "${OPENSSL_LIBRARIES}")
       set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
                     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-                    -DUSE_OPENSSL=${USE_OPENSSL}
+                    -DUSE_OPENSSL=${USE_OPENSSL_API}
                     -DUSE_MBEDTLS=${USE_MBEDTLS}
                     -DUSE_MBEDTLS4=${USE_MBEDTLS4}
                     -DLWS_EXT_PTHREAD_INCLUDE_DIR=${EXT_PTHREAD_INCLUDE_DIR}
@@ -389,7 +501,7 @@ if(BUILD_DEPENDENCIES OR BUILD_WEBSOCKETS OR BUILD_SRTP OR BUILD_USRSCTP)
       set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
                     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                     -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
-                    -DUSE_OPENSSL=${USE_OPENSSL}
+                    -DUSE_OPENSSL=${USE_OPENSSL_API}
                     -DUSE_MBEDTLS=${USE_MBEDTLS}
                     -DUSE_MBEDTLS4=${USE_MBEDTLS4}
                     -DLWS_OPENSSL_CRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}
@@ -411,7 +523,7 @@ if(BUILD_DEPENDENCIES OR BUILD_WEBSOCKETS OR BUILD_SRTP OR BUILD_USRSCTP)
         -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
         -DBUILD_LIBSRTP_HOST_PLATFORM=${BUILD_LIBSRTP_HOST_PLATFORM}
         -DBUILD_LIBSRTP_DESTINATION_PLATFORM=${BUILD_LIBSRTP_DESTINATION_PLATFORM}
-        -DUSE_OPENSSL=${USE_OPENSSL}
+        -DUSE_OPENSSL=${USE_OPENSSL_API}
         -DUSE_MBEDTLS=${USE_MBEDTLS}
         -DUSE_LIBSRTP3=${USE_LIBSRTP3}
         -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
@@ -432,7 +544,12 @@ endif()
 set(BUILD_ARGS
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
         -DBUILD_STATIC=${BUILD_STATIC_LIBS}
-        -DUSE_OPENSSL=${USE_OPENSSL}
+        # kvsCommonLws/producer-c only distinguishes OpenSSL from mbedTLS. AWS-LC
+        # satisfies its OpenSSL code path unchanged: it uses HMAC()/SHA256() for
+        # SigV4, and its CRYPTO_set_locking_callback() block in SslInit.c is
+        # additionally gated on OPENSSL_THREADS && SET_SSL_CALLBACKS, neither of
+        # which is set here.
+        -DUSE_OPENSSL=${USE_OPENSSL_API}
         -DUSE_MBEDTLS=${USE_MBEDTLS}
         -DKVS_DEFAULT_STACK_SIZE=${KVS_DEFAULT_STACK_SIZE}
         -DPRODUCER_C_VERSION_OVERRIDE=${PRODUCER_C_VERSION_OVERRIDE}
@@ -445,7 +562,10 @@ build_dependency(kvsCommonLws ${BUILD_ARGS})
 
 find_package(Threads)
 find_package(PkgConfig REQUIRED)
-if (USE_OPENSSL)
+if (USE_AWS_LC)
+  find_package(AWSLC REQUIRED)
+  set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${AWSLC_INCLUDE_DIR})
+elseif (USE_OPENSSL)
   find_package(OpenSSL REQUIRED)
   set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
 
@@ -605,10 +725,16 @@ file(
   "src/source/Stun/*.c"
   "src/source/Metrics/*.c")
 
-if (USE_OPENSSL)
+# AWS-LC reuses the *_openssl.c implementations (identical API); only the
+# AWS-LC-specific additions live in *_awslc.c.
+if (USE_AWS_LC)
   list(FILTER WEBRTC_CLIENT_SOURCE_FILES EXCLUDE REGEX ".*_mbedtls\\.c")
+elseif (USE_OPENSSL)
+  list(FILTER WEBRTC_CLIENT_SOURCE_FILES EXCLUDE REGEX ".*_mbedtls\\.c")
+  list(FILTER WEBRTC_CLIENT_SOURCE_FILES EXCLUDE REGEX ".*_awslc\\.c")
 elseif (USE_MBEDTLS)
   list(FILTER WEBRTC_CLIENT_SOURCE_FILES EXCLUDE REGEX ".*_openssl\\.c")
+  list(FILTER WEBRTC_CLIENT_SOURCE_FILES EXCLUDE REGEX ".*_awslc\\.c")
 endif()
 
 file(GLOB WEBRTC_SIGNALING_CLIENT_SOURCE_FILES "src/source/Signaling/*.c")

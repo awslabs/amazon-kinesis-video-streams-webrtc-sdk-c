@@ -84,7 +84,26 @@ STATUS tlsSessionStartWithHostname(PTlsSession pTlsSession, BOOL isServer, PCHAR
 
     SSL_CTX_set_read_ahead(pTlsSession->pSslCtx, 1);
     SSL_CTX_set_verify(pTlsSession->pSslCtx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, tlsSessionCertificateVerifyCallback);
+    /* Note: set_cipher_list governs TLS 1.2-and-below suites only. TLS 1.3 suites
+     * are configured via SSL_CTX_set_ciphersuites, so this string does not block
+     * TLS 1.3 - which matters because ML-KEM key exchange requires TLS 1.3. */
     CHK(SSL_CTX_set_cipher_list(pTlsSession->pSslCtx, "HIGH:!aNULL:!MD5:!RC4"), STATUS_SSL_CTX_CREATION_FAILED);
+
+#ifdef KVS_USE_AWS_LC
+    /*
+     * This is the TURN-over-TLS (turns:) client context - a TLS 1.3 connection to
+     * an AWS TURN server, and therefore in scope for post-quantum key exchange.
+     * Offer the ML-KEM hybrid group with classical fallbacks.
+     *
+     * Non-fatal on failure: losing PQC preference is a downgrade in protection,
+     * not a loss of connectivity, and failing the TURN allocation outright would
+     * break media for peers behind symmetric NAT. The warning is logged inside
+     * awsLcConfigureTlsGroups.
+     */
+    if (STATUS_FAILED(awsLcConfigureTlsGroups(pTlsSession->pSslCtx))) {
+        DLOGW("Failed to configure post-quantum groups on the TURNS TLS context; continuing with AWS-LC defaults");
+    }
+#endif
 
     pTlsSession->pSsl = SSL_new(pTlsSession->pSslCtx);
     CHK(pTlsSession->pSsl != NULL, STATUS_CREATE_SSL_FAILED);

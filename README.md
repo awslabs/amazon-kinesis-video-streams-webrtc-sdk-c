@@ -127,6 +127,7 @@ $env:Path += ';C:\webrtc\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre
 These would be applicable if the SDK is being linked with system dependencies instead of building from source by the SDK.
 `libmbedtls`: `>= 2.25.0` (default: 3.6.x — see mbedTLS build matrix below)
 `libopenssl`: `= 1.1.1x` or `>= 3.0.0`
+`aws-lc`: `>= 1.36.0` (only when `-DUSE_AWS_LC=ON`; default built from source is `v5.9.0`)
 `libsrtp2` : `<= 2.5.0`
 `libusrsctp` : `<= 0.9.5.0`
 `libwebsockets` : `>= 4.2.0`
@@ -166,6 +167,18 @@ These would be applicable if the SDK is being linked with system dependencies in
 > [!NOTE]
 > OpenSSL 3.x support was added in v1.20.0. The SDK still builds against 1.1.1t by default (OpenSSL 1.1.1 reached End-of-Life in September 2023). Enable 3.x by passing `-DUSE_OPENSSL3=ON`; when linking against a system OpenSSL that is already >= 3.0, the flag is auto-enabled. See [Building against OpenSSL 3.x](#building-against-openssl-3x) for details.
 
+#### Crypto backends
+
+| Backend | Flag | Post-quantum TLS 1.3 | FIPS 140-3 |
+|---|---|---|---|
+| OpenSSL 1.1.1t | (default) | no | no |
+| OpenSSL 3.x | `-DUSE_OPENSSL3=ON` | 3.5 and later, by default | no |
+| mbedTLS | `-DUSE_MBEDTLS=ON` | no | no |
+| **AWS-LC** | `-DUSE_AWS_LC=ON` | **yes** (`X25519MLKEM768`) | `-DUSE_AWS_LC_FIPS=ON` |
+
+> [!NOTE]
+> AWS-LC is the only backend the SDK can build with FIPS 140-3 validated crypto. AWS-LC and OpenSSL 3.5 or later both offer post-quantum key exchange. The SDK offers it on the TLS 1.3 connections to AWS: the control plane HTTPS calls, the signaling channel over WSS, and TURN over TLS. A connection is post-quantum only when the endpoint also selects ML-KEM. The peer-to-peer DTLS-SRTP media path is DTLS 1.2 and has no ML-KEM. AWS-LC is not tested on Windows yet. See [docs/AWS_LC.md](docs/AWS_LC.md) for build instructions, which connections offer ML-KEM, and how to confirm a build.
+
 #### Cross-Compilation
 
 If you wish to cross-compile `CC` and `CXX` are respected when building the library and all its dependencies. You will also need to set `BUILD_OPENSSL_PLATFORM`, `BUILD_LIBSRTP_HOST_PLATFORM` and `BUILD_LIBSRTP_DESTINATION_PLATFORM`. See our codecov.io for an example of this. Every commit is cross compiled to ensure that it continues to work.
@@ -189,6 +202,9 @@ You can pass the following options to `cmake ..`:
 * `-DBUILD_SRTP` -- Build libsrtp from source. Defaults to value of BUILD_DEPENDENCIES.
 * `-DUSE_LIBSRTP3` -- Build and link against libsrtp 3.x (cisco/libsrtp `main`, renamed to `libsrtp3`) instead of the long-standing 2.x default. OFF by default. The 3.x line adds PSA Crypto / mbedTLS 4 support but introduces public API breaks (opaque `srtp_policy_t`, separate src/dst buffers on `srtp_protect`/`srtp_unprotect`, separate master key + salt) — these are handled internally by the SDK. Use this if your platform requires mbedTLS 4 (e.g. ESP-IDF v6).
 * `-DUSE_OPENSSL3` -- Build and link against OpenSSL 3.x (git tag `openssl-3.5.7`) instead of the default 1.1.1t (`OpenSSL_1_1_1t`). OFF by default. When linking against a system OpenSSL that is already >= 3.0, this flag is auto-enabled. The mbedTLS path is unaffected. See [Building against OpenSSL 3.x](#building-against-openssl-3x) for usage.
+* `-DUSE_AWS_LC` -- Build and link against [AWS-LC](https://github.com/aws/aws-lc) instead of OpenSSL or mbedTLS. OFF by default. Supersedes `-DUSE_OPENSSL` (you do not need to pass `-DUSE_OPENSSL=OFF`). Adds post-quantum TLS 1.3 key exchange via the `X25519MLKEM768` hybrid group. See [docs/AWS_LC.md](docs/AWS_LC.md).
+* `-DUSE_AWS_LC_FIPS` -- Build AWS-LC in FIPS 140-3 mode. OFF by default. Implies `-DUSE_AWS_LC=ON`. Requires Go >= 1.20 and Perl; static builds are Linux-only. See [docs/AWS_LC.md](docs/AWS_LC.md).
+* `-DAWS_LC_GIT_TAG` -- Override the AWS-LC git ref. Defaults to `v5.9.0`, or the `fips-<date>-lts` branch when `-DUSE_AWS_LC_FIPS=ON`.
 * `-DBUILD_USRSCTP` -- Build libusrsctp from source. Defaults to value of BUILD_DEPENDENCIES.
 * `-DBUILD_OPENSSL_PLATFORM` -- If building OpenSSL what is the target platform
 * `-DBUILD_LIBSRTP_HOST_PLATFORM` -- If building LibSRTP what is the current platform

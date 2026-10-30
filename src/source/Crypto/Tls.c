@@ -10,6 +10,7 @@ STATUS tlsSessionChangeState(PTlsSession pTlsSession, TLS_SESSION_STATE newState
     CHK(pTlsSession->state != newState, retStatus);
 
     pTlsSession->state = newState;
+
     if (pTlsSession->callbacks.stateChangeFn != NULL) {
         pTlsSession->callbacks.stateChangeFn(pTlsSession->callbacks.stateChangeFnCustomData, newState);
     }

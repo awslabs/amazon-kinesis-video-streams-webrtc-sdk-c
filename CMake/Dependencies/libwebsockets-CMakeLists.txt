@@ -9,6 +9,12 @@ else()
   set(LWS_WITH_SHARED 1)
 endif()
 
+# USE_OPENSSL is passed in as "the backend presents the OpenSSL API", so it is
+# already ON for AWS-LC. libwebsockets needs no AWS-LC awareness: it consumes
+# libssl/libcrypto and openssl/*.h, all of which AWS-LC provides at the same
+# paths. Its LWS_HAVE_* feature flags below (HMAC_CTX_new,
+# SSL_EXTRA_CHAIN_CERTS, OPENSSL_ECDH_H, EVP_MD_CTX_free) are all satisfied by
+# AWS-LC, so the hardcoded =1 values remain correct.
 if (USE_OPENSSL)
   set(LWS_WITH_MBEDTLS OFF)
 else()
@@ -21,6 +27,30 @@ if (WIN32)
   set(LWS_EXT_PTHREAD_LIBRARIES ${LWS_EXT_PTHREAD_LIBRARIES})
   set(LWS_OPENSSL_INCLUDE_DIRS ${LWS_OPENSSL_INCLUDE_DIRS})
   set(LWS_OPENSSL_LIBRARIES ${LWS_OPENSSL_LIBRARIES})
+endif()
+
+# Force off libwebsockets' pipe2() detection on macOS.
+#
+# lws detects pipe2 with CHECK_C_SOURCE_COMPILES. Starting with the macOS 26
+# SDK, <sys/unistd.h> *declares* pipe2 annotated as "introduced in macOS 27.0",
+# so on a macOS 26 deployment target the probe compiles with only an
+# -Wunguarded-availability-new warning and lws concludes the platform has it.
+# libSystem on macOS 26 does not export pipe2, so the call site is weakly bound
+# to NULL and lws_plat_pipe_create() jumps to address 0 -- lws_create_context()
+# segfaults before any SDK code runs.
+#
+# Pre-seeding the cache variable makes CHECK_C_SOURCE_COMPILES skip its probe,
+# so lws_config.h gets /* #undef LWS_HAVE_PIPE2 */ and lws falls back to plain
+# pipe(), which macOS has always provided. Unconditional for Apple: no macOS
+# release exports pipe2 today, and if a future one does, the SDK's deployment
+# target has to be raised to match before it would be safe to use anyway.
+#
+# Unrelated to the crypto backend -- this bites OpenSSL, mbedTLS and AWS-LC
+# builds identically.
+if (APPLE OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  set(LWS_PLATFORM_ARGS -DLWS_HAVE_PIPE2=0)
+else()
+  set(LWS_PLATFORM_ARGS "")
 endif()
 
 # libwebsockets revision. mbedTLS 4 needs v5.0.0 (first release tag carrying the
@@ -56,6 +86,7 @@ ExternalProject_Add(project_libwebsockets
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
     LIST_SEPARATOR    |
     CMAKE_ARGS
+        ${LWS_PLATFORM_ARGS}
         -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}
         -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
