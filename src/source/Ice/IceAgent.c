@@ -77,11 +77,13 @@ STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAge
     pIceAgent->iceAgentStatus = STATUS_SUCCESS;
     pIceAgent->iceAgentStateTimerTask = MAX_UINT32;
     pIceAgent->keepAliveTimerTask = MAX_UINT32;
+    pIceAgent->consentTimerTask = MAX_UINT32;
     pIceAgent->iceCandidateGatheringTimerTask = MAX_UINT32;
     pIceAgent->timerQueueHandle = timerQueueHandle;
     pIceAgent->lastDataReceivedTime = INVALID_TIMESTAMP_VALUE;
     pIceAgent->detectedDisconnection = FALSE;
     pIceAgent->disconnectionGracePeriodEndTime = INVALID_TIMESTAMP_VALUE;
+    pIceAgent->consentExpired = FALSE;
     pIceAgent->pConnectionListener = pConnectionListener;
     pIceAgent->pDataSendingIceCandidatePair = NULL;
     pIceAgent->iceAgentState = ICE_AGENT_STATE_NEW;
@@ -968,6 +970,11 @@ STATUS iceAgentShutdown(PIceAgent pIceAgent)
         pIceAgent->keepAliveTimerTask = MAX_UINT32;
     }
 
+    if (pIceAgent->consentTimerTask != MAX_UINT32) {
+        CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->consentTimerTask, (UINT64) pIceAgent));
+        pIceAgent->consentTimerTask = MAX_UINT32;
+    }
+
     if (pIceAgent->iceCandidateGatheringTimerTask != MAX_UINT32) {
         CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceCandidateGatheringTimerTask, (UINT64) pIceAgent));
         pIceAgent->iceCandidateGatheringTimerTask = MAX_UINT32;
@@ -1056,6 +1063,11 @@ STATUS iceAgentRestart(PIceAgent pIceAgent, PCHAR localIceUfrag, PCHAR localIceP
         pIceAgent->keepAliveTimerTask = MAX_UINT32;
     }
 
+    if (pIceAgent->consentTimerTask != MAX_UINT32) {
+        CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->consentTimerTask, (UINT64) pIceAgent));
+        pIceAgent->consentTimerTask = MAX_UINT32;
+    }
+
     if (pIceAgent->iceCandidateGatheringTimerTask != MAX_UINT32) {
         CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceCandidateGatheringTimerTask, (UINT64) pIceAgent));
         pIceAgent->iceCandidateGatheringTimerTask = MAX_UINT32;
@@ -1137,9 +1149,11 @@ STATUS iceAgentRestart(PIceAgent pIceAgent, PCHAR localIceUfrag, PCHAR localIceP
 
     pIceAgent->iceAgentStateTimerTask = MAX_UINT32;
     pIceAgent->keepAliveTimerTask = MAX_UINT32;
+    pIceAgent->consentTimerTask = MAX_UINT32;
     pIceAgent->iceCandidateGatheringTimerTask = MAX_UINT32;
     pIceAgent->detectedDisconnection = FALSE;
     pIceAgent->disconnectionGracePeriodEndTime = INVALID_TIMESTAMP_VALUE;
+    pIceAgent->consentExpired = FALSE;
 
     transactionIdStoreClear(pIceAgent->pStunBindingRequestTransactionIdStore);
 
@@ -1803,6 +1817,50 @@ CleanUp:
     return retStatus;
 }
 
+STATUS iceAgentConsentTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PIceAgent pIceAgent = (PIceAgent) customData;
+    PIceCandidatePair pIceCandidatePair = NULL;
+    BOOL locked = FALSE;
+
+    CHK(pIceAgent != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pIceAgent->lock);
+    locked = TRUE;
+
+    // The peer's answer renews consent both ways; a missed one is not an error, the next check follows. Consent lost,
+    // KVS must stop sending: the state machine reports a disconnection, then fails ICE.
+    pIceCandidatePair = pIceAgent->pDataSendingIceCandidatePair;
+    if (!pIceAgent->consentExpired && pIceCandidatePair != NULL && pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_SUCCEEDED &&
+        pIceAgent->pBindingRequest != NULL) {
+        if (currentTime >= pIceAgent->lastConsentTime + KVS_ICE_CONSENT_EXPIRY) {
+            DLOGW("No answer to consent checks for %" PRIu64 " s, consent expired",
+                  (currentTime - pIceAgent->lastConsentTime) / HUNDREDS_OF_NANOS_IN_A_SECOND);
+            pIceAgent->consentExpired = TRUE;
+        } else {
+            CHK_STATUS(iceCandidatePairCheckConnection(pIceAgent->pBindingRequest, pIceAgent, pIceCandidatePair));
+        }
+    }
+
+    MUTEX_UNLOCK(pIceAgent->lock);
+    locked = FALSE;
+
+    // Randomized, so that checks of many sessions do not go out together (RFC 7675 section 5.1)
+    CHK_STATUS(timerQueueUpdateTimerPeriod(pIceAgent->timerQueueHandle, (UINT64) pIceAgent, timerId,
+                                           KVS_ICE_CONSENT_CHECK_INTERVAL * (80 + RAND() % 41) / 100));
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
+
+    if (locked) {
+        MUTEX_UNLOCK(pIceAgent->lock);
+    }
+
+    return STATUS_SUCCESS;
+}
+
 STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     UNUSED_PARAM(timerId);
@@ -2457,6 +2515,9 @@ STATUS iceAgentConnectedStateSetup(PIceAgent pIceAgent)
     // schedule sending keep alive
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle, KVS_ICE_DEFAULT_TIMER_START_DELAY, KVS_ICE_SEND_KEEP_ALIVE_INTERVAL,
                                   iceAgentSendKeepAliveTimerCallback, (UINT64) pIceAgent, &pIceAgent->keepAliveTimerTask));
+    pIceAgent->lastConsentTime = GETTIME();
+    CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle, KVS_ICE_CONSENT_CHECK_INTERVAL, KVS_ICE_CONSENT_CHECK_INTERVAL,
+                                  iceAgentConsentTimerCallback, (UINT64) pIceAgent, &pIceAgent->consentTimerTask));
 
 CleanUp:
 
@@ -2986,6 +3047,11 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                     pIceCandidatePair->pRtcIceCandidatePairDiagnostics->currentRoundTripTime =
                         (DOUBLE) (pIceCandidatePair->roundTripTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
                 }
+                // Consent checks go on all session long: an answered request is forgotten, here once the pair has
+                // succeeded, below for the response that makes it succeed
+                if (pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
+                    CHK_STATUS(hashTableRemove(pIceCandidatePair->requestSentTime, checkSum));
+                }
             } else {
                 DLOGW("Unable to fetch request Timestamp from the hash table. No update to RTT for the pair (error code: 0x%08x)", retStatus);
             }
@@ -3003,9 +3069,19 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                         CHK_STATUS(hashTableRemove(pIceAgent->requestTimestampDiagnostics, checkSum));
                     }
                 }
+            } else if (hashTableGet(pIceAgent->requestTimestampDiagnostics, checkSum, &requestSentTime) == STATUS_SUCCESS) {
+                // Only relay candidates read it
+                CHK_STATUS(hashTableRemove(pIceAgent->requestTimestampDiagnostics, checkSum));
             }
             CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, (PBYTE) pIceAgent->remotePassword,
                                              (UINT32) STRLEN(pIceAgent->remotePassword) * SIZEOF(CHAR), &pStunPacket));
+            // An authenticated answer on the pair in use renews consent
+            if (pIceCandidatePair == pIceAgent->pDataSendingIceCandidatePair) {
+                CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_MESSAGE_INTEGRITY, &pStunAttr));
+                if (pStunAttr != NULL) {
+                    pIceAgent->lastConsentTime = GETTIME();
+                }
+            }
             CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, &pStunAttr));
             CHK_WARN(pStunAttr != NULL, retStatus, "No mapped address attribute found in STUN response. Dropping Packet");
 
