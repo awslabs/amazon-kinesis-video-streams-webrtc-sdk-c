@@ -58,8 +58,17 @@ class WebRtcClientTestBase : public ::testing::Test {
     UINT32 connectTimeoutSeconds = 100;
     // connectTwoPeers rewrites the offer's a=setup:actpass to this role, as a browser may
     std::string offerSetupRole;
-    // The answer connectTwoPeers produced last
+    // connectTwoPeers drops sped from the answer the offerer gets, as some answerers' carry none; the answerer still
+    // embeds, deciding in-band
+    BOOL silentSpedAnswer = FALSE;
+    // connectTwoPeers lets the answerer gather and check for this long before creating the answer, as the samples' master
+    // does (setLocalDescription before createAnswer)
+    UINT64 answerDelay = 0;
+    // The offer and answer connectTwoPeers produced last
+    std::string lastOfferSdp;
     std::string lastAnswerSdp;
+    // connectTwoPeers starts DTLS on both sides as soon as the descriptions allow, before ICE has a pair
+    BOOL startDtlsBeforeIce = FALSE;
 
     WebRtcClientTestBase();
 

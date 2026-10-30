@@ -92,6 +92,181 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersNonActpassOffer)
     }
 }
 
+// DTLS starting before ICE has a pair waits for it, then connects as usual
+TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersDtlsBeforeIce)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    startDtlsBeforeIce = TRUE;
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    EXPECT_FALSE(ATOMIC_LOAD_BOOL(&((PKvsPeerConnection) offerPc)->queueEarlyDtls));
+    EXPECT_FALSE(ATOMIC_LOAD_BOOL(&((PKvsPeerConnection) answerPc)->queueEarlyDtls));
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+static PDtlsInStun dtlsInStunOf(PRtcPeerConnection pPeerConnection)
+{
+    return ((PKvsPeerConnection) pPeerConnection)->pIceAgent->pDtlsInStun;
+}
+
+// Whether an a=ice-options line of the description lists sped, with or without trickle
+static BOOL offersSped(const std::string& sdp)
+{
+    return sdp.find("a=ice-options:sped") != std::string::npos || sdp.find("a=ice-options:trickle sped") != std::string::npos;
+}
+
+// SPED: both sides embed the DTLS handshake in their checks
+TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersSped)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    configuration.kvsRtcConfiguration.enableSped = TRUE;
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    EXPECT_TRUE(offersSped(lastOfferSdp));
+    EXPECT_TRUE(offersSped(lastAnswerSdp));
+    EXPECT_NE(DTLS_IN_STUN_STATE_OFF, dtlsInStunGetState(dtlsInStunOf(offerPc)));
+    EXPECT_NE(DTLS_IN_STUN_STATE_OFF, dtlsInStunGetState(dtlsInStunOf(answerPc)));
+    // The answerer is DTLS client: its ClientHello rides in its first response
+    EXPECT_GE(dtlsInStunOf(offerPc)->receivedPacketCount, 1);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+// SPED with an answerer that checks before it answers, as the KVS master does: those checks must already announce
+// SPED, or the offerer takes the answerer for one without it
+TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersSpedLateAnswer)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    configuration.kvsRtcConfiguration.enableSped = TRUE;
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    answerDelay = 2 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    EXPECT_TRUE(offersSped(lastAnswerSdp));
+    EXPECT_NE(DTLS_IN_STUN_STATE_OFF, dtlsInStunGetState(dtlsInStunOf(offerPc)));
+    EXPECT_NE(DTLS_IN_STUN_STATE_OFF, dtlsInStunGetState(dtlsInStunOf(answerPc)));
+    EXPECT_GE(dtlsInStunOf(offerPc)->receivedPacketCount, 1);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+// SPED with the browser as DTLS client, which then sends its ClientHello in its first checks
+TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersSpedActiveOffer)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    configuration.kvsRtcConfiguration.enableSped = TRUE;
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    offerSetupRole = "active";
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    EXPECT_NE(std::string::npos, lastAnswerSdp.find("a=setup:passive"));
+    EXPECT_GE(dtlsInStunOf(answerPc)->receivedPacketCount, 1);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+// SPED against an answer that does not signal it, as some answerers' do not: SPED is negotiated in-band, so the offerer
+// embeds anyway and the peer's first check or response decides. Here the offerer is the DTLS client
+TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersSpedSilentAnswer)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    configuration.kvsRtcConfiguration.enableSped = TRUE;
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    offerSetupRole = "active";
+    silentSpedAnswer = TRUE;
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    EXPECT_NE(std::string::npos, lastAnswerSdp.find("a=setup:passive"));
+    EXPECT_NE(DTLS_IN_STUN_STATE_OFF, dtlsInStunGetState(dtlsInStunOf(offerPc)));
+    // The ClientHello rode in the offerer's checks, the server flight in the answerer's responses or checks
+    EXPECT_GE(dtlsInStunOf(answerPc)->receivedPacketCount, 1);
+    EXPECT_GE(dtlsInStunOf(offerPc)->receivedPacketCount, 1);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+// SPED falls back to plain DTLS against a peer without it, whichever side offers
+TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersSpedOnOneSide)
+{
+    RtcConfiguration spedConfiguration, plainConfiguration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    MEMSET(&spedConfiguration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&plainConfiguration, 0x00, SIZEOF(RtcConfiguration));
+    spedConfiguration.kvsRtcConfiguration.enableSped = TRUE;
+
+    EXPECT_EQ(createPeerConnection(&spedConfiguration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&plainConfiguration, &answerPc), STATUS_SUCCESS);
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    EXPECT_TRUE(offersSped(lastOfferSdp));
+    EXPECT_FALSE(offersSped(lastAnswerSdp));
+    EXPECT_EQ(DTLS_IN_STUN_STATE_OFF, dtlsInStunGetState(dtlsInStunOf(offerPc)));
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    MEMSET(stateChangeCount, 0x00, SIZEOF(stateChangeCount));
+    EXPECT_EQ(createPeerConnection(&plainConfiguration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&spedConfiguration, &answerPc), STATUS_SUCCESS);
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    EXPECT_FALSE(offersSped(lastOfferSdp));
+    EXPECT_FALSE(offersSped(lastAnswerSdp));
+    EXPECT_EQ(DTLS_IN_STUN_STATE_OFF, dtlsInStunGetState(dtlsInStunOf(answerPc)));
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
 {
     RtcConfiguration configuration;

@@ -459,6 +459,10 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
         DLOGI("ICE transport policy: all");
     }
 
+    // Offer SPED: the DTLS handshake in the ICE connectivity checks, so DTLS is up as soon as ICE is
+    configuration.kvsRtcConfiguration.enableSped = isEnvVarEnabled(SPED_ENABLED_ENV_VAR);
+    DLOGI("SPED: %s", configuration.kvsRtcConfiguration.enableSped ? "enabled" : "disabled");
+
 #ifdef ENABLE_STATS_CALCULATION_CONTROL
     configuration.kvsRtcConfiguration.enableIceStats = pSampleConfiguration->enableIceStats;
 #endif

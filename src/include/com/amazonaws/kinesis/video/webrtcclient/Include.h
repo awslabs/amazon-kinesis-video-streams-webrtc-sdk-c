@@ -1519,6 +1519,12 @@ typedef struct {
     BOOL disableSenderSideBandwidthEstimation; //!< Disable TWCC feedback based sender bandwidth estimation, enabled by default.
                                                //!< You want to set this to TRUE if you are on a very stable connection and want to save 1.2MB of
                                                //!< memory
+
+    BOOL enableSped; //!< Embed the DTLS handshake in ICE connectivity checks when the peer supports it too (SPED,
+                     //!< draft-uberti-tsvwg-warp section 4.2), saving round trips in connection setup. Offered with a=ice-options:sped.
+                     //!< An offerer starts DTLS with the answer and tries SPED in-band even if the answer does not announce it: the
+                     //!< peer's first check or response decides, and a peer without SPED gets plain DTLS. Needs mbedTLS or OpenSSL
+                     //!< 1.1.0 or later. Off by default.
 #ifdef ENABLE_STATS_CALCULATION_CONTROL
     BOOL enableIceStats; //!< Control whether ICE agent stats are to be calculated. ENABLE_STATS_CALCULATION_CONTROL compiler flag must be defined
                          //!< to use this member, else stats are enabled by default.

@@ -108,6 +108,60 @@ TEST_F(DataChannelFunctionalityTest, createDataChannel_Disconnected)
     ASSERT_EQ(1u, remoteOpen.channels.at("Answer PeerConnection"));
 }
 
+// With SPED the SCTP association comes up over a DTLS session started before ICE had a pair
+TEST_F(DataChannelFunctionalityTest, createDataChannel_Sped)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PRtcDataChannel pOfferDataChannel = nullptr;
+    SIZE_T openCount = 0, msgCount = 0;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    configuration.kvsRtcConfiguration.enableSped = TRUE;
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    // The answerer echoes what arrives on the channel the offerer opened
+    auto onDataChannel = [](UINT64 customData, PRtcDataChannel pRtcDataChannel) {
+        UNUSED_PARAM(customData);
+        auto onMessage = [](UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMsg, UINT32 pMsgLen) {
+            UNUSED_PARAM(customData);
+            dataChannelSend(pDataChannel, isBinary, pMsg, pMsgLen);
+        };
+        dataChannelOnMessage(pRtcDataChannel, 0, onMessage);
+    };
+    auto onOpen = [](UINT64 customData, PRtcDataChannel pDataChannel) {
+        ATOMIC_INCREMENT((PSIZE_T) customData);
+        dataChannelSend(pDataChannel, FALSE, (PBYTE) TEST_DATA_CHANNEL_MESSAGE, STRLEN(TEST_DATA_CHANNEL_MESSAGE));
+    };
+    auto onMessage = [](UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMsg, UINT32 pMsgLen) {
+        UNUSED_PARAM(pDataChannel);
+        UNUSED_PARAM(isBinary);
+        if (pMsgLen == STRLEN(TEST_DATA_CHANNEL_MESSAGE) && STRNCMP((PCHAR) pMsg, TEST_DATA_CHANNEL_MESSAGE, pMsgLen) == 0) {
+            ATOMIC_INCREMENT((PSIZE_T) customData);
+        }
+    };
+
+    EXPECT_EQ(peerConnectionOnDataChannel(answerPc, 0, onDataChannel), STATUS_SUCCESS);
+    EXPECT_EQ(createDataChannel(offerPc, (PCHAR) "sped", nullptr, &pOfferDataChannel), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelOnOpen(pOfferDataChannel, (UINT64) &openCount, onOpen), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelOnMessage(pOfferDataChannel, (UINT64) &msgCount, onMessage), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    for (auto i = 0; i <= 100 && ATOMIC_LOAD(&msgCount) != 1; i++) {
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    EXPECT_EQ(1, ATOMIC_LOAD(&openCount));
+    EXPECT_EQ(1, ATOMIC_LOAD(&msgCount));
+}
+
 // When a message drops from a data channel, the connection should retry it
 TEST_F(DataChannelFunctionalityTest, createDataChannel_RecoverFromDroppedMessage)
 {

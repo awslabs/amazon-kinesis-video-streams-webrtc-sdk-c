@@ -14,6 +14,9 @@ extern "C" {
 #define LOCAL_ICE_PWD_LEN   24
 #define LOCAL_CNAME_LEN     16
 
+// DTLS packets kept while ICE has no pair yet, see startDtlsSessionBeforeIce()
+#define MAX_EARLY_DTLS_PACKETS 16
+
 // https://tools.ietf.org/html/rfc5245#section-15.4
 #define MAX_ICE_UFRAG_LEN 256
 #define MAX_ICE_PWD_LEN   256
@@ -151,6 +154,22 @@ typedef struct {
 
     NullableBool canTrickleIce;
 
+    // SPED (draft-uberti-tsvwg-warp, section 4.2): the DTLS handshake rides in ICE checks, see Ice/DtlsInStun.h
+    BOOL spedEnabled;
+    // The remote description has a=ice-options:sped, or one of libwebrtc's earlier names for it
+    BOOL remoteSpedOffered;
+    // That earlier name, empty for none: libwebrtc embeds only when its own name is in the answer too
+    CHAR remoteSpedLegacyOption[SIZEOF("goog-sped-v1")];
+    // The a=ice-options value of the local description, after a space
+    CHAR localIceOptions[SIZEOF(" trickle sped goog-sped-v1")];
+
+    // DTLS started before ICE had a pair: its output waits here until ICE is READY
+    MUTEX earlyDtlsLock;
+    volatile ATOMIC_BOOL queueEarlyDtls;
+    PBYTE earlyDtlsPackets[MAX_EARLY_DTLS_PACKETS];
+    UINT32 earlyDtlsPacketLengths[MAX_EARLY_DTLS_PACKETS];
+    UINT32 earlyDtlsPacketCount;
+
     // congestion control
     // https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
     UINT16 twccExtId;
@@ -207,6 +226,17 @@ VOID onSctpSessionDataChannelAck(UINT64, UINT32);
 
 STATUS sendPacketToRtpReceiver(PKvsPeerConnection, PBYTE, UINT32);
 STATUS changePeerConnectionState(PKvsPeerConnection, RTC_PEER_CONNECTION_STATE);
+
+/**
+ * Starts the DTLS handshake while ICE is still looking for a pair, instead of once ICE is READY. DTLS output, which
+ * can not be sent yet, waits until READY, and so do DTLS retransmissions and the CONNECTED state.
+ */
+STATUS startDtlsSessionBeforeIce(PKvsPeerConnection);
+
+/**
+ * At ICE READY: sends what DTLS wrote before, and lets it retransmit again
+ */
+STATUS sendEarlyDtls(PKvsPeerConnection);
 STATUS twccManagerOnPacketSent(PKvsPeerConnection, PRtpPacket);
 UINT32 parseExtId(PCHAR);
 
