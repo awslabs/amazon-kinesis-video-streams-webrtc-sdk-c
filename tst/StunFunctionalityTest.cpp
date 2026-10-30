@@ -815,6 +815,169 @@ TEST_F(StunFunctionalityTest, unknownAttributesDoNotHideMessageIntegrityTest)
     EXPECT_EQ(NULL, pParsed);
 }
 
+// serializeStunPacket wants the exact size, as returned by a first pass without a buffer
+static STATUS serializeWithPassword(PStunPacket pStunPacket, PBYTE pBuffer, PUINT32 pSize)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 size = 0, passwordLen = (UINT32) STRLEN(TEST_STUN_PASSWORD);
+
+    CHK_STATUS(serializeStunPacket(pStunPacket, (PBYTE) TEST_STUN_PASSWORD, passwordLen, TRUE, TRUE, NULL, &size));
+    CHK(size <= *pSize, STATUS_BUFFER_TOO_SMALL);
+    CHK_STATUS(serializeStunPacket(pStunPacket, (PBYTE) TEST_STUN_PASSWORD, passwordLen, TRUE, TRUE, pBuffer, &size));
+    *pSize = size;
+
+CleanUp:
+    return retStatus;
+}
+
+TEST_F(StunFunctionalityTest, dtlsInStunAttributesRoundTripTest)
+{
+    BYTE transactionId[STUN_TRANSACTION_ID_LEN] = {0};
+    BYTE dtlsPacket[901];
+    BYTE buffer[STUN_PACKET_ALLOCATION_SIZE];
+    UINT32 acks[STUN_DTLS_IN_STUN_ACK_MAX_SEND] = {0x01020304, 0xA1B2C3D4, 0xFFFFFFFF, 0};
+    UINT32 parsedAcks[STUN_DTLS_IN_STUN_ACK_MAX_RECEIVE], parsedCount = 0, size, i;
+    UINT32 passwordLen = (UINT32) STRLEN(TEST_STUN_PASSWORD);
+    PStunPacket pStunPacket = NULL, pParsed = NULL;
+    PStunAttributeHeader pAttribute = NULL;
+    PStunAttributeData pData;
+
+    // An odd length so the attribute needs padding
+    for (i = 0; i < SIZEOF(dtlsPacket); i++) {
+        dtlsPacket[i] = (BYTE) i;
+    }
+    dtlsPacket[0] = 22;
+
+    EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, appendStunUsernameAttribute(pStunPacket, (PCHAR) "remote:local"));
+    EXPECT_EQ(STATUS_SUCCESS, appendStunDtlsInStunAckAttribute(pStunPacket, acks, 3));
+    EXPECT_EQ(STATUS_SUCCESS, appendStunDtlsInStunAttribute(pStunPacket, dtlsPacket, SIZEOF(dtlsPacket)));
+    size = SIZEOF(buffer);
+    EXPECT_EQ(STATUS_SUCCESS, serializeWithPassword(pStunPacket, buffer, &size));
+
+    EXPECT_EQ(STATUS_SUCCESS, deserializeStunPacket(buffer, size, (PBYTE) TEST_STUN_PASSWORD, passwordLen, &pParsed));
+    EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pParsed, STUN_ATTRIBUTE_TYPE_DTLS_IN_STUN, &pAttribute));
+    ASSERT_TRUE(pAttribute != NULL);
+    pData = (PStunAttributeData) pAttribute;
+    EXPECT_EQ(SIZEOF(dtlsPacket), pAttribute->length);
+    EXPECT_EQ(0, MEMCMP(dtlsPacket, pData->data, SIZEOF(dtlsPacket)));
+    EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pParsed, STUN_ATTRIBUTE_TYPE_DTLS_IN_STUN_ACK, &pAttribute));
+    EXPECT_EQ(STATUS_SUCCESS, getStunDtlsInStunAcks(pAttribute, parsedAcks, &parsedCount));
+    EXPECT_EQ(3, parsedCount);
+    EXPECT_EQ(0, MEMCMP(acks, parsedAcks, 3 * SIZEOF(UINT32)));
+    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pParsed));
+
+    // Empty values announce support without carrying anything
+    EXPECT_EQ(STATUS_SUCCESS, truncateStunAttributes(pStunPacket, 1));
+    EXPECT_EQ(STATUS_SUCCESS, appendStunDtlsInStunAckAttribute(pStunPacket, NULL, 0));
+    EXPECT_EQ(STATUS_SUCCESS, appendStunDtlsInStunAttribute(pStunPacket, NULL, 0));
+    size = SIZEOF(buffer);
+    EXPECT_EQ(STATUS_SUCCESS, serializeWithPassword(pStunPacket, buffer, &size));
+    EXPECT_EQ(STATUS_SUCCESS, deserializeStunPacket(buffer, size, (PBYTE) TEST_STUN_PASSWORD, passwordLen, &pParsed));
+    EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pParsed, STUN_ATTRIBUTE_TYPE_DTLS_IN_STUN, &pAttribute));
+    ASSERT_TRUE(pAttribute != NULL);
+    EXPECT_EQ(0, pAttribute->length);
+    EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pParsed, STUN_ATTRIBUTE_TYPE_DTLS_IN_STUN_ACK, &pAttribute));
+    EXPECT_EQ(STATUS_SUCCESS, getStunDtlsInStunAcks(pAttribute, parsedAcks, &parsedCount));
+    EXPECT_EQ(0, parsedCount);
+    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pParsed));
+
+    // At most four ACKs go out
+    EXPECT_EQ(STATUS_INVALID_ARG, appendStunDtlsInStunAckAttribute(pStunPacket, acks, STUN_DTLS_IN_STUN_ACK_MAX_SEND + 1));
+    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+}
+
+TEST_F(StunFunctionalityTest, truncateStunAttributesTest)
+{
+    BYTE transactionId[STUN_TRANSACTION_ID_LEN] = {0};
+    BYTE big[600] = {22}, small[40] = {22};
+    BYTE buffer[STUN_PACKET_ALLOCATION_SIZE];
+    UINT32 size, baseSize, passwordLen = (UINT32) STRLEN(TEST_STUN_PASSWORD), i;
+    UINT16 baseLength;
+    PStunPacket pStunPacket = NULL, pParsed = NULL;
+    PStunAttributeHeader pAttribute = NULL;
+
+    EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, appendStunUsernameAttribute(pStunPacket, (PCHAR) "remote:local"));
+    EXPECT_EQ(STATUS_SUCCESS, appendStunPriorityAttribute(pStunPacket, 1));
+    baseLength = pStunPacket->header.messageLength;
+    baseSize = SIZEOF(buffer);
+    EXPECT_EQ(STATUS_SUCCESS, serializeWithPassword(pStunPacket, buffer, &baseSize));
+
+    // A reused packet carries different attributes on every send without growing
+    for (i = 0; i < 10; i++) {
+        EXPECT_EQ(STATUS_SUCCESS, appendStunDtlsInStunAttribute(pStunPacket, (i % 2) ? small : big, (i % 2) ? SIZEOF(small) : SIZEOF(big)));
+        size = SIZEOF(buffer);
+        EXPECT_EQ(STATUS_SUCCESS, serializeWithPassword(pStunPacket, buffer, &size));
+        EXPECT_EQ(baseSize + STUN_ATTRIBUTE_HEADER_LEN + ((i % 2) ? SIZEOF(small) : SIZEOF(big)), size);
+        EXPECT_EQ(STATUS_SUCCESS, deserializeStunPacket(buffer, size, (PBYTE) TEST_STUN_PASSWORD, passwordLen, &pParsed));
+        EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pParsed, STUN_ATTRIBUTE_TYPE_DTLS_IN_STUN, &pAttribute));
+        ASSERT_TRUE(pAttribute != NULL);
+        EXPECT_EQ((i % 2) ? SIZEOF(small) : SIZEOF(big), pAttribute->length);
+        EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pParsed));
+        EXPECT_EQ(STATUS_SUCCESS, truncateStunAttributes(pStunPacket, 2));
+        EXPECT_EQ(baseLength, pStunPacket->header.messageLength);
+    }
+
+    EXPECT_EQ(STATUS_INVALID_ARG, truncateStunAttributes(pStunPacket, 3));
+    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+}
+
+TEST_F(StunFunctionalityTest, dtlsInStunAckInvalidLengthTest)
+{
+    PStunPacket pStunPacket = NULL;
+    PStunAttributeHeader pAttribute = NULL;
+    UINT32 acks[STUN_DTLS_IN_STUN_ACK_MAX_RECEIVE], count = 0;
+    // Binding request with a DTLS-IN-STUN-ACK of 3 bytes, not a multiple of 4
+    BYTE notMultipleOf4[] = {0x00, 0x01, 0x00, 0x08, 0x21, 0x12, 0xA4, 0x42, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
+                             0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0xC0, 0x71, 0x00, 0x03, 0x01, 0x02, 0x03, 0x00};
+    // ... and one with nine CRCs, more than anyone sends
+    BYTE tooMany[20 + 4 + 36] = {0x00, 0x01, 0x00, 0x28, 0x21, 0x12, 0xA4, 0x42, 0x01, 0x02, 0x03, 0x04,
+                                 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0xC0, 0x71, 0x00, 0x24};
+
+    // The check itself still parses; only reading the ACKs fails
+    EXPECT_EQ(STATUS_SUCCESS, deserializeStunPacket(notMultipleOf4, SIZEOF(notMultipleOf4), NULL, 0, &pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_DTLS_IN_STUN_ACK, &pAttribute));
+    ASSERT_TRUE(pAttribute != NULL);
+    EXPECT_EQ(STATUS_STUN_INVALID_DTLS_IN_STUN_ACK_ATTRIBUTE_LENGTH, getStunDtlsInStunAcks(pAttribute, acks, &count));
+    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+
+    EXPECT_EQ(STATUS_SUCCESS, deserializeStunPacket(tooMany, SIZEOF(tooMany), NULL, 0, &pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_DTLS_IN_STUN_ACK, &pAttribute));
+    ASSERT_TRUE(pAttribute != NULL);
+    EXPECT_EQ(STATUS_STUN_INVALID_DTLS_IN_STUN_ACK_ATTRIBUTE_LENGTH, getStunDtlsInStunAcks(pAttribute, acks, &count));
+    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+}
+
+// MESSAGE-INTEGRITY does not cover what follows it, so DTLS data or ACKs placed there must be refused, not acted on
+TEST_F(StunFunctionalityTest, dtlsInStunAfterMessageIntegrityIsRejectedTest)
+{
+    // unknownAttributesDoNotHideMessageIntegrityTest's request: MESSAGE-INTEGRITY ends at byte 84, FINGERPRINT at 92
+    BYTE signedRequest[] = {0x00, 0x01, 0x00, 0x48, 0x21, 0x12, 0xa4, 0x42, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                            0x00, 0x00, 0x06, 0x00, 0x0c, 0x72, 0x65, 0x6d, 0x6f, 0x74, 0x65, 0x3a, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x00, 0x24,
+                            0x00, 0x04, 0x7e, 0x7f, 0x00, 0xff, 0xc0, 0x57, 0x00, 0x04, 0x01, 0x02, 0x03, 0x04, 0xc0, 0xff, 0x00, 0x04, 0x01,
+                            0x02, 0x03, 0x04, 0x00, 0x08, 0x00, 0x14, 0xff, 0x3f, 0x6d, 0x1e, 0x1a, 0xa9, 0xbf, 0xcd, 0xcb, 0x2e, 0xba, 0xb9,
+                            0x03, 0x4e, 0xcd, 0xcf, 0xfe, 0x88, 0xd8, 0x6c, 0x80, 0x28, 0x00, 0x04, 0x4e, 0xc1, 0x51, 0xfa};
+    // A 13 byte DTLS record header, padded, and one ACK
+    std::vector<BYTE> dtlsInStun = {0xc0, 0x70, 0x00, 0x0d, 22, 0xfe, 0xfd, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    std::vector<BYTE> dtlsInStunAck = {0xc0, 0x71, 0x00, 0x04, 0x01, 0x02, 0x03, 0x04};
+    UINT32 passwordLen = (UINT32) STRLEN(TEST_STUN_PASSWORD), at;
+    PStunPacket pParsed = NULL;
+
+    for (auto& attribute : {dtlsInStun, dtlsInStunAck}) {
+        for (at = 84; at <= 92; at += 8) {
+            std::vector<BYTE> packet(signedRequest, signedRequest + at);
+            packet.insert(packet.end(), attribute.begin(), attribute.end());
+            packet.insert(packet.end(), signedRequest + at, signedRequest + SIZEOF(signedRequest));
+            packet[2] = (BYTE) ((packet.size() - STUN_HEADER_LEN) >> 8);
+            packet[3] = (BYTE) (packet.size() - STUN_HEADER_LEN);
+            EXPECT_EQ(STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY,
+                      deserializeStunPacket(packet.data(), (UINT32) packet.size(), (PBYTE) TEST_STUN_PASSWORD, passwordLen, &pParsed));
+            EXPECT_EQ(NULL, pParsed);
+        }
+    }
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

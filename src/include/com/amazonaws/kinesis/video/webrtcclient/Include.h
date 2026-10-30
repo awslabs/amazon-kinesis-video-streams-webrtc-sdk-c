@@ -307,6 +307,7 @@ extern "C" {
 #define STATUS_STUN_MESSAGE_INTEGRITY_NOT_FOUND                    STATUS_STUN_BASE + 0x0000001B
 #define STATUS_STUN_USERNAME_MISMATCH                              STATUS_STUN_BASE + 0x0000001C
 #define STATUS_STUN_USERNAME_NOT_FOUND                             STATUS_STUN_BASE + 0x0000001D
+#define STATUS_STUN_INVALID_DTLS_IN_STUN_ACK_ATTRIBUTE_LENGTH      STATUS_STUN_BASE + 0x0000001E
 /*!@} */
 
 /////////////////////////////////////////////////////
