@@ -21,6 +21,7 @@ class DtlsFunctionalityTest : public WebRtcClientTestBase {
         UINT64 sleepDelay = 20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
         Context clientCtx, serverCtx;
         std::thread dtlsClientThread, dtlsServerThread;
+        BOOL startedHere = TRUE;
 
         MEMSET(&callbacks, 0, SIZEOF(callbacks));
         callbacks.stateChangeFn = [](UINT64 customData, RTC_DTLS_TRANSPORT_STATE state) {
@@ -72,6 +73,7 @@ class DtlsFunctionalityTest : public WebRtcClientTestBase {
         // In case of mbedtls it will be a black return of SUCCESS
 #ifdef KVS_USE_OPENSSL
         if (useThread) {
+            startedHere = FALSE;
             dtlsClientThread = std::thread(dtlsSessionHandshakeInThread, pClient, TRUE);
             dtlsServerThread = std::thread(dtlsSessionHandshakeInThread, pServer, FALSE);
         } else {
@@ -82,6 +84,14 @@ class DtlsFunctionalityTest : public WebRtcClientTestBase {
         CHK_STATUS(dtlsSessionStart(pClient, TRUE));
         CHK_STATUS(dtlsSessionStart(pServer, FALSE));
 #endif
+
+        // dtlsSessionStart() sends the DTLS client's ClientHello rather than the first timer tick; the server waits for it.
+        // pServer is the DTLS client here, and its packets go to clientCtx.
+        if (startedHere) {
+            std::lock_guard<std::mutex> clientLock(clientCtx.mtx), serverLock(serverCtx.mtx);
+            EXPECT_FALSE(clientCtx.queue.empty());
+            EXPECT_TRUE(serverCtx.queue.empty());
+        }
 
         for (UINT64 duration = 0; duration < MAX_TEST_AWAIT_DURATION && ATOMIC_LOAD(&connectedCount) != 2; duration += sleepDelay) {
             CHK_STATUS(consumeMessages(&serverCtx, pServer));

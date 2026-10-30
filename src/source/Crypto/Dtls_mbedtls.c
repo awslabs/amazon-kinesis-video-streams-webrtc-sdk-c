@@ -450,6 +450,7 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    INT32 handshakeStatus;
     UINT32 i;
     BOOL locked = FALSE;
     PDtlsSessionCertificateInfo pCertInfo;
@@ -508,9 +509,15 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
 #endif
     mbedtls_ssl_set_timer_cb(&pDtlsSession->sslCtx, &pDtlsSession->transmissionTimer, dtlsSessionSetTimerCallback, dtlsSessionGetTimerCallback);
 
-    // Start non-blocking handshaking
+    // Start non-blocking handshaking. A client sends its ClientHello right away rather than on the first timer tick.
     pDtlsSession->dtlsSessionStartTime = GETTIME();
-    CHK_STATUS(timerQueueAddTimer(pDtlsSession->timerQueueHandle, DTLS_SESSION_TIMER_START_DELAY, DTLS_TRANSMISSION_INTERVAL,
+    handshakeStatus = mbedtls_ssl_handshake(&pDtlsSession->sslCtx);
+    if (handshakeStatus != MBEDTLS_ERR_SSL_WANT_READ && handshakeStatus != MBEDTLS_ERR_SSL_WANT_WRITE) {
+        LOG_MBEDTLS_ERROR("mbedtls_ssl_handshake", handshakeStatus);
+        CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_FAILED));
+        CHK(FALSE, STATUS_SSL_CTX_CREATION_FAILED);
+    }
+    CHK_STATUS(timerQueueAddTimer(pDtlsSession->timerQueueHandle, DTLS_TRANSMISSION_INTERVAL, DTLS_TRANSMISSION_INTERVAL,
                                   dtlsTransmissionTimerCallback, (UINT64) pDtlsSession, &pDtlsSession->timerId));
 
 CleanUp:
