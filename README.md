@@ -850,6 +850,8 @@ export KVS_DISABLE_IPV6_TURN=ON
 
 **Note:** `KVS_DISABLE_IPV6_TURN` is only applicable when running in dual-stack mode.
 
+### TURN servers supplied by the viewer application
+As an application-side optimization, the viewer can send the camera (master) a set of TURN servers in its SDP offer. See [docs/VIEWER_SUPPLIED_TURN_SERVERS.md](docs/VIEWER_SUPPLIED_TURN_SERVERS.md).
 
 ## Troubleshooting WebRTC Storage
 
@@ -881,6 +883,7 @@ See the [Status code reference](https://github.com/awslabs/amazon-kinesis-video-
 Additional guides:
 - [TWCC (Transport-Wide Congestion Control)](docs/TWCC.md) — bandwidth estimation, bitrate adaptation, and troubleshooting
 - [Troubleshooting H.265 sample frames](docs/TROUBLESHOOTING_H265_FRAMES.md) — inspecting NAL units, diagnosing freeze-after-first-frame, regenerating frames
+- [Viewer-supplied TURN servers](docs/VIEWER_SUPPLIED_TURN_SERVERS.md) — sending the camera (master) TURN servers in the SDP offer
 
 Refer to [related](#related) for more about WebRTC and KVS.
 

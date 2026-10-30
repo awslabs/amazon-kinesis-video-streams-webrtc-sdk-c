@@ -58,18 +58,6 @@ extern "C" {
 
 #define SAMPLE_PENDING_MESSAGE_CLEANUP_DURATION (20 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
-// Viewer-relayed TURN credentials: master uses TURN servers sent by the viewer via signaling.
-// Set KVS_USE_VIEWER_TURN_CREDENTIALS=BLOCK (wait up to 1s) or NO_BLOCK (immediate check).
-#define VIEWER_TURN_CREDENTIAL_ENV_VAR        ((PCHAR) "KVS_USE_VIEWER_TURN_CREDENTIALS")
-#define VIEWER_TURN_CREDENTIAL_PAYLOAD_MARKER "{\"turnServers\""
-#define VIEWER_TURN_CREDENTIAL_TIMEOUT        (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-
-typedef enum {
-    VIEWER_TURN_MODE_OFF = 0,
-    VIEWER_TURN_MODE_BLOCK = 1,
-    VIEWER_TURN_MODE_NO_BLOCK = 2,
-} ViewerTurnMode;
-
 #define CA_CERT_PEM_FILE_EXTENSION ".pem"
 
 #define FILE_LOGGING_BUFFER_SIZE        (10 * 1024)
@@ -112,6 +100,27 @@ typedef enum {
 #define ICE_AGENT_METRICS_JSON_TEMPLATE "{\"candidateGatheringStartTime\": %" PRIu64 ", \"candidateGatheringEndTime\": %" PRIu64 " }"
 
 #define ICE_TRANSPORT_POLICY_ENV_VAR ((PCHAR) "KVS_ICE_TRANSPORT_POLICY")
+
+/*
+ * TURN servers supplied by the viewer. A viewer can add one set of the IceServerList it got from GetIceServerConfig,
+ * unchanged, to its SDP offer's message payload after "type" and "sdp":
+ *
+ *     {"type": "offer", "sdp": "v=0\r\n...", "IceServerList": [{"Uris": ["turn:..."], "Username": "...", "Password": "...", "Ttl": 300}]}
+ *
+ * The master then uses those TURN servers instead of its own GetIceServerConfig result. Without them, it uses its own
+ * ICE configuration, as before. The signaling message is still an ordinary SDP_OFFER.
+ *
+ * IceServerList goes last because deserializeSessionDescriptionInit() in older versions of this library reads the
+ * payload in key/value pairs, so a nested value before "type" or "sdp" hides that key.
+ */
+#define SAMPLE_VIEWER_ICE_SERVER_LIST_KEY     "IceServerList"
+#define SAMPLE_VIEWER_ICE_SERVER_URIS_KEY     "Uris"
+#define SAMPLE_VIEWER_ICE_SERVER_USERNAME_KEY "Username"
+#define SAMPLE_VIEWER_ICE_SERVER_PASSWORD_KEY "Password"
+
+// Viewer-supplied credentials this close to their expiry are not used. Matches how early the signaling client
+// refreshes its own cached ICE configuration (ICE_CONFIGURATION_REFRESH_GRACE_PERIOD).
+#define SAMPLE_VIEWER_ICE_SERVER_EXPIRY_GRACE_PERIOD (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 #define MAX_DATA_CHANNEL_METRICS_MESSAGE_SIZE     260 // strlen(DATA_CHANNEL_MESSAGE_TEMPLATE) + 20 * 5
 #define MAX_PEER_CONNECTION_METRICS_MESSAGE_SIZE  105 // strlen(PEER_CONNECTION_METRICS_JSON_TEMPLATE) + 20 * 2
@@ -204,6 +213,7 @@ struct __SampleConfiguration {
     CVAR cvar;
     BOOL trickleIce;
     BOOL useTurn;
+    BOOL useViewerTurnServers; // Use the TURN servers a viewer sends in its SDP offer. See SAMPLE_VIEWER_ICE_SERVER_LIST_KEY.
     BOOL enableSendingMetricsToViewerViaDc;
     BOOL enableFileLogging;
     UINT64 customData;
@@ -228,14 +238,6 @@ struct __SampleConfiguration {
     UINT32 logLevel;
     BOOL enableTwcc;
     BOOL enableIceStats;
-
-    // Viewer-relayed TURN credentials
-    ViewerTurnMode viewerTurnMode;                     // OFF, BLOCK, or NO_BLOCK
-    volatile ATOMIC_BOOL viewerTurnCredentialsReceived; // Set when TURN creds arrive from viewer
-    MUTEX viewerTurnLock;
-    CVAR viewerTurnCvar;
-    IceConfigInfo viewerIceConfigs[MAX_ICE_CONFIG_COUNT];
-    UINT32 viewerIceConfigCount;
 
     AddTransceiversCallback addTransceiversCallback;
 };
@@ -320,9 +322,11 @@ STATUS signalingMessageReceived(UINT64, PReceivedSignalingMessage);
 STATUS handleAnswer(PSampleConfiguration, PSampleStreamingSession, PSignalingMessage);
 STATUS handleOffer(PSampleConfiguration, PSampleStreamingSession, PSignalingMessage);
 STATUS handleRemoteCandidate(PSampleStreamingSession, PSignalingMessage);
-STATUS initializePeerConnection(PSampleConfiguration, PRtcPeerConnection*);
+STATUS getTurnServersFromOffer(PCHAR, UINT32, PRtcIceServer, UINT32, PUINT32);
+STATUS initializePeerConnection(PSampleConfiguration, PSignalingMessage, PRtcPeerConnection*);
 STATUS lookForSslCert(PSampleConfiguration*);
 STATUS createSampleStreamingSession(PSampleConfiguration, PCHAR, BOOL, PSampleStreamingSession*);
+STATUS createSampleStreamingSessionWithOffer(PSampleConfiguration, PCHAR, BOOL, PSignalingMessage, PSampleStreamingSession*);
 STATUS freeSampleStreamingSession(PSampleStreamingSession*);
 STATUS streamingSessionOnShutdown(PSampleStreamingSession, UINT64, StreamSessionShutdownCallback);
 STATUS sendSignalingMessage(PSampleStreamingSession, PSignalingMessage);
@@ -347,8 +351,6 @@ STATUS submitPendingIceCandidate(PPendingMessageQueue, PSampleStreamingSession);
 STATUS removeExpiredMessageQueues(PStackQueue);
 STATUS getPendingMessageQueueForHash(PStackQueue, UINT64, BOOL, PPendingMessageQueue*);
 STATUS initSignaling(PSampleConfiguration, PCHAR);
-STATUS handleViewerRelayedTurnCredentials(PSampleConfiguration, PSignalingMessage);
-STATUS parseViewerTurnCredentialPayload(PCHAR, UINT32, PIceConfigInfo, PUINT32);
 BOOL sampleFilterNetworkInterfaces(UINT64, PCHAR);
 UINT32 setLogLevel();
 VOID logSampleInvocation(INT32, CHAR*[]);

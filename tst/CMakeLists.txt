@@ -38,6 +38,7 @@ endif()
 
 file(GLOB WEBRTC_CLIENT_TEST_SOURCE_FILES "*.cpp" )
 
+# ViewerSuppliedIceServersTest.cpp tests the sample code that reads TURN servers out of a viewer's offer.
 add_executable(webrtc_client_test ${WEBRTC_CLIENT_TEST_SOURCE_FILES} SignalingApiFunctionalityTest.h
     ${KINESIS_VIDEO_WebRTCClient_SRC}/samples/common/Common.c)
 target_link_libraries(webrtc_client_test
