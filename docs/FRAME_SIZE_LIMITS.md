@@ -41,7 +41,7 @@ Real video frames, including 4K keyframes, are far below 5 MiB.
 ### If a frame is rejected
 
 - **Video:** check the encoder settings (bitrate, keyframe size).
-- **Files and other large payloads:** send them over a data channel with `dataChannelSend()`, split into smaller messages. Do not send them as video frames.
+- **Files and other large payloads:** send them over a data channel with `dataChannelSend()`, split into messages of up to `MAX_OUTBOUND_DATA_CHANNEL_MESSAGE_SIZE_BYTES`. Do not send them as video frames.
 - **Use cases that need larger frames:** change `MAX_OUTBOUND_FRAME_SIZE_BYTES` in [Include.h](../src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h) and rebuild the library. Make sure your receivers can reassemble frames of that size. If a receiver uses this library, also raise its `MAX_INBOUND_FRAME_SIZE_BYTES`.
 
 ## Inbound (`MAX_INBOUND_FRAME_SIZE_BYTES`)
