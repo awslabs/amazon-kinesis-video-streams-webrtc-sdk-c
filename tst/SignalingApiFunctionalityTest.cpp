@@ -40,6 +40,8 @@ SignalingApiFunctionalityTest::SignalingApiFunctionalityTest() : pActiveClient(N
 
     errStatus = STATUS_SUCCESS;
     errMsg[0] = '\0';
+
+    deviceClockJumpedAhead = FALSE;
 }
 
 STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage)
@@ -133,6 +135,14 @@ UINT64 getCurrentTimeFastClock(UINT64 customData) {
 UINT64 getCurrentTimeSlowClock(UINT64 customData) {
     UNUSED_PARAM(customData);
     return GETTIME() - (30 * HUNDREDS_OF_NANOS_IN_A_MINUTE);
+}
+
+// The device clock is right until the test sets deviceClockJumpedAhead. It then runs as fast as getCurrentTimeFastClock().
+UINT64 getCurrentTimeJumpingAhead(UINT64 customData)
+{
+    SignalingApiFunctionalityTest* pTest = (SignalingApiFunctionalityTest*) customData;
+
+    return pTest->deviceClockJumpedAhead ? getCurrentTimeFastClock(customData) : GETTIME();
 }
 
 STATUS connectPreHook(UINT64 hookCustomData)
@@ -263,6 +273,60 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
 
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
+    EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
+}
+
+// The device clock jumps ahead after the fetch, so the service rejects the first WSS upgrade. The SDK measures the
+// skew from the rejection's Date header and connects again in place, without a new token. Needs the real service:
+// it checks that a rejected upgrade carries a Date header.
+TEST_F(SignalingApiFunctionalityTest, connectResignsAfterClockSkewRejection)
+{
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
+    UINT32 getCredentialsCount;
+
+    ChannelInfo channelInfo;
+    SignalingClientCallbacks signalingClientCallbacks;
+    SignalingClientInfo clientInfo;
+    SIGNALING_CLIENT_HANDLE signalingHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
+
+    MEMSET(&signalingClientCallbacks, 0x00, SIZEOF(SignalingClientCallbacks));
+    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+    signalingClientCallbacks.customData = (UINT64) this;
+    signalingClientCallbacks.errorReportFn = signalingClientError;
+    signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
+    signalingClientCallbacks.getCurrentTimeFn = getCurrentTimeJumpingAhead;
+
+    MEMSET(&clientInfo, 0x00, SIZEOF(SignalingClientInfo));
+    clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    clientInfo.loggingLevel = mLogLevel;
+    clientInfo.signalingClientCreationMaxRetryAttempts = 0;
+    STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
+
+    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
+    channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    channelInfo.pChannelName = mChannelName;
+    channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+    channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
+    channelInfo.retry = TRUE;
+    channelInfo.reconnect = TRUE;
+    channelInfo.pCertPath = mCaCertPath;
+    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+
+    EXPECT_EQ(STATUS_SUCCESS,
+              createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
+                                        &signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientFetchSync(signalingHandle));
+    getCredentialsCount = signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS];
+
+    deviceClockJumpedAhead = TRUE;
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(2, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTING]);
+    EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
+    EXPECT_EQ(getCredentialsCount, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
+
+    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
     EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&signalingHandle));
 }
 
@@ -3904,6 +3968,114 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_InvalidJson) {
     EXPECT_STREQ("", receivedMessage.signalingMessage.payload);
     EXPECT_EQ(0, receivedMessage.signalingMessage.payloadLen);
     EXPECT_EQ(SIGNALING_MESSAGE_TYPE_UNKNOWN, receivedMessage.signalingMessage.messageType);
+}
+
+// The clock skew measured from an HTTPS response must also be applied to the presigned WSS connect. Runs offline:
+// createSignalingSync() only drives the state machine to GET_TOKEN, which the static credential provider serves
+// locally, and nothing listens on 127.0.0.1:443, so the WSS upgrade fails fast without reaching the service.
+TEST_F(SignalingApiFunctionalityTest, clockSkewMeasuredByHttpsIsAppliedToConnect)
+{
+    const INT64 skew = 2 * MIN_CLOCK_SKEW_TIME_TO_CORRECT;
+    SignalingClientInfoInternal clientInfoInternal;
+    SignalingClientCallbacks signalingClientCallbacks;
+    ChannelInfo channelInfo;
+    PAwsCredentialProvider pCredentialProvider = NULL;
+    PSignalingClient pSignalingClient = NULL;
+    INT64 correction = 0, appliedCorrection = 0;
+    UINT64 now;
+
+    MEMSET(&clientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
+    clientInfoInternal.signalingClientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    clientInfoInternal.signalingClientInfo.loggingLevel = mLogLevel;
+    STRCPY(clientInfoInternal.signalingClientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+
+    MEMSET(&signalingClientCallbacks, 0x00, SIZEOF(SignalingClientCallbacks));
+    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+    signalingClientCallbacks.customData = (UINT64) this;
+
+    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
+    channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    channelInfo.pChannelName = mChannelName;
+    channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+    channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
+    channelInfo.retry = FALSE;
+    channelInfo.reconnect = FALSE;
+    channelInfo.pRegion = mRegion;
+    channelInfo.pCertPath = mCaCertPath;
+    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+    channelInfo.pControlPlaneUrl = (PCHAR) "https://127.0.0.1";
+
+    EXPECT_EQ(STATUS_SUCCESS,
+              createStaticCredentialProvider((PCHAR) "accessKey", 0, (PCHAR) "secretKey", 0, NULL, 0, MAX_UINT64, &pCredentialProvider));
+    EXPECT_EQ(STATUS_SUCCESS,
+              createSignalingSync(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, pCredentialProvider, &pSignalingClient));
+
+    if (pSignalingClient != NULL) {
+        // lwsHttpCallbackRoutine() records the Date header of each HTTPS response this way. The server is ahead and
+        // the last request was signed without a correction, so re-signing with the new one can succeed.
+        now = GETTIME();
+        EXPECT_EQ(skew, recordClockSkewCorrection(pSignalingClient, now + skew, now));
+
+        // The ARN normally comes from describe, which this offline client skips. Without it the URL cannot be signed.
+        STRCPY(pSignalingClient->channelDescription.channelArn, TEST_CHANNEL_ARN);
+        STRCPY(pSignalingClient->channelEndpointWss, "wss://127.0.0.1");
+        connectSignalingChannelLws(pSignalingClient, 0);
+        EXPECT_FALSE(ATOMIC_LOAD_BOOL(&pSignalingClient->connected));
+
+        MUTEX_LOCK(pSignalingClient->diagnosticsLock);
+        correction = pSignalingClient->clockSkewCorrection;
+        appliedCorrection = pSignalingClient->appliedClockSkewCorrection;
+        MUTEX_UNLOCK(pSignalingClient->diagnosticsLock);
+        EXPECT_EQ(skew, correction);
+        EXPECT_EQ(skew, appliedCorrection);
+
+        // The connect was signed with the correction, so the same measurement is not a signing error any more
+        now = GETTIME();
+        EXPECT_EQ(0, recordClockSkewCorrection(pSignalingClient, now + skew, now));
+
+        // Once the device clock is fixed, the measurement is within the tolerance and the correction is dropped
+        now = GETTIME();
+        recordClockSkewCorrection(pSignalingClient, now + MIN_CLOCK_SKEW_TIME_TO_CORRECT / 2, now);
+        MUTEX_LOCK(pSignalingClient->diagnosticsLock);
+        correction = pSignalingClient->clockSkewCorrection;
+        MUTEX_UNLOCK(pSignalingClient->diagnosticsLock);
+        EXPECT_EQ(0, correction);
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, freeSignaling(&pSignalingClient));
+    EXPECT_EQ(STATUS_SUCCESS, freeStaticCredentialProvider(&pCredentialProvider));
+}
+
+// A WSS upgrade rejected only for its signing time goes back to CONNECT, to be re-signed with the measured correction,
+// instead of fetching a new token. Other authentication failures still fetch a new token.
+TEST_F(SignalingApiFunctionalityTest, connectStateRetriesConnectAfterClockSkewRejection)
+{
+    const SERVICE_CALL_RESULT clockSkewResults[] = {SERVICE_CALL_SIGNATURE_EXPIRED, SERVICE_CALL_SIGNATURE_NOT_YET_CURRENT};
+    const SERVICE_CALL_RESULT authResults[] = {SERVICE_CALL_FORBIDDEN, SERVICE_CALL_NOT_AUTHORIZED};
+    PSignalingClient pSignalingClient = (PSignalingClient) MEMCALLOC(1, SIZEOF(SignalingClient));
+    UINT64 state;
+    UINT32 i;
+
+    ASSERT_TRUE(pSignalingClient != NULL);
+    ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
+    ATOMIC_STORE_BOOL(&pSignalingClient->refreshIceConfig, FALSE);
+
+    for (i = 0; i < ARRAY_SIZE(clockSkewResults); i++) {
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) clockSkewResults[i]);
+        state = SIGNALING_STATE_NONE;
+        EXPECT_EQ(STATUS_SUCCESS, fromConnectSignalingState(CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient), &state));
+        EXPECT_EQ(SIGNALING_STATE_CONNECT, state) << "result " << clockSkewResults[i];
+    }
+
+    for (i = 0; i < ARRAY_SIZE(authResults); i++) {
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) authResults[i]);
+        state = SIGNALING_STATE_NONE;
+        EXPECT_EQ(STATUS_SUCCESS, fromConnectSignalingState(CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient), &state));
+        EXPECT_EQ(SIGNALING_STATE_GET_TOKEN, state) << "result " << authResults[i];
+    }
+
+    SAFE_MEMFREE(pSignalingClient);
 }
 
 } // namespace webrtcclient
