@@ -563,7 +563,8 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     struct lws* clientLws;
     struct lws_context* pContext;
     BOOL secureConnection, locked = FALSE, serializerLocked = FALSE, iterate = TRUE;
-    CHAR path[MAX_URI_CHAR_LEN + 1];
+    PCHAR path = NULL;
+    SIZE_T pathLen;
 
     CHK(pCallInfo != NULL && pCallInfo->callInfo.pRequestInfo != NULL && pCallInfo->pSignalingClient != NULL, STATUS_NULL_ARG);
 
@@ -602,18 +603,14 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     CHK_STATUS(getRequestHost(pCallInfo->callInfo.pRequestInfo->url, &pHostStart, &pHostEnd));
     CHK(pHostEnd == NULL || *pHostEnd == '/' || *pHostEnd == '?', STATUS_INTERNAL_ERROR);
 
-    // Store the path
-    path[MAX_URI_CHAR_LEN] = '\0';
-    if (pHostEnd != NULL) {
-        if (*pHostEnd == '/') {
-            STRNCPY(path, pHostEnd, MAX_URI_CHAR_LEN);
-        } else {
-            path[0] = '/';
-            STRNCPY(&path[1], pHostEnd, MAX_URI_CHAR_LEN - 1);
-        }
+    // Store the path, with a leading '/' added when it starts with the query
+    pathLen = (pHostEnd != NULL) ? STRLEN(pHostEnd) : 0;
+    CHK(NULL != (path = (PCHAR) MEMALLOC(pathLen + 2)), STATUS_NOT_ENOUGH_MEMORY);
+    if (pHostEnd != NULL && *pHostEnd == '/') {
+        STRCPY(path, pHostEnd);
     } else {
         path[0] = '/';
-        path[1] = '\0';
+        STRCPY(&path[1], (pHostEnd != NULL) ? pHostEnd : (PCHAR) "");
     }
 
     // NULL terminate the host
@@ -767,6 +764,8 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pCallInfo->pSignalingClient->lwsServiceLock);
     }
+
+    SAFE_MEMFREE(path);
 
     LEAVES();
     return retStatus;
