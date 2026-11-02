@@ -42,10 +42,7 @@
 # Streams are selected by SNI rather than by IP. The SDK's resolver can return a
 # different address than the shell's, so an IP filter finds nothing.
 #
-# STRICT: a classical group on any gated KVS handshake fails the run. The
-# service rolls ML-KEM out per endpoint, so pin this job to a schedule or a
-# branch where a service-side change is a signal worth acting on, not a surprise
-# on an unrelated pull request.
+# STRICT: a classical group on any gated KVS handshake fails the run.
 
 set -uo pipefail
 

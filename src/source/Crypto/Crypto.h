@@ -12,28 +12,15 @@ extern "C" {
 
 #ifdef KVS_USE_AWS_LC
 /*
- * ---------------------------------------------------------------------------
  * AWS-LC additions.
  *
- * AWS-LC advertises OPENSSL_VERSION_NUMBER 0x1010107f (OpenSSL 1.1.1
- * compatible), so every version gate in this header and in the *_openssl.c
- * sources resolves to the 1.1.x branch. That is correct and intentional: the
- * legacy RSA/EC_KEY/HMAC/MD5 APIs those branches use are all present in AWS-LC.
- * Nothing below overrides them; this block only adds what AWS-LC uniquely
- * offers.
+ * AWS-LC reports OPENSSL_VERSION_NUMBER 0x1010107f, so the OpenSSL version
+ * checks in this file take the 1.1.x path. AWS-LC has those APIs.
  *
- * OPENSSL_IS_AWSLC is AWS-LC's own marker, defined in <openssl/base.h>. We
- * assert on it so a build configured with -DUSE_AWS_LC=ON that accidentally
- * resolves real OpenSSL headers fails at compile time rather than silently
- * producing a non-PQC, non-FIPS binary.
- * ---------------------------------------------------------------------------
+ * The two checks below stop the build if the headers are not AWS-LC.
  */
-/* <openssl/base.h> is an AWS-LC/BoringSSL header; real OpenSSL has no such file
- * in any version. Probe for it first so a misconfigured include path produces an
- * actionable message rather than a bare "file not found". The #ifdef wrapper
- * around __has_include is required because a bare __has_include in an #if is a
- * syntax error on pre-C23 compilers - the && does not short-circuit the parse.
- * Same pattern as the mbedTLS 4 probe in Include_i.h. */
+/* Real OpenSSL has no <openssl/base.h>. The #ifdef is needed because older
+ * compilers reject __has_include inside a bare #if. */
 #ifdef __has_include
 #if !__has_include(<openssl/base.h>)
 #error                                                                                                                                               \
@@ -50,39 +37,29 @@ extern "C" {
 #include <openssl/service_indicator.h>
 
 /*
- * Post-quantum key exchange groups, in client preference order.
+ * Key exchange groups the SDK offers, in preference order.
  *
- * X25519MLKEM768 (RFC 10024, IANA codepoint 0x11EC) is the hybrid group the
- * PQC Confidentiality Campaign targets. It is already first in AWS-LC's own
- * default group list, so PQC is negotiated even without this configuration.
- * We set it explicitly anyway so the SDK's posture is deterministic and
- * auditable rather than dependent on a library default that may be reordered.
+ * X25519MLKEM768 (RFC 10024, codepoint 0x11EC) is the post-quantum hybrid
+ * group. AWS-LC already lists it first by default. The SDK sets it anyway, so
+ * the offer does not depend on that default.
  *
- * NIDs (not SSL_GROUP_* codepoints) are used deliberately: SSL_CTX_set1_groups
- * takes NIDs and exists on both AWS-LC mainline and the fips-* branches, whereas
- * the codepoint-based SSL_CTX_set1_group_ids is mainline-only.
- *
- * The classical groups trail ML-KEM in the same list, so a server that does not
- * yet offer ML-KEM still completes a handshake instead of failing closed.
+ * The classical groups follow, so a server without ML-KEM still connects.
+ * These are NIDs because SSL_CTX_set1_groups takes NIDs, and it also exists on
+ * the fips-* branches.
  */
 #define KVS_AWS_LC_PQC_GROUPS {NID_X25519MLKEM768, NID_X25519, NID_X9_62_prime256v1, NID_secp384r1}
 
 /*
- * FIPS builds are selected at compile time (-DFIPS=1 when building AWS-LC);
- * there is no runtime switch. FIPS_mode_set() only succeeds when its argument
- * already matches how the library was compiled, so never call it to "turn FIPS
- * on". AWSLC_FIPS is AWS-LC's own define for a FIPS build; KVS_USE_AWS_LC_FIPS
- * is ours, recording what the SDK was configured to expect. AwsLc_awslc.c
- * cross-checks the two and warns on mismatch.
+ * FIPS is chosen when AWS-LC is built (-DFIPS=1). There is no runtime switch,
+ * so do not call FIPS_mode_set(). Crypto_awslc.c logs a mismatch between
+ * FIPS_mode() and KVS_USE_AWS_LC_FIPS.
  */
 
-/* Emit a one-time log line describing the AWS-LC build (version, FIPS state,
- * PQC availability). Called from initKvsWebRtc(). Lives in Crypto_awslc.c,
- * which only kvsWebrtcClient compiles. */
+/* Logs the AWS-LC version, FIPS state and offered groups once. Called from
+ * initKvsWebRtc(). */
 VOID awsLcLogCryptoBackend(VOID);
 
-/* awsLcConfigureTlsGroups() is static inline in AwsLcPqc.h, included below:
- * both SDK libraries need it and they are separate link targets. */
+/* awsLcConfigureTlsGroups() is in AwsLcPqc.h, included at the end of this file. */
 #endif /* KVS_USE_AWS_LC */
 
 /*
@@ -98,11 +75,8 @@ VOID awsLcLogCryptoBackend(VOID);
 #define KVS_SSL_GET_PEER_CERTIFICATE(ssl) SSL_get_peer_certificate(ssl)
 #endif
 
-/*
- * X509_get_notBefore/X509_get_notAfter were removed in OpenSSL 4.0. The mutable
- * X509_getm_notBefore/X509_getm_notAfter variants (returning ASN1_TIME* as
- * X509_gmtime_adj requires) exist since 1.1.0; fall back to the old names on 1.0.x.
- */
+/* OpenSSL 4.0 removes X509_get_notBefore and X509_get_notAfter. The getm
+ * versions exist since 1.1.0. */
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
 #define KVS_X509_GET_NOT_BEFORE(x) X509_getm_notBefore(x)
 #define KVS_X509_GET_NOT_AFTER(x)  X509_getm_notAfter(x)
@@ -204,8 +178,7 @@ typedef enum {
 #error "A Crypto implementation is required."
 #endif
 
-/* Must come after the KVS_AWS_LC_* group macros and the SRTP profile enum above,
- * which its static inline definitions reference. */
+/* Must come after KVS_AWS_LC_PQC_GROUPS, which AwsLcPqc.h uses. */
 #include "AwsLcPqc.h"
 
 #ifdef __cplusplus

@@ -8,8 +8,7 @@
  *
  * The two libraries are independent CMake targets and kvsWebrtcSignalingClient
  * does not link kvsWebrtcClient, so a definition compiled into one is not
- * resolvable from the other. Both do link AWS-LC, so `static inline` here gives
- * each translation unit its own copy without touching the link graph.
+ * resolvable from the other.
  */
 #ifndef __KINESIS_VIDEO_WEBRTC_CLIENT_CRYPTO_AWSLC_PQC__
 #define __KINESIS_VIDEO_WEBRTC_CLIENT_CRYPTO_AWSLC_PQC__
@@ -40,20 +39,15 @@ static inline STATUS awsLcConfigureTlsGroups(SSL_CTX* pSslCtx)
     /*
      * SSL_CTX_set1_groups takes NIDs and returns 1 on success. Chosen over
      * SSL_CTX_set1_group_ids (codepoints) because the latter does not exist on
-     * the AWS-LC fips-* branches, and over SSL_CTX_set1_groups_list (strings)
-     * because a typo in a name string would fail silently at runtime rather
-     * than at compile time.
+     * the AWS-LC fips-* branches.
      */
-    CHK_ERR(SSL_CTX_set1_groups(pSslCtx, pqcGroups, ARRAY_SIZE(pqcGroups)) == 1, STATUS_SSL_CTX_CREATION_FAILED,
-            "Failed to set post-quantum key exchange groups on the TLS context");
+    CHK(SSL_CTX_set1_groups(pSslCtx, pqcGroups, ARRAY_SIZE(pqcGroups)) == 1, STATUS_SSL_CTX_CREATION_FAILED);
 
     /*
-     * ML-KEM is only reachable in TLS 1.3. AWS-LC negotiates the highest mutually
-     * supported version by default, but pinning the floor makes the intent
-     * explicit and stops a downgrade from silently costing PQC protection.
+     * Drop TLS 1.0 and 1.1. ML-KEM still needs TLS 1.3, so a TLS 1.2 server gets
+     * a classical handshake.
      */
-    CHK_ERR(SSL_CTX_set_min_proto_version(pSslCtx, TLS1_2_VERSION) == 1, STATUS_SSL_CTX_CREATION_FAILED,
-            "Failed to set the minimum TLS protocol version");
+    CHK(SSL_CTX_set_min_proto_version(pSslCtx, TLS1_2_VERSION) == 1, STATUS_SSL_CTX_CREATION_FAILED);
 
 CleanUp:
     return retStatus;

@@ -97,8 +97,8 @@ STATUS tlsSessionStartWithHostname(PTlsSession pTlsSession, BOOL isServer, PCHAR
      *
      * Non-fatal on failure: losing PQC preference is a downgrade in protection,
      * not a loss of connectivity, and failing the TURN allocation outright would
-     * break media for peers behind symmetric NAT. The warning is logged inside
-     * awsLcConfigureTlsGroups.
+     * break media for peers behind symmetric NAT. awsLcConfigureTlsGroups does
+     * not log, so the warning below is the only log line for a failure.
      */
     if (STATUS_FAILED(awsLcConfigureTlsGroups(pTlsSession->pSslCtx))) {
         DLOGW("Failed to configure post-quantum groups on the TURNS TLS context; continuing with AWS-LC defaults");

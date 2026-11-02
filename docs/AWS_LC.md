@@ -63,42 +63,52 @@ The SDK checks the combination at configure time. FIPS also conflicts with `-DAD
 ### Is AWS-LC linked at all?
 
 ```bash
-nm -gU libkvsWebrtcClient.dylib 2>/dev/null | grep -i awslc   # macOS
-nm -D  libkvsWebrtcClient.so    2>/dev/null | grep -i awslc   # Linux
 strings open-source/lib/libcrypto.* | grep 'AWS-LC'
 ```
 
 ### The startup banner
 
-`initKvsWebRtc()` logs the backend, its FIPS state and its post-quantum groups once, at `INFO` level.
+`initKvsWebRtc()` logs the backend, its FIPS state and its post-quantum groups once, at `INFO` level. A default `-DUSE_AWS_LC_FIPS=ON` build prints:
 
 ```
-Crypto backend: AWS-LC 5.9.0 (headers), loaded library reports: AWS-LC 5.9.0
-AWS-LC FIPS mode: ENABLED (AWS-LC FIPS, module version 5)
+Crypto backend: AWS-LC 4.2.0 (headers), loaded library reports: AWS-LC FIPS 4.2.0
+AWS-LC FIPS mode: ENABLED (AWS-LC FIPS)
 Post-quantum key exchange: offered (X25519MLKEM768, 0x11ec) on the TLS 1.3 connections to AWS (control plane HTTPS, signaling WSS, TURNS); DTLS-SRTP media path is DTLS 1.2 and remains classical
 ```
 
+A non-FIPS build prints `AWS-LC FIPS mode: disabled (non-FIPS build)` on the second line.
+
 Set `AWS_KVS_LOG_LEVEL=2` or lower to see all three lines. The first two log at `INFO`, the post-quantum line at `DEBUG`. The default level is `4`, which is `WARN`.
 
-The first line reports two versions. "headers" is the AWS-LC version the SDK compiled against. "loaded library reports" is the version string inside the libcrypto the process loaded. The two differ when the loader finds a stale or system libcrypto ahead of the intended AWS-LC.
+The first line reports two versions. "headers" is the AWS-LC version the SDK compiled against. "loaded library reports" is the version string inside the libcrypto the process loaded. A FIPS build adds `FIPS` to that string, as above. The version numbers differ when the loader finds a stale or system libcrypto ahead of the intended AWS-LC.
 
-The third line reports what the SDK offers. It does not report what any handshake negotiated. The peer has to support ML-KEM too, and a peer without it still negotiates a classical group.
+The third line reports what the SDK offers. It does not report what any handshake negotiated. The AWS endpoint has to support ML-KEM too. An endpoint without it still negotiates a classical group.
 
 To see the group a connection actually used, inspect the server side directly. Build the `bssl` tool with `-DBUILD_TOOL=ON` in the AWS-LC build, or run `openssl s_client` from OpenSSL 3.5 or later.
 
-### Confirming a FIPS operation ran inside the boundary
+### Checking that a call used a FIPS-approved algorithm
 
-A FIPS build means the library carries the validated module. It says nothing about whether one operation ran inside the boundary. AWS-LC reports that through a per-thread service indicator.
+Use this to check whether one crypto call in your application used a FIPS-approved algorithm.
+
+A FIPS build still runs algorithms that FIPS does not approve, such as MD5. It does not count them as approved. This check cannot see the SDK's own calls.
 
 ```c
+#include <assert.h>
+#include <openssl/crypto.h>
+#include <openssl/md5.h>
 #include <openssl/service_indicator.h>
 
-FIPSStatus approved = AWSLC_NOT_APPROVED;
-CALL_SERVICE_AND_CHECK_APPROVED(approved, MD5(data, len, out));
-/* approved == AWSLC_NOT_APPROVED: that call was outside the boundary */
+enum FIPSStatus approved = AWSLC_NOT_APPROVED;
+if (FIPS_mode() != 0) {
+    CALL_SERVICE_AND_CHECK_APPROVED(approved, MD5(data, len, out));
+}
+/* approved == AWSLC_NOT_APPROVED: MD5 is not FIPS approved */
 ```
 
-One trap. In a non-FIPS build, `CALL_SERVICE_AND_CHECK_APPROVED` always sets `AWSLC_APPROVED`, by design, for source compatibility. Gate the check on `FIPS_mode() != 0` first. Do not gate it on `FIPS_version()`, which the `fips-*` branches do not export publicly. Without that gate, a non-FIPS build reports every operation as approved and the check passes for the wrong reason.
+The result is correct only when both of these hold. Otherwise every call reports as approved.
+
+- The code is compiled with `-DBORINGSSL_FIPS`.
+- `FIPS_mode()` returns non-zero, as checked above.
 
 ## Coverage and limits
 

@@ -46,14 +46,14 @@ INT32 lwsHttpCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn,
 
 #ifdef KVS_USE_AWS_LC
     /*
-     * Handled before the filter below and before the opaque-user-data lookup:
-     * libwebsockets raises this while building the client SSL_CTX, at which point
-     * no wsi user data exists yet. `user` is the SSL_CTX per the lws docs.
+     * Applies the SDK's group list to the libwebsockets client SSL_CTX.
      *
-     * This is where the post-quantum group list gets applied to the libwebsockets
-     * client context. Without it the context would silently inherit AWS-LC's
-     * defaults, which happen to lead with X25519MLKEM768 today but are not a
-     * contract. Configuring explicitly makes the offer deterministic.
+     * lws raises this once, while it builds the client SSL_CTX, on a fake wsi with
+     * no user data. So it is handled before the user data lookup below. `user` is
+     * the SSL_CTX.
+     *
+     * AWS-LC's default list also starts with X25519MLKEM768 today, but that default
+     * can change. Setting the list here keeps the offer fixed.
      */
     if (reason == LWS_CALLBACK_OPENSSL_LOAD_EXTRA_CLIENT_VERIFY_CERTS && user != NULL) {
         if (STATUS_FAILED(awsLcConfigureTlsGroups((SSL_CTX*) user))) {
@@ -336,14 +336,11 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
 
     DLOGV("WSS callback with reason %d", reason);
 
-    // NOTE: there is deliberately no LWS_CALLBACK_OPENSSL_LOAD_EXTRA_CLIENT_VERIFY_CERTS
-    // handler here. libwebsockets raises that callback on protocols[0] only
-    // (lws_context_init_client_ssl in lib/tls/tls-client.c calls
-    // vhost->protocols[0].callback directly), and PROTOCOL_INDEX_HTTPS is 0, so it
-    // always lands in lwsHttpCallbackRoutine. Verified by instrumenting both
-    // routines: the hook fires exactly once, in the HTTPS routine. The SDK creates
-    // a single lws context with one vhost, so HTTPS and WSS share one client
-    // SSL_CTX and the group list configured there covers this connection too.
+    // No LWS_CALLBACK_OPENSSL_LOAD_EXTRA_CLIENT_VERIFY_CERTS handler here. lws raises it
+    // only on protocols[0] (lws_context_init_client_ssl in lib/tls/tls-client.c), and
+    // PROTOCOL_INDEX_HTTPS is 0, so it lands in lwsHttpCallbackRoutine. The SDK creates
+    // one lws context with one vhost, so HTTPS and WSS share one client SSL_CTX. The
+    // group list set there covers WSS too.
 
     // Sent to every protocol on a fake wsi after lws_cancel_service(), from the service thread.
     // This path must return 0. A non-zero return makes lws close its cancel pipe, and every later wake is lost.
