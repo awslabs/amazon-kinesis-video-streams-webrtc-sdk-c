@@ -174,6 +174,97 @@ TEST_F(RtcpFunctionalityTest, rtcpNackListGetSmallBuffer)
     SAFE_MEMFREE(pSeqList);
 }
 
+// The list fills up on the PID of an FCI. The count must stop there and not include the rest of the NACK.
+TEST_F(RtcpFunctionalityTest, rtcpNackListGetSmallBufferFullAtPid)
+{
+    UINT32 senderSsrc = 0, receiverSsrc = 0;
+    // 8-byte SSRC header + two FCIs with no BLP bits: PID 0x0ca8 (3240), then PID 0x0cff (3327).
+    BYTE twoPid[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0xa8, 0x00, 0x00, 0x0c, 0xff, 0x00, 0x00};
+    UINT16 seqList[1] = {0};
+    UINT32 seqListLen = ARRAY_SIZE(seqList);
+
+    EXPECT_EQ(STATUS_SUCCESS, rtcpNackListGet(twoPid, SIZEOF(twoPid), &senderSsrc, &receiverSsrc, seqList, &seqListLen));
+    EXPECT_EQ(ARRAY_SIZE(seqList), seqListLen);
+    EXPECT_EQ(3240, seqList[0]);
+}
+
+// A NACK can list more sequence numbers than the retransmitter's list holds. The list is filled and the count
+// covers only what was written. The sizing call (NULL list) still reports the total.
+TEST_F(RtcpFunctionalityTest, rtcpNackListGetMoreThanRetransmitterList)
+{
+    // RFC 4585 section 6.2.1: each FCI is a 16-bit PID and a 16-bit BLP, and lists the PID plus one number per BLP bit
+    const UINT32 fciLen = SIZEOF(UINT16) + SIZEOF(UINT16);
+    const UINT32 seqNumsPerFci = 1 + SIZEOF(UINT16) * 8;
+    // One FCI more than the list holds: seq 0 onwards, with every BLP bit set
+    const UINT32 fciCount = DEFAULT_SEQ_NUM_BUFFER_SIZE / seqNumsPerFci + 1;
+    UINT32 senderSsrc = 0, receiverSsrc = 0, seqListLen = 0, i;
+    std::vector<BYTE> nack(RTCP_NACK_LIST_LEN + fciLen * fciCount, 0);
+    std::unique_ptr<UINT16[]> seqList(new UINT16[DEFAULT_SEQ_NUM_BUFFER_SIZE]);
+
+    for (i = 0; i < fciCount; i++) {
+        putInt16((PINT16) (nack.data() + RTCP_NACK_LIST_LEN + fciLen * i), (INT16) (seqNumsPerFci * i));
+        putInt16((PINT16) (nack.data() + RTCP_NACK_LIST_LEN + fciLen * i + SIZEOF(UINT16)), (INT16) 0xffff);
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, rtcpNackListGet(nack.data(), (UINT32) nack.size(), &senderSsrc, &receiverSsrc, NULL, &seqListLen));
+    EXPECT_EQ(seqNumsPerFci * fciCount, seqListLen);
+
+    seqListLen = DEFAULT_SEQ_NUM_BUFFER_SIZE;
+    EXPECT_EQ(STATUS_SUCCESS, rtcpNackListGet(nack.data(), (UINT32) nack.size(), &senderSsrc, &receiverSsrc, seqList.get(), &seqListLen));
+    EXPECT_EQ(DEFAULT_SEQ_NUM_BUFFER_SIZE, seqListLen);
+    for (i = 0; i < DEFAULT_SEQ_NUM_BUFFER_SIZE; i++) {
+        EXPECT_EQ((UINT16) i, seqList[i]);
+    }
+}
+
+// A NACK that lists more sequence numbers than the retransmitter's list holds is answered from the entries that
+// fit. Without the cap, this test fails under AddressSanitizer.
+TEST_F(RtcpFunctionalityTest, onRtcpPacketNackLongerThanRetransmitterList)
+{
+    // RFC 4585 section 6.2.1: each FCI is a 16-bit PID and a 16-bit BLP, and lists the PID plus one number per BLP bit
+    const UINT32 fciLen = SIZEOF(UINT16) + SIZEOF(UINT16);
+    const UINT32 seqNumsPerFci = 1 + SIZEOF(UINT16) * 8;
+    // More sequence numbers than fit in the retransmitter's allocation
+    const UINT32 retransmitterAllocationSize =
+        SIZEOF(Retransmitter) + SIZEOF(UINT16) * DEFAULT_SEQ_NUM_BUFFER_SIZE + SIZEOF(UINT64) * DEFAULT_VALID_INDEX_BUFFER_SIZE;
+    const UINT32 fciCount = retransmitterAllocationSize / SIZEOF(UINT16) / seqNumsPerFci + 1;
+    // The NACKed numbers start well above the buffered ones, so none of them is buffered
+    const UINT16 firstNackedSeqNum = 30000;
+    const UINT32 bufferedPacketCount = 3;
+    // Media SSRC 44000, the transceiver's
+    BYTE header[] = {0x81, 0xcd, 0x00, 0x00, 0x2c, 0xd1, 0xa0, 0xde, 0x00, 0x00, 0xab, 0xe0};
+    std::vector<BYTE> nack(SIZEOF(header) + fciLen * fciCount, 0);
+    PRtpPacket pRtpPacket = nullptr;
+    RtcOutboundRtpStreamStats stats{};
+    UINT32 i;
+
+    MEMCPY(nack.data(), header, SIZEOF(header));
+    putInt16((PINT16) (nack.data() + RTCP_PACKET_LEN_OFFSET), (INT16) (nack.size() / RTCP_PACKET_LEN_WORD_SIZE - 1));
+    for (i = 0; i < fciCount; i++) {
+        putInt16((PINT16) (nack.data() + SIZEOF(header) + fciLen * i), (INT16) (firstNackedSeqNum + seqNumsPerFci * i));
+        putInt16((PINT16) (nack.data() + SIZEOF(header) + fciLen * i + SIZEOF(UINT16)), (INT16) 0xffff);
+    }
+
+    initTransceiver(44000);
+    ASSERT_EQ(STATUS_SUCCESS, createRtpRollingBuffer(bufferedPacketCount, &pKvsRtpTransceiver->sender.packetBuffer));
+    ASSERT_EQ(STATUS_SUCCESS,
+              createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
+    // Send more packets than the buffer holds, so seq 0 is evicted. Memory past the list can decode to seq 0, and a
+    // match there would stop the lookup before it reads past the allocation.
+    for (i = 0; i < DEFAULT_SEQ_NUM_BUFFER_SIZE + bufferedPacketCount; i++) {
+        ASSERT_EQ(STATUS_SUCCESS, createRtpPacketWithSeqNum((UINT16) i, &pRtpPacket));
+        ASSERT_EQ(STATUS_SUCCESS, rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
+        freeRtpPacket(&pRtpPacket);
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, nack.data(), (UINT32) nack.size()));
+    getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats);
+    EXPECT_EQ(1, stats.nackCount);
+    EXPECT_EQ(0, stats.retransmittedPacketsSent);
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
 TEST_F(RtcpFunctionalityTest, onRtcpPacketCompoundNack)
 {
     PRtpPacket pRtpPacket = nullptr;
