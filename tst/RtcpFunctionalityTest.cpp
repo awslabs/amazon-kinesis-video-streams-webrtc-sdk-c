@@ -245,6 +245,37 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketNackPutsPacketBackAtExtractedIndex)
     freePeerConnection(&pRtcPeerConnection);
 }
 
+// After 65,536 packets the rolling buffer index no longer fits in a 16-bit sequence number. Each NACKed
+// packet must still go back to the index it came from, so a repeated NACK can resend it.
+TEST_F(RtcpFunctionalityTest, onRtcpPacketNackPutsPacketBackAfterSeqNumWrap)
+{
+    PRtpPacket pRtpPacket = nullptr;
+    UINT32 i;
+    // NACK PID 65535, BLP 0x0003 -> seq 65535, 0, 1
+    BYTE nackSeqWrap[] = {0x81, 0xcd, 0x00, 0x03, 0x2c, 0xd1, 0xa0, 0xde, 0x00, 0x00, 0xab, 0xe0, 0xff, 0xff, 0x00, 0x03};
+    RtcOutboundRtpStreamStats stats{};
+
+    initTransceiver(44000);
+    ASSERT_EQ(STATUS_SUCCESS, createRtpRollingBuffer(4, &pKvsRtpTransceiver->sender.packetBuffer));
+    ASSERT_EQ(STATUS_SUCCESS,
+              createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
+    // 65,538 packets: the buffer holds indices 65534 to 65537, which carry seq 65534, 65535, 0 and 1.
+    for (i = 0; i < MAX_UINT16 + 3; i++) {
+        ASSERT_EQ(STATUS_SUCCESS, createRtpPacketWithSeqNum(GET_UINT16_SEQ_NUM(i), &pRtpPacket));
+        ASSERT_EQ(STATUS_SUCCESS, rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
+        freeRtpPacket(&pRtpPacket);
+    }
+
+    // Both NACKs resend all three packets.
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, nackSeqWrap, SIZEOF(nackSeqWrap)));
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, nackSeqWrap, SIZEOF(nackSeqWrap)));
+    getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats);
+    EXPECT_EQ(2, stats.nackCount);
+    EXPECT_EQ(6, stats.retransmittedPacketsSent);
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
 TEST_F(RtcpFunctionalityTest, onRtcpPacketCompound)
 {
     KvsPeerConnection peerConnection{};
