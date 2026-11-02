@@ -1150,6 +1150,127 @@ TEST_F(RtcpFunctionalityTest, twccManagerOnPacketSentReusedSeqNum)
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
+// Without RTX, a NACK resends the original packet, so twccManagerOnPacketSent() sees its transport wide sequence
+// number a second time. The record of the first send has to be freed rather than overwritten; an overwritten record
+// is reported as a leak when the fixture resets its allocators.
+TEST_F(RtcpFunctionalityTest, onRtcpPacketNackWithoutRtxReusesTwccSequenceNumber)
+{
+    // NACK for seq 0 on media ssrc 44000
+    BYTE nackPacket[] = {0x81, 0xcd, 0x00, 0x03, 0x2c, 0xd1, 0xa0, 0xde, 0x00, 0x00, 0xab, 0xe0, 0x00, 0x00, 0x00, 0x00};
+    BYTE payload[10] = {0};
+    UINT16 twsn = 100;
+    UINT32 extPayload = TWCC_PAYLOAD(1u, twsn);
+    PRtpPacket pRtpPacket = nullptr;
+    UINT64 value = 0, originalSentTime = 0;
+    RtcOutboundRtpStreamStats stats{};
+
+    initTransceiver(44000);
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnSenderBandwidthEstimation(pRtcPeerConnection, 0, testBwHandler));
+    // RTX is not negotiated when the RTX payload type equals the payload type
+    ATOMIC_STORE(&pKvsRtpTransceiver->atomicSenderPayloadTypes, KVS_RTP_TRANSCEIVER_PACK_PAYLOAD_TYPES(96, 96));
+
+    EXPECT_EQ(STATUS_SUCCESS,
+              createRtpRollingBuffer(DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS * DEFAULT_EXPECTED_VIDEO_BIT_RATE / 8 / DEFAULT_MTU_SIZE_BYTES,
+                                     &pKvsRtpTransceiver->sender.packetBuffer));
+    EXPECT_EQ(STATUS_SUCCESS,
+              createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
+    EXPECT_EQ(STATUS_SUCCESS,
+              createRtpPacket(2, FALSE, TRUE, 0, FALSE, 96, 0, 100, 44000, NULL, TWCC_EXT_PROFILE, SIZEOF(UINT32), (PBYTE) &extPayload, payload,
+                              SIZEOF(payload), &pRtpPacket));
+    if (pRtpPacket != nullptr) {
+        EXPECT_EQ(STATUS_SUCCESS, createBytesFromRtpPacket(pRtpPacket, NULL, &pRtpPacket->rawPacketLength));
+        EXPECT_NE(nullptr, pRtpPacket->pRawPacket = (PBYTE) MEMALLOC(pRtpPacket->rawPacketLength));
+        EXPECT_EQ(STATUS_SUCCESS, createBytesFromRtpPacket(pRtpPacket, pRtpPacket->pRawPacket, &pRtpPacket->rawPacketLength));
+
+        // The original send, one second before the NACK so the two records can be told apart
+        originalSentTime = GETTIME() - HUNDREDS_OF_NANOS_IN_A_SECOND;
+        pRtpPacket->sentTime = originalSentTime;
+        EXPECT_EQ(STATUS_SUCCESS, twccManagerOnPacketSent(pKvsPeerConnection, pRtpPacket));
+        EXPECT_EQ(STATUS_SUCCESS, rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
+
+        EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, nackPacket, SIZEOF(nackPacket)));
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats));
+    EXPECT_EQ(1, stats.retransmittedPacketsSent);
+
+    // The retransmission went out under the original number and replaced the original record
+    MUTEX_LOCK(pKvsPeerConnection->twccLock);
+    EXPECT_EQ(1, pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable->itemCount);
+    EXPECT_EQ(STATUS_SUCCESS, hashTableGet(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, twsn, &value));
+    if (value != 0) {
+        EXPECT_GT(((PTwccRtpPacketInfo) value)->localTimeKvs, originalSentTime);
+    }
+    MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    freeRtpPacket(&pRtpPacket);
+}
+
+// The rolling window skips a record whose send time is later than the packet being sent, and never visits it again.
+// The record stays in the table until the 16-bit transport wide sequence number wraps around to it. The packet that
+// reuses the number has to free the record rather than overwrite it; an overwritten record is reported as a leak
+// when the fixture resets its allocators.
+TEST_F(RtcpFunctionalityTest, twccManagerOnPacketSentReusedSeqNumAfterWraparound)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    RtcConfiguration config{};
+    RtpPacket rtpPacket{};
+    PHashTable pTable = NULL;
+    UINT64 value = 0, sentTime = HUNDREDS_OF_NANOS_IN_A_SECOND, strandedSentTime;
+    const UINT16 strandedSeqNum = 10;
+    UINT16 twsn;
+    UINT32 extpayload = 0;
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnSenderBandwidthEstimation(pRtcPeerConnection, 0, testBwHandler));
+    pTable = pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable;
+
+    rtpPacket.header.extension = TRUE;
+    rtpPacket.header.extensionProfile = TWCC_EXT_PROFILE;
+    rtpPacket.header.extensionLength = SIZEOF(UINT32);
+    rtpPacket.header.extensionPayload = (PBYTE) &extpayload;
+    rtpPacket.payloadLength = 100;
+
+    // The stranded record is sent with a later time than the packet after it
+    strandedSentTime = sentTime + TWCC_ESTIMATOR_TIME_WINDOW;
+    extpayload = TWCC_PAYLOAD(1u, strandedSeqNum);
+    rtpPacket.sentTime = strandedSentTime;
+    EXPECT_EQ(STATUS_SUCCESS, twccManagerOnPacketSent(pKvsPeerConnection, &rtpPacket));
+
+    // Send every remaining sequence number once, wrapping from 65535 to 0. Each packet is sent more than the rolling
+    // window after the previous one, so the window evicts the previous record but never revisits the stranded one.
+    for (twsn = strandedSeqNum + 1; twsn != strandedSeqNum; twsn++) {
+        extpayload = TWCC_PAYLOAD(1u, twsn);
+        rtpPacket.sentTime = sentTime;
+        EXPECT_EQ(STATUS_SUCCESS, twccManagerOnPacketSent(pKvsPeerConnection, &rtpPacket));
+        sentTime += TWCC_ESTIMATOR_TIME_WINDOW + 1;
+    }
+
+    // The stranded record and the last packet's record are left
+    EXPECT_EQ(2, pTable->itemCount);
+    EXPECT_EQ(STATUS_SUCCESS, hashTableGet(pTable, strandedSeqNum, &value));
+    if (value != 0) {
+        EXPECT_EQ(strandedSentTime, ((PTwccRtpPacketInfo) value)->localTimeKvs);
+    }
+
+    // The sequence number has wrapped around to the stranded record
+    extpayload = TWCC_PAYLOAD(1u, strandedSeqNum);
+    rtpPacket.sentTime = sentTime;
+    EXPECT_EQ(STATUS_SUCCESS, twccManagerOnPacketSent(pKvsPeerConnection, &rtpPacket));
+
+    EXPECT_EQ(1, pTable->itemCount);
+    value = 0;
+    EXPECT_EQ(STATUS_SUCCESS, hashTableGet(pTable, strandedSeqNum, &value));
+    if (value != 0) {
+        EXPECT_EQ(sentTime, ((PTwccRtpPacketInfo) value)->localTimeKvs);
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
 TEST_F(RtcpFunctionalityTest, updateTwccHashTableTest)
 {
     PRtcPeerConnection pRtcPeerConnection = NULL;
