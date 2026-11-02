@@ -81,7 +81,7 @@ frames/frame-0051.h265: ['CRA']
 
 ### Find every keyframe in a track
 
-The sample stores each frame (access unit) in its own file, but `ffprobe` expects a single continuous video stream. First, join the per-frame files back into one file, in order, by appending their bytes end to end. This is called *concatenating*, and because each file is already a complete access unit, simply `cat`-ing them together reproduces the original elementary stream. `ffprobe` can then walk that stream and flag which frames are keyframes.
+The sample stores each frame (access unit) in its own file, but `ffprobe` expects a single continuous video stream. First, join the per-frame files back into one file, in order, by appending their bytes end to end. This is called *concatenating*, and because each file is already a complete access unit, joining them with `cat` reproduces the original elementary stream. `ffprobe` can then walk that stream and flag which frames are keyframes.
 
 ```bash
 # Concatenate the track into one raw stream (adjust the count to your frame set)
@@ -150,9 +150,9 @@ The frame-inspection tools above look at the bitstream you send. It is also wort
 
 Open `chrome://webrtc-internals` in a new tab **before** you start the session, then join. It dumps live `getStats()` for every active peer connection. Run your stream, let it freeze at that exact spot, and immediately read the graphs under the active inbound video track (`inbound-rtp` … `kind=video`):
 
-- **`framesReceived` / `framesDecoded`**: if `framesReceived` keeps climbing but `framesDecoded` stops completely (or sticks at 1), the browser is downloading the packets but refusing to parse them. That points at the bitstream (missing parameter sets, bad keyframes), not the network.
+- **`framesReceived` / `framesDecoded`**: if `framesReceived` keeps climbing but `framesDecoded` stops completely (or sticks at 1), the browser receives the frames but cannot decode them. That points at the bitstream (missing parameter sets, bad keyframes), not the network.
 - **`keyFramesDecoded`**: stays at 1 when later keyframes can't be decoded.
-- **`pliCount` / `firCount`**: watch whether these spike or climb continuously right when the freeze happens. If they do, the browser is repeatedly begging for a fresh keyframe because the frame at that spot broke the decoder chain and it never recovers, the classic missing-per-keyframe-parameter-set signature (`nackCount` and near-zero `packetsLost` confirm the network is fine).
+- **`pliCount` / `firCount`**: check whether these rise sharply or climb continuously when the freeze happens. If they do, the browser keeps requesting a new keyframe, because the frame at that spot broke the decoding chain and decoding never recovers. This pattern indicates keyframes without parameter sets. A low `nackCount` and near-zero `packetsLost` show that the network is not the cause.
 - **`jitterBufferDelay`**: if this spikes to an abnormally high ceiling at the freeze point, suspect a timestamp or packet-ordering problem breaking the playback clock rather than a decode problem (see [Freezes only when frames loop or repeat](#freezes-only-when-frames-loop-or-repeat)).
 - **`freezeCount` / `totalFreezesDuration`**: confirms and quantifies the freeze.
 

@@ -161,6 +161,9 @@ typedef struct {
     SignalingApiCallHookFunc deletePreHookFn;
     SignalingApiCallHookFunc deletePostHookFn;
 
+    // Runs on the receive worker right before messageReceivedFn would be invoked.
+    SignalingApiCallHookFunc receiveMessagePreCallbackHookFn;
+
     // Retry strategy used for signaling state machine
     KvsRetryStrategy signalingStateMachineRetryStrategy;
     KvsRetryStrategyCallbacks signalingStateMachineRetryStrategyCallbacks;
@@ -402,6 +405,9 @@ typedef struct {
     // Generic websocket connection objects - can be used by any implementation
     PVOID currentWsi[LWS_PROTOCOL_COUNT];
 
+    // Set by wakeLwsServiceEventLoop(), consumed by the service thread on LWS_CALLBACK_EVENT_WAIT_CANCELLED
+    volatile ATOMIC_BOOL writableRequested[LWS_PROTOCOL_COUNT];
+
     // List of the ongoing messages
     PStackQueue pMessageQueue;
 
@@ -419,6 +425,23 @@ typedef struct {
 
     // Internal diagnostics object
     SignalingDiagnostics diagnostics;
+
+    // Clock skew correction applied to every signed request, HTTPS and WSS alike: the most recent server
+    // Date minus device time, or 0 when within MIN_CLOCK_SKEW_TIME_TO_CORRECT. Protected by diagnosticsLock.
+    INT64 clockSkewCorrection;
+
+    // Correction the last signed request used. Signed requests are serialized by the state machine's
+    // stateLock, so this always belongs to the request whose response is being processed.
+    // Protected by diagnosticsLock.
+    INT64 appliedClockSkewCorrection;
+
+    // Set when the last request was rejected for its timestamp and re-signing it with the newly measured
+    // correction can succeed, so the state machine retries the same state without backoff.
+    volatile ATOMIC_BOOL clockSkewRetryPending;
+
+    // Immediate clock skew retries the current API call has used, at most MAX_CLOCK_SKEW_RETRIES_PER_CALL.
+    // Reset on every state transition except those retries.
+    volatile SIZE_T clockSkewRetryCount;
 
     // Tracking when was the Last time the APIs were called
     UINT64 describeTime;
@@ -473,7 +496,14 @@ STATUS awaitForThreadTermination(PThreadTracker, UINT64);
 STATUS initializeThreadTracker(PThreadTracker);
 STATUS uninitializeThreadTracker(PThreadTracker);
 
-STATUS terminateOngoingOperations(PSignalingClient);
+// waitForAllThreads: TRUE only from freeSignaling(). Blocks until every SDK-owned thread (reconnect, listener,
+// receive workers) has exited because the client is about to be freed. All other callers pass FALSE and get the
+// bounded best-effort quiesce, even when another thread has already set shutdown: that caller may itself be one of
+// the threads freeSignaling() is waiting for, and the unbounded wait would then wait on itself. The callers return at
+// their entry once shutdown is set (fetch and delete refuse, disconnect reports success), but one can pass its check
+// just before freeSignaling() sets the flag and still arrive here; the parameter, not the flag, decides the wait so
+// that window cannot turn into a self-wait.
+STATUS terminateOngoingOperations(PSignalingClient, BOOL waitForAllThreads);
 
 STATUS describeChannel(PSignalingClient, UINT64);
 STATUS createChannel(PSignalingClient, UINT64);

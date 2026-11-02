@@ -300,6 +300,43 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
     THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
+// Fails only when lws lacks its foreign-thread pollfd fallback: lws v5.0.0+ on FreeRTOS and Windows, or a build
+// with -DKVS_TEST_LWS_NO_FOREIGN_THREAD_POLLFD=ON. Other builds pass with or without the lws_cancel_service() wake.
+TEST_F(SignalingApiTest, signalingSendMessageSyncAfterIdleIsNotDelayed)
+{
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
+    SignalingMessage signalingMessage;
+    UINT64 start, elapsed, worst = 0;
+    UINT32 i;
+
+    ASSERT_EQ(STATUS_SUCCESS, initializeSignalingClient());
+    ASSERT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
+
+    signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
+    signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
+    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_VIEWER_CLIENT_ID);
+    MEMSET(signalingMessage.payload, 'A', 100);
+    signalingMessage.payload[100] = '\0';
+    signalingMessage.payloadLen = 0;
+    signalingMessage.correlationId[0] = '\0';
+
+    for (i = 0; i < 5; i++) {
+        // Let the service thread go back to waiting in lws_service()
+        THREAD_SLEEP(1500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+
+        start = GETTIME();
+        EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+        elapsed = GETTIME() - start;
+        DLOGI("Send %u took %" PRIu64 " ms", i, elapsed / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        worst = MAX(worst, elapsed);
+    }
+
+    // A send is a local socket write; it must not wait for the next keepalive to wake the service thread
+    EXPECT_LT(worst, HUNDREDS_OF_NANOS_IN_A_SECOND);
+
+    deinitializeSignalingClient();
+}
+
 TEST_F(SignalingApiTest, signalingClientConnectSync)
 {
     STATUS expectedStatus;

@@ -1,6 +1,7 @@
 #include "WebRTCClientTestFixture.h"
 #include <chrono>
 #include <condition_variable>
+#include <thread>
 
 namespace com {
 namespace amazonaws {
@@ -407,6 +408,358 @@ TEST_F(ReceiveWorkerUafTest, freeSignalingWaitsForReconnectThreadToReleaseTracke
     // terminated is already TRUE here, but the fake thread still holds the tracker lock.
     EXPECT_EQ(STATUS_SUCCESS, freeSignaling(&pSignalingClient));
     EXPECT_TRUE(ctx.releasedLock.load()) << "freeSignaling() returned while the reconnect thread still held reconnecterTracker.lock";
+    freeStaticCredentialProvider(&pCredentialProvider);
+}
+
+// Shared by the two "API call from an SDK thread while another thread frees" tests below.
+//
+// The SDK thread waits until freeSignaling() has started on the test's free thread (shutdown == TRUE), then calls
+// the public APIs that share terminateOngoingOperations() with freeSignaling(). Before the fix those calls read
+// shutdown == TRUE, took the unbounded wait meant for freeSignaling(), and waited for their own thread to exit while
+// freeSignaling() waited for the same thread: neither returned. They must now return at once, delete and fetch with
+// STATUS_SIGNALING_FREE_IN_PROGRESS and disconnect with STATUS_SUCCESS (the free disconnects the client), and
+// freeSignaling() must then complete.
+//
+// The budget must stay below SIGNALING_CLIENT_SHUTDOWN_TIMEOUT (9 s). A disconnect whose shutdown check is missing
+// no longer hangs: it takes the bounded wait in terminateOngoingOperations() instead, which on the reconnect-thread
+// variant is the full 9 s. A budget above that would let the regression pass. The passing case takes about 0.5 s.
+static const UINT64 kFreeStartWaitTimeout = 5 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+static const std::chrono::seconds kApiDuringFreeBudget(5);
+
+struct ApiDuringFreeContext {
+    std::mutex lock;
+    std::condition_variable cv;
+    PSignalingClient pSignalingClient = NULL;
+    // Set by the SDK thread.
+    bool callbackEntered = false;
+    bool freeStarted = false;
+    bool apiCallsReturned = false;
+    STATUS deleteStatus = STATUS_SUCCESS;
+    STATUS fetchStatus = STATUS_SUCCESS;
+    STATUS disconnectStatus = STATUS_SUCCESS;
+    // Set by the free thread.
+    bool freeReturned = false;
+    STATUS freeStatus = STATUS_SUCCESS;
+};
+
+// Blocks until freeSignaling() has set shutdown on another thread. Returns FALSE if that never happens, so a test
+// whose free thread failed to start does not hang here.
+static BOOL waitForFreeToStart(PSignalingClient pSignalingClient)
+{
+    UINT64 deadline = GETTIME() + kFreeStartWaitTimeout;
+    while (!ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown)) {
+        if (GETTIME() >= deadline) {
+            return FALSE;
+        }
+        THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    return TRUE;
+}
+
+// Runs on the SDK thread. deleteSync first: it is the one call that always reaches terminateOngoingOperations(), so
+// it is the call that hung before the fix. fetchSync is checked afterwards for the same status, disconnectSync for
+// STATUS_SUCCESS.
+//
+// The offline client is never connected, and disconnectSync's existing not-connected check also returns
+// STATUS_SUCCESS. Mark the client connected first so that only the shutdown check can produce the early success;
+// without it, disconnect reaches the bounded wait in terminateOngoingOperations(). Nothing in the free path reads
+// or clears connected on an offline client: terminateLwsListenerLoop() does nothing while pOngoingCallInfo is NULL.
+static void callApisDuringFree(ApiDuringFreeContext* pCtx)
+{
+    PSignalingClient pSignalingClient = pCtx->pSignalingClient;
+    SIGNALING_CLIENT_HANDLE handle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
+    BOOL freeStarted = waitForFreeToStart(pSignalingClient);
+    STATUS deleteStatus = STATUS_SUCCESS, fetchStatus = STATUS_SUCCESS, disconnectStatus = STATUS_SUCCESS;
+
+    if (freeStarted) {
+        ATOMIC_STORE_BOOL(&pSignalingClient->connected, TRUE);
+        deleteStatus = signalingClientDeleteSync(handle);
+        fetchStatus = signalingClientFetchSync(handle);
+        disconnectStatus = signalingClientDisconnectSync(handle);
+    }
+
+    std::lock_guard<std::mutex> guard(pCtx->lock);
+    pCtx->freeStarted = freeStarted;
+    pCtx->deleteStatus = deleteStatus;
+    pCtx->fetchStatus = fetchStatus;
+    pCtx->disconnectStatus = disconnectStatus;
+    pCtx->apiCallsReturned = true;
+    pCtx->cv.notify_all();
+}
+
+static void freeOnOwnThread(ApiDuringFreeContext* pCtx)
+{
+    PSignalingClient pSignalingClient = pCtx->pSignalingClient;
+    STATUS status = freeSignaling(&pSignalingClient);
+
+    std::lock_guard<std::mutex> guard(pCtx->lock);
+    pCtx->freeStatus = status;
+    pCtx->freeReturned = true;
+    pCtx->cv.notify_all();
+}
+
+// Waits for both the API calls and freeSignaling() to return, then checks the contract. On the pre-fix code both
+// threads are deadlocked: the wait times out, the test fails, and the context, the client and the free thread are
+// leaked on purpose rather than destroyed underneath two live threads.
+static void expectApiCallsAndFreeToReturn(ApiDuringFreeContext* pCtx, std::thread& freeThread, PAwsCredentialProvider* ppCredentialProvider)
+{
+    bool bothReturned;
+    {
+        std::unique_lock<std::mutex> guard(pCtx->lock);
+        bothReturned = pCtx->cv.wait_for(guard, kApiDuringFreeBudget, [pCtx] { return pCtx->apiCallsReturned && pCtx->freeReturned; });
+    }
+    if (!bothReturned) {
+        std::lock_guard<std::mutex> guard(pCtx->lock);
+        freeThread.detach();
+        FAIL() << "did not return within " << kApiDuringFreeBudget.count() << " s: apiCallsReturned=" << pCtx->apiCallsReturned
+               << " freeReturned=" << pCtx->freeReturned << "; leaking the client, the context and the free thread";
+    }
+    freeThread.join();
+
+    EXPECT_TRUE(pCtx->freeStarted) << "freeSignaling() never set shutdown; the API calls were not attempted";
+    EXPECT_EQ(STATUS_SIGNALING_FREE_IN_PROGRESS, pCtx->deleteStatus);
+    EXPECT_EQ(STATUS_SIGNALING_FREE_IN_PROGRESS, pCtx->fetchStatus);
+    EXPECT_EQ(STATUS_SUCCESS, pCtx->disconnectStatus) << "disconnect during a free is a no-op: the free disconnects the client";
+    EXPECT_EQ(STATUS_SUCCESS, pCtx->freeStatus);
+
+    freeStaticCredentialProvider(ppCredentialProvider);
+    delete pCtx;
+}
+
+static STATUS apiDuringFreeMessageReceivedFn(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage)
+{
+    ApiDuringFreeContext* pCtx = (ApiDuringFreeContext*) customData;
+    UNUSED_PARAM(pReceivedSignalingMessage);
+    {
+        std::lock_guard<std::mutex> guard(pCtx->lock);
+        pCtx->callbackEntered = true;
+        pCtx->cv.notify_all();
+    }
+    callApisDuringFree(pCtx);
+    return STATUS_SUCCESS;
+}
+
+// For tests that never inject a message: a delivery would mean the test is doing something it does not intend.
+static STATUS unexpectedMessageReceivedFn(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage)
+{
+    UNUSED_PARAM(customData);
+    UNUSED_PARAM(pReceivedSignalingMessage);
+    ADD_FAILURE() << "messageReceivedFn was invoked, but this test injects no message";
+    return STATUS_SUCCESS;
+}
+
+// The samples' setting (samples/common/Common.c): signalingClientFetchSync() retries a failed fetch through the
+// exponential back-off schedule. With the default of 0 the public wrapper returns after the first failure, and a
+// refusal that is wrongly retried would go unnoticed.
+static void useSamplesFetchRetryPolicy(PSignalingClient pSignalingClient)
+{
+    pSignalingClient->clientInfo.signalingClientInfo.signalingClientCreationMaxRetryAttempts = CREATE_SIGNALING_CLIENT_RETRY_ATTEMPTS_SENTINEL_VALUE;
+}
+
+// Variant 1: the SDK thread is a receive worker running messageReceivedFn. Its receiveWorkerCount decrement happens
+// after the callback returns, so a deleteSync() that waited for receiveWorkerCount == 0 would wait for itself.
+TEST_F(ReceiveWorkerUafTest, apiCallFromReceiveCallbackDuringFreeReturnsFreeInProgress)
+{
+    ApiDuringFreeContext* pCtx = new ApiDuringFreeContext();
+    PAwsCredentialProvider pCredentialProvider = NULL;
+    PSignalingClient pSignalingClient = NULL;
+
+    ASSERT_EQ(STATUS_SUCCESS,
+              createOfflineSignalingClient(mChannelName, mRegion, mCaCertPath, mLogLevel, (UINT64) pCtx, &pCredentialProvider, &pSignalingClient,
+                                           apiDuringFreeMessageReceivedFn));
+    ASSERT_NE((PSignalingClient) NULL, pSignalingClient);
+    pCtx->pSignalingClient = pSignalingClient;
+    useSamplesFetchRetryPolicy(pSignalingClient);
+
+    // One worker, parked in the callback waiting for the free to start. Start the free only once the worker is in
+    // the callback: a worker that has not reached it yet drops its message once shutdown is set.
+    ASSERT_EQ(STATUS_SUCCESS, receiveLwsMessage(pSignalingClient, (PCHAR) kIceCandidateMessage, ARRAY_SIZE(kIceCandidateMessage)));
+    {
+        std::unique_lock<std::mutex> guard(pCtx->lock);
+        ASSERT_TRUE(pCtx->cv.wait_for(guard, std::chrono::seconds(5), [pCtx] { return pCtx->callbackEntered; }))
+            << "the receive worker did not enter the callback";
+    }
+
+    // freeSignaling() blocks until the worker exits, which it only does after its API calls return.
+    std::thread freeThread(freeOnOwnThread, pCtx);
+    expectApiCallsAndFreeToReturn(pCtx, freeThread, &pCredentialProvider);
+}
+
+// Mimics reconnectHandler(): it delivers errorReportFn/stateChangeFn (here: the API calls) and only afterwards
+// publishes its own exit under reconnecterTracker.lock, the same way reconnectThreadExited() does.
+static PVOID fakeReconnectThreadCallingApisDuringFree(PVOID args)
+{
+    ApiDuringFreeContext* pCtx = (ApiDuringFreeContext*) args;
+    PSignalingClient pSignalingClient = pCtx->pSignalingClient;
+
+    callApisDuringFree(pCtx);
+
+    MUTEX_LOCK(pSignalingClient->reconnecterTracker.lock);
+    pSignalingClient->reconnectThreadCount--;
+    ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, TRUE);
+    CVAR_BROADCAST(pSignalingClient->reconnecterTracker.await);
+    MUTEX_UNLOCK(pSignalingClient->reconnecterTracker.lock);
+    return NULL;
+}
+
+// Variant 2: the SDK thread is a reconnect thread. It publishes terminated only after its callbacks return, so a
+// deleteSync() that waited for reconnecterTracker.terminated would wait for itself.
+TEST_F(ReceiveWorkerUafTest, apiCallFromReconnectThreadDuringFreeReturnsFreeInProgress)
+{
+    ApiDuringFreeContext* pCtx = new ApiDuringFreeContext();
+    PAwsCredentialProvider pCredentialProvider = NULL;
+    PSignalingClient pSignalingClient = NULL;
+    TID threadId;
+
+    ASSERT_EQ(STATUS_SUCCESS,
+              createOfflineSignalingClient(mChannelName, mRegion, mCaCertPath, mLogLevel, (UINT64) pCtx, &pCredentialProvider, &pSignalingClient,
+                                           unexpectedMessageReceivedFn));
+    ASSERT_NE((PSignalingClient) NULL, pSignalingClient);
+    pCtx->pSignalingClient = pSignalingClient;
+    useSamplesFetchRetryPolicy(pSignalingClient);
+
+    // Same bookkeeping as startReconnectHandler(): count the thread and clear terminated under the tracker lock.
+    MUTEX_LOCK(pSignalingClient->reconnecterTracker.lock);
+    pSignalingClient->reconnectThreadCount++;
+    ATOMIC_STORE_BOOL(&pSignalingClient->reconnecterTracker.terminated, FALSE);
+    MUTEX_UNLOCK(pSignalingClient->reconnecterTracker.lock);
+    ASSERT_EQ(STATUS_SUCCESS, THREAD_CREATE(&threadId, fakeReconnectThreadCallingApisDuringFree, (PVOID) pCtx));
+    ASSERT_EQ(STATUS_SUCCESS, THREAD_DETACH(threadId));
+
+    // freeSignaling() blocks in the reconnect drain until the fake thread publishes terminated, which it only does
+    // after its API calls return.
+    std::thread freeThread(freeOnOwnThread, pCtx);
+    expectApiCallsAndFreeToReturn(pCtx, freeThread, &pCredentialProvider);
+}
+
+// The two tests above return at the API entry (fetch and delete refuse, disconnect reports success), before
+// terminateOngoingOperations() runs, so they never reach the wait-selection with shutdown already set. This one
+// does: it is what a fetch/disconnect/delete sees when it passed its own shutdown check an instant before
+// freeSignaling() set the flag. The non-free quiesce must still take the bounded path and must not wait for the
+// parked receive worker; selecting the path from the flag instead of the caller would wait for
+// receiveWorkerCount == 0 here.
+TEST_F(ReceiveWorkerUafTest, apiQuiesceDoesNotWaitForReceiveWorkersOnceShutdownIsSet)
+{
+    BlockingCallbackContext ctx;
+    PAwsCredentialProvider pCredentialProvider = NULL;
+    PSignalingClient pSignalingClient = NULL;
+    std::atomic<bool> quiesceReturned{false};
+    bool returnedInTime;
+
+    ASSERT_EQ(STATUS_SUCCESS,
+              createOfflineSignalingClient(mChannelName, mRegion, mCaCertPath, mLogLevel, (UINT64) &ctx, &pCredentialProvider, &pSignalingClient));
+    ASSERT_NE((PSignalingClient) NULL, pSignalingClient);
+
+    // One receive worker parked in messageReceivedFn keeps receiveWorkerCount at 1. EXPECT, not ASSERT, so the
+    // release below always runs and the worker never outlives ctx.
+    ASSERT_EQ(STATUS_SUCCESS, receiveLwsMessage(pSignalingClient, (PCHAR) kIceCandidateMessage, ARRAY_SIZE(kIceCandidateMessage)));
+    {
+        std::unique_lock<std::mutex> guard(ctx.lock);
+        EXPECT_TRUE(ctx.cv.wait_for(guard, std::chrono::seconds(5), [&ctx] { return ctx.entered == 1; }))
+            << "the receive worker did not enter the callback";
+    }
+
+    // What freeSignaling() does first, as seen by an API call that is already past its own shutdown check.
+    ATOMIC_STORE_BOOL(&pSignalingClient->shutdown, TRUE);
+
+    std::thread caller([pSignalingClient, &quiesceReturned] {
+        terminateOngoingOperations(pSignalingClient, FALSE);
+        quiesceReturned.store(true);
+    });
+    // The bounded path has nothing to wait for here (no listener, reconnecterTracker.terminated is TRUE from
+    // construction), so it returns in milliseconds; 2 s is far above that. A wrongly-selected unbounded wait on
+    // receiveWorkerCount would not return at all until the parked worker is released below.
+    for (UINT32 i = 0; i < 200 && !quiesceReturned.load(); i++) {
+        THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    returnedInTime = quiesceReturned.load();
+
+    // Release the worker either way, so neither thread outlives the client.
+    {
+        std::lock_guard<std::mutex> guard(ctx.lock);
+        ctx.release = true;
+        ctx.cv.notify_all();
+    }
+    caller.join();
+
+    EXPECT_TRUE(returnedInTime) << "terminateOngoingOperations(FALSE) waited for a receive worker because shutdown was set";
+    EXPECT_EQ(STATUS_SUCCESS, freeSignaling(&pSignalingClient));
+    freeStaticCredentialProvider(&pCredentialProvider);
+}
+
+// Ported from PR #2397 (receiveMessageWorkerDoesNotAccessFreedClient) and adapted to the wait-based lifetime model:
+// a worker that was dispatched before freeSignalingClient() but has not yet reached messageReceivedFn must not
+// deliver its message to the application once the free has started.
+struct ParkedWorkerHookContext {
+    std::mutex lock;
+    std::condition_variable cv;
+    bool workerAtCallbackGate = false;
+    bool release = false;
+    std::atomic<UINT32> callbackCount{0};
+};
+
+// receiveMessagePreCallbackHookFn: park the worker right before the SDK decides whether to invoke messageReceivedFn.
+static STATUS parkReceiveWorkerBeforeCallbackHook(UINT64 customData)
+{
+    ParkedWorkerHookContext* pCtx = (ParkedWorkerHookContext*) customData;
+    std::unique_lock<std::mutex> guard(pCtx->lock);
+    pCtx->workerAtCallbackGate = true;
+    pCtx->cv.notify_all();
+    pCtx->cv.wait(guard, [pCtx] { return pCtx->release; });
+    return STATUS_SUCCESS;
+}
+
+static STATUS countingMessageReceivedFn(UINT64 customData, PReceivedSignalingMessage pReceivedSignalingMessage)
+{
+    UNUSED_PARAM(pReceivedSignalingMessage);
+    ((ParkedWorkerHookContext*) customData)->callbackCount.fetch_add(1);
+    return STATUS_SUCCESS;
+}
+
+TEST_F(ReceiveWorkerUafTest, receiveWorkerDoesNotDeliverMessageOnceFreeHasStarted)
+{
+    ParkedWorkerHookContext ctx;
+    PAwsCredentialProvider pCredentialProvider = NULL;
+    PSignalingClient pSignalingClient = NULL, pClient;
+    STATUS freeStatus = STATUS_SUCCESS;
+
+    ASSERT_EQ(STATUS_SUCCESS,
+              createOfflineSignalingClient(mChannelName, mRegion, mCaCertPath, mLogLevel, (UINT64) &ctx, &pCredentialProvider, &pSignalingClient,
+                                           countingMessageReceivedFn));
+    ASSERT_NE((PSignalingClient) NULL, pSignalingClient);
+    pClient = pSignalingClient;
+
+    // The worker reads these when it starts, so setting them after create but before the first message is enough.
+    pSignalingClient->clientInfo.hookCustomData = (UINT64) &ctx;
+    pSignalingClient->clientInfo.receiveMessagePreCallbackHookFn = parkReceiveWorkerBeforeCallbackHook;
+
+    // One worker, parked at the callback gate: counted, but messageReceivedFn has not run.
+    ASSERT_EQ(STATUS_SUCCESS, receiveLwsMessage(pSignalingClient, (PCHAR) kIceCandidateMessage, ARRAY_SIZE(kIceCandidateMessage)));
+    {
+        std::unique_lock<std::mutex> guard(ctx.lock);
+        ASSERT_TRUE(ctx.cv.wait_for(guard, std::chrono::seconds(5), [&ctx] { return ctx.workerAtCallbackGate; }))
+            << "receive worker never reached the pre-callback hook";
+    }
+    EXPECT_EQ((SIZE_T) 1, ATOMIC_LOAD(&pSignalingClient->receiveWorkerCount));
+    EXPECT_EQ(0U, ctx.callbackCount.load());
+
+    // Free from the application thread while the worker is parked. It blocks until the worker exits
+    // (freeSignalingWaitsForAllInFlightReceiveWorkers covers that); here we only need shutdown to be set.
+    std::thread freeThread([&] { freeStatus = freeSignaling(&pSignalingClient); });
+    EXPECT_TRUE(waitForFreeToStart(pClient)) << "freeSignaling() never set shutdown";
+
+    // Release the worker. shutdown is set, so the SDK must skip messageReceivedFn and let the worker exit.
+    {
+        std::lock_guard<std::mutex> guard(ctx.lock);
+        ctx.release = true;
+        ctx.cv.notify_all();
+    }
+    freeThread.join();
+
+    EXPECT_EQ(STATUS_SUCCESS, freeStatus);
+    EXPECT_EQ((PSignalingClient) NULL, pSignalingClient);
+    EXPECT_EQ(0U, ctx.callbackCount.load()) << "messageReceivedFn was invoked after freeSignalingClient() had started";
+
     freeStaticCredentialProvider(&pCredentialProvider);
 }
 

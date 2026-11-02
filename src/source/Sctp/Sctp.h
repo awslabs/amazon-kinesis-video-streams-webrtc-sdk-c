@@ -13,6 +13,7 @@ extern "C" {
 
 // 1200 - 12 (SCTP header Size)
 #define SCTP_MTU                         1188
+#define SCTP_MAX_STREAMS                 300 // outbound and inbound streams negotiated per association
 #define SCTP_ASSOCIATION_DEFAULT_PORT    5000
 #define SCTP_DCEP_HEADER_LENGTH          12
 #define SCTP_DCEP_LABEL_LEN_OFFSET       8
@@ -59,12 +60,15 @@ typedef enum {
 typedef VOID (*SctpSessionOutboundPacketFunc)(UINT64, PBYTE, UINT32);
 
 // Callback that is fired when SCTP has a new DataChannel
-// Argument is ChannelID and ChannelName + Len
-typedef VOID (*SctpSessionDataChannelOpenFunc)(UINT64, UINT32, PBYTE, UINT32);
+// Argument is ChannelID and ChannelName + Len. A failure means the channel was not taken: no DATA_CHANNEL_ACK is sent
+typedef STATUS (*SctpSessionDataChannelOpenFunc)(UINT64, UINT32, PBYTE, UINT32, PRtcDataChannelInit);
 
 // Callback that is fired when SCTP has a DataChannel Message.
 // Argument is ChannelID and Message + Len
 typedef VOID (*SctpSessionDataChannelMessageFunc)(UINT64, UINT32, BOOL, PBYTE, UINT32);
+
+// Callback that is fired when SCTP receives a DATA_CHANNEL_ACK. Argument is ChannelID
+typedef VOID (*SctpSessionDataChannelAckFunc)(UINT64, UINT32);
 
 /// Singleton context for SCTP global state
 typedef struct SctpContext {
@@ -80,6 +84,7 @@ typedef struct {
     SctpSessionOutboundPacketFunc outboundPacketFunc;
     SctpSessionDataChannelOpenFunc dataChannelOpenFunc;
     SctpSessionDataChannelMessageFunc dataChannelMessageFunc;
+    SctpSessionDataChannelAckFunc dataChannelAckFunc;
 } SctpSessionCallbacks, *PSctpSessionCallbacks;
 
 typedef struct {
@@ -98,7 +103,10 @@ VOID deinitSctpSession();
 STATUS createSctpSession(PSctpSessionCallbacks, TIMER_QUEUE_HANDLE, PSctpSession*);
 STATUS freeSctpSession(PSctpSession*);
 STATUS putSctpPacket(PSctpSession, PBYTE, UINT32);
-STATUS sctpSessionWriteMessage(PSctpSession, UINT32, BOOL, PBYTE, UINT32);
+// The last BOOL sends ordered whatever the channel's setting: an in-band channel until its DATA_CHANNEL_ACK, RFC 8832 section 6
+STATUS sctpSessionWriteMessage(PSctpSession, UINT32, BOOL, PBYTE, UINT32, PRtcDataChannelInit, BOOL);
+VOID sctpSessionSetSendInfo(struct sctp_sendv_spa*, UINT32, BOOL, PRtcDataChannelInit, BOOL);
+VOID dcepParseChannelParameters(PBYTE, PRtcDataChannelInit);
 STATUS sctpSessionWriteDcep(PSctpSession, UINT32, PCHAR, UINT32, PRtcDataChannelInit);
 STATUS handleDcepPacket(PSctpSession, UINT32, PBYTE, SIZE_T);
 

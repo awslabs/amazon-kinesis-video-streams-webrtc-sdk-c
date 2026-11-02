@@ -6,10 +6,10 @@ The KVS WebRTC C library is a full WebRTC stack. It limits the size of a single 
 
 ## Summary
 
-| Direction | Define | Value | What happens to a larger frame | Error | Stats |
-|-----------|--------|-------|--------------------------------|-------|-------|
-| Outbound | `MAX_OUTBOUND_FRAME_SIZE_BYTES` | 5 MiB (5,242,880 bytes) | `writeFrame()` rejects it. Nothing is sent. | `writeFrame()` returns `STATUS_RTP_OUTBOUND_FRAME_TOO_LARGE` (`0x5c000005`) | None |
-| Inbound | `MAX_INBOUND_FRAME_SIZE_BYTES` | 5 MiB (5,242,880 bytes) | The peer connection rejects it and continues with the next frame. | WARN log with `STATUS_RTP_INBOUND_FRAME_TOO_LARGE` (`0x5c000006`) | `received.framesDropped`, and its discarded RTP packets in `received.packetsDiscarded` |
+| Direction  | Define                          | Value                   | What happens to a larger frame                                    | Error                                                                       | Stats                                                                                  |
+|------------|---------------------------------|-------------------------|-------------------------------------------------------------------|-----------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
+| Outbound   | `MAX_OUTBOUND_FRAME_SIZE_BYTES` | 5 MiB (5,242,880 bytes) | `writeFrame()` rejects it. Nothing is sent.                       | `writeFrame()` returns `STATUS_RTP_OUTBOUND_FRAME_TOO_LARGE` (`0x5c000005`) | None                                                                                   |
+| Inbound    | `MAX_INBOUND_FRAME_SIZE_BYTES`  | 5 MiB (5,242,880 bytes) | The peer connection rejects it and continues with the next frame. | WARN log with `STATUS_RTP_INBOUND_FRAME_TOO_LARGE` (`0x5c000006`)           | `received.framesDropped`, and its discarded RTP packets in `received.packetsDiscarded` |
 
 Both limits are defined in [Include.h](../src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h).
 
@@ -174,32 +174,12 @@ If it appears, see [If a frame is rejected](#if-a-frame-is-rejected).
 
 For other causes of a freeze, see [Debugging from the receiver](TROUBLESHOOTING_H265_FRAMES.md#debugging-from-the-receiver-chrome).
 
-### Log each frame the sender sends
+### Check the size of each frame the sender sends
 
-With VERBOSE logging (`AWS_KVS_LOG_LEVEL=1` in the samples), `writeFrame()` logs one line for each frame it sends:
-
-```
-2026-10-17 08:14:59.730 VERBOSE writeFrame(): debug frame info: track=video, pts=13200000, rtpTs=118799, size=706B, rtpPayload=690B, wireSize=840B, seqNums=168-172, keyFrame=no
-```
-
-| Field        | Meaning                                                                                                        |
-|--------------|----------------------------------------------------------------------------------------------------------------|
-| `pts`        | Presentation timestamp passed to `writeFrame()`, in 100 ns units                                               |
-| `rtpTs`      | The same time in RTP timestamp units (90 kHz for video)                                                        |
-| `size`       | Frame size passed to `writeFrame()`                                                                            |
-| `rtpPayload` | Total RTP payload after packetization. H.264/H.265 start codes are removed and RTP fragment headers are added. |
-| `wireSize`   | Bytes sent on the wire: RTP headers, payload and SRTP overhead                                                 |
-| `seqNums`    | Sequence numbers of the frame's RTP packets                                                                    |
-
-In this example, the 706-byte frame was sent as 5 RTP packets (sequence numbers 168 to 172). The H.264 sender gives each NAL unit that fits in an RTP packet its own RTP packet, so this frame had 5 NAL units.
-
-### Inspect RTP packets with Wireshark
-
-Use [Wireshark](https://www.wireshark.org/) to inspect the RTP packets on the network. SRTP encrypts the payload but not the RTP header, so each RTP packet's sequence number and RTP timestamp are readable. Check that the sequence numbers match the `seqNums` range in the [`writeFrame()` log](#log-each-frame-the-sender-sends). On the receiver, missing sequence numbers, duplicates or reordering come from the network.
-
-If Wireshark shows the RTP packets as plain UDP, enable the `rtp_udp` protocol in **Analyze > Enabled Protocols**.
+With VERBOSE logging, `writeFrame()` logs one line for each frame it sends. The `size`, `rtpPayload`, and `wireSize` fields show each frame's size before packetization, after packetization, and on the wire. For the log format, and for inspecting the RTP packets with Wireshark, see [Troubleshooting](SENDING_MEDIA.md#troubleshooting) in Sending Media with writeFrame().
 
 ## References
 
 - [RFC 3550](https://datatracker.ietf.org/doc/html/rfc3550) - RTP
+- Related documents: [Sending Media with writeFrame()](SENDING_MEDIA.md)
 - Code: `Rtp.c` (`writeFrame()`), `JitterBuffer.c` (inbound limit), `Include.h` (`MAX_OUTBOUND_FRAME_SIZE_BYTES`, `MAX_INBOUND_FRAME_SIZE_BYTES`, `STATUS_RTP_OUTBOUND_FRAME_TOO_LARGE`, `STATUS_RTP_INBOUND_FRAME_TOO_LARGE`, `dataChannelSend()`)

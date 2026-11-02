@@ -203,15 +203,47 @@ CleanUp:
     return retStatus;
 }
 
+typedef struct {
+    UINT32 identifier;
+    PKvsDataChannel pKvsDataChannel;
+} DataChannelStatsLookup, *PDataChannelStatsLookup;
+
+static STATUS findDataChannelByIdentifierCallback(UINT64 customData, PHashEntry pHashEntry)
+{
+    PDataChannelStatsLookup pLookup = (PDataChannelStatsLookup) customData;
+    PKvsDataChannel pKvsDataChannel = (PKvsDataChannel) pHashEntry->value;
+
+    if (pLookup->pKvsDataChannel == NULL && pKvsDataChannel != NULL &&
+        pKvsDataChannel->rtcDataChannelDiagnostics.dataChannelIdentifier == pLookup->identifier) {
+        pLookup->pKvsDataChannel = pKvsDataChannel;
+    }
+    return STATUS_SUCCESS;
+}
+
 STATUS getDataChannelStats(PRtcPeerConnection pRtcPeerConnection, PRtcDataChannelStats pRtcDataChannelStats)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PKvsDataChannel pKvsDataChannel = NULL;
     UINT64 hashValue = 0;
+    BOOL locked = FALSE;
+    DataChannelStatsLookup lookup;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pRtcPeerConnection;
     CHK(pRtcPeerConnection != NULL && pRtcDataChannelStats != NULL, STATUS_NULL_ARG);
-    CHK_STATUS(hashTableGet(pKvsPeerConnection->pDataChannels, pRtcDataChannelStats->dataChannelIdentifier, &hashValue));
-    pKvsDataChannel = (PKvsDataChannel) hashValue;
+
+    // The SCTP thread and createDataChannel change the table, and allocateSctp swaps it, while stats are read
+    MUTEX_LOCK(pKvsPeerConnection->dataChannelsLock);
+    locked = TRUE;
+    if (pKvsPeerConnection->pSctpSession != NULL) {
+        CHK_STATUS(hashTableGet(pKvsPeerConnection->pDataChannels, pRtcDataChannelStats->dataChannelIdentifier, &hashValue));
+        pKvsDataChannel = (PKvsDataChannel) hashValue;
+    } else {
+        // Before the association the table is keyed by creation order, not by identifier
+        lookup.identifier = pRtcDataChannelStats->dataChannelIdentifier;
+        lookup.pKvsDataChannel = NULL;
+        CHK_STATUS(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, (UINT64) &lookup, findDataChannelByIdentifierCallback));
+        CHK(lookup.pKvsDataChannel != NULL, STATUS_HASH_KEY_NOT_PRESENT);
+        pKvsDataChannel = lookup.pKvsDataChannel;
+    }
     pRtcDataChannelStats->bytesReceived = pKvsDataChannel->rtcDataChannelDiagnostics.bytesReceived;
     pRtcDataChannelStats->bytesSent = pKvsDataChannel->rtcDataChannelDiagnostics.bytesSent;
     STRCPY(pRtcDataChannelStats->label, pKvsDataChannel->rtcDataChannelDiagnostics.label);
@@ -219,6 +251,9 @@ STATUS getDataChannelStats(PRtcPeerConnection pRtcPeerConnection, PRtcDataChanne
     pRtcDataChannelStats->messagesSent = pKvsDataChannel->rtcDataChannelDiagnostics.messagesSent;
     pRtcDataChannelStats->state = pKvsDataChannel->rtcDataChannelDiagnostics.state;
 CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pKvsPeerConnection->dataChannelsLock);
+    }
     return retStatus;
 }
 
@@ -233,11 +268,11 @@ STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection pRtcPeerConnection, PRtcRt
             break;
         case RTC_STATS_TYPE_LOCAL_CANDIDATE:
             CHK_STATUS(getIceCandidateStats(pRtcPeerConnection, FALSE, &pRtcMetrics->rtcStatsObject.localIceCandidateStats));
-            DLOGD("ICE local candidate Stats requested at %" PRIu64, pRtcMetrics->timestamp);
+            DLOGV("ICE local candidate Stats requested at %" PRIu64, pRtcMetrics->timestamp);
             break;
         case RTC_STATS_TYPE_REMOTE_CANDIDATE:
             CHK_STATUS(getIceCandidateStats(pRtcPeerConnection, TRUE, &pRtcMetrics->rtcStatsObject.remoteIceCandidateStats));
-            DLOGD("ICE remote candidate Stats requested at %" PRIu64, pRtcMetrics->timestamp);
+            DLOGV("ICE remote candidate Stats requested at %" PRIu64, pRtcMetrics->timestamp);
             break;
         case RTC_STATS_TYPE_TRANSPORT:
             CHK_STATUS(getTransportStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.transportStats));
@@ -253,12 +288,12 @@ STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection pRtcPeerConnection, PRtcRt
             break;
         case RTC_STATS_TYPE_ICE_SERVER:
             CHK_STATUS(getIceServerStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.iceServerStats));
-            DLOGD("ICE Server Stats requested at %" PRIu64, pRtcMetrics->timestamp);
+            DLOGV("ICE Server Stats requested at %" PRIu64, pRtcMetrics->timestamp);
             break;
         case RTC_STATS_TYPE_DATA_CHANNEL:
             pRtcMetrics->timestamp = GETTIME();
             CHK_STATUS(getDataChannelStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.rtcDataChannelStats));
-            DLOGD("RTC Data Channel Stats requested at %" PRIu64, pRtcMetrics->timestamp);
+            DLOGV("RTC Data Channel Stats requested at %" PRIu64, pRtcMetrics->timestamp);
             break;
         case RTC_STATS_TYPE_CERTIFICATE:
         case RTC_STATS_TYPE_CSRC:

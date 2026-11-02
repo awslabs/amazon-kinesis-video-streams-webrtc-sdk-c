@@ -10,6 +10,12 @@ on:
       - develop
       - main
 
+# Cancel an in-progress PR run when a newer commit is pushed to the same PR.
+# Push runs get a unique group (run_id), so they are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 

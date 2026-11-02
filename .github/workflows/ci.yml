@@ -11,6 +11,12 @@ on:
       - develop
       - main
 
+# Cancel an in-progress PR run when a newer commit is pushed to the same PR.
+# Push runs get a unique group (run_id), so they are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   AWS_KVS_LOG_LEVEL: 7
   DEBIAN_FRONTEND: noninteractive
@@ -483,6 +489,57 @@ jobs:
         working-directory: ./build
         run: |
           ./tst/webrtc_client_test
+
+  # libwebsockets built without its foreign-thread pollfd fallback. lws v5.0.0 drops that
+  # fallback on FreeRTOS and Windows, which have no CI job. Guards that the signaling client
+  # wakes the lws service thread in a way that works without it.
+  lws-no-foreign-thread-pollfd:
+    needs: [cleanup-old-resources, ecr-login]
+    runs-on: ubuntu-latest
+    container:
+      image: public.ecr.aws/ubuntu/ubuntu:22.04_stable
+      # Authenticated pull; see ecr-public-login.yml.
+      credentials: ${{ fromJSON(needs.ecr-login.outputs.attempt == github.run_attempt && needs.ecr-login.outputs.credentials || '{}') }}
+
+    permissions:
+      id-token: write
+      contents: read
+
+    name: Ubuntu 22.04-gcc-lws-no-foreign-thread-pollfd
+    timeout-minutes: 60
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y git cmake build-essential pkg-config
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2.2.0
+        with:
+          cmake-version: '3.x'
+
+      - name: Build repository
+        shell: bash
+        run: |
+          mkdir build && cd build
+          cmake .. -DBUILD_TEST=ON -DENABLE_AWS_SDK_IN_TESTS=OFF -DBUILD_SAMPLE=OFF -DPARALLEL_BUILD=ON \
+            -DKVS_TEST_LWS_NO_FOREIGN_THREAD_POLLFD=ON
+          make -j
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Run tests
+        working-directory: ./build
+        run: |
+          ./tst/webrtc_client_test --gtest_filter='SignalingApiTest.*'
 
   windows-msvc-openssl:
     needs: cleanup-old-resources

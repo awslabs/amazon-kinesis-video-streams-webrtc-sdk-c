@@ -113,7 +113,7 @@ STATUS createRtpPacket(UINT8, BOOL, BOOL, UINT8, BOOL, UINT8, UINT16, UINT32, UI
 STATUS setRtpPacket(UINT8, BOOL, BOOL, UINT8, BOOL, UINT8, UINT16, UINT32, UINT32, PUINT32, UINT16, UINT32, PBYTE, PBYTE, UINT32, PRtpPacket);
 STATUS freeRtpPacket(PRtpPacket*);
 STATUS createRtpPacketFromBytes(PBYTE, UINT32, PRtpPacket*);
-STATUS constructRetransmitRtpPacketFromBytes(PBYTE, UINT32, UINT16, UINT8, UINT32, PRtpPacket*);
+STATUS constructRetransmitRtpPacketFromBytes(PBYTE, UINT32, UINT16, UINT8, UINT32, UINT32, PRtpPacket*);
 STATUS setRtpPacketFromBytes(PBYTE, UINT32, PRtpPacket);
 STATUS createBytesFromRtpPacket(PRtpPacket, PBYTE, PUINT32);
 STATUS setBytesFromRtpPacket(PRtpPacket, PBYTE, UINT32);

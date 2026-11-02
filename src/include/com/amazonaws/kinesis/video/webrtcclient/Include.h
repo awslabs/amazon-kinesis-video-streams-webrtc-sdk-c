@@ -510,6 +510,7 @@ extern "C" {
 #define STATUS_SIGNALING_JOIN_SESSION_CONNECTED_FAILED             STATUS_SIGNALING_BASE + 0x0000004b
 #define STATUS_SIGNALING_DESCRIBE_MEDIA_CALL_FAILED                STATUS_SIGNALING_BASE + 0x0000004c
 #define STATUS_SIGNALING_FREE_FROM_CALLBACK                        STATUS_SIGNALING_BASE + 0x0000004d
+#define STATUS_SIGNALING_FREE_IN_PROGRESS                          STATUS_SIGNALING_BASE + 0x0000004e
 
 /*!@} */
 
@@ -541,6 +542,7 @@ extern "C" {
 #define STATUS_SCTP_SESSION_SETUP_FAILED STATUS_SCTP_BASE + 0x00000001
 #define STATUS_SCTP_INVALID_DCEP_PACKET  STATUS_SCTP_BASE + 0x00000002
 #define STATUS_SCTP_SENDV_FAILED         STATUS_SCTP_BASE + 0x00000003
+#define STATUS_SCTP_STREAM_ID_IN_USE     STATUS_SCTP_BASE + 0x00000004
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -1799,6 +1801,9 @@ typedef struct {
  * @brief RtcDataChannelInit dictionary used to configure properties of the
  * underlying channel such as data reliability
  *
+ * Zero the whole structure (MEMSET) before setting fields. negotiated is honoured, so a structure left
+ * uninitialised can select a negotiated channel that sends no DCEP DATA_CHANNEL_OPEN.
+ *
  * Reference: https://www.w3.org/TR/webrtc/#dom-rtcdatachannelinit
  */
 typedef struct {
@@ -1809,7 +1814,10 @@ typedef struct {
     NullableUint16 maxRetransmits;                    //!< Control number of times a channel retransmits data if not delivered successfully
     CHAR protocol[MAX_DATA_CHANNEL_PROTOCOL_LEN + 1]; //!< Sub protocol name for the channel
     BOOL negotiated;                                  //!< If set to true, it is up to the application to negotiate the channel and create an
-                                                      //!< RTCDataChannel object with the same id as the other peer.
+                                                      //!< RTCDataChannel object with the same id as the other peer. No DCEP DATA_CHANNEL_OPEN
+                                                      //!< is sent for a negotiated channel, and it may be created before or after the SCTP
+                                                      //!< association is established.
+    NullableUint16 id;                                //!< SCTP stream id, 0-299. Required when negotiated is TRUE, ignored otherwise.
 } RtcDataChannelInit, *PRtcDataChannelInit;
 /*!@} */
 
@@ -2330,7 +2338,11 @@ PUBLIC_API STATUS addIceCandidate(PRtcPeerConnection, PCHAR);
  *
  * NOTE: The RtcDataChannelInit dictionary can be used to configure properties of the underlying
  * channel such as data reliability.
- * NOTE: Data channel can be created only after signaling for now
+ * NOTE: A channel that uses in-band negotiation (DCEP) can only be created before the SCTP association is
+ * established. A negotiated channel (RtcDataChannelInit.negotiated = TRUE with an id) can be created at any
+ * time; created after the association, it is open immediately and its onOpen callback fires on registration.
+ * Such a channel can receive before dataChannelOnMessage() is called, and those messages are dropped: create it
+ * with createDataChannelWithCallbacks() instead.
  *
  * Reference: https://www.w3.org/TR/webrtc/#methods-11
  *
@@ -2339,12 +2351,40 @@ PUBLIC_API STATUS addIceCandidate(PRtcPeerConnection, PCHAR);
  * @param[in] PRtcDataChannelInit Allowed to be NULL/defines underlying channel properties
  * @param[out] PRtcDataChannel* Created data channel with supplied channel name
  *
- * @return STATUS code of the execution. STATUS_SUCCESS on success
+ * @return STATUS code of the execution. STATUS_SUCCESS on success. STATUS_INVALID_ARG when negotiated is TRUE and id is
+ * empty or not below 300. STATUS_SCTP_STREAM_ID_IN_USE when another data channel already uses the id.
+ * STATUS_INVALID_OPERATION when an in-band channel is created after the SCTP association is established.
  */
 PUBLIC_API STATUS createDataChannel(PRtcPeerConnection, PCHAR, PRtcDataChannelInit, PRtcDataChannel*);
 
 /**
+ * @brief createDataChannelWithCallbacks is createDataChannel() with the message and open callbacks set as the
+ * channel is created, so that it receives from the first message.
+ *
+ * Use it for a negotiated channel created after the SCTP association is established: that channel is open as
+ * soon as it exists, and the peer may send on it right away. Its onOpen callback runs before this function
+ * returns. For other channels, it is the same as createDataChannel() followed by dataChannelOnMessage() and
+ * dataChannelOnOpen().
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in] PCHAR Data channel Name
+ * @param[in] PRtcDataChannelInit Allowed to be NULL/defines underlying channel properties
+ * @param[in] UINT64 User customData passed to both callbacks
+ * @param[in] RtcOnMessage Message callback; allowed to be NULL
+ * @param[in] RtcOnOpen Open callback; allowed to be NULL
+ * @param[out] PRtcDataChannel* Created data channel with supplied channel name
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success. STATUS_INVALID_ARG when negotiated is TRUE and id is
+ * empty or not below 300. STATUS_SCTP_STREAM_ID_IN_USE when another data channel already uses the id.
+ * STATUS_INVALID_OPERATION when an in-band channel is created after the SCTP association is established.
+ */
+PUBLIC_API STATUS createDataChannelWithCallbacks(PRtcPeerConnection, PCHAR, PRtcDataChannelInit, UINT64, RtcOnMessage, RtcOnOpen, PRtcDataChannel*);
+
+/**
  * @brief Set a callback for data channel message
+ *
+ * Messages that arrive before the callback is set are dropped. A negotiated channel created after the SCTP
+ * association is established can receive as soon as it exists: create it with createDataChannelWithCallbacks().
  *
  * @param[in] PRtcDataChannel Data channel struct created by createDataChannel()
  * @param[in] UINT64 User customData that will be passed along when RtcOnMessage is called
@@ -2356,6 +2396,10 @@ PUBLIC_API STATUS dataChannelOnMessage(PRtcDataChannel, UINT64, RtcOnMessage);
 
 /**
  * @brief Set a callback for data channel open
+ *
+ * For a channel that is already open (a negotiated channel created on an established
+ * association, or a remote channel), the callback runs before this function returns.
+ * It runs once per channel.
  *
  * @param[in] PRtcDataChannel Data channel struct created by createDataChannel()
  * @param[in] UINT64 User customData that will be passed along when RtcOnOpen is called
@@ -2425,7 +2469,9 @@ PUBLIC_API STATUS createSignalingClientSync(PSignalingClientInfo, PChannelInfo, 
  * NOTE: The call is idempotent.
  * NOTE: Blocks until the signaling client's internal threads (reconnect, WSS listener, receive workers) have
  *       exited, which includes any of their in-flight callbacks. It may take longer to return while a reconnect
- *       attempt is in progress.
+ *       attempt is in progress. A received message whose worker had not yet started invoking messageReceivedFn
+ *       when this call began is dropped rather than delivered during the free; a worker already inside
+ *       messageReceivedFn completes it, and this call waits for it.
  * NOTE: Must not be called from a signaling callback. A call from messageReceivedFn, or from stateChangeFn /
  *       errorReportFn while they run on one of the SDK's internal threads, is detected and returns
  *       STATUS_SIGNALING_FREE_FROM_CALLBACK, leaving the handle valid. stateChangeFn and errorReportFn can also be
@@ -2486,6 +2532,12 @@ PUBLIC_API STATUS signalingClientGetIceConfigInfo(SIGNALING_CLIENT_HANDLE, UINT3
  * @brief Fetches all assets needed to ready the state machine before attempting to connect.
  *        Can also be used to reallocate missing / expired assets before reconnecting.
  *
+ * NOTE: Returns STATUS_SIGNALING_FREE_IN_PROGRESS, without waiting for the SDK's threads, when called from a
+ *       signaling callback that runs on one of the SDK's internal threads while freeSignalingClient() runs on
+ *       another thread. A call that had already passed that check when freeSignalingClient() started waits a
+ *       bounded time for the listener and reconnect threads and may return another status. From any other thread
+ *       the call must not overlap freeSignalingClient(): the client can be freed while it runs.
+ *
  * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
@@ -2505,6 +2557,13 @@ PUBLIC_API STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE);
 
 /**
  * @brief Disconnects the signaling client.
+ *
+ * NOTE: Returns STATUS_SUCCESS, without waiting for the SDK's threads, when called from a signaling callback that
+ *       runs on one of the SDK's internal threads while freeSignalingClient() runs on another thread:
+ *       freeSignalingClient() disconnects the client. A call that had already passed that check when
+ *       freeSignalingClient() started waits a bounded time for the listener and reconnect threads and may return
+ *       another status. From any other thread the call must not overlap freeSignalingClient(): the client can be
+ *       freed while it runs.
  *
  * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
  *
@@ -2543,6 +2602,13 @@ PUBLIC_API STATUS signalingClientGetStateString(SIGNALING_CLIENT_STATE, PCHAR*);
  * NOTE: The call transitions the signaling client state machine to a terminal state
  * even if the call fails. The proper handling on success and on an error is to
  * free the signaling client.
+ *
+ * NOTE: Returns STATUS_SIGNALING_FREE_IN_PROGRESS, without waiting for the SDK's threads and without touching the
+ *       state machine, when called from a signaling callback that runs on one of the SDK's internal threads while
+ *       freeSignalingClient() runs on another thread. A call that had already passed that check when
+ *       freeSignalingClient() started waits a bounded time for the listener and reconnect threads and may return
+ *       another status. From any other thread the call must not overlap freeSignalingClient(): the client can be
+ *       freed while it runs.
  *
  * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
  *
