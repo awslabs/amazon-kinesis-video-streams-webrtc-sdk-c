@@ -258,6 +258,7 @@ STATUS freeDtlsSession(PDtlsSession* ppDtlsSession)
         MUTEX_FREE(pDtlsSession->sslLock);
     }
     SAFE_MEMFREE(pDtlsSession->pExpectedServerHostname);
+    SAFE_MEMFREE(pDtlsSession->pEarlyClientHello);
     SAFE_MEMFREE(*ppDtlsSession);
 
 CleanUp:
@@ -511,11 +512,23 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
 
     // Start non-blocking handshaking. A client sends its ClientHello right away rather than on the first timer tick.
     pDtlsSession->dtlsSessionStartTime = GETTIME();
+    // A server answers a ClientHello that came before the start; a client drops it
+    if (pDtlsSession->pEarlyClientHello != NULL) {
+        if (isServer && STATUS_FAILED(ioBufferWrite(pDtlsSession->pReadBuffer, pDtlsSession->pEarlyClientHello, pDtlsSession->earlyClientHelloLen))) {
+            DLOGW("Failed to pass the early ClientHello to mbedTLS");
+        }
+        SAFE_MEMFREE(pDtlsSession->pEarlyClientHello);
+        pDtlsSession->earlyClientHelloLen = 0;
+    }
     handshakeStatus = mbedtls_ssl_handshake(&pDtlsSession->sslCtx);
     if (handshakeStatus != MBEDTLS_ERR_SSL_WANT_READ && handshakeStatus != MBEDTLS_ERR_SSL_WANT_WRITE) {
         LOG_MBEDTLS_ERROR("mbedtls_ssl_handshake", handshakeStatus);
-        CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_FAILED));
-        CHK(FALSE, STATUS_SSL_CTX_CREATION_FAILED);
+        // A server's first step works on the peer's early ClientHello, and an error there is handled as
+        // dtlsSessionProcessPacket() handles one: logged, without failing the start
+        if (!isServer) {
+            CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_FAILED));
+            CHK(FALSE, STATUS_SSL_CTX_CREATION_FAILED);
+        }
     }
     CHK_STATUS(timerQueueAddTimer(pDtlsSession->timerQueueHandle, DTLS_TRANSMISSION_INTERVAL, DTLS_TRANSMISSION_INTERVAL,
                                   dtlsTransmissionTimerCallback, (UINT64) pDtlsSession, &pDtlsSession->timerId));
@@ -553,11 +566,16 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
     BOOL iterate = TRUE;
 
     CHK(pDtlsSession != NULL && pData != NULL && pDataLen != NULL, STATUS_NULL_ARG);
-    CHK(ATOMIC_LOAD_BOOL(&pDtlsSession->isStarted), STATUS_SSL_PACKET_BEFORE_DTLS_READY);
     CHK(!ATOMIC_LOAD_BOOL(&pDtlsSession->isShutdown), retStatus);
 
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
+
+    // Under the lock dtlsSessionStart() holds: a ClientHello is either kept for the start or processed
+    if (!ATOMIC_LOAD_BOOL(&pDtlsSession->isStarted)) {
+        CHK_STATUS(dtlsSessionKeepEarlyClientHello(pDtlsSession, pData, *pDataLen > 0 ? (UINT32) *pDataLen : 0));
+        CHK(FALSE, retStatus);
+    }
 
     pReadBuffer = pDtlsSession->pReadBuffer;
     CHK_STATUS(ioBufferWrite(pReadBuffer, pData, *pDataLen));

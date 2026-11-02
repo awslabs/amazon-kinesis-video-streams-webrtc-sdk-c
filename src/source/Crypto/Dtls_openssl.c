@@ -531,6 +531,15 @@ STATUS beginHandshakeProcess(PDtlsSession pDtlsSession, BOOL isServer, PINT32 ss
     if (!isServer) {
         pDtlsSession->dtlsSessionStartTime = GETTIME();
     }
+    // A server answers a ClientHello that came before the start; a client drops it
+    if (pDtlsSession->pEarlyClientHello != NULL) {
+        if (isServer &&
+            BIO_write(SSL_get_rbio(pDtlsSession->pSsl), pDtlsSession->pEarlyClientHello, (INT32) pDtlsSession->earlyClientHelloLen) <= 0) {
+            DLOGW("Failed to pass the early ClientHello to OpenSSL");
+        }
+        SAFE_MEMFREE(pDtlsSession->pEarlyClientHello);
+        pDtlsSession->earlyClientHelloLen = 0;
+    }
     *sslRet = SSL_do_handshake(pDtlsSession->pSsl);
 CleanUp:
     CHK_LOG_ERR(retStatus);
@@ -748,6 +757,7 @@ STATUS freeDtlsSession(PDtlsSession* ppDtlsSession)
     }
 
     SAFE_MEMFREE(pDtlsSession->pExpectedServerHostname);
+    SAFE_MEMFREE(pDtlsSession->pEarlyClientHello);
     SAFE_MEMFREE(pDtlsSession);
     *ppDtlsSession = NULL;
 
@@ -767,10 +777,15 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
 
     acquireDtlsSession(pDtlsSession);
     CHK(pDtlsSession != NULL && pDataLen != NULL, STATUS_NULL_ARG);
-    CHK(ATOMIC_LOAD_BOOL(&pDtlsSession->isStarted), STATUS_SSL_PACKET_BEFORE_DTLS_READY);
 
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
+
+    // Under the lock dtlsSessionStart() holds: a ClientHello is either kept for the start or processed
+    if (!ATOMIC_LOAD_BOOL(&pDtlsSession->isStarted)) {
+        CHK_STATUS(dtlsSessionKeepEarlyClientHello(pDtlsSession, pData, pData != NULL && *pDataLen > 0 ? (UINT32) *pDataLen : 0));
+        CHK(FALSE, retStatus);
+    }
 
     CVAR_BROADCAST(pDtlsSession->receivePacketCvar);
 
