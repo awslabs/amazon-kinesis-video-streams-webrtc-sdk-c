@@ -1114,7 +1114,9 @@ TEST_F(IceFunctionalityTest, srflxCandidateResolvedWhenStunReplyOutlastsRetransm
     SlowStunServer server;
     std::atomic<bool> stopReplier(false);
     PRtcIceServerDiagnostics pServerDiagnostics = NULL;
-    UINT64 sourceCount = 0;
+    UINT64 srflxCount = 0, resolvedCount = 0;
+    PDoubleListNode pCurNode = NULL;
+    PIceCandidate pCandidate = NULL;
     PIceAgent pIceAgent = NULL;
     CHAR localIceUfrag[LOCAL_ICE_UFRAG_LEN + 1];
     CHAR localIcePwd[LOCAL_ICE_PWD_LEN + 1];
@@ -1226,17 +1228,27 @@ TEST_F(IceFunctionalityTest, srflxCandidateResolvedWhenStunReplyOutlastsRetransm
             EXPECT_GT(it->second.requestCount, 1u) << it->first;
             EXPECT_TRUE(it->second.sameTransactionId) << it->first;
         }
-        sourceCount = server.sources.size();
     }
 
-    // Each srflx candidate counts as one request and one response, timed from its first send
+    // Each srflx candidate counts as one request. Each resolved one counts as one response, timed from its first send.
+    // Not every local interface gets an answer from the test server, so count the candidates rather than the server's sources.
     MUTEX_LOCK(pIceAgent->lock);
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
+    for (; pCurNode != NULL; pCurNode = pCurNode->pNext) {
+        pCandidate = (PIceCandidate) pCurNode->data;
+        if (pCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE) {
+            srflxCount++;
+            if (pCandidate->state == ICE_CANDIDATE_STATE_VALID) {
+                resolvedCount++;
+            }
+        }
+    }
     pServerDiagnostics = pIceAgent->pRtcIceServerDiagnostics[0];
     EXPECT_TRUE(pServerDiagnostics != NULL);
     if (pServerDiagnostics != NULL) {
-        EXPECT_EQ(sourceCount, pServerDiagnostics->totalRequestsSent);
-        EXPECT_EQ(sourceCount, pServerDiagnostics->totalResponsesReceived);
-        EXPECT_LE(replyDelay * sourceCount, pServerDiagnostics->totalRoundTripTime);
+        EXPECT_EQ(srflxCount, pServerDiagnostics->totalRequestsSent);
+        EXPECT_EQ(resolvedCount, pServerDiagnostics->totalResponsesReceived);
+        EXPECT_LE(replyDelay * resolvedCount, pServerDiagnostics->totalRoundTripTime);
     }
     MUTEX_UNLOCK(pIceAgent->lock);
 
