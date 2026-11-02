@@ -9,6 +9,6 @@ var searchData=
   ['urls_6',['urls',['../group__StatusCodes.html#ga57530b9a4c37ff55e21b91490fb3d7f5',1,'RtcIceServer']]],
   ['usedualstackendpoints_7',['useDualStackEndpoints',['../structSignalingFileCacheEntry.html#a1c11cc1de9bf132da5b57ef624520658',1,'SignalingFileCacheEntry']]],
   ['usemediastorage_8',['useMediaStorage',['../group__StatusCodes.html#ga9a9501b5908df6d14a0eefd348276378',1,'ChannelInfo']]],
-  ['username_9',['username',['../group__StatusCodes.html#ga3b96e3e062151e5fb5248f555440ffb5',1,'IceConfigInfo::userName'],['../structSdpOrigin.html#a41aa6e68bff50a34446929e3ec837e6f',1,'SdpOrigin::userName'],['../structStunAttributeUsername.html#a25d7ede0a7215d95f926dcc1fd47b746',1,'StunAttributeUsername::userName'],['../group__StatusCodes.html#gab8f887fd19460db87aeac106d854dc04',1,'RtcIceServer::username'],['../structIceServer.html#aad393aaeda366f1083bae084b63a4c95',1,'IceServer::username']]],
+  ['username_9',['username',['../group__StatusCodes.html#gab8f887fd19460db87aeac106d854dc04',1,'RtcIceServer::username'],['../structIceServer.html#aad393aaeda366f1083bae084b63a4c95',1,'IceServer::username'],['../group__StatusCodes.html#ga3b96e3e062151e5fb5248f555440ffb5',1,'IceConfigInfo::userName'],['../structSdpOrigin.html#a41aa6e68bff50a34446929e3ec837e6f',1,'SdpOrigin::userName'],['../structStunAttributeUsername.html#a25d7ede0a7215d95f926dcc1fd47b746',1,'StunAttributeUsername::userName']]],
   ['usetrickleice_10',['useTrickleIce',['../group__StatusCodes.html#gabad78ddf2f8b7fec195ded8d69a74886',1,'RtcSessionDescriptionInit']]]
 ];
