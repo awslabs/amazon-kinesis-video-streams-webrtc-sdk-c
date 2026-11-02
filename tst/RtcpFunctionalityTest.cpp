@@ -771,6 +771,38 @@ TEST_F(RtcpFunctionalityTest, onpli)
     freePeerConnection(&pRtcPeerConnection);
 }
 
+// A sub-packet whose handler fails must not stop the rest of the compound packet from being processed.
+// The first PLI names an SSRC that no transceiver has, so onRtcpPLIPacket fails. The second PLI names the
+// transceiver's SSRC and must still be handled.
+TEST_F(RtcpFunctionalityTest, onRtcpPacketCompoundContinuesAfterHandlerFailure)
+{
+    // 1. PLI, sender SSRC 0x00000001, media SSRC 0x0BADC0DE (no transceiver has it)
+    // 2. PLI, sender SSRC 0x00000001, media SSRC 0x1DC86991 (the transceiver's SSRC)
+    BYTE compound[] = {0x81, 0xCE, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x0B, 0xAD, 0xC0, 0xDE,
+                       0x81, 0xCE, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x1D, 0xC8, 0x69, 0x91};
+    RtcpPacket firstPli{};
+    UINT32 pictureLossCount = 0;
+    RtcOutboundRtpStreamStats stats{};
+
+    ASSERT_EQ(STATUS_SUCCESS, setRtcpPacketFromBytes(compound, SIZEOF(compound), &firstPli));
+    ASSERT_EQ(RTCP_PSFB_PLI, firstPli.header.receptionReportCount);
+
+    initTransceiver(0x1DC86991);
+    pKvsRtpTransceiver->onPictureLossCustomData = (UINT64) &pictureLossCount;
+    pKvsRtpTransceiver->onPictureLoss = [](UINT64 customData) -> void { (*(PUINT32) customData)++; };
+
+    // The first PLI on its own fails, so the compound packet does reach a failing handler.
+    EXPECT_TRUE(STATUS_FAILED(onRtcpPLIPacket(&firstPli, pKvsPeerConnection)));
+    EXPECT_EQ(0, pictureLossCount);
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, compound, SIZEOF(compound)));
+    EXPECT_EQ(1, pictureLossCount);
+    EXPECT_EQ(STATUS_SUCCESS, getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats));
+    EXPECT_EQ(1, stats.pliCount);
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
 TEST_F(RtcpFunctionalityTest, createRtcpPLIPacket)
 {
     BYTE expected[] = {0x81, 0xCE, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x1D, 0xC8, 0x69, 0x91};
