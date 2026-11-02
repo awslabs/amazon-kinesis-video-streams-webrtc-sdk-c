@@ -1671,10 +1671,10 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
 
                     CHK_STATUS(iceAgentSendStunPacket(pBindingRequest, NULL, 0, pIceAgent, pCandidate, pStunServerAddr));
                     if (pIceAgent->pRtcIceServerDiagnostics[pCandidate->iceServerIndex] != NULL) {
-                        pIceAgent->pRtcIceServerDiagnostics[pCandidate->iceServerIndex]->totalRequestsSent++;
-                        // Round trip time is measured from the first send
+                        // A request and its re-sends are one transaction: count it once, and time it from the first send
                         CHK_STATUS(hashTableContains(pIceAgent->requestTimestampDiagnostics, checkSum, &requestSent));
                         if (!requestSent) {
+                            pIceAgent->pRtcIceServerDiagnostics[pCandidate->iceServerIndex]->totalRequestsSent++;
                             CHK_STATUS(hashTableUpsert(pIceAgent->requestTimestampDiagnostics, checkSum, GETTIME()));
                         }
                     }
@@ -2958,7 +2958,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 // The STUN server can still send responses after this srflx candidate has already been resolved. This packet
                 // is not a peer ICE success response and does not belong to any candidate pair and thus can ignored.
                 if (pIceServerAddress->family != KVS_IP_FAMILY_TYPE_NOT_SET && isSameIpAddress(pSrcAddr, pIceServerAddress, TRUE)) {
-                    DLOGW("Ignoring late STUN binding success response from ICE server %s on srflx candidate %s",
+                    DLOGD("Ignoring late STUN binding success response from ICE server %s on srflx candidate %s",
                           pIceAgent->iceServers[pIceCandidate->iceServerIndex].url, pIceCandidate->id);
                     CHK(FALSE, retStatus);
                 }

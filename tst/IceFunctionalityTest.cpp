@@ -1113,6 +1113,8 @@ TEST_F(IceFunctionalityTest, srflxCandidateResolvedWhenStunReplyOutlastsRetransm
     PConnectionListener pServerListener = NULL;
     SlowStunServer server;
     std::atomic<bool> stopReplier(false);
+    PRtcIceServerDiagnostics pServerDiagnostics = NULL;
+    UINT64 sourceCount = 0;
     PIceAgent pIceAgent = NULL;
     CHAR localIceUfrag[LOCAL_ICE_UFRAG_LEN + 1];
     CHAR localIcePwd[LOCAL_ICE_PWD_LEN + 1];
@@ -1224,7 +1226,19 @@ TEST_F(IceFunctionalityTest, srflxCandidateResolvedWhenStunReplyOutlastsRetransm
             EXPECT_GT(it->second.requestCount, 1u) << it->first;
             EXPECT_TRUE(it->second.sameTransactionId) << it->first;
         }
+        sourceCount = server.sources.size();
     }
+
+    // Each srflx candidate counts as one request and one response, timed from its first send
+    MUTEX_LOCK(pIceAgent->lock);
+    pServerDiagnostics = pIceAgent->pRtcIceServerDiagnostics[0];
+    EXPECT_TRUE(pServerDiagnostics != NULL);
+    if (pServerDiagnostics != NULL) {
+        EXPECT_EQ(sourceCount, pServerDiagnostics->totalRequestsSent);
+        EXPECT_EQ(sourceCount, pServerDiagnostics->totalResponsesReceived);
+        EXPECT_LE(replyDelay * sourceCount, pServerDiagnostics->totalRoundTripTime);
+    }
+    MUTEX_UNLOCK(pIceAgent->lock);
 
     EXPECT_EQ(STATUS_SUCCESS, iceAgentShutdown(pIceAgent));
     EXPECT_EQ(STATUS_SUCCESS, timerQueueShutdown(timerQueueHandle));
