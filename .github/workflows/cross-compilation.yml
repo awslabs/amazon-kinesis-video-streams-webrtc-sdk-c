@@ -132,3 +132,111 @@ jobs:
           file ./tst/webrtc_client_test | grep "${{ matrix.compiler.file-expected-output }}"
           file ./samples/kvsWebrtcClientMaster | grep "${{ matrix.compiler.file-expected-output }}"
         shell: bash
+
+  # AWS-LC picks its assembly from CMAKE_SYSTEM_PROCESSOR. Setting only CC and
+  # CXX, as the job above does, leaves that at the host's x86_64, so AWS-LC
+  # would hand x86_64 assembly to the cross compiler. A toolchain file sets the
+  # target processor. The SDK passes it to the AWS-LC build. The other
+  # dependencies still build with CC and CXX, as in the job above.
+  linux-cross-compilation-aws-lc:
+    needs: ecr-login
+    timeout-minutes: 30
+
+    strategy:
+      matrix:
+        target:
+          - name: aarch-64
+            processor: aarch64
+            install: gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+            cc: aarch64-linux-gnu-gcc
+            cxx: aarch64-linux-gnu-g++
+            readelf-machine: AArch64
+            file-expected-output: "ELF 64-bit LSB pie executable, ARM aarch64"
+          - name: arm-32
+            processor: arm
+            install: gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+            cc: arm-linux-gnueabihf-gcc
+            cxx: arm-linux-gnueabihf-g++
+            readelf-machine: ARM
+            file-expected-output: "ELF 32-bit LSB pie executable, ARM"
+
+        build-type:
+          - name: Shared
+            cmake_flags: -DBUILD_STATIC_LIBS=OFF
+          - name: Static
+            cmake_flags: -DBUILD_STATIC_LIBS=ON
+
+      fail-fast: false
+
+    runs-on: ubuntu-latest
+    container:
+      image: public.ecr.aws/ubuntu/ubuntu:22.04_stable
+      # Authenticated pull; see ecr-public-login.yml.
+      credentials: ${{ fromJSON(needs.ecr-login.outputs.attempt == github.run_attempt && needs.ecr-login.outputs.credentials || '{}') }}
+
+    name: ${{ matrix.target.name }}, ${{ matrix.build-type.name }}, AWS-LC
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y build-essential cmake git pkg-config file ${{ matrix.target.install }}
+
+      - name: Configure and build ${{ matrix.target.name }}, ${{ matrix.build-type.name }}, AWS-LC
+        run: |
+          export CC=${{ matrix.target.cc }}
+          export CXX=${{ matrix.target.cxx }}
+          echo "Using $CC and $CXX"
+
+          mkdir -p build
+          cd build
+
+          # Must be an absolute path. The SDK hands it to the AWS-LC build,
+          # which configures in another directory.
+          TOOLCHAIN_FILE="$PWD/cross-toolchain.cmake"
+          cat > "$TOOLCHAIN_FILE" <<EOF
+          set(CMAKE_SYSTEM_NAME Linux)
+          set(CMAKE_SYSTEM_PROCESSOR ${{ matrix.target.processor }})
+          set(CMAKE_C_COMPILER ${{ matrix.target.cc }})
+          set(CMAKE_CXX_COMPILER ${{ matrix.target.cxx }})
+          EOF
+          cat "$TOOLCHAIN_FILE"
+
+          cmake .. -DBUILD_TEST=ON \
+            -DENABLE_AWS_SDK_IN_TESTS=OFF \
+            -DPARALLEL_BUILD=ON \
+            -DUSE_AWS_LC=ON \
+            -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" \
+            -DBUILD_LIBSRTP_HOST_PLATFORM=x86_64-unknown-linux-gnu \
+            -DBUILD_LIBSRTP_DESTINATION_PLATFORM=arm-unknown-linux-uclibcgnueabi \
+            ${{ matrix.build-type.cmake_flags }}
+          make -j$(nproc)
+        shell: bash
+
+      - name: Check AWS-LC and the SDK are built for the target
+        run: |
+          cd build
+
+          # AWS-LC itself, not only the binaries that link it.
+          ls ../open-source/lib/libcrypto.*
+          # A static libcrypto.a prints one header per object file. Read all of it
+          # before checking. A `grep -q` in the pipe would stop reading early, and
+          # with pipefail the SIGPIPE fails the step (exit 141).
+          for lib in ../open-source/lib/libcrypto.*; do
+            machines=$(readelf -h "$lib" | grep 'Machine:' | sort -u)
+            echo "$lib: $machines"
+            if [[ "$machines" == *$'\n'* || "$machines" != *"${{ matrix.target.readelf-machine }}"* ]]; then
+              echo "FAIL: $lib is not built only for ${{ matrix.target.readelf-machine }}"
+              exit 1
+            fi
+          done
+
+          file ./tst/webrtc_client_test
+          file ./samples/kvsWebrtcClientMaster
+
+          file ./tst/webrtc_client_test | grep "${{ matrix.target.file-expected-output }}"
+          file ./samples/kvsWebrtcClientMaster | grep "${{ matrix.target.file-expected-output }}"
+        shell: bash

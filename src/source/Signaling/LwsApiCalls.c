@@ -44,6 +44,25 @@ INT32 lwsHttpCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn,
 
     DLOGV("HTTPS callback with reason %d", reason);
 
+#ifdef KVS_USE_AWS_LC
+    /*
+     * Applies the SDK's group list to the libwebsockets client SSL_CTX.
+     *
+     * lws raises this once, while it builds the client SSL_CTX, on a fake wsi with
+     * no user data. So it is handled before the user data lookup below. `user` is
+     * the SSL_CTX.
+     *
+     * AWS-LC's default list also starts with X25519MLKEM768 today, but that default
+     * can change. Setting the list here keeps the offer fixed.
+     */
+    if (reason == LWS_CALLBACK_OPENSSL_LOAD_EXTRA_CLIENT_VERIFY_CERTS && user != NULL) {
+        if (STATUS_FAILED(awsLcConfigureTlsGroups((SSL_CTX*) user))) {
+            DLOGW("Failed to configure post-quantum groups on the libwebsockets client context; continuing with AWS-LC defaults");
+        }
+        return 0;
+    }
+#endif
+
     // Early check before accessing the custom data field to see if we are interested in processing the message
     switch (reason) {
         case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
@@ -316,6 +335,12 @@ INT32 lwsWssCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn, 
     UINT32 i;
 
     DLOGV("WSS callback with reason %d", reason);
+
+    // No LWS_CALLBACK_OPENSSL_LOAD_EXTRA_CLIENT_VERIFY_CERTS handler here. lws raises it
+    // only on protocols[0] (lws_context_init_client_ssl in lib/tls/tls-client.c), and
+    // PROTOCOL_INDEX_HTTPS is 0, so it lands in lwsHttpCallbackRoutine. The SDK creates
+    // one lws context with one vhost, so HTTPS and WSS share one client SSL_CTX. The
+    // group list set there covers WSS too.
 
     // Sent to every protocol on a fake wsi after lws_cancel_service(), from the service thread.
     // This path must return 0. A non-zero return makes lws close its cancel pipe, and every later wake is lost.
