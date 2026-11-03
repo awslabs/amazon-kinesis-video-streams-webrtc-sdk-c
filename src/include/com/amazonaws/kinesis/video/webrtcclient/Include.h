@@ -1315,6 +1315,25 @@ typedef STATUS (*RtcOnPeerCongestionFeedback)(UINT64, PCongestionCtx);
 typedef VOID (*RtcOnPictureLoss)(UINT64);
 
 /**
+ * @brief RtcOnFrameDropped is fired when the jitter buffer drops a received frame.
+ * It happens when RTP packets are lost, or when the frame is too large.
+ * The dropped frame can be the complete frame before the lost RTP packets.
+ * For lost RTP packets, the jitter buffer drops a frame once a newer RTP packet is more than DEFAULT_JITTER_BUFFER_MAX_LATENCY past it,
+ * so several frames can be dropped at once. A frame that is too large is dropped when the next frame arrives.
+ * For video, the frames that follow cannot be decoded correctly until the next keyframe.
+ * One PLI sent with transceiverSendPictureLoss() asks the sender for one.
+ *
+ * It runs on the thread that receives the media. It must not block.
+ * It is not fired for the frames still buffered when the peer connection is freed.
+ *
+ * NOTE: RtcOnFrameDropped is a KVS specific method
+ *
+ * @param[in] UINT64 customData - User customData
+ * @param[in] UINT32 timestamp - RTP timestamp of the dropped frame
+ */
+typedef VOID (*RtcOnFrameDropped)(UINT64, UINT32);
+
+/**
  * @brief RtcDataChannel represents a bi-directional data channel between two peers.
  *
  * Reference: https://www.w3.org/TR/webrtc/#dom-rtcdatachannel
@@ -2228,6 +2247,17 @@ PUBLIC_API STATUS transceiverOnBandwidthEstimation(PRtcRtpTransceiver, UINT64, R
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS transceiverOnPictureLoss(PRtcRtpTransceiver, UINT64, RtcOnPictureLoss);
+
+/**
+ * @brief Set a callback for received frames that the jitter buffer drops
+ *
+ * @param[in] PRtcRtpTransceiver Populated RtcRtpTransceiver struct
+ * @param[in] UINT64 User customData that will be passed along when RtcOnFrameDropped is called
+ * @param[in] RtcOnFrameDropped User RtcOnFrameDropped callback
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS transceiverOnFrameDropped(PRtcRtpTransceiver, UINT64, RtcOnFrameDropped);
 
 /**
  * @brief Send a Picture Loss Indication (PLI) to ask the remote sender for a new keyframe
