@@ -39,7 +39,8 @@ extern "C" {
  */
 #define DTLS_TRANSMISSION_INTERVAL (200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
-#define DTLS_SESSION_TIMER_START_DELAY (100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+// The record header (13 bytes) and handshake header (12 bytes) of a ClientHello
+#define DTLS_CLIENT_HELLO_MIN_LEN 25
 
 #define SECONDS_IN_A_DAY (24 * 60 * 60LL)
 
@@ -148,6 +149,9 @@ struct __DtlsSession {
     volatile ATOMIC_BOOL remoteCertVerificationFailed;
     DTLS_SESSION_VALIDATION_MODE validationMode;
     PCHAR pExpectedServerHostname;
+    // A ClientHello that arrived before dtlsSessionStart(), for a server to answer when it starts (RFC 8842 section 5.2)
+    PBYTE pEarlyClientHello;
+    UINT32 earlyClientHelloLen;
 
 #ifdef KVS_USE_OPENSSL
     volatile ATOMIC_BOOL sslInitFinished;
@@ -220,6 +224,22 @@ STATUS dtlsSessionHandshakeInThread(PDtlsSession, BOOL);
 /******** Internal Functions **********/
 STATUS dtlsValidateRtcCertificates(PRtcCertificate, PUINT32);
 STATUS dtlsSessionChangeState(PDtlsSession, RTC_DTLS_TRANSPORT_STATE);
+
+/**
+ * Whether a DTLS datagram starts with an unencrypted ClientHello (epoch 0), from its first fragment
+ */
+BOOL dtlsPacketIsClientHello(PBYTE, UINT32);
+
+/**
+ * Keeps a ClientHello that arrived before dtlsSessionStart() for the session to answer when it starts, replacing one kept
+ * before (RFC 8842 section 5.2: the answerer may send it as soon as its own ICE is ready). Call with sslLock held, before
+ * the session started.
+ *
+ * @return - STATUS - STATUS_SUCCESS if the packet was kept, STATUS_SSL_PACKET_BEFORE_DTLS_READY if it does not start a
+ *                    ClientHello and is dropped, STATUS_NOT_ENOUGH_MEMORY if it could not be copied (one kept before stays),
+ *                    STATUS_NULL_ARG
+ */
+STATUS dtlsSessionKeepEarlyClientHello(PDtlsSession, PBYTE, UINT32);
 /**
  * Copy DTLS validation options into the session, defaulting to relaxed validation when options are omitted.
  * Strict server validation requires a non-empty expected hostname.
