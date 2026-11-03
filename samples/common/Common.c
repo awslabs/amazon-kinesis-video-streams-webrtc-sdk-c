@@ -1949,9 +1949,6 @@ STATUS signalingMessageReceived(UINT64 customData, PReceivedSignalingMessage pRe
 
 CleanUp:
 
-    if (pReceivedSignalingMessage != NULL) {
-        freeSignalingMessagePayload(&pReceivedSignalingMessage->signalingMessage);
-    }
     if (pReceivedSignalingMessageCopy != NULL) {
         /* Release the copy's own payload before the struct — under
          * DYNAMIC_SIGNALING_PAYLOAD the copy owns a distinct heap buffer. */
