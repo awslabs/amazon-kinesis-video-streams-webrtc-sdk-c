@@ -1316,9 +1316,12 @@ typedef VOID (*RtcOnPictureLoss)(UINT64);
 
 /**
  * @brief RtcOnFrameDropped is fired when the jitter buffer drops a received frame.
- * It happens when packets of the frame are lost, or when the frame is too large.
- * For video, the frames that follow can not be decoded until the next keyframe.
- * Sending a PLI with transceiverSendPictureLoss() asks the sender for one.
+ * It happens when RTP packets are lost, or when the frame is too large.
+ * The dropped frame can be the complete frame before the lost RTP packets.
+ * For lost RTP packets, the jitter buffer drops a frame once a newer RTP packet is more than DEFAULT_JITTER_BUFFER_MAX_LATENCY past it,
+ * so several frames can be dropped at once. A frame that is too large is dropped when the next frame arrives.
+ * For video, the frames that follow cannot be decoded correctly until the next keyframe.
+ * One PLI sent with transceiverSendPictureLoss() asks the sender for one.
  *
  * It runs on the thread that receives the media. It must not block.
  * It is not fired for the frames still buffered when the peer connection is freed.
