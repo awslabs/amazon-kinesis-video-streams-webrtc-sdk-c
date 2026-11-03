@@ -2307,7 +2307,7 @@ STATUS sendLwsMessage(PSignalingClient pSignalingClient, SIGNALING_MESSAGE_TYPE 
 
     // Allocate memory for encodedMessage
     encodedMessageLen = ((size + 2) / 3) * 4 + 1; // +1 for null terminator
-    CHK(encodedMessageLen <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN + 1, STATUS_INVALID_ARG);
+    CHK(encodedMessageLen <= MAX_SESSION_DESCRIPTION_INIT_SDP_LEN + 1, STATUS_BUFFER_TOO_SMALL);
     encodedMessage = (PCHAR) MEMALLOC(encodedMessageLen);
     CHK(encodedMessage != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
