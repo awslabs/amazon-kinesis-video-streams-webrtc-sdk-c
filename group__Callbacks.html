@@ -155,9 +155,6 @@ Typedefs</h2></td></tr>
 <tr class="memitem:gac7f4225ac2545664aabdc88d0b58e329" id="r_gac7f4225ac2545664aabdc88d0b58e329"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#gac7f4225ac2545664aabdc88d0b58e329">RtcOnPictureLoss</a>) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>)</td></tr>
 <tr class="memdesc:gac7f4225ac2545664aabdc88d0b58e329"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnPictureLoss is fired everytime a Picture Loss Indication (PLI) feedback message is received. Receiving such message normally indicates that you sent a video frame which receiver could not decode. It may happen either because of packet loss or for any other reason. Generating an intra frame (aka keyframe, aka I-frame) in response to such message is considered a good strategy.  <br /></td></tr>
 <tr class="separator:gac7f4225ac2545664aabdc88d0b58e329"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga31087963a19624662f43ddf1c4a761a0" id="r_ga31087963a19624662f43ddf1c4a761a0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#ga31087963a19624662f43ddf1c4a761a0">RtcOnFrameDropped</a>) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>)</td></tr>
-<tr class="memdesc:ga31087963a19624662f43ddf1c4a761a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcOnFrameDropped is fired when the jitter buffer drops a received frame. It happens when RTP packets are lost, or when the frame is too large. The dropped frame can be the complete frame before the lost RTP packets. For lost RTP packets, the jitter buffer drops a frame once a newer RTP packet is more than DEFAULT_JITTER_BUFFER_MAX_LATENCY past it, so several frames can be dropped at once. A frame that is too large is dropped when the next frame arrives. For video, the frames that follow cannot be decoded correctly until the next keyframe. One PLI sent with <a class="el" href="group__PublicMemberFunctions.html#ga698a849d76431e464b43cf51413d658d" title="Send a Picture Loss Indication (PLI) to ask the remote sender for a new keyframe.">transceiverSendPictureLoss()</a> asks the sender for one.  <br /></td></tr>
-<tr class="separator:ga31087963a19624662f43ddf1c4a761a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaa6f47a9f98e9103afc97434dd3a5cd8c" id="r_gaa6f47a9f98e9103afc97434dd3a5cd8c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">struct</a> <a class="el" href="struct____RtcDataChannel.html">__RtcDataChannel</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Callbacks.html#gaa6f47a9f98e9103afc97434dd3a5cd8c">RtcDataChannel</a></td></tr>
 <tr class="memdesc:gaa6f47a9f98e9103afc97434dd3a5cd8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">RtcDataChannel represents a bi-directional data channel between two peers.  <br /></td></tr>
 <tr class="separator:gaa6f47a9f98e9103afc97434dd3a5cd8c"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -344,31 +341,6 @@ Typedefs</h2></td></tr>
 
 <p>RtcOnFrame is fired everytime a frame is received from the remote peer. It is available via the RtpRec. </p>
 <p>NOTE: RtcOnFrame is a KVS specific method </p>
-
-</div>
-</div>
-<a id="ga31087963a19624662f43ddf1c4a761a0" name="ga31087963a19624662f43ddf1c4a761a0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga31087963a19624662f43ddf1c4a761a0">&#9670;&#160;</a></span>RtcOnFrameDropped</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">typedef</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">VOID</a>(* RtcOnFrameDropped) (<a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT32</a>)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>RtcOnFrameDropped is fired when the jitter buffer drops a received frame. It happens when RTP packets are lost, or when the frame is too large. The dropped frame can be the complete frame before the lost RTP packets. For lost RTP packets, the jitter buffer drops a frame once a newer RTP packet is more than DEFAULT_JITTER_BUFFER_MAX_LATENCY past it, so several frames can be dropped at once. A frame that is too large is dropped when the next frame arrives. For video, the frames that follow cannot be decoded correctly until the next keyframe. One PLI sent with <a class="el" href="group__PublicMemberFunctions.html#ga698a849d76431e464b43cf51413d658d" title="Send a Picture Loss Indication (PLI) to ask the remote sender for a new keyframe.">transceiverSendPictureLoss()</a> asks the sender for one. </p>
-<p>It runs on the thread that receives the media. It must not block. It is not fired for the frames still buffered when the peer connection is freed.</p>
-<p>NOTE: RtcOnFrameDropped is a KVS specific method</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">UINT64</td><td>customData - User customData </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">UINT32</td><td>timestamp - RTP timestamp of the dropped frame </td></tr>
-  </table>
-  </dd>
-</dl>
 
 </div>
 </div>
@@ -597,7 +569,7 @@ Typedefs</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Tue Nov 3 2026 19:41:11 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Tue Nov 3 2026 21:44:47 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>
