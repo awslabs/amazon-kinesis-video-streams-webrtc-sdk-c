@@ -661,19 +661,12 @@ the stack, which helps on platforms with small thread stacks (e.g. ESP32):
 * The TURN channel-data buffer used for each received TURN packet (about
   16 KB) is allocated on the heap instead of the stack.
 
-Release the payload via the SDK-side helper (declared unconditionally,
-no-op in the static build, so callers don't need an `#ifdef`):
-
-```c
-ReceivedSignalingMessage receivedMessage;
-parseSignalingMessage(json, jsonLen, &receivedMessage);
-freeSignalingMessagePayload(&receivedMessage.signalingMessage);
-```
-
 A message passed to the `messageReceivedFn` callback is valid only until
 the callback returns, when the SDK frees its payload. To keep it, copy the
-payload too: a struct copy shares the pointer. See `samples/common/Common.c`
-for usage.
+payload too: a struct copy shares the pointer. Release the copy's payload
+with `freeSignalingMessagePayload()`. It is declared in every build and does
+nothing without the flag, so callers need no `#ifdef`. See
+`samples/common/Common.c` for usage.
 
 ## Setup IoT
 * To use IoT certificate to authenticate with KVS signaling, please refer to [Controlling Access to Kinesis Video Streams Resources Using AWS IoT](https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/how-iot.html) for provisioning details.
