@@ -286,7 +286,12 @@ TEST_F(PeerConnectionApiTest, writeFrameRejectsFramesLargerThanMaximumOutboundFr
     MEMFREE(pData);
 }
 
-// A received frame over the jitter buffer's maximum frame size is dropped and counted in the inbound stats
+struct FrameDroppedRecord {
+    UINT32 count;
+    UINT32 timestamp;
+};
+
+// A received frame over the jitter buffer's maximum frame size is dropped, counted in the inbound stats, and reported through the callback
 TEST_F(PeerConnectionApiTest, receivedFrameLargerThanMaximumInboundFrameSizeIsCountedAsDropped)
 {
     PRtcPeerConnection pRtcPeerConnection = NULL;
@@ -303,6 +308,12 @@ TEST_F(PeerConnectionApiTest, receivedFrameLargerThanMaximumInboundFrameSizeIsCo
     BYTE naluHeaders[] = {0x65, 0x65, 0x41};
     UINT32 payloadLengths[] = {MAX_INBOUND_FRAME_SIZE_BYTES / 2, MAX_INBOUND_FRAME_SIZE_BYTES / 2, 5};
     UINT32 i;
+    FrameDroppedRecord record = {0, 0};
+    auto onFrameDropped = [](UINT64 customData, UINT32 timestamp) -> void {
+        FrameDroppedRecord* pRecord = (FrameDroppedRecord*) customData;
+        pRecord->count++;
+        pRecord->timestamp = timestamp;
+    };
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
     MEMSET(&track, 0x00, SIZEOF(RtcMediaStreamTrack));
@@ -314,6 +325,7 @@ TEST_F(PeerConnectionApiTest, receivedFrameLargerThanMaximumInboundFrameSizeIsCo
     EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
     EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, track.codec));
     EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track, NULL, &pTransceiver));
+    EXPECT_EQ(STATUS_SUCCESS, transceiverOnFrameDropped(pTransceiver, (UINT64) &record, onFrameDropped));
     pKvsRtpTransceiver = (PKvsRtpTransceiver) pTransceiver;
 
     for (i = 0; i < ARRAY_SIZE(sequenceNumbers); i++) {
@@ -329,6 +341,8 @@ TEST_F(PeerConnectionApiTest, receivedFrameLargerThanMaximumInboundFrameSizeIsCo
     }
     EXPECT_EQ(1, pKvsRtpTransceiver->inboundStats.received.framesDropped);
     EXPECT_EQ(0, pKvsRtpTransceiver->inboundStats.framesReceived);
+    EXPECT_EQ(1, record.count);
+    EXPECT_EQ(1000, record.timestamp);
 
     closePeerConnection(pRtcPeerConnection);
     freePeerConnection(&pRtcPeerConnection);
@@ -363,11 +377,6 @@ TEST_F(PeerConnectionApiTest, transceiverOnFrameDroppedNullArgs)
     closePeerConnection(pRtcPeerConnection);
     freePeerConnection(&pRtcPeerConnection);
 }
-
-struct FrameDroppedRecord {
-    UINT32 count;
-    UINT32 timestamp;
-};
 
 // A frame lost on the network makes the jitter buffer drop a frame once its latency runs out. The app hears about it through the callback.
 // The frames the jitter buffer still holds when the transceiver is freed do not fire the callback.
