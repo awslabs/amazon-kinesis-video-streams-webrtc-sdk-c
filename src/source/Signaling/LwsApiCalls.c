@@ -1114,6 +1114,10 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
                              getStringFromChannelType(pSignalingClient->pChannelInfo->channelType),
                              pSignalingClient->pChannelInfo->messageTtl / HUNDREDS_OF_NANOS_IN_A_SECOND, tagsJson);
     paramsJsonLen += 1; // +1 for the NULL terminator
+    // lwsHttpCallbackRoutine() copies the body into LwsCallInfo.buffer, which fits MAX_JSON_PARAMETER_STRING_LEN bytes
+    CHK_ERR(paramsJsonLen <= MAX_JSON_PARAMETER_STRING_LEN, STATUS_INTERNAL_ERROR,
+            "CreateSignalingChannel body is %u bytes, limit %u. Use fewer or shorter tags.", paramsJsonLen - 1,
+            (UINT32) MAX_JSON_PARAMETER_STRING_LEN - 1);
     paramsJson = (PCHAR) MEMALLOC(paramsJsonLen);
     CHK(paramsJson != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
