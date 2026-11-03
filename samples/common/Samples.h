@@ -260,8 +260,12 @@ struct __SampleStreamingSession {
     PRtcRtpTransceiver pAudioRtcRtpTransceiver;
     RtcSessionDescriptionInit answerSessionDescriptionInit;
     PSampleConfiguration pSampleConfiguration;
-    UINT64 audioTimestamp;
-    UINT64 videoTimestamp;
+    // Capture time (GStreamer running time, ns) of the first audio / video frame successfully sent to this session. Frame
+    // timestamps are relative to it, so each track of each session starts at 0. Valid only while *TimelineStarted is TRUE.
+    UINT64 firstAudioFrameCaptureTime;
+    UINT64 firstVideoFrameCaptureTime;
+    BOOL audioTimelineStarted;
+    BOOL videoTimelineStarted;
     CHAR peerId[MAX_SIGNALING_CLIENT_ID_LEN + 1];
     TID receiveAudioVideoSenderTid;
     UINT64 startUpLatency;

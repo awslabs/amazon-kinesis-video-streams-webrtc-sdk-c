@@ -34,6 +34,9 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) data;
     PSampleStreamingSession pSampleStreamingSession = NULL;
     PRtcRtpTransceiver pRtcRtpTransceiver = NULL;
+    PUINT64 pFirstFrameCaptureTime = NULL;
+    PBOOL pTimelineStarted = NULL;
+    BOOL timelineStarting;
     UINT32 i;
     guint bitrate;
 
@@ -59,6 +62,7 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
         buf_pts = gst_segment_to_running_time(segment, GST_FORMAT_TIME, buffer->pts);
         if (!GST_CLOCK_TIME_IS_VALID(buf_pts)) {
             DLOGE("[KVS GStreamer Master] Frame contains invalid PTS dropping the frame");
+            goto CleanUp;
         }
 
         if (!(gst_buffer_map(buffer, &info, GST_MAP_READ))) {
@@ -93,10 +97,8 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
                     }
                 }
                 pRtcRtpTransceiver = pSampleStreamingSession->pAudioRtcRtpTransceiver;
-                frame.presentationTs = pSampleStreamingSession->audioTimestamp;
-                frame.decodingTs = frame.presentationTs;
-                pSampleStreamingSession->audioTimestamp +=
-                    SAMPLE_AUDIO_FRAME_DURATION; // assume audio frame size is 20ms, which is default in opusenc
+                pFirstFrameCaptureTime = &pSampleStreamingSession->firstAudioFrameCaptureTime;
+                pTimelineStarted = &pSampleStreamingSession->audioTimelineStarted;
             } else {
                 if (pSampleStreamingSession->pSampleConfiguration->enableTwcc && senderPipeline != NULL) {
                     GstElement* encoder = gst_bin_get_by_name(GST_BIN(senderPipeline), "sampleVideoEncoder");
@@ -113,11 +115,32 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
                     }
                 }
                 pRtcRtpTransceiver = pSampleStreamingSession->pVideoRtcRtpTransceiver;
-                frame.presentationTs = pSampleStreamingSession->videoTimestamp;
-                frame.decodingTs = frame.presentationTs;
-                pSampleStreamingSession->videoTimestamp += SAMPLE_VIDEO_FRAME_DURATION; // assume video fps is 25
+                pFirstFrameCaptureTime = &pSampleStreamingSession->firstVideoFrameCaptureTime;
+                pTimelineStarted = &pSampleStreamingSession->videoTimelineStarted;
             }
+
+            /*
+             * Stamp the frame with its capture time (the buffer's running time) rather than a fixed frame duration, so the
+             * RTP clock follows real time whatever the source's frame rate. Each track of each session starts at 0 on its
+             * first frame that is actually sent, because writeFrame() anchors the track's RTCP sender report to that moment.
+             */
+            timelineStarting = !*pTimelineStarted;
+            if (timelineStarting) {
+                *pFirstFrameCaptureTime = buf_pts;
+                *pTimelineStarted = TRUE;
+            } else if (buf_pts < *pFirstFrameCaptureTime) {
+                // Running time went backwards (the pipeline was restarted under this session): restart the timeline.
+                DLOGW("[KVS GStreamer Master] Running time went backwards, restarting the session's frame timestamps");
+                *pFirstFrameCaptureTime = buf_pts;
+            }
+            frame.presentationTs = (buf_pts - *pFirstFrameCaptureTime) / DEFAULT_TIME_UNIT_IN_NANOS;
+            frame.decodingTs = frame.presentationTs; // the sample pipelines produce no B-frames
+
             status = writeFrame(pRtcRtpTransceiver, &frame);
+            if (timelineStarting && status != STATUS_SUCCESS) {
+                // Not sent (for example SRTP not ready yet): start the timeline on the next frame instead.
+                *pTimelineStarted = FALSE;
+            }
             if (status != STATUS_SRTP_NOT_READY_YET && status != STATUS_SUCCESS) {
 #ifdef VERBOSE
                 DLOGE("[KVS GStreamer Master] writeFrame() failed with 0x%08x", status);
