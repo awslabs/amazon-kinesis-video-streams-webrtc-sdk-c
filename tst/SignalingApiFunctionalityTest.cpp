@@ -4080,6 +4080,65 @@ TEST_F(SignalingApiFunctionalityTest, SignalingMessageParsing_InvalidJson) {
     freeSignalingMessagePayload(&receivedMessage.signalingMessage);
 }
 
+// A CreateSignalingChannel body larger than the HTTP send buffer fails the call instead of overrunning the buffer
+TEST_F(SignalingApiFunctionalityTest, createChannelBodyLargerThanHttpSendBufferFails)
+{
+    ASSERT_EQ(TRUE, mAccessKeyIdSet);
+
+    static CHAR names[MAX_TAG_COUNT][MAX_TAG_NAME_LEN + 1];
+    static CHAR values[MAX_TAG_COUNT][MAX_TAG_VALUE_LEN + 1];
+    Tag tags[MAX_TAG_COUNT];
+    for (UINT32 i = 0; i < MAX_TAG_COUNT; i++) {
+        MEMSET(names[i], 'k', MAX_TAG_NAME_LEN);
+        SNPRINTF(names[i] + MAX_TAG_NAME_LEN - 3, 4, "%03u", i);
+        MEMSET(values[i], 'v', MAX_TAG_VALUE_LEN);
+        values[i][MAX_TAG_VALUE_LEN] = '\0';
+        tags[i].version = TAG_CURRENT_VERSION;
+        tags[i].name = names[i];
+        tags[i].value = values[i];
+    }
+
+    SignalingClientCallbacks signalingClientCallbacks;
+    MEMSET(&signalingClientCallbacks, 0x00, SIZEOF(signalingClientCallbacks));
+    signalingClientCallbacks.version = SIGNALING_CLIENT_CALLBACKS_CURRENT_VERSION;
+    signalingClientCallbacks.customData = (UINT64) this;
+    signalingClientCallbacks.errorReportFn = signalingClientError;
+    signalingClientCallbacks.stateChangeFn = signalingClientStateChanged;
+
+    SignalingClientInfo clientInfo;
+    MEMSET(&clientInfo, 0x00, SIZEOF(clientInfo));
+    clientInfo.version = SIGNALING_CLIENT_INFO_CURRENT_VERSION;
+    clientInfo.loggingLevel = LOG_LEVEL_DEBUG;
+    STRCPY(clientInfo.clientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    setupSignalingStateMachineRetryStrategyCallbacks(&clientInfo);
+
+    ChannelInfo channelInfo;
+    MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
+    channelInfo.version = CHANNEL_INFO_CURRENT_VERSION;
+    channelInfo.pChannelName = mChannelName;
+    channelInfo.tagCount = MAX_TAG_COUNT;
+    channelInfo.pTags = tags;
+    channelInfo.channelType = SIGNALING_CHANNEL_TYPE_SINGLE_MASTER;
+    channelInfo.channelRoleType = SIGNALING_CHANNEL_ROLE_TYPE_MASTER;
+    channelInfo.cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
+    channelInfo.retry = TRUE; // moves on to CreateSignalingChannel after the DescribeSignalingChannel 404
+    channelInfo.reconnect = TRUE;
+    channelInfo.pCertPath = mCaCertPath;
+    channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
+
+    SIGNALING_CLIENT_HANDLE signalingHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
+    ASSERT_EQ(STATUS_SUCCESS,
+              createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
+                                        &signalingHandle));
+    STATUS fetchStatus = signalingClientFetchSync(signalingHandle);
+    EXPECT_NE(STATUS_SUCCESS, fetchStatus);
+    if (STATUS_SUCCEEDED(fetchStatus)) {
+        // The service accepted the tags. Delete the channel so the test does not leave it behind.
+        deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+    }
+    freeSignalingClient(&signalingHandle);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
