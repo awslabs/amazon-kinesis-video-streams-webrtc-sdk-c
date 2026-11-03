@@ -189,6 +189,9 @@ Functions</h2></td></tr>
 <tr class="memitem:ga934a685bb5d0fb3d547fcd7e828b7566" id="r_ga934a685bb5d0fb3d547fcd7e828b7566"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga934a685bb5d0fb3d547fcd7e828b7566">transceiverOnPictureLoss</a> (<a class="el" href="group__PublicStructures.html#ga575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#gac7f4225ac2545664aabdc88d0b58e329">RtcOnPictureLoss</a>)</td></tr>
 <tr class="memdesc:ga934a685bb5d0fb3d547fcd7e828b7566"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set a callback for picture loss packet (PLI)  <br /></td></tr>
 <tr class="separator:ga934a685bb5d0fb3d547fcd7e828b7566"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga26128b84e5cb33bda385dba850545856" id="r_ga26128b84e5cb33bda385dba850545856"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga26128b84e5cb33bda385dba850545856">transceiverOnFrameDropped</a> (<a class="el" href="group__PublicStructures.html#ga575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a>, <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>, <a class="el" href="group__Callbacks.html#ga31087963a19624662f43ddf1c4a761a0">RtcOnFrameDropped</a>)</td></tr>
+<tr class="memdesc:ga26128b84e5cb33bda385dba850545856"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set a callback for received frames that the jitter buffer drops.  <br /></td></tr>
+<tr class="separator:ga26128b84e5cb33bda385dba850545856"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga698a849d76431e464b43cf51413d658d" id="r_ga698a849d76431e464b43cf51413d658d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga698a849d76431e464b43cf51413d658d">transceiverSendPictureLoss</a> (<a class="el" href="group__PublicStructures.html#ga575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a>)</td></tr>
 <tr class="memdesc:ga698a849d76431e464b43cf51413d658d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a Picture Loss Indication (PLI) to ask the remote sender for a new keyframe.  <br /></td></tr>
 <tr class="separator:ga698a849d76431e464b43cf51413d658d"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -4318,6 +4321,51 @@ Here is the call graph for this function:</div>
 
 </div>
 </div>
+<a id="ga26128b84e5cb33bda385dba850545856" name="ga26128b84e5cb33bda385dba850545856"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga26128b84e5cb33bda385dba850545856">&#9670;&#160;</a></span>transceiverOnFrameDropped()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">PUBLIC_API</a> <a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">STATUS</a> transceiverOnFrameDropped </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__PublicStructures.html#ga575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a>&#160;</td>
+          <td class="paramname"><em>pRtcRtpTransceiver</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__PublicEnums.html#gga2ec04821e96a8ea582895e206534b9ada8ffb19ddc102a019e7effcee071d6a5d">UINT64</a>&#160;</td>
+          <td class="paramname"><em>customData</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__Callbacks.html#ga31087963a19624662f43ddf1c4a761a0">RtcOnFrameDropped</a>&#160;</td>
+          <td class="paramname"><em>onFrameDropped</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Set a callback for received frames that the jitter buffer drops. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">PRtcRtpTransceiver</td><td>Populated <a class="el" href="structRtcRtpTransceiver.html" title="The RTCRtpTransceiver represents a combination of an RTCRtpSender and an RTCRtpReceiver that share a ...">RtcRtpTransceiver</a> struct </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">UINT64</td><td>User customData that will be passed along when RtcOnFrameDropped is called </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">RtcOnFrameDropped</td><td>User RtcOnFrameDropped callback</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>STATUS code of the execution. STATUS_SUCCESS on success </dd></dl>
+
+</div>
+</div>
 <a id="ga934a685bb5d0fb3d547fcd7e828b7566" name="ga934a685bb5d0fb3d547fcd7e828b7566"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga934a685bb5d0fb3d547fcd7e828b7566">&#9670;&#160;</a></span>transceiverOnPictureLoss()</h2>
 
@@ -4640,7 +4688,7 @@ Here is the call graph for this function:</div>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Tue Nov 3 2026 19:25:18 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
+    <li class="footer">Generated on Tue Nov 3 2026 19:41:11 for Amazon Kinesis Webrtc C SDK by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8 </li>
   </ul>
 </div>
 </body>
