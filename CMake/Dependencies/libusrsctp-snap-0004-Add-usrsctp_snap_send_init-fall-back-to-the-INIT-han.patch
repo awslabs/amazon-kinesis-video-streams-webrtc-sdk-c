@@ -1,0 +1,162 @@
+From b3269906a294a5c721697ee503d3939da5080479 Mon Sep 17 00:00:00 2001
+From: Aryan Kadole <aryan.kadole@espressif.com>
+Date: Fri, 30 Oct 2026 18:21:12 +0530
+Subject: [PATCH 4/4] Add usrsctp_snap_send_init(): fall back to the INIT
+ handshake
+
+Sends the prepared INIT for a peer without SNAP. Once the association
+answered the peer's own INIT, that handshake opens it, timed out like
+an INIT of its own. USRSCTP_HAS_SNAP marks the complete API
+(draft-uberti-tsvwg-warp, section 4.1).
+---
+ Manual.md                        | 14 ++++++++++++++
+ usrsctplib/netinet/sctp_input.c  | 10 ++++++++++
+ usrsctplib/netinet/sctp_usrreq.c | 22 ++++++++++++++++++++++
+ usrsctplib/user_socket.c         | 11 +++++++++++
+ usrsctplib/user_socketvar.h      |  1 +
+ usrsctplib/usrsctp.h             |  5 +++++
+ 6 files changed, 63 insertions(+)
+
+diff --git a/Manual.md b/Manual.md
+index ae33734..b1486c0 100644
+--- a/Manual.md
++++ b/Manual.md
+@@ -306,6 +306,7 @@ usrsctp_recvv(struct socket *so,
+ ## SNAP
+ With SNAP, the SCTP Negotiation Acceleration Protocol ([draft-uberti-tsvwg-warp](https://datatracker.ietf.org/doc/draft-uberti-tsvwg-warp/), section 4.1), both endpoints exchange their INIT chunks out-of-band, e.g. in the SDP, instead of running the SCTP handshake.
+ It works on one-to-one `AF_CONN` sockets; on one-to-many sockets the functions fail with `EOPNOTSUPP`.
++`USRSCTP_HAS_SNAP` is defined when SNAP is available.
+ 
+ ### usrsctp_snap_prepare()
+ 
+@@ -347,6 +348,19 @@ usrsctp_snap_establish(struct socket *so,
+ 
+ `usrsctp_snap_establish()` returns 0 on success and -1 in case of an error: `EINVAL` if `peer_init` is not a valid INIT chunk (the association stays prepared), `ECONNABORTED` if it could not be applied (the association is aborted).
+ 
++### usrsctp_snap_send_init()
++
++```c
++int
++usrsctp_snap_send_init(struct socket *so)
++```
++
++* so: Pointer to the socket prepared by `usrsctp_snap_prepare()`.
++
++`usrsctp_snap_send_init()` sends the INIT chunk instead, for a peer without SNAP.
++
++`usrsctp_snap_send_init()` returns 0 on success and -1 in case of an error. Both it and `usrsctp_snap_establish()` fail with `EALREADY` once the association no longer waits for them.
++
+ ## Socket Options
+ Socket options are used to change the default behavior of socket calls.
+ Their behavior is specified in [RFC 6458](https://tools.ietf.org/html/rfc6458). The functions to get or set them are
+diff --git a/usrsctplib/netinet/sctp_input.c b/usrsctplib/netinet/sctp_input.c
+index ca12b25..13b1b03 100755
+--- a/usrsctplib/netinet/sctp_input.c
++++ b/usrsctplib/netinet/sctp_input.c
+@@ -170,6 +170,16 @@ sctp_handle_init(struct mbuf *m, int iphlen, int offset,
+ 		sctp_chunk_output(inp, stcb, SCTP_OUTPUT_FROM_CONTROL_PROC, SCTP_SO_NOT_LOCKED);
+ 	} else {
+ 		SCTPDBG(SCTP_DEBUG_INPUT3, "sctp_handle_init: sending INIT-ACK\n");
++#if defined(__Userspace__)
++		if ((stcb != NULL) && stcb->asoc.snap_prepared) {
++			/*
++			 * SNAP: the peer started the handshake, which opens the
++			 * association. Time it out like our own INIT.
++			 */
++			stcb->asoc.snap_prepared = 0;
++			sctp_timer_start(SCTP_TIMER_TYPE_INIT, inp, stcb, stcb->asoc.primary_destination);
++		}
++#endif
+ 		sctp_send_initiate_ack(inp, stcb, net, m, iphlen, offset,
+ 		                       src, dst, sh, cp,
+ #if defined(__FreeBSD__) && !defined(__Userspace__)
+diff --git a/usrsctplib/netinet/sctp_usrreq.c b/usrsctplib/netinet/sctp_usrreq.c
+index 96d1bd2..f15a9e6 100755
+--- a/usrsctplib/netinet/sctp_usrreq.c
++++ b/usrsctplib/netinet/sctp_usrreq.c
+@@ -8341,6 +8341,28 @@ sctpconn_snap_prepare(struct socket *so, struct sockaddr *addr, void *init, size
+ 	SCTP_TCB_UNLOCK(stcb);
+ 	return (error);
+ }
++
++int
++sctpconn_snap_send_init(struct socket *so)
++{
++	struct sctp_inpcb *inp;
++	struct sctp_tcb *stcb;
++	int error;
++
++	inp = (struct sctp_inpcb *)so->so_pcb;
++	if (inp == NULL) {
++		return (ECONNRESET);
++	}
++	stcb = sctp_snap_prepared_tcb(inp, &error);
++	if (stcb == NULL) {
++		return (error);
++	}
++	/* No RTT sample from the time the INIT waited for this. */
++	(void)SCTP_GETTIME_TIMEVAL(&stcb->asoc.time_entered);
++	sctp_send_initiate(inp, stcb, SCTP_SO_NOT_LOCKED);
++	SCTP_TCB_UNLOCK(stcb);
++	return (0);
++}
+ #endif
+ int
+ #if defined(__Userspace__)
+diff --git a/usrsctplib/user_socket.c b/usrsctplib/user_socket.c
+index f8009f4..8ebd2f9 100755
+--- a/usrsctplib/user_socket.c
++++ b/usrsctplib/user_socket.c
+@@ -2023,6 +2023,17 @@ usrsctp_snap_establish(struct socket *so, const void *peer_init, size_t peer_ini
+ 	return (error ? -1 : 0);
+ }
+ 
++int
++usrsctp_snap_send_init(struct socket *so)
++{
++	if (so == NULL) {
++		errno = EINVAL;
++		return (-1);
++	}
++	errno = sctpconn_snap_send_init(so);
++	return (errno ? -1 : 0);
++}
++
+ #define SCTP_STACK_BUF_SIZE         2048
+ 
+ void
+diff --git a/usrsctplib/user_socketvar.h b/usrsctplib/user_socketvar.h
+index 1486c4d..1fb945e 100755
+--- a/usrsctplib/user_socketvar.h
++++ b/usrsctplib/user_socketvar.h
+@@ -488,6 +488,7 @@ extern int sctp_connect(struct socket *so, struct sockaddr *addr);
+ extern int sctp6_connect(struct socket *so, struct sockaddr *addr);
+ extern int sctpconn_connect(struct socket *so, struct sockaddr *addr);
+ extern int sctpconn_snap_prepare(struct socket *so, struct sockaddr *addr, void *init, size_t *init_len);
++extern int sctpconn_snap_send_init(struct socket *so);
+ extern void sctp_finish(void);
+ 
+ /* ------------------------------------------------ */
+diff --git a/usrsctplib/usrsctp.h b/usrsctplib/usrsctp.h
+index 6732d36..6c331bf 100644
+--- a/usrsctplib/usrsctp.h
++++ b/usrsctplib/usrsctp.h
+@@ -1012,6 +1012,8 @@ usrsctp_connectx(struct socket *so,
+  * SNAP, the SCTP Negotiation Acceleration Protocol (draft-uberti-tsvwg-warp,
+  * section 4.1), described in Manual.md.
+  */
++#define USRSCTP_HAS_SNAP 1
++
+ int
+ usrsctp_snap_prepare(struct socket *so,
+                      struct sockaddr *name,
+@@ -1025,6 +1027,9 @@ usrsctp_snap_establish(struct socket *so,
+                        size_t peer_init_len,
+                        uint32_t rtt_ms);
+ 
++int
++usrsctp_snap_send_init(struct socket *so);
++
+ void
+ usrsctp_close(struct socket *so);
+ 

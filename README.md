@@ -189,7 +189,7 @@ You can pass the following options to `cmake ..`:
 * `-DBUILD_SRTP` -- Build libsrtp from source. Defaults to value of BUILD_DEPENDENCIES.
 * `-DUSE_LIBSRTP3` -- Build and link against libsrtp 3.x (cisco/libsrtp `main`, renamed to `libsrtp3`) instead of the long-standing 2.x default. OFF by default. The 3.x line adds PSA Crypto / mbedTLS 4 support but introduces public API breaks (opaque `srtp_policy_t`, separate src/dst buffers on `srtp_protect`/`srtp_unprotect`, separate master key + salt) — these are handled internally by the SDK. Use this if your platform requires mbedTLS 4 (e.g. ESP-IDF v6).
 * `-DUSE_OPENSSL3` -- Build and link against OpenSSL 3.x (git tag `openssl-3.5.7`) instead of the default 1.1.1t (`OpenSSL_1_1_1t`). OFF by default. When linking against a system OpenSSL that is already >= 3.0, this flag is auto-enabled. The mbedTLS path is unaffected. See [Building against OpenSSL 3.x](#building-against-openssl-3x) for usage.
-* `-DBUILD_USRSCTP` -- Build libusrsctp from source. Defaults to value of BUILD_DEPENDENCIES.
+* `-DBUILD_USRSCTP` -- Build libusrsctp from source. Defaults to value of BUILD_DEPENDENCIES. The libusrsctp it builds has SNAP (sctplab/usrsctp#761).
 * `-DBUILD_OPENSSL_PLATFORM` -- If building OpenSSL what is the target platform
 * `-DBUILD_LIBSRTP_HOST_PLATFORM` -- If building LibSRTP what is the current platform
 * `-DBUILD_LIBSRTP_DESTINATION_PLATFORM` -- If building LibSRTP what is the destination platform
