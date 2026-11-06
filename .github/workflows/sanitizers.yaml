@@ -64,7 +64,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
-          cmake-version: '3.x'
+          cmake-version: '4.x'
 
       - name: Build repository
         run: |
@@ -116,7 +116,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
-          cmake-version: '3.x'
+          cmake-version: '4.x'
 
       - name: Build repository
         run: |
@@ -162,7 +162,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
-          cmake-version: '3.x'
+          cmake-version: '4.x'
 
       - name: Build repository
         run: |
@@ -228,7 +228,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
-          cmake-version: '3.x'
+          cmake-version: '4.x'
 
       - name: Build repository
         run: |
