@@ -1,0 +1,7 @@
+<map id="parseMediaName" name="parseMediaName">
+<area shape="rect" id="Node000001" title=" " alt="" coords="484,5,620,33"/>
+<area shape="rect" id="Node000002" href="$Deserialize_8c.html#a9bf1873c4b988e0d50c4fc4322e49f78" title=" " alt="" coords="220,5,436,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="466,19,437,22,437,17,471,19"/>
+<area shape="rect" id="Node000003" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,5,172,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="201,19,172,22,172,17,207,19"/>
+</map>

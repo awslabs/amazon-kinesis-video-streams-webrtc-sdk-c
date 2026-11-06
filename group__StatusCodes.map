@@ -1,25 +1,25 @@
 <map id="StatusCodes" name="StatusCodes">
-<area shape="rect" id="Node000020" href="$group__Callbacks.html" title="Extra callbacks definitions." alt="" coords="217,5,303,31"/>
-<area shape="rect" id="Node000017" href="$group__Counts.html" title="Count related macros." alt="" coords="227,55,293,80"/>
-<area shape="rect" id="Node000006" href="$group__DTLSStatusCodes.html" title="DTLS related status codes." alt="" coords="192,104,328,129"/>
-<area shape="rect" id="Node000007" href="$group__ICEStatusCodes.html" title="ICE/TURN related status codes." alt="" coords="198,153,322,179"/>
-<area shape="rect" id="Node000015" href="$group__NameLengths.html" title="Lengths of different character arrays." alt="" coords="204,203,316,228"/>
-<area shape="rect" id="Node000005" href="$group__NetworkingStatusCodes.html" title="Networking related status codes." alt="" coords="171,252,349,277"/>
-<area shape="rect" id="Node000011" href="$group__PeerConnectionStatusCodes.html" title="Peer connection related status codes." alt="" coords="157,301,363,327"/>
-<area shape="rect" id="Node000019" href="$group__PublicEnums.html" title="Public Enums." alt="" coords="207,351,313,376"/>
-<area shape="rect" id="Node000023" href="$group__PublicMemberFunctions.html" title="Public functions." alt="" coords="171,400,349,425"/>
-<area shape="rect" id="Node000021" href="$group__PublicStructures.html" title="Structures available for use by applications." alt="" coords="197,449,323,475"/>
-<area shape="rect" id="Node000013" href="$group__RTCPStatusCodes.html" title="RTCP related status codes." alt="" coords="193,499,327,524"/>
-<area shape="rect" id="Node000009" href="$group__RTPStatusCodes.html" title="RTP related status codes." alt="" coords="197,548,323,573"/>
-<area shape="rect" id="Node000014" href="$group__RollingBufferStatusCodes.html" title="Rolling buffer related status codes." alt="" coords="167,597,353,623"/>
-<area shape="rect" id="Node000012" href="$group__SCTPStatusCodes.html" title="SCTP related status codes." alt="" coords="192,647,328,672"/>
-<area shape="rect" id="Node000003" href="$group__SDPStatusCodes.html" title="SDP related status codes." alt="" coords="195,696,325,721"/>
-<area shape="rect" id="Node000008" href="$group__SRTPStatusCodes.html" title="SRTP related status codes." alt="" coords="193,745,327,771"/>
-<area shape="rect" id="Node000004" href="$group__STUNStatusCodes.html" title="STUN related status codes." alt="" coords="191,795,329,820"/>
-<area shape="rect" id="Node000002" href="$group__SessionDescriptionInitStatusCodes.html" title="Session description init related status codes." alt="" coords="156,845,364,885"/>
-<area shape="rect" id="Node000010" href="$group__SignalingStatusCodes.html" title="Signaling related status codes." alt="" coords="179,909,341,935"/>
-<area shape="rect" id="Node000022" href="$group__StatsStructures.html" title="Metrics/Stats Related structures." alt="" coords="199,959,321,984"/>
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,524,108,549"/>
-<area shape="rect" id="Node000016" href="$group__StructureVersions.html" title="Structure version macros." alt="" coords="192,1008,328,1033"/>
-<area shape="rect" id="Node000018" href="$group__Timeouts.html" title="Timeouts related macros." alt="" coords="219,1057,301,1083"/>
+<area shape="rect" id="Node000020" href="$group__Callbacks.html" title="Extra callbacks definitions." alt="" coords="217,5,302,33"/>
+<area shape="rect" id="Node000017" href="$group__Counts.html" title="Count related macros." alt="" coords="226,57,292,85"/>
+<area shape="rect" id="Node000006" href="$group__DTLSStatusCodes.html" title="DTLS related status codes." alt="" coords="192,109,327,137"/>
+<area shape="rect" id="Node000007" href="$group__ICEStatusCodes.html" title="ICE/TURN related status codes." alt="" coords="198,161,321,189"/>
+<area shape="rect" id="Node000015" href="$group__NameLengths.html" title="Lengths of different character arrays." alt="" coords="204,213,315,241"/>
+<area shape="rect" id="Node000005" href="$group__NetworkingStatusCodes.html" title="Networking related status codes." alt="" coords="171,265,348,293"/>
+<area shape="rect" id="Node000011" href="$group__PeerConnectionStatusCodes.html" title="Peer connection related status codes." alt="" coords="157,317,362,345"/>
+<area shape="rect" id="Node000019" href="$group__PublicEnums.html" title="Public Enums." alt="" coords="207,369,312,397"/>
+<area shape="rect" id="Node000023" href="$group__PublicMemberFunctions.html" title="Public functions." alt="" coords="171,421,348,449"/>
+<area shape="rect" id="Node000021" href="$group__PublicStructures.html" title="Structures available for use by applications." alt="" coords="196,473,322,501"/>
+<area shape="rect" id="Node000013" href="$group__RTCPStatusCodes.html" title="RTCP related status codes." alt="" coords="192,525,326,553"/>
+<area shape="rect" id="Node000009" href="$group__RTPStatusCodes.html" title="RTP related status codes." alt="" coords="196,577,322,605"/>
+<area shape="rect" id="Node000014" href="$group__RollingBufferStatusCodes.html" title="Rolling buffer related status codes." alt="" coords="166,629,352,657"/>
+<area shape="rect" id="Node000012" href="$group__SCTPStatusCodes.html" title="SCTP related status codes." alt="" coords="192,681,327,709"/>
+<area shape="rect" id="Node000003" href="$group__SDPStatusCodes.html" title="SDP related status codes." alt="" coords="195,733,324,761"/>
+<area shape="rect" id="Node000008" href="$group__SRTPStatusCodes.html" title="SRTP related status codes." alt="" coords="192,785,326,813"/>
+<area shape="rect" id="Node000004" href="$group__STUNStatusCodes.html" title="STUN related status codes." alt="" coords="190,837,328,865"/>
+<area shape="rect" id="Node000002" href="$group__SessionDescriptionInitStatusCodes.html" title="Session description init related status codes." alt="" coords="156,889,363,934"/>
+<area shape="rect" id="Node000010" href="$group__SignalingStatusCodes.html" title="Signaling related status codes." alt="" coords="178,957,340,985"/>
+<area shape="rect" id="Node000022" href="$group__StatsStructures.html" title="Metrics/Stats Related structures." alt="" coords="199,1009,320,1037"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,552,108,580"/>
+<area shape="rect" id="Node000016" href="$group__StructureVersions.html" title="Structure version macros." alt="" coords="192,1061,327,1089"/>
+<area shape="rect" id="Node000018" href="$group__Timeouts.html" title="Timeouts related macros." alt="" coords="218,1113,300,1141"/>
 </map>

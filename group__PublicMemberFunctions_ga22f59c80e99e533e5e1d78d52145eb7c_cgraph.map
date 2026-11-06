@@ -1,11 +1,11 @@
 <map id="signalingClientGetIceConfigInfoCount" name="signalingClientGetIceConfigInfoCount">
-<area shape="rect" id="Node000001" title="Gets the retrieved ICE configuration information object count." alt="" coords="5,35,208,75"/>
-<area shape="rect" id="Node000002" href="$Signaling_8c.html#a055e7d13e21333ee0930508d2206420f" title=" " alt="" coords="256,35,445,75"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="208,52,242,52,242,57,208,57"/>
-<area shape="rect" id="Node000003" href="$Signaling_8c.html#aae4b8c10c0051d05e7aaef586326afea" title=" " alt="" coords="493,42,668,67"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="446,52,480,52,480,57,446,57"/>
-<area shape="rect" id="Node000004" href="$StateMachine_8c.html#a0e4075886bfd0e7be0b6173ee41adace" title=" " alt="" coords="718,5,933,45"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="668,42,704,37,705,42,668,47"/>
-<area shape="rect" id="Node000005" href="$StateMachine_8c.html#aadc0cffe12b55f3d81cd3b74244bdc3c" title=" " alt="" coords="716,70,935,95"/>
-<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="668,62,703,66,702,71,668,67"/>
+<area shape="rect" id="Node000001" title="Gets the retrieved ICE configuration information object count." alt="" coords="5,36,207,81"/>
+<area shape="rect" id="Node000002" href="$Signaling_8c.html#a055e7d13e21333ee0930508d2206420f" title=" " alt="" coords="255,36,443,81"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="207,56,242,58,237,59,207,61"/>
+<area shape="rect" id="Node000003" href="$Signaling_8c.html#aae4b8c10c0051d05e7aaef586326afea" title=" " alt="" coords="491,44,664,72"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="443,56,478,58,473,58,444,61"/>
+<area shape="rect" id="Node000004" href="$StateMachine_8c.html#a0e4075886bfd0e7be0b6173ee41adace" title=" " alt="" coords="714,5,928,50"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="665,45,696,43,702,43,665,50"/>
+<area shape="rect" id="Node000005" href="$StateMachine_8c.html#aadc0cffe12b55f3d81cd3b74244bdc3c" title=" " alt="" coords="712,74,930,102"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="665,66,699,73,694,73,665,71"/>
 </map>

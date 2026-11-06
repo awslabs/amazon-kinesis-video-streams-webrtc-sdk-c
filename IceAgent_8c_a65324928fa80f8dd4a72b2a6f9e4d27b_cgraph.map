@@ -1,0 +1,7 @@
+<map id="pruneUnconnectedIceCandidatePair" name="pruneUnconnectedIceCandidatePair">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,258,33"/>
+<area shape="rect" id="Node000002" href="$IceAgent_8c.html#a76f0508cf719814537ce707e3f524407" title=" " alt="" coords="306,5,462,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="258,17,293,19,287,19,258,22"/>
+<area shape="rect" id="Node000003" href="$IceUtils_8c.html#aed9b171e0c60584515c04c5dd47dd112" title=" " alt="" coords="510,5,677,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="462,17,497,19,492,19,462,22"/>
+</map>

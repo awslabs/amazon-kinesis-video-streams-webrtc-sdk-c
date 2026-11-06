@@ -1,0 +1,11 @@
+<map id="refreshIceConfiguration" name="refreshIceConfiguration">
+<area shape="rect" id="Node000001" title=" " alt="" coords="516,36,689,64"/>
+<area shape="rect" id="Node000002" href="$Signaling_8c.html#ab9b7621274b4242cf08805da561654be" title=" " alt="" coords="280,5,468,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="498,36,468,34,468,29,503,36"/>
+<area shape="rect" id="Node000004" href="$Signaling_8c.html#a055e7d13e21333ee0930508d2206420f" title=" " alt="" coords="280,57,468,102"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="503,63,469,70,468,64,498,63"/>
+<area shape="rect" id="Node000003" href="$group__PublicMemberFunctions.html#ga94ed483b34bb395015b7d44fd98c8f5b" title="Gets the ICE configuration information object given its index." alt="" coords="5,5,232,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="261,20,232,22,232,17,266,19"/>
+<area shape="rect" id="Node000005" href="$group__PublicMemberFunctions.html#ga22f59c80e99e533e5e1d78d52145eb7c" title="Gets the retrieved ICE configuration information object count." alt="" coords="18,57,219,102"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="261,79,220,82,220,77,267,79"/>
+</map>

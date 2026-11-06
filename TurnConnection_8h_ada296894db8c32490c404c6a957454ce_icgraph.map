@@ -1,0 +1,11 @@
+<map id="turnConnectionRefreshAllocation" name="turnConnectionRefreshAllocation">
+<area shape="rect" id="Node000001" title=" " alt="" coords="512,65,747,93"/>
+<area shape="rect" id="Node000002" href="$TurnConnection_8c.html#ad50e5f6b533c62c8b5297a6bf3615f29" title=" " alt="" coords="269,65,464,93"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="494,79,465,82,464,77,499,79"/>
+<area shape="rect" id="Node000003" href="$TurnConnectionStateMachine_8c.html#a3a4bf18f3e297368e56db4694cd845bc" title=" " alt="" coords="5,5,221,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="288,62,220,47,175,36,175,31,221,42,293,61"/>
+<area shape="rect" id="Node000004" href="$TurnConnectionStateMachine_8c.html#adf4fe21ee4ee8268ea52bb33720b1a9d" title=" " alt="" coords="6,57,220,102"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="250,80,221,82,220,77,256,79"/>
+<area shape="rect" id="Node000005" href="$TurnConnectionStateMachine_8c.html#ae44804165fc638565b909acf855d4c0d" title=" " alt="" coords="26,125,200,153"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="293,97,221,116,176,127,175,122,220,111,288,98"/>
+</map>

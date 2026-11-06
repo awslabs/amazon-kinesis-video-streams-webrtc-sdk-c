@@ -1,0 +1,7 @@
+<map id="joinStorageSessionLws" name="joinStorageSessionLws">
+<area shape="rect" id="Node000001" title=" " alt="" coords="443,14,613,42"/>
+<area shape="rect" id="Node000002" href="$Signaling_8c.html#a49241eb72b7276eefe31a5f6f18f8ad1" title=" " alt="" coords="250,14,395,42"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="425,28,395,30,395,25,430,28"/>
+<area shape="rect" id="Node000003" href="$StateMachine_8c.html#a7fc669ba293c92c6fb5a6e2363c40a27" title=" " alt="" coords="5,5,202,50"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="231,28,202,30,202,25,237,27"/>
+</map>

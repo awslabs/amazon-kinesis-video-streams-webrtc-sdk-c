@@ -1,0 +1,13 @@
+<map id="createRtpPacketFromBytes" name="createRtpPacketFromBytes">
+<area shape="rect" id="Node000001" title=" " alt="" coords="657,32,854,60"/>
+<area shape="rect" id="Node000002" href="$RtpRollingBuffer_8c.html#abf2b32f9fe0ec57657ba0f916dc8406f" title=" " alt="" coords="397,5,609,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="639,34,610,33,610,28,645,34"/>
+<area shape="rect" id="Node000004" href="$PeerConnection_8c.html#ac7dfeca3237caae871b6cd2e0e50c73e" title=" " alt="" coords="410,57,597,85"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="645,57,598,64,597,59,639,57"/>
+<area shape="rect" id="Node000003" href="$group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver." alt="" coords="236,5,331,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="379,19,331,22,331,17,384,19"/>
+<area shape="rect" id="Node000005" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="218,57,349,85"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="391,71,350,74,349,69,397,71"/>
+<area shape="rect" id="Node000006" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,57,170,85"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="199,71,170,74,170,69,205,71"/>
+</map>

@@ -1,0 +1,20 @@
+<map id="tailSequenceNumberCheck" name="tailSequenceNumberCheck">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1282,56,1480,84"/>
+<area shape="rect" id="Node000002" href="$JitterBuffer_8c.html#a98ed50fc0f16982249b14813a6c0f437" title=" " alt="" coords="803,5,1030,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1264,55,1234,54,1031,32,1031,27,1235,49,1270,55"/>
+<area shape="rect" id="Node000003" href="$JitterBuffer_8c.html#a3698c62de5f63baf09c350078af5301c" title=" " alt="" coords="632,81,755,109"/>
+<area shape="poly" id="edge6_Node000001_Node000003" title=" " alt="" coords="1264,73,803,91,755,94,755,88,803,86,1270,72"/>
+<area shape="rect" id="Node000007" href="$JitterBuffer_8c.html#a3d7ce7fa8ca384a6e608249e1aa5865b" title=" " alt="" coords="1078,107,1234,134"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="1304,87,1221,109,1220,103,1299,88"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="848,37,804,54,728,83,727,78,802,49,843,38"/>
+<area shape="rect" id="Node000004" href="$PeerConnection_8c.html#ac7dfeca3237caae871b6cd2e0e50c73e" title=" " alt="" coords="397,81,584,109"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="614,95,585,98,585,93,620,95"/>
+<area shape="rect" id="Node000005" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="218,81,349,109"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="379,96,350,98,349,93,384,95"/>
+<area shape="rect" id="Node000006" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,81,170,109"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="199,96,171,98,170,93,205,94"/>
+<area shape="poly" id="edge8_Node000007_Node000003" title=" " alt="" coords="1060,116,755,101,755,96,1066,115"/>
+<area shape="rect" id="Node000008" href="$JitterBuffer_8c.html#a2740bae64fbc0fbc3403c8462420e7e7" title=" " alt="" coords="829,157,1004,185"/>
+<area shape="poly" id="edge9_Node000007_Node000008" title=" " alt="" coords="1076,138,986,159,985,154,1070,138"/>
+<area shape="poly" id="edge10_Node000008_Node000003" title=" " alt="" coords="843,152,802,142,727,112,728,107,804,137,848,153"/>
+</map>

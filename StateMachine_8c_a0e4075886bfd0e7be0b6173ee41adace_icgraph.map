@@ -1,0 +1,23 @@
+<map id="acceptSignalingStateMachineState" name="acceptSignalingStateMachineState">
+<area shape="rect" id="Node000001" title=" " alt="" coords="764,117,978,162"/>
+<area shape="rect" id="Node000002" href="$Signaling_8c.html#aae4b8c10c0051d05e7aaef586326afea" title=" " alt="" coords="543,65,716,93"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="761,112,688,96,689,91,766,113"/>
+<area shape="rect" id="Node000007" href="$LwsApiCalls_8c.html#acb3be4e7def869ccd5a7b34e1d951fa5" title=" " alt="" coords="562,125,697,153"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="746,139,698,142,698,137,751,139"/>
+<area shape="rect" id="Node000010" href="$Signaling_8c.html#a3c2197526080fd2995dddcdb883068de" title=" " alt="" coords="548,177,712,205"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="752,165,698,179,697,174,747,166"/>
+<area shape="rect" id="Node000003" href="$Signaling_8c.html#ab9b7621274b4242cf08805da561654be" title=" " alt="" coords="300,5,488,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="556,61,494,47,452,36,452,31,496,42,561,61"/>
+<area shape="rect" id="Node000005" href="$Signaling_8c.html#a055e7d13e21333ee0930508d2206420f" title=" " alt="" coords="300,57,488,102"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="525,80,489,82,488,77,530,79"/>
+<area shape="rect" id="Node000004" href="$group__PublicMemberFunctions.html#ga94ed483b34bb395015b7d44fd98c8f5b" title="Gets the ICE configuration information object given its index." alt="" coords="12,5,238,33"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="281,20,239,22,238,17,286,18"/>
+<area shape="rect" id="Node000006" href="$group__PublicMemberFunctions.html#ga22f59c80e99e533e5e1d78d52145eb7c" title="Gets the retrieved ICE configuration information object count." alt="" coords="24,57,226,102"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="281,80,226,82,225,77,286,78"/>
+<area shape="rect" id="Node000008" href="$Signaling_8c.html#a85fbc5fc8623d113581b2bce92642c93" title=" " alt="" coords="293,125,494,153"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="544,139,495,142,495,137,549,139"/>
+<area shape="rect" id="Node000009" href="$group__PublicMemberFunctions.html#gae6d8d80d47699c5494de1dc3d455b1f4" title="Send a message through a Signaling client." alt="" coords="5,125,245,153"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="275,140,245,142,245,137,280,139"/>
+<area shape="rect" id="Node000011" href="$group__PublicMemberFunctions.html#gacb53537d7d1c72a9e304ed095fe1252f" title="Connects the signaling client to the web socket in order to send/receive messages." alt="" coords="293,177,495,205"/>
+<area shape="poly" id="edge10_Node000010_Node000011" title=" " alt="" coords="530,191,496,194,496,189,535,191"/>
+</map>

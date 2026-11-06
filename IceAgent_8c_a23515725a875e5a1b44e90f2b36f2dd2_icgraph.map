@@ -1,0 +1,26 @@
+<map id="iceAgentSendPacket" name="iceAgentSendPacket">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1068,161,1220,188"/>
+<area shape="rect" id="Node000002" href="$PeerConnection_8c.html#a8623356d515aabe66d493018cc61c1f3" title=" " alt="" coords="397,29,565,56"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1124,147,1081,96,1052,71,1019,51,958,30,894,17,828,10,763,8,643,16,548,30,547,25,643,11,763,3,829,5,894,12,959,25,1021,47,1055,66,1085,92,1129,148"/>
+<area shape="rect" id="Node000004" href="$Retransmitter_8c.html#a117dafbb1f1b86ced15a1fcfc49713fa" title=" " alt="" coords="613,137,772,164"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="1050,170,772,157,772,152,1055,169"/>
+<area shape="rect" id="Node000007" href="$PeerConnection_8c.html#a4afea8c5d470548d2889fb8d3218ba0f" title=" " alt="" coords="844,85,996,112"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="1087,155,1019,133,966,115,967,110,1021,128,1092,155"/>
+<area shape="rect" id="Node000009" href="$group__PublicMemberFunctions.html#ga698a849d76431e464b43cf51413d658d" title="Send a Picture Loss Indication (PLI) to ask the remote sender for a new keyframe." alt="" coords="820,186,1020,214"/>
+<area shape="poly" id="edge10_Node000001_Node000009" title=" " alt="" coords="1050,185,1021,191,1020,186,1055,184"/>
+<area shape="rect" id="Node000010" href="$group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver." alt="" coords="872,238,968,266"/>
+<area shape="poly" id="edge11_Node000001_Node000010" title=" " alt="" coords="1100,194,1021,228,968,243,967,238,1019,222,1095,195"/>
+<area shape="rect" id="Node000011" href="$Rtp_8c.html#a6f38cb81e122dec46ea50feb5edb652a" title=" " alt="" coords="861,290,979,318"/>
+<area shape="poly" id="edge12_Node000001_Node000011" title=" " alt="" coords="1122,198,1077,241,1021,279,980,295,979,290,1019,275,1074,237,1117,200"/>
+<area shape="rect" id="Node000003" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,74,170,102"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="380,56,171,81,169,76,383,52"/>
+<area shape="rect" id="Node000005" href="$Rtcp_8c.html#aaaf444db910596fed5abe9a8518b68f1" title=" " alt="" coords="427,99,535,127"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="596,134,536,125,536,120,601,133"/>
+<area shape="rect" id="Node000006" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="218,99,349,127"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="409,114,350,116,349,110,414,112"/>
+<area shape="poly" id="edge6_Node000006_Node000003" title=" " alt="" coords="200,104,171,101,170,96,204,101"/>
+<area shape="poly" id="edge9_Node000007_Node000007" title=" " alt="" coords="957,69,945,66,920,63,896,65,884,70,880,75,886,85,881,83,875,76,880,66,895,60,920,58,946,60,962,69"/>
+<area shape="rect" id="Node000008" href="$group__PublicMemberFunctions.html#ga5b89dc2e301e35f30330c57bc1361dcb" title="Create a new RtcRtpTransceiver and add it to the set of transceivers." alt="" coords="633,85,752,112"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="825,99,753,101,752,96,831,98"/>
+<area shape="poly" id="edge13_Node000011_Node000004" title=" " alt="" coords="843,288,818,279,781,253,748,221,703,167,705,162,752,218,784,248,821,275,848,289"/>
+</map>

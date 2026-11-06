@@ -1,0 +1,7 @@
+<map id="freeRetryStrategyForCreatingSignalingClient" name="freeRetryStrategyForCreatingSignalingClient">
+<area shape="rect" id="Node000001" title=" " alt="" coords="245,24,457,68"/>
+<area shape="rect" id="Node000002" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,5,197,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="227,33,197,32,197,27,232,33"/>
+<area shape="rect" id="Node000003" href="$group__PublicMemberFunctions.html#ga9c3b58fbb47fb50baaf24b10240ee809" title="Fetches all assets needed to ready the state machine before attempting to connect...." alt="" coords="9,57,193,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="227,58,194,64,193,59,232,58"/>
+</map>

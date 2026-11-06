@@ -1,0 +1,14 @@
+<map id="recordClockSkewCorrection" name="recordClockSkewCorrection">
+<area shape="rect" id="Node000001" title=" " alt="" coords="928,32,1127,60"/>
+<area shape="rect" id="Node000002" href="$LwsApiCalls_8c.html#a0c850a00a8ac0cbab7a68eab9a092a84" title=" " alt="" coords="671,7,880,34"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="909,34,880,34,880,28,915,34"/>
+<area shape="rect" id="Node000006" href="$LwsApiCalls_8c.html#aa31bbbf2b74f1ac78390cc408029fe04" title=" " alt="" coords="446,57,623,85"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="915,52,624,69,624,64,910,52"/>
+<area shape="rect" id="Node000003" href="$LwsApiCalls_8c.html#a47c8ad494cd1c7a116a177a35055dd98" title=" " alt="" coords="446,5,623,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="653,20,623,22,623,17,658,20"/>
+<area shape="rect" id="Node000004" href="$Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="245,32,398,60"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="434,32,399,39,398,34,429,32"/>
+<area shape="rect" id="Node000005" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,32,197,60"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="227,46,197,48,197,43,232,46"/>
+<area shape="poly" id="edge6_Node000006_Node000004" title=" " alt="" coords="428,59,398,58,398,52,434,59"/>
+</map>

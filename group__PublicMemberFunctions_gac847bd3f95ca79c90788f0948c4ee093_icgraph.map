@@ -1,5 +1,5 @@
 <map id="freeRtcCertificate" name="freeRtcCertificate">
-<area shape="rect" id="Node000001" title="Frees previously generated RtcCertificate object." alt="" coords="204,5,340,31"/>
-<area shape="rect" id="Node000002" href="$group__PublicMemberFunctions.html#ga626872eca33a639a1af1903798e9be15" title="Creates an RtcCertificate object." alt="" coords="5,5,156,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="190,21,157,21,157,15,190,15"/>
+<area shape="rect" id="Node000001" title="Frees previously generated RtcCertificate object." alt="" coords="204,5,339,33"/>
+<area shape="rect" id="Node000002" href="$group__PublicMemberFunctions.html#ga626872eca33a639a1af1903798e9be15" title="Creates an RtcCertificate object." alt="" coords="5,5,156,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="185,19,156,22,156,17,191,19"/>
 </map>

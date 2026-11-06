@@ -1,0 +1,20 @@
+<map id="freeSignaling" name="freeSignaling">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,84,113,112"/>
+<area shape="rect" id="Node000002" href="$ChannelInfo_8c.html#a8905e3a1f13ab3a638df50f03ab30bd8" title=" " alt="" coords="203,5,328,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="83,81,119,62,160,43,190,35,186,38,162,48,121,67,86,86"/>
+<area shape="rect" id="Node000003" href="$Signaling_8c.html#a3025bd5b738daaf415eecb0ca204d0ee" title=" " alt="" coords="178,57,354,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="112,88,165,83,160,86,114,94"/>
+<area shape="rect" id="Node000004" href="$Signaling_8c.html#abbf8201fa3109d6b4d78243684709794" title=" " alt="" coords="161,109,371,137"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="113,102,148,107,143,109,113,107"/>
+<area shape="rect" id="Node000009" href="$Signaling_8c.html#a344d07546bffa0b00dd4282b46e95b75" title=" " alt="" coords="174,161,358,189"/>
+<area shape="poly" id="edge9_Node000001_Node000009" title=" " alt="" coords="86,110,162,146,188,157,183,157,160,151,85,115"/>
+<area shape="rect" id="Node000005" href="$Signaling_8c.html#a653edfffd5d129d08f5971d91f16fc5e" title=" " alt="" coords="938,84,1137,112"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="372,117,923,99,922,104,372,122"/>
+<area shape="rect" id="Node000006" href="$LwsApiCalls_8c.html#ac8ef143a573f3b4ae83bd3ad0eb9fd6f" title=" " alt="" coords="419,135,612,162"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="372,131,406,137,401,137,372,137"/>
+<area shape="rect" id="Node000007" href="$LwsApiCalls_8c.html#ae7928b7a5bf47cbdf2ccf753f1c1e8df" title=" " alt="" coords="660,135,890,162"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="613,146,648,148,642,149,613,151"/>
+<area shape="poly" id="edge7_Node000007_Node000005" title=" " alt="" coords="850,131,945,115,950,115,851,137"/>
+<area shape="rect" id="Node000008" href="$LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="939,136,1136,164"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="890,146,926,149,921,149,890,152"/>
+</map>

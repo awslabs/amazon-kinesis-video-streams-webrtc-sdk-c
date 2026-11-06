@@ -1,0 +1,36 @@
+<map id="freeRetransmitter" name="freeRetransmitter">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1676,81,1813,109"/>
+<area shape="rect" id="Node000002" href="$Retransmitter_8c.html#aaad5339168322ac5d7c1cc017fbe982d" title=" " alt="" coords="1468,31,1620,58"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1669,77,1601,62,1602,56,1675,77"/>
+<area shape="rect" id="Node000005" href="$Rtp_8c.html#ac43cec8875bbd05633d9a31bff472efc" title=" " alt="" coords="1460,107,1628,134"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="1663,105,1629,113,1628,107,1658,106"/>
+<area shape="rect" id="Node000003" href="$SessionDescription_8c.html#ade806b0787e4279fa50c746632aeb57b" title=" " alt="" coords="1209,5,1412,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1450,35,1413,33,1413,28,1455,35"/>
+<area shape="rect" id="Node000004" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="734,31,901,58"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="1191,26,902,43,901,38,1196,25"/>
+<area shape="rect" id="Node000006" href="$group__PublicMemberFunctions.html#ga5b89dc2e301e35f30330c57bc1361dcb" title="Create a new RtcRtpTransceiver and add it to the set of transceivers." alt="" coords="1004,56,1124,84"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="1459,103,1412,98,1256,82,1124,75,1124,69,1256,77,1413,93,1464,103"/>
+<area shape="rect" id="Node000007" href="$Rtp_8c.html#a546a0453948ee8060791e725b0194ca5" title=" " alt="" coords="1220,107,1402,134"/>
+<area shape="poly" id="edge6_Node000005_Node000007" title=" " alt="" coords="1442,121,1402,123,1402,118,1448,120"/>
+<area shape="rect" id="Node000008" href="$SessionDescription_8c.html#a0cd24200ec6c1dd7be231b915dac66b2" title=" " alt="" coords="967,108,1161,152"/>
+<area shape="poly" id="edge16_Node000005_Node000008" title=" " alt="" coords="1469,138,1413,148,1311,154,1209,148,1161,145,1161,139,1209,143,1311,148,1412,143,1464,138"/>
+<area shape="rect" id="Node000015" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="1236,208,1385,236"/>
+<area shape="poly" id="edge17_Node000005_Node000015" title=" " alt="" coords="1508,142,1413,192,1364,210,1363,205,1411,187,1503,143"/>
+<area shape="poly" id="edge7_Node000007_Node000006" title=" " alt="" coords="1222,103,1124,85,1124,79,1228,103"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="1201,125,1162,129,1161,123,1207,124"/>
+<area shape="poly" id="edge15_Node000008_Node000004" title=" " alt="" coords="980,102,860,62,861,56,986,102"/>
+<area shape="rect" id="Node000009" href="$SessionDescription_8c.html#a1f9d1d11409965815589bc2fdccb5168" title=" " alt="" coords="716,108,919,152"/>
+<area shape="poly" id="edge9_Node000008_Node000009" title=" " alt="" coords="948,130,919,132,919,127,954,130"/>
+<area shape="rect" id="Node000010" href="$SessionDescription_8c.html#a61cd534b376d8c202cc37711aebd3640" title=" " alt="" coords="466,116,668,144"/>
+<area shape="poly" id="edge10_Node000009_Node000010" title=" " alt="" coords="698,130,669,132,668,127,703,130"/>
+<area shape="rect" id="Node000011" href="$group__PublicMemberFunctions.html#ga1779d268b0993835d80f0948281e2274" title="Populate the provided answer that contains an RFC 3264 offer with the supported configurations for th..." alt="" coords="244,56,338,84"/>
+<area shape="poly" id="edge11_Node000010_Node000011" title=" " alt="" coords="489,112,417,98,338,81,338,76,419,93,494,112"/>
+<area shape="rect" id="Node000012" href="$group__PublicMemberFunctions.html#ga19dfcbdcf4d136b56ce366fe2fb9bfb3" title=" " alt="" coords="194,108,388,152"/>
+<area shape="poly" id="edge12_Node000010_Node000012" title=" " alt="" coords="448,130,389,132,388,127,453,129"/>
+<area shape="rect" id="Node000014" href="$group__PublicMemberFunctions.html#gaa1940a0ddabf41c445b55f1317476e96" title=" " alt="" coords="164,176,418,204"/>
+<area shape="poly" id="edge14_Node000010_Node000014" title=" " alt="" coords="494,147,419,167,367,178,366,173,417,162,489,148"/>
+<area shape="rect" id="Node000013" href="$group__PublicMemberFunctions.html#ga7dc5ad4eb5cc7e000396547279108d9b" title="Populate the provided answer that contains an RFC 3264 answer with the supported configurations for t..." alt="" coords="5,116,116,144"/>
+<area shape="poly" id="edge13_Node000012_Node000013" title=" " alt="" coords="176,131,117,132,116,127,181,128"/>
+<area shape="rect" id="Node000016" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="982,208,1146,236"/>
+<area shape="poly" id="edge18_Node000015_Node000016" title=" " alt="" coords="1218,222,1147,224,1146,219,1223,222"/>
+</map>

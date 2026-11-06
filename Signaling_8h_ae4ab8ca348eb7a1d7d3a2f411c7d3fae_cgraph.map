@@ -1,0 +1,9 @@
+<map id="signalingGetIceConfigInfoCount" name="signalingGetIceConfigInfoCount">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,36,194,81"/>
+<area shape="rect" id="Node000002" href="$Signaling_8c.html#aae4b8c10c0051d05e7aaef586326afea" title=" " alt="" coords="242,44,415,72"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="194,56,228,58,223,59,194,61"/>
+<area shape="rect" id="Node000003" href="$StateMachine_8c.html#a0e4075886bfd0e7be0b6173ee41adace" title=" " alt="" coords="465,5,678,50"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="415,45,452,43,447,43,416,50"/>
+<area shape="rect" id="Node000004" href="$StateMachine_8c.html#aadc0cffe12b55f3d81cd3b74244bdc3c" title=" " alt="" coords="463,74,680,102"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="416,66,450,73,445,73,415,71"/>
+</map>

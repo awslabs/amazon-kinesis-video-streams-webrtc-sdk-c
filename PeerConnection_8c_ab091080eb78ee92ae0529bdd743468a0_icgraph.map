@@ -1,0 +1,13 @@
+<map id="changePeerConnectionState" name="changePeerConnectionState">
+<area shape="rect" id="Node000001" title=" " alt="" coords="478,57,682,85"/>
+<area shape="rect" id="Node000002" href="$PeerConnection_8c.html#aa0ee0298b690c7461c019e5e70217b37" title=" " alt="" coords="251,5,397,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="491,54,396,36,396,31,496,53"/>
+<area shape="rect" id="Node000004" href="$PeerConnection_8c.html#a0a0385b5afef472a439ff5d8d8d7c1a0" title=" " alt="" coords="218,57,430,85"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="459,71,431,74,430,69,465,71"/>
+<area shape="rect" id="Node000005" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="258,109,390,137"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="496,88,390,113,389,107,491,89"/>
+<area shape="rect" id="Node000003" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,57,170,85"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="240,38,155,59,153,54,245,36"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="199,72,170,74,170,69,205,71"/>
+<area shape="poly" id="edge6_Node000005_Node000003" title=" " alt="" coords="241,106,154,88,154,83,246,105"/>
+</map>

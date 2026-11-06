@@ -1,0 +1,8 @@
+<map id="turnConnectionHandleChannelData" name="turnConnectionHandleChannelData">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,14,256,42"/>
+<area shape="rect" id="Node000002" href="$TurnConnection_8c.html#a51b6d0a82cec53891ec2ff2bfe90aa6d" title=" " alt="" coords="571,5,773,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="256,21,304,20,523,20,558,23,553,23,523,25,304,25,256,26"/>
+<area shape="rect" id="Node000003" href="$TurnConnection_8c.html#aabf71dcfeb80d0959763e038c1cb4749" title=" " alt="" coords="304,35,523,79"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="256,38,291,44,286,44,256,43"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="523,42,553,41,558,41,524,47"/>
+</map>

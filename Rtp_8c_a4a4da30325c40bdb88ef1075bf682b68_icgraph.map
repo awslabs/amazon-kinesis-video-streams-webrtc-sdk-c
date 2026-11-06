@@ -1,0 +1,9 @@
+<map id="setUpRollingBufferConfigInternal" name="setUpRollingBufferConfigInternal">
+<area shape="rect" id="Node000001" title=" " alt="" coords="471,36,655,81"/>
+<area shape="rect" id="Node000002" href="$group__PublicMemberFunctions.html#gaad489bae7042ed76c8e26a213f7d9c0e" title="Set up rolling buffer configuration &#45; max duration of media to store (sec) and expected max bitrate (..." alt="" coords="221,5,422,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="453,45,422,43,422,38,458,45"/>
+<area shape="rect" id="Node000003" href="$SessionDescription_8c.html#ade806b0787e4279fa50c746632aeb57b" title=" " alt="" coords="220,74,423,102"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="458,71,424,78,423,73,453,72"/>
+<area shape="rect" id="Node000004" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,74,172,102"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="201,88,172,90,172,85,207,88"/>
+</map>

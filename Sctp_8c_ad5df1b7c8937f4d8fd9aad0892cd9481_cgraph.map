@@ -1,0 +1,7 @@
+<map id="onSctpInboundPacket" name="onSctpInboundPacket">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,165,33"/>
+<area shape="rect" id="Node000002" href="$Sctp_8c.html#a8f12cbc92f7a361cec205992aba52480" title=" " alt="" coords="213,5,353,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="165,17,200,19,194,19,165,22"/>
+<area shape="rect" id="Node000003" href="$Sctp_8c.html#a721b1be57eb95d79b036b2fd93bb3be4" title=" " alt="" coords="401,5,615,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="353,17,388,19,383,19,353,22"/>
+</map>

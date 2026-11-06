@@ -1,0 +1,14 @@
+<map id="freeSrtpSession" name="freeSrtpSession">
+<area shape="rect" id="Node000001" title=" " alt="" coords="761,32,884,60"/>
+<area shape="rect" id="Node000002" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="397,5,546,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="743,40,547,27,547,22,748,40"/>
+<area shape="rect" id="Node000004" href="$SrtpSession_8c.html#a8bb9447fb02c3bd23c4a849e95d9233f" title=" " alt="" coords="594,57,713,85"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="748,57,713,65,713,60,742,58"/>
+<area shape="rect" id="Node000003" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,32,170,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="381,28,170,43,170,37,383,23"/>
+<area shape="rect" id="Node000005" href="$PeerConnection_8c.html#a8550d4c65dc37cbff20ac6179ba1a59b" title=" " alt="" coords="422,57,521,85"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="576,71,522,74,522,69,582,71"/>
+<area shape="rect" id="Node000006" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="218,57,349,85"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="404,71,350,74,349,69,409,71"/>
+<area shape="poly" id="edge6_Node000006_Node000003" title=" " alt="" coords="199,61,170,59,170,54,205,61"/>
+</map>

@@ -1,0 +1,11 @@
+<map id="getStunAddr" name="getStunAddr">
+<area shape="rect" id="Node000001" title=" " alt="" coords="437,32,538,60"/>
+<area shape="rect" id="Node000002" href="$PeerConnection_8c.html#a75fa932f0d317465ffdd4682def8077c" title=" " alt="" coords="233,5,374,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="419,36,374,32,374,27,424,36"/>
+<area shape="rect" id="Node000004" href="$PeerConnection_8c.html#a17f6eac8bf12bafca3e138f62450754e" title=" " alt="" coords="218,57,389,85"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="424,55,390,62,389,57,419,55"/>
+<area shape="rect" id="Node000003" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,5,170,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="214,20,171,22,170,17,220,18"/>
+<area shape="rect" id="Node000005" href="$group__PublicMemberFunctions.html#ga0091e2920ba137e0e80d40402a675abb" title="Initializes global state needed for all RtcPeerConnections. It must only be called once." alt="" coords="30,57,145,85"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="200,71,145,74,145,69,205,71"/>
+</map>

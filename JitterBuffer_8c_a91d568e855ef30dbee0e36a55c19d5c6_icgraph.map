@@ -1,0 +1,24 @@
+<map id="headCheckingAllowed" name="headCheckingAllowed">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1354,99,1520,127"/>
+<area shape="rect" id="Node000002" href="$JitterBuffer_8c.html#abb973ac4e7c840f62fad4b84d4843ecf" title=" " alt="" coords="1078,5,1306,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1378,93,1258,53,1259,48,1383,94"/>
+<area shape="rect" id="Node000003" href="$JitterBuffer_8c.html#a3698c62de5f63baf09c350078af5301c" title=" " alt="" coords="632,124,755,152"/>
+<area shape="poly" id="edge13_Node000001_Node000003" title=" " alt="" coords="1336,114,1095,122,803,133,756,136,755,131,803,128,1095,117,1341,114"/>
+<area shape="rect" id="Node000007" href="$JitterBuffer_8c.html#a6eabe7d0056f5acef21c7ff857c0fc78" title=" " alt="" coords="1088,150,1296,178"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="1355,130,1263,152,1262,147,1349,131"/>
+<area shape="rect" id="Node000009" href="$JitterBuffer_8c.html#a79ef017209c60c808d2367d20c04b088" title=" " alt="" coords="833,227,1000,255"/>
+<area shape="poly" id="edge12_Node000001_Node000009" title=" " alt="" coords="1407,135,1361,167,1307,192,1228,214,1146,229,1068,238,1001,242,1000,237,1068,232,1145,223,1226,209,1305,186,1358,162,1402,137"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1060,27,935,41,868,53,804,71,753,97,713,127,710,122,750,93,802,67,867,48,934,35,1065,26"/>
+<area shape="rect" id="Node000004" href="$PeerConnection_8c.html#ac7dfeca3237caae871b6cd2e0e50c73e" title=" " alt="" coords="397,124,584,152"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="614,139,585,141,585,136,620,138"/>
+<area shape="rect" id="Node000005" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="218,124,349,152"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="379,139,350,141,349,136,384,138"/>
+<area shape="rect" id="Node000006" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,124,170,152"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="200,139,171,141,170,136,205,137"/>
+<area shape="poly" id="edge11_Node000007_Node000003" title=" " alt="" coords="1070,158,755,144,755,139,1075,157"/>
+<area shape="rect" id="Node000008" href="$JitterBuffer_8c.html#a98ed50fc0f16982249b14813a6c0f437" title=" " alt="" coords="803,175,1030,203"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="1075,174,1030,181,1030,176,1070,175"/>
+<area shape="poly" id="edge9_Node000007_Node000009" title=" " alt="" coords="1124,182,1079,198,1031,217,986,229,985,224,1029,212,1077,193,1119,183"/>
+<area shape="poly" id="edge8_Node000008_Node000003" title=" " alt="" coords="835,171,755,155,755,150,840,171"/>
+<area shape="poly" id="edge10_Node000009_Node000003" title=" " alt="" coords="820,222,802,217,749,186,710,155,712,150,752,182,804,212,825,223"/>
+</map>

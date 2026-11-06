@@ -1,0 +1,7 @@
+<map id="sctpSessionSetSendInfo" name="sctpSessionSetSendInfo">
+<area shape="rect" id="Node000001" title=" " alt="" coords="428,5,604,33"/>
+<area shape="rect" id="Node000002" href="$Sctp_8c.html#a8d677382e8cf3b85a9c544d021d14b8e" title=" " alt="" coords="189,5,380,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="410,19,380,22,380,17,415,19"/>
+<area shape="rect" id="Node000003" href="$group__PublicMemberFunctions.html#ga12ab55171a0f53ec8e248e2d193d6bd0" title="Send data via the PRtcDataChannel." alt="" coords="5,5,141,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="171,19,141,22,141,17,176,19"/>
+</map>

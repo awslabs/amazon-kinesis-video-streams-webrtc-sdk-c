@@ -1,0 +1,15 @@
+<map id="validateIceConfiguration" name="validateIceConfiguration">
+<area shape="rect" id="Node000001" title=" " alt="" coords="725,44,906,72"/>
+<area shape="rect" id="Node000002" href="$LwsApiCalls_8c.html#a43eb41d369f6ab2469d738d1c1be5ce8" title=" " alt="" coords="546,18,673,46"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="707,45,674,43,674,37,713,45"/>
+<area shape="rect" id="Node000005" href="$LwsApiCalls_8c.html#acb3be4e7def869ccd5a7b34e1d951fa5" title=" " alt="" coords="542,70,677,98"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="713,71,678,78,677,73,707,72"/>
+<area shape="rect" id="Node000003" href="$Signaling_8c.html#a9b714b42ff43192104ca0cc946f4b346" title=" " alt="" coords="342,16,444,44"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="528,31,445,33,445,28,533,31"/>
+<area shape="rect" id="Node000004" href="$StateMachine_8c.html#a7dea9acac2fcb8038597198c50c42976" title=" " alt="" coords="17,5,233,50"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="324,30,234,31,233,26,330,29"/>
+<area shape="rect" id="Node000006" href="$Signaling_8c.html#a85fbc5fc8623d113581b2bce92642c93" title=" " alt="" coords="293,70,494,98"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="524,84,494,86,494,81,529,84"/>
+<area shape="rect" id="Node000007" href="$group__PublicMemberFunctions.html#gae6d8d80d47699c5494de1dc3d455b1f4" title="Send a message through a Signaling client." alt="" coords="5,74,245,102"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="275,86,245,89,245,83,280,85"/>
+</map>

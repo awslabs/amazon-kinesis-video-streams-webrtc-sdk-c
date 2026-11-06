@@ -1,0 +1,29 @@
+<map id="findTransceiverBySsrc" name="findTransceiverBySsrc">
+<area shape="rect" id="Node000001" title=" " alt="" coords="949,136,1112,164"/>
+<area shape="rect" id="Node000002" href="$Rtp_8c.html#a3f98236c016e0072d6ef135477ffa895" title=" " alt="" coords="725,57,901,85"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="979,129,900,100,863,88,864,83,902,95,984,130"/>
+<area shape="rect" id="Node000007" href="$Rtcp_8c.html#a5886500e01a140ed8d64ee9ce68707bb" title=" " alt="" coords="749,109,877,137"/>
+<area shape="poly" id="edge8_Node000001_Node000007" title=" " alt="" coords="931,138,877,134,877,128,936,138"/>
+<area shape="rect" id="Node000011" href="$Rtcp_8c.html#aae8798b1db6e85e6e678413860180e0e" title=" " alt="" coords="740,161,886,189"/>
+<area shape="poly" id="edge12_Node000001_Node000011" title=" " alt="" coords="936,161,887,169,886,164,931,161"/>
+<area shape="rect" id="Node000012" href="$Retransmitter_8c.html#a117dafbb1f1b86ced15a1fcfc49713fa" title=" " alt="" coords="734,213,892,241"/>
+<area shape="poly" id="edge14_Node000001_Node000012" title=" " alt="" coords="983,170,902,203,864,215,863,210,900,198,978,171"/>
+<area shape="rect" id="Node000003" href="$Metrics_8c.html#a162cbc7fcbd0aa489310edd0a501158c" title="Get RTP inbound stats." alt="" coords="502,5,652,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="729,54,643,36,644,31,735,53"/>
+<area shape="rect" id="Node000005" href="$Metrics_8c.html#a5ed427c24c23aed9f61262c7e6c2abc5" title="Get RTP outbound stats." alt="" coords="497,57,657,85"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="707,72,658,74,657,69,712,71"/>
+<area shape="rect" id="Node000006" href="$Metrics_8c.html#adaa4d044035288ca366e26276e20b173" title="Get remote RTP inbound stats." alt="" coords="477,109,677,137"/>
+<area shape="poly" id="edge6_Node000002_Node000006" title=" " alt="" coords="735,88,644,111,643,106,729,89"/>
+<area shape="rect" id="Node000004" href="$group__PublicMemberFunctions.html#ga469e0f69e03630ad5b03d8921afd62be" title="Get the relevant/all metrics based on the RTCStatsType field. This does not include any signaling rel..." alt="" coords="218,57,429,85"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="488,38,395,59,394,54,493,36"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="479,72,430,74,429,69,484,71"/>
+<area shape="poly" id="edge7_Node000006_Node000004" title=" " alt="" coords="488,106,395,88,395,83,493,105"/>
+<area shape="rect" id="Node000008" href="$Rtcp_8c.html#aaaf444db910596fed5abe9a8518b68f1" title=" " alt="" coords="523,161,631,189"/>
+<area shape="poly" id="edge9_Node000007_Node000008" title=" " alt="" coords="737,140,632,166,631,161,732,141"/>
+<area shape="rect" id="Node000009" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="258,161,389,189"/>
+<area shape="poly" id="edge10_Node000008_Node000009" title=" " alt="" coords="505,175,390,178,389,173,510,175"/>
+<area shape="rect" id="Node000010" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,161,170,189"/>
+<area shape="poly" id="edge11_Node000009_Node000010" title=" " alt="" coords="240,176,170,178,170,173,245,174"/>
+<area shape="poly" id="edge13_Node000011_Node000008" title=" " alt="" coords="722,175,632,178,632,173,727,175"/>
+<area shape="poly" id="edge15_Node000012_Node000008" title=" " alt="" coords="729,209,631,190,632,184,735,209"/>
+</map>

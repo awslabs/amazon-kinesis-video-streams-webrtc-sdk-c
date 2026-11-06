@@ -1,5 +1,5 @@
 <map id="freePeerConnection" name="freePeerConnection">
-<area shape="rect" id="Node000001" title="Free a RtcPeerConnection." alt="" coords="219,5,369,31"/>
-<area shape="rect" id="Node000002" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,5,171,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="205,21,171,21,171,15,205,15"/>
+<area shape="rect" id="Node000001" title="Free a RtcPeerConnection." alt="" coords="218,5,367,33"/>
+<area shape="rect" id="Node000002" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,5,170,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="200,19,170,22,170,17,205,19"/>
 </map>

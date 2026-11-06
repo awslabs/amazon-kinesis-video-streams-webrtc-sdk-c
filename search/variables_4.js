@@ -2,7 +2,7 @@ var searchData=
 [
   ['earliesttransactionidindex_0',['earliestTransactionIdIndex',['../structTransactionIdStore.html#a5b9d0444838f9308bfda23e84b09b953',1,'TransactionIdStore']]],
   ['emailaddress_1',['emailAddress',['../structSessionDescription.html#a24e3e8cc9828566001e41a0125a34bdb',1,'SessionDescription']]],
-  ['encoderimplementation_2',['encoderimplementation',['../group__StatusCodes.html#gafe331e59fcd4b4d5b4135608f33241b7',1,'RtcEncoderStats::encoderImplementation'],['../structRtcOutboundRtpStreamStats.html#a6898acad7d9e04a6d53650fa6b86e229',1,'RtcOutboundRtpStreamStats::encoderImplementation']]],
+  ['encoderimplementation_2',['encoderImplementation',['../group__StatusCodes.html#gafe331e59fcd4b4d5b4135608f33241b7',1,'RtcEncoderStats::encoderImplementation'],['../structRtcOutboundRtpStreamStats.html#a6898acad7d9e04a6d53650fa6b86e229',1,'RtcOutboundRtpStreamStats::encoderImplementation']]],
   ['encodetimemsec_3',['encodeTimeMsec',['../group__StatusCodes.html#gaaeaf0d1f1645efb1610c23a20418880e',1,'RtcEncoderStats']]],
   ['end_4',['end',['../structjsmntok__t.html#ab49e0369f39e9b6174141e7f5bde5996',1,'jsmntok_t']]],
   ['errorcode_5',['errorCode',['../structStunAttributeErrorCode.html#afb367a82a0efdbd79178640b3a556435',1,'StunAttributeErrorCode']]],

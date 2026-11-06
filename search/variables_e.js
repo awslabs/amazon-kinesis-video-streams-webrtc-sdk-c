@@ -2,10 +2,10 @@ var searchData=
 [
   ['off_0',['off',['../struct____IOBuffer.html#ac494a20362b16fbbafc040bc156961cc',1,'__IOBuffer']]],
   ['offerreceived_1',['offerReceived',['../structSignalingClient.html#a4db0b266a09008daba23dbf3422c6e6c',1,'SignalingClient']]],
-  ['offerreceivedtime_2',['offerreceivedtime',['../structSignalingClient.html#a451de55f94b912b4a7f4b667af36f577',1,'SignalingClient::offerReceivedTime'],['../structSignalingClientStats.html#a1199591942fe9a4f884f18e89c1af449',1,'SignalingClientStats::offerReceivedTime']]],
+  ['offerreceivedtime_2',['offerReceivedTime',['../structSignalingClientStats.html#a1199591942fe9a4f884f18e89c1af449',1,'SignalingClientStats::offerReceivedTime'],['../structSignalingClient.html#a451de55f94b912b4a7f4b667af36f577',1,'SignalingClient::offerReceivedTime']]],
   ['offersendreceivetimelock_3',['offerSendReceiveTimeLock',['../structSignalingClient.html#a5b21c509f1d84f190d5af35411aea771',1,'SignalingClient']]],
   ['offersenttime_4',['offerSentTime',['../structSignalingClient.html#a5372aa1c6e2bba733c057ded88fd522d',1,'SignalingClient']]],
-  ['offertoanswertime_5',['offertoanswertime',['../structSignalingClientStats.html#a5f778adfc7b9281a028a712afb5253e4',1,'SignalingClientStats::offerToAnswerTime'],['../structSignalingDiagnostics.html#a1c7c7c69bcd6897531a99619c766673f',1,'SignalingDiagnostics::offerToAnswerTime']]],
+  ['offertoanswertime_5',['offerToAnswerTime',['../structSignalingClientStats.html#a5f778adfc7b9281a028a712afb5253e4',1,'SignalingClientStats::offerToAnswerTime'],['../structSignalingDiagnostics.html#a1c7c7c69bcd6897531a99619c766673f',1,'SignalingDiagnostics::offerToAnswerTime']]],
   ['offset_6',['offset',['../structSdpTimeZone.html#afa052505332dfabe8a64be928936acb2',1,'SdpTimeZone']]],
   ['onbandwidthestimation_7',['onBandwidthEstimation',['../structKvsRtpTransceiver.html#a5c5f128bf0163e5903e3cb109db8b4b0',1,'KvsRtpTransceiver']]],
   ['onbandwidthestimationcustomdata_8',['onBandwidthEstimationCustomData',['../structKvsRtpTransceiver.html#a8c829a2f7fa9cd1fc2dac59b060b62e0',1,'KvsRtpTransceiver']]],
@@ -33,8 +33,8 @@ var searchData=
   ['ontwccfeedbackreceivedcustomdata_30',['onTwccFeedbackReceivedCustomData',['../structKvsPeerConnection.html#aef74b0f711c90aa2ec0fd003b0843b44',1,'KvsPeerConnection']]],
   ['openfired_31',['openFired',['../structKvsDataChannel.html#a6e329af7aa01db0a10093d9aa829f91c',1,'KvsDataChannel']]],
   ['ordered_32',['ordered',['../group__StatusCodes.html#gad83e032fdce8d6ff6d75aea373f6e085',1,'RtcDataChannelInit']]],
-  ['outboundpacketfn_33',['outboundpacketfn',['../structDtlsSessionCallbacks.html#a0c4a19dd28c96de513c236f9a94fa66c',1,'DtlsSessionCallbacks::outboundPacketFn'],['../structTlsSessionCallbacks.html#afe9709e2b97c1ca56fa7c316cffde9ee',1,'TlsSessionCallbacks::outboundPacketFn']]],
-  ['outboundpacketfncustomdata_34',['outboundpacketfncustomdata',['../structDtlsSessionCallbacks.html#abc23bd28a8bb393fa396e88915829619',1,'DtlsSessionCallbacks::outBoundPacketFnCustomData'],['../structTlsSessionCallbacks.html#a4b671a50680a7643e391c39dc91cf5c3',1,'TlsSessionCallbacks::outBoundPacketFnCustomData']]],
+  ['outboundpacketfn_33',['outboundPacketFn',['../structDtlsSessionCallbacks.html#a0c4a19dd28c96de513c236f9a94fa66c',1,'DtlsSessionCallbacks::outboundPacketFn'],['../structTlsSessionCallbacks.html#afe9709e2b97c1ca56fa7c316cffde9ee',1,'TlsSessionCallbacks::outboundPacketFn']]],
+  ['outboundpacketfncustomdata_34',['outBoundPacketFnCustomData',['../structDtlsSessionCallbacks.html#abc23bd28a8bb393fa396e88915829619',1,'DtlsSessionCallbacks::outBoundPacketFnCustomData'],['../structTlsSessionCallbacks.html#a4b671a50680a7643e391c39dc91cf5c3',1,'TlsSessionCallbacks::outBoundPacketFnCustomData']]],
   ['outboundpacketfunc_35',['outboundPacketFunc',['../structSctpSessionCallbacks.html#a6337fee004b60e8d70ef8db7c476a21b',1,'SctpSessionCallbacks']]],
   ['outboundrtpstreamstats_36',['outboundRtpStreamStats',['../structRtcStatsObject.html#a49d60490881d349beb2a8cfddda9572a',1,'RtcStatsObject']]],
   ['outboundstats_37',['outboundStats',['../structKvsRtpTransceiver.html#a785a5966f3a2277c3c2fbdfd48008e15',1,'KvsRtpTransceiver']]]

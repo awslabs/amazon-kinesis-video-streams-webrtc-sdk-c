@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['nackcount_0',['nackcount',['../structRtcInboundRtpStreamStats.html#aca31b11d0e4d07b448b62e37e125544f',1,'RtcInboundRtpStreamStats::nackCount'],['../structRtcOutboundRtpStreamStats.html#aa98c742d0a6a969e1e6aed60f3a49825',1,'RtcOutboundRtpStreamStats::nackCount']]],
+  ['nackcount_0',['nackCount',['../structRtcOutboundRtpStreamStats.html#aa98c742d0a6a969e1e6aed60f3a49825',1,'RtcOutboundRtpStreamStats::nackCount'],['../structRtcInboundRtpStreamStats.html#aca31b11d0e4d07b448b62e37e125544f',1,'RtcInboundRtpStreamStats::nackCount']]],
   ['name_1',['name',['../group__StatusCodes.html#gadd53434650fa42653e4002365f2382c9',1,'__RtcDataChannel']]],
   ['negotiated_2',['negotiated',['../group__StatusCodes.html#ga8c67966c06b4163b51f21392ca5dc654',1,'RtcDataChannelInit']]],
   ['negotiatedpass_3',['negotiatedPass',['../structAllocateSctpSortDataChannelsData.html#a5d6936df4713e3ff70593f4d781a6c82',1,'AllocateSctpSortDataChannelsData']]],
@@ -12,9 +12,9 @@ var searchData=
   ['nonce_9',['nonce',['../structStunAttributeNonce.html#a8f87b86d2faa660dc925fe9c0599d130',1,'StunAttributeNonce']]],
   ['noncelen_10',['nonceLen',['../struct____TurnConnection.html#aa7ee468f1642abf57385bfe4ffc36491',1,'__TurnConnection']]],
   ['nonroutablepeersfilteredcount_11',['nonRoutablePeersFilteredCount',['../struct____TurnConnection.html#ac163324a3754712670169090f5888939',1,'__TurnConnection']]],
-  ['numberoferrors_12',['numberoferrors',['../structSignalingClientStats.html#a30f98d510f5ecdd19c53afb8f9ef1f6b',1,'SignalingClientStats::numberOfErrors'],['../structSignalingDiagnostics.html#a4efe61cd2892f8b512c241860a34d7ad',1,'SignalingDiagnostics::numberOfErrors']]],
-  ['numberofmessagesreceived_13',['numberofmessagesreceived',['../structSignalingClientStats.html#aca900ed2e3622b2605c81790768df294',1,'SignalingClientStats::numberOfMessagesReceived'],['../structSignalingDiagnostics.html#a0cb2de963decc0f1eb5398e83869e4b2',1,'SignalingDiagnostics::numberOfMessagesReceived']]],
-  ['numberofmessagessent_14',['numberofmessagessent',['../structSignalingClientStats.html#a76b01fd641d9e83b517ac40aaba4d42a',1,'SignalingClientStats::numberOfMessagesSent'],['../structSignalingDiagnostics.html#af822f52ab8c5956f7cf35dd97b5c373c',1,'SignalingDiagnostics::numberOfMessagesSent']]],
-  ['numberofreconnects_15',['numberofreconnects',['../structSignalingClientStats.html#a88a95942f794d84724583ef8b6d9f181',1,'SignalingClientStats::numberOfReconnects'],['../structSignalingDiagnostics.html#a6d21a2e8999c8a558a4137cdb94d4ee8',1,'SignalingDiagnostics::numberOfReconnects']]],
-  ['numberofruntimeerrors_16',['numberofruntimeerrors',['../structSignalingClientStats.html#ac9ba962af79e44d73aac0688f09019ca',1,'SignalingClientStats::numberOfRuntimeErrors'],['../structSignalingDiagnostics.html#a828abe32517c8c73eefe5f77d3f30649',1,'SignalingDiagnostics::numberOfRuntimeErrors']]]
+  ['numberoferrors_12',['numberOfErrors',['../structSignalingClientStats.html#a30f98d510f5ecdd19c53afb8f9ef1f6b',1,'SignalingClientStats::numberOfErrors'],['../structSignalingDiagnostics.html#a4efe61cd2892f8b512c241860a34d7ad',1,'SignalingDiagnostics::numberOfErrors']]],
+  ['numberofmessagesreceived_13',['numberOfMessagesReceived',['../structSignalingClientStats.html#aca900ed2e3622b2605c81790768df294',1,'SignalingClientStats::numberOfMessagesReceived'],['../structSignalingDiagnostics.html#a0cb2de963decc0f1eb5398e83869e4b2',1,'SignalingDiagnostics::numberOfMessagesReceived']]],
+  ['numberofmessagessent_14',['numberOfMessagesSent',['../structSignalingClientStats.html#a76b01fd641d9e83b517ac40aaba4d42a',1,'SignalingClientStats::numberOfMessagesSent'],['../structSignalingDiagnostics.html#af822f52ab8c5956f7cf35dd97b5c373c',1,'SignalingDiagnostics::numberOfMessagesSent']]],
+  ['numberofreconnects_15',['numberOfReconnects',['../structSignalingClientStats.html#a88a95942f794d84724583ef8b6d9f181',1,'SignalingClientStats::numberOfReconnects'],['../structSignalingDiagnostics.html#a6d21a2e8999c8a558a4137cdb94d4ee8',1,'SignalingDiagnostics::numberOfReconnects']]],
+  ['numberofruntimeerrors_16',['numberOfRuntimeErrors',['../structSignalingClientStats.html#ac9ba962af79e44d73aac0688f09019ca',1,'SignalingClientStats::numberOfRuntimeErrors'],['../structSignalingDiagnostics.html#a828abe32517c8c73eefe5f77d3f30649',1,'SignalingDiagnostics::numberOfRuntimeErrors']]]
 ];

@@ -1,0 +1,7 @@
+<map id="cleanupSctpContext" name="cleanupSctpContext">
+<area shape="rect" id="Node000001" title=" " alt="" coords="369,5,520,33"/>
+<area shape="rect" id="Node000002" href="$Sctp_8c.html#a5944157f6ac02b21d2524826b5df1ef7" title=" " alt="" coords="185,5,321,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="351,19,322,22,322,17,356,19"/>
+<area shape="rect" id="Node000003" href="$group__PublicMemberFunctions.html#gae49b9a202c97ad861b0b68014535f625" title="Deinitializes global state needed for all RtcPeerConnections. It must only be called once." alt="" coords="5,5,137,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="167,19,137,22,137,17,172,19"/>
+</map>

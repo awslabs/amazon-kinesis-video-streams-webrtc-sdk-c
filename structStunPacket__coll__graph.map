@@ -1,7 +1,7 @@
 <map id="StunPacket" name="StunPacket">
-<area shape="rect" id="Node000001" title=" " alt="" coords="99,193,228,279"/>
-<area shape="rect" id="Node000002" href="$structStunHeader.html" title=" " alt="" coords="5,5,151,131"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="112,130,137,178,132,180,107,132"/>
-<area shape="rect" id="Node000003" href="$structStunAttributeHeader.html" title=" " alt="" coords="175,25,322,111"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="230,112,195,179,190,177,225,110"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="97,218,225,312"/>
+<area shape="rect" id="Node000002" href="$structStunHeader.html" title=" " alt="" coords="5,5,148,145"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="108,142,136,202,131,203,106,147"/>
+<area shape="rect" id="Node000003" href="$structStunAttributeHeader.html" title=" " alt="" coords="173,28,317,122"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="230,120,201,195,196,204,192,201,196,193,226,124"/>
 </map>

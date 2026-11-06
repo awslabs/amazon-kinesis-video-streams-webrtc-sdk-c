@@ -1,0 +1,8 @@
+<map id="headTimestampCheck" name="headTimestampCheck">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,173,33"/>
+<area shape="rect" id="Node000002" href="$JitterBuffer_8c.html#a91d568e855ef30dbee0e36a55c19d5c6" title=" " alt="" coords="477,5,642,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="173,17,462,17,461,22,173,22"/>
+<area shape="rect" id="Node000003" href="$JitterBuffer_8c.html#a6eabe7d0056f5acef21c7ff857c0fc78" title=" " alt="" coords="221,31,429,58"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="173,26,208,31,202,32,173,31"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="429,31,459,30,464,30,430,36"/>
+</map>

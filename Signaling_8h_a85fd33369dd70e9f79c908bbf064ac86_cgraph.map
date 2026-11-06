@@ -1,0 +1,16 @@
+<map id="joinStorageSession" name="joinStorageSession">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,83,151,110"/>
+<area shape="rect" id="Node000002" href="$LwsApiCalls_8c.html#aeaf536c9e03eb9871167b1e43e82cb22" title=" " alt="" coords="199,83,369,110"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="150,94,186,96,181,97,151,99"/>
+<area shape="rect" id="Node000003" href="$LwsApiCalls_8c.html#a2c096b44f492ff215fe5e9e23abf0e0d" title=" " alt="" coords="417,5,638,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="318,80,416,43,449,37,444,38,418,48,320,85"/>
+<area shape="rect" id="Node000004" href="$LwsApiCalls_8c.html#a988b3c6e00aa3e79fce24a41faeb772c" title=" " alt="" coords="459,57,596,85"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="369,85,446,79,441,80,370,90"/>
+<area shape="rect" id="Node000005" href="$LwsApiCalls_8c.html#a22be1d34eb8fe76e2872b23ea9f981d1" title=" " alt="" coords="723,83,846,110"/>
+<area shape="poly" id="edge5_Node000002_Node000005" title=" " alt="" coords="370,94,710,95,706,98,370,99"/>
+<area shape="rect" id="Node000006" href="$LwsApiCalls_8c.html#a3c3cdd7608d37131d839bc47bd5de90b" title=" " alt="" coords="459,159,596,186"/>
+<area shape="poly" id="edge6_Node000002_Node000006" title=" " alt="" coords="328,108,418,138,464,154,458,154,416,143,327,114"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="597,75,710,89,705,89,597,81"/>
+<area shape="rect" id="Node000007" href="$LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="686,159,883,186"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="597,170,673,172,668,173,597,175"/>
+</map>

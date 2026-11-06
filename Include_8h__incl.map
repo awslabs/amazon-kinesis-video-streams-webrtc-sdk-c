@@ -1,0 +1,11 @@
+<map id="src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h" name="src/include/com/amazonaws/kinesis/video/webrtcclient/Include.h">
+<area shape="rect" id="Node000001" title=" " alt="" coords="311,5,516,67"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,124,187,168"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="322,69,175,121,173,116,327,67"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="211,124,397,168"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="385,66,338,115,335,110,380,68"/>
+<area shape="rect" id="Node000004" href="$NullableDefs_8h.html" title=" " alt="" coords="421,115,624,177"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="445,65,484,105,479,104,443,70"/>
+<area shape="rect" id="Node000005" href="$Stats_8h.html" title=" " alt="" coords="648,124,842,168"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="507,65,667,118,661,118,506,70"/>
+</map>

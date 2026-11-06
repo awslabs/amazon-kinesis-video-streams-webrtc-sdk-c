@@ -1,0 +1,7 @@
+<map id="withinLatencyTolerance" name="withinLatencyTolerance">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,180,33"/>
+<area shape="rect" id="Node000002" href="$JitterBuffer_8c.html#a3d7ce7fa8ca384a6e608249e1aa5865b" title=" " alt="" coords="228,5,384,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="180,17,215,19,209,19,180,22"/>
+<area shape="rect" id="Node000003" href="$JitterBuffer_8c.html#ada541ee0b87e2aa3e0197310e2d35b15" title=" " alt="" coords="432,5,629,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="384,17,419,19,414,19,384,22"/>
+</map>

@@ -1,0 +1,13 @@
+<map id="turnConnectionIsShutdownComplete" name="turnConnectionIsShutdownComplete">
+<area shape="rect" id="Node000001" title=" " alt="" coords="675,24,871,68"/>
+<area shape="rect" id="Node000002" href="$IceAgentStateMachine_8c.html#ad8c9d148bf0b67e6ccce35a9f2c745e8" title=" " alt="" coords="423,5,627,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="657,34,628,33,628,28,663,34"/>
+<area shape="rect" id="Node000003" href="$IceAgent_8c.html#a0240b9dcf5654427458c2fdda5a2da29" title=" " alt="" coords="454,57,596,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="663,57,597,67,597,61,657,58"/>
+<area shape="rect" id="Node000004" href="$group__PublicMemberFunctions.html#ga9babad6ea2bc9bb97279c7034697375a" title="Close the underlying DTLS session and IceAgent connection. Trigger RtcOnConnectionStateChange to RTC_..." alt="" coords="218,31,375,58"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="436,61,375,56,375,51,441,61"/>
+<area shape="rect" id="Node000005" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="222,83,371,110"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="441,81,372,91,371,86,436,81"/>
+<area shape="rect" id="Node000006" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,83,170,110"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="204,97,170,99,170,94,209,96"/>
+</map>

@@ -1,0 +1,9 @@
+<map id="freeSctpSession" name="freeSctpSession">
+<area shape="rect" id="Node000001" title=" " alt="" coords="415,32,540,60"/>
+<area shape="rect" id="Node000002" href="$Sctp_8c.html#a9ee2c9d19e43ca73a978a4fcd778c5b0" title=" " alt="" coords="222,5,362,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="397,35,363,32,363,27,402,35"/>
+<area shape="rect" id="Node000003" href="$group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="218,57,367,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="402,56,368,64,367,58,397,57"/>
+<area shape="rect" id="Node000004" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,57,170,85"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="200,71,170,74,170,69,205,71"/>
+</map>

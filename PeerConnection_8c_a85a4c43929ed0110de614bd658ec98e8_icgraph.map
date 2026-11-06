@@ -1,0 +1,13 @@
+<map id="twccManagerOnPacketSent" name="twccManagerOnPacketSent">
+<area shape="rect" id="Node000001" title=" " alt="" coords="760,32,957,60"/>
+<area shape="rect" id="Node000002" href="$Retransmitter_8c.html#a117dafbb1f1b86ced15a1fcfc49713fa" title=" " alt="" coords="553,5,712,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="741,32,712,31,712,26,747,32"/>
+<area shape="rect" id="Node000006" href="$group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver." alt="" coords="585,57,680,85"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="747,58,680,69,680,63,742,59"/>
+<area shape="rect" id="Node000003" href="$Rtcp_8c.html#aaaf444db910596fed5abe9a8518b68f1" title=" " alt="" coords="397,5,505,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="535,19,506,22,505,17,540,19"/>
+<area shape="rect" id="Node000004" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="218,5,349,33"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="379,19,350,22,349,17,384,19"/>
+<area shape="rect" id="Node000005" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,5,170,33"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="199,20,171,22,170,17,205,19"/>
+</map>

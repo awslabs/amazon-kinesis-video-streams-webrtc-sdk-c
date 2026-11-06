@@ -1,0 +1,23 @@
+<map id="allocateSrtp" name="allocateSrtp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,119,105,146"/>
+<area shape="rect" id="Node000002" href="$Dtls__openssl_8c.html#a409db3065190c49ace64801727da7513" title=" " alt="" coords="180,41,376,86"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="93,116,152,95,180,89,175,92,153,100,96,120"/>
+<area shape="rect" id="Node000005" href="$Dtls__openssl_8c.html#aa63ea9551d8026a385756fc13e769571" title=" " alt="" coords="153,110,403,155"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="104,130,139,131,135,134,106,135"/>
+<area shape="rect" id="Node000009" href="$SrtpSession_8c.html#a8bb9447fb02c3bd23c4a849e95d9233f" title=" " alt="" coords="219,217,337,245"/>
+<area shape="poly" id="edge10_Node000001_Node000009" title=" " alt="" coords="89,144,233,209,229,212,88,149"/>
+<area shape="rect" id="Node000003" href="$Dtls__openssl_8c.html#af3bfcfebc77d873de4356b748060a048" title=" " alt="" coords="470,5,615,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="376,44,456,33,452,35,377,49"/>
+<area shape="rect" id="Node000004" href="$Dtls__openssl_8c.html#a7098126d6dad351545fc6aea9afc2668" title=" " alt="" coords="470,57,615,85"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="376,64,457,68,451,69,377,69"/>
+<area shape="poly" id="edge5_Node000005_Node000003" title=" " alt="" coords="379,107,402,96,416,83,425,70,434,57,449,44,465,38,460,41,453,48,438,60,429,73,420,87,404,100,381,112"/>
+<area shape="poly" id="edge9_Node000005_Node000004" title=" " alt="" coords="376,107,467,88,462,90,378,112"/>
+<area shape="rect" id="Node000006" href="$Dtls__mbedtls_8c.html#aa884d968f928d7c4d9e4a45441cef269" title=" " alt="" coords="451,109,633,137"/>
+<area shape="poly" id="edge6_Node000005_Node000006" title=" " alt="" coords="403,125,438,126,433,128,404,131"/>
+<area shape="rect" id="Node000007" href="$Dtls__openssl_8c.html#ac704fd327481e77f13a56729e2abb341" title=" " alt="" coords="451,161,633,189"/>
+<area shape="poly" id="edge7_Node000005_Node000007" title=" " alt="" coords="403,150,440,158,434,159,404,155"/>
+<area shape="rect" id="Node000008" href="$Dtls_8c.html#ac7d96e418743c4a3c14e2e766340734c" title=" " alt="" coords="453,213,631,241"/>
+<area shape="poly" id="edge8_Node000005_Node000008" title=" " alt="" coords="334,153,452,198,478,208,472,208,450,203,333,158"/>
+<area shape="rect" id="Node000010" href="$SrtpSession_8c.html#a2aee174624da64c0e3d5d7638cd8b196" title=" " alt="" coords="480,265,604,293"/>
+<area shape="poly" id="edge11_Node000009_Node000010" title=" " alt="" coords="337,239,468,265,463,266,337,244"/>
+</map>

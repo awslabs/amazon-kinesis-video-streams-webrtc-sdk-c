@@ -1,0 +1,11 @@
+<map id="sendLwsMessage" name="sendLwsMessage">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,74,141,102"/>
+<area shape="rect" id="Node000002" href="$StateMachine_8c.html#a0e4075886bfd0e7be0b6173ee41adace" title=" " alt="" coords="189,5,402,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="126,71,198,53,193,56,128,76"/>
+<area shape="rect" id="Node000003" href="$Signaling_8c.html#af5819e8bf1d10e24153c35f91b50a735" title=" " alt="" coords="205,74,386,102"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="140,85,192,87,187,89,141,90"/>
+<area shape="rect" id="Node000004" href="$LwsApiCalls_8c.html#a79f1b7bc677d4cb0c2eb0c6ab854e8e5" title=" " alt="" coords="240,126,350,154"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="136,99,227,122,223,124,135,105"/>
+<area shape="rect" id="Node000005" href="$LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="450,126,646,154"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="351,137,437,140,432,140,351,142"/>
+</map>

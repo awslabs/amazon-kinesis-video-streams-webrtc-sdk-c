@@ -1,0 +1,19 @@
+<map id="signalingSendMessageSync" name="signalingSendMessageSync">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,126,207,154"/>
+<area shape="rect" id="Node000002" href="$LwsApiCalls_8c.html#acb3be4e7def869ccd5a7b34e1d951fa5" title=" " alt="" coords="310,74,446,102"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="182,123,297,102,292,105,183,128"/>
+<area shape="rect" id="Node000007" href="$Signaling_8c.html#ad5583fab3f7bd5e1260bc503aeff639a" title=" " alt="" coords="255,126,501,154"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="207,137,242,139,236,140,208,142"/>
+<area shape="rect" id="Node000008" href="$Signaling_8c.html#a387148b41883b821111c84bc39811ac7" title=" " alt="" coords="265,178,491,206"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="183,151,289,174,284,175,182,157"/>
+<area shape="rect" id="Node000003" href="$StateMachine_8c.html#a0e4075886bfd0e7be0b6173ee41adace" title=" " alt="" coords="550,5,763,50"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="445,71,537,53,532,55,446,76"/>
+<area shape="rect" id="Node000004" href="$Signaling_8c.html#af5819e8bf1d10e24153c35f91b50a735" title=" " alt="" coords="566,74,747,102"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="446,85,554,87,549,88,446,90"/>
+<area shape="rect" id="Node000005" href="$LwsApiCalls_8c.html#a79f1b7bc677d4cb0c2eb0c6ab854e8e5" title=" " alt="" coords="602,126,712,154"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="446,98,589,126,584,127,446,103"/>
+<area shape="rect" id="Node000006" href="$LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="812,126,1009,154"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="712,137,799,140,794,140,713,142"/>
+<area shape="rect" id="Node000009" href="$Signaling_8c.html#ae3eee8f50a486b71e62e7c98291d422d" title=" " alt="" coords="549,178,764,206"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="491,189,536,192,531,192,492,194"/>
+</map>

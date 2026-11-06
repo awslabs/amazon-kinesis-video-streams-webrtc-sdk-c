@@ -1,0 +1,5 @@
+<map id="signalingDisconnectSync" name="signalingDisconnectSync">
+<area shape="rect" id="Node000001" title=" " alt="" coords="275,5,458,33"/>
+<area shape="rect" id="Node000002" href="$group__PublicMemberFunctions.html#ga6130116416557558b66728a8db2c6ee7" title="Disconnects the signaling client." alt="" coords="5,5,227,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="256,19,227,22,227,17,262,19"/>
+</map>

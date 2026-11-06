@@ -1,0 +1,17 @@
+<map id="headSequenceNumberCheck" name="headSequenceNumberCheck">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1078,56,1286,84"/>
+<area shape="rect" id="Node000002" href="$JitterBuffer_8c.html#a98ed50fc0f16982249b14813a6c0f437" title=" " alt="" coords="803,5,1030,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1088,52,993,36,993,31,1094,53"/>
+<area shape="rect" id="Node000003" href="$JitterBuffer_8c.html#a3698c62de5f63baf09c350078af5301c" title=" " alt="" coords="632,56,755,84"/>
+<area shape="poly" id="edge8_Node000001_Node000003" title=" " alt="" coords="1060,70,755,72,755,67,1065,70"/>
+<area shape="rect" id="Node000007" href="$JitterBuffer_8c.html#a79ef017209c60c808d2367d20c04b088" title=" " alt="" coords="833,107,1000,134"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="1094,87,993,109,993,103,1088,87"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="840,37,756,59,755,53,835,37"/>
+<area shape="rect" id="Node000004" href="$PeerConnection_8c.html#ac7dfeca3237caae871b6cd2e0e50c73e" title=" " alt="" coords="397,56,584,84"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="614,70,585,72,585,67,620,70"/>
+<area shape="rect" id="Node000005" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="218,56,349,84"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="379,70,350,72,349,67,384,70"/>
+<area shape="rect" id="Node000006" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,56,170,84"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="199,70,171,72,170,67,205,69"/>
+<area shape="poly" id="edge7_Node000007_Node000003" title=" " alt="" coords="835,103,755,86,755,81,840,103"/>
+</map>

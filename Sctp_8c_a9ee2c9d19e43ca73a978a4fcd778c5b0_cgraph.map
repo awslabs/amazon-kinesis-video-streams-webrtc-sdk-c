@@ -1,0 +1,21 @@
+<map id="createSctpSession" name="createSctpSession">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,109,146,137"/>
+<area shape="rect" id="Node000002" href="$Sctp_8c.html#a55eca852bfcd8b72d9a2429a23d39886" title=" " alt="" coords="197,5,350,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="93,107,138,76,192,43,211,37,207,41,195,48,140,80,97,111"/>
+<area shape="rect" id="Node000003" href="$Sctp_8c.html#a7b4902e766599101f22b2f3ae12c3dd9" title=" " alt="" coords="211,57,336,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="130,106,205,88,201,91,132,111"/>
+<area shape="rect" id="Node000004" href="$Sctp_8c.html#a9fd2f5b7216337ea8af7f3fbf0033fa4" title=" " alt="" coords="207,109,340,137"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="145,121,193,122,189,125,147,126"/>
+<area shape="rect" id="Node000005" href="$Sctp_8c.html#ad5df1b7c8937f4d8fd9aad0892cd9481" title=" " alt="" coords="194,161,353,189"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="131,135,205,155,201,158,131,140"/>
+<area shape="rect" id="Node000008" href="$Sctp_8c.html#a609831e4531315998a7974e995569478" title=" " alt="" coords="202,213,344,241"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="96,135,140,166,195,198,212,207,206,208,192,203,138,171,95,140"/>
+<area shape="rect" id="Node000006" href="$Sctp_8c.html#a8f12cbc92f7a361cec205992aba52480" title=" " alt="" coords="405,161,545,189"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="353,173,392,175,387,176,354,178"/>
+<area shape="rect" id="Node000007" href="$Sctp_8c.html#a721b1be57eb95d79b036b2fd93bb3be4" title=" " alt="" coords="597,161,812,189"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="545,173,584,175,579,175,546,178"/>
+<area shape="rect" id="Node000009" href="$Sctp_8c.html#ac47664e2f4452c552f5c76754b70e5d6" title=" " alt="" coords="401,213,549,241"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="345,225,388,227,383,227,345,230"/>
+<area shape="rect" id="Node000010" href="$Sctp_8c.html#ab7dfb412bddb5ea9600e3423306c06ca" title=" " alt="" coords="401,265,549,293"/>
+<area shape="poly" id="edge9_Node000008_Node000010" title=" " alt="" coords="330,239,406,261,401,261,330,244"/>
+</map>

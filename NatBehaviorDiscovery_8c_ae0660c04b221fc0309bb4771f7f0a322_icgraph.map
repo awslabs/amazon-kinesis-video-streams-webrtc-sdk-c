@@ -1,0 +1,5 @@
+<map id="discoverNatMappingBehavior" name="discoverNatMappingBehavior">
+<area shape="rect" id="Node000001" title=" " alt="" coords="211,5,424,33"/>
+<area shape="rect" id="Node000002" href="$group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="5,5,163,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="192,19,163,22,163,17,197,19"/>
+</map>

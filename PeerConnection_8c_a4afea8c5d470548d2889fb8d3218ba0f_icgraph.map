@@ -1,0 +1,6 @@
+<map id="rtcpReportsCallback" name="rtcpReportsCallback">
+<area shape="rect" id="Node000001" title=" " alt="" coords="173,29,325,57"/>
+<area shape="poly" id="edge2_Node000001_Node000001" title=" " alt="" coords="279,14,269,10,249,8,230,10,220,15,217,20,222,30,217,28,212,20,216,11,228,5,249,3,271,5,284,14"/>
+<area shape="rect" id="Node000002" href="$group__PublicMemberFunctions.html#ga5b89dc2e301e35f30330c57bc1361dcb" title="Create a new RtcRtpTransceiver and add it to the set of transceivers." alt="" coords="5,29,125,57"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="154,43,125,46,125,41,160,43"/>
+</map>

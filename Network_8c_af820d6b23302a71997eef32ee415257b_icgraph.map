@@ -1,0 +1,11 @@
+<map id="getLocalhostIpAddresses" name="getLocalhostIpAddresses">
+<area shape="rect" id="Node000001" title=" " alt="" coords="441,32,624,60"/>
+<area shape="rect" id="Node000002" href="$group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="228,5,385,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="423,33,386,31,386,26,428,33"/>
+<area shape="rect" id="Node000003" href="$IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="220,57,393,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="423,58,394,64,393,59,428,58"/>
+<area shape="rect" id="Node000004" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="14,31,163,58"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="202,59,164,56,164,51,207,58"/>
+<area shape="rect" id="Node000005" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,83,172,110"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="202,83,172,89,172,84,207,83"/>
+</map>

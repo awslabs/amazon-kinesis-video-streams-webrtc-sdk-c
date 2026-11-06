@@ -1,5 +1,5 @@
 <map id="StunAttributeChannelNumber" name="StunAttributeChannelNumber">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,153,211,239"/>
-<area shape="rect" id="Node000002" href="$structStunAttributeHeader.html" title=" " alt="" coords="35,5,181,91"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="111,91,111,137,105,137,105,91"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,173,207,268"/>
+<area shape="rect" id="Node000002" href="$structStunAttributeHeader.html" title=" " alt="" coords="34,5,178,100"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="108,98,109,157,104,155,105,102"/>
 </map>

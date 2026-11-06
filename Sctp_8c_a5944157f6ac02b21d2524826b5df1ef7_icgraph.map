@@ -1,0 +1,5 @@
+<map id="deinitSctpSession" name="deinitSctpSession">
+<area shape="rect" id="Node000001" title=" " alt="" coords="185,5,321,33"/>
+<area shape="rect" id="Node000002" href="$group__PublicMemberFunctions.html#gae49b9a202c97ad861b0b68014535f625" title="Deinitializes global state needed for all RtcPeerConnections. It must only be called once." alt="" coords="5,5,137,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="167,19,137,22,137,17,172,19"/>
+</map>

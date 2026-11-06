@@ -1,0 +1,14 @@
+<map id="freeJitterBuffer" name="freeJitterBuffer">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,74,123,102"/>
+<area shape="rect" id="Node000002" href="$JitterBuffer_8c.html#a825c3656f8f6466c66eccb89f9745814" title=" " alt="" coords="395,74,587,102"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="123,85,380,85,379,90,123,90"/>
+<area shape="rect" id="Node000006" href="$JitterBuffer_8c.html#ac781719ff47dc4932f88c48fbda7fbd6" title=" " alt="" coords="171,99,347,127"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="123,93,158,99,152,100,123,98"/>
+<area shape="rect" id="Node000003" href="$JitterBuffer_8c.html#a7d7320146187bfc7b6ca7ea61d68445d" title=" " alt="" coords="635,5,855,50"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="552,71,630,55,636,54,553,76"/>
+<area shape="rect" id="Node000004" href="$JitterBuffer_8c.html#ab4a1d7e5e56187bcbb451cde70680a89" title=" " alt="" coords="636,74,854,102"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="588,85,623,88,617,88,588,90"/>
+<area shape="rect" id="Node000005" href="$RtpPacket_8c.html#af5c0526f452ce354c0f92497668f5ad9" title=" " alt="" coords="689,126,801,154"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="563,99,677,125,671,125,562,105"/>
+<area shape="poly" id="edge6_Node000006_Node000002" title=" " alt="" coords="347,101,382,99,377,100,348,106"/>
+</map>

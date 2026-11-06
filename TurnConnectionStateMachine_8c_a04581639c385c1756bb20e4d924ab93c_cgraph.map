@@ -1,0 +1,11 @@
+<map id="fromCheckSocketConnectionTurnState" name="fromCheckSocketConnectionTurnState">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,49,214,94"/>
+<area shape="rect" id="Node000002" href="$SocketConnection_8c.html#aac8eeb6d42a35111dbe2ee0d1e8c1952" title=" " alt="" coords="262,57,478,85"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="214,69,249,71,244,72,214,74"/>
+<area shape="rect" id="Node000003" href="$Network_8c.html#a4946ffd5e8761a38b4fc7bb253c1491a" title=" " alt="" coords="528,5,635,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="429,54,511,36,516,35,430,59"/>
+<area shape="rect" id="Node000004" href="$Network_8c.html#a3179b58589909af6767082bb0a81aa62" title=" " alt="" coords="526,57,637,85"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="478,69,513,71,508,71,478,74"/>
+<area shape="rect" id="Node000005" href="$Network_8c.html#afaa547109e09c5a34437553b7258e818" title=" " alt="" coords="530,109,633,137"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="430,83,518,107,512,107,429,88"/>
+</map>

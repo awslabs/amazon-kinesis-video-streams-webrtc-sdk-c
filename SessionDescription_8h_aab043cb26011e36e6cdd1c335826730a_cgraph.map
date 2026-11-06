@@ -1,0 +1,21 @@
+<map id="setTransceiverPayloadTypes" name="setTransceiverPayloadTypes">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,84,209,112"/>
+<area shape="rect" id="Node000002" href="$Retransmitter_8c.html#aaad5339168322ac5d7c1cc017fbe982d" title=" " alt="" coords="275,5,427,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="146,81,256,43,285,37,280,39,257,48,148,86"/>
+<area shape="rect" id="Node000004" href="$RtpRollingBuffer_8c.html#ab547d56aacb2300e966ecf2257455aa8" title=" " alt="" coords="267,57,435,85"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="209,84,254,81,249,83,210,89"/>
+<area shape="rect" id="Node000009" href="$SessionDescription_8c.html#a78e5f38766789b83cc07d64352339f5f" title=" " alt="" coords="257,109,445,137"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="209,106,244,111,239,112,210,111"/>
+<area shape="rect" id="Node000010" href="$Rtp_8c.html#a4a4da30325c40bdb88ef1075bf682b68" title=" " alt="" coords="259,161,443,206"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="150,110,273,154,268,157,149,115"/>
+<area shape="rect" id="Node000003" href="$Retransmitter_8c.html#abc4d6da97d6a3171960d7cb4d803d198" title=" " alt="" coords="516,5,654,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="427,17,504,19,498,20,428,22"/>
+<area shape="rect" id="Node000005" href="$RollingBuffer_8c.html#a50736e98819371a7188a350107a4b072" title=" " alt="" coords="512,57,658,85"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="435,69,499,71,494,72,435,74"/>
+<area shape="rect" id="Node000007" href="$RtpRollingBuffer_8c.html#aa9e0102e31bc4e4ccd6379192cfeea0b" title=" " alt="" coords="493,109,677,137"/>
+<area shape="poly" id="edge6_Node000004_Node000007" title=" " alt="" coords="417,83,507,105,502,106,417,88"/>
+<area shape="rect" id="Node000006" href="$RollingBuffer_8c.html#a81cebbe1d2964e9aadcf235f82d3c098" title=" " alt="" coords="725,57,857,85"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="658,69,712,71,707,71,659,74"/>
+<area shape="rect" id="Node000008" href="$RtpPacket_8c.html#af5c0526f452ce354c0f92497668f5ad9" title=" " alt="" coords="735,109,847,137"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="678,121,722,123,717,123,678,126"/>
+</map>

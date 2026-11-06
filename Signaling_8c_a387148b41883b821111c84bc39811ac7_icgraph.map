@@ -1,0 +1,7 @@
+<map id="signalingStoreOngoingMessage" name="signalingStoreOngoingMessage">
+<area shape="rect" id="Node000001" title=" " alt="" coords="542,5,768,33"/>
+<area shape="rect" id="Node000002" href="$Signaling_8c.html#a85fbc5fc8623d113581b2bce92642c93" title=" " alt="" coords="293,5,494,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="524,19,494,22,494,17,529,19"/>
+<area shape="rect" id="Node000003" href="$group__PublicMemberFunctions.html#gae6d8d80d47699c5494de1dc3d455b1f4" title="Send a message through a Signaling client." alt="" coords="5,5,245,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="275,19,245,22,245,17,280,19"/>
+</map>

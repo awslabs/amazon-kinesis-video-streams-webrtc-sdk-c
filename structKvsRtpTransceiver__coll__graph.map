@@ -1,106 +1,104 @@
 <map id="KvsRtpTransceiver" name="KvsRtpTransceiver">
-<area shape="rect" id="Node000001" title=" " alt="" coords="2845,1360,3111,1625"/>
-<area shape="rect" id="Node000002" href="$structRtcRtpTransceiver.html" title="The RTCRtpTransceiver represents a combination of an RTCRtpSender and an RTCRtpReceiver that share a ..." alt="" coords="159,1132,290,1197"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="264,1195,341,1249,387,1275,436,1295,532,1321,648,1345,783,1366,933,1386,1265,1418,1623,1443,1982,1461,2318,1474,2829,1487,2829,1492,2318,1479,1982,1467,1623,1448,1265,1423,932,1391,782,1372,647,1350,530,1326,434,1300,385,1279,338,1253,261,1200"/>
-<area shape="rect" id="Node000003" href="$structRtcRtpReceiver.html" title="RTCRtpReceiver allows an application to inspect the receipt of a MediaStreamTrack." alt="" coords="26,774,141,839"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="83,839,84,918,90,963,103,1007,119,1038,138,1068,181,1119,177,1122,134,1071,114,1041,98,1009,85,964,79,918,78,839"/>
-<area shape="rect" id="Node000004" href="$structRtcMediaStreamTrack.html" title="Represents a single track in a MediaStream." alt="" coords="5,293,161,418"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="86,418,86,758,81,758,81,418"/>
-<area shape="rect" id="Node000005" href="$structRtcRtpSender.html" title=" " alt="" coords="448,1042,657,1287"/>
-<area shape="poly" id="edge6_Node000005_Node000004" title=" " alt="" coords="104,417,141,561,155,644,161,694,161,739,157,816,158,851,164,887,178,926,203,968,228,985,284,1017,435,1099,432,1103,282,1022,225,989,199,971,173,928,159,889,152,852,152,816,156,739,155,695,150,644,135,562,99,419"/>
-<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="658,1177,2830,1469,2829,1474,657,1183"/>
-<area shape="rect" id="Node000006" href="$struct____Payloads.html" title=" " alt="" coords="263,724,445,889"/>
-<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="389,888,416,947,447,1007,459,1027,454,1029,442,1009,411,950,384,891"/>
-<area shape="rect" id="Node000007" href="$structRtpRollingBuffer.html" title=" " alt="" coords="659,774,779,839"/>
-<area shape="poly" id="edge7_Node000005_Node000007" title=" " alt="" coords="716,840,696,918,680,964,662,1009,652,1029,647,1026,657,1007,675,963,691,917,710,839"/>
-<area shape="rect" id="Node000008" href="$structRollingBuffer.html" title=" " alt="" coords="186,273,287,438"/>
-<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="235,438,238,486,249,534,269,580,283,600,300,618,328,631,369,636,471,632,574,626,617,630,649,642,674,666,693,696,706,727,714,757,709,759,701,729,688,698,670,669,646,646,616,635,574,631,471,637,369,641,327,636,296,622,278,604,264,583,244,536,233,486,229,439"/>
-<area shape="rect" id="Node000009" href="$structRetransmitter.html" title=" " alt="" coords="470,744,635,869"/>
-<area shape="poly" id="edge9_Node000005_Node000009" title=" " alt="" coords="555,869,555,1026,550,1026,550,869"/>
-<area shape="rect" id="Node000010" href="$structKvsPeerConnection.html" title=" " alt="" coords="2305,1032,2541,1297"/>
-<area shape="poly" id="edge10_Node000001_Node000010" title=" " alt="" coords="2543,1233,2832,1403,2830,1407,2540,1238"/>
-<area shape="rect" id="Node000011" href="$structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer&#45;to&#45;peer communications with ano..." alt="" coords="1503,774,1640,839"/>
-<area shape="poly" id="edge11_Node000010_Node000011" title=" " alt="" coords="1581,839,1591,870,1606,905,1627,939,1654,967,1728,1018,1808,1059,1892,1091,1978,1116,2064,1134,2145,1147,2289,1160,2289,1165,2145,1152,2063,1139,1977,1121,1891,1096,1806,1063,1725,1022,1651,971,1623,942,1602,907,1586,872,1576,841"/>
-<area shape="rect" id="Node000012" href="$struct____IceAgent.html" title=" " alt="" coords="1665,674,1875,939"/>
-<area shape="poly" id="edge12_Node000010_Node000012" title=" " alt="" coords="1877,863,2292,1089,2290,1094,1874,868"/>
-<area shape="rect" id="Node000013" href="$structRtcIceServerDiagnostics.html" title=" " alt="" coords="1859,273,2049,438"/>
-<area shape="poly" id="edge13_Node000012_Node000013" title=" " alt="" coords="1952,439,1939,528,1927,576,1911,621,1887,668,1882,666,1906,619,1922,574,1934,527,1947,438"/>
-<area shape="rect" id="Node000014" href="$structRtcIceCandidateDiagnostics.html" title=" " alt="" coords="2073,263,2269,448"/>
-<area shape="poly" id="edge14_Node000012_Node000014" title=" " alt="" coords="2163,449,2144,549,2132,592,2117,622,2088,644,2033,676,1892,749,1889,745,2031,671,2085,640,2113,618,2127,590,2139,548,2158,448"/>
-<area shape="rect" id="Node000015" href="$structIceAgentProfileDiagnostics.html" title=" " alt="" coords="312,253,559,458"/>
-<area shape="poly" id="edge15_Node000012_Node000015" title=" " alt="" coords="412,459,409,501,413,544,425,584,449,618,469,625,511,631,647,636,1045,635,1445,631,1585,633,1629,637,1652,642,1681,660,1678,665,1650,646,1628,642,1584,639,1445,636,1045,641,647,642,510,636,467,630,446,622,420,587,408,545,404,501,407,458"/>
-<area shape="rect" id="Node000016" href="$structConnectionListener.html" title=" " alt="" coords="583,273,741,438"/>
-<area shape="poly" id="edge16_Node000012_Node000016" title=" " alt="" coords="642,439,636,485,637,534,649,580,660,600,674,618,690,624,724,628,835,634,1158,634,1484,632,1597,635,1652,642,1681,660,1678,665,1650,646,1597,640,1484,638,1158,640,835,639,724,634,689,629,671,622,655,603,644,582,632,534,631,485,636,438"/>
-<area shape="rect" id="Node000023" href="$structIceCandidatePair.html" title=" " alt="" coords="765,253,919,458"/>
-<area shape="poly" id="edge17_Node000012_Node000023" title=" " alt="" coords="831,458,828,555,833,593,845,618,858,623,886,627,977,632,1244,634,1513,633,1607,636,1652,642,1680,661,1677,665,1650,646,1606,641,1513,639,1244,639,977,637,885,632,856,628,842,622,828,595,823,555,826,458"/>
-<area shape="rect" id="Node000037" href="$structIceAgentCallbacks.html" title=" " alt="" coords="944,293,1151,418"/>
-<area shape="poly" id="edge18_Node000012_Node000037" title=" " alt="" coords="1044,418,1046,469,1054,523,1074,575,1089,598,1108,618,1120,624,1141,628,1203,634,1376,633,1550,631,1615,634,1652,642,1680,660,1677,665,1650,646,1614,639,1550,636,1376,639,1203,639,1140,634,1118,629,1104,622,1084,602,1069,578,1049,525,1040,469,1039,419"/>
-<area shape="rect" id="Node000028" href="$structIceServer.html" title=" " alt="" coords="1175,263,1269,448"/>
-<area shape="poly" id="edge19_Node000012_Node000028" title=" " alt="" coords="1223,448,1228,494,1241,540,1261,583,1292,618,1321,632,1363,637,1467,634,1574,628,1619,631,1652,642,1680,661,1677,665,1650,646,1618,637,1574,634,1468,639,1363,643,1320,637,1288,622,1257,585,1236,542,1223,495,1218,449"/>
-<area shape="rect" id="Node000018" href="$structKvsIpAddress.html" title=" " alt="" coords="1293,293,1413,418"/>
-<area shape="poly" id="edge20_Node000012_Node000018" title=" " alt="" coords="1353,418,1356,468,1367,523,1388,575,1403,598,1422,618,1441,627,1467,632,1534,632,1602,632,1631,634,1653,642,1679,661,1676,665,1650,646,1630,640,1602,637,1534,638,1467,637,1439,632,1419,622,1399,601,1383,577,1362,524,1351,469,1347,418"/>
-<area shape="rect" id="Node000038" href="$structKvsRtcConfiguration.html" title=" " alt="" coords="1437,173,1681,537"/>
-<area shape="poly" id="edge21_Node000012_Node000038" title=" " alt="" coords="1584,537,1599,579,1620,618,1635,631,1653,642,1670,660,1666,664,1650,646,1632,635,1616,622,1594,582,1579,539"/>
-<area shape="rect" id="Node000030" href="$structStunPacket.html" title=" " alt="" coords="1705,313,1835,398"/>
-<area shape="poly" id="edge22_Node000012_Node000030" title=" " alt="" coords="1773,398,1773,657,1767,657,1767,398"/>
-<area shape="rect" id="Node000021" href="$struct____DtlsSession.html" title=" " alt="" coords="2099,644,2313,969"/>
-<area shape="poly" id="edge23_Node000010_Node000021" title=" " alt="" coords="2297,968,2320,1007,2326,1016,2322,1019,2316,1009,2293,971"/>
-<area shape="rect" id="Node000022" href="$structDtlsSessionCallbacks.html" title=" " alt="" coords="2294,293,2523,418"/>
-<area shape="poly" id="edge24_Node000021_Node000022" title=" " alt="" coords="2423,418,2426,466,2424,520,2412,573,2401,598,2387,622,2374,633,2361,637,2345,640,2327,647,2325,642,2344,635,2359,632,2372,628,2383,618,2396,596,2407,571,2418,519,2421,466,2417,419"/>
-<area shape="rect" id="Node000039" href="$struct____SrtpSession.html" title=" " alt="" coords="2337,764,2509,849"/>
-<area shape="poly" id="edge25_Node000010_Node000039" title=" " alt="" coords="2426,849,2426,1016,2421,1016,2421,849"/>
-<area shape="rect" id="Node000040" href="$structSctpSession.html" title=" " alt="" coords="2534,714,2686,899"/>
-<area shape="poly" id="edge26_Node000010_Node000040" title=" " alt="" coords="2580,900,2557,955,2531,1009,2526,1019,2521,1016,2526,1007,2552,953,2575,898"/>
-<area shape="rect" id="Node000041" href="$structSctpSessionCallbacks.html" title=" " alt="" coords="2548,293,2747,418"/>
-<area shape="poly" id="edge27_Node000040_Node000041" title=" " alt="" coords="2640,419,2622,562,2615,697,2609,697,2617,561,2635,418"/>
-<area shape="rect" id="Node000044" href="$structSessionDescription.html" title=" " alt="" coords="2711,674,2891,939"/>
-<area shape="poly" id="edge28_Node000010_Node000044" title=" " alt="" coords="2725,941,2700,971,2631,1034,2556,1088,2553,1083,2627,1030,2696,967,2721,938"/>
-<area shape="rect" id="Node000045" href="$structSdpOrigin.html" title=" " alt="" coords="3337,303,3462,408"/>
-<area shape="poly" id="edge29_Node000044_Node000045" title=" " alt="" coords="3396,409,3384,462,3363,521,3331,577,3310,602,3285,622,3250,635,3205,640,3094,636,2984,631,2938,635,2905,646,2881,664,2877,660,2902,642,2937,630,2983,626,3094,631,3204,635,3249,630,3282,618,3306,598,3327,574,3359,519,3379,460,3391,408"/>
-<area shape="rect" id="Node000046" href="$structSdpConnectionInformation.html" title=" " alt="" coords="2990,5,3177,111"/>
-<area shape="poly" id="edge31_Node000044_Node000046" title=" " alt="" coords="2990,74,2941,87,2891,107,2846,136,2826,154,2810,175,2793,210,2782,259,2776,317,2773,383,2777,524,2787,657,2781,658,2771,524,2768,383,2771,317,2777,258,2788,208,2805,172,2822,150,2843,132,2889,102,2940,82,2989,69"/>
-<area shape="poly" id="edge30_Node000045_Node000046" title=" " alt="" coords="3075,110,3077,131,3087,147,3105,158,3132,163,3202,161,3274,159,3304,162,3326,171,3351,195,3369,224,3382,255,3392,286,3386,287,3377,257,3364,226,3346,198,3323,176,3303,167,3274,164,3202,167,3131,168,3103,163,3083,151,3072,132,3070,111"/>
-<area shape="rect" id="Node000051" href="$structSdpMediaDescription.html" title=" " alt="" coords="3667,293,3844,418"/>
-<area shape="poly" id="edge37_Node000051_Node000046" title=" " alt="" coords="3178,86,3295,118,3424,147,3473,150,3538,152,3602,157,3628,162,3649,171,3675,193,3698,219,3731,276,3726,279,3694,222,3672,196,3646,176,3627,167,3601,162,3538,157,3473,156,3423,152,3293,123,3176,91"/>
-<area shape="rect" id="Node000047" href="$structSdpTimeDescription.html" title=" " alt="" coords="3007,313,3152,398"/>
-<area shape="poly" id="edge32_Node000044_Node000047" title=" " alt="" coords="3063,399,3031,466,2990,539,2948,593,2905,646,2894,662,2890,659,2901,642,2944,590,2985,536,3026,463,3059,397"/>
-<area shape="rect" id="Node000048" href="$structSdpTimeZone.html" title=" " alt="" coords="3177,313,3313,398"/>
-<area shape="poly" id="edge33_Node000044_Node000048" title=" " alt="" coords="3241,399,3228,452,3205,514,3190,545,3171,574,3148,600,3121,622,3091,637,3063,642,3037,640,3011,636,2986,631,2960,629,2934,633,2905,646,2882,664,2879,660,2902,642,2932,628,2960,624,2987,625,3012,630,3038,635,3063,637,3090,632,3118,618,3144,596,3166,571,3185,542,3201,512,3223,450,3236,397"/>
-<area shape="rect" id="Node000049" href="$structSdpEncryptionKey.html" title=" " alt="" coords="3468,15,3613,101"/>
-<area shape="poly" id="edge34_Node000044_Node000049" title=" " alt="" coords="3537,101,3526,174,3517,277,3514,359,3506,439,3494,485,3477,538,3457,587,3443,606,3419,622,3398,631,3372,637,3309,642,3237,640,3160,634,3083,629,3012,627,2950,631,2925,637,2905,646,2880,665,2877,660,2902,642,2923,632,2949,626,3011,621,3084,623,3161,629,3238,634,3309,637,3371,632,3396,626,3417,618,3439,602,3452,585,3471,536,3489,484,3500,438,3509,359,3511,277,3521,173,3532,101"/>
-<area shape="poly" id="edge38_Node000051_Node000049" title=" " alt="" coords="3585,99,3649,172,3685,224,3717,277,3713,280,3681,227,3645,175,3581,102"/>
-<area shape="rect" id="Node000050" href="$structSdpAttributes.html" title=" " alt="" coords="3765,15,3889,101"/>
-<area shape="poly" id="edge35_Node000044_Node000050" title=" " alt="" coords="3861,100,3877,134,3877,149,3879,228,3886,302,3893,371,3896,435,3889,493,3881,519,3868,544,3851,567,3829,588,3801,606,3767,623,3743,628,3707,632,3605,635,3333,630,3061,628,2961,634,2926,639,2905,646,2880,664,2877,660,2902,642,2925,634,2960,628,3061,623,3333,625,3605,630,3707,627,3742,623,3765,617,3799,602,3826,583,3847,563,3864,541,3876,517,3884,492,3890,435,3888,372,3880,302,3873,228,3871,149,3871,135,3856,102"/>
-<area shape="poly" id="edge39_Node000051_Node000050" title=" " alt="" coords="3793,102,3774,136,3764,170,3757,206,3753,276,3748,276,3752,206,3758,169,3769,134,3788,99"/>
-<area shape="poly" id="edge36_Node000044_Node000051" title=" " alt="" coords="3729,420,3694,480,3649,539,3621,569,3596,591,3568,607,3529,623,3486,629,3412,631,3214,630,3017,631,2945,637,2904,646,2880,664,2877,660,2902,642,2944,631,3017,626,3214,625,3412,626,3485,623,3528,617,3566,603,3593,586,3617,565,3645,536,3690,477,3724,417"/>
-<area shape="rect" id="Node000052" href="$struct____RtcDataChannel.html" title="RtcDataChannel represents a bi&#45;directional data channel between two peers." alt="" coords="2915,764,3049,849"/>
-<area shape="poly" id="edge40_Node000010_Node000052" title=" " alt="" coords="2975,850,2962,890,2942,934,2915,976,2878,1010,2852,1023,2829,1027,2805,1029,2776,1035,2664,1072,2557,1112,2555,1107,2662,1067,2775,1029,2804,1024,2828,1022,2850,1018,2875,1006,2911,972,2938,931,2957,888,2970,849"/>
-<area shape="rect" id="Node000053" href="$structNullableBool.html" title=" " alt="" coords="3073,764,3171,849"/>
-<area shape="poly" id="edge41_Node000010_Node000053" title=" " alt="" coords="3117,850,3105,893,3085,939,3055,981,3035,998,3012,1010,2978,1022,2948,1028,2895,1028,2842,1026,2811,1028,2776,1035,2663,1067,2557,1107,2555,1102,2662,1062,2775,1029,2811,1023,2842,1021,2895,1023,2947,1022,2977,1017,3010,1006,3032,994,3051,978,3080,937,3100,891,3112,849"/>
-<area shape="rect" id="Node000054" href="$structTwccManager.html" title=" " alt="" coords="3195,724,3412,889"/>
-<area shape="poly" id="edge42_Node000010_Node000054" title=" " alt="" coords="3264,891,3240,926,3211,960,3177,989,3138,1010,3103,1020,3060,1025,2958,1027,2855,1028,2776,1035,2663,1066,2557,1106,2556,1101,2661,1061,2775,1029,2854,1023,2957,1022,3060,1019,3102,1014,3136,1006,3174,985,3207,956,3236,923,3259,888"/>
-<area shape="rect" id="Node000055" href="$structTwccFeedback.html" title="Per&#45;packet feedback from a TWCC report." alt="" coords="896,744,1009,869"/>
-<area shape="poly" id="edge43_Node000010_Node000055" title=" " alt="" coords="972,869,987,905,1007,943,1033,978,1065,1006,1108,1029,1161,1050,1225,1069,1296,1085,1459,1112,1637,1132,1820,1145,1997,1154,2289,1161,2289,1166,1997,1159,1820,1151,1636,1137,1458,1117,1295,1090,1223,1074,1160,1055,1105,1034,1062,1010,1029,981,1002,945,982,907,967,871"/>
-<area shape="rect" id="Node000056" href="$structCongestionCtx.html" title="Context provided to the bandwidth controller callback." alt="" coords="1114,734,1223,879"/>
-<area shape="poly" id="edge44_Node000010_Node000056" title=" " alt="" coords="1188,878,1202,913,1220,949,1244,980,1274,1006,1310,1024,1354,1042,1465,1072,1598,1097,1744,1116,2041,1143,2289,1156,2289,1162,2041,1148,1743,1122,1597,1102,1464,1077,1352,1047,1308,1029,1271,1010,1240,984,1216,951,1197,916,1183,880"/>
-<area shape="rect" id="Node000058" href="$structKvsPeerConnectionDiagnostics.html" title=" " alt="" coords="1259,734,1478,879"/>
-<area shape="poly" id="edge45_Node000010_Node000058" title=" " alt="" coords="1396,879,1413,913,1434,947,1459,979,1490,1006,1552,1036,1637,1063,1739,1086,1852,1105,2087,1134,2289,1152,2289,1157,2086,1140,1852,1110,1738,1091,1635,1068,1550,1041,1487,1010,1456,983,1429,950,1408,915,1391,881"/>
-<area shape="rect" id="Node000059" href="$structJitterBuffer.html" title=" " alt="" coords="2787,1032,2963,1297"/>
-<area shape="poly" id="edge46_Node000001_Node000059" title=" " alt="" coords="2919,1297,2934,1344,2929,1345,2914,1298"/>
-<area shape="rect" id="Node000060" href="$structRollingBufferConfig.html" title=" " alt="" coords="2988,1122,3176,1207"/>
-<area shape="poly" id="edge47_Node000001_Node000060" title=" " alt="" coords="3071,1209,3028,1345,3022,1343,3066,1207"/>
-<area shape="rect" id="Node000061" href="$structRtcOutboundRtpStreamStats.html" title="RtcOutboundRtpStreamStats Gathers stats for media stream from the embedded device Note: RTCOutboundRt..." alt="" coords="3421,1032,3621,1297"/>
-<area shape="poly" id="edge48_Node000001_Node000061" title=" " alt="" coords="3422,1228,3126,1405,3124,1401,3419,1224"/>
-<area shape="rect" id="Node000062" href="$structRTCSentRtpStreamStats.html" title="RTCSentRtpStreamStats will be used as part of outbound Rtp stats Reference: https://www...." alt="" coords="3436,764,3605,849"/>
-<area shape="poly" id="edge49_Node000061_Node000062" title=" " alt="" coords="3523,849,3523,1016,3518,1016,3518,849"/>
-<area shape="rect" id="Node000064" href="$structQualityLimitationDurationsRecord.html" title=" " alt="" coords="3629,757,3820,857"/>
-<area shape="poly" id="edge50_Node000061_Node000064" title=" " alt="" coords="3699,858,3607,1019,3602,1016,3694,856"/>
-<area shape="rect" id="Node000065" href="$structDscpPacketsSentRecord.html" title="Record of total number of packets sent per DSCP. Used by RTCOutboundRtpStreamStats object." alt="" coords="3844,764,4048,849"/>
-<area shape="poly" id="edge51_Node000061_Node000065" title=" " alt="" coords="3933,851,3914,890,3887,934,3853,976,3811,1010,3788,1022,3766,1027,3726,1026,3684,1023,3661,1026,3636,1035,3634,1030,3660,1021,3684,1018,3726,1020,3766,1021,3786,1017,3809,1006,3849,972,3883,931,3909,888,3928,848"/>
-<area shape="rect" id="Node000066" href="$structRtcRemoteInboundRtpStreamStats.html" title="RTCRemoteInboundRtpStreamStats Represents the remote endpoint&#39;s measurement metrics for a particular ..." alt="" coords="3645,1075,3863,1255"/>
-<area shape="poly" id="edge52_Node000001_Node000066" title=" " alt="" coords="3686,1257,3661,1280,3634,1300,3573,1334,3508,1365,3374,1414,3243,1449,3127,1473,3126,1468,3242,1444,3372,1409,3506,1360,3570,1329,3631,1295,3658,1276,3683,1253"/>
-<area shape="rect" id="Node000067" href="$structRtcInboundRtpStreamStats.html" title="The RTCInboundRtpStreamStats dictionary represents the measurement metrics for the incoming RTP media..." alt="" coords="3982,1032,4171,1297"/>
-<area shape="poly" id="edge53_Node000001_Node000067" title=" " alt="" coords="3983,1239,3931,1271,3876,1300,3780,1339,3680,1373,3579,1402,3477,1425,3287,1460,3127,1481,3127,1476,3286,1455,3476,1420,3577,1396,3679,1368,3779,1334,3874,1295,3929,1266,3980,1234"/>
-<area shape="rect" id="Node000068" href="$structRtcReceivedRtpStreamStats.html" title=" " alt="" coords="4073,674,4270,939"/>
-<area shape="poly" id="edge54_Node000067_Node000068" title=" " alt="" coords="4139,940,4118,1017,4113,1015,4134,939"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="4180,1615,4442,1911"/>
+<area shape="rect" id="Node000002" href="$structRtcRtpTransceiver.html" title="The RTCRtpTransceiver represents a combination of an RTCRtpSender and an RTCRtpReceiver that share a ..." alt="" coords="560,1358,688,1430"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="686,1428,765,1468,862,1513,971,1555,1084,1588,1210,1613,1365,1635,1542,1655,1739,1673,2175,1702,2640,1723,3104,1739,3533,1749,4166,1760,4160,1761,3533,1754,3104,1744,2640,1729,2175,1707,1739,1678,1542,1660,1364,1641,1210,1618,1082,1594,969,1560,860,1517,762,1472,686,1433"/>
+<area shape="rect" id="Node000003" href="$structRtcRtpReceiver.html" title="RTCRtpReceiver allows an application to inspect the receipt of a MediaStreamTrack." alt="" coords="110,956,221,1028"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="193,1025,256,1095,331,1171,450,1268,560,1348,555,1349,447,1272,328,1175,252,1099,194,1031"/>
+<area shape="rect" id="Node000004" href="$structRtcMediaStreamTrack.html" title="Represents a single track in a MediaStream." alt="" coords="5,397,158,536"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="81,533,88,653,95,720,104,786,124,867,149,939,143,940,119,869,99,787,89,721,83,654,81,538"/>
+<area shape="rect" id="Node000005" href="$structRtcRtpSender.html" title=" " alt="" coords="342,855,549,1129"/>
+<area shape="poly" id="edge6_Node000005_Node000004" title=" " alt="" coords="107,533,138,601,172,669,207,726,248,780,333,879,328,880,244,784,203,729,167,672,133,603,107,538"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="549,1011,4164,1730,4162,1735,549,1017"/>
+<area shape="rect" id="Node000006" href="$struct____Payloads.html" title=" " alt="" coords="182,374,363,558"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="283,556,304,668,319,728,337,786,360,840,354,840,332,788,314,729,299,669,282,561"/>
+<area shape="rect" id="Node000007" href="$structRtpRollingBuffer.html" title=" " alt="" coords="387,430,504,503"/>
+<area shape="poly" id="edge7_Node000005_Node000007" title=" " alt="" coords="446,500,448,839,443,838,445,505"/>
+<area shape="rect" id="Node000008" href="$structRollingBuffer.html" title=" " alt="" coords="396,5,496,189"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="446,187,448,414,443,413,445,192"/>
+<area shape="rect" id="Node000009" href="$structRetransmitter.html" title=" " alt="" coords="528,397,692,536"/>
+<area shape="poly" id="edge9_Node000005_Node000009" title=" " alt="" coords="604,533,589,655,574,722,555,788,533,841,528,839,550,786,569,721,583,654,603,538"/>
+<area shape="rect" id="Node000010" href="$structKvsPeerConnection.html" title=" " alt="" coords="3637,1246,3871,1542"/>
+<area shape="poly" id="edge10_Node000001_Node000010" title=" " alt="" coords="3871,1470,4168,1666,4163,1665,3870,1475"/>
+<area shape="rect" id="Node000011" href="$structRtcPeerConnection.html" title="An RtcPeerConnection instance allows an application to establish peer&#45;to&#45;peer communications with ano..." alt="" coords="1919,956,2052,1028"/>
+<area shape="poly" id="edge11_Node000010_Node000011" title=" " alt="" coords="1992,1026,2002,1063,2016,1102,2037,1140,2067,1171,2121,1204,2189,1233,2271,1259,2363,1281,2464,1302,2572,1319,2802,1347,3037,1366,3262,1379,3623,1392,3617,1392,3262,1384,3037,1371,2802,1352,2571,1324,2463,1307,2362,1287,2269,1264,2187,1238,2118,1208,2064,1175,2033,1143,2011,1104,1997,1064,1990,1030"/>
+<area shape="rect" id="Node000012" href="$struct____IceAgent.html" title=" " alt="" coords="2077,844,2286,1140"/>
+<area shape="poly" id="edge12_Node000010_Node000012" title=" " alt="" coords="2286,1019,2625,1110,3049,1220,3623,1361,3617,1362,3048,1225,2624,1115,2286,1024"/>
+<area shape="rect" id="Node000013" href="$structRtcIceServerDiagnostics.html" title=" " alt="" coords="716,374,903,558"/>
+<area shape="poly" id="edge13_Node000012_Node000013" title=" " alt="" coords="783,556,775,616,775,678,779,707,788,736,801,762,820,785,840,792,883,798,1025,804,1437,802,1851,797,1996,799,2041,803,2065,808,2097,833,2092,832,2063,813,2041,808,1995,805,1851,802,1437,807,1025,809,883,803,839,797,816,789,797,765,783,738,774,708,770,678,770,616,781,561"/>
+<area shape="rect" id="Node000014" href="$structRtcIceCandidateDiagnostics.html" title=" " alt="" coords="928,363,1121,570"/>
+<area shape="poly" id="edge14_Node000012_Node000014" title=" " alt="" coords="1013,567,1011,634,1011,697,1018,751,1025,771,1034,785,1051,791,1087,796,1204,801,1545,801,1888,798,2007,801,2065,808,2097,833,2091,832,2063,813,2007,806,1888,804,1545,806,1204,806,1086,801,1049,796,1031,789,1020,773,1013,752,1006,698,1006,634,1011,572"/>
+<area shape="rect" id="Node000015" href="$structIceAgentProfileDiagnostics.html" title=" " alt="" coords="1172,352,1418,581"/>
+<area shape="poly" id="edge15_Node000012_Node000015" title=" " alt="" coords="1282,578,1280,643,1281,703,1287,753,1294,772,1302,785,1319,794,1348,801,1435,807,1549,807,1677,803,1922,795,2013,798,2045,802,2066,808,2096,833,2091,832,2063,813,2044,807,2013,803,1922,801,1677,808,1549,813,1435,813,1347,806,1317,799,1299,789,1289,774,1282,754,1275,703,1275,643,1280,583"/>
+<area shape="rect" id="Node000016" href="$structConnectionListener.html" title=" " alt="" coords="1441,374,1597,558"/>
+<area shape="poly" id="edge16_Node000012_Node000016" title=" " alt="" coords="1507,556,1503,625,1501,692,1507,749,1513,770,1522,785,1534,791,1554,796,1616,802,1788,801,1963,798,2028,800,2065,808,2096,833,2091,832,2063,813,2027,805,1963,803,1788,806,1616,807,1553,802,1532,796,1518,789,1508,772,1501,750,1496,692,1497,624,1505,561"/>
+<area shape="rect" id="Node000023" href="$structIceCandidatePair.html" title=" " alt="" coords="1901,352,2054,581"/>
+<area shape="poly" id="edge17_Node000012_Node000023" title=" " alt="" coords="1936,579,1927,633,1924,687,1934,739,1944,763,1958,785,1969,795,1981,800,2006,800,2035,798,2050,801,2066,808,2093,833,2088,832,2063,813,2048,806,2035,803,2007,805,1980,805,1966,800,1954,788,1939,766,1928,741,1919,688,1922,633,1933,583"/>
+<area shape="rect" id="Node000027" href="$structTransactionIdStore.html" title=" " alt="" coords="1641,16,1839,178"/>
+<area shape="poly" id="edge24_Node000012_Node000027" title=" " alt="" coords="1693,176,1674,220,1660,263,1644,353,1634,471,1633,531,1637,587,1645,634,1660,669,1686,703,1712,726,1739,742,1769,752,1836,766,1918,784,1960,791,1994,790,2027,792,2046,798,2066,808,2094,832,2089,832,2063,813,2044,803,2026,797,1994,795,1959,796,1917,789,1835,771,1767,757,1737,747,1709,731,1682,706,1655,672,1640,636,1631,587,1628,531,1629,471,1639,352,1655,262,1669,218,1690,180"/>
+<area shape="poly" id="edge18_Node000023_Node000027" title=" " alt="" coords="1818,175,1854,217,1885,261,1927,338,1922,337,1881,264,1849,220,1817,181"/>
+<area shape="rect" id="Node000037" href="$structIceAgentCallbacks.html" title=" " alt="" coords="2078,397,2283,536"/>
+<area shape="poly" id="edge19_Node000012_Node000037" title=" " alt="" coords="2182,533,2184,829,2179,826,2179,538"/>
+<area shape="rect" id="Node000028" href="$structIceServer.html" title=" " alt="" coords="2306,363,2398,570"/>
+<area shape="poly" id="edge20_Node000012_Node000028" title=" " alt="" coords="2358,567,2351,676,2341,733,2325,788,2297,848,2293,844,2321,786,2336,732,2346,676,2355,572"/>
+<area shape="rect" id="Node000018" href="$structKvsIpAddress.html" title=" " alt="" coords="2423,397,2541,536"/>
+<area shape="poly" id="edge21_Node000012_Node000018" title=" " alt="" coords="2488,534,2488,593,2482,658,2467,725,2440,788,2412,829,2378,866,2340,899,2301,927,2299,922,2337,894,2374,862,2408,826,2435,785,2462,723,2477,657,2483,593,2485,538"/>
+<area shape="rect" id="Node000038" href="$structKvsRtcConfiguration.html" title=" " alt="" coords="2565,262,2807,671"/>
+<area shape="poly" id="edge22_Node000012_Node000038" title=" " alt="" coords="2694,668,2679,732,2666,761,2649,788,2615,827,2576,861,2532,890,2486,914,2392,951,2304,974,2302,969,2390,946,2484,909,2529,885,2572,857,2611,823,2645,785,2661,759,2674,731,2691,672"/>
+<area shape="rect" id="Node000030" href="$structStunPacket.html" title=" " alt="" coords="2831,419,2959,514"/>
+<area shape="poly" id="edge23_Node000012_Node000030" title=" " alt="" coords="2903,511,2907,574,2902,647,2894,685,2883,722,2866,757,2844,788,2787,842,2723,885,2652,919,2579,946,2504,965,2432,979,2304,992,2303,987,2431,973,2503,960,2577,941,2650,915,2720,881,2784,838,2840,785,2861,754,2878,720,2889,684,2896,647,2901,574,2900,516"/>
+<area shape="rect" id="Node000021" href="$struct____DtlsSession.html" title=" " alt="" coords="2889,811,3101,1173"/>
+<area shape="poly" id="edge25_Node000010_Node000021" title=" " alt="" coords="3102,1158,3114,1171,3145,1200,3183,1220,3294,1268,3411,1308,3522,1340,3623,1366,3618,1366,3521,1345,3409,1313,3293,1273,3180,1225,3142,1204,3110,1175,3100,1163"/>
+<area shape="rect" id="Node000022" href="$structDtlsSessionCallbacks.html" title=" " alt="" coords="2984,397,3212,536"/>
+<area shape="poly" id="edge26_Node000021_Node000022" title=" " alt="" coords="3088,534,3043,787,3041,796,3037,792,3038,786,3084,538"/>
+<area shape="rect" id="Node000039" href="$struct____SrtpSession.html" title=" " alt="" coords="3125,945,3295,1039"/>
+<area shape="poly" id="edge27_Node000010_Node000039" title=" " alt="" coords="3220,1037,3232,1081,3250,1130,3276,1178,3310,1220,3344,1249,3381,1275,3461,1316,3543,1347,3623,1371,3618,1370,3542,1352,3459,1321,3378,1279,3340,1253,3306,1224,3271,1181,3246,1132,3227,1083,3217,1041"/>
+<area shape="rect" id="Node000040" href="$structSctpSession.html" title=" " alt="" coords="3319,889,3469,1095"/>
+<area shape="poly" id="edge28_Node000010_Node000040" title=" " alt="" coords="3391,1093,3403,1160,3414,1192,3431,1221,3470,1265,3518,1301,3570,1330,3623,1355,3618,1355,3567,1335,3515,1305,3467,1269,3427,1224,3410,1194,3398,1162,3388,1097"/>
+<area shape="rect" id="Node000041" href="$structSctpSessionCallbacks.html" title=" " alt="" coords="3235,397,3432,536"/>
+<area shape="poly" id="edge29_Node000040_Node000041" title=" " alt="" coords="3323,533,3314,653,3314,720,3321,786,3331,829,3345,874,3340,872,3326,831,3316,787,3309,721,3308,653,3320,538"/>
+<area shape="rect" id="Node000044" href="$structSessionDescription.html" title=" " alt="" coords="3493,844,3671,1140"/>
+<area shape="poly" id="edge30_Node000010_Node000044" title=" " alt="" coords="3537,1137,3539,1182,3550,1221,3564,1247,3582,1270,3626,1315,3621,1313,3578,1274,3560,1250,3545,1223,3533,1182,3533,1141"/>
+<area shape="rect" id="Node000045" href="$structSdpOrigin.html" title=" " alt="" coords="3696,408,3820,525"/>
+<area shape="poly" id="edge31_Node000044_Node000045" title=" " alt="" coords="3740,523,3638,830,3634,826,3737,527"/>
+<area shape="rect" id="Node000046" href="$structSdpConnectionInformation.html" title=" " alt="" coords="3468,39,3652,156"/>
+<area shape="poly" id="edge33_Node000044_Node000046" title=" " alt="" coords="3532,154,3512,208,3496,263,3478,376,3474,466,3481,556,3496,670,3510,749,3530,829,3525,826,3505,750,3491,671,3475,556,3468,466,3472,376,3491,262,3507,206,3529,158"/>
+<area shape="poly" id="edge32_Node000045_Node000046" title=" " alt="" coords="3606,153,3644,205,3679,261,3710,327,3735,393,3731,391,3705,329,3674,264,3640,208,3605,158"/>
+<area shape="rect" id="Node000047" href="$structSdpTimeDescription.html" title=" " alt="" coords="3844,419,3986,514"/>
+<area shape="poly" id="edge34_Node000044_Node000047" title=" " alt="" coords="3900,512,3871,589,3835,672,3810,736,3795,762,3769,789,3746,800,3724,801,3704,803,3683,813,3661,834,3658,829,3680,808,3703,797,3724,796,3744,795,3765,784,3791,759,3805,734,3830,670,3866,587,3896,515"/>
+<area shape="rect" id="Node000048" href="$structSdpTimeZone.html" title=" " alt="" coords="4009,419,4143,514"/>
+<area shape="poly" id="edge35_Node000044_Node000048" title=" " alt="" coords="4078,511,4074,577,4059,652,4046,691,4028,727,4005,760,3977,789,3951,801,3915,805,3830,803,3744,800,3709,804,3683,813,3658,834,3655,829,3680,808,3707,799,3743,795,3830,798,3915,800,3949,795,3973,784,4001,757,4024,725,4041,689,4054,651,4069,576,4075,516"/>
+<area shape="rect" id="Node000049" href="$structSdpEncryptionKey.html" title=" " alt="" coords="4168,419,4310,514"/>
+<area shape="poly" id="edge36_Node000044_Node000049" title=" " alt="" coords="4243,512,4242,577,4230,653,4219,691,4202,727,4181,761,4153,789,4134,800,4112,807,4056,813,3990,811,3919,805,3781,795,3724,799,3702,805,3683,813,3657,834,3654,830,3680,808,3700,799,3724,794,3781,790,3919,800,3990,806,4056,808,4111,802,4132,795,4149,785,4177,757,4198,725,4214,689,4225,651,4237,577,4240,516"/>
+<area shape="rect" id="Node000050" href="$structSdpAttributes.html" title=" " alt="" coords="4338,419,4460,514"/>
+<area shape="poly" id="edge37_Node000044_Node000050" title=" " alt="" coords="4410,511,4418,576,4416,651,4409,689,4397,726,4379,760,4354,789,4337,797,4311,803,4233,809,4020,805,3805,800,3727,803,3700,807,3683,813,3657,834,3654,829,3680,808,3698,802,3726,798,3805,795,4020,800,4233,803,4310,798,4335,792,4351,785,4375,757,4392,724,4404,688,4411,651,4412,576,4407,516"/>
+<area shape="rect" id="Node000052" href="$struct____RtcDataChannel.html" title="RtcDataChannel represents a bi&#45;directional data channel between two peers." alt="" coords="3694,945,3824,1039"/>
+<area shape="poly" id="edge38_Node000010_Node000052" title=" " alt="" coords="3760,1037,3757,1197,3756,1231,3752,1228,3752,1197,3756,1041"/>
+<area shape="rect" id="Node000053" href="$structNullableBool.html" title=" " alt="" coords="3848,945,3942,1039"/>
+<area shape="poly" id="edge39_Node000010_Node000053" title=" " alt="" coords="3899,1037,3897,1126,3890,1175,3876,1223,3872,1233,3869,1229,3871,1221,3884,1174,3892,1126,3896,1041"/>
+<area shape="rect" id="Node000054" href="$structTwccManager.html" title=" " alt="" coords="3966,900,4182,1084"/>
+<area shape="poly" id="edge40_Node000010_Node000054" title=" " alt="" coords="4056,1082,4031,1156,4013,1191,3992,1224,3942,1277,3885,1322,3883,1317,3939,1273,3988,1221,4009,1188,4026,1154,4052,1085"/>
+<area shape="rect" id="Node000055" href="$structTwccFeedback.html" title="Per&#45;packet feedback from a TWCC report." alt="" coords="4206,922,4318,1062"/>
+<area shape="poly" id="edge41_Node000010_Node000055" title=" " alt="" coords="4248,1060,4228,1120,4213,1148,4196,1175,4175,1196,4146,1217,4069,1262,3978,1306,3887,1344,3886,1339,3976,1301,4066,1257,4143,1213,4172,1192,4192,1172,4209,1146,4223,1117,4244,1063"/>
+<area shape="rect" id="Node000056" href="$structCongestionCtx.html" title="Context provided to the bandwidth controller callback." alt="" coords="4348,911,4453,1073"/>
+<area shape="poly" id="edge42_Node000010_Node000056" title=" " alt="" coords="4410,1071,4409,1112,4401,1153,4386,1192,4361,1224,4340,1236,4311,1243,4240,1246,4167,1245,4112,1249,3995,1286,3887,1330,3885,1325,3994,1280,4110,1244,4167,1240,4240,1241,4310,1237,4338,1231,4357,1220,4381,1189,4396,1152,4404,1112,4406,1075"/>
+<area shape="rect" id="Node000058" href="$structKvsPeerConnectionDiagnostics.html" title=" " alt="" coords="4521,911,4738,1073"/>
+<area shape="poly" id="edge43_Node000010_Node000058" title=" " alt="" coords="4638,1070,4636,1112,4628,1154,4611,1192,4585,1225,4554,1235,4500,1242,4351,1246,4201,1245,4111,1249,4053,1264,3995,1284,3887,1329,3885,1324,3993,1279,4052,1259,4111,1244,4201,1240,4351,1240,4499,1236,4553,1230,4581,1220,4607,1189,4623,1152,4631,1112,4634,1074"/>
+<area shape="rect" id="Node000059" href="$structJitterBuffer.html" title=" " alt="" coords="4123,1246,4297,1542"/>
+<area shape="poly" id="edge44_Node000001_Node000059" title=" " alt="" coords="4252,1540,4268,1600,4264,1597,4249,1544"/>
+<area shape="rect" id="Node000060" href="$structRollingBufferConfig.html" title=" " alt="" coords="4321,1347,4507,1442"/>
+<area shape="poly" id="edge45_Node000001_Node000060" title=" " alt="" coords="4405,1439,4368,1592,4365,1601,4362,1597,4363,1590,4401,1443"/>
+<area shape="rect" id="Node000061" href="$structRtcOutboundRtpStreamStats.html" title="RtcOutboundRtpStreamStats Gathers stats for media stream from the embedded device Note: RTCOutboundRt..." alt="" coords="4759,1246,4956,1542"/>
+<area shape="poly" id="edge46_Node000001_Node000061" title=" " alt="" coords="4762,1460,4457,1667,4455,1662,4757,1462"/>
+<area shape="rect" id="Node000062" href="$structRTCSentRtpStreamStats.html" title="RTCSentRtpStreamStats will be used as part of outbound Rtp stats Reference: https://www...." alt="" coords="4763,945,4928,1039"/>
+<area shape="poly" id="edge47_Node000061_Node000062" title=" " alt="" coords="4849,1037,4855,1231,4851,1227,4845,1041"/>
+<area shape="rect" id="Node000064" href="$structQualityLimitationDurationsRecord.html" title=" " alt="" coords="4952,936,5139,1048"/>
+<area shape="poly" id="edge48_Node000061_Node000064" title=" " alt="" coords="5022,1046,4935,1233,4932,1229,5018,1049"/>
+<area shape="rect" id="Node000065" href="$structDscpPacketsSentRecord.html" title="Record of total number of packets sent per DSCP. Used by RTCOutboundRtpStreamStats object." alt="" coords="5163,945,5365,1039"/>
+<area shape="poly" id="edge49_Node000061_Node000065" title=" " alt="" coords="5256,1037,5242,1085,5219,1136,5188,1184,5168,1206,5146,1225,5123,1237,5102,1242,5062,1241,5020,1238,4997,1240,4972,1249,4970,1244,4996,1235,5020,1232,5062,1235,5101,1237,5121,1232,5143,1220,5164,1202,5184,1181,5215,1133,5237,1083,5252,1041"/>
+<area shape="rect" id="Node000066" href="$structRtcRemoteInboundRtpStreamStats.html" title="RTCRemoteInboundRtpStreamStats Represents the remote endpoint&#39;s measurement metrics for a particular ..." alt="" coords="4980,1294,5197,1495"/>
+<area shape="poly" id="edge50_Node000001_Node000066" title=" " alt="" coords="5023,1493,4997,1522,4970,1544,4909,1582,4844,1616,4777,1646,4709,1671,4577,1712,4460,1739,4459,1734,4575,1707,4707,1666,4775,1641,4842,1611,4906,1578,4967,1540,4994,1518,5018,1496"/>
+<area shape="rect" id="Node000067" href="$structRtcInboundRtpStreamStats.html" title="The RTCInboundRtpStreamStats dictionary represents the measurement metrics for the incoming RTP media..." alt="" coords="5306,1246,5492,1542"/>
+<area shape="poly" id="edge51_Node000001_Node000067" title=" " alt="" coords="5309,1475,5260,1513,5210,1544,5116,1591,5016,1631,4915,1664,4813,1691,4621,1730,4459,1752,4459,1747,4620,1725,4812,1686,4913,1659,5015,1626,5113,1586,5207,1540,5257,1508,5304,1476"/>
+<area shape="rect" id="Node000068" href="$structRtcReceivedRtpStreamStats.html" title=" " alt="" coords="5389,844,5582,1140"/>
+<area shape="poly" id="edge52_Node000067_Node000068" title=" " alt="" coords="5456,1138,5436,1231,5433,1228,5452,1142"/>
 </map>

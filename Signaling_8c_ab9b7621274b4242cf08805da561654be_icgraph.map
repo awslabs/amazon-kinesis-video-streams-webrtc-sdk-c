@@ -1,0 +1,5 @@
+<map id="signalingGetIceConfigInfo" name="signalingGetIceConfigInfo">
+<area shape="rect" id="Node000001" title=" " alt="" coords="280,5,468,33"/>
+<area shape="rect" id="Node000002" href="$group__PublicMemberFunctions.html#ga94ed483b34bb395015b7d44fd98c8f5b" title="Gets the ICE configuration information object given its index." alt="" coords="5,5,232,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="261,19,232,22,232,17,267,19"/>
+</map>

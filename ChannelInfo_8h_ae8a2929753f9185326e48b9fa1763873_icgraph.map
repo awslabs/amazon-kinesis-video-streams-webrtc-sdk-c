@@ -1,0 +1,9 @@
+<map id="validateKvsSignalingChannelArnAndExtractChannelName" name="validateKvsSignalingChannelArnAndExtractChannelName">
+<area shape="rect" id="Node000001" title=" " alt="" coords="687,5,899,50"/>
+<area shape="rect" id="Node000002" href="$ChannelInfo_8c.html#ad0868d0a2cc5b05d94d83fc21711e9e5" title=" " alt="" coords="446,14,639,42"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="669,28,640,30,640,25,674,28"/>
+<area shape="rect" id="Node000003" href="$Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="245,14,398,42"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="427,28,398,30,398,25,433,28"/>
+<area shape="rect" id="Node000004" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,14,197,42"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="227,28,197,30,197,25,232,27"/>
+</map>

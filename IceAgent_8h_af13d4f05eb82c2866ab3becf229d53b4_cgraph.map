@@ -1,0 +1,12 @@
+<map id="iceAgentReportNewLocalCandidate" name="iceAgentReportNewLocalCandidate">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,32,256,60"/>
+<area shape="rect" id="Node000002" href="$IceAgent_8c.html#ad1a8fa09d399bfa78a7a76cb00c25c8c" title=" " alt="" coords="304,5,500,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="256,31,290,30,285,31,256,36"/>
+<area shape="rect" id="Node000005" href="$IceAgent_8c.html#a8c504c09cfea8efaf7869b8de9ec558c" title=" " alt="" coords="321,57,483,85"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="256,55,308,62,303,62,256,60"/>
+<area shape="rect" id="Node000003" href="$Network_8c.html#afaa547109e09c5a34437553b7258e818" title=" " alt="" coords="604,5,707,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="501,17,591,19,586,19,501,22"/>
+<area shape="rect" id="Node000004" href="$IceAgent_8c.html#a58c93902e850d579024bde109e85ab8b" title=" " alt="" coords="548,57,763,85"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="473,31,572,54,567,54,473,36"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="483,69,535,71,530,71,483,74"/>
+</map>

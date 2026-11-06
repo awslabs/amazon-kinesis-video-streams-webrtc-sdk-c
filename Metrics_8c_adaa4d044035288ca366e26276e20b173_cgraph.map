@@ -1,0 +1,7 @@
+<map id="getRtpRemoteInboundStats" name="getRtpRemoteInboundStats">
+<area shape="rect" id="Node000001" title="Get remote RTP inbound stats." alt="" coords="5,5,206,33"/>
+<area shape="rect" id="Node000002" href="$Rtp_8c.html#a3f98236c016e0072d6ef135477ffa895" title=" " alt="" coords="254,5,429,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="206,17,240,19,235,19,206,22"/>
+<area shape="rect" id="Node000003" href="$Rtp_8c.html#a353c7c84b9f9a6ab29730620fa04c87d" title=" " alt="" coords="477,5,640,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="429,17,464,19,459,19,429,22"/>
+</map>

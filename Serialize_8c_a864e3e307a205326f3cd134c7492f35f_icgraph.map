@@ -1,0 +1,13 @@
+<map id="serializeVersion" name="serializeVersion">
+<area shape="rect" id="Node000001" title=" " alt="" coords="714,65,839,93"/>
+<area shape="rect" id="Node000002" href="$Serialize_8c.html#a9c41cb60fca74b4572e2fe2bc816b919" title=" " alt="" coords="466,65,666,93"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="696,79,667,82,667,77,702,79"/>
+<area shape="rect" id="Node000003" href="$group__PublicMemberFunctions.html#ga1779d268b0993835d80f0948281e2274" title="Populate the provided answer that contains an RFC 3264 offer with the supported configurations for th..." alt="" coords="244,5,338,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="488,61,417,47,338,31,338,25,419,42,493,61"/>
+<area shape="rect" id="Node000004" href="$group__PublicMemberFunctions.html#ga19dfcbdcf4d136b56ce366fe2fb9bfb3" title=" " alt="" coords="194,57,388,102"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="448,79,389,82,388,77,453,79"/>
+<area shape="rect" id="Node000006" href="$group__PublicMemberFunctions.html#gaa1940a0ddabf41c445b55f1317476e96" title=" " alt="" coords="164,125,418,153"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="493,97,419,116,367,127,366,122,417,111,488,98"/>
+<area shape="rect" id="Node000005" href="$group__PublicMemberFunctions.html#ga7dc5ad4eb5cc7e000396547279108d9b" title="Populate the provided answer that contains an RFC 3264 answer with the supported configurations for t..." alt="" coords="5,65,116,93"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="176,80,116,82,116,77,181,78"/>
+</map>

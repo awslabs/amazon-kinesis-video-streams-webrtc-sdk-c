@@ -1,0 +1,16 @@
+<map id="signalingDisconnectSync" name="signalingDisconnectSync">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,32,189,60"/>
+<area shape="rect" id="Node000002" href="$StateMachine_8c.html#aadc0cffe12b55f3d81cd3b74244bdc3c" title=" " alt="" coords="237,5,454,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="189,33,224,32,218,33,190,39"/>
+<area shape="rect" id="Node000003" href="$Signaling_8c.html#abbf8201fa3109d6b4d78243684709794" title=" " alt="" coords="240,57,450,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="189,53,227,58,222,59,189,58"/>
+<area shape="rect" id="Node000004" href="$Signaling_8c.html#a653edfffd5d129d08f5971d91f16fc5e" title=" " alt="" coords="1021,32,1220,60"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="451,65,1005,47,1005,52,451,70"/>
+<area shape="rect" id="Node000005" href="$LwsApiCalls_8c.html#ac8ef143a573f3b4ae83bd3ad0eb9fd6f" title=" " alt="" coords="502,83,695,110"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="451,79,489,85,484,85,451,84"/>
+<area shape="rect" id="Node000006" href="$LwsApiCalls_8c.html#ae7928b7a5bf47cbdf2ccf753f1c1e8df" title=" " alt="" coords="743,83,973,110"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="696,94,731,96,725,97,696,99"/>
+<area shape="poly" id="edge6_Node000006_Node000004" title=" " alt="" coords="933,79,1028,63,1033,63,934,85"/>
+<area shape="rect" id="Node000007" href="$LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="1022,84,1218,112"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="973,94,1009,97,1004,97,973,100"/>
+</map>

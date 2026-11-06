@@ -1,0 +1,5 @@
+<map id="createRtcpPLIPacket" name="createRtcpPLIPacket">
+<area shape="rect" id="Node000001" title=" " alt="" coords="254,5,406,33"/>
+<area shape="rect" id="Node000002" href="$group__PublicMemberFunctions.html#ga698a849d76431e464b43cf51413d658d" title="Send a Picture Loss Indication (PLI) to ask the remote sender for a new keyframe." alt="" coords="5,5,206,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="236,19,206,22,206,17,241,19"/>
+</map>

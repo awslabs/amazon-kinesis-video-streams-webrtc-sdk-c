@@ -1,0 +1,13 @@
+<map id="hasTransceiverWithSsrc" name="hasTransceiverWithSsrc">
+<area shape="rect" id="Node000001" title=" " alt="" coords="513,57,688,85"/>
+<area shape="rect" id="Node000002" href="$Metrics_8c.html#a162cbc7fcbd0aa489310edd0a501158c" title="Get RTP inbound stats." alt="" coords="290,5,440,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="517,54,431,36,431,31,522,53"/>
+<area shape="rect" id="Node000004" href="$Metrics_8c.html#a5ed427c24c23aed9f61262c7e6c2abc5" title="Get RTP outbound stats." alt="" coords="285,57,445,85"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="495,71,446,74,445,69,500,71"/>
+<area shape="rect" id="Node000005" href="$Metrics_8c.html#adaa4d044035288ca366e26276e20b173" title="Get remote RTP inbound stats." alt="" coords="265,109,465,137"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="522,89,432,111,431,106,517,89"/>
+<area shape="rect" id="Node000003" href="$group__PublicMemberFunctions.html#ga469e0f69e03630ad5b03d8921afd62be" title="Get the relevant/all metrics based on the RTCStatsType field. This does not include any signaling rel..." alt="" coords="5,57,217,85"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="276,38,183,59,182,54,281,36"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="266,72,217,74,217,69,271,71"/>
+<area shape="poly" id="edge6_Node000005_Node000003" title=" " alt="" coords="276,106,182,88,183,83,281,105"/>
+</map>

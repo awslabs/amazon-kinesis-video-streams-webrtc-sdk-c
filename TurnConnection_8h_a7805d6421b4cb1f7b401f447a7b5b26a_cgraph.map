@@ -1,0 +1,9 @@
+<map id="turnConnectionStart" name="turnConnectionStart">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,157,33"/>
+<area shape="rect" id="Node000002" href="$TurnConnection_8c.html#af01ecc35132ec796882b5cfca6c25e0c" title=" " alt="" coords="205,5,419,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="157,17,192,19,186,19,157,22"/>
+<area shape="rect" id="Node000003" href="$TurnConnectionStateMachine_8c.html#aaecdea4c04ee23b7aac3f5b63578d3e0" title=" " alt="" coords="467,5,705,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="419,17,454,19,449,19,419,22"/>
+<area shape="rect" id="Node000004" href="$TurnConnectionStateMachine_8c.html#ab2cdaa389cda6f8b710789078a12b04e" title=" " alt="" coords="753,5,949,33"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="706,17,740,19,735,19,706,22"/>
+</map>

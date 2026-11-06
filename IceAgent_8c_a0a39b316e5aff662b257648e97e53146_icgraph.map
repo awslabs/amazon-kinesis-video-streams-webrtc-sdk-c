@@ -1,0 +1,9 @@
+<map id="iceAgentInitSrflxCandidate" name="iceAgentInitSrflxCandidate">
+<area shape="rect" id="Node000001" title=" " alt="" coords="441,32,635,60"/>
+<area shape="rect" id="Node000002" href="$IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="220,32,393,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="423,46,394,48,394,43,428,46"/>
+<area shape="rect" id="Node000003" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="14,5,163,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="202,34,164,31,164,26,207,33"/>
+<area shape="rect" id="Node000004" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,57,172,85"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="202,58,172,64,172,59,207,57"/>
+</map>

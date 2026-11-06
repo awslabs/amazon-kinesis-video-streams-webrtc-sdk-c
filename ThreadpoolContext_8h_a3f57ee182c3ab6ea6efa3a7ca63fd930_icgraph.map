@@ -1,0 +1,5 @@
+<map id="createThreadPoolContext" name="createThreadPoolContext">
+<area shape="rect" id="Node000001" title=" " alt="" coords="169,5,355,33"/>
+<area shape="rect" id="Node000002" href="$group__PublicMemberFunctions.html#ga0091e2920ba137e0e80d40402a675abb" title="Initializes global state needed for all RtcPeerConnections. It must only be called once." alt="" coords="5,5,121,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="150,19,121,22,121,17,156,19"/>
+</map>

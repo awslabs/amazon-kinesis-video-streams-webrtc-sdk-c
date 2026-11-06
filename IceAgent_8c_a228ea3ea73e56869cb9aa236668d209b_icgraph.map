@@ -1,0 +1,12 @@
+<map id="iceCandidatePairCheckConnection" name="iceCandidatePairCheckConnection">
+<area shape="rect" id="Node000001" title=" " alt="" coords="559,54,802,82"/>
+<area shape="rect" id="Node000002" href="$IceAgent_8c.html#abd88ad7fca15a1a8d90ea9d3a0f2fc58" title=" " alt="" coords="281,15,489,59"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="541,54,490,50,490,45,546,53"/>
+<area shape="rect" id="Node000005" href="$IceAgent_8c.html#a38eadbaca4b318947eb9d9397107493d" title=" " alt="" coords="259,83,511,111"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="546,81,512,87,511,82,541,81"/>
+<area shape="rect" id="Node000003" href="$IceAgentStateMachine_8c.html#a6d1c63854bb87950e837be2cdb6793d3" title=" " alt="" coords="6,5,210,50"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="263,34,211,34,210,28,268,32"/>
+<area shape="rect" id="Node000004" href="$IceAgentStateMachine_8c.html#a5431027d18e1397eb1dfc8953099dbf6" title=" " alt="" coords="5,75,211,119"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="268,62,212,77,211,72,263,63"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="240,97,211,100,211,94,246,97"/>
+</map>

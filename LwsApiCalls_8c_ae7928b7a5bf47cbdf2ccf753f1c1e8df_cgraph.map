@@ -1,0 +1,7 @@
+<map id="terminateConnectionWithStatus" name="terminateConnectionWithStatus">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,32,235,60"/>
+<area shape="rect" id="Node000002" href="$Signaling_8c.html#a653edfffd5d129d08f5971d91f16fc5e" title=" " alt="" coords="283,5,482,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="235,31,270,30,265,31,236,37"/>
+<area shape="rect" id="Node000003" href="$LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="284,57,480,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="235,54,271,60,266,60,235,60"/>
+</map>

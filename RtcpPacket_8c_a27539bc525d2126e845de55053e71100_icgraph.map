@@ -1,0 +1,8 @@
+<map id="convertTimestampToNTP" name="convertTimestampToNTP">
+<area shape="rect" id="Node000001" title=" " alt="" coords="373,29,557,57"/>
+<area shape="rect" id="Node000002" href="$PeerConnection_8c.html#a4afea8c5d470548d2889fb8d3218ba0f" title=" " alt="" coords="173,29,325,57"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="355,43,326,46,326,41,360,43"/>
+<area shape="poly" id="edge3_Node000002_Node000002" title=" " alt="" coords="279,14,269,10,249,8,230,10,220,15,217,20,222,30,217,28,212,20,216,11,228,5,249,3,271,5,284,14"/>
+<area shape="rect" id="Node000003" href="$group__PublicMemberFunctions.html#ga5b89dc2e301e35f30330c57bc1361dcb" title="Create a new RtcRtpTransceiver and add it to the set of transceivers." alt="" coords="5,29,125,57"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="154,43,125,46,125,41,160,43"/>
+</map>

@@ -1,0 +1,13 @@
+<map id="configureLwsLogging" name="configureLwsLogging">
+<area shape="rect" id="Node000001" title=" " alt="" coords="671,23,829,50"/>
+<area shape="rect" id="Node000002" href="$Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="245,23,398,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="673,19,623,14,535,8,446,14,381,25,380,20,446,9,535,3,624,9,678,19"/>
+<area shape="rect" id="Node000004" href="$LwsApiCalls_8c.html#aa31bbbf2b74f1ac78390cc408029fe04" title=" " alt="" coords="446,23,623,50"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="653,37,624,39,624,34,658,36"/>
+<area shape="rect" id="Node000005" href="$LwsApiCalls_8c.html#a47c8ad494cd1c7a116a177a35055dd98" title=" " alt="" coords="446,75,623,102"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="677,54,596,77,595,71,672,55"/>
+<area shape="rect" id="Node000003" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,23,197,50"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="227,37,198,39,197,34,232,36"/>
+<area shape="poly" id="edge4_Node000004_Node000002" title=" " alt="" coords="428,37,398,39,398,34,433,36"/>
+<area shape="poly" id="edge6_Node000005_Node000002" title=" " alt="" coords="457,70,381,54,382,48,463,70"/>
+</map>

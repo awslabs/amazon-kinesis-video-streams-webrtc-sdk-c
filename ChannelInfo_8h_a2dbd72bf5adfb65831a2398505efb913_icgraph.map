@@ -1,0 +1,9 @@
+<map id="getStringFromChannelType" name="getStringFromChannelType">
+<area shape="rect" id="Node000001" title=" " alt="" coords="614,5,811,33"/>
+<area shape="rect" id="Node000002" href="$LwsApiCalls_8c.html#aaa11ed305dd9f71bc0a1b0fdd5ee46fd" title=" " alt="" coords="426,5,566,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="596,19,567,22,567,17,601,19"/>
+<area shape="rect" id="Node000003" href="$Signaling_8c.html#ae2a4c41f6590bfdeb451ba05d3b2fa4c" title=" " alt="" coords="263,5,378,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="408,19,378,22,378,17,413,19"/>
+<area shape="rect" id="Node000004" href="$StateMachine_8c.html#a62dee9d71ff5f5714ae89d5b62d083a3" title=" " alt="" coords="5,5,215,33"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="244,19,215,22,215,17,250,19"/>
+</map>

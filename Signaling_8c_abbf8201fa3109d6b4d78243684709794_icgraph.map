@@ -1,0 +1,24 @@
+<map id="terminateOngoingOperations" name="terminateOngoingOperations">
+<area shape="rect" id="Node000001" title=" " alt="" coords="745,161,956,189"/>
+<area shape="rect" id="Node000002" href="$Signaling_8c.html#a82f76649f6bf874ffc0913857c588837" title=" " alt="" coords="552,57,659,85"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="799,155,640,88,641,83,804,155"/>
+<area shape="rect" id="Node000006" href="$Signaling_8c.html#a220ed8ee8114be8bfd0ae9c3ccfabc24" title=" " alt="" coords="528,135,683,162"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="727,162,683,160,683,154,732,162"/>
+<area shape="rect" id="Node000008" href="$Signaling_8c.html#adc40a64fec23ce36f66ce679dfe4e35a" title=" " alt="" coords="514,187,697,214"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="727,188,698,194,698,188,732,187"/>
+<area shape="rect" id="Node000010" href="$Signaling_8c.html#aad8de9f4dd459e3a07e5e08c7683ed06" title=" " alt="" coords="532,239,679,266"/>
+<area shape="poly" id="edge10_Node000001_Node000010" title=" " alt="" coords="796,194,698,228,658,241,657,235,697,223,790,195"/>
+<area shape="rect" id="Node000003" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,5,197,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="559,51,515,35,465,22,396,13,325,9,198,13,196,7,325,4,397,7,467,17,517,30,564,50"/>
+<area shape="rect" id="Node000004" href="$Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="279,31,432,58"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="534,65,433,55,432,50,539,63"/>
+<area shape="rect" id="Node000005" href="$group__PublicMemberFunctions.html#gafb4629e6a81552152c1b475a32e06e9c" title="Frees the Signaling client object." alt="" coords="283,83,428,110"/>
+<area shape="poly" id="edge5_Node000002_Node000005" title=" " alt="" coords="534,79,429,92,428,87,539,77"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="261,37,198,31,197,26,265,34"/>
+<area shape="rect" id="Node000007" href="$group__PublicMemberFunctions.html#gad85555f757662d1585efd00d496e5c13" title="Deletes the signaling channel referenced by SIGNALING_CLIENT_HANDLE." alt="" coords="259,135,452,162"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="510,149,452,151,452,146,516,148"/>
+<area shape="rect" id="Node000009" href="$group__PublicMemberFunctions.html#ga6130116416557558b66728a8db2c6ee7" title="Disconnects the signaling client." alt="" coords="245,187,466,214"/>
+<area shape="poly" id="edge9_Node000008_Node000009" title=" " alt="" coords="496,201,467,203,466,198,501,200"/>
+<area shape="rect" id="Node000011" href="$group__PublicMemberFunctions.html#ga9c3b58fbb47fb50baaf24b10240ee809" title="Fetches all assets needed to ready the state machine before attempting to connect...." alt="" coords="263,239,448,266"/>
+<area shape="poly" id="edge11_Node000010_Node000011" title=" " alt="" coords="514,253,448,255,448,250,520,252"/>
+</map>

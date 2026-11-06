@@ -1,0 +1,22 @@
+<map id="socketConnectionIsClosed" name="socketConnectionIsClosed">
+<area shape="rect" id="Node000001" title=" " alt="" coords="969,74,1160,102"/>
+<area shape="rect" id="Node000002" href="$ConnectionListener_8c.html#ad4b0c7229cc56aa8bc3eaef7d75c2ab7" title=" " alt="" coords="720,5,916,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="987,70,912,53,913,48,993,70"/>
+<area shape="rect" id="Node000008" href="$TurnConnectionStateMachine_8c.html#a5c61ccb7252c9817f61ba2e842b119a6" title=" " alt="" coords="734,74,902,102"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="951,88,903,90,902,85,956,88"/>
+<area shape="rect" id="Node000009" href="$IceAgent_8c.html#a583c41d4f3e61dc23128f306f586d089" title=" " alt="" coords="715,125,921,170"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="993,105,913,127,912,122,987,106"/>
+<area shape="rect" id="Node000003" href="$ConnectionListener_8c.html#ac6b964c533b9932afd35358f2b49f5a8" title=" " alt="" coords="466,30,642,58"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="702,35,643,41,642,36,707,34"/>
+<area shape="rect" id="Node000004" href="$group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="228,30,385,58"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="448,44,386,46,385,41,454,43"/>
+<area shape="rect" id="Node000005" href="$IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="220,86,393,114"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="473,62,372,88,370,83,478,61"/>
+<area shape="rect" id="Node000006" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="14,59,163,87"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="202,88,164,85,163,80,207,86"/>
+<area shape="rect" id="Node000007" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,111,172,139"/>
+<area shape="poly" id="edge6_Node000005_Node000007" title=" " alt="" coords="202,112,173,118,172,113,207,111"/>
+<area shape="rect" id="Node000010" href="$IceAgent_8c.html#a29472fae79b73dc335a310925493391c" title=" " alt="" coords="441,96,667,141"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="697,134,668,134,668,128,703,135"/>
+<area shape="poly" id="edge10_Node000010_Node000005" title=" " alt="" coords="423,109,393,109,393,104,428,108"/>
+</map>

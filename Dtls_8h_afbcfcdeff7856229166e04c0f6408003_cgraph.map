@@ -1,0 +1,7 @@
+<map id="freeDtlsSession" name="freeDtlsSession">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,32,129,60"/>
+<area shape="rect" id="Node000002" href="$Dtls__mbedtls_8c.html#aa6d608da9c875fbfccf37bd3e716e836" title=" " alt="" coords="177,5,340,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="128,35,164,32,159,33,130,40"/>
+<area shape="rect" id="Node000003" href="$IOBuffer_8c.html#a716982d27f4e9cf43d6737555e684289" title=" " alt="" coords="208,57,308,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="129,51,196,62,191,63,129,57"/>
+</map>

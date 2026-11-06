@@ -1,31 +1,31 @@
 <map id="__LwsCallInfo" name="__LwsCallInfo">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,590,177,835"/>
-<area shape="rect" id="Node000002" href="$structSignalingClient.html" title=" " alt="" coords="801,937,979,1203"/>
-<area shape="poly" id="edge11_Node000002_Node000001" title=" " alt="" coords="71,835,77,876,85,895,96,912,116,930,142,947,212,977,300,1001,399,1021,503,1036,607,1048,785,1061,784,1067,606,1053,503,1042,398,1026,299,1006,210,982,139,952,112,934,92,915,80,897,72,878,66,836"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="801,1054,648,1021,468,975,380,949,301,921,235,892,188,862,174,849,178,845,192,858,238,887,303,916,381,944,469,970,649,1016,802,1049"/>
-<area shape="rect" id="Node000003" href="$structSignalingClientInfoInternal.html" title=" " alt="" coords="202,580,389,845"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="390,844,404,858,447,894,494,927,543,955,594,979,696,1018,786,1044,784,1049,694,1023,592,984,541,960,491,931,443,899,400,862,386,848"/>
-<area shape="rect" id="Node000004" href="$structSignalingClientInfo.html" title="Populate Signaling client with client ID and application log level." alt="" coords="158,233,411,503"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="292,503,293,564,288,564,286,503"/>
-<area shape="rect" id="Node000005" href="$structSignalingClientCallbacks.html" title="Register Signaling client callbacks." alt="" coords="413,640,588,785"/>
-<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="521,785,548,851,567,883,589,912,634,951,684,984,736,1012,787,1033,785,1038,734,1017,681,989,630,955,585,915,562,886,543,853,516,787"/>
-<area shape="rect" id="Node000006" href="$structReceivedSignalingMessage.html" title="Structure defining the signaling message to be received." alt="" coords="435,315,627,421"/>
-<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="529,421,511,624,506,623,524,421"/>
-<area shape="rect" id="Node000007" href="$structSignalingMessage.html" title="Structure defining the basic signaling message." alt="" coords="465,5,597,171"/>
-<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="534,171,534,299,529,299,529,171"/>
-<area shape="rect" id="Node000008" href="$structChannelInfo.html" title="Contains all signaling channel related information." alt="" coords="612,580,768,845"/>
-<area shape="poly" id="edge7_Node000002_Node000008" title=" " alt="" coords="750,845,786,912,795,928,790,930,781,915,746,847"/>
-<area shape="rect" id="Node000009" href="$structSignalingChannelDescription.html" title="Signaling channel description returned from the service." alt="" coords="792,610,993,815"/>
-<area shape="poly" id="edge8_Node000002_Node000009" title=" " alt="" coords="895,816,894,884,894,921,888,921,889,884,889,816"/>
-<area shape="rect" id="Node000010" href="$structMediaStorageConfig.html" title=" " alt="" coords="1018,670,1165,755"/>
-<area shape="poly" id="edge9_Node000002_Node000010" title=" " alt="" coords="1087,756,1069,832,1054,874,1035,915,992,975,987,972,1030,912,1049,872,1064,830,1082,755"/>
-<area shape="rect" id="Node000011" href="$structIceConfigInfo.html" title="ICE configuration information struct." alt="" coords="1189,630,1287,795"/>
-<area shape="poly" id="edge10_Node000002_Node000011" title=" " alt="" coords="1240,796,1229,857,1217,887,1200,915,1156,960,1104,996,1049,1024,995,1044,993,1039,1047,1019,1102,991,1153,956,1196,912,1212,885,1223,856,1235,795"/>
-<area shape="rect" id="Node000012" href="$structThreadTracker.html" title=" " alt="" coords="1312,650,1417,775"/>
-<area shape="poly" id="edge12_Node000002_Node000012" title=" " alt="" coords="1362,776,1355,811,1344,848,1327,884,1304,915,1271,945,1234,971,1195,994,1154,1012,1072,1040,996,1058,995,1053,1070,1035,1152,1007,1193,989,1232,967,1268,941,1300,912,1323,881,1339,846,1350,810,1357,775"/>
-<area shape="rect" id="Node000013" href="$struct____SignalingThreadNode.html" title=" " alt="" coords="1441,680,1608,745"/>
-<area shape="poly" id="edge13_Node000002_Node000013" title=" " alt="" coords="1526,746,1522,784,1512,830,1493,876,1480,897,1464,915,1430,939,1382,961,1324,982,1259,1000,1121,1032,995,1055,994,1050,1120,1027,1258,995,1323,976,1380,956,1427,934,1460,911,1476,893,1489,873,1507,828,1517,783,1521,745"/>
-<area shape="poly" id="edge14_Node000013_Node000013" title=" " alt="" coords="1581,677,1601,677,1618,683,1630,695,1635,713,1632,727,1624,738,1612,745,1598,749,1597,743,1610,740,1620,734,1627,725,1629,713,1626,697,1615,687,1600,682,1581,683"/>
-<area shape="rect" id="Node000014" href="$structSignalingDiagnostics.html" title=" " alt="" coords="1711,565,1931,860"/>
-<area shape="poly" id="edge15_Node000002_Node000014" title=" " alt="" coords="1732,862,1703,891,1670,916,1616,941,1543,965,1456,986,1360,1006,1163,1038,995,1060,995,1054,1162,1032,1359,1000,1455,981,1542,959,1614,936,1667,911,1699,887,1728,858"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,666,175,939"/>
+<area shape="rect" id="Node000002" href="$structSignalingClient.html" title=" " alt="" coords="776,1062,951,1358"/>
+<area shape="poly" id="edge11_Node000002_Node000001" title=" " alt="" coords="58,936,66,991,74,1015,88,1037,107,1055,132,1072,200,1103,286,1129,382,1150,484,1168,585,1182,762,1201,757,1202,585,1187,484,1173,381,1156,284,1134,198,1108,130,1077,104,1059,84,1040,70,1017,61,992,58,941"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="774,1199,667,1184,536,1153,466,1132,396,1106,328,1076,264,1041,250,1029,241,1018,221,993,203,982,186,969,175,955,174,949,189,965,206,977,224,989,245,1014,253,1025,267,1036,330,1071,398,1101,467,1127,537,1148,668,1179,779,1199"/>
+<area shape="rect" id="Node000003" href="$structSignalingClientInfoInternal.html" title=" " alt="" coords="200,654,384,950"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="363,947,399,995,440,1036,477,1064,516,1089,600,1131,684,1162,762,1187,757,1187,683,1167,598,1135,514,1094,474,1068,437,1040,395,999,362,952"/>
+<area shape="rect" id="Node000004" href="$structSignalingClientInfo.html" title="Populate Signaling client with client ID and application log level." alt="" coords="156,262,406,564"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="286,561,290,638,285,637,285,567"/>
+<area shape="rect" id="Node000005" href="$structSignalingClientCallbacks.html" title="Register Signaling client callbacks." alt="" coords="407,721,579,883"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="497,880,505,921,515,962,530,1001,552,1037,597,1083,650,1121,706,1152,763,1177,757,1177,704,1157,647,1126,593,1087,548,1040,526,1003,510,963,500,922,495,885"/>
+<area shape="rect" id="Node000006" href="$structReceivedSignalingMessage.html" title="Structure defining the signaling message to be received." alt="" coords="431,355,619,472"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="521,469,504,705,498,704,519,474"/>
+<area shape="rect" id="Node000007" href="$structSignalingMessage.html" title="Structure defining the basic signaling message." alt="" coords="461,5,589,189"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="526,187,528,339,522,338,524,192"/>
+<area shape="rect" id="Node000008" href="$structChannelInfo.html" title="Contains all signaling channel related information." alt="" coords="603,654,757,950"/>
+<area shape="poly" id="edge7_Node000002_Node000008" title=" " alt="" coords="720,948,756,1037,770,1068,765,1066,751,1039,718,952"/>
+<area shape="rect" id="Node000009" href="$structSignalingChannelDescription.html" title="Signaling channel description returned from the service." alt="" coords="781,688,978,916"/>
+<area shape="poly" id="edge8_Node000002_Node000009" title=" " alt="" coords="871,914,868,991,866,1047,861,1044,862,991,868,919"/>
+<area shape="rect" id="Node000010" href="$structMediaStorageConfig.html" title=" " alt="" coords="1003,755,1148,850"/>
+<area shape="poly" id="edge9_Node000002_Node000010" title=" " alt="" coords="1070,847,1050,940,1033,991,1011,1040,989,1075,964,1110,960,1105,985,1072,1007,1037,1028,989,1045,939,1067,851"/>
+<area shape="rect" id="Node000011" href="$structIceConfigInfo.html" title="ICE configuration information struct." alt="" coords="1172,710,1268,894"/>
+<area shape="poly" id="edge10_Node000002_Node000011" title=" " alt="" coords="1227,892,1225,931,1218,969,1206,1006,1187,1040,1166,1066,1141,1090,1085,1130,1026,1161,968,1184,967,1179,1024,1156,1083,1126,1138,1086,1162,1063,1183,1037,1201,1004,1213,967,1220,930,1223,896"/>
+<area shape="rect" id="Node000012" href="$structThreadTracker.html" title=" " alt="" coords="1292,732,1393,872"/>
+<area shape="poly" id="edge12_Node000002_Node000012" title=" " alt="" coords="1348,869,1347,913,1340,957,1326,1001,1302,1040,1268,1075,1229,1105,1186,1130,1142,1151,1051,1182,969,1200,968,1194,1050,1176,1140,1146,1184,1126,1226,1101,1264,1071,1298,1037,1321,999,1335,956,1342,912,1345,874"/>
+<area shape="rect" id="Node000013" href="$struct____SignalingThreadNode.html" title=" " alt="" coords="1423,766,1587,838"/>
+<area shape="poly" id="edge13_Node000002_Node000013" title=" " alt="" coords="1513,836,1517,883,1515,936,1503,991,1491,1017,1475,1040,1440,1068,1389,1094,1326,1117,1255,1138,1104,1172,968,1196,967,1191,1103,1167,1253,1133,1324,1112,1387,1089,1437,1064,1471,1037,1487,1014,1498,990,1510,936,1512,883,1510,840"/>
+<area shape="poly" id="edge14_Node000013_Node000013" title=" " alt="" coords="1556,763,1577,762,1596,768,1609,782,1613,802,1610,819,1602,832,1589,840,1574,842,1573,837,1587,835,1598,828,1605,817,1608,802,1604,784,1593,773,1577,767,1557,769"/>
+<area shape="rect" id="Node000014" href="$structSignalingDiagnostics.html" title=" " alt="" coords="1693,637,1911,967"/>
+<area shape="poly" id="edge15_Node000002_Node000014" title=" " alt="" coords="1752,965,1726,1007,1693,1040,1638,1072,1560,1100,1466,1125,1362,1146,1149,1180,969,1202,968,1196,1148,1175,1361,1141,1465,1120,1558,1095,1636,1067,1690,1036,1722,1004,1748,968"/>
 </map>

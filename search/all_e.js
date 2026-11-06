@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['nackcount_0',['nackcount',['../structRtcOutboundRtpStreamStats.html#aa98c742d0a6a969e1e6aed60f3a49825',1,'RtcOutboundRtpStreamStats::nackCount'],['../structRtcInboundRtpStreamStats.html#aca31b11d0e4d07b448b62e37e125544f',1,'RtcInboundRtpStreamStats::nackCount']]],
+  ['nackcount_0',['nackCount',['../structRtcOutboundRtpStreamStats.html#aa98c742d0a6a969e1e6aed60f3a49825',1,'RtcOutboundRtpStreamStats::nackCount'],['../structRtcInboundRtpStreamStats.html#aca31b11d0e4d07b448b62e37e125544f',1,'RtcInboundRtpStreamStats::nackCount']]],
   ['nal_5ftype_5fmask_1',['NAL_TYPE_MASK',['../RtpH264Payloader_8h.html#a25fdd9596e628f1a6a86569e289f8a65',1,'RtpH264Payloader.h']]],
   ['name_2',['name',['../group__StatusCodes.html#gadd53434650fa42653e4002365f2382c9',1,'__RtcDataChannel']]],
   ['namelengths_3',['NameLengths',['../group__NameLengths.html',1,'']]],
@@ -21,7 +21,7 @@ var searchData=
   ['natbehaviordiscovery_2ec_18',['NatBehaviorDiscovery.c',['../NatBehaviorDiscovery_8c.html',1,'']]],
   ['natbehaviordiscovery_2eh_19',['NatBehaviorDiscovery.h',['../NatBehaviorDiscovery_8h.html',1,'']]],
   ['nattestdata_20',['NatTestData',['../structNatTestData.html',1,'']]],
-  ['nattestincomingdatahandler_21',['nattestincomingdatahandler',['../NatBehaviorDiscovery_8c.html#a27e9d412b24d7305d29427342f7e8485',1,'natTestIncomingDataHandler(UINT64 customData, PSocketConnection pSocketConnection, PBYTE pBuffer, UINT32 bufferLen, PKvsIpAddress pSrc, PKvsIpAddress pDest):&#160;NatBehaviorDiscovery.c'],['../NatBehaviorDiscovery_8h.html#a20d7f6685b7bdeb583dace1bfcd9685c',1,'natTestIncomingDataHandler(UINT64, PSocketConnection, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress):&#160;NatBehaviorDiscovery.c']]],
+  ['nattestincomingdatahandler_21',['natTestIncomingDataHandler',['../NatBehaviorDiscovery_8c.html#a27e9d412b24d7305d29427342f7e8485',1,'natTestIncomingDataHandler(UINT64 customData, PSocketConnection pSocketConnection, PBYTE pBuffer, UINT32 bufferLen, PKvsIpAddress pSrc, PKvsIpAddress pDest):&#160;NatBehaviorDiscovery.c'],['../NatBehaviorDiscovery_8h.html#a20d7f6685b7bdeb583dace1bfcd9685c',1,'natTestIncomingDataHandler(UINT64, PSocketConnection, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress):&#160;NatBehaviorDiscovery.c']]],
   ['negotiated_22',['negotiated',['../group__StatusCodes.html#ga8c67966c06b4163b51f21392ca5dc654',1,'RtcDataChannelInit']]],
   ['negotiatedidlookup_23',['NegotiatedIdLookup',['../structNegotiatedIdLookup.html',1,'']]],
   ['negotiatedpass_24',['negotiatedPass',['../structAllocateSctpSortDataChannelsData.html#a5d6936df4713e3ff70593f4d781a6c82',1,'AllocateSctpSortDataChannelsData']]],
@@ -33,7 +33,7 @@ var searchData=
   ['nextallocationrefreshtime_30',['nextAllocationRefreshTime',['../struct____TurnConnection.html#a08db6e773b03ae83d5a230ee0adf6fd6',1,'__TurnConnection']]],
   ['nexttransactionidindex_31',['nextTransactionIdIndex',['../structTransactionIdStore.html#ae604e823c3620d2bb10cb7d092ef5885',1,'TransactionIdStore']]],
   ['no_5fsignal_5fsend_32',['NO_SIGNAL_SEND',['../Network_8h.html#af38006bfbb4f3cf5fa8a5a3619515793',1,'Network.h']]],
-  ['nominated_33',['nominated',['../structIceCandidatePair.html#ae5698ceeffc59d7e57368a805034e26d',1,'IceCandidatePair::nominated'],['../structRtcIceCandidatePairDiagnostics.html#a0949abdd594302784d6f5ad8e4221e46',1,'RtcIceCandidatePairDiagnostics::nominated'],['../structRtcIceCandidatePairStats.html#a25a4a9ef167cff9692ac39d0a9191ee7',1,'RtcIceCandidatePairStats::nominated']]],
+  ['nominated_33',['nominated',['../structRtcIceCandidatePairStats.html#a25a4a9ef167cff9692ac39d0a9191ee7',1,'RtcIceCandidatePairStats::nominated'],['../structRtcIceCandidatePairDiagnostics.html#a0949abdd594302784d6f5ad8e4221e46',1,'RtcIceCandidatePairDiagnostics::nominated'],['../structIceCandidatePair.html#ae5698ceeffc59d7e57368a805034e26d',1,'IceCandidatePair::nominated']]],
   ['nonce_34',['nonce',['../structStunAttributeNonce.html#a8f87b86d2faa660dc925fe9c0599d130',1,'StunAttributeNonce']]],
   ['noncelen_35',['nonceLen',['../struct____TurnConnection.html#aa7ee468f1642abf57385bfe4ffc36491',1,'__TurnConnection']]],
   ['nonroutablepeersfilteredcount_36',['nonRoutablePeersFilteredCount',['../struct____TurnConnection.html#ac163324a3754712670169090f5888939',1,'__TurnConnection']]],
@@ -57,9 +57,9 @@ var searchData=
   ['nullableuint32_54',['NullableUint32',['../structNullableUint32.html',1,'']]],
   ['nullableuint64_55',['NullableUint64',['../structNullableUint64.html',1,'']]],
   ['nullableuint8_56',['NullableUint8',['../structNullableUint8.html',1,'']]],
-  ['numberoferrors_57',['numberoferrors',['../structSignalingDiagnostics.html#a4efe61cd2892f8b512c241860a34d7ad',1,'SignalingDiagnostics::numberOfErrors'],['../structSignalingClientStats.html#a30f98d510f5ecdd19c53afb8f9ef1f6b',1,'SignalingClientStats::numberOfErrors']]],
-  ['numberofmessagesreceived_58',['numberofmessagesreceived',['../structSignalingDiagnostics.html#a0cb2de963decc0f1eb5398e83869e4b2',1,'SignalingDiagnostics::numberOfMessagesReceived'],['../structSignalingClientStats.html#aca900ed2e3622b2605c81790768df294',1,'SignalingClientStats::numberOfMessagesReceived']]],
-  ['numberofmessagessent_59',['numberofmessagessent',['../structSignalingDiagnostics.html#af822f52ab8c5956f7cf35dd97b5c373c',1,'SignalingDiagnostics::numberOfMessagesSent'],['../structSignalingClientStats.html#a76b01fd641d9e83b517ac40aaba4d42a',1,'SignalingClientStats::numberOfMessagesSent']]],
-  ['numberofreconnects_60',['numberofreconnects',['../structSignalingDiagnostics.html#a6d21a2e8999c8a558a4137cdb94d4ee8',1,'SignalingDiagnostics::numberOfReconnects'],['../structSignalingClientStats.html#a88a95942f794d84724583ef8b6d9f181',1,'SignalingClientStats::numberOfReconnects']]],
-  ['numberofruntimeerrors_61',['numberofruntimeerrors',['../structSignalingDiagnostics.html#a828abe32517c8c73eefe5f77d3f30649',1,'SignalingDiagnostics::numberOfRuntimeErrors'],['../structSignalingClientStats.html#ac9ba962af79e44d73aac0688f09019ca',1,'SignalingClientStats::numberOfRuntimeErrors']]]
+  ['numberoferrors_57',['numberOfErrors',['../structSignalingClientStats.html#a30f98d510f5ecdd19c53afb8f9ef1f6b',1,'SignalingClientStats::numberOfErrors'],['../structSignalingDiagnostics.html#a4efe61cd2892f8b512c241860a34d7ad',1,'SignalingDiagnostics::numberOfErrors']]],
+  ['numberofmessagesreceived_58',['numberOfMessagesReceived',['../structSignalingClientStats.html#aca900ed2e3622b2605c81790768df294',1,'SignalingClientStats::numberOfMessagesReceived'],['../structSignalingDiagnostics.html#a0cb2de963decc0f1eb5398e83869e4b2',1,'SignalingDiagnostics::numberOfMessagesReceived']]],
+  ['numberofmessagessent_59',['numberOfMessagesSent',['../structSignalingClientStats.html#a76b01fd641d9e83b517ac40aaba4d42a',1,'SignalingClientStats::numberOfMessagesSent'],['../structSignalingDiagnostics.html#af822f52ab8c5956f7cf35dd97b5c373c',1,'SignalingDiagnostics::numberOfMessagesSent']]],
+  ['numberofreconnects_60',['numberOfReconnects',['../structSignalingClientStats.html#a88a95942f794d84724583ef8b6d9f181',1,'SignalingClientStats::numberOfReconnects'],['../structSignalingDiagnostics.html#a6d21a2e8999c8a558a4137cdb94d4ee8',1,'SignalingDiagnostics::numberOfReconnects']]],
+  ['numberofruntimeerrors_61',['numberOfRuntimeErrors',['../structSignalingClientStats.html#ac9ba962af79e44d73aac0688f09019ca',1,'SignalingClientStats::numberOfRuntimeErrors'],['../structSignalingDiagnostics.html#a828abe32517c8c73eefe5f77d3f30649',1,'SignalingDiagnostics::numberOfRuntimeErrors']]]
 ];

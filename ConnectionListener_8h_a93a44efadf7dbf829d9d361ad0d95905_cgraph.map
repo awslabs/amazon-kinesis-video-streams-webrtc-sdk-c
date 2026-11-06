@@ -1,0 +1,19 @@
+<map id="connectionListenerRemoveConnection" name="connectionListenerRemoveConnection">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,153,204,198"/>
+<area shape="rect" id="Node000002" href="$SocketConnection_8c.html#ae1067d81a0037b1cb7e2275d55b554a4" title=" " alt="" coords="252,161,432,189"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="204,173,239,175,233,176,205,178"/>
+<area shape="rect" id="Node000003" href="$Dtls__openssl_8c.html#a1fc56b3d164da5001e7fdd9463e0a281" title=" " alt="" coords="480,109,639,137"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="403,158,481,142,486,141,404,163"/>
+<area shape="rect" id="Node000008" href="$Tls__openssl_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="484,187,635,214"/>
+<area shape="poly" id="edge7_Node000002_Node000008" title=" " alt="" coords="433,183,471,190,466,190,433,188"/>
+<area shape="rect" id="Node000004" href="$Dtls__openssl_8c.html#af3bfcfebc77d873de4356b748060a048" title=" " alt="" coords="722,5,867,33"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="579,106,626,75,686,43,706,39,712,37,688,48,629,80,581,111"/>
+<area shape="rect" id="Node000005" href="$Dtls__openssl_8c.html#a82fa98f2c2ddff7d94b60f84ef212a15" title=" " alt="" coords="687,57,902,85"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="625,106,711,90,716,88,626,111"/>
+<area shape="rect" id="Node000006" href="$Dtls_8c.html#ac7d96e418743c4a3c14e2e766340734c" title=" " alt="" coords="705,109,884,137"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="639,121,692,123,687,123,640,126"/>
+<area shape="rect" id="Node000007" href="$Dtls__openssl_8c.html#a7098126d6dad351545fc6aea9afc2668" title=" " alt="" coords="722,161,867,189"/>
+<area shape="poly" id="edge6_Node000003_Node000007" title=" " alt="" coords="626,135,716,157,711,157,625,140"/>
+<area shape="rect" id="Node000009" href="$Tls_8c.html#a7dbb041b5b15c6784e9f57a09a08d467" title=" " alt="" coords="709,213,880,241"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="636,206,697,216,691,216,636,212"/>
+</map>

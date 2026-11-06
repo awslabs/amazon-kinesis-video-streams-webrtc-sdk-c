@@ -1,5 +1,5 @@
 <map id="StunAttributeAllocationAddressFamily" name="StunAttributeAllocationAddressFamily">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,153,223,233"/>
-<area shape="rect" id="Node000002" href="$structStunAttributeHeader.html" title=" " alt="" coords="41,5,187,91"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="117,91,117,137,111,137,111,91"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,173,219,262"/>
+<area shape="rect" id="Node000002" href="$structStunAttributeHeader.html" title=" " alt="" coords="40,5,184,100"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="114,97,115,157,110,155,111,102"/>
 </map>

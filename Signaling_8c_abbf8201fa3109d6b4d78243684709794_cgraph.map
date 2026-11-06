@@ -1,0 +1,12 @@
+<map id="terminateOngoingOperations" name="terminateOngoingOperations">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,216,58"/>
+<area shape="rect" id="Node000002" href="$Signaling_8c.html#a653edfffd5d129d08f5971d91f16fc5e" title=" " alt="" coords="782,5,982,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="216,38,767,20,767,26,216,44"/>
+<area shape="rect" id="Node000003" href="$LwsApiCalls_8c.html#ac8ef143a573f3b4ae83bd3ad0eb9fd6f" title=" " alt="" coords="264,56,457,84"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="216,53,251,58,246,59,216,58"/>
+<area shape="rect" id="Node000004" href="$LwsApiCalls_8c.html#ae7928b7a5bf47cbdf2ccf753f1c1e8df" title=" " alt="" coords="505,56,734,84"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="458,67,492,70,487,70,458,72"/>
+<area shape="poly" id="edge4_Node000004_Node000002" title=" " alt="" coords="695,53,789,37,794,36,695,58"/>
+<area shape="rect" id="Node000005" href="$LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="784,57,980,85"/>
+<area shape="poly" id="edge5_Node000004_Node000005" title=" " alt="" coords="735,68,771,71,766,71,735,73"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="signalingCacheLoadFromFile" name="signalingCacheLoadFromFile">
+<area shape="rect" id="Node000001" title=" " alt="" coords="446,5,653,33"/>
+<area shape="rect" id="Node000002" href="$Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="245,5,398,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="428,19,398,22,398,17,433,19"/>
+<area shape="rect" id="Node000003" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,5,197,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="227,19,197,22,197,17,232,19"/>
+</map>

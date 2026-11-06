@@ -1,5 +1,5 @@
 <map id="configureTransceiverRollingBuffer" name="configureTransceiverRollingBuffer">
-<area shape="rect" id="Node000001" title="Set up rolling buffer configuration &#45; max duration of media to store (sec) and expected max bitrate (..." alt="" coords="5,5,207,45"/>
-<area shape="rect" id="Node000002" href="$Rtp_8c.html#a4a4da30325c40bdb88ef1075bf682b68" title=" " alt="" coords="255,5,440,45"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="207,23,241,23,241,28,207,28"/>
+<area shape="rect" id="Node000001" title="Set up rolling buffer configuration &#45; max duration of media to store (sec) and expected max bitrate (..." alt="" coords="5,5,206,50"/>
+<area shape="rect" id="Node000002" href="$Rtp_8c.html#a4a4da30325c40bdb88ef1075bf682b68" title=" " alt="" coords="254,5,438,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="206,25,240,27,235,28,206,30"/>
 </map>

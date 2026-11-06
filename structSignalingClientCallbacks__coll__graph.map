@@ -1,7 +1,7 @@
 <map id="SignalingClientCallbacks" name="SignalingClientCallbacks">
-<area shape="rect" id="Node000001" title="Register Signaling client callbacks." alt="" coords="14,401,189,547"/>
-<area shape="rect" id="Node000002" href="$structReceivedSignalingMessage.html" title="Structure defining the signaling message to be received." alt="" coords="5,233,197,339"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="104,339,104,385,99,385,99,339"/>
-<area shape="rect" id="Node000003" href="$structSignalingMessage.html" title="Structure defining the basic signaling message." alt="" coords="35,5,167,171"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="104,171,104,217,99,217,99,171"/>
+<area shape="rect" id="Node000001" title="Register Signaling client callbacks." alt="" coords="14,452,186,614"/>
+<area shape="rect" id="Node000002" href="$structReceivedSignalingMessage.html" title="Structure defining the signaling message to be received." alt="" coords="5,262,194,379"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="101,376,102,436,97,435,99,381"/>
+<area shape="rect" id="Node000003" href="$structSignalingMessage.html" title="Structure defining the basic signaling message." alt="" coords="35,5,164,189"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="100,186,102,245,97,245,99,192"/>
 </map>

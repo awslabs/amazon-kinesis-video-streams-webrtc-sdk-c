@@ -1,0 +1,13 @@
+<map id="rollingBufferGetSize" name="rollingBufferGetSize">
+<area shape="rect" id="Node000001" title=" " alt="" coords="986,14,1137,42"/>
+<area shape="rect" id="Node000002" href="$RtpRollingBuffer_8c.html#aa82454a503654b55a3eaea5cb12cd8e7" title=" " alt="" coords="760,5,938,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="968,28,939,30,939,25,973,28"/>
+<area shape="rect" id="Node000003" href="$Retransmitter_8c.html#a117dafbb1f1b86ced15a1fcfc49713fa" title=" " alt="" coords="553,14,712,42"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="742,28,712,30,712,25,747,28"/>
+<area shape="rect" id="Node000004" href="$Rtcp_8c.html#aaaf444db910596fed5abe9a8518b68f1" title=" " alt="" coords="397,14,505,42"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="535,28,506,30,506,25,540,28"/>
+<area shape="rect" id="Node000005" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="218,14,349,42"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="379,28,349,30,349,25,384,28"/>
+<area shape="rect" id="Node000006" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,14,170,42"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="199,28,170,30,170,25,205,27"/>
+</map>

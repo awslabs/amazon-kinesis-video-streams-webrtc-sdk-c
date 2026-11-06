@@ -1,0 +1,9 @@
+<map id="jitterBufferDropBufferData" name="jitterBufferDropBufferData">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,74,198,102"/>
+<area shape="rect" id="Node000002" href="$JitterBuffer_8c.html#a7d7320146187bfc7b6ca7ea61d68445d" title=" " alt="" coords="246,5,465,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="162,71,246,53,241,55,164,76"/>
+<area shape="rect" id="Node000003" href="$JitterBuffer_8c.html#ab4a1d7e5e56187bcbb451cde70680a89" title=" " alt="" coords="246,74,464,102"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="198,85,233,87,228,88,198,90"/>
+<area shape="rect" id="Node000004" href="$RtpPacket_8c.html#af5c0526f452ce354c0f92497668f5ad9" title=" " alt="" coords="300,126,411,154"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="173,99,287,124,282,126,173,105"/>
+</map>

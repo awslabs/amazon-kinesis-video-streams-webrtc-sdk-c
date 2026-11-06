@@ -1,0 +1,5 @@
+<map id="getRtpRemoteInboundStats" name="getRtpRemoteInboundStats">
+<area shape="rect" id="Node000001" title="Get remote RTP inbound stats." alt="" coords="265,5,465,33"/>
+<area shape="rect" id="Node000002" href="$group__PublicMemberFunctions.html#ga469e0f69e03630ad5b03d8921afd62be" title="Get the relevant/all metrics based on the RTCStatsType field. This does not include any signaling rel..." alt="" coords="5,5,217,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="247,19,217,22,217,17,252,19"/>
+</map>

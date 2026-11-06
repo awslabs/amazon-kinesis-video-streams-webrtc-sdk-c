@@ -1,0 +1,24 @@
+<map id="describeChannel" name="describeChannel">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,185,135,213"/>
+<area shape="rect" id="Node000002" href="$LwsApiCalls_8c.html#a5a8154ad7ebbd85474143c31b52e51b3" title=" " alt="" coords="183,185,337,213"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="134,197,170,198,165,201,136,202"/>
+<area shape="rect" id="Node000003" href="$LwsApiCalls_8c.html#a2c096b44f492ff215fe5e9e23abf0e0d" title=" " alt="" coords="385,5,606,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="266,183,309,116,343,77,384,44,399,38,394,41,386,48,347,80,314,119,271,186"/>
+<area shape="rect" id="Node000004" href="$LwsApiCalls_8c.html#a988b3c6e00aa3e79fce24a41faeb772c" title=" " alt="" coords="427,57,564,85"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="274,183,321,142,351,120,384,101,418,89,414,92,386,106,354,125,324,147,278,187"/>
+<area shape="rect" id="Node000005" href="$LwsApiCalls_8c.html#a22be1d34eb8fe76e2872b23ea9f981d1" title=" " alt="" coords="691,83,814,110"/>
+<area shape="poly" id="edge5_Node000002_Node000005" title=" " alt="" coords="288,182,333,163,384,145,461,127,539,114,678,100,673,102,540,119,462,132,386,150,335,167,291,187"/>
+<area shape="rect" id="Node000006" href="$ChannelInfo_8c.html#a464cf1c86d1808abf8f4c1b6583f4890" title=" " alt="" coords="392,159,599,186"/>
+<area shape="poly" id="edge6_Node000002_Node000006" title=" " alt="" coords="337,188,379,185,374,187,338,193"/>
+<area shape="rect" id="Node000007" href="$ChannelInfo_8c.html#a3e238d942faed37a679b58371551aecb" title=" " alt="" coords="398,211,594,238"/>
+<area shape="poly" id="edge7_Node000002_Node000007" title=" " alt="" coords="337,205,385,212,379,213,338,210"/>
+<area shape="rect" id="Node000008" href="$jsmn_8h.html#a8d4a8b3ce5c3d600feea38615b5f9aa6" title=" " alt="" coords="455,263,536,290"/>
+<area shape="poly" id="edge8_Node000002_Node000008" title=" " alt="" coords="293,211,386,247,442,265,437,265,384,252,293,216"/>
+<area shape="rect" id="Node000009" href="$jsmn_8h.html#acf28c8ae404fb0ad2823270d2a4c322a" title=" " alt="" coords="448,315,544,342"/>
+<area shape="poly" id="edge9_Node000002_Node000009" title=" " alt="" coords="275,211,322,255,353,279,386,299,435,318,429,318,384,304,350,284,319,259,273,216"/>
+<area shape="rect" id="Node000010" href="$LwsApiCalls_8c.html#a3c3cdd7608d37131d839bc47bd5de90b" title=" " alt="" coords="427,367,564,394"/>
+<area shape="poly" id="edge10_Node000002_Node000010" title=" " alt="" coords="269,211,313,280,347,319,386,352,415,367,410,366,384,356,343,323,309,283,267,216"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="564,75,678,88,673,90,565,81"/>
+<area shape="rect" id="Node000011" href="$LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="654,367,851,394"/>
+<area shape="poly" id="edge11_Node000010_Node000011" title=" " alt="" coords="565,378,641,380,636,381,565,383"/>
+</map>

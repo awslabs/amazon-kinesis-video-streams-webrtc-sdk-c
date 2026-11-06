@@ -1,0 +1,20 @@
+<map id="describeMediaStorageConf" name="describeMediaStorageConf">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,133,202,161"/>
+<area shape="rect" id="Node000002" href="$LwsApiCalls_8c.html#acdaa33c690bca9bdcf5addf3f96cc699" title=" " alt="" coords="250,133,471,161"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="201,145,236,146,232,148,203,150"/>
+<area shape="rect" id="Node000003" href="$LwsApiCalls_8c.html#a2c096b44f492ff215fe5e9e23abf0e0d" title=" " alt="" coords="519,5,740,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="378,131,438,88,477,64,518,43,542,37,537,39,520,48,479,69,441,92,381,135"/>
+<area shape="rect" id="Node000004" href="$LwsApiCalls_8c.html#a988b3c6e00aa3e79fce24a41faeb772c" title=" " alt="" coords="561,57,698,85"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="412,130,566,89,561,91,413,135"/>
+<area shape="rect" id="Node000005" href="$LwsApiCalls_8c.html#a22be1d34eb8fe76e2872b23ea9f981d1" title=" " alt="" coords="825,83,948,110"/>
+<area shape="poly" id="edge5_Node000002_Node000005" title=" " alt="" coords="471,134,813,103,808,105,472,139"/>
+<area shape="rect" id="Node000006" href="$jsmn_8h.html#a8d4a8b3ce5c3d600feea38615b5f9aa6" title=" " alt="" coords="589,159,670,186"/>
+<area shape="poly" id="edge6_Node000002_Node000006" title=" " alt="" coords="471,155,576,167,571,168,471,160"/>
+<area shape="rect" id="Node000007" href="$jsmn_8h.html#acf28c8ae404fb0ad2823270d2a4c322a" title=" " alt="" coords="582,211,678,238"/>
+<area shape="poly" id="edge7_Node000002_Node000007" title=" " alt="" coords="404,159,520,195,569,210,564,210,518,200,403,164"/>
+<area shape="rect" id="Node000008" href="$LwsApiCalls_8c.html#a3c3cdd7608d37131d839bc47bd5de90b" title=" " alt="" coords="561,263,698,290"/>
+<area shape="poly" id="edge8_Node000002_Node000008" title=" " alt="" coords="380,159,441,203,479,227,520,247,549,260,543,259,518,252,477,231,438,207,379,164"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="699,75,812,89,807,89,699,81"/>
+<area shape="rect" id="Node000009" href="$LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="788,263,985,290"/>
+<area shape="poly" id="edge9_Node000008_Node000009" title=" " alt="" coords="699,274,775,276,770,277,699,279"/>
+</map>

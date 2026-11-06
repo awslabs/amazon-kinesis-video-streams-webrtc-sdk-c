@@ -1,0 +1,9 @@
+<map id="updateSelectedLocalRemoteCandidateStats" name="updateSelectedLocalRemoteCandidateStats">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,24,213,68"/>
+<area shape="rect" id="Node000002" href="$IceAgent_8c.html#aa20b09e5bc8f5038010a11c3a010f894" title=" " alt="" coords="261,32,426,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="213,43,248,46,242,46,213,48"/>
+<area shape="rect" id="Node000003" href="$Network_8c.html#afaa547109e09c5a34437553b7258e818" title=" " alt="" coords="530,5,633,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="426,34,518,26,512,27,427,39"/>
+<area shape="rect" id="Node000004" href="$IceAgent_8c.html#a58c93902e850d579024bde109e85ab8b" title=" " alt="" coords="474,57,689,85"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="427,52,461,58,456,58,426,57"/>
+</map>

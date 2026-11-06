@@ -1,0 +1,32 @@
+<map id="dtlsCertificateFingerprint" name="dtlsCertificateFingerprint">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1783,171,1965,198"/>
+<area shape="rect" id="Node000002" href="$Dtls__openssl_8c.html#a6d9a65b31959016f66ef3374374c73c8" title=" " alt="" coords="1485,140,1734,168"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1764,172,1734,171,1735,166,1770,172"/>
+<area shape="rect" id="Node000013" href="$Dtls__openssl_8c.html#aa63ea9551d8026a385756fc13e769571" title=" " alt="" coords="1484,192,1735,236"/>
+<area shape="poly" id="edge12_Node000001_Node000013" title=" " alt="" coords="1770,196,1735,203,1735,197,1764,197"/>
+<area shape="rect" id="Node000003" href="$Dtls__openssl_8c.html#a1c75688dc5d8d3130894b0d1aaf1f60b" title=" " alt="" coords="1218,140,1436,168"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1466,154,1437,156,1437,151,1472,154"/>
+<area shape="rect" id="Node000004" href="$Dtls__openssl_8c.html#ac40bba1019de3e73a9006b12c9dc4eaa" title=" " alt="" coords="1000,148,1138,176"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="1200,158,1139,162,1139,157,1205,158"/>
+<area shape="rect" id="Node000006" href="$SocketConnection_8c.html#a493cba86ce7d7349e0d34f8f259628ab" title=" " alt="" coords="969,80,1170,124"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="1238,136,1170,125,1171,120,1243,137"/>
+<area shape="rect" id="Node000005" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="736,175,900,202"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="988,171,901,182,900,177,982,171"/>
+<area shape="rect" id="Node000007" href="$TurnConnectionStateMachine_8c.html#a76754fb751b1533ba3789bc800d679ea" title=" " alt="" coords="720,93,916,138"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="950,108,917,113,916,107,956,108"/>
+<area shape="rect" id="Node000008" href="$IceAgent_8c.html#a583c41d4f3e61dc23128f306f586d089" title=" " alt="" coords="715,24,921,68"/>
+<area shape="poly" id="edge7_Node000006_Node000008" title=" " alt="" coords="951,76,921,71,921,66,956,76"/>
+<area shape="rect" id="Node000009" href="$IceAgent_8c.html#a29472fae79b73dc335a310925493391c" title=" " alt="" coords="441,24,667,68"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="697,46,668,48,667,43,703,45"/>
+<area shape="rect" id="Node000010" href="$IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="220,32,393,60"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="423,46,394,48,393,43,428,45"/>
+<area shape="rect" id="Node000011" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="14,5,163,33"/>
+<area shape="poly" id="edge10_Node000010_Node000011" title=" " alt="" coords="202,35,164,31,163,26,207,32"/>
+<area shape="rect" id="Node000012" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,57,172,85"/>
+<area shape="poly" id="edge11_Node000010_Node000012" title=" " alt="" coords="202,59,173,64,171,59,207,56"/>
+<area shape="rect" id="Node000014" href="$PeerConnection_8c.html#a8550d4c65dc37cbff20ac6179ba1a59b" title=" " alt="" coords="1278,200,1377,228"/>
+<area shape="poly" id="edge13_Node000013_Node000014" title=" " alt="" coords="1466,214,1378,216,1377,211,1471,214"/>
+<area shape="rect" id="Node000015" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="1004,200,1135,228"/>
+<area shape="poly" id="edge14_Node000014_Node000015" title=" " alt="" coords="1259,214,1136,216,1135,211,1265,214"/>
+<area shape="poly" id="edge15_Node000015_Node000005" title=" " alt="" coords="986,206,901,199,901,194,991,206"/>
+</map>

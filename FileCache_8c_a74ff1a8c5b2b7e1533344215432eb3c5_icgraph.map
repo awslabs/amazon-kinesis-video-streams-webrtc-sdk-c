@@ -1,0 +1,15 @@
+<map id="deserializeSignalingCacheEntries" name="deserializeSignalingCacheEntries">
+<area shape="rect" id="Node000001" title=" " alt="" coords="722,28,915,72"/>
+<area shape="rect" id="Node000002" href="$FileCache_8c.html#a9b698f8e2d572d486f7acae3111c9aaf" title=" " alt="" coords="467,9,674,37"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="704,38,675,37,675,32,709,38"/>
+<area shape="rect" id="Node000005" href="$FileCache_8c.html#ae8defbcf57e6b13ca92f179f022c6167" title=" " alt="" coords="476,61,665,89"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="709,61,666,68,665,63,704,61"/>
+<area shape="rect" id="Node000003" href="$Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="266,8,419,36"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="449,23,420,25,419,20,454,22"/>
+<area shape="rect" id="Node000004" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="16,5,207,33"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="247,21,208,23,207,18,253,20"/>
+<area shape="rect" id="Node000006" href="$Signaling_8c.html#a8847cdf7e665d8557e8009d73ce26f64" title=" " alt="" coords="266,61,418,89"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="458,75,419,78,419,73,463,75"/>
+<area shape="rect" id="Node000007" href="$StateMachine_8c.html#a4e5852a863f3c402a5e9f72496136a11" title=" " alt="" coords="5,57,218,102"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="248,77,218,80,218,75,253,77"/>
+</map>

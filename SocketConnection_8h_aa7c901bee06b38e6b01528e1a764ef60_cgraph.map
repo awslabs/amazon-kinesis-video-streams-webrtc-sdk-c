@@ -1,0 +1,14 @@
+<map id="socketConnectionShutdownSecureSession" name="socketConnectionShutdownSecureSession">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,50,206,95"/>
+<area shape="rect" id="Node000002" href="$Dtls__openssl_8c.html#aa1b6a668704b0b7ddf99be1f7977b8ba" title=" " alt="" coords="254,32,377,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="206,57,241,55,236,56,207,62"/>
+<area shape="rect" id="Node000005" href="$Tls__openssl_8c.html#aa94c64c8b1c8378f85d7081459ec9425" title=" " alt="" coords="257,84,374,112"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="206,82,245,89,239,89,206,87"/>
+<area shape="rect" id="Node000003" href="$Dtls__mbedtls_8c.html#aa6d608da9c875fbfccf37bd3e716e836" title=" " alt="" coords="425,5,588,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="377,35,412,32,407,33,378,40"/>
+<area shape="rect" id="Node000004" href="$IOBuffer_8c.html#a716982d27f4e9cf43d6737555e684289" title=" " alt="" coords="456,57,557,85"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="377,51,444,62,439,63,377,57"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="373,87,439,81,444,80,374,92"/>
+<area shape="rect" id="Node000006" href="$Tls__mbedtls_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="431,109,582,137"/>
+<area shape="poly" id="edge6_Node000005_Node000006" title=" " alt="" coords="374,103,418,111,413,111,374,108"/>
+</map>

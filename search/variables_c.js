@@ -24,7 +24,7 @@ var searchData=
   ['messageresult_21',['messageResult',['../structSignalingClient.html#ae8e25f2cd202c9111eaa939028230cbe',1,'SignalingClient']]],
   ['messagesreceived_22',['messagesReceived',['../structRtcDataChannelStats.html#a0c184b50d37232f08ccc928bcdd39e99',1,'RtcDataChannelStats']]],
   ['messagessent_23',['messagesSent',['../structRtcDataChannelStats.html#aecd6cd493598b75650b8fd5b4dc453ca',1,'RtcDataChannelStats']]],
-  ['messagettl_24',['messagettl',['../group__StatusCodes.html#gaa3fa299e94073522ed7ffe62efe39233',1,'ChannelInfo::messageTtl'],['../group__StatusCodes.html#ga48313b15065c6f0c6c5fa75c868fd62d',1,'SignalingChannelDescription::messageTtl']]],
+  ['messagettl_24',['messageTtl',['../group__StatusCodes.html#gaa3fa299e94073522ed7ffe62efe39233',1,'ChannelInfo::messageTtl'],['../group__StatusCodes.html#ga48313b15065c6f0c6c5fa75c868fd62d',1,'SignalingChannelDescription::messageTtl']]],
   ['messagetype_25',['messageType',['../group__StatusCodes.html#gaad3b5f6fd6deea9795143db5d095f6ca',1,'SignalingMessage']]],
   ['method_26',['method',['../structSdpEncryptionKey.html#afe68f9ce5da9f9af83b6c0d079341f2c',1,'SdpEncryptionKey']]],
   ['mtu_27',['MTU',['../structKvsPeerConnection.html#a681ff294bb05bb255dfeb117e2fb16ff',1,'KvsPeerConnection']]]

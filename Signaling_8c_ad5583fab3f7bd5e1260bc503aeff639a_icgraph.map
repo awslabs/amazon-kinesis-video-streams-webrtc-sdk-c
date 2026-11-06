@@ -1,0 +1,15 @@
+<map id="signalingRemoveOngoingMessage" name="signalingRemoveOngoingMessage">
+<area shape="rect" id="Node000001" title=" " alt="" coords="983,32,1229,60"/>
+<area shape="rect" id="Node000002" href="$LwsApiCalls_8c.html#a4c9dcb58ab89a46831b232ea6f1b9903" title=" " alt="" coords="758,5,910,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="965,32,911,29,911,24,970,32"/>
+<area shape="rect" id="Node000006" href="$Signaling_8c.html#a85fbc5fc8623d113581b2bce92642c93" title=" " alt="" coords="733,57,935,85"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="970,59,935,64,935,59,964,59"/>
+<area shape="rect" id="Node000003" href="$LwsApiCalls_8c.html#a47c8ad494cd1c7a116a177a35055dd98" title=" " alt="" coords="478,5,654,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="740,19,654,22,654,17,745,19"/>
+<area shape="rect" id="Node000004" href="$Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="245,5,398,33"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="459,19,399,22,398,17,464,19"/>
+<area shape="rect" id="Node000005" href="$group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,5,197,33"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="227,20,198,22,197,17,232,19"/>
+<area shape="rect" id="Node000007" href="$group__PublicMemberFunctions.html#gae6d8d80d47699c5494de1dc3d455b1f4" title="Send a message through a Signaling client." alt="" coords="446,57,685,85"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="715,71,686,74,686,69,721,71"/>
+</map>

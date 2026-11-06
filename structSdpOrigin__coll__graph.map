@@ -1,5 +1,5 @@
 <map id="SdpOrigin" name="SdpOrigin">
-<area shape="rect" id="Node000001" title=" " alt="" coords="36,173,161,279"/>
-<area shape="rect" id="Node000002" href="$structSdpConnectionInformation.html" title=" " alt="" coords="5,5,192,111"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="101,111,101,157,96,157,96,111"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="35,195,159,312"/>
+<area shape="rect" id="Node000002" href="$structSdpConnectionInformation.html" title=" " alt="" coords="5,5,189,122"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="98,119,100,179,95,178,96,124"/>
 </map>

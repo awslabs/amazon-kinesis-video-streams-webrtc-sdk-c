@@ -1,22 +1,22 @@
 <map id="signalingClientFetchSync" name="signalingClientFetchSync">
-<area shape="rect" id="Node000001" title="Fetches all assets needed to ready the state machine before attempting to connect...." alt="" coords="5,77,191,102"/>
-<area shape="rect" id="Node000002" href="$Client_8c.html#a55d8c9bc065aa63039bec826644f59fb" title=" " alt="" coords="239,5,467,45"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="149,74,258,46,260,51,150,79"/>
-<area shape="rect" id="Node000003" href="$Client_8c.html#adcfa400e7964640abe4a2f792da839c0" title=" " alt="" coords="246,69,459,109"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="191,87,232,87,232,92,191,92"/>
-<area shape="rect" id="Node000004" href="$Signaling_8c.html#aad8de9f4dd459e3a07e5e08c7683ed06" title=" " alt="" coords="279,134,426,159"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="155,99,239,119,282,128,281,134,238,124,154,105"/>
-<area shape="rect" id="Node000005" href="$StateMachine_8c.html#aadc0cffe12b55f3d81cd3b74244bdc3c" title=" " alt="" coords="515,109,733,134"/>
-<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="426,137,500,130,501,135,427,142"/>
-<area shape="rect" id="Node000006" href="$Signaling_8c.html#abbf8201fa3109d6b4d78243684709794" title=" " alt="" coords="519,158,729,183"/>
-<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="427,150,505,157,505,163,426,156"/>
-<area shape="rect" id="Node000007" href="$Signaling_8c.html#a653edfffd5d129d08f5971d91f16fc5e" title=" " alt="" coords="1303,134,1503,159"/>
-<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="730,165,1289,147,1289,153,730,170"/>
-<area shape="rect" id="Node000008" href="$LwsApiCalls_8c.html#ac8ef143a573f3b4ae83bd3ad0eb9fd6f" title=" " alt="" coords="781,183,976,209"/>
-<area shape="poly" id="edge7_Node000006_Node000008" title=" " alt="" coords="730,179,768,182,767,188,729,184"/>
-<area shape="rect" id="Node000009" href="$LwsApiCalls_8c.html#ae7928b7a5bf47cbdf2ccf753f1c1e8df" title=" " alt="" coords="1024,183,1255,209"/>
-<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="976,193,1010,193,1010,199,976,199"/>
-<area shape="poly" id="edge9_Node000009_Node000007" title=" " alt="" coords="1207,181,1320,159,1321,165,1208,186"/>
-<area shape="rect" id="Node000010" href="$LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="1304,183,1501,209"/>
-<area shape="poly" id="edge10_Node000009_Node000010" title=" " alt="" coords="1255,193,1290,193,1290,199,1255,199"/>
+<area shape="rect" id="Node000001" title="Fetches all assets needed to ready the state machine before attempting to connect...." alt="" coords="5,83,190,111"/>
+<area shape="rect" id="Node000002" href="$Client_8c.html#a55d8c9bc065aa63039bec826644f59fb" title=" " alt="" coords="238,5,465,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="150,80,254,53,250,56,152,85"/>
+<area shape="rect" id="Node000003" href="$Client_8c.html#adcfa400e7964640abe4a2f792da839c0" title=" " alt="" coords="245,75,458,119"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="190,94,232,96,227,98,191,100"/>
+<area shape="rect" id="Node000004" href="$Signaling_8c.html#aad8de9f4dd459e3a07e5e08c7683ed06" title=" " alt="" coords="278,143,424,171"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="156,109,238,129,273,139,267,139,237,134,155,114"/>
+<area shape="rect" id="Node000005" href="$StateMachine_8c.html#aadc0cffe12b55f3d81cd3b74244bdc3c" title=" " alt="" coords="513,116,730,144"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="425,147,500,142,495,143,425,152"/>
+<area shape="rect" id="Node000006" href="$Signaling_8c.html#abbf8201fa3109d6b4d78243684709794" title=" " alt="" coords="516,168,727,196"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="425,161,504,171,498,171,425,167"/>
+<area shape="rect" id="Node000007" href="$Signaling_8c.html#a653edfffd5d129d08f5971d91f16fc5e" title=" " alt="" coords="1297,143,1496,171"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="727,176,1284,160,1279,161,727,182"/>
+<area shape="rect" id="Node000008" href="$LwsApiCalls_8c.html#ac8ef143a573f3b4ae83bd3ad0eb9fd6f" title=" " alt="" coords="778,194,972,222"/>
+<area shape="poly" id="edge7_Node000006_Node000008" title=" " alt="" coords="728,190,765,197,760,196,727,196"/>
+<area shape="rect" id="Node000009" href="$LwsApiCalls_8c.html#ae7928b7a5bf47cbdf2ccf753f1c1e8df" title=" " alt="" coords="1020,194,1249,222"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="972,205,1007,208,1002,208,972,210"/>
+<area shape="poly" id="edge9_Node000009_Node000007" title=" " alt="" coords="1209,191,1304,175,1309,174,1210,196"/>
+<area shape="rect" id="Node000010" href="$LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="1298,195,1495,223"/>
+<area shape="poly" id="edge10_Node000009_Node000010" title=" " alt="" coords="1250,206,1286,208,1280,208,1250,211"/>
 </map>

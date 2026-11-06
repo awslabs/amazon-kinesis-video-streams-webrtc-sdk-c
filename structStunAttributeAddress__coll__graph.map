@@ -1,7 +1,7 @@
 <map id="StunAttributeAddress" name="StunAttributeAddress">
-<area shape="rect" id="Node000001" title=" " alt="" coords="81,193,233,259"/>
-<area shape="rect" id="Node000002" href="$structStunAttributeHeader.html" title=" " alt="" coords="5,25,152,111"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="102,110,136,177,132,180,97,112"/>
-<area shape="rect" id="Node000003" href="$structKvsIpAddress.html" title=" " alt="" coords="176,5,296,131"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="224,132,208,171,201,181,196,179,203,168,219,130"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="80,218,229,290"/>
+<area shape="rect" id="Node000002" href="$structStunAttributeHeader.html" title=" " alt="" coords="5,28,149,122"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="98,120,130,193,134,203,129,202,125,195,95,124"/>
+<area shape="rect" id="Node000003" href="$structKvsIpAddress.html" title=" " alt="" coords="173,5,291,145"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="222,143,205,195,198,206,195,202,200,193,218,146"/>
 </map>
