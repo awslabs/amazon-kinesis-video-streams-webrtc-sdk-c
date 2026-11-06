@@ -598,7 +598,12 @@ jobs:
 
   gst-idle-pipeline-check:
     name: GStreamer idle pipeline check (${{ matrix.media-mode }})
+    needs: ecr-login
     runs-on: ubuntu-latest
+    container:
+      image: public.ecr.aws/ubuntu/ubuntu:24.04_stable
+      # Authenticated pull; see ecr-public-login.yml.
+      credentials: ${{ fromJSON(needs.ecr-login.outputs.attempt == github.run_attempt && needs.ecr-login.outputs.credentials || '{}') }}
     timeout-minutes: 20
 
     env:
@@ -618,19 +623,11 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - name: Clone repository
-        uses: actions/checkout@v6
-
-      - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v2.2.0
-        with:
-          cmake-version: '3.x'
-
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            cmake build-essential pkg-config \
+          apt-get update
+          apt-get install -y \
+            git cmake build-essential pkg-config \
             libssl-dev libsrtp2-dev libusrsctp-dev \
             libgstreamer1.0-dev \
             libgstreamer-plugins-base1.0-dev \
@@ -639,6 +636,9 @@ jobs:
             gstreamer1.0-plugins-ugly \
             gstreamer1.0-libav \
             gstreamer1.0-tools
+
+      - name: Clone repository
+        uses: actions/checkout@v6
 
       - name: Build repository (GStreamer samples)
         run: |
@@ -651,6 +651,13 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Install AWS CLI
+        run: |
+          apt-get install -y curl unzip
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip -q awscliv2.zip
+          ./aws/install
 
       # Exercises the sender pipeline's idle behaviour: stop after the last viewer leaves,
       # restart for the next viewer (twice), keep running while a viewer remains, clean SIGINT exit.
