@@ -198,6 +198,8 @@ Functions</h2></td></tr>
 <tr class="memdesc:gafb4629e6a81552152c1b475a32e06e9c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Frees the Signaling client object.  <br /></td></tr>
 <tr class="memitem:gae6d8d80d47699c5494de1dc3d455b1f4" id="r_gae6d8d80d47699c5494de1dc3d455b1f4"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gae6d8d80d47699c5494de1dc3d455b1f4">signalingClientSendMessageSync</a> (<a class="el" href="group__StatusCodes.html#ga1a31b45408a80e1064d39d578bd3b751">SIGNALING_CLIENT_HANDLE</a>, <a class="el" href="group__PublicStructures.html#gab457c08a409bf69c9b820ca390f83689">PSignalingMessage</a>)</td></tr>
 <tr class="memdesc:gae6d8d80d47699c5494de1dc3d455b1f4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a message through a Signaling client.  <br /></td></tr>
+<tr class="memitem:ga7eaf3f2bccf8675a3c5bd7c387c806c4" id="r_ga7eaf3f2bccf8675a3c5bd7c387c806c4"><td class="memItemLeft" align="right" valign="top">PUBLIC_API VOID&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga7eaf3f2bccf8675a3c5bd7c387c806c4">freeSignalingMessagePayload</a> (<a class="el" href="group__PublicStructures.html#gab457c08a409bf69c9b820ca390f83689">PSignalingMessage</a> pMessage)</td></tr>
+<tr class="memdesc:ga7eaf3f2bccf8675a3c5bd7c387c806c4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free the <a class="el" href="structSignalingMessage.html" title="When PREFER_DYNAMIC_ALLOCS is enabled, use dynamic allocation for the signaling payload buffer....">SignalingMessage</a> payload.  <br /></td></tr>
 <tr class="memitem:ga22f59c80e99e533e5e1d78d52145eb7c" id="r_ga22f59c80e99e533e5e1d78d52145eb7c"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga22f59c80e99e533e5e1d78d52145eb7c">signalingClientGetIceConfigInfoCount</a> (<a class="el" href="group__StatusCodes.html#ga1a31b45408a80e1064d39d578bd3b751">SIGNALING_CLIENT_HANDLE</a>, PUINT32)</td></tr>
 <tr class="memdesc:ga22f59c80e99e533e5e1d78d52145eb7c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the retrieved ICE configuration information object count.  <br /></td></tr>
 <tr class="memitem:ga94ed483b34bb395015b7d44fd98c8f5b" id="r_ga94ed483b34bb395015b7d44fd98c8f5b"><td class="memItemLeft" align="right" valign="top">PUBLIC_API STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga94ed483b34bb395015b7d44fd98c8f5b">signalingClientGetIceConfigInfo</a> (<a class="el" href="group__StatusCodes.html#ga1a31b45408a80e1064d39d578bd3b751">SIGNALING_CLIENT_HANDLE</a>, UINT32, <a class="el" href="group__PublicStructures.html#gafb53cec62851ea389537d44f8b0abcb9">PIceConfigInfo</a> *)</td></tr>
@@ -1282,15 +1284,15 @@ Here is the call graph for this function:</div>
 <area shape="poly" title=" " alt="" coords="645,113,702,79,774,43,801,36,796,39,776,48,705,83,648,117"/>
 <area shape="rect" href="Signaling_8c.html#a344d07546bffa0b00dd4282b46e95b75" title=" " alt="" coords="789,57,973,85"/>
 <area shape="poly" title=" " alt="" coords="677,115,805,87,800,90,679,120"/>
-<area shape="rect" href="Signaling_8c.html#a653edfffd5d129d08f5971d91f16fc5e" title=" " alt="" coords="1577,5,1777,33"/>
-<area shape="poly" title=" " alt="" coords="986,17,1564,18,1560,21,987,22"/>
+<area shape="rect" href="Signaling_8c.html#a653edfffd5d129d08f5971d91f16fc5e" title=" " alt="" coords="1585,5,1784,33"/>
+<area shape="poly" title=" " alt="" coords="986,17,1572,18,1567,21,987,22"/>
 <area shape="rect" href="LwsApiCalls_8c.html#ac8ef143a573f3b4ae83bd3ad0eb9fd6f" title=" " alt="" coords="1038,56,1231,84"/>
 <area shape="poly" title=" " alt="" coords="953,31,1049,52,1044,53,954,36"/>
 <area shape="rect" href="LwsApiCalls_8c.html#ae7928b7a5bf47cbdf2ccf753f1c1e8df" title=" " alt="" coords="1290,56,1520,84"/>
 <area shape="poly" title=" " alt="" coords="1231,67,1277,69,1272,71,1232,72"/>
-<area shape="poly" title=" " alt="" coords="1482,53,1587,35,1582,37,1484,58"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="1579,57,1775,85"/>
-<area shape="poly" title=" " alt="" coords="1520,68,1566,70,1561,71,1521,73"/>
+<area shape="poly" title=" " alt="" coords="1485,53,1592,35,1587,37,1486,58"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="1586,57,1783,85"/>
+<area shape="poly" title=" " alt="" coords="1520,68,1573,70,1568,71,1521,73"/>
 <area shape="poly" title=" " alt="" coords="707,428,729,440,746,457,754,475,761,492,777,508,790,517,785,517,774,512,757,495,749,477,741,460,726,444,707,434"/>
 <area shape="rect" href="LwsApiCalls_8c.html#aa4e2b7b61f2ea1709b54af9f6bbd89f2" title=" " alt="" coords="776,401,986,429"/>
 <area shape="poly" title=" " alt="" coords="712,413,763,415,758,417,714,419"/>
@@ -1301,34 +1303,37 @@ Here is the call graph for this function:</div>
 <area shape="poly" title=" " alt="" coords="685,621,726,604,740,593,749,582,759,571,774,560,788,556,793,554,777,564,762,574,753,585,744,597,729,608,687,626"/>
 <area shape="rect" href="LwsApiCalls_8c.html#a0c850a00a8ac0cbab7a68eab9a092a84" title=" " alt="" coords="777,573,985,601"/>
 <area shape="poly" title=" " alt="" coords="697,621,795,604,790,605,698,626"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a4c9dcb58ab89a46831b232ea6f1b9903" title=" " alt="" coords="1058,547,1210,574"/>
-<area shape="poly" title=" " alt="" coords="712,636,842,630,915,622,986,610,1038,596,1084,581,1089,580,1040,601,987,615,916,627,843,635,713,641"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a4c9dcb58ab89a46831b232ea6f1b9903" title=" " alt="" coords="1058,523,1210,550"/>
+<area shape="poly" title=" " alt="" coords="712,639,843,634,915,625,986,610,1047,586,1097,560,1102,558,1049,591,987,615,916,631,843,640,713,644"/>
 <area shape="rect" href="LwsApiCalls_8c.html#a68412ab4681df233f1f24d69cd970e35" title=" " alt="" coords="796,675,966,702"/>
 <area shape="poly" title=" " alt="" coords="698,650,795,671,789,671,698,655"/>
-<area shape="poly" title=" " alt="" coords="955,570,985,558,1022,536,1055,510,1108,463,1113,460,1059,514,1025,540,988,563,957,575"/>
-<area shape="poly" title=" " alt="" coords="1152,544,1191,508,1232,460,1271,388,1316,285,1391,100,1395,97,1321,287,1275,390,1236,463,1195,512,1155,548"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a315fc40a9368e98aea3eb70697c94c25" title=" " alt="" coords="1587,624,1767,652"/>
-<area shape="poly" title=" " alt="" coords="1156,572,1212,606,1246,623,1283,635,1357,648,1432,654,1505,653,1574,651,1568,652,1506,658,1432,659,1356,654,1281,640,1244,628,1209,611,1155,577"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a541e0b94e3a906e198afd76258df1b2e" title=" " alt="" coords="1318,391,1493,418"/>
-<area shape="poly" title=" " alt="" coords="1146,544,1199,488,1238,456,1281,429,1301,423,1306,421,1283,434,1241,460,1203,492,1149,548"/>
+<area shape="poly" title=" " alt="" coords="958,570,985,558,1000,547,1010,536,1033,509,1098,461,1103,458,1037,513,1014,539,1004,551,988,563,960,575"/>
+<area shape="poly" title=" " alt="" coords="1161,520,1198,495,1232,460,1251,427,1260,398,1267,367,1280,329,1338,198,1388,100,1392,96,1343,200,1284,331,1272,368,1265,399,1256,429,1236,463,1201,499,1164,524"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga7eaf3f2bccf8675a3c5bd7c387c806c4" title="Free the SignalingMessage payload." alt="" coords="1576,561,1793,589"/>
+<area shape="poly" title=" " alt="" coords="1211,539,1564,566,1558,567,1211,544"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a315fc40a9368e98aea3eb70697c94c25" title=" " alt="" coords="1594,637,1775,665"/>
+<area shape="poly" title=" " alt="" coords="1151,548,1206,594,1243,617,1283,635,1358,654,1436,662,1511,664,1581,663,1576,664,1511,669,1436,668,1357,659,1281,640,1240,622,1203,598,1149,553"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a541e0b94e3a906e198afd76258df1b2e" title=" " alt="" coords="1318,341,1493,369"/>
+<area shape="poly" title=" " alt="" coords="1158,520,1195,494,1232,460,1246,439,1253,418,1262,399,1280,380,1300,371,1305,369,1284,384,1266,402,1258,420,1251,441,1236,464,1198,498,1161,524"/>
 <area shape="rect" href="LwsApiCalls_8c.html#a354efc7185dbcb58e1b94b46f6ea2373" title=" " alt="" coords="1302,599,1509,626"/>
-<area shape="poly" title=" " alt="" coords="1210,572,1317,595,1312,595,1210,578"/>
-<area shape="rect" href="Signaling_8c.html#ae3eee8f50a486b71e62e7c98291d422d" title=" " alt="" coords="1298,443,1513,470"/>
-<area shape="poly" title=" " alt="" coords="1157,544,1212,512,1281,481,1306,475,1311,474,1283,486,1214,517,1159,549"/>
-<area shape="rect" href="Signaling_8c.html#ad5583fab3f7bd5e1260bc503aeff639a" title=" " alt="" coords="1282,495,1528,522"/>
-<area shape="poly" title=" " alt="" coords="1210,543,1317,525,1312,526,1211,549"/>
-<area shape="poly" title=" " alt="" coords="1149,572,1205,625,1243,654,1283,679,1316,695,1311,695,1281,684,1239,659,1202,629,1148,577"/>
-<area shape="rect" href="ThreadPoolContext_8c.html#a699e80c90be085434e9270138225e5de" title=" " alt="" coords="1318,547,1492,574"/>
-<area shape="poly" title=" " alt="" coords="1211,558,1306,560,1300,561,1211,563"/>
-<area shape="rect" href="LwsApiCalls_8c.html#a845dd8fd2ababb15e4a43ac4b83664d4" title=" " alt="" coords="1576,391,1778,418"/>
-<area shape="poly" title=" " alt="" coords="1493,402,1564,404,1559,405,1494,407"/>
-<area shape="rect" href="jsmn_8h.html#a8d4a8b3ce5c3d600feea38615b5f9aa6" title=" " alt="" coords="1636,443,1718,470"/>
-<area shape="poly" title=" " alt="" coords="1481,416,1624,446,1619,446,1482,422"/>
-<area shape="rect" href="jsmn_8h.html#acf28c8ae404fb0ad2823270d2a4c322a" title=" " alt="" coords="1629,339,1725,366"/>
-<area shape="poly" title=" " alt="" coords="1481,387,1616,364,1611,365,1482,393"/>
-<area shape="poly" title=" " alt="" coords="1509,620,1574,628,1569,628,1509,625"/>
-<area shape="rect" href="ThreadPoolContext_8c.html#acc558c7b88d01ab471649d16ae72028f" title=" " alt="" coords="1580,547,1774,574"/>
-<area shape="poly" title=" " alt="" coords="1492,558,1567,560,1562,561,1493,563"/>
+<area shape="poly" title=" " alt="" coords="1182,548,1283,578,1336,594,1330,594,1281,583,1182,554"/>
+<area shape="rect" href="Signaling_8c.html#ae3eee8f50a486b71e62e7c98291d422d" title=" " alt="" coords="1298,393,1513,421"/>
+<area shape="poly" title=" " alt="" coords="1153,520,1219,471,1281,431,1300,427,1305,425,1283,436,1222,475,1155,525"/>
+<area shape="rect" href="Signaling_8c.html#ad5583fab3f7bd5e1260bc503aeff639a" title=" " alt="" coords="1282,445,1528,473"/>
+<area shape="poly" title=" " alt="" coords="1172,520,1281,483,1319,476,1314,478,1283,488,1174,525"/>
+<area shape="poly" title=" " alt="" coords="1147,548,1201,613,1240,649,1283,680,1312,695,1307,694,1281,684,1236,653,1197,616,1145,553"/>
+<area shape="rect" href="ThreadPoolContext_8c.html#a699e80c90be085434e9270138225e5de" title=" " alt="" coords="1318,497,1492,525"/>
+<area shape="poly" title=" " alt="" coords="1211,527,1306,520,1300,521,1212,532"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a845dd8fd2ababb15e4a43ac4b83664d4" title=" " alt="" coords="1584,289,1785,317"/>
+<area shape="poly" title=" " alt="" coords="1483,338,1594,320,1589,321,1484,343"/>
+<area shape="rect" href="jsmn_8h.html#a8d4a8b3ce5c3d600feea38615b5f9aa6" title=" " alt="" coords="1644,341,1725,369"/>
+<area shape="poly" title=" " alt="" coords="1493,353,1631,355,1626,356,1494,358"/>
+<area shape="rect" href="jsmn_8h.html#acf28c8ae404fb0ad2823270d2a4c322a" title=" " alt="" coords="1636,393,1733,421"/>
+<area shape="poly" title=" " alt="" coords="1483,367,1624,395,1618,396,1484,372"/>
+<area shape="poly" title=" " alt="" coords="1509,596,1564,591,1558,592,1510,601"/>
+<area shape="poly" title=" " alt="" coords="1509,624,1582,637,1576,637,1509,630"/>
+<area shape="rect" href="ThreadPoolContext_8c.html#acc558c7b88d01ab471649d16ae72028f" title=" " alt="" coords="1588,497,1781,525"/>
+<area shape="poly" title=" " alt="" coords="1492,509,1575,511,1570,512,1492,514"/>
 <area shape="rect" href="LwsApiCalls_8c.html#afc9e7ad7111b3cdf94c7739d3695cb6c" title=" " alt="" coords="1066,675,1202,702"/>
 <area shape="poly" title=" " alt="" coords="966,686,1053,688,1048,689,967,691"/>
 <area shape="poly" title=" " alt="" coords="1203,692,1284,702,1278,702,1203,698"/>
@@ -2032,6 +2037,56 @@ Here is the call graph for this function:</div>
 <area shape="poly" title=" " alt="" coords="1043,131,1138,115,1143,115,1044,137"/>
 <area shape="rect" href="LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="1132,136,1329,164"/>
 <area shape="poly" title=" " alt="" coords="1084,146,1120,149,1114,149,1084,152"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="ga7eaf3f2bccf8675a3c5bd7c387c806c4" name="ga7eaf3f2bccf8675a3c5bd7c387c806c4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga7eaf3f2bccf8675a3c5bd7c387c806c4">&#9670;&#160;</a></span>freeSignalingMessagePayload()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">PUBLIC_API VOID freeSignalingMessagePayload </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__PublicStructures.html#gab457c08a409bf69c9b820ca390f83689">PSignalingMessage</a></td>          <td class="paramname"><span class="paramname"><em>pMessage</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Free the <a class="el" href="structSignalingMessage.html" title="When PREFER_DYNAMIC_ALLOCS is enabled, use dynamic allocation for the signaling payload buffer....">SignalingMessage</a> payload. </p>
+<p>Symmetric helper for releasing whatever resources the payload uses. Behaviour depends on the build mode:</p><ul>
+<li><span class="tt">PREFER_DYNAMIC_ALLOCS=ON</span> (DYNAMIC_SIGNALING_PAYLOAD): the SDK allocated the receive-side payload inside the parser via its own allocator. This helper frees it through the same allocator. Calling free() / application-side MEMFREE() is unsafe in shared-library builds (mismatched allocator) and in test builds (instrumented-allocator header mismatch).</li>
+<li><span class="tt">PREFER_DYNAMIC_ALLOCS=OFF</span> (default): the payload is an inline array inside <a class="el" href="structSignalingMessage.html" title="When PREFER_DYNAMIC_ALLOCS is enabled, use dynamic allocation for the signaling payload buffer....">SignalingMessage</a> and there's nothing to free; the call is a no-op. Safe to invoke unconditionally so callers don't need their own <span class="tt">#ifdef</span>.</li>
+</ul>
+<p>Call this on every <a class="el" href="structSignalingMessage.html" title="When PREFER_DYNAMIC_ALLOCS is enabled, use dynamic allocation for the signaling payload buffer....">SignalingMessage</a> the SDK populates — including on failure paths. The SDK zeros the message struct before parsing, so the call is safe even when nothing was allocated; but if parsing fails after the payload has been allocated, skipping this call leaks that buffer. Treat it like a destructor that pairs with any SDK call which fills in a <a class="el" href="structSignalingMessage.html" title="When PREFER_DYNAMIC_ALLOCS is enabled, use dynamic allocation for the signaling payload buffer....">SignalingMessage</a> / <a class="el" href="structReceivedSignalingMessage.html" title="Structure defining the signaling message to be received.">ReceivedSignalingMessage</a> out-param.</p>
+<p>Safe to call with a NULL pMessage.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">pMessage</td><td><a class="el" href="structSignalingMessage.html" title="When PREFER_DYNAMIC_ALLOCS is enabled, use dynamic allocation for the signaling payload buffer....">SignalingMessage</a> whose payload should be released. </td></tr>
+  </table>
+  </dd>
+</dl>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="group__PublicMemberFunctions_ga7eaf3f2bccf8675a3c5bd7c387c806c4_icgraph.png" border="0" usemap="#agroup__PublicMemberFunctions_ga7eaf3f2bccf8675a3c5bd7c387c806c4_icgraph" loading="lazy" alt=""/></div>
+<map name="agroup__PublicMemberFunctions_ga7eaf3f2bccf8675a3c5bd7c387c806c4_icgraph" id="agroup__PublicMemberFunctions_ga7eaf3f2bccf8675a3c5bd7c387c806c4_icgraph">
+<area shape="rect" title="Free the SignalingMessage payload." alt="" coords="1126,5,1342,33"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a4c9dcb58ab89a46831b232ea6f1b9903" title=" " alt="" coords="670,5,823,33"/>
+<area shape="poly" title=" " alt="" coords="1108,19,823,22,823,17,1114,19"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a354efc7185dbcb58e1b94b46f6ea2373" title=" " alt="" coords="871,31,1078,58"/>
+<area shape="poly" title=" " alt="" coords="1113,31,1079,37,1078,32,1108,31"/>
+<area shape="rect" href="LwsApiCalls_8c.html#a47c8ad494cd1c7a116a177a35055dd98" title=" " alt="" coords="446,5,622,33"/>
+<area shape="poly" title=" " alt="" coords="652,19,623,22,623,17,657,19"/>
+<area shape="rect" href="Signaling_8c.html#ab095306d46a8e5ae01e2b28a8de0487a" title=" " alt="" coords="245,5,398,33"/>
+<area shape="poly" title=" " alt="" coords="428,19,399,22,399,17,433,19"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga375ddffe8376298cdaafe63799b53b1e" title="Creates a Signaling client and returns a handle to it." alt="" coords="5,5,197,33"/>
+<area shape="poly" title=" " alt="" coords="227,19,197,22,197,17,232,19"/>
+<area shape="poly" title=" " alt="" coords="853,31,823,30,823,25,858,31"/>
 </map>
 </div>
 
