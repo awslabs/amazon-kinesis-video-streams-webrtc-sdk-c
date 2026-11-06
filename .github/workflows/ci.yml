@@ -91,6 +91,7 @@ jobs:
         config:
           - name: Shared OpenSSL
             cmake_flags: "-DBUILD_TEST=ON -DPARALLEL_BUILD=ON"
+            cmake_version: '3.x'
           - name: Static OpenSSL
             cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=ON -DPARALLEL_BUILD=ON"
           - name: Shared MbedTLS
@@ -129,7 +130,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
-          cmake-version: '3.x'
+          cmake-version: ${{ matrix.config.cmake_version || '4.x' }}
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -289,7 +290,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
-          cmake-version: '3.x'
+          cmake-version: '4.x'
 
       - name: Build repository
         run: |
@@ -325,6 +326,7 @@ jobs:
         build-configuration:
           - name: curl
             cmake-args: "-DUSE_OPENSSL=ON -DUSE_MBEDTLS=OFF"
+            cmake-version: '3.x'
           - name: lws
             cmake-args: "-DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
           - name: openssl3
@@ -386,7 +388,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
-          cmake-version: '3.x'
+          cmake-version: ${{ matrix.build-configuration.cmake-version || '4.x' }}
 
       - name: Build repository
         shell: bash
@@ -450,7 +452,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
-          cmake-version: '3.x'
+          cmake-version: '4.x'
 
       - name: Build repository
         shell: bash
@@ -520,7 +522,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
-          cmake-version: '3.x'
+          cmake-version: '4.x'
 
       - name: Build repository
         shell: bash
@@ -582,7 +584,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
-          cmake-version: '3.x'
+          cmake-version: '4.x'
       - name: Build repository
         shell: powershell
         run: |
@@ -645,7 +647,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
-          cmake-version: '3.x'
+          cmake-version: '4.x'
 
       - name: Build repository
         run: |
@@ -673,7 +675,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
-          cmake-version: '3.x'
+          cmake-version: '4.x'
 
       - name: Reject below minimum (KVS_SIGNALING_MESSAGE_LEN=5000)
         run: |
@@ -763,7 +765,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
-          cmake-version: '3.x'
+          cmake-version: '4.x'
 
       - name: Check StackSize with Invalid Value
         run: |
