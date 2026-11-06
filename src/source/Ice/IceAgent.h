@@ -25,6 +25,12 @@ extern "C" {
 #define KVS_ICE_DEFAULT_TIMER_START_DELAY        (3 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 #define KVS_ICE_SHORT_CHECK_DELAY                (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
+// Consent freshness (RFC 7675): a binding request on the pair in use this often, give or take 20 %. An ICE-lite peer
+// sends no checks of its own and may end the session once ours stop
+#define KVS_ICE_CONSENT_CHECK_INTERVAL (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+// Consent is lost this long after the last authenticated answer on the pair in use, and ICE fails
+#define KVS_ICE_CONSENT_EXPIRY (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+
 // Ta in https://tools.ietf.org/html/rfc8445
 #define KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL  (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 #define KVS_ICE_STATE_READY_TIMER_POLLING_INTERVAL (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
@@ -234,6 +240,7 @@ struct __IceAgent {
     // timer tasks
     UINT32 iceAgentStateTimerTask;
     UINT32 keepAliveTimerTask;
+    UINT32 consentTimerTask;
     UINT32 iceCandidateGatheringTimerTask;
 
     // Current ice agent state
@@ -259,6 +266,10 @@ struct __IceAgent {
 
     TIMER_QUEUE_HANDLE timerQueueHandle;
     UINT64 lastDataReceivedTime;
+    // Last authenticated answer to a check on the pair in use, for consent freshness
+    UINT64 lastConsentTime;
+    // No answer for KVS_ICE_CONSENT_EXPIRY: the state machine reports a disconnection, then fails ICE
+    BOOL consentExpired;
     BOOL detectedDisconnection;
     UINT64 disconnectionGracePeriodEndTime;
 
@@ -450,6 +461,7 @@ STATUS iceAgentReadyStateSetup(PIceAgent);
 // timer callbacks. timer callbacks are interlocked by time queue lock.
 STATUS iceAgentStateTransitionTimerCallback(UINT32, UINT64, UINT64);
 STATUS iceAgentSendKeepAliveTimerCallback(UINT32, UINT64, UINT64);
+STATUS iceAgentConsentTimerCallback(UINT32, UINT64, UINT64);
 STATUS iceAgentGatherCandidateTimerCallback(UINT32, UINT64, UINT64);
 
 // Default time callback for the state machine
