@@ -11,8 +11,7 @@
 extern "C" {
 #endif
 
-// 1200 - 12 (SCTP header Size)
-#define SCTP_MTU                         1188
+#define SCTP_COMMON_HEADER_LENGTH        12  // source port, destination port, verification tag and checksum
 #define SCTP_MAX_STREAMS                 300 // outbound and inbound streams negotiated per association
 #define SCTP_ASSOCIATION_DEFAULT_PORT    5000
 #define SCTP_DCEP_HEADER_LENGTH          12
@@ -100,7 +99,8 @@ typedef struct {
 
 STATUS initSctpSession();
 VOID deinitSctpSession();
-STATUS createSctpSession(PSctpSessionCallbacks, TIMER_QUEUE_HANDLE, PSctpSession*);
+// The UINT32 is the largest SCTP packet to send, in bytes, including the SCTP common header
+STATUS createSctpSession(PSctpSessionCallbacks, TIMER_QUEUE_HANDLE, UINT32, PSctpSession*);
 STATUS freeSctpSession(PSctpSession*);
 STATUS putSctpPacket(PSctpSession, PBYTE, UINT32);
 // The last BOOL sends ordered whatever the channel's setting: an in-band channel until its DATA_CHANNEL_ACK, RFC 8832 section 6

@@ -192,12 +192,18 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     BOOL locked = FALSE;
     PHashTable pKeyed = NULL;
     AllocateSctpChannelList list;
-    UINT32 i;
+    UINT32 i, maxRecordPayloadSize, maxSctpPacketSize;
 
     MEMSET(&list, 0x00, SIZEOF(list));
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
     data.unkeyedDataChannels = NULL;
+
+    // The receiver passes each DTLS record to SCTP as one packet, so each SCTP packet must fit in one record
+    CHK_STATUS(dtlsSessionGetMaxRecordPayloadSize(pKvsPeerConnection->pDtlsSession, &maxRecordPayloadSize));
+    maxSctpPacketSize = MIN(DEFAULT_MTU_SIZE_BYTES, maxRecordPayloadSize);
+    DLOGD("Sending SCTP packets of up to %u bytes", maxSctpPacketSize);
+
     MUTEX_LOCK(pKvsPeerConnection->dataChannelsLock);
     locked = TRUE;
 
@@ -224,7 +230,8 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     sctpSessionCallbacks.dataChannelOpenFunc = onSctpSessionDataChannelOpen;
     sctpSessionCallbacks.dataChannelAckFunc = onSctpSessionDataChannelAck;
     sctpSessionCallbacks.customData = (UINT64) pKvsPeerConnection;
-    CHK_STATUS(createSctpSession(&sctpSessionCallbacks, pKvsPeerConnection->timerQueueHandle, &(pKvsPeerConnection->pSctpSession)));
+    CHK_STATUS(
+        createSctpSession(&sctpSessionCallbacks, pKvsPeerConnection->timerQueueHandle, maxSctpPacketSize, &(pKvsPeerConnection->pSctpSession)));
 
     // Snapshot the channels to open; they are announced and opened once the lock is released (channels are
     // only freed with the peer connection, so the pointers stay valid)
