@@ -2028,6 +2028,7 @@ PVOID reconnectHandler(PVOID args)
     CHAR reconnectErrMsg[SIGNALING_MAX_ERROR_MESSAGE_LEN + 1];
     UINT32 reconnectErrLen;
     SignalingThreadNode threadNode;
+    PStateMachineState pState = NULL;
     PSignalingClient pSignalingClient = (PSignalingClient) args;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
@@ -2053,9 +2054,38 @@ PVOID reconnectHandler(PVOID args)
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfReconnects);
 
     // Attempt to reconnect by driving the state machine to connected state
-    CHK_STATUS(signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT,
-                                             pSignalingClient->mediaStorageConfig.storageStatus ? SIGNALING_STATE_JOIN_SESSION_CONNECTED
-                                                                                                : SIGNALING_STATE_CONNECTED));
+    retStatus = signalingStateMachineIterator(pSignalingClient, SIGNALING_GET_CURRENT_TIME(pSignalingClient) + SIGNALING_CONNECT_STATE_TIMEOUT,
+                                              pSignalingClient->mediaStorageConfig.storageStatus ? SIGNALING_STATE_JOIN_SESSION_CONNECTED
+                                                                                                 : SIGNALING_STATE_CONNECTED);
+
+    // signalingStateMachineIterator() checks its deadline at the top of the loop, before stepping. If the WSS
+    // handshake itself crossed the deadline, the lws callback has already stored connected = TRUE and result = OK,
+    // but the final CONNECT -> CONNECTED step never ran, so a reconnect that actually succeeded would be reported
+    // as a failure and the state machine left in CONNECT with a live socket. Complete that one bookkeeping step
+    // here: re-read connected under stateLock and only move an unchanged CONNECT state to CONNECTED. This never
+    // re-enters the connect step, so it cannot open a new socket. If the socket dropped at the deadline instead,
+    // its CLIENT_CLOSED callback has already cleared connected and spawned a fresh reconnect thread, so connected
+    // reads FALSE here, the original timeout is reported, and the retry is left to that thread. Only the
+    // non-storage CONNECTED target is completed this way; a storage reconnect needs a JoinSession network call,
+    // so it is left to the normal failure path.
+    if (retStatus == STATUS_OPERATION_TIMED_OUT && !pSignalingClient->mediaStorageConfig.storageStatus) {
+        MUTEX_LOCK(pSignalingClient->stateLock);
+        if (ATOMIC_LOAD_BOOL(&pSignalingClient->connected) &&
+            STATUS_SUCCEEDED(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState)) && pState != NULL &&
+            pState->state == SIGNALING_STATE_CONNECT) {
+            setStateMachineCurrentState(pSignalingClient->pStateMachine, SIGNALING_STATE_CONNECTED);
+            DLOGD("Reconnect reached its connect deadline with the socket already up; completing the transition to CONNECTED");
+            if (pSignalingClient->signalingClientCallbacks.stateChangeFn != NULL) {
+                retStatus = pSignalingClient->signalingClientCallbacks.stateChangeFn(pSignalingClient->signalingClientCallbacks.customData,
+                                                                                     SIGNALING_CLIENT_STATE_CONNECTED);
+            } else {
+                retStatus = STATUS_SUCCESS;
+            }
+        }
+        MUTEX_UNLOCK(pSignalingClient->stateLock);
+    }
+
+    CHK_STATUS(retStatus);
 
 CleanUp:
 
