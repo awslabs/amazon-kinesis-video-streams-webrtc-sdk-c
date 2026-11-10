@@ -64,6 +64,11 @@ if (_psa_config_cmds)
   set(MBEDTLS_PATCH_COMMAND PATCH_COMMAND ${_psa_config_cmds})
 endif()
 
+# Set by build_dependency() when CMake 4 needs it
+if(DEFINED CMAKE_POLICY_VERSION_MINIMUM)
+  set(POLICY_VERSION_ARGS -DCMAKE_POLICY_VERSION_MINIMUM=${CMAKE_POLICY_VERSION_MINIMUM})
+endif()
+
 ExternalProject_Add(
   project_libmbedtls
   GIT_REPOSITORY  https://github.com/Mbed-TLS/mbedtls.git
@@ -76,6 +81,7 @@ ExternalProject_Add(
     -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}
     -DUSE_SHARED_MBEDTLS_LIBRARY=${BUILD_SHARED}
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+    ${POLICY_VERSION_ARGS}
     -DCMAKE_MACOSX_RPATH=${CMAKE_MACOSX_RPATH}
     -DENABLE_TESTING=OFF
     -DENABLE_PROGRAMS=OFF
