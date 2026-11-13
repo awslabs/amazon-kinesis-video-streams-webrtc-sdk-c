@@ -1,7 +1,5 @@
 <map id="receiveLwsMessageWrapper" name="receiveLwsMessageWrapper">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,32,213,60"/>
-<area shape="rect" id="Node000002" href="$group__PublicMemberFunctions.html#ga7eaf3f2bccf8675a3c5bd7c387c806c4" title="Free the SignalingMessage payload." alt="" coords="261,5,477,33"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="213,33,248,31,243,32,213,38"/>
-<area shape="rect" id="Node000003" href="$LwsApiCalls_8c.html#a315fc40a9368e98aea3eb70697c94c25" title=" " alt="" coords="279,57,459,85"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="213,53,266,61,261,61,213,59"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,213,33"/>
+<area shape="rect" id="Node000002" href="$LwsApiCalls_8c.html#a315fc40a9368e98aea3eb70697c94c25" title=" " alt="" coords="261,5,441,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="213,17,248,19,242,19,213,22"/>
 </map>

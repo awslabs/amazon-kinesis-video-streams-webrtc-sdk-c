@@ -237,7 +237,7 @@ Macros</h2></td></tr>
 <tr class="memitem:aac75c23f448ca539853ebf577dff9bda" id="r_aac75c23f448ca539853ebf577dff9bda"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aac75c23f448ca539853ebf577dff9bda">DTLS_FINGERPRINT_SHA256_PREFIX</a>&#160;&#160;&#160;<a class="el" href="#a31b4ec0e9513c3be0fe78ca82ff70ef4">DTLS_FINGERPRINT_SHA256_HASH_NAME</a> &quot; &quot;</td></tr>
 <tr class="memitem:aa74280d0e852d6eb37ec6b8b97aae745" id="r_aa74280d0e852d6eb37ec6b8b97aae745"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa74280d0e852d6eb37ec6b8b97aae745">DTLS_FINGERPRINT_SHA256_PREFIX_LEN</a>&#160;&#160;&#160;(SIZEOF(<a class="el" href="#aac75c23f448ca539853ebf577dff9bda">DTLS_FINGERPRINT_SHA256_PREFIX</a>) - 1)</td></tr>
 <tr class="memitem:a3cf5ecd0269eae37a1b66d460835f7de" id="r_a3cf5ecd0269eae37a1b66d460835f7de"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a3cf5ecd0269eae37a1b66d460835f7de">DTLS_TRANSMISSION_INTERVAL</a>&#160;&#160;&#160;(200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)</td></tr>
-<tr class="memitem:a47dcf553b8ea91cf54d17063b966c731" id="r_a47dcf553b8ea91cf54d17063b966c731"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a47dcf553b8ea91cf54d17063b966c731">DTLS_SESSION_TIMER_START_DELAY</a>&#160;&#160;&#160;(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)</td></tr>
+<tr class="memitem:a56456ad743e0e9b54b5127f04ca526fc" id="r_a56456ad743e0e9b54b5127f04ca526fc"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a56456ad743e0e9b54b5127f04ca526fc">DTLS_CLIENT_HELLO_MIN_LEN</a>&#160;&#160;&#160;25</td></tr>
 <tr class="memitem:a6508df70318d3f264c21b2df2dfe0417" id="r_a6508df70318d3f264c21b2df2dfe0417"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a6508df70318d3f264c21b2df2dfe0417">SECONDS_IN_A_DAY</a>&#160;&#160;&#160;(24 * 60 * 60LL)</td></tr>
 <tr class="memitem:ab0bf64d92f235fd5eb709175cf876041" id="r_ab0bf64d92f235fd5eb709175cf876041"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab0bf64d92f235fd5eb709175cf876041">HUNDREDS_OF_NANOS_IN_A_DAY</a>&#160;&#160;&#160;(HUNDREDS_OF_NANOS_IN_AN_HOUR * 24LL)</td></tr>
 </table><table class="memberdecls">
@@ -289,6 +289,8 @@ Functions</h2></td></tr>
 <tr class="memitem:aff7cb7965afc34545a977bc5de7fa06d" id="r_aff7cb7965afc34545a977bc5de7fa06d"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aff7cb7965afc34545a977bc5de7fa06d">dtlsSessionHandshakeInThread</a> (<a class="el" href="#a26ca7dadcdec16a8584b8a97811cb2f6">PDtlsSession</a>, BOOL)</td></tr>
 <tr class="memitem:ac1d4a9d34b47c3cc4a848ea2e1012816" id="r_ac1d4a9d34b47c3cc4a848ea2e1012816"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac1d4a9d34b47c3cc4a848ea2e1012816">dtlsValidateRtcCertificates</a> (<a class="el" href="group__PublicStructures.html#ga7f1a9ea27f23f9d24beb8f271c0482b8">PRtcCertificate</a>, PUINT32)</td></tr>
 <tr class="memitem:a836f1f4561fc2126486f46e3858cd0f2" id="r_a836f1f4561fc2126486f46e3858cd0f2"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a836f1f4561fc2126486f46e3858cd0f2">dtlsSessionChangeState</a> (<a class="el" href="#a26ca7dadcdec16a8584b8a97811cb2f6">PDtlsSession</a>, <a class="el" href="#aa3c340420ea2933671b7564d7bb9ac2e">RTC_DTLS_TRANSPORT_STATE</a>)</td></tr>
+<tr class="memitem:a895468470d21cc4c9b3bc346d817794d" id="r_a895468470d21cc4c9b3bc346d817794d"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a895468470d21cc4c9b3bc346d817794d">dtlsPacketIsClientHello</a> (PBYTE, UINT32)</td></tr>
+<tr class="memitem:aa9ef67d4909320dc7ca391af1fe4fe3b" id="r_aa9ef67d4909320dc7ca391af1fe4fe3b"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa9ef67d4909320dc7ca391af1fe4fe3b">dtlsSessionKeepEarlyClientHello</a> (<a class="el" href="#a26ca7dadcdec16a8584b8a97811cb2f6">PDtlsSession</a>, PBYTE, UINT32)</td></tr>
 <tr class="memitem:ac12b89959cddb7d67a429b9ef4a137cf" id="r_ac12b89959cddb7d67a429b9ef4a137cf"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac12b89959cddb7d67a429b9ef4a137cf">dtlsSessionCopyOptions</a> (<a class="el" href="#a26ca7dadcdec16a8584b8a97811cb2f6">PDtlsSession</a>, <a class="el" href="#a21126274e953080dd7674d13724de7bd">PDtlsSessionOptions</a>)</td></tr>
 <tr class="memitem:a1bf8b97ae0076266a976d0a46a9bd2aa" id="r_a1bf8b97ae0076266a976d0a46a9bd2aa"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a1bf8b97ae0076266a976d0a46a9bd2aa">dtlsFillPseudoRandomBits</a> (PBYTE, UINT32)</td></tr>
 </table>
@@ -315,6 +317,20 @@ Functions</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">#define DTLS_CERT_MIN_SERIAL_NUM_SIZE&#160;&#160;&#160;8</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a56456ad743e0e9b54b5127f04ca526fc" name="a56456ad743e0e9b54b5127f04ca526fc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a56456ad743e0e9b54b5127f04ca526fc">&#9670;&#160;</a></span>DTLS_CLIENT_HELLO_MIN_LEN</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define DTLS_CLIENT_HELLO_MIN_LEN&#160;&#160;&#160;25</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -357,20 +373,6 @@ Functions</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">#define DTLS_FINGERPRINT_SHA256_PREFIX_LEN&#160;&#160;&#160;(SIZEOF(<a class="el" href="#aac75c23f448ca539853ebf577dff9bda">DTLS_FINGERPRINT_SHA256_PREFIX</a>) - 1)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a47dcf553b8ea91cf54d17063b966c731" name="a47dcf553b8ea91cf54d17063b966c731"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a47dcf553b8ea91cf54d17063b966c731">&#9670;&#160;</a></span>DTLS_SESSION_TIMER_START_DELAY</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define DTLS_SESSION_TIMER_START_DELAY&#160;&#160;&#160;(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -962,6 +964,59 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
+<a id="a895468470d21cc4c9b3bc346d817794d" name="a895468470d21cc4c9b3bc346d817794d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a895468470d21cc4c9b3bc346d817794d">&#9670;&#160;</a></span>dtlsPacketIsClientHello()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">BOOL dtlsPacketIsClientHello </td>
+          <td>(</td>
+          <td class="paramtype">PBYTE</td>          <td class="paramname"><span class="paramname"><em>pData</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">UINT32</td>          <td class="paramname"><span class="paramname"><em>dataLen</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Whether a DTLS datagram starts with an unencrypted ClientHello (epoch 0), from its first fragment </p>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="Dtls_8h_a895468470d21cc4c9b3bc346d817794d_icgraph.png" border="0" usemap="#aDtls_8h_a895468470d21cc4c9b3bc346d817794d_icgraph" loading="lazy" alt=""/></div>
+<map name="aDtls_8h_a895468470d21cc4c9b3bc346d817794d_icgraph" id="aDtls_8h_a895468470d21cc4c9b3bc346d817794d_icgraph">
+<area shape="rect" title=" " alt="" coords="1639,36,1809,64"/>
+<area shape="rect" href="Dtls_8c.html#a6c4c6c2812ad87d135ff69820c6a6561" title=" " alt="" coords="1392,28,1591,72"/>
+<area shape="poly" title=" " alt="" coords="1620,50,1591,52,1591,47,1626,50"/>
+<area shape="rect" href="Dtls__openssl_8c.html#a929cb0f439a6b6353f741b841d095da3" title=" " alt="" coords="1157,36,1344,64"/>
+<area shape="poly" title=" " alt="" coords="1374,59,1345,61,1345,56,1379,59"/>
+<area shape="poly" title=" " alt="" coords="1374,41,1345,44,1345,38,1379,41"/>
+<area shape="rect" href="PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="943,8,1074,36"/>
+<area shape="poly" title=" " alt="" coords="1139,37,1075,32,1075,27,1144,37"/>
+<area shape="rect" href="SocketConnection_8c.html#a701ec77930f1201ad5ab5aa3e293ee7f" title=" " alt="" coords="909,61,1109,89"/>
+<area shape="poly" title=" " alt="" coords="1144,61,1110,67,1109,62,1139,61"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="680,5,845,33"/>
+<area shape="poly" title=" " alt="" coords="925,21,845,23,845,17,930,21"/>
+<area shape="rect" href="ConnectionListener_8c.html#ad4b0c7229cc56aa8bc3eaef7d75c2ab7" title=" " alt="" coords="664,57,861,102"/>
+<area shape="poly" title=" " alt="" coords="890,77,861,80,861,75,896,77"/>
+<area shape="rect" href="ConnectionListener_8c.html#ac6b964c533b9932afd35358f2b49f5a8" title=" " alt="" coords="441,65,616,93"/>
+<area shape="poly" title=" " alt="" coords="646,79,617,82,617,77,651,79"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="228,39,385,66"/>
+<area shape="poly" title=" " alt="" coords="423,67,386,65,386,59,428,67"/>
+<area shape="rect" href="IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="220,91,393,118"/>
+<area shape="poly" title=" " alt="" coords="423,91,394,97,393,92,428,91"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="14,64,163,92"/>
+<area shape="poly" title=" " alt="" coords="202,93,164,90,164,84,207,92"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,116,172,144"/>
+<area shape="poly" title=" " alt="" coords="202,117,172,123,172,118,207,116"/>
+</map>
+</div>
+
+</div>
+</div>
 <a id="a836f1f4561fc2126486f46e3858cd0f2" name="a836f1f4561fc2126486f46e3858cd0f2"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a836f1f4561fc2126486f46e3858cd0f2">&#9670;&#160;</a></span>dtlsSessionChangeState()</h2>
 
@@ -1322,6 +1377,73 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
+<a id="aa9ef67d4909320dc7ca391af1fe4fe3b" name="aa9ef67d4909320dc7ca391af1fe4fe3b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa9ef67d4909320dc7ca391af1fe4fe3b">&#9670;&#160;</a></span>dtlsSessionKeepEarlyClientHello()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">STATUS dtlsSessionKeepEarlyClientHello </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="#a26ca7dadcdec16a8584b8a97811cb2f6">PDtlsSession</a></td>          <td class="paramname"><span class="paramname"><em>pDtlsSession</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PBYTE</td>          <td class="paramname"><span class="paramname"><em>pData</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">UINT32</td>          <td class="paramname"><span class="paramname"><em>dataLen</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Keeps a ClientHello that arrived before <a class="el" href="#aa48db647b2b8eaedbb6bf5c04a1795be">dtlsSessionStart()</a> for the session to answer when it starts, replacing one kept before (RFC 8842 section 5.2: the answerer may send it as soon as its own ICE is ready). Call with sslLock held, before the session started.</p>
+<dl class="section return"><dt>Returns</dt><dd>- STATUS - STATUS_SUCCESS if the packet was kept, STATUS_SSL_PACKET_BEFORE_DTLS_READY if it does not start a ClientHello and is dropped, STATUS_NOT_ENOUGH_MEMORY if it could not be copied (one kept before stays), STATUS_NULL_ARG </dd></dl>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="Dtls_8h_aa9ef67d4909320dc7ca391af1fe4fe3b_cgraph.png" border="0" usemap="#aDtls_8h_aa9ef67d4909320dc7ca391af1fe4fe3b_cgraph" loading="lazy" alt=""/></div>
+<map name="aDtls_8h_aa9ef67d4909320dc7ca391af1fe4fe3b_cgraph" id="aDtls_8h_aa9ef67d4909320dc7ca391af1fe4fe3b_cgraph">
+<area shape="rect" title=" " alt="" coords="5,5,204,50"/>
+<area shape="rect" href="Dtls_8c.html#aa4c8c9b8fefd3038149f53fdb98a3c6f" title=" " alt="" coords="252,14,422,42"/>
+<area shape="poly" title=" " alt="" coords="204,25,238,27,233,28,204,30"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="Dtls_8h_aa9ef67d4909320dc7ca391af1fe4fe3b_icgraph.png" border="0" usemap="#aDtls_8h_aa9ef67d4909320dc7ca391af1fe4fe3b_icgraph" loading="lazy" alt=""/></div>
+<map name="aDtls_8h_aa9ef67d4909320dc7ca391af1fe4fe3b_icgraph" id="aDtls_8h_aa9ef67d4909320dc7ca391af1fe4fe3b_icgraph">
+<area shape="rect" title=" " alt="" coords="1392,28,1591,72"/>
+<area shape="rect" href="Dtls__openssl_8c.html#a929cb0f439a6b6353f741b841d095da3" title=" " alt="" coords="1157,36,1344,64"/>
+<area shape="poly" title=" " alt="" coords="1374,59,1345,61,1345,56,1379,59"/>
+<area shape="poly" title=" " alt="" coords="1374,41,1345,44,1345,38,1379,41"/>
+<area shape="rect" href="PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="943,8,1074,36"/>
+<area shape="poly" title=" " alt="" coords="1139,37,1075,32,1075,27,1144,37"/>
+<area shape="rect" href="SocketConnection_8c.html#a701ec77930f1201ad5ab5aa3e293ee7f" title=" " alt="" coords="909,61,1109,89"/>
+<area shape="poly" title=" " alt="" coords="1144,61,1110,67,1109,62,1139,61"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="680,5,845,33"/>
+<area shape="poly" title=" " alt="" coords="925,21,845,23,845,17,930,21"/>
+<area shape="rect" href="ConnectionListener_8c.html#ad4b0c7229cc56aa8bc3eaef7d75c2ab7" title=" " alt="" coords="664,57,861,102"/>
+<area shape="poly" title=" " alt="" coords="890,77,861,80,861,75,896,77"/>
+<area shape="rect" href="ConnectionListener_8c.html#ac6b964c533b9932afd35358f2b49f5a8" title=" " alt="" coords="441,65,616,93"/>
+<area shape="poly" title=" " alt="" coords="646,79,617,82,617,77,651,79"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="228,39,385,66"/>
+<area shape="poly" title=" " alt="" coords="423,67,386,65,386,59,428,67"/>
+<area shape="rect" href="IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="220,91,393,118"/>
+<area shape="poly" title=" " alt="" coords="423,91,394,97,393,92,428,91"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="14,64,163,92"/>
+<area shape="poly" title=" " alt="" coords="202,93,164,90,164,84,207,92"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,116,172,144"/>
+<area shape="poly" title=" " alt="" coords="202,117,172,123,172,118,207,116"/>
+</map>
+</div>
+
+</div>
+</div>
 <a id="acf73231476e62e59c420acbea5ef5da5" name="acf73231476e62e59c420acbea5ef5da5"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#acf73231476e62e59c420acbea5ef5da5">&#9670;&#160;</a></span>dtlsSessionOnOutBoundData()</h2>
 
@@ -1469,23 +1591,27 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="Dtls_8h_a9644465349276ea0504368f46931772a_cgraph.png" border="0" usemap="#aDtls_8h_a9644465349276ea0504368f46931772a_cgraph" loading="lazy" alt=""/></div>
 <map name="aDtls_8h_a9644465349276ea0504368f46931772a_cgraph" id="aDtls_8h_a9644465349276ea0504368f46931772a_cgraph">
-<area shape="rect" title=" " alt="" coords="5,204,193,232"/>
+<area shape="rect" title=" " alt="" coords="5,239,193,266"/>
 <area shape="rect" href="Dtls__openssl_8c.html#af3bfcfebc77d873de4356b748060a048" title=" " alt="" coords="295,5,440,33"/>
-<area shape="poly" title=" " alt="" coords="105,202,124,169,154,126,192,81,239,44,282,28,278,31,242,48,196,85,158,129,129,172,110,205"/>
+<area shape="poly" title=" " alt="" coords="103,237,120,198,148,145,188,90,212,65,239,44,282,26,278,30,242,48,216,69,192,93,153,148,125,200,108,239"/>
 <area shape="rect" href="Dtls__openssl_8c.html#a82fa98f2c2ddff7d94b60f84ef212a15" title=" " alt="" coords="260,57,474,85"/>
-<area shape="poly" title=" " alt="" coords="111,202,163,149,199,120,239,95,260,89,256,92,242,100,202,124,166,153,115,205"/>
+<area shape="poly" title=" " alt="" coords="106,237,127,207,156,168,195,129,239,96,257,89,253,93,242,100,198,133,160,172,131,210,111,240"/>
 <area shape="rect" href="Dtls_8c.html#ac7d96e418743c4a3c14e2e766340734c" title=" " alt="" coords="278,109,456,137"/>
-<area shape="poly" title=" " alt="" coords="123,202,176,173,240,146,267,140,262,143,242,151,178,178,126,206"/>
+<area shape="poly" title=" " alt="" coords="113,236,166,191,201,167,240,146,266,138,262,142,242,151,204,171,169,195,117,240"/>
 <area shape="rect" href="Dtls__mbedtls_8c.html#ae5da5639331cbc277079090fb8ccb15c" title=" " alt="" coords="241,161,494,206"/>
-<area shape="poly" title=" " alt="" coords="192,203,228,200,223,203,194,208"/>
+<area shape="poly" title=" " alt="" coords="154,236,265,208,262,212,157,240"/>
 <area shape="rect" href="Dtls__mbedtls_8c.html#ad849692fdcbc2cee275773d93109f157" title=" " alt="" coords="275,230,460,275"/>
-<area shape="poly" title=" " alt="" coords="193,227,262,237,257,240,194,233"/>
-<area shape="rect" href="Dtls__mbedtls_8c.html#a1fc56b3d164da5001e7fdd9463e0a281" title=" " alt="" coords="288,299,447,326"/>
-<area shape="poly" title=" " alt="" coords="124,229,178,258,242,285,275,296,270,297,240,290,176,262,124,235"/>
-<area shape="rect" href="IOBuffer_8c.html#a1fd767c00239c83072309f23641b22f6" title=" " alt="" coords="314,351,421,378"/>
-<area shape="poly" title=" " alt="" coords="113,230,166,283,202,311,242,335,270,347,302,356,296,357,268,352,239,340,199,316,163,287,112,235"/>
-<area shape="rect" href="Dtls__openssl_8c.html#a7098126d6dad351545fc6aea9afc2668" title=" " alt="" coords="295,403,440,430"/>
-<area shape="poly" title=" " alt="" coords="108,230,129,264,158,307,196,351,242,388,282,406,277,406,239,392,192,355,154,310,124,267,107,235"/>
+<area shape="poly" title=" " alt="" coords="192,250,261,251,257,254,194,255"/>
+<area shape="rect" href="Dtls_8c.html#a6c4c6c2812ad87d135ff69820c6a6561" title=" " alt="" coords="268,300,466,344"/>
+<area shape="poly" title=" " alt="" coords="155,264,266,294,261,297,156,270"/>
+<area shape="rect" href="Dtls__mbedtls_8c.html#a1fc56b3d164da5001e7fdd9463e0a281" title=" " alt="" coords="288,368,447,396"/>
+<area shape="poly" title=" " alt="" coords="115,264,169,310,204,334,242,354,276,367,270,368,240,359,201,338,166,314,115,269"/>
+<area shape="rect" href="IOBuffer_8c.html#a1fd767c00239c83072309f23641b22f6" title=" " alt="" coords="314,420,421,448"/>
+<area shape="poly" title=" " alt="" coords="109,264,131,295,160,333,198,372,242,405,270,417,301,427,296,428,268,422,239,409,195,376,156,337,127,298,109,269"/>
+<area shape="rect" href="Dtls__openssl_8c.html#a7098126d6dad351545fc6aea9afc2668" title=" " alt="" coords="295,472,440,500"/>
+<area shape="poly" title=" " alt="" coords="106,264,125,305,153,357,192,412,216,436,242,457,283,477,277,477,239,461,212,440,188,415,148,360,120,307,105,269"/>
+<area shape="rect" href="Dtls_8c.html#aa4c8c9b8fefd3038149f53fdb98a3c6f" title=" " alt="" coords="542,308,712,336"/>
+<area shape="poly" title=" " alt="" coords="467,319,529,321,523,322,467,324"/>
 </map>
 </div>
 <div class="dynheader">
@@ -1813,39 +1939,43 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="Dtls_8h_aa48db647b2b8eaedbb6bf5c04a1795be_cgraph.png" border="0" usemap="#aDtls_8h_aa48db647b2b8eaedbb6bf5c04a1795be_cgraph" loading="lazy" alt=""/></div>
 <map name="aDtls_8h_aa48db647b2b8eaedbb6bf5c04a1795be_cgraph" id="aDtls_8h_aa48db647b2b8eaedbb6bf5c04a1795be_cgraph">
-<area shape="rect" title=" " alt="" coords="5,242,132,270"/>
-<area shape="rect" href="Dtls__openssl_8c.html#af3bfcfebc77d873de4356b748060a048" title=" " alt="" coords="506,23,651,51"/>
-<area shape="poly" title=" " alt="" coords="70,241,80,201,100,148,132,93,153,69,178,50,218,30,260,16,304,8,348,4,433,7,508,19,503,21,432,12,348,9,304,13,261,21,220,34,181,54,157,73,136,96,105,150,85,203,75,242"/>
-<area shape="rect" href="Dtls__openssl_8c.html#accdc5b0c0d653cf99597a554a7facefc" title=" " alt="" coords="202,63,382,91"/>
-<area shape="poly" title=" " alt="" coords="74,241,112,176,142,139,178,107,203,95,200,99,181,111,146,143,116,179,79,243"/>
-<area shape="rect" href="Dtls_8c.html#ac7d96e418743c4a3c14e2e766340734c" title=" " alt="" coords="490,155,668,183"/>
-<area shape="poly" title=" " alt="" coords="92,240,132,219,179,201,255,185,332,174,476,167,471,170,333,179,256,190,180,206,134,224,96,243"/>
-<area shape="rect" href="Dtls__openssl_8c.html#a7098126d6dad351545fc6aea9afc2668" title=" " alt="" coords="506,85,651,112"/>
-<area shape="poly" title=" " alt="" coords="81,240,122,202,149,183,179,167,258,138,341,118,421,106,493,100,488,103,422,111,342,123,260,143,181,172,152,187,126,207,85,243"/>
-<area shape="rect" href="Dtls__mbedtls_8c.html#a2e23c7ed12431fc6cc745c277d9cdfe7" title=" " alt="" coords="186,267,398,295"/>
-<area shape="poly" title=" " alt="" coords="131,260,172,266,168,269,133,265"/>
-<area shape="rect" href="Dtls__mbedtls_8c.html#ae0ba5aa96fd3abfeebc4fd50f1403925" title=" " alt="" coords="198,319,386,363"/>
-<area shape="poly" title=" " alt="" coords="98,267,181,304,201,313,196,314,179,309,99,273"/>
-<area shape="rect" href="Dtls__mbedtls_8c.html#a1587189b7d49a6d1e3a51106638e2b8a" title=" " alt="" coords="190,387,394,415"/>
-<area shape="poly" title=" " alt="" coords="79,268,120,321,148,349,181,374,193,381,187,381,178,378,145,354,116,324,79,273"/>
-<area shape="rect" href="Dtls__mbedtls_8c.html#aa858aca7dff509cb493619172fb2330b" title=" " alt="" coords="200,439,384,467"/>
-<area shape="poly" title=" " alt="" coords="75,267,90,301,112,344,143,387,181,424,192,432,186,432,178,429,138,391,108,346,86,304,75,273"/>
-<area shape="rect" href="Dtls__mbedtls_8c.html#a674b77a3812f02df7cace1d2f4416f3b" title=" " alt="" coords="187,491,397,519"/>
-<area shape="poly" title=" " alt="" coords="73,267,85,310,105,367,137,426,157,453,181,476,190,484,184,483,178,481,153,457,132,429,100,369,80,312,72,273"/>
-<area shape="rect" href="Dtls__mbedtls_8c.html#af9a81361c6870b54ba2accc75c8fc2ff" title=" " alt="" coords="180,215,404,243"/>
-<area shape="poly" title=" " alt="" coords="131,246,166,243,162,246,133,251"/>
-<area shape="poly" title=" " alt="" coords="381,62,493,48,488,51,383,67"/>
-<area shape="poly" title=" " alt="" coords="337,89,521,149,516,151,338,94"/>
-<area shape="poly" title=" " alt="" coords="381,81,493,91,488,93,383,86"/>
-<area shape="rect" href="IOBuffer_8c.html#a843a7453279a2960b0dda4d7d7afa45e" title=" " alt="" coords="526,387,631,415"/>
-<area shape="poly" title=" " alt="" coords="394,398,513,401,508,402,394,404"/>
-<area shape="rect" href="IOBuffer_8c.html#a04baed52cfc34b413a5dd087bf197c06" title=" " alt="" coords="753,387,863,415"/>
-<area shape="poly" title=" " alt="" coords="631,398,740,401,735,401,632,404"/>
-<area shape="poly" title=" " alt="" coords="357,212,451,192,493,185,488,188,453,197,359,217"/>
-<area shape="rect" href="Dtls__mbedtls_8c.html#ae5da5639331cbc277079090fb8ccb15c" title=" " alt="" coords="452,276,705,321"/>
-<area shape="poly" title=" " alt="" coords="353,241,405,253,472,271,467,272,403,258,354,246"/>
-<area shape="rect" href="Dtls__mbedtls_8c.html#ad849692fdcbc2cee275773d93109f157" title=" " alt="" coords="486,207,671,251"/>
-<area shape="poly" title=" " alt="" coords="404,227,473,228,468,230,405,232"/>
+<area shape="rect" title=" " alt="" coords="5,297,132,324"/>
+<area shape="rect" href="Dtls__openssl_8c.html#af3bfcfebc77d873de4356b748060a048" title=" " alt="" coords="506,26,651,54"/>
+<area shape="poly" title=" " alt="" coords="68,296,75,247,92,180,107,144,125,109,149,78,178,52,218,31,260,16,305,7,350,4,437,7,512,21,508,23,436,13,350,9,305,13,262,21,220,36,181,57,153,82,130,112,111,146,98,181,80,248,74,297"/>
+<area shape="rect" href="Dtls__openssl_8c.html#accdc5b0c0d653cf99597a554a7facefc" title=" " alt="" coords="202,66,382,94"/>
+<area shape="poly" title=" " alt="" coords="71,296,83,259,104,209,136,156,155,131,178,110,200,98,196,103,181,114,159,135,140,159,109,211,88,261,76,297"/>
+<area shape="rect" href="Dtls_8c.html#ac7d96e418743c4a3c14e2e766340734c" title=" " alt="" coords="490,158,668,186"/>
+<area shape="poly" title=" " alt="" coords="77,295,117,248,146,224,179,204,253,179,330,165,406,160,476,162,472,164,406,165,331,170,254,184,181,209,149,228,121,252,82,298"/>
+<area shape="rect" href="Dtls__openssl_8c.html#a7098126d6dad351545fc6aea9afc2668" title=" " alt="" coords="506,87,651,115"/>
+<area shape="poly" title=" " alt="" coords="74,295,88,266,111,230,141,193,178,163,203,152,235,142,316,126,493,106,489,109,317,131,236,147,204,157,181,168,145,197,115,233,93,269,79,297"/>
+<area shape="rect" href="Dtls__openssl_8c.html#a82fa98f2c2ddff7d94b60f84ef212a15" title=" " alt="" coords="185,270,399,298"/>
+<area shape="poly" title=" " alt="" coords="130,301,171,297,167,300,133,305"/>
+<area shape="rect" href="Dtls__mbedtls_8c.html#a2e23c7ed12431fc6cc745c277d9cdfe7" title=" " alt="" coords="186,322,398,350"/>
+<area shape="poly" title=" " alt="" coords="131,315,172,321,168,324,133,320"/>
+<area shape="rect" href="Dtls__mbedtls_8c.html#ae0ba5aa96fd3abfeebc4fd50f1403925" title=" " alt="" coords="198,374,386,418"/>
+<area shape="poly" title=" " alt="" coords="98,322,181,359,201,367,196,369,179,364,99,328"/>
+<area shape="rect" href="Dtls__mbedtls_8c.html#a1587189b7d49a6d1e3a51106638e2b8a" title=" " alt="" coords="190,442,394,470"/>
+<area shape="poly" title=" " alt="" coords="79,322,120,376,148,404,181,428,192,435,187,436,178,433,145,408,116,379,79,328"/>
+<area shape="rect" href="Dtls__mbedtls_8c.html#aa858aca7dff509cb493619172fb2330b" title=" " alt="" coords="200,494,384,522"/>
+<area shape="poly" title=" " alt="" coords="75,322,90,356,112,399,143,442,181,479,191,487,186,487,178,483,138,446,108,401,86,358,75,327"/>
+<area shape="rect" href="Dtls__mbedtls_8c.html#a674b77a3812f02df7cace1d2f4416f3b" title=" " alt="" coords="187,546,397,574"/>
+<area shape="poly" title=" " alt="" coords="73,322,85,365,105,422,137,481,157,508,181,531,190,539,184,538,178,535,153,512,132,484,100,424,80,367,72,327"/>
+<area shape="rect" href="Dtls__mbedtls_8c.html#af9a81361c6870b54ba2accc75c8fc2ff" title=" " alt="" coords="180,218,404,246"/>
+<area shape="poly" title=" " alt="" coords="95,294,179,256,208,248,204,252,181,261,98,298"/>
+<area shape="rect" href="IOBuffer_8c.html#a1fd767c00239c83072309f23641b22f6" title=" " alt="" coords="238,598,346,626"/>
+<area shape="poly" title=" " alt="" coords="71,322,81,374,98,444,112,482,131,519,153,554,181,583,201,596,226,607,220,606,199,601,178,587,149,557,126,522,108,484,93,446,76,375,71,327"/>
+<area shape="poly" title=" " alt="" coords="381,65,493,51,488,54,383,70"/>
+<area shape="poly" title=" " alt="" coords="337,92,521,152,516,154,338,97"/>
+<area shape="poly" title=" " alt="" coords="381,84,493,93,488,96,383,89"/>
+<area shape="rect" href="IOBuffer_8c.html#a843a7453279a2960b0dda4d7d7afa45e" title=" " alt="" coords="526,442,631,470"/>
+<area shape="poly" title=" " alt="" coords="394,453,513,455,508,457,395,459"/>
+<area shape="rect" href="IOBuffer_8c.html#a04baed52cfc34b413a5dd087bf197c06" title=" " alt="" coords="753,442,863,470"/>
+<area shape="poly" title=" " alt="" coords="631,453,740,456,735,456,632,459"/>
+<area shape="poly" title=" " alt="" coords="357,215,451,195,493,188,488,191,453,200,360,220"/>
+<area shape="rect" href="Dtls__mbedtls_8c.html#ae5da5639331cbc277079090fb8ccb15c" title=" " alt="" coords="452,279,705,324"/>
+<area shape="poly" title=" " alt="" coords="353,244,405,256,472,274,467,276,403,261,354,249"/>
+<area shape="rect" href="Dtls__mbedtls_8c.html#ad849692fdcbc2cee275773d93109f157" title=" " alt="" coords="486,210,671,254"/>
+<area shape="poly" title=" " alt="" coords="404,229,472,231,468,233,405,235"/>
 </map>
 </div>
 <div class="dynheader">

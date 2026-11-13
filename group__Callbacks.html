@@ -527,7 +527,6 @@ Typedefs</h2></td></tr>
 </div><div class="memdoc">
 <p>Callback that is fired when Signalling client receives an Offer</p>
 <p>NOTE: Returning non-success status will terminate the internal event loop and will force the state machinery to roll back to the state corresponding to the type of status returned.</p>
-<p>NOTE: The message is valid only until the callback returns; with PREFER_DYNAMIC_ALLOCS the SDK then frees its payload. To keep the message, copy the payload as well: a struct copy shares the payload pointer. Calling <a class="el" href="group__PublicMemberFunctions.html#ga7eaf3f2bccf8675a3c5bd7c387c806c4" title="Free the SignalingMessage payload.">freeSignalingMessagePayload()</a> on it inside the callback is safe.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">-</td><td>UINT64 - Custom data passed in to the signaling client </td></tr>
