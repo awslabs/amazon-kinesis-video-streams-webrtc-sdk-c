@@ -1825,7 +1825,7 @@ STATUS iceAgentConsentTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 c
     locked = TRUE;
 
     // The peer's answer renews consent both ways; a missed one is not an error, the next check follows. Consent lost,
-    // KVS must stop sending: the state machine reports a disconnection, then fails ICE.
+    // KVS stops sending on the pair (RFC 7675 section 5.1): the state machine reports a disconnection, then fails ICE.
     pIceCandidatePair = pIceAgent->pDataSendingIceCandidatePair;
     if (!pIceAgent->consentExpired && pIceCandidatePair != NULL && pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_SUCCEEDED &&
         pIceAgent->pBindingRequest != NULL) {
@@ -1833,6 +1833,8 @@ STATUS iceAgentConsentTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 c
             DLOGW("No answer to consent checks for %" PRIu64 " s, consent expired",
                   (currentTime - pIceAgent->lastConsentTime) / HUNDREDS_OF_NANOS_IN_A_SECOND);
             pIceAgent->consentExpired = TRUE;
+            // Sending, keepalives and consent checks all skip a failed pair
+            pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_FAILED;
         } else {
             CHK_STATUS(iceCandidatePairCheckConnection(pIceAgent->pBindingRequest, pIceAgent, pIceCandidatePair));
         }
