@@ -81,6 +81,34 @@ TEST_F(PeerConnectionFunctionalityTest, consentChecksOnceConnected)
     freePeerConnection(&answerPc);
 }
 
+// KvsRtcConfiguration.disableIceConsentChecks: no consent checks once connected
+TEST_F(PeerConnectionFunctionalityTest, consentChecksDisabled)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PIceAgent pIceAgent;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    configuration.kvsRtcConfiguration.disableIceConsentChecks = TRUE;
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    ASSERT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    for (auto pc : {offerPc, answerPc}) {
+        pIceAgent = ((PKvsPeerConnection) pc)->pIceAgent;
+        MUTEX_LOCK(pIceAgent->lock);
+        EXPECT_EQ(MAX_UINT32, pIceAgent->consentTimerTask) << (pc == offerPc ? "offerer" : "answerer");
+        MUTEX_UNLOCK(pIceAgent->lock);
+    }
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
 // Consent lost: no authenticated answer on the pair in use for KVS_ICE_CONSENT_EXPIRY reports a disconnection at the
 // next check, then fails ICE without waiting for a recovery
 TEST_F(PeerConnectionFunctionalityTest, consentExpiryFailsIce)

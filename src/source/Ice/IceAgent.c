@@ -2513,9 +2513,11 @@ STATUS iceAgentConnectedStateSetup(PIceAgent pIceAgent)
     // schedule sending keep alive
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle, KVS_ICE_DEFAULT_TIMER_START_DELAY, KVS_ICE_SEND_KEEP_ALIVE_INTERVAL,
                                   iceAgentSendKeepAliveTimerCallback, (UINT64) pIceAgent, &pIceAgent->keepAliveTimerTask));
-    pIceAgent->lastConsentTime = GETTIME();
-    CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle, KVS_ICE_CONSENT_CHECK_INTERVAL, KVS_ICE_CONSENT_CHECK_INTERVAL,
-                                  iceAgentConsentTimerCallback, (UINT64) pIceAgent, &pIceAgent->consentTimerTask));
+    if (!pIceAgent->kvsRtcConfiguration.disableIceConsentChecks) {
+        pIceAgent->lastConsentTime = GETTIME();
+        CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle, KVS_ICE_CONSENT_CHECK_INTERVAL, KVS_ICE_CONSENT_CHECK_INTERVAL,
+                                      iceAgentConsentTimerCallback, (UINT64) pIceAgent, &pIceAgent->consentTimerTask));
+    }
 
 CleanUp:
 
