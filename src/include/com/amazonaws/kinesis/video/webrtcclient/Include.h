@@ -403,6 +403,7 @@ extern "C" {
 #define STATUS_FAILED_TO_INIT_RELAY_CANDIDATES                             STATUS_ICE_BASE + 0x0000002d
 #define STATUS_TURN_CONNECTION_CREDENTIALS_REJECTED                        STATUS_ICE_BASE + 0x0000002e
 #define STATUS_ICE_SERVERS_FINAL                                           STATUS_ICE_BASE + 0x0000002f
+#define STATUS_ICE_CONSENT_EXPIRED                                         STATUS_ICE_BASE + 0x00000030
 
 /*!@} */
 
@@ -1526,6 +1527,10 @@ typedef struct {
                                                 //!< candidate has resolved instead of running to iceLocalCandidateGatheringTimeout. Defaults to
                                                 //!< FALSE, which keeps gathering open for TURN servers added later. When TRUE,
                                                 //!< peerConnectionUpdateIceServers returns STATUS_ICE_SERVERS_FINAL.
+    BOOL disableIceConsentChecks;               //!< Set to TRUE to turn off ICE consent freshness checks (RFC 7675): binding requests on the
+                                                //!< pair in use every few seconds, and ICE failing when they go unanswered for 30 s. They are on
+                                                //!< by default (this flag defaults to FALSE); turning them off is meant as a way back for peers
+                                                //!< that do not answer them.
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
 
 /**
