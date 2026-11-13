@@ -170,7 +170,8 @@ VOID deinitSctpSession()
     cleanupSctpContext();
 }
 
-STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, PSctpSession* ppSctpSession)
+STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, UINT32 maxPacketSize,
+                         PSctpSession* ppSctpSession)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -181,6 +182,7 @@ STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, TIMER_QUEU
     INT32 connectStatus = 0;
 
     CHK(ppSctpSession != NULL && pSctpSessionCallbacks != NULL, STATUS_NULL_ARG);
+    CHK(maxPacketSize > SCTP_COMMON_HEADER_LENGTH, STATUS_INVALID_ARG);
 
     pSctpSession = (PSctpSession) MEMCALLOC(1, SIZEOF(SctpSession));
     CHK(pSctpSession != NULL, STATUS_NOT_ENOUGH_MEMORY);
@@ -212,7 +214,8 @@ STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, TIMER_QUEU
 
     memcpy(&params.spp_address, &remoteConn, SIZEOF(remoteConn));
     params.spp_flags = SPP_PMTUD_DISABLE;
-    params.spp_pathmtu = SCTP_MTU;
+    // usrsctp adds the SCTP common header to the path MTU
+    params.spp_pathmtu = maxPacketSize - SCTP_COMMON_HEADER_LENGTH;
     params.spp_pathmaxrxt = SCTP_MAX_PATH_RETRANSMITS;
     CHK(usrsctp_setsockopt(pSctpSession->socket, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, &params, SIZEOF(params)) == 0,
         STATUS_SCTP_SESSION_SETUP_FAILED);

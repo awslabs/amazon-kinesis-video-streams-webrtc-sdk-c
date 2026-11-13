@@ -170,6 +170,8 @@ struct __DtlsSession {
 #endif
     mbedtls_ssl_config sslCtxConfig;
     mbedtls_ssl_context sslCtx;
+    // Zero-terminated list of the cipher suites to offer, set by tests to force one; NULL offers the mbedTLS defaults
+    const int* pCipherSuites;
     mbedtls_x509_crt trustedCaCert;
     DtlsSessionCertificateInfo certificates[MAX_RTCCONFIGURATION_CERTIFICATES];
 #else
@@ -211,6 +213,9 @@ STATUS dtlsSessionPopulateKeyingMaterial(PDtlsSession, PDtlsKeyingMaterial);
 STATUS dtlsSessionGetLocalCertificateFingerprint(PDtlsSession, PCHAR, UINT32);
 STATUS dtlsSessionVerifyRemoteCertificateFingerprint(PDtlsSession, PCHAR);
 STATUS dtlsSessionPutApplicationData(PDtlsSession, PBYTE, INT32);
+// Largest application data, in bytes, that dtlsSessionPutApplicationData() sends in one DTLS record with the negotiated
+// cipher suite. Call it once the handshake is finished.
+STATUS dtlsSessionGetMaxRecordPayloadSize(PDtlsSession, PUINT32);
 STATUS dtlsSessionShutdown(PDtlsSession);
 
 STATUS dtlsSessionOnOutBoundData(PDtlsSession, UINT64, DtlsSessionOutboundPacketFunc);

@@ -953,6 +953,32 @@ CleanUp:
     return retStatus;
 }
 
+STATUS dtlsSessionGetMaxRecordPayloadSize(PDtlsSession pDtlsSession, PUINT32 pSize)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
+
+    acquireDtlsSession(pDtlsSession);
+    CHK(pDtlsSession != NULL && pSize != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pDtlsSession->sslLock);
+    locked = TRUE;
+    CHK(SSL_is_init_finished(pDtlsSession->pSsl), STATUS_INVALID_OPERATION);
+
+    // No DTLS MTU is set, so OpenSSL sends each write of up to SSL3_RT_MAX_PLAIN_LENGTH bytes in one record
+    *pSize = SSL3_RT_MAX_PLAIN_LENGTH;
+    DLOGD("DTLS cipher suite %s carries up to %u bytes of application data per record", SSL_get_cipher_name(pDtlsSession->pSsl), *pSize);
+
+CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pDtlsSession->sslLock);
+    }
+    releaseDtlsSession(pDtlsSession);
+    LEAVES();
+    return retStatus;
+}
+
 STATUS dtlsSessionPopulateKeyingMaterial(PDtlsSession pDtlsSession, PDtlsKeyingMaterial pDtlsKeyingMaterial)
 {
     ENTERS();

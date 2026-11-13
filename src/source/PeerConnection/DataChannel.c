@@ -131,6 +131,8 @@ STATUS dataChannelSend(PRtcDataChannel pRtcDataChannel, BOOL isBinary, PBYTE pMe
     PKvsPeerConnection pKvsPeerConnection = NULL;
 
     CHK(pKvsDataChannel != NULL && pMessage != NULL, STATUS_NULL_ARG);
+    CHK_ERR(pMessageLen <= MAX_OUTBOUND_DATA_CHANNEL_MESSAGE_SIZE_BYTES, STATUS_SCTP_OUTBOUND_MESSAGE_TOO_LARGE,
+            "Message size %u exceeds the maximum outbound data channel message size %u", pMessageLen, MAX_OUTBOUND_DATA_CHANNEL_MESSAGE_SIZE_BYTES);
 
     pKvsPeerConnection = (PKvsPeerConnection) pKvsDataChannel->pRtcPeerConnection;
     pSctpSession = pKvsPeerConnection->pSctpSession;
