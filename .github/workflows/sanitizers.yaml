@@ -24,13 +24,6 @@ env:
   CXX: clang++
 
 jobs:
-  ecr-login:
-    uses: ./.github/workflows/ecr-public-login.yml
-    permissions:
-      id-token: write
-      contents: read
-    secrets: inherit
-
   address-sanitizer:
     runs-on: ubuntu-22.04
     timeout-minutes: 60
@@ -198,14 +191,13 @@ jobs:
   #         ulimit -c unlimited -S
   #         timeout --signal=SIGABRT 60m build/tst/webrtc_client_test
 
+  # Runs on the ubuntu-22.04 runner with its apt clang 14, like the other sanitizer jobs. The clang 10 and
+  # clang 14 TSan runtimes can abort at startup ("FATAL: ThreadSanitizer: unexpected memory mapping") when
+  # vm.mmap_rnd_bits is above 28 (google/sanitizers#1716). The ubuntu-22.04 image sets it to 28. The
+  # ubuntu-26.04 image behind ubuntu-latest does not apply that setting (actions/runner-images#15108).
   thread-sanitizer:
-    needs: ecr-login
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 60
-    container:
-      image: public.ecr.aws/ubuntu/ubuntu:20.04_stable
-      # Authenticated pull; see ecr-public-login.yml.
-      credentials: ${{ fromJSON(needs.ecr-login.outputs.attempt == github.run_attempt && needs.ecr-login.outputs.credentials || '{}') }}
 
     env:
       TSAN_OPTIONS: second_deadlock_stack=1:halt_on_error=1:suppressions=../tst/suppressions/TSAN.supp
@@ -217,13 +209,14 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v6
+
       - name: Install dependencies
         run: |
-          apt-get update
-          apt-get -y install clang cmake build-essential git pkg-config
-          
+          sudo apt-get update
+          sudo apt-get -y install clang
+
           # AWS SDK CPP dependencies (for tests)
-          apt-get -y install zlib1g-dev libcurl4-openssl-dev
+          sudo apt-get -y install zlib1g-dev libcurl4-openssl-dev
 
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2.2.0
