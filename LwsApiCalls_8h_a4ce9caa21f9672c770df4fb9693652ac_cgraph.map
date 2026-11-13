@@ -1,45 +1,48 @@
 <map id="lwsWssCallbackRoutine" name="lwsWssCallbackRoutine">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,212,182,240"/>
-<area shape="rect" id="Node000002" href="$LwsApiCalls_8c.html#a96fad4e77cdc42460cf75aff4eb33d7a" title=" " alt="" coords="255,133,412,161"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="127,209,229,171,260,164,255,167,231,176,130,214"/>
-<area shape="rect" id="Node000003" href="$LwsApiCalls_8c.html#a0c850a00a8ac0cbab7a68eab9a092a84" title=" " alt="" coords="230,185,438,213"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="181,214,216,211,212,214,184,218"/>
-<area shape="rect" id="Node000005" href="$LwsApiCalls_8c.html#a4c9dcb58ab89a46831b232ea6f1b9903" title=" " alt="" coords="258,237,410,265"/>
-<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="182,233,245,240,240,243,183,238"/>
-<area shape="rect" id="Node000020" href="$LwsApiCalls_8c.html#a68412ab4681df233f1f24d69cd970e35" title=" " alt="" coords="249,365,419,393"/>
-<area shape="poly" id="edge20_Node000001_Node000020" title=" " alt="" coords="118,238,299,355,295,358,117,243"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,236,182,264"/>
+<area shape="rect" id="Node000002" href="$LwsApiCalls_8c.html#a96fad4e77cdc42460cf75aff4eb33d7a" title=" " alt="" coords="255,157,412,185"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="127,233,229,195,260,188,256,191,231,200,130,238"/>
+<area shape="rect" id="Node000003" href="$LwsApiCalls_8c.html#a0c850a00a8ac0cbab7a68eab9a092a84" title=" " alt="" coords="230,209,438,237"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="181,238,216,235,212,238,184,242"/>
+<area shape="rect" id="Node000005" href="$LwsApiCalls_8c.html#a4c9dcb58ab89a46831b232ea6f1b9903" title=" " alt="" coords="258,261,410,289"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="181,257,245,264,240,267,183,262"/>
+<area shape="rect" id="Node000021" href="$LwsApiCalls_8c.html#a68412ab4681df233f1f24d69cd970e35" title=" " alt="" coords="249,415,419,442"/>
+<area shape="poly" id="edge22_Node000001_Node000021" title=" " alt="" coords="115,262,303,404,299,406,113,267"/>
 <area shape="rect" id="Node000004" href="$LwsApiCalls_8c.html#a19436844e2febca51b1d1d36bff42ff8" title=" " alt="" coords="510,5,709,33"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="418,183,436,171,449,156,455,141,459,109,463,76,470,59,484,44,498,37,494,40,488,48,475,62,468,77,464,109,461,142,453,159,440,174,421,187"/>
-<area shape="rect" id="Node000006" href="$LwsApiCalls_8c.html#a315fc40a9368e98aea3eb70697c94c25" title=" " alt="" coords="799,161,979,189"/>
-<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="399,234,437,222,460,209,485,197,562,180,641,171,716,167,786,169,781,170,716,172,641,176,563,185,487,202,463,213,439,227,401,239"/>
-<area shape="rect" id="Node000007" href="$LwsApiCalls_8c.html#a541e0b94e3a906e198afd76258df1b2e" title=" " alt="" coords="522,263,697,290"/>
-<area shape="poly" id="edge6_Node000005_Node000007" title=" " alt="" coords="410,256,509,266,504,268,411,261"/>
-<area shape="rect" id="Node000011" href="$LwsApiCalls_8c.html#a354efc7185dbcb58e1b94b46f6ea2373" title=" " alt="" coords="506,211,713,238"/>
-<area shape="poly" id="edge10_Node000005_Node000011" title=" " alt="" coords="410,241,493,235,488,237,411,246"/>
-<area shape="rect" id="Node000012" href="$Signaling_8c.html#ae3eee8f50a486b71e62e7c98291d422d" title=" " alt="" coords="502,315,717,342"/>
-<area shape="poly" id="edge12_Node000005_Node000012" title=" " alt="" coords="374,263,487,299,524,310,518,311,485,304,374,268"/>
-<area shape="rect" id="Node000013" href="$Signaling_8c.html#ad5583fab3f7bd5e1260bc503aeff639a" title=" " alt="" coords="486,367,732,394"/>
-<area shape="poly" id="edge13_Node000005_Node000013" title=" " alt="" coords="352,263,410,307,447,331,487,351,510,362,505,362,485,356,445,336,407,312,351,268"/>
-<area shape="rect" id="Node000014" href="$StateMachine_8c.html#aadc0cffe12b55f3d81cd3b74244bdc3c" title=" " alt="" coords="780,443,998,470"/>
-<area shape="poly" id="edge14_Node000005_Node000014" title=" " alt="" coords="351,263,440,352,462,381,472,393,487,403,536,419,606,432,767,450,762,450,605,437,535,425,485,408,468,397,458,385,436,356,349,268"/>
-<area shape="rect" id="Node000015" href="$LwsApiCalls_8c.html#ae7928b7a5bf47cbdf2ccf753f1c1e8df" title=" " alt="" coords="494,57,724,85"/>
-<area shape="poly" id="edge15_Node000005_Node000015" title=" " alt="" coords="409,239,436,222,449,208,455,193,459,161,463,128,470,111,484,96,494,91,490,95,488,100,475,114,468,129,464,161,461,194,453,211,440,227,412,243"/>
-<area shape="rect" id="Node000018" href="$ThreadPoolContext_8c.html#a699e80c90be085434e9270138225e5de" title=" " alt="" coords="522,109,696,137"/>
-<area shape="poly" id="edge18_Node000005_Node000018" title=" " alt="" coords="409,236,436,222,452,206,460,189,468,171,484,153,510,142,506,144,488,157,472,174,464,191,456,209,440,227,412,241"/>
-<area shape="rect" id="Node000008" href="$LwsApiCalls_8c.html#a845dd8fd2ababb15e4a43ac4b83664d4" title=" " alt="" coords="788,317,990,345"/>
-<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="684,288,803,314,797,314,684,294"/>
-<area shape="rect" id="Node000009" href="$jsmn_8h.html#a8d4a8b3ce5c3d600feea38615b5f9aa6" title=" " alt="" coords="848,213,930,241"/>
-<area shape="poly" id="edge8_Node000007_Node000009" title=" " alt="" coords="691,259,836,236,831,238,692,265"/>
-<area shape="rect" id="Node000010" href="$jsmn_8h.html#acf28c8ae404fb0ad2823270d2a4c322a" title=" " alt="" coords="841,265,937,293"/>
-<area shape="poly" id="edge9_Node000007_Node000010" title=" " alt="" coords="697,275,828,278,823,279,698,280"/>
-<area shape="poly" id="edge11_Node000011_Node000006" title=" " alt="" coords="691,207,794,191,789,193,692,213"/>
-<area shape="rect" id="Node000016" href="$Signaling_8c.html#a653edfffd5d129d08f5971d91f16fc5e" title=" " alt="" coords="789,5,989,33"/>
-<area shape="poly" id="edge16_Node000015_Node000016" title=" " alt="" coords="687,54,798,35,793,37,689,59"/>
-<area shape="rect" id="Node000017" href="$LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="791,57,987,85"/>
-<area shape="poly" id="edge17_Node000015_Node000017" title=" " alt="" coords="724,69,778,70,773,72,725,74"/>
-<area shape="rect" id="Node000019" href="$ThreadPoolContext_8c.html#acc558c7b88d01ab471649d16ae72028f" title=" " alt="" coords="792,109,986,137"/>
-<area shape="poly" id="edge19_Node000018_Node000019" title=" " alt="" coords="696,121,780,122,774,124,697,126"/>
-<area shape="rect" id="Node000021" href="$LwsApiCalls_8c.html#afc9e7ad7111b3cdf94c7739d3695cb6c" title=" " alt="" coords="541,468,677,496"/>
-<area shape="poly" id="edge21_Node000020_Node000021" title=" " alt="" coords="362,391,419,419,487,447,532,464,527,463,485,452,417,424,361,396"/>
-<area shape="poly" id="edge22_Node000021_Node000014" title=" " alt="" coords="678,473,762,468,767,468,678,478"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="419,207,436,195,450,177,457,159,459,121,461,82,469,63,484,44,498,36,494,40,488,48,473,65,466,83,464,121,462,160,455,179,440,198,422,211"/>
+<area shape="rect" id="Node000006" href="$group__PublicMemberFunctions.html#ga7eaf3f2bccf8675a3c5bd7c387c806c4" title="Free the SignalingMessage payload." alt="" coords="781,161,997,189"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="409,258,437,246,451,234,459,221,469,208,485,197,554,173,627,160,699,156,768,159,763,161,699,161,628,165,556,178,487,202,472,212,464,224,455,238,439,251,412,263"/>
+<area shape="rect" id="Node000007" href="$LwsApiCalls_8c.html#a315fc40a9368e98aea3eb70697c94c25" title=" " alt="" coords="799,213,979,241"/>
+<area shape="poly" id="edge6_Node000005_Node000007" title=" " alt="" coords="410,270,559,261,732,247,786,243,781,244,733,252,560,267,411,275"/>
+<area shape="rect" id="Node000008" href="$LwsApiCalls_8c.html#a541e0b94e3a906e198afd76258df1b2e" title=" " alt="" coords="522,312,697,340"/>
+<area shape="poly" id="edge7_Node000005_Node000008" title=" " alt="" coords="410,286,518,308,513,309,411,292"/>
+<area shape="rect" id="Node000012" href="$LwsApiCalls_8c.html#a354efc7185dbcb58e1b94b46f6ea2373" title=" " alt="" coords="506,211,713,238"/>
+<area shape="poly" id="edge11_Node000005_Node000012" title=" " alt="" coords="410,259,518,241,513,243,411,264"/>
+<area shape="rect" id="Node000013" href="$Signaling_8c.html#ae3eee8f50a486b71e62e7c98291d422d" title=" " alt="" coords="502,364,717,392"/>
+<area shape="poly" id="edge14_Node000005_Node000013" title=" " alt="" coords="359,287,417,318,487,349,516,360,511,360,485,354,415,323,359,292"/>
+<area shape="rect" id="Node000014" href="$Signaling_8c.html#ad5583fab3f7bd5e1260bc503aeff639a" title=" " alt="" coords="486,416,732,444"/>
+<area shape="poly" id="edge15_Node000005_Node000014" title=" " alt="" coords="348,287,405,343,444,375,487,401,506,411,501,410,485,406,441,379,401,347,347,292"/>
+<area shape="rect" id="Node000015" href="$StateMachine_8c.html#aadc0cffe12b55f3d81cd3b74244bdc3c" title=" " alt="" coords="780,492,998,520"/>
+<area shape="poly" id="edge16_Node000005_Node000015" title=" " alt="" coords="348,287,427,384,487,453,536,469,606,482,767,500,762,500,605,487,535,475,485,457,423,388,346,292"/>
+<area shape="rect" id="Node000016" href="$LwsApiCalls_8c.html#ae7928b7a5bf47cbdf2ccf753f1c1e8df" title=" " alt="" coords="494,57,724,85"/>
+<area shape="poly" id="edge17_Node000005_Node000016" title=" " alt="" coords="409,263,436,247,450,229,457,211,459,173,461,134,469,115,484,96,493,92,489,95,488,100,473,117,466,135,464,173,462,212,455,231,440,250,412,267"/>
+<area shape="rect" id="Node000019" href="$ThreadPoolContext_8c.html#a699e80c90be085434e9270138225e5de" title=" " alt="" coords="522,109,696,137"/>
+<area shape="poly" id="edge20_Node000005_Node000019" title=" " alt="" coords="409,261,436,246,447,236,453,225,459,201,466,177,473,165,484,153,511,140,506,143,488,157,477,168,471,179,465,203,458,227,451,239,440,251,412,266"/>
+<area shape="rect" id="Node000009" href="$LwsApiCalls_8c.html#a845dd8fd2ababb15e4a43ac4b83664d4" title=" " alt="" coords="788,265,990,293"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="696,309,790,295,784,297,697,314"/>
+<area shape="rect" id="Node000010" href="$jsmn_8h.html#a8d4a8b3ce5c3d600feea38615b5f9aa6" title=" " alt="" coords="848,317,930,345"/>
+<area shape="poly" id="edge9_Node000008_Node000010" title=" " alt="" coords="697,325,835,330,830,331,698,330"/>
+<area shape="rect" id="Node000011" href="$jsmn_8h.html#acf28c8ae404fb0ad2823270d2a4c322a" title=" " alt="" coords="841,369,937,397"/>
+<area shape="poly" id="edge10_Node000008_Node000011" title=" " alt="" coords="681,338,828,370,823,371,680,343"/>
+<area shape="poly" id="edge12_Node000012_Node000006" title=" " alt="" coords="691,207,794,191,789,193,693,213"/>
+<area shape="poly" id="edge13_Node000012_Node000007" title=" " alt="" coords="713,223,786,226,781,227,714,228"/>
+<area shape="rect" id="Node000017" href="$Signaling_8c.html#a653edfffd5d129d08f5971d91f16fc5e" title=" " alt="" coords="789,57,989,85"/>
+<area shape="poly" id="edge18_Node000016_Node000017" title=" " alt="" coords="724,69,776,70,771,72,725,74"/>
+<area shape="rect" id="Node000018" href="$LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="791,5,987,33"/>
+<area shape="poly" id="edge19_Node000016_Node000018" title=" " alt="" coords="687,54,798,35,793,38,689,59"/>
+<area shape="rect" id="Node000020" href="$ThreadPoolContext_8c.html#acc558c7b88d01ab471649d16ae72028f" title=" " alt="" coords="792,109,986,137"/>
+<area shape="poly" id="edge21_Node000019_Node000020" title=" " alt="" coords="696,121,780,122,774,124,697,126"/>
+<area shape="rect" id="Node000022" href="$LwsApiCalls_8c.html#afc9e7ad7111b3cdf94c7739d3695cb6c" title=" " alt="" coords="541,517,677,545"/>
+<area shape="poly" id="edge23_Node000021_Node000022" title=" " alt="" coords="362,440,419,468,487,497,532,513,527,513,485,502,417,473,361,445"/>
+<area shape="poly" id="edge24_Node000022_Node000015" title=" " alt="" coords="678,522,762,517,767,517,678,528"/>
 </map>
