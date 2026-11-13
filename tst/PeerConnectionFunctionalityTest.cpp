@@ -111,6 +111,9 @@ TEST_F(PeerConnectionFunctionalityTest, consentExpiryFailsIce)
     MUTEX_LOCK(pIceAgent->lock);
     EXPECT_EQ(STATUS_ICE_CONSENT_EXPIRED, pIceAgent->iceAgentStatus);
     EXPECT_EQ(ICE_AGENT_STATE_FAILED, pIceAgent->iceAgentState);
+    // Nothing more goes out on the pair (RFC 7675 section 5.1)
+    EXPECT_TRUE(pIceAgent->pDataSendingIceCandidatePair != NULL &&
+                pIceAgent->pDataSendingIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_FAILED);
     MUTEX_UNLOCK(pIceAgent->lock);
 
     closePeerConnection(offerPc);
