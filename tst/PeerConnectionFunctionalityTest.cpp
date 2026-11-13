@@ -44,7 +44,7 @@ TEST_F(PeerConnectionFunctionalityTest, consentChecksOnceConnected)
     PRtcPeerConnection offerPc = NULL, answerPc = NULL;
     PIceAgent pIceAgents[2];
     PRtcIceCandidatePairDiagnostics pDiagnostics;
-    UINT64 sent[2], answered[2];
+    UINT64 sent[2], answered[2], consentTime[2];
 
     MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
 
@@ -61,6 +61,7 @@ TEST_F(PeerConnectionFunctionalityTest, consentChecksOnceConnected)
         pDiagnostics = pIceAgents[i]->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics;
         sent[i] = pDiagnostics->requestsSent;
         answered[i] = pDiagnostics->responsesReceived;
+        consentTime[i] = pIceAgents[i]->lastConsentTime;
         MUTEX_UNLOCK(pIceAgents[i]->lock);
     }
 
@@ -71,6 +72,8 @@ TEST_F(PeerConnectionFunctionalityTest, consentChecksOnceConnected)
         pDiagnostics = pIceAgents[i]->pDataSendingIceCandidatePair->pRtcIceCandidatePairDiagnostics;
         EXPECT_GE(pDiagnostics->requestsSent, sent[i] + 2) << (i == 0 ? "offerer" : "answerer");
         EXPECT_GE(pDiagnostics->responsesReceived, answered[i] + 2) << (i == 0 ? "offerer" : "answerer");
+        // The answers renew consent, which would otherwise expire KVS_ICE_CONSENT_EXPIRY after connecting
+        EXPECT_GT(pIceAgents[i]->lastConsentTime, consentTime[i]) << (i == 0 ? "offerer" : "answerer");
         MUTEX_UNLOCK(pIceAgents[i]->lock);
     }
 
