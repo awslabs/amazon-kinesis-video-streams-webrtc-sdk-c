@@ -8,7 +8,8 @@ namespace webrtcclient {
 
 class DtlsFunctionalityTest : public WebRtcClientTestBase {
   public:
-    STATUS createAndConnect(TIMER_QUEUE_HANDLE timerQueueHandle, PDtlsSession* ppClient, PDtlsSession* ppServer, BOOL useThread)
+    STATUS createAndConnect(TIMER_QUEUE_HANDLE timerQueueHandle, PDtlsSession* ppClient, PDtlsSession* ppServer, BOOL useThread,
+                            BOOL serverStartsLate = FALSE)
     {
         struct Context {
             std::mutex mtx;
@@ -21,6 +22,7 @@ class DtlsFunctionalityTest : public WebRtcClientTestBase {
         UINT64 sleepDelay = 20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
         Context clientCtx, serverCtx;
         std::thread dtlsClientThread, dtlsServerThread;
+        BOOL startedHere = TRUE;
 
         MEMSET(&callbacks, 0, SIZEOF(callbacks));
         callbacks.stateChangeFn = [](UINT64 customData, RTC_DTLS_TRANSPORT_STATE state) {
@@ -69,9 +71,21 @@ class DtlsFunctionalityTest : public WebRtcClientTestBase {
         CHK_STATUS(dtlsSessionOnOutBoundData(pServer, (UINT64) &clientCtx, outboundPacketFn));
         CHK_STATUS(dtlsSessionOnOutBoundData(pClient, (UINT64) &serverCtx, outboundPacketFn));
 
+        if (serverStartsLate) {
+            // The DTLS client's ClientHello reaches the server before the server starts (RFC 8842 section 5.2): the server
+            // keeps it and answers it as it starts. pServer is the DTLS client here, and its packets go to clientCtx.
+            startedHere = FALSE;
+            CHK_STATUS(dtlsSessionStart(pServer, FALSE));
+            CHK_STATUS(consumeMessages(&clientCtx, pClient));
+            CHK_STATUS(dtlsSessionStart(pClient, TRUE));
+            serverCtx.mtx.lock();
+            EXPECT_FALSE(serverCtx.queue.empty());
+            serverCtx.mtx.unlock();
+        }
         // In case of mbedtls it will be a black return of SUCCESS
 #ifdef KVS_USE_OPENSSL
-        if (useThread) {
+        else if (useThread) {
+            startedHere = FALSE;
             dtlsClientThread = std::thread(dtlsSessionHandshakeInThread, pClient, TRUE);
             dtlsServerThread = std::thread(dtlsSessionHandshakeInThread, pServer, FALSE);
         } else {
@@ -79,9 +93,19 @@ class DtlsFunctionalityTest : public WebRtcClientTestBase {
             CHK_STATUS(dtlsSessionStart(pServer, FALSE));
         }
 #else
-        CHK_STATUS(dtlsSessionStart(pClient, TRUE));
-        CHK_STATUS(dtlsSessionStart(pServer, FALSE));
+        else {
+            CHK_STATUS(dtlsSessionStart(pClient, TRUE));
+            CHK_STATUS(dtlsSessionStart(pServer, FALSE));
+        }
 #endif
+
+        // dtlsSessionStart() sends the DTLS client's ClientHello rather than the first timer tick; the server waits for it.
+        // pServer is the DTLS client here, and its packets go to clientCtx.
+        if (startedHere) {
+            std::lock_guard<std::mutex> clientLock(clientCtx.mtx), serverLock(serverCtx.mtx);
+            EXPECT_FALSE(clientCtx.queue.empty());
+            EXPECT_TRUE(serverCtx.queue.empty());
+        }
 
         for (UINT64 duration = 0; duration < MAX_TEST_AWAIT_DURATION && ATOMIC_LOAD(&connectedCount) != 2; duration += sleepDelay) {
             CHK_STATUS(consumeMessages(&serverCtx, pServer));
@@ -152,6 +176,24 @@ TEST_F(DtlsFunctionalityTest, putApplicationDataWithVariedSizes)
     freeDtlsSession(&pServer);
     timerQueueFree(&timerQueueHandle);
     MEMFREE(pData);
+}
+
+// A ClientHello that reaches the server before its dtlsSessionStart() is answered as it starts, not left for the client to
+// retransmit (RFC 8842 section 5.2)
+TEST_F(DtlsFunctionalityTest, earlyClientHelloAnsweredAtStart)
+{
+    TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+    PDtlsSession pClient = NULL, pServer = NULL;
+
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+    EXPECT_EQ(STATUS_SUCCESS, createAndConnect(timerQueueHandle, &pClient, &pServer, FALSE, TRUE));
+    // Both stay NULL if the sessions did not connect
+    EXPECT_NE(nullptr, pClient);
+    EXPECT_NE(nullptr, pServer);
+
+    freeDtlsSession(&pClient);
+    freeDtlsSession(&pServer);
+    timerQueueFree(&timerQueueHandle);
 }
 
 TEST_F(DtlsFunctionalityTest, processPacketWithVariedSizes)
