@@ -4395,6 +4395,257 @@ a=recvonly
     });
 }
 
+// The audio and video m-lines the tests below use, each with a codec the library supports
+struct SdpTestMedia {
+    const char* name;
+    MEDIA_STREAM_TRACK_KIND kind;
+    RTC_CODEC codec;
+    const char* payloadType;
+    const char* rtpmap;
+};
+
+static const SdpTestMedia SDP_TEST_MEDIA[] = {
+    {"audio", MEDIA_STREAM_TRACK_KIND_AUDIO, RTC_CODEC_OPUS, "111", "opus/48000/2"},
+    {"video", MEDIA_STREAM_TRACK_KIND_VIDEO, RTC_CODEC_VP8, "96", "VP8/90000"},
+};
+
+// Offer with one m-line of the given media. payloadTypes is the rest of the m-line after the protocol.
+static std::string buildOfferWithPayloadTypes(const SdpTestMedia& media, const std::string& payloadTypes)
+{
+    std::string offer = R"(v=0
+o=- 123456 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+)";
+    offer += "m=" + std::string(media.name) + " 9 UDP/TLS/RTP/SAVPF " + payloadTypes;
+    offer += R"(
+a=ice-ufrag:abcd
+a=ice-pwd:abcdefghijklmnopqrstuvwx
+a=setup:actpass
+)";
+    return offer;
+}
+
+// Offer with mediaSectionCount VP8 video m-lines (VP8 is payload type 63, its RTX is 127). Each m-line has rtxMappingCount
+// "a=fmtp:<rtx> apt=<pt>" lines. Payload types 0-63 are mapped to RTX payload types 64-127, so the first 64 mappings are distinct
+// and the 64th maps VP8 to its RTX. Mappings after the 64th repeat from the start.
+static std::string buildOfferWithRtxMappings(UINT32 mediaSectionCount, UINT32 rtxMappingCount)
+{
+    std::string offer = R"(v=0
+o=- 123456 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+)";
+    for (UINT32 mediaSection = 0; mediaSection < mediaSectionCount; mediaSection++) {
+        offer += R"(m=video 9 UDP/TLS/RTP/SAVPF 63 127
+a=ice-ufrag:abcd
+a=ice-pwd:abcdefghijklmnopqrstuvwx
+a=setup:actpass
+a=mid:)" + std::to_string(mediaSection) +
+            R"(
+a=sendrecv
+a=rtpmap:63 VP8/90000
+a=rtpmap:127 rtx/90000
+)";
+        for (UINT32 i = 0; i < rtxMappingCount; i++) {
+            UINT32 aptPayloadType = i % 64;
+            offer += "a=fmtp:" + std::to_string(aptPayloadType + 64) + " apt=" + std::to_string(aptPayloadType) + "\n";
+        }
+    }
+    return offer;
+}
+
+// Offer with one m-line of the given media that has the given mid.
+static std::string buildOfferWithMid(const SdpTestMedia& media, const std::string& mid)
+{
+    std::string offer = R"(v=0
+o=- 123456 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+)";
+    offer += "m=" + std::string(media.name) + " 9 UDP/TLS/RTP/SAVPF " + media.payloadType + "\n";
+    offer += "a=mid:" + mid + "\n";
+    offer += R"(a=ice-ufrag:abcd
+a=ice-pwd:abcdefghijklmnopqrstuvwx
+a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5
+a=setup:actpass
+)";
+    offer += "a=rtpmap:" + std::string(media.payloadType) + " " + media.rtpmap + "\n";
+    return offer;
+}
+
+// Creates a peer connection with no transceivers and checks the status of setRemoteDescription with the offer.
+static void expectSetRemoteDescriptionStatus(PCHAR sdp, STATUS expectedStatus)
+{
+    RtcConfiguration configuration{};
+    PRtcPeerConnection pRtcPeerConnection = nullptr;
+    RtcSessionDescriptionInit offerSdp{};
+
+    offerSdp.type = SDP_TYPE_OFFER;
+    STRNCPY(offerSdp.sdp, sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    EXPECT_EQ(expectedStatus, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+
+    closePeerConnection(pRtcPeerConnection);
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
+// Creates a peer connection with one transceiver for the codec, sets the offer as the remote description, and checks the status of
+// createAnswer. On success, the answer SDP is returned in pAnswer.
+static void expectCreateAnswerStatus(PCHAR sdp, MEDIA_STREAM_TRACK_KIND kind, RTC_CODEC codec, STATUS expectedStatus, std::string* pAnswer = nullptr)
+{
+    RtcConfiguration configuration{};
+    PRtcPeerConnection pRtcPeerConnection = nullptr;
+    PRtcRtpTransceiver pTransceiver = nullptr;
+    RtcMediaStreamTrack track{};
+    RtcSessionDescriptionInit offerSdp{};
+    RtcSessionDescriptionInit answerSdp{};
+
+    track.kind = kind;
+    track.codec = codec;
+    STRCPY(track.streamId, "stream");
+    STRCPY(track.trackId, "track");
+    offerSdp.type = SDP_TYPE_OFFER;
+    STRNCPY(offerSdp.sdp, sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, codec));
+    EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track, nullptr, &pTransceiver));
+    EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+    EXPECT_EQ(expectedStatus, createAnswer(pRtcPeerConnection, &answerSdp));
+    if (pAnswer != nullptr) {
+        *pAnswer = answerSdp.sdp;
+    }
+
+    closePeerConnection(pRtcPeerConnection);
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
+// The first payload type takes up the rest of the m-line, which is far longer than the MAX_PAYLOAD_TYPE_LENGTH buffer it is copied into
+TEST_F(SdpApiTest, setRemoteDescription_RejectsOversizedFirstPayloadType)
+{
+    for (const auto& media : SDP_TEST_MEDIA) {
+        SCOPED_TRACE(media.name);
+        std::string offer =
+            buildOfferWithPayloadTypes(media, std::string(MAX_SDP_MEDIA_NAME_LENGTH - STRLEN(media.name) - STRLEN(" 9 UDP/TLS/RTP/SAVPF "), '1'));
+
+        assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(),
+                        [](PCHAR sdp) { expectSetRemoteDescriptionStatus(sdp, STATUS_SESSION_DESCRIPTION_PAYLOAD_TYPE_TOO_LONG); });
+    }
+}
+
+// A first payload type of MAX_PAYLOAD_TYPE_LENGTH characters leaves no room for the null terminator
+TEST_F(SdpApiTest, setRemoteDescription_RejectsFirstPayloadTypeOfBufferLength)
+{
+    for (const auto& media : SDP_TEST_MEDIA) {
+        SCOPED_TRACE(media.name);
+        std::string offer = buildOfferWithPayloadTypes(media, std::string(MAX_PAYLOAD_TYPE_LENGTH, '1') + " " + media.payloadType);
+
+        assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(),
+                        [](PCHAR sdp) { expectSetRemoteDescriptionStatus(sdp, STATUS_SESSION_DESCRIPTION_PAYLOAD_TYPE_TOO_LONG); });
+    }
+}
+
+// The longest first payload type that fits is copied whole and answered on the inactive m-line.
+// 111111111 is not a valid RTP payload type (RFC 3550 Section 5.1 allows 0-127), but the library does not check the range,
+// and the fakeTransceiver tests answer payload types above 127 too. This test only checks the buffer boundary.
+TEST_F(SdpApiTest, createAnswer_AcceptsLongestFirstPayloadType)
+{
+    std::string firstPayloadType(MAX_PAYLOAD_TYPE_LENGTH - 1, '1');
+
+    for (const auto& media : SDP_TEST_MEDIA) {
+        SCOPED_TRACE(media.name);
+        std::string offer = buildOfferWithPayloadTypes(media, firstPayloadType + " " + media.payloadType);
+
+        assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [&](PCHAR sdp) {
+            RtcConfiguration configuration{};
+            PRtcPeerConnection pRtcPeerConnection = nullptr;
+            RtcSessionDescriptionInit offerSdp{};
+            RtcSessionDescriptionInit answerSdp{};
+
+            offerSdp.type = SDP_TYPE_OFFER;
+            STRNCPY(offerSdp.sdp, sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+            EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+            EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+            EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+
+            std::string answer(answerSdp.sdp);
+            EXPECT_NE(std::string::npos,
+                      answer.find("m=" + std::string(media.name) + " 9 UDP/TLS/RTP/SAVPF " + firstPayloadType + SDP_LINE_SEPARATOR))
+                << answer;
+
+            closePeerConnection(pRtcPeerConnection);
+            EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+        });
+    }
+}
+
+TEST_F(SdpApiTest, setRemoteDescription_RejectsExcessiveRtxMappings)
+{
+    std::string offer = buildOfferWithRtxMappings(1, MAX_SDP_FMTP_VALUES + 1);
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(),
+                    [](PCHAR sdp) { expectSetRemoteDescriptionStatus(sdp, STATUS_SESSION_DESCRIPTION_RTX_MAPPING_MAX_EXCEEDED); });
+}
+
+// The limit is per media section, and the last mapping that fits (VP8 to its RTX) is negotiated
+TEST_F(SdpApiTest, createAnswer_AcceptsMaximumRtxMappingsInEachMediaSection)
+{
+    std::string offer = buildOfferWithRtxMappings(2, MAX_SDP_FMTP_VALUES);
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        std::string answer;
+        expectCreateAnswerStatus(sdp, MEDIA_STREAM_TRACK_KIND_VIDEO, RTC_CODEC_VP8, STATUS_SUCCESS, &answer);
+        EXPECT_NE(std::string::npos, answer.find("m=video 9 UDP/TLS/RTP/SAVPF 63 127" SDP_LINE_SEPARATOR)) << answer;
+        EXPECT_NE(std::string::npos, answer.find("a=fmtp:127 apt=63" SDP_LINE_SEPARATOR)) << answer;
+    });
+}
+
+// A mid of MAX_SDP_ATTRIBUTE_VALUE_LENGTH characters leaves no room for the null terminator
+TEST_F(SdpApiTest, createAnswer_RejectsMaximumLengthMid)
+{
+    for (const auto& media : SDP_TEST_MEDIA) {
+        SCOPED_TRACE(media.name);
+        std::string offer = buildOfferWithMid(media, std::string(MAX_SDP_ATTRIBUTE_VALUE_LENGTH, 'A'));
+
+        assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(),
+                        [&](PCHAR sdp) { expectCreateAnswerStatus(sdp, media.kind, media.codec, STATUS_SESSION_DESCRIPTION_MID_TOO_LONG); });
+    }
+}
+
+// The SDP parser truncates a longer mid to MAX_SDP_ATTRIBUTE_VALUE_LENGTH characters. The answer must not echo the truncated mid.
+TEST_F(SdpApiTest, createAnswer_RejectsTruncatedMid)
+{
+    for (const auto& media : SDP_TEST_MEDIA) {
+        SCOPED_TRACE(media.name);
+        std::string offer = buildOfferWithMid(media, std::string(MAX_SDP_ATTRIBUTE_VALUE_LENGTH + 1, 'A'));
+
+        assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(),
+                        [&](PCHAR sdp) { expectCreateAnswerStatus(sdp, media.kind, media.codec, STATUS_SESSION_DESCRIPTION_MID_TOO_LONG); });
+    }
+}
+
+// The longest mid that fits is echoed whole in the answer
+TEST_F(SdpApiTest, createAnswer_EchoesLongestMid)
+{
+    std::string mid(MAX_SDP_ATTRIBUTE_VALUE_LENGTH - 1, 'A');
+
+    for (const auto& media : SDP_TEST_MEDIA) {
+        SCOPED_TRACE(media.name);
+        std::string offer = buildOfferWithMid(media, mid);
+
+        assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [&](PCHAR sdp) {
+            std::string answer;
+            expectCreateAnswerStatus(sdp, media.kind, media.codec, STATUS_SUCCESS, &answer);
+            EXPECT_NE(std::string::npos, answer.find("a=mid:" + mid + SDP_LINE_SEPARATOR)) << answer;
+        });
+    }
+}
+
 // Verify that setPayloadTypesFromOffer correctly parses RTX fmtp attributes
 // and stores the RTX payload type for H265 when the offer uses a non-default PT
 TEST_F(SdpApiTest, setPayloadTypesFromOffer_H265RtxParsedFromOffer)
