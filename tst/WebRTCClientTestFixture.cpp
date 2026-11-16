@@ -227,6 +227,14 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
 
     EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sdp));
     EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(offerPc, &sdp));
+    if (!this->offerIceUfragOverride.empty()) {
+        std::string offerSdp(sdp.sdp), attribute("a=ice-ufrag:");
+        for (size_t pos = offerSdp.find(attribute); pos != std::string::npos; pos = offerSdp.find(attribute, pos)) {
+            pos += attribute.size();
+            offerSdp.replace(pos, offerSdp.find_first_of("\r\n", pos) - pos, this->offerIceUfragOverride);
+        }
+        STRNCPY(sdp.sdp, offerSdp.c_str(), MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+    }
     EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(answerPc, &sdp));
 
     // Validate the cert fingerprint if we are asked to do so
@@ -242,7 +250,7 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
         EXPECT_NE((PCHAR) NULL, STRSTR(sdp.sdp, pAnswerCertFingerprint));
     }
 
-    for (auto i = 0; i <= 100 && ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) != 2; i++) {
+    for (UINT32 i = 0; i <= this->connectTimeoutSeconds && ATOMIC_LOAD(&this->stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]) != 2; i++) {
         THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_SECOND);
     }
 

@@ -341,12 +341,15 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
                     // Package the message header first
                     PACKAGE_STUN_ATTR_HEADER(pCurrentBufferPosition, pStunAttributeHeader->type, pStunAttributeHeader->length);
 
-                    // Package the error code
-                    putInt16((PINT16) pCurrentBufferPosition + STUN_ATTRIBUTE_HEADER_LEN, pStunAttributeErrorCode->errorCode);
-
-                    // Package the error phrase
-                    MEMCPY(pCurrentBufferPosition + STUN_ATTRIBUTE_HEADER_LEN + SIZEOF(pStunAttributeErrorCode->errorCode),
-                           pStunAttributeErrorCode->errorPhrase, pStunAttributeErrorCode->paddedLength);
+                    // RFC 8489 section 14.8: 21 reserved bits, the class (hundreds) in 3 bits, the number (0 - 99) in 8 bits, then
+                    // the reason phrase, padded with zeros
+                    MEMSET(pCurrentBufferPosition + STUN_ATTRIBUTE_HEADER_LEN, 0x00, pStunAttributeErrorCode->paddedLength);
+                    *(pCurrentBufferPosition + STUN_ATTRIBUTE_HEADER_LEN + STUN_ERROR_CODE_PACKET_ERROR_CLASS_OFFSET) =
+                        (BYTE) (pStunAttributeErrorCode->errorCode / 100);
+                    *(pCurrentBufferPosition + STUN_ATTRIBUTE_HEADER_LEN + STUN_ERROR_CODE_PACKET_ERROR_CODE_OFFSET) =
+                        (BYTE) (pStunAttributeErrorCode->errorCode % 100);
+                    MEMCPY(pCurrentBufferPosition + STUN_ATTRIBUTE_HEADER_LEN + STUN_ERROR_CODE_PACKET_ERROR_PHRASE_OFFSET,
+                           pStunAttributeErrorCode->errorPhrase, pStunAttributeHeader->length - STUN_ERROR_CODE_PACKET_ERROR_PHRASE_OFFSET);
                 }
 
                 break;
@@ -1086,7 +1089,8 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
                 break;
 
             default:
-                // Skip over the unknown attributes
+                // Unknown attributes were not counted in the first pass, so give the slot back for the next known one
+                i--;
                 break;
         }
 
@@ -1110,6 +1114,42 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 
     LEAVES();
+    return retStatus;
+}
+
+STATUS findStunCredentials(PBYTE pStunBuffer, UINT32 bufferSize, PCHAR* ppUsername, PUINT16 pUsernameLen, PBOOL pHasMessageIntegrity)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PBYTE pAttribute, pEnd;
+    UINT16 messageLength, type, length = 0;
+
+    CHK(pStunBuffer != NULL && ppUsername != NULL && pUsernameLen != NULL && pHasMessageIntegrity != NULL, STATUS_NULL_ARG);
+    *ppUsername = NULL;
+    *pUsernameLen = 0;
+    *pHasMessageIntegrity = FALSE;
+    CHK(bufferSize >= STUN_HEADER_LEN, STATUS_INVALID_ARG);
+
+    messageLength = (UINT16) getInt16(*(PUINT16) (pStunBuffer + STUN_HEADER_TYPE_LEN));
+    CHK(bufferSize >= messageLength + STUN_HEADER_LEN, STATUS_INVALID_ARG);
+    pEnd = pStunBuffer + STUN_HEADER_LEN + messageLength;
+
+    for (pAttribute = pStunBuffer + STUN_HEADER_LEN; pAttribute < pEnd && !*pHasMessageIntegrity;
+         pAttribute += STUN_ATTRIBUTE_HEADER_LEN + ROUND_UP(length, 4)) {
+        CHK(pAttribute + STUN_ATTRIBUTE_HEADER_LEN <= pEnd, STATUS_STUN_ATTRIBUTE_LENGTH_EXCEEDED_BUFFER_SIZE);
+        type = (UINT16) getInt16(*(PUINT16) pAttribute);
+        length = (UINT16) getInt16(*(PUINT16) (pAttribute + STUN_ATTRIBUTE_HEADER_TYPE_LEN));
+        CHK(pAttribute + STUN_ATTRIBUTE_HEADER_LEN + length <= pEnd, STATUS_STUN_ATTRIBUTE_LENGTH_EXCEEDED_BUFFER_SIZE);
+
+        if (type == STUN_ATTRIBUTE_TYPE_USERNAME && *ppUsername == NULL) {
+            *ppUsername = (PCHAR) (pAttribute + STUN_ATTRIBUTE_HEADER_LEN);
+            *pUsernameLen = length;
+        } else if (type == STUN_ATTRIBUTE_TYPE_MESSAGE_INTEGRITY) {
+            *pHasMessageIntegrity = TRUE;
+        }
+    }
+
+CleanUp:
+
     return retStatus;
 }
 
@@ -1618,14 +1658,18 @@ STATUS appendStunErrorCodeAttribute(PStunPacket pStunPacket, PCHAR errorPhrase, 
     STATUS retStatus = STATUS_SUCCESS;
     PStunAttributeErrorCode pAttribute = NULL;
     PStunAttributeHeader pAttributeHeader = NULL;
-    UINT16 length, paddedLength;
+    UINT16 phraseLength, length, paddedLength;
 
     CHK(errorPhrase != NULL, STATUS_NULL_ARG);
+    // RFC 8489 section 14.8: the class is 3 to 6
+    CHK(errorCode >= 300 && errorCode <= 699, STATUS_INVALID_ARG);
 
     CHK_STATUS(getFirstAvailableStunAttribute(pStunPacket, &pAttributeHeader));
     pAttribute = (PStunAttributeErrorCode) pAttributeHeader;
 
-    length = (UINT16) STRNLEN(errorPhrase, STUN_MAX_ERROR_PHRASE_LEN);
+    // The value is the 4 bytes holding the class and the number, then the reason phrase, as deserializeStunPacket() reads it
+    phraseLength = (UINT16) STRNLEN(errorPhrase, STUN_MAX_ERROR_PHRASE_LEN);
+    length = STUN_ERROR_CODE_PACKET_ERROR_PHRASE_OFFSET + phraseLength;
     paddedLength = (UINT16) ROUND_UP(length, 4);
 
     // Validate the overall size
@@ -1646,7 +1690,7 @@ STATUS appendStunErrorCodeAttribute(PStunPacket pStunPacket, PCHAR errorPhrase, 
     // Set the pointer following the structure
     pAttribute->errorPhrase = (PCHAR) (pAttribute + 1);
 
-    MEMCPY(pAttribute->errorPhrase, errorPhrase, length * SIZEOF(CHAR));
+    MEMCPY(pAttribute->errorPhrase, errorPhrase, phraseLength * SIZEOF(CHAR));
 
     // Fix-up the STUN header message length
     pStunPacket->header.messageLength += paddedLength + STUN_ATTRIBUTE_HEADER_LEN;

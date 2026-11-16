@@ -692,6 +692,57 @@ TEST_F(StunFunctionalityTest, deserializeStunErrorCode)
     EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
 }
 
+// ERROR-CODE is written as RFC 8489 section 14.8 defines it, and reads back
+TEST_F(StunFunctionalityTest, errorCodeSerializeTest)
+{
+    struct {
+        UINT16 errorCode;
+        PCHAR errorPhrase;
+    } cases[] = {{400, (PCHAR) "Bad Request"}, {401, (PCHAR) "Unauthenticated"}, {438, (PCHAR) "Stale Nonce"}};
+    BYTE transactionId[STUN_TRANSACTION_ID_LEN] = {0};
+    BYTE buffer[128];
+    UINT32 size, phraseLength;
+    PStunPacket pStunPacket = NULL;
+    PStunAttributeHeader pStunAttr = NULL;
+    PStunAttributeErrorCode pErrorCode = NULL;
+
+    EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_RESPONSE_ERROR, transactionId, &pStunPacket));
+    EXPECT_EQ(STATUS_INVALID_ARG, appendStunErrorCodeAttribute(pStunPacket, (PCHAR) "OK", 200));
+    EXPECT_EQ(STATUS_INVALID_ARG, appendStunErrorCodeAttribute(pStunPacket, (PCHAR) "Too big", 700));
+    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+
+    for (auto& c : cases) {
+        phraseLength = (UINT32) STRLEN(c.errorPhrase);
+        EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_RESPONSE_ERROR, transactionId, &pStunPacket));
+        EXPECT_EQ(STATUS_SUCCESS, appendStunErrorCodeAttribute(pStunPacket, c.errorPhrase, c.errorCode));
+        EXPECT_EQ(STATUS_SUCCESS, serializeStunPacket(pStunPacket, NULL, 0, FALSE, TRUE, NULL, &size));
+        ASSERT_LE(size, SIZEOF(buffer));
+        EXPECT_EQ(STATUS_SUCCESS, serializeStunPacket(pStunPacket, NULL, 0, FALSE, TRUE, buffer, &size));
+        EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+
+        // Type, length of the class and number word plus the phrase, 21 zero bits, class, number, phrase, zero padding
+        EXPECT_EQ(0x00, buffer[STUN_HEADER_LEN]);
+        EXPECT_EQ(0x09, buffer[STUN_HEADER_LEN + 1]);
+        EXPECT_EQ(4 + phraseLength, (UINT32) ((buffer[STUN_HEADER_LEN + 2] << 8) | buffer[STUN_HEADER_LEN + 3]));
+        EXPECT_EQ(0x00, buffer[STUN_HEADER_LEN + 4]);
+        EXPECT_EQ(0x00, buffer[STUN_HEADER_LEN + 5]);
+        EXPECT_EQ(c.errorCode / 100, buffer[STUN_HEADER_LEN + 6]);
+        EXPECT_EQ(c.errorCode % 100, buffer[STUN_HEADER_LEN + 7]);
+        EXPECT_EQ(0, MEMCMP(c.errorPhrase, buffer + STUN_HEADER_LEN + 8, phraseLength));
+        for (UINT32 i = STUN_HEADER_LEN + 8 + phraseLength; i < STUN_HEADER_LEN + 8 + ROUND_UP(phraseLength, 4); i++) {
+            EXPECT_EQ(0x00, buffer[i]);
+        }
+
+        EXPECT_EQ(STATUS_SUCCESS, deserializeStunPacket(buffer, size, NULL, 0, &pStunPacket));
+        EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_ERROR_CODE, &pStunAttr));
+        ASSERT_TRUE(pStunAttr != NULL);
+        pErrorCode = (PStunAttributeErrorCode) pStunAttr;
+        EXPECT_EQ(c.errorCode, pErrorCode->errorCode);
+        EXPECT_EQ(0, STRNCMP(c.errorPhrase, pErrorCode->errorPhrase, phraseLength));
+        EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    }
+}
+
 TEST_F(StunFunctionalityTest, errorCodeZeroLengthUnderflowTest)
 {
     PStunPacket pStunPacket = NULL;
@@ -730,6 +781,38 @@ TEST_F(StunFunctionalityTest, errorCodeTooShortLengthUnderflowTest)
     EXPECT_EQ(STATUS_STUN_INVALID_ERROR_CODE_ATTRIBUTE_LENGTH,
               deserializeStunPacket(malformedPacket, SIZEOF(malformedPacket), NULL, 0, &pStunPacket));
     EXPECT_EQ(NULL, pStunPacket);
+}
+
+TEST_F(StunFunctionalityTest, unknownAttributesDoNotHideMessageIntegrityTest)
+{
+    // Binding request: USERNAME "remote:local", PRIORITY 0x7E7F00FF, two comprehension-optional attributes the
+    // parser does not know (0xC057, 0xC0FF), then MESSAGE-INTEGRITY with TEST_STUN_PASSWORD and FINGERPRINT
+    BYTE buffer[] = {0x00, 0x01, 0x00, 0x48, 0x21, 0x12, 0xa4, 0x42, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                     0x00, 0x00, 0x06, 0x00, 0x0c, 0x72, 0x65, 0x6d, 0x6f, 0x74, 0x65, 0x3a, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x00, 0x24,
+                     0x00, 0x04, 0x7e, 0x7f, 0x00, 0xff, 0xc0, 0x57, 0x00, 0x04, 0x01, 0x02, 0x03, 0x04, 0xc0, 0xff, 0x00, 0x04, 0x01,
+                     0x02, 0x03, 0x04, 0x00, 0x08, 0x00, 0x14, 0xff, 0x3f, 0x6d, 0x1e, 0x1a, 0xa9, 0xbf, 0xcd, 0xcb, 0x2e, 0xba, 0xb9,
+                     0x03, 0x4e, 0xcd, 0xcf, 0xfe, 0x88, 0xd8, 0x6c, 0x80, 0x28, 0x00, 0x04, 0x4e, 0xc1, 0x51, 0xfa};
+    UINT32 passwordLen = (UINT32) STRLEN(TEST_STUN_PASSWORD);
+    PStunPacket pParsed = NULL;
+    PStunAttributeHeader pAttribute = NULL;
+
+    // Every known attribute is parsed exactly once and in order, and MESSAGE-INTEGRITY is verified
+    EXPECT_EQ(STATUS_SUCCESS, deserializeStunPacket(buffer, SIZEOF(buffer), (PBYTE) TEST_STUN_PASSWORD, passwordLen, &pParsed));
+    ASSERT_TRUE(pParsed != NULL);
+    EXPECT_EQ(4, pParsed->attributesCount);
+    EXPECT_EQ(STUN_ATTRIBUTE_TYPE_USERNAME, pParsed->attributeList[0]->type);
+    EXPECT_EQ(STUN_ATTRIBUTE_TYPE_PRIORITY, pParsed->attributeList[1]->type);
+    EXPECT_EQ(STUN_ATTRIBUTE_TYPE_MESSAGE_INTEGRITY, pParsed->attributeList[2]->type);
+    EXPECT_EQ(STUN_ATTRIBUTE_TYPE_FINGERPRINT, pParsed->attributeList[3]->type);
+    EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pParsed, STUN_ATTRIBUTE_TYPE_PRIORITY, &pAttribute));
+    EXPECT_EQ(0x7E7F00FF, ((PStunAttributePriority) pAttribute)->priority);
+    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pParsed));
+
+    // Tampering with a byte the HMAC covers must be noticed, not skipped past the unknown attributes
+    buffer[59] ^= 0xFF;
+    EXPECT_EQ(STATUS_STUN_MESSAGE_INTEGRITY_MISMATCH,
+              deserializeStunPacket(buffer, SIZEOF(buffer), (PBYTE) TEST_STUN_PASSWORD, passwordLen, &pParsed));
+    EXPECT_EQ(NULL, pParsed);
 }
 
 } // namespace webrtcclient

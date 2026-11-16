@@ -36,6 +36,31 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
     freePeerConnection(&answerPc);
 }
 
+// Checks for another ufrag are not answered (RFC 8445 section 7.3): told a wrong ufrag for the offerer, the answerer
+// gets no answer to its checks and the peers do not connect
+TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWrongRemoteUfragFails)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    // Two peers on this host connect in well under a second
+    offerIceUfragOverride = "wrongUfrag";
+    connectTimeoutSeconds = 10;
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), FALSE);
+    EXPECT_EQ(0, ATOMIC_LOAD(&stateChangeCount[RTC_PEER_CONNECTION_STATE_CONNECTED]));
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
 {
     RtcConfiguration configuration;
