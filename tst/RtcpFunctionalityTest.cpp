@@ -174,6 +174,97 @@ TEST_F(RtcpFunctionalityTest, rtcpNackListGetSmallBuffer)
     SAFE_MEMFREE(pSeqList);
 }
 
+// The list fills up on the PID of an FCI. The count must stop there and not include the rest of the NACK.
+TEST_F(RtcpFunctionalityTest, rtcpNackListGetSmallBufferFullAtPid)
+{
+    UINT32 senderSsrc = 0, receiverSsrc = 0;
+    // 8-byte SSRC header + two FCIs with no BLP bits: PID 0x0ca8 (3240), then PID 0x0cff (3327).
+    BYTE twoPid[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0xa8, 0x00, 0x00, 0x0c, 0xff, 0x00, 0x00};
+    UINT16 seqList[1] = {0};
+    UINT32 seqListLen = ARRAY_SIZE(seqList);
+
+    EXPECT_EQ(STATUS_SUCCESS, rtcpNackListGet(twoPid, SIZEOF(twoPid), &senderSsrc, &receiverSsrc, seqList, &seqListLen));
+    EXPECT_EQ(ARRAY_SIZE(seqList), seqListLen);
+    EXPECT_EQ(3240, seqList[0]);
+}
+
+// A NACK can list more sequence numbers than the retransmitter's list holds. The list is filled and the count
+// covers only what was written. The sizing call (NULL list) still reports the total.
+TEST_F(RtcpFunctionalityTest, rtcpNackListGetMoreThanRetransmitterList)
+{
+    // RFC 4585 section 6.2.1: each FCI is a 16-bit PID and a 16-bit BLP, and lists the PID plus one number per BLP bit
+    const UINT32 fciLen = SIZEOF(UINT16) + SIZEOF(UINT16);
+    const UINT32 seqNumsPerFci = 1 + SIZEOF(UINT16) * 8;
+    // One FCI more than the list holds: seq 0 onwards, with every BLP bit set
+    const UINT32 fciCount = DEFAULT_SEQ_NUM_BUFFER_SIZE / seqNumsPerFci + 1;
+    UINT32 senderSsrc = 0, receiverSsrc = 0, seqListLen = 0, i;
+    std::vector<BYTE> nack(RTCP_NACK_LIST_LEN + fciLen * fciCount, 0);
+    std::unique_ptr<UINT16[]> seqList(new UINT16[DEFAULT_SEQ_NUM_BUFFER_SIZE]);
+
+    for (i = 0; i < fciCount; i++) {
+        putInt16((PINT16) (nack.data() + RTCP_NACK_LIST_LEN + fciLen * i), (INT16) (seqNumsPerFci * i));
+        putInt16((PINT16) (nack.data() + RTCP_NACK_LIST_LEN + fciLen * i + SIZEOF(UINT16)), (INT16) 0xffff);
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, rtcpNackListGet(nack.data(), (UINT32) nack.size(), &senderSsrc, &receiverSsrc, NULL, &seqListLen));
+    EXPECT_EQ(seqNumsPerFci * fciCount, seqListLen);
+
+    seqListLen = DEFAULT_SEQ_NUM_BUFFER_SIZE;
+    EXPECT_EQ(STATUS_SUCCESS, rtcpNackListGet(nack.data(), (UINT32) nack.size(), &senderSsrc, &receiverSsrc, seqList.get(), &seqListLen));
+    EXPECT_EQ(DEFAULT_SEQ_NUM_BUFFER_SIZE, seqListLen);
+    for (i = 0; i < DEFAULT_SEQ_NUM_BUFFER_SIZE; i++) {
+        EXPECT_EQ((UINT16) i, seqList[i]);
+    }
+}
+
+// A NACK that lists more sequence numbers than the retransmitter's list holds is answered from the entries that
+// fit. Without the cap, this test fails under AddressSanitizer.
+TEST_F(RtcpFunctionalityTest, onRtcpPacketNackLongerThanRetransmitterList)
+{
+    // RFC 4585 section 6.2.1: each FCI is a 16-bit PID and a 16-bit BLP, and lists the PID plus one number per BLP bit
+    const UINT32 fciLen = SIZEOF(UINT16) + SIZEOF(UINT16);
+    const UINT32 seqNumsPerFci = 1 + SIZEOF(UINT16) * 8;
+    // More sequence numbers than fit in the retransmitter's allocation
+    const UINT32 retransmitterAllocationSize =
+        SIZEOF(Retransmitter) + SIZEOF(UINT16) * DEFAULT_SEQ_NUM_BUFFER_SIZE + SIZEOF(UINT64) * DEFAULT_VALID_INDEX_BUFFER_SIZE;
+    const UINT32 fciCount = retransmitterAllocationSize / SIZEOF(UINT16) / seqNumsPerFci + 1;
+    // The NACKed numbers start well above the buffered ones, so none of them is buffered
+    const UINT16 firstNackedSeqNum = 30000;
+    const UINT32 bufferedPacketCount = 3;
+    // Media SSRC 44000, the transceiver's
+    BYTE header[] = {0x81, 0xcd, 0x00, 0x00, 0x2c, 0xd1, 0xa0, 0xde, 0x00, 0x00, 0xab, 0xe0};
+    std::vector<BYTE> nack(SIZEOF(header) + fciLen * fciCount, 0);
+    PRtpPacket pRtpPacket = nullptr;
+    RtcOutboundRtpStreamStats stats{};
+    UINT32 i;
+
+    MEMCPY(nack.data(), header, SIZEOF(header));
+    putInt16((PINT16) (nack.data() + RTCP_PACKET_LEN_OFFSET), (INT16) (nack.size() / RTCP_PACKET_LEN_WORD_SIZE - 1));
+    for (i = 0; i < fciCount; i++) {
+        putInt16((PINT16) (nack.data() + SIZEOF(header) + fciLen * i), (INT16) (firstNackedSeqNum + seqNumsPerFci * i));
+        putInt16((PINT16) (nack.data() + SIZEOF(header) + fciLen * i + SIZEOF(UINT16)), (INT16) 0xffff);
+    }
+
+    initTransceiver(44000);
+    ASSERT_EQ(STATUS_SUCCESS, createRtpRollingBuffer(bufferedPacketCount, &pKvsRtpTransceiver->sender.packetBuffer));
+    ASSERT_EQ(STATUS_SUCCESS,
+              createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
+    // Send more packets than the buffer holds, so seq 0 is evicted. Memory past the list can decode to seq 0, and a
+    // match there would stop the lookup before it reads past the allocation.
+    for (i = 0; i < DEFAULT_SEQ_NUM_BUFFER_SIZE + bufferedPacketCount; i++) {
+        ASSERT_EQ(STATUS_SUCCESS, createRtpPacketWithSeqNum((UINT16) i, &pRtpPacket));
+        ASSERT_EQ(STATUS_SUCCESS, rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
+        freeRtpPacket(&pRtpPacket);
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, nack.data(), (UINT32) nack.size()));
+    getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats);
+    EXPECT_EQ(1, stats.nackCount);
+    EXPECT_EQ(0, stats.retransmittedPacketsSent);
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
 TEST_F(RtcpFunctionalityTest, onRtcpPacketCompoundNack)
 {
     PRtpPacket pRtpPacket = nullptr;
@@ -241,6 +332,37 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketNackPutsPacketBackAtExtractedIndex)
     getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats);
     EXPECT_EQ(2, stats.nackCount);
     EXPECT_EQ(4, stats.retransmittedPacketsSent);
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
+// After 65,536 packets the rolling buffer index no longer fits in a 16-bit sequence number. Each NACKed
+// packet must still go back to the index it came from, so a repeated NACK can resend it.
+TEST_F(RtcpFunctionalityTest, onRtcpPacketNackPutsPacketBackAfterSeqNumWrap)
+{
+    PRtpPacket pRtpPacket = nullptr;
+    UINT32 i;
+    // NACK PID 65535, BLP 0x0003 -> seq 65535, 0, 1
+    BYTE nackSeqWrap[] = {0x81, 0xcd, 0x00, 0x03, 0x2c, 0xd1, 0xa0, 0xde, 0x00, 0x00, 0xab, 0xe0, 0xff, 0xff, 0x00, 0x03};
+    RtcOutboundRtpStreamStats stats{};
+
+    initTransceiver(44000);
+    ASSERT_EQ(STATUS_SUCCESS, createRtpRollingBuffer(4, &pKvsRtpTransceiver->sender.packetBuffer));
+    ASSERT_EQ(STATUS_SUCCESS,
+              createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
+    // 65,538 packets: the buffer holds indices 65534 to 65537, which carry seq 65534, 65535, 0 and 1.
+    for (i = 0; i < MAX_UINT16 + 3; i++) {
+        ASSERT_EQ(STATUS_SUCCESS, createRtpPacketWithSeqNum(GET_UINT16_SEQ_NUM(i), &pRtpPacket));
+        ASSERT_EQ(STATUS_SUCCESS, rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
+        freeRtpPacket(&pRtpPacket);
+    }
+
+    // Both NACKs resend all three packets.
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, nackSeqWrap, SIZEOF(nackSeqWrap)));
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, nackSeqWrap, SIZEOF(nackSeqWrap)));
+    getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats);
+    EXPECT_EQ(2, stats.nackCount);
+    EXPECT_EQ(6, stats.retransmittedPacketsSent);
 
     freePeerConnection(&pRtcPeerConnection);
 }
@@ -771,6 +893,38 @@ TEST_F(RtcpFunctionalityTest, onpli)
     freePeerConnection(&pRtcPeerConnection);
 }
 
+// A sub-packet whose handler fails must not stop the rest of the compound packet from being processed.
+// The first PLI names an SSRC that no transceiver has, so onRtcpPLIPacket fails. The second PLI names the
+// transceiver's SSRC and must still be handled.
+TEST_F(RtcpFunctionalityTest, onRtcpPacketCompoundContinuesAfterHandlerFailure)
+{
+    // 1. PLI, sender SSRC 0x00000001, media SSRC 0x0BADC0DE (no transceiver has it)
+    // 2. PLI, sender SSRC 0x00000001, media SSRC 0x1DC86991 (the transceiver's SSRC)
+    BYTE compound[] = {0x81, 0xCE, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x0B, 0xAD, 0xC0, 0xDE,
+                       0x81, 0xCE, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x1D, 0xC8, 0x69, 0x91};
+    RtcpPacket firstPli{};
+    UINT32 pictureLossCount = 0;
+    RtcOutboundRtpStreamStats stats{};
+
+    ASSERT_EQ(STATUS_SUCCESS, setRtcpPacketFromBytes(compound, SIZEOF(compound), &firstPli));
+    ASSERT_EQ(RTCP_PSFB_PLI, firstPli.header.receptionReportCount);
+
+    initTransceiver(0x1DC86991);
+    pKvsRtpTransceiver->onPictureLossCustomData = (UINT64) &pictureLossCount;
+    pKvsRtpTransceiver->onPictureLoss = [](UINT64 customData) -> void { (*(PUINT32) customData)++; };
+
+    // The first PLI on its own fails, so the compound packet does reach a failing handler.
+    EXPECT_TRUE(STATUS_FAILED(onRtcpPLIPacket(&firstPli, pKvsPeerConnection)));
+    EXPECT_EQ(0, pictureLossCount);
+
+    EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, compound, SIZEOF(compound)));
+    EXPECT_EQ(1, pictureLossCount);
+    EXPECT_EQ(STATUS_SUCCESS, getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats));
+    EXPECT_EQ(1, stats.pliCount);
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
 TEST_F(RtcpFunctionalityTest, createRtcpPLIPacket)
 {
     BYTE expected[] = {0x81, 0xCE, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x1D, 0xC8, 0x69, 0x91};
@@ -1114,6 +1268,127 @@ TEST_F(RtcpFunctionalityTest, twccManagerOnPacketSentReusedSeqNum)
     ASSERT_NE(nullptr, pTwccRtpPacketInfo);
     EXPECT_EQ(200, pTwccRtpPacketInfo->packetSize);
     EXPECT_EQ(2 * HUNDREDS_OF_NANOS_IN_A_SECOND, pTwccRtpPacketInfo->localTimeKvs);
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
+// Without RTX, a NACK resends the original packet, so twccManagerOnPacketSent() sees its transport wide sequence
+// number a second time. The record of the first send has to be freed rather than overwritten; an overwritten record
+// is reported as a leak when the fixture resets its allocators.
+TEST_F(RtcpFunctionalityTest, onRtcpPacketNackWithoutRtxReusesTwccSequenceNumber)
+{
+    // NACK for seq 0 on media ssrc 44000
+    BYTE nackPacket[] = {0x81, 0xcd, 0x00, 0x03, 0x2c, 0xd1, 0xa0, 0xde, 0x00, 0x00, 0xab, 0xe0, 0x00, 0x00, 0x00, 0x00};
+    BYTE payload[10] = {0};
+    UINT16 twsn = 100;
+    UINT32 extPayload = TWCC_PAYLOAD(1u, twsn);
+    PRtpPacket pRtpPacket = nullptr;
+    UINT64 value = 0, originalSentTime = 0;
+    RtcOutboundRtpStreamStats stats{};
+
+    initTransceiver(44000);
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnSenderBandwidthEstimation(pRtcPeerConnection, 0, testBwHandler));
+    // RTX is not negotiated when the RTX payload type equals the payload type
+    ATOMIC_STORE(&pKvsRtpTransceiver->atomicSenderPayloadTypes, KVS_RTP_TRANSCEIVER_PACK_PAYLOAD_TYPES(96, 96));
+
+    EXPECT_EQ(STATUS_SUCCESS,
+              createRtpRollingBuffer(DEFAULT_ROLLING_BUFFER_DURATION_IN_SECONDS * DEFAULT_EXPECTED_VIDEO_BIT_RATE / 8 / DEFAULT_MTU_SIZE_BYTES,
+                                     &pKvsRtpTransceiver->sender.packetBuffer));
+    EXPECT_EQ(STATUS_SUCCESS,
+              createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
+    EXPECT_EQ(STATUS_SUCCESS,
+              createRtpPacket(2, FALSE, TRUE, 0, FALSE, 96, 0, 100, 44000, NULL, TWCC_EXT_PROFILE, SIZEOF(UINT32), (PBYTE) &extPayload, payload,
+                              SIZEOF(payload), &pRtpPacket));
+    if (pRtpPacket != nullptr) {
+        EXPECT_EQ(STATUS_SUCCESS, createBytesFromRtpPacket(pRtpPacket, NULL, &pRtpPacket->rawPacketLength));
+        EXPECT_NE(nullptr, pRtpPacket->pRawPacket = (PBYTE) MEMALLOC(pRtpPacket->rawPacketLength));
+        EXPECT_EQ(STATUS_SUCCESS, createBytesFromRtpPacket(pRtpPacket, pRtpPacket->pRawPacket, &pRtpPacket->rawPacketLength));
+
+        // The original send, one second before the NACK so the two records can be told apart
+        originalSentTime = GETTIME() - HUNDREDS_OF_NANOS_IN_A_SECOND;
+        pRtpPacket->sentTime = originalSentTime;
+        EXPECT_EQ(STATUS_SUCCESS, twccManagerOnPacketSent(pKvsPeerConnection, pRtpPacket));
+        EXPECT_EQ(STATUS_SUCCESS, rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
+
+        EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, nackPacket, SIZEOF(nackPacket)));
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats));
+    EXPECT_EQ(1, stats.retransmittedPacketsSent);
+
+    // The retransmission went out under the original number and replaced the original record
+    MUTEX_LOCK(pKvsPeerConnection->twccLock);
+    EXPECT_EQ(1, pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable->itemCount);
+    EXPECT_EQ(STATUS_SUCCESS, hashTableGet(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, twsn, &value));
+    if (value != 0) {
+        EXPECT_GT(((PTwccRtpPacketInfo) value)->localTimeKvs, originalSentTime);
+    }
+    MUTEX_UNLOCK(pKvsPeerConnection->twccLock);
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    freeRtpPacket(&pRtpPacket);
+}
+
+// The rolling window skips a record whose send time is later than the packet being sent, and never visits it again.
+// The record stays in the table until the 16-bit transport wide sequence number wraps around to it. The packet that
+// reuses the number has to free the record rather than overwrite it; an overwritten record is reported as a leak
+// when the fixture resets its allocators.
+TEST_F(RtcpFunctionalityTest, twccManagerOnPacketSentReusedSeqNumAfterWraparound)
+{
+    PRtcPeerConnection pRtcPeerConnection = NULL;
+    PKvsPeerConnection pKvsPeerConnection = NULL;
+    RtcConfiguration config{};
+    RtpPacket rtpPacket{};
+    PHashTable pTable = NULL;
+    UINT64 value = 0, sentTime = HUNDREDS_OF_NANOS_IN_A_SECOND, strandedSentTime;
+    const UINT16 strandedSeqNum = 10;
+    UINT16 twsn;
+    UINT32 extpayload = 0;
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnSenderBandwidthEstimation(pRtcPeerConnection, 0, testBwHandler));
+    pTable = pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable;
+
+    rtpPacket.header.extension = TRUE;
+    rtpPacket.header.extensionProfile = TWCC_EXT_PROFILE;
+    rtpPacket.header.extensionLength = SIZEOF(UINT32);
+    rtpPacket.header.extensionPayload = (PBYTE) &extpayload;
+    rtpPacket.payloadLength = 100;
+
+    // The stranded record is sent with a later time than the packet after it
+    strandedSentTime = sentTime + TWCC_ESTIMATOR_TIME_WINDOW;
+    extpayload = TWCC_PAYLOAD(1u, strandedSeqNum);
+    rtpPacket.sentTime = strandedSentTime;
+    EXPECT_EQ(STATUS_SUCCESS, twccManagerOnPacketSent(pKvsPeerConnection, &rtpPacket));
+
+    // Send every remaining sequence number once, wrapping from 65535 to 0. Each packet is sent more than the rolling
+    // window after the previous one, so the window evicts the previous record but never revisits the stranded one.
+    for (twsn = strandedSeqNum + 1; twsn != strandedSeqNum; twsn++) {
+        extpayload = TWCC_PAYLOAD(1u, twsn);
+        rtpPacket.sentTime = sentTime;
+        EXPECT_EQ(STATUS_SUCCESS, twccManagerOnPacketSent(pKvsPeerConnection, &rtpPacket));
+        sentTime += TWCC_ESTIMATOR_TIME_WINDOW + 1;
+    }
+
+    // The stranded record and the last packet's record are left
+    EXPECT_EQ(2, pTable->itemCount);
+    EXPECT_EQ(STATUS_SUCCESS, hashTableGet(pTable, strandedSeqNum, &value));
+    if (value != 0) {
+        EXPECT_EQ(strandedSentTime, ((PTwccRtpPacketInfo) value)->localTimeKvs);
+    }
+
+    // The sequence number has wrapped around to the stranded record
+    extpayload = TWCC_PAYLOAD(1u, strandedSeqNum);
+    rtpPacket.sentTime = sentTime;
+    EXPECT_EQ(STATUS_SUCCESS, twccManagerOnPacketSent(pKvsPeerConnection, &rtpPacket));
+
+    EXPECT_EQ(1, pTable->itemCount);
+    value = 0;
+    EXPECT_EQ(STATUS_SUCCESS, hashTableGet(pTable, strandedSeqNum, &value));
+    if (value != 0) {
+        EXPECT_EQ(sentTime, ((PTwccRtpPacketInfo) value)->localTimeKvs);
+    }
 
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
