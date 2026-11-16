@@ -228,7 +228,8 @@ CleanUp:
     return;
 }
 
-STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection, BOOL isServer, TIMER_QUEUE_HANDLE timerQueueHandle)
+STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection, BOOL isServer, TIMER_QUEUE_HANDLE timerQueueHandle,
+                                            PUINT16 pDtlsKeyExchangeGroups)
 {
     ENTERS();
     TlsSessionCallbacks callbacks;
@@ -266,6 +267,9 @@ STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection,
         if (pSocketConnection->hostname != NULL && pSocketConnection->hostname[0] != '\0') {
             dtlsOptions.validationMode = DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER;
             dtlsOptions.pExpectedServerHostname = pSocketConnection->hostname;
+        }
+        if (pDtlsKeyExchangeGroups != NULL) {
+            MEMCPY(dtlsOptions.keyExchangeGroups, pDtlsKeyExchangeGroups, SIZEOF(dtlsOptions.keyExchangeGroups));
         }
 
         CHK_STATUS(createDtlsSessionWithOptions(&dtlsCallbacks, timerQueueHandle, GENERATED_CERTIFICATE_BITS, FALSE, NULL, &dtlsOptions,

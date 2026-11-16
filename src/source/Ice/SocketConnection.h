@@ -86,10 +86,12 @@ STATUS freeSocketConnection(PSocketConnection*);
  * @param - BOOL - IN - will SocketConnection act as server during the TLS or DTLS handshake
  * @param - TIMER_QUEUE_HANDLE - IN - timer queue used by DTLS to schedule handshake retransmissions. Ignored for
  * TCP/TLS sockets.
+ * @param - PUINT16 - IN - OPTIONAL - the DTLS key exchange groups (MAX_DTLS_KEY_EXCHANGE_GROUPS entries, see
+ * KvsRtcConfiguration.dtlsKeyExchangeGroups); NULL keeps the crypto library's defaults. Ignored for TCP/TLS sockets.
  *
  * @return - STATUS - status of execution
  */
-STATUS socketConnectionInitSecureConnection(PSocketConnection, BOOL, TIMER_QUEUE_HANDLE);
+STATUS socketConnectionInitSecureConnection(PSocketConnection, BOOL, TIMER_QUEUE_HANDLE, PUINT16);
 
 /**
  * Given a created SocketConnection, send data through the underlying socket. If socket type is UDP, then destination

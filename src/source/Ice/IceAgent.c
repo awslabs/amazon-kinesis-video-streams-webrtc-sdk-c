@@ -1631,7 +1631,8 @@ STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
                         pDtlsSession = pSocketConnection->pDtlsSession;
                         if (pDtlsSession == NULL) {
                             DLOGD("STUNS srflx candidate initiating DTLS handshake to %s", pIceServer->url);
-                            retStatus = socketConnectionInitSecureConnection(pSocketConnection, FALSE, pIceAgent->timerQueueHandle);
+                            retStatus = socketConnectionInitSecureConnection(pSocketConnection, FALSE, pIceAgent->timerQueueHandle,
+                                                                             pIceAgent->kvsRtcConfiguration.dtlsKeyExchangeGroups);
                             if (STATUS_FAILED(retStatus)) {
                                 MARK_STUNS_SRFLX_CANDIDATE_INVALID(
                                     DLOGW, pCandidate, "Failed to init DTLS for STUNS srflx candidate, marking invalid. Status: 0x%08x", retStatus);
