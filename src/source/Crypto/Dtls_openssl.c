@@ -477,12 +477,13 @@ CleanUp:
         }
     }
 
-    if (STATUS_FAILED(retStatus)) {
-        freeDtlsSession(&pDtlsSession);
-    }
-
+    // Release before a free on failure: freeDtlsSession() waits for the reference count to drop to 0
     if (acquired) {
         releaseDtlsSession(pDtlsSession);
+    }
+
+    if (STATUS_FAILED(retStatus)) {
+        freeDtlsSession(&pDtlsSession);
     }
     LEAVES();
     return retStatus;

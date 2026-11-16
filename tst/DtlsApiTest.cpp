@@ -99,6 +99,25 @@ TEST_F(DtlsApiTest, createCertificateAndKey_Returns_Success)
 }
 #endif
 
+// A session that fails to create returns the error and no session, instead of waiting on its own reference
+TEST_F(DtlsApiTest, createDtlsSessionWithOptions_FailureFreesSession)
+{
+    DtlsSessionCallbacks callbacks;
+    DtlsSessionOptions options;
+    PDtlsSession pSession = NULL;
+    TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+
+    MEMSET(&callbacks, 0x00, SIZEOF(callbacks));
+    MEMSET(&options, 0x00, SIZEOF(options));
+    // Strict server validation without an expected hostname fails after the session is allocated
+    options.validationMode = DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER;
+    options.pExpectedServerHostname = (PCHAR) "";
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+    EXPECT_EQ(STATUS_INVALID_ARG, createDtlsSessionWithOptions(&callbacks, timerQueueHandle, 0, FALSE, NULL, &options, &pSession));
+    EXPECT_TRUE(pSession == NULL);
+    timerQueueFree(&timerQueueHandle);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
