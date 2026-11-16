@@ -1312,6 +1312,179 @@ TEST_F(DataChannelFunctionalityTest, createDataChannelWithCallbacks_NegotiatedAf
     }
 }
 
+// A cipher suite that two peers of this library can negotiate, and the certificate type it needs
+struct NegotiableCipherSuite {
+    std::string name;
+    BOOL rsaCertificate;
+#ifdef KVS_USE_MBEDTLS
+    int ids[2]; // zero-terminated, for DtlsSession.pCipherSuites
+#endif
+};
+
+#ifdef KVS_USE_MBEDTLS
+#if MBEDTLS_BEFORE_V3
+#define CIPHER_SUITE_FIELD(pInfo, field) ((pInfo)->field)
+#define CIPHER_SUITE_HAS_TLS1_2(pInfo)                                                                                                               \
+    ((pInfo)->min_minor_ver <= MBEDTLS_SSL_MINOR_VERSION_3 && (pInfo)->max_minor_ver >= MBEDTLS_SSL_MINOR_VERSION_3)
+#else
+#define CIPHER_SUITE_FIELD(pInfo, field) ((pInfo)->MBEDTLS_PRIVATE(field))
+#define CIPHER_SUITE_HAS_TLS1_2(pInfo)                                                                                                               \
+    (CIPHER_SUITE_FIELD(pInfo, min_tls_version) <= MBEDTLS_SSL_VERSION_TLS1_2 &&                                                                     \
+     CIPHER_SUITE_FIELD(pInfo, max_tls_version) >= MBEDTLS_SSL_VERSION_TLS1_2)
+#endif
+#endif
+
+// Every cipher suite that the DTLS backend offers by default and that two peers of this library can negotiate. DTLS 1.2
+// uses the TLS 1.2 cipher suites. The library configures no pre-shared key, so suites that need one are left out.
+static std::vector<NegotiableCipherSuite> negotiableCipherSuites()
+{
+    std::vector<NegotiableCipherSuite> suites;
+#ifdef KVS_USE_MBEDTLS
+    const int* pId;
+    const mbedtls_ssl_ciphersuite_t* pInfo;
+
+    for (pId = mbedtls_ssl_list_ciphersuites(); *pId != 0; pId++) {
+        pInfo = mbedtls_ssl_ciphersuite_from_id(*pId);
+        if (pInfo == NULL || !CIPHER_SUITE_HAS_TLS1_2(pInfo) || (CIPHER_SUITE_FIELD(pInfo, flags) & MBEDTLS_CIPHERSUITE_NODTLS) != 0) {
+            continue;
+        }
+        switch (CIPHER_SUITE_FIELD(pInfo, key_exchange)) {
+            case MBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA:
+#if !MBEDTLS_V4_OR_LATER
+            case MBEDTLS_KEY_EXCHANGE_ECDH_ECDSA:
+#endif
+                suites.push_back({CIPHER_SUITE_FIELD(pInfo, name), FALSE, {*pId, 0}});
+                break;
+            case MBEDTLS_KEY_EXCHANGE_ECDHE_RSA:
+#if !MBEDTLS_V4_OR_LATER
+            case MBEDTLS_KEY_EXCHANGE_DHE_RSA:
+            case MBEDTLS_KEY_EXCHANGE_RSA:
+#endif
+                suites.push_back({CIPHER_SUITE_FIELD(pInfo, name), TRUE, {*pId, 0}});
+                break;
+            default:
+                // Pre-shared key and EC J-PAKE suites, and ECDH_RSA, which needs an EC certificate signed with RSA
+                break;
+        }
+    }
+#elif KVS_USE_OPENSSL
+    RtcConfiguration configuration;
+    PRtcPeerConnection pc = NULL;
+    STACK_OF(SSL_CIPHER) * pCiphers;
+    const SSL_CIPHER* pCipher;
+    INT32 i, keyExchange, authentication;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    EXPECT_EQ(createPeerConnection(&configuration, &pc), STATUS_SUCCESS);
+    pCiphers = SSL_get_ciphers(((PKvsPeerConnection) pc)->pDtlsSession->pSsl);
+    for (i = 0; i < sk_SSL_CIPHER_num(pCiphers); i++) {
+        pCipher = sk_SSL_CIPHER_value(pCiphers, i);
+        keyExchange = SSL_CIPHER_get_kx_nid(pCipher);
+        authentication = SSL_CIPHER_get_auth_nid(pCipher);
+        // TLS 1.3 suites (NID_kx_any) don't apply to DTLS 1.2, and DHE needs Diffie-Hellman parameters the library doesn't set
+        if (keyExchange != NID_kx_ecdhe && keyExchange != NID_kx_rsa) {
+            continue;
+        }
+        if (authentication == NID_auth_ecdsa || authentication == NID_auth_rsa) {
+            suites.push_back({SSL_CIPHER_get_name(pCipher), authentication == NID_auth_rsa});
+        }
+    }
+    freePeerConnection(&pc);
+#endif
+    return suites;
+}
+
+static VOID forceCipherSuite(PRtcPeerConnection pPc, NegotiableCipherSuite* pSuite)
+{
+    PDtlsSession pDtlsSession = ((PKvsPeerConnection) pPc)->pDtlsSession;
+#ifdef KVS_USE_MBEDTLS
+    pDtlsSession->pCipherSuites = pSuite->ids;
+#elif KVS_USE_OPENSSL
+    EXPECT_EQ(1, SSL_set_cipher_list(pDtlsSession->pSsl, pSuite->name.c_str()));
+#endif
+}
+
+static std::string negotiatedCipherSuite(PRtcPeerConnection pPc)
+{
+    PDtlsSession pDtlsSession = ((PKvsPeerConnection) pPc)->pDtlsSession;
+#ifdef KVS_USE_MBEDTLS
+    return mbedtls_ssl_get_ciphersuite(&pDtlsSession->sslCtx);
+#elif KVS_USE_OPENSSL
+    return SSL_get_cipher_name(pDtlsSession->pSsl);
+#endif
+}
+
+// A receiver of this library delivers a message of up to this size in one callback. usrsctp hands a larger message over in
+// pieces once this much of it has arrived: half of its default receive buffer.
+#define TEST_MAX_WHOLE_RECEIVED_MESSAGE_SIZE (64 * 1024)
+
+// Messages larger than one SCTP packet arrive whole, in one callback, with every cipher suite. Each cipher suite has its
+// own record overhead, so the largest SCTP packet that fits in one DTLS record differs between suites.
+TEST_F(DataChannelFunctionalityTest, dataChannelSend_LargeMessagesArriveWholeWithEveryCipherSuite)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PRtcDataChannel pOfferNeg = NULL, pAnswerNeg = NULL;
+    RtcDataChannelInit init;
+    const UINT32 sizes[] = {DEFAULT_MTU_SIZE_BYTES, MIN(4 * DEFAULT_MTU_SIZE_BYTES, MAX_OUTBOUND_DATA_CHANNEL_MESSAGE_SIZE_BYTES),
+                            MIN(MAX_OUTBOUND_DATA_CHANNEL_MESSAGE_SIZE_BYTES, TEST_MAX_WHOLE_RECEIVED_MESSAGE_SIZE)};
+    std::vector<std::string> messages;
+    std::vector<NegotiableCipherSuite> suites = negotiableCipherSuites();
+    UINT32 i, j;
+
+    for (i = 0; i < ARRAY_SIZE(sizes); i++) {
+        std::string message(sizes[i], '\0');
+        for (j = 0; j < sizes[i]; j++) {
+            message[j] = (CHAR) ('a' + (i + j) % 26);
+        }
+        messages.push_back(message);
+    }
+    ASSERT_FALSE(suites.empty());
+
+    for (auto& suite : suites) {
+        SCOPED_TRACE(suite.name);
+        NegotiatedCounters offer, answer, inband;
+        CallbackReceiver receiver;
+
+        DLOGI("Testing cipher suite %s", suite.name.c_str());
+        MEMSET(stateChangeCount, 0x00, SIZEOF(stateChangeCount));
+        MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+        configuration.kvsRtcConfiguration.generateRSACertificate = suite.rsaCertificate;
+        EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+        EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+        forceCipherSuite(offerPc, &suite);
+        forceCipherSuite(answerPc, &suite);
+
+        if (connectWithAssociation(this, offerPc, answerPc, &offer, &answer, &inband)) {
+            EXPECT_EQ(suite.name, negotiatedCipherSuite(offerPc));
+            initNegotiated(&init, 32);
+            EXPECT_EQ(createDataChannelWithCallbacks(offerPc, (PCHAR) "large", &init, (UINT64) &receiver, receiverOnMessage, NULL, &pOfferNeg),
+                      STATUS_SUCCESS);
+            initNegotiated(&init, 32);
+            EXPECT_EQ(createDataChannel(answerPc, (PCHAR) "large", &init, &pAnswerNeg), STATUS_SUCCESS);
+            for (i = 0; i < ARRAY_SIZE(sizes); i++) {
+                EXPECT_EQ(dataChannelSend(pAnswerNeg, TRUE, (PBYTE) messages[i].data(), (UINT32) messages[i].size()), STATUS_SUCCESS);
+            }
+            for (i = 0; i <= 50 && receivedCount(&receiver.received) != ARRAY_SIZE(sizes); i++) {
+                THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+            }
+        } else {
+            ADD_FAILURE() << "The peers did not connect";
+        }
+
+        closePeerConnection(offerPc);
+        closePeerConnection(answerPc);
+        freePeerConnection(&offerPc);
+        freePeerConnection(&answerPc);
+
+        EXPECT_EQ(ARRAY_SIZE(sizes), receiver.received.messages.size());
+        for (i = 0; i < ARRAY_SIZE(sizes) && i < receiver.received.messages.size(); i++) {
+            EXPECT_EQ(messages[i].size(), receiver.received.messages[i].size());
+            EXPECT_TRUE(messages[i] == receiver.received.messages[i]) << "message " << i << " arrived changed";
+        }
+    }
+}
+
 // A channel without onMessage keeps nothing: what arrives before the callback is set is counted and dropped,
 // and setting the callback later delivers only what arrives after it
 TEST_F(DataChannelFunctionalityTest, createDataChannel_NoOnMessageHoldsNothing)

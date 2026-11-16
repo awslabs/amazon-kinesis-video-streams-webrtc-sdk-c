@@ -32,6 +32,24 @@ TEST_F(DataChannelApiTest, createDataChannel_Disconnected)
     freePeerConnection(&pPeerConnection);
 }
 
+// A message larger than MAX_OUTBOUND_DATA_CHANNEL_MESSAGE_SIZE_BYTES is rejected
+TEST_F(DataChannelApiTest, dataChannelSend_MessageLargerThanMaxIsRejected)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection pPeerConnection = nullptr;
+    PRtcDataChannel pDataChannel = nullptr;
+    std::vector<BYTE> message(MAX_OUTBOUND_DATA_CHANNEL_MESSAGE_SIZE_BYTES + 1);
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    EXPECT_EQ(createPeerConnection(&configuration, &pPeerConnection), STATUS_SUCCESS);
+    EXPECT_EQ(createDataChannel(pPeerConnection, (PCHAR) "large", nullptr, &pDataChannel), STATUS_SUCCESS);
+
+    EXPECT_EQ(STATUS_SCTP_OUTBOUND_MESSAGE_TOO_LARGE, dataChannelSend(pDataChannel, TRUE, message.data(), (UINT32) message.size()));
+
+    closePeerConnection(pPeerConnection);
+    freePeerConnection(&pPeerConnection);
+}
+
 static VOID countOnOpen(UINT64 customData, PRtcDataChannel pDataChannel)
 {
     UNUSED_PARAM(pDataChannel);

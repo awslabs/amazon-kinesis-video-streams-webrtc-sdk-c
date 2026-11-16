@@ -49,7 +49,10 @@ target_link_libraries(webrtc_client_test
     kvsWebrtcSignalingClient
     ${EXTRA_DEPS}
     kvsCommonLws
+    # The cipher suite tests call the TLS library directly
+    ${OPENSSL_SSL_LIBRARY}
     ${OPENSSL_CRYPTO_LIBRARY}
+    ${MBEDTLS_LIBRARIES}
     kvspicUtils
     ${GTEST_LIBNAME}
     ${AWS_SDK_TEST_LIBS})
