@@ -679,6 +679,20 @@ extern "C" {
 #define MAX_RTCCONFIGURATION_CERTIFICATES 3
 
 /**
+ * Max key exchange groups in KvsRtcConfiguration.dtlsKeyExchangeGroups
+ */
+#define MAX_DTLS_KEY_EXCHANGE_GROUPS 8
+
+/**
+ * DTLS key exchange groups for KvsRtcConfiguration.dtlsKeyExchangeGroups (IANA TLS NamedGroup values)
+ */
+#define DTLS_KEY_EXCHANGE_GROUP_SECP256R1 23
+#define DTLS_KEY_EXCHANGE_GROUP_SECP384R1 24
+#define DTLS_KEY_EXCHANGE_GROUP_SECP521R1 25
+#define DTLS_KEY_EXCHANGE_GROUP_X25519    29
+#define DTLS_KEY_EXCHANGE_GROUP_X448      30
+
+/**
  * Maximum length of a MediaStream's Track ID
  */
 #define MAX_MEDIA_STREAM_TRACK_ID_LEN 255

@@ -6,6 +6,7 @@
 #include <mutex>
 #include <queue>
 #include <atomic>
+#include <vector>
 
 #define TEST_DEFAULT_REGION             ((PCHAR) "us-west-2")
 #define TEST_DEFAULT_STUN_URL_POSTFIX   (KINESIS_VIDEO_STUN_URL_POSTFIX)
@@ -38,6 +39,16 @@ typedef struct {
 } StaticCredentialProvider, *PStaticCredentialProvider;
 
 STATUS createRtpPacketWithSeqNum(UINT16 seqNum, PRtpPacket* ppRtpPacket);
+
+// The body of the first unencrypted DTLS handshake message of the given type in the datagrams, reassembled from its
+// fragments; empty if it is not all there
+std::vector<BYTE> dtlsHandshakeMessage(const std::vector<std::vector<BYTE>>& datagrams, BYTE type);
+
+// The key exchange groups (supported_groups extension) of the ClientHello in the datagrams; empty if there is none
+std::vector<UINT16> dtlsClientHelloGroups(const std::vector<std::vector<BYTE>>& datagrams);
+
+// The named group of the ECDHE ServerKeyExchange in the datagrams; 0 if there is none
+UINT16 dtlsServerKeyExchangeGroup(const std::vector<std::vector<BYTE>>& datagrams);
 
 class WebRtcClientTestBase : public ::testing::Test {
   public:

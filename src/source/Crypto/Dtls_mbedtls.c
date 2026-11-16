@@ -10,6 +10,55 @@ mbedtls_ssl_srtp_profile DTLS_SRTP_SUPPORTED_PROFILES[] = {
     MBEDTLS_TLS_SRTP_UNSET,
 };
 
+#if DTLS_MBEDTLS_CONF_GROUPS
+#define DTLS_MBEDTLS_GROUP(iana, ecp) (iana)
+#else
+#define DTLS_MBEDTLS_GROUP(iana, ecp) (ecp)
+#endif
+
+// The key exchange groups this mbedTLS build has, by IANA id
+static const struct {
+    UINT16 iana;
+    DtlsMbedtlsGroup group;
+} DTLS_MBEDTLS_KEY_EXCHANGE_GROUPS[] = {
+#if defined(MBEDTLS_ECP_DP_SECP256R1_ENABLED) || defined(PSA_WANT_ECC_SECP_R1_256)
+    {DTLS_KEY_EXCHANGE_GROUP_SECP256R1, DTLS_MBEDTLS_GROUP(DTLS_KEY_EXCHANGE_GROUP_SECP256R1, MBEDTLS_ECP_DP_SECP256R1)},
+#endif
+#if defined(MBEDTLS_ECP_DP_SECP384R1_ENABLED) || defined(PSA_WANT_ECC_SECP_R1_384)
+    {DTLS_KEY_EXCHANGE_GROUP_SECP384R1, DTLS_MBEDTLS_GROUP(DTLS_KEY_EXCHANGE_GROUP_SECP384R1, MBEDTLS_ECP_DP_SECP384R1)},
+#endif
+#if defined(MBEDTLS_ECP_DP_SECP521R1_ENABLED) || defined(PSA_WANT_ECC_SECP_R1_521)
+    {DTLS_KEY_EXCHANGE_GROUP_SECP521R1, DTLS_MBEDTLS_GROUP(DTLS_KEY_EXCHANGE_GROUP_SECP521R1, MBEDTLS_ECP_DP_SECP521R1)},
+#endif
+#if defined(MBEDTLS_ECP_DP_CURVE25519_ENABLED) || defined(PSA_WANT_ECC_MONTGOMERY_255)
+    {DTLS_KEY_EXCHANGE_GROUP_X25519, DTLS_MBEDTLS_GROUP(DTLS_KEY_EXCHANGE_GROUP_X25519, MBEDTLS_ECP_DP_CURVE25519)},
+#endif
+#if defined(MBEDTLS_ECP_DP_CURVE448_ENABLED) || defined(PSA_WANT_ECC_MONTGOMERY_448)
+    {DTLS_KEY_EXCHANGE_GROUP_X448, DTLS_MBEDTLS_GROUP(DTLS_KEY_EXCHANGE_GROUP_X448, MBEDTLS_ECP_DP_CURVE448)},
+#endif
+};
+
+// Converts the session's key exchange groups to mbedTLS's terminated list; a group this build lacks fails with STATUS_INVALID_ARG
+static STATUS dtlsSessionSetMbedtlsGroups(PDtlsSession pDtlsSession)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 i, j;
+
+    MEMSET(pDtlsSession->mbedtlsGroups, 0x00, SIZEOF(pDtlsSession->mbedtlsGroups));
+    for (i = 0; i < MAX_DTLS_KEY_EXCHANGE_GROUPS && pDtlsSession->keyExchangeGroups[i] != 0; i++) {
+        for (j = 0;
+             j < ARRAY_SIZE(DTLS_MBEDTLS_KEY_EXCHANGE_GROUPS) && DTLS_MBEDTLS_KEY_EXCHANGE_GROUPS[j].iana != pDtlsSession->keyExchangeGroups[i];
+             j++) {
+        }
+        CHK_ERR(j < ARRAY_SIZE(DTLS_MBEDTLS_KEY_EXCHANGE_GROUPS), STATUS_INVALID_ARG, "DTLS key exchange group %u is not in this mbedTLS build",
+                pDtlsSession->keyExchangeGroups[i]);
+        pDtlsSession->mbedtlsGroups[i] = DTLS_MBEDTLS_KEY_EXCHANGE_GROUPS[j].group;
+    }
+
+CleanUp:
+    return retStatus;
+}
+
 // Backend-local helper: only the mbedTLS DTLS implementation parses the shared CA bundle directly.
 static STATUS dtlsReadAndParseCACertificate(PDtlsSession pDtlsSession)
 {
@@ -186,6 +235,7 @@ STATUS createDtlsSessionWithOptions(PDtlsSessionCallbacks pDtlsSessionCallbacks,
     pDtlsSession->sslLock = MUTEX_CREATE(TRUE);
     pDtlsSession->dtlsSessionCallbacks = *pDtlsSessionCallbacks;
     CHK_STATUS(dtlsSessionCopyOptions(pDtlsSession, pDtlsSessionOptions));
+    CHK_STATUS(dtlsSessionSetMbedtlsGroups(pDtlsSession));
     CHK_STATUS(dtlsSessionLoadTrustedCaCertificate(pDtlsSession));
     if (certificateBits == 0) {
         certificateBits = GENERATED_CERTIFICATE_BITS;
@@ -484,6 +534,13 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
     }
     mbedtls_ssl_conf_dtls_cookies(&pDtlsSession->sslCtxConfig, NULL, NULL, NULL);
     CHK(mbedtls_ssl_conf_dtls_srtp_protection_profiles(&pDtlsSession->sslCtxConfig, DTLS_SRTP_SUPPORTED_PROFILES) == 0, STATUS_CREATE_SSL_FAILED);
+    if (pDtlsSession->keyExchangeGroups[0] != 0) {
+#if DTLS_MBEDTLS_CONF_GROUPS
+        mbedtls_ssl_conf_groups(&pDtlsSession->sslCtxConfig, pDtlsSession->mbedtlsGroups);
+#else
+        mbedtls_ssl_conf_curves(&pDtlsSession->sslCtxConfig, pDtlsSession->mbedtlsGroups);
+#endif
+    }
 
 #if MBEDTLS_BEFORE_V3
     mbedtls_ssl_conf_export_keys_ext_cb(&pDtlsSession->sslCtxConfig, dtlsSessionKeyDerivationCallback, pDtlsSession);

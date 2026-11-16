@@ -8,11 +8,24 @@ namespace webrtcclient {
 
 class DtlsFunctionalityTest : public WebRtcClientTestBase {
   public:
+    DtlsFunctionalityTest()
+    {
+        MEMSET(&dtlsServerOptions, 0x00, SIZEOF(dtlsServerOptions));
+        MEMSET(&dtlsClientOptions, 0x00, SIZEOF(dtlsClientOptions));
+    }
+
+    // Options of the sessions createAndConnect() starts as the DTLS server (its pClient) and as the DTLS client (its pServer)
+    DtlsSessionOptions dtlsServerOptions;
+    DtlsSessionOptions dtlsClientOptions;
+    // The datagrams the DTLS server sent during createAndConnect()
+    std::vector<std::vector<BYTE>> dtlsServerDatagrams;
+
     STATUS createAndConnect(TIMER_QUEUE_HANDLE timerQueueHandle, PDtlsSession* ppClient, PDtlsSession* ppServer, BOOL useThread)
     {
         struct Context {
             std::mutex mtx;
             std::queue<std::vector<BYTE>> queue;
+            std::vector<std::vector<BYTE>> sent;
         };
         STATUS retStatus = STATUS_SUCCESS;
         DtlsSessionCallbacks callbacks;
@@ -37,6 +50,7 @@ class DtlsFunctionalityTest : public WebRtcClientTestBase {
             assert(pData != NULL);
             pCtx->mtx.lock();
             pCtx->queue.push(std::vector<BYTE>(pData, pData + dataLen));
+            pCtx->sent.push_back(std::vector<BYTE>(pData, pData + dataLen));
             pCtx->mtx.unlock();
         };
 
@@ -63,8 +77,8 @@ class DtlsFunctionalityTest : public WebRtcClientTestBase {
             return retStatus;
         };
 
-        CHK_STATUS(createDtlsSession(&callbacks, timerQueueHandle, 0, FALSE, NULL, &pServer));
-        CHK_STATUS(createDtlsSession(&callbacks, timerQueueHandle, 0, FALSE, NULL, &pClient));
+        CHK_STATUS(createDtlsSessionWithOptions(&callbacks, timerQueueHandle, 0, FALSE, NULL, &dtlsClientOptions, &pServer));
+        CHK_STATUS(createDtlsSessionWithOptions(&callbacks, timerQueueHandle, 0, FALSE, NULL, &dtlsServerOptions, &pClient));
 
         CHK_STATUS(dtlsSessionOnOutBoundData(pServer, (UINT64) &clientCtx, outboundPacketFn));
         CHK_STATUS(dtlsSessionOnOutBoundData(pClient, (UINT64) &serverCtx, outboundPacketFn));
@@ -90,6 +104,11 @@ class DtlsFunctionalityTest : public WebRtcClientTestBase {
         }
 
         CHK_ERR(ATOMIC_LOAD(&connectedCount) == 2, STATUS_OPERATION_TIMED_OUT, "timeout: failed to finish initial handshake");
+
+        // pClient is the DTLS server, and its datagrams go to serverCtx
+        serverCtx.mtx.lock();
+        dtlsServerDatagrams = serverCtx.sent;
+        serverCtx.mtx.unlock();
 
         *ppClient = pClient;
         *ppServer = pServer;
@@ -122,6 +141,44 @@ VOID outboundPacketFnNoop(UINT64 customData, PBYTE pData, UINT32 dataLen)
     UNUSED_PARAM(customData);
     UNUSED_PARAM(pData);
     UNUSED_PARAM(dataLen);
+}
+
+// The key exchange groups offered by the ClientHello of a DTLS client created with pOptions
+static std::vector<UINT16> offeredGroups(PDtlsSessionOptions pOptions)
+{
+    struct Captured {
+        std::mutex mtx;
+        std::vector<std::vector<BYTE>> packets;
+    } clientOut;
+    PDtlsSession pClient = NULL;
+    TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+    DtlsSessionCallbacks callbacks;
+    std::vector<std::vector<BYTE>> datagrams;
+    UINT64 sleepDelay = 20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+
+    DtlsSessionOutboundPacketFunc capture = [](UINT64 customData, PBYTE pData, UINT32 dataLen) {
+        Captured* pCaptured = (Captured*) customData;
+        std::lock_guard<std::mutex> lock(pCaptured->mtx);
+        pCaptured->packets.push_back(std::vector<BYTE>(pData, pData + dataLen));
+    };
+
+    MEMSET(&callbacks, 0, SIZEOF(callbacks));
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+    EXPECT_EQ(STATUS_SUCCESS, createDtlsSessionWithOptions(&callbacks, timerQueueHandle, 0, FALSE, NULL, pOptions, &pClient));
+    EXPECT_EQ(STATUS_SUCCESS, dtlsSessionOnOutBoundData(pClient, (UINT64) &clientOut, capture));
+    EXPECT_EQ(STATUS_SUCCESS, dtlsSessionStart(pClient, FALSE));
+
+    for (UINT64 duration = 0; duration < MAX_TEST_AWAIT_DURATION && datagrams.empty(); duration += sleepDelay) {
+        THREAD_SLEEP(sleepDelay);
+        clientOut.mtx.lock();
+        datagrams = clientOut.packets;
+        clientOut.mtx.unlock();
+    }
+
+    freeDtlsSession(&pClient);
+    timerQueueFree(&timerQueueHandle);
+
+    return dtlsClientHelloGroups(datagrams);
 }
 
 TEST_F(DtlsFunctionalityTest, putApplicationDataWithVariedSizes)
@@ -359,6 +416,75 @@ TEST_F(DtlsFunctionalityTest, strictServerValidationRejectsUntrustedServerCertif
     if (IS_VALID_TIMER_QUEUE_HANDLE(timerQueueHandle)) {
         timerQueueFree(&timerQueueHandle);
     }
+}
+
+// The ClientHello offers the configured key exchange groups in their order, and the library's own groups by default
+TEST_F(DtlsFunctionalityTest, clientHelloKeyExchangeGroups)
+{
+    DtlsSessionOptions options;
+    std::vector<UINT16> groups;
+
+    groups = offeredGroups(NULL);
+    EXPECT_NE(groups.end(), std::find(groups.begin(), groups.end(), DTLS_KEY_EXCHANGE_GROUP_SECP256R1));
+    EXPECT_LT(1U, groups.size());
+
+    MEMSET(&options, 0x00, SIZEOF(options));
+    options.keyExchangeGroups[0] = DTLS_KEY_EXCHANGE_GROUP_SECP256R1;
+    EXPECT_EQ((std::vector<UINT16>{DTLS_KEY_EXCHANGE_GROUP_SECP256R1}), offeredGroups(&options));
+
+    options.keyExchangeGroups[1] = DTLS_KEY_EXCHANGE_GROUP_SECP384R1;
+    EXPECT_EQ((std::vector<UINT16>{DTLS_KEY_EXCHANGE_GROUP_SECP256R1, DTLS_KEY_EXCHANGE_GROUP_SECP384R1}), offeredGroups(&options));
+}
+
+TEST_F(DtlsFunctionalityTest, unknownKeyExchangeGroupIsRejected)
+{
+    PDtlsSession pSession = NULL;
+    TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+    DtlsSessionCallbacks callbacks;
+    DtlsSessionOptions options;
+
+    MEMSET(&callbacks, 0, SIZEOF(callbacks));
+    MEMSET(&options, 0x00, SIZEOF(options));
+    options.keyExchangeGroups[0] = DTLS_KEY_EXCHANGE_GROUP_SECP256R1;
+    options.keyExchangeGroups[1] = 0xFFFF;
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+    EXPECT_EQ(STATUS_INVALID_ARG, createDtlsSessionWithOptions(&callbacks, timerQueueHandle, 0, FALSE, NULL, &options, &pSession));
+    EXPECT_TRUE(pSession == NULL);
+    timerQueueFree(&timerQueueHandle);
+}
+
+// A DTLS client limited to P-256 connects to a server with the library's groups, which would rather use X25519
+TEST_F(DtlsFunctionalityTest, handshakeWithClientKeyExchangeGroupsSet)
+{
+    PDtlsSession pClient = NULL, pServer = NULL;
+    TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+
+    dtlsClientOptions.keyExchangeGroups[0] = DTLS_KEY_EXCHANGE_GROUP_SECP256R1;
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+    EXPECT_EQ(STATUS_SUCCESS, createAndConnect(timerQueueHandle, &pClient, &pServer, FALSE));
+    EXPECT_TRUE(pClient != NULL && pServer != NULL);
+    EXPECT_EQ(DTLS_KEY_EXCHANGE_GROUP_SECP256R1, dtlsServerKeyExchangeGroup(dtlsServerDatagrams));
+
+    freeDtlsSession(&pClient);
+    freeDtlsSession(&pServer);
+    timerQueueFree(&timerQueueHandle);
+}
+
+// A DTLS server limited to P-256 picks it from a client offering the library's groups, X25519 first
+TEST_F(DtlsFunctionalityTest, handshakeWithServerKeyExchangeGroupsSet)
+{
+    PDtlsSession pClient = NULL, pServer = NULL;
+    TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+
+    dtlsServerOptions.keyExchangeGroups[0] = DTLS_KEY_EXCHANGE_GROUP_SECP256R1;
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+    EXPECT_EQ(STATUS_SUCCESS, createAndConnect(timerQueueHandle, &pClient, &pServer, FALSE));
+    EXPECT_TRUE(pClient != NULL && pServer != NULL);
+    EXPECT_EQ(DTLS_KEY_EXCHANGE_GROUP_SECP256R1, dtlsServerKeyExchangeGroup(dtlsServerDatagrams));
+
+    freeDtlsSession(&pClient);
+    freeDtlsSession(&pServer);
+    timerQueueFree(&timerQueueHandle);
 }
 
 } // namespace webrtcclient

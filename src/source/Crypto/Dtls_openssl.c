@@ -1,6 +1,42 @@
 #define LOG_CLASS "DTLS_openssl"
 #include "../Include_i.h"
 
+// The key exchange groups by IANA id and OpenSSL NID
+static const struct {
+    UINT16 iana;
+    INT32 nid;
+} DTLS_OPENSSL_KEY_EXCHANGE_GROUPS[] = {
+    {DTLS_KEY_EXCHANGE_GROUP_SECP256R1, NID_X9_62_prime256v1},
+    {DTLS_KEY_EXCHANGE_GROUP_SECP384R1, NID_secp384r1},
+    {DTLS_KEY_EXCHANGE_GROUP_SECP521R1, NID_secp521r1},
+#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
+    {DTLS_KEY_EXCHANGE_GROUP_X25519, NID_X25519},
+#endif
+#if (OPENSSL_VERSION_NUMBER >= 0x10101000L)
+    {DTLS_KEY_EXCHANGE_GROUP_X448, NID_X448},
+#endif
+};
+
+// Maps the key exchange groups (IANA ids, ending at the first 0) to OpenSSL NIDs; a group this OpenSSL lacks fails with
+// STATUS_INVALID_ARG
+static STATUS dtlsKeyExchangeGroupNids(PUINT16 pGroups, PINT32 pNids, PUINT32 pCount)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 i, j;
+
+    for (i = 0; i < MAX_DTLS_KEY_EXCHANGE_GROUPS && pGroups[i] != 0; i++) {
+        for (j = 0; j < ARRAY_SIZE(DTLS_OPENSSL_KEY_EXCHANGE_GROUPS) && DTLS_OPENSSL_KEY_EXCHANGE_GROUPS[j].iana != pGroups[i]; j++) {
+        }
+        CHK_ERR(j < ARRAY_SIZE(DTLS_OPENSSL_KEY_EXCHANGE_GROUPS), STATUS_INVALID_ARG, "DTLS key exchange group %u is not in this OpenSSL",
+                pGroups[i]);
+        pNids[i] = DTLS_OPENSSL_KEY_EXCHANGE_GROUPS[j].nid;
+    }
+    *pCount = i;
+
+CleanUp:
+    return retStatus;
+}
+
 INT32 dtlsCertificateVerifyCallback(INT32 preverify_ok, X509_STORE_CTX* ctx)
 {
     SSL* pSsl = NULL;
@@ -415,10 +451,16 @@ STATUS createDtlsSessionWithOptions(PDtlsSessionCallbacks pDtlsSessionCallbacks,
     UINT64 startTimeInMacro = 0;
     BOOL acquired = FALSE;
     DtlsSessionCertificateInfo certInfos[MAX_RTCCONFIGURATION_CERTIFICATES];
+    INT32 groupNids[MAX_DTLS_KEY_EXCHANGE_GROUPS];
+    UINT32 groupCount = 0;
     MEMSET(certInfos, 0x00, SIZEOF(certInfos));
 
     CHK(ppDtlsSession != NULL, STATUS_NULL_ARG);
     CHK_STATUS(dtlsValidateRtcCertificates(pRtcCertificates, &certCount));
+    // Checked before anything is allocated, so a list this OpenSSL cannot use fails at once
+    if (pDtlsSessionOptions != NULL) {
+        CHK_STATUS(dtlsKeyExchangeGroupNids(pDtlsSessionOptions->keyExchangeGroups, groupNids, &groupCount));
+    }
 
     pDtlsSession = MEMCALLOC(SIZEOF(DtlsSession), 1);
     acquireDtlsSession(pDtlsSession);
@@ -459,6 +501,15 @@ STATUS createDtlsSessionWithOptions(PDtlsSessionCallbacks pDtlsSessionCallbacks,
     PROFILE_CALL(CHK_STATUS(createSslCtx(certInfos, pDtlsSession->certificateCount, &pDtlsSession->pSslCtx)), "Create SSL Context");
     PROFILE_CALL(CHK_STATUS(createSsl(pDtlsSession->pSslCtx, &pDtlsSession->pSsl)), "Create SSL session");
     SSL_set_app_data(pDtlsSession->pSsl, pDtlsSession);
+    if (groupCount > 0) {
+#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
+        CHK_ERR(SSL_set1_groups(pDtlsSession->pSsl, groupNids, groupCount) == 1, STATUS_INVALID_ARG, "OpenSSL rejected the DTLS key exchange groups");
+#elif (OPENSSL_VERSION_NUMBER >= 0x10002000L)
+        CHK_ERR(SSL_set1_curves(pDtlsSession->pSsl, groupNids, groupCount) == 1, STATUS_INVALID_ARG, "OpenSSL rejected the DTLS key exchange groups");
+#else
+        DLOGW("OpenSSL before 1.0.2 cannot set the DTLS key exchange groups: ignoring them");
+#endif
+    }
     CHK_STATUS(dtlsSessionConfigureRemoteCertificateValidation(pDtlsSession));
 
     // Generate and store the certificate fingerprints

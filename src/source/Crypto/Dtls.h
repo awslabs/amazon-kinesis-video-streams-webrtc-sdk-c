@@ -83,7 +83,20 @@ typedef enum {
 typedef struct {
     DTLS_SESSION_VALIDATION_MODE validationMode;
     PCHAR pExpectedServerHostname;
+    UINT16 keyExchangeGroups[MAX_DTLS_KEY_EXCHANGE_GROUPS]; /* DTLS_KEY_EXCHANGE_GROUP_* values, most preferred first, ending at the first
+                                                             * 0. All 0 keeps the crypto library's defaults. */
 } DtlsSessionOptions, *PDtlsSessionOptions;
+
+#ifdef KVS_USE_MBEDTLS
+// mbedtls_ssl_conf_groups() with IANA group ids arrived in mbedTLS 3.1; before, mbedtls_ssl_conf_curves() takes ecp group ids
+#if defined(MBEDTLS_VERSION_NUMBER) && (MBEDTLS_VERSION_NUMBER >= 0x03010000)
+#define DTLS_MBEDTLS_CONF_GROUPS 1
+typedef UINT16 DtlsMbedtlsGroup;
+#else
+#define DTLS_MBEDTLS_CONF_GROUPS 0
+typedef mbedtls_ecp_group_id DtlsMbedtlsGroup;
+#endif
+#endif
 
 // DtlsKeyingMaterial is information extracted via https://tools.ietf.org/html/rfc5705
 // also includes the use_srtp value from Handshake
@@ -137,6 +150,7 @@ struct __DtlsSession {
     volatile ATOMIC_BOOL isShutdown;
     volatile ATOMIC_BOOL isCleanUp;
     UINT32 certificateCount;
+    UINT16 keyExchangeGroups[MAX_DTLS_KEY_EXCHANGE_GROUPS];
     DtlsSessionCallbacks dtlsSessionCallbacks;
     TIMER_QUEUE_HANDLE timerQueueHandle;
     UINT32 timerId;
@@ -172,6 +186,8 @@ struct __DtlsSession {
     mbedtls_ssl_context sslCtx;
     mbedtls_x509_crt trustedCaCert;
     DtlsSessionCertificateInfo certificates[MAX_RTCCONFIGURATION_CERTIFICATES];
+    // keyExchangeGroups in mbedTLS's form and terminated, for the config to point at
+    DtlsMbedtlsGroup mbedtlsGroups[MAX_DTLS_KEY_EXCHANGE_GROUPS + 1];
 #else
 #error "A Crypto implementation is required."
 #endif
@@ -221,8 +237,8 @@ STATUS dtlsSessionHandshakeInThread(PDtlsSession, BOOL);
 STATUS dtlsValidateRtcCertificates(PRtcCertificate, PUINT32);
 STATUS dtlsSessionChangeState(PDtlsSession, RTC_DTLS_TRANSPORT_STATE);
 /**
- * Copy DTLS validation options into the session, defaulting to relaxed validation when options are omitted.
- * Strict server validation requires a non-empty expected hostname.
+ * Copy DTLS options into the session, defaulting to relaxed validation and the crypto library's key exchange groups when
+ * options are omitted. Strict server validation requires a non-empty expected hostname.
  */
 STATUS dtlsSessionCopyOptions(PDtlsSession, PDtlsSessionOptions);
 
