@@ -95,8 +95,12 @@ STATUS dtlsSessionCopyOptions(PDtlsSession pDtlsSession, PDtlsSessionOptions pDt
 
     pDtlsSession->validationMode = DTLS_SESSION_VALIDATION_MODE_RELAXED;
     pDtlsSession->pExpectedServerHostname = NULL;
+    MEMSET(pDtlsSession->keyExchangeGroups, 0x00, SIZEOF(pDtlsSession->keyExchangeGroups));
 
     CHK(pDtlsSessionOptions != NULL, retStatus);
+
+    // Each crypto backend checks the groups against the ones it has
+    MEMCPY(pDtlsSession->keyExchangeGroups, pDtlsSessionOptions->keyExchangeGroups, SIZEOF(pDtlsSession->keyExchangeGroups));
 
     pDtlsSession->validationMode = pDtlsSessionOptions->validationMode;
     if (pDtlsSession->validationMode == DTLS_SESSION_VALIDATION_MODE_STRICT_SERVER) {

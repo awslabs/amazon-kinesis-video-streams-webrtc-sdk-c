@@ -1153,6 +1153,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     PKvsPeerConnection pKvsPeerConnection = NULL;
     IceAgentCallbacks iceAgentCallbacks;
     DtlsSessionCallbacks dtlsSessionCallbacks;
+    DtlsSessionOptions dtlsSessionOptions;
     PConnectionListener pConnectionListener = NULL;
     UINT64 startTime = 0;
     UINT64 startTimeInMacro = 0;
@@ -1174,9 +1175,14 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIcePwd, LOCAL_ICE_PWD_LEN));
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localCNAME, LOCAL_CNAME_LEN));
 
-    PROFILE_CALL(CHK_STATUS(createDtlsSession(
-                     &dtlsSessionCallbacks, pKvsPeerConnection->timerQueueHandle, pConfiguration->kvsRtcConfiguration.generatedCertificateBits,
-                     pConfiguration->kvsRtcConfiguration.generateRSACertificate, pConfiguration->certificates, &pKvsPeerConnection->pDtlsSession)),
+    MEMSET(&dtlsSessionOptions, 0x00, SIZEOF(dtlsSessionOptions));
+    dtlsSessionOptions.validationMode = DTLS_SESSION_VALIDATION_MODE_RELAXED;
+    MEMCPY(dtlsSessionOptions.keyExchangeGroups, pConfiguration->kvsRtcConfiguration.dtlsKeyExchangeGroups,
+           SIZEOF(dtlsSessionOptions.keyExchangeGroups));
+    PROFILE_CALL(CHK_STATUS(createDtlsSessionWithOptions(&dtlsSessionCallbacks, pKvsPeerConnection->timerQueueHandle,
+                                                         pConfiguration->kvsRtcConfiguration.generatedCertificateBits,
+                                                         pConfiguration->kvsRtcConfiguration.generateRSACertificate, pConfiguration->certificates,
+                                                         &dtlsSessionOptions, &pKvsPeerConnection->pDtlsSession)),
                  "Create DTLS Session object");
     CHK_STATUS(dtlsSessionOnOutBoundData(pKvsPeerConnection->pDtlsSession, (UINT64) pKvsPeerConnection, onDtlsOutboundPacket));
     CHK_STATUS(dtlsSessionOnStateChange(pKvsPeerConnection->pDtlsSession, (UINT64) pKvsPeerConnection, onDtlsStateChange));

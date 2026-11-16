@@ -224,6 +224,138 @@ TEST_F(IceFunctionalityTest, connectionListenerFunctionalityTest)
     }
 }
 
+struct CapturedDatagrams {
+    std::mutex mtx;
+    std::vector<std::vector<BYTE>> datagrams;
+};
+
+static STATUS captureDatagram(UINT64 customData, PSocketConnection pSocketConnection, PBYTE pBuffer, UINT32 bufferLen, PKvsIpAddress pSrc,
+                              PKvsIpAddress pDest)
+{
+    CapturedDatagrams* pCaptured = (CapturedDatagrams*) customData;
+    UNUSED_PARAM(pSocketConnection);
+    UNUSED_PARAM(pSrc);
+    UNUSED_PARAM(pDest);
+    std::lock_guard<std::mutex> lock(pCaptured->mtx);
+    pCaptured->datagrams.push_back(std::vector<BYTE>(pBuffer, pBuffer + bufferLen));
+    return STATUS_SUCCESS;
+}
+
+// The key exchange groups the ClientHello of a secure UDP socket connection (as for a stuns: server) offers
+static std::vector<UINT16> secureUdpConnectionOfferedGroups(PUINT16 pDtlsKeyExchangeGroups)
+{
+    CapturedDatagrams captured;
+    std::vector<std::vector<BYTE>> datagrams;
+    PConnectionListener pConnectionListener = NULL;
+    PSocketConnection pReceiver = NULL, pSender = NULL;
+    TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+    KvsIpAddress receiverAddress, senderAddress;
+    UINT64 sleepDelay = 20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+
+    MEMSET(&receiverAddress, 0x00, SIZEOF(KvsIpAddress));
+    receiverAddress.family = KVS_IP_FAMILY_TYPE_IPV4;
+    // 127.0.0.1, any port
+    receiverAddress.address[0] = 0x7f;
+    receiverAddress.address[3] = 0x01;
+    senderAddress = receiverAddress;
+
+    EXPECT_EQ(STATUS_SUCCESS, createConnectionListener(&pConnectionListener));
+    EXPECT_EQ(STATUS_SUCCESS,
+              createSocketConnection(KVS_IP_FAMILY_TYPE_IPV4, KVS_SOCKET_PROTOCOL_UDP, &receiverAddress, NULL, (UINT64) &captured, captureDatagram, 0,
+                                     &pReceiver));
+    ATOMIC_STORE_BOOL(&pReceiver->receiveData, TRUE);
+    EXPECT_EQ(STATUS_SUCCESS, connectionListenerAddConnection(pConnectionListener, pReceiver));
+    EXPECT_EQ(STATUS_SUCCESS, connectionListenerStart(pConnectionListener));
+
+    // The sender's DTLS goes to the receiver's bound address
+    EXPECT_EQ(STATUS_SUCCESS,
+              createSocketConnection(KVS_IP_FAMILY_TYPE_IPV4, KVS_SOCKET_PROTOCOL_UDP, &senderAddress, &pReceiver->hostIpAddr, 0, NULL, 0, &pSender));
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+    EXPECT_EQ(STATUS_SUCCESS, socketConnectionInitSecureConnection(pSender, FALSE, timerQueueHandle, pDtlsKeyExchangeGroups));
+
+    for (UINT64 duration = 0; duration < MAX_TEST_AWAIT_DURATION && datagrams.empty(); duration += sleepDelay) {
+        THREAD_SLEEP(sleepDelay);
+        std::lock_guard<std::mutex> lock(captured.mtx);
+        datagrams = captured.datagrams;
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, freeSocketConnection(&pSender));
+    timerQueueFree(&timerQueueHandle);
+    EXPECT_EQ(STATUS_SUCCESS, freeConnectionListener(&pConnectionListener));
+    EXPECT_EQ(STATUS_SUCCESS, freeSocketConnection(&pReceiver));
+
+    return dtlsClientHelloGroups(datagrams);
+}
+
+// A secure UDP socket connection, which stuns: servers use, offers the configured DTLS key exchange groups
+TEST_F(IceFunctionalityTest, secureUdpConnectionOffersDtlsKeyExchangeGroups)
+{
+    UINT16 groups[MAX_DTLS_KEY_EXCHANGE_GROUPS] = {DTLS_KEY_EXCHANGE_GROUP_SECP256R1};
+    std::vector<UINT16> offered = secureUdpConnectionOfferedGroups(NULL);
+
+    EXPECT_NE(offered.end(), std::find(offered.begin(), offered.end(), DTLS_KEY_EXCHANGE_GROUP_SECP256R1));
+    EXPECT_LT(1U, offered.size());
+
+    EXPECT_EQ((std::vector<UINT16>{DTLS_KEY_EXCHANGE_GROUP_SECP256R1}), secureUdpConnectionOfferedGroups(groups));
+}
+
+// The ICE agent hands KvsRtcConfiguration.dtlsKeyExchangeGroups to the DTLS session of a stuns: srflx candidate
+TEST_F(IceFunctionalityTest, iceAgentStunsCandidateUsesDtlsKeyExchangeGroups)
+{
+    PIceAgent pIceAgent = NULL;
+    CHAR localIceUfrag[LOCAL_ICE_UFRAG_LEN + 1];
+    CHAR localIcePwd[LOCAL_ICE_PWD_LEN + 1];
+    RtcConfiguration configuration;
+    IceAgentCallbacks iceAgentCallbacks;
+    PConnectionListener pConnectionListener = NULL;
+    TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+    PDoubleListNode pCurNode = NULL;
+    PIceCandidate pIceCandidate = NULL;
+    UINT16 firstGroup = 0;
+    BOOL foundSession = FALSE;
+    UINT64 sleepDelay = 20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(localIceUfrag, 0x00, SIZEOF(localIceUfrag));
+    MEMSET(localIcePwd, 0x00, SIZEOF(localIcePwd));
+    MEMSET(&iceAgentCallbacks, 0x00, SIZEOF(IceAgentCallbacks));
+
+    // Nothing has to answer: the DTLS session exists once the candidate starts its handshake
+    STRCPY(configuration.iceServers[0].urls, "stuns:localhost:5349");
+    configuration.kvsRtcConfiguration.dtlsKeyExchangeGroups[0] = DTLS_KEY_EXCHANGE_GROUP_SECP256R1;
+
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(localIceUfrag, LOCAL_ICE_UFRAG_LEN));
+    EXPECT_EQ(STATUS_SUCCESS, generateJSONSafeString(localIcePwd, LOCAL_ICE_PWD_LEN));
+    EXPECT_EQ(STATUS_SUCCESS, createConnectionListener(&pConnectionListener));
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+    EXPECT_EQ(STATUS_SUCCESS,
+              createIceAgent(localIceUfrag, localIcePwd, &iceAgentCallbacks, &configuration, timerQueueHandle, pConnectionListener, &pIceAgent));
+    EXPECT_EQ(STATUS_SUCCESS, iceAgentStartGathering(pIceAgent));
+
+    for (UINT64 duration = 0; duration < MAX_TEST_AWAIT_DURATION && !foundSession; duration += sleepDelay) {
+        THREAD_SLEEP(sleepDelay);
+        MUTEX_LOCK(pIceAgent->lock);
+        EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
+        for (; pCurNode != NULL && !foundSession; pCurNode = pCurNode->pNext) {
+            pIceCandidate = (PIceCandidate) pCurNode->data;
+            if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE && pIceCandidate->pSocketConnection != NULL &&
+                pIceCandidate->pSocketConnection->pDtlsSession != NULL) {
+                foundSession = TRUE;
+                firstGroup = pIceCandidate->pSocketConnection->pDtlsSession->keyExchangeGroups[0];
+            }
+        }
+        MUTEX_UNLOCK(pIceAgent->lock);
+    }
+
+    EXPECT_TRUE(foundSession);
+    EXPECT_EQ(DTLS_KEY_EXCHANGE_GROUP_SECP256R1, firstGroup);
+
+    EXPECT_EQ(STATUS_SUCCESS, iceAgentShutdown(pIceAgent));
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueShutdown(timerQueueHandle));
+    EXPECT_EQ(STATUS_SUCCESS, freeIceAgent(&pIceAgent));
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueFree(&timerQueueHandle));
+}
+
 ///////////////////////////////////////////////
 // IceAgent Test
 ///////////////////////////////////////////////

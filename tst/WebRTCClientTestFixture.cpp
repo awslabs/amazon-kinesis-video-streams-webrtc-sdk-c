@@ -33,6 +33,107 @@ CleanUp:
     return retStatus;
 }
 
+static UINT32 readU16(const std::vector<BYTE>& buf, SIZE_T at)
+{
+    return (UINT32) ((buf[at] << 8) | buf[at + 1]);
+}
+
+static UINT32 readU24(const std::vector<BYTE>& buf, SIZE_T at)
+{
+    return (UINT32) ((buf[at] << 16) | (buf[at + 1] << 8) | buf[at + 2]);
+}
+
+std::vector<BYTE> dtlsHandshakeMessage(const std::vector<std::vector<BYTE>>& datagrams, BYTE type)
+{
+    std::vector<BYTE> body;
+    SIZE_T pos, recordEnd, fragment, received = 0;
+    UINT32 length, messageSeq = 0, offset, fragmentLength;
+    BOOL found = FALSE;
+
+    // Records: type, version, epoch, sequence number and length (13 bytes); only epoch 0 is unencrypted. Handshake
+    // fragments: type, length, message_seq, fragment_offset and fragment_length (12 bytes).
+    for (const std::vector<BYTE>& datagram : datagrams) {
+        for (pos = 0; pos + 13 <= datagram.size(); pos = recordEnd) {
+            recordEnd = MIN(datagram.size(), pos + 13 + readU16(datagram, pos + 11));
+            if (datagram[pos] != 22 || readU16(datagram, pos + 3) != 0) {
+                continue;
+            }
+            for (fragment = pos + 13; fragment + 12 <= recordEnd; fragment += 12 + fragmentLength) {
+                length = readU24(datagram, fragment + 1);
+                offset = readU24(datagram, fragment + 6);
+                fragmentLength = readU24(datagram, fragment + 9);
+                if (datagram[fragment] != type || fragment + 12 + fragmentLength > recordEnd || offset + fragmentLength > length ||
+                    (found && (readU16(datagram, fragment + 4) != messageSeq || length != body.size()))) {
+                    continue;
+                }
+                if (!found) {
+                    found = TRUE;
+                    messageSeq = readU16(datagram, fragment + 4);
+                    body.resize(length);
+                }
+                MEMCPY(body.data() + offset, &datagram[fragment + 12], fragmentLength);
+                received += fragmentLength;
+            }
+        }
+    }
+
+    // Retransmitted or overlapping fragments make received larger, never smaller
+    if (received < body.size()) {
+        body.clear();
+    }
+
+    return body;
+}
+
+std::vector<UINT16> dtlsClientHelloGroups(const std::vector<std::vector<BYTE>>& datagrams)
+{
+    std::vector<UINT16> groups;
+    std::vector<BYTE> body = dtlsHandshakeMessage(datagrams, 1);
+    SIZE_T pos, end = body.size(), extensionsEnd, extensionEnd, listEnd;
+
+    // client_version and random, then session_id, cookie, cipher_suites and compression_methods
+    pos = 2 + 32;
+    if (pos + 1 > end) {
+        return groups;
+    }
+    pos += 1 + body[pos];
+    if (pos + 1 > end) {
+        return groups;
+    }
+    pos += 1 + body[pos];
+    if (pos + 2 > end) {
+        return groups;
+    }
+    pos += 2 + readU16(body, pos);
+    if (pos + 1 > end) {
+        return groups;
+    }
+    pos += 1 + body[pos];
+    if (pos + 2 > end) {
+        return groups;
+    }
+    extensionsEnd = MIN(end, pos + 2 + readU16(body, pos));
+    for (pos += 2; pos + 4 <= extensionsEnd; pos = extensionEnd) {
+        extensionEnd = MIN(extensionsEnd, pos + 4 + readU16(body, pos + 2));
+        if (readU16(body, pos) == 0x000a && pos + 6 <= extensionEnd) {
+            listEnd = MIN(extensionEnd, pos + 6 + readU16(body, pos + 4));
+            for (SIZE_T i = pos + 6; i + 2 <= listEnd; i += 2) {
+                groups.push_back((UINT16) readU16(body, i));
+            }
+        }
+    }
+
+    return groups;
+}
+
+UINT16 dtlsServerKeyExchangeGroup(const std::vector<std::vector<BYTE>>& datagrams)
+{
+    std::vector<BYTE> body = dtlsHandshakeMessage(datagrams, 12);
+
+    // ECParameters: curve_type named_curve (3), then the named group
+    return body.size() >= 3 && body[0] == 3 ? (UINT16) readU16(body, 1) : 0;
+}
+
 WebRtcClientTestBase::WebRtcClientTestBase()
     : mSignalingClientHandle(INVALID_SIGNALING_CLIENT_HANDLE_VALUE), mAccessKey(NULL), mSecretKey(NULL), mSessionToken(NULL), mRegion(NULL),
       mCaCertPath(NULL), mAccessKeyIdSet(FALSE)
