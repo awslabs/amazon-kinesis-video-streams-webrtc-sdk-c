@@ -36,6 +36,37 @@ TEST_F(PeerConnectionFunctionalityTest, connectTwoPeers)
     freePeerConnection(&answerPc);
 }
 
+// The answerer, the DTLS client, offers only P-256
+TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDtlsKeyExchangeGroups)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    configuration.kvsRtcConfiguration.dtlsKeyExchangeGroups[0] = DTLS_KEY_EXCHANGE_GROUP_SECP256R1;
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+TEST_F(PeerConnectionFunctionalityTest, createPeerConnectionRejectsUnknownDtlsKeyExchangeGroup)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection pc = NULL;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    configuration.kvsRtcConfiguration.dtlsKeyExchangeGroups[0] = 0xFFFF;
+    EXPECT_EQ(createPeerConnection(&configuration, &pc), STATUS_INVALID_ARG);
+    EXPECT_TRUE(pc == NULL);
+}
+
 TEST_F(PeerConnectionFunctionalityTest, connectTwoPeersWithDelay)
 {
     RtcConfiguration configuration;

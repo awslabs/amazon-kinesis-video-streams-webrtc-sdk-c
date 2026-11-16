@@ -1540,6 +1540,9 @@ typedef struct {
                                                 //!< candidate has resolved instead of running to iceLocalCandidateGatheringTimeout. Defaults to
                                                 //!< FALSE, which keeps gathering open for TURN servers added later. When TRUE,
                                                 //!< peerConnectionUpdateIceServers returns STATUS_ICE_SERVERS_FINAL.
+    UINT16 dtlsKeyExchangeGroups[MAX_DTLS_KEY_EXCHANGE_GROUPS]; //!< DTLS_KEY_EXCHANGE_GROUP_* values, most preferred first, ending at the
+                                                                //!< first 0. All 0 (default) keeps the crypto library's groups. Used for
+                                                                //!< the peer connection.
 } KvsRtcConfiguration, *PKvsRtcConfiguration;
 
 /**
