@@ -438,6 +438,10 @@ STATUS initializePeerConnection(PSampleConfiguration pSampleConfiguration, PRtcP
         DLOGI("ICE transport policy: all");
     }
 
+    // Offer SNAP: the SCTP INIT in the SDP, so data channels open as soon as DTLS is up
+    configuration.kvsRtcConfiguration.enableSctpSnap = isEnvVarEnabled(SCTP_SNAP_ENABLED_ENV_VAR);
+    DLOGI("SCTP SNAP: %s", configuration.kvsRtcConfiguration.enableSctpSnap ? "enabled" : "disabled");
+
 #ifdef ENABLE_STATS_CALCULATION_CONTROL
     configuration.kvsRtcConfiguration.enableIceStats = pSampleConfiguration->enableIceStats;
 #endif
