@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 #include "../src/source/Include_i.h"
+#include <functional>
 #include <memory>
 #include <string>
 #include <thread>
@@ -52,6 +53,11 @@ class WebRtcClientTestBase : public ::testing::Test {
     std::vector<std::thread> threads;
     std::mutex lock;
     BOOL noNewThreads = FALSE;
+    // connectTwoPeers calls this with the offerer once it has its local description, before anything connects
+    std::function<VOID(PRtcPeerConnection)> afterOfferSet;
+    // The offer and answer connectTwoPeers produced last
+    std::string lastOfferSdp;
+    std::string lastAnswerSdp;
 
     WebRtcClientTestBase();
 

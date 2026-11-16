@@ -189,7 +189,7 @@ You can pass the following options to `cmake ..`:
 * `-DBUILD_SRTP` -- Build libsrtp from source. Defaults to value of BUILD_DEPENDENCIES.
 * `-DUSE_LIBSRTP3` -- Build and link against libsrtp 3.x (cisco/libsrtp `main`, renamed to `libsrtp3`) instead of the long-standing 2.x default. OFF by default. The 3.x line adds PSA Crypto / mbedTLS 4 support but introduces public API breaks (opaque `srtp_policy_t`, separate src/dst buffers on `srtp_protect`/`srtp_unprotect`, separate master key + salt) — these are handled internally by the SDK. Use this if your platform requires mbedTLS 4 (e.g. ESP-IDF v6).
 * `-DUSE_OPENSSL3` -- Build and link against OpenSSL 3.x (git tag `openssl-3.5.7`) instead of the default 1.1.1t (`OpenSSL_1_1_1t`). OFF by default. When linking against a system OpenSSL that is already >= 3.0, this flag is auto-enabled. The mbedTLS path is unaffected. See [Building against OpenSSL 3.x](#building-against-openssl-3x) for usage.
-* `-DBUILD_USRSCTP` -- Build libusrsctp from source. Defaults to value of BUILD_DEPENDENCIES.
+* `-DBUILD_USRSCTP` -- Build libusrsctp from source. Defaults to value of BUILD_DEPENDENCIES. The libusrsctp it builds has SNAP (sctplab/usrsctp#761).
 * `-DBUILD_OPENSSL_PLATFORM` -- If building OpenSSL what is the target platform
 * `-DBUILD_LIBSRTP_HOST_PLATFORM` -- If building LibSRTP what is the current platform
 * `-DBUILD_LIBSRTP_DESTINATION_PLATFORM` -- If building LibSRTP what is the destination platform
@@ -741,6 +741,7 @@ AWS access keys are ignored from environment variables if the sample was built i
 | `AWS_KVS_CACERT_PATH`             | Root certificate path                                                         | String               | `repo/certs/cert.pem` | Must end with `.pem` extension                                                       |
 | `CONTROL_PLANE_URI`               | Endpoint override                                                             | String               | Based on the region   | Example: "https://kinesisvideo.us-west-2.api.aws"                                    |
 | `KVS_ICE_TRANSPORT_POLICY`        | Types of ICE candidates to consider                                           | Enum (`relay`/`all`) | `all`                 | Case insensitive                                                                     |
+| `KVS_SCTP_SNAP_ENABLED`           | Open data channels without the SCTP handshake (SNAP), if the peer supports it | Bool                 | `0`/`OFF`/`FALSE`     | `1`, `ON`, `TRUE` to enable. Case insensitive.                                       |
 | `KVS_PRE_GENERATE_CERT_ENABLED`   | Toggle to enable (TRUE) or disable (FALSE) cert pre-generation                | Bool                 | `TRUE`                | See [use pre-generated certs](#use-pre-generated-certificates) for more information. |
 | `KVS_PRE_GENERATE_CERT_PERIOD_MS` | Interval in milliseconds to check and generate certificates to fill the queue | Int (100-60000)      | `3000` (3 seconds)    | See [use pre-generated certs](#use-pre-generated-certificates) for more information. |
 | `KVS_PRE_GENERATE_CERT_MAX`       | Maximum certificates to keep in the queue (ready-to-go)                       | Int (0-10)           | 2                     | See [use pre-generated certs](#use-pre-generated-certificates) for more information. |

@@ -227,6 +227,10 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
 
     EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sdp));
     EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(offerPc, &sdp));
+    if (this->afterOfferSet) {
+        this->afterOfferSet(offerPc);
+    }
+    this->lastOfferSdp = sdp.sdp;
     EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(answerPc, &sdp));
 
     // Validate the cert fingerprint if we are asked to do so
@@ -235,6 +239,7 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
     }
 
     EXPECT_EQ(STATUS_SUCCESS, createAnswer(answerPc, &sdp));
+    this->lastAnswerSdp = sdp.sdp;
     EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(answerPc, &sdp));
     EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(offerPc, &sdp));
 

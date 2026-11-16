@@ -1,0 +1,323 @@
+From b89176ddc7926d322790ee582b5775a6b5941d2f Mon Sep 17 00:00:00 2001
+From: Aryan Kadole <aryan.kadole@espressif.com>
+Date: Fri, 30 Oct 2026 18:21:12 +0530
+Subject: [PATCH 2/4] Add usrsctp_snap_prepare(): the INIT chunk for an
+ out-of-band exchange
+
+For SNAP (draft-uberti-tsvwg-warp, section 4.1) on one-to-one AF_CONN
+sockets: the association is set up as by usrsctp_connect(), but its INIT
+chunk is returned instead of sent and no INIT timer runs. The chunk is
+built once, so asking again returns the same bytes.
+---
+ Manual.md                         | 25 +++++++++++
+ usrsctplib/netinet/sctp_output.c  | 42 +++++++++++++++++++
+ usrsctplib/netinet/sctp_output.h  |  3 ++
+ usrsctplib/netinet/sctp_pcb.c     |  6 +++
+ usrsctplib/netinet/sctp_structs.h |  6 +++
+ usrsctplib/netinet/sctp_usrreq.c  | 69 +++++++++++++++++++++++++++++--
+ usrsctplib/user_socket.c          | 22 ++++++++++
+ usrsctplib/user_socketvar.h       |  1 +
+ usrsctplib/usrsctp.h              | 11 +++++
+ 9 files changed, 182 insertions(+), 3 deletions(-)
+
+diff --git a/Manual.md b/Manual.md
+index e7eb6e0..97a5b03 100644
+--- a/Manual.md
++++ b/Manual.md
+@@ -303,6 +303,31 @@ usrsctp_recvv(struct socket *so,
+ 
+ `usrsctp_recvv()` returns the number of bytes received, or -1 if an error occurred.  The variable errno is then set appropriately.
+ 
++## SNAP
++With SNAP, the SCTP Negotiation Acceleration Protocol ([draft-uberti-tsvwg-warp](https://datatracker.ietf.org/doc/draft-uberti-tsvwg-warp/), section 4.1), both endpoints exchange their INIT chunks out-of-band, e.g. in the SDP, instead of running the SCTP handshake.
++It works on one-to-one `AF_CONN` sockets; on one-to-many sockets the functions fail with `EOPNOTSUPP`.
++
++### usrsctp_snap_prepare()
++
++```c
++int
++usrsctp_snap_prepare(struct socket *so,
++                     struct sockaddr *name,
++                     socklen_t namelen,
++                     void *init,
++                     size_t *init_len)
++```
++
++* so: Pointer to the socket as returned by `usrsctp_socket()`.
++* name: Address of the peer.
++* namelen: Size of the peer's address.
++* init: Buffer for the INIT chunk.
++* init_len: Size of `init`; on return, the number of bytes copied.
++
++`usrsctp_snap_prepare()` sets the association up like `usrsctp_connect()`, but copies its INIT chunk into `init` instead of sending it. Later calls copy the same chunk.
++
++`usrsctp_snap_prepare()` returns 0 on success and -1 in case of an error. With `ENOBUFS`, `*init_len` is the size needed.
++
+ ## Socket Options
+ Socket options are used to change the default behavior of socket calls.
+ Their behavior is specified in [RFC 6458](https://tools.ietf.org/html/rfc6458). The functions to get or set them are
+diff --git a/usrsctplib/netinet/sctp_output.c b/usrsctplib/netinet/sctp_output.c
+index 7a3381a..b82f3eb 100755
+--- a/usrsctplib/netinet/sctp_output.c
++++ b/usrsctplib/netinet/sctp_output.c
+@@ -5379,9 +5379,51 @@ sctp_send_initiate_internal(struct sctp_inpcb *inp, struct sctp_tcb *stcb, int s
+ void
+ sctp_send_initiate(struct sctp_inpcb *inp, struct sctp_tcb *stcb, int so_locked)
+ {
++#if defined(__Userspace__)
++	/* SNAP: an INIT on the wire ends the out-of-band exchange. */
++	stcb->asoc.snap_prepared = 0;
++#endif
+ 	sctp_send_initiate_internal(inp, stcb, so_locked, NULL);
+ }
+ 
++#if defined(__Userspace__)
++/*
++ * SNAP: copies the association's INIT chunk into buf, building it on the
++ * first call, without sending it. On ENOBUFS *len is the size needed.
++ */
++int
++sctp_snap_copy_initiate(struct sctp_inpcb *inp, struct sctp_tcb *stcb, void *buf, size_t *len)
++{
++	struct mbuf *m = NULL;
++	uint32_t init_len;
++
++	if (stcb->asoc.snap_init == NULL) {
++		sctp_send_initiate_internal(inp, stcb, SCTP_SO_NOT_LOCKED, &m);
++		if (m == NULL) {
++			return (ENOMEM);
++		}
++		init_len = sctp_calculate_len(m);
++		/* Keep only the chunk, not the cluster it was built in. */
++		stcb->asoc.snap_init = sctp_get_mbuf_for_msg(init_len, 0, M_NOWAIT, 1, MT_DATA);
++		if (stcb->asoc.snap_init == NULL) {
++			sctp_m_freem(m);
++			return (ENOMEM);
++		}
++		m_copydata(m, 0, (int)init_len, mtod(stcb->asoc.snap_init, caddr_t));
++		SCTP_BUF_LEN(stcb->asoc.snap_init) = (int)init_len;
++		sctp_m_freem(m);
++	}
++	init_len = (uint32_t)SCTP_BUF_LEN(stcb->asoc.snap_init);
++	if (*len < init_len) {
++		*len = init_len;
++		return (ENOBUFS);
++	}
++	memcpy(buf, mtod(stcb->asoc.snap_init, caddr_t), init_len);
++	*len = init_len;
++	return (0);
++}
++#endif
++
+ struct mbuf *
+ sctp_arethere_unrecognized_parameters(struct mbuf *in_initpkt,
+                                       int param_offset, int *abort_processing,
+diff --git a/usrsctplib/netinet/sctp_output.h b/usrsctplib/netinet/sctp_output.h
+index a51a92a..3fa980c 100755
+--- a/usrsctplib/netinet/sctp_output.h
++++ b/usrsctplib/netinet/sctp_output.h
+@@ -70,6 +70,9 @@ int sctp_v4src_match_nexthop(struct sctp_ifa *sifa, sctp_route_t *ro);
+ #endif
+ 
+ void sctp_send_initiate(struct sctp_inpcb *, struct sctp_tcb *, int);
++#if defined(__Userspace__)
++int sctp_snap_copy_initiate(struct sctp_inpcb *, struct sctp_tcb *, void *, size_t *);
++#endif
+ 
+ void
+ sctp_send_initiate_ack(struct sctp_inpcb *, struct sctp_tcb *,
+diff --git a/usrsctplib/netinet/sctp_pcb.c b/usrsctplib/netinet/sctp_pcb.c
+index e8ef38e..c1694aa 100755
+--- a/usrsctplib/netinet/sctp_pcb.c
++++ b/usrsctplib/netinet/sctp_pcb.c
+@@ -5742,6 +5742,12 @@ sctp_free_assoc(struct sctp_inpcb *inp, struct sctp_tcb *stcb, int from_inpcbfre
+ 		asoc->strmin = NULL;
+ 	}
+ 	asoc->streamincnt = 0;
++#if defined(__Userspace__)
++	if (asoc->snap_init != NULL) {
++		sctp_m_freem(asoc->snap_init);
++		asoc->snap_init = NULL;
++	}
++#endif
+ 	TAILQ_FOREACH_SAFE(net, &asoc->nets, sctp_next, nnet) {
+ #ifdef INVARIANTS
+ 		if (SCTP_BASE_INFO(ipi_count_raddr) == 0) {
+diff --git a/usrsctplib/netinet/sctp_structs.h b/usrsctplib/netinet/sctp_structs.h
+index 894137a..43764a9 100755
+--- a/usrsctplib/netinet/sctp_structs.h
++++ b/usrsctplib/netinet/sctp_structs.h
+@@ -1277,6 +1277,12 @@ struct sctp_association {
+ 	struct timeval discontinuity_time;
+ 	uint64_t abandoned_unsent[SCTP_PR_SCTP_MAX + 1];
+ 	uint64_t abandoned_sent[SCTP_PR_SCTP_MAX + 1];
++#if defined(__Userspace__)
++	/* SNAP: the INIT chunk exchanged out-of-band, the same for later offers. */
++	struct mbuf *snap_init;
++	/* SNAP: waiting, with neither its INIT sent nor the peer's applied. */
++	uint8_t snap_prepared;
++#endif
+ };
+ 
+ #endif
+diff --git a/usrsctplib/netinet/sctp_usrreq.c b/usrsctplib/netinet/sctp_usrreq.c
+index 246587f..96d1bd2 100755
+--- a/usrsctplib/netinet/sctp_usrreq.c
++++ b/usrsctplib/netinet/sctp_usrreq.c
+@@ -8121,8 +8121,13 @@ sctp_connect(struct socket *so, struct mbuf *nam, struct proc *p)
+ #endif
+ 
+ #if defined(__Userspace__)
+-int
+-sctpconn_connect(struct socket *so, struct sockaddr *addr)
++/*
++ * Connects or, with snap_init set, prepares for SNAP, the SCTP Negotiation
++ * Acceleration Protocol (draft-uberti-tsvwg-warp, section 4.1): the INIT chunk
++ * is copied into snap_init instead of being sent.
++ */
++static int
++sctpconn_connect_or_prepare(struct socket *so, struct sockaddr *addr, void *snap_init, size_t *snap_init_len)
+ {
+ #ifdef SCTP_MVRF
+ 	int i, fnd = 0;
+@@ -8268,7 +8273,15 @@ sctpconn_connect(struct socket *so, struct sockaddr *addr)
+ 	SCTP_SET_STATE(stcb, SCTP_STATE_COOKIE_WAIT);
+ 	(void)SCTP_GETTIME_TIMEVAL(&stcb->asoc.time_entered);
+ 
+-	sctp_send_initiate(inp, stcb, SCTP_SO_LOCKED);
++	if (snap_init != NULL) {
++		/* As soconnect() does, which SNAP bypasses. */
++		so->so_error = 0;
++		stcb->asoc.snap_prepared = 1;
++		/* On failure it stays prepared, and the INIT can be asked for again. */
++		error = sctp_snap_copy_initiate(inp, stcb, snap_init, snap_init_len);
++	} else {
++		sctp_send_initiate(inp, stcb, SCTP_SO_LOCKED);
++	}
+ 	SCTP_TCB_UNLOCK(stcb);
+  out_now:
+ 	if (create_lock_on) {
+@@ -8278,6 +8291,56 @@ sctpconn_connect(struct socket *so, struct sockaddr *addr)
+ 	SCTP_INP_DECR_REF(inp);
+ 	return (error);
+ }
++
++int
++sctpconn_connect(struct socket *so, struct sockaddr *addr)
++{
++	return (sctpconn_connect_or_prepare(so, addr, NULL, NULL));
++}
++
++/*
++ * SNAP: sets the association up, or copies its INIT chunk again for a later
++ * offer.
++ */
++int
++sctpconn_snap_prepare(struct socket *so, struct sockaddr *addr, void *init, size_t *init_len)
++{
++	struct sctp_inpcb *inp;
++	struct sctp_tcb *stcb;
++	struct sockaddr_conn *sconn;
++	int error;
++
++	inp = (struct sctp_inpcb *)so->so_pcb;
++	if (inp == NULL) {
++		return (ECONNRESET);
++	}
++	/* The SNAP calls act on the socket's only association. */
++	if ((inp->sctp_flags & SCTP_PCB_FLAGS_TCPTYPE) == 0) {
++		return (EOPNOTSUPP);
++	}
++	SCTP_INP_RLOCK(inp);
++	stcb = LIST_FIRST(&inp->sctp_asoc_list);
++	if (stcb == NULL) {
++		SCTP_INP_RUNLOCK(inp);
++		return (sctpconn_connect_or_prepare(so, addr, init, init_len));
++	}
++	SCTP_TCB_LOCK(stcb);
++	SCTP_INP_RUNLOCK(inp);
++	sconn = (struct sockaddr_conn *)addr;
++	if (stcb->asoc.state & (SCTP_STATE_ABOUT_TO_BE_FREED | SCTP_STATE_WAS_ABORTED)) {
++		error = ENOTCONN;
++	} else if ((stcb->asoc.primary_destination == NULL) ||
++	           !sctp_cmpaddr(addr, &stcb->asoc.primary_destination->ro._l_addr.sa) ||
++	           (sconn->sconn_port != stcb->rport)) {
++		error = EISCONN;
++	} else if ((stcb->asoc.snap_init != NULL) || stcb->asoc.snap_prepared) {
++		error = sctp_snap_copy_initiate(inp, stcb, init, init_len);
++	} else {
++		error = EALREADY;
++	}
++	SCTP_TCB_UNLOCK(stcb);
++	return (error);
++}
+ #endif
+ int
+ #if defined(__Userspace__)
+diff --git a/usrsctplib/user_socket.c b/usrsctplib/user_socket.c
+index 163db34..acd6b33 100755
+--- a/usrsctplib/user_socket.c
++++ b/usrsctplib/user_socket.c
+@@ -1983,6 +1983,28 @@ int userspace_connect(struct socket *so, struct sockaddr *name, int namelen)
+ 	return (usrsctp_connect(so, name, namelen));
+ }
+ 
++int
++usrsctp_snap_prepare(struct socket *so, struct sockaddr *name, socklen_t namelen, void *init, size_t *init_len)
++{
++	struct sockaddr *sa = NULL;
++
++	if ((so == NULL) || (name == NULL) || (init == NULL) || (init_len == NULL)) {
++		errno = EINVAL;
++		return (-1);
++	}
++	errno = getsockaddr(&sa, (caddr_t)name, namelen);
++	if (errno) {
++		return (-1);
++	}
++	if (sa->sa_family != AF_CONN) {
++		errno = EAFNOSUPPORT;
++	} else {
++		errno = sctpconn_snap_prepare(so, sa, init, init_len);
++	}
++	FREE(sa, M_SONAME);
++	return (errno ? -1 : 0);
++}
++
+ #define SCTP_STACK_BUF_SIZE         2048
+ 
+ void
+diff --git a/usrsctplib/user_socketvar.h b/usrsctplib/user_socketvar.h
+index 04c806a..1486c4d 100755
+--- a/usrsctplib/user_socketvar.h
++++ b/usrsctplib/user_socketvar.h
+@@ -487,6 +487,7 @@ extern int sctp_disconnect(struct socket *so);
+ extern int sctp_connect(struct socket *so, struct sockaddr *addr);
+ extern int sctp6_connect(struct socket *so, struct sockaddr *addr);
+ extern int sctpconn_connect(struct socket *so, struct sockaddr *addr);
++extern int sctpconn_snap_prepare(struct socket *so, struct sockaddr *addr, void *init, size_t *init_len);
+ extern void sctp_finish(void);
+ 
+ /* ------------------------------------------------ */
+diff --git a/usrsctplib/usrsctp.h b/usrsctplib/usrsctp.h
+index 93e89b3..9ed8689 100644
+--- a/usrsctplib/usrsctp.h
++++ b/usrsctplib/usrsctp.h
+@@ -1008,6 +1008,17 @@ usrsctp_connectx(struct socket *so,
+                  const struct sockaddr *addrs, int addrcnt,
+                  sctp_assoc_t *id);
+ 
++/*
++ * SNAP, the SCTP Negotiation Acceleration Protocol (draft-uberti-tsvwg-warp,
++ * section 4.1), described in Manual.md.
++ */
++int
++usrsctp_snap_prepare(struct socket *so,
++                     struct sockaddr *name,
++                     socklen_t namelen,
++                     void *init,
++                     size_t *init_len);
++
+ void
+ usrsctp_close(struct socket *so);
+ 
