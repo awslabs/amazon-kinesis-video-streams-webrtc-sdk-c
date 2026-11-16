@@ -1693,6 +1693,151 @@ a=ice-options:trickle
     });
 }
 
+// Returns the msid track id of every m=video section of an SDP, in m-line order.
+static std::vector<std::string> videoMlineTrackIds(const std::string& sdp)
+{
+    std::vector<std::string> trackIds;
+    std::istringstream lines(sdp);
+    std::string line;
+    BOOL inVideo = FALSE;
+    while (std::getline(lines, line)) {
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
+        if (line.rfind("m=", 0) == 0) {
+            inVideo = line.rfind("m=video", 0) == 0;
+            if (inVideo) {
+                trackIds.emplace_back();
+            }
+        } else if (inVideo && line.rfind("a=msid:", 0) == 0) {
+            trackIds.back() = line.substr(line.find(' ') + 1);
+        }
+    }
+    return trackIds;
+}
+
+static std::string buildVideoOfferWithMlineCount(UINT32 mlineCount)
+{
+    std::string offer = "v=0\n"
+                        "o=- 481034601 1588366671 IN IP4 0.0.0.0\n"
+                        "s=-\n"
+                        "t=0 0\n"
+                        "a=fingerprint:sha-256 87:E6:EC:59:93:76:9F:42:7D:15:17:F6:8F:C4:29:AB:EA:3F:28:B6:DF:F8:14:2F:96:62:2F:16:98:F5:76:E5\n"
+                        "a=group:BUNDLE";
+    for (UINT32 i = 0; i < mlineCount; i++) {
+        offer += " " + std::to_string(i);
+    }
+    offer += "\n";
+    for (UINT32 i = 0; i < mlineCount; i++) {
+        offer += "m=video 9 UDP/TLS/RTP/SAVPF 96\n"
+                 "c=IN IP4 0.0.0.0\n"
+                 "a=setup:actpass\n"
+                 "a=mid:" +
+            std::to_string(i) +
+            "\n"
+            "a=ice-ufrag:WWlXtoHfeAVCwqHc\n"
+            "a=ice-pwd:GvmyTnsfVtQuxuoareyqyAapQRoAeMdp\n"
+            "a=rtcp-mux\n"
+            "a=rtcp-rsize\n"
+            "a=rtpmap:96 VP8/90000\n"
+            "a=recvonly\n";
+    }
+    return offer;
+}
+
+static VOID addVp8Transceivers(PRtcPeerConnection pRtcPeerConnection, UINT32 count, std::vector<PRtcRtpTransceiver>& transceivers)
+{
+    for (UINT32 i = 0; i < count; i++) {
+        RtcMediaStreamTrack track{};
+        PRtcRtpTransceiver pTransceiver = nullptr;
+        track.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
+        track.codec = RTC_CODEC_VP8;
+        SNPRINTF(track.streamId, MAX_MEDIA_STREAM_ID_LEN, "stream%" PRIu32, i);
+        SNPRINTF(track.trackId, MAX_MEDIA_STREAM_TRACK_ID_LEN, "track%" PRIu32, i);
+        EXPECT_EQ(STATUS_SUCCESS, addTransceiver(pRtcPeerConnection, &track, nullptr, &pTransceiver));
+        transceivers.push_back(pTransceiver);
+    }
+}
+
+// JSEP (RFC 8829) section 5.2.1: the offer has one m-line per transceiver, in the order the transceivers were added.
+TEST_F(SdpApiTest, createOffer_sameCodecVideoMlinesFollowAddTransceiverOrder)
+{
+    RtcConfiguration configuration{};
+    PRtcPeerConnection pRtcPeerConnection = nullptr;
+    RtcSessionDescriptionInit offerSdp{};
+    std::vector<PRtcRtpTransceiver> transceivers;
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+    EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_VP8));
+    addVp8Transceivers(pRtcPeerConnection, 3, transceivers);
+
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(pRtcPeerConnection, &offerSdp));
+    EXPECT_EQ((std::vector<std::string>{"track0", "track1", "track2"}), videoMlineTrackIds(offerSdp.sdp));
+
+    closePeerConnection(pRtcPeerConnection);
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
+// JSEP (RFC 8829) section 5.10: each offered m-line binds to the first unbound transceiver of that kind, in the order
+// the transceivers were added, so answer m-line i carries the i-th added track.
+TEST_F(SdpApiTest, createAnswer_sameCodecOfferMlinesBindInAddTransceiverOrder)
+{
+    auto offer = buildVideoOfferWithMlineCount(3);
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+        RtcSessionDescriptionInit answerSdp{};
+        std::vector<PRtcRtpTransceiver> transceivers;
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_VP8));
+        addVp8Transceivers(pRtcPeerConnection, 3, transceivers);
+
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+        EXPECT_EQ((std::vector<std::string>{"track0", "track1", "track2"}), videoMlineTrackIds(answerSdp.sdp));
+
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    });
+}
+
+// With fewer offered m-lines than local transceivers, the transceivers added last are the ones left unnegotiated.
+TEST_F(SdpApiTest, createAnswer_fewerOfferMlinesThanTransceiversLeavesLastAddedInactive)
+{
+    auto offer = buildVideoOfferWithMlineCount(2);
+
+    assertLFAndCRLF((PCHAR) offer.c_str(), offer.size(), [](PCHAR sdp) {
+        RtcConfiguration configuration{};
+        PRtcPeerConnection pRtcPeerConnection = nullptr;
+        RtcSessionDescriptionInit offerSdp{};
+        RtcSessionDescriptionInit answerSdp{};
+        std::vector<PRtcRtpTransceiver> transceivers;
+
+        offerSdp.type = SDP_TYPE_OFFER;
+        STRNCPY(offerSdp.sdp, sdp, MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+
+        EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pRtcPeerConnection));
+        EXPECT_EQ(STATUS_SUCCESS, addSupportedCodec(pRtcPeerConnection, RTC_CODEC_VP8));
+        addVp8Transceivers(pRtcPeerConnection, 3, transceivers);
+
+        EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(pRtcPeerConnection, &offerSdp));
+        EXPECT_EQ(STATUS_SUCCESS, createAnswer(pRtcPeerConnection, &answerSdp));
+        EXPECT_EQ((std::vector<std::string>{"track0", "track1"}), videoMlineTrackIds(answerSdp.sdp));
+        EXPECT_NE(RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE, transceivers[0]->direction);
+        EXPECT_NE(RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE, transceivers[1]->direction);
+        EXPECT_EQ(RTC_RTP_TRANSCEIVER_DIRECTION_INACTIVE, transceivers[2]->direction);
+
+        closePeerConnection(pRtcPeerConnection);
+        EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+    });
+}
+
 const auto sdpext = R"(v=0
 o=- 4936640868317839377 2 IN IP4 127.0.0.1
 s=-
