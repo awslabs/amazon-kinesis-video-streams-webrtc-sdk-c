@@ -10,7 +10,7 @@
 <area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="370,880,379,922,391,963,410,1002,435,1037,476,1074,523,1105,573,1131,625,1152,729,1181,824,1200,819,1201,728,1187,623,1157,571,1136,520,1109,473,1078,431,1040,405,1005,387,965,374,923,369,886"/>
 <area shape="rect" id="Node000005" href="$structReceivedSignalingMessage.html" title="Structure defining the signaling message to be received." alt="" coords="280,355,469,472"/>
 <area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="374,469,369,705,364,704,373,474"/>
-<area shape="rect" id="Node000006" href="$structSignalingMessage.html" title="Structure defining the basic signaling message." alt="" coords="310,5,439,189"/>
+<area shape="rect" id="Node000006" href="$structSignalingMessage.html" title="When PREFER_DYNAMIC_ALLOCS is enabled, use dynamic allocation for the signaling payload buffer...." alt="" coords="310,5,439,189"/>
 <area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="375,187,377,338,372,338,374,192"/>
 <area shape="rect" id="Node000007" href="$structChannelInfo.html" title="Contains all signaling channel related information." alt="" coords="474,654,628,950"/>
 <area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="596,947,622,995,652,1037,690,1075,734,1109,780,1138,826,1165,820,1165,777,1143,731,1113,687,1079,648,1040,618,997,595,952"/>
