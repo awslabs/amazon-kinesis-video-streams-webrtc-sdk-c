@@ -31,8 +31,8 @@ static volatile SIZE_T gAwsLcBannerLogged = 0;
 
 /*
  * FIPS_version() and FIPS_module_name() are public on AWS-LC mainline from
- * API version 37 (v5.x). On the fips-* branches (AWS-LC-FIPS 4.2.0 is API 35)
- * they are declared only under the library-private BORINGSSL_FIPS_140_3 macro
+ * API version 37 (v5.x). In the AWS-LC-FIPS releases (AWS-LC-FIPS-3.1.0 is API
+ * 30) they are declared only under the library-private BORINGSSL_FIPS_140_3 macro
  * and are not exported from libcrypto at all, so a build against the very
  * library that is actually FIPS-validated fails at compile time if it calls
  * them. FIPS_mode() exists and is exported on both lines; it is the portable
@@ -83,7 +83,7 @@ VOID awsLcLogCryptoBackend(VOID)
     fipsModuleVersion = (UINT32) FIPS_version();
     pModuleName = FIPS_module_name();
 #else
-    // The fips-* branches do not expose a module version through the public
+    // The AWS-LC-FIPS releases do not expose a module version through the public
     // API. The name is still known: FIPS_mode() above settles it at runtime.
     pModuleName = fipsBuild ? "AWS-LC FIPS" : "AWS-LC";
 #endif
@@ -98,7 +98,7 @@ VOID awsLcLogCryptoBackend(VOID)
     if (fipsBuild && fipsModuleVersion != 0) {
         DLOGI("AWS-LC FIPS mode: ENABLED (%s, module version %u)", pModuleName, fipsModuleVersion);
     } else if (fipsBuild) {
-        // fips-* branch headers do not expose the module version publicly
+        // AWS-LC-FIPS release headers do not expose the module version publicly
         DLOGI("AWS-LC FIPS mode: ENABLED (%s)", pModuleName);
     } else {
         DLOGI("AWS-LC FIPS mode: disabled (non-FIPS build)");
@@ -119,9 +119,8 @@ VOID awsLcLogCryptoBackend(VOID)
     }
 
     /*
-     * ML-KEM is compiled into every AWS-LC build we support, both mainline and
-     * the FIPS branches (AWS-LC-FIPS 3.0 was the first FIPS 140-3 validation to
-     * include ML-KEM), and awsLcConfigureTlsGroups() puts it first on every
+     * ML-KEM is compiled into every AWS-LC build we support, mainline and
+     * AWS-LC-FIPS-3.1.0, and awsLcConfigureTlsGroups() puts it first on every
      * client context the SDK creates. This line reports that the group is
      * available and offered, not that any handshake negotiated it: the DTLS
      * media path is DTLS 1.2, which has no ML-KEM at all, and a peer without

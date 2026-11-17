@@ -38,8 +38,8 @@ static inline STATUS awsLcConfigureTlsGroups(SSL_CTX* pSslCtx)
 
     /*
      * SSL_CTX_set1_groups takes NIDs and returns 1 on success. Chosen over
-     * SSL_CTX_set1_group_ids (codepoints) because the latter does not exist on
-     * the AWS-LC fips-* branches.
+     * SSL_CTX_set1_group_ids (codepoints) because the latter does not exist in
+     * the AWS-LC-FIPS releases.
      */
     CHK(SSL_CTX_set1_groups(pSslCtx, pqcGroups, ARRAY_SIZE(pqcGroups)) == 1, STATUS_SSL_CTX_CREATION_FAILED);
 

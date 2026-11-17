@@ -40,12 +40,13 @@ extern "C" {
  * Key exchange groups the SDK offers, in preference order.
  *
  * X25519MLKEM768 (RFC 10024, codepoint 0x11EC) is the post-quantum hybrid
- * group. AWS-LC already lists it first by default. The SDK sets it anyway, so
- * the offer does not depend on that default.
+ * group. AWS-LC mainline lists it first by default. AWS-LC-FIPS-3.1.0 does not:
+ * its default list is X25519, P-256, P-384. So the SDK must set this list for a
+ * FIPS build to offer ML-KEM.
  *
  * The classical groups follow, so a server without ML-KEM still connects.
- * These are NIDs because SSL_CTX_set1_groups takes NIDs, and it also exists on
- * the fips-* branches.
+ * These are NIDs because SSL_CTX_set1_groups takes NIDs, and it also exists in
+ * the AWS-LC-FIPS releases.
  */
 #define KVS_AWS_LC_PQC_GROUPS {NID_X25519MLKEM768, NID_X25519, NID_X9_62_prime256v1, NID_secp384r1}
 

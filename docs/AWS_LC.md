@@ -1,96 +1,85 @@
-# AWS-LC Backend (Post-Quantum and FIPS)
+# AWS-LC Crypto Backend
 
-AWS-LC is a third crypto backend, next to OpenSSL and mbedTLS. It adds two things.
+[AWS-LC](https://github.com/aws/aws-lc) is an optional crypto backend for the SDK. It provides:
 
-- Post-quantum TLS 1.3 key exchange, using the `X25519MLKEM768` hybrid group ([RFC 10024](https://www.rfc-editor.org/rfc/rfc10024.txt), IANA codepoint `0x11EC`). The group combines X25519 ECDHE with ML-KEM-768 ([FIPS 203](https://csrc.nist.gov/pubs/fips/203/final)). OpenSSL 3.5 and later also offer this group by default.
-- FIPS 140-3 validated cryptography, when you build with `USE_AWS_LC_FIPS=ON`. No other backend in this SDK provides it.
+- Post-quantum key exchange on TLS 1.3, using the `X25519MLKEM768` hybrid group ([RFC 10024](https://www.rfc-editor.org/rfc/rfc10024.txt)).
+- FIPS 140-3 validated cryptography, when built in FIPS mode.
 
-The backend is opt-in. Both options default to `OFF`, so a build that does not pass them links the same OpenSSL as before.
+AWS-LC is off by default. Builds that do not enable it are unchanged.
+
+## Requirements
+
+| Tool | Non-FIPS build | FIPS build |
+|---|---|---|
+| CMake | required | required |
+| C and C++ compiler | required | required |
+| Perl | optional | required |
+| Go 1.20 or later | optional | required |
+| NASM | Windows x86_64 only | Windows x86_64 only |
+
+### Supported platforms
+
+| Build | Linux | macOS | Windows |
+|---|---|---|---|
+| Non-FIPS, shared or static | yes | yes | not tested |
+| FIPS, shared | yes | yes | not tested, no Debug builds |
+| FIPS, static | yes | no | no |
 
 ## Building
 
 ```bash
 mkdir build && cd build
 
-# Post-quantum, non-FIPS (recommended starting point)
+# Post-quantum key exchange
 cmake .. -DUSE_AWS_LC=ON
 make -j$(nproc)
 
-# Post-quantum + FIPS 140-3
-cmake .. -DUSE_AWS_LC=ON -DUSE_AWS_LC_FIPS=ON
+# Post-quantum key exchange and FIPS 140-3
+cmake .. -DUSE_AWS_LC_FIPS=ON
 make -j$(nproc)
 ```
 
-`-DUSE_AWS_LC=ON` supersedes the default `USE_OPENSSL=ON`. You do not need to pass `-DUSE_OPENSSL=OFF`. `-DUSE_AWS_LC_FIPS=ON` turns on `USE_AWS_LC` as well. CMake rejects AWS-LC together with mbedTLS, and together with `USE_OPENSSL3`.
-
-The SDK is tested with AWS-LC on Linux and macOS. It is not tested on Windows yet.
-
 ### Options
 
-| Option | Default | Notes |
+| Option | Default | Description |
 |---|---|---|
-| `USE_AWS_LC` | `OFF` | Select the AWS-LC backend |
-| `USE_AWS_LC_FIPS` | `OFF` | Build AWS-LC with `-DFIPS=1`. Turns on `USE_AWS_LC` |
-| `AWS_LC_GIT_TAG` | *(empty)* | Override the AWS-LC ref. Defaults to `v5.9.0`, or the `fips-<date>-lts` branch when FIPS is on |
+| `USE_AWS_LC` | `OFF` | Use AWS-LC as the crypto backend. Replaces the default OpenSSL. |
+| `USE_AWS_LC_FIPS` | `OFF` | Build AWS-LC in FIPS mode. Also turns on `USE_AWS_LC`. |
+| `AWS_LC_GIT_TAG` | *(empty)* | Build a different AWS-LC tag. The default is `v5.9.0`, or `AWS-LC-FIPS-3.1.0` in FIPS mode. |
 
-### Build tooling
+AWS-LC cannot be combined with `-DUSE_MBEDTLS=ON` or `-DUSE_OPENSSL3=ON`. FIPS mode cannot be combined with `-DADDRESS_SANITIZER=ON` or `-DMEMORY_SANITIZER=ON`.
 
-| Tool | Non-FIPS | FIPS |
-|---|---|---|
-| CMake | required | required |
-| C/C++ compiler | required | required |
-| Perl | optional | required |
-| Go >= 1.20 | optional | required |
-| NASM | optional, x86_64 only | optional, x86_64 only |
-
-Without Perl, AWS-LC compiles portable C instead of its assembly backends. That is slower for AES, SHA and EC, which matters on embedded targets. The SDK detects both tools, logs which fallback it took, and continues.
-
-FIPS behaves differently. AWS-LC refuses to configure a FIPS build without Go and Perl, so the SDK checks for both first and stops with `USE_AWS_LC_FIPS=ON requires Go on PATH` or the matching Perl message.
-
-### FIPS platform limitations
-
-AWS-LC imposes these, not this SDK.
-
-| Build | Linux | macOS | Windows (not tested) |
-|---|---|---|---|
-| Static FIPS (`-DBUILD_STATIC_LIBS=ON`) | yes | no | no |
-| Shared FIPS | yes | yes | yes (no Debug) |
-
-The SDK checks the combination at configure time. FIPS also conflicts with `-DADDRESS_SANITIZER=ON` and `-DMEMORY_SANITIZER=ON`, because AWS-LC disables its module integrity check under a sanitizer, and that voids the validation.
-
-## Confirming the build
-
-### Is AWS-LC linked at all?
+Use a separate dependency folder for each crypto backend. AWS-LC and OpenSSL install libraries with the same names.
 
 ```bash
-strings open-source/lib/libcrypto.* | grep 'AWS-LC'
+cmake .. -DUSE_AWS_LC=ON -DOPEN_SRC_INSTALL_PREFIX=$PWD/../open-source-awslc
 ```
 
-### The startup banner
+## FIPS 140-3
 
-`initKvsWebRtc()` logs the backend, its FIPS state and its post-quantum groups once, at `INFO` level. A default `-DUSE_AWS_LC_FIPS=ON` build prints:
+FIPS mode builds the `AWS-LC-FIPS-3.1.0` release of the AWS-LC FIPS module.
 
-```
-Crypto backend: AWS-LC 4.2.0 (headers), loaded library reports: AWS-LC FIPS 4.2.0
-AWS-LC FIPS mode: ENABLED (AWS-LC FIPS)
-Post-quantum key exchange: offered (X25519MLKEM768, 0x11ec) on the TLS 1.3 connections to AWS (control plane HTTPS, signaling WSS, TURNS); DTLS-SRTP media path is DTLS 1.2 and remains classical
-```
+| Library | Certificate | Security policy |
+|---|---|---|
+| Shared | [#5298](https://csrc.nist.gov/projects/cryptographic-module-validation-program/certificate/5298) | [140sp5298](https://csrc.nist.gov/CSRC/media/projects/cryptographic-module-validation-program/documents/security-policies/140sp5298.pdf) |
+| Static | [#5314](https://csrc.nist.gov/projects/cryptographic-module-validation-program/certificate/5314) | [140sp5314](https://csrc.nist.gov/CSRC/media/projects/cryptographic-module-validation-program/documents/security-policies/140sp5314.pdf) |
 
-A non-FIPS build prints `AWS-LC FIPS mode: disabled (non-FIPS build)` on the second line.
+The certificates list these tested operating environments:
 
-Set `AWS_KVS_LOG_LEVEL=2` or lower to see all three lines. The first two log at `INFO`, the post-quantum line at `DEBUG`. The default level is `4`, which is `WARN`.
+- Amazon Linux 2023 on AWS Graviton4
+- Amazon Linux 2023 on Intel Xeon Platinum 8375C
 
-The first line reports two versions. "headers" is the AWS-LC version the SDK compiled against. "loaded library reports" is the version string inside the libcrypto the process loaded. A FIPS build adds `FIPS` to that string, as above. The version numbers differ when the loader finds a stale or system libcrypto ahead of the intended AWS-LC.
+Other platforms are not listed on the certificates. Check with your compliance team before you rely on a FIPS build there.
 
-The third line reports what the SDK offers. It does not report what any handshake negotiated. The AWS endpoint has to support ML-KEM too. An endpoint without it still negotiates a classical group.
+To build a different AWS-LC FIPS release, set `-DAWS_LC_GIT_TAG`. Use only a release with an active FIPS 140-3 certificate.
 
-To see the group a connection actually used, inspect the server side directly. Build the `bssl` tool with `-DBUILD_TOOL=ON` in the AWS-LC build, or run `openssl s_client` from OpenSSL 3.5 or later.
+### TURN uses MD5
 
-### Checking that a call used a FIPS-approved algorithm
+TURN long-term credentials use an MD5 key, as the TURN specification requires ([RFC 8489](https://www.rfc-editor.org/rfc/rfc8489)). MD5 is not a FIPS-approved algorithm. In FIPS mode, AWS-LC still allows MD5, so TURN keeps working. Include this in your compliance review if your application uses TURN.
 
-Use this to check whether one crypto call in your application used a FIPS-approved algorithm.
+### Checking crypto calls in your application
 
-A FIPS build still runs algorithms that FIPS does not approve, such as MD5. It does not count them as approved. This check cannot see the SDK's own calls.
+To check whether a crypto call in your own code used a FIPS-approved algorithm, wrap it in `CALL_SERVICE_AND_CHECK_APPROVED`.
 
 ```c
 #include <assert.h>
@@ -105,80 +94,52 @@ if (FIPS_mode() != 0) {
 /* approved == AWSLC_NOT_APPROVED: MD5 is not FIPS approved */
 ```
 
-The result is correct only when both of these hold. Otherwise every call reports as approved.
+Compile this code with `-DBORINGSSL_FIPS`. Without it, every call reports as approved.
 
-- The code is compiled with `-DBORINGSSL_FIPS`.
-- `FIPS_mode()` returns non-zero, as checked above.
+## Post-quantum key exchange
 
-## Coverage and limits
+With AWS-LC, the SDK offers `X25519MLKEM768` first on these connections:
 
-### Where the SDK offers post-quantum key exchange
+| Connection | Offers ML-KEM |
+|---|---|
+| Control plane HTTPS (for example `DescribeSignalingChannel`, `GetSignalingChannelEndpoint`) | yes |
+| `GetIceServerConfig` and `JoinStorageSession` | yes |
+| Signaling WebSocket (`ConnectAsMaster`, `ConnectAsViewer`) | yes |
+| TURN over TLS (`turns:`) | yes |
+| Peer-to-peer media (DTLS-SRTP) | no |
 
-The SDK offers X25519MLKEM768 on every TLS 1.3 connection it opens to AWS. A connection is post-quantum only when the endpoint selects it. Two TLS stacks carry these connections.
+A connection uses ML-KEM only when the AWS endpoint also supports it. Otherwise it uses a classical group.
 
-| Path | TLS stack | SDK offers ML-KEM |
-|---|---|---|
-| Control plane (`DescribeSignalingChannel`, `CreateSignalingChannel`, `GetSignalingChannelEndpoint`, `DeleteSignalingChannel`, `DescribeMediaStorageConfiguration`) | libwebsockets | yes |
-| `GetIceServerConfig`, `JoinStorageSession` | libwebsockets | yes |
-| Signaling WSS (`ConnectAsMaster` / `ConnectAsViewer`) | libwebsockets | yes |
-| TURN over TLS (`turns:`) | SDK TLS session | yes |
-| DTLS-SRTP peer-to-peer media | SDK DTLS session | no, see below |
+Peer-to-peer media uses DTLS 1.2, which does not support ML-KEM. Media key exchange is not post-quantum with any configuration.
 
-### What it cannot cover
+## Verifying the build
 
-The peer-to-peer media path uses DTLS-SRTP. AWS-LC caps DTLS at 1.2. ML-KEM key exchange exists only in TLS 1.3. So this backend cannot make media stream confidentiality post-quantum, and no configuration changes that. Do not read "the WebRTC SDK is PQC-enabled" as covering the media stream.
+At startup, `initKvsWebRtc()` logs the crypto backend and its FIPS state. Set `AWS_KVS_LOG_LEVEL=3` or lower to see these lines. A FIPS build prints:
 
-### FIPS and TURN conflict at the protocol level
+```
+Crypto backend: AWS-LC 3.1.0 (headers), loaded library reports: AWS-LC FIPS 3.1.0
+AWS-LC FIPS mode: ENABLED (AWS-LC FIPS)
+```
 
-The STUN and TURN RFCs mandate two algorithms the SDK cannot choose.
-
-- MD5. The TURN long-term credential key is `MD5(username:realm:password)`, per [RFC 5389](https://www.rfc-editor.org/rfc/rfc5389) and [RFC 8489](https://www.rfc-editor.org/rfc/rfc8489). MD5 is not FIPS-approved.
-- HMAC-SHA1. The STUN `MESSAGE-INTEGRITY` attribute uses HMAC-SHA1, also RFC-mandated. SP 800-131A still permits HMAC-SHA-1 in general. Confirm it against the security policy for the AWS-LC-FIPS version you pin.
-
-AWS-LC derives from BoringSSL, so it does not abort on a non-approved algorithm. RHEL system-FIPS OpenSSL and the OpenSSL 3 FIPS provider do abort. In AWS-LC, MD5 stays callable and TURN keeps working. The service indicator simply does not increment.
-
-So a FIPS build that uses TURN long-term authentication performs non-approved operations. The SDK cannot fix this, because the protocol specifies MD5. Account for it in any compliance attestation.
+A non-FIPS build prints `AWS-LC FIPS mode: disabled (non-FIPS build)` on the second line.
 
 ## Troubleshooting
 
-### `Could NOT find AWSLC (missing: AWSLC_INCLUDE_DIR)`, usually right after `awslc already built`
+### `Could not find AWS-LC` or `already contains a non-AWS-LC libssl`
 
-The dependency prefix, `open-source/` by default, still holds `libssl` and `libcrypto` from an earlier OpenSSL build. AWS-LC and OpenSSL install under identical library names, so the generic "is it already built?" probe cannot tell them apart. The probe reports AWS-LC as present, the build skips AWS-LC, and the AWS-LC header lookup then fails.
-
-The build catches this before configuring AWS-LC and stops with `USE_AWS_LC=ON, but <prefix> already contains a non-AWS-LC libssl`. Either way, stop sharing one prefix between backends.
+The dependency folder, `open-source/` by default, holds an earlier OpenSSL build. Remove it and configure again, or use a separate folder:
 
 ```bash
 rm -rf open-source
 cmake .. -DUSE_AWS_LC=ON
 ```
 
-Or give each backend its own prefix, which saves time if you switch between them often.
+Removing the `build` folder alone does not fix this.
 
-```bash
-cmake .. -DUSE_AWS_LC=ON -DOPEN_SRC_INSTALL_PREFIX=$PWD/../open-source-awslc
-```
+### The two versions in the startup log differ
 
-The same guard fires in reverse. CMake rejects `-DUSE_OPENSSL=ON` against a prefix holding AWS-LC. That direction would otherwise appear to succeed, because AWS-LC presents the OpenSSL 1.1.1 API, while the build actually links AWS-LC.
+The application loaded a different libcrypto at runtime, usually a system OpenSSL. Check `LD_LIBRARY_PATH` and `ldd` on Linux, or `DYLD_LIBRARY_PATH` and `otool -L` on macOS.
 
-`rm -rf build` does not fix this. The stale artifacts live in the dependency prefix, not the build directory.
+### `AWS-LC FIPS MISMATCH` in the startup log
 
-### The banner reports different header and loaded versions
-
-The loader picked a different libcrypto at runtime. On Linux, check `LD_LIBRARY_PATH` and run `ldd` on the built library. On macOS, check `DYLD_LIBRARY_PATH` and run `otool -L`. A system OpenSSL earlier on the search path is the usual cause.
-
-### A FIPS build logs `AWS-LC FIPS MISMATCH`
-
-The build used `-DUSE_AWS_LC_FIPS=ON` but linked a non-FIPS AWS-LC. The usual cause is a stale artifact in the dependency prefix from an earlier non-FIPS configure, because the dependency step skips the rebuild when it finds an existing `libssl`. Remove the prefix and reconfigure.
-
-## How it integrates
-
-AWS-LC reports `OPENSSL_VERSION_NUMBER` as `0x1010107f`, which is OpenSSL 1.1.1 compatible. It installs `include/openssl/*.h` plus `lib/libssl` and `lib/libcrypto`. The SDK therefore reuses its existing OpenSSL crypto sources and defines two macros together.
-
-- `KVS_USE_OPENSSL` means compile against the OpenSSL API surface.
-- `KVS_USE_AWS_LC` means that surface is AWS-LC, so enable the ML-KEM and FIPS additions.
-
-The build compiles AWS-LC-specific code into its own file, and only when the flag is on. A build that sets `KVS_USE_AWS_LC` while resolving real OpenSSL headers fails at compile time. It does not ship silently without PQC or FIPS.
-
-Group selection calls `SSL_CTX_set1_groups()` with NIDs. It does not call `SSL_CTX_set1_group_ids()` with codepoints, because the AWS-LC `fips-*` branches do not export that function. `X25519MLKEM768` already leads AWS-LC's default group list, so a connection would negotiate it even without this call. The SDK sets the list explicitly so its posture does not depend on a library default that AWS-LC may reorder.
-
-`libwebsockets` and `libsrtp` need no AWS-LC awareness. They receive `USE_OPENSSL=ON`, meaning the backend presents the OpenSSL API, and they resolve AWS-LC through the shared install prefix. The AWS-LC build sets `ENABLE_DIST_PKG=OFF` so the install layout stays byte-for-byte OpenSSL-compatible. Turning it on would rename the libraries and move headers to `include/aws-lc/`, and every downstream consumer here would then fail to find them.
+The SDK was built with `-DUSE_AWS_LC_FIPS=ON` but linked a non-FIPS AWS-LC. Remove the dependency folder and configure again.

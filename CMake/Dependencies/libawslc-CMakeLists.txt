@@ -6,30 +6,25 @@ include(ExternalProject)
 
 # AWS-LC revision.
 #
-# Two independent lines exist and they are NOT interchangeable:
+# Two lines exist, and they are not interchangeable:
 #
-#   * mainline (vX.Y.Z tags)  - newest features, no FIPS validation.
-#   * fips-<date> branches    - the source that was submitted to an accredited
-#                               CMVP lab. FIPS certificates are issued against
-#                               these, never against mainline.
+#   * mainline (vX.Y.Z tags). Newest features, no FIPS validation.
+#   * FIPS (AWS-LC-FIPS-X.Y.Z tags). NIST issues FIPS certificates against
+#     these, never against mainline.
 #
-# ML-KEM (X25519MLKEM768, RFC 10024) is present in both lines: mainline has it
-# outright, and AWS-LC-FIPS 3.0 was the first cryptographic library to include
-# ML-KEM in a FIPS 140-3 validation. The FIPS branch below is >= 3.x, so
-# selecting USE_AWS_LC_FIPS does not cost you post-quantum key exchange.
+# The FIPS default is AWS-LC-FIPS-3.1.0, the only tag with an active FIPS 140-3
+# certificate: #5298 (shared) and #5314 (static). The security policy names this
+# exact tag as the module source. It has ML-KEM, so a FIPS build still offers
+# X25519MLKEM768.
 #
-# Override either with -DAWS_LC_GIT_TAG=<tag-or-branch>.
+# Override either with -DAWS_LC_GIT_TAG=<tag>.
 if (NOT AWS_LC_GIT_TAG OR AWS_LC_GIT_TAG STREQUAL "")
   if (USE_AWS_LC_FIPS)
-    set(AWS_LC_GIT_TAG "fips-2025-09-12-lts")
-    # FIPS branches are long-lived branches, not tags: a shallow clone of a
-    # branch tip is fine, but it is not reproducible across re-clones the way a
-    # tag is. Pin AWS_LC_GIT_TAG to a SHA for reproducible/audited builds.
-    set(AWS_LC_GIT_SHALLOW FALSE)
+    set(AWS_LC_GIT_TAG "AWS-LC-FIPS-3.1.0")
   else()
     set(AWS_LC_GIT_TAG "v5.9.0")
-    set(AWS_LC_GIT_SHALLOW TRUE)
   endif()
+  set(AWS_LC_GIT_SHALLOW TRUE)
 else()
   # A caller-supplied ref may be a SHA, which GIT_SHALLOW cannot fetch.
   set(AWS_LC_GIT_SHALLOW FALSE)
@@ -91,7 +86,6 @@ endif()
 set(AWS_LC_BUILD_ARGS
     -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-    -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
     -DBUILD_SHARED_LIBS=${AWS_LC_SHARED}
     -DBUILD_TESTING=OFF
     -DBUILD_TOOL=OFF
@@ -106,8 +100,14 @@ set(AWS_LC_BUILD_ARGS
     -DENABLE_DIST_PKG=OFF
 )
 
+# The security policy builds the FIPS module with -DFIPS=1 and no extra compiler
+# flags. So a FIPS build does not pass the SDK's CMAKE_C_FLAGS into AWS-LC. The
+# build type is still passed: AWS-LC's own FIPS build supports Release and
+# RelWithDebInfo.
 if (USE_AWS_LC_FIPS)
   list(APPEND AWS_LC_BUILD_ARGS -DFIPS=1)
+else()
+  list(APPEND AWS_LC_BUILD_ARGS -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS})
 endif()
 
 # Cross-compilation: hand the toolchain through untouched. AWS-LC uses standard

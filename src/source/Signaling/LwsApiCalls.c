@@ -52,8 +52,8 @@ INT32 lwsHttpCallbackRoutine(PVOID wsi, INT32 reason, PVOID user, PVOID pDataIn,
      * no user data. So it is handled before the user data lookup below. `user` is
      * the SSL_CTX.
      *
-     * AWS-LC's default list also starts with X25519MLKEM768 today, but that default
-     * can change. Setting the list here keeps the offer fixed.
+     * AWS-LC mainline already lists X25519MLKEM768 first by default. The FIPS
+     * release does not, so without this a FIPS build would offer no ML-KEM.
      */
     if (reason == LWS_CALLBACK_OPENSSL_LOAD_EXTRA_CLIENT_VERIFY_CERTS && user != NULL) {
         if (STATUS_FAILED(awsLcConfigureTlsGroups((SSL_CTX*) user))) {

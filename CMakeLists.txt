@@ -15,7 +15,7 @@ option(USE_OPENSSL3 "Build/use OpenSSL 3.x (default: 1.1.1x). Auto-detected when
 option(USE_MBEDTLS "Use mbedtls as crypto library" OFF)
 option(USE_AWS_LC "Use AWS-LC as crypto library. Provides post-quantum TLS 1.3 key exchange (ML-KEM) and, with USE_AWS_LC_FIPS, FIPS 140-3 validated crypto." OFF)
 option(USE_AWS_LC_FIPS "Build AWS-LC in FIPS mode (-DFIPS=1). Implies USE_AWS_LC. Requires Go and Perl; Linux-only for static builds." OFF)
-set(AWS_LC_GIT_TAG "" CACHE STRING "Override the AWS-LC git ref. Defaults to a mainline tag, or a fips-<date> branch when USE_AWS_LC_FIPS=ON.")
+set(AWS_LC_GIT_TAG "" CACHE STRING "Override the AWS-LC git tag. Defaults to v5.9.0, or AWS-LC-FIPS-3.1.0 when USE_AWS_LC_FIPS=ON.")
 option(BUILD_STATIC_LIBS "Build all libraries statically. (This includes third-party libraries.)" OFF)
 
 # Per-dependency build control. Each defaults to BUILD_DEPENDENCIES.
