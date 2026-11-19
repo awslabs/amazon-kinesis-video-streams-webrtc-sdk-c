@@ -280,7 +280,6 @@ Variables</h2></td></tr>
 <tr class="memitem:gac4007f0d6df9197aa8d44a3ff6200db1" id="r_gac4007f0d6df9197aa8d44a3ff6200db1"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gac4007f0d6df9197aa8d44a3ff6200db1">KvsRtcConfiguration::disableSenderSideBandwidthEstimation</a></td></tr>
 <tr class="memitem:ga259ca892dd0f8fa2ac36f517e0cd6c21" id="r_ga259ca892dd0f8fa2ac36f517e0cd6c21"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga259ca892dd0f8fa2ac36f517e0cd6c21">KvsRtcConfiguration::disableNonRoutablePeersFilterForRelay</a></td></tr>
 <tr class="memitem:ga2473c7291fc9e8a47ab215810dcbcfc4" id="r_ga2473c7291fc9e8a47ab215810dcbcfc4"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga2473c7291fc9e8a47ab215810dcbcfc4">KvsRtcConfiguration::iceServersFinal</a></td></tr>
-<tr class="memitem:ga33db26580dfa2849353609e69489a45e" id="r_ga33db26580dfa2849353609e69489a45e"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga33db26580dfa2849353609e69489a45e">KvsRtcConfiguration::disableIceConsentChecks</a></td></tr>
 <tr class="memitem:ga5088878594e4eab3d1b5010960fc15a5" id="r_ga5088878594e4eab3d1b5010960fc15a5"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__PublicEnums.html#ga9447d6f4c97788d32853140452659f70">ICE_TRANSPORT_POLICY</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga5088878594e4eab3d1b5010960fc15a5">RtcConfiguration::iceTransportPolicy</a></td></tr>
 <tr class="memdesc:ga5088878594e4eab3d1b5010960fc15a5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indicates which candidates the ICE Agent is allowed to use.  <br /></td></tr>
 <tr class="memitem:gabfdc739c5ecb2b1e3ff01afc467d2605" id="r_gabfdc739c5ecb2b1e3ff01afc467d2605"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structRtcIceServer.html">RtcIceServer</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gabfdc739c5ecb2b1e3ff01afc467d2605">RtcConfiguration::iceServers</a> [(5 *4+1)]</td></tr>
@@ -540,7 +539,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <b>Value:</b><div class="fragment"><div class="line">((h) != <a class="code hl_define" href="#ga2b482ee4231032c03a94091b7ee61990">INVALID_SIGNALING_CLIENT_HANDLE_VALUE</a>)</div>
-<div class="ttc" id="agroup__StatusCodes_html_ga2b482ee4231032c03a94091b7ee61990"><div class="ttname"><a href="#ga2b482ee4231032c03a94091b7ee61990">INVALID_SIGNALING_CLIENT_HANDLE_VALUE</a></div><div class="ttdeci">#define INVALID_SIGNALING_CLIENT_HANDLE_VALUE</div><div class="ttdoc">This is a sentinel indicating an invalid handle value.</div><div class="ttdef"><b>Definition</b> Include.h:1001</div></div>
+<div class="ttc" id="agroup__StatusCodes_html_ga2b482ee4231032c03a94091b7ee61990"><div class="ttname"><a href="#ga2b482ee4231032c03a94091b7ee61990">INVALID_SIGNALING_CLIENT_HANDLE_VALUE</a></div><div class="ttdeci">#define INVALID_SIGNALING_CLIENT_HANDLE_VALUE</div><div class="ttdoc">This is a sentinel indicating an invalid handle value.</div><div class="ttdef"><b>Definition</b> Include.h:1006</div></div>
 </div><!-- fragment -->
 <p>Checks for the handle validity. </p>
 
@@ -1249,21 +1248,6 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Transceiver direction - SENDONLY, RECVONLY, SENDRECV. </p>
-
-</div>
-</div>
-<a id="ga33db26580dfa2849353609e69489a45e" name="ga33db26580dfa2849353609e69489a45e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga33db26580dfa2849353609e69489a45e">&#9670;&#160;</a></span>disableIceConsentChecks</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">BOOL KvsRtcConfiguration::disableIceConsentChecks</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Set to TRUE to turn off ICE consent freshness checks (RFC 7675): binding requests on the pair in use every few seconds, and ICE failing when they go unanswered for 30 s. They are on by default (this flag defaults to FALSE); turning them off is meant as a way back for peers that do not answer them. </p>
 
 </div>
 </div>
