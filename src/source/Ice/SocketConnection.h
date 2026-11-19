@@ -22,14 +22,20 @@ extern "C" {
 typedef STATUS (*ConnectionDataAvailableFunc)(UINT64, struct __SocketConnection*, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress);
 
 typedef struct __SocketConnection SocketConnection;
+#define SOCKET_CONNECTION_IDLE     0
+#define SOCKET_CONNECTION_IN_USE   1
+#define SOCKET_CONNECTION_ORPHANED 2
+
 struct __SocketConnection {
     /* Indicate whether this socket is marked for cleanup */
     volatile ATOMIC_BOOL connectionClosed;
     /* Process incoming bits */
     volatile ATOMIC_BOOL receiveData;
 
-    /* Socket is in use and can't be freed */
-    volatile ATOMIC_BOOL inUse;
+    /* Who may free the socket: SOCKET_CONNECTION_IDLE, SOCKET_CONNECTION_IN_USE while the
+     * connection listener polls or reads it, or SOCKET_CONNECTION_ORPHANED once a free
+     * timed out waiting for the listener, which then frees it on release. */
+    volatile SIZE_T inUse;
 
     INT32 localSocket;
     KVS_SOCKET_PROTOCOL protocol;
@@ -78,6 +84,14 @@ STATUS createSocketConnection(KVS_IP_FAMILY_TYPE, KVS_SOCKET_PROTOCOL, PKvsIpAdd
  * @return - STATUS - status of execution
  */
 STATUS freeSocketConnection(PSocketConnection*);
+
+/**
+ * Called by the connection listener when it no longer uses a socket it gathered for a poll.
+ * Frees the socket if freeSocketConnection timed out waiting for this release.
+ *
+ * @param - PSocketConnection - IN - SocketConnection the listener held
+ */
+VOID socketConnectionRelease(PSocketConnection);
 
 /**
  * Given a created SocketConnection, initialize TLS or DTLS handshake depending on the socket protocol
