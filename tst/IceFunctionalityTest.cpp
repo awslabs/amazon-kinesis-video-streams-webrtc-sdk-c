@@ -892,6 +892,67 @@ TEST_F(IceFunctionalityTest, IceAgentPruneUnconnectedIceCandidatePairUnitTest)
     EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.iceCandidatePairs));
 }
 
+// A Binding success response on a candidate pair is discarded without MESSAGE-INTEGRITY (RFC 8489 section 9.1.4)
+TEST_F(IceFunctionalityTest, bindingResponseWithoutMessageIntegrityIsDiscarded)
+{
+    IceAgent iceAgent;
+    IceCandidate localCandidate, remoteCandidate;
+    SocketConnection socketConnection;
+    BYTE transactionId[STUN_TRANSACTION_ID_LEN] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+    BYTE buffer[STUN_PACKET_ALLOCATION_SIZE];
+    UINT32 size;
+    PCHAR remotePassword = (PCHAR) "remotePassword";
+    PStunPacket pResponse = NULL;
+    PDoubleListNode pCurNode = NULL;
+    PIceCandidatePair pIceCandidatePair = NULL;
+    PSocketConnection pSocketConnectionToShutdown = NULL;
+
+    MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
+    MEMSET(&localCandidate, 0x00, SIZEOF(IceCandidate));
+    MEMSET(&socketConnection, 0x00, SIZEOF(SocketConnection));
+    STRCPY(iceAgent.remotePassword, remotePassword);
+    localCandidate.state = ICE_CANDIDATE_STATE_VALID;
+    localCandidate.iceCandidateType = ICE_CANDIDATE_TYPE_HOST;
+    localCandidate.ipAddress.family = KVS_IP_FAMILY_TYPE_IPV4;
+    localCandidate.ipAddress.address[0] = 127;
+    localCandidate.ipAddress.address[3] = 1;
+    localCandidate.ipAddress.port = htons(10000);
+    remoteCandidate = localCandidate;
+    remoteCandidate.ipAddress.port = htons(10001);
+    localCandidate.pSocketConnection = &socketConnection;
+    EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.localCandidates));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.remoteCandidates));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.iceCandidatePairs));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(iceAgent.localCandidates, (UINT64) &localCandidate));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(iceAgent.remoteCandidates, (UINT64) &remoteCandidate));
+    EXPECT_EQ(STATUS_SUCCESS, createIceCandidatePairs(&iceAgent, &remoteCandidate, TRUE));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(iceAgent.iceCandidatePairs, &pCurNode));
+    ASSERT_TRUE(pCurNode != NULL);
+    pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
+
+    // Without MESSAGE-INTEGRITY first, then with it: only the second one makes the pair succeed
+    for (BOOL withIntegrity : {FALSE, TRUE}) {
+        pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS;
+        transactionIdStoreInsert(pIceCandidatePair->pTransactionIdStore, transactionId);
+        EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS, transactionId, &pResponse));
+        EXPECT_EQ(STATUS_SUCCESS, appendStunAddressAttribute(pResponse, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, &localCandidate.ipAddress));
+        size = SIZEOF(buffer);
+        EXPECT_EQ(STATUS_SUCCESS,
+                  iceUtilsPackageStunPacket(pResponse, withIntegrity ? (PBYTE) remotePassword : NULL,
+                                            withIntegrity ? (UINT32) STRLEN(remotePassword) : 0, buffer, &size));
+        EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pResponse));
+
+        handleStunPacket(&iceAgent, buffer, size, &socketConnection, &remoteCandidate.ipAddress, NULL, &pSocketConnectionToShutdown);
+        EXPECT_EQ(withIntegrity ? ICE_CANDIDATE_PAIR_STATE_SUCCEEDED : ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS, pIceCandidatePair->state)
+            << (withIntegrity ? "with" : "without") << " MESSAGE-INTEGRITY";
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, freeIceCandidatePair(&pIceCandidatePair));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.iceCandidatePairs));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.remoteCandidates));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.localCandidates));
+}
+
 TEST_F(IceFunctionalityTest, IceAgentCandidateGatheringTest)
 {
     ASSERT_EQ(TRUE, mAccessKeyIdSet);
