@@ -2835,6 +2835,97 @@ CleanUp:
     return retStatus;
 }
 
+STATUS iceAgentDeserializeBindingRequest(PBYTE pBuffer, UINT32 bufferLen, PCHAR localUsername, PCHAR localPassword, PStunPacket* ppStunPacket)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PCHAR pUsername = NULL;
+    UINT16 usernameLen = 0;
+    BOOL hasMessageIntegrity = FALSE;
+    UINT32 localUsernameLen;
+
+    CHK(pBuffer != NULL && localUsername != NULL && localPassword != NULL && ppStunPacket != NULL, STATUS_NULL_ARG);
+
+    // deserializeStunPacket() verifies MESSAGE-INTEGRITY first, and only when the request has one
+    CHK_STATUS(findStunCredentials(pBuffer, bufferLen, &pUsername, &usernameLen, &hasMessageIntegrity));
+    CHK(hasMessageIntegrity, STATUS_STUN_MESSAGE_INTEGRITY_NOT_FOUND);
+    CHK(pUsername != NULL, STATUS_STUN_USERNAME_NOT_FOUND);
+
+    // USERNAME is "<local ufrag>:<remote ufrag>"
+    localUsernameLen = (UINT32) STRLEN(localUsername);
+    CHK(usernameLen > localUsernameLen && pUsername[localUsernameLen] == ':' && STRNCMP(pUsername, localUsername, localUsernameLen) == 0,
+        STATUS_STUN_USERNAME_MISMATCH);
+
+    CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, (PBYTE) localPassword, (UINT32) STRLEN(localPassword) * SIZEOF(CHAR), ppStunPacket));
+
+CleanUp:
+
+    return retStatus;
+}
+
+UINT16 iceAgentBindingRequestErrorCode(STATUS status)
+{
+    switch (status) {
+        case STATUS_STUN_MESSAGE_INTEGRITY_NOT_FOUND:
+        case STATUS_STUN_USERNAME_NOT_FOUND:
+            return STUN_ERROR_BAD_REQUEST;
+        case STATUS_STUN_USERNAME_MISMATCH:
+        case STATUS_STUN_MESSAGE_INTEGRITY_MISMATCH:
+            return STUN_ERROR_UNAUTHORIZED;
+        default:
+            return 0;
+    }
+}
+
+STATUS iceAgentCreateBindingErrorResponse(PBYTE transactionId, UINT16 errorCode, PStunPacket* ppStunResponse)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PStunPacket pStunResponse = NULL;
+
+    CHK(transactionId != NULL && ppStunResponse != NULL, STATUS_NULL_ARG);
+    CHK(errorCode == STUN_ERROR_BAD_REQUEST || errorCode == STUN_ERROR_UNAUTHORIZED, STATUS_INVALID_ARG);
+
+    CHK_STATUS(createStunPacket(STUN_PACKET_TYPE_BINDING_RESPONSE_ERROR, transactionId, &pStunResponse));
+    // The reason phrases RFC 8489 section 14.8 recommends
+    CHK_STATUS(appendStunErrorCodeAttribute(pStunResponse, errorCode == STUN_ERROR_BAD_REQUEST ? (PCHAR) "Bad Request" : (PCHAR) "Unauthenticated",
+                                            errorCode));
+
+CleanUp:
+
+    if (STATUS_FAILED(retStatus)) {
+        freeStunPacket(&pStunResponse);
+    }
+
+    if (ppStunResponse != NULL) {
+        *ppStunResponse = pStunResponse;
+    }
+
+    return retStatus;
+}
+
+STATUS iceAgentSendBindingErrorResponse(PIceAgent pIceAgent, PBYTE transactionId, UINT16 errorCode, PSocketConnection pSocketConnection,
+                                        PKvsIpAddress pDestAddr)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PStunPacket pStunResponse = NULL;
+    PIceCandidate pIceCandidate = NULL;
+
+    CHK(pIceAgent != NULL && pSocketConnection != NULL && pDestAddr != NULL, STATUS_NULL_ARG);
+
+    CHK_STATUS(findCandidateWithSocketConnection(pSocketConnection, pIceAgent->localCandidates, &pIceCandidate));
+    CHK_WARN(pIceCandidate != NULL, retStatus, "Could not find local candidate to send STUN error response");
+    CHK_STATUS(iceAgentCreateBindingErrorResponse(transactionId, errorCode, &pStunResponse));
+    // Without MESSAGE-INTEGRITY: the request was not authenticated
+    CHK_STATUS(iceAgentSendStunPacket(pStunResponse, NULL, 0, pIceAgent, pIceCandidate, pDestAddr));
+
+CleanUp:
+
+    if (pStunResponse != NULL) {
+        freeStunPacket(&pStunResponse);
+    }
+
+    return retStatus;
+}
+
 STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PSocketConnection pSocketConnection, PKvsIpAddress pSrcAddr,
                         PKvsIpAddress pDestAddr, PSocketConnection* ppSocketConnectionToShutdown)
 {
@@ -2857,6 +2948,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
     UINT64 connectivityCheckResponsesSent = 0;
     UINT64 connectivityCheckResponsesReceived = 0;
     UINT32 count = 0;
+    UINT16 errorCode = 0;
 
     CHK(ppSocketConnectionToShutdown != NULL, STATUS_NULL_ARG);
     *ppSocketConnectionToShutdown = NULL;
@@ -2867,8 +2959,13 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
     switch (stunPacketType) {
         case STUN_PACKET_TYPE_BINDING_REQUEST:
             connectivityCheckRequestsReceived++;
-            CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, (PBYTE) pIceAgent->localPassword,
-                                             (UINT32) STRLEN(pIceAgent->localPassword) * SIZEOF(CHAR), &pStunPacket));
+            retStatus = iceAgentDeserializeBindingRequest(pBuffer, bufferLen, pIceAgent->localUsername, pIceAgent->localPassword, &pStunPacket);
+            if (STATUS_FAILED(retStatus) && (errorCode = iceAgentBindingRequestErrorCode(retStatus)) != 0) {
+                // RFC 8489 section 9.1.3: an unauthenticated request gets an error response, sent back as a success response would be
+                CHK_LOG_ERR(
+                    iceAgentSendBindingErrorResponse(pIceAgent, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET, errorCode, pSocketConnection, pSrcAddr));
+            }
+            CHK_STATUS(retStatus);
             CHK_STATUS(createStunPacket(STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS, pStunPacket->header.transactionId, &pStunResponse));
             CHK_STATUS(appendStunAddressAttribute(pStunResponse, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, pSrcAddr));
             CHK_STATUS(appendStunIceControllAttribute(
@@ -3012,6 +3109,10 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
             }
             CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, (PBYTE) pIceAgent->remotePassword,
                                              (UINT32) STRLEN(pIceAgent->remotePassword) * SIZEOF(CHAR), &pStunPacket));
+            // The response is authenticated too (RFC 8445 section 7.3), and discarded without MESSAGE-INTEGRITY (RFC 8489
+            // section 9.1.4)
+            CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_MESSAGE_INTEGRITY, &pStunAttr));
+            CHK(pStunAttr != NULL, STATUS_STUN_MESSAGE_INTEGRITY_NOT_FOUND);
             CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, &pStunAttr));
             CHK_WARN(pStunAttr != NULL, retStatus, "No mapped address attribute found in STUN response. Dropping Packet");
 

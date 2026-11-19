@@ -182,6 +182,7 @@ typedef enum {
  * STUN error codes
  */
 typedef enum {
+    STUN_ERROR_BAD_REQUEST = (UINT16) 400,
     STUN_ERROR_UNAUTHORIZED = (UINT16) 401,
     STUN_ERROR_STALE_NONCE = (UINT16) 438,
 } STUN_ERROR_CODE;
@@ -381,6 +382,21 @@ typedef struct {
 
 STATUS serializeStunPacket(PStunPacket, PBYTE, UINT32, BOOL, BOOL, PBYTE, PUINT32);
 STATUS deserializeStunPacket(PBYTE, UINT32, PBYTE, UINT32, PStunPacket*);
+
+/**
+ * Finds the USERNAME of a serialized STUN message, and whether it has MESSAGE-INTEGRITY, without verifying the message, so
+ * that a server can answer an unauthenticated request with the error code RFC 8489 section 9.1.3 asks for before it
+ * checks MESSAGE-INTEGRITY. Attributes after MESSAGE-INTEGRITY are not looked at (RFC 8489 section 14.5).
+ *
+ * @param - PBYTE - IN - STUN message
+ * @param - UINT32 - IN - its size
+ * @param - PCHAR* - OUT - USERNAME value inside the message, not NULL terminated; NULL without USERNAME
+ * @param - PUINT16 - OUT - its length
+ * @param - PBOOL - OUT - whether the message has MESSAGE-INTEGRITY
+ *
+ * @return - STATUS - status of execution, a failure for a malformed message
+ */
+STATUS findStunCredentials(PBYTE, UINT32, PCHAR*, PUINT16, PBOOL);
 STATUS freeStunPacket(PStunPacket*);
 STATUS createStunPacket(STUN_PACKET_TYPE, PBYTE, PStunPacket*);
 STATUS appendStunAddressAttribute(PStunPacket, STUN_ATTRIBUTE_TYPE, PKvsIpAddress);
