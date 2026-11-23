@@ -1,7 +1,7 @@
-<map id="findStunCredentials" name="findStunCredentials">
-<area shape="rect" id="Node000001" title=" " alt="" coords="1922,56,2070,84"/>
+<map id="getStunUsernameAndIntegrity" name="getStunUsernameAndIntegrity">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1922,56,2140,84"/>
 <area shape="rect" id="Node000002" href="$IceAgent_8c.html#a001a454f43a3d472ed0efafe414c4472" title=" " alt="" coords="1674,48,1874,92"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1904,70,1875,72,1875,67,1909,70"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1904,70,1875,72,1874,67,1909,70"/>
 <area shape="rect" id="Node000003" href="$IceAgent_8c.html#a6c1328530aa9bf24d4e8869be7334567" title=" " alt="" coords="1489,56,1626,84"/>
 <area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1655,70,1626,72,1626,67,1661,70"/>
 <area shape="rect" id="Node000004" href="$IceAgent_8c.html#a97079f5f6e61ff478f94f9934af5eec0" title=" " alt="" coords="1278,56,1441,84"/>

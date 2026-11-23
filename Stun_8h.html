@@ -371,7 +371,7 @@ Enumerations</h2></td></tr>
 Functions</h2></td></tr>
 <tr class="memitem:a6e25ad3bd597512064c04178f38717db" id="r_a6e25ad3bd597512064c04178f38717db"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a6e25ad3bd597512064c04178f38717db">serializeStunPacket</a> (<a class="el" href="#a9596f8962fc3dcd84c9926b095711797">PStunPacket</a>, PBYTE, UINT32, BOOL, BOOL, PBYTE, PUINT32)</td></tr>
 <tr class="memitem:adaad912b9ec6d16f9ed59fa82e79e8ac" id="r_adaad912b9ec6d16f9ed59fa82e79e8ac"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#adaad912b9ec6d16f9ed59fa82e79e8ac">deserializeStunPacket</a> (PBYTE, UINT32, PBYTE, UINT32, <a class="el" href="#a9596f8962fc3dcd84c9926b095711797">PStunPacket</a> *)</td></tr>
-<tr class="memitem:a7e480db9666cc198d348ca41c019622f" id="r_a7e480db9666cc198d348ca41c019622f"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7e480db9666cc198d348ca41c019622f">findStunCredentials</a> (PBYTE, UINT32, PCHAR *, PUINT16, PBOOL)</td></tr>
+<tr class="memitem:a139039c9d9bf72e9f5c69cce44f2c161" id="r_a139039c9d9bf72e9f5c69cce44f2c161"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a139039c9d9bf72e9f5c69cce44f2c161">getStunUsernameAndIntegrity</a> (PBYTE, UINT32, PCHAR *, PUINT16, PBOOL)</td></tr>
 <tr class="memitem:a4a72f9a15980d1e8c8cf7b4f4d7663d0" id="r_a4a72f9a15980d1e8c8cf7b4f4d7663d0"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4a72f9a15980d1e8c8cf7b4f4d7663d0">freeStunPacket</a> (<a class="el" href="#a9596f8962fc3dcd84c9926b095711797">PStunPacket</a> *)</td></tr>
 <tr class="memitem:acf0f4bf537aad576dad489a7b5222069" id="r_acf0f4bf537aad576dad489a7b5222069"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#acf0f4bf537aad576dad489a7b5222069">createStunPacket</a> (<a class="el" href="#aca17791e2d14034a385c93ad764a7ac3">STUN_PACKET_TYPE</a>, PBYTE, <a class="el" href="#a9596f8962fc3dcd84c9926b095711797">PStunPacket</a> *)</td></tr>
 <tr class="memitem:ab61a6a3a394228c480ba5556f20e3c90" id="r_ab61a6a3a394228c480ba5556f20e3c90"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab61a6a3a394228c480ba5556f20e3c90">appendStunAddressAttribute</a> (<a class="el" href="#a9596f8962fc3dcd84c9926b095711797">PStunPacket</a>, <a class="el" href="#a14bf75c5c035e54ce7c490b4ac662e0c">STUN_ATTRIBUTE_TYPE</a>, <a class="el" href="Include__i_8h.html#af659a54bb59cc1dc4e918e22864f4db4">PKvsIpAddress</a>)</td></tr>
@@ -2366,90 +2366,6 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
-<a id="a7e480db9666cc198d348ca41c019622f" name="a7e480db9666cc198d348ca41c019622f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7e480db9666cc198d348ca41c019622f">&#9670;&#160;</a></span>findStunCredentials()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">STATUS findStunCredentials </td>
-          <td>(</td>
-          <td class="paramtype">PBYTE</td>          <td class="paramname"><span class="paramname"><em>pStunBuffer</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">UINT32</td>          <td class="paramname"><span class="paramname"><em>bufferSize</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">PCHAR *</td>          <td class="paramname"><span class="paramname"><em>ppUsername</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">PUINT16</td>          <td class="paramname"><span class="paramname"><em>pUsernameLen</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">PBOOL</td>          <td class="paramname"><span class="paramname"><em>pHasMessageIntegrity</em></span>&#160;)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Finds the USERNAME of a serialized STUN message, and whether it has MESSAGE-INTEGRITY, without verifying the message, so that a server can answer an unauthenticated request with the error code RFC 8489 section 9.1.3 asks for before it checks MESSAGE-INTEGRITY. Attributes after MESSAGE-INTEGRITY are not looked at (RFC 8489 section 14.5).</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">-</td><td>PBYTE - IN - STUN message </td></tr>
-    <tr><td class="paramname">-</td><td>UINT32 - IN - its size </td></tr>
-    <tr><td class="paramname">-</td><td>PCHAR* - OUT - USERNAME value inside the message, not NULL terminated; NULL without USERNAME </td></tr>
-    <tr><td class="paramname">-</td><td>PUINT16 - OUT - its length </td></tr>
-    <tr><td class="paramname">-</td><td>PBOOL - OUT - whether the message has MESSAGE-INTEGRITY</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>- STATUS - status of execution, a failure for a malformed message </dd></dl>
-<div class="dynheader">
-Here is the caller graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="Stun_8h_a7e480db9666cc198d348ca41c019622f_icgraph.png" border="0" usemap="#aStun_8h_a7e480db9666cc198d348ca41c019622f_icgraph" loading="lazy" alt=""/></div>
-<map name="aStun_8h_a7e480db9666cc198d348ca41c019622f_icgraph" id="aStun_8h_a7e480db9666cc198d348ca41c019622f_icgraph">
-<area shape="rect" title=" " alt="" coords="1922,56,2070,84"/>
-<area shape="rect" href="IceAgent_8c.html#a001a454f43a3d472ed0efafe414c4472" title=" " alt="" coords="1674,48,1874,92"/>
-<area shape="poly" title=" " alt="" coords="1904,70,1875,72,1875,67,1909,70"/>
-<area shape="rect" href="IceAgent_8c.html#a6c1328530aa9bf24d4e8869be7334567" title=" " alt="" coords="1489,56,1626,84"/>
-<area shape="poly" title=" " alt="" coords="1655,70,1626,72,1626,67,1661,70"/>
-<area shape="rect" href="IceAgent_8c.html#a97079f5f6e61ff478f94f9934af5eec0" title=" " alt="" coords="1278,56,1441,84"/>
-<area shape="poly" title=" " alt="" coords="1471,70,1442,72,1442,67,1476,70"/>
-<area shape="rect" href="IceAgent_8c.html#a404897a5797a45ca76444ee244c5b760" title=" " alt="" coords="767,5,962,33"/>
-<area shape="poly" title=" " alt="" coords="1276,52,1230,47,1090,33,963,25,963,20,1090,28,1230,42,1281,52"/>
-<area shape="rect" href="IceAgent_8c.html#a0a39b316e5aff662b257648e97e53146" title=" " alt="" coords="1025,56,1219,84"/>
-<area shape="poly" title=" " alt="" coords="1260,70,1220,72,1220,67,1265,70"/>
-<area shape="rect" href="IceAgent_8c.html#ac6d7992fc8ddf1009332e5f72ec42cff" title=" " alt="" coords="1014,108,1230,136"/>
-<area shape="poly" title=" " alt="" coords="1281,87,1189,110,1188,105,1275,88"/>
-<area shape="rect" href="IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="252,56,426,84"/>
-<area shape="poly" title=" " alt="" coords="749,29,506,54,426,62,425,57,506,49,754,28"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="14,31,163,58"/>
-<area shape="poly" title=" " alt="" coords="234,61,164,55,163,49,239,58"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,83,172,110"/>
-<area shape="poly" title=" " alt="" coords="234,82,173,90,172,85,239,80"/>
-<area shape="poly" title=" " alt="" coords="1008,72,426,72,426,67,1010,67"/>
-<area shape="rect" href="IceAgent_8c.html#a280d0eaca18dc63b38f215030511a500" title=" " alt="" coords="763,108,966,136"/>
-<area shape="poly" title=" " alt="" coords="995,122,966,124,966,119,1001,122"/>
-<area shape="rect" href="IceAgent_8c.html#a74a49bdd9df7c624389e575b95764a61" title=" " alt="" coords="525,159,696,186"/>
-<area shape="poly" title=" " alt="" coords="779,139,684,161,683,155,774,140"/>
-<area shape="rect" href="IceAgent_8c.html#a888fc1a2a5c2fe190f30db87c85c6759" title=" " alt="" coords="506,107,715,134"/>
-<area shape="poly" title=" " alt="" coords="745,121,716,124,716,118,750,121"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#ga25744b27b8c99ea48af74d6747c949f0" title="Dynamically update the ICE servers for an existing peer connection." alt="" coords="220,159,458,186"/>
-<area shape="poly" title=" " alt="" coords="507,173,459,175,458,170,512,172"/>
-<area shape="poly" title=" " alt="" coords="515,104,417,87,417,82,520,103"/>
-</map>
-</div>
-
-</div>
-</div>
 <a id="a4a72f9a15980d1e8c8cf7b4f4d7663d0" name="a4a72f9a15980d1e8c8cf7b4f4d7663d0"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a4a72f9a15980d1e8c8cf7b4f4d7663d0">&#9670;&#160;</a></span>freeStunPacket()</h2>
 
@@ -2961,6 +2877,90 @@ Here is the caller graph for this function:</div>
 <area shape="rect" href="TurnConnection_8c.html#ad75d440eb6e8134cba6f87fcc7204a96" title=" " alt="" coords="1823,435,2031,462"/>
 <area shape="poly" title=" " alt="" coords="2108,443,2032,448,2031,443,2113,443"/>
 <area shape="poly" title=" " alt="" coords="1810,463,1743,474,1743,469,1805,463"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a139039c9d9bf72e9f5c69cce44f2c161" name="a139039c9d9bf72e9f5c69cce44f2c161"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a139039c9d9bf72e9f5c69cce44f2c161">&#9670;&#160;</a></span>getStunUsernameAndIntegrity()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">STATUS getStunUsernameAndIntegrity </td>
+          <td>(</td>
+          <td class="paramtype">PBYTE</td>          <td class="paramname"><span class="paramname"><em>pStunBuffer</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">UINT32</td>          <td class="paramname"><span class="paramname"><em>bufferSize</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PCHAR *</td>          <td class="paramname"><span class="paramname"><em>ppUsername</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PUINT16</td>          <td class="paramname"><span class="paramname"><em>pUsernameLen</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PBOOL</td>          <td class="paramname"><span class="paramname"><em>pHasMessageIntegrity</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Finds the USERNAME of a serialized STUN message, and whether it has MESSAGE-INTEGRITY, without verifying the message, so that a server can answer an unauthenticated request with the error code RFC 8489 section 9.1.3 asks for before it checks MESSAGE-INTEGRITY. Attributes after MESSAGE-INTEGRITY are not looked at (RFC 8489 section 14.5).</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">-</td><td>PBYTE - IN - STUN message </td></tr>
+    <tr><td class="paramname">-</td><td>UINT32 - IN - its size </td></tr>
+    <tr><td class="paramname">-</td><td>PCHAR* - OUT - USERNAME value inside the message, not NULL terminated; NULL without USERNAME </td></tr>
+    <tr><td class="paramname">-</td><td>PUINT16 - OUT - its length </td></tr>
+    <tr><td class="paramname">-</td><td>PBOOL - OUT - whether the message has MESSAGE-INTEGRITY</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>- STATUS - status of execution, a failure for a malformed message </dd></dl>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="Stun_8h_a139039c9d9bf72e9f5c69cce44f2c161_icgraph.png" border="0" usemap="#aStun_8h_a139039c9d9bf72e9f5c69cce44f2c161_icgraph" loading="lazy" alt=""/></div>
+<map name="aStun_8h_a139039c9d9bf72e9f5c69cce44f2c161_icgraph" id="aStun_8h_a139039c9d9bf72e9f5c69cce44f2c161_icgraph">
+<area shape="rect" title=" " alt="" coords="1922,56,2140,84"/>
+<area shape="rect" href="IceAgent_8c.html#a001a454f43a3d472ed0efafe414c4472" title=" " alt="" coords="1674,48,1874,92"/>
+<area shape="poly" title=" " alt="" coords="1904,70,1875,72,1874,67,1909,70"/>
+<area shape="rect" href="IceAgent_8c.html#a6c1328530aa9bf24d4e8869be7334567" title=" " alt="" coords="1489,56,1626,84"/>
+<area shape="poly" title=" " alt="" coords="1655,70,1626,72,1626,67,1661,70"/>
+<area shape="rect" href="IceAgent_8c.html#a97079f5f6e61ff478f94f9934af5eec0" title=" " alt="" coords="1278,56,1441,84"/>
+<area shape="poly" title=" " alt="" coords="1471,70,1442,72,1442,67,1476,70"/>
+<area shape="rect" href="IceAgent_8c.html#a404897a5797a45ca76444ee244c5b760" title=" " alt="" coords="767,5,962,33"/>
+<area shape="poly" title=" " alt="" coords="1276,52,1230,47,1090,33,963,25,963,20,1090,28,1230,42,1281,52"/>
+<area shape="rect" href="IceAgent_8c.html#a0a39b316e5aff662b257648e97e53146" title=" " alt="" coords="1025,56,1219,84"/>
+<area shape="poly" title=" " alt="" coords="1260,70,1220,72,1220,67,1265,70"/>
+<area shape="rect" href="IceAgent_8c.html#ac6d7992fc8ddf1009332e5f72ec42cff" title=" " alt="" coords="1014,108,1230,136"/>
+<area shape="poly" title=" " alt="" coords="1281,87,1189,110,1188,105,1275,88"/>
+<area shape="rect" href="IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="252,56,426,84"/>
+<area shape="poly" title=" " alt="" coords="749,29,506,54,426,62,425,57,506,49,754,28"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="14,31,163,58"/>
+<area shape="poly" title=" " alt="" coords="234,61,164,55,163,49,239,58"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,83,172,110"/>
+<area shape="poly" title=" " alt="" coords="234,82,173,90,172,85,239,80"/>
+<area shape="poly" title=" " alt="" coords="1008,72,426,72,426,67,1010,67"/>
+<area shape="rect" href="IceAgent_8c.html#a280d0eaca18dc63b38f215030511a500" title=" " alt="" coords="763,108,966,136"/>
+<area shape="poly" title=" " alt="" coords="995,122,966,124,966,119,1001,122"/>
+<area shape="rect" href="IceAgent_8c.html#a74a49bdd9df7c624389e575b95764a61" title=" " alt="" coords="525,159,696,186"/>
+<area shape="poly" title=" " alt="" coords="779,139,684,161,683,155,774,140"/>
+<area shape="rect" href="IceAgent_8c.html#a888fc1a2a5c2fe190f30db87c85c6759" title=" " alt="" coords="506,107,715,134"/>
+<area shape="poly" title=" " alt="" coords="745,121,716,124,716,118,750,121"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga25744b27b8c99ea48af74d6747c949f0" title="Dynamically update the ICE servers for an existing peer connection." alt="" coords="220,159,458,186"/>
+<area shape="poly" title=" " alt="" coords="507,173,459,175,458,170,512,172"/>
+<area shape="poly" title=" " alt="" coords="515,104,417,87,417,82,520,103"/>
 </map>
 </div>
 
