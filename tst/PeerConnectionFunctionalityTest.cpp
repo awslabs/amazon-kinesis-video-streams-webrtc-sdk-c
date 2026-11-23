@@ -900,6 +900,181 @@ TEST_F(PeerConnectionFunctionalityTest, exchangeMediaRSA)
     EXPECT_EQ(ATOMIC_LOAD(&seenVideo), 1);
 }
 
+// The connection listener thread delivers received frames to the application's RtcOnFrame callback.
+// freePeerConnection() must wait for that delivery to finish before it frees the transceivers, jitter
+// buffers, SRTP and DTLS. Here the receiving side's audio callback blocks (for example, waiting for an
+// audio decoder buffer) while the remote peer keeps sending, and the receiving side is freed meanwhile.
+// Without the fix, SRTP and the jitter buffer are freed while the callback is still running, and the
+// jitter buffer is then read after free (AddressSanitizer reports heap-use-after-free).
+TEST_F(PeerConnectionFunctionalityTest, freePeerConnectionWhileFrameCallbackIsRunning)
+{
+    struct CallbackState {
+        PKvsPeerConnection pAnswerPc;
+        SIZE_T entered;
+        SIZE_T returned;
+        SIZE_T srtpFreedDuringCallback;
+    };
+
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    RtcMediaStreamTrack offerAudioTrack, answerAudioTrack;
+    PRtcRtpTransceiver offerAudioTransceiver, answerAudioTransceiver;
+    CallbackState state;
+    std::atomic<bool> stopSending(false);
+    BYTE audioPayload[64];
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&state, 0x00, SIZEOF(CallbackState));
+    MEMSET(audioPayload, 0x11, SIZEOF(audioPayload));
+
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &offerPc));
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &answerPc));
+    state.pAnswerPc = (PKvsPeerConnection) answerPc;
+
+    addTrackToPeerConnection(offerPc, &offerAudioTrack, &offerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
+    addTrackToPeerConnection(answerPc, &answerAudioTrack, &answerAudioTransceiver, RTC_CODEC_OPUS, MEDIA_STREAM_TRACK_KIND_AUDIO);
+
+    auto blockingOnFrame = [](UINT64 customData, PFrame pFrame) -> void {
+        UNUSED_PARAM(pFrame);
+        CallbackState* pState = (CallbackState*) customData;
+        // Block only on the first frame. The answer peer connection object itself is freed last, after
+        // the listener thread is joined, so it is safe to read here in both the fixed and unfixed code.
+        if (ATOMIC_EXCHANGE(&pState->entered, 1) == 0) {
+            THREAD_SLEEP(500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+            ATOMIC_STORE(&pState->srtpFreedDuringCallback, pState->pAnswerPc->pSrtpSession == NULL ? 1 : 0);
+            ATOMIC_STORE(&pState->returned, 1);
+        }
+    };
+    ASSERT_EQ(STATUS_SUCCESS, transceiverOnFrame(answerAudioTransceiver, (UINT64) &state, blockingOnFrame));
+
+    ASSERT_EQ(TRUE, connectTwoPeers(offerPc, answerPc));
+
+    // Keep sending audio faster than real time so packets are queued while the callback is blocked.
+    std::thread sender([&]() {
+        Frame audioFrame;
+        MEMSET(&audioFrame, 0x00, SIZEOF(Frame));
+        audioFrame.frameData = audioPayload;
+        audioFrame.size = SIZEOF(audioPayload);
+        while (!stopSending.load()) {
+            // The result is not checked: the answer side goes away while this is still sending.
+            writeFrame(offerAudioTransceiver, &audioFrame);
+            audioFrame.presentationTs += 20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+            THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+        }
+    });
+
+    for (auto i = 0; i < 1000 && ATOMIC_LOAD(&state.entered) == 0; i++) {
+        THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    EXPECT_EQ(1, ATOMIC_LOAD(&state.entered));
+
+    // Free the receiving side while its frame callback is still blocked on the listener thread.
+    EXPECT_EQ(STATUS_SUCCESS, closePeerConnection(answerPc));
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&answerPc));
+
+    EXPECT_EQ(1, ATOMIC_LOAD(&state.returned));
+    EXPECT_EQ(0, ATOMIC_LOAD(&state.srtpFreedDuringCallback));
+
+    stopSending = true;
+    sender.join();
+
+    closePeerConnection(offerPc);
+    freePeerConnection(&offerPc);
+}
+
+TEST_F(PeerConnectionFunctionalityTest, iceAgentStopConnectionListenerIsIdempotent)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection pc = NULL;
+    PIceAgent pIceAgent;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+
+    EXPECT_EQ(STATUS_NULL_ARG, iceAgentStopConnectionListener(NULL));
+
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pc));
+    pIceAgent = ((PKvsPeerConnection) pc)->pIceAgent;
+    ASSERT_TRUE(pIceAgent != NULL);
+    ASSERT_TRUE(pIceAgent->pConnectionListener != NULL);
+
+    EXPECT_EQ(STATUS_SUCCESS, iceAgentStopConnectionListener(pIceAgent));
+    EXPECT_TRUE(pIceAgent->pConnectionListener == NULL);
+    EXPECT_EQ(STATUS_SUCCESS, iceAgentStopConnectionListener(pIceAgent));
+
+    // freePeerConnection() and freeIceAgent() call it again; both must still succeed.
+    EXPECT_EQ(STATUS_SUCCESS, closePeerConnection(pc));
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pc));
+    EXPECT_TRUE(pc == NULL);
+}
+
+// During an ICE restart, iceAgentRestart() empties localCandidates but keeps the old data sending pair until the
+// new session is ready. If that pair is relayed, its TURN connection still points at the connection listener, and
+// freeIceAgent() frees it after the listener is gone. iceAgentStopConnectionListener() must clear that pointer too.
+// This builds the state iceAgentRestart() leaves behind, without a TURN server.
+TEST_F(PeerConnectionFunctionalityTest, iceAgentStopConnectionListenerClearsRestartPairTurnConnection)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection pc = NULL;
+    PIceAgent pIceAgent;
+    IceServer turnServer;
+    PSocketConnection pTurnSocket = NULL;
+    PTurnConnection pTurnConnection = NULL;
+    PIceCandidate pLocal = NULL, pRemote = NULL;
+    PIceCandidatePair pPair = NULL;
+    TurnConnectionCallbacks callbacks;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&callbacks, 0x00, SIZEOF(TurnConnectionCallbacks));
+    MEMSET(&turnServer, 0x00, SIZEOF(IceServer));
+
+    ASSERT_EQ(STATUS_SUCCESS, createPeerConnection(&configuration, &pc));
+    pIceAgent = ((PKvsPeerConnection) pc)->pIceAgent;
+
+    turnServer.isTurn = TRUE;
+    STRCPY(turnServer.url, "turn:127.0.0.1:3478");
+    STRCPY(turnServer.username, "user");
+    STRCPY(turnServer.credential, "pass");
+    turnServer.ipAddresses.ipv4Address.family = KVS_IP_FAMILY_TYPE_IPV4;
+    turnServer.ipAddresses.ipv4Address.port = (UINT16) getInt16(3478);
+    turnServer.ipAddresses.ipv4Address.address[0] = 127;
+    turnServer.ipAddresses.ipv4Address.address[3] = 1;
+
+    // Same calls, in the same order, as iceAgentInitRelayCandidate()
+    ASSERT_EQ(STATUS_SUCCESS,
+              createSocketConnection(KVS_IP_FAMILY_TYPE_IPV4, KVS_SOCKET_PROTOCOL_UDP, NULL, &turnServer.ipAddresses.ipv4Address, 0, NULL, 0,
+                                     &pTurnSocket));
+    ASSERT_EQ(STATUS_SUCCESS, connectionListenerAddConnection(pIceAgent->pConnectionListener, pTurnSocket));
+    ASSERT_EQ(STATUS_SUCCESS,
+              createTurnConnection(&turnServer, pIceAgent->timerQueueHandle, TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL, KVS_SOCKET_PROTOCOL_UDP,
+                                   &callbacks, pTurnSocket, pIceAgent->pConnectionListener, KVS_IP_FAMILY_TYPE_IPV4, &pTurnConnection));
+
+    pLocal = (PIceCandidate) MEMCALLOC(1, SIZEOF(IceCandidate));
+    pRemote = (PIceCandidate) MEMCALLOC(1, SIZEOF(IceCandidate));
+    pPair = (PIceCandidatePair) MEMCALLOC(1, SIZEOF(IceCandidatePair));
+    ASSERT_TRUE(pLocal != NULL && pRemote != NULL && pPair != NULL);
+    pLocal->iceCandidateType = ICE_CANDIDATE_TYPE_RELAYED;
+    pLocal->pSocketConnection = pTurnSocket;
+    pLocal->pTurnConnection = pTurnConnection;
+    pLocal->pIceAgent = pIceAgent;
+    pRemote->isRemote = TRUE;
+    pPair->local = pLocal;
+    pPair->remote = pRemote;
+
+    // The state after iceAgentRestart(): the old data sending pair is kept, but it is not in localCandidates.
+    pIceAgent->pDataSendingIceCandidatePair = pPair;
+    ATOMIC_STORE_BOOL(&pIceAgent->restart, TRUE);
+
+    EXPECT_EQ(STATUS_SUCCESS, closePeerConnection(pc));
+    EXPECT_EQ(STATUS_SUCCESS, iceAgentStopConnectionListener(pIceAgent));
+    EXPECT_TRUE(pTurnConnection->pConnectionListener == NULL);
+    // If the check above failed, avoid the use after free in freeTurnConnection() so the run can continue.
+    pTurnConnection->pConnectionListener = NULL;
+
+    // freeIceAgent() frees the pair, the local candidate and the TURN connection. The remote candidate is ours.
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pc));
+    MEMFREE(pRemote);
+}
+
 TEST_F(PeerConnectionFunctionalityTest, iceRestartTest)
 {
     RtcConfiguration configuration;

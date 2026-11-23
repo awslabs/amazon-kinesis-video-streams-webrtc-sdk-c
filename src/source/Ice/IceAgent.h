@@ -387,8 +387,10 @@ STATUS iceAgentInitHostCandidate(PIceAgent);
 STATUS iceAgentPopulateSdpMediaDescriptionCandidates(PIceAgent, PSdpMediaDescription, UINT32, PUINT32);
 
 /**
- * Start shutdown sequence for IceAgent. Once the function returns Ice will not deliver anymore data and
- * IceAgent is ready to be freed. User should stop calling iceAgentSendPacket after iceAgentShutdown returns.
+ * Start shutdown sequence for IceAgent. Once the function returns the sockets are marked closed, but the
+ * connection listener thread keeps delivering packets (the one in progress and any already queued on a
+ * socket) until iceAgentStopConnectionListener() returns. Call iceAgentStopConnectionListener() before
+ * freeing anything the receive path uses. User should stop calling iceAgentSendPacket after iceAgentShutdown returns.
  * iceAgentShutdown is idempotent.
  *
  * @param - PIceAgent - IN - IceAgent object
@@ -396,6 +398,18 @@ STATUS iceAgentPopulateSdpMediaDescriptionCandidates(PIceAgent, PSdpMediaDescrip
  * @return - STATUS - status of execution
  */
 STATUS iceAgentShutdown(PIceAgent);
+
+/**
+ * Stop the connection listener thread and wait for it to exit, then free the listener. When this returns,
+ * no inbound packet callback is running. Clears the TURN connections' pointers to the listener first,
+ * including the one kept for the old data sending pair during an ICE restart.
+ * Idempotent. Must not be called from the connection listener thread.
+ *
+ * @param - PIceAgent - IN - IceAgent object
+ *
+ * @return - STATUS - status of execution
+ */
+STATUS iceAgentStopConnectionListener(PIceAgent);
 
 /**
  * Restart IceAgent. IceAgent is reset back to the same state when it was first created. Once iceAgentRestart() return,
