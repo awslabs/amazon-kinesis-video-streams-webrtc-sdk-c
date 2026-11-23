@@ -218,7 +218,7 @@ TEST_F(RtcpFunctionalityTest, rtcpNackListGetMoreThanRetransmitterList)
 }
 
 // A NACK that lists more sequence numbers than the retransmitter's list holds is answered from the entries that
-// fit. Without the cap, this test fails under AddressSanitizer.
+// fit. Without the cap, the lookup reads past the list and resends more packets than are buffered.
 TEST_F(RtcpFunctionalityTest, onRtcpPacketNackLongerThanRetransmitterList)
 {
     // RFC 4585 section 6.2.1: each FCI is a 16-bit PID and a 16-bit BLP, and lists the PID plus one number per BLP bit
@@ -228,8 +228,8 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketNackLongerThanRetransmitterList)
     const UINT32 retransmitterAllocationSize =
         SIZEOF(Retransmitter) + SIZEOF(UINT16) * DEFAULT_SEQ_NUM_BUFFER_SIZE + SIZEOF(UINT64) * DEFAULT_VALID_INDEX_BUFFER_SIZE;
     const UINT32 fciCount = retransmitterAllocationSize / SIZEOF(UINT16) / seqNumsPerFci + 1;
-    // The NACKed numbers start well above the buffered ones, so none of them is buffered
-    const UINT16 firstNackedSeqNum = 30000;
+    // The NACK starts at the first buffered number, so the buffered packets are among the entries that fit
+    const UINT16 firstNackedSeqNum = DEFAULT_SEQ_NUM_BUFFER_SIZE;
     const UINT32 bufferedPacketCount = 3;
     // Media SSRC 44000, the transceiver's
     BYTE header[] = {0x81, 0xcd, 0x00, 0x00, 0x2c, 0xd1, 0xa0, 0xde, 0x00, 0x00, 0xab, 0xe0};
@@ -249,8 +249,7 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketNackLongerThanRetransmitterList)
     ASSERT_EQ(STATUS_SUCCESS, createRtpRollingBuffer(bufferedPacketCount, &pKvsRtpTransceiver->sender.packetBuffer));
     ASSERT_EQ(STATUS_SUCCESS,
               createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
-    // Send more packets than the buffer holds, so seq 0 is evicted. Memory past the list can decode to seq 0, and a
-    // match there would stop the lookup before it reads past the allocation.
+    // Send more packets than the buffer holds, so only the numbers from DEFAULT_SEQ_NUM_BUFFER_SIZE onwards are buffered
     for (i = 0; i < DEFAULT_SEQ_NUM_BUFFER_SIZE + bufferedPacketCount; i++) {
         ASSERT_EQ(STATUS_SUCCESS, createRtpPacketWithSeqNum((UINT16) i, &pRtpPacket));
         ASSERT_EQ(STATUS_SUCCESS, rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
@@ -260,7 +259,7 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketNackLongerThanRetransmitterList)
     EXPECT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, nack.data(), (UINT32) nack.size()));
     getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats);
     EXPECT_EQ(1, stats.nackCount);
-    EXPECT_EQ(0, stats.retransmittedPacketsSent);
+    EXPECT_EQ(bufferedPacketCount, stats.retransmittedPacketsSent);
 
     freePeerConnection(&pRtcPeerConnection);
 }
