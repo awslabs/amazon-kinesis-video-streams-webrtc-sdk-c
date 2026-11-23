@@ -14,7 +14,6 @@ var searchData=
   ['hostcandidatesetuptime_11',['hostCandidateSetUpTime',['../structKvsIceAgentStats.html#aa5b7877228bd50f7b303bc9c4120d6aa',1,'KvsIceAgentStats::hostCandidateSetUpTime'],['../structIceAgentProfileDiagnostics.html#ae471a9eb9c2685393b4521896fed5090',1,'IceAgentProfileDiagnostics::hostCandidateSetUpTime']]],
   ['hostipaddr_12',['hostIpAddr',['../struct____SocketConnection.html#ae19d1a0c872d98f743a74b299cd5c0f1',1,'__SocketConnection']]],
   ['hostname_13',['hostname',['../struct____SocketConnection.html#ab3340601d5bebf79a4321f091269e0bd',1,'__SocketConnection::hostname'],['../structStunIpAddrContext.html#ac0beb1d0139b71306177a3859a7c5708',1,'StunIpAddrContext::hostname']]],
-  ['hostnameinuse_14',['hostnameInUse',['../structStunIpAddrContext.html#ae7d00762df833702a91b3b07f942c89d',1,'StunIpAddrContext']]],
-  ['httpsendpoint_15',['httpsEndpoint',['../structSignalingFileCacheEntry.html#a6a1e892d13b44e35d4c41f6335197795',1,'SignalingFileCacheEntry']]],
-  ['hugeframessent_16',['hugeFramesSent',['../structRtcOutboundRtpStreamStats.html#af484c40e4ad9d4dd57d91e2733f9ff5a',1,'RtcOutboundRtpStreamStats']]]
+  ['httpsendpoint_14',['httpsEndpoint',['../structSignalingFileCacheEntry.html#a6a1e892d13b44e35d4c41f6335197795',1,'SignalingFileCacheEntry']]],
+  ['hugeframessent_15',['hugeFramesSent',['../structRtcOutboundRtpStreamStats.html#af484c40e4ad9d4dd57d91e2733f9ff5a',1,'RtcOutboundRtpStreamStats']]]
 ];

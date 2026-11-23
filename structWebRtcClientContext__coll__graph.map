@@ -1,9 +1,9 @@
 <map id="WebRtcClientContext" name="WebRtcClientContext">
-<area shape="rect" id="Node000001" title=" " alt="" coords="20,665,173,782"/>
-<area shape="rect" id="Node000002" href="$structStunIpAddrContext.html" title=" " alt="" coords="5,385,187,592"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="97,589,99,648,94,647,95,594"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="20,642,173,759"/>
+<area shape="rect" id="Node000002" href="$structStunIpAddrContext.html" title=" " alt="" coords="5,385,187,569"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="97,567,99,625,94,625,95,572"/>
 <area shape="rect" id="Node000003" href="$structDualKvsIpAddresses.html" title=" " alt="" coords="24,240,168,312"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="97,309,99,368,94,368,96,315"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="97,309,99,369,94,368,96,315"/>
 <area shape="rect" id="Node000004" href="$structKvsIpAddress.html" title=" " alt="" coords="37,5,155,145"/>
 <area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="97,142,99,223,94,223,96,147"/>
 </map>
