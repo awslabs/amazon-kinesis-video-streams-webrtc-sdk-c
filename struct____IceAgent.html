@@ -186,6 +186,7 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a924d9f67928de4e36220ca74966b3a6b" id="r_a924d9f67928de4e36220ca74966b3a6b"><td class="memItemLeft" align="right" valign="top">volatile ATOMIC_BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a924d9f67928de4e36220ca74966b3a6b">processStun</a></td></tr>
 <tr class="memitem:a8611db417aee7bc8b8bd83d8e0870c95" id="r_a8611db417aee7bc8b8bd83d8e0870c95"><td class="memItemLeft" align="right" valign="top">volatile ATOMIC_BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a8611db417aee7bc8b8bd83d8e0870c95">addedRelayCandidate</a></td></tr>
 <tr class="memitem:aa58db80ab08bc0aa6494db4067d6311b" id="r_aa58db80ab08bc0aa6494db4067d6311b"><td class="memItemLeft" align="right" valign="top">volatile ATOMIC_BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa58db80ab08bc0aa6494db4067d6311b">stopGathering</a></td></tr>
+<tr class="memitem:af6cb5b417be1971727ca4eaa0787f0ac" id="r_af6cb5b417be1971727ca4eaa0787f0ac"><td class="memItemLeft" align="right" valign="top">volatile SIZE_T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#af6cb5b417be1971727ca4eaa0787f0ac">sendsInFlight</a></td></tr>
 <tr class="memitem:aea28583b86704840939bcf4414d11310" id="r_aea28583b86704840939bcf4414d11310"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aea28583b86704840939bcf4414d11310">localUsername</a> [<a class="el" href="group__NameLengths.html#ga4c7a7503d9f24367262a592de310c1b1">MAX_ICE_CONFIG_USER_NAME_LEN</a>+1]</td></tr>
 <tr class="memitem:a5fa05c92c4c3526488f87cf969f067ce" id="r_a5fa05c92c4c3526488f87cf969f067ce"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a5fa05c92c4c3526488f87cf969f067ce">localPassword</a> [<a class="el" href="group__NameLengths.html#ga1ec791416eaa9a8766236679710dde4f">MAX_ICE_CONFIG_CREDENTIAL_LEN</a>+1]</td></tr>
 <tr class="memitem:aa2842165f2cf75b7b5efd29b3fd0ad00" id="r_aa2842165f2cf75b7b5efd29b3fd0ad00"><td class="memItemLeft" align="right" valign="top">CHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa2842165f2cf75b7b5efd29b3fd0ad00">remoteUsername</a> [<a class="el" href="group__NameLengths.html#ga4c7a7503d9f24367262a592de310c1b1">MAX_ICE_CONFIG_USER_NAME_LEN</a>+1]</td></tr>
@@ -888,6 +889,20 @@ Public Attributes</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">volatile ATOMIC_BOOL __IceAgent::restart</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="af6cb5b417be1971727ca4eaa0787f0ac" name="af6cb5b417be1971727ca4eaa0787f0ac"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af6cb5b417be1971727ca4eaa0787f0ac">&#9670;&#160;</a></span>sendsInFlight</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">volatile SIZE_T __IceAgent::sendsInFlight</td>
         </tr>
       </table>
 </div><div class="memdoc">

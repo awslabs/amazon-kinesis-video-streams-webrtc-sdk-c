@@ -280,6 +280,7 @@ Functions</h2></td></tr>
 <tr class="memitem:aaedcdc437dc6d6753a438f7c5ddf0c7c" id="r_aaedcdc437dc6d6753a438f7c5ddf0c7c"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aaedcdc437dc6d6753a438f7c5ddf0c7c">iceAgentStartGathering</a> (<a class="el" href="#ab6d8079a3d3ad310ae08b7edc7a77862">PIceAgent</a>)</td></tr>
 <tr class="memitem:a44f357ae794fea4d51a4d6b62187942b" id="r_a44f357ae794fea4d51a4d6b62187942b"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a44f357ae794fea4d51a4d6b62187942b">iceCandidateSerialize</a> (<a class="el" href="#a8c77f2c85d98897f1be059162e486766">PIceCandidate</a>, PCHAR, PUINT32)</td></tr>
 <tr class="memitem:a211837bf560b424d14213e4897184c7c" id="r_a211837bf560b424d14213e4897184c7c"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a211837bf560b424d14213e4897184c7c">iceAgentSendPacket</a> (<a class="el" href="#ab6d8079a3d3ad310ae08b7edc7a77862">PIceAgent</a>, PBYTE, UINT32)</td></tr>
+<tr class="memitem:a363197d9e8247192535aafbae5f8b7cd" id="r_a363197d9e8247192535aafbae5f8b7cd"><td class="memItemLeft" align="right" valign="top">VOID&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a363197d9e8247192535aafbae5f8b7cd">iceAgentWaitForSendsInFlight</a> (<a class="el" href="#ab6d8079a3d3ad310ae08b7edc7a77862">PIceAgent</a>)</td></tr>
 <tr class="memitem:ab7fc78b0a2605c5291b7ec8d7ed40cdc" id="r_ab7fc78b0a2605c5291b7ec8d7ed40cdc"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab7fc78b0a2605c5291b7ec8d7ed40cdc">iceAgentInitHostCandidate</a> (<a class="el" href="#ab6d8079a3d3ad310ae08b7edc7a77862">PIceAgent</a>)</td></tr>
 <tr class="memitem:a4b22ed1dd4fa41930285284c67018560" id="r_a4b22ed1dd4fa41930285284c67018560"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4b22ed1dd4fa41930285284c67018560">iceAgentPopulateSdpMediaDescriptionCandidates</a> (<a class="el" href="#ab6d8079a3d3ad310ae08b7edc7a77862">PIceAgent</a>, <a class="el" href="Sdp_8h.html#a4859ca01537e2ceb28ae0c4be9730e5e">PSdpMediaDescription</a>, UINT32, PUINT32)</td></tr>
 <tr class="memitem:a3fc8eda4a254a7c26c3c0ae36dff28b7" id="r_a3fc8eda4a254a7c26c3c0ae36dff28b7"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a3fc8eda4a254a7c26c3c0ae36dff28b7">iceAgentShutdown</a> (<a class="el" href="#ab6d8079a3d3ad310ae08b7edc7a77862">PIceAgent</a>)</td></tr>
@@ -1151,88 +1152,90 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="IceAgent_8h_a8b4871fcabcb392bb37f78a0a1b129eb_cgraph.png" border="0" usemap="#aIceAgent_8h_a8b4871fcabcb392bb37f78a0a1b129eb_cgraph" loading="lazy" alt=""/></div>
 <map name="aIceAgent_8h_a8b4871fcabcb392bb37f78a0a1b129eb_cgraph" id="aIceAgent_8h_a8b4871fcabcb392bb37f78a0a1b129eb_cgraph">
-<area shape="rect" title=" " alt="" coords="5,268,125,296"/>
-<area shape="rect" href="Stun_8c.html#a82bd20e19952bf247d16b639fc091a34" title=" " alt="" coords="450,5,583,33"/>
-<area shape="poly" title=" " alt="" coords="83,266,171,204,301,121,437,49,465,38,461,41,439,54,304,126,174,208,87,269"/>
-<area shape="rect" href="IceAgent_8c.html#a767c2a29e3bfba0aa45872d26b41a6f4" title=" " alt="" coords="229,217,334,245"/>
-<area shape="poly" title=" " alt="" coords="124,266,215,245,212,249,127,270"/>
-<area shape="rect" href="IceAgent_8c.html#a1cfd588b7d18304d6feb6e32417a508f" title=" " alt="" coords="190,319,372,346"/>
-<area shape="poly" title=" " alt="" coords="125,293,206,313,202,316,126,298"/>
-<area shape="rect" href="IceAgent_8c.html#a6bcfd3644a9038357b400059ed0d3a97" title=" " alt="" coords="173,371,390,398"/>
-<area shape="poly" title=" " alt="" coords="82,294,123,325,174,355,194,364,189,366,171,360,120,330,83,299"/>
-<area shape="rect" href="IceUtils_8c.html#a833304d5c66c3dfef87036727631628f" title=" " alt="" coords="457,468,575,496"/>
-<area shape="poly" title=" " alt="" coords="124,270,183,265,252,267,324,278,359,289,391,305,432,336,464,376,489,417,506,454,501,453,485,420,460,379,428,340,389,309,357,294,323,283,252,272,184,270,126,275"/>
-<area shape="rect" href="Stun_8c.html#a2ac5f96729bf2bfce45f59c72db4ff43" title=" " alt="" coords="966,56,1084,84"/>
-<area shape="poly" title=" " alt="" coords="583,22,873,49,953,60,948,61,872,54,583,27"/>
-<area shape="poly" title=" " alt="" coords="333,228,362,221,388,209,405,191,411,172,419,151,436,132,477,113,532,98,599,86,673,78,823,69,953,68,948,70,824,74,673,83,600,92,534,103,479,118,440,136,423,154,417,173,409,194,392,213,364,226,335,232"/>
-<area shape="rect" href="ConnectionListener_8c.html#a49f4d889996cb555ffe78ecf4584ec1a" title=" " alt="" coords="671,348,844,376"/>
-<area shape="poly" title=" " alt="" coords="334,242,391,261,415,273,439,285,495,302,540,312,643,333,683,344,677,344,642,338,538,318,493,308,437,290,413,278,389,266,335,247"/>
-<area shape="rect" href="IceAgent_8c.html#a76f0508cf719814537ce707e3f524407" title=" " alt="" coords="438,145,594,173"/>
-<area shape="poly" title=" " alt="" coords="328,214,456,176,452,180,330,219"/>
-<area shape="rect" href="SocketConnection_8c.html#aeea1e134b1c24f7138c4784b9b146e6b" title=" " alt="" coords="676,296,839,324"/>
-<area shape="poly" title=" " alt="" coords="334,237,663,292,658,296,334,242"/>
-<area shape="rect" href="TurnConnection_8c.html#aae1ee157e839fde1869e664af4424c6a" title=" " alt="" coords="442,217,590,245"/>
-<area shape="poly" title=" " alt="" coords="333,229,429,230,424,232,334,234"/>
-<area shape="rect" href="Network_8c.html#a8c64aed52ea980830d0f9db66fc93e1b" title=" " alt="" coords="976,332,1074,360"/>
-<area shape="poly" title=" " alt="" coords="844,354,963,349,958,350,845,359"/>
-<area shape="rect" href="Network_8c.html#ac1e27be5d1de7a987f26d081e5d98234" title=" " alt="" coords="976,384,1074,412"/>
-<area shape="poly" title=" " alt="" coords="844,371,963,389,958,390,844,376"/>
-<area shape="rect" href="Network_8c.html#a4946ffd5e8761a38b4fc7bb253c1491a" title=" " alt="" coords="1206,332,1313,360"/>
-<area shape="poly" title=" " alt="" coords="1074,343,1194,345,1188,346,1075,348"/>
-<area shape="rect" href="Network_8c.html#a3179b58589909af6767082bb0a81aa62" title=" " alt="" coords="1204,384,1315,412"/>
-<area shape="poly" title=" " alt="" coords="1075,354,1191,382,1186,382,1075,359"/>
-<area shape="poly" title=" " alt="" coords="1074,384,1194,360,1188,362,1075,390"/>
-<area shape="poly" title=" " alt="" coords="1074,395,1191,398,1186,398,1075,400"/>
-<area shape="rect" href="IceUtils_8c.html#aed9b171e0c60584515c04c5dd47dd112" title=" " alt="" coords="674,107,841,134"/>
-<area shape="poly" title=" " alt="" coords="594,144,661,135,656,138,596,149"/>
-<area shape="poly" title=" " alt="" coords="840,318,964,337,958,338,840,323"/>
-<area shape="rect" href="Dtls__openssl_8c.html#aa1b6a668704b0b7ddf99be1f7977b8ba" title=" " alt="" coords="964,280,1087,308"/>
-<area shape="poly" title=" " alt="" coords="839,302,951,298,946,299,840,308"/>
-<area shape="rect" href="Tls__openssl_8c.html#aa94c64c8b1c8378f85d7081459ec9425" title=" " alt="" coords="967,228,1084,256"/>
-<area shape="poly" title=" " alt="" coords="828,293,872,282,920,266,955,259,950,261,921,271,873,287,830,298"/>
-<area shape="rect" href="Network_8c.html#afaa547109e09c5a34437553b7258e818" title=" " alt="" coords="974,436,1076,464"/>
-<area shape="poly" title=" " alt="" coords="840,317,874,334,892,356,899,379,906,401,922,421,940,432,962,442,956,441,938,436,919,425,901,403,894,380,888,359,871,339,840,323"/>
-<area shape="rect" href="Dtls__mbedtls_8c.html#aa6d608da9c875fbfccf37bd3e716e836" title=" " alt="" coords="1178,280,1341,308"/>
-<area shape="poly" title=" " alt="" coords="1087,291,1165,293,1160,294,1088,296"/>
-<area shape="rect" href="IOBuffer_8c.html#a716982d27f4e9cf43d6737555e684289" title=" " alt="" coords="1210,228,1310,256"/>
-<area shape="poly" title=" " alt="" coords="1087,278,1197,255,1192,257,1088,283"/>
-<area shape="poly" title=" " alt="" coords="1084,239,1197,241,1191,242,1084,244"/>
-<area shape="rect" href="Tls__mbedtls_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="1184,176,1335,204"/>
-<area shape="poly" title=" " alt="" coords="1083,226,1182,207,1176,208,1085,232"/>
-<area shape="poly" title=" " alt="" coords="541,215,593,182,616,162,641,144,661,138,657,140,644,148,619,166,596,187,544,219"/>
-<area shape="poly" title=" " alt="" coords="547,243,592,263,643,282,670,291,665,292,641,287,590,268,547,248"/>
-<area shape="rect" href="ConnectionListener_8c.html#aadef069d7cf4137e975a3d91c8a46400" title=" " alt="" coords="658,228,857,272"/>
-<area shape="poly" title=" " alt="" coords="590,234,645,240,640,242,591,239"/>
-<area shape="rect" href="TurnConnection_8c.html#aad130b1edfa1b039733e0595c43ffd39" title=" " alt="" coords="642,158,873,203"/>
-<area shape="poly" title=" " alt="" coords="584,214,636,205,631,208,586,219"/>
-<area shape="rect" href="SocketConnection_8c.html#ae1067d81a0037b1cb7e2275d55b554a4" title=" " alt="" coords="935,124,1116,152"/>
-<area shape="poly" title=" " alt="" coords="839,224,872,213,932,185,984,161,989,158,934,190,874,218,841,229"/>
-<area shape="rect" href="Dtls__openssl_8c.html#a1fc56b3d164da5001e7fdd9463e0a281" title=" " alt="" coords="1180,124,1339,152"/>
-<area shape="poly" title=" " alt="" coords="1115,135,1167,137,1162,138,1116,140"/>
-<area shape="rect" href="Tls__openssl_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="1184,45,1335,73"/>
-<area shape="poly" title=" " alt="" coords="1068,121,1204,77,1199,80,1070,126"/>
-<area shape="rect" href="Dtls__openssl_8c.html#af3bfcfebc77d873de4356b748060a048" title=" " alt="" coords="1424,72,1569,100"/>
-<area shape="poly" title=" " alt="" coords="1325,121,1418,103,1413,104,1327,126"/>
-<area shape="rect" href="Dtls__openssl_8c.html#a82fa98f2c2ddff7d94b60f84ef212a15" title=" " alt="" coords="1389,124,1604,152"/>
-<area shape="poly" title=" " alt="" coords="1339,135,1376,137,1371,138,1340,140"/>
-<area shape="rect" href="Dtls_8c.html#ac7d96e418743c4a3c14e2e766340734c" title=" " alt="" coords="1407,176,1586,204"/>
-<area shape="poly" title=" " alt="" coords="1326,150,1418,172,1412,172,1326,155"/>
-<area shape="rect" href="Dtls__openssl_8c.html#a7098126d6dad351545fc6aea9afc2668" title=" " alt="" coords="1424,228,1569,256"/>
-<area shape="poly" title=" " alt="" coords="1317,150,1343,162,1358,175,1367,189,1376,201,1391,213,1412,225,1406,224,1388,217,1372,205,1363,192,1354,179,1340,167,1316,155"/>
-<area shape="rect" href="Tls_8c.html#a7dbb041b5b15c6784e9f57a09a08d467" title=" " alt="" coords="1411,20,1582,48"/>
-<area shape="poly" title=" " alt="" coords="1335,48,1398,44,1393,45,1336,54"/>
-<area shape="poly" title=" " alt="" coords="843,155,871,143,895,127,919,110,971,89,967,91,922,115,898,132,874,148,846,160"/>
-<area shape="poly" title=" " alt="" coords="575,476,961,453,956,455,576,481"/>
-<area shape="rect" href="Network_8c.html#a0d71e1c27b8edd976050cd6310473f4c" title=" " alt="" coords="681,496,834,524"/>
-<area shape="poly" title=" " alt="" coords="576,486,668,499,663,499,576,491"/>
-<area shape="rect" href="Network_8c.html#a742422827e4fbd13aa34322bd5394851" title=" " alt="" coords="988,608,1062,636"/>
-<area shape="poly" title=" " alt="" coords="548,494,643,533,733,559,824,581,976,613,970,613,823,586,732,564,641,538,547,499"/>
-<area shape="poly" title=" " alt="" coords="822,493,956,465,961,464,823,498"/>
-<area shape="rect" href="Network_8c.html#a3603905bcdd27fa193f89b2e3597eac2" title=" " alt="" coords="921,488,1130,532"/>
-<area shape="poly" title=" " alt="" coords="835,507,908,510,903,510,835,512"/>
-<area shape="rect" href="Network_8c.html#a86a24b8a9ad2f8e2497e0d058ef43a20" title=" " alt="" coords="921,556,1130,584"/>
-<area shape="poly" title=" " alt="" coords="823,522,948,552,943,552,822,527"/>
-<area shape="poly" title=" " alt="" coords="785,522,858,561,922,593,976,611,970,611,920,598,855,566,784,527"/>
+<area shape="rect" title=" " alt="" coords="5,243,125,270"/>
+<area shape="rect" href="Stun_8c.html#a82bd20e19952bf247d16b639fc091a34" title=" " alt="" coords="215,53,348,81"/>
+<area shape="poly" title=" " alt="" coords="80,241,253,89,252,94,84,244"/>
+<area shape="rect" href="IceAgent_8c.html#a767c2a29e3bfba0aa45872d26b41a6f4" title=" " alt="" coords="229,192,334,220"/>
+<area shape="poly" title=" " alt="" coords="124,240,215,220,212,224,127,245"/>
+<area shape="rect" href="IceAgent_8c.html#a1cfd588b7d18304d6feb6e32417a508f" title=" " alt="" coords="190,293,372,321"/>
+<area shape="poly" title=" " alt="" coords="124,268,206,288,202,291,126,273"/>
+<area shape="rect" href="IceAgent_8c.html#a6bcfd3644a9038357b400059ed0d3a97" title=" " alt="" coords="173,345,390,373"/>
+<area shape="poly" title=" " alt="" coords="82,268,123,300,174,330,194,339,189,341,171,335,120,304,83,274"/>
+<area shape="rect" href="IceUtils_8c.html#a833304d5c66c3dfef87036727631628f" title=" " alt="" coords="486,453,605,481"/>
+<area shape="poly" title=" " alt="" coords="124,244,184,239,253,240,324,252,359,264,391,280,410,295,420,313,427,331,440,352,482,400,521,443,516,442,478,404,436,355,423,334,415,315,406,299,389,284,357,269,323,257,252,246,184,244,127,249"/>
+<area shape="rect" href="Stun_8c.html#a2ac5f96729bf2bfce45f59c72db4ff43" title=" " alt="" coords="1025,41,1144,69"/>
+<area shape="poly" title=" " alt="" coords="340,50,438,34,576,23,685,21,932,34,1012,44,1007,45,931,39,685,26,577,28,438,39,343,55"/>
+<area shape="poly" title=" " alt="" coords="294,190,352,138,393,110,437,89,486,76,550,67,708,55,873,51,1012,53,1007,55,873,57,708,61,551,72,487,81,439,94,395,115,355,142,298,193"/>
+<area shape="rect" href="ConnectionListener_8c.html#a49f4d889996cb555ffe78ecf4584ec1a" title=" " alt="" coords="730,333,903,361"/>
+<area shape="poly" title=" " alt="" coords="333,212,364,222,392,236,407,250,416,265,424,279,439,292,507,320,579,338,650,346,718,351,712,352,650,352,578,343,505,325,437,296,420,283,411,268,403,254,388,240,362,226,334,217"/>
+<area shape="rect" href="IceAgent_8c.html#a76f0508cf719814537ce707e3f524407" title=" " alt="" coords="468,103,624,130"/>
+<area shape="poly" title=" " alt="" coords="323,189,489,134,486,138,326,194"/>
+<area shape="rect" href="SocketConnection_8c.html#aeea1e134b1c24f7138c4784b9b146e6b" title=" " alt="" coords="735,281,898,309"/>
+<area shape="poly" title=" " alt="" coords="333,218,391,235,415,245,439,254,511,269,585,279,722,292,717,293,585,284,510,274,437,259,413,250,389,240,334,223"/>
+<area shape="rect" href="TurnConnection_8c.html#aae1ee157e839fde1869e664af4424c6a" title=" " alt="" coords="472,165,619,193"/>
+<area shape="poly" title=" " alt="" coords="333,198,459,187,455,190,335,203"/>
+<area shape="rect" href="IceAgent_8c.html#a3b0c0a5783bc602466b4f8e141e4225e" title=" " alt="" coords="438,217,653,245"/>
+<area shape="poly" title=" " alt="" coords="333,208,425,218,420,221,334,213"/>
+<area shape="rect" href="Network_8c.html#a8c64aed52ea980830d0f9db66fc93e1b" title=" " alt="" coords="1035,317,1134,345"/>
+<area shape="poly" title=" " alt="" coords="903,339,1022,334,1017,336,904,345"/>
+<area shape="rect" href="Network_8c.html#ac1e27be5d1de7a987f26d081e5d98234" title=" " alt="" coords="1035,369,1134,397"/>
+<area shape="poly" title=" " alt="" coords="903,356,1022,374,1017,375,903,361"/>
+<area shape="rect" href="Network_8c.html#a4946ffd5e8761a38b4fc7bb253c1491a" title=" " alt="" coords="1266,317,1372,345"/>
+<area shape="poly" title=" " alt="" coords="1133,329,1253,331,1247,332,1134,334"/>
+<area shape="rect" href="Network_8c.html#a3179b58589909af6767082bb0a81aa62" title=" " alt="" coords="1263,369,1374,397"/>
+<area shape="poly" title=" " alt="" coords="1134,339,1250,367,1245,368,1134,345"/>
+<area shape="poly" title=" " alt="" coords="1133,370,1247,347,1253,346,1134,375"/>
+<area shape="poly" title=" " alt="" coords="1133,381,1250,383,1245,383,1134,386"/>
+<area shape="rect" href="IceUtils_8c.html#aed9b171e0c60584515c04c5dd47dd112" title=" " alt="" coords="733,92,900,120"/>
+<area shape="poly" title=" " alt="" coords="623,111,720,109,715,111,625,116"/>
+<area shape="poly" title=" " alt="" coords="899,304,1023,322,1017,323,899,309"/>
+<area shape="rect" href="Dtls__openssl_8c.html#aa1b6a668704b0b7ddf99be1f7977b8ba" title=" " alt="" coords="1023,213,1146,241"/>
+<area shape="poly" title=" " alt="" coords="887,278,931,267,979,251,1012,245,1007,246,980,256,932,272,889,283"/>
+<area shape="rect" href="Tls__openssl_8c.html#aa94c64c8b1c8378f85d7081459ec9425" title=" " alt="" coords="1026,265,1142,293"/>
+<area shape="poly" title=" " alt="" coords="898,288,1013,283,1008,284,899,293"/>
+<area shape="rect" href="Network_8c.html#afaa547109e09c5a34437553b7258e818" title=" " alt="" coords="1033,421,1136,449"/>
+<area shape="poly" title=" " alt="" coords="899,303,933,320,951,342,958,364,965,386,981,406,999,417,1021,427,1015,427,997,422,978,411,960,389,953,366,947,344,930,324,899,308"/>
+<area shape="rect" href="Dtls__mbedtls_8c.html#aa6d608da9c875fbfccf37bd3e716e836" title=" " alt="" coords="1237,161,1400,189"/>
+<area shape="poly" title=" " alt="" coords="1146,211,1241,192,1235,194,1147,216"/>
+<area shape="rect" href="IOBuffer_8c.html#a716982d27f4e9cf43d6737555e684289" title=" " alt="" coords="1268,213,1369,241"/>
+<area shape="poly" title=" " alt="" coords="1146,225,1256,227,1250,228,1147,230"/>
+<area shape="poly" title=" " alt="" coords="1142,264,1256,241,1251,242,1144,269"/>
+<area shape="rect" href="Tls__mbedtls_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="1243,265,1394,293"/>
+<area shape="poly" title=" " alt="" coords="1143,277,1230,279,1225,280,1143,282"/>
+<area shape="poly" title=" " alt="" coords="589,162,701,129,733,123,729,125,702,134,591,167"/>
+<area shape="poly" title=" " alt="" coords="619,188,655,204,671,220,680,237,688,253,703,268,723,280,718,280,700,272,683,256,675,239,667,223,652,208,620,193"/>
+<area shape="rect" href="ConnectionListener_8c.html#aadef069d7cf4137e975a3d91c8a46400" title=" " alt="" coords="717,213,916,258"/>
+<area shape="poly" title=" " alt="" coords="616,191,704,211,699,212,617,196"/>
+<area shape="rect" href="TurnConnection_8c.html#aad130b1edfa1b039733e0595c43ffd39" title=" " alt="" coords="701,144,932,188"/>
+<area shape="poly" title=" " alt="" coords="619,173,689,171,684,173,621,178"/>
+<area shape="rect" href="SocketConnection_8c.html#ae1067d81a0037b1cb7e2275d55b554a4" title=" " alt="" coords="994,109,1174,137"/>
+<area shape="poly" title=" " alt="" coords="898,210,931,198,991,170,1043,146,1048,144,993,175,933,203,900,215"/>
+<area shape="rect" href="Dtls__openssl_8c.html#a1fc56b3d164da5001e7fdd9463e0a281" title=" " alt="" coords="1239,109,1398,137"/>
+<area shape="poly" title=" " alt="" coords="1174,121,1226,123,1221,124,1175,126"/>
+<area shape="rect" href="Tls__openssl_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="1243,31,1394,58"/>
+<area shape="poly" title=" " alt="" coords="1127,106,1263,63,1258,65,1129,111"/>
+<area shape="rect" href="Dtls__openssl_8c.html#af3bfcfebc77d873de4356b748060a048" title=" " alt="" coords="1483,213,1628,241"/>
+<area shape="poly" title=" " alt="" coords="1376,135,1402,148,1417,161,1426,174,1435,186,1450,198,1471,210,1465,210,1447,203,1431,190,1422,177,1413,164,1399,152,1375,140"/>
+<area shape="rect" href="Dtls__openssl_8c.html#a82fa98f2c2ddff7d94b60f84ef212a15" title=" " alt="" coords="1448,57,1663,85"/>
+<area shape="poly" title=" " alt="" coords="1384,106,1477,88,1472,90,1386,111"/>
+<area shape="rect" href="Dtls_8c.html#ac7d96e418743c4a3c14e2e766340734c" title=" " alt="" coords="1466,109,1645,137"/>
+<area shape="poly" title=" " alt="" coords="1398,121,1453,123,1448,124,1399,126"/>
+<area shape="rect" href="Dtls__openssl_8c.html#a7098126d6dad351545fc6aea9afc2668" title=" " alt="" coords="1483,161,1628,189"/>
+<area shape="poly" title=" " alt="" coords="1385,135,1477,157,1471,158,1385,140"/>
+<area shape="rect" href="Tls_8c.html#a7dbb041b5b15c6784e9f57a09a08d467" title=" " alt="" coords="1470,5,1641,33"/>
+<area shape="poly" title=" " alt="" coords="1394,34,1457,29,1452,31,1395,39"/>
+<area shape="poly" title=" " alt="" coords="902,141,930,129,954,113,978,96,1031,74,1026,76,981,100,957,117,933,134,905,145"/>
+<area shape="poly" title=" " alt="" coords="605,461,1020,438,1015,440,606,466"/>
+<area shape="rect" href="Network_8c.html#a0d71e1c27b8edd976050cd6310473f4c" title=" " alt="" coords="740,481,893,509"/>
+<area shape="poly" title=" " alt="" coords="605,471,727,485,722,486,605,476"/>
+<area shape="rect" href="Network_8c.html#a742422827e4fbd13aa34322bd5394851" title=" " alt="" coords="1047,593,1122,621"/>
+<area shape="poly" title=" " alt="" coords="585,479,702,518,884,564,1035,598,1030,597,883,569,701,523,584,484"/>
+<area shape="poly" title=" " alt="" coords="881,478,1015,450,1020,449,882,483"/>
+<area shape="rect" href="Network_8c.html#a3603905bcdd27fa193f89b2e3597eac2" title=" " alt="" coords="980,473,1188,518"/>
+<area shape="poly" title=" " alt="" coords="894,493,967,495,962,495,894,498"/>
+<area shape="rect" href="Network_8c.html#a86a24b8a9ad2f8e2497e0d058ef43a20" title=" " alt="" coords="980,541,1189,569"/>
+<area shape="poly" title=" " alt="" coords="882,507,1007,537,1002,537,881,512"/>
+<area shape="poly" title=" " alt="" coords="844,507,917,547,981,578,1035,597,1029,596,979,583,914,551,843,512"/>
 </map>
 </div>
 <div class="dynheader">
@@ -1591,66 +1594,68 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="IceAgent_8h_a2fec382692577e183d98141466cb51f7_cgraph.png" border="0" usemap="#aIceAgent_8h_a2fec382692577e183d98141466cb51f7_cgraph" loading="lazy" alt=""/></div>
 <map name="aIceAgent_8h_a2fec382692577e183d98141466cb51f7_cgraph" id="aIceAgent_8h_a2fec382692577e183d98141466cb51f7_cgraph">
-<area shape="rect" title=" " alt="" coords="5,183,110,210"/>
-<area shape="rect" href="ConnectionListener_8c.html#a49f4d889996cb555ffe78ecf4584ec1a" title=" " alt="" coords="391,57,563,85"/>
-<area shape="poly" title=" " alt="" coords="79,180,115,160,157,141,269,107,378,85,374,88,270,112,159,146,118,164,83,184"/>
-<area shape="rect" href="IceAgent_8c.html#a76f0508cf719814537ce707e3f524407" title=" " alt="" coords="158,183,314,210"/>
-<area shape="poly" title=" " alt="" coords="109,194,144,195,140,198,111,199"/>
-<area shape="rect" href="SocketConnection_8c.html#aeea1e134b1c24f7138c4784b9b146e6b" title=" " alt="" coords="396,131,559,158"/>
-<area shape="poly" title=" " alt="" coords="107,180,157,169,272,154,382,147,377,150,273,159,158,174,110,184"/>
-<area shape="rect" href="Stun_8c.html#a2ac5f96729bf2bfce45f59c72db4ff43" title=" " alt="" coords="671,333,790,361"/>
-<area shape="poly" title=" " alt="" coords="74,208,112,239,159,272,257,326,302,343,362,358,440,368,519,369,593,365,659,359,654,360,593,370,519,374,440,373,362,363,300,348,254,331,156,276,109,243,74,213"/>
-<area shape="rect" href="TurnConnection_8c.html#aae1ee157e839fde1869e664af4424c6a" title=" " alt="" coords="162,235,310,262"/>
-<area shape="poly" title=" " alt="" coords="107,208,174,228,169,231,108,214"/>
-<area shape="rect" href="Network_8c.html#a8c64aed52ea980830d0f9db66fc93e1b" title=" " alt="" coords="681,57,780,85"/>
-<area shape="poly" title=" " alt="" coords="563,69,668,70,663,72,564,74"/>
-<area shape="rect" href="Network_8c.html#ac1e27be5d1de7a987f26d081e5d98234" title=" " alt="" coords="681,5,780,33"/>
-<area shape="poly" title=" " alt="" coords="547,54,668,31,664,33,549,59"/>
-<area shape="rect" href="Network_8c.html#a4946ffd5e8761a38b4fc7bb253c1491a" title=" " alt="" coords="897,57,1004,85"/>
-<area shape="poly" title=" " alt="" coords="780,69,884,70,879,72,781,74"/>
-<area shape="rect" href="Network_8c.html#a3179b58589909af6767082bb0a81aa62" title=" " alt="" coords="895,5,1006,33"/>
-<area shape="poly" title=" " alt="" coords="779,57,882,35,877,37,781,62"/>
-<area shape="poly" title=" " alt="" coords="780,28,885,55,879,56,780,33"/>
-<area shape="poly" title=" " alt="" coords="779,17,882,18,877,20,781,22"/>
-<area shape="rect" href="IceUtils_8c.html#aed9b171e0c60584515c04c5dd47dd112" title=" " alt="" coords="394,183,561,210"/>
-<area shape="poly" title=" " alt="" coords="314,194,380,195,375,198,315,199"/>
-<area shape="poly" title=" " alt="" coords="527,128,669,88,664,91,529,132"/>
-<area shape="rect" href="Dtls__openssl_8c.html#aa1b6a668704b0b7ddf99be1f7977b8ba" title=" " alt="" coords="669,109,792,137"/>
-<area shape="poly" title=" " alt="" coords="558,135,656,129,651,131,560,140"/>
-<area shape="rect" href="Tls__openssl_8c.html#aa94c64c8b1c8378f85d7081459ec9425" title=" " alt="" coords="672,161,789,189"/>
-<area shape="poly" title=" " alt="" coords="559,152,660,166,654,167,560,157"/>
-<area shape="rect" href="Network_8c.html#afaa547109e09c5a34437553b7258e818" title=" " alt="" coords="679,213,782,241"/>
-<area shape="poly" title=" " alt="" coords="555,156,593,169,618,183,642,198,668,210,662,210,639,203,615,188,591,174,555,162"/>
-<area shape="rect" href="Dtls__mbedtls_8c.html#aa6d608da9c875fbfccf37bd3e716e836" title=" " alt="" coords="869,109,1032,137"/>
-<area shape="poly" title=" " alt="" coords="792,121,856,123,851,124,793,126"/>
-<area shape="rect" href="IOBuffer_8c.html#a716982d27f4e9cf43d6737555e684289" title=" " alt="" coords="900,161,1000,189"/>
-<area shape="poly" title=" " alt="" coords="792,135,888,160,882,160,792,140"/>
-<area shape="poly" title=" " alt="" coords="788,173,887,175,882,176,789,178"/>
-<area shape="rect" href="Tls__mbedtls_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="875,213,1026,241"/>
-<area shape="poly" title=" " alt="" coords="789,186,877,209,871,209,789,191"/>
-<area shape="poly" title=" " alt="" coords="303,232,397,213,392,216,305,237"/>
-<area shape="poly" title=" " alt="" coords="288,232,313,220,327,207,336,194,345,181,361,169,383,161,378,164,363,173,349,185,340,198,331,211,315,224,291,236"/>
-<area shape="rect" href="ConnectionListener_8c.html#aadef069d7cf4137e975a3d91c8a46400" title=" " alt="" coords="378,234,576,279"/>
-<area shape="poly" title=" " alt="" coords="309,248,365,252,360,254,311,254"/>
-<area shape="rect" href="TurnConnection_8c.html#aad130b1edfa1b039733e0595c43ffd39" title=" " alt="" coords="362,304,592,348"/>
-<area shape="poly" title=" " alt="" coords="278,260,363,289,388,298,382,299,361,294,278,266"/>
-<area shape="rect" href="SocketConnection_8c.html#ae1067d81a0037b1cb7e2275d55b554a4" title=" " alt="" coords="640,265,821,293"/>
-<area shape="poly" title=" " alt="" coords="577,263,627,269,622,270,577,268"/>
-<area shape="rect" href="Dtls__openssl_8c.html#a1fc56b3d164da5001e7fdd9463e0a281" title=" " alt="" coords="871,343,1030,370"/>
-<area shape="poly" title=" " alt="" coords="773,291,897,337,891,337,772,296"/>
-<area shape="rect" href="Tls__openssl_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="875,265,1026,293"/>
-<area shape="poly" title=" " alt="" coords="821,277,862,279,856,279,821,282"/>
-<area shape="rect" href="Dtls__openssl_8c.html#af3bfcfebc77d873de4356b748060a048" title=" " alt="" coords="1114,343,1260,370"/>
-<area shape="poly" title=" " alt="" coords="1030,354,1102,356,1096,357,1030,359"/>
-<area shape="rect" href="Dtls__openssl_8c.html#a82fa98f2c2ddff7d94b60f84ef212a15" title=" " alt="" coords="1080,395,1294,422"/>
-<area shape="poly" title=" " alt="" coords="1017,368,1108,391,1103,391,1017,374"/>
-<area shape="rect" href="Dtls_8c.html#ac7d96e418743c4a3c14e2e766340734c" title=" " alt="" coords="1098,447,1276,474"/>
-<area shape="poly" title=" " alt="" coords="972,368,1021,400,1081,431,1104,442,1099,441,1079,436,1018,405,970,373"/>
-<area shape="rect" href="Dtls__openssl_8c.html#a7098126d6dad351545fc6aea9afc2668" title=" " alt="" coords="1114,291,1260,318"/>
-<area shape="poly" title=" " alt="" coords="1016,339,1103,323,1108,322,1017,345"/>
-<area shape="rect" href="Tls_8c.html#a7dbb041b5b15c6784e9f57a09a08d467" title=" " alt="" coords="1102,239,1272,266"/>
-<area shape="poly" title=" " alt="" coords="1026,268,1089,263,1084,264,1027,273"/>
-<area shape="poly" title=" " alt="" coords="593,333,659,341,654,341,593,338"/>
+<area shape="rect" title=" " alt="" coords="5,209,110,237"/>
+<area shape="rect" href="ConnectionListener_8c.html#a49f4d889996cb555ffe78ecf4584ec1a" title=" " alt="" coords="450,57,622,85"/>
+<area shape="poly" title=" " alt="" coords="68,208,105,171,130,151,157,135,226,109,299,90,370,78,437,73,432,76,371,84,300,95,228,114,159,140,133,156,109,175,73,211"/>
+<area shape="rect" href="IceAgent_8c.html#a76f0508cf719814537ce707e3f524407" title=" " alt="" coords="187,183,344,210"/>
+<area shape="poly" title=" " alt="" coords="109,214,173,207,170,210,111,219"/>
+<area shape="rect" href="SocketConnection_8c.html#aeea1e134b1c24f7138c4784b9b146e6b" title=" " alt="" coords="454,131,618,158"/>
+<area shape="poly" title=" " alt="" coords="78,207,114,186,157,169,230,152,304,143,441,139,437,142,304,148,230,158,158,174,116,191,82,211"/>
+<area shape="rect" href="Stun_8c.html#a2ac5f96729bf2bfce45f59c72db4ff43" title=" " alt="" coords="730,333,849,361"/>
+<area shape="poly" title=" " alt="" coords="84,235,159,271,287,325,345,343,421,358,485,365,536,366,651,358,717,355,712,356,652,363,536,371,485,371,421,363,344,348,285,330,157,276,85,240"/>
+<area shape="rect" href="TurnConnection_8c.html#aae1ee157e839fde1869e664af4424c6a" title=" " alt="" coords="192,235,339,262"/>
+<area shape="poly" title=" " alt="" coords="109,227,179,236,175,239,111,232"/>
+<area shape="rect" href="IceAgent_8c.html#a3b0c0a5783bc602466b4f8e141e4225e" title=" " alt="" coords="158,423,373,450"/>
+<area shape="poly" title=" " alt="" coords="63,235,76,270,95,315,122,362,159,402,178,416,173,416,156,407,118,365,90,318,71,272,62,240"/>
+<area shape="rect" href="Network_8c.html#a8c64aed52ea980830d0f9db66fc93e1b" title=" " alt="" coords="740,57,839,85"/>
+<area shape="poly" title=" " alt="" coords="622,69,727,70,722,72,623,74"/>
+<area shape="rect" href="Network_8c.html#ac1e27be5d1de7a987f26d081e5d98234" title=" " alt="" coords="740,5,839,33"/>
+<area shape="poly" title=" " alt="" coords="606,54,727,31,723,33,608,59"/>
+<area shape="rect" href="Network_8c.html#a4946ffd5e8761a38b4fc7bb253c1491a" title=" " alt="" coords="956,57,1062,85"/>
+<area shape="poly" title=" " alt="" coords="839,69,943,71,938,72,840,74"/>
+<area shape="rect" href="Network_8c.html#a3179b58589909af6767082bb0a81aa62" title=" " alt="" coords="954,5,1065,33"/>
+<area shape="poly" title=" " alt="" coords="838,57,941,35,936,37,840,62"/>
+<area shape="poly" title=" " alt="" coords="839,28,944,55,938,56,839,33"/>
+<area shape="poly" title=" " alt="" coords="838,17,941,18,936,20,840,22"/>
+<area shape="rect" href="IceUtils_8c.html#aed9b171e0c60584515c04c5dd47dd112" title=" " alt="" coords="452,183,620,210"/>
+<area shape="poly" title=" " alt="" coords="343,194,439,195,434,198,345,199"/>
+<area shape="poly" title=" " alt="" coords="586,128,728,88,723,91,588,132"/>
+<area shape="rect" href="Dtls__openssl_8c.html#aa1b6a668704b0b7ddf99be1f7977b8ba" title=" " alt="" coords="728,109,851,137"/>
+<area shape="poly" title=" " alt="" coords="618,135,715,129,710,130,619,140"/>
+<area shape="rect" href="Tls__openssl_8c.html#aa94c64c8b1c8378f85d7081459ec9425" title=" " alt="" coords="731,161,848,189"/>
+<area shape="poly" title=" " alt="" coords="618,152,719,166,713,167,618,157"/>
+<area shape="rect" href="Network_8c.html#afaa547109e09c5a34437553b7258e818" title=" " alt="" coords="738,213,841,241"/>
+<area shape="poly" title=" " alt="" coords="614,156,652,169,677,183,701,198,727,210,721,210,698,203,674,188,650,174,614,162"/>
+<area shape="rect" href="Dtls__mbedtls_8c.html#aa6d608da9c875fbfccf37bd3e716e836" title=" " alt="" coords="928,109,1091,137"/>
+<area shape="poly" title=" " alt="" coords="851,121,915,123,910,124,852,126"/>
+<area shape="rect" href="IOBuffer_8c.html#a716982d27f4e9cf43d6737555e684289" title=" " alt="" coords="959,161,1060,189"/>
+<area shape="poly" title=" " alt="" coords="851,135,947,160,941,160,851,140"/>
+<area shape="poly" title=" " alt="" coords="848,173,946,175,941,176,848,178"/>
+<area shape="rect" href="Tls__mbedtls_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="934,213,1085,241"/>
+<area shape="poly" title=" " alt="" coords="848,186,936,209,930,209,848,191"/>
+<area shape="poly" title=" " alt="" coords="339,232,448,213,443,215,340,237"/>
+<area shape="poly" title=" " alt="" coords="338,234,372,220,386,208,395,195,404,182,420,169,442,161,437,164,422,173,408,185,399,198,390,211,374,224,340,239"/>
+<area shape="rect" href="ConnectionListener_8c.html#aadef069d7cf4137e975a3d91c8a46400" title=" " alt="" coords="437,234,635,279"/>
+<area shape="poly" title=" " alt="" coords="339,248,424,252,419,254,340,253"/>
+<area shape="rect" href="TurnConnection_8c.html#aad130b1edfa1b039733e0595c43ffd39" title=" " alt="" coords="421,304,651,348"/>
+<area shape="poly" title=" " alt="" coords="317,260,443,298,438,300,316,266"/>
+<area shape="rect" href="SocketConnection_8c.html#ae1067d81a0037b1cb7e2275d55b554a4" title=" " alt="" coords="699,265,880,293"/>
+<area shape="poly" title=" " alt="" coords="636,263,686,269,681,270,636,268"/>
+<area shape="rect" href="Dtls__openssl_8c.html#a1fc56b3d164da5001e7fdd9463e0a281" title=" " alt="" coords="930,343,1089,370"/>
+<area shape="poly" title=" " alt="" coords="832,291,956,337,950,337,831,296"/>
+<area shape="rect" href="Tls__openssl_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="934,265,1085,293"/>
+<area shape="poly" title=" " alt="" coords="880,277,921,279,915,279,880,282"/>
+<area shape="rect" href="Dtls__openssl_8c.html#af3bfcfebc77d873de4356b748060a048" title=" " alt="" coords="1174,343,1319,370"/>
+<area shape="poly" title=" " alt="" coords="1089,354,1161,356,1155,357,1089,359"/>
+<area shape="rect" href="Dtls__openssl_8c.html#a82fa98f2c2ddff7d94b60f84ef212a15" title=" " alt="" coords="1139,395,1353,422"/>
+<area shape="poly" title=" " alt="" coords="1076,368,1167,391,1162,391,1076,374"/>
+<area shape="rect" href="Dtls_8c.html#ac7d96e418743c4a3c14e2e766340734c" title=" " alt="" coords="1157,447,1335,474"/>
+<area shape="poly" title=" " alt="" coords="1031,368,1080,400,1140,431,1163,442,1158,441,1138,436,1077,405,1029,373"/>
+<area shape="rect" href="Dtls__openssl_8c.html#a7098126d6dad351545fc6aea9afc2668" title=" " alt="" coords="1174,291,1319,318"/>
+<area shape="poly" title=" " alt="" coords="1075,339,1162,323,1167,322,1076,345"/>
+<area shape="rect" href="Tls_8c.html#a7dbb041b5b15c6784e9f57a09a08d467" title=" " alt="" coords="1161,239,1331,266"/>
+<area shape="poly" title=" " alt="" coords="1085,268,1148,263,1143,264,1086,273"/>
+<area shape="poly" title=" " alt="" coords="652,333,718,341,713,341,652,338"/>
 </map>
 </div>
 <div class="dynheader">
@@ -2518,111 +2523,113 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="IceAgent_8h_a1e97803ab232afca8aecc4e2f77b87ac_cgraph.png" border="0" usemap="#aIceAgent_8h_a1e97803ab232afca8aecc4e2f77b87ac_cgraph" loading="lazy" alt=""/></div>
 <map name="aIceAgent_8h_a1e97803ab232afca8aecc4e2f77b87ac_cgraph" id="aIceAgent_8h_a1e97803ab232afca8aecc4e2f77b87ac_cgraph">
-<area shape="rect" title=" " alt="" coords="5,491,224,518"/>
-<area shape="rect" href="ConnectionListener_8c.html#aadef069d7cf4137e975a3d91c8a46400" title=" " alt="" coords="549,252,747,296"/>
-<area shape="poly" title=" " alt="" coords="127,489,186,433,226,401,270,374,336,345,404,321,536,290,531,294,406,326,338,350,273,379,229,406,189,437,131,492"/>
-<area shape="rect" href="IceAgent_8c.html#a76f0508cf719814537ce707e3f524407" title=" " alt="" coords="300,440,456,468"/>
-<area shape="poly" title=" " alt="" coords="189,488,290,469,286,473,192,492"/>
-<area shape="rect" href="SocketConnection_8c.html#aeea1e134b1c24f7138c4784b9b146e6b" title=" " alt="" coords="1397,421,1560,449"/>
-<area shape="poly" title=" " alt="" coords="224,502,647,502,951,502,1073,497,1194,484,1399,452,1394,453,1195,489,1074,502,951,507,647,507,225,507"/>
-<area shape="rect" href="TurnConnection_8c.html#aae1ee157e839fde1869e664af4424c6a" title=" " alt="" coords="305,388,452,416"/>
-<area shape="poly" title=" " alt="" coords="139,488,199,457,271,426,299,419,295,422,273,431,201,462,143,492"/>
-<area shape="rect" href="IceAgent_8c.html#ae7e2880108aafbf93c4f092712d86500" title=" " alt="" coords="578,548,718,576"/>
-<area shape="poly" title=" " alt="" coords="223,515,272,521,564,552,561,555,271,526,225,520"/>
-<area shape="rect" href="IceAgent_8c.html#ac48af5043d440642380951b2523240ed" title=" " alt="" coords="272,593,485,638"/>
-<area shape="poly" title=" " alt="" coords="147,516,273,571,306,586,300,587,271,576,147,522"/>
-<area shape="rect" href="TurnConnection_8c.html#acafa7ed7d0b238b1a6b27a78280712f8" title=" " alt="" coords="286,661,470,689"/>
-<area shape="poly" title=" " alt="" coords="127,516,186,580,227,617,273,648,286,655,281,656,270,652,224,621,182,584,126,521"/>
-<area shape="rect" href="SocketConnection_8c.html#ae1067d81a0037b1cb7e2275d55b554a4" title=" " alt="" coords="1388,260,1569,288"/>
-<area shape="poly" title=" " alt="" coords="747,271,1375,272,1371,276,748,276"/>
-<area shape="rect" href="Dtls__openssl_8c.html#a1fc56b3d164da5001e7fdd9463e0a281" title=" " alt="" coords="1657,109,1816,137"/>
-<area shape="poly" title=" " alt="" coords="1491,257,1545,204,1583,173,1625,147,1641,144,1645,141,1628,152,1586,178,1549,208,1494,262"/>
-<area shape="rect" href="Tls__openssl_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="1661,317,1812,345"/>
-<area shape="poly" title=" " alt="" coords="1544,286,1659,313,1653,314,1544,291"/>
-<area shape="rect" href="Dtls__openssl_8c.html#af3bfcfebc77d873de4356b748060a048" title=" " alt="" coords="1929,161,2074,189"/>
-<area shape="poly" title=" " alt="" coords="1811,135,1916,158,1911,158,1811,140"/>
-<area shape="rect" href="Dtls__openssl_8c.html#a82fa98f2c2ddff7d94b60f84ef212a15" title=" " alt="" coords="1895,57,2109,85"/>
-<area shape="poly" title=" " alt="" coords="1810,106,1915,88,1910,89,1812,111"/>
-<area shape="rect" href="Dtls_8c.html#ac7d96e418743c4a3c14e2e766340734c" title=" " alt="" coords="1913,5,2091,33"/>
-<area shape="poly" title=" " alt="" coords="1762,106,1821,75,1894,43,1922,37,1917,38,1896,48,1823,80,1764,111"/>
-<area shape="rect" href="Dtls__openssl_8c.html#a7098126d6dad351545fc6aea9afc2668" title=" " alt="" coords="1929,109,2074,137"/>
-<area shape="poly" title=" " alt="" coords="1816,121,1916,123,1911,124,1817,126"/>
-<area shape="rect" href="Tls_8c.html#a7dbb041b5b15c6784e9f57a09a08d467" title=" " alt="" coords="1917,369,2087,397"/>
-<area shape="poly" title=" " alt="" coords="1811,343,1915,366,1910,366,1811,348"/>
-<area shape="rect" href="IceUtils_8c.html#aed9b171e0c60584515c04c5dd47dd112" title=" " alt="" coords="564,440,732,468"/>
-<area shape="poly" title=" " alt="" coords="456,451,551,453,547,455,458,456"/>
-<area shape="rect" href="Network_8c.html#a8c64aed52ea980830d0f9db66fc93e1b" title=" " alt="" coords="1687,421,1786,449"/>
-<area shape="poly" title=" " alt="" coords="1560,433,1674,435,1669,436,1561,438"/>
-<area shape="rect" href="Dtls__openssl_8c.html#aa1b6a668704b0b7ddf99be1f7977b8ba" title=" " alt="" coords="1675,265,1798,293"/>
-<area shape="poly" title=" " alt="" coords="1558,418,1577,406,1588,395,1594,382,1600,356,1605,330,1613,317,1625,304,1657,289,1662,287,1628,308,1617,320,1610,332,1605,358,1599,384,1592,398,1580,411,1560,423"/>
-<area shape="rect" href="Tls__openssl_8c.html#aa94c64c8b1c8378f85d7081459ec9425" title=" " alt="" coords="1678,213,1795,241"/>
-<area shape="poly" title=" " alt="" coords="1559,419,1576,407,1591,388,1598,370,1599,331,1601,291,1609,271,1625,252,1642,239,1661,235,1666,233,1645,244,1628,256,1614,274,1607,292,1605,331,1603,371,1595,391,1580,410,1562,423"/>
-<area shape="rect" href="Network_8c.html#afaa547109e09c5a34437553b7258e818" title=" " alt="" coords="1951,549,2053,577"/>
-<area shape="poly" title=" " alt="" coords="1502,447,1558,480,1627,510,1709,531,1792,545,1938,561,1933,561,1791,551,1708,536,1625,515,1555,484,1501,452"/>
-<area shape="rect" href="Network_8c.html#a4946ffd5e8761a38b4fc7bb253c1491a" title=" " alt="" coords="1949,421,2055,449"/>
-<area shape="poly" title=" " alt="" coords="1786,433,1936,435,1930,435,1786,438"/>
-<area shape="rect" href="Network_8c.html#a3179b58589909af6767082bb0a81aa62" title=" " alt="" coords="1946,473,2058,501"/>
-<area shape="poly" title=" " alt="" coords="1786,442,1934,473,1928,473,1786,447"/>
-<area shape="rect" href="Dtls__mbedtls_8c.html#aa6d608da9c875fbfccf37bd3e716e836" title=" " alt="" coords="1920,317,2084,345"/>
-<area shape="poly" title=" " alt="" coords="1799,289,1915,314,1910,314,1799,294"/>
-<area shape="rect" href="IOBuffer_8c.html#a716982d27f4e9cf43d6737555e684289" title=" " alt="" coords="1952,265,2052,293"/>
-<area shape="poly" title=" " alt="" coords="1798,277,1939,279,1934,280,1799,282"/>
-<area shape="poly" title=" " alt="" coords="1795,236,1939,266,1934,267,1795,241"/>
-<area shape="rect" href="Tls__mbedtls_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="1926,213,2078,241"/>
-<area shape="poly" title=" " alt="" coords="1794,225,1913,227,1908,228,1795,230"/>
-<area shape="poly" title=" " alt="" coords="398,385,457,347,532,306,552,300,547,303,534,311,459,351,401,390"/>
-<area shape="poly" title=" " alt="" coords="452,413,560,436,555,437,453,419"/>
-<area shape="poly" title=" " alt="" coords="452,401,1382,430,1380,435,453,407"/>
-<area shape="rect" href="TurnConnection_8c.html#aad130b1edfa1b039733e0595c43ffd39" title=" " alt="" coords="533,321,763,366"/>
-<area shape="poly" title=" " alt="" coords="444,385,530,368,525,371,446,390"/>
-<area shape="rect" href="Stun_8c.html#a2ac5f96729bf2bfce45f59c72db4ff43" title=" " alt="" coords="891,329,1009,357"/>
-<area shape="poly" title=" " alt="" coords="763,341,878,342,873,344,764,346"/>
-<area shape="poly" title=" " alt="" coords="485,591,565,578,560,579,486,597"/>
-<area shape="rect" href="IceAgent_8c.html#aff64bc1649d0c5e3390f6ad14eb9aa1e" title=" " alt="" coords="558,607,739,634"/>
-<area shape="poly" title=" " alt="" coords="485,615,544,618,539,619,486,620"/>
-<area shape="rect" href="IceAgent_8c.html#a89108fd9fa5c7ef370f55cf8e69a7d77" title=" " alt="" coords="811,542,1089,587"/>
-<area shape="poly" title=" " alt="" coords="726,603,814,590,809,591,728,609"/>
-<area shape="rect" href="IceAgent_8c.html#add07c218275f39a2fdabc9f850eb0609" title=" " alt="" coords="833,611,1067,638"/>
-<area shape="poly" title=" " alt="" coords="739,619,820,622,815,623,740,624"/>
-<area shape="rect" href="IceUtils_8c.html#a163008ed55dd5e46e25737a89d5beabb" title=" " alt="" coords="863,663,1037,690"/>
-<area shape="poly" title=" " alt="" coords="727,632,859,659,854,659,727,638"/>
-<area shape="rect" href="Network_8c.html#a02a5521b5b00d5aaa4b3b019ba17ef72" title=" " alt="" coords="1170,599,1298,626"/>
-<area shape="poly" title=" " alt="" coords="1030,659,1088,647,1163,631,1168,630,1089,652,1031,665"/>
-<area shape="rect" href="IceUtils_8c.html#a05a5f1ea3d3d4e73bdb4298e75f56d15" title=" " alt="" coords="1137,765,1331,793"/>
-<area shape="poly" title=" " alt="" coords="992,688,1181,760,1176,759,991,694"/>
-<area shape="rect" href="IceUtils_8c.html#abffd2f385a91e5840b12912df46777d4" title=" " alt="" coords="1167,663,1300,690"/>
-<area shape="poly" title=" " alt="" coords="1037,674,1154,676,1149,677,1037,679"/>
-<area shape="poly" title=" " alt="" coords="1298,606,1938,567,1933,568,1299,611"/>
-<area shape="rect" href="Stun_8c.html#a343599eb21e2e725f465200f72c476d8" title=" " alt="" coords="1405,765,1552,793"/>
-<area shape="poly" title=" " alt="" coords="1332,777,1392,779,1387,779,1332,782"/>
-<area shape="rect" href="Stun_8c.html#a0ff5d54538a4e80eca46314552a3e993" title=" " alt="" coords="1664,780,1809,808"/>
-<area shape="poly" title=" " alt="" coords="1553,781,1652,789,1646,789,1553,786"/>
-<area shape="rect" href="Stun_8c.html#a086d658c6275e5a5161934025b070c24" title=" " alt="" coords="1949,780,2054,808"/>
-<area shape="poly" title=" " alt="" coords="1809,791,1936,794,1931,794,1809,796"/>
-<area shape="rect" href="SocketConnection_8c.html#abbba4e0cf8c625191e47489fca04d9b7" title=" " alt="" coords="1379,369,1578,397"/>
-<area shape="poly" title=" " alt="" coords="1295,660,1314,650,1329,636,1347,607,1354,579,1354,551,1351,523,1347,494,1348,466,1357,437,1377,408,1380,408,1385,405,1381,412,1362,439,1353,466,1353,494,1356,522,1359,551,1359,580,1352,609,1333,640,1317,654,1297,665"/>
-<area shape="rect" href="TurnConnection_8c.html#a0d996d98abef81b2f6c54be480ef7ea1" title=" " alt="" coords="1387,663,1570,690"/>
-<area shape="poly" title=" " alt="" coords="1301,682,1374,685,1369,686,1301,687"/>
-<area shape="rect" href="Dtls__openssl_8c.html#a608d99bbc2a0b7f380452a335f8cc2f1" title=" " alt="" coords="1626,161,1847,189"/>
-<area shape="poly" title=" " alt="" coords="1500,366,1538,337,1576,298,1591,271,1597,247,1605,223,1625,200,1631,198,1636,195,1628,204,1609,226,1602,248,1596,273,1580,301,1541,341,1503,371"/>
-<area shape="rect" href="SocketConnection_8c.html#a731488b5d3008cdfe4ba64b9ab1ec891" title=" " alt="" coords="1641,473,1832,501"/>
-<area shape="poly" title=" " alt="" coords="1552,395,1580,408,1595,420,1604,434,1613,446,1628,458,1642,468,1637,467,1625,463,1609,450,1600,437,1591,424,1577,412,1551,400"/>
-<area shape="rect" href="Tls__openssl_8c.html#a64cd202de66bae27a7d0edd8d5a05446" title=" " alt="" coords="1630,369,1843,397"/>
-<area shape="poly" title=" " alt="" coords="1578,381,1617,383,1612,384,1579,386"/>
-<area shape="poly" title=" " alt="" coords="1847,173,1916,175,1911,176,1848,178"/>
-<area shape="poly" title=" " alt="" coords="1810,158,1916,140,1911,141,1812,163"/>
-<area shape="poly" title=" " alt="" coords="1810,470,1931,449,1936,448,1812,475"/>
-<area shape="poly" title=" " alt="" coords="1832,485,1933,487,1928,487,1833,490"/>
-<area shape="poly" title=" " alt="" coords="1788,499,1939,545,1934,545,1788,504"/>
-<area shape="poly" title=" " alt="" coords="1843,381,1904,383,1899,383,1843,386"/>
-<area shape="poly" title=" " alt="" coords="1569,659,1700,636,1846,605,1937,582,1942,581,1847,610,1701,641,1569,665"/>
-<area shape="poly" title=" " alt="" coords="1384,668,1316,671,1316,665,1389,668"/>
-<area shape="rect" href="TurnConnection_8c.html#aedd80b86d90bac7fc9588c66c455eb95" title=" " alt="" coords="1633,728,1840,756"/>
-<area shape="poly" title=" " alt="" coords="1534,688,1627,713,1663,724,1658,723,1626,718,1534,694"/>
-<area shape="rect" href="TurnConnection_8c.html#a9554f30fbafbccca935277837ee1b2dc" title=" " alt="" coords="1629,676,1844,704"/>
-<area shape="poly" title=" " alt="" coords="1571,679,1617,683,1611,684,1571,684"/>
-<area shape="rect" href="Network_8c.html#a05d12502235a4a9313ba49cdfc4487a4" title=" " alt="" coords="1935,676,2068,704"/>
-<area shape="poly" title=" " alt="" coords="1844,687,1922,690,1917,690,1844,692"/>
+<area shape="rect" title=" " alt="" coords="5,517,224,545"/>
+<area shape="rect" href="ConnectionListener_8c.html#aadef069d7cf4137e975a3d91c8a46400" title=" " alt="" coords="551,253,749,298"/>
+<area shape="poly" title=" " alt="" coords="124,515,181,448,223,409,270,376,335,344,404,319,472,301,538,289,534,292,474,306,406,324,337,349,273,380,226,413,185,452,128,518"/>
+<area shape="rect" href="IceAgent_8c.html#a76f0508cf719814537ce707e3f524407" title=" " alt="" coords="301,441,458,469"/>
+<area shape="poly" title=" " alt="" coords="165,514,316,472,312,476,167,519"/>
+<area shape="rect" href="SocketConnection_8c.html#aeea1e134b1c24f7138c4784b9b146e6b" title=" " alt="" coords="1399,421,1562,449"/>
+<area shape="poly" title=" " alt="" coords="223,520,421,509,649,503,953,503,1076,498,1197,484,1308,467,1402,452,1397,453,1309,472,1198,490,1076,503,953,508,649,508,422,514,225,526"/>
+<area shape="rect" href="TurnConnection_8c.html#aae1ee157e839fde1869e664af4424c6a" title=" " alt="" coords="306,389,453,417"/>
+<area shape="poly" title=" " alt="" coords="131,515,191,472,230,448,271,427,294,420,290,424,273,432,232,453,194,476,135,519"/>
+<area shape="rect" href="IceAgent_8c.html#ae7e2880108aafbf93c4f092712d86500" title=" " alt="" coords="580,549,720,577"/>
+<area shape="poly" title=" " alt="" coords="223,535,566,556,563,560,224,540"/>
+<area shape="rect" href="IceAgent_8c.html#ac48af5043d440642380951b2523240ed" title=" " alt="" coords="273,594,486,639"/>
+<area shape="poly" title=" " alt="" coords="160,543,296,588,291,590,160,548"/>
+<area shape="rect" href="IceAgent_8c.html#a3b0c0a5783bc602466b4f8e141e4225e" title=" " alt="" coords="272,663,487,690"/>
+<area shape="poly" title=" " alt="" coords="130,543,190,595,230,624,273,649,289,657,284,658,270,654,227,629,187,599,130,548"/>
+<area shape="rect" href="TurnConnection_8c.html#acafa7ed7d0b238b1a6b27a78280712f8" title=" " alt="" coords="287,715,472,742"/>
+<area shape="poly" title=" " alt="" coords="125,543,149,576,182,619,224,662,273,700,287,709,282,709,270,704,220,666,178,622,144,579,124,548"/>
+<area shape="rect" href="SocketConnection_8c.html#ae1067d81a0037b1cb7e2275d55b554a4" title=" " alt="" coords="1390,261,1571,289"/>
+<area shape="poly" title=" " alt="" coords="749,273,1377,273,1373,277,750,278"/>
+<area shape="rect" href="Dtls__openssl_8c.html#a1fc56b3d164da5001e7fdd9463e0a281" title=" " alt="" coords="1659,109,1818,137"/>
+<area shape="poly" title=" " alt="" coords="1493,258,1547,204,1585,174,1627,147,1642,144,1647,142,1630,152,1588,178,1551,208,1496,263"/>
+<area shape="rect" href="Tls__openssl_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="1663,317,1814,345"/>
+<area shape="poly" title=" " alt="" coords="1548,287,1659,313,1654,314,1548,292"/>
+<area shape="rect" href="Dtls__openssl_8c.html#af3bfcfebc77d873de4356b748060a048" title=" " alt="" coords="1931,161,2076,189"/>
+<area shape="poly" title=" " alt="" coords="1813,135,1918,158,1913,158,1813,140"/>
+<area shape="rect" href="Dtls__openssl_8c.html#a82fa98f2c2ddff7d94b60f84ef212a15" title=" " alt="" coords="1897,57,2111,85"/>
+<area shape="poly" title=" " alt="" coords="1812,106,1917,88,1912,89,1814,111"/>
+<area shape="rect" href="Dtls_8c.html#ac7d96e418743c4a3c14e2e766340734c" title=" " alt="" coords="1915,5,2093,33"/>
+<area shape="poly" title=" " alt="" coords="1764,106,1823,75,1896,43,1924,37,1919,38,1898,48,1825,80,1766,111"/>
+<area shape="rect" href="Dtls__openssl_8c.html#a7098126d6dad351545fc6aea9afc2668" title=" " alt="" coords="1931,109,2076,137"/>
+<area shape="poly" title=" " alt="" coords="1818,121,1918,123,1913,124,1819,126"/>
+<area shape="rect" href="Tls_8c.html#a7dbb041b5b15c6784e9f57a09a08d467" title=" " alt="" coords="1919,369,2089,397"/>
+<area shape="poly" title=" " alt="" coords="1813,343,1917,366,1912,366,1813,348"/>
+<area shape="rect" href="IceUtils_8c.html#aed9b171e0c60584515c04c5dd47dd112" title=" " alt="" coords="566,441,734,469"/>
+<area shape="poly" title=" " alt="" coords="457,453,553,454,548,456,459,458"/>
+<area shape="rect" href="Network_8c.html#a8c64aed52ea980830d0f9db66fc93e1b" title=" " alt="" coords="1689,421,1788,449"/>
+<area shape="poly" title=" " alt="" coords="1562,433,1676,435,1671,436,1563,438"/>
+<area shape="rect" href="Dtls__openssl_8c.html#aa1b6a668704b0b7ddf99be1f7977b8ba" title=" " alt="" coords="1677,265,1800,293"/>
+<area shape="poly" title=" " alt="" coords="1560,418,1579,406,1590,395,1596,382,1602,356,1607,330,1615,317,1627,304,1659,289,1664,287,1630,308,1619,320,1612,332,1607,358,1601,384,1594,398,1582,411,1562,423"/>
+<area shape="rect" href="Tls__openssl_8c.html#aa94c64c8b1c8378f85d7081459ec9425" title=" " alt="" coords="1680,213,1797,241"/>
+<area shape="poly" title=" " alt="" coords="1561,419,1578,407,1593,388,1600,370,1601,331,1603,291,1611,271,1627,252,1644,239,1663,235,1668,233,1647,244,1630,256,1616,274,1609,292,1607,331,1605,371,1597,391,1582,410,1564,423"/>
+<area shape="rect" href="Network_8c.html#afaa547109e09c5a34437553b7258e818" title=" " alt="" coords="1953,549,2055,577"/>
+<area shape="poly" title=" " alt="" coords="1504,447,1560,480,1629,510,1711,531,1794,545,1940,561,1935,561,1793,551,1710,536,1627,515,1557,484,1503,452"/>
+<area shape="rect" href="Network_8c.html#a4946ffd5e8761a38b4fc7bb253c1491a" title=" " alt="" coords="1951,421,2057,449"/>
+<area shape="poly" title=" " alt="" coords="1788,433,1938,435,1932,435,1788,438"/>
+<area shape="rect" href="Network_8c.html#a3179b58589909af6767082bb0a81aa62" title=" " alt="" coords="1948,473,2060,501"/>
+<area shape="poly" title=" " alt="" coords="1788,442,1936,473,1930,473,1788,447"/>
+<area shape="rect" href="Dtls__mbedtls_8c.html#aa6d608da9c875fbfccf37bd3e716e836" title=" " alt="" coords="1922,317,2086,345"/>
+<area shape="poly" title=" " alt="" coords="1801,289,1917,314,1912,314,1801,294"/>
+<area shape="rect" href="IOBuffer_8c.html#a716982d27f4e9cf43d6737555e684289" title=" " alt="" coords="1954,265,2054,293"/>
+<area shape="poly" title=" " alt="" coords="1800,277,1941,279,1936,280,1801,282"/>
+<area shape="poly" title=" " alt="" coords="1797,236,1941,266,1936,267,1797,241"/>
+<area shape="rect" href="Tls__mbedtls_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="1928,213,2080,241"/>
+<area shape="poly" title=" " alt="" coords="1796,225,1915,227,1910,228,1797,230"/>
+<area shape="poly" title=" " alt="" coords="399,387,458,348,534,307,554,302,549,305,536,312,461,353,402,391"/>
+<area shape="poly" title=" " alt="" coords="453,415,562,437,557,439,454,420"/>
+<area shape="poly" title=" " alt="" coords="453,403,1385,430,1383,435,454,408"/>
+<area shape="rect" href="TurnConnection_8c.html#aad130b1edfa1b039733e0595c43ffd39" title=" " alt="" coords="535,322,765,367"/>
+<area shape="poly" title=" " alt="" coords="446,386,532,369,527,372,448,391"/>
+<area shape="rect" href="Stun_8c.html#a2ac5f96729bf2bfce45f59c72db4ff43" title=" " alt="" coords="893,331,1011,358"/>
+<area shape="poly" title=" " alt="" coords="765,342,880,344,875,345,766,347"/>
+<area shape="poly" title=" " alt="" coords="486,593,567,579,562,581,487,598"/>
+<area shape="rect" href="IceAgent_8c.html#aff64bc1649d0c5e3390f6ad14eb9aa1e" title=" " alt="" coords="560,607,741,634"/>
+<area shape="poly" title=" " alt="" coords="486,615,547,618,542,619,487,621"/>
+<area shape="rect" href="IceAgent_8c.html#a89108fd9fa5c7ef370f55cf8e69a7d77" title=" " alt="" coords="813,544,1091,588"/>
+<area shape="poly" title=" " alt="" coords="730,603,812,591,807,592,731,609"/>
+<area shape="rect" href="IceAgent_8c.html#add07c218275f39a2fdabc9f850eb0609" title=" " alt="" coords="835,612,1069,640"/>
+<area shape="poly" title=" " alt="" coords="741,619,822,623,817,624,742,625"/>
+<area shape="rect" href="IceUtils_8c.html#a163008ed55dd5e46e25737a89d5beabb" title=" " alt="" coords="865,664,1039,692"/>
+<area shape="poly" title=" " alt="" coords="727,632,863,660,858,661,727,638"/>
+<area shape="rect" href="Network_8c.html#a02a5521b5b00d5aaa4b3b019ba17ef72" title=" " alt="" coords="1172,599,1300,626"/>
+<area shape="poly" title=" " alt="" coords="1033,661,1090,649,1167,632,1172,631,1091,654,1034,666"/>
+<area shape="rect" href="IceUtils_8c.html#a05a5f1ea3d3d4e73bdb4298e75f56d15" title=" " alt="" coords="1139,741,1333,769"/>
+<area shape="poly" title=" " alt="" coords="1006,690,1171,737,1165,737,1005,695"/>
+<area shape="rect" href="IceUtils_8c.html#abffd2f385a91e5840b12912df46777d4" title=" " alt="" coords="1169,664,1302,692"/>
+<area shape="poly" title=" " alt="" coords="1039,675,1156,678,1151,678,1039,680"/>
+<area shape="poly" title=" " alt="" coords="1300,606,1940,567,1935,568,1301,611"/>
+<area shape="rect" href="Stun_8c.html#a343599eb21e2e725f465200f72c476d8" title=" " alt="" coords="1407,741,1554,769"/>
+<area shape="poly" title=" " alt="" coords="1334,753,1394,755,1389,755,1334,758"/>
+<area shape="rect" href="Stun_8c.html#a0ff5d54538a4e80eca46314552a3e993" title=" " alt="" coords="1666,780,1811,808"/>
+<area shape="poly" title=" " alt="" coords="1555,764,1654,781,1648,781,1555,769"/>
+<area shape="rect" href="Stun_8c.html#a086d658c6275e5a5161934025b070c24" title=" " alt="" coords="1951,780,2056,808"/>
+<area shape="poly" title=" " alt="" coords="1811,791,1938,794,1933,794,1811,796"/>
+<area shape="rect" href="SocketConnection_8c.html#abbba4e0cf8c625191e47489fca04d9b7" title=" " alt="" coords="1381,369,1580,397"/>
+<area shape="poly" title=" " alt="" coords="1295,661,1315,651,1331,636,1349,607,1356,579,1356,551,1352,522,1349,494,1350,466,1359,437,1379,408,1382,408,1387,405,1383,412,1364,439,1355,466,1355,494,1358,522,1361,550,1361,579,1354,609,1335,640,1318,655,1297,666"/>
+<area shape="rect" href="TurnConnection_8c.html#a0d996d98abef81b2f6c54be480ef7ea1" title=" " alt="" coords="1389,664,1572,692"/>
+<area shape="poly" title=" " alt="" coords="1303,683,1376,687,1371,687,1303,689"/>
+<area shape="rect" href="Dtls__openssl_8c.html#a608d99bbc2a0b7f380452a335f8cc2f1" title=" " alt="" coords="1628,161,1849,189"/>
+<area shape="poly" title=" " alt="" coords="1503,367,1540,338,1578,299,1593,272,1599,247,1607,223,1627,200,1633,198,1638,195,1630,204,1611,226,1604,249,1598,274,1582,302,1544,342,1505,371"/>
+<area shape="rect" href="SocketConnection_8c.html#a731488b5d3008cdfe4ba64b9ab1ec891" title=" " alt="" coords="1643,473,1834,501"/>
+<area shape="poly" title=" " alt="" coords="1554,395,1582,408,1597,420,1606,434,1615,446,1630,458,1644,468,1639,467,1627,463,1611,450,1602,437,1593,424,1579,412,1553,400"/>
+<area shape="rect" href="Tls__openssl_8c.html#a64cd202de66bae27a7d0edd8d5a05446" title=" " alt="" coords="1632,369,1845,397"/>
+<area shape="poly" title=" " alt="" coords="1580,381,1619,383,1614,384,1581,386"/>
+<area shape="poly" title=" " alt="" coords="1849,173,1918,175,1913,176,1850,178"/>
+<area shape="poly" title=" " alt="" coords="1812,158,1918,140,1913,141,1814,163"/>
+<area shape="poly" title=" " alt="" coords="1812,470,1933,449,1938,448,1814,475"/>
+<area shape="poly" title=" " alt="" coords="1834,485,1935,487,1930,487,1835,490"/>
+<area shape="poly" title=" " alt="" coords="1790,499,1941,545,1936,545,1790,504"/>
+<area shape="poly" title=" " alt="" coords="1845,381,1906,383,1901,383,1845,386"/>
+<area shape="poly" title=" " alt="" coords="1568,661,1701,636,1848,605,1939,582,1944,581,1849,610,1702,642,1569,666"/>
+<area shape="poly" title=" " alt="" coords="1386,669,1318,672,1318,667,1391,669"/>
+<area shape="rect" href="TurnConnection_8c.html#aedd80b86d90bac7fc9588c66c455eb95" title=" " alt="" coords="1635,728,1842,756"/>
+<area shape="poly" title=" " alt="" coords="1539,690,1629,713,1666,724,1661,724,1628,718,1538,695"/>
+<area shape="rect" href="TurnConnection_8c.html#a9554f30fbafbccca935277837ee1b2dc" title=" " alt="" coords="1631,676,1846,704"/>
+<area shape="poly" title=" " alt="" coords="1573,679,1619,684,1613,684,1573,685"/>
+<area shape="rect" href="Network_8c.html#a05d12502235a4a9313ba49cdfc4487a4" title=" " alt="" coords="1937,676,2070,704"/>
+<area shape="poly" title=" " alt="" coords="1846,687,1924,690,1919,690,1846,692"/>
 </map>
 </div>
 <div class="dynheader">
@@ -5227,6 +5234,44 @@ Here is the caller graph for this function:</div>
 <area shape="poly" title=" " alt="" coords="367,19,337,22,337,17,372,19"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,5,170,33"/>
 <area shape="poly" title=" " alt="" coords="200,19,170,22,170,17,205,19"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="a363197d9e8247192535aafbae5f8b7cd" name="a363197d9e8247192535aafbae5f8b7cd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a363197d9e8247192535aafbae5f8b7cd">&#9670;&#160;</a></span>iceAgentWaitForSendsInFlight()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">VOID iceAgentWaitForSendsInFlight </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="#ab6d8079a3d3ad310ae08b7edc7a77862">PIceAgent</a></td>          <td class="paramname"><span class="paramname"><em>pIceAgent</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="IceAgent_8h_a363197d9e8247192535aafbae5f8b7cd_icgraph.png" border="0" usemap="#aIceAgent_8h_a363197d9e8247192535aafbae5f8b7cd_icgraph" loading="lazy" alt=""/></div>
+<map name="aIceAgent_8h_a363197d9e8247192535aafbae5f8b7cd_icgraph" id="aIceAgent_8h_a363197d9e8247192535aafbae5f8b7cd_icgraph">
+<area shape="rect" title=" " alt="" coords="730,88,946,116"/>
+<area shape="rect" href="IceAgent_8c.html#a767c2a29e3bfba0aa45872d26b41a6f4" title=" " alt="" coords="521,57,625,85"/>
+<area shape="poly" title=" " alt="" coords="712,88,626,80,626,74,718,88"/>
+<area shape="rect" href="IceAgent_8c.html#aad8b693b79de0b9b57770fb4efe64ee4" title=" " alt="" coords="464,113,682,141"/>
+<area shape="poly" title=" " alt="" coords="718,113,683,119,683,114,712,114"/>
+<area shape="rect" href="IceAgent_8c.html#af2fe29241b2d4ab4997fe04c41534578" title=" " alt="" coords="257,5,376,33"/>
+<area shape="poly" title=" " alt="" coords="503,58,377,34,377,29,508,57"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="242,57,392,85"/>
+<area shape="poly" title=" " alt="" coords="503,72,392,74,392,69,508,71"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,32,170,60"/>
+<area shape="poly" title=" " alt="" coords="240,29,171,39,169,34,244,27"/>
+<area shape="poly" title=" " alt="" coords="225,62,171,58,170,52,230,60"/>
+<area shape="rect" href="IceAgentStateMachine_8c.html#ae73bb89e7e9f087dd2ccfa8cf1f1833a" title=" " alt="" coords="218,109,416,154"/>
+<area shape="poly" title=" " alt="" coords="446,129,417,132,416,127,451,129"/>
 </map>
 </div>
 
