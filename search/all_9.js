@@ -182,7 +182,7 @@ var searchData=
   ['intersecttransceiverdirection_179',['intersectTransceiverDirection',['../SessionDescription_8c.html#aa9d756ad98ad6322572796c627c99d39',1,'intersectTransceiverDirection(RTC_RTP_TRANSCEIVER_DIRECTION local, RTC_RTP_TRANSCEIVER_DIRECTION remote):&#160;SessionDescription.c'],['../SessionDescription_8h.html#a343a1662f81a22b4cda04b9bb333c4d3',1,'intersectTransceiverDirection(RTC_RTP_TRANSCEIVER_DIRECTION, RTC_RTP_TRANSCEIVER_DIRECTION):&#160;SessionDescription.c']]],
   ['introduction_180',['Introduction',['../md_Introduction.html',1,'']]],
   ['introduction_2emd_181',['Introduction.md',['../Introduction_8md.html',1,'']]],
-  ['inuse_182',['inUse',['../struct____SocketConnection.html#ace04ea5cae78774632597f00ef53bc91',1,'__SocketConnection']]],
+  ['inuse_182',['inUse',['../struct____SocketConnection.html#a91fba7262c2df949ea617b69eaa0f3e7',1,'__SocketConnection']]],
   ['invalid_5fsignaling_5fclient_5fhandle_5fvalue_183',['INVALID_SIGNALING_CLIENT_HANDLE_VALUE',['../group__StatusCodes.html#ga2b482ee4231032c03a94091b7ee61990',1,'Include.h']]],
   ['iobuffer_184',['IOBuffer',['../IOBuffer_8h.html#a1161dd313a84bbb4cb09acd912cb98d7',1,'IOBuffer.h']]],
   ['iobuffer_2ec_185',['IOBuffer.c',['../IOBuffer_8c.html',1,'']]],

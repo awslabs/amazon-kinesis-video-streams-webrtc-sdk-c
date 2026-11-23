@@ -1,38 +1,12 @@
 <map id="iceCandidatePairCheckConnection" name="iceCandidatePairCheckConnection">
-<area shape="rect" id="Node000001" title=" " alt="" coords="1832,119,2075,146"/>
-<area shape="rect" id="Node000002" href="$IceAgent_8c.html#a6c1328530aa9bf24d4e8869be7334567" title=" " alt="" coords="1589,57,1726,85"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1865,115,1726,88,1726,83,1871,115"/>
-<area shape="rect" id="Node000014" href="$IceAgent_8c.html#abd88ad7fca15a1a8d90ea9d3a0f2fc58" title=" " alt="" coords="1553,110,1762,155"/>
-<area shape="poly" id="edge15_Node000001_Node000014" title=" " alt="" coords="1813,133,1762,135,1762,130,1819,132"/>
-<area shape="rect" id="Node000017" href="$IceAgent_8c.html#a38eadbaca4b318947eb9d9397107493d" title=" " alt="" coords="1531,181,1784,209"/>
-<area shape="poly" id="edge18_Node000001_Node000017" title=" " alt="" coords="1872,150,1727,183,1726,178,1867,150"/>
-<area shape="rect" id="Node000003" href="$IceAgent_8c.html#a97079f5f6e61ff478f94f9934af5eec0" title=" " alt="" coords="1299,56,1462,84"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1571,71,1463,73,1463,68,1576,71"/>
-<area shape="rect" id="Node000004" href="$IceAgent_8c.html#a404897a5797a45ca76444ee244c5b760" title=" " alt="" coords="767,5,962,33"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="1285,53,1230,47,1090,34,963,26,963,21,1090,29,1230,42,1290,53"/>
-<area shape="rect" id="Node000008" href="$IceAgent_8c.html#a0a39b316e5aff662b257648e97e53146" title=" " alt="" coords="1025,56,1219,84"/>
-<area shape="poly" id="edge7_Node000003_Node000008" title=" " alt="" coords="1281,70,1220,72,1219,67,1286,70"/>
-<area shape="rect" id="Node000009" href="$IceAgent_8c.html#ac6d7992fc8ddf1009332e5f72ec42cff" title=" " alt="" coords="1014,108,1230,136"/>
-<area shape="poly" id="edge9_Node000003_Node000009" title=" " alt="" coords="1296,87,1195,110,1194,105,1290,88"/>
-<area shape="rect" id="Node000005" href="$IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="252,56,426,84"/>
-<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="749,29,506,54,426,62,425,57,506,49,754,28"/>
-<area shape="rect" id="Node000006" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="14,31,163,58"/>
-<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="234,61,164,55,163,49,239,58"/>
-<area shape="rect" id="Node000007" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,83,172,110"/>
-<area shape="poly" id="edge6_Node000005_Node000007" title=" " alt="" coords="235,82,173,90,172,85,239,79"/>
-<area shape="poly" id="edge8_Node000008_Node000005" title=" " alt="" coords="1008,72,426,72,426,67,1010,67"/>
-<area shape="rect" id="Node000010" href="$IceAgent_8c.html#a280d0eaca18dc63b38f215030511a500" title=" " alt="" coords="763,108,966,136"/>
-<area shape="poly" id="edge10_Node000009_Node000010" title=" " alt="" coords="995,122,966,124,966,119,1001,122"/>
-<area shape="rect" id="Node000011" href="$IceAgent_8c.html#a74a49bdd9df7c624389e575b95764a61" title=" " alt="" coords="525,159,696,186"/>
-<area shape="poly" id="edge11_Node000010_Node000011" title=" " alt="" coords="779,139,684,161,683,155,774,140"/>
-<area shape="rect" id="Node000013" href="$IceAgent_8c.html#a888fc1a2a5c2fe190f30db87c85c6759" title=" " alt="" coords="506,107,715,134"/>
-<area shape="poly" id="edge13_Node000010_Node000013" title=" " alt="" coords="745,121,716,124,716,118,750,121"/>
-<area shape="rect" id="Node000012" href="$group__PublicMemberFunctions.html#ga25744b27b8c99ea48af74d6747c949f0" title="Dynamically update the ICE servers for an existing peer connection." alt="" coords="220,159,458,186"/>
-<area shape="poly" id="edge12_Node000011_Node000012" title=" " alt="" coords="507,173,459,175,458,170,512,172"/>
-<area shape="poly" id="edge14_Node000013_Node000005" title=" " alt="" coords="515,104,417,87,417,82,520,103"/>
-<area shape="rect" id="Node000015" href="$IceAgentStateMachine_8c.html#a6d1c63854bb87950e837be2cdb6793d3" title=" " alt="" coords="1278,108,1483,152"/>
-<area shape="poly" id="edge16_Node000014_Node000015" title=" " alt="" coords="1535,131,1483,133,1483,128,1540,131"/>
-<area shape="rect" id="Node000016" href="$IceAgentStateMachine_8c.html#a5431027d18e1397eb1dfc8953099dbf6" title=" " alt="" coords="1278,177,1483,222"/>
-<area shape="poly" id="edge17_Node000014_Node000016" title=" " alt="" coords="1550,159,1477,179,1476,174,1545,159"/>
-<area shape="poly" id="edge19_Node000017_Node000016" title=" " alt="" coords="1513,197,1484,200,1484,195,1518,197"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="559,54,802,82"/>
+<area shape="rect" id="Node000002" href="$IceAgent_8c.html#abd88ad7fca15a1a8d90ea9d3a0f2fc58" title=" " alt="" coords="281,15,489,59"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="541,54,490,50,490,45,546,53"/>
+<area shape="rect" id="Node000005" href="$IceAgent_8c.html#a38eadbaca4b318947eb9d9397107493d" title=" " alt="" coords="259,83,511,111"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="546,81,512,87,511,82,541,81"/>
+<area shape="rect" id="Node000003" href="$IceAgentStateMachine_8c.html#a6d1c63854bb87950e837be2cdb6793d3" title=" " alt="" coords="6,5,210,50"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="263,34,211,34,210,28,268,32"/>
+<area shape="rect" id="Node000004" href="$IceAgentStateMachine_8c.html#a5431027d18e1397eb1dfc8953099dbf6" title=" " alt="" coords="5,75,211,119"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="268,62,212,77,211,72,263,63"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="240,97,211,100,211,94,246,97"/>
 </map>
