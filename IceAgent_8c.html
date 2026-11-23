@@ -239,6 +239,7 @@ Functions</h2></td></tr>
 <tr class="memitem:a404897a5797a45ca76444ee244c5b760" id="r_a404897a5797a45ca76444ee244c5b760"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a404897a5797a45ca76444ee244c5b760">iceAgentInitHostCandidate</a> (<a class="el" href="IceAgent_8h.html#ab6d8079a3d3ad310ae08b7edc7a77862">PIceAgent</a> pIceAgent)</td></tr>
 <tr class="memitem:a894a673b0d93481073b162618f9b13ab" id="r_a894a673b0d93481073b162618f9b13ab"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a894a673b0d93481073b162618f9b13ab">iceAgentStartAgent</a> (<a class="el" href="IceAgent_8h.html#ab6d8079a3d3ad310ae08b7edc7a77862">PIceAgent</a> pIceAgent, PCHAR remoteUsername, PCHAR remotePassword, BOOL isControlling)</td></tr>
 <tr class="memitem:a89dd4cb4f8c55e2d376df8c33f300e80" id="r_a89dd4cb4f8c55e2d376df8c33f300e80"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a89dd4cb4f8c55e2d376df8c33f300e80">iceAgentStartGathering</a> (<a class="el" href="IceAgent_8h.html#ab6d8079a3d3ad310ae08b7edc7a77862">PIceAgent</a> pIceAgent)</td></tr>
+<tr class="memitem:a4577fd0769974b64c4244d1ee6320a6d" id="r_a4577fd0769974b64c4244d1ee6320a6d"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4577fd0769974b64c4244d1ee6320a6d">iceAgentGetRoundTripTime</a> (<a class="el" href="IceAgent_8h.html#ab6d8079a3d3ad310ae08b7edc7a77862">PIceAgent</a> pIceAgent, PUINT64 pRoundTripTime)</td></tr>
 <tr class="memitem:a23515725a875e5a1b44e90f2b36f2dd2" id="r_a23515725a875e5a1b44e90f2b36f2dd2"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a23515725a875e5a1b44e90f2b36f2dd2">iceAgentSendPacket</a> (<a class="el" href="IceAgent_8h.html#ab6d8079a3d3ad310ae08b7edc7a77862">PIceAgent</a> pIceAgent, PBYTE pBuffer, UINT32 bufferLen)</td></tr>
 <tr class="memitem:a6288421972b3666ba5a64fd91441dadb" id="r_a6288421972b3666ba5a64fd91441dadb"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a6288421972b3666ba5a64fd91441dadb">iceAgentPopulateSdpMediaDescriptionCandidates</a> (<a class="el" href="IceAgent_8h.html#ab6d8079a3d3ad310ae08b7edc7a77862">PIceAgent</a> pIceAgent, <a class="el" href="Sdp_8h.html#a4859ca01537e2ceb28ae0c4be9730e5e">PSdpMediaDescription</a> pSdpMediaDescription, UINT32 attrBufferLen, PUINT32 pIndex)</td></tr>
 <tr class="memitem:a0240b9dcf5654427458c2fdda5a2da29" id="r_a0240b9dcf5654427458c2fdda5a2da29"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a0240b9dcf5654427458c2fdda5a2da29">iceAgentShutdown</a> (<a class="el" href="IceAgent_8h.html#ab6d8079a3d3ad310ae08b7edc7a77862">PIceAgent</a> pIceAgent)</td></tr>
@@ -2169,7 +2170,7 @@ Here is the call graph for this function:</div>
 <area shape="poly" title=" " alt="" coords="508,594,794,631,908,648,903,650,793,636,508,599"/>
 <area shape="rect" href="IceAgent_8c.html#aff64bc1649d0c5e3390f6ad14eb9aa1e" title=" " alt="" coords="595,839,776,866"/>
 <area shape="poly" title=" " alt="" coords="508,602,532,616,590,700,670,825,664,825,586,703,528,620,508,608"/>
-<area shape="rect" href="SocketConnection_8c.html#a15ca4ec83abf10b7340a5a1bf6e2aade" title=" " alt="" coords="585,429,786,474"/>
+<area shape="rect" href="SocketConnection_8c.html#a493cba86ce7d7349e0d34f8f259628ab" title=" " alt="" coords="585,429,786,474"/>
 <area shape="poly" title=" " alt="" coords="453,558,624,479,620,482,456,562"/>
 <area shape="rect" href="SocketConnection_8c.html#a019b8d1916f47014aa641bec419cc68f" title=" " alt="" coords="590,544,781,572"/>
 <area shape="poly" title=" " alt="" coords="507,571,577,567,572,569,509,576"/>
@@ -2378,6 +2379,36 @@ Here is the caller graph for this function:</div>
 <area shape="poly" title=" " alt="" coords="200,19,170,22,170,17,205,19"/>
 </map>
 </div>
+
+</div>
+</div>
+<a id="a4577fd0769974b64c4244d1ee6320a6d" name="a4577fd0769974b64c4244d1ee6320a6d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4577fd0769974b64c4244d1ee6320a6d">&#9670;&#160;</a></span>iceAgentGetRoundTripTime()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">STATUS iceAgentGetRoundTripTime </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="IceAgent_8h.html#ab6d8079a3d3ad310ae08b7edc7a77862">PIceAgent</a></td>          <td class="paramname"><span class="paramname"><em>pIceAgent</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PUINT64</td>          <td class="paramname"><span class="paramname"><em>pRoundTripTime</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>The round trip ICE measured: the selected pair's, or before there is one the shortest any successful check saw.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">-</td><td><a class="el" href="IceAgent_8h.html#ab6d8079a3d3ad310ae08b7edc7a77862">PIceAgent</a> - IN - <a class="el" href="IceAgent_8h.html#afbfbde0ef413fddaef347580251b9afe">IceAgent</a> object </td></tr>
+    <tr><td class="paramname">-</td><td>PUINT64 - OUT - round trip time in 100ns units, 0 if nothing was measured yet</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>- STATUS - status of execution </dd></dl>
 
 </div>
 </div>
@@ -3933,7 +3964,7 @@ Here is the call graph for this function:</div>
 <area shape="poly" title=" " alt="" coords="209,134,275,128,272,131,213,138"/>
 <area shape="rect" href="IceAgent_8c.html#aff64bc1649d0c5e3390f6ad14eb9aa1e" title=" " alt="" coords="269,159,450,186"/>
 <area shape="poly" title=" " alt="" coords="210,155,255,160,251,164,213,160"/>
-<area shape="rect" href="SocketConnection_8c.html#a15ca4ec83abf10b7340a5a1bf6e2aade" title=" " alt="" coords="259,566,460,611"/>
+<area shape="rect" href="SocketConnection_8c.html#a493cba86ce7d7349e0d34f8f259628ab" title=" " alt="" coords="259,566,460,611"/>
 <area shape="poly" title=" " alt="" coords="122,167,340,552,335,553,122,172"/>
 <area shape="rect" href="SocketConnection_8c.html#a019b8d1916f47014aa641bec419cc68f" title=" " alt="" coords="264,635,455,662"/>
 <area shape="poly" title=" " alt="" coords="109,167,117,255,124,313,136,377,155,443,181,508,216,569,261,621,264,625,259,626,257,625,211,572,176,510,150,445,131,378,119,314,111,255,109,173"/>
@@ -4437,7 +4468,7 @@ Here is the call graph for this function:</div>
 <area shape="poly" title=" " alt="" coords="985,388,1056,381,1252,363,1405,350,1558,349,1753,366,1797,375,1791,376,1752,371,1558,355,1405,356,1253,368,1057,386,988,393"/>
 <area shape="rect" href="IceAgent_8c.html#aff64bc1649d0c5e3390f6ad14eb9aa1e" title=" " alt="" coords="1570,448,1751,476"/>
 <area shape="poly" title=" " alt="" coords="986,411,1557,453,1552,456,987,416"/>
-<area shape="rect" href="SocketConnection_8c.html#a15ca4ec83abf10b7340a5a1bf6e2aade" title=" " alt="" coords="1064,465,1265,510"/>
+<area shape="rect" href="SocketConnection_8c.html#a493cba86ce7d7349e0d34f8f259628ab" title=" " alt="" coords="1064,465,1265,510"/>
 <area shape="poly" title=" " alt="" coords="963,426,1073,459,1068,461,964,431"/>
 <area shape="poly" title=" " alt="" coords="1727,391,1788,393,1783,395,1728,396"/>
 <area shape="poly" title=" " alt="" coords="614,1199,688,1263,728,1293,759,1311,831,1337,893,1353,921,1354,949,1348,977,1335,1007,1312,1022,1292,1032,1266,1039,1235,1042,1198,1041,1115,1034,1024,1027,933,1024,847,1032,776,1041,747,1055,724,1082,707,1077,711,1059,728,1046,749,1037,777,1030,847,1032,932,1040,1024,1047,1115,1048,1199,1044,1236,1037,1268,1026,1295,1011,1316,980,1339,951,1353,921,1359,892,1358,829,1342,757,1316,725,1298,684,1267,613,1204"/>

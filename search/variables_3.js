@@ -45,11 +45,10 @@ var searchData=
   ['dtls_5fsrtp_5fsupported_5fprofiles_42',['DTLS_SRTP_SUPPORTED_PROFILES',['../Dtls__mbedtls_8c.html#a8440d269271e467d19cd1abffd90207f',1,'Dtls_mbedtls.c']]],
   ['dtlscipher_43',['dtlsCipher',['../structRtcTransportStats.html#aa4665f3c96d174312aba49a9c49e9c24',1,'RtcTransportStats']]],
   ['dtlsisserver_44',['dtlsIsServer',['../structKvsPeerConnection.html#ae4fc8deb5eab83b01a863bf66c126a4d',1,'KvsPeerConnection']]],
-  ['dtlskeyexchangegroups_45',['dtlsKeyExchangeGroups',['../group__StatusCodes.html#gae87c8b4f0e63faa24b496e47e93bbaef',1,'KvsRtcConfiguration']]],
-  ['dtlssessioncallbacks_46',['dtlsSessionCallbacks',['../struct____DtlsSession.html#af671819aab0aa28f0702308ea1a09e7e',1,'__DtlsSession']]],
-  ['dtlssessionsetuptime_47',['dtlsSessionSetupTime',['../structPeerConnectionStats.html#a412b46f47dcc4a258e97e42b141b7895',1,'PeerConnectionStats::dtlsSessionSetupTime'],['../struct____DtlsSession.html#a06da00353806a4cdc221e94830cd1f72',1,'__DtlsSession::dtlsSessionSetupTime'],['../structKvsPeerConnectionDiagnostics.html#a32fc61043178fcca33ad76b4cd4b9d06',1,'KvsPeerConnectionDiagnostics::dtlsSessionSetupTime']]],
-  ['dtlssessionstarttime_48',['dtlsSessionStartTime',['../struct____DtlsSession.html#aa5b0631dcd43122f1a113af411a2bd24',1,'__DtlsSession']]],
-  ['dtlsstate_49',['dtlsState',['../structRtcTransportStats.html#a3117bc410de7332c634ff4b07f61dca8',1,'RtcTransportStats']]],
-  ['duration_50',['duration',['../group__StatusCodes.html#ga5c15cbd11d88a30b5d78d43380a4cbca',1,'CongestionCtx']]],
-  ['durationinseconds_51',['durationInSeconds',['../structQualityLimitationDurationsRecord.html#a2d6d9cae52d381f5dd879dd4fc2b0b36',1,'QualityLimitationDurationsRecord']]]
+  ['dtlssessioncallbacks_45',['dtlsSessionCallbacks',['../struct____DtlsSession.html#af671819aab0aa28f0702308ea1a09e7e',1,'__DtlsSession']]],
+  ['dtlssessionsetuptime_46',['dtlsSessionSetupTime',['../structPeerConnectionStats.html#a412b46f47dcc4a258e97e42b141b7895',1,'PeerConnectionStats::dtlsSessionSetupTime'],['../struct____DtlsSession.html#a06da00353806a4cdc221e94830cd1f72',1,'__DtlsSession::dtlsSessionSetupTime'],['../structKvsPeerConnectionDiagnostics.html#a32fc61043178fcca33ad76b4cd4b9d06',1,'KvsPeerConnectionDiagnostics::dtlsSessionSetupTime']]],
+  ['dtlssessionstarttime_47',['dtlsSessionStartTime',['../struct____DtlsSession.html#aa5b0631dcd43122f1a113af411a2bd24',1,'__DtlsSession']]],
+  ['dtlsstate_48',['dtlsState',['../structRtcTransportStats.html#a3117bc410de7332c634ff4b07f61dca8',1,'RtcTransportStats']]],
+  ['duration_49',['duration',['../group__StatusCodes.html#ga5c15cbd11d88a30b5d78d43380a4cbca',1,'CongestionCtx']]],
+  ['durationinseconds_50',['durationInSeconds',['../structQualityLimitationDurationsRecord.html#a2d6d9cae52d381f5dd879dd4fc2b0b36',1,'QualityLimitationDurationsRecord']]]
 ];

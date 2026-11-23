@@ -127,12 +127,6 @@ Macros</h2></td></tr>
 <tr class="memitem:ga637a008bd2a8cfdc2d334017052f73d5" id="r_ga637a008bd2a8cfdc2d334017052f73d5"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga637a008bd2a8cfdc2d334017052f73d5">MAX_SESSION_DESCRIPTION_INIT_SDP_LEN</a>&#160;&#160;&#160;25000</td></tr>
 <tr class="memitem:ga06633fc03ba73e2d6031ada7e2566bfb" id="r_ga06633fc03ba73e2d6031ada7e2566bfb"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga06633fc03ba73e2d6031ada7e2566bfb">MAX_MEDIA_STREAM_ID_LEN</a>&#160;&#160;&#160;255</td></tr>
 <tr class="memitem:ga2d6e860680facda94b2f814be9a519dc" id="r_ga2d6e860680facda94b2f814be9a519dc"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga2d6e860680facda94b2f814be9a519dc">MAX_RTCCONFIGURATION_CERTIFICATES</a>&#160;&#160;&#160;3</td></tr>
-<tr class="memitem:ga55835557a7e9c27d6f15699ac6d033e6" id="r_ga55835557a7e9c27d6f15699ac6d033e6"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga55835557a7e9c27d6f15699ac6d033e6">MAX_DTLS_KEY_EXCHANGE_GROUPS</a>&#160;&#160;&#160;8</td></tr>
-<tr class="memitem:ga724273cd8cf9bf74315fc00579e8de00" id="r_ga724273cd8cf9bf74315fc00579e8de00"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga724273cd8cf9bf74315fc00579e8de00">DTLS_KEY_EXCHANGE_GROUP_SECP256R1</a>&#160;&#160;&#160;23</td></tr>
-<tr class="memitem:ga607cb77f94c9059cf970e52c4b8675b1" id="r_ga607cb77f94c9059cf970e52c4b8675b1"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga607cb77f94c9059cf970e52c4b8675b1">DTLS_KEY_EXCHANGE_GROUP_SECP384R1</a>&#160;&#160;&#160;24</td></tr>
-<tr class="memitem:gabb72dd8cd15657df15336a71d9c91738" id="r_gabb72dd8cd15657df15336a71d9c91738"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gabb72dd8cd15657df15336a71d9c91738">DTLS_KEY_EXCHANGE_GROUP_SECP521R1</a>&#160;&#160;&#160;25</td></tr>
-<tr class="memitem:ga405396f354408a28be505185fdb0fe0c" id="r_ga405396f354408a28be505185fdb0fe0c"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga405396f354408a28be505185fdb0fe0c">DTLS_KEY_EXCHANGE_GROUP_X25519</a>&#160;&#160;&#160;29</td></tr>
-<tr class="memitem:ga73908e5191023c8e30cea47413c6ebdf" id="r_ga73908e5191023c8e30cea47413c6ebdf"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga73908e5191023c8e30cea47413c6ebdf">DTLS_KEY_EXCHANGE_GROUP_X448</a>&#160;&#160;&#160;30</td></tr>
 <tr class="memitem:ga0cc2610ad451a05183cc7957b882552d" id="r_ga0cc2610ad451a05183cc7957b882552d"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ga0cc2610ad451a05183cc7957b882552d">MAX_MEDIA_STREAM_TRACK_ID_LEN</a>&#160;&#160;&#160;255</td></tr>
 <tr class="memitem:gaa8b470854da668bd131aca2102096a93" id="r_gaa8b470854da668bd131aca2102096a93"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gaa8b470854da668bd131aca2102096a93">MAX_ICE_CANDIDATE_INIT_CANDIDATE_LEN</a>&#160;&#160;&#160;255</td></tr>
 <tr class="memitem:gafa229aa7776bec0878728ce98ae86953" id="r_gafa229aa7776bec0878728ce98ae86953"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#gafa229aa7776bec0878728ce98ae86953">MAX_DATA_CHANNEL_NAME_LEN</a>&#160;&#160;&#160;255</td></tr>
@@ -143,77 +137,6 @@ Macros</h2></td></tr>
 <p>Lengths of different character arrays. </p>
 <p>Lengths of some string members of different structures </p>
 <a name="doc-define-members" id="doc-define-members"></a><h2 id="header-doc-define-members" class="groupheader">Macro Definition Documentation</h2>
-<a id="ga724273cd8cf9bf74315fc00579e8de00" name="ga724273cd8cf9bf74315fc00579e8de00"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga724273cd8cf9bf74315fc00579e8de00">&#9670;&#160;</a></span>DTLS_KEY_EXCHANGE_GROUP_SECP256R1</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define DTLS_KEY_EXCHANGE_GROUP_SECP256R1&#160;&#160;&#160;23</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>DTLS key exchange groups for <a class="el" href="group__StatusCodes.html#gae87c8b4f0e63faa24b496e47e93bbaef">KvsRtcConfiguration.dtlsKeyExchangeGroups</a> (IANA TLS NamedGroup values) </p>
-
-</div>
-</div>
-<a id="ga607cb77f94c9059cf970e52c4b8675b1" name="ga607cb77f94c9059cf970e52c4b8675b1"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga607cb77f94c9059cf970e52c4b8675b1">&#9670;&#160;</a></span>DTLS_KEY_EXCHANGE_GROUP_SECP384R1</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define DTLS_KEY_EXCHANGE_GROUP_SECP384R1&#160;&#160;&#160;24</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="gabb72dd8cd15657df15336a71d9c91738" name="gabb72dd8cd15657df15336a71d9c91738"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gabb72dd8cd15657df15336a71d9c91738">&#9670;&#160;</a></span>DTLS_KEY_EXCHANGE_GROUP_SECP521R1</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define DTLS_KEY_EXCHANGE_GROUP_SECP521R1&#160;&#160;&#160;25</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="ga405396f354408a28be505185fdb0fe0c" name="ga405396f354408a28be505185fdb0fe0c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga405396f354408a28be505185fdb0fe0c">&#9670;&#160;</a></span>DTLS_KEY_EXCHANGE_GROUP_X25519</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define DTLS_KEY_EXCHANGE_GROUP_X25519&#160;&#160;&#160;29</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="ga73908e5191023c8e30cea47413c6ebdf" name="ga73908e5191023c8e30cea47413c6ebdf"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga73908e5191023c8e30cea47413c6ebdf">&#9670;&#160;</a></span>DTLS_KEY_EXCHANGE_GROUP_X448</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define DTLS_KEY_EXCHANGE_GROUP_X448&#160;&#160;&#160;30</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
 <a id="gaee73129a95e82e17eb62dff027c92faf" name="gaee73129a95e82e17eb62dff027c92faf"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#gaee73129a95e82e17eb62dff027c92faf">&#9670;&#160;</a></span>MAX_CHANNEL_NAME_LEN</h2>
 
@@ -286,21 +209,6 @@ Macros</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <p>Maximum length of DataChannel Protocol </p>
-
-</div>
-</div>
-<a id="ga55835557a7e9c27d6f15699ac6d033e6" name="ga55835557a7e9c27d6f15699ac6d033e6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga55835557a7e9c27d6f15699ac6d033e6">&#9670;&#160;</a></span>MAX_DTLS_KEY_EXCHANGE_GROUPS</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define MAX_DTLS_KEY_EXCHANGE_GROUPS&#160;&#160;&#160;8</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Max key exchange groups in <a class="el" href="group__StatusCodes.html#gae87c8b4f0e63faa24b496e47e93bbaef">KvsRtcConfiguration.dtlsKeyExchangeGroups</a> </p>
 
 </div>
 </div>
