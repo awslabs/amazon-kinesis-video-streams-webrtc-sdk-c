@@ -27,8 +27,9 @@ var searchData=
   ['hostcandidatesetuptime_24',['hostCandidateSetUpTime',['../structKvsIceAgentStats.html#aa5b7877228bd50f7b303bc9c4120d6aa',1,'KvsIceAgentStats::hostCandidateSetUpTime'],['../structIceAgentProfileDiagnostics.html#ae471a9eb9c2685393b4521896fed5090',1,'IceAgentProfileDiagnostics::hostCandidateSetUpTime']]],
   ['hostipaddr_25',['hostIpAddr',['../struct____SocketConnection.html#ae19d1a0c872d98f743a74b299cd5c0f1',1,'__SocketConnection']]],
   ['hostname_26',['hostname',['../struct____SocketConnection.html#ab3340601d5bebf79a4321f091269e0bd',1,'__SocketConnection::hostname'],['../structStunIpAddrContext.html#ac0beb1d0139b71306177a3859a7c5708',1,'StunIpAddrContext::hostname']]],
-  ['httpsendpoint_27',['httpsEndpoint',['../structSignalingFileCacheEntry.html#a6a1e892d13b44e35d4c41f6335197795',1,'SignalingFileCacheEntry']]],
-  ['huge_5fframe_5fmultiplier_28',['HUGE_FRAME_MULTIPLIER',['../Rtp_8h.html#aec69a3a06a63c045afc82fe8642a5346',1,'Rtp.h']]],
-  ['hugeframessent_29',['hugeFramesSent',['../structRtcOutboundRtpStreamStats.html#af484c40e4ad9d4dd57d91e2733f9ff5a',1,'RtcOutboundRtpStreamStats']]],
-  ['hundreds_5fof_5fnanos_5fin_5fa_5fday_30',['HUNDREDS_OF_NANOS_IN_A_DAY',['../Dtls_8h.html#ab0bf64d92f235fd5eb709175cf876041',1,'Dtls.h']]]
+  ['hostnameinuse_27',['hostnameInUse',['../structStunIpAddrContext.html#ae7d00762df833702a91b3b07f942c89d',1,'StunIpAddrContext']]],
+  ['httpsendpoint_28',['httpsEndpoint',['../structSignalingFileCacheEntry.html#a6a1e892d13b44e35d4c41f6335197795',1,'SignalingFileCacheEntry']]],
+  ['huge_5fframe_5fmultiplier_29',['HUGE_FRAME_MULTIPLIER',['../Rtp_8h.html#aec69a3a06a63c045afc82fe8642a5346',1,'Rtp.h']]],
+  ['hugeframessent_30',['hugeFramesSent',['../structRtcOutboundRtpStreamStats.html#af484c40e4ad9d4dd57d91e2733f9ff5a',1,'RtcOutboundRtpStreamStats']]],
+  ['hundreds_5fof_5fnanos_5fin_5fa_5fday_31',['HUNDREDS_OF_NANOS_IN_A_DAY',['../Dtls_8h.html#ab0bf64d92f235fd5eb709175cf876041',1,'Dtls.h']]]
 ];
