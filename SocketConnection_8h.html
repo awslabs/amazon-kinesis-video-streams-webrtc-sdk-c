@@ -211,9 +211,6 @@ Macros</h2></td></tr>
 <tr class="memitem:ad5a5670cc330536036d752118b44d215" id="r_ad5a5670cc330536036d752118b44d215"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad5a5670cc330536036d752118b44d215">SOCKET_SEND_RETRY_TIMEOUT_MILLI_SECOND</a>&#160;&#160;&#160;500</td></tr>
 <tr class="memitem:a28c377c7bf312e99993d21a7e20f1e2f" id="r_a28c377c7bf312e99993d21a7e20f1e2f"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a28c377c7bf312e99993d21a7e20f1e2f">MAX_SOCKET_WRITE_RETRY</a>&#160;&#160;&#160;3</td></tr>
 <tr class="memitem:a440d3ff5cb61162ff247abcf617c5ee1" id="r_a440d3ff5cb61162ff247abcf617c5ee1"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a440d3ff5cb61162ff247abcf617c5ee1">CLOSE_SOCKET_IF_CANT_RETRY</a>(e,  ps)</td></tr>
-<tr class="memitem:a30fd1a83bb379d49cbd4286432038e2d" id="r_a30fd1a83bb379d49cbd4286432038e2d"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a30fd1a83bb379d49cbd4286432038e2d">SOCKET_CONNECTION_IDLE</a>&#160;&#160;&#160;0</td></tr>
-<tr class="memitem:ace3528f167d5fa1419b6540147fea7f3" id="r_ace3528f167d5fa1419b6540147fea7f3"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ace3528f167d5fa1419b6540147fea7f3">SOCKET_CONNECTION_IN_USE</a>&#160;&#160;&#160;1</td></tr>
-<tr class="memitem:a105b56c3504b243e0ecc3b16a47d4fad" id="r_a105b56c3504b243e0ecc3b16a47d4fad"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a105b56c3504b243e0ecc3b16a47d4fad">SOCKET_CONNECTION_ORPHANED</a>&#160;&#160;&#160;2</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-typedef-members" class="groupheader"><a id="typedef-members" name="typedef-members"></a>
 Typedefs</h2></td></tr>
@@ -225,7 +222,6 @@ Typedefs</h2></td></tr>
 Functions</h2></td></tr>
 <tr class="memitem:a5ce9dfe7b74d9b52538004c323214965" id="r_a5ce9dfe7b74d9b52538004c323214965"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a5ce9dfe7b74d9b52538004c323214965">createSocketConnection</a> (<a class="el" href="Include__i_8h.html#a68d1a6a8649520a732663a5e86728400">KVS_IP_FAMILY_TYPE</a>, <a class="el" href="Network_8h.html#a71e445b5cf0a42fa969c34745998d158">KVS_SOCKET_PROTOCOL</a>, <a class="el" href="Include__i_8h.html#af659a54bb59cc1dc4e918e22864f4db4">PKvsIpAddress</a>, <a class="el" href="Include__i_8h.html#af659a54bb59cc1dc4e918e22864f4db4">PKvsIpAddress</a>, UINT64, <a class="el" href="#a93b97a5cd84f23921fd498da3a996a83">ConnectionDataAvailableFunc</a>, UINT32, <a class="el" href="#ad5b788d64cad378ee27989e81d2868a1">PSocketConnection</a> *)</td></tr>
 <tr class="memitem:aeb8128cd80579d6fe4ea8c948e33841b" id="r_aeb8128cd80579d6fe4ea8c948e33841b"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aeb8128cd80579d6fe4ea8c948e33841b">freeSocketConnection</a> (<a class="el" href="#ad5b788d64cad378ee27989e81d2868a1">PSocketConnection</a> *)</td></tr>
-<tr class="memitem:a57da3593422c19f11694cc89b40189c9" id="r_a57da3593422c19f11694cc89b40189c9"><td class="memItemLeft" align="right" valign="top">VOID&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a57da3593422c19f11694cc89b40189c9">socketConnectionRelease</a> (<a class="el" href="#ad5b788d64cad378ee27989e81d2868a1">PSocketConnection</a>)</td></tr>
 <tr class="memitem:a6a6caeb746949c398dbf002b3b1d070f" id="r_a6a6caeb746949c398dbf002b3b1d070f"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a6a6caeb746949c398dbf002b3b1d070f">socketConnectionInitSecureConnection</a> (<a class="el" href="#ad5b788d64cad378ee27989e81d2868a1">PSocketConnection</a>, BOOL, TIMER_QUEUE_HANDLE)</td></tr>
 <tr class="memitem:a76b988c2d068c9c5fb9e7015ae760dee" id="r_a76b988c2d068c9c5fb9e7015ae760dee"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a76b988c2d068c9c5fb9e7015ae760dee">socketConnectionSendData</a> (<a class="el" href="#ad5b788d64cad378ee27989e81d2868a1">PSocketConnection</a>, PBYTE, UINT32, <a class="el" href="Include__i_8h.html#af659a54bb59cc1dc4e918e22864f4db4">PKvsIpAddress</a>)</td></tr>
 <tr class="memitem:aa1a3fcde48bf63dfcfdf8221363689ed" id="r_aa1a3fcde48bf63dfcfdf8221363689ed"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa1a3fcde48bf63dfcfdf8221363689ed">socketConnectionReadData</a> (<a class="el" href="#ad5b788d64cad378ee27989e81d2868a1">PSocketConnection</a>, PBYTE, UINT32, PUINT32)</td></tr>
@@ -273,48 +269,6 @@ Functions</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">#define MAX_SOCKET_WRITE_RETRY&#160;&#160;&#160;3</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a30fd1a83bb379d49cbd4286432038e2d" name="a30fd1a83bb379d49cbd4286432038e2d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a30fd1a83bb379d49cbd4286432038e2d">&#9670;&#160;</a></span>SOCKET_CONNECTION_IDLE</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define SOCKET_CONNECTION_IDLE&#160;&#160;&#160;0</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="ace3528f167d5fa1419b6540147fea7f3" name="ace3528f167d5fa1419b6540147fea7f3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ace3528f167d5fa1419b6540147fea7f3">&#9670;&#160;</a></span>SOCKET_CONNECTION_IN_USE</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define SOCKET_CONNECTION_IN_USE&#160;&#160;&#160;1</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a105b56c3504b243e0ecc3b16a47d4fad" name="a105b56c3504b243e0ecc3b16a47d4fad"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a105b56c3504b243e0ecc3b16a47d4fad">&#9670;&#160;</a></span>SOCKET_CONNECTION_ORPHANED</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define SOCKET_CONNECTION_ORPHANED&#160;&#160;&#160;2</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -447,26 +401,42 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="SocketConnection_8h_a5ce9dfe7b74d9b52538004c323214965_cgraph.png" border="0" usemap="#aSocketConnection_8h_a5ce9dfe7b74d9b52538004c323214965_cgraph" loading="lazy" alt=""/></div>
 <map name="aSocketConnection_8h_a5ce9dfe7b74d9b52538004c323214965_cgraph" id="aSocketConnection_8h_a5ce9dfe7b74d9b52538004c323214965_cgraph">
-<area shape="rect" title=" " alt="" coords="5,109,184,137"/>
-<area shape="rect" href="Network_8c.html#ab3ab2228bda4eb3452e7dcff085f78d1" title=" " alt="" coords="261,57,366,85"/>
-<area shape="poly" title=" " alt="" coords="155,106,247,86,243,89,157,111"/>
-<area shape="rect" href="SocketConnection_8c.html#aeea1e134b1c24f7138c4784b9b146e6b" title=" " alt="" coords="232,211,395,238"/>
-<area shape="poly" title=" " alt="" coords="123,135,233,190,263,205,257,204,231,195,121,140"/>
-<area shape="rect" href="Network_8c.html#afaa547109e09c5a34437553b7258e818" title=" " alt="" coords="448,135,550,162"/>
-<area shape="poly" title=" " alt="" coords="160,135,232,146,337,151,435,151,429,152,337,156,231,151,160,140"/>
-<area shape="rect" href="Network_8c.html#a4f29c6a3a39d3d89eb7e05a3fa461ca1" title=" " alt="" coords="267,109,360,137"/>
-<area shape="poly" title=" " alt="" coords="183,121,254,122,250,124,184,126"/>
-<area shape="rect" href="Network_8c.html#aa99495dceea7ec8f4bfaa84b3f981db9" title=" " alt="" coords="255,5,372,33"/>
-<area shape="poly" title=" " alt="" coords="116,107,168,76,231,43,252,37,247,40,233,48,170,80,119,111"/>
-<area shape="rect" href="Network_8c.html#a4946ffd5e8761a38b4fc7bb253c1491a" title=" " alt="" coords="446,71,552,98"/>
-<area shape="poly" title=" " alt="" coords="366,72,433,79,428,80,367,78"/>
-<area shape="rect" href="Network_8c.html#a3179b58589909af6767082bb0a81aa62" title=" " alt="" coords="443,19,554,46"/>
-<area shape="poly" title=" " alt="" coords="366,58,431,46,426,48,367,63"/>
-<area shape="poly" title=" " alt="" coords="359,111,433,98,427,100,360,116"/>
-<area shape="poly" title=" " alt="" coords="359,109,394,94,418,76,441,57,449,55,454,53,445,61,421,81,396,99,361,114"/>
-<area shape="poly" title=" " alt="" coords="360,127,435,139,429,140,360,132"/>
-<area shape="poly" title=" " alt="" coords="359,31,396,43,449,65,444,65,394,48,359,36"/>
-<area shape="poly" title=" " alt="" coords="372,21,430,27,425,28,372,26"/>
+<area shape="rect" title=" " alt="" coords="5,239,184,266"/>
+<area shape="rect" href="Network_8c.html#ab3ab2228bda4eb3452e7dcff085f78d1" title=" " alt="" coords="452,187,557,214"/>
+<area shape="poly" title=" " alt="" coords="183,238,231,231,438,207,435,210,232,236,185,243"/>
+<area shape="rect" href="SocketConnection_8c.html#aeea1e134b1c24f7138c4784b9b146e6b" title=" " alt="" coords="232,135,395,162"/>
+<area shape="poly" title=" " alt="" coords="121,236,231,179,263,167,259,170,233,184,124,240"/>
+<area shape="rect" href="Network_8c.html#afaa547109e09c5a34437553b7258e818" title=" " alt="" coords="454,239,556,266"/>
+<area shape="poly" title=" " alt="" coords="184,250,439,250,436,255,185,255"/>
+<area shape="rect" href="Network_8c.html#a4f29c6a3a39d3d89eb7e05a3fa461ca1" title=" " alt="" coords="267,289,360,317"/>
+<area shape="poly" title=" " alt="" coords="157,264,254,288,249,290,157,270"/>
+<area shape="rect" href="Network_8c.html#aa99495dceea7ec8f4bfaa84b3f981db9" title=" " alt="" coords="446,391,563,418"/>
+<area shape="poly" title=" " alt="" coords="118,264,170,295,233,326,336,362,434,389,429,389,335,367,231,331,167,300,117,269"/>
+<area shape="rect" href="Network_8c.html#a4946ffd5e8761a38b4fc7bb253c1491a" title=" " alt="" coords="643,315,749,342"/>
+<area shape="poly" title=" " alt="" coords="544,212,568,225,593,249,616,274,659,307,654,306,613,279,589,253,565,229,544,217"/>
+<area shape="rect" href="Network_8c.html#a3179b58589909af6767082bb0a81aa62" title=" " alt="" coords="640,237,752,265"/>
+<area shape="poly" title=" " alt="" coords="558,212,629,233,624,233,558,217"/>
+<area shape="rect" href="Network_8c.html#a8c64aed52ea980830d0f9db66fc93e1b" title=" " alt="" coords="456,135,554,162"/>
+<area shape="poly" title=" " alt="" coords="395,146,443,148,438,149,396,151"/>
+<area shape="rect" href="Dtls__openssl_8c.html#aa1b6a668704b0b7ddf99be1f7977b8ba" title=" " alt="" coords="443,31,566,58"/>
+<area shape="poly" title=" " alt="" coords="335,132,442,69,457,64,453,67,444,74,338,136"/>
+<area shape="rect" href="Tls__openssl_8c.html#aa94c64c8b1c8378f85d7081459ec9425" title=" " alt="" coords="446,83,563,110"/>
+<area shape="poly" title=" " alt="" coords="366,132,439,114,434,116,368,136"/>
+<area shape="poly" title=" " alt="" coords="337,160,444,223,457,232,452,232,442,228,336,165"/>
+<area shape="poly" title=" " alt="" coords="549,160,568,173,587,199,594,224,600,249,616,275,654,307,648,306,612,278,596,251,589,226,582,202,564,177,548,165"/>
+<area shape="poly" title=" " alt="" coords="540,160,568,173,662,229,657,229,565,178,540,165"/>
+<area shape="rect" href="Dtls__mbedtls_8c.html#aa6d608da9c875fbfccf37bd3e716e836" title=" " alt="" coords="614,5,778,33"/>
+<area shape="poly" title=" " alt="" coords="566,34,601,31,596,33,568,39"/>
+<area shape="rect" href="IOBuffer_8c.html#a716982d27f4e9cf43d6737555e684289" title=" " alt="" coords="646,57,746,85"/>
+<area shape="poly" title=" " alt="" coords="566,50,633,61,628,63,567,56"/>
+<area shape="poly" title=" " alt="" coords="562,86,633,79,628,81,564,91"/>
+<area shape="rect" href="Tls__mbedtls_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="620,109,772,137"/>
+<area shape="poly" title=" " alt="" coords="563,102,608,110,603,111,564,107"/>
+<area shape="poly" title=" " alt="" coords="360,308,443,319,540,325,630,329,625,329,539,330,443,324,360,314"/>
+<area shape="poly" title=" " alt="" coords="359,297,455,289,566,275,628,266,623,268,567,280,455,294,360,303"/>
+<area shape="poly" title=" " alt="" coords="359,288,441,269,436,271,361,294"/>
+<area shape="poly" title=" " alt="" coords="541,387,642,349,647,348,543,393"/>
+<area shape="poly" title=" " alt="" coords="518,388,559,348,613,301,655,274,660,272,616,305,563,352,521,393"/>
 </map>
 </div>
 <div class="dynheader">
@@ -524,6 +494,33 @@ Here is the caller graph for this function:</div>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>- STATUS - status of execution </dd></dl>
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="SocketConnection_8h_aeb8128cd80579d6fe4ea8c948e33841b_cgraph.png" border="0" usemap="#aSocketConnection_8h_aeb8128cd80579d6fe4ea8c948e33841b_cgraph" loading="lazy" alt=""/></div>
+<map name="aSocketConnection_8h_aeb8128cd80579d6fe4ea8c948e33841b_cgraph" id="aSocketConnection_8h_aeb8128cd80579d6fe4ea8c948e33841b_cgraph">
+<area shape="rect" title=" " alt="" coords="5,136,169,164"/>
+<area shape="rect" href="Network_8c.html#a8c64aed52ea980830d0f9db66fc93e1b" title=" " alt="" coords="229,57,328,85"/>
+<area shape="poly" title=" " alt="" coords="122,133,230,89,227,93,124,138"/>
+<area shape="rect" href="Dtls__openssl_8c.html#aa1b6a668704b0b7ddf99be1f7977b8ba" title=" " alt="" coords="217,109,340,137"/>
+<area shape="poly" title=" " alt="" coords="168,136,203,133,198,135,170,141"/>
+<area shape="rect" href="Tls__openssl_8c.html#aa94c64c8b1c8378f85d7081459ec9425" title=" " alt="" coords="220,161,336,189"/>
+<area shape="poly" title=" " alt="" coords="169,158,207,165,202,166,169,163"/>
+<area shape="rect" href="Network_8c.html#afaa547109e09c5a34437553b7258e818" title=" " alt="" coords="227,213,330,241"/>
+<area shape="poly" title=" " alt="" coords="124,162,231,206,226,209,123,167"/>
+<area shape="rect" href="Network_8c.html#a4946ffd5e8761a38b4fc7bb253c1491a" title=" " alt="" coords="416,5,523,33"/>
+<area shape="poly" title=" " alt="" coords="327,55,404,37,399,39,329,60"/>
+<area shape="rect" href="Network_8c.html#a3179b58589909af6767082bb0a81aa62" title=" " alt="" coords="414,57,525,85"/>
+<area shape="poly" title=" " alt="" coords="327,69,401,70,396,72,328,74"/>
+<area shape="rect" href="Dtls__mbedtls_8c.html#aa6d608da9c875fbfccf37bd3e716e836" title=" " alt="" coords="388,109,551,137"/>
+<area shape="poly" title=" " alt="" coords="340,121,375,123,370,124,341,126"/>
+<area shape="rect" href="IOBuffer_8c.html#a716982d27f4e9cf43d6737555e684289" title=" " alt="" coords="420,161,520,189"/>
+<area shape="poly" title=" " alt="" coords="332,135,407,157,402,158,332,140"/>
+<area shape="poly" title=" " alt="" coords="337,173,406,175,401,175,337,178"/>
+<area shape="rect" href="Tls__mbedtls_8c.html#aca41778af81f4d5b5a71dcaf5e686bb9" title=" " alt="" coords="394,213,545,241"/>
+<area shape="poly" title=" " alt="" coords="333,187,404,209,399,209,332,192"/>
+</map>
+</div>
 <div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
@@ -1169,50 +1166,6 @@ Here is the caller graph for this function:</div>
 <area shape="rect" title=" " alt="" coords="909,32,1109,60"/>
 <area shape="rect" href="ConnectionListener_8c.html#ad4b0c7229cc56aa8bc3eaef7d75c2ab7" title=" " alt="" coords="664,24,861,68"/>
 <area shape="poly" title=" " alt="" coords="890,46,861,48,861,43,896,46"/>
-<area shape="rect" href="ConnectionListener_8c.html#ac6b964c533b9932afd35358f2b49f5a8" title=" " alt="" coords="441,32,616,60"/>
-<area shape="poly" title=" " alt="" coords="646,46,617,48,617,43,651,46"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="228,5,385,33"/>
-<area shape="poly" title=" " alt="" coords="423,34,386,31,386,26,428,33"/>
-<area shape="rect" href="IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="220,57,393,85"/>
-<area shape="poly" title=" " alt="" coords="423,58,394,64,393,59,428,57"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="14,31,163,58"/>
-<area shape="poly" title=" " alt="" coords="202,59,164,56,164,51,207,58"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,83,172,110"/>
-<area shape="poly" title=" " alt="" coords="202,83,172,89,172,84,207,83"/>
-</map>
-</div>
-
-</div>
-</div>
-<a id="a57da3593422c19f11694cc89b40189c9" name="a57da3593422c19f11694cc89b40189c9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a57da3593422c19f11694cc89b40189c9">&#9670;&#160;</a></span>socketConnectionRelease()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">VOID socketConnectionRelease </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="#ad5b788d64cad378ee27989e81d2868a1">PSocketConnection</a></td>          <td class="paramname"><span class="paramname"><em>pSocketConnection</em></span></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Called by the connection listener when it no longer uses a socket it gathered for a poll. Frees the socket if freeSocketConnection timed out waiting for this release.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">-</td><td><a class="el" href="#ad5b788d64cad378ee27989e81d2868a1">PSocketConnection</a> - IN - <a class="el" href="#a61d238037c92b97d0ed1cfae2c6440d6">SocketConnection</a> the listener held </td></tr>
-  </table>
-  </dd>
-</dl>
-<div class="dynheader">
-Here is the caller graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="SocketConnection_8h_a57da3593422c19f11694cc89b40189c9_icgraph.png" border="0" usemap="#aSocketConnection_8h_a57da3593422c19f11694cc89b40189c9_icgraph" loading="lazy" alt=""/></div>
-<map name="aSocketConnection_8h_a57da3593422c19f11694cc89b40189c9_icgraph" id="aSocketConnection_8h_a57da3593422c19f11694cc89b40189c9_icgraph">
-<area shape="rect" title=" " alt="" coords="909,32,1097,60"/>
-<area shape="rect" href="ConnectionListener_8c.html#ad4b0c7229cc56aa8bc3eaef7d75c2ab7" title=" " alt="" coords="664,24,861,68"/>
-<area shape="poly" title=" " alt="" coords="891,46,861,48,861,43,896,46"/>
 <area shape="rect" href="ConnectionListener_8c.html#ac6b964c533b9932afd35358f2b49f5a8" title=" " alt="" coords="441,32,616,60"/>
 <area shape="poly" title=" " alt="" coords="646,46,617,48,617,43,651,46"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="228,5,385,33"/>

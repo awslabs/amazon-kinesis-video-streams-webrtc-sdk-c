@@ -40,7 +40,7 @@ var searchData=
   ['inboundrtpstreamstats_37',['inboundRtpStreamStats',['../structRtcStatsObject.html#ab4695790a5a6aea9feacd4e754cada6a',1,'RtcStatsObject']]],
   ['inboundstats_38',['inboundStats',['../structKvsRtpTransceiver.html#a032f25958929ba3e3ce70855f82f7d36',1,'KvsRtpTransceiver']]],
   ['insertedsamplesfordeceleration_39',['insertedSamplesForDeceleration',['../structRtcInboundRtpStreamStats.html#a28b1d12c737de0aa774b79b87f424523',1,'RtcInboundRtpStreamStats']]],
-  ['inuse_40',['inUse',['../struct____SocketConnection.html#a91fba7262c2df949ea617b69eaa0f3e7',1,'__SocketConnection']]],
+  ['inuse_40',['inUse',['../struct____SocketConnection.html#ace04ea5cae78774632597f00ef53bc91',1,'__SocketConnection']]],
   ['ipaddress_41',['ipAddress',['../structIceCandidate.html#a3a51d8ceae0fc6ae2fcb6280280bce03',1,'IceCandidate']]],
   ['ipaddresses_42',['ipAddresses',['../structIceServer.html#a2ad51a53997b132bb934e297fb814db8',1,'IceServer']]],
   ['ipfamily_43',['ipFamily',['../structStunAttributeAllocationAddressFamily.html#a1761811116781c977f1796b3d87803ea',1,'StunAttributeAllocationAddressFamily']]],

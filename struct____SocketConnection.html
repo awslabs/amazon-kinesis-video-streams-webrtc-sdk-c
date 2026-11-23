@@ -123,7 +123,7 @@ Collaboration diagram for __SocketConnection:</div>
 Public Attributes</h2></td></tr>
 <tr class="memitem:a3b413b1b97c018b29fa2a763e31fddae" id="r_a3b413b1b97c018b29fa2a763e31fddae"><td class="memItemLeft" align="right" valign="top">volatile ATOMIC_BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a3b413b1b97c018b29fa2a763e31fddae">connectionClosed</a></td></tr>
 <tr class="memitem:a77820b4de80c8dad57931cb10db32b97" id="r_a77820b4de80c8dad57931cb10db32b97"><td class="memItemLeft" align="right" valign="top">volatile ATOMIC_BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a77820b4de80c8dad57931cb10db32b97">receiveData</a></td></tr>
-<tr class="memitem:a91fba7262c2df949ea617b69eaa0f3e7" id="r_a91fba7262c2df949ea617b69eaa0f3e7"><td class="memItemLeft" align="right" valign="top">volatile SIZE_T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a91fba7262c2df949ea617b69eaa0f3e7">inUse</a></td></tr>
+<tr class="memitem:ace04ea5cae78774632597f00ef53bc91" id="r_ace04ea5cae78774632597f00ef53bc91"><td class="memItemLeft" align="right" valign="top">volatile ATOMIC_BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ace04ea5cae78774632597f00ef53bc91">inUse</a></td></tr>
 <tr class="memitem:a01d530fa4854920e32f078120215144b" id="r_a01d530fa4854920e32f078120215144b"><td class="memItemLeft" align="right" valign="top">INT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a01d530fa4854920e32f078120215144b">localSocket</a></td></tr>
 <tr class="memitem:a90829510e4066f0842727dbd28a446d0" id="r_a90829510e4066f0842727dbd28a446d0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="Network_8h.html#a71e445b5cf0a42fa969c34745998d158">KVS_SOCKET_PROTOCOL</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a90829510e4066f0842727dbd28a446d0">protocol</a></td></tr>
 <tr class="memitem:ad07d785ded9aac25a19e0b6f04553b86" id="r_ad07d785ded9aac25a19e0b6f04553b86"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structKvsIpAddress.html">KvsIpAddress</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad07d785ded9aac25a19e0b6f04553b86">peerIpAddr</a></td></tr>
@@ -208,14 +208,14 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="a91fba7262c2df949ea617b69eaa0f3e7" name="a91fba7262c2df949ea617b69eaa0f3e7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a91fba7262c2df949ea617b69eaa0f3e7">&#9670;&#160;</a></span>inUse</h2>
+<a id="ace04ea5cae78774632597f00ef53bc91" name="ace04ea5cae78774632597f00ef53bc91"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ace04ea5cae78774632597f00ef53bc91">&#9670;&#160;</a></span>inUse</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">volatile SIZE_T __SocketConnection::inUse</td>
+          <td class="memname">volatile ATOMIC_BOOL __SocketConnection::inUse</td>
         </tr>
       </table>
 </div><div class="memdoc">
