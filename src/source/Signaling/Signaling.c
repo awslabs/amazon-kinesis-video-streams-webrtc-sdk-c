@@ -989,6 +989,9 @@ STATUS refreshIceConfiguration(PSignalingClient pSignalingClient)
 
     MUTEX_LOCK(pSignalingClient->stateLock);
     locked = TRUE;
+    // Another caller may have refreshed the configuration while we waited for the lock. Check again,
+    // else both callers fetch it and the second one waits for two GetIceServerConfig calls.
+    CHK(pSignalingClient->iceConfigCount == 0 || SIGNALING_GET_CURRENT_TIME(pSignalingClient) > pSignalingClient->iceConfigExpiration, retStatus);
     // Get and store the current state to re-set to if we fail
     CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
 
