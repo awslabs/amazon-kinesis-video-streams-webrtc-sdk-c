@@ -8,7 +8,7 @@
 <area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1474,81,1400,83,1400,77,1480,81"/>
 <area shape="rect" id="Node000004" href="$PeerConnection_8c.html#a0a0385b5afef472a439ff5d8d8d7c1a0" title=" " alt="" coords="969,5,1181,33"/>
 <area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="1256,61,1138,36,1139,31,1261,61"/>
-<area shape="rect" id="Node000006" href="$SocketConnection_8c.html#a493cba86ce7d7349e0d34f8f259628ab" title=" " alt="" coords="974,57,1176,102"/>
+<area shape="rect" id="Node000006" href="$SocketConnection_8c.html#a15ca4ec83abf10b7340a5a1bf6e2aade" title=" " alt="" coords="974,57,1176,102"/>
 <area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="1255,79,1176,82,1176,77,1261,79"/>
 <area shape="rect" id="Node000005" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="736,5,900,33"/>
 <area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="951,19,901,22,901,17,956,19"/>

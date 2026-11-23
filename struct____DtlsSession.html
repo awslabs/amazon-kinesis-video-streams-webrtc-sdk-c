@@ -104,7 +104,7 @@ Collaboration diagram for __DtlsSession:</div>
 <div class="dyncontent">
 <div class="center"><img src="struct____DtlsSession__coll__graph.png" border="0" usemap="#a____DtlsSession_coll__map" loading="lazy" alt="Collaboration graph"/></div>
 <map name="a____DtlsSession_coll__map" id="a____DtlsSession_coll__map">
-<area shape="rect" title=" " alt="" coords="13,218,225,580"/>
+<area shape="rect" title=" " alt="" coords="13,218,225,603"/>
 <area shape="rect" href="structDtlsSessionCallbacks.html" title=" " alt="" coords="5,5,233,145"/>
 <area shape="poly" title=" " alt="" coords="120,142,122,201,117,201,119,147"/>
 </map>
@@ -116,6 +116,7 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:af38d3087b813c0ea223f1bbc5e07d413" id="r_af38d3087b813c0ea223f1bbc5e07d413"><td class="memItemLeft" align="right" valign="top">volatile ATOMIC_BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#af38d3087b813c0ea223f1bbc5e07d413">isShutdown</a></td></tr>
 <tr class="memitem:ac9f1a65e50ef8a4f8638d52b48754030" id="r_ac9f1a65e50ef8a4f8638d52b48754030"><td class="memItemLeft" align="right" valign="top">volatile ATOMIC_BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac9f1a65e50ef8a4f8638d52b48754030">isCleanUp</a></td></tr>
 <tr class="memitem:a9afa83609ca58cd22584866031344cc1" id="r_a9afa83609ca58cd22584866031344cc1"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9afa83609ca58cd22584866031344cc1">certificateCount</a></td></tr>
+<tr class="memitem:a6f1b5d72f88343b600d505a3f65e6046" id="r_a6f1b5d72f88343b600d505a3f65e6046"><td class="memItemLeft" align="right" valign="top">UINT16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a6f1b5d72f88343b600d505a3f65e6046">keyExchangeGroups</a> [<a class="el" href="group__NameLengths.html#ga55835557a7e9c27d6f15699ac6d033e6">MAX_DTLS_KEY_EXCHANGE_GROUPS</a>]</td></tr>
 <tr class="memitem:af671819aab0aa28f0702308ea1a09e7e" id="r_af671819aab0aa28f0702308ea1a09e7e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structDtlsSessionCallbacks.html">DtlsSessionCallbacks</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#af671819aab0aa28f0702308ea1a09e7e">dtlsSessionCallbacks</a></td></tr>
 <tr class="memitem:a03434cced6f7b29053c43ff68d5e3b7c" id="r_a03434cced6f7b29053c43ff68d5e3b7c"><td class="memItemLeft" align="right" valign="top">TIMER_QUEUE_HANDLE&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a03434cced6f7b29053c43ff68d5e3b7c">timerQueueHandle</a></td></tr>
 <tr class="memitem:a13784e003fa3beb625f2949828308d8a" id="r_a13784e003fa3beb625f2949828308d8a"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a13784e003fa3beb625f2949828308d8a">timerId</a></td></tr>
@@ -235,6 +236,20 @@ Public Attributes</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">volatile ATOMIC_BOOL __DtlsSession::isStarted</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a6f1b5d72f88343b600d505a3f65e6046" name="a6f1b5d72f88343b600d505a3f65e6046"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6f1b5d72f88343b600d505a3f65e6046">&#9670;&#160;</a></span>keyExchangeGroups</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">UINT16 __DtlsSession::keyExchangeGroups[<a class="el" href="group__NameLengths.html#ga55835557a7e9c27d6f15699ac6d033e6">MAX_DTLS_KEY_EXCHANGE_GROUPS</a>]</td>
         </tr>
       </table>
 </div><div class="memdoc">
