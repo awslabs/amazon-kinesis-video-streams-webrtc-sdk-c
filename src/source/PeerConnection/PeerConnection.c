@@ -1016,6 +1016,7 @@ STATUS onSetStunServerIp(UINT64 customData, PCHAR url, PDualKvsIpAddresses pIpAd
     UNUSED_PARAM(customData);
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
+    StunIpAddrContext newStunIpAddrCtx;
     PWebRtcClientContext pWebRtcClientContext = getWebRtcClientInstance();
     CHK_WARN(ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized), STATUS_NULL_ARG, "WebRTC Client object Object not initialized");
 
@@ -1023,6 +1024,22 @@ STATUS onSetStunServerIp(UINT64 customData, PCHAR url, PDualKvsIpAddresses pIpAd
 
     MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
     locked = TRUE;
+
+    // resolveStunIceServerIp() builds the cached hostname from AWS_DEFAULT_REGION, and the region of the channel can be
+    // different. While no peer connection uses the cached hostname, cache the one that is asked for instead.
+    if (STRCMP(url, pWebRtcClientContext->pStunIpAddrCtx->hostname) != 0 && !pWebRtcClientContext->pStunIpAddrCtx->hostnameInUse) {
+        newStunIpAddrCtx = *pWebRtcClientContext->pStunIpAddrCtx;
+        SNPRINTF(newStunIpAddrCtx.hostname, SIZEOF(newStunIpAddrCtx.hostname), "%s", url);
+        if (getStunAddr(&newStunIpAddrCtx) == STATUS_SUCCESS &&
+            (newStunIpAddrCtx.kvsIpAddresses.ipv4Address.family != KVS_IP_FAMILY_TYPE_NOT_SET ||
+             newStunIpAddrCtx.kvsIpAddresses.ipv6Address.family != KVS_IP_FAMILY_TYPE_NOT_SET)) {
+            newStunIpAddrCtx.isIpInitialized = TRUE;
+            newStunIpAddrCtx.startTime = GETTIME();
+            // The status stops resolveStunIceServerIp() from replacing the hostname
+            newStunIpAddrCtx.status = STATUS_PEERCONNECTION_EARLY_DNS_RESOLUTION_FAILED;
+            *pWebRtcClientContext->pStunIpAddrCtx = newStunIpAddrCtx;
+        }
+    }
 
     // This covers a situation where say we receive a URL that is not the default STUN or the hostname is not populated
     // pWebRtcClientContext->pStunIpAddrCtx->status needs to be set to ensure we do not go ahead with resolution on thread
@@ -1032,6 +1049,7 @@ STATUS onSetStunServerIp(UINT64 customData, PCHAR url, PDualKvsIpAddresses pIpAd
         // This is to ensure we do not go ahead with STUN resolution if this call is already made
         pWebRtcClientContext->pStunIpAddrCtx->status = STATUS_PEERCONNECTION_EARLY_DNS_RESOLUTION_FAILED;
     } else {
+        pWebRtcClientContext->pStunIpAddrCtx->hostnameInUse = TRUE;
         if (pWebRtcClientContext->pStunIpAddrCtx->isIpInitialized) {
             DLOGI("Initialized successfully");
             if (currentTime > (pWebRtcClientContext->pStunIpAddrCtx->startTime + pWebRtcClientContext->pStunIpAddrCtx->expirationDuration)) {

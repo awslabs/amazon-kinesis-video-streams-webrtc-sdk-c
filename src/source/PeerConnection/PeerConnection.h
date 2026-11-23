@@ -183,6 +183,7 @@ typedef struct {
     CHAR hostname[MAX_ICE_CONFIG_URI_LEN + 1];
     DualKvsIpAddresses kvsIpAddresses;
     BOOL isIpInitialized;
+    BOOL hostnameInUse; //!< TRUE after a peer connection asked for the cached hostname
     UINT64 startTime;
     UINT64 stunDnsResolutionTime;
     UINT64 expirationDuration;

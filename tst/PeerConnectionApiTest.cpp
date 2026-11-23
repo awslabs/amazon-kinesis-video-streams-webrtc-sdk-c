@@ -522,6 +522,7 @@ TEST_F(PeerConnectionApiTest, onSetStunServerIpCopiesCompleteAddress)
     StunIpAddrContext savedCtx;
     DualKvsIpAddresses ipAddresses;
     const BYTE ipv4[IPV4_ADDRESS_LENGTH] = {203, 0, 113, 7};
+    const BYTE otherIpv4[IPV4_ADDRESS_LENGTH] = {192, 0, 2, 10};
     const BYTE ipv6[IPV6_ADDRESS_LENGTH] = {0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x42};
     BOOL createdHere = FALSE, resolverDone = FALSE;
     UINT32 i;
@@ -577,6 +578,24 @@ TEST_F(PeerConnectionApiTest, onSetStunServerIpCopiesCompleteAddress)
     MEMSET(&ipAddresses, 0x00, SIZEOF(ipAddresses));
     EXPECT_EQ(STATUS_PEERCONNECTION_EARLY_DNS_RESOLUTION_FAILED, onSetStunServerIp(0, (PCHAR) "stun.other.invalid", &ipAddresses));
     EXPECT_EQ(KVS_IP_FAMILY_TYPE_NOT_SET, ipAddresses.ipv4Address.family);
+
+    // A cached hostname that no peer connection has asked for is replaced. An IP literal needs no DNS.
+    MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
+    pStunIpAddrCtx->hostnameInUse = FALSE;
+    MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
+    MEMSET(&ipAddresses, 0x00, SIZEOF(ipAddresses));
+    EXPECT_EQ(STATUS_SUCCESS, onSetStunServerIp(0, (PCHAR) "192.0.2.10", &ipAddresses));
+    EXPECT_EQ(KVS_IP_FAMILY_TYPE_IPV4, ipAddresses.ipv4Address.family);
+    EXPECT_EQ(0, MEMCMP(ipAddresses.ipv4Address.address, otherIpv4, IPV4_ADDRESS_LENGTH));
+
+    // The next call with the same URL uses the cache. A new lookup would overwrite the marker address.
+    MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
+    EXPECT_STREQ("192.0.2.10", pStunIpAddrCtx->hostname);
+    MEMCPY(pStunIpAddrCtx->kvsIpAddresses.ipv4Address.address, ipv4, IPV4_ADDRESS_LENGTH);
+    MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
+    MEMSET(&ipAddresses, 0x00, SIZEOF(ipAddresses));
+    EXPECT_EQ(STATUS_SUCCESS, onSetStunServerIp(0, (PCHAR) "192.0.2.10", &ipAddresses));
+    EXPECT_EQ(0, MEMCMP(ipAddresses.ipv4Address.address, ipv4, IPV4_ADDRESS_LENGTH));
 
     MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
     *pStunIpAddrCtx = savedCtx;
