@@ -233,7 +233,8 @@ STATUS getDataChannelStats(PRtcPeerConnection pRtcPeerConnection, PRtcDataChanne
     // The SCTP thread and createDataChannel change the table, and allocateSctp swaps it, while stats are read
     MUTEX_LOCK(pKvsPeerConnection->dataChannelsLock);
     locked = TRUE;
-    if (pKvsPeerConnection->pSctpSession != NULL) {
+    // Keyed by stream id once the association started (with SNAP the SCTP session exists before that)
+    if (ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpStarted)) {
         CHK_STATUS(hashTableGet(pKvsPeerConnection->pDataChannels, pRtcDataChannelStats->dataChannelIdentifier, &hashValue));
         pKvsDataChannel = (PKvsDataChannel) hashValue;
     } else {

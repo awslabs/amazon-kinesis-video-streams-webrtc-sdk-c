@@ -150,6 +150,9 @@ STATUS initSctpSession()
 
     // Disable Explicit Congestion Notification
     usrsctp_sysctl_set_sctp_ecn_enable(0);
+    // Browsers negotiate neither AUTH nor ASCONF; without them the INIT, which SNAP puts in the SDP, is 52 bytes shorter
+    usrsctp_sysctl_set_sctp_auth_enable(0);
+    usrsctp_sysctl_set_sctp_asconf_enable(0);
 
     CHK_STATUS(createSctpContext());
 
@@ -170,7 +173,9 @@ VOID deinitSctpSession()
     cleanupSctpContext();
 }
 
-STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, PSctpSession* ppSctpSession)
+// With pInit the INIT chunk is copied there for SNAP instead of being sent
+static STATUS createSctpSessionInternal(PSctpSessionCallbacks pSctpSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, PBYTE pInit,
+                                        PUINT32 pInitLen, PSctpSession* ppSctpSession)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -179,6 +184,9 @@ STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, TIMER_QUEU
     struct sctp_paddrparams params;
     struct sctp_assocparams assocParams;
     INT32 connectStatus = 0;
+#ifdef USRSCTP_HAS_SNAP
+    size_t initLen;
+#endif
 
     CHK(ppSctpSession != NULL && pSctpSessionCallbacks != NULL, STATUS_NULL_ARG);
 
@@ -207,8 +215,20 @@ STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, TIMER_QUEU
 
     CHK(usrsctp_bind(pSctpSession->socket, (struct sockaddr*) &localConn, SIZEOF(localConn)) == 0, STATUS_SCTP_SESSION_SETUP_FAILED);
 
-    connectStatus = usrsctp_connect(pSctpSession->socket, (struct sockaddr*) &remoteConn, SIZEOF(remoteConn));
-    CHK(connectStatus >= 0 || errno == EINPROGRESS, STATUS_SCTP_SESSION_SETUP_FAILED);
+    if (pInit != NULL) {
+#ifdef USRSCTP_HAS_SNAP
+        initLen = SCTP_SNAP_MAX_INIT_SIZE;
+        CHK_ERR(usrsctp_snap_prepare(pSctpSession->socket, (struct sockaddr*) &remoteConn, SIZEOF(remoteConn), pInit, &initLen) == 0,
+                STATUS_SCTP_SESSION_SETUP_FAILED, "usrsctp_snap_prepare failed with errno %d", errno);
+        *pInitLen = (UINT32) initLen;
+        pSctpSession->snapPrepared = TRUE;
+#else
+        CHK(FALSE, STATUS_NOT_IMPLEMENTED);
+#endif
+    } else {
+        connectStatus = usrsctp_connect(pSctpSession->socket, (struct sockaddr*) &remoteConn, SIZEOF(remoteConn));
+        CHK(connectStatus >= 0 || errno == EINPROGRESS, STATUS_SCTP_SESSION_SETUP_FAILED);
+    }
 
     memcpy(&params.spp_address, &remoteConn, SIZEOF(remoteConn));
     params.spp_flags = SPP_PMTUD_DISABLE;
@@ -233,6 +253,90 @@ CleanUp:
     *ppSctpSession = pSctpSession;
 
     LEAVES();
+    return retStatus;
+}
+
+STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, PSctpSession* ppSctpSession)
+{
+    return createSctpSessionInternal(pSctpSessionCallbacks, timerQueueHandle, NULL, NULL, ppSctpSession);
+}
+
+BOOL sctpSnapSupported()
+{
+#ifdef USRSCTP_HAS_SNAP
+    return TRUE;
+#else
+    return FALSE;
+#endif
+}
+
+STATUS createSctpSessionWithSnap(PSctpSessionCallbacks pSctpSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, PBYTE pInit, PUINT32 pInitLen,
+                                 PSctpSession* ppSctpSession)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pInit != NULL && pInitLen != NULL, STATUS_NULL_ARG);
+    CHK_STATUS(createSctpSessionInternal(pSctpSessionCallbacks, timerQueueHandle, pInit, pInitLen, ppSctpSession));
+
+CleanUp:
+    return retStatus;
+}
+
+BOOL sctpSnapInitIsValid(PBYTE pInit, UINT32 initLen)
+{
+    UINT16 chunkLength;
+
+    // Chunk header (4), initiate tag (4), a_rwnd (4), outbound and inbound streams (2 + 2), initial TSN (4)
+    if (pInit == NULL || initLen < 20 || initLen > SCTP_SNAP_MAX_INIT_SIZE || pInit[0] != 1) {
+        return FALSE;
+    }
+    chunkLength = (UINT16) getUnalignedInt16BigEndian(pInit + 2);
+    // The chunk may come with its padding
+    return chunkLength >= 20 && chunkLength <= initLen && initLen <= (UINT32) ROUND_UP(chunkLength, 4) &&
+        getUnalignedInt32BigEndian(pInit + 4) != 0 && (UINT32) getUnalignedInt32BigEndian(pInit + 8) >= 1500 &&
+        getUnalignedInt16BigEndian(pInit + 12) != 0 && getUnalignedInt16BigEndian(pInit + 14) != 0;
+}
+
+STATUS sctpSessionSnapEstablish(PSctpSession pSctpSession, PBYTE pRemoteInit, UINT32 remoteInitLen, UINT64 roundTripTime)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    // In ms, rounded up: a LAN's sub-millisecond round trip is still one
+    UINT32 roundTripMs = (UINT32) ((roundTripTime + HUNDREDS_OF_NANOS_IN_A_MILLISECOND - 1) / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+
+    CHK(pSctpSession != NULL && pRemoteInit != NULL, STATUS_NULL_ARG);
+    CHK(pSctpSession->snapPrepared, STATUS_INVALID_OPERATION);
+    CHK(sctpSnapInitIsValid(pRemoteInit, remoteInitLen), STATUS_SCTP_INVALID_SNAP_INIT);
+#ifdef USRSCTP_HAS_SNAP
+    if (usrsctp_snap_establish(pSctpSession->socket, pRemoteInit, remoteInitLen, roundTripMs) == 0) {
+        DLOGI("SCTP association opened from the peer's INIT (SNAP), %u ms round trip", roundTripMs);
+    } else {
+        // EALREADY: the peer's INIT came over the wire first and was answered, that handshake opens the association
+        CHK_ERR(errno == EALREADY, STATUS_SCTP_SESSION_SETUP_FAILED, "usrsctp_snap_establish failed with errno %d", errno);
+        DLOGI("SCTP association opens through the peer's INIT handshake instead of SNAP");
+    }
+#else
+    CHK(FALSE, STATUS_NOT_IMPLEMENTED);
+#endif
+
+CleanUp:
+    return retStatus;
+}
+
+STATUS sctpSessionSnapSendInit(PSctpSession pSctpSession)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pSctpSession != NULL, STATUS_NULL_ARG);
+    CHK(pSctpSession->snapPrepared, STATUS_INVALID_OPERATION);
+#ifdef USRSCTP_HAS_SNAP
+    // EALREADY: the peer's INIT came first and was answered, which opens the association too
+    CHK_ERR(usrsctp_snap_send_init(pSctpSession->socket) == 0 || errno == EALREADY, STATUS_SCTP_SESSION_SETUP_FAILED,
+            "usrsctp_snap_send_init failed with errno %d", errno);
+#else
+    CHK(FALSE, STATUS_NOT_IMPLEMENTED);
+#endif
+
+CleanUp:
     return retStatus;
 }
 
@@ -265,8 +369,10 @@ STATUS freeSctpSession(PSctpSession* ppSctpSession)
         usrsctp_close(pSctpSession->socket);
     }
 
+    // An association SNAP prepared but never opened sends nothing on close, there is nothing to wait for
     shutdownTimeout = GETTIME() + DEFAULT_SCTP_SHUTDOWN_TIMEOUT;
-    while (ATOMIC_LOAD(&pSctpSession->shutdownStatus) != SCTP_SESSION_SHUTDOWN_COMPLETED && GETTIME() < shutdownTimeout) {
+    while ((!pSctpSession->snapPrepared || ATOMIC_LOAD_BOOL(&pSctpSession->established)) &&
+           ATOMIC_LOAD(&pSctpSession->shutdownStatus) != SCTP_SESSION_SHUTDOWN_COMPLETED && GETTIME() < shutdownTimeout) {
         THREAD_SLEEP(DEFAULT_USRSCTP_TEARDOWN_POLLING_INTERVAL);
     }
 
@@ -539,10 +645,23 @@ INT32 onSctpInboundPacket(struct socket* sock, union sctp_sockstore addr, PVOID 
 {
     UNUSED_PARAM(sock);
     UNUSED_PARAM(addr);
-    UNUSED_PARAM(flags);
     STATUS retStatus = STATUS_SUCCESS;
     PSctpSession pSctpSession = (PSctpSession) ulp_info;
     BOOL isBinary = FALSE;
+    union sctp_notification* pNotification;
+
+    CHK(pSctpSession != NULL, retStatus);
+
+    if ((flags & MSG_NOTIFICATION) != 0) {
+        pNotification = (union sctp_notification*) data;
+        if (pNotification->sn_header.sn_type == SCTP_ASSOC_CHANGE) {
+            DLOGD("SCTP association change: %u", pNotification->sn_assoc_change.sac_state);
+            if (pNotification->sn_assoc_change.sac_state == SCTP_COMM_UP) {
+                ATOMIC_STORE_BOOL(&pSctpSession->established, TRUE);
+            }
+        }
+        CHK(FALSE, retStatus);
+    }
 
     rcv.rcv_ppid = ntohl(rcv.rcv_ppid);
     switch (rcv.rcv_ppid) {

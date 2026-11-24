@@ -1725,6 +1725,273 @@ TEST_F(DataChannelFunctionalityTest, inbandDataChannel_FailedOpenIsClosed)
     EXPECT_EQ(SCTP_MAX_STREAMS / 2, ATOMIC_LOAD(&opened.open));
 }
 
+// The offerer opens a channel and sends a message the answerer echoes back. Returns how many echoes arrived.
+static SIZE_T echoOverDataChannel(WebRtcClientTestBase* pTest, PRtcConfiguration pOfferConfiguration, PRtcConfiguration pAnswerConfiguration,
+                                  PRtcPeerConnection* pOfferPc, PRtcPeerConnection* pAnswerPc)
+{
+    PRtcDataChannel pOfferDataChannel = nullptr;
+    SIZE_T msgCount = 0;
+
+    EXPECT_EQ(createPeerConnection(pOfferConfiguration, pOfferPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(pAnswerConfiguration, pAnswerPc), STATUS_SUCCESS);
+
+    auto onDataChannel = [](UINT64 customData, PRtcDataChannel pRtcDataChannel) {
+        UNUSED_PARAM(customData);
+        auto onMessage = [](UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMsg, UINT32 pMsgLen) {
+            UNUSED_PARAM(customData);
+            dataChannelSend(pDataChannel, isBinary, pMsg, pMsgLen);
+        };
+        dataChannelOnMessage(pRtcDataChannel, 0, onMessage);
+    };
+    auto onOpen = [](UINT64 customData, PRtcDataChannel pDataChannel) {
+        UNUSED_PARAM(customData);
+        dataChannelSend(pDataChannel, FALSE, (PBYTE) TEST_DATA_CHANNEL_MESSAGE, STRLEN(TEST_DATA_CHANNEL_MESSAGE));
+    };
+    auto onMessage = [](UINT64 customData, PRtcDataChannel pDataChannel, BOOL isBinary, PBYTE pMsg, UINT32 pMsgLen) {
+        UNUSED_PARAM(pDataChannel);
+        UNUSED_PARAM(isBinary);
+        if (pMsgLen == STRLEN(TEST_DATA_CHANNEL_MESSAGE) && STRNCMP((PCHAR) pMsg, TEST_DATA_CHANNEL_MESSAGE, pMsgLen) == 0) {
+            ATOMIC_INCREMENT((PSIZE_T) customData);
+        }
+    };
+
+    EXPECT_EQ(peerConnectionOnDataChannel(*pAnswerPc, 0, onDataChannel), STATUS_SUCCESS);
+    EXPECT_EQ(createDataChannel(*pOfferPc, (PCHAR) "echo", nullptr, &pOfferDataChannel), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelOnOpen(pOfferDataChannel, 0, onOpen), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelOnMessage(pOfferDataChannel, (UINT64) &msgCount, onMessage), STATUS_SUCCESS);
+
+    EXPECT_EQ(pTest->connectTwoPeers(*pOfferPc, *pAnswerPc), TRUE);
+    for (auto i = 0; i <= 100 && ATOMIC_LOAD(&msgCount) != 1; i++) {
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+
+    return ATOMIC_LOAD(&msgCount);
+}
+
+static VOID closeAndFree(PRtcPeerConnection* pOfferPc, PRtcPeerConnection* pAnswerPc)
+{
+    closePeerConnection(*pOfferPc);
+    closePeerConnection(*pAnswerPc);
+    freePeerConnection(pOfferPc);
+    freePeerConnection(pAnswerPc);
+}
+
+// The DATA chunks of the first SCTP packet with any the offerer sends, counted on its way out
+static SctpSessionOutboundPacketFunc gSnapOutboundPacketFunc = NULL;
+static volatile SIZE_T gSnapFirstDataChunks = 0;
+
+static VOID countSnapFirstDataChunks(UINT64 customData, PBYTE pPacket, UINT32 packetLen)
+{
+    UINT32 offset = 12, chunkLen;
+    SIZE_T chunks = 0;
+
+    while (offset + 4 <= packetLen) {
+        chunkLen = getUnalignedInt16BigEndian(pPacket + offset + 2);
+        chunks += pPacket[offset] == 0 ? 1 : 0;
+        if (chunkLen < 4) {
+            break;
+        }
+        offset += ROUND_UP(chunkLen, 4);
+    }
+    if (chunks > 0 && ATOMIC_LOAD(&gSnapFirstDataChunks) == 0) {
+        ATOMIC_STORE(&gSnapFirstDataChunks, chunks);
+    }
+    gSnapOutboundPacketFunc(customData, pPacket, packetLen);
+}
+
+// SNAP: the INIT chunks travel in the SDP and both associations open without the SCTP handshake
+TEST_F(DataChannelFunctionalityTest, createDataChannel_Snap)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    if (!sctpSnapSupported()) {
+        GTEST_SKIP() << "usrsctp without SNAP";
+    }
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    configuration.kvsRtcConfiguration.enableSctpSnap = TRUE;
+    ATOMIC_STORE(&gSnapFirstDataChunks, 0);
+    afterOfferSet = [](PRtcPeerConnection offerPc) {
+        PSctpSession pSctpSession = ((PKvsPeerConnection) offerPc)->pSctpSession;
+        ASSERT_NE(nullptr, pSctpSession);
+        gSnapOutboundPacketFunc = pSctpSession->sctpSessionCallbacks.outboundPacketFunc;
+        pSctpSession->sctpSessionCallbacks.outboundPacketFunc = countSnapFirstDataChunks;
+    };
+
+    EXPECT_EQ(1, echoOverDataChannel(this, &configuration, &configuration, &offerPc, &answerPc));
+    // The channel opens before the association, so its DCEP OPEN and the message onOpen sent share the first packet
+    EXPECT_EQ(2, ATOMIC_LOAD(&gSnapFirstDataChunks));
+    EXPECT_NE(std::string::npos, lastOfferSdp.find("a=sctp-init:"));
+    EXPECT_NE(std::string::npos, lastAnswerSdp.find("a=sctp-init:"));
+    EXPECT_TRUE(((PKvsPeerConnection) offerPc)->pSctpSession->snapPrepared);
+    EXPECT_TRUE(ATOMIC_LOAD_BOOL(&((PKvsPeerConnection) offerPc)->pSctpSession->established));
+    EXPECT_TRUE(ATOMIC_LOAD_BOOL(&((PKvsPeerConnection) answerPc)->pSctpSession->established));
+    closeAndFree(&offerPc, &answerPc);
+}
+
+static VOID dropSctpPacket(UINT64 customData, PBYTE pPacket, UINT32 packetLen)
+{
+    UNUSED_PARAM(customData);
+    UNUSED_PARAM(pPacket);
+    UNUSED_PARAM(packetLen);
+}
+
+static struct sctp_paddrinfo primaryPathOf(PSctpSession pSctpSession)
+{
+    struct sctp_status status;
+    socklen_t length = SIZEOF(status);
+
+    MEMSET(&status, 0x00, SIZEOF(status));
+    EXPECT_EQ(0, usrsctp_getsockopt(pSctpSession->socket, IPPROTO_SCTP, SCTP_STATUS, &status, &length));
+    return status.sstat_primary;
+}
+
+// SNAP: the round trip given at establishment is the association's first measurement, as an INIT exchange's would be
+TEST_F(DataChannelFunctionalityTest, snapTakesTheGivenRoundTrip)
+{
+    SctpSessionCallbacks callbacks;
+    TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+    PSctpSession pPeer = NULL, pWan = NULL, pLan = NULL, pUnmeasured = NULL;
+    BYTE peerInit[SCTP_SNAP_MAX_INIT_SIZE], init[SCTP_SNAP_MAX_INIT_SIZE];
+    UINT32 peerInitLen = 0, initLen = 0;
+
+    if (!sctpSnapSupported()) {
+        GTEST_SKIP() << "usrsctp without SNAP";
+    }
+    MEMSET(&callbacks, 0x00, SIZEOF(callbacks));
+    callbacks.outboundPacketFunc = dropSctpPacket;
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+    EXPECT_EQ(STATUS_SUCCESS, createSctpSessionWithSnap(&callbacks, timerQueueHandle, peerInit, &peerInitLen, &pPeer));
+    EXPECT_EQ(STATUS_SUCCESS, createSctpSessionWithSnap(&callbacks, timerQueueHandle, init, &initLen, &pWan));
+    EXPECT_EQ(STATUS_SUCCESS, createSctpSessionWithSnap(&callbacks, timerQueueHandle, init, &initLen, &pLan));
+    EXPECT_EQ(STATUS_SUCCESS, createSctpSessionWithSnap(&callbacks, timerQueueHandle, init, &initLen, &pUnmeasured));
+
+    // 400 ms: RTO = SRTT + 4 x SRTT / 2
+    EXPECT_EQ(STATUS_SUCCESS, sctpSessionSnapEstablish(pWan, peerInit, peerInitLen, 400 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND));
+    EXPECT_LE(400, primaryPathOf(pWan).spinfo_srtt);
+    EXPECT_GT(410, primaryPathOf(pWan).spinfo_srtt);
+    EXPECT_LE(1200, primaryPathOf(pWan).spinfo_rto);
+    EXPECT_GT(1230, primaryPathOf(pWan).spinfo_rto);
+    // A sub-millisecond round trip still counts: RTO.Min
+    EXPECT_EQ(STATUS_SUCCESS, sctpSessionSnapEstablish(pLan, peerInit, peerInitLen, 3000));
+    EXPECT_EQ(1000, primaryPathOf(pLan).spinfo_rto);
+    // None: RTO.Initial applies until the first SACK measures one
+    EXPECT_EQ(STATUS_SUCCESS, sctpSessionSnapEstablish(pUnmeasured, peerInit, peerInitLen, 0));
+    EXPECT_EQ(0, primaryPathOf(pUnmeasured).spinfo_srtt);
+    EXPECT_EQ(0, primaryPathOf(pUnmeasured).spinfo_rto);
+
+    EXPECT_EQ(STATUS_SUCCESS, freeSctpSession(&pUnmeasured));
+    EXPECT_EQ(STATUS_SUCCESS, freeSctpSession(&pLan));
+    EXPECT_EQ(STATUS_SUCCESS, freeSctpSession(&pWan));
+    EXPECT_EQ(STATUS_SUCCESS, freeSctpSession(&pPeer));
+    timerQueueFree(&timerQueueHandle);
+}
+
+// SNAP falls back to the SCTP handshake against a peer without it, whichever side offers
+TEST_F(DataChannelFunctionalityTest, createDataChannel_SnapOnOneSide)
+{
+    RtcConfiguration snapConfiguration, plainConfiguration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+
+    if (!sctpSnapSupported()) {
+        GTEST_SKIP() << "usrsctp without SNAP";
+    }
+    MEMSET(&snapConfiguration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&plainConfiguration, 0x00, SIZEOF(RtcConfiguration));
+    snapConfiguration.kvsRtcConfiguration.enableSctpSnap = TRUE;
+
+    EXPECT_EQ(1, echoOverDataChannel(this, &snapConfiguration, &plainConfiguration, &offerPc, &answerPc));
+    EXPECT_NE(std::string::npos, lastOfferSdp.find("a=sctp-init:"));
+    EXPECT_EQ(std::string::npos, lastAnswerSdp.find("a=sctp-init:"));
+    closeAndFree(&offerPc, &answerPc);
+
+    MEMSET(stateChangeCount, 0x00, SIZEOF(stateChangeCount));
+    EXPECT_EQ(1, echoOverDataChannel(this, &plainConfiguration, &snapConfiguration, &offerPc, &answerPc));
+    EXPECT_EQ(std::string::npos, lastAnswerSdp.find("a=sctp-init:"));
+    closeAndFree(&offerPc, &answerPc);
+}
+
+// A remote a=sctp-init that is no INIT chunk fails the description
+TEST_F(DataChannelFunctionalityTest, snapRejectsMalformedSctpInit)
+{
+    RtcConfiguration configuration;
+    RtcSessionDescriptionInit sdp;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    std::string offerSdp;
+    size_t start, end;
+
+    if (!sctpSnapSupported()) {
+        GTEST_SKIP() << "usrsctp without SNAP";
+    }
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    MEMSET(&sdp, 0x00, SIZEOF(RtcSessionDescriptionInit));
+    configuration.kvsRtcConfiguration.enableSctpSnap = TRUE;
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sdp));
+    offerSdp = sdp.sdp;
+    start = offerSdp.find("a=sctp-init:");
+    ASSERT_NE(std::string::npos, start);
+    start += STRLEN("a=sctp-init:");
+    end = offerSdp.find_first_of("\r\n", start);
+    // Valid base64, but 6 bytes are no INIT chunk
+    offerSdp.replace(start, end - start, "AQAABgAA");
+    STRNCPY(sdp.sdp, offerSdp.c_str(), MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+    EXPECT_EQ(STATUS_SCTP_INVALID_SNAP_INIT, setRemoteDescription(answerPc, &sdp));
+
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+}
+
+// SNAP with a negotiated channel: no DCEP, so the first packet carries the message alone and the remote announces nothing
+TEST_F(DataChannelFunctionalityTest, createDataChannel_NegotiatedSnap)
+{
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PRtcDataChannel pOfferNeg = NULL, pAnswerNeg = NULL;
+    RtcDataChannelInit init;
+    NegotiatedCounters offer, answer;
+
+    if (!sctpSnapSupported()) {
+        GTEST_SKIP() << "usrsctp without SNAP";
+    }
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    configuration.kvsRtcConfiguration.enableSctpSnap = TRUE;
+    ATOMIC_STORE(&gSnapFirstDataChunks, 0);
+    afterOfferSet = [](PRtcPeerConnection offerPc) {
+        PSctpSession pSctpSession = ((PKvsPeerConnection) offerPc)->pSctpSession;
+        ASSERT_NE(nullptr, pSctpSession);
+        gSnapOutboundPacketFunc = pSctpSession->sctpSessionCallbacks.outboundPacketFunc;
+        pSctpSession->sctpSessionCallbacks.outboundPacketFunc = countSnapFirstDataChunks;
+    };
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+    EXPECT_EQ(peerConnectionOnDataChannel(offerPc, (UINT64) &offer, negotiatedOnRemoteDataChannel), STATUS_SUCCESS);
+    EXPECT_EQ(peerConnectionOnDataChannel(answerPc, (UINT64) &answer, negotiatedOnRemoteDataChannel), STATUS_SUCCESS);
+    initNegotiated(&init, 0);
+    EXPECT_EQ(createDataChannel(offerPc, (PCHAR) "negotiated", &init, &pOfferNeg), STATUS_SUCCESS);
+    initNegotiated(&init, 0);
+    EXPECT_EQ(createDataChannel(answerPc, (PCHAR) "negotiated", &init, &pAnswerNeg), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelOnMessage(pAnswerNeg, (UINT64) &answer, negotiatedOnMessage), STATUS_SUCCESS);
+    // The offerer sends as soon as its channel opens, before the association is up
+    EXPECT_EQ(dataChannelOnOpen(pOfferNeg, 0,
+                                [](UINT64 customData, PRtcDataChannel pDataChannel) {
+                                    UNUSED_PARAM(customData);
+                                    dataChannelSend(pDataChannel, FALSE, (PBYTE) TEST_DATA_CHANNEL_MESSAGE, STRLEN(TEST_DATA_CHANNEL_MESSAGE));
+                                }),
+              STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    for (auto i = 0; i <= 50 && ATOMIC_LOAD(&answer.msg) != 1; i++) {
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    EXPECT_EQ(1, ATOMIC_LOAD(&answer.msg));
+    EXPECT_EQ(1, ATOMIC_LOAD(&gSnapFirstDataChunks));
+    EXPECT_EQ(0, ATOMIC_LOAD(&answer.remoteOpen));
+    closeAndFree(&offerPc, &answerPc);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

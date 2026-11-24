@@ -151,6 +151,17 @@ typedef struct {
 
     NullableBool canTrickleIce;
 
+    // SNAP (draft-uberti-tsvwg-warp, section 4.1): the SCTP INIT chunks travel in the SDP (a=sctp-init)
+    BOOL snapEnabled;
+    // Base64 of our INIT chunk, once the SCTP session is prepared for SNAP
+    CHAR localSctpInit[MAX_SDP_ATTRIBUTE_VALUE_LENGTH + 1];
+    // The INIT chunk of the peer's a=sctp-init
+    BYTE remoteSctpInit[SCTP_SNAP_MAX_INIT_SIZE];
+    UINT32 remoteSctpInitLen;
+    // The SCTP association was started and the data channels created so far opened. With SNAP the SCTP session
+    // exists before that.
+    volatile ATOMIC_BOOL sctpStarted;
+
     // congestion control
     // https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
     UINT16 twccExtId;

@@ -1,0 +1,69 @@
+From 91d713d1377818e750d399284c47daf6ca0f4686 Mon Sep 17 00:00:00 2001
+From: Aryan Kadole <aryan.kadole@espressif.com>
+Date: Fri, 30 Oct 2026 18:21:12 +0530
+Subject: [PATCH 1/4] Allow building the INIT without sending it
+
+sctp_send_initiate_internal() is the former sctp_send_initiate() with an
+initp argument: when set, the INIT chunk is returned in *initp instead
+of being sent, and no INIT timer is started. sctp_send_initiate() calls
+it without one, so its behaviour is unchanged.
+---
+ usrsctplib/netinet/sctp_output.c | 24 ++++++++++++++++++++----
+ 1 file changed, 20 insertions(+), 4 deletions(-)
+
+diff --git a/usrsctplib/netinet/sctp_output.c b/usrsctplib/netinet/sctp_output.c
+index 16f9cbb..7a3381a 100755
+--- a/usrsctplib/netinet/sctp_output.c
++++ b/usrsctplib/netinet/sctp_output.c
+@@ -5060,8 +5060,12 @@ sctp_lowlevel_chunk_output(struct sctp_inpcb *inp,
+ 	}
+ }
+ 
+-void
+-sctp_send_initiate(struct sctp_inpcb *inp, struct sctp_tcb *stcb, int so_locked)
++/*
++ * Sends the INIT chunk and starts its timer or, with initp set, returns the
++ * chunk in *initp instead, for SNAP.
++ */
++static void
++sctp_send_initiate_internal(struct sctp_inpcb *inp, struct sctp_tcb *stcb, int so_locked, struct mbuf **initp)
+ {
+ 	struct mbuf *m, *m_last;
+ 	struct sctp_nets *net;
+@@ -5113,8 +5117,10 @@ sctp_send_initiate(struct sctp_inpcb *inp, struct sctp_tcb *stcb, int so_locked)
+ 		SCTPDBG(SCTP_DEBUG_OUTPUT4, "Sending INIT - failed timer?\n");
+ 		return;
+ 	}
+-	/* start the INIT timer */
+-	sctp_timer_start(SCTP_TIMER_TYPE_INIT, inp, stcb, net);
++	if (initp == NULL) {
++		/* start the INIT timer */
++		sctp_timer_start(SCTP_TIMER_TYPE_INIT, inp, stcb, net);
++	}
+ 
+ 	m = sctp_get_mbuf_for_msg(MCLBYTES, 1, M_NOWAIT, 1, MT_DATA);
+ 	if (m == NULL) {
+@@ -5344,6 +5350,10 @@ sctp_send_initiate(struct sctp_inpcb *inp, struct sctp_tcb *stcb, int so_locked)
+ 			return;
+ 		}
+ 	}
++	if (initp != NULL) {
++		*initp = m;
++		return;
++	}
+ 	SCTPDBG(SCTP_DEBUG_OUTPUT4, "Sending INIT - calls lowlevel_output\n");
+ 	if ((error = sctp_lowlevel_chunk_output(inp, stcb, net,
+ 	                                        (struct sockaddr *)&net->ro._l_addr,
+@@ -5366,6 +5376,12 @@ sctp_send_initiate(struct sctp_inpcb *inp, struct sctp_tcb *stcb, int so_locked)
+ 	(void)SCTP_GETTIME_TIMEVAL(&net->last_sent_time);
+ }
+ 
++void
++sctp_send_initiate(struct sctp_inpcb *inp, struct sctp_tcb *stcb, int so_locked)
++{
++	sctp_send_initiate_internal(inp, stcb, so_locked, NULL);
++}
++
+ struct mbuf *
+ sctp_arethere_unrecognized_parameters(struct mbuf *in_initpkt,
+                                       int param_offset, int *abort_processing,

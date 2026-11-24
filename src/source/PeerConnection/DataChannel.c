@@ -37,7 +37,7 @@ STATUS createDataChannelWithCallbacks(PRtcPeerConnection pPeerConnection, PCHAR 
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
     UINT32 channelId = 0;
-    BOOL negotiated = FALSE, exists = FALSE, locked = FALSE, fireOpen = FALSE;
+    BOOL negotiated = FALSE, exists = FALSE, locked = FALSE, started = FALSE, fireOpen = FALSE;
     PKvsDataChannel pKvsDataChannel = NULL;
     NegotiatedIdLookup lookup;
 
@@ -53,10 +53,11 @@ STATUS createDataChannelWithCallbacks(PRtcPeerConnection pPeerConnection, PCHAR 
     MUTEX_LOCK(pKvsPeerConnection->dataChannelsLock);
     locked = TRUE;
 
-    // In-band (DCEP) channels can only be created before the SCTP association exists, because the stream ids are
-    // assigned and the DATA_CHANNEL_OPEN messages sent when the association is set up. Negotiated channels bring
-    // their own id and may be created at any time.
-    CHK(pKvsPeerConnection->pSctpSession == NULL || negotiated, STATUS_INVALID_OPERATION);
+    // In-band (DCEP) channels can only be created before the SCTP association starts, because the stream ids are
+    // assigned and the DATA_CHANNEL_OPEN messages sent when it does. Negotiated channels bring their own id and may be
+    // created at any time. With SNAP the SCTP session exists before the association starts: sctpStarted tells.
+    started = ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpStarted);
+    CHK(!started || negotiated, STATUS_INVALID_OPERATION);
 
     CHK((pKvsDataChannel = (PKvsDataChannel) MEMCALLOC(1, SIZEOF(KvsDataChannel))) != NULL, STATUS_NOT_ENOUGH_MEMORY);
     STRNCPY(pKvsDataChannel->dataChannel.name, pDataChannelName, MAX_DATA_CHANNEL_NAME_LEN);
@@ -74,8 +75,8 @@ STATUS createDataChannelWithCallbacks(PRtcPeerConnection pPeerConnection, PCHAR 
     STRNCPY(pKvsDataChannel->rtcDataChannelDiagnostics.protocol, DATA_CHANNEL_PROTOCOL_STR,
             ARRAY_SIZE(pKvsDataChannel->rtcDataChannelDiagnostics.protocol));
 
-    if (pKvsPeerConnection->pSctpSession != NULL) {
-        // Negotiated channel on an established association: the stream is usable right away
+    if (started) {
+        // Negotiated channel on a started association: the stream is usable right away
         channelId = pRtcDataChannelInit->id.value;
         CHK_STATUS(hashTableContains(pKvsPeerConnection->pDataChannels, channelId, &exists));
         CHK(!exists, STATUS_SCTP_STREAM_ID_IN_USE);
@@ -133,6 +134,8 @@ STATUS dataChannelSend(PRtcDataChannel pRtcDataChannel, BOOL isBinary, PBYTE pMe
     CHK(pKvsDataChannel != NULL && pMessage != NULL, STATUS_NULL_ARG);
 
     pKvsPeerConnection = (PKvsPeerConnection) pKvsDataChannel->pRtcPeerConnection;
+    // A session SNAP prepared exists before the association does
+    CHK(ATOMIC_LOAD_BOOL(&pKvsPeerConnection->sctpStarted), STATUS_INVALID_OPERATION);
     pSctpSession = pKvsPeerConnection->pSctpSession;
 
     CHK_STATUS(sctpSessionWriteMessage(pSctpSession, pKvsDataChannel->channelId, isBinary, pMessage, pMessageLen,
