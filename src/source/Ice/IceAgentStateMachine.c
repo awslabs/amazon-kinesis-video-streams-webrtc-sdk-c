@@ -115,11 +115,15 @@ STATUS iceAgentStateMachineCheckDisconnection(PIceAgent pIceAgent, PUINT64 pNext
     CHK(pIceAgent != NULL && pNextState != NULL, STATUS_NULL_ARG);
 
     currentTime = GETTIME();
-    if (!pIceAgent->detectedDisconnection && IS_VALID_TIMESTAMP(pIceAgent->lastDataReceivedTime) &&
-        pIceAgent->lastDataReceivedTime + KVS_ICE_ENTER_STATE_DISCONNECTION_GRACE_PERIOD <= currentTime) {
+    if (!pIceAgent->detectedDisconnection &&
+        (pIceAgent->consentExpired ||
+         (IS_VALID_TIMESTAMP(pIceAgent->lastDataReceivedTime) &&
+          pIceAgent->lastDataReceivedTime + KVS_ICE_ENTER_STATE_DISCONNECTION_GRACE_PERIOD <= currentTime))) {
         DLOGD("detect disconnection");
         *pNextState = ICE_AGENT_STATE_DISCONNECTED;
     } else if (pIceAgent->detectedDisconnection) {
+        // Lost consent does not come back (RFC 7675 section 5.1): fail without the grace period
+        CHK(!pIceAgent->consentExpired, STATUS_ICE_CONSENT_EXPIRED);
         if (IS_VALID_TIMESTAMP(pIceAgent->lastDataReceivedTime) &&
             pIceAgent->lastDataReceivedTime + KVS_ICE_ENTER_STATE_DISCONNECTION_GRACE_PERIOD > currentTime) {
             // recovered from disconnection
