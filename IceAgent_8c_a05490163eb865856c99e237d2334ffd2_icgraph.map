@@ -1,9 +1,11 @@
 <map id="findCandidateWithSocketConnection" name="findCandidateWithSocketConnection">
 <area shape="rect" id="Node000001" title=" " alt="" coords="1930,56,2187,84"/>
 <area shape="rect" id="Node000002" href="$IceAgent_8c.html#a6c1328530aa9bf24d4e8869be7334567" title=" " alt="" coords="1489,56,1626,84"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1912,65,1882,67,1674,67,1626,69,1626,64,1674,62,1882,62,1917,65"/>
-<area shape="rect" id="Node000014" href="$IceAgent_8c.html#ab24d8045a6f9c765883d38003cb624b8" title=" " alt="" coords="1674,77,1882,122"/>
-<area shape="poly" id="edge15_Node000001_Node000014" title=" " alt="" coords="1917,85,1883,91,1882,86,1912,85"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1982,52,1882,38,1778,29,1732,31,1674,38,1634,46,1597,58,1596,53,1633,41,1673,33,1732,26,1778,24,1882,33,1987,52"/>
+<area shape="rect" id="Node000014" href="$IceAgent_8c.html#ab24d8045a6f9c765883d38003cb624b8" title=" " alt="" coords="1674,48,1882,92"/>
+<area shape="poly" id="edge15_Node000001_Node000014" title=" " alt="" coords="1912,70,1882,72,1882,67,1917,70"/>
+<area shape="rect" id="Node000015" href="$IceAgent_8c.html#a32fe047b6b7fd2bdd834d34d870be302" title=" " alt="" coords="1683,117,1873,162"/>
+<area shape="poly" id="edge17_Node000001_Node000015" title=" " alt="" coords="1988,88,1871,119,1871,114,1982,88"/>
 <area shape="rect" id="Node000003" href="$IceAgent_8c.html#a97079f5f6e61ff478f94f9934af5eec0" title=" " alt="" coords="1278,56,1441,84"/>
 <area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1471,70,1442,72,1442,67,1476,70"/>
 <area shape="rect" id="Node000004" href="$IceAgent_8c.html#a404897a5797a45ca76444ee244c5b760" title=" " alt="" coords="767,5,962,33"/>
@@ -28,5 +30,6 @@
 <area shape="rect" id="Node000012" href="$group__PublicMemberFunctions.html#ga25744b27b8c99ea48af74d6747c949f0" title="Dynamically update the ICE servers for an existing peer connection." alt="" coords="220,159,458,186"/>
 <area shape="poly" id="edge12_Node000011_Node000012" title=" " alt="" coords="507,173,459,175,458,170,512,172"/>
 <area shape="poly" id="edge14_Node000013_Node000005" title=" " alt="" coords="515,104,417,87,417,82,520,103"/>
-<area shape="poly" id="edge16_Node000014_Node000002" title=" " alt="" coords="1656,83,1626,82,1626,76,1661,83"/>
+<area shape="poly" id="edge16_Node000014_Node000002" title=" " alt="" coords="1656,70,1626,72,1626,67,1661,70"/>
+<area shape="poly" id="edge18_Node000015_Node000002" title=" " alt="" coords="1688,111,1604,87,1604,82,1693,112"/>
 </map>

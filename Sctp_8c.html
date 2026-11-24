@@ -221,11 +221,6 @@ Functions</h2></td></tr>
 <tr class="memitem:ad85436a428a275a11746838ca0a7229e" id="r_ad85436a428a275a11746838ca0a7229e"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad85436a428a275a11746838ca0a7229e">initSctpSession</a> ()</td></tr>
 <tr class="memitem:a5944157f6ac02b21d2524826b5df1ef7" id="r_a5944157f6ac02b21d2524826b5df1ef7"><td class="memItemLeft" align="right" valign="top">VOID&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a5944157f6ac02b21d2524826b5df1ef7">deinitSctpSession</a> ()</td></tr>
 <tr class="memitem:a9ee2c9d19e43ca73a978a4fcd778c5b0" id="r_a9ee2c9d19e43ca73a978a4fcd778c5b0"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9ee2c9d19e43ca73a978a4fcd778c5b0">createSctpSession</a> (<a class="el" href="Sctp_8h.html#ae9235620df689ec7b8892efad579dc76">PSctpSessionCallbacks</a> pSctpSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, <a class="el" href="Sctp_8h.html#a689379bf40cfd461294cb51eb5895b6e">PSctpSession</a> *ppSctpSession)</td></tr>
-<tr class="memitem:a75db18065ce6b1f23602af5257d75a27" id="r_a75db18065ce6b1f23602af5257d75a27"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a75db18065ce6b1f23602af5257d75a27">sctpSnapSupported</a> ()</td></tr>
-<tr class="memitem:a0db2507bc17123347a75ae7ed2eb0b13" id="r_a0db2507bc17123347a75ae7ed2eb0b13"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a0db2507bc17123347a75ae7ed2eb0b13">createSctpSessionWithSnap</a> (<a class="el" href="Sctp_8h.html#ae9235620df689ec7b8892efad579dc76">PSctpSessionCallbacks</a> pSctpSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, PBYTE pInit, PUINT32 pInitLen, <a class="el" href="Sctp_8h.html#a689379bf40cfd461294cb51eb5895b6e">PSctpSession</a> *ppSctpSession)</td></tr>
-<tr class="memitem:a78b42711982c38b8ef5fba150ce20bef" id="r_a78b42711982c38b8ef5fba150ce20bef"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a78b42711982c38b8ef5fba150ce20bef">sctpSnapInitIsValid</a> (PBYTE pInit, UINT32 initLen)</td></tr>
-<tr class="memitem:a7907df33c063a40ceab52ea09ceeaf4d" id="r_a7907df33c063a40ceab52ea09ceeaf4d"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7907df33c063a40ceab52ea09ceeaf4d">sctpSessionSnapEstablish</a> (<a class="el" href="Sctp_8h.html#a689379bf40cfd461294cb51eb5895b6e">PSctpSession</a> pSctpSession, PBYTE pRemoteInit, UINT32 remoteInitLen, UINT64 roundTripTime)</td></tr>
-<tr class="memitem:a43abd5ef02f9a169ef31fb299b47fd0c" id="r_a43abd5ef02f9a169ef31fb299b47fd0c"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a43abd5ef02f9a169ef31fb299b47fd0c">sctpSessionSnapSendInit</a> (<a class="el" href="Sctp_8h.html#a689379bf40cfd461294cb51eb5895b6e">PSctpSession</a> pSctpSession)</td></tr>
 <tr class="memitem:a7b4902e766599101f22b2f3ae12c3dd9" id="r_a7b4902e766599101f22b2f3ae12c3dd9"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7b4902e766599101f22b2f3ae12c3dd9">freeSctpSession</a> (<a class="el" href="Sctp_8h.html#a689379bf40cfd461294cb51eb5895b6e">PSctpSession</a> *ppSctpSession)</td></tr>
 <tr class="memitem:a1dea61e8f31184c0862bffb92ed89eb6" id="r_a1dea61e8f31184c0862bffb92ed89eb6"><td class="memItemLeft" align="right" valign="top">VOID&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a1dea61e8f31184c0862bffb92ed89eb6">sctpSessionSetSendInfo</a> (struct sctp_sendv_spa *pSpa, UINT32 streamId, BOOL isBinary, <a class="el" href="group__PublicStructures.html#gab970e0095d779c18c106620eac5fbbc6">PRtcDataChannelInit</a> pRtcDataChannelInit, BOOL forceOrdered)</td></tr>
 <tr class="memitem:a8d677382e8cf3b85a9c544d021d14b8e" id="r_a8d677382e8cf3b85a9c544d021d14b8e"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a8d677382e8cf3b85a9c544d021d14b8e">sctpSessionWriteMessage</a> (<a class="el" href="Sctp_8h.html#a689379bf40cfd461294cb51eb5895b6e">PSctpSession</a> pSctpSession, UINT32 streamId, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen, <a class="el" href="group__PublicStructures.html#gab970e0095d779c18c106620eac5fbbc6">PRtcDataChannelInit</a> pRtcDataChannelInit, BOOL forceOrdered)</td></tr>
@@ -272,21 +267,23 @@ Here is the caller graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="Sctp_8c_ac47664e2f4452c552f5c76754b70e5d6_icgraph.png" border="0" usemap="#aSctp_8c_ac47664e2f4452c552f5c76754b70e5d6_icgraph" loading="lazy" alt=""/></div>
 <map name="aSctp_8c_ac47664e2f4452c552f5c76754b70e5d6_icgraph" id="aSctp_8c_ac47664e2f4452c552f5c76754b70e5d6_icgraph">
-<area shape="rect" title=" " alt="" coords="568,57,717,85"/>
-<area shape="rect" href="Sctp_8c.html#a333039baa8ebcb69b22c44ca38bd4fba" title=" " alt="" coords="369,5,520,33"/>
-<area shape="poly" title=" " alt="" coords="569,53,500,36,501,31,575,53"/>
-<area shape="rect" href="Sctp_8c.html#a2d8011c57d326ca425ef291c19510761" title=" " alt="" coords="374,57,515,85"/>
-<area shape="poly" title=" " alt="" coords="550,71,516,74,516,69,556,71"/>
-<area shape="rect" href="Sctp_8c.html#a609831e4531315998a7974e995569478" title=" " alt="" coords="374,109,516,137"/>
-<area shape="poly" title=" " alt="" coords="575,89,501,111,500,106,569,90"/>
-<area shape="rect" href="Sctp_8c.html#a5944157f6ac02b21d2524826b5df1ef7" title=" " alt="" coords="185,5,321,33"/>
-<area shape="poly" title=" " alt="" coords="351,20,322,22,321,17,356,19"/>
+<area shape="rect" title=" " alt="" coords="572,57,721,85"/>
+<area shape="rect" href="Sctp_8c.html#a333039baa8ebcb69b22c44ca38bd4fba" title=" " alt="" coords="373,5,524,33"/>
+<area shape="poly" title=" " alt="" coords="573,53,504,36,505,31,579,53"/>
+<area shape="rect" href="Sctp_8c.html#a2d8011c57d326ca425ef291c19510761" title=" " alt="" coords="378,57,519,85"/>
+<area shape="poly" title=" " alt="" coords="554,71,520,74,520,69,560,71"/>
+<area shape="rect" href="Sctp_8c.html#a609831e4531315998a7974e995569478" title=" " alt="" coords="378,109,520,137"/>
+<area shape="poly" title=" " alt="" coords="579,89,505,111,504,106,573,90"/>
+<area shape="rect" href="Sctp_8c.html#a5944157f6ac02b21d2524826b5df1ef7" title=" " alt="" coords="187,5,323,33"/>
+<area shape="poly" title=" " alt="" coords="355,20,324,22,323,17,360,19"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#gae49b9a202c97ad861b0b68014535f625" title="Deinitializes global state needed for all RtcPeerConnections. It must only be called once." alt="" coords="5,5,137,33"/>
-<area shape="poly" title=" " alt="" coords="167,20,138,22,136,17,172,18"/>
-<area shape="rect" href="Sctp_8c.html#ad85436a428a275a11746838ca0a7229e" title=" " alt="" coords="193,57,313,85"/>
-<area shape="poly" title=" " alt="" coords="356,71,313,74,313,69,361,71"/>
+<area shape="poly" title=" " alt="" coords="168,20,138,22,136,17,173,18"/>
+<area shape="rect" href="Sctp_8c.html#ad85436a428a275a11746838ca0a7229e" title=" " alt="" coords="195,57,315,85"/>
+<area shape="poly" title=" " alt="" coords="360,71,315,74,315,69,365,71"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#ga0091e2920ba137e0e80d40402a675abb" title="Initializes global state needed for all RtcPeerConnections. It must only be called once." alt="" coords="13,57,129,85"/>
-<area shape="poly" title=" " alt="" coords="175,72,129,74,129,69,180,70"/>
+<area shape="poly" title=" " alt="" coords="177,72,130,74,129,69,182,70"/>
+<area shape="rect" href="Sctp_8c.html#a9ee2c9d19e43ca73a978a4fcd778c5b0" title=" " alt="" coords="185,109,325,137"/>
+<area shape="poly" title=" " alt="" coords="359,123,326,126,326,121,365,123"/>
 </map>
 </div>
 
@@ -347,6 +344,16 @@ Here is the caller graph for this function:</div>
         </tr>
       </table>
 </div><div class="memdoc">
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="Sctp_8c_a55eca852bfcd8b72d9a2429a23d39886_icgraph.png" border="0" usemap="#aSctp_8c_a55eca852bfcd8b72d9a2429a23d39886_icgraph" loading="lazy" alt=""/></div>
+<map name="aSctp_8c_a55eca852bfcd8b72d9a2429a23d39886_icgraph" id="aSctp_8c_a55eca852bfcd8b72d9a2429a23d39886_icgraph">
+<area shape="rect" title=" " alt="" coords="194,5,346,33"/>
+<area shape="rect" href="Sctp_8c.html#a9ee2c9d19e43ca73a978a4fcd778c5b0" title=" " alt="" coords="5,5,146,33"/>
+<area shape="poly" title=" " alt="" coords="176,19,146,22,146,17,181,19"/>
+</map>
+</div>
 
 </div>
 </div>
@@ -414,53 +421,32 @@ Here is the caller graph for this function:</div>
         </tr>
       </table>
 </div><div class="memdoc">
-
+<div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="Sctp_8c_a9ee2c9d19e43ca73a978a4fcd778c5b0_cgraph.png" border="0" usemap="#aSctp_8c_a9ee2c9d19e43ca73a978a4fcd778c5b0_cgraph" loading="lazy" alt=""/></div>
+<map name="aSctp_8c_a9ee2c9d19e43ca73a978a4fcd778c5b0_cgraph" id="aSctp_8c_a9ee2c9d19e43ca73a978a4fcd778c5b0_cgraph">
+<area shape="rect" title=" " alt="" coords="5,109,146,137"/>
+<area shape="rect" href="Sctp_8c.html#a55eca852bfcd8b72d9a2429a23d39886" title=" " alt="" coords="197,5,350,33"/>
+<area shape="poly" title=" " alt="" coords="93,107,138,76,192,43,211,37,207,41,195,48,140,80,97,111"/>
+<area shape="rect" href="Sctp_8c.html#a7b4902e766599101f22b2f3ae12c3dd9" title=" " alt="" coords="211,57,336,85"/>
+<area shape="poly" title=" " alt="" coords="130,106,205,88,201,91,132,111"/>
+<area shape="rect" href="Sctp_8c.html#a9fd2f5b7216337ea8af7f3fbf0033fa4" title=" " alt="" coords="207,109,340,137"/>
+<area shape="poly" title=" " alt="" coords="145,121,193,122,189,125,147,126"/>
+<area shape="rect" href="Sctp_8c.html#ad5df1b7c8937f4d8fd9aad0892cd9481" title=" " alt="" coords="194,161,353,189"/>
+<area shape="poly" title=" " alt="" coords="131,135,205,155,201,158,131,140"/>
+<area shape="rect" href="Sctp_8c.html#a609831e4531315998a7974e995569478" title=" " alt="" coords="202,213,344,241"/>
+<area shape="poly" title=" " alt="" coords="96,135,140,166,195,198,212,207,206,208,192,203,138,171,95,140"/>
+<area shape="rect" href="Sctp_8c.html#a8f12cbc92f7a361cec205992aba52480" title=" " alt="" coords="405,161,545,189"/>
+<area shape="poly" title=" " alt="" coords="353,173,392,175,387,176,354,178"/>
+<area shape="rect" href="Sctp_8c.html#a721b1be57eb95d79b036b2fd93bb3be4" title=" " alt="" coords="597,161,812,189"/>
+<area shape="poly" title=" " alt="" coords="545,173,584,175,579,175,546,178"/>
+<area shape="rect" href="Sctp_8c.html#ac47664e2f4452c552f5c76754b70e5d6" title=" " alt="" coords="401,213,549,241"/>
+<area shape="poly" title=" " alt="" coords="345,225,388,227,383,227,345,230"/>
+<area shape="rect" href="Sctp_8c.html#ab7dfb412bddb5ea9600e3423306c06ca" title=" " alt="" coords="401,265,549,293"/>
+<area shape="poly" title=" " alt="" coords="330,239,406,261,401,261,330,244"/>
+</map>
 </div>
-</div>
-<a id="a0db2507bc17123347a75ae7ed2eb0b13" name="a0db2507bc17123347a75ae7ed2eb0b13"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a0db2507bc17123347a75ae7ed2eb0b13">&#9670;&#160;</a></span>createSctpSessionWithSnap()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">STATUS createSctpSessionWithSnap </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="Sctp_8h.html#ae9235620df689ec7b8892efad579dc76">PSctpSessionCallbacks</a></td>          <td class="paramname"><span class="paramname"><em>pSctpSessionCallbacks</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">TIMER_QUEUE_HANDLE</td>          <td class="paramname"><span class="paramname"><em>timerQueueHandle</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">PBYTE</td>          <td class="paramname"><span class="paramname"><em>pInit</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">PUINT32</td>          <td class="paramname"><span class="paramname"><em>pInitLen</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="Sctp_8h.html#a689379bf40cfd461294cb51eb5895b6e">PSctpSession</a> *</td>          <td class="paramname"><span class="paramname"><em>ppSctpSession</em></span>&#160;)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>SNAP: creates the session without starting the SCTP handshake and returns the INIT chunk it would have sent, for the peer to get out-of-band (a=sctp-init). Once the lower layer is up, <a class="el" href="Sctp_8h.html#a1f5adf54c6fbd193ed4e1017c6b9a38d">sctpSessionSnapEstablish()</a> opens the association with the INIT of the peer, or <a class="el" href="Sctp_8h.html#ad50b2edb863f9d80d2a81e282c5b6935">sctpSessionSnapSendInit()</a> falls back to the handshake. Both succeed when the peer's INIT came over the wire first and was answered, as that handshake opens the association. No INIT exchange measures the round trip, so <a class="el" href="Sctp_8h.html#a1f5adf54c6fbd193ed4e1017c6b9a38d">sctpSessionSnapEstablish()</a> takes the lower layer's (ICE's) as the association's first measurement, in 100ns units, or 0 to start from RTO.Initial (3 s).</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname"><a class="el" href="Sctp_8h.html#ae9235620df689ec7b8892efad579dc76">PSctpSessionCallbacks</a></td><td>- callbacks </td></tr>
-    <tr><td class="paramname">TIMER_QUEUE_HANDLE</td><td>- timer queue </td></tr>
-    <tr><td class="paramname">PBYTE</td><td>- OUT: buffer of SCTP_SNAP_MAX_INIT_SIZE for the INIT chunk </td></tr>
-    <tr><td class="paramname">PUINT32</td><td>- OUT: its length </td></tr>
-    <tr><td class="paramname">PSctpSession*</td><td>- OUT: the session </td></tr>
-  </table>
-  </dd>
-</dl>
 
 </div>
 </div>
@@ -487,11 +473,13 @@ Here is the caller graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="Sctp_8c_a721b1be57eb95d79b036b2fd93bb3be4_icgraph.png" border="0" usemap="#aSctp_8c_a721b1be57eb95d79b036b2fd93bb3be4_icgraph" loading="lazy" alt=""/></div>
 <map name="aSctp_8c_a721b1be57eb95d79b036b2fd93bb3be4_icgraph" id="aSctp_8c_a721b1be57eb95d79b036b2fd93bb3be4_icgraph">
-<area shape="rect" title=" " alt="" coords="401,5,615,33"/>
-<area shape="rect" href="Sctp_8c.html#a8f12cbc92f7a361cec205992aba52480" title=" " alt="" coords="213,5,353,33"/>
+<area shape="rect" title=" " alt="" coords="589,5,804,33"/>
+<area shape="rect" href="Sctp_8c.html#a8f12cbc92f7a361cec205992aba52480" title=" " alt="" coords="401,5,541,33"/>
+<area shape="poly" title=" " alt="" coords="571,19,542,22,542,17,577,19"/>
+<area shape="rect" href="Sctp_8c.html#ad5df1b7c8937f4d8fd9aad0892cd9481" title=" " alt="" coords="194,5,353,33"/>
 <area shape="poly" title=" " alt="" coords="383,19,353,22,353,17,388,19"/>
-<area shape="rect" href="Sctp_8c.html#ad5df1b7c8937f4d8fd9aad0892cd9481" title=" " alt="" coords="5,5,165,33"/>
-<area shape="poly" title=" " alt="" coords="194,19,165,22,165,17,200,19"/>
+<area shape="rect" href="Sctp_8c.html#a9ee2c9d19e43ca73a978a4fcd778c5b0" title=" " alt="" coords="5,5,146,33"/>
+<area shape="poly" title=" " alt="" coords="175,19,146,22,146,17,181,19"/>
 </map>
 </div>
 
@@ -557,11 +545,13 @@ Here is the caller graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="Sctp_8c_a7b4902e766599101f22b2f3ae12c3dd9_icgraph.png" border="0" usemap="#aSctp_8c_a7b4902e766599101f22b2f3ae12c3dd9_icgraph" loading="lazy" alt=""/></div>
 <map name="aSctp_8c_a7b4902e766599101f22b2f3ae12c3dd9_icgraph" id="aSctp_8c_a7b4902e766599101f22b2f3ae12c3dd9_icgraph">
-<area shape="rect" title=" " alt="" coords="415,5,540,33"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="218,5,367,33"/>
-<area shape="poly" title=" " alt="" coords="397,19,367,22,367,17,402,19"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,5,170,33"/>
-<area shape="poly" title=" " alt="" coords="200,19,170,22,170,17,205,19"/>
+<area shape="rect" title=" " alt="" coords="415,32,540,60"/>
+<area shape="rect" href="Sctp_8c.html#a9ee2c9d19e43ca73a978a4fcd778c5b0" title=" " alt="" coords="222,5,362,33"/>
+<area shape="poly" title=" " alt="" coords="397,35,363,32,363,27,402,35"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#ga433b1bd125e7f221bcdad97a2a0e8949" title="Free a RtcPeerConnection." alt="" coords="218,57,367,85"/>
+<area shape="poly" title=" " alt="" coords="402,56,368,64,367,58,397,57"/>
+<area shape="rect" href="group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,57,170,85"/>
+<area shape="poly" title=" " alt="" coords="200,71,170,74,170,69,205,71"/>
 </map>
 </div>
 
@@ -610,9 +600,11 @@ Here is the caller graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="Sctp_8c_a8f12cbc92f7a361cec205992aba52480_icgraph.png" border="0" usemap="#aSctp_8c_a8f12cbc92f7a361cec205992aba52480_icgraph" loading="lazy" alt=""/></div>
 <map name="aSctp_8c_a8f12cbc92f7a361cec205992aba52480_icgraph" id="aSctp_8c_a8f12cbc92f7a361cec205992aba52480_icgraph">
-<area shape="rect" title=" " alt="" coords="213,5,353,33"/>
-<area shape="rect" href="Sctp_8c.html#ad5df1b7c8937f4d8fd9aad0892cd9481" title=" " alt="" coords="5,5,165,33"/>
-<area shape="poly" title=" " alt="" coords="194,19,165,22,165,17,200,19"/>
+<area shape="rect" title=" " alt="" coords="401,5,541,33"/>
+<area shape="rect" href="Sctp_8c.html#ad5df1b7c8937f4d8fd9aad0892cd9481" title=" " alt="" coords="194,5,353,33"/>
+<area shape="poly" title=" " alt="" coords="383,19,353,22,353,17,388,19"/>
+<area shape="rect" href="Sctp_8c.html#a9ee2c9d19e43ca73a978a4fcd778c5b0" title=" " alt="" coords="5,5,146,33"/>
+<area shape="poly" title=" " alt="" coords="175,19,146,22,146,17,181,19"/>
 </map>
 </div>
 
@@ -636,6 +628,16 @@ Here is the caller graph for this function:</div>
         </tr>
       </table>
 </div><div class="memdoc">
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="Sctp_8c_a9fd2f5b7216337ea8af7f3fbf0033fa4_icgraph.png" border="0" usemap="#aSctp_8c_a9fd2f5b7216337ea8af7f3fbf0033fa4_icgraph" loading="lazy" alt=""/></div>
+<map name="aSctp_8c_a9fd2f5b7216337ea8af7f3fbf0033fa4_icgraph" id="aSctp_8c_a9fd2f5b7216337ea8af7f3fbf0033fa4_icgraph">
+<area shape="rect" title=" " alt="" coords="194,5,327,33"/>
+<area shape="rect" href="Sctp_8c.html#a9ee2c9d19e43ca73a978a4fcd778c5b0" title=" " alt="" coords="5,5,146,33"/>
+<area shape="poly" title=" " alt="" coords="175,19,146,22,146,17,181,19"/>
+</map>
+</div>
 
 </div>
 </div>
@@ -735,6 +737,16 @@ Here is the call graph for this function:</div>
 <area shape="poly" title=" " alt="" coords="165,17,200,19,194,19,165,22"/>
 <area shape="rect" href="Sctp_8c.html#a721b1be57eb95d79b036b2fd93bb3be4" title=" " alt="" coords="401,5,615,33"/>
 <area shape="poly" title=" " alt="" coords="353,17,388,19,383,19,353,22"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="Sctp_8c_ad5df1b7c8937f4d8fd9aad0892cd9481_icgraph.png" border="0" usemap="#aSctp_8c_ad5df1b7c8937f4d8fd9aad0892cd9481_icgraph" loading="lazy" alt=""/></div>
+<map name="aSctp_8c_ad5df1b7c8937f4d8fd9aad0892cd9481_icgraph" id="aSctp_8c_ad5df1b7c8937f4d8fd9aad0892cd9481_icgraph">
+<area shape="rect" title=" " alt="" coords="194,5,353,33"/>
+<area shape="rect" href="Sctp_8c.html#a9ee2c9d19e43ca73a978a4fcd778c5b0" title=" " alt="" coords="5,5,146,33"/>
+<area shape="poly" title=" " alt="" coords="175,19,146,22,146,17,181,19"/>
 </map>
 </div>
 
@@ -845,21 +857,23 @@ Here is the caller graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="Sctp_8c_ab7dfb412bddb5ea9600e3423306c06ca_icgraph.png" border="0" usemap="#aSctp_8c_ab7dfb412bddb5ea9600e3423306c06ca_icgraph" loading="lazy" alt=""/></div>
 <map name="aSctp_8c_ab7dfb412bddb5ea9600e3423306c06ca_icgraph" id="aSctp_8c_ab7dfb412bddb5ea9600e3423306c06ca_icgraph">
-<area shape="rect" title=" " alt="" coords="568,57,717,85"/>
-<area shape="rect" href="Sctp_8c.html#a333039baa8ebcb69b22c44ca38bd4fba" title=" " alt="" coords="369,5,520,33"/>
-<area shape="poly" title=" " alt="" coords="569,53,500,36,501,31,575,53"/>
-<area shape="rect" href="Sctp_8c.html#a2d8011c57d326ca425ef291c19510761" title=" " alt="" coords="374,57,515,85"/>
-<area shape="poly" title=" " alt="" coords="550,71,516,74,516,69,556,71"/>
-<area shape="rect" href="Sctp_8c.html#a609831e4531315998a7974e995569478" title=" " alt="" coords="374,109,516,137"/>
-<area shape="poly" title=" " alt="" coords="575,89,501,111,500,106,569,90"/>
-<area shape="rect" href="Sctp_8c.html#a5944157f6ac02b21d2524826b5df1ef7" title=" " alt="" coords="185,5,321,33"/>
-<area shape="poly" title=" " alt="" coords="351,20,322,22,321,17,356,19"/>
+<area shape="rect" title=" " alt="" coords="572,57,721,85"/>
+<area shape="rect" href="Sctp_8c.html#a333039baa8ebcb69b22c44ca38bd4fba" title=" " alt="" coords="373,5,524,33"/>
+<area shape="poly" title=" " alt="" coords="573,53,504,36,505,31,579,53"/>
+<area shape="rect" href="Sctp_8c.html#a2d8011c57d326ca425ef291c19510761" title=" " alt="" coords="378,57,519,85"/>
+<area shape="poly" title=" " alt="" coords="554,71,520,74,520,69,560,71"/>
+<area shape="rect" href="Sctp_8c.html#a609831e4531315998a7974e995569478" title=" " alt="" coords="378,109,520,137"/>
+<area shape="poly" title=" " alt="" coords="579,89,505,111,504,106,573,90"/>
+<area shape="rect" href="Sctp_8c.html#a5944157f6ac02b21d2524826b5df1ef7" title=" " alt="" coords="187,5,323,33"/>
+<area shape="poly" title=" " alt="" coords="355,20,324,22,323,17,360,19"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#gae49b9a202c97ad861b0b68014535f625" title="Deinitializes global state needed for all RtcPeerConnections. It must only be called once." alt="" coords="5,5,137,33"/>
-<area shape="poly" title=" " alt="" coords="167,20,138,22,136,17,172,18"/>
-<area shape="rect" href="Sctp_8c.html#ad85436a428a275a11746838ca0a7229e" title=" " alt="" coords="193,57,313,85"/>
-<area shape="poly" title=" " alt="" coords="356,71,313,74,313,69,361,71"/>
+<area shape="poly" title=" " alt="" coords="168,20,138,22,136,17,173,18"/>
+<area shape="rect" href="Sctp_8c.html#ad85436a428a275a11746838ca0a7229e" title=" " alt="" coords="195,57,315,85"/>
+<area shape="poly" title=" " alt="" coords="360,71,315,74,315,69,365,71"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#ga0091e2920ba137e0e80d40402a675abb" title="Initializes global state needed for all RtcPeerConnections. It must only be called once." alt="" coords="13,57,129,85"/>
-<area shape="poly" title=" " alt="" coords="175,72,129,74,129,69,180,70"/>
+<area shape="poly" title=" " alt="" coords="177,72,130,74,129,69,182,70"/>
+<area shape="rect" href="Sctp_8c.html#a9ee2c9d19e43ca73a978a4fcd778c5b0" title=" " alt="" coords="185,109,325,137"/>
+<area shape="poly" title=" " alt="" coords="359,123,326,126,326,121,365,123"/>
 </map>
 </div>
 
@@ -910,64 +924,6 @@ Here is the caller graph for this function:</div>
 <area shape="poly" title=" " alt="" coords="171,19,141,22,141,17,176,19"/>
 </map>
 </div>
-
-</div>
-</div>
-<a id="a7907df33c063a40ceab52ea09ceeaf4d" name="a7907df33c063a40ceab52ea09ceeaf4d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7907df33c063a40ceab52ea09ceeaf4d">&#9670;&#160;</a></span>sctpSessionSnapEstablish()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">STATUS sctpSessionSnapEstablish </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="Sctp_8h.html#a689379bf40cfd461294cb51eb5895b6e">PSctpSession</a></td>          <td class="paramname"><span class="paramname"><em>pSctpSession</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">PBYTE</td>          <td class="paramname"><span class="paramname"><em>pRemoteInit</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">UINT32</td>          <td class="paramname"><span class="paramname"><em>remoteInitLen</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">UINT64</td>          <td class="paramname"><span class="paramname"><em>roundTripTime</em></span>&#160;)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="Sctp_8c_a7907df33c063a40ceab52ea09ceeaf4d_cgraph.png" border="0" usemap="#aSctp_8c_a7907df33c063a40ceab52ea09ceeaf4d_cgraph" loading="lazy" alt=""/></div>
-<map name="aSctp_8c_a7907df33c063a40ceab52ea09ceeaf4d_cgraph" id="aSctp_8c_a7907df33c063a40ceab52ea09ceeaf4d_cgraph">
-<area shape="rect" title=" " alt="" coords="5,5,195,33"/>
-<area shape="rect" href="Sctp_8c.html#a78b42711982c38b8ef5fba150ce20bef" title=" " alt="" coords="243,5,387,33"/>
-<area shape="poly" title=" " alt="" coords="195,17,230,19,225,19,195,22"/>
-</map>
-</div>
-
-</div>
-</div>
-<a id="a43abd5ef02f9a169ef31fb299b47fd0c" name="a43abd5ef02f9a169ef31fb299b47fd0c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a43abd5ef02f9a169ef31fb299b47fd0c">&#9670;&#160;</a></span>sctpSessionSnapSendInit()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">STATUS sctpSessionSnapSendInit </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="Sctp_8h.html#a689379bf40cfd461294cb51eb5895b6e">PSctpSession</a></td>          <td class="paramname"><span class="paramname"><em>pSctpSession</em></span></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
 
 </div>
 </div>
@@ -1073,66 +1029,6 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
-<a id="a78b42711982c38b8ef5fba150ce20bef" name="a78b42711982c38b8ef5fba150ce20bef"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a78b42711982c38b8ef5fba150ce20bef">&#9670;&#160;</a></span>sctpSnapInitIsValid()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">BOOL sctpSnapInitIsValid </td>
-          <td>(</td>
-          <td class="paramtype">PBYTE</td>          <td class="paramname"><span class="paramname"><em>pInit</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">UINT32</td>          <td class="paramname"><span class="paramname"><em>initLen</em></span>&#160;)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>SNAP: whether the bytes are an INIT chunk the association can be opened with, as checked for an INIT-ACK </p>
-<div class="dynheader">
-Here is the caller graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="Sctp_8c_a78b42711982c38b8ef5fba150ce20bef_icgraph.png" border="0" usemap="#aSctp_8c_a78b42711982c38b8ef5fba150ce20bef_icgraph" loading="lazy" alt=""/></div>
-<map name="aSctp_8c_a78b42711982c38b8ef5fba150ce20bef_icgraph" id="aSctp_8c_a78b42711982c38b8ef5fba150ce20bef_icgraph">
-<area shape="rect" title=" " alt="" coords="243,5,387,33"/>
-<area shape="rect" href="Sctp_8c.html#a7907df33c063a40ceab52ea09ceeaf4d" title=" " alt="" coords="5,5,195,33"/>
-<area shape="poly" title=" " alt="" coords="224,19,195,22,195,17,230,19"/>
-</map>
-</div>
-
-</div>
-</div>
-<a id="a75db18065ce6b1f23602af5257d75a27" name="a75db18065ce6b1f23602af5257d75a27"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a75db18065ce6b1f23602af5257d75a27">&#9670;&#160;</a></span>sctpSnapSupported()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">BOOL sctpSnapSupported </td>
-          <td>(</td>
-          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>SNAP (draft-uberti-tsvwg-warp, section 4.1): whether the SCTP stack can exchange its INIT out-of-band. </p>
-<div class="dynheader">
-Here is the caller graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="Sctp_8c_a75db18065ce6b1f23602af5257d75a27_icgraph.png" border="0" usemap="#aSctp_8c_a75db18065ce6b1f23602af5257d75a27_icgraph" loading="lazy" alt=""/></div>
-<map name="aSctp_8c_a75db18065ce6b1f23602af5257d75a27_icgraph" id="aSctp_8c_a75db18065ce6b1f23602af5257d75a27_icgraph">
-<area shape="rect" title=" " alt="" coords="218,5,364,33"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,5,170,33"/>
-<area shape="poly" title=" " alt="" coords="199,19,170,22,170,17,204,19"/>
-</map>
-</div>
-
-</div>
-</div>
 <a id="a609831e4531315998a7974e995569478" name="a609831e4531315998a7974e995569478"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a609831e4531315998a7974e995569478">&#9670;&#160;</a></span>sctpTimerCallback()</h2>
 
@@ -1166,6 +1062,16 @@ Here is the call graph for this function:</div>
 <area shape="poly" title=" " alt="" coords="148,33,183,31,178,32,149,39"/>
 <area shape="rect" href="Sctp_8c.html#ab7dfb412bddb5ea9600e3423306c06ca" title=" " alt="" coords="196,57,344,85"/>
 <area shape="poly" title=" " alt="" coords="148,53,183,59,178,60,148,58"/>
+</map>
+</div>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="Sctp_8c_a609831e4531315998a7974e995569478_icgraph.png" border="0" usemap="#aSctp_8c_a609831e4531315998a7974e995569478_icgraph" loading="lazy" alt=""/></div>
+<map name="aSctp_8c_a609831e4531315998a7974e995569478_icgraph" id="aSctp_8c_a609831e4531315998a7974e995569478_icgraph">
+<area shape="rect" title=" " alt="" coords="194,5,336,33"/>
+<area shape="rect" href="Sctp_8c.html#a9ee2c9d19e43ca73a978a4fcd778c5b0" title=" " alt="" coords="5,5,146,33"/>
+<area shape="poly" title=" " alt="" coords="176,19,146,22,146,17,181,19"/>
 </map>
 </div>
 
