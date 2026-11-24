@@ -183,6 +183,52 @@ CleanUp:
 }
 
 /**
+ * Not thread-safe. Must not be called from the connection listener thread (for example from
+ * a frame, RTCP or connection state callback), since it joins that thread.
+ */
+STATUS iceAgentStopConnectionListener(PIceAgent pIceAgent)
+{
+    ENTERS();
+
+    STATUS retStatus = STATUS_SUCCESS;
+    PDoubleListNode pCurNode = NULL;
+    PIceCandidate pIceCandidate = NULL;
+
+    CHK(pIceAgent != NULL, STATUS_NULL_ARG);
+    // Idempotent: nothing to do once the listener is gone
+    CHK(pIceAgent->pConnectionListener != NULL, retStatus);
+
+    // TURN connections keep their own pointer to the listener. Clear it so that
+    // freeTurnConnection() does not use the listener after it is freed below.
+    if (pIceAgent->localCandidates != NULL) {
+        CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
+        while (pCurNode != NULL) {
+            pIceCandidate = (PIceCandidate) pCurNode->data;
+            pCurNode = pCurNode->pNext;
+            if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED && pIceCandidate->pTurnConnection != NULL) {
+                pIceCandidate->pTurnConnection->pConnectionListener = NULL;
+            }
+        }
+    }
+
+    // During an ICE restart the old data sending pair is no longer in localCandidates. freeIceAgent() frees its
+    // TURN connection later, so clear that pointer too.
+    if (pIceAgent->pDataSendingIceCandidatePair != NULL && IS_CANN_PAIR_SENDING_FROM_RELAYED(pIceAgent->pDataSendingIceCandidatePair) &&
+        pIceAgent->pDataSendingIceCandidatePair->local->pTurnConnection != NULL) {
+        pIceAgent->pDataSendingIceCandidatePair->local->pTurnConnection->pConnectionListener = NULL;
+    }
+
+    // Stops and joins the receive thread. Once this returns, no received packet
+    // (RTP, RTCP, DTLS, SCTP or STUN) is being delivered, and none will be.
+    CHK_STATUS(freeConnectionListener(&pIceAgent->pConnectionListener));
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+/**
  * Not thread-safe
  * @param ppIceAgent
  * @return
@@ -205,20 +251,9 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
 
     pIceAgent = *ppIceAgent;
 
-    // Join the listener thread first so it is no longer accessing any sockets
-    if (pIceAgent->pConnectionListener != NULL) {
-        if (pIceAgent->localCandidates != NULL) {
-            CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
-            while (pCurNode != NULL) {
-                pIceCandidate = (PIceCandidate) pCurNode->data;
-                pCurNode = pCurNode->pNext;
-                if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED && pIceCandidate->pTurnConnection != NULL) {
-                    pIceCandidate->pTurnConnection->pConnectionListener = NULL;
-                }
-            }
-        }
-        CHK_LOG_ERR(freeConnectionListener(&pIceAgent->pConnectionListener));
-    }
+    // Join the listener thread first so it is no longer accessing any sockets.
+    // freePeerConnection() has normally done this already, in which case this is a no-op.
+    CHK_LOG_ERR(iceAgentStopConnectionListener(pIceAgent));
 
     if (pIceAgent->localCandidates != NULL) {
         CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));

@@ -1269,8 +1269,8 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     CHK(pKvsPeerConnection != NULL, retStatus);
 
     startTime = GETTIME();
-    /* Shutdown IceAgent first so there is no more incoming packets which can cause
-     * SCTP to be allocated again after SCTP is freed. */
+    /* Shut down the ICE agent first: mark its sockets closed and release TURN allocations.
+     * The connection listener is joined below, before anything on the receive path is freed. */
     CHK_LOG_ERR(iceAgentShutdown(pKvsPeerConnection->pIceAgent));
 
     // free timer queue first to remove liveness provided by timer
@@ -1278,8 +1278,16 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
         timerQueueShutdown(pKvsPeerConnection->timerQueueHandle);
     }
 
-    /* Free structs that have their own thread. SCTP has threads created by SCTP library. IceAgent has the
-     * connectionListener thread. Free SCTP first so it wont try to send anything through ICE. */
+    /* iceAgentShutdown() only marks the sockets closed. The connection listener thread can still be delivering
+     * packets, both the current one and any already queued, into the jitter buffer, a frame callback, RTCP/NACK
+     * handling, DTLS or SCTP, so join the thread before freeing any of them. The ICE agent itself is still
+     * freed last, because the DTLS handshake thread can send through it. */
+    if (pKvsPeerConnection->pIceAgent != NULL) {
+        CHK_LOG_ERR(iceAgentStopConnectionListener(pKvsPeerConnection->pIceAgent));
+    }
+
+    /* Free structs that have their own thread. SCTP has threads created by SCTP library. Free SCTP first so it
+     * wont try to send anything through ICE. */
 #ifdef ENABLE_DATA_CHANNEL
     CHK_LOG_ERR(freeSctpSession(&pKvsPeerConnection->pSctpSession));
 #endif
