@@ -67,7 +67,8 @@ TEST_F(RtpRollingBufferFunctionalityTest, getValidSeqIndexListWhileAppendingMaps
 {
     const UINT32 capacity = 512, seqCount = 32;
     PRtpRollingBuffer pRtpRollingBuffer = NULL;
-    std::atomic<UINT64> appended(0);
+    // 32-bit on purpose: 64-bit std::atomic needs libatomic on 32-bit MIPS, which the tests do not link.
+    std::atomic<UINT32> appended(0);
     std::atomic<bool> stop(false);
     UINT16 seqList[seqCount];
     UINT64 indexList[seqCount], item, newest;
@@ -85,7 +86,7 @@ TEST_F(RtpRollingBufferFunctionalityTest, getValidSeqIndexListWhileAppendingMaps
             rtpRollingBufferAddRtpPacket(pRtpRollingBuffer, pRtpPacket);
             freeRtpPacket(&pRtpPacket);
             // Relaxed on purpose: the test must not add ordering the SDK code does not have.
-            appended.store(seq + 1, std::memory_order_relaxed);
+            appended.store((UINT32) (seq + 1), std::memory_order_relaxed);
         }
     });
 
