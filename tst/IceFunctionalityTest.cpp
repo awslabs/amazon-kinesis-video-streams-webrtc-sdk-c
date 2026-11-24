@@ -930,10 +930,12 @@ TEST_F(IceFunctionalityTest, bindingResponseWithoutMessageIntegrityIsDiscarded)
     ASSERT_TRUE(pCurNode != NULL);
     pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
 
+    // Set up the check once: the discarded response must leave it pending for the second one
+    pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS;
+    transactionIdStoreInsert(pIceCandidatePair->pTransactionIdStore, transactionId);
+
     // Without MESSAGE-INTEGRITY first, then with it: only the second one makes the pair succeed
     for (BOOL withIntegrity : {FALSE, TRUE}) {
-        pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS;
-        transactionIdStoreInsert(pIceCandidatePair->pTransactionIdStore, transactionId);
         EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS, transactionId, &pResponse));
         EXPECT_EQ(STATUS_SUCCESS, appendStunAddressAttribute(pResponse, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, &localCandidate.ipAddress));
         size = SIZEOF(buffer);
