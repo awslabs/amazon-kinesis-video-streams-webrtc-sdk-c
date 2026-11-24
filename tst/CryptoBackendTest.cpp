@@ -102,8 +102,14 @@ TEST_F(CryptoBackendTest, turnsClientHelloOffersPqcGroups)
         }
     }
 
-    // X25519MLKEM768 first, then X25519, P-256 and P-384, with an ML-KEM key share.
+#ifdef KVS_USE_AWS_LC_FIPS
+    // FIPS: X25519MLKEM768, SecP256r1MLKEM768, P-256 and P-384. No X25519.
+    EXPECT_EQ(std::vector<UINT16>({0x11ec, 0x11eb, 0x0017, 0x0018}), groups);
+#else
+    // X25519MLKEM768 first, then X25519, P-256 and P-384.
     EXPECT_EQ(std::vector<UINT16>({0x11ec, 0x001d, 0x0017, 0x0018}), groups);
+#endif
+    // Either way, the key share is ML-KEM.
     ASSERT_FALSE(keyShares.empty());
     EXPECT_EQ(0x11ec, keyShares[0]);
 }

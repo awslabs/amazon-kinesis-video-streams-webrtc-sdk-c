@@ -73,6 +73,17 @@ Other platforms are not listed on the certificates. Check with your compliance t
 
 To build a different AWS-LC FIPS release, set `-DAWS_LC_GIT_TAG`. Use only a release with an active FIPS 140-3 certificate.
 
+### Key exchange groups
+
+| Group | Non-FIPS build | FIPS build |
+|---|---|---|
+| `X25519MLKEM768` | offered first | offered first |
+| `SecP256r1MLKEM768` | no | offered |
+| `X25519` | offered | no |
+| `P-256`, `P-384` | offered | offered |
+
+In FIPS mode, the SDK offers only FIPS-approved key exchange groups. `X25519` on its own is not FIPS approved. An endpoint that supports only `X25519` cannot connect to a FIPS build.
+
 ### TURN uses MD5
 
 TURN long-term credentials use an MD5 key, as the TURN specification requires ([RFC 8489](https://www.rfc-editor.org/rfc/rfc8489)). MD5 is not a FIPS-approved algorithm. In FIPS mode, AWS-LC still allows MD5, so TURN keeps working. Include this in your compliance review if your application uses TURN.

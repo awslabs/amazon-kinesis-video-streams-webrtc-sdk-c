@@ -47,8 +47,16 @@ extern "C" {
  * The classical groups follow, so a server without ML-KEM still connects.
  * These are NIDs because SSL_CTX_set1_groups takes NIDs, and it also exists in
  * the AWS-LC-FIPS releases.
+ *
+ * A FIPS build offers only FIPS-approved key exchange. X25519 on its own is not
+ * approved, so it is left out, and SecP256r1MLKEM768 is added. The hybrid groups
+ * count as approved because their ML-KEM part is.
  */
+#ifdef KVS_USE_AWS_LC_FIPS
+#define KVS_AWS_LC_PQC_GROUPS {NID_X25519MLKEM768, NID_SecP256r1MLKEM768, NID_X9_62_prime256v1, NID_secp384r1}
+#else
 #define KVS_AWS_LC_PQC_GROUPS {NID_X25519MLKEM768, NID_X25519, NID_X9_62_prime256v1, NID_secp384r1}
+#endif
 
 /*
  * FIPS is chosen when AWS-LC is built (-DFIPS=1). There is no runtime switch,
