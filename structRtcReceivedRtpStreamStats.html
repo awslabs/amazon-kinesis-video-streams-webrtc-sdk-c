@@ -317,7 +317,7 @@ Public Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>The cumulative number of RTP packets discarded by the jitter buffer due to late or early-arrival, i.e., these packets are not played out. RTP packets discarded due to packet duplication are not reported in this metric [XRBLOCK-STATS]. Calculated as defined in [RFC7002] section 3.2 and Appendix A.a. </p>
+<p>The cumulative number of RTP packets discarded by the jitter buffer due to late or early-arrival, or because they belong to a frame larger than MAX_INBOUND_FRAME_SIZE_BYTES, i.e., these packets are not played out. RTP packets discarded due to packet duplication are not reported in this metric [XRBLOCK-STATS]. Calculated as defined in [RFC7002] section 3.2 and Appendix A.a. </p>
 
 </div>
 </div>

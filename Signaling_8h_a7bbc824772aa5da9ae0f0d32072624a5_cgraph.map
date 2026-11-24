@@ -1,21 +1,23 @@
 <map id="connectSignalingChannel" name="connectSignalingChannel">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,57,191,85"/>
-<area shape="rect" id="Node000002" href="$LwsApiCalls_8c.html#ae1cea6c90bbf08edbab8a6e71231d41f" title=" " alt="" coords="239,57,449,85"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="191,69,226,70,221,72,192,74"/>
-<area shape="rect" id="Node000003" href="$LwsApiCalls_8c.html#a988b3c6e00aa3e79fce24a41faeb772c" title=" " alt="" coords="543,5,680,33"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="418,54,530,35,525,36,420,59"/>
-<area shape="rect" id="Node000005" href="$LwsApiCalls_8c.html#a95571c8796a32dd941d4e46accfb466d" title=" " alt="" coords="538,57,685,85"/>
-<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="449,69,525,71,520,72,450,74"/>
-<area shape="rect" id="Node000008" href="$LwsApiCalls_8c.html#ae7928b7a5bf47cbdf2ccf753f1c1e8df" title=" " alt="" coords="497,109,726,137"/>
-<area shape="poly" id="edge8_Node000002_Node000008" title=" " alt="" coords="419,83,524,106,519,106,419,88"/>
-<area shape="rect" id="Node000004" href="$LwsApiCalls_8c.html#a22be1d34eb8fe76e2872b23ea9f981d1" title=" " alt="" coords="813,5,935,33"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="681,17,800,19,794,20,681,22"/>
-<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="685,54,795,35,800,34,686,59"/>
-<area shape="rect" id="Node000006" href="$LwsApiCalls_8c.html#a3c3cdd7608d37131d839bc47bd5de90b" title=" " alt="" coords="805,57,943,85"/>
-<area shape="poly" id="edge6_Node000005_Node000006" title=" " alt="" coords="685,69,792,71,787,71,686,74"/>
-<area shape="rect" id="Node000007" href="$LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="1022,83,1218,110"/>
-<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="943,76,1009,85,1004,85,943,81"/>
-<area shape="poly" id="edge10_Node000008_Node000007" title=" " alt="" coords="726,115,1009,102,1003,103,727,120"/>
-<area shape="rect" id="Node000009" href="$Signaling_8c.html#a653edfffd5d129d08f5971d91f16fc5e" title=" " alt="" coords="774,159,974,186"/>
-<area shape="poly" id="edge9_Node000008_Node000009" title=" " alt="" coords="689,135,784,155,779,155,689,140"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,84,191,112"/>
+<area shape="rect" id="Node000002" href="$LwsApiCalls_8c.html#ae1cea6c90bbf08edbab8a6e71231d41f" title=" " alt="" coords="239,84,449,112"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="191,95,226,97,221,99,192,100"/>
+<area shape="rect" id="Node000003" href="$LwsApiCalls_8c.html#a2c096b44f492ff215fe5e9e23abf0e0d" title=" " alt="" coords="501,5,722,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="383,81,496,43,532,36,527,38,498,48,384,86"/>
+<area shape="rect" id="Node000004" href="$LwsApiCalls_8c.html#a988b3c6e00aa3e79fce24a41faeb772c" title=" " alt="" coords="543,57,680,85"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="449,85,530,79,525,80,450,90"/>
+<area shape="rect" id="Node000006" href="$LwsApiCalls_8c.html#a95571c8796a32dd941d4e46accfb466d" title=" " alt="" coords="538,109,685,137"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="449,105,525,114,520,115,450,110"/>
+<area shape="rect" id="Node000009" href="$LwsApiCalls_8c.html#ae7928b7a5bf47cbdf2ccf753f1c1e8df" title=" " alt="" coords="497,161,726,189"/>
+<area shape="poly" id="edge9_Node000002_Node000009" title=" " alt="" coords="385,110,498,146,533,157,528,157,496,151,385,115"/>
+<area shape="rect" id="Node000005" href="$LwsApiCalls_8c.html#a22be1d34eb8fe76e2872b23ea9f981d1" title=" " alt="" coords="813,57,935,85"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="681,69,800,71,794,72,681,74"/>
+<area shape="poly" id="edge6_Node000006_Node000005" title=" " alt="" coords="685,106,795,87,800,86,686,111"/>
+<area shape="rect" id="Node000007" href="$LwsApiCalls_8c.html#a3c3cdd7608d37131d839bc47bd5de90b" title=" " alt="" coords="805,109,943,137"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="685,121,792,123,787,123,686,126"/>
+<area shape="rect" id="Node000008" href="$LwsApiCalls_8c.html#a799bfe087bea205476d1359524b17656" title=" " alt="" coords="1022,135,1218,162"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="943,128,1009,137,1004,137,943,133"/>
+<area shape="poly" id="edge11_Node000009_Node000008" title=" " alt="" coords="726,167,1009,154,1003,155,727,172"/>
+<area shape="rect" id="Node000010" href="$Signaling_8c.html#a653edfffd5d129d08f5971d91f16fc5e" title=" " alt="" coords="774,211,974,238"/>
+<area shape="poly" id="edge10_Node000009_Node000010" title=" " alt="" coords="689,187,784,207,779,207,689,192"/>
 </map>

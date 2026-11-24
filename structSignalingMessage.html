@@ -98,7 +98,7 @@ $(function(){initNavTree('structSignalingMessage.html','','structSignalingMessag
 </div><!--header-->
 <div class="contents">
 
-<p>Structure defining the basic signaling message.  
+<p>When PREFER_DYNAMIC_ALLOCS is enabled, use dynamic allocation for the signaling payload buffer. Reduces peak memory usage on constrained platforms. (Signaling API URL / paramsJson buffers are always dynamic now.).  
  <a href="#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="Include_8h_source.html">Include.h</a>&gt;</code></p>
@@ -107,7 +107,7 @@ Collaboration diagram for SignalingMessage:</div>
 <div class="dyncontent">
 <div class="center"><img src="structSignalingMessage__coll__graph.png" border="0" usemap="#aSignalingMessage_coll__map" loading="lazy" alt="Collaboration graph"/></div>
 <map name="aSignalingMessage_coll__map" id="aSignalingMessage_coll__map">
-<area shape="rect" title="Structure defining the basic signaling message." alt="" coords="5,5,134,189"/>
+<area shape="rect" title="When PREFER_DYNAMIC_ALLOCS is enabled, use dynamic allocation for the signaling payload buffer...." alt="" coords="5,5,134,189"/>
 </map>
 </div>
 <table class="memberdecls">
@@ -127,7 +127,9 @@ Public Attributes</h2></td></tr>
 <tr class="memdesc:ga3342d8be5bd2eb5cf40b68349aa692c3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Actual signaling message payload.  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Structure defining the basic signaling message. </p>
+<div class="textblock"><p>When PREFER_DYNAMIC_ALLOCS is enabled, use dynamic allocation for the signaling payload buffer. Reduces peak memory usage on constrained platforms. (Signaling API URL / paramsJson buffers are always dynamic now.). </p>
+<p>It changes the layout of <a class="el" href="structSignalingMessage.html" title="When PREFER_DYNAMIC_ALLOCS is enabled, use dynamic allocation for the signaling payload buffer....">SignalingMessage</a>, so the application must be built with the same PREFER_DYNAMIC_ALLOCS setting as the SDK.</p>
+<p>Structure defining the basic signaling message </p>
 </div><hr/>The documentation for this struct was generated from the following file:<ul>
 <li>src/include/com/amazonaws/kinesis/video/webrtcclient/<a class="el" href="Include_8h_source.html">Include.h</a></li>
 </ul>

@@ -8,5 +8,6 @@ var searchData=
   ['lws_5fmessage_5fbuffer_5fsize_5',['LWS_MESSAGE_BUFFER_SIZE',['../LwsApiCalls_8h.html#aefd6ce3634524a39e58b7a2728b0a08a',1,'LwsApiCalls.h']]],
   ['lws_5fprotocol_5fcount_6',['LWS_PROTOCOL_COUNT',['../Signaling_8h.html#a6eca4efedbc0a4b07a49bd632f7500b5',1,'Signaling.h']]],
   ['lws_5fscratch_5fbuffer_5fsize_7',['LWS_SCRATCH_BUFFER_SIZE',['../LwsApiCalls_8h.html#a963be068886b3a955e098ba6b90bac00',1,'LwsApiCalls.h']]],
-  ['lws_5fservice_5floop_5fiteration_5fwait_8',['LWS_SERVICE_LOOP_ITERATION_WAIT',['../LwsApiCalls_8h.html#abf5466facb1496ecaea33c7f55a7d29b',1,'LwsApiCalls.h']]]
+  ['lws_5fservice_5flock_5fretry_5fwait_8',['LWS_SERVICE_LOCK_RETRY_WAIT',['../LwsApiCalls_8h.html#a8f50a9555bc8bdb6a589151b28fc75cc',1,'LwsApiCalls.h']]],
+  ['lws_5fservice_5floop_5fiteration_5fwait_9',['LWS_SERVICE_LOOP_ITERATION_WAIT',['../LwsApiCalls_8h.html#abf5466facb1496ecaea33c7f55a7d29b',1,'LwsApiCalls.h']]]
 ];
