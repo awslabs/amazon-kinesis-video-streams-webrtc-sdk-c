@@ -36,6 +36,8 @@ STATUS rollingBufferInsertData(PRollingBuffer, UINT64, UINT64);
 STATUS rollingBufferExtractData(PRollingBuffer, UINT64, PUINT64);
 STATUS rollingBufferGetSize(PRollingBuffer, PUINT32);
 STATUS rollingBufferIsEmpty(PRollingBuffer, PBOOL);
+// Returns the oldest index held and the next index to be written, [tail, head), read together under the lock
+STATUS rollingBufferGetIndexRange(PRollingBuffer, PUINT64, PUINT64);
 
 #ifdef __cplusplus
 }

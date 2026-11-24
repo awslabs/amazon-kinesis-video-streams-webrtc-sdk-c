@@ -10,10 +10,10 @@ RTCP Rolling Buffer include file
 extern "C" {
 #endif
 
+// The rolling buffer index of an RTP packet is its extended sequence number: GET_UINT16_SEQ_NUM(index) is the
+// packet's sequence number. The index of the last packet is the rolling buffer's headIndex - 1.
 typedef struct {
     PRollingBuffer pRollingBuffer;
-    // index of last rtp packet in rolling buffer
-    UINT64 lastIndex;
 } RtpRollingBuffer, *PRtpRollingBuffer;
 
 STATUS createRtpRollingBuffer(UINT32, PRtpRollingBuffer*);

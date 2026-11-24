@@ -165,9 +165,11 @@ STATUS rollingBufferGetSize(PRollingBuffer pRollingBuffer, PUINT32 pSize)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    UINT64 tailIndex = 0, headIndex = 0;
 
-    CHK(pRollingBuffer != NULL && pSize != NULL, STATUS_NULL_ARG);
-    *pSize = pRollingBuffer->headIndex - pRollingBuffer->tailIndex;
+    CHK(pSize != NULL, STATUS_NULL_ARG);
+    CHK_STATUS(rollingBufferGetIndexRange(pRollingBuffer, &tailIndex, &headIndex));
+    *pSize = (UINT32) (headIndex - tailIndex);
 CleanUp:
     CHK_LOG_ERR(retStatus);
 
@@ -179,8 +181,32 @@ STATUS rollingBufferIsEmpty(PRollingBuffer pRollingBuffer, PBOOL pIsEmpty)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    CHK(pRollingBuffer != NULL && pIsEmpty != NULL, STATUS_NULL_ARG);
-    *pIsEmpty = (pRollingBuffer->headIndex == pRollingBuffer->tailIndex);
+    UINT64 tailIndex = 0, headIndex = 0;
+
+    CHK(pIsEmpty != NULL, STATUS_NULL_ARG);
+    CHK_STATUS(rollingBufferGetIndexRange(pRollingBuffer, &tailIndex, &headIndex));
+    *pIsEmpty = (headIndex == tailIndex);
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS rollingBufferGetIndexRange(PRollingBuffer pRollingBuffer, PUINT64 pTailIndex, PUINT64 pHeadIndex)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pRollingBuffer != NULL && pTailIndex != NULL && pHeadIndex != NULL, STATUS_NULL_ARG);
+
+    // Appends run on the media thread while NACK handling reads the range on the receive thread.
+    // Read both indices under the lock so the caller gets one consistent snapshot.
+    MUTEX_LOCK(pRollingBuffer->lock);
+    *pTailIndex = pRollingBuffer->tailIndex;
+    *pHeadIndex = pRollingBuffer->headIndex;
+    MUTEX_UNLOCK(pRollingBuffer->lock);
 
 CleanUp:
     CHK_LOG_ERR(retStatus);

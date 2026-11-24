@@ -106,6 +106,41 @@ TEST_F(RollingBufferFunctionalityTest, extractDataFromBufferAndInsertBack)
 
     EXPECT_EQ(STATUS_SUCCESS, freeRollingBuffer(&pRollingBuffer));
 }
+
+TEST_F(RollingBufferFunctionalityTest, getIndexRangeTracksTailAndHead)
+{
+    PRollingBuffer pRollingBuffer;
+    UINT64 tailIndex = 99, headIndex = 99, index;
+    UINT32 size = 99;
+    BOOL isEmpty = FALSE;
+
+    EXPECT_EQ(STATUS_SUCCESS, createRollingBuffer(2, RollingBufferFunctionalityTestFreeBufferFunc, &pRollingBuffer));
+    EXPECT_EQ(STATUS_NULL_ARG, rollingBufferGetIndexRange(NULL, &tailIndex, &headIndex));
+    EXPECT_EQ(STATUS_NULL_ARG, rollingBufferGetIndexRange(pRollingBuffer, NULL, &headIndex));
+    EXPECT_EQ(STATUS_NULL_ARG, rollingBufferGetIndexRange(pRollingBuffer, &tailIndex, NULL));
+    EXPECT_EQ(STATUS_NULL_ARG, rollingBufferGetSize(NULL, &size));
+    EXPECT_EQ(STATUS_NULL_ARG, rollingBufferIsEmpty(NULL, &isEmpty));
+
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferGetIndexRange(pRollingBuffer, &tailIndex, &headIndex));
+    EXPECT_EQ(0, tailIndex);
+    EXPECT_EQ(0, headIndex);
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferIsEmpty(pRollingBuffer, &isEmpty));
+    EXPECT_TRUE(isEmpty);
+
+    // Capacity 2: the third append evicts index 0.
+    for (UINT64 data = 1; data <= 3; data++) {
+        EXPECT_EQ(STATUS_SUCCESS, rollingBufferAppendData(pRollingBuffer, data, &index));
+    }
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferGetIndexRange(pRollingBuffer, &tailIndex, &headIndex));
+    EXPECT_EQ(1, tailIndex);
+    EXPECT_EQ(3, headIndex);
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferGetSize(pRollingBuffer, &size));
+    EXPECT_EQ(2, size);
+    EXPECT_EQ(STATUS_SUCCESS, rollingBufferIsEmpty(pRollingBuffer, &isEmpty));
+    EXPECT_FALSE(isEmpty);
+
+    EXPECT_EQ(STATUS_SUCCESS, freeRollingBuffer(&pRollingBuffer));
+}
 }
 }
 }
