@@ -212,7 +212,6 @@ Classes</h2></td></tr>
 <tr class="heading"><td colspan="2"><h2 id="header-define-members" class="groupheader"><a id="define-members" name="define-members"></a>
 Macros</h2></td></tr>
 <tr class="memitem:a0edd4a8b5867780d88aed4ed2eb32f69" id="r_a0edd4a8b5867780d88aed4ed2eb32f69"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a0edd4a8b5867780d88aed4ed2eb32f69">SCTP_MTU</a>&#160;&#160;&#160;1188</td></tr>
-<tr class="memitem:ac75d8cf2723d69586690e3d9bf2c0b07" id="r_ac75d8cf2723d69586690e3d9bf2c0b07"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac75d8cf2723d69586690e3d9bf2c0b07">SCTP_MAX_STREAMS</a>&#160;&#160;&#160;300</td></tr>
 <tr class="memitem:a6889aa3c52577bfcaffa30a78b046b40" id="r_a6889aa3c52577bfcaffa30a78b046b40"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a6889aa3c52577bfcaffa30a78b046b40">SCTP_ASSOCIATION_DEFAULT_PORT</a>&#160;&#160;&#160;5000</td></tr>
 <tr class="memitem:a917a1172ea688d5578cc1fa9acdbd45b" id="r_a917a1172ea688d5578cc1fa9acdbd45b"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a917a1172ea688d5578cc1fa9acdbd45b">SCTP_DCEP_HEADER_LENGTH</a>&#160;&#160;&#160;12</td></tr>
 <tr class="memitem:aee3fac0bd712eb880225d5573bb11ab0" id="r_aee3fac0bd712eb880225d5573bb11ab0"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aee3fac0bd712eb880225d5573bb11ab0">SCTP_DCEP_LABEL_LEN_OFFSET</a>&#160;&#160;&#160;8</td></tr>
@@ -233,9 +232,8 @@ Macros</h2></td></tr>
 <tr class="heading"><td colspan="2"><h2 id="header-typedef-members" class="groupheader"><a id="typedef-members" name="typedef-members"></a>
 Typedefs</h2></td></tr>
 <tr class="memitem:a3efccba1f0638eb34da93bf431101e84" id="r_a3efccba1f0638eb34da93bf431101e84"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a3efccba1f0638eb34da93bf431101e84">SctpSessionOutboundPacketFunc</a>) (UINT64, PBYTE, UINT32)</td></tr>
-<tr class="memitem:a87a644de1669cb56f71574bac3ac1395" id="r_a87a644de1669cb56f71574bac3ac1395"><td class="memItemLeft" align="right" valign="top">typedef STATUS(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a87a644de1669cb56f71574bac3ac1395">SctpSessionDataChannelOpenFunc</a>) (UINT64, UINT32, PBYTE, UINT32, <a class="el" href="group__PublicStructures.html#gab970e0095d779c18c106620eac5fbbc6">PRtcDataChannelInit</a>)</td></tr>
+<tr class="memitem:aae17c3adf351ea2d300ba15f61026665" id="r_aae17c3adf351ea2d300ba15f61026665"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aae17c3adf351ea2d300ba15f61026665">SctpSessionDataChannelOpenFunc</a>) (UINT64, UINT32, PBYTE, UINT32)</td></tr>
 <tr class="memitem:a2a84eb6cead2b69ad0f126be8089bb8d" id="r_a2a84eb6cead2b69ad0f126be8089bb8d"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a2a84eb6cead2b69ad0f126be8089bb8d">SctpSessionDataChannelMessageFunc</a>) (UINT64, UINT32, BOOL, PBYTE, UINT32)</td></tr>
-<tr class="memitem:adb32b9eb54c41b6c16e56de4580a5b64" id="r_adb32b9eb54c41b6c16e56de4580a5b64"><td class="memItemLeft" align="right" valign="top">typedef VOID(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#adb32b9eb54c41b6c16e56de4580a5b64">SctpSessionDataChannelAckFunc</a>) (UINT64, UINT32)</td></tr>
 <tr class="memitem:a1d4fc18a82656503486db3c552d97867" id="r_a1d4fc18a82656503486db3c552d97867"><td class="memItemLeft" align="right" valign="top">typedef struct SctpContext&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a1d4fc18a82656503486db3c552d97867">SctpContext</a></td></tr>
 <tr class="memdesc:a1d4fc18a82656503486db3c552d97867"><td class="mdescLeft">&#160;</td><td class="mdescRight">Singleton context for SCTP global state.  <br /></td></tr>
 <tr class="memitem:a439d66c84a3b2ca8bf1f35391be242eb" id="r_a439d66c84a3b2ca8bf1f35391be242eb"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structSctpContext.html">SctpContext</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a439d66c84a3b2ca8bf1f35391be242eb">PSctpContext</a></td></tr>
@@ -269,9 +267,7 @@ Functions</h2></td></tr>
 <tr class="memitem:a391655f64df63accdb9de0604f01f863" id="r_a391655f64df63accdb9de0604f01f863"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a391655f64df63accdb9de0604f01f863">createSctpSession</a> (<a class="el" href="#ae9235620df689ec7b8892efad579dc76">PSctpSessionCallbacks</a>, TIMER_QUEUE_HANDLE, <a class="el" href="#a689379bf40cfd461294cb51eb5895b6e">PSctpSession</a> *)</td></tr>
 <tr class="memitem:a174783b6995a8b50937d4c26ee29e518" id="r_a174783b6995a8b50937d4c26ee29e518"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a174783b6995a8b50937d4c26ee29e518">freeSctpSession</a> (<a class="el" href="#a689379bf40cfd461294cb51eb5895b6e">PSctpSession</a> *)</td></tr>
 <tr class="memitem:a712efd6c846095230450727262155de9" id="r_a712efd6c846095230450727262155de9"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a712efd6c846095230450727262155de9">putSctpPacket</a> (<a class="el" href="#a689379bf40cfd461294cb51eb5895b6e">PSctpSession</a>, PBYTE, UINT32)</td></tr>
-<tr class="memitem:afacebbbcce1dba4acfc1665bd973c94b" id="r_afacebbbcce1dba4acfc1665bd973c94b"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#afacebbbcce1dba4acfc1665bd973c94b">sctpSessionWriteMessage</a> (<a class="el" href="#a689379bf40cfd461294cb51eb5895b6e">PSctpSession</a>, UINT32, BOOL, PBYTE, UINT32, <a class="el" href="group__PublicStructures.html#gab970e0095d779c18c106620eac5fbbc6">PRtcDataChannelInit</a>, BOOL)</td></tr>
-<tr class="memitem:ae8c57038b95f0f1b66ffa6afc7fdf6f0" id="r_ae8c57038b95f0f1b66ffa6afc7fdf6f0"><td class="memItemLeft" align="right" valign="top">VOID&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae8c57038b95f0f1b66ffa6afc7fdf6f0">sctpSessionSetSendInfo</a> (struct sctp_sendv_spa *, UINT32, BOOL, <a class="el" href="group__PublicStructures.html#gab970e0095d779c18c106620eac5fbbc6">PRtcDataChannelInit</a>, BOOL)</td></tr>
-<tr class="memitem:a6a4190b3f80d9541108942e3c9a33327" id="r_a6a4190b3f80d9541108942e3c9a33327"><td class="memItemLeft" align="right" valign="top">VOID&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a6a4190b3f80d9541108942e3c9a33327">dcepParseChannelParameters</a> (PBYTE, <a class="el" href="group__PublicStructures.html#gab970e0095d779c18c106620eac5fbbc6">PRtcDataChannelInit</a>)</td></tr>
+<tr class="memitem:aa0041c28494247ecbb01583301ad59e4" id="r_aa0041c28494247ecbb01583301ad59e4"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa0041c28494247ecbb01583301ad59e4">sctpSessionWriteMessage</a> (<a class="el" href="#a689379bf40cfd461294cb51eb5895b6e">PSctpSession</a>, UINT32, BOOL, PBYTE, UINT32)</td></tr>
 <tr class="memitem:a337bf6d77d3cd333f793b3b9c017a172" id="r_a337bf6d77d3cd333f793b3b9c017a172"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a337bf6d77d3cd333f793b3b9c017a172">sctpSessionWriteDcep</a> (<a class="el" href="#a689379bf40cfd461294cb51eb5895b6e">PSctpSession</a>, UINT32, PCHAR, UINT32, <a class="el" href="group__PublicStructures.html#gab970e0095d779c18c106620eac5fbbc6">PRtcDataChannelInit</a>)</td></tr>
 <tr class="memitem:acb3c78fb189d5b0c40193784ad12a6eb" id="r_acb3c78fb189d5b0c40193784ad12a6eb"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#acb3c78fb189d5b0c40193784ad12a6eb">handleDcepPacket</a> (<a class="el" href="#a689379bf40cfd461294cb51eb5895b6e">PSctpSession</a>, UINT32, PBYTE, SIZE_T)</td></tr>
 <tr class="memitem:a70ee0bbea65ac4d1bc01be862b8b5380" id="r_a70ee0bbea65ac4d1bc01be862b8b5380"><td class="memItemLeft" align="right" valign="top">INT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a70ee0bbea65ac4d1bc01be862b8b5380">onSctpOutboundPacket</a> (PVOID, PVOID, ULONG, UINT8, UINT8)</td></tr>
@@ -413,20 +409,6 @@ Functions</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">#define SCTP_MAX_PATH_RETRANSMITS&#160;&#160;&#160;5</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="ac75d8cf2723d69586690e3d9bf2c0b07" name="ac75d8cf2723d69586690e3d9bf2c0b07"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac75d8cf2723d69586690e3d9bf2c0b07">&#9670;&#160;</a></span>SCTP_MAX_STREAMS</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define SCTP_MAX_STREAMS&#160;&#160;&#160;300</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -590,20 +572,6 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="adb32b9eb54c41b6c16e56de4580a5b64" name="adb32b9eb54c41b6c16e56de4580a5b64"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#adb32b9eb54c41b6c16e56de4580a5b64">&#9670;&#160;</a></span>SctpSessionDataChannelAckFunc</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef VOID(* SctpSessionDataChannelAckFunc) (UINT64, UINT32)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
 <a id="a2a84eb6cead2b69ad0f126be8089bb8d" name="a2a84eb6cead2b69ad0f126be8089bb8d"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a2a84eb6cead2b69ad0f126be8089bb8d">&#9670;&#160;</a></span>SctpSessionDataChannelMessageFunc</h2>
 
@@ -618,14 +586,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a87a644de1669cb56f71574bac3ac1395" name="a87a644de1669cb56f71574bac3ac1395"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a87a644de1669cb56f71574bac3ac1395">&#9670;&#160;</a></span>SctpSessionDataChannelOpenFunc</h2>
+<a id="aae17c3adf351ea2d300ba15f61026665" name="aae17c3adf351ea2d300ba15f61026665"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aae17c3adf351ea2d300ba15f61026665">&#9670;&#160;</a></span>SctpSessionDataChannelOpenFunc</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">typedef STATUS(* SctpSessionDataChannelOpenFunc) (UINT64, UINT32, PBYTE, UINT32, <a class="el" href="group__PublicStructures.html#gab970e0095d779c18c106620eac5fbbc6">PRtcDataChannelInit</a>)</td>
+          <td class="memname">typedef VOID(* SctpSessionDataChannelOpenFunc) (UINT64, UINT32, PBYTE, UINT32)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -748,47 +716,10 @@ Here is the call graph for this function:</div>
 <area shape="poly" title=" " alt="" coords="96,135,140,166,195,198,212,207,206,208,192,203,138,171,95,140"/>
 <area shape="rect" href="Sctp_8c.html#a8f12cbc92f7a361cec205992aba52480" title=" " alt="" coords="405,161,545,189"/>
 <area shape="poly" title=" " alt="" coords="353,173,392,175,387,176,354,178"/>
-<area shape="rect" href="Sctp_8c.html#a721b1be57eb95d79b036b2fd93bb3be4" title=" " alt="" coords="597,161,812,189"/>
-<area shape="poly" title=" " alt="" coords="545,173,584,175,579,175,546,178"/>
 <area shape="rect" href="Sctp_8c.html#ac47664e2f4452c552f5c76754b70e5d6" title=" " alt="" coords="401,213,549,241"/>
 <area shape="poly" title=" " alt="" coords="345,225,388,227,383,227,345,230"/>
 <area shape="rect" href="Sctp_8c.html#ab7dfb412bddb5ea9600e3423306c06ca" title=" " alt="" coords="401,265,549,293"/>
 <area shape="poly" title=" " alt="" coords="330,239,406,261,401,261,330,244"/>
-</map>
-</div>
-
-</div>
-</div>
-<a id="a6a4190b3f80d9541108942e3c9a33327" name="a6a4190b3f80d9541108942e3c9a33327"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6a4190b3f80d9541108942e3c9a33327">&#9670;&#160;</a></span>dcepParseChannelParameters()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">VOID dcepParseChannelParameters </td>
-          <td>(</td>
-          <td class="paramtype">PBYTE</td>          <td class="paramname"><span class="paramname"><em>data</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="group__PublicStructures.html#gab970e0095d779c18c106620eac5fbbc6">PRtcDataChannelInit</a></td>          <td class="paramname"><span class="paramname"><em>pRtcDataChannelInit</em></span>&#160;)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<div class="dynheader">
-Here is the caller graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="Sctp_8h_a6a4190b3f80d9541108942e3c9a33327_icgraph.png" border="0" usemap="#aSctp_8h_a6a4190b3f80d9541108942e3c9a33327_icgraph" loading="lazy" alt=""/></div>
-<map name="aSctp_8h_a6a4190b3f80d9541108942e3c9a33327_icgraph" id="aSctp_8h_a6a4190b3f80d9541108942e3c9a33327_icgraph">
-<area shape="rect" title=" " alt="" coords="589,5,804,33"/>
-<area shape="rect" href="Sctp_8c.html#a8f12cbc92f7a361cec205992aba52480" title=" " alt="" coords="401,5,541,33"/>
-<area shape="poly" title=" " alt="" coords="571,19,542,22,542,17,577,19"/>
-<area shape="rect" href="Sctp_8c.html#ad5df1b7c8937f4d8fd9aad0892cd9481" title=" " alt="" coords="194,5,353,33"/>
-<area shape="poly" title=" " alt="" coords="383,19,353,22,353,17,388,19"/>
-<area shape="rect" href="Sctp_8c.html#a9ee2c9d19e43ca73a978a4fcd778c5b0" title=" " alt="" coords="5,5,146,33"/>
-<area shape="poly" title=" " alt="" coords="175,19,146,22,146,17,181,19"/>
 </map>
 </div>
 
@@ -894,16 +825,6 @@ Here is the caller graph for this function:</div>
         </tr>
       </table>
 </div><div class="memdoc">
-<div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="Sctp_8h_acb3c78fb189d5b0c40193784ad12a6eb_cgraph.png" border="0" usemap="#aSctp_8h_acb3c78fb189d5b0c40193784ad12a6eb_cgraph" loading="lazy" alt=""/></div>
-<map name="aSctp_8h_acb3c78fb189d5b0c40193784ad12a6eb_cgraph" id="aSctp_8h_acb3c78fb189d5b0c40193784ad12a6eb_cgraph">
-<area shape="rect" title=" " alt="" coords="5,5,146,33"/>
-<area shape="rect" href="Sctp_8c.html#a721b1be57eb95d79b036b2fd93bb3be4" title=" " alt="" coords="194,5,408,33"/>
-<area shape="poly" title=" " alt="" coords="146,17,181,19,175,19,146,22"/>
-</map>
-</div>
 <div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
@@ -1013,8 +934,6 @@ Here is the call graph for this function:</div>
 <area shape="rect" title=" " alt="" coords="5,5,165,33"/>
 <area shape="rect" href="Sctp_8c.html#a8f12cbc92f7a361cec205992aba52480" title=" " alt="" coords="213,5,353,33"/>
 <area shape="poly" title=" " alt="" coords="165,17,200,19,194,19,165,22"/>
-<area shape="rect" href="Sctp_8c.html#a721b1be57eb95d79b036b2fd93bb3be4" title=" " alt="" coords="401,5,615,33"/>
-<area shape="poly" title=" " alt="" coords="353,17,388,19,383,19,353,22"/>
 </map>
 </div>
 <div class="dynheader">
@@ -1116,54 +1035,6 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
-<a id="ae8c57038b95f0f1b66ffa6afc7fdf6f0" name="ae8c57038b95f0f1b66ffa6afc7fdf6f0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae8c57038b95f0f1b66ffa6afc7fdf6f0">&#9670;&#160;</a></span>sctpSessionSetSendInfo()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">VOID sctpSessionSetSendInfo </td>
-          <td>(</td>
-          <td class="paramtype">struct sctp_sendv_spa *</td>          <td class="paramname"><span class="paramname"><em>pSpa</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">UINT32</td>          <td class="paramname"><span class="paramname"><em>streamId</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">BOOL</td>          <td class="paramname"><span class="paramname"><em>isBinary</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="group__PublicStructures.html#gab970e0095d779c18c106620eac5fbbc6">PRtcDataChannelInit</a></td>          <td class="paramname"><span class="paramname"><em>pRtcDataChannelInit</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">BOOL</td>          <td class="paramname"><span class="paramname"><em>forceOrdered</em></span>&#160;)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<div class="dynheader">
-Here is the caller graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="Sctp_8h_ae8c57038b95f0f1b66ffa6afc7fdf6f0_icgraph.png" border="0" usemap="#aSctp_8h_ae8c57038b95f0f1b66ffa6afc7fdf6f0_icgraph" loading="lazy" alt=""/></div>
-<map name="aSctp_8h_ae8c57038b95f0f1b66ffa6afc7fdf6f0_icgraph" id="aSctp_8h_ae8c57038b95f0f1b66ffa6afc7fdf6f0_icgraph">
-<area shape="rect" title=" " alt="" coords="428,5,604,33"/>
-<area shape="rect" href="Sctp_8c.html#a8d677382e8cf3b85a9c544d021d14b8e" title=" " alt="" coords="189,5,380,33"/>
-<area shape="poly" title=" " alt="" coords="410,19,380,22,380,17,415,19"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#ga12ab55171a0f53ec8e248e2d193d6bd0" title="Send data via the PRtcDataChannel." alt="" coords="5,5,141,33"/>
-<area shape="poly" title=" " alt="" coords="171,19,141,22,141,17,176,19"/>
-</map>
-</div>
-
-</div>
-</div>
 <a id="a337bf6d77d3cd333f793b3b9c017a172" name="a337bf6d77d3cd333f793b3b9c017a172"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a337bf6d77d3cd333f793b3b9c017a172">&#9670;&#160;</a></span>sctpSessionWriteDcep()</h2>
 
@@ -1200,8 +1071,8 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
-<a id="afacebbbcce1dba4acfc1665bd973c94b" name="afacebbbcce1dba4acfc1665bd973c94b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#afacebbbcce1dba4acfc1665bd973c94b">&#9670;&#160;</a></span>sctpSessionWriteMessage()</h2>
+<a id="aa0041c28494247ecbb01583301ad59e4" name="aa0041c28494247ecbb01583301ad59e4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa0041c28494247ecbb01583301ad59e4">&#9670;&#160;</a></span>sctpSessionWriteMessage()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1229,35 +1100,15 @@ Here is the caller graph for this function:</div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">UINT32</td>          <td class="paramname"><span class="paramname"><em>pMessageLen</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="group__PublicStructures.html#gab970e0095d779c18c106620eac5fbbc6">PRtcDataChannelInit</a></td>          <td class="paramname"><span class="paramname"><em>pRtcDataChannelInit</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">BOOL</td>          <td class="paramname"><span class="paramname"><em>forceOrdered</em></span>&#160;)</td>
+          <td class="paramtype">UINT32</td>          <td class="paramname"><span class="paramname"><em>pMessageLen</em></span>&#160;)</td>
         </tr>
       </table>
 </div><div class="memdoc">
 <div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="Sctp_8h_afacebbbcce1dba4acfc1665bd973c94b_cgraph.png" border="0" usemap="#aSctp_8h_afacebbbcce1dba4acfc1665bd973c94b_cgraph" loading="lazy" alt=""/></div>
-<map name="aSctp_8h_afacebbbcce1dba4acfc1665bd973c94b_cgraph" id="aSctp_8h_afacebbbcce1dba4acfc1665bd973c94b_cgraph">
-<area shape="rect" title=" " alt="" coords="5,5,197,33"/>
-<area shape="rect" href="Sctp_8c.html#a1dea61e8f31184c0862bffb92ed89eb6" title=" " alt="" coords="245,5,421,33"/>
-<area shape="poly" title=" " alt="" coords="197,17,232,19,226,19,197,22"/>
-</map>
-</div>
-<div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="Sctp_8h_afacebbbcce1dba4acfc1665bd973c94b_icgraph.png" border="0" usemap="#aSctp_8h_afacebbbcce1dba4acfc1665bd973c94b_icgraph" loading="lazy" alt=""/></div>
-<map name="aSctp_8h_afacebbbcce1dba4acfc1665bd973c94b_icgraph" id="aSctp_8h_afacebbbcce1dba4acfc1665bd973c94b_icgraph">
+<div class="center"><img src="Sctp_8h_aa0041c28494247ecbb01583301ad59e4_icgraph.png" border="0" usemap="#aSctp_8h_aa0041c28494247ecbb01583301ad59e4_icgraph" loading="lazy" alt=""/></div>
+<map name="aSctp_8h_aa0041c28494247ecbb01583301ad59e4_icgraph" id="aSctp_8h_aa0041c28494247ecbb01583301ad59e4_icgraph">
 <area shape="rect" title=" " alt="" coords="189,5,380,33"/>
 <area shape="rect" href="group__PublicMemberFunctions.html#ga12ab55171a0f53ec8e248e2d193d6bd0" title="Send data via the PRtcDataChannel." alt="" coords="5,5,141,33"/>
 <area shape="poly" title=" " alt="" coords="171,19,141,22,141,17,176,19"/>

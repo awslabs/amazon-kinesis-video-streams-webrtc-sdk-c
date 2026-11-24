@@ -220,9 +220,6 @@ Functions</h2></td></tr>
 <tr class="memitem:aaaf444db910596fed5abe9a8518b68f1" id="r_aaaf444db910596fed5abe9a8518b68f1"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aaaf444db910596fed5abe9a8518b68f1">onRtcpPacket</a> (<a class="el" href="PeerConnection_8h.html#a545e0bebf606e9070020c98b3f9c2864">PKvsPeerConnection</a> pKvsPeerConnection, PBYTE pBuff, UINT32 buffLen)</td></tr>
 <tr class="memitem:aae8798b1db6e85e6e678413860180e0e" id="r_aae8798b1db6e85e6e678413860180e0e"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aae8798b1db6e85e6e678413860180e0e">onRtcpRembPacket</a> (<a class="el" href="RtcpPacket_8h.html#ac99920bc23b7ab9cc673e0c25da794fa">PRtcpPacket</a> pRtcpPacket, <a class="el" href="PeerConnection_8h.html#a545e0bebf606e9070020c98b3f9c2864">PKvsPeerConnection</a> pKvsPeerConnection)</td></tr>
 <tr class="memitem:a5886500e01a140ed8d64ee9ce68707bb" id="r_a5886500e01a140ed8d64ee9ce68707bb"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a5886500e01a140ed8d64ee9ce68707bb">onRtcpPLIPacket</a> (<a class="el" href="RtcpPacket_8h.html#ac99920bc23b7ab9cc673e0c25da794fa">PRtcpPacket</a> pRtcpPacket, <a class="el" href="PeerConnection_8h.html#a545e0bebf606e9070020c98b3f9c2864">PKvsPeerConnection</a> pKvsPeerConnection)</td></tr>
-<tr class="memitem:ad163be3b057b748edec04e7f671c7e9f" id="r_ad163be3b057b748edec04e7f671c7e9f"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad163be3b057b748edec04e7f671c7e9f">createRtcpPLIPacket</a> (UINT32 senderSsrc, UINT32 mediaSsrc, PBYTE pRawPacket, PUINT32 pPacketLen)</td></tr>
-<tr class="memitem:ga698a849d76431e464b43cf51413d658d" id="r_ga698a849d76431e464b43cf51413d658d"><td class="memItemLeft" align="right" valign="top">STATUS&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__PublicMemberFunctions.html#ga698a849d76431e464b43cf51413d658d">transceiverSendPictureLoss</a> (<a class="el" href="group__PublicStructures.html#ga575b38a26ceae3044dd16d8d72667ebf">PRtcRtpTransceiver</a> pRtcRtpTransceiver)</td></tr>
-<tr class="memdesc:ga698a849d76431e464b43cf51413d658d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send a Picture Loss Indication (PLI) to ask the remote sender for a new keyframe.  <br /></td></tr>
 </table>
 <a name="doc-define-members" id="doc-define-members"></a><h2 id="header-doc-define-members" class="groupheader">Macro Definition Documentation</h2>
 <a id="a7207e343606b6631ce2556bf7411b833" name="a7207e343606b6631ce2556bf7411b833"></a>
@@ -298,47 +295,6 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
-<a id="ad163be3b057b748edec04e7f671c7e9f" name="ad163be3b057b748edec04e7f671c7e9f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad163be3b057b748edec04e7f671c7e9f">&#9670;&#160;</a></span>createRtcpPLIPacket()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">STATUS createRtcpPLIPacket </td>
-          <td>(</td>
-          <td class="paramtype">UINT32</td>          <td class="paramname"><span class="paramname"><em>senderSsrc</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">UINT32</td>          <td class="paramname"><span class="paramname"><em>mediaSsrc</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">PBYTE</td>          <td class="paramname"><span class="paramname"><em>pRawPacket</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">PUINT32</td>          <td class="paramname"><span class="paramname"><em>pPacketLen</em></span>&#160;)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<div class="dynheader">
-Here is the caller graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="Rtcp_8c_ad163be3b057b748edec04e7f671c7e9f_icgraph.png" border="0" usemap="#aRtcp_8c_ad163be3b057b748edec04e7f671c7e9f_icgraph" loading="lazy" alt=""/></div>
-<map name="aRtcp_8c_ad163be3b057b748edec04e7f671c7e9f_icgraph" id="aRtcp_8c_ad163be3b057b748edec04e7f671c7e9f_icgraph">
-<area shape="rect" title=" " alt="" coords="254,5,406,33"/>
-<area shape="rect" href="group__PublicMemberFunctions.html#ga698a849d76431e464b43cf51413d658d" title="Send a Picture Loss Indication (PLI) to ask the remote sender for a new keyframe." alt="" coords="5,5,206,33"/>
-<area shape="poly" title=" " alt="" coords="236,19,206,22,206,17,241,19"/>
-</map>
-</div>
-
-</div>
-</div>
 <a id="aaaf444db910596fed5abe9a8518b68f1" name="aaaf444db910596fed5abe9a8518b68f1"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aaaf444db910596fed5abe9a8518b68f1">&#9670;&#160;</a></span>onRtcpPacket()</h2>
 
@@ -392,7 +348,7 @@ Here is the call graph for this function:</div>
 <area shape="rect" href="Rtcp_8c.html#a2c4746efbcc7db4c8594ef67c45b3176" title=" " alt="" coords="418,607,583,634"/>
 <area shape="poly" title=" " alt="" coords="323,618,405,620,400,621,323,623"/>
 <area shape="poly" title=" " alt="" coords="271,278,307,247,342,207,356,177,362,149,369,122,390,96,407,87,403,91,394,100,374,125,367,150,361,178,346,210,310,251,275,281"/>
-<area shape="rect" href="RtpPacket_8c.html#a0ac9b8043213d969d801c1f2ce1293e5" title=" " alt="" coords="392,161,609,206"/>
+<area shape="rect" href="RtpPacket_8c.html#aa8208bbcf8f9f22873708986d8dcda55" title=" " alt="" coords="392,161,609,206"/>
 <area shape="poly" title=" " alt="" coords="279,277,391,222,425,210,421,213,393,227,282,282"/>
 <area shape="rect" href="RtpPacket_8c.html#af5c0526f452ce354c0f92497668f5ad9" title=" " alt="" coords="700,225,811,253"/>
 <area shape="poly" title=" " alt="" coords="331,280,392,273,687,244,683,247,392,278,334,285"/>
