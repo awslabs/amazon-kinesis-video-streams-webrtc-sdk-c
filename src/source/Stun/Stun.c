@@ -784,7 +784,9 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
                 break;
         }
 
-        allocationSize += attributeSize;
+        // Each attribute starts 8-byte aligned: the structures hold pointers and 64-bit values, and a variable-length
+        // value before them (padded to 4 bytes only) would leave the next one misaligned
+        allocationSize += ROUND_UP(attributeSize, 8);
         attributeCount++;
 
         CHK(attributeCount <= STUN_ATTRIBUTE_MAX_COUNT, STATUS_STUN_MAX_ATTRIBUTE_COUNT);
@@ -1097,8 +1099,8 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
         // Increment the attributes pointer and account for the length
         pStunAttributeHeader = (PStunAttributeHeader) ((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN + paddedLength);
 
-        // Set the destination
-        pDestAttribute = (PStunAttributeHeader) ((PBYTE) pDestAttribute + attributeSize);
+        // Set the destination, aligned as the first pass sized it
+        pDestAttribute = (PStunAttributeHeader) ((PBYTE) pDestAttribute + ROUND_UP(attributeSize, 8));
     }
 
 CleanUp:
