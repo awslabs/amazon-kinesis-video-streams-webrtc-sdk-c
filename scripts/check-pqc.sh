@@ -1,8 +1,8 @@
 #!/bin/bash
 #
 # Strict gate: every TLS 1.3 handshake the SDK makes to a KVS host must
-# negotiate X25519MLKEM768, except on the r-, m- and v- hosts. The service does
-# not support ML-KEM on those yet. See NOT_GATED_PREFIXES below.
+# negotiate X25519MLKEM768, except on the m- and v- hosts (signaling WSS). The
+# service does not support ML-KEM on those yet. See NOT_GATED_PREFIXES below.
 #
 # Usage:
 #   ./scripts/check-pqc.sh <channel-name> [build-dir] [storage-channel-name]
@@ -71,9 +71,11 @@ MIN_HANDSHAKES="${MIN_HANDSHAKES:-3}"
 # them is reported as SKIP and does not fail the run. Step 2 still checks that
 # the SDK offers ML-KEM to them.
 #
-#   r-       GetIceServerConfig, over HTTPS
 #   m-, v-   signaling WSS
-NOT_GATED_PREFIXES="r- m- v-"
+#
+# The r- hosts (GetIceServerConfig) are gated. The service turned on ML-KEM for
+# them, so a classical group there now fails the run.
+NOT_GATED_PREFIXES="m- v-"
 
 # TODO: Gate the storage-session endpoint too, once a run shows it selecting
 # ML-KEM. Its host is read from the storage sample's log at run time, so it is

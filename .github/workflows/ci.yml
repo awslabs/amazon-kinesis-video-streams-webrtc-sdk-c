@@ -900,10 +900,10 @@ jobs:
   # Strict post-quantum gate against the live service. Runs the two client
   # samples and the storage sample under a packet capture and asserts that every
   # TLS 1.3 handshake to a KVS host negotiated X25519MLKEM768, except the hosts
-  # below.
+  # below. The control plane and GetIceServerConfig (r-) hosts are gated.
   #
-  # TODO: Gate the GetIceServerConfig (r-), signaling WSS (m-, v-) and storage
-  # session (JoinStorageSession) hosts once the service supports ML-KEM on them.
+  # TODO: Gate the signaling WSS (m-, v-) and storage session
+  # (JoinStorageSession) hosts once the service supports ML-KEM on them.
   # See NOT_GATED_PREFIXES and STORAGE_HOST in scripts/check-pqc.sh.
   #
   # This is the only check that observes a real handshake. Everything else is a
