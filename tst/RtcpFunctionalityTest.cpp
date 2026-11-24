@@ -1094,6 +1094,8 @@ TEST_F(RtcpFunctionalityTest, senderReportIsEncryptedUnderSrtpSessionLock)
     // The state DTLS completion and the first writeFrame() leave behind. allocateSrtp() and writeFrame() write it under pSrtpSessionLock.
     firstFrameTime = GETTIME();
     MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
+    // Only DTLS completion creates the session, so there is none yet to overwrite.
+    EXPECT_TRUE(pKvsPeerConnection->pSrtpSession == NULL);
     EXPECT_EQ(STATUS_SUCCESS, initSrtpSession(key, key, KVS_SRTP_PROFILE_AES128_CM_HMAC_SHA1_80, &pKvsPeerConnection->pSrtpSession));
     pKvsRtpTransceiver->sender.firstFrameWallClockTime = firstFrameTime;
     MUTEX_UNLOCK(pKvsPeerConnection->pSrtpSessionLock);
