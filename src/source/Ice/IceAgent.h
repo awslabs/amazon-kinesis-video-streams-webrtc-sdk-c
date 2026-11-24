@@ -168,6 +168,8 @@ typedef struct {
     BOOL reported;
     CHAR id[ICE_CANDIDATE_ID_LEN + 1];
     KVS_SOCKET_PROTOCOL remoteProtocol;
+    // Srflx only: transaction ID reused by every re-send of the STUN binding request
+    BYTE srflxTransactionId[STUN_TRANSACTION_ID_LEN];
 } IceCandidate, *PIceCandidate;
 
 typedef struct {
@@ -268,9 +270,6 @@ struct __IceAgent {
     // Pre-allocated stun packets
     PStunPacket pBindingIndication;
     PStunPacket pBindingRequest;
-
-    // store transaction ids for stun binding request.
-    PTransactionIdStore pStunBindingRequestTransactionIdStore;
 
     UINT64 candidateGatheringStartTime;
     UINT64 candidateGatheringProcessEndTime;

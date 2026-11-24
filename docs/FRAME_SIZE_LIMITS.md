@@ -53,6 +53,7 @@ The peer connection measures a received frame at the size it would deliver to th
 - logs a warning when the frame crosses the threshold: `Rejecting frame with timestamp <timestamp>: larger than the maximum inbound frame size 5242880 (0x5c000006)`,
 - rejects the whole frame, so the callback set with `transceiverOnFrame()` is not called for it,
 - counts it in `received.framesDropped` in the inbound RTP stats.
+- calls the callback set with `transceiverOnFrameDropped()`.
 
 Later frames are delivered as usual. A frame of exactly `MAX_INBOUND_FRAME_SIZE_BYTES` is delivered.
 

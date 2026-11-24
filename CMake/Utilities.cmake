@@ -54,6 +54,13 @@ function(build_dependency lib_name)
   # library building cmake.
   set(build_args ${ARGN})
 
+  # CMake 4 rejects cmake_minimum_required() below 3.5, which some dependencies still declare.
+  if(DEFINED CMAKE_POLICY_VERSION_MINIMUM)
+    list(APPEND build_args -DCMAKE_POLICY_VERSION_MINIMUM=${CMAKE_POLICY_VERSION_MINIMUM})
+  elseif(CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
+    list(APPEND build_args -DCMAKE_POLICY_VERSION_MINIMUM=3.5)
+  endif()
+
   file(REMOVE_RECURSE ${OPEN_SRC_INSTALL_PREFIX}/lib${lib_name})
 
   # build library

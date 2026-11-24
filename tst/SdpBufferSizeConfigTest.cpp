@@ -99,6 +99,7 @@ TEST_F(SdpBufferSizeConfigTest, parseSignalingMessage_ValidMessageWithinLimit)
     STATUS status = parseSignalingMessage((PCHAR) jsonMessage.c_str(), (UINT32) jsonMessage.length(), &receivedMessage);
     EXPECT_EQ(STATUS_SUCCESS, status);
     EXPECT_EQ(SIGNALING_MESSAGE_TYPE_OFFER, receivedMessage.signalingMessage.messageType);
+    freeSignalingMessagePayload(&receivedMessage.signalingMessage);
 }
 
 // Test Case: Payload field in signaling message exceeds MAX_SIGNALING_MESSAGE_LEN
@@ -155,8 +156,13 @@ TEST_F(SdpBufferSizeConfigTest, structSizesMatchConfiguration)
     // The sdp field should be MAX_SESSION_DESCRIPTION_INIT_SDP_LEN + 1 (for null terminator)
     EXPECT_EQ(SIZEOF(sessionDescInit.sdp), (MAX_SESSION_DESCRIPTION_INIT_SDP_LEN + 1) * SIZEOF(CHAR));
 
+#ifndef DYNAMIC_SIGNALING_PAYLOAD
     // The payload field should be MAX_SIGNALING_MESSAGE_LEN + 1 (for null terminator)
     EXPECT_EQ(SIZEOF(signalingMsg.payload), (MAX_SIGNALING_MESSAGE_LEN + 1) * SIZEOF(CHAR));
+#else
+    // The payload is heap-allocated to fit each message
+    UNUSED_PARAM(signalingMsg);
+#endif
 }
 
 // Test Case: LWS_MESSAGE_BUFFER_SIZE is correctly derived from MAX_SIGNALING_MESSAGE_LEN

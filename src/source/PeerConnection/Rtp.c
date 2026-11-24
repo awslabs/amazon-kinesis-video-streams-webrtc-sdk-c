@@ -146,6 +146,8 @@ STATUS freeKvsRtpTransceiver(PKvsRtpTransceiver* ppKvsRtpTransceiver)
     CHK(pKvsRtpTransceiver != NULL, retStatus);
 
     if (pKvsRtpTransceiver->pJitterBuffer != NULL) {
+        // Freeing the jitter buffer drops the frames it still holds. The app does not need to hear about them.
+        pKvsRtpTransceiver->onFrameDropped = NULL;
         freeJitterBuffer(&pKvsRtpTransceiver->pJitterBuffer);
     }
 
@@ -252,6 +254,23 @@ STATUS transceiverOnPictureLoss(PRtcRtpTransceiver pRtcRtpTransceiver, UINT64 cu
 
     pKvsRtpTransceiver->onPictureLoss = onPictureLoss;
     pKvsRtpTransceiver->onPictureLossCustomData = customData;
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS transceiverOnFrameDropped(PRtcRtpTransceiver pRtcRtpTransceiver, UINT64 customData, RtcOnFrameDropped onFrameDropped)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PKvsRtpTransceiver pKvsRtpTransceiver = (PKvsRtpTransceiver) pRtcRtpTransceiver;
+
+    CHK(pKvsRtpTransceiver != NULL && onFrameDropped != NULL, STATUS_NULL_ARG);
+
+    pKvsRtpTransceiver->onFrameDropped = onFrameDropped;
+    pKvsRtpTransceiver->onFrameDroppedCustomData = customData;
 
 CleanUp:
 

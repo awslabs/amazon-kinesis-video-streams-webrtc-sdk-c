@@ -72,6 +72,8 @@ typedef struct {
     RtcOnBandwidthEstimation onBandwidthEstimation;
     UINT64 onPictureLossCustomData;
     RtcOnPictureLoss onPictureLoss;
+    UINT64 onFrameDroppedCustomData;
+    RtcOnFrameDropped onFrameDropped;
 
     PBYTE peerFrameBuffer;
     UINT32 peerFrameBufferSize;

@@ -411,7 +411,7 @@ TEST_F(ReceiveWorkerUafTest, freeSignalingWaitsForReconnectThreadToReleaseTracke
     freeStaticCredentialProvider(&pCredentialProvider);
 }
 
-// Shared by the two "API call from an SDK thread while another thread frees" tests below.
+// Shared by the three "API call from an SDK thread while another thread frees" tests below.
 //
 // The SDK thread waits until freeSignaling() has started on the test's free thread (shutdown == TRUE), then calls
 // the public APIs that share terminateOngoingOperations() with freeSignaling(). Before the fix those calls read
@@ -632,7 +632,67 @@ TEST_F(ReceiveWorkerUafTest, apiCallFromReconnectThreadDuringFreeReturnsFreeInPr
     expectApiCallsAndFreeToReturn(pCtx, freeThread, &pCredentialProvider);
 }
 
-// The two tests above return at the API entry (fetch and delete refuse, disconnect reports success), before
+static const CHAR kMalformedMessage[] = "{ this is not a signaling message";
+
+// Variant 3: the SDK thread is the WSS listener. lwsListenerHandler() holds listenerTracker.lock for its whole life,
+// and lws_service() on that thread delivers errorReportFn from receiveLwsMessage() when a message is malformed. A
+// deleteSync() that waited for the listener to exit would wait for itself.
+TEST_F(ReceiveWorkerUafTest, apiCallFromListenerThreadDuringFreeReturnsFreeInProgress)
+{
+    ApiDuringFreeContext* pCtx = new ApiDuringFreeContext();
+    PAwsCredentialProvider pCredentialProvider = NULL;
+    PSignalingClient pSignalingClient = NULL;
+
+    ASSERT_EQ(STATUS_SUCCESS,
+              createOfflineSignalingClient(mChannelName, mRegion, mCaCertPath, mLogLevel, (UINT64) pCtx, &pCredentialProvider, &pSignalingClient,
+                                           unexpectedMessageReceivedFn));
+    ASSERT_NE((PSignalingClient) NULL, pSignalingClient);
+    pCtx->pSignalingClient = pSignalingClient;
+    useSamplesFetchRetryPolicy(pSignalingClient);
+    pSignalingClient->signalingClientCallbacks.errorReportFn = [](UINT64 customData, STATUS status, PCHAR msg, UINT32 msgLen) -> STATUS {
+        ApiDuringFreeContext* pCallbackCtx = (ApiDuringFreeContext*) customData;
+        UNUSED_PARAM(status);
+        UNUSED_PARAM(msg);
+        UNUSED_PARAM(msgLen);
+        {
+            std::lock_guard<std::mutex> guard(pCallbackCtx->lock);
+            pCallbackCtx->callbackEntered = true;
+            pCallbackCtx->cv.notify_all();
+        }
+        callApisDuringFree(pCallbackCtx);
+        return STATUS_SUCCESS;
+    };
+
+    // Same bookkeeping as lwsListenerHandler(), around the receiveLwsMessage() call that lws_service() makes for
+    // LWS_CALLBACK_CLIENT_RECEIVE. Detached like a real listener: on the pre-fix code it never returns.
+    std::thread listenerThread([pSignalingClient] {
+        MUTEX_LOCK(pSignalingClient->listenerTracker.lock);
+        ATOMIC_STORE(&pSignalingClient->listenerThreadTid, SIGNALING_CURRENT_THREAD_ID());
+        ATOMIC_STORE_BOOL(&pSignalingClient->listenerTracker.terminated, FALSE);
+
+        receiveLwsMessage(pSignalingClient, (PCHAR) kMalformedMessage, ARRAY_SIZE(kMalformedMessage));
+
+        ATOMIC_STORE(&pSignalingClient->listenerThreadTid, 0);
+        ATOMIC_STORE_BOOL(&pSignalingClient->listenerTracker.terminated, TRUE);
+        CVAR_BROADCAST(pSignalingClient->listenerTracker.await);
+        MUTEX_UNLOCK(pSignalingClient->listenerTracker.lock);
+    });
+    listenerThread.detach();
+
+    // Start the free only once errorReportFn runs on the listener, so the free finds the listener alive.
+    {
+        std::unique_lock<std::mutex> guard(pCtx->lock);
+        ASSERT_TRUE(pCtx->cv.wait_for(guard, std::chrono::seconds(5), [pCtx] { return pCtx->callbackEntered; }))
+            << "the listener did not enter errorReportFn";
+    }
+
+    // freeSignaling() blocks in the listener wait until the fake listener releases listenerTracker.lock, which it
+    // only does after its API calls return.
+    std::thread freeThread(freeOnOwnThread, pCtx);
+    expectApiCallsAndFreeToReturn(pCtx, freeThread, &pCredentialProvider);
+}
+
+// The three tests above return at the API entry (fetch and delete refuse, disconnect reports success), before
 // terminateOngoingOperations() runs, so they never reach the wait-selection with shutdown already set. This one
 // does: it is what a fetch/disconnect/delete sees when it passed its own shutdown check an instant before
 // freeSignaling() set the flag. The non-free quiesce must still take the bounded path and must not wait for the

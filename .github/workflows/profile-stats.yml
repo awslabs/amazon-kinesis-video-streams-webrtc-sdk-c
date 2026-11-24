@@ -45,7 +45,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
-          cmake-version: '3.x'
+          cmake-version: '4.x'
 
       - name: Setup Python
         uses: actions/setup-python@v5

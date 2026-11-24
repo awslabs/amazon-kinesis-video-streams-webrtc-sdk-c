@@ -46,6 +46,11 @@ else()
     endif()
 endif()
 
+# Set by build_dependency() when CMake 4 needs it
+if(DEFINED CMAKE_POLICY_VERSION_MINIMUM)
+  set(POLICY_VERSION_ARGS -DCMAKE_POLICY_VERSION_MINIMUM=${CMAKE_POLICY_VERSION_MINIMUM})
+endif()
+
 ExternalProject_Add(project_libwebsockets
     GIT_REPOSITORY    https://github.com/warmcat/libwebsockets.git
     GIT_TAG           ${LWS_GIT_TAG}
@@ -59,6 +64,7 @@ ExternalProject_Add(project_libwebsockets
         -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}
         -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        ${POLICY_VERSION_ARGS}
         -DOPENSSL_ROOT_DIR=${OPENSSL_DIR}
         -DDISABLE_WERROR=ON
         -DLWS_WITH_HTTP2=1

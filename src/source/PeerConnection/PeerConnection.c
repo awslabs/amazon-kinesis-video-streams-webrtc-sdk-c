@@ -274,7 +274,7 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
     /*
      demux each packet off of its first byte
      https://tools.ietf.org/html/rfc5764#section-5.1.2
-                 +----------------+
+                  +----------------+
                   | 127 < B < 192 -+--> forward to RTP
                   |                |
       packet -->  |  19 < B < 64  -+--> forward to DTLS
@@ -537,8 +537,11 @@ STATUS onFrameDroppedFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex,
     UINT64 hashValue = 0;
     PRtpPacket pPacket = NULL;
     PKvsRtpTransceiver pTransceiver = (PKvsRtpTransceiver) customData;
-    DLOGW("Frame with timestamp %ld is dropped!", timestamp);
+    DLOGW("Frame with timestamp %" PRIu32 " is dropped!", timestamp);
     CHK(pTransceiver != NULL, STATUS_NULL_ARG);
+    if (pTransceiver->onFrameDropped != NULL) {
+        pTransceiver->onFrameDropped(pTransceiver->onFrameDroppedCustomData, timestamp);
+    }
     retStatus = hashTableGet(pTransceiver->pJitterBuffer->pPkgBufferHashTable, startIndex, &hashValue);
     pPacket = (PRtpPacket) hashValue;
     if (retStatus == STATUS_SUCCESS || retStatus == STATUS_HASH_KEY_NOT_PRESENT) {

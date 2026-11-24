@@ -237,6 +237,9 @@ extern "C" {
 #define STATUS_SESSION_DESCRIPTION_MISSING_CERTIFICATE_FINGERPRINT STATUS_WEBRTC_BASE + 0x00000009
 #define STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT                 STATUS_WEBRTC_BASE + 0x0000000A
 #define STATUS_SESSION_DESCRIPTION_CODEC_NOT_MAPPED_TO_RTX         STATUS_WEBRTC_BASE + 0x0000000B
+#define STATUS_SESSION_DESCRIPTION_RTX_MAPPING_MAX_EXCEEDED        STATUS_WEBRTC_BASE + 0x0000000C
+#define STATUS_SESSION_DESCRIPTION_MID_TOO_LONG                    STATUS_WEBRTC_BASE + 0x0000000D
+#define STATUS_SESSION_DESCRIPTION_PAYLOAD_TYPE_TOO_LONG           STATUS_WEBRTC_BASE + 0x0000000E
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -1315,6 +1318,25 @@ typedef STATUS (*RtcOnPeerCongestionFeedback)(UINT64, PCongestionCtx);
 typedef VOID (*RtcOnPictureLoss)(UINT64);
 
 /**
+ * @brief RtcOnFrameDropped is fired when the jitter buffer drops a received frame.
+ * It happens when RTP packets are lost, or when the frame is too large.
+ * The dropped frame can be the complete frame before the lost RTP packets.
+ * For lost RTP packets, the jitter buffer drops a frame once a newer RTP packet is more than DEFAULT_JITTER_BUFFER_MAX_LATENCY past it,
+ * so several frames can be dropped at once. A frame that is too large is dropped when the next frame arrives.
+ * For video, the frames that follow cannot be decoded correctly until the next keyframe.
+ * One PLI sent with transceiverSendPictureLoss() asks the sender for one.
+ *
+ * It runs on the thread that receives the media. It must not block.
+ * It is not fired for the frames still buffered when the peer connection is freed.
+ *
+ * NOTE: RtcOnFrameDropped is a KVS specific method
+ *
+ * @param[in] UINT64 customData - User customData
+ * @param[in] UINT32 timestamp - RTP timestamp of the dropped frame
+ */
+typedef VOID (*RtcOnFrameDropped)(UINT64, UINT32);
+
+/**
  * @brief RtcDataChannel represents a bi-directional data channel between two peers.
  *
  * Reference: https://www.w3.org/TR/webrtc/#dom-rtcdatachannel
@@ -1567,6 +1589,18 @@ typedef struct {
 } RtcIceCandidateInit, *PRtcIceCandidateInit;
 
 /**
+ * @brief When PREFER_DYNAMIC_ALLOCS is enabled, use dynamic allocation for the
+ * signaling payload buffer. Reduces peak memory usage on constrained platforms.
+ * (Signaling API URL / paramsJson buffers are always dynamic now.)
+ *
+ * It changes the layout of SignalingMessage, so the application must be built with the same
+ * PREFER_DYNAMIC_ALLOCS setting as the SDK.
+ */
+#if PREFER_DYNAMIC_ALLOCS
+#define DYNAMIC_SIGNALING_PAYLOAD 1
+#endif
+
+/**
  * @brief Structure defining the basic signaling message
  */
 typedef struct {
@@ -1580,7 +1614,11 @@ typedef struct {
 
     UINT32 payloadLen; //!< Optional payload length. If 0, the length will be calculated
 
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    PCHAR payload; //!< Actual signaling message payload - dynamically allocated
+#else
     CHAR payload[MAX_SIGNALING_MESSAGE_LEN + 1]; //!< Actual signaling message payload
+#endif
 } SignalingMessage, *PSignalingMessage;
 
 /**
@@ -1715,6 +1753,10 @@ typedef struct {
  *
  * NOTE: Returning non-success status will terminate the internal event loop and will force
  * the state machinery to roll back to the state corresponding to the type of status returned.
+ *
+ * NOTE: The message is valid only until the callback returns; with PREFER_DYNAMIC_ALLOCS the SDK
+ * then frees its payload. To keep the message, copy the payload as well: a struct copy shares the
+ * payload pointer. Calling freeSignalingMessagePayload() on it inside the callback is safe.
  *
  * @param - UINT64 - Custom data passed in to the signaling client
  * @param - PReceivedSignalingMessage - Pointer to the received message
@@ -2230,6 +2272,17 @@ PUBLIC_API STATUS transceiverOnBandwidthEstimation(PRtcRtpTransceiver, UINT64, R
 PUBLIC_API STATUS transceiverOnPictureLoss(PRtcRtpTransceiver, UINT64, RtcOnPictureLoss);
 
 /**
+ * @brief Set a callback for received frames that the jitter buffer drops
+ *
+ * @param[in] PRtcRtpTransceiver Populated RtcRtpTransceiver struct
+ * @param[in] UINT64 User customData that will be passed along when RtcOnFrameDropped is called
+ * @param[in] RtcOnFrameDropped User RtcOnFrameDropped callback
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+PUBLIC_API STATUS transceiverOnFrameDropped(PRtcRtpTransceiver, UINT64, RtcOnFrameDropped);
+
+/**
  * @brief Send a Picture Loss Indication (PLI) to ask the remote sender for a new keyframe
  *
  * Reference: https://tools.ietf.org/html/rfc4585#section-6.3.1
@@ -2500,6 +2553,35 @@ PUBLIC_API STATUS freeSignalingClient(PSIGNALING_CLIENT_HANDLE);
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS signalingClientSendMessageSync(SIGNALING_CLIENT_HANDLE, PSignalingMessage);
+
+/**
+ * @brief Free the SignalingMessage payload.
+ *
+ * Symmetric helper for releasing whatever resources the payload uses.
+ * Behaviour depends on the build mode:
+ *  - `PREFER_DYNAMIC_ALLOCS=ON` (DYNAMIC_SIGNALING_PAYLOAD): the SDK
+ *    allocated the receive-side payload inside the parser via its own
+ *    allocator. This helper frees it through the same allocator. Calling
+ *    free() / application-side MEMFREE() is unsafe in shared-library builds
+ *    (mismatched allocator) and in test builds (instrumented-allocator
+ *    header mismatch).
+ *  - `PREFER_DYNAMIC_ALLOCS=OFF` (default): the payload is an inline array
+ *    inside SignalingMessage and there's nothing to free; the call is a
+ *    no-op. Safe to invoke unconditionally so callers don't need their own
+ *    `#ifdef`.
+ *
+ * Call this on every SignalingMessage the SDK populates — including on
+ * failure paths. The SDK zeros the message struct before parsing, so the
+ * call is safe even when nothing was allocated; but if parsing fails after
+ * the payload has been allocated, skipping this call leaks that buffer.
+ * Treat it like a destructor that pairs with any SDK call which fills in
+ * a SignalingMessage / ReceivedSignalingMessage out-param.
+ *
+ * Safe to call with a NULL pMessage.
+ *
+ * @param[in,out] pMessage SignalingMessage whose payload should be released.
+ */
+PUBLIC_API VOID freeSignalingMessagePayload(PSignalingMessage pMessage);
 
 /**
  * @brief Gets the retrieved ICE configuration information object count
