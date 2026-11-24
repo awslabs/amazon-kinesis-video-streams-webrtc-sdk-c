@@ -6,8 +6,7 @@ namespace kinesis {
 namespace video {
 namespace webrtcclient {
 
-class SignalingApiTest : public WebRtcClientTestBase {
-};
+class SignalingApiTest : public WebRtcClientTestBase {};
 
 TEST_F(SignalingApiTest, createValidateChannelInfo)
 {
@@ -41,7 +40,7 @@ TEST_F(SignalingApiTest, createValidateChannelInfo)
     // Test default agent postfix
     EXPECT_PRED_FORMAT2(testing::IsSubstring, agentString, rChannelInfo->pUserAgent);
     freeChannelInfo(&rChannelInfo);
-    //wait for threads of threadpool to close
+    // wait for threads of threadpool to close
     THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
@@ -52,14 +51,14 @@ TEST_F(SignalingApiTest, testChannelArnsValid)
 
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
 
-    PCHAR arn1 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012:channel/a/0123456789012";
-    PCHAR arn2 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012:channel/ab/0123456789012";
-    PCHAR arn3 = (PCHAR)"arn:aws-cn:kinesisvideo:us-west-2:123456789012:channel/channel_name/0123456789012";
-    PCHAR arn4 = (PCHAR)"arn:aws-xyz:kinesisvideo:us-west-2:123456789012:channel/channel_name/0123456789012";
-    PCHAR arn5 = (PCHAR)"arn:aws:kinesisvideo:us-east-2:123456789012:channel/channel_name/0123456789012";
-    PCHAR arn6 = (PCHAR)"arn:aws:kinesisvideo:us-east-1:123456789012:channel/channel_name/0123456789012";
-    PCHAR arn7 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012:channel/channel_name/5738283847173";
-    PCHAR arn8 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012:channel/channel_name/1223445566666";
+    PCHAR arn1 = (PCHAR) "arn:aws:kinesisvideo:us-west-2:123456789012:channel/a/0123456789012";
+    PCHAR arn2 = (PCHAR) "arn:aws:kinesisvideo:us-west-2:123456789012:channel/ab/0123456789012";
+    PCHAR arn3 = (PCHAR) "arn:aws-cn:kinesisvideo:us-west-2:123456789012:channel/channel_name/0123456789012";
+    PCHAR arn4 = (PCHAR) "arn:aws-xyz:kinesisvideo:us-west-2:123456789012:channel/channel_name/0123456789012";
+    PCHAR arn5 = (PCHAR) "arn:aws:kinesisvideo:us-east-2:123456789012:channel/channel_name/0123456789012";
+    PCHAR arn6 = (PCHAR) "arn:aws:kinesisvideo:us-east-1:123456789012:channel/channel_name/0123456789012";
+    PCHAR arn7 = (PCHAR) "arn:aws:kinesisvideo:us-west-2:123456789012:channel/channel_name/5738283847173";
+    PCHAR arn8 = (PCHAR) "arn:aws:kinesisvideo:us-west-2:123456789012:channel/channel_name/1223445566666";
 
     channelInfo.pChannelArn = arn1;
     EXPECT_EQ(createValidateChannelInfo(&channelInfo, &pChannelInfo), STATUS_SUCCESS);
@@ -100,30 +99,30 @@ TEST_F(SignalingApiTest, testChannelArnsInValid)
     ChannelInfo channelInfo;
     MEMSET(&channelInfo, 0x00, SIZEOF(ChannelInfo));
 
-    PCHAR arn1 = (PCHAR)"arn:aws:kinesaisvideo:us-west-2:123456789012:channel/a/0123456789012";
-    PCHAR arn2 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012:chanel/ab/0123456789012";
-    PCHAR arn3 = (PCHAR)"arn:aw:kinesisvideo:us-west-2:123456789012:channel/channel_name/0123456789012";
-    PCHAR arn4 = (PCHAR)"arn:aws-xyz:kinesisvideo:us-west-2:12345679012:channel/channel_name/0123456789012";
-    PCHAR arn5 = (PCHAR)"arn:aws:kinesisvideo:us-east-2:123456789012:channel/channel_name/012345679012";
-    PCHAR arn6 = (PCHAR)"arn:aws:kinesisvideo:us-east-1:123456789012:channel//0123456789012";
-    PCHAR arn7 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012:channel/5738283847173";
-    PCHAR arn8 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012:channel1223445566666";
-    PCHAR arn9 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012channel/a/0123456789012";
-    PCHAR arn10 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012:channnnnnnnnel/ab/0123456789012";
-    PCHAR arn11 = (PCHAR)"arn:aws:kinesisvideo:123456789012:channel/channel_name/0123456789012";
-    PCHAR arn12 = (PCHAR)"arn:aws-xyz:kinesisvideo:::channel/channel_name/0123456789012";
-    PCHAR arn13 = (PCHAR)"arn:aws:012345679012";
-    PCHAR arn14 = (PCHAR)"this:is:a:test:arn:which:is:not:real";
-    PCHAR arn15 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012:/:/:///5738283847173";
-    PCHAR arn16 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:cool_channel_Name";
-    PCHAR arn17 = (PCHAR)"arn:aws:kinesisvideo::123456789012:channel/a/0123456789012";
-    PCHAR arn18 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012:channel/a/01234567890123";
-    PCHAR arn19 = (PCHAR)"ar:aws:kinesisvideo:us-west-2:123456789012:channel/a/0123456789012";
-    PCHAR arn20 = (PCHAR)"arn:aws:kinesisvideo::us-west-2:123456789012:channel/a/01234567890123";
-    PCHAR arn21 = (PCHAR)"arn:aws::kinesisvideo:us-west-2:123456789012:channel/a/01234567890123";
-    PCHAR arn22 = (PCHAR)"arn::aws::kinesisvideo:us-west-2:123456789012:channel/a/01234567890123";
-    PCHAR arn23 = (PCHAR)"arn:aws::kinesisvideo:us-west-2::123456789012:channel/a/01234567890123";
-    PCHAR arn24 = (PCHAR)"arn:aws:kinesisvideo:us-west-2:123456789012:channel/a/b/0123456789012";
+    PCHAR arn1 = (PCHAR) "arn:aws:kinesaisvideo:us-west-2:123456789012:channel/a/0123456789012";
+    PCHAR arn2 = (PCHAR) "arn:aws:kinesisvideo:us-west-2:123456789012:chanel/ab/0123456789012";
+    PCHAR arn3 = (PCHAR) "arn:aw:kinesisvideo:us-west-2:123456789012:channel/channel_name/0123456789012";
+    PCHAR arn4 = (PCHAR) "arn:aws-xyz:kinesisvideo:us-west-2:12345679012:channel/channel_name/0123456789012";
+    PCHAR arn5 = (PCHAR) "arn:aws:kinesisvideo:us-east-2:123456789012:channel/channel_name/012345679012";
+    PCHAR arn6 = (PCHAR) "arn:aws:kinesisvideo:us-east-1:123456789012:channel//0123456789012";
+    PCHAR arn7 = (PCHAR) "arn:aws:kinesisvideo:us-west-2:123456789012:channel/5738283847173";
+    PCHAR arn8 = (PCHAR) "arn:aws:kinesisvideo:us-west-2:123456789012:channel1223445566666";
+    PCHAR arn9 = (PCHAR) "arn:aws:kinesisvideo:us-west-2:123456789012channel/a/0123456789012";
+    PCHAR arn10 = (PCHAR) "arn:aws:kinesisvideo:us-west-2:123456789012:channnnnnnnnel/ab/0123456789012";
+    PCHAR arn11 = (PCHAR) "arn:aws:kinesisvideo:123456789012:channel/channel_name/0123456789012";
+    PCHAR arn12 = (PCHAR) "arn:aws-xyz:kinesisvideo:::channel/channel_name/0123456789012";
+    PCHAR arn13 = (PCHAR) "arn:aws:012345679012";
+    PCHAR arn14 = (PCHAR) "this:is:a:test:arn:which:is:not:real";
+    PCHAR arn15 = (PCHAR) "arn:aws:kinesisvideo:us-west-2:123456789012:/:/:///5738283847173";
+    PCHAR arn16 = (PCHAR) "arn:aws:kinesisvideo:us-west-2:cool_channel_Name";
+    PCHAR arn17 = (PCHAR) "arn:aws:kinesisvideo::123456789012:channel/a/0123456789012";
+    PCHAR arn18 = (PCHAR) "arn:aws:kinesisvideo:us-west-2:123456789012:channel/a/01234567890123";
+    PCHAR arn19 = (PCHAR) "ar:aws:kinesisvideo:us-west-2:123456789012:channel/a/0123456789012";
+    PCHAR arn20 = (PCHAR) "arn:aws:kinesisvideo::us-west-2:123456789012:channel/a/01234567890123";
+    PCHAR arn21 = (PCHAR) "arn:aws::kinesisvideo:us-west-2:123456789012:channel/a/01234567890123";
+    PCHAR arn22 = (PCHAR) "arn::aws::kinesisvideo:us-west-2:123456789012:channel/a/01234567890123";
+    PCHAR arn23 = (PCHAR) "arn:aws::kinesisvideo:us-west-2::123456789012:channel/a/01234567890123";
+    PCHAR arn24 = (PCHAR) "arn:aws:kinesisvideo:us-west-2:123456789012:channel/a/b/0123456789012";
 
     channelInfo.pChannelArn = arn1;
     EXPECT_EQ(STATUS_SIGNALING_INVALID_CHANNEL_ARN, createValidateChannelInfo(&channelInfo, &pChannelInfo));
@@ -208,6 +207,10 @@ TEST_F(SignalingApiTest, signalingSendMessageSync)
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(signalingMessage.payload != NULL);
+#endif
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -238,8 +241,12 @@ TEST_F(SignalingApiTest, signalingSendMessageSync)
     signalingMessage.correlationId[0] = '\0';
     EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
 
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
+
     deinitializeSignalingClient();
-    //wait for threads of threadpool to close
+    // wait for threads of threadpool to close
     THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
@@ -273,6 +280,10 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(signalingMessage.payload != NULL);
+#endif
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -293,10 +304,14 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
     signalingMessage.correlationId[0] = '\0';
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
 
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
+
     deinitializeSignalingClient();
 
     EXPECT_EQ(STATUS_SUCCESS, freeFileCredentialProvider(&pAwsCredentialProvider));
-    //wait for threads of threadpool to close
+    // wait for threads of threadpool to close
     THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
@@ -315,6 +330,10 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncAfterIdleIsNotDelayed)
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_VIEWER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    ASSERT_TRUE(signalingMessage.payload != NULL);
+#endif
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -334,6 +353,9 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncAfterIdleIsNotDelayed)
     // A send is a local socket write; it must not wait for the next keepalive to wake the service thread
     EXPECT_LT(worst, HUNDREDS_OF_NANOS_IN_A_SECOND);
 
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
     deinitializeSignalingClient();
 }
 
@@ -351,7 +373,7 @@ TEST_F(SignalingApiTest, signalingClientConnectSync)
     EXPECT_EQ(expectedStatus, signalingClientConnectSync(mSignalingClientHandle));
 
     deinitializeSignalingClient();
-    //wait for threads of threadpool to close
+    // wait for threads of threadpool to close
     THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
@@ -376,14 +398,22 @@ TEST_F(SignalingApiTest, signalingClientDeleteSync)
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(signalingMessage.payload != NULL);
+#endif
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
     signalingMessage.correlationId[0] = '\0';
     EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
 
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
+
     deinitializeSignalingClient();
-    //wait for threads of threadpool to close
+    // wait for threads of threadpool to close
     THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
@@ -405,7 +435,7 @@ TEST_F(SignalingApiTest, signalingClientGetIceConfigInfoCount)
     }
 
     deinitializeSignalingClient();
-    //wait for threads of threadpool to close
+    // wait for threads of threadpool to close
     THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
@@ -443,7 +473,7 @@ TEST_F(SignalingApiTest, signalingClientGetIceConfigInfo)
     }
 
     deinitializeSignalingClient();
-    //wait for threads of threadpool to close
+    // wait for threads of threadpool to close
     THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
@@ -464,7 +494,7 @@ TEST_F(SignalingApiTest, signalingClientGetCurrentState)
     EXPECT_EQ(expectedState, state);
 
     deinitializeSignalingClient();
-    //wait for threads of threadpool to close
+    // wait for threads of threadpool to close
     THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
@@ -477,14 +507,14 @@ TEST_F(SignalingApiTest, signalingClientGetStateString)
         EXPECT_EQ(STATUS_SUCCESS, signalingClientGetStateString((SIGNALING_CLIENT_STATE) i, &pStateStr));
         DLOGV("Iterating states \"%s\"", pStateStr);
     }
-    //wait for threads of threadpool to close
+    // wait for threads of threadpool to close
     THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
 TEST_F(SignalingApiTest, signalingClientDisconnectSync)
 {
     EXPECT_NE(STATUS_SUCCESS, signalingClientDisconnectSync(INVALID_SIGNALING_CLIENT_HANDLE_VALUE));
-    //wait for threads of threadpool to close
+    // wait for threads of threadpool to close
     THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
@@ -538,6 +568,10 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    EXPECT_TRUE(signalingMessage.payload != NULL);
+#endif
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -574,6 +608,10 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_NE(0, metrics.signalingClientStats.connectionDuration);
     EXPECT_NE(0, metrics.signalingClientStats.cpApiCallLatency);
     EXPECT_NE(0, metrics.signalingClientStats.dpApiCallLatency);
+
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
 
     deinitializeSignalingClient();
 }
@@ -627,8 +665,7 @@ TEST_F(SignalingApiTest, signalingClientCreateWithClientInfoVariations)
     // Set the version to 0 and the path to non-default
     mClientInfo.version = 0;
     mClientInfo.cacheFilePath = (PCHAR) "/some/test/path";
-    retStatus = createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks,
-                                          mTestCredentialProvider, &mSignalingClientHandle);
+    retStatus = createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks, mTestCredentialProvider, &mSignalingClientHandle);
     if (mAccessKeyIdSet) {
         EXPECT_EQ(STATUS_SUCCESS, retStatus);
 
@@ -651,8 +688,7 @@ TEST_F(SignalingApiTest, signalingClientCreateWithClientInfoVariations)
     // Set the version to 0 and the path to non-default
     mClientInfo.version = 0;
     mClientInfo.cacheFilePath = testPath;
-    retStatus = createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks,
-                                          mTestCredentialProvider, &mSignalingClientHandle);
+    retStatus = createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks, mTestCredentialProvider, &mSignalingClientHandle);
     if (mAccessKeyIdSet) {
         EXPECT_EQ(STATUS_SUCCESS, retStatus);
 
@@ -673,8 +709,7 @@ TEST_F(SignalingApiTest, signalingClientCreateWithClientInfoVariations)
     //
 
     mClientInfo.cacheFilePath = EMPTY_STRING;
-    retStatus = createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks,
-                                          mTestCredentialProvider, &mSignalingClientHandle);
+    retStatus = createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks, mTestCredentialProvider, &mSignalingClientHandle);
     if (mAccessKeyIdSet) {
         EXPECT_EQ(STATUS_SUCCESS, retStatus);
 
@@ -694,8 +729,7 @@ TEST_F(SignalingApiTest, signalingClientCreateWithClientInfoVariations)
     //
 
     mClientInfo.cacheFilePath = TEST_CACHE_FILE_PATH;
-    retStatus = createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks,
-                                          mTestCredentialProvider, &mSignalingClientHandle);
+    retStatus = createSignalingClientSync(&mClientInfo, &mChannelInfo, &mSignalingClientCallbacks, mTestCredentialProvider, &mSignalingClientHandle);
     if (mAccessKeyIdSet) {
         EXPECT_EQ(STATUS_SUCCESS, retStatus);
 
@@ -709,7 +743,7 @@ TEST_F(SignalingApiTest, signalingClientCreateWithClientInfoVariations)
 
     deinitializeSignalingClient();
     mClientInfo.cacheFilePath = NULL;
-    //wait for threads of threadpool to close
+    // wait for threads of threadpool to close
     THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
 
@@ -726,8 +760,7 @@ STATUS e2eMessageReceivedCallback(UINT64 customData, PReceivedSignalingMessage p
     UNUSED_PARAM(customData);
     MUTEX_LOCK(gReceivedPayload.lock);
     gReceivedPayload.payloadLen = pReceivedSignalingMessage->signalingMessage.payloadLen;
-    MEMCPY(gReceivedPayload.payload, pReceivedSignalingMessage->signalingMessage.payload,
-           pReceivedSignalingMessage->signalingMessage.payloadLen);
+    MEMCPY(gReceivedPayload.payload, pReceivedSignalingMessage->signalingMessage.payload, pReceivedSignalingMessage->signalingMessage.payloadLen);
     gReceivedPayload.payload[pReceivedSignalingMessage->signalingMessage.payloadLen] = '\0';
     MUTEX_UNLOCK(gReceivedPayload.lock);
     ATOMIC_STORE_BOOL(&gReceivedPayload.received, TRUE);
@@ -779,8 +812,8 @@ TEST_F(SignalingApiTest, verifyLargePayloadDeliveredWithoutTruncation)
 
     SIGNALING_CLIENT_HANDLE masterHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
     EXPECT_EQ(STATUS_SUCCESS,
-              createSignalingClientSync(&masterClientInfo, &masterChannelInfo, &masterCallbacks,
-                                        (PAwsCredentialProvider) mTestCredentialProvider, &masterHandle));
+              createSignalingClientSync(&masterClientInfo, &masterChannelInfo, &masterCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
+                                        &masterHandle));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientFetchSync(masterHandle));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(masterHandle));
 
@@ -818,8 +851,8 @@ TEST_F(SignalingApiTest, verifyLargePayloadDeliveredWithoutTruncation)
 
     SIGNALING_CLIENT_HANDLE viewerHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
     EXPECT_EQ(STATUS_SUCCESS,
-              createSignalingClientSync(&viewerClientInfo, &viewerChannelInfo, &viewerCallbacks,
-                                        (PAwsCredentialProvider) mTestCredentialProvider, &viewerHandle));
+              createSignalingClientSync(&viewerClientInfo, &viewerChannelInfo, &viewerCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
+                                        &viewerHandle));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientFetchSync(viewerHandle));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(viewerHandle));
 
@@ -834,6 +867,10 @@ TEST_F(SignalingApiTest, verifyLargePayloadDeliveredWithoutTruncation)
     message.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     message.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     STRCPY(message.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    message.payload = (PCHAR) MEMALLOC(testPayloadSize + 1);
+    ASSERT_TRUE(message.payload != NULL);
+#endif
 
     // Fill with a recognizable pattern: repeating "ABCDEFGH" so we can detect truncation/corruption
     for (UINT32 i = 0; i < testPayloadSize; i++) {
@@ -867,8 +904,7 @@ TEST_F(SignalingApiTest, verifyLargePayloadDeliveredWithoutTruncation)
 
     MUTEX_LOCK(gReceivedPayload.lock);
     UINT32 receivedLen = gReceivedPayload.payloadLen;
-    EXPECT_EQ(testPayloadSize, receivedLen)
-        << "Payload was truncated! Expected " << testPayloadSize << " bytes, got " << receivedLen;
+    EXPECT_EQ(testPayloadSize, receivedLen) << "Payload was truncated! Expected " << testPayloadSize << " bytes, got " << receivedLen;
 
     // Verify content integrity byte-by-byte
     BOOL contentMatch = TRUE;
@@ -880,16 +916,17 @@ TEST_F(SignalingApiTest, verifyLargePayloadDeliveredWithoutTruncation)
             break;
         }
     }
-    EXPECT_TRUE(contentMatch) << "Payload content mismatch at byte " << mismatchPos
-                              << ": expected '" << (char)('A' + (mismatchPos % 8))
+    EXPECT_TRUE(contentMatch) << "Payload content mismatch at byte " << mismatchPos << ": expected '" << (char) ('A' + (mismatchPos % 8))
                               << "', got '" << gReceivedPayload.payload[mismatchPos] << "'";
     MUTEX_UNLOCK(gReceivedPayload.lock);
 
-    printf("\n[E2E RESULT] Sent %u bytes, received %u bytes. %s\n\n",
-           testPayloadSize, receivedLen,
+    printf("\n[E2E RESULT] Sent %u bytes, received %u bytes. %s\n\n", testPayloadSize, receivedLen,
            (testPayloadSize == receivedLen && contentMatch) ? "NO TRUNCATION" : "TRUNCATION DETECTED");
 
     // Cleanup
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(message.payload);
+#endif
     MUTEX_FREE(gReceivedPayload.lock);
     deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(masterHandle), 0);
     freeSignalingClient(&viewerHandle);
@@ -914,6 +951,10 @@ TEST_F(SignalingApiTest, probeMaxSignalingMessageSize)
 
     SignalingMessage signalingMessage;
     MEMSET(&signalingMessage, 0x00, SIZEOF(SignalingMessage));
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    signalingMessage.payload = (PCHAR) MEMALLOC(MAX_SIGNALING_MESSAGE_LEN + 1);
+    ASSERT_TRUE(signalingMessage.payload != NULL);
+#endif
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
     // Use max-length peerClientId and correlationId to account for worst-case envelope
@@ -938,9 +979,8 @@ TEST_F(SignalingApiTest, probeMaxSignalingMessageSize)
 
     // Find the upper bound where sends start failing
     // Start by checking if MAX_SIGNALING_MESSAGE_LEN works
-    UINT32 testSize = MAX_SIGNALING_MESSAGE_LEN > MAX_SESSION_DESCRIPTION_INIT_SDP_LEN
-                          ? MAX_SESSION_DESCRIPTION_INIT_SDP_LEN
-                          : MAX_SIGNALING_MESSAGE_LEN;
+    UINT32 testSize =
+        MAX_SIGNALING_MESSAGE_LEN > MAX_SESSION_DESCRIPTION_INIT_SDP_LEN ? MAX_SESSION_DESCRIPTION_INIT_SDP_LEN : MAX_SIGNALING_MESSAGE_LEN;
 
     MEMSET(signalingMessage.payload, 'A', testSize);
     signalingMessage.payload[testSize] = '\0';
@@ -984,6 +1024,9 @@ TEST_F(SignalingApiTest, probeMaxSignalingMessageSize)
     printf("[PROBE RESULT] After base64, the on-wire size is approximately: %u bytes\n", maxAccepted * 4 / 3);
     printf("\n");
 
+#ifdef DYNAMIC_SIGNALING_PAYLOAD
+    SAFE_MEMFREE(signalingMessage.payload);
+#endif
     deinitializeSignalingClient();
     THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
 }
