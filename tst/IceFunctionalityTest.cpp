@@ -1325,6 +1325,104 @@ TEST_F(IceFunctionalityTest, srflxCandidateResolvedWhenStunReplyOutlastsRetransm
     EXPECT_EQ(STATUS_SUCCESS, freeConnectionListener(&pServerListener));
     EXPECT_EQ(STATUS_SUCCESS, freeSocketConnection(&pServerSocket));
 }
+
+// A Binding request needs MESSAGE-INTEGRITY and a USERNAME for the local ufrag (RFC 8445 section 7.3), checked in the order
+// of RFC 8489 section 9.1.3: a missing one is a 400 even with a wrong USERNAME or MESSAGE-INTEGRITY, a wrong USERNAME a 401
+// even with a wrong MESSAGE-INTEGRITY
+TEST_F(IceFunctionalityTest, IceAgentDeserializeBindingRequestUnitTest)
+{
+    struct {
+        PCHAR userName; // NULL: no USERNAME
+        PCHAR password; // NULL: no MESSAGE-INTEGRITY
+        STATUS expected;
+        UINT16 errorCode;
+    } cases[] = {
+        {(PCHAR) "local:remote", (PCHAR) "localPassword", STATUS_SUCCESS, 0},
+        {(PCHAR) "local:remote", NULL, STATUS_STUN_MESSAGE_INTEGRITY_NOT_FOUND, 400},
+        {NULL, (PCHAR) "localPassword", STATUS_STUN_USERNAME_NOT_FOUND, 400},
+        {NULL, (PCHAR) "otherPassword", STATUS_STUN_USERNAME_NOT_FOUND, 400},
+        {NULL, NULL, STATUS_STUN_MESSAGE_INTEGRITY_NOT_FOUND, 400},
+        {(PCHAR) "other:remote", (PCHAR) "localPassword", STATUS_STUN_USERNAME_MISMATCH, 401},
+        {(PCHAR) "localx:remote", (PCHAR) "localPassword", STATUS_STUN_USERNAME_MISMATCH, 401},
+        {(PCHAR) "loc:remote", (PCHAR) "localPassword", STATUS_STUN_USERNAME_MISMATCH, 401},
+        {(PCHAR) "local", (PCHAR) "localPassword", STATUS_STUN_USERNAME_MISMATCH, 401},
+        {(PCHAR) "other:remote", (PCHAR) "otherPassword", STATUS_STUN_USERNAME_MISMATCH, 401},
+        {(PCHAR) "local:remote", (PCHAR) "otherPassword", STATUS_STUN_MESSAGE_INTEGRITY_MISMATCH, 401},
+    };
+    BYTE transactionId[STUN_TRANSACTION_ID_LEN] = {0};
+    PBYTE pBuffer = NULL;
+    UINT32 size;
+    PStunPacket pRequest = NULL, pParsed = NULL;
+    STATUS status;
+
+    for (auto& c : cases) {
+        EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pRequest));
+        if (c.userName != NULL) {
+            EXPECT_EQ(STATUS_SUCCESS, appendStunUsernameAttribute(pRequest, c.userName));
+        }
+        EXPECT_EQ(
+            STATUS_SUCCESS,
+            serializeStunPacket(pRequest, (PBYTE) c.password, c.password == NULL ? 0 : STRLEN(c.password), c.password != NULL, TRUE, NULL, &size));
+        ASSERT_TRUE(NULL != (pBuffer = (PBYTE) MEMALLOC(size)));
+        EXPECT_EQ(
+            STATUS_SUCCESS,
+            serializeStunPacket(pRequest, (PBYTE) c.password, c.password == NULL ? 0 : STRLEN(c.password), c.password != NULL, TRUE, pBuffer, &size));
+
+        status = iceAgentDeserializeBindingRequest(pBuffer, size, (PCHAR) "local", (PCHAR) "localPassword", &pParsed);
+        EXPECT_EQ(c.expected, status) << (c.userName == NULL ? "no USERNAME" : c.userName) << ", "
+                                      << (c.password == NULL ? "no MESSAGE-INTEGRITY" : c.password);
+        EXPECT_EQ(c.errorCode, iceAgentGetBindingErrorCode(status));
+        EXPECT_EQ(STATUS_SUCCEEDED(status), pParsed != NULL);
+
+        // A malformed request gets no response
+        if (c.expected == STATUS_SUCCESS) {
+            EXPECT_EQ(0,
+                      iceAgentGetBindingErrorCode(
+                          iceAgentDeserializeBindingRequest(pBuffer, size - 1, (PCHAR) "local", (PCHAR) "localPassword", &pParsed)));
+        }
+
+        freeStunPacket(&pParsed);
+        freeStunPacket(&pRequest);
+        SAFE_MEMFREE(pBuffer);
+    }
+}
+
+// The error response carries ERROR-CODE and the request's transaction ID, and no MESSAGE-INTEGRITY or USERNAME (RFC 8489
+// section 9.1.3)
+TEST_F(IceFunctionalityTest, IceAgentCreateBindingErrorResponseUnitTest)
+{
+    BYTE transactionId[STUN_TRANSACTION_ID_LEN] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+    BYTE buffer[STUN_PACKET_ALLOCATION_SIZE];
+    UINT32 size;
+    UINT16 errorCodes[] = {STUN_ERROR_BAD_REQUEST, STUN_ERROR_UNAUTHORIZED};
+    PStunPacket pResponse = NULL, pParsed = NULL;
+    PStunAttributeHeader pAttribute = NULL;
+
+    EXPECT_EQ(STATUS_INVALID_ARG, iceAgentCreateBindingErrorResponse(transactionId, 403, &pResponse));
+    EXPECT_TRUE(pResponse == NULL);
+
+    for (UINT16 errorCode : errorCodes) {
+        EXPECT_EQ(STATUS_SUCCESS, iceAgentCreateBindingErrorResponse(transactionId, errorCode, &pResponse));
+        // As iceAgentSendBindingErrorResponse() sends it: no password, so no MESSAGE-INTEGRITY, and FINGERPRINT
+        size = SIZEOF(buffer);
+        EXPECT_EQ(STATUS_SUCCESS, iceUtilsPackageStunPacket(pResponse, NULL, 0, buffer, &size));
+        EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pResponse));
+
+        EXPECT_EQ(STATUS_SUCCESS, deserializeStunPacket(buffer, size, NULL, 0, &pParsed));
+        EXPECT_EQ(STUN_PACKET_TYPE_BINDING_RESPONSE_ERROR, pParsed->header.stunMessageType);
+        EXPECT_EQ(0, MEMCMP(transactionId, pParsed->header.transactionId, STUN_TRANSACTION_ID_LEN));
+        EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pParsed, STUN_ATTRIBUTE_TYPE_ERROR_CODE, &pAttribute));
+        ASSERT_TRUE(pAttribute != NULL);
+        EXPECT_EQ(errorCode, ((PStunAttributeErrorCode) pAttribute)->errorCode);
+        EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pParsed, STUN_ATTRIBUTE_TYPE_FINGERPRINT, &pAttribute));
+        EXPECT_TRUE(pAttribute != NULL);
+        EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pParsed, STUN_ATTRIBUTE_TYPE_MESSAGE_INTEGRITY, &pAttribute));
+        EXPECT_TRUE(pAttribute == NULL);
+        EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pParsed, STUN_ATTRIBUTE_TYPE_USERNAME, &pAttribute));
+        EXPECT_TRUE(pAttribute == NULL);
+        EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pParsed));
+    }
+}
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis
