@@ -1091,7 +1091,7 @@ TEST_F(RtcpFunctionalityTest, senderReportIsEncryptedUnderSrtpSessionLock)
     gTrackedSrtpSessionLock = pKvsPeerConnection->pSrtpSessionLock;
     gTrackedIceAgentLock = pKvsPeerConnection->pIceAgent->lock;
 
-    // The state DTLS completion and the first writeFrame() leave behind, written under the lock they are read with.
+    // The state DTLS completion and the first writeFrame() leave behind. allocateSrtp() and writeFrame() write it under pSrtpSessionLock.
     firstFrameTime = GETTIME();
     MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
     EXPECT_EQ(STATUS_SUCCESS, initSrtpSession(key, key, KVS_SRTP_PROFILE_AES128_CM_HMAC_SHA1_80, &pKvsPeerConnection->pSrtpSession));
