@@ -59,6 +59,34 @@ CleanUp:
     return retStatus;
 }
 
+BOOL dtlsPacketIsClientHello(PBYTE pData, UINT32 dataLen)
+{
+    // Handshake record (22) of a DTLS version (0xFExx) in epoch 0, holding a ClientHello (1) from its first fragment (offset
+    // 0). The OpenSSL backend, for one, sends its ClientHello as two records in one datagram.
+    return pData != NULL && dataLen >= DTLS_CLIENT_HELLO_MIN_LEN && pData[0] == 22 && pData[1] == 0xFE && pData[3] == 0 && pData[4] == 0 &&
+        pData[13] == 1 && pData[19] == 0 && pData[20] == 0 && pData[21] == 0;
+}
+
+STATUS dtlsSessionKeepEarlyClientHello(PDtlsSession pDtlsSession, PBYTE pData, UINT32 dataLen)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PBYTE pCopy = NULL;
+
+    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
+    CHK(dtlsPacketIsClientHello(pData, dataLen), STATUS_SSL_PACKET_BEFORE_DTLS_READY);
+    CHK_ERR(NULL != (pCopy = (PBYTE) MEMALLOC(dataLen)), STATUS_NOT_ENOUGH_MEMORY,
+            "Not enough memory to keep an early ClientHello; the client's retransmission will be answered");
+    MEMCPY(pCopy, pData, dataLen);
+    // The latest one only: the client retransmits the same ClientHello
+    SAFE_MEMFREE(pDtlsSession->pEarlyClientHello);
+    pDtlsSession->pEarlyClientHello = pCopy;
+    pDtlsSession->earlyClientHelloLen = dataLen;
+    DLOGD("Keeping a ClientHello that arrived before the DTLS session started");
+
+CleanUp:
+    return retStatus;
+}
+
 STATUS dtlsSessionChangeState(PDtlsSession pDtlsSession, RTC_DTLS_TRANSPORT_STATE newState)
 {
     ENTERS();

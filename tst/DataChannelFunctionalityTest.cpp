@@ -1551,6 +1551,126 @@ TEST_F(DataChannelFunctionalityTest, inbandDataChannel_OnTakenStreamIdWithoutOnD
     freePeerConnection(&answerPc);
 }
 
+// dataChannelSend() sends an unordered in-band channel's messages ordered until the peer's DATA_CHANNEL_ACK
+// (RFC 8832 section 6). The answerer takes both possible stream ids with negotiated channels and has no
+// onDataChannel, so the offerer's OPEN is never acknowledged. The packets with two messages reach the answerer in
+// reverse order: sent ordered, the second message waits for the first. An unordered negotiated channel on the same
+// connection, which never waits for an ACK, shows that the swap does reorder unordered messages.
+TEST_F(DataChannelFunctionalityTest, inbandDataChannel_UnorderedSendsOrderedUntilDataChannelAck)
+{
+    // More than half of an SCTP packet, so the two messages never share one packet
+    static const UINT32 MESSAGE_LEN = SCTP_MTU / 2 + 1;
+    // DTLS record content type application_data (RFC 6347 section 4.1), which carries SCTP
+    static const BYTE DTLS_CONTENT_TYPE_APPLICATION_DATA = 23;
+    // Static so the capture-less lambda (converted to a function pointer) can reach them
+    static std::mutex swapLock{};
+    static BOOL swapNextMessages = FALSE;
+    static UINT32 swappedCount = 0;
+    static std::vector<BYTE> heldRecord;
+    static IceInboundPacketFunc iceInboundPacketCallback = nullptr;
+    RtcConfiguration configuration;
+    PRtcPeerConnection offerPc = NULL, answerPc = NULL;
+    PRtcDataChannel pInband = NULL, pOfferUnordered = NULL, pDc = NULL;
+    RtcDataChannelInit init;
+    NegotiatedCounters inband;
+    ReceivedMessages inbandReceived, unorderedReceived;
+    const std::string first(MESSAGE_LEN, '1'), second(MESSAGE_LEN, '2');
+    UINT32 i;
+
+    MEMSET(&configuration, 0x00, SIZEOF(RtcConfiguration));
+    EXPECT_EQ(createPeerConnection(&configuration, &offerPc), STATUS_SUCCESS);
+    EXPECT_EQ(createPeerConnection(&configuration, &answerPc), STATUS_SUCCESS);
+
+    // Hold back the next inbound DTLS record that is large enough to hold a test message, and pass it on right after
+    // the following one. Nothing is lost, so the test does not depend on an SCTP retransmission.
+    swapNextMessages = FALSE;
+    swappedCount = 0;
+    heldRecord.clear();
+    iceInboundPacketCallback = ((PKvsPeerConnection) answerPc)->pIceAgent->iceAgentCallbacks.inboundPacketFn;
+    const auto swapNextTestMessages = [](UINT64 customData, PBYTE pBuffer, UINT32 bufferLen) {
+        std::vector<BYTE> released;
+        {
+            std::lock_guard<std::mutex> lock{swapLock};
+            if (swapNextMessages && bufferLen > MESSAGE_LEN && pBuffer[0] == DTLS_CONTENT_TYPE_APPLICATION_DATA) {
+                if (heldRecord.empty()) {
+                    heldRecord.assign(pBuffer, pBuffer + bufferLen);
+                    return;
+                }
+                released.swap(heldRecord);
+                swapNextMessages = FALSE;
+                swappedCount++;
+            }
+        }
+        iceInboundPacketCallback(customData, pBuffer, bufferLen);
+        if (!released.empty()) {
+            iceInboundPacketCallback(customData, released.data(), (UINT32) released.size());
+        }
+    };
+    ((PKvsPeerConnection) answerPc)->pIceAgent->iceAgentCallbacks.inboundPacketFn = swapNextTestMessages;
+
+    // The offerer's in-band channel gets stream id 0 or 1, whichever DTLS role it has
+    initNegotiated(&init, 0);
+    EXPECT_EQ(createDataChannel(answerPc, (PCHAR) "taken-0", &init, &pDc), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelOnMessage(pDc, (UINT64) &inbandReceived, recordMessage), STATUS_SUCCESS);
+    initNegotiated(&init, 1);
+    EXPECT_EQ(createDataChannel(answerPc, (PCHAR) "taken-1", &init, &pDc), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelOnMessage(pDc, (UINT64) &inbandReceived, recordMessage), STATUS_SUCCESS);
+
+    initNegotiated(&init, 50);
+    init.ordered = FALSE;
+    EXPECT_EQ(createDataChannel(offerPc, (PCHAR) "unordered", &init, &pOfferUnordered), STATUS_SUCCESS);
+    EXPECT_EQ(createDataChannel(answerPc, (PCHAR) "unordered", &init, &pDc), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelOnMessage(pDc, (UINT64) &unorderedReceived, recordMessage), STATUS_SUCCESS);
+
+    MEMSET(&init, 0x00, SIZEOF(init));
+    init.ordered = FALSE;
+    NULLABLE_SET_EMPTY(init.maxRetransmits);
+    NULLABLE_SET_EMPTY(init.maxPacketLifeTime);
+    NULLABLE_SET_EMPTY(init.id);
+    EXPECT_EQ(createDataChannel(offerPc, (PCHAR) "inband", &init, &pInband), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelOnOpen(pInband, (UINT64) &inband, negotiatedOnOpen), STATUS_SUCCESS);
+
+    EXPECT_EQ(connectTwoPeers(offerPc, answerPc), TRUE);
+    for (i = 0; i <= 100 && ATOMIC_LOAD(&inband.open) != 1; i++) {
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    EXPECT_EQ(1, ATOMIC_LOAD(&inband.open));
+    EXPECT_TRUE(ATOMIC_LOAD_BOOL(&((PKvsDataChannel) pInband)->awaitingDcepAck));
+
+    // Unordered: the second message arrives first
+    {
+        std::lock_guard<std::mutex> lock{swapLock};
+        swapNextMessages = TRUE;
+    }
+    EXPECT_EQ(dataChannelSend(pOfferUnordered, FALSE, (PBYTE) first.c_str(), MESSAGE_LEN), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelSend(pOfferUnordered, FALSE, (PBYTE) second.c_str(), MESSAGE_LEN), STATUS_SUCCESS);
+    for (i = 0; i <= 100 && receivedCount(&unorderedReceived) != 2; i++) {
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+
+    // In-band before its DATA_CHANNEL_ACK: the messages arrive in order
+    {
+        std::lock_guard<std::mutex> lock{swapLock};
+        EXPECT_EQ(1, swappedCount);
+        swapNextMessages = TRUE;
+    }
+    EXPECT_EQ(dataChannelSend(pInband, FALSE, (PBYTE) first.c_str(), MESSAGE_LEN), STATUS_SUCCESS);
+    EXPECT_EQ(dataChannelSend(pInband, FALSE, (PBYTE) second.c_str(), MESSAGE_LEN), STATUS_SUCCESS);
+    for (i = 0; i <= 100 && receivedCount(&inbandReceived) != 2; i++) {
+        THREAD_SLEEP(100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+    EXPECT_TRUE(ATOMIC_LOAD_BOOL(&((PKvsDataChannel) pInband)->awaitingDcepAck));
+
+    closePeerConnection(offerPc);
+    closePeerConnection(answerPc);
+    freePeerConnection(&offerPc);
+    freePeerConnection(&answerPc);
+
+    EXPECT_EQ(2, swappedCount);
+    EXPECT_EQ((std::vector<std::string>{second, first}), unorderedReceived.messages);
+    EXPECT_EQ((std::vector<std::string>{first, second}), inbandReceived.messages);
+}
+
 // An in-band channel whose DATA_CHANNEL_OPEN cannot be sent is closed, and onOpen never fires for it; the other
 // channels open. One parity of the SCTP_MAX_STREAMS stream ids holds SCTP_MAX_STREAMS / 2 in-band channels, so
 // the ones past it get an id the association does not have, and their OPEN fails.

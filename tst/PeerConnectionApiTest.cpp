@@ -523,23 +523,39 @@ TEST_F(PeerConnectionApiTest, onSetStunServerIpCopiesCompleteAddress)
     DualKvsIpAddresses ipAddresses;
     const BYTE ipv4[IPV4_ADDRESS_LENGTH] = {203, 0, 113, 7};
     const BYTE ipv6[IPV6_ADDRESS_LENGTH] = {0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x42};
-    BOOL createdHere = FALSE, resolverDone = FALSE;
+    BOOL resolverDone = FALSE;
     UINT32 i;
 
+    // Releases the hold taken by getWebRtcClientInstance(), and frees the instance if this test created it, on every
+    // exit path. Without it a failed ASSERT below would leak the reference and TearDown's cleanupWebRtcClientInstance()
+    // would spin forever waiting for the refcount.
+    struct ClientInstanceHold {
+        PWebRtcClientContext ctx;
+        BOOL createdHere;
+        ~ClientInstanceHold()
+        {
+            if (ctx != NULL) {
+                releaseHoldOnInstance(ctx);
+            }
+            if (createdHere) {
+                EXPECT_EQ(STATUS_SUCCESS, cleanupWebRtcClientInstance());
+            }
+        }
+    };
+
     // The client instance is only created by initKvsWebRtc() when ENABLE_KVS_THREADPOOL is on
-    pWebRtcClientContext = getWebRtcClientInstance();
+    ClientInstanceHold hold{getWebRtcClientInstance(), FALSE};
+    pWebRtcClientContext = hold.ctx;
     if (!ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized)) {
-        releaseHoldOnInstance(pWebRtcClientContext);
         ASSERT_EQ(STATUS_SUCCESS, createWebRtcClientInstance());
-        createdHere = TRUE;
-        pWebRtcClientContext = getWebRtcClientInstance();
+        hold.createdHere = TRUE;
     }
     ASSERT_TRUE(ATOMIC_LOAD_BOOL(&pWebRtcClientContext->isContextInitialized));
     pStunIpAddrCtx = pWebRtcClientContext->pStunIpAddrCtx;
     ASSERT_TRUE(pStunIpAddrCtx != NULL);
 
     // Wait for the startup STUN resolution thread; it sets startTime when done
-    for (i = 0; i < 1000 && !createdHere && !resolverDone; i++) {
+    for (i = 0; i < 1000 && !hold.createdHere && !resolverDone; i++) {
         MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
         resolverDone = (pStunIpAddrCtx->startTime != 0);
         MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
@@ -581,11 +597,6 @@ TEST_F(PeerConnectionApiTest, onSetStunServerIpCopiesCompleteAddress)
     MUTEX_LOCK(pWebRtcClientContext->stunCtxlock);
     *pStunIpAddrCtx = savedCtx;
     MUTEX_UNLOCK(pWebRtcClientContext->stunCtxlock);
-    releaseHoldOnInstance(pWebRtcClientContext);
-
-    if (createdHere) {
-        EXPECT_EQ(STATUS_SUCCESS, cleanupWebRtcClientInstance());
-    }
 }
 
 } // namespace webrtcclient

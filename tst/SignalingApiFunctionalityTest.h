@@ -42,6 +42,9 @@ class SignalingApiFunctionalityTest : public WebRtcClientTestBase {
     UINT32 getEndpointFail;
     UINT32 getEndpointRecover;
     UINT32 getEndpointCount;
+
+    // Read by getCurrentTimeJumpingAhead()
+    volatile BOOL deviceClockJumpedAhead;
 };
 
 STATUS masterMessageReceived(UINT64, PReceivedSignalingMessage);
@@ -51,6 +54,7 @@ STATUS viewerMessageReceived(UINT64, PReceivedSignalingMessage);
 STATUS getIceConfigPreHook(UINT64);
 UINT64 getCurrentTimeFastClock(UINT64);
 UINT64 getCurrentTimeSlowClock(UINT64);
+UINT64 getCurrentTimeJumpingAhead(UINT64);
 STATUS connectPreHook(UINT64);
 STATUS describePreHook(UINT64);
 STATUS describeMediaPreHook(UINT64);
