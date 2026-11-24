@@ -3,7 +3,12 @@ function(build_dependency lib_name)
   if (WIN32 OR NOT PARALLEL_BUILD)
     set(PARALLEL_BUILD "")
   else()
-    set(PARALLEL_BUILD "--parallel")
+    cmake_host_system_information(RESULT PARALLEL_BUILD_JOBS QUERY NUMBER_OF_LOGICAL_CORES)
+    if (PARALLEL_BUILD_JOBS GREATER 0)
+      set(PARALLEL_BUILD "--parallel" "${PARALLEL_BUILD_JOBS}")
+    else()
+      set(PARALLEL_BUILD "--parallel")
+    endif()
   endif()
   set(supported_libs
       gperftools
@@ -82,6 +87,9 @@ function(build_dependency lib_name)
     WORKING_DIRECTORY ${OPEN_SRC_INSTALL_PREFIX}/lib${lib_name})
   if(result)
     message(FATAL_ERROR "CMake step for lib${lib_name} failed: ${result}")
+  endif()
+  if(PARALLEL_BUILD_JOBS)
+    message(STATUS "Building dependency ${lib_name} with ${PARALLEL_BUILD_JOBS} parallel jobs")
   endif()
   execute_process(
     COMMAND ${CMAKE_COMMAND} --build . ${PARALLEL_BUILD}
