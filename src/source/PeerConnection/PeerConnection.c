@@ -884,7 +884,7 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
     ENTERS();
     UNUSED_PARAM(timerId);
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL ready = FALSE;
+    BOOL ready = FALSE, locked = FALSE;
     UINT64 ntpTime, rtpTime, delay;
     UINT32 packetCount, octetCount, packetLen, allocSize, ssrc;
     PBYTE rawPacket = NULL;
@@ -932,8 +932,16 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
         putUnalignedInt32BigEndian(rawPacket + 16, rtpTime);
         putUnalignedInt32BigEndian(rawPacket + 20, packetCount);
         putUnalignedInt32BigEndian(rawPacket + 24, octetCount);
+
+        // A libsrtp session is not thread safe, and every stream it clones from the outbound template shares that
+        // template's RTCP auth and cipher contexts. writeFrame(), the retransmitter and transceiverSendPictureLoss()
+        // encrypt under pSrtpSessionLock on other threads, so the sender report has to be encrypted under it too.
+        MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
+        locked = TRUE;
         CHK_STATUS(encryptRtcpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, (PINT32) &packetLen));
         CHK_STATUS(iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, packetLen));
+        MUTEX_UNLOCK(pKvsPeerConnection->pSrtpSessionLock);
+        locked = FALSE;
     }
 
     delay = 100 + (RAND() % 200);
@@ -944,6 +952,9 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
                                   &pKvsRtpTransceiver->rtcpReportsTimerId));
 
 CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pKvsPeerConnection->pSrtpSessionLock);
+    }
     CHK_LOG_ERR(retStatus);
     SAFE_MEMFREE(rawPacket);
 
