@@ -11,6 +11,12 @@ on:
       - develop
       - main
 
+# Cancel an in-progress PR run when a newer commit is pushed to the same PR.
+# Push runs get a unique group (run_id), so they are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   AWS_KVS_LOG_LEVEL: 7
   DEBIAN_FRONTEND: noninteractive
@@ -85,6 +91,7 @@ jobs:
         config:
           - name: Shared OpenSSL
             cmake_flags: "-DBUILD_TEST=ON -DPARALLEL_BUILD=ON"
+            cmake_version: '3.x'
           - name: Static OpenSSL
             cmake_flags: "-DBUILD_TEST=ON -DBUILD_STATIC_LIBS=ON -DPARALLEL_BUILD=ON"
           - name: Shared MbedTLS
@@ -151,7 +158,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
-          cmake-version: '3.x'
+          cmake-version: ${{ matrix.config.cmake_version || '4.x' }}
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -321,7 +328,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
-          cmake-version: '3.x'
+          cmake-version: '4.x'
 
       - name: Build repository
         run: |
@@ -357,6 +364,7 @@ jobs:
         build-configuration:
           - name: curl
             cmake-args: "-DUSE_OPENSSL=ON -DUSE_MBEDTLS=OFF"
+            cmake-version: '3.x'
           - name: lws
             cmake-args: "-DUSE_OPENSSL=OFF -DUSE_MBEDTLS=ON"
           - name: openssl3
@@ -430,7 +438,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
-          cmake-version: '3.x'
+          cmake-version: ${{ matrix.build-configuration.cmake-version || '4.x' }}
 
       # AWS-LC refuses to configure a FIPS build without Go and Perl. The bare
       # ubuntu images carry neither. Non-FIPS AWS-LC builds only lose the
@@ -515,7 +523,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
-          cmake-version: '3.x'
+          cmake-version: '4.x'
 
       - name: Build repository
         shell: bash
@@ -585,7 +593,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
-          cmake-version: '3.x'
+          cmake-version: '4.x'
 
       - name: Build repository
         shell: bash
@@ -647,7 +655,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
-          cmake-version: '3.x'
+          cmake-version: '4.x'
       - name: Build repository
         shell: powershell
         run: |
@@ -695,7 +703,8 @@ jobs:
 
   # ----------------------------------------------------
 
-  stats-calc-control-check:
+  dynamic-allocs-check:
+    needs: cleanup-old-resources
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -711,6 +720,41 @@ jobs:
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
           cmake-version: '3.x'
+
+      - name: Build repository
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DBUILD_TEST=ON -DPREFER_DYNAMIC_ALLOCS=ON -DENABLE_AWS_SDK_IN_TESTS=OFF
+          make -j
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Run tests
+        working-directory: ./build
+        run: |
+          ./tst/webrtc_client_test
+
+  stats-calc-control-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2.2.0
+        with:
+          cmake-version: '4.x'
 
       - name: Build repository
         run: |
@@ -738,7 +782,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
-          cmake-version: '3.x'
+          cmake-version: '4.x'
 
       - name: Reject below minimum (KVS_SIGNALING_MESSAGE_LEN=5000)
         run: |
@@ -828,7 +872,7 @@ jobs:
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2.2.0
         with:
-          cmake-version: '3.x'
+          cmake-version: '4.x'
 
       - name: Check StackSize with Invalid Value
         run: |

@@ -4,6 +4,11 @@ project(libusrsctp-download NONE)
 
 include(ExternalProject)
 
+# Set by build_dependency() when CMake 4 needs it
+if(DEFINED CMAKE_POLICY_VERSION_MINIMUM)
+  set(POLICY_VERSION_ARGS -DCMAKE_POLICY_VERSION_MINIMUM=${CMAKE_POLICY_VERSION_MINIMUM})
+endif()
+
 ExternalProject_Add(project_libusrsctp
     GIT_REPOSITORY    https://github.com/sctplab/usrsctp.git
     GIT_TAG           1ade45cbadfd19298d2c47dc538962d4425ad2dd
@@ -11,6 +16,7 @@ ExternalProject_Add(project_libusrsctp
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
     CMAKE_ARGS        -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}
                       -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                      ${POLICY_VERSION_ARGS}
                       "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -fPIC"
                       -Dsctp_werror=0
                       -Dsctp_build_programs=0
