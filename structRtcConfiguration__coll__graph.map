@@ -1,9 +1,9 @@
 <map id="RtcConfiguration" name="RtcConfiguration">
-<area shape="rect" id="Node000001" title="The Configuration defines a set of parameters to configure how the peer&#45;to&#45;peer communication establi..." alt="" coords="171,487,316,559"/>
-<area shape="rect" id="Node000002" href="$structRtcIceServer.html" title="RtcIceServer is used to describe the STUN and TURN servers that can be used by the ICE Agent to estab..." alt="" coords="5,151,98,268"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="62,265,83,338,96,376,113,412,138,447,170,477,165,477,134,450,108,415,91,378,78,340,61,271"/>
-<area shape="rect" id="Node000003" href="$structKvsRtcConfiguration.html" title=" " alt="" coords="123,5,365,414"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="245,411,246,471,241,468,242,415"/>
-<area shape="rect" id="Node000004" href="$structRtcCertificate.html" title="Specifies the certificate and the private key used by the certificate. The Certificates are in the fo..." alt="" coords="388,140,512,279"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="455,277,454,324,445,373,429,421,402,464,370,490,333,508,331,503,367,486,398,461,424,419,440,372,448,324,452,281"/>
+<area shape="rect" id="Node000001" title="The Configuration defines a set of parameters to configure how the peer&#45;to&#45;peer communication establi..." alt="" coords="171,425,316,497"/>
+<area shape="rect" id="Node000002" href="$structRtcIceServer.html" title="RtcIceServer is used to describe the STUN and TURN servers that can be used by the ICE Agent to estab..." alt="" coords="5,120,98,237"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="66,234,86,293,113,351,130,377,153,399,172,415,167,415,150,403,126,380,108,353,81,295,65,239"/>
+<area shape="rect" id="Node000003" href="$structKvsRtcConfiguration.html" title=" " alt="" coords="123,5,365,352"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="245,350,246,409,241,407,242,354"/>
+<area shape="rect" id="Node000004" href="$structRtcCertificate.html" title="Specifies the certificate and the private key used by the certificate. The Certificates are in the fo..." alt="" coords="388,109,512,248"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="453,246,449,287,440,328,425,367,402,403,370,428,333,446,331,440,367,424,398,399,420,365,435,326,444,286,449,250"/>
 </map>
