@@ -1190,45 +1190,269 @@ static void parseTwcc(const std::string& hex, const uint32_t expectedReceived, c
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
 }
 
+// Expected counts are decoded by hand from the packet chunks (draft-holmer-rmcat-transport-wide-cc-extensions-01
+// section 3.1.4): run-length chunk 0b0SSRRRRRRRRRRRRR, one-bit status vector 0b10 + 14 symbols,
+// two-bit status vector 0b11 + 7 symbols, first symbol in the highest bits.
 TEST_F(RtcpFunctionalityTest, twccParsePacketTest)
 {
     parseTwcc("", 0, 0);
     parseTwcc("4487A9E754B3E6FD01810001147A75A62001C801", 1, 0);
-    parseTwcc("4487A9E754B3E6FD12740004148566AAC1402C00", 1, 3);
-    parseTwcc("4487A9E754B3E6FD04FA0006147CAF88C554B80400000001", 1, 5);
+    parseTwcc("4487A9E754B3E6FD12740004148566AAC1402C00", 2, 2);
+    parseTwcc("4487A9E754B3E6FD04FA0006147CAF88C554B80400000001", 5, 1);
     parseTwcc("4487A9E754B3E6FD00000002147972002002BC00", 2, 0);
-    parseTwcc("4487A9E754B3E6FD06D40004147DDE41D6403C00FFEC0001", 2, 2);
-    parseTwcc("4487A9E754B3E6FD04FA0006147CB089D95420FF9804000000000003", 2, 4);
+    parseTwcc("4487A9E754B3E6FD06D40004147DDE41D6403C00FFEC0001", 4, 0);
+    parseTwcc("4487A9E754B3E6FD04FA0006147CB089D95420FF9804000000000003", 6, 0);
     parseTwcc("4487A9E754B3E6FD000C000314797A052003E40004000003", 3, 0);
-    parseTwcc("4487A9E754B3E6FD12740006148568ABD6648800FDA4000268000002", 3, 3);
-    parseTwcc("4487A9E754B3E6FD1431000C14868C5A803CEC0028000002", 3, 9);
+    parseTwcc("4487A9E754B3E6FD12740006148568ABD6648800FDA4000268000002", 6, 0);
+    parseTwcc("4487A9E754B3E6FD1431000C14868C5A803CEC0028000002", 4, 8);
     parseTwcc("4487A9E754B3E6FD00020004147974012004140000000002", 4, 0);
-    parseTwcc("4487A9E754B3E6FD12670008148560A8D66520016C00FD780402902800040002", 4, 4);
+    parseTwcc("4487A9E754B3E6FD12670008148560A8D66520016C00FD780402902800040002", 8, 0);
     parseTwcc("4487A9E754B3E6FD012E0005147A45872005900000000401", 5, 0);
     parseTwcc("4487A9E754B3E6FD01F20006147AC6D22006600004000000", 6, 0);
     parseTwcc("4487A9E754B3E6FD06690007147D9111200748000000040000000003", 7, 0);
     parseTwcc("4487A9E754B3E6FD020C0008147AD3D8200898000000000008000002", 8, 0);
     parseTwcc("4487A9E754B3E6FD07C20009147E7B8B200990000800000000000001", 9, 0);
     parseTwcc("4487A9E754B3E6FD0177000A147A74A5200A70000000000000040000", 10, 0);
-    parseTwcc("4487A9E754B3E6FD1431000C14868E5B2008E540DC00000000000000FE10002800000003", 10, 2);
+    parseTwcc("4487A9E754B3E6FD1431000C14868E5B2008E540DC00000000000000FE10002800000003", 12, 0);
     parseTwcc("4487A9E754B3E6FD03C6000B147BEB6F200B3000380400000400040000000003", 11, 0);
     parseTwcc("4487A9E754B3E6FD02AB000D147B3013200D4800000004000000000000000401", 13, 0);
     parseTwcc("4487A9E754B3E6FD01BA000E147AA4C3200EA400000000000000000000000400", 14, 0);
     parseTwcc("4487A9E754B3E6FD0610000F147D62F3200FCC0000000000000400000000100000000003", 15, 0);
     parseTwcc("4487A9E754B3E6FD08120010147EAAA92010F80000000000000004040000000000000002", 16, 0);
     parseTwcc("4487A9E754B3E6FD05B80011147D33D52011F40014000000000000000000040000000001", 17, 0);
-    parseTwcc("4487A9E754B3E6FD04DA001E147CAC86D556D999D6652009D40000000000EF840001040001DC0004D4000400031400", 17, 13);
+    parseTwcc("4487A9E754B3E6FD04DA001E147CAC86D556D999D6652009D40000000000EF840001040001DC0004D4000400031400", 30, 0);
     parseTwcc("4487A9E754B3E6FD11EA0012148514932012B40000000000000400000000000000000000", 18, 0);
     parseTwcc("4487A9E754B3E6FD09BC0013147FC45D201348000400000000000000000000000000000000000003", 19, 0);
     parseTwcc("4487A9E754B3E6FD05720014147D05B7201414000000000000100000000000040000000400000002", 20, 0);
     parseTwcc("4487A9E754B3E6FD03820015147BBD5A201554000000000000000000000000000000000400009801", 21, 0);
-    parseTwcc("4487A9E754B3E6FD114B001B1484B87381FF200DE41000000000000000000000000000000000140000000002", 21, 6);
+    parseTwcc("4487A9E754B3E6FD114B001B1484B87381FF200DE41000000000000000000000000000000000140000000002", 22, 5);
     parseTwcc("4487A9E754B3E6FD0B6700161480DD11201678000000000000000000040000000000000000000000", 22, 0);
     parseTwcc("4487A9E754B3E6FD07790017147E4E6F2017D400000000000400000000000000000004000400080000000003", 23, 0);
-    parseTwcc("4487A9E754B3E6FD114B001D1484BB74D5592014E4008400000000FD60100000000000000000000000000000000014", 24, 5);
+    parseTwcc("4487A9E754B3E6FD114B001D1484BB74D5592014E4008400000000FD60100000000000000000000000000000000014", 29, 0);
     parseTwcc("4487A9E754B3E6FD1230002914854FA22027E4002400000000000400000000000000040000000000040000001C0000", 41, 0);
-    parseTwcc("4487A9E754B3E6FD04B60036147CAA852024C002D999D6407800000000000000000000000000040000000000000000", 43, 11);
-    parseTwcc("4487A9E754B3E6FD040200E4147C9F81202700B7E6649000000000000000000004000000000008000018000000001", 43, 185);
+    parseTwcc("4487A9E754B3E6FD04B60036147CAA852024C002D999D6407800000000000000000000000000040000000000000000", 48, 6);
+    parseTwcc("4487A9E754B3E6FD040200E4147C9F81202700B7E6649000000000000000000004000000000008000018000000001", 45, 183);
+}
+
+// TWCC feedback reference time is in 64 ms units, recv deltas are in 250 us units.
+#define TWCC_TEST_REF_TIME_UNIT_HNS   (64 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define TWCC_TEST_RECV_DELTA_UNIT_HNS (250 * HUNDREDS_OF_NANOS_IN_A_MICROSECOND)
+
+// Feeds a hand-built TWCC feedback payload (exact length, no implicit zero padding) through
+// parseRtcpTwccPacket after registering every sequence number of the report as sent, and
+// returns the reconstructed remote arrival time (hundreds of nanos) of seq baseSeqNum + i in
+// pRemoteTimes[i]. A packet that the parser never visits keeps the TWCC_PACKET_LOST_TIME that
+// twccManagerOnPacketSent assigns, so a misaligned decode shows up as an unexpected lost packet.
+static void parseTwccHandBuilt(PBYTE payload, UINT32 payloadLen, PUINT64 pRemoteTimes, UINT32 remoteTimesLen)
+{
+    PRtcPeerConnection pRtcPeerConnection = nullptr;
+    PKvsPeerConnection pKvsPeerConnection;
+    RtcpPacket rtcpPacket{};
+    RtpPacket rtpPacket{};
+    RtcConfiguration config{};
+    UINT64 value;
+    UINT16 twsn;
+    UINT32 i, extpayload;
+    UINT16 baseSeqNum = getUnalignedInt16BigEndian(payload + 8);
+    UINT16 pktCount = TWCC_PACKET_STATUS_COUNT(payload);
+
+    ASSERT_EQ(pktCount, remoteTimesLen);
+
+    rtcpPacket.header.packetLength = payloadLen / 4;
+    rtcpPacket.payload = payload;
+    rtcpPacket.payloadLength = payloadLen;
+
+    EXPECT_EQ(STATUS_SUCCESS, createPeerConnection(&config, &pRtcPeerConnection));
+    pKvsPeerConnection = reinterpret_cast<PKvsPeerConnection>(pRtcPeerConnection);
+    EXPECT_EQ(STATUS_SUCCESS, peerConnectionOnSenderBandwidthEstimation(pRtcPeerConnection, 0, testBwHandler));
+
+    for (i = 0; i < pktCount; i++) {
+        rtpPacket.header.extension = TRUE;
+        rtpPacket.header.extensionProfile = TWCC_EXT_PROFILE;
+        rtpPacket.header.extensionLength = SIZEOF(UINT32);
+        twsn = (UINT16) (baseSeqNum + i);
+        extpayload = TWCC_PAYLOAD(parseExtId(TWCC_EXT_URL), twsn);
+        rtpPacket.header.extensionPayload = (PBYTE) &extpayload;
+        EXPECT_EQ(STATUS_SUCCESS, twccManagerOnPacketSent(pKvsPeerConnection, &rtpPacket));
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, parseRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection->pTwccManager));
+
+    for (i = 0; i < pktCount; i++) {
+        pRemoteTimes[i] = TWCC_PACKET_UNITIALIZED_TIME;
+        if (STATUS_SUCCEEDED(hashTableGet(pKvsPeerConnection->pTwccManager->pTwccRtpPktInfosHashTable, (UINT16) (baseSeqNum + i), &value))) {
+            pRemoteTimes[i] = ((PTwccRtpPacketInfo) value)->remoteTimeKvs;
+        }
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
+}
+
+// draft-holmer-rmcat-transport-wide-cc-extensions-01 section 3.1.4, two-bit status vector:
+//   bit 15 = 1 (status vector), bit 14 = 1 (two-bit symbols), bits 13..0 = seven symbols, first
+//   symbol in the highest bits. 00 = not received, 01 = received small delta (1 byte follows),
+//   10 = received large or negative delta (2 bytes follow).
+TEST_F(RtcpFunctionalityTest, twccStatusVectorTwoBitMixedDeltas)
+{
+    // Chunk 0xE440 = 1 1 10 01 00 01 00 00 00
+    //   seq 100: 10 large delta  0xFF38 = -200 * 250 us = -50 ms
+    //   seq 101: 01 small delta  0x28   =  +40 * 250 us = +10 ms
+    //   seq 102: 00 not received
+    //   seq 103: 01 small delta  0x04   =   +4 * 250 us =  +1 ms
+    //   three unused symbols (status count is 4)
+    // 16 header + 2 chunk + 4 delta bytes = 22, padded to a 4-byte boundary with 2 zero bytes.
+    BYTE payload[] = {
+        0x44, 0x87, 0xA9, 0xE7, // sender SSRC
+        0x54, 0xB3, 0xE6, 0xFD, // media SSRC
+        0x00, 0x64,             // base sequence number 100
+        0x00, 0x04,             // packet status count 4
+        0x00, 0x01, 0x00,       // reference time 0x000100 = 256 * 64 ms
+        0x01,                   // feedback packet count
+        0xE4, 0x40,             // two-bit status vector chunk
+        0xFF, 0x38,             // large delta for seq 100
+        0x28,                   // small delta for seq 101
+        0x04,                   // small delta for seq 103
+        0x00, 0x00,             // padding
+    };
+    UINT64 remoteTimes[4];
+    UINT64 referenceTime = 256 * TWCC_TEST_REF_TIME_UNIT_HNS;
+
+    parseTwccHandBuilt(payload, SIZEOF(payload), remoteTimes, ARRAY_SIZE(remoteTimes));
+
+    EXPECT_EQ(referenceTime - 200 * TWCC_TEST_RECV_DELTA_UNIT_HNS, remoteTimes[0]); // ref - 50 ms
+    EXPECT_EQ(referenceTime - 160 * TWCC_TEST_RECV_DELTA_UNIT_HNS, remoteTimes[1]); // ref - 40 ms
+    EXPECT_EQ(TWCC_PACKET_LOST_TIME, remoteTimes[2]);
+    EXPECT_EQ(referenceTime - 156 * TWCC_TEST_RECV_DELTA_UNIT_HNS, remoteTimes[3]); // ref - 39 ms
+}
+
+// One-bit status vector: bit 15 = 1, bit 14 = 0, bits 13..0 = fourteen symbols, symbol i in bit
+// 13 - i. 1 = received (one delta byte follows), 0 = not received.
+TEST_F(RtcpFunctionalityTest, twccStatusVectorOneBitFirstAndLastSymbol)
+{
+    // Chunk 0xBF3F = 1 0 111111 00 111111
+    //   seq 200..205 received, seq 206 and 207 not received, seq 208..213 received.
+    //   Twelve one-byte deltas: 0x10 (4 ms) for seq 200, then 0x04 (1 ms) for each later received packet.
+    // 16 header + 2 chunk + 12 delta bytes = 30, padded with 2 zero bytes.
+    BYTE payload[] = {
+        0x44, 0x87, 0xA9, 0xE7,                                     // sender SSRC
+        0x54, 0xB3, 0xE6, 0xFD,                                     // media SSRC
+        0x00, 0xC8,                                                 // base sequence number 200
+        0x00, 0x0E,                                                 // packet status count 14
+        0x00, 0x02, 0x00,                                           // reference time 0x000200 = 512 * 64 ms
+        0x02,                                                       // feedback packet count
+        0xBF, 0x3F,                                                 // one-bit status vector chunk
+        0x10, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, // deltas for seq 200..205 and 208..211
+        0x04, 0x04,                                                 // deltas for seq 212 and 213
+        0x00, 0x00,                                                 // padding
+    };
+    UINT64 remoteTimes[14];
+    UINT64 referenceTime = 512 * TWCC_TEST_REF_TIME_UNIT_HNS;
+    UINT32 i, received = 0;
+
+    parseTwccHandBuilt(payload, SIZEOF(payload), remoteTimes, ARRAY_SIZE(remoteTimes));
+
+    for (i = 0; i < ARRAY_SIZE(remoteTimes); i++) {
+        if (remoteTimes[i] != TWCC_PACKET_LOST_TIME) {
+            received++;
+        }
+    }
+    EXPECT_EQ(12u, received);
+    EXPECT_EQ(referenceTime + 16 * TWCC_TEST_RECV_DELTA_UNIT_HNS, remoteTimes[0]); // seq 200: ref + 4 ms
+    EXPECT_EQ(referenceTime + 36 * TWCC_TEST_RECV_DELTA_UNIT_HNS, remoteTimes[5]); // seq 205: ref + 4 ms + 5 * 1 ms
+    EXPECT_EQ(TWCC_PACKET_LOST_TIME, remoteTimes[6]);
+    EXPECT_EQ(TWCC_PACKET_LOST_TIME, remoteTimes[7]);
+    EXPECT_EQ(referenceTime + 40 * TWCC_TEST_RECV_DELTA_UNIT_HNS, remoteTimes[8]);  // seq 208: ref + 4 ms + 6 * 1 ms
+    EXPECT_EQ(referenceTime + 60 * TWCC_TEST_RECV_DELTA_UNIT_HNS, remoteTimes[13]); // seq 213: ref + 4 ms + 11 * 1 ms
+}
+
+// Two-bit status vector with every symbol 01: all seven packets received with a small delta.
+TEST_F(RtcpFunctionalityTest, twccStatusVectorTwoBitAllSmallDelta)
+{
+    // Chunk 0xD555 = 1 1 01 01 01 01 01 01 01, seven one-byte deltas 1..7 (250 us .. 1750 us).
+    // 16 header + 2 chunk + 7 delta bytes = 25, padded with 3 zero bytes.
+    BYTE payload[] = {
+        0x44, 0x87, 0xA9, 0xE7,                   // sender SSRC
+        0x54, 0xB3, 0xE6, 0xFD,                   // media SSRC
+        0x01, 0x2C,                               // base sequence number 300
+        0x00, 0x07,                               // packet status count 7
+        0x00, 0x00, 0x0A,                         // reference time 0x00000A = 10 * 64 ms
+        0x03,                                     // feedback packet count
+        0xD5, 0x55,                               // two-bit status vector chunk
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, // small deltas for seq 300..306
+        0x00, 0x00, 0x00,                         // padding
+    };
+    UINT64 remoteTimes[7];
+    UINT64 referenceTime = 10 * TWCC_TEST_REF_TIME_UNIT_HNS;
+    UINT32 i;
+
+    parseTwccHandBuilt(payload, SIZEOF(payload), remoteTimes, ARRAY_SIZE(remoteTimes));
+
+    for (i = 0; i < ARRAY_SIZE(remoteTimes); i++) {
+        EXPECT_NE(TWCC_PACKET_LOST_TIME, remoteTimes[i]) << "seq " << (300 + i);
+    }
+    EXPECT_EQ(referenceTime + 1 * TWCC_TEST_RECV_DELTA_UNIT_HNS, remoteTimes[0]);  // seq 300: ref + 250 us
+    EXPECT_EQ(referenceTime + 28 * TWCC_TEST_RECV_DELTA_UNIT_HNS, remoteTimes[6]); // seq 306: ref + (1+2+...+7) * 250 us = ref + 7 ms
+}
+
+// Two-bit status vector whose first symbol is a large delta followed by six small deltas. This is
+// the chunk pattern reported in #2024; on the previous decode its symbols read as 2, 2, 0, 0, 0, 0, 0.
+TEST_F(RtcpFunctionalityTest, twccStatusVectorTwoBitLargeThenSmallDeltas)
+{
+    // Chunk 0xE555 = 1 1 10 01 01 01 01 01 01
+    //   seq 500: 10 large delta 0x0102 = 258 * 250 us = 64.5 ms
+    //   seq 501..506: 01 small delta 0x08 = 8 * 250 us = 2 ms each
+    // 16 header + 2 chunk + 2 + 6 delta bytes = 26, padded with 2 zero bytes.
+    BYTE payload[] = {
+        0x44, 0x87, 0xA9, 0xE7,             // sender SSRC
+        0x54, 0xB3, 0xE6, 0xFD,             // media SSRC
+        0x01, 0xF4,                         // base sequence number 500
+        0x00, 0x07,                         // packet status count 7
+        0x00, 0x00, 0x14,                   // reference time 0x000014 = 20 * 64 ms
+        0x05,                               // feedback packet count
+        0xE5, 0x55,                         // two-bit status vector chunk
+        0x01, 0x02,                         // large delta for seq 500
+        0x08, 0x08, 0x08, 0x08, 0x08, 0x08, // small deltas for seq 501..506
+        0x00, 0x00,                         // padding
+    };
+    UINT64 remoteTimes[7];
+    UINT64 referenceTime = 20 * TWCC_TEST_REF_TIME_UNIT_HNS;
+    UINT32 i;
+
+    parseTwccHandBuilt(payload, SIZEOF(payload), remoteTimes, ARRAY_SIZE(remoteTimes));
+
+    for (i = 0; i < ARRAY_SIZE(remoteTimes); i++) {
+        EXPECT_NE(TWCC_PACKET_LOST_TIME, remoteTimes[i]) << "seq " << (500 + i);
+    }
+    EXPECT_EQ(referenceTime + 258 * TWCC_TEST_RECV_DELTA_UNIT_HNS, remoteTimes[0]); // seq 500: ref + 64.5 ms
+    EXPECT_EQ(referenceTime + 266 * TWCC_TEST_RECV_DELTA_UNIT_HNS, remoteTimes[1]); // seq 501: ref + 66.5 ms
+    EXPECT_EQ(referenceTime + 306 * TWCC_TEST_RECV_DELTA_UNIT_HNS, remoteTimes[6]); // seq 506: ref + 64.5 ms + 6 * 2 ms
+}
+
+// Run-length chunk: bit 15 = 0, bits 14..13 = symbol, bits 12..0 = run length. Unchanged by the
+// status vector decode, included to pin the behavior of the other chunk type.
+TEST_F(RtcpFunctionalityTest, twccRunLengthChunkSmallDelta)
+{
+    // Chunk 0x2003 = 0 01 0000000000011: three packets received with a small delta, 0x04 (1 ms) each.
+    // 16 header + 2 chunk + 3 delta bytes = 21, padded with 3 zero bytes.
+    BYTE payload[] = {
+        0x44, 0x87, 0xA9, 0xE7, // sender SSRC
+        0x54, 0xB3, 0xE6, 0xFD, // media SSRC
+        0x01, 0x90,             // base sequence number 400
+        0x00, 0x03,             // packet status count 3
+        0x00, 0x00, 0x05,       // reference time 0x000005 = 5 * 64 ms
+        0x04,                   // feedback packet count
+        0x20, 0x03,             // run-length chunk
+        0x04, 0x04, 0x04,       // small deltas for seq 400..402
+        0x00, 0x00, 0x00,       // padding
+    };
+    UINT64 remoteTimes[3];
+    UINT64 referenceTime = 5 * TWCC_TEST_REF_TIME_UNIT_HNS;
+
+    parseTwccHandBuilt(payload, SIZEOF(payload), remoteTimes, ARRAY_SIZE(remoteTimes));
+
+    EXPECT_EQ(referenceTime + 4 * TWCC_TEST_RECV_DELTA_UNIT_HNS, remoteTimes[0]);  // seq 400: ref + 1 ms
+    EXPECT_EQ(referenceTime + 8 * TWCC_TEST_RECV_DELTA_UNIT_HNS, remoteTimes[1]);  // seq 401: ref + 2 ms
+    EXPECT_EQ(referenceTime + 12 * TWCC_TEST_RECV_DELTA_UNIT_HNS, remoteTimes[2]); // seq 402: ref + 3 ms
 }
 
 TEST_F(RtcpFunctionalityTest, twccManagerOnPacketSentReusedSeqNum)
@@ -1844,7 +2068,8 @@ TEST_F(RtcpFunctionalityTest, onTwccFeedbackReceived_excludesLostPackets)
     TwccCallbackCtx ctx{};
     ctx.delayTrendToReturn = -0.1;
 
-    // TWCC packet with 1 received, 3 lost (4 total)
+    // TWCC packet with base seq 4724, status count 4, two-bit status vector chunk 0xC140 = 1 1 00 00 01 01 ...:
+    // seq 4724 and 4725 not received, seq 4726 and 4727 received (2 received, 2 lost)
     const std::string hex = "4487A9E754B3E6FD12740004148566AAC1402C00";
     hexDecode(const_cast<PCHAR>(hex.data()), hex.size(), payload, &payloadLen);
 
@@ -1874,11 +2099,14 @@ TEST_F(RtcpFunctionalityTest, onTwccFeedbackReceived_excludesLostPackets)
 
     EXPECT_EQ(STATUS_SUCCESS, onRtcpTwccPacket(&rtcpPacket, pKvsPeerConnection));
 
-    // Only received packets should be in the list (1 received, 3 lost)
+    // Only received packets should be in the list (2 received, 2 lost)
     EXPECT_EQ(1u, ctx.callCount);
-    EXPECT_EQ(1u, ctx.feedbackCount);
+    EXPECT_EQ(2u, ctx.feedbackCount);
     ASSERT_NE(nullptr, ctx.pCapturedList);
+    EXPECT_EQ(4726, ctx.pCapturedList[0].twccSeqNum);
     EXPECT_NE(TWCC_PACKET_LOST_TIME, ctx.pCapturedList[0].recvTime);
+    EXPECT_EQ(4727, ctx.pCapturedList[1].twccSeqNum);
+    EXPECT_NE(TWCC_PACKET_LOST_TIME, ctx.pCapturedList[1].recvTime);
 
     SAFE_MEMFREE(ctx.pCapturedList);
     EXPECT_EQ(STATUS_SUCCESS, freePeerConnection(&pRtcPeerConnection));
