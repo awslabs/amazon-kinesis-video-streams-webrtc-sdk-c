@@ -127,7 +127,7 @@ $env:Path += ';C:\webrtc\open-source\bin;C:\tools\pthreads-w32-2-9-1-release\Pre
 These would be applicable if the SDK is being linked with system dependencies instead of building from source by the SDK.
 `libmbedtls`: `>= 2.25.0` (default: 3.6.x — see mbedTLS build matrix below)
 `libopenssl`: `= 1.1.1x` or `>= 3.0.0`
-`aws-lc`: `>= 1.36.0` (only when `-DUSE_AWS_LC=ON`; default built from source is `v5.9.0`)
+`aws-lc`: `>= 1.36.0` (only when `-DUSE_AWS_LC=ON`; default built from source is `v5.15.0`)
 `libsrtp2` : `<= 2.5.0`
 `libusrsctp` : `<= 0.9.5.0`
 `libwebsockets` : `>= 4.2.0`
@@ -204,7 +204,7 @@ You can pass the following options to `cmake ..`:
 * `-DUSE_OPENSSL3` -- Build and link against OpenSSL 3.x (git tag `openssl-3.5.7`) instead of the default 1.1.1t (`OpenSSL_1_1_1t`). OFF by default. When linking against a system OpenSSL that is already >= 3.0, this flag is auto-enabled. The mbedTLS path is unaffected. See [Building against OpenSSL 3.x](#building-against-openssl-3x) for usage.
 * `-DUSE_AWS_LC` -- Build and link against [AWS-LC](https://github.com/aws/aws-lc) instead of OpenSSL or mbedTLS. OFF by default. Supersedes `-DUSE_OPENSSL` (you do not need to pass `-DUSE_OPENSSL=OFF`). Adds post-quantum TLS 1.3 key exchange via the `X25519MLKEM768` hybrid group. See [docs/AWS_LC.md](docs/AWS_LC.md).
 * `-DUSE_AWS_LC_FIPS` -- Build AWS-LC in FIPS 140-3 mode. OFF by default. Implies `-DUSE_AWS_LC=ON`. Requires Go >= 1.20 and Perl; static builds are Linux-only. See [docs/AWS_LC.md](docs/AWS_LC.md).
-* `-DAWS_LC_GIT_TAG` -- Override the AWS-LC git tag. Defaults to `v5.9.0`, or `AWS-LC-FIPS-3.1.0` when `-DUSE_AWS_LC_FIPS=ON`.
+* `-DAWS_LC_GIT_TAG` -- Override the AWS-LC git tag. Defaults to `v5.15.0`, or `AWS-LC-FIPS-3.1.0` when `-DUSE_AWS_LC_FIPS=ON`.
 * `-DBUILD_USRSCTP` -- Build libusrsctp from source. Defaults to value of BUILD_DEPENDENCIES.
 * `-DBUILD_OPENSSL_PLATFORM` -- If building OpenSSL what is the target platform
 * `-DBUILD_LIBSRTP_HOST_PLATFORM` -- If building LibSRTP what is the current platform

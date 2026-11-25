@@ -45,7 +45,7 @@ make -j$(nproc)
 |---|---|---|
 | `USE_AWS_LC` | `OFF` | Use AWS-LC as the crypto backend. Replaces the default OpenSSL. |
 | `USE_AWS_LC_FIPS` | `OFF` | Build AWS-LC in FIPS mode. Also turns on `USE_AWS_LC`. |
-| `AWS_LC_GIT_TAG` | *(empty)* | Build a different AWS-LC tag. The default is `v5.9.0`, or `AWS-LC-FIPS-3.1.0` in FIPS mode. |
+| `AWS_LC_GIT_TAG` | *(empty)* | Build a different AWS-LC tag. The default is `v5.15.0`, or `AWS-LC-FIPS-3.1.0` in FIPS mode. |
 
 AWS-LC cannot be combined with `-DUSE_MBEDTLS=ON` or `-DUSE_OPENSSL3=ON`. FIPS mode cannot be combined with `-DADDRESS_SANITIZER=ON` or `-DMEMORY_SANITIZER=ON`.
 
