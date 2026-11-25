@@ -1,113 +1,114 @@
 <map id="socketSendDataWithRetry" name="socketSendDataWithRetry">
-<area shape="rect" id="Node000001" title=" " alt="" coords="2584,399,2775,427"/>
-<area shape="rect" id="Node000002" href="$SocketConnection_8c.html#ac4d31fbe803d38b419b2fb967b07999a" title=" " alt="" coords="2323,391,2536,435"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="2565,413,2536,416,2536,410,2570,413"/>
-<area shape="rect" id="Node000010" href="$SocketConnection_8c.html#abbba4e0cf8c625191e47489fca04d9b7" title=" " alt="" coords="2330,502,2529,530"/>
-<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="2632,433,2466,504,2465,499,2626,434"/>
-<area shape="rect" id="Node000055" href="$SocketConnection_8c.html#a51db4f494654a352dc80cb5094cd5061" title=" " alt="" coords="2327,321,2532,366"/>
-<area shape="poly" id="edge60_Node000001_Node000055" title=" " alt="" coords="2610,394,2512,369,2513,364,2615,395"/>
-<area shape="rect" id="Node000003" href="$SocketConnection_8c.html#a493cba86ce7d7349e0d34f8f259628ab" title=" " alt="" coords="2074,321,2275,366"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="2328,386,2259,369,2260,364,2333,386"/>
-<area shape="rect" id="Node000004" href="$TurnConnectionStateMachine_8c.html#a76754fb751b1533ba3789bc800d679ea" title=" " alt="" coords="1579,5,1775,50"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="2143,308,2091,252,2024,192,1964,149,1915,119,1794,65,1763,53,1763,48,1796,60,1917,114,1967,144,2028,188,2094,249,2148,310"/>
-<area shape="rect" id="Node000005" href="$IceAgent_8c.html#a583c41d4f3e61dc23128f306f586d089" title=" " alt="" coords="1287,241,1492,286"/>
-<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="2056,351,1952,356,1826,353,1692,343,1559,321,1534,312,1510,301,1475,289,1475,284,1512,296,1536,307,1560,316,1692,337,1826,348,1952,351,2061,351"/>
-<area shape="rect" id="Node000006" href="$IceAgent_8c.html#a29472fae79b73dc335a310925493391c" title=" " alt="" coords="441,231,667,275"/>
-<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="1270,264,668,257,668,252,1274,260"/>
-<area shape="rect" id="Node000007" href="$IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="220,299,393,327"/>
-<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="442,281,368,301,365,296,446,278"/>
-<area shape="rect" id="Node000008" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="14,272,163,300"/>
-<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="202,302,165,298,162,293,207,299"/>
-<area shape="rect" id="Node000009" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,324,172,352"/>
-<area shape="poly" id="edge8_Node000007_Node000009" title=" " alt="" coords="202,327,174,331,170,326,206,323"/>
-<area shape="rect" id="Node000011" href="$IceUtils_8c.html#abffd2f385a91e5840b12912df46777d4" title=" " alt="" coords="2108,575,2241,603"/>
-<area shape="poly" id="edge10_Node000010_Node000011" title=" " alt="" coords="2366,534,2226,577,2225,572,2361,535"/>
-<area shape="rect" id="Node000012" href="$IceAgent_8c.html#a23515725a875e5a1b44e90f2b36f2dd2" title=" " alt="" coords="1858,575,2010,603"/>
-<area shape="poly" id="edge11_Node000011_Node000012" title=" " alt="" coords="2090,589,2011,592,2011,586,2095,589"/>
-<area shape="rect" id="Node000023" href="$IceUtils_8c.html#a163008ed55dd5e46e25737a89d5beabb" title=" " alt="" coords="1848,202,2021,230"/>
-<area shape="poly" id="edge25_Node000011_Node000023" title=" " alt="" coords="2154,562,1943,232,1946,228,2159,563"/>
-<area shape="rect" id="Node000054" href="$TurnConnection_8c.html#a0d996d98abef81b2f6c54be480ef7ea1" title=" " alt="" coords="1843,627,2026,655"/>
-<area shape="poly" id="edge58_Node000011_Node000054" title=" " alt="" coords="2126,607,2027,633,2026,627,2120,608"/>
-<area shape="rect" id="Node000013" href="$PeerConnection_8c.html#a8623356d515aabe66d493018cc61c1f3" title=" " alt="" coords="733,551,902,579"/>
-<area shape="poly" id="edge12_Node000012_Node000013" title=" " alt="" coords="1840,585,1795,586,1287,575,902,569,902,563,1287,569,1795,581,1845,585"/>
-<area shape="rect" id="Node000015" href="$Retransmitter_8c.html#a117dafbb1f1b86ced15a1fcfc49713fa" title=" " alt="" coords="1310,603,1469,631"/>
-<area shape="poly" id="edge14_Node000012_Node000015" title=" " alt="" coords="1840,594,1469,616,1469,610,1845,593"/>
-<area shape="rect" id="Node000018" href="$PeerConnection_8c.html#a4afea8c5d470548d2889fb8d3218ba0f" title=" " alt="" coords="1601,779,1753,807"/>
-<area shape="poly" id="edge18_Node000012_Node000018" title=" " alt="" coords="1850,610,1845,618,1832,633,1825,647,1820,678,1816,711,1809,727,1797,744,1768,766,1735,781,1734,776,1765,762,1793,740,1805,725,1811,709,1815,678,1820,646,1827,630,1841,614,1846,612"/>
-<area shape="rect" id="Node000020" href="$group__PublicMemberFunctions.html#ga698a849d76431e464b43cf51413d658d" title="Send a Picture Loss Indication (PLI) to ask the remote sender for a new keyframe." alt="" coords="1577,499,1777,527"/>
-<area shape="poly" id="edge21_Node000012_Node000020" title=" " alt="" coords="1872,570,1794,548,1732,530,1733,525,1795,542,1878,570"/>
-<area shape="rect" id="Node000021" href="$group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver." alt="" coords="1629,703,1725,731"/>
-<area shape="poly" id="edge22_Node000012_Node000021" title=" " alt="" coords="1853,609,1844,618,1829,636,1821,654,1814,674,1796,692,1762,709,1726,717,1725,712,1760,704,1793,688,1809,671,1816,652,1824,633,1841,614,1848,611"/>
-<area shape="rect" id="Node000022" href="$Rtp_8c.html#a6f38cb81e122dec46ea50feb5edb652a" title=" " alt="" coords="1618,651,1736,679"/>
-<area shape="poly" id="edge23_Node000012_Node000022" title=" " alt="" coords="1871,607,1844,618,1795,636,1735,653,1734,648,1794,630,1842,613,1865,608"/>
-<area shape="rect" id="Node000014" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="472,576,636,604"/>
-<area shape="poly" id="edge13_Node000013_Node000014" title=" " alt="" coords="715,575,637,585,636,580,720,574"/>
-<area shape="rect" id="Node000016" href="$Rtcp_8c.html#aaaf444db910596fed5abe9a8518b68f1" title=" " alt="" coords="1040,603,1148,631"/>
-<area shape="poly" id="edge15_Node000015_Node000016" title=" " alt="" coords="1292,617,1149,620,1148,614,1297,617"/>
-<area shape="rect" id="Node000017" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="752,603,883,631"/>
-<area shape="poly" id="edge16_Node000016_Node000017" title=" " alt="" coords="1021,617,884,620,883,614,1026,617"/>
-<area shape="poly" id="edge17_Node000017_Node000014" title=" " alt="" coords="734,609,637,601,637,596,739,608"/>
-<area shape="poly" id="edge20_Node000018_Node000018" title=" " alt="" coords="1720,763,1706,760,1677,758,1650,760,1635,765,1631,770,1638,780,1633,778,1626,770,1632,760,1649,755,1677,753,1707,755,1725,764"/>
-<area shape="rect" id="Node000019" href="$group__PublicMemberFunctions.html#ga5b89dc2e301e35f30330c57bc1361dcb" title="Create a new RtcRtpTransceiver and add it to the set of transceivers." alt="" coords="1330,779,1449,807"/>
-<area shape="poly" id="edge19_Node000018_Node000019" title=" " alt="" coords="1583,793,1450,796,1450,790,1588,793"/>
-<area shape="poly" id="edge24_Node000022_Node000015" title=" " alt="" coords="1600,653,1469,633,1469,628,1605,653"/>
-<area shape="poly" id="edge32_Node000023_Node000004" title=" " alt="" coords="1910,189,1850,119,1818,86,1793,65,1772,53,1772,48,1796,60,1822,82,1854,116,1915,190"/>
-<area shape="rect" id="Node000024" href="$TurnConnection_8c.html#ad50e5f6b533c62c8b5297a6bf3615f29" title=" " alt="" coords="1292,130,1487,158"/>
-<area shape="poly" id="edge26_Node000023_Node000024" title=" " alt="" coords="1886,195,1843,180,1794,166,1714,153,1633,146,1488,143,1487,137,1634,141,1715,148,1795,161,1845,175,1892,195"/>
-<area shape="rect" id="Node000028" href="$TurnConnectionStateMachine_8c.html#a5b2eedee33db4144771d00b2dd6a9731" title=" " alt="" coords="1578,227,1776,255"/>
-<area shape="poly" id="edge30_Node000023_Node000028" title=" " alt="" coords="1829,226,1777,234,1776,229,1835,225"/>
-<area shape="rect" id="Node000029" href="$TurnConnectionStateMachine_8c.html#aaf58bb70347bbbac288dc7ef68e2b06a" title=" " alt="" coords="1583,279,1771,307"/>
-<area shape="poly" id="edge31_Node000023_Node000029" title=" " alt="" coords="1886,235,1795,269,1748,281,1747,276,1794,264,1881,236"/>
-<area shape="rect" id="Node000030" href="$NatBehaviorDiscovery_8c.html#a89054697a9e46dac0a358733b9da16d6" title=" " alt="" coords="1616,74,1738,102"/>
-<area shape="poly" id="edge33_Node000023_Node000030" title=" " alt="" coords="1902,191,1854,157,1794,122,1738,103,1738,97,1796,117,1857,153,1907,192"/>
-<area shape="rect" id="Node000034" href="$IceAgent_8c.html#aff64bc1649d0c5e3390f6ad14eb9aa1e" title=" " alt="" coords="1586,380,1768,408"/>
-<area shape="poly" id="edge38_Node000023_Node000034" title=" " alt="" coords="1905,238,1796,321,1702,382,1700,377,1793,316,1900,240"/>
-<area shape="rect" id="Node000053" href="$TurnConnection_8c.html#a46459e6ac66501521c9160b1fcdf6d84" title=" " alt="" coords="1559,175,1795,203"/>
-<area shape="poly" id="edge56_Node000023_Node000053" title=" " alt="" coords="1829,205,1795,204,1795,199,1835,205"/>
-<area shape="rect" id="Node000025" href="$TurnConnectionStateMachine_8c.html#a3a4bf18f3e297368e56db4694cd845bc" title=" " alt="" coords="986,130,1202,158"/>
-<area shape="poly" id="edge27_Node000024_Node000025" title=" " alt="" coords="1274,144,1203,146,1201,141,1279,143"/>
-<area shape="rect" id="Node000026" href="$TurnConnectionStateMachine_8c.html#adf4fe21ee4ee8268ea52bb33720b1a9d" title=" " alt="" coords="987,181,1201,226"/>
-<area shape="poly" id="edge28_Node000024_Node000026" title=" " alt="" coords="1301,162,1202,184,1200,179,1306,160"/>
-<area shape="rect" id="Node000027" href="$TurnConnectionStateMachine_8c.html#ae44804165fc638565b909acf855d4c0d" title=" " alt="" coords="1007,78,1181,106"/>
-<area shape="poly" id="edge29_Node000024_Node000027" title=" " alt="" coords="1289,127,1177,109,1177,104,1294,126"/>
-<area shape="rect" id="Node000031" href="$NatBehaviorDiscovery_8c.html#aad9e4ff5cbbeb8434e964c1c2261ba29" title=" " alt="" coords="1284,23,1495,51"/>
-<area shape="poly" id="edge34_Node000030_Node000031" title=" " alt="" coords="1599,75,1472,54,1472,49,1604,74"/>
-<area shape="rect" id="Node000033" href="$NatBehaviorDiscovery_8c.html#ae0660c04b221fc0309bb4771f7f0a322" title=" " alt="" coords="1283,75,1496,103"/>
-<area shape="poly" id="edge36_Node000030_Node000033" title=" " alt="" coords="1598,89,1497,91,1496,86,1603,87"/>
-<area shape="rect" id="Node000032" href="$group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="1015,24,1172,52"/>
-<area shape="poly" id="edge35_Node000031_Node000032" title=" " alt="" coords="1266,38,1173,41,1172,35,1271,37"/>
-<area shape="poly" id="edge37_Node000033_Node000032" title=" " alt="" coords="1287,73,1173,54,1172,49,1292,71"/>
-<area shape="poly" id="edge51_Node000034_Node000005" title=" " alt="" coords="1579,374,1558,364,1541,348,1533,332,1525,316,1510,300,1490,289,1491,284,1513,296,1529,312,1538,329,1546,345,1561,360,1584,375"/>
-<area shape="rect" id="Node000035" href="$IceAgent_8c.html#a6c1328530aa9bf24d4e8869be7334567" title=" " alt="" coords="1026,319,1162,347"/>
-<area shape="poly" id="edge39_Node000034_Node000035" title=" " alt="" coords="1568,392,1427,386,1268,370,1163,350,1162,345,1268,365,1427,381,1574,391"/>
-<area shape="rect" id="Node000044" href="$IceAgent_8c.html#a32fe047b6b7fd2bdd834d34d870be302" title=" " alt="" coords="1294,311,1485,355"/>
-<area shape="poly" id="edge46_Node000034_Node000044" title=" " alt="" coords="1591,377,1485,356,1485,351,1597,377"/>
-<area shape="rect" id="Node000045" href="$IceAgent_8c.html#ac48af5043d440642380951b2523240ed" title=" " alt="" coords="1283,481,1496,526"/>
-<area shape="poly" id="edge48_Node000034_Node000045" title=" " alt="" coords="1637,414,1578,445,1512,471,1477,483,1476,478,1510,467,1575,440,1632,416"/>
-<area shape="rect" id="Node000048" href="$IceAgent_8c.html#a228ea3ea73e56869cb9aa236668d209b" title=" " alt="" coords="1268,430,1511,458"/>
-<area shape="poly" id="edge52_Node000034_Node000048" title=" " alt="" coords="1574,412,1475,432,1474,427,1580,411"/>
-<area shape="rect" id="Node000036" href="$IceAgent_8c.html#a97079f5f6e61ff478f94f9934af5eec0" title=" " alt="" coords="736,340,899,368"/>
-<area shape="poly" id="edge40_Node000035_Node000036" title=" " alt="" coords="1008,340,900,351,899,345,1013,339"/>
-<area shape="rect" id="Node000037" href="$IceAgent_8c.html#a404897a5797a45ca76444ee244c5b760" title=" " alt="" coords="456,299,652,327"/>
-<area shape="poly" id="edge41_Node000036_Node000037" title=" " alt="" coords="718,340,647,330,646,325,723,338"/>
-<area shape="rect" id="Node000038" href="$IceAgent_8c.html#a0a39b316e5aff662b257648e97e53146" title=" " alt="" coords="457,403,651,431"/>
-<area shape="poly" id="edge43_Node000036_Node000038" title=" " alt="" coords="739,373,668,393,617,405,615,400,667,388,744,371"/>
-<area shape="rect" id="Node000039" href="$IceAgent_8c.html#ac6d7992fc8ddf1009332e5f72ec42cff" title=" " alt="" coords="446,351,662,379"/>
-<area shape="poly" id="edge45_Node000036_Node000039" title=" " alt="" coords="718,359,663,363,662,358,723,357"/>
-<area shape="poly" id="edge42_Node000037_Node000007" title=" " alt="" coords="438,314,395,315,392,311,443,312"/>
-<area shape="poly" id="edge44_Node000038_Node000007" title=" " alt="" coords="462,399,440,393,377,361,328,330,328,325,379,357,442,388,467,398"/>
-<area shape="poly" id="edge47_Node000044_Node000035" title=" " alt="" coords="1276,334,1163,336,1162,330,1281,332"/>
-<area shape="rect" id="Node000046" href="$IceAgent_8c.html#aad8b693b79de0b9b57770fb4efe64ee4" title=" " alt="" coords="985,491,1203,519"/>
-<area shape="poly" id="edge49_Node000045_Node000046" title=" " alt="" coords="1265,505,1204,507,1203,502,1270,504"/>
-<area shape="rect" id="Node000047" href="$IceAgentStateMachine_8c.html#ae73bb89e7e9f087dd2ccfa8cf1f1833a" title=" " alt="" coords="718,483,917,527"/>
-<area shape="poly" id="edge50_Node000046_Node000047" title=" " alt="" coords="967,505,918,508,917,502,972,505"/>
-<area shape="rect" id="Node000049" href="$IceAgent_8c.html#abd88ad7fca15a1a8d90ea9d3a0f2fc58" title=" " alt="" coords="990,423,1198,467"/>
-<area shape="poly" id="edge53_Node000048_Node000049" title=" " alt="" coords="1250,445,1199,447,1198,442,1255,444"/>
-<area shape="rect" id="Node000052" href="$IceAgent_8c.html#a38eadbaca4b318947eb9d9397107493d" title=" " alt="" coords="968,371,1220,399"/>
-<area shape="poly" id="edge55_Node000048_Node000052" title=" " alt="" coords="1299,427,1168,402,1167,397,1304,426"/>
-<area shape="rect" id="Node000050" href="$IceAgentStateMachine_8c.html#a6d1c63854bb87950e837be2cdb6793d3" title=" " alt="" coords="715,413,920,458"/>
-<area shape="poly" id="edge54_Node000049_Node000050" title=" " alt="" coords="971,441,921,442,920,436,977,440"/>
-<area shape="poly" id="edge57_Node000053_Node000024" title=" " alt="" coords="1567,173,1482,161,1482,155,1573,172"/>
-<area shape="poly" id="edge59_Node000054_Node000011" title=" " alt="" coords="1985,620,2105,596,2110,595,1986,625"/>
-<area shape="poly" id="edge61_Node000055_Node000003" title=" " alt="" coords="2309,344,2276,346,2276,341,2314,343"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="2585,187,2776,215"/>
+<area shape="rect" id="Node000002" href="$SocketConnection_8c.html#ac4d31fbe803d38b419b2fb967b07999a" title=" " alt="" coords="2324,109,2537,154"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="2611,183,2514,157,2514,152,2616,183"/>
+<area shape="rect" id="Node000010" href="$SocketConnection_8c.html#abbba4e0cf8c625191e47489fca04d9b7" title=" " alt="" coords="2331,288,2530,316"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="2633,220,2468,290,2466,285,2627,222"/>
+<area shape="rect" id="Node000054" href="$SocketConnection_8c.html#a51db4f494654a352dc80cb5094cd5061" title=" " alt="" coords="2328,179,2533,223"/>
+<area shape="poly" id="edge61_Node000001_Node000054" title=" " alt="" coords="2566,201,2534,204,2534,198,2572,201"/>
+<area shape="rect" id="Node000003" href="$SocketConnection_8c.html#a493cba86ce7d7349e0d34f8f259628ab" title=" " alt="" coords="2075,109,2276,154"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="2306,132,2277,134,2276,129,2311,131"/>
+<area shape="rect" id="Node000004" href="$TurnConnectionStateMachine_8c.html#a76754fb751b1533ba3789bc800d679ea" title=" " alt="" coords="1580,109,1776,154"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="2057,132,1777,134,1776,129,2062,131"/>
+<area shape="rect" id="Node000005" href="$IceAgent_8c.html#a583c41d4f3e61dc23128f306f586d089" title=" " alt="" coords="1288,5,1493,50"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="2057,117,1494,44,1494,39,2062,116"/>
+<area shape="rect" id="Node000006" href="$IceAgent_8c.html#a29472fae79b73dc335a310925493391c" title=" " alt="" coords="441,15,667,59"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="1270,31,668,38,667,33,1274,27"/>
+<area shape="rect" id="Node000007" href="$IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="220,87,393,115"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="448,65,364,89,361,84,452,62"/>
+<area shape="rect" id="Node000008" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="14,60,163,88"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="202,90,165,86,162,81,207,87"/>
+<area shape="rect" id="Node000009" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,112,172,140"/>
+<area shape="poly" id="edge8_Node000007_Node000009" title=" " alt="" coords="202,115,174,119,170,115,206,111"/>
+<area shape="rect" id="Node000011" href="$IceUtils_8c.html#abffd2f385a91e5840b12912df46777d4" title=" " alt="" coords="2109,331,2242,359"/>
+<area shape="poly" id="edge10_Node000010_Node000011" title=" " alt="" coords="2326,320,2243,337,2242,331,2331,319"/>
+<area shape="rect" id="Node000012" href="$IceAgent_8c.html#a23515725a875e5a1b44e90f2b36f2dd2" title=" " alt="" coords="1859,571,2012,599"/>
+<area shape="poly" id="edge11_Node000011_Node000012" title=" " alt="" coords="2152,369,1952,573,1949,569,2147,371"/>
+<area shape="rect" id="Node000022" href="$IceUtils_8c.html#a163008ed55dd5e46e25737a89d5beabb" title=" " alt="" coords="1849,279,2022,307"/>
+<area shape="poly" id="edge24_Node000011_Node000022" title=" " alt="" coords="2091,327,2003,310,2003,305,2097,327"/>
+<area shape="rect" id="Node000053" href="$TurnConnection_8c.html#a0d996d98abef81b2f6c54be480ef7ea1" title=" " alt="" coords="1844,331,2027,359"/>
+<area shape="poly" id="edge59_Node000011_Node000053" title=" " alt="" coords="2091,354,2028,356,2027,351,2096,353"/>
+<area shape="rect" id="Node000013" href="$PeerConnection_8c.html#a8623356d515aabe66d493018cc61c1f3" title=" " alt="" coords="734,546,902,574"/>
+<area shape="poly" id="edge12_Node000012_Node000013" title=" " alt="" coords="1842,585,903,564,903,559,1845,581"/>
+<area shape="rect" id="Node000015" href="$Retransmitter_8c.html#a117dafbb1f1b86ced15a1fcfc49713fa" title=" " alt="" coords="1312,598,1470,626"/>
+<area shape="poly" id="edge14_Node000012_Node000015" title=" " alt="" coords="1893,605,1846,625,1796,638,1707,647,1618,646,1534,639,1465,629,1465,623,1535,634,1618,641,1707,642,1795,633,1844,620,1888,606"/>
+<area shape="rect" id="Node000018" href="$PeerConnection_8c.html#a4afea8c5d470548d2889fb8d3218ba0f" title=" " alt="" coords="1602,722,1754,750"/>
+<area shape="poly" id="edge18_Node000012_Node000018" title=" " alt="" coords="1905,608,1855,646,1797,682,1713,724,1712,719,1794,677,1852,641,1900,609"/>
+<area shape="rect" id="Node000020" href="$group__PublicMemberFunctions.html#ga40c7caf6325f426d82030beec50cc86e" title="Packetizes and sends media via the configuration specified by the RtcRtpTransceiver." alt="" coords="1630,495,1726,523"/>
+<area shape="poly" id="edge21_Node000012_Node000020" title=" " alt="" coords="1874,566,1795,544,1726,524,1726,519,1796,538,1879,566"/>
+<area shape="rect" id="Node000021" href="$Rtp_8c.html#a6f38cb81e122dec46ea50feb5edb652a" title=" " alt="" coords="1619,596,1737,624"/>
+<area shape="poly" id="edge22_Node000012_Node000021" title=" " alt="" coords="1846,594,1738,607,1737,602,1841,594"/>
+<area shape="rect" id="Node000014" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="472,571,636,599"/>
+<area shape="poly" id="edge13_Node000013_Node000014" title=" " alt="" coords="716,570,637,580,636,574,721,569"/>
+<area shape="rect" id="Node000016" href="$Rtcp_8c.html#aaaf444db910596fed5abe9a8518b68f1" title=" " alt="" coords="1041,598,1149,626"/>
+<area shape="poly" id="edge15_Node000015_Node000016" title=" " alt="" coords="1293,612,1150,614,1149,609,1298,611"/>
+<area shape="rect" id="Node000017" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="752,598,884,626"/>
+<area shape="poly" id="edge16_Node000016_Node000017" title=" " alt="" coords="1023,612,884,614,884,609,1028,611"/>
+<area shape="poly" id="edge17_Node000017_Node000014" title=" " alt="" coords="734,604,637,596,637,591,739,603"/>
+<area shape="poly" id="edge20_Node000018_Node000018" title=" " alt="" coords="1721,706,1707,703,1678,700,1651,702,1636,707,1632,713,1639,722,1634,720,1627,713,1633,703,1650,697,1678,695,1708,698,1726,707"/>
+<area shape="rect" id="Node000019" href="$group__PublicMemberFunctions.html#ga5b89dc2e301e35f30330c57bc1361dcb" title="Create a new RtcRtpTransceiver and add it to the set of transceivers." alt="" coords="1331,722,1450,750"/>
+<area shape="poly" id="edge19_Node000018_Node000019" title=" " alt="" coords="1584,736,1451,738,1451,733,1589,736"/>
+<area shape="poly" id="edge23_Node000021_Node000015" title=" " alt="" coords="1601,611,1470,614,1470,609,1606,611"/>
+<area shape="poly" id="edge31_Node000022_Node000004" title=" " alt="" coords="1910,266,1860,218,1829,191,1794,169,1770,157,1771,152,1797,164,1832,187,1864,214,1915,268"/>
+<area shape="rect" id="Node000023" href="$TurnConnection_8c.html#ad50e5f6b533c62c8b5297a6bf3615f29" title=" " alt="" coords="1293,375,1488,403"/>
+<area shape="poly" id="edge25_Node000022_Node000023" title=" " alt="" coords="1869,275,1805,264,1727,254,1643,254,1601,260,1561,270,1547,277,1537,284,1514,304,1413,377,1411,372,1511,300,1533,280,1544,272,1559,265,1600,255,1642,249,1727,249,1806,258,1874,275"/>
+<area shape="rect" id="Node000027" href="$TurnConnectionStateMachine_8c.html#a5b2eedee33db4144771d00b2dd6a9731" title=" " alt="" coords="1579,279,1777,307"/>
+<area shape="poly" id="edge29_Node000022_Node000027" title=" " alt="" coords="1830,293,1778,296,1777,290,1836,293"/>
+<area shape="rect" id="Node000028" href="$TurnConnectionStateMachine_8c.html#aaf58bb70347bbbac288dc7ef68e2b06a" title=" " alt="" coords="1584,331,1772,359"/>
+<area shape="poly" id="edge30_Node000022_Node000028" title=" " alt="" coords="1846,311,1751,333,1750,328,1851,310"/>
+<area shape="rect" id="Node000029" href="$NatBehaviorDiscovery_8c.html#a89054697a9e46dac0a358733b9da16d6" title=" " alt="" coords="1617,443,1739,471"/>
+<area shape="poly" id="edge32_Node000022_Node000029" title=" " alt="" coords="1852,314,1845,322,1834,334,1828,346,1822,372,1816,398,1809,411,1797,424,1770,441,1740,452,1738,447,1768,437,1794,420,1805,408,1811,396,1817,370,1823,344,1830,331,1842,318,1847,316"/>
+<area shape="rect" id="Node000033" href="$IceAgent_8c.html#aff64bc1649d0c5e3390f6ad14eb9aa1e" title=" " alt="" coords="1587,178,1769,206"/>
+<area shape="poly" id="edge37_Node000022_Node000033" title=" " alt="" coords="1893,271,1848,249,1795,226,1740,209,1740,203,1797,221,1850,245,1899,272"/>
+<area shape="rect" id="Node000052" href="$TurnConnection_8c.html#a46459e6ac66501521c9160b1fcdf6d84" title=" " alt="" coords="1560,383,1796,411"/>
+<area shape="poly" id="edge57_Node000022_Node000052" title=" " alt="" coords="1858,312,1845,322,1831,334,1822,347,1813,360,1797,373,1769,385,1767,380,1794,368,1809,356,1818,344,1827,330,1842,317,1853,314"/>
+<area shape="rect" id="Node000024" href="$TurnConnectionStateMachine_8c.html#a3a4bf18f3e297368e56db4694cd845bc" title=" " alt="" coords="987,375,1202,403"/>
+<area shape="poly" id="edge26_Node000023_Node000024" title=" " alt="" coords="1275,389,1203,392,1203,386,1280,389"/>
+<area shape="rect" id="Node000025" href="$TurnConnectionStateMachine_8c.html#adf4fe21ee4ee8268ea52bb33720b1a9d" title=" " alt="" coords="988,427,1202,471"/>
+<area shape="poly" id="edge27_Node000023_Node000025" title=" " alt="" coords="1301,407,1203,430,1202,425,1307,406"/>
+<area shape="rect" id="Node000026" href="$TurnConnectionStateMachine_8c.html#ae44804165fc638565b909acf855d4c0d" title=" " alt="" coords="1008,323,1182,351"/>
+<area shape="poly" id="edge28_Node000023_Node000026" title=" " alt="" coords="1290,372,1178,354,1178,349,1295,372"/>
+<area shape="rect" id="Node000030" href="$NatBehaviorDiscovery_8c.html#aad9e4ff5cbbeb8434e964c1c2261ba29" title=" " alt="" coords="1286,495,1496,523"/>
+<area shape="poly" id="edge33_Node000029_Node000030" title=" " alt="" coords="1605,470,1472,497,1471,492,1599,471"/>
+<area shape="rect" id="Node000032" href="$NatBehaviorDiscovery_8c.html#ae0660c04b221fc0309bb4771f7f0a322" title=" " alt="" coords="1284,443,1497,471"/>
+<area shape="poly" id="edge35_Node000029_Node000032" title=" " alt="" coords="1599,457,1498,460,1497,454,1605,457"/>
+<area shape="rect" id="Node000031" href="$group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="1016,495,1174,523"/>
+<area shape="poly" id="edge34_Node000030_Node000031" title=" " alt="" coords="1267,509,1174,512,1174,506,1273,509"/>
+<area shape="poly" id="edge36_Node000032_Node000031" title=" " alt="" coords="1290,475,1174,498,1173,493,1295,474"/>
+<area shape="poly" id="edge50_Node000033_Node000005" title=" " alt="" coords="1571,175,1559,168,1546,156,1539,142,1533,115,1528,89,1522,77,1511,64,1494,52,1494,47,1514,60,1526,73,1533,87,1539,114,1544,140,1551,152,1562,164,1576,175"/>
+<area shape="rect" id="Node000034" href="$IceAgent_8c.html#a6c1328530aa9bf24d4e8869be7334567" title=" " alt="" coords="1027,151,1163,179"/>
+<area shape="poly" id="edge38_Node000033_Node000034" title=" " alt="" coords="1569,202,1428,210,1348,209,1269,204,1164,182,1163,177,1269,198,1348,204,1428,205,1575,201"/>
+<area shape="rect" id="Node000043" href="$IceAgent_8c.html#a32fe047b6b7fd2bdd834d34d870be302" title=" " alt="" coords="1296,144,1486,189"/>
+<area shape="poly" id="edge45_Node000033_Node000043" title=" " alt="" coords="1569,183,1486,177,1486,172,1575,182"/>
+<area shape="rect" id="Node000044" href="$IceAgent_8c.html#ac48af5043d440642380951b2523240ed" title=" " alt="" coords="1284,75,1497,119"/>
+<area shape="poly" id="edge47_Node000033_Node000044" title=" " alt="" coords="1574,173,1559,169,1535,151,1511,134,1484,123,1484,117,1514,129,1538,147,1562,164,1579,173"/>
+<area shape="rect" id="Node000047" href="$IceAgent_8c.html#a228ea3ea73e56869cb9aa236668d209b" title=" " alt="" coords="1269,263,1512,291"/>
+<area shape="poly" id="edge51_Node000033_Node000047" title=" " alt="" coords="1600,211,1561,226,1513,248,1455,265,1453,260,1511,242,1559,221,1605,209"/>
+<area shape="rect" id="Node000035" href="$IceAgent_8c.html#a97079f5f6e61ff478f94f9934af5eec0" title=" " alt="" coords="736,143,900,171"/>
+<area shape="poly" id="edge39_Node000034_Node000035" title=" " alt="" coords="1008,163,901,162,900,157,1013,162"/>
+<area shape="rect" id="Node000036" href="$IceAgent_8c.html#a404897a5797a45ca76444ee244c5b760" title=" " alt="" coords="456,191,652,219"/>
+<area shape="poly" id="edge40_Node000035_Node000036" title=" " alt="" coords="721,175,635,193,633,188,725,173"/>
+<area shape="rect" id="Node000037" href="$IceAgent_8c.html#a0a39b316e5aff662b257648e97e53146" title=" " alt="" coords="457,87,651,115"/>
+<area shape="poly" id="edge42_Node000035_Node000037" title=" " alt="" coords="732,140,623,118,622,113,737,138"/>
+<area shape="rect" id="Node000038" href="$IceAgent_8c.html#ac6d7992fc8ddf1009332e5f72ec42cff" title=" " alt="" coords="446,139,662,167"/>
+<area shape="poly" id="edge44_Node000035_Node000038" title=" " alt="" coords="718,157,664,157,662,152,723,155"/>
+<area shape="poly" id="edge41_Node000036_Node000007" title=" " alt="" coords="462,187,440,181,377,149,328,118,327,113,379,145,442,176,467,186"/>
+<area shape="poly" id="edge43_Node000037_Node000007" title=" " alt="" coords="439,102,395,103,392,99,444,100"/>
+<area shape="poly" id="edge46_Node000043_Node000034" title=" " alt="" coords="1277,167,1164,168,1163,163,1282,165"/>
+<area shape="rect" id="Node000045" href="$IceAgent_8c.html#aad8b693b79de0b9b57770fb4efe64ee4" title=" " alt="" coords="986,83,1204,111"/>
+<area shape="poly" id="edge48_Node000044_Node000045" title=" " alt="" coords="1266,98,1205,100,1204,94,1271,96"/>
+<area shape="rect" id="Node000046" href="$IceAgentStateMachine_8c.html#ae73bb89e7e9f087dd2ccfa8cf1f1833a" title=" " alt="" coords="719,75,917,119"/>
+<area shape="poly" id="edge49_Node000045_Node000046" title=" " alt="" coords="967,98,918,100,917,94,972,96"/>
+<area shape="rect" id="Node000048" href="$IceAgent_8c.html#abd88ad7fca15a1a8d90ea9d3a0f2fc58" title=" " alt="" coords="991,255,1199,299"/>
+<area shape="poly" id="edge52_Node000047_Node000048" title=" " alt="" coords="1251,278,1200,280,1199,274,1256,276"/>
+<area shape="rect" id="Node000051" href="$IceAgent_8c.html#a38eadbaca4b318947eb9d9397107493d" title=" " alt="" coords="969,203,1221,231"/>
+<area shape="poly" id="edge55_Node000047_Node000051" title=" " alt="" coords="1302,260,1220,245,1168,234,1167,229,1222,240,1307,259"/>
+<area shape="rect" id="Node000049" href="$IceAgentStateMachine_8c.html#a6d1c63854bb87950e837be2cdb6793d3" title=" " alt="" coords="716,264,920,309"/>
+<area shape="poly" id="edge53_Node000048_Node000049" title=" " alt="" coords="973,282,921,285,920,280,978,280"/>
+<area shape="rect" id="Node000050" href="$IceAgentStateMachine_8c.html#a5431027d18e1397eb1dfc8953099dbf6" title=" " alt="" coords="715,195,921,239"/>
+<area shape="poly" id="edge54_Node000048_Node000050" title=" " alt="" coords="973,252,921,242,921,237,978,251"/>
+<area shape="poly" id="edge56_Node000051_Node000050" title=" " alt="" coords="950,218,922,220,921,214,956,216"/>
+<area shape="poly" id="edge58_Node000052_Node000023" title=" " alt="" coords="1542,394,1489,394,1489,389,1548,393"/>
+<area shape="poly" id="edge60_Node000053_Node000011" title=" " alt="" coords="2042,333,2111,337,2106,337,2042,339"/>
+<area shape="poly" id="edge62_Node000054_Node000003" title=" " alt="" coords="2329,174,2260,157,2260,152,2334,174"/>
 </map>
