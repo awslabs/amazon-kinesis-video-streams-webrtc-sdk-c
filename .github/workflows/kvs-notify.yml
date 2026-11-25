@@ -1,0 +1,71 @@
+name: kvs-notify
+
+# Publishes one small JSON message to an SNS topic when a human opens a PR or an issue.
+# Authenticates to AWS with GitHub OIDC (no stored AWS keys). Nothing is checked out and no PR
+# code is run: pull_request_target runs this file from the default branch, and the job only reads
+# the event payload. Event fields reach the shell only through the event file and jq --arg style
+# parsing, never through ${{ }} interpolation into the script.
+
+on:
+  pull_request_target:
+    types: [opened, ready_for_review, reopened]
+  issues:
+    types: [opened]
+
+permissions:
+  id-token: write
+
+# SECURITY: never add actions/checkout or run anything from the PR head here. pull_request_target
+# runs with this repo's permissions, so running PR code would hand an AWS credential to anyone who
+# opens a PR.
+
+jobs:
+  notify:
+    # Forks have no kvs-notify environment secrets; skip instead of failing there.
+    if: ${{ github.event.repository.fork == false }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # The IAM role trusts only this environment, and the environment allows only the default
+    # branch. pull_request_target and issues both run this file from the default branch, so a
+    # workflow on any other branch cannot enter this environment or assume the role.
+    # The role and topic ARNs are environment secrets so the account id is masked (***) in the
+    # public Actions logs and is readable only by jobs that entered this environment.
+    environment: kvs-notify
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.KVS_NOTIFY_ROLE_ARN }}
+          aws-region: us-west-2
+          mask-aws-account-id: true
+
+      - name: Publish event
+        env:
+          TOPIC_ARN: ${{ secrets.KVS_NOTIFY_TOPIC_ARN }}
+        run: |
+          set -euo pipefail
+          jq --arg ev "$GITHUB_EVENT_NAME" '
+            (if $ev == "issues" then .issue else .pull_request end) as $o
+            | select($o.user.type != "Bot" and ($o.user.login | endswith("[bot]") | not))
+            | select($ev == "issues" or .action == "ready_for_review" or ($o.draft | not))
+            | ({kind: (if $ev == "issues" then "issue" else "pr" end),
+                repo: .repository.full_name,
+                number: $o.number,
+                title: ($o.title | .[0:300]),
+                url: $o.html_url,
+                author: $o.user.login,
+                created_at: $o.created_at}
+               + if $ev == "issues" then {} else {
+                   head_sha: $o.head.sha,
+                   base_sha: $o.base.sha,
+                   base_ref: $o.base.ref,
+                   is_fork: $o.head.repo.fork,
+                   author_association: ($o.author_association // ""),
+                   body: (($o.body // "") | .[0:20000])
+                 } end)
+          ' "$GITHUB_EVENT_PATH" > message.json
+          if [ ! -s message.json ]; then
+            echo "Filtered out (bot author or draft)."
+            exit 0
+          fi
+          aws sns publish --region us-west-2 --topic-arn "$TOPIC_ARN" --message file://message.json
