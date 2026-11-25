@@ -1,0 +1,7 @@
+<map id="startReconnectHandler" name="startReconnectHandler">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,176,33"/>
+<area shape="rect" id="Node000002" href="$LwsApiCalls_8c.html#afc9e7ad7111b3cdf94c7739d3695cb6c" title=" " alt="" coords="224,5,360,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="176,17,211,19,206,19,176,22"/>
+<area shape="rect" id="Node000003" href="$StateMachine_8c.html#aadc0cffe12b55f3d81cd3b74244bdc3c" title=" " alt="" coords="408,5,625,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="360,17,395,19,390,19,360,22"/>
+</map>

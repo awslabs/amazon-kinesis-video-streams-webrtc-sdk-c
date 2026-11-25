@@ -1,0 +1,20 @@
+<map id="getWebRtcClientInstance" name="getWebRtcClientInstance">
+<area shape="rect" id="Node000001" title=" " alt="" coords="480,109,664,137"/>
+<area shape="rect" id="Node000002" href="$PeerConnection_8c.html#abbb3bf23f9e3d392a0bfef3e44dd8b14" title=" " alt="" coords="218,5,432,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="534,100,487,75,431,48,395,36,395,31,433,43,489,70,539,101"/>
+<area shape="rect" id="Node000004" href="$PeerConnection_8c.html#a7e9316f29961fb166a64cd87b7959f30" title=" " alt="" coords="223,109,427,137"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="461,124,428,126,427,121,467,123"/>
+<area shape="rect" id="Node000006" href="$PeerConnection_8c.html#a75fa932f0d317465ffdd4682def8077c" title=" " alt="" coords="254,57,396,85"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="485,106,394,88,394,83,491,105"/>
+<area shape="rect" id="Node000008" href="$group__PublicMemberFunctions.html#ga84a68cd53825426050af16006b381a94" title="Get peer connection related metrics." alt="" coords="228,161,422,189"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="491,140,395,163,394,158,485,141"/>
+<area shape="rect" id="Node000009" href="$PeerConnection_8c.html#a17f6eac8bf12bafca3e138f62450754e" title=" " alt="" coords="239,213,410,241"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="539,145,489,176,433,203,395,215,394,210,431,198,487,172,534,147"/>
+<area shape="rect" id="Node000003" href="$group__PublicMemberFunctions.html#gae49b9a202c97ad861b0b68014535f625" title="Deinitializes global state needed for all RtcPeerConnections. It must only be called once." alt="" coords="22,5,153,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="200,21,154,22,152,17,205,18"/>
+<area shape="rect" id="Node000005" href="$group__PublicMemberFunctions.html#ga0091e2920ba137e0e80d40402a675abb" title="Initializes global state needed for all RtcPeerConnections. It must only be called once." alt="" coords="30,161,145,189"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="241,142,146,165,145,160,245,140"/>
+<area shape="rect" id="Node000007" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,57,170,85"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="236,73,171,74,170,69,241,70"/>
+<area shape="poly" id="edge9_Node000009_Node000005" title=" " alt="" coords="241,210,145,190,146,185,246,208"/>
+</map>

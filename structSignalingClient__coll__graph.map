@@ -1,28 +1,31 @@
 <map id="SignalingClient" name="SignalingClient">
-<area shape="rect" id="Node000001" title=" " alt="" coords="750,1062,925,1358"/>
-<area shape="rect" id="Node000011" href="$struct____LwsCallInfo.html" title=" " alt="" coords="767,1431,908,1682"/>
-<area shape="poly" id="edge11_Node000011_Node000001" title=" " alt="" coords="756,1356,756,1382,759,1406,764,1424,759,1422,754,1408,750,1383,753,1360"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="838,1062,1013,1358"/>
+<area shape="rect" id="Node000011" href="$struct____LwsCallInfo.html" title=" " alt="" coords="840,1431,1010,1704"/>
+<area shape="poly" id="edge11_Node000011_Node000001" title=" " alt="" coords="845,1356,844,1382,847,1407,849,1416,844,1413,842,1407,839,1382,842,1360"/>
 <area shape="rect" id="Node000002" href="$structSignalingClientInfoInternal.html" title=" " alt="" coords="60,654,244,950"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="228,947,267,996,311,1036,361,1070,415,1098,470,1123,527,1144,638,1174,736,1195,731,1197,636,1180,526,1149,468,1128,412,1103,358,1074,308,1040,263,999,228,952"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="231,947,273,996,319,1036,379,1073,444,1105,511,1131,579,1152,710,1182,824,1200,818,1202,709,1187,578,1157,510,1136,442,1110,377,1078,316,1040,269,999,232,952"/>
 <area shape="rect" id="Node000003" href="$structSignalingClientInfo.html" title="Populate Signaling client with client ID and application log level." alt="" coords="5,262,256,564"/>
 <area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="139,561,146,637,140,637,139,567"/>
 <area shape="rect" id="Node000004" href="$structSignalingClientCallbacks.html" title="Register Signaling client callbacks." alt="" coords="278,721,450,883"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="367,880,374,921,385,962,401,1002,425,1037,457,1069,493,1096,532,1120,573,1140,657,1171,736,1193,731,1194,655,1176,571,1145,530,1125,490,1101,453,1073,420,1040,396,1004,380,964,369,922,366,885"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="370,880,379,922,391,963,410,1002,435,1037,476,1074,523,1105,573,1131,625,1152,729,1181,824,1200,819,1201,728,1187,623,1157,571,1136,520,1109,473,1078,431,1040,405,1005,387,965,374,923,369,886"/>
 <area shape="rect" id="Node000005" href="$structReceivedSignalingMessage.html" title="Structure defining the signaling message to be received." alt="" coords="280,355,469,472"/>
 <area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="374,469,369,705,364,704,373,474"/>
-<area shape="rect" id="Node000006" href="$structSignalingMessage.html" title="Structure defining the basic signaling message." alt="" coords="310,5,439,189"/>
+<area shape="rect" id="Node000006" href="$structSignalingMessage.html" title="When PREFER_DYNAMIC_ALLOCS is enabled, use dynamic allocation for the signaling payload buffer...." alt="" coords="310,5,439,189"/>
 <area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="375,187,377,338,372,338,374,192"/>
 <area shape="rect" id="Node000007" href="$structChannelInfo.html" title="Contains all signaling channel related information." alt="" coords="474,654,628,950"/>
-<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="589,947,611,994,636,1037,684,1092,739,1142,734,1142,680,1096,632,1040,606,997,588,952"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="596,947,622,995,652,1037,690,1075,734,1109,780,1138,826,1165,820,1165,777,1143,731,1113,687,1079,648,1040,618,997,595,952"/>
 <area shape="rect" id="Node000008" href="$structSignalingChannelDescription.html" title="Signaling channel description returned from the service." alt="" coords="652,688,850,916"/>
-<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="742,914,746,977,755,1038,757,1047,752,1045,750,1039,740,978,740,919"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="749,914,759,978,777,1037,800,1078,830,1118,824,1118,796,1081,772,1039,754,979,747,919"/>
 <area shape="rect" id="Node000009" href="$structMediaStorageConfig.html" title=" " alt="" coords="874,755,1019,850"/>
-<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="940,847,923,938,899,1039,896,1048,892,1045,894,1038,918,937,937,852"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="942,847,929,991,927,1047,922,1045,924,991,939,852"/>
 <area shape="rect" id="Node000010" href="$structIceConfigInfo.html" title="ICE configuration information struct." alt="" coords="1056,710,1152,894"/>
-<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="1106,892,1095,968,1083,1005,1066,1040,1040,1075,1009,1107,941,1158,938,1154,1006,1103,1036,1072,1062,1037,1079,1003,1090,967,1103,896"/>
-<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="880,1430,884,1407,887,1377,891,1373,889,1407,884,1433"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="1108,892,1102,967,1093,1004,1080,1039,1056,1082,1026,1121,1022,1117,1051,1079,1075,1037,1088,1002,1096,966,1105,896"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="968,1430,972,1407,975,1377,978,1373,977,1407,972,1433"/>
 <area shape="rect" id="Node000012" href="$structThreadTracker.html" title=" " alt="" coords="1176,732,1278,872"/>
-<area shape="poly" id="edge12_Node000001_Node000012" title=" " alt="" coords="1229,869,1227,913,1218,957,1203,1001,1180,1040,1156,1067,1128,1092,1068,1132,1004,1163,943,1186,940,1181,1001,1158,1065,1128,1125,1087,1152,1063,1175,1037,1198,998,1213,956,1221,912,1226,874"/>
-<area shape="rect" id="Node000013" href="$structSignalingDiagnostics.html" title=" " alt="" coords="1302,637,1520,967"/>
-<area shape="poly" id="edge13_Node000001_Node000013" title=" " alt="" coords="1394,965,1377,1006,1353,1040,1309,1080,1259,1113,1206,1140,1151,1162,1095,1178,1040,1191,942,1206,941,1200,1039,1186,1093,1173,1149,1157,1204,1135,1257,1108,1306,1076,1349,1037,1373,1003,1390,968"/>
+<area shape="poly" id="edge12_Node000001_Node000012" title=" " alt="" coords="1230,869,1228,912,1220,956,1207,999,1186,1040,1153,1080,1114,1115,1071,1144,1029,1168,1026,1164,1069,1140,1111,1111,1150,1077,1182,1037,1202,997,1215,954,1223,911,1227,874"/>
+<area shape="rect" id="Node000013" href="$struct____SignalingThreadNode.html" title=" " alt="" coords="1310,766,1474,838"/>
+<area shape="poly" id="edge13_Node000001_Node000013" title=" " alt="" coords="1398,836,1401,882,1397,935,1384,990,1372,1016,1357,1040,1324,1075,1286,1105,1244,1130,1201,1151,1112,1181,1031,1199,1029,1194,1111,1176,1199,1146,1242,1125,1283,1100,1320,1071,1353,1037,1368,1014,1379,989,1392,935,1396,882,1395,840"/>
+<area shape="poly" id="edge14_Node000013_Node000013" title=" " alt="" coords="1443,764,1465,762,1483,768,1496,782,1501,802,1498,819,1489,832,1476,840,1462,842,1460,837,1474,835,1485,828,1493,817,1495,802,1491,784,1480,773,1464,767,1445,769"/>
+<area shape="rect" id="Node000014" href="$structSignalingDiagnostics.html" title=" " alt="" coords="1580,637,1798,967"/>
+<area shape="poly" id="edge15_Node000001_Node000014" title=" " alt="" coords="1634,965,1608,1007,1575,1040,1512,1085,1442,1121,1369,1149,1295,1171,1222,1187,1152,1198,1031,1210,1029,1205,1151,1193,1221,1182,1294,1166,1368,1144,1440,1116,1509,1080,1572,1036,1604,1004,1630,969"/>
 </map>

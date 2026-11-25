@@ -1,5 +1,9 @@
 <map id="onDtlsStateChange" name="onDtlsStateChange">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,152,33"/>
-<area shape="rect" id="Node000002" href="$PeerConnection_8c.html#ab091080eb78ee92ae0529bdd743468a0" title=" " alt="" coords="200,5,404,33"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="152,17,187,19,181,19,152,22"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,57,152,85"/>
+<area shape="rect" id="Node000002" href="$PeerConnection_8c.html#ab091080eb78ee92ae0529bdd743468a0" title=" " alt="" coords="217,5,422,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="145,54,239,35,235,38,147,59"/>
+<area shape="rect" id="Node000003" href="$DtlsInStun_8c.html#a72254e3bd8e8f5979cdeef97c90a9432" title=" " alt="" coords="235,57,404,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="152,69,223,70,218,72,152,74"/>
+<area shape="rect" id="Node000004" href="$DtlsInStun_8c.html#aa1aa0d5b5f797f22e4852f425bfef131" title=" " alt="" coords="200,109,439,137"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="146,83,239,105,234,106,146,88"/>
 </map>

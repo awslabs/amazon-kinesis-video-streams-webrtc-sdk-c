@@ -1,13 +1,32 @@
 <map id="dtlsSessionCheckRemoteCertificateVerification" name="dtlsSessionCheckRemoteCertificateVerification">
-<area shape="rect" id="Node000001" title=" " alt="" coords="970,24,1223,68"/>
-<area shape="rect" id="Node000002" href="$Dtls__openssl_8c.html#aba4e06631285e39f593bad553a88b456" title=" " alt="" coords="697,5,922,33"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="951,33,922,32,922,27,957,33"/>
-<area shape="rect" id="Node000006" href="$Dtls__openssl_8c.html#af9a81361c6870b54ba2accc75c8fc2ff" title=" " alt="" coords="697,57,922,85"/>
-<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="957,58,922,64,922,59,951,59"/>
-<area shape="rect" id="Node000003" href="$PeerConnection_8c.html#a2866c8ee0d8506fb54885976750bac71" title=" " alt="" coords="478,5,649,33"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="679,19,650,22,650,17,684,19"/>
-<area shape="rect" id="Node000004" href="$PeerConnection_8c.html#a0a0385b5afef472a439ff5d8d8d7c1a0" title=" " alt="" coords="218,5,430,33"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="460,19,431,22,430,17,465,19"/>
-<area shape="rect" id="Node000005" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="5,5,170,33"/>
-<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="199,20,170,22,170,17,205,19"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="1445,49,1699,94"/>
+<area shape="rect" id="Node000002" href="$Dtls__openssl_8c.html#aba4e06631285e39f593bad553a88b456" title=" " alt="" coords="1173,5,1397,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1428,45,1365,36,1366,31,1433,46"/>
+<area shape="rect" id="Node000006" href="$Dtls__openssl_8c.html#a929cb0f439a6b6353f741b841d095da3" title=" " alt="" coords="1192,57,1379,85"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="1427,71,1380,74,1379,69,1432,71"/>
+<area shape="rect" id="Node000015" href="$Dtls__openssl_8c.html#af9a81361c6870b54ba2accc75c8fc2ff" title=" " alt="" coords="1173,109,1397,137"/>
+<area shape="poly" id="edge15_Node000001_Node000015" title=" " alt="" coords="1433,96,1366,111,1365,106,1428,97"/>
+<area shape="rect" id="Node000003" href="$PeerConnection_8c.html#a2866c8ee0d8506fb54885976750bac71" title=" " alt="" coords="939,5,1110,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1155,19,1111,22,1111,17,1160,19"/>
+<area shape="rect" id="Node000004" href="$PeerConnection_8c.html#a0a0385b5afef472a439ff5d8d8d7c1a0" title=" " alt="" coords="664,5,877,33"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="921,19,878,22,877,17,926,19"/>
+<area shape="rect" id="Node000005" href="$group__PublicMemberFunctions.html#gada972c66438c7e7c82e1db0cfe2b2640" title="Initialize a RtcPeerConnection with the provided Configuration." alt="" coords="446,32,611,60"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="646,33,612,39,611,34,652,32"/>
+<area shape="rect" id="Node000007" href="$PeerConnection_8c.html#a76ad72a51a47dae5e9f43873f36aa34a" title=" " alt="" coords="705,57,836,85"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="1174,71,837,74,837,69,1179,71"/>
+<area shape="rect" id="Node000008" href="$SocketConnection_8c.html#a701ec77930f1201ad5ab5aa3e293ee7f" title=" " alt="" coords="925,112,1125,140"/>
+<area shape="poly" id="edge8_Node000006_Node000008" title=" " alt="" coords="1204,88,1095,114,1094,109,1198,89"/>
+<area shape="poly" id="edge7_Node000007_Node000005" title=" " alt="" coords="687,63,612,57,611,52,692,62"/>
+<area shape="rect" id="Node000009" href="$ConnectionListener_8c.html#ad4b0c7229cc56aa8bc3eaef7d75c2ab7" title=" " alt="" coords="672,109,869,154"/>
+<area shape="poly" id="edge9_Node000008_Node000009" title=" " alt="" coords="906,128,869,132,869,126,912,128"/>
+<area shape="rect" id="Node000010" href="$ConnectionListener_8c.html#ac6b964c533b9932afd35358f2b49f5a8" title=" " alt="" coords="441,117,616,145"/>
+<area shape="poly" id="edge10_Node000009_Node000010" title=" " alt="" coords="654,131,617,134,617,129,659,131"/>
+<area shape="rect" id="Node000011" href="$group__PublicMemberFunctions.html#ga6c4139787f87c307c2033b51d65284ce" title="Use the process described in https://tools.ietf.org/html/rfc5780#section&#45;4.3 to discover NAT behavior..." alt="" coords="228,91,385,118"/>
+<area shape="poly" id="edge11_Node000010_Node000011" title=" " alt="" coords="423,119,386,117,386,111,428,119"/>
+<area shape="rect" id="Node000012" href="$IceAgent_8c.html#a89dd4cb4f8c55e2d376df8c33f300e80" title=" " alt="" coords="220,143,393,170"/>
+<area shape="poly" id="edge12_Node000010_Node000012" title=" " alt="" coords="423,143,394,149,393,144,428,143"/>
+<area shape="rect" id="Node000013" href="$group__PublicMemberFunctions.html#ga060e71a4e33e0b7a8087317d4839fa8a" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the local descript..." alt="" coords="14,116,163,144"/>
+<area shape="poly" id="edge13_Node000012_Node000013" title=" " alt="" coords="202,145,164,142,164,136,207,144"/>
+<area shape="rect" id="Node000014" href="$group__PublicMemberFunctions.html#ga4378f3c6aec4d69c647c46852bdfe6ed" title="Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit as the remote descrip..." alt="" coords="5,168,172,196"/>
+<area shape="poly" id="edge14_Node000012_Node000014" title=" " alt="" coords="202,169,172,175,172,170,207,168"/>
 </map>

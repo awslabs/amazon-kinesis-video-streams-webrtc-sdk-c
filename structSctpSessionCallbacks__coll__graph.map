@@ -1,3 +1,7 @@
 <map id="SctpSessionCallbacks" name="SctpSessionCallbacks">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,202,145"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,408,202,547"/>
+<area shape="rect" id="Node000002" href="$structRtcDataChannelInit.html" title="RtcDataChannelInit dictionary used to configure properties of the underlying channel such as data rel..." alt="" coords="36,218,172,335"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="105,332,106,391,101,390,103,337"/>
+<area shape="rect" id="Node000003" href="$structNullableUint16.html" title="Custom data type to allow setting UINT16 data type to NULL since C does not support setting basic dat..." alt="" coords="50,5,158,100"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="104,97,106,201,101,201,103,102"/>
 </map>
