@@ -419,6 +419,57 @@ STATUS incomingDataHandler(UINT64, PSocketConnection, PBYTE, UINT32, PKvsIpAddre
 STATUS incomingRelayedDataHandler(UINT64, PSocketConnection, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress);
 STATUS handleStunPacket(PIceAgent, PBYTE, UINT32, PSocketConnection, PKvsIpAddress, PKvsIpAddress, PSocketConnection*);
 
+/**
+ * Authenticates and deserializes a Binding request, with the checks of RFC 8489 section 9.1.3 in their order: MESSAGE-INTEGRITY
+ * and USERNAME present, USERNAME valid, MESSAGE-INTEGRITY verified. A valid USERNAME's value before the colon is the local
+ * ufrag (RFC 8445 section 7.3); the part after it is not compared, as a check can arrive before the remote description.
+ *
+ * @param - PBYTE - IN - Binding request
+ * @param - UINT32 - IN - its size
+ * @param - PCHAR - IN - local ufrag
+ * @param - PCHAR - IN - local password
+ * @param - PStunPacket* - OUT - the deserialized request
+ *
+ * @return - STATUS - STATUS_STUN_MESSAGE_INTEGRITY_NOT_FOUND, STATUS_STUN_USERNAME_NOT_FOUND, STATUS_STUN_USERNAME_MISMATCH or
+ *  STATUS_STUN_MESSAGE_INTEGRITY_MISMATCH for an unauthenticated request, another failure for a malformed one
+ */
+STATUS iceAgentDeserializeBindingRequest(PBYTE, UINT32, PCHAR, PCHAR, PStunPacket*);
+
+/**
+ * The error code RFC 8489 section 9.1.3 answers a Binding request with when iceAgentDeserializeBindingRequest() failed:
+ * 400 without MESSAGE-INTEGRITY or USERNAME, 401 for another USERNAME or a wrong MESSAGE-INTEGRITY
+ *
+ * @param - STATUS - IN - what iceAgentDeserializeBindingRequest() returned
+ *
+ * @return - UINT16 - STUN error code, 0 when the request gets no response
+ */
+UINT16 iceAgentGetBindingErrorCode(STATUS);
+
+/**
+ * Creates the error response to an unauthenticated Binding request: ERROR-CODE, and no MESSAGE-INTEGRITY or USERNAME
+ * (RFC 8489 section 9.1.3)
+ *
+ * @param - PBYTE - IN - the request's transaction ID
+ * @param - UINT16 - IN - STUN error code, 400 or 401
+ * @param - PStunPacket* - OUT - the error response
+ *
+ * @return - STATUS - status of execution
+ */
+STATUS iceAgentCreateBindingErrorResponse(PBYTE, UINT16, PStunPacket*);
+
+/**
+ * Sends the error response to an unauthenticated Binding request, from the local candidate it reached
+ *
+ * @param - PIceAgent - IN - IceAgent object
+ * @param - PBYTE - IN - the request's transaction ID
+ * @param - UINT16 - IN - STUN error code, 400 or 401
+ * @param - PSocketConnection - IN - socket the request came in on
+ * @param - PKvsIpAddress - IN - where the request came from
+ *
+ * @return - STATUS - status of execution
+ */
+STATUS iceAgentSendBindingErrorResponse(PIceAgent, PBYTE, UINT16, PSocketConnection, PKvsIpAddress);
+
 // IceCandidate functions
 STATUS updateCandidateAddress(PIceCandidate, PKvsIpAddress);
 STATUS findCandidateWithIp(PKvsIpAddress, PDoubleList, PIceCandidate*);

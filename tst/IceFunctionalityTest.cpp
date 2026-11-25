@@ -796,6 +796,72 @@ TEST_F(IceFunctionalityTest, IceAgentPruneUnconnectedIceCandidatePairUnitTest)
     EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.iceCandidatePairs));
 }
 
+// A Binding success response on a candidate pair is discarded without MESSAGE-INTEGRITY (RFC 8489 section 9.1.4)
+TEST_F(IceFunctionalityTest, bindingResponseWithoutMessageIntegrityIsDiscarded)
+{
+    IceAgent iceAgent;
+    IceCandidate localCandidate, remoteCandidate;
+    SocketConnection socketConnection;
+    BYTE transactionId[STUN_TRANSACTION_ID_LEN] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+    BYTE buffer[STUN_PACKET_ALLOCATION_SIZE];
+    UINT32 size;
+    PCHAR remotePassword = (PCHAR) "remotePassword";
+    PStunPacket pResponse = NULL;
+    PDoubleListNode pCurNode = NULL;
+    PIceCandidatePair pIceCandidatePair = NULL;
+    PSocketConnection pSocketConnectionToShutdown = NULL;
+
+    MEMSET(&iceAgent, 0x00, SIZEOF(IceAgent));
+    MEMSET(&localCandidate, 0x00, SIZEOF(IceCandidate));
+    MEMSET(&socketConnection, 0x00, SIZEOF(SocketConnection));
+    STRCPY(iceAgent.remotePassword, remotePassword);
+    localCandidate.state = ICE_CANDIDATE_STATE_VALID;
+    localCandidate.iceCandidateType = ICE_CANDIDATE_TYPE_HOST;
+    localCandidate.ipAddress.family = KVS_IP_FAMILY_TYPE_IPV4;
+    localCandidate.ipAddress.address[0] = 127;
+    localCandidate.ipAddress.address[3] = 1;
+    localCandidate.ipAddress.port = htons(10000);
+    remoteCandidate = localCandidate;
+    remoteCandidate.ipAddress.port = htons(10001);
+    localCandidate.pSocketConnection = &socketConnection;
+    EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.localCandidates));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.remoteCandidates));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListCreate(&iceAgent.iceCandidatePairs));
+    // v1.20.x keeps an agent-level store for srflx Binding requests, which handleStunPacket() checks first
+    EXPECT_EQ(STATUS_SUCCESS, createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT, &iceAgent.pStunBindingRequestTransactionIdStore));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(iceAgent.localCandidates, (UINT64) &localCandidate));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListInsertItemHead(iceAgent.remoteCandidates, (UINT64) &remoteCandidate));
+    EXPECT_EQ(STATUS_SUCCESS, createIceCandidatePairs(&iceAgent, &remoteCandidate, TRUE));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListGetHeadNode(iceAgent.iceCandidatePairs, &pCurNode));
+    ASSERT_TRUE(pCurNode != NULL);
+    pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
+
+    // Set up the check once: the discarded response must leave it pending for the second one
+    pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS;
+    transactionIdStoreInsert(pIceCandidatePair->pTransactionIdStore, transactionId);
+
+    // Without MESSAGE-INTEGRITY first, then with it: only the second one makes the pair succeed
+    for (BOOL withIntegrity : {FALSE, TRUE}) {
+        EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS, transactionId, &pResponse));
+        EXPECT_EQ(STATUS_SUCCESS, appendStunAddressAttribute(pResponse, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, &localCandidate.ipAddress));
+        size = SIZEOF(buffer);
+        EXPECT_EQ(STATUS_SUCCESS,
+                  iceUtilsPackageStunPacket(pResponse, withIntegrity ? (PBYTE) remotePassword : NULL,
+                                            withIntegrity ? (UINT32) STRLEN(remotePassword) : 0, buffer, &size));
+        EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pResponse));
+
+        handleStunPacket(&iceAgent, buffer, size, &socketConnection, &remoteCandidate.ipAddress, NULL, &pSocketConnectionToShutdown);
+        EXPECT_EQ(withIntegrity ? ICE_CANDIDATE_PAIR_STATE_SUCCEEDED : ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS, pIceCandidatePair->state)
+            << (withIntegrity ? "with" : "without") << " MESSAGE-INTEGRITY";
+    }
+
+    EXPECT_EQ(STATUS_SUCCESS, freeIceCandidatePair(&pIceCandidatePair));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.iceCandidatePairs));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.remoteCandidates));
+    EXPECT_EQ(STATUS_SUCCESS, doubleListFree(iceAgent.localCandidates));
+    EXPECT_EQ(STATUS_SUCCESS, freeTransactionIdStore(&iceAgent.pStunBindingRequestTransactionIdStore));
+}
+
 TEST_F(IceFunctionalityTest, IceAgentCandidateGatheringTest)
 {
     ASSERT_EQ(TRUE, mAccessKeyIdSet);
@@ -946,6 +1012,104 @@ TEST_F(IceFunctionalityTest, IceAgentGovCloudStunsCandidateGatheringTest)
     EXPECT_EQ(STATUS_SUCCESS, timerQueueShutdown(timerQueueHandle));
     EXPECT_EQ(STATUS_SUCCESS, freeIceAgent(&pIceAgent));
     EXPECT_EQ(STATUS_SUCCESS, timerQueueFree(&timerQueueHandle));
+}
+
+// A Binding request needs MESSAGE-INTEGRITY and a USERNAME for the local ufrag (RFC 8445 section 7.3), checked in the order
+// of RFC 8489 section 9.1.3: a missing one is a 400 even with a wrong USERNAME or MESSAGE-INTEGRITY, a wrong USERNAME a 401
+// even with a wrong MESSAGE-INTEGRITY
+TEST_F(IceFunctionalityTest, IceAgentDeserializeBindingRequestUnitTest)
+{
+    struct {
+        PCHAR userName; // NULL: no USERNAME
+        PCHAR password; // NULL: no MESSAGE-INTEGRITY
+        STATUS expected;
+        UINT16 errorCode;
+    } cases[] = {
+        {(PCHAR) "local:remote", (PCHAR) "localPassword", STATUS_SUCCESS, 0},
+        {(PCHAR) "local:remote", NULL, STATUS_STUN_MESSAGE_INTEGRITY_NOT_FOUND, 400},
+        {NULL, (PCHAR) "localPassword", STATUS_STUN_USERNAME_NOT_FOUND, 400},
+        {NULL, (PCHAR) "otherPassword", STATUS_STUN_USERNAME_NOT_FOUND, 400},
+        {NULL, NULL, STATUS_STUN_MESSAGE_INTEGRITY_NOT_FOUND, 400},
+        {(PCHAR) "other:remote", (PCHAR) "localPassword", STATUS_STUN_USERNAME_MISMATCH, 401},
+        {(PCHAR) "localx:remote", (PCHAR) "localPassword", STATUS_STUN_USERNAME_MISMATCH, 401},
+        {(PCHAR) "loc:remote", (PCHAR) "localPassword", STATUS_STUN_USERNAME_MISMATCH, 401},
+        {(PCHAR) "local", (PCHAR) "localPassword", STATUS_STUN_USERNAME_MISMATCH, 401},
+        {(PCHAR) "other:remote", (PCHAR) "otherPassword", STATUS_STUN_USERNAME_MISMATCH, 401},
+        {(PCHAR) "local:remote", (PCHAR) "otherPassword", STATUS_STUN_MESSAGE_INTEGRITY_MISMATCH, 401},
+    };
+    BYTE transactionId[STUN_TRANSACTION_ID_LEN] = {0};
+    PBYTE pBuffer = NULL;
+    UINT32 size;
+    PStunPacket pRequest = NULL, pParsed = NULL;
+    STATUS status;
+
+    for (auto& c : cases) {
+        EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pRequest));
+        if (c.userName != NULL) {
+            EXPECT_EQ(STATUS_SUCCESS, appendStunUsernameAttribute(pRequest, c.userName));
+        }
+        EXPECT_EQ(
+            STATUS_SUCCESS,
+            serializeStunPacket(pRequest, (PBYTE) c.password, c.password == NULL ? 0 : STRLEN(c.password), c.password != NULL, TRUE, NULL, &size));
+        ASSERT_TRUE(NULL != (pBuffer = (PBYTE) MEMALLOC(size)));
+        EXPECT_EQ(
+            STATUS_SUCCESS,
+            serializeStunPacket(pRequest, (PBYTE) c.password, c.password == NULL ? 0 : STRLEN(c.password), c.password != NULL, TRUE, pBuffer, &size));
+
+        status = iceAgentDeserializeBindingRequest(pBuffer, size, (PCHAR) "local", (PCHAR) "localPassword", &pParsed);
+        EXPECT_EQ(c.expected, status) << (c.userName == NULL ? "no USERNAME" : c.userName) << ", "
+                                      << (c.password == NULL ? "no MESSAGE-INTEGRITY" : c.password);
+        EXPECT_EQ(c.errorCode, iceAgentGetBindingErrorCode(status));
+        EXPECT_EQ(STATUS_SUCCEEDED(status), pParsed != NULL);
+
+        // A malformed request gets no response
+        if (c.expected == STATUS_SUCCESS) {
+            EXPECT_EQ(0,
+                      iceAgentGetBindingErrorCode(
+                          iceAgentDeserializeBindingRequest(pBuffer, size - 1, (PCHAR) "local", (PCHAR) "localPassword", &pParsed)));
+        }
+
+        freeStunPacket(&pParsed);
+        freeStunPacket(&pRequest);
+        SAFE_MEMFREE(pBuffer);
+    }
+}
+
+// The error response carries ERROR-CODE and the request's transaction ID, and no MESSAGE-INTEGRITY or USERNAME (RFC 8489
+// section 9.1.3)
+TEST_F(IceFunctionalityTest, IceAgentCreateBindingErrorResponseUnitTest)
+{
+    BYTE transactionId[STUN_TRANSACTION_ID_LEN] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+    BYTE buffer[STUN_PACKET_ALLOCATION_SIZE];
+    UINT32 size;
+    UINT16 errorCodes[] = {STUN_ERROR_BAD_REQUEST, STUN_ERROR_UNAUTHORIZED};
+    PStunPacket pResponse = NULL, pParsed = NULL;
+    PStunAttributeHeader pAttribute = NULL;
+
+    EXPECT_EQ(STATUS_INVALID_ARG, iceAgentCreateBindingErrorResponse(transactionId, 403, &pResponse));
+    EXPECT_TRUE(pResponse == NULL);
+
+    for (UINT16 errorCode : errorCodes) {
+        EXPECT_EQ(STATUS_SUCCESS, iceAgentCreateBindingErrorResponse(transactionId, errorCode, &pResponse));
+        // As iceAgentSendBindingErrorResponse() sends it: no password, so no MESSAGE-INTEGRITY, and FINGERPRINT
+        size = SIZEOF(buffer);
+        EXPECT_EQ(STATUS_SUCCESS, iceUtilsPackageStunPacket(pResponse, NULL, 0, buffer, &size));
+        EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pResponse));
+
+        EXPECT_EQ(STATUS_SUCCESS, deserializeStunPacket(buffer, size, NULL, 0, &pParsed));
+        EXPECT_EQ(STUN_PACKET_TYPE_BINDING_RESPONSE_ERROR, pParsed->header.stunMessageType);
+        EXPECT_EQ(0, MEMCMP(transactionId, pParsed->header.transactionId, STUN_TRANSACTION_ID_LEN));
+        EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pParsed, STUN_ATTRIBUTE_TYPE_ERROR_CODE, &pAttribute));
+        ASSERT_TRUE(pAttribute != NULL);
+        EXPECT_EQ(errorCode, ((PStunAttributeErrorCode) pAttribute)->errorCode);
+        EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pParsed, STUN_ATTRIBUTE_TYPE_FINGERPRINT, &pAttribute));
+        EXPECT_TRUE(pAttribute != NULL);
+        EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pParsed, STUN_ATTRIBUTE_TYPE_MESSAGE_INTEGRITY, &pAttribute));
+        EXPECT_TRUE(pAttribute == NULL);
+        EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pParsed, STUN_ATTRIBUTE_TYPE_USERNAME, &pAttribute));
+        EXPECT_TRUE(pAttribute == NULL);
+        EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pParsed));
+    }
 }
 } // namespace webrtcclient
 } // namespace video

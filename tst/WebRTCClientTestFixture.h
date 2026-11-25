@@ -52,6 +52,10 @@ class WebRtcClientTestBase : public ::testing::Test {
     std::vector<std::thread> threads;
     std::mutex lock;
     BOOL noNewThreads = FALSE;
+    // connectTwoPeers gives the answerer the offer with this ice-ufrag instead of the offerer's
+    std::string offerIceUfragOverride;
+    // How long connectTwoPeers waits for both peers to connect
+    UINT32 connectTimeoutSeconds = 100;
 
     WebRtcClientTestBase();
 
