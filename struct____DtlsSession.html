@@ -104,9 +104,9 @@ Collaboration diagram for __DtlsSession:</div>
 <div class="dyncontent">
 <div class="center"><img src="struct____DtlsSession__coll__graph.png" border="0" usemap="#a____DtlsSession_coll__map" loading="lazy" alt="Collaboration graph"/></div>
 <map name="a____DtlsSession_coll__map" id="a____DtlsSession_coll__map">
-<area shape="rect" title=" " alt="" coords="35,262,206,558"/>
-<area shape="rect" href="structDtlsSessionCallbacks.html" title=" " alt="" coords="5,5,236,189"/>
-<area shape="poly" title=" " alt="" coords="121,187,123,246,118,245,120,192"/>
+<area shape="rect" title=" " alt="" coords="34,218,205,513"/>
+<area shape="rect" href="structDtlsSessionCallbacks.html" title=" " alt="" coords="5,5,233,145"/>
+<area shape="poly" title=" " alt="" coords="120,142,122,202,117,201,119,147"/>
 </map>
 </div>
 <table class="memberdecls">
@@ -129,13 +129,6 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:aefab0d57d3a01d31d44ac28975c787f7" id="r_aefab0d57d3a01d31d44ac28975c787f7"><td class="memItemLeft" align="right" valign="top">PCHAR&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aefab0d57d3a01d31d44ac28975c787f7">pExpectedServerHostname</a></td></tr>
 <tr class="memitem:a0df4c43a77aee484e289ebbcb1a14dad" id="r_a0df4c43a77aee484e289ebbcb1a14dad"><td class="memItemLeft" align="right" valign="top">PBYTE&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a0df4c43a77aee484e289ebbcb1a14dad">pEarlyClientHello</a></td></tr>
 <tr class="memitem:af20c1270d454bc1c3cfd27f0b7643461" id="r_af20c1270d454bc1c3cfd27f0b7643461"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#af20c1270d454bc1c3cfd27f0b7643461">earlyClientHelloLen</a></td></tr>
-<tr class="memitem:ac5085d2d9402350a299e980da30c0f7a" id="r_ac5085d2d9402350a299e980da30c0f7a"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac5085d2d9402350a299e980da30c0f7a">spedEnabled</a></td></tr>
-<tr class="memitem:a981d13a511f07ec86f70864e7d777f88" id="r_a981d13a511f07ec86f70864e7d777f88"><td class="memItemLeft" align="right" valign="top">volatile ATOMIC_BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a981d13a511f07ec86f70864e7d777f88">retransmitHold</a></td></tr>
-<tr class="memitem:a69d65d3664fd26616b340894d9bb0026" id="r_a69d65d3664fd26616b340894d9bb0026"><td class="memItemLeft" align="right" valign="top">INT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a69d65d3664fd26616b340894d9bb0026">driveHandshakeState</a></td></tr>
-<tr class="memitem:a59d153b0f0d60fa7a05447cfef27c8ca" id="r_a59d153b0f0d60fa7a05447cfef27c8ca"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a59d153b0f0d60fa7a05447cfef27c8ca">flightPacketCount</a></td></tr>
-<tr class="memitem:af888ba1daf71244c40de5a30a8813b2c" id="r_af888ba1daf71244c40de5a30a8813b2c"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#af888ba1daf71244c40de5a30a8813b2c">flightFirstSeq</a></td></tr>
-<tr class="memitem:ac3ef74a92724781d2b4fc7c252294593" id="r_ac3ef74a92724781d2b4fc7c252294593"><td class="memItemLeft" align="right" valign="top">UINT32&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac3ef74a92724781d2b4fc7c252294593">lastFlightFirstSeq</a></td></tr>
-<tr class="memitem:a4b91adbfa9f28a2cc627d3ef1441f967" id="r_a4b91adbfa9f28a2cc627d3ef1441f967"><td class="memItemLeft" align="right" valign="top">BOOL&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4b91adbfa9f28a2cc627d3ef1441f967">spedMtuRestored</a></td></tr>
 </table>
 <a name="doc-variable-members" id="doc-variable-members"></a><h2 id="header-doc-variable-members" class="groupheader">Member Data Documentation</h2>
 <a id="a9afa83609ca58cd22584866031344cc1" name="a9afa83609ca58cd22584866031344cc1"></a>
@@ -146,20 +139,6 @@ Public Attributes</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">UINT32 __DtlsSession::certificateCount</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a69d65d3664fd26616b340894d9bb0026" name="a69d65d3664fd26616b340894d9bb0026"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a69d65d3664fd26616b340894d9bb0026">&#9670;&#160;</a></span>driveHandshakeState</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">INT32 __DtlsSession::driveHandshakeState</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -222,34 +201,6 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="af888ba1daf71244c40de5a30a8813b2c" name="af888ba1daf71244c40de5a30a8813b2c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af888ba1daf71244c40de5a30a8813b2c">&#9670;&#160;</a></span>flightFirstSeq</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">UINT32 __DtlsSession::flightFirstSeq</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a59d153b0f0d60fa7a05447cfef27c8ca" name="a59d153b0f0d60fa7a05447cfef27c8ca"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a59d153b0f0d60fa7a05447cfef27c8ca">&#9670;&#160;</a></span>flightPacketCount</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">UINT32 __DtlsSession::flightPacketCount</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
 <a id="a51c436cf7a9364b02b653e9a48bc1451" name="a51c436cf7a9364b02b653e9a48bc1451"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a51c436cf7a9364b02b653e9a48bc1451">&#9670;&#160;</a></span>handshakeState</h2>
 
@@ -306,20 +257,6 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="ac3ef74a92724781d2b4fc7c252294593" name="ac3ef74a92724781d2b4fc7c252294593"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac3ef74a92724781d2b4fc7c252294593">&#9670;&#160;</a></span>lastFlightFirstSeq</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">UINT32 __DtlsSession::lastFlightFirstSeq</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
 <a id="a0df4c43a77aee484e289ebbcb1a14dad" name="a0df4c43a77aee484e289ebbcb1a14dad"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a0df4c43a77aee484e289ebbcb1a14dad">&#9670;&#160;</a></span>pEarlyClientHello</h2>
 
@@ -356,48 +293,6 @@ Public Attributes</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">volatile ATOMIC_BOOL __DtlsSession::remoteCertVerificationFailed</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a981d13a511f07ec86f70864e7d777f88" name="a981d13a511f07ec86f70864e7d777f88"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a981d13a511f07ec86f70864e7d777f88">&#9670;&#160;</a></span>retransmitHold</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">volatile ATOMIC_BOOL __DtlsSession::retransmitHold</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="ac5085d2d9402350a299e980da30c0f7a" name="ac5085d2d9402350a299e980da30c0f7a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac5085d2d9402350a299e980da30c0f7a">&#9670;&#160;</a></span>spedEnabled</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">BOOL __DtlsSession::spedEnabled</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a4b91adbfa9f28a2cc627d3ef1441f967" name="a4b91adbfa9f28a2cc627d3ef1441f967"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4b91adbfa9f28a2cc627d3ef1441f967">&#9670;&#160;</a></span>spedMtuRestored</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">BOOL __DtlsSession::spedMtuRestored</td>
         </tr>
       </table>
 </div><div class="memdoc">

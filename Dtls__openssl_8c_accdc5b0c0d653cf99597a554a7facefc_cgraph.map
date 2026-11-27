@@ -1,15 +1,9 @@
 <map id="beginHandshakeProcess" name="beginHandshakeProcess">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,109,185,137"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,57,185,85"/>
 <area shape="rect" id="Node000002" href="$Dtls__openssl_8c.html#af3bfcfebc77d873de4356b748060a048" title=" " alt="" coords="249,5,394,33"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="117,107,168,75,232,43,254,37,250,40,234,48,171,80,120,111"/>
-<area shape="rect" id="Node000003" href="$Dtls__openssl_8c.html#a62f4fece8d175b38d6cee64a54391868" title=" " alt="" coords="238,57,406,85"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="158,106,245,88,241,91,160,111"/>
-<area shape="rect" id="Node000004" href="$Dtls_8c.html#ac7d96e418743c4a3c14e2e766340734c" title=" " alt="" coords="233,109,411,137"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="184,121,220,122,215,124,186,126"/>
-<area shape="rect" id="Node000005" href="$Dtls__openssl_8c.html#abfbeee5981f3dea8df4d92e4fc316973" title=" " alt="" coords="245,161,399,189"/>
-<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="159,135,246,156,241,158,159,140"/>
-<area shape="rect" id="Node000007" href="$Dtls__openssl_8c.html#a7098126d6dad351545fc6aea9afc2668" title=" " alt="" coords="249,213,394,241"/>
-<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="119,135,171,166,234,198,255,208,249,208,232,203,168,171,118,140"/>
-<area shape="rect" id="Node000006" href="$Dtls_8c.html#ac046305acb67e9e685967a41006e50ae" title=" " alt="" coords="459,161,644,189"/>
-<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="399,173,446,175,441,175,400,178"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="158,54,245,36,241,38,160,59"/>
+<area shape="rect" id="Node000003" href="$Dtls_8c.html#ac7d96e418743c4a3c14e2e766340734c" title=" " alt="" coords="233,57,411,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="185,69,220,71,214,72,185,74"/>
+<area shape="rect" id="Node000004" href="$Dtls__openssl_8c.html#a7098126d6dad351545fc6aea9afc2668" title=" " alt="" coords="249,109,394,137"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="159,83,246,104,241,106,159,88"/>
 </map>

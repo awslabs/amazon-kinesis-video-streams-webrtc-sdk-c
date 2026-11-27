@@ -1,9 +1,0 @@
-<map id="appendStunDtlsInStunAckAttribute" name="appendStunDtlsInStunAckAttribute">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,252,33"/>
-<area shape="rect" id="Node000002" href="$Stun_8c.html#afec40ef8921bfe88111a7d056f19f06e" title=" " alt="" coords="300,5,492,33"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="252,17,287,19,281,19,252,22"/>
-<area shape="rect" id="Node000003" href="$Stun_8c.html#afbb87626b5ffeae605b82cbdc3a9dced" title=" " alt="" coords="540,5,756,33"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="493,17,527,19,522,19,493,22"/>
-<area shape="rect" id="Node000004" href="$Stun_8c.html#a7eb2163f10655ff99f6523ffedb30769" title=" " alt="" coords="804,5,1021,33"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="757,17,791,19,786,19,757,22"/>
-</map>

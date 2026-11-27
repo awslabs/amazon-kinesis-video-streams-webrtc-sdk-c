@@ -213,7 +213,7 @@ $(function(){initNavTree('RtcpPacket_8h_source.html','',''); });
 <div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span><span class="comment">// In some fields where a more compact representation is</span></div>
 <div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span><span class="comment">//   appropriate, only the middle 32 bits are used; that is, the low 16</span></div>
 <div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span><span class="comment">//   bits of the integer part and the high 16 bits of the fractional part.</span></div>
-<div class="line"><a id="l00109" name="l00109"></a><span class="lineno"><a class="line" href="RtcpPacket_8h.html#aed870c6456eb7498731c672341070924">  109</a></span><span class="preprocessor">#define MID_NTP(ntp_time) (UINT32)((currentTimeNTP &gt;&gt; 16U) &amp; 0xffffffffULL)</span></div>
+<div class="line"><a id="l00109" name="l00109"></a><span class="lineno"><a class="line" href="RtcpPacket_8h.html#aed870c6456eb7498731c672341070924">  109</a></span><span class="preprocessor">#define MID_NTP(ntp_time) (UINT32)(((ntp_time) &gt;&gt; 16U) &amp; 0xffffffffULL)</span></div>
 <div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span> </div>
 <div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span><span class="preprocessor">#ifdef __cplusplus</span></div>
 <div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span>}</div>

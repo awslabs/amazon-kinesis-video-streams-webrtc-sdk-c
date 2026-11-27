@@ -57,16 +57,8 @@ var searchData=
   ['dtls_5ffingerprint_5fsha256_5fhash_5fname_54',['DTLS_FINGERPRINT_SHA256_HASH_NAME',['../Dtls_8h.html#a31b4ec0e9513c3be0fe78ca82ff70ef4',1,'Dtls.h']]],
   ['dtls_5ffingerprint_5fsha256_5fprefix_55',['DTLS_FINGERPRINT_SHA256_PREFIX',['../Dtls_8h.html#aac75c23f448ca539853ebf577dff9bda',1,'Dtls.h']]],
   ['dtls_5ffingerprint_5fsha256_5fprefix_5flen_56',['DTLS_FINGERPRINT_SHA256_PREFIX_LEN',['../Dtls_8h.html#aa74280d0e852d6eb37ec6b8b97aae745',1,'Dtls.h']]],
-  ['dtls_5fin_5fstun_5fmax_5fpacket_5fsize_57',['DTLS_IN_STUN_MAX_PACKET_SIZE',['../DtlsInStun_8h.html#a2ff339e8a6747721cb9fbbd3a35da45a',1,'DtlsInStun.h']]],
-  ['dtls_5fin_5fstun_5fmax_5fsent_5frequests_58',['DTLS_IN_STUN_MAX_SENT_REQUESTS',['../DtlsInStun_8h.html#ae85d8712b8319923544c792b9093908d',1,'DtlsInStun.h']]],
-  ['dtls_5fin_5fstun_5fmax_5fstashed_5fpackets_59',['DTLS_IN_STUN_MAX_STASHED_PACKETS',['../DtlsInStun_8h.html#abb11f48a70f433bff3b9164d9b84d3a9',1,'DtlsInStun.h']]],
-  ['dtls_5fin_5fstun_5frecord_5fheader_5flen_60',['DTLS_IN_STUN_RECORD_HEADER_LEN',['../DtlsInStun_8h.html#a6dafccaf4f84fb8c61ca7b992fef22da',1,'DtlsInStun.h']]],
-  ['dtls_5fin_5fstun_5ftrailer_5fsize_61',['DTLS_IN_STUN_TRAILER_SIZE',['../DtlsInStun_8c.html#aae71c367e3a29b65c208d13c38e2872a',1,'DtlsInStun.c']]],
-  ['dtls_5fmbedtls_5ferror_5fstring_5fbuffer_5fsize_62',['DTLS_MBEDTLS_ERROR_STRING_BUFFER_SIZE',['../Dtls__mbedtls_8c.html#a42a28a9bb2cc5d974782d2b574aabd08',1,'Dtls_mbedtls.c']]],
-  ['dtls_5fretransmit_5fresume_5fdelay_63',['DTLS_RETRANSMIT_RESUME_DELAY',['../Dtls__openssl_8c.html#aa6aa968c9fada5c2baad483df48384ae',1,'Dtls_openssl.c']]],
-  ['dtls_5frole_5factive_64',['DTLS_ROLE_ACTIVE',['../SessionDescription_8h.html#a841a33383262e24583ce672cdc17c078',1,'SessionDescription.h']]],
-  ['dtls_5frole_5factpass_65',['DTLS_ROLE_ACTPASS',['../SessionDescription_8h.html#ae18c1c7b040daf630353bdc9121ee9f6',1,'SessionDescription.h']]],
-  ['dtls_5frole_5fpassive_66',['DTLS_ROLE_PASSIVE',['../SessionDescription_8h.html#a6ace7fe2602a877358425a1bf5b1f692',1,'SessionDescription.h']]],
-  ['dtls_5fsped_5fmtu_5fsize_5fbytes_67',['DTLS_SPED_MTU_SIZE_BYTES',['../Dtls_8h.html#affc54b324cf26f34b9a8e0d247e4b205',1,'Dtls.h']]],
-  ['dtls_5ftransmission_5finterval_68',['DTLS_TRANSMISSION_INTERVAL',['../Dtls_8h.html#a3cf5ecd0269eae37a1b66d460835f7de',1,'Dtls.h']]]
+  ['dtls_5fmbedtls_5ferror_5fstring_5fbuffer_5fsize_57',['DTLS_MBEDTLS_ERROR_STRING_BUFFER_SIZE',['../Dtls__mbedtls_8c.html#a42a28a9bb2cc5d974782d2b574aabd08',1,'Dtls_mbedtls.c']]],
+  ['dtls_5frole_5factive_58',['DTLS_ROLE_ACTIVE',['../SessionDescription_8h.html#a841a33383262e24583ce672cdc17c078',1,'SessionDescription.h']]],
+  ['dtls_5frole_5factpass_59',['DTLS_ROLE_ACTPASS',['../SessionDescription_8h.html#ae18c1c7b040daf630353bdc9121ee9f6',1,'SessionDescription.h']]],
+  ['dtls_5ftransmission_5finterval_60',['DTLS_TRANSMISSION_INTERVAL',['../Dtls_8h.html#a3cf5ecd0269eae37a1b66d460835f7de',1,'Dtls.h']]]
 ];
