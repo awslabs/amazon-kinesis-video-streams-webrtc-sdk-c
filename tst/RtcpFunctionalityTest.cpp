@@ -1015,6 +1015,111 @@ TEST_F(RtcpFunctionalityTest, transceiverSendPictureLossReachesRemoteSender)
     freePeerConnection(&answerPc);
 }
 
+namespace {
+
+// For senderReportIsEncryptedUnderSrtpSessionLock: on the thread running the probe, count the ICE agent lock taken by
+// iceAgentSendPacket() with and without pSrtpSessionLock held.
+lockMutex gOriginalLockMutex = NULL;
+unlockMutex gOriginalUnlockMutex = NULL;
+MUTEX gTrackedSrtpSessionLock = INVALID_MUTEX_VALUE, gTrackedIceAgentLock = INVALID_MUTEX_VALUE;
+thread_local BOOL tInSenderReportProbe = FALSE;
+thread_local UINT32 tSrtpSessionLockDepth = 0;
+std::atomic<UINT32> gSendsUnderSrtpSessionLock(0), gSendsWithoutSrtpSessionLock(0);
+
+VOID trackingLockMutex(MUTEX mutex)
+{
+    gOriginalLockMutex(mutex);
+    if (tInSenderReportProbe) {
+        if (mutex == gTrackedSrtpSessionLock) {
+            tSrtpSessionLockDepth++;
+        } else if (mutex == gTrackedIceAgentLock) {
+            (tSrtpSessionLockDepth > 0 ? gSendsUnderSrtpSessionLock : gSendsWithoutSrtpSessionLock)++;
+        }
+    }
+}
+
+VOID trackingUnlockMutex(MUTEX mutex)
+{
+    if (tInSenderReportProbe && mutex == gTrackedSrtpSessionLock) {
+        tSrtpSessionLockDepth--;
+    }
+    gOriginalUnlockMutex(mutex);
+}
+
+struct SenderReportProbe {
+    PKvsRtpTransceiver pKvsRtpTransceiver;
+    UINT64 currentTime;
+    STATUS status;
+    std::atomic<bool> done;
+};
+
+STATUS senderReportProbeCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
+{
+    SenderReportProbe* pProbe = (SenderReportProbe*) customData;
+    UNUSED_PARAM(currentTime);
+    tInSenderReportProbe = TRUE;
+    pProbe->status = rtcpReportsCallback(timerId, pProbe->currentTime, (UINT64) pProbe->pKvsRtpTransceiver);
+    tInSenderReportProbe = FALSE;
+    pProbe->done = true;
+    return STATUS_SUCCESS;
+}
+
+} // namespace
+
+// rtcpReportsCallback() runs on the timer thread while writeFrame(), the retransmitter and transceiverSendPictureLoss()
+// encrypt on other threads. libsrtp is not thread safe, and the streams it clones from the outbound template share one
+// RTCP auth and cipher context, so the sender report has to be encrypted and sent under pSrtpSessionLock as well.
+TEST_F(RtcpFunctionalityTest, senderReportIsEncryptedUnderSrtpSessionLock)
+{
+    BYTE key[30];
+    SenderReportProbe probe;
+    UINT32 timerId = 0, i;
+    UINT64 firstFrameTime;
+
+    MEMSET(key, 0x5a, SIZEOF(key));
+    probe.status = STATUS_SUCCESS;
+    probe.done = false;
+    gSendsUnderSrtpSessionLock = 0;
+    gSendsWithoutSrtpSessionLock = 0;
+    // Hook the mutex functions before the peer connection starts its threads, and restore them after it is freed.
+    gOriginalLockMutex = globalLockMutex;
+    gOriginalUnlockMutex = globalUnlockMutex;
+    globalLockMutex = trackingLockMutex;
+    globalUnlockMutex = trackingUnlockMutex;
+
+    initTransceiver(44000);
+    gTrackedSrtpSessionLock = pKvsPeerConnection->pSrtpSessionLock;
+    gTrackedIceAgentLock = pKvsPeerConnection->pIceAgent->lock;
+
+    // The state DTLS completion and the first writeFrame() leave behind. allocateSrtp() and writeFrame() write it under pSrtpSessionLock.
+    firstFrameTime = GETTIME();
+    MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
+    // Only DTLS completion creates the session, so there is none yet to overwrite.
+    EXPECT_TRUE(pKvsPeerConnection->pSrtpSession == NULL);
+    EXPECT_EQ(STATUS_SUCCESS, initSrtpSession(key, key, KVS_SRTP_PROFILE_AES128_CM_HMAC_SHA1_80, &pKvsPeerConnection->pSrtpSession));
+    pKvsRtpTransceiver->sender.firstFrameWallClockTime = firstFrameTime;
+    MUTEX_UNLOCK(pKvsPeerConnection->pSrtpSessionLock);
+
+    // Run a sender report on the timer thread, as the real timer does, 3 s after the first frame so that it is sent.
+    probe.pKvsRtpTransceiver = pKvsRtpTransceiver;
+    probe.currentTime = firstFrameTime + 3 * HUNDREDS_OF_NANOS_IN_A_SECOND;
+    EXPECT_EQ(STATUS_SUCCESS,
+              timerQueueAddTimer(pKvsPeerConnection->timerQueueHandle, HUNDREDS_OF_NANOS_IN_A_MILLISECOND, TIMER_QUEUE_SINGLE_INVOCATION_PERIOD,
+                                 senderReportProbeCallback, (UINT64) &probe, &timerId));
+    for (i = 0; i < 500 && !probe.done.load(); i++) {
+        THREAD_SLEEP(10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    }
+
+    freePeerConnection(&pRtcPeerConnection);
+    globalLockMutex = gOriginalLockMutex;
+    globalUnlockMutex = gOriginalUnlockMutex;
+
+    EXPECT_TRUE(probe.done.load());
+    EXPECT_EQ(STATUS_SUCCESS, probe.status);
+    EXPECT_EQ(1, gSendsUnderSrtpSessionLock.load());
+    EXPECT_EQ(0, gSendsWithoutSrtpSessionLock.load());
+}
+
 TEST_F(RtcpFunctionalityTest, transceiverSendPictureLossAudioTransceiver)
 {
     RtcConfiguration configuration{};
