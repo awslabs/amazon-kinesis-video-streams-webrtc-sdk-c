@@ -227,11 +227,19 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
 
     EXPECT_EQ(STATUS_SUCCESS, createOffer(offerPc, &sdp));
     EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(offerPc, &sdp));
+    this->lastOfferSdp = sdp.sdp;
     if (!this->offerIceUfragOverride.empty()) {
         std::string offerSdp(sdp.sdp), attribute("a=ice-ufrag:");
         for (size_t pos = offerSdp.find(attribute); pos != std::string::npos; pos = offerSdp.find(attribute, pos)) {
             pos += attribute.size();
             offerSdp.replace(pos, offerSdp.find_first_of("\r\n", pos) - pos, this->offerIceUfragOverride);
+        }
+        STRNCPY(sdp.sdp, offerSdp.c_str(), MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+    }
+    if (!this->offerSetupRole.empty()) {
+        std::string offerSdp(sdp.sdp), from("a=setup:actpass"), to("a=setup:" + this->offerSetupRole);
+        for (size_t pos = offerSdp.find(from); pos != std::string::npos; pos = offerSdp.find(from, pos + to.size())) {
+            offerSdp.replace(pos, from.size(), to);
         }
         STRNCPY(sdp.sdp, offerSdp.c_str(), MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
     }
@@ -242,9 +250,34 @@ bool WebRtcClientTestBase::connectTwoPeers(PRtcPeerConnection offerPc, PRtcPeerC
         EXPECT_NE((PCHAR) NULL, STRSTR(sdp.sdp, pOfferCertFingerprint));
     }
 
+    if (this->answerDelay != 0) {
+        RtcSessionDescriptionInit answerInit;
+        MEMSET(&answerInit, 0x00, SIZEOF(answerInit));
+        EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(answerPc, &answerInit));
+        THREAD_SLEEP(this->answerDelay);
+    }
     EXPECT_EQ(STATUS_SUCCESS, createAnswer(answerPc, &sdp));
-    EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(answerPc, &sdp));
+    this->lastAnswerSdp = sdp.sdp;
+    if (this->startDtlsBeforeIce) {
+        EXPECT_EQ(STATUS_SUCCESS, startDtlsSessionBeforeIce((PKvsPeerConnection) answerPc));
+    }
+    if (this->answerDelay == 0) {
+        EXPECT_EQ(STATUS_SUCCESS, setLocalDescription(answerPc, &sdp));
+    }
+    if (this->silentSpedAnswer) {
+        std::string answerSdp(sdp.sdp), line("a=ice-options:sped\r\n"), token(" sped");
+        for (size_t pos = answerSdp.find(line); pos != std::string::npos; pos = answerSdp.find(line)) {
+            answerSdp.erase(pos, line.size());
+        }
+        for (size_t pos = answerSdp.find(token); pos != std::string::npos; pos = answerSdp.find(token)) {
+            answerSdp.erase(pos, token.size());
+        }
+        STRNCPY(sdp.sdp, answerSdp.c_str(), MAX_SESSION_DESCRIPTION_INIT_SDP_LEN);
+    }
     EXPECT_EQ(STATUS_SUCCESS, setRemoteDescription(offerPc, &sdp));
+    if (this->startDtlsBeforeIce) {
+        EXPECT_EQ(STATUS_SUCCESS, startDtlsSessionBeforeIce((PKvsPeerConnection) offerPc));
+    }
 
     if (pAnswerCertFingerprint != NULL) {
         EXPECT_NE((PCHAR) NULL, STRSTR(sdp.sdp, pAnswerCertFingerprint));

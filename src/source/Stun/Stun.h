@@ -102,6 +102,13 @@ extern "C" {
  */
 #define STUN_PACKET_ALLOCATION_SIZE 2048
 
+/**
+ * DTLS-IN-STUN-ACK carries CRC-32s of received DTLS packets
+ * (draft-uberti-tsvwg-warp, section 4.2). At most 4 are sent; up to 8 are accepted.
+ */
+#define STUN_DTLS_IN_STUN_ACK_MAX_SEND    4
+#define STUN_DTLS_IN_STUN_ACK_MAX_RECEIVE 8
+
 #define STUN_SEND_INDICATION_OVERHEAD_SIZE                36
 #define STUN_SEND_INDICATION_APPLICATION_DATA_OFFSET      36
 #define STUN_SEND_INDICATION_APPLICATION_DATA_LEN_OFFSET  34
@@ -220,6 +227,9 @@ typedef enum {
     STUN_ATTRIBUTE_TYPE_REQUESTED_TRANSPORT = (UINT16) 0x0019,
     STUN_ATTRIBUTE_TYPE_DONT_FRAGMENT = (UINT16) 0x001A,
     STUN_ATTRIBUTE_TYPE_RESERVATION_TOKEN = (UINT16) 0x0022,
+    // SPED (draft-uberti-tsvwg-warp, section 4.2): a DTLS packet embedded in the message, and the ACKs of received ones
+    STUN_ATTRIBUTE_TYPE_DTLS_IN_STUN = (UINT16) 0xC070,
+    STUN_ATTRIBUTE_TYPE_DTLS_IN_STUN_ACK = (UINT16) 0xC071,
 
 } STUN_ATTRIBUTE_TYPE;
 
@@ -412,6 +422,36 @@ STATUS updateStunNonceAttribute(PStunPacket, PBYTE, UINT16);
 STATUS appendStunErrorCodeAttribute(PStunPacket, PCHAR, UINT16);
 STATUS appendStunIceControllAttribute(PStunPacket, STUN_ATTRIBUTE_TYPE, UINT64);
 STATUS appendStunDataAttribute(PStunPacket, PBYTE, UINT16);
+STATUS appendStunDtlsInStunAttribute(PStunPacket, PBYTE, UINT16);
+
+/**
+ * Appends an attribute whose value is the given bytes, as DATA, DTLS-IN-STUN and DTLS-IN-STUN-ACK are
+ *
+ * @param - PStunPacket - IN/OUT - the message
+ * @param - STUN_ATTRIBUTE_TYPE - IN - attribute type
+ * @param - PBYTE - IN - the value, NULL for an empty one
+ * @param - UINT16 - IN - its length
+ *
+ * @return - STATUS - status of execution
+ */
+STATUS appendStunBytesAttribute(PStunPacket, STUN_ATTRIBUTE_TYPE, PBYTE, UINT16);
+STATUS appendStunDtlsInStunAckAttribute(PStunPacket, PUINT32, UINT32);
+
+/**
+ * Reads the CRC-32 values out of a DTLS-IN-STUN-ACK attribute
+ *
+ * @param - PStunAttributeHeader - IN - the attribute
+ * @param - PUINT32 - OUT - buffer for STUN_DTLS_IN_STUN_ACK_MAX_RECEIVE values
+ * @param - PUINT32 - OUT - number of values
+ *
+ * @return - STATUS - status of execution, a failure for a malformed attribute
+ */
+STATUS getStunDtlsInStunAcks(PStunAttributeHeader, PUINT32, PUINT32);
+
+/**
+ * Drops the attributes appended after the first UINT32 ones, e.g. to append different ones to a reused packet
+ */
+STATUS truncateStunAttributes(PStunPacket, UINT32);
 STATUS appendStunChannelNumberAttribute(PStunPacket, UINT16);
 STATUS appendStunChangeRequestAttribute(PStunPacket, UINT32);
 

@@ -41,6 +41,11 @@ extern "C" {
 
 // The record header (13 bytes) and handshake header (12 bytes) of a ClientHello
 #define DTLS_CLIENT_HELLO_MIN_LEN 25
+/*
+ * Handshake MTU while the handshake is embedded in STUN (SPED): leaves room for the STUN and TURN
+ * overhead around a DTLS packet, the value libwebrtc uses
+ */
+#define DTLS_SPED_MTU_SIZE_BYTES 900
 
 #define SECONDS_IN_A_DAY (24 * 60 * 60LL)
 
@@ -67,11 +72,19 @@ typedef VOID (*DtlsSessionOutboundPacketFunc)(UINT64, PBYTE, UINT32);
 /*  Callback that is fired when Dtls state has changed */
 typedef VOID (*DtlsSessionOnStateChange)(UINT64, RTC_DTLS_TRANSPORT_STATE);
 
+/*
+ * Callback that is fired once all packets of a handshake flight went to the outbound callback. The BOOL is TRUE when
+ * the flight was the previous one sent again.
+ */
+typedef VOID (*DtlsSessionOnHandshakeFlight)(UINT64, BOOL);
+
 typedef struct {
     UINT64 outBoundPacketFnCustomData;
     DtlsSessionOutboundPacketFunc outboundPacketFn;
     UINT64 stateChangeFnCustomData;
     DtlsSessionOnStateChange stateChangeFn;
+    UINT64 handshakeFlightFnCustomData;
+    DtlsSessionOnHandshakeFlight handshakeFlightFn;
 } DtlsSessionCallbacks, *PDtlsSessionCallbacks;
 
 typedef enum {
@@ -152,6 +165,19 @@ struct __DtlsSession {
     // A ClientHello that arrived before dtlsSessionStart(), for a server to answer when it starts (RFC 8842 section 5.2)
     PBYTE pEarlyClientHello;
     UINT32 earlyClientHelloLen;
+    // The handshake travels in STUN (SPED): smaller MTU while handshaking
+    BOOL spedEnabled;
+    // Retransmissions are left to whoever carries the handshake, e.g. STUN before ICE has a pair
+    volatile ATOMIC_BOOL retransmitHold;
+    // Handshake state when the handshake was last driven, to tell a new flight from a retransmission
+    INT32 driveHandshakeState;
+    // Packets sent since the last flight was reported
+    UINT32 flightPacketCount;
+    // message_seq + 1 of the first plaintext handshake record of this flight and of the last one reported, 0 if none
+    UINT32 flightFirstSeq;
+    UINT32 lastFlightFirstSeq;
+    // The full MTU is back after the handshake
+    BOOL spedMtuRestored;
 
 #ifdef KVS_USE_OPENSSL
     volatile ATOMIC_BOOL sslInitFinished;
@@ -163,6 +189,10 @@ struct __DtlsSession {
     CHAR certFingerprints[MAX_RTCCONFIGURATION_CERTIFICATES][CERTIFICATE_FINGERPRINT_LENGTH + 1];
     SSL_CTX* pSslCtx;
     SSL* pSsl;
+    // SPED: the handshake is being driven, so what is written belongs to a flight
+    BOOL driveInHandshake;
+    // SPED: no retransmission before this time, after a hold was released
+    UINT64 retransmitResumeTime;
 #elif KVS_USE_MBEDTLS
     DtlsSessionTimer transmissionTimer;
     TlsKeys tlsKeys;
@@ -219,6 +249,27 @@ STATUS dtlsSessionShutdown(PDtlsSession);
 
 STATUS dtlsSessionOnOutBoundData(PDtlsSession, UINT64, DtlsSessionOutboundPacketFunc);
 STATUS dtlsSessionOnStateChange(PDtlsSession, UINT64, DtlsSessionOnStateChange);
+STATUS dtlsSessionOnHandshakeFlight(PDtlsSession, UINT64, DtlsSessionOnHandshakeFlight);
+
+/**
+ * Whether the crypto backend can have the handshake embedded in STUN (SPED)
+ */
+BOOL dtlsSpedSupported();
+
+/**
+ * Prepare the session to have its handshake embedded in STUN (SPED). Call before dtlsSessionStart.
+ * @param PDtlsSession - DtlsSession object
+ * @return STATUS - STATUS_NOT_IMPLEMENTED where the crypto backend can not do it
+ */
+STATUS dtlsSessionEnableSped(PDtlsSession);
+
+/**
+ * Hold or release handshake retransmissions. On release the retransmission timer starts over.
+ * @param PDtlsSession - DtlsSession object
+ * @param BOOL - hold
+ * @return STATUS - status of operation
+ */
+STATUS dtlsSessionSetRetransmitHold(PDtlsSession, BOOL);
 STATUS dtlsSessionHandshakeInThread(PDtlsSession, BOOL);
 
 /******** Internal Functions **********/
@@ -229,6 +280,17 @@ STATUS dtlsSessionChangeState(PDtlsSession, RTC_DTLS_TRANSPORT_STATE);
  * Whether a DTLS datagram starts with an unencrypted ClientHello (epoch 0), from its first fragment
  */
 BOOL dtlsPacketIsClientHello(PBYTE, UINT32);
+
+/**
+ * message_seq + 1 of a DTLS packet's first record if it is an unencrypted handshake record (epoch 0), else 0
+ */
+UINT32 dtlsPacketHandshakeSeq(PBYTE, UINT32);
+
+/**
+ * SPED: whether the flight just sent repeats the last one, for a handshake that did not move. A ClientHello sent again
+ * with a cookie after a HelloVerifyRequest leaves the state as it was, but is a new message, so a new flight.
+ */
+BOOL dtlsSessionFlightRepeats(PDtlsSession, BOOL);
 
 /**
  * Keeps a ClientHello that arrived before dtlsSessionStart() for the session to answer when it starts, replacing one kept
@@ -256,6 +318,14 @@ STATUS createCertificateAndKey(INT32, BOOL, X509** ppCert, EVP_PKEY** ppPkey);
 STATUS freeCertificateAndKey(X509** ppCert, EVP_PKEY** ppPkey);
 STATUS dtlsValidateRtcCertificates(PRtcCertificate, PUINT32);
 STATUS createSslCtx(PDtlsSessionCertificateInfo, UINT32, SSL_CTX**);
+/**
+ * SPED: what one drive of the handshake (its start, a packet of the peer, a timeout) writes is a flight. Call with sslLock
+ * held, before and after the call to OpenSSL.
+ * @param PDtlsSession - DtlsSession object
+ * @param BOOL - (End only) whether a timeout drove it, which only resends the last flight
+ */
+VOID dtlsSessionBeginDrive(PDtlsSession);
+VOID dtlsSessionEndDrive(PDtlsSession, BOOL);
 #elif KVS_USE_MBEDTLS
 STATUS dtlsCertificateFingerprint(mbedtls_x509_crt*, PCHAR);
 STATUS copyCertificateAndKey(mbedtls_x509_crt*, mbedtls_pk_context*, PDtlsSessionCertificateInfo, mbedtls_ctr_drbg_context*);

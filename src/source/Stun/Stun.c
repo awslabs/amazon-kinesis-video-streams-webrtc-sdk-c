@@ -378,6 +378,8 @@ STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passw
                 break;
 
             case STUN_ATTRIBUTE_TYPE_DATA:
+            case STUN_ATTRIBUTE_TYPE_DTLS_IN_STUN:
+            case STUN_ATTRIBUTE_TYPE_DTLS_IN_STUN_ACK:
 
                 pStunAttributeData = (PStunAttributeData) pStunAttributeHeader;
 
@@ -746,7 +748,10 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
 
                 break;
 
+            case STUN_ATTRIBUTE_TYPE_DTLS_IN_STUN_ACK:
             case STUN_ATTRIBUTE_TYPE_DATA:
+            case STUN_ATTRIBUTE_TYPE_DTLS_IN_STUN:
+                // getStunDtlsInStunAcks checks the length of a DTLS-IN-STUN-ACK: a malformed one must not cost the whole check
                 attributeSize = SIZEOF(StunAttributeData);
 
                 CHK(!fingerprintFound && !messaageIntegrityFound, STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY);
@@ -784,7 +789,9 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
                 break;
         }
 
-        allocationSize += attributeSize;
+        // Each attribute starts 8-byte aligned: the structures hold pointers and 64-bit values, and a variable-length
+        // value before them (padded to 4 bytes only) would leave the next one misaligned
+        allocationSize += ROUND_UP(attributeSize, 8);
         attributeCount++;
 
         CHK(attributeCount <= STUN_ATTRIBUTE_MAX_COUNT, STATUS_STUN_MAX_ATTRIBUTE_COUNT);
@@ -1004,6 +1011,8 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
                 break;
 
             case STUN_ATTRIBUTE_TYPE_DATA:
+            case STUN_ATTRIBUTE_TYPE_DTLS_IN_STUN:
+            case STUN_ATTRIBUTE_TYPE_DTLS_IN_STUN_ACK:
                 pStunAttributeData = (PStunAttributeData) pDestAttribute;
 
                 // Set the padded length
@@ -1097,8 +1106,8 @@ STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE passwor
         // Increment the attributes pointer and account for the length
         pStunAttributeHeader = (PStunAttributeHeader) ((PBYTE) pStunAttributeHeader + STUN_ATTRIBUTE_HEADER_LEN + paddedLength);
 
-        // Set the destination
-        pDestAttribute = (PStunAttributeHeader) ((PBYTE) pDestAttribute + attributeSize);
+        // Set the destination, aligned as the first pass sized it
+        pDestAttribute = (PStunAttributeHeader) ((PBYTE) pDestAttribute + ROUND_UP(attributeSize, 8));
     }
 
 CleanUp:
@@ -1736,7 +1745,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS appendStunDataAttribute(PStunPacket pStunPacket, PBYTE data, UINT16 dataLen)
+STATUS appendStunBytesAttribute(PStunPacket pStunPacket, STUN_ATTRIBUTE_TYPE type, PBYTE data, UINT16 dataLen)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -1744,7 +1753,7 @@ STATUS appendStunDataAttribute(PStunPacket pStunPacket, PBYTE data, UINT16 dataL
     PStunAttributeHeader pAttributeHeader = NULL;
     UINT16 paddedLength;
 
-    CHK(data != NULL, STATUS_NULL_ARG);
+    CHK(data != NULL || dataLen == 0, STATUS_NULL_ARG);
 
     CHK_STATUS(getFirstAvailableStunAttribute(pStunPacket, &pAttributeHeader));
     pAttribute = (PStunAttributeData) pAttributeHeader;
@@ -1759,7 +1768,7 @@ STATUS appendStunDataAttribute(PStunPacket pStunPacket, PBYTE data, UINT16 dataL
     pStunPacket->attributeList[pStunPacket->attributesCount++] = (PStunAttributeHeader) pAttribute;
 
     pAttribute->attribute.length = dataLen;
-    pAttribute->attribute.type = STUN_ATTRIBUTE_TYPE_DATA;
+    pAttribute->attribute.type = type;
 
     // Set the padded length
     pAttribute->paddedLength = paddedLength;
@@ -1767,10 +1776,102 @@ STATUS appendStunDataAttribute(PStunPacket pStunPacket, PBYTE data, UINT16 dataL
     // Set the pointer following the structure
     pAttribute->data = (PBYTE) (pAttribute + 1);
 
-    MEMCPY(pAttribute->data, data, dataLen);
+    if (dataLen > 0) {
+        MEMCPY(pAttribute->data, data, dataLen);
+    }
+
+    // The space may have held a truncated attribute before, keep the padding zero
+    MEMSET(pAttribute->data + dataLen, 0x00, paddedLength - dataLen);
 
     // Fix-up the STUN header message length
     pStunPacket->header.messageLength += paddedLength + STUN_ATTRIBUTE_HEADER_LEN;
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS appendStunDataAttribute(PStunPacket pStunPacket, PBYTE data, UINT16 dataLen)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(data != NULL, STATUS_NULL_ARG);
+    CHK_STATUS(appendStunBytesAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_DATA, data, dataLen));
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS appendStunDtlsInStunAttribute(PStunPacket pStunPacket, PBYTE pDtlsPacket, UINT16 dtlsPacketLen)
+{
+    // Empty when there is nothing to embed, which still announces SPED support
+    return appendStunBytesAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_DTLS_IN_STUN, pDtlsPacket, dtlsPacketLen);
+}
+
+STATUS appendStunDtlsInStunAckAttribute(PStunPacket pStunPacket, PUINT32 pAcks, UINT32 ackCount)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 i, value[STUN_DTLS_IN_STUN_ACK_MAX_SEND];
+
+    CHK(pAcks != NULL || ackCount == 0, STATUS_NULL_ARG);
+    CHK(ackCount <= STUN_DTLS_IN_STUN_ACK_MAX_SEND, STATUS_INVALID_ARG);
+
+    for (i = 0; i < ackCount; i++) {
+        putInt32((PINT32) &value[i], (INT32) pAcks[i]);
+    }
+
+    CHK_STATUS(appendStunBytesAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_DTLS_IN_STUN_ACK, (PBYTE) value, (UINT16) (ackCount * SIZEOF(UINT32))));
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS getStunDtlsInStunAcks(PStunAttributeHeader pAttributeHeader, PUINT32 pAcks, PUINT32 pAckCount)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PStunAttributeData pAttribute = (PStunAttributeData) pAttributeHeader;
+    UINT32 i, count;
+
+    CHK(pAttributeHeader != NULL && pAcks != NULL && pAckCount != NULL, STATUS_NULL_ARG);
+    CHK(pAttributeHeader->type == STUN_ATTRIBUTE_TYPE_DTLS_IN_STUN_ACK, STATUS_INVALID_ARG);
+
+    count = pAttributeHeader->length / SIZEOF(UINT32);
+    CHK(pAttributeHeader->length % SIZEOF(UINT32) == 0 && count <= STUN_DTLS_IN_STUN_ACK_MAX_RECEIVE,
+        STATUS_STUN_INVALID_DTLS_IN_STUN_ACK_ATTRIBUTE_LENGTH);
+
+    for (i = 0; i < count; i++) {
+        pAcks[i] = (UINT32) getInt32(*(PINT32) (pAttribute->data + i * SIZEOF(UINT32)));
+    }
+    *pAckCount = count;
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS truncateStunAttributes(PStunPacket pStunPacket, UINT32 attributesCount)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PStunAttributeHeader pAttribute;
+
+    CHK(pStunPacket != NULL, STATUS_NULL_ARG);
+    CHK(attributesCount <= pStunPacket->attributesCount, STATUS_INVALID_ARG);
+
+    // The next append lands right after the last attribute left, so dropping them from the list frees their space
+    while (pStunPacket->attributesCount > attributesCount) {
+        pAttribute = pStunPacket->attributeList[--pStunPacket->attributesCount];
+        pStunPacket->header.messageLength -= (UINT16) (STUN_ATTRIBUTE_HEADER_LEN + ROUND_UP(pAttribute->length, 4));
+    }
 
 CleanUp:
 
@@ -1852,6 +1953,8 @@ UINT16 getPackagedStunAttributeSize(PStunAttributeHeader pStunAttributeHeader)
             length = SIZEOF(StunAttributeNonce) + ((PStunAttributeNonce) pStunAttributeHeader)->paddedLength;
             break;
         case STUN_ATTRIBUTE_TYPE_DATA:
+        case STUN_ATTRIBUTE_TYPE_DTLS_IN_STUN:
+        case STUN_ATTRIBUTE_TYPE_DTLS_IN_STUN_ACK:
             length = SIZEOF(StunAttributeData) + ((PStunAttributeData) pStunAttributeHeader)->paddedLength;
             break;
         case STUN_ATTRIBUTE_TYPE_USERNAME:

@@ -72,6 +72,7 @@ extern "C" {
 
 #define DTLS_ROLE_ACTPASS (PCHAR) "actpass"
 #define DTLS_ROLE_ACTIVE  (PCHAR) "active"
+#define DTLS_ROLE_PASSIVE (PCHAR) "passive"
 
 #define VIDEO_CLOCKRATE (UINT64) 90000
 #define OPUS_CLOCKRATE  (UINT64) 48000

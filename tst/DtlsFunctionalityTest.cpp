@@ -403,6 +403,210 @@ TEST_F(DtlsFunctionalityTest, strictServerValidationRejectsUntrustedServerCertif
     }
 }
 
+// One side of a DTLS handshake carried in STUN: a DTLS session feeding a DTLS-in-STUN controller
+struct SpedSide {
+    PDtlsSession pSession = NULL;
+    PDtlsInStun pDtlsInStun = NULL;
+    BOOL isServer = FALSE;
+    std::atomic<UINT32> plainPackets{0};
+    std::atomic<UINT32> flights{0};
+    std::atomic<UINT32> retransmittedFlights{0};
+    std::atomic<BOOL> connected{FALSE};
+    UINT32 largestPacket = 0;
+};
+
+static VOID spedOutboundPacket(UINT64 customData, PBYTE pData, UINT32 dataLen)
+{
+    SpedSide* pSide = (SpedSide*) customData;
+    pSide->largestPacket = MAX(pSide->largestPacket, dataLen);
+    if (!dtlsInStunCapturePacket(pSide->pDtlsInStun, pData, dataLen)) {
+        pSide->plainPackets++;
+    }
+}
+
+static VOID spedHandshakeFlight(UINT64 customData, BOOL retransmission)
+{
+    SpedSide* pSide = (SpedSide*) customData;
+    pSide->flights++;
+    if (retransmission) {
+        pSide->retransmittedFlights++;
+    }
+    dtlsInStunEndFlight(pSide->pDtlsInStun, retransmission);
+}
+
+static VOID spedStateChange(UINT64 customData, RTC_DTLS_TRANSPORT_STATE state)
+{
+    SpedSide* pSide = (SpedSide*) customData;
+    if (state == RTC_DTLS_TRANSPORT_STATE_CONNECTED && !pSide->connected) {
+        pSide->connected = TRUE;
+        dtlsInStunOnHandshakeComplete(pSide->pDtlsInStun, !pSide->isServer);
+    }
+}
+
+static STATUS spedSetup(SpedSide* pSide, TIMER_QUEUE_HANDLE timerQueueHandle, BOOL isServer)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    DtlsSessionCallbacks callbacks;
+
+    MEMSET(&callbacks, 0, SIZEOF(callbacks));
+    callbacks.stateChangeFn = spedStateChange;
+    callbacks.stateChangeFnCustomData = (UINT64) pSide;
+    pSide->isServer = isServer;
+    CHK_STATUS(createDtlsInStun(&pSide->pDtlsInStun));
+    CHK_STATUS(createDtlsSession(&callbacks, timerQueueHandle, 0, FALSE, NULL, &pSide->pSession));
+    CHK_STATUS(dtlsSessionOnOutBoundData(pSide->pSession, (UINT64) pSide, spedOutboundPacket));
+    CHK_STATUS(dtlsSessionOnHandshakeFlight(pSide->pSession, (UINT64) pSide, spedHandshakeFlight));
+    CHK_STATUS(dtlsSessionEnableSped(pSide->pSession));
+    CHK_STATUS(dtlsSessionSetRetransmitHold(pSide->pSession, TRUE));
+    CHK_STATUS(dtlsInStunStart(pSide->pDtlsInStun));
+    CHK_STATUS(dtlsInStunSetDtlsStarted(pSide->pDtlsInStun));
+    CHK_STATUS(dtlsSessionStart(pSide->pSession, isServer));
+
+CleanUp:
+    return retStatus;
+}
+
+static VOID spedTeardown(SpedSide* pSide)
+{
+    freeDtlsSession(&pSide->pSession);
+    freeDtlsInStun(&pSide->pDtlsInStun);
+}
+
+// One STUN message from one side to the other, carrying whatever the controllers put in it
+static STATUS spedDeliver(SpedSide* pFrom, SpedSide* pTo, STUN_PACKET_TYPE type, PBYTE transactionId)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PStunPacket pStunPacket = NULL;
+    BYTE packet[DTLS_IN_STUN_MAX_PACKET_SIZE];
+    UINT32 packetLen = 0;
+    INT32 readLen;
+
+    CHK_STATUS(createStunPacket(type, transactionId, &pStunPacket));
+    CHK_STATUS(dtlsInStunAppendAttributes(pFrom->pDtlsInStun, pStunPacket, DEFAULT_MTU_SIZE_BYTES, TRUE));
+    CHK_STATUS(dtlsInStunOnStunMessage(pTo->pDtlsInStun, pStunPacket, packet, &packetLen));
+    if (packetLen > 0) {
+        readLen = (INT32) packetLen;
+        CHK_STATUS(dtlsSessionProcessPacket(pTo->pSession, packet, &readLen));
+    }
+
+CleanUp:
+    freeStunPacket(&pStunPacket);
+    return retStatus;
+}
+
+TEST_F(DtlsFunctionalityTest, spedHandshakeEntirelyInStun)
+{
+    TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+    SpedSide client, server;
+    BYTE transactionId[STUN_TRANSACTION_ID_LEN] = {0};
+    UINT32 round, dataPackets;
+    BYTE data[1100] = {0};
+
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+    ASSERT_EQ(STATUS_SUCCESS, spedSetup(&server, timerQueueHandle, TRUE));
+    ASSERT_EQ(STATUS_SUCCESS, spedSetup(&client, timerQueueHandle, FALSE));
+
+    // The ClientHello is out as soon as the session starts
+    EXPECT_EQ(1, client.flights.load());
+
+    // Checks from the client, each answered by the server
+    for (round = 0; round < 10 && !(client.connected && server.connected); round++) {
+        transactionId[0] = (BYTE) round;
+        EXPECT_EQ(STATUS_SUCCESS, spedDeliver(&client, &server, STUN_PACKET_TYPE_BINDING_REQUEST, transactionId));
+        EXPECT_EQ(STATUS_SUCCESS, spedDeliver(&server, &client, STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS, transactionId));
+    }
+    EXPECT_TRUE(client.connected);
+    EXPECT_TRUE(server.connected);
+
+    // ClientHello / server flight / client flight: two rounds, nothing went out plain, nothing was resent
+    EXPECT_LE(round, 3);
+    EXPECT_EQ(0, client.plainPackets.load());
+    EXPECT_EQ(0, server.plainPackets.load());
+    EXPECT_EQ(0, client.retransmittedFlights.load());
+    EXPECT_EQ(0, server.retransmittedFlights.load());
+    EXPECT_LE(client.largestPacket, DTLS_SPED_MTU_SIZE_BYTES);
+    EXPECT_LE(server.largestPacket, DTLS_SPED_MTU_SIZE_BYTES);
+
+    // The server's last flight is acknowledged by the next check, then both are done
+    transactionId[0] = 0xFF;
+    EXPECT_EQ(STATUS_SUCCESS, spedDeliver(&client, &server, STUN_PACKET_TYPE_BINDING_REQUEST, transactionId));
+    EXPECT_EQ(STATUS_SUCCESS, spedDeliver(&server, &client, STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS, transactionId));
+    EXPECT_EQ(DTLS_IN_STUN_STATE_COMPLETE, dtlsInStunGetState(server.pDtlsInStun));
+    EXPECT_EQ(DTLS_IN_STUN_STATE_COMPLETE, dtlsInStunGetState(client.pDtlsInStun));
+
+    // Application data is back on the full MTU: 1100 bytes fit one record
+    dataPackets = client.plainPackets;
+    EXPECT_EQ(STATUS_SUCCESS, dtlsSessionPutApplicationData(client.pSession, data, SIZEOF(data)));
+    EXPECT_EQ(dataPackets + 1, client.plainPackets.load());
+
+    spedTeardown(&client);
+    spedTeardown(&server);
+    timerQueueFree(&timerQueueHandle);
+}
+
+// The handshake MTU is set when the session starts, too late after that
+TEST_F(DtlsFunctionalityTest, spedEnableAfterStartFails)
+{
+    TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+    PDtlsSession pSession = NULL;
+    DtlsSessionCallbacks callbacks;
+    SpedSide side;
+
+    MEMSET(&callbacks, 0, SIZEOF(callbacks));
+    ASSERT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+    ASSERT_EQ(STATUS_SUCCESS, createDtlsSession(&callbacks, timerQueueHandle, 0, FALSE, NULL, &pSession));
+    ASSERT_EQ(STATUS_SUCCESS, dtlsSessionOnOutBoundData(pSession, (UINT64) &side, spedOutboundPacket));
+    ASSERT_EQ(STATUS_SUCCESS, dtlsSessionStart(pSession, FALSE));
+    EXPECT_EQ(STATUS_INVALID_OPERATION, dtlsSessionEnableSped(pSession));
+
+    freeDtlsSession(&pSession);
+    timerQueueFree(&timerQueueHandle);
+}
+
+// More SPED sessions in one process than OpenSSL has BIO types to hand out (128), which OpenSSL 3 refuses past that
+TEST_F(DtlsFunctionalityTest, spedManySessions)
+{
+    TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+    PDtlsSession pSession = NULL;
+    DtlsSessionCallbacks callbacks;
+    UINT32 i;
+
+    MEMSET(&callbacks, 0, SIZEOF(callbacks));
+    ASSERT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+    for (i = 0; i < 300; i++) {
+        ASSERT_EQ(STATUS_SUCCESS, createDtlsSession(&callbacks, timerQueueHandle, 0, FALSE, NULL, &pSession));
+        EXPECT_EQ(STATUS_SUCCESS, dtlsSessionEnableSped(pSession)) << "session " << i;
+        freeDtlsSession(&pSession);
+    }
+
+    timerQueueFree(&timerQueueHandle);
+}
+
+TEST_F(DtlsFunctionalityTest, spedRetransmitHold)
+{
+    TIMER_QUEUE_HANDLE timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
+    SpedSide client;
+
+    EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
+    ASSERT_EQ(STATUS_SUCCESS, spedSetup(&client, timerQueueHandle, FALSE));
+    EXPECT_EQ(1, client.flights.load());
+
+    // The DTLS stack would resend after 1 s and again after 2 s more
+    THREAD_SLEEP(2500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    EXPECT_EQ(1, client.flights.load());
+
+    // Released, the retransmission timer starts over
+    EXPECT_EQ(STATUS_SUCCESS, dtlsSessionSetRetransmitHold(client.pSession, FALSE));
+    THREAD_SLEEP(500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    EXPECT_EQ(1, client.flights.load());
+    THREAD_SLEEP(1000 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+    EXPECT_EQ(2, client.flights.load());
+    EXPECT_EQ(1, client.retransmittedFlights.load());
+
+    spedTeardown(&client);
+    timerQueueFree(&timerQueueHandle);
+}
+
 } // namespace webrtcclient
 } // namespace video
 } // namespace kinesis

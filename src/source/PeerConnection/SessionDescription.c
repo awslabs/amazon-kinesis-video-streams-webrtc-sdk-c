@@ -1,6 +1,21 @@
 #define LOG_CLASS "SessionDescription"
 #include "../Include_i.h"
 
+// The a=ice-options value, NULL for none. SPED is offered when enabled, and answered when the offer had it, with the
+// offer's earlier libwebrtc name for it too
+static PCHAR getLocalIceOptions(PKvsPeerConnection pKvsPeerConnection)
+{
+    PCHAR pOptions = pKvsPeerConnection->localIceOptions;
+    BOOL sped = pKvsPeerConnection->spedEnabled && (pKvsPeerConnection->isOffer || pKvsPeerConnection->remoteSpedOffered);
+    PCHAR pLegacy = sped && !pKvsPeerConnection->isOffer ? pKvsPeerConnection->remoteSpedLegacyOption : (PCHAR) "";
+
+    SNPRINTF(pOptions, SIZEOF(pKvsPeerConnection->localIceOptions), "%s%s%s%s", pKvsPeerConnection->canTrickleIce.value ? " trickle" : "",
+             sped ? " sped" : "", pLegacy[0] != '\0' ? " " : "", pLegacy);
+
+    // Past the leading space
+    return pOptions[0] != '\0' ? pOptions + 1 : NULL;
+}
+
 // Case-insensitive string contains
 // Finds the first occurrence of the substring needle in the string haystack.
 // The terminating null bytes are not compared.
@@ -706,9 +721,9 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, pKvsPeerConnection->localIcePwd);
     attributeCount++;
 
-    if (pKvsPeerConnection->canTrickleIce.value) {
+    if (getLocalIceOptions(pKvsPeerConnection) != NULL) {
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ice-options");
-        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "trickle");
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, getLocalIceOptions(pKvsPeerConnection));
         attributeCount++;
     }
 
@@ -1050,9 +1065,9 @@ STATUS populateSessionDescriptionDataChannel(PKvsPeerConnection pKvsPeerConnecti
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, pKvsPeerConnection->localIcePwd);
     attributeCount++;
 
-    if (pKvsPeerConnection->canTrickleIce.value) {
+    if (getLocalIceOptions(pKvsPeerConnection) != NULL) {
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ice-options");
-        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "trickle");
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, getLocalIceOptions(pKvsPeerConnection));
         attributeCount++;
     }
 
@@ -1161,7 +1176,8 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
             }
         }
     } else {
-        pDtlsRole = DTLS_ROLE_ACTIVE;
+        // DTLS client unless the offer took that role (a=setup:active)
+        pDtlsRole = ATOMIC_LOAD_BOOL(&pKvsPeerConnection->dtlsIsServer) ? DTLS_ROLE_PASSIVE : DTLS_ROLE_ACTIVE;
         unknownHashTableBucketCount =
             pRemoteSessionDescription->mediaCount < MIN_HASH_BUCKET_COUNT ? MIN_HASH_BUCKET_COUNT : pRemoteSessionDescription->mediaCount;
         CHK_STATUS(hashTableCreateWithParams(unknownHashTableBucketCount, CODEC_RTPMAP_PAYLOAD_TYPES_HASH_TABLE_BUCKET_LENGTH,
@@ -1321,9 +1337,10 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessio
     STRCPY(pLocalSessionDescription->sdpAttributes[0].attributeName, "group");
     STRCPY(pLocalSessionDescription->sdpAttributes[0].attributeValue, BUNDLE_KEY);
     pLocalSessionDescription->sessionAttributesCount++;
-    if (pKvsPeerConnection->canTrickleIce.value) {
+    if (getLocalIceOptions(pKvsPeerConnection) != NULL) {
         STRCPY(pLocalSessionDescription->sdpAttributes[pLocalSessionDescription->sessionAttributesCount].attributeName, "ice-options");
-        STRCPY(pLocalSessionDescription->sdpAttributes[pLocalSessionDescription->sessionAttributesCount].attributeValue, "trickle");
+        STRCPY(pLocalSessionDescription->sdpAttributes[pLocalSessionDescription->sessionAttributesCount].attributeValue,
+               getLocalIceOptions(pKvsPeerConnection));
         pLocalSessionDescription->sessionAttributesCount++;
     }
 

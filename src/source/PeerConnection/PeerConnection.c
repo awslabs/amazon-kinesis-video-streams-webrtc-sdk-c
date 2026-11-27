@@ -283,10 +283,18 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
                   +----------------+
     */
     if (buff[0] > 19 && buff[0] < 64) {
+        // SPED acknowledges DTLS packets, embedded or not. Before processing, which decrypts in place.
+        if (pKvsPeerConnection->spedEnabled) {
+            CHK_LOG_ERR(dtlsInStunOnDtlsPacket(pKvsPeerConnection->pIceAgent->pDtlsInStun, buff, buffLen));
+        }
         dtlsSessionProcessPacket(pKvsPeerConnection->pDtlsSession, buff, &signedBuffLen);
 
         CHK_STATUS(dtlsSessionIsInitFinished(pKvsPeerConnection->pDtlsSession, &isDtlsConnected));
         if (isDtlsConnected) {
+            // Application data means the peer is done with the handshake too
+            if (pKvsPeerConnection->spedEnabled && signedBuffLen > 0) {
+                CHK_LOG_ERR(dtlsInStunOnApplicationData(pKvsPeerConnection->pIceAgent->pDtlsInStun));
+            }
             if (pKvsPeerConnection->pSrtpSession == NULL) {
                 CHK_STATUS(allocateSrtp(pKvsPeerConnection));
             }
@@ -302,10 +310,16 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
                 }
             }
 #endif
-            changePeerConnectionState(pKvsPeerConnection, RTC_PEER_CONNECTION_STATE_CONNECTED);
+            // A DTLS session started before ICE had a pair can not send yet: ICE READY sets CONNECTED then
+            if (!ATOMIC_LOAD_BOOL(&pKvsPeerConnection->queueEarlyDtls)) {
+                changePeerConnectionState(pKvsPeerConnection, RTC_PEER_CONNECTION_STATE_CONNECTED);
+            }
         }
 
     } else if ((buff[0] > 127 && buff[0] < 192) && (pKvsPeerConnection->pSrtpSession != NULL)) {
+        if (pKvsPeerConnection->spedEnabled) {
+            CHK_LOG_ERR(dtlsInStunOnApplicationData(pKvsPeerConnection->pIceAgent->pDtlsInStun));
+        }
         if (buff[1] >= 192 && buff[1] <= 223) {
             if (STATUS_FAILED(retStatus = decryptSrtcpPacket(pKvsPeerConnection->pSrtpSession, buff, &signedBuffLen))) {
                 DLOGW("decryptSrtcpPacket failed with 0x%08x", retStatus);
@@ -624,6 +638,7 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
     }
 
     if (startDtlsSession) {
+        CHK_STATUS(sendEarlyDtls(pKvsPeerConnection));
         CHK_STATUS(dtlsSessionIsInitFinished(pKvsPeerConnection->pDtlsSession, &dtlsConnected));
         if (dtlsConnected) {
             // In ICE restart scenario, DTLS handshake is not going to be reset. Therefore, we need to check
@@ -635,7 +650,10 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
             //
             // Reference: https://w3c.github.io/webrtc-pc/#rtcpeerconnectionstate-enum
 #if defined(ENABLE_KVS_THREADPOOL) && defined(KVS_USE_OPENSSL)
-            CHK_STATUS(threadpoolContextPush(dtlsSessionStartThread, (PVOID) pKvsPeerConnection));
+            // Not for a session started before ICE had a pair: its timer drives the handshake already
+            if (!ATOMIC_LOAD_BOOL(&pKvsPeerConnection->pDtlsSession->isStarted)) {
+                CHK_STATUS(threadpoolContextPush(dtlsSessionStartThread, (PVOID) pKvsPeerConnection));
+            }
 #else
             CHK_STATUS(dtlsSessionStart(pKvsPeerConnection->pDtlsSession, ATOMIC_LOAD_BOOL(&pKvsPeerConnection->dtlsIsServer)));
 #endif
@@ -820,17 +838,138 @@ CleanUp:
     return retStatus;
 }
 
+// Keeps DTLS output written before ICE has a pair, see startDtlsSessionBeforeIce. Returns TRUE if it was taken.
+static BOOL queueEarlyDtlsPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuffer, UINT32 bufferLen)
+{
+    BOOL queued = FALSE;
+    PBYTE pPacket;
+
+    // Without the lock for every packet once ICE has a pair; under it, sendEarlyDtls() may have just flushed the queue
+    if (!ATOMIC_LOAD_BOOL(&pKvsPeerConnection->queueEarlyDtls)) {
+        return FALSE;
+    }
+    MUTEX_LOCK(pKvsPeerConnection->earlyDtlsLock);
+    if (ATOMIC_LOAD_BOOL(&pKvsPeerConnection->queueEarlyDtls)) {
+        queued = TRUE;
+        if (NULL != (pPacket = (PBYTE) MEMALLOC(bufferLen))) {
+            // When full, the oldest packet goes: a resent flight repeats it, and the newest may be a flight the peer needs
+            if (pKvsPeerConnection->earlyDtlsPacketCount == MAX_EARLY_DTLS_PACKETS) {
+                DLOGW("Dropping the oldest of %u DTLS packets written before ICE has a pair", MAX_EARLY_DTLS_PACKETS);
+                SAFE_MEMFREE(pKvsPeerConnection->earlyDtlsPackets[0]);
+                MEMMOVE(&pKvsPeerConnection->earlyDtlsPackets[0], &pKvsPeerConnection->earlyDtlsPackets[1],
+                        (MAX_EARLY_DTLS_PACKETS - 1) * SIZEOF(PBYTE));
+                MEMMOVE(&pKvsPeerConnection->earlyDtlsPacketLengths[0], &pKvsPeerConnection->earlyDtlsPacketLengths[1],
+                        (MAX_EARLY_DTLS_PACKETS - 1) * SIZEOF(UINT32));
+                pKvsPeerConnection->earlyDtlsPacketCount--;
+            }
+            MEMCPY(pPacket, pBuffer, bufferLen);
+            pKvsPeerConnection->earlyDtlsPackets[pKvsPeerConnection->earlyDtlsPacketCount] = pPacket;
+            pKvsPeerConnection->earlyDtlsPacketLengths[pKvsPeerConnection->earlyDtlsPacketCount] = bufferLen;
+            pKvsPeerConnection->earlyDtlsPacketCount++;
+        } else {
+            DLOGW("Dropping a DTLS packet written before ICE has a pair: out of memory");
+        }
+    }
+    MUTEX_UNLOCK(pKvsPeerConnection->earlyDtlsLock);
+
+    return queued;
+}
+
+STATUS startDtlsSessionBeforeIce(PKvsPeerConnection pKvsPeerConnection)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+    CHK(!ATOMIC_LOAD_BOOL(&pKvsPeerConnection->pDtlsSession->isStarted), retStatus);
+
+    // Without a pair there is nowhere to retransmit to
+    CHK_STATUS(dtlsSessionSetRetransmitHold(pKvsPeerConnection->pDtlsSession, TRUE));
+    ATOMIC_STORE_BOOL(&pKvsPeerConnection->queueEarlyDtls, TRUE);
+    CHK_STATUS(dtlsSessionStart(pKvsPeerConnection->pDtlsSession, ATOMIC_LOAD_BOOL(&pKvsPeerConnection->dtlsIsServer)));
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS sendEarlyDtls(PKvsPeerConnection pKvsPeerConnection)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PBYTE packets[MAX_EARLY_DTLS_PACKETS];
+    UINT32 lengths[MAX_EARLY_DTLS_PACKETS], count = 0, i, stashCount = 0;
+    BOOL wasQueueing = FALSE;
+    DtlsInStunPacket stash[DTLS_IN_STUN_MAX_STASHED_PACKETS];
+
+    CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+
+    MUTEX_LOCK(pKvsPeerConnection->earlyDtlsLock);
+    if (ATOMIC_EXCHANGE_BOOL(&pKvsPeerConnection->queueEarlyDtls, FALSE)) {
+        wasQueueing = TRUE;
+        count = pKvsPeerConnection->earlyDtlsPacketCount;
+        MEMCPY(packets, pKvsPeerConnection->earlyDtlsPackets, count * SIZEOF(PBYTE));
+        MEMCPY(lengths, pKvsPeerConnection->earlyDtlsPacketLengths, count * SIZEOF(UINT32));
+        pKvsPeerConnection->earlyDtlsPacketCount = 0;
+    }
+    MUTEX_UNLOCK(pKvsPeerConnection->earlyDtlsLock);
+
+    // SPED: the flight in the checks goes plain too, the peer may not have it yet. From now on checks and responses only
+    // acknowledge: later flights go plain only, and the one in the checks would be stale.
+    if (wasQueueing && pKvsPeerConnection->spedEnabled) {
+        CHK_LOG_ERR(dtlsInStunTakeStash(pKvsPeerConnection->pIceAgent->pDtlsInStun, stash, &stashCount));
+        for (i = 0; i < stashCount; i++) {
+            CHK_LOG_ERR(iceAgentSendPacket(pKvsPeerConnection->pIceAgent, stash[i].pData, stash[i].length));
+            SAFE_MEMFREE(stash[i].pData);
+        }
+    }
+
+    for (i = 0; i < count; i++) {
+        CHK_LOG_ERR(iceAgentSendPacket(pKvsPeerConnection->pIceAgent, packets[i], lengths[i]));
+        SAFE_MEMFREE(packets[i]);
+    }
+    CHK_STATUS(dtlsSessionSetRetransmitHold(pKvsPeerConnection->pDtlsSession, FALSE));
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
+}
+
 VOID onDtlsOutboundPacket(UINT64 customData, PBYTE pBuffer, UINT32 bufferLen)
 {
     ENTERS();
     PKvsPeerConnection pKvsPeerConnection = NULL;
+    BOOL handshakeDone = FALSE;
     if (customData == 0) {
         return;
     }
 
     pKvsPeerConnection = (PKvsPeerConnection) customData;
-    iceAgentSendPacket(pKvsPeerConnection->pIceAgent, pBuffer, bufferLen);
+    // SPED: while ICE has no pair, the handshake travels in the connectivity checks
+    if (pKvsPeerConnection->spedEnabled && ATOMIC_LOAD_BOOL(&pKvsPeerConnection->queueEarlyDtls)) {
+        dtlsSessionIsInitFinished(pKvsPeerConnection->pDtlsSession, &handshakeDone);
+        if (!handshakeDone && dtlsInStunCapturePacket(pKvsPeerConnection->pIceAgent->pDtlsInStun, pBuffer, bufferLen)) {
+            return;
+        }
+    }
+    if (!queueEarlyDtlsPacket(pKvsPeerConnection, pBuffer, bufferLen)) {
+        iceAgentSendPacket(pKvsPeerConnection->pIceAgent, pBuffer, bufferLen);
+    }
     LEAVES();
+}
+
+// SPED: a flight is complete, or was sent again
+VOID onDtlsHandshakeFlight(UINT64 customData, BOOL retransmission)
+{
+    PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
+
+    if (pKvsPeerConnection != NULL && pKvsPeerConnection->spedEnabled) {
+        dtlsInStunEndFlight(pKvsPeerConnection->pIceAgent->pDtlsInStun, retransmission);
+    }
 }
 
 VOID onDtlsStateChange(UINT64 customData, RTC_DTLS_TRANSPORT_STATE newDtlsState)
@@ -842,6 +981,14 @@ VOID onDtlsStateChange(UINT64 customData, RTC_DTLS_TRANSPORT_STATE newDtlsState)
     }
 
     pKvsPeerConnection = (PKvsPeerConnection) customData;
+
+    if (pKvsPeerConnection->spedEnabled) {
+        if (newDtlsState == RTC_DTLS_TRANSPORT_STATE_CONNECTED) {
+            dtlsInStunOnHandshakeComplete(pKvsPeerConnection->pIceAgent->pDtlsInStun, !ATOMIC_LOAD_BOOL(&pKvsPeerConnection->dtlsIsServer));
+        } else if (newDtlsState == RTC_DTLS_TRANSPORT_STATE_FAILED) {
+            dtlsInStunOnDtlsFailed(pKvsPeerConnection->pIceAgent->pDtlsInStun);
+        }
+    }
 
     switch (newDtlsState) {
         case RTC_DTLS_TRANSPORT_STATE_CONNECTED:
@@ -1190,6 +1337,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
 
     pKvsPeerConnection->pSrtpSessionLock = MUTEX_CREATE(TRUE);
     pKvsPeerConnection->peerConnectionObjLock = MUTEX_CREATE(FALSE);
+    pKvsPeerConnection->earlyDtlsLock = MUTEX_CREATE(FALSE);
     pKvsPeerConnection->dataChannelsLock = MUTEX_CREATE(TRUE);
     pKvsPeerConnection->connectionState = RTC_PEER_CONNECTION_STATE_NONE;
     pKvsPeerConnection->MTU = pConfiguration->kvsRtcConfiguration.maximumTransmissionUnit == 0
@@ -1212,6 +1360,16 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
                  "Create ICE agent object");
 
     NULLABLE_SET_EMPTY(pKvsPeerConnection->canTrickleIce);
+
+    if (pConfiguration->kvsRtcConfiguration.enableSped) {
+        if (dtlsSpedSupported()) {
+            CHK_STATUS(iceAgentEnableDtlsInStun(pKvsPeerConnection->pIceAgent));
+            CHK_STATUS(dtlsSessionOnHandshakeFlight(pKvsPeerConnection->pDtlsSession, (UINT64) pKvsPeerConnection, onDtlsHandshakeFlight));
+            pKvsPeerConnection->spedEnabled = TRUE;
+        } else {
+            DLOGW("SPED needs mbedTLS or OpenSSL 1.1.0 or later, continuing without it");
+        }
+    }
 
     if (!pConfiguration->kvsRtcConfiguration.disableSenderSideBandwidthEstimation) {
         pKvsPeerConnection->twccLock = MUTEX_CREATE(TRUE);
@@ -1259,7 +1417,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     PDoubleListNode pCurNode = NULL;
     UINT64 item = 0;
     UINT64 startTime;
-    UINT32 twccHashTableCount = 0;
+    UINT32 twccHashTableCount = 0, i;
     BOOL twccLocked = FALSE;
 
     CHK(ppPeerConnection != NULL, STATUS_NULL_ARG);
@@ -1337,6 +1495,13 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
 
     if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->peerConnectionObjLock)) {
         MUTEX_FREE(pKvsPeerConnection->peerConnectionObjLock);
+    }
+
+    for (i = 0; i < pKvsPeerConnection->earlyDtlsPacketCount; i++) {
+        SAFE_MEMFREE(pKvsPeerConnection->earlyDtlsPackets[i]);
+    }
+    if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->earlyDtlsLock)) {
+        MUTEX_FREE(pKvsPeerConnection->earlyDtlsLock);
     }
     if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->dataChannelsLock)) {
         MUTEX_FREE(pKvsPeerConnection->dataChannelsLock);
@@ -1573,6 +1738,72 @@ CleanUp:
     return extid;
 }
 
+// Whether an a=ice-options value lists SPED: "sped", or an earlier libwebrtc name for it, "goog-sped-v1" (Chrome 149 to
+// 154) or "googspedv1" (Chrome 155), which goes to pKvsPeerConnection->remoteSpedLegacyOption
+static BOOL iceOptionsHaveSped(PKvsPeerConnection pKvsPeerConnection, PCHAR pValue)
+{
+    static const PCHAR legacyOptions[] = {"goog-sped-v1", "googspedv1"};
+    PCHAR pToken = pValue, pEnd;
+    UINT32 length, i;
+    BOOL sped = FALSE;
+
+    while (*pToken != '\0') {
+        while (*pToken == ' ') {
+            pToken++;
+        }
+        for (pEnd = pToken; *pEnd != '\0' && *pEnd != ' '; pEnd++) {
+        }
+        length = (UINT32) (pEnd - pToken);
+        if (length == 4 && STRNCMP(pToken, "sped", length) == 0) {
+            sped = TRUE;
+        }
+        for (i = 0; i < ARRAY_SIZE(legacyOptions); i++) {
+            if (length == STRLEN(legacyOptions[i]) && STRNCMP(pToken, legacyOptions[i], length) == 0) {
+                STRCPY(pKvsPeerConnection->remoteSpedLegacyOption, legacyOptions[i]);
+                sped = TRUE;
+            }
+        }
+        pToken = pEnd;
+    }
+
+    return sped;
+}
+
+// SPED: once the descriptions allow it, starts DTLS with its handshake embedded in the ICE checks
+static STATUS startSped(PKvsPeerConnection pKvsPeerConnection)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PDtlsInStun pDtlsInStun;
+
+    CHK(pKvsPeerConnection->spedEnabled && !ATOMIC_LOAD_BOOL(&pKvsPeerConnection->pDtlsSession->isStarted), retStatus);
+    pDtlsInStun = pKvsPeerConnection->pIceAgent->pDtlsInStun;
+
+    if (!pKvsPeerConnection->remoteSpedOffered) {
+        // An answerer embeds only for an offer that announced SPED, as libwebrtc does
+        CHK(pKvsPeerConnection->isOffer, retStatus);
+        // An answer may say nothing: SPED is negotiated in-band, and some answerers carry no ice-option. The peer's first
+        // check or response decides; one without the attributes falls back to plain DTLS
+        DLOGI("The answer does not announce SPED: trying it in-band");
+    }
+    // An early check of the peer may have shown it does not embed after all
+    CHK(dtlsInStunIsActive(pDtlsInStun), retStatus);
+
+    // The handshake then runs plain once ICE is ready, as with a peer without SPED: no reason to fail the negotiation
+    if (STATUS_FAILED(dtlsSessionEnableSped(pKvsPeerConnection->pDtlsSession))) {
+        DLOGW("Could not set up SPED, continuing with plain DTLS");
+        CHK_STATUS(dtlsInStunStop(pDtlsInStun));
+        CHK(FALSE, retStatus);
+    }
+    DLOGI("Embedding the DTLS handshake in ICE checks (SPED)");
+    CHK_STATUS(startDtlsSessionBeforeIce(pKvsPeerConnection));
+    CHK_STATUS(dtlsInStunSetDtlsStarted(pDtlsInStun));
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+
+    return retStatus;
+}
+
 STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionInit pSessionDescriptionInit)
 {
     ENTERS();
@@ -1581,7 +1812,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     UINT32 i, j;
     PSessionDescription pSessionDescription;
     BOOL remoteHasTwccExtmap = FALSE, remoteHasTwccRtcpFb = FALSE;
-    BOOL dtlsHandshakeDone = FALSE;
+    BOOL dtlsRoleFixed = FALSE;
     UINT16 remoteTwccExtId = 0;
 
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
@@ -1589,10 +1820,11 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     CHK(pPeerConnection != NULL && pSessionDescriptionInit != NULL, STATUS_NULL_ARG);
 
     /* The DTLS role is fixed for the lifetime of the connection (RFC 8842): once the handshake
-     * has completed, a re-negotiation setRemoteDescription must not rewrite dtlsIsServer — the
-     * DTLS/ICE threads read it concurrently, and flipping the role mid-session would be wrong. */
+     * has started - which may be before ICE has a pair - a re-negotiation setRemoteDescription must
+     * not rewrite dtlsIsServer: the DTLS/ICE threads read it concurrently, and flipping the role
+     * mid-session would be wrong. */
     if (pKvsPeerConnection->pDtlsSession != NULL) {
-        CHK_STATUS(dtlsSessionIsInitFinished(pKvsPeerConnection->pDtlsSession, &dtlsHandshakeDone));
+        dtlsRoleFixed = ATOMIC_LOAD_BOOL(&pKvsPeerConnection->pDtlsSession->isStarted);
     }
 
     // In master mode, this should be freed once `createAnswer` is invoked for the session.
@@ -1604,11 +1836,13 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     pSessionDescription = pKvsPeerConnection->pRemoteSessionDescription;
     CHK(pSessionDescription != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
-    if (!dtlsHandshakeDone) {
+    if (!dtlsRoleFixed) {
         ATOMIC_STORE_BOOL(&pKvsPeerConnection->dtlsIsServer, FALSE);
     }
     /* Assume cant trickle at first */
     NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, FALSE);
+    pKvsPeerConnection->remoteSpedOffered = FALSE;
+    pKvsPeerConnection->remoteSpedLegacyOption[0] = '\0';
 
     CHK_STATUS(deserializeSessionDescription(pSessionDescription, pSessionDescriptionInit->sdp));
 
@@ -1626,7 +1860,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
                 /* The remote DTLS certificate fingerprint is immutable for the lifetime of the
                  * connection (RFC 8842): copy it once, on the first setRemoteDescription while the
                  * buffer is still empty, and never on a re-negotiation. The DTLS thread reads this
-                 * buffer via strcmp while verifying; gating on dtlsHandshakeDone still races that read
+                 * buffer via strcmp while verifying; gating on dtlsRoleFixed still races that read
                  * (the handshake can finish between the snapshot above and this copy), whereas the
                  * emptiness check writes exactly once — before DTLS exists — and skips thereafter. */
                 if (IS_EMPTY_STRING(pKvsPeerConnection->remoteCertificateFingerprint)) {
@@ -1644,14 +1878,19 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
                 DLOGV("Ignoring unsupported session-level fingerprint algorithm: %.*s", algoLen,
                       pSessionDescription->sdpAttributes[i].attributeValue);
             }
-        } else if (pKvsPeerConnection->isOffer && !dtlsHandshakeDone && STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "setup") == 0) {
+        } else if (!dtlsRoleFixed && STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "setup") == 0) {
             // possible values are actpass, passive and active. If the incoming SDP has active, it indicates it is taking up a client role
-            // In case of actpass and passive, the other peer is taking up a server role and is waiting for incoming connection
+            // In case of actpass and passive, the other peer is taking up a server role and is waiting for incoming connection.
+            // This holds for an offer as for an answer: an offer that is not actpass gets the opposite role in the answer.
             // Reference: https://www.rfc-editor.org/rfc/rfc4572#section-6.2
             ATOMIC_STORE_BOOL(&pKvsPeerConnection->dtlsIsServer, STRCMP(pSessionDescription->sdpAttributes[i].attributeValue, "active") == 0);
-        } else if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "ice-options") == 0 &&
-                   STRSTR(pSessionDescription->sdpAttributes[i].attributeValue, "trickle") != NULL) {
-            NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, TRUE);
+        } else if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "ice-options") == 0) {
+            if (STRSTR(pSessionDescription->sdpAttributes[i].attributeValue, "trickle") != NULL) {
+                NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, TRUE);
+            }
+            if (iceOptionsHaveSped(pKvsPeerConnection, pSessionDescription->sdpAttributes[i].attributeValue)) {
+                pKvsPeerConnection->remoteSpedOffered = TRUE;
+            }
         }
     }
 
@@ -1691,13 +1930,16 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
                     DLOGV("Ignoring unsupported media-level fingerprint algorithm: %.*s", algoLen,
                           pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue);
                 }
-            } else if (pKvsPeerConnection->isOffer && !dtlsHandshakeDone &&
-                       STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "setup") == 0) {
+            } else if (!dtlsRoleFixed && STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "setup") == 0) {
                 ATOMIC_STORE_BOOL(&pKvsPeerConnection->dtlsIsServer,
                                   STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, "active") == 0);
-            } else if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "ice-options") == 0 &&
-                       STRSTR(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, "trickle") != NULL) {
-                NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, TRUE);
+            } else if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "ice-options") == 0) {
+                if (STRSTR(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, "trickle") != NULL) {
+                    NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, TRUE);
+                }
+                if (iceOptionsHaveSped(pKvsPeerConnection, pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue)) {
+                    pKvsPeerConnection->remoteSpedOffered = TRUE;
+                }
                 // This code is only here because Chrome does NOT adhere to the standard and adds ice-options as a media level attribute
                 // The standard dictates clearly that it should be a session level attribute:  https://tools.ietf.org/html/rfc5245#page-76
             } else if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "extmap") == 0 &&
@@ -1742,9 +1984,21 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     STRNCPY(pKvsPeerConnection->remoteIceUfrag, remoteIceUfrag, MAX_ICE_UFRAG_LEN);
     STRNCPY(pKvsPeerConnection->remoteIcePwd, remoteIcePwd, MAX_ICE_PWD_LEN);
 
+    // SPED: an answerer checks as soon as ICE starts, before it creates the answer. Those checks announce SPED already, or
+    // the offerer takes it for a peer without SPED.
+    if (!pKvsPeerConnection->isOffer && pKvsPeerConnection->spedEnabled && pKvsPeerConnection->remoteSpedOffered &&
+        !ATOMIC_LOAD_BOOL(&pKvsPeerConnection->pDtlsSession->isStarted) && !dtlsInStunIsActive(pKvsPeerConnection->pIceAgent->pDtlsInStun)) {
+        CHK_STATUS(dtlsInStunStart(pKvsPeerConnection->pIceAgent->pDtlsInStun));
+    }
+
     // This starts the state machine timer callback that transitions states periodically
     CHK_STATUS(iceAgentStartAgent(pKvsPeerConnection->pIceAgent, pKvsPeerConnection->remoteIceUfrag, pKvsPeerConnection->remoteIcePwd,
                                   pKvsPeerConnection->isOffer));
+
+    // The answer settles SPED and the DTLS role for the offerer
+    if (pKvsPeerConnection->isOffer) {
+        CHK_STATUS(startSped(pKvsPeerConnection));
+    }
 
     if (!pKvsPeerConnection->isOffer) {
         CHK_STATUS(setPayloadTypesFromOffer(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pSessionDescription));
@@ -1815,6 +2069,11 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
     ATOMIC_STORE_BOOL(&pKvsPeerConnection->sctpIsEnabled, TRUE);
 #endif
 
+    // SPED: the answerer may check us before we have its answer; announce SPED in those responses already
+    if (pKvsPeerConnection->spedEnabled && !ATOMIC_LOAD_BOOL(&pKvsPeerConnection->pDtlsSession->isStarted)) {
+        CHK_STATUS(dtlsInStunStart(pKvsPeerConnection->pIceAgent->pDtlsInStun));
+    }
+
     CHK_STATUS(setPayloadTypesForOffer(pKvsPeerConnection->pCodecTable));
     CHK_STATUS(populateSessionDescription(pKvsPeerConnection, pKvsPeerConnection->pRemoteSessionDescription, pSessionDescription));
     CHK_STATUS(serializeSessionDescription(pSessionDescription, NULL, &serializeLen));
@@ -1850,6 +2109,9 @@ STATUS createAnswer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIn
     if (NULL != GETENV(DEBUG_LOG_SDP)) {
         DLOGD("LOCAL_SDP:%s", pSessionDescriptionInit->sdp);
     }
+
+    // The peer checks us as soon as it has the answer, with SPED the DTLS handshake must be ready to go along
+    CHK_STATUS(startSped(pKvsPeerConnection));
 
     // Once answer is created, remote SDP is not needed anymore. We also clear only if
     // answer SDP is successfully created

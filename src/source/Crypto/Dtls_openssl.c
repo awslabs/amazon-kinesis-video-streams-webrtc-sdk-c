@@ -137,6 +137,95 @@ CleanUp:
     return retStatus;
 }
 
+// OpenSSL's initial DTLS retransmission timeout, which starts over when a SPED retransmission hold is released
+#define DTLS_RETRANSMIT_RESUME_DELAY (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+
+#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
+// SPED: each DTLS packet goes out on its own, as OpenSSL writes it, so that it fits a STUN attribute. The memory BIO
+// used otherwise hands out the packets of a flight merged.
+static int dtlsSessionSpedBioWrite(BIO* pBio, const char* pData, int dataLen)
+{
+    PDtlsSession pDtlsSession = (PDtlsSession) BIO_get_data(pBio);
+
+    if (pDtlsSession == NULL || pData == NULL || dataLen <= 0) {
+        return -1;
+    }
+    if (pDtlsSession->driveInHandshake) {
+        if (pDtlsSession->flightPacketCount == 0) {
+            pDtlsSession->flightFirstSeq = dtlsPacketHandshakeSeq((PBYTE) pData, (UINT32) dataLen);
+        }
+        pDtlsSession->flightPacketCount++;
+    }
+    pDtlsSession->dtlsSessionCallbacks.outboundPacketFn(pDtlsSession->dtlsSessionCallbacks.outBoundPacketFnCustomData, (PBYTE) pData,
+                                                        (UINT32) dataLen);
+    return dataLen;
+}
+
+static long dtlsSessionSpedBioCtrl(BIO* pBio, int cmd, long num, void* ptr)
+{
+    UNUSED_PARAM(pBio);
+    UNUSED_PARAM(num);
+    UNUSED_PARAM(ptr);
+    // Nothing is buffered, so a flush has nothing to do; nothing else is supported
+    return cmd == BIO_CTRL_FLUSH ? 1 : 0;
+}
+
+static int dtlsSessionSpedBioCreate(BIO* pBio)
+{
+    BIO_set_init(pBio, 1);
+    return 1;
+}
+
+// One BIO method for all sessions: BIO_get_new_index() hands out a type of its own to each call, from a small range for
+// the whole process. It lives as long as the process, like OpenSSL's own methods.
+static CRYPTO_ONCE gSpedBioMethodOnce = CRYPTO_ONCE_STATIC_INIT;
+static BIO_METHOD* gSpedBioMethod = NULL;
+
+static VOID dtlsSessionCreateSpedBioMethod(VOID)
+{
+    BIO_METHOD* pMethod = BIO_meth_new(BIO_get_new_index() | BIO_TYPE_SOURCE_SINK, "kvs-dtls-sped");
+
+    if (pMethod != NULL &&
+        (BIO_meth_set_write(pMethod, dtlsSessionSpedBioWrite) != 1 || BIO_meth_set_ctrl(pMethod, dtlsSessionSpedBioCtrl) != 1 ||
+         BIO_meth_set_create(pMethod, dtlsSessionSpedBioCreate) != 1)) {
+        BIO_meth_free(pMethod);
+        pMethod = NULL;
+    }
+    gSpedBioMethod = pMethod;
+}
+#endif
+
+// SPED: what one drive of the handshake (its start, a packet of the peer, a timeout) sends is a flight
+VOID dtlsSessionBeginDrive(PDtlsSession pDtlsSession)
+{
+    pDtlsSession->flightPacketCount = 0;
+    pDtlsSession->driveInHandshake = pDtlsSession->spedEnabled && !SSL_is_init_finished(pDtlsSession->pSsl);
+#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
+    pDtlsSession->driveHandshakeState = (INT32) SSL_get_state(pDtlsSession->pSsl);
+#endif
+}
+
+VOID dtlsSessionEndDrive(PDtlsSession pDtlsSession, BOOL timeout)
+{
+    BOOL retransmission = timeout;
+
+    if (pDtlsSession->driveInHandshake && pDtlsSession->flightPacketCount > 0 && pDtlsSession->dtlsSessionCallbacks.handshakeFlightFn != NULL) {
+#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
+        // Without progress in the handshake it was the previous flight again
+        retransmission =
+            dtlsSessionFlightRepeats(pDtlsSession, (INT32) SSL_get_state(pDtlsSession->pSsl) == pDtlsSession->driveHandshakeState) || retransmission;
+#endif
+        pDtlsSession->dtlsSessionCallbacks.handshakeFlightFn(pDtlsSession->dtlsSessionCallbacks.handshakeFlightFnCustomData, retransmission);
+    }
+    pDtlsSession->driveInHandshake = FALSE;
+    pDtlsSession->flightPacketCount = 0;
+    // The smaller SPED MTU is for the handshake only; application data uses the full one
+    if (pDtlsSession->spedEnabled && !pDtlsSession->spedMtuRestored && SSL_is_init_finished(pDtlsSession->pSsl)) {
+        SSL_set_mtu(pDtlsSession->pSsl, DEFAULT_MTU_SIZE_BYTES);
+        pDtlsSession->spedMtuRestored = TRUE;
+    }
+}
+
 STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 customData)
 {
     UNUSED_PARAM(timerID);
@@ -173,6 +262,9 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
     /* In case we need to initiate the handshake */
     CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
 
+    // SPED: whoever carries the handshake retransmits it meanwhile, and after a hold a full interval passes first
+    CHK(!ATOMIC_LOAD_BOOL(&pDtlsSession->retransmitHold) && GETTIME() >= pDtlsSession->retransmitResumeTime, retStatus);
+
     /* https://commondatastorage.googleapis.com/chromium-boringssl-docs/ssl.h.html#DTLSv1_get_timeout */
     dtlsTimeoutRet = DTLSv1_get_timeout(pDtlsSession->pSsl, &timeout);
     if (dtlsTimeoutRet == 0) {
@@ -188,7 +280,9 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
     if (timeoutValDefaultTimeUnit == 0) {
         DLOGD("DTLS handshake timeout event, retransmit");
         /* Retransmit the packet */
+        dtlsSessionBeginDrive(pDtlsSession);
         DTLSv1_handle_timeout(pDtlsSession->pSsl);
+        dtlsSessionEndDrive(pDtlsSession, TRUE);
         CHK_STATUS(dtlsCheckOutgoingDataBuffer(pDtlsSession));
     }
 
@@ -542,7 +636,9 @@ STATUS beginHandshakeProcess(PDtlsSession pDtlsSession, BOOL isServer, PINT32 ss
         SAFE_MEMFREE(pDtlsSession->pEarlyClientHello);
         pDtlsSession->earlyClientHelloLen = 0;
     }
+    dtlsSessionBeginDrive(pDtlsSession);
     *sslRet = SSL_do_handshake(pDtlsSession->pSsl);
+    dtlsSessionEndDrive(pDtlsSession, FALSE);
 CleanUp:
     CHK_LOG_ERR(retStatus);
     releaseDtlsSession(pDtlsSession);
@@ -581,6 +677,75 @@ CleanUp:
     }
     releaseDtlsSession(pDtlsSession);
     LEAVES();
+    return retStatus;
+}
+
+// SPED needs one DTLS packet per write, which the per-datagram BIO of dtlsSessionEnableSped() gives from OpenSSL 1.1.0 on
+BOOL dtlsSpedSupported()
+{
+#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
+    return TRUE;
+#else
+    return FALSE;
+#endif
+}
+
+STATUS dtlsSessionEnableSped(PDtlsSession pDtlsSession)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
+    BOOL locked = FALSE;
+    BIO* pBio = NULL;
+
+    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
+    MUTEX_LOCK(pDtlsSession->sslLock);
+    locked = TRUE;
+    CHK(!ATOMIC_LOAD_BOOL(&pDtlsSession->isStarted), STATUS_INVALID_OPERATION);
+    CHK(!pDtlsSession->spedEnabled, retStatus);
+
+    CHK(CRYPTO_THREAD_run_once(&gSpedBioMethodOnce, dtlsSessionCreateSpedBioMethod) == 1 && gSpedBioMethod != NULL, STATUS_INTERNAL_ERROR);
+    CHK((pBio = BIO_new(gSpedBioMethod)) != NULL, STATUS_NOT_ENOUGH_MEMORY);
+    BIO_set_data(pBio, pDtlsSession);
+    SSL_set_options(pDtlsSession->pSsl, SSL_OP_NO_QUERY_MTU);
+    // Returns the MTU set, 0 if it is too small
+    if (SSL_set_mtu(pDtlsSession->pSsl, DTLS_SPED_MTU_SIZE_BYTES) <= 0) {
+        SSL_clear_options(pDtlsSession->pSsl, SSL_OP_NO_QUERY_MTU);
+        CHK(FALSE, STATUS_INTERNAL_ERROR);
+    }
+    // Last, so that a failure leaves the session as it was. The memory BIO this replaces is freed.
+    SSL_set0_wbio(pDtlsSession->pSsl, pBio);
+    pBio = NULL;
+    pDtlsSession->spedEnabled = TRUE;
+
+CleanUp:
+    if (pBio != NULL) {
+        BIO_free(pBio);
+    }
+    if (locked) {
+        MUTEX_UNLOCK(pDtlsSession->sslLock);
+    }
+#else
+    // SPED needs each DTLS packet on its own: OpenSSL before 1.1.0 lacks the BIO API for it
+    UNUSED_PARAM(pDtlsSession);
+    retStatus = STATUS_NOT_IMPLEMENTED;
+#endif
+
+    return retStatus;
+}
+
+STATUS dtlsSessionSetRetransmitHold(PDtlsSession pDtlsSession, BOOL hold)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
+    MUTEX_LOCK(pDtlsSession->sslLock);
+    if (ATOMIC_EXCHANGE_BOOL(&pDtlsSession->retransmitHold, hold) && !hold) {
+        // A full retransmission interval from now, not from when the flight was first sent
+        pDtlsSession->retransmitResumeTime = GETTIME() + DTLS_RETRANSMIT_RESUME_DELAY;
+    }
+    MUTEX_UNLOCK(pDtlsSession->sslLock);
+
+CleanUp:
     return retStatus;
 }
 
@@ -804,7 +969,9 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
 
         // should clear error before SSL_read: https://stackoverflow.com/a/47218133
         ERR_clear_error();
+        dtlsSessionBeginDrive(pDtlsSession);
         sslRet = SSL_read(pDtlsSession->pSsl, pData, *pDataLen);
+        dtlsSessionEndDrive(pDtlsSession, FALSE);
 
         if (ATOMIC_LOAD_BOOL(&pDtlsSession->remoteCertVerificationFailed)) {
             DLOGW("DTLS strict server certificate verification failed for %s while processing handshake packets",
@@ -818,6 +985,14 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
             isClosed = TRUE;
         } else if (sslRet <= 0) {
             LOG_OPENSSL_ERROR("SSL_read");
+        }
+
+        // SPED: the handshake may complete in a STUN message, and what is carried in STUN needs to know at once, not on the
+        // next timer tick. The packets went out as they were written, so the write BIO holds nothing.
+        if (pDtlsSession->spedEnabled && !ATOMIC_LOAD_BOOL(&pDtlsSession->sslInitFinished) && SSL_is_init_finished(pDtlsSession->pSsl)) {
+            CHK_STATUS(dtlsSessionCheckRemoteCertificateVerification(pDtlsSession));
+            CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CONNECTED));
+            ATOMIC_STORE_BOOL(&pDtlsSession->sslInitFinished, TRUE);
         }
 
         if (!ATOMIC_LOAD_BOOL(&pDtlsSession->sslInitFinished)) {

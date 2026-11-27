@@ -273,6 +273,12 @@ INT32 dtlsSessionSendCallback(PVOID customData, const unsigned char* pBuf, ULONG
 
     CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
 
+    if (pDtlsSession->dtlsSessionCallbacks.handshakeFlightFn != NULL) {
+        if (pDtlsSession->flightPacketCount == 0) {
+            pDtlsSession->flightFirstSeq = dtlsPacketHandshakeSeq((PBYTE) pBuf, (UINT32) len);
+        }
+        pDtlsSession->flightPacketCount++;
+    }
     pDtlsSession->dtlsSessionCallbacks.outboundPacketFn(pDtlsSession->dtlsSessionCallbacks.outBoundPacketFnCustomData, (PBYTE) pBuf, len);
 
 CleanUp:
@@ -300,18 +306,37 @@ CleanUp:
     return STATUS_FAILED(retStatus) ? -retStatus : readBytes;
 }
 
+static INT32 dtlsSessionHandshakeState(PDtlsSession pDtlsSession)
+{
+#if MBEDTLS_BEFORE_V3
+    return (INT32) pDtlsSession->sslCtx.state;
+#else
+    return (INT32) pDtlsSession->sslCtx.MBEDTLS_PRIVATE(state);
+#endif
+}
+
 // Provide mbedtls timer functionality for retransmission and timeout calculation
 // Reference: https://tls.mbed.org/kb/how-to/dtls-tutorial
 VOID dtlsSessionSetTimerCallback(PVOID customData, UINT32 intermediateDelayInMs, UINT32 finalDelayInMs)
 {
     ENTERS();
-    PDtlsSessionTimer pTimer = (PDtlsSessionTimer) customData;
+    PDtlsSession pDtlsSession = (PDtlsSession) customData;
+    PDtlsSessionTimer pTimer = &pDtlsSession->transmissionTimer;
 
     pTimer->intermediateDelay = intermediateDelayInMs * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
     pTimer->finalDelay = finalDelayInMs * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
 
     if (finalDelayInMs != 0) {
         pTimer->updatedTime = GETTIME();
+
+        // mbedTLS arms the retransmission timer once a flight is out, and once before, when the flight is complete but
+        // not sent yet. Without progress in the handshake since mbedTLS was last driven, it was the previous one again.
+        if (pDtlsSession->flightPacketCount > 0 && pDtlsSession->dtlsSessionCallbacks.handshakeFlightFn != NULL) {
+            pDtlsSession->flightPacketCount = 0;
+            pDtlsSession->dtlsSessionCallbacks.handshakeFlightFn(
+                pDtlsSession->dtlsSessionCallbacks.handshakeFlightFnCustomData,
+                dtlsSessionFlightRepeats(pDtlsSession, dtlsSessionHandshakeState(pDtlsSession) == pDtlsSession->driveHandshakeState));
+        }
     }
     LEAVES();
 }
@@ -327,11 +352,15 @@ VOID dtlsSessionSetTimerCallback(PVOID customData, UINT32 intermediateDelayInMs,
 INT32 dtlsSessionGetTimerCallback(PVOID customData)
 {
     ENTERS();
-    PDtlsSessionTimer pTimer = (PDtlsSessionTimer) customData;
+    PDtlsSession pDtlsSession = (PDtlsSession) customData;
+    PDtlsSessionTimer pTimer = &pDtlsSession->transmissionTimer;
     UINT64 elapsed = GETTIME() - pTimer->updatedTime;
 
     if (pTimer->finalDelay == 0) {
         return -1;
+    } else if (ATOMIC_LOAD_BOOL(&pDtlsSession->retransmitHold)) {
+        // Neither retransmit nor shrink the MTU, as mbedTLS does on repeated timeouts
+        return 0;
     } else if (elapsed >= pTimer->finalDelay) {
         return 2;
     } else if (elapsed >= pTimer->intermediateDelay) {
@@ -340,6 +369,15 @@ INT32 dtlsSessionGetTimerCallback(PVOID customData)
         return 0;
     }
     LEAVES();
+}
+
+// The smaller SPED MTU is for the handshake only; application data uses the full one
+static VOID dtlsSessionRestoreMtu(PDtlsSession pDtlsSession)
+{
+    if (pDtlsSession->spedEnabled && !pDtlsSession->spedMtuRestored) {
+        mbedtls_ssl_set_mtu(&pDtlsSession->sslCtx, DEFAULT_MTU_SIZE_BYTES);
+        pDtlsSession->spedMtuRestored = TRUE;
+    }
 }
 
 STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 customData)
@@ -357,11 +395,14 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
 
+    pDtlsSession->driveHandshakeState = dtlsSessionHandshakeState(pDtlsSession);
+    pDtlsSession->flightPacketCount = 0;
     handshakeStatus = mbedtls_ssl_handshake(&pDtlsSession->sslCtx);
     switch (handshakeStatus) {
         case 0:
             // success.
             CHK_STATUS(dtlsSessionCheckRemoteCertificateVerification(pDtlsSession));
+            dtlsSessionRestoreMtu(pDtlsSession);
             CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CONNECTED));
             CHK(FALSE, STATUS_TIMER_QUEUE_STOP_SCHEDULING);
             break;
@@ -447,6 +488,46 @@ STATUS dtlsSessionHandshakeInThread(PDtlsSession pDtlsSession, BOOL isServer)
     return STATUS_SUCCESS;
 }
 
+BOOL dtlsSpedSupported()
+{
+    return TRUE;
+}
+
+STATUS dtlsSessionEnableSped(PDtlsSession pDtlsSession)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
+
+    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
+    MUTEX_LOCK(pDtlsSession->sslLock);
+    locked = TRUE;
+    // The handshake MTU is set when the session starts
+    CHK(!ATOMIC_LOAD_BOOL(&pDtlsSession->isStarted), STATUS_INVALID_OPERATION);
+    pDtlsSession->spedEnabled = TRUE;
+
+CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pDtlsSession->sslLock);
+    }
+    return retStatus;
+}
+
+STATUS dtlsSessionSetRetransmitHold(PDtlsSession pDtlsSession, BOOL hold)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
+    MUTEX_LOCK(pDtlsSession->sslLock);
+    if (ATOMIC_EXCHANGE_BOOL(&pDtlsSession->retransmitHold, hold) && !hold) {
+        // A full retransmission interval from now, not from when the flight was first sent
+        pDtlsSession->transmissionTimer.updatedTime = GETTIME();
+    }
+    MUTEX_UNLOCK(pDtlsSession->sslLock);
+
+CleanUp:
+    return retStatus;
+}
+
 STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
 {
     ENTERS();
@@ -492,7 +573,7 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
 #endif
 
     CHK(mbedtls_ssl_setup(&pDtlsSession->sslCtx, &pDtlsSession->sslCtxConfig) == 0, STATUS_SSL_CTX_CREATION_FAILED);
-    mbedtls_ssl_set_mtu(&pDtlsSession->sslCtx, DEFAULT_MTU_SIZE_BYTES);
+    mbedtls_ssl_set_mtu(&pDtlsSession->sslCtx, pDtlsSession->spedEnabled ? DTLS_SPED_MTU_SIZE_BYTES : DEFAULT_MTU_SIZE_BYTES);
     mbedtls_ssl_set_bio(&pDtlsSession->sslCtx, pDtlsSession, dtlsSessionSendCallback, dtlsSessionReceiveCallback, NULL);
     CHK_STATUS(dtlsSessionConfigureExpectedServerHostname(pDtlsSession, isServer));
 
@@ -508,7 +589,7 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
      * that by capturing the material during the handshake. */
     mbedtls_ssl_set_export_keys_cb(&pDtlsSession->sslCtx, dtlsSessionKeyDerivationCallback, pDtlsSession);
 #endif
-    mbedtls_ssl_set_timer_cb(&pDtlsSession->sslCtx, &pDtlsSession->transmissionTimer, dtlsSessionSetTimerCallback, dtlsSessionGetTimerCallback);
+    mbedtls_ssl_set_timer_cb(&pDtlsSession->sslCtx, pDtlsSession, dtlsSessionSetTimerCallback, dtlsSessionGetTimerCallback);
 
     // Start non-blocking handshaking. A client sends its ClientHello right away rather than on the first timer tick.
     pDtlsSession->dtlsSessionStartTime = GETTIME();
@@ -522,6 +603,8 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
         SAFE_MEMFREE(pDtlsSession->pEarlyClientHello);
         pDtlsSession->earlyClientHelloLen = 0;
     }
+    pDtlsSession->driveHandshakeState = dtlsSessionHandshakeState(pDtlsSession);
+    pDtlsSession->flightPacketCount = 0;
     handshakeStatus = mbedtls_ssl_handshake(&pDtlsSession->sslCtx);
     if (handshakeStatus != MBEDTLS_ERR_SSL_WANT_READ && handshakeStatus != MBEDTLS_ERR_SSL_WANT_WRITE) {
         LOG_MBEDTLS_ERROR("mbedtls_ssl_handshake", handshakeStatus);
@@ -581,6 +664,8 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
 
     pReadBuffer = pDtlsSession->pReadBuffer;
     CHK_STATUS(ioBufferWrite(pReadBuffer, pData, *pDataLen));
+    pDtlsSession->driveHandshakeState = dtlsSessionHandshakeState(pDtlsSession);
+    pDtlsSession->flightPacketCount = 0;
 
     // read application data
     while (iterate && pReadBuffer->off < pReadBuffer->len) {
@@ -617,6 +702,7 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
     if (mbedtls_ssl_is_handshake_over(&pDtlsSession->sslCtx) != 0) {
 #endif
         CHK_STATUS(dtlsSessionCheckRemoteCertificateVerification(pDtlsSession));
+        dtlsSessionRestoreMtu(pDtlsSession);
         CHK_STATUS(dtlsSessionChangeState(pDtlsSession, RTC_DTLS_TRANSPORT_STATE_CONNECTED));
     }
 
