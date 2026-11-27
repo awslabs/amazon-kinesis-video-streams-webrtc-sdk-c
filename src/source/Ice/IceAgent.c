@@ -2775,8 +2775,9 @@ STATUS incomingDataHandler(UINT64 customData, PSocketConnection pSocketConnectio
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     PSocketConnection pSocketConnectionToShutdown = NULL;
+    PDoubleListNode pHeadNode = NULL;
     BOOL locked = FALSE;
-    UINT32 addrLen = 0;
+    UINT32 addrLen = 0, stateTimerToKick = MAX_UINT32;
     CHK(pIceAgent != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
 
     MUTEX_LOCK(pIceAgent->lock);
@@ -2812,8 +2813,20 @@ STATUS incomingDataHandler(UINT64 customData, PSocketConnection pSocketConnectio
     } else {
         if (ATOMIC_LOAD_BOOL(&pIceAgent->processStun)) {
             CHK_STATUS(handleStunPacket(pIceAgent, pBuffer, bufferLen, pSocketConnection, pSrc, pDest, &pSocketConnectionToShutdown));
+            // The pairs are in order of priority. When the first one is ready, a wait for the next timer period cannot
+            // give a better pair.
+            if ((pIceAgent->iceAgentState & (ICE_AGENT_STATE_CHECK_CONNECTION | ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING)) != 0 &&
+                STATUS_SUCCEEDED(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pHeadNode)) && pHeadNode != NULL &&
+                ((PIceCandidatePair) pHeadNode->data)->nominated &&
+                ((PIceCandidatePair) pHeadNode->data)->state == ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
+                stateTimerToKick = pIceAgent->iceAgentStateTimerTask;
+            }
             MUTEX_UNLOCK(pIceAgent->lock);
             locked = FALSE;
+            // The timer callback takes pIceAgent->lock while the timer queue holds its own lock, so kick after the unlock.
+            if (stateTimerToKick != MAX_UINT32) {
+                CHK_LOG_ERR(timerQueueKick(pIceAgent->timerQueueHandle, stateTimerToKick));
+            }
             if (pSocketConnectionToShutdown != NULL) {
                 CHK_STATUS(socketConnectionShutdownSecureSession(pSocketConnectionToShutdown));
             }
@@ -3044,10 +3057,15 @@ STATUS handleStunPacket(PIceAgent pIceAgent, PBYTE pBuffer, UINT32 bufferLen, PS
                 }
             }
 
-            // schedule a connectivity check for the pair
             if (pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_FROZEN || pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_WAITING ||
                 pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS) {
-                CHK_STATUS(stackQueueEnqueue(pIceAgent->triggeredCheckQueue, (UINT64) pIceCandidatePair));
+                if (pIceAgent->iceAgentState == ICE_AGENT_STATE_CHECK_CONNECTION) {
+                    // Same check that executeCheckConnectionIceAgentState() sends from the queue, without the wait for the state timer.
+                    CHK_STATUS(iceCandidatePairCheckConnection(pIceAgent->pBindingRequest, pIceAgent, pIceCandidatePair));
+                } else {
+                    // schedule a connectivity check for the pair
+                    CHK_STATUS(stackQueueEnqueue(pIceAgent->triggeredCheckQueue, (UINT64) pIceCandidatePair));
+                }
             }
 
             if (pIceCandidatePair == pIceAgent->pDataSendingIceCandidatePair) {
