@@ -366,6 +366,47 @@ TEST_F(RtcpFunctionalityTest, onRtcpPacketNackPutsPacketBackAfterSeqNumWrap)
     freePeerConnection(&pRtcPeerConnection);
 }
 
+// A rolling buffer index is the packet's extended sequence number. If a slot holds another packet, the
+// retransmitter must not send it in place of the NACKed one, and must leave it buffered at its index.
+TEST_F(RtcpFunctionalityTest, onRtcpPacketNackSkipsPacketWithMismatchedSequenceNumber)
+{
+    PRtpPacket pRtpPacket = nullptr;
+    UINT64 item = 0;
+    const UINT16 bufferedSeqNums[] = {0, 7, 2};
+    // NACK PID 0, BLP 0x0003 -> seq 0, 1, 2
+    BYTE nackSeq012[] = {0x81, 0xcd, 0x00, 0x03, 0x2c, 0xd1, 0xa0, 0xde, 0x00, 0x00, 0xab, 0xe0, 0x00, 0x00, 0x00, 0x03};
+    RtcOutboundRtpStreamStats stats{};
+
+    initTransceiver(44000);
+    ASSERT_EQ(STATUS_SUCCESS, createRtpRollingBuffer(8, &pKvsRtpTransceiver->sender.packetBuffer));
+    ASSERT_EQ(STATUS_SUCCESS,
+              createRetransmitter(DEFAULT_SEQ_NUM_BUFFER_SIZE, DEFAULT_VALID_INDEX_BUFFER_SIZE, &pKvsRtpTransceiver->sender.retransmitter));
+    // Index 1 holds seq 7, as if the buffer had fallen out of step with the sender's sequence numbers.
+    for (UINT16 seqNum : bufferedSeqNums) {
+        ASSERT_EQ(STATUS_SUCCESS, createRtpPacketWithSeqNum(seqNum, &pRtpPacket));
+        ASSERT_EQ(STATUS_SUCCESS, rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
+        freeRtpPacket(&pRtpPacket);
+    }
+
+    // Only seq 0 and 2 go out; seq 7 is not sent for a NACK of seq 1.
+    ASSERT_EQ(STATUS_SUCCESS, onRtcpPacket(pKvsPeerConnection, nackSeq012, SIZEOF(nackSeq012)));
+    getRtpOutboundStats(pRtcPeerConnection, nullptr, &stats);
+    EXPECT_EQ(1, stats.nackCount);
+    EXPECT_EQ(2, stats.retransmittedPacketsSent);
+
+    // Every packet, including the skipped one, is back at its own index.
+    for (UINT64 index = 0; index < ARRAY_SIZE(bufferedSeqNums); index++) {
+        EXPECT_EQ(STATUS_SUCCESS, rollingBufferExtractData(pKvsRtpTransceiver->sender.packetBuffer->pRollingBuffer, index, &item));
+        pRtpPacket = (PRtpPacket) item;
+        ASSERT_TRUE(pRtpPacket != nullptr);
+        EXPECT_EQ(bufferedSeqNums[index], pRtpPacket->header.sequenceNumber);
+        EXPECT_EQ(STATUS_SUCCESS, rollingBufferInsertData(pKvsRtpTransceiver->sender.packetBuffer->pRollingBuffer, index, item));
+    }
+    pRtpPacket = nullptr;
+
+    freePeerConnection(&pRtcPeerConnection);
+}
+
 TEST_F(RtcpFunctionalityTest, onRtcpPacketCompound)
 {
     KvsPeerConnection peerConnection{};

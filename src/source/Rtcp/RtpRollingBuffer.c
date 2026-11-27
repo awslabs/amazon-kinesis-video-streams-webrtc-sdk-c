@@ -57,7 +57,6 @@ STATUS rtpRollingBufferAddRtpPacket(PRtpRollingBuffer pRollingBuffer, PRtpPacket
     STATUS retStatus = STATUS_SUCCESS;
     PRtpPacket pRtpPacketCopy = NULL;
     PBYTE pRawPacketCopy = NULL;
-    UINT64 index = 0;
     CHK(pRollingBuffer != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
 
     pRawPacketCopy = (PBYTE) MEMALLOC(pRtpPacket->rawPacketLength);
@@ -67,8 +66,7 @@ STATUS rtpRollingBufferAddRtpPacket(PRtpRollingBuffer pRollingBuffer, PRtpPacket
     // pRtpPacketCopy took ownership of pRawPacketCopy
     pRawPacketCopy = NULL;
 
-    CHK_STATUS(rollingBufferAppendData(pRollingBuffer->pRollingBuffer, (UINT64) pRtpPacketCopy, &index));
-    pRollingBuffer->lastIndex = index;
+    CHK_STATUS(rollingBufferAppendData(pRollingBuffer->pRollingBuffer, (UINT64) pRtpPacketCopy, NULL));
 
 CleanUp:
     SAFE_MEMFREE(pRawPacketCopy);
@@ -89,16 +87,20 @@ STATUS rtpRollingBufferGetValidSeqIndexList(PRtpRollingBuffer pRollingBuffer, PU
     PUINT16 pCurSeqPtr;
     PUINT64 pCurSeqIndexListPtr;
     UINT16 seqNum;
-    UINT32 size = 0;
+    UINT64 firstIndex = 0, headIndex = 0, lastIndex;
 
     CHK(pRollingBuffer != NULL && pValidSeqIndexList != NULL && pSequenceNumberList != NULL, STATUS_NULL_ARG);
 
-    CHK_STATUS(rollingBufferGetSize(pRollingBuffer->pRollingBuffer, &size));
+    // This runs on the receive thread while the media thread appends. Work from one snapshot of the
+    // range: reading the indices separately, or again inside the loop, can pair a stale value with a
+    // new one and map a sequence number to the index of a different packet.
+    CHK_STATUS(rollingBufferGetIndexRange(pRollingBuffer->pRollingBuffer, &firstIndex, &headIndex));
     // Empty buffer, just return
-    CHK(size > 0, retStatus);
+    CHK(headIndex > firstIndex, retStatus);
+    lastIndex = headIndex - 1;
 
-    startSeq = GET_UINT16_SEQ_NUM(pRollingBuffer->lastIndex - size + 1);
-    endSeq = GET_UINT16_SEQ_NUM(pRollingBuffer->lastIndex);
+    startSeq = GET_UINT16_SEQ_NUM(firstIndex);
+    endSeq = GET_UINT16_SEQ_NUM(lastIndex);
 
     if (startSeq >= endSeq) {
         crossMaxSeq = TRUE;
@@ -109,10 +111,10 @@ STATUS rtpRollingBufferGetValidSeqIndexList(PRtpRollingBuffer pRollingBuffer, PU
         seqNum = *pCurSeqPtr;
         foundPacket = FALSE;
         if ((!crossMaxSeq && seqNum >= startSeq && seqNum <= endSeq) || (crossMaxSeq && seqNum >= startSeq)) {
-            *pCurSeqIndexListPtr = pRollingBuffer->lastIndex - size + 1 + seqNum - startSeq;
+            *pCurSeqIndexListPtr = firstIndex + seqNum - startSeq;
             foundPacket = TRUE;
         } else if (crossMaxSeq && seqNum <= endSeq) {
-            *pCurSeqIndexListPtr = pRollingBuffer->lastIndex - endSeq + seqNum;
+            *pCurSeqIndexListPtr = lastIndex - endSeq + seqNum;
             foundPacket = TRUE;
         }
         if (foundPacket) {

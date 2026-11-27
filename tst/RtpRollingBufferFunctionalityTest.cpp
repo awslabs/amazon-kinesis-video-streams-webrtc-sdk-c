@@ -36,23 +36,101 @@ TEST_F(RtpRollingBufferFunctionalityTest, appendDataToBufferAndVerify)
 {
     PRtpRollingBuffer pRtpRollingBuffer;
     PRtpPacket pRtpPacket;
+    UINT64 tailIndex = 0, headIndex = 0;
+    auto lastIndex = [&]() -> UINT64 {
+        EXPECT_EQ(STATUS_SUCCESS, rollingBufferGetIndexRange(pRtpRollingBuffer->pRollingBuffer, &tailIndex, &headIndex));
+        return headIndex - 1;
+    };
 
     EXPECT_EQ(STATUS_SUCCESS, createRtpRollingBuffer(2, &pRtpRollingBuffer));
 
     EXPECT_EQ(STATUS_SUCCESS, createRtpPacketWithSeqNum(0, &pRtpPacket));
     EXPECT_EQ(STATUS_SUCCESS, rtpRollingBufferAddRtpPacket(pRtpRollingBuffer, pRtpPacket));
-    EXPECT_EQ(0, pRtpRollingBuffer->lastIndex);
+    EXPECT_EQ(0, lastIndex());
     updateRtpPacketSeqNum(pRtpPacket, 1);
     EXPECT_EQ(STATUS_SUCCESS, rtpRollingBufferAddRtpPacket(pRtpRollingBuffer, pRtpPacket));
-    EXPECT_EQ(1, pRtpRollingBuffer->lastIndex);
+    EXPECT_EQ(1, lastIndex());
     updateRtpPacketSeqNum(pRtpPacket, 2);
     EXPECT_EQ(STATUS_SUCCESS, rtpRollingBufferAddRtpPacket(pRtpRollingBuffer, pRtpPacket));
-    EXPECT_EQ(2, pRtpRollingBuffer->lastIndex);
+    EXPECT_EQ(2, lastIndex());
     updateRtpPacketSeqNum(pRtpPacket, 3);
     EXPECT_EQ(STATUS_SUCCESS, rtpRollingBufferAddRtpPacket(pRtpRollingBuffer, pRtpPacket));
-    EXPECT_EQ(3, pRtpRollingBuffer->lastIndex);
+    EXPECT_EQ(3, lastIndex());
     EXPECT_EQ(STATUS_SUCCESS, freeRtpRollingBuffer(&pRtpRollingBuffer));
     EXPECT_EQ(STATUS_SUCCESS, freeRtpPacket(&pRtpPacket));
+}
+
+// writeFrame() appends on the media thread while resendPacketOnNack() looks packets up on the receive thread.
+// Every index returned for a NACKed sequence number must hold that sequence number's packet. Reading the
+// buffer range without a consistent snapshot maps some lookups to the next packet instead.
+TEST_F(RtpRollingBufferFunctionalityTest, getValidSeqIndexListWhileAppendingMapsToRequestedPackets)
+{
+    const UINT32 capacity = 512, seqCount = 32;
+    PRtpRollingBuffer pRtpRollingBuffer = NULL;
+    // 32-bit on purpose: 64-bit std::atomic needs libatomic on 32-bit MIPS, which the tests do not link.
+    std::atomic<UINT32> appended(0);
+    std::atomic<bool> stop(false);
+    UINT16 seqList[seqCount];
+    UINT64 indexList[seqCount], item, newest;
+    UINT32 filledIndexListLen, evicted, i;
+    UINT64 checked = 0, mismatches = 0, endTime;
+
+    ASSERT_EQ(STATUS_SUCCESS, createRtpRollingBuffer(capacity, &pRtpRollingBuffer));
+
+    std::thread writer([&]() {
+        PRtpPacket pRtpPacket = NULL;
+        for (UINT64 seq = 0; !stop.load(std::memory_order_relaxed); seq++) {
+            if (STATUS_SUCCESS != createRtpPacketWithSeqNum(GET_UINT16_SEQ_NUM(seq), &pRtpPacket)) {
+                break;
+            }
+            rtpRollingBufferAddRtpPacket(pRtpRollingBuffer, pRtpPacket);
+            freeRtpPacket(&pRtpPacket);
+            // Relaxed on purpose: the test must not add ordering the SDK code does not have.
+            appended.store((UINT32) (seq + 1), std::memory_order_relaxed);
+        }
+    });
+
+    endTime = GETTIME() + HUNDREDS_OF_NANOS_IN_A_SECOND;
+    while (GETTIME() < endTime) {
+        newest = appended.load(std::memory_order_relaxed);
+        if (newest < capacity + seqCount) {
+            THREAD_SLEEP(HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+            continue;
+        }
+        // Ask for packets well inside the window, as a receiver NACKs losses about one RTT old.
+        for (i = 0; i < seqCount; i++) {
+            seqList[i] = GET_UINT16_SEQ_NUM(newest - capacity / 2 + i);
+        }
+        filledIndexListLen = seqCount;
+        EXPECT_EQ(STATUS_SUCCESS, rtpRollingBufferGetValidSeqIndexList(pRtpRollingBuffer, seqList, seqCount, indexList, &filledIndexListLen));
+        EXPECT_LE(filledIndexListLen, seqCount);
+        if (filledIndexListLen > seqCount) {
+            break; // not ASSERT: the writer thread must still be joined
+        }
+        // If this thread was descheduled, the writer may have evicted some requested packets. Those are the
+        // oldest, the first ones in seqList, so the returned indices line up with the end of the list.
+        evicted = seqCount - filledIndexListLen;
+        for (i = 0; i < filledIndexListLen; i++) {
+            EXPECT_EQ(STATUS_SUCCESS, rollingBufferExtractData(pRtpRollingBuffer->pRollingBuffer, indexList[i], &item));
+            if (item == 0) {
+                continue;
+            }
+            checked++;
+            if (((PRtpPacket) item)->header.sequenceNumber != seqList[evicted + i]) {
+                mismatches++;
+            }
+            if (STATUS_ROLLING_BUFFER_NOT_IN_RANGE == rollingBufferInsertData(pRtpRollingBuffer->pRollingBuffer, indexList[i], item)) {
+                freeRtpPacket((PRtpPacket*) &item);
+            }
+        }
+    }
+
+    stop = true;
+    writer.join();
+
+    EXPECT_GT(checked, 0);
+    EXPECT_EQ(0, mismatches) << mismatches << " of " << checked << " lookups returned another packet";
+    EXPECT_EQ(STATUS_SUCCESS, freeRtpRollingBuffer(&pRtpRollingBuffer));
 }
 
 TEST_F(RtpRollingBufferFunctionalityTest, getIndexForSeqListReturnEmptyList)

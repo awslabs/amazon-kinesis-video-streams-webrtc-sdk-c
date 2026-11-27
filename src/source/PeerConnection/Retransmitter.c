@@ -40,6 +40,24 @@ CleanUp:
     return retStatus;
 }
 
+// Put a packet taken out with rollingBufferExtractData() back at the index it came from. If that slot has been
+// evicted in the meantime the packet is no longer buffered, so it is freed here. *ppRtpPacket is NULL on success.
+static STATUS putBackPacketToRollingBuffer(PRtpRollingBuffer pRtpRollingBuffer, UINT64 index, PRtpPacket* ppRtpPacket)
+{
+    STATUS retStatus = rollingBufferInsertData(pRtpRollingBuffer->pRollingBuffer, index, (UINT64) *ppRtpPacket);
+
+    if (retStatus == STATUS_ROLLING_BUFFER_NOT_IN_RANGE) {
+        DLOGS("Retransmit STATUS_ROLLING_BUFFER_NOT_IN_RANGE free %lu by self", (*ppRtpPacket)->header.sequenceNumber);
+        freeRtpPacket(ppRtpPacket);
+        retStatus = STATUS_SUCCESS;
+    } else if (STATUS_SUCCEEDED(retStatus)) {
+        DLOGS("Retransmit add back to rolling %lu", (*ppRtpPacket)->header.sequenceNumber);
+        *ppRtpPacket = NULL;
+    }
+
+    return retStatus;
+}
+
 STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
 {
     ENTERS();
@@ -92,6 +110,17 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
         pRtpPacket = (PRtpPacket) item;
         CHK(retStatus == STATUS_SUCCESS, retStatus);
 
+        if (pRtpPacket != NULL && pRtpPacket->header.sequenceNumber != GET_UINT16_SEQ_NUM(pRetransmitter->validIndexList[index])) {
+            // A rolling buffer index is the packet's extended sequence number (see RtpRollingBuffer.h). A slot holding
+            // another packet means the buffer is out of step with the sender's sequence numbers, and resending it would
+            // put a packet the receiver did not ask for on the wire. Put it back and skip it. Once out of step the buffer
+            // stays that way, so this runs for every NACKed packet: log at debug level.
+            DLOGD("Retransmit skipped: rolling buffer index %" PRIu64 " holds seq %u", pRetransmitter->validIndexList[index],
+                  pRtpPacket->header.sequenceNumber);
+            CHK_STATUS(putBackPacketToRollingBuffer(pSenderTranceiver->sender.packetBuffer, pRetransmitter->validIndexList[index], &pRtpPacket));
+            continue;
+        }
+
         if (pRtpPacket != NULL) {
             if (payloadType == rtxPayloadType) {
                 // RTX was not negotiated for this codec: fall back to resending the original packet as-is on the
@@ -125,21 +154,8 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
             } else {
                 DLOGV("Resent packet ssrc %lu seq %lu failed 0x%08x", pRtpPacket->header.ssrc, pRtpPacket->header.sequenceNumber, retStatus);
             }
-            // putBackPacketToRollingBuffer
-            retStatus = rollingBufferInsertData(pSenderTranceiver->sender.packetBuffer->pRollingBuffer, pRetransmitter->validIndexList[index], item);
-            CHK(retStatus == STATUS_SUCCESS || retStatus == STATUS_ROLLING_BUFFER_NOT_IN_RANGE, retStatus);
-
-            // free the packet if it is not in the valid range any more
-            if (retStatus == STATUS_ROLLING_BUFFER_NOT_IN_RANGE) {
-                DLOGS("Retransmit STATUS_ROLLING_BUFFER_NOT_IN_RANGE free %lu by self", pRtpPacket->header.sequenceNumber);
-                freeRtpPacket(&pRtpPacket);
-                retStatus = STATUS_SUCCESS;
-            } else {
-                DLOGS("Retransmit add back to rolling %lu", pRtpPacket->header.sequenceNumber);
-            }
-
+            CHK_STATUS(putBackPacketToRollingBuffer(pSenderTranceiver->sender.packetBuffer, pRetransmitter->validIndexList[index], &pRtpPacket));
             freeRtpPacket(&pRtxRtpPacket);
-            pRtpPacket = NULL;
         }
     }
 
