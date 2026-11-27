@@ -40,7 +40,7 @@ STATUS createSocketConnection(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL
 
     ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, FALSE);
     ATOMIC_STORE_BOOL(&pSocketConnection->receiveData, FALSE);
-    ATOMIC_STORE_BOOL(&pSocketConnection->inUse, FALSE);
+    ATOMIC_STORE(&pSocketConnection->inUse, SOCKET_CONNECTION_IDLE);
     pSocketConnection->dataAvailableCallbackCustomData = customData;
     pSocketConnection->dataAvailableCallbackFn = dataAvailableFn;
 
@@ -73,33 +73,11 @@ CleanUp:
     return retStatus;
 }
 
-STATUS freeSocketConnection(PSocketConnection* ppSocketConnection)
+/* Close and free a socket connection that nothing else holds. */
+static VOID socketConnectionFreeResources(PSocketConnection pSocketConnection)
 {
-    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    PSocketConnection pSocketConnection = NULL;
-    UINT64 shutdownTimeout;
     CHAR ipAddr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
-
-    CHK(ppSocketConnection != NULL, STATUS_NULL_ARG);
-    pSocketConnection = *ppSocketConnection;
-    CHK(pSocketConnection != NULL, retStatus);
-
-    // connectionClosed is accessed and modified when checking if socket connection is closed
-    // Hence the modification needs to be protected
-    MUTEX_LOCK(pSocketConnection->lock);
-    ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, TRUE);
-    MUTEX_UNLOCK(pSocketConnection->lock);
-
-    // Await for the socket connection to be released
-    shutdownTimeout = GETTIME() + KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT;
-    while (ATOMIC_LOAD_BOOL(&pSocketConnection->inUse) && GETTIME() < shutdownTimeout) {
-        THREAD_SLEEP(KVS_ICE_SHORT_CHECK_DELAY);
-    }
-
-    if (ATOMIC_LOAD_BOOL(&pSocketConnection->inUse)) {
-        DLOGW("Shutting down socket connection timedout after %u seconds", KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT / HUNDREDS_OF_NANOS_IN_A_SECOND);
-    }
 
     if (IS_VALID_MUTEX_VALUE(pSocketConnection->lock)) {
         MUTEX_FREE(pSocketConnection->lock);
@@ -127,6 +105,44 @@ STATUS freeSocketConnection(PSocketConnection* ppSocketConnection)
     }
 
     MEMFREE(pSocketConnection);
+}
+
+STATUS freeSocketConnection(PSocketConnection* ppSocketConnection)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    PSocketConnection pSocketConnection = NULL;
+    UINT64 shutdownTimeout;
+    SIZE_T expected;
+
+    CHK(ppSocketConnection != NULL, STATUS_NULL_ARG);
+    pSocketConnection = *ppSocketConnection;
+    CHK(pSocketConnection != NULL, retStatus);
+
+    // connectionClosed is accessed and modified when checking if socket connection is closed
+    // Hence the modification needs to be protected
+    MUTEX_LOCK(pSocketConnection->lock);
+    ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, TRUE);
+    MUTEX_UNLOCK(pSocketConnection->lock);
+
+    // Await for the socket connection to be released
+    shutdownTimeout = GETTIME() + KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT;
+    while (ATOMIC_LOAD(&pSocketConnection->inUse) == SOCKET_CONNECTION_IN_USE && GETTIME() < shutdownTimeout) {
+        THREAD_SLEEP(KVS_ICE_SHORT_CHECK_DELAY);
+    }
+
+    // The listener still holds the socket, for example in a receive callback that
+    // blocks. Freeing it now would leave the listener with a freed lock and buffers.
+    // Hand the free over: the listener frees the socket when it releases it.
+    expected = SOCKET_CONNECTION_IN_USE;
+    if (ATOMIC_COMPARE_EXCHANGE(&pSocketConnection->inUse, &expected, SOCKET_CONNECTION_ORPHANED)) {
+        DLOGW("Shutting down socket connection timedout after %u seconds, the connection listener frees it",
+              KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT / HUNDREDS_OF_NANOS_IN_A_SECOND);
+        *ppSocketConnection = NULL;
+        CHK(FALSE, STATUS_SUCCESS);
+    }
+
+    socketConnectionFreeResources(pSocketConnection);
 
     *ppSocketConnection = NULL;
 
@@ -134,6 +150,16 @@ CleanUp:
 
     LEAVES();
     return retStatus;
+}
+
+VOID socketConnectionRelease(PSocketConnection pSocketConnection)
+{
+    SIZE_T expected = SOCKET_CONNECTION_IN_USE;
+
+    // A free that timed out while the listener held the socket left it to us.
+    if (!ATOMIC_COMPARE_EXCHANGE(&pSocketConnection->inUse, &expected, SOCKET_CONNECTION_IDLE) && expected == SOCKET_CONNECTION_ORPHANED) {
+        socketConnectionFreeResources(pSocketConnection);
+    }
 }
 
 /**

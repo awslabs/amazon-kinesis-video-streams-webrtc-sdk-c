@@ -291,7 +291,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
 
                     // Store the sockets locally while in use and mark it as in use
                     sockets[socketCount++] = pSocketConnection;
-                    ATOMIC_STORE_BOOL(&pSocketConnection->inUse, TRUE);
+                    ATOMIC_STORE(&pSocketConnection->inUse, SOCKET_CONNECTION_IN_USE);
                 } else {
                     // Remove the connection
                     pConnectionListener->sockets[i] = NULL;
@@ -393,9 +393,9 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
             }
         }
 
-        // Mark as unused
+        // Mark as unused. A socket whose free timed out meanwhile is freed here.
         for (i = 0; i < socketCount; i++) {
-            ATOMIC_STORE_BOOL(&sockets[i]->inUse, FALSE);
+            socketConnectionRelease(sockets[i]);
         }
     }
 
