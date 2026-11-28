@@ -558,7 +558,12 @@ STATUS getIpWithHostName(PCHAR hostname, PDualKvsIpAddresses destIps)
             ipv6Resolved = TRUE;
         }
 
-        errCode = getaddrinfo(hostname, NULL, NULL, &res);
+        struct addrinfo hints;
+        MEMSET(&hints, 0, SIZEOF(hints));
+        hints.ai_family = useDualStackMode ? AF_UNSPEC : AF_INET;
+        hints.ai_socktype = SOCK_STREAM;
+        hints.ai_flags = AI_ADDRCONFIG;
+        errCode = getaddrinfo(hostname, NULL, &hints, &res);
         if (errCode != 0) {
             errStr = errCode == EAI_SYSTEM ? (strerror(errno)) : ((PCHAR) gai_strerror(errCode));
             CHK_ERR(FALSE, STATUS_RESOLVE_HOSTNAME_FAILED, "getaddrinfo() with errno %s", errStr);
