@@ -822,14 +822,21 @@ STATUS getStunAddr(PStunIpAddrContext pStunIpAddrCtx)
     pStunIpAddrCtx->kvsIpAddresses.ipv4Address.port = 0;
     pStunIpAddrCtx->kvsIpAddresses.ipv6Address.port = 0;
 
+    BOOL useDualStackMode = isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR);
+
     // Don't attempt to resolve IPv6 address if not in dual-stack mode.
-    if (!isEnvVarEnabled(USE_DUAL_STACK_ENDPOINTS_ENV_VAR)) {
+    if (!useDualStackMode) {
         ipv6Resolved = TRUE;
     }
+    struct addrinfo hints;
+    MEMSET(&hints, 0, SIZEOF(hints));
+    hints.ai_family = useDualStackMode ? AF_UNSPEC : AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_ADDRCONFIG;
 
     DLOGD("Resolving STUN server address for hostname: %s", pStunIpAddrCtx->hostname);
 
-    errCode = getaddrinfo(pStunIpAddrCtx->hostname, NULL, NULL, &res);
+    errCode = getaddrinfo(pStunIpAddrCtx->hostname, NULL, &hints, &res);
     if (errCode != 0) {
         DLOGI("Failed to resolve hostname with errcode: %d", errCode);
         retStatus = STATUS_RESOLVE_HOSTNAME_FAILED;
